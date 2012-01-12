@@ -10,7 +10,7 @@ from linreg import *
 
 ##
 # YIL changes v 3.1:
-#  - 
+#  - listtrans replaced by translator.keys()
 #
 
 ###### optionparser
@@ -29,7 +29,7 @@ parser.add_option("-b", "--beta",
                 help="where beta-beat is stored",
                 metavar="brc", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="brc")
 parser.add_option("-t", "--technic",
-                help="Which technic to use",
+                help="Which technique to use",
                 metavar="technic", default="./", dest="technic")
 parser.add_option("-a", "--accel",
                 help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
@@ -57,7 +57,6 @@ def madcreator(inifile,madfile,dpps):
 	for line in linesini:
 		li=line.split("=")
 		translator[li[0].split()[0]]=li[1].split()[0]
-		listtrans.append(li[0].split()[0])
 
 	# creating the DPP
 	dppstring=''
@@ -69,8 +68,6 @@ def madcreator(inifile,madfile,dpps):
 
 	translator['%DPP']=dppstring
 	translator['%DP_AC_P']=dppstring_ac
-	listtrans.append('%DPP')
-	listtrans.append('%DP_AC_P')
 
 	if(dppstring!=''):
 		print "Creating madx"
@@ -80,7 +77,7 @@ def madcreator(inifile,madfile,dpps):
 		#changing variables
 		for line in linesmad:
 
-			for value in listtrans:
+			for value in translator.keys():
 				line=line.replace(value,translator[value])
 
 			print >> filetoprint, line
