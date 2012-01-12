@@ -10,7 +10,7 @@ from linreg import *
 
 ##
 # YIL changes v 3.1:
-#  - listtrans replaced by translator.keys()
+#  - Cleaned macro writer in madcreator
 #
 
 ###### optionparser
@@ -50,10 +50,9 @@ parser.add_option("-a", "--accel",
 def madcreator(inifile,madfile,dpps):
 
 	linesini=open(inifile,"r").readlines()
-	linesmad=open(madfile+"/job.twiss_chrom.madx","r").readlines()
+	linesmad=open(madfile+"/job.twiss_chrom.madx.macro","r").read()
 	
 	translator={}
-	listtrans=[]
 	for line in linesini:
 		li=line.split("=")
 		translator[li[0].split()[0]]=li[1].split()[0]
@@ -62,29 +61,24 @@ def madcreator(inifile,madfile,dpps):
 	dppstring=''
 	dppstring_ac=''
 	for dpp in dpps:
-		if (os.path.exists(translator['%PATH']+'/twiss_'+str(dpp)+'.dat')==False):
-			dppstring=dppstring+'twiss, chrom,sequence='+translator['%ACCEL']+', deltap='+str(dpp)+', file="'+translator['%PATH']+'/twiss_'+str(dpp)+'.dat";\n'
-			dppstring_ac=dppstring_ac+'twiss, chrom,sequence='+translator['%ACCEL']+', deltap='+str(dpp)+', file="'+translator['%PATH']+'/twiss_'+str(dpp)+'_ac.dat";\n'
+		if (os.path.exists(translator['PATH']+'/twiss_'+str(dpp)+'.dat')==False):
+			dppstring=dppstring+'twiss, chrom,sequence='+translator['ACCEL']+', deltap='+str(dpp)+', file="'+translator['PATH']+'/twiss_'+str(dpp)+'.dat";\n'
+			dppstring_ac=dppstring_ac+'twiss, chrom,sequence='+translator['ACCEL']+', deltap='+str(dpp)+', file="'+translator['PATH']+'/twiss_'+str(dpp)+'_ac.dat";\n'
 
-	translator['%DPP']=dppstring
-	translator['%DP_AC_P']=dppstring_ac
+	translator['DPP']=dppstring
+	translator['DP_AC_P']=dppstring_ac
 
 	if(dppstring!=''):
 		print "Creating madx"
-		filetoprint=open(translator['%PATH']+"/job.chrom.madx","w")
+		filetoprint=open(translator['PATH']+"/job.chrom.madx","w")
 
 
 		#changing variables
-		for line in linesmad:
-
-			for value in translator.keys():
-				line=line.replace(value,translator[value])
-
-			print >> filetoprint, line
+		filetoprint.write(linesmad % translator)
 
 		filetoprint.close()
 		print "Running madx"
-		os.system('madx < '+translator['%PATH']+'/job.chrom.madx')
+		os.system('madx < '+translator['PATH']+'/job.chrom.madx')
 
 
 

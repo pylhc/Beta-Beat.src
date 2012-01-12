@@ -1,5 +1,8 @@
 title, "Model creator for java" ;
 
+! YIL Comment: Difference from job.twiss_chrom.madx
+! is that variables are set as 
+! percent(VARNAME)s instead of percentVARNAME
 
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
@@ -7,7 +10,7 @@ System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
 option, -echo, -info,  warn;
 call,   file = "db5/V6.5.seq";
-call,   file = "%PATH/modifiers.madx";	
+call,   file = "%(PATH)s/modifiers.madx";	
 call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
 
 seqedit, sequence=LHCB1;
@@ -23,7 +26,7 @@ endedit;
 
  option,  echo,  info,  warn;
 
- beam, particle = proton, sequence=%ACCEL, energy = 450.0;
+ beam, particle = proton, sequence=%(ACCEL)s, energy = 450.0;
  beam, sequence=LHCB1,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=1;
  beam, sequence=LHCB2,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=-1;
 
@@ -33,16 +36,16 @@ endedit;
  on_alice:= 0; on_lhcb := 0;
 
 
-use, period=%ACCEL;
+use, period=%(ACCEL)s;
 
 
 !!!!!!!!! matching
 match;
 
-vary, name=KQTD.%BEAM;
-vary, name=KQTF.%BEAM;
+vary, name=KQTD.%(BEAM)s;
+vary, name=KQTF.%(BEAM)s;
 
-constraint, range=#E, mux= 64.%QMX, muy=59.%QMY;
+constraint, range=#E, mux= 64.%(QMX)s, muy=59.%(QMY)s;
 lmdif;
 endmatch;
 
@@ -50,23 +53,23 @@ endmatch;
 !!!!! nominal
 
 select, flag=twiss, clear;
-select, flag=twiss,pattern=MKQA.6L4.%BEAM,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+select, flag=twiss,pattern=MKQA.6L4.%(BEAM)s,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
-%DPP
+%(DPP)s
 
-%STOP
+%(STOP)s
 
 !!!!!!! acdipole
-Qx=%QX;
-Qxd=%QDX;
+Qx=%(QX)s;
+Qxd=%(QDX)s;
 
-Qy=%QY;
-Qyd=%QDY;
+Qy=%(QY)s;
+Qyd=%(QDY)s;
 
-betxac=table(twiss,MKQA.6L4.%BEAM,betx);
-betyac=table(twiss,MKQA.6L4.%BEAM,bety);
+betxac=table(twiss,MKQA.6L4.%(BEAM)s,betx);
+betyac=table(twiss,MKQA.6L4.%(BEAM)s,bety);
 
 
 hacmap21=2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx));
@@ -75,19 +78,19 @@ vacmap43=2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy));
 hacmap: matrix, l=0, rm21=hacmap21;
 vacmap: matrix, l=0, rm43=vacmap43;
 
-seqedit, sequence=%ACCEL; flatten;
-  install, element=hacmap, at=1.583/2, from=MKQA.6L4.%BEAM;
-  install, element=vacmap, at=1.583/2, from=MKQA.6L4.%BEAM;
+seqedit, sequence=%(ACCEL)s; flatten;
+  install, element=hacmap, at=1.583/2, from=MKQA.6L4.%(BEAM)s;
+  install, element=vacmap, at=1.583/2, from=MKQA.6L4.%(BEAM)s;
 endedit;
 
-use, period=%ACCEL;
+use, period=%(ACCEL)s;
 
 select, flag=twiss, clear;
-select, flag=twiss,pattern=MKQA.6L4.%BEAM,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+select, flag=twiss,pattern=MKQA.6L4.%(BEAM)s,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
-%DP_AC_P
+%(DP_AC_P)s
 
 
 
