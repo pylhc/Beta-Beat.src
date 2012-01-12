@@ -11,6 +11,8 @@ from linreg import *
 ##
 # YIL changes v 3.1:
 #  - Cleaned macro writer in madcreator
+#  - modifiers.madx now taken from options.twiss folder
+#    if not found in translator[PATH]
 #
 
 ###### optionparser
@@ -67,6 +69,15 @@ def madcreator(inifile,madfile,dpps):
 
 	translator['DPP']=dppstring
 	translator['DP_AC_P']=dppstring_ac
+
+	for testpath in [translator['PATH'],options.twiss]:
+		_tmpmod=os.path.join(testpath,'modifiers.madx')
+		if os.path.isfile(_tmpmod):
+			print "INFO: Using",_tmpmod
+			translator['MODIFIERS']=_tmpmod
+			break
+	if 'MODIFIERS' not in translator:
+		raise ValueError("Cannot find modifiers.madx")
 
 	if(dppstring!=''):
 		print "Creating madx"
