@@ -1,0 +1,47 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! Redefining skew quads l,r from arc for ATS MD
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+!!!!!!!!!!!!!!!!!!!!
+! b1
+!!!!!!!!!!!!!!!!!!!!
+
+kqs.r1l2b1=0;
+kqs.r5l6b1=0;
+kqs.r7l8b1=0;
+
+kqs.r1b1:=kqs.r1l2b1;
+kqs.l2b1:=kqs.r1l2b1;
+
+kqs.r5b1:=kqs.r5l6b1;
+kqs.l6b1:=kqs.r5l6b1;
+
+
+kqs.r7b1:=kqs.r7l8b1;
+kqs.l8b1:=kqs.r7l8b1;
+
+
+!!!!!!!!!!!!!!!!!!!!
+! b2
+!!!!!!!!!!!!!!!!!!!!
+
+kqs.r2l3b2=0;
+kqs.r4l5b2=0;
+kqs.r6l7b2=0;
+kqs.r8l1b2=0;
+
+kqs.r2b2:=kqs.r2l3b2;
+kqs.l3b2:=kqs.r2l3b2;
+
+kqs.r4b2:=kqs.r4l5b2;
+kqs.l5b2:=kqs.r4l5b2;
+
+kqs.r6b2:=kqs.r6l7b2;
+kqs.l7b2:=kqs.r6l7b2;
+
+kqs.r8b2:=kqs.r8l1b2;
+kqs.l1b2:=kqs.r8l1b2;

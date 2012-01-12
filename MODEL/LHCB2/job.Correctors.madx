@@ -1,0 +1,34 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503/ db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503/ ds";
+
+
+ option, -echo, -info,  warn;
+! call,   file = "db/V6.5.seq";
+ call, file="db/beam_four.seq";
+ call,   file = "db/V6.5.inj.str";
+
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=lhcb1, energy = 450.0;
+ beam,      sequence=lhcb2,particle=proton,energy=450,kbunch=1,npart=1.15E11;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 1; on_sep2 := 1; on_sep5 := 0; on_sep8 := 1;
+ on_alice:= 0; on_lhcb := 0;
+
+
+use, period=lhcb2;
+
+
+select, flag=twiss, clear;
+
+select, flag=twiss, PATTERN="MCB.*\.B2",column=name,s,keyword,betx,alfx,bety,alfy,mux,muy;
+select, flag=twiss, PATTERN="BPM.*\.B2",column=name,s,keyword,betx,alfx,bety,alfy,mux,muy;
+twiss, sequence=lhcb2, deltap=0.0d0, file="twiss.correctors.dat";
+
+stop;
