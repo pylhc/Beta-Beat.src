@@ -84,7 +84,8 @@ print "Starting GetLLM ", VERSION
 
 
 from metaclass import *
-from Numeric import *
+#from Numeric import *
+from numpy import *
 from math import *
 import cmath
 import sys, pickle,os
