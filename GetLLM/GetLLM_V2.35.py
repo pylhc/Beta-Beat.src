@@ -3447,6 +3447,8 @@ parser.add_option("-l", "--nonlinear",
 
 #output
 outputpath=options.output
+if outputpath and outputpath[-1]!='/':
+    outputpath+='/'
 
 if options.dict=="0":
 	BPMdictionary={}
