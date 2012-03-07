@@ -1,9 +1,6 @@
 ###### imports
 from optparse import OptionParser
-try:
-	from metaclass import twiss
-except:
-	from metaclass25 import twiss	
+from metaclass import twiss	
 import os,sys
 from math import sqrt,cos,sin,pi,atan2
 from datetime import date
@@ -14,6 +11,7 @@ from linreg import *
 
 ###### optionparser
 parser = OptionParser()
+# general
 parser.add_option("-f", "--files",
                 help="Files to use (seperated by ,)",
                 metavar="files", default="./", dest="files")
@@ -26,6 +24,10 @@ parser.add_option("-o", "--output",
 parser.add_option("-d", "--dpp",
                 help="dpps to take",
                 metavar="dpps", default="./", dest="dpps")
+# optics
+parser.add_option("-t", "--technic",
+                help="Which technic to use",
+                metavar="technic", default="./", dest="technic")
 
 (options, args) = parser.parse_args()
 
@@ -137,13 +139,12 @@ def getC(couplefile,name):
 	if check==f1001**2:
 		print "Skipping"
 		skip="Yes"
-		C=0
 	else:
 		part1= 4*(f1001**2-f1010**2)
 		C=1-(1/(1+part1))
 		skip="No"
 
-	return C,skip
+		return C,skip
 
 # linreg for coupling
 def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
@@ -197,10 +198,56 @@ dpps=options.dpps.split(",")
 model=twiss(options.twiss)
 output=options.output
 
+technic=options.technic
+
+print "INFO: Will analyse for "+technic
+
+listx={}
+listy={}
+
+# gathering info
+for filee in files:
+	fileex=filee+"_"+method
+	fileey=filee+"_"+method
+	x=twiss(fileex)
+	y=twiss(fileey)
+
+	print "Start loading file "+filee
+	
+	if "DPP" d.__dict__.keys():
+		dpp=x.DPP
+	else:
+		print "DPP not found ..."
+		sys.exit()
+
+
+	# check if dpp is already excisting
+	if dpp in listx:
+		
+		xlist=listx[dpp]
+		xlist.append(fileex)
+		listx[dpp]=xlist
+		
+		ylist=listy[dpp]
+		ylist.append(fileey)
+		listy[dpp]=ylist
+
+
+	
+	
+	
+
+
+
 if len(dpps)!=len(files):
 	print "Unequal input"
 	sys.exit()
 
+
+## ##############
+#  calculate optics for off-momentum model
+## ##############
+print "Gathering data"
 betalistx={}
 listx=[]
 betalisty={}
