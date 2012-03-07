@@ -84,13 +84,13 @@ print "Starting GetLLM ", VERSION
 
 
 from metaclass import *
-from Numeric import *
+#from Numeric import *
 from math import *
 import cmath
 import sys, pickle,os
 #import operator
 from string import *
-
+from numpy import *
 #imports for f2000
 #import scipy
 #from scipy import optimize

@@ -92,6 +92,12 @@ print "Starting GetLLM ", VERSION
 #######
 ####
 
+
+
+import sys
+sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+
+
 try:
 	from metaclass import *
 except:
@@ -114,7 +120,7 @@ except:
 
 from math import *
 import cmath
-import sys, pickle,os
+import pickle,os
 #import operator
 from string import *
 
