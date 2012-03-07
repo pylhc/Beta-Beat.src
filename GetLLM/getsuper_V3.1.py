@@ -18,9 +18,6 @@ from linreg import *
 ###### optionparser
 parser = OptionParser()
 # general
-parser.add_option("-f", "--files",
-                help="Files to use (seperated by ,)",
-                metavar="files", default="./", dest="files")
 parser.add_option("-m", "--model",
                 help="twiss file to use",
                 metavar="twiss", default="./", dest="twiss")
