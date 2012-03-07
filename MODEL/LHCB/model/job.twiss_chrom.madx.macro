@@ -45,7 +45,7 @@ match;
 vary, name=KQTD.%(BEAM)s;
 vary, name=KQTF.%(BEAM)s;
 
-constraint, range=#E, mux= 64.%(QMX)s, muy=59.%(QMY)s;
+constraint, range=#E, mux= 64.%(QMX)i, muy=59.%(QMY)i;
 lmdif;
 endmatch;
 

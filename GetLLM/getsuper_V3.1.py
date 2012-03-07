@@ -2,26 +2,26 @@
 ###### imports
 from optparse import OptionParser
 from metaclass import twiss
-import os,sys,commands
+import os,sys,shutil,commands
 from math import sqrt,cos,sin,pi,atan2
 from datetime import date
 from linreg import *
-
+from yngve.errors import *
 
 ##
 # YIL changes v 3.1:
 #  - Cleaned macro writer in madcreator
-#  - modifiers.madx now taken from options.twiss folder
-#    if not found in translator[PATH]
+#  - modifiers.madx should be in options.output
 #
 
 
 def parse_args():
     ###### optionparser
-    parser = OptionParser()
+    usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
+    parser = OptionParser(usage)
     # general
-    parser.add_option("-m", "--model",
-            help="twiss file to use",
+    parser.add_option("-m", "--twiss",
+            help="twiss files to use",
             metavar="twiss", default="./", dest="twiss")
     parser.add_option("-o", "--output",
             help="output path, where to store the results",
@@ -29,17 +29,38 @@ def parse_args():
     parser.add_option("-b", "--beta",
             help="where beta-beat is stored",
             metavar="brc", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="brc")
-    parser.add_option("-t", "--technic",
+    parser.add_option("-t", "--technique",
             help="Which technique to use",
-            metavar="technic", default="./", dest="technic")
+            metavar="technique", default="SUSSIX", dest="technique")
     parser.add_option("-a", "--accel",
             help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
             metavar="accel", default="LHCB1",dest="accel")
+    parser.add_option("", "--beam",
+            help="Which beam to use: B1 B2",
+            metavar="beam", default="B1",dest="beam")
+    parser.add_option("", "--qx",
+            help="Fractional horizontal tune",
+            metavar="qx", type="float", default="0.31",dest="qx")
+    parser.add_option("", "--qy",
+            help="Fractional vertical tune",
+            metavar="qy", type="float", default="0.32",dest="qy")
+    parser.add_option("", "--qdx",
+            help="AC dipole horizontal frequency",
+            metavar="qdx", type="float", default="0.304",dest="qdx")
+    parser.add_option("", "--qdy",
+            help="AC dipole vertical frequency",
+            metavar="qdy", type="float", default="0.326",dest="qdy")
 
     return parser.parse_args()
 
 
 
+def check_input(options,args):
+    if len(args)==0:
+        raise SyntaxError("You need to define at least one file input")
+    for f in args:
+        if not os.path.isfile(f):
+            raise ValueError(f+' does not exist')
 
 
 ## ############
@@ -48,52 +69,57 @@ def parse_args():
 
 
 #####
-def madcreator(inifile,madfile,dpps,options):
+def madcreator(dpps,options):
 
-    linesini=open(inifile,"r").readlines()
+    madfile=options.brc+"/MODEL/LHCB/model/"
+
     linesmad=open(madfile+"/job.twiss_chrom.madx.macro","r").read()
+    print madfile+"/job.twiss_chrom.madx.macro"
 
-    translator={}
-    for line in linesini:
-        li=line.split("=")
-        translator[li[0].split()[0]]=li[1].split()[0]
 
     # creating the DPP
     dppstring=''
     dppstring_ac=''
     for dpp in dpps:
-        if (os.path.exists(translator['PATH']+'/twiss_'+str(dpp)+'.dat')==False):
-            dppstring=dppstring+'twiss, chrom,sequence='+translator['ACCEL']+', deltap='+str(dpp)+', file="'+translator['PATH']+'/twiss_'+str(dpp)+'.dat";\n'
-            dppstring_ac=dppstring_ac+'twiss, chrom,sequence='+translator['ACCEL']+', deltap='+str(dpp)+', file="'+translator['PATH']+'/twiss_'+str(dpp)+'_ac.dat";\n'
+        if (os.path.exists(options.output+'/twiss_'+str(dpp)+'.dat')==False):
+            dppstring=dppstring+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'.dat";\n'
+            dppstring_ac=dppstring_ac+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'_ac.dat";\n'
+    
+    if not dppstring:
+        print "No need to run madx"
+        return 0
 
+    translator={}
     translator['DPP']=dppstring
     translator['DP_AC_P']=dppstring_ac
+    translator['ACCEL']=options.accel
+    translator['BEAM']=options.beam
+    translator['QX']=options.qx
+    translator['QY']=options.qy
+    translator['QDX']=options.qdx
+    translator['QDY']=options.qdy
+    translator['QMX']=int(options.qx*100)
+    translator['QMY']=int(options.qy*100)
+    translator['STOP']='!'
 
-    for testpath in [translator['PATH'],options.twiss]:
+    for testpath in [options.output,options.twiss]:
         _tmpmod=os.path.join(testpath,'modifiers.madx')
         if os.path.isfile(_tmpmod):
             print "INFO: Using",_tmpmod
             translator['MODIFIERS']=_tmpmod
             break
-    if 'MODIFIERS' not in translator:
-        raise ValueError("Cannot find modifiers.madx")
 
-    if(dppstring!=''):
-        print "Creating madx"
-        filetoprint=open(translator['PATH']+"/job.chrom.madx","w")
+    print "Creating madx"
+    filetoprint=open(options.output+"/job.chrom.madx","w")
 
 
-        #changing variables
-        filetoprint.write(linesmad % translator)
+    #changing variables
+    filetoprint.write(linesmad % translator)
 
-        filetoprint.close()
-        print "Running madx"
-        os.system('madx < '+translator['PATH']+'/job.chrom.madx')
-
-
-
-    else:
-        print "No need to run madx"
+    filetoprint.close()
+    print "Running madx"
+    if os.system('madx < '+options.output+'/job.chrom.madx'):
+        raise ValueError("Mad-X failed")
 
 ###running getllm
 def append(files):
@@ -104,26 +130,19 @@ def append(files):
 
     return filestring.replace("empty,","")
 
-def rungetllm(twissfile,accel,technic,files,outputpath,bsrc,dpp):
+def rungetllm(twissfile,accel,technique,files,options,bsrc,dpp):
 
     VERSION="/GetLLM/GetLLM_V2.35.py"
 
-    command="/usr/bin/python "+bsrc+VERSION+" -a "+accel+" -m "+twissfile+" -o "+outputpath+" -t "+technic+" -f "+append(files)
+    command="/usr/bin/python "+bsrc+VERSION+" -a "+accel+" -m "+twissfile+" -o "+options.output+" -t "+technique+" -f "+append(files)
 
-    print "Will run getllm for ",dpp, command
+    print "Will run getllm for ",dpp #, command
 
     os.system(command)
     print "GetLLM finished"
 
-    os.system('cp '+outputpath+'/getbetax.out '+outputpath+'/getbetax_'+str(dpp)+'.out ')
-    os.system('cp '+outputpath+'/getbetay.out '+outputpath+'/getbetay_'+str(dpp)+'.out ')
-    os.system('cp '+outputpath+'/getampbetax.out '+outputpath+'/getampbetax_'+str(dpp)+'.out ')
-    os.system('cp '+outputpath+'/getampbetay.out '+outputpath+'/getampbetay_'+str(dpp)+'.out ')
-    os.system('cp '+outputpath+'/getcouple.out '+outputpath+'/getcouple_'+str(dpp)+'.out ')
-    os.system('cp '+outputpath+'/getbetax_free.out '+outputpath+'/getbetax_free_'+str(dpp)+'.out ')
-    os.system('cp '+outputpath+'/getbetay_free.out '+outputpath+'/getbetay_free_'+str(dpp)+'.out ')
-    os.system('cp '+outputpath+'/getcouple_free.out '+outputpath+'/getcouple_free_'+str(dpp)+'.out ')
-
+    for var in ['betax','betay','ampbetax','ampbetay','couple','betax_free','betay_free','couple_free']:
+        shutil.copy(options.output+'/get'+var+'.out',options.output+'/get'+var+'_'+str(dpp)+'.out')
 
 
 ##### for chromatic
@@ -301,8 +320,6 @@ def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
 
 
 
-
-
 if __name__=="__main__":
 
     ## ##############
@@ -310,16 +327,16 @@ if __name__=="__main__":
     ## ##############
 
     options,args=parse_args()
-    print "options:",options
-    print "args:",args
+    check_input(options,args)
+
 
     files=args[:]
 
-    outputpath=options.output
+    if not os.path.isdir(options.output):
+        os.makedirs(options.output)
     bsrc=options.brc
     accel=options.accel
-    technic=options.technic
-
+    technique=options.technique
 
     dpplist=[]
     fileslist={}
@@ -357,12 +374,13 @@ if __name__=="__main__":
         print "NO DPP=0.0"
         sys.exit()
 
-    madcreator(outputpath+"/super.ini",options.brc+"/MODEL/LHCB/model/",dpplist,options)
+    madcreator(dpplist,options)
     print "All models are created"
     for dpp in dpplist:
         files=fileslist[dpp]
-        rungetllm(outputpath+"/twiss_"+str(dpp)+".dat",accel,technic,files,outputpath,bsrc,dpp)
-        #rungetllm(outputpath+"/twiss_0.0.dat",accel,technic,files,outputpath,bsrc,dpp)
+        print "DBG",dpp
+        rungetllm(options.output+"/twiss_"+str(dpp)+".dat",accel,technique,files,options,bsrc,dpp)
+        #rungetllm(options.output+"/twiss_0.0.dat",accel,technique,files,options,bsrc,dpp)
 
 
     ##adding data
@@ -381,7 +399,7 @@ if __name__=="__main__":
     listcf=[]
 
     try:
-        twiss(outputpath+'/getbetax_free_'+str(dpp)+'.out')
+        twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
         freeswitch=1
     except:
         freeswitch=0
@@ -389,10 +407,10 @@ if __name__=="__main__":
 
     for dpp in dpplist:
         print "Loading driven data for ",dpp
-        betx=twiss(outputpath+'/getbetax_'+str(dpp)+'.out')
-        bety=twiss(outputpath+'/getbetay_'+str(dpp)+'.out')
-        couple=twiss(outputpath+'/getcouple_'+str(dpp)+'.out')
-        #couple=twiss(outputpath+'/getbetay_'+str(dpp)+'.out')
+        betx=twiss(options.output+'/getbetax_'+str(dpp)+'.out')
+        bety=twiss(options.output+'/getbetay_'+str(dpp)+'.out')
+        couple=twiss(options.output+'/getcouple_'+str(dpp)+'.out')
+        #couple=twiss(options.output+'/getbetay_'+str(dpp)+'.out')
         betalistx[dpp]=betx
         betalisty[dpp]=bety
         couplelist[dpp]=couple
@@ -411,9 +429,9 @@ if __name__=="__main__":
             print "Loading free data"
             freeswitch=1
             print 'getbetax_free_'+str(dpp)+'.out'
-            betxf=twiss(outputpath+'/getbetax_free_'+str(dpp)+'.out')
-            betyf=twiss(outputpath+'/getbetay_free_'+str(dpp)+'.out')
-            couplef=twiss(outputpath+'/getcouple_free_'+str(dpp)+'.out')
+            betxf=twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
+            betyf=twiss(options.output+'/getbetay_free_'+str(dpp)+'.out')
+            couplef=twiss(options.output+'/getcouple_free_'+str(dpp)+'.out')
             betalistxf[dpp]=betxf
             betalistyf[dpp]=betyf
             couplelistf[dpp]=couplef
@@ -437,7 +455,7 @@ if __name__=="__main__":
     print "Driven beta"
 
     #H
-    filefile=open(outputpath+"/chrombetax.out","w")
+    filefile=open(options.output+"/chrombetax.out","w")
     print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM", "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
     print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le  %le %le  %le %le  %le %le %le  %le %le  %le"
 
@@ -447,7 +465,7 @@ if __name__=="__main__":
     filefile.close()
 
     #V
-    filefile=open(outputpath+"/chrombetay.out","w")
+    filefile=open(options.output+"/chrombetay.out","w")
     print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY",  "dbbR", "dbberrR", "dalfaR", "daerr","PHIYERR","PHIM", "WYR","WYERRR","PHIYR", "PHIYERRR"
     print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le %le %le"
 
@@ -463,7 +481,7 @@ if __name__=="__main__":
     #
     print "Driven coupling"
 
-    filefile=open(outputpath+"/chromcoupling.out","w")
+    filefile=open(options.output+"/chromcoupling.out","w")
     print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
     print >>filefile,"%s   %le  %le       %le     %le"
 
@@ -483,7 +501,7 @@ if __name__=="__main__":
       #
       print "Free beta"
       #H
-      filefile=open(outputpath+"/chrombetax_free.out","w")
+      filefile=open(options.output+"/chrombetax_free.out","w")
       print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
       print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
 
@@ -493,7 +511,7 @@ if __name__=="__main__":
       filefile.close()
 
       #V
-      filefile=open(outputpath+"/chrombetay_free.out","w")
+      filefile=open(options.output+"/chrombetay_free.out","w")
       print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY", "PHIYERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WYR","WYERRR","PHIYR", "PHIYERRR"
       print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
 
@@ -509,7 +527,7 @@ if __name__=="__main__":
       #
       print "Free coupling"
 
-      filefile=open(outputpath+"/chromcoupling_free.out","w")
+      filefile=open(options.output+"/chromcoupling_free.out","w")
       print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
       print >>filefile,"%s   %le  %le       %le     %le"
 
