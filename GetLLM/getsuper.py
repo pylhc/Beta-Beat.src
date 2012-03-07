@@ -1,7 +1,8 @@
+
 ###### imports
 from optparse import OptionParser
 from metaclass import twiss	
-import os,sys
+import os,sys,commands
 from math import sqrt,cos,sin,pi,atan2
 from datetime import date
 from linreg import *
@@ -15,19 +16,21 @@ parser = OptionParser()
 parser.add_option("-f", "--files",
                 help="Files to use (seperated by ,)",
                 metavar="files", default="./", dest="files")
-parser.add_option("-t", "--twiss",
+parser.add_option("-m", "--model",
                 help="twiss file to use",
                 metavar="twiss", default="./", dest="twiss")
 parser.add_option("-o", "--output",
                 help="output path, where to store the results",
                 metavar="output", default="./", dest="output")
-parser.add_option("-d", "--dpp",
-                help="dpps to take",
-                metavar="dpps", default="./", dest="dpps")
-# optics
+parser.add_option("-b", "--beta",
+                help="where beta-beat is stored",
+                metavar="brc", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="brc")
 parser.add_option("-t", "--technic",
                 help="Which technic to use",
                 metavar="technic", default="./", dest="technic")
+parser.add_option("-a", "--accel",
+                help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
+                metavar="accel", default="LHCB1",dest="accel")
 
 (options, args) = parser.parse_args()
 
@@ -39,6 +42,87 @@ parser.add_option("-t", "--technic",
 #functions
 ## ############
 
+
+#####
+def madcreator(inifile,madfile,dpps):
+
+	linesini=open(inifile,"r").readlines()
+	linesmad=open(madfile+"/job.twiss_chrom.madx","r").readlines()
+	
+	translator={}
+	listtrans=[]
+	for line in linesini:
+		li=line.split("=")
+		translator[li[0].split()[0]]=li[1].split()[0]
+		listtrans.append(li[0].split()[0])
+
+	# creating the DPP
+	dppstring=''
+	dppstring_ac=''
+	for dpp in dpps:
+		if (os.path.exists(translator['%PATH']+'/twiss_'+str(dpp)+'.dat')==False):
+			dppstring=dppstring+'twiss, chrom,sequence='+translator['%ACCEL']+', deltap='+str(dpp)+', file="'+translator['%PATH']+'/twiss_'+str(dpp)+'.dat";\n'
+			dppstring_ac=dppstring_ac+'twiss, chrom,sequence='+translator['%ACCEL']+', deltap='+str(dpp)+', file="'+translator['%PATH']+'/twiss_'+str(dpp)+'_ac.dat";\n'
+
+	translator['%DPP']=dppstring
+	translator['%DP_AC_P']=dppstring_ac
+	listtrans.append('%DPP')
+	listtrans.append('%DP_AC_P')
+
+	if(dppstring!=''):
+		print "Creating madx"
+		filetoprint=open(translator['%PATH']+"/job.chrom.madx","w")
+
+
+		#changing variables
+		for line in linesmad:
+
+			for value in listtrans:
+				line=line.replace(value,translator[value])
+
+			print >> filetoprint, line
+
+		filetoprint.close()
+		print "Running madx"
+		os.system('madx < '+translator['%PATH']+'/job.chrom.madx')
+
+
+
+	else:
+		print "No need to run madx"
+			
+###running getllm
+def append(files):
+	filestring="empty"
+
+	for filee in files:
+		filestring=filestring+","+filee
+
+	return filestring.replace("empty,","")
+		
+def rungetllm(twissfile,accel,technic,files,outputpath,bsrc,dpp):
+
+	VERSION="/GetLLM/GetLLM_V2.35.py"
+
+	command="/usr/bin/python "+bsrc+VERSION+" -a "+accel+" -m "+twissfile+" -o "+outputpath+" -t "+technic+" -f "+append(files)
+
+	print "Will run getllm for ",dpp, command
+	
+	os.system(command)
+	print "GetLLM finished"
+
+	os.system('cp '+outputpath+'/getbetax.out '+outputpath+'/getbetax_'+str(dpp)+'.out ')
+	os.system('cp '+outputpath+'/getbetay.out '+outputpath+'/getbetay_'+str(dpp)+'.out ')
+	os.system('cp '+outputpath+'/getampbetax.out '+outputpath+'/getampbetax_'+str(dpp)+'.out ')
+	os.system('cp '+outputpath+'/getampbetay.out '+outputpath+'/getampbetay_'+str(dpp)+'.out ')
+	os.system('cp '+outputpath+'/getcouple.out '+outputpath+'/getcouple_'+str(dpp)+'.out ')	
+	os.system('cp '+outputpath+'/getbetax_free.out '+outputpath+'/getbetax_free_'+str(dpp)+'.out ')
+	os.system('cp '+outputpath+'/getbetay_free.out '+outputpath+'/getbetay_free_'+str(dpp)+'.out ')
+	os.system('cp '+outputpath+'/getcouple_free.out '+outputpath+'/getcouple_free_'+str(dpp)+'.out ')		
+
+	
+
+##### for chromatic
 # model intersect
 def modelIntersect(expbpms, model):
 
@@ -83,10 +167,16 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,value,zero,twiss):
 	    indx=[]
 	    b=[]
 	    a=[]
+	    bm=[]
+	    am=[]
 	    if "H" in plane:
 		    beta0=zero.BETX[zero.indx[el]]
 		    alfa0=zero.ALFX[zero.indx[el]]
 		    alfa0err=zero.STDALFX[zero.indx[el]]
+		    
+		    beta0m=twiss.BETX[twiss.indx[el]] 
+		    alfa0m=twiss.ALFX[twiss.indx[el]]
+		    
 		    wmo=twiss.WX[twiss.indx[el]]
 		    pmo=twiss.PHIX[twiss.indx[el]]
 	    else:
@@ -94,6 +184,10 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,value,zero,twiss):
 		    beta0=zero.BETY[zero.indx[el]]
 		    alfa0=zero.ALFY[zero.indx[el]]
 		    alfa0err=zero.STDALFY[zero.indx[el]]
+
+		    beta0m=twiss.BETY[twiss.indx[el]]
+		    alfa0m=twiss.ALFY[twiss.indx[el]]
+		    
 		    wmo=twiss.WY[twiss.indx[el]]
 		    pmo=twiss.PHIY[twiss.indx[el]]		    
 	    for dpp in listx:
@@ -103,12 +197,23 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,value,zero,twiss):
 		    if "H" in plane:	
 			    b.append(file.BETX[ix])
 			    a.append(file.ALFX[ix])
+
+			    bm.append(file.BETXMDL[file.indx[el]])
+			    am.append(file.ALFXMDL[file.indx[el]])			    
 		    else:
 			    b.append(file.BETY[ix])
-			    a.append(file.ALFY[ix])			
+			    a.append(file.ALFY[ix])
+
+			    bm.append(file.BETYMDL[file.indx[el]])
+			    am.append(file.ALFYMDL[file.indx[el]])				    
 
 	    bfit=linreg(listx, b)
 	    afit=linreg(listx, a)
+
+	    bfitm=linreg(listx, bm)
+	    afitm=linreg(listx, am)
+
+	    # measurement
 	    dbb=bfit[0]/beta0
 	    dbberr=bfit[3]/beta0
 	    da=afit[0]
@@ -121,9 +226,23 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,value,zero,twiss):
 	    werr=sqrt( (Aerr*A/w)**2 + (Berr*B/w)**2  )
 	    phi=atan2(B,A)/2./pi
 	    phierr=1./(1.+(A/B)**2)*sqrt( (Aerr/B)**2 + (A/B**2*Berr)**2)/2./pi
-	    
-	    print >>filetoprint, el, sloc,  dbb, dbberr, da, daerr, w, werr, wmo,phi, phierr,pmo
 
+	    #model
+	    dbbm=bfitm[0]/beta0m
+	    dbberrm=bfitm[3]/beta0m
+	    dam=afitm[0]
+	    daerrm=afitm[3]
+	    Am=dbbm
+	    Aerrm=dbberrm
+	    Bm=dam-alfa0m*dbbm
+	    Berrm=sqrt(daerrm**2 + (alfa0m*dbberrm)**2)
+	    wm=sqrt(Am**2+Bm**2)
+	    werrm=sqrt( (Aerrm*Am/wm)**2 + (Berrm*Bm/wm)**2  )
+	    phim=atan2(Bm,Am)/2./pi
+	    phierrm=1./(1.+(Am/Bm)**2)*sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./pi
+	    
+	    
+	    print >>filetoprint, el, sloc,  dbb, dbberr, da, daerr, w, werr, wmo,phi, phierr,pmo, dbbm,dbberrm,dam,daerrm,wm, werrm,phim,phierrm
     filetoprint.close()
 
 ### for coupling
@@ -131,20 +250,18 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,value,zero,twiss):
 def getC(couplefile,name):
 
 	
-	f1001=couplefile.F1001W[couplefile.indx[name]]
-	f1010=couplefile.F1010W[couplefile.indx[name]]
+	f1001R=couplefile.F1001R[couplefile.indx[name]]
+	f1001I=couplefile.F1001I[couplefile.indx[name]]	
+	f1010R=couplefile.F1010R[couplefile.indx[name]]
+	f1010I=couplefile.F1010I[couplefile.indx[name]]	
 
-	check=(1/4)+f1010**2
+	down=4*((complex(f1001R,f1001I))-(complex(f1010R,f1010I)))
+        c=1-(1/(1+down))
 
-	if check==f1001**2:
-		print "Skipping"
-		skip="Yes"
-	else:
-		part1= 4*(f1001**2-f1010**2)
-		C=1-(1/(1+part1))
-		skip="No"
+	cr=c .real
+	ci=c .imag
 
-		return C,skip
+	return cr,ci
 
 # linreg for coupling
 def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
@@ -156,30 +273,27 @@ def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
 		s=bpm[0]
 		
 		a=[]
-		b=[]
+		br=[]
+		bi=[]
 	
 		for dpp in dpplist:
 
-			c,skip=getC(couplelist[dpp],name)
+			cr,ci=getC(couplelist[dpp],name)
 
-			if skip=="No":
-
-				a.append(dpp)
-				b.append(c)
-			else:
-				a.append(dpp)
-				b.append(skip)
-				
-
-		if "Yes" in b:
-
-			print "Skipping chromatic coupling calculation for ",bpm
-
+		        a.append(dpp)
+		        br.append(cr)
+		        bi.append(ci)			
+		
+			
 		else:
 
-			fit=linreg(a, b)
+			fitr=linreg(a,br)
+			fiti=linreg(a,bi)
+			
+			c=abs(complex(fitr[0],fiti[0]))
+			e=abs(complex(fitr[3],fiti[3]))
 
-			print >> filetoprint,name,s,fit[0],fit[3],"0"
+			print >> filetoprint,name,s,c,e,"0"
 
 
 		
@@ -194,129 +308,124 @@ def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
 ## ##############
 
 files=options.files.split(",")
-dpps=options.dpps.split(",")
-model=twiss(options.twiss)
-output=options.output
-
+outputpath=options.output
+bsrc=options.brc
+accel=options.accel
 technic=options.technic
 
-print "INFO: Will analyse for "+technic
 
-listx={}
-listy={}
+dpplist=[]
+fileslist={}
 
-# gathering info
-for filee in files:
-	fileex=filee+"_"+method
-	fileey=filee+"_"+method
-	x=twiss(fileex)
-	y=twiss(fileey)
+for file in files:
 
-	print "Start loading file "+filee
-	
-	if "DPP" d.__dict__.keys():
-		dpp=x.DPP
-	else:
-		print "DPP not found ..."
+	datax=twiss(file+"_linx")
+	datay=twiss(file+"_liny")
+	dppx=datax.DPP
+	dppy=datay.DPP
+
+	if dppx!=dppy:
+		print "Discrepancy between horizontal and vertical => ",dppx,dppy
+		print "System exit"
 		sys.exit()
+	else:
+		dpp=dppx/1.0
 
+#	if abs(dpp)==0.0004:
+	#	print "ignoring"
 
-	# check if dpp is already excisting
-	if dpp in listx:
-		
-		xlist=listx[dpp]
-		xlist.append(fileex)
-		listx[dpp]=xlist
-		
-		ylist=listy[dpp]
-		ylist.append(fileey)
-		listy[dpp]=ylist
-
-
+	#else:
 	
-	
-	
+	if dpp not in dpplist:
+		print "Adding dpp",dpp
+		dpplist.append(dpp)
+		fileslist[dpp]=[file]
+	else:
+		templist=fileslist[dpp]
+		templist.append(file)
+		print "The length of the list is ",len(templist)," for DPP ",dpp
+		fileslist[dpp]=templist
 
-
-
-if len(dpps)!=len(files):
-	print "Unequal input"
+if 0 not in dpplist:
+	print "NO DPP=0.0"
 	sys.exit()
 
+madcreator(outputpath+"/super.ini",options.brc+"/MODEL/LHCB/model/",dpplist)
+print "All models are created"
+for dpp in dpplist:
+	files=fileslist[dpp]
+	rungetllm(outputpath+"/twiss_"+str(dpp)+".dat",accel,technic,files,outputpath,bsrc,dpp)
+	#rungetllm(outputpath+"/twiss_0.0.dat",accel,technic,files,outputpath,bsrc,dpp)
 
-## ##############
-#  calculate optics for off-momentum model
-## ##############
-print "Gathering data"
+
+##adding data
 betalistx={}
-listx=[]
 betalisty={}
-listy=[]
 couplelist={}
-couplel=[]
-
-
 betalistxf={}
 betalistyf={}
 couplelistf={}
 
-dpplist=[]
+listx=[]
+listxf=[]
+listy=[]
+listyf=[]
+listc=[]
+listcf=[]
+
+try:
+	twiss(outputpath+'/getbetax_free_'+str(dpp)+'.out')
+	freeswitch=1
+except:
+	freeswitch=0	
 
 
-for count in range(len(files)):
-
-	filee=files[count]
-	dpp=float(dpps[count])
-
-	print "Loading for ",dpp
+for dpp in dpplist:
 
 
-	print "Loading driven data"
-	betx=twiss(filee+'/getbetax.out')
-	bety=twiss(filee+'/getbetay.out')
-	couple=twiss(filee+'/getcouple.out')
-	dpplist.append(float(dpp))
-	
+
+
+        print "Loading driven data for ",dpp
+        betx=twiss(outputpath+'/getbetax_'+str(dpp)+'.out')
+        bety=twiss(outputpath+'/getbetay_'+str(dpp)+'.out')
+        couple=twiss(outputpath+'/getcouple_'+str(dpp)+'.out')
+	#couple=twiss(outputpath+'/getbetay_'+str(dpp)+'.out')
+        betalistx[dpp]=betx
+        betalisty[dpp]=bety
+        couplelist[dpp]=couple
+
+	if float(dpp)==0.0:
+		zerobx=betx
+		zeroby=bety
+
 	listx.append(betx)
-	betalistx[dpp]=betx
 	listy.append(bety)
-	betalisty[dpp]=bety
-	couplel.append(couple)
-	couplelist[dpp]=couple
+	listc.append(couple)
+	modeld=twiss(options.twiss+"/twiss.dat")
 
+        #try:
+	if freeswitch==1:
+                print "Loading free data"
+                freeswitch=1
+		print 'getbetax_free_'+str(dpp)+'.out'
+                betxf=twiss(outputpath+'/getbetax_free_'+str(dpp)+'.out')
+                betyf=twiss(outputpath+'/getbetay_free_'+str(dpp)+'.out')
+                couplef=twiss(outputpath+'/getcouple_free_'+str(dpp)+'.out')
+                betalistxf[dpp]=betxf
+                betalistyf[dpp]=betyf
+                couplelistf[dpp]=couplef
+		listxf.append(betxf)
+		listyf.append(betyf)
+		listcf.append(couplef)
+		modeld=twiss(options.twiss+"/twiss_ac.dat")
+		modelf=twiss(options.twiss+"/twiss.dat")
+		if float(dpp)==0.0:
+			zerobxf=betalistxf[dpp]
+			zerobyf=betalistyf[dpp]	
+			
 
-	try:
-		print "Loading free data"
-		freeswitch=1
-		betxf=twiss(filee+'/getbetax_free.out')
-		betyf=twiss(filee+'/getbetay_free.out')
-		couplef=twiss(filee+'/getcouple_free.out')
-		betalistxf[dpp]=betxf
-		betalistyf[dpp]=betyf
-		couplelistf[dpp]=couplef
-		
-	except:
-		print "No free data"
-
-
-	
-
-### finding dpp index
-for i in range(len(dpps)):
-	
-    if float(dpps[i])==0.0:
-	dpp=float(dpps[i])
-        zeroi=i
-        zerobx=betalistx[dpp]
-        zeroby=betalisty[dpp]
-        zerobxf=betalistxf[dpp]
-        zerobyf=betalistyf[dpp]	
-        print "Found dpp=0 for case:", files[i]
-if zeroi<0:
-    print "dpp=0 not found, exit"
-    sys.exit()
-
-
+        #except:
+         #       print "No free data"
 
 #
 # driven beta
@@ -325,46 +434,45 @@ if zeroi<0:
 print "Driven beta"
 
 #H
-filefile=open(output+"/chrombetax.out","w")
-print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM"
-print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le  %le"
+filefile=open(outputpath+"/chrombetax.out","w")
+print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM", "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
+print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le  %le %le  %le %le  %le %le %le  %le %le  %le"
 
 bpms=intersect(listx)
-bpms=modelIntersect(bpms,model)
-dolinregbet(filefile,dpplist,betalistx,bpms,"H","beta",zerobx,model)
+bpms=modelIntersect(bpms,modeld)
+dolinregbet(filefile,dpplist,betalistx,bpms,"H","beta",zerobx,modeld)
 filefile.close()
 
 #V
-filefile=open(output+"/chrombetay.out","w")
-print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY", "PHIYERR","PHIM"
-print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le"
+filefile=open(outputpath+"/chrombetay.out","w")
+print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY",  "dbbR", "dbberrR", "dalfaR", "daerr","PHIYERR","PHIM", "WYR","WYERRR","PHIYR", "PHIYERRR"
+print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le %le %le"
 
 bpms=intersect(listy)
-bpms=modelIntersect(bpms,model)
-dolinregbet(filefile,dpplist,betalisty,bpms,"V","beta",zeroby,model)
+bpms=modelIntersect(bpms,modeld)
+dolinregbet(filefile,dpplist,betalisty,bpms,"V","beta",zeroby,modeld)
 filefile.close()
 
-print "Driven beta finished"\
+print "Driven beta finished"
 
 #
 # driven coupling
 #
 print "Driven coupling"
 
-filefile=open(output+"/chromcoupling.out","w")
+filefile=open(outputpath+"/chromcoupling.out","w")
 print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
 print >>filefile,"%s   %le  %le       %le     %le"
 
-bpms=intersect(couplel)
-bpms=modelIntersect(bpms,model)
+bpms=intersect(listc)
+bpms=modelIntersect(bpms,modeld)
 
-dolinregCoupling(couplelist,bpms,dpplist,filefile,model)
+dolinregCoupling(couplelist,bpms,dpplist,filefile,modeld)
 filefile.close()
 
 
 print "Driven coupling finished"
 filefile.close()
-
 
 if freeswitch==1:
   #
@@ -372,23 +480,23 @@ if freeswitch==1:
   #
   print "Free beta"
   #H
-  filefile=open(output+"/chrombetax_free.out","w")
-  print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM"
-  print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le"
+  filefile=open(outputpath+"/chrombetax_free.out","w")
+  print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
+  print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
 
-  bpms=intersect(listx)
-  bpms=modelIntersect(bpms,model)
-  dolinregbet(filefile,dpplist,betalistx,bpms,"H","beta",zerobxf,model)
+  bpms=intersect(listxf)
+  bpms=modelIntersect(bpms,modelf)
+  dolinregbet(filefile,dpplist,betalistxf,bpms,"H","beta",zerobxf,modelf)
   filefile.close()
 
   #V
-  filefile=open(output+"/chrombetay_free.out","w")
-  print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY", "PHIYERR","PHIM"
-  print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le"
+  filefile=open(outputpath+"/chrombetay_free.out","w")
+  print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY", "PHIYERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WYR","WYERRR","PHIYR", "PHIYERRR"
+  print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
 
-  bpms=intersect(listy)
-  bpms=modelIntersect(bpms,model)
-  dolinregbet(filefile,dpplist,betalisty,bpms,"V","beta",zerobyf,model)
+  bpms=intersect(listyf)
+  bpms=modelIntersect(bpms,modelf)
+  dolinregbet(filefile,dpplist,betalistyf,bpms,"V","beta",zerobyf,modelf)
   filefile.close()
 
   print "Free beta finished"
@@ -398,16 +506,20 @@ if freeswitch==1:
   #
   print "Free coupling"
 
-  filefile=open(output+"/chromcoupling_free.out","w")
+  filefile=open(outputpath+"/chromcoupling_free.out","w")
   print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
   print >>filefile,"%s   %le  %le       %le     %le"
 
-  bpms=intersect(couplel)
-  bpms=modelIntersect(bpms,model)
+  bpms=intersect(listcf)
+  bpms=modelIntersect(bpms,modelf)
 
-  dolinregCoupling(couplelist,bpms,dpplist,filefile,model)
+  dolinregCoupling(couplelistf,bpms,dpplist,filefile,modelf)
   filefile.close()
 
 
   print "Free coupling finished"
   filefile.close()
+
+
+sys.exit()
+
