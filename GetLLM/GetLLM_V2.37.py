@@ -86,7 +86,7 @@
 ####
 #######
 #########
-VERSION='V2.36'
+VERSION='V2.37'
 print "Starting GetLLM ", VERSION
 #########
 #######
@@ -4647,7 +4647,7 @@ if wolinx!=1:
 	fabetax.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
 	fabetax.write('@ RescalingFactor %le '+str(betax_ratio)+'\n')
 	fabetax.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
-	fabetax.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+	fabetax.write('$ %s     %le    %le    %le    %le     %le     %le  %le  %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
@@ -4735,7 +4735,7 @@ if woliny!=1:
 	fabetay.write('@ RMSbetabeat %le '+str(rmsbby)+'\n')
 	fabetay.write('@ RescalingFactor %le '+str(betay_ratio)+'\n')
 	fabetay.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL BETYRES BETYSTDRES\n')
-	fabetay.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+	fabetay.write('$ %s     %le    %le    %le    %le     %le     %le   %le   %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
