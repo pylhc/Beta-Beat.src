@@ -14,6 +14,9 @@ from linreg import *
 #
 
 
+sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+
+
 def parse_args():
     ###### optionparser
     usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
@@ -288,8 +291,8 @@ def getC(couplefile,name):
     down=4*((complex(f1001R,f1001I))-(complex(f1010R,f1010I)))
     c=1-(1/(1+down))
 
-    cr=c .real
-    ci=c .imag
+    cr=c.real
+    ci=c.imag
 
     return cr,ci
 
@@ -313,17 +316,14 @@ def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
             a.append(dpp)
             br.append(cr)
             bi.append(ci)
+            
+        fitr=linreg(a,br)
+        fiti=linreg(a,bi)
 
+        c=abs(complex(fitr[0],fiti[0]))
+        e=abs(complex(fitr[3],fiti[3]))
 
-        else:
-
-            fitr=linreg(a,br)
-            fiti=linreg(a,bi)
-
-            c=abs(complex(fitr[0],fiti[0]))
-            e=abs(complex(fitr[3],fiti[3]))
-
-            print >> filetoprint,name,s,c,e,"0"
+        print >> filetoprint,name,s,c,e,"0"
 
 
 
