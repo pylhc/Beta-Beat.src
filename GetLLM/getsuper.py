@@ -87,29 +87,28 @@ def madcreator(dpps,options):
         print "No need to run madx"
         return 0
 
-    translator={}
-    translator['DPP']=dppstring
-    translator['DP_AC_P']=dppstring_ac
-    translator['ACCEL']=options.accel
+    DPP=dppstring
+    DP_AC_P=dppstring_ac
+    ACCEL=options.accel
     if options.accel=='LHCB1':
-        translator['BEAM']='B1'
+        BEAM='B1'
     elif options.accel=='LHCB2':
-        translator['BEAM']='B2'
+        BEAM='B2'
     else:
         print "WARNING: Could not decide what BEAM should be"
-    translator['QX']=options.qx
-    translator['QY']=options.qy
-    translator['QDX']=options.qdx
-    translator['QDY']=options.qdy
-    translator['QMX']=int(options.qx*100)
-    translator['QMY']=int(options.qy*100)
-    translator['STOP']='!'
+    QX=options.qx
+    QY=options.qy
+    QDX=options.qdx
+    QDY=options.qdy
+    QMX=int(options.qx*100)
+    QMY=int(options.qy*100)
+    STOP='!'
 
     for testpath in [options.output,options.twiss]:
         _tmpmod=os.path.join(testpath,'modifiers.madx')
         if os.path.isfile(_tmpmod):
             print "INFO: Using",_tmpmod
-            translator['MODIFIERS']=_tmpmod
+            MODIFIERS=_tmpmod
             break
 
     print "Creating madx"
@@ -117,7 +116,7 @@ def madcreator(dpps,options):
 
 
     #changing variables
-    filetoprint.write(linesmad % translator)
+    filetoprint.write(linesmad % locals())
 
     filetoprint.close()
     print "Running madx"
