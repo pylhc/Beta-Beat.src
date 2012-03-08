@@ -6,7 +6,6 @@ import os,sys,shutil,commands
 from math import sqrt,cos,sin,pi,atan2
 from datetime import date
 from linreg import *
-from yngve.errors import *
 
 ##
 # YIL changes v 3.1:
@@ -25,31 +24,31 @@ def parse_args():
             metavar="twiss", default="./", dest="twiss")
     parser.add_option("-o", "--output",
             help="output path, where to store the results",
-            metavar="output", default="./", dest="output")
+            metavar="<path>", default="./", dest="output")
     parser.add_option("-b", "--beta",
             help="where beta-beat is stored",
-            metavar="brc", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="brc")
-    parser.add_option("-t", "--technique",
-            help="Which technique to use",
-            metavar="technique", default="SUSSIX", dest="technique")
+            metavar="<path>", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="brc")
+    parser.add_option("-t", "--algorithm",
+            help="Which algorithm to use (SUSSIX/SVD)",
+            metavar="ALGORITHM", default="SUSSIX", dest="technique")
     parser.add_option("-a", "--accel",
             help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
-            metavar="accel", default="LHCB1",dest="accel")
-    parser.add_option("", "--beam",
-            help="Which beam to use: B1 B2",
-            metavar="beam", default="B1",dest="beam")
+            metavar="ACCEL", default="LHCB1",dest="accel")
     parser.add_option("", "--qx",
-            help="Fractional horizontal tune",
-            metavar="qx", type="float", default="0.31",dest="qx")
+        help="Fractional horizontal tune",
+        metavar="<value>", type="float", default="0.31",dest="qx")
     parser.add_option("", "--qy",
             help="Fractional vertical tune",
-            metavar="qy", type="float", default="0.32",dest="qy")
+            metavar="<value>", type="float", default="0.32",dest="qy")
     parser.add_option("", "--qdx",
-            help="AC dipole horizontal frequency",
-            metavar="qdx", type="float", default="0.304",dest="qdx")
+            help="AC dipole driven horizontal tune",
+            metavar="<value>", type="float", default="0.304",dest="qdx")
     parser.add_option("", "--qdy",
-            help="AC dipole vertical frequency",
-            metavar="qdy", type="float", default="0.326",dest="qdy")
+            help="AC dipole driven vertical tune",
+            metavar="<value>", type="float", default="0.326",dest="qdy")
+    parser.add_option("", "--llm_version",
+            help="Run with specific version of GetLLM.py",
+            metavar="<version>", default=None,dest="llm_version")
 
     return parser.parse_args()
 
@@ -74,7 +73,6 @@ def madcreator(dpps,options):
     madfile=options.brc+"/MODEL/LHCB/model/"
 
     linesmad=open(madfile+"/job.twiss_chrom.madx.macro","r").read()
-    print madfile+"/job.twiss_chrom.madx.macro"
 
 
     # creating the DPP
@@ -93,7 +91,12 @@ def madcreator(dpps,options):
     translator['DPP']=dppstring
     translator['DP_AC_P']=dppstring_ac
     translator['ACCEL']=options.accel
-    translator['BEAM']=options.beam
+    if options.accel=='LHCB1':
+        translator['BEAM']='B1'
+    elif options.accel=='LHCB2':
+        translator['BEAM']='B2'
+    else:
+        print "WARNING: Could not decide what BEAM should be"
     translator['QX']=options.qx
     translator['QY']=options.qy
     translator['QDX']=options.qdx
@@ -132,7 +135,12 @@ def append(files):
 
 def rungetllm(twissfile,accel,technique,files,options,bsrc,dpp):
 
-    VERSION="/GetLLM/GetLLM_V2.35.py"
+    if options.llm_version:
+        VERSION="/GetLLM/GetLLM_V"+options.llm_version+".py"
+    else:
+        VERSION="/GetLLM/GetLLM.py"
+    if not os.path.isfile(bsrc+VERSION):
+        raise ValueError("Could not find "+bsrc+VERSION)
 
     command="/usr/bin/python "+bsrc+VERSION+" -a "+accel+" -m "+twissfile+" -o "+options.output+" -t "+technique+" -f "+append(files)
 
@@ -338,49 +346,35 @@ if __name__=="__main__":
     accel=options.accel
     technique=options.technique
 
-    dpplist=[]
     fileslist={}
 
-    for file in files:
+    for f in files:
 
-        datax=twiss(file+"_linx")
-        datay=twiss(file+"_liny")
+        datax=twiss(f+"_linx")
+        datay=twiss(f+"_liny")
         dppx=datax.DPP
         dppy=datay.DPP
 
         if dppx!=dppy:
-            print "Discrepancy between horizontal and vertical => ",dppx,dppy
-            print "System exit"
-            sys.exit()
+            raise ValueError("Discrepancy between horizontal and vertical => "+str(dppx)+" "+str(dppy))
         else:
             dpp=dppx/1.0
 
-    #   if abs(dpp)==0.0004:
-    #       print "ignoring"
-
-    #   else:
-
-        if dpp not in dpplist:
+        if dpp not in fileslist:
             print "Adding dpp",dpp
-            dpplist.append(dpp)
-            fileslist[dpp]=[file]
+            fileslist[dpp]=[f]
         else:
-            templist=fileslist[dpp]
-            templist.append(file)
-            print "The length of the list is ",len(templist)," for DPP ",dpp
-            fileslist[dpp]=templist
+            fileslist[dpp].append(f)
 
-    if 0 not in dpplist:
-        print "NO DPP=0.0"
-        sys.exit()
 
-    madcreator(dpplist,options)
+    if 0 not in fileslist:
+        raise ValueError("NO DPP=0.0")
+
+    madcreator(fileslist.keys(),options)
     print "All models are created"
-    for dpp in dpplist:
+    for dpp in fileslist:
         files=fileslist[dpp]
-        print "DBG",dpp
         rungetllm(options.output+"/twiss_"+str(dpp)+".dat",accel,technique,files,options,bsrc,dpp)
-        #rungetllm(options.output+"/twiss_0.0.dat",accel,technique,files,options,bsrc,dpp)
 
 
     ##adding data
@@ -405,7 +399,7 @@ if __name__=="__main__":
         freeswitch=0
 
 
-    for dpp in dpplist:
+    for dpp in fileslist.keys():
         print "Loading driven data for ",dpp
         betx=twiss(options.output+'/getbetax_'+str(dpp)+'.out')
         bety=twiss(options.output+'/getbetay_'+str(dpp)+'.out')
@@ -461,7 +455,7 @@ if __name__=="__main__":
 
     bpms=intersect(listx)
     bpms=modelIntersect(bpms,modeld)
-    dolinregbet(filefile,dpplist,betalistx,bpms,"H","beta",zerobx,modeld)
+    dolinregbet(filefile,fileslist.keys(),betalistx,bpms,"H","beta",zerobx,modeld)
     filefile.close()
 
     #V
@@ -471,7 +465,7 @@ if __name__=="__main__":
 
     bpms=intersect(listy)
     bpms=modelIntersect(bpms,modeld)
-    dolinregbet(filefile,dpplist,betalisty,bpms,"V","beta",zeroby,modeld)
+    dolinregbet(filefile,fileslist.keys(),betalisty,bpms,"V","beta",zeroby,modeld)
     filefile.close()
 
     print "Driven beta finished"
@@ -488,7 +482,7 @@ if __name__=="__main__":
     bpms=intersect(listc)
     bpms=modelIntersect(bpms,modeld)
 
-    dolinregCoupling(couplelist,bpms,dpplist,filefile,modeld)
+    dolinregCoupling(couplelist,bpms,fileslist.keys(),filefile,modeld)
     filefile.close()
 
 
@@ -507,7 +501,7 @@ if __name__=="__main__":
 
       bpms=intersect(listxf)
       bpms=modelIntersect(bpms,modelf)
-      dolinregbet(filefile,dpplist,betalistxf,bpms,"H","beta",zerobxf,modelf)
+      dolinregbet(filefile,fileslist.keys(),betalistxf,bpms,"H","beta",zerobxf,modelf)
       filefile.close()
 
       #V
@@ -517,7 +511,7 @@ if __name__=="__main__":
 
       bpms=intersect(listyf)
       bpms=modelIntersect(bpms,modelf)
-      dolinregbet(filefile,dpplist,betalistyf,bpms,"V","beta",zerobyf,modelf)
+      dolinregbet(filefile,fileslist.keys(),betalistyf,bpms,"V","beta",zerobyf,modelf)
       filefile.close()
 
       print "Free beta finished"
@@ -534,7 +528,7 @@ if __name__=="__main__":
       bpms=intersect(listcf)
       bpms=modelIntersect(bpms,modelf)
 
-      dolinregCoupling(couplelistf,bpms,dpplist,filefile,modelf)
+      dolinregCoupling(couplelistf,bpms,fileslist.keys(),filefile,modelf)
       filefile.close()
 
 
