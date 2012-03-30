@@ -1,0 +1,57 @@
+set terminal postscript enhanced color solid 22
+
+
+
+
+##### cor bb
+reset
+unset multiplot
+set output "%PATH/bb_cor.eps"
+
+set multiplot
+
+set size 1,0.5
+set origin 0,0.5
+
+p [][-0.6:0.6] "%PATH/bbx.out" u 2:3:4 w e t "measured",  "%PATH/bbx.out" u 2:($3+$5) t "correction"
+
+set origin 0,0.0
+unset key
+
+p [][-0.6:0.6] "%PATH/bby.out" u 2:3:4 w e, "%PATH/bby.out" u 2:($3+$5)
+
+
+
+##### cor coupling
+reset
+unset multiplot
+set output "%PATH/coupling_cor.eps"
+
+set multiplot
+
+set size 1,0.5
+set origin 0,0.5
+
+p [][-0.6:0.6] "%PATH/couple.out" u 2:3:5 w e t "measured", "%PATH/couple.out" u 2:6 t "correction"
+
+set origin 0,0.0
+unset key
+
+p [][-0.6:0.6] "%PATH/couple.out" u 2:4:5 w e, "%PATH/couple.out" u 2:7
+
+
+##### cor disp
+reset
+unset multiplot
+set output "%PATH/dispy_cor.eps"
+
+
+p [:27000][]"%PATH/dy.out" u 2:($3+$5) t "correction","%PATH/dy.out" u 2:3:4 w e t "measured"
+
+##### cor disp
+reset
+unset multiplot
+set output "disp_cor.eps"
+
+
+p [:27000][]"%PATH/dx.out" u 2:($3+$5)  t "correction","%PATH/dx.out" u 2:3:4 w e t "measured"
