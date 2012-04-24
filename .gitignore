@@ -1,0 +1,8 @@
+*.out
+*~
+*.eps
+*.ps
+*.log
+*.pyc
+*.gz
+*.swp
