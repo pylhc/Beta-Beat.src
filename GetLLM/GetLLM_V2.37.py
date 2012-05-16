@@ -5406,9 +5406,11 @@ if woliny2!=1 and wolinx2!=1:
 
 		####
 #---------------------------------------- Start getsextupoles @ Glenn Vanbavinckhove
-
 if options.higher=="0":
 	sys.exit()
+
+
+
 
 fsex3000=open(outputpath+'getsex3000.out','w')
 fsex3000.write('@ MAD_FILE %s "'+file0+'"'+'\n')
@@ -5465,13 +5467,13 @@ if options.TBTana=="SUSSIX":
 	fsex3000.close()
 
 
-	foct4000.close()
-	fchi4000.close()
-	fchi3000.close()
-	f2000y.close()
+	#foct4000.close()
+	#fchi4000.close()
+	#fchi3000.close()
+	#f2000y.close()
 #	f2000x.close()
 
-	sys.exit()
+	#sys.exit()
 
 
 # --------------------------------------- end getsextupoles
@@ -5528,17 +5530,17 @@ if options.TBTana=="SUSSIX":
 	fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
 
 
-	files=[ListOfZeroDPPX,ListOfZeroDPPY]
-	name='chi4000'
-	plane='H'
+	#files=[ListOfZeroDPPX,ListOfZeroDPPY]
+	#name='chi4000'
+	#plane='H'
 	
-	[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
+	#[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
 
-	for i in range(0,len(dbpms)-2):
+	#for i in range(0,len(dbpms)-2):
 
-		bn=upper(dbpms[i][1])
+#		bn=upper(dbpms[i][1])
 	
-		fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
+	#	fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
 
 	fchi4000.close()
 
@@ -5548,9 +5550,9 @@ if options.TBTana=="SUSSIX":
 #---------------------------------------- end chiterms
 #-----------------------------------------begin octupole
 #->  1) f4000 (-3,0)
-
-	f4000M=MADTwiss.f4000
-	NAMES=MADTwiss.NAME
+#
+#	f4000M=MADTwiss.f4000
+#	NAMES=MADTwiss.NAME
 
 	foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
 	foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
@@ -5560,13 +5562,13 @@ if options.TBTana=="SUSSIX":
 	plane='H'
 	name='f4000'
 
-	[A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
+#	[A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
 
-	for i in range(0,len(dbpms)-1):
-
-		bn=upper(dbpms[i][1])
-		bns=dbpms[i][0]
-		foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
+#	for i in range(0,len(dbpms)-1):
+#
+#		bn=upper(dbpms[i][1])
+#		bns=dbpms[i][0]
+#		foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
 	
 
 
