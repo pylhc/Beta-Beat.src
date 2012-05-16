@@ -133,7 +133,10 @@ class rhicBpmTbt:
                  #print s[1]
                  pl = int(s[0])
                  bpm_name = s[1]
-                 s_coord = float(s[2])
+                 if 'null' not in s[2]:
+                     s_coord = float(s[2])
+                 else:
+                     pl=3  # Quick bug fix to avoid appending this BPM
             
                  # first row is scoordinate of each bpm
                  if pl == 0:
