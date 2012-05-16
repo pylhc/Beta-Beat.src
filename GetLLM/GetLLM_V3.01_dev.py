@@ -3726,8 +3726,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                                     dppi=float(dppi)
                                     print 'dppi= ',dppi
                             except:
-                                    print 'but failing. DPP in ',file1 , ' is something wrong. String? --- leaving GetLLM'
-                                    sys.exit()
+                                    print 'but failing. DPP in ',file1 , ' is something wrong. String?'
+                                    raise ValueError('leaving GetLLM')
                             
                     if dppi==0.0:
                             ListOfZeroDPPY.append(twiss(file1))
@@ -4479,8 +4479,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                             except: fIPfromphasef2.write('\n')
                     fIPfromphasef2.close()
 
-    #sys.exit()             
-
     #-------- START Orbit
     ListOfCOX=[]
     if wolinx!=1:
@@ -4729,9 +4727,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                             fcouplef2.close()
                             
             else:
-                    print 'Number of monitors for coupling analysis (option -n) should be 1 or 2.'
-                    print 'Leaving the coupling analysis...'
-                    sys.exit()
+                    raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
 
             #-- Convert to C-matrix:
             if acswitch=='1':
@@ -4920,12 +4916,12 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
                     k+=1
 
+
     if woliny2!=1 and wolinx2!=1:
 
             if len(ListOfNonZeroDPPX)!=len(ListOfNonZeroDPPY):
 
-                    print "list of dppx is not equal list of dppy"
-                    sys.exit()
+                    raise ValueError("list of dppx is not equal list of dppy")
             
 
             for j in range(len(ListOfNonZeroDPPX)):
@@ -4957,9 +4953,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                                     [fwqw,bpms]=getFreeCoupling(Q1f,Q2f,Q1,Q2,fwqw,MADTwiss,bpms)
                             
                     else:
-                            print 'Number of monitors for coupling analysis (option -n) should be 1 or 2.'
-                            print 'Leaving the coupling analysis...'
-                            sys.exit()
+                            raise ValueError('Number of monitors for coupling analysis (option -n) should be 1 or 2.')
                     
                     fwqw['DPP']=dpop
                     couplelist.append(fwqw)
@@ -4968,7 +4962,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #---------------------------------------- Start getsextupoles @ Glenn Vanbavinckhove
 
     if not higher_order:
-        sys.exit()
+        print "Not analysing higher order..."
+        return 0
 
     fsex3000=open(outputpath+'getsex3000.out','w')
     fsex3000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
@@ -5048,7 +5043,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             f2000y.close()
     #       f2000x.close()
 
-            sys.exit()
+            return 0
 
 
     # --------------------------------------- end getsextupoles
