@@ -15,7 +15,7 @@
 #---------------------------------
 
 #------------------------No Changes below this----------------------------------------------
-import sys,os
+import sys,os, time
 #try:
 #	
 #	from Numeric import *
@@ -107,7 +107,7 @@ class rhicBpmTbt:
     def extractTbt(self):
         global tx, ty, coordx, coordy, nturns, \
                header,nturns,timestamp,datestamp
-        
+        t=time.time()
         data = self.openSddsFile()
         
         tx = []
@@ -164,7 +164,7 @@ class rhicBpmTbt:
         #create dictionary keys - s coordinates & values - bpm names
         coordx = dict(coordx)
         coordy = dict(coordy)
-
+        print "Time to read file:", time.time()-t, "s"
         
 
     def makeBpmMatrix(self):
@@ -233,7 +233,6 @@ class rhicBpmTbt:
 class svdBadBpm(rhicBpmTbt):
 
     def __init__(self):
-
         rhicBpmTbt.__init__(self)
         if int(options.core)>1:
             Ax,Ay=self.svdBpmMat()
@@ -249,6 +248,7 @@ class svdBadBpm(rhicBpmTbt):
             self.svdClean('x')
             self.svdClean('y')
         self.writeFile()
+    
         
     def normalizeTbt(self, plane):
         global nturns, tx, ty
@@ -420,11 +420,13 @@ class svdBadBpm(rhicBpmTbt):
         b = (b-b_mean)/sqrt(n_turns)
         n_bpms = shape(b)[1]
         #----svd for matrix with bpms >10
+
         if n_bpms > 10:
             A = singular_value_decomposition(b,full_matrices=0)
             #print "Singular values:",A[1]
         else:
             sys.exit('Exit, # of bpms < 10')
+        
         
         #----SVD cut for noise floor
         if sing_val > n_bpms:
@@ -441,6 +443,7 @@ class svdBadBpm(rhicBpmTbt):
 	b = matrixmultiply(A[0],temp) ### check
         b = (b *sqrt(n_turns))+b_mean
         #b = b*sqrt(n_turns)
+        
         if plane == 'x':
             tx[turn:,:] = b
         elif plane == 'y':
@@ -452,7 +455,7 @@ class svdBadBpm(rhicBpmTbt):
         
     def writeFile(self):
         global tx, ty, coordx, coordy, nbpmx, nbpmy, nturns, header
-
+        
         f = open(options.file+'.tmp','w') # will change
         f.write(header)
 	print >>f,"#NTURNS",nturns
@@ -460,16 +463,18 @@ class svdBadBpm(rhicBpmTbt):
 	print >>f,"#ACQ-DATE",datestamp
         for ff in range(nbpmx):
             f.write('0'+' '+coordx[tx[0,ff]]+'     ')
+            tx[:nturns,ff].tofile(f, sep='  ',format='%6.5f')
             #f.write('0'+' '+coordx[str(round(tx[0,ff],3))]+'     ')
-            for gg in range(nturns):
-                f.write(str(round(tx[gg,ff],5))+'  ')
+            #for gg in range(nturns):
+            #    f.write(str(round(tx[gg,ff],5))+'  ')
             f.write('\n')
     
         for hh in range(nbpmy):
             f.write('1'+' '+coordy[ty[0,hh]]+'     ')
             #f.write('1'+' '+coordy[str(round(ty[0,hh],3))]+'     ')
-            for jj in range(nturns):
-                f.write(str(round(ty[jj,hh],5))+'  ')
+            ty[:nturns,hh].tofile(f, sep='  ',format='%6.5f')
+            #for jj in range(nturns):
+            #    f.write(str(round(ty[jj,hh],5))+'  ')
             f.write('\n')           
         f.close()
         
