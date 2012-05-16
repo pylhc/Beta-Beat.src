@@ -559,3 +559,36 @@ def Q():
                 'ktqx2.l1',
                 'ktqx1.l1']
     return variables
+
+
+
+
+
+
+
+def getListsByIR():
+
+    varstt=Q()
+
+    Common={}
+    B1={}
+    # Some IRs do not have common vars
+    Common['4']=[]
+    
+
+    for e in varstt:
+
+        if ".a" not in e:
+        
+            if "b1" in e :
+                IR=e[-3:-2]
+            
+                if IR not in B1.keys():
+                    B1[IR]=[]
+                B1[IR].append(e)
+            else:
+                IR=e[-1:]
+                if IR not in Common.keys():
+                    Common[IR]=[]
+                Common[IR].append(e)
+    return Common, B1
