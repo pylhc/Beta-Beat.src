@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+#sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/') #this was just a temporary solution, line should be removed in the future (tbach)
 
 try:
     from Numeric import *
