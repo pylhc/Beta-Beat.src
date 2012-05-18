@@ -93,8 +93,8 @@ class chromFileWriter:
         self.types[0]='$ '+(self.types[0].rjust(self._clen-2))
         
         self._write_list(self.head)
-        # this will not conform to the tfs format.. :(
-        #self._write_list(headcount)
+        # According to SL-CO-Note-91-32, this is allowed...
+        self._write_list(headcount)
         self._write_list(self.types)
 
     def writeLine(self,data):
