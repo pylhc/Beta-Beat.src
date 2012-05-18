@@ -383,7 +383,7 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         phim=atan2(Bm,Am)/2./pi
         phierrm=1./(1.+(Am/Bm)**2)*sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./pi
 
-        fileobj.writeLine(locals())
+        fileobj.writeLine(locals().copy())
         #print >>filetoprint, el, sloc,  dbb, dbberr, da, daerr, w, werr, wmo,phi, phierr,pmo, dbbm,dbberrm,dam,daerrm,wm, werrm,phim,phierrm
     #filetoprint.close()
 
@@ -432,7 +432,7 @@ def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
         chr_e=abs(complex(fitr[3],fiti[3]))
         chr_mdl=0
         
-        fileobj.writeLine(locals())
+        fileobj.writeLine(locals().copy())
 
         #print >> filetoprint,name,s,c,e,"0"
 
