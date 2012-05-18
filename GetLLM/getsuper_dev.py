@@ -34,7 +34,7 @@ class chromFileWriter:
 
         betacolumns= ['name', 'sloc',  'dbb', 'dbberr', 'da', 'daerr', 
                     'w', 'werr', 'wmo', 'phi', 'phierr','pmo', 'dbbm','dbberrm',
-                    'dam','daerrm','wm', 'werrm','phim','phierrm']
+                    'dam','daerrm','wm', 'werrm','phim','phierrm','A','Aerr','B','Berr','Am','Aerrm','Bm','Berrm']
         couplecolumns=['name', 'sloc', 'chr_c', 'chr_e', 'chr_mdl']
 
         headnames={
@@ -58,6 +58,14 @@ class chromFileWriter:
             'werrm':'W%(plane)sERRM',
             'phim':'PHIM',
             'phierrm':'PHI%(plane)sERRM',
+            'A':'CHROM_A%(plane)s',
+            'Aerr':'CHROM_Aerr%(plane)s',
+            'Am':'CHROM_AM%(plane)s',
+            'Aerrm':'CHROM_AERRM%(plane)s',
+            'B':'CHROM_B%(plane)s',
+            'Berr':'CHROM_Berr%(plane)s',
+            'Bm':'CHROM_BM%(plane)s',
+            'Berrm':'CHROM_BERRM%(plane)s',
             'chr_c':'CHROMCOUPLE',
             'chr_e':'CHROMe',
             'chr_mdl':'CHROMMDL'}
@@ -77,12 +85,16 @@ class chromFileWriter:
             raise ValueError("ftype %s not understood" % (ftype))
         
         self.head=[headnames[c] % locals() for c in self.columns]
+        headcount=[i+1 for i in xrange(len(self.head))]
         self.types=[headtypes[c] for c in self.columns]
         
         self.head[0]='* '+(self.head[0].rjust(self._clen-2))
+        headcount[0]='# '+(str(headcount[0]).rjust(self._clen-2))
         self.types[0]='$ '+(self.types[0].rjust(self._clen-2))
         
         self._write_list(self.head)
+        # this will not conform to the tfs format.. :(
+        #self._write_list(headcount)
         self._write_list(self.types)
 
     def writeLine(self,data):
@@ -90,13 +102,13 @@ class chromFileWriter:
         Write one line. 
         :param data: Dictionary of data columns to write
         '''
-        tmp_line=[str(data[c]) for c in self.columns]
+        tmp_line=[data[c] for c in self.columns]
         self._write_list(tmp_line)
 
     def _write_list(self,tmp_list):
         line=''
         for l in tmp_list:
-            line+=l.rjust(self._clen)
+            line+=str(l).rjust(self._clen)
         self.fstream.write(line+'\n')
 
 def parse_args():
