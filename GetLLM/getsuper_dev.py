@@ -2,7 +2,7 @@
 ###### imports
 from optparse import OptionParser
 from metaclass import twiss
-import os,sys,shutil,commands
+import os,sys,shutil,commands,subprocess
 from math import sqrt,cos,sin,pi,atan2
 from datetime import date
 from linreg import *
@@ -120,7 +120,7 @@ def madcreator(dpps,options):
 
     filetoprint.close()
     print "Running madx"
-    if os.system('madx < '+options.output+'/job.chrom.madx'):
+    if subprocess.call('madx < '+options.output+'/job.chrom.madx',shell=True):
         raise ValueError("Mad-X failed")
 
 ###running getllm
