@@ -27,7 +27,7 @@ def parse_args():
             metavar="<path>", default="./", dest="output")
     parser.add_option("-b", "--beta",
             help="where beta-beat is stored",
-            metavar="<path>", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="brc")
+            metavar="<path>", default=os.path.dirname(__file__)+'/../', dest="brc")
     parser.add_option("-t", "--algorithm",
             help="Which algorithm to use (SUSSIX/SVD)",
             metavar="ALGORITHM", default="SUSSIX", dest="technique")
@@ -35,8 +35,8 @@ def parse_args():
             help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
             metavar="ACCEL", default="LHCB1",dest="accel")
     parser.add_option("", "--qx",
-        help="Fractional horizontal tune",
-        metavar="<value>", type="float", default="0.31",dest="qx")
+            help="Fractional horizontal tune",
+            metavar="<value>", type="float", default="0.31",dest="qx")
     parser.add_option("", "--qy",
             help="Fractional vertical tune",
             metavar="<value>", type="float", default="0.32",dest="qy")
@@ -79,10 +79,10 @@ def madcreator(dpps,options):
     dppstring=''
     dppstring_ac=''
     for dpp in dpps:
-        if (os.path.exists(options.output+'/twiss_'+str(dpp)+'.dat')==False):
+        if not os.path.exists(options.output+'/twiss_'+str(dpp)+'.dat'):
             dppstring=dppstring+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'.dat";\n'
             dppstring_ac=dppstring_ac+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'_ac.dat";\n'
-    
+
     if not dppstring:
         print "No need to run madx"
         return 0
@@ -100,8 +100,8 @@ def madcreator(dpps,options):
     QY=options.qy
     QDX=options.qdx
     QDY=options.qdy
-    QMX=int(options.qx*100)
-    QMY=int(options.qy*100)
+    QMX=int(options.qx*1000000)
+    QMY=int(options.qy*1000000)
     STOP='!'
 
     for testpath in [options.output,options.twiss]:
@@ -143,12 +143,12 @@ def rungetllm(twissfile,accel,technique,files,options,dpp):
             import GetLLM
 
     print "Will run getllm for ",dpp #, command
-    
+
     GetLLM.main(outputpath=options.output,
-                files_to_analyse=append(files),
-                twiss_model_file=twissfile,
-                accel=accel,
-                TBTana=technique)
+            files_to_analyse=append(files),
+            twiss_model_file=twissfile,
+            accel=accel,
+            TBTana=technique)
     print "GetLLM finished"
 
     for var in ['betax','betay','ampbetax','ampbetay','couple','betax_free','betay_free','couple_free']:
@@ -193,7 +193,19 @@ def intersect(ListOfFile):
     return result
 
 #linreg
-def dolinregbet(filetoprint,listx,listy,bpms,plane,value,zero,twiss):
+def dolinregbet(filetoprint,listx,listy,bpms,plane,zero,twiss):
+    '''
+    Calculates stuff and writes to the file in a table
+    Closes the file afterwards
+
+    :param filetoprint: Filestream for output table
+    :param listx: List of variables...
+    :param listy: List of variables...
+    :param bpms: List of BPM's
+    :param plane: Which plane ('H'/'V')
+    :param zero: Twiss for dp/p = 0
+    :param twiss: Twiss
+    '''
     for bpm in bpms:
         el=bpm[1]
         sloc=bpm[0]
@@ -316,7 +328,7 @@ def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
             a.append(dpp)
             br.append(cr)
             bi.append(ci)
-            
+
         fitr=linreg(a,br)
         fiti=linreg(a,bi)
 
@@ -324,6 +336,30 @@ def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
         e=abs(complex(fitr[3],fiti[3]))
 
         print >> filetoprint,name,s,c,e,"0"
+
+def getTunes(options,fileslist):
+    '''
+    Reads in the driven tunes from the
+    file with dpp=0
+    Reads in the model tunes from the 
+    twiss model (twiss.dat)
+    Appends the attributes to options.
+    
+    :param options: options from parse_args
+    :param fileslist: dictionary of files, dpp used as key
+    :raise ValueError: If fileslist[0] does not exist
+    '''
+    tw_x=twiss(fileslist[0][0]+'_linx')
+    tw_y=twiss(fileslist[0][0]+'_liny')
+    tw=twiss(options.twiss+'/twiss.dat')
+
+    qdx,qdy=tw_x.TUNEX[0],tw_y.TUNEY[0]
+    qx,qy=tw.Q1%1,tw.Q2%1
+
+    setattr(options,"qx",qx)
+    setattr(options,"qy",qy)
+    setattr(options,"qdx",qdx)
+    setattr(options,"qdy",qdy)
 
 
 def main(options,args):
@@ -362,6 +398,8 @@ def main(options,args):
 
     if 0 not in fileslist:
         raise ValueError("NO DPP=0.0")
+
+    getTunes(options,fileslist)
 
     madcreator(fileslist.keys(),options)
     print "All models are created"
@@ -448,7 +486,7 @@ def main(options,args):
 
     bpms=intersect(listx)
     bpms=modelIntersect(bpms,modeld)
-    dolinregbet(filefile,fileslist.keys(),betalistx,bpms,"H","beta",zerobx,modeld)
+    dolinregbet(filefile,fileslist.keys(),betalistx,bpms,"H",zerobx,modeld)
     filefile.close()
 
     #V
@@ -458,7 +496,7 @@ def main(options,args):
 
     bpms=intersect(listy)
     bpms=modelIntersect(bpms,modeld)
-    dolinregbet(filefile,fileslist.keys(),betalisty,bpms,"V","beta",zeroby,modeld)
+    dolinregbet(filefile,fileslist.keys(),betalisty,bpms,"V",zeroby,modeld)
     filefile.close()
 
     print "Driven beta finished"
@@ -483,50 +521,50 @@ def main(options,args):
     filefile.close()
 
     if freeswitch==1:
-      #
-      # free beta
-      #
-      print "Free beta"
-      #H
-      filefile=open(options.output+"/chrombetax_free.out","w")
-      print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
-      print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
+        #
+        # free beta
+        #
+        print "Free beta"
+        #H
+        filefile=open(options.output+"/chrombetax_free.out","w")
+        print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
+        print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
 
-      bpms=intersect(listxf)
-      bpms=modelIntersect(bpms,modelf)
-      dolinregbet(filefile,fileslist.keys(),betalistxf,bpms,"H","beta",zerobxf,modelf)
-      filefile.close()
+        bpms=intersect(listxf)
+        bpms=modelIntersect(bpms,modelf)
+        dolinregbet(filefile,fileslist.keys(),betalistxf,bpms,"H",zerobxf,modelf)
+        filefile.close()
 
-      #V
-      filefile=open(options.output+"/chrombetay_free.out","w")
-      print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY", "PHIYERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WYR","WYERRR","PHIYR", "PHIYERRR"
-      print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
+        #V
+        filefile=open(options.output+"/chrombetay_free.out","w")
+        print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY", "PHIYERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WYR","WYERRR","PHIYR", "PHIYERRR"
+        print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
 
-      bpms=intersect(listyf)
-      bpms=modelIntersect(bpms,modelf)
-      dolinregbet(filefile,fileslist.keys(),betalistyf,bpms,"V","beta",zerobyf,modelf)
-      filefile.close()
+        bpms=intersect(listyf)
+        bpms=modelIntersect(bpms,modelf)
+        dolinregbet(filefile,fileslist.keys(),betalistyf,bpms,"V",zerobyf,modelf)
+        filefile.close()
 
-      print "Free beta finished"
+        print "Free beta finished"
 
-      #
-      # free coupling
-      #
-      print "Free coupling"
+        #
+        # free coupling
+        #
+        print "Free coupling"
 
-      filefile=open(options.output+"/chromcoupling_free.out","w")
-      print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
-      print >>filefile,"%s   %le  %le       %le     %le"
+        filefile=open(options.output+"/chromcoupling_free.out","w")
+        print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
+        print >>filefile,"%s   %le  %le       %le     %le"
 
-      bpms=intersect(listcf)
-      bpms=modelIntersect(bpms,modelf)
+        bpms=intersect(listcf)
+        bpms=modelIntersect(bpms,modelf)
 
-      dolinregCoupling(couplelistf,bpms,fileslist.keys(),filefile,modelf)
-      filefile.close()
+        dolinregCoupling(couplelistf,bpms,fileslist.keys(),filefile,modelf)
+        filefile.close()
 
 
-      print "Free coupling finished"
-      filefile.close()
+        print "Free coupling finished"
+        filefile.close()
 
 
 if __name__=="__main__":
