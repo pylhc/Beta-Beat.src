@@ -13,6 +13,91 @@ from linreg import *
 #  - modifiers.madx should be in options.output
 #
 
+class chromFileWriter:
+    def __init__(self,ftype,fname,plane,overwrite=True):
+        '''
+        :param ftype: string, 'beta' or 'coupling'
+        :param fname: string, name of file
+        :param plane: "H" or "V"
+        :param overwrite: Overwrite file if it already exist
+        '''
+        self.fstream=file(fname,'w')
+        self._clen=17 # column length..
+
+        if plane.upper()=="H":
+            plane="X"
+        elif plane.upper()=="V":
+            plane="Y"
+        
+        if os.path.isfile(fname) and not overwrite:
+            raise ValueError("Cannot overwrite file "+fname)
+
+        betacolumns= ['name', 'sloc',  'dbb', 'dbberr', 'da', 'daerr', 
+                    'w', 'werr', 'wmo', 'phi', 'phierr','pmo', 'dbbm','dbberrm',
+                    'dam','daerrm','wm', 'werrm','phim','phierrm']
+        couplecolumns=['name', 'sloc', 'chr_c', 'chr_e', 'chr_mdl']
+
+        headnames={
+            'name':'NAME',
+            'sloc':'S',
+            'dbb':'dbb',
+            'dbberr':'dbberr',
+            'da':'dalfa',
+            'daerr':'daerr',
+            'w':'W%(plane)s',
+            'werr':'W%(plane)sERR',
+            'wmo':'WMO',
+            'phi':'PHI%(plane)s',
+            'phierr':'PHI%(plane)sERR',
+            'pmo':'PHIM',
+            'dbbm':'dbbM',
+            'dbberrm':'dbberrM',
+            'dam':'dalfaM',
+            'daerrm':'daerrM', 
+            'wm':'W%(plane)sM',
+            'werrm':'W%(plane)sERRM',
+            'phim':'PHIM',
+            'phierrm':'PHI%(plane)sERRM',
+            'chr_c':'CHROMCOUPLE',
+            'chr_e':'CHROMe',
+            'chr_mdl':'CHROMMDL'}
+        headtypes={'name':'%s'}
+        for key in headnames:
+            # for all others we use '%le'...
+            if key not in headtypes:
+                headtypes[key]='%le'
+
+        if ftype.lower().strip()=='beta':
+            self.ftype='beta'
+            self.columns=betacolumns
+        elif ftype.lower().strip()=='coupling':
+            self.ftype='coupling'
+            self.columns=couplecolumns
+        else:
+            raise ValueError("ftype %s not understood" % (ftype))
+        
+        self.head=[headnames[c] % locals() for c in self.columns]
+        self.types=[headtypes[c] for c in self.columns]
+        
+        self.head[0]='* '+(self.head[0].rjust(self._clen-2))
+        self.types[0]='$ '+(self.types[0].rjust(self._clen-2))
+        
+        self._write_list(self.head)
+        self._write_list(self.types)
+
+    def writeLine(self,data):
+        '''
+        Write one line. 
+        :param data: Dictionary of data columns to write
+        '''
+        tmp_line=[str(data[c]) for c in self.columns]
+        self._write_list(tmp_line)
+
+    def _write_list(self,tmp_list):
+        line=''
+        for l in tmp_list:
+            line+=l.rjust(self._clen)
+        self.fstream.write(line+'\n')
 
 def parse_args():
     ###### optionparser
@@ -193,12 +278,12 @@ def intersect(ListOfFile):
     return result
 
 #linreg
-def dolinregbet(filetoprint,listx,listy,bpms,plane,zero,twiss):
+def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
     '''
     Calculates stuff and writes to the file in a table
     Closes the file afterwards
 
-    :param filetoprint: Filestream for output table
+    :param fileobj: chromFileWriter for output table
     :param listx: List of variables...
     :param listy: List of variables...
     :param bpms: List of BPM's
@@ -207,7 +292,7 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,zero,twiss):
     :param twiss: Twiss
     '''
     for bpm in bpms:
-        el=bpm[1]
+        name=bpm[1]
         sloc=bpm[0]
         indx=[]
         b=[]
@@ -215,42 +300,42 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,zero,twiss):
         bm=[]
         am=[]
         if "H" in plane:
-            beta0=zero.BETX[zero.indx[el]]
-            alfa0=zero.ALFX[zero.indx[el]]
-            alfa0err=zero.STDALFX[zero.indx[el]]
+            beta0=zero.BETX[zero.indx[name]]
+            alfa0=zero.ALFX[zero.indx[name]]
+            alfa0err=zero.STDALFX[zero.indx[name]]
 
-            beta0m=twiss.BETX[twiss.indx[el]]
-            alfa0m=twiss.ALFX[twiss.indx[el]]
+            beta0m=twiss.BETX[twiss.indx[name]]
+            alfa0m=twiss.ALFX[twiss.indx[name]]
 
-            wmo=twiss.WX[twiss.indx[el]]
-            pmo=twiss.PHIX[twiss.indx[el]]
+            wmo=twiss.WX[twiss.indx[name]]
+            pmo=twiss.PHIX[twiss.indx[name]]
         else:
 
-            beta0=zero.BETY[zero.indx[el]]
-            alfa0=zero.ALFY[zero.indx[el]]
-            alfa0err=zero.STDALFY[zero.indx[el]]
+            beta0=zero.BETY[zero.indx[name]]
+            alfa0=zero.ALFY[zero.indx[name]]
+            alfa0err=zero.STDALFY[zero.indx[name]]
 
-            beta0m=twiss.BETY[twiss.indx[el]]
-            alfa0m=twiss.ALFY[twiss.indx[el]]
+            beta0m=twiss.BETY[twiss.indx[name]]
+            alfa0m=twiss.ALFY[twiss.indx[name]]
 
-            wmo=twiss.WY[twiss.indx[el]]
-            pmo=twiss.PHIY[twiss.indx[el]]
+            wmo=twiss.WY[twiss.indx[name]]
+            pmo=twiss.PHIY[twiss.indx[name]]
         for dpp in listx:
             file=listy[dpp]
-            ix=file.indx[el]
+            ix=file.indx[name]
             indx.append(ix)
             if "H" in plane:
                 b.append(file.BETX[ix])
                 a.append(file.ALFX[ix])
 
-                bm.append(file.BETXMDL[file.indx[el]])
-                am.append(file.ALFXMDL[file.indx[el]])
+                bm.append(file.BETXMDL[file.indx[name]])
+                am.append(file.ALFXMDL[file.indx[name]])
             else:
                 b.append(file.BETY[ix])
                 a.append(file.ALFY[ix])
 
-                bm.append(file.BETYMDL[file.indx[el]])
-                am.append(file.ALFYMDL[file.indx[el]])
+                bm.append(file.BETYMDL[file.indx[name]])
+                am.append(file.ALFYMDL[file.indx[name]])
 
         bfit=linreg(listx, b)
         afit=linreg(listx, a)
@@ -286,9 +371,9 @@ def dolinregbet(filetoprint,listx,listy,bpms,plane,zero,twiss):
         phim=atan2(Bm,Am)/2./pi
         phierrm=1./(1.+(Am/Bm)**2)*sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./pi
 
-
-        print >>filetoprint, el, sloc,  dbb, dbberr, da, daerr, w, werr, wmo,phi, phierr,pmo, dbbm,dbberrm,dam,daerrm,wm, werrm,phim,phierrm
-    filetoprint.close()
+        fileobj.writeLine(locals())
+        #print >>filetoprint, el, sloc,  dbb, dbberr, da, daerr, w, werr, wmo,phi, phierr,pmo, dbbm,dbberrm,dam,daerrm,wm, werrm,phim,phierrm
+    #filetoprint.close()
 
 ### for coupling
 # get det(C)
@@ -309,13 +394,12 @@ def getC(couplefile,name):
     return cr,ci
 
 # linreg for coupling
-def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
-
+def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
 
     for bpm in bpms:
 
         name=bpm[1]
-        s=bpm[0]
+        sloc=bpm[0]
 
         a=[]
         br=[]
@@ -332,10 +416,13 @@ def dolinregCoupling(couplelist,bpms,dpplist,filetoprint,model):
         fitr=linreg(a,br)
         fiti=linreg(a,bi)
 
-        c=abs(complex(fitr[0],fiti[0]))
-        e=abs(complex(fitr[3],fiti[3]))
+        chr_c=abs(complex(fitr[0],fiti[0]))
+        chr_e=abs(complex(fitr[3],fiti[3]))
+        chr_mdl=0
+        
+        fileobj.writeLine(locals())
 
-        print >> filetoprint,name,s,c,e,"0"
+        #print >> filetoprint,name,s,c,e,"0"
 
 def getTunes(options,fileslist):
     '''
@@ -480,24 +567,20 @@ def main(options,args):
     print "Driven beta"
 
     #H
-    filefile=open(options.output+"/chrombetax.out","w")
-    print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM", "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
-    print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le  %le %le  %le %le  %le %le %le  %le %le  %le"
+    fileobj=chromFileWriter('beta',options.output+"/chrombetax.out",'H')
 
     bpms=intersect(listx)
     bpms=modelIntersect(bpms,modeld)
-    dolinregbet(filefile,fileslist.keys(),betalistx,bpms,"H",zerobx,modeld)
-    filefile.close()
+    dolinregbet(fileobj,fileslist.keys(),betalistx,bpms,"H",zerobx,modeld)
+    del fileobj
 
     #V
-    filefile=open(options.output+"/chrombetay.out","w")
-    print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY",  "dbbR", "dbberrR", "dalfaR", "daerr","PHIYERR","PHIM", "WYR","WYERRR","PHIYR", "PHIYERRR"
-    print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le %le %le"
+    fileobj=chromFileWriter('beta',options.output+"/chrombetay.out",'V')
 
     bpms=intersect(listy)
     bpms=modelIntersect(bpms,modeld)
-    dolinregbet(filefile,fileslist.keys(),betalisty,bpms,"V",zeroby,modeld)
-    filefile.close()
+    dolinregbet(fileobj,fileslist.keys(),betalisty,bpms,"V",zeroby,modeld)
+    del fileobj
 
     print "Driven beta finished"
 
@@ -505,20 +588,16 @@ def main(options,args):
     # driven coupling
     #
     print "Driven coupling"
-
-    filefile=open(options.output+"/chromcoupling.out","w")
-    print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
-    print >>filefile,"%s   %le  %le       %le     %le"
+    
+    fileobj=chromFileWriter('coupling',options.output+"/chromcoupling.out",'')
 
     bpms=intersect(listc)
     bpms=modelIntersect(bpms,modeld)
 
-    dolinregCoupling(couplelist,bpms,fileslist.keys(),filefile,modeld)
-    filefile.close()
-
+    dolinregCoupling(couplelist,bpms,fileslist.keys(),fileobj,modeld)
+    del fileobj
 
     print "Driven coupling finished"
-    filefile.close()
 
     if freeswitch==1:
         #
@@ -526,24 +605,18 @@ def main(options,args):
         #
         print "Free beta"
         #H
-        filefile=open(options.output+"/chrombetax_free.out","w")
-        print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WX","WXERR","WMO","PHIX", "PHIXERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WXR","WXERRR","PHIXR", "PHIXERRR"
-        print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
+        fileobj=chromFileWriter('beta',options.output+"/chrombetax_free.out",'H')
 
         bpms=intersect(listxf)
         bpms=modelIntersect(bpms,modelf)
-        dolinregbet(filefile,fileslist.keys(),betalistxf,bpms,"H",zerobxf,modelf)
-        filefile.close()
+        dolinregbet(fileobj,fileslist.keys(),betalistxf,bpms,"H",zerobxf,modelf)
 
         #V
-        filefile=open(options.output+"/chrombetay_free.out","w")
-        print >>filefile, "* NAME", "S",  "dbb", "dbberr", "dalfa", "daerr", "WY", "WYERR","WYM","PHIY", "PHIYERR","PHIM",  "dbbR", "dbberrR", "dalfaR", "daerr","WYR","WYERRR","PHIYR", "PHIYERRR"
-        print >>filefile, "$ %s  %le  %le  %le  %le  %le %le %le %le  %le %le %le %le  %le %le %le %le  %le"
+        fileobj=chromFileWriter('beta',options.output+"/chrombetay_free.out",'V')
 
         bpms=intersect(listyf)
         bpms=modelIntersect(bpms,modelf)
-        dolinregbet(filefile,fileslist.keys(),betalistyf,bpms,"V",zerobyf,modelf)
-        filefile.close()
+        dolinregbet(fileobj,fileslist.keys(),betalistyf,bpms,"V",zerobyf,modelf)
 
         print "Free beta finished"
 
@@ -552,19 +625,15 @@ def main(options,args):
         #
         print "Free coupling"
 
-        filefile=open(options.output+"/chromcoupling_free.out","w")
-        print >>filefile,"NAME S CHROMCOUPLE  CHROMe  CHROMMDL"
-        print >>filefile,"%s   %le  %le       %le     %le"
+        fileobj=chromFileWriter('coupling',options.output+"/chromcoupling_free.out",'')
 
         bpms=intersect(listcf)
         bpms=modelIntersect(bpms,modelf)
 
-        dolinregCoupling(couplelistf,bpms,fileslist.keys(),filefile,modelf)
-        filefile.close()
+        dolinregCoupling(couplelistf,bpms,fileslist.keys(),fileobj,modelf)
 
 
         print "Free coupling finished"
-        filefile.close()
 
 
 if __name__=="__main__":
