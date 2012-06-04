@@ -33,8 +33,9 @@ class chromFileWriter:
             raise ValueError("Cannot overwrite file "+fname)
 
         betacolumns= ['name', 'sloc',  'dbb', 'dbberr', 'da', 'daerr', 
-                    'w', 'werr', 'wmo', 'phi', 'phierr','pmo', 'dbbm','dbberrm',
-                    'dam','daerrm','wm', 'werrm','phim','phierrm','A','Aerr','B','Berr','Am','Aerrm','Bm','Berrm']
+                    'w', 'werr','wm', 'werrm', 'wmo', 'phi', 'phierr','phim','phierrm','pmo',
+                    'A','Aerr','Am','Aerrm','B','Berr','Bm','Berrm', 'dbbm','dbberrm',
+                    'dam','daerrm']
         couplecolumns=['name', 'sloc', 'chr_c', 'chr_e', 'chr_mdl']
 
         headnames={
