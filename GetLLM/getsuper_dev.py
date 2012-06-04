@@ -131,18 +131,6 @@ def parse_args():
     parser.add_option("-a", "--accel",
             help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
             metavar="ACCEL", default="LHCB1",dest="accel")
-    parser.add_option("", "--qx",
-            help="Fractional horizontal tune",
-            metavar="<value>", type="float", default="0.31",dest="qx")
-    parser.add_option("", "--qy",
-            help="Fractional vertical tune",
-            metavar="<value>", type="float", default="0.32",dest="qy")
-    parser.add_option("", "--qdx",
-            help="AC dipole driven horizontal tune",
-            metavar="<value>", type="float", default="0.304",dest="qdx")
-    parser.add_option("", "--qdy",
-            help="AC dipole driven vertical tune",
-            metavar="<value>", type="float", default="0.326",dest="qdy")
     parser.add_option("", "--llm_version",
             help="Run with specific version of GetLLM.py",
             metavar="<version>", default=None,dest="llm_version")
