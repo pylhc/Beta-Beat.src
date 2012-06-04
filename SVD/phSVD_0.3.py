@@ -2,6 +2,10 @@
 #--- Slightly better peak detection included
 #--- R. Calaga, Feb 24, 2011
 import sys,os,time
+
+if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach, 2012/05)
+  sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+
 from numpy import *; svd=linalg.svd; fftt=fft.fft
 from rhicdata25 import rhicdata;
 from metaclass25 import twiss

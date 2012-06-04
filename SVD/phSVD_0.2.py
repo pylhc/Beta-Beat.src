@@ -1,6 +1,11 @@
 #!/afs/cern.ch/eng/sl/lintrack/Python-2.5_32bit/Python-2.5_32bit/bin/python
 
 import sys,os,re
+
+if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach, 2012/05)
+  sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+
+
 try:
     from numpy import *; svd=linalg.svd; fftt=fft.fft
     from rhicdata25 import rhicdata;
