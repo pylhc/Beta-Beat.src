@@ -12,7 +12,7 @@
 
 import sys
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src///Numeric-23_p2.3/lib/python2.3/site-packages/Numeric/')
+#sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src///Numeric-23_p2.3/lib/python2.3/site-packages/Numeric/')
 
 
 #try:
