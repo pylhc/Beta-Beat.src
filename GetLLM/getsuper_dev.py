@@ -1,10 +1,12 @@
 
 ###### imports
 from optparse import OptionParser
-from metaclass import twiss
 import os,sys,shutil,commands,subprocess
+if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
+    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 from math import sqrt,cos,sin,pi,atan2
 from datetime import date
+from metaclass import twiss
 from linreg import *
 
 ##
@@ -12,6 +14,8 @@ from linreg import *
 #  - Cleaned macro writer in madcreator
 #  - modifiers.madx should be in options.output
 #
+
+
 
 class chromFileWriter:
     def __init__(self,ftype,fname,plane,overwrite=True):
@@ -638,7 +642,6 @@ def main(options,args):
 
 
 if __name__=="__main__":
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
     options,args=parse_args()
     check_input(options,args)
