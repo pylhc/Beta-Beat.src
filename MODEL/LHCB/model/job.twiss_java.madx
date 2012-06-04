@@ -35,6 +35,7 @@ endedit;
 
 %MATCHER call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/model/matcher.madx";
 
+system, "rm db5 ats";
 
 use, period=%ACCEL;
 

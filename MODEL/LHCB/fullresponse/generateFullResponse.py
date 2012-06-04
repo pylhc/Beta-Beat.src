@@ -1,5 +1,6 @@
 import sys
-#sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/') #this was just a temporary solution, line should be removed in the future (tbach)
+if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach, 2012/05)
+  sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
 
 try:
     from Numeric import *
