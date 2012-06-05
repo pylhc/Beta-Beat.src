@@ -113,8 +113,8 @@ class chromFileWriter:
     def _write_list(self,tmp_list):
         line=''
         for l in tmp_list:
-            line+=str(l).rjust(self._clen)
-        self.fstream.write(line+'\n')
+            line+=str(l).rjust(self._clen-1)+' '
+        self.fstream.write(line[:-1]+'\n')
 
 def parse_args():
     ###### optionparser
@@ -357,8 +357,8 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         Aerr=dbberr
         B=da-alfa0*dbb
         Berr=sqrt(daerr**2 + (alfa0err*dbb)**2 + (alfa0*dbberr)**2)
-        w=sqrt(A**2+B**2)
-        werr=sqrt( (Aerr*A/w)**2 + (Berr*B/w)**2  )
+        w=0.5*sqrt(A**2+B**2)
+        werr=0.5*sqrt( (Aerr*A/w)**2 + (Berr*B/w)**2  )
         phi=atan2(B,A)/2./pi
         phierr=1./(1.+(A/B)**2)*sqrt( (Aerr/B)**2 + (A/B**2*Berr)**2)/2./pi
 
@@ -371,8 +371,8 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         Aerrm=dbberrm
         Bm=dam-alfa0m*dbbm
         Berrm=sqrt(daerrm**2 + (alfa0m*dbberrm)**2)
-        wm=sqrt(Am**2+Bm**2)
-        werrm=sqrt( (Aerrm*Am/wm)**2 + (Berrm*Bm/wm)**2  )
+        wm=0.5*sqrt(Am**2+Bm**2)
+        werrm=0.5*sqrt( (Aerrm*Am/wm)**2 + (Berrm*Bm/wm)**2  )
         phim=atan2(Bm,Am)/2./pi
         phierrm=1./(1.+(Am/Bm)**2)*sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./pi
 
