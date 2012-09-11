@@ -33,7 +33,12 @@ endedit;
  on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
  on_alice:= 0; on_lhcb := 0;
 
+
+! This line must be commented for nominal LHC and ATS but cuncommented for highbeta. Left uncommented on the 21-June-2012 for use during MD at 500m:
 !call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/model/matcher.madx";
+! To be properly fixed with the %MATCHER replacement as for job_iterate
+
+
 
 
 use, period=%ACCEL;

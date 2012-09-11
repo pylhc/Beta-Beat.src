@@ -36,6 +36,9 @@ on_alice:= 0; on_lhcb := 0;
 
 
 %MATCHER call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/model/matcher.madx";
+%MATCHER use, period=%ACCEL;
+
+
 
 !!! for ATS MD
 !call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/skew_quad.madx";
