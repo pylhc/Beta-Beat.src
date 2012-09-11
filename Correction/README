@@ -1,0 +1,13 @@
+Usage:
+pythonafs correct.py -p ../GetPhases/
+
+Change log:
+06/May/08 Integer part of vertical tune for LHCB1 is corrected by M.A.
+06/May/08 Integer parts of tunes and variable list for LHCB2 are added by M.A.
+          It should be check with Rogelio whether "varslist=quadvarsb2()" would work or not.
+
+July 25, 2008: R. Calaga
+Added bCorr.py to do a psuedo micaod type corrections
+format similar to svd corrections
+additional option in parser -t --> SVD, MICADO etc...
+
