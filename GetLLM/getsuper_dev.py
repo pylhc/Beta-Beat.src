@@ -129,7 +129,7 @@ def parse_args():
             metavar="twiss", default="./", dest="twiss")
     parser.add_option("--twfile",
             help="twiss file to use",
-            metavar="/path/to/twiss.dat", default="twiss.dat", dest="twissfile")
+            metavar="/path/to/twiss.dat", default=None, dest="twissfile")
     parser.add_option("-o", "--output",
             help="output path, where to store the results",
             metavar="<path>", default="./", dest="output")
@@ -159,6 +159,16 @@ def check_input(options,args):
         if not os.path.isfile(f):
             raise ValueError(f+' does not exist')
 
+
+def get_twissfile(options):
+    '''
+    Returns the full path to
+    the twiss file
+    '''
+    if options.twissfile:
+        return options.twissfile
+    else:
+        return options.twiss+'/twiss.dat'
 
 ## ############
 #functions
@@ -448,7 +458,7 @@ def getTunes(options,fileslist):
     '''
     tw_x=twiss(fileslist[0][0]+'_linx')
     tw_y=twiss(fileslist[0][0]+'_liny')
-    tw=twiss(options.twissfile)
+    tw=twiss(get_twissfile(options))
 
     qdx,qdy=tw_x.TUNEX[0],tw_y.TUNEY[0]
     qx,qy=tw.Q1%1,tw.Q2%1
@@ -545,7 +555,7 @@ def main(options,args):
         listx.append(betx)
         listy.append(bety)
         listc.append(couple)
-        modeld=twiss(options.twissfile)
+        modeld=twiss(get_twissfile(options))
 
         #try:
         if freeswitch==1:
@@ -562,7 +572,7 @@ def main(options,args):
             listyf.append(betyf)
             listcf.append(couplef)
             modeld=twiss(options.twiss+"/twiss_ac.dat")
-            modelf=twiss(options.twissfile)
+            modelf=twiss(get_twissfile(options))
             if float(dpp)==0.0:
                 zerobxf=betalistxf[dpp]
                 zerobyf=betalistyf[dpp]
