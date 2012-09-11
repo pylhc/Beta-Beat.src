@@ -121,9 +121,15 @@ def parse_args():
     usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
     parser = OptionParser(usage)
     # general
+    parser.add_option("-f", "--files",
+        help="Files from analysis, separated by comma",
+        metavar="TwissFile", default="0", dest="files")
     parser.add_option("-m", "--twiss",
-            help="twiss files to use",
+            help="twiss folder path to use",
             metavar="twiss", default="./", dest="twiss")
+    parser.add_option("--twfile",
+            help="twiss file to use",
+            metavar="/path/to/twiss.dat", default="twiss.dat", dest="twissfile")
     parser.add_option("-o", "--output",
             help="output path, where to store the results",
             metavar="<path>", default="./", dest="output")
@@ -145,9 +151,11 @@ def parse_args():
 
 
 def check_input(options,args):
-    if len(args)==0:
+    files=[f.strip() for f in options.files.split(',')]
+    files.extend(args)
+    if len(files)==0:
         raise SyntaxError("You need to define at least one file input")
-    for f in args:
+    for f in files:
         if not os.path.isfile(f):
             raise ValueError(f+' does not exist')
 
@@ -440,7 +448,7 @@ def getTunes(options,fileslist):
     '''
     tw_x=twiss(fileslist[0][0]+'_linx')
     tw_y=twiss(fileslist[0][0]+'_liny')
-    tw=twiss(options.twiss+'/twiss.dat')
+    tw=twiss(options.twissfile)
 
     qdx,qdy=tw_x.TUNEX[0],tw_y.TUNEY[0]
     qx,qy=tw.Q1%1,tw.Q2%1
@@ -457,7 +465,8 @@ def main(options,args):
     #   main
     ## ##############
 
-    files=args[:]
+    files=[f.strip() for f in options.files.split(',')]
+    files.extend(args)
 
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
@@ -536,7 +545,7 @@ def main(options,args):
         listx.append(betx)
         listy.append(bety)
         listc.append(couple)
-        modeld=twiss(options.twiss+"/twiss.dat")
+        modeld=twiss(options.twissfile)
 
         #try:
         if freeswitch==1:
@@ -553,7 +562,7 @@ def main(options,args):
             listyf.append(betyf)
             listcf.append(couplef)
             modeld=twiss(options.twiss+"/twiss_ac.dat")
-            modelf=twiss(options.twiss+"/twiss.dat")
+            modelf=twiss(options.twissfile)
             if float(dpp)==0.0:
                 zerobxf=betalistxf[dpp]
                 zerobyf=betalistyf[dpp]
