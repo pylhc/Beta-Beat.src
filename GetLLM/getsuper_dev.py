@@ -123,7 +123,7 @@ def parse_args():
     # general
     parser.add_option("-f", "--files",
         help="Files from analysis, separated by comma",
-        metavar="TwissFile", default="0", dest="files")
+        metavar="TwissFile", default="", dest="files")
     parser.add_option("-m", "--twiss",
             help="twiss folder path to use",
             metavar="twiss", default="./", dest="twiss")
@@ -151,14 +151,23 @@ def parse_args():
 
 
 def check_input(options,args):
-    files=[f.strip() for f in options.files.split(',')]
-    files.extend(args)
+    files=get_filelist(options,args)
     if len(files)==0:
         raise SyntaxError("You need to define at least one file input")
     for f in files:
         if not os.path.isfile(f):
             raise ValueError(f+' does not exist')
 
+
+def get_filelist(options,args):
+    '''
+    Returns list of files to be analysed
+    '''
+    if options.files:
+        files=[f.strip() for f in options.files.split(',')]
+        files.extend(args)
+        return files
+    return args
 
 def get_twissfile(options):
     '''
@@ -212,7 +221,7 @@ def madcreator(dpps,options):
     QMY=int(options.qy*1000000)
     STOP='!'
 
-    for testpath in [options.output,options.twiss]:
+    for testpath in [options.output,options.twiss,os.path.dirname(options.twissfile)]:
         _tmpmod=os.path.join(testpath,'modifiers.madx')
         if os.path.isfile(_tmpmod):
             print "INFO: Using",_tmpmod
@@ -475,8 +484,7 @@ def main(options,args):
     #   main
     ## ##############
 
-    files=[f.strip() for f in options.files.split(',')]
-    files.extend(args)
+    files=get_filelist(options,args)
 
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
