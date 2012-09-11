@@ -6,3 +6,7 @@
 *.pyc
 *.gz
 *.swp
+*_linx
+*_liny
+twiss*dat
+db
