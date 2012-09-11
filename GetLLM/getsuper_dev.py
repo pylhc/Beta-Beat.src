@@ -127,7 +127,7 @@ def parse_args():
     parser.add_option("-m", "--twiss",
             help="twiss folder path to use",
             metavar="twiss", default="./", dest="twiss")
-    parser.add_option("--twfile",
+    parser.add_option("--twissfile",
             help="twiss file to use",
             metavar="/path/to/twiss.dat", default=None, dest="twissfile")
     parser.add_option("-o", "--output",
