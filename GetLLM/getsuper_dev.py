@@ -127,9 +127,12 @@ def parse_args():
     parser.add_option("-m", "--twiss",
             help="twiss folder path to use",
             metavar="twiss", default="./", dest="twiss")
+    parser.add_option("--madxbin",
+            help="path to mad-x binary",
+            metavar="<path>", default="madx", dest="madx")
     parser.add_option("--twissfile",
             help="twiss file to use",
-            metavar="/path/to/twiss.dat", default=None, dest="twissfile")
+            metavar="/path/to/twiss.dat", default="", dest="twissfile")
     parser.add_option("-o", "--output",
             help="output path, where to store the results",
             metavar="<path>", default="./", dest="output")
@@ -237,7 +240,7 @@ def madcreator(dpps,options):
 
     filetoprint.close()
     print "Running madx"
-    if subprocess.call('madx < '+options.output+'/job.chrom.madx',shell=True):
+    if subprocess.call(options.madx+' < '+options.output+'/job.chrom.madx',shell=True):
         raise ValueError("Mad-X failed")
 
 def append(files):
