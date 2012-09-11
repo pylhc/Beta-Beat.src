@@ -213,16 +213,13 @@ def madcreator(dpps,options):
     if subprocess.call('madx < '+options.output+'/job.chrom.madx',shell=True):
         raise ValueError("Mad-X failed")
 
-###running getllm
 def append(files):
-    filestring="empty"
-
-    for filee in files:
-        filestring=filestring+","+filee
-
-    return filestring.replace("empty,","")
+    return ','.join(files)
 
 def rungetllm(twissfile,accel,technique,files,options,dpp):
+    '''
+    Running GetLLM...
+    '''
     if options.llm_version:
         print "GetLLM_V"+options.llm_version+" as GetLLM"
         exec("import GetLLM_V"+options.llm_version+" as GetLLM")
