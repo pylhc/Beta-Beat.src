@@ -59,8 +59,14 @@ parser.add_option("-f", "--file",
                 help="file to clean",
                 metavar="file", default="./", dest="file")
 parser.add_option("-c", "--core",
-                help="No of threads, default=1, max=2",
-                metavar="core", default="1", dest="core")
+                help="No of threads, default=2, max=2",
+                metavar="core", default="2", dest="core")
+parser.add_option("-n", "--nturns",
+                help="Number of turns to be analysed",
+                metavar="NTURNS", default="4500", dest="nturns")
+
+
+
 
 (options, args) = parser.parse_args()
 
@@ -145,22 +151,32 @@ class rhicBpmTbt:
                  if pl == 0:
                      coordx.append((float(s[2]),s[1]))
                      #coordx.append((str(round(float(s[2]),3)),s[1]))
-                     for oo in range(2,len(s)):
+                     if float(options.nturns)+2 < float(len(s)):
+                         NTurns=int(options.nturns)+2
+                     else:
+                         NTurns=len(s)
+                     #print len(s), NTurns
+                     for oo in range(2,NTurns):
                          tx.append(float(s[oo])) 
 
                  elif pl == 1:
                      coordy.append((float(s[2]),s[1]))
                      #coordy.append((str(round(float(s[2]),3)),s[1]))
                      #coordy.append((s[2],s[1]))
-                     for oo in range(2,len(s)):
+                     if float(options.nturns)+2 <  len(s):
+                         NTurns=int(options.nturns)+2
+                     else:
+                         NTurns=len(s)
+                     #print len(s), NTurns
+                     for oo in range(2, NTurns):
                          ty.append(float(s[oo]))
 
                  else:
                      print 'transverse plane unknown for -- ', bpm_name
                 
         #num of turns = length(each line) - 2 (plane and bpm name)
-        nturns = len(s)-2
-        
+        #nturns = len(s)-2
+        nturns= NTurns-2
         #create dictionary keys - s coordinates & values - bpm names
         coordx = dict(coordx)
         coordy = dict(coordy)
