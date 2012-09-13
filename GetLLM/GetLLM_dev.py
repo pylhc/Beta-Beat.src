@@ -3574,8 +3574,6 @@ def union(a, b):
     return list(set(a) | set(b))
 
 def _fix_output(outputpath):
-    if outputpath.strip()[-1]!='/':
-        outputpath=outputpath.strip()+'/'
     if not os.path.isdir(outputpath):
         os.makedirs(outputpath)
     return outputpath
@@ -3598,7 +3596,7 @@ def parse_args():
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option("-a", "--accel",
-                    help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
+                    help="Which accelerator: LHCB1 LHCB2 SPS RHIC TEVATRON",
                     metavar="ACCEL", default="LHCB1",dest="ACCEL")
     parser.add_option("-d", "--dictionary",
                     help="File with the BPM dictionary",
@@ -3625,8 +3623,11 @@ def parse_args():
                     help="BPMunit: um, mm, cm, m (default um)",
                     metavar="BPMUNIT", default="um", dest="BPMUNIT")
     parser.add_option("-l", "--nonlinear",
-                    help="Switch to output higher order resonance stuff",
-                    metavar="HIGHER", type=int, default=1 , dest="higher")
+                    help="Switch to output higher oerder resonance stuffs, on=1(default)/off=0",
+                    metavar="HIGHER", default="1" , dest="higher")
+    parser.add_option("-p", "--lhcphase",
+                    help="Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1",
+                    metavar="LHCPHASE", default="0" , dest="lhcphase")
 
     (options, args) = parser.parse_args()
     return options,args
