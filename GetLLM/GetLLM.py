@@ -381,10 +381,16 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 		# Averaging over beta/alpha1,2 and 3. Find beta/alpha errors
 		beti=(betii[ib1][0]+betii[ib2][2]+betii[ib3][4])/3.
 		beterr=sqrt(betii[ib1][1]**2.+betii[ib2][3]**2.+betii[ib3][5]**2.)/sqrt(3.)
-		betstd=sqrt((betii[ib1][0]**2.+betii[ib2][2]**2.+betii[ib3][4]**2.)/3.-((betii[ib1][0]+betii[ib2][2]+betii[ib3][4])/3.)**2.)
+		try:
+			betstd=sqrt((betii[ib1][0]**2.+betii[ib2][2]**2.+betii[ib3][4]**2.)/3.-((betii[ib1][0]+betii[ib2][2]+betii[ib3][4])/3.)**2.)
+		except:
+			betstd=0
 		alfi=(alfii[ib1][0]+alfii[ib2][2]+alfii[ib3][4])/3.
 		alferr=sqrt(alfii[ib1][1]**2.+alfii[ib2][3]**2.+alfii[ib3][5]**2.)/sqrt(3.)
-		alfstd=sqrt((alfii[ib1][0]**2.+alfii[ib2][2]**2.+alfii[ib3][4]**2.)/3.-((alfii[ib1][0]+alfii[ib2][2]+alfii[ib3][4])/3.)**2.)
+		try:
+			alfstd=sqrt((alfii[ib1][0]**2.+alfii[ib2][2]**2.+alfii[ib3][4]**2.)/3.-((alfii[ib1][0]+alfii[ib2][2]+alfii[ib3][4])/3.)**2.)
+		except:
+			alfstd=0
 
 		beta[bn1]=(beti,beterr,betstd)
 		alfa[bn1]=(alfi,alferr,alfstd)
@@ -465,7 +471,12 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 		bn1=upper(commonbpms[i][1])
 		for j in range(0,len(ListOfFiles)):
 			Amp2[i][j]=Amp2[i][j]/Kick2[j]
-		betstd=sqrt(average(Amp2[i]*Amp2[i])-average(Amp2[i])**2+2.2e-16)
+		#print average(Amp2[i]*Amp2[i]),average(Amp2[i])**2
+		try:
+			betstd=sqrt(average(Amp2[i]*Amp2[i])-average(Amp2[i])**2+2.2e-16)
+		except:
+			betstd=0
+			
 		beta[bn1]=[Amp[i]**2/Kick,betstd]
 		if plane=='H':
 			betmdl=MADTwiss.BETX[MADTwiss.indx[bn1]]
@@ -594,8 +605,6 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 			bpms.append([bns1,bn1])
 		except:
 			badco+=1
-			print "bad closed orbit"
-			
 	DPX=GetDPX(MADTwiss, Dx, bpms)
 	
 	return [nda,Dx,DPX,bpms]
@@ -632,7 +641,36 @@ def GetDPX(MADTwiss,Dx,commonbpms):
 
 
 
-#-----------
+#----------- DPY, New!
+def GetDPY(MADTwiss,Dy,commonbpms):
+	DPY={}
+	for i in range(0,len(commonbpms)):
+		bn1=upper(commonbpms[i][1])
+		if i==len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
+			bn2=upper(commonbpms[0][1])
+			phmdl12=2.*pi*(MADTwiss.Q2+MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]])
+		else:
+			bn2=upper(commonbpms[i+1][1])
+			phmdl12=2.*pi*(MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]])
+		betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
+		betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
+		alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
+		alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
+		dymdl1=MADTwiss.DY[MADTwiss.indx[bn1]]
+		dpymdl1=MADTwiss.DPY[MADTwiss.indx[bn1]]
+		dymdl2=MADTwiss.DY[MADTwiss.indx[bn2]]
+		dpymdl2=MADTwiss.DPY[MADTwiss.indx[bn2]]
+
+		M11=sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
+		M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
+		M13=dymdl2-M11*dymdl1-M12*dpymdl1
+		#M13=-M11*dymdl1-M12*dpymdl1
+		# use the beta from amplitude
+		DPY[bn1]=(-M13+Dy[bn2][0]-M11*Dy[bn1][0])/M12
+		#DPY[bn1]=(-M13-M11*Dy[bn1][0])/M12
+
+	return DPY
+
 
 def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
 
@@ -766,7 +804,7 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
 			else:
 				badbpm=1
 				countBadPhase += 1 
-				print "Bad Phases in BPM ",bn1, "total so far", countBadPhase
+				#print "Bad Phases in BPM ",bn1, "total so far", countBadPhase
 
 		
 		if badbpm==0:
@@ -912,7 +950,7 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 				badbpm=1
 				q1001ij.append(q1)
 				countBadPhase += 1 
-				print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
+				#print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
 
 			if bd==1:
 				q1=(phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
@@ -934,7 +972,7 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 					badbpm=0
 				q1010ij.append(q1)
 				countBadPhase += 1 
-				print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
+				#print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
 
 		if badbpm==0:
 			f1001ij=array(f1001ij)
@@ -942,13 +980,22 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 			f1001istd=sqrt(average(f1001ij*f1001ij)-(average(f1001ij))**2.0+2.2e-16)
 			f1010ij=array(f1010ij)
 			f1010i=average(f1010ij)
-			f1010istd=sqrt(average(f1010ij*f1010ij)-(average(f1010ij))**2.0+2.2e-16)
+			try:
+				f1010istd=sqrt(average(f1010ij*f1010ij)-(average(f1010ij))**2.0+2.2e-16)
+			except:
+				f1010istd=0
 			q1001ij=array(q1001ij)
 			q1001i=average(q1001ij)
-			q1001istd=sqrt(average(q1001ij*q1001ij)-(average(q1001ij))**2.0+2.2e-16)
+			try:
+				q1001istd=sqrt(average(q1001ij*q1001ij)-(average(q1001ij))**2.0+2.2e-16)
+			except:
+				q1001istd=0
 			q1010ij=array(q1010ij)
 			q1010i=average(q1010ij)
-			q1010istd=sqrt(average(q1010ij*q1010ij)-(average(q1010ij))**2.0+2.2e-16)
+			try:
+				q1010istd=sqrt(average(q1010ij*q1010ij)-(average(q1010ij))**2.0+2.2e-16)
+			except:
+				q1010istd=0
 			f1001i=f1001i*complex(cos(tp*q1001i),sin(tp*q1001i))
 			f1010i=f1010i*complex(cos(tp*q1010i),sin(tp*q1010i))
 			dbpmt.append([dbpms[i][0],dbpms[i][1]])
@@ -1520,15 +1567,24 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 		A_SRMS=sqrt(average(AS*AS)-(average(AS))**2+2.2e-16)
 		 
 		phaseS=array(phaseS)
-		phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2+2.2e-16)
+		try:
+			phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2+2.2e-16)
+		except:
+			phase_RMSS=0
 
 		hS=array(hS)
 		hSi=array(hSi)
 		hSr=array(hSr)
-		h_RMSS=sqrt(average(hS*hS)-(average(hS))**2+2.2e-16)
+		try:
+			h_RMSS=sqrt(average(hS*hS)-(average(hS))**2+2.2e-16)
+		except:
+			h_RMSS=0
 
 		h_phaseS=array(h_phaseS)
-		h_phase_RMSS=sqrt(average(h_phaseS*h_phaseS)-(average(h_phaseS))**2+2.2e-16)
+		try:
+			h_phase_RMSS=sqrt(average(h_phaseS*h_phaseS)-(average(h_phaseS))**2+2.2e-16)
+		except:
+			h_phase_RMSS=0
 
 		# real output
 		AT.append(average(AS))
@@ -1690,15 +1746,24 @@ def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 		A_SRMS=sqrt(average(AS*AS)-(average(AS))**2+2.2e-16)
 		 
 		phaseS=array(phaseS)
-		phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2+2.2e-16)
+		try:
+			phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2+2.2e-16)
+		except:
+			phase_RMSS=0
 
 		hS=array(hS)
 		hSi=array(hSi)
 		hSr=array(hSr)
-		h_RMSS=sqrt(average(hS*hS)-(average(hS))**2+2.2e-16)
+		try:
+			h_RMSS=sqrt(average(hS*hS)-(average(hS))**2+2.2e-16)
+		except:
+			h_RMSS=0
 
 		h_phaseS=array(h_phaseS)
-		phase_rms=average(h_phaseS*h_phaseS)-(average(h_phaseS))**2+2.2e-16
+		try:
+			phase_rms=average(h_phaseS*h_phaseS)-(average(h_phaseS))**2+2.2e-16
+		except:
+			phase_rms=0
 		h_phase_RMSS=sqrt(phase_rms)
 
 		# real output
@@ -1929,9 +1994,15 @@ def getChiTerms(madtwiss,filesF,plane,name):
 		XI=array(XI)
 		XIi=array(XIi)
 		XIr=array(XIr)
-		XIrms=sqrt(average(XI*XI)-average(XI)**2+2.2e-16)
+		try:
+			XIrms=sqrt(average(XI*XI)-average(XI)**2+2.2e-16)
+		except:
+			XIrms=0
 		XI_phase=array(XI_phase)
-		XI_phaseRMS=sqrt(average(XI_phase*XI_phase)-average(XI_phase)**2+2.2e-16)
+		try:
+			XI_phaseRMS=sqrt(average(XI_phase*XI_phase)-average(XI_phase)**2+2.2e-16)
+		except:
+			XI_phaseRMS=0
 		
 		
 		XIT.append(average(XI))
@@ -2071,8 +2142,10 @@ def getkick(files):
 		invarianceJx.append(invariantJx)
 		invarianceJy.append(invariantJy)
 	
-		
-		dpp.append(x.DPP)
+		try:
+			dpp.append(x.DPP)
+		except:
+			dpp.append(0.0)
 		tunex.append(x.Q1)
 		tuney.append(y.Q2)
 		tunexRMS.append(x.Q1RMS)
@@ -2085,6 +2158,165 @@ def getkick(files):
 	tuneRMS=[tunexRMS,tuneyRMS]
 
 	return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
+
+def BPMfinder(IP,model,measured):
+
+    # last index
+    indxes=model.S
+    #print len(indxes)
+    indxlast=len(indxes)-1
+
+    S=model.S[model.indx["IP"+IP]]
+    indx=model.indx["IP"+IP]
+    bpml="null"
+    bpmh="null"
+    for ind in range(len(indxes)):
+	    #print ind
+	    name=model.NAME[ind]
+	    if "BPMSW.1L"+IP in name:
+		    bpml=name
+		    try:
+			   test =measured[0][bpml][0]
+		    except:
+			    bpml="null"
+	    if "BPMSW.1R"+IP in name:
+		    bpmh=name
+		    try:
+			   test =measured[0][bpmh][0]
+		    except:
+			    bpmh="null"
+    return [bpml,bpmh]
+    
+    
+
+def getIP(IP,measured,model,phase,bpms):
+
+    BPMleft,BPMright=BPMfinder(IP,model,measured)
+
+    if "null" in BPMleft or "null" in BPMright:
+
+	    print "skipping IP"+IP+" calculation, no BPM found"
+	    betahor=[IP,0,0,0,0,0,0]
+	    betaver=[IP,0,0,0,0,0,0]
+	    #sys.exit()
+
+    else:
+	    # model
+	    sxl=model.S[model.indx[BPMleft]]
+	    sip=model.S[model.indx["IP"+IP]]
+	    sxr=model.S[model.indx[BPMright]]
+	    betaipx=model.BETX[model.indx["IP"+IP]]
+	    #alxl=model.ALFX[[model.indx[BPMleft]]
+	    #alyl=model.ALFY[[model.indx[BPMleft]]
+	    #alxr=model.ALFX[[model.indx[BPMright]]
+	    #alyr=model.ALFY[[model.indx[BPMright]]		    
+	    #print betaipx
+	    betaipy=model.BETY[model.indx["IP"+IP]]
+	    #print betaipy
+
+	    # measured value
+	    betxl=measured[0][BPMleft][0]
+	    betyl=measured[1][BPMleft][0]
+
+	    betxr=measured[0][BPMright][0]
+	    betyr=measured[1][BPMright][0]
+
+	    ll=abs(sip-sxl)
+	    lr=abs(sip-sxr)
+
+	    ##### phase
+	    commonbpms=bpms[0]
+	    phix=0.0
+	    #print commonbpms
+	    for i in range(0,len(commonbpms)):
+		    if i<len(commonbpms)-1:
+			    bpmone=commonbpms[i][1]
+			    bpmtwo=commonbpms[i+1][1]
+		    else:
+			    bpmone=commonbpms[i][1]
+			    bpmtwo=commonbpms[0][1]
+		    #print bpmone,bpmtwo
+		    if BPMleft==bpmone : #horizontal
+			    data=phase[0][BPMleft]
+			   
+			    if BPMright==data[6]:
+				    phix=phase[0][BPMleft][0]
+			
+	    
+
+	    le=(ll+lr)/2 # taking average for lengths left and right of IP
+	    rootx=sqrt((betxl*betxr)/4)
+	    rooty=sqrt((betyl*betyr)/4)
+	    # checking root condition
+	    if le>rootx: print "exceeding condition for x";#sys.exit()
+	    le=1
+	    if le>rooty: print "exceeding condition for y";#sys.exit()
+	    le=1
+            #horizontal
+	    sumbet=betxl+betxr
+	    rootnominator=2*sqrt(betxl*betxr-4*le**2)
+	    denom=(16*le**2+(betxl-betxr)**2)
+
+	    betas1=((sumbet-rootnominator)/denom)*4*le**2
+	    betas2=((sumbet+rootnominator)/denom)*4*le**2
+
+	    print betas1,betas2,betxl,betxr,le,BPMleft
+	    #sys.exit()
+	    betastar=0.0
+	    if betas1<betas2 and betas1>1: betastar=betas1
+	    else: betastar=betas2
+
+	    location=-(betastar*(betxl-betxr)/(4*le))
+
+	    deltaphimodel=model.MUX[model.indx[BPMright]]-model.MUX[model.indx[BPMleft]]
+	    deltaphi=(atan((le-location)/betastar)+atan((le+location)/betastar))/(2*pi)
+
+	    ##### phase
+	    commonbpms=bpms[1]
+	    phiy=0.0
+	    #print commonbpms
+	    for i in range(0,len(commonbpms)):
+		    if i<len(commonbpms)-1:
+			    bpmone=commonbpms[i][1]
+			    bpmtwo=commonbpms[i+1][1]
+		    else:
+			    bpmone=commonbpms[i][1]
+			    bpmtwo=commonbpms[0][1]
+		    #print bpmone,bpmtwo
+		    if BPMleft==bpmone and BPMright==bpmtwo: #horizontal
+			    phiy=phase[1][BPMleft][0]
+
+	    betahor=[IP,betastar,location,deltaphi,betaipx,deltaphimodel,phix]
+
+	    print "horizontal betastar for ",IP," is ",str(betastar)," at location ",str(location), " of IP center with phase advance ",str(deltaphi)
+
+            #vertical
+	    sumbet=betyl+betyr
+	    rootnominator=2*sqrt(betyl*betyr-4*le**2)
+	    denom=(16*le**2+(betyl-betyr)**2)
+
+	    betas1=((sumbet-rootnominator)/denom)*4*le**2
+	    betas2=((sumbet+rootnominator)/denom)*4*le**2
+
+	    print betas1,betas2,betyl,betyr,le,BPMright
+	    #sys.exit()
+
+	    betastar=0.0
+	    if betas1<betas2 and betas1>1: betastar=betas1
+	    else: betastar=betas2
+
+	    location=-(betastar*(betyl-betyr)/(4*le))
+
+	    deltaphimodel=model.MUY[model.indx[BPMright]]-model.MUY[model.indx[BPMleft]]
+
+	    deltaphi=(atan((le-location)/betastar)+atan((le+location)/betastar))/(2*pi)
+
+	    betaver=[IP,betastar,location,deltaphi,betaipy,deltaphimodel,phiy]
+
+	    print "vertical betastar for ",IP," is ",str(betastar)," at location ",str(location), " of IP center with phase advance ",str(deltaphi)
+
+
+    return [betahor,betaver]
 
 
 #----------------- end glenn part
@@ -2168,8 +2400,8 @@ NBcpl= int(options.NBcpl)
 # Beam direction
 bd=1
 if options.ACCEL=="LHCB2":
-	bd=-1 # note that the x axis has the same direction to BPM data. Otherwise another treatment should be done.
-
+	#bd=-1 # note that the x axis has the same direction to BPM data. Otherwise another treatment should be done.
+	bd=1
 
 if options.TBTana=="SUSSIX":
 	Suffix1='_linx'
@@ -2225,6 +2457,11 @@ fcouple=open(outputpath+'getcouple.out','w')
 fcouple.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fcouple.write('@ FILES %s "')
 
+if "LHC" in options.ACCEL:
+	fIP=open(outputpath+'getIP.out','w')
+        fIP.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+	fIP.write('* NAME  BETASTARH  BETASTARHMDL   H   PHIH PHIXH   PHIHMDL  BETASTARV  BETASTARVMDL  V   PHIV  PHIYV  PHIVMDL\n')
+	fIP.write('$  %s  %le    %le   %le  %le    %le    %le    %le   %le   %le   %le   %le   %le  \n')
 
 FileOfZeroDPPX=[]
 FileOfZeroDPPY=[]
@@ -2337,6 +2574,8 @@ if len(ListOfZeroDPPX)==0 :
 # Construct pseudo-double plane BPMs
 if (options.ACCEL=="SPS" or options.ACCEL=="RHIC") and wolinx!=1 and woliny!=1 :
 	execfile(options.rpath+'/MODEL/'+options.ACCEL+'/'+options.ACCEL+'BPMpair.py')
+	print options.rpath+'/MODEL/'+options.ACCEL+'/'+options.ACCEL+'BPMpair.py'
+	##sys.exit()
 	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdictionary)
 	
 
@@ -2375,7 +2614,7 @@ if woliny!=1:
 	fphasey.write('@ MUX %le '+str(MUX)+'\n')
 	fphasey.write('@ Q2 %le '+str(Q2)+'\n')
 	fphasey.write('@ MUY %le '+str(MUY)+'\n')
-	fphasey.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
+	fphasey.write('* NAME   NAME2  S   S1   COUNT  PHASEY  STDPHY  PHYMDL MUYMDL\n')
 	fphasey.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	for i in range(0,len(bpmsy)):
 		bn1=upper(bpmsy[i][1])
@@ -2402,7 +2641,7 @@ if wolinx!=1:
 	except:
 		fphasex.write('@ Q2 %le '+'0.0'+'\n')
 		fphasex.write('@ MUY %le '+'0.0'+'\n')
-	fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
+	fphasex.write('* NAME   NAME2  S   S1   COUNT  PHASEX  STDPHX  PHXMDL MUXMDL\n')
 	fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	for i in range(0,len(bpmsx)):
 		bn1=upper(bpmsx[i][1])
@@ -2439,7 +2678,7 @@ if wolinx!=1:
 	except:
 		fbetax.write('@ Q2 %le '+'0.0'+'\n')
 	fbetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
-	fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
+	fbetax.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 	fbetax.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 	for i in range(0,len(bpms)):
 		print bn1,MADTwiss.BETX[MADTwiss.indx[bn1]]
@@ -2460,7 +2699,7 @@ if woliny!=1:
 	fbetay.write('@ Q1 %le '+str(Q1)+'\n')
 	fbetay.write('@ Q2 %le '+str(Q2)+'\n')
 	fbetay.write('@ RMS-beta-beat %le '+str(rmsbby)+'\n')
-	fbetay.write('* NAME   POS    COUNT  BETY   ERRBETY STDBETY ALFY   ERRALFY STDALFY BETYMDL ALFYMDL MUYMDL\n')
+	fbetay.write('* NAME   S    COUNT  BETY   ERRBETY STDBETY ALFY   ERRALFY STDALFY BETYMDL ALFYMDL MUYMDL\n')
 	fbetay.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
@@ -2490,7 +2729,7 @@ if wolinx!=1:
 	except:
 		fabetax.write('@ Q2 %le '+'0.0'+'\n')
 	fabetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
-	fabetax.write('* NAME   POS    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
+	fabetax.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
 	fabetax.write('$ %s     %le    %le    %le    %le     %le     %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
@@ -2510,7 +2749,7 @@ if woliny!=1:
 	fabetay.write('@ Q1 %le '+str(Q1)+'\n')
 	fabetay.write('@ Q2 %le '+str(Q2)+'\n')
 	fabetay.write('@ RMS-beta-beat %le '+str(rmsbby)+'\n')
-	fabetay.write('* NAME   POS    COUNT  BETY   BETYSTD BETYMDL MUYMDL\n')
+	fabetay.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL\n')
 	fabetay.write('$ %s     %le    %le    %le    %le     %le     %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
@@ -2519,7 +2758,26 @@ if woliny!=1:
 
 fabetay.close()
 
+#-------- START IP
+if "LHC" in options.ACCEL:
+	ips=["1","2","3","4","5","6","7","8"]
+	measured=[betax,betay]
+	phases=[phasex,phasey]
+	bpmss=[bpmsx,bpmsy]
+	for ip in ips:
+		try:
+			
+			betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
+		except:
+			betahor=[0,0,0,0,0,0,0];betaver=[0,0,0,0,0,0,0]
+		print str(betahor[6])
+		fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
 
+
+	fIP.close()
+		
+
+		
 
 #-------- START Orbit
 ListOfCOX=[]
@@ -2536,7 +2794,7 @@ if wolinx!=1:
 		fcox.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
 		fcox.write('@ Q2 %le '+'0.0'+'\n')
-	fcox.write('* NAME   POS1   COUNT  X      STDX   XMDL   MUXMDL\n')
+	fcox.write('* NAME   S   COUNT  X      STDX   XMDL   MUXMDL\n')
 	fcox.write('$ %s     %le    %le    %le    %le    %le    %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
@@ -2558,7 +2816,7 @@ if woliny!=1:
 	fcoy.write('@ SEQUENCE %05s "'+options.ACCEL+'"\n')
 	fcoy.write('@ Q1 %le '+str(Q1)+'\n')
 	fcoy.write('@ Q2 %le '+str(Q2)+'\n')
-	fcoy.write('* NAME   POS1   COUNT  Y      STDY   YMDL   MUYMDL\n')
+	fcoy.write('* NAME   S   COUNT  Y      STDY   YMDL   MUYMDL\n')
 	fcoy.write('$ %s     %le    %le    %le    %le    %le    %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
@@ -2593,7 +2851,7 @@ if wolinx2!=1:
 		except:
 			fcoDPP.write('@ Q2 %le '+'0.0'+'\n')
 		[codpp,bpms]=GetCO(MADTwiss, SingleFile)
-		fcoDPP.write('* NAME   POS1   COUNT  X      STDX   XMDL   MUXMDL\n')
+		fcoDPP.write('* NAME   S   COUNT  X      STDX   XMDL   MUXMDL\n')
 		fcoDPP.write('$ %s     %le    %le    %le    %le    %le    %le\n')
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
@@ -2623,7 +2881,7 @@ if woliny2!=1:
 		except:
 			fcoDPP.write('@ Q2 %le '+'0.0'+'\n')
 		[codpp,bpms]=GetCO(MADTwiss, SingleFile)
-		fcoDPP.write('* NAME   POS1   COUNT  Y      STDY   YMDL   MUYMDL\n')
+		fcoDPP.write('* NAME   S   COUNT  Y      STDY   YMDL   MUYMDL\n')
 		fcoDPP.write('$ %s     %le    %le    %le    %le    %le    %le\n')
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
@@ -2646,7 +2904,7 @@ if wolinx!=1 and wolinx2!=1:
 		fNDx.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
 		fNDx.write('@ Q2 %le '+'0.0'+'\n')
-	fNDx.write('* NAME   POS    COUNT  NDX    STDNDX DX     DPX    NDXMDL DXMDL  DPXMDL MUXMDL\n')
+	fNDx.write('* NAME   S    COUNT  NDX    STDNDX DX     DPX    NDXMDL DXMDL  DPXMDL MUXMDL\n')
 	fNDx.write('$ %s     %le    %le    %le    %le    %le    %le    %le    %le    %le    %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
@@ -2661,7 +2919,7 @@ if wolinx!=1 and wolinx2!=1:
 	DPX=GetDPX(MADTwiss,dxo,bpms)
 	fDx.write('@ Q1 %le '+str(Q1)+'\n')
 	fDx.write('@ Q2 %le '+str(Q2)+'\n')
-	fDx.write('* NAME   POS    COUNT  DX     STDDX  DPX    DXMDL  DPXMDL MUXMDL\n')
+	fDx.write('* NAME   S    COUNT  DX     STDDX  DPX    DXMDL  DPXMDL MUXMDL\n')
 	fDx.write('$ %s     %le    %le    %le    %le    %le    %le    %le    %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
@@ -2676,14 +2934,16 @@ fDx.close()
 
 if woliny!=1 and woliny2!=1:
 	[dyo,bpms]=DispersionfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY,ListOfCOY,COcut,BPMU)
+	DPY=GetDPY(MADTwiss,dyo,bpms)
 	fDy.write('@ Q1 %le '+str(Q1)+'\n')
 	fDy.write('@ Q2 %le '+str(Q2)+'\n')
-	fDy.write('* NAME   POS    COUNT  DY     STDDY  MUYMDL\n')
-	fDy.write('$ %s     %le    %le    %le    %le    %le\n')
+	fDy.write('* NAME   S    COUNT  DY     STDDY  DPY  DYMDL  DPYMDL  MUYMDL\n')
+	fDy.write('$ %s     %le    %le    %le    %le    %le  %le   %le    %le\n')
+	
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
-		fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
+		fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+str(DPY[bn1])+' '+str(MADTwiss.DY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.DPY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fDy.close()
 
@@ -2722,7 +2982,7 @@ if wolinx2!=1:
 		phasex['DPP']=dpop
 		phasexlist.append(phasex)
 		fphDPP.write('@ Q1DPP %le '+str(Q1DPP)+'\n')
-		fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
+		fphDPP.write('* NAME   NAME2  S   S1   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 		fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
@@ -2766,7 +3026,7 @@ if wolinx2!=1:
 		except:
 			fbetaxDPP.write('@ Q2 %le '+'0.0'+'\n')
 		#fbetaxDPP.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
-		fbetaxDPP.write('* NAME   POS    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
+		fbetaxDPP.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 		fbetaxDPP.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
@@ -2805,7 +3065,7 @@ if woliny2!=1:
 		phasey['DPP']=dpop
 		phaseylist.append(phasey)
 		fphDPP.write('@ Q2DPP %le '+str(Q2DPP)+'\n')
-		fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
+		fphDPP.write('* NAME   NAME2  S   S1  COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 		fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
@@ -2849,7 +3109,7 @@ if woliny2!=1:
 		except:
 			fbetayDPP.write('@ Q2 %le '+'0.0'+'\n')
 		#fbetayDPP.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
-		fbetayDPP.write('* NAME   POS    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
+		fbetayDPP.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 		fbetayDPP.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
@@ -2875,7 +3135,7 @@ if wolinx!=1 and wolinx2!=1:
 	else:
 		print 'You gave wrong option for off momentum beta-beating. Please give PHASE or AMP'
 		sys.exit()
-	fdppx.write('* NAME   POS    COUNT  SBETX   SBETXM\n')
+	fdppx.write('* NAME   S    COUNT  SBETX   SBETXM\n')
 	fdppx.write('$ %s     %le    %le    %le     %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
@@ -2891,7 +3151,7 @@ if woliny!=1 and woliny2!=1:
 	ListOfFiles=ListOfZeroDPPY+ListOfNonZeroDPPY
 	if (options.dppbb=="PHASE"):[slopey,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaylist,'V')
 	elif (options.dppbb=="AMP"):[slopey,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betayalist,'V')
-	fdppy.write('* NAME   POS    COUNT  SBETY  SBETYM\n')
+	fdppy.write('* NAME   S    COUNT  SBETY  SBETYM\n')
 	fdppy.write('$ %s     %le    %le    %le    %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
@@ -2967,10 +3227,10 @@ if wolinx!=1 and woliny!=1:
 		fcouple.write('@ CG %le '+str(fwqw['Global'][0])+'\n')
 		fcouple.write('@ QG %le '+str(fwqw['Global'][1])+'\n')
 		if NBcpl==1:
-				fcouple.write('* NAME   POS    COUNT  F1001W FWSTD  Q1001W QWSTD MDLF1001R MDLF1001I\n')
+				fcouple.write('* NAME   S    COUNT  F1001W FWSTD  Q1001W QWSTD MDLF1001R MDLF1001I\n')
 				fcouple.write('$ %s     %le    %le    %le    %le    %le    %le   %le       %le\n')
 		elif NBcpl==2:
-				fcouple.write('* NAME   POS    COUNT  F1001W FWSTD1 F1001R F1001I F1010W FWSTD2 F1010R F1010I MDLF1001R MDLF1001I MDLF1010R MDLF1010I\n')
+				fcouple.write('* NAME   S    COUNT  F1001W FWSTD1 F1001R F1001I F1010W FWSTD2 F1010R F1010I MDLF1001R MDLF1001I MDLF1010R MDLF1010I\n')
 				fcouple.write('$ %s     %le    %le    %le    %le    %le    %le    %le    %le    %le    %le    %le       %le       %le       %le\n')
 
 
@@ -3048,7 +3308,7 @@ if options.TBTana=="SUSSIX":
 	plane='H'
 	name='f3000'
 
-	fsex3000.write('* NAME    POS    AMP_20    AMP_20RMS   PHASE_20   PHASE_20RMS   H3000   H3000I   H3000R   H3000RMS  H3000PHASE  H3000PHASERMS    H3000M    H3000MI    H3000MR    HMPHASE3000  \n')
+	fsex3000.write('* NAME    S    AMP_20    AMP_20RMS   PHASE_20   PHASE_20RMS   H3000   H3000I   H3000R   H3000RMS  H3000PHASE  H3000PHASERMS    H3000M    H3000MI    H3000MR    HMPHASE3000  \n')
 	fsex3000.write('$   %s    %le    %le    %le  %le  %le    %le    %le    %le    %le    %le    %le    %le    %le    %le    %le\n')
 
 
@@ -3072,7 +3332,7 @@ if options.TBTana=="SUSSIX":
 	plane='H'
 	name='f1200'
 
-	fsex1200.write('* NAME    POS    AMP20    AMP20RMS   PHASE20   PHASE20RMS   H1200   H1200I   H1200R   H1200RMS  H1200PHASE  H1200PHASERMS    H1200M    H1200MI    H1200MR    HMPHASE1200  \n')
+	fsex1200.write('* NAME    S    AMP20    AMP20RMS   PHASE20   PHASE20RMS   H1200   H1200I   H1200R   H1200RMS  H1200PHASE  H1200PHASERMS    H1200M    H1200MI    H1200MR    HMPHASE1200  \n')
 
 	[A,h,hMODEL,dbpms]=Getsextupole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
 
@@ -3094,7 +3354,7 @@ if options.TBTana=="SUSSIX":
 	plane='H'
 	name='f2100'
 	
-	fsex2100.write('* NAME    POS    AMP00    AMP00RMS   PHASE00   PHASE00RMS   H2100   H2100I   H2100R   H2100RMS  H2100PHASE  H2100PHASERMS    H2100M    H2100MI    H2100MR    HMPHASE2100  \n')
+	fsex2100.write('* NAME    S    AMP00    AMP00RMS   PHASE00   PHASE00RMS   H2100   H2100I   H2100R   H2100RMS  H2100PHASE  H2100PHASERMS    H2100M    H2100MI    H2100MR    HMPHASE2100  \n')
 	fsex2100.write('$   %s    %le    %le    %le  %le  %le    %le    %le    %le    %le    %le    %le    %le    %le    %le    %le\n')
 
 #for i in range(0,len(dbpms)-1):
@@ -3115,7 +3375,7 @@ if options.TBTana=="SUSSIX":
 
 # 1) chi3000
 
-	fchi3000.write('* NAME    POS1    POS2    POS3    X3000    X3000i    X3000r    X3000RMS   X3000PHASE   X3000PHASERMS   X3000M    X3000Mi   X3000Mr    X3000MPHASE \n')
+	fchi3000.write('* NAME    S    S1    S2    X3000    X3000i    X3000r    X3000RMS   X3000PHASE   X3000PHASERMS   X3000M    X3000Mi   X3000Mr    X3000MPHASE \n')
 	fchi3000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
 
 	files=[ListOfZeroDPPX,ListOfZeroDPPY]
@@ -3136,7 +3396,7 @@ if options.TBTana=="SUSSIX":
 	
 	if  options.ACCEL!='SPS':
 
-		fchi1010.write('* NAME  POS    X1010   X1010RMS   X1010PHASE   X1010PHASERMS   X1010M   X1010MPHASE \n')
+		fchi1010.write('* NAME  S    X1010   X1010RMS   X1010PHASE   X1010PHASERMS   X1010M   X1010MPHASE \n')
 		fchi1010.write('$ %s   %le  %le    %le   %le   %le   %le   %le  \n')
 
 		files=[ListOfZeroDPPX,ListOfZeroDPPY]
@@ -3157,7 +3417,7 @@ if options.TBTana=="SUSSIX":
 		fchi1010.close()
 # 1) chi4000
 
-	fchi4000.write('* NAME    POS1    POS2    POS3    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
+	fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
 	fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
 
 
@@ -3185,7 +3445,7 @@ if options.TBTana=="SUSSIX":
 	f4000M=MADTwiss.f4000
 	NAMES=MADTwiss.NAME
 
-	foct4000.write('* NAME    POS    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
+	foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
 	foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
 	
 	files=[ListOfZeroDPPX,ListOfZeroDPPY]
@@ -3214,7 +3474,7 @@ if options.TBTana=="SUSSIX":
 files=[ListOfZeroDPPX+ListOfNonZeroDPPX,ListOfZeroDPPY+ListOfNonZeroDPPY]
 
 
-fkick.write('* dpp     QX    QXRMS     QY   QYRMS     JX     JXSTD    JY     JYSTD \n')
+fkick.write('* DPP     QX    QXRMS     QY   QYRMS     JX     JXSTD    JY     JYSTD \n')
 fkick.write('$  %le  %le  %le %le  %le %le  %le  %le  %le \n')
 
 [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkick(files)
