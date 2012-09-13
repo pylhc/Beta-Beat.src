@@ -3632,7 +3632,7 @@ def parse_args():
     (options, args) = parser.parse_args()
     return options,args
 
-def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1",BPMU="um",COcut=4000,NBcpl=2,TBTana="SUSSIX",higher_order=1):
+def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1",lhcphase="0",BPMU="um",COcut=4000,NBcpl=2,TBTana="SUSSIX",higher_order=1):
     '''
      GetLLM main function.
      
@@ -3859,23 +3859,47 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     fcoupleterms.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
     if "LHC" in accel:
-            fIP=open(outputpath+'getIP.out','w')
+    	fIP=open(outputpath+'getIP.out','w')
             fIP.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIP.write('* NAME  BETASTARH  BETASTARHMDL   H   PHIH PHIXH   PHIHMDL  BETASTARV  BETASTARVMDL  V   PHIV  PHIYV  PHIVMDL\n')
-            fIP.write('$  %s  %le    %le   %le  %le    %le    %le    %le   %le   %le   %le   %le   %le  \n')
-            fIPfromphase=open(outputpath+'getIPfromphase.out','w')
-            fIPfromphase.write('@ GetLLMVersion %s '+VERSION+'\n')
-            fIPfromphase.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIPfromphase.write('@ FILES %s "')
-            if acswitch=='1':
-                    fIPfromphasef=open(outputpath+'getIPfromphase_free.out','w')
-                    fIPfromphasef.write('@ GetLLMVersion %s '+VERSION+'\n')
-                    fIPfromphasef.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-                    fIPfromphasef.write('@ FILES %s "')
-                    fIPfromphasef2=open(outputpath+'getIPfromphase_free2.out','w')
-                    fIPfromphasef2.write('@ GetLLMVersion %s '+VERSION+'\n')
-                    fIPfromphasef2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-                    fIPfromphasef2.write('@ FILES %s "')
+    	fIP.write('* NAME  BETASTARH  BETASTARHMDL   H   PHIH PHIXH   PHIHMDL  BETASTARV  BETASTARVMDL  V   PHIV  PHIYV  PHIVMDL\n')
+    	fIP.write('$  %s  %le    %le   %le  %le    %le    %le    %le   %le   %le   %le   %le   %le  \n')
+    	fIPx=open(outputpath+'getIPx.out','w')
+    	fIPx.write('@ GetLLMVersion %s '+VERSION+'\n')
+    	fIPx.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    	fIPx.write('@ FILES %s "')
+    	fIPy=open(outputpath+'getIPy.out','w')
+    	fIPy.write('@ GetLLMVersion %s '+VERSION+'\n')
+    	fIPy.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    	fIPy.write('@ FILES %s "')
+    	fIPfromphase=open(outputpath+'getIPfromphase.out','w')
+    	fIPfromphase.write('@ GetLLMVersion %s '+VERSION+'\n')
+    	fIPfromphase.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    	fIPfromphase.write('@ FILES %s "')
+    	if acswitch=='1':
+    		fIPxf=open(outputpath+'getIPx_free.out','w')
+    		fIPxf.write('@ GetLLMVersion %s '+VERSION+'\n')
+    		fIPxf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    		fIPxf.write('@ FILES %s "')
+    		fIPyf=open(outputpath+'getIPy_free.out','w')
+    		fIPyf.write('@ GetLLMVersion %s '+VERSION+'\n')
+    		fIPyf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    		fIPyf.write('@ FILES %s "')
+    		fIPxf2=open(outputpath+'getIPx_free2.out','w')
+    		fIPxf2.write('@ GetLLMVersion %s '+VERSION+'\n')
+    		fIPxf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    		fIPxf2.write('@ FILES %s "')
+    		fIPyf2=open(outputpath+'getIPy_free2.out','w')
+    		fIPyf2.write('@ GetLLMVersion %s '+VERSION+'\n')
+    		fIPyf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    		fIPyf2.write('@ FILES %s "')
+    		fIPfromphasef=open(outputpath+'getIPfromphase_free.out','w')
+    		fIPfromphasef.write('@ GetLLMVersion %s '+VERSION+'\n')
+    		fIPfromphasef.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    		fIPfromphasef.write('@ FILES %s "')
+    		fIPfromphasef2=open(outputpath+'getIPfromphase_free2.out','w')
+    		fIPfromphasef2.write('@ GetLLMVersion %s '+VERSION+'\n')
+    		fIPfromphasef2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    		fIPfromphasef2.write('@ FILES %s "')
 
     FileOfZeroDPPX=[]
     FileOfZeroDPPY=[]
@@ -3916,11 +3940,17 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     fDx.write(file1+'')
                     fcouple.write(filein+'')
                     if "LHC" in accel:
+                            fIPx.write(filein+'')
+                            fIPy.write(filein+'')
                             fIPfromphase.write(filein+'')
                             if acswitch=='1':
                                     fIPfromphasef.write(filein+'')
                                     fIPfromphasef2.write(filein+'')
                     if acswitch=="1":
+                            fIPxf.write(filein+'')
+                            fIPyf.write(filein+'')
+                            fIPxf2.write(filein+'')
+                            fIPyf2.write(filein+'')
                             fphasexf.write(file1+'')
                             fphasexf2.write(file1+'')
                             fphasexTf.write(file1+'')
@@ -4051,8 +4081,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     fDy.write('"'+'\n')
     fcouple.write('"'+'\n')
     if "LHC" in accel:
+            fIPx.write('"'+'\n')
+            fIPy.write('"'+'\n')
             fIPfromphase.write('"'+'\n')
             if acswitch=='1':
+                    fIPxf.write('"'+'\n')
+                    fIPyf.write('"'+'\n')
+                    fIPxf2.write('"'+'\n')
                     fIPfromphasef.write('"'+'\n')
                     fIPfromphasef2.write('"'+'\n')
     if acswitch=="1":
@@ -4074,12 +4109,12 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fabetayf2.write('"'+'\n')
             fcouplef.write('"'+'\n')
             fcouplef2.write('"'+'\n')
-            
+
     # Construct pseudo-double plane BPMs
     if (accel=="SPS" or "RHIC" in accel) and wolinx!=1 and woliny!=1 :
             execfile(twiss_model_file.replace("twiss.dat","BPMpair.py"))
             [PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdictionary)
-            
+
 
     #-------- Check monitor compatibility between data and model
 
@@ -4102,14 +4137,41 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     #---- Calling GetPhases first to save tunes
     if wolinx!=1 and woliny!=1:
-            [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,'H',outputpath,bd,accel)
-            [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,'V',outputpath,bd,accel)
+        #-- Calculate temp value of tune
+        Q1temp=[]; Q2temp=[]
+        for i in ListOfZeroDPPX: Q1temp.append(mean(i.TUNEX))
+        for i in ListOfZeroDPPY: Q2temp.append(mean(i.TUNEY))
+        Q1temp=mean(Q1temp); Q2temp=mean(Q2temp)
+
+        [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1temp,'H',outputpath,bd,accel,lhcphase)
+        [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2temp,'V',outputpath,bd,accel,lhcphase)
     elif wolinx!=1:
-            [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,'H',outputpath,bd,accel)
+           #-- Calculate temp value of tune
+           Q1temp=[]
+           for i in ListOfZeroDPPX: Q1temp.append(mean(i.TUNEX))
+           Q1temp=mean(Q1temp)
+
+           [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1temp,'H',outputpath,bd,accel,lhcphase)
             print 'liny missing and output x only ...'
     elif woliny!=1:
-            [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,'V',outputpath,bd,accel)
+           #-- Calculate temp value of tune
+           Q2temp=[]
+           for i in ListOfZeroDPPY: Q2temp.append(mean(i.TUNEY))
+           Q2temp=mean(Q2temp)
+
+           [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2temp,'V',outputpath,bd,accel,lhcphase)
             print 'linx missing and output y only ...'
+
+    #---- Re-run GetPhase to fix the phase shift by Q for exp data of LHC
+    if lhcphase=="1":
+           if wolinx!=1 and woliny!=1:
+                   [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1,'H',outputpath,bd,accel,lhcphase)
+                   [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2,'V',outputpath,bd,accel,lhcphase)
+           elif wolinx!=1:
+                   [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1,'H',outputpath,bd,accel,lhcphase)
+           elif woliny!=1:
+                   [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2,'V',outputpath,bd,accel,lhcphase)
+    
 
     #---- ac to free phase from eq and the model
     if acswitch=='1':
@@ -4117,13 +4179,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     Q1f=Q1-d1  #-- Free H-tune
                     try:    acphasex_ac2bpmac=GetACPhase_AC2BPMAC(MADTwissElem,Q1,Q1f,'H',accel)
                     except: acphasex_ac2bpmac=GetACPhase_AC2BPMAC(MADTwiss,Q1,Q1f,'H',accel)
-                    [phasexf,muxf,bpmsxf]=GetFreePhase_Eq(MADTwiss,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',bd)
+                    [phasexf,muxf,bpmsxf]=GetFreePhase_Eq(MADTwiss,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',bd,lhcphase)
                     [phasexf2,muxf2,bpmsxf2]=getfreephase(phasex,Q1,Q1f,bpmsx,MADTwiss_ac,MADTwiss,"H")
             if woliny!=1:
                     Q2f=Q2-d2  #-- Free V-tune
                     try:    acphasey_ac2bpmac=GetACPhase_AC2BPMAC(MADTwissElem,Q2,Q2f,'V',accel)
                     except: acphasey_ac2bpmac=GetACPhase_AC2BPMAC(MADTwiss,Q2,Q2f,'V',accel)
-                    [phaseyf,muyf,bpmsyf]=GetFreePhase_Eq(MADTwiss,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',bd)
+                    [phaseyf,muyf,bpmsyf]=GetFreePhase_Eq(MADTwiss,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',bd,lhcphase)
                     [phaseyf2,muyf2,bpmsyf2]=getfreephase(phasey,Q2,Q2f,bpmsy,MADTwiss_ac,MADTwiss,"V")
 
     #---- H plane result
@@ -5432,6 +5494,7 @@ if __name__=="__main__":
          files_to_analyse=options.files,
          twiss_model_file=options.Twiss,
          accel=options.ACCEL,
+         lhcphase=options.lhcphase,
          BPMU=options.BPMUNIT,
          COcut=float(options.COcut),
          NBcpl=int(options.NBcpl),
