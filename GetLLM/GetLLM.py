@@ -31,6 +31,10 @@
 ##                                     Add the option for the Harmonic analysis.
 ##                                     Refine coding, add several lines of comment
 
+##                    V2.0, 17/Feb/2009 Major version up to output "More", that is, other than the linear lattice parameters.
+##                                      Add off-momentum lattice (dbeta/beta)/(dp/p)
+##                                      Add SPS coupling with "Pseudo-double plane BPM"-it need at this moment a list containing
+##                                      pre-paired H-V monitor. This should be replaced by a clever algorithm to find good pairs automatically.
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -50,6 +54,9 @@ import cmath
 import sys, pickle,os
 #import operator
 from string import *
+
+# tentative solution for SPS pseudo double plane BPM
+from SPSBPMpair import *
 
 
 #######################################################
@@ -901,7 +908,7 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist):
 
 	slope={}
 	for i in range(0,len(bpms)):
-		bn=bpms[i][1]
+		bn=upper(bpms[i][1])
 		check=0
 		slopei=0.0
 		for j in range(1,len(betalist)):
@@ -921,7 +928,158 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist):
 
 	
 
+#---------------------------------
 
+
+def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
+
+
+
+	# check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
+	# come from the same (simultaneous) measurement. It might be redundant check.
+	if len(ListOfZeroDPPX)!=len(ListOfZeroDPPY):
+		print 'Leaving PseudoDoublePlaneMonitors as linx and liny files seem not correctly paired...'
+		dum0={}
+		dum1=[]
+		return [dum0,dum1]
+
+	bpmh=intersect(ListOfZeroDPPX)
+	bpmv=intersect(ListOfZeroDPPY)
+	bpmh=modelIntersect(bpmh, MADTwiss)
+	bpmv=modelIntersect(bpmv, MADTwiss)
+
+
+	fbpmx=[]
+	fbpmy=[]
+	for i in range(0,len(ListOfZeroDPPX)):
+		filex='temp'+str(i)+'_linx'
+		filey='temp'+str(i)+'_liny'
+		fbpmxi=open(filex,'w')
+		fbpmyi=open(filey,'w')
+		fbpmx.append(fbpmxi)
+		fbpmy.append(fbpmyi)
+		fbpmx[i].write('* NAME   S      TUNEX  MUX    AMPX   AMP01  PHASE01\n')
+		fbpmy[i].write('* NAME   S      TUNEY  MUY    AMPY   AMP10  PHASE10\n')
+		fbpmx[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
+		fbpmy[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
+
+	bpmhp=[]
+ 	for i in range(0,len(bpmh)):
+		smin=1.0e10
+		jsave=0
+		print i
+		for j in range (0,len(bpmv),10):
+			sdiff=abs(bpmh[i][0]-bpmv[j][0])
+			if sdiff<smin:
+				smin=sdiff
+				jsave=j
+		jlower=jsave-9
+		jupper=jsave+9
+		if jupper > len(bpmv):
+			jupper=len(bpmv)
+		for j in range (jlower,jupper):
+			sdiff=abs(bpmh[i][0]-bpmv[j][0])
+			if sdiff<smin:
+				smin=sdiff
+				jsave=j
+		
+		bpmhp.append([bpmh[i][0],bpmh[i][1],bpmv[jsave][1],0])
+	
+	
+
+	#bpmvp=[]
+ 	#for i in range(0,len(bpmv)):
+		#smin=1.0e10
+		#jsave=0
+		#for j in range (0,len(bpmh),10):
+			#sdiff=abs(bpmv[i][0]-bpmh[j][0])
+			#if sdiff<smin:
+				#smin=sdiff
+				#jsave=j
+		#jlower=jsave-9
+		#jupper=jsave+9
+		#if jupper > len(bpmh):
+			#jupper=len(bpmh)
+		#for j in range (jlower,jupper):
+			#sdiff=abs(bpmv[i][0]-bpmh[j][0])
+			#if sdiff<smin:
+				#smin=sdiff
+				#jsave=j
+
+		#bpmvp.append([bpmv[i][0],bpmv[i][1],bpmh[jsave][1],1])
+
+
+	#dbpms=combinebpms(bpmhp,bpmvp)
+	dbpms=bpmhp
+
+	# tentative solution
+	dbpms=bpmpair()
+
+ 	for i in range(0,len(dbpms)):
+		wname=dbpms[i][1]
+		pname=dbpms[i][2]
+		ws=dbpms[i][0]
+		for j in range(0,len(ListOfZeroDPPX)):
+			jx=ListOfZeroDPPX[j]
+			jy=ListOfZeroDPPY[j]
+			if dbpms[i][3]==0:
+				wampx=jx.AMPX[jx.indx[wname]]
+				wampy=jy.AMPY[jy.indx[pname]]
+				wamp01=jx.AMP01[jx.indx[wname]]
+				wamp10=jy.AMP10[jy.indx[pname]]
+				wtunex=jx.TUNEX[jx.indx[wname]]
+				wtuney=jy.TUNEY[jy.indx[pname]]
+				dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]]
+				dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
+				wmux=jx.MUX[jx.indx[wname]]
+				wmuy=(jy.MUY[jy.indx[pname]]-dphiy)%1.0
+				if (wmuy > 0.5): wmuy=wmuy-1
+				wphase01=jx.PHASE01[jx.indx[wname]]
+				wphase10=(jy.PHASE10[jy.indx[pname]]-dphiy)%1.0
+				if (wphase10 > 0.5): wphase10=wphase10-1
+			elif dbpms[i][3]==1:
+				wampx=jx.AMPX[jx.indx[pname]]
+				wampy=jy.AMPY[jy.indx[wname]]
+				wamp01=jx.AMP01[jx.indx[pname]]
+				wamp10=jy.AMP10[jy.indx[wname]]
+				wtunex=jx.TUNEX[jx.indx[pname]]
+				wtuney=jy.TUNEY[jy.indx[wname]]
+				dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]]
+				dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
+				wmux=(jx.MUX[jx.indx[pname]]-dphix)%1.0
+				if (wmux > 0.5): wmux=wmux-1
+				wmuy=jy.MUY[jy.indx[wname]]
+				wphase01=(jx.PHASE01[jx.indx[pname]]-dphix)%1.0
+				wphase10=jy.PHASE10[jy.indx[wname]]
+				if (wphase01 > 0.5): wphase01=wphase01-1
+			#elif dbpms[i][3]==2:
+				#wampx=jx.AMPX[jx.indx[wname]]
+				#wampy=jy.AMPY[jy.indx[wname]]
+				#wamp01=jx.AMP01[jx.indx[wname]]
+				#wamp10=jy.AMP10[jy.indx[wname]]
+				#wtunex=jx.TUNEX[jx.indx[wname]]
+				#wtuney=jy.TUNEY[jy.indx[wname]]
+				#wmux=jx.MUX[jx.indx[wname]]
+				#wmuy=jy.MUY[jy.indx[wname]]
+				#wphase01=jx.PHASE01[jx.indx[wname]]
+				#wphase10=jy.PHASE10[jy.indx[wname]]
+			fbpmx[j].write('"'+wname+'" '+str(ws)+' '+str(wtunex)+' '+str(wmux)+' '+str(wampx)+' '+str(wamp01)+' '+str(wphase01)+'\n')
+			fbpmy[j].write('"'+wname+'" '+str(ws)+' '+str(wtuney)+' '+str(wmuy)+' '+str(wampy)+' '+str(wamp10)+' '+str(wphase10)+'\n')
+
+	PseudoListX=[]
+	PseudoListY=[]
+	for j in range(0,len(ListOfZeroDPPX)):
+		fbpmx[j].close()
+		fbpmy[j].close()
+		filex='temp'+str(j)+'_linx'
+		filey='temp'+str(j)+'_liny'
+		PseudoListX.append(twiss(filex))
+		PseudoListY.append(twiss(filey))
+		
+
+	return [PseudoListX,PseudoListY]
+
+	
 
 
 
@@ -1086,7 +1244,7 @@ for filein in listOfInputFiles:
 	except:
 		dppi=0.0
 
-	if dppi==0.0:
+	if float(dppi)==0.0:
 		ListOfZeroDPPX.append(twiss(file1))
 		FileOfZeroDPPX.append(file1)
 		fphasex.write(file1+' ')
@@ -1140,6 +1298,7 @@ fcouple.write('"'+'\n')
 
 woliny=0
 woliny2=0
+wolinx=0
 wolinx2=0
 
 
@@ -1149,6 +1308,16 @@ if len(ListOfNonZeroDPPY)==0 :
 	woliny2=1  #FLAG meaning there is no _liny file for non-zero DPPY!
 if len(ListOfNonZeroDPPX)==0 :
 	wolinx2=1
+
+if len(ListOfZeroDPPX)==0 :
+	print 'Warning: you are running GetLLM without "linx of dp/p=0". Are you sure?'
+	wolinx=1
+
+	
+
+# Construct pseudo-double plane BPMs
+if options.ACCEL=="SPS" and wolinx!=1 and woliny!=1 :
+	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY)
 
 
 
@@ -1169,13 +1338,15 @@ for j in range(0,len(ALL)) :
 
 
 #-------- START Phases
-
-plane='H'
-[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
+if wolinx!=1:
+	plane='H'
+	[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
+	phasex_save=phasex
 
 if woliny!=1:
 	plane='V'
 	[phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss,ListOfZeroDPPY,plane,outputpath,bd)
+	phasey_save=phasey
 	fphasey.write('@ Q1 %le '+str(Q1)+'\n')
 	fphasey.write('@ MUX %le '+str(MUX)+'\n')
 	fphasey.write('@ Q2 %le '+str(Q2)+'\n')
@@ -1197,31 +1368,32 @@ if woliny!=1:
 
 fphasey.close()
 
+if wolinx!=1:
+	fphasex.write('@ Q1 %le '+str(Q1)+'\n')
+	fphasex.write('@ MUX %le '+str(MUX)+'\n')
 
-fphasex.write('@ Q1 %le '+str(Q1)+'\n')
-fphasex.write('@ MUX %le '+str(MUX)+'\n')
-
-try:
-	fphasex.write('@ Q2 %le '+str(Q2)+'\n')
-	fphasex.write('@ MUY %le '+str(MUY)+'\n')
-except:
-	fphasex.write('@ Q2 %le '+'0.0'+'\n')
-	fphasex.write('@ MUY %le '+'0.0'+'\n')
-fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
-fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
-for i in range(0,len(bpmsx)):
-	bn1=upper(bpmsx[i][1])
-	bns1=bpmsx[i][0]
-	phmdl=phasex[bn1][4]
-	if i==len(bpmsx)-1:
-		bn2=upper(bpmsx[0][1])
-		bns2=bpmsx[0][0]
-	else:
-		bn2=upper(bpmsx[i][1])
-		bns2=bpmsx[i][0]	
-	fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
+	try:
+		fphasex.write('@ Q2 %le '+str(Q2)+'\n')
+		fphasex.write('@ MUY %le '+str(MUY)+'\n')
+	except:
+		fphasex.write('@ Q2 %le '+'0.0'+'\n')
+		fphasex.write('@ MUY %le '+'0.0'+'\n')
+	fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
+	fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+	for i in range(0,len(bpmsx)):
+		bn1=upper(bpmsx[i][1])
+		bns1=bpmsx[i][0]
+		phmdl=phasex[bn1][4]
+		if i==len(bpmsx)-1:
+			bn2=upper(bpmsx[0][1])
+			bns2=bpmsx[0][0]
+		else:
+			bn2=upper(bpmsx[i][1])
+			bns2=bpmsx[i][0]	
+		fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 	
 fphasex.close()
+
 
 
 
@@ -1230,26 +1402,27 @@ fphasex.close()
 betaxlist=[]
 betaylist=[]
 
-plane='H'
-betax={}
-alfax={}
-rmsbbx=0.
-[betax,rmsbbx,alfax,bpms]=BetaFromPhase(MADTwiss,ListOfZeroDPPX,phasex,plane)
-betax['DPP']=0
-#beta_save=betax
-betaxlist.append(betax)
-fbetax.write('@ Q1 %le '+str(Q1)+'\n')
-try:
-	fbetax.write('@ Q2 %le '+str(Q2)+'\n')
-except:
-	fbetax.write('@ Q2 %le '+'0.0'+'\n')
-fbetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
-fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
-fbetax.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
-for i in range(0,len(bpms)):
-	bn1=upper(bpms[i][1])
-	bns1=bpms[i][0]
-	fbetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(betax[bn1][2])+' '+str(alfax[bn1][0])+' '+str(alfax[bn1][1])+' '+str(alfax[bn1][2])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
+if wolinx!=1:
+	plane='H'
+	betax={}
+	alfax={}
+	rmsbbx=0.
+	[betax,rmsbbx,alfax,bpms]=BetaFromPhase(MADTwiss,ListOfZeroDPPX,phasex,plane)
+	betax['DPP']=0
+	#beta_save=betax
+	betaxlist.append(betax)
+	fbetax.write('@ Q1 %le '+str(Q1)+'\n')
+	try:
+		fbetax.write('@ Q2 %le '+str(Q2)+'\n')
+	except:
+		fbetax.write('@ Q2 %le '+'0.0'+'\n')
+	fbetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+	fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
+	fbetax.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
+	for i in range(0,len(bpms)):
+		bn1=upper(bpms[i][1])
+		bns1=bpms[i][0]
+		fbetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(betax[bn1][2])+' '+str(alfax[bn1][0])+' '+str(alfax[bn1][1])+' '+str(alfax[bn1][2])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 
 fbetax.close()
 
@@ -1280,25 +1453,26 @@ fbetay.close()
 betaxalist=[]
 betayalist=[]
 
-plane='H'
-betax={}
-rmsbbx=0.
-[betax,rmsbbx,bpms]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,plane)
-betax['DPP']=0
-beta2_save=betax
-betaxalist.append(betax)
-fabetax.write('@ Q1 %le '+str(Q1)+'\n')
-try:
-	fabetax.write('@ Q2 %le '+str(Q2)+'\n')
-except:
-	fabetax.write('@ Q2 %le '+'0.0'+'\n')
-fabetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
-fabetax.write('* NAME   POS    COUNT  BETX   BETXMDL MUXMDL\n')
-fabetax.write('$ %s     %le    %le    %le    %le     %le\n')
-for i in range(0,len(bpms)):
-	bn1=upper(bpms[i][1])
-	bns1=bpms[i][0]
-	fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
+if wolinx!=1:
+	plane='H'
+	betax={}
+	rmsbbx=0.
+	[betax,rmsbbx,bpms]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,plane)
+	betax['DPP']=0
+	beta2_save=betax
+	betaxalist.append(betax)
+	fabetax.write('@ Q1 %le '+str(Q1)+'\n')
+	try:
+		fabetax.write('@ Q2 %le '+str(Q2)+'\n')
+	except:
+		fabetax.write('@ Q2 %le '+'0.0'+'\n')
+	fabetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+	fabetax.write('* NAME   POS    COUNT  BETX   BETXMDL MUXMDL\n')
+	fabetax.write('$ %s     %le    %le    %le    %le     %le\n')
+	for i in range(0,len(bpms)):
+		bn1=upper(bpms[i][1])
+		bns1=bpms[i][0]
+		fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
 
 fabetax.close()
 
@@ -1324,31 +1498,34 @@ fabetay.close()
 
 
 #-------- START Orbit
+ListOfCOX=[]
+if wolinx!=1:
+	
+	[cox,bpms]=GetCO(MADTwiss, ListOfZeroDPPX)
+	# The output file can be directly used for orbit correction with MADX
+	fcox.write('@ TABLE %05s "ORBIT"\n')
+	fcox.write('@ TYPE %05s "ORBIT"\n')
+	fcox.write('@ SEQUENCE %05s "'+options.ACCEL+'"\n')
+	fcox.write('@ Q1 %le '+str(Q1)+'\n')
 
-[cox,bpms]=GetCO(MADTwiss, ListOfZeroDPPX)
-# The output file can be directly used for orbit correction with MADX
-fcox.write('@ TABLE %05s "ORBIT"\n')
-fcox.write('@ TYPE %05s "ORBIT"\n')
-fcox.write('@ SEQUENCE %05s "'+options.ACCEL+'"\n')
-fcox.write('@ Q1 %le '+str(Q1)+'\n')
+	try:
+		fcox.write('@ Q2 %le '+str(Q2)+'\n')
+	except:
+		fcox.write('@ Q2 %le '+'0.0'+'\n')
+	fcox.write('* NAME   POS1   COUNT  X      STDX   XMDL   MUXMDL\n')
+	fcox.write('$ %s     %le    %le    %le    %le    %le    %le\n')
+	for i in range(0,len(bpms)):
+		bn1=upper(bpms[i][1])
+		bns1=bpms[i][0]
+		fcox.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(cox[bn1][0])+' '+str(cox[bn1][1])+' '+str(MADTwiss.X[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 
-try:
-	fcox.write('@ Q2 %le '+str(Q2)+'\n')
-except:
-	fcox.write('@ Q2 %le '+'0.0'+'\n')
-fcox.write('* NAME   POS1   COUNT  X      STDX   XMDL   MUXMDL\n')
-fcox.write('$ %s     %le    %le    %le    %le    %le    %le\n')
-for i in range(0,len(bpms)):
-	bn1=upper(bpms[i][1])
-	bns1=bpms[i][0]
-	fcox.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(cox[bn1][0])+' '+str(cox[bn1][1])+' '+str(MADTwiss.X[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-
+	ListOfCOX.append(cox)
 fcox.close()
 
-ListOfCOX=[]
-ListOfCOX.append(cox)
 
 
+
+ListOfCOY=[]
 if woliny!=1:
 	[coy,bpms]=GetCO(MADTwiss, ListOfZeroDPPY)
 	# The output file can be directly used for orbit correction with MADX
@@ -1365,39 +1542,42 @@ if woliny!=1:
 		fcoy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(coy[bn1][0])+' '+str(coy[bn1][1])+' '+str(MADTwiss.Y[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 
-	ListOfCOY=[]
 	ListOfCOY.append(coy)
 fcoy.close()
 
 
 
 #-------- Orbit for non-zero DPP
-
-k=0
-for j in ListOfNonZeroDPPX:
-	SingleFile=[]
-	SingleFile.append(j)
-	file1=outputpath+'getCOx_dpp_'+str(k+1)+'.out'
-	fcoDPP=open(file1,'w')
-	fcoDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-	fcoDPP.write('@ FILE %s "')
-	fcoDPP.write(FileOfNonZeroDPPX[k]+' "'+'\n')
-	fcoDPP.write('@ DPP %le '+str(j.DPP)+'\n')
-	fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
-	try:
-		fcoDPP.write('@ Q2 %le '+str(Q2)+'\n')
-	except:
-		fcoDPP.write('@ Q2 %le '+'0.0'+'\n')
-	[codpp,bpms]=GetCO(MADTwiss, SingleFile)
-	fcoDPP.write('* NAME   POS1   COUNT  X      STDX   XMDL   MUXMDL\n')
-	fcoDPP.write('$ %s     %le    %le    %le    %le    %le    %le\n')
-	for i in range(0,len(bpms)):
-		bn1=upper(bpms[i][1])
-		bns1=bpms[i][0]
-		fcoDPP.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(codpp[bn1][0])+' '+str(codpp[bn1][1])+' '+str(MADTwiss.X[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-	fcoDPP.close()
-	ListOfCOX.append(codpp)
-	k+=1
+if wolinx2!=1:
+	
+	k=0
+	for j in ListOfNonZeroDPPX:
+		SingleFile=[]
+		SingleFile.append(j)
+		file1=outputpath+'getCOx_dpp_'+str(k+1)+'.out'
+		fcoDPP=open(file1,'w')
+		fcoDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+		fcoDPP.write('@ FILE %s "')
+		fcoDPP.write(FileOfNonZeroDPPX[k]+' "'+'\n')
+		fcoDPP.write('@ DPP %le '+str(j.DPP)+'\n')
+		try:
+			fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		except:
+			fcoDPP.write('@ Q1 %le '+'0.0'+'\n')
+		try:
+			fcoDPP.write('@ Q2 %le '+str(Q2)+'\n')
+		except:
+			fcoDPP.write('@ Q2 %le '+'0.0'+'\n')
+		[codpp,bpms]=GetCO(MADTwiss, SingleFile)
+		fcoDPP.write('* NAME   POS1   COUNT  X      STDX   XMDL   MUXMDL\n')
+		fcoDPP.write('$ %s     %le    %le    %le    %le    %le    %le\n')
+		for i in range(0,len(bpms)):
+			bn1=upper(bpms[i][1])
+			bns1=bpms[i][0]
+			fcoDPP.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(codpp[bn1][0])+' '+str(codpp[bn1][1])+' '+str(MADTwiss.X[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
+		fcoDPP.close()
+		ListOfCOX.append(codpp)
+		k+=1
 
 if woliny2!=1:
 	k=0
@@ -1410,7 +1590,10 @@ if woliny2!=1:
 		fcoDPP.write('@ FILE %s "')
 		fcoDPP.write(FileOfNonZeroDPPY[k]+' "'+'\n')
 		fcoDPP.write('@ DPP %le '+str(j.DPP)+'\n')
-		fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		try:
+			fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		except:
+			fcoDPP.write('@ Q1 %le '+'0.0'+'\n')
 		try:
 			fcoDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
@@ -1430,7 +1613,7 @@ if woliny2!=1:
 
 #-------- START Dispersion
 
-if wolinx2!=1:
+if wolinx!=1 and wolinx2!=1:
 
 
 	[nda,Dx,DPX,bpms]=NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, beta2_save, COcut)
@@ -1495,7 +1678,10 @@ if wolinx2!=1:
 		fphDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
 		fphDPP.write('@ FILE %s "'+FileOfNonZeroDPPX[k]+'"'+'\n')
 		fphDPP.write('@ DPP %le '+str(dpop)+'\n')
-		fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		try:
+			fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		except:
+			fphDPP.write('@ Q1 %le '+'0.0'+'\n')
 		try:
 			fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
@@ -1507,7 +1693,18 @@ if wolinx2!=1:
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
 			bns1=bpms[i][0]
-			phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+			if i==len(bpms)-1:
+				bn2=upper(bpms[0][1])
+				bns2=bpms[0][0]
+			
+			else:
+				bn2=upper(bpms[i][1])
+				bns2=bpms[i][0]
+			try:
+				phmdl=phasex_save[bn1][4]
+			except:
+				phmdl=0.0
+			#phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
 			fphDPP.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(1)+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 		fphDPP.close()
 
@@ -1526,7 +1723,10 @@ if wolinx2!=1:
 		fbetaxDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
 		fbetaxDPP.write('@ FILE %s "'+FileOfNonZeroDPPX[k]+'"'+'\n')
 		fbetaxDPP.write('@ DPP %le '+str(dpop)+'\n')
-		fbetaxDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		try:
+			fbetaxDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		except:
+			fbetaxDPP.write('@ Q1 %le '+'0.0'+'\n')
 		try:
 			fbetaxDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
@@ -1556,7 +1756,10 @@ if woliny2!=1:
 		fphDPP.write('@ FILE %s "')
 		fphDPP.write(FileOfNonZeroDPPY[k]+' ')
 		fphDPP.write('"'+'\n')
-		fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		try:
+			fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		except:
+			fphDPP.write('@ Q1 %le '+'0.0'+'\n')
 		try:
 			fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
@@ -1568,7 +1771,18 @@ if woliny2!=1:
 		for i in range(0,len(bpms)):
 			bn1=upper(bpms[i][1])
 			bns1=bpms[i][0]
-			phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+			if i==len(bpms)-1:
+				bn2=upper(bpms[0][1])
+				bns2=bpms[0][0]
+			
+			else:
+				bn2=upper(bpms[i][1])
+				bns2=bpms[i][0]
+			try:
+				phmdl=phasey_save[bn1][4]
+			except:
+				phmdl=0.0
+			#phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
 			fphDPP.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(1)+' '+str(phasey[bn1][0])+' '+str(phasey[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 		fphDPP.close()
 
@@ -1587,7 +1801,10 @@ if woliny2!=1:
 		fbetayDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
 		fbetayDPP.write('@ FILE %s "'+FileOfNonZeroDPPY[k]+'"'+'\n')
 		fbetayDPP.write('@ DPP %le '+str(dpop)+'\n')
-		fbetayDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		try:
+			fbetayDPP.write('@ Q1 %le '+str(Q1)+'\n')
+		except:
+			fbetayDPP.write('@ Q1 %le '+'0.0'+'\n')
 		try:
 			fbetayDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
@@ -1606,7 +1823,7 @@ if woliny2!=1:
 
 #-------- Find db/b vs dP/P
 
-if wolinx2!=1:
+if wolinx!=1 and wolinx2!=1:
 	file1=outputpath+'getdpplatticex.out'
 	fdppx=open(file1,'w')
 	slopex={}
@@ -1617,12 +1834,12 @@ if wolinx2!=1:
 	fdppx.write('* NAME   POS    COUNT  SBETX\n')
 	fdppx.write('$ %s     %le    %le    %le\n')
 	for i in range(0,len(bpms)):
-		bn=bpms[i][1]
+		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
 		fdppx.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPX))+' '+str(slopex[bn])+'\n')
 	fdppx.close()
 
-if woliny2!=1:
+if woliny!=1 and woliny2!=1:
 	file1=outputpath+'getdpplatticey.out'
 	fdppy=open(file1,'w')
 	slopey={}
@@ -1633,7 +1850,7 @@ if woliny2!=1:
 	fdppy.write('* NAME   POS    COUNT  SBETY\n')
 	fdppy.write('$ %s     %le    %le    %le\n')
 	for i in range(0,len(bpms)):
-		bn=bpms[i][1]
+		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
 		fdppy.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPY))+' '+str(slopey[bn])+'\n')
 	fdppy.close()
@@ -1641,12 +1858,19 @@ if woliny2!=1:
 
 #-------- START coupling. If there is no double plane BPMs, nothing to do and leave the program. Will be updated to have pseudo-double plane BPM
 
-if woliny!=1:
+if wolinx!=1 and woliny!=1:
 	try:
 		MADTwiss.Cmatrix()
 	except:
 		0.0
-	if NBcpl==1:
+
+	if options.ACCEL=="SPS":
+		plane='H'
+		[phasexp,Q1,MUX,bpmsx]=GetPhases(MADTwiss,PseudoListX,plane,outputpath,bd)
+		plane='V'
+		[phaseyp,Q2,MUY,bpmsy]=GetPhases(MADTwiss,PseudoListY,plane,outputpath,bd)
+		[fwqw,bpms]=GetCoupling2(MADTwiss, PseudoListX, PseudoListY, Q1, Q2, phasexp, phaseyp, bd)
+	elif NBcpl==1:
 		[fwqw,bpms]=GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2)
 	elif NBcpl==2:
 		[fwqw,bpms]=GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey, bd)

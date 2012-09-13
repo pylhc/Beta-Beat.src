@@ -362,7 +362,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
 	beta={}
-
+        root2J=[]
 	commonbpms=intersect(ListOfFiles)
 	commonbpms=modelIntersect(commonbpms,MADTwiss)
 	SumA=0.0
@@ -370,20 +370,31 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 	for i in range(0,len(commonbpms)):
 		bn1=upper(commonbpms[i][1])
 		Ampi=0.0
+                root2Ji=0.0
 		for j in ListOfFiles:
 			if plane=='H':
 				Ampi+=j.AMPX[j.indx[bn1]]
+                                root2Ji+=j.PK2PK[j.indx[bn1]]/2.     
 			elif plane=='V':
 				Ampi+=j.AMPY[j.indx[bn1]]
+                                root2Ji+=j.PK2PK[j.indx[bn1]]/2.
 		Ampi=Ampi/len(ListOfFiles)
+                root2Ji=root2Ji/len(ListOfFiles)
 		Amp.append(Ampi)
+                
 		if plane=='H':
-			SumA+=Ampi**2/MADTwiss.BETX[MADTwiss.indx[bn1]]
+                        tembetax=MADTwiss.BETX[MADTwiss.indx[bn1]]
+			SumA+=Ampi**2/tembetax
+                        root2J.append(root2Ji/sqrt(tembetax))
 		if plane=='V':
-			SumA+=Ampi**2/MADTwiss.BETY[MADTwiss.indx[bn1]]
+                        tembetay=MADTwiss.BETY[MADTwiss.indx[bn1]]
+			SumA+=Ampi**2/tembetay
+                        root2J.append(root2Ji/sqrt(tembetay))
 		
 	Kick=SumA/len(commonbpms) # Assuming the average of beta is constant
-
+        root2J=array(root2J)
+        root2Jave=average(root2J)
+        root2Jrms=sqrt(average(root2J*root2J)-root2Jave**2)
 	
 	delbeta=[]
 	for i in range(0,len(commonbpms)):
@@ -397,7 +408,7 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
 	delbeta=array(delbeta)
 	rmsbb=sqrt(average(delbeta*delbeta))
-	return [beta,rmsbb,commonbpms]
+	return [beta,rmsbb,commonbpms, root2Jave, root2Jrms]
 
 
 #-------------------------
@@ -1315,9 +1326,6 @@ if len(ListOfZeroDPPX)==0 :
 
 	
 
-# Construct pseudo-double plane BPMs
-if options.ACCEL=="SPS" and wolinx!=1 and woliny!=1 :
-	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY)
 
 
 
@@ -1342,7 +1350,6 @@ if wolinx!=1:
 	plane='H'
 	[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
 	phasex_save=phasex
-
 if woliny!=1:
 	plane='V'
 	[phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss,ListOfZeroDPPY,plane,outputpath,bd)
@@ -1367,6 +1374,7 @@ if woliny!=1:
 		fphasey.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))+' '+str(phasey[bn1][0])+' '+str(phasey[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fphasey.close()
+
 
 if wolinx!=1:
 	fphasex.write('@ Q1 %le '+str(Q1)+'\n')
@@ -1457,11 +1465,13 @@ if wolinx!=1:
 	plane='H'
 	betax={}
 	rmsbbx=0.
-	[betax,rmsbbx,bpms]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,plane)
+	[betax,rmsbbx,bpms, r2jx, r2jxerr]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,plane)
 	betax['DPP']=0
 	beta2_save=betax
 	betaxalist.append(betax)
 	fabetax.write('@ Q1 %le '+str(Q1)+'\n')
+        fabetax.write('@ r2Jx %le '+str(r2jx)+'\n')
+        fabetax.write('@ r2Jxerr %le '+str(r2jxerr)+'\n')
 	try:
 		fabetax.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
@@ -1480,7 +1490,7 @@ if woliny!=1:
 	plane='V'
 	betay={}
 	rmsbby=0.
-	[betay,rmsbby,bpms]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,plane)
+	[betay,rmsbby,bpms, r2jy, rsjyerr]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,plane)
 	betay['DPP']=0
 	betayalist.append(betay)
 	fabetay.write('@ Q1 %le '+str(Q1)+'\n')
@@ -1715,7 +1725,7 @@ if wolinx2!=1:
 		betax['DPP']=dpop
 		betaxlist.append(betax)
 		betaxa={}
-		[betaxa,rmsbbx,bpms]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
+		[betaxa,rmsbbx,bpms, r2Jx, r2Jxerr]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
 		betaxa['DPP']=dpop
 		betaxalist.append(betaxa)
 		file2=outputpath+'getbetax_dpp_'+str(k+1)+'.out'
@@ -1793,7 +1803,7 @@ if woliny2!=1:
 		betay['DPP']=dpop
 		betaylist.append(betay)
 		betaya={}
-		[betaya,rmsbby,bpms]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
+		[betaya,rmsbby,bpms, r2Jy, r2Jyerr]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
 		betaya['DPP']=dpop
 		betayalist.append(betaya)
 		file2=outputpath+'getbetay_dpp_'+str(k+1)+'.out'
@@ -1857,6 +1867,15 @@ if woliny!=1 and woliny2!=1:
 
 
 #-------- START coupling. If there is no double plane BPMs, nothing to do and leave the program. Will be updated to have pseudo-double plane BPM
+
+sys.exit()
+# Construct pseudo-double plane BPMs
+if options.ACCEL=="SPS" and wolinx!=1 and woliny!=1 :
+          [PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY)
+
+
+          
+
 
 if wolinx!=1 and woliny!=1:
 	try:
