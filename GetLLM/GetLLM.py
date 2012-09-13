@@ -708,7 +708,8 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
 			dbpmt.append([dbpms[i][0],dbpms[i][1]])
 			fwqw[bn1]=[[fi,fistd],[qi,qistd]]
 			
-
+	if len(dbpmt)==0:
+		print "Warning: Inconsistency between coupling phases"
 	dbpms=dbpmt
 
 
@@ -879,7 +880,8 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 				fwqw[bn1]=[[f1010i,f1010istd,f1001i,f1001istd],[q1010i,q1010istd,q1001i,q1001istd]]
 
 			
-
+        if len(dbpmt)==0:
+		print "Warning: Inconsistency between coupling phases"
 	dbpms=dbpmt
 
 	# possible correction ??
@@ -1128,7 +1130,7 @@ accpath="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/CoreFiles/"
 from optparse import OptionParser
 parser = OptionParser()
 parser.add_option("-a", "--accel",
-                help="Which accelerator: LHCB1 LHCB2 SPS RHIC SLS",
+                help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
                 metavar="ACCEL", default="LHCB1",dest="ACCEL")
 parser.add_option("-d", "--dictionary",
                 help="File with the BPM dictionary",

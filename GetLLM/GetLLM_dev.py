@@ -37,6 +37,8 @@
 ##                                      pre-paired H-V monitor. This should be replaced by a clever algorithm to find good pairs automatically.
 ##                    V2.01, 10/Mar/2009 Fix bug on SPS double plane BPM monitor, in which missing BPM could cause an error.
 ##                                      Modify BetaFromAmplitude to output invariant J (by Rogelio and finalized by MA)
+##                    V2.02, 10/Mar/2009 Fix bug in getcoupling, bad input for phasex and phasey
+
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -1922,7 +1924,7 @@ if wolinx!=1 and woliny!=1:
 	elif NBcpl==1:
 		[fwqw,bpms]=GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2)
 	elif NBcpl==2:
-		[fwqw,bpms]=GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey, bd)
+		[fwqw,bpms]=GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex_save, phasey_save, bd)
 	else:
 		print 'Number of monitors for coupling analysis (option -n) should be 1 or 2.'
 		print 'Leaving the coupling analysis...'
