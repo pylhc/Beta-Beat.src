@@ -1,3 +1,5 @@
+#!/afs/cern.ch/eng/sl/lintrack/Python-2.5/bin/python2.5
+
 ## Python script to obtain Linear Lattice functions and More -> GetLLM
 ## Version-up history:V1.0, 11/Feb/2008 by Masa. Aiba
 ##                    V1.1, 18/Feb/2008 Debugging, add model phase and tunes to output
@@ -62,6 +64,7 @@
 #                                  - gives free beta,phase,coupling(global factor)
 ##                    V2.32 15/January/2010 Taking models
 #                     V2.33 7/February/2011 : - implementing coupling correction for AC-dipole.
+##                    V2.34 7/04/2011: 	- Updating to deal with chromatic twiss files.
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -78,7 +81,7 @@
 ####
 #######
 #########
-VERSION='V2.33'
+VERSION='V2.34'
 print "Starting GetLLM ", VERSION
 #########
 #######
@@ -215,8 +218,11 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,plane,outputpath,bd):
 def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 
 	commonbpms=intersect(ListOfFiles)
-	commonbpms=modelIntersect(commonbpms, MADTwiss)
 	print len(commonbpms)
+	commonbpms=modelIntersect(commonbpms, MADTwiss)
+
+	print len(commonbpms)
+	#sys.exit()
 	
 	mu=0.0
         tunem=[]
@@ -428,24 +434,23 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
 		denom=M22/M12+N11/N12
 		numer=1/tan(ph2pi12)+1/tan(ph2pi23)
-		
-		beti2=numer/(denom + 1e-17)  # Quick patch 7-5-2011
+		beti2=numer/denom
 		# beterr2=abs(phase[bn1][1]*(1.-tan(ph2pi12)**2.)/tan(ph2pi12)**2.)
 		# beterr2=beterr2+abs(phase[bn2][1]*(1.-tan(ph2pi23)**2.)/tan(ph2pi23)**2.)
 		# beterr2=beterr2/abs(denom)
 		betstd2=        (2*pi*phase[bn1][1]/sin(ph2pi12)**2)**2
 		betstd2=betstd2+(2*pi*phase[bn2][1]/sin(ph2pi23)**2)**2
-		betstd2=sqrt(betstd2)/abs(denom+ 1e-17)
+		betstd2=sqrt(betstd2)/abs(denom)
 
 		denom=M12/M22+N12/N11
 		numer=M12/M22/tan(ph2pi12)-N12/N11/tan(ph2pi23)
-		alfi2=numer/(denom+ 1e-17)
+		alfi2=numer/denom
 		# alferr2=abs(M12/M22*phase[bn1][1]*(1.-tan(ph2pi12)**2.)/tan(ph2pi12)**2.)
 		# alferr2=alferr2+abs(N12/N11*phase[bn1][3]*(1.-tan(ph2pi23)**2.)/tan(ph2pi23)**2.)
 		# alferr2=alferr2/abs(denom)
 		alfstd2=        (M12/M22*2*pi*phase[bn1][1]/sin(ph2pi12)**2)**2
 		alfstd2=alfstd2+(N12/N11*2*pi*phase[bn2][1]/sin(ph2pi23)**2)**2
-		alfstd2=sqrt(alfstd2)/abs(denom+ 1e-17)
+		alfstd2=sqrt(alfstd2)/abs(denom)
 
 		# Find beta3 and alpha3 from phases assuming model transfer matrix
 		# Matrix M: BPM2-> BPM3
@@ -456,24 +461,24 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 		N12=sqrt(betmdl1*betmdl3)*sin(phmdl13)
 
 		denom=M22/M12-N22/N12
-		numer=1./tan(ph2pi23)-1./tan(ph2pi13)
-		beti3=numer/(denom+ 1e-17)
+		numer=1/tan(ph2pi23)-1/tan(ph2pi13)
+		beti3=numer/denom
 		# beterr3=abs(phase[bn2][1]*(1.-tan(ph2pi23)**2.)/tan(ph2pi23)**2.)
 		# beterr3=beterr3+abs(phase[bn1][3]*(1.-tan(ph2pi13)**2.)/tan(ph2pi13)**2.)
 		# beterr3=beterr3/abs(denom)
 		betstd3=        (2*pi*phase[bn2][1]/sin(ph2pi23)**2)**2
 		betstd3=betstd3+(2*pi*phase[bn1][3]/sin(ph2pi13)**2)**2
-		betstd3=sqrt(betstd3)/abs(denom+ 1e-17)
+		betstd3=sqrt(betstd3)/abs(denom)
 
 		denom=M12/M22-N12/N22
 		numer=M12/M22/tan(ph2pi23)-N12/N22/tan(ph2pi13)
-		alfi3=numer/(denom+ 1e-17)
+		alfi3=numer/denom
 		# alferr3=abs(M12/M22*phase[bn1][1]*(1.-tan(ph2pi23)**2.)/tan(ph2pi23)**2.)
 		# alferr3=alferr3+abs(N22/N12*phase[bn1][3]*(1.-tan(ph2pi13)**2.)/tan(ph2pi13)**2.)
 		# alferr3=alferr3/abs(denom)
 		alfstd3=        (M12/M22*2*pi*phase[bn2][1]/sin(ph2pi23)**2)**2
 		alfstd3=alfstd3+(N12/N22*2*pi*phase[bn1][3]/sin(ph2pi13)**2)**2
-		alfstd3=sqrt(alfstd3)/abs(denom+ 1e-17)
+		alfstd3=sqrt(alfstd3)/abs(denom)
 
 		betii.append([beti1,betstd1,beti2,betstd2,beti3,betstd3])
 		alfii.append([alfi1,alfstd1,alfi2,alfstd2,alfi3,alfstd3])
@@ -2841,6 +2846,9 @@ def getfreephaseTotal(phase,bpms,plane,MADTwiss,MADTwiss_ac):
 	return phasef,bpms
 
 # free coupling from equations
+
+#--------------
+
 def PhaseMean(phase_list,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
 
 	phase_list_1 = (phase_list+0.5*norm)%norm-0.5*norm
@@ -2866,14 +2874,16 @@ def PhaseStd(phase_list,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 
 
 	return min(phase_std,phase_std_1)
 
+#--------------
+
 def GetCoupling_AC2Free(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, Q1free, Q2free, bd, oa):
 
         #---- Theory of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
 
-	#---- This function works only for the LHC for the moment
+	#---- This function works only for the LHC for now
 
 	if oa != "LHCB1" and oa != "LHCB2" and oa != "LHC":
-		print 'Leaving GetCoupling_AC2Free since this works only for the LHC for the moment...'
+		print 'Leaving GetCoupling_AC2Free, it works only for the LHC for now...'
 		return [{},[]]
 
 	#---- Check linx/liny files, may be redundant check
@@ -3007,12 +3017,12 @@ def GetCoupling_AC2Free(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, Q1free
 			if Psiv[k]%(2.0*pi) > pi: Psiy[k] = Psiy[k]+pi
 			
 		psix           = copy(Psix)
-		psix[:k_acbpm] = Psix[:k_acbpm]-pi*Qx
-		psix[k_acbpm:] = Psix[k_acbpm:]+pi*Qx
+		psix[:k_acbpm] = psix[:k_acbpm]-pi*Qx
+		psix[k_acbpm:] = psix[k_acbpm:]+pi*Qx
 
 		psiy           = copy(Psiy)
-		psiy[:k_acbpm] = Psiy[:k_acbpm]-pi*Qy
-		psiy[k_acbpm:] = Psiy[k_acbpm:]+pi*Qy
+		psiy[:k_acbpm] = psiy[:k_acbpm]-pi*Qy
+		psiy[k_acbpm:] = psiy[k_acbpm:]+pi*Qy
 
                 #---- Construct f1001h, f1001v, f1010h, f1010v (these include sqrt(betv/beth) or sqrt(beth/betv))
 
@@ -3193,15 +3203,9 @@ parser.add_option("-t", "--tbtana",
 parser.add_option("-b", "--bpmu",
                 help="BPMunit: um, mm, cm, m (default um)",
                 metavar="BPMUNIT", default="um", dest="BPMUNIT")
-parser.add_option("-r", "--rpath",
-                  help="Path to BetaBeat repository (default is the afs repository)",
-                  metavar="RPATH", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/" , dest="rpath")
 parser.add_option("-l", "--nonlinear",
                   help="Switch to output higher oerder resonance stuffs, on=1(default)/off=0",
                   metavar="HIGHER", default="1" , dest="higher")
-parser.add_option("-w", "--dppbb",
-                  help="Switch to choose algorithm for off momentum beta-beating, AMP(default) or PHASE",
-                  metavar="DPPBB", default="AMP" , dest="dppbb")
 
 
 (options, args) = parser.parse_args()
@@ -3209,57 +3213,35 @@ parser.add_option("-w", "--dppbb",
 
 
 
-
-
-
-
-#adding dp models!!!
-
 #output
 outputpath=options.output
 # finding base model
-file0=options.Twiss+"/twiss.dat"
+file0=options.Twiss
 
 if options.dict=="0":
 	BPMdictionary={}
 else:
 	execfile(options.dict)
-	print "Loading dictionary"
 	BPMdictionary=dictionary   # temporaryly since presently name is not BPMdictionary
 
-
-
-if(options.ACCEL=="LHC"):### quick fix
-	print "Passing statement"
-	try:
+try:
+	MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
+	if ("MKQA.6L4.B1" in  MADTwiss.NAME) or ("MKQA.6L4.B2" in  MADTwiss.NAME):
+		print "Normal operation"
+	else:
+		print "WARN: Using twiss elements"
+		file0=options.Twiss+"/twiss_elements.dat"
 		MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
-		print "Here"
-
-		if ("MKQA.6L4.B1" in  MADTwiss.NAME) or ("MKQA.6L4.B2" in  MADTwiss.NAME):
-			print "Normal operation"
-		else:
-			print "WARN: Using twiss elements"
-			file0=options.Twiss+"/twiss_elements.dat"
-			MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
-			print "Base model found!"
-	except:
-		print "WARN: Cannot find model!!",file0
-		sys.exit()
-else:
-	try:
-		MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
-	except:
-		print "WARN: Cannot find model!!",file0
-		sys.exit()
-
-#print MADTwiss.indx['SPS.BPA.21805.H']
-
+	print "Base model found!"
+except:
+	print "WARN: Cannot find model!!",file0
+	sys.exit()
 
 listOfInputFiles=options.files.split(",")
 # finding model for acdipole
 
 try:
-	MADTwiss_ac=twiss(options.Twiss+"/twiss_ac.dat",BPMdictionary)
+	MADTwiss_ac=twiss(file0.replace(".dat","_ac.dat"))
 	print "Will include ac-dipole effect in the calculations"
 	acswitch="1"
 		
@@ -3319,10 +3301,10 @@ if acswitch=="1":
 
 	fphasexf.write('@ GetLLMVersion %s '+VERSION+'\n')
 	fphasexf.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+	fphasexf.write('@ FILES %s "')
 	fphaseyf.write('@ GetLLMVersion %s '+VERSION+'\n')
 	fphaseyf.write('@ MAD_FILE %s "'+file0+'"'+'\n')
-	fphasexf.write('@ FILES %s "')
-	fphaseyf.write('@ FILES %s "')	
+	fphaseyf.write('@ FILES %s "')
 
 fbetax=open(outputpath+'getbetax.out','w')
 fbetay=open(outputpath+'getbetay.out','w')
@@ -3342,8 +3324,6 @@ if acswitch=="1":
 	fbetaxf.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 	fbetayf.write('@ GetLLMVersion %s '+VERSION+'\n')
 	fbetayf.write('@ MAD_FILE %s "'+file0+'"'+'\n')
-	#fbetaxf.write('@ FILES %s "')
-	#fbetayf.write('@ FILES %s "')
 
 fabetax=open(outputpath+'getampbetax.out','w')
 fabetay=open(outputpath+'getampbetay.out','w')
@@ -3351,11 +3331,6 @@ fabetax.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fabetay.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fabetax.write('@ FILES %s "')
 fabetay.write('@ FILES %s "')
-if acswitch=="1":
-	fabetaxf=open(outputpath+'getampbetax_free.out','w')
-	fabetayf=open(outputpath+'getampbetay_free.out','w')
-	fabetaxf.write('@ MAD_FILE %s "'+file0+'"'+'\n')
-	fabetayf.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 
 fcox=open(outputpath+'getCOx.out','w')
 fcoy=open(outputpath+'getCOy.out','w')
@@ -3485,21 +3460,7 @@ for filein in listOfInputFiles:
 		print 'Warning: There seems no '+str(file1)+' file in the specified directory.' 
 
 
-fphasex.write('"'+'\n')
-fphasey.write('"'+'\n')
-fbetax.write('"'+'\n')
-fbetay.write('"'+'\n')
-fabetax.write('"'+'\n')
-fabetay.write('"'+'\n')
-fcox.write('"'+'\n')
-fcoy.write('"'+'\n')
-fNDx.write('"'+'\n')
-fDx.write('"'+'\n')
-fDy.write('"'+'\n')
-fcouple.write('"'+'\n')
-if acswitch=="1":
-	fcouplef.write('"'+'\n')
-	fcouplef2.write('"'+'\n')
+
 
 woliny=0
 woliny2=0
@@ -3518,16 +3479,58 @@ if len(ListOfZeroDPPX)==0 :
 	print 'Warning: you are running GetLLM without "linx of dp/p=0". Are you sure?'
 	wolinx=1
 
+if (len(ListOfNonZeroDPPX)!=0) and (len(ListOfZeroDPPX)==0):
+	ListOfZeroDPPX=ListOfNonZeroDPPX
+	ListOfZeroDPPY=ListOfNonZeroDPPY 
+	wolinx=0
+	woliny=0
+	woliny2=1
+	wolinx2=1
+	print "Previous warning suppressed, running in chromatic mode"
+	fphasex.write('chrommode')
+	fbetax.write('chrommode')
+	fabetax.write('chrommode')
+	fcox.write('chrommode')
+	fNDx.write('chrommode')
+	fDx.write('chrommode')
+	fcouple.write('chrommode')
+	if acswitch=="1":
+		fcouplef.write('chrommode')
+		fcouplef2.write('chrommode')
+	fphasey.write('chrommode')
+	fbetay.write('chrommode')
+	fabetay.write('chrommode')
+	fcoy.write('chrommode')
+	fDy.write('chrommode')
+
 
 if acswitch=="1":
 	tunexfree=abs(float(str(MADTwiss.Q1).split('.')[0])-MADTwiss.Q1)
 	tuneyfree=abs(float(str(MADTwiss.Q2).split('.')[0])-MADTwiss.Q2)
 else:
-	MADTwiss_ac=twiss(file0,BPMdictionary)
+	MADTwiss_ac=twiss(file0)
 	tunexfree=ListOfZeroDPPX[0].Q1
 	tuneyfree=ListOfZeroDPPY[0].Q2
+
+
+fphasex.write('"'+'\n')
+fphasey.write('"'+'\n')
+fbetax.write('"'+'\n')
+fbetay.write('"'+'\n')
+fabetax.write('"'+'\n')
+fabetay.write('"'+'\n')
+fcox.write('"'+'\n')
+fcoy.write('"'+'\n')
+fNDx.write('"'+'\n')
+fDx.write('"'+'\n')
+fDy.write('"'+'\n')
+fcouple.write('"'+'\n')
+if acswitch=="1":
+	fcouplef.write('"'+'\n')
+	fcouplef2.write('"'+'\n')
 	
 	
+
 # Construct pseudo-double plane BPMs
 if (options.ACCEL=="SPS" or "RHIC" in options.ACCEL) and wolinx!=1 and woliny!=1 :
 	execfile(options.rpath+'/MODEL/'+options.ACCEL+'/'+'BPMpair.py')
@@ -3535,6 +3538,8 @@ if (options.ACCEL=="SPS" or "RHIC" in options.ACCEL) and wolinx!=1 and woliny!=1
 	##sys.exit()
 	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdictionary)
 	
+
+
 
 #-------- Check monitor compatibility between data and model
 
@@ -3556,12 +3561,10 @@ for j in range(0,len(ALL)) :
 if wolinx!=1:
 	plane='H'
 	[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,plane,outputpath,bd)
-	print bpmsx[0][1],MADTwiss_ac.NAME[0]
         [phasexT,bpmsxT]=GetPhasesTotal(MADTwiss_ac,ListOfZeroDPPX,plane,outputpath,bd)
 	phasexlist=[]
 	phasex['DPP']=0.0
 	phasexlist.append(phasex)
-
 	
 
 if woliny!=1:
@@ -3583,6 +3586,7 @@ if woliny!=1:
 
 	# ac for vertical phasetotal
 	if acswitch=="1":
+
 		fphaseyTf.write('* NAME   NAME2  S   S1   COUNT  PHASEY  STDPHY  PHYMDL MUYMDL\n')
 		fphaseyTf.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 		[phaseyTf,bpmsyTf]=getfreephaseTotal(phaseyT,bpmsyT,"V",MADTwiss,MADTwiss_ac)
@@ -3594,7 +3598,7 @@ if woliny!=1:
 			bns2=bpmsyTf[0][0]
 			fphaseyTf.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))+' '+str(phaseyTf[bn1][0])+' '+str(phaseyTf[bn1][1])+' '+str(phmdlf)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 		fphaseyTf.close()
-                
+
 	for i in range(0,len(bpmsy)):
 		bn1=upper(bpmsy[i][1])
 		bns1=bpmsy[i][0]
@@ -3606,6 +3610,7 @@ if woliny!=1:
 		else:
 			bn2=upper(bpmsy[i+1][1])
 			bns2=bpmsy[i+1][0]	
+
 		fphasey.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))+' '+str(phasey[bn1][0])+' '+str(phasey[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 	# ac for vertical phase
@@ -3622,8 +3627,7 @@ if woliny!=1:
 			bn2=phaseyf[bn1][3]
 			bns2=phaseyf[bn1][4]
 		        fphaseyf.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))+' '+str(phaseyf[bn1][0])+' '+str(phaseyf[bn1][1])+' '+str(phmdlf)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
-		fphaseyf.close()	
-
+		fphaseyf.close()
 
 	for i in range(0,len(bpmsyT)):
                 bn1=upper(bpmsyT[i][1])
@@ -3636,6 +3640,10 @@ if woliny!=1:
                 
 fphasey.close()
 fphaseyT.close()
+
+
+
+
 
 
 if wolinx!=1:
@@ -3667,8 +3675,7 @@ if wolinx!=1:
 			bn2=phasexf[bn1][3]
 			bns2=phasexf[bn1][4]
 		        fphasexf.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasexf[bn1][0])+' '+str(phasexf[bn1][1])+' '+str(phmdlf)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-		fphasexf.close()
-	
+		fphasexf.close()	
         
 	for i in range(0,len(bpmsx)):
 		bn1=upper(bpmsx[i][1])
@@ -3684,6 +3691,7 @@ if wolinx!=1:
 
 	# ac for horizontal phasetotal
 	if acswitch=="1":
+
 		fphasexTf.write('* NAME   NAME2  S   S1   COUNT  PHASEX  STDPHX  PHXMDL MUXMDL\n')
 		fphasexTf.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 		[phasexTf,bpmsxTf]=getfreephaseTotal(phasexT,bpmsxT,"H",MADTwiss,MADTwiss_ac)
@@ -3708,6 +3716,8 @@ if wolinx!=1:
  
 fphasex.close()
 fphasexT.close()
+
+
 
 
 #-------- START Beta
@@ -3805,15 +3815,7 @@ if wolinx!=1:
 	rmsbbx=0.
 	[betax,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss_ac,ListOfZeroDPPX,plane)
 	if acswitch=="1":
-		fabetaxf.write('@ Q1 %le '+str(abs(tunexfree))+'\n')
-		try:
-			fabetaxf.write('@ Q2 %le '+str(abs(tuneyfree))+'\n')
-		except:
-			fabetaxf.write('@ Q2 %le '+'0.0'+'\n')
-		fabetaxf.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
-		fabetaxf.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
-		fabetaxf.write('$ %s     %     %le    %le    %le    %le     %le     %le\n')
-		[betaxf,rmsbbxf,bpmsf,invJxf]=getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,plane)
+		[betax,rmsbbx,bpms,invJx]=getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,plane)
 	betax['DPP']=0
 	beta2_save=betax
 	betaxalist.append(betax)
@@ -3831,14 +3833,6 @@ if wolinx!=1:
 		fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
 
 
-	if acswitch=="1":
-		for i in range(0,len(bpmsf)):
-			bn1=upper(bpmsf[i][1])
-			bns1=bpmsf[i][0]
-			fabetaxf.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betaxf[bn1][0])+' '+str(betaxf[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
-		
-		fabetaxf.close()
-
 fabetax.close()
 
 if woliny!=1:
@@ -3847,12 +3841,7 @@ if woliny!=1:
 	rmsbby=0.
 	[betay,rmsbby,bpms,injJy]=BetaFromAmplitude(MADTwiss_ac,ListOfZeroDPPY,plane)
 	if acswitch=="1":
-		fabetayf.write('@ Q1 %le '+str(abs(tunexfree))+'\n')
-		fabetayf.write('@ Q2 %le '+str(abs(tuneyfree))+'\n')
-		fabetayf.write('@ RMSbetabeat %le '+str(rmsbby)+'\n')
-		fabetayf.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL\n')
-		fabetayf.write('$ %s     %le    %le    %le    %le     %le     %le\n')
-		[betayf,rmsbbyf,bpmsf,injJyf]=getFreeAmpBeta(betay,rmsbby,bpms,injJy,MADTwiss_ac,MADTwiss,plane)
+		[betay,rmsbby,bpms,injJy]=getFreeAmpBeta(betay,rmsbby,bpms,injJy,MADTwiss_ac,MADTwiss,plane)
 	betay['DPP']=0
 	betayalist.append(betay)
 	fabetay.write('@ Q1 %le '+str(Q1)+'\n')
@@ -3864,14 +3853,6 @@ if woliny!=1:
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
 		fabetay.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1][0])+' '+str(betay[bn1][1])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n')
-
-	if acswitch=="1":
-		for i in range(0,len(bpmsf)):
-			bn1=upper(bpmsf[i][1])
-			bns1=bpmsf[i][0]
-			fabetayf.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betayf[bn1][0])+' '+str(betayf[bn1][1])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n')
-
-		fabetayf.close()
 
 fabetay.close()
 
@@ -4008,6 +3989,8 @@ if woliny2!=1:
 		ListOfCOY.append(codpp)
 		k+=1
 
+
+
 #-------- START Dispersion
 
 if wolinx!=1 and wolinx2!=1:
@@ -4062,7 +4045,6 @@ if woliny!=1 and woliny2!=1:
 		fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+str(DPY[bn1])+' '+str(MADTwiss.DY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.DPY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fDy.close()
-
 
 #-------- START coupling.
 
@@ -4184,7 +4166,7 @@ if wolinx!=1 and woliny!=1:
 	except:
 		0.0
 
-
+	
 
 #-------- Phase, Beta and coupling for non-zero DPP
 
