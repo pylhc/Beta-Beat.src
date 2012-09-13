@@ -3008,6 +3008,34 @@ def getfreephaseTotal(phase,bpms,plane,MADTwiss,MADTwiss_ac):
 
 # free coupling from equations
 
+def GetFreeIP2(MADTwiss,MADTwiss_ac,IP,plane,oa):
+
+	for i in ('1','2','5','8'):
+
+		bpml='BPMSW.1L'+i+'.'+oa[3:]; bpmr='BPMSW.1R'+i+'.'+oa[3:]
+		if 'IP'+i in IP:
+
+			L=0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
+			if L<0: L+=0.5*MADTwiss.LENGTH
+			#-- bet and alf at the left BPM
+			if plane=='H':
+				betl =MADTwiss.BETX[MADTwiss.indx[bpml]]; betdl=MADTwiss_ac.BETX[MADTwiss_ac.indx[bpml]]
+				alfl =MADTwiss.ALFX[MADTwiss.indx[bpml]]; alfdl=MADTwiss_ac.ALFX[MADTwiss_ac.indx[bpml]]
+			if plane=='V':
+				betl =MADTwiss.BETY[MADTwiss.indx[bpml]]; betdl=MADTwiss_ac.BETY[MADTwiss_ac.indx[bpml]]
+				alfl =MADTwiss.ALFY[MADTwiss.indx[bpml]]; alfdl=MADTwiss_ac.ALFY[MADTwiss_ac.indx[bpml]]
+			#-- IP parameters propagated from the left BPM
+			bets =betl/(1+alfl**2)       ; betds=betdl/(1+alfdl**2)
+			bet  =betl-2*alfl*L+L**2/bets; betd =betdl-2*alfdl*L+L**2/betds
+			alf  =alfl-L/bets            ; alfd =alfdl-L/betds
+			ds   =alf*bets               ; dsd  =alfd*betds
+			#-- Apply corrections
+			IP['IP'+i][0]=IP['IP'+i][0]+bet-betd  ; IP['IP'+i][2] =bet
+			IP['IP'+i][3]=IP['IP'+i][3]+alf-alfd  ; IP['IP'+i][5] =alf
+			IP['IP'+i][6]=IP['IP'+i][6]+bets-betds;	IP['IP'+i][8] =bets
+			IP['IP'+i][9]=IP['IP'+i][9]+ds-dsd    ; IP['IP'+i][11]=ds
+
+	return IP
 
 #---------  The following is functions to compensate the AC dipole effect based on analytic formulae (by R. Miyamoto)
 
@@ -3030,184 +3058,176 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
         return {bpmac1:psid_ac2bpmac1,bpmac2:psid_ac2bpmac2}
 
 
-def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd):
+def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
-        #-- Select common BPMs  
-        bpm=modelIntersect(intersect(Files),MADTwiss)
-        bpm=[(b[0],upper(b[1])) for b in bpm]
+	#-- Select common BPMs	
+	bpm=modelIntersect(intersect(Files),MADTwiss)
+	bpm=[(b[0],upper(b[1])) for b in bpm]
 
-        #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-        if bd== 1 and MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]<  200: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-        if bd==-1 and MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]>26450: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+	#-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+	if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+	if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
-        #-- Determine the position of the AC dipole BPM
-        for b in psid_ac2bpmac.keys():
-                if '5L4' in b: bpmac1=b
-                if '6L4' in b: bpmac2=b
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
-        except:
-                try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-                except: return [{},[]]
+	#-- Determine the BPM closest to the AC dipole and its position
+	for b in psid_ac2bpmac.keys():
+		if '5L4' in b: bpmac1=b
+		if '6L4' in b: bpmac2=b
+	try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+	except:
+		try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
+		except:	return [{},[]]
 
-        #-- Model phase advances
-        if plane=='H': psimdl=array([(MADTwiss.MUX[MADTwiss.indx[b[1]]]-MADTwiss.MUX[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
-        if plane=='V': psimdl=array([(MADTwiss.MUY[MADTwiss.indx[b[1]]]-MADTwiss.MUY[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
+	#-- Model phase advances
+	if plane=='H': psimdl=array([(MADTwiss.MUX[MADTwiss.indx[b[1]]]-MADTwiss.MUX[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
+	if plane=='V': psimdl=array([(MADTwiss.MUY[MADTwiss.indx[b[1]]]-MADTwiss.MUY[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
 
         #-- Global parameters of the driven motion
-        r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
+	r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
 
-        #-- Driven phase advance from the AC dipole to its adjacent BPM
-        psid_ac2bpmac=psid_ac2bpmac[bpmac]
+ 	#-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
+	psiall=zeros((len(bpm),len(Files)))
+ 	for i in range(len(Files)):
+		if plane=='H': psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+ 		if plane=='V': psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+		for k in range(len(bpm)):
+			try:
+				if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
+			except: pass
+ 		psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
+ 		Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd		
+ 		Psi=numpy.arctan((1-r)/(1+r)*numpy.tan(Psid))%pi
+  		for k in range(len(bpm)):
+ 			if Psid[k]%(2*pi)>pi: Psi[k]=Psi[k]+pi
+ 		psi=Psi-Psi[0]; psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
+		for k in range(len(bpm)): psiall[k][i]=psi[k]/(2*pi)  #-- phase range back to [0,1)
 
-        #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
-        psiall=zeros((len(bpm),len(Files)))
-        for i in range(len(Files)):
-                if plane=='H': psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-                if plane=='V': psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-                for k in range(len(bpm)):
-                        try:
-                                if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
-                        except: pass
-                psid=psid-(psid[k_bpmac]-psid_ac2bpmac)
-                Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd          
-                Psi=numpy.arctan((1-r)/(1+r)*numpy.tan(Psid))%pi
-                for k in range(len(bpm)):
-                        if Psid[k]%(2*pi)>pi: Psi[k]=Psi[k]+pi
-                psi=Psi-Psi[0]; psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
-                for k in range(len(bpm)): psiall[k][i]=psi[k]/(2*pi)  #-- phase range back to [0,1)
+	#-- Output
+ 	result={}
+	for k in range(len(bpm)):
+		psiave=PhaseMean(psiall[k],1); psistd=PhaseStd(psiall[k],1)
+  		result[bpm[k][1]]=[psiave,psistd,psimdl[k],bpm[0][1]]
 
-        #-- Output
-        result={}
-        for k in range(len(bpm)):
-                psiave=PhaseMean(psiall[k],1); psistd=PhaseStd(psiall[k],1)
-                result[bpm[k][1]]=[psiave,psistd,psimdl[k],bpm[0][1]]
-
-        return [result,bpm]
+	return [result,bpm]
 
 
-def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd):
+def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
+
+	#-- Select common BPMs
+	bpm=modelIntersect(intersect(Files),MADTwiss)
+	bpm=[(b[0],upper(b[1])) for b in bpm]
+
+	#-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+	if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+	if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+
+	#-- Determine the position of the AC dipole BPM
+	for b in psid_ac2bpmac.keys():
+		if '5L4' in b: bpmac1=b
+		if '6L4' in b: bpmac2=b
+	try:	k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+	except:
+		try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
+		except:	print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'; return [{},'',[]]
+
+	#-- Model phase advances
+	if plane=='H': psimdl=array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
+	if plane=='V': psimdl=array([MADTwiss.MUY[MADTwiss.indx[b[1]]] for b in bpm])
+	psi12mdl=(append(psimdl[1:],psimdl[0] +Q)-psimdl)%1
+	psi13mdl=(append(psimdl[2:],psimdl[:2]+Q)-psimdl)%1
+
+        #-- Global parameters of the driven motion
+	r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
+
+	#-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
+	psi12all=zeros((len(bpm),len(Files)))
+	psi13all=zeros((len(bpm),len(Files)))
+ 	for i in range(len(Files)):
+ 		if plane=='H': psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+ 		if plane=='V': psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+		for k in range(len(bpm)):
+			try:
+				if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
+			except: pass
+ 		psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
+ 		Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd		
+ 		Psi=numpy.arctan((1-r)/(1+r)*numpy.tan(Psid))%pi
+  		for k in range(len(bpm)):
+			if Psid[k]%(2*pi)>pi: Psi[k]=Psi[k]+pi
+ 		psi=Psi-Psi[0]; psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
+		psi12=(append(psi[1:],psi[0] +2*pi*Q)-psi)/(2*pi)  #-- phase range back to [0,1)
+		#psi12=(append(psi[1:],psi[0])-psi)/(2*pi)  #-- phase range back to [0,1)
+		psi13=(append(psi[2:],psi[:2]+2*pi*Q)-psi)/(2*pi)  #-- phase range back to [0,1)
+		for k in range(len(bpm)): psi12all[k][i]=psi12[k]; psi13all[k][i]=psi13[k]
+
+	#-- Output
+ 	result={}; muave=0.0  #-- mu is the same as psi but w/o mod
+	for k in range(len(bpm)):
+		psi12ave=PhaseMean(psi12all[k],1); psi12std=PhaseStd(psi12all[k],1)
+		psi13ave=PhaseMean(psi13all[k],1); psi13std=PhaseStd(psi13all[k],1)
+		muave=muave+psi12ave
+		try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
+		except: result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[0][1]]    #-- The last BPM
+
+	return [result,muave,bpm]
+
+
+def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
         #-- Select common BPMs
-        bpm=modelIntersect(intersect(Files),MADTwiss)
-        bpm=[(b[0],upper(b[1])) for b in bpm]
+	bpm=modelIntersect(intersect(Files),MADTwiss_ac)
+	bpm=[(b[0],upper(b[1])) for b in bpm]
 
-        #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-        if bd== 1 and MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]<  200: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-        if bd==-1 and MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]>26450: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+	#-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+	if op=="1" and bd== 1: s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
+	if op=="1" and bd==-1: s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
 
-        #-- Determine the position of the AC dipole BPM
-        for b in psid_ac2bpmac.keys():
-                if '5L4' in b: bpmac1=b
-                if '6L4' in b: bpmac2=b
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
-        except:
-                try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-                except: print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'; return [{},'',[]]
+	#-- Determine the BPM closest to the AC dipole and its position
+	for b in psid_ac2bpmac.keys():
+		if '5L4' in b: bpmac1=b
+		if '6L4' in b: bpmac2=b
+	try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+	except:
+		try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
+		except:	return [{},'',[],[]]
 
-        #-- Model phase advances
-        if plane=='H': psimdl=array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
-        if plane=='V': psimdl=array([MADTwiss.MUY[MADTwiss.indx[b[1]]] for b in bpm])
-        psi12mdl=(append(psimdl[1:],psimdl[0] +Q)-psimdl)%1
-        psi13mdl=(append(psimdl[2:],psimdl[:2]+Q)-psimdl)%1
+	#-- Model beta and phase advance
+	if plane=='H': betmdl=array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
+	if plane=='V': betmdl=array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in bpm]) 
 
         #-- Global parameters of the driven motion
-        r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
-
-        #-- Driven phase advance from the AC dipole to its adjacent BPM
-        psid_ac2bpmac=psid_ac2bpmac[bpmac]
-
-        #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
-        psi12all=zeros((len(bpm),len(Files)))
-        psi13all=zeros((len(bpm),len(Files)))
-        for i in range(len(Files)):
-                if plane=='H': psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-                if plane=='V': psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-                for k in range(len(bpm)):
-                        try:
-                                if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
-                        except: pass
-                psid=psid-(psid[k_bpmac]-psid_ac2bpmac)
-                Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd          
-                Psi=numpy.arctan((1-r)/(1+r)*numpy.tan(Psid))%pi
-                for k in range(len(bpm)):
-                        if Psid[k]%(2*pi)>pi: Psi[k]=Psi[k]+pi
-                psi=Psi-Psi[0]; psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
-                psi12=(append(psi[1:],psi[0] +2*pi*Q)-psi)/(2*pi)  #-- phase range back to [0,1)
-                #psi12=(append(psi[1:],psi[0])-psi)/(2*pi)  #-- phase range back to [0,1)
-                psi13=(append(psi[2:],psi[:2]+2*pi*Q)-psi)/(2*pi)  #-- phase range back to [0,1)
-                for k in range(len(bpm)): psi12all[k][i]=psi12[k]; psi13all[k][i]=psi13[k]
-
-        #-- Output
-        result={}; muave=0.0  #-- mu is the same as psi but w/o mod
-        for k in range(len(bpm)):
-                psi12ave=PhaseMean(psi12all[k],1); psi12std=PhaseStd(psi12all[k],1)
-                psi13ave=PhaseMean(psi13all[k],1); psi13std=PhaseStd(psi13all[k],1)
-                muave=muave+psi12ave
-                try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
-                except: result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[0][1]]    #-- The last BPM
-
-        return [result,muave,bpm]
-
-
-def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd):
-
-        #-- Select common BPMs
-        bpm=modelIntersect(intersect(Files),MADTwiss_ac)
-        bpm=[(b[0],upper(b[1])) for b in bpm]
-
-        #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-        if bd== 1 and MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]<  200: s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
-        if bd==-1 and MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]>26450: s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
-
-        #-- Determine the position of the AC dipole BPM
-        for b in psid_ac2bpmac.keys():
-                if '5L4' in b: bpmac1=b
-                if '6L4' in b: bpmac2=b
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
-        except:
-                try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-                except: return [{},'',[],[]]
-
-        #-- Model beta
-        if plane=='H': betdmdl=array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
-        if plane=='V': betdmdl=array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in bpm]) 
-                
-        #-- Global parameters of the driven motion
-        r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
-
-        #-- Driven phase advance from the AC dipole to its adjacent BPM
-        psid_ac2bpmac=psid_ac2bpmac[bpmac]
+	r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
 
         #-- Loop for files
-        betall=zeros((len(bpm),len(Files))); Ad=zeros(len(Files))
-        for i in range(len(Files)):
-                if plane=='H':
-                        amp =array([Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
-                        psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-                if plane=='V':
-                        amp =array([Files[i].AMPY[Files[i].indx[b[1]]] for b in bpm])
-                        psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-                for k in range(len(bpm)):
-                        try:
-                                if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
-                        except: pass
-                Ad[i]=mean(amp/map(sqrt,betdmdl))
-                psid=psid-(psid[k_bpmac]-psid_ac2bpmac)
-                Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd  
-                bet=(amp/Ad[i])**2*(1+r**2+2*r*numpy.cos(2*Psid))/(1-r**2)
-                for k in range(len(bpm)): betall[k][i]=bet[k]
+	betall=zeros((len(bpm),len(Files))); Adall=zeros((len(bpm),len(Files)))
+ 	for i in range(len(Files)):
+		if plane=='H':
+			amp =array([2*Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
+			psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+ 		if plane=='V':
+			amp =array([2*Files[i].AMPY[Files[i].indx[b[1]]] for b in bpm])
+			psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+		for k in range(len(bpm)):
+			try:
+				if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
+			except: pass
+		Ad  =amp/map(sqrt,betmdl)
+ 		psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
+ 		Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
+		bet =(amp/mean(Ad))**2*(1+r**2+2*r*numpy.cos(2*Psid))/(1-r**2)
+		for k in range(len(bpm)): betall[k][i]=bet[k]; Adall[k][i]=Ad[k]
 
-        #-- Output
-        result={}; bb=[]
-        for k in range(len(bpm)):
-                betave=mean(betall[k])
-                betstd=sqrt(mean((betall[k]-betave)**2))
-                bb.append((betave-betdmdl[k])/betdmdl[k])
-                result[bpm[k][1]]=[betave,betstd,bpm[k][0]]
-        bb=sqrt(mean(array(bb)**2))
-        Ad=[mean(Ad),sqrt(mean((Ad-mean(Ad))**2))]  #-- Ad corresponds to sqrt(2*J) of free motion
+	#-- Output
+ 	result={}; bb=[]; Adave=[]
+	for k in range(len(bpm)):
+		betave=mean(betall[k])
+		betstd=sqrt(mean((betall[k]-betave)**2))
+		bb.append((betave-betmdl[k])/betmdl[k])
+		Adave.append(mean(Adall[k]))
+  		result[bpm[k][1]]=[betave,betstd,bpm[k][0]]
+       	bb=sqrt(mean(array(bb)**2))
+	Ad=[mean(Adave),sqrt(mean((Adave-mean(Adave))**2))]
 
-        return [result,bb,bpm,Ad]
+	return [result,bb,bpm,Ad]
 
 
 def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd):
