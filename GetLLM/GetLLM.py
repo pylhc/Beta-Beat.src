@@ -12,6 +12,8 @@
 ##                    V1.5 Update to option parser, include BPMdictionary to filter BPMs not in MOdel
 ##                                  Rogelio, 13 March 2008
 ##                    V1.51, 13/Mar/2008 Modify output to fit latest TSF format again. Add STD to beta.
+##                    V1.6, 15/Jul/2008 Add the integer part of tunes - assuming that the phase advance is always less than 1.0.
+##
 
 ## Usage1 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -74,26 +76,55 @@ def intersect(ListOfFile):
 
 #------------ Get phases
 
-def GetPhases(MADTwiss,ListOfZeroDPP,plane):
+def GetPhases(MADTwiss,ListOfZeroDPP,plane,outputpath):
+
+	try:
+		fdi=open(outputpath+'Drive.inp','r')  # Drive.inp file is normally in the outputpath directory in GUI operation
+		for line in fdi:
+			if "TUNE X" in line:
+				fracxinp=line.split("=")
+				fracx=fracxinp[1]
+			if "TUNE Y" in line:
+				fracyinp=line.split("=")
+				fracy=fracyinp[1]
+	except:
+		fracx=0.1 # Otherwise, the fractional part is assumed to be below 0.5
+		fracy=0.1 # Tentatively set 0.1 tentatively
+
+	fdi.close()
 
 
 	commonbpms=intersect(ListOfZeroDPP)
 	commonbpms=modelIntersect(commonbpms, MADTwiss)
 	zdpp=len(ListOfZeroDPP)
-
+	
+	mu=0.0
         tunem=[]
 	phase={} # Dictionary for the output containing [average phase, rms error]
-	for i in range(1,len(commonbpms)-1):
-		bn1=upper(commonbpms[i-1][1])
-		bn2=upper(commonbpms[i][1])
-		bn3=upper(commonbpms[i+1][1])
-		bns1=commonbpms[i-1][0]
-		bns2=commonbpms[i][0]
+	for i in range(1,len(commonbpms)+1):
+		if i==len(commonbpms)-1:
+			bn1=upper(commonbpms[i-1][1])
+			bn2=upper(commonbpms[i][1])
+			bn3=upper(commonbpms[0][1])
+			bns1=commonbpms[i-1][0]
+			bns2=commonbpms[i][0]
+		elif i==len(commonbpms):
+			bn1=upper(commonbpms[i-1][1])
+			bn2=upper(commonbpms[0][1])
+			bn3=upper(commonbpms[1][1])
+			bns1=commonbpms[i-1][0]
+			bns2=commonbpms[0][0]
+		else :
+			bn1=upper(commonbpms[i-1][1])
+			bn2=upper(commonbpms[i][1])
+			bn3=upper(commonbpms[i+1][1])
+			bns1=commonbpms[i-1][0]
+			bns2=commonbpms[i][0]	
 		phi12=[]
 		phi13=[]
 		tunemi=[]
 		for j in ListOfZeroDPP:
-			# Phase has unit of 2pi
+			# Phase has units of 2pi
 			if plane=='H':
 				phm12=(j.MUX[j.indx[bn2]]-j.MUX[j.indx[bn1]])
 				phm13=(j.MUX[j.indx[bn3]]-j.MUX[j.indx[bn1]])
@@ -104,6 +135,8 @@ def GetPhases(MADTwiss,ListOfZeroDPP,plane):
 				tunemi.append(j.TUNEY[j.indx[bn1]])
 			if phm12<0: phm12+=1
 			if phm13<0: phm13+=1
+			if phm12>0.9 and i !=len(commonbpms):
+				print 'Warning: there seems too large phase advance! '+bn1+' to '+bn2+' = '+str(phm12)
 			phi12.append(phm12)
 			phi13.append(phm13)
 		phi12=array(phi12)
@@ -112,14 +145,34 @@ def GetPhases(MADTwiss,ListOfZeroDPP,plane):
 		phstd13=sqrt(average(phi13*phi13)-(average(phi13))**2.0)
 		phi12=average(phi12)
 		phi13=average(phi13)
-		phase[bn1]=[phi12,phstd12,phi13,phstd13]
 		tunemi=array(tunemi)
 		tunem.append(average(tunemi))
+		if i==len(commonbpms):
+			tunem=array(tunem)
+			tune=average(tunem)
+			if plane=='H' and fracx > 0.0:
+				phi12=phi12+tune
+				if phi12>1.0: phi12=phi12-1.0
+				mu=mu+phi12
+			elif plane=='H' and fracx <= 0.0:
+				phi12=phi12+(1.0+tune)
+				if phi12>1.0: phi12=phi12-1.0
+				mu=mu+phi12
+			if plane=='V' and fracy > 0.0:
+				phi12=phi12+tune
+				if phi12>1.0: phi12=phi12-1.0
+				mu=mu+phi12
+			elif plane=='V' and fracy <= 0.0:
+				phi12=phi12+(1.0+tune)
+				if phi12>1.0: phi12=phi12-1.0
+				mu=mu+phi12
 
-	tunem=array(tunem)
-	tune=average(tunem)
-
-	return [phase,tune]
+				
+		else:
+			mu=mu+phi12
+		phase[bn1]=[phi12,phstd12,phi13,phstd13]
+	
+	return [phase,tune,mu]
 
 
 #-------- Beta from pahses
@@ -556,43 +609,63 @@ for j in range(0,len(ALL)) :
 #-------- START Phases
 
 plane='H'
-[phasex,Q1]=GetPhases(MADTwiss,ListOfZeroDPPX,plane)
+[phasex,Q1,MUX]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath)
 
 if woliny!=1:
 	plane='V'
-	[phasey,Q2]=GetPhases(MADTwiss,ListOfZeroDPPY,plane)
+	[phasey,Q2,MUY]=GetPhases(MADTwiss,ListOfZeroDPPY,plane,outputpath)
 	fphasey.write('@ Q1 %le '+str(Q1)+'\n')
+	fphasey.write('@ MUX %le '+str(MUX)+'\n')
 	fphasey.write('@ Q2 %le '+str(Q2)+'\n')
+	fphasey.write('@ MUY %le '+str(MUY)+'\n')
 	fphasey.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 	fphasey.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(ListOfZeroDPPY)
 	bpms=modelIntersect(bpms, MADTwiss)
 	for i in range(1,len(bpms)-1):
-		bn1=upper(bpms[i-1][1])
-		bn2=upper(bpms[i][1])
-		bns1=bpms[i-1][0]
-		bns2=bpms[i][0]
-		phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+		if i==len(bpms):
+			bn1=upper(bpms[i-1][1])
+			bn2=upper(bpms[0][1])
+			bns1=bpms[i-1][0]
+			bns2=bpms[0][0]
+			phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]+MADTwiss.Q2-MADTwiss.MUY[MADTwiss.indx[bn1]]
+		else:
+			bn1=upper(bpms[i-1][1])
+			bn2=upper(bpms[i][1])
+			bns1=bpms[i-1][0]
+			bns2=bpms[i][0]	
+			phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
 		fphasey.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))+' '+str(phasey[bn1][0])+' '+str(phasey[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fphasey.close()
 
 
 fphasex.write('@ Q1 %le '+str(Q1)+'\n')
+fphasex.write('@ MUX %le '+str(MUX)+'\n')
+
 try:
 	fphasex.write('@ Q2 %le '+str(Q2)+'\n')
+	fphasex.write('@ MUY %le '+str(MUY)+'\n')
 except:
 	fphasex.write('@ Q2 %le '+'0.0'+'\n')
+	fphasey.write('@ MUY %le '+'0.0'+'\n')
 fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 bpms=intersect(ListOfZeroDPPX)
 bpms=modelIntersect(bpms, MADTwiss)
 for i in range(1,len(bpms)-1):
-	bn1=upper(bpms[i-1][1])
-	bn2=upper(bpms[i][1])
-	bns1=bpms[i-1][0]
-	bns2=bpms[i][0]
-	phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+	if i==len(bpms):
+		bn1=upper(bpms[i-1][1])
+		bn2=upper(bpms[0][1])
+		bns1=bpms[i-1][0]
+		bns2=bpms[0][0]
+		phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]+MADTwiss.Q1-MADTwiss.MUX[MADTwiss.indx[bn1]]
+	else:
+		bn1=upper(bpms[i-1][1])
+		bn2=upper(bpms[i][1])
+		bns1=bpms[i-1][0]
+		bns2=bpms[i][0]	
+		phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
 	fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 
 fphasex.close()
@@ -710,13 +783,13 @@ for j in ListOfNonZeroDPPX:
 	except:
 		fphDPP.write('@ Q2 %le '+'0.0'+'\n')
 	plane='H'
-	[phase,Q1DPP]=GetPhases(MADTwiss,SingleFile,plane)
+	[phase,Q1DPP,MUX]=GetPhases(MADTwiss,SingleFile,plane,outputpath)
 	fphDPP.write('@ Q1DPP %le '+str(Q1DPP)+'\n')
 	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
 	bpms=modelIntersect(bpms, MADTwiss)
-	for i in range(0,len(bpms)-2):
+	for i in range(0,len(bpms)-1):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
 		phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
@@ -742,13 +815,13 @@ for j in ListOfNonZeroDPPY:
 	except:
 		fphDPP.write('@ Q2 %le '+'0.0'+'\n')
 	plane='V'
-	[phase,Q2DPP]=GetPhases(MADTwiss,SingleFile,plane)
+	[phase,Q2DPP,MUY]=GetPhases(MADTwiss,SingleFile,plane,outputpath)
 	fphDPP.write('@ Q2DPP %le '+str(Q2DPP)+'\n')
 	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
 	bpms=modelIntersect(bpms, MADTwiss)
-	for i in range(0,len(bpms)-2):
+	for i in range(0,len(bpms)-1):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
 		phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
