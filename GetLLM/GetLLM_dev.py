@@ -23,7 +23,8 @@
 ##                    V1.81, 1/Sep/2008 For an accelerator in which the beam goes opposite direction to the model as in LHCB2,
 ##                                       the beam direction parameter (bd) is added to GetPhases.
 ##                                       Bug in the phi13 for the last monitor and the last but one is fixed.
-##                    V1.9, 21/Oct/2008 Add the beta from spectrum height.##                    V1.91, 08/Dec/2008 Add option - SUSSIX or SVD for input file
+##                    V1.9, 21/Oct/2008 Add the beta from spectrum height.
+##                    V1.91, 08/Dec/2008 Add option - SUSSIX or SVD for input file
 
 ##                    V1.99, 13/Feb/09 Add DPX! The MEMORIAL version for Version 1.** since all the linear lattice parameters become available!
 ##                                     Add the option for the Harmonic analysis.
@@ -3944,13 +3945,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                             fIPy.write(filein+'')
                             fIPfromphase.write(filein+'')
                             if acswitch=='1':
+                                    fIPxf.write(filein+'')
+                                    fIPyf.write(filein+'')
+                                    fIPxf2.write(filein+'')
+                                    fIPyf2.write(filein+'')
                                     fIPfromphasef.write(filein+'')
                                     fIPfromphasef2.write(filein+'')
                     if acswitch=="1":
-                            fIPxf.write(filein+'')
-                            fIPyf.write(filein+'')
-                            fIPxf2.write(filein+'')
-                            fIPyf2.write(filein+'')
                             fphasexf.write(file1+'')
                             fphasexf2.write(file1+'')
                             fphasexTf.write(file1+'')
@@ -4088,6 +4089,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     fIPxf.write('"'+'\n')
                     fIPyf.write('"'+'\n')
                     fIPxf2.write('"'+'\n')
+                    fIPyf2.write('"'+'\n')
                     fIPfromphasef.write('"'+'\n')
                     fIPfromphasef2.write('"'+'\n')
     if acswitch=="1":
@@ -5513,32 +5515,26 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #---------------------------------------- end chiterms
     #-----------------------------------------begin octupole
     #->  1) f4000 (-3,0)
-
-            #f4000M=MADTwiss.f4000
-            #NAMES=MADTwiss.NAME
-
+    #
+    
             foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
             foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
-            
+
             files=[ListOfZeroDPPX,ListOfZeroDPPY]
             Q=[Q1,Q2]
             plane='H'
             name='f4000'
-
-            [A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
-
-            for i in range(0,len(dbpms)-1):
-
-                    bn=upper(dbpms[i][1])
-                    bns=dbpms[i][0]
-                    foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
-
-
-
+    
+    #       [A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
+    
+    #       for i in range(0,len(dbpms)-1):
+    #
+    #               bn=upper(dbpms[i][1])
+    #               bns=dbpms[i][0]
+    #               foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
+    
             foct4000.close()
-
-
-
+    
     #-----------------------------------------end octupole
 
     #----------------------------- begin get Q,JX,delta
