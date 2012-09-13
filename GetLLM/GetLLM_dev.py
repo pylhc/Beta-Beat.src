@@ -1,5 +1,4 @@
-## Python script to obtain Linear Lattice function and More -> GetLLM
-## Version 1.51
+## Python script to obtain Linear Lattice functions and More -> GetLLM
 ## Version-up history:V1.0, 11/Feb/2008 by Masa. Aiba
 ##                    V1.1, 18/Feb/2008 Debugging, add model phase and tunes to output
 ##                                      add function to obtain DY
@@ -45,6 +44,12 @@
 ##                                       Change the way to import BPM pair file for SPS. (import -> execfile)
 ##                    V2.13, 06/Apl/2009 Fix bug in weight function to accept negative dpp
 ##                    V2.14, 08/Apl/2009 Fix bug in Normalized dispersion to treat COcut correctly.
+##                    V2.15              Enable coupling in RHIC as in SPS
+##                    V2.16, 28/May/2009 Add STDBET for the beta from amplitude.
+##                                       Add option for off momentum beta-beating to choose algorithm, that is, beta from phase or amp
+##                                       Add a routine to detect wrong data having two lines in linx/y file with the same BPM name.
+##                                       Add a routine to avoid zero division due to exactly n*pi phase advance in beta from phase (see the last part of GetPhases).
+
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -149,7 +154,10 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 			bn3=upper(commonbpms[i+2][1])
 			bns1=commonbpms[i][0]
 			bns2=commonbpms[i+1][0]
-
+		if (bn1==bn2):
+			print "There seem two lines with the same BPM name "+bn1+" in linx/y file."
+			print "Please check your input data....leaving GetLLM."
+			sys.exit()
 		if plane=='H':
 			phmdl12=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
 			phmdl13=MADTwiss.MUX[MADTwiss.indx[bn3]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
@@ -176,6 +184,9 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 			phmdl13=phmdl13 % 1.0
 			phmdl12=phiLastAndLastButOne(phmdl12,madtune)
 			phmdl13=phiLastAndLastButOne(phmdl13,madtune)
+
+
+
 
 		phi12=[]
 		phi13=[]
@@ -218,10 +229,27 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 			phi12=phiLastAndLastButOne(phi12,tune)
 			phi13=phiLastAndLastButOne(phi13,tune)
 		mu=mu+phi12
+
+		small=0.0000001
+	       	if (abs(phmdl12) < small):
+			phmdl12=small
+			print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn2+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+			print "Beta from amplitude around this monitor will be slightly varied."
+		if (abs(phmdl13) < small):
+			phmdl13=small
+			print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+			print "Beta from amplitude around this monitor will be slightly varied."
+		if (abs(phi12) < small ):
+			phi12 = small
+			print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn2+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+			print "Beta from amplitude around this monitor will be slightly varied."
+		if (abs(phi13) < small):
+			phi13 = small
+			print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+			print "Beta from amplitude around this monitor will be slightly varied."
 		phase[bn1]=[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13]
 
 	return [phase,tune,mu,commonbpms]
-
 
 #-------- Beta from pahses
 
@@ -370,6 +398,8 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 	rmsbb=sqrt(average(delbeta*delbeta))
 	return [beta,rmsbb,alfa,commonbpms]
 
+
+
 #------------- Beta from amplitude
 
 def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
@@ -380,54 +410,70 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 	commonbpms=modelIntersect(commonbpms,MADTwiss)
 	SumA=0.0
 	Amp=[]
-	for i in range(0,len(commonbpms)):
+	Amp2=[]
+	Kick2=[]
+	for i in range(0,len(commonbpms)): # this loop have become complicated after modifications... anybody simplify?
 		bn1=upper(commonbpms[i][1])
+		if plane=='H':
+                        tembeta=MADTwiss.BETX[MADTwiss.indx[bn1]]
+		elif plane=='V':
+                        tembeta=MADTwiss.BETY[MADTwiss.indx[bn1]]
 		Ampi=0.0
+		Ampj2=[]
                 root2Ji=0.0
+		jj=0
 		for j in ListOfFiles:
+			if i==0:
+				Kick2.append(0)
 			if plane=='H':
 				Ampi+=j.AMPX[j.indx[bn1]]
+				Ampj2.append(j.AMPX[j.indx[bn1]]**2)
                                 root2Ji+=j.PK2PK[j.indx[bn1]]/2.     
 			elif plane=='V':
 				Ampi+=j.AMPY[j.indx[bn1]]
+				Ampj2.append(j.AMPY[j.indx[bn1]]**2)
                                 root2Ji+=j.PK2PK[j.indx[bn1]]/2.
+			Kick2[jj]+=Ampj2[jj]/tembeta
+			jj+=1
 		Ampi=Ampi/len(ListOfFiles)
                 root2Ji=root2Ji/len(ListOfFiles)
 		Amp.append(Ampi)
+		Amp2.append(Ampj2)
                 
-		if plane=='H':
-                        tembetax=MADTwiss.BETX[MADTwiss.indx[bn1]]
-			SumA+=Ampi**2/tembetax
-                        root2J.append(root2Ji/sqrt(tembetax))
-		if plane=='V':
-                        tembetay=MADTwiss.BETY[MADTwiss.indx[bn1]]
-			SumA+=Ampi**2/tembetay
-                        root2J.append(root2Ji/sqrt(tembetay))
+		
+		SumA+=Ampi**2/tembeta
+		root2J.append(root2Ji/sqrt(tembeta))
+
 		
 	Kick=SumA/len(commonbpms) # Assuming the average of beta is constant
+	Kick2=array(Kick2)
+	Kick2=Kick2/len(commonbpms)
+	Amp2=array(Amp2)
         root2J=array(root2J)
-	
         root2Jave=average(root2J)
-	
         root2Jrms=sqrt(average(root2J*root2J)-root2Jave**2+2.2e-16)
+
+	#print Amp2/Kick2
+
 	
 	delbeta=[]
 	for i in range(0,len(commonbpms)):
 		bn1=upper(commonbpms[i][1])
-		beta[bn1]=Amp[i]**2/Kick
+		for j in range(0,len(ListOfFiles)):
+			Amp2[i][j]=Amp2[i][j]/Kick2[j]
+		betstd=sqrt(average(Amp2[i]*Amp2[i])-average(Amp2[i])**2+2.2e-16)
+		beta[bn1]=[Amp[i]**2/Kick,betstd]
 		if plane=='H':
 			betmdl=MADTwiss.BETX[MADTwiss.indx[bn1]]
 		elif plane=='V':
 			betmdl=MADTwiss.BETY[MADTwiss.indx[bn1]]
-		delbeta.append((beta[bn1]-betmdl)/betmdl)
+		delbeta.append((beta[bn1][0]-betmdl)/betmdl)
 
 	invariantJ=[root2Jave,root2Jrms]
 
 	delbeta=array(delbeta)
 	rmsbb=sqrt(average(delbeta*delbeta))
 	return [beta,rmsbb,commonbpms,invariantJ]
-
-
 
 #-------------------------
 
@@ -540,7 +586,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 			ndstd=sqrt(average(ndi*ndi)-(average(ndi))**2.0+2.2e-16)
 			ndas=average(wf*ndi)
 			nda[bn1]=[ndas,ndstd]
-			Dx[bn1]=[nda[bn1][0]*sqrt(betax[bn1]),dummy]
+			Dx[bn1]=[nda[bn1][0]*sqrt(betax[bn1][0]),dummy]
 			bpms.append([bns1,bn1])
 		except:
 			badco+=1
@@ -942,6 +988,51 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 
 
 #--------------
+
+def ConstructOffMomentumModel(MADTwiss,dpp):
+
+	j=MADTwiss
+	bpms=intersect([MADTwiss])
+
+	Qx=j.Q1+dpp*j.DQ1
+	Qy=j.Q2+dpp*j.DQ2
+
+	ftemp=open("./TempTwiss.dat","w")
+	ftemp.write("@ Q1 %le "+str(Qx)+"\n")
+	ftemp.write("@ Q2 %le "+str(Qy)+"\n")	
+	ftemp.write("@ DPP %le "+str(dpp)+"\n")	
+	ftemp.write("* NAME S BETX BETY ALFX ALFY MUX MUY\n")
+	ftemp.write("$ %s %le %le  %le  %le  %le  %le %le\n")
+
+
+	for i in range(0,len(bpms)):
+		bn=upper(bpms[i][1])
+		bns=bpms[i][0]
+
+		# dbeta and dalpha will be extract via metaclass. As it is for the time being.
+		ax=j.WX[j.indx[bn]]*cos(2.0*pi*j.PHIX[j.indx[bn]])
+		bx=j.WX[j.indx[bn]]*sin(2.0*pi*j.PHIX[j.indx[bn]])
+		bx1=bx+j.ALFX[j.indx[bn]]*ax
+		NBETX=j.BETX[j.indx[bn]]*(1.0+ax*dpp)
+		NALFX=j.ALFX[j.indx[bn]]+bx1*dpp
+		NMUX=j.MUX[j.indx[bn]]+j.DMUX[j.indx[bn]]*dpp
+		
+		ay=j.WY[j.indx[bn]]*cos(2.0*pi*j.PHIY[j.indx[bn]])
+		by=j.WY[j.indx[bn]]*sin(2.0*pi*j.PHIY[j.indx[bn]])
+		by1=by+j.ALFY[j.indx[bn]]*ay
+		NBETY=j.BETY[j.indx[bn]]*(1.0+ay*dpp)
+		NALFY=j.ALFY[j.indx[bn]]+by1*dpp
+		NMUY=j.MUY[j.indx[bn]]+j.DMUY[j.indx[bn]]*dpp
+
+		ftemp.write('"'+bn+'" '+str(bns)+" "+str(NBETX)+" "+str(NBETY)+" "+str(NALFX)+" "+str(NALFY)+" "+str(NMUX)+" "+str(NMUY)+"\n")
+
+	ftemp.close()
+	dpptwiss=twiss("./TempTwiss.dat")
+
+
+	return dpptwiss
+
+
 def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist):
 
 	bpms=intersect(ListOfFiles)
@@ -954,8 +1045,8 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist):
 		slopei=0.0
 		for j in range(1,len(betalist)):
 			try:
-				#slopei+=(betalist[j][bn][0]/betalist[0][bn][0]-1.0)/betalist[j]['DPP']
-				slopei+=(betalist[j][bn]/betalist[0][bn]-1.0)/betalist[j]['DPP']
+				slopei+=(betalist[j][bn][0]/betalist[0][bn][0]-1.0)/betalist[j]['DPP']
+				#slopei+=(betalist[j][bn]/betalist[0][bn]-1.0)/betalist[j]['DPP']
 			except:
 				check=1
 		if check==0:
@@ -1914,6 +2005,9 @@ parser.add_option("-r", "--rpath",
 parser.add_option("-l", "--nonlinear",
                   help="Switch to output higher oerder resonance stuffs, on=1(default)/off=0",
                   metavar="HIGHER", default="1" , dest="higher")
+parser.add_option("-w", "--dppbb",
+                  help="Switch to choose algorithm for off momentum beta-beating, AMP(default) or PHASE",
+                  metavar="DPPBB", default="AMP" , dest="dppbb")
 
 
 (options, args) = parser.parse_args()
@@ -2267,12 +2361,13 @@ if wolinx!=1:
 	except:
 		fabetax.write('@ Q2 %le '+'0.0'+'\n')
 	fabetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
-	fabetax.write('* NAME   POS    COUNT  BETX   BETXMDL MUXMDL\n')
-	fabetax.write('$ %s     %le    %le    %le    %le     %le\n')
+	fabetax.write('* NAME   POS    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
+	fabetax.write('$ %s     %le    %le    %le    %le     %le     %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
-		fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
+		fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
+
 
 fabetax.close()
 
@@ -2286,12 +2381,12 @@ if woliny!=1:
 	fabetay.write('@ Q1 %le '+str(Q1)+'\n')
 	fabetay.write('@ Q2 %le '+str(Q2)+'\n')
 	fabetay.write('@ RMS-beta-beat %le '+str(rmsbby)+'\n')
-	fabetay.write('* NAME   POS    COUNT  BETY   BETYMDL MUYMDL\n')
-	fabetay.write('$ %s     %le    %le    %le    %le     %le\n')
+	fabetay.write('* NAME   POS    COUNT  BETY   BETYSTD BETYMDL MUYMDL\n')
+	fabetay.write('$ %s     %le    %le    %le    %le     %le     %le\n')
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
-		fabetay.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n')
+		fabetay.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1][0])+' '+str(betay[bn1][1])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n')
 
 fabetay.close()
 
@@ -2486,6 +2581,7 @@ if wolinx2!=1:
 			fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
 			fphDPP.write('@ Q2 %le '+'0.0'+'\n')
+		DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop)
 		[phasex,Q1DPP,MUX,bpms]=GetPhases(MADTwiss,SingleFile,plane,outputpath,bd)
 		fphDPP.write('@ Q1DPP %le '+str(Q1DPP)+'\n')
 		fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
@@ -2564,7 +2660,8 @@ if woliny2!=1:
 			fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
 			fphDPP.write('@ Q2 %le '+'0.0'+'\n')
-		[phasey,Q2DPP,MUY,bpms]=GetPhases(MADTwiss,SingleFile,plane,outputpath,bd)
+		DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop)
+		[phasey,Q2DPP,MUY,bpms]=GetPhases(DPPTwiss,SingleFile,plane,outputpath,bd)
 		fphDPP.write('@ Q2DPP %le '+str(Q2DPP)+'\n')
 		fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 		fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
@@ -2589,11 +2686,11 @@ if woliny2!=1:
 		betay={}
 		alfay={}
 		rmsbby=0.
-		[betay,rmsbby,alfay,bpms]=BetaFromPhase(MADTwiss,SingleFile,phasey,plane)
+		[betay,rmsbby,alfay,bpms]=BetaFromPhase(DPPTwiss,SingleFile,phasey,plane)
 		betay['DPP']=dpop
 		betaylist.append(betay)
 		betaya={}
-		[betaya,rmsbby,bpms,invJy]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
+		[betaya,rmsbby,bpms,invJy]=BetaFromAmplitude(DPPTwiss,SingleFile,plane)
 		betaya['DPP']=dpop
 		betayalist.append(betaya)
 		file2=outputpath+'getbetay_dpp_'+str(k+1)+'.out'
@@ -2629,8 +2726,11 @@ if wolinx!=1 and wolinx2!=1:
 	slopex={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPX+ListOfNonZeroDPPX
-	#[slopex,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist)
-	[slopex,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist)
+	if (options.dppbb=="PHASE"):[slopex,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist)
+	elif (options.dppbb=="AMP"):[slopex,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist)
+	else:
+		print 'You gave wrong option for off momentum beta-beating. Please give PHASE or AMP'
+		sys.exit()
 	fdppx.write('* NAME   POS    COUNT  SBETX\n')
 	fdppx.write('$ %s     %le    %le    %le\n')
 	for i in range(0,len(bpms)):
@@ -2645,8 +2745,8 @@ if woliny!=1 and woliny2!=1:
 	slopey={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPY+ListOfNonZeroDPPY
-	#[slopey,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaylist)
-	[slopey,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betayalist)
+	if (options.dppbb=="PHASE"):[slopey,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaylist)
+	elif (options.dppbb=="AMP"):[slopey,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betayalist)
 	fdppy.write('* NAME   POS    COUNT  SBETY\n')
 	fdppy.write('$ %s     %le    %le    %le\n')
 	for i in range(0,len(bpms)):
@@ -2712,6 +2812,7 @@ if wolinx!=1 and woliny!=1:
 	except:
 		0.0
 		
+
 
 
 #---------------------------------------- Start getsextupoles @ Glenn Vanbavinckhove
