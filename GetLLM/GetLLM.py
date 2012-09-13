@@ -1,5 +1,5 @@
 ## Python script to obtain Linear Lattice function and More -> GetLLM
-## Version 1.4
+## Version 1.51
 ## Version-up history:V1.0, 11/Feb/2008 by Masa. Aiba
 ##                    V1.1, 18/Feb/2008 Debugging, add model phase and tunes to output
 ##                                      add function to obtain DY
@@ -11,6 +11,7 @@
 ##                                      fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
 ##                    V1.5 Update to option parser, include BPMdictionary to filter BPMs not in MOdel
 ##                                  Rogelio, 13 March 2008
+##                    V1.51, 13/Mar/2008 Modify output to fit latest TSF format again. Add STD to beta.
 
 ## Usage1 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -48,7 +49,7 @@ def modelIntersect(expbpms, model):
 		print "Zero intersection of Exp and Model"
 		print "Please, provide a good Dictionary"
 		print "Now we better leave!"
-		sys.exit()
+		sys.exit()			
 	return bpmsin
 
 
@@ -224,49 +225,57 @@ def BetaFromPhase(MADTwiss,ListOfZeroDPP,phase,plane):
 		betii.append([beti1,beterr1,beti2,beterr2,beti3,beterr3])
 		alfii.append([alfi1,alferr1,alfi2,alferr2,alfi3,alferr3])
 
+
+
 	i=0
 	bn1=upper(commonbpms[i][1])
 	beti=betii[i][0]
 	beterr=betii[i][1]
-	beta[bn1]=(beti,beterr)
+	betstd=0.0
+	beta[bn1]=(beti,beterr,betstd)
+	alfi=alfii[i][0]
+	alferr=alfii[i][1]
+	alfstd=0.0
+	alfa[bn1]=(alfi,alferr,alfstd)
 	if plane=='H':
 		betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
 	elif plane=='V':
 		betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
 	delbeta.append((beti-betmdl1)/betmdl1)
-	alfi=alfii[i][0]
-	alferr=alfii[i][1]
-	alfa[bn1]=(alfi,alferr)
+
 
 	i=1
 	bn1=upper(commonbpms[i][1])
 	beti=(betii[i][0]+betii[i-1][2])/2.
 	beterr=sqrt(betii[i][1]**2.+betii[i-1][3]**2.)/sqrt(2.)
-	beta[bn1]=(beti,beterr)
+	betstd=sqrt((betii[i][0]**2.+betii[i-1][2]**2.)/2.-((betii[i][0]+betii[i-1][2])/2.)**2.)
+	beta[bn1]=(beti,beterr,betstd)
+	alfi=(alfii[i][0]+alfii[i-1][2])/2.
+	alferr=sqrt(alfii[i][1]**2.+alfii[i-1][3]**2.)/sqrt(2.)
+	alfstd=sqrt((alfii[i][0]**2.+alfii[i-1][2]**2.)/2.-((alfii[i][0]+alfii[i-1][2])/2.)**2.)
+	alfa[bn1]=(alfi,alferr,alfstd)
 	if plane=='H':
 		betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
 	elif plane=='V':
 		betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
 	delbeta.append((beti-betmdl1)/betmdl1)
-	alfi=(alfii[i][0]+alfii[i-1][2])/2.
-	alferr=sqrt(alfii[i][1]**2.+alfii[i-1][3]**2.)/sqrt(2.)
-	alfa[bn1]=(alfi,alferr)
-
 
 	for i in range(2,len(commonbpms)-3):
 		bn1=upper(commonbpms[i][1])
 		beti=(betii[i][0]+betii[i-1][2]+betii[i-2][4])/3.
 		# error?
-		beterr=sqrt(betii[i][1]**2.+betii[i-1][3]**2.+betii[i-2][5]**2.)/sqrt(3.) 
-		beta[bn1]=(beti,beterr)
+		beterr=sqrt(betii[i][1]**2.+betii[i-1][3]**2.+betii[i-2][5]**2.)/sqrt(3.)
+		betstd=sqrt((betii[i][0]**2.+betii[i-1][2]**2.+betii[i-2][4]**2.)/3.-((betii[i][0]+betii[i-1][2]+betii[i-2][4])/3.)**2.)
+		beta[bn1]=(beti,beterr,betstd)
+		alfi=(alfii[i][0]+alfii[i-1][2]+alfii[i-2][4])/3.
+		alferr=sqrt(alfii[i][1]**2.+alfii[i-1][3]**2.+alfii[i-2][5]**2.)/sqrt(3.)
+		alfstd=sqrt((alfii[i][0]**2.+alfii[i-1][2]**2.+alfii[i-2][4]**2.)/3.-((alfii[i][0]+alfii[i-1][2]+alfii[i-2][4])/3.)**2.)
+		alfa[bn1]=(alfi,alferr,alfstd)
 		if plane=='H':
 			betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
 		elif plane=='V':
 			betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
 		delbeta.append((beti-betmdl1)/betmdl1)
-		alfi=(alfii[i][0]+alfii[i-1][2]+alfii[i-2][4])/3.
-		alferr=sqrt(alfii[i][1]**2.+alfii[i-1][3]**2.+alfii[i-2][5]**2.)/sqrt(3.) 
-		alfa[bn1]=(alfi,alferr)
 		
 
 	delbeta=array(delbeta)
@@ -289,7 +298,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX):
 	zdpp=len(ListOfZeroDPPX)  # How many zero dpp
 	if zdpp==0 or nzdpp ==0:
 		print 'Error: No data for dp/p=0 or for dp/p!=0.'
-		sys.exit() 
+		sys.exit() #!?
 
 
 	mydp=[]
@@ -356,7 +365,7 @@ def DYfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY):
 
         ALL=ListOfZeroDPPY+ListOfNonZeroDPPY
 	commonbpmsALL=intersect(ALL)
-#        commonbpmsALL=modelIntersect(commonbpmsALL, MADTwiss)
+
 	nzdpp=len(ListOfNonZeroDPPY) # How many non zero dpp
 	zdpp=len(ListOfZeroDPPY)  # How many zero dpp
 
@@ -411,7 +420,7 @@ parser.add_option("-m", "--model",
                 help="Twiss File",
                 metavar="TwissFile", default="0", dest="Twiss")
 parser.add_option("-f", "--files",
-                help="Files from analysis, separated by :",
+                help="Files from analysis, separated by comma",
                 metavar="TwissFile", default="0", dest="files")
 parser.add_option("-o", "--output",
                 help="Output Path",
@@ -423,7 +432,7 @@ parser.add_option("-o", "--output",
 
 
 
-listOfInputFiles=options.files.split(",")   # A comma for a file separator
+listOfInputFiles=options.files.split(",")
 file0=options.Twiss
 outputpath=options.output
 if options.dict=="0":
@@ -440,24 +449,24 @@ MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
 fphasex=open(outputpath+'getphasex.out','w')
 fphasey=open(outputpath+'getphasey.out','w')
 
-fphasex.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-fphasey.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-fphasex.write('@ FILES: %s "')
-fphasey.write('@ FILES: %s "')
+fphasex.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fphasey.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fphasex.write('@ FILES %s "')
+fphasey.write('@ FILES %s "')
 
 fbetax=open(outputpath+'getbetax.out','w')
 fbetay=open(outputpath+'getbetay.out','w')
-fbetax.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-fbetay.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-fbetax.write('@ FILES: %s "')
-fbetay.write('@ FILES: %s "')
+fbetax.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fbetay.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fbetax.write('@ FILES %s "')
+fbetay.write('@ FILES %s "')
 
 fDx=open(outputpath+'getDx.out','w')
 fDy=open(outputpath+'getDy.out','w')
-fDx.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-fDy.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-fDx.write('@ FILES: %s "')
-fDy.write('@ FILES: %s "')
+fDx.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fDy.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fDx.write('@ FILES %s "')
+fDy.write('@ FILES %s "')
 
 
 
@@ -502,9 +511,11 @@ for filein in listOfInputFiles:
 			FileOfZeroDPPY.append(file1)
 			fphasey.write(file1+' ')
 			fbetay.write(file1+' ')
+			fDy.write(file1+' ')
 		else:
 			ListOfNonZeroDPPY.append(twiss(file1))
 			FileOfNonZeroDPPY.append(file1)
+			fDy.write(file1+' ')
 	except:
 		print 'Warning: There seems no '+str(file1)+' file in the specified directory.' 
 
@@ -550,8 +561,8 @@ plane='H'
 if woliny!=1:
 	plane='V'
 	[phasey,Q2]=GetPhases(MADTwiss,ListOfZeroDPPY,plane)
-	fphasey.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
-	fphasey.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	fphasey.write('@ Q1 %le '+str(Q1)+'\n')
+	fphasey.write('@ Q2 %le '+str(Q2)+'\n')
 	fphasey.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 	fphasey.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(ListOfZeroDPPY)
@@ -567,11 +578,11 @@ if woliny!=1:
 fphasey.close()
 
 
-fphasex.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+fphasex.write('@ Q1 %le '+str(Q1)+'\n')
 try:
-	fphasex.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	fphasex.write('@ Q2 %le '+str(Q2)+'\n')
 except:
-	fphasex.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
+	fphasex.write('@ Q2 %le '+'0.0'+'\n')
 fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 bpms=intersect(ListOfZeroDPPX)
@@ -595,14 +606,14 @@ betax={}
 alfax={}
 rmsbbx=0.
 [betax,rmsbbx,alfax]=BetaFromPhase(MADTwiss,ListOfZeroDPPX,phasex,plane)
-fbetax.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+fbetax.write('@ Q1 %le '+str(Q1)+'\n')
 try:
-	fbetax.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	fbetax.write('@ Q2 %le '+str(Q2)+'\n')
 except:
-	fbetax.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
-fbetax.write('@ r.m.s.beta-beat: %le '+'"'+str(rmsbbx)+'"'+'\n')
-fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX ALFX   ERRALFX BETXMDL ALFXMDL MUXMDL\n')
-fbetax.write('$ %s     %le    %le    %le    %le     %le    %le     %le     %le     %le\n')
+	fbetax.write('@ Q2 %le '+'0.0'+'\n')
+fbetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
+fbetax.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 bpms=intersect(ListOfZeroDPPX)
 bpms=modelIntersect(bpms, MADTwiss)
 for i in range(1,len(bpms)-3):
@@ -610,7 +621,7 @@ for i in range(1,len(bpms)-3):
 	bn2=upper(bpms[i][1])
 	bns1=bpms[i-1][0]
 	bns2=bpms[i][0]
-	fbetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(alfax[bn1][0])+' '+str(alfax[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
+	fbetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(betax[bn1][2])+' '+str(alfax[bn1][0])+' '+str(alfax[bn1][1])+' '+str(alfax[bn1][2])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 
 fbetax.close()
 
@@ -620,11 +631,11 @@ if woliny!=1:
 	alfay={}
 	rmsbby=0.
 	[betay,rmsbby,alfay]=BetaFromPhase(MADTwiss,ListOfZeroDPPY,phasey,plane)
-	fbetay.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
-	fbetay.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
-	fbetay.write('@ r.m.s.beta-beat: %le '+'"'+str(rmsbby)+'"'+'\n')
-	fbetay.write('* NAME   POS    COUNT  BETY   ERRBETY ALFY   ERRALFY BETYMDL ALFYMDL MUYMDL\n')
-	fbetay.write('$ %s     %le    %le    %le    %le     %le    %le     %le     %le     %le\n')
+	fbetay.write('@ Q1 %le '+str(Q1)+'\n')
+	fbetay.write('@ Q2 %le '+str(Q2)+'\n')
+	fbetay.write('@ RMS-beta-beat %le '+str(rmsbby)+'\n')
+	fbetay.write('* NAME   POS    COUNT  BETY   ERRBETY STDBETY ALFY   ERRALFY STDALFY BETYMDL ALFYMDL MUYMDL\n')
+	fbetay.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 	bpms=intersect(ListOfZeroDPPY)
 	bpms=modelIntersect(bpms, MADTwiss)
 	for i in range(1,len(bpms)-3):
@@ -632,18 +643,18 @@ if woliny!=1:
 		bn2=upper(bpms[i][1])
 		bns1=bpms[i-1][0]
 		bns2=bpms[i][0]
-		fbetay.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1][0])+' '+str(betay[bn1][1])+' '+str(alfay[bn1][0])+' '+str(alfay[bn1][1])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
+		fbetay.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1][0])+' '+str(betay[bn1][1])+' '+str(betay[bn1][2])+' '+str(alfay[bn1][0])+' '+str(alfay[bn1][1])+' '+str(alfay[bn1][2])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fbetay.close()
 
 #-------- START Dispersion
 
 nda=NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX)
-fDx.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+fDx.write('@ Q1 %le '+str(Q1)+'\n')
 try:
-	fDx.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	fDx.write('@ Q2 %le '+str(Q2)+'\n')
 except:
-	fDx.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
+	fDx.write('@ Q2 %le '+'0.0'+'\n')
 fDx.write('* NAME   POS    COUNT  NDX    STDNDX DX     NDXMDL DXMDL  MUXMDL\n')
 fDx.write('$ %s     %le    %le    %le    %le    %le    %le    %le    %le\n')
 ALL=ListOfZeroDPPX+ListOfNonZeroDPPX
@@ -665,8 +676,8 @@ fDx.close()
 
 if woliny!=1 and woliny2!=1:
 	dyo=DYfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY)
-	fDy.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
-	fDy.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	fDy.write('@ Q1 %le '+str(Q1)+'\n')
+	fDy.write('@ Q2 %le '+str(Q2)+'\n')
 	fDy.write('* NAME   POS    COUNT  DY     STDDY  MUYMDL\n')
 	fDy.write('$ %s     %le    %le    %le    %le    %le\n')
 	ALL=ListOfZeroDPPY+ListOfNonZeroDPPY
@@ -675,7 +686,7 @@ if woliny!=1 and woliny2!=1:
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
-		fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
+		fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fDy.close()
 
@@ -685,22 +696,22 @@ k=0
 for j in ListOfNonZeroDPPX:
 	SingleFile=[]
 	SingleFile.append(j)
-	file1='getphasexdpp'+str(j.DPP)+'.out'
+	file1=outputpath+'getphasexdpp'+str(j.DPP)+'.out'
 	fphDPP=open(file1,'w')
 	fphDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-	fphDPP.write('@ FILE: %s "')
+	fphDPP.write('@ FILE %s "')
 	fphDPP.write(FileOfNonZeroDPPX[k]+' ')
 	for l in FileOfZeroDPPX:
 		fphDPP.write(l+' ')
 	fphDPP.write('"'+'\n')
-	fphDPP.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+	fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
 	try:
-		fphDPP.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+		fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
-		fphDPP.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
+		fphDPP.write('@ Q2 %le '+'0.0'+'\n')
 	plane='H'
 	[phase,Q1DPP]=GetPhases(MADTwiss,SingleFile,plane)
-	fphDPP.write('@ Q1DPP: %le '+'"'+str(Q1DPP)+'"'+'\n')
+	fphDPP.write('@ Q1DPP %le '+str(Q1DPP)+'\n')
 	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
@@ -717,22 +728,22 @@ k=0
 for j in ListOfNonZeroDPPY:
 	SingleFile=[]
 	SingleFile.append(j)
-	file1='getphaseydpp'+str(j.DPP)+'.out'
+	file1=outputpath+'getphaseydpp'+str(j.DPP)+'.out'
 	fphDPP=open(file1,'w')
-	fphDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
-	fphDPP.write('@ FILE: %s "')
+	fphDPP.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+	fphDPP.write('@ FILE %s "')
 	fphDPP.write(FileOfNonZeroDPPY[k]+' ')
 	for l in FileOfZeroDPPY:
 		fphDPP.write(l+' ')
 	fphDPP.write('"'+'\n')
-	fphDPP.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+	fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
 	try:
-		fphDPP.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+		fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
-		fphDPP.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
+		fphDPP.write('@ Q2 %le '+'0.0'+'\n')
 	plane='V'
 	[phase,Q2DPP]=GetPhases(MADTwiss,SingleFile,plane)
-	fphDPP.write('@ Q2DPP: %le '+'"'+str(Q2DPP)+'"'+'\n')
+	fphDPP.write('@ Q2DPP %le '+str(Q2DPP)+'\n')
 	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
