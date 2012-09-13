@@ -375,27 +375,27 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, COcut):
 	coac=coact
 
 
-	#coact={}
-	#for i in coac:
-		#Dt=[]
-		#for j in range(1,len(ListOfCOX)):
-			#codpp=ListOfCOX[j]
-			#Dj=(codpp[i][0]-coac[i][0])/ListOfNonZeroDPPX[j-1].DPP
-			#Dt.append(Dj)
-		#Dt=array(Dt)
-		#Dt=average(Dt) # Tentative dispersion
-		#coj=0.0
-		#coj2=0.0
-		#for j in range(1,len(ListOfCOX)):
-			#codpp=ListOfCOX[j]
-			#coj=coj+(codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP
-			#coj2=coj2 + ((codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP)**2
-		#coj=coj/nzdpp
-		#corms=sqrt(coj2/nzdpp-coj**2)
-		#if (corms < COcut):
-			#coact[i]=coac[i]
+	coact={}
+	for i in coac:
+		Dt=[]
+		for j in range(1,len(ListOfCOX)):
+			codpp=ListOfCOX[j]
+			Dj=(codpp[i][0]-coac[i][0])/ListOfNonZeroDPPX[j-1].DPP
+			Dt.append(Dj)
+		Dt=array(Dt)
+		Dt=average(Dt) # Tentative dispersion
+		coj=0.0
+		coj2=0.0
+		for j in range(1,len(ListOfCOX)):
+			codpp=ListOfCOX[j]
+			coj=coj+(codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP
+			coj2=coj2 + ((codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP)**2
+		coj=coj/nzdpp
+		corms=sqrt(coj2/nzdpp-coj**2)
+		if (corms < COcut):
+			coact[i]=coac[i]
 
-	#coac=coact
+	coac=coact
 
 
 
@@ -403,7 +403,9 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, COcut):
 
 	ALL=ListOfZeroDPPX+ListOfNonZeroDPPX
 	commonbpmsALL=intersect(ALL)
+	print len(commonbpmsALL)
         commonbpmsALL=modelIntersect(commonbpmsALL, MADTwiss)
+	print len(commonbpmsALL)
 	
 	mydp=[]
 	gf=[]
@@ -463,7 +465,9 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, COcut):
 		try:
 			coac[bn1]
 			for j in range(0,nzdpp): # the range(0,nzdpp) instead of ListOfZeroDPPX is used because the index j is used in the loop
+				#print gf[j]
 				ndi.append(nd[i][j]/gf[j])
+			#print 'kiteru?1'
 			ndi=array(ndi)
 			ndstd=sqrt(average(ndi*ndi)-(average(ndi))**2.0)
 			ndas=average(wf*ndi)
@@ -592,6 +596,7 @@ elif BPMU=='mm' or BPMU=='mm': COcut=COcut/1.0e3
 elif BPMU=='cm' or BPMU=='cm': COcut=COcut/1.0e4
 elif BPMU=='m' or BPMU=='m': COcut=COcut/1.0e6
 
+print COcut
 
 
 #outputpath=sys.argv[indpy+1]

@@ -13,11 +13,17 @@
 ##                                  Rogelio, 13 March 2008
 ##                    V1.51, 13/Mar/2008 Modify output to fit latest TSF format again. Add STD to beta.
 ##                    V1.6, 15/Jul/2008 Add the integer part of tunes - assuming that the phase advance is always less than 1.0.
-##                    V1.71 27/Jul/2008 Add GetCO. Filter in Get
-##
+##                    V1.71 27/Jul/2008 Add GetCO. Filter in dispersion calculation to exclude bad bpms.
+##                    V1.8, 13/Aug/2008 Add GetCoupling. - Ref. note by A. Franchi, R. T. Garcia, G. Vanbavinckhove
+##                                      "Computation of the Coupling Resonance Driving term f1001 and the coupling coefficient C
+##                                       from turn-by-turn single-BPM data", 28/May/2008
+##                                      The GetCoupling.py is initiated by Glenn V.
+##                                      and imported into GetLLM / finalized by Masa. Aiba
+##                                      Some bugs are fixed - you can run even without liny file and
+##                                      find the results for horizontal plane only.
 
-## Usage1 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
-## Usage2 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
+## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
+## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
 
 
 ## lin files as many as you like
@@ -31,6 +37,8 @@
 
 from metaclass import *
 from Numeric import *
+from math import *
+import cmath
 import sys, pickle,os
 #import operator
 from string import *
@@ -92,7 +100,7 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath):
 				fracy=fracyinp[1]
 		fdi.close()
 	except:
-		fracx=0.1 # Otherwise, the fractional part is assumed to be below 0.5
+		fracx=0.1 # Otherwise, the fractional parts are assumed to be below 0.5
 		fracy=0.1 # Tentatively set 0.1
 
 	
@@ -365,7 +373,11 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, COcut):
 	zdpp=len(ListOfZeroDPPX)  # How many zero dpp
 	if zdpp==0 or nzdpp ==0:
 		print 'Error: No data for dp/p=0 or for dp/p!=0.'
-		sys.exit() #!?
+		dum0={}
+		dum1=[]
+		return [dum0, dum1]
+
+		#sys.exit() #!?
 
 	coac=ListOfCOX[0] # COX dictionary after cut bad BPMs
 	coact={}
@@ -375,27 +387,27 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, COcut):
 	coac=coact
 
 
-	coact={}
-	for i in coac:
-		Dt=[]
-		for j in range(1,len(ListOfCOX)):
-			codpp=ListOfCOX[j]
-			Dj=(codpp[i][0]-coac[i][0])/ListOfNonZeroDPPX[j-1].DPP
-			Dt.append(Dj)
-		Dt=array(Dt)
-		Dt=average(Dt) # Tentative dispersion
-		coj=0.0
-		coj2=0.0
-		for j in range(1,len(ListOfCOX)):
-			codpp=ListOfCOX[j]
-			coj=coj+(codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP
-			coj2=coj2 + ((codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP)**2
-		coj=coj/nzdpp
-		corms=sqrt(coj2/nzdpp-coj**2)
-		if (corms < COcut):
-			coact[i]=coac[i]
+	#coact={}
+	#for i in coac:
+		#Dt=[]
+		#for j in range(1,len(ListOfCOX)):
+			#codpp=ListOfCOX[j]
+			#Dj=(codpp[i][0]-coac[i][0])/ListOfNonZeroDPPX[j-1].DPP
+			#Dt.append(Dj)
+		#Dt=array(Dt)
+		#Dt=average(Dt) # Tentative dispersion
+		#coj=0.0
+		#coj2=0.0
+		#for j in range(1,len(ListOfCOX)):
+			#codpp=ListOfCOX[j]
+			#coj=coj+(codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP
+			#coj2=coj2 + ((codpp[i][0]-coac[i][0])-Dt*ListOfNonZeroDPPX[j-1].DPP)**2
+		#coj=coj/nzdpp
+		#corms=sqrt(coj2/nzdpp-coj**2)
+		#if (corms < COcut):
+			#coact[i]=coac[i]
 
-	coac=coact
+	#coac=coact
 
 
 
@@ -403,9 +415,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, COcut):
 
 	ALL=ListOfZeroDPPX+ListOfNonZeroDPPX
 	commonbpmsALL=intersect(ALL)
-	print len(commonbpmsALL)
         commonbpmsALL=modelIntersect(commonbpmsALL, MADTwiss)
-	print len(commonbpmsALL)
 	
 	mydp=[]
 	gf=[]
@@ -465,9 +475,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, COcut):
 		try:
 			coac[bn1]
 			for j in range(0,nzdpp): # the range(0,nzdpp) instead of ListOfZeroDPPX is used because the index j is used in the loop
-				#print gf[j]
 				ndi.append(nd[i][j]/gf[j])
-			#print 'kiteru?1'
 			ndi=array(ndi)
 			ndstd=sqrt(average(ndi*ndi)-(average(ndi))**2.0)
 			ndas=average(wf*ndi)
@@ -524,7 +532,298 @@ def DYfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY,ListOfCOY,COcut):
 		except:
 			coi=0
 	return [dyo,bpms]
+
+#-----------
+
+def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
+
+
+	tp=2.0*pi
+
+	# find operation point
+	try:
+		fdi=open(outputpath+'Drive.inp','r')  # Drive.inp file is normally in the outputpath directory in GUI operation
+		for line in fdi:
+			if "TUNE X" in line:
+				fracxinp=line.split("=")
+				fracx=fracxinp[1]
+			if "TUNE Y" in line:
+				fracyinp=line.split("=")
+				fracy=fracyinp[1]
+		fdi.close()
+	except:
+		fracx=Q1 # Otherwise, the fractional parts are assumed to be below 0.5
+		fracy=Q2
+
+	if fracx<0.0 :
+		fracx=1.0-Q1
+	else:
+		fracx=Q1
+	if fracy<0.0 :
+		fracx=1.0-Q2
+	else:
+		fracy=Q2
+
+	if fracx>fracy:
+		sign_QxmQy=1.0
+	else:
+		sign_QxmQy=-1.0
+
+	# check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
+	# come from the same (simultaneous) measurement.
+	if len(ListOfZeroDPPX)!=len(ListOfZeroDPPY):
+		print 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+		dum0={}
+		dum1=[]
+		return [dum0,dum1]
+	
+
+	XplusY=ListOfZeroDPPX+ListOfZeroDPPY
+	dbpms=intersect(XplusY)
+	dbpms=modelIntersect(dbpms, MADTwiss) 
+
+
+	# caculate fw and qw, exclude bpms having wrong phases
+	
+	fwqw={}
+	dbpmt=[]
+	for i in range(0,len(dbpms)):
+		bn1=upper(dbpms[i][1])
+
+		fij=[]
+		qij=[]
+		badbpm=0
+		for j in range(0,len(ListOfZeroDPPX)):
+			jx=ListOfZeroDPPX[j]
+			jy=ListOfZeroDPPY[j]
+			C01ij=jx.AMP01[jx.indx[bn1]]
+			C10ij=jy.AMP10[jy.indx[bn1]]
+			fij.append(0.5*atan(sqrt(C01ij*C10ij)))
+
+			q1=(jx.MUX[jx.indx[bn1]]-jy.PHASE10[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
+			q2=(jx.PHASE01[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]]-0.25)%1.0
+			q1=(0.5-q1)%1.0 # This sign change in the real part is to comply with MAD output
+			q2=(0.5-q2)%1.0
+
+			if abs(q1-q2)<0.25: 
+				qij.append((q1+q2)/2.0)
+			elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+				qij.append(q1) # Note that q1 and q2 are confined 0. to 1.
+			else:
+				badbpm=1
+
 		
+		if badbpm==0:
+			fij=array(fij)
+			fi=average(fij)
+			fistd=sqrt(average(fij*fij)-(average(fij))**2.0)
+			qij=array(qij)
+			qi=average(qij)
+			qistd=sqrt(average(qij*qij)-(average(qij))**2.0)
+			fi=fi*complex(cos(tp*qi),sin(tp*qi))
+			dbpmt.append([dbpms[i][0],dbpms[i][1]])
+			fwqw[bn1]=[[fi,fistd],[qi,qistd]]
+			
+
+	dbpms=dbpmt
+
+
+	# compute global values
+	CG=0.0
+	QG=0.0
+	for i in range(0,len(dbpms)):
+		jx=ListOfZeroDPPX[j]
+		jy=ListOfZeroDPPY[j]
+		bn1=upper(dbpms[i][1])
+		CG=CG+sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
+		QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
+		
+	
+	CG=abs(4.0*(Q1-Q2)*CG/len(dbpms))
+	QG=(QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0	
+	fwqw['Global']=[CG,QG]
+
+
+	return [fwqw,dbpms]
+
+#-----------
+
+def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
+	tp=2.0*pi
+	a1=complex(1.0,-tan(tp*delta))
+	a2=cw*complex(cos(tp*pw),sin(tp*pw))
+	a3=-1.0/cos(tp*delta)*complex(0.0,1.0)
+	a4=cw1*complex(cos(tp*pw1),sin(tp*pw1))
+	SL=a1*a2+a3*a4
+	sizeSL=sqrt(SL.real**2+SL.imag**2)
+	phiSL=(arctan2(SL.imag , SL.real)/tp) %1.0
+	#SL=complex(-SL.real,SL.imag)    # This sign change in the real part is to comply with MAD output
+	return [sizeSL,phiSL]
+
+def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey):
+
+
+	# find operation point
+	try:
+		fdi=open(outputpath+'Drive.inp','r')  # Drive.inp file is normally in the outputpath directory in GUI operation
+		for line in fdi:
+			if "TUNE X" in line:
+				fracxinp=line.split("=")
+				fracx=fracxinp[1]
+			if "TUNE Y" in line:
+				fracyinp=line.split("=")
+				fracy=fracyinp[1]
+		fdi.close()
+	except:
+		fracx=Q1 # Otherwise, the fractional parts are assumed to be below 0.5
+		fracy=Q2
+
+	if fracx<0.0 :
+		fracx=1.0-Q1
+	else:
+		fracx=Q1
+	if fracy<0.0 :
+		fracx=1.0-Q2
+	else:
+		fracy=Q2
+
+	if fracx>fracy:
+		sign_QxmQy=1.0
+	else:
+		sign_QxmQy=-1.0
+
+	# check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
+	# come from the same (simultaneous) measurement. It might be redundant check.
+	if len(ListOfZeroDPPX)!=len(ListOfZeroDPPY):
+		print 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+		dum0={}
+		dum1=[]
+		return [dum0,dum1]
+	
+
+	XplusY=ListOfZeroDPPX+ListOfZeroDPPY
+	dbpms=intersect(XplusY)
+	dbpms=modelIntersect(dbpms, MADTwiss) 
+
+
+	# caculate fw and qw, exclude bpms having wrong phases
+
+	tp=2.0*pi
+	fwqw={}
+	dbpmt=[]
+	for i in range(0,len(dbpms)-1):
+		bn1=upper(dbpms[i][1])
+		bn2=upper(dbpms[i+1][1])
+
+		delx=phasex[bn1][0] - 0.25
+		dely=phasey[bn1][0] - 0.25
+		
+		f1001ij=[]
+		q1001ij=[]
+		f1010ij=[]
+		q1010ij=[]
+		badbpm=0
+		for j in range(0,len(ListOfZeroDPPX)):
+			jx=ListOfZeroDPPX[j]
+			jy=ListOfZeroDPPY[j]
+			
+			[SA0p1ij,phi0p1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], jx.PHASE01[jx.indx[bn1]], jx.PHASE01[jx.indx[bn2]])
+			[SA0m1ij,phi0m1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], -jx.PHASE01[jx.indx[bn1]], -jx.PHASE01[jx.indx[bn2]])
+			[TBp10ij,phip10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], jy.PHASE10[jy.indx[bn1]], jy.PHASE10[jy.indx[bn2]])
+			[TBm10ij,phim10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], -jy.PHASE10[jy.indx[bn1]], -jy.PHASE10[jy.indx[bn2]])
+
+			#print SA0p1ij,phi0p1ij,SA0m1ij,phi0m1ij,TBp10ij,phip10ij,TBm10ij,phim10ij
+			f1001ij.append(0.5*sqrt(TBp10ij*SA0p1ij/2.0/2.0))
+			f1010ij.append(0.5*sqrt(TBm10ij*SA0m1ij/2.0/2.0))
+
+			q1=(phi0p1ij-jy.MUY[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
+			q2=(-phip10ij+jx.MUX[jx.indx[bn1]]-0.25)%1.0
+			q1=(0.5-q1)%1.0 # This sign change in the real part is to comply with MAD output
+			q2=(0.5-q2)%1.0
+				
+
+			if abs(q1-q2)<0.25: 
+				q1001ij.append((q1+q2)/2.0)
+			elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+				q1001ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
+			else:
+				badbpm=1
+				q1001ij.append(q1)
+
+
+			q1=(phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
+			q2=(phim10ij+jx.MUX[jx.indx[bn1]]+0.25)%1.0
+			q1=(0.5-q1)%1.0 # This sign change in the real part is to comply with MAD output
+			q2=(0.5-q2)%1.0
+
+			if abs(q1-q2)<0.25: 
+				q1010ij.append((q1+q2)/2.0)
+			elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+				q1010ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
+			else:
+				badbpm=1
+				q1010ij.append(q1)
+
+		if badbpm==0:
+			f1001ij=array(f1001ij)
+			f1001i=average(f1001ij)
+			f1001istd=sqrt(average(f1001ij*f1001ij)-(average(f1001ij))**2.0)
+			f1010ij=array(f1010ij)
+			f1010i=average(f1010ij)
+			f1010istd=sqrt(average(f1010ij*f1010ij)-(average(f1010ij))**2.0)
+			q1001ij=array(q1001ij)
+			q1001i=average(q1001ij)
+			q1001istd=sqrt(average(q1001ij*q1001ij)-(average(q1001ij))**2.0)
+			q1010ij=array(q1010ij)
+			q1010i=average(q1010ij)
+			q1010istd=sqrt(average(q1010ij*q1010ij)-(average(q1010ij))**2.0)
+			f1001i=f1001i*complex(cos(tp*q1001i),sin(tp*q1001i))
+			f1010i=f1010i*complex(cos(tp*q1010i),sin(tp*q1010i))
+			dbpmt.append([dbpms[i][0],dbpms[i][1]])
+			fwqw[bn1]=[[f1001i,f1001istd,f1010i,f1010istd],[q1001i,q1001istd,q1010i,q1010istd]]
+			
+
+	dbpms=dbpmt
+
+	# possibel correction
+	#bn0=upper(dbpms[0][1])
+	#up1=fwqw[bn0][0][0]
+	#up2=fwqw[bn0][0][2]
+	#for i in range(1,len(dbpms)):
+		#bn0=upper(dbpms[i-1][1])
+		#bn1=upper(dbpms[i][1])
+		#df1001=sqrt(fwqw[bn0][0][0].real**2+fwqw[bn0][0][0].imag**2)/sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
+		#df1010=sqrt(fwqw[bn0][0][2].real**2+fwqw[bn0][0][2].imag**2)/sqrt(fwqw[bn1][0][2].real**2+fwqw[bn1][0][2].imag**2)
+		#fwqw[bn0][0][0]=up1
+		#fwqw[bn0][0][2]=up2
+		#up1=complex(df1001*fwqw[bn1][0][0].real,fwqw[bn1][0][0].imag)
+		#up2=complex(df1010*fwqw[bn1][0][2].real,fwqw[bn1][0][2].imag)
+				   
+	#fwqw[bn1][0][0]=up1
+	#fwqw[bn1][0][2]=up2
+	# end of possible correction
+
+
+
+	# compute global values
+	CG=0.0
+	QG=0.0
+	for i in range(1,len(dbpms)):
+		jx=ListOfZeroDPPX[j]
+		jy=ListOfZeroDPPY[j]
+		bn1=upper(dbpms[i][1])
+		CG=CG+sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
+		QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
+		
+	
+	CG=abs(4.0*(Q1-Q2)*CG/len(dbpms))
+	QG=(QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0	
+	fwqw['Global']=[CG,QG]
+
+
+	return [fwqw,dbpms]
+
+
 #######################################################
 #                   Main part                         #
 #######################################################
@@ -564,6 +863,10 @@ parser.add_option("-o", "--output",
 parser.add_option("-c", "--cocut",
                 help="Cut for closed orbit measurement [um]",
                 metavar="COCUT", default=1000, dest="COcut")
+parser.add_option("-n", "--nbcpl",
+                help="Analysis option for couplng, 1 bpm or 2 bpm",
+                metavar="NBCPL", default=2, dest="NBcpl")
+
 
 
 (options, args) = parser.parse_args()
@@ -575,6 +878,7 @@ outputpath=options.output
 if options.dict=="0":
 	BPMdictionary={}
 else:
+	dictionary={} #Empty dictionary to allow for empty file options.dict
 	execfile(options.dict)
 	BPMdictionary=dictionary   # temporaryly since presently name is not BPMdictionary
 
@@ -596,8 +900,8 @@ elif BPMU=='mm' or BPMU=='mm': COcut=COcut/1.0e3
 elif BPMU=='cm' or BPMU=='cm': COcut=COcut/1.0e4
 elif BPMU=='m' or BPMU=='m': COcut=COcut/1.0e6
 
-print COcut
 
+NBcpl= float(options.NBcpl)
 
 #outputpath=sys.argv[indpy+1]
 
@@ -630,6 +934,11 @@ fDy.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fDx.write('@ FILES %s "')
 fDy.write('@ FILES %s "')
 
+fcouple=open(outputpath+'getcouple.out','w')
+fcouple.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fcouple.write('@ FILES %s "')
+
+
 
 
 FileOfZeroDPPX=[]
@@ -657,6 +966,7 @@ for filein in listOfInputFiles:
 		fbetax.write(file1+' ')
 		fcox.write(file1+' ')
 		fDx.write(file1+' ')
+		fcouple.write(filein+' ')
 	else:
 		ListOfNonZeroDPPX.append(twiss(file1))
 		FileOfNonZeroDPPX.append(file1)
@@ -692,6 +1002,7 @@ fcox.write('"'+'\n')
 fcoy.write('"'+'\n')
 fDx.write('"'+'\n')
 fDy.write('"'+'\n')
+fcouple.write('"'+'\n')
 
 
 
@@ -761,7 +1072,7 @@ try:
 	fphasex.write('@ MUY %le '+str(MUY)+'\n')
 except:
 	fphasex.write('@ Q2 %le '+'0.0'+'\n')
-	fphasey.write('@ MUY %le '+'0.0'+'\n')
+	fphasex.write('@ MUY %le '+'0.0'+'\n')
 fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 #bpms=intersect(ListOfZeroDPPX)
@@ -867,10 +1178,12 @@ if woliny!=1:
 		bns1=bpms[i][0]
 		fcoy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(coy[bn1][0])+' '+str(coy[bn1][1])+' '+str(MADTwiss.Y[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
+
+	ListOfCOY=[]
+	ListOfCOY.append(coy)
 fcoy.close()
 
-ListOfCOY=[]
-ListOfCOY.append(coy)
+
 
 #-------- Orbit for non-zero DPP
 
@@ -967,6 +1280,57 @@ if woliny!=1 and woliny2!=1:
 		fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fDy.close()
+
+
+#-------- START coupling
+
+if woliny!=1:
+	try:
+		MADTwiss.Cmatrix()
+	except:
+		0.0
+	if NBcpl==1:
+		[fwqw,bpms]=GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2)
+	elif NBcpl==2:
+		[fwqw,bpms]=GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey)
+	else:
+		print 'Number of monitors for coupling analysis (option -n) should be 1 or 2.'
+		print 'Leaving the coupling analysis...'
+	
+
+	try:
+		fcouple.write('@ CG %le '+str(fwqw['Global'][0])+'\n')
+		fcouple.write('@ QG %le '+str(fwqw['Global'][1])+'\n')
+		if NBcpl==1:
+				fcouple.write('* NAME   POS    COUNT  F1001W FWSTD  Q1001W QWSTD MDLF1001R MDLF1001I\n')
+				fcouple.write('$ %s     %le    %le    %le    %le    %le    %le   %le       %le\n')
+		elif NBcpl==2:
+				fcouple.write('* NAME   POS    COUNT  F1001W FWSTD1 F1001R F1001I F1010W FWSTD2 F1010R F1010I MDLF1001R MDLF1001I MDLF1010R MDLF1010I\n')
+				fcouple.write('$ %s     %le    %le    %le    %le    %le    %le    %le    %le    %le    %le    %le       %le       %le       %le\n')
+
+
+		for i in range(0,len(bpms)):
+			bn1=upper(bpms[i][1])
+			bns1=bpms[i][0]
+			
+			if NBcpl==1:
+				try:
+					fcouple.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2))+' '+str(fwqw[bn1][0][1])+' '+str(fwqw[bn1][0][0].real)+' '+str(fwqw[bn1][0][0].imag)+' '+str(MADTwiss.f1001[MADTwiss.indx(bn1)].real)+' '+str(MADTwiss.f1001[MADTwiss.indx(bn1)].imag)+' '+str(MADTwiss.f1010[MADTwiss.indx(bn1)].real)+' '+str(MADTwiss.f1010[MADTwiss.indx(bn1)].imag)+'\n')
+				except:
+					fcouple.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2))+' '+str(fwqw[bn1][0][1])+' '+str(fwqw[bn1][0][0].real)+' '+str(fwqw[bn1][0][0].imag)+' 0.0 0.0'+'\n')
+				
+
+			elif NBcpl==2:
+				try:
+					fcouple.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2))+' '+str(fwqw[bn1][0][1])+' '+str(fwqw[bn1][0][0].real)+' '+str(fwqw[bn1][0][0].imag)+' '+str(sqrt(fwqw[bn1][0][2].real**2+fwqw[bn1][0][2].imag**2))+' '+str(fwqw[bn1][0][3])+' '+str(fwqw[bn1][0][2].real)+' '+str(fwqw[bn1][0][2].imag)+' '+str(MADTwiss.f1001[MADTwiss.indx[bn1]].real)+' '+str(MADTwiss.f1001[MADTwiss.indx[bn1]].imag)+' '+str(MADTwiss.f1010[MADTwiss.indx[bn1]].real)+' '+str(MADTwiss.f1010[MADTwiss.indx[bn1]].imag)+'\n')
+				except:
+					fcouple.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2))+' '+str(fwqw[bn1][0][1])+' '+str(fwqw[bn1][0][0].real)+' '+str(fwqw[bn1][0][0].imag)+' '+str(sqrt(fwqw[bn1][0][2].real**2+fwqw[bn1][0][2].imag**2))+' '+str(fwqw[bn1][0][3])+' '+str(fwqw[bn1][0][2].real)+' '+str(fwqw[bn1][0][2].imag)+' 0.0 0.0 0.0 0.0'+'\n')
+					
+			
+	except:
+		0.0
+		
+	
 
 #-------- Phase for non-zero DPP
 
