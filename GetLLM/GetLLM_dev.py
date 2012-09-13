@@ -9,9 +9,13 @@
 ##                    V1.31, 12/Mar/2008 debugged on alpha3
 ##                    V1.4, 12/Mar/2008 modify output to fit latest TSF format and to meet requests from Rogelio
 ##                                      fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
+##                    V1.5 Update to option parser, include BPMdictionary to filter BPMs not in MOdel
+##                                  Rogelio, 13 March 2008
+
+## Usage1 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
+## Usage2 >python2.5 ../GetLLM25_V1.5.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
 
 
-## Usage python2.5 GetPhaseDisp25_V1.0.py <ouput path> <lin file1 w/o _linx,y> <lin file2 w/o _linx,y> ...
 ## lin files as many as you like
 
 ## Some rules for variable name: Dictionary is used to contain the output of function
@@ -21,7 +25,7 @@
 
 from metaclass25 import *
 from numpy import *
-import sys, pickle
+import sys, pickle,os
 #import operator
 from string import *
 
@@ -31,6 +35,18 @@ from string import *
 #######################################################
 
 #------------
+
+def modelIntersect(expbpms, model):
+	bpmsin=[]
+	for bpm in expbpms:
+		try:
+			check=model.indx[bpm[1].upper()]
+			bpmsin.append(bpm)
+		except:
+			print bpm, "Not in Model"
+	return bpmsin
+
+
 def intersect(ListOfFile): 
 	'''Pure intersection of all bpm names in all files '''
 	if len(ListOfFile)==0:
@@ -52,10 +68,11 @@ def intersect(ListOfFile):
 
 #------------ Get phases
 
-def GetPhases(ListOfZeroDPP,plane):
+def GetPhases(MADTwiss,ListOfZeroDPP,plane):
 
 
 	commonbpms=intersect(ListOfZeroDPP)
+	commonbpms=modelIntersect(commonbpms, MADTwiss)
 	zdpp=len(ListOfZeroDPP)
 
         tunem=[]
@@ -106,7 +123,7 @@ def BetaFromPhase(MADTwiss,ListOfZeroDPP,phase,plane):
 	alfa={}
 	beta={}
 	commonbpms=intersect(ListOfZeroDPP)
-
+	commonbpms=modelIntersect(commonbpms,MADTwiss)
 	alfii=[]
         betii=[]
 	delbeta=[]
@@ -369,19 +386,51 @@ def DYfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY):
 #######################################################
 
 #-- Find index of python command in the system call
-i=0
-for entry in sys.argv:
-	if '.py' in entry: 
-		indpy=i
-		break
-	i=i+1
+#i=0
+#for entry in sys.argv:
+#	if '.py' in entry: 
+#		indpy=i
+#		break
+#	i=i+1
 
 #-- Reading sys.argv
+from optparse import OptionParser
+parser = OptionParser()
+parser.add_option("-a", "--accel",
+                help="What accelerator: LHCB1 LHCB2 SPS RHIC",
+                metavar="ACCEL", default="LHCB1",dest="ACCEL")
+parser.add_option("-d", "--dictionary",
+                help="File with the BPM dictionary",
+                metavar="DICT", default="0", dest="dict")
+parser.add_option("-m", "--model",
+                help="Twiss File",
+                metavar="TwissFile", default="0", dest="Twiss")
+parser.add_option("-f", "--files",
+                help="Files from analysis, separated by :",
+                metavar="TwissFile", default="0", dest="files")
+parser.add_option("-o", "--output",
+                help="Output Path",
+                metavar="OUT", default="./", dest="output")
 
-file0=sys.argv[indpy+2]
-MADTwiss=twiss(file0) # MODEL from MAD
 
-outputpath=sys.argv[indpy+1]
+
+(options, args) = parser.parse_args()
+
+
+
+listOfInputFiles=options.files.split(":")
+file0=options.Twiss
+outputpath=options.output
+if options.dict=="0":
+	BPMdictionary={}
+else:
+	execfile(options.dict)
+	BPMdictionary=dictionary   # temporaryly since presently name is not BPMdictionary
+
+#file0=sys.argv[indpy+2]
+MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
+
+#outputpath=sys.argv[indpy+1]
 
 fphasex=open(outputpath+'getphasex.out','w')
 fphasey=open(outputpath+'getphasey.out','w')
@@ -417,8 +466,8 @@ ListOfZeroDPPY=[]
 ListOfNonZeroDPPY=[]
 woliny=0  # Let's assume there is liny for the moment
 woliny2=0
-for i in range(indpy+3,len(sys.argv)):
-	file1=sys.argv[i]+'_linx'
+for filein in listOfInputFiles:
+	file1=filein+'_linx'
 	x1=twiss(file1)
 	try:
 		dppi=x1.DPP
@@ -437,7 +486,7 @@ for i in range(indpy+3,len(sys.argv)):
 		fDx.write(file1+' ')
 
 	try:
-		file1=sys.argv[i]+'_liny'
+		file1=filein+'_liny'
 		y1=twiss(file1)
 		try:
 			dppi=y1.DPP
@@ -485,22 +534,23 @@ for j in range(0,len(ALL)) :
 				check=MADTwiss.NAME[MADTwiss.indx[upper(bpm)]]
 			except:
 				print 'Monitor '+bpm+' cannot be found in the model!'
-				exit()
+				#exit()
 
 
 #-------- START Phases
 
 plane='H'
-[phasex,Q1]=GetPhases(ListOfZeroDPPX,plane)
+[phasex,Q1]=GetPhases(MADTwiss,ListOfZeroDPPX,plane)
 
 if woliny!=1:
 	plane='V'
-	[phasey,Q2]=GetPhases(ListOfZeroDPPY,plane)
+	[phasey,Q2]=GetPhases(MADTwiss,ListOfZeroDPPY,plane)
 	fphasey.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
 	fphasey.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
 	fphasey.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 	fphasey.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(ListOfZeroDPPY)
+	bpms=modelIntersect(bpms, MADTwiss)
 	for i in range(1,len(bpms)-1):
 		bn1=upper(bpms[i-1][1])
 		bn2=upper(bpms[i][1])
@@ -520,6 +570,7 @@ except:
 fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 bpms=intersect(ListOfZeroDPPX)
+bpms=modelIntersect(bpms, MADTwiss)
 for i in range(1,len(bpms)-1):
 	bn1=upper(bpms[i-1][1])
 	bn2=upper(bpms[i][1])
@@ -548,6 +599,7 @@ fbetax.write('@ r.m.s.beta-beat: %le '+'"'+str(rmsbbx)+'"'+'\n')
 fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX ALFX   ERRALFX BETXMDL ALFXMDL MUXMDL\n')
 fbetax.write('$ %s     %le    %le    %le    %le     %le    %le     %le     %le     %le\n')
 bpms=intersect(ListOfZeroDPPX)
+bpms=modelIntersect(bpms, MADTwiss)
 for i in range(1,len(bpms)-3):
 	bn1=upper(bpms[i-1][1])
 	bn2=upper(bpms[i][1])
@@ -569,6 +621,7 @@ if woliny!=1:
 	fbetay.write('* NAME   POS    COUNT  BETY   ERRBETY ALFY   ERRALFY BETYMDL ALFYMDL MUYMDL\n')
 	fbetay.write('$ %s     %le    %le    %le    %le     %le    %le     %le     %le     %le\n')
 	bpms=intersect(ListOfZeroDPPY)
+	bpms=modelIntersect(bpms, MADTwiss)
 	for i in range(1,len(bpms)-3):
 		bn1=upper(bpms[i-1][1])
 		bn2=upper(bpms[i][1])
@@ -590,6 +643,7 @@ fDx.write('* NAME   POS    COUNT  NDX    STDNDX DX     NDXMDL DXMDL  MUXMDL\n')
 fDx.write('$ %s     %le    %le    %le    %le    %le    %le    %le    %le\n')
 ALL=ListOfZeroDPPX+ListOfNonZeroDPPX
 bpms=intersect(ALL)
+bpms=modelIntersect(bpms, MADTwiss)
 for i in range(0,len(bpms)):
 	bn1=upper(bpms[i][1])
 	bns1=bpms[i][0]
@@ -612,6 +666,7 @@ if woliny!=1 and woliny2!=1:
 	fDy.write('$ %s     %le    %le    %le    %le    %le\n')
 	ALL=ListOfZeroDPPY+ListOfNonZeroDPPY
 	bpms=intersect(ALL)
+	bpms=modelIntersect(bpms, MADTwiss)
 	for i in range(0,len(bpms)):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
@@ -639,11 +694,12 @@ for j in ListOfNonZeroDPPX:
 	except:
 		fphDPP.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
 	plane='H'
-	[phase,Q1DPP]=GetPhases(SingleFile,plane)
+	[phase,Q1DPP]=GetPhases(MADTwiss,SingleFile,plane)
 	fphDPP.write('@ Q1DPP: %le '+'"'+str(Q1DPP)+'"'+'\n')
 	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
 	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
+	bpms=modelIntersect(bpms, MADTwiss)
 	for i in range(0,len(bpms)-2):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
@@ -670,11 +726,12 @@ for j in ListOfNonZeroDPPY:
 	except:
 		fphDPP.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
 	plane='V'
-	[phase,Q2DPP]=GetPhases(SingleFile,plane)
+	[phase,Q2DPP]=GetPhases(MADTwiss,SingleFile,plane)
 	fphDPP.write('@ Q2DPP: %le '+'"'+str(Q2DPP)+'"'+'\n')
 	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
+	bpms=modelIntersect(bpms, MADTwiss)
 	for i in range(0,len(bpms)-2):
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]

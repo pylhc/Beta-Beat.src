@@ -1,13 +1,18 @@
 ## Python script to obtain Linear Lattice function and More -> GetLLM
-## Version 1.1 (still under development)
+## Version 1.4
 ## Version-up history:V1.0, 11/Feb/2008 by Masa. Aiba
 ##                    V1.1, 18/Feb/2008 Debugging, add model phase and tunes to output
 ##                                      add function to obtain DY
 ##                                      add chromatic parameter (phase for non zero DPP)
 ##                    V1.2, 22/Feb/2008 test version for beta with all BPM
 ##                    V1.3, 29/Feb/2008 beta from phases is improved, averaging beta1, 2 and 3
+##                    V1.31, 12/Mar/2008 debugged on alpha3
+##                    V1.4, 12/Mar/2008 modify output to fit latest TSF format and to meet requests from Rogelio
+##                                      fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
 
-## Usage python2.5 GetPhaseDisp25_V1.0.py <ouput path> <lin file1 w/o _linx,y> <lin file2 w/o _linx,y> ... # lin files as many as you like
+
+## Usage python2.5 GetPhaseDisp25_V1.0.py <ouput path> <lin file1 w/o _linx,y> <lin file2 w/o _linx,y> ...
+## lin files as many as you like
 
 ## Some rules for variable name: Dictionary is used to contain the output of function
 ##                               Valiable containing 'm' is a value directly obtained from measurment data
@@ -53,7 +58,7 @@ def GetPhases(ListOfZeroDPP,plane):
 	commonbpms=intersect(ListOfZeroDPP)
 	zdpp=len(ListOfZeroDPP)
 
-	
+        tunem=[]
 	phase={} # Dictionary for the output containing [average phase, rms error]
 	for i in range(1,len(commonbpms)-1):
 		bn1=upper(commonbpms[i-1][1])
@@ -63,14 +68,17 @@ def GetPhases(ListOfZeroDPP,plane):
 		bns2=commonbpms[i][0]
 		phi12=[]
 		phi13=[]
+		tunemi=[]
 		for j in ListOfZeroDPP:
 			# Phase has unit of 2pi
 			if plane=='H':
 				phm12=(j.MUX[j.indx[bn2]]-j.MUX[j.indx[bn1]])
 				phm13=(j.MUX[j.indx[bn3]]-j.MUX[j.indx[bn1]])
+				tunemi.append(j.TUNEX[j.indx[bn1]])
 			elif plane=='V':
 				phm12=(j.MUY[j.indx[bn2]]-j.MUY[j.indx[bn1]])
 				phm13=(j.MUY[j.indx[bn3]]-j.MUY[j.indx[bn1]])
+				tunemi.append(j.TUNEY[j.indx[bn1]])
 			if phm12<0: phm12+=1
 			if phm13<0: phm13+=1
 			phi12.append(phm12)
@@ -82,10 +90,13 @@ def GetPhases(ListOfZeroDPP,plane):
 		phi12=average(phi12)
 		phi13=average(phi13)
 		phase[bn1]=[phi12,phstd12,phi13,phstd13]
+		tunemi=array(tunemi)
+		tunem.append(average(tunemi))
 
+	tunem=array(tunem)
+	tune=average(tunem)
 
-
-	return phase
+	return [phase,tune]
 
 
 #-------- Beta from pahses
@@ -181,8 +192,8 @@ def BetaFromPhase(MADTwiss,ListOfZeroDPP,phase,plane):
 		beterr3=abs(phase[bn2][1]*(1.-tan(ph2pi23)**2.)/tan(ph2pi23)**2.)
 		beterr3=beterr3+abs(phase[bn1][3]*(1.-tan(ph2pi13)**2.)/tan(ph2pi13)**2.)
 		beterr3=beterr3/abs(denom)
-		denom=M12/M22-N22/N12
-		numer=M12/M22/tan(ph2pi23)-N22/N12/tan(ph2pi13)
+		denom=M12/M22-N12/N22
+		numer=M12/M22/tan(ph2pi23)-N12/N22/tan(ph2pi13)
 		alfi3=numer/denom
 		alferr3=abs(M12/M22*phase[bn1][1]*(1.-tan(ph2pi23)**2.)/tan(ph2pi23)**2.)
 		alferr3=alferr3+abs(N22/N12*phase[bn1][3]*(1.-tan(ph2pi13)**2.)/tan(ph2pi13)**2.)
@@ -196,7 +207,11 @@ def BetaFromPhase(MADTwiss,ListOfZeroDPP,phase,plane):
 	beti=betii[i][0]
 	beterr=betii[i][1]
 	beta[bn1]=(beti,beterr)
-	delbeta.append(beti-betmdl1)
+	if plane=='H':
+		betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
+	elif plane=='V':
+		betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
+	delbeta.append((beti-betmdl1)/betmdl1)
 	alfi=alfii[i][0]
 	alferr=alfii[i][1]
 	alfa[bn1]=(alfi,alferr)
@@ -206,7 +221,11 @@ def BetaFromPhase(MADTwiss,ListOfZeroDPP,phase,plane):
 	beti=(betii[i][0]+betii[i-1][2])/2.
 	beterr=sqrt(betii[i][1]**2.+betii[i-1][3]**2.)/sqrt(2.)
 	beta[bn1]=(beti,beterr)
-	delbeta.append(beti-betmdl1)
+	if plane=='H':
+		betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
+	elif plane=='V':
+		betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
+	delbeta.append((beti-betmdl1)/betmdl1)
 	alfi=(alfii[i][0]+alfii[i-1][2])/2.
 	alferr=sqrt(alfii[i][1]**2.+alfii[i-1][3]**2.)/sqrt(2.)
 	alfa[bn1]=(alfi,alferr)
@@ -218,7 +237,11 @@ def BetaFromPhase(MADTwiss,ListOfZeroDPP,phase,plane):
 		# error?
 		beterr=sqrt(betii[i][1]**2.+betii[i-1][3]**2.+betii[i-2][5]**2.)/sqrt(3.) 
 		beta[bn1]=(beti,beterr)
-		delbeta.append(beti-betmdl1)
+		if plane=='H':
+			betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
+		elif plane=='V':
+			betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
+		delbeta.append((beti-betmdl1)/betmdl1)
 		alfi=(alfii[i][0]+alfii[i-1][2]+alfii[i-2][4])/3.
 		alferr=sqrt(alfii[i][1]**2.+alfii[i-1][3]**2.+alfii[i-2][5]**2.)/sqrt(3.) 
 		alfa[bn1]=(alfi,alferr)
@@ -355,24 +378,39 @@ for entry in sys.argv:
 
 #-- Reading sys.argv
 
+file0=sys.argv[indpy+2]
+MADTwiss=twiss(file0) # MODEL from MAD
+
 outputpath=sys.argv[indpy+1]
 
 fphasex=open(outputpath+'getphasex.out','w')
 fphasey=open(outputpath+'getphasey.out','w')
-fphasex.write('@ FILES %s ')
-fphasey.write('@ FILES %s ')
+
+fphasex.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+fphasey.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+fphasex.write('@ FILES: %s "')
+fphasey.write('@ FILES: %s "')
 
 fbetax=open(outputpath+'getbetax.out','w')
 fbetay=open(outputpath+'getbetay.out','w')
-fbetax.write('@ FILES %s ')
-fbetay.write('@ FILES %s ')
+fbetax.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+fbetay.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+fbetax.write('@ FILES: %s "')
+fbetay.write('@ FILES: %s "')
 
 fDx=open(outputpath+'getDx.out','w')
 fDy=open(outputpath+'getDy.out','w')
-fDx.write('@ FILES %s ')
-fDy.write('@ FILES %s ')
+fDx.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+fDy.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+fDx.write('@ FILES: %s "')
+fDy.write('@ FILES: %s "')
 
 
+
+FileOfZeroDPPX=[]
+FileOfZeroDPPY=[]
+FileOfNonZeroDPPX=[]
+FileOfNonZeroDPPY=[]
 ListOfZeroDPPX=[]
 ListOfNonZeroDPPX=[]
 ListOfZeroDPPY=[]
@@ -389,49 +427,41 @@ for i in range(indpy+3,len(sys.argv)):
 
 	if dppi==0.0:
 		ListOfZeroDPPX.append(twiss(file1))
+		FileOfZeroDPPX.append(file1)
 		fphasex.write(file1+' ')
 		fbetax.write(file1+' ')
 		fDx.write(file1+' ')
 	else:
 		ListOfNonZeroDPPX.append(twiss(file1))
+		FileOfNonZeroDPPX.append(file1)
 		fDx.write(file1+' ')
 
 	try:
 		file1=sys.argv[i]+'_liny'
 		y1=twiss(file1)
-		fphasex.write(file1+' ')
-		fbetay.write(file1+' ')
 		try:
 			dppi=y1.DPP
 		except:
 			dppi=0.0
 		if dppi==0.0:
 			ListOfZeroDPPY.append(twiss(file1))
+			FileOfZeroDPPY.append(file1)
 			fphasey.write(file1+' ')
 			fbetay.write(file1+' ')
 		else:
 			ListOfNonZeroDPPY.append(twiss(file1))
+			FileOfNonZeroDPPY.append(file1)
 	except:
 		print 'Warning: There seems no '+str(file1)+' file in the specified directory.' 
 
 
-fphasex.write('\n')
-fphasey.write('\n')
-fbetax.write('\n')
-fbetay.write('\n')
-fDx.write('\n')
-fDy.write('\n')
+fphasex.write('"'+'\n')
+fphasey.write('"'+'\n')
+fbetax.write('"'+'\n')
+fbetay.write('"'+'\n')
+fDx.write('"'+'\n')
+fDy.write('"'+'\n')
 
-
-
-file0=sys.argv[indpy+2]
-MADTwiss=twiss(file0) # MODEL from MAD
-fphasex.write('@ MAD_FILE %s '+file0+' '+'\n')
-fphasey.write('@ MAD_FILE %s '+file0+' '+'\n')
-fbetax.write('@ MAD_FILE %s '+file0+' '+'\n')
-fbetay.write('@ MAD_FILE %s '+file0+' '+'\n')
-fDx.write('@ MAD_FILE %s '+file0+' '+'\n')
-fDy.write('@ MAD_FILE %s '+file0+' '+'\n')
 
 
 
@@ -461,24 +491,14 @@ for j in range(0,len(ALL)) :
 #-------- START Phases
 
 plane='H'
-phasex=GetPhases(ListOfZeroDPPX,plane)
-fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASEX STDPHX PHXMDL MUXMDL\n')
-fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
-bpms=intersect(ListOfZeroDPPX)
-for i in range(1,len(bpms)-1):
-	bn1=upper(bpms[i-1][1])
-	bn2=upper(bpms[i][1])
-	bns1=bpms[i-1][0]
-	bns2=bpms[i][0]
-	phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
-	fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-
-fphasex.close()
+[phasex,Q1]=GetPhases(ListOfZeroDPPX,plane)
 
 if woliny!=1:
 	plane='V'
-	phasey=GetPhases(ListOfZeroDPPY,plane)
-	fphasey.write('* NAME   NAME2  POS1   POS2   COUNT  PHASEY STDPHX PHYMDL MUYMDL\n')
+	[phasey,Q2]=GetPhases(ListOfZeroDPPY,plane)
+	fphasey.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+	fphasey.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	fphasey.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
 	fphasey.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(ListOfZeroDPPY)
 	for i in range(1,len(bpms)-1):
@@ -491,6 +511,27 @@ if woliny!=1:
 
 fphasey.close()
 
+
+fphasex.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+try:
+	fphasex.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+except:
+	fphasex.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
+fphasex.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
+fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+bpms=intersect(ListOfZeroDPPX)
+for i in range(1,len(bpms)-1):
+	bn1=upper(bpms[i-1][1])
+	bn2=upper(bpms[i][1])
+	bns1=bpms[i-1][0]
+	bns2=bpms[i][0]
+	phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+	fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
+
+fphasex.close()
+
+
+
 #-------- START Beta
 
 plane='H'
@@ -498,6 +539,12 @@ betax={}
 alfax={}
 rmsbbx=0.
 [betax,rmsbbx,alfax]=BetaFromPhase(MADTwiss,ListOfZeroDPPX,phasex,plane)
+fbetax.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+try:
+	fbetax.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+except:
+	fbetax.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
+fbetax.write('@ r.m.s.beta-beat: %le '+'"'+str(rmsbbx)+'"'+'\n')
 fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX ALFX   ERRALFX BETXMDL ALFXMDL MUXMDL\n')
 fbetax.write('$ %s     %le    %le    %le    %le     %le    %le     %le     %le     %le\n')
 bpms=intersect(ListOfZeroDPPX)
@@ -516,6 +563,9 @@ if woliny!=1:
 	alfay={}
 	rmsbby=0.
 	[betay,rmsbby,alfay]=BetaFromPhase(MADTwiss,ListOfZeroDPPY,phasey,plane)
+	fbetay.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+	fbetay.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	fbetay.write('@ r.m.s.beta-beat: %le '+'"'+str(rmsbby)+'"'+'\n')
 	fbetay.write('* NAME   POS    COUNT  BETY   ERRBETY ALFY   ERRALFY BETYMDL ALFYMDL MUYMDL\n')
 	fbetay.write('$ %s     %le    %le    %le    %le     %le    %le     %le     %le     %le\n')
 	bpms=intersect(ListOfZeroDPPY)
@@ -531,6 +581,11 @@ fbetay.close()
 #-------- START Dispersion
 
 nda=NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX)
+fDx.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+try:
+	fDx.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+except:
+	fDx.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
 fDx.write('* NAME   POS    COUNT  NDX    STDNDX DX     NDXMDL DXMDL  MUXMDL\n')
 fDx.write('$ %s     %le    %le    %le    %le    %le    %le    %le    %le\n')
 ALL=ListOfZeroDPPX+ListOfNonZeroDPPX
@@ -551,6 +606,8 @@ fDx.close()
 
 if woliny!=1 and woliny2!=1:
 	dyo=DYfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY)
+	fDy.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+	fDy.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
 	fDy.write('* NAME   POS    COUNT  DY     STDDY  MUYMDL\n')
 	fDy.write('$ %s     %le    %le    %le    %le    %le\n')
 	ALL=ListOfZeroDPPY+ListOfNonZeroDPPY
@@ -564,16 +621,28 @@ fDy.close()
 
 #-------- Phase for non-zero DPP
 
-
+k=0
 for j in ListOfNonZeroDPPX:
 	SingleFile=[]
 	SingleFile.append(j)
 	file1='getphasexdpp'+str(j.DPP)+'.out'
 	fphDPP=open(file1,'w')
-	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASEX STDPHX PHXMDL MUXMDL\n')
-	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+	fphDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+	fphDPP.write('@ FILE: %s "')
+	fphDPP.write(FileOfNonZeroDPPX[k]+' ')
+	for l in FileOfZeroDPPX:
+		fphDPP.write(l+' ')
+	fphDPP.write('"'+'\n')
+	fphDPP.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+	try:
+		fphDPP.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	except:
+		fphDPP.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
 	plane='H'
-	phase=GetPhases(SingleFile,plane)
+	[phase,Q1DPP]=GetPhases(SingleFile,plane)
+	fphDPP.write('@ Q1DPP: %le '+'"'+str(Q1DPP)+'"'+'\n')
+	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
+	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
 	for i in range(0,len(bpms)-2):
 		bn1=upper(bpms[i][1])
@@ -581,16 +650,30 @@ for j in ListOfNonZeroDPPX:
 		phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
 		fphDPP.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(1)+' '+str(phase[bn1][0])+' '+str(phase[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 	fphDPP.close()
+	k+=1
 
+k=0
 for j in ListOfNonZeroDPPY:
 	SingleFile=[]
 	SingleFile.append(j)
 	file1='getphaseydpp'+str(j.DPP)+'.out'
 	fphDPP=open(file1,'w')
-	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASEY STDPHY PHYMDL MUYMDL\n')
-	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+	fphDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
+	fphDPP.write('@ FILE: %s "')
+	fphDPP.write(FileOfNonZeroDPPY[k]+' ')
+	for l in FileOfZeroDPPY:
+		fphDPP.write(l+' ')
+	fphDPP.write('"'+'\n')
+	fphDPP.write('@ Q1: %le '+'"'+str(Q1)+'"'+'\n')
+	try:
+		fphDPP.write('@ Q2: %le '+'"'+str(Q2)+'"'+'\n')
+	except:
+		fphDPP.write('@ Q2: %le '+'"'+'0.0'+'"'+'\n')
 	plane='V'
-	phase=GetPhases(SingleFile,plane)
+	[phase,Q2DPP]=GetPhases(SingleFile,plane)
+	fphDPP.write('@ Q2DPP: %le '+'"'+str(Q2DPP)+'"'+'\n')
+	fphDPP.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
+	fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
 	bpms=intersect(SingleFile)
 	for i in range(0,len(bpms)-2):
 		bn1=upper(bpms[i][1])
@@ -598,4 +681,5 @@ for j in ListOfNonZeroDPPY:
 		phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
 		fphDPP.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(1)+' '+str(phase[bn1][0])+' '+str(phase[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 	fphDPP.close()
+	k+=1
 
