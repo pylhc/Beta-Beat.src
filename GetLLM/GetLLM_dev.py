@@ -1811,300 +1811,300 @@ def Getquadrupole(MADTwiss,names,plane,phase,amp):
 
 
 def Getsextupole(modeltwiss,amp20list,phase,tune,j,k):
-    '''
-    function written to calculate resonance driving terms
-    '''
+        '''
+        function written to calculate resonance driving terms
+        '''
 
         # constructing complex amplitude and phase using two BPM method
 
-	bpms=intersect(amp20list)
-	bpms=modelIntersect(bpms,modeltwiss)
-	
-	[beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,amp20list,'H')
-	sqrt2jx=invariantJx[0]
+        bpms=intersect(amp20list)
+        bpms=modelIntersect(bpms,modeltwiss)
 
-	Q=tune+float(str(modeltwiss.Q1).split(".")[0])
-	
-	afactor=(1-cos(2*(j-k)*pi*Q))#(2*sin(pi*(j-k)*Q))
-	#print (2*sin(pi*(j-k)*Q)),(1-cos(6*pi*Q))
-	#sys.exit()
-	pfactor=(pi*(j-k)*Q)
+        [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,amp20list,'H')
+        sqrt2jx=invariantJx[0]
 
-	htot={}
+        Q=tune+float(str(modeltwiss.Q1).split(".")[0])
 
-	for i in range(len(bpms)):
+        afactor=(1-cos(2*(j-k)*pi*Q))#(2*sin(pi*(j-k)*Q))
+        #print (2*sin(pi*(j-k)*Q)),(1-cos(6*pi*Q))
+        #sys.exit()
+        pfactor=(pi*(j-k)*Q)
 
-		if i<(len(bpms)-1):
-			bpm=bpms[i][1]
-			bpm1=bpms[i+1][1]
-			s=bpms[i][0]
-		else:
-			bpm=bpms[i][1]
-			bpm1=bpms[0][1]
-			s=bpms[i][0]
+        htot={}
 
-		amp_i_list=[]
-		phase_i_list=[]
+        for i in range(len(bpms)):
 
-		hlist=[]
-		hplist=[]		
-		
-		flist=[]
-		fplist=[]
-		
+                if i<(len(bpms)-1):
+                        bpm=bpms[i][1]
+                        bpm1=bpms[i+1][1]
+                        s=bpms[i][0]
+                else:
+                        bpm=bpms[i][1]
+                        bpm1=bpms[0][1]
+                        s=bpms[i][0]
 
-		for fileamp in amp20list:
+                amp_i_list=[]
+                phase_i_list=[]
 
-			amp_201=fileamp.AMP_20[fileamp.indx[bpm]]*fileamp.AMPX[fileamp.indx[bpm]]
-			amp_202=fileamp.AMP_20[fileamp.indx[bpm1]]*fileamp.AMPX[fileamp.indx[bpm1]]
-			
-			phase_201=fileamp.PHASE_20[fileamp.indx[bpm]]
-			phase_202=fileamp.PHASE_20[fileamp.indx[bpm1]]
-			
-			delta=phase[bpm][0]-0.25
-			edelta=phase[bpm][1]
+                hlist=[]
+                hplist=[]               
+                
+                flist=[]
+                fplist=[]
+                
 
-			#computing complex line
-			ampi,phasei,eampi,ephasei=ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202)
-	
+                for fileamp in amp20list:
 
-			if ampi!=0.0:
+                        amp_201=fileamp.AMP_20[fileamp.indx[bpm]]*fileamp.AMPX[fileamp.indx[bpm]]
+                        amp_202=fileamp.AMP_20[fileamp.indx[bpm1]]*fileamp.AMPX[fileamp.indx[bpm1]]
+                        
+                        phase_201=fileamp.PHASE_20[fileamp.indx[bpm]]
+                        phase_202=fileamp.PHASE_20[fileamp.indx[bpm1]]
+                        
+                        delta=phase[bpm][0]-0.25
+                        edelta=phase[bpm][1]
 
-				amp_i_list.append(ampi)
-				phase_i_list.append(phasei)
+                        #computing complex line
+                        ampi,phasei,eampi,ephasei=ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202)
 
-				if (j==3 and k==0):
-					factor=sqrt(2)### factor
-					fterm=ampi/(factor*2*j*sqrt2jx**2)
-					pterm=(phasei-phase[bpm][0]+0.25)%1
-					
-					hterm=fterm/afactor
-				
-					hpterm=(pterm-pfactor)%1
 
-			
-				elif (j==2 and k==1):
-					factor=sqrt(2)### factor
-					fterm=ampi/(factor*2*j*sqrt2jx**2)
-					pterm=(phasei-phase[bpm][0]+0.25)%1
-					
-					hterm=fterm/afactor
-				
-					hpterm=(pterm-pfactor)%1					
+                        if ampi!=0.0:
 
-				flist.append(fterm)
-				fplist.append(pterm)
-				hlist.append(hterm)
-				hplist.append(hpterm)
-			
+                                amp_i_list.append(ampi)
+                                phase_i_list.append(phasei)
 
-		if len(amp_i_list)!=0.0:
-			al=mean(amp_i_list)
-			alstd=std(amp_i_list)
+                                if (j==3 and k==0):
+                                        factor=sqrt(2)### factor
+                                        fterm=ampi/(factor*2*j*sqrt2jx**2)
+                                        pterm=(phasei-phase[bpm][0]+0.25)%1
+                                        
+                                        hterm=fterm/afactor
+                                
+                                        hpterm=(pterm-pfactor)%1
 
-			pl=mean(phase_i_list)
-			plstd=mean(phasei)
-		
-			fl=mean(flist)
-			fstd=std(flist)
-		
-			fpl=mean(fplist)
-			fpstd=std(fplist)
 
-			hl=mean(hlist)
-			hstd=std(hlist)
-		
-			hpl=mean(hplist)
-			hpstd=std(hplist)
+                                elif (j==2 and k==1):
+                                        factor=sqrt(2)### factor
+                                        fterm=ampi/(factor*2*j*sqrt2jx**2)
+                                        pterm=(phasei-phase[bpm][0]+0.25)%1
+                                        
+                                        hterm=fterm/afactor
+                                
+                                        hpterm=(pterm-pfactor)%1
 
-		
-			htot[bpm]=[bpm,s,al,alstd,pl,plstd,fl,fstd,fpl,fpstd,hl,hstd,hpl,hpstd]
+                                flist.append(fterm)
+                                fplist.append(pterm)
+                                hlist.append(hterm)
+                                hplist.append(hpterm)
+                        
+
+                if len(amp_i_list)!=0.0:
+                        al=mean(amp_i_list)
+                        alstd=std(amp_i_list)
+
+                        pl=mean(phase_i_list)
+                        plstd=mean(phasei)
+                
+                        fl=mean(flist)
+                        fstd=std(flist)
+                
+                        fpl=mean(fplist)
+                        fpstd=std(fplist)
+
+                        hl=mean(hlist)
+                        hstd=std(hlist)
+                
+                        hpl=mean(hplist)
+                        hpstd=std(hplist)
+
+                
+                        htot[bpm]=[bpm,s,al,alstd,pl,plstd,fl,fstd,fpl,fpstd,hl,hstd,hpl,hpstd]
 
 
         return htot,afactor,pfactor
 
 
 def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
-      '''
-      for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
-      '''
+    '''
+    for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
+    '''
 
                 # intersects BPMs
-        dbpms=intersect(listF[0])
-        dbpms=modelIntersect(dbpms,MADTwiss)
+    dbpms=intersect(listF[0])
+    dbpms=modelIntersect(dbpms,MADTwiss)
 
-        
+    
 
-        # value definition
-        tp=2.0*pi
-        
-        hMODELT=[]
-        hMODELTi=[]
-        hMODELTr=[]
-        h_phase_MODELT=[]
+    # value definition
+    tp=2.0*pi
+    
+    hMODELT=[]
+    hMODELTi=[]
+    hMODELTr=[]
+    h_phase_MODELT=[]
 
-        AT=[]
-        A_RMST=[]
-        
-        phaseT=[]
-        phase_RMST=[]
+    AT=[]
+    A_RMST=[]
+    
+    phaseT=[]
+    phase_RMST=[]
 
-        hT=[]
-        hTi=[]
-        hTr=[]
-        h_RMST=[]
-        
-        h_phaseT=[]
-        h_phase_RMST=[]
+    hT=[]
+    hTi=[]
+    hTr=[]
+    h_RMST=[]
+    
+    h_phaseT=[]
+    h_phase_RMST=[]
 
-        invarianceJx=[]
-        invarianceJy=[]
+    invarianceJx=[]
+    invarianceJy=[]
 
-        # finding the invariances
-        for j in range(0,len(listF[0])):
-                singleFilex=[listF[0][j]]
-                singleFiley=[listF[1][j]]
-                
-                [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,singleFilex,'H')
+    # finding the invariances
+    for j in range(0,len(listF[0])):
+            singleFilex=[listF[0][j]]
+            singleFiley=[listF[1][j]]
+            
+            [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,singleFilex,'H')
 
-                [beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,singleFiley,'V')
-                
-                invarianceJx.append(invariantJx)
-                invarianceJy.append(invariantJy)
-
-
-        # for the model
-        for i in range(0,len(dbpms)):
-
-                bpm=upper(dbpms[i][1])
-                
-                bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
-                
-                
-                for j in range(0,len(NAMES)):
-                        try:
-                                name=NAMES[j]
-                        
-                                if name==bpmC:
-
-                                        amp=abs(fM[j])
-                                        ampr=fM[i].real
-                                        ampi=fM[j].imag
-                                        phase=arctan2(ampi,ampr)%1
-                
-                                        hMODELT.append(amp)
-                                        hMODELTr.append(ampr)
-                                        hMODELTi.append(ampi)
-                                        h_phase_MODELT.append(phase)
-                                        
-
-                                
-                        except:
-                                print 'name '+str(NAMES[j])+' is not found in dictionary'                       
-                        hMODEL=[hMODELT,hMODELTi,hMODELTr,h_phase_MODELT]
-
-        #calculation of f,q,h,qh
-        for i in range(0,len(dbpms)-1):
-
-                bn1=upper(dbpms[i][1])
-                bn2=upper(dbpms[i+1][1])
-
-                #print bn1
-                #print phaseT
-
-        
-                dell= phaseI[bn1][0] - 0.25
-                
-        
-
-                # internal value definition
-                AS=[]
-                A_SRMS=[]
-                phaseS=[]
-                phase_RMSS=[]
-
-                hS=[]
-                hSi=[]
-                hSr=[]
-                h_RMSS=[]
-                h_phaseS=[]
-                h_phase_RMSS=[]
-
-                phaseMM=h_phase_MODELT[i]
-
-                for j in range(0,len(listF[0])):
-
-                        file=listF[0][j]
-
-                        # for f4000
-                        if fname=='f4000':
-                
-                                [A,phi]=ComplexSecondaryLine(dell, file.AMP_30[file.indx[bn1]], file.AMP_30[file.indx[bn2]], file.PHASE_30[file.indx[bn1]], file.PHASE_30[file.indx[bn2]])
-
-                                factor=float(8*invarianceJx[j][0]**1.5)   # 1 to fit with model
-                                term=float(4*Q[0])
-                                termj=4
-                                M2M=0.5
-
-                        #------ converting
-                        phase0=file.MUX[file.indx[bn1]]
-                        h=f2h(A,phi,termj,factor,term,M2M)
-
-                        #----- adding the terms
-                        AS.append(A)
-                        phaseS.append(phi)
-                        hSi.append(h[0])
-                        hSr.append(h[1])
-                        hS.append(h[2])
-                        h_phaseS.append(h[3])
-
-                # array and taking average for all the input files for one BPM
-                AS=array(AS)
-                A_SRMS=sqrt(average(AS*AS)-(average(AS))**2+2.2e-16)
-                 
-                phaseS=array(phaseS)
-                try:
-                        phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2+2.2e-16)
-                except:
-                        phase_RMSS=0
-
-                hS=array(hS)
-                hSi=array(hSi)
-                hSr=array(hSr)
-                try:
-                        h_RMSS=sqrt(average(hS*hS)-(average(hS))**2+2.2e-16)
-                except:
-                        h_RMSS=0
-
-                h_phaseS=array(h_phaseS)
-                try:
-                        phase_rms=average(h_phaseS*h_phaseS)-(average(h_phaseS))**2+2.2e-16
-                except:
-                        phase_rms=0
-                h_phase_RMSS=sqrt(phase_rms)
-
-                # real output
-                AT.append(average(AS))
-                A_RMST.append(A_SRMS)
-        
-                phaseT.append(average(phaseS))
-                phase_RMST.append(phase_RMSS)
-
-                hT.append(average(hS))
-                hTi.append(average(hSi))
-                hTr.append(average(hSr))
-                h_RMST.append(h_RMSS)
-        
-                h_phaseT.append(average(h_phaseS))
-                h_phase_RMST.append(h_phase_RMSS)
-
-                A=[AT,A_RMST,phaseT,phase_RMST]
-                h=[hT,hTi,hTr,h_RMST,h_phaseT,h_phase_RMST]
+            [beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,singleFiley,'V')
+            
+            invarianceJx.append(invariantJx)
+            invarianceJy.append(invariantJy)
 
 
+    # for the model
+    for i in range(0,len(dbpms)):
 
-                        
-        return [A,h,hMODEL,dbpms]
+            bpm=upper(dbpms[i][1])
+            
+            bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
+            
+            
+            for j in range(0,len(NAMES)):
+                    try:
+                            name=NAMES[j]
+                    
+                            if name==bpmC:
+
+                                    amp=abs(fM[j])
+                                    ampr=fM[i].real
+                                    ampi=fM[j].imag
+                                    phase=arctan2(ampi,ampr)%1
+            
+                                    hMODELT.append(amp)
+                                    hMODELTr.append(ampr)
+                                    hMODELTi.append(ampi)
+                                    h_phase_MODELT.append(phase)
+                                    
+
+                            
+                    except:
+                            print 'name '+str(NAMES[j])+' is not found in dictionary'                       
+                    hMODEL=[hMODELT,hMODELTi,hMODELTr,h_phase_MODELT]
+
+    #calculation of f,q,h,qh
+    for i in range(0,len(dbpms)-1):
+
+            bn1=upper(dbpms[i][1])
+            bn2=upper(dbpms[i+1][1])
+
+            #print bn1
+            #print phaseT
+
+    
+            dell= phaseI[bn1][0] - 0.25
+            
+    
+
+            # internal value definition
+            AS=[]
+            A_SRMS=[]
+            phaseS=[]
+            phase_RMSS=[]
+
+            hS=[]
+            hSi=[]
+            hSr=[]
+            h_RMSS=[]
+            h_phaseS=[]
+            h_phase_RMSS=[]
+
+            phaseMM=h_phase_MODELT[i]
+
+            for j in range(0,len(listF[0])):
+
+                    file=listF[0][j]
+
+                    # for f4000
+                    if fname=='f4000':
+            
+                            [A,phi]=ComplexSecondaryLine(dell, file.AMP_30[file.indx[bn1]], file.AMP_30[file.indx[bn2]], file.PHASE_30[file.indx[bn1]], file.PHASE_30[file.indx[bn2]])
+
+                            factor=float(8*invarianceJx[j][0]**1.5)   # 1 to fit with model
+                            term=float(4*Q[0])
+                            termj=4
+                            M2M=0.5
+
+                    #------ converting
+                    phase0=file.MUX[file.indx[bn1]]
+                    h=f2h(A,phi,termj,factor,term,M2M)
+
+                    #----- adding the terms
+                    AS.append(A)
+                    phaseS.append(phi)
+                    hSi.append(h[0])
+                    hSr.append(h[1])
+                    hS.append(h[2])
+                    h_phaseS.append(h[3])
+
+            # array and taking average for all the input files for one BPM
+            AS=array(AS)
+            A_SRMS=sqrt(average(AS*AS)-(average(AS))**2+2.2e-16)
+             
+            phaseS=array(phaseS)
+            try:
+                    phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2+2.2e-16)
+            except:
+                    phase_RMSS=0
+
+            hS=array(hS)
+            hSi=array(hSi)
+            hSr=array(hSr)
+            try:
+                    h_RMSS=sqrt(average(hS*hS)-(average(hS))**2+2.2e-16)
+            except:
+                    h_RMSS=0
+
+            h_phaseS=array(h_phaseS)
+            try:
+                    phase_rms=average(h_phaseS*h_phaseS)-(average(h_phaseS))**2+2.2e-16
+            except:
+                    phase_rms=0
+            h_phase_RMSS=sqrt(phase_rms)
+
+            # real output
+            AT.append(average(AS))
+            A_RMST.append(A_SRMS)
+    
+            phaseT.append(average(phaseS))
+            phase_RMST.append(phase_RMSS)
+
+            hT.append(average(hS))
+            hTi.append(average(hSi))
+            hTr.append(average(hSr))
+            h_RMST.append(h_RMSS)
+    
+            h_phaseT.append(average(h_phaseS))
+            h_phase_RMST.append(h_phase_RMSS)
+
+            A=[AT,A_RMST,phaseT,phase_RMST]
+            h=[hT,hTi,hTr,h_RMST,h_phaseT,h_phase_RMST]
+
+
+
+                    
+    return [A,h,hMODEL,dbpms]
 
 #------------------------- for finding the chi terms
 def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
@@ -3859,47 +3859,47 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     fcoupleterms.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
     if "LHC" in accel:
-    	fIP=open(outputpath+'getIP.out','w')
-            fIP.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    	fIP.write('* NAME  BETASTARH  BETASTARHMDL   H   PHIH PHIXH   PHIHMDL  BETASTARV  BETASTARVMDL  V   PHIV  PHIYV  PHIVMDL\n')
-    	fIP.write('$  %s  %le    %le   %le  %le    %le    %le    %le   %le   %le   %le   %le   %le  \n')
-    	fIPx=open(outputpath+'getIPx.out','w')
-    	fIPx.write('@ GetLLMVersion %s '+VERSION+'\n')
-    	fIPx.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    	fIPx.write('@ FILES %s "')
-    	fIPy=open(outputpath+'getIPy.out','w')
-    	fIPy.write('@ GetLLMVersion %s '+VERSION+'\n')
-    	fIPy.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    	fIPy.write('@ FILES %s "')
-    	fIPfromphase=open(outputpath+'getIPfromphase.out','w')
-    	fIPfromphase.write('@ GetLLMVersion %s '+VERSION+'\n')
-    	fIPfromphase.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    	fIPfromphase.write('@ FILES %s "')
-    	if acswitch=='1':
-    		fIPxf=open(outputpath+'getIPx_free.out','w')
-    		fIPxf.write('@ GetLLMVersion %s '+VERSION+'\n')
-    		fIPxf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    		fIPxf.write('@ FILES %s "')
-    		fIPyf=open(outputpath+'getIPy_free.out','w')
-    		fIPyf.write('@ GetLLMVersion %s '+VERSION+'\n')
-    		fIPyf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    		fIPyf.write('@ FILES %s "')
-    		fIPxf2=open(outputpath+'getIPx_free2.out','w')
-    		fIPxf2.write('@ GetLLMVersion %s '+VERSION+'\n')
-    		fIPxf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    		fIPxf2.write('@ FILES %s "')
-    		fIPyf2=open(outputpath+'getIPy_free2.out','w')
-    		fIPyf2.write('@ GetLLMVersion %s '+VERSION+'\n')
-    		fIPyf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    		fIPyf2.write('@ FILES %s "')
-    		fIPfromphasef=open(outputpath+'getIPfromphase_free.out','w')
-    		fIPfromphasef.write('@ GetLLMVersion %s '+VERSION+'\n')
-    		fIPfromphasef.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    		fIPfromphasef.write('@ FILES %s "')
-    		fIPfromphasef2=open(outputpath+'getIPfromphase_free2.out','w')
-    		fIPfromphasef2.write('@ GetLLMVersion %s '+VERSION+'\n')
-    		fIPfromphasef2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    		fIPfromphasef2.write('@ FILES %s "')
+        fIP=open(outputpath+'getIP.out','w')
+        fIP.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+        fIP.write('* NAME  BETASTARH  BETASTARHMDL   H   PHIH PHIXH   PHIHMDL  BETASTARV  BETASTARVMDL  V   PHIV  PHIYV  PHIVMDL\n')
+        fIP.write('$  %s  %le    %le   %le  %le    %le    %le    %le   %le   %le   %le   %le   %le  \n')
+        fIPx=open(outputpath+'getIPx.out','w')
+        fIPx.write('@ GetLLMVersion %s '+VERSION+'\n')
+        fIPx.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+        fIPx.write('@ FILES %s "')
+        fIPy=open(outputpath+'getIPy.out','w')
+        fIPy.write('@ GetLLMVersion %s '+VERSION+'\n')
+        fIPy.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+        fIPy.write('@ FILES %s "')
+        fIPfromphase=open(outputpath+'getIPfromphase.out','w')
+        fIPfromphase.write('@ GetLLMVersion %s '+VERSION+'\n')
+        fIPfromphase.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+        fIPfromphase.write('@ FILES %s "')
+        if acswitch=='1':
+                fIPxf=open(outputpath+'getIPx_free.out','w')
+                fIPxf.write('@ GetLLMVersion %s '+VERSION+'\n')
+                fIPxf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+                fIPxf.write('@ FILES %s "')
+                fIPyf=open(outputpath+'getIPy_free.out','w')
+                fIPyf.write('@ GetLLMVersion %s '+VERSION+'\n')
+                fIPyf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+                fIPyf.write('@ FILES %s "')
+                fIPxf2=open(outputpath+'getIPx_free2.out','w')
+                fIPxf2.write('@ GetLLMVersion %s '+VERSION+'\n')
+                fIPxf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+                fIPxf2.write('@ FILES %s "')
+                fIPyf2=open(outputpath+'getIPy_free2.out','w')
+                fIPyf2.write('@ GetLLMVersion %s '+VERSION+'\n')
+                fIPyf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+                fIPyf2.write('@ FILES %s "')
+                fIPfromphasef=open(outputpath+'getIPfromphase_free.out','w')
+                fIPfromphasef.write('@ GetLLMVersion %s '+VERSION+'\n')
+                fIPfromphasef.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+                fIPfromphasef.write('@ FILES %s "')
+                fIPfromphasef2=open(outputpath+'getIPfromphase_free2.out','w')
+                fIPfromphasef2.write('@ GetLLMVersion %s '+VERSION+'\n')
+                fIPfromphasef2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+                fIPfromphasef2.write('@ FILES %s "')
 
     FileOfZeroDPPX=[]
     FileOfZeroDPPY=[]
@@ -4152,7 +4152,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
            Q1temp=mean(Q1temp)
 
            [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1temp,'H',outputpath,bd,accel,lhcphase)
-            print 'liny missing and output x only ...'
+           print 'liny missing and output x only ...'
     elif woliny!=1:
            #-- Calculate temp value of tune
            Q2temp=[]
@@ -4160,7 +4160,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
            Q2temp=mean(Q2temp)
 
            [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2temp,'V',outputpath,bd,accel,lhcphase)
-            print 'linx missing and output y only ...'
+           print 'linx missing and output y only ...'
 
     #---- Re-run GetPhase to fix the phase shift by Q for exp data of LHC
     if lhcphase=="1":
