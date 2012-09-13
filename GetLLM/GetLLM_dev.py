@@ -3199,11 +3199,11 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
         #-- Loop for files
 	betall=zeros((len(bpm),len(Files))); Adall=zeros((len(bpm),len(Files)))
- 	for i in range(len(Files)):
+	for i in range(len(Files)):
 		if plane=='H':
 			amp =array([2*Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
 			psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
- 		if plane=='V':
+		if plane=='V':
 			amp =array([2*Files[i].AMPY[Files[i].indx[b[1]]] for b in bpm])
 			psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
 		for k in range(len(bpm)):
@@ -3211,19 +3211,19 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 				if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
 			except: pass
 		Ad  =amp/map(sqrt,betmdl)
- 		psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
- 		Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
+		psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
+		Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
 		bet =(amp/mean(Ad))**2*(1+r**2+2*r*numpy.cos(2*Psid))/(1-r**2)
 		for k in range(len(bpm)): betall[k][i]=bet[k]; Adall[k][i]=Ad[k]
 
 	#-- Output
- 	result={}; bb=[]; Adave=[]
+	result={}; bb=[]; Adave=[]
 	for k in range(len(bpm)):
 		betave=mean(betall[k])
 		betstd=sqrt(mean((betall[k]-betave)**2))
 		bb.append((betave-betmdl[k])/betmdl[k])
 		Adave.append(mean(Adall[k]))
-  		result[bpm[k][1]]=[betave,betstd,bpm[k][0]]
+		result[bpm[k][1]]=[betave,betstd,bpm[k][0]]
        	bb=sqrt(mean(array(bb)**2))
 	Ad=[mean(Adave),sqrt(mean((Adave-mean(Adave))**2))]
 
@@ -3234,204 +3234,321 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
         #-- Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
 
-        #-- Check linx/liny files, may be redundant
-        if len(FilesX)!=len(FilesY): return [{},[]]
+	#-- Check linx/liny files, may be redundant
+	if len(FilesX)!=len(FilesY): return [{},[]]
 
         #-- Select common BPMs
-        bpm=modelIntersect(intersect(FilesX+FilesY),MADTwiss)
-        bpm=[(b[0],upper(b[1])) for b in bpm]
+	bpm=modelIntersect(intersect(FilesX+FilesY),MADTwiss)
+	bpm=[(b[0],upper(b[1])) for b in bpm]
 
-        #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-        if bd== 1 and MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]<  200: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-        if bd==-1 and MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]>26450: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+	#-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+	#if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+	#if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
-        #-- Determine the position of the AC dipole BPM
-        for b in psih_ac2bpmac.keys():
-                if '5L4' in b: bpmac1=b
-                if '6L4' in b: bpmac2=b
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
-        except:
-                try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-                except: print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'; return [{},[]]
+	#-- Determine the BPM closest to the AC dipole and its position
+	for b in psih_ac2bpmac.keys():
+		if '5L4' in b: bpmac1=b
+		if '6L4' in b: bpmac2=b
+	try:	k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+	except:
+		try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
+		except:	print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'; return [{},[]]
 
         #-- Global parameters of the driven motion
-        dh =Qh-Qx
-        dv =Qv-Qy
-        rh =sin(pi*(Qh-Qx))/sin(pi*(Qh+Qx))
-        rv =sin(pi*(Qv-Qy))/sin(pi*(Qv+Qy))
-        rch=sin(pi*(Qh-Qy))/sin(pi*(Qh+Qy))
-        rcv=sin(pi*(Qx-Qv))/sin(pi*(Qx+Qv))
+	dh =Qh-Qx
+	dv =Qv-Qy
+	rh =sin(pi*(Qh-Qx))/sin(pi*(Qh+Qx))
+	rv =sin(pi*(Qv-Qy))/sin(pi*(Qv+Qy))
+	rch=sin(pi*(Qh-Qy))/sin(pi*(Qh+Qy))
+	rcv=sin(pi*(Qx-Qv))/sin(pi*(Qx+Qv))
 
-        #-- Driven phase advance from the AC dipole to its adjacent BPM
-        psih_ac2bpmac=psih_ac2bpmac[bpmac]
-        psiv_ac2bpmac=psiv_ac2bpmac[bpmac]
+	#-- Loop for files
+	f1001Abs =zeros((len(bpm),len(FilesX)))
+	f1010Abs =zeros((len(bpm),len(FilesX)))
+	f1001xArg=zeros((len(bpm),len(FilesX)))
+	f1001yArg=zeros((len(bpm),len(FilesX)))
+	f1010xArg=zeros((len(bpm),len(FilesX)))
+	f1010yArg=zeros((len(bpm),len(FilesX)))
+	for i in range(len(FilesX)):
 
-        #-- Loop for files
-        f1001Abs =zeros((len(bpm),len(FilesX)))
-        f1010Abs =zeros((len(bpm),len(FilesX)))
-        f1001xArg=zeros((len(bpm),len(FilesX)))
-        f1001yArg=zeros((len(bpm),len(FilesX)))
-        f1010xArg=zeros((len(bpm),len(FilesX)))
-        f1010yArg=zeros((len(bpm),len(FilesX)))
-        for i in range(len(FilesX)):
+		#-- Read amplitudes and phases
+		amph  =     array([FilesX[i].AMPX[FilesX[i].indx[b[1]]]    for b in bpm])
+		ampv  =     array([FilesY[i].AMPY[FilesY[i].indx[b[1]]]    for b in bpm])
+		amph01=     array([FilesX[i].AMP01[FilesX[i].indx[b[1]]]   for b in bpm])
+		ampv10=     array([FilesY[i].AMP10[FilesY[i].indx[b[1]]]   for b in bpm])
+		psih  =2*pi*array([FilesX[i].MUX[FilesX[i].indx[b[1]]]     for b in bpm])
+		psiv  =2*pi*array([FilesY[i].MUY[FilesY[i].indx[b[1]]]     for b in bpm])
+		psih01=2*pi*array([FilesX[i].PHASE01[FilesX[i].indx[b[1]]] for b in bpm])
+		psiv10=2*pi*array([FilesY[i].PHASE10[FilesY[i].indx[b[1]]] for b in bpm])
+		#-- I'm not sure this is correct for the coupling so I comment out this part for now (by RM 9/30/11).
+		#for k in range(len(bpm)):
+		#	try:
+		#		if bpm[k][0]>s_lastbpm:
+ 		#			psih[k]  +=bd*2*pi*Qh  #-- To fix the phase shift by Qh
+ 		#			psiv[k]  +=bd*2*pi*Qv  #-- To fix the phase shift by Qv
+ 		#			psih01[k]+=bd*2*pi*Qv  #-- To fix the phase shift by Qv
+ 		#			psiv10[k]+=bd*2*pi*Qh  #-- To fix the phase shift by Qh
+		#	except: pass
 
-                #-- Read amplitudes and phases
-                amph  =     array([FilesX[i].AMPX[FilesX[i].indx[b[1]]]    for b in bpm])
-                ampv  =     array([FilesY[i].AMPY[FilesY[i].indx[b[1]]]    for b in bpm])
-                amph01=     array([FilesX[i].AMP01[FilesX[i].indx[b[1]]]   for b in bpm])
-                ampv10=     array([FilesY[i].AMP10[FilesY[i].indx[b[1]]]   for b in bpm])
-                psih  =2*pi*array([FilesX[i].MUX[FilesX[i].indx[b[1]]]     for b in bpm])
-                psiv  =2*pi*array([FilesY[i].MUY[FilesY[i].indx[b[1]]]     for b in bpm])
-                psih01=2*pi*array([FilesX[i].PHASE01[FilesX[i].indx[b[1]]] for b in bpm])
-                psiv10=2*pi*array([FilesY[i].PHASE10[FilesY[i].indx[b[1]]] for b in bpm])
-                for k in range(len(bpm)):
-                        try:
-                                if bpm[k][0]>s_lastbpm:
-                                        psih[k]  +=bd*2*pi*Qh  #-- To fix the phase shift by Qh
-                                        psiv[k]  +=bd*2*pi*Qv  #-- To fix the phase shift by Qv
-                                        psih01[k]+=bd*2*pi*Qv  #-- To fix the phase shift by Qv
-                                        psiv10[k]+=bd*2*pi*Qh  #-- To fix the phase shift by Qh
-                        except: pass
+		#-- Construct Fourier components
+		#   * be careful for that the note is based on x+i(alf*x*bet*x')).
+		#   * Calculating Eqs (87)-(92) by using Eqs (47) & (48) (but in the Fourier space) in the note.
+		#   * Note that amph(v)01 is normalized by amph(v) and it is un-normalized in the following.
+ 		dpsih  =append(psih[1:]  ,2*pi*Qh+psih[0]  )-psih
+ 		dpsiv  =append(psiv[1:]  ,2*pi*Qv+psiv[0]  )-psiv
+ 		dpsih01=append(psih01[1:],2*pi*Qv+psih01[0])-psih01
+ 		dpsiv10=append(psiv10[1:],2*pi*Qh+psiv10[0])-psiv10
 
-                #-- Construct Fourier components
-                #   * be careful for that the note is based on x+i(alf*x*bet*x')).
-                #   * Calculating Eqs (87)-(92) by using Eqs (47) & (48) (but in the Fourier space) in the note.
-                #   * Note that amph(v)01 is normalized by amph(v) and it is un-normalized in the following.
-                dpsih  =append(psih[1:]  ,2*pi*Qh+psih[0]  )-psih
-                dpsiv  =append(psiv[1:]  ,2*pi*Qv+psiv[0]  )-psiv
-                dpsih01=append(psih01[1:],2*pi*Qv+psih01[0])-psih01
-                dpsiv10=append(psiv10[1:],2*pi*Qh+psiv10[0])-psiv10
+  		X_m10=2*amph*numpy.exp(-1j*psih)
+ 		Y_0m1=2*ampv*numpy.exp(-1j*psiv)
+  		X_0m1=amph*numpy.exp(-1j*psih01)/(1j*numpy.sin(dpsih))*(amph01*numpy.exp(1j*dpsih)-append(amph01[1:],amph01[0])*numpy.exp(-1j*dpsih01))
+  		X_0p1=amph*numpy.exp( 1j*psih01)/(1j*numpy.sin(dpsih))*(amph01*numpy.exp(1j*dpsih)-append(amph01[1:],amph01[0])*numpy.exp( 1j*dpsih01))
+  		Y_m10=ampv*numpy.exp(-1j*psiv10)/(1j*numpy.sin(dpsiv))*(ampv10*numpy.exp(1j*dpsiv)-append(ampv10[1:],ampv10[0])*numpy.exp(-1j*dpsiv10))
+  		Y_p10=ampv*numpy.exp( 1j*psiv10)/(1j*numpy.sin(dpsiv))*(ampv10*numpy.exp(1j*dpsiv)-append(ampv10[1:],ampv10[0])*numpy.exp( 1j*dpsiv10))
 
-                X_m10=2*amph*numpy.exp(-1j*psih)
-                Y_0m1=2*ampv*numpy.exp(-1j*psiv)
-                X_0m1=amph*numpy.exp(-1j*psih01)/(1j*numpy.sin(dpsih))*(amph01*numpy.exp(1j*dpsih)-append(amph01[1:],amph01[0])*numpy.exp(-1j*dpsih01))
-                X_0p1=amph*numpy.exp( 1j*psih01)/(1j*numpy.sin(dpsih))*(amph01*numpy.exp(1j*dpsih)-append(amph01[1:],amph01[0])*numpy.exp( 1j*dpsih01))
-                Y_m10=ampv*numpy.exp(-1j*psiv10)/(1j*numpy.sin(dpsiv))*(ampv10*numpy.exp(1j*dpsiv)-append(ampv10[1:],ampv10[0])*numpy.exp(-1j*dpsiv10))
-                Y_p10=ampv*numpy.exp( 1j*psiv10)/(1j*numpy.sin(dpsiv))*(ampv10*numpy.exp(1j*dpsiv)-append(ampv10[1:],ampv10[0])*numpy.exp( 1j*dpsiv10))
+		#-- Construct f1001hv, f1001vh, f1010hv (these include sqrt(betv/beth) or sqrt(beth/betv))
+		f1001hv=-conjugate(1/(2j)*Y_m10/X_m10)  #-- - sign from the different def
+		f1001vh=-1/(2j)*X_0m1/Y_0m1             #-- - sign from the different def
+		f1010hv=-1/(2j)*Y_p10/conjugate(X_m10)  #-- - sign from the different def
+		f1010vh=-1/(2j)*X_0p1/conjugate(Y_0m1)  #-- - sign from the different def
+## 		f1001hv=conjugate(1/(2j)*Y_m10/X_m10)
+## 		f1001vh=1/(2j)*X_0m1/Y_0m1
+## 		f1010hv=1/(2j)*Y_p10/conjugate(X_m10)
+## 		f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
 
-                #-- Construct f1001hv, f1001vh, f1010hv (these include sqrt(betv/beth) or sqrt(beth/betv))
-                f1001hv=-conjugate(1/(2j)*Y_m10/X_m10)  #-- - sign from the different def
-                f1001vh=-1/(2j)*X_0m1/Y_0m1             #-- - sign from the different def
-                f1010hv=-1/(2j)*Y_p10/conjugate(X_m10)  #-- - sign from the different def
-                f1010vh=-1/(2j)*X_0p1/conjugate(Y_0m1)  #-- - sign from the different def
-##              f1001hv=conjugate(1/(2j)*Y_m10/X_m10)
-##              f1001vh=1/(2j)*X_0m1/Y_0m1
-##              f1010hv=1/(2j)*Y_p10/conjugate(X_m10)
-##              f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
+ 		#-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
+		psih=psih-(psih[k_bpmac]-psih_ac2bpmac[bpmac])
+		psiv=psiv-(psiv[k_bpmac]-psiv_ac2bpmac[bpmac])
 
-                #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
-                psih=psih-(psih[k_bpmac]-psih_ac2bpmac)
-                psiv=psiv-(psiv[k_bpmac]-psiv_ac2bpmac)
+		Psih=psih-pi*Qh; Psih[:k_bpmac]=Psih[:k_bpmac]+2*pi*Qh
+		Psiv=psiv-pi*Qv; Psiv[:k_bpmac]=Psiv[:k_bpmac]+2*pi*Qv
+		
+		Psix=numpy.arctan((1-rh)/(1+rh)*numpy.tan(Psih))%pi
+		Psiy=numpy.arctan((1-rv)/(1+rv)*numpy.tan(Psiv))%pi
+		for k in range(len(bpm)):
+			if Psih[k]%(2*pi)>pi: Psix[k]=Psix[k]+pi
+			if Psiv[k]%(2*pi)>pi: Psiy[k]=Psiy[k]+pi
 
-                Psih=psih-pi*Qh; Psih[:k_bpmac]=Psih[:k_bpmac]+2*pi*Qh
-                Psiv=psiv-pi*Qv; Psiv[:k_bpmac]=Psiv[:k_bpmac]+2*pi*Qv
-                
-                Psix=numpy.arctan((1-rh)/(1+rh)*numpy.tan(Psih))%pi
-                Psiy=numpy.arctan((1-rv)/(1+rv)*numpy.tan(Psiv))%pi
-                for k in range(len(bpm)):
-                        if Psih[k]%(2*pi)>pi: Psix[k]=Psix[k]+pi
-                        if Psiv[k]%(2*pi)>pi: Psiy[k]=Psiy[k]+pi
-
-                psix=Psix-pi*Qx; psix[k_bpmac:]=psix[k_bpmac:]+2*pi*Qx
-                psiy=Psiy-pi*Qy; psiy[k_bpmac:]=psiy[k_bpmac:]+2*pi*Qy
+		psix=Psix-pi*Qx; psix[k_bpmac:]=psix[k_bpmac:]+2*pi*Qx
+		psiy=Psiy-pi*Qy; psiy[k_bpmac:]=psiy[k_bpmac:]+2*pi*Qy
 
                 #-- Construct f1001h, f1001v, f1010h, f1010v (these include sqrt(betv/beth) or sqrt(beth/betv))
-                f1001h=1/numpy.sqrt(1-rv**2)*(numpy.exp(-1j*(Psiv-Psiy))*f1001hv+rv*numpy.exp( 1j*(Psiv+Psiy))*f1010hv)
-                f1010h=1/numpy.sqrt(1-rv**2)*(numpy.exp( 1j*(Psiv-Psiy))*f1010hv+rv*numpy.exp(-1j*(Psiv+Psiy))*f1001hv)
-                f1001v=1/numpy.sqrt(1-rh**2)*(numpy.exp( 1j*(Psih-Psix))*f1001vh+rh*numpy.exp(-1j*(Psih+Psix))*conjugate(f1010vh))
-                f1010v=1/numpy.sqrt(1-rh**2)*(numpy.exp( 1j*(Psih-Psix))*f1010vh+rh*numpy.exp(-1j*(Psih+Psix))*conjugate(f1001vh))
+		f1001h=1/numpy.sqrt(1-rv**2)*(numpy.exp(-1j*(Psiv-Psiy))*f1001hv+rv*numpy.exp( 1j*(Psiv+Psiy))*f1010hv)
+		f1010h=1/numpy.sqrt(1-rv**2)*(numpy.exp( 1j*(Psiv-Psiy))*f1010hv+rv*numpy.exp(-1j*(Psiv+Psiy))*f1001hv)
+		f1001v=1/numpy.sqrt(1-rh**2)*(numpy.exp( 1j*(Psih-Psix))*f1001vh+rh*numpy.exp(-1j*(Psih+Psix))*conjugate(f1010vh))
+		f1010v=1/numpy.sqrt(1-rh**2)*(numpy.exp( 1j*(Psih-Psix))*f1010vh+rh*numpy.exp(-1j*(Psih+Psix))*conjugate(f1001vh))
 
                 #-- Construct f1001 and f1010 from h and v BPMs (these include sqrt(betv/beth) or sqrt(beth/betv))
-                g1001h          =numpy.exp(-1j*((psih-psih[k_bpmac])-(psiy-psiy[k_bpmac])))*(ampv/amph*amph[k_bpmac]/ampv[k_bpmac])*f1001h[k_bpmac]
-                g1001h[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qh-Qy))-1)*(f1001h-g1001h)[:k_bpmac]
-                g1001h[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qh-Qy)))*(f1001h-g1001h)[k_bpmac:]
-                
-                g1010h          =numpy.exp(-1j*((psih-psih[k_bpmac])+(psiy-psiy[k_bpmac])))*(ampv/amph*amph[k_bpmac]/ampv[k_bpmac])*f1010h[k_bpmac]
-                g1010h[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qh+Qy))-1)*(f1010h-g1010h)[:k_bpmac]
-                g1010h[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qh+Qy)))*(f1010h-g1010h)[k_bpmac:]
+		g1001h          =numpy.exp(-1j*((psih-psih[k_bpmac])-(psiy-psiy[k_bpmac])))*(ampv/amph*amph[k_bpmac]/ampv[k_bpmac])*f1001h[k_bpmac]
+		g1001h[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qh-Qy))-1)*(f1001h-g1001h)[:k_bpmac]
+		g1001h[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qh-Qy)))*(f1001h-g1001h)[k_bpmac:]
+		
+		g1010h          =numpy.exp(-1j*((psih-psih[k_bpmac])+(psiy-psiy[k_bpmac])))*(ampv/amph*amph[k_bpmac]/ampv[k_bpmac])*f1010h[k_bpmac]
+		g1010h[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qh+Qy))-1)*(f1010h-g1010h)[:k_bpmac]
+		g1010h[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qh+Qy)))*(f1010h-g1010h)[k_bpmac:]
 
-                g1001v          =numpy.exp(-1j*((psix-psix[k_bpmac])-(psiv-psiv[k_bpmac])))*(amph/ampv*ampv[k_bpmac]/amph[k_bpmac])*f1001v[k_bpmac]
-                g1001v[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qx-Qv))-1)*(f1001v-g1001v)[:k_bpmac]
-                g1001v[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qx-Qv)))*(f1001v-g1001v)[k_bpmac:]
+		g1001v          =numpy.exp(-1j*((psix-psix[k_bpmac])-(psiv-psiv[k_bpmac])))*(amph/ampv*ampv[k_bpmac]/amph[k_bpmac])*f1001v[k_bpmac]
+		g1001v[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qx-Qv))-1)*(f1001v-g1001v)[:k_bpmac]
+		g1001v[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qx-Qv)))*(f1001v-g1001v)[k_bpmac:]
 
-                g1010v          =numpy.exp(-1j*((psix-psix[k_bpmac])+(psiv-psiv[k_bpmac])))*(amph/ampv*ampv[k_bpmac]/amph[k_bpmac])*f1010v[k_bpmac]
-                g1010v[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qx+Qv))-1)*(f1010v-g1010v)[:k_bpmac]
-                g1010v[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qx+Qv)))*(f1010v-g1010v)[k_bpmac:]
+		g1010v          =numpy.exp(-1j*((psix-psix[k_bpmac])+(psiv-psiv[k_bpmac])))*(amph/ampv*ampv[k_bpmac]/amph[k_bpmac])*f1010v[k_bpmac]
+		g1010v[:k_bpmac]=1/(numpy.exp(2*pi*1j*(Qx+Qv))-1)*(f1010v-g1010v)[:k_bpmac]
+		g1010v[k_bpmac:]=1/(1-numpy.exp(-2*pi*1j*(Qx+Qv)))*(f1010v-g1010v)[k_bpmac:]
 
-                f1001x=numpy.exp(1j*(psih-psix))*f1001h
-                f1001x=f1001x-rh*numpy.exp(-1j*(psih+psix))/rch*conjugate(f1010h)
-                f1001x=f1001x-2j*numpy.sin(pi*dh)*numpy.exp(1j*(Psih-Psix))*g1001h
-                f1001x=f1001x-2j*numpy.sin(pi*dh)*numpy.exp(-1j*(Psih+Psix))/rch*conjugate(g1010h)
-                f1001x=1/numpy.sqrt(1-rh**2)*numpy.sin(pi*(Qh-Qy))/numpy.sin(pi*(Qx-Qy))*f1001x
+		f1001x=numpy.exp(1j*(psih-psix))*f1001h
+		f1001x=f1001x-rh*numpy.exp(-1j*(psih+psix))/rch*conjugate(f1010h)
+		f1001x=f1001x-2j*numpy.sin(pi*dh)*numpy.exp(1j*(Psih-Psix))*g1001h
+		f1001x=f1001x-2j*numpy.sin(pi*dh)*numpy.exp(-1j*(Psih+Psix))/rch*conjugate(g1010h)
+		f1001x=1/numpy.sqrt(1-rh**2)*numpy.sin(pi*(Qh-Qy))/numpy.sin(pi*(Qx-Qy))*f1001x
 
-                f1010x=numpy.exp(1j*(psih-psix))*f1010h
-                f1010x=f1010x-rh*numpy.exp(-1j*(psih+psix))*rch*conjugate(f1001h)
-                f1010x=f1010x-2j*numpy.sin(pi*dh)*numpy.exp(1j*(Psih-Psix))*g1010h
-                f1010x=f1010x-2j*numpy.sin(pi*dh)*numpy.exp(-1j*(Psih+Psix))*rch*conjugate(g1001h)
-                f1010x=1/numpy.sqrt(1-rh**2)*numpy.sin(pi*(Qh+Qy))/numpy.sin(pi*(Qx+Qy))*f1010x
+		f1010x=numpy.exp(1j*(psih-psix))*f1010h
+		f1010x=f1010x-rh*numpy.exp(-1j*(psih+psix))*rch*conjugate(f1001h)
+		f1010x=f1010x-2j*numpy.sin(pi*dh)*numpy.exp(1j*(Psih-Psix))*g1010h
+		f1010x=f1010x-2j*numpy.sin(pi*dh)*numpy.exp(-1j*(Psih+Psix))*rch*conjugate(g1001h)
+		f1010x=1/numpy.sqrt(1-rh**2)*numpy.sin(pi*(Qh+Qy))/numpy.sin(pi*(Qx+Qy))*f1010x
 
-                f1001y=numpy.exp(-1j*(psiv-psiy))*f1001v
-                f1001y=f1001y+rv*numpy.exp(1j*(psiv+psiy))/rcv*f1010v
-                f1001y=f1001y+2j*numpy.sin(pi*dv)*numpy.exp(-1j*(Psiv-Psiy))*g1001v
-                f1001y=f1001y-2j*numpy.sin(pi*dv)*numpy.exp(1j*(Psiv+Psiy))/rcv*g1010v
-                f1001y=1/numpy.sqrt(1-rv**2)*numpy.sin(pi*(Qx-Qv))/numpy.sin(pi*(Qx-Qy))*f1001y
+		f1001y=numpy.exp(-1j*(psiv-psiy))*f1001v
+		f1001y=f1001y+rv*numpy.exp(1j*(psiv+psiy))/rcv*f1010v
+		f1001y=f1001y+2j*numpy.sin(pi*dv)*numpy.exp(-1j*(Psiv-Psiy))*g1001v
+		f1001y=f1001y-2j*numpy.sin(pi*dv)*numpy.exp(1j*(Psiv+Psiy))/rcv*g1010v
+		f1001y=1/numpy.sqrt(1-rv**2)*numpy.sin(pi*(Qx-Qv))/numpy.sin(pi*(Qx-Qy))*f1001y
 
-                f1010y=numpy.exp(1j*(psiv-psiy))*f1010v
-                f1010y=f1010y+rv*numpy.exp(-1j*(psiv+psiy))*rcv*f1001v
-                f1010y=f1010y-2j*numpy.sin(pi*dv)*numpy.exp(1j*(Psiv-Psiy))*g1010v
-                f1010y=f1010y+2j*numpy.sin(pi*dv)*numpy.exp(-1j*(Psiv+Psiy))*rcv*g1001v
-                f1010y=1/numpy.sqrt(1-rv**2)*numpy.sin(pi*(Qx+Qv))/numpy.sin(pi*(Qx+Qy))*f1010y
+		f1010y=numpy.exp(1j*(psiv-psiy))*f1010v
+		f1010y=f1010y+rv*numpy.exp(-1j*(psiv+psiy))*rcv*f1001v
+		f1010y=f1010y-2j*numpy.sin(pi*dv)*numpy.exp(1j*(Psiv-Psiy))*g1010v
+		f1010y=f1010y+2j*numpy.sin(pi*dv)*numpy.exp(-1j*(Psiv+Psiy))*rcv*g1001v
+		f1010y=1/numpy.sqrt(1-rv**2)*numpy.sin(pi*(Qx+Qv))/numpy.sin(pi*(Qx+Qy))*f1010y
 
-                #-- For B2, must be double checked
-                if bd == -1:
-                        f1001x=-conjugate(f1001x)
-                        f1001y=-conjugate(f1001y)
-                        f1010x=-conjugate(f1010x)
-                        f1010y=-conjugate(f1010y)
+		#-- For B2, must be double checked
+		if bd == -1:
+			f1001x=-conjugate(f1001x)
+			f1001y=-conjugate(f1001y)
+			f1010x=-conjugate(f1010x)
+			f1010y=-conjugate(f1010y)
 
-                #-- Separate to amplitudes and phases, amplitudes averaged to cancel sqrt(betv/beth) and sqrt(beth/betv)
-                for k in range(len(bpm)):
-                        f1001Abs[k][i] =numpy.sqrt(abs(f1001x[k]*f1001y[k]))
-                        f1010Abs[k][i] =numpy.sqrt(abs(f1010x[k]*f1010y[k]))
-                        f1001xArg[k][i]=angle(f1001x[k])%(2*pi)
-                        f1001yArg[k][i]=angle(f1001y[k])%(2*pi)
-                        f1010xArg[k][i]=angle(f1010x[k])%(2*pi)
-                        f1010yArg[k][i]=angle(f1010y[k])%(2*pi)
+		#-- Separate to amplitudes and phases, amplitudes averaged to cancel sqrt(betv/beth) and sqrt(beth/betv)
+		for k in range(len(bpm)):
+			f1001Abs[k][i] =numpy.sqrt(abs(f1001x[k]*f1001y[k]))
+			f1010Abs[k][i] =numpy.sqrt(abs(f1010x[k]*f1010y[k]))
+			f1001xArg[k][i]=angle(f1001x[k])%(2*pi)
+			f1001yArg[k][i]=angle(f1001y[k])%(2*pi)
+			f1010xArg[k][i]=angle(f1010x[k])%(2*pi)
+			f1010yArg[k][i]=angle(f1010y[k])%(2*pi)
 
-        #-- Output
-        fwqw={}; goodbpm=[]
-        for k in range(len(bpm)):
+	#-- Output
+	fwqw={}; goodbpm=[]
+	for k in range(len(bpm)):
 
-                #-- Bad BPM flag based on phase
-                badbpm=0
-                f1001xArgAve=PhaseMean(f1001xArg[k],2*pi)
-                f1001yArgAve=PhaseMean(f1001yArg[k],2*pi)
-                f1010xArgAve=PhaseMean(f1010xArg[k],2*pi)
-                f1010yArgAve=PhaseMean(f1010yArg[k],2*pi)
-                if min(abs(f1001xArgAve-f1001yArgAve),2*pi-abs(f1001xArgAve-f1001yArgAve))>pi/2: badbpm=1
-                if min(abs(f1010xArgAve-f1010yArgAve),2*pi-abs(f1010xArgAve-f1010yArgAve))>pi/2: badbpm=1
+		#-- Bad BPM flag based on phase
+		badbpm=0
+		f1001xArgAve=PhaseMean(f1001xArg[k],2*pi)
+		f1001yArgAve=PhaseMean(f1001yArg[k],2*pi)
+		f1010xArgAve=PhaseMean(f1010xArg[k],2*pi)
+		f1010yArgAve=PhaseMean(f1010yArg[k],2*pi)
+		if min(abs(f1001xArgAve-f1001yArgAve),2*pi-abs(f1001xArgAve-f1001yArgAve))>pi/2: badbpm=1
+		if min(abs(f1010xArgAve-f1010yArgAve),2*pi-abs(f1010xArgAve-f1010yArgAve))>pi/2: badbpm=1
 
-                #-- Output
-                if badbpm==0:
-                        f1001AbsAve=mean(f1001Abs[k])
-                        f1010AbsAve=mean(f1010Abs[k])
-                        f1001ArgAve=PhaseMean(append(f1001xArg[k],f1001yArg[k]),2*pi)  
-                        f1010ArgAve=PhaseMean(append(f1010xArg[k],f1010yArg[k]),2*pi)
-                        f1001Ave   =f1001AbsAve*numpy.exp(1j*f1001ArgAve)
-                        f1010Ave   =f1010AbsAve*numpy.exp(1j*f1010ArgAve)
-                        f1001AbsStd=sqrt(mean((f1001Abs[k]-f1001AbsAve)**2))
-                        f1010AbsStd=sqrt(mean((f1010Abs[k]-f1010AbsAve)**2))
-                        f1001ArgStd=PhaseStd(append(f1001xArg[k],f1001yArg[k]),2*pi)
-                        f1010ArgStd=PhaseStd(append(f1010xArg[k],f1010yArg[k]),2*pi)
-                        fwqw[bpm[k][1]]=[[f1001Ave          ,f1001AbsStd       ,f1010Ave          ,f1010AbsStd       ],
-                                         [f1001ArgAve/(2*pi),f1001ArgStd/(2*pi),f1010ArgAve/(2*pi),f1010ArgStd/(2*pi)]]  #-- Phases renormalized to [0,1)
-                        goodbpm.append(bpm[k])
+		#-- Output
+ 		if badbpm==0:
+			f1001AbsAve=mean(f1001Abs[k])
+			f1010AbsAve=mean(f1010Abs[k])
+			f1001ArgAve=PhaseMean(append(f1001xArg[k],f1001yArg[k]),2*pi)  
+			f1010ArgAve=PhaseMean(append(f1010xArg[k],f1010yArg[k]),2*pi)
+			f1001Ave   =f1001AbsAve*numpy.exp(1j*f1001ArgAve)
+			f1010Ave   =f1010AbsAve*numpy.exp(1j*f1010ArgAve)
+			f1001AbsStd=sqrt(mean((f1001Abs[k]-f1001AbsAve)**2))
+			f1010AbsStd=sqrt(mean((f1010Abs[k]-f1010AbsAve)**2))
+			f1001ArgStd=PhaseStd(append(f1001xArg[k],f1001yArg[k]),2*pi)
+			f1010ArgStd=PhaseStd(append(f1010xArg[k],f1010yArg[k]),2*pi)
+			fwqw[bpm[k][1]]=[[f1001Ave          ,f1001AbsStd       ,f1010Ave          ,f1010AbsStd       ],
+					 [f1001ArgAve/(2*pi),f1001ArgStd/(2*pi),f1010ArgAve/(2*pi),f1010ArgStd/(2*pi)]]  #-- Phases renormalized to [0,1)
+			goodbpm.append(bpm[k])
 
-        #-- Global parameters not implemented yet
-        fwqw['Global']=['"null"','"null"']
+	#-- Global parameters not implemented yet
+	fwqw['Global']=['"null"','"null"']
 
-        return [fwqw,goodbpm]
+	return [fwqw,goodbpm]
 
+def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
+
+	#-- Common BPMs
+	bpm=modelIntersect(intersect(Files),MADTwiss)
+	bpm=[(b[0],upper(b[1])) for b in bpm]
+
+	#-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+	if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+	if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+
+	#-- Determine the BPM closest to the AC dipole and its position
+	for b in psid_ac2bpmac.keys():
+		if '5L4' in b: bpmac1=b
+		if '6L4' in b: bpmac2=b
+	try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+	except:
+		try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
+		except:	return [{},[]]
+
+        #-- Global parameters of the driven motion
+	r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
+
+	#-- Determine Psid (w.r.t the AC dipole) for each file
+	Psidall=[]
+ 	for i in range(len(Files)):
+		if plane=='H': psid=bd*2*pi*array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+ 		if plane=='V': psid=bd*2*pi*array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+		for k in range(len(bpm)):
+			try:
+				if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
+			except: pass
+ 		psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
+		Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
+		Psidall.append(Psid)
+
+	#-- Loop for IPs
+	result={}
+	for ip in ('1','2','5','8'):
+		
+		bpml='BPMSW.1L'+ip+'.'+oa[3:]; bpmr='BPMSW.1R'+ip+'.'+oa[3:]
+		if (bpml in zip(*bpm)[1]) and (bpmr in zip(*bpm)[1]):
+
+			#-- Model values
+			L=0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
+			if L<0: L+=0.5*MADTwiss.LENGTH
+			if plane=='H':
+				betlmdl=MADTwiss.BETX[MADTwiss.indx[bpml]]
+				alflmdl=MADTwiss.ALFX[MADTwiss.indx[bpml]]
+			if plane=='V':
+				betlmdl=MADTwiss.BETY[MADTwiss.indx[bpml]]
+				alflmdl=MADTwiss.ALFY[MADTwiss.indx[bpml]]
+			betsmdl=betlmdl/(1+alflmdl**2)
+			betmdl =betlmdl-2*alflmdl*L+L**2/betsmdl
+			alfmdl =alflmdl-L/betsmdl
+			dsmdl  =alfmdl*betsmdl
+
+			#-- Measurement for each file
+			betall=[]; alfall=[]; betsall=[]; dsall=[]; rt2Jall=[]
+			for i in range(len(Files)):
+				try:    #-- Maybe not needed, to avoid like sqrt(-...)
+					if plane=='H':
+						al=Files[i].AMPX[Files[i].indx[bpml]]
+						ar=Files[i].AMPX[Files[i].indx[bpmr]]
+					if plane=='V':
+						al=Files[i].AMPY[Files[i].indx[bpml]]
+						ar=Files[i].AMPY[Files[i].indx[bpmr]]
+					Psidl=Psidall[i][list(zip(*bpm)[1]).index(bpml)]
+					Psidr=Psidall[i][list(zip(*bpm)[1]).index(bpmr)]
+					dpsid=Psidr-Psidl
+							
+					#-- betd, alfd, and sqrt(2Jd) at BPM_left from amp and phase advance
+					betdl=2*L*al/(ar*sin(dpsid))
+					alfdl=(al-ar*cos(dpsid))/(ar*sin(dpsid))
+					rt2J =sqrt(al*ar*sin(dpsid)/(2*L))
+					#-- Convert to free bet and alf
+					betl=(1+r**2+2*r*numpy.cos(2*Psidl))/(1-r**2)*betdl
+					alfl=((1+r**2+2*r*numpy.cos(2*Psidl))*alfdl+2*r*numpy.sin(2*Psidl))/(1-r**2)
+					#-- Calculate IP parameters
+					bets=betl/(1+alfl**2)
+					bet =betl-2*alfl*L+L**2/bets
+					alf =alfl-L/bets
+					ds  =alf*bets
+					betall.append(bet); alfall.append(alf);	betsall.append(bets); dsall.append(ds);	rt2Jall.append(rt2J)
+				except:
+					pass
+
+			#-- Ave and Std
+			betall =array(betall) ; betave =mean(betall) ; betstd =sqrt(mean((betall-betave)**2))
+			alfall =array(alfall) ; alfave =mean(alfall) ; alfstd =sqrt(mean((alfall-alfave)**2))
+			betsall=array(betsall); betsave=mean(betsall); betsstd=sqrt(mean((betsall-betsave)**2))
+			dsall  =array(dsall)  ; dsave  =mean(dsall)  ; dsstd  =sqrt(mean((dsall-dsave)**2))
+			rt2Jall=array(rt2Jall); rt2Jave=mean(rt2Jall); rt2Jstd=sqrt(mean((rt2Jall-rt2Jave)**2))
+			result['IP'+ip]=[betave,betstd,betmdl,alfave,alfstd,alfmdl,betsave,betsstd,betsmdl,dsave,dsstd,dsmdl,rt2Jave,rt2Jstd]
+			
+	return result
+
+def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
+
+	invarianceJx=[]; invarianceJy=[]
+	tunex       =[]; tuney       =[]
+	tunexRMS    =[]; tuneyRMS    =[]
+	dpp=[]
+
+	for j in range(len(files[0])):
+
+		x=files[0][j]; y=files[1][j]
+		[beta,rmsbb,bpms,invariantJx]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op)
+		[beta,rmsbb,bpms,invariantJy]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op)		
+		invarianceJx.append(invariantJx); invarianceJy.append(invariantJy)
+		try:
+			dpp.append(x.DPP)
+		except:
+			dpp.append(0.0)
+		tunex.append(x.Q1)      ; tuney.append(y.Q2)
+		tunexRMS.append(x.Q1RMS); tuneyRMS.append(y.Q2RMS)
+
+	tune   =[tunex,tuney]
+	tuneRMS=[tunexRMS,tuneyRMS]
+
+	return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
 
 ######### end ac-dipole stuff           
 
