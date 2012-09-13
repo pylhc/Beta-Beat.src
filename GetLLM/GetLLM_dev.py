@@ -2150,192 +2150,192 @@ def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
 
         return [chiAMP,chiAMPi,chiAMPr,chiPHASE]
  
-def getChiTerms(MADTwiss,filesF,plane,name):
+def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
-        # bmps
-        files=filesF[0]
-        
-        dbpms=intersect(files)
-        dbpms=modelIntersect(dbpms, MADTwiss)
-
-
-        # initiliasing variables
-        twoPi=2*pi
-
-        XIT=[]
-        XITi=[]
-        XITr=[]
-        XIrmsT=[]
-        XI_phase_T=[]
-        XI_phaseRMS_T=[]
-
-        POS1=[]
-        POS2=[]
-        POS3=[]
-
-        XITMODEL=[]
-        XITMODELi=[]
-        XITMODELr=[]
-        XITMODEL_phase=[]
-
-        BPMS=[]
-        invarianceJx=[]
-        invarianceJy=[]
-                
-        for i in range(0,len(dbpms)): # ask rogelio
-                
-                bn1=upper(dbpms[i][1])
-
-                BPMS.append(bn1)
-
-        #### invariance
-        for j in range(0,len(ListOfZeroDPPX)):
-                [betax,rmsbbx,bpms,invariantJX]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H')
-                [betay,rmsbby,bpms,invariantJY]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V')
-                invarianceJx.append(invariantJX[0])
-                invarianceJy.append(invariantJY[0])
-                
-        #print invarianceJx
-        #### model chi
-        MADTwiss.chiterms(BPMS)
-        if name=='chi3000':
-                MODEL=MADTwiss.chi
-        elif name=='chi4000':
-                MODEL=MADTwiss.chi4000
-
-        
-        for i in range(0,len(MODEL)):
-
-                MODEL[i]=MODEL[i]
-                amp=abs(MODEL[i])
-                ampi=MODEL[i].imag
-                ampr=MODEL[i].real
-
-                if(MODEL[i].real==0. ):
-
-                        phase=0 
-
-                else:
-
-                        phase=arctan2(MODEL[i].imag,MODEL[i].real)%1
+    # bmps
+    files=filesF[0]
+    
+    dbpms=intersect(files)
+    dbpms=modelIntersect(dbpms, MADTwiss)
 
 
-                XITMODEL.append(amp)
-                XITMODELi.append(ampi)
-                XITMODELr.append(ampr)
-                XITMODEL_phase.append(phase)
+    # initiliasing variables
+    twoPi=2*pi
 
-        XIMODEl=[XITMODEL,XITMODELi,XITMODELr,XITMODEL_phase]
+    XIT=[]
+    XITi=[]
+    XITr=[]
+    XIrmsT=[]
+    XI_phase_T=[]
+    XI_phaseRMS_T=[]
 
-        for i in range(0,len(dbpms)-2):
-                
-                XI=[]
-                XIi=[]
-                XIr=[]
-                XIrms=[]
-                XI_phase=[]
-                XI_phaseRMS=[]
+    POS1=[]
+    POS2=[]
+    POS3=[]
 
-                bn1=upper(dbpms[i][1])
-                bn2=upper(dbpms[i+1][1])
-                bn3=upper(dbpms[i+2][1])
+    XITMODEL=[]
+    XITMODELi=[]
+    XITMODELr=[]
+    XITMODEL_phase=[]
 
-                filej=ListOfZeroDPPX[0]
-        
-                pos1=filej.S[filej.indx[bn1]]
-                pos2=filej.S[filej.indx[bn2]]
-                pos3=filej.S[filej.indx[bn3]]
+    BPMS=[]
+    invarianceJx=[]
+    invarianceJy=[]
+            
+    for i in range(0,len(dbpms)): # ask rogelio
+            
+            bn1=upper(dbpms[i][1])
 
-                
-                POS1.append(pos1)
-                POS2.append(pos2)
-                POS3.append(pos3)
+            BPMS.append(bn1)
 
-                imaM=XITMODELi[i]
-                realM=XITMODELr[i]
-                
-                for j in range(0,len(files)):
-                        jx=files[j]
-                        listJX=[jx]
+    #### invariance
+    for j in range(0,len(ListOfZeroDPPX)):
+            [betax,rmsbbx,bpms,invariantJX]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H')
+            [betay,rmsbby,bpms,invariantJY]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V')
+            invarianceJx.append(invariantJX[0])
+            invarianceJy.append(invariantJY[0])
+            
+    #print invarianceJx
+    #### model chi
+    MADTwiss.chiterms(BPMS)
+    if name=='chi3000':
+            MODEL=MADTwiss.chi
+    elif name=='chi4000':
+            MODEL=MADTwiss.chi4000
+
+    
+    for i in range(0,len(MODEL)):
+
+            MODEL[i]=MODEL[i]
+            amp=abs(MODEL[i])
+            ampi=MODEL[i].imag
+            ampr=MODEL[i].real
+
+            if(MODEL[i].real==0. ):
+
+                    phase=0 
+
+            else:
+
+                    phase=arctan2(MODEL[i].imag,MODEL[i].real)%1
 
 
-                        
-                        
-                        # for chi3000
-                        if name=='chi3000':
-                                phase1=jx.PHASE_20[jx.indx[bn1]]
-                                phase2=jx.PHASE_20[jx.indx[bn2]]
-                                phase3=jx.PHASE_20[jx.indx[bn3]]
-                                phase_SL=[phase1,phase2,phase3]
+            XITMODEL.append(amp)
+            XITMODELi.append(ampi)
+            XITMODELr.append(ampr)
+            XITMODEL_phase.append(phase)
 
-                                terms=[3,0,0,0]
-                                amp1=jx.AMP_20[jx.indx[bn1]]
-                                amp2=jx.AMP_20[jx.indx[bn2]]
-                                amp3=jx.AMP_20[jx.indx[bn3]]
-                                amp=[amp1,amp2,amp3]
+    XIMODEl=[XITMODEL,XITMODELi,XITMODELr,XITMODEL_phase]
 
-                        # for chi4000
-                        elif name=='chi4000':
-                                phase1=jx.PHASE_30[jx.indx[bn1]]
-                                phase2=jx.PHASE_30[jx.indx[bn2]]
-                                phase3=jx.PHASE_30[jx.indx[bn3]]
-                                phase_SL=[phase1,phase2,phase3]
+    for i in range(0,len(dbpms)-2):
+            
+            XI=[]
+            XIi=[]
+            XIr=[]
+            XIrms=[]
+            XI_phase=[]
+            XI_phaseRMS=[]
 
-                                terms=[4,0,0,0]
-                                amp1=jx.AMP_30[jx.indx[bn1]]
-                                amp2=jx.AMP_30[jx.indx[bn2]]
-                                amp3=jx.AMP_30[jx.indx[bn3]]
-                                amp=[amp1,amp2,amp3]
+            bn1=upper(dbpms[i][1])
+            bn2=upper(dbpms[i+1][1])
+            bn3=upper(dbpms[i+2][1])
 
-                        phase11=jx.MUX[jx.indx[bn1]]
-                        phase12=jx.MUX[jx.indx[bn2]]
-                        phase13=jx.MUX[jx.indx[bn3]]
-                        phase=[phase11,phase12,phase13]
+            filej=ListOfZeroDPPX[0]
+    
+            pos1=filej.S[filej.indx[bn1]]
+            pos2=filej.S[filej.indx[bn2]]
+            pos3=filej.S[filej.indx[bn3]]
 
-                
-                        J=[ invarianceJx[j],invarianceJy[j]]
-                                
-                        
-                        
-                        chi=computeChiTerms(amp,phase_SL,phase,terms,J,'H',imaM,realM)
+            
+            POS1.append(pos1)
+            POS2.append(pos2)
+            POS3.append(pos3)
 
-                        
-                
-                        XI.append(chi[0])
-                        XIi.append(chi[1])
-                        XIr.append(chi[2])
-                        XI_phase.append(chi[3])
-                                        
-                                
+            imaM=XITMODELi[i]
+            realM=XITMODELr[i]
+            
+            for j in range(0,len(files)):
+                    jx=files[j]
+                    listJX=[jx]
 
-                XI=array(XI)
-                XIi=array(XIi)
-                XIr=array(XIr)
-                try:
-                        XIrms=sqrt(average(XI*XI)-average(XI)**2+2.2e-16)
-                except:
-                        XIrms=0
-                XI_phase=array(XI_phase)
-                try:
-                        XI_phaseRMS=sqrt(average(XI_phase*XI_phase)-average(XI_phase)**2+2.2e-16)
-                except:
-                        XI_phaseRMS=0
-                
-                
-                XIT.append(average(XI))
-                XITi.append(average(XIi))
-                XITr.append(average(XIr))
-                XIrmsT.append(XIrms)
-                XI_phase_T.append(average(XI_phase))
-                XI_phaseRMS_T.append(XI_phaseRMS)
 
-                POS=[POS1,POS2,POS3]
+                    
+                    
+                    # for chi3000
+                    if name=='chi3000':
+                            phase1=jx.PHASE_20[jx.indx[bn1]]
+                            phase2=jx.PHASE_20[jx.indx[bn2]]
+                            phase3=jx.PHASE_20[jx.indx[bn3]]
+                            phase_SL=[phase1,phase2,phase3]
 
-                XItot=[XIT,XITi,XITr,XIrmsT,XI_phase_T,XI_phaseRMS_T]
+                            terms=[3,0,0,0]
+                            amp1=jx.AMP_20[jx.indx[bn1]]
+                            amp2=jx.AMP_20[jx.indx[bn2]]
+                            amp3=jx.AMP_20[jx.indx[bn3]]
+                            amp=[amp1,amp2,amp3]
 
-        return [dbpms,POS,XItot,XIMODEl]
+                    # for chi4000
+                    elif name=='chi4000':
+                            phase1=jx.PHASE_30[jx.indx[bn1]]
+                            phase2=jx.PHASE_30[jx.indx[bn2]]
+                            phase3=jx.PHASE_30[jx.indx[bn3]]
+                            phase_SL=[phase1,phase2,phase3]
 
-def getchi1010(madtwiss,filesF,plane,name):
+                            terms=[4,0,0,0]
+                            amp1=jx.AMP_30[jx.indx[bn1]]
+                            amp2=jx.AMP_30[jx.indx[bn2]]
+                            amp3=jx.AMP_30[jx.indx[bn3]]
+                            amp=[amp1,amp2,amp3]
+
+                    phase11=jx.MUX[jx.indx[bn1]]
+                    phase12=jx.MUX[jx.indx[bn2]]
+                    phase13=jx.MUX[jx.indx[bn3]]
+                    phase=[phase11,phase12,phase13]
+
+            
+                    J=[ invarianceJx[j],invarianceJy[j]]
+                            
+                    
+                    
+                    chi=computeChiTerms(amp,phase_SL,phase,terms,J,'H',imaM,realM)
+
+                    
+            
+                    XI.append(chi[0])
+                    XIi.append(chi[1])
+                    XIr.append(chi[2])
+                    XI_phase.append(chi[3])
+                                    
+                            
+
+            XI=array(XI)
+            XIi=array(XIi)
+            XIr=array(XIr)
+            try:
+                    XIrms=sqrt(average(XI*XI)-average(XI)**2+2.2e-16)
+            except:
+                    XIrms=0
+            XI_phase=array(XI_phase)
+            try:
+                    XI_phaseRMS=sqrt(average(XI_phase*XI_phase)-average(XI_phase)**2+2.2e-16)
+            except:
+                    XI_phaseRMS=0
+            
+            
+            XIT.append(average(XI))
+            XITi.append(average(XIi))
+            XITr.append(average(XIr))
+            XIrmsT.append(XIrms)
+            XI_phase_T.append(average(XI_phase))
+            XI_phaseRMS_T.append(XI_phaseRMS)
+
+            POS=[POS1,POS2,POS3]
+
+            XItot=[XIT,XITi,XITr,XIrmsT,XI_phase_T,XI_phaseRMS_T]
+
+    return [dbpms,POS,XItot,XIMODEl]
+
+def getchi1010(MADTwiss,filesF,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY):
 
                 # bmps
         files=filesF[0]
@@ -5427,45 +5427,31 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     # global stuff
     
     # 1)
-    
+
             htot,afactor,pfactor=Getsextupole(MADTwiss,ListOfZeroDPPX,phasexlist[0],Q1f,3,0)
-    
+
             print >> fsex3000,"@","f2h_factor","%le",afactor
             print >> fsex3000,"@","p_f2h_factor","%le",pfactor      
-    
+
             print >> fsex3000,"NAME","S","AMP_20","AMP_20std","PHASE_20","PHASE_20std","f3000","f3000std","phase_f_3000","phase_f_3000std","h3000","h3000_std","phase_h_3000","phase_h_3000_std"
             print >> fsex3000,"%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"
     
-    
-    
             for bpm in htot:
-    
                     li=htot[bpm]
-    
                     print >>fsex3000,li[0],li[1],li[2],li[3],li[4],li[5],li[6],li[7],li[8],li[9],li[10],li[11],li[12],li[13]
-            
-    
-    
+
             fsex3000.close()
-    
-    
-            #foct4000.close()
-            #fchi4000.close()
-            #fchi3000.close()
-            #f2000y.close()
-    #       f2000x.close()
-    
-            #sys.exit()
-    
-    
-    # --------------------------------------- end getsextupoles
-    #---------------------------------------- begin getchiterms @ Glenn Vanbavinckhove
-    #-> 1) chi3000
-    #-> 2) chi1010
-    #-> 2) chi4000
-    
-    # 1) chi3000
-    
+
+
+
+            # --------------------------------------- end getsextupoles
+            #---------------------------------------- begin getchiterms @ Glenn Vanbavinckhove
+            #-> 1) chi3000
+            #-> 2) chi1010
+            #-> 2) chi4000
+
+            # 1) chi3000
+
             fchi3000.write('* NAME    S    S1    S2    X3000    X3000i    X3000r    X3000RMS   X3000PHASE   X3000PHASERMS   X3000M    X3000Mi   X3000Mr    X3000MPHASE \n')
             fchi3000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
     
@@ -5473,50 +5459,45 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             name='chi3000'
             plane='H'
             
-            [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
+            [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
     
             for i in range(0,len(dbpms)-2):
     
                     bn=upper(dbpms[i][1])
             
                     fchi3000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-    
+
             fchi3000.close()
-    
+
     # 2) chi1010
-            
-            if  options.ACCEL!='SPS':
-    
+
+            if  accel!='SPS':
+
                     fchi1010.write('* NAME  S    X1010   X1010RMS   X1010PHASE   X1010PHASERMS   X1010M   X1010MPHASE \n')
                     fchi1010.write('$ %s   %le  %le    %le   %le   %le   %le   %le  \n')
-    
+
                     files=[ListOfZeroDPPX,ListOfZeroDPPY]
                     name='chi1010'
                     plane='H'
-            
-                    [dbpms,XItot]=getchi1010(MADTwiss,files,plane,name)
-    
-            
-            
-    
+
+                    [dbpms,XItot]=getchi1010(MADTwiss,files,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY)
+
                     for i in range(0,len(dbpms)-2):
-                            
                             bn=upper(dbpms[i][1])
                             bns=dbpms[i][0]
                             fchi1010.write('"'+bn+'" '+str(bns)+' '+str(XItot[0][i])+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str('0')+' '+str('0')+' '+'\n')
-    
+
                     fchi1010.close()
     # 1) chi4000
-    
+
             fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
             fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
-    
-    
+
             #files=[ListOfZeroDPPX,ListOfZeroDPPY]
             #name='chi4000'
             #plane='H'
             
-            #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
+            #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
     
             #for i in range(0,len(dbpms)-2):
     
@@ -5532,111 +5513,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #---------------------------------------- end chiterms
     #-----------------------------------------begin octupole
     #->  1) f4000 (-3,0)
-    #
-    #       f4000M=MADTwiss.f4000
-    #       NAMES=MADTwiss.NAME
-    
-            foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
-            foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
-            
-            files=[ListOfZeroDPPX,ListOfZeroDPPY]
-            Q=[Q1,Q2]
-            plane='H'
-            name='f4000'
-    
-    #       [A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
-    
-    #       for i in range(0,len(dbpms)-1):
-    #
-    #               bn=upper(dbpms[i][1])
-    #               bns=dbpms[i][0]
-    #               foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
 
-
-
-            foct4000.close()
-
-
-
-            #-----------------------------------------end octupole
-
-    # --------------------------------------- end getsextupoles
-    #---------------------------------------- begin getchiterms @ Glenn Vanbavinckhove
-    #-> 1) chi3000
-    #-> 2) chi1010
-    #-> 2) chi4000
-
-    # 1) chi3000
-
-            fchi3000.write('* NAME    S    S1    S2    X3000    X3000i    X3000r    X3000RMS   X3000PHASE   X3000PHASERMS   X3000M    X3000Mi   X3000Mr    X3000MPHASE \n')
-            fchi3000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
-
-            files=[ListOfZeroDPPX,ListOfZeroDPPY]
-            name='chi3000'
-            plane='H'
-            
-            [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
-
-            for i in range(0,len(dbpms)-2):
-
-                    bn=upper(dbpms[i][1])
-            
-                    fchi3000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-
-            fchi3000.close()
-
-    # 2) chi1010
-            
-            if  accel!='SPS':
-
-                    fchi1010.write('* NAME  S    X1010   X1010RMS   X1010PHASE   X1010PHASERMS   X1010M   X1010MPHASE \n')
-                    fchi1010.write('$ %s   %le  %le    %le   %le   %le   %le   %le  \n')
-
-                    files=[ListOfZeroDPPX,ListOfZeroDPPY]
-                    name='chi1010'
-                    plane='H'
-            
-                    [dbpms,XItot]=getchi1010(MADTwiss,files,plane,name)
-
-            
-            
-
-                    for i in range(0,len(dbpms)-2):
-                            
-                            bn=upper(dbpms[i][1])
-                            bns=dbpms[i][0]
-                            fchi1010.write('"'+bn+'" '+str(bns)+' '+str(XItot[0][i])+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str('0')+' '+str('0')+' '+'\n')
-
-                    fchi1010.close()
-    # 1) chi4000
-
-            fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
-            fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
-
-
-            files=[ListOfZeroDPPX,ListOfZeroDPPY]
-            name='chi4000'
-            plane='H'
-            
-            [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
-
-            for i in range(0,len(dbpms)-2):
-
-                    bn=upper(dbpms[i][1])
-            
-                    fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-
-            fchi4000.close()
-
-
-
-
-    #---------------------------------------- end chiterms
-    #-----------------------------------------begin octupole
-    #->  1) f4000 (-3,0)
-
-            f4000M=MADTwiss.f4000
-            NAMES=MADTwiss.NAME
+            #f4000M=MADTwiss.f4000
+            #NAMES=MADTwiss.NAME
 
             foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
             foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
@@ -5689,7 +5568,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
            fkickac.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
            fkickac.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
-           [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkickac(MADTwiss_ac,files,Q1,Q2,Q1f,Q2f,acphasex_ac2bpmac,acphasey_ac2bpmac,bd,options.lhcphase)
+           [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkickac(MADTwiss_ac,files,Q1,Q2,Q1f,Q2f,acphasex_ac2bpmac,acphasey_ac2bpmac,bd,lhcphase)
 
            for i in range(0,len(dpp)):
                    fkickac.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
