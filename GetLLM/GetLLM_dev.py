@@ -53,10 +53,18 @@
 #                     V2.25    Fixed bd flag (must be -1 for beam2)
 #                     V2.25 Adding VERSION variable to be always output and modified in subsequent versions, do not forget!!!
 #                     V2.26 Adding F2000 (two different methods linear and non-linear)
+##                    V2.27 Adding new method for IP calculation
+##                    V2.28 Changing the rejection of bad BPM for the coupling phase - averaging the phase over the sets of data first , then cut if the q1 and q2 are very different. 24/Feb/2010 the change is not yet checked.
+##                            Hyphens in the @ field of tfs files is not allowed:  The previous label "RMS-beta-beat" has been  moved to "RMSbetabeat"
+
+
+
+
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
-##                   V2.27 Adding new method for IP calculation
+
+
 
 
 ## Some rules for variable name: Dictionary is used to contain the output of function
@@ -68,7 +76,7 @@
 ####
 #######
 #########
-VERSION='V2.26'
+VERSION='V2.28'
 print "Starting GetLLM ", VERSION
 #########
 #######
@@ -76,16 +84,16 @@ print "Starting GetLLM ", VERSION
 
 
 from metaclass import *
-from Numeric import *
+#from Numeric import *
 from math import *
 import cmath
 import sys, pickle,os
 #import operator
 from string import *
-
+from numpy import *
 #imports for f2000
-import scipy
-from scipy import optimize
+#import scipy
+#from scipy import optimize
 from math import *
 
 # tentative solution for SPS pseudo double plane BPM
@@ -839,6 +847,8 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
 
 		fij=[]
 		qij=[]
+		q1j=[]
+		q2j=[]
 		badbpm=0
 		for j in range(0,len(ListOfZeroDPPX)):
 			jx=ListOfZeroDPPX[j]
@@ -847,28 +857,47 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
 			C10ij=jy.AMP10[jy.indx[bn1]]
 			fij.append(0.5*atan(sqrt(C01ij*C10ij)))
 
-			q1=(jx.MUX[jx.indx[bn1]]-jy.PHASE10[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
-			q2=(jx.PHASE01[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]]-0.25)%1.0
-			q1=(0.5-q1)%1.0 # This sign change in the real part is to comply with MAD output
-			q2=(0.5-q2)%1.0
+			#q1=(jx.MUX[jx.indx[bn1]]-jy.PHASE10[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
+			#q2=(jx.PHASE01[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]]-0.25)%1.0
+			#q1=(0.5-q1)%1.0 # This sign change in the real part is to comply with MAD output
+			#q2=(0.5-q2)%1.0
+			q1j.append((jx.MUX[jx.indx[bn1]]-jy.PHASE10[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+			q2j.append((jx.PHASE01[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]]-0.25)%1.0)
+			q1j[j]=(0.5-q1j[j])%1.0 # This sign change in the real part is to comply with MAD output
+			q2j[j]=(0.5-q2j[j])%1.0
 
-			if abs(q1-q2)<0.25: 
-				qij.append((q1+q2)/2.0)
-			elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-				qij.append(q1) # Note that q1 and q2 are confined 0. to 1.
-			else:
-				badbpm=1
-				countBadPhase += 1 
-				#print "Bad Phases in BPM ",bn1, "total so far", countBadPhase
+			#if abs(q1-q2)<0.25: 
+			#	qij.append((q1+q2)/2.0)
+			#elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+			#	qij.append(q1) # Note that q1 and q2 are confined 0. to 1.
+			#else:
+			#	badbpm=1
+			#	countBadPhase += 1 
+			#	#print "Bad Phases in BPM ",bn1, "total so far", countBadPhase
+		q1j=array(q1j)
+		q2j=array(q2j)
+		q1=average(q1j)
+		q2=average(q2j)
+
+		if abs(q1-q2)<0.25:  # Very rough cut !!!!!!!!!!!!!!!!!!!
+			qi=(q1+q2)/2.0
+		elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+			qi=q1 # Note that q1 and q2 are confined 0. to 1.
+		else:
+			badbpm=1
+			countBadPhase += 1 
+			#print "Bad Phases in BPM ",bn1, "total so far", countBadPhase
+		
 
 		
 		if badbpm==0:
 			fij=array(fij)
 			fi=average(fij)
 			fistd=sqrt(average(fij*fij)-(average(fij))**2.0+2.2e-16)
-			qij=array(qij)
-			qi=average(qij)
-			qistd=sqrt(average(qij*qij)-(average(qij))**2.0+2.2e-16)
+			#qij=array(qij)
+			#qi=average(qij)
+			#qistd=sqrt(average(qij*qij)-(average(qij))**2.0+2.2e-16)
+			qistd=sqrt(average(q1j*q1j)-(average(q1j))**2.0+2.2e-16) # Not very exact...
 			fi=fi*complex(cos(tp*qi),sin(tp*qi))
 			dbpmt.append([dbpms[i][0],dbpms[i][1]])
 			fwqw[bn1]=[[fi,fistd],[qi,qistd]]
@@ -969,9 +998,13 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 		dely= phasey[bn1][0] - 0.25
 		
 		f1001ij=[]
-		q1001ij=[]
+		#q1001ij=[]
 		f1010ij=[]
-		q1010ij=[]
+		#q1010ij=[]
+		q1js=[]
+		q2js=[]
+		q1jd=[]
+		q2jd=[]
 		badbpm=0
 		for j in range(0,len(ListOfZeroDPPX)):
 			jx=ListOfZeroDPPX[j]
@@ -987,47 +1020,82 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 			f1010ij.append(0.5*sqrt(TBm10ij*SA0m1ij/2.0/2.0))
 
 			if bd==1:
-				q1=(phi0p1ij-jy.MUY[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
-				q2=(-phip10ij+jx.MUX[jx.indx[bn1]]-0.25)%1.0
+				q1jd.append((phi0p1ij-jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+				q2jd.append((-phip10ij+jx.MUX[jx.indx[bn1]]-0.25)%1.0)
 			elif bd==-1:
-				q1=(phi0p1ij-jy.MUY[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
-				q2=-(-phip10ij+jx.MUX[jx.indx[bn1]]-0.25)%1.0
+				q1jd.append((phi0p1ij-jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+				q2jd.append(-(-phip10ij+jx.MUX[jx.indx[bn1]]-0.25)%1.0)
 			#print q1,q2
-			q1=(0.5-q1)%1.0 # This sign change in the real part is to comply with MAD output
-			q2=(0.5-q2)%1.0
+			q1jd[j]=(0.5-q1jd[j])%1.0 # This sign change in the real part is to comply with MAD output
+			q2jd[j]=(0.5-q2jd[j])%1.0
 				
 
-			if abs(q1-q2)<0.25: 
-				q1001ij.append((q1+q2)/2.0)
-			elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-				q1001ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
-			else:
-				badbpm=1
-				q1001ij.append(q1)
-				countBadPhase += 1 
+			#if abs(q1-q2)<0.25: 
+				#q1001ij.append((q1+q2)/2.0)
+			#elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+				#q1001ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
+			#else:
+				#badbpm=1
+				#q1001ij.append(q1)
+				#countBadPhase += 1 
 				#print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
 
 			if bd==1:
-				q1=(phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
-				q2=(phim10ij+jx.MUX[jx.indx[bn1]]+0.25)%1.0
+				q1js.append((phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+				q2js.append((phim10ij+jx.MUX[jx.indx[bn1]]+0.25)%1.0)
 			if bd==-1:
-				q1=(phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0 # note that phases are in units of 2pi
-				q2=-(phim10ij+jx.MUX[jx.indx[bn1]]+0.25)%1.0
+				q1js.append((phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+				q2js.append(-(phim10ij+jx.MUX[jx.indx[bn1]]+0.25)%1.0)
 			#print q1,q2
-			q1=(0.5-q1)%1.0 # This sign change in the real part is to comply with MAD output
-			q2=(0.5-q2)%1.0
+			q1js[j]=(0.5-q1js[j])%1.0 # This sign change in the real part is to comply with MAD output
+			q2js[j]=(0.5-q2js[j])%1.0
 
-			if abs(q1-q2)<0.25: 
-				q1010ij.append((q1+q2)/2.0)
-			elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-				q1010ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
-			else:
-				badbpm=1
-				if (oa=="SPS" or oa=="RHIC"):
-					badbpm=0
-				q1010ij.append(q1)
-				countBadPhase += 1 
+			#if abs(q1-q2)<0.25: 
+				#q1010ij.append((q1+q2)/2.0)
+			#elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+				#q1010ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
+			#else:
+				#badbpm=1
+				#if (oa=="SPS" or oa=="RHIC"):
+				#	badbpm=0
+				#q1010ij.append(q1)
+				#countBadPhase += 1 
 				#print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
+
+		q1jd=array(q1jd)
+		q2jd=array(q2jd)
+		q1d=average(q1jd)
+		q2d=average(q2jd)
+
+		q1js=array(q1js)
+		q2js=array(q2js)
+		q1s=average(q1js)
+		q2s=average(q2js)
+
+
+		if abs(q1d-q2d)<0.25:
+			q1001i=(q1d+q2d)/2.0
+		elif abs(q1d-q2d)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+			q1001i=q1d # Note that q1 and q2 are confined 0. to 1.
+		else:
+			badbpm=1
+			countBadPhase += 1
+			#print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
+		if abs(q1s-q2s)<0.25:
+			q1010i=(q1s+q2s)/2.0
+		elif abs(q1s-q2s)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
+			q1010i=q1s # Note that q1 and q2 are confined 0. to 1.
+		else:
+			badbpm=1
+		if (oa=="SPS" or oa=="RHIC"):
+			# No check for the SPS or RHIC
+			badbpm=0
+			q1001i=q1d
+			q1010i=q1s
+			countBadPhase += 1
+			#print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
+
+
 
 		if badbpm==0:
 			f1001ij=array(f1001ij)
@@ -1039,16 +1107,16 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 				f1010istd=sqrt(average(f1010ij*f1010ij)-(average(f1010ij))**2.0+2.2e-16)
 			except:
 				f1010istd=0
-			q1001ij=array(q1001ij)
-			q1001i=average(q1001ij)
+			#q1001ij=array(q1001ij)
+			#q1001i=average(q1001ij)
 			try:
-				q1001istd=sqrt(average(q1001ij*q1001ij)-(average(q1001ij))**2.0+2.2e-16)
+				q1001istd=sqrt(average(q1jd*q1jd)-(q1001i)**2.0+2.2e-16) # Not very correct
 			except:
 				q1001istd=0
-			q1010ij=array(q1010ij)
-			q1010i=average(q1010ij)
+			#q1010ij=array(q1010ij)
+			#q1010i=average(q1010ij)
 			try:
-				q1010istd=sqrt(average(q1010ij*q1010ij)-(average(q1010ij))**2.0+2.2e-16)
+				q1010istd=sqrt(average(q1js*q1js)-(q1010i)**2.0+2.2e-16)
 			except:
 				q1010istd=0
 			f1001i=f1001i*complex(cos(tp*q1001i),sin(tp*q1001i))
@@ -1528,7 +1596,8 @@ def Getquadrupole(MADTwiss,names,plane,phase,amp):
 
 
 		# non-linear
-		resul=optimize.fsolve(function,[0.1,0.1])
+		#resul=optimize.fsolve(function,[0.1,0.1])
+		resul=[0,0]
 
 		resul[1]=resul[1]%1
 		
@@ -2815,7 +2884,7 @@ if wolinx!=1:
 		fbetax.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
 		fbetax.write('@ Q2 %le '+'0.0'+'\n')
-	fbetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+	fbetax.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
 	fbetax.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 	fbetax.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 	for i in range(0,len(bpms)):
@@ -2836,7 +2905,7 @@ if woliny!=1:
 	betaylist.append(betay)
 	fbetay.write('@ Q1 %le '+str(Q1)+'\n')
 	fbetay.write('@ Q2 %le '+str(Q2)+'\n')
-	fbetay.write('@ RMS-beta-beat %le '+str(rmsbby)+'\n')
+	fbetay.write('@ RMSbetabeat %le '+str(rmsbby)+'\n')
 	fbetay.write('* NAME   S    COUNT  BETY   ERRBETY STDBETY ALFY   ERRALFY STDALFY BETYMDL ALFYMDL MUYMDL\n')
 	fbetay.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 	for i in range(0,len(bpms)):
@@ -2866,7 +2935,7 @@ if wolinx!=1:
 		fabetax.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
 		fabetax.write('@ Q2 %le '+'0.0'+'\n')
-	fabetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+	fabetax.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
 	fabetax.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
 	fabetax.write('$ %s     %le    %le    %le    %le     %le     %le\n')
 	for i in range(0,len(bpms)):
@@ -2886,7 +2955,7 @@ if woliny!=1:
 	betayalist.append(betay)
 	fabetay.write('@ Q1 %le '+str(Q1)+'\n')
 	fabetay.write('@ Q2 %le '+str(Q2)+'\n')
-	fabetay.write('@ RMS-beta-beat %le '+str(rmsbby)+'\n')
+	fabetay.write('@ RMSbetabeat %le '+str(rmsbby)+'\n')
 	fabetay.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL\n')
 	fabetay.write('$ %s     %le    %le    %le    %le     %le     %le\n')
 	for i in range(0,len(bpms)):
@@ -2903,11 +2972,11 @@ if "LHC" in options.ACCEL:
 	phases=[phasex,phasey]
 	bpmss=[bpmsx,bpmsy]
 	for ip in ips:
-		#try:
+		try:
 	                #print "entering"
-	        betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
-		#except:
-			#betahor=[0,0,0,0,0,0,0];betaver=[0,0,0,0,0,0,0]
+			betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
+		except:
+			betahor=[0,0,0,0,0,0,0];betaver=[0,0,0,0,0,0,0]
 		#print str(betahor[6])
 		fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
 
@@ -3163,7 +3232,7 @@ if wolinx2!=1:
 			fbetaxDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
 			fbetaxDPP.write('@ Q2 %le '+'0.0'+'\n')
-		#fbetaxDPP.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+		#fbetaxDPP.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
 		fbetaxDPP.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 		fbetaxDPP.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 		for i in range(0,len(bpms)):
@@ -3246,7 +3315,7 @@ if woliny2!=1:
 			fbetayDPP.write('@ Q2 %le '+str(Q2)+'\n')
 		except:
 			fbetayDPP.write('@ Q2 %le '+'0.0'+'\n')
-		#fbetayDPP.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+		#fbetayDPP.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
 		fbetayDPP.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 		fbetayDPP.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 		for i in range(0,len(bpms)):
