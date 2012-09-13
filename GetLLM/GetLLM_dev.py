@@ -1810,7 +1810,7 @@ def Getquadrupole(MADTwiss,names,plane,phase,amp):
 
 
 
-def Getsextupole(modeltwiss,amp20list,phase,tune,j,k):
+def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
         '''
         function written to calculate resonance driving terms
         '''
@@ -1818,12 +1818,12 @@ def Getsextupole(modeltwiss,amp20list,phase,tune,j,k):
         # constructing complex amplitude and phase using two BPM method
 
         bpms=intersect(amp20list)
-        bpms=modelIntersect(bpms,modeltwiss)
+        bpms=modelIntersect(bpms,MADTwiss)
 
         [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,amp20list,'H')
         sqrt2jx=invariantJx[0]
 
-        Q=tune+float(str(modeltwiss.Q1).split(".")[0])
+        Q=tune+float(str(MADTwiss.Q1).split(".")[0])
 
         afactor=(1-cos(2*(j-k)*pi*Q))#(2*sin(pi*(j-k)*Q))
         #print (2*sin(pi*(j-k)*Q)),(1-cos(6*pi*Q))
