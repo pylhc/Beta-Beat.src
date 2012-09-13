@@ -9,7 +9,7 @@
 ##                    V1.31, 12/Mar/2008 debugged on alpha3
 ##                    V1.4, 12/Mar/2008 modify output to fit latest TSF format and to meet requests from Rogelio
 ##                                      fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
-##                    V1.5 Update to option parser, include BPMdictionary to filter BPMs not in MOdel
+##                    V1.5 Update to option parser, include BPMdictionary to filter BPMs not in Model
 ##                                  Rogelio, 13 March 2008
 ##                    V1.51, 13/Mar/2008 Modify output to fit latest TSF format again. Add STD to beta.
 ##                    V1.6, 15/Jul/2008 Add the integer part of tunes - assuming that the phase advance is always less than 1.0.
@@ -25,6 +25,7 @@
 ##                                       the beam direction parameter (bd) is added to GetPhases.
 ##                                       Bug in the phi13 for the last monitor and the last but one is fixed.
 ##                    V1.9, 21/Oct/2008 Add the beta from spectrum height.
+##                    V1.91, 08/Dec/2008 Add option - SUSSIX or SVD for input file
 
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
@@ -940,6 +941,9 @@ parser.add_option("-c", "--cocut",
 parser.add_option("-n", "--nbcpl",
                 help="Analysis option for couplng, 1 bpm or 2 bpms",
                 metavar="NBCPL", default=2, dest="NBcpl")
+parser.add_option("-t", "--tbtana",
+                help="Turn-by-turn data analysis algorithm: SUSSIX SVD",
+                metavar="TBTANA", default="SUSSIX", dest="TBTana")
 
 
 
@@ -982,6 +986,13 @@ bd=1
 if options.ACCEL=="LHCB2":
 	bd=-1 # note that the x axis has the same direction to BPM data. Otherwise another treatment should be done.
 
+
+if options.TBTana=="SUSSIX":
+	Suffix1='_linx'
+	Suffix2='_liny'
+elif options.TBTana=='SVD':
+	Suffix1='_svdx'
+	Suffix2='_svdy'
 
 
 #outputpath=sys.argv[indpy+1]
@@ -1038,7 +1049,7 @@ ListOfNonZeroDPPY=[]
 woliny=0  # Let's assume there is liny for the moment
 woliny2=0
 for filein in listOfInputFiles:
-	file1=filein+'_linx'
+	file1=filein+Suffix1
 	x1=twiss(file1)
 	try:
 		dppi=x1.DPP
@@ -1060,7 +1071,7 @@ for filein in listOfInputFiles:
 		fDx.write(file1+' ')
 
 	try:
-		file1=filein+'_liny'
+		file1=filein+Suffix2
 		y1=twiss(file1)
 		try:
 			dppi=y1.DPP
