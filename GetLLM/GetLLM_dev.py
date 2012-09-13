@@ -56,7 +56,7 @@
 ##                    V2.27 Adding new method for IP calculation
 ##                    V2.28 Changing the rejection of bad BPM for the coupling phase - averaging the phase over the sets of data first , then cut if the q1 and q2 are very different. 24/Feb/2010 the change is not yet checked.
 ##                            Hyphens in the @ field of tfs files is not allowed:  The previous label "RMS-beta-beat" has been  moved to "RMSbetabeat"
-
+##                    V2.29 5/Mar/2010 Change the default value for COcut from 1000 to 4000 as it was too small
 
 
 
@@ -76,7 +76,7 @@
 ####
 #######
 #########
-VERSION='V2.28'
+VERSION='V2.29'
 print "Starting GetLLM ", VERSION
 #########
 #######
@@ -84,7 +84,8 @@ print "Starting GetLLM ", VERSION
 
 
 from metaclass import *
-from Numeric import *
+#from Numeric import *
+from numpy import *
 from math import *
 import cmath
 import sys, pickle,os
@@ -95,6 +96,7 @@ from string import *
 #import scipy
 #from scipy import optimize
 from math import *
+from linreg import *
 
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
@@ -193,7 +195,11 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,plane,outputpath,bd):
 def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 
 	commonbpms=intersect(ListOfFiles)
+	print len(commonbpms)
 	commonbpms=modelIntersect(commonbpms, MADTwiss)
+
+	print len(commonbpms)
+	#sys.exit()
 	
 	mu=0.0
         tunem=[]
@@ -312,6 +318,9 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 			print "Beta from amplitude around this monitor will be slightly varied."
 		phase[bn1]=[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2]
 
+	#print len(phase)
+	#sys.exit()
+
 	return [phase,tune,mu,commonbpms]
 
 #-------- Beta from pahses
@@ -362,6 +371,9 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 		# Find beta1 from phases assuming model transfer matrix
 		# Matrix M: BPM1-> BPM2
 		# Matrix N: BPM1-> BPM3
+		if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
+			print "Some of the off-momentum betas are negative, change the dpp unit"
+			sys.exit()
 		M11=sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
 		M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
 		N11=sqrt(betmdl3/betmdl1)*(cos(phmdl13)+alpmdl1*sin(phmdl13))
@@ -465,7 +477,6 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
 	delbeta=array(delbeta)
 	rmsbb=sqrt(average(delbeta*delbeta))
-
 	
 	
 	return [beta,rmsbb,alfa,commonbpms]
@@ -620,6 +631,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 		ndmdl.append(ndmdli)
 
 		try:
+		#if 1==1:
 			coi=coac[bn1]
 
 			ampi=0.0
@@ -636,6 +648,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 				ndi.append(ndm)
 			nd.append(ndi)
 		except:
+		#else:
 			badco+=1
 			coi=0
 
@@ -643,6 +656,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 	avemdl=average(ndmdl)
 
 	gf=array(gf)
+	print "hola", avemdl,len(commonbpmsALL) ,badco
 	gf=gf/avemdl/(len(commonbpmsALL)-badco)
 
 
@@ -1087,10 +1101,12 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 			q1010i=q1s # Note that q1 and q2 are confined 0. to 1.
 		else:
 			badbpm=1
-		if (oa=="SPS" or oa=="RHIC"):
+		if (oa=="SPS" or "RHIC" in oa):
 			# No check for the SPS or RHIC
 			badbpm=0
 			q1001i=q1d
+			#q1001r=q1s
+			#q1010i=q1d
 			q1010i=q1s
 			countBadPhase += 1
 			#print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
@@ -1235,12 +1251,16 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist,plane):
 		check=0
 		slopei=0.0
 		slopeiM=0.0
+		X=[]
+		Y=[]
 		for j in range(1,len(betalist)):
 			try:
 
 				
 				#slopei+=(betalist[j][bn][0]/betalist[0][bn][0]-1.0)/betalist[j]['DPP']
-				slopei+=(betalist[j][bn][0]/betalist[0][bn][0]-1.0)/betalist[j]['DPP']
+				#slopei+=(betalist[j][bn][0]/betalist[0][bn][0]-1.0)/betalist[j]['DPP']
+				Y.append(betalist[j][bn][0]/betalist[0][bn][0]-1.0)
+				X.append(betalist[j]['DPP'])
 			
 				if plane=='H':
 					slopeiM=MADTwiss.dbx[MADTwiss.indx[upper(bn)]]
@@ -1250,8 +1270,10 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist,plane):
 			
 				check=1
 		if check==0:
-			slopei=slopei/(len(betalist)-1)
-			slope[bn]=slopei
+			[slopei, offsetb, RR, slopeErr, offsetbErr]=linreg(X,Y)
+			slope[bn]=[slopei,count, slopeErr]
+			#slopei=slopei/(len(betalist)-1)
+			#slope[bn]=slopei
 			slopeM.append(slopeiM)
 			bpmsl.append([bpms[i][0],bpms[i][1]])
 			
@@ -1292,12 +1314,18 @@ def GetOffMomentumPhase(MADTwiss, ListOfFiles, phaselist,plane):
 		check=0
 		slopei=0.0
 		count=0
-		for j in range(1,len(phaselist)):
-		
-			try:
+		X=[]
+		Y=[]
+		Y.append(phaselist[0][bn][0])  
+		X.append(0)
+		for j in range(1,len(phaselist)): #1 because 0 is the on-momentum
+                        
+			if 1==1:
+			#try:
 				if (phaselist[0][bn][6]==phaselist[j][bn][6]):
-					slopei+=(phaselist[j][bn][0]-phaselist[0][bn][0])/phaselist[j]['DPP']
-					 
+					#slopei+=(phaselist[j][bn][0]-phaselist[0][bn][0])/phaselist[j]['DPP']
+					Y.append(phaselist[j][bn][0])
+                                        X.append(phaselist[j]['DPP'])
 					#print phaselist[j][bn][0],phaselist[0][bn][0]
 					count=count+1
 
@@ -1309,14 +1337,18 @@ def GetOffMomentumPhase(MADTwiss, ListOfFiles, phaselist,plane):
 					slopeMp=chromphase('V',bn,bn2,MADTwiss)
 					#sslopep=MADTwiss.dbpy[MADTwiss.indx[upper(bn)]]
 					
-			except:
+			#except:
+			else:
 				check=1
-		if (check==0 and count>0):
-			slopei=slopei/count
-			slope[bn]=[slopei,count,phaselist[0][bn][6]]
+		if (check==0 and count>1):
+			#slopei=slopei/count
+			#print X
+			[slopei, offsetb, RR, slopeErr, offsetbErr]=linreg(X,Y)
+                        slope[bn]=[slopei,count,phaselist[0][bn][6], slopeErr]
 			slopeM[bn]=[slopeMp]
 			bpmsl.append([bpms[i][0],bpms[i][1]])
-
+		else:
+			print "GetLLM chromatic phase: Not enough points for", bpms[i][0],bpms[i][1], "count", count
 			
 	return [slope,bpmsl,slopeM]
 
@@ -1411,6 +1443,7 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
  	for i in range(0,len(dbpms)):
 		wname=upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
 		pname=upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
+		#print wname
 		ws=dbpms[i][0]  # Location
 		#print "name ",wname, pname
 		#Check whether the inputs (linx/y) have BPM name of model or experiment
@@ -1492,7 +1525,7 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 		except:
 			if len(BPMdictionary)!=0:
 				countofmissingBPMs = countofmissingBPMs + 1
-				print exwname, "or", expname, "not found in the DATA. Total so far = ",countofmissingBPMs 
+				print wname, "or", pname, "not found in the DATA. Total so far = ",countofmissingBPMs 
 
 
 	PseudoListX=[]
@@ -2490,7 +2523,7 @@ parser.add_option("-o", "--output",
                 metavar="OUT", default="./", dest="output")
 parser.add_option("-c", "--cocut",
                 help="Cut for closed orbit measurement [um]",
-                metavar="COCUT", default=1000, dest="COcut")
+                metavar="COCUT", default=4000, dest="COcut")
 parser.add_option("-n", "--nbcpl",
                 help="Analysis option for couplng, 1 bpm or 2 bpms",
                 metavar="NBCPL", default=2, dest="NBcpl")
@@ -2665,8 +2698,8 @@ for filein in listOfInputFiles:
 		fDx.write(file1+' ')
 		fcouple.write(filein+' ')
 	else:
-		ListOfZeroDPPX.append(twiss(file1))  # ONLY for getsuper
-		FileOfZeroDPPX.append(file1)
+		ListOfNonZeroDPPX.append(twiss(file1))
+		FileOfNonZeroDPPX.append(file1)
 		fNDx.write(file1+' ')
 		fDx.write(file1+' ')
 
@@ -2696,25 +2729,25 @@ for filein in listOfInputFiles:
 			fcoy.write(file1+' ')
 			fDy.write(file1+' ')
 		else:
-			ListOfZeroDPPY.append(twiss(file1))
-			FileOfZeroDPPY.append(file1)
+			ListOfNonZeroDPPY.append(twiss(file1))
+			FileOfNonZeroDPPY.append(file1)
 			fDy.write(file1+' ')
 	except:
 		print 'Warning: There seems no '+str(file1)+' file in the specified directory.' 
 
 
-fphasex.write('"test'+'\n')
-fphasey.write('"test'+'\n')
-fbetax.write('"test'+'\n')
-fbetay.write('"test'+'\n')
-fabetax.write('"test'+'\n')
-fabetay.write('"test'+'\n')
-fcox.write('"test'+'\n')
-fcoy.write('"test'+'\n')
-fNDx.write('"test'+'\n')
-fDx.write('"test'+'\n')
-fDy.write('"test'+'\n')
-fcouple.write('"test'+'\n')
+fphasex.write('"'+'\n')
+fphasey.write('"'+'\n')
+fbetax.write('"'+'\n')
+fbetay.write('"'+'\n')
+fabetax.write('"'+'\n')
+fabetay.write('"'+'\n')
+fcox.write('"'+'\n')
+fcoy.write('"'+'\n')
+fNDx.write('"'+'\n')
+fDx.write('"'+'\n')
+fDy.write('"'+'\n')
+fcouple.write('"'+'\n')
 
 woliny=0
 woliny2=0
@@ -2736,9 +2769,9 @@ if len(ListOfZeroDPPX)==0 :
 	
 
 # Construct pseudo-double plane BPMs
-if (options.ACCEL=="SPS" or options.ACCEL=="RHIC") and wolinx!=1 and woliny!=1 :
-	execfile(options.rpath+'/MODEL/'+options.ACCEL+'/'+options.ACCEL+'BPMpair.py')
-	print options.rpath+'/MODEL/'+options.ACCEL+'/'+options.ACCEL+'BPMpair.py'
+if (options.ACCEL=="SPS" or "RHIC" in options.ACCEL) and wolinx!=1 and woliny!=1 :
+	execfile(options.rpath+'/MODEL/'+options.ACCEL+'/'+'BPMpair.py')
+	print options.rpath+'/MODEL/'+options.ACCEL+'/'+'BPMpair.py'
 	##sys.exit()
 	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdictionary)
 	
@@ -3342,12 +3375,12 @@ if wolinx!=1 and wolinx2!=1:
 	else:
 		print 'You gave wrong option for off momentum beta-beating. Please give PHASE or AMP'
 		sys.exit()
-	fdppx.write('* NAME   S    COUNT  SBETX   SBETXM\n')
-	fdppx.write('$ %s     %le    %le    %le     %le\n')
+	fdppx.write('* NAME   S    COUNT  SBETX   SBETXERROR SBETXM\n')
+	fdppx.write('$ %s     %le    %le    %le     %le      %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppx.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPX))+' '+str(slopex[bn])+'  '+str(slopeM[i])+'\n')
+		fdppx.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPX))+' '+str(slopex[bn][0])+' '+str(slopex[bn][2])+'  '+str(slopeM[i])+'\n')
 	fdppx.close()
 
 if woliny!=1 and woliny2!=1:
@@ -3358,12 +3391,12 @@ if woliny!=1 and woliny2!=1:
 	ListOfFiles=ListOfZeroDPPY+ListOfNonZeroDPPY
 	if (options.dppbb=="PHASE"):[slopey,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaylist,'V')
 	elif (options.dppbb=="AMP"):[slopey,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betayalist,'V')
-	fdppy.write('* NAME   S    COUNT  SBETY  SBETYM\n')
-	fdppy.write('$ %s     %le    %le    %le    %le\n')
+	fdppy.write('* NAME   S    COUNT  SBETY  SBETYERROR  SBETYM\n')
+	fdppy.write('$ %s     %le    %le    %le   %le  %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppy.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPY))+' '+str(slopey[bn])+'  '+str(slopeM[i])+'\n')
+		fdppy.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPY))+' '+str(slopey[bn][0])+'  '+str(slopey[bn][2])+'  '+str(slopeM[i])+'\n')
 	fdppy.close()
 
 
@@ -3377,13 +3410,16 @@ if wolinx!=1 and wolinx2!=1:
 	slopex={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPX+ListOfNonZeroDPPX
+	#print "list of files:",ListOfFiles
+	print "Len of phasexlist",len(phasexlist)
+	
 	[slopex,bpms,slopeM]=GetOffMomentumPhase(MADTwiss, ListOfFiles, phasexlist,'H')	
-	fdppx.write('* NAME1  NAME2   S      COUNT  SPHASEX  SPHASEXM\n')
-	fdppx.write('$ %s     %s      %le    %le    %le    %le\n')
+	fdppx.write('* NAME1  NAME2   S      COUNT  SPHASEX  SPHASEXM SPHASEERR\n')
+	fdppx.write('$ %s     %s      %le    %le    %le    %le   %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppx.write('"'+bn+'" "'+slopex[bn][2]+'" '+str(bns)+' '+str(slopex[bn][1])+' '+str(slopex[bn][0])+'  '+str(slopeM[bn][0]) +'\n')
+		fdppx.write('"'+bn+'" "'+slopex[bn][2]+'" '+str(bns)+' '+str(slopex[bn][1])+' '+str(slopex[bn][0])+'  '+str(slopeM[bn][0]) + ' '+str(slopex[bn][3]) +'\n')
 	fdppx.close()
 
 if woliny!=1 and woliny2!=1:
@@ -3393,12 +3429,12 @@ if woliny!=1 and woliny2!=1:
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPY+ListOfNonZeroDPPY
 	[slopey,bpms,slopeM]=GetOffMomentumPhase(MADTwiss, ListOfFiles, phaseylist,'V')	
-	fdppy.write('* NAME1  NAME2   S      COUNT  SPHASEY  SPHASEYM\n')
-	fdppy.write('$ %s     %s      %le    %le    %le    %le \n')
+	fdppy.write('* NAME1  NAME2   S      COUNT  SPHASEY  SPHASEM   SPHASEERR\n')
+	fdppy.write('$ %s     %s      %le    %le    %le    %le   %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppy.write('"'+bn+'" "'+slopey[bn][2]+'" '+str(bns)+' '+str(slopey[bn][1])+' '+str(slopey[bn][0])+'  '+str(slopeM[bn][0])+'\n')
+		fdppy.write('"'+bn+'" "'+slopey[bn][2]+'" '+str(bns)+' '+str(slopey[bn][1])+' '+str(slopey[bn][0])+'  '+str(slopeM[bn][0])+' '+str(slopey[bn][3]) +'\n')
 	fdppy.close()
 
 
@@ -3414,7 +3450,7 @@ if wolinx!=1 and woliny!=1:
 	except:
 		0.0
 
-	if options.ACCEL=="SPS" or options.ACCEL=="RHIC":
+	if options.ACCEL=="SPS" or "RHIC" in options.ACCEL:
 		plane='H'
 		[phasexp,Q1,MUX,bpmsx]=GetPhases(MADTwiss,PseudoListX,plane,outputpath,bd)
 		plane='V'
