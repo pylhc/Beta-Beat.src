@@ -4351,7 +4351,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #---- H plane result
     if wolinx!=1:
             
-            [phasexT,bpmsxT]=GetPhasesTotal(MADTwiss_ac,ListOfZeroDPPX,Q1,'H',bd,accel,)
+            [phasexT,bpmsxT]=GetPhasesTotal(MADTwiss_ac,ListOfZeroDPPX,Q1,'H',bd,accel,lhcphase)
             fphasexT.write('@ Q1 %le '+str(Q1)+'\n')
             fphasexT.write('@ MUX %le '+str(MUX)+'\n')
             try:
@@ -4376,7 +4376,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
                     #-- from eq
                     try:
-                            [phasexTf,bpmsxTf]=GetFreePhaseTotal_Eq(MADTwiss,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',bd)
+                            [phasexTf,bpmsxTf]=GetFreePhaseTotal_Eq(MADTwiss,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',bd,lhcphase)
                             fphasexTf.write('@ Q1 %le '+str(Q1f)+'\n')
                             fphasexTf.write('@ MUX %le '+str(muxf)+'\n')
                             try:
@@ -4422,7 +4422,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #---- V plane result
     if woliny!=1:
             
-            [phaseyT,bpmsyT]=GetPhasesTotal(MADTwiss_ac,ListOfZeroDPPY,Q2,'V',bd,accel)
+            [phaseyT,bpmsyT]=GetPhasesTotal(MADTwiss_ac,ListOfZeroDPPY,Q2,'V',bd,accel,lhcphase)
             try:
                     fphaseyT.write('@ Q1 %le '+str(Q1)+'\n')
                     fphaseyT.write('@ MUX %le '+str(MUX)+'\n')
@@ -4447,7 +4447,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
                     #-- from eq
                     try:
-                            [phaseyTf,bpmsyTf]=GetFreePhaseTotal_Eq(MADTwiss,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',bd)
+                            [phaseyTf,bpmsyTf]=GetFreePhaseTotal_Eq(MADTwiss,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',bd,lhcphase)
                             try:
                                     fphaseyTf.write('@ Q1 %le '+str(Q1f)+'\n')
                                     fphaseyTf.write('@ MUX %le '+str(muxf)+'\n')
@@ -4501,6 +4501,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             [betax,rmsbbx,alfax,bpms]=BetaFromPhase(MADTwiss_ac,ListOfZeroDPPX,phasex,'H')
             betax['DPP']=0
             betaxlist.append(betax)
+            betaxPhaseCopy=betax  #-- For Andy's BetaFromAmp re-scaling
             fbetax.write('@ Q1 %le '+str(Q1)+'\n')
             try:    fbetax.write('@ Q2 %le '+str(Q2)+'\n')
             except: fbetax.write('@ Q2 %le '+'0.0'+'\n')
@@ -4519,6 +4520,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     #-- from eq
                     try:
                             [betaxf,rmsbbxf,alfaxf,bpmsf]=BetaFromPhase(MADTwiss,ListOfZeroDPPX,phasexf,'H')
+                            betaxPhaseCopyf=betaxf  #-- For Andy's BetaFromAmp re-scaling
                             fbetaxf.write('@ Q1 %le '+str(Q1f)+'\n')
                             try:    fbetaxf.write('@ Q2 %le '+str(Q2f)+'\n')
                             except: fbetaxf.write('@ Q2 %le '+'0.0'+'\n')
@@ -4552,6 +4554,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             [betay,rmsbby,alfay,bpms]=BetaFromPhase(MADTwiss_ac,ListOfZeroDPPY,phasey,'V')
             betay['DPP']=0
             betaylist.append(betay)
+            betayPhaseCopy=betay  #-- For Andy's BetaFromAmp re-scaling
             try:    fbetay.write('@ Q1 %le '+str(Q1)+'\n')
             except: fbetay.write('@ Q1 %le '+'0.0'+'\n')
             fbetay.write('@ Q2 %le '+str(Q2)+'\n')
@@ -4570,6 +4573,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     #-- from eq
                     try:
                             [betayf,rmsbbyf,alfayf,bpmsf]=BetaFromPhase(MADTwiss,ListOfZeroDPPY,phaseyf,'V')
+                            betayPhaseCopyf=betayf  #-- For Andy's BetaFromAmp re-scaling
                             try:    fbetayf.write('@ Q1 %le '+str(Q1f)+'\n')
                             except: fbetayf.write('@ Q1 %le '+'0.0'+'\n')
                             fbetayf.write('@ Q2 %le '+str(Q2f)+'\n')
@@ -4604,54 +4608,91 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     #---- H plane
     if wolinx!=1:
-            
+
             [betax,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss_ac,ListOfZeroDPPX,'H')
             betax['DPP']=0
             beta2_save=betax
             betaxalist.append(betax)
+
+            #-- Rescaling
+            betax_ratio=0
+            skipped_bpmx=[]
+            arcbpms=filterbpm(bpms)
+            for bpm in arcbpms:
+                    s=bpm[0] # first entry is position
+                    name=upper(bpm[1]) # second entry is the name
+                    #Skip BPM with strange data
+                    if abs(betaxPhaseCopy[name][0]/betax[name][0])>100: skipped_bpmx.append(name)
+                    elif (betax[name][0]<0 or betaxPhaseCopy[name][0]<0): skipped_bpmx.append(name)
+                    else: betax_ratio=betax_ratio+(betaxPhaseCopy[name][0]/betax[name][0])
+            try: betax_ratio=betax_ratio/(len(arcbpms)-len(skipped_bpmx))
+            except: betax_ratio=1
+            betax_rescale={}
+            for bpm in map(upper,zip(*bpms)[1]): betax_rescale[bpm]=[betax_ratio*betax[bpm][0],betax_ratio*betax[bpm][1],betax[bpm][2]]
+
             fabetax.write('@ Q1 %le '+str(Q1)+'\n')
             try:    fabetax.write('@ Q2 %le '+str(Q2)+'\n')
             except: fabetax.write('@ Q2 %le '+'0.0'+'\n')
             fabetax.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
-            fabetax.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
-            fabetax.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+            fabetax.write('@ RescalingFactor %le '+str(betax_ratio)+'\n')
+            fabetax.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
+            fabetax.write('$ %s     %le    %le    %le    %le     %le     %le  %le  %le\n')
             for i in range(0,len(bpms)):
                     bn1=upper(bpms[i][1])
                     bns1=bpms[i][0]
-                    fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(MADTwiss_ac.BETX[MADTwiss_ac.indx[bn1]])+' '+str(MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]])+'\n')
+                    fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(MADTwiss_ac.BETX[MADTwiss_ac.indx[bn1]])+' '+str(MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]])+' '+str(betax_rescale[bn1][0])+' '+str(betax_rescale[bn1][1])+'\n')
             fabetax.close()
 
             #-- ac to free amp beta
             if acswitch=='1':
-                    
+
                     #-- from eq
                     try:
-                            [betaxf,rmsbbxf,bpmsf,invJxf]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',bd)
+                            [betaxf,rmsbbxf,bpmsf,invJxf]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',bd,lhcphase)
+
+                            #-- Rescaling
+                            betaxf_ratio=0
+                            skipped_bpmxf=[]
+                            arcbpms=filterbpm(bpmsf)
+                            for bpm in arcbpms:
+                                    s=bpm[0] # first entry is position
+                                    name=upper(bpm[1]) # second entry is the name
+                                    #Skip BPM with strange data
+                                    if abs(betaxPhaseCopyf[name][0]/betaxf[name][0])>10: skipped_bpmxf.append(name)
+                                    elif abs(betaxPhaseCopyf[name][0]/betaxf[name][0])<0.1: skipped_bpmxf.append(name)
+                                    elif (betaxf[name][0]<0 or betaxPhaseCopyf[name][0]<0): skipped_bpmxf.append(name)
+                                    else: betaxf_ratio=betaxf_ratio+(betaxPhaseCopyf[name][0]/betaxf[name][0])
+                            try: betaxf_ratio=betaxf_ratio/(len(arcbpms)-len(skipped_bpmxf))
+                            except: betaxf_ratio=1
+
                             fabetaxf.write('@ Q1 %le '+str(Q1f)+'\n')
                             try:    fabetaxf.write('@ Q2 %le '+str(Q2f)+'\n')
                             except: fabetaxf.write('@ Q2 %le '+'0.0'+'\n')
                             fabetaxf.write('@ RMSbetabeat %le '+str(rmsbbxf)+'\n')
-                            fabetaxf.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
+                            fabetaxf.write('@ RescalingFactor %le '+str(betaxf_ratio)+'\n')
+                            fabetaxf.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
                             fabetaxf.write('$ %s     %le    %le    %le    %le     %le     %le\n')
                             for i in range(0,len(bpmsf)):
                                     bn1=upper(bpmsf[i][1])
                                     bns1=bpmsf[i][0]
-                                    fabetaxf.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betaxf[bn1][0])+' '+str(betaxf[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
+                                    fabetaxf.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betaxf[bn1][0])+' '+str(betaxf[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+' '+str(betaxf_ratio*betaxf[bn1][0])+' '+str(betaxf_ratio*betaxf[bn1][1])+'\n')
                     except: pass
                     fabetaxf.close()
-                    
+
                     #-- from the model
                     [betaxf2,rmsbbxf2,bpmsf2,invJxf2]=getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H')
+                    betaxf2_rescale=getFreeAmpBeta(betax_rescale,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H')[0]
                     fabetaxf2.write('@ Q1 %le '+str(Q1f)+'\n')
                     try:    fabetaxf2.write('@ Q2 %le '+str(Q2f)+'\n')
                     except: fabetaxf2.write('@ Q2 %le '+'0.0'+'\n')
                     fabetaxf2.write('@ RMSbetabeat %le '+str(rmsbbxf2)+'\n')
-                    fabetaxf2.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL\n')
+                    fabetaxf2.write('@ RescalingFactor %le '+str(betax_ratio)+'\n')
+                    fabetaxf2.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
                     fabetaxf2.write('$ %s     %le    %le    %le    %le     %le     %le\n')
                     for i in range(0,len(bpmsf2)):
                             bn1=upper(bpmsf2[i][1])
                             bns1=bpmsf2[i][0]
-                            fabetaxf2.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betaxf2[bn1][0])+' '+str(betaxf2[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
+                            fabetaxf2.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betaxf2[bn1][0])+' '+str(betaxf2[bn1][1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+' '+str(betaxf2_rescale[bn1][0])+' '+str(betaxf2_rescale[bn1][1])+'\n')
                     fabetaxf2.close()
 
     #---- V plane
