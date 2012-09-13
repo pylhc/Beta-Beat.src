@@ -1043,29 +1043,49 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
 	return dpptwiss
 
 
-def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist):
+def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist,plane):
 
 	bpms=intersect(ListOfFiles)
+	bpms=modelIntersect(bpms, MADTwiss)
+	MADTwiss.chrombeat()
+
+	
         bpmsl=[]
 
 	slope={}
+	slopeM=[]
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		check=0
 		slopei=0.0
+		slopeiM=0.0
 		for j in range(1,len(betalist)):
 			try:
+
+				
+				#slopei+=(betalist[j][bn][0]/betalist[0][bn][0]-1.0)/betalist[j]['DPP']
 				slopei+=(betalist[j][bn][0]/betalist[0][bn][0]-1.0)/betalist[j]['DPP']
-				#slopei+=(betalist[j][bn]/betalist[0][bn]-1.0)/betalist[j]['DPP']
+			
+				if plane=='H':
+					slopeiM=MADTwiss.dbx[MADTwiss.indx[upper(bn)]]
+				else:
+					slopeiM=MADTwiss.dby[MADTwiss.indx[upper(bn)]]
 			except:
+			
 				check=1
 		if check==0:
 			slopei=slopei/(len(betalist)-1)
 			slope[bn]=slopei
+			slopeM.append(slopeiM)
 			bpmsl.append([bpms[i][0],bpms[i][1]])
 			
 
-	return [slope,bpmsl]
+
+
+			
+
+	return [slope,slopeM,bpmsl]
+
 
 #----------------------------------
 
@@ -2811,17 +2831,17 @@ if wolinx!=1 and wolinx2!=1:
 	slopex={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPX+ListOfNonZeroDPPX
-	if (options.dppbb=="PHASE"):[slopex,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist)
-	elif (options.dppbb=="AMP"):[slopex,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist)
+	if (options.dppbb=="PHASE"):[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist,'H')
+	elif (options.dppbb=="AMP"):[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist,'H')
 	else:
 		print 'You gave wrong option for off momentum beta-beating. Please give PHASE or AMP'
 		sys.exit()
-	fdppx.write('* NAME   POS    COUNT  SBETX\n')
-	fdppx.write('$ %s     %le    %le    %le\n')
+	fdppx.write('* NAME   POS    COUNT  SBETX   SBETXM\n')
+	fdppx.write('$ %s     %le    %le    %le     %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppx.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPX))+' '+str(slopex[bn])+'\n')
+		fdppx.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPX))+' '+str(slopex[bn])+'  '+str(slopeM[i])+'\n')
 	fdppx.close()
 
 if woliny!=1 and woliny2!=1:
@@ -2830,14 +2850,14 @@ if woliny!=1 and woliny2!=1:
 	slopey={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPY+ListOfNonZeroDPPY
-	if (options.dppbb=="PHASE"):[slopey,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaylist)
-	elif (options.dppbb=="AMP"):[slopey,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betayalist)
-	fdppy.write('* NAME   POS    COUNT  SBETY\n')
-	fdppy.write('$ %s     %le    %le    %le\n')
+	if (options.dppbb=="PHASE"):[slopey,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaylist,'V')
+	elif (options.dppbb=="AMP"):[slopey,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betayalist,'V')
+	fdppy.write('* NAME   POS    COUNT  SBETY  SBETYM\n')
+	fdppy.write('$ %s     %le    %le    %le    %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppy.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPY))+' '+str(slopey[bn])+'\n')
+		fdppy.write('"'+bn+'" '+str(bns)+' '+str(len(ListOfNonZeroDPPY))+' '+str(slopey[bn])+'  '+str(slopeM[i])+'\n')
 	fdppy.close()
 
 
