@@ -67,7 +67,6 @@ from metaclass import *
 from Numeric import *
 from math import *
 import cmath
-#import linreg
 import sys, pickle,os
 #import operator
 from string import *
@@ -595,6 +594,8 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 			bpms.append([bns1,bn1])
 		except:
 			badco+=1
+			print "bad closed orbit"
+			
 	DPX=GetDPX(MADTwiss, Dx, bpms)
 	
 	return [nda,Dx,DPX,bpms]
@@ -1054,6 +1055,7 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist,plane):
 	bpms=modelIntersect(bpms, MADTwiss)
 	MADTwiss.chrombeat()
 
+	
         bpmsl=[]
 
 	slope={}
@@ -1240,10 +1242,16 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 		wname=upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
 		pname=upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
 		ws=dbpms[i][0]  # Location
+		print "name ",wname, pname
 		#Check whether the inputs (linx/y) have BPM name of model or experiment
 		try:
 			exwname=BPMdictionary[wname][0] #Experimental BPM name of horizontal To be paired
+			print exwname
+		
 			expname=BPMdictionary[pname][1] #Experimental BPM name of vertical  (one of them does not exist!) to be paired
+
+			print expname
+			
 		except:
 			if len(BPMdictionary)!=0:
 				countofmissingBPMs = countofmissingBPMs + 1
@@ -2351,20 +2359,17 @@ for j in range(0,len(ALL)) :
 
 
 #-------- START Phases
-phasexlist=[]
-phaseylist=[]
-
 if wolinx!=1:
 	plane='H'
 	[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
-	phasex['DPP']=0
+	phasexlist=[]
 	phasexlist.append(phasex)
 	
 
 if woliny!=1:
 	plane='V'
 	[phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss,ListOfZeroDPPY,plane,outputpath,bd)
-	phasey['DPP']=0
+	phaseylist=[]
 	phaseylist.append(phasey)
 	fphasey.write('@ Q1 %le '+str(Q1)+'\n')
 	fphasey.write('@ MUX %le '+str(MUX)+'\n')
@@ -2865,10 +2870,8 @@ if wolinx!=1 and wolinx2!=1:
 	slopex={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPX+ListOfNonZeroDPPX
-	if options.dppbb=="PHASE":
-		[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist,'H')
-	elif options.dppbb=="AMP":
-		[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist,'H')
+	if (options.dppbb=="PHASE"):[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist,'H')
+	elif (options.dppbb=="AMP"):[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist,'H')
 	else:
 		print 'You gave wrong option for off momentum beta-beating. Please give PHASE or AMP'
 		sys.exit()
@@ -2943,9 +2946,8 @@ if wolinx!=1 and woliny!=1:
 		MADTwiss.Cmatrix()
 	except:
 		0.0
-	print "UNTIL HEREEEEE 11"
+
 	if options.ACCEL=="SPS" or options.ACCEL=="RHIC":
-		print "UNTIL HEREEEEE"
 		plane='H'
 		[phasexp,Q1,MUX,bpmsx]=GetPhases(MADTwiss,PseudoListX,plane,outputpath,bd)
 		plane='V'
@@ -3228,91 +3230,4 @@ fkick.close()
 
 ####### -------------- end 
 
-######### Implementing new opticsclass
-from opticsclass import *
 
-
-######
-## => Initialisation
-######
-data=getData()
-nlin=getNonLin()
-lin=getLin()
-offmom=getOffMomentum()
-
-######
-## => Part 1 : Linear optics
-######
-
-
-######
-## => Part 2 : Off-momentum
-######
-
-###
-# => Chromaticity
-###
-
-# => horizontal
-offmom.findchrom(ListOfZeroDPPX+ListOfNonZeroDPPX,'H')
-info=["@ CHROMX %le "+str(offmom.chrom),"@ CHROMXRMS %le "+str(offmom.chrome)]
-name=["* NAME","S","CHROMX","CHROMXE"]
-specie=["$ %s","%le","%le","%le"]
-data4data=[offmom.bpms,offmom.slope,offmom.slope_error]
-data.writetables(outputpath+"/getchromax.out",info,name,specie,data4data)
-
-
-offmom.findchrom(ListOfZeroDPPY+ListOfNonZeroDPPY,'V')
-info=["@ CHROMY %le "+str(offmom.chrom),"@ CHROMYRMS %le "+str(offmom.chrome)]
-name=["* NAME","S","CHROMY","CHROMYE"]
-specie=["$ %s","%le","%le","%le"]
-data4data=[offmom.bpms,offmom.slope,offmom.slope_error]
-data.writetables(outputpath+"/getchromay.out",info,name,specie,data4data)
-
-###
-# => Off-momentum beta-beat
-###
-
-# => horizontal
-offmom.findoffBB(ListOfZeroDPPX+ListOfNonZeroDPPX,'H',MADTwiss,betaxalist)
-info=["@ DATA %s SBETX"]
-name=["* NAME","S","SBETX","SBETXERR","SBETXM"]
-specie=["$ %s","%le","%le","%le","%le"]
-data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
-data.writetables(outputpath+"/getsbetax.out",info,name,specie,data4data)
-
-# => vertical
-offmom.findoffBB(ListOfZeroDPPY+ListOfNonZeroDPPY,'V',MADTwiss,betayalist)
-info=["@ DATA %s SBETY"]
-name=["* NAME","S","SBETY","SBETXERR","SBETYM"]
-specie=["$ %s","%le","%le","%le","%le"]
-data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
-data.writetables(outputpath+"/getsbetay.out",info,name,specie,data4data)
-
-###
-# => Off-momentum phase
-###
-
-# => horizontal
-offmom.findoffPhase(ListOfZeroDPPX+ListOfNonZeroDPPX,'H',MADTwiss,phasexlist)
-info=["@ DATA %s SPHASEX"]
-name=["* NAME","S","SPHASEX","SPHASEERR","SPHASEXM"]
-specie=["$ %s","%le","%le","%le"]
-
-data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
-
-data.writetables(outputpath+"/getsphasex.out",info,name,specie,data4data)
-
-# => vertical
-offmom.findoffPhase(ListOfZeroDPPY+ListOfNonZeroDPPY,'V',MADTwiss,phaseylist)
-info=["@ DATA %s SPHASEY"]
-name=["* NAME","S","SPHASEY","SPHASEERR","SPHASEYM"]
-specie=["$ %s","%le","%le","%le"]
-
-data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
-
-data.writetables(outputpath+"/getsphasey.out",info,name,specie,data4data)
-
-######
-# => Part 3 : Non-linear optics
-######
