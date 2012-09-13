@@ -39,6 +39,9 @@
 ##                                      Modify BetaFromAmplitude to output invariant J (by Rogelio and finalized by MA)
 ##                    V2.02, 10/Mar/2009 Fix bug in getcoupling, bad input for phasex and phasey
 ##                    V2.10, 13/Mar/2009 Added function for finding sextupole lines (amp and phases) + chiterms amplitude. (@dded by Glenn Vanbavinckhove)
+##                    V2.11. 26/Mar/2009 Fix bug in Getphase (model phase advance from the last monitor to first monitor).
+##                                       Add -r option as in correct.py
+##                                       Change the way to import BPM pair file for SPS. (import -> execfile)
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -60,7 +63,7 @@ import sys, pickle,os
 from string import *
 
 # tentative solution for SPS pseudo double plane BPM
-from SPSBPMpair import *
+# from SPSBPMpair import *
 
 
 #######################################################
@@ -157,6 +160,7 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 				madtune=MADTwiss.Q2 % 1.0
 			if madtune>0.5:
 				madtune=madtune-1.0
+			phmdl13=phmdl13 % 1.0
 			phmdl13=phiLastAndLastButOne(phmdl13,madtune)
 		elif i==len(commonbpms)-1:
 			if plane=='H':
@@ -165,6 +169,8 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 				madtune=MADTwiss.Q2 % 1.0
 			if madtune>0.5:
 				madtune=madtune-1.0
+			phmdl12=phmdl12 % 1.0
+			phmdl13=phmdl13 % 1.0
 			phmdl12=phiLastAndLastButOne(phmdl12,madtune)
 			phmdl13=phiLastAndLastButOne(phmdl13,madtune)
 
@@ -1864,20 +1870,6 @@ def getkick(files):
 #                   Main part                         #
 #######################################################
 
-	
-
-# Path to accelerator setting file
-# This path shuold be changed to be compatible to your working system.
-accpath="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/CoreFiles/"
-
-
-#-- Find index of python command in the system call
-#i=0
-#for entry in sys.argv:
-#	if '.py' in entry: 
-#		indpy=i
-#		break
-#	i=i+1
 
 #-- Reading sys.argv
 from optparse import OptionParser
@@ -1909,7 +1901,9 @@ parser.add_option("-t", "--tbtana",
 parser.add_option("-b", "--bpmu",
                 help="BPMunit: um, mm, cm, m (default um)",
                 metavar="BPMUNIT", default="um", dest="BPMUNIT")
-
+parser.add_option("-r", "--rpath",
+                  help="Path to BetaBeat repository (default is the afs repository)",
+                  metavar="RPATH", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/" , dest="rpath")
 
 
 (options, args) = parser.parse_args()
@@ -1917,6 +1911,8 @@ parser.add_option("-b", "--bpmu",
 
 listOfInputFiles=options.files.split(",")
 file0=options.Twiss
+if file0=="0":
+	file0=options.rpath+'/MODEL/'+options.ACCEL+'/twiss.dat'
 outputpath=options.output
 if options.dict=="0":
 	BPMdictionary={}
@@ -1924,16 +1920,8 @@ else:
 	execfile(options.dict)
 	BPMdictionary=dictionary   # temporaryly since presently name is not BPMdictionary
 
-#file0=sys.argv[indpy+2]
 MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
 
-
-#try:
-#	facc=accpath+str(options.ACCEL)+'/accelerator.dat'
-#	faccs=twiss(facc)
-#	BPMU=faccs.BPMUNIT
-#except:
-#	BPMU='um'
 
 BPMU=options.BPMUNIT
 
@@ -2142,6 +2130,7 @@ if len(ListOfZeroDPPX)==0 :
 
 # Construct pseudo-double plane BPMs
 if options.ACCEL=="SPS" and wolinx!=1 and woliny!=1 :
+	execfile(options.rpath+'/MODEL/SPS/SPSBPMpair.py')
 	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY)
 
 
@@ -2884,7 +2873,7 @@ fkick.close()
 ####### -------------- end 
 
 
-#-------- START coupling. If there is no double plane BPMs, nothing to do and leave the program. Will be updated to have pseudo-double plane BPM
+#-------- START coupling.
 
 if wolinx!=1 and woliny!=1:
 	try:
