@@ -72,6 +72,8 @@
 ##                                      - A function to calculate action of the AC dipole excitation is added.
 ##                    V3.01_dev 08/03/2012:  - tabs -> 8 spaces using :retab in vim
 ##                                           - added main() function
+##                                           - using raise ValueError() instead of sys.exit() some places
+##                              13/09/2012:  - merged in patch 2.35-2.37
 
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
