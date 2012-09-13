@@ -3556,6 +3556,23 @@ def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
 #----------------- end glenn part
 
+#---- Functions for Andy's BetaFromAmp re-scaling
+
+def filterbpm(ListOfBPM):
+	'''Filter non-arc BPM'''
+        if len(ListOfBPM)==0:
+                print "Nothing to filter!!!!"
+                sys.exit()
+	result=[]
+	for b in ListOfBPM:
+		if ('BPM.' in b[1] or 'bpm.' in b[1]):
+			result.append(b)
+	return result
+
+def union(a, b):
+    ''' return the union of two lists '''
+    return list(set(a) | set(b))
+
 def _fix_output(outputpath):
     if outputpath.strip()[-1]!='/':
         outputpath=outputpath.strip()+'/'
