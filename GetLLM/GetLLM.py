@@ -79,6 +79,8 @@ def modelIntersect(expbpms, model):
 	bpmsin=[]
 	for bpm in expbpms:
 		try:
+	
+				
 			check=model.indx[bpm[1].upper()]
 			bpmsin.append(bpm)
 		except:
@@ -123,6 +125,8 @@ def phiLastAndLastButOne(phi,ftune):
 
 
 def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
+
+	print 'Entering getphases'
 
 	commonbpms=intersect(ListOfFiles)
 	commonbpms=modelIntersect(commonbpms, MADTwiss)
@@ -226,6 +230,8 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 #-------- Beta from pahses
 
 def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
+
+	print 'Entering betaFromPhase'
 
 	alfa={}
 	beta={}
@@ -374,6 +380,8 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
 def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
+	print 'Entering BetaFromAmplitude'
+
 	beta={}
         root2J=[]
 	commonbpms=intersect(ListOfFiles)
@@ -433,6 +441,8 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
 def GetCO(MADTwiss, ListOfFiles):
 
+	print 'Entering GetCO'
+
 	commonbpms=intersect(ListOfFiles)
 	commonbpms=modelIntersect(commonbpms, MADTwiss)
 	co={} # Disctionary for output
@@ -451,6 +461,8 @@ def GetCO(MADTwiss, ListOfFiles):
 
 
 def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COcut):
+
+	print 'Entering NormDispX'
 
 	nzdpp=len(ListOfNonZeroDPPX) # How many non zero dpp
 	zdpp=len(ListOfZeroDPPX)  # How many zero dpp
@@ -552,6 +564,8 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 #---------- DPX, New!
 def GetDPX(MADTwiss,Dx,commonbpms):
 
+	print 'Entering GetDPX'
+
 	DPX={}
 	for i in range(0,len(commonbpms)):
 		bn1=upper(commonbpms[i][1])
@@ -583,6 +597,8 @@ def GetDPX(MADTwiss,Dx,commonbpms):
 #-----------
 
 def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
+
+	print 'Entering DispersionfromOrbit'
 
 	if BPMU=='um': scalef=1.0e-6
 	elif BPMU=='mm': scalef=1.0e-3
@@ -636,6 +652,8 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
 #-----------
 
 def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
+
+	print 'Entering GetCoupling1'
 
 	# not applicable to db=-1 for the time being...
 
@@ -749,7 +767,7 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
 
 #-----------
 
-def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
+def ComplexSecondaryLine(delta, cw, cw1, pw, pw1,bn0):
 	tp=2.0*pi
 	a1=complex(1.0,-tan(tp*delta))
 	a2=cw*complex(cos(tp*pw),sin(tp*pw))
@@ -757,11 +775,17 @@ def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
 	a4=cw1*complex(cos(tp*pw1),sin(tp*pw1))
 	SL=a1*a2+a3*a4
 	sizeSL=sqrt(SL.real**2+SL.imag**2)
-	phiSL=(arctan2(SL.imag , SL.real)/tp) %1.0
-	#SL=complex(-SL.real,SL.imag)    # This sign change in the real part is to comply with MAD output
+	phiSL=(arctan2(SL.imag , SL.real)/tp)
+	#print "zero phase "+str(bn0)
+	#print "phase of secondare line "+str(phiSL %1)
+	#phiSL=(phiSL*tp-bn0*tp)/tp#adding correction 2 convert between spectral line phase and driving term phase.
+	#print "phase of driving term "+ str(phiSL)  
+
 	return [sizeSL,phiSL]
 
 def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey, bd):
+
+	print 'Entering GetCoupling2'
 
 
 	# find operation point
@@ -827,10 +851,10 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 		for j in range(0,len(ListOfZeroDPPX)):
 			jx=ListOfZeroDPPX[j]
 			jy=ListOfZeroDPPY[j]
-			[SA0p1ij,phi0p1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], jx.PHASE01[jx.indx[bn1]], jx.PHASE01[jx.indx[bn2]])
-			[SA0m1ij,phi0m1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], -jx.PHASE01[jx.indx[bn1]], -jx.PHASE01[jx.indx[bn2]])
-			[TBp10ij,phip10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], jy.PHASE10[jy.indx[bn1]], jy.PHASE10[jy.indx[bn2]])
-			[TBm10ij,phim10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], -jy.PHASE10[jy.indx[bn1]], -jy.PHASE10[jy.indx[bn2]])
+			[SA0p1ij,phi0p1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], jx.PHASE01[jx.indx[bn1]], jx.PHASE01[jx.indx[bn2]],0)
+			[SA0m1ij,phi0m1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], -jx.PHASE01[jx.indx[bn1]], -jx.PHASE01[jx.indx[bn2]],0)
+			[TBp10ij,phip10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], jy.PHASE10[jy.indx[bn1]], jy.PHASE10[jy.indx[bn2]],0)
+			[TBm10ij,phim10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], -jy.PHASE10[jy.indx[bn1]], -jy.PHASE10[jy.indx[bn2]],0)
 			
 
 			#print SA0p1ij,phi0p1ij,SA0m1ij,phi0m1ij,TBp10ij,phip10ij,TBm10ij,phim10ij
@@ -944,6 +968,8 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 #--------------
 def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist):
 
+	print 'Entering GetOffMomentumLattice'
+
 	bpms=intersect(ListOfFiles)
         bpmsl=[]
 
@@ -974,7 +1000,7 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist):
 
 def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
 
-
+	print 'Entering PseudoDoublePlaneMonitors'
 
 	# check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
 	# come from the same (simultaneous) measurement. It might be redundant check.
@@ -1111,7 +1137,9 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
 
 	PseudoListX=[]
 	PseudoListY=[]
+	print 'the length of zero dpp is '+str(len(ListOfZeroDPPX))
 	for j in range(0,len(ListOfZeroDPPX)):
+		print str(j),'something here'
 		fbpmx[j].close()
 		fbpmy[j].close()
 		filex='temp'+str(j)+'_linx'
@@ -1123,16 +1151,27 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
 	return [PseudoListX,PseudoListY]
 
 #----------------------- for finding the lines of the sextupoles (@ Glenn Vanbavinckhove)
-def f2h(amp,ampphase,termj,factor,term,M2M):    # converts from f-term to h-term
+def f2h(amp,ampphase,termj,factor,term,M2M,phasee,tune):    # converts from f-term to h-term
 
 	# conversion to include f2h
 	tp=2.0*pi
 	H=(amp/(termj*factor))*(1-e**complex(0,term*tp))
+        ############### test
+	#H=(amp/(factor*termj*(1-e**complex(0,term*tp))))
 	
 	Ampi=H.imag
 	Ampr=H.real
 	Amp=abs(H)/M2M
-	phase=(atan2(Ampi,Ampr))/tp 
+	#phase=(atan2(Ampi,Ampr))/tp
+	#phase=((ampphase*tp+pi*3.0*0.13)/tp)%1
+	print "phaseeeee "+str(phasee)
+	phase=((ampphase*tp-pi/2+pi*(3*tune))/tp)%1
+	print "phaseeeeee NEW"+str(phase)
+	print "TUNEEEEEE " + str(tune)
+
+
+	########### adding some factor has to be check!!!!
+	Amp=Amp+0.8
 
 	
 	fh=[Ampi,Ampr,Amp,phase]
@@ -1141,6 +1180,9 @@ def f2h(amp,ampphase,termj,factor,term,M2M):    # converts from f-term to h-term
 
 def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 
+
+	print 'Entering Getsextupole'
+	
 	# intersects BPMs
 
 	dbpms=intersect(listF[0])
@@ -1173,6 +1215,8 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 	invarianceJx=[]
 	invarianceJy=[]
 
+	
+
 
 	# for the model
 	for i in range(0,len(dbpms)):
@@ -1196,7 +1240,7 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 						
 					else:
 						ampi=fM[j].imag
-						phase=arctan2(ampi,ampr)%1
+						phase=(arctan2(ampi,ampr)/(2*pi))%1
 		
 			
 					hMODELT.append(amp)
@@ -1231,6 +1275,8 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 		bn1=upper(dbpms[i][1])
 		bn2=upper(dbpms[i+1][1])
 
+		bn0=upper(dbpms[0][1])   # zero phase
+
 		#print bn1
 		#print phaseT
 
@@ -1262,16 +1308,16 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 			# for f3000
 			if fname=='f3000':
 		
-				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], file.PHASE_20[file.indx[bn1]], file.PHASE_20[file.indx[bn2]])
+				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], file.PHASE_20[file.indx[bn1]], file.PHASE_20[file.indx[bn2]], file.MUX[file.indx[bn0]])
 
 				factor=float(6*invarianceJx[j][0])
 				term=float(3*Q[0])
 				termj=3.0
-				M2M=0.05
+				M2M=1
 
 			# for f1200
 			if fname=='f1200':
-				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], -file.PHASE_20[file.indx[bn1]], -file.PHASE_20[file.indx[bn2]])
+				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], -file.PHASE_20[file.indx[bn1]], -file.PHASE_20[file.indx[bn2]],file.MUX[file.indx[bn0]])
 
 				factor=float(2*invarianceJx[j][0])   #1.1 to fit with model
 				term=float(1*Q[0])
@@ -1280,7 +1326,7 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 
 			# for f2100
 			if fname=='f2100':
-				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], file.PHASE_20[file.indx[bn1]], file.PHASE_20[file.indx[bn2]])
+				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], file.PHASE_20[file.indx[bn1]], file.PHASE_20[file.indx[bn2]],file.MUX[file.indx[bn0]])
 
 				factor=float(4*invarianceJx[j][0])
 				term=float(2*Q[0])
@@ -1289,7 +1335,7 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 
 			#------ converting
 			phase0=file.MUX[file.indx[bn1]]
-			h=f2h(A,phi,termj,factor,term,M2M)
+			h=f2h(A,phi,termj,factor,term,M2M,file.MUX[file.indx[bn0]] ,file.TUNEX[file.indx[bn1]])
 
 			#----- adding the terms
 			AS.append(A)
@@ -1298,6 +1344,7 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 			hSr.append(h[1])
 			hS.append(h[2])
 			h_phaseS.append(h[3])
+			print "phase for hamiltonian "+str(h[3])
 
 		# array and taking average for all the input files for one BPM
 		AS=array(AS)
@@ -1339,6 +1386,8 @@ def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 
 #------------------------- for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
 def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
+
+	print 'Entering Getoctupole'
 
 		# intersects BPMs
 	dbpms=intersect(listF[0])
@@ -1512,6 +1561,9 @@ def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
 	
         #computes the chiterms for different inputs
+
+	print 'Entering GetChiterms'
+	
         twoPi=2*pi
 	
         delta1=((phase[1]-phase[0]-0.25)*twoPi)
@@ -1553,6 +1605,8 @@ def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
 	return [chiAMP,chiAMPi,chiAMPr,chiPHASE]
  
 def getChiTerms(madtwiss,filesF,plane,name):
+
+       	print 'Entering GetChiterms'
 
 	# bmps
 	files=filesF[0]
@@ -1733,6 +1787,8 @@ def getChiTerms(madtwiss,filesF,plane,name):
 
 def getchi1010(madtwiss,filesF,plane,name):
 
+       	print 'Entering Getchi1010'
+
 		# bmps
 	files=filesF[0]
 	filesy=filesF[1]
@@ -1829,6 +1885,8 @@ def getchi1010(madtwiss,filesF,plane,name):
 #---- finding kick
 def getkick(files):
 
+	print 'Entering Getkick'
+
 	invarianceJx=[]
 	invarianceJy=[]
 	
@@ -1903,7 +1961,7 @@ parser.add_option("-n", "--nbcpl",
                 help="Analysis option for couplng, 1 bpm or 2 bpms",
                 metavar="NBCPL", default=2, dest="NBcpl")
 parser.add_option("-t", "--tbtana",
-                help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
+                help="Turn-by-turn data analysis algorithm: SUSSIX, SVD,FIT,HA",
                 metavar="TBTANA", default="SUSSIX", dest="TBTana")
 parser.add_option("-b", "--bpmu",
                 help="BPMunit: um, mm, cm, m (default um)",
@@ -1961,8 +2019,9 @@ elif options.TBTana=='SVD':
 elif options.TBTana=='HA':
 	Suffix1='_hax'
 	Suffix2='_hay'
-	
-
+elif options.TBTana=='FIT':
+	Suffix1='_fitx'
+	Suffix2='_fity'
 fphasex=open(outputpath+'getphasex.out','w')
 fphasey=open(outputpath+'getphasey.out','w')
 
@@ -2017,6 +2076,8 @@ ListOfZeroDPPY=[]
 ListOfNonZeroDPPY=[]
 woliny=0  # Let's assume there is liny for the moment
 woliny2=0
+
+
 for filein in listOfInputFiles:
 	file1=filein+Suffix1
 	x1=twiss(file1)
@@ -2116,9 +2177,10 @@ if len(ListOfZeroDPPX)==0 :
 	
 
 # Construct pseudo-double plane BPMs
-if options.ACCEL=="SPS" and wolinx!=1 and woliny!=1 :
-	execfile(options.rpath+'/MODEL/SPS/SPSBPMpair.py')
+if (options.ACCEL=="SPS" or options.ACCEL=="RHIC") and wolinx!=1 and woliny!=1 :
+	execfile(options.rpath+'/MODEL/'+options.ACCEL+'/'+options.ACCEL+'BPMpair.py')
 	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY)
+	
 
 
 
@@ -2657,14 +2719,20 @@ if woliny!=1 and woliny2!=1:
 
 #-------- START coupling.
 
+print 'start coupling'
+
 if wolinx!=1 and woliny!=1:
 	try:
 		MADTwiss.Cmatrix()
 	except:
 		0.0
 
-	if options.ACCEL=="SPS":
+	if options.ACCEL=="SPS" or options.ACCEL=="RHIC":
 		plane='H'
+		for i in range(len(PseudoListX)):
+			
+			print PseudoListX[i]
+			
 		[phasexp,Q1,MUX,bpmsx]=GetPhases(MADTwiss,PseudoListX,plane,outputpath,bd)
 		plane='V'
 		[phaseyp,Q2,MUY,bpmsy]=GetPhases(MADTwiss,PseudoListY,plane,outputpath,bd)
@@ -2716,7 +2784,7 @@ if wolinx!=1 and woliny!=1:
 #---------------------------------------- Start getsextupoles @ Glenn Vanbavinckhove
 
 if options.higher=="0":
-	sys.exit()
+	print 'NOT doing higher order optics'
 
 fsex3000=open(outputpath+'getsex3000.out','w')
 fsex3000.write('@ MAD_FILE %s "'+file0+'"'+'\n')
@@ -2779,6 +2847,8 @@ if options.TBTana=="SUSSIX":
 
 
 	fsex3000.close()
+
+	sys.exit()
 
 # 2) -> in model f1200 and f2100 are complex conjugated
 
