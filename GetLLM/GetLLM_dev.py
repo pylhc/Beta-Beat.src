@@ -24,6 +24,8 @@
 ##                    V1.81, 1/Sep/2008 For an accelerator in which the beam goes opposite direction to the model as in LHCB2,
 ##                                       the beam direction parameter (bd) is added to GetPhases.
 ##                                       Bug in the phi13 for the last monitor and the last but one is fixed.
+##                    V1.9, 21/Oct/2008 Add the beta from spectrum height.
+
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -359,6 +361,49 @@ def BetaFromPhase(MADTwiss,ListOfZeroDPP,phase,plane):
 	delbeta=array(delbeta)
 	rmsbb=sqrt(average(delbeta*delbeta))
 	return [beta,rmsbb,alfa,commonbpms]
+
+#--------------------------------
+
+def BetaFromAmplitude(MADTwiss,ListOfZeroDPP,plane):
+
+	beta={}
+
+	commonbpms=intersect(ListOfZeroDPP)
+	commonbpms=modelIntersect(commonbpms,MADTwiss)
+	SumA=0.0
+	Amp=[]
+	for i in range(0,len(commonbpms)):
+		bn1=upper(commonbpms[i][1])
+		Ampi=0.0
+		for j in ListOfZeroDPP:
+			if plane=='H':
+				Ampi+=j.AMPX[j.indx[bn1]]
+			elif plane=='V':
+				Ampi+=j.AMPY[j.indx[bn1]]
+		Ampi=Ampi/len(ListOfZeroDPP)
+		Amp.append(Ampi)
+		if plane=='H':
+			SumA+=Ampi**2/MADTwiss.BETX[MADTwiss.indx[bn1]]
+		if plane=='V':
+			SumA+=Ampi**2/MADTwiss.BETY[MADTwiss.indx[bn1]]
+		
+	Kick=SumA/len(commonbpms)
+
+	
+	delbeta=[]
+	for i in range(0,len(commonbpms)):
+		bn1=upper(commonbpms[i][1])
+		beta[bn1]=Amp[i]**2/Kick
+		if plane=='H':
+			betmdl=MADTwiss.BETX[MADTwiss.indx[bn1]]
+		elif plane=='V':
+			betmdl=MADTwiss.BETY[MADTwiss.indx[bn1]]
+		delbeta.append((beta[bn1]-betmdl)/betmdl)
+
+	delbeta=array(delbeta)
+	rmsbb=sqrt(average(delbeta*delbeta))
+	return [beta,rmsbb,commonbpms]
+
 
 #-------------------------
 
@@ -893,7 +938,7 @@ parser.add_option("-c", "--cocut",
                 help="Cut for closed orbit measurement [um]",
                 metavar="COCUT", default=1000, dest="COcut")
 parser.add_option("-n", "--nbcpl",
-                help="Analysis option for couplng, 1 bpm or 2 bpm",
+                help="Analysis option for couplng, 1 bpm or 2 bpms",
                 metavar="NBCPL", default=2, dest="NBcpl")
 
 
@@ -956,6 +1001,13 @@ fbetay.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fbetax.write('@ FILES %s "')
 fbetay.write('@ FILES %s "')
 
+fabetax=open(outputpath+'getampbetax.out','w')
+fabetay=open(outputpath+'getampbetay.out','w')
+fabetax.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fabetay.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fabetax.write('@ FILES %s "')
+fabetay.write('@ FILES %s "')
+
 fcox=open(outputpath+'getCOx.out','w')
 fcoy=open(outputpath+'getCOy.out','w')
 fcox.write('@ MAD_FILE %s "'+file0+'"'+'\n')
@@ -973,8 +1025,6 @@ fDy.write('@ FILES %s "')
 fcouple=open(outputpath+'getcouple.out','w')
 fcouple.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fcouple.write('@ FILES %s "')
-
-
 
 
 FileOfZeroDPPX=[]
@@ -1000,6 +1050,7 @@ for filein in listOfInputFiles:
 		FileOfZeroDPPX.append(file1)
 		fphasex.write(file1+' ')
 		fbetax.write(file1+' ')
+		fabetax.write(file1+' ')
 		fcox.write(file1+' ')
 		fDx.write(file1+' ')
 		fcouple.write(filein+' ')
@@ -1020,6 +1071,7 @@ for filein in listOfInputFiles:
 			FileOfZeroDPPY.append(file1)
 			fphasey.write(file1+' ')
 			fbetay.write(file1+' ')
+			fabetay.write(file1+' ')
 			fcoy.write(file1+' ')
 			fDy.write(file1+' ')
 		else:
@@ -1034,6 +1086,8 @@ fphasex.write('"'+'\n')
 fphasey.write('"'+'\n')
 fbetax.write('"'+'\n')
 fbetay.write('"'+'\n')
+fabetax.write('"'+'\n')
+fabetay.write('"'+'\n')
 fcox.write('"'+'\n')
 fcoy.write('"'+'\n')
 fDx.write('"'+'\n')
@@ -1179,6 +1233,55 @@ if woliny!=1:
 		fbetay.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1][0])+' '+str(betay[bn1][1])+' '+str(betay[bn1][2])+' '+str(alfay[bn1][0])+' '+str(alfay[bn1][1])+' '+str(alfay[bn1][2])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fbetay.close()
+
+
+#------- Start beta from amplitude
+
+plane='H'
+betax={}
+rmsbbx=0.
+[betax,rmsbbx,bpms]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,plane)
+fabetax.write('@ Q1 %le '+str(Q1)+'\n')
+try:
+	fabetax.write('@ Q2 %le '+str(Q2)+'\n')
+except:
+	fabetax.write('@ Q2 %le '+'0.0'+'\n')
+fabetax.write('@ RMS-beta-beat %le '+str(rmsbbx)+'\n')
+fabetax.write('* NAME   POS    COUNT  BETX   BETXMDL MUXMDL\n')
+fabetax.write('$ %s     %le    %le    %le    %le     %le\n')
+#bpms=intersect(ListOfZeroDPPX)
+#bpms=modelIntersect(bpms, MADTwiss)
+for i in range(1,len(bpms)-3):
+	bn1=upper(bpms[i-1][1])
+	bn2=upper(bpms[i][1])
+	bns1=bpms[i-1][0]
+	bns2=bpms[i][0]
+	fabetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n')
+
+fabetax.close()
+
+if woliny!=1:
+	plane='V'
+	betay={}
+	rmsbby=0.
+	[betay,rmsbby,bpms]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,plane)
+	fabetay.write('@ Q1 %le '+str(Q1)+'\n')
+	fabetay.write('@ Q2 %le '+str(Q2)+'\n')
+	fabetay.write('@ RMS-beta-beat %le '+str(rmsbby)+'\n')
+	fabetay.write('* NAME   POS    COUNT  BETY   BETYMDL MUYMDL\n')
+	fabetay.write('$ %s     %le    %le    %le    %le     %le\n')
+	#bpms=intersect(ListOfZeroDPPY)
+	#bpms=modelIntersect(bpms, MADTwiss)
+	for i in range(1,len(bpms)-3):
+		bn1=upper(bpms[i-1][1])
+		bn2=upper(bpms[i][1])
+		bns1=bpms[i-1][0]
+		bns2=bpms[i][0]
+		fabetay.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1])+' '+str(MADTwiss.BETY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n')
+
+fabetay.close()
+
+
 
 #-------- START Orbit
 
