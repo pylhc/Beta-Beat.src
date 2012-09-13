@@ -127,6 +127,43 @@ def phiLastAndLastButOne(phi,ftune):
 	return phit
 
 
+def GetPhasesTotal(MADTwiss,ListOfFiles,plane,outputpath,bd):
+
+        commonbpms=intersect(ListOfFiles)
+        commonbpms=modelIntersect(commonbpms, MADTwiss)
+        
+        bn1=upper(commonbpms[0][1])
+	phaseT={}
+        print "Reference BPM:", bn1, "Plane:", plane
+        for i in range(0,len(commonbpms)):
+           #bn2=upper(commonbpms[i+1][1]) ?
+	   bn2=upper(commonbpms[i][1])
+           if plane=='H':
+              phmdl12=(MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]) % 1
+           if plane=='V':
+              phmdl12=(MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]) % 1
+                           
+           phi12=[]
+           for j in ListOfFiles:
+              # Phase is in units of 2pi
+              if plane=='H':
+                 phm12=(j.MUX[j.indx[bn2]]-j.MUX[j.indx[bn1]]) % 1 
+              if plane=='V':
+                 phm12=(j.MUY[j.indx[bn2]]-j.MUY[j.indx[bn1]]) % 1
+              phi12.append(phm12)
+	   phi12=array(phi12)
+	   if bd==-1: # for the beam circulating reversely to the model
+                phi12=1.0-phi12
+                                                              
+	   phstd12=sqrt(average(phi12*phi12)-(average(phi12))**2.0+2.2e-15)
+	   phi12=average(phi12)
+	   phaseT[bn2]=[phi12,phstd12,phmdl12,bn1]
+
+        return [phaseT,commonbpms]
+                  
+
+
+
 
 def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 
@@ -1798,7 +1835,7 @@ def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
         delta1=((phase[1]-phase[0]-0.25)*twoPi)
         delta2=((phase[2]-phase[1]-0.25)*twoPi)
 
-	inp=0.13
+	inp=0.13 # ????
         #term1=((amp[0]*e**complex(0,phase_20[0]*twoPi)))/cos(delta1)
         #term2=((amp[1]*e**complex(0,phase_20[1]*twoPi)))*(tan(delta1)+tan(delta2))
         #term3=((amp[2]*e**complex(0,phase_20[2]*twoPi)))/cos(delta2)
@@ -2416,6 +2453,11 @@ elif options.TBTana=='HA':
 
 fphasex=open(outputpath+'getphasex.out','w')
 fphasey=open(outputpath+'getphasey.out','w')
+fphasexT=open(outputpath+'getphasetotx.out','w')
+fphaseyT=open(outputpath+'getphasetoty.out','w')
+
+
+
 
 fphasex.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fphasey.write('@ MAD_FILE %s "'+file0+'"'+'\n')
@@ -2601,6 +2643,7 @@ for j in range(0,len(ALL)) :
 if wolinx!=1:
 	plane='H'
 	[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
+        [phasexT,bpmsxT]=GetPhasesTotal(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
 	phasexlist=[]
 	phasexlist.append(phasex)
 	
@@ -2608,6 +2651,8 @@ if wolinx!=1:
 if woliny!=1:
 	plane='V'
 	[phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss,ListOfZeroDPPY,plane,outputpath,bd)
+        [phaseyT,bpmsyT]=GetPhasesTotal(MADTwiss,ListOfZeroDPPY,plane,outputpath,bd)
+        
 	phaseylist=[]
 	phaseylist.append(phasey)
 	fphasey.write('@ Q1 %le '+str(Q1)+'\n')
@@ -2616,6 +2661,9 @@ if woliny!=1:
 	fphasey.write('@ MUY %le '+str(MUY)+'\n')
 	fphasey.write('* NAME   NAME2  S   S1   COUNT  PHASEY  STDPHY  PHYMDL MUYMDL\n')
 	fphasey.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+        fphaseyT.write('* NAME   NAME2  S   S1   COUNT  PHASEY  STDPHY  PHYMDL MUYMDL\n')
+        fphaseyT.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+                
 	for i in range(0,len(bpmsy)):
 		bn1=upper(bpmsy[i][1])
 		bns1=bpmsy[i][0]
@@ -2629,7 +2677,23 @@ if woliny!=1:
 			bns2=bpmsy[i+1][0]	
 		fphasey.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))+' '+str(phasey[bn1][0])+' '+str(phasey[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
+
+	for i in range(0,len(bpmsyT)):
+                bn1=upper(bpmsyT[i][1])
+                bns1=bpmsyT[i][0]
+                phmdl=phaseyT[bn1][2]
+                bn2=upper(bpmsyT[0][1])
+                bns2=bpmsyT[0][0]
+                fphaseyT.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))
+                    +' '+ str(phaseyT[bn1][0])+' '+str(phaseyT[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
+                
 fphasey.close()
+fphaseyT.close()
+
+
+
+
+
 
 if wolinx!=1:
 	fphasex.write('@ Q1 %le '+str(Q1)+'\n')
@@ -2643,9 +2707,13 @@ if wolinx!=1:
 		fphasex.write('@ MUY %le '+'0.0'+'\n')
 	fphasex.write('* NAME   NAME2  S   S1   COUNT  PHASEX  STDPHX  PHXMDL MUXMDL\n')
 	fphasex.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+        fphasexT.write('* NAME   NAME2  S   S1   COUNT  PHASEX  STDPHX  PHXMDL MUXMDL\n')
+        fphasexT.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+        
+        
 	for i in range(0,len(bpmsx)):
 		bn1=upper(bpmsx[i][1])
-		bns1=bpmsx[i][0]
+		bns1=bpmsxT[i][0]
 		phmdl=phasex[bn1][4]
 		if i==len(bpmsx)-1:
 			bn2=upper(bpmsx[0][1])
@@ -2654,8 +2722,25 @@ if wolinx!=1:
 			bn2=upper(bpmsx[i+1][1])
 			bns2=bpmsx[i+1][0]	
 		fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-	
+
+
+        for i in range(0,len(bpmsxT)):
+                bn1=upper(bpmsxT[i][1])
+                bns1=bpmsxT[i][0]
+                phmdl=phasexT[bn1][2]
+                bn2=upper(bpmsxT[0][1])
+                bns2=bpmsxT[0][0]
+                fphasexT.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+
+                    str(phasexT[bn1][0])+' '+str(phasexT[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
+                
+
+
+        
 fphasex.close()
+fphasexT.close()
+
+
+
 
 
 #-------- START Beta
