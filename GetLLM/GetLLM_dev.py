@@ -64,6 +64,11 @@
 ##                    V2.34 7/04/2011:  - Updating to deal with chromatic twiss files.
 ##                    V2.35 9/06/2011:  - Functions to cancel the AC dipole effect for beta, phase, and total phase, based on equations, are added.
 ##                                      - A function to calculate beta* from the phase advance between Q1s is added.
+##                                      - Phase shift by tune is compensated for the LHC experiment data.
+##                    V2.36 30/09/2011: - Rescaling algorithm for BetaFromAmp and action (developed by Andy) is implemented.
+##                                      - 2nd function to calculate IP parameters from Q1s is added.
+##                                      - The compensation of the phase shift by tune for LHC exp data is modified.
+##                                      - A function to calculate action of the AC dipole excitation is added.
 ##                    V3.01_dev 08/03/2012:  - tabs -> 8 spaces using :retab in vim
 ##                                           - added main() function
 
@@ -88,13 +93,16 @@ VERSION='V3.01 DEV'
 #######
 ####
 
+import sys
+sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+
 from metaclass import *
 from numpy import *
 import numpy
 
 from math import *
 import cmath
-import sys, pickle,os
+import pickle,os
 
 from string import *
 
@@ -179,13 +187,13 @@ def PhaseStd(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or
         phase1std=sqrt(mean((phase1-phase1ave)**2))
         return min(phase0std,phase1std)
 
-def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa):
+def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
 
         commonbpms=intersect(ListOfFiles)
         commonbpms=modelIntersect(commonbpms, MADTwiss)
         #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-        if oa=="LHCB1" and MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]<  200: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-        if oa=="LHCB2" and MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]>26450: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+        if op=="1" and oa=="LHCB1": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+        if op=="1" and oa=="LHCB2": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
         bn1=upper(commonbpms[0][1])
         phaseT={}
@@ -223,7 +231,7 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa):
         return [phaseT,commonbpms]
 
 
-def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd,oa):
+def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,bd,oa,op):
 
         commonbpms=intersect(ListOfFiles)
         #print len(commonbpms)
@@ -232,8 +240,8 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd,oa):
         #sys.exit()
 
         #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-        if oa=="LHCB1" and MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]<  200: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-        if oa=="LHCB2" and MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]>26450: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+        if op=="1" and oa=="LHCB1": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+        if op=="1" and oa=="LHCB2": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
         mu=0.0
         tunem=[]
@@ -306,34 +314,22 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd,oa):
                                 tunemi.append(j.TUNEY[j.indx[bn1]])
                         #-- To fix the phase shift by Q in LHC
                         try:
-                                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]>s_lastbpm:
-                                        if plane=='H': Q=mean(array([j.TUNEX[j.indx[bn1]],j.TUNEX[j.indx[bn2]],j.TUNEX[j.indx[bn3]]]))
-                                        if plane=='V': Q=mean(array([j.TUNEY[j.indx[bn1]],j.TUNEY[j.indx[bn2]],j.TUNEY[j.indx[bn3]]]))
-                                        phm12+=bd*Q
-                                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]>s_lastbpm:
-                                        if plane=='H': Q=mean(array([j.TUNEX[j.indx[bn1]],j.TUNEX[j.indx[bn2]],j.TUNEX[j.indx[bn3]]]))
-                                        if plane=='V': Q=mean(array([j.TUNEY[j.indx[bn1]],j.TUNEY[j.indx[bn2]],j.TUNEY[j.indx[bn3]]]))
-                                        phm13+=bd*Q
-                                if MADTwiss.S[MADTwiss.indx[bn1]]>s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm:
-                                        if plane=='H': Q=mean(array([j.TUNEX[j.indx[bn1]],j.TUNEX[j.indx[bn2]],j.TUNEX[j.indx[bn3]]]))
-                                        if plane=='V': Q=mean(array([j.TUNEY[j.indx[bn1]],j.TUNEY[j.indx[bn2]],j.TUNEY[j.indx[bn3]]]))
-                                        phm12+=-bd*Q
-                                if MADTwiss.S[MADTwiss.indx[bn1]]>s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm:
-                                        if plane=='H': Q=mean(array([j.TUNEX[j.indx[bn1]],j.TUNEX[j.indx[bn2]],j.TUNEX[j.indx[bn3]]]))
-                                        if plane=='V': Q=mean(array([j.TUNEY[j.indx[bn1]],j.TUNEY[j.indx[bn2]],j.TUNEY[j.indx[bn3]]]))
-                                        phm13+=-bd*Q
+                                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]] >s_lastbpm: phm12+= bd*Q
+                                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]] >s_lastbpm: phm13+= bd*Q
+                                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm: phm12+=-bd*Q
+                                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm: phm13+=-bd*Q
                         except: pass
                         if phm12<0: phm12+=1
                         if phm13<0: phm13+=1
                         phi12.append(phm12)
                         phi13.append(phm13)
-                        
+
                 phi12=array(phi12)
                 phi13=array(phi13)
                 if bd==-1: # for the beam circulating reversely to the model
                         phi12=1.0-phi12
                         phi13=1.0-phi13
-                
+
                 #if any(phi12)>0.9 and i !=len(commonbpms): # Very small phase advance could result in larger than 0.9 due to measurement error
                 #       print 'Warning: there seems too large phase advance! '+bn1+' to '+bn2+' = '+str(phi12)+'in plane '+plane+', recommended to check.'
                 phstd12=PhaseStd(phi12,1.0)
@@ -1035,18 +1031,18 @@ def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
 
 
 def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
-        #################################################################
-        # Input : - delta: phase advance between two BPMs
-        #         - edelta: error on the phase advance between two BPMs
-        #         - amp1: amplitude of secondary line at ith BPM
-        #         - amp2: amplitude of secondary line at i+1th BPM
-        #         - phase1: phase of secondary line at ith BPM
-        #         - phase2: phase of secondary line at i+1th BPM
-        # Return: - amp: amplitude of the complex signal
-        #         - phase: phase of the complex signal
-        #         - eamp: error on amplitude of the complex signal
-        #         - ephase: error on phase of the complex signal
-        ##################################################################
+        '''
+         Input : - delta: phase advance between two BPMs
+                 - edelta: error on the phase advance between two BPMs
+                 - amp1: amplitude of secondary line at ith BPM
+                 - amp2: amplitude of secondary line at i+1th BPM
+                 - phase1: phase of secondary line at ith BPM
+                 - phase2: phase of secondary line at i+1th BPM
+         Return: - amp: amplitude of the complex signal
+                 - phase: phase of the complex signal
+                 - eamp: error on amplitude of the complex signal
+                 - ephase: error on phase of the complex signal
+        '''
 
 
         # functions
@@ -1060,8 +1056,8 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
         cs1=cos(tp*phase1)
         ss1=sin(tp*phase1)
         cs2=cos(tp*phase2)
-        ss2=sin(tp*phase2)      
-        
+        ss2=sin(tp*phase2)
+
         sig1=amp1*complex(cs1,ss1)
         sig2=amp2*complex(cs2,ss2)
 
@@ -1815,130 +1811,123 @@ def Getquadrupole(MADTwiss,names,plane,phase,amp):
 
 
 def Getsextupole(modeltwiss,amp20list,phase,tune,j,k):
-###############################################################################
-#
-# function written to calculate resonance driving terms
-#
-#
-################################################################################
+    '''
+    function written to calculate resonance driving terms
+    '''
 
         # constructing complex amplitude and phase using two BPM method
 
-        bpms=intersect(amp20list)
-        bpms=modelIntersect(bpms,modeltwiss)
-        
-        [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(modeltwiss,amp20list,'H')
-        sqrt2jx=invariantJx[0]
+	bpms=intersect(amp20list)
+	bpms=modelIntersect(bpms,modeltwiss)
+	
+	[beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,amp20list,'H')
+	sqrt2jx=invariantJx[0]
 
-        Q=tune+float(str(modeltwiss.Q1).split(".")[0])
-        
-        afactor=(1-cos(2*(j-k)*pi*Q))#(2*sin(pi*(j-k)*Q))
-        #print (2*sin(pi*(j-k)*Q)),(1-cos(6*pi*Q))
-        #sys.exit()
-        pfactor=(pi*(j-k)*Q)
+	Q=tune+float(str(modeltwiss.Q1).split(".")[0])
+	
+	afactor=(1-cos(2*(j-k)*pi*Q))#(2*sin(pi*(j-k)*Q))
+	#print (2*sin(pi*(j-k)*Q)),(1-cos(6*pi*Q))
+	#sys.exit()
+	pfactor=(pi*(j-k)*Q)
 
-        htot={}
+	htot={}
 
-        for i in range(len(bpms)):
+	for i in range(len(bpms)):
 
-                if i<(len(bpms)-1):
-                        bpm=bpms[i][1]
-                        bpm1=bpms[i+1][1]
-                        s=bpms[i][0]
-                else:
-                        bpm=bpms[i][1]
-                        bpm1=bpms[0][1]
-                        s=bpms[i][0]
+		if i<(len(bpms)-1):
+			bpm=bpms[i][1]
+			bpm1=bpms[i+1][1]
+			s=bpms[i][0]
+		else:
+			bpm=bpms[i][1]
+			bpm1=bpms[0][1]
+			s=bpms[i][0]
 
-                amp_i_list=[]
-                phase_i_list=[]
+		amp_i_list=[]
+		phase_i_list=[]
 
-                hlist=[]
-                hplist=[]               
-                
-                flist=[]
-                fplist=[]
-                
+		hlist=[]
+		hplist=[]		
+		
+		flist=[]
+		fplist=[]
+		
 
-                for fileamp in amp20list:
+		for fileamp in amp20list:
 
-                        amp_201=fileamp.AMP_20[fileamp.indx[bpm]]*fileamp.AMPX[fileamp.indx[bpm]]
-                        amp_202=fileamp.AMP_20[fileamp.indx[bpm1]]*fileamp.AMPX[fileamp.indx[bpm1]]
-                        
-                        phase_201=fileamp.PHASE_20[fileamp.indx[bpm]]
-                        phase_202=fileamp.PHASE_20[fileamp.indx[bpm1]]
-                        
-                        delta=phase[bpm][0]-0.25
-                        edelta=phase[bpm][1]
+			amp_201=fileamp.AMP_20[fileamp.indx[bpm]]*fileamp.AMPX[fileamp.indx[bpm]]
+			amp_202=fileamp.AMP_20[fileamp.indx[bpm1]]*fileamp.AMPX[fileamp.indx[bpm1]]
+			
+			phase_201=fileamp.PHASE_20[fileamp.indx[bpm]]
+			phase_202=fileamp.PHASE_20[fileamp.indx[bpm1]]
+			
+			delta=phase[bpm][0]-0.25
+			edelta=phase[bpm][1]
 
-                        #computing complex line
-                        ampi,phasei,eampi,ephasei=ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202)
-        
+			#computing complex line
+			ampi,phasei,eampi,ephasei=ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202)
+	
 
-                        if ampi!=0.0:
+			if ampi!=0.0:
 
-                                amp_i_list.append(ampi)
-                                phase_i_list.append(phasei)
+				amp_i_list.append(ampi)
+				phase_i_list.append(phasei)
 
-                                if (j==3 and k==0):
-                                        factor=sqrt(2)### factor
-                                        fterm=ampi/(factor*2*j*sqrt2jx**2)
-                                        pterm=(phasei-phase[bpm][0]+0.25)%1
-                                        
-                                        hterm=fterm/afactor
-                                
-                                        hpterm=(pterm-pfactor)%1
+				if (j==3 and k==0):
+					factor=sqrt(2)### factor
+					fterm=ampi/(factor*2*j*sqrt2jx**2)
+					pterm=(phasei-phase[bpm][0]+0.25)%1
+					
+					hterm=fterm/afactor
+				
+					hpterm=(pterm-pfactor)%1
 
-                        
-                                elif (j==2 and k==1):
-                                        factor=sqrt(2)### factor
-                                        fterm=ampi/(factor*2*j*sqrt2jx**2)
-                                        pterm=(phasei-phase[bpm][0]+0.25)%1
-                                        
-                                        hterm=fterm/afactor
-                                
-                                        hpterm=(pterm-pfactor)%1                                        
+			
+				elif (j==2 and k==1):
+					factor=sqrt(2)### factor
+					fterm=ampi/(factor*2*j*sqrt2jx**2)
+					pterm=(phasei-phase[bpm][0]+0.25)%1
+					
+					hterm=fterm/afactor
+				
+					hpterm=(pterm-pfactor)%1					
 
-                                flist.append(fterm)
-                                fplist.append(pterm)
-                                hlist.append(hterm)
-                                hplist.append(hpterm)
-                        
+				flist.append(fterm)
+				fplist.append(pterm)
+				hlist.append(hterm)
+				hplist.append(hpterm)
+			
 
-                if len(amp_i_list)!=0.0:
-                        al=mean(amp_i_list)
-                        alstd=std(amp_i_list)
+		if len(amp_i_list)!=0.0:
+			al=mean(amp_i_list)
+			alstd=std(amp_i_list)
 
-                        pl=mean(phase_i_list)
-                        plstd=mean(phasei)
-                
-                        fl=mean(flist)
-                        fstd=std(flist)
-                
-                        fpl=mean(fplist)
-                        fpstd=std(fplist)
+			pl=mean(phase_i_list)
+			plstd=mean(phasei)
+		
+			fl=mean(flist)
+			fstd=std(flist)
+		
+			fpl=mean(fplist)
+			fpstd=std(fplist)
 
-                        hl=mean(hlist)
-                        hstd=std(hlist)
-                
-                        hpl=mean(hplist)
-                        hpstd=std(hplist)
+			hl=mean(hlist)
+			hstd=std(hlist)
+		
+			hpl=mean(hplist)
+			hpstd=std(hplist)
 
-                
-                        htot[bpm]=[bpm,s,al,alstd,pl,plstd,fl,fstd,fpl,fpstd,hl,hstd,hpl,hpstd]
+		
+			htot[bpm]=[bpm,s,al,alstd,pl,plstd,fl,fstd,fpl,fpstd,hl,hstd,hpl,hpstd]
 
 
         return htot,afactor,pfactor
 
-        
 
-                        
-
-
-
-
-#------------------------- for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
 def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
+      '''
+      for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
+      '''
 
                 # intersects BPMs
         dbpms=intersect(listF[0])
@@ -2625,48 +2614,129 @@ def getIP(IP,measured,model,phase,bpms):
 
     return [betahor,betaver]
 
+def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
+
+	#-- Common BPMs
+	bpm=modelIntersect(intersect(Files),MADTwiss)
+	bpm=[(b[0],upper(b[1])) for b in bpm]
+
+	#-- Loop for IPs
+	result={}
+	for ip in ('1','2','5','8'):
+
+		bpml='BPMSW.1L'+ip+'.'+oa[3:]; bpmr='BPMSW.1R'+ip+'.'+oa[3:]
+		
+		if (bpml in zip(*bpm)[1]) and (bpmr in zip(*bpm)[1]):
+
+			#-- Model values
+			L=0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
+			if L<0: L+=0.5*MADTwiss.LENGTH  #-- For sim starting in the middle of an IP
+			if plane=='H':
+				betlmdl=MADTwiss.BETX[MADTwiss.indx[bpml]]
+				alflmdl=MADTwiss.ALFX[MADTwiss.indx[bpml]]
+			if plane=='V':
+				betlmdl=MADTwiss.BETY[MADTwiss.indx[bpml]]
+				alflmdl=MADTwiss.ALFY[MADTwiss.indx[bpml]]
+			betsmdl=betlmdl/(1+alflmdl**2)
+			betmdl =betlmdl-2*alflmdl*L+L**2/betsmdl
+			alfmdl =alflmdl-L/betsmdl
+			dsmdl  =alfmdl*betsmdl
+
+			#-- Measurement for each file
+			betall=[]; alfall=[]; betsall=[]; dsall=[]; rt2Jall=[]
+			for i in range(len(Files)):
+				try:
+					if plane=='H':
+						al=Files[i].AMPX[Files[i].indx[bpml]]
+						ar=Files[i].AMPX[Files[i].indx[bpmr]]						
+						if list(zip(*bpm)[1]).index(bpmr)>list(zip(*bpm)[1]).index(bpml):
+							dpsi=2*pi*bd*(Files[i].MUX[Files[i].indx[bpmr]]-Files[i].MUX[Files[i].indx[bpml]])
+						else:
+							dpsi=2*pi*(Q+bd*(Files[i].MUX[Files[i].indx[bpmr]]-Files[i].MUX[Files[i].indx[bpml]]))
+						#-- To compensate the phase shift by tune
+					        if op=='1':
+							if (bd==1 and ip=='2') or (bd==-1 and ip=='8'): dpsi+=2*pi*Q
+					if plane=='V':
+						al=Files[i].AMPY[Files[i].indx[bpml]]
+						ar=Files[i].AMPY[Files[i].indx[bpmr]]
+						if list(zip(*bpm)[1]).index(bpmr)>list(zip(*bpm)[1]).index(bpml):
+							dpsi=2*pi*bd*(Files[i].MUY[Files[i].indx[bpmr]]-Files[i].MUY[Files[i].indx[bpml]])
+						else:
+							dpsi=2*pi*(Q+bd*(Files[i].MUY[Files[i].indx[bpmr]]-Files[i].MUY[Files[i].indx[bpml]]))
+						#-- To compensate the phase shift by tune
+						if op=='1':
+							if (bd==1 and ip=='2') or (bd==-1 and ip=='8'): dpsi+=2*pi*Q
+
+ 					#-- bet, alf, and sqrt(2J) from amp and phase advance
+ 					bet =L*(al**2+ar**2+2*al*ar*cos(dpsi))/(2*al*ar*sin(dpsi))
+ 					alf =(al**2-ar**2)/(2*al*ar*sin(dpsi))
+					bets=bet/(1+alf**2)
+ 					ds  =alf*bets
+ 					rt2J=sqrt(al*ar*sin(dpsi)/(2*L))
+ 					betall.append(bet); alfall.append(alf);	betsall.append(bets); dsall.append(ds);	rt2Jall.append(rt2J)
+				except:
+					pass
+
+			#-- Ave and Std
+			betall =array(betall) ; betave =mean(betall) ; betstd =sqrt(mean((betall-betave)**2))
+			alfall =array(alfall) ; alfave =mean(alfall) ; alfstd =sqrt(mean((alfall-alfave)**2))
+			betsall=array(betsall); betsave=mean(betsall); betsstd=sqrt(mean((betsall-betsave)**2))
+			dsall  =array(dsall)  ; dsave  =mean(dsall)  ; dsstd  =sqrt(mean((dsall-dsave)**2))
+			rt2Jall=array(rt2Jall); rt2Jave=mean(rt2Jall); rt2Jstd=sqrt(mean((rt2Jall-rt2Jave)**2))
+			result['IP'+ip]=[betave,betstd,betmdl,alfave,alfstd,alfmdl,betsave,betsstd,betsmdl,dsave,dsstd,dsmdl,rt2Jave,rt2Jstd]
+
+	return result
+
 def GetIPFromPhase(MADTwiss,psix,psiy,oa):
 
-        IP=('1','2','5','8'); result={}
-        for i in IP:
-                bpml='BPMSW.1L'+i+'.'+oa[3:]; bpmr=bpml.replace('L','R')
-                try:
-                        if psix[bpml][-1]==bpmr:
-                                L       =0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
-                                dpsix   =psix['BPMSW.1L'+i+'.'+oa[3:]][0]
-                                dpsiy   =psiy['BPMSW.1L'+i+'.'+oa[3:]][0]
-                                dpsixstd=psix['BPMSW.1L'+i+'.'+oa[3:]][1]
-                                dpsiystd=psiy['BPMSW.1L'+i+'.'+oa[3:]][1]
-                                dpsixmdl=MADTwiss.MUX[MADTwiss.indx[bpmr]]-MADTwiss.MUX[MADTwiss.indx[bpml]]
-                                dpsiymdl=MADTwiss.MUY[MADTwiss.indx[bpmr]]-MADTwiss.MUY[MADTwiss.indx[bpml]]
-                                betx    =L/tan(pi*dpsix)
-                                bety    =L/tan(pi*dpsiy)
-                                betxstd =L*pi*dpsixstd/(2*sin(pi*dpsix)**2)
-                                betystd =L*pi*dpsiystd/(2*sin(pi*dpsiy)**2)
-                                betxmdl =MADTwiss.BETX[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFX[MADTwiss.indx[bpml]]**2)
-                                betymdl =MADTwiss.BETY[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFY[MADTwiss.indx[bpml]]**2)
-                                result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
-                except: pass
-                #-- This part due to the format difference of phasef2 (from the model)
-                try:
-                        if psix[bpml][-2]==bpmr:
-                                L       =0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
-                                dpsix   =psix['BPMSW.1L'+i+'.'+oa[3:]][0]
-                                dpsiy   =psiy['BPMSW.1L'+i+'.'+oa[3:]][0]
-                                dpsixstd=psix['BPMSW.1L'+i+'.'+oa[3:]][1]
-                                dpsiystd=psiy['BPMSW.1L'+i+'.'+oa[3:]][1]
-                                dpsixmdl=MADTwiss.MUX[MADTwiss.indx[bpmr]]-MADTwiss.MUX[MADTwiss.indx[bpml]]
-                                dpsiymdl=MADTwiss.MUY[MADTwiss.indx[bpmr]]-MADTwiss.MUY[MADTwiss.indx[bpml]]
-                                betx    =L/tan(pi*dpsix)
-                                bety    =L/tan(pi*dpsiy)
-                                betxstd =L*pi*dpsixstd/(2*sin(pi*dpsix)**2)
-                                betystd =L*pi*dpsiystd/(2*sin(pi*dpsiy)**2)
-                                betxmdl =L/tan(pi*dpsixmdl)
-                                betymdl =L/tan(pi*dpsiymdl)
-                                result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
-                except: pass
+	IP=('1','2','5','8'); result={}
+	for i in IP:
+		bpml='BPMSW.1L'+i+'.'+oa[3:]; bpmr=bpml.replace('L','R')
+		try:
+			if psix[bpml][-1]==bpmr:
+				#-- Model
+				L       =0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
+				dpsixmdl=MADTwiss.MUX[MADTwiss.indx[bpmr]]-MADTwiss.MUX[MADTwiss.indx[bpml]]
+				dpsiymdl=MADTwiss.MUY[MADTwiss.indx[bpmr]]-MADTwiss.MUY[MADTwiss.indx[bpml]]
+				betxmdl =MADTwiss.BETX[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFX[MADTwiss.indx[bpml]]**2)
+				betymdl =MADTwiss.BETY[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFY[MADTwiss.indx[bpml]]**2)
+                                #-- For sim starting in the middle of an IP
+				if L<0:	L+=0.5*MADTwiss.LENGTH; dpsixmdl+=MADTwiss.Q1; dpsiymdl+=MADTwiss.Q2
+				#-- Measurement
+				dpsix   =psix['BPMSW.1L'+i+'.'+oa[3:]][0]
+				dpsiy   =psiy['BPMSW.1L'+i+'.'+oa[3:]][0]
+				dpsixstd=psix['BPMSW.1L'+i+'.'+oa[3:]][1]
+				dpsiystd=psiy['BPMSW.1L'+i+'.'+oa[3:]][1]
+				betx    =L/tan(pi*dpsix)
+				bety    =L/tan(pi*dpsiy)
+				betxstd =L*pi*dpsixstd/(2*sin(pi*dpsix)**2)
+				betystd =L*pi*dpsiystd/(2*sin(pi*dpsiy)**2)
+				result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
+		except: pass
+		#-- This part due to the format difference of phasef2 (from the model)
+		try:
+			if psix[bpml][-2]==bpmr:
+				#-- Model
+				L       =0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
+				dpsixmdl=MADTwiss.MUX[MADTwiss.indx[bpmr]]-MADTwiss.MUX[MADTwiss.indx[bpml]]
+				dpsiymdl=MADTwiss.MUY[MADTwiss.indx[bpmr]]-MADTwiss.MUY[MADTwiss.indx[bpml]]
+				betxmdl =MADTwiss.BETX[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFX[MADTwiss.indx[bpml]]**2)
+				betymdl =MADTwiss.BETY[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFY[MADTwiss.indx[bpml]]**2)
+			        #-- For sim starting in the middle of an IP
+				if L<0:	L+=0.5*MADTwiss.LENGTH; dpsixmdl+=MADTwiss.Q1; dpsiymdl+=MADTwiss.Q2
+				#-- Measurement
+				dpsix   =psix['BPMSW.1L'+i+'.'+oa[3:]][0]
+				dpsiy   =psiy['BPMSW.1L'+i+'.'+oa[3:]][0]
+				dpsixstd=psix['BPMSW.1L'+i+'.'+oa[3:]][1]
+				dpsiystd=psiy['BPMSW.1L'+i+'.'+oa[3:]][1]
+				betx    =L/tan(pi*dpsix)
+				bety    =L/tan(pi*dpsiy)
+				betxstd =L*pi*dpsixstd/(2*sin(pi*dpsix)**2)
+				betystd =L*pi*dpsiystd/(2*sin(pi*dpsiy)**2)
+				result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
+		except: pass
 
-        return result
+	return result
 
 def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
 
