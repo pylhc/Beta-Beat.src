@@ -84,13 +84,13 @@ print "Starting GetLLM ", VERSION
 
 
 from metaclass import *
-#from Numeric import *
+from Numeric import *
 from math import *
 import cmath
 import sys, pickle,os
 #import operator
 from string import *
-from numpy import *
+
 #imports for f2000
 #import scipy
 #from scipy import optimize
@@ -2665,8 +2665,8 @@ for filein in listOfInputFiles:
 		fDx.write(file1+' ')
 		fcouple.write(filein+' ')
 	else:
-		ListOfNonZeroDPPX.append(twiss(file1))
-		FileOfNonZeroDPPX.append(file1)
+		ListOfZeroDPPX.append(twiss(file1))  # ONLY for getsuper
+		FileOfZeroDPPX.append(file1)
 		fNDx.write(file1+' ')
 		fDx.write(file1+' ')
 
@@ -2696,25 +2696,25 @@ for filein in listOfInputFiles:
 			fcoy.write(file1+' ')
 			fDy.write(file1+' ')
 		else:
-			ListOfNonZeroDPPY.append(twiss(file1))
-			FileOfNonZeroDPPY.append(file1)
+			ListOfZeroDPPY.append(twiss(file1))
+			FileOfZeroDPPY.append(file1)
 			fDy.write(file1+' ')
 	except:
 		print 'Warning: There seems no '+str(file1)+' file in the specified directory.' 
 
 
-fphasex.write('"'+'\n')
-fphasey.write('"'+'\n')
-fbetax.write('"'+'\n')
-fbetay.write('"'+'\n')
-fabetax.write('"'+'\n')
-fabetay.write('"'+'\n')
-fcox.write('"'+'\n')
-fcoy.write('"'+'\n')
-fNDx.write('"'+'\n')
-fDx.write('"'+'\n')
-fDy.write('"'+'\n')
-fcouple.write('"'+'\n')
+fphasex.write('"test'+'\n')
+fphasey.write('"test'+'\n')
+fbetax.write('"test'+'\n')
+fbetay.write('"test'+'\n')
+fabetax.write('"test'+'\n')
+fabetay.write('"test'+'\n')
+fcox.write('"test'+'\n')
+fcoy.write('"test'+'\n')
+fNDx.write('"test'+'\n')
+fDx.write('"test'+'\n')
+fDy.write('"test'+'\n')
+fcouple.write('"test'+'\n')
 
 woliny=0
 woliny2=0
