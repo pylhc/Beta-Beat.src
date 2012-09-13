@@ -52,6 +52,7 @@
 ##                    V2.21, 23/June/2009 Add STDBET Model for off momentum beta beat phase.
 #                     V2.25    Fixed bd flag (must be -1 for beam2)
 #                     V2.25 Adding VERSION variable to be always output and modified in subsequent versions, do not forget!!!
+#                     V2.26 Adding F2000 (two different methods linear and non-linear)
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -66,7 +67,7 @@
 ####
 #######
 #########
-VERSION='V2.25'
+VERSION='V2.26'
 print "Starting GetLLM ", VERSION
 #########
 #######
@@ -80,6 +81,11 @@ import cmath
 import sys, pickle,os
 #import operator
 from string import *
+
+#imports for f2000
+import scipy
+from scipy import optimize
+from math import *
 
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
@@ -516,6 +522,7 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 	delbeta=[]
 	for i in range(0,len(commonbpms)):
 		bn1=upper(commonbpms[i][1])
+		location=commonbpms[i][0]
 		for j in range(0,len(ListOfFiles)):
 			Amp2[i][j]=Amp2[i][j]/Kick2[j]
 		#print average(Amp2[i]*Amp2[i]),average(Amp2[i])**2
@@ -524,7 +531,7 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 		except:
 			betstd=0
 			
-		beta[bn1]=[Amp[i]**2/Kick,betstd]
+		beta[bn1]=[Amp[i]**2/Kick,betstd,location]
 		if plane=='H':
 			betmdl=MADTwiss.BETX[MADTwiss.indx[bn1]]
 		elif plane=='V':
@@ -1206,7 +1213,7 @@ def GetOffMomentumPhase(MADTwiss, ListOfFiles, phaselist,plane):
 
 	bpms=intersect(ListOfFiles)
 	bpms=modelIntersect(bpms,MADTwiss)
-	print len(bpms)
+	#print len(bpms)
         bpmsl=[]
 	slope={}
 	slopeM={}
@@ -1336,15 +1343,15 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 		wname=upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
 		pname=upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
 		ws=dbpms[i][0]  # Location
-		print "name ",wname, pname
+		#print "name ",wname, pname
 		#Check whether the inputs (linx/y) have BPM name of model or experiment
 		try:
 			exwname=BPMdictionary[wname][0] #Experimental BPM name of horizontal To be paired
-			print exwname
+			#print exwname
 		
 			expname=BPMdictionary[pname][1] #Experimental BPM name of vertical  (one of them does not exist!) to be paired
 
-			print expname
+			#print expname
 			
 		except:
 			if len(BPMdictionary)!=0:
@@ -1448,6 +1455,89 @@ def f2h(amp,ampphase,termj,factor,term,M2M):    # converts from f-term to h-term
 	fh=[Ampi,Ampr,Amp,phase]
 
 	return fh
+
+def function(x):
+
+
+    fterm=4*abs(x[0])
+
+    main=2*sinh(fterm)
+
+    single=sinh(fterm)
+
+    first=cosh(fterm)*sin(x[1])
+
+    second=cosh(fterm)*sin(x[1]+2*phi12_nlinear)
+
+    fun1=float((main*(single+first))-bb[0])
+
+    fun2=float((main*(single+second))-bb[1])
+
+    fun=[fun1,fun2]
+
+    return fun
+
+phi12_nlinear=0
+bb=[0,0]
+
+def Getquadrupole(MADTwiss,names,plane,phase,amp):
+
+	f2000_tot={}
+
+	#print MADTwiss
+
+	for bcount in range(len(names)):
+
+		#print bcount
+
+		if bcount==len(names)-1:
+			bpm=names[bcount]
+			bpm2=names[0]
+		else:
+			bpm=names[bcount]
+			bpm2=names[bcount+1]
+
+	
+		
+		if plane=='H':
+			BETM=MADTwiss.BETX[MADTwiss.indx[bpm]]
+			BET=amp[bpm][0]
+			BETM1=MADTwiss.BETX[MADTwiss.indx[bpm2]]
+			BET1=amp[bpm2][0]
+			phi12_nlinear=(MADTwiss.PHIX[MADTwiss.indx[bpm]])*2*pi
+			tphi01=2*(MADTwiss.MUX[MADTwiss.indx[bpm2]]-MADTwiss.MUX[MADTwiss.indx[bpm]])*2*pi
+		else:
+			BETM=MADTwiss.BETY[MADTwiss.indx[bpm]]
+			BET=amp[bpm][0]
+			BETM1=MADTwiss.BETY[MADTwiss.indx[bpm2]]
+			BET1=amp[bpm2][0]
+			phi12_nlinear=(MADTwiss.PHIY[MADTwiss.indx[bpm]])*2*pi
+			tphi01=2*(MADTwiss.MUY[MADTwiss.indx[bpm2]]-MADTwiss.MUY[MADTwiss.indx[bpm]])*2*pi
+
+		#linear
+		
+		bb=(BET-BETM)/BETM
+		bb1=(BET1-BETM1)/BETM1
+
+		r=bb/bb1
+		P2000_linear=atan(r*sin(tphi01)/(1-r*cos(tphi01)))
+   
+ 
+		F2000_linear=abs(bb/8/sin(P2000_linear))
+
+
+		# non-linear
+		resul=optimize.fsolve(function,[0.1,0.1])
+
+		resul[1]=resul[1]%1
+		
+		f2000_tot[bpm]=[F2000_linear,P2000_linear,0,0,resul[0],resul[1],0,0,names[bcount]]
+
+
+
+	return f2000_tot
+
+
 
 def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
 
@@ -1925,7 +2015,7 @@ def getChiTerms(madtwiss,filesF,plane,name):
 		invarianceJx.append(invariantJX[0])
 		invarianceJy.append(invariantJY[0])
 		
-	print invarianceJx
+	#print invarianceJx
 	#### model chi
 	MADTwiss.chiterms(BPMS)
 	if name=='chi3000':
@@ -2240,7 +2330,7 @@ def getIP(IP,measured,model,phase,bpms):
 
     BPMleft,BPMright=BPMfinder(IP,model,measured)
 
-    
+    #print "IN ip"
 
     if "null" in BPMleft or "null" in BPMright:
 
@@ -2273,8 +2363,8 @@ def getIP(IP,measured,model,phase,bpms):
 	    ll=abs(sip-sxl)
 	    lr=abs(sip-sxr)
 
-	    print BPMleft,betxl,model.BETX[model.indx[BPMleft]],ll
-	    print BPMright,betxr,model.BETX[model.indx[BPMright]],lr
+	    #print BPMleft,betxl,model.BETX[model.indx[BPMleft]],ll
+	    #print BPMright,betxr,model.BETX[model.indx[BPMright]],lr
 
 	    ##### phase
 	    commonbpms=bpms[0]
@@ -2295,15 +2385,14 @@ def getIP(IP,measured,model,phase,bpms):
 				    phix=phase[0][BPMleft][0]
 			
 	    
-
+	    print "Left ",ll," Right ",lr,betxl,betxr
 	    le=(ll+lr)/2 # taking average for lengths left and right of IP
 	    rootx=sqrt((betxl*betxr)/4)
 	    rooty=sqrt((betyl*betyr)/4)
 	    # checking root condition
-	    if le>rootx: print "exceeding condition for x";#sys.exit()
-	    le=1
-	    if le>rooty: print "exceeding condition for y";#sys.exit()
-	    le=1
+	    if le>rootx: print "exceeding condition for x";le=1#sys.exit()
+	    
+	    if le>rooty: print "exceeding condition for y";le=1#sys.exit()
             #horizontal
 	    sumbet=betxl+betxr
 	    rootnominator=2*sqrt(betxl*betxr-4*le**2)
@@ -2312,7 +2401,7 @@ def getIP(IP,measured,model,phase,bpms):
 	    betas1=((sumbet-rootnominator)/denom)*4*le**2
 	    betas2=((sumbet+rootnominator)/denom)*4*le**2
 
-	    print "Results : ",betas1,betas2,betxl,betxr,le,BPMleft
+	    print "Results : ",betas1,betas2,betxl,betxr,le,BPMleft,model.BETX[model.indx[BPMleft]],model.BETX[model.indx[BPMright]]
 	    #sys.exit()
 	    betastar=0.0
 	    if betas1<betas2 and betas1>1: betastar=betas1
@@ -2350,7 +2439,7 @@ def getIP(IP,measured,model,phase,bpms):
 	    betas1=((sumbet-rootnominator)/denom)*4*le**2
 	    betas2=((sumbet+rootnominator)/denom)*4*le**2
 
-	    print betas1,betas2,betyl,betyr,le,BPMright
+	    #print betas1,betas2,betyl,betyr,le,BPMright
 	    #sys.exit()
 
 	    betastar=0.0
@@ -2522,6 +2611,14 @@ fDy.write('@ FILES %s "')
 fcouple=open(outputpath+'getcouple.out','w')
 fcouple.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fcouple.write('@ FILES %s "')
+
+f2000=open(outputpath+'getf2000x.out','w')
+f2000.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+f2000.write('@ FILES %s "\n')
+
+f2000y=open(outputpath+'getf2000y.out','w')
+f2000y.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+f2000y.write('@ FILES %s "\n')
 
 if "LHC" in options.ACCEL:
 	fIP=open(outputpath+'getIP.out','w')
@@ -2790,7 +2887,7 @@ if wolinx!=1:
 	fbetax.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 	fbetax.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 	for i in range(0,len(bpms)):
-		print bn1,MADTwiss.BETX[MADTwiss.indx[bn1]]
+		#print bn1,MADTwiss.BETX[MADTwiss.indx[bn1]]
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
 		fbetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(betax[bn1][2])+' '+str(alfax[bn1][0])+' '+str(alfax[bn1][1])+' '+str(alfax[bn1][2])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
@@ -2874,12 +2971,12 @@ if "LHC" in options.ACCEL:
 	phases=[phasex,phasey]
 	bpmss=[bpmsx,bpmsy]
 	for ip in ips:
-		try:
-			
-			betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
-		except:
-			betahor=[0,0,0,0,0,0,0];betaver=[0,0,0,0,0,0,0]
-		print str(betahor[6])
+		#try:
+	                #print "entering"
+	        betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
+		#except:
+			#betahor=[0,0,0,0,0,0,0];betaver=[0,0,0,0,0,0,0]
+		#print str(betahor[6])
 		fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
 
 
@@ -3595,6 +3692,46 @@ for i in range(0,len(dpp)):
 
 
 fkick.close()
+
+#------------------------ start f2000
+
+f2000.write('* NAME  S  F2000L  F2000EL  P2000L  P2000EL  F2000N  F2000EN   P2000N  P2000EN\n')
+f2000.write('$ %s    %le %le    %le      %le     %le      %le     %le       %le     %le \n')
+
+
+plane='H'
+names=[]
+for bpm in phasexlist[0].keys():
+	if bpm in betaxalist[0].keys():
+		names.append(bpm)
+result_f2000=Getquadrupole(MADTwiss,names,plane,phasexlist[0],betaxalist[0])
+for name in names:
+
+	loc=result_f2000[name][8]
+
+	f2000.write(name+" "+str(loc)+" "+str(result_f2000[name][0])+" "+str(result_f2000[name][2])+" "+str(result_f2000[name][1])+" "+str(result_f2000[name][3])+" "+str(result_f2000[name][4])+" "+str(result_f2000[name][6])+" "+str(result_f2000[name][5])+" "+str(result_f2000[name][7])+"\n")
+
+f2000.close()
+
+f2000y.write('* NAME  S  F2000L  F2000EL  P2000L  P2000EL  F2000N  F2000EN   P2000N  P2000EN\n')
+f2000y.write('$ %s    %le %le    %le      %le     %le      %le     %le       %le     %le \n')
+
+plane='V'
+names=[]
+for bpm in phaseylist[0].keys():
+	if bpm in betayalist[0].keys():
+		names.append(bpm)
+result_f2000=Getquadrupole(MADTwiss,names,plane,phaseylist[0],betayalist[0])
+for name in names:
+
+	loc=result_f2000[name][8]
+
+	f2000y.write(name+" "+str(loc)+" "+str(result_f2000[name][0])+" "+str(result_f2000[name][2])+" "+str(result_f2000[name][1])+" "+str(result_f2000[name][3])+" "+str(result_f2000[name][4])+" "+str(result_f2000[name][6])+" "+str(result_f2000[name][5])+" "+str(result_f2000[name][7])+"\n")
+
+f2000y.close()
+	
+
+#------------------------ end f2000
 
 
 ####### -------------- end 

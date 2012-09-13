@@ -56,6 +56,7 @@
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
+##                   V2.27 Adding new method for IP calculation
 
 
 ## Some rules for variable name: Dictionary is used to contain the output of function
@@ -2354,105 +2355,36 @@ def getIP(IP,measured,model,phase,bpms):
 	    #print betaipy
 
 	    # measured value
-	    betxl=measured[0][BPMleft][0]
-	    betyl=measured[1][BPMleft][0]
+	    betaxl=measured[0][BPMleft][0]
+	    betayl=measured[1][BPMleft][0]
 
-	    betxr=measured[0][BPMright][0]
-	    betyr=measured[1][BPMright][0]
+	    betaxr=measured[0][BPMright][0]
+	    betayr=measured[1][BPMright][0]
 
-	    ll=abs(sip-sxl)
-	    lr=abs(sip-sxr)
+	    deltaphimodel=abs(model.MUX[model.indx[BPMright]]-model.MUX[model.indx[BPMleft]])
 
-	    #print BPMleft,betxl,model.BETX[model.indx[BPMleft]],ll
-	    #print BPMright,betxr,model.BETX[model.indx[BPMright]],lr
-
-	    ##### phase
-	    commonbpms=bpms[0]
-	    phix=0.0
-	    #print commonbpms
-	    for i in range(0,len(commonbpms)):
-		    if i<len(commonbpms)-1:
-			    bpmone=commonbpms[i][1]
-			    bpmtwo=commonbpms[i+1][1]
-		    else:
-			    bpmone=commonbpms[i][1]
-			    bpmtwo=commonbpms[0][1]
-		    #print bpmone,bpmtwo
-		    if BPMleft==bpmone : #horizontal
-			    data=phase[0][BPMleft]
-			   
-			    if BPMright==data[6]:
-				    phix=phase[0][BPMleft][0]
-			
 	    
-	    print "Left ",ll," Right ",lr,betxl,betxr
-	    le=(ll+lr)/2 # taking average for lengths left and right of IP
-	    rootx=sqrt((betxl*betxr)/4)
-	    rooty=sqrt((betyl*betyr)/4)
-	    # checking root condition
-	    if le>rootx: print "exceeding condition for x";le=1#sys.exit()
+	    L=((sip-sxl)+(sxr-sip))/2
+	    betastar=(2*sqrt(betaxl)*sqrt(betaxr)*sin(deltaphimodel*2*pi))/(betayl+betayr-2*sqrt(betaxl)*sqrt(betaxr)*cos(2*pi*deltaphimodel))*L
+	    location=((betaxl-betaxr)/(betaxl+betaxr-2*sqrt(betaxl)*sqrt(betaxr)*cos(2*pi*deltaphimodel)))*L
 	    
-	    if le>rooty: print "exceeding condition for y";le=1#sys.exit()
-            #horizontal
-	    sumbet=betxl+betxr
-	    rootnominator=2*sqrt(betxl*betxr-4*le**2)
-	    denom=(16*le**2+(betxl-betxr)**2)
+	    deltaphi=(atan((L-location)/betastar)+atan((L+location)/betastar))/(2*pi)
+	   
+	    betahor=[IP,betastar,location,deltaphi,betaipx,deltaphimodel,0]
 
-	    betas1=((sumbet-rootnominator)/denom)*4*le**2
-	    betas2=((sumbet+rootnominator)/denom)*4*le**2
-
-	    print "Results : ",betas1,betas2,betxl,betxr,le,BPMleft,model.BETX[model.indx[BPMleft]],model.BETX[model.indx[BPMright]]
-	    #sys.exit()
-	    betastar=0.0
-	    if betas1<betas2 and betas1>1: betastar=betas1
-	    else: betastar=betas2
-
-	    location=-(betastar*(betxl-betxr)/(4*le))
-
-	    deltaphimodel=model.MUX[model.indx[BPMright]]-model.MUX[model.indx[BPMleft]]
-	    deltaphi=(atan((le-location)/betastar)+atan((le+location)/betastar))/(2*pi)
-
-	    ##### phase
-	    commonbpms=bpms[1]
-	    phiy=0.0
-	    #print commonbpms
-	    for i in range(0,len(commonbpms)):
-		    if i<len(commonbpms)-1:
-			    bpmone=commonbpms[i][1]
-			    bpmtwo=commonbpms[i+1][1]
-		    else:
-			    bpmone=commonbpms[i][1]
-			    bpmtwo=commonbpms[0][1]
-		    #print bpmone,bpmtwo
-		    if BPMleft==bpmone and BPMright==bpmtwo: #horizontal
-			    phiy=phase[1][BPMleft][0]
-
-	    betahor=[IP,betastar,location,deltaphi,betaipx,deltaphimodel,phix]
 
 	    print "horizontal betastar for ",IP," is ",str(betastar)," at location ",str(location), " of IP center with phase advance ",str(deltaphi)
 
-            #vertical
-	    sumbet=betyl+betyr
-	    rootnominator=2*sqrt(betyl*betyr-4*le**2)
-	    denom=(16*le**2+(betyl-betyr)**2)
+	    #vertical
+	    deltaphimodel=abs(model.MUY[model.indx[BPMright]]-model.MUY[model.indx[BPMleft]])
+	    
+	  
+	    betastar=(2*sqrt(betayl)*sqrt(betayr)*sin(deltaphimodel*2*pi))/(betayl+betayr-2*sqrt(betayl)*sqrt(betayr)*cos(2*pi*deltaphimodel))*L
+	    location=((betayl-betayr)/(betayl+betayr-2*sqrt(betayl)*sqrt(betayr)*cos(2*pi*deltaphimodel)))*L
 
-	    betas1=((sumbet-rootnominator)/denom)*4*le**2
-	    betas2=((sumbet+rootnominator)/denom)*4*le**2
+	    deltaphi=(atan((L-location)/betastar)+atan((L+location)/betastar))/(2*pi)
 
-	    #print betas1,betas2,betyl,betyr,le,BPMright
-	    #sys.exit()
-
-	    betastar=0.0
-	    if betas1<betas2 and betas1>1: betastar=betas1
-	    else: betastar=betas2
-
-	    location=-(betastar*(betyl-betyr)/(4*le))
-
-	    deltaphimodel=model.MUY[model.indx[BPMright]]-model.MUY[model.indx[BPMleft]]
-
-	    deltaphi=(atan((le-location)/betastar)+atan((le+location)/betastar))/(2*pi)
-
-	    betaver=[IP,betastar,location,deltaphi,betaipy,deltaphimodel,phiy]
+	    betaver=[IP,betastar,location,deltaphi,betaipy,deltaphimodel,0]
 
 	    print "vertical betastar for ",IP," is ",str(betastar)," at location ",str(location), " of IP center with phase advance ",str(deltaphi)
 
