@@ -49,6 +49,7 @@
 ##                                       Add option for off momentum beta-beating to choose algorithm, that is, beta from phase or amp
 ##                                       Add a routine to detect wrong data having two lines in linx/y file with the same BPM name.
 ##                                       Add a routine to avoid zero division due to exactly n*pi phase advance in beta from phase (see the last part of GetPhases).
+##                    V2.21, 23/June/2009 Add STDBET Model for off momentum beta beat phase.
 
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
@@ -66,6 +67,7 @@ from metaclass import *
 from Numeric import *
 from math import *
 import cmath
+#import linreg
 import sys, pickle,os
 #import operator
 from string import *
@@ -212,8 +214,8 @@ def GetPhases(MADTwiss,ListOfFiles,plane,outputpath,bd):
 			phi13=1.0-phi13
 		if phi12>0.9 and i !=len(commonbpms): # Very small phase advance could result in larger than 0.9 due to measurement error
 			print 'Warning: there seems too large phase advance! '+bn1+' to '+bn2+' = '+str(phi12)+'in plane '+plane+', recommended to check.'
-		phstd12=sqrt(average(phi12*phi12)-(average(phi12))**2.0+2.2e-16)
-		phstd13=sqrt(average(phi13*phi13)-(average(phi13))**2.0+2.2e-16)
+		phstd12=sqrt(average(phi12*phi12)-(average(phi12))**2.0+2.2e-15)
+		phstd13=sqrt(average(phi13*phi13)-(average(phi13))**2.0+2.2e-15)
 		phi12=average(phi12)
 		phi13=average(phi13)
 		tunemi=array(tunemi)
@@ -396,6 +398,9 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
 	delbeta=array(delbeta)
 	rmsbb=sqrt(average(delbeta*delbeta))
+
+	
+	
 	return [beta,rmsbb,alfa,commonbpms]
 
 
@@ -1049,7 +1054,6 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist,plane):
 	bpms=modelIntersect(bpms, MADTwiss)
 	MADTwiss.chrombeat()
 
-	
         bpmsl=[]
 
 	slope={}
@@ -1089,34 +1093,60 @@ def GetOffMomentumLattice(MADTwiss, ListOfFiles, betalist,plane):
 
 #----------------------------------
 
-def GetOffMomentumPhase(MADTwiss, ListOfFiles, phaselist):
+
+def chromphase(plane,bn1,bn2,MADTwiss):
+
+      
+	if plane=='H':
+		p=(MADTwiss.DMUX[MADTwiss.indx[bn2]]-MADTwiss.DMUX[MADTwiss.indx[bn1]])
+	else:
+		p=(MADTwiss.DMUY[MADTwiss.indx[bn2]]-MADTwiss.DMUY[MADTwiss.indx[bn1]])
+
+	return p
+
+
+
+def GetOffMomentumPhase(MADTwiss, ListOfFiles, phaselist,plane):
 
 	bpms=intersect(ListOfFiles)
+	bpms=modelIntersect(bpms,MADTwiss)
+	print len(bpms)
         bpmsl=[]
-
 	slope={}
-	for i in range(0,len(bpms)):
+	slopeM={}
+	for i in range(0,len(bpms)-1):
 		bn=upper(bpms[i][1])
+		bn2=upper(bpms[i+1][1])
 		check=0
 		slopei=0.0
+		count=0
 		for j in range(1,len(phaselist)):
-			count=0
+		
 			try:
 				if (phaselist[0][bn][6]==phaselist[j][bn][6]):
 					slopei+=(phaselist[j][bn][0]-phaselist[0][bn][0])/phaselist[j]['DPP']
-					print phaselist[j][bn][0],phaselist[0][bn][0]
+					 
+					#print phaselist[j][bn][0],phaselist[0][bn][0]
 					count=count+1
+
+				#model for offmomentum phase:
+				if plane=='H':
+					slopeMp=chromphase('H',bn,bn2,MADTwiss)
+					#sslopep=MADTwiss.dbpx[MADTwiss.indx[upper(bn)]]
+				else:
+					slopeMp=chromphase('V',bn,bn2,MADTwiss)
+					#sslopep=MADTwiss.dbpy[MADTwiss.indx[upper(bn)]]
 					
 			except:
 				check=1
 		if (check==0 and count>0):
 			slopei=slopei/count
 			slope[bn]=[slopei,count,phaselist[0][bn][6]]
+			slopeM[bn]=[slopeMp]
 			bpmsl.append([bpms[i][0],bpms[i][1]])
 
-	print bpmsl
 			
-	return [slope,bpmsl]
+	return [slope,bpmsl,slopeM]
 
 
 
@@ -2321,17 +2351,20 @@ for j in range(0,len(ALL)) :
 
 
 #-------- START Phases
+phasexlist=[]
+phaseylist=[]
+
 if wolinx!=1:
 	plane='H'
 	[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
-	phasexlist=[]
+	phasex['DPP']=0
 	phasexlist.append(phasex)
 	
 
 if woliny!=1:
 	plane='V'
 	[phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss,ListOfZeroDPPY,plane,outputpath,bd)
-	phaseylist=[]
+	phasey['DPP']=0
 	phaseylist.append(phasey)
 	fphasey.write('@ Q1 %le '+str(Q1)+'\n')
 	fphasey.write('@ MUX %le '+str(MUX)+'\n')
@@ -2404,6 +2437,7 @@ if wolinx!=1:
 	fbetax.write('* NAME   POS    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
 	fbetax.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
 	for i in range(0,len(bpms)):
+		print bn1,MADTwiss.BETX[MADTwiss.indx[bn1]]
 		bn1=upper(bpms[i][1])
 		bns1=bpms[i][0]
 		fbetax.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(betax[bn1][2])+' '+str(alfax[bn1][0])+' '+str(alfax[bn1][1])+' '+str(alfax[bn1][2])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
@@ -2831,8 +2865,10 @@ if wolinx!=1 and wolinx2!=1:
 	slopex={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPX+ListOfNonZeroDPPX
-	if (options.dppbb=="PHASE"):[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist,'H')
-	elif (options.dppbb=="AMP"):[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist,'H')
+	if options.dppbb=="PHASE":
+		[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxlist,'H')
+	elif options.dppbb=="AMP":
+		[slopex,slopeM,bpms]=GetOffMomentumLattice(MADTwiss, ListOfFiles, betaxalist,'H')
 	else:
 		print 'You gave wrong option for off momentum beta-beating. Please give PHASE or AMP'
 		sys.exit()
@@ -2871,13 +2907,13 @@ if wolinx!=1 and wolinx2!=1:
 	slopex={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPX+ListOfNonZeroDPPX
-	[slopex,bpms]=GetOffMomentumPhase(MADTwiss, ListOfFiles, phasexlist)	
-	fdppx.write('* NAME1  NAME2   S      COUNT  SPHASEX\n')
-	fdppx.write('$ %s     %s      %le    %le    %le\n')
+	[slopex,bpms,slopeM]=GetOffMomentumPhase(MADTwiss, ListOfFiles, phasexlist,'H')	
+	fdppx.write('* NAME1  NAME2   S      COUNT  SPHASEX  SPHASEXM\n')
+	fdppx.write('$ %s     %s      %le    %le    %le    %le\n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppx.write('"'+bn+'" "'+slopex[bn][2]+'" '+str(bns)+' '+str(slopex[bn][1])+' '+str(slopex[bn][0])+'\n')
+		fdppx.write('"'+bn+'" "'+slopex[bn][2]+'" '+str(bns)+' '+str(slopex[bn][1])+' '+str(slopex[bn][0])+'  '+str(slopeM[bn][0]) +'\n')
 	fdppx.close()
 
 if woliny!=1 and woliny2!=1:
@@ -2886,13 +2922,13 @@ if woliny!=1 and woliny2!=1:
 	slopey={}
 	bpms=[]
 	ListOfFiles=ListOfZeroDPPY+ListOfNonZeroDPPY
-	[slopey,bpms]=GetOffMomentumPhase(MADTwiss, ListOfFiles, phaseylist)	
-	fdppy.write('* NAME1  NAME2   S      COUNT  SPHASEY\n')
-	fdppy.write('$ %s     %s      %le    %le    %le\n')
+	[slopey,bpms,slopeM]=GetOffMomentumPhase(MADTwiss, ListOfFiles, phaseylist,'V')	
+	fdppy.write('* NAME1  NAME2   S      COUNT  SPHASEY  SPHASEYM\n')
+	fdppy.write('$ %s     %s      %le    %le    %le    %le \n')
 	for i in range(0,len(bpms)):
 		bn=upper(bpms[i][1])
 		bns=bpms[i][0]
-		fdppy.write('"'+bn+'" "'+slopey[bn][2]+'" '+str(bns)+' '+str(slopey[bn][1])+' '+str(slopey[bn][0])+'\n')
+		fdppy.write('"'+bn+'" "'+slopey[bn][2]+'" '+str(bns)+' '+str(slopey[bn][1])+' '+str(slopey[bn][0])+'  '+str(slopeM[bn][0])+'\n')
 	fdppy.close()
 
 
@@ -2907,8 +2943,9 @@ if wolinx!=1 and woliny!=1:
 		MADTwiss.Cmatrix()
 	except:
 		0.0
-
+	print "UNTIL HEREEEEE 11"
 	if options.ACCEL=="SPS" or options.ACCEL=="RHIC":
+		print "UNTIL HEREEEEE"
 		plane='H'
 		[phasexp,Q1,MUX,bpmsx]=GetPhases(MADTwiss,PseudoListX,plane,outputpath,bd)
 		plane='V'
@@ -3191,4 +3228,91 @@ fkick.close()
 
 ####### -------------- end 
 
+######### Implementing new opticsclass
+from opticsclass import *
 
+
+######
+## => Initialisation
+######
+data=getData()
+nlin=getNonLin()
+lin=getLin()
+offmom=getOffMomentum()
+
+######
+## => Part 1 : Linear optics
+######
+
+
+######
+## => Part 2 : Off-momentum
+######
+
+###
+# => Chromaticity
+###
+
+# => horizontal
+offmom.findchrom(ListOfZeroDPPX+ListOfNonZeroDPPX,'H')
+info=["@ CHROMX %le "+str(offmom.chrom),"@ CHROMXRMS %le "+str(offmom.chrome)]
+name=["* NAME","S","CHROMX","CHROMXE"]
+specie=["$ %s","%le","%le","%le"]
+data4data=[offmom.bpms,offmom.slope,offmom.slope_error]
+data.writetables(outputpath+"/getchromax.out",info,name,specie,data4data)
+
+
+offmom.findchrom(ListOfZeroDPPY+ListOfNonZeroDPPY,'V')
+info=["@ CHROMY %le "+str(offmom.chrom),"@ CHROMYRMS %le "+str(offmom.chrome)]
+name=["* NAME","S","CHROMY","CHROMYE"]
+specie=["$ %s","%le","%le","%le"]
+data4data=[offmom.bpms,offmom.slope,offmom.slope_error]
+data.writetables(outputpath+"/getchromay.out",info,name,specie,data4data)
+
+###
+# => Off-momentum beta-beat
+###
+
+# => horizontal
+offmom.findoffBB(ListOfZeroDPPX+ListOfNonZeroDPPX,'H',MADTwiss,betaxalist)
+info=["@ DATA %s SBETX"]
+name=["* NAME","S","SBETX","SBETXERR","SBETXM"]
+specie=["$ %s","%le","%le","%le","%le"]
+data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
+data.writetables(outputpath+"/getsbetax.out",info,name,specie,data4data)
+
+# => vertical
+offmom.findoffBB(ListOfZeroDPPY+ListOfNonZeroDPPY,'V',MADTwiss,betayalist)
+info=["@ DATA %s SBETY"]
+name=["* NAME","S","SBETY","SBETXERR","SBETYM"]
+specie=["$ %s","%le","%le","%le","%le"]
+data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
+data.writetables(outputpath+"/getsbetay.out",info,name,specie,data4data)
+
+###
+# => Off-momentum phase
+###
+
+# => horizontal
+offmom.findoffPhase(ListOfZeroDPPX+ListOfNonZeroDPPX,'H',MADTwiss,phasexlist)
+info=["@ DATA %s SPHASEX"]
+name=["* NAME","S","SPHASEX","SPHASEERR","SPHASEXM"]
+specie=["$ %s","%le","%le","%le"]
+
+data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
+
+data.writetables(outputpath+"/getsphasex.out",info,name,specie,data4data)
+
+# => vertical
+offmom.findoffPhase(ListOfZeroDPPY+ListOfNonZeroDPPY,'V',MADTwiss,phaseylist)
+info=["@ DATA %s SPHASEY"]
+name=["* NAME","S","SPHASEY","SPHASEERR","SPHASEYM"]
+specie=["$ %s","%le","%le","%le"]
+
+data4data=[offmom.bpms,offmom.slope,offmom.slopeE,offmom.slopeM]
+
+data.writetables(outputpath+"/getsphasey.out",info,name,specie,data4data)
+
+######
+# => Part 3 : Non-linear optics
+######
