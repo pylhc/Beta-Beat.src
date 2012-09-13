@@ -50,7 +50,8 @@
 ##                                       Add a routine to detect wrong data having two lines in linx/y file with the same BPM name.
 ##                                       Add a routine to avoid zero division due to exactly n*pi phase advance in beta from phase (see the last part of GetPhases).
 ##                    V2.21, 23/June/2009 Add STDBET Model for off momentum beta beat phase.
-
+#                     V2.25    Fixed bd flag (must be -1 for beam2)
+#                     V2.25 Adding VERSION variable to be always output and modified in subsequent versions, do not forget!!!
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -59,8 +60,17 @@
 ## Some rules for variable name: Dictionary is used to contain the output of function
 ##                               Valiable containing 'm' is a value directly obtained from measurment data
 ##                               Valiable containing 'mdl' is a value related to model
+#
 
 
+####
+#######
+#########
+VERSION='V2.25'
+print "Starting GetLLM ", VERSION
+#########
+#######
+####
 
 
 from metaclass import *
@@ -2230,6 +2240,8 @@ def getIP(IP,measured,model,phase,bpms):
 
     BPMleft,BPMright=BPMfinder(IP,model,measured)
 
+    
+
     if "null" in BPMleft or "null" in BPMright:
 
 	    print "skipping IP"+IP+" calculation, no BPM found"
@@ -2260,6 +2272,9 @@ def getIP(IP,measured,model,phase,bpms):
 
 	    ll=abs(sip-sxl)
 	    lr=abs(sip-sxr)
+
+	    print BPMleft,betxl,model.BETX[model.indx[BPMleft]],ll
+	    print BPMright,betxr,model.BETX[model.indx[BPMright]],lr
 
 	    ##### phase
 	    commonbpms=bpms[0]
@@ -2297,7 +2312,7 @@ def getIP(IP,measured,model,phase,bpms):
 	    betas1=((sumbet-rootnominator)/denom)*4*le**2
 	    betas2=((sumbet+rootnominator)/denom)*4*le**2
 
-	    print betas1,betas2,betxl,betxr,le,BPMleft
+	    print "Results : ",betas1,betas2,betxl,betxr,le,BPMleft
 	    #sys.exit()
 	    betastar=0.0
 	    if betas1<betas2 and betas1>1: betastar=betas1
@@ -2361,6 +2376,8 @@ def getIP(IP,measured,model,phase,bpms):
 #######################################################
 #                   Main part                         #
 #######################################################
+
+
 
 
 #-- Reading sys.argv
@@ -2437,8 +2454,8 @@ NBcpl= int(options.NBcpl)
 # Beam direction
 bd=1
 if options.ACCEL=="LHCB2":
-	#bd=-1 # note that the x axis has the same direction to BPM data. Otherwise another treatment should be done.
-	bd=1
+	bd=-1 # THIS IS CORRECT, be careful with tune sign in SUSSIX and eigenmode order in SVD
+	
 
 if options.TBTana=="SUSSIX":
 	Suffix1='_linx'
@@ -2458,15 +2475,19 @@ fphaseyT=open(outputpath+'getphasetoty.out','w')
 
 
 
-
+fphasex.write('@ GetLLMVersion %s '+VERSION+'\n')
 fphasex.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fphasey.write('@ GetLLMVersion %s '+VERSION+'\n')
 fphasey.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fphasex.write('@ FILES %s "')
 fphasey.write('@ FILES %s "')
 
 fbetax=open(outputpath+'getbetax.out','w')
 fbetay=open(outputpath+'getbetay.out','w')
+
+fbetax.write('@ GetLLMVersion %s '+VERSION+'\n')
 fbetax.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fbetay.write('@ GetLLMVersion %s '+VERSION+'\n')
 fbetay.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fbetax.write('@ FILES %s "')
 fbetay.write('@ FILES %s "')
@@ -2488,8 +2509,11 @@ fcoy.write('@ FILES %s "')
 fNDx=open(outputpath+'getNDx.out','w')
 fDx=open(outputpath+'getDx.out','w')
 fDy=open(outputpath+'getDy.out','w')
+fNDx.write('@ GetLLMVersion %s '+VERSION+'\n')
 fNDx.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fDx.write('@ GetLLMVersion %s '+VERSION+'\n')
 fDx.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+fDy.write('@ GetLLMVersion %s '+VERSION+'\n')
 fDy.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fNDx.write('@ FILES %s "')
 fDx.write('@ FILES %s "')
@@ -2862,7 +2886,7 @@ if "LHC" in options.ACCEL:
 	fIP.close()
 		
 
-		
+#sys.exit()		
 
 #-------- START Orbit
 ListOfCOX=[]
