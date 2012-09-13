@@ -43,6 +43,7 @@
 ##                    V2.12, 28/03/2009  Following bugs fixed : avoid negative square, change option -h to -l
 ##                                       Add -r option as in correct.py
 ##                                       Change the way to import BPM pair file for SPS. (import -> execfile)
+##                    V2.13, 06/Apl/2009 Fix bug in weight function to accept negative dpp
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -480,7 +481,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 		mydp.append(float(j.DPP))
 		gf.append(0.0) # just to initialize the array, may not be a clever way...
 	mydp=array(mydp)
-	wf=array(mydp)/sum(mydp)*len(mydp) #Weight for the average depending on DPP
+	wf=array(abs(mydp))/sum(abs(mydp))*len(mydp) #Weight for the average depending on DPP
 
 
 	# Find the global factor
@@ -604,7 +605,8 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
 	for j in ListOfNonZeroDPP:
 		mydp.append(float(j.DPP))
 	mydp=array(mydp)
-	wf=array(mydp)/sum(mydp)*len(mydp) #Weitghs for the average
+	wf=array(abs(mydp))/sum(abs(mydp))*len(mydp) #Weitghs for the average
+	
 
 	dco={} # Dictionary for the output containing [(averaged)Disp, rms error]
 	bpms=[]

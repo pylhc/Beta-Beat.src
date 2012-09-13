@@ -44,6 +44,7 @@
 ##                                       Add -r option as in correct.py
 ##                                       Change the way to import BPM pair file for SPS. (import -> execfile)
 ##                    V2.13, 06/Apl/2009 Fix bug in weight function to accept negative dpp
+##                    V2.14, 08/Apl/2009 Fix bug in Normalized dispersion to treat COcut correctly.
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -444,7 +445,7 @@ def GetCO(MADTwiss, ListOfFiles):
 			coi=coi + j.CO[j.indx[bn1]]
 			coi2=coi2 + j.CO[j.indx[bn1]]**2
 		coi=coi/len(ListOfFiles)
-		corms=sqrt(coi2/len(ListOfFiles)-coi**2)
+		corms=sqrt(coi2/len(ListOfFiles)-coi**2+2.2e-16)
 		co[bn1]=[coi,corms]
 	return [co, commonbpms]
 
@@ -487,6 +488,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 	# Find the global factor
 	nd=[]
 	ndmdl=[]
+	badco=0
 	for i in range(0,len(commonbpmsALL)):
 		bn1=upper(commonbpmsALL[i][1])
 		bns1=commonbpmsALL[i][0]
@@ -510,13 +512,14 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 				ndi.append(ndm)
 			nd.append(ndi)
 		except:
+			badco+=1
 			coi=0
 
 	ndmdl=array(ndmdl)
 	avemdl=average(ndmdl)
 
 	gf=array(gf)
-	gf=gf/avemdl/len(commonbpmsALL)
+	gf=gf/avemdl/(len(commonbpmsALL)-badco)
 
 
 	# Find normalized dispersion and Dx construction
@@ -524,6 +527,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 	Dx={}
 	dummy=0.0 # dummy for DXSTD
 	bpms=[]
+	badco=0
 	for i in range(0,len(commonbpmsALL)):
 		ndi=[]
 		bn1=upper(commonbpmsALL[i][1])
@@ -531,7 +535,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 		try:
 			coac[bn1]
 			for j in range(0,nzdpp): # the range(0,nzdpp) instead of ListOfZeroDPPX is used because the index j is used in the loop
-				ndi.append(nd[i][j]/gf[j])
+				ndi.append(nd[i-badco][j]/gf[j])
 			ndi=array(ndi)
 			ndstd=sqrt(average(ndi*ndi)-(average(ndi))**2.0+2.2e-16)
 			ndas=average(wf*ndi)
@@ -539,7 +543,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 			Dx[bn1]=[nda[bn1][0]*sqrt(betax[bn1]),dummy]
 			bpms.append([bns1,bn1])
 		except:
-			0
+			badco+=1
 	DPX=GetDPX(MADTwiss, Dx, bpms)
 	
 	return [nda,Dx,DPX,bpms]
