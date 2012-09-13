@@ -3661,7 +3661,7 @@ try:
 	print "Base model found!"
 except:
 	print "WARN: Cannot find model!!",file0
-	sys.exit()
+	sys.exit(1)
 
 #-- finding the ac dipole model
 try:
