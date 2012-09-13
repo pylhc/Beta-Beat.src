@@ -2150,7 +2150,7 @@ def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
 
         return [chiAMP,chiAMPi,chiAMPr,chiPHASE]
  
-def getChiTerms(madtwiss,filesF,plane,name):
+def getChiTerms(MADTwiss,filesF,plane,name):
 
         # bmps
         files=filesF[0]
