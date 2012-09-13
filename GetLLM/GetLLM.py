@@ -35,6 +35,9 @@
 ##                                      Add off-momentum lattice (dbeta/beta)/(dp/p)
 ##                                      Add SPS coupling with "Pseudo-double plane BPM"-it need at this moment a list containing
 ##                                      pre-paired H-V monitor. This should be replaced by a clever algorithm to find good pairs automatically.
+##                    V2.01, 10/Mar/2009 Fix bug on SPS double plane BPM monitor, in which missing BPM could cause an error.
+##                                      Modify BetaFromAmplitude to output invariant J (by Rogelio and finalized by MA)
+##                    V2.1, 13/Mar/2009 Added function for finding sextupole lines (amp and phases) + chiterms amplitude. (@dded by Glenn Vanbavinckhove)
 
 ## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 ## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
@@ -93,7 +96,7 @@ def intersect(ListOfFile):
 	result=[]
 	x0=ListOfFile[0]
 	for bpm in z:
-		result.append((x0.S[x0.indx[bpm]], bpm))	
+		result.append((x0.S[x0.indx[bpm]], bpm))
 		
 	result.sort()
 	return result
@@ -393,7 +396,9 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 		
 	Kick=SumA/len(commonbpms) # Assuming the average of beta is constant
         root2J=array(root2J)
+	
         root2Jave=average(root2J)
+	
         root2Jrms=sqrt(average(root2J*root2J)-root2Jave**2)
 	
 	delbeta=[]
@@ -406,9 +411,12 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 			betmdl=MADTwiss.BETY[MADTwiss.indx[bn1]]
 		delbeta.append((beta[bn1]-betmdl)/betmdl)
 
+	invariantJ=[root2Jave,root2Jrms]
+
 	delbeta=array(delbeta)
 	rmsbb=sqrt(average(delbeta*delbeta))
-	return [beta,rmsbb,commonbpms, root2Jave, root2Jrms]
+	return [beta,rmsbb,commonbpms,invariantJ]
+
 
 
 #-------------------------
@@ -461,7 +469,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
 	mydp=[]
 	gf=[]
 	for j in ListOfNonZeroDPPX:
-		mydp.append(j.DPP)
+		mydp.append(float(j.DPP))
 		gf.append(0.0) # just to initialize the array, may not be a clever way...
 	mydp=array(mydp)
 	wf=array(mydp)/sum(mydp)*len(mydp) #Weight for the average depending on DPP
@@ -561,7 +569,12 @@ def GetDPX(MADTwiss,Dx,commonbpms):
 
 #-----------
 
-def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut):
+def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
+
+	if BPMU=='um': scalef=1.0e-6
+	elif BPMU=='mm': scalef=1.0e-3
+	elif BPMU=='cm': scalef=1.0e-2
+	elif BPMU=='m': scalef=1.0
 
 
 	coac=ListOfCO[0] 
@@ -581,7 +594,7 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut):
 
 	mydp=[]
 	for j in ListOfNonZeroDPP:
-		mydp.append(j.DPP)
+		mydp.append(float(j.DPP))
 	mydp=array(mydp)
 	wf=array(mydp)/sum(mydp)*len(mydp) #Weitghs for the average
 
@@ -595,7 +608,7 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut):
 			coi=coac[bn1]
 			dcoi=[]
 			for j in ListOfNonZeroDPP:
-				dcoi.append((j.CO[j.indx[bn1]]-coi[0])/j.DPP)
+				dcoi.append((j.CO[j.indx[bn1]]-coi[0])*scalef/float(j.DPP))
 			dcoi=array(dcoi)
 			dcostd=sqrt(average(dcoi*dcoi)-(average(dcoi))**2.0)
 			dcos=average(wf*dcoi)
@@ -789,7 +802,7 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 		bn1=upper(dbpms[i][1])
 		bn2=upper(dbpms[i+1][1])
 
-		delx= phasex[bn1][0] - 0.25
+		delx= phasex[bn1][0] - 0.25  # Missprint in the coupling note
 		dely= phasey[bn1][0] - 0.25
 		
 		f1001ij=[]
@@ -902,9 +915,14 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 		CG=CG+sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
 		QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
 		
-	
-	CG=abs(4.0*(Q1-Q2)*CG/len(dbpms))
-	QG=(QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0	
+	print len(dbpms)
+	if len(dbpms)==0: # this should be deleted
+		CG=45 # this should be deleted
+		QG=45 # this should be deleted
+		
+	else: # this should be deleted
+		CG=abs(4.0*(Q1-Q2)*CG/len(dbpms))
+		QG=(QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0	
 	fwqw['Global']=[CG,QG]
 
 
@@ -978,7 +996,6 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
  	for i in range(0,len(bpmh)):
 		smin=1.0e10
 		jsave=0
-		print i
 		for j in range (0,len(bpmv),10):
 			sdiff=abs(bpmh[i][0]-bpmv[j][0])
 			if sdiff<smin:
@@ -995,8 +1012,6 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
 				jsave=j
 		
 		bpmhp.append([bpmh[i][0],bpmh[i][1],bpmv[jsave][1],0])
-	
-	
 
 	#bpmvp=[]
  	#for i in range(0,len(bpmv)):
@@ -1027,55 +1042,60 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
 	dbpms=bpmpair()
 
  	for i in range(0,len(dbpms)):
-		wname=dbpms[i][1]
-		pname=dbpms[i][2]
+		wname=upper(dbpms[i][1])
+		pname=upper(dbpms[i][2])
 		ws=dbpms[i][0]
-		for j in range(0,len(ListOfZeroDPPX)):
-			jx=ListOfZeroDPPX[j]
-			jy=ListOfZeroDPPY[j]
-			if dbpms[i][3]==0:
-				wampx=jx.AMPX[jx.indx[wname]]
-				wampy=jy.AMPY[jy.indx[pname]]
-				wamp01=jx.AMP01[jx.indx[wname]]
-				wamp10=jy.AMP10[jy.indx[pname]]
-				wtunex=jx.TUNEX[jx.indx[wname]]
-				wtuney=jy.TUNEY[jy.indx[pname]]
-				dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]]
-				dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
-				wmux=jx.MUX[jx.indx[wname]]
-				wmuy=(jy.MUY[jy.indx[pname]]-dphiy)%1.0
-				if (wmuy > 0.5): wmuy=wmuy-1
-				wphase01=jx.PHASE01[jx.indx[wname]]
-				wphase10=(jy.PHASE10[jy.indx[pname]]-dphiy)%1.0
-				if (wphase10 > 0.5): wphase10=wphase10-1
-			elif dbpms[i][3]==1:
-				wampx=jx.AMPX[jx.indx[pname]]
-				wampy=jy.AMPY[jy.indx[wname]]
-				wamp01=jx.AMP01[jx.indx[pname]]
-				wamp10=jy.AMP10[jy.indx[wname]]
-				wtunex=jx.TUNEX[jx.indx[pname]]
-				wtuney=jy.TUNEY[jy.indx[wname]]
-				dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]]
-				dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
-				wmux=(jx.MUX[jx.indx[pname]]-dphix)%1.0
-				if (wmux > 0.5): wmux=wmux-1
-				wmuy=jy.MUY[jy.indx[wname]]
-				wphase01=(jx.PHASE01[jx.indx[pname]]-dphix)%1.0
-				wphase10=jy.PHASE10[jy.indx[wname]]
-				if (wphase01 > 0.5): wphase01=wphase01-1
-			#elif dbpms[i][3]==2:
-				#wampx=jx.AMPX[jx.indx[wname]]
-				#wampy=jy.AMPY[jy.indx[wname]]
-				#wamp01=jx.AMP01[jx.indx[wname]]
-				#wamp10=jy.AMP10[jy.indx[wname]]
-				#wtunex=jx.TUNEX[jx.indx[wname]]
-				#wtuney=jy.TUNEY[jy.indx[wname]]
-				#wmux=jx.MUX[jx.indx[wname]]
-				#wmuy=jy.MUY[jy.indx[wname]]
-				#wphase01=jx.PHASE01[jx.indx[wname]]
-				#wphase10=jy.PHASE10[jy.indx[wname]]
-			fbpmx[j].write('"'+wname+'" '+str(ws)+' '+str(wtunex)+' '+str(wmux)+' '+str(wampx)+' '+str(wamp01)+' '+str(wphase01)+'\n')
-			fbpmy[j].write('"'+wname+'" '+str(ws)+' '+str(wtuney)+' '+str(wmuy)+' '+str(wampy)+' '+str(wamp10)+' '+str(wphase10)+'\n')
+		try:
+			
+			for j in range(0,len(ListOfZeroDPPX)):
+				jx=ListOfZeroDPPX[j]
+				jy=ListOfZeroDPPY[j]
+				if dbpms[i][3]==0:
+					wampx=jx.AMPX[jx.indx[wname]]
+					wampy=jy.AMPY[jy.indx[pname]]
+					wamp01=jx.AMP01[jx.indx[wname]]
+					wamp10=jy.AMP10[jy.indx[pname]]
+					wtunex=jx.TUNEX[jx.indx[wname]]
+					wtuney=jy.TUNEY[jy.indx[pname]]
+					dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]]
+					dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
+					wmux=jx.MUX[jx.indx[wname]]
+					wmuy=(jy.MUY[jy.indx[pname]]-dphiy)%1.0
+					if (wmuy > 0.5): wmuy=wmuy-1
+					wphase01=jx.PHASE01[jx.indx[wname]]
+					wphase10=(jy.PHASE10[jy.indx[pname]]-dphiy)%1.0
+					if (wphase10 > 0.5): wphase10=wphase10-1
+				elif dbpms[i][3]==1:
+					wampx=jx.AMPX[jx.indx[pname]]
+					wampy=jy.AMPY[jy.indx[wname]]
+					wamp01=jx.AMP01[jx.indx[pname]]
+					wamp10=jy.AMP10[jy.indx[wname]]
+					wtunex=jx.TUNEX[jx.indx[pname]]
+					wtuney=jy.TUNEY[jy.indx[wname]]
+					dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]]
+					dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
+					wmux=(jx.MUX[jx.indx[pname]]-dphix)%1.0
+					if (wmux > 0.5): wmux=wmux-1
+					wmuy=jy.MUY[jy.indx[wname]]
+					wphase01=(jx.PHASE01[jx.indx[pname]]-dphix)%1.0
+					wphase10=jy.PHASE10[jy.indx[wname]]
+					if (wphase01 > 0.5): wphase01=wphase01-1
+				#elif dbpms[i][3]==2:
+					#wampx=jx.AMPX[jx.indx[wname]]
+					#wampy=jy.AMPY[jy.indx[wname]]
+					#wamp01=jx.AMP01[jx.indx[wname]]
+					#wamp10=jy.AMP10[jy.indx[wname]]
+					#wtunex=jx.TUNEX[jx.indx[wname]]
+					#wtuney=jy.TUNEY[jy.indx[wname]]
+					#wmux=jx.MUX[jx.indx[wname]]
+					#wmuy=jy.MUY[jy.indx[wname]]
+					#wphase01=jx.PHASE01[jx.indx[wname]]
+					#wphase10=jy.PHASE10[jy.indx[wname]]
+				fbpmx[j].write('"'+wname+'" '+str(ws)+' '+str(wtunex)+' '+str(wmux)+' '+str(wampx)+' '+str(wamp01)+' '+str(wphase01)+'\n')
+				fbpmy[j].write('"'+wname+'" '+str(ws)+' '+str(wtuney)+' '+str(wmuy)+' '+str(wampy)+' '+str(wamp10)+' '+str(wphase10)+'\n')
+		except:
+			0.0
+
 
 	PseudoListX=[]
 	PseudoListY=[]
@@ -1090,14 +1110,762 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY):
 
 	return [PseudoListX,PseudoListY]
 
+#----------------------- for finding the lines of the sextupoles (@ Glenn Vanbavinckhove)
+def f2h(amp,ampphase,termj,factor,term,M2M):    # converts from f-term to h-term
+
+	# conversion to include f2h
+	tp=2.0*pi
+	H=(amp/(termj*factor))*(1-e**complex(0,term*tp))
+	
+	Ampi=H.imag
+	Ampr=H.real
+	Amp=abs(H)/M2M
+	phase=(atan2(Ampi,Ampr))/tp 
+
+	
+	fh=[Ampi,Ampr,Amp,phase]
+
+	return fh
+
+def Getsextupole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
+
+	# intersects BPMs
+
+	dbpms=intersect(listF[0])
+	dbpms=modelIntersect(dbpms,MADTwiss)
+
+
+
+	# value definition
+	tp=2.0*pi
+	
+	hMODELT=[]
+	hMODELTi=[]
+	hMODELTr=[]
+	h_phase_MODELT=[]
+
+	AT=[]
+	A_RMST=[]
+	
+	phaseT=[]
+	phase_RMST=[]
+
+	hT=[]
+	hTi=[]
+	hTr=[]
+	h_RMST=[]
+	
+	h_phaseT=[]
+	h_phase_RMST=[]
+
+	invarianceJx=[]
+	invarianceJy=[]
+
+
+	# for the model
+	for i in range(0,len(dbpms)):
+
+		bpm=upper(dbpms[i][1])
+		
+	        bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
+		
+
+		for j in range(0,len(NAMES)):
+			try:
+				name=NAMES[j]
+			
+				if name==bpmC:
+
+					amp=abs(fM[j])
+					ampr=fM[i].real
+					if fname=='f1200':
+						ampi=-fM[j].imag # f1200 is complex conjugated from f2100
+						phase=0
+						
+					else:
+						ampi=fM[j].imag
+						phase=arctan2(ampi,ampr)%1
+		
+			
+					hMODELT.append(amp)
+					hMODELTr.append(ampr)
+					hMODELTi.append(ampi)
+					h_phase_MODELT.append(phase)
+					
+
+				
+			except:
+				print 'name '+str(NAMES[j])+' is not found in dictionary'			
+			hMODEL=[hMODELT,hMODELTi,hMODELTr,h_phase_MODELT]
+			
+	# finding the invariances
+	for j in range(0,len(listF[0])):
+		singleFilex=[listF[0][j]]
+		singleFiley=[listF[1][j]]
+		
+		[beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,singleFilex,'H')
+		[beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,singleFiley,'V')
+		
+		invarianceJx.append(invariantJx)
+		invarianceJy.append(invariantJy)
+
 	
 
+		
 
+	#calculation of f,q,h,qh
+	for i in range(0,len(dbpms)-1):
+
+		bn1=upper(dbpms[i][1])
+		bn2=upper(dbpms[i+1][1])
+
+		#print bn1
+		#print phaseT
+
+	
+		dell= phaseI[bn1][0] - 0.25
+		
+	
+
+		# internal value definition
+		AS=[]
+		A_SRMS=[]
+		phaseS=[]
+		phase_RMSS=[]
+
+		hS=[]
+		hSi=[]
+		hSr=[]
+		h_RMSS=[]
+		h_phaseS=[]
+		h_phase_RMSS=[]
+
+		phaseMM=h_phase_MODELT[i]
+
+		for j in range(0,len(listF[0])):
+
+			file=listF[0][j]
+		
+			 
+			# for f3000
+			if fname=='f3000':
+		
+				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], file.PHASE_20[file.indx[bn1]], file.PHASE_20[file.indx[bn2]])
+
+				factor=float(6*invarianceJx[j][0])
+				term=float(3*Q[0])
+				termj=3.0
+				M2M=300
+
+			# for f1200
+			if fname=='f1200':
+				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], -file.PHASE_20[file.indx[bn1]], -file.PHASE_20[file.indx[bn2]])
+
+				factor=float(2*invarianceJx[j][0])   #1.1 to fit with model
+				term=float(1*Q[0])
+				termj=1.0
+				M2M=1
+
+			# for f2100
+			if fname=='f2100':
+				[A,phi]=ComplexSecondaryLine(dell, file.AMP_20[file.indx[bn1]], file.AMP_20[file.indx[bn2]], file.PHASE_20[file.indx[bn1]], file.PHASE_20[file.indx[bn2]])
+
+				factor=float(4*invarianceJx[j][0])
+				term=float(2*Q[0])
+				termj=2.0
+				M2M=1
+
+			#------ converting
+			phase0=file.MUX[file.indx[bn1]]
+			h=f2h(A,phi,termj,factor,term,M2M)
+
+			#----- adding the terms
+			AS.append(A)
+			phaseS.append(phi)
+			hSi.append(h[0])
+			hSr.append(h[1])
+			hS.append(h[2])
+			h_phaseS.append(h[3])
+
+		# array and taking average for all the input files for one BPM
+		AS=array(AS)
+		A_SRMS=sqrt(average(AS*AS)-(average(AS))**2)
+		 
+		phaseS=array(phaseS)
+		phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2)
+
+		hS=array(hS)
+		hSi=array(hSi)
+		hSr=array(hSr)
+		h_RMSS=sqrt(average(hS*hS)-(average(hS))**2)
+
+		h_phaseS=array(h_phaseS)
+		h_phase_RMSS=sqrt(average(h_phaseS*h_phaseS)-(average(h_phaseS))**2)
+
+		# real output
+		AT.append(average(AS))
+		A_RMST.append(A_SRMS)
+	
+		phaseT.append(average(phaseS))
+		phase_RMST.append(phase_RMSS)
+
+		hT.append(average(hS))
+		hTi.append(average(hSi))
+		hTr.append(average(hSr))
+		h_RMST.append(h_RMSS)
+	
+		h_phaseT.append(average(h_phaseS))
+		h_phase_RMST.append(h_phase_RMSS)
+
+		A=[AT,A_RMST,phaseT,phase_RMST]
+		h=[hT,hTi,hTr,h_RMST,h_phaseT,h_phase_RMST]
+
+	print 'length of measured '+str(len(A[0]))
+		
+
+	return [A,h,hMODEL,dbpms]
+
+#------------------------- for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
+def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
+
+		# intersects BPMs
+	dbpms=intersect(listF[0])
+	dbpms=modelIntersect(dbpms,MADTwiss)
+
+	
+
+	# value definition
+	tp=2.0*pi
+	
+	hMODELT=[]
+	hMODELTi=[]
+	hMODELTr=[]
+	h_phase_MODELT=[]
+
+	AT=[]
+	A_RMST=[]
+	
+	phaseT=[]
+	phase_RMST=[]
+
+	hT=[]
+	hTi=[]
+	hTr=[]
+	h_RMST=[]
+	
+	h_phaseT=[]
+	h_phase_RMST=[]
+
+	invarianceJx=[]
+	invarianceJy=[]
+
+	# finding the invariances
+	for j in range(0,len(listF[0])):
+		singleFilex=[listF[0][j]]
+		singleFiley=[listF[1][j]]
+		
+		[beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,singleFilex,'H')
+
+		[beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,singleFiley,'V')
+		
+		invarianceJx.append(invariantJx)
+		invarianceJy.append(invariantJy)
+
+
+	# for the model
+	for i in range(0,len(dbpms)):
+
+		bpm=upper(dbpms[i][1])
+		
+	        bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
+		
+		
+		for j in range(0,len(NAMES)):
+			try:
+				name=NAMES[j]
+			
+				if name==bpmC:
+
+					amp=abs(fM[j])
+					ampr=fM[i].real
+					ampi=fM[j].imag
+					phase=arctan2(ampi,ampr)%1
+		
+					hMODELT.append(amp)
+					hMODELTr.append(ampr)
+					hMODELTi.append(ampi)
+					h_phase_MODELT.append(phase)
+					
+
+				
+			except:
+				print 'name '+str(NAMES[j])+' is not found in dictionary'			
+			hMODEL=[hMODELT,hMODELTi,hMODELTr,h_phase_MODELT]
+
+	#calculation of f,q,h,qh
+	for i in range(0,len(dbpms)-1):
+
+		bn1=upper(dbpms[i][1])
+		bn2=upper(dbpms[i+1][1])
+
+		#print bn1
+		#print phaseT
+
+	
+		dell= phaseI[bn1][0] - 0.25
+		
+	
+
+		# internal value definition
+		AS=[]
+		A_SRMS=[]
+		phaseS=[]
+		phase_RMSS=[]
+
+		hS=[]
+		hSi=[]
+		hSr=[]
+		h_RMSS=[]
+		h_phaseS=[]
+		h_phase_RMSS=[]
+
+		phaseMM=h_phase_MODELT[i]
+
+		for j in range(0,len(listF[0])):
+
+			file=listF[0][j]
+
+			# for f4000
+			if fname=='f4000':
+		
+				[A,phi]=ComplexSecondaryLine(dell, file.AMP_30[file.indx[bn1]], file.AMP_30[file.indx[bn2]], file.PHASE_30[file.indx[bn1]], file.PHASE_30[file.indx[bn2]])
+
+				factor=float(8*invarianceJx[j][0]**1.5)   # 1 to fit with model
+				term=float(4*Q[0])
+				termj=4
+				M2M=0.02
+
+			#------ converting
+			phase0=file.MUX[file.indx[bn1]]
+			h=f2h(A,phi,termj,factor,term,M2M)
+
+			#----- adding the terms
+			AS.append(A)
+			phaseS.append(phi)
+			hSi.append(h[0])
+			hSr.append(h[1])
+			hS.append(h[2])
+			h_phaseS.append(h[3])
+
+		# array and taking average for all the input files for one BPM
+		AS=array(AS)
+		A_SRMS=sqrt(average(AS*AS)-(average(AS))**2)
+		 
+		phaseS=array(phaseS)
+		phase_RMSS=sqrt(average(phaseS*phaseS)-(average(phaseS))**2)
+
+		hS=array(hS)
+		hSi=array(hSi)
+		hSr=array(hSr)
+		h_RMSS=sqrt(average(hS*hS)-(average(hS))**2)
+
+		h_phaseS=array(h_phaseS)
+		phase_rms=average(h_phaseS*h_phaseS)-(average(h_phaseS))**2
+		h_phase_RMSS=sqrt(abs(phase_rms))
+
+		# real output
+		AT.append(average(AS))
+		A_RMST.append(A_SRMS)
+	
+		phaseT.append(average(phaseS))
+		phase_RMST.append(phase_RMSS)
+
+		hT.append(average(hS))
+		hTi.append(average(hSi))
+		hTr.append(average(hSr))
+		h_RMST.append(h_RMSS)
+	
+		h_phaseT.append(average(h_phaseS))
+		h_phase_RMST.append(h_phase_RMSS)
+
+		A=[AT,A_RMST,phaseT,phase_RMST]
+		h=[hT,hTi,hTr,h_RMST,h_phaseT,h_phase_RMST]
+
+
+
+			
+	return [A,h,hMODEL,dbpms]
+
+#------------------------- for finding the chi terms
+def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
+	
+        #computes the chiterms for different inputs
+        twoPi=2*pi
+	
+        delta1=((phase[1]-phase[0]-0.25)*twoPi)
+        delta2=((phase[2]-phase[1]-0.25)*twoPi)
+
+	inp=0.13
+        #term1=((amp[0]*e**complex(0,phase_20[0]*twoPi)))/cos(delta1)
+        #term2=((amp[1]*e**complex(0,phase_20[1]*twoPi)))*(tan(delta1)+tan(delta2))
+        #term3=((amp[2]*e**complex(0,phase_20[2]*twoPi)))/cos(delta2)
+	term1=((amp[0]*e**complex(0,(phase_20[0]+inp)*twoPi)))/cos(delta1)
+        term2=((amp[1]*e**complex(0,(phase_20[1]+inp)*twoPi)))*(tan(delta1)+tan(delta2))
+        term3=((amp[2]*e**complex(0,(phase_20[2]+inp)*twoPi)))/cos(delta2)
+        chiTOT=(term1+term2+term3)
+
+	chiAMP=abs(chiTOT)
+	
+	chiAMPi=chiTOT.imag
+	chiAMPr=chiTOT.real
+	#print chiTOT.imag,chiTOT.real
+	chiPHASE=(((arctan2(chiTOT.imag,chiTOT.real)))/twoPi)%1
+	#chiPHASE=(0.5-chiPHASE)%1
+
+
+
+	JX=J[0]**(2.*(terms[0]+terms[1]-2.)/2.)
+	JY=J[1]**(2.*(terms[2]+terms[3])/2.)
+
+
+	Invariance=JX*JY
+	Facot4AMP=Invariance*4/2 # to for conversion complex, invariance = ((2*JX)^(j+k-2)/2)*((2*JY)^(l+m)/2)
+
+
+	chiAMP=chiAMP/Facot4AMP
+	chiAMPi=chiAMPi/Facot4AMP
+	chiAMPr=chiAMPr/Facot4AMP
+
+	#print 'measured ima + real '+ str(chiAMPi)+' '+str(chiAMPr) + ' model ima + real '+str(ima)+' '+str(rea)
+
+	return [chiAMP,chiAMPi,chiAMPr,chiPHASE]
+ 
+def getChiTerms(madtwiss,filesF,plane,name):
+
+	# bmps
+	files=filesF[0]
+	
+	dbpms=intersect(files)
+	dbpms=modelIntersect(dbpms, MADTwiss)
+
+
+	# initiliasing variables
+	twoPi=2*pi
+
+	XIT=[]
+	XITi=[]
+	XITr=[]
+	XIrmsT=[]
+	XI_phase_T=[]
+	XI_phaseRMS_T=[]
+
+	POS1=[]
+	POS2=[]
+	POS3=[]
+
+	XITMODEL=[]
+	XITMODELi=[]
+	XITMODELr=[]
+	XITMODEL_phase=[]
+
+	BPMS=[]
+	invarianceJx=[]
+	invarianceJy=[]
+		
+	for i in range(0,len(dbpms)): # ask rogelio
+		
+		bn1=upper(dbpms[i][1])
+
+		BPMS.append(bn1)
+
+	#### invariance
+	for j in range(0,len(ListOfZeroDPPX)):
+		[betax,rmsbbx,bpms,invariantJX]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H')
+	       	[betay,rmsbby,bpms,invariantJY]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V')
+		invarianceJx.append(invariantJX[0])
+		invarianceJy.append(invariantJY[0])
+		
+	print invarianceJx
+	#### model chi
+	MADTwiss.chiterms(BPMS)
+	if name=='chi3000':
+		MODEL=MADTwiss.chi
+	elif name=='chi4000':
+		MODEL=MADTwiss.chi4000
+
+	
+	for i in range(0,len(MODEL)):
+
+		MODEL[i]=MODEL[i]*1000 # to have same output as measurment
+		amp=abs(MODEL[i])
+		ampi=MODEL[i].imag
+		ampr=MODEL[i].real
+
+		if(MODEL[i].real==0. ):
+
+			phase=0	
+
+		else:
+
+			phase=arctan2(MODEL[i].imag,MODEL[i].real)%1
+
+
+		XITMODEL.append(amp)
+		XITMODELi.append(ampi)
+		XITMODELr.append(ampr)
+		XITMODEL_phase.append(phase)
+
+	XIMODEl=[XITMODEL,XITMODELi,XITMODELr,XITMODEL_phase]
+
+	for i in range(0,len(dbpms)-2):
+		
+		XI=[]
+		XIi=[]
+		XIr=[]
+		XIrms=[]
+		XI_phase=[]
+		XI_phaseRMS=[]
+
+		bn1=upper(dbpms[i][1])
+		bn2=upper(dbpms[i+1][1])
+		bn3=upper(dbpms[i+2][1])
+
+		filej=ListOfZeroDPPX[0]
+	
+		pos1=filej.S[filej.indx[bn1]]
+		pos2=filej.S[filej.indx[bn2]]
+		pos3=filej.S[filej.indx[bn3]]
+
+		
+		POS1.append(pos1)
+		POS2.append(pos2)
+		POS3.append(pos3)
+
+		imaM=XITMODELi[i]
+		realM=XITMODELr[i]
+		
+		for j in range(0,len(files)):
+			jx=files[j]
+			listJX=[jx]
+
+
+			
+			
+			# for chi3000
+			if name=='chi3000':
+				phase1=jx.PHASE_20[jx.indx[bn1]]
+				phase2=jx.PHASE_20[jx.indx[bn2]]
+				phase3=jx.PHASE_20[jx.indx[bn3]]
+				phase_SL=[phase1,phase2,phase3]
+
+				terms=[3,0,0,0]
+				amp1=jx.AMP_20[jx.indx[bn1]]
+				amp2=jx.AMP_20[jx.indx[bn2]]
+				amp3=jx.AMP_20[jx.indx[bn3]]
+				amp=[amp1,amp2,amp3]
+
+			# for chi4000
+			elif name=='chi4000':
+				phase1=jx.PHASE_30[jx.indx[bn1]]
+				phase2=jx.PHASE_30[jx.indx[bn2]]
+				phase3=jx.PHASE_30[jx.indx[bn3]]
+				phase_SL=[phase1,phase2,phase3]
+
+				terms=[4,0,0,0]
+				amp1=jx.AMP_30[jx.indx[bn1]]
+				amp2=jx.AMP_30[jx.indx[bn2]]
+				amp3=jx.AMP_30[jx.indx[bn3]]
+				amp=[amp1,amp2,amp3]
+
+			phase11=jx.MUX[jx.indx[bn1]]
+		       	phase12=jx.MUX[jx.indx[bn2]]
+		       	phase13=jx.MUX[jx.indx[bn3]]
+		       	phase=[phase11,phase12,phase13]
+
+		
+		       	J=[ invarianceJx[j],invarianceJy[j]]
+				
+			
+			
+		       	chi=computeChiTerms(amp,phase_SL,phase,terms,J,'H',imaM,realM)
+
+			
+		
+		       	XI.append(chi[0])
+		       	XIi.append(chi[1])
+		       	XIr.append(chi[2])
+		       	XI_phase.append(chi[3])
+					
+				
+
+		XI=array(XI)
+		XIi=array(XIi)
+		XIr=array(XIr)
+		XIrms=sqrt(average(XI*XI)-average(XI)**2)
+		XI_phase=array(XI_phase)
+		XI_phaseRMS=sqrt(average(XI_phase*XI_phase)-average(XI_phase)**2)
+		
+		
+		XIT.append(average(XI))
+		XITi.append(average(XIi))
+		XITr.append(average(XIr))
+		XIrmsT.append(XIrms)
+		XI_phase_T.append(average(XI_phase))
+		XI_phaseRMS_T.append(XI_phaseRMS)
+
+		POS=[POS1,POS2,POS3]
+
+		XItot=[XIT,XITi,XITr,XIrmsT,XI_phase_T,XI_phaseRMS_T]
+
+	return [dbpms,POS,XItot,XIMODEl]
+
+def getchi1010(madtwiss,filesF,plane,name):
+
+		# bmps
+	files=filesF[0]
+	filesy=filesF[1]
+	
+	dbpms=intersect(files+filesy)
+	dbpms=modelIntersect(dbpms, MADTwiss)
+
+	dbpmsy=intersect(filesy+files)
+	dbpmsy=modelIntersect(dbpmsy, MADTwiss)
+
+
+	# initiliasing variables
+	twoPi=2*pi
+
+	XIT=[]
+	XITi=[]
+	XITr=[]
+	XIrmsT=[]
+	XI_phase_T=[]
+	XI_phaseRMS_T=[]
+
+	POS1=[]
+	POS2=[]
+	POS3=[]
+
+	XITMODEL=[]
+	XITMODELi=[]
+	XITMODELr=[]
+	XITMODEL_phase=[]
+
+	BPMS=[]
+	invarianceJx=[]
+	invarianceJy=[]
+		
+	for i in range(0,len(dbpms)): # ask rogelio
+		
+
+		BPMS.append(bn1)
+
+	#### invariance
+	for j in range(0,len(files)):
+		[betax,rmsbbx,bpms,invariantJX]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H')
+	       	[betay,rmsbby,bpms,invariantJY]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V')
+		invarianceJx.append(invariantJX[0])
+		invarianceJy.append(invariantJY[0])
+
+
+	for i in range(0,len(dbpms)):
+		
+		XI=[]
+		XIrms=[]
+		XI_phase=[]
+		XI_phaseRMS=[]
+
+		bn=upper(dbpms[i][1])
+		bny=upper(dbpmsy[i][1])
+		
+		for j in range(0,len(files)):
+
+			jx=files[j]
+			listJX=[jx]
+
+			jy=filesy[j]
+			listJy=[jy]
+
+
+			amp10x=jx.AMP01[jx.indx[bn]]
+			amp10y=jy.AMP10[jy.indx[bny]]
+			phase10x=jx.PHASE01[jx.indx[bn]]
+			phasex=jx.MUX[jx.indx[bn]]
+
+			XI1010=0.25*sqrt(amp10x*amp10y)
+			phase1010=phase10x+phasex
+
+			XI.append(XI1010)
+			XI_phase.append(phase1010)
+
+		XI=array(XI)
+		XIrms=sqrt(average(XI*XI)-average(XI)**2)
+		XI_phase=array(XI_phase)
+		XI_phaseRMS=sqrt(average(XI_phase*XI_phase)-average(XI_phase)**2)
+
+		
+		XIT.append(average(XI))
+		XIrmsT.append(XIrms)
+		XI_phase_T.append(average(XI_phase))
+		XI_phaseRMS_T.append(XI_phaseRMS)
+
+		XItot=[XIT,XIrmsT,XI_phase_T,XI_phaseRMS_T]
+
+	return [dbpms,XItot]
+		
+
+#---- finding kick
+def getkick(files):
+
+	invarianceJx=[]
+	invarianceJy=[]
+	
+	tunex=[]
+	tuney=[]
+
+	tunexRMS=[]
+	tuneyRMS=[]
+
+	dpp=[]
+
+
+	
+		# finding the invariances
+	for j in range(0,len(files[0])):
+		x=files[0][j]
+		y=files[1][j]
+	
+	
+		[beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,[x],'H')
+
+		[beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,[y],'V')
+		
+		invarianceJx.append(invariantJx)
+		invarianceJy.append(invariantJy)
+	
+		
+		dpp.append(x.DPP)
+		tunex.append(x.Q1)
+		tuney.append(y.Q2)
+		tunexRMS.append(x.Q1RMS)
+		tuneyRMS.append(y.Q2RMS)
+		
+
+
+
+	tune=[tunex,tuney]
+	tuneRMS=[tunexRMS,tuneyRMS]
+
+	return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
+
+
+#----------------- end glenn part
 
 #######################################################
 #                   Main part                         #
 #######################################################
 
+	
 
 # Path to accelerator setting file
 # This path shuold be changed to be compatible to your working system.
@@ -1139,6 +1907,9 @@ parser.add_option("-n", "--nbcpl",
 parser.add_option("-t", "--tbtana",
                 help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
                 metavar="TBTANA", default="SUSSIX", dest="TBTana")
+parser.add_option("-b", "--bpmu",
+                help="BPMunit: um, mm, cm, m (default um)",
+                metavar="BPMUNIT", default="um", dest="BPMUNIT")
 
 
 
@@ -1158,19 +1929,21 @@ else:
 MADTwiss=twiss(file0, BPMdictionary) # MODEL from MAD
 
 
-try:
-	facc=accpath+str(options.ACCEL)+'/accelerator.dat'
-	faccs=twiss(facc)
-	BPMU=faccs.BPMUNIT
-except:
-	BPMU='um'
+#try:
+#	facc=accpath+str(options.ACCEL)+'/accelerator.dat'
+#	faccs=twiss(facc)
+#	BPMU=faccs.BPMUNIT
+#except:
+#	BPMU='um'
+
+BPMU=options.BPMUNIT
 
 COcut= float(options.COcut)
 
-if BPMU=='um' or BPMU=='um': COcut=COcut
-elif BPMU=='mm' or BPMU=='mm': COcut=COcut/1.0e3
-elif BPMU=='cm' or BPMU=='cm': COcut=COcut/1.0e4
-elif BPMU=='m' or BPMU=='m': COcut=COcut/1.0e6
+if BPMU=='um': COcut=COcut
+elif BPMU=='mm': COcut=COcut/1.0e3
+elif BPMU=='cm': COcut=COcut/1.0e4
+elif BPMU=='m': COcut=COcut/1.0e6
 
 # For selecting the coupling measurement method
 NBcpl= int(options.NBcpl)
@@ -1236,6 +2009,29 @@ fcouple=open(outputpath+'getcouple.out','w')
 fcouple.write('@ MAD_FILE %s "'+file0+'"'+'\n')
 fcouple.write('@ FILES %s "')
 
+fsex3000=open(outputpath+'getsex3000.out','w')
+fsex3000.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+
+fsex1200=open(outputpath+'getsex1200.out','w')
+fsex1200.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+
+fsex2100=open(outputpath+'getsex1200.out','w')
+fsex2100.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+
+foct4000=open(outputpath+'getoct4000.out','w')
+foct4000.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+
+fchi3000=open(outputpath+'getchi3000.out','w')
+fchi3000.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+
+fchi1010=open(outputpath+'getchi1010.out','w')
+fchi1010.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+
+fchi4000=open(outputpath+'getchi4000.out','w')
+fchi4000.write('@ MAD_FILE %s "'+file0+'"'+'\n')
+
+fkick=open(outputpath+'getkick.out','w')
+
 
 FileOfZeroDPPX=[]
 FileOfZeroDPPY=[]
@@ -1255,7 +2051,16 @@ for filein in listOfInputFiles:
 	except:
 		dppi=0.0
 
-	if float(dppi)==0.0:
+	if type(dppi)!=float:
+		print 'Warning: DPP may not be given as a number in ',file1 ,'...trying to forcibly cast it as a number'
+		try:
+			dppi=float(dppi)
+			print 'dppi= ',dppi
+		except:
+			print 'but failing. DPP in ',file1 , ' is something wrong. String? --- leaving GetLLM'
+			sys.exit()
+
+	if dppi==0.0:
 		ListOfZeroDPPX.append(twiss(file1))
 		FileOfZeroDPPX.append(file1)
 		fphasex.write(file1+' ')
@@ -1278,6 +2083,16 @@ for filein in listOfInputFiles:
 			dppi=y1.DPP
 		except:
 			dppi=0.0
+			
+		if type(dppi)!=float:
+			print 'Warning: DPP may not be given as a number in ',file1 ,'...trying to forcibly cast it as a number'
+			try:
+				dppi=float(dppi)
+				print 'dppi= ',dppi
+			except:
+				print 'but failing. DPP in ',file1 , ' is something wrong. String? --- leaving GetLLM'
+				sys.exit()
+			
 		if dppi==0.0:
 			ListOfZeroDPPY.append(twiss(file1))
 			FileOfZeroDPPY.append(file1)
@@ -1326,6 +2141,9 @@ if len(ListOfZeroDPPX)==0 :
 
 	
 
+# Construct pseudo-double plane BPMs
+if options.ACCEL=="SPS" and wolinx!=1 and woliny!=1 :
+	[PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY)
 
 
 
@@ -1350,6 +2168,7 @@ if wolinx!=1:
 	plane='H'
 	[phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss,ListOfZeroDPPX,plane,outputpath,bd)
 	phasex_save=phasex
+
 if woliny!=1:
 	plane='V'
 	[phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss,ListOfZeroDPPY,plane,outputpath,bd)
@@ -1369,12 +2188,11 @@ if woliny!=1:
 			bns2=bpmsy[0][0]
 			
 		else:
-			bn2=upper(bpmsy[i][1])
-			bns2=bpmsy[i][0]	
+			bn2=upper(bpmsy[i+1][1])
+			bns2=bpmsy[i+1][0]	
 		fphasey.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPY))+' '+str(phasey[bn1][0])+' '+str(phasey[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
 
 fphasey.close()
-
 
 if wolinx!=1:
 	fphasex.write('@ Q1 %le '+str(Q1)+'\n')
@@ -1396,13 +2214,11 @@ if wolinx!=1:
 			bn2=upper(bpmsx[0][1])
 			bns2=bpmsx[0][0]
 		else:
-			bn2=upper(bpmsx[i][1])
-			bns2=bpmsx[i][0]	
+			bn2=upper(bpmsx[i+1][1])
+			bns2=bpmsx[i+1][0]	
 		fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
 	
 fphasex.close()
-
-
 
 
 #-------- START Beta
@@ -1465,13 +2281,11 @@ if wolinx!=1:
 	plane='H'
 	betax={}
 	rmsbbx=0.
-	[betax,rmsbbx,bpms, r2jx, r2jxerr]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,plane)
+	[betax,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,plane)
 	betax['DPP']=0
 	beta2_save=betax
 	betaxalist.append(betax)
 	fabetax.write('@ Q1 %le '+str(Q1)+'\n')
-        fabetax.write('@ r2Jx %le '+str(r2jx)+'\n')
-        fabetax.write('@ r2Jxerr %le '+str(r2jxerr)+'\n')
 	try:
 		fabetax.write('@ Q2 %le '+str(Q2)+'\n')
 	except:
@@ -1490,7 +2304,7 @@ if woliny!=1:
 	plane='V'
 	betay={}
 	rmsbby=0.
-	[betay,rmsbby,bpms, r2jy, rsjyerr]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,plane)
+	[betay,rmsbby,bpms,injJy]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,plane)
 	betay['DPP']=0
 	betayalist.append(betay)
 	fabetay.write('@ Q1 %le '+str(Q1)+'\n')
@@ -1569,7 +2383,7 @@ if wolinx2!=1:
 		fcoDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
 		fcoDPP.write('@ FILE %s "')
 		fcoDPP.write(FileOfNonZeroDPPX[k]+' "'+'\n')
-		fcoDPP.write('@ DPP %le '+str(j.DPP)+'\n')
+		fcoDPP.write('@ DPP %le '+str(float(j.DPP))+'\n')
 		try:
 			fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
 		except:
@@ -1599,7 +2413,7 @@ if woliny2!=1:
 		fcoDPP.write('@ MAD_FILE: %s "'+file0+'"'+'\n')
 		fcoDPP.write('@ FILE %s "')
 		fcoDPP.write(FileOfNonZeroDPPY[k]+' "'+'\n')
-		fcoDPP.write('@ DPP %le '+str(j.DPP)+'\n')
+		fcoDPP.write('@ DPP %le '+str(float(j.DPP))+'\n')
 		try:
 			fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
 		except:
@@ -1643,7 +2457,7 @@ if wolinx!=1 and wolinx2!=1:
 
 
 
-	[dxo,bpms]=DispersionfromOrbit(ListOfZeroDPPX,ListOfNonZeroDPPX,ListOfCOX,COcut)
+	[dxo,bpms]=DispersionfromOrbit(ListOfZeroDPPX,ListOfNonZeroDPPX,ListOfCOX,COcut,BPMU)
 	DPX=GetDPX(MADTwiss,dxo,bpms)
 	fDx.write('@ Q1 %le '+str(Q1)+'\n')
 	fDx.write('@ Q2 %le '+str(Q2)+'\n')
@@ -1661,7 +2475,7 @@ fDx.close()
 
 
 if woliny!=1 and woliny2!=1:
-	[dyo,bpms]=DispersionfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY,ListOfCOY,COcut)
+	[dyo,bpms]=DispersionfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY,ListOfCOY,COcut,BPMU)
 	fDy.write('@ Q1 %le '+str(Q1)+'\n')
 	fDy.write('@ Q2 %le '+str(Q2)+'\n')
 	fDy.write('* NAME   POS    COUNT  DY     STDDY  MUYMDL\n')
@@ -1680,7 +2494,7 @@ if wolinx2!=1:
 	plane='H'
 	k=0
 	for j in ListOfNonZeroDPPX:
-		dpop=j.DPP
+		dpop=float(j.DPP)
 		SingleFile=[]
 		SingleFile.append(j)
 		file1=outputpath+'getphasex_dpp_'+str(k+1)+'.out'
@@ -1708,8 +2522,8 @@ if wolinx2!=1:
 				bns2=bpms[0][0]
 			
 			else:
-				bn2=upper(bpms[i][1])
-				bns2=bpms[i][0]
+				bn2=upper(bpms[i+1][1])
+				bns2=bpms[i+1][0]
 			try:
 				phmdl=phasex_save[bn1][4]
 			except:
@@ -1725,7 +2539,7 @@ if wolinx2!=1:
 		betax['DPP']=dpop
 		betaxlist.append(betax)
 		betaxa={}
-		[betaxa,rmsbbx,bpms, r2Jx, r2Jxerr]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
+		[betaxa,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
 		betaxa['DPP']=dpop
 		betaxalist.append(betaxa)
 		file2=outputpath+'getbetax_dpp_'+str(k+1)+'.out'
@@ -1757,7 +2571,7 @@ if woliny2!=1:
 	plane='V'
 	k=0
 	for j in ListOfNonZeroDPPY:
-		dpop=j.DPP
+		dpop=float(j.DPP)
 		SingleFile=[]
 		SingleFile.append(j)
 		file1=outputpath+'getphasey_dpp_'+str(k+1)+'.out'
@@ -1786,8 +2600,8 @@ if woliny2!=1:
 				bns2=bpms[0][0]
 			
 			else:
-				bn2=upper(bpms[i][1])
-				bns2=bpms[i][0]
+				bn2=upper(bpms[i+1][1])
+				bns2=bpms[i+1][0]
 			try:
 				phmdl=phasey_save[bn1][4]
 			except:
@@ -1803,7 +2617,7 @@ if woliny2!=1:
 		betay['DPP']=dpop
 		betaylist.append(betay)
 		betaya={}
-		[betaya,rmsbby,bpms, r2Jy, r2Jyerr]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
+		[betaya,rmsbby,bpms,invJy]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
 		betaya['DPP']=dpop
 		betayalist.append(betaya)
 		file2=outputpath+'getbetay_dpp_'+str(k+1)+'.out'
@@ -1866,16 +2680,212 @@ if woliny!=1 and woliny2!=1:
 	fdppy.close()
 
 
+#---------------------------------------- Start getsextupoles @ Glenn Vanbavinckhove
+if options.TBTana=="SUSSIX":
+#-> 1) f3000 line (-2,0)
+#-> 2) f1200 line  (2,0)
+#-> 3) f2100 line  (0,0)
+
+# global stuff
+
+	MADTwiss.fterms()
+	f3000M=MADTwiss.f3000
+#print MADTwiss.NAME
+#print f3000M
+
+	f2100M=MADTwiss.f2100
+	NAMES=MADTwiss.NAME
+
+# 1)
+	files=[ListOfZeroDPPX,ListOfZeroDPPY]
+	Q=[Q1,Q2]
+	plane='H'
+	name='f3000'
+
+	fsex3000.write('* NAME    POS    AMP_20    AMP_20RMS   PHASE_20   PHASE_20RMS   H3000   H3000I   H3000R   H3000RMS  H3000PHASE  H3000PHASERMS    H3000M    H3000MI    H3000MR    HMPHASE3000  \n')
+	fsex3000.write('$   %s    %le    %le    %le  %le  %le    %le    %le    %le    %le    %le    %le    %le    %le    %le    %le\n')
+
+
+	[A,h,hMODEL,dbpms]=Getsextupole(MADTwiss,plane,files,phasex_save,Q,name,f3000M,NAMES)
+
+
+
+	for i in range(0,len(dbpms)-1):
+
+		bn=upper(dbpms[i][1])
+		bns=dbpms[i][0]
+		fsex3000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
+
+
+	fsex3000.close()
+
+# 2) -> in model f1200 and f2100 are complex conjugated
+
+	files=[ListOfZeroDPPX,ListOfZeroDPPY]
+	Q=[Q1,Q2]
+	plane='H'
+	name='f1200'
+
+	fsex1200.write('* NAME    POS    AMP20    AMP20RMS   PHASE20   PHASE20RMS   H1200   H1200I   H1200R   H1200RMS  H1200PHASE  H1200PHASERMS    H1200M    H1200MI    H1200MR    HMPHASE1200  \n')
+
+	[A,h,hMODEL,dbpms]=Getsextupole(MADTwiss,plane,files,phasex_save,Q,name,f2100M,NAMES)
+
+
+
+
+	for i in range(0,len(dbpms)-1):
+
+		bn=upper(dbpms[i][1])
+		bns=dbpms[i][0]
+		fsex1200.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
+
+	fsex1200.close()
+
+# 3)
+
+	files=[ListOfZeroDPPX,ListOfZeroDPPY]
+	Q=[Q1,Q2]
+	plane='H'
+	name='f2100'
+	
+	fsex2100.write('* NAME    POS    AMP00    AMP00RMS   PHASE00   PHASE00RMS   H2100   H2100I   H2100R   H2100RMS  H2100PHASE  H2100PHASERMS    H2100M    H2100MI    H2100MR    HMPHASE2100  \n')
+	fsex2100.write('$   %s    %le    %le    %le  %le  %le    %le    %le    %le    %le    %le    %le    %le    %le    %le    %le\n')
+
+#for i in range(0,len(dbpms)-1):
+
+	for i in range(0,0):
+
+		bn=upper(dbpms[i][1])
+		bns=dbpms[i][0]
+		fsex2100.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
+
+	fsex2100.close()
+
+# --------------------------------------- end getsextupoles
+#---------------------------------------- begin getchiterms @ Glenn Vanbavinckhove
+#-> 1) chi3000
+#-> 2) chi1010
+#-> 2) chi4000
+
+# 1) chi3000
+
+	fchi3000.write('* NAME    POS1    POS2    POS3    X3000    X3000i    X3000r    X3000RMS   X3000PHASE   X3000PHASERMS   X3000M    X3000Mi   X3000Mr    X3000MPHASE \n')
+	fchi3000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
+
+	files=[ListOfZeroDPPX,ListOfZeroDPPY]
+	name='chi3000'
+	plane='H'
+	
+	[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
+
+	for i in range(0,len(dbpms)-2):
+
+		bn=upper(dbpms[i][1])
+	
+		fchi3000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
+
+	fchi3000.close()
+
+# 2) chi1010
+	
+	if  options.ACCEL!='SPS':
+
+		fchi1010.write('* NAME    X1010   X1010RMS   X1010PHASE   X1010PHASERMS   X1010M   X1010MPHASE \n')
+		fchi1010.write('$ %s   %le    %le   %le   %le   %le   %le  \n')
+
+		files=[ListOfZeroDPPX,ListOfZeroDPPY]
+		name='chi1010'
+		plane='H'
+	
+		[dbpms,XItot]=getchi1010(MADTwiss,files,plane,name)
+
+	
+	
+
+		for i in range(0,len(dbpms)-2):
+			
+			bn=upper(dbpms[i][1])
+	
+			fchi1010.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str('0')+' '+str('0')+' '+str('0')+' '+str('0')+'\n')
+
+		fchi1010.close()
+# 1) chi4000
+
+	fchi4000.write('* NAME    POS1    POS2    POS3    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
+	fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
+
+
+	files=[ListOfZeroDPPX,ListOfZeroDPPY]
+	name='chi4000'
+	plane='H'
+	
+	[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name)
+
+	for i in range(0,len(dbpms)-2):
+
+		bn=upper(dbpms[i][1])
+	
+		fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
+
+	fchi4000.close()
+
+
+
+
+#---------------------------------------- end chiterms
+#-----------------------------------------begin octupole
+#->  1) f4000 (-3,0)
+
+	f4000M=MADTwiss.f4000
+	NAMES=MADTwiss.NAME
+
+	foct4000.write('* NAME    POS    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
+	foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
+	
+	files=[ListOfZeroDPPX,ListOfZeroDPPY]
+	Q=[Q1,Q2]
+	plane='H'
+	name='f4000'
+
+	[A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasex_save,Q,name,f2100M,NAMES)
+
+	for i in range(0,len(dbpms)-1):
+
+		bn=upper(dbpms[i][1])
+		bns=dbpms[i][0]
+		foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
+	
+
+
+	foct4000.close()
+
+
+
+#-----------------------------------------end octupole
+
+#----------------------------- begin get Q,JX,delta
+
+files=[ListOfZeroDPPX+ListOfNonZeroDPPX,ListOfZeroDPPY+ListOfNonZeroDPPY]
+
+
+fkick.write('* dpp     QX    QXRMS     QY   QYRMS     JX     JXSTD    JY     JYSTD \n')
+fkick.write('$  %le  %le  %le %le  %le %le  %le  %le  %le \n')
+
+[invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkick(files)
+
+for i in range(0,len(dpp)):
+
+	
+	fkick.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+'  '+str(invarianceJy[i][0])+'  '+str(invarianceJy[i][1])+'\n')
+
+
+fkick.close()
+
+
+####### -------------- end 
+
+
 #-------- START coupling. If there is no double plane BPMs, nothing to do and leave the program. Will be updated to have pseudo-double plane BPM
-
-sys.exit()
-# Construct pseudo-double plane BPMs
-if options.ACCEL=="SPS" and wolinx!=1 and woliny!=1 :
-          [PseudoListX,PseudoListY]=PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY)
-
-
-          
-
 
 if wolinx!=1 and woliny!=1:
 	try:
@@ -1892,7 +2902,7 @@ if wolinx!=1 and woliny!=1:
 	elif NBcpl==1:
 		[fwqw,bpms]=GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2)
 	elif NBcpl==2:
-		[fwqw,bpms]=GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey, bd)
+		[fwqw,bpms]=GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex_save, phasey_save, bd)
 	else:
 		print 'Number of monitors for coupling analysis (option -n) should be 1 or 2.'
 		print 'Leaving the coupling analysis...'
