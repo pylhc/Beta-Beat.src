@@ -6,8 +6,6 @@
 base=`basename $0`
 dir=`dirname $0`
 
-export PYTHONPATH=$PYTHONPATH:$HOME/Programming/Python_Classes4MAD/
-
 /usr/bin/python $1/GetLLM/getsuper_dev.py \
  --twiss="$1/tests/models/LHCB1/1_10_1_3/" \
  --output=out_${base}/ --algorithm=SUSSIX --accel=LHCB1 \
