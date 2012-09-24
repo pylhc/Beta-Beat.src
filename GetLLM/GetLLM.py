@@ -5555,7 +5555,7 @@ if options.TBTana=="SUSSIX":
 #       NAMES=MADTwiss.NAME
 
     foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
-    foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
+    foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n')
 
     files=[ListOfZeroDPPX,ListOfZeroDPPY]
     Q=[Q1,Q2]
