@@ -23,6 +23,7 @@ ctest_start(Experimental)
 
 # Do not edit (unless you know cmake/ctest):
 
+set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
 set(CTEST_UPDATE_COMMAND "git")
 
 ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
