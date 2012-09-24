@@ -12,6 +12,7 @@
 #  - Run this script with the command:
 #          ctest -S cdash_template.cmake
 
+set(CTEST_SITE "myname@maymachine")
 set(CTEST_BUILD_NAME "SLC5-64bit")
 # Your source should be checked out from git into this directory:
 set(CTEST_SOURCE_DIRECTORY "/path/to/bbeat-clone/")
