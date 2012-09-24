@@ -3915,7 +3915,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     woliny=0  # Let's assume there is liny for the moment
     woliny2=0
     for filein in listOfInputFiles:
-        file1=filein+Suffix1
+        if filein[-3:]=='.gz':
+            file1=filein[:-3]+Suffix1+'.gz'
+        else:
+            file1=filein+Suffix1
         x1=twiss(file1)
         try:
             dppi=x1.DPP
@@ -3971,7 +3974,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fDx.write(file1+' ')
 
         try:
-            file1=filein+Suffix2
+            if filein[-3:]=='.gz':
+                file1=filein[:-3]+Suffix2+'.gz'
+            else:
+                file1=filein+Suffix2
             y1=twiss(file1)
             try:
                 dppi=y1.DPP

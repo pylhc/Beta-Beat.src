@@ -158,7 +158,7 @@ def check_input(options,args):
     if len(files)==0:
         raise SyntaxError("You need to define at least one file input")
     for f in files:
-        if not os.path.isfile(f):
+        if not os.path.isfile(f) and not os.path.isfile(f+'.gz'):
             raise ValueError(f+' does not exist')
 
 
@@ -468,8 +468,14 @@ def getTunes(options,fileslist):
     :param fileslist: dictionary of files, dpp used as key
     :raise ValueError: If fileslist[0] does not exist
     '''
-    tw_x=twiss(fileslist[0][0]+'_linx')
-    tw_y=twiss(fileslist[0][0]+'_liny')
+    if fileslist[0][0][-3:]=='.gz':
+        fname=fileslist[0][0][:-3]
+        end='.gz'
+    else:
+        fname=fileslist[0][0]
+        end=''
+    tw_x=twiss(fname+'_linx'+end)
+    tw_y=twiss(fname+'_liny'+end)
     tw=twiss(get_twissfile(options))
 
     qdx,qdy=tw_x.TUNEX[0],tw_y.TUNEY[0]
@@ -498,8 +504,13 @@ def main(options,args):
 
     for f in files:
 
-        datax=twiss(f+"_linx")
-        datay=twiss(f+"_liny")
+        if(f[-3:]=='.gz'):
+            datax=twiss(f[:-3]+"_linx.gz")
+            datay=twiss(f[:-3]+"_liny.gz")
+        else:
+            datax=twiss(f+"_linx")
+            datay=twiss(f+"_liny")
+
         dppx=datax.DPP
         dppy=datay.DPP
 
