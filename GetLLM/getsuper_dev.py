@@ -180,6 +180,8 @@ def get_twissfile(options):
     if options.twissfile:
         return options.twissfile
     else:
+        if os.path.isfile(options.twiss+'/twiss.dat.gz'):
+            return options.twiss+'/twiss.dat.gz'
         return options.twiss+'/twiss.dat'
 
 ## ############
