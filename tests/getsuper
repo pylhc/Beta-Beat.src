@@ -14,7 +14,8 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Programming/Python_Classes4MAD/
  --beta=$1/ \
  "$1/tests/sdds_files/Beam1@Turn@2011_08_24@08_21_27_607_0.sdds.new.gz" \
  "$1/tests/sdds_files/Beam1@Turn@2011_08_24@09_14_23_920_0.sdds.new.gz" \
- "$1/tests/sdds_files/Beam1@Turn@2011_08_24@09_40_52_536_0.sdds.new.gz"
+ "$1/tests/sdds_files/Beam1@Turn@2011_08_24@09_40_52_536_0.sdds.new.gz" \
+  || exit 1
 
 
 # check output files:
