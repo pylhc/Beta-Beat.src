@@ -1,0 +1,1 @@
+/usr/bin/python ../Correction/correct_couple_twoB.py -a LHCB1 -b LHCB2 -p ./dataB1/ -q ./dataB2 -c 0.05 -r ./ -o 1.5m.opt -v MQSb1,MQSX -w 1,1,1,1,0 -j 1
