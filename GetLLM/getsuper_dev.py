@@ -40,7 +40,8 @@ class chromFileWriter:
                     'w', 'werr','wm', 'werrm', 'wmo', 'phi', 'phierr','phim','phierrm','pmo',
                     'A','Aerr','Am','Aerrm','B','Berr','Bm','Berrm', 'dbbm','dbberrm',
                     'dam','daerrm']
-        couplecolumns=['name', 'sloc', 'chr_c', 'chr_e', 'chr_mdl']
+        couplecolumns=['name', 'sloc', 'chr_f1001r', 'chr_err_f1001r', 'chr_f1001i',
+            'chr_err_f1001i', 'chr_f1010r', 'chr_err_f1010r', 'chr_f1010i', 'chr_err_f1010i']
 
         headnames={
             'name':'NAME',
@@ -71,9 +72,14 @@ class chromFileWriter:
             'Berr':'CHROM_Berr%(plane)s',
             'Bm':'CHROM_BM%(plane)s',
             'Berrm':'CHROM_BERRM%(plane)s',
-            'chr_c':'CHROMCOUPLE',
-            'chr_e':'CHROMe',
-            'chr_mdl':'CHROMMDL'}
+            'chr_f1001r':'Cf1001r',
+            'chr_err_f1001r':'Cf1001rERR',
+            'chr_f1001i':'Cf1001i',
+            'chr_err_f1001i':'Cf1001iERR',
+            'chr_f1010r':'Cf1010r',
+            'chr_err_f1010r':'Cf1010rERR',
+            'chr_f1010i':'Cf1010i',
+            'chr_err_f1010i':'Cf1010iERR'}
         headtypes={'name':'%s'}
         for key in headnames:
             # for all others we use '%le'...
@@ -406,12 +412,12 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         phierrm=1./(1.+(Am/Bm)**2)*sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./pi
 
         fileobj.writeLine(locals().copy())
-        #print >>filetoprint, el, sloc,  dbb, dbberr, da, daerr, w, werr, wmo,phi, phierr,pmo, dbbm,dbberrm,dam,daerrm,wm, werrm,phim,phierrm
-    #filetoprint.close()
 
-### for coupling
-# get det(C)
 def getC(couplefile,name):
+    '''
+    Returns the complex variables f1001,f1010 from
+    the couplefile.
+    '''
 
 
     f1001R=couplefile.F1001R[couplefile.indx[name]]
@@ -419,44 +425,49 @@ def getC(couplefile,name):
     f1010R=couplefile.F1010R[couplefile.indx[name]]
     f1010I=couplefile.F1010I[couplefile.indx[name]]
 
-    down=4*((complex(f1001R,f1001I))-(complex(f1010R,f1010I)))
-    c=1-(1/(1+down))
+    f1001,f1010=complex(f1001R,f1001I),complex(f1010R,f1010I)
+    return f1001,f1010
+    #down=f1001-f1010
+    #c=1-(1/(1+4*down))
 
-    cr=c.real
-    ci=c.imag
+    #return c.real,c.imag
 
-    return cr,ci
-
-# linreg for coupling
 def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
-
+    '''
+    linreg for chromatic coupling
+    
+    Writes to fileobj the chromatic coupling. 
+    f1001, f1010 derivatives wrt dp/p, and errors.
+    '''
     for bpm in bpms:
 
         name=bpm[1]
         sloc=bpm[0]
 
-        a=[]
-        br=[]
-        bi=[]
+        x=[]
+        f1001r=[]
+        f1001i=[]
+        f1010r=[]
+        f1010i=[]
 
         for dpp in dpplist:
 
-            cr,ci=getC(couplelist[dpp],name)
+            f1001,f1010=getC(couplelist[dpp],name)
 
-            a.append(dpp)
-            br.append(cr)
-            bi.append(ci)
+            x.append(dpp)
+            f1001r.append(f1001.real)
+            f1001i.append(f1001.imag)
+            f1010r.append(f1010.real)
+            f1010i.append(f1010.imag)
 
-        fitr=linreg(a,br)
-        fiti=linreg(a,bi)
+        fits=[linreg(x,f1001r),linreg(x,f1001i),linreg(x,f1010r),linreg(x,f1010i)]
 
-        chr_c=abs(complex(fitr[0],fiti[0]))
-        chr_e=abs(complex(fitr[3],fiti[3]))
-        chr_mdl=0
+        chr_f1001r,chr_err_f1001r=fits[0][0],fits[0][3]
+        chr_f1001i,chr_err_f1001i=fits[1][0],fits[1][3]
+        chr_f1010r,chr_err_f1010r=fits[2][0],fits[2][3]
+        chr_f1010i,chr_err_f1010i=fits[3][0],fits[3][3]
         
         fileobj.writeLine(locals().copy())
-
-        #print >> filetoprint,name,s,c,e,"0"
 
 def getTunes(options,fileslist):
     '''
