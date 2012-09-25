@@ -5215,7 +5215,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             except:
                 fphDPP.write('@ Q2 %le '+'0.0'+'\n')
             DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
-            [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,SingleFile,plane,outputpath,bd,accel,lhcphase)
+            [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,SingleFile,Q1,plane,outputpath,bd,accel,lhcphase)
             phasex['DPP']=dpop
             phasexlist.append(phasex)
             fphDPP.write('@ Q1DPP %le '+str(Q1DPP)+'\n')
@@ -5297,7 +5297,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 fphDPP.write('@ Q2 %le '+'0.0'+'\n')
             DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
 
-            [phasey,Q2DPP,MUY,bpms]=GetPhases(DPPTwiss,SingleFile,plane,outputpath,bd,accel,lhcphase)
+            [phasey,Q2DPP,MUY,bpms]=GetPhases(DPPTwiss,SingleFile,Q2,plane,outputpath,bd,accel,lhcphase)
             phasey['DPP']=dpop
             phaseylist.append(phasey)
             fphDPP.write('@ Q2DPP %le '+str(Q2DPP)+'\n')
