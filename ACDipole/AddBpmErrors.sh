@@ -1,4 +1,4 @@
-#!/usr/bin/ksh
+#!/bin/sh
 
 x=0.0000   # BPM noise in m 
 y=0.0000   # BPM noise in m
