@@ -3617,7 +3617,7 @@ parser.add_option("-m", "--model",
                 metavar="TwissFile", default="0", dest="Twiss")
 parser.add_option("-f", "--files",
                 help="Files from analysis, separated by comma",
-                metavar="TwissFile", default="0", dest="files")
+                metavar="Files", default="0", dest="files")
 parser.add_option("-o", "--output",
                 help="Output Path",
                 metavar="OUT", default="./", dest="output")
@@ -3665,13 +3665,13 @@ except:
 
 #-- finding the ac dipole model
 try:
-    MADTwiss_ac=twiss(file0.replace(".dat","_ac.dat"))
+    MADTwiss_ac=twiss(file0.replace(".dat","")+"_ac.dat")
     acswitch="1"
-    print "Driven Twiss file found. AC dipole effects calculated with the effective model (get***_free2.out)"
+    print "Driven Twiss (<filename>_ac.dat model) file found. AC dipole effects calculated with the effective model (get***_free2.out)"
 except:
     MADTwiss_ac=MADTwiss
     acswitch="0"
-    print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
+    print "WARN: AC dipole effects not calculated. Driven twiss file (<filename>_ac.dat) does not exsist !"
 
 #-- Test if the AC dipole (MKQA) is in the model of LHC
 if acswitch=='1':
@@ -3680,10 +3680,10 @@ if acswitch=='1':
             print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
         else:
             try:
-                MADTwissElem=twiss(file0.replace(".dat","_elements.dat"))
-                print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
+                MADTwissElem=twiss(file0.replace(".dat","")+"_elements.dat")
+                print "<filename>_elements.dat model found, AC dipole effects calculated with analytic equations (get***_free)"
             except:
-                print 'WARN: AC dipoles not in the model. AC dipole effects not calculated with analytic equations !'
+                print 'WARN: <filename>_elements.dat model not found'
     else: print 'WARN: AC dipole effects calculated with analytic equations only for LHC for now'
 
 
@@ -5377,7 +5377,7 @@ if woliny2!=1 and wolinx2!=1:
         try:
             MADTwiss.Cmatrix()
         except:
-            0.0
+            pass
 
         if options.ACCEL=="SPS" or "RHIC" in options.ACCEL:
             plane='H'
