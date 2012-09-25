@@ -3661,7 +3661,7 @@ try:
     print "Base model found!"
 except:
     print "WARN: Cannot find model!!",file0
-    sys.exit()
+    sys.exit(1)
 
 #-- finding the ac dipole model
 try:
@@ -5219,7 +5219,7 @@ if wolinx2!=1:
         except:
             fphDPP.write('@ Q2 %le '+'0.0'+'\n')
         DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
-        [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,SingleFile,plane,outputpath,bd,options.ACCEL,options.lhcphase)
+        [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,SingleFile,Q1,plane,outputpath,bd,options.ACCEL,options.lhcphase)
         phasex['DPP']=dpop
         phasexlist.append(phasex)
         fphDPP.write('@ Q1DPP %le '+str(Q1DPP)+'\n')
@@ -5301,7 +5301,7 @@ if woliny2!=1:
             fphDPP.write('@ Q2 %le '+'0.0'+'\n')
         DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
 
-        [phasey,Q2DPP,MUY,bpms]=GetPhases(DPPTwiss,SingleFile,plane,outputpath,bd,options.ACCEL,options.lhcphase)
+        [phasey,Q2DPP,MUY,bpms]=GetPhases(DPPTwiss,SingleFile,Q2,plane,outputpath,bd,options.ACCEL,options.lhcphase)
         phasey['DPP']=dpop
         phaseylist.append(phasey)
         fphDPP.write('@ Q2DPP %le '+str(Q2DPP)+'\n')
