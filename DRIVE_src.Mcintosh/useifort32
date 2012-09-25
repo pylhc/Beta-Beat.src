@@ -1,0 +1,43 @@
+#!/bin/tcsh
+#
+if ($#argv != 1) then
+  echo "You must specify a Version e.g. 11.0/083"
+  echo "Installed versions are 11.0/081 11.0/083"
+  exit 1
+endif
+set version = $1
+
+setenv INTEL_LICENSE_FILE "/afs/cern.ch/sw/IntelSoftware/linux/licenses:/opt/intel/licenses:${HOME}/intel/licenses"
+
+set MYINTEL = "/afs/cern.ch/sw/IntelSoftware/linux/x86_64/Compiler"
+set MYINTEL_ROOT = "$MYINTEL/$version/bin/ia32"
+set MYINTEL_MAN = "$MYINTEL/$version/man"
+set MYINTEL_LIB = "$MYINTEL/$version/lib/ia32"
+set MYINTEL_DYLIB = "$MYINTEL/$version/lib"
+
+echo $PATH | grep $MYINTEL > /dev/null
+set stat = $?
+if ($stat == 0) then
+  echo "Removing existing PATH"
+  set  path = (`echo $path | sed 's?'$MYINTEL'.*/bin/ia32??'`)
+endif
+
+
+echo $MANPATH | grep $MYINTEL > /dev/null
+set stat = $?
+if ($stat == 0) then
+  echo "Removing existing MANPATH"
+  setenv MANPATH `echo $MANPATH | sed 's?:'$MYINTEL'[^:]*/man??'`
+endif
+
+if ($version == 0) then
+  setenv LD_LIBRARY_PATH
+  setenv DYLD_LIBRARY_PATH
+  exit 0
+endif
+
+echo "Setting up ifort for ia32 Version $version"
+set path = ( $path $MYINTEL_ROOT )
+setenv MANPATH "${MANPATH}:$MYINTEL_MAN"
+setenv LD_LIBRARY_PATH $MYINTEL_LIB
+setenv DYLD_LIBRARY_PATH ${MYINTEL_DYLIB}:${MYINTEL_LIB} 
