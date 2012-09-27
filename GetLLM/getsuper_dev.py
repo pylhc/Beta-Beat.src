@@ -281,8 +281,11 @@ def rungetllm(twissfile,accel,technique,files,options,dpp):
     print "GetLLM finished"
 
     for var in ['betax','betay','ampbetax','ampbetay','couple','betax_free','betay_free','couple_free']:
-        shutil.copy(options.output+'/get'+var+'.out',options.output+'/get'+var+'_'+str(dpp)+'.out')
+        shutil.move(options.output+'/get'+var+'.out',options.output+'/get'+var+'_'+str(dpp)+'.out')
 
+def copy_default_outfiles(options):
+    for var in ['betax','betay','ampbetax','ampbetay','couple','betax_free','betay_free','couple_free']:
+        shutil.copy(options.output+'/get'+var+'_0.0.out',options.output+'/get'+var+'.out')
 
 ##### for chromatic
 # model intersect
@@ -553,6 +556,8 @@ def main(options,args):
     for dpp in fileslist:
         files=fileslist[dpp]
         rungetllm(options.output+"/twiss_"+str(dpp)+".dat",accel,technique,files,options,dpp)
+    # The GUI wants the default files to have the names without _0.0
+    copy_default_outfiles(options)
 
 
     ##adding data
