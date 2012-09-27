@@ -197,6 +197,10 @@ def get_twissfile(options):
 
 #####
 def madcreator(dpps,options):
+    '''
+    :param dpps: list of dp/p to create model for
+    :param options: dictionary of options from input arguments
+    '''
 
     madfile=options.brc+"/MODEL/LHCB/model/"
 
