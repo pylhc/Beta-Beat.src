@@ -333,8 +333,8 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
     :param fileobj: chromFileWriter for output table
     :param listx: List of variables...
     :param listy: List of variables...
-    :param bpms: List of BPM's
-    :param plane: Which plane ('H'/'V')
+    :param bpms: List of BPMs
+    :param plane: Which plane (H/V)
     :param zero: Twiss for dp/p = 0
     :param twiss: Twiss
     '''
