@@ -131,19 +131,20 @@ def parse_args():
         help="Files from analysis, separated by comma",
         metavar="TwissFile", default="", dest="files")
     parser.add_option("-m", "--twiss",
-            help="twiss folder path to use",
+            help="Twiss folder path to use",
             metavar="twiss", default="./", dest="twiss")
     parser.add_option("--madxbin",
-            help="path to mad-x binary",
+            help="Path to mad-x binary",
             metavar="<path>", default="madx", dest="madx")
     parser.add_option("--twissfile",
-            help="twiss file to use",
+            help="Twiss file to use",
             metavar="/path/to/twiss.dat", default="", dest="twissfile")
     parser.add_option("-o", "--output",
-            help="output path, where to store the results",
+            help="Output path, where to store the results",
             metavar="<path>", default="./", dest="output")
+    # By default we take the path from where getsuper_dev.py is ran from..
     parser.add_option("-b", "--beta",
-            help="where beta-beat is stored",
+            help="Path to Beat-Beat.src folder",
             metavar="<path>", default=os.path.dirname(__file__)+'/../', dest="brc")
     parser.add_option("-t", "--algorithm",
             help="Which algorithm to use (SUSSIX/SVD)",
