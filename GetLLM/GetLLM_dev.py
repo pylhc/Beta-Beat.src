@@ -3579,6 +3579,8 @@ def union(a, b):
 def _fix_output(outputpath):
     if not os.path.isdir(outputpath):
         os.makedirs(outputpath)
+    if '/'!=outputpath[-1]:
+        outputpath+='/'
     return outputpath
 
 def _write_llm_tfs_header(filename,mad_files):
