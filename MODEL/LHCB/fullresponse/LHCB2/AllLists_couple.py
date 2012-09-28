@@ -1,5 +1,12 @@
 
- 
+ ###### < coupling_knobs > ######
+def coupling_knobs(): ###
+################
+    variables=['b2_re_ip7_knob',
+               'b2_im_ip7_knob']
+    return variables
+
+
 ###### < MQSb2 > ######
 def MQS(): # special variables for ATS
 ################
@@ -39,7 +46,7 @@ def MQSOR(): ### original
                 'kqs.l1b2']
     return variables
 
- 
+
 ###### < MQSX > ######
 def MQSX():
 ################
@@ -53,17 +60,19 @@ def MQSX():
                 'kqsx3.l1']
     return variables
 
- 
+
 ###### < Qb2s > ######
 def Qs():
 ################
-    variables=['kqs.r2l3b2',
+    variables=['b2_re_ip7_knob', #The knobs has to be the first in this list
+               'b2_im_ip7_knob',
+               'kqs.r2l3b2',
                'kqs.r4l5b2',
                'kqs.r6l7b2',
                'kqs.r8l1b2',
                'kqs.a12b2',
                'kqs.r2b2',
-               'kqs.l3b2', 
+               'kqs.l3b2',
     #            'kqs.a34b2',
                'kqs.r4b2',
                'kqs.l5b2',
@@ -81,9 +90,11 @@ def Qs():
                'kqsx3.l8',
                'kqsx3.r8',
                'kqsx3.l1']
+
+
     return variables
 
- 
+
 ###### < MQSb2l > ######
 def MQSl():
 ################
@@ -93,7 +104,7 @@ def MQSl():
                 'kqs.l1b2']
     return variables
 
- 
+
 ###### < MQSb2r > ######
 def MQSr():
 ################
@@ -103,7 +114,7 @@ def MQSr():
                 'kqs.r8b2']
     return variables
 
- 
+
 ###### < MQSb2a > ######
 def MQSa():
 ################
@@ -113,7 +124,7 @@ def MQSa():
                 'kqs.a78b2']
     return variables
 
- 
+
 ###### < bumps > ######
 def bumps():
 ################
