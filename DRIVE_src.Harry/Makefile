@@ -37,6 +37,20 @@ Drive_God_lin.o: Drive_God_lin.c Makefile
 	gcc  $(CFLAGS)  Drive_God_lin.c
 
 
+
+Drive_God_lin_dev:  Drive_God_lin_dev.o  sussix4drivexxNoO.o   Makefile
+	$(FC) -o Drive_God_lin_dev Drive_God_lin_dev.o  sussix4drivexxNoO.o   $(FCL)
+#	gcc -o Drive_God_lin Drive_God_lin.o  sussix4drivexxNoO.o   $(FCL)
+#	ifort $(FCL) -o Drive_God_lin Drive_God_lin.o  sussix4drivexxNoO.o
+
+Drive_God_lin_dev.o: Drive_God_lin_dev.c Makefile
+	gcc  $(CFLAGS)  Drive_God_lin_dev.c
+
+
+
+
+
+
 sussix4drivexxNoO.4000.o: sussix4drivexxNoO.4000.f Makefile
 	$(FC)  $(FFLAGS)  sussix4drivexxNoO.4000.f
 
