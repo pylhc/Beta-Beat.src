@@ -150,6 +150,7 @@ class SddsFile(object):
                 reasonForBadBpm = "Flat BPM, the difference between all values is smaller than " + str(pk_pk_cut)
                 badBpm = BadBpm(bpmsNameLocationPlane, ndarrayLineData, reasonForBadBpm)
                 self.badBpmFile.addBadBpm(badBpm)
+                print "BPM removed:", bpmName, "plane:", plane, "reason:", reasonForBadBpm
                 continue
             
             self.dictionaryPlaneToBpms[plane].bpmData.append(ndarrayLineData)
