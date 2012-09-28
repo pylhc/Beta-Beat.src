@@ -186,10 +186,11 @@ def get_twissfile(options):
     '''
     if options.twissfile:
         return options.twissfile
-    else:
-        if os.path.isfile(options.twiss+'/twiss.dat.gz'):
-            return options.twiss+'/twiss.dat.gz'
-        return options.twiss+'/twiss.dat'
+    if os.path.isfile(options.twiss):
+        return options.twiss
+    if os.path.isfile(options.twiss+'/twiss.dat.gz'):
+        return options.twiss+'/twiss.dat.gz'
+    return options.twiss+'/twiss.dat'
 
 ## ############
 #functions
