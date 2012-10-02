@@ -1864,8 +1864,8 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
             phase_201=fileamp.PHASE_20[fileamp.indx[bpm]]
             phase_202=fileamp.PHASE_20[fileamp.indx[bpm1]]
 
-            delta=phase[bpm][0]-0.25
-            edelta=phase[bpm][1]
+            delta=phase[bpm.upper()][0]-0.25
+            edelta=phase[bpm.upper()][1]
 
             #computing complex line
             ampi,phasei,eampi,ephasei=ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202)
@@ -1879,7 +1879,7 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
                 if (j==3 and k==0):
                     factor=sqrt(2)### factor
                     fterm=ampi/(factor*2*j*sqrt2jx**2)
-                    pterm=(phasei-phase[bpm][0]+0.25)%1
+                    pterm=(phasei-phase[bpm.upper()][0]+0.25)%1
 
                     hterm=fterm/afactor
 
