@@ -1,6 +1,6 @@
 import sys
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach, 2012/05)
-  sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
+    sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
 
 try:
     from Numeric import *
@@ -57,19 +57,19 @@ delta1=zeros(len(variables))*1.0   #Zero^th of the variables
 incr=ones(len(variables))*0.05    #increment of variables
 dpp=0.0001
 FullResponse['incr']=incr           #Store this info for future use
-FullResponse['delta1']=delta1   
+FullResponse['delta1']=delta1
 
 
 ######## loop over normal variables
 f=open(path+'/iter.madx','w')
 for i in range(0,len(delta1)) : #Loop over variables
-          delta=array(delta1)
-          delta[i]=delta[i]+incr[i]
-          var=variables[i]
-          print >>f, var,"=", var, "+(",delta[i],");"
-          print >>f, "twiss, deltap= "+str(dpp)+",file=\""+path+"/twiss.dp+."+var+"\";"
-          print >>f, "twiss, deltap=-"+str(dpp)+",file=\""+path+"/twiss.dp-."+var+"\";"
-          print >>f, var,"=", var, "-(",delta[i],");"
+    delta=array(delta1)
+    delta[i]=delta[i]+incr[i]
+    var=variables[i]
+    print >>f, var,"=", var, "+(",delta[i],");"
+    print >>f, "twiss, deltap= "+str(dpp)+",file=\""+path+"/twiss.dp+."+var+"\";"
+    print >>f, "twiss, deltap=-"+str(dpp)+",file=\""+path+"/twiss.dp-."+var+"\";"
+    print >>f, var,"=", var, "-(",delta[i],");"
 
 print >>f, "twiss, deltap= "+str(dpp)+",file=\""+path+"/twiss.dp+.0\";"
 print >>f, "twiss, deltap=-"+str(dpp)+",file=\""+path+"/twiss.dp-.0\";"
@@ -80,36 +80,36 @@ shell_command('/afs/cern.ch/group/si/slap/bin/madx < '+path+'/job.iterate.madx')
 
 varsforloop=variables+['0']
 for i in range(0,len(varsforloop)) : #Loop over variables
-        
-        var=varsforloop[i]
-        print  "Reading twiss.dp+."+var
-	xp=twiss(path+"/twiss.dp+."+var)
-	xp.Cmatrix()
-        print  "Reading twiss.dp-."+var
-	xm=twiss(path+"/twiss.dp-."+var)
-	xm.Cmatrix()
-        # Initializing and Calculating chromatic coupling for every BPM
-        xp.Cf1001r=[]
-        xp.Cf1001i=[]
-        xp.Cf1010r=[]
-        xp.Cf1010i=[]
-        for j in range(len(xp.NAME)):
 
-            vvv=(xp.F1001R[j]-xm.F1001R[j])/(2*dpp)
-            xp.Cf1001r.append(vvv)
-            
-            vvv=(xp.F1001I[j]-xm.F1001I[j])/(2*dpp)
-            xp.Cf1001i.append(vvv)
+    var=varsforloop[i]
+    print  "Reading twiss.dp+."+var
+    xp=twiss(path+"/twiss.dp+."+var)
+    xp.Cmatrix()
+    print  "Reading twiss.dp-."+var
+    xm=twiss(path+"/twiss.dp-."+var)
+    xm.Cmatrix()
+    # Initializing and Calculating chromatic coupling for every BPM
+    xp.Cf1001r=[]
+    xp.Cf1001i=[]
+    xp.Cf1010r=[]
+    xp.Cf1010i=[]
+    for j in range(len(xp.NAME)):
 
-            vvv=(xp.F1001R[j]-xm.F1001R[j])/(2*dpp)
-            xp.Cf1010r.append(vvv)
+        vvv=(xp.F1001R[j]-xm.F1001R[j])/(2*dpp)
+        xp.Cf1001r.append(vvv)
 
-            vvv=(xp.F1010I[j]-xm.F1010I[j])/(2*dpp)
-            xp.Cf1010i.append(vvv)
-            
-        FullResponse[var]=xp
-        system('rm '+path+'/twiss.dp+.'+var)
-        system('rm '+path+'/twiss.dp-.'+var)
+        vvv=(xp.F1001I[j]-xm.F1001I[j])/(2*dpp)
+        xp.Cf1001i.append(vvv)
+
+        vvv=(xp.F1001R[j]-xm.F1001R[j])/(2*dpp)
+        xp.Cf1010r.append(vvv)
+
+        vvv=(xp.F1010I[j]-xm.F1010I[j])/(2*dpp)
+        xp.Cf1010i.append(vvv)
+
+    FullResponse[var]=xp
+    system('rm '+path+'/twiss.dp+.'+var)
+    system('rm '+path+'/twiss.dp-.'+var)
 
 
 #FullResponse['0']=twiss(path+'/twiss.0') # already in the loop
@@ -128,7 +128,7 @@ FullResponse={}   #Initialize FullResponse
 execfile(corepath+"/"+accel+'/AllLists_couple.py')
 exec('variables=Qs()')           #Define variables
 delta1=zeros(len(variables))*1.0   #Zero^th of the variables
-incr=ones(len(variables))*0.0001    #increment of variables 
+incr=ones(len(variables))*0.0001    #increment of variables
 
 
 FullResponse['incr']=incr           #Store this info for future use
@@ -137,12 +137,12 @@ FullResponse['delta1']=delta1       #"     "     "
 ######## loop over normal variables
 f=open(path+'/iter.madx','w')
 for i in range(0,len(delta1)) : #Loop over variables
-          delta=array(delta1)
-          delta[i]=delta[i]+incr[i]
-          var=variables[i]
-          print >>f, var,"=", var, "+(",delta[i],");"
-          print >>f, "twiss, file=\""+path+"/twiss."+var+"\";"
-          print >>f, var,"=", var, "-(",delta[i],");"
+    delta=array(delta1)
+    delta[i]=delta[i]+incr[i]
+    var=variables[i]
+    print >>f, var,"=", var, "+(",delta[i],");"
+    print >>f, "twiss, file=\""+path+"/twiss."+var+"\";"
+    print >>f, var,"=", var, "-(",delta[i],");"
 
 print >>f, "twiss, file=\""+path+"/twiss.0\";"
 
@@ -152,14 +152,14 @@ shell_command('/afs/cern.ch/group/si/slap/bin/madx < '+path+'/job.iterate.madx')
 
 
 for i in range(0,len(delta1)) : #Loop over variables
-        delta=array(delta1)
-        delta[i]=delta[i]+incr[i]
-        var=variables[i]
-        print "Reading twiss."+var
-	x=twiss(path+"/twiss."+var)
-	x.Cmatrix()
-        FullResponse[var]=x
-        system('rm '+path+'/twiss.'+var)
+    delta=array(delta1)
+    delta[i]=delta[i]+incr[i]
+    var=variables[i]
+    print "Reading twiss."+var
+    x=twiss(path+"/twiss."+var)
+    x.Cmatrix()
+    FullResponse[var]=x
+    system('rm '+path+'/twiss.'+var)
 
 
 FullResponse['0']=twiss(path+'/twiss.0') #Response to Zero, base , nominal
@@ -187,12 +187,12 @@ FullResponse['delta1']=delta1       #"     "     "
 ######## loop over normal variables
 f=open(path+'/iter.madx','w')
 for i in range(0,len(delta1)) : #Loop over variables
-          delta=array(delta1)
-          delta[i]=delta[i]+incr[i]
-          var=variables[i]
-          print >>f, var,"=", var, "+(",delta[i],");"
-          print >>f, "twiss, file=\""+path+"/twiss."+var+"\";"
-          print >>f, var,"=", var, "-(",delta[i],");"
+    delta=array(delta1)
+    delta[i]=delta[i]+incr[i]
+    var=variables[i]
+    print >>f, var,"=", var, "+(",delta[i],");"
+    print >>f, "twiss, file=\""+path+"/twiss."+var+"\";"
+    print >>f, var,"=", var, "-(",delta[i],");"
 
 print >>f, "twiss,file=\""+path+"/twiss.0\";"
 f.close()
@@ -201,21 +201,14 @@ shell_command('/afs/cern.ch/group/si/slap/bin/madx < '+path+'/job.iterate.madx')
 
 
 for i in range(0,len(delta1)) : #Loop over variables
-        delta=array(delta1)
-        delta[i]=delta[i]+incr[i]
-        var=variables[i]
-        print "Reading twiss."+var
-        FullResponse[var]=twiss(path+"/twiss."+var)
-        system('rm '+path+'/twiss.'+var)
+    delta=array(delta1)
+    delta[i]=delta[i]+incr[i]
+    var=variables[i]
+    print "Reading twiss."+var
+    FullResponse[var]=twiss(path+"/twiss."+var)
+    system('rm '+path+'/twiss.'+var)
 
 
 FullResponse['0']=twiss(path+'/twiss.0') #Response to Zero, base , nominal
 
 pickle.dump(FullResponse,open(path+'/FullResponse','w'),-1)
-
-
-
-
-
-
-
