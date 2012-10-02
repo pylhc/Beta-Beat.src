@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# An example hook script to verify what is about to be committed.
+# Called by "git commit" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message if
+# it wants to stop the commit.
+#
+# To enable this hook, rename this file to "pre-commit".
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+    against=HEAD
+else
+    # Initial commit: diff against an empty tree object
+    against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+for f in `git diff --cached --name-status | awk '$1 != "R" { print $2 }' | grep \.py$`
+do
+    if [[ "$f" =~ ".py" ]]
+    then
+        newlines=`git diff --cached $against $f | grep ^+ | grep -v ^+++`
+        newlines_notstaged=`git diff $against $f | grep ^+ | grep -v ^+++`
+        oldlines=`git diff --cached $against $f | grep ^- | grep -v ^---`
+        ntabsbefore=`echo "$oldlines" | grep -Po '\t' | wc -l`
+        ntabsafter=`echo "$newlines" | grep -Po '\t' | wc -l`
+        ntabsafter_notst=`echo "$newlines_notstaged" | grep -Po '\t' | wc -l`
+        if (( $ntabsafter > $ntabsbefore ))
+        then
+            echo "COMMIT REFUSED: Please don't increase number of tabs in $f"
+            if (( $ntabsafter_notst > $ntabsbefore ))
+            then
+                echo "                See Beta-Beat.src/Utilities/reindent.py"
+            else
+                echo "         Did you remember to add your reindented files?"
+            fi
+            exit 1
+        fi
+    fi
+done
+
+
