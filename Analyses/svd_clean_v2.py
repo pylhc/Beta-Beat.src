@@ -72,7 +72,7 @@ if startTurn >= maxturns :
 #----------------------------------------
 
 # internal options
-printTimes = False  # If True, the execution >>Time for each part of the script and overall time are printed
+printTimes = True  # If True, the execution >>Time for each part of the script and overall time are printed
 printDebug = False  # If True, internal debug information will be printed
 
 # internal constants
@@ -91,43 +91,28 @@ class SddsFile(object):
         self.bpmsX = Bpms(planeX)
         self.bpmsY = Bpms(planeY)
             
-    def getLinesFromSddsFile(self):
-        """Method to read all files from the current SDDS file
-        Returns the result from file.readlines()"""
-        if len(self.pathToSddsFile) <= 1:
-            sys.exit("Exit, please enter Filename")
-        sddsFile = open(self.pathToSddsFile, "r")
-        lines = sddsFile.readlines()
-        sddsFile.close()
-        return lines
-    
     def init(self):
         """Parse the current SDDS file and sets all member variables"""
         if (self.parsed):
             return
         timeStart = time.time()
-        listLinesFromSddsFile = self.getLinesFromSddsFile()
         
         lastNumberOfTurns = 0
         
+        fileSdds = open(self.pathToSddsFile, "r")
         print "Extracting data from file..."
-        for listLinesFromSddsFileItem in listLinesFromSddsFile:
-            if listLinesFromSddsFileItem.startswith("#"): # then it is a comment line (tbach)
-                self.header += listLinesFromSddsFileItem
+        for fileSddsItem in fileSdds: # Iterator over all lines (tbach)
+            if fileSddsItem.startswith("#"): # then it is a comment line (tbach)
+                self.header += fileSddsItem
                 continue
             
             # from here, we have a data line (tbach)
-            listSplittedLineValues = listLinesFromSddsFileItem.split()
-	    if (len(listSplittedLineValues) < 4): # this is not a valid data line then (tbach)
+            listSplittedLineValues = fileSddsItem.split()
+            if (len(listSplittedLineValues) < 3): # this is not a valid data line (tbach)
                 continue
             plane = listSplittedLineValues.pop(0)
             bpmName = listSplittedLineValues.pop(0)
-            location = listSplittedLineValues.pop(0)
-            
-            if "null" in location:
-                print "No data for ", bpmName
-                continue
-            location = float(location)
+            location = float(listSplittedLineValues.pop(0))
             
             # pop removed the first 3 entries, rest should be turn data (tbach)
             self.numberOfTurns = min(maxturns, len(listSplittedLineValues))
@@ -142,12 +127,14 @@ class SddsFile(object):
                     sys.exit(1)
             lastNumberOfTurns = self.numberOfTurns
             
-            self.getBpmsForPlane(plane).bpmData.append([float(x) for x in listSplittedLineValues[startTurn:self.numberOfTurns]])
-            self.getBpmsForPlane(plane).bpmsNameLocationPlane.append((bpmName, location, plane))
+            currentBpmsForPlane = self.getBpmsForPlane(plane)
+            currentBpmsForPlane.bpmData.append(numpy.array(listSplittedLineValues, dtype=numpy.float64))
+            currentBpmsForPlane.bpmsNameLocationPlane.append((bpmName, location, plane))
             # be careful with the bpmsNameLocationPlane format, it is important for other parts of the program
             # sadly, it is a lot slower if we create an object for every BPM here instead of using the list
             # -- tbach
-                
+        
+        fileSdds.close()
         self.parsed = True
         if printTimes: print ">>Time for init (read in file):", time.time() - timeStart, "s"
         print "Startturn:", startTurnHuman, "Maxturn:", maxturns
