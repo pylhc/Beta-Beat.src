@@ -9,42 +9,34 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 #--- beta beat for store with numpy
 
 import pickle
-#try:
-from metaclass import twiss
-#except:
-#	from metaclass25 import twiss
-#try:
-#	from Numeric import *
-#	from LinearAlgebra import *
-#except:
-from numpy import *
-
-#from numpy.oldnumeric.linear_algebra import generalized_inverse
-from os import system
-#from metaclass import twiss
-import random,re,sys
-#from AllLists_couple import *
-
-from optparse import OptionParser
-from GenMatrix_coupleDy import *
-#from BCORR import *
+import metaclass
+import os
+import optparse
+import GenMatrix_coupleDy
+import numpy
 
 ########### START ###############
+# /usr/bin/python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//Correction/correct_coupleDy.py 
+# -a LHCB1
+# -p /afs/cern.ch/work/t/tbach/public/betabeatGui/temp/2012-09-28/LHCB1/Results/22-50-04_NORMALANALYSIS_SUSSIX_1
+# -c 0.01
+# -e 0.01,0.1 
+# -m 0.02,0.1
+# -r /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/
+# -s 0.00003
+# -d 1,1,0,0,0 
+# -o /afs/cern.ch/work/t/tbach/public/betabeatGui/temp/2012-09-28/models/LHCB1/test2fr/
+# -v coupling_knobs
 
+# "accel", "path", "cut", "errorcut", "modelcut", "MinStr", "Dy", "opt", "Variables", "rpath"
 
-parser = OptionParser()
-parser.add_option("-a", "--accel", 
-		 help="What accelerator: LHCB1 LHCB2 SPS RHIC",
-		 metavar="ACCEL", default="LHCB1",dest="ACCEL")
-#parser.add_option("-t", "--tech", 
-		 #help="Which algorithm: SVD MICADO",
-		 #metavar="TECH", default="SVD",dest="TECH")
-#parser.add_option("-n", "--ncorr", 
-		 #help="Number of Correctors for MICADO",
-		 #metavar="NCORR", default=5,dest="ncorr")
+parser = optparse.OptionParser()
+parser.add_option("-a", "--accelerator",
+                  help="What accelerator: LHCB1 LHCB2 SPS RHIC",
+                  metavar="ACCEL", default="LHCB1", dest="ACCEL")
 parser.add_option("-p", "--path",
-		 help="Path to experimental files",
-		 metavar="PATH", default="./",dest="path")
+                  help="Path to experimental files",
+                  metavar="PATH", default="./", dest="path")
 parser.add_option("-c", "--cut",
                   help="Singular value cut for the generalized inverse",
                   metavar="CUT", default=0.1 , dest="cut")
@@ -67,208 +59,180 @@ parser.add_option("-o", "--opt",
                   help="To specify the optics",
                   metavar="OPT", default="nominal.opt", dest="opt")
 parser.add_option("-v", "--Variables",
-                  help="variables split with ,",
+                  help="variables split with , - if coupling_knobs is given, the modelcut will be calculated automatically",
                   metavar="var", default="MQSb1" , dest="var")
-
-
 
 (options, args) = parser.parse_args()
 
+# internal options
+printDebug = False  # If True, internal debug information will be printed (tbach)
 
+modelcuts = options.modelcut.split(",")
+modelcutC = float(modelcuts[0])
+modelcutD = float(modelcuts[1])
+errorcuts = options.errorcut.split(",")
+errorcutC = float(errorcuts[0])
+errorcutD = float(errorcuts[1])
+weights = options.Dy.split(',')
 
 print "Selected accelerator:", options.ACCEL
 print "Path to measurements:", options.path
 betapath = options.rpath
 print "Path to Repository:", betapath
-accel=options.ACCEL
+accelerator = options.ACCEL
 
-if "LHC" in accel:
-	main="LHCB"
-	accelpath=betapath+'/MODEL/'+main+'/fullresponse/'+options.ACCEL+'/'
+if "LHC" in accelerator:
+    main = "LHCB"
+    accelpath = betapath + '/MODEL/' + main + '/fullresponse/' + accelerator + '/'
 else:
-	main="SPS"
-	accelpath=betapath+'/MODEL/'+main+'/fullresponse/'+options.ACCEL+'/'
+    main = "SPS"
+    accelpath = betapath + '/MODEL/' + main + '/fullresponse/' + accelerator + '/'
 
 print "Path to Accelerator model", accelpath
 
-#if options.TECH=="MICADO":
-    #ncorr=int(options.ncorr)
-    #print "Number of Correctors Used:", options.ncorr
-#else:
-    #MinStr = options.MinStr
-    #print "Minimum corrector strength", MinStr
-# Do not need MICADO for coupling correction because the number of knobs is small
 MinStr = options.MinStr
 print "Minimum corrector strength", MinStr
 
-modelcuts=options.modelcut.split(",")
-modelcutC=float(modelcuts[0])
-modelcutD=float(modelcuts[1])
-errorcuts=options.errorcut.split(",")
-errorcutC=float(errorcuts[0])
-errorcutD=float(errorcuts[1])
-
-#modelcut=float(options.modelcut)
-#errorcut=float(options.errorcut)
-cut= float(options.cut)
-#print "Model, error and SVD cuts:", modelcut, errorcut, cut
+cut = float(options.cut)
 print "Starting loading Full Response optics"
-FullResponse=pickle.load(open(options.opt+'/FullResponse_couple','r'))
+FullResponse = pickle.load(open(options.opt + '/FullResponse_couple', 'r'))
 
 print "Loading ended"
 
-
-try:
-	couple=twiss(options.path+'/getcouple_free.out')
-	print "Will use free coupling"
-except:
-	couple=twiss(options.path+'/getcouple.out')
-	print "WARN: Free coupling not found!"
-
-	
-weights=options.Dy.split(',')
-
-if weights[4]=="1":
-	dispy=twiss(options.path+'/getDy.out')
+if os.path.isfile(options.path + "/getcouple_free.out"):
+    couple = metaclass.twiss(options.path + '/getcouple_free.out')
+    print "Will use free coupling"
+elif os.path.isfile(options.path + "/getcouple.out"):
+    couple = metaclass.twiss(options.path + '/getcouple.out')
+    print "WARN: Free coupling not found!"
 else:
-	dispy=[]
+    print "path", options.path, " does not contain a getcouple_free.out or getcouple.out file"
+    sys.exit(1)
 
-execfile(accelpath+'/AllLists_couple.py')
-print accelpath+'/AllLists_couple.py'
-listvar=options.var.split(",")
-print listvar
-varslist=[]
-for var in listvar:
+
+if "coupling_knobs" in options.var:
+    print "coupling_knobs mode. Trying to do automatic correcting"
+    # we want to have a value which indicates the worst 5 percent, so we sort and get the value from the 95% index (tbach)
+    sortedF1001W = numpy.sort(couple.F1001W)
+    fivePercentIndex = int(round(sortedF1001W.size * 0.95)) # no requirement to be accurate (tbach)
+    fivePercentValue = sortedF1001W[fivePercentIndex];
     
-    exec('variable='+var+'()')
-    varslist=varslist+variable
+    if printDebug: print "fivePercentIndex:", fivePercentIndex
+    
+    if numpy.allclose(fivePercentValue, 0):
+        print "calculated value for modelcut is 0, exit"
+        sys.exit(1)
+        
+    print "modelcutC will be changed from:", modelcutC, "to:", fivePercentValue
+    modelcutC = fivePercentValue
+    
 
-variables=varslist
+dispy = []
+if weights[4] == "1":
+    dispy = metaclass.twiss(options.path + '/getDy.out')
 
+execfile(accelpath + '/AllLists_couple.py')
+print accelpath + '/AllLists_couple.py executed'
+listvar = options.var.split(",")
+varslist = []
+for var in listvar:
+    exec('variable=' + var + '()') # this is completely awful. You should never ever do such things, whoever it was :/ (tbach)
+    varslist = varslist + variable
 
-
-MADTwiss=FullResponse['0']
+MADTwiss = FullResponse['0']
 MADTwiss.Cmatrix()
-mode='C'
-couplelist=MakeList(couple, MADTwiss, modelcutC, errorcutC, mode)
-#print couplelist
-mode='D'
-dispylist=MakeList(dispy, MADTwiss, modelcutD, errorcutD, mode)
+mode = 'C'
+couplelist = GenMatrix_coupleDy.MakeList(couple, MADTwiss, modelcutC, errorcutC, mode)
+mode = 'D'
+dispylist = GenMatrix_coupleDy.MakeList(dispy, MADTwiss, modelcutD, errorcutD, mode)
 
+wei = [int(weights[0]), int(weights[1]), int(weights[2]), int(weights[3]), int(weights[4])]
 
-#if int(options.Dy)==0:
-	#wei=[1,1,0,0,0] # Weights of f1001 and f1010
-#elif int(options.Dy)==1:
-	#wei=[1,1,0,0,1] # Weights of f1001, f1010 and Dy
-#else:
-	#print "Specify the vertical dispersion correction option 1(turn-on) or 0(turn-off)"
-wei=[int(weights[0]),int(weights[1]),int(weights[2]),int(weights[3]),int(weights[4])]
+print "the weight option is " + str(wei)
 
-
-
-
-print "the weight option is "+str(wei)
-
-optDy=options.Dy
-print "entering couple input",len(couplelist)
-couple_inp=couple_input(varslist, couplelist, dispylist, wei)
+optDy = options.Dy
+print "entering couple input", len(couplelist)
+couple_inp = GenMatrix_coupleDy.couple_input(varslist, couplelist, dispylist, wei)
 print "computing the sensitivity matrix"
-sensitivity_matrix=couple_inp.computeSensitivityMatrix(FullResponse)
-#print "sensitivity matrix", sensitivity_matrix
+sensitivity_matrix = couple_inp.computeSensitivityMatrix(FullResponse)
 
 print "computing correct coupling "
-[deltas, varslist ] = correctcouple(couple, dispy, couple_inp, cut=cut, app=0, path=options.path)
+[deltas, varslist ] = GenMatrix_coupleDy.correctcouple(couple, dispy, couple_inp, cut=cut, app=0, path=options.path)
 
 print deltas
 
-
-
-#print deltas, varslist
 print "handling data"
-if options.ACCEL=="SPS":
-	v=twiss(options.path+"/changeparameters_couple.tfs")
-	print '\nFor SPS, vertical bump file is imported:'
-	print accelpath+'/Coupling/VBumps.py'
-	execfile(accelpath+'/Coupling/VBumps.py')    # LOADS corrs
-	execfile(accelpath+'/Coupling/VBumpsYASP.py') # LOADS corrsYASP
+if options.ACCEL == "SPS":
+    v = metaclass.twiss(options.path + "/changeparameters_couple.tfs")
+    print '\nFor SPS, vertical bump file is imported:'
+    print accelpath + '/Coupling/VBumps.py'
+    execfile(accelpath + '/Coupling/VBumps.py')    # LOADS corrs
+    execfile(accelpath + '/Coupling/VBumpsYASP.py') # LOADS corrsYASP
         #Output for YASP...
-	f=open(options.path+"/changeparameters_couple.yasp", "w")
+    f = open(options.path + "/changeparameters_couple.yasp", "w")
         #Output for Knob...
-	#print options.path
-        g=open(options.path+"/changeparameters_couple.knob", "w")
-	h=open(options.path+"/changeparameters_couple.madx","w")
-        f.write("#PLANE V\n")
-	f.write("#UNIT RAD\n")
-	
-        g.write("* NAME  DELTA \n")
-        g.write("$ %s    %le   \n")
-	
-	plane = 'V'
-	beam = '1'
-	for vcorr in vcorrsYASP:
-		print >>f, "#SETTING", vcorr,  vcorrsYASP[vcorr]
-		
-	for vcorr in vcorrs:
-                print >>g, "K"+vcorr, vcorrs[vcorr]
-		print >>h, vcorr,"->KICK:=",vcorrs[vcorr],";"
+    #print options.path
+    g = open(options.path + "/changeparameters_couple.knob", "w")
+    h = open(options.path + "/changeparameters_couple.madx", "w")
+    f.write("#PLANE V\n")
+    f.write("#UNIT RAD\n")
 
+    g.write("* NAME  DELTA \n")
+    g.write("$ %s    %le   \n")
 
-
-	f.close()
-	g.close()
-	h.write('return;')
-	h.close()
+    plane = 'V'
+    beam = '1'
+    for vcorr in vcorrsYASP:
+        print >>f, "#SETTING", vcorr,  vcorrsYASP[vcorr]
+        
+    for vcorr in vcorrs:
+        print >>g, "K"+vcorr, vcorrs[vcorr]
+        print >>h, vcorr,"->KICK:=",vcorrs[vcorr],";"
+    f.close()
+    g.close()
+    h.write('return;')
+    h.close()
 
 
 if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
-    system("cp "+options.path+"/changeparameters_couple.tfs "+options.path+"/changeparameters_couple.knob")
+    os.system("cp " + options.path + "/changeparameters_couple.tfs " + options.path + "/changeparameters_couple.knob")
 
     ##### for bumps
     if "bumps" in listvar:
-	    print "passing trough bumps loop"
-	    v=twiss(options.path+"/changeparameters_couple.tfs")
-	    #print v.NAME
-	    system('rm '+options.path+"/changeparameters_couple.tfs")
-	    execfile(options.opt+'//Bumps.py')
-	    execfile(options.opt+'//mydictionary.py')
-	    filefile=open(options.path+"/changeparameters_couple.tfs","w")
-	    filefile.write("* NAME  DELTA\n")
-	    filefile.write("$ %s     %le\n")
-	    for vcorr in corrs:
-		          #print vcorr
-			  #filefile.write(dictionary[vcorr]+" "+ str(corrs[vcorr])+"\n")
-			  filefile.write(vcorr+" "+ str(corrs[vcorr])+"\n")
+        print "passing trough bumps loop"
+        v = metaclass.twiss(options.path + "/changeparameters_couple.tfs")
+        #print v.NAME
+        os.system('rm ' + options.path + "/changeparameters_couple.tfs")
+        execfile(options.opt + '//Bumps.py')
+        execfile(options.opt + '//mydictionary.py')
+        filefile = open(options.path + "/changeparameters_couple.tfs", "w")
+        filefile.write("* NAME  DELTA\n")
+        filefile.write("$ %s     %le\n")
+        for vcorr in corrs:
+            filefile.write(vcorr+" "+ str(corrs[vcorr])+"\n")
 
-	    filefile.close()
+        filefile.close()
     #####
 
-    v=twiss(options.path+"/changeparameters_couple.tfs")
-    mad=open(options.path+"/changeparameters_couple.madx", "w")
-    names=v.NAME
-    delta=v.DELTA
+    v = metaclass.twiss(options.path + "/changeparameters_couple.tfs")
+    mad = open(options.path + "/changeparameters_couple.madx", "w")
+    names = v.NAME
+    delta = v.DELTA
 
     for i in range(len(names)):
+        if "bumps" in listvar:
+            if cmp(delta[i], 0) == 1:
+                mad.write(names[i] + "->KICK:=" + str(delta[i]) + ";\n")
+            else:
+                mad.write(names[i] + "->KICK:=" + str(delta[i]) + ";\n")
 
-	    if "bumps" in listvar:
+        else:
+            if cmp(delta[i], 0) == 1:
+                mad.write(names[i] + " = " + names[i] + " + " + str(delta[i]) + ";\n")
+            else:
+                mad.write(names[i] + " = " + names[i] + " " + str(delta[i]) + ";\n")
 
-		    if cmp(delta[i],0)==1:
-			    mad.write(names[i]+"->KICK:="+str(delta[i])+";\n");
-		    else:
-			    mad.write(names[i]+"->KICK:="+str(delta[i])+";\n");
-
-
-	    else:
-	    
-		    if cmp(delta[i],0)==1:
-			    mad.write(names[i]+" = "+names[i]+" + "+str(delta[i])+";\n");
-		    else:
-			    mad.write(names[i]+" = "+names[i]+" "+str(delta[i])+";\n");
-
-
-    mad.write("return;");
-
+    mad.write("return;")
     mad.close()
 
-    
-
-print "Correcting couple Dy finished with weight "+ str(wei)
+print "Correcting couple Dy finished with weight " + str(wei)
