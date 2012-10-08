@@ -1,0 +1,1 @@
+pythonafs ConvertJorg.py -p ./ -o TTT/ -x 0.18 -y 0.13 -m twiss.bumps.dat -d YASPdictionary.py

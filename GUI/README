@@ -1,0 +1,23 @@
+Requirements to run the GUI:
+- Windows Manager (Yes, it is really a GUI, not a console application)
+- Java >= 1.6 installed and javaws in the environment
+
+To start the GUI, execute one of the shortcuts in the directory.
+
+Files:
+-command
+Shortcut to run the current stable and tested version. This is most likely a version tested and found to be stable to use in the CCC
+
+-command_dev_release
+Shortcut to run the last development release. This version has the newest feature set.
+It is stable in a way that it runs without crashing. But is has not been extensively tested and could have obvious or not so obvious bugs.
+
+Folders:
+-/sdds_ascii_format/
+Contains information about the internally used SDDS ASCII Format for BPM data
+
+If access to an old version is necessary, they can be found here:
+http://abwww.cern.ch/ap/dist/lhc/lhc-app-beta-beating/
+(But they will most likely have problems because of changes in the BetaBeat directory)
+
+tbach - 2012/08/23

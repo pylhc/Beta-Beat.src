@@ -1,0 +1,97 @@
+I explain how to install SAD in the following.
+I recommend to see README document of BetaAnalysis.sad.
+It contains the following informations.
+ - Structure of directory tree and contents for SAD runtime environment
+ - SAD configuration sample for lxplus
+ - Structure of directory tree and contents for BetaAnalysis.sad
+ - Input/output data format and option summary for BetaAnalysis.sad
+Location: /afs/cern.ch/user/a/amorita/public/mirror-ldata/LHC/SAD/README
+
+How to make SAD runtime environment for BetaAnalysis.sad
+1. Getting the source code
+ In order to access the SAD source code via CVS pserver or HTTP download,
+ you have to get an access account from SAD coordinator.
+ The current SAD coordinator is Kamada-San @ KEK(susumu.kamada@kek.jp).
+
+ See following web pages
+ SAD Home Page:		http://acc-physics.kek.jp/SAD/
+ Release Information:	http://acc-physics.kek.jp/SAD/SADrelease/
+
+ NOTE: Web site is down until 2008/03/11, because web server is
+       now moving to new location.
+
+2. Installing SAD runtime environment
+ i. Extract the source tree
+    Extract downloaded source archive or Export/Checkout oldsad module
+    from CVS pserver.
+
+ ii. Edit configure file
+    Copy sad.conf.sample to sad.conf and Edit it.
+
+   * In order to install, you MUST configure the top directory of SAD
+     runtime environment into SAD_ROOT variable.
+
+   * In order to run on 64bit OS, you MUST configure to generate
+     32bit executable and to run 32bit compatible mode, because
+     SAD internal pointer limited within signed 35bit integer.
+
+    For example, SAD on lxplus is compiled with following configuration
+    # Location for installed runtime environment
+    SAD_ROOT=${HOME}/public/SAD
+    # Generate 32bit objects
+    CC=     gcc -m32
+    FC=     g77 -m32
+    CXX=    g++ -m32
+    # Optimize option
+    FOPT=   -O3 -fno-strict-aliasing
+    COPT=   -O3 -fno-strict-aliasing 
+    CXXOPT= -O3 -fno-strict-aliasing 
+    # Enable internal memory debug information
+    COPT+=  -DDEBUG_MEMORY
+    # Enable mmap address hinting
+    COPT+=  -DUSE_ADDR_HINT_IN_MMAP
+
+ iii. Build executable
+    Invoke GNU make at the top of source tree.
+   
+ iv. Install runtime environment
+    Invoke GNU make with ``install'' target at the top of source tree.
+    SAD runtime environment WOULD be installed under the SAD_ROOT directory.
+
+
+ (make mostlyclean) to clean!
+
+
+3. Installing BetaAnalysis.sad
+ i. Install BetaAnalysis.sad
+    Copy BetaAnalysis.sad into the target system and edit 1st line of it.
+    You MUST rewrite 1st line of BetaAnalysis.sad as follows
+    #!/usr/bin/env SAD_ROOT/bin/gs
+    where SAD_ROOT is the configured top directory of SAD.
+
+ ii. Install SADScript library for BetaAnalysis.sad
+    Copy following files into the target system.
+    Destination				Source
+    LIBDIR/File/TFS.n			KEKB/KCG/SAD/lib/File/TFS.n
+    LIBDIR/Optics/BetaAnalysis.n	KEKB/KCG/SAD/lib/Optics/BetaAnalysis.n
+    LIBDIR/Math/Minimize.n		KEKB/KCG/SAD/lib/Math/Minimize.n
+    LIBDIR/Prog/QFunctions.n		KEKB/KCG/SAD/lib/Prog/QFunctions.n
+    where KEKB/KCG/SAD/lib is /afs/cern.ch/user/a/amorita/public/
+    mirror-ldata/KEKB/KCG/SAD/lib and LIBDIR is the top directory
+    for SADScript library on the target system.
+
+ iii. Customize SAD runtime environment
+    Edit SAD_ROOT/share/Packages/init.local.n and append SAD_LIBRARY
+    entry into Environment@@[{}] blocks as follows.
+    Environment@@[{
+      {"UNIX95",""},
+      {"TCL_LIBRARY",""},
+      {"TK_LIBRARY",""},
+      {"KBFRAMEDIR","SAD_ROOT/share/KBFrame"},
+      {"PYTHONPATH","SAD_ROOT/share/Packages/"},
+   +  {"SAD_LIBRARY","LIBDIR"},
+      Null[]},{1}];
+    where LIBDIR is the configured top directory for SADScript library.
+
+Sincerely yours,
+Akio Morita
