@@ -1,7 +1,7 @@
 
 ###### imports
 from optparse import OptionParser
-import os,sys,shutil,commands,subprocess
+import os,sys,shutil,commands,subprocess,re
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 from math import sqrt,cos,sin,pi,atan2
@@ -260,6 +260,26 @@ def madcreator(dpps,options):
 def append(files):
     return ','.join(files)
 
+def filenames(dpp=''):
+    '''
+    Returns list of available file names
+    for the given dpp.
+
+    Example: varnames('0.0')
+
+    :param dpp: [str] dpp appendix to list of files
+    '''
+    ret=[]
+    for fname in os.listdir(options.output):
+        if dpp:
+            extra='_'+dpp
+        else:
+            extra=''
+        # thank you for making this easy..
+        if re.search("get[A-Za-z]*[0-9]*[xy]*(_free[2]*)*"+extra+".out",fname): 
+            ret.append(fname)
+    return ret
+
 def rungetllm(twissfile,accel,technique,files,options,dpp):
     '''
     Running GetLLM...
@@ -282,12 +302,14 @@ def rungetllm(twissfile,accel,technique,files,options,dpp):
             TBTana=technique)
     print "GetLLM finished"
 
-    for var in ['betax','betay','ampbetax','ampbetay','couple','betax_free','betay_free','couple_free']:
-        shutil.move(options.output+'/get'+var+'.out',options.output+'/get'+var+'_'+str(dpp)+'.out')
+    for fname in filenames():
+            v=fname.strip('.out')
+            shutil.move(options.output+'/'+fname,options.output+'/'+v+'_'+str(dpp)+'.out')
 
 def copy_default_outfiles(options):
-    for var in ['betax','betay','ampbetax','ampbetay','couple','betax_free','betay_free','couple_free']:
-        shutil.copy(options.output+'/get'+var+'_0.0.out',options.output+'/get'+var+'.out')
+    for fname in filenames('0.0'):
+        v=fname.strip('_0.0.out')
+        shutil.copy(options.output+'/'+fname,options.output+'/'+v+'.out')
 
 ##### for chromatic
 # model intersect
@@ -475,7 +497,7 @@ def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
         chr_f1001i,chr_err_f1001i=fits[1][0],fits[1][3]
         chr_f1010r,chr_err_f1010r=fits[2][0],fits[2][3]
         chr_f1010i,chr_err_f1010i=fits[3][0],fits[3][3]
-        
+
         fileobj.writeLine(locals().copy())
 
 def getTunes(options,fileslist):
@@ -581,6 +603,7 @@ def main(options,args):
         twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
         freeswitch=1
     except:
+        print "WARNING: Could not open",options.output+'/getbetax_free_'+str(dpp)+'.out'
         freeswitch=0
 
 
