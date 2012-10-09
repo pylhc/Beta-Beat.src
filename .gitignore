@@ -11,3 +11,5 @@
 twiss*dat
 db
 \#*\#
+*.bak
+*.orig
