@@ -158,7 +158,7 @@ def parse_args():
 
     parser.add_option("-d", "--deltapScalingFactor",
             help="Scaling factor for deltap, remember final value must be in MAD units",
-            metavar="<deltapScalingFactor>", default="1" ,dest="deltapScalingFactor")
+            metavar="<deltapScalingFactor>", default=1.0, type=float,dest="deltapScalingFactor")
 
 
     return parser.parse_args()
@@ -560,8 +560,8 @@ def main(options,args):
             datax=twiss(f+"_linx")
             datay=twiss(f+"_liny")
 
-        dppx=datax.DPP*float(options.deltapScalingFactor)      # Quick hack to be able to use old files with bad dpp input
-        dppy=datay.DPP*float(options.deltapScalingFactor)
+        dppx=datax.DPP*options.deltapScalingFactor      # Quick hack to be able to use old files with bad dpp input
+        dppy=datay.DPP*options.deltapScalingFactor
 
         if dppx!=dppy:
             raise ValueError("Discrepancy between horizontal and vertical => "+str(dppx)+" "+str(dppy))
