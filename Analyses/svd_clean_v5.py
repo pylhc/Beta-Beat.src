@@ -47,40 +47,43 @@ import numpy
 
 
 # option parser
-parser = OptionParser()
+parser = OptionParser(usage="python %prog -f filename [other options]", version="%prog 5")
 parser.add_option("-t", "--turn",
                 help="Turn number to start. Default is first turn: 1",
-                metavar="startTurn", default="1",dest="startTurn")
+                default="1",dest="startTurn", type="int")
 parser.add_option("-m", "--maxturns",
                 help="Maximum number of turns to be analysed. Default is maximum number that can be handled by drive: 10.000",
-                metavar="MAXTURNS", default="10000", dest="maxturns")
+                default="10000", dest="maxturns", type="int")
+
+parser.add_option("-v", "--sing_val",
+                help="Keep this amount of singular values in decreasing order, rest will be cutted (set to 0). Default is a large number: 100.000",
+                default="100000", dest="sing", type="int")
+
 parser.add_option("-p", "--pk-2-pk",
-                help="Peak to peak amplitude cut. This removes BPMs where abs(max(turn values) - min(turn values)) <= threshold.",
-                metavar="peak", default="0.00000001", dest="peak")
+                help="Peak to peak amplitude cut. This removes BPMs where abs(max(turn values) - min(turn values)) <= threshold. Default is 10e-8",
+                default="0.00000001", dest="peak", type="float")
 parser.add_option("-s", "--sumsquare",
                 help="Threshold for single BPM dominating a mode. Should be > 0.9 for LHC",
-                metavar="sun", default="0.925", dest="sum")
-parser.add_option("-v", "--sing_val",
-                help="Keep this amount of singular values in decreasing order, rest will be cutted (set to 0)",
-                metavar="sing", default="100000", dest="sing")
+                default="0.925", dest="sum", type="float")
+
 parser.add_option("-f", "--file",
                 help="File to clean",
-                metavar="file", default="./", dest="file")
+                default="./", dest="file")
 parser.add_option("-n", "--newfile",
                 help="File name for new file. Default is override current file",
-                metavar="newfile", default="", dest="newfile")
+                default="", dest="newfile")
 
 
 (options, args) = parser.parse_args()
 
 
 #----INPUT VARIABLES
-startTurnHuman = int(options.startTurn) # startTurn number to start
+startTurnHuman = options.startTurn      # startTurn number to start
 startTurn = startTurnHuman - 1          # startTurn number to start for internal usage. indices start with 0, not with 1
-pk_pk_cut = float(options.peak)         # peak to peak amplitude 
-sumsquare = float(options.sum)          # sqroot(sumsquare of the 4 bpm values) should be > 0.9
-sing_val = int(float(options.sing))     # keep svdcut number of singular values in decreasing order
-maxTurnsHuman = int(options.maxturns)   # maximum number of turns which should be parsed
+pk_pk_cut = options.peak                # peak to peak amplitude 
+sumsquare = options.sum                 # sqroot(sumsquare of the 4 bpm values) should be > 0.9
+sing_val = options.sing                 # keep svdcut number of singular values in decreasing order
+maxTurnsHuman = options.maxturns        # maximum number of turns which should be parsed
 maxTurns = maxTurnsHuman - 1            # maximum number of turns which should be parsed. indices start with 0, not with 1
 newFile = options.newfile               # new file for SVDClean output
 if newFile == "":                       # set to input file if no other output is given
