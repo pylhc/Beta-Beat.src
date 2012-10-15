@@ -18,7 +18,6 @@ dir=`dirname $0`
 
 # check output files:
 
-echo $1, $0
 for f in `ls $1/tests/${base}_out/*`
 do
     fname=`basename $f`
