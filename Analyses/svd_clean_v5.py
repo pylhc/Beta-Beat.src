@@ -52,8 +52,8 @@ parser.add_option("-t", "--turn",
                 help="Turn number to start. Default is first turn: 1",
                 default="1",dest="startTurn", type="int")
 parser.add_option("-m", "--maxturns",
-                help="Maximum number of turns to be analysed. Default is maximum number that can be handled by drive: 10.000",
-                default="10000", dest="maxturns", type="int")
+                help="Maximum number of turns to be analysed. Default is a number that is lower than the maximum which can be handled by drive: 9.500",
+                default="9500", dest="maxturns", type="int")
 
 parser.add_option("-v", "--sing_val",
                 help="Keep this amount of singular values in decreasing order, rest will be cutted (set to 0). Default is a large number: 100.000",
