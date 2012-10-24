@@ -1,6 +1,3 @@
-
-
-
 ##
 ## version November updated for LHC by Glenn Vanbavinckhove + removing mad2dev (handled in GUI now)
 ## + also removed option j (one beam or both beam, was not used for anything)
@@ -10,25 +7,13 @@
 ##
 ##
 
-import sys
+import sys, os
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-#sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src///Numeric-23_p2.3/lib/python2.3/site-packages/Numeric/')
 
 
-#try:
 from metaclass import twiss
-#except:
-#	from metaclass25 import twiss
-#try:
-#	from Numeric import *
-#	from LinearAlgebra import *
-#except:
-from numpy import *
 
 import pickle
-from os import system
-#from metaclass import twiss
-import random,re,sys
 from optparse import OptionParser
 from GenMatrix import *
 from BCORR import *
@@ -37,18 +22,18 @@ from BCORR import *
 
 
 parser = OptionParser()
-parser.add_option("-a", "--accel", 
-		 help="What accelerator: LHCB1 LHCB2 SPS RHIC",
-		 metavar="ACCEL", default="LHCB1",dest="ACCEL")
-parser.add_option("-t", "--tech", 
-		 help="Which algorithm: SVD MICADO",
-		 metavar="TECH", default="SVD",dest="TECH")
-parser.add_option("-n", "--ncorr", 
-		 help="Number of Correctors for MICADO",
-		 metavar="NCORR", default=5,dest="ncorr")
+parser.add_option("-a", "--accel",
+                                 help="What accelerator: LHCB1 LHCB2 SPS RHIC",
+                                 metavar="ACCEL", default="LHCB1",dest="ACCEL")
+parser.add_option("-t", "--tech",
+                                 help="Which algorithm: SVD MICADO",
+                                 metavar="TECH", default="SVD",dest="TECH")
+parser.add_option("-n", "--ncorr",
+                                 help="Number of Correctors for MICADO",
+                                 metavar="NCORR", default=5,dest="ncorr")
 parser.add_option("-p", "--path",
-		 help="Path to experimental files",
-		 metavar="PATH", default="./",dest="path")
+                                 help="Path to experimental files",
+                                 metavar="PATH", default="./",dest="path")
 parser.add_option("-c", "--cut",
                   help="Singular value cut for the generalized inverse",
                   metavar="CUT", default=0.1 , dest="cut")
@@ -90,18 +75,16 @@ def  MakeBetaList(x, m, modelcut=40, errorcut=20):   # Errors are in meters (
     cou=0
     keys=x.__dict__.keys()
     if "BETY" in keys:
-		bmdl="BETYMDL"
-		STD=x.STDBETY
-		BET=x.BETY
-		
+        bmdl="BETYMDL"
+        STD=x.STDBETY
+        BET=x.BETY
     else:
-		bmdl="BETXMDL"
-		STD=x.STDBETX
-		BET=x.BETX
+        bmdl="BETXMDL"
+        STD=x.STDBETX
+        BET=x.BETX
     print "Number of x BPMs",len(x.NAME)
     for i in range(len(x.NAME)):
         bm=x.__dict__[bmdl][i]
-        #print STD[i], errorcut, abs(BET[i]-bm) , modelcut, BET[i]
         if (STD[i] < errorcut and abs(BET[i]-bm) < modelcut):
             try:
                 m.indx[x.NAME[i].upper()]
@@ -110,7 +93,6 @@ def  MakeBetaList(x, m, modelcut=40, errorcut=20):   # Errors are in meters (
                 cou=cou+1
             else:
                 t.append(x.NAME[i])
-			#print "Good:", x.NAME[i].upper(), x.NAME2[i].upper()
         else:
             cou=cou+1
     if cou > 0:
@@ -119,12 +101,14 @@ def  MakeBetaList(x, m, modelcut=40, errorcut=20):   # Errors are in meters (
 
 
 
-
-
 print "Selected accelerator:", options.ACCEL
+options.path = os.path.normpath(options.path) + os.sep
+# in future versions, one should always use os.path.join, then we do not need to take care of the ending slash (tbach)
 print "Path to measurements:", options.path
+options.rpath = os.path.normpath(options.rpath) + os.sep
 betapath = options.rpath
 print "Path to Repository:", betapath
+options.OPT = os.path.normpath(options.OPT) + os.sep
 accelpath=options.OPT
 print "Path to Accelerator model", accelpath
 print "Selected algorithm:", options.TECH
@@ -141,7 +125,7 @@ else:
     print "Minimum corrector strength", MinStr
 
 ##### implementing cuts for
-    
+
 modelcut=float(options.modelcut.split(",")[0])
 errorcut=float(options.errorcut.split(",")[0])
 modelcutdx=float(options.modelcut.split(",")[1])
@@ -168,23 +152,23 @@ try:
 except:
     xbet=twiss(options.path+'/getbetax.out')
     ybet=twiss(options.path+'/getbetay.out')
-    
+
 try:
-	dx=twiss(options.path+'/getNDx.out') # changed by Glenn Vanbavinckhove (26/02/09)
+    dx=twiss(options.path+'/getNDx.out') # changed by Glenn Vanbavinckhove (26/02/09)
 except:
-	print "WARNING: No good dispersion or inexistent file getDx"
-	print "WARNING: Correction will not take into account NDx"
-	dx=[]
+    print "WARNING: No good dispersion or inexistent file getDx"
+    print "WARNING: Correction will not take into account NDx"
+    dx=[]
 
 
 accel=options.ACCEL
 
 if "LHC" in accel:
-	main="LHCB"
-	accelpath=betapath+'/MODEL/'+main+'/fullresponse/'+options.ACCEL+'/'
+    main="LHCB"
+    accelpath=betapath+'/MODEL/'+main+'/fullresponse/'+options.ACCEL+'/'
 else:
-	main="SPS"
-	accelpath=betapath+'/MODEL/'+main+'/fullresponse/'+options.ACCEL+'/'
+    main="SPS"
+    accelpath=betapath+'/MODEL/'+main+'/fullresponse/'+options.ACCEL+'/'
 
 
 execfile(accelpath+'/AllLists.py')
@@ -192,11 +176,10 @@ execfile(accelpath+'/AllLists.py')
 listvar=options.var.split(",")
 varslist=[]
 for var in listvar:
-    
     exec('variable='+var+'()')
     varslist=varslist+variable
 
-   
+
 
 intqx=int(FullResponse['0'].Q1)
 intqy=int(FullResponse['0'].Q2)
@@ -236,7 +219,6 @@ sensitivity_matrix=beat_inp.computeSensitivityMatrix(FullResponse)
 
 
 if options.TECH=="SVD":
-
     [deltas, varslist ] = correctbeatEXP(x,y,dx, beat_inp, cut=cut, app=0, path=options.path, xbet=xbet, ybet=ybet)
     if 1:                           #All accelerators
         iteration=0
@@ -246,9 +228,8 @@ if options.TECH=="SVD":
             il=len(varslist)
             varslist_t=[]
             for i in range(0,il):
-              #print MinStr, deltas[i]
-              if (abs(deltas[i]) > MinStr):
-                varslist_t.append(varslist[i])
+                if (abs(deltas[i]) > MinStr):
+                    varslist_t.append(varslist[i])
             varslist=varslist_t
             if len(varslist)==0:
                 print "You want to correct with too high cut on the corrector strength"
@@ -258,35 +239,34 @@ if options.TECH=="SVD":
             [deltas, varslist ] = correctbeatEXP(x,y,dx, beat_inp, cut=cut, app=0, path=options.path, xbet=xbet, ybet=ybet)
             print "Initial correctors:", il, ". Current: ",len(varslist), ". Removed for being lower than:", MinStr, "Iteration:", iteration
     print deltas
-    
-    
+
+
 if options.TECH=="MICADO":
     bNCorrNumeric(x,y,dx,beat_inp, cut=cut,ncorr=ncorr,app=0,path=options.path)
-    
+
 if options.ACCEL=="SPS":
-	b=twiss(options.path+"/changeparameters.tfs")
-	execfile(accelpath+'/Bumps.py')    # LOADS corrs
-	execfile(accelpath+'/BumpsYASP.py') # LOADS corrsYASP
-        #Output for YASP...
-	f=open(options.path+"/changeparameters.yasp", "w")
-        #Output for Knob...
-        g=open(options.path+"/changeparameters.knob", "w")
-        f.write("#PLANE H\n")
-	f.write("#UNIT RAD\n")
-	
-        g.write("* NAME  DELTA \n")
-        g.write("$ %s    %le   \n")
-	plane = 'H'
-	beam = '1'
-	for corr in corrsYASP:
-		print >>f, "#SETTING", corr,  corrsYASP[corr]
-	for corr in corrs:
-                print >>g, "K"+corr, corrs[corr]
-	f.close()
-        g.close()
-        
+    b=twiss(options.path+"/changeparameters.tfs")
+    execfile(accelpath+'/Bumps.py')    # LOADS corrs
+    execfile(accelpath+'/BumpsYASP.py') # LOADS corrsYASP
+    #Output for YASP...
+    f=open(options.path+"/changeparameters.yasp", "w")
+    #Output for Knob...
+    g=open(options.path+"/changeparameters.knob", "w")
+    f.write("#PLANE H\n")
+    f.write("#UNIT RAD\n")
+    g.write("* NAME  DELTA \n")
+    g.write("$ %s    %le   \n")
+    plane = 'H'
+    beam = '1'
+    for corr in corrsYASP:
+        print >>f, "#SETTING", corr,  corrsYASP[corr]
+    for corr in corrs:
+        print >>g, "K"+corr, corrs[corr]
+    f.close()
+    g.close()
+
 if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
-    system("cp "+options.path+"/changeparameters.tfs "+options.path+"/changeparameters.knob")
+    os.system("cp "+options.path+"/changeparameters.tfs "+options.path+"/changeparameters.knob")
 
     # madx table
     b=twiss(options.path+"/changeparameters.tfs")
@@ -295,14 +275,10 @@ if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
     delta=b.DELTA
 
     for i in range(len(names)):
-
         if cmp(delta[i],0)==1:
-            mad.write(names[i]+" = "+names[i]+" + "+str(delta[i])+";\n");
+            mad.write(names[i]+" = "+names[i]+" + "+str(delta[i])+";\n")
         else:
-            mad.write(names[i]+" = "+names[i]+" "+str(delta[i])+";\n");
+            mad.write(names[i]+" = "+names[i]+" "+str(delta[i])+";\n")
 
-
-    mad.write("return;");
-
+    mad.write("return;")
     mad.close()
-    
