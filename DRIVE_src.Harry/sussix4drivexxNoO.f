@@ -11,8 +11,8 @@ C
 C Parallelised version of sussix4drivexxNoO.f of 15/05/2011 using Openmp.
 C Has matching Drive_God_lin.c      H.Renshall & E.Maclean
 C
-C  xy has been critically defined of dimension 4404, x1, y1 , x2, y2 max1100
-C  and 4 for the window
+C  xy has been critically defined of dimension 40004, x1, y1 , x2, y2 max 10000
+C  and 4 for the window. See matching maxturns parameter in main and datspe.
 C 
 C      program sussixv4
 C=======================================================================
@@ -131,9 +131,11 @@ C
       implicit none
       integer i,iana,icf,iconv,idam,idamx,ifi,ifin,iicf,iinv,imeth,ini,
      &inv,iouk,ir,isix,isme,istune,iunit,iusme,k,kr,lr,mr,mterm,n,narm,
-     &nf,nline,nlst,nrc,nsus,nt1,nt2,ntot,ntotal,nturn,ntwin,ntwix
-      double precision eps,etune,tunex,tuney,tunez, xy(16004), 
-     &tunexy(2),amplitude(14), phase(14), ox(300), ax(300), oy(300), 
+     &nf,nline,nlst,nrc,nsus,nt1,nt2,ntot,ntotal,nturn,ntwin,ntwix,
+     &maxturns
+      parameter (maxturns=10000)
+      double precision eps,etune,tunex,tuney,tunez, xy(maxturns*4+4),
+     &tunexy(2),amplitude(19), phase(19), ox(300), ax(300), oy(300), 
      &ay(300)
       parameter(mterm=300)
       dimension lr(100),mr(100),kr(100),etune(3)
@@ -517,6 +519,7 @@ C
 C=======================================================================
       implicit none
       integer maxiter,maxn,meth,mterm,n,na,narm
+      external tunelasr,tunenewt
       double precision duepi,freq,pi,tune,tunelasr,tunenewt,x,xp
       double complex z,zef,zgs,zpesi,zw,zx,zz
       parameter(mterm=300)
@@ -525,7 +528,7 @@ C=======================================================================
       dimension z(maxiter),zz(maxiter)
       dimension tune(mterm),zpesi(mterm),zgs(maxiter)
       save
-!$OMP THREADPRIVATE(z,zz,freq,zef,zw,zx,zgs,n,na,duepi)
+!$OMP THREADPRIVATE(z,zz,freq,zef,zw,zx,zgs,n,na,duepi,pi)
 C===============
 C INIZIALIZATION
 C===============
@@ -962,12 +965,12 @@ C=======================================================================
       implicit none
       integer idam,imiss,imissx,imissy,imissz,ir,isca,iscax,iscay,iscaz,
      &isearx,iseary,isearz,istune,iunit,j,j1,k,k1,l,l1,
-     &m,m1,mterm,n,narm,narm2,nr,nt,nturn,ntx,nty,ntz, flagad(14),myint
+     &m,m1,mterm,n,narm,narm2,nr,nt,nturn,ntx,nty,ntz, flagad(19),myint
       double precision az,checkn,dt,dtunex,dtuney,dtunez,dtxz,dty,dtyz,
      &eps,epsx,epsy,epsz,etune,ex,ey,ez,fx,fxt,fy,fyt,fz,fzt,ordc,ordcx,
      &ordcy,ordcz,pi,px,pxt,pxti,pxtr,py,pyt,pyti,pytr,pz,pzt,pzti,pztr,
      &tunex,tuney,tunez,tx,txt,ty,tyt,tz,tzt, tunexy(2), 
-     &amplitude(14), phase(14), ox(300), ax(300),
+     &amplitude(19), phase(19), ox(300), ax(300),
      &oy(300), ay(300)
       double complex zpx,zpy,zpz
       parameter(mterm=300)
@@ -1003,6 +1006,11 @@ C=======================================================================
       flagad(12)=0
       flagad(13)=0
       flagad(14)=0
+      flagad(15)=0
+      flagad(16)=0
+      flagad(17)=0
+      flagad(18)=0
+      flagad(19)=0
       if(nr.gt.10) then
 C        write(6,*)'ERROR IN ORDRES: NR LARGER THAN 10'
         close(10)
@@ -1298,6 +1306,29 @@ c            write(*,*) l1, m1, k1, j1, flagad(1), tx(n)
               phase(13)=-fx
               flagad(13)=1
             endif 
+	    
+	    if(l1.eq.-1.and.m1.eq.-1.and.k1.eq.0.and.
+     &           j1.eq.0.and.flagad(15).eq.0) then
+              amplitude(15)=px
+              phase(15)=-fx
+              flagad(15)=1
+            endif
+	    
+	    if(l1.eq.2.and.m1.eq.-2.and.k1.eq.0.and.
+     &           j1.eq.0.and.flagad(17).eq.0) then
+              amplitude(17)=px
+              phase(17)=-fx
+              flagad(17)=1
+            endif
+	    
+	    if(l1.eq.0.and.m1.eq.-2.and.k1.eq.0.and.
+     &           j1.eq.0.and.flagad(19).eq.0) then
+              amplitude(19)=px
+              phase(19)=-fx
+              flagad(19)=1
+            endif
+	    
+
 
 
             
@@ -1439,6 +1470,23 @@ c              write(*,*)"p32 ", fy, py, ty(n)
               phase(14)=-fy
               flagad(14)=1
             endif 
+	    
+	     if(l1.eq.-2.and.m1.eq.0.and.k1.eq.0.and.
+     &           flagad(16).eq.0) then
+              amplitude(16)=py
+              phase(16)=-fy
+              flagad(16)=1
+            endif
+	    
+	     if(l1.eq.1.and.m1.eq.-1.and.k1.eq.0.and.
+     &           flagad(18).eq.0) then
+              amplitude(18)=py
+              phase(18)=-fy
+              flagad(18)=1
+            endif
+	    
+	    
+	    
 
 c...  End of Insertion
             oy(n)=-ty(n)
@@ -1469,7 +1517,7 @@ C            write(30,100)n,-ty(n),py,0,0
       enddo
  
       
-      do myint=1,14
+      do myint=1,19
          if(flagad(myint).eq.0) then
             amplitude(myint)=0
             phase(myint)=0
@@ -1626,8 +1674,9 @@ C
 C=======================================================================
       implicit none
       integer iana,idam,imeth,ir,iunit,j,k,
-     &maxn,mterm,narm,nrc,nt1,nt2,nturn,nturn2
-      double precision duepi,xy(16004),eps
+     &maxn,mterm,narm,nrc,nt1,nt2,nturn,nturn2,maxturns
+      parameter (maxturns=10000)
+      double precision duepi,xy(maxturns*4+4),eps
       complex zsing
       parameter(mterm=300)
       parameter(maxn=100000)
@@ -1647,20 +1696,22 @@ C      write(6,*)'****************************'
 C      write(6,*)'ANALYZING UNIT',iunit
 C      write(6,*)'****************************'
       if(idam.eq.1) then
-         do j=1,4000
+         do j=1,maxturns
+C        do j=1,4000
 C        do j=1,maxn
 C         read(iunit,*,end=990)x(j),xp(j)
            x(j)=xy(j)
            xp(j)=xy(j)
         enddo
       elseif(idam.eq.2) then
-         do j=1,4000
+         do j=1,maxturns
+C        do j=1,4000
 c        do j=1,maxn
 C          read(iunit,*,end=990)x(j),xp(j),y(j),yp(j)
            x(j)=xy(j)
-           xp(j)=xy(j+8000)
-           y(j)=xy(j+4000)
-           yp(j)=xy(j+12000)
+           xp(j)=xy(j+maxturns*2)
+           y(j)=xy(j+maxturns)
+           yp(j)=xy(j+maxturns*3)
         enddo
       elseif(idam.eq.3) then
         do j=1,maxn
