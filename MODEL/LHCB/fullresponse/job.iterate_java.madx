@@ -1,12 +1,12 @@
 title,      "Full response for java";
 
 option, -echo, -info,  warn;
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+System,"ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
 option, -echo, -info,  warn;
 !call,   file = "db5/V6.5.seq";  ! Ideal
- call,   file = "db5/as-built/V6.5.seq";       
+call,   file = "db5/as-built/V6.5.seq";       
 call,   file = "%PATH/modifiers.madx";	
 call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
 
@@ -39,17 +39,14 @@ on_alice:= 0; on_lhcb := 0;
 %MATCHER use, period=%ACCEL;
 
 
-
 !!! for ATS MD
 !call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/skew_quad.madx";
 
 select, flag=twiss, clear;
-select,    flag=twiss, pattern="BPM.*\.%BEAM", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
+select, flag=twiss, pattern="BPM.*\.%BEAM", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
 
-call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/tools/%ACCEL_coupling_knob.madx";
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/tools/%ACCEL_coupling_knob.madx";
 call, file="%PATH/iter.madx";
 
 
 stop;
-
-
