@@ -87,12 +87,12 @@ int label[MAXPICK], hv[MAXPICK], hvt[MAXPICK];
 int main(int argc, char **argv)
 {
     double istun, kper, tunex, tuney;
-    double tunesum[2], tune2sum[2];
+    double tunesum[2], tune2sum[2], nattunexsum, nattunex2sum, nattuneysum, nattuney2sum;
 
     int i, bpmCounter, columnCounter, counth, countv, flag,
             horizontalBpmCounter, j, kcase, kick, kk, maxcounthv, Nbpms,
             pickstart, pickend, start, turns, verticalBpmCounter;
-    int count0[2];
+    int count0[2], nattunexcount, nattuneycount;
 
     size_t charCounter;
 
@@ -137,8 +137,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    count0[0] = count0[1] = 0;
-    tunesum[0] = tunesum[1] = tune2sum[0] = tune2sum[1] = 0.0;
+    count0[0] = count0[1] = nattunexcount = nattuneycount = 0;
+    tunesum[0] = tunesum[1] = tune2sum[0] = tune2sum[1] = nattunexsum = nattunex2sum= nattuneysum = nattuney2sum= 0.0;
 
     /* input/option file reading start */
     driveInputFile = getFileToRead(driveInputFilePath);
@@ -466,25 +466,27 @@ int main(int argc, char **argv)
             sussix4drivenoise_(&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], sussixInputFilePath);
             /* This calls the external Fortran code (tbach) */
 
-            /* Let's look for natural tunes in the istun range */
+            /* Let's look for natural tunes in the istun range if natural tunes input is given*/
             maxamp = 0;
             calculatednattunex = -100;
-            for (kk = 0; kk < 300; ++kk) {
+	    if (nattunex > -99) {
+              for (kk = 0; kk < 300; ++kk) {
                 if ((nattunex - istun < allfreqsx[kk] && allfreqsx[kk] < nattunex + istun) && (maxamp < allampsx[kk]) ){
                     maxamp = allampsx[kk];
                     calculatednattunex = allfreqsx[kk];
                 }
-            }
-
+              }
+	    }
             maxamp = 0;
             calculatednattuney = -100;
-            for (kk = 0; kk < 300; ++kk) {
+	    if (nattuney > -99) {
+              for (kk = 0; kk < 300; ++kk) {
                 if ((nattuney - istun < allfreqsy[kk] && allfreqsy[kk] < nattuney + istun) && (maxamp < allampsy[kk]) ){
                     maxamp = allampsy[kk];
                     calculatednattuney = allfreqsy[kk];
                 }
-            }
-
+              }
+	    }
 
 
             #pragma omp critical
@@ -510,6 +512,12 @@ int main(int argc, char **argv)
                     ++count0[0];
                     tunesum[0] += tune[0];
                     tune2sum[0] += tune[0] * tune[0];
+		    if ( calculatednattunex > -99){ /*  Initialized to -100. Condition true if nat tune found */
+		      ++nattunexcount;
+		      nattunexsum +=  calculatednattunex;
+		      nattunex2sum +=  calculatednattunex * calculatednattunex;
+		    }
+
                     /* Horizontal Spectrum output */
                     if (i < 10) {
                         setPath(spectrumFilePath, sizeof(spectrumFilePath), workingDirectoryPath, bpmname[i], ".x");
@@ -535,6 +543,11 @@ int main(int argc, char **argv)
                     ++count0[1];
                     tunesum[1] += tune[1];
                     tune2sum[1] += tune[1] * tune[1];
+		    if ( calculatednattuney > -99){   /*  Initialized to -100. Condition true if nat tune found */
+		      ++nattuneycount;
+		      nattuneysum +=  calculatednattuney;
+		      nattuney2sum +=  calculatednattuney * calculatednattuney;
+		    }
                     if (verticalBpmCounter < MAXPICK / 2 + 10) {
                         setPath(spectrumFilePath, sizeof(spectrumFilePath), workingDirectoryPath, bpmname[verticalBpmCounter], ".y");
                         spectrumFile = getFileToWrite(spectrumFilePath);
@@ -561,6 +574,10 @@ int main(int argc, char **argv)
             linxFile = getFileToWrite(linxFilePath);
             fprintf(linxFile, "@ Q1 %%le %e\n@ Q1RMS %%le %e\n",
                     tunesum[0] / count0[0], sqrt(tune2sum[0] / count0[0] - (tunesum[0] / count0[0]) * (tunesum[0] / count0[0])));
+	    if (nattunexcount>0) {
+	      fprintf(linxFile, "@ NATQ1 %%le %e\n@ NATQ1RMS %%le %e\n",
+                      nattunexsum / nattunexcount, sqrt(nattunex2sum / nattunexcount - (nattunexsum / nattunexcount) * (nattunexsum / nattunexcount)));
+	    }
             fclose(linxFile);
             sprintf(cmd, "cat  %s/tx >> %s ; rm %s/tx", workingDirectoryPath, linxFilePath, workingDirectoryPath);
             system(cmd);
@@ -577,7 +594,11 @@ int main(int argc, char **argv)
             linyFile = getFileToWrite(linyFilePath);
             fprintf(linyFile, "@ Q2 %%le %e\n@ Q2RMS %%le %e\n",
                     tunesum[1] / count0[1], sqrt(tune2sum[1] / count0[1] - (tunesum[1] / count0[1]) * (tunesum[1] / count0[1])));
-            fclose(linyFile);
+            if (nattuneycount>0) {
+	    fprintf(linyFile, "@ NATQ2 %%le %e\n@ NATQ2RMS %%le %e\n",
+                    nattuneysum / nattuneycount, sqrt(nattuney2sum / nattuneycount - (nattuneysum / nattuneycount) * (nattuneysum / nattuneycount)));
+            }
+	    fclose(linyFile);
             sprintf(cmd, "cat  %s/ty >> %s ; rm %s/ty", workingDirectoryPath, linyFilePath, workingDirectoryPath);
             system(cmd);
             printf("liny %e %d %e\n", tunesum[1], count0[1], tune2sum[1]);
