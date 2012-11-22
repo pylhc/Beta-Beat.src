@@ -256,7 +256,7 @@ int main(int argc, char **argv)
         fprintf(linxFile,
                 "$ %%s  %%le %%le   %%le   %%le  %%le %%le %%le  %%le  %%le  %%le    %%le %%le  %%le   %%le     %%le  %%le    %%le   %%le     %%le    %%le      %%le   %%le     %%le   %%le     %%le\n");
         fprintf(linyFile,
-                "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP0_1 PHASE0_1 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY\n");
+                "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY\n");
         fprintf(linyFile,
                 "$ %%s  %%le %%le   %%le   %%le  %%le %%le %%le  %%le  %%le  %%le    %%le %%le  %%le    %%le      %%le   %%le     %%le   %%le     %%le   %%le     %%le   %%le     %%le\n");
 
@@ -694,7 +694,7 @@ void writeSussixInput(const char* sussixInputFilePath, const int turns, const do
     fprintf(sussixInputFile, "IANA  = 1\n");
     fprintf(sussixInputFile, "ICONV = 0\n");
     fprintf(sussixInputFile, "TURNS = 1 %d\n", turns);
-    fprintf(sussixInputFile, "NARM  = 160\n");
+    fprintf(sussixInputFile, "NARM  = 300\n");
     fprintf(sussixInputFile, "ISTUN = 1 %e %e\n", istun, istun);
     fprintf(sussixInputFile, "TUNES = %e %e .07\n", tunex, tuney);
     fprintf(sussixInputFile, "NSUS  = 0\n");
