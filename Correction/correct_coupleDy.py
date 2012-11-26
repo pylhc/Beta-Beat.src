@@ -14,6 +14,7 @@ import os
 import optparse
 import GenMatrix_coupleDy
 import numpy
+import json
 
 ########### START ###############
 # /usr/bin/python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//Correction/correct_coupleDy.py 
@@ -131,12 +132,12 @@ dispy = []
 if weights[4] == "1":
     dispy = metaclass.twiss(options.path + '/getDy.out')
 
-execfile(accelpath + '/AllLists_couple.py')
-print accelpath + '/AllLists_couple.py executed'
+knobsdict=json.load(file(accelpath + '/AllLists_couple.json','r'))
+print accelpath + '/AllLists_couple.json loaded'
 listvar = options.var.split(",")
 varslist = []
 for var in listvar:
-    exec('variable=' + var + '()') # this is completely awful. You should never ever do such things, whoever it was :/ (tbach)
+    variable=knobsdict[var]
     varslist = varslist + variable
 
 MADTwiss = FullResponse['0']
