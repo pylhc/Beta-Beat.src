@@ -3664,7 +3664,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         print "Base model found!"
     except:
         print "WARN: Cannot find model!!",twiss_model_file
-        sys.exit()
+        sys.exit(1)
 
     #-- finding the ac dipole model
     try:
