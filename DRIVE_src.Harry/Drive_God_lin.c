@@ -49,6 +49,7 @@
 #define MAXTURNS 10000 /* Critical parameter in sussixfordiveNoO.f, same parameter name !*/
 #define MAXTURNS4 40000 /*Always four times  MAXTURNS*/
 #define MAXRUNS 100
+#define NATTUNE_DEFAULT -100
 
 #if !defined(LOG_INFO)
 #define LOG_INFO 0 /*set to 1 to enable log prints (tbach) */
@@ -66,6 +67,8 @@ void setPath(char*, const size_t, const char*, const char*, const char*);
 FILE* getFileToWrite(const char*);
 FILE* getFileToRead(const char*);
 FILE* __getFileWithMode(const char*, const char*, const char*);
+void printTuneValue(FILE*, const char*, const int, const double, const double);
+void formatLinFile(const char*, const int, const double, const double, const char*, const int, const double, const double, const char*);
 
 char driveInputFilePath[2000], drivingTermsFilePath[2000], noiseFilePath[500]; /*TODO create size dynamically? (tbach)*/
 
@@ -86,24 +89,25 @@ int label[MAXPICK], hv[MAXPICK], hvt[MAXPICK];
 
 int main(int argc, char **argv)
 {
-    double istun, kper, tunex, tuney;
-    double tunesum[2], tune2sum[2], nattunexsum, nattunex2sum, nattuneysum, nattuney2sum;
+    double istun, kper, tunex, tuney, nattunexsum, nattunex2sum, nattuneysum,
+            nattuney2sum, tunesumx, tunesumy, tune2sumx, tune2sumy;
 
     int i, bpmCounter, columnCounter, counth, countv, flag,
             horizontalBpmCounter, j, kcase, kick, kk, maxcounthv, Nbpms,
-            pickstart, pickend, start, turns, verticalBpmCounter;
-    int count0[2], nattunexcount, nattuneycount;
+            pickstart, pickend, start, turns, verticalBpmCounter, 
+            tunecountx, tunecounty, nattunexcount, nattuneycount;
 
     size_t charCounter;
 
-    char bpmFileName[300], cmd[6000], dataFilePath[500], linxFilePath[2000],
+    char bpmFileName[300], dataFilePath[500], linxFilePath[2000],
             linyFilePath[2000], spectrumFilePath[400], string1[1000],
             string2[300], sussixInputFilePath[4000], workingDirectoryPath[4000];
 
     char* lastSlashIndex;
     char* bpmname[MAXPICK];
 
-    FILE *dataFile, *linxFile, *linyFile, *noiseFile, *spectrumFile, *driveInputFile, *drivingTermsFile;
+    FILE *dataFile, *linxFile, *linyFile, *noiseFile, *spectrumFile, *driveInputFile,
+            *drivingTermsFile;
 
     omp_set_dynamic(0);
     /* Memory allocation */
@@ -137,18 +141,17 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    count0[0] = count0[1] = nattunexcount = nattuneycount = 0;
-    tunesum[0] = tunesum[1] = tune2sum[0] = tune2sum[1] = nattunexsum = nattunex2sum= nattuneysum = nattuney2sum= 0.0;
 
-    /* input/option file reading start */
-    driveInputFile = getFileToRead(driveInputFilePath);
     /* set all options to defaults, it could happen that they are not included in the file (tbach) */
     kick = kcase = pickstart = pickend = labelrun = 0;
     kper = tunex = tuney = istun = windowa1 = windowa2 = windowb1 = windowb2 = 0.0;
-    nattunex = nattuney = -100.0;
+    nattunex = nattuney = NATTUNE_DEFAULT;
+
+    /* input/option file reading start */
+    driveInputFile = getFileToRead(driveInputFilePath);
     while (1) {
         /* string1 will be the option name, s the value. expected separator: '=' (tbach) */
-        for (charCounter = 0; (charCounter < sizeof(string1)) && ((string1[charCounter] = getc(driveInputFile)) != '=') &&
+        for (charCounter = 0; (charCounter < sizeof(string1)) && ((string1[charCounter] = (char)getc(driveInputFile)) != '=') &&
             (string1[charCounter] != '\n') && (string1[charCounter] != EOF); ++charCounter) ;
         if (charCounter >= sizeof(string1))
         {
@@ -161,7 +164,7 @@ int main(int argc, char **argv)
         string1[charCounter] = '\0'; /* '=' is replaced by string termination, this is ok (tbach) */
 
 
-        for (charCounter = 0; ((charCounter < sizeof(string2)) && (string2[charCounter] = getc(driveInputFile)) != EOF) &&
+        for (charCounter = 0; ((charCounter < sizeof(string2)) && (string2[charCounter] = (char)getc(driveInputFile)) != EOF) &&
             (string2[charCounter] != '\n');)
         {
             /* if we have ' ' or '\t', do not increase counter and just overwrite them (tbach) */
@@ -220,8 +223,11 @@ int main(int argc, char **argv)
 
     drivingTermsFile = getFileToRead(drivingTermsFilePath);
     turns = 0;
+    /* From drivingTermsFilePath assign dataFilePath, assign turns. */
     while (readDrivingTerms(drivingTermsFile, &turns, dataFilePath, sizeof(dataFilePath))) {
-        /* From drivingTermsFilePath assign dataFilePath, assign turns. */
+        /* set all values to be calculated to default values */
+        tunecountx = tunecounty = nattunexcount = nattuneycount = 0;
+        tunesumx = tunesumy = tune2sumx = tune2sumy = nattunexsum = nattunex2sum= nattuneysum = nattuney2sum = 0.0;
 
         /* Check the file dataFilePath */
         if (!canOpenFile(dataFilePath)) {
@@ -274,10 +280,10 @@ int main(int argc, char **argv)
         verticalBpmCounter = MAXPICK / 2 - 1;
         i = 0;
         dataFile = getFileToRead(dataFilePath);
-        string1[0] = getc(dataFile);
+        string1[0] = (char)getc(dataFile);
         while (string1[0] == '#') {       /* then it is a comment line (tbach) */
             while (getc(dataFile) != '\n');       /* read until the end of the line (tbach) */
-            string1[0] = getc(dataFile);        /* read the first char of the new line (tbach) */
+            string1[0] = (char)getc(dataFile);        /* read the first char of the new line (tbach) */
         }
         /* after this, we have skipped all the comment lines, and s[0] is the first character of a new line which is not a "#" (tbach) */
         if (LOG_INFO)
@@ -289,12 +295,12 @@ int main(int argc, char **argv)
                     printf("\n");
                 columnCounter = 0;
             }
-            if (isspace(string1[0]) && flag == 1)
+            if (isspace((int)string1[0]) && flag == 1)
                 flag = 0;
-            if (!isspace(string1[0]) && flag == 0) {
-                while (!isspace(string1[i]) && string1[i] != EOF) {
+            if (!isspace((int)string1[0]) && flag == 0) {
+                while (!isspace((int)string1[i]) && string1[i] != EOF) {
                     ++i;
-                    string1[i] = getc(dataFile);
+                    string1[i] = (char)getc(dataFile);
                     if (i > 100) {
                         string1[i + 1] = '\0';
                         printf("Found a value which has more than 100 characters, exit parsing."
@@ -370,9 +376,10 @@ int main(int argc, char **argv)
                 i = 0;
             }
             if (flag == 0)
-                string1[0] = getc(dataFile);
+                string1[0] = (char)getc(dataFile);
         }
         fclose(dataFile);
+
         Nbpms = bpmCounter;
         counth = horizontalBpmCounter + 1;
         countv = verticalBpmCounter + 1;
@@ -440,6 +447,7 @@ int main(int argc, char **argv)
         }
         printf("BPMs in loop: %d, pickstart: %d, resulting loop length: %d\n",
              maxcounthv, pickstart, maxcounthv - pickstart);
+
         #pragma omp parallel for private(i, horizontalBpmCounter, verticalBpmCounter, kk, maxamp, calculatednattunex, calculatednattuney)
         for (i = pickstart; i < maxcounthv; ++i) {
             horizontalBpmCounter = i;
@@ -463,31 +471,30 @@ int main(int argc, char **argv)
                 doubleToSend[kk + 3 * MAXTURNS] = 0.0;
             }
 
-            sussix4drivenoise_(&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], sussixInputFilePath);
             /* This calls the external Fortran code (tbach) */
+            sussix4drivenoise_(&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], sussixInputFilePath);
 
             /* Let's look for natural tunes in the istun range if natural tunes input is given*/
             maxamp = 0;
-            calculatednattunex = -100;
-	    if (nattunex > -99) {
-              for (kk = 0; kk < 300; ++kk) {
-                if ((nattunex - istun < allfreqsx[kk] && allfreqsx[kk] < nattunex + istun) && (maxamp < allampsx[kk]) ){
-                    maxamp = allampsx[kk];
-                    calculatednattunex = allfreqsx[kk];
+            calculatednattunex = NATTUNE_DEFAULT;
+            if (nattunex > NATTUNE_DEFAULT) {
+                for (kk = 0; kk < 300; ++kk) {
+                    if ((nattunex - istun < allfreqsx[kk] && allfreqsx[kk] < nattunex + istun) && (maxamp < allampsx[kk])) {
+                        maxamp = allampsx[kk];
+                        calculatednattunex = allfreqsx[kk];
+                    }
                 }
-              }
-	    }
+            }
             maxamp = 0;
-            calculatednattuney = -100;
-	    if (nattuney > -99) {
-              for (kk = 0; kk < 300; ++kk) {
-                if ((nattuney - istun < allfreqsy[kk] && allfreqsy[kk] < nattuney + istun) && (maxamp < allampsy[kk]) ){
-                    maxamp = allampsy[kk];
-                    calculatednattuney = allfreqsy[kk];
+            calculatednattuney = NATTUNE_DEFAULT;
+            if (nattuney > NATTUNE_DEFAULT) {
+                for (kk = 0; kk < 300; ++kk) {
+                    if ((nattuney - istun < allfreqsy[kk] && allfreqsy[kk] < nattuney + istun) && (maxamp < allampsy[kk])) {
+                        maxamp = allampsy[kk];
+                        calculatednattuney = allfreqsy[kk];
+                    }
                 }
-              }
-	    }
-
+            }
 
             #pragma omp critical
             {
@@ -509,14 +516,14 @@ int main(int argc, char **argv)
                             phase[1] / 360., amplitude[12] / amplitude[0], phase[12] / 360., amplitude[6] / amplitude[0],
                             phase[6] / 360., amplitude[14] / amplitude[0], phase[14] / 360., amplitude[16] / amplitude[0],
                             phase[16] / 360., amplitude[18] / amplitude[0], phase[18] / 360.,  calculatednattunex);
-                    ++count0[0];
-                    tunesum[0] += tune[0];
-                    tune2sum[0] += tune[0] * tune[0];
-		    if ( calculatednattunex > -99){ /*  Initialized to -100. Condition true if nat tune found */
-		      ++nattunexcount;
-		      nattunexsum +=  calculatednattunex;
-		      nattunex2sum +=  calculatednattunex * calculatednattunex;
-		    }
+                    ++tunecountx;
+                    tunesumx += tune[0];
+                    tune2sumx += tune[0] * tune[0];
+                    if (calculatednattunex > NATTUNE_DEFAULT) { /*  Initialized to -100. Condition true if nat tune found */
+                        ++nattunexcount;
+                        nattunexsum += calculatednattunex;
+                        nattunex2sum += calculatednattunex * calculatednattunex;
+                    }
 
                     /* Horizontal Spectrum output */
                     if (i < 10) {
@@ -540,14 +547,14 @@ int main(int argc, char **argv)
                             amplitude[13] / amplitude[3], phase[13] / 360., amplitude[15] / amplitude[3], phase[15] / 360.,
                             amplitude[17] / amplitude[3], phase[17] / 360., amplitude[4] / amplitude[3], phase[4] / 360.,
                             amplitude[11] / amplitude[3], phase[11] / 360., calculatednattuney);
-                    ++count0[1];
-                    tunesum[1] += tune[1];
-                    tune2sum[1] += tune[1] * tune[1];
-		    if ( calculatednattuney > -99){   /*  Initialized to -100. Condition true if nat tune found */
-		      ++nattuneycount;
-		      nattuneysum +=  calculatednattuney;
-		      nattuney2sum +=  calculatednattuney * calculatednattuney;
-		    }
+                    ++tunecounty;
+                    tunesumy += tune[1];
+                    tune2sumy += tune[1] * tune[1];
+                    if (calculatednattuney > NATTUNE_DEFAULT) { /*  Initialized to -100. Condition true if nat tune found */
+                        ++nattuneycount;
+                        nattuneysum += calculatednattuney;
+                        nattuney2sum += calculatednattuney * calculatednattuney;
+                    }
                     if (verticalBpmCounter < MAXPICK / 2 + 10) {
                         setPath(spectrumFilePath, sizeof(spectrumFilePath), workingDirectoryPath, bpmname[verticalBpmCounter], ".y");
                         spectrumFile = getFileToWrite(spectrumFilePath);
@@ -562,50 +569,16 @@ int main(int argc, char **argv)
         } /* end of parallel for */
         fclose(linxFile);
         fclose(linyFile);
-        /* What follows is some dirty operations to move the @ Q1 ... to the top of _linx _liny */
-        if (count0[0] > 0) {
-            sprintf(cmd, "head -2 %s > %s/tx", linxFilePath, workingDirectoryPath);
-            system(cmd);
-            sprintf(cmd, "grep \\\" %s | sort -n --key=3 >> %s/tx", linxFilePath, workingDirectoryPath);
-            system(cmd);
-            sprintf(cmd, "rm %s", linxFilePath);
-            system(cmd);
-
-            linxFile = getFileToWrite(linxFilePath);
-            fprintf(linxFile, "@ Q1 %%le %e\n@ Q1RMS %%le %e\n",
-                    tunesum[0] / count0[0], sqrt(tune2sum[0] / count0[0] - (tunesum[0] / count0[0]) * (tunesum[0] / count0[0])));
-	    if (nattunexcount>0) {
-	      fprintf(linxFile, "@ NATQ1 %%le %e\n@ NATQ1RMS %%le %e\n",
-                      nattunexsum / nattunexcount, sqrt(nattunex2sum / nattunexcount - (nattunexsum / nattunexcount) * (nattunexsum / nattunexcount)));
-	    }
-            fclose(linxFile);
-            sprintf(cmd, "cat  %s/tx >> %s ; rm %s/tx", workingDirectoryPath, linxFilePath, workingDirectoryPath);
-            system(cmd);
-            printf("linx %e %d %e\n", tunesum[0], count0[0], tune2sum[0]);
-        }
-        if (count0[1] > 0) {
-            sprintf(cmd, "head -2 %s > %s/ty", linyFilePath, workingDirectoryPath);
-            system(cmd);
-            sprintf(cmd, "grep \\\" %s | sort -n --key=3 >> %s/ty", linyFilePath, workingDirectoryPath);
-            system(cmd);
-            sprintf(cmd, "rm %s", linyFilePath);
-            system(cmd);
-
-            linyFile = getFileToWrite(linyFilePath);
-            fprintf(linyFile, "@ Q2 %%le %e\n@ Q2RMS %%le %e\n",
-                    tunesum[1] / count0[1], sqrt(tune2sum[1] / count0[1] - (tunesum[1] / count0[1]) * (tunesum[1] / count0[1])));
-            if (nattuneycount>0) {
-	    fprintf(linyFile, "@ NATQ2 %%le %e\n@ NATQ2RMS %%le %e\n",
-                    nattuneysum / nattuneycount, sqrt(nattuney2sum / nattuneycount - (nattuneysum / nattuneycount) * (nattuneysum / nattuneycount)));
-            }
-	    fclose(linyFile);
-            sprintf(cmd, "cat  %s/ty >> %s ; rm %s/ty", workingDirectoryPath, linyFilePath, workingDirectoryPath);
-            system(cmd);
-            printf("liny %e %d %e\n", tunesum[1], count0[1], tune2sum[1]);
-        }
-
         if (labelrun == 1) fclose(noiseFile);
-    }
+
+        /* Sort and move the "@..." lines to the top of the _linx/y files */
+        formatLinFile(linxFilePath,
+                tunecountx, tunesumx, tune2sumx, "@ Q1 %%le %e\n@ Q1RMS %%le %e\n",
+                nattunexcount, nattunexsum, nattunex2sum, "@ NATQ1 %%le %e\n@ NATQ1RMS %%le %e\n");
+        formatLinFile(linyFilePath,
+                tunecounty, tunesumy, tune2sumy, "@ Q2 %%le %e\n@ Q2RMS %%le %e\n",
+                nattuneycount, nattuneysum, nattuney2sum, "@ NATQ2 %%le %e\n@ NATQ2RMS %%le %e\n");
+    } /* end of while loop over all files to analyse */
     fclose(drivingTermsFile);
 
     return EXIT_SUCCESS;
@@ -625,8 +598,8 @@ int readDrivingTerms(FILE* drivingTermsFile, int* turns, char* path, const int s
     int charCounter = 0;
 
     /* this block reads the filepath */
-    while (isspace(path[0] = getc(drivingTermsFile))) ;
-    for (charCounter = 1; ((charCounter < sizeOfPath && (path[charCounter] = getc(drivingTermsFile)) != EOF) &&
+    while (isspace((int)(path[0] = (char)getc(drivingTermsFile)))) ;
+    for (charCounter = 1; ((charCounter < sizeOfPath && (path[charCounter] = (char)getc(drivingTermsFile)) != EOF) &&
          (path[charCounter] != '\n') && (path[charCounter] != '%') &&
          (path[charCounter] != ' ')); charCounter++) ;
     if (charCounter >= sizeOfPath)
@@ -662,15 +635,15 @@ int getNextInt(FILE* file)
     int result = 0;
     char string1[1000];
     size_t charCounter = 0;
-    while (isspace(string1[0] = getc(file))) ;  /* skip all spaces (tbach) */
+    while (isspace((int)(string1[0] = (char)getc(file)))) ;  /* skip all spaces (tbach) */
     if (string1[0] == EOF)
         return EOF;
-    for (charCounter = 1; ((charCounter < sizeof(string1)) && (string1[charCounter] = getc(file)) != EOF) &&
+    for (charCounter = 1; ((charCounter < sizeof(string1)) && (string1[charCounter] = (char)getc(file)) != EOF) &&
          (string1[charCounter] != '\n') && (string1[charCounter] != ' '); charCounter++) ;
     if (charCounter >= sizeof(string1))
     {
         string1[charCounter - 1] = '\0';
-        printf("Error: input longer than sizeof(string1): %u, string: %s", sizeof(string1), string1);
+        printf("Error: input longer than sizeof(string1): %u, string1: %s", sizeof(string1), string1);
         exit(EXIT_FAILURE);
     }
     string1[charCounter] = '\0';
@@ -880,4 +853,53 @@ void setPath(char* path, const size_t sizeOfPath, const char* workingDirectoryPa
     assertSmaller(strlen(workingDirectoryPath) + 1 + strlen(bpmfile) + strlen(fileEnding), sizeOfPath, fileEnding);
     sprintf(path, "%s/%s%s", workingDirectoryPath, bpmfile, fileEnding);
     printf("%s: %s\n", fileEnding, path);
+}
+
+char cmd[6000];
+char tempFilePath[2000];
+FILE* tempFile;
+void formatLinFile(const char* linFilePath,
+        const int tunecount, const double tunesum, const double tune2sum, const char* tuneheader,
+        const int nattunecount, const double nattunesum, const double nattune2sum, const char* nattuneheader) {
+    /* what is happening here? we want to sort the lin file and put 2 line son top.
+     * We could do this in plain c, but it is a bit of work, so we use shell tools.
+     * (this breaks OS compatibility, but this is not a priority right now)
+     * So we put calculations for tune at a temp file.
+     * Then we add the first 2 lines (column headers) to temp file
+     * Then we sort all files from the third line to the end, but them in the temp file (sorted)
+     * Then we rename the temp file to orig file
+     * --tbach */
+    if (tunecount > 0) {
+        sprintf(tempFilePath, "%s_temp", linFilePath);
+        tempFile = getFileToWrite(tempFilePath);
+
+        printTuneValue(tempFile, tuneheader, tunecount, tunesum, tune2sum);
+        if (nattunecount > 0)
+            printTuneValue(tempFile, nattuneheader, nattunecount, nattunesum, nattune2sum);
+
+        fclose(tempFile);
+
+        /* TODO fix for cross platform (tbach) */
+        sprintf(cmd, "head -2 %s >> %s_temp", linFilePath,
+                linFilePath);
+        system(cmd);
+        sprintf(cmd, "grep \\\" %s | sort -n --key=3 >> %s_temp",
+                linFilePath, linFilePath);
+        system(cmd);
+
+        remove(linFilePath);
+        rename(tempFilePath, linFilePath);
+
+        printf("%s:\ntune: \n  sum: %e, count: %d, sum2: %e \nnatural tune: \n  sum: %e, count: %d, sum2: %e\n",
+                linFilePath, tunesum, tunecount, tune2sum, nattunesum,
+                nattunecount, nattune2sum);
+    }
+}
+
+void printTuneValue(FILE* linFile, const char* header, const int count, const double tunesum, const double tune2sum)
+{
+    /* calculates the average and the RMS(?) (tbach) */
+    fprintf(linFile, header,
+            tunesum / count,
+            sqrt(tune2sum / count - (tunesum / count) * (tunesum / count)));
 }
