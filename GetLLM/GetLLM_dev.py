@@ -1,97 +1,156 @@
-## Python script to obtain Linear Lattice functions and More -> GetLLM
-## Version-up history:V1.0, 11/Feb/2008 by Masa. Aiba
-##                    V1.1, 18/Feb/2008 Debugging, add model phase and tunes to output
-##                                      add function to obtain DY
-##                                      add chromatic parameter (phase for non zero DPP)
-##                    V1.2, 22/Feb/2008 test version for beta with all BPM
-##                    V1.3, 29/Feb/2008 beta from phases is improved, averaging beta1, 2 and 3
-##                    V1.31, 12/Mar/2008 debugged on alpha3
-##                    V1.4, 12/Mar/2008 modify output to fit latest TSF format and to meet requests from Rogelio
-##                                      fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
-##                    V1.5 Update to option parser, include BPMdictionary to filter BPMs not in Model
-##                                  Rogelio, 13 March 2008
-##                    V1.51, 13/Mar/2008 Modify output to fit latest TSF format again. Add STD to beta.
-#                    V1.6, 15/Jul/2008 Add the integer part of tunes - assuming that the phase advance is always less than 1.0.
-##                    V1.71 27/Jul/2008 Add GetCO. Filter in dispersion calculation to exclude bad bpms.
-##                    V1.8, 13/Aug/2008 Add GetCoupling. - Ref. note by A. Franchi, R. T. Garcia, G. Vanbavinckhove
-##                                      "Computation of the Coupling Resonance Driving term f1001 and the coupling coefficient C
-##                                       from turn-by-turn single-BPM data", 28/May/2008
-##                                      The GetCoupling.py is initiated by Glenn V.
-##                                      and imported into GetLLM / finalized by Masa. Aiba
-##                                      Some bugs are fixed - you can run even without liny file and
-##                                      find the results for horizontal plane only.
-##                    V1.81, 1/Sep/2008 For an accelerator in which the beam goes opposite direction to the model as in LHCB2,
-##                                       the beam direction parameter (bd) is added to GetPhases.
-##                                       Bug in the phi13 for the last monitor and the last but one is fixed.
-##                    V1.9, 21/Oct/2008 Add the beta from spectrum height.
-##                    V1.91, 08/Dec/2008 Add option - SUSSIX or SVD for input file
+# Python script to obtain Linear Lattice functions and More -> GetLLM
+# Version-up history:
+# V1.0, 11/Feb/2008 by Masa. Aiba
+# V1.1, 18/Feb/2008:
+# - Debugging, add model phase and tunes to output
+# - add function to obtain DY
+# - add chromatic parameter (phase for non zero DPP)
+# V1.2, 22/Feb/2008:
+# - test version for beta with all BPM
+# V1.3, 29/Feb/2008:
+# - beta from phases is improved, averaging beta1, 2 and 3
+# V1.31, 12/Mar/2008:
+# - debugged on alpha3
+# V1.4, 12/Mar/2008:
+# - modify output to fit latest TSF format and to meet requests from Rogelio
+# - fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
+# V1.5 Rogelio, 13 March 2008:
+# - Update to option parser, include BPMdictionary to filter BPMs not in Model       
+# V1.51, 13/Mar/2008:
+# - Modify output to fit latest TSF format again. Add STD to beta.
+# V1.6, 15/Jul/2008:
+# - Add the integer part of tunes - assuming that the phase advance is always
+#   less than 1.0.
+# V1.71 27/Jul/2008:
+# - Add GetCO. Filter in dispersion calculation to exclude bad bpms.
+# V1.8, 13/Aug/2008 Ref. note by A. Franchi, R. T. Garcia, G. Vanbavinckhove:
+# - Add GetCoupling
+# - "Computation of the Coupling Resonance Driving term f1001 and the coupling
+#   coefficient C from turn-by-turn single-BPM data", 28/May/2008
+# - The GetCoupling.py is initiated by Glenn V. and imported into GetLLM / 
+#   finalized by Masa. Aiba
+# - Some bugs are fixed - you can run even without liny file and find the
+#   results for horizontal plane only.
+# V1.81, 1/Sep/2008:
+# - For an accelerator in which the beam goes opposite direction to the model
+#   as in LHCB2, the beam direction parameter (bd) is added to GetPhases.
+# - Bug in the phi13 for the last monitor and the last but one is fixed.
+# V1.9, 21/Oct/2008:
+# - Add the beta from spectrum height.
+# V1.91, 08/Dec/2008:
+# - Add option - SUSSIX or SVD for input file
+# V1.99, 13/Feb/09:
+# - Add DPX! The MEMORIAL version for Version 1.** since all the linear lattice
+#   parameters become available!
+# - Add the option for the Harmonic analysis.
+# - Refine coding, add several lines of comment
+# V2.0, 17/Feb/2009:
+# - Major version up to output "More", that is, other than the linear lattice
+#   parameters.
+# - Add off-momentum lattice (dbeta/beta)/(dp/p)
+# - Add SPS coupling with "Pseudo-double plane BPM"-it need at this moment a
+#   list containing
+# - pre-paired H-V monitor. This should be replaced by a clever algorithm to
+#   find good pairs automatically.
+# V2.01, 10/Mar/2009:
+# - Fix bug on SPS double plane BPM monitor, in which missing BPM could cause
+#   an error.
+# - Modify BetaFromAmplitude to output invariant J (Rogelio / finalised by MA)
+# V2.02, 10/Mar/2009:
+# - Fix bug in getcoupling, bad input for phasex and phasey
+# V2.10, 13/Mar/2009, Glenn Vanbavinckhove:
+# - Added function for finding sextupole lines (amp and phases) + chiterms amp
+# V2.11. 26/Mar/2009
+# - Fix bug in Getphase (model phase advance from the last to first monitor).
+# V2.12, 28/03/2009
+# - Following bugs fixed : avoid negative square, change option -h to -l
+# - Add -r option as in correct.py
+# - Change the way to import BPM pair file for SPS. (import -> execfile)
+# V2.13, 06/Apl/2009
+# - Fix bug in weight function to accept negative dpp
+# V2.14, 08/Apl/2009
+# - Fix bug in Normalized dispersion to treat COcut correctly.
+# V2.15:
+# - Enable coupling in RHIC as in SPS
+# V2.16, 28/May/2009:
+# - Add STDBET for the beta from amplitude.
+# - Add option for off momentum beta-beating to choose algorithm, that is, beta
+#   from phase or amp
+# - Add a routine to detect wrong data having two lines in linx/y file with the
+#   same BPM name.
+# - Add a routine to avoid zero division due to exactly n*pi phase advance in
+#   beta from phase (see the last part of GetPhases).
+# V2.21, 23/June/2009:
+# - Add STDBET Model for off momentum beta beat phase.
+# V2.25:
+# - Fixed bd flag (must be -1 for beam2)
+# V2.25:
+# - Adding VERSION variable to be always output and modified in subsequent
+#   versions, do not forget!!!
+# V2.26:
+# - Adding F2000 (two different methods linear and non-linear)
+# V2.27:
+# - Adding new method for IP calculation
+# V2.28:
+# - Changing the rejection of bad BPM for the coupling phase - averaging the
+#   phase over the sets of data first , then cut if the q1 and q2 are very
+#   different.
+# - 24/Feb/2010 the change is not yet checked.
+# - Hyphens in the @ field of tfs files is not allowed:  The previous label
+#   "RMS-beta-beat" has been  moved to "RMSbetabeat"
+# V2.29 5/Mar/2010
+# - Change the default value for COcut from 1000 to 4000 as it was too small
+# V2.30 13/Sept/2010:
+# - Updating for AC-Dipole, implementing chromatic coupling (not done for RHIC
+#   or SPS)
+# V2.31 8/November/2010:
+# - Update for AC-Dipole: gives free beta,phase,coupling(global factor)
+# V2.32 15/January/2010:
+# - Taking models
+# V2.33 7/February/2011:
+# - implementing coupling correction for AC-dipole.
+# V2.34 7/04/2011:
+# - Updating to deal with chromatic twiss files.
+# V2.35 9/06/2011:
+# - Functions to cancel the AC dipole effect for beta, phase, and total phase,
+#   based on equations, are added.
+# - A function to calculate beta* from the phase advance between Q1s is added.
+# - Phase shift by tune is compensated for the LHC experiment data.
+# V2.36 30/09/2011: 
+# - Rescaling algorithm for BetaFromAmp and action (by Andy) is implemented.
+# - 2nd function to calculate IP parameters from Q1s is added.
+# - The compensation of the phase shift by tune for LHC exp data is modified.
+# - A function to calculate action of the AC dipole excitation is added.
+# V2.38 08/03/2012: 
+# - added main() function
+# - using raise ValueError() instead of sys.exit() some places
+# 13/09/2012: 
+# - merged in patch 2.35-2.37
+# V2.38b 03/dec/2012, tbach:
+# - reformatted comments
+# - changed all parts of code, where the program exits inside an exception to
+#   display the exception, because the messages are not always helpful
+# - removed ";" from all over the code (still some left)
+# - 207 errors, 983 warning, 574 infos left from static code analysis...
 
-##                    V1.99, 13/Feb/09 Add DPX! The MEMORIAL version for Version 1.** since all the linear lattice parameters become available!
-##                                     Add the option for the Harmonic analysis.
-##                                     Refine coding, add several lines of comment
 
-##                    V2.0, 17/Feb/2009 Major version up to output "More", that is, other than the linear lattice parameters.
-##                                      Add off-momentum lattice (dbeta/beta)/(dp/p)
-##                                      Add SPS coupling with "Pseudo-double plane BPM"-it need at this moment a list containing
-##                                      pre-paired H-V monitor. This should be replaced by a clever algorithm to find good pairs automatically.
-##                    V2.01, 10/Mar/2009 Fix bug on SPS double plane BPM monitor, in which missing BPM could cause an error.
-##                                      Modify BetaFromAmplitude to output invariant J (by Rogelio and finalized by MA)
-##                    V2.02, 10/Mar/2009 Fix bug in getcoupling, bad input for phasex and phasey
-##                    V2.10, 13/Mar/2009 Added function for finding sextupole lines (amp and phases) + chiterms amplitude. (@dded by Glenn Vanbavinckhove)
-##                    V2.11. 26/Mar/2009 Fix bug in Getphase (model phase advance from the last monitor to first monitor).
-##                    V2.12, 28/03/2009  Following bugs fixed : avoid negative square, change option -h to -l
-##                                       Add -r option as in correct.py
-##                                       Change the way to import BPM pair file for SPS. (import -> execfile)
-##                    V2.13, 06/Apl/2009 Fix bug in weight function to accept negative dpp
-##                    V2.14, 08/Apl/2009 Fix bug in Normalized dispersion to treat COcut correctly.
-##                    V2.15              Enable coupling in RHIC as in SPS
-##                    V2.16, 28/May/2009 Add STDBET for the beta from amplitude.
-##                                       Add option for off momentum beta-beating to choose algorithm, that is, beta from phase or amp
-##                                       Add a routine to detect wrong data having two lines in linx/y file with the same BPM name.
-##                                       Add a routine to avoid zero division due to exactly n*pi phase advance in beta from phase (see the last part of GetPhases).
-##                    V2.21, 23/June/2009 Add STDBET Model for off momentum beta beat phase.
-#                     V2.25    Fixed bd flag (must be -1 for beam2)
-#                     V2.25 Adding VERSION variable to be always output and modified in subsequent versions, do not forget!!!
-#                     V2.26 Adding F2000 (two different methods linear and non-linear)
-##                    V2.27 Adding new method for IP calculation
-##                    V2.28 Changing the rejection of bad BPM for the coupling phase - averaging the phase over the sets of data first , then cut if the q1 and q2 are very different. 24/Feb/2010 the change is not yet checked.
-##                            Hyphens in the @ field of tfs files is not allowed:  The previous label "RMS-beta-beat" has been  moved to "RMSbetabeat"
-##                    V2.29 5/Mar/2010 Change the default value for COcut from 1000 to 4000 as it was too small
-##                    V2.30 13/Sept/2010 Updating for AC-Dipole, implementing chromatic coupling (not done for RHIC or SPS)
-##                    V2.31 8/November/2010 Update for AC-Dipole:
-#                                  - gives free beta,phase,coupling(global factor)
-##                    V2.32 15/January/2010 Taking models
-#                     V2.33 7/February/2011 : - implementing coupling correction for AC-dipole.
-##                    V2.34 7/04/2011:  - Updating to deal with chromatic twiss files.
-##                    V2.35 9/06/2011:  - Functions to cancel the AC dipole effect for beta, phase, and total phase, based on equations, are added.
-##                                      - A function to calculate beta* from the phase advance between Q1s is added.
-##                                      - Phase shift by tune is compensated for the LHC experiment data.
-##                    V2.36 30/09/2011: - Rescaling algorithm for BetaFromAmp and action (developed by Andy) is implemented.
-##                                      - 2nd function to calculate IP parameters from Q1s is added.
-##                                      - The compensation of the phase shift by tune for LHC exp data is modified.
-##                                      - A function to calculate action of the AC dipole excitation is added.
-##                    V3.01_dev 08/03/2012:  - tabs -> 8 spaces using :retab in vim
-##                                           - added main() function
-##                                           - using raise ValueError() instead of sys.exit() some places
-##                              13/09/2012:  - merged in patch 2.35-2.37
-
-
-## Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
-## Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
+# Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
+# Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
 
 
 
 
-## Some rules for variable name: Dictionary is used to contain the output of function
-##                               Valiable containing 'm' is a value directly obtained from measurment data
-##                               Valiable containing 'mdl' is a value related to model
+# Some rules for variable name:
+# - Dictionary is used to contain the output of function
+# - Variable containing 'm' is a value directly obtained from measurment data
+# - Variable containing 'mdl' is a value related to model
 #
 
 
 ####
 #######
 #########
-VERSION='V3.01 DEV'
+VERSION='V2.38b PRO'
 #########
 #######
 ####
@@ -99,6 +158,7 @@ VERSION='V3.01 DEV'
 import sys
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
+import traceback
 from metaclass import *
 from numpy import *
 import numpy
@@ -133,18 +193,18 @@ def modelIntersect(expbpms, model):
         except:
             print bpm, "Not in Model"
     if len(bpmsin)==0:
-        print "Zero intersection of Exp and Model"
-        print "Please, provide a good Dictionary"
-        print "Now we better leave!"
-        sys.exit()
+        print >> sys.stderr, "Zero intersection of Exp and Model"
+        print >> sys.stderr, "Please, provide a good Dictionary or correct data"
+        print >> sys.stderr, "Now we better leave!"
+        sys.exit(1)
     return bpmsin
 
 
 def intersect(ListOfFile):
     '''Pure intersection of all bpm names in all files '''
     if len(ListOfFile)==0:
-        print "Nothing to intersect!!!!"
-        sys.exit()
+        print >> sys.stderr, "Nothing to intersect!!!!"
+        sys.exit(1)
     z=ListOfFile[0].NAME
     for b in ListOfFile:
         z=filter(lambda x: x in z   , b.NAME)
@@ -269,9 +329,9 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,bd,oa,op):
             bns1=commonbpms[i][0]
             bns2=commonbpms[i+1][0]
         if (bn1==bn2):
-            print "There seem two lines with the same BPM name "+bn1+" in linx/y file."
-            print "Please check your input data....leaving GetLLM."
-            sys.exit()
+            print >> sys.stderr, "There seem two lines with the same BPM name "+bn1+" in linx/y file."
+            print >> sys.stderr, "Please check your input data....leaving GetLLM."
+            sys.exit(1)
         if plane=='H':
             phmdl12=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
             phmdl13=MADTwiss.MUX[MADTwiss.indx[bn3]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
@@ -427,8 +487,8 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
             alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
             alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
         if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
-            print "Some of the off-momentum betas are negative, change the dpp unit"
-            sys.exit()
+            print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
+            sys.exit(1)
 
         # Find beta1 and alpha1 from phases assuming model transfer matrix
         # Matrix M: BPM1-> BPM2
@@ -1455,7 +1515,9 @@ def GetCoupling2b(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phas
         q1s=PhaseMean(q1js,1.0)
         q2s=PhaseMean(q2js,1.0)
 
-        if min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25 or min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25: badbpm=1; countBadPhase += 1
+        if min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25 or min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
+            badbpm=1
+            countBadPhase += 1
 
         if (oa=="SPS" or oa=="RHIC"):
             # No check for the SPS or RHIC
@@ -2627,7 +2689,8 @@ def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
     result={}
     for ip in ('1','2','5','8'):
 
-        bpml='BPMSW.1L'+ip+'.'+oa[3:]; bpmr='BPMSW.1R'+ip+'.'+oa[3:]
+        bpml='BPMSW.1L'+ip+'.'+oa[3:]
+        bpmr='BPMSW.1R'+ip+'.'+oa[3:]
 
         if (bpml in zip(*bpm)[1]) and (bpmr in zip(*bpm)[1]):
 
@@ -2646,7 +2709,11 @@ def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
             dsmdl  =alfmdl*betsmdl
 
             #-- Measurement for each file
-            betall=[]; alfall=[]; betsall=[]; dsall=[]; rt2Jall=[]
+            betall=[]
+            alfall=[]
+            betsall=[]
+            dsall=[]
+            rt2Jall=[]
             for i in range(len(Files)):
                 try:
                     if plane=='H':
@@ -2676,7 +2743,11 @@ def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
                     bets=bet/(1+alf**2)
                     ds  =alf*bets
                     rt2J=sqrt(al*ar*sin(dpsi)/(2*L))
-                    betall.append(bet); alfall.append(alf); betsall.append(bets); dsall.append(ds); rt2Jall.append(rt2J)
+                    betall.append(bet)
+                    alfall.append(alf)
+                    betsall.append(bets)
+                    dsall.append(ds)
+                    rt2Jall.append(rt2J)
                 except:
                     pass
 
@@ -2692,9 +2763,11 @@ def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
 
 def GetIPFromPhase(MADTwiss,psix,psiy,oa):
 
-    IP=('1','2','5','8'); result={}
+    IP=('1','2','5','8')
+    result={}
     for i in IP:
-        bpml='BPMSW.1L'+i+'.'+oa[3:]; bpmr=bpml.replace('L','R')
+        bpml='BPMSW.1L'+i+'.'+oa[3:]
+        bpmr=bpml.replace('L','R')
         try:
             if psix[bpml][-1]==bpmr:
                 #-- Model
@@ -2704,7 +2777,10 @@ def GetIPFromPhase(MADTwiss,psix,psiy,oa):
                 betxmdl =MADTwiss.BETX[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFX[MADTwiss.indx[bpml]]**2)
                 betymdl =MADTwiss.BETY[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFY[MADTwiss.indx[bpml]]**2)
                 #-- For sim starting in the middle of an IP
-                if L<0: L+=0.5*MADTwiss.LENGTH; dpsixmdl+=MADTwiss.Q1; dpsiymdl+=MADTwiss.Q2
+                if L < 0:
+                    L += 0.5 * MADTwiss.LENGTH
+                    dpsixmdl += MADTwiss.Q1
+                    dpsiymdl += MADTwiss.Q2
                 #-- Measurement
                 dpsix   =psix['BPMSW.1L'+i+'.'+oa[3:]][0]
                 dpsiy   =psiy['BPMSW.1L'+i+'.'+oa[3:]][0]
@@ -2726,7 +2802,10 @@ def GetIPFromPhase(MADTwiss,psix,psiy,oa):
                 betxmdl =MADTwiss.BETX[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFX[MADTwiss.indx[bpml]]**2)
                 betymdl =MADTwiss.BETY[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFY[MADTwiss.indx[bpml]]**2)
                 #-- For sim starting in the middle of an IP
-                if L<0: L+=0.5*MADTwiss.LENGTH; dpsixmdl+=MADTwiss.Q1; dpsiymdl+=MADTwiss.Q2
+                if L < 0:
+                    L += 0.5 * MADTwiss.LENGTH
+                    dpsixmdl += MADTwiss.Q1
+                    dpsiymdl += MADTwiss.Q2
                 #-- Measurement
                 dpsix   =psix['BPMSW.1L'+i+'.'+oa[3:]][0]
                 dpsiy   =psiy['BPMSW.1L'+i+'.'+oa[3:]][0]
@@ -3015,7 +3094,8 @@ def GetFreeIP2(MADTwiss,MADTwiss_ac,IP,plane,oa):
 
     for i in ('1','2','5','8'):
 
-        bpml='BPMSW.1L'+i+'.'+oa[3:]; bpmr='BPMSW.1R'+i+'.'+oa[3:]
+        bpml='BPMSW.1L'+i+'.'+oa[3:]
+        bpmr='BPMSW.1R'+i+'.'+oa[3:]
         if 'IP'+i in IP:
 
             L=0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
@@ -3043,10 +3123,15 @@ def GetFreeIP2(MADTwiss,MADTwiss_ac,IP,plane,oa):
 #---------  The following is functions to compensate the AC dipole effect based on analytic formulae (by R. Miyamoto)
 
 def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
-
-    if   oa=='LHCB1': bpmac1='BPMYA.5L4.B1'; bpmac2='BPMYB.6L4.B1'
-    elif oa=='LHCB2': bpmac1='BPMYB.5L4.B2'; bpmac2='BPMYA.6L4.B2'
-    else            : return {}
+    if   oa=='LHCB1':
+        bpmac1='BPMYA.5L4.B1'
+        bpmac2='BPMYB.6L4.B1'
+    elif oa=='LHCB2':
+        bpmac1='BPMYB.5L4.B2'
+        bpmac2='BPMYA.6L4.B2'
+    else:
+        return {}
+    
     if plane=='H':
         psi_ac2bpmac1=MADTwiss.MUX[MADTwiss.indx[bpmac1]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
         psi_ac2bpmac2=MADTwiss.MUX[MADTwiss.indx[bpmac2]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
@@ -3075,10 +3160,15 @@ def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     for b in psid_ac2bpmac.keys():
         if '5L4' in b: bpmac1=b
         if '6L4' in b: bpmac2=b
-    try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+    try:
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
     except:
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-        except: return [{},[]]
+        try:
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
+        except:
+            return [{},[]]
 
     #-- Model phase advances
     if plane=='H': psimdl=array([(MADTwiss.MUX[MADTwiss.indx[b[1]]]-MADTwiss.MUX[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
@@ -3097,17 +3187,20 @@ def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
                 if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
             except: pass
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
-        Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
+        Psid=psid+pi*Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
         Psi=numpy.arctan((1-r)/(1+r)*numpy.tan(Psid))%pi
         for k in range(len(bpm)):
             if Psid[k]%(2*pi)>pi: Psi[k]=Psi[k]+pi
-        psi=Psi-Psi[0]; psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
+        psi=Psi-Psi[0]
+        psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
         for k in range(len(bpm)): psiall[k][i]=psi[k]/(2*pi)  #-- phase range back to [0,1)
 
     #-- Output
     result={}
     for k in range(len(bpm)):
-        psiave=PhaseMean(psiall[k],1); psistd=PhaseStd(psiall[k],1)
+        psiave=PhaseMean(psiall[k],1)
+        psistd=PhaseStd(psiall[k],1)
         result[bpm[k][1]]=[psiave,psistd,psimdl[k],bpm[0][1]]
 
     return [result,bpm]
@@ -3127,10 +3220,16 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     for b in psid_ac2bpmac.keys():
         if '5L4' in b: bpmac1=b
         if '6L4' in b: bpmac2=b
-    try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+    try:
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
     except:
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-        except: print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'; return [{},'',[]]
+        try:
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
+        except: 
+            print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
+            return [{},'',[]]
 
     #-- Model phase advances
     if plane=='H': psimdl=array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
@@ -3152,21 +3251,28 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
                 if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
             except: pass
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
-        Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
+        Psid=psid+pi*Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
         Psi=numpy.arctan((1-r)/(1+r)*numpy.tan(Psid))%pi
         for k in range(len(bpm)):
             if Psid[k]%(2*pi)>pi: Psi[k]=Psi[k]+pi
-        psi=Psi-Psi[0]; psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
+        psi=Psi-Psi[0]
+        psi[k_bpmac:]=psi[k_bpmac:]+2*pi*Q
         psi12=(append(psi[1:],psi[0] +2*pi*Q)-psi)/(2*pi)  #-- phase range back to [0,1)
         #psi12=(append(psi[1:],psi[0])-psi)/(2*pi)  #-- phase range back to [0,1)
         psi13=(append(psi[2:],psi[:2]+2*pi*Q)-psi)/(2*pi)  #-- phase range back to [0,1)
-        for k in range(len(bpm)): psi12all[k][i]=psi12[k]; psi13all[k][i]=psi13[k]
+        for k in range(len(bpm)):
+            psi12all[k][i]=psi12[k]
+            psi13all[k][i]=psi13[k]
 
     #-- Output
-    result={}; muave=0.0  #-- mu is the same as psi but w/o mod
+    result={}
+    muave=0.0  #-- mu is the same as psi but w/o mod
     for k in range(len(bpm)):
-        psi12ave=PhaseMean(psi12all[k],1); psi12std=PhaseStd(psi12all[k],1)
-        psi13ave=PhaseMean(psi13all[k],1); psi13std=PhaseStd(psi13all[k],1)
+        psi12ave=PhaseMean(psi12all[k],1)
+        psi12std=PhaseStd(psi12all[k],1)
+        psi13ave=PhaseMean(psi13all[k],1)
+        psi13std=PhaseStd(psi13all[k],1)
         muave=muave+psi12ave
         try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
         except: result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[0][1]]    #-- The last BPM
@@ -3188,10 +3294,15 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     for b in psid_ac2bpmac.keys():
         if '5L4' in b: bpmac1=b
         if '6L4' in b: bpmac2=b
-    try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+    try:
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
     except:
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-        except: return [{},'',[],[]]
+        try:
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
+        except:
+            return [{},'',[],[]]
 
     #-- Model beta and phase advance
     if plane=='H': betmdl=array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
@@ -3201,7 +3312,8 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
 
     #-- Loop for files
-    betall=zeros((len(bpm),len(Files))); Adall=zeros((len(bpm),len(Files)))
+    betall=zeros((len(bpm),len(Files)))
+    Adall=zeros((len(bpm),len(Files)))
     for i in range(len(Files)):
         if plane=='H':
             amp =array([2*Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
@@ -3215,12 +3327,17 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             except: pass
         Ad  =amp/map(sqrt,betmdl)
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
-        Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
+        Psid=psid+pi*Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
         bet =(amp/mean(Ad))**2*(1+r**2+2*r*numpy.cos(2*Psid))/(1-r**2)
-        for k in range(len(bpm)): betall[k][i]=bet[k]; Adall[k][i]=Ad[k]
+        for k in range(len(bpm)):
+            betall[k][i]=bet[k]
+            Adall[k][i]=Ad[k]
 
     #-- Output
-    result={}; bb=[]; Adave=[]
+    result={}
+    bb=[]
+    Adave=[]
     for k in range(len(bpm)):
         betave=mean(betall[k])
         betstd=sqrt(mean((betall[k]-betave)**2))
@@ -3252,10 +3369,16 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     for b in psih_ac2bpmac.keys():
         if '5L4' in b: bpmac1=b
         if '6L4' in b: bpmac2=b
-    try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+    try:
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
     except:
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-        except: print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'; return [{},[]]
+        try:
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
+        except:
+            print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
+            return [{},[]]
 
     #-- Global parameters of the driven motion
     dh =Qh-Qx
@@ -3323,8 +3446,10 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         psih=psih-(psih[k_bpmac]-psih_ac2bpmac[bpmac])
         psiv=psiv-(psiv[k_bpmac]-psiv_ac2bpmac[bpmac])
 
-        Psih=psih-pi*Qh; Psih[:k_bpmac]=Psih[:k_bpmac]+2*pi*Qh
-        Psiv=psiv-pi*Qv; Psiv[:k_bpmac]=Psiv[:k_bpmac]+2*pi*Qv
+        Psih=psih-pi*Qh
+        Psih[:k_bpmac]=Psih[:k_bpmac]+2*pi*Qh
+        Psiv=psiv-pi*Qv
+        Psiv[:k_bpmac]=Psiv[:k_bpmac]+2*pi*Qv
 
         Psix=numpy.arctan((1-rh)/(1+rh)*numpy.tan(Psih))%pi
         Psiy=numpy.arctan((1-rv)/(1+rv)*numpy.tan(Psiv))%pi
@@ -3332,8 +3457,10 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             if Psih[k]%(2*pi)>pi: Psix[k]=Psix[k]+pi
             if Psiv[k]%(2*pi)>pi: Psiy[k]=Psiy[k]+pi
 
-        psix=Psix-pi*Qx; psix[k_bpmac:]=psix[k_bpmac:]+2*pi*Qx
-        psiy=Psiy-pi*Qy; psiy[k_bpmac:]=psiy[k_bpmac:]+2*pi*Qy
+        psix=Psix-pi*Qx
+        psix[k_bpmac:]=psix[k_bpmac:]+2*pi*Qx
+        psiy=Psiy-pi*Qy
+        psiy[k_bpmac:]=psiy[k_bpmac:]+2*pi*Qy
 
         #-- Construct f1001h, f1001v, f1010h, f1010v (these include sqrt(betv/beth) or sqrt(beth/betv))
         f1001h=1/numpy.sqrt(1-rv**2)*(numpy.exp(-1j*(Psiv-Psiy))*f1001hv+rv*numpy.exp( 1j*(Psiv+Psiy))*f1010hv)
@@ -3399,7 +3526,8 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             f1010yArg[k][i]=angle(f1010y[k])%(2*pi)
 
     #-- Output
-    fwqw={}; goodbpm=[]
+    fwqw={}
+    goodbpm=[]
     for k in range(len(bpm)):
 
         #-- Bad BPM flag based on phase
@@ -3446,10 +3574,15 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
     for b in psid_ac2bpmac.keys():
         if '5L4' in b: bpmac1=b
         if '6L4' in b: bpmac2=b
-    try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac1); bpmac=bpmac1
+    try:
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
     except:
-        try:    k_bpmac=list(zip(*bpm)[1]).index(bpmac2); bpmac=bpmac2
-        except: return [{},[]]
+        try:    
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
+        except:
+            return [{},[]]
 
     #-- Global parameters of the driven motion
     r=sin(pi*(Qd-Q))/sin(pi*(Qd+Q))
@@ -3464,14 +3597,16 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
                 if bpm[k][0]>s_lastbpm: psid[k]+=2*pi*Qd  #-- To fix the phase shift by Q
             except: pass
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
-        Psid=psid+pi*Qd; Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
+        Psid=psid+pi*Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-2*pi*Qd
         Psidall.append(Psid)
 
     #-- Loop for IPs
     result={}
     for ip in ('1','2','5','8'):
 
-        bpml='BPMSW.1L'+ip+'.'+oa[3:]; bpmr='BPMSW.1R'+ip+'.'+oa[3:]
+        bpml='BPMSW.1L'+ip+'.'+oa[3:]
+        bpmr='BPMSW.1R'+ip+'.'+oa[3:]
         if (bpml in zip(*bpm)[1]) and (bpmr in zip(*bpm)[1]):
 
             #-- Model values
@@ -3489,7 +3624,11 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
             dsmdl  =alfmdl*betsmdl
 
             #-- Measurement for each file
-            betall=[]; alfall=[]; betsall=[]; dsall=[]; rt2Jall=[]
+            betall=[]
+            alfall=[]
+            betsall=[]
+            dsall=[]
+            rt2Jall=[]
             for i in range(len(Files)):
                 try:    #-- Maybe not needed, to avoid like sqrt(-...)
                     if plane=='H':
@@ -3514,7 +3653,11 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
                     bet =betl-2*alfl*L+L**2/bets
                     alf =alfl-L/bets
                     ds  =alf*bets
-                    betall.append(bet); alfall.append(alf); betsall.append(bets); dsall.append(ds); rt2Jall.append(rt2J)
+                    betall.append(bet)
+                    alfall.append(alf)
+                    betsall.append(bets)
+                    dsall.append(ds)
+                    rt2Jall.append(rt2J)
                 except:
                     pass
 
@@ -3530,23 +3673,30 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
 def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
-    invarianceJx=[]; invarianceJy=[]
-    tunex       =[]; tuney       =[]
-    tunexRMS    =[]; tuneyRMS    =[]
+    invarianceJx=[]
+    invarianceJy=[]
+    tunex       =[]
+    tuney       =[]
+    tunexRMS    =[]
+    tuneyRMS    =[]
     dpp=[]
 
     for j in range(len(files[0])):
 
-        x=files[0][j]; y=files[1][j]
+        x=files[0][j]
+        y=files[1][j]
         [beta,rmsbb,bpms,invariantJx]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op)
         [beta,rmsbb,bpms,invariantJy]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op)
-        invarianceJx.append(invariantJx); invarianceJy.append(invariantJy)
+        invarianceJx.append(invariantJx)
+        invarianceJy.append(invariantJy)
         try:
             dpp.append(x.DPP)
         except:
             dpp.append(0.0)
-        tunex.append(x.Q1)      ; tuney.append(y.Q2)
-        tunexRMS.append(x.Q1RMS); tuneyRMS.append(y.Q2RMS)
+        tunex.append(x.Q1)
+        tuney.append(y.Q2)
+        tunexRMS.append(x.Q1RMS)
+        tuneyRMS.append(y.Q2RMS)
 
     tune   =[tunex,tuney]
     tuneRMS=[tunexRMS,tuneyRMS]
@@ -3564,8 +3714,8 @@ def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 def filterbpm(ListOfBPM):
     '''Filter non-arc BPM'''
     if len(ListOfBPM)==0:
-        print "Nothing to filter!!!!"
-        sys.exit()
+        print >> sys.stderr, "Nothing to filter!!!!"
+        sys.exit(1)
     result=[]
     for b in ListOfBPM:
         if ('BPM.' in b[1] or 'bpm.' in b[1]):
@@ -3664,8 +3814,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         MADTwiss=twiss(twiss_model_file,BPMdictionary) # MODEL from MAD
         print "Base model found!"
     except:
-        print "WARN: Cannot find model!!",twiss_model_file
-        sys.exit()
+        print >> sys.stderr, "twiss file loading failed for:",twiss_model_file
+        print >> sys.stderr, traceback.format_exc()
+        sys.exit(1)
 
     #-- finding the ac dipole model
     try:
@@ -3933,8 +4084,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 dppi=float(dppi)
                 print 'dppi= ',dppi
             except:
-                print 'but failing. DPP in ',file1 , ' is something wrong. String? --- leaving GetLLM'
-                sys.exit()
+                print >> sys.stderr, 'but failing. DPP in ',file1 , ' is something wrong. String? --- leaving GetLLM'
+                print >> sys.stderr, traceback.format_exc()
+                sys.exit(1)
 
         if dppi==0.0:
             ListOfZeroDPPX.append(twiss(file1))
@@ -4150,10 +4302,12 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #---- Calling GetPhases first to save tunes
     if wolinx!=1 and woliny!=1:
         #-- Calculate temp value of tune
-        Q1temp=[]; Q2temp=[]
+        Q1temp=[]
+        Q2temp=[]
         for i in ListOfZeroDPPX: Q1temp.append(mean(i.TUNEX))
         for i in ListOfZeroDPPY: Q2temp.append(mean(i.TUNEY))
-        Q1temp=mean(Q1temp); Q2temp=mean(Q2temp)
+        Q1temp=mean(Q1temp)
+        Q2temp=mean(Q2temp)
 
         [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1temp,'H',outputpath,bd,accel,lhcphase)
         [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2temp,'V',outputpath,bd,accel,lhcphase)
@@ -4811,7 +4965,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 #print "entering"
                 betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
             except:
-                betahor=[0,0,0,0,0,0,0];betaver=[0,0,0,0,0,0,0]
+                betahor=[0,0,0,0,0,0,0]
+                betaver=[0,0,0,0,0,0,0]
             #print str(betahor[6])
             fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
 
@@ -5528,7 +5683,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #
 
         foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
-        foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n');
+        foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n')
 
         files=[ListOfZeroDPPX,ListOfZeroDPPY]
         Q=[Q1,Q2]
