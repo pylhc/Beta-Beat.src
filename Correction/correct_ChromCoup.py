@@ -11,7 +11,7 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 import pickle
 from metaclass import twiss
 
-import os
+import os,shutil
 
 from optparse import OptionParser
 import GenMatrix_chromcouple as GM_cc
@@ -171,13 +171,13 @@ print "handling data"
 
 
 if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
-    os.system("cp "+options.path+"/changeparameters_couple.tfs "+options.path+"/changeparameters_couple.knob")
+    shutil.copy(options.path+"/changeparameters_chromcouple.tfs", options.path+"/changeparameters_chromcouple.knob")
 
 
     #####
 
-    v=twiss(options.path+"/changeparameters_couple.tfs")
-    mad=open(options.path+"/changeparameters_couple.madx", "w")
+    v=twiss(options.path+"/changeparameters_chromcouple.tfs")
+    mad=open(options.path+"/changeparameters_chromcouple.madx", "w")
     names=v.NAME
     delta=v.DELTA
 
