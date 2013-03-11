@@ -9,27 +9,12 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 #--- beta beat for store with numpy
 
 import pickle
-#try:
 from metaclass import twiss
-#except:
-#       from metaclass25 import twiss
-#try:
-#       from Numeric import *
-#       from LinearAlgebra import *
-#except:
-from numpy import *
 
-#from numpy.oldnumeric.linear_algebra import generalized_inverse
-from os import system
 import os
-#from metaclass import twiss
-import random,re,sys
-#from AllLists_couple import *
 
 from optparse import OptionParser
-#from GenMatrix_coupleDy import *
-from GenMatrix_chromcouple import *
-#from BCORR import *
+import GenMatrix_chromcouple as GM_cc
 
 ########### START ###############
 
@@ -145,7 +130,9 @@ variables=varslist
 MADTwiss=FullResponse['0']
 MADTwiss.Cmatrix()
 mode='C'
-couplelist=MakeList(couple, MADTwiss, modelcutC, errorcutC, mode)
+couplelist=GM_cc.MakeList(couple, MADTwiss, modelcutC, errorcutC, mode)
+if len(couplelist)==0:
+    raise ValueError("No valid BPM measurements, maybe your model-/errorcuts are too strict?")
 #print couplelist
 #mode='D'
 #dispylist=MakeList(dispy, MADTwiss, modelcutD, errorcutD, mode)
@@ -166,13 +153,13 @@ print "the weight option is "+str(wei)
 
 
 print "entering couple input",len(couplelist)
-chromcouple_inp=chromcouple_input(varslist, couplelist, wei)
+chromcouple_inp=GM_cc.chromcouple_input(varslist, couplelist, wei)
 print "computing the sensitivity matrix"
 sensitivity_matrix=chromcouple_inp.computeSensitivityMatrix(FullResponse)
 #print "sensitivity matrix", sensitivity_matrix
 
 print "computing correct coupling "
-[deltas, varslist ] = correctcouple(couple, chromcouple_inp, cut=cut, app=0, path=options.path)
+[deltas, varslist ] = GM_cc.correctcouple(couple, chromcouple_inp, cut=cut, app=0, path=options.path)
 
 print deltas
 
@@ -184,7 +171,7 @@ print "handling data"
 
 
 if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
-    system("cp "+options.path+"/changeparameters_couple.tfs "+options.path+"/changeparameters_couple.knob")
+    os.system("cp "+options.path+"/changeparameters_couple.tfs "+options.path+"/changeparameters_couple.knob")
 
 
     #####
