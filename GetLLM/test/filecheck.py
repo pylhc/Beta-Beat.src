@@ -22,17 +22,16 @@ RunValidator checks if a run(directory) is in accordance with the expected struc
 import os
 import sys
 import filecmp
+import argparse
 import unittest
 # Add directory to the python search path - needed to run script from command line
 # Otherwise ScriptRunner won't be found
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.abspath("../../../Python_Classes4MAD"))
-#TODO: remove
-print sys.path
 import vimaier_utils.scriptrunner
 import runvalidator
 
-
+'''
 # Decides whether the valid script will be run and produce output or not
 CREATE_VALID_OUTPUT = True
 # Path to original/valid GetLLM.py script
@@ -40,35 +39,36 @@ GETLLM_SCRIPT_VALID = "./GetLLM_valid.py"
 # Path to GetLLM.py script
 GETLLM_SCRIPT = "../GetLLM.py"
 PATH_TO_TEST_DATA = "./data"
-
 '''
+
 #===================================================================================================
 # Parse argument
 #===================================================================================================
-description = ("     FileCheckGetLLM.py [options]\n"
+description = ("     filecheck.py [options]\n"
                "Examples:"
-               "\nFileCheckGetLLM.py -cvo 1"
-               "\nFileCheckGetLLM.py -cvo 0 -vs ../main/GetLLM_valid.py -cs ../main/GetLLM_valid.py -ptd ./data"
+               "\filecheck.py -o 1"
+               "\filecheck.py -o 0 -v ../main/GetLLM_valid.py -m ./GetLLM_valid.py -p ./data"
                "\n\nThis module is a test for GetLLM.py. \n\nIt compares the output files of " 
                "the GETLLM_SCRIPT with expected files from GETLLM_SCRIPT_VALID and prints "
                "the result.\n\n")
 
 parser = argparse.ArgumentParser(description)
-parser.add_argument("-cvo","--create_valid_output", dest="CREATE_VALID_OUTPUT",
+parser.add_argument("-o","--valid_output", dest="CREATE_VALID_OUTPUT",
                     type=int, default=0,
                     help="Decides whether the valid script will be run(==0) and produce output or not(!=0)")
-parser.add_argument("-vs","--valid_getllm_script", dest="GETLLM_SCRIPT_VALID",
-                    default="../main/GetLLM_valid.py",
+parser.add_argument("-v","--valid_getllm_script", dest="GETLLM_SCRIPT_VALID",
+                    default="./GetLLM_valid.py",
                     help="Path to original/valid GetLLM.py script")
-parser.add_argument("-ms","--modified_getllm_script", dest="GETLLM_SCRIPT",
-                    default="../../../GetLLM/GetLLM.py",
+parser.add_argument("-m","--modified_getllm_script", dest="GETLLM_SCRIPT",
+                    default="../GetLLM.py",
                     help="Path to the modified GetLLM.py script")
-parser.add_argument("-ptd","--path_to_test_data", dest="PATH_TO_TEST_DATA",
+parser.add_argument("-p","--path_to_test_data", dest="PATH_TO_TEST_DATA",
                     default="./data",
                     help="Path to the root of the test data directory")
 
 args = parser.parse_args()
-'''
+
+
 
 
 #===================================================================================================
@@ -91,8 +91,8 @@ class TestFileOutputGetLLM(unittest.TestCase):
         num_of_runs = 0
         num_of_valid_runs = 0
         # Run test for every directory in PATH_TO_TEST_DATA
-        for element in os.listdir(PATH_TO_TEST_DATA):
-            run_path = os.path.join(PATH_TO_TEST_DATA, element)
+        for element in os.listdir(args.PATH_TO_TEST_DATA):
+            run_path = os.path.join(args.PATH_TO_TEST_DATA, element)
             if os.path.isdir(run_path):
                 run_validator = runvalidator.RunValidator(run_path)
                 validation_msg = run_validator.validate()
@@ -132,10 +132,10 @@ class TestFileOutputGetLLM(unittest.TestCase):
                      "-a":run_validator.get_accelerator_type(),
                      "-o":run_validator.get_valid_output_path()}
         
-        if CREATE_VALID_OUTPUT:
+        if args.CREATE_VALID_OUTPUT:
             # Run original/valid script
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
-                                                GETLLM_SCRIPT_VALID, dict_args)
+                                                args.GETLLM_SCRIPT_VALID, dict_args)
             print "Starting GetLLM_valid.py("+run_validator.get_run_path()+")..."
             print 
             valid_script_runner.run_script()
@@ -144,7 +144,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
         dict_args["-o"] = run_validator.get_to_check_output_path()
         
-        script_runner = vimaier_utils.scriptrunner.ScriptRunner(GETLLM_SCRIPT, dict_args)
+        script_runner = vimaier_utils.scriptrunner.ScriptRunner(args.GETLLM_SCRIPT, dict_args)
         print "Starting GetLLM.py("+run_validator.get_run_path()+")..."
         print 
         script_runner.run_script()
@@ -199,7 +199,27 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
 # END class TestFileOutPutGetLLM -------------------------------------------------------------------
 
-if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'TestFileOutPutGetLLM.testName']
+def main():
+    # Remove arguments from sys.argv
+    # Needed to avoid conflicts with the options from unittest module
+    arguments_tpl = ('-o', "--create_valid_output",
+                   "-v","--valid_getllm_script",
+                   "-m","--modified_getllm_script",
+                   "-p","--path_to_test_data")
+    del_lst = []
+    for i,option in enumerate(sys.argv):
+        if option in arguments_tpl:
+            del_lst.append(i)
+            del_lst.append(i+1)
+
+    del_lst.reverse()
+    for i in del_lst:
+        del sys.argv[i]
+        
     
     unittest.main()
+    
+
+
+if __name__ == "__main__":
+    main()

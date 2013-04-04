@@ -3,7 +3,7 @@ Created on 20 Mar 2013
 
 @author: vimaier
 
-This module includes the class RunValidator which is used in FileCheckGetLLM.py to check if the 
+This module includes the class RunValidator which is used in filecheck.py to check if the 
 given data directory for input and output are correct.
 '''
 
