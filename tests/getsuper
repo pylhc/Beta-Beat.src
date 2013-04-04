@@ -18,8 +18,16 @@ dir=`dirname $0`
 
 # check output files:
 
+n_errs=0
+n_files=0
 for f in `ls $1/tests/${base}_out/*`
 do
     fname=`basename $f`
-    diff $f $dir/out_${base}/$fname || exit 1
+    diff --brief $f $dir/out_${base}/$fname || n_errs=`expr $n_errs + 1`
+    n_files=`expr $n_files + 1`
 done
+if (( $n_errs > 0 ))
+then
+    echo "$n_errs files of a total of $n_files differ"
+fi
+exit $n_errs
