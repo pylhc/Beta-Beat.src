@@ -16,7 +16,6 @@ from linreg import *
 #
 
 
-
 class chromFileWriter:
     def __init__(self,ftype,fname,plane,overwrite=True):
         '''
@@ -195,7 +194,10 @@ def get_twissfile(options):
         return options.twiss
     if os.path.isfile(options.twiss+'/twiss.dat.gz'):
         return options.twiss+'/twiss.dat.gz'
-    return options.twiss+'/twiss.dat'
+    if os.path.isfile(options.twiss+'/twiss.dat'):
+        return options.twiss+'/twiss.dat'
+    # did not find any file..
+    raise ValueError("Could not find twissfile! "+options.twiss)
 
 ## ############
 #functions
