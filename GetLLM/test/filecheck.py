@@ -132,7 +132,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
                      "-a":run_validator.get_accelerator_type(),
                      "-o":run_validator.get_valid_output_path()}
         
-        if args.CREATE_VALID_OUTPUT:
+        if 0 == args.CREATE_VALID_OUTPUT:
             # Run original/valid script
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
                                                 args.GETLLM_SCRIPT_VALID, dict_args)
