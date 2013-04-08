@@ -295,7 +295,7 @@ def rungetllm(twissfile,accel,technique,files,options,dpp):
         print "GetLLM_V"+options.llm_version+" as GetLLM"
         exec("import GetLLM_V"+options.llm_version+" as GetLLM")
     else:
-        if __file__.split('.')[-2][-4:]=='_dev':
+        if '_dev' in __file__:
             import GetLLM_dev as GetLLM
         else:
             import GetLLM
