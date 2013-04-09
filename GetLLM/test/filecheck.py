@@ -3,6 +3,8 @@ Created on 19 Mar 2013
 
 @author: vimaier
 
+@version: 1.0.0
+
 This module is a test for GetLLM.py. It compares the output files of the GETLLM_SCRIPT with 
 expected files from GETLLM_SCRIPT_VALID and prints the result.
 
@@ -18,6 +20,11 @@ Every directory in PATH_TO_TEST_DATA represents a run and contains the necessary
 GetLLM.py. The test contains the execution of each run(directory). In this process will new output 
 files be created and compared.
 RunValidator checks if a run(directory) is in accordance with the expected structure. 
+
+Returns as exit code the number of failed runs.
+
+Change history:
+-
 '''
 import os
 import sys
@@ -77,6 +84,10 @@ args = parser.parse_args()
 class TestFileOutputGetLLM(unittest.TestCase):
     """TestCase which compares the output of GetLLM.py"""
 
+    
+    num_of_failed_tests = 0
+    """ Static variable which is used as exit code. """
+    
     def setUp(self):
         pass
 
@@ -107,6 +118,9 @@ class TestFileOutputGetLLM(unittest.TestCase):
                 num_of_valid_runs += 1
                 num_of_runs += 1
                 
+                
+        TestFileOutputGetLLM.num_of_failed_tests = num_of_runs - num_of_valid_runs
+                        
         print "Valid runs: %s/%s \n" % (str(num_of_valid_runs), str(num_of_runs))        
         if not all_tests_valid:
             raise AssertionError()
@@ -132,7 +146,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
                      "-a":run_validator.get_accelerator_type(),
                      "-o":run_validator.get_valid_output_path()}
         
-        if args.CREATE_VALID_OUTPUT:
+        if 0 == args.CREATE_VALID_OUTPUT:
             # Run original/valid script
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
                                                 args.GETLLM_SCRIPT_VALID, dict_args)
@@ -184,12 +198,12 @@ class TestFileOutputGetLLM(unittest.TestCase):
                                                 valid_filenames, 
                                                 shallow=False)
         
-        equal_files = len(match_mismatch_error[0])
-        overall_files = len(valid_filenames)
+        num_equal_files = len(match_mismatch_error[0])
+        num_overall_files = len(valid_filenames)
         
-        print str(equal_files)+" of "+str(overall_files)+ " are equal\n"
+        print str(num_equal_files)+" of "+str(num_overall_files)+ " are equal\n"
         
-        if equal_files == overall_files:
+        if num_equal_files == num_overall_files:
             return True
         else:
             print "Following files are not matching([mismatches], [errors]):"
@@ -217,8 +231,9 @@ def main():
         del sys.argv[i]
         
     
-    unittest.main()
+    unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
     
+    sys.exit(TestFileOutputGetLLM.num_of_failed_tests)
 
 
 if __name__ == "__main__":
