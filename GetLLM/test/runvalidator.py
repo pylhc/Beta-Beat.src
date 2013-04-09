@@ -3,8 +3,13 @@ Created on 20 Mar 2013
 
 @author: vimaier
 
+@version: 1.0.0
+
 This module includes the class RunValidator which is used in filecheck.py to check if the 
 given data directory for input and output are correct.
+
+Change history:
+
 '''
 
 import os
@@ -69,10 +74,20 @@ class RunValidator(object):
             
             for filename in src_filenames:
                 # Exclude files which ends with the algorithm suffix
-                #Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
+                # Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
                 tbt_data_tupel = ("_linx", "_liny", "_svdx", "_svdy", "_hax", "_hay") 
-                if filename.endswith(tbt_data_tupel):
-                    continue
+                
+                # Downward compatibility for Python interpreter < 2.5
+                #if filename.endswith(tbt_data_tupel):
+                #    continue
+                exclude_file = False
+                for tbt_data in tbt_data_tupel:
+                    if filename.endswith(tbt_data):
+                        exclude_file = True
+                        break
+                if exclude_file:
+                    continue    
+                
                 
                 self.__names_of_src_files += os.path.abspath(
                                           os.path.join(self.__run_path,

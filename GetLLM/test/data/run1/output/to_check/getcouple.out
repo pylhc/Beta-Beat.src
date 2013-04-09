@@ -1,5 +1,5 @@
 @ MAD_FILE %s "./data\run1\input/model/twiss.dat"
-@ FILES %s "C:\Users\vimaier\git\Beta-Beat.src\GetLLM\test\data\run1\input\src_files\ALLBPMs"
+@ FILES %s "C:\eclipse_4_2_2_python\workspace\Beta-Beat.src\GetLLM\test\data\run1\input\src_files\ALLBPMs"
 @ CG %le -0
 @ QG %le 0.281643320969
 * NAME   S    COUNT  F1001W FWSTD1 F1001R F1001I F1010W FWSTD2 F1010R F1010I MDLF1001R MDLF1001I MDLF1010R MDLF1010I

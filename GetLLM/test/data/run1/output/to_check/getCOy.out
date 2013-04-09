@@ -1,5 +1,5 @@
 @ MAD_FILE %s "./data\run1\input/model/twiss.dat"
-@ FILES %s "C:\Users\vimaier\git\Beta-Beat.src\GetLLM\test\data\run1\input\src_files\ALLBPMs_liny "
+@ FILES %s "C:\eclipse_4_2_2_python\workspace\Beta-Beat.src\GetLLM\test\data\run1\input\src_files\ALLBPMs_liny "
 @ TABLE %05s "ORBIT"
 @ TYPE %05s "ORBIT"
 @ SEQUENCE %05s "LHCB1"
