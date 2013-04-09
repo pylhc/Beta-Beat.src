@@ -7,3 +7,5 @@ include(CTest)
 
 include(tests/macros.cmake)
 add_subdirectory(tests)
+
+add_subdirectory(GetLLM/test)
