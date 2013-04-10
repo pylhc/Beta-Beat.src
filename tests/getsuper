@@ -7,8 +7,11 @@ base=`basename $0`
 NUMDIFF=/afs/cern.ch/eng/sl/lintrack/virtualenv-cs-ccr-optics1/bin/numdiff
 # use python2.6 if found, otherwise default..
 [ -x /usr/bin/python2.6 ] && PYTHON=/usr/bin/python2.6 || PYTHON=/usr/bin/python
+# use madx from afs if you don't have it in your path..
+[ -x madx ] && MADX=madx || MADX=/afs/cern.ch/group/si/slap/bin/madx
 
 $PYTHON $1/GetLLM/getsuper.py \
+ --madxbin=$MADX \
  --twiss="$1/tests/models/LHCB1/1_10_1_3/" \
  --output=./out_${base}/ --algorithm=SUSSIX --accel=LHCB1 \
  --beta=$1/ \
