@@ -1,3 +1,0 @@
-@ GetLLMVersion %s "V2.38b PRO"
-@ MAD_FILE %s "./data\run1\input/model/twiss.dat"
-@ FILES %s "C:\eclipse_4_2_2_python\workspace\Beta-Beat.src\GetLLM\test\data\run1\input\src_files\ALLBPMs_linx"

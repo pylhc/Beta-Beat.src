@@ -1,3 +1,0 @@
-@ MAD_FILE %s "./data\run1\input/model/twiss.dat"
-* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE 
-$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le 
