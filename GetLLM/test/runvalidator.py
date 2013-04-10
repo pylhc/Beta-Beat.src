@@ -9,7 +9,7 @@ This module includes the class RunValidator which is used in filecheck.py to che
 given data directory for input and output are correct.
 
 Change history:
-
+-1.0.1: - Added attribute '
 '''
 
 import os
@@ -46,6 +46,7 @@ class RunValidator(object):
         self.__names_of_src_files = ""
         self.__accelerator_type = ""
         self.__valid_output_path = ""
+        self.__has_valid_output_files = False
         self.__to_check_output_path = ""
         self.__is_valid = False
         
@@ -113,6 +114,11 @@ class RunValidator(object):
         if not os.path.isdir(self.__valid_output_path):
             return "Valid output path doesn't exist: " + self.__valid_output_path
         
+        # Check if output files exist. If not filecheck will run GetLLM_valid.py.
+        # Just a simple check. If more as two files(consider .gitignore) in the directory the test will pass.
+        if 2 < len( os.listdir(self.__valid_output_path) ):
+            self.__has_valid_output_files = True
+        
         # Check path to 'to_check' output
         self.__to_check_output_path = os.path.join(self.__run_path, RELATIVE_PATH_TO_OUTPUT_TO_CHECK)
         if not os.path.isdir(self.__to_check_output_path):
@@ -157,6 +163,10 @@ class RunValidator(object):
         """Returns the attribute run_path"""
         assert self.__is_valid, "No valid run path: "+self.__run_path
         return self.__valid_output_path
+    
+    def has__no_valid_output_files(self):
+        """Returns opposite of has_valid_ouput_files"""
+        return not self.__has_valid_output_files
     
     def get_to_check_output_path(self):
         """Returns the attribute run_path"""
