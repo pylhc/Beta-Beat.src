@@ -3,13 +3,14 @@ Created on 20 Mar 2013
 
 @author: vimaier
 
-@version: 1.0.0
+@version: 1.0.1
 
 This module includes the class RunValidator which is used in filecheck.py to check if the 
 given data directory for input and output are correct.
 
 Change history:
--1.0.1: - Added attribute '
+ - 1.0.1: - Added attribute 'run_dir_name' and 'has_valid_output_files'
+
 '''
 
 import os
@@ -42,6 +43,7 @@ class RunValidator(object):
                 The path to the directory which has to be validated.
         '''
         self.__run_path = run_path # Root of the directory with the input and output files
+        self.__run_dir_name = self.determine_dirname()
         self.__model_name = ""
         self.__names_of_src_files = ""
         self.__accelerator_type = ""
@@ -129,6 +131,22 @@ class RunValidator(object):
         return ""
     # END validate() --------------------------------------------------------
     
+    def determine_dirname(self):
+        path = self.get_run_path()
+        path.replace("/", os.sep)
+        path.replace("\\", os.sep)
+        
+        splitted_path = self.get_run_path().split(os.sep)
+    
+        index = -1
+        
+        # For case when the separator is at the end of the string
+        while "" == splitted_path[index] :
+            index -= 1
+            
+        return splitted_path[index]
+    
+    
     def print_yourself(self):
         """Method for debugging purposes"""
         print "RunValidator\nrun_path: "+self.get_run_path()
@@ -143,6 +161,9 @@ class RunValidator(object):
     def get_run_path(self):
         """Returns the attribute run_path"""
         return self.__run_path
+    
+    def get_run_dir_name(self):
+        return self.__run_dir_name
     
     def get_model_name(self):
         """Returns the attribute model_name"""
