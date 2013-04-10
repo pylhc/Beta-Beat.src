@@ -1,8 +1,8 @@
 title,      "Full response for java";
 
 option, -echo, -info,  warn;
-System,"ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-System,"ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+System,"test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"test -e ats || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
 option, -echo, -info,  warn;
 !call,   file = "db5/V6.5.seq";  ! Ideal
