@@ -1,8 +1,7 @@
 title, "Model creator for java" ;
 
 
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+System,"test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
 
 
  option, -echo, -info,  warn;
@@ -10,6 +9,8 @@ System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
  call,   file = "db5/as-built/V6.5.seq";  
  call,   file = "%OPT/modifiers.madx";	
  call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+
+system, "rm db5";
 
 seqedit, sequence=LHCB1;
 flatten;               
