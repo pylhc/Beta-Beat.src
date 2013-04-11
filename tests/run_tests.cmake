@@ -62,22 +62,18 @@ if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
 	set(CTEST_CHECKOUT_COMMAND     "${CTEST_UPDATE_COMMAND} clone git://github.com/pylhc/Beta-Beat.src.git ${CTEST_SOURCE_DIRECTORY}")
 endif()
 
-## -- Folders containing tests (relative to source directory)
-set(TEST_FOLDERS tests GetLLM/test)
+
+ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 
 ctest_start(${DASHBOARD})
 
-# copy test files to binary folder..
-foreach(test_folder ${TEST_FOLDERS})
+## -- Folders containing tests (relative to source directory)
+foreach(test_folder . tests GetLLM/test)
+   # copy test files to binary folder..
    configure_file("${CTEST_SOURCE_DIRECTORY}/${test_folder}/CTestTestfile.cmake"
                   "${CTEST_BINARY_DIRECTORY}/${test_folder}/CTestTestfile.cmake")
 endforeach()
 
-
-ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
-
 ctest_update()
-foreach(test_folder ${TEST_FOLDERS})
-   ctest_test(BUILD ${CTEST_BINARY_DIRECTORY}/${test_folder} APPEND)
-endforeach()
+ctest_test()
 ctest_submit()
