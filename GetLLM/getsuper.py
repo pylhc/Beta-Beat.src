@@ -267,7 +267,7 @@ def madcreator(dpps,options):
 def append(files):
     return ','.join(files)
 
-def filenames(dpp=''):
+def filenames(options,dpp=''):
     '''
     Returns list of available file names
     for the given dpp.
@@ -309,12 +309,12 @@ def rungetllm(twissfile,accel,technique,files,options,dpp):
             TBTana=technique)
     print "GetLLM finished"
 
-    for fname in filenames():
+    for fname in filenames(options):
             v=fname.strip('.out')
             shutil.move(options.output+'/'+fname,options.output+'/'+v+'_'+str(dpp)+'.out')
 
 def copy_default_outfiles(options):
-    for fname in filenames('0.0'):
+    for fname in filenames(options,'0.0'):
         v=fname.strip('_0.0.out')
         shutil.copy(options.output+'/'+fname,options.output+'/'+v+'.out')
 
