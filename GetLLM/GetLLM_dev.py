@@ -15,7 +15,7 @@
 # - modify output to fit latest TSF format and to meet requests from Rogelio
 # - fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
 # V1.5 Rogelio, 13 March 2008:
-# - Update to option parser, include BPMdictionary to filter BPMs not in Model       
+# - Update to option parser, include BPMdictionary to filter BPMs not in Model
 # V1.51, 13/Mar/2008:
 # - Modify output to fit latest TSF format again. Add STD to beta.
 # V1.6, 15/Jul/2008:
@@ -27,7 +27,7 @@
 # - Add GetCoupling
 # - "Computation of the Coupling Resonance Driving term f1001 and the coupling
 #   coefficient C from turn-by-turn single-BPM data", 28/May/2008
-# - The GetCoupling.py is initiated by Glenn V. and imported into GetLLM / 
+# - The GetCoupling.py is initiated by Glenn V. and imported into GetLLM /
 #   finalized by Masa. Aiba
 # - Some bugs are fixed - you can run even without liny file and find the
 #   results for horizontal plane only.
@@ -116,15 +116,15 @@
 #   based on equations, are added.
 # - A function to calculate beta* from the phase advance between Q1s is added.
 # - Phase shift by tune is compensated for the LHC experiment data.
-# V2.36 30/09/2011: 
+# V2.36 30/09/2011:
 # - Rescaling algorithm for BetaFromAmp and action (by Andy) is implemented.
 # - 2nd function to calculate IP parameters from Q1s is added.
 # - The compensation of the phase shift by tune for LHC exp data is modified.
 # - A function to calculate action of the AC dipole excitation is added.
-# V2.38 08/03/2012: 
+# V2.38 08/03/2012:
 # - added main() function
 # - using raise ValueError() instead of sys.exit() some places
-# 13/09/2012: 
+# 13/09/2012:
 # - merged in patch 2.35-2.37
 # V2.38b 03/dec/2012, tbach:
 # - reformatted comments
@@ -186,12 +186,17 @@ from linreg import *
 
 def modelIntersect(expbpms, model):
     bpmsin=[]
+    #print "start Intersect, expbpms #:", len(expbpms)
+    if len(expbpms)==0:
+        print >> sys.stderr, "Zero exp BPMs sent to modelIntersect"
+        sys.exit(1)
     for bpm in expbpms:
         try:
             check=model.indx[bpm[1].upper()]
             bpmsin.append(bpm)
         except:
             print bpm, "Not in Model"
+
     if len(bpmsin)==0:
         print >> sys.stderr, "Zero intersection of Exp and Model"
         print >> sys.stderr, "Please, provide a good Dictionary or correct data"
@@ -206,6 +211,9 @@ def intersect(ListOfFile):
         print >> sys.stderr, "Nothing to intersect!!!!"
         sys.exit(1)
     z=ListOfFile[0].NAME
+    if len(z)==0:
+        print >> sys.stderr, "No exp BPMs..."
+        sys.exit(1)
     for b in ListOfFile:
         z=filter(lambda x: x in z   , b.NAME)
     #SORT by S
@@ -295,9 +303,9 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
 
 
 def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,bd,oa,op):
+    #print "Hi Get", len(ListOfFiles)
 
     commonbpms=intersect(ListOfFiles)
-    #print len(commonbpms)
     commonbpms=modelIntersect(commonbpms, MADTwiss)
     #print len(commonbpms)
     #sys.exit()
@@ -1366,6 +1374,7 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 
     if len(dbpms)==0:
         print 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
+        fwqw['Global']=[-99,-99] #Quick fix Evian 2012
         return [fwqw,dbpms]
     else:
         CG=abs(4.0*(Q1-Q2)*CG/len(dbpms))
@@ -1450,10 +1459,14 @@ def GetCoupling2b(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phas
         for j in range(0,len(ListOfZeroDPPX)):
             jx=ListOfZeroDPPX[j]
             jy=ListOfZeroDPPY[j]
-            [SA0p1ij,phi0p1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], jx.PHASE01[jx.indx[bn1]], jx.PHASE01[jx.indx[bn2]])
-            [SA0m1ij,phi0m1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], -jx.PHASE01[jx.indx[bn1]], -jx.PHASE01[jx.indx[bn2]])
-            [TBp10ij,phip10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], jy.PHASE10[jy.indx[bn1]], jy.PHASE10[jy.indx[bn2]])
-            [TBm10ij,phim10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], -jy.PHASE10[jy.indx[bn1]], -jy.PHASE10[jy.indx[bn2]])
+            [SA0p1ij,phi0p1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]],
+                    jx.PHASE01[jx.indx[bn1]], jx.PHASE01[jx.indx[bn2]])
+            [SA0m1ij,phi0m1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]],
+                    -jx.PHASE01[jx.indx[bn1]], -jx.PHASE01[jx.indx[bn2]])
+            [TBp10ij,phip10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]],
+                    jy.PHASE10[jy.indx[bn1]], jy.PHASE10[jy.indx[bn2]])
+            [TBm10ij,phim10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]],
+                    -jy.PHASE10[jy.indx[bn1]], -jy.PHASE10[jy.indx[bn2]])
 
 
             #print SA0p1ij,phi0p1ij,SA0m1ij,phi0m1ij,TBp10ij,phip10ij,TBm10ij,phim10ij
@@ -1584,6 +1597,7 @@ def GetCoupling2b(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phas
 
     if len(dbpms)==0:
         print 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
+        fwqw['Global']=[CG,QG] #Quick fix Evian 2012
         return [fwqw,dbpms]
     else:
         CG=abs(4.0*(Q1-Q2)*CG/len(dbpms))
@@ -2834,6 +2848,10 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
     Qmin=[]
 
 
+    if len(bpms)==0:
+        print "No bpms in getCandGammaQmin. Returning emtpy stuff"
+        return coupleterms,0,0,bpms
+
     for bpm in bpms:
 
         bpmm=bpm[1].upper()
@@ -3131,7 +3149,7 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
         bpmac2='BPMYA.6L4.B2'
     else:
         return {}
-    
+
     if plane=='H':
         psi_ac2bpmac1=MADTwiss.MUX[MADTwiss.indx[bpmac1]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
         psi_ac2bpmac2=MADTwiss.MUX[MADTwiss.indx[bpmac2]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
@@ -3227,7 +3245,7 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         try:
             k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
             bpmac=bpmac2
-        except: 
+        except:
             print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
             return [{},'',[]]
 
@@ -3578,7 +3596,7 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
         k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
         bpmac=bpmac1
     except:
-        try:    
+        try:
             k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
             bpmac=bpmac2
         except:
@@ -3751,13 +3769,13 @@ def parse_args():
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option("-a", "--accel",
-                    help="Which accelerator: LHCB1 LHCB2 SPS RHIC TEVATRON",
+                    help="Which accelerator: LHCB1 LHCB2 LHCB4? SPS RHIC TEVATRON",
                     metavar="ACCEL", default="LHCB1",dest="ACCEL")
     parser.add_option("-d", "--dictionary",
                     help="File with the BPM dictionary",
                     metavar="DICT", default="0", dest="dict")
     parser.add_option("-m", "--model",
-                    help="Twiss free model file",
+                    help="Twiss free model file *.dat. For free oscillations, ONLY the file *.dat should be present in the path. For AC dipole, the path should also contain a file *_ac.dat (BOTH files a needed in this case).",
                     metavar="TwissFile", default="0", dest="Twiss")
     parser.add_option("-f", "--files",
                     help="Files from analysis, separated by comma",
@@ -3809,6 +3827,14 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     listOfInputFiles=files_to_analyse.split(",")
 
+    # Beam direction
+    bd=1
+    if accel=="LHCB2":
+        bd=-1 # THIS IS CORRECT, be careful with tune sign in SUSSIX and eigenmode order in SVD
+    elif accel=="LHCB4":
+        bd=1  # IS THIS CORRECT? I (rogelio) try for Simon...
+        accel="LHCB2" #This is because elements later are named B2 anyway, not B4
+
     #-- finding base model
     try:
         MADTwiss=twiss(twiss_model_file,BPMdictionary) # MODEL from MAD
@@ -3847,10 +3873,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     elif BPMU=='m': COcut=COcut/1.0e6
 
 
-    # Beam direction
-    bd=1
-    if accel=="LHCB2":
-        bd=-1 # THIS IS CORRECT, be careful with tune sign in SUSSIX and eigenmode order in SVD
 
 
     if TBTana=="SUSSIX":
@@ -4308,9 +4330,15 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         for i in ListOfZeroDPPY: Q2temp.append(mean(i.TUNEY))
         Q1temp=mean(Q1temp)
         Q2temp=mean(Q2temp)
-
+        if len(ListOfZeroDPPX[0].NAME)==0:
+            print "No BPMs in linx file"
+            sys.exit(1)
+        if  len(ListOfZeroDPPY[0].NAME)==0:
+            print "No BPMs in liny file"
+            sys.exit(1)
         [phasex,Q1,MUX,bpmsx]=GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1temp,'H',outputpath,bd,accel,lhcphase)
         [phasey,Q2,MUY,bpmsy]=GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2temp,'V',outputpath,bd,accel,lhcphase)
+        print "KK end"
     elif wolinx!=1:
         #-- Calculate temp value of tune
         Q1temp=[]
