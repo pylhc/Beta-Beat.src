@@ -27,6 +27,7 @@ Change history:
  - 1.0.1: Added option "special_output". It is possible to choose a separate output directory. The 
              produced output will be deleted again.
 '''
+
 import os
 import sys
 import filecmp
@@ -68,7 +69,8 @@ parser.add_option("-p","--path_to_test_data", dest="PATH_TO_TEST_DATA",
                     help="Path to the root of the test data directory")
 parser.add_option("-s","--special_output", dest="SPECIAL_OUTPUT",
                     default="",
-                    help="If special_output is given the output will be produced into this directory.")
+                    help="If special_output is given the output will be produced into this directory."+
+                            " Valid output will also be produced.")
 
 (options, args) = parser.parse_args()
 
@@ -91,6 +93,7 @@ if "" != SPECIAL_OUTPUT :
     CREATE_VALID_OUTPUT = True
     if not os.path.isdir(SPECIAL_OUTPUT):
         print "special_output is not a directory: ",SPECIAL_OUTPUT
+        SPECIAL_OUTPUT = ""
     
 
 #===================================================================================================
@@ -242,10 +245,10 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
         if num_equal_files == num_overall_files:
             # Delete created special folders if files are equal
-            #TODO remove debug
-            path_to_created_folder = os.path.join(SPECIAL_OUTPUT, run_validator.get_run_dir_name())
-            print "Deleting output folder: ", path_to_created_folder,"\n"
-            shutil.rmtree(path_to_created_folder)
+            if "" != SPECIAL_OUTPUT:
+                path_to_created_folder = os.path.join(SPECIAL_OUTPUT, run_validator.get_run_dir_name())
+                print "Deleting output folder: ", path_to_created_folder,"\n"
+                shutil.rmtree(path_to_created_folder)
             return True
         else:
             print "Following files are not matching([mismatches], [errors]):"
