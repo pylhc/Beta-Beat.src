@@ -24,13 +24,13 @@ class chromFileWriter:
         :param overwrite: Overwrite file if it already exist
         '''
         self.fstream=file(fname,'w')
-        self._clen=17 # column length..
+        self._clen=19 # column length..
 
         if plane.upper()=="H":
             plane="X"
         elif plane.upper()=="V":
             plane="Y"
-        
+
         if os.path.isfile(fname) and not overwrite:
             raise ValueError("Cannot overwrite file "+fname)
 
@@ -39,7 +39,11 @@ class chromFileWriter:
                     'A','Aerr','Am','Aerrm','B','Berr','Bm','Berrm', 'dbbm','dbberrm',
                     'dam','daerrm']
         couplecolumns=['name', 'sloc', 'chr_f1001r', 'chr_err_f1001r', 'chr_f1001i',
-            'chr_err_f1001i', 'chr_f1010r', 'chr_err_f1010r', 'chr_f1010i', 'chr_err_f1010i']
+            'chr_f1001r', 'chr_err_f1001r', 'chr_f1001i', 'chr_err_f1001i',
+            'chr_f1010r', 'chr_err_f1010r', 'chr_f1010i', 'chr_err_f1010i',
+            'mdl_chr_f1001r', 'mdl_chr_err_f1001r', 'mdl_chr_f1001i', 'mdl_chr_err_f1001i',
+            'mdl_chr_f1010r', 'mdl_chr_err_f1010r', 'mdl_chr_f1010i', 'mdl_chr_err_f1010i',
+          ]
 
         headnames={
             'name':'NAME',
@@ -77,7 +81,15 @@ class chromFileWriter:
             'chr_f1010r':'Cf1010r',
             'chr_err_f1010r':'Cf1010rERR',
             'chr_f1010i':'Cf1010i',
-            'chr_err_f1010i':'Cf1010iERR'}
+            'chr_err_f1010i':'Cf1010iERR',
+            'mdl_chr_f1001r':'Cf1001r_MDL',
+            'mdl_chr_err_f1001r':'Cf1001rERR_MDL',
+            'mdl_chr_f1001i':'Cf1001i_MDL',
+            'mdl_chr_err_f1001i':'Cf1001iERR_MDL',
+            'mdl_chr_f1010r':'Cf1010r_MDL',
+            'mdl_chr_err_f1010r':'Cf1010rERR_MDL',
+            'mdl_chr_f1010i':'Cf1010i_MDL',
+            'mdl_chr_err_f1010i':'Cf1010iERR_MDL'}
         headtypes={'name':'%s'}
         for key in headnames:
             # for all others we use '%le'...
@@ -97,9 +109,9 @@ class chromFileWriter:
         headcount=[i+1 for i in xrange(len(self.head))]
         self.types=[headtypes[c] for c in self.columns]
         
-        self.head[0]='* '+(self.head[0].rjust(self._clen-2))
-        headcount[0]='# '+(str(headcount[0]).rjust(self._clen-2))
-        self.types[0]='$ '+(self.types[0].rjust(self._clen-2))
+        self.head[0]='* '+(self.head[0].rjust(self._clen-3))
+        headcount[0]='# '+(str(headcount[0]).rjust(self._clen-3))
+        self.types[0]='$ '+(self.types[0].rjust(self._clen-3))
         
         self._write_list(self.head)
         # According to SL-CO-Note-91-32, this is allowed...
@@ -449,30 +461,31 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
 
         fileobj.writeLine(locals().copy())
 
-def getC(couplefile,name):
+
+def get_f( couplelist, dpplist, bpm_name, value):
     '''
-    Returns the complex variables f1001,f1010 from
-    the couplefile.
+    calculates the linear regression of 'value' for each
+    dpp in dpplist
+
+    :param couplelist: list of getcouple files (for each dpp)
+    :param dpplist: list of all dpp values available
+    :param bpm_name: name of bpm
+    :param value: name of column (e.g. F1001R)
     '''
-
-
-    f1001R=couplefile.F1001R[couplefile.indx[name]]
-    f1001I=couplefile.F1001I[couplefile.indx[name]]
-    f1010R=couplefile.F1010R[couplefile.indx[name]]
-    f1010I=couplefile.F1010I[couplefile.indx[name]]
-
-    f1001,f1010=complex(f1001R,f1001I),complex(f1010R,f1010I)
-    return f1001,f1010
-    #down=f1001-f1010
-    #c=1-(1/(1+4*down))
-
-    #return c.real,c.imag
+    lst=[]
+    x=[]
+    for dpp in dpplist:
+        x.append(dpp)
+        couplefile=couplelist[dpp]
+        lst.append( getattr(couplefile, value)[ couplefile.indx[ bpm_name]])
+    lreg=linreg(x,lst)
+    return lreg[0],lreg[3]
 
 def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
     '''
     linreg for chromatic coupling
-    
-    Writes to fileobj the chromatic coupling. 
+
+    Writes to fileobj the chromatic coupling.
     f1001, f1010 derivatives wrt dp/p, and errors.
     '''
     for bpm in bpms:
@@ -480,28 +493,17 @@ def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
         name=bpm[1]
         sloc=bpm[0]
 
-        x=[]
-        f1001r=[]
-        f1001i=[]
-        f1010r=[]
-        f1010i=[]
 
-        for dpp in dpplist:
+        chr_f1001r, chr_err_f1001r = get_f( couplelist, dpplist, name, 'F1001R')
+        chr_f1001i, chr_err_f1001i = get_f( couplelist, dpplist, name, 'F1001I')
+        chr_f1010r, chr_err_f1010r = get_f( couplelist, dpplist, name, 'F1010R')
+        chr_f1010i, chr_err_f1010i = get_f( couplelist, dpplist, name, 'F1010I')
 
-            f1001,f1010=getC(couplelist[dpp],name)
+        mdl_chr_f1001r, mdl_chr_err_f1001r = get_f( couplelist, dpplist, name, 'MDLF1001R')
+        mdl_chr_f1001i, mdl_chr_err_f1001i = get_f( couplelist, dpplist, name, 'MDLF1001I')
+        mdl_chr_f1010r, mdl_chr_err_f1010r = get_f( couplelist, dpplist, name, 'MDLF1010R')
+        mdl_chr_f1010i, mdl_chr_err_f1010i = get_f( couplelist, dpplist, name, 'MDLF1010I')
 
-            x.append(dpp)
-            f1001r.append(f1001.real)
-            f1001i.append(f1001.imag)
-            f1010r.append(f1010.real)
-            f1010i.append(f1010.imag)
-
-        fits=[linreg.linreg(x,f1001r),linreg.linreg(x,f1001i),linreg.linreg(x,f1010r),linreg.linreg(x,f1010i)]
-
-        chr_f1001r,chr_err_f1001r=fits[0][0],fits[0][3]
-        chr_f1001i,chr_err_f1001i=fits[1][0],fits[1][3]
-        chr_f1010r,chr_err_f1010r=fits[2][0],fits[2][3]
-        chr_f1010i,chr_err_f1010i=fits[3][0],fits[3][3]
 
         fileobj.writeLine(locals().copy())
 
