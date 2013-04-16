@@ -478,10 +478,10 @@ def get_f( couplelist, dpplist, bpm_name, value):
         x.append(dpp)
         couplefile=couplelist[dpp]
         lst.append( getattr(couplefile, value)[ couplefile.indx[ bpm_name]])
-    lreg=linreg(x,lst)
+    lreg=linreg.linreg(x,lst)
     return lreg[0],lreg[3]
 
-def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
+def dolinregCoupling(couplelist,bpms,dpplist,fileobj):
     '''
     linreg for chromatic coupling
 
@@ -691,7 +691,7 @@ def main(options,args):
     bpms=intersect(listc)
     bpms=modelIntersect(bpms,modeld)
 
-    dolinregCoupling(couplelist,bpms,fileslist.keys(),fileobj,modeld)
+    dolinregCoupling(couplelist,bpms,fileslist.keys(),fileobj)
     del fileobj
 
     print "Driven coupling finished"
@@ -727,7 +727,7 @@ def main(options,args):
         bpms=intersect(listcf)
         bpms=modelIntersect(bpms,modelf)
 
-        dolinregCoupling(couplelistf,bpms,fileslist.keys(),fileobj,modelf)
+        dolinregCoupling(couplelistf,bpms,fileslist.keys(),fileobj)
 
 
         print "Free coupling finished"
