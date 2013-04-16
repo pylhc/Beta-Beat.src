@@ -80,12 +80,9 @@ class RunValidator(object):
                 # Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
                 tbt_data_tupel = ("_linx", "_liny", "_svdx", "_svdy", "_hax", "_hay") 
                 
-                # Downward compatibility for Python interpreter < 2.5
-                #if filename.endswith(tbt_data_tupel):
-                #    continue
                 exclude_file = False
                 for tbt_data in tbt_data_tupel:
-                    if filename.endswith(tbt_data):
+                    if tbt_data in filename:
                         exclude_file = True
                         break
                 if exclude_file:

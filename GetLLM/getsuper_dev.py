@@ -1,13 +1,12 @@
 
 ###### imports
 from optparse import OptionParser
-import os,sys,shutil,commands,subprocess,re
+import os,sys,shutil,subprocess,re
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-from math import sqrt,cos,sin,pi,atan2
-from datetime import date
+import math
 from metaclass import twiss
-from linreg import *
+import linreg
 
 ##
 # YIL changes v 3.1:
@@ -337,7 +336,7 @@ def modelIntersect(expbpms, model):
     bpmsin=[]
     for bpm in expbpms:
         try:
-            check=model.indx[bpm[1].upper()]
+            model.indx[bpm[1].upper()]
             bpmsin.append(bpm)
         except:
             print bpm, "Not in Model"
@@ -367,7 +366,6 @@ def intersect(ListOfFile):
     result.sort()
     return result
 
-#linreg
 def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
     '''
     Calculates stuff and writes to the file in a table
@@ -411,27 +409,27 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
             wmo=twiss.WY[twiss.indx[name]]
             pmo=twiss.PHIY[twiss.indx[name]]
         for dpp in listx:
-            file=listy[dpp]
-            ix=file.indx[name]
+            _file=listy[dpp]
+            ix=_file.indx[name]
             indx.append(ix)
             if "H" in plane:
-                b.append(file.BETX[ix])
-                a.append(file.ALFX[ix])
+                b.append(_file.BETX[ix])
+                a.append(_file.ALFX[ix])
 
-                bm.append(file.BETXMDL[file.indx[name]])
-                am.append(file.ALFXMDL[file.indx[name]])
+                bm.append(_file.BETXMDL[_file.indx[name]])
+                am.append(_file.ALFXMDL[_file.indx[name]])
             else:
-                b.append(file.BETY[ix])
-                a.append(file.ALFY[ix])
+                b.append(_file.BETY[ix])
+                a.append(_file.ALFY[ix])
 
-                bm.append(file.BETYMDL[file.indx[name]])
-                am.append(file.ALFYMDL[file.indx[name]])
+                bm.append(_file.BETYMDL[_file.indx[name]])
+                am.append(_file.ALFYMDL[_file.indx[name]])
 
-        bfit=linreg(listx, b)
-        afit=linreg(listx, a)
+        bfit=linreg.linreg(listx, b)
+        afit=linreg.linreg(listx, a)
 
-        bfitm=linreg(listx, bm)
-        afitm=linreg(listx, am)
+        bfitm=linreg.linreg(listx, bm)
+        afitm=linreg.linreg(listx, am)
 
         # measurement
         dbb=bfit[0]/beta0
@@ -441,11 +439,11 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         A=dbb
         Aerr=dbberr
         B=da-alfa0*dbb
-        Berr=sqrt(daerr**2 + (alfa0err*dbb)**2 + (alfa0*dbberr)**2)
-        w=0.5*sqrt(A**2+B**2)
-        werr=0.5*sqrt( (Aerr*A/w)**2 + (Berr*B/w)**2  )
-        phi=atan2(B,A)/2./pi
-        phierr=1./(1.+(A/B)**2)*sqrt( (Aerr/B)**2 + (A/B**2*Berr)**2)/2./pi
+        Berr=math.sqrt(daerr**2 + (alfa0err*dbb)**2 + (alfa0*dbberr)**2)
+        w=0.5*math.sqrt(A**2+B**2)
+        werr=0.5*math.sqrt( (Aerr*A/w)**2 + (Berr*B/w)**2  )
+        phi=math.atan2(B,A)/2./math.pi
+        phierr=1./(1.+(A/B)**2)*math.sqrt( (Aerr/B)**2 + (A/B**2*Berr)**2)/2./math.pi
 
         #model
         dbbm=bfitm[0]/beta0m
@@ -455,11 +453,11 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         Am=dbbm
         Aerrm=dbberrm
         Bm=dam-alfa0m*dbbm
-        Berrm=sqrt(daerrm**2 + (alfa0m*dbberrm)**2)
-        wm=0.5*sqrt(Am**2+Bm**2)
-        werrm=0.5*sqrt( (Aerrm*Am/wm)**2 + (Berrm*Bm/wm)**2  )
-        phim=atan2(Bm,Am)/2./pi
-        phierrm=1./(1.+(Am/Bm)**2)*sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./pi
+        Berrm=math.sqrt(daerrm**2 + (alfa0m*dbberrm)**2)
+        wm=0.5*math.sqrt(Am**2+Bm**2)
+        werrm=0.5*math.sqrt( (Aerrm*Am/wm)**2 + (Berrm*Bm/wm)**2  )
+        phim=math.atan2(Bm,Am)/2./math.pi
+        phierrm=1./(1.+(Am/Bm)**2)*math.sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./math.pi
 
         fileobj.writeLine(locals().copy())
 
@@ -657,7 +655,7 @@ def main(options,args):
 
 
         #except:
-         #       print "No free data"
+        #       print "No free data"
 
     #
     # driven beta
