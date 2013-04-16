@@ -132,6 +132,10 @@
 #   display the exception, because the messages are not always helpful
 # - removed ";" from all over the code (still some left)
 # - 207 errors, 983 warning, 574 infos left from static code analysis...
+# Vxxx 16/apr/2013, vimaier:
+#  - deleted functions function and GetCoupling2
+#  - Changed GetCoupling2b to GetCoupling2
+#  - Set some TODOs
 
 
 # Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
@@ -159,7 +163,7 @@ import sys
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
 import traceback
-from metaclass import *
+import metaclass
 from numpy import *
 import numpy
 
@@ -1149,248 +1153,6 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
 
 def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey, bd, oa):
 
-
-    # find operation point
-    try:
-        fdi=open(outputpath+'Drive.inp','r')  # Drive.inp file is normally in the outputpath directory in GUI operation
-        for line in fdi:
-            if "TUNE X" in line:
-                fracxinp=line.split("=")
-                fracx=fracxinp[1]
-            if "TUNE Y" in line:
-                fracyinp=line.split("=")
-                fracy=fracyinp[1]
-        fdi.close()
-    except:
-        fracx=Q1 # Otherwise, the fractional parts are assumed to be below 0.5
-        fracy=Q2
-
-    if fracx<0.0 :
-        fracx=1.0-Q1
-    else:
-        fracx=Q1
-    if fracy<0.0 :
-        fracx=1.0-Q2
-    else:
-        fracy=Q2
-
-    if fracx>fracy:
-        sign_QxmQy=1.0
-    else:
-        sign_QxmQy=-1.0
-
-    # check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
-    # come from the same (simultaneous) measurement. It might be redundant check.
-    if len(ListOfZeroDPPX)!=len(ListOfZeroDPPY):
-        print 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
-        dum0={}
-        dum1=[]
-        return [dum0,dum1]
-
-
-    XplusY=ListOfZeroDPPX+ListOfZeroDPPY
-    dbpms=intersect(XplusY)
-    dbpms=modelIntersect(dbpms, MADTwiss)
-
-
-    # caculate fw and qw, exclude bpms having wrong phases
-
-    tp=2.0*pi
-    fwqw={}
-    dbpmt=[]
-    countBadPhase=0
-    for i in range(0,len(dbpms)-1):
-        bn1=upper(dbpms[i][1])
-        bn2=upper(dbpms[i+1][1])
-
-        delx= phasex[bn1][0] - 0.25  # Missprint in the coupling note
-        dely= phasey[bn1][0] - 0.25
-
-        f1001ij=[]
-        #q1001ij=[]
-        f1010ij=[]
-        #q1010ij=[]
-        q1js=[]
-        q2js=[]
-        q1jd=[]
-        q2jd=[]
-        badbpm=0
-        for j in range(0,len(ListOfZeroDPPX)):
-            jx=ListOfZeroDPPX[j]
-            jy=ListOfZeroDPPY[j]
-            [SA0p1ij,phi0p1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], jx.PHASE01[jx.indx[bn1]], jx.PHASE01[jx.indx[bn2]])
-            [SA0m1ij,phi0m1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]], -jx.PHASE01[jx.indx[bn1]], -jx.PHASE01[jx.indx[bn2]])
-            [TBp10ij,phip10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], jy.PHASE10[jy.indx[bn1]], jy.PHASE10[jy.indx[bn2]])
-            [TBm10ij,phim10ij]=ComplexSecondaryLine(dely, jy.AMP10[jy.indx[bn1]], jy.AMP10[jy.indx[bn2]], -jy.PHASE10[jy.indx[bn1]], -jy.PHASE10[jy.indx[bn2]])
-
-
-            #print SA0p1ij,phi0p1ij,SA0m1ij,phi0m1ij,TBp10ij,phip10ij,TBm10ij,phim10ij
-            f1001ij.append(0.5*sqrt(TBp10ij*SA0p1ij/2.0/2.0))
-            f1010ij.append(0.5*sqrt(TBm10ij*SA0m1ij/2.0/2.0))
-
-            if bd==1:
-                q1jd.append((phi0p1ij-jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2jd.append((-phip10ij+jx.MUX[jx.indx[bn1]]-0.25)%1.0)
-            elif bd==-1:
-                q1jd.append((phi0p1ij-jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2jd.append(-(-phip10ij+jx.MUX[jx.indx[bn1]]-0.25)%1.0)
-            #print q1,q2
-            q1jd[j]=(0.5-q1jd[j])%1.0 # This sign change in the real part is to comply with MAD output
-            q2jd[j]=(0.5-q2jd[j])%1.0
-
-
-            #if abs(q1-q2)<0.25:
-                #q1001ij.append((q1+q2)/2.0)
-            #elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-                #q1001ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
-            #else:
-                #badbpm=1
-                #q1001ij.append(q1)
-                #countBadPhase += 1
-                #print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
-
-            if bd==1:
-                q1js.append((phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2js.append((phim10ij+jx.MUX[jx.indx[bn1]]+0.25)%1.0)
-            if bd==-1:
-                q1js.append((phi0m1ij+jy.MUY[jy.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2js.append(-(phim10ij+jx.MUX[jx.indx[bn1]]+0.25)%1.0)
-            #print q1,q2
-            q1js[j]=(0.5-q1js[j])%1.0 # This sign change in the real part is to comply with MAD output
-            q2js[j]=(0.5-q2js[j])%1.0
-
-            #if abs(q1-q2)<0.25:
-                #q1010ij.append((q1+q2)/2.0)
-            #elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-                #q1010ij.append(q1) # Note that q1 and q2 are confined 0. to 1.
-            #else:
-                #badbpm=1
-                #if (oa=="SPS" or oa=="RHIC"):
-                #       badbpm=0
-                #q1010ij.append(q1)
-                #countBadPhase += 1
-                #print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
-
-        q1jd=array(q1jd)
-        q2jd=array(q2jd)
-        q1d=average(q1jd)
-        q2d=average(q2jd)
-
-        q1js=array(q1js)
-        q2js=array(q2js)
-        q1s=average(q1js)
-        q2s=average(q2js)
-
-
-        if abs(q1d-q2d)<0.25:
-            q1001i=(q1d+q2d)/2.0
-        elif abs(q1d-q2d)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-            q1001i=q1d # Note that q1 and q2 are confined 0. to 1.
-        else:
-            badbpm=1
-            countBadPhase += 1
-            #print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
-        if abs(q1s-q2s)<0.25:
-            q1010i=(q1s+q2s)/2.0
-        elif abs(q1s-q2s)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-            q1010i=q1s # Note that q1 and q2 are confined 0. to 1.
-        else:
-            badbpm=1
-        if (oa=="SPS" or "RHIC" in oa):
-            # No check for the SPS or RHIC
-            badbpm=0
-            q1001i=q1d
-            #q1001r=q1s
-            #q1010i=q1d
-            q1010i=q1s
-            countBadPhase += 1
-            #print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
-
-
-
-        if badbpm==0:
-            f1001ij=array(f1001ij)
-            f1001i=average(f1001ij)
-            f1001istd=sqrt(average(f1001ij*f1001ij)-(average(f1001ij))**2.0+2.2e-16)
-            f1010ij=array(f1010ij)
-            f1010i=average(f1010ij)
-            try:
-                f1010istd=sqrt(average(f1010ij*f1010ij)-(average(f1010ij))**2.0+2.2e-16)
-            except:
-                f1010istd=0
-            #q1001ij=array(q1001ij)
-            #q1001i=average(q1001ij)
-            try:
-                q1001istd=sqrt(average(q1jd*q1jd)-(q1001i)**2.0+2.2e-16) # Not very correct
-            except:
-                q1001istd=0
-            #q1010ij=array(q1010ij)
-            #q1010i=average(q1010ij)
-            try:
-                q1010istd=sqrt(average(q1js*q1js)-(q1010i)**2.0+2.2e-16)
-            except:
-                q1010istd=0
-            f1001i=f1001i*complex(cos(tp*q1001i),sin(tp*q1001i))
-            f1010i=f1010i*complex(cos(tp*q1010i),sin(tp*q1010i))
-            dbpmt.append([dbpms[i][0],dbpms[i][1]])
-            if bd==1:
-                fwqw[bn1]=[[f1001i,f1001istd,f1010i,f1010istd],[q1001i,q1001istd,q1010i,q1010istd]]
-            elif bd==-1:
-                fwqw[bn1]=[[f1010i,f1010istd,f1001i,f1001istd],[q1010i,q1010istd,q1001i,q1001istd]]
-
-
-
-    dbpms=dbpmt
-
-    # possible correction ??
-    #bn0=upper(dbpms[0][1])
-    #up1=fwqw[bn0][0][0]
-    #up2=fwqw[bn0][0][2]
-    #for i in range(1,len(dbpms)):
-        #bn0=upper(dbpms[i-1][1])
-        #bn1=upper(dbpms[i][1])
-        #df1001=sqrt(fwqw[bn0][0][0].real**2+fwqw[bn0][0][0].imag**2)/sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
-        #df1010=sqrt(fwqw[bn0][0][2].real**2+fwqw[bn0][0][2].imag**2)/sqrt(fwqw[bn1][0][2].real**2+fwqw[bn1][0][2].imag**2)
-        #fwqw[bn0][0][0]=up1
-        #fwqw[bn0][0][2]=up2
-        #up1=complex(df1001*fwqw[bn1][0][0].real,fwqw[bn1][0][0].imag)
-        #up2=complex(df1010*fwqw[bn1][0][2].real,fwqw[bn1][0][2].imag)
-
-    #fwqw[bn1][0][0]=up1
-    #fwqw[bn1][0][2]=up2
-    # end of possible correction
-
-
-
-    # compute global values
-    CG=0.0
-    QG=0.0
-    for i in range(0,len(dbpms)-1):
-        jx=ListOfZeroDPPX[0]
-        jy=ListOfZeroDPPY[0]
-        bn1=upper(dbpms[i][1])
-        CG=CG+sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
-        QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
-
-    if len(dbpms)==0:
-        print 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
-        fwqw['Global']=[-99,-99] #Quick fix Evian 2012
-        return [fwqw,dbpms]
-    else:
-        CG=abs(4.0*(Q1-Q2)*CG/len(dbpms))
-        QG=(QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0
-    fwqw['Global']=[CG,QG]
-
-
-    return [fwqw,dbpms]
-
-#-----------
-
-def GetCoupling2b(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey, bd, oa):
-
-    # This fixes the averaging of multiple files in GetCoupling2.
-    # Everything else is the same. By Ryoichi
-
     # find operation point
     try:
         fdi=open(outputpath+'Drive.inp','r')  # Drive.inp file is normally in the outputpath directory in GUI operation
@@ -1516,8 +1278,6 @@ def GetCoupling2b(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phas
                 #countBadPhase += 1
                 #print "Bad Phases in BPM ",bn1,bn2, "total so far", countBadPhase
 
-        #--------- Different from getcoupling2 ->
-
         q1jd=array(q1jd)
         q2jd=array(q2jd)
         q1d=PhaseMean(q1jd,1.0)
@@ -1563,7 +1323,6 @@ def GetCoupling2b(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phas
             elif bd==-1:
                 fwqw[bn1]=[[f1010i,f1010istd,f1001i,f1001istd],[q1010i,q1010istd,q1001i,q1001istd]]
 
-        #--------- <- Different from getcoupling2
 
     dbpms=dbpmt
 
@@ -1783,8 +1542,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
         fbpmy[j].close()
         filex='temp'+str(j)+'_linx'
         filey='temp'+str(j)+'_liny'
-        PseudoListX.append(twiss(filex))
-        PseudoListY.append(twiss(filey))
+        PseudoListX.append(metaclass.twiss(filex))
+        PseudoListY.append(metaclass.twiss(filey))
 
 
     return [PseudoListX,PseudoListY]
@@ -1806,28 +1565,9 @@ def f2h(amp,ampphase,termj,factor,term,M2M):    # converts from f-term to h-term
 
     return fh
 
-def function(x):
-
-
-    fterm=4*abs(x[0])
-
-    main=2*sinh(fterm)
-
-    single=sinh(fterm)
-
-    first=cosh(fterm)*sin(x[1])
-
-    second=cosh(fterm)*sin(x[1]+2*phi12_nlinear)
-
-    fun1=float((main*(single+first))-bb[0])
-
-    fun2=float((main*(single+second))-bb[1])
-
-    fun=[fun1,fun2]
-
-    return fun
-
+#TODO:remove lines with phi12_nlinear. The variable will be only setted ==> useless(vimaier)
 phi12_nlinear=0
+#TODO: actually no need to be a global. Will always first be setted befor readed in three functions(vimaier)
 bb=[0,0]
 
 def Getquadrupole(MADTwiss,names,plane,phase,amp):
@@ -2547,7 +2287,7 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
         ftemp.write('"'+bn+'" '+str(bns)+" "+str(NBETX)+" "+str(NBETY)+" "+str(NALFX)+" "+str(NALFY)+" "+str(NMUX)+" "+str(NMUY)+"\n")
 
     ftemp.close()
-    dpptwiss=twiss("./TempTwiss.dat",dictionary)
+    dpptwiss=metaclass.twiss("./TempTwiss.dat",dictionary)
 
 
     return dpptwiss
@@ -3837,7 +3577,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     #-- finding base model
     try:
-        MADTwiss=twiss(twiss_model_file,BPMdictionary) # MODEL from MAD
+        MADTwiss=metaclass.twiss(twiss_model_file,BPMdictionary) # MODEL from MAD
         print "Base model found!"
     except:
         print >> sys.stderr, "twiss file loading failed for:",twiss_model_file
@@ -3846,7 +3586,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     #-- finding the ac dipole model
     try:
-        MADTwiss_ac=twiss(twiss_model_file.replace(".dat","_ac.dat"))
+        MADTwiss_ac=metaclass.twiss(twiss_model_file.replace(".dat","_ac.dat"))
         acswitch="1"
         print "Driven Twiss file found. AC dipole effects calculated with the effective model (get***_free2.out)"
     except:
@@ -3861,7 +3601,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
             else:
                 try:
-                    MADTwissElem=twiss(twiss_model_file.replace(".dat","_elements.dat"))
+                    MADTwissElem=metaclass.twiss(twiss_model_file.replace(".dat","_elements.dat"))
                     print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
                 except:
                     print 'WARN: AC dipoles not in the model. AC dipole effects not calculated with analytic equations !'
@@ -4094,7 +3834,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             file1=filein[:-3]+Suffix1+'.gz'
         else:
             file1=filein+Suffix1
-        x1=twiss(file1)
+        x1=metaclass.twiss(file1)
         try:
             dppi=x1.DPP
         except:
@@ -4111,7 +3851,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 sys.exit(1)
 
         if dppi==0.0:
-            ListOfZeroDPPX.append(twiss(file1))
+            ListOfZeroDPPX.append(metaclass.twiss(file1))
             FileOfZeroDPPX.append(file1)
             fphasex.write(file1+'')
             fphasexT.write(file1+'')
@@ -4144,7 +3884,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 fcouplef.write(filein+'')
                 fcouplef2.write(filein+'')
         else:
-            ListOfNonZeroDPPX.append(twiss(file1))
+            ListOfNonZeroDPPX.append(metaclass.twiss(file1))
             FileOfNonZeroDPPX.append(file1)
             fNDx.write(file1+' ')
             fDx.write(file1+' ')
@@ -4154,7 +3894,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 file1=filein[:-3]+Suffix2+'.gz'
             else:
                 file1=filein+Suffix2
-            y1=twiss(file1)
+            y1=metaclass.twiss(file1)
             try:
                 dppi=y1.DPP
             except:
@@ -4170,7 +3910,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     raise ValueError('leaving GetLLM')
 
             if dppi==0.0:
-                ListOfZeroDPPY.append(twiss(file1))
+                ListOfZeroDPPY.append(metaclass.twiss(file1))
                 FileOfZeroDPPY.append(file1)
                 fphasey.write(file1+'')
                 fphaseyT.write(file1+'')
@@ -4188,7 +3928,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     fabetayf.write(file1+'')
                     fabetayf2.write(file1+'')
             else:
-                ListOfNonZeroDPPY.append(twiss(file1))
+                ListOfNonZeroDPPY.append(metaclass.twiss(file1))
                 FileOfNonZeroDPPY.append(file1)
                 fDy.write(file1+' ')
         except:
@@ -4240,6 +3980,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 
     if acswitch=="1":
+        #TODO: easier the lines: abs( MADTwiss.Q1 - int(MADTwiss.Q1) ) 
         Q1f=abs(float(str(MADTwiss.Q1).split('.')[0])-MADTwiss.Q1)        #-- Free Q1 (tempolarlly, overwritten later)
         Q2f=abs(float(str(MADTwiss.Q2).split('.')[0])-MADTwiss.Q2)        #-- Free Q2 (tempolarlly, overwritten later)
         Q1 =abs(float(str(MADTwiss_ac.Q1).split('.')[0])-MADTwiss_ac.Q1)  #-- Drive Q1 (tempolarlly, overwritten later)
@@ -5300,11 +5041,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             if accel=="SPS" or "RHIC" in accel:
                 [phasexp,Q1,MUX,bpmsx]=GetPhases(MADTwiss,PseudoListX,'H',outputpath,bd,accel,lhcphase)
                 [phaseyp,Q2,MUY,bpmsy]=GetPhases(MADTwiss,PseudoListY,'V',outputpath,bd,accel,lhcphase)
-                #[fwqw,bpms]=GetCoupling2(MADTwiss,PseudoListX,PseudoListY,Q1,Q2,phasexp,phaseyp,bd,accel)
-                [fwqw,bpms]=GetCoupling2b(MADTwiss,PseudoListX,PseudoListY,Q1,Q2,phasexp,phaseyp,bd,accel)
+                [fwqw,bpms]=GetCoupling2(MADTwiss,PseudoListX,PseudoListY,Q1,Q2,phasexp,phaseyp,bd,accel)
             else:
-                #[fwqw,bpms]=GetCoupling2(MADTwiss,ListOfZeroDPPX,ListOfZeroDPPY,Q1,Q2,phasexlist[0],phaseylist[0],bd,accel)
-                [fwqw,bpms]=GetCoupling2b(MADTwiss,ListOfZeroDPPX,ListOfZeroDPPY,Q1,Q2,phasexlist[0],phaseylist[0],bd,accel)
+                [fwqw,bpms]=GetCoupling2(MADTwiss,ListOfZeroDPPX,ListOfZeroDPPY,Q1,Q2,phasexlist[0],phaseylist[0],bd,accel)
             fcouple.write('@ CG %le '+str(fwqw['Global'][0])+'\n')
             fcouple.write('@ QG %le '+str(fwqw['Global'][1])+'\n')
             fcouple.write('* NAME   S    COUNT  F1001W FWSTD1 F1001R F1001I F1010W FWSTD2 F1010R F1010I MDLF1001R MDLF1001I MDLF1010R MDLF1010I\n')
@@ -5409,6 +5148,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             for i in range(0,len(bpms)):
                 bn1=upper(bpms[i][1])
                 bns1=bpms[i][0]
+                #TODO: make it easier with modulo
+                # n = len(bpms)
+                # index = (i+1)%n
                 if i==len(bpms)-1:
                     bn2=upper(bpms[0][1])
                     bns2=bpms[0][0]
@@ -5491,6 +5233,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             for i in range(0,len(bpms)):
                 bn1=upper(bpms[i][1])
                 bns1=bpms[i][0]
+                #TODO: make it easier with modulo
+                # n = len(bpms)
+                # index = (i+1)%n
                 if i==len(bpms)-1:
                     bn2=upper(bpms[0][1])
                     bns2=bpms[0][0]
