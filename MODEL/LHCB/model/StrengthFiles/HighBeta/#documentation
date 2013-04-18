@@ -1,0 +1,15 @@
+str files for High Beta
+
+The files are loaded by the GUI for the model creator.
+They must follow this conventions:
+1) End with ".str"
+2) Start with "IP1" to be loaded for IP1 OR start with "IP2" to be loaded for IP2
+
+The path is stored in the properties file:
+/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/CoreFiles/ProgramVersions.properties
+
+The str files were copied at 2012/05/22 from:
+/afs/cern.ch/user/h/hbu/public/2012
+/afs/cern.ch/eng/lhc/optics/V6.503/HiBeta/
+
+--tbach 2012/05/22
