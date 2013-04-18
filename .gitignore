@@ -13,4 +13,6 @@ db
 \#*\#
 *.bak
 *.orig
-/.pydevproject
+.pydevproject
+source_2011
+TestFullResp
