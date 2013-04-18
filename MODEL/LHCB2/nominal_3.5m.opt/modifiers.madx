@@ -1,0 +1,7 @@
+call file="db5/V6.5.inj.str";
+call, file="db5/IR1/IP1_beta_3.50.str";
+call, file="db5/IR5/IP5_beta_3.50.str";
+call, file="db5/IR8/3.5TeV/ip8_0.00882_beta3.50m.str";
+call, file="db5/IR2/3.5TeV/ip2_0.00889_beta3.50m.str";
+
+

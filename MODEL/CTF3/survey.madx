@@ -1,0 +1,927 @@
+
+call, file="../common.seqx";
+call, file="currents";
+call, file="definitions.madx";
+call, file="crelements.seqx";
+
+call, file="createCRsequence.madx";
+system, "changeseqname.bat";
+call, file="cr_s.seqx"
+
+
+select, flag=twiss,column=name,s,betx,bety,mux,muy,dx,x,y,dx10,sigx,sigy,sigxm,envp,envm;
+
+beam, particle=electron, energy=ener;
+use, period=CR_anellot_t;
+select, flag=survey, clear;
+select, flag=survey, pattern="min";
+select, flag=survey, pattern="mext";
+select, flag=survey, pattern="cr\..*";
+select, flag=survey, pattern="drift.*";
+! starting point from Nicolas
+! verified to be 36.4mm from septum exit
+! for this, the sequence has to start at MIN
+survey, x0=-2122.86245, y0=2433.66, z0=2088.214581,
+	theta0=1.205765252, ! as in linac
+	file="cr_names.survey";
+
+
+
+use, period=CRM;
+
+select, flag=survey, clear;
+survey, x0=xe0190, y0=ye0190, z0=ze0190, theta0=te0190,
+	file="crm.survey";
+
+
+
+
+! survey for tracage of the bending magnets 
+use, period=CR_anellot_t;
+select, flag=survey, clear;
+select, flag=survey, pattern="bhf.*";
+survey, x0=-2122.86245, y0=2433.66, z0=2088.214581,
+	theta0=1.205765252, ! as in linac
+	file="cr_names_bend.survey";
+
+
+stop; 
+
+!stop;
+call, file=myksave2;
+
+!savebeta, label=BQ210, place=CR.QDF0540;
+!select, flag=twiss,column=name,s,betx,bety,mux,muy,dx,x,y,dx10;
+twiss, save; !, file=cr_nobump.twiss;; ! betx =8.56 bety = 2.5
+plot, vaxis = betx,bety,dx10, haxis = s,
+ colour = 100; !, vmin = -1, vmax = 30; 
+plot, vaxis = mux,muy, haxis = s,
+ colour = 100; !, vmin = -1, vmax = 30; 
+plot,vaxis=x,haxis=s,colour=100;
+plot,vaxis=x,haxis=s,hmin=36, hmax=46, colour=100;
+!value, BQ210->BETX;
+!value, BQ210->BETY;
+!value, BQ210->ALFX;
+!value, BQ210->ALFY;
+
+value, BINJ->X;
+value, BINJ->PX;
+value, kdefl;
+
+
+! from present TL1 optics: (FT 3.4.06)
+bxicr =  8.131616073;
+byicr =  3.545662081;
+axicr = -0.1248950725;
+ayicr = -0.3089560807;
+
+
+BXCR0 := 8.006721;
+BYCR0 := 3.236706;
+
+! Twiss function at injection point (FT 3.4.06)
+bxicr := bxcr0 + l_min*l_min/bxcr0;
+axicr := -l_min/bxcr0;
+byicr := bycr0 + l_min*l_min/bycr0;
+ayicr := -l_min/bycr0;
+value, bxicr;
+value, byicr;
+value, axicr;
+value, ayicr;
+
+
+savebeta, label=BINJ, place=MIN;
+use, period=quarto1;
+twiss, betx=bxcr0, bety=bycr0, save; 
+!plot,vaxis=betx,bety,dx,haxis=s,interpolate,style=100,vmin=-1, vmax=20;
+
+value, BINJ->betx;
+value, BINJ->bety;
+value, BINJ->alfx;
+value, BINJ->alfy;
+
+!kdefl := 0;
+select, flag=twiss, clear;
+select, flag=twiss,column=name,s,betx,bety,mux,muy,dx,x,y,dx10;
+
+/*
+value, kq03;
+match, rmatrix, betx=bxcr0, bety=bycr0;
+  vary, name=kq03,   step = 0.01;
+  vary, name=kq02,   step = 0.01;
+  constraint, range=CR.QDH0340, dx=0.0, dpx=0.0;
+  migrad, tolerance=1e-010, calls=10000;
+endmatch;
+value, kq03;
+!stop;
+
+match, rmatrix, betx=bxcr0, bety=bycr0;
+vary, name=kql1in, step = 0.01;
+vary, name=kql2in, step = 0.01;
+vary, name=kql3in, step = 0.01;
+vary, name=kql4in, step = 0.01;
+vary, name=kqs1c,  step = 0.01;
+vary, name=kqs2c,  step = 0.01;
+!vary, name=bxcr0,  lower = 6, upper = 8.9,  step = 0.01;
+!vary, name=bycr0,  lower = 1, upper = 3.5,  step = 0.01;
+!vary dmat, step = 0.001 , lower = -.2, upper = .3
+!vary dmat2, step = 0.001 , lower = -.2, upper = .3
+!constrai,mm1, betx = bxar
+!constrai,mm1, alfx = axar
+!constrai,mm1, bety = byar
+!constrai,mm1, alfy = ayar
+weight, betx=30, bety=30;
+constraint, range=sybcr[1], betx=1.072553976, bety=4.875599978; 
+weight, betx=3, bety=3;
+constraint, betx < 13;
+constraint, bety < 11.5;
+weight, betx=10, bety=10;
+
+weight, re56=200;
+constraint, range=#e, re56=0.0;
+weight, mux=500;
+constraint, range=CR.HDS0150, mux=0.25;
+constraint, range=mc, alfx=0, alfy=0;
+constraint, range=mc, betx <3, betx>1; 
+constraint, range=mc, bety <6, bety>4;
+weight, alfx = 200, alfy = 200;
+constraint, range=#e, alfx = 0, alfy = 0; !, dpx = 0;
+weight, alfx = 100, alfy = 100;
+
+weight, mux=1000;
+constraint, range=#e, mux=1.863456163-0.04;
+!constraint, range=CR.QFF0190, betx<12;
+migrad, tolerance=1e-010, calls=10000;
+simplex, tolerance=1e-010, calls=10000;
+endmatch;
+
+twiss betx=bxcr0, bety=bycr0, save;
+plot,vaxis=betx,bety,dx10,haxis=s,interpolate,colour=100,
+vmin=-1 vmax=20;
+
+!stop;
+kqs1nw = kqs1c;
+kqs2nw = kqs2c;
+
+use, period=quarto3;
+match, rmatrix, betx=bxcr0, bety=bycr0;
+vary, name=kqs1nw,  step = 0.01;
+vary, name=kqs2nw,  step = 0.01;
+weight, betx=3, bety=3;
+constraint, betx < 13;
+constraint, bety < 11.5;
+weight, betx=10, bety=10;
+constraint, range=mc, alfx=0, alfy=0;
+constraint, range=mc, betx <3, betx>1; 
+constraint, range=mc, bety <6, bety>4;
+weight, alfx = 200, alfy = 200;
+constraint, range=#e, alfx = 0, alfy = 0; !, dpx = 0;
+weight, re56=200, mux=1000;
+constraint, range=#e, re56=0.0, mux=1.805757316-0.04;
+simplex, tolerance=1e-010, calls=10000;
+endmatch;
+*/
+
+value, kql1in;
+value, kql2in;
+value, kql3in;
+value, kql4in;
+value, kqs1c;
+value, kqs2c;
+
+value, kqs1nw;
+value, kqs2nw;
+
+!select,flag=save,class=variable,pattern="k.*";
+!save,file=myksave2;
+
+use, period=quarto3;
+twiss, betx=bxcr0, bety=bycr0, save;
+plot,vaxis=betx,bety,dx10,haxis=s,interpolate,colour=100,
+vmin=-1 vmax=20;
+plot,vaxis=x,haxis=s,interpolate,colour=100;
+
+c16 := 0.0154;
+c20 := 0.020;
+use, period=CR_anellot_t;
+select, flag=twiss,column=name,s,betx,bety,mux,muy,dx,x,y,dx10,sigx,sigy,sigxm,envp,envm,sbm,sbp,c16,c20;
+ener := 150;
+
+use, period=CR_anellot_t;
+savebeta, label=BEXT,  place=MEXT; 
+savebeta, label=B550,  place=CR.KHA0550;
+!savebeta, label=BQ211, place=mq211; 
+!savebeta, label=BQ212, place=mq212; 
+twiss, save;
+plot,haxis=s,vaxis=dx;
+
+/*
+kext := 0.010;
+use, period=CR_anellot, range=CR.QDF0540/MEXT;
+match, betx=1, bety=1;
+  vary, name=kext;
+  constraint, range=MEXT, x=0.0289;
+  MIGRAD;
+ENDMATCH;
+value, kext;
+
+use, period=CR_anellot;
+twiss, save;
+
+plot,haxis=s,vaxis=x,envp,envm,sbm,sbp,c16,c20,
+hmin=36, hmax=46, vmin=-.008, vmax=0.042 
+ title="150 MeV, 10 mrad kick", noversion;
+use, period=CR_anellot, range=CR.QDF0540/MEXT;
+savebeta, label=BEXT,  place=MEXT; 
+twiss, save, betx=1, bety=1;
+plot,haxis=s,vaxis=dx,
+ title="150 MeV, 28.9mm extraction orbit", noversion;
+!value, BQ211->x;  ! 0.01425266573
+!value, BQ212->x;  ! 0.02867317648
+value, BEXT->x;  ! 0.02889275308
+value, BEXT->dx;  !-0.02716607525
+value, BEXT->dpx; ! 0.01333123148
+*/
+
+! create file for ROOT 3D-visualisation
+/*
+ptc_create_universe;
+ptc_create_layout, model=1, method=6, nst=100, exact=true, closed_layout=false;
+ptc_setswitch, debuglevel=0, exact_mis=true, time=true, totalpath=false;
+ptc_printframes, file="drawlayout.C", format=rootmacro;!this prints my visualisation with ROOT
+ptc_end;
+!stop;
+*/
+
+/*
+! replace quads with combined function magnets that
+! give the kick according to the beam position in the quad
+! to get the correct dispersion
+kq211 := BQ211->x * qcr211->k1 * qcr211->l;
+kq212 := BQ212->x * qcr212->k1 * qcr212->l;
+value, kq211;
+value, kq212;
+b211 : RBEND, L=qcr211->l, ANGLE:=kq211, k1:=qcr211->k1;
+! add small correction for second quad since trajectory flattens out
+b212 : RBEND, L=qcr212->l, ANGLE:=kq212-0.0002507971465/2, k1:=qcr212->k1;
+SEQEDIT, SEQUENCE=CR_anellot;
+  REPLACE, ELEMENT=CR.KHA0550,    BY=KBEXT;
+!  REPLACE, ELEMENT=CX.KPSEUDO,    BY=KBEXT;
+  REPLACE, ELEMENT=qcr211,   BY=b211;
+  REPLACE, ELEMENT=qcr211[2],BY=b211;
+  REPLACE, ELEMENT=qcr212,   BY=b212;
+  REPLACE, ELEMENT=qcr212[2],BY=b212;
+  FLATTEN;
+ENDEDIT;
+
+
+
+kext := 0.000;
+kextb:= -0.010;
+use, period=CR_anellot;
+savebeta, label=BEXT, place=MEXT; 
+twiss, beta0=BINJ, save;
+plot,haxis=s,vaxis=x,envp,envm,sbm,sbp,c16,c20,
+hmin=36, hmax=46, vmin=-.008, vmax=0.042, 
+ title="150 MeV, 10 mrad kick, 3 sigma", noversion;
+plot,haxis=s,vaxis=dx,
+hmin=34, hmax=48,
+ title="150 MeV, 10 mrad kick, 3 sigma", noversion;
+plot,haxis=s,vaxis=dx,
+ title="150 MeV, 10 mrad kick, 3 sigma", noversion;
+value, BEXT->dx;  !
+value, BEXT->dpx;  !
+
+
+use, period=CR_anellot, range=CR.QFF0510/mext;
+twiss, beta0=BINJ, DX=0, DPX=0, save;
+plot,haxis=s,vaxis=dx,
+ title="150 MeV, 10 mrad kick", noversion;
+select, flag=survey, clear;
+survey, table=survey, file="ext-bump.survey0";
+plot,table=survey,haxis=z,vaxis=x,title="150 MeV, 10 mrad kick", noversion;
+*/
+
+
+!
+! extraction
+!
+
+ener := 150;
+nex = 100e-6;
+ney = 100e-6;
+ex := nex * 0.511 / ener;
+ey := ney * 0.511 / ener;
+sige := 0.8e-2;
+sigx := sqrt(ex*table(twiss,betx)+sige^2*table(twiss,dx)^2);
+sigy := sqrt(ey*table(twiss,bety));
+sigxm := -sqrt(ex*table(twiss,betx)+sige^2*table(twiss,dx)^2);
+dx10 := 10*table(twiss,dx);
+env3p := table(twiss,x)+3*sqrt(ex*table(twiss,betx)+sige^2*table(twiss,dx)^2);
+env3m := table(twiss,x)-3*sqrt(ex*table(twiss,betx)+sige^2*table(twiss,dx)^2);
+select, flag=twiss,column=name,s,betx,bety,mux,muy,dx,x,y,dx10,sigx,sigy,sigxm,env3p,env3m;
+
+
+! new septa for cr 
+
+! from specs, the ratio should be 48/161
+! from measurement shown in collabmeeting it more 160mT*m
+
+! for a total of 12 degrees
+sptcrang = -12*pi/180;
+
+spt1ang := sptcrang *  48/(48+160);
+spt2ang := sptcrang * 160/(48+160);
+!spt1ang=-48.4395/1000/2;
+!spt2ang=-161/1000/2;
+lsept1= 0.782;
+lsept2= 0.650;
+ssept2 := lsept2 / sin(spt2ang/2) * spt2ang/2; ! path length
+value, ssept2;  !0.6507055184
+
+! septum2 is turned by half the bending angle and is propoerly
+! represented by an RBEND with the physical length
+! septum1 is turned by angrot1 with respect to the straight CR 
+! trajectory
+angrot1 := asin(-3/782);  ! 3mm over the 782mm length
+value, angrot1;
+value, spt1ang;
+! path length in septum1
+ssept1 := lsept1 * (spt1ang-angrot1) / sin(spt1ang-angrot1);
+value, ssept1;
+lsept1r := ssept1 * sin(spt1ang/2) / spt1ang*2; ! rectangular length
+value, lsept1r;
+
+
+SHD0110: sbend, l:= ssept1, angle:=spt1ang, e1=spt1ang-angrot1, e2=angrot1;
+SHC0120: rbend, l:= lsept2, angle:=spt2ang;
+
+
+lsep12 := .35 - (ssept2-lsept2)/2 - (ssept1-lsept1) + 0.000077562;
+! change drift length to compensate for change of septa length (FT 3.2.06)
+dsep12:   DRIFT, L := lsep12;
+value, lsep12;
+
+dout:   DRIFT, L := 0.25;
+
+mspcr1: MARKER;
+mspcr2: MARKER;
+
+extinv: LINE = ( dout, mspcr2, SHC0120, mspcr2, dsep12,
+                       mspcr1, SHD0110, mspcr1 );
+
+ext:    LINE = ( -1*(extinv));
+
+extwbump: LINE = ( longex2x, ext );
+
+
+beam, particle=electron;
+use, period=ext;
+
+bxcrext := 7.120264158;
+bycrext := 4.240354886;
+axcrext := 0.06917813391;
+aycrext := 0.2216046755;
+
+BEXT  :  BETA0, BETX=bxcrext, BETY=bycrext, 
+                ALFX=axcrext, ALFY=aycrext;
+
+TWISS, SAVE, BETA0=BEXT;
+PLOT, HAXIS=s, VAXIS=betx, bety;
+PLOT, HAXIS=s, VAXIS=sigx, sigy;
+PLOT, HAXIS=s, VAXIS=sigx, sigxm;
+PLOT, HAXIS=s, VAXIS=env3p, env3m;
+PLOT, HAXIS=s, VAXIS=dx;
+
+/*
+seporb := 0.0289; ! 28.9mm x-orbit at septum for 10mrad kick
+! in Nicolas` coordinates
+ex0 := -20.43642049 - seporb;
+ez0 := 0;
+et0 := -3.141592654;
+select, flag=survey, range=#s/#e;
+survey, file="cr-ext.survey0",  theta0=et0, x0=ex0, z0=ez0;
+survey, file="cr-ext.survey00", theta0=et0, x0=-seporb, z0=ez0;
+
+! extraction septum projected on closed orbit (MEXT)
+exsepz =  2107.3045;
+exsepx = -2130.157809;
+! calculate extraction point
+zext  := exsepz + 0.0289 * sin(7.488950561);
+xext  := exsepx - 0.0289 * cos(7.488950561);
+value, xext; 
+value, zext; 
+
+use, period=extwbump, RANGE=CR.KHA0550/#E;
+twiss, beta0=B550, Dx=0, DPX=0, save;
+PLOT, HAXIS=s, VAXIS=betx, bety, interpolate, vmin=0, vmax=12.5, colour=100;
+PLOT, HAXIS=s, VAXIS=sigx, sigy, vmax=0.00225,vmin=0;
+PLOT, HAXIS=s, VAXIS=sigx, sigxm;
+PLOT, HAXIS=s, VAXIS=env3p, env3m, x;
+plot,haxis=s,vaxis=dx,
+ title="150 MeV, 28.9mm extraction orbit", noversion;
+
+! calculate corrector strength for magnetic injection
+ibumpamp=0.0364;
+kext := 0;
+inpx := 0.000;  ! smaller kick needed for pos. injection px
+use, period=CR_anellot, range=#S/CR.BHF0205;
+match, beta0=BINJ, x=ibumpamp, px=inpx;
+vary, name=khf0145, upper=0.0062;
+vary, name=khf0200, upper=0.0062;
+!vary, name=khd1000;
+!vary, name=khd1055;
+!constraint, range=min, x=ibumpamp, px=0;
+constraint, range=CR.DVF0200, x=0, px=0;
+migrad, tolerance=1e-010, calls=10000;
+simplex, tolerance=1e-010, calls=10000;
+endmatch;
+value, khf0145;
+value, khf0200;
+value, khd1000;
+value, khd1055;
+TWISS, SAVE, beta0=BINJ, x=ibumpamp, px=inpx;
+PLOT, HAXIS=s, VAXIS=x;
+*/
+
+! bump at extraction to compensate kicker position
+use, period=CR_anellot, range=CR.QDF0540/CR.QDF0660;
+match, beta0=BINJ, x=0, px=0;
+vary, name=khf0542, upper=0.0062;
+vary, name=khf0582, upper=0.0062;
+vary, name=khf0630, upper=0.0062;
+vary, name=khf0655, upper=0.0062;
+constraint, x<0.0005;
+constraint, range=mext, px=0.00037;
+constraint, range=CR.QDF0660, x=0, px=0;
+migrad, tolerance=1e-010, calls=10000;
+simplex, tolerance=1e-010, calls=10000;
+endmatch;
+value, khf0542;
+value, khf0582;
+value, khf0630;
+value, khf0655;
+TWISS, SAVE, beta0=BINJ, x=ibumpamp, px=inpx;
+PLOT, HAXIS=s, VAXIS=x;
+
+stop;
+/*
+! calculate closed orbit bump for injection deflector region
+use, period=CR_anellot;
+match;
+vary, name=khf0145, upper=0.0062; ! 0.0031mrad max for 300MeV
+vary, name=khf0200, upper=0.0062;
+vary, name=khd1000;
+vary, name=khd1055;
+constraint, range=min, x=0.011, px=0;
+! maximum 11mm bump amplitude for 300 MeV
+constraint, range=CR.DVF0200, x=0, px=0;
+migrad, tolerance=1e-010, calls=10000;
+simplex, tolerance=1e-010, calls=10000;
+endmatch;
+value, khf0145;
+value, khf0200;
+value, khd1000;
+value, khd1055;
+TWISS, SAVE;
+PLOT, HAXIS=s, VAXIS=x;
+*/
+
+/*
+use, period=ext;
+SELECT, FLAG=MAKETHIN, range=#s/#e,SLICE=50;
+SELECT, FLAG=MAKETHIN, range=SHD0110,SLICE=50;
+SELECT, FLAG=MAKETHIN, range=SHC0120,SLICE=50;
+MAKETHIN,SEQUENCE=ext;
+!         STYLE=SIMPLE;
+
+use, period=ext;
+survey, file="cr-ext-thin.survey0", theta0=et0, x0=ex0, z0=ez0;
+survey, file="cr-ext-thin.survey00", theta0=et0, x0=-seporb, z0=ez0;
+*/
+
+/*
+! save bare sequence for editing
+use, period=extwbump;
+save,sequence=extwbump,file=ewb, bare;
+call, file=ewb;
+SEQEDIT, SEQUENCE=extwbump;
+  REPLACE, ELEMENT=CR.KHA0550,    BY=KBEXT;
+  REPLACE, ELEMENT=qcr211,   BY=b211;
+  REPLACE, ELEMENT=qcr211[2],BY=b211;
+  REPLACE, ELEMENT=qcr212,   BY=b212;
+  REPLACE, ELEMENT=qcr212[2],BY=b212;
+  FLATTEN;
+ENDEDIT;
+use, period=extwbump, RANGE=KBEXT/#E;
+savebeta, label=BEXT, place=MEXT; 
+twiss, beta0=BINJ, DX=0, DPX=0, save;
+plot,haxis=s,vaxis=dx,
+ title="150 MeV, 10 mrad kick", noversion;
+select, flag=survey, clear;
+survey, table=survey, file="ext-bump.survey0";
+plot,table=survey,haxis=z,vaxis=x,title="150 MeV, 10 mrad kick", noversion;
+value, BEXT->dx;  !  -0.02798113256
+value, BEXT->dpx;  !  0.0136527539
+*/
+
+!stop;
+
+/*
+bumpamp=0.008;
+kext := 0;
+use, period=CR_anellot, range=CR.QFJ0485/CR.QDF0660;
+match, rmatrix, betx=bxcr0, bety=bycr0;
+!vary, name=khf0492;
+vary, name=khf0542;
+vary, name=khf0582;
+vary, name=khf0630;
+vary, name=khf0655;
+constraint, range=mext, x=bumpamp, px=0;
+constraint, range=CR.DVF0655, x=0, px=0;
+migrad, tolerance=1e-010, calls=10000;
+!simplex, tolerance=1e-010, calls=10000;
+endmatch;
+
+use, period=CR_anellot;
+savebeta, label=BEXT, place=MEXT; 
+twiss, save;
+plot,vaxis=x,haxis=s;
+plot,vaxis=x,haxis=s,hmin=32, hmax=50, colour=100;
+
+value, BEXT->betx;
+value, BEXT->bety;
+value, BEXT->alfx;
+value, BEXT->alfy;
+value, BEXT->x;
+*/
+
+/*
+khf0492 = 0;
+khf0582 = 0;
+use, period=CR_anellot, range=CR.QFJ0485/CR.QDF0660;
+match, betx=3, bety=3;
+!vary, name=khf0492;
+vary, name=khf0542;
+!vary, name=khf0582;
+vary, name=khf0630;
+vary, name=khf0655;
+!constraint, range=mext, px=0;
+constraint, range=mext, x=0.010;
+constraint, range=CR.DVF0655, x=0, px=0;
+migrad, tolerance=1e-010, calls=10000;
+!simplex, tolerance=1e-010, calls=10000;
+endmatch;
+
+use, period=CR_anellot;
+twiss, save;
+plot,vaxis=x,haxis=s;
+plot,vaxis=x,haxis=s,hmin=32, hmax=50, colour=100;
+*/
+
+/*
+ener := 300; !150;
+kext := 0.007;
+savebeta, label=BEXT, place=MEXT; 
+twiss, save;
+value, BEXT->x; ! for 7mrad + 8mm bump: 0.02822492712
+
+plot,vaxis=x,haxis=s;
+plot,vaxis=x,haxis=s,hmin=32, hmax=50, colour=100,
+ title="7mrad kicker + 8mm bump";
+plot,vaxis1=x,vaxis2=betx,bety,haxis=s,hmin=32, hmax=50, colour=100,
+ title="7mrad kicker + 8mm bump";
+plot,vaxis=x,envm,envp,sbm,sbp,haxis=s,hmin=32, hmax=50,
+ title="7mrad kicker + 8mm bump";
+kext := 0;
+benvp := table(bump,x)+3*sqrt(ex*table(bump,betx)+sige^2*table(bump,dx)^2);
+benvm := table(bump,x)-3*sqrt(ex*table(bump,betx)+sige^2*table(bump,dx)^2);
+select, flag=bump,column=name,s,betx,bety,mux,muy,dx,x,y,benvp,benvm;
+twiss, table=bump;
+plot,table=bump,vaxis=x,benvm,benvp,haxis=s,hmin=32, hmax=50,
+!plot,table=bump,vaxis=x,haxis=s,hmin=32, hmax=50,
+ title="8mm bump";
+
+mycrap(xx,yy,zz): macro = {myval = table(xx,yy,zz);};
+
+create,table=mytab,column=s1,o1,o2,op1,om1,op2,om2,c16,c20;
+i = 1;
+while (i < 400) {
+  exec, mycrap(twiss,s,$i);
+  s1 =  myval;
+  exec, mycrap(twiss,sigx,$i);
+  sx =  myval;
+  exec, mycrap(twiss,x,$i);
+  o1 =  myval;
+  op1=  myval + 3*sx;
+  om1=  myval - 3*sx;
+  exec, mycrap(bump,x,$i);
+  o2 =  myval;
+  op2=  myval + 3*sx;
+  om2=  myval - 3*sx;
+  fill,table=mytab;
+  i = i + 1;
+}
+!write,table=mytab,file;
+!READMYTABLE,table=mytab2,file=mytab;
+plot,table=mytab,haxis=s1,vaxis=o1,o2,om1,op1,om2,op2,c16,c20,
+hmin=36, hmax=46, vmin=-.008, vmax=0.042 
+ title="300 MeV, 8 mm bump, 7 mrad kick, 3 sigma", noversion;
+
+
+value, khf0542;
+value, khf0582;
+value, khf0630;
+value, khf0655;
+*/
+
+!stop;
+
+use, period=CR_anellot;
+savebeta, label=BINJ, place=MIN;
+
+twiss, save, file=cr_long.twiss;
+plot, vaxis = betx,bety,dx, haxis = s, interpolate,
+ colour = 100; !, vmin = -1, vmax = 30; 
+plot, vaxis = mux,muy, haxis = s, interpolate,
+ colour = 100; !, vmin = -1, vmax = 30; 
+
+
+savebeta, label=SYMM, place=#S;
+twiss, table=noerror;
+
+n=1;
+while (n <= 10)
+{;
+
+rx0 = 0.0004*RANF();
+ry0 = 0.0004*RANF();
+rpx0 = 0.00004*RANF();
+rpy0 = 0.00004*RANF();
+
+select, flag=twiss, FULL;
+select, flag=error, clear;
+SELECT,FLAG=ERROR,CLASS=QUADRUPOLE;            
+EALIGN,DX:=0.000150*TGAUSS(2.5),DY:=0.000150*TGAUSS(2.5);
+
+select, flag=error, clear;
+select, flag=error, class=rbend;
+!select, flag=error, class=sbend; ! wigglers
+efcomp, order:=0, radius:=1, dkn:={0.2e-3*TGAUSS(2.5)};
+!EPRINT;
+
+twiss, centre, save, beta0=SYMM, x=rx0, y=ry0, px=rpx0, py=rpy0;
+plot, vaxis=x, y, haxis=s, colour=100, vmin=-0.015, vmax=0.015;
+plot, vaxis1=dx,vaxis2=dy, haxis=s, colour=100, vmin=-1,-0.5, vmax=1.5,0.5;
+
+!CORRECT,MODEL=noerror, FLAG=LINE, PLANE=y, MODE=MICADO, COND=1, CLIST=corr.out,MLIST=mon.out; 
+CORRECT,MODEL=noerror, FLAG=LINE, PLANE=x, MODE=SVD, CORRLIM=0.5, CLIST=corr-x.out,MLIST=mon-x.out; 
+CORRECT,MODEL=noerror, FLAG=LINE, PLANE=y, MODE=SVD, CORRLIM=0.5, CLIST=corr-y.out,MLIST=mon-y.out; 
+!CORRECT,FLAG=RING, PLANE=y, MODE=MICADO, COND=1, CLIST=corr-y.out,MLIST=mon-y.out; 
+!CORRECT,FLAG=RING, PLANE=x, MODE=MICADO, COND=1, CLIST=corr-x.out,MLIST=mon-x.out; 
+!CORRECT,FLAG=LINE, PLANE=x, MODE=LSQ, COND=1, CORRLIM=0.5, CLIST=corr-x.out,MLIST=mon-x.out; 
+!CORRECT,FLAG=LINE, PLANE=y, MODE=LSQ, COND=1, CORRLIM=0.5, CLIST=corr-y.out,MLIST=mon-y.out; 
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="bp.*",column=name,x,y;
+twiss, centre, save, beta0=SYMM, x=rx0, y=ry0, px=rpx0, py=rpy0;
+plot, vaxis=x, y, haxis=s, colour=100, vmin=-0.0005, vmax=0.0005;
+plot, vaxis1=dx,vaxis2=dy, haxis=s, colour=100, vmin=-0.1,-0.05, vmax=0.8,0.05;
+twiss, centre, save;!, beta0=SYMM, x=rx0, y=ry0, px=rpx0, py=rpy0;
+!plot, vaxis=x, y, haxis=s, colour=100, vmin=-0.0005, vmax=0.0005, title='as ring';
+!plot, vaxis1=dx,vaxis2=dy, haxis=s, colour=100, vmin=-0.1,-0.05, vmax=0.8,0.05, title='as ring';
+!plot, vaxis=Dx, Dy, haxis=s, colour=100;
+write, table=twiss, file="mon.twiss";
+
+  n = n + 1;
+};
+
+
+stop;
+select, optics, full
+optics, filename="annelot.opt", 
+ columns=name, s, mux, muy, betx, bety
+
+save, filename="ring.mad"
+
+!stop
+comment
+stop
+use ungiro
+!
+print full
+savebeta, label=binj, place=#e
+twiss save betx =8.5 bety = 2.5
+plot vaxis = betx bety haxis = s spline
+use ungiroemezzo
+!print full
+savebeta, label=binj, place=#e
+twiss save beta0 = binj
+plot vaxis = betx bety dx haxis = s spline vmin = -1 vmax = 30 
+return
+
+return
+
+stop
+endcomment
+
+ bxar=3.653  
+ axar=3.754   
+ byar=3.665 
+ ayar=-0.837   
+
+!bxcr0 = 8
+!bycr0 = 2.5
+
+use quarto1
+twiss betx=bxcr0, bety=bycr0 save 
+plot,vaxis=betx,bety,dx,haxis=s,spline,style=100,
+vmin=-1 vmax=20
+
+match, betx=bxcr0, bety=bycr0 
+vary,kql1in step = 0.01
+vary,kql2in step = 0.01
+vary,kql3in step = 0.01
+vary,kql4in step = 0.01
+vary kqs1c step = 0.01
+vary kqs2c step = 0.01
+vary bxcr0 lower = 6 upper = 8.9  step = 0.01
+vary bycr0 lower = 1 upper = 3.5  step = 0.01
+!vary dmat, step = 0.001 , lower = -.2, upper = .3
+!vary dmat2, step = 0.001 , lower = -.2, upper = .3
+!constrai,mm1, betx = bxar
+!constrai,mm1, alfx = axar
+!constrai,mm1, bety = byar
+!constrai,mm1, alfy = ayar
+constrai,#e, alfx = 0 alfy = 0 !dpx = 0
+constrai,CR.HDS0150 , mux=0.25
+constrai,mc, alfx=0 alfy=0
+constrai,mc , betx <3 betx>1 
+constrai,mc , bety <6 bety>4 
+
+constrai, quacr104, betx<12
+simplex tolerance = 1e-010 calls = 10000
+endmatch
+twiss betx=bxcr0, bety=bycr0  save 
+plot,vaxis=betx,bety,dx,haxis=s,spline,style=100,
+vmin=-1 vmax=20
+
+use CR_anellot
+!print full
+survey
+!savebeta, label=binj, place=#e
+twiss save  !betx =8.56 bety = 2.5
+plot vaxis = betx bety dx haxis = s spline 
+ colour = 100 vmin = -1 vmax = 20 
+!stop
+return
+comment
+stop
+stop
+ddm = .2
+match, beta0 = binj
+vary,kql1in step = 0.01
+vary,kql2in step = 0.01
+vary,kql3in step = 0.01
+vary,kql4in step = 0.01
+vary kqs1c step = 0.01
+vary kqs2c step = 0.01
+vary dmat, step = 0.001 , lower = -.2, upper = .3
+vary dmat2, step = 0.001 , lower = -.2, upper = .3
+
+constrai, quacr104, betx<15
+
+constrai,mm1, betx = bxar
+constrai,mm1, alfx = axar
+constrai,mm1, bety = byar
+constrai,mm1, alfy = ayar
+constrai,mm3, alfx = 0 alfy = 0
+
+simplex tolerance = 1e-010 calls = 10000
+endmatch
+twiss beta0 = binj save 
+plot,vaxis=betx,bety,dx,haxis=s,spline,style=100,
+vmin=-1 vmax=20
+
+ddm = .25
+match, beta0 = binj
+vary,kql1in step = 0.01
+vary,kql2in step = 0.01
+vary,kql3in step = 0.01
+vary,kql4in step = 0.01
+vary kqs1c step = 0.01
+vary kqs2c step = 0.01
+vary dmat, step = 0.001 , lower = -.2, upper = .3
+vary dmat2, step = 0.001 , lower = -.2, upper = .3
+
+constrai,mm1, betx = bxar
+constrai,mm1, alfx = axar
+constrai,mm1, bety = byar
+constrai,mm1, alfy = ayar
+constrai,mm3, alfx = 0 alfy = 0
+constrai, quacr104, betx<15
+
+simplex tolerance = 1e-010 calls = 10000
+endmatch
+twiss beta0 = binj save 
+plot,vaxis=betx,bety,dx,haxis=s,spline,style=100,
+vmin=-1 vmax=20
+
+stop
+
+
+use arco1
+print full
+twiss betx=bxar bety=byar alfx=axar alfy=ayar save 
+plot,vaxis=betx,bety,dx,haxis=s,spline,style=100,
+vmin=-1 vmax=20
+stop
+ddm = .1
+twiss save
+plot vaxis = betx bety haxis = s spline
+ddm = .2
+twiss save
+plot vaxis = betx bety haxis = s spline
+ddm = .25
+twiss save
+plot vaxis = betx bety haxis = s spline
+
+stop
+
+
+
+
+bxc=1.5
+byc=5.
+
+
+!T566=0
+
+ksx1 =  40
+ksx2 = -100
+ksx3=  51
+
+
+!ksx1 = 0
+!ksx2 = -0
+!ksx3=  0
+
+
+ex=1e-06
+ey=1e-06
+
+
+
+bxc=1.5
+byc=5.
+
+ksx1 =  34
+ksx2 = -70
+ksx3=  55
+
+!!ksx1 =  34
+!ksx2 = -10
+!ksx3=  55
+
+
+! da=.0625 = 0.5mm
+da=.0625
+
+nl=0
+angwig = -7.0*(1.+ nl*da)*pi/180
+lwig=0.40*(angwig/sin(angwig));
+
+
+
+accdp = 0.01
+
+
+
+ksx1 =  34
+ksx2 = -70
+ksx3=  55
+
+
+
+!ksx1 = 0
+!ksx2 = -0
+!ksx3=  0
+
+!alfac= (dzero+.10278 )/40.218
+alfac= -0.00005
+dzero=40.218*alfac - .10278
+
+!setplot ,lwidth = 8 font = -6 post =4
+
+ bxar=3.653  
+ axar=3.754   
+ byar=3.665 
+ ayar=-0.837   
+
+
+use arco1
+print full
+twiss betx=bxar bety=byar alfx=axar alfy=ayar save 
+plot,vaxis=betx,bety,dx,haxis=s,spline,style=100,
+vmin=-1 vmax=9
+stop

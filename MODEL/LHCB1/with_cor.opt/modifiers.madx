@@ -1,0 +1,6 @@
+call, file="ds/IR1/IP1_beta_3.50.str";
+call, file="ds/IR5/IP5_beta_3.50.str";
+call, file="ds/IR8/3.5TeV/ip8_0.00882_beta3.50m.str";
+call, file="ds/IR2/3.5TeV/ip2_0.00889_beta3.50m.str";
+
+

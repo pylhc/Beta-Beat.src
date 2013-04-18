@@ -1,0 +1,6 @@
+call, file="/afs/cern.ch/eng/lhc/optics/V6.503//IR1/IP1_beta_3.50.str";
+call, file="/afs/cern.ch/eng/lhc/optics/V6.503//IR5/IP5_beta_3.50.str";
+call, file="/afs/cern.ch/eng/lhc/optics/V6.503//IR8/3.5TeV/ip8_0.00882_beta3.50m.str";
+call, file="/afs/cern.ch/eng/lhc/optics/V6.503//IR2/3.5TeV/ip2_0.00889_beta3.50m.str";
+
+

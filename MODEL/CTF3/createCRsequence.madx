@@ -1,0 +1,206 @@
+
+
+LTAPER := 0.2;
+
+! save bare sequence for editing
+
+
+beam, particle=electron, energy=ener/1000;
+
+
+CR_anellot_t: line=(CR_anellot,injection_e);
+use, period=CR_anellot_t;
+save,sequence=CR_anellot_t,file=r2bare.seqx, bare;
+
+
+call, file=r2bare.seqx;
+use, period=CR_anellot_t;
+
+! ( old symmetry axis of the ring before lengthening )
+
+! edit the sequence to install the BPMs
+SEQEDIT, SEQUENCE=CR_anellot_t;
+  !FLATTEN;
+  !SELECT, FLAG=SEQEDIT, PATTERN="bpm.*";
+  !SELECT, FLAG=SEQEDIT, PATTERN="chv.*";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mm2";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mbb1";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mbb2";
+  !SELECT, FLAG=SEQEDIT, PATTERN="^mext";        ! remove for SURVEY
+  !SELECT, FLAG=SEQEDIT, PATTERN="CX.KPSEUDO";  ! remove for SURVEY
+  REMOVE, ELEMENT=selected;
+  !INSTALL, ELEMENT=CR.BPI0105, AT=1+LTAPER+0.25/2; !LBPI/2;
+  INSTALL, ELEMENT=CR.BPI0130, AT=-0.3-.1-cr.lqf/4, FROM=CR.QDG0140; !QCR102[1];
+
+!  INSTALL, ELEMENT=CR.BPM0155, AT=3.8 + shift_q101; ! move for bumper
+  INSTALL, ELEMENT=CR.BPM0155, AT=-0.4105,                 FROM=CR.QDF0160;
+
+!  INSTALL, ELEMENT=CR.BPM0195, AT=6.0-LTAPER-0.25/2-.25 + shift_q101+0.0045+0.0238; !CR.LBPM/2;
+  INSTALL, ELEMENT=CR.BPM0195, AT=0.369,                   FROM=CR.QFF0190;
+  
+  INSTALL, ELEMENT=CR.BPI0208, AT=-0.48-0.15+0.0435-cr.lqj/4, FROM=CR.QFJ0215; ! QCR105[1];
+  INSTALL, ELEMENT=CR.BPI0248, AT= 0.5-0.15+0.024+cr.lqj/4,   FROM=CR.QFJ0245; ! QCR107[2];
+  INSTALL  ELEMENT=CR.BPI0275, AT=-0.48-0.15+0.030-cr.lqj/4,  FROM=CR.QFJ0285; ! QCR110[1];
+  INSTALL, ELEMENT=CR.BPI0305, AT=-0.65-0.084-cr.lqj/4,       FROM=CR.QFJ0320; ! QCR111[1];
+  INSTALL  ELEMENT=CR.BPI0395, AT= 0.65+0.084+cr.lqj/4,       FROM=CR.QFJ0380; ! QCR202[2];
+  INSTALL, ELEMENT=CR.BPI0425, AT= 0.48+0.15+0.030+cr.lqj/4,  FROM=CR.QFJ0415; ! QCR203[2];
+  INSTALL  ELEMENT=CR.BPI0448, AT= 0.5-0.15+0.024+cr.lqj/4,   FROM=CR.QFJ0445; ! QCR205[2];
+  INSTALL, ELEMENT=CR.BPI0475, AT=-0.48-0.15+0.030-cr.lqj/4,  FROM=CR.QFJ0485; ! QCR208[1];
+  INSTALL  ELEMENT=CR.BPR0505, AT=-0.3-cr.lqg/4,              FROM=CR.QFF0510; ! QCR209[1];
+  INSTALL, ELEMENT=CR.BPI0570, AT= 0.3-0.050+cr.lqf/4,        FROM=CR.QDG0560; ! QCR211[2];
+  INSTALL  ELEMENT=CR.BPI0610, AT=-0.5-cr.lqf/4,              FROM=CR.QFG0620; ! QCR301[1];
+  INSTALL  ELEMENT=CR.BPM0650, AT=-1.2+0.2-cr.lqg/4,          FROM=CR.QDF0660; ! QCR303[1];
+  INSTALL  ELEMENT=CR.BPM0695, AT= 0.3+cr.lqg/4,              FROM=CR.QFF0690; ! QCR304[2];
+  INSTALL, ELEMENT=CR.BPI0708, AT=-0.48-0.15+0.0435-cr.lqj/4, FROM=CR.QFJ0715; ! QCR305[1];
+  INSTALL  ELEMENT=CR.BPI0748, AT= 0.5-0.15+0.024+cr.lqj/4,   FROM=CR.QFJ0745; ! QCR307[2];
+  INSTALL  ELEMENT=CR.BPI0775, AT= 0.48-0.15+0.030+cr.lqj/4,  FROM=CR.QDJ0770; ! QCR309[2];
+  INSTALL  ELEMENT=CR.BPI0805, AT=-0.65-0.084-cr.lqj/4,       FROM=CR.QFJ0820; ! QCR311[1];
+  INSTALL, ELEMENT=CR.BPI0895, AT= 0.65+0.084+cr.lqj/4,       FROM=CR.QFJ0880; ! QCR402[2];
+  INSTALL  ELEMENT=CR.BPI0925, AT=-0.48+0.15-0.030-cr.lqj/4,  FROM=CR.QDJ0930; ! QCR404[1];
+  INSTALL  ELEMENT=CR.BPI0952, AT=-0.5+0.15-0.024-cr.lqj/4,   FROM=CR.QFJ0955; ! QCR406[1];
+  INSTALL, ELEMENT=CR.BPI0992, AT= 0.48+0.15-0.0435+cr.lqj/4, FROM=CR.QFJ0985; ! QCR408[2];
+  INSTALL  ELEMENT=CR.BPM1025, AT= 0.3+0.020+cr.lqg/4,        FROM=CR.QFF1010; ! QCR409[2];
+  INSTALL, ELEMENT=CR.BPI1070, AT= 0.3+cr.lqf/4,              FROM=CR.QDG1060; ! QCR411[2];
+
+  INSTALL, ELEMENT=CR.PHM0572, AT=-0.332,                  FROM=CR.QFG0580;
+  INSTALL, ELEMENT=CR.NCR0635, AT=-0.330,                  FROM=CR.QDG0640;
+
+  !FLATTEN;
+
+  ! gives Pi phase advance but a factor 2 in betaX
+  !INSTALL  ELEMENT=BUMPER,  AT=-0.5,  FROM=CR.HDS0150;
+  !INSTALL  ELEMENT=BUMPER2, AT=-0.725,  FROM=CR.HDS1050;
+
+  ! placement in front of RF deflector
+  !INSTALL  ELEMENT=BUMPER,  AT=-0.4,  FROM=CR.HDS0150;
+  !INSTALL  ELEMENT=BUMPER2, AT=-0.53,  FROM=CR.HDS1050;
+
+  ! placement after RF deflector
+  !INSTALL  ELEMENT=BUMPER,  AT=0.531,  FROM=CR.HDS0150;
+  !INSTALL  ELEMENT=BUMPER2, AT=0.4,  FROM=CR.HDS1050;
+  FLATTEN;
+
+  INSTALL  ELEMENT=CR.DVF0145,  AT= 0.6+cr.lqf/4,      FROM=CR.QDG0140; ! qcr102[2];
+  INSTALL  ELEMENT=CR.DVF0147,  AT= 0.6+cr.lqf/4+0.205,FROM=CR.QDG0140; ! qcr102[2];
+!  INSTALL  ELEMENT=CR.DVF0152,  AT= 0.3,            FROM=CR.HDS0150;
+  INSTALL  ELEMENT=CR.DVF0200,  AT= 0.8-0.15+cr.lqg/4, FROM=CR.QFF0190; ! qcr104[2]; ! -0.15 for passage 05.07.2006 FT
+  INSTALL  ELEMENT=CR.DVF0242,  AT=-0.3-cr.lqj/4,      FROM=CR.QFJ0245; ! qcr107[1];
+  INSTALL  ELEMENT=CR.DVF0252,  AT=-0.35-cr.lqj/4,     FROM=CR.QFJ0255; ! qcr108[1];
+  INSTALL  ELEMENT=CR.DVF0292,  AT= 0.57+cr.lqj/4,     FROM=CR.QFJ0285; ! qcr110[2];
+  INSTALL  ELEMENT=CR.DVF0345,  AT= 0.35+cr.lqh/4,     FROM=CR.QDH0340; ! qcr112[2];
+! removed due to place restrictions for syncrotron light exit
+  INSTALL  ELEMENT=CR.DVF0408,  AT=-0.6-cr.lqj/4,      FROM=CR.QFJ0415; ! qcr203[1];
+  INSTALL  ELEMENT=CR.DVF0452,  AT=-0.35-cr.lqj/4,     FROM=CR.QFJ0455; ! qcr206[1];
+  INSTALL  ELEMENT=CR.DVF0492,  AT= 0.57+cr.lqj/4,     FROM=CR.QFJ0485; ! qcr208[2];
+  INSTALL  ELEMENT=CR.DVF0542,  AT= 0.35+cr.lqg/4,     FROM=CR.QDF0540; ! qcr210[2];
+  INSTALL  ELEMENT=CR.DVF0582,  AT= 0.55-0.3+cr.lqf/4, FROM=CR.QFG0580; ! qcr212[2]; ! -0.3 29.5.06 FT
+  INSTALL  ELEMENT=CR.DVF0630,  AT= 0.218+cr.lqf/4,    FROM=CR.QFG0620; ! qcr301[2];
+  INSTALL  ELEMENT=CR.DVF0655,  AT=-0.6-cr.lqg/4,      FROM=CR.QDF0660; ! qcr303[1];
+  INSTALL  ELEMENT=CR.DVF0700,  AT= 0.6+cr.lqg/4,      FROM=CR.QFF0690; ! qcr304[2];
+  INSTALL  ELEMENT=CR.DVF0742,  AT=-0.3-cr.lqj/4,      FROM=CR.QFJ0745; ! qcr307[1];
+  INSTALL  ELEMENT=CR.DVF0752,  AT=-0.35-cr.lqj/4,     FROM=CR.QFJ0755; ! qcr308[1];
+  INSTALL  ELEMENT=CR.DVF0792,  AT= 0.57+cr.lqj/4,     FROM=CR.QFJ0785; ! qcr310[2];
+  INSTALL  ELEMENT=CR.DVF0845,  AT= 0.35+cr.lqh/4,     FROM=CR.QDH0840; ! qcr312[2];
+  INSTALL  ELEMENT=CR.DVF0855,  AT=-0.35-cr.lqh/4,     FROM=CR.QDH0860; ! qcr401[1];
+  INSTALL  ELEMENT=CR.DVF0908,  AT=-0.57-cr.lqj/4,     FROM=CR.QFJ0915; ! qcr403[1];
+  INSTALL  ELEMENT=CR.DVF0948,  AT= 0.35+cr.lqj/4,     FROM=CR.QFJ0945; ! qcr405[2];
+  INSTALL  ELEMENT=CR.DVF0958,  AT= 0.3+cr.lqj/4,      FROM=CR.QFJ0955; ! qcr406[2];
+  INSTALL  ELEMENT=CR.DVF1000,  AT=-0.6-cr.lqg/4,      FROM=CR.QFF1010; ! qcr409[1];
+  INSTALL  ELEMENT=CR.DVF1055,  AT=-0.6-cr.lqf/4,      FROM=CR.QDG1060; ! qcr411[1];
+  
+
+  
+! install pseudo BPMs
+  SELECT, FLAG=SEQEDIT, CLEAR;
+!  SELECT, FLAG=SEQEDIT, PATTERN="min";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mq";
+  SELECT, FLAG=SEQEDIT, PATTERN="^ms";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mx";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mm.*";
+  REMOVE, ELEMENT=selected;
+
+ENDEDIT;
+
+
+save,sequence=CR_anellot_t, file=cr_s.seqx, bare;
+
+
+!system, "./changeseqname.sh";
+
+return;
+
+dosurv=0;
+if (dosurv > 0)
+ {
+   use, period=CR_anellot_t;
+   !print full
+   survey, table=survey, file='cr_names.survey0';
+   plot,table=survey,haxis=z,vaxis=x, vmax=1, vmin=-21;
+   !savebeta, label=binj, place=#e
+   savebeta, label=BINJ, place=MIN;
+ };
+ 
+return; 
+! cycle the sequence to start on closed orbit parallel to septum exit
+
+
+SEQEDIT, SEQUENCE=CR_anellot_t;
+  INSTALL, ELEMENT=m00, AT= -1.19252234,  FROM=injection_e;
+  flatten;
+  cycle,start=M00;
+ENDEDIT;
+
+save,sequence=CR_anellot_t, file=cr_s_symm.seqx, bare;
+
+
+
+
+use, period=injdirdump;
+save,sequence=injdirdump,file=r2bare2.seqx, bare;
+call, file=r2bare2.seqx;
+use, period=injdirdump;
+
+
+SEQEDIT, SEQUENCE=injdirdump;
+
+  SELECT, FLAG=SEQEDIT, PATTERN="^mm2";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mbb1";
+  SELECT, FLAG=SEQEDIT, PATTERN="^mbb2";
+  REMOVE, ELEMENT=selected;
+
+  INSTALL, ELEMENT=CR.BPI0130, AT=-0.3-.1-cr.lqf/4, FROM=CR.QDG0140; !QCR102[1];
+  INSTALL, ELEMENT=CR.BPM0155, AT=4.8 + shift_q101; ! move for bumper
+  INSTALL, ELEMENT=CR.BPM0195, AT=7.0-LTAPER-0.25/2-.25 + shift_q101+0.0045+0.0238; !CR.LBPM/2;
+
+  FLATTEN;
+
+ENDEDIT;
+
+save,sequence=injdirdump,file=injdirdump.seqx, bare;
+
+
+
+return;
+/*
+
+
+twiss, save;
+ 
+plot, vaxis=betx, bety, haxis=s, colour:=100,
+  title="Current Settings Closed Solution";
+
+plot, vaxis=dx, dpx, haxis=s, colour:=100,
+  title="Current Settings Closed Solution";
+
+value,
+       table(twiss, CR_anellot_t$end,betx),
+       table(twiss, CR_anellot_t$end,bety),
+       table(twiss, CR_anellot_t$end,alfx),
+       table(twiss, CR_anellot_t$end,alfy),
+       table(twiss, CR_anellot_t$end,dx),
+       table(twiss, CR_anellot_t$end,dpx);
+
+return;
+
+*/
+

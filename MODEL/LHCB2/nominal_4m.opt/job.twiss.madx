@@ -1,0 +1,57 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.seq";
+!call, file="db/beam_four.thin.seq";
+ call,   file = "db/V6.5.inj.str";
+seqedit, sequence=lhcb2; ! The first monitor in data acquisition is BPMYB.5R8.B2
+flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+
+ option,  echo,  info,  warn;
+
+!beam, particle = proton, sequence=lhcb2, energy = 450.0;
+beam,      sequence=lhcb2,particle=proton,energy=450,kbunch=1,npart=1.15E11, bv=-1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
+ on_alice:= 0; on_lhcb := 0;
+
+
+use, period=lhcb2;
+call, file="db/IR1/IP1_beta_4.00.str";
+call, file="db/IR5/IP5_beta_4.00.str";
+!call, file="modifiers.madx";
+
+
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+
+twiss, chrom, sequence=lhcb2, deltap=0.0d0, file="twiss.dat";
+!stop;
+
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss,class=rcollimator,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22,k1sl;
+select, flag=twiss, class=monitor;
+select,flag=twiss,class=instrument;
+select,flag=twiss,class=marker;
+select,flag=twiss,class=quadrupole;
+select,flag=twiss,class=skewquadrupole;
+select,flag=twiss,class=sextupole;
+select,flag=twiss,class=octupole;
+select,flag=twiss,class=tkicker;
+twiss, sequence=lhcb2, deltap=0.0d0, file="twiss_elements.dat";
+
+stop;
+

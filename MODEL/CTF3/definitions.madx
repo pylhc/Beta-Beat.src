@@ -1,0 +1,76 @@
+!
+! CTF3 COMBINER RING
+!
+! Element description with proper names
+! bend magnets all identical with length as in DL and Miro`s note
+!
+! this file was initially a copy of crmar05.mad (FT 16.1.2006)
+!
+! FT 07.06.2006
+!
+! PSk 19Nov06 
+! Only definitions here
+
+
+! Assign, echo ="ctf3.out"
+! Assign, print="print.out"
+
+
+if (EN == 0)
+{
+ print, text="####################################";
+ print, text="####################################";
+ print, text="EN not defined yet, assuming 122MeV";
+ print, text="####################################";
+ print, text="####################################";
+
+ EN := 122;
+}
+
+ener := EN; !150;
+!nex = 100e-6; !defined in the currents file as the user input
+!ney = 100e-6;
+ex := nex * 0.511 / ener;
+ey := ney * 0.511 / ener;
+value, ex;  ! 3.406666667e-07 for 150 MeV
+
+
+deltap=0.;
+bro0=1;
+bro=bro0*(1.+deltap);
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!  Positions for survey    !!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! end point of TL1 (septum exit)
+tl1ez =  2088.180580;
+tl1ex = -2122.849460;
+! calculate injection point
+zin   := tl1ez + 0.0364 * sin(7.488950561);
+xin   := tl1ex - 0.0364 * cos(7.488950561);
+value, xin; 
+value, zin; 
+
+
+xe0190 := -2118.016517;
+ye0190 :=  2433.66;
+ze0190 :=  2090.066491;
+te0190 :=  1.205765252;
+
+
+return;
+print, text="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+print, text="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+print, text="    LEAVING definitions.madx";
+print, text="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+print, text="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!
+!  RRR   EEEE  TTTTT  U   U  RRR   N   N
+!  R  R  E       T    U   U  R  R  NN  N
+!  RRR   EEE     T    U   U  RRR   N N N
+!  R R   E       T    U   U  R R   N  NN
+!  R  R  EEEE    T     UUU   R  R  N   N
+!

@@ -1,0 +1,203 @@
+!{ ..\documents and settings\streun\my documents\opadat\femto\sls_f6cwo.opa }
+ 
+!{----- global parameters (units: gev, m, rad) -------------------------------}
+ 
+!{com femto operation with measured bfc lengths, else like f4t com}
+
+d2r=3.141592653/180; ! radian to degree
+
+call, file="SLSring.num.seq";
+call, file="SLSring.num.str";
+
+
+/* 
+!allocation = lookup.dat; 
+!calibration = opatype.dat; 
+!energy = 2.411000;
+ 
+!    betax   = 7.1877817; alphax  = 0.0314993;
+!    etax    = -0.0422838; etaxp   = -0.0018139;
+!    betay   = 5.3815281; alphay  = -0.2656801;
+!    etay    = 0.0000000; etayp   = 0.0000000;
+!    orbitx  = -0.0001194345; orbitxp = 0.0000015091;
+!    orbity  = 0.0000000000; orbityp = 0.0000000000;
+!    orbitdpp= 0.0000000000;
+ 
+!{----- table of elements (units: m, m^-2, deg, t; mm, mrad) ---------------- }
+!{      conventions: quadrupole: k>0 horizontally focusing                    }
+!{                   sextupole : k=m*l, m:=bpoletip/r^2/(b*rho)               }
+ 
+dmon     : drift, l = 0.065000 ; !ax = 50.00, ay = 50.00;
+dsxm     : drift, l = 0.070000 ; !ax = 50.00, ay = 50.00;
+d1       : drift, l = 0.385000 ; !ax = 32.50, ay = 16.00;
+d2       : drift, l = 0.415000 ; !ax = 32.50, ay = 16.00;
+d3       : drift, l = 0.235000 ; !ax = 32.50, ay = 16.00;
+d4       : drift, l = 0.385000 ; !ax = 32.50, ay = 16.00;
+dft      : drift, l = 0.320000 ; !ax = 50.00, ay = 50.00;
+dl       : drift, l = 5.865000 ; !ax = 50.00, ay = 50.00;
+dl1      : drift, l = 0.430000 ; !ax = 32.50, ay = 16.00;
+dl2      : drift, l = 0.330000 ; !ax = 32.50, ay = 16.00;
+dl3      : drift, l = 0.415000 ; !ax = 32.50, ay = 16.00;
+dl4      : drift, l = 0.330000 ; !ax = 32.50, ay = 16.00;
+dlm1     : drift, l = 0.363333 ; !ax = 50.00, ay = 50.00;
+dlm2     : drift, l = 0.479000 ; !ax = 50.00, ay = 50.00;
+dm       : drift, l = 3.485000 ; !ax = 50.00, ay = 50.00;
+dm1      : drift, l = 0.470000 ; !ax = 32.50, ay = 16.00;
+dm2      : drift, l = 0.450000 ; !ax = 32.50, ay = 16.00;
+dm3      : drift, l = 0.235000 ; !ax = 32.50, ay = 16.00;
+dnomo    : drift, l = 6.380000 ; !ax = 50.00, ay = 50.00;
+drad     : drift, l = 0.041500 ; !ax = 50.00, ay = 50.00;
+ds       : drift, l = 1.985000 ; !ax = 50.00, ay = 50.00;
+ds1      : drift, l = 0.470000 ; !ax = 32.50, ay = 16.00;
+ds2      : drift, l = 0.450000 ; !ax = 32.50, ay = 16.00;
+ds3      : drift, l = 0.235000 ; !ax = 32.50, ay = 16.00;
+dsx      : drift, l = 0.135000 ; !ax = 32.50, ay = 16.00;
+lr1      : drift, l = 1.068000 ; !ax = 50.00, ay = 50.00;
+lr1m     : drift, l = 0.137000 ; !ax = 50.00, ay = 50.00;
+lr1c     : drift, l = 0.572000 ; !ax = 50.00, ay = 50.00;
+lr1r     : drift, l = 0.359000 ; !ax = 50.00, ay = 50.00;
+lr2      : drift, l = 0.665000 ; !ax = 50.00, ay = 50.00;
+mgp      : drift, l = 0.500000 ; !ax = 32.50, ay = 16.00;
+dl4r     : drift, l = 0.230000 ; !ax = 50.00, ay = 50.00;
+db       : drift, l = 0.925777 ; !ax = 50.00, ay = 50.00;
+dcic1    : drift, l = 0.665000 ; !ax = 50.00, ay = 50.00;
+dcic2    : drift, l = 0.462491 ; !ax = 50.00, ay = 50.00;
+lm1      : drift, l = 0.142000 ; !ax = 50.00, ay = 50.00;
+lm2      : drift, l = 0.212000 ; !ax = 50.00, ay = 50.00;
+dmod     : drift, l = 0.025000 ; !ax = 50.00, ay = 50.00;
+wopen    : drift, l = 2.346000 ; !ax = 50.00, ay = 50.00;
+qla      : quadrupole, l = 0.230000, k1 := -1.417548 ; !ax = 32.50, ay = 16.00;
+qma      : quadrupole, l = 0.230000, k1 := -1.166716 ; !ax = 32.50, ay = 16.00;
+qsa      : quadrupole, l = 0.230000, k1 := -1.442881 ; !ax = 32.50, ay = 16.00;
+qlb      : quadrupole, l = 0.350000, k1 := 1.117631 ; !ax = 32.50, ay = 16.00;
+qmb      : quadrupole, l = 0.350000, k1 := 0.835841 ; !ax = 32.50, ay = 16.00;
+qsb      : quadrupole, l = 0.350000, k1 := 1.013120 ; !ax = 32.50, ay = 16.00;
+qlc      : quadrupole, l = 0.470000, k1 := 1.712615 ; !ax = 32.50, ay = 16.00;
+qmc      : quadrupole, l = 0.470000, k1 := 1.892955 ; !ax = 32.50, ay = 16.00;
+qsc      : quadrupole, l = 0.470000, k1 := 1.806508 ; !ax = 32.50, ay = 16.00;
+qld      : quadrupole, l = 0.350000, k1 := -1.630263 ; !ax = 32.50, ay = 16.00;
+qmd      : quadrupole, l = 0.350000, k1 := -1.896228 ; !ax = 32.50, ay = 16.00;
+qsd      : quadrupole, l = 0.350000, k1 := -1.852825 ; !ax = 32.50, ay = 16.00;
+qft1     : quadrupole, l = 0.350000, k1 := 1.629042 ; !ax = 32.50, ay = 16.00;
+qft2     : quadrupole, l = 0.470000, k1 := -1.732080 ; !ax = 50.00, ay = 50.00;
+qft3     : quadrupole, l = 0.230000, k1 := -0.716727 ; !ax = 50.00, ay = 50.00;
+qle      : quadrupole, l = 0.230000, k1 := -0.310455 ; !ax = 32.50, ay = 16.00;
+qlf      : quadrupole, l = 0.470000, k1 := 1.810624 ; !ax = 32.50, ay = 16.00;
+qlg      : quadrupole, l = 0.470000, k1 := -1.722213 ; !ax = 32.50, ay = 16.00;
+qlgm     : quadrupole, l = 0.470000, k1 := -1.868954 ; !ax = 50.00, ay = 50.00;
+qlgr     : quadrupole, l = 0.470000, k1 := -2.515596 ; !ax = 32.50, ay = 16.00;
+qlh      : quadrupole, l = 0.230000, k1 := 1.841263 ; !ax = 32.50, ay = 16.00;
+qlhm     : quadrupole, l = 0.230000, k1 := 1.925906 ; !ax = 50.00, ay = 50.00;
+qlhr     : quadrupole, l = 0.350000, k1 := 2.137812 ; !ax = 32.50, ay = 16.00;
+qme      : quadrupole, l = 0.230000, k1 := -0.684822 ; !ax = 32.50, ay = 16.00;
+qmf      : quadrupole, l = 0.470000, k1 := 2.120888 ; !ax = 32.50, ay = 16.00;
+qmg      : quadrupole, l = 0.350000, k1 := -1.541988 ; !ax = 32.50, ay = 16.00;
+qse      : quadrupole, l = 0.230000, k1 := -0.833901 ; !ax = 32.50, ay = 16.00;
+qsf      : quadrupole, l = 0.470000, k1 := 2.417668 ; !ax = 32.50, ay = 16.00;
+qsg      : quadrupole, l = 0.470000, k1 := -1.803287 ; !ax = 32.50, ay = 16.00;
+be       : sbend, l = 0.80,  angle = 8.0*d2r,     E1 = 3.4*d2r,    E2 = 3.4*d2r,    hgap = 0.042/2, fint = 0.6  ;! ax = 32.50, ay = 16.00;
+!bxh      : sbend, l = 0.70,  angle = 7.0*d2r,    E1 = 6.4*d2r,   E2 = 0.0*d2r,    hgap = 0.042/2, fint = 0.62 ;! ax = 32.50, ay = 16.00;
+bxh      : sbend, l = 0.70,  angle = 7.0*d2r,    E1 = 3.2*d2r,   E2 = 3.2*d2r,    hgap = 0.042/2, fint = 0.62 ;! ax = 32.50, ay = 16.00;
+bfc1     : sbend, l = 0.32,  angle = -2.362*d2r, E1 = -1.181*d2r, E2 = -1.181*d2r, hgap = 0.041/2, fint = 0.5  ;! ax = 50.00, ay = 50.00;
+bfc2     : sbend, l = 0.752, angle = 7.348*d2r  , E1 = 3.674*d2r,  E2 = 3.674*d2r,  hgap = 0.041/2, fint = 0.5  ;! ax = 50.00, ay = 50.00;
+bfc3     : sbend, l = 0.512, angle = -4.9846*d2r, E1 = -2.493*d2r, E2 = -2.493*d2r, hgap = 0.041/2, fint = 0.5  ;! ax = 50.00, ay = 50.00;
+sdh      : sextupole, l = 0.11, k2 := -22.589247*2.0 ; ! n =2, ax = 32.50, ay = 16.00;
+seh      : sextupole, l = 0.11, k2 := -9.100000*2.0  ; ! n =2, ax = 32.50, ay = 16.00;
+sf       : sextupole, l = 0.22, k2 := 21.133869*2.0  ; ! n =4, ax = 32.50, ay = 16.00;
+sla      : sextupole, l = 0.22, k2 := -32.290000*2.0 ; ! n =4, ax = 32.50, ay = 16.00;
+slbh     : sextupole, l = 0.11, k2 := 13.000000*2.0  ; ! n =2, ax = 32.50, ay = 16.00;
+sma      : sextupole, l = 0.22, k2 := -17.090000*2.0 ; ! n =4, ax = 32.50, ay = 16.00;
+smbh     : sextupole, l = 0.11, k2 := 15.576000*2.0  ; ! n =2, ax = 32.50, ay = 16.00;
+ssa      : sextupole, l = 0.22, k2 := -32.257000*2.0 ; ! n =4, ax = 32.50, ay = 16.00;
+ssbh     : sextupole, l = 0.11, k2 := 19.146000*2.0  ; ! n =2, ax = 32.50, ay = 16.00;
+*/
+
+/*
+u19      : undulator, l = 0.912000, lamb = 0.019000, bmax = 1.000000, 
+           f1 = 0.636620, f2 = 0.500000, f3 = 0.424413, 
+           gap = 1000.000 ; !ax = 50.00, ay = 2.00;
+w138     : undulator, l = 2.346000, lamb = 0.138000, bmax = 1.900000, 
+           f1 = 0.636620, f2 = 0.500000, f3 = 0.424413, 
+           gap = 1000.000 ; !ax = 50.00, ay = 4.00;
+*/
+! Undulators are replaced by drift for the time being
+
+/*
+u19   : drift, l=0.912;
+w138  : drift, l=2.346;
+
+omid     : marker ; !ax = 50.00, ay = 50.00, betax = 2.967725,
+!           alphax = 1.432158, betay = 8.931146, alphay = -2.419042,
+!           etax  = 0.000359, etaxp  = -0.000200, etay  = 0.000000,
+!           etayp  = 0.000000, orbitx  = 0.000, orbitxp = 0.000,
+!           orbity  = 0.000, orbityp = 0.000, orbitdpp = 0.000;
+oml0     : marker ; !ax = 50.00, ay = 50.00, betax = 14.535000,
+!           alphax = -5.183000, betay = 11.636000, alphay = 5.951000,
+!           etax  = 0.000000, etaxp  = 0.000000, etay  = 0.000000,
+!           etayp  = 0.000000, orbitx  = 0.000, orbitxp = 0.000,
+!           orbity  = 0.000, orbityp = 0.000, orbitdpp = 0.000;
+orad     : marker ; !ax = 50.00, ay = 50.00, betax = 8.318559,
+!           alphax = -2.144749, betay = 0.522360, alphay = -0.000002,
+!           etax  = 0.000330, etaxp  = 0.000023, etay  = 0.000000,
+!           etayp  = 0.000000, orbitx  = 0.000, orbitxp = 0.000,
+!           orbity  = 0.000, orbityp = 0.000, orbitdpp = 0.000;
+omod     : marker ; !ax = 50.00, ay = 50.00, betax = 11.081467,
+!           alphax = 0.791011, betay = 6.274504, alphay = 1.532166,
+!           etax  = -0.011637, etaxp  = -0.041329, etay  = 0.000000,
+!           etayp  = 0.000000, orbitx  = 0.000, orbitxp = 0.000,
+!           orbity  = 0.000, orbityp = 0.000, orbitdpp = 0.000;
+
+mon      : monitor ; !ax = 50.00, ay = 50.00;
+ch       : hkicker ;! dxp = 0.0000, ax = 50.00, ay = 50.00;
+cv       : vkicker ;! dyp = 0.0000, ax = 50.00, ay = 50.00;
+
+
+!{----- table of segments ----------------------------------------------------}
+ 
+sd    : LINE=( sdh, ch, cv, sdh ) ; 
+se    : LINE=( seh, ch, cv, seh ) ;
+slb   : LINE=( slbh, ch, cv, slbh ) ;
+ssb   : LINE=( ssbh, ch, cv, ssbh ) ;
+smb   : LINE=( smbh, ch, cv, smbh ) ;
+mond  : LINE=( dmon, mon, dsxm ) ;
+bx    : LINE=( bxh, -bxh ) ;
+tl    : LINE=( d1, qla, mond, sd, d2, qlb, dsx, sf, dsx, qlc, d3, se, -mond, qld, d4, be ) ;
+tm    : LINE=( d1, qma, mond, sd, d2, qmb, dsx, sf, dsx, qmc, d3, se, -mond, qmd, d4, be ) ;
+ts    : LINE=( d1, qsa, mond, sd, d2, qsb, dsx, sf, dsx, qsc, d3, se, -mond, qsd, d4, be ) ;
+ml0   : LINE=( dl1, sla, dsx, qle, dl2, qlf, mond, slb ) ;
+ml1   : LINE=( dl3, qlg, dl4, qlh, dl ) ;
+ml    : LINE=( ml0, ml1 ) ;
+mm    : LINE=( dm1, sma, dsx, qme, dm2, qmf, mond, smb, dm3, qmg, dm ) ;
+ms    : LINE=( ds1, ssa, dsx, qse, ds2, qsf, mond, ssb, ds3, qsg, ds ) ;
+tml   : LINE=( tl, ml ) ;
+tmm   : LINE=( tm, mm ) ;
+tms   : LINE=( ts, ms ) ;
+six   : LINE=( -tml, bx, tms, -tms, bx, tmm ) ;
+!per   : LINE=( six, -six, nper=3 ) ; 
+per   : LINE=( six, -six ) ; 
+ring0 : LINE=( -ml1, oml0, -ml0, -tl, bx, tms, -tms, bx, tmm, -six, 2*per ) ;
+trip  : LINE=( qft1, dft, qft2, omid, dft, qft3 ) ;
+rad   : LINE=( lr1m, mon, lr1c, cv, ch, lr1r, drad, u19, orad, u19, drad, lr2 ) ;
+radin : LINE=( dl3, qlgr, dl4r, qlhr ) ;
+modin : LINE=( dl3, qlgm, dl4, qlhm ) ;
+mod   : LINE=( lm1, omod, dmod, wopen, dmod, lm2 ) ;
+chic  : LINE=( dcic1, bfc1, mod, bfc2, db, bfc3, dcic2 ) ;
+femto : LINE=( -oml0, modin, chic, trip, rad, -radin ) ;
+empty : LINE=( -oml0, ml1, -ml1 ) ;
+ring  : LINE=( six, -tmm, bx, tms, -tms, bx, tl, ml0, femto, -ml0, -tl, bx, tms, -tms, bx, tmm, -six, six, -six ) ;
+ 
+!{ ..\documents and settings\streun\my documents\opadat\femto\sls_f6cwo.opa }
+*/
+
+beam, particle=electron, energy=2.411;
+
+use, period=ring;
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,betx,bety,alfx,alfy,dx,dpx,dy,dpy,mux,muy,x,y,xp,yp,r11,r12,r21,r22 ;
+twiss, sequence=ring, centre, file="twiss.dat";
+
+
+survey, file="survey";
+
+stop;

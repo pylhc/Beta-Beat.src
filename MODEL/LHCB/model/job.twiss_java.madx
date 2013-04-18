@@ -8,7 +8,7 @@ System,"test -e ats || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 ! call,   file = "db5/V6.5.seq";              ! Ideal
  call,   file = "db5/as-built/V6.5.seq";       
  call,   file = "%PATH/modifiers.madx";	
- call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+ call,   file = "db5/install_additional_elements.madx";
 
 seqedit, sequence=LHCB1;
 flatten;               
@@ -59,7 +59,6 @@ select, flag=twiss,pattern=MKQA.6L4.%BEAM,column=name,s,betx,alfx,bety,alfy,mux,
 select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 twiss, chrom,sequence=%ACCEL, deltap=%DPP, file="%PATH/twiss.dat";
-%INCLUDE twiss, chrom,sequence=%ACCEL, deltap=%DPP, file="%PATH/twiss_%DPP.dat"; 
 
 
 select, flag=twiss, clear;

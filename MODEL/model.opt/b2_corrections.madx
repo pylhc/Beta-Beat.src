@@ -1,0 +1,82 @@
+! calling errors
+READMYTABLE,file="/afs/cern.ch/eng/sl/online/om/repository/core/THICK_MODEL_INPUTS/ERRORS/absolute_harmonics/BEAM1/harmonics_MB_O2-11_S1.tfs",table=errtabmb1;
+SETERR,TABLE=errtabmb1;
+
+READMYTABLE,file="/afs/cern.ch/eng/sl/online/om/repository/core/THICK_MODEL_INPUTS/ERRORS/absolute_harmonics/BEAM2/harmonics_MB_O2-11_S1.tfs",table=errtabmb2;
+SETERR,TABLE=errtabmb2;
+
+! corrections for the errors above 1
+ kqtf.b1:=0;
+ kqtd.b1:=0;
+ dKQTF.a12B1 :=     0.1103195278E-02 ;
+ dKQTF.a23B1 :=    -0.1213611739E-02 ;
+ dKQTF.a34B1 :=    -0.1071579076E-02 ;
+ dKQTF.a45B1 :=    -0.1034701327E-02 ;
+ dKQTF.a56B1 :=     0.9135395435E-03 ;
+ dKQTF.a67B1 :=     0.9643193841E-03 ;
+ dKQTF.a78B1 :=     0.7967595072E-03 ;
+ dKQTF.a81B1 :=    -0.1050364473E-02 ;
+ dKQTD.a12B1 :=     0.1128383724E-02 ;
+ dKQTD.a23B1 :=    -0.1220453721E-02 ;
+ dKQTD.a34B1 :=    -0.1161123610E-02 ;
+ dKQTD.a45B1 :=    -0.1046413198E-02 ;
+ dKQTD.a56B1 :=     0.9621099430E-03 ;
+ dKQTD.a67B1 :=     0.9606321989E-03 ;
+ dKQTD.a78B1 :=     0.8541702517E-03 ;
+ dKQTD.a81B1 :=    -0.1054313219E-02 ;
+
+ KQTF.a12B1  :=     0.0000000000E+00  + dKQTF.a12B1 - 1.0*kqtf.b1;
+ KQTF.a23B1  :=     0.0000000000E+00  + dKQTF.a23B1 + 3.0*kqtf.b1;
+ KQTF.a34B1  :=     0.0000000000E+00  + dKQTF.a34B1 + 3.0*kqtf.b1;
+ KQTF.a45B1  :=     0.0000000000E+00  + dKQTF.a45B1 - 1.0*kqtf.b1;
+ KQTF.a56B1  :=     0.0000000000E+00  + dKQTF.a56B1 - 1.0*kqtf.b1;
+ KQTF.a67B1  :=     0.0000000000E+00  + dKQTF.a67B1 + 3.0*kqtf.b1;
+ KQTF.a78B1  :=     0.0000000000E+00  + dKQTF.a78B1 + 3.0*kqtf.b1;
+ KQTF.a81B1  :=     0.0000000000E+00  + dKQTF.a81B1 - 1.0*kqtf.b1;
+ KQTD.a12B1  :=     0.0000000000E+00  + dKQTD.a12B1 - 1.0*kqtd.b1;
+ KQTD.a23B1  :=     0.0000000000E+00  + dKQTD.a23B1 + 3.0*kqtd.b1;
+ KQTD.a34B1  :=     0.0000000000E+00  + dKQTD.a34B1 + 3.0*kqtd.b1;
+ KQTD.a45B1  :=     0.0000000000E+00  + dKQTD.a45B1 - 1.0*kqtd.b1;
+ KQTD.a56B1  :=     0.0000000000E+00  + dKQTD.a56B1 - 1.0*kqtd.b1;
+ KQTD.a67B1  :=     0.0000000000E+00  + dKQTD.a67B1 + 3.0*kqtd.b1;
+ KQTD.a78B1  :=     0.0000000000E+00  + dKQTD.a78B1 + 3.0*kqtd.b1;
+ KQTD.a81B1  :=     0.0000000000E+00  + dKQTD.a81B1 - 1.0*kqtd.b1;
+
+! corrections for the errors above 2
+ kqtf.b2:=0;
+ kqtd.b2:=0;
+
+ dKQTF.a12B2 :=    -0.1271187587E-02 ;
+ dKQTF.a23B2 :=     0.9793468935E-03 ;
+ dKQTF.a34B2 :=     0.9609092392E-03 ;
+ dKQTF.a45B2 :=     0.8197439558E-03 ;
+ dKQTF.a56B2 :=    -0.7809121715E-03 ;
+ dKQTF.a67B2 :=    -0.9367389946E-03 ;
+ dKQTF.a78B2 :=    -0.7200642045E-03 ;
+ dKQTF.a81B2 :=     0.8631249960E-03 ;
+ dKQTD.a12B2 :=    -0.1190743199E-02 ;
+ dKQTD.a23B2 :=     0.1075459235E-02 ;
+ dKQTD.a34B2 :=     0.9685879983E-03 ;
+ dKQTD.a45B2 :=     0.8346538586E-03 ;
+ dKQTD.a56B2 :=    -0.7939635129E-03 ;
+ dKQTD.a67B2 :=    -0.1051089006E-02 ;
+ dKQTD.a78B2 :=    -0.7505689894E-03 ;
+ dKQTD.a81B2 :=     0.9495138461E-03 ;
+
+
+ KQTF.a12B2  :=     0.0000000000E+00  + dKQTF.a12B2 - 1.0*kqtf.b2;
+ KQTF.a23B2  :=     0.0000000000E+00  + dKQTF.a23B2 + 3.0*kqtf.b2;
+ KQTF.a34B2  :=     0.0000000000E+00  + dKQTF.a34B2 + 3.0*kqtf.b2;
+ KQTF.a45B2  :=     0.0000000000E+00  + dKQTF.a45B2 - 1.0*kqtf.b2;
+ KQTF.a56B2  :=     0.0000000000E+00  + dKQTF.a56B2 - 1.0*kqtf.b2;
+ KQTF.a67B2  :=     0.0000000000E+00  + dKQTF.a67B2 + 3.0*kqtf.b2;
+ KQTF.a78B2  :=     0.0000000000E+00  + dKQTF.a78B2 + 3.0*kqtf.b2;
+ KQTF.a81B2  :=     0.0000000000E+00  + dKQTF.a81B2 - 1.0*kqtf.b2;
+ KQTD.a12B2  :=     0.0000000000E+00  + dKQTD.a12B2 - 1.0*kqtd.b2;
+ KQTD.a23B2  :=     0.0000000000E+00  + dKQTD.a23B2 + 3.0*kqtd.b2;
+ KQTD.a34B2  :=     0.0000000000E+00  + dKQTD.a34B2 + 3.0*kqtd.b2;
+ KQTD.a45B2  :=     0.0000000000E+00  + dKQTD.a45B2 - 1.0*kqtd.b2;
+ KQTD.a56B2  :=     0.0000000000E+00  + dKQTD.a56B2 - 1.0*kqtd.b2;
+ KQTD.a67B2  :=     0.0000000000E+00  + dKQTD.a67B2 + 3.0*kqtd.b2;
+ KQTD.a78B2  :=     0.0000000000E+00  + dKQTD.a78B2 + 3.0*kqtd.b2;
+ KQTD.a81B2  :=     0.0000000000E+00  + dKQTD.a81B2 - 1.0*kqtd.b2;

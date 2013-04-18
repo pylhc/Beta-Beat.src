@@ -1,0 +1,68 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+
+ option, -echo, -info,  warn;
+ call,   file = "db/beam_four.seq";
+ call,   file = "db/V6.5.thin.inj.str";
+! call,   file = "db/V6.5.seq";
+! call,   file = "db/V6.5.inj.str";
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=lhcb1, energy = 450.0;
+ beam, particle = proton, sequence=lhcb2, energy = 450.0, bv = -1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
+ on_alice:= 0; on_lhcb := 0;
+
+value, vrf400, vrf200;
+
+
+use,    period=lhcb2;
+
+
+
+!call, file="errors.madx";
+
+
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BPM.*\.B2", column=name,s,betx,bety,alfx,alfy,mux,muy,x,y,dx;
+twiss, sequence=lhcb2, file="twiss.dat";
+
+
+! All quads:
+select, flag=twiss, clear;
+
+select, flag=twiss, PATTERN="MQ", column=name,s,L,K2L,betx,bety,alfx,alfy,mux,muy,x,y,dx;
+twiss, sequence=lhcb2, file="twiss.Q.dat";
+stop;
+
+
+
+ TRACK, deltap= 0.0, onepass,dump, onetable;
+ call, file="bpm.obs.madx"; 
+ START, x= 0.001, y= 0.001;
+  RUN, turns= 128;
+ENDTRACK;
+
+
+system, "../NoErrors";
+system, "cp ALLBPMs ALLBPMs_dp0";
+
+ TRACK, deltap= 0.0007, onepass,dump, onetable;
+ call, file="bpm.obs.madx"; 
+ START, x= 0.001, y= 0.001;
+  RUN, turns= 128;
+ENDTRACK;
+
+
+system, "./NoErrors";
+system, "cp ALLBPMs ALLBPMs_dp0.0007";
+
+
+
+stop;

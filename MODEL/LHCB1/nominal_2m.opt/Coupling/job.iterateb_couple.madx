@@ -1,0 +1,338 @@
+title,      "LHC V6.500  -  LHC thick lense, beam 1, inj";
+
+! to be executed with command :
+! /afs/cern.ch/group/si/slap/scripts/mad -X < JOBNAME.madx
+! output of beam observables in file twiss.txt
+
+! link to LHC V6.5 directory in AFS for measured errors
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.5 dm";
+! link to LHC V6.5xx directory in AFS for optics sequence and strengths
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 ds";
+! system,"mkdir temp";
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+!                        TARGET TUNE;
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+! Nominal tunes injection
+ QX0 = 64.28;
+ QY0 = 59.31;
+! Nominal tunes collision
+! QX0 = 64.31;
+! QY0 = 59.32;
+ TSPLIT=5;
+ QX00=64.0;
+ QY00=59.0;
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+!                        TARGET CHROMATICITY ;
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+! Nominal Chromaticity:
+ QPRIME = 2.0;
+
+! LHC optics layout as f(lensedesc,beamno)
+option,    -info, -warn, verify, -echo;
+!call,      file="ds/V6.5.thin.seq";
+call,      file="ds/V6.5.seq"; ! Let's use thick lens. 5/Sep/2008 MA
+
+seqedit, sequence=lhcb1; ! The first monitor in data acquisition is BPMYB.5L2.B1
+flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+
+
+! Optics strength as f(cycle,beam)
+!call,      file="ds/V6.5.thin.inj.str";
+call,      file="ds/V6.5.inj.str"; ! Let's use thick lens.  5/Sep/2008 MA
+beam,      sequence=lhcb1,particle=proton,energy=450,kbunch=1,npart=1.15E11;
+use,       sequence=lhcb1;
+
+call, file="./modifiers.madx";
+
+!  set switches to 1 if crossing scheme is required
+ on_x1 := 0; on_sep1 := 1;
+ on_x2 := 0; on_sep2 := 1; on_alice:= 0;
+ on_x5 := 0; on_sep5 := 1;
+ on_x8 := 0; on_sep8 := 1; on_lhcb := 0;
+
+select, flag=twiss, clear;
+!select,    flag=twiss, pattern="^MQ";
+select,    flag=twiss, pattern="^MQM.*B.$";
+select,    flag=twiss, pattern="^MQT.*B.$";
+select,    flag=twiss, pattern="^MQY.*[RLB].$";
+select,    flag=twiss, pattern="^MQX.*[RL].$";
+
+call, file="bumpdefinition.tfs";
+
+call, file="Bumps";
+select,    flag=twiss, pattern="BPM.*\.B1", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,K2L,K3L,K4L,WX,WY,PHIX,PHIY,DMUX,DMUY,KEYWORD,DBX,DBY,R11,R12,R21,R22;
+call, file=iterb.madx;
+
+!call, file="changeparameters";
+!twiss,     sequence=lhcb1, file="twiss.dat";
+stop;
+
+
+
+! print nominal optics parameter at the MB, MQS and MSS for
+!a2 and a3 correction
+select, flag=twiss, clear;
+select, flag=twiss,class=MB,column=name,betx,bety,dx,mux,muy;
+select, flag=twiss,class=MQS,column=name,betx,bety,dx,mux,muy;
+select, flag=twiss,class=MSS,column=name,betx,bety,dx,mux,muy;
+twiss,sequence=lhcb1,file='temp/optics0_MB.mad';
+
+! print nominal optics parameter at the D1,D2, MQX and triplet corrector
+! for triplet correction
+select, flag=twiss, clear;
+select, flag=twiss, pattern="^MQX.*\..*\.\..*$",column=name,betx,bety,x,y;
+select, flag=twiss, pattern="^MBX\..*\.\..*$"  ,column=name,betx,bety,x,y;
+select, flag=twiss, pattern="^MBRC\..*\.\..*$" ,column=name,betx,bety,x,y;
+select, flag=twiss, pattern="^.*END.MBX.*$"  ,  column=name,betx,bety,x,y;
+select, flag=twiss, pattern="^.*END.MBRC.*$" ,  column=name,betx,bety,x,y;
+select, flag=twiss, pattern="MCX\.*"         ,  column=name,betx,bety,x,y;
+select, flag=twiss, pattern="MQSX\.*"        ,  column=name,betx,bety,x,y;
+twiss,sequence=lhcb1,file='temp/optics0_inser.mad';
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                 SET ALIGNMENT ERRORS
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+option,    -echo, -info, -warn;
+call, file = "ds/measured_errors/align_D1_slices.madx";
+call, file = "ds/measured_errors/align_D2_slices.madx";
+call, file = "ds/measured_errors/align_D3_slices.madx";
+call, file = "ds/measured_errors/align_D4_slices.madx";
+
+call,      file="ds/measured_errors/Msubroutines.madx";
+option,    echo, info, warn;
+
+! Switches to enable/disable multipole errors
+exec, ON_SYST;
+ON_B1S  = 1; ON_A1S  = 1;
+ON_B2S  = 0; ON_A2S  = 0;
+ON_B3S  = 1; ON_A3S  = 1;
+ON_B4S  = 1; ON_A4S  = 1;
+ON_B5S  = 1; ON_A5S  = 1;
+ON_B6S  = 1; ON_A6S  = 1;
+ON_B7S  = 1; ON_A7S  = 1;
+ON_B8S  = 1; ON_A8S  = 1;
+ON_B9S  = 1; ON_A9S  = 1;
+ON_B10S = 1; ON_A10S = 1;
+ON_B11S = 1; ON_A11S = 1;
+ON_B12S = 0; ON_A12S = 0;
+ON_B13S = 0; ON_A13S = 0;
+ON_B14S = 0; ON_A14S = 0;
+ON_B15S = 0; ON_A15S = 0;
+ON_B16S = 0; ON_A16S = 0;
+ON_B17S = 0; ON_A17S = 0;
+ON_B18S = 0; ON_A18S = 0;
+ON_B19S = 0; ON_A19S = 0;
+ON_B20S = 0; ON_A20S = 0;
+
+! Orientation of magnets
+readtable, file="ds/measured_errors/rotations_Q2_integral.tab";
+
+! Simulation errors as f(magnetclass) or none for unPerturbed machine
+readtable, file="/afs/cern.ch/user/g/giovanno/w1/WISE/testMADX/injection_errors-emfqcs-1.tfs";
+option, -echo, -info, -warn;
+
+call,      file="dm/measured_errors/Efcomp_MB.madx";
+call,      file="dm/measured_errors/Efcomp_MBRB.madx";
+call,      file="dm/measured_errors/Efcomp_MBRC.madx";
+call,      file="dm/measured_errors/Efcomp_MBRS.madx";
+call,      file="dm/measured_errors/Efcomp_MBX.madx";
+call,      file="dm/measured_errors/Efcomp_MBW.madx";
+call,      file="dm/measured_errors/Efcomp_MBXW.madx";
+call,      file="dm/measured_errors/Efcomp_MQ.madx";
+call,      file="dm/measured_errors/Efcomp_MQM.madx";
+call,      file="dm/measured_errors/Efcomp_MQMC.madx";
+call,      file="dm/measured_errors/Efcomp_MQML.madx";
+call,      file="dm/measured_errors/Efcomp_MQTL.madx";
+call,      file="dm/measured_errors/Efcomp_MQW.madx";
+call,      file="dm/measured_errors/Efcomp_MQX.madx";
+call,      file="dm/measured_errors/Efcomp_MQY.madx";
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                 CORRECTION OF DIPOLE
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ call, file="ds/errors/MB.measurements.madx";
+ call, file="ds/errors/SpoolPieces.b1.madx";    ! correct with spool pieces
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                 MQTL ERRORS ARE TAKEN FROM STATISTICAL ONES
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+! eoption, add=false;
+! on_pers=1; mylhcbeam := 1;
+! readtable, file="ds/errors/rotations.tfs";
+! readtable, file="ds/errors/0610.tfs";
+! call, file="ds/errors/Efcomp_MQTL.madx";
+
+
+!------------------------------------------------------------------------
+!                      Coupling correction
+!------------------------------------------------------------------------
+
+! coguess, x=+x.ip1,y=+y.ip1,py=+py.ip1;   // avoids cycling to IP3
+
+ twiss,sequence=lhcb1;value,-table(summ,q1)+table(summ,q2)+TSPLIT;
+
+ select,flag=error, clear;
+ select,flag=error, class=mb;
+ esave,file="temp/mb.errors";
+ system,"ds/toolkit/corr_coupling_B1";
+ call, file="temp/MQS_setting.mad";
+ twiss,sequence=lhcb1;value,-table(summ,q1)+table(summ,q2)+TSPLIT;
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                 CORRECTION OF TRIPLET AND D1/D2
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+! twiss,sequence=lhcb1;value,-table(summ,q1)+table(summ,q2)+TSPLIT;
+
+! select, flag=error, clear;
+! select, flag=error, pattern="^MQX.*\..*\.\..*$";
+! select, flag=error, pattern="^MBX\..*\.\..*$"  ;
+! select, flag=error, pattern="^MBRC\..*\.\..*$" ;
+! select, flag=error, pattern="^.*END.MBX.*$"    ;
+! select, flag=error, pattern="^.*END.MBRC.*$"   ;
+! esave,  file='temp/tripD1D2.errors';
+! system,"dm/toolkit/corr_tripD1D2";    // OK
+! call,file="temp/MCX_setting.mad";
+! twiss,sequence=lhcb1;value,-table(summ,q1)+table(summ,q2)+TSPLIT;
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                 FINE TUNING OF COUPLING
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+! Closest tune
+KQF0=KQF;
+KQD0=KQD;
+!DKK=0;
+!KQF := KQF0*(1+DKK);
+!KQD := KQD0*(1-DKK);
+QMID=(QX0-QX00+QY0-QY00)*0.5;
+match,sequence=lhcb1;
+global, Q1=QX00+QMID,Q2=QY00+QMID;
+!vary,name=DKK,step=0.0001;
+!vary,name=QMID,step=0.001,lower=0,upper=1.;
+vary,name=KQF,step=0.0001;
+vary,name=KQD,step=0.0001;
+lmdif,calls=50,tolerance=1.e-5;
+endmatch;
+
+! Quick minimization based on linear machine
+CMRSKEW0=CMRSKEW;
+CMISKEW0=CMISKEW;
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+cta0=abs(QX-QY-TSPLIT);
+closest0=cta0;
+CMRSKEW=CMRSKEW0+cta0/2.;
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+ctap=abs(QX-QY-TSPLIT);
+CMRSKEW=CMRSKEW0-cta0/2.;
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+ctam=abs(QX-QY-TSPLIT);
+CMRSKEW=CMRSKEW0+(ctam^2-ctap^2)/2./cta0;
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+cta0=abs(QX-QY-TSPLIT);
+CMISKEW=CMISKEW0+cta0/2.;
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+ctap=abs(QX-QY-TSPLIT);
+CMISKEW=CMISKEW0-cta0/2.;
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+ctam=abs(QX-QY-TSPLIT);
+CMISKEW=CMISKEW0+(ctam^2-ctap^2)/2./cta0;
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+closest1=abs(QX-QY-TSPLIT);
+!value,closest0,closest1;
+
+!Empirical minimisation
+match,sequence=lhcb1;
+global, Q1=QX00+QMID,Q2=QY00+QMID;
+!vary,name=DKK,step=0.0001;
+!vary,name=QMID,step=0.001,lower=0,upper=1.;
+vary,name=KQF,step=0.0001;
+vary,name=KQD,step=0.0001;
+lmdif,calls=100,tolerance=1.e-5;
+endmatch;
+match,sequence=lhcb1;
+global, Q1=QX00+QMID,Q2=QY00+QMID;
+vary,name=CMRSKEW,step=0.0001;
+vary,name=CMISKEW,step=0.0001;
+lmdif,calls=150,tolerance=1.e-5;
+endmatch;
+match,sequence=lhcb1;
+global, Q1=QX00+QMID,Q2=QY00+QMID;
+!vary,name=DKK,step=0.0001;
+!vary,name=QMID,step=0.001,lower=0,upper=1.;
+vary,name=KQF,step=0.0001;
+vary,name=KQD,step=0.0001;
+lmdif,calls=100,tolerance=1.e-6;
+endmatch;
+match,sequence=lhcb1;
+global, Q1=QX00+QMID,Q2=QY00+QMID;
+vary,name=CMRSKEW,step=0.0001;
+vary,name=CMISKEW,step=0.0001;
+lmdif,calls=150,tolerance=1.e-6;
+endmatch;
+match,sequence=lhcb1;
+global, Q1=QX00+QMID,Q2=QY00+QMID;
+!vary,name=DKK,step=0.0001;
+!vary,name=QMID,step=0.001,lower=0,upper=1.;
+vary,name=KQF,step=0.0001;
+vary,name=KQD,step=0.0001;
+lmdif,calls=100,tolerance=1.e-7;
+endmatch;
+
+Twiss,sequence=lhcb1;QX=table(summ,q1);QY=table(summ,q2);
+closest2=abs(QX-QY-TSPLIT);
+value,closest0,closest1,closest2,CMRSKEW,CMISKEW;
+!KQF=KQF0;
+!KQD=KQD0;
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                 MATCHING OF TUNE AND CHROMA
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+match,sequence=lhcb1;
+global, Q1=QX0,Q2=QY0;
+vary,name=KQD,step=1.0e-7 ;
+vary,name=KQF,step=1.0e-7 ;
+lmdif,calls=50,tolerance=1.e-8;
+endmatch;
+
+match,sequence=lhcb1;
+global, dq1=QPRIME,dq2=QPRIME;
+vary, name=KSF.B1;
+vary, name=KSD.B1;
+lmdif,calls=100,tolerance=1.0e-21;
+endmatch;
+
+match,sequence=lhcb1;
+global, Q1=QX0,Q2=QY0;
+vary,name=KQD,step=1.0e-7 ;
+vary,name=KQF,step=1.0e-7 ;
+lmdif,calls=50,tolerance=1.e-8;
+endmatch;
+
+ set,    format="12.6f";
+ select, flag=twiss, clear;
+ select, flag=twiss, pattern="IP\.*",     column=name,s,betx,bety,alfx,alfy,dx,dpx,mux,muy,x,px,y,py;
+ select, flag=twiss, pattern="s.ds.l\.*", column=name,s,betx,bety,alfx,alfy,dx,dpx,mux,muy,x,px,y,py;
+ select, flag=twiss, pattern="e.ds.r\.*", column=name,s,betx,bety,alfx,alfy,dx,dpx,mux,muy,x,px,y,py;
+ twiss,  sequence=lhcb1, file='twiss.1';
+
+!NRJ:=7.0E+12;
+NRJ:=450.e9;
+call,file="ds/toolkit/corr_value.mad";
+
+value, table(summ,q1);
+value, table(summ,q2);
+value, table(summ,dq1);
+value, table(summ,dq2);
+
+sixtrack,radius=0.017;
+
+stop;

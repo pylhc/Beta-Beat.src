@@ -1,0 +1,34 @@
+title,   "LHC version 6.503 -  March 2008" ;
+ set,    format="15.9f";
+
+ option, -echo,  warn, info, verify;
+ call,   file="/afs/cern.ch/eng/lhc/optics/V6.503/V6.5.seq";
+
+ call,   file="/afs/cern.ch/eng/lhc/optics/V6.503/V6.5.inj.str";
+
+beam,   sequence=lhcb2, particle=proton, pc= 450, bv=-1;
+! beam,   sequence=lhcb2, particle=proton, pc=7000;
+
+ on_x1:=0; on_sep1:=1;
+ on_x2:=0; on_sep2:=1;!on_o2:=0; on_a2:=0;
+ on_x5:=0; on_sep5:=1;
+ on_x8:=0; on_sep8:=1;!on_o8:=0; on_a8:=0;
+ on_alice:=0; on_lhcb:=-0;
+
+ use,    sequence=lhcb2;
+!select, flag=twiss, pattern=ip, column=name,s,betx,bety,alfx,alfy,dx,dpx,x,px,y,py;
+ select, flag=twiss, column=name,s,betx,bety,alfx,alfy,dx,dpx,x,px,y,py;
+ twiss,  sequence=lhcb2, table=twiss, file="twiss.ips_cross.thick.inj.b2";
+plot, vaxis=x, haxis=s;
+stop;
+ call,   file="/afs/cern.ch/eng/lhc/optics/V6.503/V6.5.coll.str";
+
+ on_x1:=1; on_sep1:=1;
+ on_x2:=1; on_sep2:=1;
+ on_x5:=1; on_sep5:=1;
+ on_x8:=1; on_sep8:=1;
+ on_alice:=0; on_lhcb:=0;
+
+ twiss,  sequence=lhcb2, table=twiss, file="twiss.ips_cross.thick.col.b2";
+
+stop;

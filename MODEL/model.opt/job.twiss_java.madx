@@ -1,0 +1,51 @@
+title, "Model creator for java" ;
+
+ option, -echo, -info,  warn;
+ call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503/V6.5.seq";
+ call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503/V6.5.inj.str";
+ !call,   file = "%WORK/modifiers.madx";	
+
+seqedit, sequence=LHCB2;
+flatten;               
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+seqedit, sequence=LHCB1;
+flatten;               
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=%ACCEL, energy = 450.0;
+ beam, sequence=LHCB1,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=1;
+ beam, sequence=LHCB2,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=-1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
+ on_alice:= 0; on_lhcb := 0;
+
+
+use, period=LHCB1;
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor,column=name,s;
+twiss, chrom,sequence=LHCB1, deltap=0, file="./twiss_s_B1.dat";
+
+use, period=LHCB2;
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor,column=name,s;
+twiss, chrom,sequence=LHCB2, deltap=0, file="./twiss_s_B2.dat";
+
+
+
+
+
+stop;

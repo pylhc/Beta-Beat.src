@@ -1,0 +1,110 @@
+!-----------------------------------------
+!
+! MAD file for SPS optics calculations
+! @ Glenn Vanbavinckhove
+!
+!-----------------------------------------
+
+title, 'linear and non-linear optics calculations';
+
+option, echo;
+
+
+option, RBARC=FALSE;  
+! the length of a rectangular magnet is the distance between the polefaces and not the arc length
+
+!------ SPS configuration
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/DefinitionSPS/LHC_beam_injection.beamx';
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS//DefinitionSPS/sps.elex';
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS//DefinitionSPS/lhc.strx';
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS//DefinitionSPS/sps.seqx';
+
+USE, period=SPS, range=#S/#E;
+
+!----------------------------------------
+!
+!   		Match tunes
+!
+!----------------------------------------
+match;
+vary, name=kqf1;
+vary, name=kqd;
+constraint, range=#e, mux=26.13, muy=26.17;
+jacobian, tolerance=1e-6;
+endmatch;
+
+!-----------------------------------------
+!
+! 	Calling changeparameters files
+!
+!-----------------------------------------
+
+call, file='/afs/cern.ch/user/g/gvanbavi/scratch0/17-7-2009/Results/14:24:40/changeparameters_couple.madx';
+
+value, file;
+
+!---------------------------------------
+!
+!	Calling sextupole settings
+!
+!---------------------------------------
+
+call, file='/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/Parameters/SextsFromSPS'
+
+!-----------------------------------------
+!
+!		Error part
+!
+!-----------------------------------------
+
+! Errors in quads
+SELECT,FLAG=ERROR, clear;
+SELECT,FLAG=ERROR, PATTERN="^QD5*";
+EFCOMP, ORDER:=1,RADIUS:=3,
+        DKNR:={0,0,0 ,0 ,0},
+	DKSR:={0,2*10e-3,0,0,0};
+SELECT,FLAG=ERROR, PATTERN="^QF3*";
+EFCOMP, ORDER:=1,RADIUS:=3,
+        DKNR:={0,0,0 ,0 ,0},
+	DKSR:={0,-1*10e-3,0,0,0};
+SELECT,FLAG=ERROR, class=quadrupole;
+esave, file=err;
+
+!---------------------------------------
+!
+! 	    Include Closed orbit
+!
+!--------------------------------------
+
+!readmytable, file="getCO.tfs",table=mddata;
+
+
+!---------------------------------------
+!
+!             Generating Twiss
+!
+!---------------------------------------
+
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,r11,r12,r21,r22,wx,wy,phix,phiy,dmux,dmuy,k1l,k2l,k3l,k4l;
+twiss, chrom, file="twiss.dat";
+TWISS, DELTAP=delta;
+
+
+!--------------------------------------
+!
+!	     PTC tracking
+!
+!--------------------------------------
+
+PTC_CREATE_UNIVERSE;
+PTC_CREATE_LAYOUT, model=3, method=6, nst=10;
+PTC_ALIGN;
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/madx_scripts/bpm.ptc_obs.madx";
+PTC_START, x= 0.004, y= 0.004;
+PTC_TRACK, deltap=0.000, icase=5, turns=330,
+ELEMENT_BY_ELEMENT, dump, onetable;
+PTC_TRACK_END;
+PTC_END;
+
+stop;

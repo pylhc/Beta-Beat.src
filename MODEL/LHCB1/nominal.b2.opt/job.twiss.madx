@@ -1,0 +1,88 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.seq";
+ call,   file = "db/V6.5.inj.str";
+
+seqedit, sequence=lhcb1; ! The first monitor in data acquisition is BPMYB.5L2.B1
+flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=lhcb1, energy = 450.0;
+ beam,      sequence=lhcb1,particle=proton,energy=450,kbunch=1,npart=1.15E11;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
+ on_alice:= 0; on_lhcb := 0;
+
+
+use, period=lhcb1;mylhcbeam=1;
+select, flag=twiss, clear;
+select,flag=twiss,class=marker;
+select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+
+
+twiss, file=twiss.base;
+
+readmytable, file="/afs/cern.ch/eng/sl/online/om/temp/om/repository/core/THICK_MODEL_INPUTS/ERRORS/absolute_harmonics/BEAM1/harmonics_MB_O2-11_S1.tfs" , table=errors_read;
+seterr, table=errors_read;
+
+twiss, file=twiss.b2;
+/*
+f=1.005;
+kqf.a23=kqf.a23/f;
+kqf.a34=kqf.a34/f;
+kqf.a45=kqf.a45/f;
+kqf.a56=kqf.a56*f;
+kqf.a67=kqf.a67*f;
+kqf.a78=kqf.a78*f;
+kqf.a81=kqf.a81/f;
+kqf.a12=kqf.a12*f;
+
+f=1.003;
+kqd.a23=kqd.a23*f;
+kqd.a34=kqd.a34*f;
+kqd.a45=kqd.a45*f;
+kqd.a56=kqd.a56/f;
+kqd.a67=kqd.a67/f;
+kqd.a78=kqd.a78/f;
+kqd.a81=kqd.a81*f;
+kqd.a12=kqd.a12/f;
+
+!kqd.a23=kqd.a23/1.005;
+*/
+
+call, file="/afs/cern.ch/eng/sl/online/om/temp/om/repository/malabaup/correction_MB/BEAM1/MB_corr_setting_O1-11_S1.mad";
+
+!call, file="MB_corr_onlyb2.mad";
+
+
+
+twiss, sequence=lhcb1, deltap=0.0d0, file="twiss.dat";
+
+
+stop;
+
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss,class=rcollimator,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+select, flag=twiss, class=monitor;
+select,flag=twiss,class=instrument;
+select,flag=twiss,class=marker;
+select,flag=twiss,class=quadrupole;
+select,flag=twiss,class=sextupole;
+select,flag=twiss,class=octupole;
+twiss, sequence=lhcb1, deltap=0.0d0, file="twiss_elements.dat";
+
+stop;

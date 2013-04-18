@@ -1,0 +1,5 @@
+!call, file="/afs/cern.ch/eng/lhc/optics/V6.503/HiBeta/un-squeeze-11-to-90m/IP1_beta90.str";
+!call, file="/afs/cern.ch/eng/lhc/optics/V6.503/HiBeta/un-squeeze-11-to-90m/IP5_beta90_2010.str";
+
+call, file="/afs/cern.ch/eng/lhc/optics/V6.503/HiBeta/un-squeeze-11-to-90m/IP1_30.str";
+call, file="/afs/cern.ch/eng/lhc/optics/V6.503/HiBeta/un-squeeze-11-to-90m/IP5_30.str";

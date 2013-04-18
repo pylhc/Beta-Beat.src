@@ -1,0 +1,372 @@
+!#MADX
+!Matches TL3 to closed solution of CR
+! 1. Powers the injection kicker, by defining sepinj variable
+! 2. Calculates CR closed solution, save twiss at injection point
+! 3. Matches TL3 to match twiss parameters at injection
+! 4. Plots the results for TL3 + CR
+!Piotr Skowronski (CERN)
+
+call, file="../common.seqx";
+
+call, file="currents";
+
+
+
+cr.iqfg0120 = 22.01115381;
+cr.iqdg0140 = 20.08730015;
+cr.iqdf0160 = 38.61418584;
+cr.iqff0190 = 84.00367379;
+cr.iqfj0215 = 77.35947361;
+cr.iqdj0230 = 57.40292444;
+cr.iqfj0245 = 48.64730415;
+cr.iqfj0320 = 72.74660366;
+cr.iqdh0340 = 18.2824615;
+cr.iqff0510 = 84.00367379;
+cr.iqdf0540 = 38.61418584;
+cr.iqdg0560 = 20.08730015;
+cr.iqfg0580 = 22.01115381;
+cr.iqfj0715 = 77.35947361;
+cr.iqdj0730 = 57.40292444;
+cr.iqfj0745 = 48.64730415;
+cr.iqfj0820 = 69.36978656;
+cr.iqdh0840 = 20.3230118;
+iqdd0520 = 21.40104378;
+iqfd0530 = 20.64731562;
+iqfh0610 = 21.01833234;
+iqfh0620 = 4.085326121;
+iqfh0640 = 16.48654571;
+iqdi0650 = 14.82612609;
+iqff0660 = 81.01552284;
+iqfh0680 = 24.92849293;
+iqff0690 = 1.704616379;
+iqdf0720 = -4.153761424;
+iqfj0730 = 47.19507472;
+iqdj0740 = 81.30775061;
+iqfg0750 = 18.69048381;
+
+
+
+
+
+
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="cr_s.seqx";
+
+
+! Basic Elements and line definition 
+call, file="../tl1/tl3elements.seqx"; 
+
+! Beam instrumentation
+call,  file="../tl1/beaminstr.seqx";
+
+! Sequence ready to use w/ monitors and w/o redundant markers
+call, file="../tl1/tl3.seqx";
+
+
+
+tl1_cr: line=(tl3,CR_anellot);
+
+tl1_cr_s: line=(tl3,CR_anellot_s);
+
+
+PTCNSTEPS = 20;
+
+
+beam, particle=electron,energy=EN/1000., EX=NEX/EN/0.511, EY=NEY/EN/0.511, ET=1/1000, SIGT=0, SIGE=sige;
+
+use, period=CR_anellot_s;
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,betx,bety,alfx,alfy,dx,dpx,x,px;
+
+sepinj = 0.0;
+
+
+twiss, rmatrix, save, file="cr.closedsol.twiss";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Closed orbit Kicker OFF";
+plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Closed orbit Kicker OFF";
+plot, noversion=true, vaxis=betx, haxis=s, colour=100, title="Closed Kicker OFF";
+plot, noversion=true, vaxis=dx, haxis=s, colour=100, title="Closed Kicker OFF";
+
+
+
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=true;
+ ptc_setswitch, debuglevel=0, nocavity=false, fringe=true, exact_mis=true, time=true, totalpath=true;
+ PTC_TWISS, table=twiss, icase=6, no=1;
+ptc_end;
+
+plot, noversion=true, vaxis=beta11,beta22, haxis=s, colour=100,
+title="PTC Closed Kicker OFF";
+
+plot, noversion=true, vaxis=disp1,disp2, haxis=s, colour=100,
+title="PTC Closed Kicker OFF";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+title="PTC Closed Kicker OFF";
+
+plot, noversion=true, vaxis=px, haxis=s, colour=100,
+title="PTC Closed Kicker OFF";
+
+
+!power on injection kicker
+sepinj = 0.0364;
+
+
+
+savebeta, label=betainj, place=injection ,sequence=CR_anellot_s;
+savebeta, label=b0bb, place=mentdefl1050 ,sequence=CR_anellot_s;
+
+twiss, rmatrix, save, file="cr.closedsol.twiss";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Closed orbit Kicker ON";
+plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Closed orbit Kicker ON";
+plot, noversion=true, vaxis=betx, haxis=s, colour=100, title="Closed Kicker ON";
+plot, noversion=true, vaxis=dx, haxis=s, colour=100, title="Closed Kicker ON";
+
+
+
+seqedit, sequence=CR_anellot_s;
+ cycle,  start=mentdefl1050;
+endedit;
+
+use, period=CR_anellot_s;
+
+savebeta, label=betainj2, place=#e ,sequence=CR_anellot_s;
+
+twiss, betx=b0bb->betx, bety=b0bb->bety, alfx=b0bb->alfx, alfy=b0bb->alfy;
+
+plot, noversion=true, vaxis=dx, haxis=s, colour=100, title="Tricked Kicker ON";
+plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Tricked Kicker ON";
+plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Tricked Kicker ON";
+plot, noversion=true, vaxis=betx, haxis=s, colour=100, title="Tricked Kicker ON";
+
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=true;
+ ptc_setswitch, debuglevel=0, nocavity=false, fringe=true, exact_mis=true, time=true, totalpath=true;
+ PTC_TWISS, table=twiss, icase=6, no=1, betz=1, betx=b0bb->betx, bety=b0bb->bety, alfx=b0bb->alfx, alfy=b0bb->alfy;
+ptc_end;
+
+plot, noversion=true, vaxis=beta11,beta22, haxis=s, colour=100,
+title="PTC Line DX0=0 Kicker ON";
+
+plot, noversion=true, vaxis=disp1,disp2, haxis=s, colour=100,
+title="PTC Line DX0=0 Kicker ON";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+title="PTC Line DX0=0 Kicker ON";
+
+plot, noversion=true, vaxis=px, haxis=s, colour=100,
+title="PTC Line DX0=0 Kicker ON";
+
+
+
+
+stop;
+
+show, betainj;
+
+
+use, period=CR_anellot_s;
+
+
+twiss, beta0=betainj2;
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Tricked Kicker ON";
+plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Tricked Kicker ON";
+plot, noversion=true, vaxis=betx, haxis=s, colour=100, title="Tricked Kicker ON";
+plot, noversion=true, vaxis=dx, haxis=s, colour=100, title="Tricked Kicker ON";
+
+stop;
+
+
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=true;
+ ptc_setswitch, debuglevel=0, nocavity=false, fringe=true, exact_mis=true, time=true, totalpath=true;
+ PTC_TWISS, table=twiss, icase=6, no=1;
+ptc_end;
+
+plot, noversion=true, vaxis=beta11,beta22, haxis=s, colour=100,
+title="PTC Closed Kicker ON";
+
+plot, noversion=true, vaxis=disp1,disp2, haxis=s, colour=100,
+title="PTC Closed Kicker ON";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+title="PTC Closed Kicker ON";
+
+plot, noversion=true, vaxis=px, haxis=s, colour=100,
+title="PTC Closed Kicker ON";
+
+
+stop;
+
+MatchClosedDX = 1;
+
+if (MatchClosedDX > 0)
+ {
+   dxinj = betainj->dx;
+   dpxinj = betainj->dpx;
+ }
+else
+ {
+   dxinj = 0;
+   dpxinj = 0;
+ } ;
+
+
+value, dxinj, dpxinj;
+
+
+BEQTL1: BETA0, betx = BXCT0520, bety = BYCT0520,
+               alfx = AXCT0520, alfy = AYCT0520;
+
+
+
+use, period=tl3;
+
+mvar1 := sigx;
+mvar2 := sigy;
+
+select, flag=twiss,column=name,s,betx,bety,mux,muy,dx,x,y,dx10,sigx,sigy,mvar1,mvar2;
+
+twiss, rmatrix, beta0=BEQTL1;
+
+
+plot, noversion=true, vaxis=betx,bety, haxis=s, colour=100, title="TL3 initial";
+
+write, table=twiss, file="TL3initial.twiss";
+
+
+
+match, rmatrix, beta0=BEQTL1;
+   vary, name=IQDD0520, step:=1, LOWER=-200, UPPER=200;
+   vary, name=IQFD0530, step:=1, LOWER=-200, UPPER=200;
+   vary, name=IQFH0610, step:=1, LOWER=   0, UPPER= 60;
+   vary, name=IQFH0620, step:=1, LOWER=   0, UPPER=110;
+   vary, name=IQFH0640, step:=1, LOWER=   0, UPPER= 80;
+   vary, name=IQDI0650, step:=1, LOWER=   0, UPPER=100;
+   vary, name=IQFF0660, step:=1, LOWER=   0, UPPER=250;
+   vary, name=IQFH0680, step:=1, LOWER=   0, UPPER= 50;
+   vary, name=IQFF0690, step:=1, LOWER=   0, UPPER=250;
+   vary, name=IQDF0720, step:=1, LOWER=-150, UPPER=150;
+   vary, name=IQFJ0730, step:=1, LOWER=-275, UPPER=275;
+   vary, name=IQDJ0740, step:=1, LOWER=-275, UPPER=275;
+   vary, name=IQFG0750, step:=1, LOWER=-130, UPPER=130;
+
+
+   constraint, weight=1, betx<40;
+   constraint, weight=1, bety<40;
+
+!   constraint, weight=0.1, betx>1;
+!   constraint, weight=0.1, bety>1;
+
+
+   constraint, weight=100, RANGE=#e, betx = betainj->betx;
+   constraint, weight=100, RANGE=#e, bety = betainj->bety;
+
+   constraint, weight=100, RANGE=#e, alfx = betainj->alfx;
+   constraint, weight=100, RANGE=#e, alfy = betainj->alfy;
+   
+   constraint, weight=100, range=#e, dx=dxinj, dpx=dPxinj;
+
+   weight, re56=200;
+   constraint, weight=10, range=#e re56=R56injcr;
+
+   constraint, weight=100, mvar1 <8;  ! restrict sigma x
+   constraint, weight=100, mvar2 <5;  ! restrict sigma y
+
+!   constraint, weight=0.1, mvar1 >1;  ! restrict sigma x
+!   constraint, weight=0.1, mvar2 >1;  ! restrict sigma y
+   
+   !constraint, betx<25, bety<28.;
+
+   
+   lmdif,   tolerance:=1e-12, calls:=2500;
+   migrad,  tolerance:=1e-24, calls:=2000;
+   simplex, tolerance:=1e-24, calls:=500;
+
+!   lmdif,   tolerance:=1e-12, calls:=2500;
+!   migrad,  tolerance:=1e-12, calls:=2000;
+!   simplex, tolerance:=1e-12, calls:=500;
+!   lmdif,   tolerance:=1e-12, calls:=2500;
+!   migrad,  tolerance:=1e-12, calls:=2000;
+!   lmdif,   tolerance:=1e-12, calls:=2000;
+!   migrad,  tolerance:=1e-24, calls:=10000;
+endmatch;
+
+
+twiss, save, beta0=BEQTL1;
+write, table=twiss, file="TL3final.twiss";
+
+plot, noversion=true, vaxis=betx, bety, dx10, haxis=s, colour=100,
+title="rematched TL3";
+plot, noversion=true, vaxis=dx,dpx, haxis=s, colour=100,
+title="rematched TL3";
+plot, noversion=true, vaxis=sigx, sigy, haxis=s, colour=100,
+title="rematched TL3";
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+title="rematched TL3";
+
+
+
+
+!Finally show all the setup after rematching 
+
+use, period=tl1_cr; 
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,beta11,beta22,alfa11,alfa22,disp1,disp2,x,y,px,ptcsigx,ptcsigy;
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=false;
+ ptc_setswitch, debuglevel=0, nocavity=false,
+                fringe=true, exact_mis=true, time=true, totalpath=true;
+ ptc_eplacement, range=injection, x=-0.0364, y=0, z=0, onlyposition, refframe=previouselement, autoplacedownstream=true;
+
+ ptc_printframes, file="tl1_cr.C",format=rootmacro;
+ PTC_TWISS, table=twiss, icase=6, no=1, betz=1.0, BETA0=BEQTL1;
+ptc_end;
+
+write, table="twiss",file="TL3matchedtoCR.ptc.twiss"; 
+
+plot, noversion=true, vaxis=beta11,beta22, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+plot, noversion=true, vaxis=disp1,disp2, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+plot, noversion=true, vaxis=px, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+
+system,"cp madx.ps x.ps";
+
+select,flag=save, clear;
+select,flag=save, pattern="iq.*";
+select,flag=save, pattern="cr.iq.*";
+save, file="x.madout";
+save, file="TUNES";
+
+
+
+stop;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  SSSSS  TTTTT   OOO   PPP
+!  S        T    O   O  P  P
+!  SSSSS    T    O   O  PPP
+!      S    T    O   O  P
+!  SSSSS    T     OOO   P
+!
+
+

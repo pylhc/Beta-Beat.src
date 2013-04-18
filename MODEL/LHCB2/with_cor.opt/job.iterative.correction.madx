@@ -1,0 +1,95 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503/ db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503/ ds";
+
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.seq";
+! call, file="db/beam_four.seq";
+ call,   file = "db/V6.5.inj.str";
+
+
+ option,  echo,  info,  warn;
+
+ beam, sequence=lhcb2,particle=proton,energy=450,kbunch=1,npart=1.15E11, bv=-1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
+ on_alice:= 0; on_lhcb := 0;
+
+!call, file="kvalues_NoOrbitCorr_ForThin_1209_1.str";
+
+seqedit, sequence=lhcb2; ! The first monitor in data acquisition is BPMYB.5R8.B2
+flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+use, period=lhcb2;
+
+!match,      sequence=lhcb2;
+!constraint, sequence=lhcb2, range=#e,   mux=64.301,  muy=59.244;
+
+! vary,name=kqf;
+! vary,name=kqd;
+
+! lmdif,     calls=2000, tolerance=1.0E-22;
+
+!endmatch;
+
+! option, -echo;
+! set,    format="21.15f";
+! value,kqf;
+! value,kqd;
+
+!kqf:= 0.008989330393865;
+!kqd:=-0.008581958102525;
+
+
+/*
+!______ now error table is in "injection_saved_errors.b2-1.tfs" From Federico
+readmytable, file="../../MatchTest/injection_saved_errors.b2-1.SomeZeroed.tfs", table=newerr;
+select, flag=error, clear;
+!select, flag=error, class=MB;
+seterr, table=newerr;
+!select, flag=error, class=MQ;
+!esave, file="errors-SEED.tfs";
+*/
+
+!kq6.r7b2 = kq6.r7b2 *0.98;
+!kq4.r6b2 = kq4.r6b2 *1.015;
+!kq4.l2b2 = kq4.l2b2 *0.95;
+!ktqx2.l2 = ktqx2.l2 - 1e-4;
+!ktqx2.r2 = ktqx2.r2 - 8e-5;
+
+
+call, file="changeparameters_all";
+
+!kqt.5r3 =  kqt.5r3*0.8 ;
+!kqt.4l3 = kqt.4l3*0.8 ;
+
+
+/*
+match,      sequence=lhcb2;
+constraint, sequence=lhcb2, range=#e,   mux=64.301+0.00647,  muy=59.244-0.04756;
+
+ vary,name=kqf;
+ vary,name=kqd;
+
+ lmdif,     calls=2000, tolerance=1.0E-22;
+
+endmatch;
+*/
+
+select, flag=twiss, clear;
+!select, flag=twiss,column=name,s,keyword,betx,alfx,bety,alfy,mux,muy,x,y;
+select, flag=twiss, class=monitor ,column=name,s,keyword,betx,alfx,bety,alfy,mux,muy,x,y;
+twiss, sequence=lhcb2, deltap=0.0d0, file="twiss.corrected.dat";
+
+
+
+
+
+stop;

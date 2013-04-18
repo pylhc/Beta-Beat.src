@@ -1,0 +1,4 @@
+call, file="db/IR1/IP1_beta_2.00.str";
+call, file="db/IR5/IP5_beta_2.00.str";
+!call, file="db/IR2/IP2_0.00889_2.0m.str";
+!call, file="db/IR8/ip8_0.00860_beta2.00m.str";

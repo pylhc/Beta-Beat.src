@@ -1,0 +1,104 @@
+!--------------------------------------------------------------------------
+! MAD file for SPS optics calculations
+!  G.Arduini
+!--------------------------------------------------------------------------
+
+ !title, 'Untitled';
+
+option, -echo;
+ option, RBARC=FALSE;  ! the length of a rectangular magnet is the distance between the polefaces and not the arc length
+ assign, ECHO=ECHO.PRT; 
+  
+
+!---------------------------------------------------------------
+!         SPECIFY THE SPS CONFIGURATION, ENERGY and EMITTANCES
+!---------------------------------------------------------------
+call, file = 'LHC_beam_injection.beamx';
+!--------------------------------------------------------------------------
+! call the element definition file for SPS
+!--------------------------------------------------------------------------
+call, file = 'sps2004.elex';
+call, file = 'lhc_newwp_2004.strx';
+call, file = 'sps2004.seqx';
+
+USE, period=SPS, range=#S/#E;
+
+!--------------------------------------------------------------------------
+! to get the SPS non-linear model
+!--------------------------------------------------------------------------
+/*
+b4f := 0.0;
+b4d := -0.0;
+call, file = 'cmd/nonlinear_model.cmdx';
+!  changeparameters.chi_3 without b5
+kqf1 := 0.0144520346817;
+kqd := -0.0144306897936;
+b3a := 0.000735088843334;
+b3b := -0.00262418731976;
+!b5a := -7.4051134674;
+!b5b := 124.892123947;
+b6f := -1548.65534787;
+b6d := -5571.03227738;
+LOFK3 := 1.26096553841;
+LODK3 := -0.107891221216;
+*/
+
+!
+! Get rid of b4 , not justified
+!
+b4f := 0.0;
+b4d := -0.0;
+LOFK3 := 0.0;
+LODK3 := 0.0;
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!
+! Match tunes
+!!!!!!!!!!!!!!!!!!!!!!!
+
+match;
+vary, name=kqf1;
+vary, name=kqd;
+constraint, range=#e, mux=26.13, muy=26.1744;
+jacobian, tolerance=1e-6;
+endmatch;
+
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="S";
+select, flag=twiss, column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss,  CHROM ,file="twiss.dat";
+stop;
+!select, flag=twiss, clear;
+!select, flag=twiss, PATTERN="S";
+!select, flag=twiss, PATTERN="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k!3l, keyword;
+!twiss,  deltap=0.0d0, file="twiss.dat2";
+
+!stop;
+
+TWISS, DELTAP=delta;
+!stop;
+
+
+
+
+
+!!!!!!! => tracking
+ptc_create_universe;
+        ptc_create_layout,model=2,method=6,nst=10;
+        ptc_start, x= 0.0001, y= 0.0001,DELTAP=0.0;
+        call, file="../madx_scripts/bpm.obs.madx";
+        ptc_track, dump, turns=400, icase=5, onetable;
+        PTC_TRACK_END;
+        ptc_end;
+
+!stop;
+
+
+
+
+
+
+

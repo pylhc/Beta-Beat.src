@@ -1,0 +1,42 @@
+! calling errors
+READMYTABLE,file="/afs/cern.ch/eng/sl/online/om/repository/core/THICK_MODEL_INPUTS/ERRORS/absolute_harmonics/BEAM2/harmonics_MB_O2-11_S1.tfs",table=errtabmb;
+SETERR,TABLE=errtabmb;
+
+! corrections for the errors above
+ kqtf.b2:=0;
+ kqtd.b2:=0;
+
+ dKQTF.a12B2 :=    -0.1271187587E-02 ;
+ dKQTF.a23B2 :=     0.9793468935E-03 ;
+ dKQTF.a34B2 :=     0.9609092392E-03 ;
+ dKQTF.a45B2 :=     0.8197439558E-03 ;
+ dKQTF.a56B2 :=    -0.7809121715E-03 ;
+ dKQTF.a67B2 :=    -0.9367389946E-03 ;
+ dKQTF.a78B2 :=    -0.7200642045E-03 ;
+ dKQTF.a81B2 :=     0.8631249960E-03 ;
+ dKQTD.a12B2 :=    -0.1190743199E-02 ;
+ dKQTD.a23B2 :=     0.1075459235E-02 ;
+ dKQTD.a34B2 :=     0.9685879983E-03 ;
+ dKQTD.a45B2 :=     0.8346538586E-03 ;
+ dKQTD.a56B2 :=    -0.7939635129E-03 ;
+ dKQTD.a67B2 :=    -0.1051089006E-02 ;
+ dKQTD.a78B2 :=    -0.7505689894E-03 ;
+ dKQTD.a81B2 :=     0.9495138461E-03 ;
+
+
+ KQTF.a12B2  :=     0.0000000000E+00  + dKQTF.a12B2 - 1.0*kqtf.b2;
+ KQTF.a23B2  :=     0.0000000000E+00  + dKQTF.a23B2 + 3.0*kqtf.b2;
+ KQTF.a34B2  :=     0.0000000000E+00  + dKQTF.a34B2 + 3.0*kqtf.b2;
+ KQTF.a45B2  :=     0.0000000000E+00  + dKQTF.a45B2 - 1.0*kqtf.b2;
+ KQTF.a56B2  :=     0.0000000000E+00  + dKQTF.a56B2 - 1.0*kqtf.b2;
+ KQTF.a67B2  :=     0.0000000000E+00  + dKQTF.a67B2 + 3.0*kqtf.b2;
+ KQTF.a78B2  :=     0.0000000000E+00  + dKQTF.a78B2 + 3.0*kqtf.b2;
+ KQTF.a81B2  :=     0.0000000000E+00  + dKQTF.a81B2 - 1.0*kqtf.b2;
+ KQTD.a12B2  :=     0.0000000000E+00  + dKQTD.a12B2 - 1.0*kqtd.b2;
+ KQTD.a23B2  :=     0.0000000000E+00  + dKQTD.a23B2 + 3.0*kqtd.b2;
+ KQTD.a34B2  :=     0.0000000000E+00  + dKQTD.a34B2 + 3.0*kqtd.b2;
+ KQTD.a45B2  :=     0.0000000000E+00  + dKQTD.a45B2 - 1.0*kqtd.b2;
+ KQTD.a56B2  :=     0.0000000000E+00  + dKQTD.a56B2 - 1.0*kqtd.b2;
+ KQTD.a67B2  :=     0.0000000000E+00  + dKQTD.a67B2 + 3.0*kqtd.b2;
+ KQTD.a78B2  :=     0.0000000000E+00  + dKQTD.a78B2 + 3.0*kqtd.b2;
+ KQTD.a81B2  :=     0.0000000000E+00  + dKQTD.a81B2 - 1.0*kqtd.b2;

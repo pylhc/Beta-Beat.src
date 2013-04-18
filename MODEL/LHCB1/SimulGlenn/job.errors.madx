@@ -1,0 +1,98 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.thin.seq";
+ call,   file = "db/V6.5.thin.inj.str";
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=lhcb1, energy = 450.0;
+ !beam, particle = proton, sequence=lhcb2, energy = 450.0, bv = -1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
+ on_alice:= 0; on_lhcb := 0;
+
+value, vrf400, vrf200;
+
+
+call, file="changeparameters";
+call, file="SEEDR";
+
+call, file="db/errors/Esubroutines.madx";
+
+use,    period=lhcb1;
+
+select, flag=error, clear; select, flag=error,  PATTERN="^MB";
+Rr=0.017;
+B2r =1.1;       !Check this number with S.F.
+ON_B2R=1;
+GCUTR=3;
+eoption, seed= SEEDR    ; exec SetEfcomp_B;
+
+
+!Quadrupole errors MQ
+select, flag=error, clear; select, flag=error, PATTERN="^MQ\.";
+Rr=0.017;
+B2r =15;       
+ON_B2R=1;
+GCUTR=3;
+eoption, seed= SEEDR + 1    ; exec SetEfcomp_Q;
+
+!! MQM
+select, flag=error, clear; select, flag=error, PATTERN="^MQM";
+B2r =16;
+eoption, seed= SEEDR + 2    ; exec SetEfcomp_Q;
+
+!! MQY
+select, flag=error, clear; select, flag=error, PATTERN="^MQY";
+B2r =14;
+eoption, seed= SEEDR + 4    ; exec SetEfcomp_Q;
+
+
+!! MQX
+select, flag=error, clear; select, flag=error, PATTERN="^MQX";
+B2r =11;
+eoption, seed= SEEDR + 5    ; exec SetEfcomp_Q;
+
+!! MQW
+select, flag=error, clear; select, flag=error, PATTERN="^MQW";
+sB2r =22;
+eoption, seed= SEEDR + 6    ; exec SetEfcomp_Q;
+
+!! MQT
+select, flag=error, clear; select, flag=error, PATTERN="^MQT";
+B2r =17;
+eoption, seed= SEEDR + 7    ; exec SetEfcomp_Q;
+
+!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=sextupole;
+eoption, seed= SEEDR + 8; 
+EALIGN, DX:=0.001*TGAUSS(GCUTR), DY:=0.001*TGAUSS(GCUTR); 
+
+
+!select, flag=error, class= quadrupole;select, flag=error,  PATTERN="^MB";
+!esave, file="err";
+
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BPM.*\.B1",column=name,s,betx,bety,mux,muy,x,y,dx;
+twiss, sequence=lhcb1, file="twiss.dat";
+stop;
+
+
+TRACK, deltap= 0.0000, onepass,dump, onetable;
+ call, file="bpm.obs.madx"; 
+ START, x= 0.0002, y= 0.001;
+  RUN, turns= 128;
+ENDTRACK;
+
+!system, "./parsing";
+system, "./AddBpmErrors";
+!system, "rm trackone";
+
+
+stop;

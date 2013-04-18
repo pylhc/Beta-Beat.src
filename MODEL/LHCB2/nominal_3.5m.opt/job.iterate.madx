@@ -1,0 +1,73 @@
+title,      "LHC V6.500  -  LHC thick lense, beam 2, inj";
+
+! to be executed with command :
+! /afs/cern.ch/group/si/slap/scripts/mad -X < JOBNAME.madx
+! output of beam observables in file twiss.txt
+
+! link to LHC V6.5 directory in AFS for measured errors
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.5 dm";
+! link to LHC V6.5xx directory in AFS for optics sequence and strengths
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 ds";
+! system,"mkdir temp";
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+!                        TARGET TUNE;
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+! Nominal tunes injection
+ QX0 = 64.28;
+ QY0 = 59.31;
+! Nominal tunes collision
+! QX0 = 64.31;
+! QY0 = 59.32;
+ TSPLIT=5;
+ QX00=64.0;
+ QY00=59.0;
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+!                        TARGET CHROMATICITY ;
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;
+! Nominal Chromaticity:
+ QPRIME = 2.0;
+
+! LHC optics layout as f(lensedesc,beamno)
+option,    -info, -warn, verify, -echo;
+!call,      file="ds/V6.5.thin.seq";
+call,      file="ds/V6.5.seq"; ! Let's use thick lens. 5/Sep/2008 MA
+
+
+seqedit, sequence=lhcb2; ! The first monitor in data acquisition is BPMYB.5R8.B2
+flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+! Optics strength as f(cycle,beam)
+!call,      file="ds/V6.5.thin.inj.str";
+call,      file="ds/V6.5.inj.str"; ! Let's use thick lens. 5/Sep/2008 MA
+call, file="modifiers.madx";
+beam,      sequence=lhcb2,particle=proton,energy=450,kbunch=1,npart=1.15E11, bv=-1;
+use,       sequence=lhcb2;
+
+
+
+!  set switches to 1 if crossing scheme is required
+ on_x1 := 0; on_sep1 := 1;
+ on_x2 := 0; on_sep2 := 1; on_alice:= 0;
+ on_x5 := 0; on_sep5 := 1;
+ on_x8 := 0; on_sep8 := 1; on_lhcb := 0;
+
+select, flag=twiss, clear;
+!select,    flag=twiss, pattern="^MQ";
+select,    flag=twiss, pattern="^MQM.*B.$";
+select,    flag=twiss, pattern="^MQT.*B.$";
+select,    flag=twiss, pattern="^MQY.*[RLB].$";
+select,    flag=twiss, pattern="^MQX.*[RL].$";
+
+select,    flag=twiss, pattern="BPM.*\.B2", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,K2L,K3L,K4L,WX,WY,PHIX,PHIY,DMUX,DMUY,MUX,MUY,KEYWORD,DBX,DBY,R11,R12,R21,R22;
+call, file=iter.madx;
+!call, file="changeparameters";
+!twiss,     sequence=lhcb2, file="twiss.dat";
+stop;
+
+
+
+

@@ -1,0 +1,29 @@
+startVal_kqs.a23b1 = kqs.a23b1;
+kqs.a23b1:=startVal_kqs.a23b1 + b1_re_ip1_knob*0.0133 - b1_im_ip1_knob*0.0332;
+
+startVal_kqs.a45b1 = kqs.a45b1;
+kqs.a45b1:=startVal_kqs.a45b1 + b1_re_ip1_knob*0.0528 - b1_im_ip1_knob*0.0149;
+
+startVal_kqs.a67b1 =kqs.a67b1;
+kqs.a67b1:=startVal_kqs.a67b1 + b1_re_ip1_knob*0.0022 + b1_im_ip1_knob*0.0009;
+
+startVal_kqs.a81b1 =kqs.a81b1;
+kqs.a81b1:=startVal_kqs.a81b1 - b1_re_ip1_knob*0.0429 - b1_im_ip1_knob*0.0292;
+
+startVal_kqs.l2b1 =kqs.l2b1;
+kqs.l2b1:=startVal_kqs.l2b1 - b1_re_ip1_knob*0.0016 + b1_im_ip1_knob*0.0092;;
+
+startVal_kqs.l6b1=kqs.l6b1;
+kqs.l6b1:=startVal_kqs.l6b1 - b1_re_ip1_knob*0.0038 + b1_im_ip1_knob*0.0379;
+
+startVal_kqs.l8b1=kqs.l8b1;
+kqs.l8b1:=startVal_kqs.l8b1 + b1_re_ip1_knob*0.0029 - b1_im_ip1_knob*0.0076;
+
+startVal_kqs.r1b1=kqs.r1b1;
+kqs.r1b1:=startVal_kqs.r1b1 - b1_re_ip1_knob*0.0016 + b1_im_ip1_knob*0.0092;
+
+startVal_kqs.r5b1=kqs.r5b1;
+kqs.r5b1:=startVal_kqs.r5b1 - b1_re_ip1_knob*0.0038 + b1_im_ip1_knob*0.0379;
+
+startVal_kqs.r7b1=kqs.r7b1;
+kqs.r7b1:=startVal_kqs.r7b1 + b1_re_ip1_knob*0.002 - b1_im_ip1_knob*0.0076;

@@ -1,0 +1,85 @@
+option, -echo, -warn;
+title, "Relativistic Heavy Ion Collider";
+
+!-------- Protons at injection energy
+beam, mass=0.93827, charge=1, gamma=22.89, 
+exn=20.0e-06, eyn=20.0e-06, sige=0.001;
+
+!-------- The lattice file from the data base.
+CALL, FILE = "./MADX_lat.asc";
+rhic :line=(blue);
+
+!-------- Gradients are set with:
+CALL, FILE = "./rhic-2009pp100GeV.setx";
+
+!-------- subroutines
+CALL, FILE = "./rhic_utilities.madx";
+
+!--- Setting up the quadrupole strengths 
+!--- order IP --> 6,8,10,12,2,4
+!--- inj/store ip6 & 8
+
+exec, strength7d5;exec, set6oc;exec, strength7d5;exec, set8oc;
+!exec, strength0d7;exec, set6oc;exec, strength0d7;exec, set8oc;
+
+exec, strength7d5;exec, set10oc;
+exec, strength7d5;exec, set12oc;
+exec, strength7d5;exec, set2oc;
+exec, strength7d5;exec, set4oc;
+use,sequence=rhic;
+
+option, echo;
+!--- tunes, chroms
+Qx := 28.735; Qy := 29.721;
+chromX := 2.0;chromY := 2.0;
+exec, setarcquads; exec, setchrom;
+
+!--- save modified sequence
+save,sequence=rhic,file="blue.asc";
+
+option, -echo,warn;
+call,file="blue.asc";
+use,sequence=rhic;
+
+!--- change bpms names
+call,file="BPMSdef";
+select,flag=seqedit,pattern=BPM;select,flag=seqedit,pattern=CPLMON;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="BPMSinstall";endedit;
+use,sequence=rhic;
+
+!stop;
+
+!---- bpms
+select,flag=twiss,clear;
+select,flag=twiss,class=HMONITOR,column=name,s,betx,bety, mux, muy, dx, alfx, alfy,x,y,K1L,K2L,K3L, dpx;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy, dx, alfx, alfy,x,y,K1L,K2L,K3L,dpx;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy, dx, alfx, alfy,x,y,K1L,K2L,K3L,dpx;
+twiss,file="twiss.dat";
+
+!---- horizontal bpms
+select,flag=twiss,clear;
+select,flag=twiss,class=HMONITOR,column=name,s,betx,bety, mux, muy, dx;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy, dx;
+twiss,sequence=rhic,file="twissX.dat";
+
+
+!---- vertical bpms
+select,flag=twiss,clear;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy, dx;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy, dx;
+twiss,sequence=rhic,file="twissY.dat";
+
+stop;
+
+!!!!!!! some tracking ......
+
+PTC_CREATE_UNIVERSE;PTC_CREATE_LAYOUT, model=2, method=6, nst=10;
+call, file="./observe_bpms_new";
+PTC_START, x= 0.005, y= 0.0001;
+PTC_TRACK, deltap=-0.00135, icase=5, turns=1000,dump, onetable;
+PTC_TRACK_END;
+PTC_END;
+
+stop;
+
