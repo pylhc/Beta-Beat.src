@@ -3590,7 +3590,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     with_ac_calc = False
     try:
         MADTwiss_ac=metaclass.twiss(twiss_model_file.replace(".dat","_ac.dat"))
-        #TODO: change with_ac_calc to bool (vimaier)
         with_ac_calc = True
         print "Driven Twiss file found. AC dipole effects calculated with the effective model (get***_free2.out)"
     except:
@@ -3938,7 +3937,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 
     with_liny = True #FLAG meaning there is _liny file for zero DPPY!
-    with_liny2 = True #FLAG meaning there is no _liny file for non-zero DPPY!
+    with_liny2 = True #FLAG meaning there is _liny file for non-zero DPPY!
     with_linx = True
     with_linx2 = True
 
@@ -3979,13 +3978,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 
     if with_ac_calc:
-        #TODO: easier the lines: abs( MADTwiss.Q1 - int(MADTwiss.Q1) )  (vimaier)
-        Q1f=abs(float(str(MADTwiss.Q1).split('.')[0])-MADTwiss.Q1)        #-- Free Q1 (tempolarlly, overwritten later)
-        Q2f=abs(float(str(MADTwiss.Q2).split('.')[0])-MADTwiss.Q2)        #-- Free Q2 (tempolarlly, overwritten later)
-        Q1 =abs(float(str(MADTwiss_ac.Q1).split('.')[0])-MADTwiss_ac.Q1)  #-- Drive Q1 (tempolarlly, overwritten later)
-        Q2 =abs(float(str(MADTwiss_ac.Q2).split('.')[0])-MADTwiss_ac.Q2)  #-- Drive Q2 (tempolarlly, overwritten later)
-        d1 =Q1-Q1f                                                        #-- Used later to calculate free Q1
-        d2 =Q2-Q2f                                                        #-- Used later to calculate free Q2
+        # Get fractional part: frac(62.23) = 0.23; 62.23 % 1 ==> 0.23 (vimaier)
+        Q1f = abs(MADTwiss.Q1) % 1 #-- Free Q1 (tempolarlly, overwritten later)
+        Q2f = abs(MADTwiss.Q2) % 1 #-- Free Q2 (tempolarlly, overwritten later)
+        Q1 = abs(MADTwiss_ac.Q1) % 1 #-- Drive Q1 (tempolarlly, overwritten later)
+        Q2 = abs(MADTwiss_ac.Q2) % 1 #-- Drive Q2 (tempolarlly, overwritten later)
+        d1 =Q1-Q1f #-- Used later to calculate free Q1
+        d2 =Q2-Q2f #-- Used later to calculate free Q2
     else:
         Q1f=ListOfZeroDPPX[0].Q1
         Q2f=ListOfZeroDPPY[0].Q2
