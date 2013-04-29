@@ -26,11 +26,13 @@ Returns as exit code the number of failed runs.
 Change history:
  - 1.0.1: Added option "special_output". It is possible to choose a separate output directory. The 
              produced output will be deleted again.
+ - 1.0.2 29th April 2013:
+    Changed compare algorithm. Created comare_tfs_files(...) to check content independent from 
+    whitespace.
 '''
 
 import os
 import sys
-import filecmp
 import optparse
 import unittest
 import shutil
@@ -232,14 +234,16 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
         # Compare each valid file with corresponding to_check file
         print "Checking output files for run: "+ run_validator.get_run_path()
-        
-        match_mismatch_error = filecmp.cmpfiles(valid_output_path,
-                                                to_check_output_path,
-                                                valid_filenames, 
-                                                shallow=False)
-        
-        num_equal_files = len(match_mismatch_error[0])
+
+        num_equal_files = 0
         num_overall_files = len(valid_filenames)
+        for name in valid_filenames:
+            equal = compare_tfs_files(os.path.join(valid_output_path,name), os.path.join(to_check_output_path,name) )
+            if not equal:
+                print name," are not equal."
+            else:
+                num_equal_files += 1
+        
         
         print str(num_equal_files)+" of "+str(num_overall_files)+ " are equal"
         
@@ -251,12 +255,29 @@ class TestFileOutputGetLLM(unittest.TestCase):
                 shutil.rmtree(path_to_created_folder)
             return True
         else:
-            print "Following files are not matching([mismatches], [errors]):"
-            print match_mismatch_error[1:], "\n"
             return False
     # END run_single_test() --------------------------------------------
         
 # END class TestFileOutPutGetLLM -------------------------------------------------------------------
+
+def compare_tfs_files(name_valid, name_to_check):
+    """ Compares both files. Whitespace does not matter."""
+    file_valid = open(name_valid)
+    file_to_check = open(name_to_check)
+    
+    for line in file_valid:
+        split_valid = line.split()
+        split_to_check = file_to_check.readline().split()
+        
+        if len(split_valid) != len(split_to_check):
+            return False
+        
+        for i in xrange(len(split_valid)):
+            if split_valid[i] != split_to_check[i]:
+                return False
+    
+    return True
+        
 
 def main():
     # Remove arguments from sys.argv
