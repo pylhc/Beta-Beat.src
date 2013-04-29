@@ -180,6 +180,8 @@ from string import *
 from math import *
 from linreg import *
 
+import utils.tfs_file
+
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
 
@@ -978,22 +980,22 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
                 fracy = fracyinp[1]
         fdi.close()
     except:
-        fracx=Q1 # Otherwise, the fractional parts are assumed to be below 0.5
+        fracx = Q1 # Otherwise, the fractional parts are assumed to be below 0.5
+        fracy = Q2
+
+    if fracx < 0.0 :
+        fracx = 1.0 - Q1
+    else:
+        fracx = Q1
+    if fracy < 0.0 :
+        fracx = 1.0 - Q2
+    else:
         fracy=Q2
 
-    if fracx<0.0 :
-        fracx=1.0-Q1
+    if fracx > fracy:
+        sign_QxmQy = 1.0
     else:
-        fracx=Q1
-    if fracy<0.0 :
-        fracx=1.0-Q2
-    else:
-        fracy=Q2
-
-    if fracx>fracy:
-        sign_QxmQy=1.0
-    else:
-        sign_QxmQy=-1.0
+        sign_QxmQy = -1.0
 
     # check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement.
@@ -3630,7 +3632,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         Suffix_x = '_hax'
         Suffix_y = '_hay'
 
-
+    #TODO: tentative solution for TfsFile with getphasex.out
+    files_dict = {}
+    file_name = outputpath+'getphasex.out'
+    files_dict['getphasex.out'] = utils.tfs_file.TfsFile(file_name).add_getllm_header(VERSION, twiss_model_file)
+    
     fphasex = open(outputpath+'getphasex.out','w')
     fphasey = open(outputpath+'getphasey.out','w')
     fphasex.write('@ GetLLMVersion %s "'+VERSION+'"\n')
@@ -3859,6 +3865,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         if dppi == 0.0:
             ListOfZeroDPPX.append(twiss_file_x)
             FileOfZeroDPPX.append(file_x)
+            files_dict['getphasex.out'].add_filename_to_getllm_header(file_x)
             fphasex.write(file_x+'')
             fphasexT.write(file_x+'')
             fbetax.write(file_x+'')
@@ -3918,6 +3925,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             if dppi == 0.0:
                 ListOfZeroDPPY.append(twiss_file_y)
                 FileOfZeroDPPY.append(file_y)
+                #TODO: What is this here? Sometimes empty string, sometimes space?
                 fphasey.write(file_y+'')
                 fphaseyT.write(file_y+'')
                 fbetay.write(file_y+'')
@@ -3965,6 +3973,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         with_liny2 = False
         with_linx2 = False
         print "Previous warning suppressed, running in chromatic mode"
+        files_dict['getphasex.out'].add_filename_to_getllm_header("chrommode")
         fphasex.write('chrommode')
         fbetax.write('chrommode')
         fabetax.write('chrommode')
@@ -4093,7 +4102,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         if  len(ListOfZeroDPPY[0].NAME)==0:
             print "No BPMs in liny file"
             sys.exit(1)
-        #TODO: give Q(1|2) and MU(X|Y) standard values
         [phasex,Q1,MUX,bpmsx] = GetPhases(MADTwiss_ac,ListOfZeroDPPX,Q1temp,'H',outputpath,beam_direction,accel,lhcphase)
         [phasey,Q2,MUY,bpmsy] = GetPhases(MADTwiss_ac,ListOfZeroDPPY,Q2temp,'V',outputpath,beam_direction,accel,lhcphase)
         #TODO: what is KK??(vimaier)
@@ -4152,6 +4160,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         phasexlist=[]
         phasex['DPP']=0.0
         phasexlist.append(phasex)
+        tfs_file = files_dict['getphasex.out']
+        tfs_file.add_descriptor("Q1", "%le", str(Q1))
+        tfs_file.add_descriptor("MUX", "%le", str(MUX))
+        tfs_file.add_descriptor("Q2", "%le", str(Q2))
+        tfs_file.add_descriptor("MUY", "%le", str(MUY))
+        tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEX","STDPHX","PHXMDL","MUXMDL"])
+        tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
         fphasex.write('@ Q1 %le '+str(Q1)+'\n')
         fphasex.write('@ MUX %le '+str(MUX)+'\n')
         fphasex.write('@ Q2 %le '+str(Q2)+'\n')
@@ -4168,6 +4183,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             else:
                 bn2=upper(bpmsx[i+1][1])
                 bns2=bpmsx[i+1][0]
+            list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPX),phasex[bn1][0],phasex[bn1][1],phmdl,MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]]]
+            tfs_file.add_table_row(list_row_entries)
             fphasex.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(ListOfZeroDPPX))+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]])+'\n' )
         fphasex.close()
 
@@ -5116,7 +5133,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             betax={}
             alfax={}
             rmsbbx=0.
-            #TODO: Check: rmsbbx and bpms will be set four lines later again(vimaier)
             [betax,rmsbbx,alfax,bpms]=BetaFromPhase(MADTwiss,SingleFile,phasex,plane)
             betax['DPP']=dpop
             betaxlist.append(betax)
@@ -5481,7 +5497,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 
     #------------------------ end f2000x
-
+    
+    #TODO: write files at the end
+    for tfsfile in files_dict.itervalues():
+        tfsfile.write_to_file(formatted=True)
 
     ####### -------------- end
 
