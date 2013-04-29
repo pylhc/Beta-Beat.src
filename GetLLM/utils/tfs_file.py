@@ -2,7 +2,12 @@
 Created on 25 Apr 2013
 
 @author: vimaier
+
+
+This module contains the class TfsFile which handles the output files of GetLLM.
 """
+
+import os
 
 DEFAULT_COLUMN_WIDTH = 15
 INVALID_COLUMN_NUMBER = -1
@@ -17,6 +22,7 @@ class TfsFile(object):
     all the content at once by calling the write function.
     '''
     
+    s_output_path = ""
 
     def __init__(self, file_name, column_width=DEFAULT_COLUMN_WIDTH):
         """
@@ -24,7 +30,7 @@ class TfsFile(object):
         
         :Parameters:
             'file_name': string
-                The file name with path where the file will be written.
+                The file name without path where the file will be written.
             'column_width': int
                 Indicates the width of each column in the file.
         """
@@ -157,34 +163,22 @@ class TfsFile(object):
     def __write_formatted_table(self, tfs_file):
         """ Writes the table of this object formatted to file. """
         format_for_string = "{0:>"+str(self.__column_width)+"s}"
-        format_for_float = "{0:>"+str(self.__column_width)+"f}"
         
         # Write column names
         first_element = self.__table[I_COLUMN_NAMES][0]
         tfs_file.write( ("* {0:>"+str(self.__column_width-2)+"} ").format(first_element))
         remain =self.__table[I_COLUMN_NAMES][1:]
-        tfs_file.write(" ".join(format_for_string.format(x) for x in remain))
+        tfs_file.write(" ".join(format_for_string.format(entry) for entry in remain))
         tfs_file.write("\n")
         
         # Write column types
         first_element = self.__table[I_COLUMN_TYPES][0]
         tfs_file.write( ("$ {0:>"+str(self.__column_width-2)+"} ").format(first_element))
         remain = self.__table[I_COLUMN_TYPES][1:]
-        tfs_file.write(" ".join(format_for_string.format(x) for x in remain))
+        tfs_file.write(" ".join(format_for_string.format(entry) for entry in remain))
         tfs_file.write("\n")
         
-        #Write table rows
-#         format_type_list = []
-#         for column_type in self.__table[I_COLUMN_TYPES]:
-#             if "%le" == column_type:
-#                 format_type_list.append(format_for_float)
-#             else:
-#                 format_type_list.append(format_for_string)
-#         
-#         for table_line in self.__table[I_TABLE_LINES]:
-#             for i in xrange(self.__num_of_columns):
-#                 tfs_file.write(format_type_list[i].format(table_line[i]))
-#             tfs_file.write("\n")
+        # Write table lines
         for table_line in self.__table[I_TABLE_LINES]:
             tfs_file.write(" ".join(format_for_string.format(str(entry)) for entry in table_line))
             tfs_file.write("\n")
@@ -212,7 +206,8 @@ class TfsFile(object):
         if not self.__is_column_names_set or not self.__is_column_types_set:
             raise AssertionError("Cannot write before column names and column types are set.")
         
-        tfs_file = open(self.__file_name,'w')  
+        path = os.path.join(TfsFile.s_output_path, self.__file_name)
+        tfs_file = open(path,'w')  
         
         # Header
         self.__write_getllm_header(tfs_file)

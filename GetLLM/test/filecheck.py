@@ -265,9 +265,19 @@ def compare_tfs_files(name_valid, name_to_check):
     file_valid = open(name_valid)
     file_to_check = open(name_to_check)
     
-    for line in file_valid:
-        split_valid = line.split()
-        split_to_check = file_to_check.readline().split()
+    valid_lines = file_valid.readlines()
+    to_check_lines = file_to_check.readlines()
+    
+    i_to_check = 0
+    for i_valid in xrange(len(valid_lines)):
+        # Exclude descriptors GetLLMVersion, MAD_FILE and FILES from comparison
+        if valid_lines[i_valid].startswith("@") and "GetLLMVersion" in valid_lines[i_valid] or "MAD_FILE" in valid_lines[i_valid] or "FILES" in valid_lines[i_valid]:
+            continue
+        while to_check_lines[i_to_check].startswith("@") and "GetLLMVersion" in to_check_lines[i_to_check] or "MAD_FILE" in to_check_lines[i_to_check] or "FILES" in to_check_lines[i_to_check]:
+            i_to_check += 1
+    
+        split_valid = valid_lines[i_valid].split()
+        split_to_check = to_check_lines[i_to_check].split()
         
         if len(split_valid) != len(split_to_check):
             return False
@@ -275,6 +285,7 @@ def compare_tfs_files(name_valid, name_to_check):
         for i in xrange(len(split_valid)):
             if split_valid[i] != split_to_check[i]:
                 return False
+        i_to_check += 1
     
     return True
         
