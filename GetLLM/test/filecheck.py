@@ -3,7 +3,7 @@ Created on 19 Mar 2013
 
 @author: vimaier
 
-@version: 1.0.1
+@version: 1.0.2
 
 This module is a test for GetLLM.py. It compares the output files of the GETLLM_SCRIPT with 
 expected files from GETLLM_SCRIPT_VALID and prints the result.
@@ -24,11 +24,13 @@ RunValidator checks if a run(directory) is in accordance with the expected struc
 Returns as exit code the number of failed runs.
 
 Change history:
- - 1.0.1: Added option "special_output". It is possible to choose a separate output directory. The 
-             produced output will be deleted again.
+ - 1.0.1: 
+    Added option "special_output". It is possible to choose a separate output directory. The 
+    produced output will be deleted again.
  - 1.0.2 29th April 2013:
     Changed compare algorithm. Created comare_tfs_files(...) to check content independent from 
-    whitespace.
+    whitespace. The lines with the descriptors "GetLLMVersion", "MAD_FILE" and "FILES" will be 
+    ignored.
 '''
 
 import os
@@ -238,9 +240,9 @@ class TestFileOutputGetLLM(unittest.TestCase):
         num_equal_files = 0
         num_overall_files = len(valid_filenames)
         for name in valid_filenames:
-            equal = compare_tfs_files(os.path.join(valid_output_path,name), os.path.join(to_check_output_path,name) )
-            if not equal:
-                print name," are not equal."
+            err_msg = compare_tfs_files(os.path.join(valid_output_path,name), os.path.join(to_check_output_path,name) )
+            if "" != err_msg:
+                print name," are not equal:",err_msg
             else:
                 num_equal_files += 1
         
@@ -260,8 +262,11 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
 # END class TestFileOutPutGetLLM -------------------------------------------------------------------
 
+
 def compare_tfs_files(name_valid, name_to_check):
-    """ Compares both files. Whitespace does not matter."""
+    """ Compares both files. Whitespace does not matter.
+        Returns an error message or in success an empty string.
+    """
     file_valid = open(name_valid)
     file_to_check = open(name_to_check)
     
@@ -275,19 +280,22 @@ def compare_tfs_files(name_valid, name_to_check):
             continue
         while to_check_lines[i_to_check].startswith("@") and "GetLLMVersion" in to_check_lines[i_to_check] or "MAD_FILE" in to_check_lines[i_to_check] or "FILES" in to_check_lines[i_to_check]:
             i_to_check += 1
-    
+            
+        
         split_valid = valid_lines[i_valid].split()
         split_to_check = to_check_lines[i_to_check].split()
         
         if len(split_valid) != len(split_to_check):
-            return False
+            return "Column numbers not equal:\n"+valid_lines[i_valid]+to_check_lines[i_to_check]
         
         for i in xrange(len(split_valid)):
             if split_valid[i] != split_to_check[i]:
-                return False
+                err_msg = "Entry in column number["+str(i)+"]not equal:\n"+valid_lines[i_valid]+to_check_lines[i_to_check]
+                err_msg += str(split_valid[i]) +" != "+ str(split_to_check[i])
+                return err_msg
         i_to_check += 1
     
-    return True
+    return ""
         
 
 def main():

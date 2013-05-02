@@ -3,14 +3,23 @@ Created on 25 Apr 2013
 
 @author: vimaier
 
+@version: 1.0.0
 
 This module contains the class TfsFile which handles the output files of GetLLM.
+
+Change history:
+ -
+ 
 """
 
 import os
 
-DEFAULT_COLUMN_WIDTH = 15
+DEFAULT_COLUMN_WIDTH = 17
+""" Indicates width of columns in output file. """
 INVALID_COLUMN_NUMBER = -1
+""" Initial value for number of columns. """
+
+# Indexes for the self.__table:
 I_COLUMN_TYPES = 0
 I_COLUMN_NAMES = 1
 I_TABLE_LINES = 2
@@ -42,8 +51,6 @@ class TfsFile(object):
         self.__getllm_madfile = ""
         self.__getllm_srcfiles = []
         
-        self.__with_getllm_header = False
-        
         self.__header = [];
         """ The header contains descriptor lines and comment lines. """
         
@@ -67,10 +74,8 @@ class TfsFile(object):
         if mad_file is not None:
             self.__getllm_madfile = mad_file
             
-        if version is not None or mad_file is not None:
-            self.__with_getllm_header = True
-        
         return self
+
     
     def add_filename_to_getllm_header(self,file_name):
         """ Adds a file to '@ FILES %s "<files-list>"\n' """
@@ -106,7 +111,7 @@ class TfsFile(object):
         if INVALID_COLUMN_NUMBER != self.__num_of_columns:
             if self.__num_of_columns != len(list_names):
                 raise AttributeError("Column number is set already but the length of the given list"+
-                                        " does not match")
+                                        " does not match.("+self.__file_name+")")
         else:
             self.__num_of_columns = len(list_names)
             
@@ -127,7 +132,7 @@ class TfsFile(object):
         if INVALID_COLUMN_NUMBER != self.__num_of_columns:
             if self.__num_of_columns != len(list_datatypes):
                 raise AttributeError("Column number is set already but the length of the given list"+
-                                        " does not match")
+                                        " does not match.("+self.__file_name+")")
         else:
             self.__num_of_columns = len(list_datatypes)
         
@@ -140,25 +145,25 @@ class TfsFile(object):
         Adds the entries of one row to the table data.
         """
         if INVALID_COLUMN_NUMBER == self.__num_of_columns:
-            raise TypeError("Before filling the table, set the names and datatypes")
+            raise TypeError("Before filling the table, set the names and datatypes.("+
+                                self.__file_name+")")
         else:
             if self.__num_of_columns != len(list_row_entries):
-                raise TypeError("Number of entries does not match the column number of the table")
+                raise TypeError("Number of entries does not match the column number of the table.("+
+                                self.__file_name+")")
                 
         self.__table[I_TABLE_LINES].append(list_row_entries)
     
     
     def __write_getllm_header(self, tfs_file):
         """ Writes the getllm header to the file. """  
-        if self.__with_getllm_header:
-            if "" != self.__getllm_version:
-                tfs_file.write('@ GetLLMVersion %s "'+self.__getllm_version+'"\n')
-            if "" != self.__getllm_madfile:
-                tfs_file.write('@ MAD_FILE %s "'+self.__getllm_madfile+'"\n')
-            if 0 != len(self.__getllm_srcfiles):
-                tfs_file.write('@ FILES %s "')
-                tfs_file.write(" ".join(self.__getllm_srcfiles))
-                tfs_file.write('"\n')
+        tfs_file.write('@ GetLLMVersion %s "'+self.__getllm_version+'"\n')
+        tfs_file.write('@ MAD_FILE %s "'+self.__getllm_madfile+'"\n')
+        
+        tfs_file.write('@ FILES %s "')
+        tfs_file.write(" ".join(self.__getllm_srcfiles))
+        tfs_file.write('"\n')
+    
     
     def __write_formatted_table(self, tfs_file):
         """ Writes the table of this object formatted to file. """
@@ -182,9 +187,7 @@ class TfsFile(object):
         for table_line in self.__table[I_TABLE_LINES]:
             tfs_file.write(" ".join(format_for_string.format(str(entry)) for entry in table_line))
             tfs_file.write("\n")
-            
-        
-        
+                    
         
     def __write_unformatted_table(self, tfs_file):
         tfs_file.write("* ")  
@@ -203,8 +206,11 @@ class TfsFile(object):
             
     def write_to_file(self, formatted = False):
         """ Writes the stored data to the file with the given filename. """
+        #TODO: fix the thing with get[D](x|y) and uncomment        
         if not self.__is_column_names_set or not self.__is_column_types_set:
-            raise AssertionError("Cannot write before column names and column types are set.")
+            formatted = False #Quickfix
+#             raise AssertionError("Cannot write before column names and column types are set.("+
+#                                 self.__file_name+")")
         
         path = os.path.join(TfsFile.s_output_path, self.__file_name)
         tfs_file = open(path,'w')  

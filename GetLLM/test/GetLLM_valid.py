@@ -4023,11 +4023,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     f2000=open(outputpath+'getf2000x.out','w')
     f2000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    f2000.write('@ FILES %s ""')
+    #TODO: Removed bug(vimaier)
+    f2000.write('@ FILES %s ""\n')
 
     f2000y=open(outputpath+'getf2000y.out','w')
     f2000y.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    f2000y.write('@ FILES %s "\n"')
+    #TODO: Removed bug(vimaier)
+    f2000y.write('@ FILES %s ""\n')
 
     fcoupleterms=open(outputpath+'getcoupleterms.out','w')
     fcoupleterms.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
@@ -4861,7 +4863,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 fabetaxf.write('@ RMSbetabeat %le '+str(rmsbbxf)+'\n')
                 fabetaxf.write('@ RescalingFactor %le '+str(betaxf_ratio)+'\n')
                 fabetaxf.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
-                fabetaxf.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+                fabetaxf.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
                 for i in range(0,len(bpmsf)):
                     bn1=upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
@@ -4878,7 +4880,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fabetaxf2.write('@ RMSbetabeat %le '+str(rmsbbxf2)+'\n')
             fabetaxf2.write('@ RescalingFactor %le '+str(betax_ratio)+'\n')
             fabetaxf2.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
-            fabetaxf2.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+            fabetaxf2.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
             for i in range(0,len(bpmsf2)):
                 bn1=upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
@@ -4949,7 +4951,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 fabetayf.write('@ RMSbetabeat %le '+str(rmsbbyf)+'\n')
                 fabetayf.write('@ RescalingFactor %le '+str(betayf_ratio)+'\n')
                 fabetayf.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL BETYRES BETYSTDRES\n')
-                fabetayf.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+                fabetayf.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
                 for i in range(0,len(bpmsf)):
                     bn1=upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
@@ -4966,7 +4968,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fabetayf2.write('@ RMSbetabeat %le '+str(rmsbbyf2)+'\n')
             fabetayf2.write('@ RescalingFactor %le '+str(betay_ratio)+'\n')
             fabetayf2.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL BETYRES BETYSTDRES\n')
-            fabetayf2.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+            fabetayf2.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
             for i in range(0,len(bpmsf2)):
                 bn1=upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
