@@ -1,0 +1,149 @@
+title, "SBS for RHIC";
+option, -echo, warn, -info;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!  RHIC definition
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+beam, mass=%MASS, charge=%CHARGE, gamma=%GAMMA, exn=%EMX, eyn=%EMY, sige=%SIGE;
+!--- calling sequence => beam switch handled inside python
+call, file="%MPATH/%BEAM";
+call, file="%BBPATH/defs/rhic_utilities.madx";
+
+!--- change bpms names
+call,file="%BBPATH/defs/BPMSdef";
+select,flag=seqedit,pattern=BPM;select,flag=seqedit,pattern=CPLMON;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="%BBPATH/defs/BPMSinstall";endedit;
+use,sequence=rhic;
+
+!--- change GAMMAT
+call,file="%BBPATH/defs/GAMMATdefs";
+select,flag=seqedit,pattern=QJGTP;
+select,flag=seqedit,pattern=QJQ;
+select,flag=seqedit,pattern=QGT;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="%BBPATH/defs/GAMMATinstall";endedit;
+use,sequence=rhic;
+
+!--- tunes, chroms
+Qx := %QX; Qy := %QY;
+chromX := %CHROMX;chromY := %CHROMY;
+exec, setarcquads; exec, setchrom;
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! End RHIC definition
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+seqedit, sequence=rhic; 
+flatten;
+cycle, start=%START;
+endedit;
+
+use, period=rhic;
+select, flag=twiss, clear;
+select, flag=twiss, range=%ENDAT;
+select, flag=twiss, range=%STARTFROM, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+twiss, file="%PATH/StartPoint.twiss";
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! normal propogation
+
+seqedit, sequence=rhic; 
+cycle, start=%STARTFROM;
+endedit;
+use, period=rhic, range=%STARTFROM/%ENDAT;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,L, K1l;
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL_nom.dat";
+
+ 
+
+use, period=rhic, range=%STARTFROM/%ENDAT;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+
+
+twiss,betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL.dat";
+
+!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!  Write here correction
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL_play.dat";
+
+system, "python %PATH/getfterms_RHIC.py -p %PATH/ -l %LABEL  -f 0  -e %EXP -s %STARTFROM";
+!stop;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!  Remove correction here before you continue
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+twiss, betx=%BETX+%ERRBETX, alfx=%ALFX, bety=%BETY+%ERRBETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.b+.dat";
+twiss, betx=%BETX-%ERRBETX, alfx=%ALFX, bety=%BETY-%ERRBETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.b-.dat";
+twiss, betx=%BETX, alfx=%ALFX+%ERRALFX, bety=%BETY, alfy=%ALFY+%ERRALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.a+.dat";
+twiss, betx=%BETX, alfx=%ALFX-%ERRALFX, bety=%BETY, alfy=%ALFY-%ERRALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.a-.dat";
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX+%ERRDX,dy=%DY+%ERRDY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.d+.dat";
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX-%ERRDX,dy=%DY-%ERRDY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.d-.dat";
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! back propogation
+
+seqedit, sequence=rhic; 
+cycle, start=%ENDAT;
+flatten;reflect; ! reverse command
+endedit;
+
+use, period=rhic, range=%ENDAT/%STARTFROM;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY, file="%PATH/twiss_%LABEL_nom_back.dat";
+
+ 
+
+use, period=rhic, range=%ENDAT/%STARTFROM;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+
+
+
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss_%LABEL_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss_%LABEL_play_back.dat";
+twiss, betx=%ENDBX+%ERRENDBX, alfx=%ALFENDX, bety=%ENDBY+%ERRENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.b+_back.dat";
+twiss, betx=%ENDBX-%ERRENDBX, alfx=%ALFENDX, bety=%ENDBY-%ERRENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.b-_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX+%ERRALFENDX, bety=%ENDBY, alfy=%ALFENDY+%ERRALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.a+_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX-%ERRALFENDX, bety=%ENDBY, alfy=%ALFENDY-%ERRALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.a-_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX+%ERRDENDX,dy=%DENDY+%ERRDENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.d+_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX-%ERRDENDX,dy=%DENDY-%ERRDENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.d-_back.dat";
+
+
+stop;
+
