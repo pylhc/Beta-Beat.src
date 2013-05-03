@@ -1,4 +1,5 @@
 import sys, os
+sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 from optparse import OptionParser
 from metaclass25 import *
 
