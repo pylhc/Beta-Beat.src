@@ -195,19 +195,23 @@ class TestFileOutputGetLLM(unittest.TestCase):
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
                                                 GETLLM_SCRIPT_VALID, dict_args)
             print "Starting GetLLM_valid.py("+run_validator.get_run_path()+")..."
-            print 
-            valid_script_runner.run_script()
-            print 
+            errorcode = valid_script_runner.run_script()
             print "GetLLM_valid.py("+run_validator.get_run_path()+") finished...\n"
+            if errorcode != 0:
+                print valid_script_runner.get_output()
+                print valid_script_runner.get_error_output()
+                sys.exit(errorcode)
         
         dict_args["-o"] = to_check_output_path
         
         script_runner = vimaier_utils.scriptrunner.ScriptRunner(GETLLM_SCRIPT, dict_args)
         print "Starting GetLLM.py("+run_validator.get_run_path()+")..."
-        print 
-        script_runner.run_script()
-        print 
+        errorcode = script_runner.run_script()
         print "GetLLM.py finished("+run_validator.get_run_path()+")..."
+        if errorcode != 0:
+            print valid_script_runner.get_output()
+            print valid_script_runner.get_error_output()
+            sys.exit(errorcode)
         
         # Check output of the directory. Therefore:
         # Read filenames of to_check_output_path
@@ -276,9 +280,9 @@ def compare_tfs_files(name_valid, name_to_check):
     i_to_check = 0
     for i_valid in xrange(len(valid_lines)):
         # Exclude descriptors GetLLMVersion, MAD_FILE and FILES from comparison
-        if valid_lines[i_valid].startswith("@") and "GetLLMVersion" in valid_lines[i_valid] or "MAD_FILE" in valid_lines[i_valid] or "FILES" in valid_lines[i_valid]:
+        if valid_lines[i_valid].startswith("@") and "GetLLMVersion" in valid_lines[i_valid] or "MAD_FILE" in valid_lines[i_valid] or "FILE" in valid_lines[i_valid]:
             continue
-        while to_check_lines[i_to_check].startswith("@") and "GetLLMVersion" in to_check_lines[i_to_check] or "MAD_FILE" in to_check_lines[i_to_check] or "FILES" in to_check_lines[i_to_check]:
+        while to_check_lines[i_to_check].startswith("@") and "GetLLMVersion" in to_check_lines[i_to_check] or "MAD_FILE" in to_check_lines[i_to_check] or "FILE" in to_check_lines[i_to_check]:
             i_to_check += 1
             
         
@@ -316,9 +320,9 @@ def main():
         del sys.argv[i]
         
     
-    unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
+    text_test_runner = unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
     
-    sys.exit(TestFileOutputGetLLM.num_of_failed_tests)
+    sys.exit(len(text_test_runner.errors))
 
 
 if __name__ == "__main__":
