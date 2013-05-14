@@ -198,8 +198,6 @@ class TestFileOutputGetLLM(unittest.TestCase):
             errorcode = valid_script_runner.run_script()
             print "GetLLM_valid.py("+run_validator.get_run_path()+") finished...\n"
             if errorcode != 0:
-                print valid_script_runner.get_output()
-                print valid_script_runner.get_error_output()
                 sys.exit(errorcode)
         
         dict_args["-o"] = to_check_output_path
@@ -209,8 +207,6 @@ class TestFileOutputGetLLM(unittest.TestCase):
         errorcode = script_runner.run_script()
         print "GetLLM.py finished("+run_validator.get_run_path()+")..."
         if errorcode != 0:
-            print valid_script_runner.get_output()
-            print valid_script_runner.get_error_output()
             sys.exit(errorcode)
         
         # Check output of the directory. Therefore:
@@ -322,8 +318,10 @@ def main():
     
     text_test_runner = unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
     
-    sys.exit(len(text_test_runner.errors))
-
+    if 0 != len(text_test_runner.errors):
+        sys.exit(len(text_test_runner.errors))
+    elif 0 != len(text_test_runner.failures):
+        sys.exit(len(text_test_runner.failures))
 
 if __name__ == "__main__":
     main()

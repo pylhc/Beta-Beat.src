@@ -54,7 +54,9 @@ class ScriptRunner(object):
     
     def run_script(self):
         '''Runs the script which was passed to the constructor and returns the
-        errorcode of the script.        
+        error code of the script.   
+        No output will be printed if error code is 0. 
+        Otherwise stdout and stderr will be printed.    
         '''
         
         call_command = [sys.executable, self._script_name]
@@ -67,7 +69,17 @@ class ScriptRunner(object):
                            stderr=subprocess.PIPE)
 
         # wait for the process to terminate
-        self._out, self._err = process.communicate()
+        (self._out, self._err) = process.communicate()
+        
+        
         errcode = process.returncode
         
+        if 0 != errcode:
+            print "Printing output:-------------------------"
+            print self._out
+            print "Printing error output:-------------------"
+            print self._err
+        
         return errcode 
+    
+    
