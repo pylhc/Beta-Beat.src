@@ -1074,7 +1074,10 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
             qistd=sqrt(average(q1j*q1j)-(average(q1j))**2.0+2.2e-16) # Not very exact...
             fi=fi*complex(cos(tp*qi),sin(tp*qi))
             dbpmt.append([dbpms[i][0],dbpms[i][1]])
-            fwqw[bn1]=[[fi,fistd],[qi,qistd]]
+            # Trailing "0,0" in following lists because of compatibility. 
+            # See issue on github pylhc/Beta-Beat.src#3
+            # --vimaier
+            fwqw[bn1]=[[fi,fistd,0,0],[qi,qistd,0,0]]
 
 
     dbpms=dbpmt
@@ -4811,7 +4814,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
         #-- Main part
         if NBcpl == 1:
-
+            
+            # Avoids crashing the programm(vimaier)
+            fwqwf = None
+            fwqwf2 = None
+            
             [fwqw,bpms] = GetCoupling1(MADTwiss,ListOfZeroDPPX,ListOfZeroDPPY,Q1,Q2)
             tfs_file = files_dict['getcouple.out']
             tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
@@ -4895,7 +4902,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
 
         #-- Convert to C-matrix:
-        if with_ac_calc:
+        if with_ac_calc and (fwqwf is not None or fwqwf2 is not None):
             try:    
                 [coupleterms,Qminav,Qminerr,bpms] = getCandGammaQmin(fwqwf,bpmsf,Q1f,Q2f,MADTwiss)
             except: 
