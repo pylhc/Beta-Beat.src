@@ -1575,61 +1575,6 @@ def f2h(amp,ampphase,termj,factor,term,M2M):    # converts from f-term to h-term
     return fh
 
 
-def Getquadrupole(MADTwiss,names,plane,phase,amp):
-
-    f2000_tot={}
-
-    #print MADTwiss
-
-    for bcount in range(len(names)):
-
-        #print bcount
-
-        if bcount==len(names)-1:
-            bpm=names[bcount]
-            bpm2=names[0]
-        else:
-            bpm=names[bcount]
-            bpm2=names[bcount+1]
-
-        if plane=='H':
-            BETM=MADTwiss.BETX[MADTwiss.indx[bpm]]
-            BET=amp[bpm][0]
-            BETM1=MADTwiss.BETX[MADTwiss.indx[bpm2]]
-            BET1=amp[bpm2][0]
-            tphi01=2*(MADTwiss.MUX[MADTwiss.indx[bpm2]]-MADTwiss.MUX[MADTwiss.indx[bpm]])*2*pi
-        else:
-            BETM=MADTwiss.BETY[MADTwiss.indx[bpm]]
-            BET=amp[bpm][0]
-            BETM1=MADTwiss.BETY[MADTwiss.indx[bpm2]]
-            BET1=amp[bpm2][0]
-            tphi01=2*(MADTwiss.MUY[MADTwiss.indx[bpm2]]-MADTwiss.MUY[MADTwiss.indx[bpm]])*2*pi
-
-        #linear
-
-        bb=(BET-BETM)/BETM
-        bb1=(BET1-BETM1)/BETM1
-
-        r=bb/bb1
-        P2000_linear=atan(r*sin(tphi01)/(1-r*cos(tphi01)))
-
-
-        F2000_linear=abs(bb/8/sin(P2000_linear))
-
-
-        # non-linear
-        #resul=optimize.fsolve(function,[0.1,0.1])
-
-        #resul[1]=resul[1]%1
-
-        f2000_tot[bpm]=[F2000_linear,P2000_linear,0,0,0,0,0,0,names[bcount]]
-
-
-
-    return f2000_tot
-
-
-
 def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     '''
     function written to calculate resonance driving terms
@@ -3692,47 +3637,17 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     files_dict['getcoupleterms.out'] = utils.tfs_file.TfsFile('getcoupleterms.out').add_getllm_header(VERSION, twiss_model_file)
 
     if "LHC" in accel:
-        fIP = open(outputpath+'getIP.out','w')
-        fIP.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-        fIP.write('* NAME  BETASTARH  BETASTARHMDL   H   PHIH PHIXH   PHIHMDL  BETASTARV  BETASTARVMDL  V   PHIV  PHIYV  PHIVMDL\n')
-        fIP.write('$  %s  %le    %le   %le  %le    %le    %le    %le   %le   %le   %le   %le   %le  \n')
-        fIPx = open(outputpath+'getIPx.out','w')
-        fIPx.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-        fIPx.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-        fIPx.write('@ FILES %s "')
-        fIPy = open(outputpath+'getIPy.out','w')
-        fIPy.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-        fIPy.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-        fIPy.write('@ FILES %s "')
-        fIPfromphase = open(outputpath+'getIPfromphase.out','w')
-        fIPfromphase.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-        fIPfromphase.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-        fIPfromphase.write('@ FILES %s "')
+        files_dict['getIP.out'] = utils.tfs_file.TfsFile('getIP.out').add_getllm_header(VERSION, twiss_model_file)
+        files_dict['getIPx.out'] = utils.tfs_file.TfsFile('getIPx.out').add_getllm_header(VERSION, twiss_model_file)
+        files_dict['getIPy.out'] = utils.tfs_file.TfsFile('getIPy.out').add_getllm_header(VERSION, twiss_model_file)
+        files_dict['getIPfromphase.out'] = utils.tfs_file.TfsFile('getIPfromphase.out').add_getllm_header(VERSION, twiss_model_file)
         if with_ac_calc:
-            fIPxf = open(outputpath+'getIPx_free.out','w')
-            fIPxf.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-            fIPxf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIPxf.write('@ FILES %s "')
-            fIPyf = open(outputpath+'getIPy_free.out','w')
-            fIPyf.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-            fIPyf.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIPyf.write('@ FILES %s "')
-            fIPxf2 = open(outputpath+'getIPx_free2.out','w')
-            fIPxf2.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-            fIPxf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIPxf2.write('@ FILES %s "')
-            fIPyf2 = open(outputpath+'getIPy_free2.out','w')
-            fIPyf2.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-            fIPyf2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIPyf2.write('@ FILES %s "')
-            fIPfromphasef = open(outputpath+'getIPfromphase_free.out','w')
-            fIPfromphasef.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-            fIPfromphasef.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIPfromphasef.write('@ FILES %s "')
-            fIPfromphasef2 = open(outputpath+'getIPfromphase_free2.out','w')
-            fIPfromphasef2.write('@ GetLLMVersion %s "'+VERSION+'"\n')
-            fIPfromphasef2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fIPfromphasef2.write('@ FILES %s "')
+            files_dict['getIPx_free.out'] = utils.tfs_file.TfsFile('getIPx_free.out').add_getllm_header(VERSION, twiss_model_file)
+            files_dict['getIPy_free.out'] = utils.tfs_file.TfsFile('getIPy_free.out').add_getllm_header(VERSION, twiss_model_file)
+            files_dict['getIPx_free2.out'] = utils.tfs_file.TfsFile('getIPx_free2.out').add_getllm_header(VERSION, twiss_model_file)
+            files_dict['getIPy_free2.out'] = utils.tfs_file.TfsFile('getIPy_free2.out').add_getllm_header(VERSION, twiss_model_file)
+            files_dict['getIPfromphase_free.out'] = utils.tfs_file.TfsFile('getIPfromphase_free.out').add_getllm_header(VERSION, twiss_model_file)
+            files_dict['getIPfromphase_free2.out'] = utils.tfs_file.TfsFile('getIPfromphase_free2.out').add_getllm_header(VERSION, twiss_model_file)
 
     FileOfZeroDPPX = []
     FileOfZeroDPPY = []
@@ -3777,16 +3692,16 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
             files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
             if "LHC" in accel:
-                fIPx.write(file_in+'')
-                fIPy.write(file_in+'')
-                fIPfromphase.write(file_in+'')
+                files_dict['getIPx.out'].add_filename_to_getllm_header(file_in)
+                files_dict['getIPy.out'].add_filename_to_getllm_header(file_in)
+                files_dict['getIPfromphase.out'].add_filename_to_getllm_header(file_in)
                 if with_ac_calc:
-                    fIPxf.write(file_in+'')
-                    fIPyf.write(file_in+'')
-                    fIPxf2.write(file_in+'')
-                    fIPyf2.write(file_in+'')
-                    fIPfromphasef.write(file_in+'')
-                    fIPfromphasef2.write(file_in+'')
+                    files_dict['getIPx_free.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getIPy_free.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getIPx_free2.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getIPy_free2.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getIPfromphase_free.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getIPfromphase_free2.out'].add_filename_to_getllm_header(file_in)
             if with_ac_calc:
                 files_dict['getphasex_free.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getphasex_free2.out'].add_filename_to_getllm_header(file_x)
@@ -3912,18 +3827,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     else:
         Q1f=ListOfZeroDPPX[0].Q1
         Q2f=ListOfZeroDPPY[0].Q2
-
-    if "LHC" in accel:
-        fIPx.write('"'+'\n')
-        fIPy.write('"'+'\n')
-        fIPfromphase.write('"'+'\n')
-        if with_ac_calc:
-            fIPxf.write('"'+'\n')
-            fIPyf.write('"'+'\n')
-            fIPxf2.write('"'+'\n')
-            fIPyf2.write('"'+'\n')
-            fIPfromphasef.write('"'+'\n')
-            fIPfromphasef2.write('"'+'\n')
 
     # Construct pseudo-double plane BPMs
     if (accel=="SPS" or "RHIC" in accel) and with_linx_for_zero_dppx and with_liny_for_zero_dppy:
@@ -4590,6 +4493,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     print 'Calculating IP'
 
     if "LHC" in accel:
+        tfs_file = files_dict['getIP.out']
+        tfs_file.add_column_names(["NAME","BETASTARH","BETASTARHMDL","H","PHIH","PHIXH","PHIHMDL","BETASTARV","BETASTARVMDL","V","PHIV","PHIYV","PHIVMDL"])
+        tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
         ips=["1","2","3","4","5","6","7","8"]
         try:
             measured=[betax,betay]
@@ -4606,29 +4512,34 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 betaver=[0,0,0,0,0,0,0]
             #print str(betahor[6])
             #TODO: check if it is even senseless to create file when no IPs in model since entries will be 0.(vimaier)
-            fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
+            list_row_entries = ['"IP'+ip+'"',betahor[1],betahor[4],betahor[2],betahor[3],betahor[6],betahor[5],betaver[1],betaver[4],betaver[2],betaver[3],betaver[6],betaver[5] ]
+            tfs_file.add_table_row(list_row_entries)
 
-        fIP.close()
 
         #-- Parameters at IP1, IP2, IP5, and IP8
         IPx=GetIP2(MADTwiss_ac,ListOfZeroDPPX,Q1,'H',beam_direction,accel,lhcphase)
         IPy=GetIP2(MADTwiss_ac,ListOfZeroDPPY,Q2,'V',beam_direction,accel,lhcphase)
-        fIPx.write('* NAME  BETX  BETXSTD  BETXMDL  ALFX  ALFXSTD  ALFXMDL  BETX*  BETX*STD  BETX*MDL  SX*  SX*STD  SX*MDL  rt(2JX)  rt(2JX)STD\n')
-        fIPy.write('* NAME  BETY  BETYSTD  BETYMDL  ALFY  ALFYSTD  ALFYMDL  BETY*  BETY*STD  BETY*MDL  SY*  SY*STD  SY*MDL  rt(2JY)  rt(2JY)STD\n')
+        tfs_file_x = files_dict['getIPx.out']
+        tfs_file_x.add_column_names(["NAME","BETX","BETXSTD","BETXMDL","ALFX","ALFXSTD","ALFXMDL","BETX*","BETX*STD","BETX*MDL","SX*","SX*STD","SX*MDL","rt(2JX)","rt(2JX)STD" ])
+        tfs_file_x.add_column_datatypes(["%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le"])
 
-        for i in ('IP1','IP5','IP8','IP2'):
+        tfs_file_y = files_dict['getIPy.out']
+        tfs_file_y.add_column_names(["NAME","BETY","BETYSTD","BETYMDL","ALFY","ALFYSTD","ALFYMDL","BETY*","BETY*STD","BETY*MDL","SY*","SY*STD","SY*MDL","rt(2JY)","rt(2JY)STD" ])
+        tfs_file_y.add_column_datatypes(["%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le"])
+
+        for bpm_name in ('IP1','IP5','IP8','IP2'):
             try:
-                fIPx.write('"'+i+'"'+' ')
-                for k in IPx[i]: fIPx.write(str(k)+' ')
-                fIPx.write('\n')
+                list_row_entries = ['"'+bpm_name+'"']
+                for k in IPx[bpm_name]:
+                    list_row_entries.append(k) 
+                tfs_file_x.add_table_row(list_row_entries)
             except: pass
             try:
-                fIPy.write('"'+i+'"'+' ')
-                for k in IPy[i]: fIPy.write(str(k)+' ')
-                fIPy.write('\n')
+                list_row_entries = ['"'+bpm_name+'"']
+                for k in IPy[bpm_name]: 
+                    list_row_entries.append(k) 
+                tfs_file_y.add_table_row(list_row_entries)
             except: pass
-        fIPx.close()
-        fIPy.close()
 
         #-- ac to free parameters at IP1, IP2, IP5, and IP8
         if with_ac_calc:
@@ -4636,41 +4547,53 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             #-- From Eq
             IPxf=GetFreeIP2_Eq(MADTwiss,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',beam_direction,accel,lhcphase)
             IPyf=GetFreeIP2_Eq(MADTwiss,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',beam_direction,accel,lhcphase)
-            fIPxf.write('* NAME  BETX  BETXSTD  BETXMDL  ALFX  ALFXSTD  ALFXMDL  BETX*  BETX*STD  BETX*MDL  SX*  SX*STD  SX*MDL  rt(2JXD)  rt(2JXD)STD\n')
-            fIPyf.write('* NAME  BETY  BETYSTD  BETYMDL  ALFY  ALFYSTD  ALFYMDL  BETY*  BETY*STD  BETY*MDL  SY*  SY*STD  SY*MDL  rt(2JYD)  rt(2JYD)STD\n')
-            for i in ('IP1','IP5','IP8','IP2'):
+            
+            tfs_file_x = files_dict['getIPx_free.out']
+            tfs_file_x.add_column_names(["NAME","BETX","BETXSTD","BETXMDL","ALFX","ALFXSTD","ALFXMDL","BETX*","BETX*STD","BETX*MDL","SX*","SX*STD","SX*MDL","rt(2JXD)","rt(2JXD)STD" ])
+            tfs_file_x.add_column_datatypes(["%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le"])
+            
+            tfs_file_y = files_dict['getIPy_free.out']
+            tfs_file_y.add_column_names(["NAME","BETY","BETYSTD","BETYMDL","ALFY","ALFYSTD","ALFYMDL","BETY*","BETY*STD","BETY*MDL","SY*","SY*STD","SY*MDL","rt(2JYD)","rt(2JYD)STD" ])
+            tfs_file_y.add_column_datatypes(["%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le"])
+            
+            for bpm_name in ('IP1','IP5','IP8','IP2'):
                 try:
-                    fIPxf.write('"'+i+'"'+' ')
-                    for k in IPxf[i]: fIPxf.write(str(k)+' ')
-                    fIPxf.write('\n')
+                    list_row_entries = ['"'+bpm_name+'"']
+                    for k in IPxf[bpm_name]: 
+                        list_row_entries.append(k) 
+                    tfs_file_x.add_table_row(list_row_entries)
                 except: pass
                 try:
-                    fIPyf.write('"'+i+'"'+' ')
-                    for k in IPyf[i]: fIPyf.write(str(k)+' ')
-                    fIPyf.write('\n')
+                    list_row_entries = ['"'+bpm_name+'"']
+                    for k in IPyf[bpm_name]:
+                        list_row_entries.append(k) 
+                    tfs_file_y.add_table_row(list_row_entries)
                 except: pass
-            fIPxf.close()
-            fIPyf.close()
 
             #-- From model
             IPxf2=GetFreeIP2(MADTwiss,MADTwiss_ac,IPx,'H',accel)
             IPyf2=GetFreeIP2(MADTwiss,MADTwiss_ac,IPy,'V',accel)
-            fIPxf2.write('* NAME  BETX  BETXSTD  BETXMDL  ALFX  ALFXSTD  ALFXMDL  BETX*  BETX*STD  BETX*MDL  SX*  SX*STD  SX*MDL  rt(2JXD)  rt(2JXD)STD\n')
-            fIPyf2.write('* NAME  BETY  BETYSTD  BETYMDL  ALFY  ALFYSTD  ALFYMDL  BETY*  BETY*STD  BETY*MDL  SY*  SY*STD  SY*MDL  rt(2JYD)  rt(2JYD)STD\n')
-            for i in ('IP1','IP5','IP8','IP2'):
+            
+            tfs_file_x = files_dict['getIPx_free2.out']
+            tfs_file_x.add_column_names(["NAME","BETX","BETXSTD","BETXMDL","ALFX","ALFXSTD","ALFXMDL","BETX*","BETX*STD","BETX*MDL","SX*","SX*STD","SX*MDL","rt(2JXD)","rt(2JXD)STD" ])
+            tfs_file_x.add_column_datatypes(["%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le"])
+            
+            tfs_file_y = files_dict['getIPy_free2.out']
+            tfs_file_y.add_column_names(["NAME","BETY","BETYSTD","BETYMDL","ALFY","ALFYSTD","ALFYMDL","BETY*","BETY*STD","BETY*MDL","SY*","SY*STD","SY*MDL","rt(2JYD)","rt(2JYD)STD" ])
+            tfs_file_y.add_column_datatypes(["%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le"])
+            for bpm_name in ('IP1','IP5','IP8','IP2'):
                 try:
-                    fIPxf2.write('"'+i+'"'+' ')
-                    for k in IPxf2[i]: fIPxf2.write(str(k)+' ')
-                    fIPxf2.write('\n')
+                    list_row_entries = ['"'+bpm_name+'"']
+                    for k in IPxf2[bpm_name]: 
+                        list_row_entries.append(k) 
+                    tfs_file_x.add_table_row(list_row_entries)
                 except: pass
                 try:
-                    fIPyf2.write('"'+i+'"'+' ')
-                    for k in IPyf2[i]: fIPyf2.write(str(k)+' ')
-                    fIPyf2.write('\n')
+                    list_row_entries = ['"'+bpm_name+'"']
+                    for k in IPyf2[bpm_name]: 
+                        list_row_entries.append(k) 
+                    tfs_file_y.add_table_row(list_row_entries)
                 except: pass
-
-            fIPxf2.close()
-            fIPyf2.close()
             
             #TODO: since the return value will not be used this call seems senseless(maybe in_out params?)(vimaier)
             GetFreeIP2(MADTwiss,MADTwiss_ac,IPx,'H',accel)
@@ -4678,45 +4601,54 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         #-- IP beta* and phase from phase only
         try:    IPfromphase=GetIPFromPhase(MADTwiss_ac,phasex,phasey,accel)
         except: print 'No output from IP from phase. H or V file missing?'
-        fIPfromphase.write('* NAME  2L  BETX*  BETX*STD  BETX*MDL  BETY*  BETY*STD  BETY*MDL  PHX  PHXSTD  PHXMDL  PHY  PHYSTD  PHYMDL\n')
-        for i in ('IP1','IP5','IP8','IP2'):
-            fIPfromphase.write('"'+i+'"'+' ')
+        tfs_file = files_dict['getIPfromphase.out']
+        tfs_file.add_column_names(["NAME","2L","BETX*","BETX*STD","BETX*MDL","BETY*","BETY*STD","BETY*MDL","PHX","PHXSTD","PHXMDL","PHY","PHYSTD","PHYMDL" ])
+        tfs_file.add_column_datatypes(["%s","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le",  "%le"])
+        for bpm_name in ('IP1','IP5','IP8','IP2'):
+            list_row_entries = ['"'+bpm_name+'"']
             try:
-                for k in IPfromphase[i]: fIPfromphase.write(str(k)+' ')
-                fIPfromphase.write('\n')
-            except: fIPfromphase.write('\n')
-        fIPfromphase.close()
+                for k in IPfromphase[bpm_name]: 
+                    list_row_entries.append(k)
+                tfs_file.add_table_row(list_row_entries)
+            except: 
+                pass
 
         #-- ac to free beta*
         if with_ac_calc:
 
             #-- from eqs
-            try:    IPfromphasef=GetIPFromPhase(MADTwiss,phasexf,phaseyf,accel)
-            except: pass
-            fIPfromphasef.write('* NAME  2L  BETX*  BETX*STD  BETX*MDL  BETY*  BETY*STD  BETY*MDL  PHX  PHXSTD  PHXMDL  PHY  PHYSTD  PHYMDL\n')
+            try:    
+                IPfromphasef=GetIPFromPhase(MADTwiss,phasexf,phaseyf,accel)
+            except: 
+                pass
+            tfs_file = files_dict['getIPfromphase_free.out']
+            tfs_file.add_column_names(["NAME","2L","BETX*","BETX*STD","BETX*MDL","BETY*","BETY*STD","BETY*MDL","PHX","PHXSTD","PHXMDL","PHY","PHYSTD","PHYMDL" ])
+            tfs_file.add_column_datatypes(["%s","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le",  "%le"])
             for bpm_name in ('IP1','IP5','IP8','IP2'):
-                fIPfromphasef.write('"'+bpm_name+'"'+' ')
+                list_row_entries = ['"'+bpm_name+'"']
                 try:
                     for k in IPfromphasef[bpm_name]: 
-                        fIPfromphasef.write(str(k)+' ')
-                    fIPfromphasef.write('\n')
+                        list_row_entries.append(k)
+                    tfs_file.add_table_row(list_row_entries)
                 except: 
-                    fIPfromphasef.write('\n')
-            fIPfromphasef.close()
+                    pass
 
             #-- from the model
-            try:    IPfromphasef2=GetIPFromPhase(MADTwiss,phasexf2,phaseyf2,accel)
-            except: pass
-            fIPfromphasef2.write('* NAME  2L  BETX*  BETX*STD  BETX*MDL  BETY*  BETY*STD  BETY*MDL  PHX  PHXSTD  PHXMDL  PHY  PHYSTD  PHYMDL\n')
+            try:    
+                IPfromphasef2=GetIPFromPhase(MADTwiss,phasexf2,phaseyf2,accel)
+            except: 
+                pass
+            tfs_file = files_dict['getIPfromphase_free2.out']
+            tfs_file.add_column_names(["NAME","2L","BETX*","BETX*STD","BETX*MDL","BETY*","BETY*STD","BETY*MDL","PHX","PHXSTD","PHXMDL","PHY","PHYSTD","PHYMDL" ])
+            tfs_file.add_column_datatypes(["%s","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le",  "%le"])
             for bpm_name in ('IP1','IP5','IP8','IP2'):
-                fIPfromphasef2.write('"'+bpm_name+'"'+' ')
+                list_row_entries = ['"'+bpm_name+'"']
                 try:
                     for k in IPfromphasef2[bpm_name]: 
-                        fIPfromphasef2.write(str(k)+' ')
-                    fIPfromphasef2.write('\n')
+                        list_row_entries.append(k)
+                    tfs_file.add_table_row(list_row_entries)
                 except: 
-                    fIPfromphasef2.write('\n')
-            fIPfromphasef2.close()
+                    pass
 
     #-------- START Orbit
     ListOfCOX=[]
@@ -4772,22 +4704,21 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         for j in ListOfNonZeroDPPX:
             SingleFile=[]
             SingleFile.append(j)
-            file1=outputpath+'getCOx_dpp_'+str(k+1)+'.out'
-            fcoDPP=open(file1,'w')
-            fcoDPP.write('@ MAD_FILE: %s "'+twiss_model_file+'"'+'\n')
-            fcoDPP.write('@ FILE %s "')
-            fcoDPP.write(FileOfNonZeroDPPX[k]+' "'+'\n')
-            fcoDPP.write('@ DPP %le '+str(float(j.DPP))+'\n')
-            fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
-            fcoDPP.write('@ Q2 %le '+str(Q2)+'\n')
+            filename = 'getCOx_dpp_'+str(k+1)+'.out'
+            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+            tfs_file = files_dict[filename]
+            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
+            tfs_file.add_descriptor("DPP", "%le", str(float(j.DPP)))
+            tfs_file.add_descriptor("Q1", "%le", str(Q1))
+            tfs_file.add_descriptor("Q2", "%le", str(Q2))
             [codpp,bpms]=GetCO(MADTwiss, SingleFile)
-            fcoDPP.write('* NAME   S   COUNT  X      STDX   XMDL   MUXMDL\n')
-            fcoDPP.write('$ %s     %le    %le    %le    %le    %le    %le\n')
+            tfs_file.add_column_names(["NAME","S","COUNT","X","STDX","XMDL","MUXMDL"])
+            tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
                 bn1=upper(bpms[i][1])
                 bns1=bpms[i][0]
-                fcoDPP.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(codpp[bn1][0])+' '+str(codpp[bn1][1])+' '+str(MADTwiss.X[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-            fcoDPP.close()
+                list_row_entries = ['"'+bn1+'"',bns1, len(ListOfZeroDPPX), codpp[bn1][0], codpp[bn1][1], MADTwiss.X[MADTwiss.indx[bn1]], MADTwiss.MUX[MADTwiss.indx[bn1]] ]
+                tfs_file.add_table_row(list_row_entries)
             ListOfCOX.append(codpp)
             k += 1
 
@@ -4796,23 +4727,22 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         for j in ListOfNonZeroDPPY:
             SingleFile=[]
             SingleFile.append(j)
-            file1=outputpath+'getCOy_dpp_'+str(k+1)+'.out'
-            fcoDPP=open(file1,'w')
-            fcoDPP.write('@ MAD_FILE: %s "'+twiss_model_file+'"'+'\n')
-            fcoDPP.write('@ FILE %s "')
-            fcoDPP.write(FileOfNonZeroDPPY[k]+' "'+'\n')
-            fcoDPP.write('@ DPP %le '+str(float(j.DPP))+'\n')
-            fcoDPP.write('@ Q1 %le '+str(Q1)+'\n')
-            fcoDPP.write('@ Q2 %le '+str(Q2)+'\n')
+            filename = 'getCOy_dpp_'+str(k+1)+'.out'
+            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+            tfs_file = files_dict[filename]
+            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
+            tfs_file.add_descriptor("DPP", "%le", str(float(j.DPP)))
+            tfs_file.add_descriptor("Q1", "%le", str(Q1))
+            tfs_file.add_descriptor("Q2", "%le", str(Q2))
             [codpp,bpms]=GetCO(MADTwiss, SingleFile)
-            fcoDPP.write('* NAME   S   COUNT  Y      STDY   YMDL   MUYMDL\n')
-            fcoDPP.write('$ %s     %le    %le    %le    %le    %le    %le\n')
+            tfs_file.add_column_names(["NAME","S","COUNT","Y","STDY","YMDL","MUYMDL"])
+            tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
                 bn1=upper(bpms[i][1])
                 bns1=bpms[i][0]
                 #TODO: why ListOfZeroDPPY.. above used ListOfNonZeroDPPY(vimaier)
-                fcoDPP.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(codpp[bn1][0])+' '+str(codpp[bn1][1])+' '+str(MADTwiss.Y[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
-            fcoDPP.close()
+                list_row_entries = ['"'+bn1+'"',bns1, len(ListOfZeroDPPY), codpp[bn1][0], codpp[bn1][1], MADTwiss.Y[MADTwiss.indx[bn1]], MADTwiss.MUY[MADTwiss.indx[bn1]] ]
+                tfs_file.add_table_row(list_row_entries)
             ListOfCOY.append(codpp)
             k+=1
 
@@ -5004,20 +4934,22 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             dpop=float(j.DPP)
             SingleFile=[]
             SingleFile.append(j)
-            file1=outputpath+'getphasex_dpp_'+str(k+1)+'.out'
-            fphDPP=open(file1,'w')
-            fphDPP.write('@ MAD_FILE: %s "'+twiss_model_file+'"'+'\n')
-            fphDPP.write('@ FILE %s "'+FileOfNonZeroDPPX[k]+'"'+'\n')
-            fphDPP.write('@ DPP %le '+str(dpop)+'\n')
-            fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
-            fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
+            filename = 'getphasex_dpp_'+str(k+1)+'.out'
+            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+            tfs_file = files_dict[filename]
+            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
+            tfs_file.add_descriptor("DPP", "%le", str(dpop))
+            tfs_file.add_descriptor("Q1", "%le", str(Q1))
+            tfs_file.add_descriptor("Q2", "%le", str(Q2))
+                
             DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
             [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,SingleFile,Q1,plane,outputpath,beam_direction,accel,lhcphase)
             phasex['DPP']=dpop
             phasexlist.append(phasex)
-            fphDPP.write('@ Q1DPP %le '+str(Q1DPP)+'\n')
-            fphDPP.write('* NAME   NAME2  S   S1   COUNT  PHASE  STDPH  PHXMDL MUXMDL\n')
-            fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+
+            tfs_file.add_descriptor("Q1DPP", "%le", str(Q1DPP))
+            tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASE","STDPH","PHXMDL","MUXMDL"])
+            tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
             
             length_bpms = len(bpms)
             for i in range(0,length_bpms):
@@ -5033,8 +4965,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 except:
                     phmdl=0.0
                 #phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
-                fphDPP.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(1)+' '+str(phasex[bn1][0])+' '+str(phasex[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-            fphDPP.close()
+                list_row_entries = ['"'+bn1+'" ','"'+bn2+'"',bns1,bns2,1,phasex[bn1][0],phasex[bn1][1],phmdl,MADTwiss.MUX[MADTwiss.indx[bn1]] ]
+                tfs_file.add_table_row(list_row_entries)
 
             betax={}
             alfax={}
@@ -5046,21 +4978,21 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             [betaxa,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
             betaxa['DPP']=dpop
             betaxalist.append(betaxa)
-            file2=outputpath+'getbetax_dpp_'+str(k+1)+'.out'
-            fbetaxDPP=open(file2,'w')
-            fbetaxDPP.write('@ MAD_FILE: %s "'+twiss_model_file+'"'+'\n')
-            fbetaxDPP.write('@ FILE %s "'+FileOfNonZeroDPPX[k]+'"'+'\n')
-            fbetaxDPP.write('@ DPP %le '+str(dpop)+'\n')
-            fbetaxDPP.write('@ Q1 %le '+str(Q1)+'\n')
-            fbetaxDPP.write('@ Q2 %le '+str(Q2)+'\n')
-            #fbetaxDPP.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
-            fbetaxDPP.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
-            fbetaxDPP.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
+            
+            filename = 'getbetax_dpp_'+str(k+1)+'.out'
+            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+            tfs_file = files_dict[filename]
+            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
+            tfs_file.add_descriptor("DPP", "%le", str(dpop))
+            tfs_file.add_descriptor("Q1", "%le", str(Q1))
+            tfs_file.add_descriptor("Q2", "%le", str(Q2))
+            tfs_file.add_column_names(["NAME","S","COUNT","BETX","ERRBETX","STDBETX","ALFX","ERRALFX","STDALFX","BETXMDL","ALFXMDL","MUXMDL"])
+            tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
                 bn1=upper(bpms[i][1])
                 bns1=bpms[i][0]
-                fbetaxDPP.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPX))+' '+str(betax[bn1][0])+' '+str(betax[bn1][1])+' '+str(betax[bn1][2])+' '+str(alfax[bn1][0])+' '+str(alfax[bn1][1])+' '+str(alfax[bn1][2])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-            fbetaxDPP.close()
+                list_row_entries = ['"'+bn1+'" ',bns1,len(ListOfZeroDPPX),betax[bn1][0],betax[bn1][1],betax[bn1][2],alfax[bn1][0],alfax[bn1][1],alfax[bn1][2],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.ALFX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
+                tfs_file.add_table_row(list_row_entries)
             k+=1
 
 
@@ -5072,22 +5004,21 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             dpop = float(j.DPP)
             SingleFile = []
             SingleFile.append(j)
-            file1 = outputpath+'getphasey_dpp_'+str(k+1)+'.out'
-            fphDPP = open(file1,'w')
-            fphDPP.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-            fphDPP.write('@ FILE %s "')
-            fphDPP.write(FileOfNonZeroDPPY[k]+' ')
-            fphDPP.write('"'+'\n')
-            fphDPP.write('@ Q1 %le '+str(Q1)+'\n')
-            fphDPP.write('@ Q2 %le '+str(Q2)+'\n')
+            filename = 'getphasey_dpp_'+str(k+1)+'.out'
+            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+            tfs_file = files_dict[filename]
+            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
+            tfs_file.add_descriptor("Q1", "%le", str(Q1))
+            tfs_file.add_descriptor("Q2", "%le", str(Q2))
+            
             DPPTwiss = ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
-
             [phasey,Q2DPP,MUY,bpms] = GetPhases(DPPTwiss,SingleFile,Q2,plane,outputpath,beam_direction,accel,lhcphase)
             phasey['DPP'] = dpop
             phaseylist.append(phasey)
-            fphDPP.write('@ Q2DPP %le '+str(Q2DPP)+'\n')
-            fphDPP.write('* NAME   NAME2  S   S1  COUNT  PHASE  STDPH  PHYMDL MUYMDL\n')
-            fphDPP.write('$ %s     %s     %le    %le    %le    %le    %le    %le    %le\n')
+            
+            tfs_file.add_descriptor("Q2DPP", "%le", str(Q2DPP))
+            tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASE","STDPH","PHYMDL","MUYMDL"])
+            tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
             
             length_bpms = len(bpms)
             for i in range(0,length_bpms):
@@ -5103,8 +5034,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 except:
                     phmdl=0.0
                 #phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
-                fphDPP.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(1)+' '+str(phasey[bn1][0])+' '+str(phasey[bn1][1])+' '+str(phmdl)+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
-            fphDPP.close()
+                list_row_entries = ['"'+bn1+'" ','"'+bn2+'" ',bns1,bns2,1,phasey[bn1][0],phasey[bn1][1],phmdl,MADTwiss.MUY[MADTwiss.indx[bn1]] ]
+                tfs_file.add_table_row(list_row_entries)
 
             betay={}
             alfay={}
@@ -5116,21 +5047,22 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             [betaya,rmsbby,bpms,invJy]=BetaFromAmplitude(DPPTwiss,SingleFile,plane)
             betaya['DPP']=dpop
             betayalist.append(betaya)
-            file2=outputpath+'getbetay_dpp_'+str(k+1)+'.out'
-            fbetayDPP=open(file2,'w')
-            fbetayDPP.write('@ MAD_FILE: %s "'+twiss_model_file+'"'+'\n')
-            fbetayDPP.write('@ FILE %s "'+FileOfNonZeroDPPY[k]+'"'+'\n')
-            fbetayDPP.write('@ DPP %le '+str(dpop)+'\n')
-            fbetayDPP.write('@ Q1 %le '+str(Q1)+'\n')
-            fbetayDPP.write('@ Q2 %le '+str(Q2)+'\n')
-            #fbetayDPP.write('@ RMSbetabeat %le '+str(rmsbbx)+'\n')
-            fbetayDPP.write('* NAME   S    COUNT  BETX   ERRBETX STDBETX ALFX   ERRALFX STDALFX BETXMDL ALFXMDL MUXMDL\n')
-            fbetayDPP.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le     %le     %le     %le\n')
+            
+            filename = 'getbetay_dpp_'+str(k+1)+'.out'
+            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+            tfs_file = files_dict[filename]
+            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
+            tfs_file.add_descriptor("DPP", "%le", str(dpop))
+            tfs_file.add_descriptor("Q1", "%le", str(Q1))
+            tfs_file.add_descriptor("Q2", "%le", str(Q2))
+            #TODO: check if it should be Y instead of X in the column names since it is getbetaY_dpp...out (vimaier)
+            tfs_file.add_column_names(["NAME","S","COUNT","BETX","ERRBETX","STDBETX","ALFX","ERRALFX","STDALFX","BETXMDL","ALFXMDL","MUXMDL"])
+            tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
                 bn1=upper(bpms[i][1])
                 bns1=bpms[i][0]
-                fbetayDPP.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfZeroDPPY))+' '+str(betay[bn1][0])+' '+str(betay[bn1][1])+' '+str(betay[bn1][2])+' '+str(alfay[bn1][0])+' '+str(alfay[bn1][1])+' '+str(alfay[bn1][2])+' '+str(MADTwiss.BETX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.ALFX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-            fbetayDPP.close()
+                list_row_entries = ['"'+bn1+'" ',bns1,len(ListOfZeroDPPY),betay[bn1][0],betay[bn1][1],betay[bn1][2],alfay[bn1][0],alfay[bn1][1],alfay[bn1][2],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.ALFX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
+                tfs_file.add_table_row(list_row_entries)
 
             k += 1
 
@@ -5180,30 +5112,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         print "Not analysing higher order..."
         return 0
 
-    fsex3000 = open(outputpath+'getsex3000.out','w')
-    fsex3000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
+    #TODO: fsex1200 and 2100 is never used and ouputname is wrong
     fsex1200 = open(outputpath+'getsex1200.out','w')
     fsex1200.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-
     fsex2100 = open(outputpath+'getsex1200.out','w')
     fsex2100.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
-    foct4000 = open(outputpath+'getoct4000.out','w')
-    foct4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-
-    fchi3000 = open(outputpath+'getchi3000.out','w')
-    fchi3000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-
-    fchi1010 = open(outputpath+'getchi1010.out','w')
-    fchi1010.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-
-    fchi4000 = open(outputpath+'getchi4000.out','w')
-    fchi4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-
-    fkick=open(outputpath+'getkick.out','w')
-    if with_ac_calc:
-        fkickac=open(outputpath+'getkickac.out','w')
 
     if TBTana=="SUSSIX":
     #-> 1) f3000 line (-2,0)
@@ -5215,18 +5130,23 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     # 1)
 
         htot, afactor, pfactor = Getsextupole(MADTwiss,ListOfZeroDPPX,phasexlist[0],Q1f,3,0)
+        
+        filename = 'getsex3000.out'
+        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+        tfs_file = files_dict[filename]
+        tfs_file.add_descriptor("f2h_factor", "%le", str(afactor))
+        tfs_file.add_descriptor("p_f2h_factor", "%le", str(pfactor))
 
-        print >> fsex3000,"@","f2h_factor","%le",afactor
-        print >> fsex3000,"@","p_f2h_factor","%le",pfactor
 
-        print >> fsex3000,"NAME","S","AMP_20","AMP_20std","PHASE_20","PHASE_20std","f3000","f3000std","phase_f_3000","phase_f_3000std","h3000","h3000_std","phase_h_3000","phase_h_3000_std"
-        print >> fsex3000,"%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"
+
+        tfs_file.add_column_names(["NAME","S","AMP_20","AMP_20std","PHASE_20","PHASE_20std","f3000","f3000std","phase_f_3000","phase_f_3000std","h3000","h3000_std","phase_h_3000","phase_h_3000_std"])
+        tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
 
         for bpm in htot:
             li=htot[bpm]
-            print >>fsex3000,li[0],li[1],li[2],li[3],li[4],li[5],li[6],li[7],li[8],li[9],li[10],li[11],li[12],li[13]
+            list_row_entries = [li[0],li[1],li[2],li[3],li[4],li[5],li[6],li[7],li[8],li[9],li[10],li[11],li[12],li[13] ]
+            tfs_file.add_table_row(list_row_entries)
 
-        fsex3000.close()
 
 
 
@@ -5237,9 +5157,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         #-> 2) chi4000
 
         # 1) chi3000
-
-        fchi3000.write('* NAME    S    S1    S2    X3000    X3000i    X3000r    X3000RMS   X3000PHASE   X3000PHASERMS   X3000M    X3000Mi   X3000Mr    X3000MPHASE \n')
-        fchi3000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
+        filename = 'getchi3000.out'
+        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+        tfs_file = files_dict[filename]
+        tfs_file.add_column_names(["NAME","S","S1","S2","X3000","X3000i","X3000r","X3000RMS","X3000PHASE","X3000PHASERMS","X3000M","X3000Mi","X3000Mr","X3000MPHASE"])
+        tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
 
         files=[ListOfZeroDPPX,ListOfZeroDPPY]
         name='chi3000'
@@ -5248,19 +5170,19 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
 
         for i in range(0,len(dbpms)-2):
-
             bn=upper(dbpms[i][1])
 
-            fchi3000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-
-        fchi3000.close()
+            list_row_entries = ['"'+bn+'"',POS[0][i],POS[1][i],POS[2][i],XItot[0][i],XItot[1][i],XItot[2][i],XItot[3][i],XItot[4][i],XItot[5][i],XIMODEL[0][i],XIMODEL[1][i],XIMODEL[2][i],XIMODEL[3][i] ]
+            tfs_file.add_table_row(list_row_entries)
 
     # 2) chi1010
 
-        if  accel!='SPS':
-
-            fchi1010.write('* NAME  S    X1010   X1010RMS   X1010PHASE   X1010PHASERMS   X1010M   X1010MPHASE \n')
-            fchi1010.write('$ %s   %le  %le    %le   %le   %le   %le   %le  \n')
+        if  accel != 'SPS':
+            filename = 'getchi1010.out'
+            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+            tfs_file = files_dict[filename]
+            tfs_file.add_column_names(["NAME","S","X1010","X1010RMS","X1010PHASE","X1010PHASERMS","X1010M","X1010MPHASE"])
+            tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le"])
 
             files = [ListOfZeroDPPX,ListOfZeroDPPY]
             name = 'chi1010'
@@ -5271,27 +5193,30 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             for i in range(len(dbpms)-2):
                 bn = upper(dbpms[i][1])
                 bns = dbpms[i][0]
-                fchi1010.write('"'+bn+'" '+str(bns)+' '+str(XItot[0][i])+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str('0')+' '+str('0')+' '+'\n')
+                list_row_entries = ['"'+bn+'"',bns,XItot[0][i],XItot[1][i],XItot[2][i],XItot[3][i],'0','0' ]
+                tfs_file.add_table_row(list_row_entries)
 
-            fchi1010.close()
     # 1) chi4000
 
-        fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
-        fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
 
-        #files=[ListOfZeroDPPX,ListOfZeroDPPY]
-        #name='chi4000'
-        #plane='H'
+        
+        filename = 'getchi4000.out'
+        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+        tfs_file = files_dict[filename]
+        tfs_file.add_column_names(["NAME","S","S1","S2","X4000","X4000i","X4000r","X4000RMS","X4000PHASE","X4000PHASERMS","X4000M","X4000Mi","X4000Mr","X4000MPHASE"])
+        tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
 
-        #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
+#         files=[ListOfZeroDPPX,ListOfZeroDPPY]
+#         name='chi4000'
+#         plane='H'
+# 
+#         [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
+# 
+#         for i in range(0,len(dbpms)-2):
+#                    bn=upper(dbpms[i][1])
+#                 list_row_entries = ['"'+bn+'"',POS[0][i],POS[1][i],POS[2][i],XItot[0][i],XItot[1][i],XItot[2][i],XItot[3][i],XItot[4][i],XItot[5][i],XIMODEL[0][i],XIMODEL[1][i],XIMODEL[2][i],XIMODEL[3][i] ]
+#                 tfs_file.add_table_row(list_row_entries)
 
-        #for i in range(0,len(dbpms)-2):
-
-    #               bn=upper(dbpms[i][1])
-
-        #       fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-
-        fchi4000.close()
 
 
 
@@ -5300,24 +5225,26 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #-----------------------------------------begin octupole
     #->  1) f4000 (-3,0)
     #
-
-        foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
-        foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n')
+        filename = 'getoct4000.out'
+        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+        tfs_file = files_dict[filename]
+        tfs_file.add_column_names(["NAME","S","AMP_30","AMP_30RMS","PHASE_30","PHASE_30RMS","H4000","H4000I","H4000R","H4000RMS","H4000PHASE","H4000PHASERMS","H4000M","H4000MI","H4000MR","HMPHASE4000"])
+        tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
 
         files=[ListOfZeroDPPX,ListOfZeroDPPY]
         Q=[Q1,Q2]
         plane='H'
         name='f4000'
 
-    #       [A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
-
-    #       for i in range(0,len(dbpms)-1):
-    #
-    #               bn=upper(dbpms[i][1])
-    #               bns=dbpms[i][0]
-    #               foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
-
-        foct4000.close()
+        #TODO: f2100M and NAMES not defined befor. What to do? Delete section? (vimaier)
+#         [A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
+# 
+#         for i in range(0,len(dbpms)-1):
+#     
+#                 bn=upper(dbpms[i][1])
+#                 bns=dbpms[i][0]
+#                 list_row_entries = ['"'+bn+'"',bns,A[0][i],A[1][i],A[2][i],A[3][i],h[0][i],h[1][i],h[2][i],h[3][i],h[4][i],h[5][i],hMODEL[0][i],hMODEL[1][i],hMODEL[2][i],hMODEL[3][i] ]
+#                 tfs_file.add_table_row(list_row_entries)
 
     #-----------------------------------------end octupole
 
@@ -5325,88 +5252,41 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     files=[ListOfZeroDPPX+ListOfNonZeroDPPX,ListOfZeroDPPY+ListOfNonZeroDPPY]
 
-
-    fkick.write('@ RescalingFactor for X %le '+str(betax_ratio)+'\n')
-    fkick.write('@ RescalingFactor for Y %le '+str(betay_ratio)+'\n')
-    fkick.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
-    fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
+    filename = 'getkick.out'
+    files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+    tfs_file = files_dict[filename]
+    tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(betax_ratio))
+    tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(betay_ratio))
+    tfs_file.add_column_names(["DPP","QX","QXRMS","QY","QYRMS","sqrt2JX","sqrt2JXSTD","sqrt2JY","sqrt2JYSTD","2JX","2JXSTD","2JY","2JYSTD","sqrt2JXRES","sqrt2JXSTDRES","sqrt2JYRES","sqrt2JYSTDRES","2JXRES","2JXSTDRES","2JYRES","2JYSTDRES"])
+    tfs_file.add_column_datatypes(["%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
 
     [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkick(files,MADTwiss)
 
     for i in range(0,len(dpp)):
-        fkick.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
+        list_row_entries = [dpp[i],tune[0][i],tuneRMS[0][i],tune[1][i],tuneRMS[1][i],invarianceJx[i][0],invarianceJx[i][1],invarianceJy[i][0],invarianceJy[i][1],(invarianceJx[i][0]**2),(2*invarianceJx[i][0]*invarianceJx[i][1]),(invarianceJy[i][0]**2),(2*invarianceJy[i][0]*invarianceJy[i][1]),(invarianceJx[i][0]/sqrt(betax_ratio)),(invarianceJx[i][1]/sqrt(betax_ratio)),(invarianceJy[i][0]/sqrt(betay_ratio)),(invarianceJy[i][1]/sqrt(betay_ratio)),(invarianceJx[i][0]**2/betax_ratio),(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio),(invarianceJy[i][0]**2/betay_ratio),(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio) ]
+        tfs_file.add_table_row(list_row_entries)
 
 
-    fkick.close()
 
 
     if with_ac_calc:
         files=[ListOfZeroDPPX+ListOfNonZeroDPPX,ListOfZeroDPPY+ListOfNonZeroDPPY]
-
-        fkickac.write('@ RescalingFactor for X %le '+str(betaxf_ratio)+'\n')
-        fkickac.write('@ RescalingFactor for Y %le '+str(betayf_ratio)+'\n')
-        fkickac.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
-        fkickac.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
+        
+        filename = 'getkickac.out'
+        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+        tfs_file = files_dict[filename]
+        tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(betaxf_ratio))
+        tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(betayf_ratio))
+        tfs_file.add_column_names(["DPP","QX","QXRMS","QY","QYRMS","sqrt2JX","sqrt2JXSTD","sqrt2JY","sqrt2JYSTD","2JX","2JXSTD","2JY","2JYSTD","sqrt2JXRES","sqrt2JXSTDRES","sqrt2JYRES","sqrt2JYSTDRES","2JXRES","2JXSTDRES","2JYRES","2JYSTDRES"])
+        tfs_file.add_column_datatypes(["%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
 
         [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkickac(MADTwiss_ac,files,Q1,Q2,Q1f,Q2f,acphasex_ac2bpmac,acphasey_ac2bpmac,beam_direction,lhcphase)
 
         for i in range(0,len(dpp)):
-            fkickac.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
-
-        fkickac.close()
-
+            list_row_entries = [dpp[i],tune[0][i],tuneRMS[0][i],tune[1][i],tuneRMS[1][i],invarianceJx[i][0],invarianceJx[i][1],invarianceJy[i][0],invarianceJy[i][1],(invarianceJx[i][0]**2),(2*invarianceJx[i][0]*invarianceJx[i][1]),(invarianceJy[i][0]**2),(2*invarianceJy[i][0]*invarianceJy[i][1]),(invarianceJx[i][0]/sqrt(betax_ratio)),(invarianceJx[i][1]/sqrt(betax_ratio)),(invarianceJy[i][0]/sqrt(betay_ratio)),(invarianceJy[i][1]/sqrt(betay_ratio)),(invarianceJx[i][0]**2/betax_ratio),(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio),(invarianceJy[i][0]**2/betay_ratio),(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio) ]
+            tfs_file.add_table_row(list_row_entries)
 
 
-
-    #------------------------ start f2000
-    files_dict['getf2000x.out'] = utils.tfs_file.TfsFile('getf2000x.out').add_getllm_header(VERSION, twiss_model_file)
-    files_dict['getf2000y.out'] = utils.tfs_file.TfsFile('getf2000y.out').add_getllm_header(VERSION, twiss_model_file)
-    
-    tfs_file = files_dict['getf2000x.out']
-    tfs_file.add_column_names(["NAME","S","F2000L","F2000EL","P2000L","P2000EL","F2000N","F2000EN","P2000N","P2000EN"])
-    tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
-    
-
-
-    plane = 'H'
-    names = []
-    for bpm in phasexlist[0].keys():
-        if bpm in betaxalist[0].keys():
-            if "DPP" not in bpm:
-                names.append(bpm)
-
-    #print names
-    #print names
-    #sys.exit()
-    result_f2000 = Getquadrupole(MADTwiss,names,plane,phasexlist[0],betaxalist[0])
-    for name in names:
-
-        loc = result_f2000[name][8]
-
-        list_row_entries = [name,loc,result_f2000[name][0],result_f2000[name][2],result_f2000[name][1],result_f2000[name][3],result_f2000[name][4],result_f2000[name][6],result_f2000[name][5],result_f2000[name][7] ]
-        tfs_file.add_table_row(list_row_entries)
-
-
-    tfs_file = files_dict['getf2000y.out']
-    tfs_file.add_column_names(["NAME","S","F2000L","F2000EL","P2000L","P2000EL","F2000N","F2000EN","P2000N","P2000EN"])
-    tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
-
-    plane = 'V'
-    names = []
-    for bpm in phaseylist[0].keys():
-        if bpm in betayalist[0].keys():
-            if "DPP" not in bpm:
-                names.append(bpm)
-    result_f2000 = Getquadrupole(MADTwiss,names,plane,phaseylist[0],betayalist[0])
-    for name in names:
-
-        loc = result_f2000[name][8]
-
-        list_row_entries = [name,loc,result_f2000[name][0],result_f2000[name][2],result_f2000[name][1],result_f2000[name][3],result_f2000[name][4],result_f2000[name][6],result_f2000[name][5],result_f2000[name][7] ]
-        tfs_file.add_table_row(list_row_entries)
-
-    #------------------------ end f2000x
-    
     #TODO: write files at the end
     for tfsfile in files_dict.itervalues():
         tfsfile.write_to_file(formatted=True)
