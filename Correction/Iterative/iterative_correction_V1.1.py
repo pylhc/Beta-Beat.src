@@ -10,7 +10,6 @@ import sys, pickle,os
 from os import system
 #import operator
 from string import *
-#from AllLists import *
 from optparse import OptionParser
 
 
@@ -309,10 +308,6 @@ system(cpMAD)
 runMAD=options.mad+'/madx < '+options.path+'/job.iterative.correction.madx'
 #runMAD='madx < ./job.iterative.correction.madx'
 print runMAD
-# import knobs list
-#execfile(options.rpath+'/AllLists.py')
-#varname='vars'+options.ACCEL
-#exec('varlist='+varname+'()')
 
 listvar=options.var.split(",")
 print listvar
