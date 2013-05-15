@@ -41,7 +41,7 @@ import shutil
 # Add directory to the python search path - needed to run script from command line
 # Otherwise ScriptRunner won't be found
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.abspath("../../../Python_Classes4MAD"))
+sys.path.append(os.path.join( os.path.dirname(os.path.abspath(__file__)),"../../../Python_Classes4MAD" ))
 import vimaier_utils.scriptrunner
 import runvalidator
 
