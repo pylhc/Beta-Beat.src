@@ -140,6 +140,7 @@
 #  - Defined variables Q1,Q2,Q1f,Q2f,MUX,MUY,muxf,muyf with standard values
 #    Saves a lot of try/excepts while writing files
 #  - Reformatted a lot of code
+#  - Introduced tfs_file for all output files in main() --> Formatted output files
 
 
 # Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
@@ -202,7 +203,7 @@ def modelIntersect(expbpms, model):
         sys.exit(1)
     for bpm in expbpms:
         try:
-            check=model.indx[bpm[1].upper()]
+            check_if_bpm_in_model = model.indx[bpm[1].upper()]  # @UnusedVariable
             bpmsin.append(bpm)
         except:
             print bpm, "Not in Model"
@@ -248,15 +249,22 @@ def phiLastAndLastButOne(phi,ftune):
     return phit
 
 def PhaseMean(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
-
-    phase0   =array(phase0)%norm
-    phase1   =(phase0+0.5*norm)%norm-0.5*norm
-    phase0ave=mean(phase0)
-    phase1ave=mean(phase1)
-    phase0std=sqrt(mean((phase0-phase0ave)**2))
-    phase1std=sqrt(mean((phase1-phase1ave)**2))
-    if phase0std<phase1std: return phase0ave
-    else                  : return phase1ave%norm
+    phase0 = array(phase0)%norm
+    phase1 = (phase0+0.5*norm)%norm - 0.5*norm
+    phase0ave = mean(phase0)
+    phase1ave = mean(phase1)
+    # Since phase0std and phase1std are only used for comparing, I modified the expressions to avoid
+    # sqrt(), mean() and **2. 
+    # Old expressions:
+    #     phase0std = sqrt(mean((phase0-phase0ave)**2))
+    #     phase1std = sqrt(mean((phase1-phase1ave)**2))
+    # -- vimaier 
+    mod_phase0std = sum(abs(phase0-phase0ave))
+    mod_phase1std = sum(abs(phase1-phase1ave))
+    if mod_phase0std<mod_phase1std: 
+        return phase0ave
+    else: 
+        return phase1ave%norm
 
 def PhaseStd(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
 
