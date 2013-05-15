@@ -64,7 +64,7 @@ class ScriptRunner(object):
         for key in self._args_dict:
             call_command.append(key+self._args_dict[key])
             
-        process = subprocess.Popen(call_command, shell=True,
+        process = subprocess.Popen(call_command,
                            stdout=subprocess.PIPE, 
                            stderr=subprocess.PIPE)
 

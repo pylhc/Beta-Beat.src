@@ -4021,15 +4021,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         fcouplef2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
         fcouplef2.write('@ FILES %s "')
 
-    f2000=open(outputpath+'getf2000x.out','w')
-    f2000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    #TODO: Removed bug(vimaier)
-    f2000.write('@ FILES %s ""\n')
-
-    f2000y=open(outputpath+'getf2000y.out','w')
-    f2000y.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    #TODO: Removed bug(vimaier)
-    f2000y.write('@ FILES %s ""\n')
 
     fcoupleterms=open(outputpath+'getcoupleterms.out','w')
     fcoupleterms.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')

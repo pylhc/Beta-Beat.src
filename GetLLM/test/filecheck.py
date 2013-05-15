@@ -28,7 +28,7 @@ Change history:
     Added option "special_output". It is possible to choose a separate output directory. The 
     produced output will be deleted again.
  - 1.0.2 29th April 2013:
-    Changed compare algorithm. Created comare_tfs_files(...) to check content independent from 
+    Changed compare algorithm. Created compare_tfs_files(...) to check content independent from 
     whitespace. The lines with the descriptors "GetLLMVersion", "MAD_FILE" and "FILES" will be 
     ignored.
 '''
