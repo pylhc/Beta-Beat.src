@@ -1,15 +1,16 @@
 {
   "MQS": [
-    "kqs.r1b1", 
-    "kqs.l2b1", 
-    "kqs.a23b1", 
-    "kqs.a45b1", 
-    "kqs.r5b1", 
-    "kqs.l6b1", 
-    "kqs.a67b1", 
-    "kqs.r7b1", 
-    "kqs.l8b1", 
-    "kqs.a81b1"
+    "kqs.a12b2", 
+    "kqs.r2b2", 
+    "kqs.l3b2", 
+    "kqs.r4b2", 
+    "kqs.l5b2", 
+    "kqs.a56b2", 
+    "kqs.r6b2", 
+    "kqs.l7b2", 
+    "kqs.a78b2", 
+    "kqs.r8b2", 
+    "kqs.l1b2"
   ], 
   "MQSX": [
     "kqsx3.r1", 
@@ -22,32 +23,34 @@
     "kqsx3.l1"
   ], 
   "MQSa": [
-    "kqs.a23b1", 
-    "kqs.a45b1", 
-    "kqs.a67b1", 
-    "kqs.a81b1"
+    "kqs.a12b2", 
+    "kqs.a56b2", 
+    "kqs.a78b2"
   ], 
   "MQSl": [
-    "kqs.l2b1", 
-    "kqs.l6b1", 
-    "kqs.l8b1"
+    "kqs.l3b2", 
+    "kqs.l5b2", 
+    "kqs.l7b2", 
+    "kqs.l1b2"
   ], 
   "MQSr": [
-    "kqs.r1b1", 
-    "kqs.r5b1", 
-    "kqs.r7b1"
+    "kqs.r2b2", 
+    "kqs.r4b2", 
+    "kqs.r6b2", 
+    "kqs.r8b2"
   ], 
   "Qs": [
-    "kqs.r1b1", 
-    "kqs.l2b1", 
-    "kqs.a23b1", 
-    "kqs.a45b1", 
-    "kqs.r5b1", 
-    "kqs.l6b1", 
-    "kqs.a67b1", 
-    "kqs.r7b1", 
-    "kqs.l8b1", 
-    "kqs.a81b1", 
+    "kqs.a12b2", 
+    "kqs.r2b2", 
+    "kqs.l3b2", 
+    "kqs.r4b2", 
+    "kqs.l5b2", 
+    "kqs.a56b2", 
+    "kqs.r6b2", 
+    "kqs.l7b2", 
+    "kqs.a78b2", 
+    "kqs.r8b2", 
+    "kqs.l1b2", 
     "kqsx3.r1", 
     "kqsx3.l2", 
     "kqsx3.r2", 
