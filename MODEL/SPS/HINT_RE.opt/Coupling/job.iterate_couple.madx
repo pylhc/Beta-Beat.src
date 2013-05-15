@@ -1,0 +1,61 @@
+!-----------------------------------------
+!
+! MAD file for SPS optics calculations
+! @ Glenn Vanbavinckhove
+!
+!-----------------------------------------
+
+title, 'linear and non-linear optics calculations';
+
+option, echo;
+
+
+option, RBARC=FALSE;  
+! the length of a rectangular magnet is the distance between the polefaces and not the arc length
+
+!------ SPS configuration
+call, file = '../../DefinitionSPS/LHC_beam_injection.beamx';
+call, file = '../../DefinitionSPS/sps.elex';
+call, file = '../../DefinitionSPS/lhc.strx';
+call, file = '../../DefinitionSPS//sps.seqx';
+
+USE, period=SPS, range=#S/#E;
+
+
+!----------------------------------------
+!
+!   		Match tunes
+!
+!----------------------------------------
+match;
+vary, name=kqf1;
+vary, name=kqd;
+constraint, range=#e, mux=26.05, muy=26.17;
+jacobian, tolerance=1e-6;
+endmatch;
+
+
+!---------------------------------------
+!
+! 	    Include Closed orbit
+!
+!--------------------------------------
+
+!readmytable, file="getCO.tfs",table=mddata;
+
+
+!---------------------------------------
+!
+!             Generating Twiss
+!
+!---------------------------------------
+
+call, file="./changeparameters";
+
+call, file="../../Parameters/VBumps";
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,x,y,r11,r12,r21,r22;
+twiss,  deltap=0.0d0, file="twiss_couple.dat";
+
+
+stop;

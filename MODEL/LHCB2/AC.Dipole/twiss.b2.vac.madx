@@ -1,0 +1,79 @@
+!--------------------------------------------------------------------------
+! This code outputs the effective linear optical parameters during the
+! AC dipole excitation (in the limit of week coupling). Please notice that,
+! at the time when this code was written (March 11th 2010), the AC dipole
+! was available only for the develope version of MADX and hence this code
+! must be run via the command "madx_dev <". In addition to usual parameters
+! such as sequence, beam, and etc, please input the fractional part of the
+! driving tune, Qyd, as well.
+!
+! by R. Miyamoto (miyamoto@bnl.gov) March 11th 2010
+!--------------------------------------------------------------------------
+
+option, -echo, -info, warn;
+
+!---- Shortcuts
+
+system, "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+system, "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503/toolkit lt";
+system, "ln -fns /afs/cern.ch/eng/lhc/optics/V6.5 er";
+
+!---- Sequence and strength
+
+call, file="db/V6.5.thin.seq";
+call, file="db/V6.5.thin.inj.str";
+
+!---- Beam parameters
+
+beam, particle=proton, sequence=lhcb2, energy=450.0, bv=-1;
+
+!---- Crossing scheme (1 if crossing scheme is required)
+
+on_x1   :=0; on_x2  :=0; on_x5  :=0; on_x8  :=0;
+on_sep1 :=0; on_sep2:=0; on_sep5:=0; on_sep8:=0;
+on_alice:=0; on_lhcb:=0;
+
+!---- Expand the sequence
+
+use, period=lhcb2;
+
+!---- Field errors
+
+! select, flag=error, clear;
+! select, flag=error, pattern="MQWA.*\.B2";
+! select, flag=error, class=MQ;
+! efcomp, dkn:={0,gauss()*0.0001,0,0,0,0}, dks:={0,0,0,0,0,0};
+! esave, file="err.dat";
+
+!---- AC dipoles' effective maps
+
+twiss, deltap=0e-4;
+
+Qy=table(summ,Q2)-59.0;
+betyac=table(twiss,MKQA.6L4.B2,bety);
+
+Qyd=0.330;
+! Qyd=Qy+0.02;
+
+vacmap43=2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy));
+
+vacmap: matrix, l=0, rm43=vacmap43;
+
+seqedit, sequence=lhcb2; flatten;
+  install, element=vacmap, at=0.0, from=MKQA.6L4.B2;
+endedit;
+
+use, period=lhcb2;
+
+!---- Recall the field errors (if introduced)
+
+! readmytable, file="err.dat", table=errtab;
+! seterr, table=errtab;
+
+!---- Twiss
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,betx,bety,alfx,alfy,mux,muy,phix,phiy;
+! select, flag=twiss, pattern="BPM.*\.B2",
+!         column=name,s,betx,bety,alfx,alfy,mux,muy,phix,phiy;
+twiss, deltap=0e-4, file="twiss.b2.vac.dat";

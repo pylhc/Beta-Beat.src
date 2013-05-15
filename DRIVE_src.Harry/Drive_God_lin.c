@@ -72,7 +72,7 @@ void formatLinFile(const char*, const int, const double, const double, const cha
 
 char driveInputFilePath[2000], drivingTermsFilePath[2000], noiseFilePath[500]; /*TODO create size dynamically? (tbach)*/
 
-double calculatednattuney, calculatednattunex, co, co2, noiseAve, maxamp,
+double calculatednattuney, calculatednattunex, calculatednatampy, calculatednatampx ,co, co2, noiseAve, maxamp,
         maxfreq, maxmin, maxpeak, nattunex, nattuney, noise1,
         windowa1, windowa2, windowb1, windowb2;
 double allampsx[300], allampsy[300], allbpmamp[MAXPICK], allbpmphase[MAXPICK],
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
     /*  Path to DrivingTerms and Drive.inp */
     setPath(workingDirectoryPath, sizeof(workingDirectoryPath), argv[1], "", "");
     if (!canOpenFile(workingDirectoryPath)) {
-        printf("Directory is not readable: %s\n", workingDirectoryPath);
+        fprintf(stderr, "Directory is not readable: %s\n", workingDirectoryPath);
         exit(EXIT_FAILURE);
     }
     else
@@ -131,13 +131,13 @@ int main(int argc, char **argv)
 
     /* check the file drivingTermsFilePath */
     if (!canOpenFile(drivingTermsFilePath)) {
-        printf("\nNo file %s for reading the name of the Data file\n", drivingTermsFilePath);
+        fprintf(stderr, "\nNo file %s for reading the name of the Data file\n", drivingTermsFilePath);
         exit(EXIT_FAILURE);
     }
 
     /* check the input file Drive.inp */
     if (!canOpenFile(driveInputFilePath)) {
-        printf("\nNo input file %s\n", driveInputFilePath);
+        fprintf(stderr, "\nNo input file %s\n", driveInputFilePath);
         exit(EXIT_FAILURE);
     }
 
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
         if (charCounter >= sizeof(string1))
         {
             string1[charCounter - 1] = '\0';
-            printf("Option name longer than sizeof(ss): %u, read: %s", sizeof(string1), string1);
+            fprintf(stderr, "Option name longer than sizeof(ss): %u, read: %s\n", sizeof(string1), string1);
             exit(EXIT_FAILURE);
         }
         if ((string1[charCounter] == '\n') || (string1[charCounter] == EOF)) /* we expect to have one '=' per line (tbach) */
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
         if (charCounter >= sizeof(string2))
         {
             string2[charCounter - 1] = '\0';
-            printf("Option value longer than sizeof(string2): %u, read: %s", sizeof(string2), string2);
+            fprintf(stderr, "Option value longer than sizeof(string2): %u, read: %s\n", sizeof(string2), string2);
             exit(EXIT_FAILURE);
         }
         string2[charCounter] = '\0'; /* '\n' or 'EOF' is replaced by string termination, this is ok (tbach) */
@@ -207,16 +207,15 @@ int main(int argc, char **argv)
     else if (kcase == 0)
         printf("Vertical case\n");
     else {
-        printf("No proper kcase in Drive.inp\n");
+        fprintf(stderr, "No proper kcase in Drive.inp\n");
         exit(EXIT_FAILURE);
     }
 
     if (labelrun == 1)
         printf("\n LABELRUN: NOISE FILES WILL BE WRITTEN TO NOISEPATH\n");
     printf("pickstart: %d, pickend: %d\n", pickstart, pickend);
-    if (pickstart < 0 || pickstart > pickend || pickstart > MAXPICK)
-    {
-        printf("Bad value for pickstart. Must be >= 0 and < pickend and <= MAXPICK(=%d)", MAXPICK);
+    if (pickstart < 0 || pickstart > pickend || pickstart > MAXPICK) {
+        fprintf(stderr, "Bad value for pickstart. Must be >= 0 and < pickend and <= MAXPICK(=%d)\n", MAXPICK);
         exit(EXIT_FAILURE);
     }
 
@@ -258,13 +257,13 @@ int main(int argc, char **argv)
         linxFile = getFileToWrite(linxFilePath);
         linyFile = getFileToWrite(linyFilePath);
         fprintf(linxFile,
-                "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX\n");
+                "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n");
         fprintf(linxFile,
-                "$ %%s  %%le %%le   %%le   %%le  %%le %%le %%le  %%le  %%le  %%le    %%le %%le  %%le   %%le     %%le  %%le    %%le   %%le     %%le    %%le      %%le   %%le     %%le   %%le     %%le\n");
+                "$ %%s  %%le %%le   %%le   %%le  %%le %%le %%le  %%le  %%le  %%le    %%le %%le  %%le   %%le     %%le  %%le    %%le   %%le     %%le    %%le      %%le   %%le     %%le   %%le     %%le     %%le\n");
         fprintf(linyFile,
-                "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY\n");
+                "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n");
         fprintf(linyFile,
-                "$ %%s  %%le %%le   %%le   %%le  %%le %%le %%le  %%le  %%le  %%le    %%le %%le  %%le    %%le      %%le   %%le     %%le   %%le     %%le   %%le     %%le   %%le     %%le\n");
+                "$ %%s  %%le %%le   %%le   %%le  %%le %%le %%le  %%le  %%le  %%le    %%le %%le  %%le    %%le      %%le   %%le     %%le   %%le     %%le   %%le     %%le   %%le     %%le       %%le\n");
 
         if (labelrun == 1) noiseFile = getFileToWrite(noiseFilePath);
 
@@ -303,7 +302,7 @@ int main(int argc, char **argv)
                     string1[i] = (char)getc(dataFile);
                     if (i > 100) {
                         string1[i + 1] = '\0';
-                        printf("Found a value which has more than 100 characters, exit parsing."
+                        fprintf(stderr, "Found a value which has more than 100 characters, exit parsing.\n"
                             "This is most probably a malformatted file. bpmCounter=%d columnCounter=%d string1=%s\n", bpmCounter, columnCounter, string1);
                         exit(EXIT_FAILURE);
                     }
@@ -313,11 +312,11 @@ int main(int argc, char **argv)
                 if (LOG_INFO)
                     printf("%s ", string1);
                 if (columnCounter >= MAXTURNS) {
-                    printf("Found >= %d Turns, this turn size not supported. Reduce amount of turns. bpmCounter:%d", MAXTURNS - 3, bpmCounter); /* 0,1,2 is plane, name and location (tbach) */
+                    fprintf(stderr, "Found >= %d Turns, this turn size is not supported. Reduce amount of turns. bpmCounter:%d\n", MAXTURNS - 3, bpmCounter); /* 0,1,2 is plane, name and location (tbach) */
                     exit(EXIT_FAILURE);
                 }
                 if (bpmCounter >= MAXPICK) {
-                    printf("Found >= %d BPMs, this size is not supported. Reduce amount of BPMs. columnCounter:%d", MAXPICK, columnCounter);
+                    fprintf(stderr, "Found >= %d BPMs, this size is not supported. Reduce amount of BPMs. columnCounter:%d\n", MAXPICK, columnCounter);
                     exit(EXIT_FAILURE);
                 }
                 if (columnCounter == 0) {   /*plane (tbach) */
@@ -332,7 +331,7 @@ int main(int argc, char **argv)
                     if (hv[bpmCounter] == 0) {
                         if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
                         {
-                            printf("horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?");
+                            fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
                             exit(EXIT_FAILURE);
                         }
                         hvt[horizontalBpmCounter] = 0;
@@ -350,7 +349,7 @@ int main(int argc, char **argv)
                     {
                         if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
                         {
-                            printf("horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?");
+                            fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
                             exit(EXIT_FAILURE);
                         }
                         bpmpos[horizontalBpmCounter] = atof(string1);
@@ -414,7 +413,7 @@ int main(int argc, char **argv)
             }
 
             if (kick < 0) {
-                printf("NO KICK FOUND\n");
+                fprintf(stderr, "NO KICK FOUND\n");
                 exit(EXIT_FAILURE);
             } else
                 printf("Found kick in turn:%d\n", kick + 1);    /*Natural count */
@@ -442,13 +441,13 @@ int main(int argc, char **argv)
         if (maxcounthv > pickend)
             maxcounthv = pickend;
         if (maxcounthv >= MAXPICK) {
-            printf("\nNot enough Pick-up mexmory\n");
+            fprintf(stderr, "\nNot enough Pick-up mexmory\n");
             exit(EXIT_FAILURE);
         }
         printf("BPMs in loop: %d, pickstart: %d, resulting loop length: %d\n",
              maxcounthv, pickstart, maxcounthv - pickstart);
 
-        #pragma omp parallel for private(i, horizontalBpmCounter, verticalBpmCounter, kk, maxamp, calculatednattunex, calculatednattuney)
+#pragma omp parallel for private(i, horizontalBpmCounter, verticalBpmCounter, kk, maxamp, calculatednattunex, calculatednattuney, calculatednatampx, calculatednatampy)
         for (i = pickstart; i < maxcounthv; ++i) {
             horizontalBpmCounter = i;
             verticalBpmCounter = i + MAXPICK / 2;
@@ -459,7 +458,7 @@ int main(int argc, char **argv)
                 horizontalBpmCounter = counth - 1;
             if (horizontalBpmCounter < 0 || verticalBpmCounter < 0)
             {
-                printf("horizontal or vertical BpmCounter < 0. Should not happen.");
+                fprintf(stderr, "horizontal or vertical BpmCounter < 0. Should not happen.\n");
                 exit(EXIT_FAILURE);
             }
             printf("BPM indexes (H,V):%d %d\n", horizontalBpmCounter, verticalBpmCounter); /* This is not synchronised and can produce random ordered output for multiple threads (tbach) */
@@ -482,6 +481,7 @@ int main(int argc, char **argv)
                     if ((nattunex - istun < allfreqsx[kk] && allfreqsx[kk] < nattunex + istun) && (maxamp < allampsx[kk])) {
                         maxamp = allampsx[kk];
                         calculatednattunex = allfreqsx[kk];
+			calculatednatampx = maxamp;
                     }
                 }
             }
@@ -492,6 +492,7 @@ int main(int argc, char **argv)
                     if ((nattuney - istun < allfreqsy[kk] && allfreqsy[kk] < nattuney + istun) && (maxamp < allampsy[kk])) {
                         maxamp = allampsy[kk];
                         calculatednattuney = allfreqsy[kk];
+			calculatednatampy = maxamp;
                     }
                 }
             }
@@ -509,13 +510,13 @@ int main(int argc, char **argv)
 
                 /* PRINT LINEAR FILE */
                 if (amplitude[0] > 0 && label[i] == 1 && horizontalBpmCounter == i) {
-                    fprintf(linxFile, "\"%s\" %e %d %d %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+                    fprintf(linxFile, "\"%s\" %e %d %d %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
                             bpmname[horizontalBpmCounter], bpmpos[horizontalBpmCounter], horizontalBpmCounter, label[horizontalBpmCounter], tune[0],
                             phase[0] / 360., amplitude[0], noise1, maxmin, amplitude[2] / amplitude[0], phase[2] / 360.,
                             co, co2, amplitude[1] / amplitude[0],
                             phase[1] / 360., amplitude[12] / amplitude[0], phase[12] / 360., amplitude[6] / amplitude[0],
                             phase[6] / 360., amplitude[14] / amplitude[0], phase[14] / 360., amplitude[16] / amplitude[0],
-                            phase[16] / 360., amplitude[18] / amplitude[0], phase[18] / 360.,  calculatednattunex);
+                            phase[16] / 360., amplitude[18] / amplitude[0], phase[18] / 360.,  calculatednattunex, calculatednatampx );
                     ++tunecountx;
                     tunesumx += tune[0];
                     tune2sumx += tune[0] * tune[0];
@@ -541,12 +542,12 @@ int main(int argc, char **argv)
                     fprintf(noiseFile, "2 %d  %e %e %e %e %e %d %d %f\n",
                             verticalBpmCounter, noise1, noiseAve, maxpeak, maxfreq, maxmin, nslines, label[verticalBpmCounter], phase[3] / 360.);
                 if (amplitude[3] > 0 && label[verticalBpmCounter] == 1 && verticalBpmCounter == i + MAXPICK / 2) {
-                    fprintf(linyFile, "\"%s\" %e %d %d %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
+                    fprintf(linyFile, "\"%s\" %e %d %d %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",
                             bpmname[verticalBpmCounter], bpmpos[verticalBpmCounter], verticalBpmCounter, label[verticalBpmCounter], tune[1], phase[3] / 360., amplitude[3], noise1,
                             maxmin, amplitude[5] / amplitude[3], phase[5] / 360., co, co2,
                             amplitude[13] / amplitude[3], phase[13] / 360., amplitude[15] / amplitude[3], phase[15] / 360.,
                             amplitude[17] / amplitude[3], phase[17] / 360., amplitude[4] / amplitude[3], phase[4] / 360.,
-                            amplitude[11] / amplitude[3], phase[11] / 360., calculatednattuney);
+                            amplitude[11] / amplitude[3], phase[11] / 360., calculatednattuney, calculatednatampy);
                     ++tunecounty;
                     tunesumy += tune[1];
                     tune2sumy += tune[1] * tune[1];
@@ -604,7 +605,7 @@ int readDrivingTerms(FILE* drivingTermsFile, int* turns, char* path, const int s
          (path[charCounter] != ' ')); charCounter++) ;
     if (charCounter >= sizeOfPath)
     {
-        printf("Error: path longer than sizeOfPath: %d", sizeOfPath);
+        fprintf(stderr, "Error: path longer than sizeOfPath: %d\n", sizeOfPath);
         exit(EXIT_FAILURE);
     }
     if (path[charCounter] == EOF) { /* we do not expect an EOF here (tbach)*/
@@ -643,7 +644,7 @@ int getNextInt(FILE* file)
     if (charCounter >= sizeof(string1))
     {
         string1[charCounter - 1] = '\0';
-        printf("Error: input longer than sizeof(string1): %u, string1: %s", sizeof(string1), string1);
+        fprintf(stderr, "Error: input longer than sizeof(string1): %u, string1: %s\n", sizeof(string1), string1);
         exit(EXIT_FAILURE);
     }
     string1[charCounter] = '\0';
@@ -833,7 +834,7 @@ FILE* __getFileWithMode(const char* const filename, const char* const mode, cons
     FILE* file = fopen(filename, mode);
     if (file == NULL)
     {
-        printf(errormessage, filename);
+        fprintf(stderr, errormessage, filename);
         exit(EXIT_FAILURE);
     }
     return file;
@@ -843,7 +844,7 @@ void assertSmaller(const int a, const int b, const char* message)
 {
     if (a < b)
         return;
-    printf("Value1: %d is not < than Value2: %d. Message: %s\n", a, b, message);
+    fprintf(stderr, "Value1: %d is not < than Value2: %d. Message: %s\n", a, b, message);
     exit(EXIT_FAILURE);
 }
 

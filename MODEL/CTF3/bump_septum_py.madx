@@ -1,0 +1,245 @@
+ptc_enforce6d, flag=true;
+
+
+!#MADX
+!Calculates bump that moves beam position at septum by 1mm
+! 1. 
+! 2. 
+! 3. 
+! 4. 
+!Piotr Skowronski (CERN)
+
+call, file="../common.seqx";
+call, file="currents";
+call, file="zerocorrs";
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="CRrecombin4.seqx";
+call, file="createCRsequence.madx";
+system, "./changeseqname.sh";
+call, file="cr_s.seqx";
+
+! Basic Elements and line definition 
+call, file="../tl1/tl3elements.seqx"; 
+
+! Beam instrumentation
+call,  file="../tl1/beaminstr.seqx";
+
+! Sequence ready to use w/ monitors and w/o redundant markers
+call, file="../tl1/tl3.seqx";
+
+
+
+BEAM, PARTICLE=ELECTRON, ENERGY=En/1000., SIGT=1, SIGE=0.001;
+
+!tl3todump: line=(tl3_s,CR_anellot_s); 
+! We want to join two seq, one of them is a seqence
+!Intead of line above we have to use all those stuff below
+use, period=tl3_s;
+twiss, betx=1, bety=1; !to get length
+len_tl3_s = table(twiss, tl3_s$end,s); !here we get length
+
+use, period=CR_anellot_s;!to get length
+twiss, betx=1, bety=1;  !here we get length
+len_crpart = table(twiss, CR_anellot_s$end,s);
+
+
+ltot = len_crpart + len_tl3_s;
+value, ltot;
+
+
+tl1_cr_s: sequence, REFER=centre, l = ltot;
+ tl3_s, at = 0;
+ CR_anellot_s, at = len_tl3_s;
+endsequence;
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!                                    !!!!!!!
+!!!!!!          END OF HEADER             !!!!!!!
+!!!!!!                                    !!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+sepinj = 0;
+
+use, period=tl1_cr_s, RANGE=ct.qfj0730/cr.bhf0205;
+
+
+
+
+match, betx=10, bety=10;
+  vary, name=ct.idvf0735, STEP=1;
+  vary, name=ct.idvf0755, STEP=1;
+
+  constraint, range=injection, y=0, py=1e-3;
+
+  JACOBIAN, tolerance=1e-014, calls=20;
+  SIMPLEX, tolerance=1e-014, calls=200;
+!  MIGRAD;
+!   JACOBIAN;
+ENDMATCH;
+
+
+
+twiss, save, betx=10,bety=10;
+
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Bump at injection, 1mm after septum", file="bump_septum_py";
+
+
+match, use_macro ;
+  vary, name=cr.idvf0145, STEP=1;
+  vary, name=cr.idvf0200, STEP=1;
+
+   m1a: macro =
+    {
+      twiss, betx=10, bety=10;
+      value, table(twiss,cr.bhf0205,y);
+    };
+   
+   
+   
+  constraint, weight=100, expr=table(twiss,cr.bhf0205,y)=0;
+  constraint, weight=100, expr=table(twiss,cr.bhf0205,py)=0;
+
+!  constraint, weight=1e-6, expr= cr.idhf0145*cr.idhf0145 + cr.idhf0200*cr.idhf0200 = 0;
+!  constraint, weight=1e-6, expr= cr.idhf0145 = 0;
+!  constraint, weight=1e-6, expr= cr.idhf0200 = 0;
+    
+
+  JACOBIAN, tolerance=1e-014, calls=20;
+  SIMPLEX, tolerance=1e-014, calls=200;
+!  MIGRAD;
+!   JACOBIAN;
+ENDMATCH;
+
+
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Bump at injection, closure after injection ", file="bump_septum_py";
+
+
+
+
+use, period=CR_anellot_s, RANGE=cr.dvf1000/#e;
+
+
+match, use_macro ;
+  vary, name=cr.idvf1000, STEP=1;
+  vary, name=cr.idvf1055, STEP=1;
+
+   m1a: macro =
+    {
+      twiss, betx=10, bety=10;
+      value, table(twiss,CR_anellot_s$end,y);
+    };
+   
+   
+   
+  constraint, weight=100, expr=table(twiss,CR_anellot_s$end,y)=0;
+  constraint, weight=100, expr=table(twiss,CR_anellot_s$end,py)=1e-3;
+
+!  constraint, weight=1e-6, expr= cr.idhf0145*cr.idhf0145 + cr.idhf0200*cr.idhf0200 = 0;
+!  constraint, weight=1e-6, expr= cr.idhf0145 = 0;
+!  constraint, weight=1e-6, expr= cr.idhf0200 = 0;
+    
+
+  JACOBIAN, tolerance=1e-014, calls=20;
+  SIMPLEX, tolerance=1e-014, calls=200;
+!  MIGRAD;
+!   JACOBIAN;
+ENDMATCH;
+
+
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Bump at injection, closure of orbit ", file="bump_septum_py";
+
+
+
+
+select,flag=save, clear;
+select,flag=save, pattern="ct.idvf0735";
+select,flag=save, pattern="ct.idvf0755";
+select,flag=save, pattern="cr.idvf0145";
+select,flag=save, pattern="cr.idvf0200";
+select,flag=save, pattern="cr.idvf1000";
+select,flag=save, pattern="cr.idvf1055";
+save, file="bump_septum_py.madout";
+
+
+
+
+write, table=twiss, file="bump_septum_py.twiss";
+
+
+
+
+
+stop;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  SSSSS  TTTTT   OOO   PPP
+!  S        T    O   O  P  P
+!  SSSSS    T    O   O  PPP
+!      S    T    O   O  P
+!  SSSSS    T     OOO   P
+!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=5, exact=true, closed_layout=false;
+ ptc_setswitch, debuglevel=0, nocavity=false,
+                fringe=true, exact_mis=true, time=true, totalpath=true;
+ ptc_eplacement, range=injection, x=-0.0364, y=0, z=0, onlyposition, refframe=previouselement, autoplacedownstream=true;
+ ptc_printframes, file="bump_septum.C",format=rootmacro;
+ PTC_TWISS, table=twiss, icase=4, no=1, betz=1.0, betx=10, bety=10;
+ptc_end;
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+                  title="Current Settings", file="bump_septum_py";
+
+
+
+
+match, rmatrix, use_macro;
+
+
+   m1a: macro =
+    {
+      ptc_create_universe;
+       ptc_create_layout, model=1, method=6, nst=5, exact=true, closed_layout=false;
+       ptc_setswitch, debuglevel=0, nocavity=false,
+	  fringe=true, exact_mis=true, time=true, totalpath=true;
+       ptc_eplacement, range=injection, x=-0.0364, y=0, z=0, onlyposition, refframe=previouselement, autoplacedownstream=true;
+       !ptc_printframes, file="tl1_cr.C",format=rootmacro;
+       PTC_TWISS, table=twiss, icase=4, no=1, betz=1.0, betx=10, bety=10;
+      ptc_end;
+
+    };
+
+
+

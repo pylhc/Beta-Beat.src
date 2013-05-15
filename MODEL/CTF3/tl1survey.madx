@@ -1,0 +1,58 @@
+
+print, text="vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv";
+print, text="vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv";
+print, text="Loading Currents....";
+call, file="currents";
+print, text="Loading Currents.... Done";
+print, text="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+print, text="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
+
+
+
+call, file="../common.seqx";
+call, file="zerocorrs";
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="CRrecombin4.seqx";
+call, file="createCRsequence.madx";
+system, "./changeseqname.sh";
+call, file="cr_s.seqx";
+
+! Basic Elements and line definition 
+call, file="../tl1/tl3elements.seqx"; 
+
+! Beam instrumentation
+call,  file="../tl1/beaminstr.seqx";
+
+! Sequence ready to use w/ monitors and w/o redundant markers
+call, file="../tl1/tl3.seqx";
+
+
+
+
+tl3todump: line=(tl3,injdirdump);
+
+
+
+BEAM, PARTICLE=ELECTRON, ENERGY=En/1000., SIGT=1, SIGE=0.001;
+use, period=tl3todump, range=CT.QFD0520/#E;
+
+
+
+select, flag=survey, clear;
+select, flag=survey, pattern="min";
+select, flag=survey, pattern="mext";
+select, flag=survey, pattern="ct\..*";
+select, flag=survey, pattern="drift.*";
+
+
+survey, x0=-2149.850509, y0=2433.66, z0=2088.839838,
+	theta0=1.205765252, ! as in linac
+	file="tl1_names.survey";
+
+
+
+
+
+stop; 
+

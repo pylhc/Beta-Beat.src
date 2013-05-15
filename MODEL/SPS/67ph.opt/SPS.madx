@@ -1,0 +1,227 @@
+!--------------------------------------------------------------------------
+! MAD file for SPS optics calculations
+!  G.Arduini
+!--------------------------------------------------------------------------
+
+ !title, 'Untitled';
+
+ option, -echo;
+ option, RBARC=FALSE;  ! the length of a rectangular magnet 
+                       ! is the distance between the polefaces
+                       ! and not the arc length
+!assign, ECHO=ECHO.PRT; 
+
+
+!---------------------------------------------------------------
+!         SPECIFY THE SPS BEAM CONFIGURATION, ENERGY and EMITTANCES
+!---------------------------------------------------------------
+!call, file = 'CNGS_after_capture.beamx';
+!call, file = 'LHC_beam_injection.beamx';
+!call, file = 'CNGS_extraction.beamx';
+ call, file = 'LHC_beam_injection_aftercapture.beamx';
+
+
+!--------------------------------------------------------------------------
+! call the element definition file for SPS
+!--------------------------------------------------------------------------
+ call, file = 'sps2009.ele';
+
+
+!--------------------------------------------------------------------------
+! call the element definition file for SPS
+!--------------------------------------------------------------------------
+! call, file = 'sps2009_half.ele';
+
+
+!--------------------------------------------------------------------------
+! call the sequence definition file for SPS
+!--------------------------------------------------------------------------
+ call, file = 'sps2009.seq';
+  
+
+!--------------------------------------------------------------------------
+! call the two strength definition files for SPS: *.str & elements.str
+!--------------------------------------------------------------------------
+
+!call, file = 'lhc_newwp_2009.str';
+ call, file = 'ft_noqs_2009.str';
+!call, file = 'ft_noqs_ext_2009.str';
+!call, file = 'ft_qs_ext_2009.str';
+
+! call, file = 'elements_half.str';
+ call, file = 'elements.str';
+
+
+USE, period=SPS, range=#S/#E;
+
+
+!--------------------------------------------------------------------------
+! calculates strengths from currents
+!--------------------------------------------------------------------------
+!call, file = 'currenttoK.cmdx';
+
+
+!--------------------------------------------------------------------
+! produces twiss file of the whole SPS
+!---------------------------------------------------------------------
+! call, file = 'twiss.cmdx';
+
+
+!--------------------------------------------------------------------
+! produces twiss file of the whole SPS, but only for one turn
+!---------------------------------------------------------------------
+!call, file = 'twiss_oneturn.cmdx';
+
+
+!--------------------------------------------------------------------------
+! to calculate and plot detuning with momentum offset
+!--------------------------------------------------------------------------
+!call, file = 'tunevsdp.cmdx';
+
+
+!--------------------------------------------------------------------------
+! Calculate QF & QD strength for given tunes
+!--------------------------------------------------------------------------
+!call, file = 'matchtune.cmdx';
+
+
+!--------------------------------------------------------------------------
+! to compute and adjust chromaticity
+!--------------------------------------------------------------------------
+!call, file = 'chrom_knob.cmdx';
+
+
+!--------------------------------------------------------------------------
+! direct space charge tune spread
+!--------------------------------------------------------------------------
+!call, file = 'scharge.cmdx';
+
+
+!--------------------------------------------------------------------------
+! Matching of LSS4 extraction
+!--------------------------------------------------------------------------
+!call, file = 'matchextrlss4.cmdx';
+
+
+!--------------------------------------------------------------------------
+! LSS1 Quadrupole Displacement for Beam Dumping
+!--------------------------------------------------------------------------
+!call, file = 'lss1_q171819_displacement.madx';
+
+!--------------------------------------------------------------------------
+! to compute and adjust chromaticity
+!--------------------------------------------------------------------------
+call, file = 'SPS_chromaticity-correction.cmdx';
+
+
+SELECT,FLAG=TWISS,RANGE=#S/#E,COLUMN=NAME, KEYWORD, S, L, ANGLE, K1L, BETX, ALFX, MUX, BETY, ALFY, MUY, DX, DPX;
+
+TWISS, SEQUENCE=sps, FILE="sps.tsf";
+
+PLOT, NOTITLE=TRUE, INTERPOLATE=TRUE, NOVERSION=TRUE, COLOUR=100, HAXIS=S, VAXIS1=BETX,BETY, VAXIS2=DX;
+
+q1:=table(summ,Q1);
+q2:=table(summ,Q2);
+dq1:=table(summ,DQ1);
+dq2:=table(summ,DQ2);
+betxmax:=table(summ,betxmax);
+betymax:=table(summ,betymax);
+dxmax:=table(summ,dxmax);
+alfa:=table(summ,alfa);
+gammatr:=table(summ,gammatr);
+
+
+qux:=20.13;	
+quy:=20.18;	
+
+		MATCH, SEQUENCE=SPS;
+     		VARY, NAME=KQD,  STEP=1.E-8;!,LOWER=0,UPPER=0.1;;
+     		VARY, NAME=KQF1,  STEP=1.E-8;!,LOWER=-0.1,UPPER=0;;
+     		GLOBAL, Q1=qux,Q2=quy;
+     		LMDIF, CALLS=1000, TOLERANCE=1.E-22;
+     		!jacobian, calls= 30, tolerance=1.E-22, bisec=3;
+  		ENDMATCH;
+
+	TWISS, SEQUENCE=sps;
+	L=table(Summ,length);
+	PLOT, NOTITLE=TRUE, INTERPOLATE=TRUE, NOVERSION=TRUE, COLOUR=100, HAXIS=S, VAXIS1=BETX,BETY, VAXIS2=DX;
+	PLOT, NOTITLE=TRUE, INTERPOLATE=TRUE, NOVERSION=TRUE, COLOUR=100, HAXIS=S, VAXIS1=BETX,BETY, VAXIS2=DX, HMAX=L/6;
+	
+
+/**
+!--------------------------------------------------------------------------
+! compute the geometric acceptance
+!--------------------------------------------------------------------------
+
+  call, file = 'aperturedb_1_2009.dbx';
+  call, file = 'aperturedb_2_2009.dbx';
+  call, file = 'aperture.cmdx';
+  call, file = 'aperturedb_3_2009.dbx';
+  
+  maxdispersion=table(summ,dxmax);
+  maxbetx=table(summ,betxmax);
+  exn=beam->exn/4;
+  eyn=beam->eyn/4;
+  dp_rf=3E-3;
+
+  select, flag=aperture, column=name,s,n1,betx,bety,x,y;
+  aperture, file=aperture.tfs,exn=exn,eyn=eyn,cor=3e-3,dp=dp_rf,
+  			bbeat=1.1,dqf=maxdispersion,dparx=0.05,dpary=0.05,halo={1,1,1,1}, betaqfx=maxbetx, interval=3;
+   			
+  plot,table=aperture,noline,vmin=0,vmax=10,haxis=s,hmin=0,hmax=L/6,vaxis=n1,on_elem,style=100; 
+  
+  delete, sequence=sps;
+  call, file = 'sps2009.seq';
+  use, sequence=sps;  
+**/
+
+!--------------------------------------------------------------------------
+! to get the SPS non-linear model
+!--------------------------------------------------------------------------
+!call, file = 'nonlinear_model.cmdx';
+!TWISS;
+!CORRECT,PLANE=x; 
+!CORRECT,PLANE=y; 
+
+!--------------------------------------------------------------------------
+! to compute and adjust chromaticity
+!--------------------------------------------------------------------------
+call, file = 'SPS_chromaticity-correction.cmdx';
+
+
+
+select, flag=twiss, clear;
+!select, flag=twiss, PATTERN="S";
+select, flag=twiss,pattern="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss,  deltap=0.0d0,CHROM ,file="twiss.dat";
+
+stop;
+
+select, flag=twiss, column=x,y;
+TWISS, SEQUENCE=sps, file="SPS-twiss.tfs";
+PLOT, NOTITLE=TRUE, INTERPOLATE=TRUE, NOVERSION=TRUE, COLOUR=100, HAXIS=S, VAXIS1=BETX,BETY, VAXIS2=DX;
+
+
+	
+TWISS, SEQUENCE=sps, deltap=-0.005;
+PLOT, TITLE="dp=-0.5%", INTERPOLATE=TRUE, NOVERSION=TRUE, COLOUR=100, HAXIS=S, VAXIS1=BETX,BETY, VAXIS2=DX;
+TWISS, SEQUENCE=sps, deltap=0.005;
+PLOT, TITLE="dp=+0.5%", INTERPOLATE=TRUE, NOVERSION=TRUE, COLOUR=100, HAXIS=S, VAXIS1=BETX,BETY, VAXIS2=DX;
+
+select, flag=sextupoles, class=sextupole, column=Name,s,K2L,betx,bety;
+twiss, table=sextupoles, file=sextupoles.tfs;
+
+SELECT,FLAG=ERROR,FULL;                                    
+ESAVE,FILE=err.out;
+!SURVEY, file=survey.txt;
+!PLOT, TABLE=survey, COLOUR=100, HAXIS=X, HMIN=-2300, HMAX=50, VAXIS=Z, VMIN=-1200, VMAX=1200;
+
+value, KQD, KQF1, KSDA, KSDB, KSFA, KSFB;
+save, sequence=SPS, file="SPS.seq";
+stop;
+
+
+
+
+
+

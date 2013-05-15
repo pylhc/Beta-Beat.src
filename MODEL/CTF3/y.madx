@@ -1,0 +1,186 @@
+
+muxend := table(twiss, CR_anellot_s$end, mux);
+
+!#MADX
+!Matches CR closed solution to
+! 1. small beta functions
+! 2. 180deg phase adv at bump
+! 3. Tune not close to any major resonans 
+! 4. Dispertion 0 at the beginning and end of arcs
+! 5. If matchR56 > 0; then match R56 to requested value
+!
+
+! 6. Plots the results for CR
+!Piotr Skowronski (CERN)
+
+call, file="../common.seqx";
+call, file="currents";
+
+
+cr.iqfg0120 := 22.011;
+cr.iqdg0140 := 20.086;
+cr.iqdf0160 := 38.559;
+cr.iqff0190 := 84.108;
+cr.iqfj0215 := 77.265;
+cr.iqdj0230 := 57.512;
+cr.iqfj0245 := 48.741;
+cr.iqfj0320 := 72.771;
+cr.iqdh0340 := 18.329;
+cr.iqff0510 := 84.108;
+cr.iqdf0540 := 38.559;
+cr.iqdg0560 := 20.086;
+cr.iqfg0580 := 22.011;
+cr.iqfj0715 := 77.265;
+cr.iqdj0730 := 57.512;
+cr.iqfj0745 := 48.741;
+cr.iqfj0820 := 69.221;
+cr.iqdh0840 := 20.348;
+iqdd0520 = 21.40104378;
+iqfd0530 = 20.64731562;
+iqfh0610 = 21.01833234;
+iqfh0620 = 4.085326121;
+iqfh0640 = 16.48654571;
+iqdi0650 = 14.82612609;
+iqff0660 = 81.01552284;
+iqfh0680 = 24.92849293;
+iqff0690 = 1.704616379;
+iqdf0720 = -4.153761424;
+iqfj0730 = 47.19507472;
+iqdj0740 = 81.30775061;
+iqfg0750 = 18.69048381;
+
+
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="cr_s.seqx";
+
+
+
+beam, particle=electron,energy=EN/1000., EX=NEX/EN/0.511, EY=NEY/EN/0.511, ET=1/1000, SIGT=0, SIGE=sige;
+
+
+use, period=CR_anellot_s;
+
+sepinj = 0.0;
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,betx,bety,alfx,alfy,dx,dpx,x,px;
+
+
+twiss, rmatrix, save, file="cr.initial.twiss";
+
+value, table(twiss, mexidefl0150, mux);
+value, table(twiss, CR_anellot_s$end, mux) - table(twiss, mentdefl1050, mux);
+
+muxend := table(twiss, CR_anellot_s$end, mux);
+muxentbump := table(twiss, mentdefl1050, mux);
+muxexibump := table(twiss, mexidefl0150, mux);
+
+mxdif := muxend - muxentbump + muxexibump;
+value, mxdif;
+
+
+
+CR.IQFJ0715 := CR.IQFJ0215;
+CR.IQDJ0730 := CR.IQDJ0230;
+CR.IQFJ0745 := CR.IQFJ0245;
+CR.IQFF0510 := CR.IQFF0190;
+CR.IQDF0540 := CR.IQDF0160;
+CR.IQDG0560 := CR.IQDG0140;
+CR.IQFG0580 := CR.IQFG0120;
+
+print, text="Variables 0 ";
+value,CR.IQFJ0215,CR.IQDJ0230,CR.IQFJ0245,CR.IQFJ0320,CR.IQDH0340,CR.IQFF0190,CR.IQDF0160,CR.IQDG0140,CR.IQFG0120;
+print, text="Derivatives 0";
+value,CR.IQFJ0715,CR.IQDJ0730,CR.IQFJ0745,CR.IQFJ0820,CR.IQDH0840,CR.IQFF0510,CR.IQDF0540,CR.IQDG0560,CR.IQFG0580;
+
+
+match, rmatrix, use_macro;
+!match;
+
+   vary, name=CR.IQFG0120, step:=1e-6, LOWER=   0, UPPER=100;
+   vary, name=CR.IQDG0140, step:=1e-6, LOWER=   0, UPPER=100;
+
+   vary, name=CR.IQDF0160, step:=1e-6, LOWER=-170, UPPER=170;
+   vary, name=CR.IQFF0190, step:=1e-6, LOWER=-250, UPPER=250;
+
+
+   vary, name=CR.IQFJ0215, step:=1e-6, LOWER= 0, UPPER=200;
+   vary, name=CR.IQDJ0230, step:=1e-6, LOWER= 0, UPPER=200;
+   vary, name=CR.IQFJ0245, step:=1e-6, LOWER= 0, UPPER=200;
+
+   vary, name=CR.IQFJ0320, step:=1e-6, LOWER= 0, UPPER=180;
+   vary, name=CR.IQDH0340, step:=1e-6, LOWER= 0, UPPER=50;
+
+   vary, name=CR.IQFJ0820, step:=1e-6, LOWER= 0, UPPER=180;
+   vary, name=CR.IQDH0840, step:=1e-6, LOWER= 0, UPPER=50;
+
+
+   m1a: macro =
+    {
+!       print, text="Variables";
+!       value,CR.IQFJ0215,CR.IQDJ0230,CR.IQFJ0245,CR.IQFJ0320,CR.IQDH0340,CR.IQFF0190,CR.IQDF0160,CR.IQDG0140,CR.IQFG0120;
+!       print, text="Derivatives";
+!       value,CR.IQFJ0715,CR.IQDJ0730,CR.IQFJ0745,CR.IQFJ0820,CR.IQDH0840,CR.IQFF0510,CR.IQDF0540,CR.IQDG0560,CR.IQFG0580;
+       twiss, rmatrix;
+!       value, table(twiss, CR_anellot_s$end, mux), table(twiss, CR_anellot_s$end, muy);
+!       value, table(twiss, mexidefl0150, dx), table(twiss, mexidefl0150, dpx),table(twiss, mentdefl1050, dx), table(twiss, mentdefl1050, dpx);
+!       value, mxdif;
+    };
+
+   constraint, weight=1,    betx < 13;
+   constraint, weight=1,    bety < 11.5;
+
+   constraint, weight=1000, expr=mxdif=0.5;
+   constraint, weight=100, RANGE=mexidefl0150, dx = 0, dpx=0; 
+   constraint, weight=100, RANGE=mentdefl1050, dx = 0, dpx=0; 
+
+   constraint, weight=100, RANGE=CR_anellot_s$end, mux > 7.15; 
+   constraint, weight=100, RANGE=CR_anellot_s$end, mux < 7.225;
+
+   constraint, weight=100, RANGE=CR_anellot_s$end, muy > 4.025; 
+   constraint, weight=100, RANGE=CR_anellot_s$end, muy < 4.100;
+
+!   constraint, expr=mux  =  abs(muxend - floor(muxend) -  0.1875 )  < 0.0375; !(mux in range 0.15 - 0.225)
+   simplex,  tolerance:=1e-12, calls:=500;
+   jacobian, tolerance:=1e-12, calls:=100;
+   simplex,  tolerance:=1e-12, calls:=500;
+   jacobian, tolerance:=1e-12, calls:=10;
+   
+endmatch;
+! to get correct values in TUNES and madout files
+CR.IQFJ0715 = CR.IQFJ0215;
+CR.IQDJ0730 = CR.IQDJ0230;
+CR.IQFJ0745 = CR.IQFJ0245;
+CR.IQFF0510 = CR.IQFF0190;
+CR.IQDF0540 = CR.IQDF0160;
+CR.IQDG0560 = CR.IQDG0140;
+CR.IQFG0580 = CR.IQFG0120;
+
+
+twiss, rmatrix, save, file="cr.matched.twiss";
+
+plot, noversion=true, vaxis=betx, bety, haxis=s, colour=100,
+  title="Matched Closed Solution";
+
+plot, noversion=true, vaxis=dx, dpx, haxis=s, colour=100,
+  title="Matched Closed Solution";
+
+plot, noversion=true, vaxis1=x, vaxis2=px, haxis=s, colour=100,
+  title="Matched Closed Solution";
+
+system,"cp madx.ps x.ps";
+
+
+select,flag=save, clear;
+select,flag=save, pattern="iq.*";
+select,flag=save, pattern="cr.iq.*";
+save, file="y.madout";
+save, file="TUNES";
+
+
+value, table(twiss, CR_anellot_s$end, mux), table(twiss, CR_anellot_s$end, muy);
+
+stop;
+
+sepinj = 0.0364;

@@ -1,0 +1,65 @@
+option, -echo, warn, -info;
+title, "Relativistic Heavy Ion Collider";
+!system,    "ln -fns /afs/cern.ch/user/r/rcalaga/mad/rhic ds";
+
+
+!-------- Protons at injection/100/200 GeV 
+beam, mass=0.93827, charge=1, gamma=22.89, exn=20.0e-06, eyn=20.0e-06, sige=0.001;
+!beam, mass=0.93827, charge=1, gamma=108.4, exn=20.0e-06, eyn=20.0e-06, sige=0.001;
+!beam, mass=0.93827, charge=1, gamma=268.2, exn=20.0e-06, eyn=20.0e-06, sige=0.001;
+
+!--- save modified sequence
+!save,sequence=rhic,file="blue.asc";
+
+call,file="blue.asc";use,sequence=rhic;
+call, file="../defs/rhic_utilities.madx";
+
+
+!--- change bpms names
+call,file="../defs/BPMSdef";
+select,flag=seqedit,pattern=BPM;select,flag=seqedit,pattern=CPLMON;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="../defs/BPMSinstall";endedit;
+use,sequence=rhic;
+
+!--- change GAMMAT
+call,file="../defs/GAMMATdefs";
+select,flag=seqedit,pattern=QJGTP;
+select,flag=seqedit,pattern=QJQ;
+select,flag=seqedit,pattern=QGT;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="../defs/GAMMATinstall";endedit;
+use,sequence=rhic;
+
+
+option, echo;
+!--- tunes, chroms
+Qx := 28.16; Qy := 29.15; !--- injection 7.7 GeV
+!Qx := 28.737; Qy := 29.717; !--- injection
+!Qx := 28.695; Qy := 29.685; !-- store
+chromX := 2.0;chromY := 2.0;
+exec, setarcquads; exec, setchrom;
+
+
+select,flag=twiss,clear;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy,dx,dy,x,y,alfx,alfy,K1L,K2L,K3L,dpx,dpy,K1L,K2L,K3L,dpxR11,R12,R21,R22,WX,WY,PHIX,PHIY,DMUX,DMUY;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy,dx,dy,x,y,alfx,alfy,K1L,K2L,K3L,dpx,dpy,R11,R12,R21,R22,WX,WY,PHIX,PHIY,DMUX,DMUY;
+select,flag=twiss,class=HMONITOR,column=name,s,betx,bety, mux, muy,dx,dy,x,y,alfx,alfy,K1L,K2L,K3L,dpx,dpy,R11,R12,R21,R22,WX,WY,PHIX,PHIY,DMUX,DMUY;
+twiss,sequence=rhic,file="twiss.dat",chrom;
+
+select,flag=twiss,clear;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy,dx,dy,x,y,alfx,alfy,K1L,K2L,K3L,dpx,dpy,K1L,K2L,K3L,dpxR11,R12,R21,R22,WX,WY,PHIX,PHIY,DMUX,DMUY;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy,dx,dy,x,y,alfx,alfy,K1L,K2L,K3L,dpx,dpy,R11,R12,R21,R22,WX,WY,PHIX,PHIY,DMUX,DMUY;
+select,flag=twiss,class=HMONITOR,column=name,s,betx,bety, mux, muy,dx,dy,x,y,alfx,alfy,K1L,K2L,K3L,dpx,dpy,R11,R12,R21,R22,WX,WY,PHIX,PHIY,DMUX,DMUY;
+select, flag=twiss, class=monitor;
+select,flag=twiss,class=instrument;
+select,flag=twiss,class=marker;
+select,flag=twiss,class=quadrupole;
+select,flag=twiss,class=skewquadrupole;
+select,flag=twiss,class=sextupole;
+select,flag=twiss,class=octupole;
+select,flag=twiss,class=tkicker;
+twiss,sequence=rhic,file="twiss_elements.dat",chrom;
+
+stop;
+

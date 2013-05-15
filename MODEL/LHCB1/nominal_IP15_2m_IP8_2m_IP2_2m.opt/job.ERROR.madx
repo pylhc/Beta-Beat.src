@@ -1,0 +1,64 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.seq";
+ call,   file = "db/V6.5.inj.str";
+
+seqedit, sequence=lhcb1; ! The first monitor in data acquisition is BPMYB.5L2.B1
+flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+
+cycle, start=MSIA.EXIT.B1;
+!!!cycle, start=IP2;   ! BPMs say starting point is IP2
+
+endedit;
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=lhcb1, energy = 450.0;
+ beam,      sequence=lhcb1,particle=proton,energy=450,kbunch=1,npart=1.15E11;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
+ on_alice:= 0; on_lhcb := 0;
+
+
+use, period=lhcb1;
+
+
+!call, file="db/IR1/IP1_beta_2.00.str";
+!call, file="db/IR5/IP5_beta_2.00.str";
+call, file="./modifiers.madx";
+
+kq5.l1b1=kq5.l1b1*1.15;
+kq6.r1b1=kq6.r1b1*1.15;
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+select,flag=twiss,class=marker;
+twiss, chrom,sequence=lhcb1, deltap=0.0d0, file="twiss.ERR.dat";
+!stop;
+
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss,class=rcollimator,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k1sl,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22,L;
+select, flag=twiss, class=monitor;
+select,flag=twiss,class=instrument;
+select,flag=twiss,class=marker;
+select,flag=twiss,class=quadrupole;
+select,flag=twiss,class=skewquadrupole;
+select,flag=twiss,class=sextupole;
+select,flag=twiss,class=octupole;
+select,flag=twiss,class=tkicker;
+twiss, chrom,sequence=lhcb1, deltap=0.0d0, file="twiss_elements.ERR.dat";
+
+stop;

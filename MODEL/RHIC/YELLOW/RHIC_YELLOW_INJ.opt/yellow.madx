@@ -1,0 +1,81 @@
+option, -echo, -warn;
+title, "Relativistic Heavy Ion Collider";
+system,    "ln -fns /afs/cern.ch/user/r/rcalaga/mad/rhic ds";
+!-------- Protons at 100 GeV
+!beam, mass=0.93827, charge=1, gamma=22.89, exn=20.0e-06, eyn=20.0e-06, sige=0.001;
+beam, mass=0.93827, charge=1, gamma=106, exn=20.0e-06, eyn=20.0e-06, sige=0.001;
+!beam, mass=0.93827, charge=1, gamma=268.2, exn=20.0e-06, eyn=20.0e-06, sige=0.001;
+
+!-------- The lattice file from the data base.
+CALL, FILE = "ds/yellow.holyLattice/MADX_lat.asc";
+rhic :line=(yellow);
+
+!-------- Gradients & utilities:
+CALL, FILE = "./rhic-2009pp100GeV.setx";
+CALL, FILE = "./rhic_utilities.madx";
+!CALL, FILE = "defs/GAMMATY.inj.stren";
+CALL, FILE = "defs/GAMMATY.100.stren";
+
+!--- Setting up the quadrupole strengths 
+!--- order IP --> 6,8,10,12,2,4
+exec, strength0d7;exec, set6oc;
+exec, strength0d7;exec, set8oc;
+exec, strength7d5;exec, set10oc;
+exec, strength7d5;exec, set12oc;
+exec, strength7d5;exec, set2oc;
+exec, strength7d5;exec, set4oc;
+use,sequence=rhic;
+
+!--- save modified sequence
+save,sequence=rhic,file="yellow.asc";
+
+call,file="yellow.asc";use,sequence=rhic;
+
+!--- change bpms names
+call,file="defs/BPMSYdef";
+select,flag=seqedit,pattern=BPM;select,flag=seqedit,pattern=CPLMON;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="defs/BPMSYinstall";endedit;
+use,sequence=rhic;
+
+!--- change GAMMAT
+call,file="defs/GAMMATYdefs";
+select,flag=seqedit,pattern=QJGTP;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="defs/GAMMATYinstall";endedit;
+use,sequence=rhic;
+
+option, echo;
+!--- tunes, chroms
+!Qx := 28.735; Qy := 29.715; !-- injection
+Qx := 28.695; Qy := 29.685; !-- store
+chromX := 2.0;chromY := 2.0;
+exec, setarcquads; exec, setchrom;
+
+!---- horizontal bpms
+select,flag=twiss,clear;
+select,flag=twiss,pattern=HMONITOR,column=name,s,betx,bety, mux, muy,x,y, dx, k2l, k1l,k3l,wx;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy,x,y, dx, k2l, k1l,k3l,wx;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy,x,y, dx, k2l, k1l,k3l,wx;
+twiss,file="twiss.dat";
+
+!--- save sequence again
+save,sequence=rhic,file="yellow.asc";
+
+!---- horizontal bpms
+select,flag=twiss,clear;
+select,flag=twiss,pattern=HMONITOR,column=name,s,betx,bety, mux, muy, dx,wx;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy, dx,wx;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy, dx,wx;
+twiss,sequence=rhic,file="twiss.dat",chrom;
+
+
+
+!twiss,DELTAP=0.0,sequence=rhic,file="dpp.twiss/twiss.000";
+!twiss,DELTAP=0.001,sequence=rhic,file="dpp.twiss/twiss.001";
+!twiss,DELTAP=0.002,sequence=rhic,file="dpp.twiss/twiss.002";
+!twiss,DELTAP=-0.001,sequence=rhic,file="dpp.twiss/twiss.m001";
+!twiss,DELTAP=-0.002, sequence=rhic,file="dpp.twiss/twiss.m002";
+
+stop;
+

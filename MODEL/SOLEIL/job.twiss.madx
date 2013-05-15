@@ -1,0 +1,110 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!						  !
+! @ author: Glenn Vanbavinckhove  		  !
+! Created for SOLEIL  => to make twiss file       !
+!						  !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+TITLE, s='MAD-X for SOLEIL';
+
+BEAM ,PARTICLE=electron,ENERGY=0.27505112E+01;
+
+
+
+
+! containg the ellements
+
+!call, file="sol2.new";
+call, file="sol.2009.madx";
+!makethin,sequence=ring;
+
+use, sequence=ring;
+
+! Errors in SHORT quads
+SELECT,FLAG=ERROR, clear;
+SELECT,FLAG=ERROR, PATTERN="QP1";
+SELECT,FLAG=ERROR, PATTERN="QP3";
+SELECT,FLAG=ERROR, PATTERN="QP4";
+SELECT,FLAG=ERROR, PATTERN="QP5";
+SELECT,FLAG=ERROR, PATTERN="QP6";
+SELECT,FLAG=ERROR, PATTERN="QP8";
+EFCOMP, ORDER:=1,RADIUS:=0.03,
+        DKNR:={0,0,-1.6e-4 , -3.4e-4 ,0 , 2.4e-4},
+        DKSR:={0,0,0.5e-4};
+
+
+! Errors in LONG quads
+SELECT,FLAG=ERROR, clear;
+SELECT,FLAG=ERROR, PATTERN="QP2";
+SELECT,FLAG=ERROR, PATTERN="QP7";
+EFCOMP, ORDER:=1,RADIUS:=0.03,
+        DKNR:={0,0,2.9e-4 , -8.6e-4 ,0 , 0.7e-4},
+        DKSR:={0,0,0.5e-4};
+
+
+SELECT,FLAG=ERROR, class=quadrupole;
+esave, file=err;
+
+select, flag=twiss,column=name,s,L,betx, alfx, bety, alfy, mux, muy, DX,  DY, DPX, DPY 
+,X , Y, K1L,K2L, K3L,KEYWORD;
+twiss,file="ttest.dat";
+
+!stop;
+
+! defining the bpms outside the sequence edit (is not allowed inside)
+!call, file=define_bpms;
+call, file=define_bpms_new;
+
+
+
+! seqedit ... installing bpms
+
+seqedit, sequence=ring;
+!call, file=install_bpms;
+call, file=install_bpms_new;
+endedit;
+use, sequence=ring;
+
+option, echo;
+
+select, flag=twiss, pattern="SX",column=name,s,betx, alfx, bety, alfy, mux, muy, DX,  DY, DPX, DPY 
+,X , Y, K1L,K2L, K3L,R11,R12,R22,R21,KEYWORD;
+!twiss,file="twiss.dat";
+select, flag=twiss, pattern="BPM",column=name,s,betx, alfx, bety, alfy, mux, muy, DX,  DY, 
+X , Y, DX,KEYWORD;
+twiss,file="twiss.old.dat";
+stop;
+
+! creating some simulated data
+
+TRACK, deltap= 0.015, onepass,dump, onetable;
+call, file="observebpms";
+!SELECT,FLAG=MAKETHIN, SLICE=4;
+!MAKETHIN,sequence=ring;
+START, x= 0.001, y= 0.0015;
+RUN, turns= 300;
+ENDTRACK;
+
+
+
+! implementing some graphical stuff, to plot betax
+
+/*SELECT,FLAG=TWISS;
+TWISS,FILE="twiss.dat";
+PLOT,HAXIS=S,VAXIS=BETX,hmin=0,hmax=100,file=BetasXSoleil100;*/
+
+/*SELECT,FLAG=TWISS;
+TWISS,FILE="twiss.dat";
+PLOT,HAXIS=S,VAXIS=BETX,hmin=0,hmax=351,file=BetasXSoleilFull;*/
+
+
+
+
+
+stop;
+
+
+
+
+

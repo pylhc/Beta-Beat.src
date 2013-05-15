@@ -1,0 +1,36 @@
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+
+call,file="db5/V6.5.seq";
+call,file="ats/ats_V6.503.inj.str";
+
+Beam,particle=proton,sequence=lhcb1,energy=450,NPART=1.15E11,sige=4.5e-4;
+
+seqedit, sequence=LHCB1;
+flatten;               
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+
+
+use,period=lhcb1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1 := 0; on_sep1 := 1;
+ on_x2 := 0; on_sep2 := 1; on_alice:= 0;
+ on_x5 := 0; on_sep5 := 1;
+ on_x8 := 0; on_sep8 := 1; on_lhcb := 0;
+
+select, flag=twiss, clear;
+!select,    flag=twiss, pattern="^MQ";
+select,    flag=twiss, pattern="^MQM.*B.$";
+select,    flag=twiss, pattern="^MQT.*B.$";
+select,    flag=twiss, pattern="^MQY.*[RLB].$";
+select,    flag=twiss, pattern="^MQX.*[RL].$";
+
+select,    flag=twiss, pattern="BPM.*\.B1", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,K2L,K3L,K4L,WX,WY,PHIX,PHIY,DMUX,DMUY,KEYWORD,DBX,DBY,R11,R12,R21,R22;
+call, file=iter.madx;
+stop;
+
+
+

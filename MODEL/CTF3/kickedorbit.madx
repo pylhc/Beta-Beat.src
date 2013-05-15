@@ -1,0 +1,208 @@
+ptc_enforce6d, flag=true;
+
+!Shows the optics with the current settings
+!
+!
+ 
+PTCNSTEPS = 20;
+
+call, file="../common.seqx";
+call, file="currents";
+call, file="zerocorrs"; /*first set them to zero */ 
+call, file="setcorrs"; /*and then set only the chosen ones*/
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="CRrecombin4.seqx";
+call, file="createCRsequence.madx";
+system, "changeseqname.bat";
+call, file="cr_s.seqx";
+
+call, file="setcorrs"; /*and then set only the chosen ones*/
+
+
+beam, particle=electron,energy=EN/1000., EX=ENX/EN/0.511, EY=ENY/EN/0.511, ET=1/1000, SIGT=0, SIGE=sige;
+
+
+select, flag=twiss, pattern="^CR.BP.*",column=name, s, x, mux, betx, y, muy, bety, px, py;
+!select, flag=twiss, pattern="^CR.BPM.*",column=name, s, x, mux;
+
+
+use, period=CR_anellot_s;
+
+
+
+
+savebeta, label=b0injnobump, place=injection;
+
+sepinj = 0;
+
+twiss, rmatrix, save, betx=8.398565949, bety=3.312286445, alfx=-0.4413616259,   alfy=-0.7861961933;
+
+plot, noversion=true, vaxis1=x, vaxis2=px, haxis=s, colour=100,
+  title="Current Settings Line";
+
+!save, file="xorbit";
+write, table=twiss, file="xorbit";
+
+call, file="twissatkicker.madx";
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name, s, x, mux, betx, y, muy, bety, px, py;
+
+write, table=twiss, file="fullxorbit";
+
+
+
+PTCNSTEPS = 10;
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="^CR.BP.*",column=name, s, x, mu11, beta11, y, mu22, beta22;
+
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=false;
+ !kick 1 after injection
+
+ ptc_setswitch, debuglevel=0, nocavity=false, fringe=true, exact_mis=true, time=true, totalpath=true;
+! PTC_TWISS, table=twiss, icase=5, no=2;
+
+!       value, table(twiss, mexidefl0150,x);
+ptc_end;
+
+
+
+write, table=twiss, file="xclosed.twiss";
+
+select, flag=twiss, clear;
+select, flag=twiss, column=column=name, s, x, mu11, beta11, y, mu22, beta22;
+
+write, table=twiss, file="fullxclosed.twiss";
+
+
+
+
+plot, noversion=true, vaxis1=mux, vaxis2=muy, haxis=s, colour=100,
+  title="Current Settings Closed Solution";
+
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Current Settings Closed Solution";
+
+
+
+call, file="rangefromkicker.madx";
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="^CR.BP.*",column=name, re12, re34, re21, re43;
+
+twiss, rmatrix, save, file='matrix.twiss', 
+      betx = betxkck, alfx = alfxkck, 
+      bety = betykck, alfy = alfykck ;
+
+
+stop;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  SSSSS  TTTTT   OOO   PPP
+!  S        T    O   O  P  P
+!  SSSSS    T    O   O  PPP
+!      S    T    O   O  P
+!  SSSSS    T     OOO   P
+!
+
+
+
+
+
+
+
+
+
+
+
+show, CR.DVF0145;
+value, CR.IDHF0145-S,khd0145, khd0147;
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="^CR.BP.*",column=name, s, x, mux, betx, y, muy, bety;
+
+twiss, rmatrix, save, file='xclosed.twiss';
+
+
+write, table=twiss, file="xclosed.twiss";
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name, s, x, mux, betx, y, muy, bety;
+
+write, table=twiss, file="fullxclosed.twiss";
+
+
+
+
+plot, noversion=true, vaxis1=mux, vaxis2=muy, haxis=s, colour=100,
+  title="Current Settings Closed Solution";
+
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Current Settings Closed Solution";
+
+
+
+
+stop;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  SSSSS  TTTTT   OOO   PPP
+!  S        T    O   O  P  P
+!  SSSSS    T    O   O  PPP
+!      S    T    O   O  P
+!  SSSSS    T     OOO   P
+!
+
+
+
+
+
+    match, use_macro;
+
+       vary, name=J0820scale, step = 0.001;
+       vary, name=J0880scale, step = 0.001;
+     !  vary, name=H0840scale, step = 0.001;
+    !   vary, name=H0860scale, step = 0.001;
+
+      mckck: macro =
+         {
+            twiss, betx=8.398565949, bety=3.312286445, alfx=-0.4413616259,   alfy=-0.7861961933;
+            value, table(twiss,CR.BPI0805, x), table(twiss,CR.BPI1070, x);
+         };
+         
+      CONSTRAINT, weight=1000, expr=table(twiss,CR.BPI0805, x) = 0.685079*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0895, x) = -0.341270*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0925, x) = 0.180317*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0952, x) = 1.007619*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0992, x) = -0.119683*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPM1025, x) = -1.168671*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI1070, x) =  0.926349*1e-3;
+
+
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0708, y) = 0.253571*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0748, y) = 0.553770*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0775, y) = 0.099206*1e-3;
+
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0805, y) = -0.649802*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0895, y) = -0.927381*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0925, y) = -0.223214*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0952, y) = 0.459524 *1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI0992, y) = 0.493452*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPM1025, y) = -0.019143*1e-3;
+      CONSTRAINT, weight=1000,expr=table(twiss,CR.BPI1070, y) = -0.422222*1e-3;
+
+      !rmatrix, range = wigglerpdrift,  rm(1, 3) = 0.
+      migrad,   tolerance:= 1e-24,  calls := 500;
+    !  jacobian,    tolerance:= 1e-24,  calls := 500;
+    !  lmdif,   tolerance:= 1e-24,  calls := 500;
+    !  simplex,   tolerance:= 1e-24,  calls := 500;
+    !  migrad,   tolerance:= 1e-24,  calls := 500;
+
+    !  simplex,  tolerance:= 1e-24,  calls := 300;
+    endmatch;
+
+
+    stop;
+

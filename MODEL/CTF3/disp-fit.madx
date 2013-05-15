@@ -1,0 +1,112 @@
+!Shows the optics with the current settings
+!
+!
+
+PTCNSTEPS = 20;
+
+call, file="../common.seqx";
+call, file="currents.disp300507";
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="cr_s.seqx";
+
+beam, particle=electron,energy=EN/1000., EX=NEX/EN/0.511, EY=NEY/EN/0.511, ET=1/1000, SIGT=0, SIGE=sige;
+
+
+
+select, flag=twiss,column=name, s,betx,bety;
+
+
+sepinj = 0.0364;
+use, period=CR_anellot_s;
+
+dx0=0;
+dpx0=0;
+dfact = 0.25;
+INITIAL : BETA0, betx:=10, bety:=10, dx:=dx0, dpx:=dpx0;
+
+match,  use_macro;
+   vary, name=dx0,  step=0.1, lower=-10, upper=10;
+   vary, name=dpx0, step=0.1, lower=-10, upper=10;
+   vary, name=dfact, step=0.01, lower=-10, upper=10;
+
+   ms45a: macro =  { twiss, BETA0=INITIAL; };
+
+   CONSTRAINT, weight=100, expr = table(twiss,cr.bpi0130,dx) = 0.6*dfact;
+   CONSTRAINT, weight=100, expr = table(twiss,cr.bpm0155,dx) = 0.4*dfact;
+   CONSTRAINT, weight=100, expr = table(twiss,cr.bpi0208,dx) =-0.7*dfact;
+   CONSTRAINT, weight=100, expr = table(twiss,cr.bpi0248,dx) =-2.6*dfact;
+   CONSTRAINT, weight=100, expr = table(twiss,cr.bpi0395,dx) =-1.6*dfact;
+   lmdif,  tolerance:=1e-12, calls:=1000;
+   simplex,  tolerance:=1e-12, calls:=1000;
+endmatch;
+
+
+twiss, dx=dx0, dpx=dpx0, betx=10, bety=10, save;
+
+plot, noversion=true, vaxis=betx, bety, haxis=s, colour=100,
+  title="Current Settings", file="disp-fit";
+
+plot, noversion=true, vaxis=dx, dpx, haxis=s, colour=100,
+  title="Matched dispersion", file="disp-fit";
+
+
+stop;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  SSSSS  TTTTT   OOO   PPP
+!  S        T    O   O  P  P
+!  SSSSS    T    O   O  PPP
+!      S    T    O   O  P
+!  SSSSS    T     OOO   P
+!
+
+
+
+
+select, flag=twiss, column=name,s,betx,bety, alfx, alfy, dx, dpx;
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=true;
+ ptc_printframes, file="CRlayout.C",format=rootmacro;
+ ptc_twiss, icase=5,table=twiss,no=1;
+ptc_end;
+
+ini_betx = table(twiss, CR_anellot_s$end,beta11);
+ini_bety = table(twiss, CR_anellot_s$end,beta22);
+ini_alfx = table(twiss, CR_anellot_s$end,alfa11);
+ini_alfy = table(twiss, CR_anellot_s$end,alfa22);
+
+ini_dx = table(twiss, CR_anellot$end,disp1);
+ini_dpx = table(twiss, CR_anellot$end,disp2);
+
+
+
+value,
+       table(twiss, CR_anellot_s$end,beta11),
+       table(twiss, CR_anellot_s$end,beta22),
+       table(twiss, CR_anellot_s$end,alfa11),
+       table(twiss, CR_anellot_s$end,alfa22),
+       table(twiss, CR_anellot_s$end,disp1),
+       table(twiss, CR_anellot_$end,disp2);
+
+plot, noversion=true, vaxis=beta11, beta22, haxis=s, colour=100,
+  title="Current Settings w/ PTC Closed Solution";
+
+plot, noversion=true, vaxis=disp1, disp2, haxis=s, colour=100,
+  title="Current Settings w/ PTC Closed Solution";
+
+twiss,  betx=ini_betx, bety=ini_bety, alfx=ini_alfx, alfy=ini_alfy,
+ dx=ini_dx, dpx=ini_dpx;
+ 
+value,
+       table(twiss, CR_anellot_s$end,betx),
+       table(twiss, CR_anellot_s$end,bety),
+       table(twiss, CR_anellot_s$end,alfx),
+       table(twiss, CR_anellot_s$end,alfy),
+       table(twiss, CR_anellot_s$end,dx),
+       table(twiss, CR_anellot_s$end,dpx);
+
+
+stop;
+
+

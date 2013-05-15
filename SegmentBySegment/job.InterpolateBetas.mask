@@ -1,0 +1,125 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.seq";
+call,   file = "db/V6.5.inj.str";
+!call, file= "/nfs/cs-ccr-nfs4/lhc_data/OP_DATA/Betabeat/Extractions/str_inj.str";
+
+! temporaery compensation of wrong sign in LSA
+!temp = (-1 * kq4.lr7);
+!kq4.lr7 := temp;
+
+beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+
+
+seqedit, sequence=%ACCEL; 
+flatten;
+cycle, start=%START;
+endedit;
+
+use, period=%ACCEL;
+select, flag=twiss, clear;
+select, flag=twiss, range=%STARTFROM, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+twiss, file="%PATH/StartPoint.twiss";
+
+use, period=%ACCEL;
+select, flag=twiss, clear;
+select, flag=twiss, range=%ENDAT, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+twiss, file="%PATH/EndPoint.twiss";
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!mathing
+!call, file="%PATH/matchjob4_%LABEL_sbs.madx";
+!!!!!!!!!!! end matching
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! normal propogation
+
+seqedit, sequence=%ACCEL; 
+cycle, start=%STARTFROM;
+endedit;
+use, period=%ACCEL, range=%STARTFROM/%ENDAT;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,L, K1l;
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL_nom.dat";
+
+ 
+
+use, period=%ACCEL, range=%STARTFROM/%ENDAT;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+
+
+twiss,betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL.dat";
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL_play.dat";
+twiss, betx=%BETX+%ERRBETX, alfx=%ALFX, bety=%BETY+%ERRBETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.b+.dat";
+twiss, betx=%BETX-%ERRBETX, alfx=%ALFX, bety=%BETY-%ERRBETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.b-.dat";
+twiss, betx=%BETX, alfx=%ALFX+%ERRALFX, bety=%BETY, alfy=%ALFY+%ERRALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.a+.dat";
+twiss, betx=%BETX, alfx=%ALFX-%ERRALFX, bety=%BETY, alfy=%ALFY-%ERRALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.a-.dat";
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX+%ERRDX,dy=%DY+%ERRDY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.d+.dat";
+twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX-%ERRDX,dy=%DY-%ERRDY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.d-.dat";
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! back propagation
+
+
+seqedit, sequence=%ACCEL; 
+cycle, start=%ENDAT;
+flatten;reflect; ! reverse command
+endedit;
+
+use, period=%ACCEL, range=%ENDAT/%STARTFROM;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY, file="%PATH/twiss_%LABEL_nom_back.dat";
+
+ 
+
+use, period=%ACCEL, range=%ENDAT/%STARTFROM;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+
+
+
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss_%LABEL_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss_%LABEL_play_back.dat";
+twiss, betx=%ENDBX+%ERRENDBX, alfx=%ALFENDX, bety=%ENDBY+%ERRENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.b+_back.dat";
+twiss, betx=%ENDBX-%ERRENDBX, alfx=%ALFENDX, bety=%ENDBY-%ERRENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.b-_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX+%ERRALFENDX, bety=%ENDBY, alfy=%ALFENDY+%ERRALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.a+_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX-%ERRALFENDX, bety=%ENDBY, alfy=%ALFENDY-%ERRALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.a-_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX+%ERRDENDX,dy=%DENDY+%ERRDENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.d+_back.dat";
+twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX-%ERRDENDX,dy=%DENDY-%ERRDENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.d-_back.dat";
+
+
+stop;
+

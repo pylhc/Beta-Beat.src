@@ -3,7 +3,7 @@ Created on 19 Mar 2013
 
 @author: vimaier
 
-@version: 1.0.1
+@version: 1.0.2
 
 This module is a test for GetLLM.py. It compares the output files of the GETLLM_SCRIPT with 
 expected files from GETLLM_SCRIPT_VALID and prints the result.
@@ -24,13 +24,17 @@ RunValidator checks if a run(directory) is in accordance with the expected struc
 Returns as exit code the number of failed runs.
 
 Change history:
- - 1.0.1: Added option "special_output". It is possible to choose a separate output directory. The 
-             produced output will be deleted again.
+ - 1.0.1: 
+    Added option "special_output". It is possible to choose a separate output directory. The 
+    produced output will be deleted again.
+ - 1.0.2 29th April 2013:
+    Changed compare algorithm. Created compare_tfs_files(...) to check content independent from 
+    whitespace. The lines with the descriptors "GetLLMVersion", "MAD_FILE" and "FILES" will be 
+    ignored.
 '''
 
 import os
 import sys
-import filecmp
 import optparse
 import unittest
 import shutil
@@ -191,19 +195,19 @@ class TestFileOutputGetLLM(unittest.TestCase):
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
                                                 GETLLM_SCRIPT_VALID, dict_args)
             print "Starting GetLLM_valid.py("+run_validator.get_run_path()+")..."
-            print 
-            valid_script_runner.run_script()
-            print 
+            errorcode = valid_script_runner.run_script()
             print "GetLLM_valid.py("+run_validator.get_run_path()+") finished...\n"
+            if errorcode != 0:
+                sys.exit(errorcode)
         
         dict_args["-o"] = to_check_output_path
         
         script_runner = vimaier_utils.scriptrunner.ScriptRunner(GETLLM_SCRIPT, dict_args)
         print "Starting GetLLM.py("+run_validator.get_run_path()+")..."
-        print 
-        script_runner.run_script()
-        print 
+        errorcode = script_runner.run_script()
         print "GetLLM.py finished("+run_validator.get_run_path()+")..."
+        if errorcode != 0:
+            sys.exit(errorcode)
         
         # Check output of the directory. Therefore:
         # Read filenames of to_check_output_path
@@ -232,14 +236,16 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
         # Compare each valid file with corresponding to_check file
         print "Checking output files for run: "+ run_validator.get_run_path()
-        
-        match_mismatch_error = filecmp.cmpfiles(valid_output_path,
-                                                to_check_output_path,
-                                                valid_filenames, 
-                                                shallow=False)
-        
-        num_equal_files = len(match_mismatch_error[0])
+
+        num_equal_files = 0
         num_overall_files = len(valid_filenames)
+        for name in valid_filenames:
+            err_msg = compare_tfs_files(os.path.join(valid_output_path,name), os.path.join(to_check_output_path,name) )
+            if "" != err_msg:
+                print name," are not equal:",err_msg
+            else:
+                num_equal_files += 1
+        
         
         print str(num_equal_files)+" of "+str(num_overall_files)+ " are equal"
         
@@ -251,12 +257,46 @@ class TestFileOutputGetLLM(unittest.TestCase):
                 shutil.rmtree(path_to_created_folder)
             return True
         else:
-            print "Following files are not matching([mismatches], [errors]):"
-            print match_mismatch_error[1:], "\n"
             return False
     # END run_single_test() --------------------------------------------
         
 # END class TestFileOutPutGetLLM -------------------------------------------------------------------
+
+
+def compare_tfs_files(name_valid, name_to_check):
+    """ Compares both files. Whitespace does not matter.
+        Returns an error message or in success an empty string.
+    """
+    file_valid = open(name_valid)
+    file_to_check = open(name_to_check)
+    
+    valid_lines = file_valid.readlines()
+    to_check_lines = file_to_check.readlines()
+    
+    i_to_check = 0
+    for i_valid in xrange(len(valid_lines)):
+        # Exclude descriptors GetLLMVersion, MAD_FILE and FILES from comparison
+        if valid_lines[i_valid].startswith("@") and "GetLLMVersion" in valid_lines[i_valid] or "MAD_FILE" in valid_lines[i_valid] or "FILE" in valid_lines[i_valid]:
+            continue
+        while to_check_lines[i_to_check].startswith("@") and "GetLLMVersion" in to_check_lines[i_to_check] or "MAD_FILE" in to_check_lines[i_to_check] or "FILE" in to_check_lines[i_to_check]:
+            i_to_check += 1
+            
+        
+        split_valid = valid_lines[i_valid].split()
+        split_to_check = to_check_lines[i_to_check].split()
+        
+        if len(split_valid) != len(split_to_check):
+            return "Column numbers not equal:\n"+valid_lines[i_valid]+to_check_lines[i_to_check]
+        
+        for i in xrange(len(split_valid)):
+            if split_valid[i] != split_to_check[i]:
+                err_msg = "Entry in column number["+str(i)+"]not equal:\n"+valid_lines[i_valid]+to_check_lines[i_to_check]
+                err_msg += str(split_valid[i]) +" != "+ str(split_to_check[i])
+                return err_msg
+        i_to_check += 1
+    
+    return ""
+        
 
 def main():
     # Remove arguments from sys.argv
@@ -276,10 +316,12 @@ def main():
         del sys.argv[i]
         
     
-    unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
+    text_test_runner = unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
     
-    sys.exit(TestFileOutputGetLLM.num_of_failed_tests)
-
+    if 0 != len(text_test_runner.errors):
+        sys.exit(len(text_test_runner.errors))
+    elif 0 != len(text_test_runner.failures):
+        sys.exit(len(text_test_runner.failures))
 
 if __name__ == "__main__":
     main()

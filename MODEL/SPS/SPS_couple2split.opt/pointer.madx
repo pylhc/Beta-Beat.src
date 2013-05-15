@@ -1,0 +1,2 @@
+system, "ln -nfs /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/ fileloc";
+return;

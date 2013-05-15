@@ -1,0 +1,75 @@
+BEAM ,PARTICLE=electron,ENERGY=0.27505112E+01;
+
+call, file="solamor2.mad8x";
+!call, file="solamor2Sex2Play.mad8x";
+
+USE , sequence=ring;
+
+seqedit, sequence=ring;
+flatten;
+endedit;
+
+save, file="sol2.new";
+!stop;
+
+
+
+
+bpm1: MONITOR;
+
+!seqedit, sequence=ring;
+!install, element=bpm1, at=5.689;
+!endedit;
+
+
+option, echo;
+
+select, flag=twiss, pattern="SX", column=name, s, betx, bety, mux,muy,x,y, dx, k2l, k1l,k3l;
+
+!select, flag=twiss,column=name,s,betx, bety, mux, muy, DX, alfx, alfy ,  DPX, l
+!, k1l, k2l;
+twiss,file="twiss.dat";
+
+
+TRACK, deltap= 0.000, onepass,dump, onetable;
+call, file="observebpms";
+START, x= 0.001, y= 0.0015;
+RUN, turns= 1000;
+ENDTRACK;
+
+
+
+!stop;
+
+!ptc_create_universe;
+!        ptc_create_layout,model=2,method=6,nst=10;
+!        ptc_start, x= 0.003, y= 0.002;
+!	call, file="obs.madx";
+!        ptc_track, dump, turns=400, icase=5, onetable;
+!        PTC_TRACK_END;
+!        ptc_end;
+
+!setplot,post=1;
+!plot,vaxis=y,haxis=py, table=trackone;
+
+
+
+
+stop;
+
+!!!!!!!!!!!!!!!;
+! Makethin
+!!!!!!!!!!!!!!!;
+!option, echo, info, warn;
+SELECT,FLAG=MAKETHIN, SLICE=4;
+MAKETHIN, sequence=ring;
+
+USE, period=ring;
+
+twiss, file="twiss.thin.dat";
+
+
+stop;
+
+
+

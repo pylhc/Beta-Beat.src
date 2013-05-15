@@ -91,7 +91,7 @@ parser.add_option("-p", "--save",
 parser.add_option("-m", "--mad", # assumes that output is same as input
                 help="mad link",
           metavar="mad", default="", dest="mad")
-parser.add_option("-b", "--bbsrouce", # assumes that output is same as input
+parser.add_option("-b", "--bbsource", # assumes that output is same as input
                 help="beta beat source",
                 metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
 parser.add_option("-x", "--take", # take or create mad input, default should be 0 for creating
@@ -631,7 +631,7 @@ def getIP(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,accel,p
     bpmmap['IP8']=["BPMSW.1L8.","BPMSW.1R8."]
     
     if(name in bpmmap):
-        betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p=getIPfrompara(bpmmap[name][0]+accelb,bpmmap[name][1]+accelb,ampbetx,ampbety,phasex,phasey,name)
+        phix,ephix,betastar_h,errbx,location_h,errsx,phiy,ephiy,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p=getIPfrompara(bpmmap[name][0]+accelb,bpmmap[name][1]+accelb,ampbetx,ampbety,phasex,phasey,name)
     else:
         betastar_h_p=ebetastar_h_p=betastar_v_p=ebetastar_v_p=betastar_h=errbx=location_h=errsx=betastar_v=errby=location_v=errsy=0    
 
@@ -1689,7 +1689,7 @@ def runmad(path,name):
    
   
 def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
-
+    if method=="driven": method=""   # patch to make it work at inj. rogelio
     filename=path+'/var4plot.sh'
     file4nad=open(filename,'w')
     file4nad.write('sed -e \'s/%PATH/\'\"'+str(path.replace("/","\/"))+'\"\'/g\' \\\n')

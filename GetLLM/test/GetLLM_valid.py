@@ -4021,13 +4021,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         fcouplef2.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
         fcouplef2.write('@ FILES %s "')
 
-    f2000=open(outputpath+'getf2000x.out','w')
-    f2000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    f2000.write('@ FILES %s ""')
-
-    f2000y=open(outputpath+'getf2000y.out','w')
-    f2000y.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    f2000y.write('@ FILES %s "\n"')
 
     fcoupleterms=open(outputpath+'getcoupleterms.out','w')
     fcoupleterms.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
@@ -4861,7 +4854,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 fabetaxf.write('@ RMSbetabeat %le '+str(rmsbbxf)+'\n')
                 fabetaxf.write('@ RescalingFactor %le '+str(betaxf_ratio)+'\n')
                 fabetaxf.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
-                fabetaxf.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+                fabetaxf.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
                 for i in range(0,len(bpmsf)):
                     bn1=upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
@@ -4878,7 +4871,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fabetaxf2.write('@ RMSbetabeat %le '+str(rmsbbxf2)+'\n')
             fabetaxf2.write('@ RescalingFactor %le '+str(betax_ratio)+'\n')
             fabetaxf2.write('* NAME   S    COUNT  BETX   BETXSTD BETXMDL MUXMDL BETXRES BETXSTDRES\n')
-            fabetaxf2.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+            fabetaxf2.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
             for i in range(0,len(bpmsf2)):
                 bn1=upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
@@ -4949,7 +4942,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 fabetayf.write('@ RMSbetabeat %le '+str(rmsbbyf)+'\n')
                 fabetayf.write('@ RescalingFactor %le '+str(betayf_ratio)+'\n')
                 fabetayf.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL BETYRES BETYSTDRES\n')
-                fabetayf.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+                fabetayf.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
                 for i in range(0,len(bpmsf)):
                     bn1=upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
@@ -4966,7 +4959,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fabetayf2.write('@ RMSbetabeat %le '+str(rmsbbyf2)+'\n')
             fabetayf2.write('@ RescalingFactor %le '+str(betay_ratio)+'\n')
             fabetayf2.write('* NAME   S    COUNT  BETY   BETYSTD BETYMDL MUYMDL BETYRES BETYSTDRES\n')
-            fabetayf2.write('$ %s     %le    %le    %le    %le     %le     %le\n')
+            fabetayf2.write('$ %s     %le    %le    %le    %le     %le     %le    %le     %le\n')
             for i in range(0,len(bpmsf2)):
                 bn1=upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
@@ -5000,8 +4993,12 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         IPx=GetIP2(MADTwiss_ac,ListOfZeroDPPX,Q1,'H',bd,accel,lhcphase)
         IPy=GetIP2(MADTwiss_ac,ListOfZeroDPPY,Q2,'V',bd,accel,lhcphase)
         fIPx.write('* NAME  BETX  BETXSTD  BETXMDL  ALFX  ALFXSTD  ALFXMDL  BETX*  BETX*STD  BETX*MDL  SX*  SX*STD  SX*MDL  rt(2JX)  rt(2JX)STD\n')
+        fIPx.write(" ".join(["$","%s","%le","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le",  "%le"]))
+        fIPx.write('\n')
         fIPy.write('* NAME  BETY  BETYSTD  BETYMDL  ALFY  ALFYSTD  ALFYMDL  BETY*  BETY*STD  BETY*MDL  SY*  SY*STD  SY*MDL  rt(2JY)  rt(2JY)STD\n')
-
+        fIPy.write(" ".join(["$","%s","%le","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le",  "%le"]))
+        fIPy.write('\n')
+        #FIXME: weiter bei getipfromphase
         for i in ('IP1','IP5','IP8','IP2'):
             try:
                 fIPx.write('"'+i+'"'+' ')
@@ -5023,7 +5020,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             IPxf=GetFreeIP2_Eq(MADTwiss,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',bd,accel,lhcphase)
             IPyf=GetFreeIP2_Eq(MADTwiss,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',bd,accel,lhcphase)
             fIPxf.write('* NAME  BETX  BETXSTD  BETXMDL  ALFX  ALFXSTD  ALFXMDL  BETX*  BETX*STD  BETX*MDL  SX*  SX*STD  SX*MDL  rt(2JXD)  rt(2JXD)STD\n')
+            fIPxf.write(" ".join(["$","%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le","\n"]))
             fIPyf.write('* NAME  BETY  BETYSTD  BETYMDL  ALFY  ALFYSTD  ALFYMDL  BETY*  BETY*STD  BETY*MDL  SY*  SY*STD  SY*MDL  rt(2JYD)  rt(2JYD)STD\n')
+            fIPyf.write(" ".join(["$","%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le","\n"]))
             for i in ('IP1','IP5','IP8','IP2'):
                 try:
                     fIPxf.write('"'+i+'"'+' ')
@@ -5042,7 +5041,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             IPxf2=GetFreeIP2(MADTwiss,MADTwiss_ac,IPx,'H',accel)
             IPyf2=GetFreeIP2(MADTwiss,MADTwiss_ac,IPy,'V',accel)
             fIPxf2.write('* NAME  BETX  BETXSTD  BETXMDL  ALFX  ALFXSTD  ALFXMDL  BETX*  BETX*STD  BETX*MDL  SX*  SX*STD  SX*MDL  rt(2JXD)  rt(2JXD)STD\n')
+            fIPxf2.write(" ".join(["$","%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le","\n"]))
             fIPyf2.write('* NAME  BETY  BETYSTD  BETYMDL  ALFY  ALFYSTD  ALFYMDL  BETY*  BETY*STD  BETY*MDL  SY*  SY*STD  SY*MDL  rt(2JYD)  rt(2JYD)STD\n')
+            fIPyf2.write(" ".join(["$","%s","%le","%le",      "%le",   "%le",  "%le"     ,"%le", "%le",   "%le",      "%le",  "%le",  "%le",  "%le",  "%le",     "%le","\n"]))
             for i in ('IP1','IP5','IP8','IP2'):
                 try:
                     fIPxf2.write('"'+i+'"'+' ')
@@ -5064,6 +5065,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         try:    IPfromphase=GetIPFromPhase(MADTwiss_ac,phasex,phasey,accel)
         except: print 'No output from IP from phase. H or V file missing?'
         fIPfromphase.write('* NAME  2L  BETX*  BETX*STD  BETX*MDL  BETY*  BETY*STD  BETY*MDL  PHX  PHXSTD  PHXMDL  PHY  PHYSTD  PHYMDL\n')
+        fIPfromphase.write(" ".join(["$","%s","%le","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le","\n"]))
         for i in ('IP1','IP5','IP8','IP2'):
             fIPfromphase.write('"'+i+'"'+' ')
             try:
@@ -5079,6 +5081,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             try:    IPfromphasef=GetIPFromPhase(MADTwiss,phasexf,phaseyf,accel)
             except: pass
             fIPfromphasef.write('* NAME  2L  BETX*  BETX*STD  BETX*MDL  BETY*  BETY*STD  BETY*MDL  PHX  PHXSTD  PHXMDL  PHY  PHYSTD  PHYMDL\n')
+            fIPfromphasef.write(" ".join(["$","%s","%le","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le","\n"]))
             for i in ('IP1','IP5','IP8','IP2'):
                 fIPfromphasef.write('"'+i+'"'+' ')
                 try:
@@ -5091,6 +5094,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             try:    IPfromphasef2=GetIPFromPhase(MADTwiss,phasexf2,phaseyf2,accel)
             except: pass
             fIPfromphasef2.write('* NAME  2L  BETX*  BETX*STD  BETX*MDL  BETY*  BETY*STD  BETY*MDL  PHX  PHXSTD  PHXMDL  PHY  PHYSTD  PHYMDL\n')
+            fIPfromphasef2.write(" ".join(["$","%s","%le","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le","\n"]))
             for i in ('IP1','IP5','IP8','IP2'):
                 fIPfromphasef2.write('"'+i+'"'+' ')
                 try:
@@ -5624,8 +5628,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         print >> fsex3000,"@","f2h_factor","%le",afactor
         print >> fsex3000,"@","p_f2h_factor","%le",pfactor
 
-        print >> fsex3000,"NAME","S","AMP_20","AMP_20std","PHASE_20","PHASE_20std","f3000","f3000std","phase_f_3000","phase_f_3000std","h3000","h3000_std","phase_h_3000","phase_h_3000_std"
-        print >> fsex3000,"%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"
+        print >> fsex3000,"*","NAME","S","AMP_20","AMP_20std","PHASE_20","PHASE_20std","f3000","f3000std","phase_f_3000","phase_f_3000std","h3000","h3000_std","phase_h_3000","phase_h_3000_std"
+        print >> fsex3000,"$","%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"
 
         for bpm in htot:
             li=htot[bpm]
@@ -5731,8 +5735,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     files=[ListOfZeroDPPX+ListOfNonZeroDPPX,ListOfZeroDPPY+ListOfNonZeroDPPY]
 
 
-    fkick.write('@ RescalingFactor for X %le '+str(betax_ratio)+'\n')
-    fkick.write('@ RescalingFactor for Y %le '+str(betay_ratio)+'\n')
+    fkick.write('@ RescalingFactor_for_X %le '+str(betax_ratio)+'\n')
+    fkick.write('@ RescalingFactor_for_Y %le '+str(betay_ratio)+'\n')
     fkick.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
     fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
@@ -5748,8 +5752,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     if acswitch=='1':
         files=[ListOfZeroDPPX+ListOfNonZeroDPPX,ListOfZeroDPPY+ListOfNonZeroDPPY]
 
-        fkickac.write('@ RescalingFactor for X %le '+str(betaxf_ratio)+'\n')
-        fkickac.write('@ RescalingFactor for Y %le '+str(betayf_ratio)+'\n')
+        fkickac.write('@ RescalingFactor_for_X %le '+str(betaxf_ratio)+'\n')
+        fkickac.write('@ RescalingFactor_for_Y %le '+str(betayf_ratio)+'\n')
         fkickac.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
         fkickac.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
@@ -5761,53 +5765,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         fkickac.close()
 
 
-
-
-    #------------------------ start f2000
-
-    f2000.write('* NAME  S  F2000L  F2000EL  P2000L  P2000EL  F2000N  F2000EN   P2000N  P2000EN\n')
-    f2000.write('$ %s    %le %le    %le      %le     %le      %le     %le       %le     %le \n')
-
-
-    plane='H'
-    names=[]
-    for bpm in phasexlist[0].keys():
-        if bpm in betaxalist[0].keys():
-            if "DPP" not in bpm:
-                names.append(bpm)
-
-    #print names
-    #print names
-    #sys.exit()
-    result_f2000=Getquadrupole(MADTwiss,names,plane,phasexlist[0],betaxalist[0])
-    for name in names:
-
-        loc=result_f2000[name][8]
-
-        f2000.write(name+" "+str(loc)+" "+str(result_f2000[name][0])+" "+str(result_f2000[name][2])+" "+str(result_f2000[name][1])+" "+str(result_f2000[name][3])+" "+str(result_f2000[name][4])+" "+str(result_f2000[name][6])+" "+str(result_f2000[name][5])+" "+str(result_f2000[name][7])+"\n")
-
-    f2000.close()
-
-    f2000y.write('* NAME  S  F2000L  F2000EL  P2000L  P2000EL  F2000N  F2000EN   P2000N  P2000EN\n')
-    f2000y.write('$ %s    %le %le    %le      %le     %le      %le     %le       %le     %le \n')
-
-    plane='V'
-    names=[]
-    for bpm in phaseylist[0].keys():
-        if bpm in betayalist[0].keys():
-            if "DPP" not in bpm:
-                names.append(bpm)
-    result_f2000=Getquadrupole(MADTwiss,names,plane,phaseylist[0],betayalist[0])
-    for name in names:
-
-        loc=result_f2000[name][8]
-
-        f2000y.write(name+" "+str(loc)+" "+str(result_f2000[name][0])+" "+str(result_f2000[name][2])+" "+str(result_f2000[name][1])+" "+str(result_f2000[name][3])+" "+str(result_f2000[name][4])+" "+str(result_f2000[name][6])+" "+str(result_f2000[name][5])+" "+str(result_f2000[name][7])+"\n")
-
-    f2000y.close()
-
-
-    #------------------------ end f2000
 
 
     ####### -------------- end

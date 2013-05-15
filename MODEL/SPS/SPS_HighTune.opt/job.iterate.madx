@@ -1,0 +1,93 @@
+!--------------------------------------------------------------------------
+! MAD file for SPS optics calculations
+!  G.Arduini
+!--------------------------------------------------------------------------
+
+ !title, 'Untitled';
+
+option, -echo;
+ option, RBARC=FALSE;  ! the length of a rectangular magnet is the distance between the polefaces and not the arc length
+ assign, ECHO=ECHO.PRT; 
+  
+
+!---------------------------------------------------------------
+!         SPECIFY THE SPS CONFIGURATION, ENERGY and EMITTANCES
+!---------------------------------------------------------------
+call, file = 'LHC_beam_injection.beamx';
+!--------------------------------------------------------------------------
+! call the element definition file for SPS
+!--------------------------------------------------------------------------
+call, file = 'sps2004.elex';
+call, file = 'lhc_newwp_2004.strx';
+call, file = 'sps2004.seqx';
+
+USE, period=SPS, range=#S/#E;
+
+!--------------------------------------------------------------------------
+! to get the SPS non-linear model
+!--------------------------------------------------------------------------
+
+!
+! Get rid of b4 , not justified
+!
+b4f := 0.0;
+b4d := -0.0;
+LOFK3 := 0.0;
+LODK3 := 0.0;
+
+value, kqf1, kqd;
+
+!!!!!!!!!!!!!!!!!!!!!!!!
+! Match tunes
+!!!!!!!!!!!!!!!!!!!!!!!
+
+match;
+vary, name=kqf1;
+vary, name=kqd;
+constraint, range=#e, mux=35.13, muy=34.1744;
+jacobian, tolerance=1e-6;
+endmatch;
+
+value, kqf1, kqd;
+
+!stop;
+
+! Match the chromaticity:
+match,sequence=sps;
+    vary, name=KSDA, step=0.00001;
+    vary, name=KSFC, step=0.00001;
+    global,sequence=sps,DQ1=-2;
+    global,sequence=sps,DQ2=-2;
+    Lmdif, calls=10, tolerance=1.0e-21;
+endmatch;
+
+
+
+
+select, flag=twiss, clear;
+!elect, flag=twiss, PATTERN="S";
+select, flag=twiss, PATTERN="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss,  deltap=0.0d0,CHROM ,file="twiss.iterate.dat";
+
+stop;
+
+!!!!!!! => tracking
+PTC_CREATE_UNIVERSE;
+PTC_CREATE_LAYOUT, model=3, method=6, nst=10;
+PTC_ALIGN;
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/madx_scripts/bpm.ptc_obs.madx";
+PTC_START, x= 0.0001, y= 0.0001;
+PTC_TRACK, deltap=0.0015,icase=5, turns=330,
+ELEMENT_BY_ELEMENT, dump, onetable;
+PTC_TRACK_END;
+PTC_END;
+
+
+stop;
+
+
+
+
+
+
+

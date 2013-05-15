@@ -1,0 +1,42 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.seq";
+call,   file = "db/V6.5.inj.str";
+call,  file="modifiers.madx";
+
+!call, file= "/nfs/cs-ccr-nfs4/lhc_data/OP_DATA/Betabeat/Extractions/str_inj.str";
+
+
+
+! temporaery compensation of wrong sign in LSA
+!temp = (-1 * kq4.lr7);
+!kq4.lr7 := temp;
+
+beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+
+
+seqedit, sequence=LHCB2; 
+flatten;
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+use, period=LHCB2;
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern=BPM ,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
+
+
+twiss, file=base.twiss;
+
+call,  file="b2_corrections.madx";
+
+
+twiss, file=b2corr.twiss;

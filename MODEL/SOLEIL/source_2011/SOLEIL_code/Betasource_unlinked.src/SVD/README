@@ -1,4 +1,0 @@
-../../Python-2.5_32bit/Python-2.5_32bit/bin/python phSVD.py
-
-pythonafs /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/GetLLM/GetLLM_V1.81.py -a LHCB2 -m /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB2/twiss.dat -f multiturn2.dat
-

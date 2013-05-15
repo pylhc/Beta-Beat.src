@@ -1,0 +1,167 @@
+!--------------------------------------------------------------------------
+! MAD file for SPS optics calculations
+!  G.Arduini
+!--------------------------------------------------------------------------
+
+ !title, 'Untitled';
+
+option, -echo;
+ option, RBARC=FALSE;  ! the length of a rectangular magnet is the distance between the polefaces and not the arc length
+ assign, ECHO=ECHO.PRT; 
+  
+
+!---------------------------------------------------------------
+!         SPECIFY THE SPS CONFIGURATION, ENERGY and EMITTANCES
+!---------------------------------------------------------------
+call, file = '../LHC_beam_injection.beamx';
+!--------------------------------------------------------------------------
+! call the element definition file for SPS
+!--------------------------------------------------------------------------
+call, file = '../sps2004.elex';
+call, file = '../lhc_newwp_2004.strx';
+call, file = '../sps2004.seqx';
+
+USE, period=SPS, range=#S/#E;
+
+!--------------------------------------------------------------------------
+! to get the SPS non-linear model
+!--------------------------------------------------------------------------
+/*
+b4f := 0.0;
+b4d := -0.0;
+call, file = 'cmd/nonlinear_model.cmdx';
+!  changeparameters.chi_3 without b5
+kqf1 := 0.0144520346817;
+kqd := -0.0144306897936;
+b3a := 0.000735088843334;
+b3b := -0.00262418731976;
+!b5a := -7.4051134674;
+!b5b := 124.892123947;
+b6f := -1548.65534787;
+b6d := -5571.03227738;
+LOFK3 := 1.26096553841;
+LODK3 := -0.107891221216;
+*/
+
+
+
+
+
+!
+! Get rid of b4 , not justified
+!
+b4f := 0.0;
+b4d := -0.0;
+LOFK3 := 0.0;
+LODK3 := 0.0;
+
+
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/Parameters/SextsFromSPS";
+
+
+!!!!!!!!!!!!!!!;
+! Makethin
+!!!!!!!!!!!!!!!;
+!option, echo, info, warn;
+SELECT,FLAG=MAKETHIN, SLICE=4;
+MAKETHIN, sequence=SPS;
+USE, period=SPS, range=#S/#E;
+
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!
+! Match tunes
+!!!!!!!!!!!!!!!!!!!!!!!
+option, echo, info;
+match;
+vary, name=kqf1;
+vary, name=kqd;
+!vary, name=b3a;
+!vary, name=b3b;
+global, q1=26.13, q2=28.18;
+!global, q1=26.13, q2=26.18, dq1=-2.0, dq2=-2.0;
+jacobian, tolerance=1e-6;
+endmatch;
+
+!kqf1 =      0.01442593731 ;
+!kqd =      -0.0144511577 ;
+
+!(25,26)
+!kqf1 := 0.0140556;
+!kqd := -0.0143790;
+
+!(26.13, 27.18)
+!kqf1 := 0.01449669222;
+!kqd := -0.01482120375;
+
+v0=0;
+v1=0;
+!b14=0.000088; ! This gives about 10mm bump
+
+call, file="./changeparameters";
+
+call, file="VBumps";
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,x,y,r11,r12,r21,r22;
+!select, flag=twiss, PATTERN="LS";
+!select, flag=twiss, PATTERN="MD";
+twiss,  deltap=0.0d0, file="twiss_couple.dat";
+
+
+stop;
+
+
+
+
+
+
+
+
+
+
+
+
+!--------------------------------------------------------------------------
+! Calling  PTC
+!--------------------------------------------------------------------------
+   ptc_create_universe;
+   ptc_create_layout,model=2,method=6,nst=1,exact;
+   ptc_align;
+!	select_ptc_normal, dx=1, dpx=1;
+!	select_ptc_normal, dy=1, dpy=1;	
+	select_ptc_normal, q1=0, q2=0;
+!	select_ptc_normal, dq1=1, dq2=1;
+!	select_ptc_normal, dq1=2, dq2=2;
+!	select_ptc_normal, dq1=3, dq2=3;
+!	select_ptc_normal, dq1=4, dq2=4;
+	select_ptc_normal, anhx=1,0,0;
+	select_ptc_normal, anhy=0,1,0;
+!	select_ptc_normal, anhx=1,0,1;
+!	select_ptc_normal, anhy=1,0,1;
+!	select_ptc_normal, anhx=0,0,2;
+!	select_ptc_normal, anhy=0,0,2;
+!	select_ptc_normal, anhx=2,0,0;
+!	select_ptc_normal, anhy=2,0,0;
+!	select_ptc_normal, anhx=1,1,0;
+!	select_ptc_normal, anhy=1,1,0;	
+!	select_ptc_normal, haml=1,0,0;
+!	select_ptc_normal, haml=3,0,0;
+!	select_ptc_normal, haml=1,2,0;
+! 	select_ptc_normal, gnfu=-5,0,0;
+			
+   ptc_normal,closed_orbit,normal,icase=5,no=3;
+!select,flag=ptc_twiss,column=name,s,beta11,beta21,
+!beta12,beta22,disp1,disp3,x,px,y,py,mu1,mu2;
+!   ptc_twiss,closed_orbit,file=tw,icase=5,no=1, deltap=0.00001 ;
+   ptc_end;
+   write, table=normal_results,file=normal_results; 
+stop;
+
+!--------------------------------------------------------------------------
+! to calculate and plot detuning with momentum offset
+!--------------------------------------------------------------------------
+!call, file = 'cmd/tunevsdp.cmdx';
+
+stop;

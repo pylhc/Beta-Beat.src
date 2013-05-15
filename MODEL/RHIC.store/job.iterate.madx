@@ -1,0 +1,48 @@
+title, "Relativistic Heavy Ion Collider";
+option,info,-warn,verify,-echo;
+
+!--- to compare phase diff between ideal and 3 trims changed by 5e-3
+setarcquads: macro={use,period=rhic;match,sequence=rhic;
+vary,name=kf,step=0.00001;vary,name=kd,step=0.00001;
+global,sequence=rhic,q1=qX,q2=qY;
+lmdif,calls=5000,tolerance=1.e-12;endmatch;}
+
+setchrom: MACRO = {use, period=rhic;match, sequence=rhic;
+vary, name=SFMI->k2;vary, name=SFPI->k2;  
+vary, name=SFMO->k2;vary, name=SFPO->k2;  
+vary, name=SDMI->k2;vary, name=SDPI->k2;  
+vary, name=SDMO->k2;vary, name=SDPO->k2; 
+!vary, name=sf0, step = 0.00001;vary, name=sd0, step = 0.00001;
+global, sequence=rhic, dq1=chromX, dq2=chromY;
+jacobian, call=10, bisec=3;endmatch;}
+
+!------ Gold at injection
+beam,mass=183.43261,charge=79,gamma=22.89, 
+exn=26.7e-06,eyn=26.7e-06,sige=0.001;
+CALL,FILE="blue.store";
+use,sequence=rhic;
+
+!--- Set the Tunes & chromaticity.
+Qx:=28.23;Qy:=29.216;exec,setarcquads;
+chromX:=-2.0;chromY:=-2.0;exec,setchrom;
+
+!--- change bpm names to online model
+option,info,warn,verify,-echo;
+call,file="/afs/cern.ch/user/r/rcalaga/beta.beat/rhic.exp/BPMSdef";
+select,flag=seqedit,pattern=BPM;select,flag=seqedit,pattern=CPLMON;
+seqedit,sequence=rhic;remove,element=selected;
+call,file="/afs/cern.ch/user/r/rcalaga/beta.beat/rhic.exp/BPMSinstall";
+endedit;use,sequence=rhic;
+
+!---
+call,file="./changeparameters";
+
+!---- vertical bpms
+select,flag=twiss,clear;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy, dx;
+select,flag=twiss,class=HMONITOR,column=name,s,betx,bety, mux, muy, dx;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy, dx;
+twiss,sequence=rhic,file="twiss.dat";
+
+
+stop;

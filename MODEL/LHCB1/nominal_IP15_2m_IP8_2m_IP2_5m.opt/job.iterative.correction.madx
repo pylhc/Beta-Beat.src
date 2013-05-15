@@ -1,0 +1,49 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+ option, -echo, -info,  warn;
+ call,   file = "db/V6.5.seq";
+ call,   file = "db/V6.5.inj.str";
+
+call, file= "./pointer.madx";
+
+call, file="db/IR1/IP1_beta_2.00.str";
+call, file="db/IR5/IP5_beta_2.00.str";
+
+seqedit, sequence=lhcb1; ! The first monitor in data acquisition is BPMYB.5L2.B1
+flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=lhcb1, energy = 450.0;
+ beam,      sequence=lhcb1,particle=proton,energy=450,kbunch=1,npart=1.15E11;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
+ on_alice:= 0; on_lhcb := 0;
+
+
+
+
+
+use, period=lhcb1;
+
+
+call, file="fildes/changeparameters_all";
+
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BPM.*\.B1",column=name,s,betx,alfx,bety,alfy,mux,muy,dx, r11,r12, r22,r23, x,y;
+select, flag=twiss, PATTERN=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy,dx, r11,r12, r22,r23, x,y;
+select, flag=twiss, PATTERN=rcollimator,column=name,s,betx,alfx,bety,alfy,mux,muy,dx, r11,r12, r22,r23, x,y;
+!select, flag=twiss,column=name,s,betx,alfx,bety,alfy,mux,muy,dx, r11,r12, r22,r23, x,y;
+!select, flag=twiss,column=name,s,betx,bety,mux,muy;
+twiss, sequence=lhcb1, deltap=0.0d0, file="filedes/twiss.corrected.dat";
+
+stop;

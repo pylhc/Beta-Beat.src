@@ -1,0 +1,91 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! Glenn Vanbavinckhove for ATF (gvanbavi@cern.ch)
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+TITLE, "ATF2 Online Model (set10may20_1122)"
+
+option, -echo;
+
+
+call,file=ATF2.seq;
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 
+!! Beam definition
+!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  E0=1.3;    !beam emergy (GeV)
+  EMITX = 2.0E-09; !geometric horizontal emittance (m)
+  EMITY = 1.2E-11; !geometric vertical emittance (m)
+  BLENG = 8.0E-03; !bunch length (m)
+  ESPRD = 0.8E-03; !energy spread (1)
+ value,dada;
+  BEAM, PARTICLE=ELECTRON, ENERGY=E0, EX=EMITX, EY=EMITY, SIGT=BLENG, SIGE=ESPRD, NPART=1.0E+10;
+
+! set10may20_1122.dat parameters
+
+  EBH1R = 1.281737; !from BH1R current
+  XTUNE = 15.181;   !from S. Kuroda
+  YTUNE = 8.560 ;   !from S. Kuroda
+
+! EXT emittance measurement (4 wires)
+
+  EXMW  = 1.9E-9 ; !geometric horizontal emittance (m)
+  BXMW1 = 8.3788;  !Twiss BETX at MW1X
+  AXMW1 = 1.1391 ; !Twiss ALFX at MW1X
+  EYMW  = 9.6E-12; !geometric vertical emittance (m)
+  BYMW0 = 17.2312; !Twiss BETY at MW0X
+  AYMW0 = 4.8320 ; !Twiss ALFY at MW0X
+
+  TBETX = 1;
+  TALFX = 0;
+  TDX   = 0;
+  TDPX  = 0;
+  TBETY = 1;
+  TALFY = 0;
+  TDY   = 0;
+  TDPY  = 0;
+  TWSSx : BETA0,BETX=TBETX, ALFX=TALFX, DX=TDX, DPX=TDPX,BETY=TBETY, ALFY=TALFY, DY=TDY, DPY=TDPY;
+
+use,period=ATF2;
+
+seqedit, sequence=ATF2;
+flatten;                 
+cycle, start=M.08;
+endedit;
+
+use,period=ATF2;
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+!! Match beta
+!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+value,Q1;
+value,Q2;
+
+MATCH,SEQUENCE=ATF2,TWSSx;
+      VARY,NAME=QF1R2;
+      VARY,NAME=QF2R1;
+      GLOBAL,Q1=15.181,Q2=8.560;
+      LMDIF,CALLS=10, TOLERANCE=1.E-20;
+      MIGRAD,CALLS=10, TOLERANCE=1.E-20;
+ENDMATCH;
+
+stop;
+
+
+!stop;
+!!!!!!! SAVING PLAIN BPM TWISS !!!!
+select, flag=twiss, clear;
+select, flag=twiss,class=monitor,column=name,s,betx,alfx,phix,mux,bety,alfy,phiy,muy,k1l,l;
+twiss,chrom, deltap=0.0d0, file="twiss.dat";
+
+
+stop;

@@ -1,0 +1,26 @@
+
+!Qx=%Qxx;
+!Qy=%Qyy;
+Qx=0.31;
+Qy=0.32;
+betxac=table(twiss,MKQA.6L4.B2,betx);
+betyac=table(twiss,MKQA.6L4.B2,bety);
+
+!Qxd=%Dxx;
+!Qyd=%Dyy;
+Qxd=0.304;
+Qyd=0.326;
+
+
+hacmap21=2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx));
+vacmap43=2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy));
+
+hacmap: matrix, l=0, rm21=hacmap21;
+vacmap: matrix, l=0, rm43=vacmap43;
+
+seqedit, sequence=lhcb2; flatten;
+  install, element=hacmap, at=1.583/2, from=MKQA.6L4.B2;
+  install, element=vacmap, at=1.583/2, from=MKQA.6L4.B2;
+endedit;
+
+use, period=lhcb2;

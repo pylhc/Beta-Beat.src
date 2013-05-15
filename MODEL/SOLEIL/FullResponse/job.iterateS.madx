@@ -1,0 +1,34 @@
+!-------------------------------------------
+!
+! MAD file for SOLEIL optics calculations
+! Created by Glenn Vanbavinckhove
+!
+!-------------------------------------------
+
+
+
+!-------------------------------------------
+!
+! Specify the SOLEIL configuration
+!
+!-------------------------------------------
+
+call, file = "../sol.new";
+call, file=../define_bpms;
+
+seqedit, sequence=ring;
+call, file=../install_bpms;
+endedit;
+use, sequence=ring;
+
+option, echo;
+
+call, file="changeparametersS";
+
+call, file="BumpsSex";
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,x,y, keyword,R11,R12,R21,R22;
+twiss,  deltap=0.0d0, file="'twiss_Response.dat";
+
+
+stop;

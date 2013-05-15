@@ -1,0 +1,120 @@
+ptc_enforce6d, flag=true;
+
+
+! bump for displacement at injection septum
+!
+! Frank Tecker 14.11.2007
+
+call, file="../common.seqx";
+call, file="currents-bumpmatch";
+call, file="zerocorrs";
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="CRrecombin4.seqx";
+call, file="createCRsequence.madx";
+system, "./changeseqname.sh";
+call, file="cr_s.seqx";
+
+! Basic Elements and line definition 
+call, file="../tl1/tl3elements.seqx"; 
+
+! Beam instrumentation
+call,  file="../tl1/beaminstr.seqx";
+
+! Sequence ready to use w/ monitors and w/o redundant markers
+call, file="../tl1/tl3.seqx";
+
+
+comment;
+iqfd0520 = 15.98315254*EN/100;
+iqdd0530 = 13.43533344*EN/100;
+iqfh0610 = 13.06635191*EN/100;
+iqfh0620 = 18.55144051*EN/100;
+iqfh0640 = 9.600496671*EN/100;
+iqdi0650 = 9.614986302*EN/100;
+iqff0660 = 59.4084214*EN/100;
+iqfh0680 = 16.50194967*EN/100;
+iqff0690 = 20.60934559*EN/100;
+iqdf0720 = 3.36029389*EN/100;
+iqfj0730 = 44.63*EN/100;
+iqdj0740 = 62.26*EN/100;
+iqfg0750 = 21.01*EN/100;
+endcomment;
+
+
+kvf0735 := CR.CORRCALIB * ct.idvf0735;
+kvf0755 := CR.CORRCALIB * ct.idvf0755;
+khf0735 := CR.CORRCALIB * ct.idhf0735;
+khf0755 := CR.CORRCALIB * ct.idhf0755;
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+sepinj = 0.0;
+
+! We want to join two seq, one of them is a seqence
+!Intead of line above we have to use all those stuff below
+use, period=tl3_s;
+twiss, betx=1, bety=1; !to get length
+len_tl3_s = table(twiss, tl3_s$end,s); !here we get length
+
+use, period=CR_anellot_s;!to get length
+twiss, betx=1, bety=1;  !here we get length
+len_crpart = table(twiss, CR_anellot_s$end,s);
+
+
+ltot = len_crpart + len_tl3_s;
+value, ltot;
+
+use, period=CR_anellot_s, RANGE=CR.DVF0948/CR.DVF1055;
+
+MDUMMY: MARKER;
+SEQEDIT, SEQUENCE=CR_anellot_s;
+  flatten;
+  install, element=MDUMMY, at=-0.1, FROM=CR.DVF1000;
+ENDEDIT;
+
+use, period=CR_anellot_s, RANGE=CR.DVF0948/CR.DVF1055;
+
+!cr.idvf0958 = 1;
+twiss, betx=10, bety=10;
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+  title="Current Settings", file="bump-qff1010";
+
+
+match, betx=10, bety=10;
+  vary, name=cr.idhf0948, STEP=1;
+  vary, name=cr.idhf0958, STEP=1;
+  vary, name=cr.idhf1000, STEP=1;
+  vary, name=cr.idhf1055, STEP=1;
+  constraint, range=MDUMMY, x=10e-3, px=5e-3;
+!  constraint, range=CR.BHF0995, x=10e-3, px=0e-3;
+  constraint, range=CR.DVF1055, x=0, px=0;
+  SIMPLEX, tolerance=1e-014, calls=1000;
+  MIGRAD;
+!   JACOBIAN;
+ENDMATCH;
+
+select,  flag=twiss,column=name, s,x,y;
+
+twiss, save, betx=10,bety=10;
+write, table=twiss, file="bump.twiss";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+  title="Bump at CR.QFF1010", file="bump-qff1010";
+
+
+use, period=CR_anellot_s;
+twiss, save;
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+  title="Bump at CR.QFF1010", file="bump-qff1010";
+
+value, 
+cr.idhf0948, cr.idhf0958, cr.idhf1000, cr.idhf1055;
+
+stop;

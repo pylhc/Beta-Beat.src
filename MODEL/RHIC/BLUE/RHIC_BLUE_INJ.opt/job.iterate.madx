@@ -1,0 +1,28 @@
+title, "Relativistic Heavy Ion Collider";
+option,info,-warn,verify,-echo;
+
+
+!------ Gold at injection
+beam,particle=proton,gamma=22.89, 
+exn=20e-06,eyn=20e-06,sige=0.001;
+CALL,FILE="./blue.inj";
+CALL,FILE="./rhic_utilities.madx";
+use,sequence=rhic;
+
+!--- Set the Tunes & chromaticity.
+!Qx := 28.737; Qy := 29.717;
+!chromX := 2.0;chromY := 2.0;
+!exec, setarcquads; exec, setchrom;
+
+!---
+call,file="./changeparameters";
+
+!---- vertical bpms
+select,flag=twiss,clear;
+select,flag=twiss,class=HMONITOR,column=name,s,betx,bety, mux, muy, dx, alfx, alfy,x,y,K1L,K2L,K3L,dpx,wx,phix,wy,phiy;
+select,flag=twiss,class=MONITOR,column=name,s,betx,bety, mux, muy, dx, alfx, alfy,x,y,K1L,K2L,K3L,dpx,wx,phix,wy,phiy;
+select,flag=twiss,class=VMONITOR,column=name,s,betx,bety, mux, muy, dx, alfx, alfy,x,y,K1L,K2L,K3L,dpx,wx,phix,wy,phiy;
+twiss,sequence=rhic,file="twiss.dat";
+
+
+stop;

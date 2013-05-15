@@ -1,0 +1,469 @@
+ptc_enforce6d, flag=true;
+
+
+!#MADX
+!Matches TL3 to closed solution of CR
+! 1. Powers the injection kicker, by defining sepinj variable
+! 2. Calculates CR closed solution, save twiss at injection point
+! 3. Matches TL3 to match twiss parameters at injection
+! 4. Plots the results for TL3 + CR
+!Piotr Skowronski (CERN)
+
+call, file="../common.seqx";
+call, file="currents";
+call, file="zerocorrs";
+call, file="definitions.madx";
+call, file="crelements.seqx";
+call, file="CRrecombin4.seqx";
+call, file="createCRsequence.madx";
+system, "./changeseqname.sh";
+call, file="cr_s.seqx";
+
+! Basic Elements and line definition 
+call, file="../tl1/tl3elements.seqx"; 
+
+! Beam instrumentation
+call,  file="../tl1/beaminstr.seqx";
+
+! Sequence ready to use w/ monitors and w/o redundant markers
+call, file="../tl1/tl3.seqx";
+
+
+
+iqfd0520 = 15.98315254*EN/100;
+iqdd0530 = 13.43533344*EN/100;
+iqfh0610 = 13.06635191*EN/100;
+iqfh0620 = 18.55144051*EN/100;
+iqfh0640 = 9.600496671*EN/100;
+iqdi0650 = 9.614986302*EN/100;
+iqff0660 = 59.4084214*EN/100;
+iqfh0680 = 16.50194967*EN/100;
+iqff0690 = 20.60934559*EN/100;
+iqdf0720 = 3.36029389*EN/100;
+iqfj0730 = 30.83187955*EN/100;
+iqdj0740 = 67.57095132*EN/100;
+iqfg0750 = 23.26268089*EN/100;
+
+kvf0735 := CR.CORRCALIB * ct.idvf0735;
+kvf0755 := CR.CORRCALIB * ct.idvf0755;
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+! We want to join two seq, one of them is a seqence
+!Intead of line above we have to use all those stuff below
+use, period=tl3_s;
+twiss, betx=1, bety=1; !to get length
+len_tl3_s = table(twiss, tl3_s$end,s); !here we get length
+
+use, period=CR_anellot_s;!to get length
+twiss, betx=1, bety=1;  !here we get length
+len_crpart = table(twiss, CR_anellot_s$end,s);
+
+
+ltot = len_crpart + len_tl3_s;
+value, ltot;
+
+
+tl1_cr_s: sequence, REFER=centre, l = ltot;
+ tl3_s, at = 0;
+ CR_anellot_s, at = len_tl3_s;
+endsequence;
+
+use, period=CR_anellot_s;
+
+MDUMMY: MARKER;
+SEQEDIT, SEQUENCE=CR_anellot_s;
+  flatten;
+  install, MDUMMY, at=-0.01, FROM=CR.DVF0958;
+  cycle,start=MDUMMY;
+ENDEDIT;
+
+use, period=CR_anellot_s, RANGE=CR.DVF0958/CR.DVF0242;
+
+!cr.idvf0958 = 1;
+twiss, betx=10, bety=10;
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Current Settings", file="bump";
+
+
+match, betx=10, bety=10;
+  vary, name=cr.idvf0958, STEP=1;
+  vary, name=cr.idvf1055, STEP=1;
+  vary, name=cr.idvf1000, STEP=1;
+  vary, name=cr.idvf0145, STEP=1;
+  constraint, range=CR.HDS1050, y=10e-3, py=0;
+  constraint, range=CR.DVF0147, y=0, py=0;
+  SIMPLEX, tolerance=1e-014, calls=1000;
+!  MIGRAD;
+!   JACOBIAN;
+ENDMATCH;
+
+twiss, save, betx=10,bety=10;
+
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Bump at CR.HDS1050", file="bump";
+
+select,  flag=twiss,column=name, s,x,y;
+
+!ct.idvf0735 = 1;
+
+use, period=CR_anellot_s;
+SEQEDIT, SEQUENCE=CR_anellot_s;
+  flatten;
+  cycle,start=MIN;
+ENDEDIT;
+
+use, period=tl1_cr_s;
+twiss, save, betx=10,bety=10;
+
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Bump at CR.HDS1050", file="bump";
+
+match, betx=10, bety=10;
+  vary, name=ct.idvf0735, STEP=1;
+  vary, name=ct.idvf0755, STEP=1;
+  constraint, range=CR.DVF0147, y=0, py=0;
+  SIMPLEX, tolerance=1e-014, calls=1000;
+!  MIGRAD;
+!   JACOBIAN;
+ENDMATCH;
+
+twiss, save, betx=10,bety=10;
+plot, noversion=true, vaxis=y, haxis=s, colour=100,
+  title="Bump at CR.HDS1050", file="bump";
+write, table=twiss, file="bump.twiss";
+
+stop;
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+use, period=tl3todump;
+
+
+
+tl1_cr: line=(tl3,CR_anellot);
+
+tl1cr4thick: line=(tl3,CRthick);
+
+
+
+beam, particle=electron,energy=EN/1000., EX=NEX/EN/0.511, EY=NEY/EN/0.511, ET=1/1000, SIGT=0, SIGE=sige;
+
+
+
+!power on injection kicker
+sepinj = 0.0364;
+
+
+use, period=CR_anellot_s;
+
+savebeta, label=betainj, place=min, sequence=CR_anellot_s;
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,betx,bety,alfx,alfy,dx,dpx,x,px;
+
+twiss, rmatrix, save, file="cr.closedsol.twiss";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Closed orbit Kicker ON";
+plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Closed orbit Kicker ON";
+plot, noversion=true, vaxis=betx, haxis=s, colour=100, title="Closed Kicker ON";
+plot, noversion=true, vaxis=dx, haxis=s, colour=100, title="Closed Kicker ON";
+
+
+show, betainj;
+
+
+!bump01back: line=(-halfbump01_1);
+bump01back: line=(-halfbumpthick01_1);
+use, period=bump01back;
+
+!twiss, betx=1, bety=1;
+!plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Backbump";
+!plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Backbump";
+!plot, noversion=true, vaxis=dpx, haxis=s, colour=100, title="Backbump";
+!plot, noversion=true, vaxis=dx, haxis=s, colour=100, title="Backbump";
+
+!betainj->dx  = table(twiss, bump01back$end, dx);
+!betainj->dpx =-table(twiss, bump01back$end, dpx);
+
+xtransl_1 = cr.ldefl*tan(0.5*kdefl_1);
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=true;
+ !kick 1 after injection
+ ptc_eplacement, range=dl3inb_bdefl01,  onlyorientation, phi=kdefl_1, refframe=previouselement, autoplacedownstream=true;
+ ptc_eplacement, range=dl3inb_bdefl01,  onlyposition, x=-xtransl_1, refframe=current, autoplacedownstream=true;
+
+ ptc_setswitch, debuglevel=0, nocavity=false, fringe=true, exact_mis=true, time=true, totalpath=true;
+ PTC_TWISS, table=twiss, icase=6, no=1, betx=1, bety=1, betz=1;
+ptc_end;
+
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Backbump";
+plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Backbump";
+plot, noversion=true, vaxis=disp2, haxis=s, colour=100, title="Backbump";
+plot, noversion=true, vaxis=disp1, haxis=s, colour=100, title="Backbump";
+
+betainj->dx  = table(twiss, bump01back$end, disp1);
+betainj->dpx =-table(twiss, bump01back$end, disp2);
+
+dx2 = table(twiss, CR.QFG0120, disp1);
+dpx2 =-table(twiss, CR.QFG0120, disp2);
+
+
+
+
+
+
+use, period=halfbump01_1;
+
+
+show, betainj;
+
+twiss, beta0=betainj;
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100, title="Bump test";
+plot, noversion=true, vaxis=px, haxis=s, colour=100, title="Bump test";
+plot, noversion=true, vaxis=dx, haxis=s, colour=100, title="Bump test";
+plot, noversion=true, vaxis=dpx, haxis=s, colour=100, title="Bump test";
+
+
+
+MatchClosedDX = 1;
+
+if (MatchClosedDX > 0)
+ {
+   dxinj = betainj->dx;
+   dpxinj = betainj->dpx;
+ }
+else
+ {
+   dxinj = 0;
+   dpxinj = 0;
+ } ;
+
+
+value, dxinj, dpxinj;
+
+
+BEQTL1: BETA0, betx = BXCT0520, bety = BYCT0520,
+               alfx = AXCT0520, alfy = AYCT0520;
+
+
+
+use, period=tl3;
+
+tl3plus: line = (tl3,min,dl5is2);
+
+use, period=tl3plus;
+
+
+mvar1 := sigx;
+mvar2 := sigy;
+
+select, flag=twiss,column=name,s,betx,bety,mux,muy,dx,x,y,dx10,sigx,sigy,mvar1,mvar2;
+
+twiss, rmatrix, beta0=BEQTL1;
+
+
+plot, noversion=true, vaxis=betx,bety, haxis=s, colour=100, title="TL3 initial";
+
+write, table=twiss, file="TL3initial.twiss";
+
+
+show, betainj;
+
+
+match, rmatrix, use_macro;
+
+   vary, name=IQDD0520, step:=1, LOWER=-200, UPPER=200;
+   vary, name=IQFD0530, step:=1, LOWER=-200, UPPER=200;
+   vary, name=IQFH0610, step:=1, LOWER=   0, UPPER= 60;
+   vary, name=IQFH0620, step:=1, LOWER=   0, UPPER=110;
+   vary, name=IQFH0640, step:=1, LOWER=   0, UPPER= 80;
+   vary, name=IQDI0650, step:=1, LOWER=   0, UPPER=100;
+   vary, name=IQFF0660, step:=1, LOWER=   0, UPPER=250;
+   vary, name=IQFH0680, step:=1, LOWER=   0, UPPER= 50;
+   vary, name=IQFF0690, step:=1, LOWER=   0, UPPER=250;
+   vary, name=IQDF0720, step:=1, LOWER=-150, UPPER=150;
+   vary, name=IQFJ0730, step:=1, LOWER=-275, UPPER=275;
+   vary, name=IQDJ0740, step:=1, LOWER=-275, UPPER=275;
+   vary, name=IQFG0750, step:=1, LOWER=-130, UPPER=130;
+
+
+
+   m1a: macro =
+    {
+       twiss, rmatrix, beta0=BEQTL1;
+    };
+
+
+
+   constraint, weight=1, betx<30;
+   constraint, weight=1, bety<30;
+
+   constraint, weight=100, mvar1 <8;  ! restrict sigma x
+   constraint, weight=100, mvar2 <5;  ! restrict sigma y
+
+!   constraint, weight=0.1, betx>1;
+!   constraint, weight=0.1, bety>1;
+
+
+   constraint, weight=100, expr = table(twiss,min, betx)=betainj->betx;
+   constraint, weight=100, expr = table(twiss,min, bety)=betainj->bety;
+
+   constraint, weight=100, expr = table(twiss,min, alfx)=betainj->alfx;
+   constraint, weight=100, expr = table(twiss,min, alfy)=betainj->alfy;
+   
+
+   constraint, weight=100, expr = table(twiss,min, dx)=dxinj;
+   constraint, weight=100, expr = table(twiss,min, dpx)=dPxinj;
+   
+
+   constraint, weight=100, expr = table(twiss,tl3plus$end, dx)=dx2;
+   constraint, weight=100, expr = table(twiss,tl3plus$end, dpx)=dpx2;
+
+
+   constraint, weight=200, expr = table(twiss, min, re56) = R56injcr;
+
+
+   constraint, weight=10, expr = table(twiss,LSP4, betx) < 10;
+   constraint, weight=10, expr = table(twiss,LSP4, bety) < 10;
+
+   constraint, weight=10, expr = table(twiss,CT.SHC0780, betx) < 10;
+   constraint, weight=10, expr = table(twiss,CT.SHC0780, bety) < 10;
+
+   constraint, weight=10, expr = table(twiss,CT.SHD0790, betx) < 10;
+   constraint, weight=10, expr = table(twiss,CT.SHD0790, bety) < 10;
+     
+
+
+
+   lmdif,   tolerance:=1e-12, calls:=500;
+
+   jacobian,   tolerance:=1e-12, calls:=25;
+   
+   lmdif,   tolerance:=1e-12, calls:=500;
+
+
+   simplex, tolerance:=1e-24, calls:=500;
+
+   migrad,  tolerance:=1e-24, calls:=500;
+
+
+
+
+
+!   lmdif,   tolerance:=1e-12, calls:=2500;
+!   migrad,  tolerance:=1e-12, calls:=2000;
+!   simplex, tolerance:=1e-12, calls:=500;
+!   lmdif,   tolerance:=1e-12, calls:=2500;
+!   migrad,  tolerance:=1e-12, calls:=2000;
+!   lmdif,   tolerance:=1e-12, calls:=2000;
+!   migrad,  tolerance:=1e-24, calls:=10000;
+endmatch;
+
+
+
+
+
+
+twiss, save, beta0=BEQTL1;
+write, table=twiss, file="TL3final.twiss";
+
+plot, noversion=true, vaxis=betx, bety, dx10, haxis=s, colour=100,
+title="rematched TL3";
+plot, noversion=true, vaxis=dx,dpx, haxis=s, colour=100,
+title="rematched TL3";
+plot, noversion=true, vaxis=sigx, sigy, haxis=s, colour=100,
+title="rematched TL3";
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+title="rematched TL3";
+
+mr56 = table(twiss, tl3plus$end, re56);
+
+
+
+!Finally show all the setup after rematching 
+
+
+
+use, period=tl1_cr; 
+!tl1cr4thick: line=(tl3,CRthick);
+!use, period=tl1cr4thick;
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,beta11,beta22,alfa11,alfa22,disp1,disp2,x,y,px;
+
+
+create, table=R3, withname, column="c51","c52","c55","c56","c66";
+ptc_select, table=R3, column="c51", polynomial=5, monomial="100000";
+ptc_select, table=R3, column="c52", polynomial=5, monomial="010000";
+ptc_select, table=R3, column="c55", polynomial=5, monomial="000010";
+ptc_select, table=R3, column="c56", polynomial=5, monomial="000001";
+ptc_select, table=R3, column="c66", polynomial=6, monomial="000001";
+
+rm51:=table(r3,c51);!we need that for plotting
+rm52:=table(r3,c52);
+rm56:=-table(r3,c56);
+
+
+ptc_create_universe;
+ ptc_create_layout, model=1, method=6, nst=PTCNSTEPS, exact=true, closed_layout=false;
+ ptc_setswitch, debuglevel=0, nocavity=false,
+                fringe=true, exact_mis=true, time=true, totalpath=true;
+ ptc_eplacement, range=injection, x=-0.0364, y=0, z=0, onlyposition, refframe=previouselement, autoplacedownstream=true;
+
+ ptc_printframes, file="tl1_cr.C",format=rootmacro;
+ PTC_TWISS, table=twiss, icase=6, no=1, betz=1.0, BETA0=BEQTL1;
+ptc_end;
+
+r56_ptc_min = -table(r3, min, c56);
+
+write, table="twiss",file="TL3matchedtoCR.ptc.twiss"; 
+
+plot, noversion=true, vaxis=beta11,beta22, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+plot, noversion=true, vaxis=disp1,disp2, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+plot, noversion=true, vaxis=x, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+plot, noversion=true, vaxis=px, haxis=s, colour=100,
+title="Matched TL3 and CR (PTC)";
+
+
+
+select,flag=save, clear;
+select,flag=save, pattern="iq.*";
+select,flag=save, pattern="cr.iq.*";
+save, file="match_tl1_toinject.madout";
+save, file="TUNES";
+
+value, mr56, r56_ptc_min;
+
+stop;
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  SSSSS  TTTTT   OOO   PPP
+!  S        T    O   O  P  P
+!  SSSSS    T    O   O  PPP
+!      S    T    O   O  P
+!  SSSSS    T     OOO   P
+!
+
+

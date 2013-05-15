@@ -1,0 +1,26 @@
+!{ ..\documents and settings\streun\my documents\opadat\femto\sls_f6cwo.opa }
+ 
+!{----- global parameters (units: gev, m, rad) -------------------------------}
+ 
+!{com femto operation with measured bfc lengths, else like f4t com}
+
+d2r=3.141592653/180; ! radian to degree
+
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SLS/SLSring.num.seq";
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SLS/SLSring.num.str";
+
+
+beam, particle=electron, energy=2.411;
+
+use, period=ring;
+
+call, file=changeparameters_all;
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,betx,bety,alfx,alfy,dx,dpx,dy,dpy,mux,muy,x,y,xp,yp,r11,r12,r21,r22 ;
+twiss, sequence=ring, centre, file="twiss.corrected.dat";
+
+
+survey, file="survey";
+
+stop;

@@ -325,7 +325,7 @@ edql=float(edqs[0])
 edqr=float(edqs[1])
 DK=float(options.DK)
 Q=float(options.Q)
-guess=[0.6,-0.]
+guess=[1000,-0.]
 incr=[0.01,0.001]
 
 

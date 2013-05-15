@@ -1,0 +1,81 @@
+
+
+option,  -echo,  -info,  -warn;
+
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+
+call,file="db5/V6.5.seq";
+call,file="ats/ats_V6.503.inj.str";
+
+Beam,particle=proton,sequence=lhcb1,energy=450,NPART=1.15E11,sige=4.5e-4;
+Beam,particle=proton,sequence=lhcb2,energy=450,bv=-1,NPART=1.15E11,sige=4.5e-4;
+
+
+
+seqedit, sequence=LHCB1;
+flatten;               
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+
+seqedit, sequence=LHCB2;
+flatten;
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!
+!!!!!     LHCB2
+!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!
+use,period=lhcb2;
+
+select, flag=twiss, clear;
+select, flag=twiss,class=monitor,column=name,s,betx,bety,mux,muy,dx,dy;
+twiss, sequence=lhcb2, deltap=0.0d0, file="./B2/twiss.dat";
+
+select, flag=twiss, clear;
+select, flag=twiss,class=rcollimator,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k1sl,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+select, flag=twiss, class=monitor;
+select,flag=twiss,class=instrument;
+select,flag=twiss,class=marker;
+select,flag=twiss,class=quadrupole;
+select,flag=twiss,class=skewquadrupole;
+select,flag=twiss,class=sextupole;
+select,flag=twiss,class=octupole;
+select,flag=twiss,class=tkicker;
+twiss, chrom,sequence=LHCB2, deltap=0, file="./B2/twiss_elements.dat";
+
+
+
+
+!!!!!!! acdipole
+Qx=0.28;
+Qxd=0.274;
+
+Qy=0.31;
+Qyd=0.316;
+
+betxac=table(twiss,MKQA.6L4.B2,betx);
+betyac=table(twiss,MKQA.6L4.B2,bety);
+
+
+hacmap21=2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx));
+vacmap43=2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy));
+
+hacmap: matrix, l=0, rm21=hacmap21;
+vacmap: matrix, l=0, rm43=vacmap43;
+
+seqedit, sequence=LHCB2; flatten;
+  install, element=hacmap, at=1.583/2, from=MKQA.6L4.B2;
+  install, element=vacmap, at=1.583/2, from=MKQA.6L4.B2;
+endedit;
+
+use, period=LHCB2;
+
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss, chrom,sequence=LHCB2, deltap=0, file="./B2/twiss_ac.dat";
+
+stop;

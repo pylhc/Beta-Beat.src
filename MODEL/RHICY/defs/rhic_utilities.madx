@@ -1,0 +1,314 @@
+DIFF = 0.00001;
+//
+// ------ Set the arc quadrupole strengths.
+setarcquads: MACRO = {
+   use, period=rhic;
+   match, sequence=rhic;
+      vary, name=kf, step = 0.00001;
+      vary, name=kd, step = 0.00001;
+
+      global, sequence=rhic, q1=qX, q2=qY;
+
+      lmdif, calls = 5000, tolerance = 1.e-12;
+   endmatch;
+}
+
+// ----- Set the arc sextupole strengths.
+set6chrom: MACRO = {
+   dsfi = 0.0;
+   dsfo = 0.0;
+   dsdi = 0.0;
+   dsdo = 0.0;
+   use, period=rhic;
+   match, sequence=rhic;
+       vary, name=sfi, step = 0.00001;
+       vary, name=sdi, step = 0.00001;
+       vary, name=sfo, step = 0.00001;
+       vary, name=sdo, step = 0.00001;
+  
+       global, sequence=rhic, dq1=chromX, dq2=chromY;
+
+       jacobian, calls=5000, tolerance=1.0e-12;
+   endmatch;
+}
+
+
+
+//
+// ----- Set the arc sextupole strengths.
+setchrom: MACRO = {
+   use, period=rhic;
+   match, sequence=rhic;
+       vary, name=sf0, step = 0.00001;
+       vary, name=sd0, step = 0.00001;
+
+       global, sequence=rhic, dq1=chromX, dq2=chromY;
+
+       lmdif, calls=5000, tolerance=1.0e-12;
+   endmatch;
+}
+//
+// ----- Get the tune sensitvity matrix.
+gettunematrix: MACRO = {
+   DIFF = 0.00001;
+
+   use, period=rhic;
+   twiss,summ;
+   QX0 = table(summ,q1);
+   QY0 = table(summ,q2);
+
+   KFHOLD = KF;
+   KF = KFHOLD + DIFF;
+   twiss,summ;
+   QXF = table(summ,q1);
+   QYF = table(summ,q2);
+   KF = KFHOLD;
+
+   KDHOLD = KD;
+   KD = KDHOLD - DIFF;
+   twiss,summ;
+   QXD = table(summ,q1);
+   QYD = table(summ,q2);
+   KD = KDHOLD;
+
+   M11 = (QXF - QX0) / (LQ * DIFF);
+   M12 = (QXD - QX0) / (LQ * DIFF);
+   M21 = (QYF - QY0) / (LQ * DIFF);
+   M22 = (QYD - QY0) / (LQ * DIFF);
+
+   value, M11, M12, M21, M22;
+}
+//
+// ----- Get the chromaticity sensitvity matrix.
+getchrommatrix: MACRO = {
+   DIFF = 0.00001;
+
+   use, period=rhic;
+   twiss,summ;
+   QX0 = table(summ,q1);
+   QY0 = table(summ,q2);
+   DQX0 = table(summ,dq1);
+   DQY0 = table(summ,dq2);
+
+   SFHOLD = SF0;
+   SF0 = SFHOLD + DIFF;
+   twiss,summ;
+   QXSF0 = table(summ,q1);
+   QYSF0 = table(summ,q2);
+   DQXSF0 = table(summ,dq1);
+   DQYSF0 = table(summ,dq2);
+   SF0 = SFHOLD;
+
+   SDHOLD = SD0;
+   SD0 = SDHOLD + DIFF;
+   twiss,summ;
+   QXSD0 = table(summ,q1);
+   QYSD0 = table(summ,q2);
+   DQXSD0 = table(summ,dq1);
+   DQYSD0 = table(summ,dq2);
+   SD0 = SDHOLD;
+
+   KFHOLD = KF;
+   KF = KFHOLD + DIFF;
+   twiss,summ;
+   QXKF0 = table(summ,q1);
+   QYKF0 = table(summ,q2);
+   DQXKF0 = table(summ,dq1);
+   DQYKF0 = table(summ,dq2);
+   KF = KFHOLD;
+
+   KDHOLD = KD;
+   KD = KDHOLD - DIFF;
+   twiss,summ;
+   QXKD0 = table(summ,q1);
+   QYKD0 = table(summ,q2);
+   DQXKD0 = table(summ,dq1);
+   DQYKD0 = table(summ,dq2);
+   KD = KDHOLD;
+ 
+   M11 = (QXKF0 - QX0) / (LQ * DIFF);
+   M12 = (QXKD0 - QX0) / (LQ * DIFF);
+   M13 = (QXSF0 - QX0) / (LSXT * DIFF);
+   M14 = (QXSD0 - QX0) / (LSXT * DIFF);
+   M21 = (QYKF0 - QY0) / (LQ * DIFF);
+   M22 = (QYKD0 - QY0) / (LQ * DIFF);
+   M23 = (QYSF0 - QY0) / (LSXT * DIFF);
+   M24 = (QYSD0 - QY0) / (LSXT * DIFF);
+   M31 = (DQXKF0 - DQX0) / (LQ * DIFF);
+   M32 = (DQXKD0 - DQX0) / (LQ * DIFF);
+   M33 = (DQXSF0 - DQX0) / (LSXT * DIFF);
+   M34 = (DQXSD0 - DQX0) / (LSXT * DIFF);
+   M41 = (DQYKF0 - DQY0) / (LQ * DIFF);
+   M42 = (DQYKD0 - DQY0) / (LQ * DIFF);
+   M43 = (DQYSF0 - DQY0) / (LSXT * DIFF);
+   M44 = (DQYSD0 - DQY0) / (LSXT * DIFF);
+
+   value, M11, M12, M13, M14;
+   value, M21, M22, M23, M24;
+   value, M31, M32, M33, M34;
+   value, M41, M42, M43, M44;
+}
+//
+// ----- Set the quadrupole strengths for the 6 o'clock insertion.
+set6oc: MACRO = {
+   k4m6 = g4m;
+   k56m6 = g56m;
+   kdaa6 = gda;
+   kfaa6 = gfa;
+   kfba6 = gfb;
+   k7a6 = g7m;
+   k6a6o = g6o;
+   k5a6o = g5o;
+   k4a6o = g4o;
+   k6a6i = g6i;
+   k5a6i = g5i;
+   k4a6i = g4i;
+   k3a6i = g3mi;
+   k2a6i = g2mi;
+   k1a6i = g1mi;
+   k3a6o = g3mo;
+   k2a6o = g2mo;
+   k1a6o = g1mo;
+   kfsum = gf;
+   kdsum = gd;
+}
+//
+// ----- Set the quadrupole strengths for the 8 o'clock insertion.
+set8oc: MACRO = {
+   k4m8 = g4m;
+   k56m8 = g56m;
+   kdaa8 = gda;
+   kfaa8 = gfa;
+   kfba8 = gfb;
+   k7a8 = g7m;
+   k6a8o = g6o;
+   k5a8o = g5o;
+   k4a8o = g4o;
+   k6a8i = g6i;
+   k5a8i = g5i;
+   k4a8i = g4i;
+   k3a8i = g3mi;
+   k2a8i = g2mi;
+   k1a8i = g1mi;
+   k3a8o = g3mo;
+   k2a8o = g2mo;
+   k1a8o = g1mo;
+   kfsum = kfsum + gf;
+   kdsum = kdsum + gd;
+}
+//
+// ----- Set the quadrupole strengths for the 10 o'clock insertion.
+set10oc: MACRO = {
+   k4m10 = g4m;
+   k56m10 = g56m;
+   kdaa10 = gda;
+   kfaa10 = gfa;
+   kfba10 = gfb;
+   k7a10 = g7m;
+   k6a10o = g6o;
+   k5a10o = g5o;
+   k4a10o = g4o;
+   k6a10i = g6i;
+   k5a10i = g5i;
+   k4a10i = g4i;
+   k3a10i = g3mi;
+   k2a10i = g2mi;
+   k1a10i = g1mi;
+   k3a10o = g3mo;
+   k2a10o = g2mo;
+   k1a10o = g1mo;
+   kfsum = kfsum + gf;
+   kdsum = kdsum + gd;
+}
+//
+// ----- Set the quadrupole strengths for the 12 o'clock insertion.
+set12oc: MACRO = {
+   k4m12 = g4m;
+   k56m12 = g56m;
+   kdaa12 = gda;
+   kfaa12 = gfa;
+   kfba12 = gfb;
+   k7a12 = g7m;
+   k6a12o = g6o;
+   k5a12o = g5o;
+   k4a12o = g4o;
+   k6a12i = g6i;
+   k5a12i = g5i;
+   k4a12i = g4i;
+   k3a12i = g3mi;
+   k2a12i = g2mi;
+   k1a12i = g1mi;
+   k3a12o = g3mo;
+   k2a12o = g2mo;
+   k1a12o = g1mo;
+   kfsum = kfsum + gf;
+   kdsum = kdsum + gd;
+}
+//
+// ----- Set the quadrupole strengths for the 2 o'clock insertion.
+set2oc: MACRO = {
+   k4m2 = g4m;
+   k56m2 = g56m;
+   kdaa2 = gda;
+   kfaa2 = gfa;
+   kfba2 = gfb;
+   k7a2 = g7m;
+   k6a2o = g6o;
+   k5a2o = g5o;
+   k4a2o = g4o;
+   k6a2i = g6i;
+   k5a2i = g5i;
+   k4a2i = g4i;
+   k3a2i = g3mi;
+   k2a2i = g2mi;
+   k1a2i = g1mi;
+   k3a2o = g3mo;
+   k2a2o = g2mo;
+   k1a2o = g1mo;
+   kfsum = kfsum + gf;
+   kdsum = kdsum + gd;
+}
+//
+// ----- Set the quadrupole strengths for the 4 o'clock insertion.
+set4oc: MACRO = {
+   k4m4 = g4m;
+   k56m4 = g56m;
+   kdaa4 = gda;
+   kfaa4 = gfa;
+   kfba4 = gfb;
+   k7a4 = g7m;
+   k6a4o = g6o;
+   k5a4o = g5o;
+   k4a4o = g4o;
+   k6a4i = g6i;
+   k5a4i = g5i;
+   k4a4i = g4i;
+   k3a4i = g3mi;
+   k2a4i = g2mi;
+   k1a4i = g1mi;
+   k3a4o = g3mo;
+   k2a4o = g2mo;
+   k1a4o = g1mo;
+   kfsum = kfsum + gf;
+   kdsum = kdsum + gd;
+   kf = kfsum / 6.0;
+   kd = kdsum / 6.0;
+}
+//
+// ----- Set the gamma-t jump quadrupole strengths.
+gammajump: MACRO = {
+   use, period=rhic;
+   //
+   // -------- refit the tune.
+   match, sequence=rhic;
+      vary, name=kqt, step = 0.01;
+      //
+      // -------------- the crossing point.
+      global, sequence=rhic, q1=qX, q2=qY;
+      //
+      // -------------- Do the fitting.
+      lmdif, calls = 5000, tolerance = 1.e-12;
+   endmatch;
+}
+
+return;

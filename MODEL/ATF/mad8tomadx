@@ -1,0 +1,32 @@
+#!/usr/bin/ksh
+
+filein=$1
+fileout=$1"x"
+length="6911.5038"
+
+awk -vF="'" '
+     
+  1==1 {gsub("SBEND", "SBEND");
+       gsub("MARKER", "MARKER");
+       gsub("MONITOR","MONITOR");
+       gsub("QUADRUPOLE", "QUADRUPOLE");
+       gsub("SEXTUPOLE", "SEXTUPOLE");
+       gsub("DRIFT", "DRIFT");
+       gsub("WIRE", "MONITOR");
+       gsub("HKICKER", "HKICKER");
+       gsub("VKICKER", "VKICKER");
+       gsub("PROFILE", "MONITOR");
+       }
+        {gsub("+-","-");
+       gsub(F,"_");
+       gsub("RETURN","");}
+     /SEQUENCE/ && $0!~/ENDSEQ/ {$0=$0", l='$length'"}
+     /[/ && /]/ {gsub("\\[","->"); gsub("\\]","");}
+     /MULTIPOLE/ && /K1L/{ gsub("K1L=","");  $0=$1" "$2"  KNL:={0,"$3",0,0,0}"}
+     /MULTIPOLE/ && /K3L/{ gsub("K3L=","");  $0=$1" "$2"  KNL:={0,0,0,"$3"}"}
+     /MULTIPOLE/ && /K2L/{ gsub("K2L=","");  $0=$1" "$2"  KNL:={0,0,"$3"}"}
+     /MULTIPOLE/ && /K4L/{ gsub("K4L=","");  $0=$1" "$2"  KNL:={0,0,0,0,"$3"}"}
+     $0 !~ /:=/ && $0 !~/SEQUEN/{gsub("=",":=");}
+                   {gsub("TYPE:","TYPE");}
+     $0!~/&/{gsub("!",";!") ; print $0";"}
+     $0~/&/{gsub("&","");print $0}' $filein > $fileout 

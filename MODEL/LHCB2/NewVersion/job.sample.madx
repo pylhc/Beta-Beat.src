@@ -1,0 +1,102 @@
+title, "LHC version 6.503 -  March 2009" ;
+
+ real const l.tanal = 0;
+ real const l.tanar = 0;
+ real const l.tanc = 0;
+ real const l.tcdqa = 0;
+ real const l.tcp   = 0.0;
+
+ real const l.mbxwt = 0.0;
+ real const l.mbls2 = 0.0;
+ real const l.tasb  = 0.0;
+ real const l.btvss075 = 0.0;
+ real const l.mblw = 0.0;
+
+ real const l.tctvb = 0;
+ real const l.x5zdc002 = 0;
+ real const l.tcddm = 0;
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.501 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+
+ option, -echo, -warn, info;
+ call,    file="db/V6.5.seq";
+ call,    file="db/V6.5.inj.str";
+ option,  echo, -warn, -info, -verify;
+
+ beam,    sequence=lhcb1, particle=proton, pc=450;
+ beam,    sequence=lhcb2, particle=proton, pc=450, bv=-1;
+
+ on_x1:=1; on_sep1:=1; on_atlas:=0;
+ on_x2:=1; on_sep2:=1; on_alice:=0;
+ on_x5:=1; on_sep5:=1; on_cms  :=0;
+ on_x8:=1; on_sep8:=1; on_lhcb :=0;
+
+
+
+use,    sequence=lhcb2;
+ select, flag=twiss, clear;
+ select, flag=twiss, pattern="BPM", column=name,s,betx,bety,alfx,alfy,dx,dpx,x,px,y,py,mux,muy;
+  twiss, file="twiss.bpm";
+
+
+
+ select, flag=twiss, clear;
+ select, flag=twiss, pattern="MQM\.";
+ select, flag=twiss, pattern="MQY\.", column=name,s,L,K1L,betx,bety,alfx,alfy,dx,dpx,x,px,y,py,mux,muy;
+  twiss, file="twiss";
+
+
+system, "./Getb2";
+call, file="QuadErrs.madx";
+
+ select, flag=twiss, clear;
+ select, flag=twiss, pattern="BPM", column=name,s,betx,bety,alfx,alfy,dx,dpx,x,px,y,py,mux,muy;
+  twiss, file="twiss.bpm.err";
+
+
+select, flag=error, clear;
+select, flag=error, PATTERN= "MQM\.";
+select, flag=error, PATTERN= "MQY\.";
+esave, file="err";
+
+stop;
+
+ option, -echo;
+ call,    file="db/aperture/aperture.b1.madx";
+ call,    file="db/aperture/aper_tol.b1.madx";
+ call,    file="db/aperture/layoutapertures.madx";
+ option, echo;
+
+ set,    format="12.6f";
+ use,    sequence=lhcb1;
+ twiss,  sequence=lhcb1, file=twiss.b1.data;
+
+ set,    format="15.8f";
+ select, flag=aperture, column=name,s,n1,aper_1,aper_2,aper_3,aper_4,betx,bety,dx,dy,x,y,rtol,xtol,ytol;
+ title, "IR5 B1"; aperture, range=s.ds.l5.b1/e.ds.r5.b1, offsetelem="db/aperture/offset.ip5.b1.tfs",
+!        halo={6., 8.4, 4.97,7.3},       // mom coll ON
+!        cor=0.0030, dp=0.00086,           // 7 TeV
+         file="twiss.b1.n1.tfs";
+ plot,   table=aperture, haxis=s, vaxis=on_elem, n1, spec, noline, vmin=0, vmax=12, colour=100;
+
+
+
+ set,    format="12.6f";
+ use,    sequence=lhcb2;
+ twiss,  sequence=lhcb2, file=twiss.b2.data;
+
+ option, -echo;
+ call,    file="db/aperture/aperture.b2.madx";
+ call,    file="db/aperture/aper_tol.b2.madx";
+ option, echo;
+
+ set,      format="15.8f";
+ select, flag=aperture, column=name,s,n1,aper_1,aper_2,aper_3,aper_4,betx,bety,dx,dy,x,y,rtol,xtol,ytol;
+ title, "IR5 B2"; aperture, range=s.ds.l5.b2/e.ds.r5.b2, offsetelem="db/aperture/offset.ip5.b2.tfs",
+!        halo={6., 8.4, 4.97,7.3},       // mom coll ON
+!        cor=0.0030,  dp=0.00086,        // 7 TeV
+         file="twiss.b2.n1.tfs";
+ plot,   table=aperture, haxis=s, vaxis=on_elem, n1, spec, noline, vmin=0, vmax=12, colour=100;
+
+
+stop;

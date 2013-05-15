@@ -1,0 +1,69 @@
+!--------------------------------------------------------------------------
+! MAD file for SPS optics calculations
+!  G.Arduini
+!--------------------------------------------------------------------------
+
+ !title, 'Untitled';
+
+option, -echo;
+ option, RBARC=FALSE;  ! the length of a rectangular magnet is the distance between the polefaces and not the arc length
+ assign, ECHO=ECHO.PRT; 
+  
+
+!---------------------------------------------------------------
+!         SPECIFY THE SPS CONFIGURATION, ENERGY and EMITTANCES
+!---------------------------------------------------------------
+call, file = 'LHC_beam_injection.beamx';
+!--------------------------------------------------------------------------
+! call the element definition file for SPS
+!--------------------------------------------------------------------------
+call, file = 'sps2004.elex';
+call, file = 'lhc_newwp_2004.strx';
+call, file = 'sps2004.seqx';
+
+USE, period=SPS, range=#S/#E;
+
+
+
+!
+! Set octupoles to zero
+!
+
+LOFK3 := 0.0;
+LODK3 := 0.0;
+
+
+! Set Chromaticity Sextupoles to usual machine setting ;
+KSDA =  -0.184750435401 ;
+KSDB =  -0.142594403158 ;
+KSFA =  0.0407130159613 ;
+KSFB =  0.0775918412691 ;
+KSFC =  0.0407130159613 ;
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!
+! Match tunes to usual machine tunes
+!!!!!!!!!!!!!!!!!!!!!!!
+
+match;
+vary, name=kqf1;
+vary, name=kqd;
+constraint, range=#e, mux=26.13, muy=26.18;
+jacobian, tolerance=1e-6;
+endmatch;
+
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="MDH"; ! horizontal correctors
+select, flag=twiss, PATTERN="MDV"; ! vertical correctors
+select, flag=twiss, PATTERN="LS";  ! Sextupoles
+select, flag=twiss, PATTERN="LOF"; ! Octupoles at high betx
+select, flag=twiss, PATTERN="LOD"; ! Octupoles at high bety
+select, flag=twiss, PATTERN="LOE"; ! Octupoles at high bety
+select, flag=twiss, PATTERN="BP",column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,x,y, keyword;
+twiss,  deltap=0.0d0, file="twiss.Giu.dat";
+stop;

@@ -1,0 +1,56 @@
+!-----------------------------------------
+!
+! MAD file for SPS optics calculations
+! @ Glenn Vanbavinckhove
+!
+!-----------------------------------------
+
+option, echo;
+
+
+option, RBARC=FALSE;
+! the length of a rectangular magnet is the distance between the polefaces and not the arc length
+
+!------ SPS configuration
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/DefinitionSPS/LHC_beam_injection.beamx';
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS//DefinitionSPS/sps.elex';
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS//DefinitionSPS/lhc.strx';
+call, file = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS//DefinitionSPS/sps.seqx';
+
+USE, period=SPS, range=#S/#E;
+
+
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/Parameters/SextsFromSPS"
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!=>>> Match tunes
+!
+!!!!!!!!!!!!!!!!!!!!!!!
+option, echo, info;
+!match;
+!vary, name=kqf1;
+!vary, name=kqd;
+!global, q1=26.13, q2=26.18;
+!jacobian, tolerance=1e-6;
+!endmatch;
+
+!(26.13,27.18)
+kqf1 :=  0.01449669222;
+kqd  := -0.01482120375;
+
+call, file="./changeparameters";
+
+!!!!!!!!!!!!!!!!!!!!
+!
+!=>>>>>>TWISS
+!
+!!!!!!!!!!!!!!!!!!!!
+
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/SPS/Parameters/VBumps";
+select, flag=twiss, clear;
+select, flag=twiss, PATTERN="BP",column=name,s,betx,bety,mux,muy,dx,dy,x,y, keyword, r11, r12,r21,r22;
+twiss,  deltap=0.0d0, file="twiss_couple.dat";
+
+stop;
