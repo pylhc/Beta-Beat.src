@@ -10,6 +10,7 @@
 import sys, os
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
+import json
 
 from metaclass import twiss
 

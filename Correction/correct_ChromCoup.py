@@ -13,6 +13,8 @@ from metaclass import twiss
 
 import os,shutil
 
+import json
+
 from optparse import OptionParser
 import GenMatrix_chromcouple as GM_cc
 
