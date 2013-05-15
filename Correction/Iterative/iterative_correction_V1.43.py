@@ -20,7 +20,6 @@ import sys, pickle,os
 from os import system
 #import operator
 from string import *
-#from AllLists import *
 from optparse import OptionParser
 from correctTESTFUNC4 import correctpy
 
@@ -454,17 +453,14 @@ runMAD=options.mad+' < '+options.path+'/job.iterative.correction.madx > out.mou'
 if j==1:
     runMAD2=options.mad+' < '+options.path2+'/job.iterative.correction.madx > out.mou'
 # import knobs list
-execfile(options.OPT+'/AllLists.py')
-if j==1:
-    execfile(options.OPT+'/AllLists.py')
+knobsdict=json.load(file(options.OPT + '/AllLists.json','r'))
 
 
 listvar=options.var.split(",")
 print listvar
 varlist=[]
 for var in listvar:
-    
-    exec('variable='+var+'()')
+    variable=knobsdict[var]
     varlist=varlist+variable
 
 

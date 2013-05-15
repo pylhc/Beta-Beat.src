@@ -113,14 +113,13 @@ weights=options.Dy.split(',')
 
 
 
-execfile(accelpath+'/AllLists_chromcouple.py')
-print accelpath+'/AllLists_chromcouple.py'
+knobsdict=json.load(file(accelpath + '/AllLists_chromcouple.json','r'))
+print accelpath+'/AllLists_chromcouple.json'
 listvar=options.var.split(",")
 print listvar
 varslist=[]
 for var in listvar:
-
-    exec('variable='+var+'()')
+    variable=knobsdict[var]
     varslist=varslist+variable
 
 variables=varslist

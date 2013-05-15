@@ -170,13 +170,12 @@ else:
     main="SPS"
     accelpath=betapath+'/MODEL/'+main+'/fullresponse/'+options.ACCEL+'/'
 
-
-execfile(accelpath+'/AllLists.py')
+knobsdict=json.load(file(accelpath + '/AllLists.json','r'))
 # extra depdency to be able to handle to different magnets group
 listvar=options.var.split(",")
 varslist=[]
 for var in listvar:
-    exec('variable='+var+'()')
+    variable=knobsdict[var]
     varslist=varslist+variable
 
 
