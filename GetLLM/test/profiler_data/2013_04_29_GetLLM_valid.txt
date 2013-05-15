@@ -1,0 +1,264 @@
+##################################################################################################     
+GetLLM_valid.py  29.04.2013
+################################################################################################## 
+		 
+		 1708983 function calls in 3.411 CPU seconds
+
+   Ordered by: standard name
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.006    0.006    3.411    3.411 <string>:1(<module>)
+     2148    0.049    0.000    0.052    0.000 GetLLM_valid.py:1091(ComplexSecondaryLine)
+      538    0.018    0.000    0.019    0.000 GetLLM_valid.py:1104(ComplexSecondaryLineExtended)
+        1    0.024    0.024    0.275    0.275 GetLLM_valid.py:1389(GetCoupling2b)
+        2    0.012    0.006    0.013    0.006 GetLLM_valid.py:1829(Getquadrupole)
+       41    0.009    0.000    0.012    0.000 GetLLM_valid.py:187(modelIntersect)
+        1    0.013    0.013    0.212    0.212 GetLLM_valid.py:1888(Getsextupole)
+       37    0.008    0.000    0.150    0.004 GetLLM_valid.py:208(intersect)
+    22058    0.137    0.000    0.137    0.000 GetLLM_valid.py:218(<lambda>)
+      536    0.021    0.000    0.021    0.000 GetLLM_valid.py:2185(computeChiTerms)
+        1    0.013    0.013    0.334    0.334 GetLLM_valid.py:2228(getChiTerms)
+       12    0.000    0.000    0.000    0.000 GetLLM_valid.py:231(phiLastAndLastButOne)
+    12124    0.245    0.000    0.732    0.000 GetLLM_valid.py:240(PhaseMean)
+        1    0.009    0.009    0.131    0.131 GetLLM_valid.py:2413(getchi1010)
+     7824    0.157    0.000    0.474    0.000 GetLLM_valid.py:251(PhaseStd)
+        1    0.000    0.000    0.061    0.061 GetLLM_valid.py:2553(getkick)
+        8    0.001    0.000    0.001    0.000 GetLLM_valid.py:2598(BPMfinder)
+        2    0.009    0.005    0.160    0.080 GetLLM_valid.py:261(GetPhasesTotal)
+        8    0.000    0.000    0.001    0.000 GetLLM_valid.py:2628(getIP)
+        2    0.002    0.001    0.011    0.006 GetLLM_valid.py:2692(GetIP2)
+        3    0.000    0.000    0.000    0.000 GetLLM_valid.py:2774(GetIPFromPhase)
+        1    0.013    0.013    0.014    0.014 GetLLM_valid.py:2833(getCandGammaQmin)
+        2    0.005    0.002    0.006    0.003 GetLLM_valid.py:2907(getFreeBeta)
+        1    0.001    0.001    0.001    0.001 GetLLM_valid.py:2944(getFreeCoupling)
+        4    0.005    0.001    0.006    0.001 GetLLM_valid.py:3003(getFreeAmpBeta)
+        2    0.004    0.002    0.004    0.002 GetLLM_valid.py:3035(getfreephase)
+        2    0.020    0.010    0.326    0.163 GetLLM_valid.py:305(GetPhases)
+        2    0.004    0.002    0.004    0.002 GetLLM_valid.py:3074(getfreephaseTotal)
+        3    0.000    0.000    0.000    0.000 GetLLM_valid.py:3107(GetFreeIP2)
+        2    0.000    0.000    0.000    0.000 GetLLM_valid.py:3139(GetACPhase_AC2BPMAC)
+        2    0.008    0.004    0.147    0.073 GetLLM_valid.py:3163(GetFreePhaseTotal_Eq)
+        2    0.010    0.005    0.279    0.139 GetLLM_valid.py:3223(GetFreePhase_Eq)
+        4    0.025    0.006    0.105    0.026 GetLLM_valid.py:3297(GetFreeBetaFromAmp_Eq)
+        1    0.052    0.052    0.356    0.356 GetLLM_valid.py:3367(GetFreeCoupling_Eq)
+        2    0.003    0.001    0.012    0.006 GetLLM_valid.py:3577(GetFreeIP2_Eq)
+        1    0.000    0.000    0.052    0.052 GetLLM_valid.py:3688(getkickac)
+        4    0.000    0.000    0.000    0.000 GetLLM_valid.py:3728(filterbpm)
+        1    0.000    0.000    0.000    0.000 GetLLM_valid.py:3743(_fix_output)
+        1    0.204    0.204    3.406    3.406 GetLLM_valid.py:3804(main)
+        4    0.232    0.058    0.272    0.068 GetLLM_valid.py:454(BetaFromPhase)
+        9    0.098    0.011    0.277    0.031 GetLLM_valid.py:637(BetaFromAmplitude)
+        2    0.007    0.004    0.016    0.008 GetLLM_valid.py:720(GetCO)
+     2690    0.008    0.000    0.080    0.000 _methods.py:100(_std)
+        2    0.000    0.000    0.000    0.000 _methods.py:16(_sum)
+   114226    0.163    0.000    0.176    0.000 _methods.py:32(_count_reduce_items)
+   111536    0.699    0.000    1.024    0.000 _methods.py:42(_mean)
+     2690    0.049    0.000    0.071    0.000 _methods.py:60(_var)
+     1097    0.001    0.000    0.001    0.000 fromnumeric.py:108(reshape)
+     3008    0.002    0.000    0.005    0.000 fromnumeric.py:1087(ravel)
+        2    0.000    0.000    0.000    0.000 fromnumeric.py:1422(sum)
+    92350    0.067    0.000    0.918    0.000 fromnumeric.py:2405(mean)
+     2690    0.005    0.000    0.085    0.000 fromnumeric.py:2491(std)
+      548    0.000    0.000    0.000    0.000 fromnumeric.py:446(transpose)
+     2152    0.007    0.000    0.010    0.000 function_base.py:1072(angle)
+     2460    0.007    0.000    0.013    0.000 function_base.py:3633(append)
+    19186    0.035    0.000    0.235    0.000 function_base.py:412(average)
+        1    0.000    0.000    0.000    0.000 genericpath.py:38(isdir)
+     1644    0.002    0.000    0.002    0.000 linalg.py:127(_to_native_byte_order)
+     1644    0.002    0.000    0.005    0.000 linalg.py:139(_fastCopyAndTranspose)
+     1644    0.001    0.000    0.001    0.000 linalg.py:151(_assertRank2)
+     1644    0.001    0.000    0.002    0.000 linalg.py:157(_assertSquareness)
+     1096    0.005    0.000    0.018    0.000 linalg.py:1588(slogdet)
+     1096    0.004    0.000    0.022    0.000 linalg.py:1670(det)
+      548    0.003    0.000    0.015    0.000 linalg.py:244(solve)
+      548    0.001    0.000    0.020    0.000 linalg.py:404(inv)
+     1644    0.001    0.000    0.002    0.000 linalg.py:66(_makearray)
+     3836    0.001    0.000    0.002    0.000 linalg.py:71(isComplexType)
+     3288    0.001    0.000    0.001    0.000 linalg.py:84(_realType)
+     1644    0.003    0.000    0.006    0.000 linalg.py:99(_commonType)
+        1    0.170    0.170    0.172    0.172 metaclass.py:232(chiterms)
+        1    0.024    0.024    0.087    0.087 metaclass.py:322(Cmatrix)
+        6    0.100    0.017    0.160    0.027 metaclass.py:79(__init__)
+      548    0.001    0.000    0.003    0.000 numeric.py:1884(identity)
+    27086    0.021    0.000    0.021    0.000 numeric.py:252(asarray)
+   116686    0.132    0.000    0.132    0.000 numeric.py:322(asanyarray)
+        1    0.000    0.000    0.000    0.000 stat.py:24(S_IFMT)
+        1    0.000    0.000    0.000    0.000 stat.py:40(S_ISDIR)
+    59179    0.012    0.000    0.018    0.000 string.py:227(upper)
+      548    0.002    0.000    0.002    0.000 twodim_base.py:169(eye)
+    30591    0.004    0.000    0.004    0.000 {abs}
+       41    0.003    0.000    0.140    0.003 {filter}
+    75590    0.007    0.000    0.007    0.000 {getattr}
+   255710    0.061    0.000    0.061    0.000 {isinstance}
+     8180    0.002    0.000    0.002    0.000 {issubclass}
+    69367    0.005    0.000    0.005    0.000 {len}
+        6    0.001    0.000    0.001    0.000 {map}
+     1092    0.000    0.000    0.000    0.000 {math.atan}
+    23983    0.004    0.000    0.004    0.000 {math.cos}
+    60660    0.008    0.000    0.008    0.000 {math.sin}
+   115628    0.026    0.000    0.026    0.000 {math.sqrt}
+    29610    0.004    0.000    0.004    0.000 {math.tan}
+     1644    0.000    0.000    0.000    0.000 {max}
+     1096    0.000    0.000    0.000    0.000 {method '__array_prepare__' of 'numpy.ndarray' objects}
+   185153    0.012    0.000    0.012    0.000 {method 'append' of 'list' objects}
+      548    0.001    0.000    0.001    0.000 {method 'astype' of 'numpy.ndarray' objects}
+       58    0.090    0.002    0.090    0.002 {method 'close' of 'file' objects}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        6    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
+     3288    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+       43    0.000    0.000    0.000    0.000 {method 'index' of 'list' objects}
+     1091    0.002    0.000    0.002    0.000 {method 'keys' of 'dict' objects}
+     3248    0.000    0.000    0.000    0.000 {method 'lower' of 'str' objects}
+    19186    0.007    0.000    0.180    0.000 {method 'mean' of 'numpy.ndarray' objects}
+     3008    0.001    0.000    0.001    0.000 {method 'ravel' of 'numpy.ndarray' objects}
+    14215    0.002    0.000    0.002    0.000 {method 'replace' of 'str' objects}
+       37    0.001    0.000    0.001    0.000 {method 'sort' of 'list' objects}
+     3368    0.006    0.000    0.006    0.000 {method 'split' of 'str' objects}
+     3358    0.000    0.000    0.000    0.000 {method 'startswith' of 'str' objects}
+     1096    0.000    0.000    0.000    0.000 {method 'transpose' of 'numpy.ndarray' objects}
+    93777    0.009    0.000    0.009    0.000 {method 'upper' of 'str' objects}
+    17948    0.014    0.000    0.014    0.000 {method 'write' of 'file' objects}
+    11356    0.002    0.000    0.002    0.000 {min}
+        1    0.000    0.000    0.000    0.000 {nt.stat}
+     2192    0.004    0.000    0.004    0.000 {numpy.core._dotblas.dot}
+     2192    0.003    0.000    0.003    0.000 {numpy.core.multiarray._fastCopyAndTranspose}
+    32132    0.106    0.000    0.106    0.000 {numpy.core.multiarray.array}
+     1664    0.001    0.000    0.001    0.000 {numpy.core.multiarray.zeros}
+      548    0.002    0.000    0.002    0.000 {numpy.linalg.lapack_lite.dgesv}
+     1096    0.002    0.000    0.002    0.000 {numpy.linalg.lapack_lite.dgetrf}
+       60    0.059    0.001    0.059    0.001 {open}
+    10393    0.004    0.000    0.004    0.000 {range}
+      350    0.000    0.000    0.000    0.000 {setattr}
+	  
+
+##################################################################################################     
+GetLLM_dev.py  29.04.2013
+################################################################################################## 	  
+	  
+1657129 function calls in 3.265 CPU seconds
+
+   Ordered by: standard name
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.005    0.005    3.265    3.265 <string>:1(<module>)
+     2148    0.049    0.000    0.053    0.000 GetLLM_dev.py:1101(ComplexSecondaryLine)
+      538    0.019    0.000    0.020    0.000 GetLLM_dev.py:1114(ComplexSecondaryLineExtended)
+        1    0.024    0.024    0.277    0.277 GetLLM_dev.py:1160(GetCoupling2)
+        2    0.010    0.005    0.011    0.006 GetLLM_dev.py:1576(Getquadrupole)
+        1    0.013    0.013    0.215    0.215 GetLLM_dev.py:1631(Getsextupole)
+      536    0.021    0.000    0.021    0.000 GetLLM_dev.py:1928(computeChiTerms)
+       41    0.009    0.000    0.012    0.000 GetLLM_dev.py:195(modelIntersect)
+        1    0.013    0.013    0.336    0.336 GetLLM_dev.py:1971(getChiTerms)
+        1    0.009    0.009    0.132    0.132 GetLLM_dev.py:2156(getchi1010)
+       37    0.007    0.000    0.147    0.004 GetLLM_dev.py:216(intersect)
+    22058    0.135    0.000    0.135    0.000 GetLLM_dev.py:226(<lambda>)
+        1    0.000    0.000    0.061    0.061 GetLLM_dev.py:2297(getkick)
+        8    0.001    0.000    0.001    0.000 GetLLM_dev.py:2342(BPMfinder)
+        8    0.000    0.000    0.001    0.000 GetLLM_dev.py:2372(getIP)
+       12    0.000    0.000    0.000    0.000 GetLLM_dev.py:239(phiLastAndLastButOne)
+        2    0.002    0.001    0.011    0.006 GetLLM_dev.py:2436(GetIP2)
+    12124    0.241    0.000    0.728    0.000 GetLLM_dev.py:248(PhaseMean)
+        3    0.000    0.000    0.000    0.000 GetLLM_dev.py:2519(GetIPFromPhase)
+        1    0.013    0.013    0.014    0.014 GetLLM_dev.py:2578(getCandGammaQmin)
+     7824    0.154    0.000    0.473    0.000 GetLLM_dev.py:259(PhaseStd)
+        2    0.005    0.002    0.006    0.003 GetLLM_dev.py:2652(getFreeBeta)
+        1    0.001    0.001    0.001    0.001 GetLLM_dev.py:2689(getFreeCoupling)
+        2    0.009    0.004    0.154    0.077 GetLLM_dev.py:269(GetPhasesTotal)
+        4    0.005    0.001    0.005    0.001 GetLLM_dev.py:2748(getFreeAmpBeta)
+        2    0.003    0.002    0.004    0.002 GetLLM_dev.py:2780(getfreephase)
+        2    0.004    0.002    0.004    0.002 GetLLM_dev.py:2819(getfreephaseTotal)
+        3    0.000    0.000    0.000    0.000 GetLLM_dev.py:2852(GetFreeIP2)
+        2    0.000    0.000    0.000    0.000 GetLLM_dev.py:2884(GetACPhase_AC2BPMAC)
+        2    0.009    0.004    0.149    0.075 GetLLM_dev.py:2908(GetFreePhaseTotal_Eq)
+        2    0.010    0.005    0.280    0.140 GetLLM_dev.py:2968(GetFreePhase_Eq)
+        4    0.025    0.006    0.105    0.026 GetLLM_dev.py:3042(GetFreeBetaFromAmp_Eq)
+        1    0.037    0.037    0.343    0.343 GetLLM_dev.py:3112(GetFreeCoupling_Eq)
+        2    0.019    0.010    0.318    0.159 GetLLM_dev.py:313(GetPhases)
+        2    0.003    0.001    0.012    0.006 GetLLM_dev.py:3322(GetFreeIP2_Eq)
+        1    0.000    0.000    0.052    0.052 GetLLM_dev.py:3433(getkickac)
+        4    0.000    0.000    0.000    0.000 GetLLM_dev.py:3473(filterbpm)
+        1    0.000    0.000    0.000    0.000 GetLLM_dev.py:3488(_fix_output)
+        1    0.203    0.203    3.260    3.260 GetLLM_dev.py:3549(main)
+        4    0.231    0.058    0.271    0.068 GetLLM_dev.py:463(BetaFromPhase)
+        9    0.099    0.011    0.278    0.031 GetLLM_dev.py:646(BetaFromAmplitude)
+        2    0.007    0.004    0.015    0.008 GetLLM_dev.py:729(GetCO)
+     2690    0.008    0.000    0.081    0.000 _methods.py:100(_std)
+        2    0.000    0.000    0.000    0.000 _methods.py:16(_sum)
+   114226    0.164    0.000    0.176    0.000 _methods.py:32(_count_reduce_items)
+   111536    0.698    0.000    1.026    0.000 _methods.py:42(_mean)
+     2690    0.049    0.000    0.072    0.000 _methods.py:60(_var)
+     1097    0.001    0.000    0.001    0.000 fromnumeric.py:108(reshape)
+     3008    0.002    0.000    0.005    0.000 fromnumeric.py:1087(ravel)
+        2    0.000    0.000    0.000    0.000 fromnumeric.py:1422(sum)
+    92350    0.067    0.000    0.920    0.000 fromnumeric.py:2405(mean)
+     2690    0.005    0.000    0.086    0.000 fromnumeric.py:2491(std)
+      548    0.000    0.000    0.000    0.000 fromnumeric.py:446(transpose)
+     2152    0.007    0.000    0.010    0.000 function_base.py:1072(angle)
+     2460    0.007    0.000    0.013    0.000 function_base.py:3633(append)
+    19186    0.035    0.000    0.236    0.000 function_base.py:412(average)
+        1    0.000    0.000    0.000    0.000 genericpath.py:38(isdir)
+     1644    0.002    0.000    0.002    0.000 linalg.py:127(_to_native_byte_order)
+     1644    0.002    0.000    0.005    0.000 linalg.py:139(_fastCopyAndTranspose)
+     1644    0.001    0.000    0.001    0.000 linalg.py:151(_assertRank2)
+     1644    0.001    0.000    0.002    0.000 linalg.py:157(_assertSquareness)
+     1096    0.004    0.000    0.017    0.000 linalg.py:1588(slogdet)
+     1096    0.004    0.000    0.021    0.000 linalg.py:1670(det)
+      548    0.003    0.000    0.015    0.000 linalg.py:244(solve)
+      548    0.001    0.000    0.020    0.000 linalg.py:404(inv)
+     1644    0.001    0.000    0.002    0.000 linalg.py:66(_makearray)
+     3836    0.001    0.000    0.002    0.000 linalg.py:71(isComplexType)
+     3288    0.001    0.000    0.001    0.000 linalg.py:84(_realType)
+     1644    0.003    0.000    0.006    0.000 linalg.py:99(_commonType)
+        1    0.169    0.169    0.170    0.170 metaclass.py:232(chiterms)
+        1    0.024    0.024    0.085    0.085 metaclass.py:322(Cmatrix)
+        4    0.075    0.019    0.095    0.024 metaclass.py:79(__init__)
+      548    0.001    0.000    0.003    0.000 numeric.py:1884(identity)
+    27086    0.021    0.000    0.021    0.000 numeric.py:252(asarray)
+   116686    0.133    0.000    0.133    0.000 numeric.py:322(asanyarray)
+        1    0.000    0.000    0.000    0.000 stat.py:24(S_IFMT)
+        1    0.000    0.000    0.000    0.000 stat.py:40(S_ISDIR)
+    59179    0.012    0.000    0.018    0.000 string.py:227(upper)
+      548    0.002    0.000    0.002    0.000 twodim_base.py:169(eye)
+    30591    0.004    0.000    0.004    0.000 {abs}
+       41    0.003    0.000    0.138    0.003 {filter}
+    56190    0.005    0.000    0.005    0.000 {getattr}
+   255710    0.061    0.000    0.061    0.000 {isinstance}
+     8180    0.002    0.000    0.002    0.000 {issubclass}
+    65058    0.004    0.000    0.004    0.000 {len}
+        6    0.001    0.000    0.001    0.000 {map}
+     1092    0.000    0.000    0.000    0.000 {math.atan}
+    23983    0.004    0.000    0.004    0.000 {math.cos}
+    60660    0.008    0.000    0.008    0.000 {math.sin}
+   115628    0.026    0.000    0.026    0.000 {math.sqrt}
+    29610    0.004    0.000    0.004    0.000 {math.tan}
+     1644    0.000    0.000    0.000    0.000 {max}
+     1096    0.000    0.000    0.000    0.000 {method '__array_prepare__' of 'numpy.ndarray' objects}
+   166827    0.011    0.000    0.011    0.000 {method 'append' of 'list' objects}
+      548    0.001    0.000    0.001    0.000 {method 'astype' of 'numpy.ndarray' objects}
+       56    0.059    0.001    0.059    0.001 {method 'close' of 'file' objects}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        6    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
+     3288    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+       43    0.000    0.000    0.000    0.000 {method 'index' of 'list' objects}
+     1091    0.003    0.000    0.003    0.000 {method 'keys' of 'dict' objects}
+     2172    0.000    0.000    0.000    0.000 {method 'lower' of 'str' objects}
+    19186    0.008    0.000    0.181    0.000 {method 'mean' of 'numpy.ndarray' objects}
+     3008    0.001    0.000    0.001    0.000 {method 'ravel' of 'numpy.ndarray' objects}
+     9907    0.002    0.000    0.002    0.000 {method 'replace' of 'str' objects}
+       37    0.001    0.000    0.001    0.000 {method 'sort' of 'list' objects}
+     2280    0.004    0.000    0.004    0.000 {method 'split' of 'str' objects}
+     2274    0.000    0.000    0.000    0.000 {method 'startswith' of 'str' objects}
+     1096    0.000    0.000    0.000    0.000 {method 'transpose' of 'numpy.ndarray' objects}
+    92701    0.009    0.000    0.009    0.000 {method 'upper' of 'str' objects}
+    17948    0.013    0.000    0.013    0.000 {method 'write' of 'file' objects}
+    11356    0.002    0.000    0.002    0.000 {min}
+        1    0.000    0.000    0.000    0.000 {nt.stat}
+     2192    0.004    0.000    0.004    0.000 {numpy.core._dotblas.dot}
+     2192    0.003    0.000    0.003    0.000 {numpy.core.multiarray._fastCopyAndTranspose}
+    32100    0.104    0.000    0.104    0.000 {numpy.core.multiarray.array}
+     1664    0.001    0.000    0.001    0.000 {numpy.core.multiarray.zeros}
+      548    0.002    0.000    0.002    0.000 {numpy.linalg.lapack_lite.dgesv}
+     1096    0.002    0.000    0.002    0.000 {numpy.linalg.lapack_lite.dgetrf}
+       58    0.003    0.000    0.003    0.000 {open}
+     9314    0.003    0.000    0.003    0.000 {range}
+      280    0.000    0.000    0.000    0.000 {setattr}
