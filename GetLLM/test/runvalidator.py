@@ -67,7 +67,7 @@ class RunValidator(object):
         # Check model file
         self.__model_name = os.path.join(self.__run_path, RELATIVE_PATH_TO_MODEL)
         if not os.path.isfile(self.__model_name):
-            return "No model file were found: "+self.__model_name
+            return "No model file was found: "+self.__model_name
         
         # Check names of src files
         path_src_file_directory = os.path.join(self.__run_path, 

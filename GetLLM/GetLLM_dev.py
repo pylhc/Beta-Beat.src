@@ -325,6 +325,7 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
 
     commonbpms=intersect(ListOfFiles)
     commonbpms=modelIntersect(commonbpms, MADTwiss)
+    length_commonbpms = len(commonbpms)
     #print len(commonbpms)
     #sys.exit()
 
@@ -337,50 +338,47 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
     mu=0.0
     tunem=[]
     phase={} # Dictionary for the output containing [average phase, rms error]
-    for i in range(0,len(commonbpms)): # To find the integer part of tune as well, the loop is up to the last monitor
-        #TODO: make it easier with modulo(vimaier)
-        if i==len(commonbpms)-2: # The last monitor but one
-            bn1=upper(commonbpms[i][1])
-            bn2=upper(commonbpms[i+1][1])
-            bn3=upper(commonbpms[0][1])
-        elif i==len(commonbpms)-1: # The last monitor
-            bn1=upper(commonbpms[i][1])
-            bn2=upper(commonbpms[0][1])
-            bn3=upper(commonbpms[1][1])
-        else : # Others
-            bn1=upper(commonbpms[i][1])
-            bn2=upper(commonbpms[i+1][1])
-            bn3=upper(commonbpms[i+2][1])
-        if (bn1==bn2):
+    for i in range(0,length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
+        bn1=upper(commonbpms[i%length_commonbpms][1])
+        bn2=upper(commonbpms[(i+1)%length_commonbpms][1])
+        bn3=upper(commonbpms[(i+2)%length_commonbpms][1])
+        
+        if bn1 == bn2 :
             print >> sys.stderr, "There seem two lines with the same BPM name "+bn1+" in linx/y file."
             print >> sys.stderr, "Please check your input data....leaving GetLLM."
             sys.exit(1)
-        if plane=='H':
-            phmdl12=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
-            phmdl13=MADTwiss.MUX[MADTwiss.indx[bn3]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
-        elif plane=='V':
-            phmdl12=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
-            phmdl13=MADTwiss.MUY[MADTwiss.indx[bn3]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
-        if i==len(commonbpms)-2:
-            if plane=='H':
-                madtune=MADTwiss.Q1 % 1.0
-            elif plane=='V':
-                madtune=MADTwiss.Q2 % 1.0
+            
+        if plane == 'H':
+            phmdl12 = MADTwiss.MUX[MADTwiss.indx[bn2]] - MADTwiss.MUX[MADTwiss.indx[bn1]]
+            phmdl13 = MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn1]]
+        elif plane == 'V':
+            phmdl12 = MADTwiss.MUY[MADTwiss.indx[bn2]] - MADTwiss.MUY[MADTwiss.indx[bn1]]
+            phmdl13 = MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn1]]
+            
+        if i == length_commonbpms-2:
+            if plane == 'H':
+                madtune = MADTwiss.Q1 % 1.0
+            elif plane == 'V':
+                madtune = MADTwiss.Q2 % 1.0
+            
+            if madtune > 0.5:
+                madtune -= 1.0
+            
+            phmdl13 = phmdl13 % 1.0
+            phmdl13 = phiLastAndLastButOne(phmdl13,madtune)
+        elif i == length_commonbpms-1:
+            if plane == 'H':
+                madtune = MADTwiss.Q1 % 1.0
+            elif plane == 'V':
+                madtune = MADTwiss.Q2 % 1.0
+            
             if madtune>0.5:
-                madtune=madtune-1.0
-            phmdl13=phmdl13 % 1.0
-            phmdl13=phiLastAndLastButOne(phmdl13,madtune)
-        elif i==len(commonbpms)-1:
-            if plane=='H':
-                madtune=MADTwiss.Q1 % 1.0
-            elif plane=='V':
-                madtune=MADTwiss.Q2 % 1.0
-            if madtune>0.5:
-                madtune=madtune-1.0
-            phmdl12=phmdl12 % 1.0
-            phmdl13=phmdl13 % 1.0
-            phmdl12=phiLastAndLastButOne(phmdl12,madtune)
-            phmdl13=phiLastAndLastButOne(phmdl13,madtune)
+                madtune -= 1.0
+            
+            phmdl12 = phmdl12 % 1.0
+            phmdl13 = phmdl13 % 1.0
+            phmdl12 = phiLastAndLastButOne(phmdl12,madtune)
+            phmdl13 = phiLastAndLastButOne(phmdl13,madtune)
 
 
 
@@ -431,15 +429,15 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
         #phi12=average(phi12)
         #phi13=average(phi13)
         tunemi=array(tunemi)
-        if i<len(commonbpms)-1 :
+        if i<length_commonbpms-1 :
             tunem.append(average(tunemi))
 
         # Note that the phase advance between the last monitor and the first monitor should be find by taking into account the fractional part of tune.
-        if i==len(commonbpms)-2:
+        if i==length_commonbpms-2:
             tunem=array(tunem)
             tune=average(tunem)
             phi13=phiLastAndLastButOne(phi13,tune)
-        elif i==len(commonbpms)-1:
+        elif i==length_commonbpms-1:
             phi12=phiLastAndLastButOne(phi12,tune)
             phi13=phiLastAndLastButOne(phi13,tune)
         mu=mu+phi12
@@ -2214,7 +2212,8 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
     Qx=j.Q1+dpp*j.DQ1
     Qy=j.Q2+dpp*j.DQ2
 
-    ftemp=open("./TempTwiss.dat","w")
+    ftemp_name = "./TempTwiss.dat"
+    ftemp=open(ftemp_name,"w")
     ftemp.write("@ Q1 %le "+str(Qx)+"\n")
     ftemp.write("@ Q2 %le "+str(Qy)+"\n")
     ftemp.write("@ DPP %le "+str(dpp)+"\n")
@@ -2244,8 +2243,11 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
         ftemp.write('"'+bn+'" '+str(bns)+" "+str(NBETX)+" "+str(NBETY)+" "+str(NALFX)+" "+str(NALFY)+" "+str(NMUX)+" "+str(NMUY)+"\n")
 
     ftemp.close()
+    dpptwiss=metaclass.twiss(ftemp_name,dictionary)
+    
     #TODO: What's about deleting? (vimaier)
-    dpptwiss=metaclass.twiss("./TempTwiss.dat",dictionary)
+    # Delete temp file again
+    os.remove(ftemp_name)
     
 
     return dpptwiss

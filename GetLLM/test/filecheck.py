@@ -315,7 +315,7 @@ def main():
     for i in del_lst:
         del sys.argv[i]
         
-    
+    # Run the test
     text_test_runner = unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
     
     if 0 != len(text_test_runner.errors):
