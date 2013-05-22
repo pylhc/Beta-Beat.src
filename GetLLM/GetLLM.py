@@ -3516,7 +3516,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
      :param higher_order: output higher order resonance stuff
     '''
 
-    print "Starting GetLLM ", VERSION
+    print "Starting Andys GetLLM ", VERSION
 
     outputpath = _fix_output(outputpath)
 
