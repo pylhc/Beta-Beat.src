@@ -43,6 +43,7 @@ import shutil
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join( os.path.dirname(os.path.abspath(__file__)),"../../../Python_Classes4MAD" ))
 import vimaier_utils.scriptrunner
+import vimaier_utils.IoUtils
 import runvalidator
 
 #===================================================================================================
@@ -168,10 +169,10 @@ class TestFileOutputGetLLM(unittest.TestCase):
         :Return: boolean
             True if the test run successfully otherwise False.     
         """
-        # Create separate output folder if wanted
         valid_output_path = run_validator.get_valid_output_path()
         to_check_output_path = run_validator.get_to_check_output_path()
         
+        # Create separate output folder if wanted
         if "" != SPECIAL_OUTPUT:
             valid_output_path = os.path.join(SPECIAL_OUTPUT,
                                              run_validator.get_run_dir_name(),
@@ -192,6 +193,9 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
         if CREATE_VALID_OUTPUT or run_validator.has__no_valid_output_files():
             # Run original/valid script
+            print "Deleting old output in "+valid_output_path
+            if not vimaier_utils.IoUtils.deleteFilesWithoutGitignore(valid_output_path):
+                print >> sys.stderr,"Could not delete old output files. Will run anyway..."
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
                                                 GETLLM_SCRIPT_VALID, dict_args)
             print "Starting GetLLM_valid.py("+run_validator.get_run_path()+")..."
@@ -203,6 +207,9 @@ class TestFileOutputGetLLM(unittest.TestCase):
         dict_args["-o"] = to_check_output_path
         
         script_runner = vimaier_utils.scriptrunner.ScriptRunner(GETLLM_SCRIPT, dict_args)
+        print "Deleting old output in "+to_check_output_path
+        if not vimaier_utils.IoUtils.deleteFilesWithoutGitignore(to_check_output_path):
+            print >> sys.stderr,"Could not delete old output files. Will run anyway..."
         print "Starting GetLLM.py("+run_validator.get_run_path()+")..."
         errorcode = script_runner.run_script()
         print "GetLLM.py finished("+run_validator.get_run_path()+")..."
