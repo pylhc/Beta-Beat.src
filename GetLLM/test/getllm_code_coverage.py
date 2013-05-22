@@ -15,7 +15,7 @@ Change history:
 '''
 
 
-import GetLLM_dev as GetLLM
+import GetLLM
 
 # Global variables
 my_outputpath = ""

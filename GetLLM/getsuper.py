@@ -1,13 +1,12 @@
 
 ###### imports
 from optparse import OptionParser
-import os,sys,shutil,commands,subprocess,re
+import os,sys,shutil,subprocess,re
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-from math import sqrt,cos,sin,pi,atan2
-from datetime import date
+import math
 from metaclass import twiss
-from linreg import *
+import linreg
 
 ##
 # YIL changes v 3.1:
@@ -25,13 +24,13 @@ class chromFileWriter:
         :param overwrite: Overwrite file if it already exist
         '''
         self.fstream=file(fname,'w')
-        self._clen=17 # column length..
+        self._clen=19 # column length..
 
         if plane.upper()=="H":
             plane="X"
         elif plane.upper()=="V":
             plane="Y"
-        
+
         if os.path.isfile(fname) and not overwrite:
             raise ValueError("Cannot overwrite file "+fname)
 
@@ -40,7 +39,11 @@ class chromFileWriter:
                     'A','Aerr','Am','Aerrm','B','Berr','Bm','Berrm', 'dbbm','dbberrm',
                     'dam','daerrm']
         couplecolumns=['name', 'sloc', 'chr_f1001r', 'chr_err_f1001r', 'chr_f1001i',
-            'chr_err_f1001i', 'chr_f1010r', 'chr_err_f1010r', 'chr_f1010i', 'chr_err_f1010i']
+            'chr_f1001r', 'chr_err_f1001r', 'chr_f1001i', 'chr_err_f1001i',
+            'chr_f1010r', 'chr_err_f1010r', 'chr_f1010i', 'chr_err_f1010i',
+            'mdl_chr_f1001r', 'mdl_chr_err_f1001r', 'mdl_chr_f1001i', 'mdl_chr_err_f1001i',
+            'mdl_chr_f1010r', 'mdl_chr_err_f1010r', 'mdl_chr_f1010i', 'mdl_chr_err_f1010i',
+          ]
 
         headnames={
             'name':'NAME',
@@ -78,7 +81,15 @@ class chromFileWriter:
             'chr_f1010r':'Cf1010r',
             'chr_err_f1010r':'Cf1010rERR',
             'chr_f1010i':'Cf1010i',
-            'chr_err_f1010i':'Cf1010iERR'}
+            'chr_err_f1010i':'Cf1010iERR',
+            'mdl_chr_f1001r':'Cf1001r_MDL',
+            'mdl_chr_err_f1001r':'Cf1001rERR_MDL',
+            'mdl_chr_f1001i':'Cf1001i_MDL',
+            'mdl_chr_err_f1001i':'Cf1001iERR_MDL',
+            'mdl_chr_f1010r':'Cf1010r_MDL',
+            'mdl_chr_err_f1010r':'Cf1010rERR_MDL',
+            'mdl_chr_f1010i':'Cf1010i_MDL',
+            'mdl_chr_err_f1010i':'Cf1010iERR_MDL'}
         headtypes={'name':'%s'}
         for key in headnames:
             # for all others we use '%le'...
@@ -98,9 +109,9 @@ class chromFileWriter:
         headcount=[i+1 for i in xrange(len(self.head))]
         self.types=[headtypes[c] for c in self.columns]
         
-        self.head[0]='* '+(self.head[0].rjust(self._clen-2))
-        headcount[0]='# '+(str(headcount[0]).rjust(self._clen-2))
-        self.types[0]='$ '+(self.types[0].rjust(self._clen-2))
+        self.head[0]='* '+(self.head[0].rjust(self._clen-3))
+        headcount[0]='# '+(str(headcount[0]).rjust(self._clen-3))
+        self.types[0]='$ '+(self.types[0].rjust(self._clen-3))
         
         self._write_list(self.head)
         # According to SL-CO-Note-91-32, this is allowed...
@@ -267,7 +278,7 @@ def madcreator(dpps,options):
 def append(files):
     return ','.join(files)
 
-def filenames(options,dpp=''):
+def filenames(dpp=''):
     '''
     Returns list of available file names
     for the given dpp.
@@ -295,10 +306,7 @@ def rungetllm(twissfile,accel,technique,files,options,dpp):
         print "GetLLM_V"+options.llm_version+" as GetLLM"
         exec("import GetLLM_V"+options.llm_version+" as GetLLM")
     else:
-        if __file__.split('.')[-2][-4:]=='_dev':
-            import GetLLM_dev as GetLLM
-        else:
-            import GetLLM
+        import GetLLM
 
     print "Will run getllm for ",dpp #, command
 
@@ -309,12 +317,12 @@ def rungetllm(twissfile,accel,technique,files,options,dpp):
             TBTana=technique)
     print "GetLLM finished"
 
-    for fname in filenames(options):
+    for fname in filenames():
             v=fname.strip('.out')
             shutil.move(options.output+'/'+fname,options.output+'/'+v+'_'+str(dpp)+'.out')
 
 def copy_default_outfiles(options):
-    for fname in filenames(options,'0.0'):
+    for fname in filenames('0.0'):
         v=fname.strip('_0.0.out')
         shutil.copy(options.output+'/'+fname,options.output+'/'+v+'.out')
 
@@ -325,7 +333,7 @@ def modelIntersect(expbpms, model):
     bpmsin=[]
     for bpm in expbpms:
         try:
-            check=model.indx[bpm[1].upper()]
+            model.indx[bpm[1].upper()]
             bpmsin.append(bpm)
         except:
             print bpm, "Not in Model"
@@ -355,7 +363,6 @@ def intersect(ListOfFile):
     result.sort()
     return result
 
-#linreg
 def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
     '''
     Calculates stuff and writes to the file in a table
@@ -399,27 +406,27 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
             wmo=twiss.WY[twiss.indx[name]]
             pmo=twiss.PHIY[twiss.indx[name]]
         for dpp in listx:
-            file=listy[dpp]
-            ix=file.indx[name]
+            _file=listy[dpp]
+            ix=_file.indx[name]
             indx.append(ix)
             if "H" in plane:
-                b.append(file.BETX[ix])
-                a.append(file.ALFX[ix])
+                b.append(_file.BETX[ix])
+                a.append(_file.ALFX[ix])
 
-                bm.append(file.BETXMDL[file.indx[name]])
-                am.append(file.ALFXMDL[file.indx[name]])
+                bm.append(_file.BETXMDL[_file.indx[name]])
+                am.append(_file.ALFXMDL[_file.indx[name]])
             else:
-                b.append(file.BETY[ix])
-                a.append(file.ALFY[ix])
+                b.append(_file.BETY[ix])
+                a.append(_file.ALFY[ix])
 
-                bm.append(file.BETYMDL[file.indx[name]])
-                am.append(file.ALFYMDL[file.indx[name]])
+                bm.append(_file.BETYMDL[_file.indx[name]])
+                am.append(_file.ALFYMDL[_file.indx[name]])
 
-        bfit=linreg(listx, b)
-        afit=linreg(listx, a)
+        bfit=linreg.linreg(listx, b)
+        afit=linreg.linreg(listx, a)
 
-        bfitm=linreg(listx, bm)
-        afitm=linreg(listx, am)
+        bfitm=linreg.linreg(listx, bm)
+        afitm=linreg.linreg(listx, am)
 
         # measurement
         dbb=bfit[0]/beta0
@@ -429,11 +436,11 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         A=dbb
         Aerr=dbberr
         B=da-alfa0*dbb
-        Berr=sqrt(daerr**2 + (alfa0err*dbb)**2 + (alfa0*dbberr)**2)
-        w=0.5*sqrt(A**2+B**2)
-        werr=0.5*sqrt( (Aerr*A/w)**2 + (Berr*B/w)**2  )
-        phi=atan2(B,A)/2./pi
-        phierr=1./(1.+(A/B)**2)*sqrt( (Aerr/B)**2 + (A/B**2*Berr)**2)/2./pi
+        Berr=math.sqrt(daerr**2 + (alfa0err*dbb)**2 + (alfa0*dbberr)**2)
+        w=0.5*math.sqrt(A**2+B**2)
+        werr=0.5*math.sqrt( (Aerr*A/w)**2 + (Berr*B/w)**2  )
+        phi=math.atan2(B,A)/2./math.pi
+        phierr=1./(1.+(A/B)**2)*math.sqrt( (Aerr/B)**2 + (A/B**2*Berr)**2)/2./math.pi
 
         #model
         dbbm=bfitm[0]/beta0m
@@ -443,38 +450,39 @@ def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
         Am=dbbm
         Aerrm=dbberrm
         Bm=dam-alfa0m*dbbm
-        Berrm=sqrt(daerrm**2 + (alfa0m*dbberrm)**2)
-        wm=0.5*sqrt(Am**2+Bm**2)
-        werrm=0.5*sqrt( (Aerrm*Am/wm)**2 + (Berrm*Bm/wm)**2  )
-        phim=atan2(Bm,Am)/2./pi
-        phierrm=1./(1.+(Am/Bm)**2)*sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./pi
+        Berrm=math.sqrt(daerrm**2 + (alfa0m*dbberrm)**2)
+        wm=0.5*math.sqrt(Am**2+Bm**2)
+        werrm=0.5*math.sqrt( (Aerrm*Am/wm)**2 + (Berrm*Bm/wm)**2  )
+        phim=math.atan2(Bm,Am)/2./math.pi
+        phierrm=1./(1.+(Am/Bm)**2)*math.sqrt( (Aerrm/Bm)**2 + (Am/Bm**2*Berrm)**2)/2./math.pi
 
         fileobj.writeLine(locals().copy())
 
-def getC(couplefile,name):
+
+def get_f( couplelist, dpplist, bpm_name, value):
     '''
-    Returns the complex variables f1001,f1010 from
-    the couplefile.
+    calculates the linear regression of 'value' for each
+    dpp in dpplist
+
+    :param couplelist: list of getcouple files (for each dpp)
+    :param dpplist: list of all dpp values available
+    :param bpm_name: name of bpm
+    :param value: name of column (e.g. F1001R)
     '''
+    lst=[]
+    x=[]
+    for dpp in dpplist:
+        x.append(dpp)
+        couplefile=couplelist[dpp]
+        lst.append( getattr(couplefile, value)[ couplefile.indx[ bpm_name]])
+    lreg=linreg.linreg(x,lst)
+    return lreg[0],lreg[3]
 
-
-    f1001R=couplefile.F1001R[couplefile.indx[name]]
-    f1001I=couplefile.F1001I[couplefile.indx[name]]
-    f1010R=couplefile.F1010R[couplefile.indx[name]]
-    f1010I=couplefile.F1010I[couplefile.indx[name]]
-
-    f1001,f1010=complex(f1001R,f1001I),complex(f1010R,f1010I)
-    return f1001,f1010
-    #down=f1001-f1010
-    #c=1-(1/(1+4*down))
-
-    #return c.real,c.imag
-
-def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
+def dolinregCoupling(couplelist,bpms,dpplist,fileobj):
     '''
     linreg for chromatic coupling
-    
-    Writes to fileobj the chromatic coupling. 
+
+    Writes to fileobj the chromatic coupling.
     f1001, f1010 derivatives wrt dp/p, and errors.
     '''
     for bpm in bpms:
@@ -482,28 +490,17 @@ def dolinregCoupling(couplelist,bpms,dpplist,fileobj,model):
         name=bpm[1]
         sloc=bpm[0]
 
-        x=[]
-        f1001r=[]
-        f1001i=[]
-        f1010r=[]
-        f1010i=[]
 
-        for dpp in dpplist:
+        chr_f1001r, chr_err_f1001r = get_f( couplelist, dpplist, name, 'F1001R')
+        chr_f1001i, chr_err_f1001i = get_f( couplelist, dpplist, name, 'F1001I')
+        chr_f1010r, chr_err_f1010r = get_f( couplelist, dpplist, name, 'F1010R')
+        chr_f1010i, chr_err_f1010i = get_f( couplelist, dpplist, name, 'F1010I')
 
-            f1001,f1010=getC(couplelist[dpp],name)
+        mdl_chr_f1001r, mdl_chr_err_f1001r = get_f( couplelist, dpplist, name, 'MDLF1001R')
+        mdl_chr_f1001i, mdl_chr_err_f1001i = get_f( couplelist, dpplist, name, 'MDLF1001I')
+        mdl_chr_f1010r, mdl_chr_err_f1010r = get_f( couplelist, dpplist, name, 'MDLF1010R')
+        mdl_chr_f1010i, mdl_chr_err_f1010i = get_f( couplelist, dpplist, name, 'MDLF1010I')
 
-            x.append(dpp)
-            f1001r.append(f1001.real)
-            f1001i.append(f1001.imag)
-            f1010r.append(f1010.real)
-            f1010i.append(f1010.imag)
-
-        fits=[linreg(x,f1001r),linreg(x,f1001i),linreg(x,f1010r),linreg(x,f1010i)]
-
-        chr_f1001r,chr_err_f1001r=fits[0][0],fits[0][3]
-        chr_f1001i,chr_err_f1001i=fits[1][0],fits[1][3]
-        chr_f1010r,chr_err_f1010r=fits[2][0],fits[2][3]
-        chr_f1010i,chr_err_f1010i=fits[3][0],fits[3][3]
 
         fileobj.writeLine(locals().copy())
 
@@ -655,7 +652,7 @@ def main(options,args):
 
 
         #except:
-         #       print "No free data"
+        #       print "No free data"
 
     #
     # driven beta
@@ -691,7 +688,7 @@ def main(options,args):
     bpms=intersect(listc)
     bpms=modelIntersect(bpms,modeld)
 
-    dolinregCoupling(couplelist,bpms,fileslist.keys(),fileobj,modeld)
+    dolinregCoupling(couplelist,bpms,fileslist.keys(),fileobj)
     del fileobj
 
     print "Driven coupling finished"
@@ -727,7 +724,7 @@ def main(options,args):
         bpms=intersect(listcf)
         bpms=modelIntersect(bpms,modelf)
 
-        dolinregCoupling(couplelistf,bpms,fileslist.keys(),fileobj,modelf)
+        dolinregCoupling(couplelistf,bpms,fileslist.keys(),fileobj)
 
 
         print "Free coupling finished"

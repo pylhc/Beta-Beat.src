@@ -17,7 +17,7 @@ import cProfile
 import pstats
 import time
 
-import GetLLM_dev as GetLLM  # @UnusedImport
+import GetLLM  # @UnusedImport
 
 # Global variables
 my_outputpath = "data/getsuper_all_three/output/to_check"
