@@ -460,7 +460,128 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
         phase[bn1]=[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2]
+        
+#TODO: Add correct phase advance for last to first BPM
+#TODO: Add exception for very small phase advance
+ 
+        bn1 = upper(commonbpms[i%len(commonbpms)][1])
+        bn2 = upper(commonbpms[(i+1)%len(commonbpms)][1])
+        bn3 = upper(commonbpms[(i+2)%len(commonbpms)][1])
+        bn4 = upper(commonbpms[(i+3)%len(commonbpms)][1])
+        bn5 = upper(commonbpms[(i+4)%len(commonbpms)][1])
+        bn6 = upper(commonbpms[(i+5)%len(commonbpms)][1])
+        bn7 = upper(commonbpms[(i+6)%len(commonbpms)][1])
 
+
+        phi12=[]
+        phi13=[]
+        phi14=[]
+        phi15=[]
+        phi16=[]
+        phi17=[]
+
+        for j in ListOfFiles:
+            # Phase is in units of 2pi
+            if plane=='H':
+                phm12=(j.MUX[j.indx[bn2]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                phm13=(j.MUX[j.indx[bn3]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM3
+                phm14=(j.MUX[j.indx[bn4]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM4
+                phm15=(j.MUX[j.indx[bn5]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM5
+                phm16=(j.MUX[j.indx[bn6]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM6
+                phm17=(j.MUX[j.indx[bn7]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM7
+            elif plane=='V':
+                phm12=(j.MUY[j.indx[bn2]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                phm13=(j.MUY[j.indx[bn3]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM3
+                phm14=(j.MUY[j.indx[bn4]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM4
+                phm15=(j.MUY[j.indx[bn5]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM5
+                phm16=(j.MUY[j.indx[bn6]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM6
+                phm17=(j.MUY[j.indx[bn7]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM7
+            #-- To fix the phase shift by Q in LHC
+            try:
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]] >s_lastbpm: phm12+= beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]] >s_lastbpm: phm13+= beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn4]] >s_lastbpm: phm14+= beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn5]] >s_lastbpm: phm15+= beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn6]] >s_lastbpm: phm16+= beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn7]] >s_lastbpm: phm17+= beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm: phm12+=-beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm: phm13+=-beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn4]]<=s_lastbpm: phm14+=-beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn5]]<=s_lastbpm: phm15+=-beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn6]]<=s_lastbpm: phm16+=-beam_direction*Q
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn7]]<=s_lastbpm: phm17+=-beam_direction*Q
+            except: pass
+            if phm12<0: phm12+=1
+            if phm13<0: phm13+=1
+            if phm14<0: phm14+=1
+            if phm15<0: phm15+=1
+            if phm16<0: phm16+=1
+            if phm17<0: phm17+=1
+            phi12.append(phm12)
+            phi13.append(phm13)
+            phi14.append(phm14)
+            phi15.append(phm15)
+            phi16.append(phm16)
+            phi17.append(phm17)
+
+        phi12=array(phi12)
+        phi13=array(phi13)
+        phi14=array(phi14)
+        phi15=array(phi15)
+        phi16=array(phi16)
+        phi17=array(phi17)
+        if beam_direction==-1: # for the beam circulating reversely to the model
+            phi12=1.0-phi12
+            phi13=1.0-phi13
+            phi14=1.0-phi14
+            phi15=1.0-phi15
+            phi16=1.0-phi16
+            phi17=1.0-phi17
+
+        phstd12=PhaseStd(phi12,1.0)
+        phstd13=PhaseStd(phi13,1.0)
+        phstd14=PhaseStd(phi14,1.0)
+        phstd15=PhaseStd(phi15,1.0)
+        phstd16=PhaseStd(phi16,1.0)
+        phstd17=PhaseStd(phi17,1.0)
+        phi12=PhaseMean(phi12,1.0)
+        phi13=PhaseMean(phi13,1.0)
+        phi14=PhaseMean(phi14,1.0)
+        phi15=PhaseMean(phi15,1.0)
+        phi16=PhaseMean(phi16,1.0)
+        phi17=PhaseMean(phi17,1.0)
+
+        if plane=='H':
+            phmdl12=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+            phmdl13=MADTwiss.MUX[MADTwiss.indx[bn3]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+            phmdl14=MADTwiss.MUX[MADTwiss.indx[bn4]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+            phmdl15=MADTwiss.MUX[MADTwiss.indx[bn5]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+            phmdl16=MADTwiss.MUX[MADTwiss.indx[bn6]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+            phmdl17=MADTwiss.MUX[MADTwiss.indx[bn7]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+        elif plane=='V':
+            phmdl12=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+            phmdl13=MADTwiss.MUY[MADTwiss.indx[bn3]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+            phmdl14=MADTwiss.MUY[MADTwiss.indx[bn4]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+            phmdl15=MADTwiss.MUY[MADTwiss.indx[bn5]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+            phmdl16=MADTwiss.MUY[MADTwiss.indx[bn6]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+            phmdl17=MADTwiss.MUY[MADTwiss.indx[bn7]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+ 
+        
+        if plane=='H':
+            phase["".join(['H',bn1,bn2])] = [phi12,phstd12,phmdl12]
+            phase["".join(['H',bn1,bn3])] = [phi13,phstd13,phmdl13]
+            phase["".join(['H',bn1,bn4])] = [phi14,phstd14,phmdl14]
+            phase["".join(['H',bn1,bn5])] = [phi15,phstd15,phmdl15]
+            phase["".join(['H',bn1,bn6])] = [phi16,phstd16,phmdl16]
+            phase["".join(['H',bn1,bn7])] = [phi17,phstd17,phmdl17]
+        elif plane=='V':
+            phase["".join(['V',bn1,bn2])] = [phi12,phstd12,phmdl12]
+            phase["".join(['V',bn1,bn3])] = [phi13,phstd13,phmdl13]
+            phase["".join(['V',bn1,bn4])] = [phi14,phstd14,phmdl14]
+            phase["".join(['V',bn1,bn5])] = [phi15,phstd15,phmdl15]
+            phase["".join(['V',bn1,bn6])] = [phi16,phstd16,phmdl16]
+            phase["".join(['V',bn1,bn7])] = [phi17,phstd17,phmdl17]
+            
     #print len(phase)
     #sys.exit()
 
