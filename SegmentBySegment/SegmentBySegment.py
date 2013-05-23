@@ -23,11 +23,13 @@
 #                                 - Adding  Total phase to the propagation (19/01/10)
 #                                 - Coupling propogation (20/01/10)
 #
+#  !=> SegementBySegment_0.27.py :- Fixing mistake of total phase (1/03/10)
+#                                 - Include real and imaginary part in the output of coupling (1/03/10)
 ###### imports
 from optparse import OptionParser
 from metaclass import twiss
 import os,sys
-from math import sqrt,cos,sin
+from math import sqrt,cos,sin,pi
 from datetime import date
 
 
@@ -73,7 +75,7 @@ parser.add_option("-z", "--switch", # assumes that output is same as input
                 metavar="switch", default="1", dest="switch")
 parser.add_option("-c", "--cuts", # assumes that output is same as input
                 help="cuts for beta,disp,coupling bbxm,bbym,bxe,bye,dxm,dym,dxe,dye,f1001e,f1010e",
-                metavar="cuts", default="0.1,0.1,10,10,2,2,0.5,0.5,5,5", dest="cuts")
+                metavar="cuts", default="0.5,0.5,0.8,0.8,10,10,0.5,0.5,5,5", dest="cuts")
 parser.add_option("-e", "--elementswitch", # assumes that output is same as input
                 help="switching between segment(0) or element (1)",
                 metavar="holyswitch", default="0", dest="holyswitch")
@@ -122,6 +124,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	bpms=[]
 	bpmcut=[]
 	bpmstranslate={}
+
 	
 	startloc=twiss.S[twiss.indx[startbpm]]
 	endloc=twiss.S[twiss.indx[endbpm]]
@@ -145,10 +148,13 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 		if cutswitch==0:
 
+			
+
 			if (loc>startloc and loc<endloc):
 
 				bpms.append(name)
-				bpmstranslate[name]=loc+twiss.LENGTH
+				#print "loc ",startloc,loc,endloc,startbpm,name,endbpm
+				bpmstranslate[name]=loc#+twiss.LENGTH
 
 
 		else:
@@ -156,16 +162,19 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			if (loc>startloc):
 				bpms.append(name)
 				bpmstranslate[name]=loc
-			elif (loc<endloc):
+			elif (loc<startloc):
 				bpmcut.append(name)
-				bpmstranslate[name]=loc
+				bpmstranslate[name]=loc+twiss.LENGTH
 
 	if cutswitch==1:
 		bpms=[startbpm]+bpms+bpmcut+[endbpm]
 		bpmstranslate[startbpm]=startloc
-		bpmstranslate[endbpm]=endloc
+		bpmstranslate[endbpm]=endloc+twiss.LENGTH
 	else:
-		bpms=[startbpm]+bpms+[endbpm]		
+		bpms=[startbpm]+bpms+[endbpm]
+
+	#print len(bpms)
+	#sys.exit()
 	
 
 	####### structure
@@ -178,7 +187,11 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	bpmscouple={}
 	bpmsc=[]
 
+	#print beta[2],beta[3],beta[4],beta[5]
+	#sys.exit()
+
 	for bpm in bpms:
+		
 
 		try:
                         #beta
@@ -204,7 +217,13 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			stdbetay=beta[1].STDBETY[beta[1].indx[bpm]]
 
 			errx=sqrt(errbetax**2+stdbetax**2)
+
+			errxper=errx/betxmdl
+		
+			
 			erry=sqrt(errbetay**2+stdbetay**2)
+
+			erryper=erry/betymdl
 
 			#ampbeta
 			ampbetax=ampbeta[0].BETX[ampbeta[0].indx[bpm]]
@@ -226,21 +245,28 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 			#print (betax-betxmdl)/betxmdl,beta[2]
 
-			print errx,beta[4],bpm
+			#print errx,beta[4],bpm
 
-			if (betax>0) and (betay>0) and (abs((betax-betxmdl)/betxmdl)<beta[2]) and (abs((betay-betymdl)/betymdl)<beta[3]) and (errx<beta[4]) and (erry<beta[5]) and ((betax-errx)>0) and ((betay-erry)>0):
+	
+
+			if (betax>0) and (betay>0) and (abs((betax-betxmdl)/betxmdl)<float(beta[2])) and (abs((betay-betymdl)/betymdl)<float(beta[3])) and (errxper<float(beta[4])) and (erryper<float(beta[5])) and ((betax-errx)>0) and ((betay-erry)>0) and (errx<betax) and (erry<betay):
 
 				#print "pass"
+				#print "error NOW", errxper,beta[4]
+				#if errxper<beta[4]:
+				#	print "NOW Is smaller"
 
 				bpmsbeta[bpm]=[bpmstranslate[bpm],betax,errx,alfax,erralfax,betay,erry,alfay,erralfay,ampbetax,stdbetax,ampbetay,stdbetay]
+				print bpm
 				bpmsb.append(bpm)
 
 
 			else:
-				print "BPM ",bpm," didnt pass cuts for beta"
+				print "BPM ",bpm," didnt pass cuts for beta",abs((betax-betxmdl)/betxmdl),errxper,abs((betay-betymdl)/betymdl),erryper
 
 		except:
-			print "BPM is not in the datafile for beta",bpm
+			print "BPM is not in the datafile for beta",
+
 
 		try:
 
@@ -295,10 +321,12 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 				f1010r=couple[0].F1010R[couple[0].indx[bpm]]
 				f1010i=couple[0].F1010I[couple[0].indx[bpm]]
 
+
 				#F1001W FWSTD1 F1001R F1001I F1010W FWSTD2 F1010R F1010I
 				print std1001,couple[1],stdf1010,couple[2]
 				if(std1001<couple[1] and stdf1010<couple[2]):
 					bpmscouple[bpm]=[bpmstranslate[bpm],f1001w,f1010w,std1001,stdf1010,f1001r,f1001i,f1010r,f1010i]
+					print "Position "+str(bpmstranslate[bpm])
 					#print "adding bpm for coupling"
 					bpmsc.append(bpm)
 				else:
@@ -306,7 +334,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		except:
 			print "BPM is not in the datafile for coupling",bpm
 
-		#sys.exit()
+	#sys.exit()
 
 	if len(bpmsb)<2:
 
@@ -381,6 +409,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		elbpms=[bpmsB,bpmeB,bpmsD,bpmeD,bpmsC,bpmeC]
 
 		print bpmsB,bpmeB
+		#sys.exit()
 
 	else:
 		elbpms=["empty","empty","empty","empty","empty","empty"]
@@ -638,43 +667,78 @@ def rotateparts(datacouple,twiss):
 
 	twiss.Cmatrix()
 
+	
 	coupleddata={}
-	coupleddata[startbpm]=[data[startbpm][0],data[startbpm][1],data[startbpm][2],data[startbpm][3],data[startbpm][4],data[startbpm][1],data[startbpm][2],data[startbpm][3],data[startbpm][4],twiss.F1001W[twiss.indx[startbpm]],twiss.F1010W[twiss.indx[startbpm]]]
-	coupleddata[endbpm]=[data[endbpm][0],data[endbpm][1],data[endbpm][2],data[endbpm][3],data[endbpm][4],data[endbpm][1],data[endbpm][2],data[endbpm][3],data[endbpm][4],twiss.F1001W[twiss.indx[startbpm]],twiss.F1010W[twiss.indx[startbpm]]]
+	xx=1j
 
-	f1001basic=data[endbpm][1]
-	f1010basic=data[endbpm][2]
-	stdf1001basic=data[endbpm][3]
-	stdf1010basic=data[endbpm][4]
+	#[data[bpms[bpm+1]][0],f1001real,f1001imag,f1001stdr,f1001basic,stdf1001basic,f1001basicb,stdf1001basicb,f1001M,f1010real,f1010imag,f1010stdr,f1010M,f1010basic,stdf1010basic,f1010basicb,stdf1010basicb]
+	
+	f1001basic=data[startbpm][5]+data[startbpm][6]*xx
+	f1010basic=data[startbpm][7]+data[startbpm][8]*xx
+	stdf1001basic=data[startbpm][3]
+	stdf1010basic=data[startbpm][4]
+
+
+	f1001basicb=data[endbpm][5]+data[endbpm][6]*xx
+	f1010basicb=data[endbpm][7]+data[endbpm][8]*xx
+	stdf1001basicb=data[endbpm][3]
+	stdf1010basicb=data[endbpm][4]
+
+
+	coupleddata[startbpm]=[data[startbpm][0],data[startbpm][5],data[startbpm][6],data[startbpm][3],f1001basic,data[startbpm][3],f1001basic,data[startbpm][3],twiss.F1001W[twiss.indx[startbpm]],data[startbpm][7],data[startbpm][8],data[startbpm][4],twiss.F1010W[twiss.indx[startbpm]],f1010basic,data[startbpm][4],f1010basic,data[startbpm][4]]
+	coupleddata[endbpm]=[data[endbpm][0],data[endbpm][5],data[endbpm][6],data[endbpm][3],f1001basicb,data[endbpm][3],f1001basicb,data[endbpm][3],twiss.F1001W[twiss.indx[endbpm]],data[endbpm][7],data[endbpm][8],data[endbpm][4],twiss.F1010W[twiss.indx[endbpm]],f1010basicb,data[endbpm][4],f1010basicb,data[endbpm][4]]
 	
 	for bpm in range(len(bpms)-1):
+
+		#print bpms[bpm+1]
+		#sys.exit()
 
 		f1001r=data[bpms[bpm+1]][1]
 		f1001stdr=data[bpms[bpm+1]][3]
 		f1010r=data[bpms[bpm+1]][2]
 		f1010stdr=data[bpms[bpm+1]][4]
 
+		
+		f1001real=data[bpms[bpm+1]][5]
+		f1001imag=data[bpms[bpm+1]][6]
+		f1010real=data[bpms[bpm+1]][7]
+		f1010imag=data[bpms[bpm+1]][8]
+		
 
 
 		phx12=twiss.MUX[twiss.indx[bpms[bpm+1]]]-twiss.MUX[twiss.indx[bpms[bpm]]]
 		phy12=twiss.MUY[twiss.indx[bpms[bpm+1]]]-twiss.MUY[twiss.indx[bpms[bpm]]]
 
-		delta1001=phx12-phy12
-		delta1010=phx12+phy12
+		delta1001=(phx12-phy12)*2*pi
+		delta1010=(phx12+phy12)*2*pi
+		#print len(bpms)-1-bpm,bpms[len(bpms)-1-bpm]
+	        phx12=-twiss.MUX[twiss.indx[bpms[bpm]]]+twiss.MUX[twiss.indx[bpms[bpm+1]]]
+		phy12=-twiss.MUY[twiss.indx[bpms[bpm]]]+twiss.MUY[twiss.indx[bpms[bpm+1]]]
 
-		print cos(delta1001),sin(delta1001),abs(f1001basic),f1001basic
-		f1001basic=abs(f1001basic)*complex(cos(delta1001),sin(delta1001))
-		f1010basic=abs(f1010basic)*complex(cos(delta1001),sin(delta1001))
+		delta1001b=-(phx12-phy12)*2*pi
+		delta1010b=-(phx12+phy12)*2*pi
+
+		#print cos(delta1001),sin(delta1001),abs(f1001basic),f1001basic
+		
+		f1001basic=complex(f1001basic.real,f1001basic.imag)*complex(cos(delta1001),sin(delta1001))
+		f1010basic=complex(f1010basic.real,f1010basic.imag)*complex(cos(delta1001),sin(delta1001))
 		stdf1001basic=stdf1001basic*complex(cos(delta1010),sin(delta1010))	       
-		stdf1010basic=stdf1010basic*complex(cos(delta1010),sin(delta1010))		
+		stdf1010basic=stdf1010basic*complex(cos(delta1010),sin(delta1010))
+
+		f1001basicb=complex(f1001basicb.real,f1001basicb.imag)*complex(cos(delta1001b),sin(delta1001b))
+		f1010basicb=complex(f1010basicb.real,f1010basicb.imag)*complex(cos(delta1001b),sin(delta1001b))
+		stdf1001basicb=stdf1001basicb*complex(cos(delta1010b),sin(delta1010b))	       
+		stdf1010basicb=stdf1010basicb*complex(cos(delta1010b),sin(delta1010b))
 
 		f1001M=twiss.F1001W[twiss.indx[bpms[bpm+1]]]
 		f1010M=twiss.F1010W[twiss.indx[bpms[bpm+1]]]
 
-		
-		coupleddata[bpms[bpm+1]]=[data[bpms[bpm+1]][0],f1001r,f1010r,f1001stdr,f1010stdr,abs(f1001basic),abs(f1010basic),abs(stdf1001basic),abs(stdf1010basic),twiss.F1001W[twiss.indx[bpms[bpm+1]]],twiss.F1010W[twiss.indx[bpms[bpm+1]]]]
+		print f1001real,f1001basic.real,f1001basicb.real,cos(delta1001),sin(delta1001)
 
-#	sys.exit()
+		
+		coupleddata[bpms[bpm+1]]=[data[bpms[bpm+1]][0],f1001real,f1001imag,f1001stdr,f1001basic,abs(stdf1001basic),f1001basicb,abs(stdf1001basicb),f1001M,f1010real,f1010imag,f1010stdr,f1010M,f1010basic,abs(stdf1010basic),f1010basicb,abs(stdf1010basicb)]
+
+	#sys.exit()
 	
 	return [bpms,coupleddata]
 
@@ -752,7 +816,7 @@ def filterbpms(filex,filey,bpmstart,bpmend,listt,listcom,accel):
 			     print "found start"
 			     #sys.exit()
 		     if go==1:
-			     if ((bx and by) >0) and ((errbetx and errbety) <20):
+			     if ((bx and by) >0) and ((errbetx and errbety) <5):
 
 				     bpms.append(name)
 
@@ -1138,8 +1202,8 @@ mainvariablephaseytot=['NFILES']
 mainvaluephaseytot=[filephaseytot.COUNT[0]]
 dataphaseytot=[]
 # for couple
-columnnamescouple=['NAME','S','F1001','STDF1001','F1001P','STDF1001P','F1001M','F1010','STDF1010','F1010P','STDF1010P','F1010M']
-variablenamecouple=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le']
+columnnamescouple=['NAME','S','F1001','STDF1001','ReF1001','ImF1001','F1001P','ReF1001P','ImF1001P','STDF1001P','F1001M','F1010','STDF1010','ReF1010','ImF1010','F1010P','ReF1010P','ImF1010P','STDF1010P','F1010M','F1001B','ReF1001B','ImF1001B','STDF1001B','F1010B','ReF1010B','ImF1010B','STDF1010B']
+variablenamecouple=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le']
 mainvariablecouple=[]
 mainvaluecouple=[]
 coupledata=[]
@@ -1169,6 +1233,8 @@ for namename in names:
 		elementswitch=1
 		print "You have choosen an instrument"
 		databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter([betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],[ampbetxtwiss,ampbetytwiss],[filephasextot,filephaseytot],[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],[filecouple,cuts[8],cuts[9]],start[namename],end[namename],twisstwiss,disp,coupleswitch,namename)
+		#databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter([betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],[filedatax,filedatay],[filephasextot,filephaseytot],[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],[filecouple,cuts[8],cuts[9]],start[namename],end[namename],twisstwiss,disp,coupleswitch,namename)
+		
 
 
 
@@ -1178,19 +1244,19 @@ for namename in names:
 		endbpm=databeta[0][len(databeta[0])-1]
 	else:
 		startbpm=elbpms[0]
+		startbpm="BPMWB.4L8.B2"
 		endbpm=elbpms[1]
+		endbpm="BPMYB.4R8.B2"
+		print "startbpm ",startbpm,endbpm
+		#sys.exit()
 	
 
 
 	if ("empty" not in startbpm and "empty" not in endbpm):
-		hor=[databeta[1][startbpm][9],databeta[1][startbpm][10],databeta[1][startbpm][3],databeta[1][startbpm][4]]
-		ver=[databeta[1][startbpm][11],databeta[1][startbpm][12],databeta[1][startbpm][7],databeta[1][startbpm][8]]
-		hore=[databeta[1][endbpm][9],databeta[1][endbpm][10],databeta[1][endbpm][3],databeta[1][endbpm][4]]
-		#print hor
-		#print hore
-		#sys.exit()
-		
-		vere=[databeta[1][endbpm][11],databeta[1][endbpm][12],databeta[1][endbpm][7],databeta[1][endbpm][8]]
+		hor=[databeta[1][startbpm][1],databeta[1][startbpm][2],databeta[1][startbpm][3],databeta[1][startbpm][4]]
+		ver=[databeta[1][startbpm][5],databeta[1][startbpm][6],databeta[1][startbpm][7],databeta[1][startbpm][8]]
+		hore=[databeta[1][endbpm][1],databeta[1][endbpm][2],databeta[1][endbpm][3],databeta[1][endbpm][4]]	
+		vere=[databeta[1][endbpm][5],databeta[1][endbpm][6],databeta[1][endbpm][7],databeta[1][endbpm][8]]
 	else:
 		print "WARN : haven't find the appropaites boundaries skipping ",namename
 		passs=0
@@ -1221,6 +1287,8 @@ for namename in names:
 
 	if coupleswitch==1:
 		coupling=rotateparts(datacouple,twisstwiss)
+		print len(coupling[1][coupling[0][0]]),len(coupling[0])
+		#sys.exit()
 	else:
 		coupling=[[],[]]
 		print "No coupling"
@@ -1541,6 +1609,7 @@ for namename in names:
 		print "filing table for total horizontal phase"
 		
 		firstbpmx=bpmsphasex[0][1]
+		endbpmx=bpmsphasex[len(bpmsphasex)-1][1]
 
 	#	print len(bpmsphasex)
 		#sys.exit()
@@ -1549,7 +1618,7 @@ for namename in names:
 			bpm=bpms[1]
 			S=filephasextot.S[filephasextot.indx[bpm]]
 			prop=(normal_pro.MUX[normal_pro.indx[bpm]]-normal_pro.MUX[normal_pro.indx[firstbpmx]]) %1
-			back=(1-(back_pro.MUX[back_pro.indx[bpm]]-back_pro.MUX[back_pro.indx[firstbpmx]])) %1
+			back=(1-(back_pro.MUX[back_pro.indx[bpm]]-back_pro.MUX[back_pro.indx[endbpmx]])) %1
 			measured=(filephasextot.PHASEX[filephasextot.indx[bpm]]-filephasextot.PHASEX[filephasextot.indx[firstbpmx]])%1
 			
 			# difference experiment propogation
@@ -1562,18 +1631,20 @@ for namename in names:
 			if MdiffB >  0.5: MdiffB=  MdiffB -1
 			elif MdiffB < -0.5: MdiffB=  MdiffB +1
 		
-
-			dataphasextot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(0)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
+			errtotphasex=filephasextot.STDPHX[filephasextot.indx[bpm]]
+			
+			dataphasextot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(errtotphasex)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
 			# for phasey total
 	
 		firstbpmy=bpmsphasey[0][1]
+		endbpmy=bpmsphasey[len(bpmsphasey)-1][1]
 		
 		print "filling table for total vertical phase"
 		for bpms in bpmsphasey:
 			bpm=bpms[1]
 			S=filephaseytot.S[filephaseytot.indx[bpm]]
 			prop=(normal_pro.MUY[normal_pro.indx[bpm]]-normal_pro.MUY[normal_pro.indx[firstbpmy]]) %1
-			back=(1-(back_pro.MUY[back_pro.indx[bpm]]-back_pro.MUY[back_pro.indx[firstbpmy]])) %1
+			back=(1-(back_pro.MUY[back_pro.indx[bpm]]-back_pro.MUY[back_pro.indx[endbpmy]])) %1
 			measured=(filephaseytot.PHASEY[filephaseytot.indx[bpm]]-filephaseytot.PHASEY[filephaseytot.indx[firstbpmy]])%1
 			
 			# difference experiment propogation
@@ -1586,28 +1657,60 @@ for namename in names:
 			if MdiffB >  0.5: MdiffB=  MdiffB -1
 			elif MdiffB < -0.5: MdiffB=  MdiffB +1
 
-			dataphaseytot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(0)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
+			errtotphasey=filephaseytot.STDPHY[filephaseytot.indx[bpm]]
+
+			dataphaseytot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(errtotphasey)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
 
 		#for coupling
 		print "filling table for coupling"
 		for bpm in coupling[0]:
+			#S=filecouple.S[filecouple.indx[bpm]]
 			S=coupling[1][bpm][0]
-			f1001=coupling[1][bpm][1]
-			f1010=coupling[1][bpm][2]
-			stdf1001=coupling[1][bpm][3]
-			stdf1010=coupling[1][bpm][4]
-
-			f1001p=coupling[1][bpm][5]
-			f1010p=coupling[1][bpm][6]
-			stdf1001p=coupling[1][bpm][7]
-			stdf1010p=coupling[1][bpm][8]
-
-			f1001m=coupling[1][bpm][9]
-			f1010m=coupling[1][bpm][10]			
 			
-			coupledata.append(bpm+' '+str(S)+' '+str(f1001)+' '+str(stdf1001)+' '+str(f1001p)+' '+str(stdf1001p)+' '+str(f1001m)+' '+str(f1010)+' '+str(stdf1010)+' '+str(f1010p)+' '+str(stdf1010p)+' '+str(f1010m))
-                 #########
+			f1001=sqrt(coupling[1][bpm][1]**2+coupling[1][bpm][2]**2)
+			f1001re=coupling[1][bpm][1]
+			f1001im=coupling[1][bpm][2]
+			stdf1001=abs(coupling[1][bpm][3])
 
+			f1001p=abs(coupling[1][bpm][4])
+			f1001pre=coupling[1][bpm][4].real
+			f1001pim=coupling[1][bpm][4].imag
+			stdf1001p=abs(coupling[1][bpm][5])
+
+		        f1001b=abs(coupling[1][bpm][6])
+		        f1001bre=coupling[1][bpm][6].real
+			f1001bim=coupling[1][bpm][6].imag
+		        stdf1001b=abs(coupling[1][bpm][7])
+
+			f1001m=coupling[1][bpm][8]
+
+			f1010=sqrt(coupling[1][bpm][9]**2+coupling[1][bpm][10]**2)
+			f1010re=coupling[1][bpm][9]
+			f1010im=coupling[1][bpm][10]
+			stdf1010=abs(coupling[1][bpm][11])
+
+			f1010m=coupling[1][bpm][12]
+			
+			f1010p=abs(coupling[1][bpm][13])
+			f1010pre=coupling[1][bpm][13].real
+			f1010pim=coupling[1][bpm][13].imag
+			stdf1010p=coupling[1][bpm][14]
+		
+		
+			f1010b=abs(coupling[1][bpm][15])
+			f1010bre=coupling[1][bpm][15].real
+			f1010bim=coupling[1][bpm][15].imag
+			stdf1010b=abs(coupling[1][bpm][16])
+		
+
+			#print f1001pre,f1001bre,f1001re
+
+			#print bpm,f1001re,f1001pre,f1001bre
+			#sys.exit()
+			
+			coupledata.append(bpm+' '+str(S)+' '+str(f1001)+' '+str(stdf1001)+' '+str(f1001re)+' '+str(f1001im)+' '+str(f1001p)+' '+str(f1001pre)+' '+str(f1001pim)+' '+str(stdf1001p)+' '+str(f1001m)+' '+str(f1010)+' '+str(stdf1010)+' '+str(f1010re)+' '+str(f1010im)+' '+str(f1010p)+' '+str(f1010pre)+' '+str(f1010pim)+' '+str(stdf1010p)+' '+str(f1010m)+' '+str(f1001b)+' '+str(f1001bre)+' '+str(f1001bim)+' '+str(stdf1001b)+' '+str(f1010b)+' '+str(f1010bre)+' '+str(f1010bim)+' '+str(stdf1010b))
+                 #########
+			#sys.exit()
 		flag=0
 
 
