@@ -4,7 +4,7 @@
 #                                                              #
 ################################################################
 #
-#  !=> SegementBySegment_0.0.py : Construction of the program (11/09/09)
+#  !=> SegementBySegment_0.0.py : - Construction of the program (11/09/09)
 #  !=> SegementBySegment_0.1.py : - Adding the dispersion to the program (23/09/09)
 #                                 - Make distuinsh between BPMs and instuments (24/09/09)
 #                                 - Adding output tables (sbs...out) (21/10/09)
@@ -13,8 +13,10 @@
 #  !=> SegementBySegment_0.22.py :- Fixing some small bugs
 #                                 - Added Instruments
 #
-#  !=> SegementBySegment_0.23.py :- Adding summary list for instruments
+#  !=> SegementBySegment_0.23.py :- Adding summary list for instruments (5/12/09)
 #                                 - Applying better cuts for beta
+#  !=> SegementBySegment_0.24.py :- Including one/two beam matching (two beam for IP) (7/12/09)
+#                                 - Added an extra option to enable/disable the mathcing
 
 ###### imports
 from optparse import OptionParser
@@ -31,12 +33,12 @@ parser = OptionParser()
 parser.add_option("-a", "--accel",
                 help="Which accelerator: LHCB1 LHCB2 SPS RHIC SOLEIL",
                 metavar="ACCEL", default="LHCB1",dest="accel")
-#parser.add_option("-d", "--dictionary",
-#                help="File with the BPM dictionary",
-#                metavar="DICT", default="0", dest="dict")
 parser.add_option("-f", "--path", # assumes that output is same as input
                 help="Path to measurement files",
                 metavar="PATH", default="./", dest="path")
+parser.add_option("-i", "--path2", # assumes that output is same as input
+                help="Path to second measurement files",
+                metavar="PATH2", default="./", dest="path2")
 parser.add_option("-s", "--start",
                 help="file that defines the segment",
                 metavar="SEGF", default="./", dest="segf")
@@ -61,6 +63,13 @@ parser.add_option("-b", "--bbsrouce", # assumes that output is same as input
 parser.add_option("-x", "--take", # assumes that output is same as input
                 help="take or create madx 0/1",
                 metavar="mad", default="0", dest="madpass")
+parser.add_option("-y", "--match", # assumes that output is same as input
+                help="disable/enable matching 0/1",
+                metavar="match", default="0", dest="match")
+parser.add_option("-z", "--switch", # assumes that output is same as input
+                help="switch one/two beam 1/2",
+                metavar="switch", default="1", dest="switch")
+
 
 (options, args) = parser.parse_args()
 
@@ -134,6 +143,222 @@ def getnextelement(names,mea,meay,model,end,element,value):
 		sys.exit()
 
 	return name2use
+
+def filterbpms(filex,filey,bpmstart,bpmend,listt,listcom,accel):
+
+     bpms=[]
+     names=filex.NAME
+     go=0
+
+     for name in names:
+
+	     try: # if both planes contain the name
+
+		  
+	             bx=filex.BETX[filex.indx[name]]
+	             by=filey.BETY[filey.indx[name]]
+		     errbetx=(sqrt(filex.ERRBETX[filex.indx[name]]**2+filex.STDBETX[filex.indx[name]]**2)/filex.BETX[filex.indx[name]])*100	     
+		     errbety=(sqrt(filey.ERRBETY[filey.indx[name]]**2+filey.STDBETY[filey.indx[name]]**2)/filey.BETY[filey.indx[name]])*100
+		     print bpmstart,name
+		     if bpmstart in name:
+			     go=1
+			     print "found start"
+			     #sys.exit()
+		     if go==1:
+			     if ((bx and by) >0) and ((errbetx and errbety) <20):
+
+				     bpms.append(name)
+
+			     else:
+				     print "not excepting bpm because of high error : "+name
+		     if bpmend==name:
+			     break
+
+	     except:
+	     
+		     print "Beta not found for both planes : "+name
+     #print len(bpms)
+     #print 	bpms[0],bpms[len(bpms)-1]	   
+     #sys.exit()		     
+     correctors=correctorselection(bpms[0],bpms[len(bpms)-1],listt,listcom,accel)
+
+     return bpms,correctors
+
+def correctorselection(Bpmstart,Bpmend,listt,listcom,accel):
+
+    print "until here"   
+    names=twiss(listt).NAME
+    if accel=="LHCB1":
+	    names=names+twiss(listcom).NAME
+    go=0
+    correctorlist=[]
+    cleanerl=Bpmstart.split(".")
+    cleanerr=Bpmend.split(".")
+    cleanerl2=list(cleanerl[1])
+    onefilter=cleanerl2[len(cleanerl2)-2]+cleanerl2[len(cleanerl2)-1]
+    cleanerr2=list(cleanerr[1])
+    twofilter=cleanerr2[len(cleanerr2)-2]+cleanerr2[len(cleanerr2)-1]
+#    print onefilter,twofilter
+    #sys.exit()
+    for name in names:
+        print name.upper()
+
+	if onefilter in name.upper() or twofilter in name.upper():
+
+		correctorlist.append(name)
+
+#    print correctorlist
+#    sys.exit()
+    return correctorlist
+			
+
+
+
+
+
+def creatematching(betaxb1,betayb1,betaxb2,betayb2,matchswitch,path,beamswitch,bpmstart,bpmend,listt1,listt2,listcom):
+
+    matcher=open(path+'/matchjob4sbs.madx','w')
+    #print beamswitch
+    #sys.exit()
+    if matchswitch=="1":
+
+	    #####
+	    #	    # start        #
+	    #####
+	    if options.accel=="LHCB1":
+		    bpmstart2=bpmstart.replace("B1","B2")
+		    bpmend2=bpmend.replace("B1","B2")
+		    accel2="LHCB2"
+		    accel1="LHCB1"
+			    #print bpmstart,bpmend
+			    #sys.exit()
+	    else:
+		    bpmstart2=bpmstart.replace("B2","B1")
+		    bpmend2=bpmend.replace("B2","B1")
+		    accel2="LHCB1"
+		    accel1="LHCB2"
+	    if beamswitch=='2':
+		    matcher.write('seqedit, sequence='+accel2+';\n')
+		    matcher.write('flatten;\n')
+		    matcher.write('cycle, start=MKI.A5R8.B2;;\n')
+		    matcher.write('endedit;\n')
+		    
+		    matcher.write('use, period='+accel2+';\n')
+		    matcher.write('seqedit, sequence='+accel2+';\n')
+		    matcher.write('flatten;\n')
+		    matcher.write('cycle, start=MKI.A5R8.B2;\n')
+		    matcher.write('endedit;\n')
+		    matcher.write('use, period='+accel2+', range='+bpmstart2+'/'+ bpmend2+';\n')
+	    
+	    bpms1,correctorsb1=filterbpms(betaxb1,betayb1,bpmstart,bpmend,listt1,listcom,accel1)
+	    matcher.write('assign, echo="'+path+'/matching_before.dat";\n')
+	    #matcher.write('seqedit, sequence=LHCB2;\n')
+	    #matcher.write('flatten;\n')
+	    #matcher.write('cycle, start=MKI.A5R8.B2;\n')
+	    #matcher.write('endedit;\n')
+	    
+	    for corrector in correctorsb1:
+		    matcher.write('value,'+corrector +';\n')
+	    if beamswitch=='2':    
+		    bpms2,correctorsb2=filterbpms(betaxb2,betayb2,bpmstart2,bpmend2,listt2,listcom,accel2)
+		    for corrector in correctorsb2:
+			    matcher.write('value,'+corrector +';\n')
+	    matcher.write('assign, echo=terminal;\n')
+	    matcher.write('match, use_macro;\n')
+	    
+	    #####
+	    #
+	    # constraint
+	    #
+	    #####
+	    name1=bpms1[0]
+	    bx1=betaxb1.BETX[betaxb1.indx[name1]]
+	    ax1=betaxb1.ALFX[betaxb1.indx[name1]]
+	    by1=betayb1.BETY[betayb1.indx[name1]]
+	    ay1=betayb1.ALFY[betayb1.indx[name1]]
+	    bpms1.remove(name1) # not placing the first bpm in the constraint
+	    ##### variation list beam 1
+	    for corrector in correctorsb1:
+		    matcher.write('vary, name='+corrector+';\n')	   
+	    if beamswitch=='2':
+		    name2=bpms2[0]
+		    bx2=betaxb2.BETX[betaxb2.indx[name2]]
+		    ax2=betaxb2.ALFX[betaxb2.indx[name2]]
+		    by2=betayb2.BETY[betayb2.indx[name2]]
+		    ay2=betayb2.ALFY[betayb2.indx[name2]]
+		    bpms2.remove(name2)
+                    ##### variation list beam 2
+		    for corrector in correctorsb2:
+			    matcher.write('vary, name='+corrector+';\n')
+
+	    
+	    if beamswitch=='2':
+		    for corrector in correctorsb2:
+			    matcher.write('value,'+corrector +';\n')
+	    matcher.write('M1: MACRO={ \n')
+	    matcher.write('select, flag=twiss,pattern="bpm", column=name, s, betx, bety;\n')
+	    matcher.write('twiss, sequence='+accel1+', betx='+str(bx1)+', alfx='+str(ax1)+', bety='+str(by1)+', alfy='+str(ay1)+',dx=0,dy=0,dpx=0,dpy=0, table=t1;\n') # beam1
+	    
+	    if beamswitch=='2':
+		    matcher.write('twiss, sequence='+accel2+', betx='+str(bx2)+', alfx='+str(ax2)+', bety='+str(by2)+', alfy='+str(ay2)+',dx=0,dy=0,dpx=0,dpy=0, table=t2;\n') # beam2
+	    matcher.write('}\n')
+	    #####
+	    #
+	    # beam1
+	    #
+	    #####
+ 
+	    for name in bpms1:
+
+		    bx=betaxb1.BETX[betaxb1.indx[name]]
+		    by=betayb1.BETY[betayb1.indx[name]]
+		
+		    matcher.write('CONSTRAINT, EXPR= table(t1,'+name+',bety ) ='+str(by)+' ;\n')
+		    matcher.write('CONSTRAINT, EXPR= table(t1,'+name+',betx ) ='+str(bx)+' ;\n')
+
+
+	    #####
+	    #
+	    # beam2
+	    #
+	    #####
+	    if beamswitch=='2':
+		    for name in bpms2:
+
+			    bx=betaxb2.BETX[betaxb2.indx[name]]
+			    by=betayb2.BETY[betayb2.indx[name]]
+
+			    matcher.write('CONSTRAINT, EXPR= table(t2,'+name+',bety ) ='+str(by)+' ;\n')
+			    matcher.write('CONSTRAINT, EXPR= table(t2,'+name+',betx ) ='+str(bx)+' ;\n')
+	    #####
+	    #
+	    # ending
+	    #
+	    #####
+	    matcher.write('simplex, tolerance=1e-12;\n'+
+	                  'endmatch;\n')
+	    
+            #####
+	    #
+	    # writing to file
+	    #
+	    #####
+	    matcher.write('assign, echo="'+path+'/matching_output.dat";\n')
+	    for corrector in correctorsb1:
+		    matcher.write('value,'+corrector +';\n')
+	    if beamswitch=='2':
+		    for corrector in correctorsb2:
+			    matcher.write('value,'+corrector +';\n')
+	    matcher.write('assign, echo=terminal;\n')
+    
+    matcher.close()
+    
+
+
+    
+
+	
 
 def meascontains(commonbpms,mea,meay,element,end,model):
 
@@ -382,7 +607,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe):
     file4nad.write('    -e \'s/%START/\''+str(start)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%BEAM/\''+str(beam)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%PATH/\'\"'+str(path.replace('/','\/'))+'\"\'/g\' \\\n')
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.mask > '+path+'/t_'+str(file4seg.LABEL)+'.madx \n')
+    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas_2.mask > '+path+'/t_'+str(file4seg.LABEL)+'.madx \n')
 
     file4nad.close()
     
@@ -395,7 +620,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe):
 def runmad(path):
 	
 	os.system(options.mad+'madx < '+path+'t_'+str(file4seg.LABEL)+'.madx')
-	
+	#sys.exit()
    
   
 def run4plot(path,spos,epos,beta4plot,cpath,meapath):
@@ -665,6 +890,23 @@ def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainval
 ####### main part
 file4seg=twiss(options.segf)
 path=options.path
+beamswitch=options.switch
+matchswitch=options.match
+listt1=options.bb+'/MODEL/'+options.accel+'/sbslist/listb1.dat'
+listcom=options.bb+'/MODEL/'+options.accel+'/sbslist/listcom.dat'
+if options.accel=="LHCB1":
+	accel2="LHCB2"
+else:
+	accel2="LHCB1"	
+listt2=options.bb+'/MODEL/'+accel2+'/sbslist//listb2.dat'
+######
+#
+# LOADING data
+#
+######
+#
+# => Beam1
+#
 filedatax=twiss(path+"/getbetax.out")
 betxtwiss=filedatax
 filedatay=twiss(path+"/getbetay.out")
@@ -675,6 +917,19 @@ filedatayA=twiss(path+"/getampbetay.out")
 ampbetytwiss=filedatayA
 filephasex=twiss(path+"/getphasey.out")
 filephasey=twiss(path+"/getphasex.out")
+filedatax2=[]
+filedatay2=[]
+#
+# => Beam2
+#
+if beamswitch=='2':
+	try:
+		filedatax2=twiss(options.path2+"/getbetax.out")
+		filedatay2=twiss(options.path2+"/getbetay.out")
+		print "second beam found"
+	except:
+		print "you selected two beam match ... but for path2 the files doesn't exist"
+		beamswitch='1'
 #filecoupling=twiss(path+"getcoupling.out")
 try:
 	filedx=twiss(path+"/getDx.out")
@@ -819,6 +1074,7 @@ for namename in list2run:
 		flag=1
 		[hor,ver,dp]=getValues(filedatax,filedatay,filedataxA,filedatayA,element,disp,filedx,filedy,0,twisstwiss)
 		[hore,vere,dpe]=getValues(filedatax,filedatay,filedataxA,filedatayA,eelement,disp,filedx,filedy,0,twisstwiss)
+		creatematching(filedatax,filedatay,filedatax2,filedatay2,matchswitch,path,beamswitch,element,eelement,listt1,listt2,listcom)
 	else:
 		label=file4seg.LABEL
 		if "DDD" in namename:
@@ -831,6 +1087,7 @@ for namename in list2run:
 			if flag==1:
 				[hor,ver,dp]=getValues(filedatax,filedatay,filedataxA,filedatayA,element,disp,filedx,filedy,0,twisstwiss)
 				[hore,vere,dpe]=getValues(filedatax,filedatay,filedataxA,filedatayA,eelement,disp,filedx,filedy,0,twisstwiss)
+		creatematching(filedatax,filedatay,filedatax2,filedatay2,0,path,beamswitch,element,eelement,listt1,listt2,listcom)# creating empty file
 		
 	
 
@@ -846,12 +1103,14 @@ for namename in list2run:
 		if str(options.madpass)=="0":
 			run4mad(savepath,hor,ver,hore,vere,dp,dpe)
 		else:
+			
 			runmad(savepath)
-			print "skipping mad"
+			print "only excecute madx"
 	
 
 		reversetable(savepath)
 
+		print "element switch ",str(elementswitch)
 	##################
 	#=> switch only for element - to - element
 	if elementswitch==0:
