@@ -10,14 +10,18 @@
 #                                 - Adding output tables (sbs...out) (21/10/09)
 #                                 - Adding coupling propogation (21/10/09)
 #                                 - changing output when segment is start and end (24/11/09)
+#  !=> SegementBySegment_0.22.py :- Fixing some small bugs
+#                                 - Added Instruments
 #
-#
+#  !=> SegementBySegment_0.23.py :- Adding summary list for instruments
+#                                 - Applying better cuts for beta
 
 ###### imports
 from optparse import OptionParser
 from metaclass import twiss
 import os,sys
 from math import sqrt
+from datetime import date
 
 
 
@@ -53,7 +57,7 @@ parser.add_option("-m", "--mad", # assumes that output is same as input
 		  metavar="mad", default="", dest="mad")
 parser.add_option("-b", "--bbsrouce", # assumes that output is same as input
                 help="beta beat source",
-                metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
+                metavar="bb", default="./", dest="bb")
 parser.add_option("-x", "--take", # assumes that output is same as input
                 help="take or create madx 0/1",
                 metavar="mad", default="0", dest="madpass")
@@ -159,8 +163,13 @@ def meascontains(commonbpms,mea,meay,element,end,model):
 
 def getelement(filedatax,filedatay,eelement,model):
 
+
     loc=model.S[model.indx[eelement]]
-    
+    endswitch=0
+    if loc>26000:
+	    print "activating end of accelerator switch"
+	    endswitch=1
+	    
     names=filedatax.NAME
 
     pos=-100
@@ -174,21 +183,38 @@ def getelement(filedatax,filedatay,eelement,model):
 
 	    local=model.S[model.indx[el]]
 
+	    print local
+
 	    try:
 
 		    if(filedatax.BETX[filedatax.indx[el.upper()]] >0 and filedatay.BETY[filedatay.indx[el.upper()]] >0):
-			    errbetx=filedatax.STDBETX[filedatax.indx[el.upper()]]/filedatax.BETX[filedatax.indx[el.upper()]]
-			    errbety=filedatay.STDBETY[filedatay.indx[el.upper()]]/filedatay.BETY[filedatay.indx[el.upper()]]
-			    print errbetx,errbety
-			    if(errbetx <10000 and errbety <10000):
+			    #### reading the errors
+			    try:
+				    errbetx=(sqrt(filedatax.ERRBETX[filedatax.indx[el.upper()]]**2+filedatax.STDBETX[filedatax.indx[el.upper()]]**2)/filedatax.BETX[filedatax.indx[el.upper()]])*100
+				    errbety=(sqrt(filedatay.ERRBETY[filedatay.indx[el.upper()]]**2+filedatay.STDBETY[filedatay.indx[el.upper()]]**2)/filedatay.BETY[filedatay.indx[el.upper()]])*100
+			    except:
+				    errbetx=(filedatax.BETXSTD[filedatax.indx[el.upper()]]/filedatax.BETX[filedatax.indx[el.upper()]])*100
+				    errbety=(filedatay.BETYSTD[filedatay.indx[el.upper()]]/filedatay.BETY[filedatay.indx[el.upper()]])*100
+
+			    #print errbetx,errbety
+			    cut=20 # applying 20 % cut
+			    if(errbetx <cut and errbety <cut): 
 				    if local<loc and local>pos:
 
 					    pos=local
 					    name=el
-			    
-				    if local>loc and local<epos:
-					    epos=local
-					    ename=el
+				    if endswitch==0:
+					    if local>loc and local<epos:
+						    epos=local
+						    ename=el
+				    else:
+					    if local<loc and local<epos:
+						    epos=local
+						    ename=el
+			    else:
+				    print "Element "+el+" didnt pass element cut of "+cut +"%"
+		    else:
+			    print "Element "+el+" contains negative betas"
 	    except:
 		    print "bpm ",el," not found in both planes"
 
@@ -196,23 +222,35 @@ def getelement(filedatax,filedatay,eelement,model):
 	    print "no element found !!! => element found flag =0"
 	    flag=0
 	    #sys.exit()
-			    
+
     print "element infront found at ",str(pos)," with name ",name," at a distance of ", str(loc-pos)," from ",eelement
     print "element after found at ",str(epos)," with name ",ename," at a distance of ", str(epos-loc)," from ",eelement
+    #sys.exit()
     
-    return name,ename,loc,flag
+    return name,ename,loc,flag,pos,epos
 
-def getValues(filedatax,filedatay,element,dp,filedatadx,filedatady):
+def getValues(filedatax,filedatay,filedataxA,filedatayA,element,dp,filedatadx,filedatady,switch,twisstwiss):
 
-    betax=filedatax.BETX[filedatax.indx[element]]
-    errbetax=filedatax.ERRBETX[filedatax.indx[element]]
-    alfx=filedatax.ALFX[filedatax.indx[element]]
-    erralfx=filedatax.ERRALFX[filedatax.indx[element]]
-    
-    betay=filedatay.BETY[filedatay.indx[element]]
-    errbetay=filedatay.ERRBETY[filedatay.indx[element]]
-    alfy=filedatay.ALFY[filedatay.indx[element]]
-    erralfy=filedatay.ERRALFY[filedatay.indx[element]]
+    if switch==1:
+	    betax=filedataxA.BETX[filedatax.indx[element]]
+	    errbetax=filedataxA.BETXSTD[filedatax.indx[element]]
+	    alfx=twisstwiss.ALFX[filedatax.indx[element]]
+	    erralfx=filedatax.ERRALFX[filedatax.indx[element]]
+            betay=filedatayA.BETY[filedatay.indx[element]]
+	    errbetay=filedatayA.ERRBETY[filedatay.indx[element]]
+	    alfy=twiss.ALFY[filedatay.indx[element]]
+            erralfy=filedatay.ERRALFY[filedatay.indx[element]]
+    else:
+	    betax=filedatax.BETX[filedatax.indx[element]]
+	    errbetax=sqrt(filedatax.ERRBETX[filedatax.indx[element]]**2+filedatax.STDBETX[filedatax.indx[element]]**2)
+	    print errbetax
+	    alfx=filedatax.ALFX[filedatax.indx[element]]
+	    erralfx=filedatax.ERRALFX[filedatax.indx[element]]
+            betay=filedatay.BETY[filedatay.indx[element]]
+	    errbetay=sqrt(filedatay.ERRBETY[filedatay.indx[element]]**2+filedatay.STDBETY[filedatay.indx[element]]**2)
+	    alfy=filedatay.ALFY[filedatay.indx[element]]
+            erralfy=filedatay.ERRALFY[filedatay.indx[element]]
+	    
 
     hor=[betax,errbetax,alfx,erralfx]
     ver=[betay,errbetay,alfy,erralfy]
@@ -253,7 +291,7 @@ def getTwiss(filee,element):
 
     print "loading file ",filee
 
-    filedatax=filee
+    filedatax=twiss(filee)
 
     betax=filedatax.BETX[filedatax.indx[element]]
     alfx=filedatax.ALFX[filedatax.indx[element]]
@@ -285,7 +323,6 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe):
     elif options.accel=="LHCB1":
 
         dire=1
-        #start="MKI.A5L2.B1"   #  in-compatible with repository
 	start="MSIA.EXIT.B1"   #  compatible with repository
         beam="B1"
 
@@ -294,16 +331,16 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe):
     ### check on error propogation
     errbetx=hor[1]
     betx=hor[0]
-    if (hor[0]-hor[1])<0:errbetx=0;betx=hor[0]
+    #if (hor[0]-hor[1])<0:errbetx=0;betx=hor[0]
     errbety=ver[1]
     bety=ver[0]
-    if (ver[0]-ver[1])<0:errbety=0;bety=ver[0]
+    #if (ver[0]-ver[1])<0:errbety=0;bety=ver[0]
     errbetxb=hore[1]
     betxb=hore[0]
-    if (hore[0]-hore[1])<0:errbetxb=0;betxb=hore[0]
+    #if (hore[0]-hore[1])<0:errbetxb=0;betxb=hore[0]
     errbetyb=vere[1]
     betyb=vere[0]    
-    if (vere[0]-vere[1])<0:errbetyb=0;betyb=0
+    #if (vere[0]-vere[1])<0:errbetyb=0;betyb=0
      
     filename=path+'/var4mad.sh'
     file4nad=open(filename,'w')
@@ -626,8 +663,7 @@ def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainval
 	filefile.close()
 
 ####### main part
-segment=options.bb+"/MODEL/"+options.accel+"/sbslist/"+options.segf
-file4seg=twiss(segment)
+file4seg=twiss(options.segf)
 path=options.path
 filedatax=twiss(path+"/getbetax.out")
 betxtwiss=filedatax
@@ -677,11 +713,27 @@ elif "WIRE" in options.segf.split('.tfs')[0]:
 	else:
 		print "list doesnt contain any input, please check => ",options.segf
 		sys.exit()
+elif "ALL" in options.segf.split('.tfs')[0]:
+	list2run=file4seg.NAME
+	if len(list2run)>0:
+		#if "B" in list2run[0]:
+		print "end element is wire scanner : ",list2run[0]
+		elementswitch=1
+	else:
+		print "list doesnt contain any input, please check => ",options.segf
+		sys.exit()
+elif "IPS" in options.segf.split('.tfs')[0]:
+	list2run=file4seg.NAME
+	if len(list2run)>0:
+		elementswitch=1
+	else:
+		print "list doesnt contain any input, please check => ",options.segf
+		sys.exit()
+	#print "end element is interation region : ",file4seg.EBPM
+	#list2run.append(file4seg.EBPM)
 elif "IP" in options.segf.split('.tfs')[0]:
 	elementswitch=0
-	print "end element is interation region : ",file4seg.EBPM
 	list2run.append(file4seg.EBPM)
-	
 elif "BPM" in file4seg.EBPM:
 	print "end element is BPM : ",file4seg.EBPM
 	list2run.append(file4seg.EBPM)
@@ -747,11 +799,7 @@ mainvariabledy=['NFILES']
 mainvaluedy=[0]
 datady=[]
 datadpy=[]
-twisspath=options.twiss
-if twisspath=="./":
-	twisspath=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss.dat"
-	
-twisstwiss=twiss(twisspath)
+twisstwiss=twiss(options.twiss)
 
 ######## big loop
 
@@ -769,24 +817,30 @@ for namename in list2run:
 		element=element[1]
 		eelement=eelement[1]
 		flag=1
+		[hor,ver,dp]=getValues(filedatax,filedatay,filedataxA,filedatayA,element,disp,filedx,filedy,0,twisstwiss)
+		[hore,vere,dpe]=getValues(filedatax,filedatay,filedataxA,filedatayA,eelement,disp,filedx,filedy,0,twisstwiss)
 	else:
 		label=file4seg.LABEL
-		element,eelement,locationelement,flag=getelement(filedatax,filedatay,namename,twisstwiss)
+		if "DDD" in namename:
+			element,eelement,locationelement,flag,posprop,posback=getelement(filedataxA,filedatayA,namename,twisstwiss)
+			if flag==1:
+				[hor,ver,dp]=getValues(filedataxA,filedatayA,filedataxA,filedatayA,element,disp,filedx,filedy,1,twisstwiss)
+				[hore,vere,dpe]=getValues(filedataxA,filedatayA,filedataxA,filedatayA,eelement,disp,filedx,filedy,1,twisstwiss)
+		else:
+			element,eelement,locationelement,flag,posprop,posback=getelement(filedatax,filedatay,namename,twisstwiss)
+			if flag==1:
+				[hor,ver,dp]=getValues(filedatax,filedatay,filedataxA,filedatayA,element,disp,filedx,filedy,0,twisstwiss)
+				[hore,vere,dpe]=getValues(filedatax,filedatay,filedataxA,filedatayA,eelement,disp,filedx,filedy,0,twisstwiss)
+		
+	
+
 
 	if flag==1:
 
-		[hor,ver,dp]=getValues(filedatax,filedatay,element,disp,filedx,filedy)
-		[hore,vere,dpe]=getValues(filedatax,filedatay,eelement,disp,filedx,filedy)
+		
 
                 #[F1001,F1010]=getcoupling(filecoupling,options.twiss,element,eelement)
 		savepath=options.SAVE
-		if savepath=="./":
-			savepath=path+"/sbs/"
-			if not os.path.isdir(savepath):
-				os.mkdir(savepath)
-			print savepath
-#			sys.exit()
-			
 		print options.madpass
 	        #sys.exit()
 		if str(options.madpass)=="0":
@@ -802,9 +856,9 @@ for namename in list2run:
 	#=> switch only for element - to - element
 	if elementswitch==0:
 	##################
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/StartPoint.twiss"),element)
+		[hor,ver,dp]=getTwiss(savepath+"/StartPoint.twiss",element)
 		startpos=hor[2]
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat"),element)
+		[hor,ver,dp]=getTwiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat",element)
 		betx=hor[0]
 		bety=ver[0]
 		ax=hor[1]
@@ -813,20 +867,20 @@ for namename in list2run:
 		dpx=dp[1]
 		dy=dp[2]
 		dpy=dp[3]
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/EndPoint.twiss"),eelement)
+		[hor,ver,dp]=getTwiss(savepath+"/EndPoint.twiss",eelement)
 		endpos=hor[2]
 
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.b+.dat"),element)
+		[hor,ver,dp]=getTwiss(savepath+"/twiss.b+.dat",element)
 		bplusx=hor[0]
 		bplusy=ver[0]
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.b-.dat"),element)
+		[hor,ver,dp]=getTwiss(savepath+"/twiss.b-.dat",element)
 		bminx=hor[0]
 		bminy=ver[0]
 
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.a+.dat"),element)
+		[hor,ver,dp]=getTwiss(savepath+"/twiss.a+.dat",element)
 		aplusx=hor[1]
 		aplusy=ver[1]
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.a-.dat"),element)
+		[hor,ver,dp]=getTwiss(savepath+"/twiss.a-.dat",element)
 		aminx=hor[1]
 		aminy=ver[1]
 
@@ -853,8 +907,8 @@ for namename in list2run:
 		writePhase(savepath+"/phaseyEM_play.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
 
 
-		
-		[hor,ver,dp]=getTwiss(twisstwiss,element)
+		m=options.twiss
+		[hor,ver,dp]=getTwiss(m,element)
 		beta4plot=hor[2]
 
 	        ######################
@@ -1119,11 +1173,14 @@ for namename in list2run:
 	
 
 		fileresul=open(savepath+'/resul_'+namename+'.tfs','w')
-		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat"),namename)
-		[horb,verb,dpb]=getTwiss(twiss(savepath+"/twiss_"+file4seg.LABEL+"_back_rev.dat"),namename)
+	
+		[hor,ver,dp]=getTwiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat",namename)
+		[horb,verb,dpb]=getTwiss(savepath+"/twiss_"+file4seg.LABEL+"_back_rev.dat",namename)
 		print "print the values"
 
-
+		fileresul.write('@ POSSTART %le '+str(posprop)+'\n')
+		fileresul.write('@ POSELEMENT  %le '+str(locationelement)+'\n')
+		fileresul.write('@ POSEND %le '+str(posback)+'\n')
 		fileresul.write("@ INSTRUMENT  %s "+namename+"\n")
 		fileresul.write("@ S %le  "+str(hor[2])+"\n")
 
@@ -1251,6 +1308,91 @@ createTables("sbsdx_"+label+".out",savepath,columnnames1dx,variablename1dx,datad
 createTables("sbsdpx_"+label+".out",savepath,columnnames2dx,variablename2dx,datadpx,mainvariabledx,mainvaluedx)
 createTables("sbsdy_"+label+".out",savepath,columnnames1dy,variablename1dy,datady,mainvariabledy,mainvaluedy)
 createTables("sbsdpy_"+label+".out",savepath,columnnames2dy,variablename2dy,datadpy,mainvariabledy,mainvaluedy)
+
+if elementswitch!=0 and flag==1:
+	print "Making summary report for instruments"
+	filee = os.listdir(savepath)
+	files = filter(lambda x: 'resul_T' in x    , filee)
+	files=files+filter(lambda x: 'resul_BW' in x    , filee)
+	files=files+filter(lambda x: 'resul_IP' in x    , filee)
+	files=files+filter(lambda x: 'resul_BPM' in x    , filee)
+
+	#dateto=date.today()
+	year=date.today().year
+	month=date.today().month
+	day=date.today().day
+	
+	resul=open(savepath+"/summary_instruments_"+options.accel+".tfs","w")
+	resul.write('@ NAME %s "summary instruments"\n')
+	resul.write('@ CREATED %s "'+str(year)+'-'+str(month)+'-'+str(day)+'"\n')
+	resul.write('@ LABEL1 %s "OK->DATA_VALID"\n')
+	resul.write('@ LABEL1 %s "CAUTION->SELEMENT-SBPM at some distance"\n')
+	resul.write('@ LABEL1 %s "NOT_VALID->SELEMENT-SBPM to far"\n')
+	
+	if options.accel=="LHCB2":
+
+		start="MKI.A5R8.B2"
+		beam="B2"
+		resul.write('@ ACCELERATOR %s "LHC"\n')
+		resul.write('@ BEAM %s "'+beam+'"\n')
+		resul.write('@ START-ELEMENT %s "'+start+'"\n')
+        
+        elif options.accel=="LHCB1":
+
+		start="MSIA.EXIT.B1"   
+		beam="B1"
+		resul.write('@ ACCELERATOR %s "LHC"\n')
+		resul.write('@ BEAM %s "'+beam+'"\n')
+		resul.write('@ START-ELEMENT %s "'+start+'"\n')
+	
+	resul.write('* NAME  S	    BETX  ERRX   BETXMDL  BETY  ERRY  BETYMDL   VALID\n')
+	resul.write('$ %s    %le    %le   %le    %le      %le   %le   %le       %s\n')
+
+	for filee in files:
+
+  
+		one=twiss(savepath+"/"+filee)
+		names=one.METHOD
+
+		posstart=int(one.POSSTART)
+		poselement=int(one.POSELEMENT)
+		posend=int(one.POSEND)
+
+		
+		if(abs(poselement-posstart)<300 and abs(posend-poselement)<300):
+			tag="OK"
+		elif(abs(poselement-posstart)<1000 and abs(posend-poselement)<1000):
+			tag="CAUTION"
+		else:
+			tag="NOT_VALID"
+		
+
+		betx=[];errx=[];bety=[];erry=[]
+    
+		betx.append(one.BETX[0])
+		errx.append(1/one.ERRBETX[0])
+		bety.append(one.BETY[0])
+		erry.append(1/one.ERRBETY[0])
+		betx.append(one.BETX[1])
+		errx.append(1/one.ERRBETX[1])
+		bety.append(one.BETY[1])
+		erry.append(1/one.ERRBETY[1])
+
+
+		betxx=(1/(errx[0]+errx[1]))*(errx[0]*betx[0]+errx[1]*betx[1])
+		betyy=(1/(erry[0]+erry[1]))*(erry[0]*bety[0]+erry[1]*bety[1])
+		errbetx=sqrt((1/errx[0])**2+(1/errx[1])**2)/2
+		errbety=sqrt((1/erry[0])**2+(1/erry[1])**2)/2
+		name4colli=one.INSTRUMENT
+
+		betxmdl=twisstwiss.BETX[twisstwiss.indx[name4colli]]
+		betymdl=twisstwiss.BETY[twisstwiss.indx[name4colli]]
+		S=twisstwiss.S[twisstwiss.indx[name4colli]]
+
+		resul.write(name4colli+" "+str(S)+" "+str(betxx)+" "+str(errbetx)+" "+str(betxmdl)+" "+str(betyy)+" "+str(errbety)+" "+str(betymdl)+" "+str(tag)+"\n")
+
+	print "summary table created"
+	resul.close()
 
 
 print "sbs is finished"
