@@ -25,6 +25,14 @@
 #
 #  !=> SegementBySegment_0.27.py :- Fixing mistake of total phase (1/03/10)
 #                                 - Include real and imaginary part in the output of coupling (1/03/10)
+#
+#  !=> SegementBySegment_0.28.py : -Coupling initial conditions added to MADX segment  24 March 2010
+#                                  -New file getfterms.py required to convert MADX C matrix to observable f terms
+#
+#
+
+
+
 ###### imports
 from optparse import OptionParser
 from metaclass import twiss
@@ -59,7 +67,7 @@ parser.add_option("-g", "--graphic",
                 help="choice between graphic or table output 0=graphic and 1=table output",
                 metavar="GRA", default="1", dest="gra")
 parser.add_option("-p", "--save", # assumes that output is same as input
-                help="Path to measurement files",
+                help="Output path",
                 metavar="SAVE", default="./", dest="SAVE")
 parser.add_option("-m", "--mad", # assumes that output is same as input
                 help="mad link",
@@ -75,7 +83,7 @@ parser.add_option("-z", "--switch", # assumes that output is same as input
                 metavar="switch", default="1", dest="switch")
 parser.add_option("-c", "--cuts", # assumes that output is same as input
                 help="cuts for beta,disp,coupling bbxm,bbym,bxe,bye,dxm,dym,dxe,dye,f1001e,f1010e",
-                metavar="cuts", default="0.5,0.5,0.8,0.8,10,10,0.5,0.5,5,5", dest="cuts")
+                metavar="cuts", default="0.1,0.1,10,10,2,2,0.5,0.5,5,5", dest="cuts")
 parser.add_option("-e", "--elementswitch", # assumes that output is same as input
                 help="switching between segment(0) or element (1)",
                 metavar="holyswitch", default="0", dest="holyswitch")
@@ -124,7 +132,6 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	bpms=[]
 	bpmcut=[]
 	bpmstranslate={}
-
 	
 	startloc=twiss.S[twiss.indx[startbpm]]
 	endloc=twiss.S[twiss.indx[endbpm]]
@@ -171,10 +178,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		bpmstranslate[startbpm]=startloc
 		bpmstranslate[endbpm]=endloc+twiss.LENGTH
 	else:
-		bpms=[startbpm]+bpms+[endbpm]
-
-	#print len(bpms)
-	#sys.exit()
+		bpms=[startbpm]+bpms+[endbpm]		
 	
 
 	####### structure
@@ -187,11 +191,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	bpmscouple={}
 	bpmsc=[]
 
-	#print beta[2],beta[3],beta[4],beta[5]
-	#sys.exit()
-
 	for bpm in bpms:
-		
 
 		try:
                         #beta
@@ -217,13 +217,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			stdbetay=beta[1].STDBETY[beta[1].indx[bpm]]
 
 			errx=sqrt(errbetax**2+stdbetax**2)
-
-			errxper=errx/betxmdl
-		
-			
 			erry=sqrt(errbetay**2+stdbetay**2)
-
-			erryper=erry/betymdl
 
 			#ampbeta
 			ampbetax=ampbeta[0].BETX[ampbeta[0].indx[bpm]]
@@ -245,28 +239,21 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 			#print (betax-betxmdl)/betxmdl,beta[2]
 
-			#print errx,beta[4],bpm
+			print errx,beta[4],bpm
 
-	
-
-			if (betax>0) and (betay>0) and (abs((betax-betxmdl)/betxmdl)<float(beta[2])) and (abs((betay-betymdl)/betymdl)<float(beta[3])) and (errxper<float(beta[4])) and (erryper<float(beta[5])) and ((betax-errx)>0) and ((betay-erry)>0) and (errx<betax) and (erry<betay):
+			if (betax>0) and (betay>0) and (abs((betax-betxmdl)/betxmdl)<beta[2]) and (abs((betay-betymdl)/betymdl)<beta[3]) and (errx<beta[4]) and (erry<beta[5]) and ((betax-errx)>0) and ((betay-erry)>0) and (errx<betax) and (erry<betay):
 
 				#print "pass"
-				#print "error NOW", errxper,beta[4]
-				#if errxper<beta[4]:
-				#	print "NOW Is smaller"
 
 				bpmsbeta[bpm]=[bpmstranslate[bpm],betax,errx,alfax,erralfax,betay,erry,alfay,erralfay,ampbetax,stdbetax,ampbetay,stdbetay]
-				print bpm
 				bpmsb.append(bpm)
 
 
 			else:
-				print "BPM ",bpm," didnt pass cuts for beta",abs((betax-betxmdl)/betxmdl),errxper,abs((betay-betymdl)/betymdl),erryper
+				print "BPM ",bpm," didnt pass cuts for beta"
 
 		except:
-			print "BPM is not in the datafile for beta",
-
+			print "BPM is not in the datafile for beta",bpm
 
 		try:
 
@@ -334,7 +321,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		except:
 			print "BPM is not in the datafile for coupling",bpm
 
-	#sys.exit()
+		#sys.exit()
 
 	if len(bpmsb)<2:
 
@@ -409,7 +396,6 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		elbpms=[bpmsB,bpmeB,bpmsD,bpmeD,bpmsC,bpmeC]
 
 		print bpmsB,bpmeB
-		#sys.exit()
 
 	else:
 		elbpms=["empty","empty","empty","empty","empty","empty"]
@@ -444,8 +430,14 @@ def getTwiss(filee,element):
 
     return[hor,ver,dp]
 
-def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name):
+def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
 
+
+    ##
+    #  Copy getfterms.py locally to be used by MADx
+    cpath=options.bb
+    os.system('cp '+cpath+'/SegmentBySegment/getfterms.py'+' '+path+'/')
+    
     if options.accel=="LHCB2":
 
         dire=-1
@@ -456,9 +448,10 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name):
 
         dire=1
 	start="MSIA.EXIT.B1"   #  compatible with repository
+#	start="IP2"   #  compatible with repository
         beam="B1"
 
-    cpath=options.bb
+   
 
     ### check on error propogation
     errbetx=hor[1]
@@ -473,6 +466,12 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name):
     errbetyb=vere[1]
     betyb=vere[0]    
     #if (vere[0]-vere[1])<0:errbetyb=0;betyb=0
+    f1001r=fs[0]
+    f1001i=fs[1]
+    f1010r=fs[2]
+    f1010i=fs[3]
+
+    
      
     filename=path+'/var4mad.sh'
     file4nad=open(filename,'w')
@@ -514,7 +513,15 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name):
     file4nad.write('    -e \'s/%START/\''+str(start)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%BEAM/\''+str(beam)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%PATH/\'\"'+str(path.replace('/','\/'))+'\"\'/g\' \\\n')
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.mask > '+path+'/t_'+str(name)+'.madx \n')
+    file4nad.write('    -e \'s/%F1001R/\''+str(f1001r)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1001I/\''+str(f1001i)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1010R/\''+str(f1010r)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1010I/\''+str(f1010i)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%EXP/\''+exppath.replace("/","")+'\'/g\' \\\n')
+    
+    
+    
+    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.testCoupl.mask > '+path+'/t_'+str(name)+'.madx \n')
 
     file4nad.close()
     
@@ -542,14 +549,14 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name):
     file4nad.write('    -e \'s/%ACCEL/\''+str(options.accel)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%BETA/\''+str(beta4plot)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%MEA/\'\"'+str(meapath.replace("/","\/"))+'\"\'/g\' \\\n')    
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.mask > '+path+'/gplot_'+name)
+    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.coupl.mask > '+path+'/gplot_'+name)
 
     file4nad.close()
     
     os.system("chmod 777 "+str(filename))
     os.system(str(filename))
-    os.system("chmod 777 "+str(path+'/gplot_'+name))
-    os.system(str(path+'/gplot_'+name))
+    #os.system("chmod 777 "+str(path+'/gplot_'+name))
+    os.system("gnuplot "+str(path+'/gplot_'+name))
 
  
    
@@ -816,7 +823,7 @@ def filterbpms(filex,filey,bpmstart,bpmend,listt,listcom,accel):
 			     print "found start"
 			     #sys.exit()
 		     if go==1:
-			     if ((bx and by) >0) and ((errbetx and errbety) <5):
+			     if ((bx and by) >0) and ((errbetx and errbety) <20):
 
 				     bpms.append(name)
 
@@ -1077,6 +1084,7 @@ except:
 	print "no coupling file... will continue without taking into account coupling"
 	filecouple=[]
 	coupleswitch=0
+	fs=[0,0,0,0]
 
 
 
@@ -1227,14 +1235,19 @@ for namename in names:
 	if options.holyswitch=="0":
 		elementswitch=0
 		print "Segment has been choosen"
-		databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter([betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],[ampbetxtwiss,ampbetytwiss],[filephasextot,filephaseytot],[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],[filecouple,cuts[8],cuts[9]],start[namename],end[namename],twisstwiss,disp,coupleswitch,"empty")
+		databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter(
+			[betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],
+			[ampbetxtwiss,ampbetytwiss],[filephasextot,filephaseytot],
+			[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],
+			[filecouple,cuts[8],cuts[9]],start[namename],
+			end[namename],
+			twisstwiss,
+			disp,coupleswitch,"empty")
 
 	else:
 		elementswitch=1
 		print "You have choosen an instrument"
 		databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter([betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],[ampbetxtwiss,ampbetytwiss],[filephasextot,filephaseytot],[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],[filecouple,cuts[8],cuts[9]],start[namename],end[namename],twisstwiss,disp,coupleswitch,namename)
-		#databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter([betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],[filedatax,filedatay],[filephasextot,filephaseytot],[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],[filecouple,cuts[8],cuts[9]],start[namename],end[namename],twisstwiss,disp,coupleswitch,namename)
-		
 
 
 
@@ -1244,11 +1257,7 @@ for namename in names:
 		endbpm=databeta[0][len(databeta[0])-1]
 	else:
 		startbpm=elbpms[0]
-		startbpm="BPMWB.4L8.B2"
 		endbpm=elbpms[1]
-		endbpm="BPMYB.4R8.B2"
-		print "startbpm ",startbpm,endbpm
-		#sys.exit()
 	
 
 
@@ -1288,9 +1297,16 @@ for namename in names:
 	if coupleswitch==1:
 		coupling=rotateparts(datacouple,twisstwiss)
 		print len(coupling[1][coupling[0][0]]),len(coupling[0])
+		data=datacouple[1]
+		f1001r=data[startbpm][5]
+		f1001i=data[startbpm][6]
+		f1010r=data[startbpm][7]
+		f1010i=data[startbpm][8]
+		fs=[f1001r,f1001i,f1010r,f1010i]
 		#sys.exit()
 	else:
 		coupling=[[],[]]
+		fs=[0,0,0,0]
 		print "No coupling"
 		
 	
@@ -1300,7 +1316,7 @@ for namename in names:
 	if passs==1:
 		
 		if str(options.madpass)=="0":
-			run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename)
+			run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path)
 
 		else:
 			runmad(savepath,namename)
@@ -1323,7 +1339,7 @@ for namename in names:
 		dpx=dp[1]
 		dy=dp[2]
 		dpy=dp[3]
-		[hor,ver,dp]=getTwiss(savepath+"/EndPoint.twiss",endbpm)
+		[hor,ver,dp]=getTwiss(savepath+"/StartPoint.twiss",endbpm)
 		endpos=hor[2]
 
 		[hor,ver,dp]=getTwiss(savepath+"/twiss.b+.dat",startbpm)
@@ -1444,7 +1460,7 @@ for namename in names:
 		print "filling table for betx"
 		for bpm in bpmsbetx:
 			name=bpm[1]
-			s=betxtwiss.S[betxtwiss.indx[name]]
+			s=betxtwiss.S[betxtwiss.indx[name]]  
 
 			bet=betxtwiss.BETX[betxtwiss.indx[name]]
 			errbet=sqrt(betxtwiss.ERRBETX[betxtwiss.indx[name]]**2+betxtwiss.STDBETX[betxtwiss.indx[name]]**2)
