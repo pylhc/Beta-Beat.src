@@ -32,14 +32,18 @@
 #                                   file, it should be in twisspath or an 
 #                                   empty file will be created.             
 #                                   The MAD mask file has also been 
-#                                   updated              
+#                                   updated
+#  !=> SegementBySegment_0.29.py : - Update for IP2  beam1 and IP8 beam 2... problem with S coordinate
 #
 
 
 
 ###### imports
 from optparse import OptionParser
-from metaclass import twiss
+try:
+	from metaclass import twiss
+except:
+	from metaclass25 import twiss
 import os,sys
 from math import sqrt,cos,sin,pi
 from datetime import date
@@ -87,7 +91,7 @@ parser.add_option("-z", "--switch", # assumes that output is same as input
                 metavar="switch", default="1", dest="switch")
 parser.add_option("-c", "--cuts", # assumes that output is same as input
                 help="cuts for beta,disp,coupling bbxm,bbym,bxe,bye,dxm,dym,dxe,dye,f1001e,f1010e",
-                metavar="cuts", default="1,1,40,40,2,2,0.5,0.5,5,5", dest="cuts")
+                metavar="cuts", default="0.8,0.8,20,20,2,2,0.5,0.5,5,5", dest="cuts")
 parser.add_option("-e", "--elementswitch", # assumes that output is same as input
                 help="switching between segment(0) or element (1)",
                 metavar="holyswitch", default="0", dest="holyswitch")
@@ -139,6 +143,20 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	
 	startloc=twiss.S[twiss.indx[startbpm]]
 	endloc=twiss.S[twiss.indx[endbpm]]
+	try:
+		locel=twiss.S[twiss.indx[element]]
+		switcher=locel+1000
+	except:
+		print "not an element"
+		locel=0
+		switcher=0
+		
+#	print switcher
+#	sys.exit()
+	#startloc=locel-1000
+	#endloc=
+
+	#print startloc,endloc,startbpm,endbpm,locel
 
 	all=twiss.NAME
 	names=[]
@@ -148,15 +166,18 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			names.append(name)
 
 	cutswitch=0
-	#print endloc,startloc
-	#sys.exit()
+
+	#print switcherendloc
 		
-	if endloc<startloc:
+	if (locel<500 or locel>26500) and "empty" not in element :
 
 		print "segment cut up in two"
 		cutswitch=1
-		#sys.exit()
-	#cutswitch=1
+		endloc=twiss.S[twiss.indx[startbpm]]+1500
+		startloc=twiss.S[twiss.indx[element]]-1500
+
+		#	sys.exit()
+
 	for name in names:
 		loc=twiss.S[twiss.indx[name]]
 
@@ -176,9 +197,14 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			if (loc>startloc):
 				bpms.append(name)
 				bpmstranslate[name]=loc
-			elif (loc<startloc):
+				#print "before"
+				
+			elif (loc<endloc):
 				bpmcut.append(name)
 				bpmstranslate[name]=loc+twiss.LENGTH
+				#print "after"
+
+	
 
 	if cutswitch==1:
 		bpms=[startbpm]+bpms+bpmcut+[endbpm]
@@ -188,6 +214,9 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		bpms=[startbpm]+bpms+[endbpm]
 		bpmstranslate[startbpm]=startloc
 		bpmstranslate[endbpm]=endloc
+
+	#print bpms
+	#sys.exit()
 
 	#print len(bpmstranslate),len(bpms)
 	#print bpms
@@ -205,7 +234,15 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	bpmscouple={}
 	bpmsc=[]
 
+	#print len(bpms)
+	#sys.exit()
+
 	for bpm in bpms:
+
+
+		#print  (betax>0),(betay>0) , (abs((betax-betxmdl)/betxmdl)<beta[2]) , (abs((betay-betymdl)/betymdl)<beta[3]) , (errx<beta[4]) , (erry<beta[5]) , ((betax-errx)>0) , ((betay-erry)>0) , (errx<betax) , (erry<betay)
+		#sys.exit()
+		
 
 		try:
                         #beta
@@ -254,12 +291,12 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			#print (betax-betxmdl)/betxmdl,beta[2]
 
 			#print errx,beta[4],bpm
-			print betax,betay,betxmdl,betymdl,abs((betax-betxmdl)/betxmdl),abs((betay-betymdl)/betymdl),errx,erry
-			print 0,0,beta[2],beta[3],beta[4],beta[5]
+
+
 
 			if (betax>0) and (betay>0) and (abs((betax-betxmdl)/betxmdl)<beta[2]) and (abs((betay-betymdl)/betymdl)<beta[3]) and (errx<beta[4]) and (erry<beta[5]) and ((betax-errx)>0) and ((betay-erry)>0) and (errx<betax) and (erry<betay):
 
-				#print "pass"
+				print "pass"
 
 				bpmsbeta[bpm]=[bpmstranslate[bpm],betax,errx,alfax,erralfax,betay,erry,alfay,erralfay,ampbetax,stdbetax,ampbetay,stdbetay]
 				bpmsb.append(bpm)
@@ -359,27 +396,69 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	#sys.exit()
 
 	
-
+#	print element
+#	sys.exit()
+#        print len(bpmsb)
 	if "empty" not in element: # only for element
 		locationindx=twiss.indx[element]
 		#for beta
-		indS=0
-		indE=10000000
+		if cutswitch==0:
+			indS=0
+			indE=10000000
+		else:
+			indS=0
+			indxE=100000000
+			indE=10000000
 		bpmsB="empty"
 		bpmeB="empty"
+		dd=[]
+		dd.append(locationindx)
+		#print len(bpmsb)
 		for bpm in bpmsb:
 			#print bpm
 			indx=twiss.indx[bpm]
-		
-			if locationindx>indx and indx>indS:
-				indxS=indx
-				bpmsB=bpm			
-			if locationindx<indx and indx<indE:
-				indxE=indx
-				bpmeB=bpm
-				break
+			print "HERE",indx,bpm,cutswitch
+			dd.append(indx)
 
-	
+			if cutswitch==0:
+			
+				if locationindx>indx and indx>indS:
+					indxS=indx
+					bpmsB=bpm			
+				if locationindx<indx and indx<indE:
+					indxE=indx
+					bpmeB=bpm
+					break
+			else:
+				print indS,bpm,locationindx>indx
+				if locationindx>indx and indx>indS:
+					indxS=indx
+					bpmsB=bpm			
+				if indx<indE and indx<indxE:
+					indxE=indx
+					bpmeB=bpm
+					
+
+				
+		dd.sort()
+
+		good=dd.index(locationindx)
+		if good==0:
+			first=dd[len(dd)-1]
+			last=dd[1]
+		elif good==len(dd)-1:
+			first=dd[len(dd)-2]
+			last=dd[0]
+		else:
+			first=dd[good-1]
+			last=dd[good+1]
+		#sys.exit()
+		print first,locationindx,last,good
+		bpmsB=twiss.NAME[first]
+		bpmsE=twiss.NAME[last]
+		print bpmsB,bpmsE
+		#sys.exit()
+		
 		indS=0
 		indE=10000000
 		bpmsD="empty"
@@ -412,7 +491,8 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 		elbpms=[bpmsB,bpmeB,bpmsD,bpmeD,bpmsC,bpmeC]
 
-		print bpmsB,bpmeB
+		#print bpmsB,bpmeB
+		#sys.exit()
 
 	else:
 		elbpms=["empty","empty","empty","empty","empty","empty"]
@@ -467,6 +547,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
 
         dire=-1
         start="MKI.A5R8.B2"
+	#start="BPM.28L1.B2"
         beam="B2"
         
     elif options.accel=="LHCB1":
@@ -565,7 +646,7 @@ def runmad(path,name):
 	
    
   
-def run4plot(path,spos,epos,beta4plot,cpath,meapath,name):
+def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel):
 
     filename=path+'/var4plot.sh'
     file4nad=open(filename,'w')
@@ -575,8 +656,14 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name):
     file4nad.write('    -e \'s/%LABEL/\''+str(name)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ACCEL/\''+str(options.accel)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%BETA/\''+str(beta4plot)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%MEA/\'\"'+str(meapath.replace("/","\/"))+'\"\'/g\' \\\n')    
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_1.mask > '+path+'/gplot_'+name)
+    file4nad.write('    -e \'s/%QX/\''+str(qx)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%QY/\''+str(qy)+'\'/g\' \\\n')    
+    file4nad.write('    -e \'s/%MEA/\'\"'+str(meapath.replace("/","\/"))+'\"\'/g\' \\\n')
+    if (name=="IP8" and accel=="LHCB2") or (name=="IP2" and accel=="LHCB1"):
+	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.IP2IP8.0_1.mask > '+path+'/gplot_'+name)  
+    else:
+	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_1.mask > '+path+'/gplot_'+name)
+	    
 
     file4nad.close()
     
@@ -1068,6 +1155,8 @@ beamswitch=options.switch
 #
 filedatax=twiss(path+"/getbetax.out")
 betxtwiss=filedatax
+QXX=filedatax.Q1
+QYY=filedatax.Q2
 filedatay=twiss(path+"/getbetay.out")
 betytwiss=filedatay
 filedataxA=twiss(path+"/getampbetax.out")
@@ -1288,13 +1377,9 @@ for namename in names:
 
 		startbpm=databeta[0][0]
 		endbpm=databeta[0][len(databeta[0])-1]
-		#endbpm=databeta[0][0]
-		#print startbpm,endbpm
-		#sys.exit()
 	else:
 		startbpm=elbpms[0]
 		endbpm=elbpms[1]
-		#endbpm=elbpms[0]
 	
 
 
@@ -1435,7 +1520,8 @@ for namename in names:
 
 	        ######################
 		if options.gra=='1':
-			run4plot(savepath,startpos,endpos,beta4plot,options.bb,path,namename)
+			
+			run4plot(savepath,startpos,endpos,beta4plot,options.bb,path,namename,QXX,QYY,options.accel)
 
 
 		################
