@@ -34,17 +34,29 @@
 #                                   The MAD mask file has also been 
 #                                   updated
 #  !=> SegementBySegment_0.29.py : - Update for IP2  beam1 and IP8 beam 2... problem with S coordinate
-#  !=>  SegementBySegment_0.30.py : - New filtering... + extending it to RHIC (double plane bpms only, IPS)
+#  !=>  SegementBySegment_0.30.py : - New filtering... 
 #  !=>  SegementBySegment_0.31.py : - New and easier filtering
-
+#  !=>  SegementBySegment_0.31.py : - Adjusting filtering
+#                                   - Adding C-matrix,angle,waist calculation,...
+#                                   - Adding IP calculation from getllm... if BPM is not found you take another.
+#   Added system path to the beginning to avoid having to define it in the shell
 
 
 ###### imports
+import sys
+sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
+
+
 from optparse import OptionParser
-from metaclass import twiss
-import os,sys
+try:
+	from metaclass import twiss
+except:
+	from metaclass25 import twiss
+
+import os
 from math import sqrt,cos,sin,pi
 from datetime import date
+from math import *
 
 
 
@@ -72,7 +84,7 @@ parser.add_option("-r", "--response",
 parser.add_option("-g", "--graphic",
                 help="choice between graphic or table output 0=graphic and 1=table output",
                 metavar="GRA", default="1", dest="gra")
-parser.add_option("-p", "--save", # assumes that output is same as input
+parser.add_option("-p", "--save",  
                 help="Output path",
                 metavar="SAVE", default="./", dest="SAVE")
 parser.add_option("-m", "--mad", # assumes that output is same as input
@@ -84,20 +96,12 @@ parser.add_option("-b", "--bbsrouce", # assumes that output is same as input
 parser.add_option("-x", "--take", # take or create mad input, default should be 0 for creating
                 help="take or create madx 0/1",
                 metavar="mad", default="0", dest="madpass")
-parser.add_option("-z", "--switch", # assumes that output is same as input
-                help="switch one/two beam 1/2",
-                metavar="switch", default="1", dest="switch")
-parser.add_option("-c", "--cuts", # assumes that output is same as input
-                help="cuts for beta,disp,coupling bbxm,bbym,bxe,bye,dxm,dym,dxe,dye,f1001e,f1010e",
-                metavar="cuts", default="0.8,0.8,20,20,2,2,0.5,0.5,5,5", dest="cuts")
+parser.add_option("-c", "--cuts", 
+                help="cut on error of beta in percentage",
+                metavar="cuts", default="10", dest="cuts")
 parser.add_option("-w", "--w", # Path to Chromaticity functions
                     help="Path to  chromaticity functions, by default this is skiped",
                     metavar="wpath", default="0", dest="wpath")
-
-parser.add_option("-e", "--elementswitch", # assumes that output is same as input
-                help="switching between segment(0) or element (1)",
-                metavar="holyswitch", default="0", dest="holyswitch")
-
 
 (options, args) = parser.parse_args()
 
@@ -133,46 +137,1492 @@ def intersect(ListOfFile):
 	result=[]
 	x0=ListOfFile[0]
 	for bpm in z:
-		result.append((x0.S[x0.indx[bpm]], bpm))
-		
+		result.append((x0.S[x0.indx[bpm]], bpm))		
 	result.sort()
 	return result
 
+#def sortedDictValues(adict):
+#    keys = adict.keys()
+#    keys.sort()
+#    return [dict[key] for key in keys]
 
-def filterbpm(betaxx,betayy,commonbpms):
 
+
+def filterandfind(betaxx,betayy,element,segment,model,errorcut):
+	##############################################
 	#
-	# Easy function to find bpm and filter on beta>0,beterr>0 and err<beta
+	#  Automatic BPM filter and BPM finder
 	#
-	#
-	goodbpm=[]
-	for bp in range(len(commonbpms)):
-		bpm=commonbpms[bp][1]
-		betax=betaxx.BETX[betaxx.indx[bpm]]
-		betxmdl=betaxx.BETXMDL[betaxx.indx[bpm]]
-		betay=betayy.BETY[betayy.indx[bpm]]
-		betymdl=betayy.BETYMDL[betayy.indx[bpm]]
-		
-		errbetax=betaxx.ERRBETX[betaxx.indx[bpm]]
-		stdbetax=betaxx.STDBETX[betaxx.indx[bpm]]
-		errbetay=betayy.ERRBETY[betayy.indx[bpm]]
-		stdbetay=betayy.STDBETY[betayy.indx[bpm]]
-
-		errx=sqrt(errbetax**2+stdbetax**2)
-		erry=sqrt(errbetay**2+stdbetay**2)
-
+	#  Parameters:
+	#  betaxx => twiss for horizontal beta function
+	#  betayy => twiss for vertcal beta function
+	#  element => instrument,collimator or IP . Specify as "null" if it as a segment
+	#  segment => leftbpm and rightbpm where you want to compute the segment
+	#  model => twiss model
+	#  errorcut => errorcut for beta in percentage (err/bet)
+	#  Return:
+	#  Left and right BPM in a list
+	#  Exception:
+	#  If n BPMS is  < 3 => System exit
+	###############################################
 	
-		if (betax>0) and (betay>0) and (errx<betax) and (erry<betay) and (errx>0) and (erry>0):
-			goodbpm.append(bpm)
+	# initial points
+	translate={}
+	location=[]
+
+	if element!="null":
+		seg=0
+		try:
+			sele=model.S[model.indx[element]]
+		except:
+			print element, " Not found in model=> System exit"
+			sys.exit()
+		location.append(sele)
+		translate[sele]=[1,element]
+		print "You selected an element"
+	else:
+		seg=1
+		bpml=segment[0]
+		bpmr=segment[1]
+		try:
+			sbpml=model.S[model.indx[bpml]]
+			sbpmr=model.S[model.indx[bpmr]]
+		except:
+			print bpml,bpmr, " Not found in model=> System exit"
+			sys.exit()			
+		location.append(sbpml)
+		location.append(sbpmr)
+		try:
+			betay=betayy.BETY[betayy.indx[bpml]]
+			betax=betaxx.BETX[betaxx.indx[bpml]]
+			betay=betayy.BETY[betayy.indx[bpmr]]
+			betax=betaxx.BETX[betaxx.indx[bpmr]]
+			translate[sbpml]=[1,bpml]
+			translate[sbpmr]=[1,bpmr]
+		except:
+			translate[sbpml]=[0,bpml]
+			translate[sbpmr]=[0,bpmr]
 			
+		print "You selected a segment"
+
+
+	names=model.NAME
+	goodones=0
+
+	#filtering
+	for name in names:
+
+		if "BPM" in name:
+			s=model.S[model.indx[name]]
+			flag=0
+			try:
+				betay=betayy.BETY[betayy.indx[name]]
+				betax=betaxx.BETX[betaxx.indx[name]]
+				flag=1
+			except:
+				flag=0
+
+				
+			if flag==1:
+				errbetax=betaxx.ERRBETX[betaxx.indx[name]]
+				stdbetax=betaxx.STDBETX[betaxx.indx[name]]
+				errbetay=betayy.ERRBETY[betayy.indx[name]]
+				stdbetay=betayy.STDBETY[betayy.indx[name]]
+
+				errx=sqrt(errbetax**2+stdbetax**2)
+				erry=sqrt(errbetay**2+stdbetay**2)
+
+				#print (betax>0),(betay>0),(errx<betax),(erry<betay),(errx>0),(erry>0),(((errx/betax)*100)<errorcut),(((erry/betay)*100)<errorcut)
+
+				
+				if (betax>0) and (betay>0) and (errx<betax) and (erry<betay) and (errx>0) and (erry>0) and (((errx/betax)*100)<errorcut) and(((erry/betay)*100)<errorcut):
+					translate[s]=[1,name]
+					goodones=goodones+1
+					location.append(s)
+
+				elif seg==1 and (bpml in name or bpmr in name):
+					translate[s]=[0,name] # exclude giving bpms for segment
+					# if they dont pass the cut
+			
+					
+	
+	location.sort()
+	if goodones<3:
+		print "Not enough BPMs! System exit"
+		sys.exit()
+
+	# finding the BPMs
+	if seg==0:
+		indin=location.index(sele)
+
+		if indin==0:
+			bpleft=translate[location[len(location)-2]][1]
+			bpright=translate[location[1]][1]
+		elif indin==(len(location)-1):
+			bpleft=translate[location[indin-1]][1]
+			bpright=translate[location[0]][1]
 		else:
-			print "bpm ",bpm," didt not pass the cuts"
+			bpleft=translate[location[indin-1]][1]
+			bpright=translate[location[indin+1]][1]
+
+	else:
+		fll=translate[sbpml][0]
+		flr=translate[sbpmr][0]
+		print fll,flr
+
+		if fll==1:
+			bpleft=translate[sbpml][1]
+		else:
+			indin=location.index(sbpml)
+			if indin==0:
+				bpleft=translate[location[len(location)-2]][1]
+			else:
+				bpleft=translate[location[indin-1]][1]
+
+		if flr==1:
+			bpright=translate[sbpmr][1]
+		else:
+			indin=location.index(sbpmr)
+			if indin==(len(location)-1):
+				bpright=translate[location[0]][1]
+			else:
+				bpright=translate[location[indin+1]][1]
+
+	print bpleft,bpright," Will be used for the propogation"
+
+#	sys.exit()
+
+	return [bpleft,bpright]
+
+def TransverseDampers(twissp,twissb,element,model,savepath,phasex,phasey,errors):
+	#######################################################
+	# Function for getting the phase advance between the
+	# dampers and pick-ups
+	# Parameters:
+	# -twissp containing propagation from BPM to damper
+	# -twissb containing back propagation from BPM to damper
+	# -element, element name
+	# -model, model twiss
+	# -savepath, where to save file
+	# -phasex and phasey measured phase advances.
+	# - errors : twissmin,twissminb,twissmax,twissmaxb
+	# Returns:
+	# - nothing => writing to file in this function (new/appending)
+	########################################################
+
+	# initial
+	dampermap={}
+	bpmmap={}
+	path=savepath+"phases.out"
+	accel=model.SEQUENCE
+	if os.path.exists(path):
+		writer=open(path,"a")
+		firsttime=0
+	else:
+		writer=open(path,"w")
+		firsttime=1
+		print >> writer,"@ BEAM %s",accel
+		print >> writer,"@ NIM %s Not In Measurement"
+		print >> writer,"* NAME1 NAME2 S1 S2 PHX PHXe PHXM PHY PHYe PHYM"
+		print >> writer,"$ %s %s %le %le %le %le %le %le %le %le "
+		
 	
-	
-	
-	return goodbpm
+	#beam1
+	dampermap['ADTKH.D5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
+	dampermap['ADTKH.C5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
+	dampermap['ADTKH.B5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
+	dampermap['ADTKH.A5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
+
+	dampermap['ADTKV.A5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']
+	dampermap['ADTKV.B5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']	
+	dampermap['ADTKV.C5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']
+	dampermap['ADTKV.D5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']
+
+	bpmmap['LHCB1_1']=['BPMC.9L4.B1','BPMC.7L4.B1','BPMC.8L4.B1'] #H
+	bpmmap['LHCB1_2']=['BPMCA.7R4.B1','BPMC.9R4.B1','BPMC.8R4.B1'] #V
+
+	#beam2
+	dampermap['ADTKV.D5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
+	dampermap['ADTKV.C5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
+	dampermap['ADTKV.B5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
+	dampermap['ADTKV.A5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
+
+	dampermap['ADTKH.A5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
+	dampermap['ADTKH.B5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
+	dampermap['ADTKH.C5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
+	dampermap['ADTKH.D5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
 
 
+	bpmmap['LHCB2_1']=['BPMCA.7R4.B2','BPMC.9R4.B2','BPMC.8R4.B2'] #H 
+	bpmmap['LHCB2_2']=['BPMC.9L4.B2','BPMC.7L4.B2','BPMC.8L4.B2'] #V 
+
+	## main
+	if firsttime==1:
+
+		#
+		counter=2
+		#
+
+		for count in range(0,counter):
+
+			count=count+1
+
+			print "counter for loop ", count
+
+			bpms=bpmmap[accel+"_"+str(count)]
+			refBpm=bpms[0]
+			eightbpm=bpms[2]
+			endbpm=bpms[1]
+
+			# hor bpms's
+			try: 
+				in1x=phasex.indx[refBpm]
+				
+			except:
+				in1x=-1
+
+			if (in1x<len(phasex.indx)-1) and (in1x!=-1): # when BPM is not last
+				if phasex.NAME[phasex.indx[refBpm]+1]==endbpm:
+					in2x=1
+					eightinphasex=0
+				elif phasex.NAME[phasex.indx[refBpm]+2]==endbpm:
+					in2x=1
+					eightinphasex=1
+				else: # not in measurement
+					in2x=-1
+					eightinphasex=0
+			elif (in1x!=-1): # when BPM is last
+				if phasex.NAME[0]==endbpm:
+					in2x=1
+					eightinphasex=0
+				elif phasex.NAME[1]==endbpm:
+					in2x=1
+					eightinphasex=1
+				else: # not in measurement
+					in2x=-1
+					eightinphasex=0
+			else:
+				in2x=-1	
+				eightinphasex=0
+					
+
+			# ver bpm's
+			try:
+				in1y=phasey.indx[refBpm]				
+			except:
+				in1y=-1
+
+			if (in1y<len(phasey.indx)-1) and (in1y!=-1): # when BPM is not last
+				if phasey.NAME[phasey.indx[refBpm]+1]==endbpm:
+					in2y=1
+					eightinphasey=0
+				elif phasey.NAME[phasey.indx[refBpm]+2]==endbpm:
+					in2y=1
+					eightinphasey=1
+				else: # not in measurement
+					in2y=-1
+					eightinphasey=0
+			elif in1y!=-1: # when BPM is last
+				if phasey.NAME[0]==endbpm:
+					in2y=1
+					eightinphasey=0
+				elif phasey.NAME[1]==endbpm:
+					in2y=1
+					eightinphasey=1
+				else: # not in measurement
+					in2y=-1
+					eightinphasey=0
+			else:
+				in2y=-1
+				eightinphasey=0
+
+			
+		
+			
+
+			###### H plane
+			if (in1x!=-1) and (in2x!=-1):
+				if eightinphasex==1:
+					phaseh="%.5f" %float(phasex.PHASEX[phasex.indx[refBpm]]+phasex.PHASEX[phasex.indx[eightbpm]])
+					errphaseh="%.5f" %float(phasex.STDPHX[phasex.indx[refBpm]]+phasex.STDPHX[phasex.indx[eightbpm]])
+					phasemodelh="%.5f" %float(phasex.PHXMDL[phasex.indx[refBpm]]+phasex.PHXMDL[phasex.indx[eightbpm]])
+				else:
+					phaseh="%.5f" %float(phasex.PHASEX[phasex.indx[refBpm]])
+					errphaseh="%.5f" %float(phasex.STDPHX[phasex.indx[refBpm]])
+					phasemodelh="%.5f" %float(phasex.PHXMDL[phasex.indx[refBpm]])
+			else:
+				print "Horizontal plane not found for transverse dampers pick-ups"
+				phaseh='NIM'
+				errphaseh='NIM'
+				phasemodelh='NIM'						
+					
+			###### V plane
+			print in1y,in2y,eightinphasey
+			if (in1y!=-1) and (in2y!=-1):
+				if eightinphasey==1:
+					phasev="%.5f" %float(phasey.PHASEY[phasey.indx[refBpm]]+phasey.PHASEY[phasey.indx[eightbpm]])
+					errphasev="%.5f" %float(phasey.STDPHY[phasey.indx[refBpm]]+phasey.STDPHY[phasey.indx[eightbpm]])
+					phasemodelv="%.5f" %float(phasey.PHYMDL[phasey.indx[refBpm]]+phasey.PHYMDL[phasey.indx[eightbpm]])
+				else:
+					
+					phasev="%.5f" %float(phasey.PHASEY[phasey.indx[refBpm]])
+					errphasev="%.5f" %float(phasey.STDPHY[phasey.indx[refBpm]])
+					phasemodelv="%.5f" %float(phasey.PHYMDL[phasey.indx[refBpm]])
+									
+			else:
+				print "Vertical plane not found for transverse dampers pick-ups"
+				phasev='NIM'
+				errphasev='NIM'
+				phasemodelv='NIM'
+
+				
+			print >> writer,refBpm,endbpm,model.S[model.indx[refBpm]],model.S[model.indx[endbpm]],phaseh,errphaseh,phasemodelh,phasev,errphasev,phasemodelv
+										  
+	if element in dampermap:
+		bpms=dampermap[element]
+		passs=1
+	else:
+		print "WARN: Element ",element," Not found in dampermap"
+		passs=0
+
+	if passs==1:
+		muxbpm1=twissp.MUX[twissp.indx[bpms[0]]]
+		muxbpm2=twissp.MUX[twissp.indx[bpms[1]]]
+		mux=twissp.MUX[twissp.indx[element]]
+		muybpm1=twissp.MUY[twissp.indx[bpms[0]]]
+		muybpm2=twissp.MUY[twissp.indx[bpms[1]]]
+		muy=twissp.MUY[twissp.indx[element]]
+
+		muxbpm1m=model.MUX[model.indx[bpms[0]]]
+		muxbpm2m=model.MUX[model.indx[bpms[1]]]
+		muxm=model.MUX[model.indx[element]]
+
+		muybpm1m=model.MUY[model.indx[bpms[0]]]
+		muybpm2m=model.MUY[model.indx[bpms[1]]]
+		muym=model.MUY[model.indx[element]]
+
+		pha1xp=abs(mux-muxbpm1)
+		pha2xp=abs(muxbpm2-mux)
+		pha1yp=abs(muy-muybpm1)
+		pha2yp=abs(muybpm2-muy)
+		
+		muxbpm1=twissb.MUX[twissb.indx[bpms[0]]]
+		muxbpm2=twissb.MUX[twissb.indx[bpms[1]]]
+		mux=twissb.MUX[twissb.indx[element]]
+		muybpm1=twissb.MUY[twissb.indx[bpms[0]]]
+		muybpm2=twissb.MUY[twissb.indx[bpms[1]]]
+		muy=twissb.MUY[twissb.indx[element]]
+		
+
+		pha1xb=abs(muxbpm1-mux)
+		pha2xb=abs(mux-muxbpm2)
+		pha1yb=abs(muybpm1-muy)
+		pha2yb=abs(muy-muybpm2)
+
+
+		pha1xm=abs(muxm-muxbpm1m)
+		pha2xm=abs(muxbpm2m-muxm)
+		pha1ym=abs(muym-muybpm1m)
+		pha2ym=abs(muybpm2m-muym)
+
+
+
+
+		#mean
+		pha1x=(pha1xp+pha1xb)/2
+		pha1y=(pha1yp+pha1yb)/2
+		pha2x=(pha2xp+pha2xb)/2
+		pha2y=(pha2yp+pha2yb)/2
+
+		#error
+		twissmin=errors[0]
+		twissminb=errors[1]
+		twissmax=errors[2]
+		twissmaxb=errors[3]
+		
+		minn=abs(abs(twissmin.MUX[twissmin.indx[element]]-twissmin.MUX[twissmin.indx[bpms[0]]])-abs(twissminb.MUX[twissminb.indx[element]]-twissminb.MUX[twissminb.indx[bpms[0]]]))
+		maxx=abs(abs(twissmax.MUX[twissmax.indx[element]]-twissmax.MUX[twissmax.indx[bpms[0]]])-abs(twissmaxb.MUX[twissmaxb.indx[element]]-twissmaxb.MUX[twissmaxb.indx[bpms[0]]]))
+		pha1xe=minn+maxx
+
+
+		minn=abs(abs(twissmin.MUX[twissmin.indx[bpms[1]]]-twissmin.MUX[twissmin.indx[element]])-abs(twissminb.MUX[twissminb.indx[bpms[1]]]-twissminb.MUX[twissminb.indx[element]]))
+		maxx=abs(abs(twissmax.MUX[twissmax.indx[bpms[1]]]-twissmax.MUX[twissmax.indx[element]])-abs(twissmaxb.MUX[twissmaxb.indx[bpms[1]]]-twissmaxb.MUX[twissmaxb.indx[element]]))
+		pha2xe=minn+maxx
+
+	       	minn=abs(abs(twissmin.MUY[twissmin.indx[element]]-twissmin.MUY[twissmin.indx[bpms[0]]])-abs(twissminb.MUY[twissminb.indx[element]]-twissminb.MUY[twissminb.indx[bpms[0]]]))
+		maxx=abs(abs(twissmax.MUY[twissmax.indx[element]]-twissmax.MUY[twissmax.indx[bpms[0]]])-abs(twissmaxb.MUY[twissmaxb.indx[element]]-twissmaxb.MUY[twissmaxb.indx[bpms[0]]]))
+		pha1ye=minn+maxx
+
+		minn=abs(abs(twissmin.MUY[twissmin.indx[bpms[1]]]-twissmin.MUY[twissmin.indx[element]])-abs(twissminb.MUY[twissminb.indx[bpms[1]]]-twissminb.MUY[twissminb.indx[element]]))
+		maxx=abs(abs(twissmax.MUY[twissmax.indx[bpms[1]]]-twissmax.MUY[twissmax.indx[element]])-abs(twissmaxb.MUY[twissmaxb.indx[bpms[1]]]-twissmaxb.MUY[twissmaxb.indx[element]]))
+		pha2ye=minn+maxx
+		
+		print >> writer,bpms[0],element,model.S[model.indx[bpms[0]]],model.S[model.indx[element]],"%.5f" %float(pha1x),"%.5f" %float(pha1xe),"%.5f" %float(pha1xm),"%.5f" %float(pha1y),"%.5f" %float(pha1ye),"%.5f" %float(pha1ym)
+		print >> writer,element,bpms[1],model.S[model.indx[element]],model.S[model.indx[bpms[1]]],"%.5f" %float(pha2x),"%.5f" %float(pha2xe),"%.5f" %float(pha2xm),"%.5f" %float(pha2y),"%.5f" %float(pha2ye),"%.5f" %float(pha2ym)
+
+	writer.close()
+
+def getIP(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,accel,path):
+	###############################################################################
+	#
+	# Function calculating the optics parameters at the IP
+	#
+	# Parameters:
+	# - betameA : list contaning horizontal and vertical measured amplitude functions
+	# - basetwiss : list with propogated and back propogated twiss
+	# - betatwiss : list of twisses for beta errors
+	# - alfatwiss : list of twisses for alfa errors
+	# - model : model twiss
+	# - name : name of the IP
+	# Returns:
+	# - nothing writs to file in this function (new/appending)
+	###############################################################################
+
+	if os.path.isfile(path+"/IP_para.out"):
+		ipfilepara=open(path+"/IP_para.out","a")
+	else:
+		ipfilepara=open(path+"/IP_para.out","w")
+		print >> ipfilepara,"* NAME S BETX EBETX X EX BETY EBETY Y EY BETX_ph EBETX_ph BETY_ph EBETY_ph"
+		print >> ipfilepara,"$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le"
+
+
+	if os.path.isfile(path+"/IP_pro_x.out"):
+		ipfileprox=open(path+"/IP_pro_x.out","a")
+	else:
+		ipfileprox=open(path+"/IP_pro_x.out","w")
+		print >> ipfileprox,"* NAME S BETSTARX EBETSTARX X[cm] EX[cm] BETIPX EBETIPX ALFIPX EALFIPX"
+		print >> ipfileprox,"$ %s %le %le %le %le %le %le %le %le %le"
+
+	if os.path.isfile(path+"/IP_pro_y.out"):
+		ipfileproy=open(path+"/IP_pro_y.out","a")
+	else:
+		ipfileproy=open(path+"/IP_pro_y.out","w")
+		print >> ipfileproy,"* NAME S BETY EBETY Y[cm] EY[cm] BETIPY EBETIPY ALFIPY EALFIPY"
+		print >> ipfileproy,"$ %s %le %le %le %le %le %le %le %le %le"
+
+	## constructor
+	if "B1" in accel:
+		accelb="B1"
+	else:
+		accelb="B2"
+	twissp=basetwiss[0]
+	twissb=basetwiss[1]
+
+	twissbmip=betatwiss[0]
+	twissbmib=betatwiss[1]
+	twissbmap=betatwiss[2]
+	twissbmab=betatwiss[3]
+
+	twissamip=alfatwiss[0]
+	twissamib=alfatwiss[1]
+	twissamap=alfatwiss[2]
+	twissamab=alfatwiss[3]
+
+	ampbetx=betameA[0]
+	ampbety=betameA[1]
+
+	## beta from parabola calculation
+	# Map bpm's
+	bpmmap={}
+	bpmmap['IP1']=["BPMSW.1L1.","BPMSW.1R1."]
+	bpmmap['IP2']=["BPMSW.1L2.","BPMSW.1R2."]
+	bpmmap['IP5']=["BPMSW.1L5.","BPMSW.1R5."]
+	bpmmap['IP8']=["BPMSW.1L8.","BPMSW.1R8."]
+	
+	if(name in bpmmap):
+		phix,ephix,betastar_h,errbx,location_h,errsx,phiy,ephiy,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p=getIPfrompara(bpmmap[name][0]+accelb,bpmmap[name][1]+accelb,ampbetx,ampbety,phasex,phasey,name)
+	else:
+		betastar_h_p=ebetastar_h_p=betastar_v_p=ebetastar_v_p=phix=ephix=betastar_h=errbx=location_h=errsx=phiy=ephiy=betastar_v=errby=location_v=errsy=0	
+
+	print >> ipfilepara,name,model.S[model.indx[name]],betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p
+	ipfilepara.close()
+
+	## beta from propogations
+	#gathering info
+	#error alfa
+
+	dalfaxp=1/abs(twissamap.ALFX[twissamap.indx[name]]-twissamip.ALFX[twissamip.indx[name]])
+	dalfaxb=1/abs(twissamab.ALFX[twissamab.indx[name]]-twissamib.ALFX[twissamib.indx[name]])
+
+	dalfayp=1/abs(twissamap.ALFY[twissamap.indx[name]]-twissamip.ALFY[twissamip.indx[name]])
+	dalfayb=1/abs(twissamab.ALFY[twissamab.indx[name]]-twissamib.ALFY[twissamib.indx[name]])
+
+	#error beta's
+	dbxp=1/abs(twissbmap.BETX[twissbmap.indx[name]]-twissbmip.BETX[twissbmip.indx[name]])
+	dbxb=1/abs(twissbmab.BETX[twissbmab.indx[name]]-twissbmib.BETX[twissbmib.indx[name]])
+
+	dbyp=1/abs(twissbmap.BETY[twissbmap.indx[name]]-twissbmip.BETY[twissbmip.indx[name]])
+	dbyb=1/abs(twissbmab.BETY[twissbmab.indx[name]]-twissbmib.BETY[twissbmib.indx[name]])
+
+	bb=twissb.ALFX[twissb.indx[name]]
+	if bb<0.0:
+		Balfx=abs(bb)
+	else:
+		Balfx=-bb
+
+	bb=twissb.ALFY[twissb.indx[name]]
+	if bb<0.0:
+		Balfy=abs(bb)
+	else:
+		Balfy=-bb
+	
+	alfax=(1/(dalfaxp+dalfaxb))*(dalfaxp*twissp.ALFX[twissp.indx[name]]+Balfx*dalfaxb)
+
+	ealfax=(sqrt((1/dalfaxp)**2+(1/dalfaxb)**2))/2
+	
+	alfay=(1/(dalfayp+dalfayb))*(dalfayp*twissp.ALFY[twissp.indx[name]]+Balfy*dalfayb)
+	ealfay=(sqrt((1/dalfayp)**2+(1/dalfayb)**2))/2
+
+	betxip=(1/(dbxp+dbxb))*(dbxp*twissp.BETX[twissp.indx[name]]+dbxb*twissb.BETX[twissb.indx[name]])
+	
+	betyip=(1/(dbyp+dbyb))*(dbyp*twissp.BETY[twissp.indx[name]]+dbyb*twissb.BETY[twissb.indx[name]])
+	errbetxip=sqrt((1/dbxp)**2+(1/dbxb)**2)/2
+	errbetyip=sqrt((1/dbyp)**2+(1/dbyb)**2)/2
+
+	#betstar and waist
+	#x
+	betastar,ebetastar,waist,ewaist=getIPfromProp(betxip,errbetxip,alfax,ealfax)
+	print >> ipfileprox,name,model.S[model.indx[name]],betastar,ebetastar,waist,ewaist,round(betxip,3),round(errbetxip,3),round(alfax,4),round(ealfax,4)
+	ipfileprox.close()
+
+	#y
+	betastar,ebetastar,waist,ewaist=getIPfromProp(betyip,errbetyip,alfay,ealfay)	
+	print >> ipfileproy,name,model.S[model.indx[name]],betastar,ebetastar,waist,ewaist,round(betyip,3),round(errbetyip,3),round(alfay,4),round(ealfay,4)
+	ipfileproy.close()
+
+	##dispersion
+
+def getIPfromProp(betaip,errbetaip,alfaip,ealfaip):
+
+	#values
+	betastar=betaip/(1+alfaip**2)
+	waist=alfaip*betaip #(sign flip)
+
+	#errors
+	ewaist=((ealfaip/abs(alfaip))+(errbetaip/abs(betaip)))*abs(waist)
+	ebetastar=sqrt(errbetaip**2+(((-2*alfaip)/(1+alfaip**2)**2)*alfaip)**2 )
+
+	waist=waist*100 # transferring to CM!!!!
+	ewaist=ewaist*100 # transferring to CM!!!!
+
+
+	return round(betastar,3),round(ebetastar,3),round(waist,3),round(ewaist,3)
+
+def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey,element):
+	########################################################
+	# Function calculating beta at IP (based on Rioichy thesis)
+	# b(s)=b*+(s^2/b*)
+	#
+	# Parameters:
+	# - bpmleft,bpmright : bpm's used to caculate the beta at the IP
+	# - ampbetx,ampbety : twiss containing the horizontal and vertical beta from amp
+	# - phasex,phasey : measured phases
+	# Returns:
+	# - beta at waist and offset
+	########################################################
+
+
+        #left horizontal
+	try:
+		blx=betax.BETX[betax.indx[bpmleft]]
+		belx=betax.BETXSTD[betax.indx[bpmleft]]
+		hlp=1
+	except:
+		hlp=0
+			
+	#right horizontal
+	try:
+		brx=betax.BETX[betax.indx[bpmright]]
+		berx=betax.BETXSTD[betax.indx[bpmright]]
+		hrp=1
+	except:
+		hrp=0
+		
+
+	#left vertical
+	try:
+		bly=betay.BETY[betay.indx[bpmleft]]
+	    	bely=betay.BETYSTD[betay.indx[bpmleft]]
+		vlp=1
+	except:
+		vlp=0
+
+	#right vertical
+	try:
+		bry=betay.BETY[betay.indx[bpmright]]
+		bery=betay.BETYSTD[betay.indx[bpmright]]
+		vrp=1
+	except:
+		vrp=0
+
+	#getting phaseadvance
+	#inx1=phasex.indx[bpmleft]
+	#inx2=phasex.indx[bpmright]
+	try:
+		inx1=phasex.indx[bpmleft]
+		inx2=phasex.indx[bpmright]
+		if (inx1==(inx2-1)) or (inx2==0 and inx1==len(phasex.NAME)-1):
+			pxp=1
+		else:
+			pxp=0
+	except:
+		pxp=0
+
+	try:
+		iny1=phasey.indx[bpmleft]
+		iny2=phasey.indx[bpmright]
+		if iny1==(iny2-1) or (inx2==0 and inx1==len(phasex.NAME)-1):
+			pyp=1
+		else:
+			pyp=0
+	except:
+		pyp=0
+
+
+	#horizontal
+	if(hrp==1) and (hlp==1) and (pxp==1):
+
+		sxl=phasex.S[inx1]
+		sxr=phasex.S[inx2]
+		if (sxl==phasex.S[len(phasex.NAME)-1]): #if start point is in center of IP ! 
+			L=sxr
+		else:
+			L=(sxr-sxl)/2
+		
+		phix=phasex.PHASEX[inx1]
+		ephix=phasex.STDPHX[inx1]
+		
+		betastar_h=(2*sqrt(blx)*sqrt(brx)*sin(phix*2*pi))/(blx+brx-2*sqrt(blx)*sqrt(brx)*cos(2*pi*phix))*L
+		location_h=((blx-brx)/(blx+brx-2*sqrt(blx)*sqrt(brx)*cos(2*pi*phix)))*L
+
+		
+
+		errbx=0
+		errsx=0
+
+		
+		betastar_h_phase=(L)/tan(phix*pi)
+		betastar_h_phase_e=(1+cos(2*phix*pi))*L/2
+		
+		
+	else:
+		print "WARN: Will not calculate horizontal IP"
+		phix="NIM"
+		ephix="NIM"		
+		betastar_h="NIM"
+		location_h="NIM"
+		errbx="NIM"
+		errsx="NIM"
+		betastar_h_phase="NIM"
+		betastar_h_phase_e="NIM"
+	#vertical
+	if (vrp==1) and (vlp==1)and (pyp==1):
+
+		syl=phasey.S[iny1]
+		syr=phasey.S[iny2]
+		if (syl==phasey.S[len(phasey.NAME)-1]): #if start point is in center of IP ! 
+			L=syr
+		else:
+			L=(syr-syl)/2
+		
+
+		phiy=phasey.PHASEY[iny1]
+		ephiy=phasey.STDPHY[iny1]
+		
+		betastar_v=(2*sqrt(bly)*sqrt(bry)*sin(phiy*2*pi))/(bly+bry-2*sqrt(bly)*sqrt(bry)*cos(2*pi*phiy))*L
+		location_v=((bly-bry)/(bly+bry-2*sqrt(bly)*sqrt(bry)*cos(2*pi*phiy)))*L
+
+		betastar_v_phase=(L)/tan(phiy*pi)
+		betastar_v_phase_e=(1+cos(2*phiy*pi))*L/2
+
+		errby=0
+		errsy=0
+	else:
+		print "WARN: Will not calculate vertical IP"
+		phiy="NIM"
+		ephiy="NIM"
+		betastar_v="NIM"
+		location_v="NIM"
+		errby="NIM"
+		errsy="NIM"
+		betastar_v_phase="NIM"
+		betastar_v_phase_e="NIM"		
+
+	return phix,ephix,betastar_h,errbx,location_h,errsx,phiy,ephiy,betastar_v,errby,location_v,errsy,betastar_h_phase,betastar_h_phase_e,betastar_v_phase,betastar_v_phase_e
+
+def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,model,modelcor,modelp,modelb,path,switch,accel):
+	###################################################################
+	# Function that returns the optics function at the given element
+	# Parameters:
+	# - name : name of the element
+	# - phase: (list) horizontal and vertical phase [phasex,phasey,phasext,phaseyt]
+	# - betah : (list) horizontal beta [betax,betaxminp,betaxmaxp,betaxminb,betaxmaxb,alfaxminp,alfaxmaxp,alfaxminb,alfaxmaxb,ampbetax]
+	# - betav : (list) vertical beta [betay,betayminp,betaymaxp,betayminb,betaymaxb,alfayminp,alfaymaxp,alfayminb,alfaymaxb,ampbetay]
+	# - disph : (list) horizontal dispersion [dispx,ndispx,dispminxp,dispmaxp,dispminxb,dispmaxb]
+	# - dispv : (list) vertical dispersion [dispy,dispminyp,dispmayp,dispminyb,dispmayb]
+	# - couple : twiss containing the coupling [coupleme,couplecme,couplemip,couplemap]
+	# - chromatic : containing the chromatic ouput [wx,wxminp,wxmqxp,wy,wyminp,wymaxp]
+	# - model : model in twiss format
+	# - modelcor : model containing twiss with corrections values (former known as model_play)
+	# - modelp : model from propagation
+	# - modelb : model from back propagation
+	# - path : path where to save
+	# - switch : to tell if it is either element(1)/segment(0)
+	###################################################################
+
+	print "INFO: Start writing files",switch
+
+
+	#### gathering file
+	if switch==1:
+		if os.path.isfile(path+"sbs_summary_bet.out"):
+			print "INFO: Updating summary file"
+			filesum_b=open(path+"sbs_summary_bet.out","a")
+			filesum_c=open(path+"sbs_summary_cou.out","a")
+			filesum_d=open(path+"sbs_summary_disp.out","a")
+
+		else:
+			print "INFO: Creating summary file"
+			filesum_b=open(path+"sbs_summary_bet.out","w")
+			filesum_c=open(path+"sbs_summary_cou.out","w")
+			filesum_d=open(path+"sbs_summary_disp.out","w")
+
+
+			# beta
+			print >> filesum_b, "* NAME S BETXP ERRBETXP BETXMDL ALFXP ERRALFXP ALFXMDL BETY ERRBETY BETYMDL ALFA ERRALFY ALFYMDL MDL_S"
+			print >> filesum_b, "$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
+
+			#coupling
+			print >> filesum_c,"* NAME   S   f1001 f1001re  f1001im    f1010   f1010re   f1010im  f1001_PLAY ef1001_play   f1001re_PLAY  f1001im_PLAY    f1010_PLAY ef1010_play   f1010re_PLAY   f1010im_PLAY C11Mo C12Mo C21Mo C22Mo ANDMo C11_cor eC11_cor C12_cor eC12_cor C21_cor eC21_cor C22_cor eC22_cor ANG_cor eANG_cor S_MODEL"
+			print >> filesum_c,"$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
+
+			# disp and chromatic
+			if len(chromatic)!=0:
+		
+				print >> filesum_d, "* NAME S DX_MDL DX_PLAY EDX_PLAY DPX_MDL DPX_PLAY EDPX_PLAY DY_MDL DY_PLAY EDY_PLAY DPY_MDL DPY_PLAY EDPY_PLAY WX_MDL WX_PLAY eWX_play PHIX_MDL PHIX_PLAY ePHIX_PLAY WY_MDL WY_PLAY eWY_play PHIY_MDL PHIY_PLAY ePHIY_PLAY S_MODEL"
+				print >> filesum_d, "$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
+
+			else:
+				print >> filesum_d, "* NAME S DX_MDL DX_PLAY EDX_PLAY DPX_MDL DPX_PLAY EDPX_PLAY  DY_MDL DY_PLAY EDY_PLAY DPY_MDL DPY_PLAY EDPY_PLAY  S_MODEL"
+				print >> filesum_d, "$ %s %le %le %le %le %le %le %le %le %le  %le %le %le %le %le"
+
+	phasex=phases[0]
+	phasey=phases[1]		
+
+#	if switch==0: # only enter when it is a segment
+             ##phase => should contain phasep,phaseb and total phase
+	     #-horizontal
+	#     filex=open(path+"sbsPhasex_"+namename+".out","w")
+	 #    filext=open(path+"sbsPhasext_"+namename+".out","w")
+
+	 #    phasext=phases[2]
+	 #    phaseyt=phases[3]	
+
+	  #   bpms=intersect([phasex,model,modelcor,modelp,modelb])
+
+	 #    print >> filex,"* NAME NAME2 S S2 COUNT PHASEX STDPHX PHASEP STDPHP PHXMDL S_MODEL"
+	 #    print >> filex,"$ %s %s %le %le %le %le %le %le %le %le"
+	     
+	 #    print >> filext,"* NAME  S PHASEX  PHASEXT    ERRORX PHASE_PLAY MODEL_S "
+	 #    print >> filext,"$ %s    %le  %le  %le        %le     %le       %le  "
+
+	
+	  #   for count in range(len(bpms)-1):
+	#	     s=bpms[count][0]
+	#	     s2=bpms[count+1][0]
+	#	     name=bpms[count][1]
+	#	     name2=bpms[count+1][1]
+
+		#     nfiles=phasex.COUNT[phasex.indx[name]]
+		#     phadv=phasex.PHASEX[phasex.indx[name]]
+		#     ephadv=phasex.STDPHX[phasex.indx[name]]
+		#     phadvmo=phasex.PHXMDL[phasex.indx[name]]
+
+#		     phadvpr=modelp.MUX[modelp.indx[name]]-modelp.MUX[modelp.indx[name2]]
+		 #    phadvba=modelb.MUX[modelb.indx[name]]-modelb.MUX[modelb.indx[name2]]
+		
+		 #    phadvp=sqrt((phadvpr**2+phadvba**2)/2)
+		 #    ephadvp=((phadvpr**2+phadvba**2)/2)-((phadvpr+phadvba)/2)**2
+
+		 #    print >> filex,name,name2,s,s2,nfiles,phadv,ephadv,phadvp,ephadvp,phadvmo,model.S[model.indx[name]]
+
+	     #phasetotal
+	    # bstart=bpms[0][1]
+	  #   for count in range(len(bpms)):
+	#	     s=bpms[count][0]
+	#	     name=bpms[count][1]
+
+		
+	#	     mdl=(model.MUX[model.indx[name]]-model.MUX[model.indx[bstart]] ) % 1
+	#	     exp=(phasext.PHASEX[phasext.indx[name]]-phasext.PHASEX[phasext.indx[bstart]] )%1
+	#	     exp_mdl=(exp-mdl ) %1
+	#	     if exp_mdl >  0.5: exp_mdl=  exp_mdl -1
+	#	     mdl_play=-model.MUX[model.indx[name]]+modelcor.MUX[modelcor.indx[name]]
+		
+	#	     print >>filext,name, s, exp, exp_mdl, phasext.STDPHX[phasext.indx[name]], mdl_play,model.S[model.indx[name]]
+	
+
+	    # filex.close()
+	    # filext.close()
+
+	     #-vertical
+	     #bpms=intersect([phasey,model,modelcor,modelp,modelb])
+	    # filey=open(path+"sbsPhasey_"+namename+".out","w")
+	    # fileyt=open(path+"sbsPhaseyt_"+namename+".out","w")
+
+	    # print >> filey,"* NAME NAME2 S S2 COUNT PHASEY STDPHY PHASEP STDPHP PHYMDL S_MODEL"
+	    # print >> filey,"$ %s %s %le %le %le %le %le %le %le %le"
+	     
+	    # print >> fileyt,"* NAME  S PHASEY  PHASEYT    ERRORY PHASE_PLAY MODEL_S "
+	    # print >> fileyt,"$ %s    %le  %le  %le        %le     %le       %le  "
+
+	    # for count in range(len(bpms)-1):
+		    # s=bpms[count][0]
+		    # s2=bpms[count+1][0]
+		    # name=bpms[count][1]
+		    # name2=bpms[count+1][1]
+
+		    # nfiles=phasey.COUNT[phasey.indx[name]]
+		    # phadv=phasey.PHASEY[phasey.indx[name]]
+		   #  ephadv=phasey.STDPHY[phasey.indx[name]]
+		    # phadvmo=phasey.PHYMDL[phasey.indx[name]]
+
+		    # phadvpr=modelp.MUY[modelp.indx[name]]-modelp.MUY[modelp.indx[name2]]
+		    # phadvba=modelb.MUY[modelb.indx[name]]-modelb.MUY[modelb.indx[name2]]
+		
+		    # phadvp=sqrt((phadvpr**2+phadvba**2)/2)
+		    # ephadvp=((phadvpr**2+phadvba**2)/2)-((phadvpr+phadvba)/2)**2
+
+		   #  print >> filey,name,name2,s,s2,nfiles,phadv,ephadv,phadvp,ephadvp,phadvmo,model.S[model.indx[name]]
+	
+	    # bstart=bpms[0][1]
+	   #  for count in range(len(bpms)):
+		 #    s=bpms[count][0]
+		  #   name=bpms[count][1]
+
+		
+		   #  mdl=(model.MUY[model.indx[name]]-model.MUY[model.indx[bstart]] ) % 1
+		   #  eyp=(phaseyt.PHASEY[phaseyt.indx[name]]-phaseyt.PHASEY[phaseyt.indx[bstart]] )%1
+		   #  eyp_mdl=(eyp-mdl ) %1
+		   #  if eyp_mdl >  0.5: eyp_mdl=  eyp_mdl -1
+		   #  mdl_play=-model.MUY[model.indx[name]]+modelcor.MUY[modelcor.indx[name]]
+		
+		  #   print >>fileyt,name, s, eyp, eyp_mdl, phaseyt.STDPHY[phaseyt.indx[name]], mdl_play,model.S[model.indx[name]]
+
+	    # filey.close()
+	    # fileyt.close()	
+
+	##beta
+	#-horizontal
+	filex=open(path+"sbsbetax_"+namename+".out","w")
+	filexa=open(path+"sbsalfax_"+namename+".out","w")
+
+	if switch==0:	
+		print >> filex,"* NAME S BETX ERRBETX BETXAMP ERRBETXAMP BETXP ERRBETXP BETXMDL MODEL_S"
+		print >> filex,"$ %s %le %le %le %le %le  %le %le %le %le"
+	
+		print >> filexa,"* NAME S ALFX ERRALFX ALFXP ERRALFXP MODEL_S"
+		print >> filexa,"$ %s %le %le %le %le %le %le"
+	else:
+		print >> filex,"* NAME S BETXP ERRBETXP BETXMDL MODEL_S"
+		print >> filex,"$ %s %le %le %le %le %le"
+	
+		print >> filexa,"* NAME S ALFXP ERRALFXP ALFXMDL MODEL_S"
+		print >> filexa,"$ %s %le %le %le %le %le"		
+	
+	bme=betah[0] # measurement
+	bmea=betah[9] # measurement amp
+	bmip=betah[1] # min p
+	bmap=betah[2] # max p
+	bmib=betah[3] # min b
+	bmab=betah[4] # max b
+	amip=betah[5] # min p
+	amap=betah[6] # max p
+	amib=betah[7] # min b
+	amab=betah[8] # max b
+
+	
+	if switch==0: # only enter when it is a segment
+		bpms=intersect([bme,bmip,model,modelcor,modelp,modelb,bmea])
+	else:
+		bpms=intersect([bmip,model,modelcor,modelp,modelb])
+
+	for bpm in bpms:
+		s=bpm[0]
+		name=bpm[1]
+		smo=model.S[model.indx[name]]
+
+		#beta model
+		betam=model.BETX[model.indx[name]]
+
+		#beta pro
+		betape=abs(bmap.BETX[bmap.indx[name]]-bmip.BETX[bmip.indx[name]])
+		betabe=abs(bmab.BETX[bmab.indx[name]]-bmib.BETX[bmib.indx[name]])
+		#ebep=sqrt((1/betape)**2+(1/betabe)**2)/2
+		ebep=sqrt(((betape)**2+(betabe)**2)/2)
+			    
+		#alfa
+		amo=model.ALFX[model.indx[name]]
+			    
+		alfape=abs(amap.ALFX[amap.indx[name]]-amip.ALFX[amip.indx[name]])
+		alfabe=abs(amab.ALFX[amab.indx[name]]-amib.ALFX[amib.indx[name]])
+		eaep=sqrt(((alfape)**2+(alfabe)**2)/2)
+
+		betap=modelp.BETX[modelp.indx[name]]
+		betab=modelb.BETX[modelb.indx[name]]
+		bep=(1/(betape+betabe))*(betape*betap+betabe*betab)
+			    
+		alfap=modelp.ALFX[modelp.indx[name]]			    
+		alfab=modelb.ALFX[modelb.indx[name]]
+		aep=(1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
+
+			    
+		if switch==0:
+			
+			    alfame=bme.ALFX[bme.indx[name]]
+			    ealfame=sqrt((bme.ERRALFX[bme.indx[name]]**2+bme.STDALFX[bme.indx[name]]**2)/2)
+			    #beta me
+			    betaa=bmea.BETX[bmea.indx[name]]
+			    ebetaa=bmea.BETXSTD[bmea.indx[name]]
+			    betame=bme.BETX[bme.indx[name]]
+			    ebetame=sqrt((bme.ERRBETX[bme.indx[name]]**2+bme.STDBETX[bme.indx[name]]**2)/2)
+		            bep=modelcor.BETX[modelcor.indx[name]]
+			    alfap=modelp.ALFX[modelp.indx[name]]
+
+			    
+			    print >> filexa,name,s,alfame,ealfame,aep,eaep,amo,smo
+			    print >> filex,name,s,betame,ebetame,betaa,ebetaa,bep,ebep,betam,smo
+		else:
+			    #print "Adding", name," to the summary ",namename
+
+			    print >> filexa,name,s,aep,eaep,amo,smo
+			    print >> filex,name,s,bep,ebep,betam,smo
+
+			    if namename in name:
+				    fileb1=name+" "+str(s)+" "+str(round(bep,2))+" "+str(round(ebep,2))+" "+str(round(betam,2))+" "+str(round(aep,4))+" "+str(round(eaep,4))+" "+str(round(amo,4))
+		
+	filex.close()
+	filexa.close()
+
+	#-vertical
+	filey=open(path+"sbsbetay_"+namename+".out","w")
+	fileya=open(path+"sbsalfay_"+namename+".out","w")
+			    
+	if switch==0:
+			    print >> filey,"* NAME S BETY ERRBETY  BETYAMP ERRBETYAMP BETYP ERRBETYP BETYMDL MDL_S"
+			    print >> filey,"$ %s %le %le %le %le %le %le %le %le %le "
+			    print >> fileya,"* NAME S ALFY ERRALFY ALFYP ERRALFYP ALFMDL MODEL_S"
+			    print >> fileya,"$ %s %le %le %le %le %le %le"
+	else:
+			    print >> filey,"* NAME S BETY ERRBETY BETYMDL MDL_S"
+			    print >> filey,"$ %s %le %le %le %le %le"		
+			    print >> fileya,"* NAME S ALFA ERRALFY ALFYMDL MDL_S"
+			    print >> fileya,"$ %s %le %le %le %le %le"
+
+	
+	bme=betav[0] # measurement
+	bmea=betav[9] # measurement amp		    
+	bmip=betav[1] # min p
+	bmap=betav[2] # max p
+	bmib=betav[3] # min b
+	bmab=betav[4] # max b
+	amip=betav[5] # min p
+	amap=betav[6] # max p
+	amib=betav[7] # min b
+	amab=betav[8] # max b
+			    
+	if switch==0: # only enter when it is a segment
+			    bpms=intersect([bme,bmip,model,modelcor,modelp,modelb,bmea])
+	else:
+			    bpms=intersect([bmip,model,modelcor,modelp,modelb])		
+
+	for bpm in bpms:
+		s=bpm[0]
+		name=bpm[1]
+		smo=model.S[model.indx[name]]
+
+		#beta model
+		betam=model.BETY[model.indx[name]]
+
+				      
+		#beta
+
+		betape=abs(bmap.BETY[bmap.indx[name]]-bmip.BETY[bmip.indx[name]])
+		betabe=abs(bmab.BETY[bmab.indx[name]]-bmib.BETY[bmib.indx[name]])
+		#ebep=sqrt((1/betape)**2+(1/betabe)**2)/2
+		ebep=sqrt((betape)**2+(betabe)**2)/2
+ 
+		#alfa
+		amo=model.ALFY[model.indx[name]]
+		
+		alfape=abs(amap.ALFY[amap.indx[name]]-amip.ALFY[amip.indx[name]])
+		alfabe=abs(amab.ALFY[amab.indx[name]]-amib.ALFY[amib.indx[name]])
+		eaep=sqrt((alfape)**2+(alfabe)**2)/2
+
+		
+
+		
+		if switch==0:
+		        #beta me		       
+			betaa=bmea.BETY[bmea.indx[name]]
+			ebetaa=bmea.BETYSTD[bmea.indx[name]]
+			betame=bme.BETY[bme.indx[name]]		     			    
+			ebetame=sqrt((bme.ERRBETY[bme.indx[name]]**2+bme.STDBETY[bme.indx[name]]**2)/2)
+			print >> filey,name,s,betame,ebetame,betaa,ebetaa,bep,ebep,betam,smo			
+			#alfa me
+		        bep=modelcor.BETY[modelcor.indx[name]]
+			aep=modelcor.ALFY[modelcor.indx[name]]
+			   
+			alfame=bme.ALFY[bme.indx[name]]
+			ealfame=sqrt((bme.ERRALFY[bme.indx[name]]**2+bme.STDALFY[bme.indx[name]]**2)/2)
+			    
+			print >> fileya,name,s,alfame,ealfame,aep,eaep,amo,smo
+		else:
+		        betap=modelp.BETY[modelp.indx[name]]
+		        betab=modelb.BETY[modelb.indx[name]]
+			bep=(1/(betape+betabe))*(betape*betap+betabe*betab)			
+			alfap=modelp.ALFY[modelp.indx[name]]
+			alfab=modelb.ALFY[modelb.indx[name]]
+			aep=(1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
+			print >> fileya,name,s,aep,eaep,amo,smo
+		        print >> filey,name,s,bep,ebep,betam,smo
+
+			if namename in name:
+				print >>filesum_b,fileb1,round(bep,2),round(ebep,2),round(betam,2),round(aep,4),round(eaep,4),round(amo,4),round(smo,2)
+			
+		
+	filey.close()
+	fileya.close()
+	
+
+	##dispersion
+	if len(disph)!=0:
+		dme=disph[0]
+		dnme=disph[1]
+		dminp=disph[2]
+		dmaxp=disph[3]
+		dminb=disph[4]
+		dmaxb=disph[5]
+
+        	#dispersion
+		filex= open(path+'/sbsDx_'+namename+'.out','w')
+
+
+		if switch==0:
+			print >>filex,"* NAME  S  DX  STDDX  DX_MDL DX_PLAY EDX_PLAY DPX DPX_MDL DPX_PLAY EDPX_PLAY MODEL_S"
+			print >>filex,"$ %s %le %le %le %le %le %le %le %le %le %le %le"
+
+			bpms=intersect([dme,dminp,modelp,model,modelb])
+		else:
+			print >>filex,"* NAME  S  DX_MDL DX_PLAY EDX_PLAY DPX_MDL DPX_PLAY EDPX_PLAY  MODEL_S"
+			print >>filex,"$ %s %le %le %le %le %le %le %le %le"
+			bpms=intersect([dminp,modelp,model,modelb])		
+	
+
+
+		for bpm in bpms:
+			s=bpm[0]
+			name=bpm[1]
+
+			#model
+			dmo=model.DX[model.indx[name]]
+			smo=model.S[model.indx[name]]
+			dpmo=model.DPX[model.indx[name]]
+			# pro
+			dpe=abs(dmaxp.DX[dmaxp.indx[name]]-dminp.DX[dminp.indx[name]])
+			dbe=abs(dmaxb.DX[dmaxb.indx[name]]-dminb.DX[dminb.indx[name]])
+			dppe=abs(dmaxp.DPX[dmaxp.indx[name]]-dminp.DPX[dminp.indx[name]])
+			dpbe=abs(dmaxb.DPX[dmaxb.indx[name]]-dminb.DPX[dminb.indx[name]])		       
+			edep=sqrt((dpe)**2+(dbe)**2)/2
+			edepp=sqrt((dppe)**2+(dpbe)**2)/2
+			
+
+			if switch==0:
+				#mea
+				dmea=dme.DX[dme.indx[name]]
+				edmea=dme.STDDX[dme.indx[name]]
+				dpmea=dme.DPX[dme.indx[name]]
+			
+				#pro
+				dep=modelcor.DX[modelcor.indx[name]]
+				depp=modelcor.DPX[modelcor.indx[name]]
+
+				print >>filex,name,s,dmea,edmea,dmo,dep,edep,dpmea,dpmo,depp,edepp,smo
+			else:
+				dp=modelp.DX[modelp.indx[name]]
+				db=modelb.DX[modelb.indx[name]]
+				dep=(1/(dpe+dbe))*(dpe*dp+dbe*db)
+				
+				dpp=modelp.DPX[modelp.indx[name]]
+				dpb=modelb.DPX[modelb.indx[name]]
+				try:
+					depp=(1/(dppe+dpbe))*(dppe*dpp+dpbe*dpb)
+				except:
+					depp=0
+				
+				print >>filex,name,s,dmo,dep,edep,dpmo,depp,edepp,smo
+
+				if namename in name:
+					filed1=name+" "+str(s)+" "+str(dmo)+" "+str(dep)+" "+str(edep)+" "+str(dpmo)+" "+str(depp)+" "+str(edepp)
+
+
+		filex.close()
+		
+	        #normalized dispersion
+		filex= open(path+'/sbsNDx_'+namename+'.out','w')
+
+
+		if switch==0:
+			print >> filex,"* NAME  S  NDX   STDNDX NDX_MDL NDX_PLAY ENDX_PLAY MODEL_S "
+			print >> filex,"$ %s   %le  %le   %le   %le    %le %le    %le "
+			bpms=intersect([dnme,dminp,modelp,model,modelb,bme])
+		else:
+			print >> filex,"* NAME  S  NDX_MDL NDX_PLAY ENDX_PLAY MODEL_S "
+			print >> filex,"$ %s   %le   %le    %le %le    %le "
+			bpms=intersect([dminp,modelp,model,modelb,modelcor])
+
+		for bpm in bpms:
+			s=bpm[0]
+			name=bpm[1]
+
+			#model
+			dmo=model.DX[model.indx[name]]
+			smo=model.S[model.indx[name]]
+
+		        # pro
+			dpe=(abs(dmaxp.DX[dmaxp.indx[name]]-dminp.DX[dminp.indx[name]]))/sqrt(modelp.BETX[modelp.indx[name]])
+			dbe=(abs(dmaxb.DX[dmaxb.indx[name]]-dminb.DX[dminb.indx[name]]))/sqrt(modelp.BETX[modelp.indx[name]])
+			try:
+				edep=sqrt((1/dpe)**2+(1/dbe)**2)/2
+			except:
+				edep=0
+
+			if switch==0:
+		              #mea
+			      dmea=dnme.NDX[dnme.indx[name]]
+			      edmea=dnme.STDNDX[dnme.indx[name]]
+
+			
+			      #pro
+			      dp=modelp.DX[modelp.indx[name]]/sqrt(modelp.BETX[modelp.indx[name]])
+			      db=modelb.DX[modelb.indx[name]]/sqrt(modelb.BETX[modelp.indx[name]])
+			      dep=(1/(dpe+dbe))*(dpe*dp+dbe*db)
+				
+
+			      print >>filex,name,s,dmea,edmea,dmo,dep,edep,smo
+	                else:
+				
+				dep=modelcor.DX[modelcor.indx[name]]/sqrt(modelcor.BETX[modelcor.indx[name]])
+				print >>filex,name,s,dmo,dep,edep,smo
+
+			#if namename in name:
+
+				#filed1=filed1+" "+str(dmo)+" "+str(dep)+" "+str(edep)
+
+
+
+	#vertical dispersion
+	if len(dispv)!=0:
+		dme=dispv[0]
+		dminp=dispv[1]
+		dmaxp=dispv[2]
+		dminb=dispv[3]
+		dmaxb=dispv[4]
+		filey= open(path+'/sbsDy_'+namename+'.out','w')
+
+
+
+		if switch==0:
+			bpms=intersect([dme,dminp,modelp,model,modelb])
+			print >>filey,"* NAME  S  DY  STDDY  DY_MDL DY_PLAY EDY_PLAY DPY DPY_MDL DPY_PLAY EDPY_PLAY MODEL_S"
+			print >>filey,"$ %s %le %le %le %le %le %le %le %le %le %le %le"
+		else:
+			bpms=intersect([dminp,modelp,model,modelb])
+			print >>filey,"* NAME  S  DY_MDL DY_PLAY EDY_PLAY DPY_MDL DPY_PLAY EDPY_PLAY  MODEL_S"
+			print >>filey,"$ %s %le %le %le %le %le %le %le %le"
+	
+	
+		
+		for bpm in bpms:
+			s=bpm[0]
+			name=bpm[1]
+
+			#model
+			dmo=model.DY[model.indx[name]]
+			smo=model.S[model.indx[name]]
+			dpmo=model.DPY[model.indx[name]]
+			# pro
+			dpe=abs(dmaxp.DY[dmaxp.indx[name]]-dminp.DY[dminp.indx[name]])
+			dbe=abs(dmaxb.DY[dmaxb.indx[name]]-dminb.DY[dminb.indx[name]])
+			dppe=abs(dmaxp.DPY[dmaxp.indx[name]]-dminp.DPY[dminp.indx[name]])
+			dpbe=abs(dmaxb.DPY[dmaxb.indx[name]]-dminb.DPY[dminb.indx[name]])		       
+			edep=sqrt((dpe)**2+(dbe)**2)/2
+			edepp=sqrt((dppe)**2+(dpbe)**2)/2
+			
+
+			if switch==0:
+				#mea
+				dmea=dme.DY[dme.indx[name]]
+				edmea=dme.STDDY[dme.indx[name]]
+				dpmea=dme.DPY[dme.indx[name]]
+			
+				#pro
+				dep=modelcor.DY[modelcor.indx[name]]
+				depp=modelcor.DPY[modelcor.indx[name]]
+
+				print >>filey,name,s,dmea,edmea,dmo,dep,edep,dpmea,dpmo,depp,edepp,smo
+			else:
+				dp=modelp.DY[modelp.indx[name]]
+				db=modelb.DY[modelb.indx[name]]
+				dep=(1/(dpe+dbe))*(dpe*dp+dbe*db)
+				
+				dpp=modelp.DPY[modelp.indx[name]]
+				dpb=modelb.DPY[modelb.indx[name]]
+				depp=(1/(dppe+dpbe))*(dppe*dpp+dpbe*dpb)
+				
+				print >>filey,name,s,dmo,dep,edep,dpmo,depp,edepp,smo
+
+
+				if namename in name:
+
+					if len(chromatic)!=0:
+						filed1=filed1+" "+str(dmo)+" "+str(dep)+" "+str(edep)
+					else:
+						print >>filesum_d,filed1,dmo,dep,edep,dpmo,depp,edepp,smo
+
+
+ 
+
+		filey.close()	
+	##coupling
+	coupleme=couple[0]
+	couplemec=couple[1]
+	couplemi=couple[2]
+	couplema=couple[3]
+
+	couplemi.Cmatrix()
+	couplema.Cmatrix()
+	model.Cmatrix()
+	modelp.Cmatrix()
+	modelcor.Cmatrix()
+	#modelb.Cmatrix()
+	
+
+
+	#if (switch==0) and (len(couple)!=0):
+		#bpms=intersect([coupleme,couplemi,model])
+
+		#fterms
+		#print >> filex,'* NAME   S   f1001 f1001re  f1001im    f1010   f1010re   f1010im  f1001_EXP f1001err_EXP  f1001re_EXP  f1001im_EXP    f1010_EXP  f1010err_EXP   f1010re_EXP   f1010im_EXP     f1001_PLAY ef1001_play   f1001re_PLAY  f1001im_PLAY    f1010_PLAY ef1010_play   f1010re_PLAY   f1010im_PLAY  S_MODEL'
+		#print >> filex,'$  %s    %le   %le    %le  %le   %le    %le    %le  %le   %le    %le  %le   %le    %le    %le   %le  %le   %le    %le    %le   %le  %le %le %le %le'
+
+		#cterms
+		#print >>filex2,"NAME S C11Me eC11Me C12Me eC12Me C21Me eC21Me C22Me eC22 ANGMe eANGMe C11Mo C12Mo C21Mo C22Mo ANDMo C11_cor eC11_cor C12_cor eC12_cor C21_cor eC21_cor C22_cor eC22_cor ANG_cor eANG_cor"
+		#print >>filex2,"%s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
+		
+	if switch!=0:
+	        filex=open(path+'/sbscouple_'+namename+'.out','w')
+	        filex2=open(path+'/sbscouple2_'+namename+'.out','w')
+		bpms=intersect([couplemi,model])
+
+		#fterms
+		print >> filex,'* NAME   S   f1001 f1001re  f1001im    f1010   f1010re   f1010im  f1001_PLAY ef1001_play   f1001re_PLAY  f1001im_PLAY    f1010_PLAY ef1010_play   f1010re_PLAY   f1010im_PLAY  S_MODEL'
+		print >> filex,'$  %s    %le    %le  %le   %le    %le  %le    %le  %le   %le  %le   %le    %le    %le   %le  %le %le'
+
+		#cterms
+		print >>filex2,"NAME S C11Mo C12Mo C21Mo C22Mo ANDMo C11_cor eC11_cor C12_cor eC12_cor C21_cor eC21_cor C22_cor eC22_cor ANG_cor eANG_cor"
+		print >>filex2,"%s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"		
+	else:
+		bpms=[]
+
+	for bpm in bpms:
+		s=bpm[0]
+		name=bpm[1]
+
+		#fterms
+	        f1001=model.f1001[model.indx[name]]
+                f1010=model.f1010[model.indx[name]]
+		f1001e=couplema.f1001[couplema.indx[name]]-couplemi.f1001[couplemi.indx[name]]
+		f1010e=couplema.f1010[couplema.indx[name]]-couplemi.f1010[couplemi.indx[name]]
+
+		#cterms
+		C11=model.C[model.indx[name]][0]
+		C12=model.C[model.indx[name]][1]
+		C21=model.C[model.indx[name]][2]
+		C22=model.C[model.indx[name]][3]
+		angmo="x"
+
+		eC11c=couplema.C[couplema.indx[name]][0]-couplemi.C[couplemi.indx[name]][0]
+		eC12c=couplema.C[couplema.indx[name]][1]-couplemi.C[couplemi.indx[name]][1]
+		eC21c=couplema.C[couplema.indx[name]][2]-couplemi.C[couplemi.indx[name]][3]
+		eC22c=couplema.C[couplema.indx[name]][3]-couplemi.C[couplemi.indx[name]][3]
+		
+		smo=model.S[model.indx[name]]
+
+		#if switch==0:
+
+			#f1001c=modelcor.f1001[modelcor.indx[name]]
+			#f1010c=modelcor.f1010[modelcor.indx[name]]
+			#C11c=modelcor.C[modelcor.indx[name]][0]   	
+			#C12c=modelcor.C[modelcor.indx[name]][1]			
+			#C21c=modelcor.C[modelcor.indx[name]][2]			   
+			#C22c=modelcor.C[modelcor.indx[name]][3]
+			
+			#angmc="x"
+
+			#fterms
+			#print >>filex,name,s,abs(f1001),f1001.real,f1001.imag,abs(f1010),f1010.real,f1010.imag,coupleme.F1001W[coupleme.indx[name]],coupleme.FWSTD1[coupleme.indx[name]],coupleme.F1001R[coupleme.indx[name]],coupleme.F1001I[coupleme.indx[name]],coupleme.F1010W[coupleme.indx[name]],coupleme.FWSTD2[coupleme.indx[name]],coupleme.F1010R[coupleme.indx[name]],coupleme.F1010I[coupleme.indx[name]],abs(f1001c),f1001e,f1001c.real,f1001c.imag,abs(f1010c),f1010e,f1010c.real,f1010c.imag,smo
+			#cterms
+			#print >>filex2,name,s,couplemec.C11[couplemec.indx[name]],0,couplemec.C12[couplemec.indx[name]],0,couplemec.C21[couplemec.indx[name]],0,couplemec.C22[couplemec.indx[name]],0,"x",C11,C12,C21,C22,angmo,C11c,eC11c,C12c,eC12c,C21c,eC21c,C22c,eC22c,"x"
+
+		#else:
+		C11c=modelp.C[modelp.indx[name]][0]
+		C12c=modelp.C[modelp.indx[name]][1]
+		C21c=modelp.C[modelp.indx[name]][2] 
+		C22c=modelp.C[modelp.indx[name]][3]
+
+
+		#angle=((1/2)*atan((2*C11c)/(C11c-C22c)))%1
+		angle="x"
+
+		f1001c=modelp.f1001[modelp.indx[name]]
+		f1010c=modelp.f1010[modelp.indx[name]]
+		f1001e=couplema.f1001[couplema.indx[name]]-couplemi.f1001[couplemi.indx[name]]
+		f1010e=couplema.f1010[couplema.indx[name]]-couplemi.f1010[couplemi.indx[name]]	
+	        #fterms
+		print >>filex,name,s,abs(f1001),f1001.real,f1001.imag,abs(f1010),f1010.real,f1010.imag,abs(f1001c),f1001e,f1001c.real,f1001c.imag,abs(f1010c),f1010e,f1010c.real,f1010c.imag,smo
+
+	        #cterms
+		print >>filex2,name,s,C11,C12,C21,C22,angmo,C11c,eC11c,C12c,eC12c,C21c,eC21c,C22c,eC22c,angle
+
+		if namename in name:
+			print >>filesum_c,name,s,abs(f1001),f1001.real,f1001.imag,abs(f1010),f1010.real,f1010.imag,abs(f1001c),f1001e,f1001c.real,f1001c.imag,abs(f1010c),f1010e,f1010c.real,f1010c.imag,C11,C12,C21,C22,angmo,C11c,eC11c,C12c,eC12c,C21c,eC21c,C22c,eC22c,"x","X",smo
+		
+
+	if switch!=0:
+		filex.close()
+		filex2.close()
+	
+	##chromatic beta
+	if len(chromatic)!=0:
+
+		# horizontal
+		chromame=chromatic[0]
+		chromamip=chromatic[1]
+		chromamap=chromatic[2]
+
+		filex= open(path+'/sbsWx_'+namename+'.out','w')
+
+		if (switch==0):
+			bpms=intersect([chromame,chromamip,model,modelp])
+
+			print >> filex,"* NAME  S  WX   WXERR WX_MDL WX_PLAY eWX_play  PHIX PHIXERR PHIX_MDL PHIX_PLAY ePHIX_PLAY    MODEL_S "
+			print >> filex,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
+		else:
+			bpms=intersect([chromamip,model,modelp])
+
+			print >> filex,"* NAME  S  WX_MDL WX_PLAY eWX_play PHIX_MDL PHIX_PLAY ePHIX_PLAY    MODEL_S "
+			print >> filex,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
+
+
+		for bpm in bpms:
+			s=bpm[0]
+			name=bpm[1] 
+
+			wmo=model.WX[model.indx[name]]
+			phmo=model.PHIX[model.indx[name]]			
+			smo=model.S[model.indx[name]]
+
+			we=chromamap.WX[chromamap.indx[name]]-chromamip.WX[chromamip.indx[name]]
+			phe=chromamap.PHIX[chromamap.indx[name]]-chromamip.PHIX[chromamip.indx[name]]			
+
+			if switch==0:
+				wme=chromame.WX[chromame.indx[name]]
+				ewme=chromame.WXERR[chromame.indx[name]]
+				phme=chromame.PHIX[chromame.indx[name]]
+				ephme=chromame.PHIXERR[chromame.indx[name]]
+				
+				w_cor=modelcor.WX[modelcor.indx[name]]
+				ph_cor=modelcor.PHIX[modelcor.indx[name]]
+
+				print >> filex,name,s,wme,ewme,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
+				
+			else:
+				
+				w_cor=modelp.WX[modelp.indx[name]]
+				ph_cor=modelp.PHIX[modelp.indx[name]]
+
+				print >> filex,name,s,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
+
+				if namename in name:
+
+					filed1=filed1+" "+str(wmo)+" "+str(w_cor)+" "+str(we)+" "+str(phme)+" "+str(ephme)+" "+str(phmo)+" "+str(ph_cor)+" "+str(phe)
+
+		# vertical
+		chromame=chromatic[3]
+		chromamip=chromatic[4]
+		chromamap=chromatic[5]
+
+		filey= open(path+'/sbsWy_'+namename+'.out','w')
+
+		if switch==0:
+			bpms=intersect([chromame,chromamip,model,modelp])
+
+			print >> filey,"* NAME  S  WY   WYERR WY_MDL WY_PLAY eWY_play  PHIY PHIYERR PHIYMDL PHIY_PLAY ePHIY_PLAY    MODEL_S "
+			print >> filey,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
+		else:
+			bpms=intersect([chromamip,model,modelp])
+
+			print >> filey,"* NAME  S  WY_MDL WY_PLAY eWY_play PHIY_MDL PHIY_PLAY ePHIY_PLAY    MODEL_S "
+			print >> filey,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
+
+		for bpm in bpms:
+			s=bpm[0]
+			name=bpm[1]
+
+			wmo=model.WY[model.indx[name]]
+			phmo=model.PHIY[model.indx[name]]			
+			smo=model.S[model.indx[name]]
+
+			we=chromamap.WY[chromamap.indx[name]]-chromamip.WY[chromamip.indx[name]]
+			phe=chromamap.PHIY[chromamap.indx[name]]-chromamip.PHIY[chromamip.indx[name]]			
+
+			if switch==0:
+				wme=chromame.WY[chromame.indx[name]]
+				ewme=chromame.WYERR[chromame.indx[name]]
+				phme=chromame.PHIY[chromame.indx[name]]
+				ephme=chromame.PHIYERR[chromame.indx[name]]
+				
+				w_cor=modelcor.WY[modelcor.indx[name]]
+				ph_cor=modelcor.PHIY[modelcor.indx[name]]
+
+				print >> filey,name,s,wme,ewme,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
+				
+			else:
+				
+				w_cor=modelp.WY[modelp.indx[name]]
+				ph_cor=modelp.PHIY[modelp.indx[name]]
+
+				print >> filey,name,s,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
+
+				if namename in name:
+
+					print >>filesum_d,filed1,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
+
+		filesum_b.close()
+		filesum_c.close()
+		filesum_d.close()
+				
+		filey.close()
+
+	## to find IP
+   	if ("IP" in namename) and (switch==1):
+		getIP([betah[9],betav[9]],[modelp,modelb],[betah[1],betah[3],betah[2],betah[4]],[betah[5],betah[7],betah[6],betah[8]],model,phasex,phasey,namename,accel,path)
+	elif ("ADT" in namename) and (switch==1):
+		errors=[betah[1],betah[3],betah[2],betah[4]]
+		TransverseDampers(modelp,modelb,namename,model,path,phases[0],phases[1],errors)
+        
+	
 def getTwiss(filee,element):
 
     filedatax=twiss(filee)
@@ -208,10 +1658,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
     ##
     #  Copy getfterms.py locally to be used by MADx
     cpath=options.bb
-    if "RHIC" in options.accel:
-	    os.system('cp '+cpath+'/SegmentBySegment/getfterms_RHIC.py'+' '+path+'/')
-    else:
-	    os.system('cp '+cpath+'/SegmentBySegment/getfterms_Dxy.py'+' '+path+'/')	    
+    os.system('cp '+cpath+'/SegmentBySegment/getfterms_0.3.py'+' '+path+'/')	    
     
     # Copy the modifiers.madx file locally to be used by MADx
     
@@ -235,24 +1682,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
 #	start="IP2"   #  compatible with repository
         beam="B1"
 
-    elif options.accel=="RHICB":
-
-        dire=1
-	start="G6_BX"
-	path4rhic=options.bb+"/MODEL/"+options.accel
-	path4asc=os.path.dirname(options.twiss)
-	beam="blue.asc"
-
-
-    elif options.accel=="RHICY":
-
-        dire=-1
-	start="G6_BX"
-	path4rhic=options.bb+"/MODEL/"+options.accel
-	path4asc=os.path.dirname(options.twiss)
-	beam="yellow.asc"
-   
-
+	
     ### Check chromatic functions in wpath
     if options.wpath!="0":
       print "Chrom path,", options.wpath
@@ -288,23 +1718,21 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
     ### check on error propogation
     errbetx=hor[1]
     betx=hor[0]
-    #if (hor[0]-hor[1])<0:errbetx=0;betx=hor[0]
     errbety=ver[1]
     bety=ver[0]
-    #if (ver[0]-ver[1])<0:errbety=0;bety=ver[0]
     errbetxb=hore[1]
     betxb=hore[0]
-    #if (hore[0]-hore[1])<0:errbetxb=0;betxb=hore[0]
     errbetyb=vere[1]
     betyb=vere[0]    
-    #if (vere[0]-vere[1])<0:errbetyb=0;betyb=0
     f1001r=fs[0]
     f1001i=fs[1]
     f1010r=fs[2]
     f1010i=fs[3]
+    f1001std=fs[4]
+    f1010std=fs[5]
 
+    madfilename=path+'/t_'+str(name)+'.madx'
     
-     
     filename=path+'/var4mad.sh'
     file4nad=open(filename,'w')
     file4nad.write('sed -e \'s/%BETX/\''+str(betx)+'\'/g\' \\\n')
@@ -347,57 +1775,50 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
     file4nad.write('    -e \'s/%F1001I/\''+str(f1001i)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%F1010R/\''+str(f1010r)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%F1010I/\''+str(f1010i)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1001maR/\''+str(f1001r+f1001std)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1001maI/\''+str(f1001i+f1001std)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1001miR/\''+str(f1001r-f1001std)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1001miI/\''+str(f1001i-f1001std)+'\'/g\' \\\n')    
+    file4nad.write('    -e \'s/%F1010maR/\''+str(f1010r+f1001std)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1010maI/\''+str(f1010i+f1001std)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1010miR/\''+str(f1010r-f1001std)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%F1010miI/\''+str(f1010i-f1001std)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%METHOD/\''+method+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%EXP/\'\"'+exppath.replace("/","\/")+'\"\'/g\' \\\n')
     file4nad.write('    -e \'s/%WX/\''+str(wxs)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%PHIX/\''+str(phixs)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%WY/\''+str(wys)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%PHIY/\''+str(phiys)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%WPATH/\'\"'+str(options.wpath.replace('/','\/'))+'\"\'/g\' \\\n')
     
-
-
-    if "RHIC" in options.accel:
-	    #print twissfile
-            file4nad.write('    -e \'s/%QX/\''+str(twissfile.Q1)+'\'/g\' \\\n')
-            file4nad.write('    -e \'s/%QY/\''+str(twissfile.Q2)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%CHROMX/\''+str(twissfile.DQ1)+'\'/g\' \\\n')
-            file4nad.write('    -e \'s/%CHROMY/\''+str(twissfile.DQ2)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%BBPATH/\'\"'+str(path4rhic.replace('/','\/'))+'\"\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%MPATH/\'\"'+str(path4asc.replace('/','\/'))+'\"\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%MASS/\''+str(twissfile.MASS)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%ENERGY/\''+str(twissfile.ENERGY)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%GAMMA/\''+str(twissfile.GAMMA)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%CHARGE/\''+str(twissfile.CHARGE)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%EMX/\''+str(twissfile.EX)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%EMY/\''+str(twissfile.EY)+'\'/g\' \\\n')
-	    file4nad.write('    -e \'s/%SIGE/\''+str(twissfile.SIGE)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%EXP/\'\"'+exppath.replace("/","\/")+'\"\'/g\' \\\n')
-    
-    
-    
-    if "RHIC" in options.accel:
-
-	   file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_1_RHIC.mask > '+path+'/t_'+str(name)+'.madx \n') 
-
-    else:
-    
-	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_2.mask > '+path+'/t_'+str(name)+'.madx \n')
+    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_2_dev.mask > '+madfilename+'\n')
 
     file4nad.close()
     
     os.system("chmod 777 "+str(filename))
     os.system(str(filename))
     runmad(path,name)
+
+
+    #Prepare watchdog file command in directory
+    watchfilename=path+"/watch_"+str(name)
+    fwatch=open(watchfilename,"w")
+    print >> fwatch, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py "+madfilename+" "+path+"/gplot_"+str(name)
+    fwatch.close()
+    os.system("chmod +x "+watchfilename)
+    
+    
     #sys.exit()
 
    
     
 def runmad(path,name):
 	
-	os.system(options.mad+'madx < '+path+'t_'+str(name)+'.madx')
+	os.system(options.mad+' < '+path+'t_'+str(name)+'.madx')
 	
    
   
-def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel):
+def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
 
     filename=path+'/var4plot.sh'
     file4nad=open(filename,'w')
@@ -408,21 +1829,21 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel):
     file4nad.write('    -e \'s/%ACCEL/\''+str(options.accel)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%BETA/\''+str(beta4plot)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%QX/\''+str(qx)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%QY/\''+str(qy)+'\'/g\' \\\n')    
+    file4nad.write('    -e \'s/%QY/\''+str(qy)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%METHOD/\''+method+'\'/g\' \\\n')  
     file4nad.write('    -e \'s/%MEA/\'\"'+str(meapath.replace("/","\/"))+'\"\'/g\' \\\n')
     if (name=="IP8" and accel=="LHCB2") or (name=="IP2" and accel=="LHCB1"):
-	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.IP2IP8.0_2.mask > '+path+'/gplot_'+name)
+	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.IP2IP8.0_3.mask > '+path+'/gplot_'+name)
     elif "RHIC" in options.accel:
 	     file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_1_RHIC.mask > '+path+'/gplot_'+name)
     else:
-	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_2.mask > '+path+'/gplot_'+name)
+	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_3.mask > '+path+'/gplot_'+name)
 	    
 
     file4nad.close()
     
     os.system("chmod 777 "+str(filename))
     os.system(str(filename))
-    #os.system("chmod 777 "+str(path+'/gplot_'+name))
     os.system("gnuplot "+str(path+'/gplot_'+name))
 
  
@@ -489,6 +1910,7 @@ def writePhase(filename,bpm1, bpm2, s1, s2, phaseexp, phasem ):
 
     f.close()
 
+#delete
 def reversetable(path,name):
 	file=open(path+"/twiss_"+name+"_back_rev.dat",'w')
 	base=twiss(path+"/twiss_"+name+"_back.dat")
@@ -534,7 +1956,7 @@ def reversetable(path,name):
 
 
 
-
+#delete
 def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainvalue):
 
 	filefile=open(path+"/"+outputname,'w')
@@ -586,37 +2008,65 @@ def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainval
 	filefile.close()
 
 
+#<=> Main part
+#
+#
+#<=> Main part
+
+
 path=options.path
-beamswitch=options.switch
 ##########
 #
 # LOADING DATA
 #
 ##########
-
-filedatax=twiss(path+"/getbetax.out")
+try:
+	filedatax=twiss(path+"/getbetax_free.out")
+except:
+	filedatax=twiss(path+"/getbetax.out")
 betxtwiss=filedatax
 QXX=filedatax.Q1
 QYY=filedatax.Q2
-filedatay=twiss(path+"/getbetay.out")
+
+try:
+	filedatay=twiss(path+"/getbetay_free.out")
+except:
+	filedatay=twiss(path+"/getbetay.out")	
+
 betytwiss=filedatay
 filedataxA=twiss(path+"/getampbetax.out")
 ampbetxtwiss=filedataxA
 filedatayA=twiss(path+"/getampbetay.out")
 ampbetytwiss=filedatayA
-filephasex=twiss(path+"/getphasey.out")
-filephasey=twiss(path+"/getphasex.out")
-filephasextot=twiss(path+"/getphasetotx.out")
-filephaseytot=twiss(path+"/getphasetoty.out")
+try:
+	filephasex=twiss(path+"/getphasex_free.out")
+except:
+	filephasex=twiss(path+"/getphasex.out")	
+
+try:
+	filephasey=twiss(path+"/getphasey.out")
+except:
+	filephasey=twiss(path+"/getphasey_free.out")
+try:
+	filephasextot=twiss(path+"/getphasetotx_free.out")
+except:
+	filephasextot=twiss(path+"/getphasetotx.out")
+
+try:
+	filephaseytot=twiss(path+"/getphasetoty_free.out")
+except:
+	filephaseytot=twiss(path+"/getphasetoty.out")
 		
 ### check if dispersion exist
 try:
 	filedx=twiss(path+"/getDx.out")
+	filendx=twiss(path+"/getNDx.out")
 	filedy=twiss(path+"/getDy.out")
 	disp=1
         print "Disp files OK", filedx.DX[0], filedx.NAME[0]
 except:
 	print "no dispersion files... will continue without taking into account dispersion"
+	filendx=[]
 	filedx=[]
 	filedy=[]
 	disp=0
@@ -624,18 +2074,39 @@ except:
 ### check if coupling exist
 try:
 	filecouple=twiss(path+"/getcouple.out")
+	filecoupleC=twiss(path+"/getcoupleterms.out")
 	coupleswitch=1
+	method="driven"
 except:
 	print "no coupling file... will continue without taking into account coupling"
 	filecouple=[]
+	filecoupleC=[]
 	coupleswitch=0
 	fs=[0,0,0,0]
+
+	
+try:
+	filecouple=twiss(path+"/getcouple_free.out")
+	method="_free"
+	method_label=method
+	print "Free coupling found"
+
+except:
+	print 
+	#method=""
+	#%method_label="driven"
+	#filecouple=twiss(path+"/getcouple.out")
+	#print "WARN: Free coupling not found!!"
+
 
 # checking if end element is BPM or instrument (IP,collimators)
 elementswitch=-1
 savepath=options.SAVE
+if not os.path.isdir(savepath):
+  os.makedirs(savepath)
 list2run=options.segf.split(',')
-cuts=options.cuts.split(',')
+errorcut=float(options.cuts)
+accel=options.accel
 
 start={}
 end={}
@@ -645,195 +2116,83 @@ names=[]
 twissfile=options.twiss
 twisspath=os.path.dirname(twissfile)+'/'
 if twissfile=="./":
-	twissfile=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss.dat"
+	twissfile=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss_elements.dat"
+
+print "twissfile ",twissfile
+
 
 twisstwiss=twiss(twissfile)
 
+step=0# for selecting segments and elements
+for run in range(len(list2run)):
+	run=run+step
 
+	if run==(len(list2run)):
+		break
 
+	print list2run[run],run
 	
-#if options.holyswitch=="0":
-if (len(list2run)/3)!=1:
-	print "You didnt gave the right input for segment start,end,name => System exit"
-	sys.exit()
-for run in range(len(list2run)-2):
+	if "BPM" in list2run[run]: # segment
 		
-	start[list2run[run+2]]=list2run[run]
-	end[list2run[run+2]]=list2run[run+1]
-	names.append(list2run[run+2])
+		start[list2run[run+2]]=list2run[run]
+		end[list2run[run+2]]=list2run[run+1]
+		names.append(list2run[run+2])
+		step=2+step
+	else: #element
+		step=0+step
+		names.append(list2run[run])
 
-
-#else:
-	#for run in range(len(list2run)):
-		#start[list2run[run]]=twisstwiss.NAME[0]
-		#end[list2run[run]]=twisstwiss.NAME[len(twisstwiss.NAME)-1]
-		#names.append(list2run[run])
-
-
-####### for data files
-mainvariablebetx=['NFILES']
-mainvaluebetx=[filedatax.COUNT[0]]
-columnnamesbetx=['NAME','S','BETX','ERRBETX','BETXMDL','BETXP','ERRBETXP','BETXB','ERRBETXB']
-variablenamebetx=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-databetx=[]
-# for ampbetx
-mainvariableampbetx=['NFILES']
-mainvalueampbetx=[filedatax.COUNT[0]]
-columnnamesampbetx=['NAME','S','BETX','ERRBETX','BETXMDL','BETXP','ERRBETXP','BETXB','ERRBETXB']
-variablenameampbetx=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-dataampbetx=[]
-# for alfx
-columnnamesalfx=['NAME','S','ALFX','ERRALFX','ALFXMDL','ALFXP','ERRALFXP','ALFXB','ERRALFXB']
-variablenamealfx=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariablealfx=['NFILES']
-mainvaluealfx=[filedatax.COUNT[0]]
-dataalfx=[]
-# for bety
-betytwiss=twiss(path+"/getbetay.out")
-columnnamesbety=['NAME','S','BETY','ERRBETY','BETYMDL','BETYP','ERRBETYP','BETYB','ERRBETYB']
-variablenamebety=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariablebety=['NFILES']
-mainvaluebety=[filedatay.COUNT[0]]
-databety=[]
-# for ampbety
-columnnamesampbety=['NAME','S','BETY','ERRBETY','BETYMDL','BETYP','ERRBETYP','BETYB','ERRBETYB']
-variablenameampbety=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariableampbety=['NFILES']
-mainvalueampbety=[filedatay.COUNT[0]]
-dataampbety=[]
-# for alfy
-columnnamesalfy=['NAME','S','ALFY','ERRALFY','ALFYMDL','ALFYP','ERRALFYP','ALFYB','ERRALFYB']
-variablenamealfy=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariablealfy=['NFILES']
-mainvaluealfy=[filedatay.COUNT[0]]
-dataalfy=[]
-#for dx and dpx
-dx4twiss=path+"/getDx.out"
-columnnames1dx=['NAME','S','DX','ERRDX','DXMDL','DXP','ERRDXP','DXB','ERRDXB']
-variablename1dx=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-columnnames2dx=['NAME','S','DPX','ERRDPX','DPXMDL','DPXP','ERRDPXP','DPXB','ERRDPXB']
-variablename2dx=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariabledx=['NFILES']
-mainvaluedx=[0]
-datadx=[]
-datadpx=[]
-# for dy and dpy
-dy4twiss=path+"/getDy.out"
-columnnames1dy=['NAME','S','DY','ERRDY','DYMDL','DYP','ERRDYP','DYB','ERRDYB']
-variablename1dy=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-columnnames2dy=['NAME','S','DPY','ERRDPY','DPYMDL','DPYP','ERRDPYP','DPYB','ERRDPYB']
-variablename2dy=['%s','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariabledy=['NFILES']
-mainvaluedy=[0]
-datady=[]
-datadpy=[]
-
-
-
-######## big loop
 
 ####### Difference between segment or instrument #######
 # For segment => Startbpm,endbpm,NameOfSegment
-# For instrument => StartBPM,endBpm, instrument (must be excisting name)
+# For instrument => instrument
 ####### 
 
 for namename in names:
 
-
-
-	passs=1
-	commonbpms=intersect([betxtwiss,betytwiss,twisstwiss])
-	bpms=[]
-	
-	for i in range(len(commonbpms)):
-		bpms.append(commonbpms[i][1])
-
-	#print commonbpms
-	#print start[namename],end[namename]
-
-
- 	
-	if options.holyswitch=="0":
-		elementswitch=0
+	print namename
+	##
+	# Getting the BPM's
+	##
+	if start.has_key(namename) and end.has_key(namename):
 		print "Segment has been choosen"
+		elementswitch=0
+		segment=[start[namename],end[namename]]
+		startbpm,endbpm=filterandfind(betxtwiss,betytwiss,"null",segment,twisstwiss,errorcut)
 
-		
-		
-		#print start[namename] not in bpms,end[namename] not in bpms
-		if (start[namename] not in bpms) or (end[namename] not in bpms) :
-				print "The BPMS choosen are not in the measurement files ... please change borders"
-				if start[namename] not in bpms:
-					print "startbpm is not in measurement",start[namename]
-				if end[namename] not in bpms:
-					print "endbpm is not in measurement",	end[namename]				
-				sys.exit()
+	elif start.has_key(namename) or end.has_key(namename):
 
-
-		#finding good bpm
-		goodbpms=filterbpm(betxtwiss,betytwiss,commonbpms)
-		
-		if (start[namename] not in goodbpms) or (end[namename] not in goodbpms):
-			print "Not enough bpms for propogation...  please increase border => BPMS lost due to cut"
-			if start[namename] not in bpms:
-					print "startbpm did not pass the cuts",start[namename]
-			if end[namename] not in bpms:
-					print "endbpm dit not pass the cuts",end[namename]
-					
-			print "Skipping ",namename
-			passs=0
-			sys.exit()
-		else:
-			startbpm=start[namename]
-			endbpm=end[namename]
-			#print startbpm,endbpm
-			#print goodbpms
-			
-
+		print "Something strange ....Did you properly define the input ?"
+		print "Like: BPM1,BPM2,ARC12,IP1"
+		print "Structure must be for Segment => BPML,BPMR,NAME"
+		print "For Instrument just name"
+		sys.exit()
 	else:
+		print "Element has been choosen"
 		elementswitch=1
-		goodbpms=filterbpm(betxtwiss,betytwiss,commonbpms)
-		if (start[namename] not in goodbpms) or (end[namename] not in goodbpms):
-			print "Not enough bpms for propogation...  please increase border => BPMS lost due to cut"
-			if start[namename] not in bpms:
-					print "startbpm did not pass the cuts",start[namename]
-			if end[namename] not in bpms:
-					print "endbpm dit not pass the cuts",end[namename]
-					
-			print "Skipping ",namename
-			passs=0
-			sys.exit()
-		else:
-			startbpm=start[namename]
-			endbpm=end[namename]
-			#print startbpm,endbpm
-			#print goodbpms
+		startbpm,endbpm=filterandfind(betxtwiss,betytwiss,namename,[],twisstwiss,errorcut)
 
-
-
-	
-
+	passs=1 # why?
 
 	#gathering data
 	hor=[betxtwiss.BETX[betxtwiss.indx[startbpm]],
-	     betxtwiss.STDBETX[betxtwiss.indx[startbpm]],
+	     sqrt(betxtwiss.STDBETX[betxtwiss.indx[startbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[startbpm]]**2),
 	     betxtwiss.ALFX[betxtwiss.indx[startbpm]],
-	     betxtwiss.ERRALFX[betxtwiss.indx[startbpm]]]
+	     sqrt(betxtwiss.ERRALFX[betxtwiss.indx[startbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[startbpm]]**2)]
 	ver=[betytwiss.BETY[betytwiss.indx[startbpm]],
-	     betytwiss.STDBETY[betytwiss.indx[startbpm]],
+	     sqrt(betytwiss.STDBETY[betytwiss.indx[startbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[startbpm]]**2),
 	     betytwiss.ALFY[betytwiss.indx[startbpm]],
-	     betytwiss.ERRALFY[betytwiss.indx[startbpm]]]
+	     sqrt(betytwiss.ERRALFY[betytwiss.indx[startbpm]]**2+betytwiss.STDALFY[betytwiss.indx[startbpm]]**2)]
 	hore=[betxtwiss.BETX[betxtwiss.indx[endbpm]],
-	     betxtwiss.STDBETX[betxtwiss.indx[endbpm]],
+	     sqrt(betxtwiss.STDBETX[betxtwiss.indx[endbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[endbpm]]**2),
 	     betxtwiss.ALFX[betxtwiss.indx[endbpm]],
-	     betxtwiss.ERRALFX[betxtwiss.indx[endbpm]]]
+	     sqrt(betxtwiss.ERRALFX[betxtwiss.indx[endbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[endbpm]]**2)]
 	vere=[betytwiss.BETY[betytwiss.indx[endbpm]],
-	     betytwiss.STDBETY[betytwiss.indx[endbpm]],
+	     sqrt(betytwiss.STDBETY[betytwiss.indx[endbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[endbpm]]**2),
 	     betytwiss.ALFY[betytwiss.indx[endbpm]],
-	     betytwiss.ERRALFY[betytwiss.indx[endbpm]]]
+	     sqrt(betytwiss.ERRALFY[betytwiss.indx[endbpm]]**2+betytwiss.STDALFY[betytwiss.indx[endbpm]]**2)]
 
-
-
-			
+	beta4plot=hor[2]
 
 	if disp==1:
 
@@ -890,7 +2249,8 @@ for namename in names:
 		    dxe,
 		    dye]
 
-		if dxpass==1:
+	
+		if dxpasse==1:
 			dxx=filedx.DX[filedx.indx[endbpm]]
 			dxp=filedx.DPX[filedx.indx[endbpm]]
 			dxe=filedx.STDDX[filedx.indx[endbpm]]
@@ -899,7 +2259,7 @@ for namename in names:
 			dxp=0
 			dxe=0
 
-		if dypass==1:
+		if dypasse==1:
 			dyy=filedy.DY[filedy.indx[endbpm]]
 			dyp=filedy.DPY[filedy.indx[endbpm]]
 			dye=filedy.STDDY[filedy.indx[endbpm]]
@@ -913,7 +2273,10 @@ for namename in names:
 		    dyy,
 		    dyp,
 		    dxe,
-		    dye]		   
+		    dye]
+
+#		print dp,dpe
+#		sys.exit()
 		
 	else:
 		dp=[0,0,0,0,0,0]
@@ -930,6 +2293,7 @@ for namename in names:
 
 	if passs==1:
 
+
 		if coupleswitch==1:
 			print "coupling,"
 			coupling=[[],[]]
@@ -940,22 +2304,31 @@ for namename in names:
 				cpass=0
 				print "startbpm ",startbpm," not found in coupling measurement => values=0"
 				
-				
 			if cpass==1:
 				f1001r=filecouple.F1001R[filecouple.indx[startbpm]]
 				f1001i=filecouple.F1001I[filecouple.indx[startbpm]]
 				f1010r=filecouple.F1010R[filecouple.indx[startbpm]]
 				f1010i=filecouple.F1010I[filecouple.indx[startbpm]]
+				
+				f1001std=filecouple.FWSTD1[filecouple.indx[startbpm]]
+				f1010std=filecouple.FWSTD2[filecouple.indx[startbpm]]
+			
+				### add error
 			else:
 				f1001r=0
 				f1001i=0
 				f1010r=0
 				f1010i=0
-			fs=[f1001r,f1001i,f1010r,f1010i]
+				f1001std=0
+				f1010std=0
+				
+			fs=[f1001r,f1001i,f1010r,f1010i,f1001std,f1010std]
+
+		
 
 	        else:
 			coupling=[[],[]]
-			fs=[0,0,0,0]
+			fs=[0,0,0,0,0,0]
 			print "No coupling"
 
 		#sys.exit()
@@ -970,639 +2343,71 @@ for namename in names:
 		reversetable(savepath,namename)
 
 
-	##################
-	#=> switch only for element - to - element
-	if elementswitch==0:
-	##################
-		[hor,ver,dp]=getTwiss(savepath+"/StartPoint.twiss",startbpm)
-		startpos=hor[2]
-		[hor,ver,dp]=getTwiss(savepath+"/twiss_"+str(namename)+".dat",startbpm)
-		betx=hor[0]
-		bety=ver[0]
-		ax=hor[1]
-		ay=ver[1]
-		dx=dp[0]
-		dpx=dp[1]
-		dy=dp[2]
-		dpy=dp[3]
-		[hor,ver,dp]=getTwiss(savepath+"/StartPoint.twiss",endbpm)
-		endpos=hor[2]
-
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.b+.dat",startbpm)
-		bplusx=hor[0]
-		bplusy=ver[0]
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.b-.dat",startbpm)
-		bminx=hor[0]
-		bminy=ver[0]
-
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.a+.dat",startbpm)
-		aplusx=hor[1]
-		aplusy=ver[1]
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.a-.dat",startbpm)
-		aminx=hor[1]
-		aminy=ver[1]
-
-		berrx=bplusx-bminx
-	        aerrx=aplusx-aminx
-		berry=bplusy-bminy
-		aerry=aplusy-aminy
-
-		phx=twiss(path+'/getphasex.out')
-		phy=twiss(path+'/getphasey.out')
-		#print savepath+"/twiss_"+namename+".dat"
-		m=twiss(savepath+"/twiss_"+namename+".dat")
-		#sys.exit()
-
-		bpm1, bpm2, s1, s2, phaseexp, phasem = GetPhaseEM(phx, m)
-		writePhase(savepath+"/phasexEM.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
-		bpm1, bpm2, s1, s2, phaseexp, phasem = GetPhaseEM(phy, m)
-		writePhase(savepath+"/phaseyEM.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
-
-		m=twiss(savepath+"/twiss_"+namename+"_play.dat")
-
-		bpm1, bpm2, s1, s2, phaseexp, phasem = GetPhaseEM(phx, m)
-		writePhase(savepath+"/phasexEM_play.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
-		bpm1, bpm2, s1, s2, phaseexp, phasem = GetPhaseEM(phy, m)
-		writePhase(savepath+"/phaseyEM_play.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
-
-
-		#m=options.twiss
-		[hor,ver,dp]=getTwiss(twissfile,startbpm)
-		beta4plot=hor[2]
-
-	        ######################
-		if options.gra=='1':
-			
-			run4plot(savepath,startpos,endpos,beta4plot,options.bb,path,namename,QXX,QYY,options.accel)
-
-
-	
-
-	        #### creating tables
+                ###############################################
 		#
-		# => opening all the results
+		# =>>>>>> including new writer
 		#
+                ###############################################
 
+		# loading twiss
+		errbetamin=twiss(savepath+'/twiss.b-.dat')
+		errbetaminb=twiss(savepath+'/twiss.b-_back.dat')
+		
+		errbetamax=twiss(savepath+'/twiss.b+.dat')
+		errbetamaxb=twiss(savepath+'/twiss.b+_back.dat')
+		
+		erralfmin=twiss(savepath+'/twiss.a-.dat')
+		erralfminb=twiss(savepath+'/twiss.a-_back.dat')
+		
+		erralfmax=twiss(savepath+'/twiss.a+.dat')
+		erralfmaxb=twiss(savepath+'/twiss.a+_back.dat')
+		
+		errdmin=twiss(savepath+'/twiss.d-.dat')
+		errdminb=twiss(savepath+'/twiss.d-_back.dat')
 
-		# results from propagation
+		errdmax=twiss(savepath+'/twiss.d+.dat')
+		errdmaxb=twiss(savepath+'/twiss.d+_back.dat')
+
+		errcmax=twiss(savepath+'/twiss_c_max.dat')
+		errcmin=twiss(savepath+'/twiss_c_min.dat')
+
+		modelcor=twiss(savepath+'/twiss_'+namename+'_cor.dat')
+
 		normal_pro=twiss(savepath+'/twiss_'+namename+'.dat')
 		back_pro=twiss(savepath+'/twiss_'+namename+'_back_rev.dat')
-		bpmsbetx=modelIntersect(filedatax.NAME,back_pro)
-		#print len(filedatax.NAME),len(back_pro.NAME),len(bpmsbetx)
-		ampbpmsbetx=modelIntersect(ampbetxtwiss.NAME,back_pro)
-		bpmsbety=modelIntersect(filedatay.NAME,back_pro)
-		ampbpmsbety=modelIntersect(ampbetytwiss.NAME,back_pro)
-		bpmsphasex=modelIntersect(filephasextot.NAME,back_pro)
-		bpmsphasey=modelIntersect(filephaseytot.NAME,back_pro)
-	
+
+
+		normal_pro.Cmatrix()
+
+#		print normal_pro.C
+#		sys.exit()
+		# writing data in list
+		phases=[filephasex,filephasey,filephasextot,filephaseytot]
+		betah=[filedatax,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedataxA]
+		betav=[filedatay,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedatayA]
 		if disp==1:
-
-			Dx=twiss(path+"/getDx.out")
-			bpmsdx=intersect([Dx,normal_pro,back_pro])
-			Dy=twiss(path+"/getDy.out")
-			bpmsdy=intersect([Dy,normal_pro,back_pro])
-			try:
-				mainvaluedy=[Dy.COUNT[0]]
-				mainvaluedx=[Dx.COUNT[0]]
-			except:
-				mainvaluedy=[0]
-				mainvaluedx=[0]
-	
+			disph=[filedx,filendx,errdmin,errdmax,errdminb,errdmaxb]
+			dispv=[filedy,errdmin,errdmax,errdminb,errdmaxb]
 		else:
-			print "no dispersion file"
-			bpmsdx=[]
-			mainvaluedx=[0]
-			bpmsdy=[]
-			mainvaluedy=[0]
-		
-		errbetamin=twiss(savepath+'/twiss.b-.dat')
-		errbetaminb=twiss(savepath+'/twiss.b-_back.dat')
-	
-		errbetamax=twiss(savepath+'/twiss.b+.dat')
-		errbetamaxb=twiss(savepath+'/twiss.b+_back.dat')
+			disph=[]
+			dispv=[]
+		couple=[filecouple,filecoupleC,errcmax,errcmin]
+		chromatic=[]
 
-		erralfmin=twiss(savepath+'/twiss.a-.dat')
-		erralfminb=twiss(savepath+'/twiss.a-_back.dat')
+		# calling function to collect and write data
+		print "Writing data for function ",namename
+		getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,twisstwiss,modelcor,normal_pro,back_pro,savepath,elementswitch,accel)
 
-		erralfmax=twiss(savepath+'/twiss.a+.dat')
-		erralfmaxb=twiss(savepath+'/twiss.a+_back.dat')
 
-		errdmin=twiss(savepath+'/twiss.d-.dat')
-		errdminb=twiss(savepath+'/twiss.d-_back.dat')
 
-		errdmax=twiss(savepath+'/twiss.d+.dat')
-		errdmaxb=twiss(savepath+'/twiss.d+_back.dat')
-
-		# results from getllm
-                ##
-		#
-		#betx
-		print "filling table for betx"
-		#print  bpmsbetx
-		#print normal_pro.NAME
-		for bpm in bpmsbetx:
-			name=bpm
-			s=betxtwiss.S[betxtwiss.indx[name]]  
-
-			bet=betxtwiss.BETX[betxtwiss.indx[name]]
-			errbet=sqrt(betxtwiss.ERRBETX[betxtwiss.indx[name]]**2+betxtwiss.STDBETX[betxtwiss.indx[name]]**2)
-			betmdl=betxtwiss.BETXMDL[betxtwiss.indx[name]]
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
-				name=name.replace("-","_")
-				
-
-			betp=normal_pro.BETX[normal_pro.indx[name]]
-			errbetp=abs(errbetamax.BETX[errbetamax.indx[name]]-errbetamin.BETX[errbetamin.indx[name]])
-
-			betb=back_pro.BETX[back_pro.indx[name]]
-			errbetb=abs(errbetamaxb.BETX[errbetamaxb.indx[name]]-errbetaminb.BETX[errbetaminb.indx[name]])
-	
-			databetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-		# for ampbetx
-		
-		print "filling table for ampbetx"
-		for bpm in ampbpmsbetx:
-			name=bpm
-			s=ampbetxtwiss.S[ampbetxtwiss.indx[name]]
-			#if ampbetxtwiss.S[ampbetxtwiss.indx[name]]<ampbetxtwiss.S[ampbetxtwiss.indx[element]]:s=s+twisstwiss.LENGTH
-			bet=ampbetxtwiss.BETX[ampbetxtwiss.indx[name]]
-			errbet=ampbetxtwiss.BETXSTD[ampbetxtwiss.indx[name]]
-			betmdl=ampbetxtwiss.BETXMDL[ampbetxtwiss.indx[name]]
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
-				name=name.replace("-","_")
-
-			betp=normal_pro.BETX[normal_pro.indx[name]]
-			errbetp=abs(errbetamax.BETX[errbetamax.indx[name]]-errbetamin.BETX[errbetamin.indx[name]])
-
-			betb=back_pro.BETX[back_pro.indx[name]]
-			errbetb=abs(errbetamaxb.BETX[errbetamaxb.indx[name]]-errbetaminb.BETX[errbetaminb.indx[name]])
-	
-			dataampbetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-		
-		# for alphax
-		print "filling table for alfx"
-		for bpm in bpmsbetx:
-			name=bpm
-			s=betxtwiss.S[betxtwiss.indx[name]]
-			#if betxtwiss.S[betxtwiss.indx[name]]<betxtwiss.S[betxtwiss.indx[element]]:s=s+twisstwiss.LENGTH
-			bet=betxtwiss.ALFX[betxtwiss.indx[name]]
-			errbet=sqrt(betxtwiss.ERRALFX[betxtwiss.indx[name]]**2+betxtwiss.STDALFX[betxtwiss.indx[name]]**2)
-			betmdl=betxtwiss.ALFXMDL[betxtwiss.indx[name]]
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
-				name=name.replace("-","_")
+		# gnuplot
+		if elementswitch==0:
 			
-			betp=normal_pro.ALFX[normal_pro.indx[name]]
-			errbetp=abs(erralfmax.ALFX[erralfmax.indx[name]]-erralfmin.ALFX[erralfmin.indx[name]])
-
-			betb=-back_pro.ALFX[back_pro.indx[name]]
-			errbetb=abs(erralfmaxb.ALFX[erralfmaxb.indx[name]]-erralfminb.ALFX[erralfminb.indx[name]])
+			startpos=twisstwiss.S[twisstwiss.indx[startbpm]]
+			endpos=twisstwiss.S[twisstwiss.indx[endbpm]]
+			print startpos,endpos
+			run4plot(savepath,startpos,endpos,beta4plot,options.bb,path,namename,QXX,QYY,options.accel,method)
 	
-			dataalfx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-					
-                #for bety
-		print "filling table for bety"
-		for bpm in bpmsbety:
-			name=bpm
-			s=betytwiss.S[betytwiss.indx[name]]
-			#if betytwiss.S[betytwiss.indx[name]]<betytwiss.S[betytwiss.indx[element]]:s=s+twisstwiss.LENGTH
-			bet=betytwiss.BETY[betytwiss.indx[name]]
-			errbet=sqrt(betytwiss.ERRBETY[betytwiss.indx[name]]**2+betytwiss.STDBETY[betytwiss.indx[name]]**2)
-			betmdl=betytwiss.BETYMDL[betytwiss.indx[name]]
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
-				name=name.replace("-","_")
-
-			betp=normal_pro.BETY[normal_pro.indx[name]]
-			errbetp=abs(errbetamax.BETY[errbetamax.indx[name]]-errbetamin.BETY[errbetamin.indx[name]])
-
-			betb=back_pro.BETY[back_pro.indx[name]]
-			errbetb=abs(errbetamaxb.BETY[errbetamaxb.indx[name]]-errbetaminb.BETY[errbetaminb.indx[name]])
-	
-			databety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-			
-		# for ampbety
-		print "filling table for ampbetay"
-		for bpm in ampbpmsbety:
-			name=bpm
-			s=ampbetytwiss.S[ampbetytwiss.indx[name]]
-			#if ampbetytwiss.S[ampbetytwiss.indx[name]]<ampbetytwiss.S[ampbetytwiss.indx[element]]:s=s+twisstwiss.LENGTH
-			bet=ampbetytwiss.BETY[ampbetytwiss.indx[name]]
-			errbet=ampbetytwiss.BETYSTD[ampbetytwiss.indx[name]]
-			betmdl=betytwiss.BETYMDL[ampbetytwiss.indx[name]]
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function like i want:-)
-				name=name.replace("-","_")
-
-			betp=normal_pro.BETY[normal_pro.indx[name]]
-			errbetp=abs(errbetamax.BETY[errbetamax.indx[name]]-errbetamin.BETY[errbetamin.indx[name]])
-
-			betb=back_pro.BETY[back_pro.indx[name]]
-			errbetb=abs(errbetamaxb.BETY[errbetamaxb.indx[name]]-errbetaminb.BETY[errbetaminb.indx[name]])
-	
-			dataampbety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-		
-		# for alfy
-		print "filling table for alfy"
-		for bpm in bpmsbety:
-			name=bpm
-			s=betytwiss.S[betytwiss.indx[name]]
-			#if betytwiss.S[betytwiss.indx[name]]<betytwiss.S[betytwiss.indx[element]]:s=s+twisstwiss.LENGTH
-			bet=betytwiss.ALFY[betytwiss.indx[name]]
-			errbet=sqrt(betytwiss.ERRALFY[betytwiss.indx[name]]**2+betytwiss.STDALFY[betytwiss.indx[name]]**2)
-			betmdl=betytwiss.ALFYMDL[betytwiss.indx[name]]
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
-				name=name.replace("-","_")
-
-			betp=normal_pro.ALFY[normal_pro.indx[name]]
-			errbetp=abs(erralfmax.ALFY[erralfmax.indx[name]]-erralfmin.ALFY[erralfmin.indx[name]])
-			
-			betb=-back_pro.ALFY[back_pro.indx[name]]
-			errbetb=abs(erralfmaxb.ALFY[erralfmaxb.indx[name]]-erralfminb.ALFY[erralfminb.indx[name]])
-			dataalfy.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-		
-	         #for Dx and Dpx
-		print "filling table for dx and dpx"
-		for bpm in bpmsdx:
-			name=bpm[1]
-			s=Dx.S[Dx.indx[name]]
-			#if Dx.S[Dx.indx[name]]<Dx.S[Dx.indx[element]]:s=s+twisstwiss.LENGTH
-			dx=Dx.DX[Dx.indx[name]]
-		        errdx=Dx.STDDX[Dx.indx[name]]
-		        dxmdl=Dx.DXMDL[Dx.indx[name]]
-			 
-		        dpx=Dx.DPX[Dx.indx[name]]
-		        dpxmdl=Dx.DPXMDL[Dx.indx[name]]
-		        dpxerr="0"
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
-				name=name.replace("-","_")
-			 
-		        dxp=normal_pro.DX[normal_pro.indx[name]]
-		        errdxp=abs(errdmax.DX[errdmax.indx[name]]-errdmin.DX[errdmin.indx[name]])
-		
-		        dpxp=normal_pro.DPX[normal_pro.indx[name]]
-		        dpxperr="0"
-			 
-		        dxb=back_pro.DX[back_pro.indx[name]]
-		        errdxb=abs(errdmaxb.DX[errdmaxb.indx[name]]-errdminb.DX[errdminb.indx[name]])
-		
-		        dpxb=-back_pro.DPX[back_pro.indx[name]]
-		        dpxberr="0"
-	
-			datadx.append(name+" "+str(s)+" "+str(dx)+" "+str(errdx)+" "+str(dxmdl)+" "+str(dxp)+" "+str(errdxp)+" "+str(dxb)+" "+str(errdxb))
-			datadpx.append(name+" "+str(s)+" "+str(dpx)+" "+str(dpxerr)+" "+str(dpxmdl)+" "+str(dpxp)+" "+str(dpxperr)+" "+str(dpxb)+" "+str(dpxberr))
-
-		 # for Dy and Dpy
-		print "filing table for dy and dpy"
-	        for bpm in bpmsdy:
-			name=bpm[1]
-		        s=betytwiss.S[Dy.indx[name]]
-			#if Dy.S[Dy.indx[name]]<Dy.S[Dy.indx[element]]:s=s+twisstwiss.LENGTH
-		        dx=Dy.DY[Dy.indx[name]]
-		        errdx=Dy.STDDY[Dy.indx[name]]
-		        dxmdl=Dy.DYMDL[Dy.indx[name]]
-			 
-		        dpx=Dy.DPY[Dy.indx[name]]
-		        dpxmdl=Dy.DPYMDL[Dy.indx[name]]
-		        dpxerr="0"
-
-			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
-				name=name.replace("-","_")
-		        
-		        dxp=normal_pro.DY[normal_pro.indx[name]]
-		        errdxp=abs(errdmax.DY[errdmax.indx[name]]-errdmin.DY[errdmin.indx[name]])
-
-		        dpxp=normal_pro.DPY[normal_pro.indx[name]]
-		        dpxperr="0"
-			 
-		        dxb=back_pro.DY[back_pro.indx[name]]
-		        errdxb=abs(errdmaxb.DY[errdmaxb.indx[name]]-errdminb.DY[errdminb.indx[name]])
-
-		        dpxb=-back_pro.DPY[back_pro.indx[name]]
-		        dpxberr="0"
-
-			datady.append(name+" "+str(s)+" "+str(dx)+" "+str(errdx)+" "+str(dxmdl)+" "+str(dxp)+" "+str(errdxp)+" "+str(dxb)+" "+str(errdxb))
-			datadpy.append(name+" "+str(s)+" "+str(dpx)+" "+str(dpxerr)+" "+str(dpxmdl)+" "+str(dpxp)+" "+str(dpxperr)+" "+str(dpxb)+" "+str(dpxberr))
-
-
-		flag=0
-
-
-        #=> switch only for element - to - instrument
-	elif passs==1:
-        #else:
-
-	        flag=1
-
-		name=namename
-
-		errbetamin=twiss(savepath+'/twiss.b-.dat')
-		errbetaminb=twiss(savepath+'/twiss.b-_back.dat')
-	
-		errbetamax=twiss(savepath+'/twiss.b+.dat')
-		errbetamaxb=twiss(savepath+'/twiss.b+_back.dat')
-
-		erralfmin=twiss(savepath+'/twiss.a-.dat')
-		erralfminb=twiss(savepath+'/twiss.a-_back.dat')
-
-		erralfmax=twiss(savepath+'/twiss.a+.dat')
-		erralfmaxb=twiss(savepath+'/twiss.a+_back.dat')
-
-		errdmin=twiss(savepath+'/twiss.d-.dat')
-		errdminb=twiss(savepath+'/twiss.d-_back.dat')
-
-		errdmax=twiss(savepath+'/twiss.d+.dat')
-		errdmaxb=twiss(savepath+'/twiss.d+_back.dat')
-
-	
-
-		fileresul=open(savepath+'/resul_'+namename+'.tfs','w')
-	
-		[hor,ver,dp]=getTwiss(savepath+"/twiss_"+str(namename)+".dat",namename)
-		[horb,verb,dpb]=getTwiss(savepath+"/twiss_"+namename+"_back_rev.dat",namename)
-		print "print the values"
-
-		fileresul.write('@ POSSTART %le '+str(twisstwiss.S[twisstwiss.indx[startbpm]])+'\n')
-		fileresul.write('@ BPMSTART %s '+str(startbpm)+'\n')
-		fileresul.write('@ POSELEMENT %le '+str(twisstwiss.S[twisstwiss.indx[namename]])+'\n')
-		fileresul.write('@ POSEND %le '+str(twisstwiss.S[twisstwiss.indx[startbpm]])+'\n')
-		fileresul.write('@ BPMEND %s '+str(endbpm)+'\n')
-		fileresul.write("@ INSTRUMENT  %s "+namename+"\n")
-		fileresul.write("@ S %le  "+str(hor[2])+"\n")
-
-		errbetxp=abs(errbetamax.BETX[errbetamax.indx[namename]]-errbetamin.BETX[errbetamin.indx[namename]])
-		errbetxb=abs(errbetamaxb.BETX[errbetamaxb.indx[namename]]-errbetaminb.BETX[errbetaminb.indx[namename]])
-		errbetyp=abs(errbetamax.BETY[errbetamax.indx[namename]]-errbetamin.BETY[errbetamin.indx[namename]])
-		errbetyb=abs(errbetamaxb.BETY[errbetamaxb.indx[namename]]-errbetaminb.BETY[errbetaminb.indx[namename]])
-
-	
-		fileresul.write("* METHOD  BETX ERRBETX  ALFX   BETY  ERRBETY   ALFY   DX   DPX   DY   DPY F1001  F1001STD F1010  F1010STD\n")
-		fileresul.write("$  %s  %le  %le %le  %le  %le  %le %le  %le  %le  %le %le  %le  %le  %le\n")
-
-		if coupleswitch==0:
-			fileresul.write("normal "+str(hor[0])+" "+str(errbetxp)+" "+str(hor[1])+" "+str(ver[0])+" "+str(errbetyp)+" "+str(ver[1])+" "+str(dp[0])+" "+str(dp[1])+" "+str(dp[2])+" "+str(dp[3])+" "+str(0)+" "+str(0)+" "+str(0)+" "+str(0)+"\n")
-			fileresul.write("back "+str(horb[0])+" "+str(errbetxb)+" "+str(horb[1])+" "+str(verb[0])+" "+str(errbetyb)+" "+str(verb[1])+" "+str(dpb[0])+" "+str(dpb[1])+" "+str(dpb[2])+" "+str(dpb[3])+" "+str(0)+" "+str(0)+" "+str(0)+" "+str(0)+"\n")
-		else:
-			
-			fileresul.write("normal "+str(hor[0])+" "+str(errbetxp)+" "+str(hor[1])+" "+str(ver[0])+" "+str(errbetyp)+" "+str(ver[1])+" "+str(dp[0])+" "+str(dp[1])+" "+str(dp[2])+" "+str(dp[3])+" "+str(0)+" "+str(0)+" "+str(0)+" "+str(0)+"\n")
-				      #+str(coupling[1][name][5])+" "+str(coupling[1][name][7])+" "+str(coupling[1][name][6])+" "+str(coupling[1][name][8])+"\n")
-			fileresul.write("back "+str(horb[0])+" "+str(errbetxb)+" "+str(horb[1])+" "+str(verb[0])+" "+str(errbetyb)+" "+str(verb[1])+" "+str(dpb[0])+" "+str(dpb[1])+" "+str(dpb[2])+" "+str(dpb[3])+" "+str(0)+" "+str(0)+" "+str(0)+" "+str(0)+"\n")
-			
-		fileresul.close()
-
-			        #### creating tables
-		#
-		# => opening all the results
-		#
-
-		# opening data
-		normal_pro=twiss(savepath+'/twiss_'+namename+'.dat')
-		back_pro=twiss(savepath+'/twiss_'+namename+'_back_rev.dat')
-
-		# for betx
-		s=twisstwiss.S[twisstwiss.indx[name]]
-		bet=0
-		errbet=0
-		betmdl=twisstwiss.BETX[twisstwiss.indx[name]]
-		betp=normal_pro.BETX[normal_pro.indx[name]]
-		errbetp=abs(errbetamax.BETX[errbetamax.indx[name]]-errbetamin.BETX[errbetamin.indx[name]])
-		betb=back_pro.BETX[back_pro.indx[name]]
-		errbetb=abs(errbetamaxb.BETX[errbetamaxb.indx[name]]-errbetaminb.BETX[errbetaminb.indx[name]])
-		databetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-	
-		# for bety
-		s=twisstwiss.S[twisstwiss.indx[name]]
-		bet=0
-		errbet=0
-		betmdl=twisstwiss.BETY[twisstwiss.indx[name]]
-		betp=normal_pro.BETY[normal_pro.indx[name]]
-		errbetp=abs(errbetamax.BETY[errbetamax.indx[name]]-errbetamin.BETY[errbetamin.indx[name]])
-		betb=back_pro.BETY[back_pro.indx[name]]
-		errbetb=abs(errbetamaxb.BETY[errbetamaxb.indx[name]]-errbetaminb.BETY[errbetaminb.indx[name]])
-		databety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-
-
-		# for alfx
-		s=twisstwiss.S[twisstwiss.indx[name]]
-		bet=0
-		errbet=0
-		betmdl=twisstwiss.ALFX[twisstwiss.indx[name]]
-		betp=normal_pro.ALFX[normal_pro.indx[name]]
-		errbetp=abs(erralfmax.ALFX[erralfmax.indx[name]]-erralfmin.ALFX[erralfmin.indx[name]])
-		betb=-back_pro.ALFX[back_pro.indx[name]]
-		errbetb=abs(erralfmaxb.ALFX[erralfmaxb.indx[name]]-erralfminb.ALFX[erralfminb.indx[name]])
-		dataalfx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-		# for alfy
-		betmdl=twisstwiss.ALFY[twisstwiss.indx[name]]
-		betp=normal_pro.ALFY[normal_pro.indx[name]]
-		errbetp=abs(erralfmax.ALFY[erralfmax.indx[name]]-erralfmin.ALFY[erralfmin.indx[name]])
-	      	betb=-back_pro.ALFY[back_pro.indx[name]]
-		errbetb=abs(erralfmaxb.ALFY[erralfmaxb.indx[name]]-erralfminb.ALFY[erralfminb.indx[name]])
-		dataalfy.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-		# for dx and dpx
-		s=twisstwiss.S[twisstwiss.indx[name]]
-		dx=0
-		dpx=0
-		dpxerr=0
-		errdx=0
-		dxmdl=twisstwiss.DX[twisstwiss.indx[name]]
-		dpxmdl=twisstwiss.DPX[twisstwiss.indx[name]]
-		dxp=normal_pro.DPX[normal_pro.indx[name]]
-		errdxp=abs(errdmax.DX[errdmax.indx[name]]-errdmin.DX[errdmin.indx[name]])
-		
-		dpxp=normal_pro.DPX[normal_pro.indx[name]]
-		dpxperr="0"
-			 
-		dxb=back_pro.DX[back_pro.indx[name]]
-		errdxb=abs(errdmaxb.DX[errdmaxb.indx[name]]-errdminb.DX[errdminb.indx[name]])
-		
-		dpxb=-back_pro.DPX[back_pro.indx[name]]
-		dpxberr="0"
-
-		datadx.append(name+" "+str(s)+" "+str(dx)+" "+str(errdx)+" "+str(dxmdl)+" "+str(dxp)+" "+str(errdxp)+" "+str(dxb)+" "+str(errdxb))
-		datadpx.append(name+" "+str(s)+" "+str(dpx)+" "+str(dpxerr)+" "+str(dpxmdl)+" "+str(dpxp)+" "+str(dpxperr)+" "+str(dpxb)+" "+str(dpxberr))
-
-		# for dy and dpy
-		s=twisstwiss.S[twisstwiss.indx[name]]
-		dx=0
-		dpx=0
-		errdx=0
-		dpxerr=0
-		dxmdl=twisstwiss.DY[twisstwiss.indx[name]]
-		dpxmdl=twisstwiss.DPY[twisstwiss.indx[name]]
-		dxp=normal_pro.DPY[normal_pro.indx[name]]
-		errdxp=abs(errdmax.DY[errdmax.indx[name]]-errdmin.DY[errdmin.indx[name]])
-
-		dpxp=normal_pro.DPY[normal_pro.indx[name]]
-		dpxperr="0"
-			 
-		dxb=back_pro.DY[back_pro.indx[name]]
-		errdxb=abs(errdmaxb.DY[errdmaxb.indx[name]]-errdminb.DY[errdminb.indx[name]])
-
-		dpxb=back_pro.DPY[-back_pro.indx[name]]
-		dpxberr="0"
-		datady.append(name+" "+str(s)+" "+str(dx)+" "+str(errdx)+" "+str(dxmdl)+" "+str(dxp)+" "+str(errdxp)+" "+str(dxb)+" "+str(errdxb))
-		datadpy.append(name+" "+str(s)+" "+str(dpx)+" "+str(dpxerr)+" "+str(dpxmdl)+" "+str(dpxp)+" "+str(dpxperr)+" "+str(dpxb)+" "+str(dpxberr))
-
-		# for coupling
-		coupledata=[]
-		if coupleswitch==1:
-			S=0#coupling[1][name][0]
-			f1001=0
-			f1010=0
-			stdf1001=0
-			stdf1010=0
-
-			f1001p=0#coupling[1][name][5]
-			f1010p=0#coupling[1][name][6]
-			stdf1001p=0#coupling[1][name][7]
-			stdf1010p=0#coupling[1][name][8]
-
-			f1001m=0#coupling[1][name][9]
-			f1010m=0#coupling[1][name][10]			
-			
-			coupledata.append(name+' '+str(S)+' '+str(f1001)+' '+str(stdf1001)+' '+str(f1001p)+' '+str(stdf1001p)+' '+str(f1001m)+' '+str(f1010)+' '+str(stdf1010)+' '+str(f1010p)+' '+str(stdf1010p)+' '+str(f1010m))
-
-                 #########
-	else:
-		flag=0
-        print namename+" is Finished"
-
-
-print "printing tables to file"
-createTables("sbsbetx_"+namename+".out",savepath,columnnamesbetx,variablenamebetx,databetx,mainvariablebetx,mainvaluebetx)
-createTables("sbsampbetx_"+namename+".out",savepath,columnnamesampbetx,variablenameampbetx,dataampbetx,mainvariableampbetx,mainvalueampbetx)
-createTables("sbsalfx_"+namename+".out",savepath,columnnamesalfx,variablenamealfx,dataalfx,mainvariablealfx,mainvaluealfx)
-createTables("sbsbety_"+namename+".out",savepath,columnnamesbety,variablenamebety,databety,mainvariablebety,mainvaluebety)
-createTables("sbsampbety_"+namename+".out",savepath,columnnamesampbety,variablenameampbety,dataampbety,mainvariableampbety,mainvalueampbety)
-createTables("sbsalfy_"+namename+".out",savepath,columnnamesalfy,variablenamealfy,dataalfy,mainvariablealfy,mainvaluealfy)
-createTables("sbsdx_"+namename+".out",savepath,columnnames1dx,variablename1dx,datadx,mainvariabledx,mainvaluedx)
-createTables("sbsdpx_"+namename+".out",savepath,columnnames2dx,variablename2dx,datadpx,mainvariabledx,mainvaluedx)
-createTables("sbsdy_"+namename+".out",savepath,columnnames1dy,variablename1dy,datady,mainvariabledy,mainvaluedy)
-createTables("sbsdpy_"+namename+".out",savepath,columnnames2dy,variablename2dy,datadpy,mainvariabledy,mainvaluedy)
-
-
-
-
-
-
-
-
-if flag==1:
-	print "Making summary report for instruments"
-	filee = os.listdir(savepath)
-	files = filter(lambda x: 'resul_' in x    , filee)
-
-	year=date.today().year
-	month=date.today().month
-	day=date.today().day
-	
-	resul=open(savepath+"/summary_instruments_"+options.accel+".tfs","w")
-	resul.write('@ NAME %s "summary instruments"\n')
-	resul.write('@ CREATED %s "'+str(year)+'-'+str(month)+'-'+str(day)+'"\n')
-	resul.write('@ LABEL1 %s "OK->DATA_VALID"\n')
-	resul.write('@ LABEL1 %s "CAUTION->SELEMENT-SBPM at some distance"\n')
-	resul.write('@ LABEL1 %s "NOT_VALID->SELEMENT-SBPM to far"\n')
-	
-	if options.accel=="LHCB2":
-
-		start="MKI.A5R8.B2"
-		beam="B2"
-		resul.write('@ ACCELERATOR %s "LHC"\n')
-		resul.write('@ BEAM %s "'+beam+'"\n')
-		resul.write('@ STARTELEMENT %s "'+start+'"\n')
-        
-        elif options.accel=="LHCB1":
-
-		start="MSIA.EXIT.B1"   
-		beam="B1"
-		resul.write('@ ACCELERATOR %s "LHC"\n')
-		resul.write('@ BEAM %s "'+beam+'"\n')
-		resul.write('@ STARTELEMENT %s "'+start+'"\n')
-
-	elif  options.accel=="RHICB":
-
-		start="G6_BX"   
-		beam="BLUE"
-		resul.write('@ ACCELERATOR %s "LHC"\n')
-		resul.write('@ BEAM %s "'+beam+'"\n')
-		resul.write('@ STARTELEMENT %s "'+start+'"\n')
-
-	elif  options.accel=="RHICY":
-
-		start="G6_BX"   
-		beam="YELLOW"
-		resul.write('@ ACCELERATOR %s "LHC"\n')
-		resul.write('@ BEAM %s "'+beam+'"\n')
-		resul.write('@ STARTELEMENT %s "'+start+'"\n')	
-	
-	resul.write('* NAME  S	    BETX  BETERRX   BETXMDL  BETY  BETERRY  BETYMDL  LEFTBPM   RIGHTBPM   VALID\n')
-	resul.write('$ %s    %le    %le   %le    %le      %le   %le   %le   %s  %s    %s\n')
-
-	for filee in files:
-
-		print savepath+"/"+filee
-		one=twiss(savepath+"/"+filee)
-		names=one.METHOD
-
-		posstart=int(one.POSSTART)
-		poselement=int(one.POSELEMENT)
-		posend=int(one.POSEND)
-
-
-		
-		if(abs(poselement-posstart)<300 and abs(posend-poselement)<300):
-			tag="OK"
-		elif(abs(poselement-posstart)<1000 and abs(posend-poselement)<1000):
-			tag="CAUTION"
-		else:
-			tag="NOT_VALID"
-		
-
-		betx=[];errx=[];bety=[];erry=[]
-
-		try:
-			betx.append(one.BETX[0])
-			errx.append(1/one.ERRBETX[0])
-			bety.append(one.BETY[0])
-			erry.append(1/one.ERRBETY[0])
-			betx.append(one.BETX[1])
-			errx.append(1/one.ERRBETX[1])
-			bety.append(one.BETY[1])
-			erry.append(1/one.ERRBETY[1])
-
-
-			betxx=(1/(errx[0]+errx[1]))*(errx[0]*betx[0]+errx[1]*betx[1])
-			betyy=(1/(erry[0]+erry[1]))*(erry[0]*bety[0]+erry[1]*bety[1])
-			errbetx=sqrt((1/errx[0])**2+(1/errx[1])**2)/2
-			errbety=sqrt((1/erry[0])**2+(1/erry[1])**2)/2
-		except: # will enter only here when error =0
-			betxx=(one.BETX[0]+one.BETX[1])/2
-			betyy=(one.BETY[0]+one.BETY[1])/2
-			errbetx=0
-			errbety=0
-		name4colli=one.INSTRUMENT
-
-		betxmdl=twisstwiss.BETX[twisstwiss.indx[name4colli]]
-		betymdl=twisstwiss.BETY[twisstwiss.indx[name4colli]]
-		S=twisstwiss.S[twisstwiss.indx[name4colli]]
-
-		resul.write(name4colli+" "+str(S)+" "+str(betxx)+" "+str(errbetx)+" "+str(betxmdl)+" "+str(betyy)+" "+str(errbety)+" "+str(betymdl)+" "+one.BPMSTART+" "+one.BPMEND+" "+str(tag)+"\n")
-
-	print "summary table created"
-	resul.close()
-
-
-print "sbs is finished"
-
-
-
-
-		
 
 
 
