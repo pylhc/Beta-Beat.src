@@ -9,6 +9,7 @@
 #                                 - Make distuinsh between BPMs and instuments (24/09/09)
 #                                 - Adding output tables (sbs...out) (21/10/09)
 #                                 - Adding coupling propogation (21/10/09)
+#                                 - changing output when segment is start and end (24/11/09)
 #
 #
 
@@ -96,24 +97,36 @@ def intersect(ListOfFile):
 	result.sort()
 	return result
 
-def getnextelement(names,mea,meay,model,end):
+def getnextelement(names,mea,meay,model,end,value):
 
 	print "Element "+element+" not found in measurement ... will look for other one!!"
 	locindx=model.indx[element.upper()]
 	endlocindx=model.indx[end.upper()]
 	for el in names:
 
-		llocindx=mea.indx[el.upper()]
+		llocindx=model.indx[el.upper()]
 		ell="null"
-		
-		if (llocindx>locindx and llocindx<endlocindx):
 
-			if(mea.BETX[mea.indx[element.upper()]] >0 and meay.BETY[mea.indx[element.upper()]] >0):
-
-				ell=el
-				break
-		else:
-			print "looking element ",el," is not ok"
+		if value==0:
+			if (llocindx>locindx and llocindx<endlocindx):
+				try:
+					if(mea.BETX[mea.indx[element.upper()]] >0 and meay.BETY[mea.indx[element.upper()]] >0):
+						ell=el
+						break
+				except:
+					print "element not in measurement"
+			else:
+				print "looking element ",el," is not ok"
+		if value==1:
+			if (llocindx>locindx and llocindx<endlocindx):
+				try:
+					if(mea.BETX[mea.indx[element.upper()]] >0 and meay.BETY[mea.indx[element.upper()]] >0):
+						ell=el
+						break
+				except:
+					print "element not in measurement"
+			else:
+				print "looking element ",el," is not ok"
 
 		
             
@@ -127,6 +140,15 @@ def getnextelement(names,mea,meay,model,end):
 
 def meascontains(mea,meay,element,end,model):
 
+    # check first if end element is there:
+    # 1 is end, 0 is beginning
+    try:
+	    endloc=mea.S[mea.indx[end.upper()]]
+	    
+    except:
+	    print "end element is not in measurement !!"
+	    ell=getnextelement(names,mea,meay,model,end,1)
+
     try:
         names=mea.NAME
         loc=mea.S[mea.indx[element.upper()]]
@@ -138,7 +160,7 @@ def meascontains(mea,meay,element,end,model):
 		ell=element
 	else:
 		print "beta at bpm ",element," is containing a negative beta ... will check for other element"
-		getnextelement(names,mea,meay,model,end)
+		ell=getnextelement(names,mea,meay,model,end)
     except:
 
         ell=getnextelement(names,mea,meay,model,end)
@@ -598,6 +620,10 @@ filedatax=twiss(path+"/getbetax.out")
 betxtwiss=filedatax
 filedatay=twiss(path+"/getbetay.out")
 betytwiss=filedatay
+filedatax=twiss(path+"/getampbetax.out")
+ampbetxtwiss=filedata
+filedatay=twiss(path+"/getampbetay.out")
+ampbetytwiss=filedatay
 filephasex=twiss(path+"/getphasey.out")
 filephasey=twiss(path+"/getphasex.out")
 #filecoupling=twiss(path+"getcoupling.out")
@@ -651,6 +677,12 @@ mainvaluebetx=[filedatax.COUNT[0]]
 columnnamesbetx=['* NAME','S','BETX','ERRBETX','BETXMDL','BETXP','ERRBETXP','BETXB','ERRBETXB']
 variablenamebetx=['$ %s','%le','%le','%le','%le','%le','%le','%le','%le']
 databetx=[]
+# for ampbetx
+mainvariableampbetx=['NFILES']
+mainvalueampbetx=[filedatax.COUNT[0]]
+columnnamesampbetx=['* NAME','S','BETX','ERRBETX','BETXMDL','BETXP','ERRBETXP','BETXB','ERRBETXB']
+variablenameampbetx=['$ %s','%le','%le','%le','%le','%le','%le','%le','%le']
+dataampbetx=[]
 # for alfx
 columnnamesalfx=['* NAME','S','ALFX','ERRALFX','ALFXMDL','ALFXP','ERRALFXP','ALFXB','ERRALFXB']
 variablenamealfx=['$ %s','%le','%le','%le','%le','%le','%le','%le','%le']
@@ -664,6 +696,12 @@ variablenamebety=['$ %s','%le','%le','%le','%le','%le','%le','%le','%le']
 mainvariablebety=['NFILES']
 mainvaluebety=[filedatay.COUNT[0]]
 databety=[]
+# for ampbety
+columnnamesampbety=['* NAME','S','BETY','ERRBETY','BETYMDL','BETYP','ERRBETYP','BETYB','ERRBETYB']
+variablenameampbety=['$ %s','%le','%le','%le','%le','%le','%le','%le','%le']
+mainvariableampbety=['NFILES']
+mainvalueampbety=[filedatay.COUNT[0]]
+dataampbety=[]
 # for alfy
 columnnamesalfy=['* NAME','S','ALFY','ERRALFY','ALFYMDL','ALFYP','ERRALFYP','ALFYB','ERRALFYB']
 variablenamealfy=['$ %s','%le','%le','%le','%le','%le','%le','%le','%le']
@@ -811,7 +849,9 @@ for namename in list2run:
 		normal_pro=twiss(savepath+'/twiss_'+label+'.dat')
 		back_pro=twiss(savepath+'/twiss_'+label+'_back_rev.dat')
 		bpmsbetx=intersect([filedatax,normal_pro,back_pro])
+		ampbpmsbetx=intersect([ampbetxtwiss,normal_pro,back_pro])
 		bpmsbety=intersect([filedatay,normal_pro,back_pro])
+		ampbpmsbety=intersect([ampbetytwiss,normal_pro,back_pro])
 		if os.path.exists(dx4twiss):
 			try:
 				Dx=twiss(path+"/getDx.out")
@@ -869,7 +909,23 @@ for namename in list2run:
 			errbetb=abs(errbetamaxb.BETX[errbetamaxb.indx[name]]-errbetaminb.BETX[errbetaminb.indx[name]])
 	
 			databetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-			
+		# for ampbetx
+			print "filling table for betx"
+		for bpm in ampbpmsbetx:
+			name=bpm[1]
+			s=ampbetxtwiss.S[ampbetxtwiss.indx[name]]
+			bet=ampbetxtwiss.BETX[ampbetxtwiss.indx[name]]
+			errbet=ampbetxtwiss.STDBETX[ampbetxtwiss.indx[name]]
+			betmdl=ampbetxtwiss.BETXMDL[ampbetxtwiss.indx[name]]
+
+			betp=normal_pro.BETX[normal_pro.indx[name]]
+			errbetp=abs(errbetamax.BETX[errbetamax.indx[name]]-errbetamin.BETX[errbetamin.indx[name]])
+
+			betb=back_pro.BETX[back_pro.indx[name]]
+			errbetb=abs(errbetamaxb.BETX[errbetamaxb.indx[name]]-errbetaminb.BETX[errbetaminb.indx[name]])
+	
+			dataampbetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
+		
 		# for alphax
 		print "filling table for alfx"
 		for bpm in bpmsbetx:
@@ -903,7 +959,23 @@ for namename in list2run:
 			errbetb=abs(errbetamaxb.BETY[errbetamaxb.indx[name]]-errbetaminb.BETY[errbetaminb.indx[name]])
 	
 			databety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
+			
+		# for ampbety
+		for bpm in ampbpmsbety:
+			name=bpm[1]
+			s=ampbetytwiss.S[ampbetytwiss.indx[name]]
+			bet=ampbetytwiss.BETY[ampbetytwiss.indx[name]]
+			errbet=ampbetytwiss.STDBETY[ampbetytwiss.indx[name]]
+			betmdl=betytwiss.BETYMDL[ampbetytwiss.indx[name]]
 
+			betp=normal_pro.BETY[normal_pro.indx[name]]
+			errbetp=abs(errbetamax.BETY[errbetamax.indx[name]]-errbetamin.BETY[errbetamin.indx[name]])
+
+			betb=back_pro.BETY[back_pro.indx[name]]
+			errbetb=abs(errbetamaxb.BETY[errbetamaxb.indx[name]]-errbetaminb.BETY[errbetaminb.indx[name]])
+	
+			databety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
+		
 		# for alfy
 		print "filling table for alfy"
 		for bpm in bpmsbety:
@@ -1042,7 +1114,8 @@ for namename in list2run:
 		betb=back_pro.BETX[back_pro.indx[name]]
 		errbetb=abs(errbetamaxb.BETX[errbetamaxb.indx[name]]-errbetaminb.BETX[errbetaminb.indx[name]])
 		databetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-		
+
+	
 		# for bety
 		s=twisstwiss.S[twisstwiss.indx[name]]
 		bet=0
@@ -1124,8 +1197,10 @@ for namename in list2run:
 
 print "printing tables to file"
 createTables("sbsbetx_"+label+".out",savepath,columnnamesbetx,variablenamebetx,databetx,mainvariablebetx,mainvaluebetx)
+createTables("sbsampbetx_"+label+".out",savepath,columnnamesampbetx,variablenameampbetx,dataampbetx,mainvariableampbetx,mainvalueampbetx)
 createTables("sbsalfx_"+label+".out",savepath,columnnamesalfx,variablenamealfx,dataalfx,mainvariablealfx,mainvaluealfx)
 createTables("sbsbety_"+label+".out",savepath,columnnamesbety,variablenamebety,databety,mainvariablebety,mainvaluebety)
+createTables("sbsampbety_"+label+".out",savepath,columnnamesampbety,variablenameampbety,dataampbety,mainvariableampbety,mainvalueampbety)
 createTables("sbsalfy_"+label+".out",savepath,columnnamesalfy,variablenamealfy,dataalfy,mainvariablealfy,mainvaluealfy)
 createTables("sbsdx_"+label+".out",savepath,columnnames1dx,variablename1dx,datadx,mainvariabledx,mainvaluedx)
 createTables("sbsdpx_"+label+".out",savepath,columnnames2dx,variablename2dx,datadpx,mainvariabledx,mainvaluedx)
