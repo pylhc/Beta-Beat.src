@@ -28,7 +28,11 @@
 #
 #  !=> SegementBySegment_0.28.py : -Coupling initial conditions added to MADX segment  24 March 2010
 #                                  -New file getfterms.py required to convert MADX C matrix to observable f terms
-#
+#        4 April 2010              -Introducing the modifiers.madx     
+#                                   file, it should be in twisspath or an 
+#                                   empty file will be created.             
+#                                   The MAD mask file has also been 
+#                                   updated              
 #
 
 
@@ -58,7 +62,7 @@ parser.add_option("-s", "--start",
                 help="give start,endbpm,name (multiple allowed) eg: start1,end1,name1,start2,end2,name2,...",
                 metavar="SEGF", default="./", dest="segf")
 parser.add_option("-t", "--twiss",
-                help="basic twiss file",
+                help="basic twiss file, the modifiers.madx is assumed to be in the same direcory",
                 metavar="TWISS", default="./", dest="twiss")
 parser.add_option("-r", "--response",
                 help="switch calculate corrections 0 no, 1 yes",
@@ -83,7 +87,7 @@ parser.add_option("-z", "--switch", # assumes that output is same as input
                 metavar="switch", default="1", dest="switch")
 parser.add_option("-c", "--cuts", # assumes that output is same as input
                 help="cuts for beta,disp,coupling bbxm,bbym,bxe,bye,dxm,dym,dxe,dye,f1001e,f1010e",
-                metavar="cuts", default="0.1,0.1,10,10,2,2,0.5,0.5,5,5", dest="cuts")
+                metavar="cuts", default="1,1,40,40,2,2,0.5,0.5,5,5", dest="cuts")
 parser.add_option("-e", "--elementswitch", # assumes that output is same as input
                 help="switching between segment(0) or element (1)",
                 metavar="holyswitch", default="0", dest="holyswitch")
@@ -144,12 +148,15 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			names.append(name)
 
 	cutswitch=0
+	#print endloc,startloc
+	#sys.exit()
 		
 	if endloc<startloc:
 
 		print "segment cut up in two"
 		cutswitch=1
-
+		#sys.exit()
+	#cutswitch=1
 	for name in names:
 		loc=twiss.S[twiss.indx[name]]
 
@@ -178,7 +185,14 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		bpmstranslate[startbpm]=startloc
 		bpmstranslate[endbpm]=endloc+twiss.LENGTH
 	else:
-		bpms=[startbpm]+bpms+[endbpm]		
+		bpms=[startbpm]+bpms+[endbpm]
+		bpmstranslate[startbpm]=startloc
+		bpmstranslate[endbpm]=endloc
+
+	#print len(bpmstranslate),len(bpms)
+	#print bpms
+	#print startbpm,endbpm
+	#sys.exit()
 	
 
 	####### structure
@@ -239,7 +253,9 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 			#print (betax-betxmdl)/betxmdl,beta[2]
 
-			print errx,beta[4],bpm
+			#print errx,beta[4],bpm
+			print betax,betay,betxmdl,betymdl,abs((betax-betxmdl)/betxmdl),abs((betay-betymdl)/betymdl),errx,erry
+			print 0,0,beta[2],beta[3],beta[4],beta[5]
 
 			if (betax>0) and (betay>0) and (abs((betax-betxmdl)/betxmdl)<beta[2]) and (abs((betay-betymdl)/betymdl)<beta[3]) and (errx<beta[4]) and (erry<beta[5]) and ((betax-errx)>0) and ((betay-erry)>0) and (errx<betax) and (erry<betay):
 
@@ -320,6 +336,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 					print "BPM",bpm," didnt pass cuts for coupling"
 		except:
 			print "BPM is not in the datafile for coupling",bpm
+			bpmscouple[bpm]=[0,0,0,0,0,0,0,0,0]
 
 		#sys.exit()
 
@@ -438,6 +455,14 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
     cpath=options.bb
     os.system('cp '+cpath+'/SegmentBySegment/getfterms.py'+' '+path+'/')
     
+    # Copy the modifiers.madx file locally to be used by MADx
+    
+    if os.path.isfile(twisspath+'/modifiers.madx'):
+      os.system('cp '+twisspath+'/modifiers.madx'+' '+path+'/')
+    else :   #If the modifiers file does not exist create empty file 
+      os.system('touch '+path+'/modifiers.madx')
+    
+    
     if options.accel=="LHCB2":
 
         dire=-1
@@ -517,11 +542,13 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
     file4nad.write('    -e \'s/%F1001I/\''+str(f1001i)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%F1010R/\''+str(f1010r)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%F1010I/\''+str(f1010i)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%EXP/\''+exppath.replace("/","")+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%EXP/\'\"'+exppath.replace("/","\/")+'\"\'/g\' \\\n')
     
     
     
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.testCoupl.mask > '+path+'/t_'+str(name)+'.madx \n')
+    
+    
+    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_1.mask > '+path+'/t_'+str(name)+'.madx \n')
 
     file4nad.close()
     
@@ -549,7 +576,7 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name):
     file4nad.write('    -e \'s/%ACCEL/\''+str(options.accel)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%BETA/\''+str(beta4plot)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%MEA/\'\"'+str(meapath.replace("/","\/"))+'\"\'/g\' \\\n')    
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.coupl.mask > '+path+'/gplot_'+name)
+    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_1.mask > '+path+'/gplot_'+name)
 
     file4nad.close()
     
@@ -1111,15 +1138,21 @@ elementswitch=-1
 savepath=options.SAVE
 list2run=options.segf.split(',')
 cuts=options.cuts.split(',')
+
 start={}
 end={}
 names=[]
 
-twisspath=options.twiss
-if twisspath=="./":
-	twisspath=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss.dat"
-	
-twisstwiss=twiss(twisspath)
+
+twissfile=options.twiss
+twisspath=os.path.dirname(twissfile)+'/'
+if twissfile=="./":
+	twissfile=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss.dat"
+
+
+twisstwiss=twiss(twissfile)
+
+
 
 	
 if options.holyswitch=="0":
@@ -1198,23 +1231,23 @@ mainvaluedy=[0]
 datady=[]
 datadpy=[]
 #for phasextot
-columnnamesphasextot=['NAME','S','PHASEX','ERRPHASEX','PHASEXP','ERRPHASEXP','MdiffP','PHASEXB','ERRPHASEXB','MdiffB']
-variablenamephasextot=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariablephasextot=['NFILES']
-mainvaluephasextot=[filephasextot.COUNT[0]]
-dataphasextot=[]
+#columnnamesphasextot=['NAME','S','PHASEX','ERRPHASEX','PHASEXP','ERRPHASEXP','MdiffP','PHASEXB','ERRPHASEXB','MdiffB']
+#variablenamephasextot=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le']
+#mainvariablephasextot=['NFILES']
+#mainvaluephasextot=[filephasextot.COUNT[0]]
+#dataphasextot=[]
 #for phaseytot
-columnnamesphaseytot=['NAME','S','PHASEY','ERRPHASEY','PHASEYP','ERRPHASEYP','MdiffP','PHASEYB','ERRPHASEXB','MdiffB']
-variablenamephaseytot=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariablephaseytot=['NFILES']
-mainvaluephaseytot=[filephaseytot.COUNT[0]]
-dataphaseytot=[]
+#columnnamesphaseytot=['NAME','S','PHASEY','ERRPHASEY','PHASEYP','ERRPHASEYP','MdiffP','PHASEYB','ERRPHASEXB','MdiffB']
+#variablenamephaseytot=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le']
+#mainvariablephaseytot=['NFILES']
+#mainvaluephaseytot=[filephaseytot.COUNT[0]]
+#dataphaseytot=[]
 # for couple
-columnnamescouple=['NAME','S','F1001','STDF1001','ReF1001','ImF1001','F1001P','ReF1001P','ImF1001P','STDF1001P','F1001M','F1010','STDF1010','ReF1010','ImF1010','F1010P','ReF1010P','ImF1010P','STDF1010P','F1010M','F1001B','ReF1001B','ImF1001B','STDF1001B','F1010B','ReF1010B','ImF1010B','STDF1010B']
-variablenamecouple=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le']
-mainvariablecouple=[]
-mainvaluecouple=[]
-coupledata=[]
+#columnnamescouple=['NAME','S','F1001','STDF1001','ReF1001','ImF1001','F1001P','ReF1001P','ImF1001P','STDF1001P','F1001M','F1010','STDF1010','ReF1010','ImF1010','F1010P','ReF1010P','ImF1010P','STDF1010P','F1010M','F1001B','ReF1001B','ImF1001B','STDF1001B','F1010B','ReF1010B','ImF1010B','STDF1010B']
+#variablenamecouple=['%s','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le','%le']
+##mainvariablecouple=[]
+#mainvaluecouple=[]
+#coupledata=[]
 
 
 ######## big loop
@@ -1236,10 +1269,10 @@ for namename in names:
 		elementswitch=0
 		print "Segment has been choosen"
 		databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter(
-			[betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],
+			[betxtwiss,betytwiss,float(cuts[0]),float(cuts[1]),float(cuts[2]),float(cuts[3])],
 			[ampbetxtwiss,ampbetytwiss],[filephasextot,filephaseytot],
-			[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],
-			[filecouple,cuts[8],cuts[9]],start[namename],
+			[filedx,filedy,float(cuts[4]),float(cuts[5]),float(cuts[6]),float(cuts[7])],
+			[filecouple,float(cuts[8]),float(cuts[9])],start[namename],
 			end[namename],
 			twisstwiss,
 			disp,coupleswitch,"empty")
@@ -1247,7 +1280,7 @@ for namename in names:
 	else:
 		elementswitch=1
 		print "You have choosen an instrument"
-		databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter([betxtwiss,betytwiss,cuts[0],cuts[1],cuts[2],cuts[3]],[ampbetxtwiss,ampbetytwiss],[filephasextot,filephaseytot],[filedx,filedy,cuts[4],cuts[5],cuts[6],cuts[7]],[filecouple,cuts[8],cuts[9]],start[namename],end[namename],twisstwiss,disp,coupleswitch,namename)
+		databeta,datadx,datacouple,disp,coupleswitch,elbpms=elementandfilter([betxtwiss,betytwiss,float(cuts[0]),float(cuts[1]),float(cuts[2]),float(cuts[3])],[ampbetxtwiss,ampbetytwiss],[filephasextot,filephaseytot],[filedx,filedy,float(cuts[4]),float(cuts[5]),float(cuts[6]),float(cuts[7])],[filecouple,float(cuts[8]),float(cuts[9])],start[namename],end[namename],twisstwiss,disp,coupleswitch,namename)
 
 
 
@@ -1255,9 +1288,13 @@ for namename in names:
 
 		startbpm=databeta[0][0]
 		endbpm=databeta[0][len(databeta[0])-1]
+		#endbpm=databeta[0][0]
+		#print startbpm,endbpm
+		#sys.exit()
 	else:
 		startbpm=elbpms[0]
 		endbpm=elbpms[1]
+		#endbpm=elbpms[0]
 	
 
 
@@ -1288,35 +1325,48 @@ for namename in names:
 			disp==0
 			dp=[0,0,0,0,0,0]
 			dpe=[0,0,0,0,0,0]
+	
 			
 	else:
 		dp=[0,0,0,0,0,0]
 		dpe=[0,0,0,0,0,0]
 		print "No dispersion"
 
-	if coupleswitch==1:
-		coupling=rotateparts(datacouple,twisstwiss)
-		print len(coupling[1][coupling[0][0]]),len(coupling[0])
-		data=datacouple[1]
-		f1001r=data[startbpm][5]
-		f1001i=data[startbpm][6]
-		f1010r=data[startbpm][7]
-		f1010i=data[startbpm][8]
-		fs=[f1001r,f1001i,f1010r,f1010i]
-		#sys.exit()
-	else:
-		coupling=[[],[]]
-		fs=[0,0,0,0]
-		print "No coupling"
+
+
+
 		
 	
 	
         #creatematching(filedatax,filedatay,filedatax2,filedatay2,path,beamswitch,element,eelement,listt1,listt2,listcom,label,accel1,accel2)
 
 	if passs==1:
+
+		if coupleswitch==1:
+			print "coupling"
+			coupling=[[],[]]
+		#coupling=rotateparts(datacouple,twisstwiss)
+		#print len(coupling[1][coupling[0][0]]),len(coupling[0])
+		        data=datacouple[1]
+			print data[startbpm]
+			print startbpm
+			f1001r=data[startbpm][5]
+			f1001i=data[startbpm][6]
+			f1010r=data[startbpm][7]
+			f1010i=data[startbpm][8]
+			fs=[f1001r,f1001i,f1010r,f1010i]
+			#print fs
+		#fs=[0,0,0,0]
+	                #sys.exit()
+	        else:
+			coupling=[[],[]]
+			fs=[0,0,0,0]
+			print "No coupling"
+
+		#sys.exit()
 		
 		if str(options.madpass)=="0":
-			run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path)
+			run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path+"/")
 
 		else:
 			runmad(savepath,namename)
@@ -1380,7 +1430,7 @@ for namename in names:
 
 
 		#m=options.twiss
-		[hor,ver,dp]=getTwiss(twisspath,startbpm)
+		[hor,ver,dp]=getTwiss(twissfile,startbpm)
 		beta4plot=hor[2]
 
 	        ######################
@@ -1624,99 +1674,99 @@ for namename in names:
 		# for phasex total
 		print "filing table for total horizontal phase"
 		
-		firstbpmx=bpmsphasex[0][1]
-		endbpmx=bpmsphasex[len(bpmsphasex)-1][1]
+		#firstbpmx=bpmsphasex[0][1]
+		#endbpmx=bpmsphasex[len(bpmsphasex)-1][1]
 
 	#	print len(bpmsphasex)
 		#sys.exit()
 	
-		for bpms in bpmsphasex:
-			bpm=bpms[1]
-			S=filephasextot.S[filephasextot.indx[bpm]]
-			prop=(normal_pro.MUX[normal_pro.indx[bpm]]-normal_pro.MUX[normal_pro.indx[firstbpmx]]) %1
-			back=(1-(back_pro.MUX[back_pro.indx[bpm]]-back_pro.MUX[back_pro.indx[endbpmx]])) %1
-			measured=(filephasextot.PHASEX[filephasextot.indx[bpm]]-filephasextot.PHASEX[filephasextot.indx[firstbpmx]])%1
+		#for bpms in bpmsphasex:
+			#bpm=bpms[1]
+			#S=filephasextot.S[filephasextot.indx[bpm]]
+			#prop=(normal_pro.MUX[normal_pro.indx[bpm]]-normal_pro.MUX[normal_pro.indx[firstbpmx]]) %1
+			#back=(1-(back_pro.MUX[back_pro.indx[bpm]]-back_pro.MUX[back_pro.indx[endbpmx]])) %1
+			#measured=(filephasextot.PHASEX[filephasextot.indx[bpm]]-filephasextot.PHASEX[filephasextot.indx[firstbpmx]])%1
 			
 			# difference experiment propogation
-			MdiffP=(measured-prop ) %1
-			if MdiffP >  0.5: MdiffP=  MdiffP -1
-			elif MdiffP < -0.5: MdiffP=  MdiffP +1
+			#MdiffP=(measured-prop ) %1
+			#if MdiffP >  0.5: MdiffP=  MdiffP -1
+			#elif MdiffP < -0.5: MdiffP=  MdiffP +1#
 
 			# difference experiment back propgation
-			MdiffB=(measured-back) %1
-			if MdiffB >  0.5: MdiffB=  MdiffB -1
-			elif MdiffB < -0.5: MdiffB=  MdiffB +1
+			#MdiffB=(measured-back) %1
+			#if MdiffB >  0.5: MdiffB=  MdiffB -1
+			#elif MdiffB < -0.5: MdiffB=  MdiffB +1
 		
-			errtotphasex=filephasextot.STDPHX[filephasextot.indx[bpm]]
+		#	errtotphasex=filephasextot.STDPHX[filephasextot.indx[bpm]]
 			
-			dataphasextot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(errtotphasex)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
+			#dataphasextot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(errtotphasex)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
 			# for phasey total
 	
-		firstbpmy=bpmsphasey[0][1]
-		endbpmy=bpmsphasey[len(bpmsphasey)-1][1]
+#		firstbpmy=bpmsphasey[0][1]
+	#	endbpmy=bpmsphasey[len(bpmsphasey)-1][1]
 		
-		print "filling table for total vertical phase"
-		for bpms in bpmsphasey:
-			bpm=bpms[1]
-			S=filephaseytot.S[filephaseytot.indx[bpm]]
-			prop=(normal_pro.MUY[normal_pro.indx[bpm]]-normal_pro.MUY[normal_pro.indx[firstbpmy]]) %1
-			back=(1-(back_pro.MUY[back_pro.indx[bpm]]-back_pro.MUY[back_pro.indx[endbpmy]])) %1
-			measured=(filephaseytot.PHASEY[filephaseytot.indx[bpm]]-filephaseytot.PHASEY[filephaseytot.indx[firstbpmy]])%1
+		#print "filling table for total vertical phase"
+		#for bpms in bpmsphasey:
+			#bpm=bpms[1]
+			#S=filephaseytot.S[filephaseytot.indx[bpm]]
+			#prop=(normal_pro.MUY[normal_pro.indx[bpm]]-normal_pro.MUY[normal_pro.indx[firstbpmy]]) %1
+			#back=(1-(back_pro.MUY[back_pro.indx[bpm]]-back_pro.MUY[back_pro.indx[endbpmy]])) %1
+			#measured=(filephaseytot.PHASEY[filephaseytot.indx[bpm]]-filephaseytot.PHASEY[filephaseytot.indx[firstbpmy]])%1
 			
 			# difference experiment propogation
-			MdiffP=(measured-prop ) %1
-			if MdiffP >  0.5: MdiffP=  MdiffP -1
-			elif MdiffP < -0.5: MdiffP=  MdiffP +1
+			#MdiffP=(measured-prop ) %1
+			#if MdiffP >  0.5: MdiffP=  MdiffP -1
+			#elif MdiffP < -0.5: MdiffP=  MdiffP +1
 
 			# difference experiment back propgation
-			MdiffB=(measured-back) %1
-			if MdiffB >  0.5: MdiffB=  MdiffB -1
-			elif MdiffB < -0.5: MdiffB=  MdiffB +1
+			#MdiffB=(measured-back) %1
+			#if MdiffB >  0.5: MdiffB=  MdiffB -1
+			#elif MdiffB < -0.5: MdiffB=  MdiffB +1
 
-			errtotphasey=filephaseytot.STDPHY[filephaseytot.indx[bpm]]
+			#errtotphasey=filephaseytot.STDPHY[filephaseytot.indx[bpm]]
 
-			dataphaseytot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(errtotphasey)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
+			#dataphaseytot.append(bpm+' '+str(S)+' '+str(measured)+' '+str(errtotphasey)+' '+str(prop)+' '+str(0)+' '+str(MdiffP)+' '+str(back)+' '+str(0)+' '+str(MdiffB))
 
 		#for coupling
-		print "filling table for coupling"
-		for bpm in coupling[0]:
+#		print "filling table for coupling"
+	#	for bpm in coupling[0]:
 			#S=filecouple.S[filecouple.indx[bpm]]
-			S=coupling[1][bpm][0]
+		#	S=coupling[1][bpm][0]
 			
-			f1001=sqrt(coupling[1][bpm][1]**2+coupling[1][bpm][2]**2)
-			f1001re=coupling[1][bpm][1]
-			f1001im=coupling[1][bpm][2]
-			stdf1001=abs(coupling[1][bpm][3])
+			#f1001=sqrt(coupling[1][bpm][1]**2+coupling[1][bpm][2]**2)
+			#f1001re=coupling[1][bpm][1]
+			#f1001im=coupling[1][bpm][2]
+			#stdf1001=abs(coupling[1][bpm][3])
 
-			f1001p=abs(coupling[1][bpm][4])
-			f1001pre=coupling[1][bpm][4].real
-			f1001pim=coupling[1][bpm][4].imag
-			stdf1001p=abs(coupling[1][bpm][5])
+#			f1001p=abs(coupling[1][bpm][4])
+	#		f1001pre=coupling[1][bpm][4].real
+		#	f1001pim=coupling[1][bpm][4].imag
+			#stdf1001p=abs(coupling[1][bpm][5])
 
-		        f1001b=abs(coupling[1][bpm][6])
-		        f1001bre=coupling[1][bpm][6].real
-			f1001bim=coupling[1][bpm][6].imag
-		        stdf1001b=abs(coupling[1][bpm][7])
+		        #f1001b=abs(coupling[1][bpm][6])
+		        #f1001bre=coupling[1][bpm][6].real
+			#f1001bim=coupling[1][bpm][6].imag
+		        #stdf1001b=abs(coupling[1][bpm][7])
 
-			f1001m=coupling[1][bpm][8]
+#			f1001m=coupling[1][bpm][8]
 
-			f1010=sqrt(coupling[1][bpm][9]**2+coupling[1][bpm][10]**2)
-			f1010re=coupling[1][bpm][9]
-			f1010im=coupling[1][bpm][10]
-			stdf1010=abs(coupling[1][bpm][11])
+	#		f1010=sqrt(coupling[1][bpm][9]**2+coupling[1][bpm][10]**2)
+		#	f1010re=coupling[1][bpm][9]
+			#f1010im=coupling[1][bpm][10]
+			#stdf1010=abs(coupling[1][bpm][11])
 
-			f1010m=coupling[1][bpm][12]
+			#f1010m=coupling[1][bpm][12]
 			
-			f1010p=abs(coupling[1][bpm][13])
-			f1010pre=coupling[1][bpm][13].real
-			f1010pim=coupling[1][bpm][13].imag
-			stdf1010p=coupling[1][bpm][14]
+		#	f1010p=abs(coupling[1][bpm][13])
+			#f1010pre=coupling[1][bpm][13].real
+			#f1010pim=coupling[1][bpm][13].imag
+			#stdf1010p=coupling[1][bpm][14]
 		
 		
-			f1010b=abs(coupling[1][bpm][15])
-			f1010bre=coupling[1][bpm][15].real
-			f1010bim=coupling[1][bpm][15].imag
-			stdf1010b=abs(coupling[1][bpm][16])
+	#		f1010b=abs(coupling[1][bpm][15])
+		#	f1010bre=coupling[1][bpm][15].real
+			#f1010bim=coupling[1][bpm][15].imag
+			#stdf1010b=abs(coupling[1][bpm][16])
 		
 
 			#print f1001pre,f1001bre,f1001re
@@ -1724,7 +1774,7 @@ for namename in names:
 			#print bpm,f1001re,f1001pre,f1001bre
 			#sys.exit()
 			
-			coupledata.append(bpm+' '+str(S)+' '+str(f1001)+' '+str(stdf1001)+' '+str(f1001re)+' '+str(f1001im)+' '+str(f1001p)+' '+str(f1001pre)+' '+str(f1001pim)+' '+str(stdf1001p)+' '+str(f1001m)+' '+str(f1010)+' '+str(stdf1010)+' '+str(f1010re)+' '+str(f1010im)+' '+str(f1010p)+' '+str(f1010pre)+' '+str(f1010pim)+' '+str(stdf1010p)+' '+str(f1010m)+' '+str(f1001b)+' '+str(f1001bre)+' '+str(f1001bim)+' '+str(stdf1001b)+' '+str(f1010b)+' '+str(f1010bre)+' '+str(f1010bim)+' '+str(stdf1010b))
+			#coupledata.append(bpm+' '+str(S)+' '+str(f1001)+' '+str(stdf1001)+' '+str(f1001re)+' '+str(f1001im)+' '+str(f1001p)+' '+str(f1001pre)+' '+str(f1001pim)+' '+str(stdf1001p)+' '+str(f1001m)+' '+str(f1010)+' '+str(stdf1010)+' '+str(f1010re)+' '+str(f1010im)+' '+str(f1010p)+' '+str(f1010pre)+' '+str(f1010pim)+' '+str(stdf1010p)+' '+str(f1010m)+' '+str(f1001b)+' '+str(f1001bre)+' '+str(f1001bim)+' '+str(stdf1001b)+' '+str(f1010b)+' '+str(f1010bre)+' '+str(f1010bim)+' '+str(stdf1010b))
                  #########
 			#sys.exit()
 		flag=0
@@ -1887,6 +1937,7 @@ for namename in names:
 		datadpy.append(name+" "+str(s)+" "+str(dpx)+" "+str(dpxerr)+" "+str(dpxmdl)+" "+str(dpxp)+" "+str(dpxperr)+" "+str(dpxb)+" "+str(dpxberr))
 
 		# for coupling
+		coupledata=[]
 		if coupleswitch==1:
 			S=0#coupling[1][name][0]
 			f1001=0
@@ -1921,9 +1972,9 @@ createTables("sbsdx_"+namename+".out",savepath,columnnames1dx,variablename1dx,da
 createTables("sbsdpx_"+namename+".out",savepath,columnnames2dx,variablename2dx,datadpx,mainvariabledx,mainvaluedx)
 createTables("sbsdy_"+namename+".out",savepath,columnnames1dy,variablename1dy,datady,mainvariabledy,mainvaluedy)
 createTables("sbsdpy_"+namename+".out",savepath,columnnames2dy,variablename2dy,datadpy,mainvariabledy,mainvaluedy)
-createTables("sbsphasext_"+namename+".out",savepath,columnnamesphasextot,variablenamephasextot,dataphasextot,mainvariablephasextot,mainvaluephasextot)
-createTables("sbsphaseyt_"+namename+".out",savepath,columnnamesphaseytot,variablenamephaseytot,dataphaseytot,mainvariablephaseytot,mainvaluephaseytot)
-createTables("sbscouple_"+namename+".out",savepath,columnnamescouple,variablenamecouple,coupledata,mainvariablecouple,mainvaluecouple)
+#createTables("sbsphasext_"+namename+".out",savepath,columnnamesphasextot,variablenamephasextot,dataphasextot,mainvariablephasextot,mainvaluephasextot)
+#createTables("sbsphaseyt_"+namename+".out",savepath,columnnamesphaseytot,variablenamephaseytot,dataphaseytot,mainvariablephaseytot,mainvaluephaseytot)
+#createTables("sbscouple_"+namename+".out",savepath,columnnamescouple,variablenamecouple,coupledata,mainvariablecouple,mainvaluecouple)
 
 
 
@@ -1958,7 +2009,7 @@ if flag==1:
 		beam="B2"
 		resul.write('@ ACCELERATOR %s "LHC"\n')
 		resul.write('@ BEAM %s "'+beam+'"\n')
-		resul.write('@ START-ELEMENT %s "'+start+'"\n')
+		resul.write('@ STARTELEMENT %s "'+start+'"\n')
         
         elif options.accel=="LHCB1":
 
@@ -1966,7 +2017,7 @@ if flag==1:
 		beam="B1"
 		resul.write('@ ACCELERATOR %s "LHC"\n')
 		resul.write('@ BEAM %s "'+beam+'"\n')
-		resul.write('@ START-ELEMENT %s "'+start+'"\n')
+		resul.write('@ STARTELEMENT %s "'+start+'"\n')
 	
 	resul.write('* NAME  S	    BETX  BETERRX   BETXMDL  BETY  BETERRY  BETYMDL  LEFTBPM   RIGHTBPM   VALID\n')
 	resul.write('$ %s    %le    %le   %le    %le      %le   %le   %le   %s  %s    %s\n')
