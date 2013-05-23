@@ -34,16 +34,13 @@
 #                                   The MAD mask file has also been 
 #                                   updated
 #  !=> SegementBySegment_0.29.py : - Update for IP2  beam1 and IP8 beam 2... problem with S coordinate
-#
+#  !=>  SegementBySegment_0.30.py : - New filtering... + extending it to RHIC (double plane bpms only, IPS)
 
 
 
 ###### imports
 from optparse import OptionParser
-try:
-	from metaclass import twiss
-except:
-	from metaclass25 import twiss
+from metaclass import twiss
 import os,sys
 from math import sqrt,cos,sin,pi
 from datetime import date
@@ -103,9 +100,12 @@ parser.add_option("-e", "--elementswitch", # assumes that output is same as inpu
 def modelIntersect(expbpms, model):
 	bpmsin=[]
         for bpm in expbpms:
+
+		#print bpm
             
 		try:
-			check=model.indx[bpm[1].upper()]
+			check=model.indx[bpm.replace("-","_").upper()]
+			#print "Found"
 			bpmsin.append(bpm)
 		except:
 			print bpm, "Not in Model"
@@ -121,14 +121,16 @@ def intersect(ListOfFile):
         if len(ListOfFile)==0:
             print "Nothing to intersect!!!!"
             sys.exit()
-        z=ListOfFile[0].NAME
+        z=ListOfFile[0]
+	sys.exit()
         for b in ListOfFile:
-            z=filter(lambda x: x in z   , b.NAME)
+            z=filter(lambda x: x in z   , b)
+
 	#SORT by S
 	result=[]
 	x0=ListOfFile[0]
 	for bpm in z:
-		result.append((x0.S[x0.indx[bpm]], bpm))	
+		result.append((x0.S[x0.indx[bpm]], bpm.replace("_","-")))	
 		
 	result.sort()
 	return result
@@ -151,8 +153,8 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		locel=0
 		switcher=0
 		
-#	print switcher
-#	sys.exit()
+	#print 
+	#sys.exit()
 	#startloc=locel-1000
 	#endloc=
 
@@ -162,19 +164,38 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	names=[]
 	for name in all:
 
-		if "BPM" in name:
+		if "RHIC" in options.accel and "_" in name:
+
+			names.append(name)
+
+		elif "BPM" in name:
 			names.append(name)
 
 	cutswitch=0
 
 	#print switcherendloc
+
+	###### pos boundary definition
+	if "RHIC" in options.accel:
+		localss=200
+		locale=3500
+	else:
+		localss=500
+		locale=26500
 		
-	if (locel<500 or locel>26500) and "empty" not in element :
+
+		
+		
+	if (locel<localss or locel>locale) and "empty" not in element :
 
 		print "segment cut up in two"
 		cutswitch=1
 		endloc=twiss.S[twiss.indx[startbpm]]+1500
 		startloc=twiss.S[twiss.indx[element]]-1500
+	elif (endloc<localss):
+		print "segment cut up in two"
+		cutswitch=1
+	
 
 		#	sys.exit()
 
@@ -193,6 +214,8 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 
 		else:
+
+			print "entering sliced up segment"
 			
 			if (loc>startloc):
 				bpms.append(name)
@@ -215,17 +238,6 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 		bpmstranslate[startbpm]=startloc
 		bpmstranslate[endbpm]=endloc
 
-	#print bpms
-	#sys.exit()
-
-	#print len(bpmstranslate),len(bpms)
-	#print bpms
-	#print startbpm,endbpm
-	#sys.exit()
-	
-
-	####### structure
-	#[x,y,mdlcutx,mdlcuty,errcutx,errcuty]
 
 	bpmsbeta={}
 	bpmsb=[]
@@ -240,8 +252,9 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 	for bpm in bpms:
 
 
-		#print  (betax>0),(betay>0) , (abs((betax-betxmdl)/betxmdl)<beta[2]) , (abs((betay-betymdl)/betymdl)<beta[3]) , (errx<beta[4]) , (erry<beta[5]) , ((betax-errx)>0) , ((betay-erry)>0) , (errx<betax) , (erry<betay)
-		#sys.exit()
+		if "RHIC" in options.accel:
+
+			bpm=bpm.replace("_","-")
 		
 
 		try:
@@ -292,14 +305,15 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 			#print errx,beta[4],bpm
 
-
+			#print betax,betay,(betax-betxmdl)/betxmdl,(betay-betymdl)/betymdl,errx,erry
 
 			if (betax>0) and (betay>0) and (abs((betax-betxmdl)/betxmdl)<beta[2]) and (abs((betay-betymdl)/betymdl)<beta[3]) and (errx<beta[4]) and (erry<beta[5]) and ((betax-errx)>0) and ((betay-erry)>0) and (errx<betax) and (erry<betay):
 
-				print "pass"
+				print "pass",bpm
 
-				bpmsbeta[bpm]=[bpmstranslate[bpm],betax,errx,alfax,erralfax,betay,erry,alfay,erralfay,ampbetax,stdbetax,ampbetay,stdbetay]
+				bpmsbeta[bpm]=[bpmstranslate[bpm.replace("-","_")],betax,errx,alfax,erralfax,betay,erry,alfay,erralfay,ampbetax,stdbetax,ampbetay,stdbetay]
 				bpmsb.append(bpm)
+				#print "adding ",bpm," to list"
 
 
 			else:
@@ -329,7 +343,7 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 
 				if(abs(dispx-dispxmdl)<disp[2] and abs(dispy-dispymdl)<disp[3] and  stddx<disp[4] and stddy<disp[5]):
 					
-					bpmsdx[bpm]=[bpmstranslate[bpm],dispx,stddx,disppx,stddpx,dispy,stddy,disppy,stddpy]
+					bpmsdx[bpm]=[bpmstranslate[bpm.replace("-","_")],dispx,stddx,disppx,stddpx,dispy,stddy,disppy,stddpy]
 					bpmsd.append(bpm)
 				else:
 
@@ -345,11 +359,6 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			print "switch",couplingswitch
 			#sys.exit()
 			if couplingswitch==1:
-				#location=couple[0].S[couple[0].indx[bpm]]
-				#f1001=couple[0].F1001[couple[0].indx[bpm]]
-				#std1001=couple[0].FSTD1[couple[0].indx[bpm]]
-				#f1010=couple[0].F1010[couple[0].indx[bpm]]
-				#stdf1010=couple[0].FSTD2[couple[0].indx[bpm]]
 
 				location=couple[0].S[couple[0].indx[bpm]]
 				f1001w=couple[0].F1001W[couple[0].indx[bpm]]
@@ -365,8 +374,8 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 				#F1001W FWSTD1 F1001R F1001I F1010W FWSTD2 F1010R F1010I
 				print std1001,couple[1],stdf1010,couple[2]
 				if(std1001<couple[1] and stdf1010<couple[2]):
-					bpmscouple[bpm]=[bpmstranslate[bpm],f1001w,f1010w,std1001,stdf1010,f1001r,f1001i,f1010r,f1010i]
-					print "Position "+str(bpmstranslate[bpm])
+					bpmscouple[bpm]=[bpmstranslate[bpm.replace("-","_")],f1001w,f1010w,std1001,stdf1010,f1001r,f1001i,f1010r,f1010i]
+					print "Position "+str(bpmstranslate[bpm.replace("-","_")])
 					#print "adding bpm for coupling"
 					bpmsc.append(bpm)
 				else:
@@ -376,6 +385,8 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 			bpmscouple[bpm]=[0,0,0,0,0,0,0,0,0]
 
 		#sys.exit()
+
+	print bpmsb
 
 	if len(bpmsb)<2:
 
@@ -442,6 +453,9 @@ def elementandfilter(beta,ampbeta,disp,phase,couple,startbpm,endbpm,twiss,disper
 				
 		dd.sort()
 
+		#print dd
+		#sys.exit()
+
 		good=dd.index(locationindx)
 		if good==0:
 			first=dd[len(dd)-1]
@@ -506,7 +520,10 @@ def getTwiss(filee,element):
 
     print "loading file ",filee
 
-    filedatax=twiss(filee)
+    if "RHIC" in options.accel:
+	    element=element.replace("-","_")
+
+    filedatax=twiss(filee,rhicdict)
 
     betax=filedatax.BETX[filedatax.indx[element]]
     alfx=filedatax.ALFX[filedatax.indx[element]]
@@ -527,13 +544,16 @@ def getTwiss(filee,element):
 
     return[hor,ver,dp]
 
-def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
+def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twissfile):
 
 
     ##
     #  Copy getfterms.py locally to be used by MADx
     cpath=options.bb
-    os.system('cp '+cpath+'/SegmentBySegment/getfterms.py'+' '+path+'/')
+    if "RHIC" in options.accel:
+	    os.system('cp '+cpath+'/SegmentBySegment/getfterms_RHIC.py'+' '+path+'/')
+    else:
+	    os.system('cp '+cpath+'/SegmentBySegment/getfterms.py'+' '+path+'/')	    
     
     # Copy the modifiers.madx file locally to be used by MADx
     
@@ -557,6 +577,22 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
 #	start="IP2"   #  compatible with repository
         beam="B1"
 
+    elif options.accel=="RHICB":
+
+        dire=1
+	start="G6_BX"
+	path4rhic=options.bb+"/MODEL/"+options.accel
+	path4asc=os.path.dirname(options.twiss)
+	beam="blue.asc"
+
+
+    elif options.accel=="RHICY":
+
+        dire=-1
+	start="G6_BX"
+	path4rhic=options.bb+"/MODEL/"+options.accel
+	path4asc=os.path.dirname(options.twiss)
+	beam="yellow.asc"
    
 
     ### check on error propogation
@@ -611,8 +647,8 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
     file4nad.write('    -e \'s/%DPENDX/\''+str(-dpe[1])+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%DPENDY/\''+str(-dpe[3])+'\'/g\' \\\n')
     
-    file4nad.write('    -e \'s/%STARTFROM/\''+str(startbpm)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ENDAT/\''+str(endbpm)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%STARTFROM/\''+str(startbpm.replace("-","_"))+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%ENDAT/\''+str(endbpm.replace("-","_"))+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%LABEL/\''+str(name)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ACCEL/\''+str(options.accel)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%DIRE/\''+str(dire)+'\'/g\' \\\n')
@@ -623,20 +659,39 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath):
     file4nad.write('    -e \'s/%F1001I/\''+str(f1001i)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%F1010R/\''+str(f1010r)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%F1010I/\''+str(f1010i)+'\'/g\' \\\n')
+    if "RHIC" in options.accel:
+	    #print twissfile
+            file4nad.write('    -e \'s/%QX/\''+str(twissfile.Q1)+'\'/g\' \\\n')
+            file4nad.write('    -e \'s/%QY/\''+str(twissfile.Q2)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%CHROMX/\''+str(twissfile.DQ1)+'\'/g\' \\\n')
+            file4nad.write('    -e \'s/%CHROMY/\''+str(twissfile.DQ2)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%BBPATH/\'\"'+str(path4rhic.replace('/','\/'))+'\"\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%MPATH/\'\"'+str(path4asc.replace('/','\/'))+'\"\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%MASS/\''+str(twissfile.MASS)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%ENERGY/\''+str(twissfile.ENERGY)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%GAMMA/\''+str(twissfile.GAMMA)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%CHARGE/\''+str(twissfile.CHARGE)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%EMX/\''+str(twissfile.EX)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%EMY/\''+str(twissfile.EY)+'\'/g\' \\\n')
+	    file4nad.write('    -e \'s/%SIGE/\''+str(twissfile.SIGE)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%EXP/\'\"'+exppath.replace("/","\/")+'\"\'/g\' \\\n')
     
     
     
+    if "RHIC" in options.accel:
+
+	   file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_1_RHIC.mask > '+path+'/t_'+str(name)+'.madx \n') 
+
+    else:
     
-    
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_1.mask > '+path+'/t_'+str(name)+'.madx \n')
+	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_1.mask > '+path+'/t_'+str(name)+'.madx \n')
 
     file4nad.close()
     
     os.system("chmod 777 "+str(filename))
     os.system(str(filename))
-
     runmad(path,name)
+    #sys.exit()
 
    
     
@@ -660,7 +715,9 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel):
     file4nad.write('    -e \'s/%QY/\''+str(qy)+'\'/g\' \\\n')    
     file4nad.write('    -e \'s/%MEA/\'\"'+str(meapath.replace("/","\/"))+'\"\'/g\' \\\n')
     if (name=="IP8" and accel=="LHCB2") or (name=="IP2" and accel=="LHCB1"):
-	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.IP2IP8.0_1.mask > '+path+'/gplot_'+name)  
+	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.IP2IP8.0_1.mask > '+path+'/gplot_'+name)
+    elif "RHIC" in options.accel:
+	     file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_1_RHIC.mask > '+path+'/gplot_'+name)
     else:
 	    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_1.mask > '+path+'/gplot_'+name)
 	    
@@ -1238,9 +1295,23 @@ twisspath=os.path.dirname(twissfile)+'/'
 if twissfile=="./":
 	twissfile=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss.dat"
 
+if "RHIC" in options.accel:
+	temp=twiss(twissfile)
+	namess=temp.NAME
+	rhicdict={}
+	for name in namess:
+		if "_" in name:
+			rhicdict[name]='["'+name.replace("_","-")+'","'+name.replace("_","-")+'"]'
 
-twisstwiss=twiss(twissfile)
+	#print rhicdict
+	#sys.exit()
+else:
+	rhicdict={}
 
+#print twissfile
+twisstwiss=twiss(twissfile,rhicdict)
+#sys.exit()
+#twisstwiss=twiss(twissfile)
 
 
 	
@@ -1451,7 +1522,7 @@ for namename in names:
 		#sys.exit()
 		
 		if str(options.madpass)=="0":
-			run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path+"/")
+			run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path+"/",twisstwiss)
 
 		else:
 			runmad(savepath,namename)
@@ -1498,15 +1569,16 @@ for namename in names:
 
 		phx=twiss(path+'/getphasex.out')
 		phy=twiss(path+'/getphasey.out')
-
-		m=twiss(savepath+"/twiss_"+namename+".dat")
+		#print savepath+"/twiss_"+namename+".dat"
+		m=twiss(savepath+"/twiss_"+namename+".dat",rhicdict)
+		#sys.exit()
 
 		bpm1, bpm2, s1, s2, phaseexp, phasem = GetPhaseEM(phx, m)
 		writePhase(savepath+"/phasexEM.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
 		bpm1, bpm2, s1, s2, phaseexp, phasem = GetPhaseEM(phy, m)
 		writePhase(savepath+"/phaseyEM.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
 
-		m=twiss(savepath+"/twiss_"+namename+"_play.dat")
+		m=twiss(savepath+"/twiss_"+namename+"_play.dat",rhicdict)
 
 		bpm1, bpm2, s1, s2, phaseexp, phasem = GetPhaseEM(phx, m)
 		writePhase(savepath+"/phasexEM_play.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
@@ -1539,22 +1611,36 @@ for namename in names:
 
 
 		# results from propagation
-		normal_pro=twiss(savepath+'/twiss_'+namename+'.dat')
-		back_pro=twiss(savepath+'/twiss_'+namename+'_back_rev.dat')
-		bpmsbetx=intersect([filedatax,normal_pro,back_pro])
-		ampbpmsbetx=intersect([ampbetxtwiss,normal_pro,back_pro])
-		bpmsbety=intersect([filedatay,normal_pro,back_pro])
-		ampbpmsbety=intersect([ampbetytwiss,normal_pro,back_pro])
+		normal_pro=twiss(savepath+'/twiss_'+namename+'.dat',rhicdict)
+		back_pro=twiss(savepath+'/twiss_'+namename+'_back_rev.dat',rhicdict)
+		bpmsbetx=modelIntersect(filedatax.NAME,back_pro)
+		#print len(filedatax.NAME),len(back_pro.NAME),len(bpmsbetx)
+		ampbpmsbetx=modelIntersect(ampbetxtwiss.NAME,back_pro)
+		bpmsbety=modelIntersect(filedatay.NAME,back_pro)
+		ampbpmsbety=modelIntersect(ampbetytwiss.NAME,back_pro)
+		bpmsphasex=modelIntersect(filephasextot.NAME,back_pro)
+		bpmsphasey=modelIntersect(filephaseytot.NAME,back_pro)
+		#sys.exit()
+		print len(bpmsbetx),bpmsbetx
+		#sys.exit()
+		#bpmsbetx=intersect([bpmsbetx,normal_pro.NAME])
+		#print bpmsbetx
+		#bpmsbetx=intersect([filedatax,normal_pro,back_pro])
+		#print bpmsbetx
+		#sys.exit()
+		#ampbpmsbetx=intersect([ampbetxtwiss,normal_pro,back_pro])
+		#bpmsbety=intersect([filedatay,normal_pro,back_pro])
+		#ampbpmsbety=intersect([ampbetytwiss,normal_pro,back_pro])
 
 
-		bpmsphasex=intersect([filephasextot,normal_pro,back_pro])
-		bpmsphasey=intersect([filephaseytot,normal_pro,back_pro])
+#		bpmsphasex=intersect([filephasextot,normal_pro,back_pro])
+	#	bpmsphasey=intersect([filephaseytot,normal_pro,back_pro])
 			
 		if disp==1:
 
-			Dx=twiss(path+"/getDx.out")
+			Dx=twiss(path+"/getDx.out",rhicdict)
 			bpmsdx=intersect([Dx,normal_pro,back_pro])
-			Dy=twiss(path+"/getDy.out")
+			Dy=twiss(path+"/getDy.out",rhicdict)
 			bpmsdy=intersect([Dy,normal_pro,back_pro])
 			try:
 				mainvaluedy=[Dy.COUNT[0]]
@@ -1570,37 +1656,42 @@ for namename in names:
 			bpmsdy=[]
 			mainvaluedy=[0]
 		
-		errbetamin=twiss(savepath+'/twiss.b-.dat')
-		errbetaminb=twiss(savepath+'/twiss.b-_back.dat')
+		errbetamin=twiss(savepath+'/twiss.b-.dat',rhicdict)
+		errbetaminb=twiss(savepath+'/twiss.b-_back.dat',rhicdict)
 	
-		errbetamax=twiss(savepath+'/twiss.b+.dat')
-		errbetamaxb=twiss(savepath+'/twiss.b+_back.dat')
+		errbetamax=twiss(savepath+'/twiss.b+.dat',rhicdict)
+		errbetamaxb=twiss(savepath+'/twiss.b+_back.dat',rhicdict)
 
-		erralfmin=twiss(savepath+'/twiss.a-.dat')
-		erralfminb=twiss(savepath+'/twiss.a-_back.dat')
+		erralfmin=twiss(savepath+'/twiss.a-.dat',rhicdict)
+		erralfminb=twiss(savepath+'/twiss.a-_back.dat',rhicdict)
 
-		erralfmax=twiss(savepath+'/twiss.a+.dat')
-		erralfmaxb=twiss(savepath+'/twiss.a+_back.dat')
+		erralfmax=twiss(savepath+'/twiss.a+.dat',rhicdict)
+		erralfmaxb=twiss(savepath+'/twiss.a+_back.dat',rhicdict)
 
-		errdmin=twiss(savepath+'/twiss.d-.dat')
-		errdminb=twiss(savepath+'/twiss.d-_back.dat')
+		errdmin=twiss(savepath+'/twiss.d-.dat',rhicdict)
+		errdminb=twiss(savepath+'/twiss.d-_back.dat',rhicdict)
 
-		errdmax=twiss(savepath+'/twiss.d+.dat')
-		errdmaxb=twiss(savepath+'/twiss.d+_back.dat')
-
+		errdmax=twiss(savepath+'/twiss.d+.dat',rhicdict)
+		errdmaxb=twiss(savepath+'/twiss.d+_back.dat',rhicdict)
 
 		# results from getllm
                 ##
 		#
 		#betx
 		print "filling table for betx"
+		#print  bpmsbetx
+		#print normal_pro.NAME
 		for bpm in bpmsbetx:
-			name=bpm[1]
+			name=bpm
 			s=betxtwiss.S[betxtwiss.indx[name]]  
 
 			bet=betxtwiss.BETX[betxtwiss.indx[name]]
 			errbet=sqrt(betxtwiss.ERRBETX[betxtwiss.indx[name]]**2+betxtwiss.STDBETX[betxtwiss.indx[name]]**2)
 			betmdl=betxtwiss.BETXMDL[betxtwiss.indx[name]]
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
+				name=name.replace("-","_")
+				
 
 			betp=normal_pro.BETX[normal_pro.indx[name]]
 			errbetp=abs(errbetamax.BETX[errbetamax.indx[name]]-errbetamin.BETX[errbetamin.indx[name]])
@@ -1613,12 +1704,15 @@ for namename in names:
 		
 		print "filling table for ampbetx"
 		for bpm in ampbpmsbetx:
-			name=bpm[1]
+			name=bpm
 			s=ampbetxtwiss.S[ampbetxtwiss.indx[name]]
 			#if ampbetxtwiss.S[ampbetxtwiss.indx[name]]<ampbetxtwiss.S[ampbetxtwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=ampbetxtwiss.BETX[ampbetxtwiss.indx[name]]
 			errbet=ampbetxtwiss.BETXSTD[ampbetxtwiss.indx[name]]
 			betmdl=ampbetxtwiss.BETXMDL[ampbetxtwiss.indx[name]]
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
+				name=name.replace("-","_")
 
 			betp=normal_pro.BETX[normal_pro.indx[name]]
 			errbetp=abs(errbetamax.BETX[errbetamax.indx[name]]-errbetamin.BETX[errbetamin.indx[name]])
@@ -1631,12 +1725,15 @@ for namename in names:
 		# for alphax
 		print "filling table for alfx"
 		for bpm in bpmsbetx:
-			name=bpm[1]
+			name=bpm
 			s=betxtwiss.S[betxtwiss.indx[name]]
 			#if betxtwiss.S[betxtwiss.indx[name]]<betxtwiss.S[betxtwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=betxtwiss.ALFX[betxtwiss.indx[name]]
 			errbet=sqrt(betxtwiss.ERRALFX[betxtwiss.indx[name]]**2+betxtwiss.STDALFX[betxtwiss.indx[name]]**2)
 			betmdl=betxtwiss.ALFXMDL[betxtwiss.indx[name]]
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
+				name=name.replace("-","_")
 			
 			betp=normal_pro.ALFX[normal_pro.indx[name]]
 			errbetp=abs(erralfmax.ALFX[erralfmax.indx[name]]-erralfmin.ALFX[erralfmin.indx[name]])
@@ -1649,12 +1746,15 @@ for namename in names:
                 #for bety
 		print "filling table for bety"
 		for bpm in bpmsbety:
-			name=bpm[1]
+			name=bpm
 			s=betytwiss.S[betytwiss.indx[name]]
 			#if betytwiss.S[betytwiss.indx[name]]<betytwiss.S[betytwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=betytwiss.BETY[betytwiss.indx[name]]
 			errbet=sqrt(betytwiss.ERRBETY[betytwiss.indx[name]]**2+betytwiss.STDBETY[betytwiss.indx[name]]**2)
 			betmdl=betytwiss.BETYMDL[betytwiss.indx[name]]
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
+				name=name.replace("-","_")
 
 			betp=normal_pro.BETY[normal_pro.indx[name]]
 			errbetp=abs(errbetamax.BETY[errbetamax.indx[name]]-errbetamin.BETY[errbetamin.indx[name]])
@@ -1667,12 +1767,15 @@ for namename in names:
 		# for ampbety
 		print "filling table for ampbetay"
 		for bpm in ampbpmsbety:
-			name=bpm[1]
+			name=bpm
 			s=ampbetytwiss.S[ampbetytwiss.indx[name]]
 			#if ampbetytwiss.S[ampbetytwiss.indx[name]]<ampbetytwiss.S[ampbetytwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=ampbetytwiss.BETY[ampbetytwiss.indx[name]]
 			errbet=ampbetytwiss.BETYSTD[ampbetytwiss.indx[name]]
 			betmdl=betytwiss.BETYMDL[ampbetytwiss.indx[name]]
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function like i want:-)
+				name=name.replace("-","_")
 
 			betp=normal_pro.BETY[normal_pro.indx[name]]
 			errbetp=abs(errbetamax.BETY[errbetamax.indx[name]]-errbetamin.BETY[errbetamin.indx[name]])
@@ -1685,12 +1788,15 @@ for namename in names:
 		# for alfy
 		print "filling table for alfy"
 		for bpm in bpmsbety:
-			name=bpm[1]
+			name=bpm
 			s=betytwiss.S[betytwiss.indx[name]]
 			#if betytwiss.S[betytwiss.indx[name]]<betytwiss.S[betytwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=betytwiss.ALFY[betytwiss.indx[name]]
 			errbet=sqrt(betytwiss.ERRALFY[betytwiss.indx[name]]**2+betytwiss.STDALFY[betytwiss.indx[name]]**2)
 			betmdl=betytwiss.ALFYMDL[betytwiss.indx[name]]
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
+				name=name.replace("-","_")
 
 			betp=normal_pro.ALFY[normal_pro.indx[name]]
 			errbetp=abs(erralfmax.ALFY[erralfmax.indx[name]]-erralfmin.ALFY[erralfmin.indx[name]])
@@ -1702,7 +1808,7 @@ for namename in names:
 	         #for Dx and Dpx
 		print "filling table for dx and dpx"
 		for bpm in bpmsdx:
-			name=bpm[1]
+			name=bpm
 			s=Dx.S[Dx.indx[name]]
 			#if Dx.S[Dx.indx[name]]<Dx.S[Dx.indx[element]]:s=s+twisstwiss.LENGTH
 			dx=Dx.DX[Dx.indx[name]]
@@ -1712,6 +1818,9 @@ for namename in names:
 		        dpx=Dx.DPX[Dx.indx[name]]
 		        dpxmdl=Dx.DPXMDL[Dx.indx[name]]
 		        dpxerr="0"
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
+				name=name.replace("-","_")
 			 
 		        dxp=normal_pro.DX[normal_pro.indx[name]]
 		        errdxp=abs(errdmax.DX[errdmax.indx[name]]-errdmin.DX[errdmin.indx[name]])
@@ -1731,7 +1840,7 @@ for namename in names:
 		 # for Dy and Dpy
 		print "filing table for dy and dpy"
 	        for bpm in bpmsdy:
-			name=bpm[1]
+			name=bpm
 		        s=betxtwiss.S[Dy.indx[name]]
 			#if Dy.S[Dy.indx[name]]<Dy.S[Dy.indx[element]]:s=s+twisstwiss.LENGTH
 		        dx=Dy.DY[Dy.indx[name]]
@@ -1741,6 +1850,9 @@ for namename in names:
 		        dpx=Dy.DPY[Dy.indx[name]]
 		        dpxmdl=Dy.DPYMDL[Dy.indx[name]]
 		        dpxerr="0"
+
+			if "RHIC" in options.accel: # not nice i know :-(, dict doesn't function
+				name=name.replace("-","_")
 		        
 		        dxp=normal_pro.DY[normal_pro.indx[name]]
 		        errdxp=abs(errdmax.DY[errdmax.indx[name]]-errdmin.DY[errdmin.indx[name]])
@@ -2104,6 +2216,22 @@ if flag==1:
 		resul.write('@ ACCELERATOR %s "LHC"\n')
 		resul.write('@ BEAM %s "'+beam+'"\n')
 		resul.write('@ STARTELEMENT %s "'+start+'"\n')
+
+	elif  options.accel=="RHICB":
+
+		start="G6_BX"   
+		beam="BLUE"
+		resul.write('@ ACCELERATOR %s "LHC"\n')
+		resul.write('@ BEAM %s "'+beam+'"\n')
+		resul.write('@ STARTELEMENT %s "'+start+'"\n')
+
+	elif  options.accel=="RHICY":
+
+		start="G6_BX"   
+		beam="YELLOW"
+		resul.write('@ ACCELERATOR %s "LHC"\n')
+		resul.write('@ BEAM %s "'+beam+'"\n')
+		resul.write('@ STARTELEMENT %s "'+start+'"\n')	
 	
 	resul.write('* NAME  S	    BETX  BETERRX   BETXMDL  BETY  BETERRY  BETYMDL  LEFTBPM   RIGHTBPM   VALID\n')
 	resul.write('$ %s    %le    %le   %le    %le      %le   %le   %le   %s  %s    %s\n')
