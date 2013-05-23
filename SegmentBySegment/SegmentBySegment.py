@@ -53,7 +53,7 @@ parser.add_option("-m", "--mad", # assumes that output is same as input
 		  metavar="mad", default="", dest="mad")
 parser.add_option("-b", "--bbsrouce", # assumes that output is same as input
                 help="beta beat source",
-                metavar="bb", default="./", dest="bb")
+                metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
 parser.add_option("-x", "--take", # assumes that output is same as input
                 help="take or create madx 0/1",
                 metavar="mad", default="0", dest="madpass")
@@ -97,75 +97,65 @@ def intersect(ListOfFile):
 	result.sort()
 	return result
 
-def getnextelement(names,mea,meay,model,end,value):
+def getnextelement(names,mea,meay,model,end,element,value):
 
-	print "Element "+element+" not found in measurement ... will look for other one!!"
-	locindx=model.indx[element.upper()]
-	endlocindx=model.indx[end.upper()]
-	for el in names:
+	########################"""
+	begin=model.S[model.indx[element]]
+	end=model.S[model.indx[end]]
+	lengthOfAccel=model.LENGTH
 
-		llocindx=model.indx[el.upper()]
-		ell="null"
-
-		if value==0:
-			if (llocindx>locindx and llocindx<endlocindx):
-				try:
-					if(mea.BETX[mea.indx[element.upper()]] >0 and meay.BETY[mea.indx[element.upper()]] >0):
-						ell=el
-						break
-				except:
-					print "element not in measurement"
-			else:
-				print "looking element ",el," is not ok"
-		if value==1:
-			if (llocindx>locindx and llocindx<endlocindx):
-				try:
-					if(mea.BETX[mea.indx[element.upper()]] >0 and meay.BETY[mea.indx[element.upper()]] >0):
-						ell=el
-						break
-				except:
-					print "element not in measurement"
-			else:
-				print "looking element ",el," is not ok"
-
+	pos=-100000
+	name2use="null"
+	for name in names:
+		dypos=model.S[model.indx[name[1]]]
+		if end<begin:end=end+lengthOfAccel # then your in a split (zero in middle)
+		if dypos<begin:dypos=dypos+lengthOfAccel
 		
-            
-        if ell=="null":
+		if dypos>begin and dypos<end:
 
-            print "No suitable candidate found ... sys exit (try to increase the boundaries)"
-            sys.exit()
+			if value==0: #beginpos
 
-	return ell
-	
+				if dypos<abs(pos):
+					if(mea.BETX[mea.indx[name[1]]]>0 and meay.BETY[meay.indx[name[1]]] >0):
+						pos=dypos
+						name2use=name
+			else: #endpos
+				if dypos>pos:
+					if(mea.BETX[mea.indx[name[1]]]>0 and meay.BETY[mea.indx[name[1]]] >0):
+						pos=dypos
+						name2use=name
 
-def meascontains(mea,meay,element,end,model):
+	if name2use=="null":
+		print "no suitable element found for this segment, increasing your boundaries could help! number of usable bpms "+str(len(names[1]))
+		sys.exit()
+
+	return name2use
+
+def meascontains(commonbpms,mea,meay,element,end,model):
 
     # check first if end element is there:
     # 1 is end, 0 is beginning
-    try:
-	    endloc=mea.S[mea.indx[end.upper()]]
-	    
-    except:
-	    print "end element is not in measurement !!"
-	    ell=getnextelement(names,mea,meay,model,end,1)
+    if end in commonbpms:
+	    print "end element found"
+	    if(mea.BETX[mea.indx[end.upper()]] >0 and meay.BETY[mea.indx[end.upper()]] >0):
+		    print "betas are positive"
+	    else:
+		    endelement=getnextelement(commonbpms,mea,meay,model,end,element,1)
+    else:
+	    endelement=getnextelement(commonbpms,mea,meay,model,end,element,1)
 
-    try:
-        names=mea.NAME
-        loc=mea.S[mea.indx[element.upper()]]
-        endloc=mea.S[mea.indx[end.upper()]]
-    
-        check=mea.indx[element.upper()]
-	if(mea.BETX[mea.indx[element.upper()]] >0 and meay.BETY[mea.indx[element.upper()]] >0):
-	
-		ell=element
-	else:
-		print "beta at bpm ",element," is containing a negative beta ... will check for other element"
-		ell=getnextelement(names,mea,meay,model,end)
-    except:
+    if element in commonbpms:
+	    print "start element found"
+	    if(mea.BETX[mea.indx[element.upper()]] >0 and meay.BETY[mea.indx[element.upper()]] >0):
+		    print "betas are positive"
+	    else:
+		    beginelement=getnextelement(commonbpms,mea,meay,model,end,element,0)
+    else:
+	    beginelement=getnextelement(commonbpms,mea,meay,model,end,element,0)
 
-        ell=getnextelement(names,mea,meay,model,end)
-
-    return ell
+    return beginelement,endelement
+    ##############
+  
 
 def getelement(filedatax,filedatay,eelement,model):
 
@@ -179,7 +169,7 @@ def getelement(filedatax,filedatay,eelement,model):
     ename="null"
     
     print "Looking for element just in front of : ",eelement, " at location : ",str(loc)
-
+    flag=1
     for el in names:
 
 	    local=model.S[model.indx[el]]
@@ -187,25 +177,30 @@ def getelement(filedatax,filedatay,eelement,model):
 	    try:
 
 		    if(filedatax.BETX[filedatax.indx[el.upper()]] >0 and filedatay.BETY[filedatay.indx[el.upper()]] >0):
-			    if local<loc and local>pos:
+			    errbetx=filedatax.STDBETX[filedatax.indx[el.upper()]]/filedatax.BETX[filedatax.indx[el.upper()]]
+			    errbety=filedatay.STDBETY[filedatay.indx[el.upper()]]/filedatay.BETY[filedatay.indx[el.upper()]]
+			    print errbetx,errbety
+			    if(errbetx <10000 and errbety <10000):
+				    if local<loc and local>pos:
 
-				    pos=local
-				    name=el
+					    pos=local
+					    name=el
 			    
-			    if local>loc and local<epos:
-				    epos=local
-				    ename=el
+				    if local>loc and local<epos:
+					    epos=local
+					    ename=el
 	    except:
 		    print "bpm ",el," not found in both planes"
 
     if pos==-100 or epos==3000000:
-	    print "no element found !!! => system exit"
-	    sys.exit()
+	    print "no element found !!! => element found flag =0"
+	    flag=0
+	    #sys.exit()
 			    
     print "element infront found at ",str(pos)," with name ",name," at a distance of ", str(loc-pos)," from ",eelement
     print "element after found at ",str(epos)," with name ",ename," at a distance of ", str(epos-loc)," from ",eelement
     
-    return name,ename
+    return name,ename,loc,flag
 
 def getValues(filedatax,filedatay,element,dp,filedatadx,filedatady):
 
@@ -256,7 +251,9 @@ def getValues(filedatax,filedatay,element,dp,filedatadx,filedatady):
 
 def getTwiss(filee,element):
 
-    filedatax=twiss(filee)
+    print "loading file ",filee
+
+    filedatax=filee
 
     betax=filedatax.BETX[filedatax.indx[element]]
     alfx=filedatax.ALFX[filedatax.indx[element]]
@@ -288,17 +285,32 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe):
     elif options.accel=="LHCB1":
 
         dire=1
-        start="MKI.A5L2.B1"
+        #start="MKI.A5L2.B1"   #  in-compatible with repository
+	start="MSIA.EXIT.B1"   #  compatible with repository
         beam="B1"
 
     cpath=options.bb
+
+    ### check on error propogation
+    errbetx=hor[1]
+    betx=hor[0]
+    if (hor[0]-hor[1])<0:errbetx=0;betx=hor[0]
+    errbety=ver[1]
+    bety=ver[0]
+    if (ver[0]-ver[1])<0:errbety=0;bety=ver[0]
+    errbetxb=hore[1]
+    betxb=hore[0]
+    if (hore[0]-hore[1])<0:errbetxb=0;betxb=hore[0]
+    errbetyb=vere[1]
+    betyb=vere[0]    
+    if (vere[0]-vere[1])<0:errbetyb=0;betyb=0
      
     filename=path+'/var4mad.sh'
     file4nad=open(filename,'w')
-    file4nad.write('sed -e \'s/%BETX/\''+str(hor[0])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%BETY/\''+str(ver[0])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRBETX/\''+str(hor[1])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRBETY/\''+str(ver[1])+'\'/g\' \\\n')
+    file4nad.write('sed -e \'s/%BETX/\''+str(betx)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%BETY/\''+str(bety)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%ERRBETX/\''+str(errbetx)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%ERRBETY/\''+str(errbety)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ALFX/\''+str(hor[2])+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ALFY/\''+str(ver[2])+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ERRALFX/\''+str(hor[3])+'\'/g\' \\\n')
@@ -310,10 +322,10 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe):
     file4nad.write('    -e \'s/%DPX/\''+str(dp[1])+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%DPY/\''+str(dp[3])+'\'/g\' \\\n')
     
-    file4nad.write('    -e \'s/%ENDBX/\''+str(hore[0])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ENDBY/\''+str(vere[0])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRENDBX/\''+str(hore[1])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRENDBY/\''+str(vere[1])+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%ENDBX/\''+str(betxb)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%ENDBY/\''+str(betyb)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%ERRENDBX/\''+str(errbetxb)+'\'/g\' \\\n')
+    file4nad.write('    -e \'s/%ERRENDBY/\''+str(errbetyb)+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ALFENDX/\''+str(-hore[2])+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ALFENDY/\''+str(-vere[2])+'\'/g\' \\\n')
     file4nad.write('    -e \'s/%ERRALFENDX/\''+str(hore[3])+'\'/g\' \\\n')
@@ -614,16 +626,17 @@ def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainval
 	filefile.close()
 
 ####### main part
-file4seg=twiss(options.segf)
+segment=options.bb+"/MODEL/"+options.accel+"/sbslist/"+options.segf
+file4seg=twiss(segment)
 path=options.path
 filedatax=twiss(path+"/getbetax.out")
 betxtwiss=filedatax
 filedatay=twiss(path+"/getbetay.out")
 betytwiss=filedatay
-filedatax=twiss(path+"/getampbetax.out")
-ampbetxtwiss=filedata
-filedatay=twiss(path+"/getampbetay.out")
-ampbetytwiss=filedatay
+filedataxA=twiss(path+"/getampbetax.out")
+ampbetxtwiss=filedataxA
+filedatayA=twiss(path+"/getampbetay.out")
+ampbetytwiss=filedatayA
 filephasex=twiss(path+"/getphasey.out")
 filephasey=twiss(path+"/getphasex.out")
 #filecoupling=twiss(path+"getcoupling.out")
@@ -652,9 +665,15 @@ if "COLLI" in options.segf.split('.tfs')[0]:
 		if "T" in list2run[0]:
 			print "end element is collimator : ",list2run[0]
 			elementswitch=1
-#		elif "IP" in names[0]:
-#			print "end element is interation region : ",list2run[0]
-#			elementswitch=2
+	else:
+		print "list doesnt contain any input, please check => ",options.segf
+		sys.exit()
+elif "WIRE" in options.segf.split('.tfs')[0]:
+	list2run=file4seg.NAME
+	if len(list2run)>0:
+		if "B" in list2run[0]:
+			print "end element is wire scanner : ",list2run[0]
+			elementswitch=1
 	else:
 		print "list doesnt contain any input, please check => ",options.segf
 		sys.exit()
@@ -728,52 +747,64 @@ mainvariabledy=['NFILES']
 mainvaluedy=[0]
 datady=[]
 datadpy=[]
-twisstwiss=twiss(options.twiss)
+twisspath=options.twiss
+if twisspath=="./":
+	twisspath=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss.dat"
+	
+twisstwiss=twiss(twisspath)
 
 ######## big loop
 
 for namename in list2run:
 
+	#getting common bpms in model and measurment
+	bpms=intersect([filedatax,filedatay])
+	commonbpms=modelIntersect(bpms,twisstwiss)
+
 	if elementswitch==0:
 		element=file4seg.SBPM
 		eelement=file4seg.EBPM
 		label=file4seg.LABEL
-		element=meascontains(filedatax,filedatay,element,eelement,twisstwiss)
-		print "ddd "+element
-		#sys.exit()
-	#elif elementswitch==2:
-	#	element=file4seg.SBPM
-		#eelement=file4seg.EBPM
-	#	label=file4seg.LABEL
-	#	element=meascontains(filedatax,filedatay,element,eelement,twiss(options.twiss))
+		element,eelement=meascontains(commonbpms,filedatax,filedatay,element,eelement,twisstwiss)
+		element=element[1]
+		eelement=eelement[1]
+		flag=1
 	else:
 		label=file4seg.LABEL
-		element,eelement=getelement(filedatax,filedatay,namename,twisstwiss)
+		element,eelement,locationelement,flag=getelement(filedatax,filedatay,namename,twisstwiss)
 
+	if flag==1:
 
-	[hor,ver,dp]=getValues(filedatax,filedatay,element,disp,filedx,filedy)
-	[hore,vere,dpe]=getValues(filedatax,filedatay,eelement,disp,filedx,filedy)
+		[hor,ver,dp]=getValues(filedatax,filedatay,element,disp,filedx,filedy)
+		[hore,vere,dpe]=getValues(filedatax,filedatay,eelement,disp,filedx,filedy)
 
-         #[F1001,F1010]=getcoupling(filecoupling,options.twiss,element,eelement)
-	savepath=options.SAVE
-	print options.madpass
-	#sys.exit()
-	if str(options.madpass)=="0":
-		run4mad(savepath,hor,ver,hore,vere,dp,dpe)
-	else:
-		runmad(savepath)
-		print "skipping mad"
+                #[F1001,F1010]=getcoupling(filecoupling,options.twiss,element,eelement)
+		savepath=options.SAVE
+		if savepath=="./":
+			savepath=path+"/sbs/"
+			if not os.path.isdir(savepath):
+				os.mkdir(savepath)
+			print savepath
+#			sys.exit()
+			
+		print options.madpass
+	        #sys.exit()
+		if str(options.madpass)=="0":
+			run4mad(savepath,hor,ver,hore,vere,dp,dpe)
+		else:
+			runmad(savepath)
+			print "skipping mad"
 	
 
-	reversetable(savepath)
+		reversetable(savepath)
 
 	##################
 	#=> switch only for element - to - element
 	if elementswitch==0:
 	##################
-		[hor,ver,dp]=getTwiss(savepath+"/StartPoint.twiss",element)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/StartPoint.twiss"),element)
 		startpos=hor[2]
-		[hor,ver,dp]=getTwiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat",element)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat"),element)
 		betx=hor[0]
 		bety=ver[0]
 		ax=hor[1]
@@ -782,20 +813,20 @@ for namename in list2run:
 		dpx=dp[1]
 		dy=dp[2]
 		dpy=dp[3]
-		[hor,ver,dp]=getTwiss(savepath+"/EndPoint.twiss",eelement)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/EndPoint.twiss"),eelement)
 		endpos=hor[2]
 
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.b+.dat",element)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.b+.dat"),element)
 		bplusx=hor[0]
 		bplusy=ver[0]
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.b-.dat",element)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.b-.dat"),element)
 		bminx=hor[0]
 		bminy=ver[0]
 
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.a+.dat",element)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.a+.dat"),element)
 		aplusx=hor[1]
 		aplusy=ver[1]
-		[hor,ver,dp]=getTwiss(savepath+"/twiss.a-.dat",element)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss.a-.dat"),element)
 		aminx=hor[1]
 		aminy=ver[1]
 
@@ -822,8 +853,8 @@ for namename in list2run:
 		writePhase(savepath+"/phaseyEM_play.out",bpm1, bpm2, s1, s2, phaseexp, phasem)
 
 
-		m=options.twiss
-		[hor,ver,dp]=getTwiss(m,element)
+		
+		[hor,ver,dp]=getTwiss(twisstwiss,element)
 		beta4plot=hor[2]
 
 	        ######################
@@ -898,6 +929,7 @@ for namename in list2run:
 		for bpm in bpmsbetx:
 			name=bpm[1]
 			s=betxtwiss.S[betxtwiss.indx[name]]
+			if betxtwiss.S[betxtwiss.indx[name]]<betxtwiss.S[betxtwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=betxtwiss.BETX[betxtwiss.indx[name]]
 			errbet=sqrt(betxtwiss.ERRBETX[betxtwiss.indx[name]]**2+betxtwiss.STDBETX[betxtwiss.indx[name]]**2)
 			betmdl=betxtwiss.BETXMDL[betxtwiss.indx[name]]
@@ -910,12 +942,13 @@ for namename in list2run:
 	
 			databetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
 		# for ampbetx
-			print "filling table for betx"
+		print "filling table for ampbetx"
 		for bpm in ampbpmsbetx:
 			name=bpm[1]
 			s=ampbetxtwiss.S[ampbetxtwiss.indx[name]]
+			if ampbetxtwiss.S[ampbetxtwiss.indx[name]]<ampbetxtwiss.S[ampbetxtwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=ampbetxtwiss.BETX[ampbetxtwiss.indx[name]]
-			errbet=ampbetxtwiss.STDBETX[ampbetxtwiss.indx[name]]
+			errbet=ampbetxtwiss.BETXSTD[ampbetxtwiss.indx[name]]
 			betmdl=ampbetxtwiss.BETXMDL[ampbetxtwiss.indx[name]]
 
 			betp=normal_pro.BETX[normal_pro.indx[name]]
@@ -931,6 +964,7 @@ for namename in list2run:
 		for bpm in bpmsbetx:
 			name=bpm[1]
 			s=betxtwiss.S[betxtwiss.indx[name]]
+			if betxtwiss.S[betxtwiss.indx[name]]<betxtwiss.S[betxtwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=betxtwiss.ALFX[betxtwiss.indx[name]]
 			errbet=sqrt(betxtwiss.ERRALFX[betxtwiss.indx[name]]**2+betxtwiss.STDALFX[betxtwiss.indx[name]]**2)
 			betmdl=betxtwiss.ALFXMDL[betxtwiss.indx[name]]
@@ -948,6 +982,7 @@ for namename in list2run:
 		for bpm in bpmsbety:
 			name=bpm[1]
 			s=betytwiss.S[betytwiss.indx[name]]
+			if betytwiss.S[betytwiss.indx[name]]<betytwiss.S[betytwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=betytwiss.BETY[betytwiss.indx[name]]
 			errbet=sqrt(betytwiss.ERRBETY[betytwiss.indx[name]]**2+betytwiss.STDBETY[betytwiss.indx[name]]**2)
 			betmdl=betytwiss.BETYMDL[betytwiss.indx[name]]
@@ -961,11 +996,13 @@ for namename in list2run:
 			databety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
 			
 		# for ampbety
+		print "filling table for ampbetay"
 		for bpm in ampbpmsbety:
 			name=bpm[1]
 			s=ampbetytwiss.S[ampbetytwiss.indx[name]]
+			if ampbetytwiss.S[ampbetytwiss.indx[name]]<ampbetytwiss.S[ampbetytwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=ampbetytwiss.BETY[ampbetytwiss.indx[name]]
-			errbet=ampbetytwiss.STDBETY[ampbetytwiss.indx[name]]
+			errbet=ampbetytwiss.BETYSTD[ampbetytwiss.indx[name]]
 			betmdl=betytwiss.BETYMDL[ampbetytwiss.indx[name]]
 
 			betp=normal_pro.BETY[normal_pro.indx[name]]
@@ -974,13 +1011,14 @@ for namename in list2run:
 			betb=back_pro.BETY[back_pro.indx[name]]
 			errbetb=abs(errbetamaxb.BETY[errbetamaxb.indx[name]]-errbetaminb.BETY[errbetaminb.indx[name]])
 	
-			databety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
+			dataampbety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
 		
 		# for alfy
 		print "filling table for alfy"
 		for bpm in bpmsbety:
 			name=bpm[1]
 			s=betytwiss.S[betytwiss.indx[name]]
+			if betytwiss.S[betytwiss.indx[name]]<betytwiss.S[betytwiss.indx[element]]:s=s+twisstwiss.LENGTH
 			bet=betytwiss.ALFY[betytwiss.indx[name]]
 			errbet=sqrt(betytwiss.ERRALFY[betytwiss.indx[name]]**2+betytwiss.STDALFY[betytwiss.indx[name]]**2)
 			betmdl=betytwiss.ALFYMDL[betytwiss.indx[name]]
@@ -997,6 +1035,7 @@ for namename in list2run:
 		for bpm in bpmsdx:
 			name=bpm[1]
 			s=Dx.S[Dx.indx[name]]
+			if Dx.S[Dx.indx[name]]<Dx.S[Dx.indx[element]]:s=s+twisstwiss.LENGTH
 			dx=Dx.DX[Dx.indx[name]]
 		        errdx=Dx.STDDX[Dx.indx[name]]
 		        dxmdl=Dx.DXMDL[Dx.indx[name]]
@@ -1025,6 +1064,7 @@ for namename in list2run:
 	        for bpm in bpmsdy:
 			name=bpm[1]
 		        s=Dy.S[Dy.indx[name]]
+			if Dy.S[Dy.indx[name]]<Dy.S[Dy.indx[element]]:s=s+twisstwiss.LENGTH
 		        dx=Dy.DY[Dy.indx[name]]
 		        errdx=Dy.STDDY[Dy.indx[name]]
 		        dxmdl=Dy.DYMDL[Dy.indx[name]]
@@ -1054,7 +1094,7 @@ for namename in list2run:
 
 
                  #=> switch only for element - to - instrument
-	elif elementswitch!=0:
+	elif elementswitch!=0 and flag==1:
 
 		name=namename
 
@@ -1079,20 +1119,25 @@ for namename in list2run:
 	
 
 		fileresul=open(savepath+'/resul_'+namename+'.tfs','w')
-		[hor,ver,dp]=getTwiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat",namename)
-		[horb,verb,dpb]=getTwiss(savepath+"/twiss_"+file4seg.LABEL+"_back_rev.dat",namename)
+		[hor,ver,dp]=getTwiss(twiss(savepath+"/twiss_"+str(file4seg.LABEL)+".dat"),namename)
+		[horb,verb,dpb]=getTwiss(twiss(savepath+"/twiss_"+file4seg.LABEL+"_back_rev.dat"),namename)
 		print "print the values"
 
 
 		fileresul.write("@ INSTRUMENT  %s "+namename+"\n")
 		fileresul.write("@ S %le  "+str(hor[2])+"\n")
 
-	
-		fileresul.write("* METHOD  BETX  ALFX   BETY   ALFY   DX   DPX   DY   DPY\n")
-		fileresul.write("$  %s  %le  %le  %le  %le  %le  %le  %le  %le\n")
+		errbetxp=abs(errbetamax.BETX[errbetamax.indx[namename]]-errbetamin.BETX[errbetamin.indx[namename]])
+		errbetxb=abs(errbetamaxb.BETX[errbetamaxb.indx[namename]]-errbetaminb.BETX[errbetaminb.indx[namename]])
+		errbetyp=abs(errbetamax.BETY[errbetamax.indx[namename]]-errbetamin.BETY[errbetamin.indx[namename]])
+		errbetyb=abs(errbetamaxb.BETY[errbetamaxb.indx[namename]]-errbetaminb.BETY[errbetaminb.indx[namename]])
 
-		fileresul.write("normal "+str(hor[0])+" "+str(hor[1])+" "+str(ver[0])+" "+str(ver[1])+" "+str(dp[0])+" "+str(dp[1])+" "+str(dp[2])+" "+str(dp[3])+"\n")
-		fileresul.write("back "+str(horb[0])+" "+str(horb[1])+" "+str(verb[0])+" "+str(verb[1])+" "+str(dpb[0])+" "+str(dpb[1])+" "+str(dpb[2])+" "+str(dpb[3])+"\n")
+	
+		fileresul.write("* METHOD  BETX ERRBETX  ALFX   BETY  ERRBETY   ALFY   DX   DPX   DY   DPY\n")
+		fileresul.write("$  %s  %le  %le %le  %le  %le  %le %le  %le  %le  %le\n")
+
+		fileresul.write("normal "+str(hor[0])+" "+str(errbetxp)+" "+str(hor[1])+" "+str(ver[0])+" "+str(errbetyp)+" "+str(ver[1])+" "+str(dp[0])+" "+str(dp[1])+" "+str(dp[2])+" "+str(dp[3])+"\n")
+		fileresul.write("back "+str(horb[0])+" "+str(errbetxb)+" "+str(horb[1])+" "+str(verb[0])+" "+str(errbetyb)+" "+str(verb[1])+" "+str(dpb[0])+" "+str(dpb[1])+" "+str(dpb[2])+" "+str(dpb[3])+"\n")
 		fileresul.close()
 
 			        #### creating tables
@@ -1114,7 +1159,6 @@ for namename in list2run:
 		betb=back_pro.BETX[back_pro.indx[name]]
 		errbetb=abs(errbetamaxb.BETX[errbetamaxb.indx[name]]-errbetaminb.BETX[errbetaminb.indx[name]])
 		databetx.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
-
 	
 		# for bety
 		s=twisstwiss.S[twisstwiss.indx[name]]
@@ -1126,6 +1170,7 @@ for namename in list2run:
 		betb=back_pro.BETY[back_pro.indx[name]]
 		errbetb=abs(errbetamaxb.BETY[errbetamaxb.indx[name]]-errbetaminb.BETY[errbetaminb.indx[name]])
 		databety.append(name+" "+str(s)+" "+str(bet)+" "+str(errbet)+" "+str(betmdl)+" "+str(betp)+" "+str(errbetp)+" "+str(betb)+" "+str(errbetb))
+
 
 		# for alfx
 		s=twisstwiss.S[twisstwiss.indx[name]]
