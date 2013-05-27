@@ -96,9 +96,7 @@ def main(accel):
     except IOError:
         traceback.print_exc()
         return 1
-    
-    
-    
+      
     print twiss_file
     print accel
     
