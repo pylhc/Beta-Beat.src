@@ -28,6 +28,7 @@ Change history:
 ## System imports(Python Standard Library)
 import sys
 import optparse
+import traceback
 
 ## Third party libraries
 import numpy as np
@@ -86,7 +87,21 @@ def main(accel):
     :Return: int
         0 if execution was successful otherwise !=0
     '''
+    
+    ## Never use exec() or execFile()
+    
+    ## If you have to use try/catch then catch specific exceptions but never all
+    try:
+        twiss_file = metaclass.twiss("I_do_not_exist.dat")
+    except IOError:
+        traceback.print_exc()
+        return 1
+    
+    
+    
+    print twiss_file
     print accel
+    
     return 0
 
 

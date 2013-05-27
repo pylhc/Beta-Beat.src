@@ -95,6 +95,6 @@ class ExampleClass(object):
             
         return awesome_vector 
         
-        
+# END class ExampleClass ---------------------------------------------------------------------------
         
     
