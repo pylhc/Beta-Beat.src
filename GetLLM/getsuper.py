@@ -1,3 +1,21 @@
+'''
+Created on ??/??/??
+
+@author: ?
+
+@version: 0.0.2
+
+TODO: Description
+
+Change history:
+
+ - 0.0.2 vimaier 28th May 2013: 
+    Added module docstring
+    Removed option 'twiss'. See github issue #15
+
+'''
+
+
 
 ###### imports
 from optparse import OptionParser
@@ -201,14 +219,12 @@ def get_twissfile(options):
     '''
     if options.twissfile:
         return options.twissfile
-    if os.path.isfile(options.twiss):
-        return options.twiss
-    if os.path.isfile(options.twiss+'/twiss.dat.gz'):
-        return options.twiss+'/twiss.dat.gz'
-    if os.path.isfile(options.twiss+'/twiss.dat'):
-        return options.twiss+'/twiss.dat'
+    if os.path.isfile(options.twissfile+'/twiss.dat'):
+        return options.twissfile+'/twiss.dat'
+    if os.path.isfile(options.twissfile+'/twiss.dat.gz'):
+        return options.twissfile+'/twiss.dat.gz'
     # did not find any file..
-    raise ValueError("Could not find twissfile! "+options.twiss)
+    raise ValueError("Could not find twissfile! "+options.twissfile)
 
 ## ############
 #functions
@@ -256,7 +272,7 @@ def madcreator(dpps,options):
     QMY=int(options.qy*1000000)
     STOP='!'
 
-    for testpath in [options.output,options.twiss,os.path.dirname(options.twissfile)]:
+    for testpath in [options.output,os.path.dirname(options.twissfile)]:
         _tmpmod=os.path.join(testpath,'modifiers.madx')
         if os.path.isfile(_tmpmod):
             print "INFO: Using",_tmpmod
@@ -644,7 +660,7 @@ def main(options,args):
             listxf.append(betxf)
             listyf.append(betyf)
             listcf.append(couplef)
-            modeld=twiss(options.twiss+"/twiss_ac.dat")
+            modeld=twiss(options.twissfile.replace(".dat","_ac.dat"))
             modelf=twiss(get_twissfile(options))
             if float(dpp)==0.0:
                 zerobxf=betalistxf[dpp]
@@ -732,6 +748,6 @@ def main(options,args):
 
 if __name__=="__main__":
 
-    options,args=parse_args()
+    options,args = parse_args()
     check_input(options,args)
     main(options,args)
