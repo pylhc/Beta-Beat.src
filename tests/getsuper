@@ -12,7 +12,7 @@ NUMDIFF=/afs/cern.ch/eng/sl/lintrack/virtualenv-cs-ccr-optics1/bin/numdiff
 
 $PYTHON $1/GetLLM/getsuper.py \
  --madxbin=$MADX \
- --twiss="$1/tests/models/LHCB1/1_10_1_3/" \
+ --twissfile="$1/tests/models/LHCB1/1_10_1_3/twiss.dat" \
  --output=./out_${base}/ --algorithm=SUSSIX --accel=LHCB1 \
  --beta=$1/ \
  "$1/tests/sdds_files/Beam1@Turn@2011_08_24@08_21_27_607_0.sdds.new.gz" \
