@@ -1423,26 +1423,31 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
         fbpmx[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
         fbpmy[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
 
-    bpmhp=[]
-    for i in range(0,len(bpmh)):
-        smin=1.0e10
-        jsave=0
-        for j in range (0,len(bpmv),10):
-            sdiff=abs(bpmh[i][0]-bpmv[j][0])
-            if sdiff<smin:
-                smin=sdiff
-                jsave=j
-        jlower=jsave-9
-        jupper=jsave+9
-        if jupper > len(bpmv):
-            jupper=len(bpmv)
-        for j in range (jlower,jupper):
-            sdiff=abs(bpmh[i][0]-bpmv[j][0])
-            if sdiff<smin:
-                smin=sdiff
-                jsave=j
+ # bpmhp will be used for storing in this section. Not used further. Replaced by 
+        # 'tentative solution' with bpmpair. See some lines below.
+        # --vimaier
+#     bpmhp=[]
+#     for i in range(0,len(bpmh)):
+#         smin=1.0e10
+#         jsave=0
+#         for j in range (0,len(bpmv),10):
+#             sdiff=abs(bpmh[i][0]-bpmv[j][0])
+#             if sdiff<smin:
+#                 smin=sdiff
+#                 jsave=j
 
-        bpmhp.append([bpmh[i][0],bpmh[i][1],bpmv[jsave][1],0])
+#         jlower=jsave-9
+#         jupper=jsave+9
+#         if jupper > len(bpmv):
+#             jupper=len(bpmv)
+#         for j in range (jlower,jupper):
+#             sdiff=abs(bpmh[i][0]-bpmv[j][0])
+#             if sdiff<smin:
+#                 smin=sdiff
+#                 jsave=j
+# 
+#         bpmhp.append([bpmh[i][0],bpmh[i][1],bpmv[jsave][1],0])
+
 
     #bpmvp=[]
     #for i in range(0,len(bpmv)):
@@ -1467,7 +1472,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 
 
     #dbpms=combinebpms(bpmhp,bpmvp)
-    dbpms=bpmhp
+	# dbpms is replaced through 'tentative solution' (vimaier)
+#     dbpms=bpmhp
 
     # tentative solution
     dbpms=bpmpair() # model BPM name
@@ -2253,8 +2259,7 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
     ftemp.close()
     dpptwiss=metaclass.twiss(ftemp_name,dictionary)
     
-    #TODO: What's about deleting? (vimaier)
-    # Delete temp file again
+    # Delete temp file again(vimaier)
     os.remove(ftemp_name)
     
 
@@ -2544,9 +2549,9 @@ def GetIPFromPhase(MADTwiss,psix,psiy,oa):
     return result
 
 def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
-    #TODO: Want to cut the fractional part? --> float( int(twiss.Q1) )
-    QQ1=float(str(twiss.Q1).split('.')[0])
-    QQ2=float(str(twiss.Q2).split('.')[0])
+    # Cut the fractional part of Q1 and Q2
+    QQ1 = float( int(twiss.Q1) )
+    QQ2 = float( int(twiss.Q2) )
 
     tunex=float(tunex)+QQ1
     tuney=float(tuney)+QQ2
@@ -2746,6 +2751,13 @@ def getFreeAmpBeta(betai,rmsbb,bpms,invJ,modelac,modelfree,plane): # "-"
     return betas,rmsbb,bpms,invJ
 
 def getfreephase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
+    '''
+    :Parameters:
+        'phase': dict
+            (bpm_name:string) --> (phase_list:[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2])
+            phi13, phstd13, phmdl12 and phmdl13 are note used.
+        
+    '''
 
     #print "Calculating free phase using model"
 
@@ -2753,11 +2765,12 @@ def getfreephase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
     phi=[]
 
     for bpm in bpms:
-
-        s=bpm[0]
         bn1=bpm[1].upper()
 
-        phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2=phase[bn1]
+        phase_list = phase[bn1]
+        phi12 = phase_list[0]
+        phstd12 = phase_list[1]
+        bn2 =phase_list[6]
         bn2s=MADTwiss.S[MADTwiss.indx[bn2]]
         #model ac
         if plane=="H":
@@ -2785,7 +2798,13 @@ def getfreephase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
     return phasef,mu,bpms
 
 def getfreephaseTotal(phase,bpms,plane,MADTwiss,MADTwiss_ac):
-
+    '''
+    :Parameters:
+        'phase': dict
+            (bpm_name:string) --> (phase_list:[phi12,phstd12,phmdl12,bn1])
+            phmdl12 and bn1 are note used.
+        
+    '''
     #print "Calculating free total phase using model"
 
     first=bpms[0][1]
@@ -2793,7 +2812,6 @@ def getfreephaseTotal(phase,bpms,plane,MADTwiss,MADTwiss_ac):
     phasef={}
 
     for bpm in bpms:
-        s=bpm[0]
         bn2=bpm[1].upper()
 
         if plane=="H":
@@ -2805,7 +2823,9 @@ def getfreephaseTotal(phase,bpms,plane,MADTwiss,MADTwiss_ac):
             ph_ac_m=(MADTwiss_ac.MUY[MADTwiss_ac.indx[bn2]]-MADTwiss_ac.MUY[MADTwiss_ac.indx[first]])%1
             ph_m=(MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[first]])%1
 
-        phi12,phstd12,phmdl12,bn1=phase[bn2]
+        phase_list = phase[bn2]
+        phi12 = phase_list[0]
+        phstd12 = phase_list[1]
 
 
         phi12=phi12-(ph_ac_m-ph_m)
