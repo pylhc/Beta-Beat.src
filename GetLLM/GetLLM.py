@@ -181,9 +181,9 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
 import traceback
 import metaclass
-from math import *
+from math import atan,atan2
 import os
-from string import *
+import string
 
 from numpy import *
 import numpy
@@ -292,12 +292,12 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
     if op=="1" and oa=="LHCB1": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
     if op=="1" and oa=="LHCB2": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
-    bn1=upper(commonbpms[0][1])
+    bn1=string.upper(commonbpms[0][1])
     phaseT={}
     print "Reference BPM:", bn1, "Plane:", plane
     for i in range(0,len(commonbpms)):
-        #bn2=upper(commonbpms[i+1][1]) ?
-        bn2=upper(commonbpms[i][1])
+        #bn2=string.upper(commonbpms[i+1][1]) ?
+        bn2=string.upper(commonbpms[i][1])
         if plane=='H':
             phmdl12=(MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]) % 1
         if plane=='V':
@@ -347,9 +347,9 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
     tunem=[]
     phase={} # Dictionary for the output containing [average phase, rms error]
     for i in range(0,length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
-        bn1=upper(commonbpms[i%length_commonbpms][1])
-        bn2=upper(commonbpms[(i+1)%length_commonbpms][1])
-        bn3=upper(commonbpms[(i+2)%length_commonbpms][1])
+        bn1=string.upper(commonbpms[i%length_commonbpms][1])
+        bn2=string.upper(commonbpms[(i+1)%length_commonbpms][1])
+        bn3=string.upper(commonbpms[(i+2)%length_commonbpms][1])
         
         if bn1 == bn2 :
             print >> sys.stderr, "There seem two lines with the same BPM name "+bn1+" in linx/y file."
@@ -487,17 +487,17 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
     delbeta=[]
     for i in range(0,len(commonbpms)):
         if i==len(commonbpms)-2: # The last monitor but one
-            bn1=upper(commonbpms[i][1])
-            bn2=upper(commonbpms[i+1][1])
-            bn3=upper(commonbpms[0][1])
+            bn1=string.upper(commonbpms[i][1])
+            bn2=string.upper(commonbpms[i+1][1])
+            bn3=string.upper(commonbpms[0][1])
         elif i==len(commonbpms)-1: # The last monitor
-            bn1=upper(commonbpms[i][1])
-            bn2=upper(commonbpms[0][1])
-            bn3=upper(commonbpms[1][1])
+            bn1=string.upper(commonbpms[i][1])
+            bn2=string.upper(commonbpms[0][1])
+            bn3=string.upper(commonbpms[1][1])
         else : # Others
-            bn1=upper(commonbpms[i][1])
-            bn2=upper(commonbpms[i+1][1])
-            bn3=upper(commonbpms[i+2][1])
+            bn1=string.upper(commonbpms[i][1])
+            bn2=string.upper(commonbpms[i+1][1])
+            bn3=string.upper(commonbpms[i+2][1])
         ph2pi12=2.*pi*phase[bn1][0]
         ph2pi23=2.*pi*phase[bn2][0]
         ph2pi13=2.*pi*phase[bn1][2]
@@ -612,7 +612,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
     # Output the beta at all monitors even for the first, second, last and last but one using beta1,2 and 3!
     for i in range(0,len(commonbpms)):
-        bn1=upper(commonbpms[i][1])
+        bn1=string.upper(commonbpms[i][1])
         if i==0: # The first monitor
             ib1=0
             ib2=len(commonbpms)-1
@@ -670,7 +670,7 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
     Amp2=[]
     Kick2=[]
     for i in range(0,len(commonbpms)): # this loop have become complicated after modifications... anybody simplify?
-        bn1=upper(commonbpms[i][1])
+        bn1=string.upper(commonbpms[i][1])
         if plane=='H':
             tembeta=MADTwiss.BETX[MADTwiss.indx[bn1]]
         elif plane=='V':
@@ -717,7 +717,7 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
     delbeta=[]
     for i in range(0,len(commonbpms)):
-        bn1=upper(commonbpms[i][1])
+        bn1=string.upper(commonbpms[i][1])
         location=commonbpms[i][0]
         for j in range(0,len(ListOfFiles)):
             Amp2[i][j]=Amp2[i][j]/Kick2[j]
@@ -748,7 +748,7 @@ def GetCO(MADTwiss, ListOfFiles):
     commonbpms=modelIntersect(commonbpms, MADTwiss)
     co={} # Disctionary for output
     for i in range(0,len(commonbpms)):
-        bn1=upper(commonbpms[i][1])
+        bn1=string.upper(commonbpms[i][1])
         coi=0.0
         coi2=0.0
         for j in ListOfFiles:
@@ -800,7 +800,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
     ndmdl=[]
     badco=0
     for i in range(0,len(commonbpmsALL)):
-        bn1=upper(commonbpmsALL[i][1])
+        bn1=string.upper(commonbpmsALL[i][1])
         bns1=commonbpmsALL[i][0]
         ndmdli=MADTwiss.DX[MADTwiss.indx[bn1]]/sqrt(MADTwiss.BETX[MADTwiss.indx[bn1]])
         ndmdl.append(ndmdli)
@@ -840,7 +840,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
     badco=0
     for i in range(0,len(commonbpmsALL)):
         ndi=[]
-        bn1=upper(commonbpmsALL[i][1])
+        bn1=string.upper(commonbpmsALL[i][1])
         bns1=commonbpmsALL[i][0]
         try:
             coac[bn1]
@@ -864,12 +864,12 @@ def GetDPX(MADTwiss,Dx,commonbpms):
 
     DPX={}
     for i in range(0,len(commonbpms)):
-        bn1=upper(commonbpms[i][1])
+        bn1=string.upper(commonbpms[i][1])
         if i==len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
-            bn2=upper(commonbpms[0][1])
+            bn2=string.upper(commonbpms[0][1])
             phmdl12=2.*pi*(MADTwiss.Q1+MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]])
         else:
-            bn2=upper(commonbpms[i+1][1])
+            bn2=string.upper(commonbpms[i+1][1])
             phmdl12=2.*pi*(MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]])
         betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
         betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
@@ -892,12 +892,12 @@ def GetDPX(MADTwiss,Dx,commonbpms):
 def GetDPY(MADTwiss,Dy,commonbpms):
     DPY={}
     for i in range(0,len(commonbpms)):
-        bn1=upper(commonbpms[i][1])
+        bn1=string.upper(commonbpms[i][1])
         if i==len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
-            bn2=upper(commonbpms[0][1])
+            bn2=string.upper(commonbpms[0][1])
             phmdl12=2.*pi*(MADTwiss.Q2+MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]])
         else:
-            bn2=upper(commonbpms[i+1][1])
+            bn2=string.upper(commonbpms[i+1][1])
             phmdl12=2.*pi*(MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]])
         betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
         betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
@@ -948,7 +948,7 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
     dco={} # Dictionary for the output containing [(averaged)Disp, rms error]
     bpms=[]
     for i in range(0,len(commonbpmsALL)):
-        bn1=upper(commonbpmsALL[i][1])
+        bn1=string.upper(commonbpmsALL[i][1])
         bns1=commonbpmsALL[i][0]
 
         try:
@@ -1024,7 +1024,7 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
     dbpmt=[]
     countBadPhase=0
     for i in range(0,len(dbpms)):
-        bn1=upper(dbpms[i][1])
+        bn1=string.upper(dbpms[i][1])
 
         fij=[]
         q1j=[]
@@ -1095,7 +1095,7 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
     for i in range(0,len(dbpms)):
         jx=ListOfZeroDPPX[j]
         jy=ListOfZeroDPPY[j]
-        bn1=upper(dbpms[i][1])
+        bn1=string.upper(dbpms[i][1])
         CG=CG+sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
 
@@ -1219,8 +1219,8 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     dbpmt=[]
     countBadPhase=0
     for i in range(0,len(dbpms)-1):
-        bn1=upper(dbpms[i][1])
-        bn2=upper(dbpms[i+1][1])
+        bn1=string.upper(dbpms[i][1])
+        bn2=string.upper(dbpms[i+1][1])
 
         delx= phasex[bn1][0] - 0.25  # Missprint in the coupling note
         dely= phasey[bn1][0] - 0.25
@@ -1343,12 +1343,12 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     dbpms=dbpmt
 
     # possible correction ??
-    #bn0=upper(dbpms[0][1])
+    #bn0=string.upper(dbpms[0][1])
     #up1=fwqw[bn0][0][0]
     #up2=fwqw[bn0][0][2]
     #for i in range(1,len(dbpms)):
-        #bn0=upper(dbpms[i-1][1])
-        #bn1=upper(dbpms[i][1])
+        #bn0=string.upper(dbpms[i-1][1])
+        #bn1=string.upper(dbpms[i][1])
         #df1001=sqrt(fwqw[bn0][0][0].real**2+fwqw[bn0][0][0].imag**2)/sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         #df1010=sqrt(fwqw[bn0][0][2].real**2+fwqw[bn0][0][2].imag**2)/sqrt(fwqw[bn1][0][2].real**2+fwqw[bn1][0][2].imag**2)
         #fwqw[bn0][0][0]=up1
@@ -1366,7 +1366,7 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     for i in range(0,len(dbpms)-1):
         jx=ListOfZeroDPPX[0]
         jy=ListOfZeroDPPY[0]
-        bn1=upper(dbpms[i][1])
+        bn1=string.upper(dbpms[i][1])
         CG=CG+sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
 
@@ -1470,8 +1470,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
     dbpms=bpmpair() # model BPM name
     countofmissingBPMs=0
     for i in range(0,len(dbpms)):
-        wname=upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
-        pname=upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
+        wname=string.upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
+        pname=string.upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
         #print wname
         ws=dbpms[i][0]  # Location
         #print "name ",wname, pname
@@ -1495,7 +1495,7 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
                 #if dbpms[i][3]==0:
                 # dphix is used only in commented out code beneath (vimaier)
 #                 dphix=MADTwiss.MUX[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[string.upper(wname)]]
-                dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
+                dphiy=MADTwiss.MUY[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[string.upper(wname)]]
                 # Going to try using model names, to be able to use simulation data
                 try:
                     wampx=jx.AMPX[jx.indx[wname]]
@@ -1531,8 +1531,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
                     #wamp10=jy.AMP10[jy.indx[wname]]
                     #wtunex=jx.TUNEX[jx.indx[pname]]
                     #wtuney=jy.TUNEY[jy.indx[wname]]
-                    #dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]]
-                    #dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
+                    #dphix=MADTwiss.MUX[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[string.upper(wname)]]
+                    #dphiy=MADTwiss.MUY[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[string.upper(wname)]]
                     #wmux=(jx.MUX[jx.indx[pname]]-dphix)%1.0
                     #if (wmux > 0.5): wmux=wmux-1
                     #wmuy=jy.MUY[jy.indx[wname]]
@@ -1761,7 +1761,7 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     # for the model
     for i in range(0,len(dbpms)):
 
-        bpm=upper(dbpms[i][1])
+        bpm=string.upper(dbpms[i][1])
 
         bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
 
@@ -1791,8 +1791,8 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     #calculation of f,q,h,qh
     for i in range(0,len(dbpms)-1):
 
-        bn1=upper(dbpms[i][1])
-        bn2=upper(dbpms[i+1][1])
+        bn1=string.upper(dbpms[i][1])
+        bn2=string.upper(dbpms[i+1][1])
 
         #print bn1
         #print phaseT
@@ -1965,7 +1965,7 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
     for i in range(0,len(dbpms)): # ask rogelio
 
-        bn1=upper(dbpms[i][1])
+        bn1=string.upper(dbpms[i][1])
 
         BPMS.append(bn1)
 
@@ -2019,9 +2019,9 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
         XI_phase=[]
         XI_phaseRMS=[]
 
-        bn1=upper(dbpms[i][1])
-        bn2=upper(dbpms[i+1][1])
-        bn3=upper(dbpms[i+2][1])
+        bn1=string.upper(dbpms[i][1])
+        bn2=string.upper(dbpms[i+1][1])
+        bn3=string.upper(dbpms[i+2][1])
 
         filej=ListOfZeroDPPX[0]
 
@@ -2162,8 +2162,8 @@ def getchi1010(MADTwiss,filesF,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY):
         XI_phase=[]
         XI_phaseRMS=[]
 
-        bn=upper(dbpms[i][1])
-        bny=upper(dbpmsy[i][1])
+        bn=string.upper(dbpms[i][1])
+        bny=string.upper(dbpmsy[i][1])
 
         for j in range(0,len(files)):
 
@@ -2216,7 +2216,7 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
 
 
     for i in range(0,len(bpms)):
-        bn=upper(bpms[i][1])
+        bn=string.upper(bpms[i][1])
         bns=bpms[i][0]
 
         # dbeta and dalpha will be extract via metaclass. As it is for the time being.
@@ -2386,7 +2386,7 @@ def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
 
     #-- Common BPMs
     bpm=modelIntersect(intersect(Files),MADTwiss)
-    bpm=[(b[0],upper(b[1])) for b in bpm]
+    bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Loop for IPs
     result={}
@@ -2873,7 +2873,7 @@ def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm=modelIntersect(intersect(Files),MADTwiss)
-    bpm=[(b[0],upper(b[1])) for b in bpm]
+    bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -2933,7 +2933,7 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm=modelIntersect(intersect(Files),MADTwiss)
-    bpm=[(b[0],upper(b[1])) for b in bpm]
+    bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -3007,7 +3007,7 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm=modelIntersect(intersect(Files),MADTwiss_ac)
-    bpm=[(b[0],upper(b[1])) for b in bpm]
+    bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd== 1: s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
@@ -3082,7 +3082,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
     #-- Select common BPMs
     bpm=modelIntersect(intersect(FilesX+FilesY),MADTwiss)
-    bpm=[(b[0],upper(b[1])) for b in bpm]
+    bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     #if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -3287,7 +3287,7 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
     #-- Common BPMs
     bpm=modelIntersect(intersect(Files),MADTwiss)
-    bpm=[(b[0],upper(b[1])) for b in bpm]
+    bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -3859,7 +3859,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 MADTwiss.NAME[MADTwiss.indx[bpm_name]]
             except:
                 try:
-                    MADTwiss.NAME[MADTwiss.indx[upper(bpm_name)]]
+                    MADTwiss.NAME[MADTwiss.indx[string.upper(bpm_name)]]
                 except:
                     print 'Monitor '+bpm_name+' cannot be found in the model!'
                     #exit()
@@ -3954,14 +3954,14 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEX","STDPHX","PHXMDL","MUXMDL"])
         tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(len(bpmsx)):
-            bn1=upper(bpmsx[i][1])
+            bn1=string.upper(bpmsx[i][1])
             bns1=bpmsx[i][0]
             phmdl=phasex[bn1][4]
             if i==len(bpmsx)-1:
-                bn2=upper(bpmsx[0][1])
+                bn2=string.upper(bpmsx[0][1])
                 bns2=bpmsx[0][0]
             else:
-                bn2=upper(bpmsx[i+1][1])
+                bn2=string.upper(bpmsx[i+1][1])
                 bns2=bpmsx[i+1][0]
             list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPX),phasex[bn1][0],phasex[bn1][1],phmdl,MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
@@ -3979,14 +3979,14 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEX","STDPHX","PHXMDL","MUXMDL"])
                 tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(len(bpmsxf)):
-                    bn1=upper(bpmsxf[i][1])
+                    bn1=string.upper(bpmsxf[i][1])
                     bns1=bpmsxf[i][0]
                     phmdlf=phasexf[bn1][4]
                     if i==len(bpmsxf)-1:
-                        bn2=upper(bpmsxf[0][1])
+                        bn2=string.upper(bpmsxf[0][1])
                         bns2=bpmsxf[0][0]
                     else:
-                        bn2=upper(bpmsxf[i+1][1])
+                        bn2=string.upper(bpmsxf[i+1][1])
                         bns2=bpmsxf[i+1][0]
                     list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPX),phasexf[bn1][0],phasexf[bn1][1],phmdlf,MADTwiss.MUX[MADTwiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
@@ -4002,7 +4002,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEX","STDPHX","PHXMDL","MUXMDL"])
             tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsxf2)):
-                bn1=upper(bpmsxf2[i][1])
+                bn1=string.upper(bpmsxf2[i][1])
                 bns1=bpmsxf2[i][0]
                 phmdlf2=phasexf2[bn1][2]
                 bn2=phasexf2[bn1][3]
@@ -4024,15 +4024,15 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEY","STDPHY","PHYMDL","MUYMDL"])
         tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(len(bpmsy)):
-            bn1=upper(bpmsy[i][1])
+            bn1=string.upper(bpmsy[i][1])
             bns1=bpmsy[i][0]
             phmdl=phasey[bn1][4]
             # TODO easier with modulo(vimaier)
             if i==len(bpmsy)-1:
-                bn2=upper(bpmsy[0][1])
+                bn2=string.upper(bpmsy[0][1])
                 bns2=bpmsy[0][0]
             else:
-                bn2=upper(bpmsy[i+1][1])
+                bn2=string.upper(bpmsy[i+1][1])
                 bns2=bpmsy[i+1][0]
             list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPY),phasey[bn1][0],phasey[bn1][1],phmdl,MADTwiss_ac.MUY[MADTwiss_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
@@ -4050,14 +4050,14 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEY","STDPHY","PHYMDL","MUYMDL"])
                 tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(len(bpmsyf)):
-                    bn1=upper(bpmsyf[i][1])
+                    bn1=string.upper(bpmsyf[i][1])
                     bns1=bpmsyf[i][0]
                     phmdlf=phaseyf[bn1][4]
                     if i==len(bpmsyf)-1:
-                        bn2=upper(bpmsyf[0][1])
+                        bn2=string.upper(bpmsyf[0][1])
                         bns2=bpmsyf[0][0]
                     else:
-                        bn2=upper(bpmsyf[i+1][1])
+                        bn2=string.upper(bpmsyf[i+1][1])
                         bns2=bpmsyf[i+1][0]
                     list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPY),phaseyf[bn1][0],phaseyf[bn1][1],phmdlf,MADTwiss.MUY[MADTwiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
@@ -4073,7 +4073,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEY","STDPHY","PHYMDL","MUYMDL"])
             tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsyf2)):
-                bn1=upper(bpmsyf2[i][1])
+                bn1=string.upper(bpmsyf2[i][1])
                 bns1=bpmsyf2[i][0]
                 phmdlf2=phaseyf2[bn1][2]
                 bn2=phaseyf2[bn1][3]
@@ -4097,10 +4097,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEX","STDPHX","PHXMDL","MUXMDL"])
         tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpmsxT)):
-            bn1=upper(bpmsxT[i][1])
+            bn1=string.upper(bpmsxT[i][1])
             bns1=bpmsxT[i][0]
             phmdl=phasexT[bn1][2]
-            bn2=upper(bpmsxT[0][1])
+            bn2=string.upper(bpmsxT[0][1])
             bns2=bpmsxT[0][0]
             list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPX),phasexT[bn1][0],phasexT[bn1][1],phmdl,MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4119,10 +4119,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEX","STDPHX","PHXMDL","MUXMDL"])
                 tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(0,len(bpmsxTf)):
-                    bn1=upper(bpmsxTf[i][1])
+                    bn1=string.upper(bpmsxTf[i][1])
                     bns1=bpmsxTf[i][0]
                     phmdlf=phasexTf[bn1][2]
-                    bn2=upper(bpmsxTf[0][1])
+                    bn2=string.upper(bpmsxTf[0][1])
                     bns2=bpmsxTf[0][0]
                     list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPX),phasexTf[bn1][0],phasexTf[bn1][1],phmdlf,MADTwiss.MUX[MADTwiss.indx[bn1]] ]
                     tfs_file.add_table_row(list_row_entries)
@@ -4138,10 +4138,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEX","STDPHX","PHXMDL","MUXMDL"])
             tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsxTf2)):
-                bn1=upper(bpmsxTf2[i][1])
+                bn1=string.upper(bpmsxTf2[i][1])
                 bns1=bpmsxTf2[i][0]
                 phmdlf2=phasexTf2[bn1][2]
-                bn2=upper(bpmsxTf2[0][1])
+                bn2=string.upper(bpmsxTf2[0][1])
                 bns2=bpmsxTf2[0][0]
                 list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPX),phasexTf2[bn1][0],phasexTf2[bn1][1],phmdlf2,MADTwiss.MUX[MADTwiss.indx[bn1]] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -4159,10 +4159,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEY","STDPHY","PHYMDL","MUYMDL"])
         tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpmsyT)):
-            bn1=upper(bpmsyT[i][1])
+            bn1=string.upper(bpmsyT[i][1])
             bns1=bpmsyT[i][0]
             phmdl=phaseyT[bn1][2]
-            bn2=upper(bpmsyT[0][1])
+            bn2=string.upper(bpmsyT[0][1])
             bns2=bpmsyT[0][0]
             list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPY),phaseyT[bn1][0],phaseyT[bn1][1],phmdl,MADTwiss_ac.MUY[MADTwiss_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
@@ -4181,10 +4181,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEY","STDPHY","PHYMDL","MUYMDL"])
                 tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(0,len(bpmsyTf)):
-                    bn1=upper(bpmsyTf[i][1])
+                    bn1=string.upper(bpmsyTf[i][1])
                     bns1=bpmsyTf[i][0]
                     phmdlf=phaseyTf[bn1][2]
-                    bn2=upper(bpmsyTf[0][1])
+                    bn2=string.upper(bpmsyTf[0][1])
                     bns2=bpmsyTf[0][0]
                     list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPY),phaseyTf[bn1][0],phaseyTf[bn1][1],phmdlf,MADTwiss.MUY[MADTwiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
@@ -4201,10 +4201,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASEY","STDPHY","PHYMDL","MUYMDL"])
             tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsyTf2)):
-                bn1=upper(bpmsyTf2[i][1])
+                bn1=string.upper(bpmsyTf2[i][1])
                 bns1=bpmsyTf2[i][0]
                 phmdlf2=phaseyTf2[bn1][2]
-                bn2=upper(bpmsyTf2[0][1])
+                bn2=string.upper(bpmsyTf2[0][1])
                 bns2=bpmsyTf2[0][0]
                 list_row_entries = ['"'+bn1+'"','"'+bn2+'"',bns1,bns2,len(ListOfZeroDPPY),phaseyTf2[bn1][0],phaseyTf2[bn1][1],phmdlf2,MADTwiss.MUY[MADTwiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
@@ -4230,7 +4230,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","BETX","ERRBETX","STDBETX","ALFX","ERRALFX","STDALFX","BETXMDL","ALFXMDL","MUXMDL"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpms)):
-            bn1=upper(bpms[i][1])
+            bn1=string.upper(bpms[i][1])
             bns1=bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),betax[bn1][0],betax[bn1][1],betax[bn1][2],alfax[bn1][0],alfax[bn1][1],alfax[bn1][2],MADTwiss_ac.BETX[MADTwiss_ac.indx[bn1]],MADTwiss_ac.ALFX[MADTwiss_ac.indx[bn1]],MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4249,7 +4249,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","S","COUNT","BETX","ERRBETX","STDBETX","ALFX","ERRALFX","STDALFX","BETXMDL","ALFXMDL","MUXMDL"])
                 tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(0,len(bpmsf)):
-                    bn1=upper(bpmsf[i][1])
+                    bn1=string.upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),betaxf[bn1][0],betaxf[bn1][1],betaxf[bn1][2],alfaxf[bn1][0],alfaxf[bn1][1],alfaxf[bn1][2],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.ALFX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
                     tfs_file.add_table_row(list_row_entries)
@@ -4265,7 +4265,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","BETX","ERRBETX","STDBETX","ALFX","ERRALFX","STDALFX","BETXMDL","ALFXMDL","MUXMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsf2)):
-                bn1=upper(bpmsf2[i][1])
+                bn1=string.upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
                 list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),betaxf2[bn1][0],betaxf2[bn1][1],betaxf2[bn1][2],alfaxf2[bn1][0],alfaxf2[bn1][1],alfaxf2[bn1][2],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.ALFX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -4284,7 +4284,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","BETY","ERRBETY","STDBETY","ALFY","ERRALFY","STDALFY","BETYMDL","ALFYMDL","MUYMDL"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpms)):
-            bn1=upper(bpms[i][1])
+            bn1=string.upper(bpms[i][1])
             bns1=bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),betay[bn1][0],betay[bn1][1],betay[bn1][2],alfay[bn1][0],alfay[bn1][1],alfay[bn1][2],MADTwiss_ac.BETY[MADTwiss_ac.indx[bn1]],MADTwiss_ac.ALFY[MADTwiss_ac.indx[bn1]],MADTwiss_ac.MUY[MADTwiss_ac.indx[bn1]] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4303,7 +4303,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","S","COUNT","BETY","ERRBETY","STDBETY","ALFY","ERRALFY","STDALFY","BETYMDL","ALFYMDL","MUYMDL"])
                 tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(0,len(bpmsf)):
-                    bn1=upper(bpmsf[i][1])
+                    bn1=string.upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),betayf[bn1][0],betayf[bn1][1],betayf[bn1][2],alfayf[bn1][0],alfayf[bn1][1],alfayf[bn1][2],MADTwiss.BETY[MADTwiss.indx[bn1]],MADTwiss.ALFY[MADTwiss.indx[bn1]],MADTwiss.MUY[MADTwiss.indx[bn1]] ]
                     tfs_file.add_table_row(list_row_entries)
@@ -4319,7 +4319,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","BETY","ERRBETY","STDBETY","ALFY","ERRALFY","STDALFY","BETYMDL","ALFYMDL","MUYMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsf2)):
-                bn1=upper(bpmsf2[i][1])
+                bn1=string.upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
                 list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),betayf2[bn1][0],betayf2[bn1][1],betayf2[bn1][2],alfayf2[bn1][0],alfayf2[bn1][1],alfayf2[bn1][2],MADTwiss.BETY[MADTwiss.indx[bn1]],MADTwiss.ALFY[MADTwiss.indx[bn1]],MADTwiss.MUY[MADTwiss.indx[bn1]] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -4342,7 +4342,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         skipped_bpmx=[]
         arcbpms=filterbpm(bpms)
         for bpm in arcbpms:
-            name=upper(bpm[1]) # second entry is the name
+            name=string.upper(bpm[1]) # second entry is the name
             #Skip BPM with strange data
             if abs(betaxPhaseCopy[name][0]/betax[name][0])>100: skipped_bpmx.append(name)
             elif (betax[name][0]<0 or betaxPhaseCopy[name][0]<0): skipped_bpmx.append(name)
@@ -4350,7 +4350,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         try: betax_ratio=betax_ratio/(len(arcbpms)-len(skipped_bpmx))
         except: betax_ratio=1
         betax_rescale={}
-        for bpm in map(upper,zip(*bpms)[1]): 
+        for bpm in map(string.upper,zip(*bpms)[1]): 
             betax_rescale[bpm]=[betax_ratio*betax[bpm][0],betax_ratio*betax[bpm][1],betax[bpm][2]]
 
         tfs_file = files_dict['getampbetax.out']
@@ -4361,7 +4361,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","BETX","BETXSTD","BETXMDL","MUXMDL","BETXRES","BETXSTDRES"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpms)):
-            bn1=upper(bpms[i][1])
+            bn1=string.upper(bpms[i][1])
             bns1=bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),betax[bn1][0],betax[bn1][1],MADTwiss_ac.BETX[MADTwiss_ac.indx[bn1]],MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]],betax_rescale[bn1][0],betax_rescale[bn1][1] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4382,7 +4382,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 skipped_bpmxf=[]
                 arcbpms=filterbpm(bpmsf)
                 for bpm in arcbpms:
-                    name=upper(bpm[1]) # second entry is the name
+                    name=string.upper(bpm[1]) # second entry is the name
                     #Skip BPM with strange data
                     if abs(betaxPhaseCopyf[name][0]/betaxf[name][0])>10: skipped_bpmxf.append(name)
                     elif abs(betaxPhaseCopyf[name][0]/betaxf[name][0])<0.1: skipped_bpmxf.append(name)
@@ -4399,7 +4399,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","S","COUNT","BETX","BETXSTD","BETXMDL","MUXMDL","BETXRES","BETXSTDRES"])
                 tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(0,len(bpmsf)):
-                    bn1=upper(bpmsf[i][1])
+                    bn1=string.upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),betaxf[bn1][0],betaxf[bn1][1],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]],betaxf_ratio*betaxf[bn1][0],betaxf_ratio*betaxf[bn1][1] ]
                     tfs_file.add_table_row(list_row_entries)
@@ -4418,7 +4418,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","BETX","BETXSTD","BETXMDL","MUXMDL","BETXRES","BETXSTDRES"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsf2)):
-                bn1=upper(bpmsf2[i][1])
+                bn1=string.upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
                 list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),betaxf2[bn1][0],betaxf2[bn1][1],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]],betaxf2_rescale[bn1][0],betaxf2_rescale[bn1][1] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -4436,7 +4436,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         skipped_bpmy=[]
         arcbpms=filterbpm(bpms)
         for bpm in arcbpms:
-            name=upper(bpm[1]) # second entry is the name
+            name=string.upper(bpm[1]) # second entry is the name
             #Skip BPM with strange data
             if abs(betayPhaseCopy[name][0]/betay[name][0])>100: skipped_bpmy.append(name)
             elif (betay[name][0]<0 or betayPhaseCopy[name][0]<0): skipped_bpmy.append(name)
@@ -4444,7 +4444,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         try: betay_ratio=betay_ratio/(len(arcbpms)-len(skipped_bpmy))
         except: betay_ratio=1
         betay_rescale={}
-        for bpm in map(upper,zip(*bpms)[1]): betay_rescale[bpm]=[betay_ratio*betay[bpm][0],betay_ratio*betay[bpm][1],betay[bpm][2]]
+        for bpm in map(string.upper,zip(*bpms)[1]): betay_rescale[bpm]=[betay_ratio*betay[bpm][0],betay_ratio*betay[bpm][1],betay[bpm][2]]
         
         tfs_file = files_dict['getampbetay.out']
         tfs_file.add_descriptor("Q1", "%le", str(Q1))
@@ -4454,7 +4454,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","BETY","BETYSTD","BETYMDL","MUYMDL","BETYRES","BETYSTDRES"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpms)):
-            bn1=upper(bpms[i][1])
+            bn1=string.upper(bpms[i][1])
             bns1=bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),betay[bn1][0],betay[bn1][1],MADTwiss_ac.BETY[MADTwiss_ac.indx[bn1]],MADTwiss_ac.MUY[MADTwiss_ac.indx[bn1]],betay_rescale[bn1][0],betay_rescale[bn1][1] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4472,7 +4472,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 skipped_bpmyf=[]
                 arcbpms=filterbpm(bpmsf)
                 for bpm in arcbpms:
-                    name=upper(bpm[1]) # second entry is the name
+                    name=string.upper(bpm[1]) # second entry is the name
                     #Skip BPM with strange data
                     if abs(betayPhaseCopyf[name][0]/betayf[name][0])>10: skipped_bpmyf.append(name)
                     elif (betayf[name][0]<0 or betayPhaseCopyf[name][0]<0): skipped_bpmyf.append(name)
@@ -4489,7 +4489,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","S","COUNT","BETY","BETYSTD","BETYMDL","MUYMDL","BETYRES","BETYSTDRES"])
                 tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(0,len(bpmsf)):
-                    bn1=upper(bpmsf[i][1])
+                    bn1=string.upper(bpmsf[i][1])
                     bns1=bpmsf[i][0]
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),betayf[bn1][0],betayf[bn1][1],MADTwiss.BETY[MADTwiss.indx[bn1]],MADTwiss.MUY[MADTwiss.indx[bn1]],(betayf_ratio*betayf[bn1][0]),(betayf_ratio*betayf[bn1][1]) ]
                     tfs_file.add_table_row(list_row_entries)
@@ -4508,7 +4508,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","BETY","BETYSTD","BETYMDL","MUYMDL","BETYRES","BETYSTDRES"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpmsf2)):
-                bn1=upper(bpmsf2[i][1])
+                bn1=string.upper(bpmsf2[i][1])
                 bns1=bpmsf2[i][0]
                 list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),betayf2[bn1][0],betayf2[bn1][1],MADTwiss.BETY[MADTwiss.indx[bn1]],MADTwiss.MUY[MADTwiss.indx[bn1]],betayf2_rescale[bn1][0],betayf2_rescale[bn1][1] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -4688,7 +4688,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","X","STDX","XMDL","MUXMDL"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpms)):
-            bn1=upper(bpms[i][1])
+            bn1=string.upper(bpms[i][1])
             bns1=bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),cox[bn1][0],cox[bn1][1],MADTwiss.X[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4711,7 +4711,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","Y","STDY","YMDL","MUYMDL"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
         for i in range(0,len(bpms)):
-            bn1=upper(bpms[i][1])
+            bn1=string.upper(bpms[i][1])
             bns1=bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),coy[bn1][0],coy[bn1][1],MADTwiss.Y[MADTwiss.indx[bn1]],MADTwiss.MUY[MADTwiss.indx[bn1]] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4738,7 +4738,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","X","STDX","XMDL","MUXMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
-                bn1=upper(bpms[i][1])
+                bn1=string.upper(bpms[i][1])
                 bns1=bpms[i][0]
                 list_row_entries = ['"'+bn1+'"',bns1, len(ListOfZeroDPPX), codpp[bn1][0], codpp[bn1][1], MADTwiss.X[MADTwiss.indx[bn1]], MADTwiss.MUX[MADTwiss.indx[bn1]] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -4761,7 +4761,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","Y","STDY","YMDL","MUYMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
-                bn1=upper(bpms[i][1])
+                bn1=string.upper(bpms[i][1])
                 bns1=bpms[i][0]
                 #TODO: why ListOfZeroDPPY.. above used ListOfNonZeroDPPY(vimaier)
                 list_row_entries = ['"'+bn1+'"',bns1, len(ListOfZeroDPPY), codpp[bn1][0], codpp[bn1][1], MADTwiss.Y[MADTwiss.indx[bn1]], MADTwiss.MUY[MADTwiss.indx[bn1]] ]
@@ -4783,7 +4783,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","NDX","STDNDX","DX","DPX","NDXMDL","DXMDL","DPXMDL","MUXMDL"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(len(bpms)):
-            bn1 = upper(bpms[i][1])
+            bn1 = string.upper(bpms[i][1])
             bns1 = bpms[i][0]
             ndmdl = MADTwiss.DX[MADTwiss.indx[bn1]] / sqrt(MADTwiss.BETX[MADTwiss.indx[bn1]])
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfNonZeroDPPX),nda[bn1][0],nda[bn1][1],Dx[bn1][0],DPX[bn1],ndmdl,MADTwiss.DX[MADTwiss.indx[bn1]],MADTwiss.DPX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
@@ -4801,7 +4801,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_names(["NAME","S","COUNT","DX","STDDX","DPX","DXMDL","DPXMDL","MUXMDL"])
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
         for i in range(len(bpms)):
-            bn1 = upper(bpms[i][1])
+            bn1 = string.upper(bpms[i][1])
             bns1 = bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfNonZeroDPPX),dxo[bn1][0],dxo[bn1][1],DPX[bn1],MADTwiss.DX[MADTwiss.indx[bn1]],MADTwiss.DPX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4817,7 +4817,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
 
         for i in range(len(bpms)):
-            bn1 = upper(bpms[i][1])
+            bn1 = string.upper(bpms[i][1])
             bns1 = bpms[i][0]
             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfNonZeroDPPY),dyo[bn1][0],dyo[bn1][1],DPY[bn1],MADTwiss.DY[MADTwiss.indx[bn1]],MADTwiss.DPY[MADTwiss.indx[bn1]],MADTwiss.MUY[MADTwiss.indx[bn1]] ]
             tfs_file.add_table_row(list_row_entries)
@@ -4846,7 +4846,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","F1001W","FWSTD","Q1001W","QWSTD","MDLF1001R","MDLF1001I"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(len(bpms)):
-                bn1 = upper(bpms[i][1])
+                bn1 = string.upper(bpms[i][1])
                 bns1 = bpms[i][0]
                 try:    
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),(sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)),fwqw[bn1][0][1],fwqw[bn1][0][0].real,fwqw[bn1][0][0].imag,MADTwiss.f1001[MADTwiss.indx(bn1)].real,MADTwiss.f1001[MADTwiss.indx(bn1)].imag,MADTwiss_ac.f1010[MADTwiss_ac.indx(bn1)].real,MADTwiss_ac.f1010[MADTwiss_ac.indx(bn1)].imag ]
@@ -4869,7 +4869,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","F1001W","FWSTD1","F1001R","F1001I","F1010W","FWSTD2","F1010R","F1010I","MDLF1001R","MDLF1001I","MDLF1010R","MDLF1010I"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(len(bpms)):
-                bn1=upper(bpms[i][1])
+                bn1=string.upper(bpms[i][1])
                 bns1=bpms[i][0]
                 try:    
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),(sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)),fwqw[bn1][0][1],fwqw[bn1][0][0].real,fwqw[bn1][0][0].imag, sqrt(fwqw[bn1][0][2].real**2+fwqw[bn1][0][2].imag**2),fwqw[bn1][0][3],fwqw[bn1][0][2].real,fwqw[bn1][0][2].imag,MADTwiss_ac.f1001[MADTwiss_ac.indx[bn1]].real,MADTwiss_ac.f1001[MADTwiss_ac.indx[bn1]].imag,MADTwiss_ac.f1010[MADTwiss_ac.indx[bn1]].real,MADTwiss_ac.f1010[MADTwiss_ac.indx[bn1]].imag ]
@@ -4890,7 +4890,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     tfs_file.add_column_names(["NAME","S","COUNT","F1001W","FWSTD1","F1001R","F1001I","F1010W","FWSTD2","F1010R","F1010I","MDLF1001R","MDLF1001I","MDLF1010R","MDLF1010I"])
                     tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
                     for i in range(len(bpmsf)):
-                        bn1=upper(bpmsf[i][1])
+                        bn1=string.upper(bpmsf[i][1])
                         bns1=bpmsf[i][0]
                         try:    
                             list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX), sqrt(fwqwf[bn1][0][0].real**2+fwqwf[bn1][0][0].imag**2),fwqwf[bn1][0][1],fwqwf[bn1][0][0].real,fwqwf[bn1][0][0].imag,sqrt(fwqwf[bn1][0][2].real**2+fwqwf[bn1][0][2].imag**2),fwqwf[bn1][0][3],fwqwf[bn1][0][2].real,fwqwf[bn1][0][2].imag,MADTwiss.f1001[MADTwiss.indx[bn1]].real,MADTwiss.f1001[MADTwiss.indx[bn1]].imag,MADTwiss.f1010[MADTwiss.indx[bn1]].real,MADTwiss.f1010[MADTwiss.indx[bn1]].imag ]
@@ -4909,7 +4909,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 tfs_file.add_column_names(["NAME","S","COUNT","F1001W","FWSTD1","F1001R","F1001I","F1010W","FWSTD2","F1010R","F1010I","MDLF1001R","MDLF1001I","MDLF1010R","MDLF1010I"])
                 tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
                 for i in range(len(bpmsf2)):
-                    bn1=upper(bpmsf2[i][1])
+                    bn1=string.upper(bpmsf2[i][1])
                     bns1=bpmsf2[i][0]
                     try:    
                         list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),sqrt(fwqwf2[bn1][0][0].real**2+fwqwf2[bn1][0][0].imag**2),fwqwf2[bn1][0][1],fwqwf2[bn1][0][0].real,fwqwf2[bn1][0][0].imag,sqrt(fwqwf2[bn1][0][2].real**2+fwqwf2[bn1][0][2].imag**2),fwqwf2[bn1][0][3],fwqwf2[bn1][0][2].real,fwqwf2[bn1][0][2].imag, MADTwiss.f1001[MADTwiss.indx[bn1]].real,MADTwiss.f1001[MADTwiss.indx[bn1]].imag,MADTwiss.f1010[MADTwiss.indx[bn1]].real,MADTwiss.f1010[MADTwiss.indx[bn1]].imag ]
@@ -4980,11 +4980,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             
             length_bpms = len(bpms)
             for i in range(0,length_bpms):
-                bn1=upper(bpms[i][1])
+                bn1=string.upper(bpms[i][1])
                 bns1=bpms[i][0]
                
                 index = (i+1) % length_bpms
-                bn2 = upper(bpms[index][1])
+                bn2 = string.upper(bpms[index][1])
                 bns2 = bpms[index][0]
                 
                 try:
@@ -5016,7 +5016,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","BETX","ERRBETX","STDBETX","ALFX","ERRALFX","STDALFX","BETXMDL","ALFXMDL","MUXMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
-                bn1=upper(bpms[i][1])
+                bn1=string.upper(bpms[i][1])
                 bns1=bpms[i][0]
                 list_row_entries = ['"'+bn1+'" ',bns1,len(ListOfZeroDPPX),betax[bn1][0],betax[bn1][1],betax[bn1][2],alfax[bn1][0],alfax[bn1][1],alfax[bn1][2],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.ALFX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -5049,11 +5049,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             
             length_bpms = len(bpms)
             for i in range(0,length_bpms):
-                bn1=upper(bpms[i][1])
+                bn1=string.upper(bpms[i][1])
                 bns1=bpms[i][0]
 
                 index = (i+1) % length_bpms
-                bn2 = upper(bpms[index][1])
+                bn2 = string.upper(bpms[index][1])
                 bns2 = bpms[index][0]
 
                 try:
@@ -5086,7 +5086,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_column_names(["NAME","S","COUNT","BETX","ERRBETX","STDBETX","ALFX","ERRALFX","STDALFX","BETXMDL","ALFXMDL","MUXMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
-                bn1=upper(bpms[i][1])
+                bn1=string.upper(bpms[i][1])
                 bns1=bpms[i][0]
                 list_row_entries = ['"'+bn1+'" ',bns1,len(ListOfZeroDPPY),betay[bn1][0],betay[bn1][1],betay[bn1][2],alfay[bn1][0],alfay[bn1][1],alfay[bn1][2],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.ALFX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]] ]
                 tfs_file.add_table_row(list_row_entries)
@@ -5197,7 +5197,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
 
         for i in range(0,len(dbpms)-2):
-            bn=upper(dbpms[i][1])
+            bn=string.upper(dbpms[i][1])
 
             list_row_entries = ['"'+bn+'"',POS[0][i],POS[1][i],POS[2][i],XItot[0][i],XItot[1][i],XItot[2][i],XItot[3][i],XItot[4][i],XItot[5][i],XIMODEL[0][i],XIMODEL[1][i],XIMODEL[2][i],XIMODEL[3][i] ]
             tfs_file.add_table_row(list_row_entries)
@@ -5218,7 +5218,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             [dbpms,XItot] = getchi1010(MADTwiss,files,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY)
 
             for i in range(len(dbpms)-2):
-                bn = upper(dbpms[i][1])
+                bn = string.upper(dbpms[i][1])
                 bns = dbpms[i][0]
                 list_row_entries = ['"'+bn+'"',bns,XItot[0][i],XItot[1][i],XItot[2][i],XItot[3][i],'0','0' ]
                 tfs_file.add_table_row(list_row_entries)
@@ -5240,7 +5240,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 #         [dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
 # 
 #         for i in range(0,len(dbpms)-2):
-#                    bn=upper(dbpms[i][1])
+#                    bn=string.upper(dbpms[i][1])
 #                 list_row_entries = ['"'+bn+'"',POS[0][i],POS[1][i],POS[2][i],XItot[0][i],XItot[1][i],XItot[2][i],XItot[3][i],XItot[4][i],XItot[5][i],XIMODEL[0][i],XIMODEL[1][i],XIMODEL[2][i],XIMODEL[3][i] ]
 #                 tfs_file.add_table_row(list_row_entries)
 
@@ -5267,7 +5267,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 # 
 #         for i in range(0,len(dbpms)-1):
 #     
-#                 bn=upper(dbpms[i][1])
+#                 bn=string.upper(dbpms[i][1])
 #                 bns=dbpms[i][0]
 #                 list_row_entries = ['"'+bn+'"',bns,A[0][i],A[1][i],A[2][i],A[3][i],h[0][i],h[1][i],h[2][i],h[3][i],h[4][i],h[5][i],hMODEL[0][i],hMODEL[1][i],hMODEL[2][i],hMODEL[3][i] ]
 #                 tfs_file.add_table_row(list_row_entries)
