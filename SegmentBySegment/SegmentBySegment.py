@@ -3,7 +3,7 @@ Created on 11/09/09
 
 @author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
 
-@version: 0.33
+@version: 0.34
 
 TODO: Description
 
@@ -50,80 +50,480 @@ Change history:
 # - fixed errors and warnings from static code analysis (unused variables, not defined variables, variable names overriding bultin reserved key words, broken indentation) 
 # - fixed mixed indentation (hint: if you want to a diff which ignores the changed indentation, use sdiff -W -s
 # - deleted code which is commented out
- - 0.34 <author> <date>: 
-    <Changes...>
+ - 0.34 vimaier 28th May 2013: 
+    Restructured code into parse_args(),main(),helper-functions and main invocation
+    Adapted docstrings.
+    Removed unused parameters from getIPfrompara
+    Removed unused function getTwiss
+    Previous version can be found in git commit eca47b2d06ab7eab911c830f30dc222a8bcd91a0
 
 '''
 
 
-###### imports
+import os
 import sys
 sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
+import optparse
+from math import sqrt,cos,sin,pi, tan
 
-from optparse import OptionParser
 try:
     from metaclass import twiss
 except:
     from metaclass25 import twiss
 
-import os
-from math import sqrt,cos,sin,pi, tan
 
 
-###### optionparser
-parser = OptionParser()
-parser.add_option("-a", "--accel",
-                help="Which accelerator: LHCB1 LHCB2 SPS RHIC SOLEIL",
-                metavar="ACCEL", default="LHCB1",dest="accel")
-parser.add_option("-f", "--path", # assumes that output is same as input
-                help="Path to measurement files",
-                metavar="PATH", default="./", dest="path")
-parser.add_option("-i", "--path2", # assumes that output is same as input
-                help="Path to second measurement files",
-                metavar="PATH2", default="./", dest="path2")
-parser.add_option("-s", "--start",
-                help="give start,endbpm,name (multiple allowed) eg: start1,end1,name1,start2,end2,name2,...",
-                metavar="SEGF", default="./", dest="segf")
-parser.add_option("-t", "--twiss",
-                help="basic twiss file, the modifiers.madx is assumed to be in the same direcory",
-                metavar="TWISS", default="./", dest="twiss")
-parser.add_option("-r", "--response",
-                help="switch calculate corrections 0 no, 1 yes",
-                metavar="COR", default="0", dest="cor")
-parser.add_option("-g", "--graphic",
-                help="choice between graphic or table output 0=graphic and 1=table output",
-                metavar="GRA", default="1", dest="gra")
-parser.add_option("-p", "--save",  
-                help="Output path",
-                metavar="SAVE", default="./", dest="SAVE")
-parser.add_option("-m", "--mad", # assumes that output is same as input
-                help="mad link",
-          metavar="mad", default="", dest="mad")
-parser.add_option("-b", "--bbsource", # assumes that output is same as input
-                help="beta beat source",
-                metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
-parser.add_option("-x", "--take", # take or create mad input, default should be 0 for creating
-                help="take or create madx 0/1",
-                metavar="mad", default="0", dest="madpass")
-parser.add_option("-c", "--cuts", 
-                help="cut on error of beta in percentage",
-                metavar="cuts", default="10", dest="cuts")
-parser.add_option("-w", "--w", # Path to Chromaticity functions
-                    help="Path to  chromaticity functions, by default this is skiped",
-                    metavar="wpath", default="0", dest="wpath")
+#===================================================================================================
+# parse_args()-function
+#===================================================================================================
+def parse_args():
+    ''' Parses the arguments, checks for valid input and returns tupel '''
+    parser = optparse.OptionParser()
+    parser.add_option("-a", "--accel",
+                    help="Which accelerator: LHCB1 LHCB2 SPS RHIC SOLEIL",
+                    metavar="ACCEL", default="LHCB1",dest="accel")
+    parser.add_option("-f", "--path", # assumes that output is same as input
+                    help="Path to measurement files",
+                    metavar="PATH", default="./", dest="path")
+    parser.add_option("-i", "--path2", # assumes that output is same as input
+                    help="Path to second measurement files",
+                    metavar="PATH2", default="./", dest="path2")
+    parser.add_option("-s", "--start",
+                    help="give start,endbpm,name (multiple allowed) eg: start1,end1,name1,start2,end2,name2,...",
+                    metavar="SEGF", default="./", dest="segf")
+    parser.add_option("-t", "--twiss",
+                    help="basic twiss file, the modifiers.madx is assumed to be in the same direcory",
+                    metavar="TWISS", default="./", dest="twiss")
+    parser.add_option("-r", "--response",
+                    help="switch calculate corrections 0 no, 1 yes",
+                    metavar="COR", default="0", dest="cor")
+    parser.add_option("-g", "--graphic",
+                    help="choice between graphic or table output 0=graphic and 1=table output",
+                    metavar="GRA", default="1", dest="gra")
+    parser.add_option("-p", "--save",  
+                    help="Output path",
+                    metavar="SAVE", default="./", dest="SAVE")
+    parser.add_option("-m", "--mad", # assumes that output is same as input
+                    help="mad link",
+              metavar="mad", default="", dest="mad")
+    parser.add_option("-b", "--bbsource", # assumes that output is same as input
+                    help="beta beat source",
+                    metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
+    parser.add_option("-x", "--take", # take or create mad input, default should be 0 for creating
+                    help="take or create madx 0/1",
+                    metavar="mad", default="0", dest="madpass")
+    parser.add_option("-c", "--cuts", 
+                    help="cut on error of beta in percentage",
+                    metavar="cuts", default="10", dest="cuts")
+    parser.add_option("-w", "--w", # Path to Chromaticity functions
+                        help="Path to  chromaticity functions, by default this is skiped",
+                        metavar="wpath", default="0", dest="wpath")
+    
+    (options, args) = parser.parse_args()
+    
+    return options,args
 
-(options, args) = parser.parse_args()
 
-####### some defs
+#===================================================================================================
+# main()-function
+#===================================================================================================
+def main(options):
+    '''
+    :Parameters:
+        'options': Values
+            Values instance with all options from OptionParser
+    :Return: int
+        0 if execution was successful otherwise !=0
+    '''
+    path=options.path
+    ##########
+    #
+    # LOADING DATA
+    #
+    ##########
+    try:
+        filedatax=twiss(path+"/getbetax_free.out")
+    except:
+        filedatax=twiss(path+"/getbetax.out")
+    betxtwiss=filedatax
+    QXX=filedatax.Q1
+    QYY=filedatax.Q2
+    
+    try:
+        filedatay=twiss(path+"/getbetay_free.out")
+    except:
+        filedatay=twiss(path+"/getbetay.out")    
+    
+    betytwiss=filedatay
+    filedataxA=twiss(path+"/getampbetax.out")
+    filedatayA=twiss(path+"/getampbetay.out")
+    try:
+        filephasex=twiss(path+"/getphasex_free.out")
+    except:
+        filephasex=twiss(path+"/getphasex.out")    
+    
+    try:
+        filephasey=twiss(path+"/getphasey.out")
+    except:
+        filephasey=twiss(path+"/getphasey_free.out")
+    try:
+        filephasextot=twiss(path+"/getphasetotx_free.out")
+    except:
+        filephasextot=twiss(path+"/getphasetotx.out")
+    
+    try:
+        filephaseytot=twiss(path+"/getphasetoty_free.out")
+    except:
+        filephaseytot=twiss(path+"/getphasetoty.out")
+            
+    ### check if dispersion exist
+    try:
+        filedx=twiss(path+"/getDx.out")
+        filendx=twiss(path+"/getNDx.out")
+        filedy=twiss(path+"/getDy.out")
+        disp=1
+        print "Disp files OK", filedx.DX[0], filedx.NAME[0]
+    except:
+        print "no dispersion files... will continue without taking into account dispersion"
+        filendx=[]
+        filedx=[]
+        filedy=[]
+        disp=0
+    
+    ### check if coupling exist
+    try:
+        filecouple=twiss(path+"/getcouple.out")
+        filecoupleC=twiss(path+"/getcoupleterms.out")
+        coupleswitch=1
+        method="driven"
+    except:
+        print "no coupling file... will continue without taking into account coupling"
+        filecouple=[]
+        filecoupleC=[]
+        coupleswitch=0
+        fs=[0,0,0,0]
+    
+        
+    try:
+        filecouple=twiss(path+"/getcouple_free.out")
+        method="_free"
+        print "Free coupling found"
+    
+    except:
+        print 
+        #method=""
+        #%method_label="driven"
+        #filecouple=twiss(path+"/getcouple.out")
+        #print "WARN: Free coupling not found!!"
+    
+    
+    # checking if end element is BPM or instrument (IP,collimators)
+    elementswitch=-1
+    savepath = options.SAVE + "/"
+    if not os.path.isdir(savepath):
+        os.makedirs(savepath)
+    list2run=options.segf.split(',')
+    errorcut=float(options.cuts)
+    accel=options.accel
+    
+    start={}
+    end={}
+    names=[]
+    
+    
+    twissfile=options.twiss
+    twisspath=os.path.dirname(twissfile)+'/'
+    if twissfile=="./":
+        twissfile=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss_elements.dat"
+    
+    print "twissfile ",twissfile
+    
+    
+    twisstwiss=twiss(twissfile)
+    
+    step=0# for selecting segments and elements
+    for run in range(len(list2run)):
+        run=run+step
+    
+        if run==(len(list2run)):
+            break
+    
+        print list2run[run],run
+        
+        if "BPM" in list2run[run]: # segment
+            
+            start[list2run[run+2]]=list2run[run]
+            end[list2run[run+2]]=list2run[run+1]
+            names.append(list2run[run+2])
+            step=2+step
+        else: #element
+            step=0+step
+            names.append(list2run[run])
+    
+    
+    ####### Difference between segment or instrument #######
+    # For segment => Startbpm,endbpm,NameOfSegment
+    # For instrument => instrument
+    ####### 
+    
+    for namename in names:
+    
+        print namename
+        ##
+        # Getting the BPM's
+        ##
+        if start.has_key(namename) and end.has_key(namename):
+            print "Segment has been choosen"
+            elementswitch=0
+            segment=[start[namename],end[namename]]
+            startbpm,endbpm=filterandfind(betxtwiss,betytwiss,"null",segment,twisstwiss,errorcut)
+    
+        elif start.has_key(namename) or end.has_key(namename):
+    
+            print "Something strange ....Did you properly define the input ?"
+            print "Like: BPM1,BPM2,ARC12,IP1"
+            print "Structure must be for Segment => BPML,BPMR,NAME"
+            print "For Instrument just name"
+            sys.exit()
+        else:
+            print "Element has been choosen"
+            elementswitch=1
+            startbpm,endbpm=filterandfind(betxtwiss,betytwiss,namename,[],twisstwiss,errorcut)
+    
+        passs=1 # why?
+    
+        #gathering data
+        hor=[betxtwiss.BETX[betxtwiss.indx[startbpm]],
+             sqrt(betxtwiss.STDBETX[betxtwiss.indx[startbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[startbpm]]**2),
+             betxtwiss.ALFX[betxtwiss.indx[startbpm]],
+             sqrt(betxtwiss.ERRALFX[betxtwiss.indx[startbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[startbpm]]**2)]
+        ver=[betytwiss.BETY[betytwiss.indx[startbpm]],
+             sqrt(betytwiss.STDBETY[betytwiss.indx[startbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[startbpm]]**2),
+             betytwiss.ALFY[betytwiss.indx[startbpm]],
+             sqrt(betytwiss.ERRALFY[betytwiss.indx[startbpm]]**2+betytwiss.STDALFY[betytwiss.indx[startbpm]]**2)]
+        hore=[betxtwiss.BETX[betxtwiss.indx[endbpm]],
+             sqrt(betxtwiss.STDBETX[betxtwiss.indx[endbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[endbpm]]**2),
+             betxtwiss.ALFX[betxtwiss.indx[endbpm]],
+             sqrt(betxtwiss.ERRALFX[betxtwiss.indx[endbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[endbpm]]**2)]
+        vere=[betytwiss.BETY[betytwiss.indx[endbpm]],
+             sqrt(betytwiss.STDBETY[betytwiss.indx[endbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[endbpm]]**2),
+             betytwiss.ALFY[betytwiss.indx[endbpm]],
+             sqrt(betytwiss.ERRALFY[betytwiss.indx[endbpm]]**2+betytwiss.STDALFY[betytwiss.indx[endbpm]]**2)]
+    
+        beta4plot=hor[2]
+    
+        if disp==1:
+    
+            try: #horizontal
+                filedx.indx[startbpm]
+                dxpass=1
+            except:
+                print "startbpm for horizontal dispersion not found"
+                dxpass=0
+    
+            try: #vertical
+                filedy.indx[startbpm]
+                dypass=1
+            except:
+                print "startbpm for  vertical dispersion not found"
+                dypass=0
+    
+            try: #horizontal
+                filedx.indx[endbpm]
+                dxpasse=1
+            except:
+                print "endbpm for horizontal dispersion not found"
+                dxpasse=0
+    
+            try: #vertical
+                filedy.indx[endbpm]
+                dypasse=1
+            except:
+                print "endbpm for  vertical dispersion not found"
+                dypasse=0
+    
+            if dxpass==1:
+                dxx=filedx.DX[filedx.indx[startbpm]]
+                dxp=filedx.DPX[filedx.indx[startbpm]]
+                dxe=filedx.STDDX[filedx.indx[startbpm]]
+            else:
+                dxx=0
+                dxp=0
+                dxe=0
+    
+            if dypass==1:
+                dyy=filedy.DY[filedy.indx[startbpm]]
+                dyp=filedy.DPY[filedy.indx[startbpm]]
+                dye=filedy.STDDY[filedy.indx[startbpm]]
+            else:
+                dyy=0
+                dyp=0
+                dye=0            
+            
+            dp=[dxx,
+                dxp,
+                dyy,
+                dyp,
+                dxe,
+                dye]
+    
+        
+            if dxpasse==1:
+                dxx=filedx.DX[filedx.indx[endbpm]]
+                dxp=filedx.DPX[filedx.indx[endbpm]]
+                dxe=filedx.STDDX[filedx.indx[endbpm]]
+            else:
+                dxx=0
+                dxp=0
+                dxe=0
+    
+            if dypasse==1:
+                dyy=filedy.DY[filedy.indx[endbpm]]
+                dyp=filedy.DPY[filedy.indx[endbpm]]
+                dye=filedy.STDDY[filedy.indx[endbpm]]
+            else:
+                dyy=0
+                dyp=0
+                dye=0    
+                
+            dpe=[dxx,
+                dxp,
+                dyy,
+                dyp,
+                dxe,
+                dye]
+        else:
+            dp=[0,0,0,0,0,0]
+            dpe=[0,0,0,0,0,0]
+            print "No dispersion"
+    
+    
+        if passs==1:#TODO: Pretty useless. passs will always be initialized with 1(vimaier)
+    
+    
+            if coupleswitch==1:
+                print "coupling,"
+                try:
+                    filecouple.indx[startbpm]
+                    cpass=1
+                except:
+                    cpass=0
+                    print "startbpm ",startbpm," not found in coupling measurement => values=0"
+                    
+                if cpass==1:
+                    f1001r=filecouple.F1001R[filecouple.indx[startbpm]]
+                    f1001i=filecouple.F1001I[filecouple.indx[startbpm]]
+                    f1010r=filecouple.F1010R[filecouple.indx[startbpm]]
+                    f1010i=filecouple.F1010I[filecouple.indx[startbpm]]
+                    
+                    f1001std=filecouple.FWSTD1[filecouple.indx[startbpm]]
+                    f1010std=filecouple.FWSTD2[filecouple.indx[startbpm]]
+                
+                    ### add error
+                else:
+                    f1001r=0
+                    f1001i=0
+                    f1010r=0
+                    f1010i=0
+                    f1001std=0
+                    f1010std=0
+                    
+                fs=[f1001r,f1001i,f1010r,f1010i,f1001std,f1010std]
+    
+            
+    
+            else:
+                fs=[0,0,0,0,0,0]
+                print "No coupling"
+    
+            #sys.exit()
+                print "madpass", options.madpass        
+            if str(options.madpass)=="0":
+                print "Going to run4mad"
+                run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path+"/",twisspath, method)
+    
+            else:
+                runmad(savepath,namename)
+                print "Just rerunning mad"
+            reversetable(savepath,namename)
+    
+    
+                    ###############################################
+            #
+            # =>>>>>> including new writer
+            #
+                    ###############################################
+    
+            # loading twiss
+            errbetamin=twiss(savepath+'/twiss.b-.dat')
+            
+            errbetamax=twiss(savepath+'/twiss.b+.dat')
+            
+            erralfmin=twiss(savepath+'/twiss.a-.dat')
+            erralfminb=twiss(savepath+'/twiss.a-_back.dat')
+            
+            erralfmax=twiss(savepath+'/twiss.a+.dat')
+            erralfmaxb=twiss(savepath+'/twiss.a+_back.dat')
+            
+            errdmin=twiss(savepath+'/twiss.d-.dat')
+            errdminb=twiss(savepath+'/twiss.d-_back.dat')
+    
+            errdmax=twiss(savepath+'/twiss.d+.dat')
+            errdmaxb=twiss(savepath+'/twiss.d+_back.dat')
+    
+            errcmax=twiss(savepath+'/twiss_c_max.dat')
+            errcmin=twiss(savepath+'/twiss_c_min.dat')
+    
+            modelcor=twiss(savepath+'/twiss_'+namename+'_cor.dat')
+    
+            normal_pro=twiss(savepath+'/twiss_'+namename+'.dat')
+            back_pro=twiss(savepath+'/twiss_'+namename+'_back_rev.dat')
+    
+    
+            normal_pro.Cmatrix()
+    
+#             print normal_pro.C
+#             sys.exit()
+            # writing data in list
+            phases=[filephasex,filephasey,filephasextot,filephaseytot]
+            betah=[filedatax,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedataxA]
+            betav=[filedatay,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedatayA]
+            if disp==1:
+                disph=[filedx,filendx,errdmin,errdmax,errdminb,errdmaxb]
+                dispv=[filedy,errdmin,errdmax,errdminb,errdmaxb]
+            else:
+                disph=[]
+                dispv=[]
+            couple=[filecouple,filecoupleC,errcmax,errcmin]
+            chromatic=[]
+    
+            # calling function to collect and write data
+            print "Writing data for function ",namename
+            getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,twisstwiss,modelcor,normal_pro,back_pro,savepath,elementswitch,accel)
+    
+    
+    
+            # gnuplot
+            if elementswitch==0:
+                
+                startpos=twisstwiss.S[twisstwiss.indx[startbpm]]
+                endpos=twisstwiss.S[twisstwiss.indx[endbpm]]
+                print startpos,endpos
+                run4plot(savepath,startpos,endpos,beta4plot,options.bb,path,namename,QXX,QYY,options.accel,method)
+                
+    return 0
+
+# END main() ---------------------------------------------------------------------------------------
+
+#===================================================================================================
+# helper-functions
+#===================================================================================================
 def modelIntersect(expbpms, model):
     bpmsin=[]
     for bpm in expbpms:
-
-        #print bpm
             
         try:
             model.indx[bpm.replace("-","_").upper()]
-            #print "Found"
             bpmsin.append(bpm)
         except:
             print bpm, "Not in Model"
@@ -133,6 +533,7 @@ def modelIntersect(expbpms, model):
         print "Now we better leave!"
         sys.exit()            
     return bpmsin
+
 
 def intersect(ListOfFile): 
     '''Pure intersection of all bpm names in all files '''
@@ -150,31 +551,29 @@ def intersect(ListOfFile):
     result.sort()
     return result
 
-#def sortedDictValues(adict):
-#    keys = adict.keys()
-#    keys.sort()
-#    return [dict[key] for key in keys]
-
-
 
 def filterandfind(betaxx,betayy,element,segment,model,errorcut):
-    ##############################################
-    #
-    #  Automatic BPM filter and BPM finder
-    #
-    #  Parameters:
-    #  betaxx => twiss for horizontal beta function
-    #  betayy => twiss for vertcal beta function
-    #  element => instrument,collimator or IP . Specify as "null" if it as a segment
-    #  segment => leftbpm and rightbpm where you want to compute the segment
-    #  model => twiss model
-    #  errorcut => errorcut for beta in percentage (err/bet)
-    #  Return:
-    #  Left and right BPM in a list
-    #  Exception:
-    #  If n BPMS is  < 3 => System exit
-    ###############################################
+    '''
+    Automatic BPM filter and BPM finder
     
+    :Parameters:
+        'betaxx': twiss
+            twiss for horizontal beta function
+        'betayy': twiss
+            twiss for vertcal beta function
+        'element': 
+            instrument,collimator or IP . Specify as "null" if it as a segment
+        'segment': 
+            leftbpm and rightbpm where you want to compute the segment
+        'model': twiss
+            twiss model
+        'errorcut': float
+            errorcut for beta in percentage (err/bet)
+    :Return: list
+        Left and right BPM in a list
+    :Exception:
+        If n BPMS is  < 3 => System exit        
+    '''
     # initial points
     translate={}
     location=[]
@@ -304,21 +703,29 @@ def filterandfind(betaxx,betayy,element,segment,model,errorcut):
     return [bpleft,bpright]
 
 def TransverseDampers(twissp,twissb,element,model,savepath,phasex,phasey,errors):
-    #######################################################
-    # Function for getting the phase advance between the
-    # dampers and pick-ups
-    # Parameters:
-    # -twissp containing propagation from BPM to damper
-    # -twissb containing back propagation from BPM to damper
-    # -element, element name
-    # -model, model twiss
-    # -savepath, where to save file
-    # -phasex and phasey measured phase advances.
-    # - errors : twissmin,twissminb,twissmax,twissmaxb
-    # Returns:
-    # - nothing => writing to file in this function (new/appending)
-    ########################################################
-
+    '''
+    Function for getting the phase advance between the dampers and pick-ups
+    
+    :Parameters:
+        'twissp': twiss?
+            containing propagation from BPM to damper
+        'twissb': twiss?
+            containing back propagation from BPM to damper
+        'element': string?
+            element name
+        'model': twiss
+            twiss model
+        'savepath': string
+            where to save file
+        'phasex': 
+            measured phase advances
+        'phasey': 
+            measured phase advances
+        'errors': 
+            twissmin,twissminb,twissmax,twissmaxb
+    :Return: None
+        nothing => writing to file in this function (new/appending)
+    '''
     # initial
     dampermap={}
     bpmmap={}
@@ -572,21 +979,33 @@ def TransverseDampers(twissp,twissb,element,model,savepath,phasex,phasey,errors)
     writer.close()
 
 def getIP(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,accel,path):
-    ###############################################################################
-    #
-    # Function calculating the optics parameters at the IP
-    #
-    # Parameters:
-    # - betameA : list contaning horizontal and vertical measured amplitude functions
-    # - basetwiss : list with propogated and back propogated twiss
-    # - betatwiss : list of twisses for beta errors
-    # - alfatwiss : list of twisses for alfa errors
-    # - model : model twiss
-    # - name : name of the IP
-    # Returns:
-    # - nothing writs to file in this function (new/appending)
-    ###############################################################################
-
+    '''
+    Function calculating the optics parameters at the IP
+    
+    :Parameters:
+        'betameA': list
+            contaning horizontal and vertical measured amplitude functions
+        'basetwiss': list
+            list with propogated and back propogated twiss
+        'betatwiss': list
+            list of twisses for beta errors
+        'alfatwiss': list
+            list of twisses for alfa errors
+        'model': twiss
+            twiss model
+        'phasex': 
+            measured phase advances
+        'phasey': 
+            measured phase advances
+        'name': string
+            name of the IP
+        'accel': string
+            name of the accelerator
+        'path': string
+            where to save file
+    :Return: None
+        nothing => writing to file in this function (new/appending)
+    '''
     if os.path.isfile(path+"/IP_para.out"):
         ipfilepara=open(path+"/IP_para.out","a")
     else:
@@ -639,7 +1058,10 @@ def getIP(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,accel,p
     bpmmap['IP8']=["BPMSW.1L8.","BPMSW.1R8."]
     
     if(name in bpmmap):
-        phix,ephix,betastar_h,errbx,location_h,errsx,phiy,ephiy,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p=getIPfrompara(bpmmap[name][0]+accelb,bpmmap[name][1]+accelb,ampbetx,ampbety,phasex,phasey,name)
+        # Removed unusedphix, ephix, phiy, ephiy. 
+        # If needed --> git commit eca47b2d06ab7eab911c830f30dc222a8bcd91a0
+        # --vimaier
+        betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p=getIPfrompara(bpmmap[name][0]+accelb,bpmmap[name][1]+accelb,ampbetx,ampbety,phasex,phasey)
     else:
         betastar_h_p=ebetastar_h_p=betastar_v_p=ebetastar_v_p=betastar_h=errbx=location_h=errsx=betastar_v=errby=location_v=errsy=0    
 
@@ -717,21 +1139,23 @@ def getIPfromProp(betaip,errbetaip,alfaip,ealfaip):
 
     return round(betastar,3),round(ebetastar,3),round(waist,3),round(ewaist,3)
 
-def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey,element):
-    ########################################################
-    # Function calculating beta at IP (based on Rioichy thesis)
-    # b(s)=b*+(s^2/b*)
-    #
-    # Parameters:
-    # - bpmleft,bpmright : bpm's used to caculate the beta at the IP
-    # - ampbetx,ampbety : twiss containing the horizontal and vertical beta from amp
-    # - phasex,phasey : measured phases
-    # Returns:
-    # - beta at waist and offset
-    ########################################################
 
-
-        #left horizontal
+def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey):
+    '''
+    Function calculating beta at IP (based on Rioichy thesis)
+    b(s)=b*+(s^2/b*)
+    
+    :Parameters:
+        'bpmleft,bpmright': <dtype?>
+            bpm's used to caculate the beta at the IP
+        'ampbetx,ampbety': twiss
+            twiss containing the horizontal and vertical beta from amp
+        'phasex,phasey': <dtype?>
+            measured phases
+    :Return: <dtype?>
+        beta at waist and offset
+    '''
+    #left horizontal
     try:
         blx=betax.BETX[betax.indx[bpmleft]]
         betax.BETXSTD[betax.indx[bpmleft]]
@@ -799,7 +1223,6 @@ def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey,element):
             L=(sxr-sxl)/2
         
         phix=phasex.PHASEX[inx1]
-        ephix=phasex.STDPHX[inx1]
         
         betastar_h=(2*sqrt(blx)*sqrt(brx)*sin(phix*2*pi))/(blx+brx-2*sqrt(blx)*sqrt(brx)*cos(2*pi*phix))*L
         location_h=((blx-brx)/(blx+brx-2*sqrt(blx)*sqrt(brx)*cos(2*pi*phix)))*L
@@ -817,7 +1240,6 @@ def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey,element):
     else:
         print "WARN: Will not calculate horizontal IP"
         phix="NIM"
-        ephix="NIM"        
         betastar_h="NIM"
         location_h="NIM"
         errbx="NIM"
@@ -836,7 +1258,6 @@ def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey,element):
         
 
         phiy=phasey.PHASEY[iny1]
-        ephiy=phasey.STDPHY[iny1]
         
         betastar_v=(2*sqrt(bly)*sqrt(bry)*sin(phiy*2*pi))/(bly+bry-2*sqrt(bly)*sqrt(bry)*cos(2*pi*phiy))*L
         location_v=((bly-bry)/(bly+bry-2*sqrt(bly)*sqrt(bry)*cos(2*pi*phiy)))*L
@@ -849,17 +1270,53 @@ def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey,element):
     else:
         print "WARN: Will not calculate vertical IP"
         phiy="NIM"
-        ephiy="NIM"
         betastar_v="NIM"
         location_v="NIM"
         errby="NIM"
         errsy="NIM"
         betastar_v_phase="NIM"
         betastar_v_phase_e="NIM"        
-
-    return phix,ephix,betastar_h,errbx,location_h,errsx,phiy,ephiy,betastar_v,errby,location_v,errsy,betastar_h_phase,betastar_h_phase_e,betastar_v_phase,betastar_v_phase_e
+        
+    return betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_phase,betastar_h_phase_e,betastar_v_phase,betastar_v_phase_e
 
 def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,model,modelcor,modelp,modelb,path,switch,accel):
+    '''
+    Function that returns the optics function at the given element
+    
+    :Parameters:
+        'namename': string
+            name of the element
+        'phase': list
+            horizontal and vertical phase [phasex,phasey,phasext,phaseyt]
+        'betah': list
+            horizontal beta [betax,betaxminp,betaxmaxp,betaxminb,betaxmaxb,alfaxminp,alfaxmaxp,alfaxminb,alfaxmaxb,ampbetax]
+        'betav': list
+            vertical beta [betay,betayminp,betaymaxp,betayminb,betaymaxb,alfayminp,alfaymaxp,alfayminb,alfaymaxb,ampbetay]
+        'disph': list
+            horizontal dispersion [dispx,ndispx,dispminxp,dispmaxp,dispminxb,dispmaxb]
+        'dispv': list
+            vertical dispersion [dispy,dispminyp,dispmayp,dispminyb,dispmayb]
+        'couple': list 
+            containing the coupling [coupleme,couplecme,couplemip,couplemap]
+        'chromatic': list 
+            containing the chromatic ouput [wx,wxminp,wxmqxp,wy,wyminp,wymaxp]
+        'model': twiss
+            model in twiss format
+        'modelcor': twiss
+            model containing twiss with corrections values (former known as model_play)
+        'modelp': twiss
+            model from propagation
+        'modelb': twiss
+            model from back propagation
+        'path': string
+            where to save file
+        'switch': int
+            to tell if it is either element(1)/segment(0)
+        'accel': string
+            name of the accelerator
+    :Return: None
+        nothing => writing to file in this function (new/appending)
+    '''
     ###################################################################
     # Function that returns the optics function at the given element
     # Parameters:
@@ -1505,37 +1962,8 @@ def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,mod
         errors=[betah[1],betah[3],betah[2],betah[4]]
         TransverseDampers(modelp,modelb,namename,model,path,phases[0],phases[1],errors)
         
-    
-def getTwiss(filee,element):
 
-    filedatax=twiss(filee)
-
-    try:
-        filedatax.indx[element]
-    except:
-        print element," is not in file ",filee, " please check system exit"
-        sys.exit()
-
-    betax=filedatax.BETX[filedatax.indx[element]]
-    alfx=filedatax.ALFX[filedatax.indx[element]]
-    sx=filedatax.S[filedatax.indx[element]]
-
-    betay=filedatax.BETY[filedatax.indx[element]]
-    alfy=filedatax.ALFY[filedatax.indx[element]]
-    sy=filedatax.S[filedatax.indx[element]]
-
-    dx=filedatax.DX[filedatax.indx[element]]
-    dpx=filedatax.DPX[filedatax.indx[element]]
-    dy=filedatax.DY[filedatax.indx[element]]
-    dpy=filedatax.DPY[filedatax.indx[element]]
- 
-    hor=[betax,alfx,sx]
-    ver=[betay,alfy,sy]
-    dp=[dx,dpx,dy,dpy]
-
-    return[hor,ver,dp]
-
-def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twissfile):
+def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twisspath, method):
 
 
     ##
@@ -1886,402 +2314,14 @@ def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainval
     filefile.close()
 
 
-#<=> Main part
-#
-#
-#<=> Main part
 
 
-path=options.path
-##########
-#
-# LOADING DATA
-#
-##########
-try:
-    filedatax=twiss(path+"/getbetax_free.out")
-except:
-    filedatax=twiss(path+"/getbetax.out")
-betxtwiss=filedatax
-QXX=filedatax.Q1
-QYY=filedatax.Q2
-
-try:
-    filedatay=twiss(path+"/getbetay_free.out")
-except:
-    filedatay=twiss(path+"/getbetay.out")    
-
-betytwiss=filedatay
-filedataxA=twiss(path+"/getampbetax.out")
-ampbetxtwiss=filedataxA
-filedatayA=twiss(path+"/getampbetay.out")
-ampbetytwiss=filedatayA
-try:
-    filephasex=twiss(path+"/getphasex_free.out")
-except:
-    filephasex=twiss(path+"/getphasex.out")    
-
-try:
-    filephasey=twiss(path+"/getphasey.out")
-except:
-    filephasey=twiss(path+"/getphasey_free.out")
-try:
-    filephasextot=twiss(path+"/getphasetotx_free.out")
-except:
-    filephasextot=twiss(path+"/getphasetotx.out")
-
-try:
-    filephaseytot=twiss(path+"/getphasetoty_free.out")
-except:
-    filephaseytot=twiss(path+"/getphasetoty.out")
-        
-### check if dispersion exist
-try:
-    filedx=twiss(path+"/getDx.out")
-    filendx=twiss(path+"/getNDx.out")
-    filedy=twiss(path+"/getDy.out")
-    disp=1
-    print "Disp files OK", filedx.DX[0], filedx.NAME[0]
-except:
-    print "no dispersion files... will continue without taking into account dispersion"
-    filendx=[]
-    filedx=[]
-    filedy=[]
-    disp=0
-
-### check if coupling exist
-try:
-    filecouple=twiss(path+"/getcouple.out")
-    filecoupleC=twiss(path+"/getcoupleterms.out")
-    coupleswitch=1
-    method="driven"
-except:
-    print "no coupling file... will continue without taking into account coupling"
-    filecouple=[]
-    filecoupleC=[]
-    coupleswitch=0
-    fs=[0,0,0,0]
-
+#===================================================================================================
+# main invocation
+#===================================================================================================
+if __name__ == "__main__":
+    (options, args) = parse_args()
     
-try:
-    filecouple=twiss(path+"/getcouple_free.out")
-    method="_free"
-    method_label=method
-    print "Free coupling found"
-
-except:
-    print 
-    #method=""
-    #%method_label="driven"
-    #filecouple=twiss(path+"/getcouple.out")
-    #print "WARN: Free coupling not found!!"
-
-
-# checking if end element is BPM or instrument (IP,collimators)
-elementswitch=-1
-savepath = options.SAVE + "/"
-if not os.path.isdir(savepath):
-    os.makedirs(savepath)
-list2run=options.segf.split(',')
-errorcut=float(options.cuts)
-accel=options.accel
-
-start={}
-end={}
-names=[]
-
-
-twissfile=options.twiss
-twisspath=os.path.dirname(twissfile)+'/'
-if twissfile=="./":
-    twissfile=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss_elements.dat"
-
-print "twissfile ",twissfile
-
-
-twisstwiss=twiss(twissfile)
-
-step=0# for selecting segments and elements
-for run in range(len(list2run)):
-    run=run+step
-
-    if run==(len(list2run)):
-        break
-
-    print list2run[run],run
+    return_value = main(options)
     
-    if "BPM" in list2run[run]: # segment
-        
-        start[list2run[run+2]]=list2run[run]
-        end[list2run[run+2]]=list2run[run+1]
-        names.append(list2run[run+2])
-        step=2+step
-    else: #element
-        step=0+step
-        names.append(list2run[run])
-
-
-####### Difference between segment or instrument #######
-# For segment => Startbpm,endbpm,NameOfSegment
-# For instrument => instrument
-####### 
-
-for namename in names:
-
-    print namename
-    ##
-    # Getting the BPM's
-    ##
-    if start.has_key(namename) and end.has_key(namename):
-        print "Segment has been choosen"
-        elementswitch=0
-        segment=[start[namename],end[namename]]
-        startbpm,endbpm=filterandfind(betxtwiss,betytwiss,"null",segment,twisstwiss,errorcut)
-
-    elif start.has_key(namename) or end.has_key(namename):
-
-        print "Something strange ....Did you properly define the input ?"
-        print "Like: BPM1,BPM2,ARC12,IP1"
-        print "Structure must be for Segment => BPML,BPMR,NAME"
-        print "For Instrument just name"
-        sys.exit()
-    else:
-        print "Element has been choosen"
-        elementswitch=1
-        startbpm,endbpm=filterandfind(betxtwiss,betytwiss,namename,[],twisstwiss,errorcut)
-
-    passs=1 # why?
-
-    #gathering data
-    hor=[betxtwiss.BETX[betxtwiss.indx[startbpm]],
-         sqrt(betxtwiss.STDBETX[betxtwiss.indx[startbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[startbpm]]**2),
-         betxtwiss.ALFX[betxtwiss.indx[startbpm]],
-         sqrt(betxtwiss.ERRALFX[betxtwiss.indx[startbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[startbpm]]**2)]
-    ver=[betytwiss.BETY[betytwiss.indx[startbpm]],
-         sqrt(betytwiss.STDBETY[betytwiss.indx[startbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[startbpm]]**2),
-         betytwiss.ALFY[betytwiss.indx[startbpm]],
-         sqrt(betytwiss.ERRALFY[betytwiss.indx[startbpm]]**2+betytwiss.STDALFY[betytwiss.indx[startbpm]]**2)]
-    hore=[betxtwiss.BETX[betxtwiss.indx[endbpm]],
-         sqrt(betxtwiss.STDBETX[betxtwiss.indx[endbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[endbpm]]**2),
-         betxtwiss.ALFX[betxtwiss.indx[endbpm]],
-         sqrt(betxtwiss.ERRALFX[betxtwiss.indx[endbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[endbpm]]**2)]
-    vere=[betytwiss.BETY[betytwiss.indx[endbpm]],
-         sqrt(betytwiss.STDBETY[betytwiss.indx[endbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[endbpm]]**2),
-         betytwiss.ALFY[betytwiss.indx[endbpm]],
-         sqrt(betytwiss.ERRALFY[betytwiss.indx[endbpm]]**2+betytwiss.STDALFY[betytwiss.indx[endbpm]]**2)]
-
-    beta4plot=hor[2]
-
-    if disp==1:
-
-        try: #horizontal
-            filedx.indx[startbpm]
-            dxpass=1
-        except:
-            print "startbpm for horizontal dispersion not found"
-            dxpass=0
-
-        try: #vertical
-            filedy.indx[startbpm]
-            dypass=1
-        except:
-            print "startbpm for  vertical dispersion not found"
-            dypass=0
-
-        try: #horizontal
-            filedx.indx[endbpm]
-            dxpasse=1
-        except:
-            print "endbpm for horizontal dispersion not found"
-            dxpasse=0
-
-        try: #vertical
-            filedy.indx[endbpm]
-            dypasse=1
-        except:
-            print "endbpm for  vertical dispersion not found"
-            dypasse=0
-
-        if dxpass==1:
-            dxx=filedx.DX[filedx.indx[startbpm]]
-            dxp=filedx.DPX[filedx.indx[startbpm]]
-            dxe=filedx.STDDX[filedx.indx[startbpm]]
-        else:
-            dxx=0
-            dxp=0
-            dxe=0
-
-        if dypass==1:
-            dyy=filedy.DY[filedy.indx[startbpm]]
-            dyp=filedy.DPY[filedy.indx[startbpm]]
-            dye=filedy.STDDY[filedy.indx[startbpm]]
-        else:
-            dyy=0
-            dyp=0
-            dye=0            
-        
-        dp=[dxx,
-            dxp,
-            dyy,
-            dyp,
-            dxe,
-            dye]
-
-    
-        if dxpasse==1:
-            dxx=filedx.DX[filedx.indx[endbpm]]
-            dxp=filedx.DPX[filedx.indx[endbpm]]
-            dxe=filedx.STDDX[filedx.indx[endbpm]]
-        else:
-            dxx=0
-            dxp=0
-            dxe=0
-
-        if dypasse==1:
-            dyy=filedy.DY[filedy.indx[endbpm]]
-            dyp=filedy.DPY[filedy.indx[endbpm]]
-            dye=filedy.STDDY[filedy.indx[endbpm]]
-        else:
-            dyy=0
-            dyp=0
-            dye=0    
-            
-        dpe=[dxx,
-            dxp,
-            dyy,
-            dyp,
-            dxe,
-            dye]
-
-#        print dp,dpe
-#        sys.exit()
-        
-    else:
-        dp=[0,0,0,0,0,0]
-        dpe=[0,0,0,0,0,0]
-        print "No dispersion"
-
-
-
-
-        
-    
-    
-
-
-    if passs==1:
-
-
-        if coupleswitch==1:
-            print "coupling,"
-            coupling=[[],[]]
-            try:
-                filecouple.indx[startbpm]
-                cpass=1
-            except:
-                cpass=0
-                print "startbpm ",startbpm," not found in coupling measurement => values=0"
-                
-            if cpass==1:
-                f1001r=filecouple.F1001R[filecouple.indx[startbpm]]
-                f1001i=filecouple.F1001I[filecouple.indx[startbpm]]
-                f1010r=filecouple.F1010R[filecouple.indx[startbpm]]
-                f1010i=filecouple.F1010I[filecouple.indx[startbpm]]
-                
-                f1001std=filecouple.FWSTD1[filecouple.indx[startbpm]]
-                f1010std=filecouple.FWSTD2[filecouple.indx[startbpm]]
-            
-                ### add error
-            else:
-                f1001r=0
-                f1001i=0
-                f1010r=0
-                f1010i=0
-                f1001std=0
-                f1010std=0
-                
-            fs=[f1001r,f1001i,f1010r,f1010i,f1001std,f1010std]
-
-        
-
-        else:
-            coupling=[[],[]]
-            fs=[0,0,0,0,0,0]
-            print "No coupling"
-
-        #sys.exit()
-            print "madpass", options.madpass        
-        if str(options.madpass)=="0":
-            print "Going to run4mad"
-            run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path+"/",twisstwiss)
-
-        else:
-            runmad(savepath,namename)
-            print "Just rerunning mad"
-        reversetable(savepath,namename)
-
-
-                ###############################################
-        #
-        # =>>>>>> including new writer
-        #
-                ###############################################
-
-        # loading twiss
-        errbetamin=twiss(savepath+'/twiss.b-.dat')
-        errbetaminb=twiss(savepath+'/twiss.b-_back.dat')
-        
-        errbetamax=twiss(savepath+'/twiss.b+.dat')
-        errbetamaxb=twiss(savepath+'/twiss.b+_back.dat')
-        
-        erralfmin=twiss(savepath+'/twiss.a-.dat')
-        erralfminb=twiss(savepath+'/twiss.a-_back.dat')
-        
-        erralfmax=twiss(savepath+'/twiss.a+.dat')
-        erralfmaxb=twiss(savepath+'/twiss.a+_back.dat')
-        
-        errdmin=twiss(savepath+'/twiss.d-.dat')
-        errdminb=twiss(savepath+'/twiss.d-_back.dat')
-
-        errdmax=twiss(savepath+'/twiss.d+.dat')
-        errdmaxb=twiss(savepath+'/twiss.d+_back.dat')
-
-        errcmax=twiss(savepath+'/twiss_c_max.dat')
-        errcmin=twiss(savepath+'/twiss_c_min.dat')
-
-        modelcor=twiss(savepath+'/twiss_'+namename+'_cor.dat')
-
-        normal_pro=twiss(savepath+'/twiss_'+namename+'.dat')
-        back_pro=twiss(savepath+'/twiss_'+namename+'_back_rev.dat')
-
-
-        normal_pro.Cmatrix()
-
-#        print normal_pro.C
-#        sys.exit()
-        # writing data in list
-        phases=[filephasex,filephasey,filephasextot,filephaseytot]
-        betah=[filedatax,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedataxA]
-        betav=[filedatay,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedatayA]
-        if disp==1:
-            disph=[filedx,filendx,errdmin,errdmax,errdminb,errdmaxb]
-            dispv=[filedy,errdmin,errdmax,errdminb,errdmaxb]
-        else:
-            disph=[]
-            dispv=[]
-        couple=[filecouple,filecoupleC,errcmax,errcmin]
-        chromatic=[]
-
-        # calling function to collect and write data
-        print "Writing data for function ",namename
-        getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,twisstwiss,modelcor,normal_pro,back_pro,savepath,elementswitch,accel)
-
-
-
-        # gnuplot
-        if elementswitch==0:
-            
-            startpos=twisstwiss.S[twisstwiss.indx[startbpm]]
-            endpos=twisstwiss.S[twisstwiss.indx[endbpm]]
-            print startpos,endpos
-            run4plot(savepath,startpos,endpos,beta4plot,options.bb,path,namename,QXX,QYY,options.accel,method)
+    sys.exit(return_value)
