@@ -5592,11 +5592,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     fsex3000=open(outputpath+'getsex3000.out','w')
     fsex3000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
-    fsex1200=open(outputpath+'getsex1200.out','w')
-    fsex1200.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-
-    fsex2100=open(outputpath+'getsex1200.out','w')
-    fsex2100.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    # Removed since it is not used in GetLLM (vimaier)
+#     fsex1200=open(outputpath+'getsex1200.out','w')
+#     fsex1200.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+#     fsex2100=open(outputpath+'getsex1200.out','w')
+#     fsex2100.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
     foct4000=open(outputpath+'getoct4000.out','w')
     foct4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')

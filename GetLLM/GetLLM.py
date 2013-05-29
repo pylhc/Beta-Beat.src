@@ -1,159 +1,171 @@
-# Python script to obtain Linear Lattice functions and More -> GetLLM
-# Version-up history:
-# V1.0, 11/Feb/2008 by Masa. Aiba
-# V1.1, 18/Feb/2008:
-# - Debugging, add model phase and tunes to output
-# - add function to obtain DY
-# - add chromatic parameter (phase for non zero DPP)
-# V1.2, 22/Feb/2008:
-# - test version for beta with all BPM
-# V1.3, 29/Feb/2008:
-# - beta from phases is improved, averaging beta1, 2 and 3
-# V1.31, 12/Mar/2008:
-# - debugged on alpha3
-# V1.4, 12/Mar/2008:
-# - modify output to fit latest TSF format and to meet requests from Rogelio
-# - fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
-# V1.5 Rogelio, 13 March 2008:
-# - Update to option parser, include BPMdictionary to filter BPMs not in Model
-# V1.51, 13/Mar/2008:
-# - Modify output to fit latest TSF format again. Add STD to beta.
-# V1.6, 15/Jul/2008:
-# - Add the integer part of tunes - assuming that the phase advance is always
-#   less than 1.0.
-# V1.71 27/Jul/2008:
-# - Add GetCO. Filter in dispersion calculation to exclude bad bpms.
-# V1.8, 13/Aug/2008 Ref. note by A. Franchi, R. T. Garcia, G. Vanbavinckhove:
-# - Add GetCoupling
-# - "Computation of the Coupling Resonance Driving term f1001 and the coupling
-#   coefficient C from turn-by-turn single-BPM data", 28/May/2008
-# - The GetCoupling.py is initiated by Glenn V. and imported into GetLLM /
-#   finalized by Masa. Aiba
-# - Some bugs are fixed - you can run even without liny file and find the
-#   results for horizontal plane only.
-# V1.81, 1/Sep/2008:
-# - For an accelerator in which the beam goes opposite direction to the model
-#   as in LHCB2, the beam direction parameter (bd) is added to GetPhases.
-# - Bug in the phi13 for the last monitor and the last but one is fixed.
-# V1.9, 21/Oct/2008:
-# - Add the beta from spectrum height.
-# V1.91, 08/Dec/2008:
-# - Add option - SUSSIX or SVD for input file
-# V1.99, 13/Feb/09:
-# - Add DPX! The MEMORIAL version for Version 1.** since all the linear lattice
-#   parameters become available!
-# - Add the option for the Harmonic analysis.
-# - Refine coding, add several lines of comment
-# V2.0, 17/Feb/2009:
-# - Major version up to output "More", that is, other than the linear lattice
-#   parameters.
-# - Add off-momentum lattice (dbeta/beta)/(dp/p)
-# - Add SPS coupling with "Pseudo-double plane BPM"-it need at this moment a
-#   list containing
-# - pre-paired H-V monitor. This should be replaced by a clever algorithm to
-#   find good pairs automatically.
-# V2.01, 10/Mar/2009:
-# - Fix bug on SPS double plane BPM monitor, in which missing BPM could cause
-#   an error.
-# - Modify BetaFromAmplitude to output invariant J (Rogelio / finalised by MA)
-# V2.02, 10/Mar/2009:
-# - Fix bug in getcoupling, bad input for phasex and phasey
-# V2.10, 13/Mar/2009, Glenn Vanbavinckhove:
-# - Added function for finding sextupole lines (amp and phases) + chiterms amp
-# V2.11. 26/Mar/2009
-# - Fix bug in Getphase (model phase advance from the last to first monitor).
-# V2.12, 28/03/2009
-# - Following bugs fixed : avoid negative square, change option -h to -l
-# - Add -r option as in correct.py
-# - Change the way to import BPM pair file for SPS. (import -> execfile)
-# V2.13, 06/Apl/2009
-# - Fix bug in weight function to accept negative dpp
-# V2.14, 08/Apl/2009
-# - Fix bug in Normalized dispersion to treat COcut correctly.
-# V2.15:
-# - Enable coupling in RHIC as in SPS
-# V2.16, 28/May/2009:
-# - Add STDBET for the beta from amplitude.
-# - Add option for off momentum beta-beating to choose algorithm, that is, beta
-#   from phase or amp
-# - Add a routine to detect wrong data having two lines in linx/y file with the
-#   same BPM name.
-# - Add a routine to avoid zero division due to exactly n*pi phase advance in
-#   beta from phase (see the last part of GetPhases).
-# V2.21, 23/June/2009:
-# - Add STDBET Model for off momentum beta beat phase.
-# V2.25:
-# - Fixed bd flag (must be -1 for beam2)
-# V2.25:
-# - Adding VERSION variable to be always output and modified in subsequent
-#   versions, do not forget!!!
-# V2.26:
-# - Adding F2000 (two different methods linear and non-linear)
-# V2.27:
-# - Adding new method for IP calculation
-# V2.28:
-# - Changing the rejection of bad BPM for the coupling phase - averaging the
-#   phase over the sets of data first , then cut if the q1 and q2 are very
-#   different.
-# - 24/Feb/2010 the change is not yet checked.
-# - Hyphens in the @ field of tfs files is not allowed:  The previous label
-#   "RMS-beta-beat" has been  moved to "RMSbetabeat"
-# V2.29 5/Mar/2010
-# - Change the default value for COcut from 1000 to 4000 as it was too small
-# V2.30 13/Sept/2010:
-# - Updating for AC-Dipole, implementing chromatic coupling (not done for RHIC
-#   or SPS)
-# V2.31 8/November/2010:
-# - Update for AC-Dipole: gives free beta,phase,coupling(global factor)
-# V2.32 15/January/2010:
-# - Taking models
-# V2.33 7/February/2011:
-# - implementing coupling correction for AC-dipole.
-# V2.34 7/04/2011:
-# - Updating to deal with chromatic twiss files.
-# V2.35 9/06/2011:
-# - Functions to cancel the AC dipole effect for beta, phase, and total phase,
-#   based on equations, are added.
-# - A function to calculate beta* from the phase advance between Q1s is added.
-# - Phase shift by tune is compensated for the LHC experiment data.
-# V2.36 30/09/2011:
-# - Rescaling algorithm for BetaFromAmp and action (by Andy) is implemented.
-# - 2nd function to calculate IP parameters from Q1s is added.
-# - The compensation of the phase shift by tune for LHC exp data is modified.
-# - A function to calculate action of the AC dipole excitation is added.
-# V2.38 08/03/2012:
-# - added main() function
-# - using raise ValueError() instead of sys.exit() some places
-# 13/09/2012:
-# - merged in patch 2.35-2.37
-# V2.38b 03/dec/2012, tbach:
-# - reformatted comments
-# - changed all parts of code, where the program exits inside an exception to
-#   display the exception, because the messages are not always helpful
-# - removed ";" from all over the code (still some left)
-# - 207 errors, 983 warning, 574 infos left from static code analysis...
-# Vxxx 16/apr/2013, vimaier:
-#  - deleted functions function and GetCoupling2
-#  - Changed GetCoupling2b to GetCoupling2
-#  - Set some TODOs
-#  - Changed wolin* and acswitch (* := x|y|x2|y2)
-#  - Defined variables Q1,Q2,Q1f,Q2f,MUX,MUY,muxf,muyf with standard values
-#    Saves a lot of try/excepts while writing files
-#  - Reformatted a lot of code
-#  - Introduced tfs_file for all output files in main() --> Formatted output files
+'''
+Created on 11/09/09
+
+@author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
+
+@version: 2.38b
+
+Python script to obtain Linear Lattice functions and More -> GetLLM
 
 
-# Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
-# Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
+
+Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
+Usage2 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
 
 
 
 
-# Some rules for variable name:
-# - Dictionary is used to contain the output of function
-# - Variable containing 'm' is a value directly obtained from measurment data
-# - Variable containing 'mdl' is a value related to model
-#
+Some rules for variable name:
+- Dictionary is used to contain the output of function
+- Variable containing 'm' is a value directly obtained from measurment data
+- Variable containing 'mdl' is a value related to model
+
+Change history:
+V1.0, 11/Feb/2008 by Masa. Aiba
+V1.1, 18/Feb/2008:
+- Debugging, add model phase and tunes to output
+- add function to obtain DY
+- add chromatic parameter (phase for non zero DPP)
+V1.2, 22/Feb/2008:
+- test version for beta with all BPM
+V1.3, 29/Feb/2008:
+- beta from phases is improved, averaging beta1, 2 and 3
+V1.31, 12/Mar/2008:
+- debugged on alpha3
+V1.4, 12/Mar/2008:
+- modify output to fit latest TSF format and to meet requests from Rogelio
+- fix buggs in r.m.s. beta-beat and added to the output of getbetax/y.out
+V1.5 Rogelio, 13 March 2008:
+- Update to option parser, include BPMdictionary to filter BPMs not in Model
+V1.51, 13/Mar/2008:
+- Modify output to fit latest TSF format again. Add STD to beta.
+V1.6, 15/Jul/2008:
+- Add the integer part of tunes - assuming that the phase advance is always
+  less than 1.0.
+V1.71 27/Jul/2008:
+- Add GetCO. Filter in dispersion calculation to exclude bad bpms.
+V1.8, 13/Aug/2008 Ref. note by A. Franchi, R. T. Garcia, G. Vanbavinckhove:
+- Add GetCoupling
+- "Computation of the Coupling Resonance Driving term f1001 and the coupling
+  coefficient C from turn-by-turn single-BPM data", 28/May/2008
+- The GetCoupling.py is initiated by Glenn V. and imported into GetLLM /
+  finalized by Masa. Aiba
+- Some bugs are fixed - you can run even without liny file and find the
+  results for horizontal plane only.
+V1.81, 1/Sep/2008:
+- For an accelerator in which the beam goes opposite direction to the model
+  as in LHCB2, the beam direction parameter (bd) is added to GetPhases.
+- Bug in the phi13 for the last monitor and the last but one is fixed.
+V1.9, 21/Oct/2008:
+- Add the beta from spectrum height.
+V1.91, 08/Dec/2008:
+- Add option - SUSSIX or SVD for input file
+V1.99, 13/Feb/09:
+- Add DPX! The MEMORIAL version for Version 1.** since all the linear lattice
+  parameters become available!
+- Add the option for the Harmonic analysis.
+- Refine coding, add several lines of comment
+V2.0, 17/Feb/2009:
+- Major version up to output "More", that is, other than the linear lattice
+  parameters.
+- Add off-momentum lattice (dbeta/beta)/(dp/p)
+- Add SPS coupling with "Pseudo-double plane BPM"-it need at this moment a
+  list containing
+- pre-paired H-V monitor. This should be replaced by a clever algorithm to
+  find good pairs automatically.
+V2.01, 10/Mar/2009:
+- Fix bug on SPS double plane BPM monitor, in which missing BPM could cause
+  an error.
+- Modify BetaFromAmplitude to output invariant J (Rogelio / finalised by MA)
+V2.02, 10/Mar/2009:
+- Fix bug in getcoupling, bad input for phasex and phasey
+V2.10, 13/Mar/2009, Glenn Vanbavinckhove:
+- Added function for finding sextupole lines (amp and phases) + chiterms amp
+V2.11. 26/Mar/2009
+- Fix bug in Getphase (model phase advance from the last to first monitor).
+V2.12, 28/03/2009
+- Following bugs fixed : avoid negative square, change option -h to -l
+- Add -r option as in correct.py
+- Change the way to import BPM pair file for SPS. (import -> execfile)
+V2.13, 06/Apl/2009
+- Fix bug in weight function to accept negative dpp
+V2.14, 08/Apl/2009
+- Fix bug in Normalized dispersion to treat COcut correctly.
+V2.15:
+- Enable coupling in RHIC as in SPS
+V2.16, 28/May/2009:
+- Add STDBET for the beta from amplitude.
+- Add option for off momentum beta-beating to choose algorithm, that is, beta
+  from phase or amp
+- Add a routine to detect wrong data having two lines in linx/y file with the
+  same BPM name.
+- Add a routine to avoid zero division due to exactly n*pi phase advance in
+  beta from phase (see the last part of GetPhases).
+V2.21, 23/June/2009:
+- Add STDBET Model for off momentum beta beat phase.
+V2.25:
+- Fixed bd flag (must be -1 for beam2)
+V2.25:
+- Adding VERSION variable to be always output and modified in subsequent
+  versions, do not forget!!!
+V2.26:
+- Adding F2000 (two different methods linear and non-linear)
+V2.27:
+- Adding new method for IP calculation
+V2.28:
+- Changing the rejection of bad BPM for the coupling phase - averaging the
+  phase over the sets of data first , then cut if the q1 and q2 are very
+  different.
+- 24/Feb/2010 the change is not yet checked.
+- Hyphens in the @ field of tfs files is not allowed:  The previous label
+  "RMS-beta-beat" has been  moved to "RMSbetabeat"
+V2.29 5/Mar/2010
+- Change the default value for COcut from 1000 to 4000 as it was too small
+V2.30 13/Sept/2010:
+- Updating for AC-Dipole, implementing chromatic coupling (not done for RHIC
+  or SPS)
+V2.31 8/November/2010:
+- Update for AC-Dipole: gives free beta,phase,coupling(global factor)
+V2.32 15/January/2010:
+- Taking models
+V2.33 7/February/2011:
+- implementing coupling correction for AC-dipole.
+V2.34 7/04/2011:
+- Updating to deal with chromatic twiss files.
+V2.35 9/06/2011:
+- Functions to cancel the AC dipole effect for beta, phase, and total phase,
+  based on equations, are added.
+- A function to calculate beta* from the phase advance between Q1s is added.
+- Phase shift by tune is compensated for the LHC experiment data.
+V2.36 30/09/2011:
+- Rescaling algorithm for BetaFromAmp and action (by Andy) is implemented.
+- 2nd function to calculate IP parameters from Q1s is added.
+- The compensation of the phase shift by tune for LHC exp data is modified.
+- A function to calculate action of the AC dipole excitation is added.
+V2.38 08/03/2012:
+- added main() function
+- using raise ValueError() instead of sys.exit() some places
+13/09/2012:
+- merged in patch 2.35-2.37
+V2.38b 03/dec/2012, tbach:
+- reformatted comments
+- changed all parts of code, where the program exits inside an exception to
+  display the exception, because the messages are not always helpful
+- removed ";" from all over the code (still some left)
+- 207 errors, 983 warning, 574 infos left from static code analysis...
+ - x.xxx, vimaier  16th Apr 2013:
+    deleted functions function and GetCoupling2
+    Changed GetCoupling2b to GetCoupling2
+    Set some TODOs
+    Changed wolin* and acswitch (* := x|y|x2|y2)
+    Defined variables Q1,Q2,Q1f,Q2f,MUX,MUY,muxf,muyf with standard values
+      Saves a lot of try/excepts while writing files
+    Reformatted a lot of code
+    Introduced tfs_file for all output files in main() --> Formatted output files
+
+'''
+
+
 
 
 ####
@@ -169,18 +181,14 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
 import traceback
 import metaclass
+from math import *
+import os
+from string import *
+
 from numpy import *
 import numpy
 
-from math import *
-import cmath
-import pickle,os
-
-from string import *
-
-from math import *
 from linreg import *
-
 import utils.tfs_file
 
 # tentative solution for SPS pseudo double plane BPM
@@ -3695,6 +3703,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
         if dppi == 0.0:
             ListOfZeroDPPX.append(twiss_file_x)
+            #TODO: FileOfZeroDPPX is not used anymore(vimaier)
             FileOfZeroDPPX.append(file_x)
             files_dict['getphasex.out'].add_filename_to_getllm_header(file_x)
             files_dict['getphasetotx.out'].add_filename_to_getllm_header(file_x)
@@ -3724,7 +3733,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 files_dict['getbetax_free2.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getampbetax_free.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getampbetax_free2.out'].add_filename_to_getllm_header(file_x)
-                #file_in!!!!
                 files_dict['getcouple_free.out'].add_filename_to_getllm_header(file_in)
                 files_dict['getcouple_free2.out'].add_filename_to_getllm_header(file_in)
         else:
@@ -3755,6 +3763,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
             if dppi == 0.0:
                 ListOfZeroDPPY.append(twiss_file_y)
+                #TODO: FileOfZeroDPPY is not used anymore (vimaier)
                 FileOfZeroDPPY.append(file_y)
                 files_dict['getphasey.out'].add_filename_to_getllm_header(file_y)
                 files_dict['getphasetoty.out'].add_filename_to_getllm_header(file_y)
@@ -4209,6 +4218,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     #-------- START Beta
     print 'Calculating beta'
+    #TODO: the entries of following both lists will never be accessed. Delete them? (vimaier)
     betaxlist=[]
     betaylist=[]
 
@@ -5131,10 +5141,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 
     #TODO: fsex1200 and 2100 is never used and ouputname is wrong
-    fsex1200 = open(outputpath+'getsex1200.out','w')
-    fsex1200.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
-    fsex2100 = open(outputpath+'getsex1200.out','w')
-    fsex2100.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+#     fsex1200 = open(outputpath+'getsex1200.out','w')
+#     fsex1200.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+#     fsex2100 = open(outputpath+'getsex1200.out','w')
+#     fsex2100.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
 
     if TBTana=="SUSSIX":
@@ -5310,6 +5320,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     ####### -------------- end
 
 if __name__=="__main__":
+    #TODO: already appended in import section. Delete it? (vimaier)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
     options,args=parse_args()
     main(outputpath=options.output,

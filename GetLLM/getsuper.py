@@ -6,6 +6,9 @@ Created on ??/??/??
 @version: 0.0.2
 
 TODO: Description
+From Yngve on GitHub issue #16:
+You need files with different dp/p. What getsuper essentially does is run GetLLM on files with 
+different dp/p and then afterwards interpolate the results to see how the functions vary with dp/p.
 
 Change history:
 
