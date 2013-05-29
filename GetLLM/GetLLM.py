@@ -749,7 +749,6 @@ def GetCO(MADTwiss, ListOfFiles):
     co={} # Disctionary for output
     for i in range(0,len(commonbpms)):
         bn1=upper(commonbpms[i][1])
-        bns1=commonbpms[i][0]
         coi=0.0
         coi2=0.0
         for j in ListOfFiles:
@@ -875,11 +874,9 @@ def GetDPX(MADTwiss,Dx,commonbpms):
         betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
         betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
         alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
-        alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
         dxmdl1=MADTwiss.DX[MADTwiss.indx[bn1]]
         dpxmdl1=MADTwiss.DPX[MADTwiss.indx[bn1]]
         dxmdl2=MADTwiss.DX[MADTwiss.indx[bn2]]
-        dpxmdl2=MADTwiss.DPX[MADTwiss.indx[bn2]]
 
         M11=sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
         M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
@@ -905,11 +902,9 @@ def GetDPY(MADTwiss,Dy,commonbpms):
         betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
         betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
         alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
-        alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
         dymdl1=MADTwiss.DY[MADTwiss.indx[bn1]]
         dpymdl1=MADTwiss.DPY[MADTwiss.indx[bn1]]
         dymdl2=MADTwiss.DY[MADTwiss.indx[bn2]]
-        dpymdl2=MADTwiss.DPY[MADTwiss.indx[bn2]]
 
         M11=sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
         M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
@@ -941,8 +936,6 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
     ALL=ListOfZeroDPP+ListOfNonZeroDPP
     commonbpmsALL=intersect(ALL)
 
-    nzdpp=len(ListOfNonZeroDPP) # How many non zero dpp
-    zdpp=len(ListOfZeroDPP)  # How many zero dpp
 
 
     mydp=[]
@@ -1034,7 +1027,6 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
         bn1=upper(dbpms[i][1])
 
         fij=[]
-        qij=[]
         q1j=[]
         q2j=[]
         badbpm=0
@@ -1148,7 +1140,6 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     # functions
     tp=2.0*pi
     C=cos(delta*tp)
-    S=sin(delta*tp)
     T=tan(delta*tp)
     SC=sin(delta*tp)/((cos(delta*tp*2)+1)/2)
 
@@ -1423,7 +1414,7 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
         fbpmx[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
         fbpmy[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
 
- # bpmhp will be used for storing in this section. Not used further. Replaced by 
+        # bpmhp will be used for storing in this section. Not used further. Replaced by 
         # 'tentative solution' with bpmpair. See some lines below.
         # --vimaier
 #     bpmhp=[]
@@ -1472,7 +1463,7 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 
 
     #dbpms=combinebpms(bpmhp,bpmvp)
-	# dbpms is replaced through 'tentative solution' (vimaier)
+    # dbpms is replaced through 'tentative solution' (vimaier)
 #     dbpms=bpmhp
 
     # tentative solution
@@ -1502,7 +1493,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
                 jx=ListOfZeroDPPX[j]
                 jy=ListOfZeroDPPY[j]
                 #if dbpms[i][3]==0:
-                dphix=MADTwiss.MUX[MADTwiss.indx[upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[upper(wname)]] # dphix is not used anyway
+                # dphix is used only in commented out code beneath (vimaier)
+#                 dphix=MADTwiss.MUX[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[string.upper(wname)]]
                 dphiy=MADTwiss.MUY[MADTwiss.indx[upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[upper(wname)]]
                 # Going to try using model names, to be able to use simulation data
                 try:
@@ -1608,7 +1600,8 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     bpms=intersect(amp20list)
     bpms=modelIntersect(bpms,MADTwiss)
 
-    [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,amp20list,'H')
+    # Since beta,rmsbb(return_value[0:2]) is not used, slice return value([2:4])(vimaier)
+    [bpms,invariantJx] = ( BetaFromAmplitude(MADTwiss,amp20list,'H') )[2:4]
     sqrt2jx=invariantJx[0]
 
     Q=tune+float(str(MADTwiss.Q1).split(".")[0])
@@ -1653,7 +1646,8 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
             edelta=phase[bpm.upper()][1]
 
             #computing complex line
-            ampi,phasei,eampi,ephasei=ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202)
+            # Since eampi,ephasei(return_value[2:4]) is not used, slice return value([0:1])(vimaier)
+            ampi,phasei = ( ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202) )[0:2]
 
 
             if ampi!=0.0:
@@ -1712,20 +1706,18 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     return htot,afactor,pfactor
 
 
-def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
+def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     '''
     for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
     '''
 
         # intersects BPMs
-    dbpms=intersect(listF[0])
+    dbpms=intersect(twiss_files[0])
     dbpms=modelIntersect(dbpms,MADTwiss)
 
 
 
     # value definition
-    tp=2.0*pi
-
     hMODELT=[]
     hMODELTi=[]
     hMODELTr=[]
@@ -1749,13 +1741,15 @@ def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
     invarianceJy=[]
 
     # finding the invariances
-    for j in range(0,len(listF[0])):
-        singleFilex=[listF[0][j]]
-        singleFiley=[listF[1][j]]
+    for j in range(0,len(twiss_files[0])):
+        singleFilex=[twiss_files[0][j]]
+        singleFiley=[twiss_files[1][j]]
 
-        [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,singleFilex,'H')
+        # Since beta,rmsbb,bpms(return_value[0:3]) is not used, slice return value([3])(vimaier)
+        invariantJx = ( BetaFromAmplitude(MADTwiss,singleFilex,'H') )[3] 
 
-        [beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,singleFiley,'V')
+        # Since beta,rmsbb,bpms(return_value[0:3]) is not used, slice return value([3])(vimaier)
+        invariantJy = ( BetaFromAmplitude(MADTwiss,singleFiley,'V') )[3]
 
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
@@ -1818,16 +1812,14 @@ def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
         h_phaseS=[]
         h_phase_RMSS=[]
 
-        phaseMM=h_phase_MODELT[i]
+        for j in range(0,len(twiss_files[0])):
 
-        for j in range(0,len(listF[0])):
-
-            file=listF[0][j]
+            single_twiss = twiss_files[0][j]
 
             # for f4000
             if fname=='f4000':
 
-                [A,phi]=ComplexSecondaryLine(dell, file.AMP_30[file.indx[bn1]], file.AMP_30[file.indx[bn2]], file.PHASE_30[file.indx[bn1]], file.PHASE_30[file.indx[bn2]])
+                [A,phi]=ComplexSecondaryLine(dell, single_twiss.AMP_30[single_twiss.indx[bn1]], single_twiss.AMP_30[single_twiss.indx[bn2]], single_twiss.PHASE_30[single_twiss.indx[bn1]], single_twiss.PHASE_30[single_twiss.indx[bn2]])
 
                 factor=float(8*invarianceJx[j][0]**1.5)   # 1 to fit with model
                 term=float(4*Q[0])
@@ -1835,7 +1827,6 @@ def Getoctopole(MADTwiss,plane,listF,phaseI,Q,fname,fM,NAMES):
                 M2M=0.5
 
             #------ converting
-            phase0=file.MUX[file.indx[bn1]]
             h=f2h(A,phi,termj,factor,term,M2M)
 
             #----- adding the terms
@@ -1948,8 +1939,6 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
 
     # initiliasing variables
-    twoPi = 2*pi
-
     XIT=[]
     XITi=[]
     XITr=[]
@@ -1978,8 +1967,10 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
     #### invariance
     for j in range(0,len(ListOfZeroDPPX)):
-        [betax,rmsbbx,bpms,invariantJX]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H')
-        [betay,rmsbby,bpms,invariantJY]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V')
+        # Since betax,rmsbbx,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJX = ( BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H') )[3]
+        # Since betay,rmsbby,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJY= ( BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V') )[3]
         invarianceJx.append(invariantJX[0])
         invarianceJy.append(invariantJY[0])
 
@@ -2044,7 +2035,6 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
         for j in range(0,len(files)):
             jx=files[j]
-            listJX=[jx]
 
 
 
@@ -2137,23 +2127,10 @@ def getchi1010(MADTwiss,filesF,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY):
 
 
     # initiliasing variables
-    twoPi=2*pi
-
     XIT=[]
-    XITi=[]
-    XITr=[]
     XIrmsT=[]
     XI_phase_T=[]
     XI_phaseRMS_T=[]
-
-    POS1=[]
-    POS2=[]
-    POS3=[]
-
-    XITMODEL=[]
-    XITMODELi=[]
-    XITMODELr=[]
-    XITMODEL_phase=[]
 
     BPMS=[]
     invarianceJx=[]
@@ -2166,8 +2143,10 @@ def getchi1010(MADTwiss,filesF,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY):
 
     #### invariance
     for j in range(0,len(files)):
-        [betax,rmsbbx,bpms,invariantJX]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H')
-        [betay,rmsbby,bpms,invariantJY]=BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V')
+        # Since betax,rmsbbx,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJX = ( BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H') )[3]
+        # Since betay,rmsbby,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJY = ( BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V') )[3]
         invarianceJx.append(invariantJX[0])
         invarianceJy.append(invariantJY[0])
 
@@ -2185,11 +2164,8 @@ def getchi1010(MADTwiss,filesF,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY):
         for j in range(0,len(files)):
 
             jx=files[j]
-            listJX=[jx]
 
             jy=filesy[j]
-            listJy=[jy]
-
 
             amp10x=jx.AMP01[jx.indx[bn]]
             amp10y=jy.AMP10[jy.indx[bny]]
@@ -2287,10 +2263,10 @@ def getkick(files,MADTwiss):
         x=files[0][j]
         y=files[1][j]
 
-
-        [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,[x],'H')
-
-        [beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,[y],'V')
+        # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJx = ( BetaFromAmplitude(MADTwiss,[x],'H') )[3]
+        # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJy = ( BetaFromAmplitude(MADTwiss,[y],'V') )[3]
 
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
@@ -2316,11 +2292,7 @@ def BPMfinder(IP,model,measured):
 
     # last index
     indxes=model.S
-    #print len(indxes)
-    indxlast=len(indxes)-1
 
-    S=model.S[model.indx["IP"+IP]]
-    indx=model.indx["IP"+IP]
     bpml="null"
     bpmh="null"
     for ind in range(len(indxes)):
