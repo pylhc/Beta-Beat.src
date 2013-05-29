@@ -1561,13 +1561,16 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
     PseudoListX=[]
     PseudoListY=[]
     for j in range(0,len(ListOfZeroDPPX)):
-        #TODO: temp files?! What's about deleting?(vimaier)
         fbpmx[j].close()
         fbpmy[j].close()
         filex='temp'+str(j)+'_linx'
         filey='temp'+str(j)+'_liny'
         PseudoListX.append(metaclass.twiss(filex))
         PseudoListY.append(metaclass.twiss(filey))
+        
+        # Delete temp files again. (vimaier)
+        os.remove(filex)
+        os.remove(filey)
 
 
     return [PseudoListX,PseudoListY]
@@ -1885,8 +1888,9 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
 
     return [A,h,hMODEL,dbpms]
 
-#------------------------- for finding the chi terms
+
 def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
+    ''' for finding the chi terms '''
 
     #computes the chiterms for different inputs
     twoPi=2*pi
@@ -3664,8 +3668,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             files_dict['getIPfromphase_free.out'] = utils.tfs_file.TfsFile('getIPfromphase_free.out').add_getllm_header(VERSION, twiss_model_file)
             files_dict['getIPfromphase_free2.out'] = utils.tfs_file.TfsFile('getIPfromphase_free2.out').add_getllm_header(VERSION, twiss_model_file)
 
-    FileOfZeroDPPX = []
-    FileOfZeroDPPY = []
     FileOfNonZeroDPPX = []
     FileOfNonZeroDPPY = []
     
@@ -3697,8 +3699,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
         if dppi == 0.0:
             ListOfZeroDPPX.append(twiss_file_x)
-            #TODO: FileOfZeroDPPX is not used anymore(vimaier)
-            FileOfZeroDPPX.append(file_x)
             files_dict['getphasex.out'].add_filename_to_getllm_header(file_x)
             files_dict['getphasetotx.out'].add_filename_to_getllm_header(file_x)
             files_dict['getbetax.out'].add_filename_to_getllm_header(file_x)
@@ -3757,8 +3757,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
             if dppi == 0.0:
                 ListOfZeroDPPY.append(twiss_file_y)
-                #TODO: FileOfZeroDPPY is not used anymore (vimaier)
-                FileOfZeroDPPY.append(file_y)
                 files_dict['getphasey.out'].add_filename_to_getllm_header(file_y)
                 files_dict['getphasetoty.out'].add_filename_to_getllm_header(file_y)
                 files_dict['getbetay.out'].add_filename_to_getllm_header(file_y)
@@ -4537,7 +4535,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 betahor=[0,0,0,0,0,0,0]
                 betaver=[0,0,0,0,0,0,0]
             #print str(betahor[6])
-            #TODO: check if it is even senseless to create file when no IPs in model since entries will be 0.(vimaier)
             list_row_entries = ['"IP'+ip+'"',betahor[1],betahor[4],betahor[2],betahor[3],betahor[6],betahor[5],betaver[1],betaver[4],betaver[2],betaver[3],betaver[6],betaver[5] ]
             tfs_file.add_table_row(list_row_entries)
 
@@ -5143,7 +5140,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         return 0
 
 
-    #TODO: fsex1200 and 2100 is never used and ouputname is wrong
+    # fsex1200 and 2100 is never used and ouputname is wrong(vimaier)
 #     fsex1200 = open(outputpath+'getsex1200.out','w')
 #     fsex1200.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 #     fsex2100 = open(outputpath+'getsex1200.out','w')
@@ -5322,8 +5319,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     ####### -------------- end
 
 if __name__=="__main__":
-    #TODO: already appended in import section. Delete it? (vimaier)
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
     options,args=parse_args()
     main(outputpath=options.output,
          dict_file=options.dict,
