@@ -589,177 +589,272 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
 
 #-------- Beta from phases
 
-def BetaFromPhase_BPM_left(bn1,bn2,bn3,MADTwiss,phase,plane):  # Probed BPM located left of the other two BPMs
-
-        ph2pi12=2.*pi*phase["".join([plane,bn1,bn2])][0]
-        ph2pi23=2.*pi*phase["".join([plane,bn2,bn3])][0]
-        ph2pi13=2.*pi*phase["".join([plane,bn1,bn3])][0]
+def BetaFromPhase_BPM_left(bn1,bn2,bn3,MADTwiss,phase,plane):  
+    ''' 
+    Calculates the beta/alfa function and their errors using the 
+    phase advance between three BPMs for the case that the probed BPM is left of the other two BPMs
+    :Parameters: 
+        'bn1':string 
+            Name of probed BPM 
+        'bn2':string 
+            Name of first BPM right of the probed BPM
+        'bn3':string 
+            Name of second BPM right of the probed BPM 
+        'MADTwiss':twiss 
+            model twiss file 
+        'phase':dict
+            measured phase advances 
+        'plane':string 
+            'H' or 'V'
+    :Return:tupel (bet,betstd,alf,alfstd) 
+        'bet':float 
+            calculated beta function at probed BPM
+        'betstd':float 
+            calculated error on beta function at probed BPM
+        'alf':float 
+            calculated alfa function at probed BPM
+        'alfstd':float 
+            calculated error on alfa function at probed BPM
+    '''
+    ph2pi12=2.*pi*phase["".join([plane,bn1,bn2])][0]
+    ph2pi23=2.*pi*phase["".join([plane,bn2,bn3])][0]
+    ph2pi13=2.*pi*phase["".join([plane,bn1,bn3])][0]
       
-        # Find the model transfer matrices for beta1
-        phmdl12=2.*pi*phase["".join([plane,bn1,bn2])][2]
-        phmdl13=2.*pi*phase["".join([plane,bn1,bn3])][2]
-        phmdl23=2.*pi*phase["".join([plane,bn2,bn3])][2]
-        if plane=='H':
-            betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
-            betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
-            betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
-            alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
-            alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
-            alpmdl3=MADTwiss.ALFX[MADTwiss.indx[bn3]]
-        elif plane=='V':
-            betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
-            betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
-            betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
-            alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
-            alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
-            alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
-        if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
-            print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
-            sys.exit(1)
+    # Find the model transfer matrices for beta1
+    phmdl12=2.*pi*phase["".join([plane,bn1,bn2])][2]
+    phmdl13=2.*pi*phase["".join([plane,bn1,bn3])][2]
+    phmdl23=2.*pi*phase["".join([plane,bn2,bn3])][2]
+    if plane=='H':
+        betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
+        betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
+        betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
+        alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
+        alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
+        alpmdl3=MADTwiss.ALFX[MADTwiss.indx[bn3]]
+    elif plane=='V':
+        betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
+        betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
+        betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
+        alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
+        alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
+        alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
+    if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
+        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
+        sys.exit(1)
 
-        # Find beta1 and alpha1 from phases assuming model transfer matrix
-        # Matrix M: BPM1-> BPM2
-        # Matrix N: BPM1-> BPM3
-        M11=sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
-        M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
-        N11=sqrt(betmdl3/betmdl1)*(cos(phmdl13)+alpmdl1*sin(phmdl13))
-        N12=sqrt(betmdl1*betmdl3)*sin(phmdl13)
+    # Find beta1 and alpha1 from phases assuming model transfer matrix
+    # Matrix M: BPM1-> BPM2
+    # Matrix N: BPM1-> BPM3
+    M11=sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
+    M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
+    N11=sqrt(betmdl3/betmdl1)*(cos(phmdl13)+alpmdl1*sin(phmdl13))
+    N12=sqrt(betmdl1*betmdl3)*sin(phmdl13)
 
-        denom=M11/M12-N11/N12+1e-16
-        numer=1/tan(ph2pi12)-1/tan(ph2pi13)
-        beti1=numer/denom
+    denom=M11/M12-N11/N12+1e-16
+    numer=1/tan(ph2pi12)-1/tan(ph2pi13)
+    bet=numer/denom
 
-        betstd1=        (2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-        betstd1=betstd1+(2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-        betstd1=sqrt(betstd1)/abs(denom)
+    betstd=        (2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
+    betstd=betstd+(2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
+    betstd=sqrt(betstd)/abs(denom)
 
-        denom=M12/M11-N12/N11+1e-16
-        numer=-M12/M11/tan(ph2pi12)+N12/N11/tan(ph2pi13)
-        alfi1=numer/denom
+    denom=M12/M11-N12/N11+1e-16
+    numer=-M12/M11/tan(ph2pi12)+N12/N11/tan(ph2pi13)
+    alf=numer/denom
 
-        alfstd1=        (M12/M11*2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-        alfstd1=alfstd1+(N12/N11*2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-        alfstd1=sqrt(alfstd1)/denom
+    alfstd=        (M12/M11*2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
+    alfstd=alfstd+(N12/N11*2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
+    alfstd=sqrt(alfstd)/denom
 
-        return beti1, betstd1, alfi1, alfstd1
+    return bet, betstd, alf, alfstd
     
-def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane):  # Probed BPM in between of the other two BPMs
-
-        ph2pi12=2.*pi*phase["".join([plane,bn1,bn2])][0]
-        ph2pi23=2.*pi*phase["".join([plane,bn2,bn3])][0]
-        ph2pi13=2.*pi*phase["".join([plane,bn1,bn3])][0]
+def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane): 
+    ''' 
+    Calculates the beta/alfa function and their errors using the 
+    phase advance between three BPMs for the case that the probed BPM is between the other two BPMs
+    :Parameters: 
+        'bn1':string 
+            Name of BPM left of the probed BPM
+        'bn2':string 
+            Name of probed BPM 
+        'bn3':string 
+            Name of BPM right of the probed BPM 
+        'MADTwiss':twiss 
+            model twiss file 
+        'phase':dict
+            measured phase advances 
+        'plane':string 
+            'H' or 'V'
+    :Return:tupel (bet,betstd,alf,alfstd) 
+        'bet':float 
+            calculated beta function at probed BPM
+        'betstd':float 
+            calculated error on beta function at probed BPM
+        'alf':float 
+            calculated alfa function at probed BPM
+        'alfstd':float 
+            calculated error on alfa function at probed BPM
+    '''
+    ph2pi12=2.*pi*phase["".join([plane,bn1,bn2])][0]
+    ph2pi23=2.*pi*phase["".join([plane,bn2,bn3])][0]
+    ph2pi13=2.*pi*phase["".join([plane,bn1,bn3])][0]
       
-        # Find the model transfer matrices for beta1
-        phmdl12=2.*pi*phase["".join([plane,bn1,bn2])][2]
-        phmdl13=2.*pi*phase["".join([plane,bn1,bn3])][2]
-        phmdl23=2.*pi*phase["".join([plane,bn2,bn3])][2]
-        if plane=='H':
-            betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
-            betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
-            betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
-            alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
-            alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
-            alpmdl3=MADTwiss.ALFX[MADTwiss.indx[bn3]]
-        elif plane=='V':
-            betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
-            betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
-            betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
-            alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
-            alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
-            alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
-        if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
-            print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
-            sys.exit(1)
+    # Find the model transfer matrices for beta1
+    phmdl12=2.*pi*phase["".join([plane,bn1,bn2])][2]
+    phmdl13=2.*pi*phase["".join([plane,bn1,bn3])][2]
+    phmdl23=2.*pi*phase["".join([plane,bn2,bn3])][2]
+    if plane=='H':
+        betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
+        betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
+        betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
+        alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
+        alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
+        alpmdl3=MADTwiss.ALFX[MADTwiss.indx[bn3]]
+    elif plane=='V':
+        betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
+        betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
+        betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
+        alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
+        alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
+        alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
+    if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
+        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
+        sys.exit(1)
 
-        # Find beta2 and alpha2 from phases assuming model transfer matrix
-        # Matrix M: BPM1-> BPM2
-        # Matrix N: BPM2-> BPM3
-        M22=sqrt(betmdl1/betmdl2)*(cos(phmdl12)-alpmdl2*sin(phmdl12))
-        M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
-        N11=sqrt(betmdl3/betmdl2)*(cos(phmdl23)+alpmdl2*sin(phmdl23))
-        N12=sqrt(betmdl2*betmdl3)*sin(phmdl23)
+    # Find beta2 and alpha2 from phases assuming model transfer matrix
+    # Matrix M: BPM1-> BPM2
+    # Matrix N: BPM2-> BPM3
+    M22=sqrt(betmdl1/betmdl2)*(cos(phmdl12)-alpmdl2*sin(phmdl12))
+    M12=sqrt(betmdl1*betmdl2)*sin(phmdl12)
+    N11=sqrt(betmdl3/betmdl2)*(cos(phmdl23)+alpmdl2*sin(phmdl23))
+    N12=sqrt(betmdl2*betmdl3)*sin(phmdl23)
 
-        denom=M22/M12+N11/N12+1e-16
-        numer=1/tan(ph2pi12)+1/tan(ph2pi23)
-        beti2=numer/denom
+    denom=M22/M12+N11/N12+1e-16
+    numer=1/tan(ph2pi12)+1/tan(ph2pi23)
+    bet=numer/denom
 
-        betstd2=        (2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-        betstd2=betstd2+(2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-        betstd2=sqrt(betstd2)/abs(denom)
+    betstd=        (2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
+    betstd=betstd+(2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
+    betstd=sqrt(betstd)/abs(denom)
 
-        denom=M12/M22+N12/N11+1e-16
-        numer=M12/M22/tan(ph2pi12)-N12/N11/tan(ph2pi23)
-        alfi2=numer/denom
+    denom=M12/M22+N12/N11+1e-16
+    numer=M12/M22/tan(ph2pi12)-N12/N11/tan(ph2pi23)
+    alf=numer/denom
 
-        alfstd2=        (M12/M22*2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-        alfstd2=alfstd2+(N12/N11*2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-        alfstd2=sqrt(alfstd2)/abs(denom)
+    alfstd=        (M12/M22*2*pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
+    alfstd=alfstd+(N12/N11*2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
+    alfstd=sqrt(alfstd)/abs(denom)
 
-        return beti2, betstd2, alfi2, alfstd2
+    return bet, betstd, alf, alfstd
 
-def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane):  # Probed BPM located right of the other two BPMs
-
-        ph2pi12=2.*pi*phase["".join([plane,bn1,bn2])][0]
-        ph2pi23=2.*pi*phase["".join([plane,bn2,bn3])][0]
-        ph2pi13=2.*pi*phase["".join([plane,bn1,bn3])][0]
+def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane):
+    ''' 
+    Calculates the beta/alfa function and their errors using the 
+    phase advance between three BPMs for the case that the probed BPM is right the other two BPMs
+    :Parameters: 
+        'bn1':string 
+            Name of second BPM left of the probed BPM
+        'bn2':string 
+            Name of first BPM left of the probed BPM
+        'bn3':string 
+            Name of probed BPM 
+        'MADTwiss':twiss 
+            model twiss file 
+        'phase':dict
+            measured phase advances 
+        'plane':string 
+            'H' or 'V'
+    :Return:tupel (bet,betstd,alf,alfstd) 
+        'bet':float 
+            calculated beta function at probed BPM
+        'betstd':float 
+            calculated error on beta function at probed BPM
+        'alf':float 
+            calculated alfa function at probed BPM
+        'alfstd':float 
+            calculated error on alfa function at probed BPM
+    '''
+    ph2pi12=2.*pi*phase["".join([plane,bn1,bn2])][0]
+    ph2pi23=2.*pi*phase["".join([plane,bn2,bn3])][0]
+    ph2pi13=2.*pi*phase["".join([plane,bn1,bn3])][0]
       
-        # Find the model transfer matrices for beta1
-        phmdl12=2.*pi*phase["".join([plane,bn1,bn2])][2]
-        phmdl13=2.*pi*phase["".join([plane,bn1,bn3])][2]
-        phmdl23=2.*pi*phase["".join([plane,bn2,bn3])][2]
-        if plane=='H':
-            betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
-            betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
-            betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
-            alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
-            alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
-            alpmdl3=MADTwiss.ALFX[MADTwiss.indx[bn3]]
-        elif plane=='V':
-            betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
-            betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
-            betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
-            alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
-            alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
-            alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
-        if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
-            print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
-            sys.exit(1)
+    # Find the model transfer matrices for beta1
+    phmdl12=2.*pi*phase["".join([plane,bn1,bn2])][2]
+    phmdl13=2.*pi*phase["".join([plane,bn1,bn3])][2]
+    phmdl23=2.*pi*phase["".join([plane,bn2,bn3])][2]
+    if plane=='H':
+        betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
+        betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
+        betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
+        alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
+        alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
+        alpmdl3=MADTwiss.ALFX[MADTwiss.indx[bn3]]
+    elif plane=='V':
+        betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
+        betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
+        betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
+        alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
+        alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
+        alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
+    if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
+        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
+        sys.exit(1)
 
-        # Find beta3 and alpha3 from phases assuming model transfer matrix
-        # Matrix M: BPM2-> BPM3
-        # Matrix N: BPM1-> BPM3
-        M22=sqrt(betmdl2/betmdl3)*(cos(phmdl23)-alpmdl3*sin(phmdl23))
-        M12=sqrt(betmdl2*betmdl3)*sin(phmdl23)
-        N22=sqrt(betmdl1/betmdl3)*(cos(phmdl13)-alpmdl3*sin(phmdl13))
-        N12=sqrt(betmdl1*betmdl3)*sin(phmdl13)
+    # Find beta3 and alpha3 from phases assuming model transfer matrix
+    # Matrix M: BPM2-> BPM3
+    # Matrix N: BPM1-> BPM3
+    M22=sqrt(betmdl2/betmdl3)*(cos(phmdl23)-alpmdl3*sin(phmdl23))
+    M12=sqrt(betmdl2*betmdl3)*sin(phmdl23)
+    N22=sqrt(betmdl1/betmdl3)*(cos(phmdl13)-alpmdl3*sin(phmdl13))
+    N12=sqrt(betmdl1*betmdl3)*sin(phmdl13)
 
-        denom=M22/M12-N22/N12+1e-16
-        numer=1/tan(ph2pi23)-1/tan(ph2pi13)
-        beti3=numer/denom
+    denom=M22/M12-N22/N12+1e-16
+    numer=1/tan(ph2pi23)-1/tan(ph2pi13)
+    bet=numer/denom
 
-        betstd3=        (2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-        betstd3=betstd3+(2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-        betstd3=sqrt(betstd3)/abs(denom)
+    betstd=        (2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
+    betstd=betstd+(2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
+    betstd=sqrt(betstd)/abs(denom)
 
-        denom=M12/M22-N12/N22+1e-16
-        numer=M12/M22/tan(ph2pi23)-N12/N22/tan(ph2pi13)
-        alfi3=numer/denom
+    denom=M12/M22-N12/N22+1e-16
+    numer=M12/M22/tan(ph2pi23)-N12/N22/tan(ph2pi13)
+    alf=numer/denom
 
-        alfstd3=        (M12/M22*2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-        alfstd3=alfstd3+(N12/N22*2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-        alfstd3=sqrt(alfstd3)/abs(denom)
+    alfstd=        (M12/M22*2*pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
+    alfstd=alfstd+(N12/N22*2*pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
+    alfstd=sqrt(alfstd)/abs(denom)
 
 
-        return beti3, betstd3, alfi3, alfstd3
+    return bet, betstd, alf, alfstd
 
 def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
-
+    ''' 
+    Uses 3 BPM left and right of a probed BPM and calculates the beta/alfa from the
+    phase advances (15 combinations of 3 BPM stes -> 15 betas).
+    The 3 betas with the lowest errors are chosen, and averaged for the final beta.
+    :Parameters: 
+        'MADTwiss':twiss 
+            model twiss file 
+        'ListOfFiles':twiss 
+            measurement files 
+        'phase':dict
+            measured phase advances 
+        'plane':string 
+            'H' or 'V'
+    :Return:tupel (beta,rmsbb,alfa,commonbpms) 
+        'beta':dict
+            calculated beta function for all BPMs
+        'rmsbb':float 
+            rms beta-beating
+        'alfa':dict 
+            calculated alfa function for all BPMs
+        'commonbpms':dict 
+            intersection of common BPMs in measurement files and model
+    '''
     alfa={}
     beta={}
     commonbpms=intersect(ListOfFiles)
     commonbpms=modelIntersect(commonbpms,MADTwiss)
-    alfii=[]
-    betii=[]
     delbeta=[]
     for i in range(0,len(commonbpms)):
         bn1=upper(commonbpms[i%len(commonbpms)][1])
