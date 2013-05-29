@@ -3432,8 +3432,10 @@ def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
         x=files[0][j]
         y=files[1][j]
-        [beta,rmsbb,bpms,invariantJx]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op)
-        [beta,rmsbb,bpms,invariantJy]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op)
+        result_list = GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op)
+        invariantJx = result_list[3]
+        result_list = GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op)
+        invariantJy = result_list[3]
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
         try:
@@ -3961,8 +3963,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             [phasexf2,muxf2,bpmsxf2] = getfreephase(phasex,Q1,Q1f,bpmsx,MADTwiss_ac,MADTwiss,"H")
         if with_liny_for_zero_dppy:
             Q2f=Q2-d2  #-- Free V-tune
-            try:    acphasey_ac2bpmac=GetACPhase_AC2BPMAC(MADTwissElem,Q2,Q2f,'V',accel)
-            except: acphasey_ac2bpmac=GetACPhase_AC2BPMAC(MADTwiss,Q2,Q2f,'V',accel)
+            try:    
+                acphasey_ac2bpmac=GetACPhase_AC2BPMAC(MADTwissElem,Q2,Q2f,'V',accel)
+            except: 
+                acphasey_ac2bpmac=GetACPhase_AC2BPMAC(MADTwiss,Q2,Q2f,'V',accel)
             [phaseyf,muyf,bpmsyf]=GetFreePhase_Eq(MADTwiss,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',beam_direction,lhcphase)
             [phaseyf2,muyf2,bpmsyf2]=getfreephase(phasey,Q2,Q2f,bpmsy,MADTwiss_ac,MADTwiss,"V")
 
@@ -4397,7 +4401,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
             #-- from eq
             try:
-                [betaxf,rmsbbxf,bpmsf,invJxf]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',beam_direction,lhcphase)
+                result_list = GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',beam_direction,lhcphase)
+                betaxf = result_list[0]
+                rmsbbxf = result_list[1]
+                bpmsf = result_list[2]
+                #invJxf = result_list[3] # Not used (vimaier)
 
                 #-- Rescaling
                 betaxf_ratio=0
@@ -4429,7 +4437,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 pass
 
             #-- from the model
-            [betaxf2,rmsbbxf2,bpmsf2,invJxf2] = getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H')
+#           [betaxf2,rmsbbxf2,bpmsf2,invJxf2] = getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H')
+            [betaxf2,rmsbbxf2,bpmsf2] = (getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H'))[0:3]
             betaxf2_rescale = getFreeAmpBeta(betax_rescale,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H')[0]
             tfs_file = files_dict['getampbetax_free2.out']
             tfs_file.add_descriptor("Q1", "%le", str(Q1f))
@@ -4485,7 +4494,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
             #-- from eq
             try:
-                [betayf,rmsbbyf,bpmsf,invJyf]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',beam_direction,accel)
+                # Since invJyf(return_value[3]) is not used, slice the return value([0:3]) (vimaier)
+                [betayf,rmsbbyf,bpmsf] = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',beam_direction,accel) )[0:3]
 
                 #-- Rescaling
                 betayf_ratio=0
@@ -4517,7 +4527,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 pass
 
             #-- from the model
-            [betayf2,rmsbbyf2,bpmsf2,invJyf2]=getFreeAmpBeta(betay,rmsbby,bpms,invJy,MADTwiss_ac,MADTwiss,'V')
+            # Since invJyf2(return_value[3]) is not used, slice the return value([0:3]) (vimaier)            
+            [betayf2,rmsbbyf2,bpmsf2] = ( getFreeAmpBeta(betay,rmsbby,bpms,invJy,MADTwiss_ac,MADTwiss,'V') )[0:3]
             betayf2_rescale=getFreeAmpBeta(betay_rescale,rmsbby,bpms,invJy,MADTwiss_ac,MADTwiss,'V')[0]
             tfs_file = files_dict['getampbetay_free2.out']
             tfs_file.add_descriptor("Q1", "%le", str(Q1f))
@@ -5279,7 +5290,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
 
         files=[ListOfZeroDPPX,ListOfZeroDPPY]
-        Q=[Q1,Q2]
         plane='H'
         name='f4000'
 
