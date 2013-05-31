@@ -6,9 +6,14 @@ Created on ??/??/??
 @version: 0.0.2
 
 TODO: Description
+To run getsuper.py you need several
+
+
 From Yngve on GitHub issue #16:
 You need files with different dp/p. What getsuper essentially does is run GetLLM on files with 
 different dp/p and then afterwards interpolate the results to see how the functions vary with dp/p.
+
+
 
 Change history:
 
@@ -161,9 +166,6 @@ def parse_args():
     parser.add_option("-f", "--files",
         help="Files from analysis, separated by comma",
         metavar="TwissFile", default="", dest="files")
-    parser.add_option("-m", "--twiss",
-            help="Twiss folder path to use",
-            metavar="twiss", default="./", dest="twiss")
     parser.add_option("--madxbin",
             help="Path to mad-x binary",
             metavar="<path>", default="madx", dest="madx")
@@ -190,7 +192,6 @@ def parse_args():
     parser.add_option("-d", "--deltapScalingFactor",
             help="Scaling factor for deltap, remember final value must be in MAD units",
             metavar="<deltapScalingFactor>", default=1.0, type=float,dest="deltapScalingFactor")
-
 
     return parser.parse_args()
 
