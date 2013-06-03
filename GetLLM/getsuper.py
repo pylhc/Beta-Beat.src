@@ -27,7 +27,7 @@ Change history:
  - 0.0.3 vimaier 31th May 2013:
     Insterted checks for preconditions:
         more than 1 file needed
-        at least one file with DPP=0.0
+        at least one file with DPP=0.0 (adapted)
         ac file
 '''
 
@@ -573,6 +573,7 @@ def main(options,args):
     
     if 2 > len(files):
         print >> sys.stderr,"Provide at least two files. Files:",str(files)
+        sys.exit(1)
 
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
