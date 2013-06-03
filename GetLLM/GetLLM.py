@@ -2303,13 +2303,13 @@ def BPMfinder(IP,model,measured):
         if "BPMSW.1L"+IP in name:
             bpml=name
             try:
-                test =measured[0][bpml][0]  # @UnusedVariable
+                test = measured[0][bpml][0]  # @UnusedVariable
             except:
                 bpml="null"
         if "BPMSW.1R"+IP in name:
             bpmh=name
             try:
-                test =measured[0][bpmh][0]  # @UnusedVariable
+                test = measured[0][bpmh][0]  # @UnusedVariable
             except:
                 bpmh="null"
     return [bpml,bpmh]
@@ -3004,17 +3004,21 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
-    bpm=modelIntersect(intersect(Files),MADTwiss_ac)
-    bpm=[(b[0],string.upper(b[1])) for b in bpm]
+    bpm = modelIntersect(intersect(Files),MADTwiss_ac)
+    bpm = [(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op=="1" and bd== 1: s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
-    if op=="1" and bd==-1: s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
+    if op=="1" and bd==1: 
+        s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
+    if op=="1" and bd==-1: 
+        s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
     for b in psid_ac2bpmac.keys():
-        if '5L4' in b: bpmac1=b
-        if '6L4' in b: bpmac2=b
+        if '5L4' in b: 
+            bpmac1=b
+        if '6L4' in b: 
+            bpmac2=b
     try:
         k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
         bpmac=bpmac1
@@ -3406,10 +3410,10 @@ def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
         x=files[0][j]
         y=files[1][j]
-        result_list = GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op)
-        invariantJx = result_list[3]
-        result_list = GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op)
-        invariantJy = result_list[3]
+        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJx = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
+        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJy = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
         try:
@@ -3847,7 +3851,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 
     #-------- Check monitor compatibility between data and model
-
     all_twiss_files = ListOfNonZeroDPPX+ListOfZeroDPPX+ListOfNonZeroDPPY+ListOfZeroDPPY
     for twiss_file in all_twiss_files:
         for bpm_name in twiss_file.NAME:
@@ -4364,11 +4367,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
             #-- from eq
             try:
-                result_list = GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',beam_direction,lhcphase)
-                betaxf = result_list[0]
-                rmsbbxf = result_list[1]
-                bpmsf = result_list[2]
-                #invJxf = result_list[3] # Not used (vimaier)
+                
+                # Since invJxf(return_value[3]) is not used, slice the return value([:3]) (vimaier)
+                [betaxf,rmsbbxf,bpmsf] = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPX,Q1,Q1f,acphasex_ac2bpmac,'H',beam_direction,lhcphase) )[:3]
 
                 #-- Rescaling
                 betaxf_ratio=0
@@ -4400,8 +4401,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 pass
 
             #-- from the model
-#           [betaxf2,rmsbbxf2,bpmsf2,invJxf2] = getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H')
-            [betaxf2,rmsbbxf2,bpmsf2] = (getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H'))[0:3]
+            # Since invJxf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
+            [betaxf2,rmsbbxf2,bpmsf2] = (getFreeAmpBeta(betax,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H'))[:3]
             betaxf2_rescale = getFreeAmpBeta(betax_rescale,rmsbbx,bpms,invJx,MADTwiss_ac,MADTwiss,'H')[0]
             tfs_file = files_dict['getampbetax_free2.out']
             tfs_file.add_descriptor("Q1", "%le", str(Q1f))
@@ -4457,8 +4458,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
             #-- from eq
             try:
-                # Since invJyf(return_value[3]) is not used, slice the return value([0:3]) (vimaier)
-                [betayf,rmsbbyf,bpmsf] = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',beam_direction,accel) )[0:3]
+                # Since invJyf(return_value[3]) is not used, slice the return value([:3]) (vimaier)
+                [betayf,rmsbbyf,bpmsf] = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,ListOfZeroDPPY,Q2,Q2f,acphasey_ac2bpmac,'V',beam_direction,accel) )[:3]
 
                 #-- Rescaling
                 betayf_ratio=0
@@ -4490,8 +4491,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 pass
 
             #-- from the model
-            # Since invJyf2(return_value[3]) is not used, slice the return value([0:3]) (vimaier)            
-            [betayf2,rmsbbyf2,bpmsf2] = ( getFreeAmpBeta(betay,rmsbby,bpms,invJy,MADTwiss_ac,MADTwiss,'V') )[0:3]
+            # Since invJyf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)            
+            [betayf2,rmsbbyf2,bpmsf2] = ( getFreeAmpBeta(betay,rmsbby,bpms,invJy,MADTwiss_ac,MADTwiss,'V') )[:3]
             betayf2_rescale=getFreeAmpBeta(betay_rescale,rmsbby,bpms,invJy,MADTwiss_ac,MADTwiss,'V')[0]
             tfs_file = files_dict['getampbetay_free2.out']
             tfs_file.add_descriptor("Q1", "%le", str(Q1f))
@@ -4717,8 +4718,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
         k = 0
         for j in ListOfNonZeroDPPX:
-            SingleFile=[]
-            SingleFile.append(j)
+            list_with_single_twiss=[]
+            list_with_single_twiss.append(j)
             filename = 'getCOx_dpp_'+str(k+1)+'.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
             tfs_file = files_dict[filename]
@@ -4726,7 +4727,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_descriptor("DPP", "%le", str(float(j.DPP)))
             tfs_file.add_descriptor("Q1", "%le", str(Q1))
             tfs_file.add_descriptor("Q2", "%le", str(Q2))
-            [codpp,bpms]=GetCO(MADTwiss, SingleFile)
+            [codpp,bpms]=GetCO(MADTwiss, list_with_single_twiss)
             tfs_file.add_column_names(["NAME","S","COUNT","X","STDX","XMDL","MUXMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
@@ -4740,8 +4741,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     if with_liny_for_nonzero_dppy:
         k=0
         for j in ListOfNonZeroDPPY:
-            SingleFile=[]
-            SingleFile.append(j)
+            list_with_single_twiss=[]
+            list_with_single_twiss.append(j)
             filename = 'getCOy_dpp_'+str(k+1)+'.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
             tfs_file = files_dict[filename]
@@ -4749,7 +4750,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_descriptor("DPP", "%le", str(float(j.DPP)))
             tfs_file.add_descriptor("Q1", "%le", str(Q1))
             tfs_file.add_descriptor("Q2", "%le", str(Q2))
-            [codpp,bpms]=GetCO(MADTwiss, SingleFile)
+            [codpp,bpms]=GetCO(MADTwiss, list_with_single_twiss)
             tfs_file.add_column_names(["NAME","S","COUNT","Y","STDY","YMDL","MUYMDL"])
             tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le"])
             for i in range(0,len(bpms)):
@@ -4950,8 +4951,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         k=0
         for j in ListOfNonZeroDPPX:
             dpop=float(j.DPP)
-            SingleFile=[]
-            SingleFile.append(j)
+            list_with_single_twiss=[]
+            list_with_single_twiss.append(j)
             filename = 'getphasex_dpp_'+str(k+1)+'.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
             tfs_file = files_dict[filename]
@@ -4961,7 +4962,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_descriptor("Q2", "%le", str(Q2))
                 
             DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
-            [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,SingleFile,Q1,plane,outputpath,beam_direction,accel,lhcphase)
+            [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,list_with_single_twiss,Q1,plane,outputpath,beam_direction,accel,lhcphase)
             phasex['DPP']=dpop
             phasexlist.append(phasex)
 
@@ -4989,10 +4990,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             betax={}
             alfax={}
             rmsbbx=0.
-            [betax,rmsbbx,alfax,bpms]=BetaFromPhase(MADTwiss,SingleFile,phasex,plane)
+            [betax,rmsbbx,alfax,bpms]=BetaFromPhase(MADTwiss,list_with_single_twiss,phasex,plane)
             betax['DPP']=dpop
             betaxa={}
-            [betaxa,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss,SingleFile,plane)
+            [betaxa,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss,list_with_single_twiss,plane)
             betaxa['DPP']=dpop
             betaxalist.append(betaxa)
             
@@ -5019,8 +5020,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
         for j in ListOfNonZeroDPPY:
             dpop = float(j.DPP)
-            SingleFile = []
-            SingleFile.append(j)
+            list_with_single_twiss = []
+            list_with_single_twiss.append(j)
             filename = 'getphasey_dpp_'+str(k+1)+'.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
             tfs_file = files_dict[filename]
@@ -5029,7 +5030,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             tfs_file.add_descriptor("Q2", "%le", str(Q2))
             
             DPPTwiss = ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
-            [phasey,Q2DPP,MUY,bpms] = GetPhases(DPPTwiss,SingleFile,Q2,plane,outputpath,beam_direction,accel,lhcphase)
+            [phasey,Q2DPP,MUY,bpms] = GetPhases(DPPTwiss,list_with_single_twiss,Q2,plane,outputpath,beam_direction,accel,lhcphase)
             phasey['DPP'] = dpop
             phaseylist.append(phasey)
             
@@ -5057,10 +5058,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             betay={}
             alfay={}
             rmsbby=0.
-            [betay,rmsbby,alfay,bpms]=BetaFromPhase(DPPTwiss,SingleFile,phasey,plane)
+            [betay,rmsbby,alfay,bpms]=BetaFromPhase(DPPTwiss,list_with_single_twiss,phasey,plane)
             betay['DPP']=dpop
             betaya={}
-            [betaya,rmsbby,bpms,invJy]=BetaFromAmplitude(DPPTwiss,SingleFile,plane)
+            [betaya,rmsbby,bpms,invJy]=BetaFromAmplitude(DPPTwiss,list_with_single_twiss,plane)
             betaya['DPP']=dpop
             betayalist.append(betaya)
             
@@ -5091,10 +5092,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
         for j in range(len(ListOfNonZeroDPPX)):
             dpop=float(ListOfNonZeroDPPX[j].DPP)
-            SingleFilex = []
-            SingleFiley = []
-            SingleFilex.append(ListOfNonZeroDPPX[j])
-            SingleFiley.append(ListOfNonZeroDPPY[j])
+            list_with_single_twiss_x = []
+            list_with_single_twiss_y = []
+            list_with_single_twiss_x.append(ListOfNonZeroDPPX[j])
+            list_with_single_twiss_y.append(ListOfNonZeroDPPY[j])
             ### coupling
             try:
                 MADTwiss.Cmatrix()
@@ -5108,10 +5109,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                 [phaseyp,Q2,MUY,bpmsy] = GetPhases(MADTwiss,PseudoListY,plane,outputpath,beam_direction,accel,lhcphase)
                 [fwqw,bpms] = GetCoupling2(MADTwiss, PseudoListX, PseudoListY, Q1, Q2, phasexp, phaseyp, beam_direction, accel)
             elif NBcpl == 1:
-                [fwqw,bpms] = GetCoupling1(MADTwiss, SingleFilex, SingleFiley, Q1, Q2)
+                [fwqw,bpms] = GetCoupling1(MADTwiss, list_with_single_twiss_x, list_with_single_twiss_y, Q1, Q2)
             elif NBcpl == 2:
                 print phasexlist[j+1]['DPP'],dpop
-                [fwqw,bpms] = GetCoupling2(MADTwiss, SingleFilex, SingleFiley, Q1, Q2, phasexlist[j+1], phaseylist[j+1], beam_direction, accel)
+                [fwqw,bpms] = GetCoupling2(MADTwiss, list_with_single_twiss_x, list_with_single_twiss_y, Q1, Q2, phasexlist[j+1], phaseylist[j+1], beam_direction, accel)
                 if with_ac_calc:
                     [fwqw,bpms] = getFreeCoupling(Q1f,Q2f,Q1,Q2,fwqw,MADTwiss,bpms)
 
