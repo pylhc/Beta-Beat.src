@@ -3,7 +3,7 @@ Created on ??/??/??
 
 @author: ?
 
-@version: 0.0.3
+@version: 3.1.2
 
 TODO: Description
 What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards 
@@ -21,33 +21,36 @@ file 'Twiss_ac.dat' in the same directory.
 
 Change history:
 
- - 0.0.2 vimaier 28th May 2013: 
+ - 3.1 YIL ???: 
+    Cleaned macro writer in madcreator
+    modifiers.madx should be in options.output
+ - 3.1.1 vimaier 28th May 2013: 
     Added module docstring
     Removed option 'twiss'. See github issue #15
- - 0.0.3 vimaier 31th May 2013:
+ - 3.1.2 vimaier 31th May 2013:
     Insterted checks for preconditions:
         more than 1 file needed
         at least one file with DPP=0.0 (adapted)
         ac file
+    Extracted functions modelIntersect and intersect to Utilities.bpm
+    Cleaned import section
 '''
 
 
 
-###### imports
-from optparse import OptionParser
-import os,sys,shutil,subprocess,re
+import optparse
+import os
+import sys
+import shutil
+import subprocess
+import math
+import re
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-import math
-from metaclass import twiss
+
+import metaclass
 import linreg
-
-##
-# YIL changes v 3.1:
-#  - Cleaned macro writer in madcreator
-#  - modifiers.madx should be in options.output
-#
-
+import Utilities.bpm
 
 class chromFileWriter:
     def __init__(self,ftype,fname,plane,overwrite=True):
@@ -169,7 +172,7 @@ class chromFileWriter:
 def parse_args():
     ###### optionparser
     usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
-    parser = OptionParser(usage)
+    parser = optparse.OptionParser(usage)
     # general
     parser.add_option("-f", "--files",
         help="Files from analysis, separated by comma",
@@ -355,41 +358,6 @@ def copy_default_outfiles(options):
         shutil.copy(options.output+'/'+fname,options.output+'/'+v+'.out')
 
 ##### for chromatic
-# model intersect
-def modelIntersect(expbpms, model):
-
-    bpmsin=[]
-    for bpm in expbpms:
-        try:
-            model.indx[bpm[1].upper()]
-            bpmsin.append(bpm)
-        except:
-            print bpm, "Not in Model"
-    if len(bpmsin)==0:
-        print "Zero intersection of Exp and Model"
-        print "Please, provide a good Dictionary"
-        print "Now we better leave!"
-        sys.exit()
-    return bpmsin
-
-
-#intersect
-def intersect(ListOfFile):
-    '''Pure intersection of all bpm names in all files '''
-    if len(ListOfFile)==0:
-        print "Nothing to intersect!!!!"
-        sys.exit()
-    z=ListOfFile[0].NAME
-    for b in ListOfFile:
-        z=filter(lambda x: x in z   , b.NAME)
-    #SORT by S
-    result=[]
-    x0=ListOfFile[0]
-    for bpm in z:
-        result.append((x0.S[x0.indx[bpm]], bpm))
-
-    result.sort()
-    return result
 
 def dolinregbet(fileobj,listx,listy,bpms,plane,zero,twiss):
     '''
@@ -550,9 +518,9 @@ def getTunes(options,fileslist):
     else:
         fname=fileslist[0][0]
         end=''
-    tw_x=twiss(fname+'_linx'+end)
-    tw_y=twiss(fname+'_liny'+end)
-    tw=twiss(get_twissfile(options))
+    tw_x = metaclass.twiss(fname+'_linx'+end)
+    tw_y = metaclass.twiss(fname+'_liny'+end)
+    tw = metaclass.twiss(get_twissfile(options))
 
     qdx,qdy=tw_x.TUNEX[0],tw_y.TUNEY[0]
     qx,qy=tw.Q1%1,tw.Q2%1
@@ -585,11 +553,11 @@ def main(options,args):
     for f in files:
 
         if(f[-3:]=='.gz'):
-            datax=twiss(f[:-3]+"_linx.gz")
-            datay=twiss(f[:-3]+"_liny.gz")
+            datax = metaclass.twiss(f[:-3]+"_linx.gz")
+            datay = metaclass.twiss(f[:-3]+"_liny.gz")
         else:
-            datax=twiss(f+"_linx")
-            datay=twiss(f+"_liny")
+            datax = metaclass.twiss(f+"_linx")
+            datay = metaclass.twiss(f+"_liny")
 
         dppx=datax.DPP*options.deltapScalingFactor      # Quick hack to be able to use old files with bad dpp input
         dppy=datay.DPP*options.deltapScalingFactor
@@ -638,7 +606,7 @@ def main(options,args):
     listcf=[]
 
     try:
-        twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
+        metaclass.twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
         freeswitch=1
     except:
         print "WARNING: Could not open",options.output+'/getbetax_free_'+str(dpp)+'.out'
@@ -647,9 +615,9 @@ def main(options,args):
 
     for dpp in fileslist.keys():
         print "Loading driven data for ",dpp
-        betx=twiss(options.output+'/getbetax_'+str(dpp)+'.out')
-        bety=twiss(options.output+'/getbetay_'+str(dpp)+'.out')
-        couple=twiss(options.output+'/getcouple_'+str(dpp)+'.out')
+        betx = metaclass.twiss(options.output+'/getbetax_'+str(dpp)+'.out')
+        bety = metaclass.twiss(options.output+'/getbetay_'+str(dpp)+'.out')
+        couple = metaclass.twiss(options.output+'/getcouple_'+str(dpp)+'.out')
         #couple=twiss(options.output+'/getbetay_'+str(dpp)+'.out')
         betalistx[dpp]=betx
         betalisty[dpp]=bety
@@ -667,16 +635,16 @@ def main(options,args):
         if not os.path.isfile(path_twissfile):
             print >> sys.stderr, "Twissfile does not exist:",path_twissfile
             sys.exit(1)
-        modeld = twiss(path_twissfile)
+        modeld = metaclass.twiss(path_twissfile)
 
         #try:
         if freeswitch==1:
             print "Loading free data"
             freeswitch=1
             print 'getbetax_free_'+str(dpp)+'.out'
-            betxf=twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
-            betyf=twiss(options.output+'/getbetay_free_'+str(dpp)+'.out')
-            couplef=twiss(options.output+'/getcouple_free_'+str(dpp)+'.out')
+            betxf = metaclass.twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
+            betyf = metaclass.twiss(options.output+'/getbetay_free_'+str(dpp)+'.out')
+            couplef = metaclass.twiss(options.output+'/getcouple_free_'+str(dpp)+'.out')
             betalistxf[dpp]=betxf
             betalistyf[dpp]=betyf
             couplelistf[dpp]=couplef
@@ -688,7 +656,7 @@ def main(options,args):
             if not os.path.isfile(path_ac_file):
                 print >> sys.stderr, "Ac file does not exist:",path_ac_file,"\nIn GUI check 'Ac dipole' box to create a model with ac dipole."
                 sys.exit(1)
-            modeld=twiss(path_ac_file)
+            modeld = metaclass.twiss(path_ac_file)
             if float(dpp)==0.0:
                 zerobxf=betalistxf[dpp]
                 zerobyf=betalistyf[dpp]
@@ -706,16 +674,16 @@ def main(options,args):
     #H
     fileobj=chromFileWriter('beta',options.output+"/chrombetax.out",'H')
 
-    bpms=intersect(listx)
-    bpms=modelIntersect(bpms,modeld)
+    bpms = Utilities.bpm.intersect(listx)
+    bpms = Utilities.bpm.modelIntersect(bpms,modeld)
     dolinregbet(fileobj,fileslist.keys(),betalistx,bpms,"H",zerobx,modeld)
     del fileobj
 
     #V
     fileobj=chromFileWriter('beta',options.output+"/chrombetay.out",'V')
 
-    bpms=intersect(listy)
-    bpms=modelIntersect(bpms,modeld)
+    bpms = Utilities.bpm.intersect(listy)
+    bpms = Utilities.bpm.modelIntersect(bpms,modeld)
     dolinregbet(fileobj,fileslist.keys(),betalisty,bpms,"V",zeroby,modeld)
     del fileobj
 
@@ -728,8 +696,8 @@ def main(options,args):
     
     fileobj=chromFileWriter('coupling',options.output+"/chromcoupling.out",'')
 
-    bpms=intersect(listc)
-    bpms=modelIntersect(bpms,modeld)
+    bpms = Utilities.bpm.intersect(listc)
+    bpms = Utilities.bpm.modelIntersect(bpms,modeld)
 
     dolinregCoupling(couplelist,bpms,fileslist.keys(),fileobj)
     del fileobj
@@ -744,15 +712,15 @@ def main(options,args):
         #H
         fileobj=chromFileWriter('beta',options.output+"/chrombetax_free.out",'H')
 
-        bpms=intersect(listxf)
-        bpms=modelIntersect(bpms,modelf)
+        bpms = Utilities.bpm.intersect(listxf)
+        bpms = Utilities.bpm.modelIntersect(bpms,modelf)
         dolinregbet(fileobj,fileslist.keys(),betalistxf,bpms,"H",zerobxf,modelf)
 
         #V
         fileobj=chromFileWriter('beta',options.output+"/chrombetay_free.out",'V')
 
-        bpms=intersect(listyf)
-        bpms=modelIntersect(bpms,modelf)
+        bpms = Utilities.bpm.intersect(listyf)
+        bpms = Utilities.bpm.modelIntersect(bpms,modelf)
         dolinregbet(fileobj,fileslist.keys(),betalistyf,bpms,"V",zerobyf,modelf)
 
         print "Free beta finished"
@@ -764,8 +732,8 @@ def main(options,args):
 
         fileobj=chromFileWriter('coupling',options.output+"/chromcoupling_free.out",'')
 
-        bpms=intersect(listcf)
-        bpms=modelIntersect(bpms,modelf)
+        bpms = Utilities.bpm.intersect(listcf)
+        bpms = Utilities.bpm.modelIntersect(bpms,modelf)
 
         dolinregCoupling(couplelistf,bpms,fileslist.keys(),fileobj)
 

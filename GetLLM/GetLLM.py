@@ -162,6 +162,7 @@ V2.38b 03/dec/2012, tbach:
       Saves a lot of try/excepts while writing files
     Reformatted a lot of code
     Introduced tfs_file for all output files in main() --> Formatted output files
+    Extracted functions modelIntersect and intersect to Utilities.bpm
 
 '''
 
@@ -188,6 +189,7 @@ from numpy import sin,cos,tan
 import numpy as np
 
 import utils.tfs_file
+import Utilities.bpm
 
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
@@ -201,46 +203,46 @@ import utils.tfs_file
 
 #------------
 
-def modelIntersect(expbpms, model):
-    bpmsin=[]
-    #print "start Intersect, expbpms #:", len(expbpms)
-    if len(expbpms)==0:
-        print >> sys.stderr, "Zero exp BPMs sent to modelIntersect"
-        sys.exit(1)
-    for bpm in expbpms:
-        try:
-            check_if_bpm_in_model = model.indx[bpm[1].upper()]  # @UnusedVariable
-            bpmsin.append(bpm)
-        except:
-            print bpm, "Not in Model"
-
-    if len(bpmsin)==0:
-        print >> sys.stderr, "Zero intersection of Exp and Model"
-        print >> sys.stderr, "Please, provide a good Dictionary or correct data"
-        print >> sys.stderr, "Now we better leave!"
-        sys.exit(1)
-    return bpmsin
-
-
-def intersect(ListOfFile):
-    '''Pure intersection of all bpm names in all files '''
-    if len(ListOfFile)==0:
-        print >> sys.stderr, "Nothing to intersect!!!!"
-        sys.exit(1)
-    z=ListOfFile[0].NAME
-    if len(z)==0:
-        print >> sys.stderr, "No exp BPMs..."
-        sys.exit(1)
-    for b in ListOfFile:
-        z=filter(lambda x: x in z   , b.NAME)
-    #SORT by S
-    result=[]
-    x0=ListOfFile[0]
-    for bpm in z:
-        result.append((x0.S[x0.indx[bpm]], bpm))
-
-    result.sort()
-    return result
+# def modelIntersect(expbpms, model):
+#     bpmsin=[]
+#     #print "start Intersect, expbpms #:", len(expbpms)
+#     if len(expbpms)==0:
+#         print >> sys.stderr, "Zero exp BPMs sent to modelIntersect"
+#         sys.exit(1)
+#     for bpm in expbpms:
+#         try:
+#             check_if_bpm_in_model = model.indx[bpm[1].upper()]  # @UnusedVariable
+#             bpmsin.append(bpm)
+#         except KeyError:
+#             print >> sys.stderr, bpm, "Not in Model"
+# 
+#     if len(bpmsin)==0:
+#         print >> sys.stderr, "Zero intersection of Exp and Model"
+#         print >> sys.stderr, "Please, provide a good Dictionary or correct data"
+#         print >> sys.stderr, "Now we better leave!"
+#         sys.exit(1)
+#     return bpmsin
+# 
+# 
+# def intersect(ListOfFile):
+#     '''Pure intersection of all bpm names in all files '''
+#     if len(ListOfFile)==0:
+#         print >> sys.stderr, "Nothing to intersect!!!!"
+#         sys.exit(1)
+#     z=ListOfFile[0].NAME
+#     if len(z)==0:
+#         print >> sys.stderr, "No exp BPMs..."
+#         sys.exit(1)
+#     for b in ListOfFile:
+#         z=filter(lambda x: x in z   , b.NAME)
+#     #SORT by S
+#     result=[]
+#     x0=ListOfFile[0]
+#     for bpm in z:
+#         result.append((x0.S[x0.indx[bpm]], bpm))
+# 
+#     result.sort()
+#     return result
 
 
 #------------ Get phases
@@ -284,8 +286,8 @@ def PhaseStd(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or
 
 def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
 
-    commonbpms=intersect(ListOfFiles)
-    commonbpms=modelIntersect(commonbpms, MADTwiss)
+    commonbpms = Utilities.bpm.intersect(ListOfFiles)
+    commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and oa=="LHCB1": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
     if op=="1" and oa=="LHCB2": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
@@ -329,8 +331,8 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
 def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcphase):
     #print "Hi Get", len(ListOfFiles)
 
-    commonbpms=intersect(ListOfFiles)
-    commonbpms=modelIntersect(commonbpms, MADTwiss)
+    commonbpms = Utilities.bpm.intersect(ListOfFiles)
+    commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     length_commonbpms = len(commonbpms)
     #print len(commonbpms)
     #sys.exit()
@@ -478,8 +480,8 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
     alfa={}
     beta={}
-    commonbpms=intersect(ListOfFiles)
-    commonbpms=modelIntersect(commonbpms,MADTwiss)
+    commonbpms = Utilities.bpm.intersect(ListOfFiles)
+    commonbpms = Utilities.bpm.modelIntersect(commonbpms,MADTwiss)
     alfii=[]
     betii=[]
     delbeta=[]
@@ -661,8 +663,8 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
     beta={}
     root2J=[]
-    commonbpms=intersect(ListOfFiles)
-    commonbpms=modelIntersect(commonbpms,MADTwiss)
+    commonbpms=Utilities.bpm.intersect(ListOfFiles)
+    commonbpms=Utilities.bpm.modelIntersect(commonbpms,MADTwiss)
     SumA=0.0
     Amp=[]
     Amp2=[]
@@ -742,8 +744,8 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
 def GetCO(MADTwiss, ListOfFiles):
 
-    commonbpms=intersect(ListOfFiles)
-    commonbpms=modelIntersect(commonbpms, MADTwiss)
+    commonbpms=Utilities.bpm.intersect(ListOfFiles)
+    commonbpms=Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     co={} # Disctionary for output
     for i in range(0,len(commonbpms)):
         bn1=string.upper(commonbpms[i][1])
@@ -781,8 +783,8 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
     nda={} # Dictionary for the output containing [average Disp, rms error]
 
     ALL=ListOfZeroDPPX+ListOfNonZeroDPPX
-    commonbpmsALL=intersect(ALL)
-    commonbpmsALL=modelIntersect(commonbpmsALL, MADTwiss)
+    commonbpmsALL=Utilities.bpm.intersect(ALL)
+    commonbpmsALL=Utilities.bpm.modelIntersect(commonbpmsALL, MADTwiss)
 
     mydp=[]
     gf=[]
@@ -932,7 +934,7 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
     coac=coact # COY dictionary after cut bad BPMs
 
     ALL=ListOfZeroDPP+ListOfNonZeroDPP
-    commonbpmsALL=intersect(ALL)
+    commonbpmsALL=Utilities.bpm.intersect(ALL)
 
 
 
@@ -1012,8 +1014,8 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
 
 
     XplusY=ListOfZeroDPPX+ListOfZeroDPPY
-    dbpms=intersect(XplusY)
-    dbpms=modelIntersect(dbpms, MADTwiss)
+    dbpms=Utilities.bpm.intersect(XplusY)
+    dbpms=Utilities.bpm.modelIntersect(dbpms, MADTwiss)
 
 
     # caculate fw and qw, exclude bpms having wrong phases
@@ -1207,8 +1209,8 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 
 
     XplusY=ListOfZeroDPPX+ListOfZeroDPPY
-    dbpms=intersect(XplusY)
-    dbpms=modelIntersect(dbpms, MADTwiss)
+    dbpms=Utilities.bpm.intersect(XplusY)
+    dbpms=Utilities.bpm.modelIntersect(dbpms, MADTwiss)
 
     # caculate fw and qw, exclude bpms having wrong phases
 
@@ -1392,10 +1394,10 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
         dum1=[]
         return [dum0,dum1]
 
-    bpmh=intersect(ListOfZeroDPPX)
-    bpmv=intersect(ListOfZeroDPPY)
-    bpmh=modelIntersect(bpmh, MADTwiss)
-    bpmv=modelIntersect(bpmv, MADTwiss)
+    bpmh=Utilities.bpm.intersect(ListOfZeroDPPX)
+    bpmv=Utilities.bpm.intersect(ListOfZeroDPPY)
+    bpmh=Utilities.bpm.modelIntersect(bpmh, MADTwiss)
+    bpmv=Utilities.bpm.modelIntersect(bpmv, MADTwiss)
 
 
     fbpmx=[]
@@ -1598,8 +1600,8 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
 
     # constructing complex amplitude and phase using two BPM method
 
-    bpms=intersect(amp20list)
-    bpms=modelIntersect(bpms,MADTwiss)
+    bpms=Utilities.bpm.intersect(amp20list)
+    bpms=Utilities.bpm.modelIntersect(bpms,MADTwiss)
 
     # Since beta,rmsbb(return_value[0:2]) is not used, slice return value([2:4])(vimaier)
     [bpms,invariantJx] = ( BetaFromAmplitude(MADTwiss,amp20list,'H') )[2:4]
@@ -1713,8 +1715,8 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     '''
 
         # intersects BPMs
-    dbpms=intersect(twiss_files[0])
-    dbpms=modelIntersect(dbpms,MADTwiss)
+    dbpms=Utilities.bpm.intersect(twiss_files[0])
+    dbpms=Utilities.bpm.modelIntersect(dbpms,MADTwiss)
 
 
 
@@ -1936,8 +1938,8 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
     # bmps
     files = filesF[0]
 
-    dbpms = intersect(files)
-    dbpms = modelIntersect(dbpms, MADTwiss)
+    dbpms = Utilities.bpm.intersect(files)
+    dbpms = Utilities.bpm.modelIntersect(dbpms, MADTwiss)
 
 
     # initiliasing variables
@@ -2121,11 +2123,11 @@ def getchi1010(MADTwiss,filesF,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY):
     files=filesF[0]
     filesy=filesF[1]
 
-    dbpms=intersect(files+filesy)
-    dbpms=modelIntersect(dbpms, MADTwiss)
+    dbpms=Utilities.bpm.intersect(files+filesy)
+    dbpms=Utilities.bpm.modelIntersect(dbpms, MADTwiss)
 
-    dbpmsy=intersect(filesy+files)
-    dbpmsy=modelIntersect(dbpmsy, MADTwiss)
+    dbpmsy=Utilities.bpm.intersect(filesy+files)
+    dbpmsy=Utilities.bpm.modelIntersect(dbpmsy, MADTwiss)
 
 
     # initiliasing variables
@@ -2199,7 +2201,7 @@ def getchi1010(MADTwiss,filesF,plane,name,bn1,ListOfZeroDPPX,ListOfZeroDPPY):
 def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
 
     j=MADTwiss
-    bpms=intersect([MADTwiss])
+    bpms=Utilities.bpm.intersect([MADTwiss])
 
     Qx=j.Q1+dpp*j.DQ1
     Qy=j.Q2+dpp*j.DQ2
@@ -2383,8 +2385,8 @@ def getIP(IP,measured,model,phase,bpms):
 def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
 
     #-- Common BPMs
-    bpm=modelIntersect(intersect(Files),MADTwiss)
-    bpm=[(b[0],string.upper(b[1])) for b in bpm]
+    bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
+    bpm = [(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Loop for IPs
     result={}
@@ -2601,9 +2603,9 @@ def getFreeBeta(modelfree,modelac,betal,rmsbb,alfal,bpms,plane): # to check "+"
     # ! how to deal with error !
 
     #print "Calculating free beta using model"
-
-    bpms=modelIntersect(bpms, modelfree)
-    bpms=modelIntersect(bpms, modelac)
+    #TODO: twice modelIntersect? check it! (vimaier)
+    bpms=Utilities.bpm.modelIntersect(bpms, modelfree)
+    bpms=Utilities.bpm.modelIntersect(bpms, modelac)
     betan={}
     alfan={}
     for bpma in bpms:
@@ -2870,7 +2872,7 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
 def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
-    bpm=modelIntersect(intersect(Files),MADTwiss)
+    bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -2930,7 +2932,7 @@ def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
-    bpm=modelIntersect(intersect(Files),MADTwiss)
+    bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -2949,7 +2951,7 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
             bpmac=bpmac2
         except:
-            print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
             return [{},'',[]]
 
     #-- Model phase advances
@@ -3004,7 +3006,7 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
-    bpm = modelIntersect(intersect(Files),MADTwiss_ac)
+    bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss_ac)
     bpm = [(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -3026,7 +3028,8 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         try:
             k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
             bpmac=bpmac2
-        except:
+        except ValueError:
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing.'
             return [{},'',[],[]]
 
     #-- Model beta and phase advance
@@ -3083,7 +3086,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     if len(FilesX)!=len(FilesY): return [{},[]]
 
     #-- Select common BPMs
-    bpm=modelIntersect(intersect(FilesX+FilesY),MADTwiss)
+    bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(FilesX+FilesY),MADTwiss)
     bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -3102,7 +3105,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
             bpmac=bpmac2
         except:
-            print 'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
             return [{},[]]
 
     #-- Global parameters of the driven motion
@@ -3288,7 +3291,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
     #-- Common BPMs
-    bpm=modelIntersect(intersect(Files),MADTwiss)
+    bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],string.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -4398,6 +4401,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPX),betaxf[bn1][0],betaxf[bn1][1],MADTwiss.BETX[MADTwiss.indx[bn1]],MADTwiss.MUX[MADTwiss.indx[bn1]],betaxf_ratio*betaxf[bn1][0],betaxf_ratio*betaxf[bn1][1] ]
                     tfs_file.add_table_row(list_row_entries)
             except: 
+                traceback.print_exc()
                 pass
 
             #-- from the model
@@ -4487,7 +4491,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
                     bns1=bpmsf[i][0]
                     list_row_entries = ['"'+bn1+'"',bns1,len(ListOfZeroDPPY),betayf[bn1][0],betayf[bn1][1],MADTwiss.BETY[MADTwiss.indx[bn1]],MADTwiss.MUY[MADTwiss.indx[bn1]],(betayf_ratio*betayf[bn1][0]),(betayf_ratio*betayf[bn1][1]) ]
                     tfs_file.add_table_row(list_row_entries)
-            except: 
+            # 'except ALL' catched a SystemExit from filterbpm().(vimaier)
+            except SystemExit:
+                sys.exit(1) 
+            except:
+                traceback.print_exc()
                 pass
 
             #-- from the model
