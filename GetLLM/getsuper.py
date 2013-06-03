@@ -36,7 +36,6 @@ Change history:
 ###### imports
 from optparse import OptionParser
 import os,sys,shutil,subprocess,re
-from colorama.win32 import STDERR
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 import math
@@ -573,7 +572,7 @@ def main(options,args):
     files=get_filelist(options,args)
     
     if 2 > len(file):
-        print >> STDERR,"Provide at least two files. Files:",str(files)
+        print >> sys.stderr,"Provide at least two files. Files:",str(files)
 
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
@@ -663,7 +662,7 @@ def main(options,args):
         
         path_twissfile = get_twissfile(options)
         if not os.path.isfile(path_twissfile):
-            print >> STDERR, "Twissfile does not exist:",path_twissfile
+            print >> sys.stderr, "Twissfile does not exist:",path_twissfile
             sys.exit(1)
         modeld = twiss(path_twissfile)
 
@@ -684,7 +683,7 @@ def main(options,args):
             modelf = modeld
             path_ac_file = path_twissfile.replace(".dat","_ac.dat")
             if not os.path.isfile(path_ac_file):
-                print >> STDERR, "Ac file does not exist:",path_ac_file,"\nIn GUI check 'Ac dipole' box to create a model with ac dipole."
+                print >> sys.stderr, "Ac file does not exist:",path_ac_file,"\nIn GUI check 'Ac dipole' box to create a model with ac dipole."
                 sys.exit(1)
             modeld=twiss(path_ac_file)
             if float(dpp)==0.0:
