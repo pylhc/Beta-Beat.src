@@ -607,7 +607,9 @@ def main(options,args):
 
 
     if 0 not in fileslist:
-        raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0")
+        raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0.\n"+
+                         "In GUI you can change DPP in the table at the top of the analyses panel."+
+                         "Click in the column 'delta p /p' on a value to change it.")
 
     getTunes(options,fileslist)
 
