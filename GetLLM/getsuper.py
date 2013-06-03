@@ -571,7 +571,7 @@ def main(options,args):
 
     files=get_filelist(options,args)
     
-    if 2 > len(file):
+    if 2 > len(files):
         print >> sys.stderr,"Provide at least two files. Files:",str(files)
 
     if not os.path.isdir(options.output):
