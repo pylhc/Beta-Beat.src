@@ -3,16 +3,20 @@ Created on ??/??/??
 
 @author: ?
 
-@version: 0.0.2
+@version: 0.0.3
 
 TODO: Description
-To run getsuper.py you need several
+What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards 
+interpolate the results to see how the functions vary with dp/p.
 
+To run getsuper.py you need several source files(sdds files which stated in a comma separated string
+in option -f/--files) with different DPP(delta_p/p). 
+At least one of the source files must have DPP=0.0 .
+Hint: You can change DPP in the GUI application in the Analysis panel. Change the entries in the
+column 'dp/d' in the table at the top.
 
-From Yngve on GitHub issue #16:
-You need files with different dp/p. What getsuper essentially does is run GetLLM on files with 
-different dp/p and then afterwards interpolate the results to see how the functions vary with dp/p.
-
+Further you need AC dipole in your model. If your twissfile is 'Twiss.dat' you need to provide the 
+file 'Twiss_ac.dat' in the same directory. 
 
 
 Change history:
@@ -20,7 +24,11 @@ Change history:
  - 0.0.2 vimaier 28th May 2013: 
     Added module docstring
     Removed option 'twiss'. See github issue #15
-
+ - 0.0.3 vimaier 31th May 2013:
+    Insterted checks for preconditions:
+        more than 1 file needed
+        at least one file with DPP=0.0
+        ac file
 '''
 
 
@@ -28,6 +36,7 @@ Change history:
 ###### imports
 from optparse import OptionParser
 import os,sys,shutil,subprocess,re
+from colorama.win32 import STDERR
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 import math
@@ -562,6 +571,9 @@ def main(options,args):
     ## ##############
 
     files=get_filelist(options,args)
+    
+    if 2 > len(file):
+        print >> STDERR,"Provide at least two files. Files:",str(files)
 
     if not os.path.isdir(options.output):
         os.makedirs(options.output)
@@ -595,7 +607,7 @@ def main(options,args):
 
 
     if 0 not in fileslist:
-        raise ValueError("NO DPP=0.0")
+        raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0")
 
     getTunes(options,fileslist)
 
@@ -648,7 +660,12 @@ def main(options,args):
         listx.append(betx)
         listy.append(bety)
         listc.append(couple)
-        modeld=twiss(get_twissfile(options))
+        
+        path_twissfile = get_twissfile(options)
+        if not os.path.isfile(path_twissfile):
+            print >> STDERR, "Twissfile does not exist:",path_twissfile
+            sys.exit(1)
+        modeld = twiss(path_twissfile)
 
         #try:
         if freeswitch==1:
@@ -664,8 +681,12 @@ def main(options,args):
             listxf.append(betxf)
             listyf.append(betyf)
             listcf.append(couplef)
-            modeld=twiss(options.twissfile.replace(".dat","_ac.dat"))
-            modelf=twiss(get_twissfile(options))
+            modelf = modeld
+            path_ac_file = path_twissfile.replace(".dat","_ac.dat")
+            if not os.path.isfile(path_ac_file):
+                print >> STDERR, "Ac file does not exist:",path_ac_file,"\nIn GUI check 'Ac dipole' box to create a model with ac dipole."
+                sys.exit(1)
+            modeld=twiss(path_ac_file)
             if float(dpp)==0.0:
                 zerobxf=betalistxf[dpp]
                 zerobyf=betalistyf[dpp]
