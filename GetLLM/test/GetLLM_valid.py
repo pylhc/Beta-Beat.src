@@ -5248,13 +5248,18 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             bn1=upper(bpms[i][1])
             bns1=bpms[i][0]
             fDx.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPX))+' '+str(dxo[bn1][0])+' '+str(dxo[bn1][1])+' '+str(DPX[bn1])+' '+str(MADTwiss.DX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.DPX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
+        
+        fNDx.close()
+        fDx.close()
+        
+    # Nothing to write so delete empty files (vimaier)
+    else:
+        fNDx.close()
+        fDx.close()
+        os.remove(outputpath+'getNDx.out')
+        os.remove(outputpath+'getDx.out')
 
-
-    fNDx.close()
-    fDx.close()
-
-
-
+        
     if woliny!=1 and woliny2!=1:
         [dyo,bpms]=DispersionfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY,ListOfCOY,COcut,BPMU)
         DPY=GetDPY(MADTwiss,dyo,bpms)
@@ -5267,8 +5272,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             bn1=upper(bpms[i][1])
             bns1=bpms[i][0]
             fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+str(DPY[bn1])+' '+str(MADTwiss.DY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.DPY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
-
-    fDy.close()
+    
+    # Nothing to write so delete empty files (vimaier)
+    else:
+        fDy.close()
+        os.remove(outputpath+'getDy.out')
 
     #-------- START coupling.
     print "Calculating coupling"

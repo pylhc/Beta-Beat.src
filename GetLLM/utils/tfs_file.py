@@ -13,6 +13,7 @@ Change history:
 """
 
 import os
+import sys
 
 DEFAULT_COLUMN_WIDTH = 17
 """ Indicates width of columns in output file. """
@@ -206,11 +207,9 @@ class TfsFile(object):
             
     def write_to_file(self, formatted = False):
         """ Writes the stored data to the file with the given filename. """
-        #TODO: fix the thing with get[D](x|y) and uncomment        
         if not self.__is_column_names_set or not self.__is_column_types_set:
-            formatted = False #Quickfix
-#             raise AssertionError("Cannot write before column names and column types are set.("+
-#                                 self.__file_name+")")
+            print >> sys.stderr, "Abort writing file. Cannot write file until column names and types are set:",self.__file_name
+            return
         
         path = os.path.join(TfsFile.s_output_path, self.__file_name)
         tfs_file = open(path,'w')  
