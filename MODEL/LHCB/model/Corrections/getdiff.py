@@ -72,16 +72,16 @@ def main(path):
     :Return: int
         0 if execution was successful otherwise !=0
     '''
-    twiss_cor = metaclass.twiss(path+'/twiss_cor.dat')
-    twiss_no = metaclass.twiss(path+'/twiss_no.dat')
+    twiss_cor = metaclass.twiss(os.path.join(path,'twiss_cor.dat'))
+    twiss_no = metaclass.twiss(os.path.join(path,'twiss_no.dat'))
     twiss_cor.Cmatrix()
     twiss_no.Cmatrix()
     
     
     # normal quad
     
-    file_bbx = open(path+"/bbx.out","w")
-    file_bby = open(path+"/bby.out","w")
+    file_bbx = open( os.path.join(path,"bbx.out"), "w")
+    file_bby = open( os.path.join(path,"bby.out"), "w")
     
     print >> file_bbx,"NAME S MEA ERROR MODEL"
     print >> file_bbx,"%s %le %le %le %le"
@@ -107,10 +107,10 @@ def main(path):
             t_x = twiss_getbetax # Variable for abbreviation
             print>> file_bbx,bpm_name, t_x.S[i], (t_x.BETX[i]-t_x.BETXMDL[i])/t_x.BETXMDL[i], t_x.STDBETX[i]/t_x.BETXMDL[i],(twiss_cor.BETX[j]-twiss_no.BETX[j])/twiss_no.BETX[j]
     
-    if os.path.exists(path+'/getbetay_free.out'):
-        twiss_getbetay = metaclass.twiss(path+'/getbetay_free.out')
+    if os.path.exists( os.path.join(path,'getbetay_free.out') ):
+        twiss_getbetay = metaclass.twiss( os.path.join(path,'getbetay_free.out') )
     else:
-        twiss_getbetay = metaclass.twiss(path+'/getbetay.out')    
+        twiss_getbetay = metaclass.twiss( os.path.join(path,'getbetay.out') )    
     
     for i in range(len(twiss_getbetay.NAME)):
         bpm_name=twiss_getbetay.NAME[i]
@@ -129,15 +129,15 @@ def main(path):
     file_bby.close()
     
     try:
-        twiss_getdx = metaclass.twiss(path+'/getDx.out')
+        twiss_getdx = metaclass.twiss( os.path.join(path,'getDx.out') )
 
-        file_dx = open(path+"/dx.out","w")
+        file_dx = open( os.path.join(path,"dx.out") ,"w") 
     
         print >> file_dx,"NAME S MEA ERROR MODEL"
         print >> file_dx,"%s %le %le %le %le"
     
         for i in range(len(twiss_getdx.NAME)):
-            bpm_name=twiss_getdx.NAME[i]
+            bpm_name = twiss_getdx.NAME[i]
             bpm_included = True
             try:
                 check = twiss_cor.NAME[twiss_cor.indx[bpm_name]] # @UnusedVariable
@@ -151,11 +151,13 @@ def main(path):
         file_dx.close()
     except IOError:
         print "NO dispersion"
+    except AttributeError:
+        print "Empty table in getDx.out?! NO dispersion"
     
     
     # skew quad
 
-    file_couple=open(path+"/couple.out","w")
+    file_couple = open( os.path.join(path,"couple.out") ,"w")
     
     
     print >> file_couple,"NAME S F1001re F1001im F1001e F1001re_m F1001im_m"
@@ -163,10 +165,10 @@ def main(path):
     
     
     
-    if os.path.exists(path+'/getcouple_free.out'):
-        twiss_getcouple = metaclass.twiss(path+'/getcouple_free.out')
+    if os.path.exists( os.path.join(path,'getcouple_free.out') ):
+        twiss_getcouple = metaclass.twiss( os.path.join(path,'getcouple_free.out') )
     else:
-        twiss_getcouple = metaclass.twiss(path+'/getcouple.out')    
+        twiss_getcouple = metaclass.twiss( os.path.join(path,'getcouple.out') )  
     
     
     for i in range(len(twiss_getcouple.NAME)):
@@ -179,21 +181,21 @@ def main(path):
             bpm_included = False
         if bpm_included:
             j = twiss_cor.indx[bpm_name]
-            print>> file_couple,bpm_name, twiss_getcouple.S[i],twiss_getcouple.F1001R[i],twiss_getcouple.F1001I[i],twiss_getcouple.FWSTD1[i],twiss_cor.f1001[j].real,twiss_cor.f1001[j].imag
+            print >> file_couple,bpm_name, twiss_getcouple.S[i],twiss_getcouple.F1001R[i],twiss_getcouple.F1001I[i],twiss_getcouple.FWSTD1[i],twiss_cor.f1001[j].real,twiss_cor.f1001[j].imag
     
     
     
     
     try:
-        twiss_getdy = metaclass.twiss(path+'/getDy.out')
+        twiss_getdy = metaclass.twiss( os.path.join(path,'getDy.out') )
 
-        file_dy=open(path+"/dy.out","w")
+        file_dy = open( os.path.join(path,"dy.out") ,"w")
     
         print >> file_dy,"NAME S MEA ERROR MODEL"
         print >> file_dy,"%s %le %le %le %le"
     
         for i in range(len(twiss_getdy.NAME)):
-            bpm_name=twiss_getdy.NAME[i]
+            bpm_name = twiss_getdy.NAME[i]
             bpm_included = True
             try:
                 check = twiss_cor.NAME[twiss_cor.indx[bpm_name]] # @UnusedVariable
@@ -201,18 +203,16 @@ def main(path):
                 print "No ", bpm_name
                 bpm_included = False
             if bpm_included:
-                j=twiss_cor.indx[bpm_name]
+                j = twiss_cor.indx[bpm_name]
                 print>> file_dy,bpm_name, twiss_getdy.S[i], (twiss_getdy.DY[i]-twiss_getdy.DYMDL[i]), twiss_getdy.STDDY[i],(twiss_cor.DY[j]-twiss_no.DY[j])
     
         file_dy.close()
     except IOError:
-        print "NO dispersion"
+        print "NO dispersion."
+    except AttributeError:
+        print "Empty table in getDy.out?! NO dispersion"
         
-        return 0
-
-#===================================================================================================
-# helper-functions
-#===================================================================================================
+    return 0
 
 #===================================================================================================
 # main invocation
@@ -220,6 +220,8 @@ def main(path):
 if __name__ == "__main__":
     path_to_src_files = parse_args()
     
+    print "Start getdiff.main..."
     return_value = main(path = path_to_src_files)
+    print "getdiff.main finished with",return_value
     
     sys.exit(return_value)
