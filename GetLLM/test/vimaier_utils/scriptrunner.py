@@ -77,8 +77,8 @@ class ScriptRunner(object):
         if 0 != errcode:
             print "Printing output:-------------------------"
             print self._out
-            print "Printing error output:-------------------"
-            print self._err
+            print >> sys.stderr, "Printing error output:-------------------"
+            print >> sys.stderr, self._err
         
         return errcode 
     

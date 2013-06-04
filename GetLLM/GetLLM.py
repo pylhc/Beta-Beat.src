@@ -197,6 +197,7 @@ import Utilities.bpm
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
 
+DEBUG = True
 
 
 
@@ -1606,7 +1607,7 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     bpms=Utilities.bpm.intersect(amp20list)
     bpms=Utilities.bpm.modelIntersect(bpms,MADTwiss)
 
-    # Since beta,rmsbb(return_value[0:2]) is not used, slice return value([2:4])(vimaier)
+    # Since beta,rmsbb(return_value[0:2]) are not used, slice return value([2:4])(vimaier)
     [bpms,invariantJx] = ( BetaFromAmplitude(MADTwiss,amp20list,'H') )[2:4]
     sqrt2jx=invariantJx[0]
 
@@ -1652,7 +1653,7 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
             edelta=phase[bpm.upper()][1]
 
             #computing complex line
-            # Since eampi,ephasei(return_value[2:4]) is not used, slice return value([0:1])(vimaier)
+            # Since eampi,ephasei(return_value[2:4]) are not used, slice return value([0:1])(vimaier)
             ampi,phasei = ( ComplexSecondaryLineExtended(delta,edelta,amp_201,amp_202,phase_201,phase_202) )[0:2]
 
 
@@ -1751,10 +1752,10 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
         singleFilex=[twiss_files[0][j]]
         singleFiley=[twiss_files[1][j]]
 
-        # Since beta,rmsbb,bpms(return_value[0:3]) is not used, slice return value([3])(vimaier)
+        # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice return value([3])(vimaier)
         invariantJx = ( BetaFromAmplitude(MADTwiss,singleFilex,'H') )[3] 
 
-        # Since beta,rmsbb,bpms(return_value[0:3]) is not used, slice return value([3])(vimaier)
+        # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice return value([3])(vimaier)
         invariantJy = ( BetaFromAmplitude(MADTwiss,singleFiley,'V') )[3]
 
         invarianceJx.append(invariantJx)
@@ -4961,51 +4962,53 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         plane='H'
         k=0
         for j in ListOfNonZeroDPPX:
-            dpop=float(j.DPP)
-            list_with_single_twiss=[]
+            dpop = float(j.DPP)
+            list_with_single_twiss = []
             list_with_single_twiss.append(j)
-            filename = 'getphasex_dpp_'+str(k+1)+'.out'
-            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
-            tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
-            tfs_file.add_descriptor("DPP", "%le", str(dpop))
-            tfs_file.add_descriptor("Q1", "%le", str(Q1))
-            tfs_file.add_descriptor("Q2", "%le", str(Q2))
                 
             DPPTwiss=ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
-            [phasex,Q1DPP,MUX,bpms]=GetPhases(DPPTwiss,list_with_single_twiss,Q1,plane,outputpath,beam_direction,accel,lhcphase)
-            phasex['DPP']=dpop
+            [phasex,Q1DPP,MUX,bpms] = GetPhases(DPPTwiss,list_with_single_twiss,Q1,plane,outputpath,beam_direction,accel,lhcphase)
+            phasex['DPP'] = dpop
             phasexlist.append(phasex)
 
-            tfs_file.add_descriptor("Q1DPP", "%le", str(Q1DPP))
-            tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASE","STDPH","PHXMDL","MUXMDL"])
-            tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
-            
-            length_bpms = len(bpms)
-            for i in range(0,length_bpms):
-                bn1=string.upper(bpms[i][1])
-                bns1=bpms[i][0]
-               
-                index = (i+1) % length_bpms
-                bn2 = string.upper(bpms[index][1])
-                bns2 = bpms[index][0]
-                
-                try:
-                    phmdl=phasexlist[0][bn1][4]
-                except:
-                    phmdl=0.0
-                #phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
-                list_row_entries = ['"'+bn1+'" ','"'+bn2+'"',bns1,bns2,1,phasex[bn1][0],phasex[bn1][1],phmdl,MADTwiss.MUX[MADTwiss.indx[bn1]] ]
-                tfs_file.add_table_row(list_row_entries)
+            # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
+            if DEBUG:
+                filename = 'getphasex_dpp_'+str(k+1)+'.out'
+                files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+                tfs_file = files_dict[filename]
+                tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
+                tfs_file.add_descriptor("DPP", "%le", str(dpop))
+                tfs_file.add_descriptor("Q1", "%le", str(Q1))
+                tfs_file.add_descriptor("Q2", "%le", str(Q2))
+                tfs_file.add_descriptor("Q1DPP", "%le", str(Q1DPP))
+                tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASE","STDPH","PHXMDL","MUXMDL"])
+                tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
+                 
+                length_bpms = len(bpms)
+                for i in range(0,length_bpms):
+                    bn1=string.upper(bpms[i][1])
+                    bns1=bpms[i][0]
+                    
+                    index = (i+1) % length_bpms
+                    bn2 = string.upper(bpms[index][1])
+                    bns2 = bpms[index][0]
+                     
+                    try:
+                        phmdl=phasexlist[0][bn1][4]
+                    except:
+                        phmdl=0.0
+                    #phmdl=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+                    list_row_entries = ['"'+bn1+'" ','"'+bn2+'"',bns1,bns2,1,phasex[bn1][0],phasex[bn1][1],phmdl,MADTwiss.MUX[MADTwiss.indx[bn1]] ]
+                    tfs_file.add_table_row(list_row_entries)
 
-            betax={}
-            alfax={}
-            rmsbbx=0.
-            [betax,rmsbbx,alfax,bpms]=BetaFromPhase(MADTwiss,list_with_single_twiss,phasex,plane)
-            betax['DPP']=dpop
-            betaxa={}
-            [betaxa,rmsbbx,bpms,invJx]=BetaFromAmplitude(MADTwiss,list_with_single_twiss,plane)
-            betaxa['DPP']=dpop
+            betax = {}
+            alfax = {}
+            rmsbbx = 0.
+            [betax,rmsbbx,alfax,bpms] = BetaFromPhase(MADTwiss,list_with_single_twiss,phasex,plane)
+            betax['DPP'] = dpop
+            betaxa = {}
+            [betaxa,rmsbbx,bpms,invJx] = BetaFromAmplitude(MADTwiss,list_with_single_twiss,plane)
+            betaxa['DPP'] = dpop
             betaxalist.append(betaxa)
             
             filename = 'getbetax_dpp_'+str(k+1)+'.out'
@@ -5033,47 +5036,49 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             dpop = float(j.DPP)
             list_with_single_twiss = []
             list_with_single_twiss.append(j)
-            filename = 'getphasey_dpp_'+str(k+1)+'.out'
-            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
-            tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
-            tfs_file.add_descriptor("Q1", "%le", str(Q1))
-            tfs_file.add_descriptor("Q2", "%le", str(Q2))
             
             DPPTwiss = ConstructOffMomentumModel(MADTwiss,dpop,BPMdictionary)
             [phasey,Q2DPP,MUY,bpms] = GetPhases(DPPTwiss,list_with_single_twiss,Q2,plane,outputpath,beam_direction,accel,lhcphase)
             phasey['DPP'] = dpop
             phaseylist.append(phasey)
             
-            tfs_file.add_descriptor("Q2DPP", "%le", str(Q2DPP))
-            tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASE","STDPH","PHYMDL","MUYMDL"])
-            tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
-            
-            length_bpms = len(bpms)
-            for i in range(0,length_bpms):
-                bn1=string.upper(bpms[i][1])
-                bns1=bpms[i][0]
+            # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
+            if DEBUG:
+                filename = 'getphasey_dpp_'+str(k+1)+'.out'
+                files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+                tfs_file = files_dict[filename]
+                tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
+                tfs_file.add_descriptor("Q1", "%le", str(Q1))
+                tfs_file.add_descriptor("Q2", "%le", str(Q2))
+                tfs_file.add_descriptor("Q2DPP", "%le", str(Q2DPP))
+                tfs_file.add_column_names(["NAME","NAME2","S","S1","COUNT","PHASE","STDPH","PHYMDL","MUYMDL"])
+                tfs_file.add_column_datatypes(["%s","%s","%le","%le","%le","%le","%le","%le","%le"])
+                
+                length_bpms = len(bpms)
+                for i in range(0,length_bpms):
+                    bn1=string.upper(bpms[i][1])
+                    bns1=bpms[i][0]
+     
+                    index = (i+1) % length_bpms
+                    bn2 = string.upper(bpms[index][1])
+                    bns2 = bpms[index][0]
+     
+                    try:
+                        phmdl=phaseylist[0][bn1][4]
+                    except:
+                        phmdl=0.0
+                    #phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+                    list_row_entries = ['"'+bn1+'" ','"'+bn2+'" ',bns1,bns2,1,phasey[bn1][0],phasey[bn1][1],phmdl,MADTwiss.MUY[MADTwiss.indx[bn1]] ]
+                    tfs_file.add_table_row(list_row_entries)
 
-                index = (i+1) % length_bpms
-                bn2 = string.upper(bpms[index][1])
-                bns2 = bpms[index][0]
-
-                try:
-                    phmdl=phaseylist[0][bn1][4]
-                except:
-                    phmdl=0.0
-                #phmdl=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
-                list_row_entries = ['"'+bn1+'" ','"'+bn2+'" ',bns1,bns2,1,phasey[bn1][0],phasey[bn1][1],phmdl,MADTwiss.MUY[MADTwiss.indx[bn1]] ]
-                tfs_file.add_table_row(list_row_entries)
-
-            betay={}
-            alfay={}
-            rmsbby=0.
-            [betay,rmsbby,alfay,bpms]=BetaFromPhase(DPPTwiss,list_with_single_twiss,phasey,plane)
-            betay['DPP']=dpop
-            betaya={}
-            [betaya,rmsbby,bpms,invJy]=BetaFromAmplitude(DPPTwiss,list_with_single_twiss,plane)
-            betaya['DPP']=dpop
+            betay = {}
+            alfay = {}
+            rmsbby = 0.
+            [betay,rmsbby,alfay,bpms] = BetaFromPhase(DPPTwiss,list_with_single_twiss,phasey,plane)
+            betay['DPP'] = dpop
+            betaya = {}
+            [betaya,rmsbby,bpms,invJy] = BetaFromAmplitude(DPPTwiss,list_with_single_twiss,plane)
+            betaya['DPP'] = dpop
             betayalist.append(betaya)
             
             filename = 'getbetay_dpp_'+str(k+1)+'.out'
@@ -5252,15 +5257,15 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #-----------------------------------------begin octupole
     #->  1) f4000 (-3,0)
     #
-        filename = 'getoct4000.out'
-        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
-        tfs_file = files_dict[filename]
-        tfs_file.add_column_names(["NAME","S","AMP_30","AMP_30RMS","PHASE_30","PHASE_30RMS","H4000","H4000I","H4000R","H4000RMS","H4000PHASE","H4000PHASERMS","H4000M","H4000MI","H4000MR","HMPHASE4000"])
-        tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
-
-        files=[ListOfZeroDPPX,ListOfZeroDPPY]
-        plane='H'
-        name='f4000'
+#         filename = 'getoct4000.out'
+#         files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, twiss_model_file)
+#         tfs_file = files_dict[filename]
+#         tfs_file.add_column_names(["NAME","S","AMP_30","AMP_30RMS","PHASE_30","PHASE_30RMS","H4000","H4000I","H4000R","H4000RMS","H4000PHASE","H4000PHASERMS","H4000M","H4000MI","H4000MR","HMPHASE4000"])
+#         tfs_file.add_column_datatypes(["%s","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le","%le"])
+# 
+#         files=[ListOfZeroDPPX,ListOfZeroDPPY]
+#         plane='H'
+#         name='f4000'
 
         #TODO: f2100M and NAMES not defined befor. What to do? Delete section? (vimaier)
 #         [A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)

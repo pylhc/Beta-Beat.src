@@ -5598,8 +5598,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 #     fsex2100=open(outputpath+'getsex1200.out','w')
 #     fsex2100.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
-    foct4000=open(outputpath+'getoct4000.out','w')
-    foct4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+#     foct4000=open(outputpath+'getoct4000.out','w')
+#     foct4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
     fchi3000=open(outputpath+'getchi3000.out','w')
     fchi3000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
@@ -5710,13 +5710,13 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #->  1) f4000 (-3,0)
     #
 
-        foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
-        foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n')
-
-        files=[ListOfZeroDPPX,ListOfZeroDPPY]
-        Q=[Q1,Q2]
-        plane='H'
-        name='f4000'
+#         foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
+#         foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n')
+# 
+#         files=[ListOfZeroDPPX,ListOfZeroDPPY]
+#         Q=[Q1,Q2]
+#         plane='H'
+#         name='f4000'
 
     #       [A,h,hMODEL,dbpms]=Getoctopole(MADTwiss,plane,files,phasexlist[0],Q,name,f2100M,NAMES)
 
@@ -5726,7 +5726,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     #               bns=dbpms[i][0]
     #               foct4000.write('"'+bn+'" '+str(bns)+' '+str(A[0][i])+' '+str(A[1][i])+' '+str(A[2][i])+' '+str(A[3][i])+' '+str(h[0][i])+' '+str(h[1][i])+' '+str(h[2][i])+' '+str(h[3][i])+' '+str(h[4][i])+' '+str(h[5][i])+' '+str(hMODEL[0][i])+' '+str(hMODEL[1][i])+' '+str(hMODEL[2][i])+' '+str(hMODEL[3][i])+' \n')
 
-        foct4000.close()
+#         foct4000.close()
 
     #-----------------------------------------end octupole
 
