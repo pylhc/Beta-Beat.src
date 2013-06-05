@@ -5,6 +5,8 @@ Created on 11/09/09
 
 @version: 2.38b
 
+TODO: more detailed description(vimaier)
+
 Python script to obtain Linear Lattice functions and More -> GetLLM
 
 
@@ -205,50 +207,6 @@ DEBUG = True
 #                 Functions
 #######################################################
 
-#------------
-
-# def modelIntersect(expbpms, model):
-#     bpmsin=[]
-#     #print "start Intersect, expbpms #:", len(expbpms)
-#     if len(expbpms)==0:
-#         print >> sys.stderr, "Zero exp BPMs sent to modelIntersect"
-#         sys.exit(1)
-#     for bpm in expbpms:
-#         try:
-#             check_if_bpm_in_model = model.indx[bpm[1].upper()]  # @UnusedVariable
-#             bpmsin.append(bpm)
-#         except KeyError:
-#             print >> sys.stderr, bpm, "Not in Model"
-# 
-#     if len(bpmsin)==0:
-#         print >> sys.stderr, "Zero intersection of Exp and Model"
-#         print >> sys.stderr, "Please, provide a good Dictionary or correct data"
-#         print >> sys.stderr, "Now we better leave!"
-#         sys.exit(1)
-#     return bpmsin
-# 
-# 
-# def intersect(ListOfFile):
-#     '''Pure intersection of all bpm names in all files '''
-#     if len(ListOfFile)==0:
-#         print >> sys.stderr, "Nothing to intersect!!!!"
-#         sys.exit(1)
-#     z=ListOfFile[0].NAME
-#     if len(z)==0:
-#         print >> sys.stderr, "No exp BPMs..."
-#         sys.exit(1)
-#     for b in ListOfFile:
-#         z=filter(lambda x: x in z   , b.NAME)
-#     #SORT by S
-#     result=[]
-#     x0=ListOfFile[0]
-#     for bpm in z:
-#         result.append((x0.S[x0.indx[bpm]], bpm))
-# 
-#     result.sort()
-#     return result
-
-
 #------------ Get phases
 
 def phiLastAndLastButOne(phi,ftune):
@@ -279,7 +237,6 @@ def PhaseMean(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 o
         return phase1ave%norm
 
 def PhaseStd(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
-
     phase0   =np.array(phase0)%norm
     phase1   =(phase0+0.5*norm)%norm-0.5*norm
     phase0ave=np.mean(phase0)
@@ -288,8 +245,8 @@ def PhaseStd(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or
     phase1std=math.sqrt(np.mean((phase1-phase1ave)**2))
     return min(phase0std,phase1std)
 
-def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
 
+def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
