@@ -118,8 +118,6 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
 
 
 def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcphase):
-    #print "Hi Get", len(ListOfFiles)
-
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     length_commonbpms = len(commonbpms)
