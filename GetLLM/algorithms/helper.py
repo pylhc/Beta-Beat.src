@@ -117,7 +117,7 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
     return [phaseT,commonbpms]
 
 
-def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcphase):
+def GetPhases(getllm_data, MADTwiss, ListOfFiles, Q, plane):
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     length_commonbpms = len(commonbpms)
@@ -125,9 +125,9 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
     #sys.exit()
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if lhcphase=="1" and accel=="LHCB1": 
+    if getllm_data.lhc_phase=="1" and getllm_data.accel=="LHCB1": 
         s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    if lhcphase=="1" and accel=="LHCB2": 
+    if getllm_data.lhc_phase=="1" and getllm_data.accel=="LHCB2": 
         s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     mu=0.0
@@ -194,13 +194,13 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             #-- To fix the phase shift by Q in LHC
             try:
                 if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]] >s_lastbpm: 
-                    phm12 += beam_direction*Q
+                    phm12 += getllm_data.beam_direction*Q
                 if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]] >s_lastbpm: 
-                    phm13 += beam_direction*Q
+                    phm13 += getllm_data.beam_direction*Q
                 if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm: 
-                    phm12 += -beam_direction*Q
+                    phm12 += -getllm_data.beam_direction*Q
                 if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm: 
-                    phm13 += -beam_direction*Q
+                    phm13 += -getllm_data.beam_direction*Q
             except: pass
             if phm12<0: phm12+=1
             if phm13<0: phm13+=1
@@ -209,7 +209,7 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
 
         phi12=np.array(phi12)
         phi13=np.array(phi13)
-        if beam_direction==-1: # for the beam circulating reversely to the model
+        if getllm_data.beam_direction==-1: # for the beam circulating reversely to the model
             phi12=1.0-phi12
             phi13=1.0-phi13
 
