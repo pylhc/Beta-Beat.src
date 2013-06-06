@@ -45,21 +45,21 @@ print >>outy, "* %s   %le %le       %le"
 
 
 def intersect(ListOfFile): 
-	'''Pure intersection of all bpm names in all files '''
-	if len(ListOfFile)==0:
-		print "Nothing to intersect!!!!"
-		sys.exit()
-	z=ListOfFile[0].NAME
-	for b in ListOfFile:
-		z=filter(lambda x: x in z   , b.NAME)
-	#SORT by S
-	result=[]
-	x0=ListOfFile[0]
-	for bpm in z:
-		result.append((x0.S[x0.indx[bpm]], bpm))
-		
-	result.sort()
-	return result
+    '''Pure intersection of all bpm names in all files '''
+    if len(ListOfFile) == 0:
+        print "Nothing to intersect!!!!"
+        sys.exit()
+    z = ListOfFile[0].NAME
+    for b in ListOfFile:
+        z=filter(lambda x: x in z   , b.NAME)
+    #SORT by S
+    result=[]
+    x0=ListOfFile[0]
+    for bpm in z:
+        result.append((x0.S[x0.indx[bpm]], bpm))
+
+    result.sort()
+    return result
 
 
 

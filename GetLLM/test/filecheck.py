@@ -42,6 +42,7 @@ import shutil
 # Otherwise ScriptRunner won't be found
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join( os.path.dirname(os.path.abspath(__file__)),"../../../Python_Classes4MAD" ))
+
 import vimaier_utils.scriptrunner
 import vimaier_utils.IoUtils
 import runvalidator
