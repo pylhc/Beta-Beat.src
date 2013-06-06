@@ -1,16 +1,16 @@
 '''
-Created on ??/??/??
+Last updated 07.06.2013
 
-@author: ?
+@maintainer: Yngve Inntjore Levinsen
+
+@author: Glenn Vanbavinckhove, Yngve Inntjore Levinsen
 
 @version: 3.1.2
 
-TODO: Description
 What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards 
 interpolate the results to see how the functions vary with dp/p.
 
-To run getsuper.py you need several source files(sdds files which stated in a comma separated string
-in option -f/--files) with different DPP(delta_p/p). 
+To run getsuper.py you need several source files(sdds files) with different DPP(delta_p/p). 
 At least one of the source files must have DPP=0.0 .
 Hint: You can change DPP in the GUI application in the Analysis panel. Change the entries in the
 column 'dp/d' in the table at the top.
@@ -18,10 +18,11 @@ column 'dp/d' in the table at the top.
 Further you need AC dipole in your model. If your twissfile is 'Twiss.dat' you need to provide the 
 file 'Twiss_ac.dat' in the same directory. 
 
+Use argument --help for further information
 
 Change history:
 
- - 3.1 YIL ???: 
+ - 3.1 ylevinse 2012: 
     Cleaned macro writer in madcreator
     modifiers.madx should be in options.output
  - 3.1.1 vimaier 28th May 2013: 
