@@ -413,7 +413,7 @@ def intial_setup(outputpath, files_to_analyse, model_filename, dict_file, accel,
         print >> sys.stderr, "twiss file loading failed for:", model_filename
         print >> sys.stderr, traceback.format_exc()
         #-- finding the ac dipole model
-        sys.exit(1)
+#         sys.exit(1)
     with_ac_calc = False
     try:
         MADTwiss_ac = metaclass.twiss(model_filename.replace(".dat", "_ac.dat"))
