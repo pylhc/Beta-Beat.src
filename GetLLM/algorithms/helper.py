@@ -20,7 +20,6 @@ if "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/" not in sys.path: # added for Ut
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/')
 import metaclass
 import os
-import string
 import math
 
 from numpy import sin,cos,tan
@@ -81,12 +80,12 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
     if op=="1" and oa=="LHCB1": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
     if op=="1" and oa=="LHCB2": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
-    bn1=string.upper(commonbpms[0][1])
+    bn1=str.upper(commonbpms[0][1])
     phaseT={}
     print "Reference BPM:", bn1, "Plane:", plane
     for i in range(0,len(commonbpms)):
-        #bn2=string.upper(commonbpms[i+1][1]) ?
-        bn2=string.upper(commonbpms[i][1])
+        #bn2=str.upper(commonbpms[i+1][1]) ?
+        bn2=str.upper(commonbpms[i][1])
         if plane=='H':
             phmdl12=(MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]) % 1
         if plane=='V':
@@ -134,9 +133,9 @@ def GetPhases(getllm_data, MADTwiss, ListOfFiles, Q, plane):
     tunem=[]
     phase={} # Dictionary for the output containing [average phase, rms error]
     for i in range(0,length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
-        bn1=string.upper(commonbpms[i%length_commonbpms][1])
-        bn2=string.upper(commonbpms[(i+1)%length_commonbpms][1])
-        bn3=string.upper(commonbpms[(i+2)%length_commonbpms][1])
+        bn1=str.upper(commonbpms[i%length_commonbpms][1])
+        bn2=str.upper(commonbpms[(i+1)%length_commonbpms][1])
+        bn3=str.upper(commonbpms[(i+2)%length_commonbpms][1])
         
         if bn1 == bn2 :
             print >> sys.stderr, "There seem two lines with the same BPM name "+bn1+" in linx/y file."
@@ -274,17 +273,17 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
     delbeta=[]
     for i in range(0,len(commonbpms)):
         if i==len(commonbpms)-2: # The last monitor but one
-            bn1=string.upper(commonbpms[i][1])
-            bn2=string.upper(commonbpms[i+1][1])
-            bn3=string.upper(commonbpms[0][1])
+            bn1=str.upper(commonbpms[i][1])
+            bn2=str.upper(commonbpms[i+1][1])
+            bn3=str.upper(commonbpms[0][1])
         elif i==len(commonbpms)-1: # The last monitor
-            bn1=string.upper(commonbpms[i][1])
-            bn2=string.upper(commonbpms[0][1])
-            bn3=string.upper(commonbpms[1][1])
+            bn1=str.upper(commonbpms[i][1])
+            bn2=str.upper(commonbpms[0][1])
+            bn3=str.upper(commonbpms[1][1])
         else : # Others
-            bn1=string.upper(commonbpms[i][1])
-            bn2=string.upper(commonbpms[i+1][1])
-            bn3=string.upper(commonbpms[i+2][1])
+            bn1=str.upper(commonbpms[i][1])
+            bn2=str.upper(commonbpms[i+1][1])
+            bn3=str.upper(commonbpms[i+2][1])
         ph2pi12=2.*np.pi*phase[bn1][0]
         ph2pi23=2.*np.pi*phase[bn2][0]
         ph2pi13=2.*np.pi*phase[bn1][2]
@@ -399,7 +398,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
     # Output the beta at all monitors even for the first, second, last and last but one using beta1,2 and 3!
     for i in range(0,len(commonbpms)):
-        bn1=string.upper(commonbpms[i][1])
+        bn1=str.upper(commonbpms[i][1])
         if i==0: # The first monitor
             ib1=0
             ib2=len(commonbpms)-1
@@ -457,7 +456,7 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
     Amp2=[]
     Kick2=[]
     for i in range(0,len(commonbpms)): # this loop have become complicated after modifications... anybody simplify?
-        bn1=string.upper(commonbpms[i][1])
+        bn1=str.upper(commonbpms[i][1])
         if plane=='H':
             tembeta=MADTwiss.BETX[MADTwiss.indx[bn1]]
         elif plane=='V':
@@ -504,7 +503,7 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
 
     delbeta=[]
     for i in range(0,len(commonbpms)):
-        bn1=string.upper(commonbpms[i][1])
+        bn1=str.upper(commonbpms[i][1])
         location=commonbpms[i][0]
         for j in range(0,len(ListOfFiles)):
             Amp2[i][j]=Amp2[i][j]/Kick2[j]
@@ -535,7 +534,7 @@ def GetCO(MADTwiss, ListOfFiles):
     commonbpms=Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     co={} # Disctionary for output
     for i in range(0,len(commonbpms)):
-        bn1=string.upper(commonbpms[i][1])
+        bn1=str.upper(commonbpms[i][1])
         coi=0.0
         coi2=0.0
         for j in ListOfFiles:
@@ -547,7 +546,7 @@ def GetCO(MADTwiss, ListOfFiles):
     return [co, commonbpms]
 
 
-def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COcut):
+def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, cut_co):
 
     nzdpp=len(ListOfNonZeroDPPX) # How many non zero dpp
     zdpp=len(ListOfZeroDPPX)  # How many zero dpp
@@ -562,7 +561,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
     coac=ListOfCOX[0] # COX dictionary after cut bad BPMs
     coact={}
     for i in coac:
-        if (coac[i][1] < COcut):
+        if (coac[i][1] < cut_co):
             coact[i]=coac[i]
     coac=coact
 
@@ -587,7 +586,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
     ndmdl=[]
     badco=0
     for i in range(0,len(commonbpmsALL)):
-        bn1=string.upper(commonbpmsALL[i][1])
+        bn1=str.upper(commonbpmsALL[i][1])
         bns1=commonbpmsALL[i][0]
         ndmdli=MADTwiss.DX[MADTwiss.indx[bn1]]/math.sqrt(MADTwiss.BETX[MADTwiss.indx[bn1]])
         ndmdl.append(ndmdli)
@@ -627,7 +626,7 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, COc
     badco=0
     for i in range(0,len(commonbpmsALL)):
         ndi=[]
-        bn1=string.upper(commonbpmsALL[i][1])
+        bn1=str.upper(commonbpmsALL[i][1])
         bns1=commonbpmsALL[i][0]
         try:
             coac[bn1]
@@ -651,12 +650,12 @@ def GetDPX(MADTwiss,Dx,commonbpms):
 
     DPX={}
     for i in range(0,len(commonbpms)):
-        bn1=string.upper(commonbpms[i][1])
+        bn1=str.upper(commonbpms[i][1])
         if i==len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
-            bn2=string.upper(commonbpms[0][1])
+            bn2=str.upper(commonbpms[0][1])
             phmdl12=2.*np.pi*(MADTwiss.Q1+MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]])
         else:
-            bn2=string.upper(commonbpms[i+1][1])
+            bn2=str.upper(commonbpms[i+1][1])
             phmdl12=2.*np.pi*(MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]])
         betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
         betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
@@ -679,12 +678,12 @@ def GetDPX(MADTwiss,Dx,commonbpms):
 def GetDPY(MADTwiss,Dy,commonbpms):
     DPY={}
     for i in range(0,len(commonbpms)):
-        bn1=string.upper(commonbpms[i][1])
+        bn1=str.upper(commonbpms[i][1])
         if i==len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
-            bn2=string.upper(commonbpms[0][1])
+            bn2=str.upper(commonbpms[0][1])
             phmdl12=2.*np.pi*(MADTwiss.Q2+MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]])
         else:
-            bn2=string.upper(commonbpms[i+1][1])
+            bn2=str.upper(commonbpms[i+1][1])
             phmdl12=2.*np.pi*(MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]])
         betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
         betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
@@ -735,7 +734,7 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
     dco={} # Dictionary for the output containing [(averaged)Disp, rms error]
     bpms=[]
     for i in range(0,len(commonbpmsALL)):
-        bn1=string.upper(commonbpmsALL[i][1])
+        bn1=str.upper(commonbpmsALL[i][1])
         bns1=commonbpmsALL[i][0]
 
         try:
@@ -811,7 +810,7 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
     dbpmt=[]
     countBadPhase=0
     for i in range(0,len(dbpms)):
-        bn1=string.upper(dbpms[i][1])
+        bn1=str.upper(dbpms[i][1])
 
         fij=[]
         q1j=[]
@@ -882,7 +881,7 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
     for i in range(0,len(dbpms)):
         jx=ListOfZeroDPPX[j]
         jy=ListOfZeroDPPY[j]
-        bn1=string.upper(dbpms[i][1])
+        bn1=str.upper(dbpms[i][1])
         CG=CG+math.sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
 
@@ -1006,8 +1005,8 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     dbpmt=[]
     countBadPhase=0
     for i in range(0,len(dbpms)-1):
-        bn1=string.upper(dbpms[i][1])
-        bn2=string.upper(dbpms[i+1][1])
+        bn1=str.upper(dbpms[i][1])
+        bn2=str.upper(dbpms[i+1][1])
 
         delx= phasex[bn1][0] - 0.25  # Missprint in the coupling note
         dely= phasey[bn1][0] - 0.25
@@ -1130,12 +1129,12 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     dbpms=dbpmt
 
     # possible correction ??
-    #bn0=string.upper(dbpms[0][1])
+    #bn0=str.upper(dbpms[0][1])
     #up1=fwqw[bn0][0][0]
     #up2=fwqw[bn0][0][2]
     #for i in range(1,len(dbpms)):
-        #bn0=string.upper(dbpms[i-1][1])
-        #bn1=string.upper(dbpms[i][1])
+        #bn0=str.upper(dbpms[i-1][1])
+        #bn1=str.upper(dbpms[i][1])
         #df1001=math.sqrt(fwqw[bn0][0][0].real**2+fwqw[bn0][0][0].imag**2)/math.sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         #df1010=math.sqrt(fwqw[bn0][0][2].real**2+fwqw[bn0][0][2].imag**2)/math.sqrt(fwqw[bn1][0][2].real**2+fwqw[bn1][0][2].imag**2)
         #fwqw[bn0][0][0]=up1
@@ -1153,7 +1152,7 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     for i in range(0,len(dbpms)-1):
         jx=ListOfZeroDPPX[0]
         jy=ListOfZeroDPPY[0]
-        bn1=string.upper(dbpms[i][1])
+        bn1=str.upper(dbpms[i][1])
         CG=CG+math.sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
 
@@ -1257,8 +1256,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
     dbpms=bpmpair() # model BPM name
     countofmissingBPMs=0
     for i in range(0,len(dbpms)):
-        wname=string.upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
-        pname=string.upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
+        wname=str.upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
+        pname=str.upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
         #print wname
         ws=dbpms[i][0]  # Location
         #print "name ",wname, pname
@@ -1281,8 +1280,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
                 jy=ListOfZeroDPPY[j]
                 #if dbpms[i][3]==0:
                 # dphix is used only in commented out code beneath (vimaier)
-#                 dphix=MADTwiss.MUX[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[string.upper(wname)]]
-                dphiy=MADTwiss.MUY[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[string.upper(wname)]]
+#                 dphix=MADTwiss.MUX[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[str.upper(wname)]]
+                dphiy=MADTwiss.MUY[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[str.upper(wname)]]
                 # Going to try using model names, to be able to use simulation data
                 try:
                     wampx=jx.AMPX[jx.indx[wname]]
@@ -1318,8 +1317,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
                     #wamp10=jy.AMP10[jy.indx[wname]]
                     #wtunex=jx.TUNEX[jx.indx[pname]]
                     #wtuney=jy.TUNEY[jy.indx[wname]]
-                    #dphix=MADTwiss.MUX[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[string.upper(wname)]]
-                    #dphiy=MADTwiss.MUY[MADTwiss.indx[string.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[string.upper(wname)]]
+                    #dphix=MADTwiss.MUX[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[str.upper(wname)]]
+                    #dphiy=MADTwiss.MUY[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[str.upper(wname)]]
                     #wmux=(jx.MUX[jx.indx[pname]]-dphix)%1.0
                     #if (wmux > 0.5): wmux=wmux-1
                     #wmuy=jy.MUY[jy.indx[wname]]
@@ -1547,7 +1546,7 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     # for the model
     for i in range(0,len(dbpms)):
 
-        bpm=string.upper(dbpms[i][1])
+        bpm=str.upper(dbpms[i][1])
 
         bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
 
@@ -1577,8 +1576,8 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     #calculation of f,q,h,qh
     for i in range(0,len(dbpms)-1):
 
-        bn1=string.upper(dbpms[i][1])
-        bn2=string.upper(dbpms[i+1][1])
+        bn1=str.upper(dbpms[i][1])
+        bn2=str.upper(dbpms[i+1][1])
 
         #print bn1
         #print phaseT
@@ -1751,7 +1750,7 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
     for i in range(0,len(dbpms)): # ask rogelio
 
-        bn1=string.upper(dbpms[i][1])
+        bn1=str.upper(dbpms[i][1])
 
         BPMS.append(bn1)
 
@@ -1805,9 +1804,9 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
         XI_phase=[]
         XI_phaseRMS=[]
 
-        bn1=string.upper(dbpms[i][1])
-        bn2=string.upper(dbpms[i+1][1])
-        bn3=string.upper(dbpms[i+2][1])
+        bn1=str.upper(dbpms[i][1])
+        bn2=str.upper(dbpms[i+1][1])
+        bn3=str.upper(dbpms[i+2][1])
 
         filej=ListOfZeroDPPX[0]
 
@@ -1942,8 +1941,8 @@ def getchi1010(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
         XI_phase=[]
         XI_phaseRMS=[]
 
-        bn=string.upper(dbpms[i][1])
-        bny=string.upper(dbpmsy[i][1])
+        bn=str.upper(dbpms[i][1])
+        bny=str.upper(dbpmsy[i][1])
 
         for j in range(0,len(files)):
 
@@ -1996,7 +1995,7 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
 
 
     for i in range(0,len(bpms)):
-        bn=string.upper(bpms[i][1])
+        bn=str.upper(bpms[i][1])
         bns=bpms[i][0]
 
         # dbeta and dalpha will be extract via metaclass. As it is for the time being.
@@ -2166,7 +2165,7 @@ def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
 
     #-- Common BPMs
     bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
-    bpm = [(b[0],string.upper(b[1])) for b in bpm]
+    bpm = [(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Loop for IPs
     result={}
@@ -2653,7 +2652,7 @@ def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
-    bpm=[(b[0],string.upper(b[1])) for b in bpm]
+    bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -2713,7 +2712,7 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
-    bpm=[(b[0],string.upper(b[1])) for b in bpm]
+    bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -2787,7 +2786,7 @@ def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss_ac)
-    bpm = [(b[0],string.upper(b[1])) for b in bpm]
+    bpm = [(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd==1: 
@@ -2867,7 +2866,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
     #-- Select common BPMs
     bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(FilesX+FilesY),MADTwiss)
-    bpm=[(b[0],string.upper(b[1])) for b in bpm]
+    bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     #if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -3072,7 +3071,7 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
     #-- Common BPMs
     bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
-    bpm=[(b[0],string.upper(b[1])) for b in bpm]
+    bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
