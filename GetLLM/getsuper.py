@@ -1,5 +1,5 @@
 '''
-Last updated 07.06.2013
+Created sometime 2009-2011
 
 @maintainer: Yngve Inntjore Levinsen
 
@@ -20,7 +20,7 @@ file 'Twiss_ac.dat' in the same directory.
 
 Use argument --help for further information
 
-Change history:
+Changelog:
 
  - 3.1 ylevinse 2012: 
     Cleaned macro writer in madcreator
