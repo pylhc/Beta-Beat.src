@@ -15,7 +15,7 @@ Change history:
 '''
 
 
-import GetLLM
+import GetLLM.GetLLM
 
 # Global variables
 my_outputpath = ""
@@ -32,11 +32,11 @@ my_TBTana = "SUSSIX"
 my_higher_order ="1"
 
 def run_getllm():
-    GetLLM.main(
+    GetLLM.GetLLM.main(
                 outputpath=my_outputpath,
                 dict_file=my_dict_file,
                 files_to_analyse=my_files_to_analyse,
-                twiss_model_file=my_twiss_model_file,
+                model_filename=my_twiss_model_file,
                 accel=my_accel,
                 lhcphase=my_lhcphase,
                 BPMU=my_BPMU,
