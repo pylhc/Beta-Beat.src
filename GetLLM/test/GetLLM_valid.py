@@ -4206,6 +4206,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     if (len(ListOfNonZeroDPPX)!=0) and (len(ListOfZeroDPPX)==0):
         ListOfZeroDPPX=ListOfNonZeroDPPX
         ListOfZeroDPPY=ListOfNonZeroDPPY
+        ListOfNonZeroDPPX = []
+        ListOfNonZeroDPPY = []
         wolinx=0
         woliny=0
         woliny2=1
