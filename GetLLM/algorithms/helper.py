@@ -116,7 +116,7 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
     return [phaseT,commonbpms]
 
 
-def GetPhases(getllm_data, MADTwiss, ListOfFiles, Q, plane):
+def GetPhases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     length_commonbpms = len(commonbpms)
@@ -124,9 +124,9 @@ def GetPhases(getllm_data, MADTwiss, ListOfFiles, Q, plane):
     #sys.exit()
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if getllm_data.lhc_phase=="1" and getllm_data.accel=="LHCB1": 
+    if getllm_d.lhc_phase=="1" and getllm_d.accel=="LHCB1": 
         s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    if getllm_data.lhc_phase=="1" and getllm_data.accel=="LHCB2": 
+    if getllm_d.lhc_phase=="1" and getllm_d.accel=="LHCB2": 
         s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     mu=0.0
@@ -193,13 +193,13 @@ def GetPhases(getllm_data, MADTwiss, ListOfFiles, Q, plane):
             #-- To fix the phase shift by Q in LHC
             try:
                 if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]] >s_lastbpm: 
-                    phm12 += getllm_data.beam_direction*Q
+                    phm12 += getllm_d.beam_direction*Q
                 if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]] >s_lastbpm: 
-                    phm13 += getllm_data.beam_direction*Q
+                    phm13 += getllm_d.beam_direction*Q
                 if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm: 
-                    phm12 += -getllm_data.beam_direction*Q
+                    phm12 += -getllm_d.beam_direction*Q
                 if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm: 
-                    phm13 += -getllm_data.beam_direction*Q
+                    phm13 += -getllm_d.beam_direction*Q
             except: pass
             if phm12<0: phm12+=1
             if phm13<0: phm13+=1
@@ -208,7 +208,7 @@ def GetPhases(getllm_data, MADTwiss, ListOfFiles, Q, plane):
 
         phi12=np.array(phi12)
         phi13=np.array(phi13)
-        if getllm_data.beam_direction==-1: # for the beam circulating reversely to the model
+        if getllm_d.beam_direction==-1: # for the beam circulating reversely to the model
             phi12=1.0-phi12
             phi13=1.0-phi13
 
@@ -1168,9 +1168,8 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     return [fwqw,dbpms]
 
 #---------------------------
-def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdictionary):
-
-
+def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdictionary, model_filename):
+    execfile(model_filename.replace("twiss.dat","BPMpair.py"))
 
     # check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
@@ -1254,7 +1253,7 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 
     # tentative solution
     dbpms=bpmpair() # model BPM name
-    countofmissingBPMs=0
+    count_of_missing_bpms=0
     for i in range(0,len(dbpms)):
         wname=str.upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
         pname=str.upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
@@ -1272,8 +1271,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 
         except:
             if len(BPMdictionary)!=0:
-                countofmissingBPMs = countofmissingBPMs + 1
-                print wname, "or", pname, "not found in the BPMdictionary. Total so far = ",countofmissingBPMs
+                count_of_missing_bpms = count_of_missing_bpms + 1
+                print wname, "or", pname, "not found in the BPMdictionary. Total so far = ",count_of_missing_bpms
         try:
             for j in range(0,len(ListOfZeroDPPX)):
                 jx=ListOfZeroDPPX[j]
@@ -1340,8 +1339,8 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
                 fbpmy[j].write('"'+wname+'" '+str(ws)+' '+str(wtuney)+' '+str(wmuy)+' '+str(wampy)+' '+str(wamp10)+' '+str(wphase10)+'\n')
         except:
             if len(BPMdictionary)!=0:
-                countofmissingBPMs = countofmissingBPMs + 1
-                print wname, "or", pname, "not found in the DATA. Total so far = ",countofmissingBPMs
+                count_of_missing_bpms = count_of_missing_bpms + 1
+                print wname, "or", pname, "not found in the DATA. Total so far = ",count_of_missing_bpms
 
 
     PseudoListX=[]
