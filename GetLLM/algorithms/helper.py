@@ -28,6 +28,10 @@ import numpy as np
 import Utilities.bpm
 
 
+#TODO: rename GetLLM.py to getllm.py and use DEBUG from there
+DEBUG = True
+
+
 
 
 
@@ -82,7 +86,8 @@ def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
 
     bn1=str.upper(commonbpms[0][1])
     phaseT={}
-    print "Reference BPM:", bn1, "Plane:", plane
+    if DEBUG:
+        print "Reference BPM:", bn1, "Plane:", plane
     for i in range(0,len(commonbpms)):
         #bn2=str.upper(commonbpms[i+1][1]) ?
         bn2=str.upper(commonbpms[i][1])
@@ -120,8 +125,6 @@ def GetPhases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     length_commonbpms = len(commonbpms)
-    #print len(commonbpms)
-    #sys.exit()
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase=="1" and getllm_d.accel=="LHCB1": 
@@ -254,9 +257,6 @@ def GetPhases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
         phase[bn1]=[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2]
-
-    #print len(phase)
-    #sys.exit()
 
     return [phase,tune,mu,commonbpms]
 
@@ -498,9 +498,6 @@ def BetaFromAmplitude(MADTwiss,ListOfFiles,plane):
     root2Jave=np.average(root2J)
     root2Jrms=math.sqrt(np.average(root2J*root2J)-root2Jave**2+2.2e-16)
 
-    #print Amp2/Kick2
-
-
     delbeta=[]
     for i in range(0,len(commonbpms)):
         bn1=str.upper(commonbpms[i][1])
@@ -551,8 +548,8 @@ def NormDispX(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX, ListOfCOX, betax, cut
     nzdpp=len(ListOfNonZeroDPPX) # How many non zero dpp
     zdpp=len(ListOfZeroDPPX)  # How many zero dpp
     if zdpp==0 or nzdpp ==0:
-        print 'Warning: No data for dp/p!=0 or even for dp/p=0.'
-        print 'No output for the  dispersion.'
+        print >> sys.stderr, 'Warning: No data for dp/p!=0 or even for dp/p=0.'
+        print >> sys.stderr, 'No output for the  dispersion.'
         dum0={}
         dum1=[]
         return [dum0, dum1]
@@ -754,7 +751,7 @@ def DispersionfromOrbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
 
 #-----------
 
-def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
+def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, Q1, Q2):
 
     # not applicable to db=-1 for the time being...
 
@@ -792,14 +789,14 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
 
     # check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement.
-    if len(ListOfZeroDPPX)!=len(ListOfZeroDPPY):
-        print 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+    if len(list_zero_dpp_x)!=len(list_zero_dpp_y):
+        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
         dum0={}
         dum1=[]
         return [dum0,dum1]
 
 
-    XplusY=ListOfZeroDPPX+ListOfZeroDPPY
+    XplusY=list_zero_dpp_x+list_zero_dpp_y
     dbpms=Utilities.bpm.intersect(XplusY)
     dbpms=Utilities.bpm.modelIntersect(dbpms, MADTwiss)
 
@@ -816,9 +813,9 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
         q1j=[]
         q2j=[]
         badbpm=0
-        for j in range(0,len(ListOfZeroDPPX)):
-            jx=ListOfZeroDPPX[j]
-            jy=ListOfZeroDPPY[j]
+        for j in range(0,len(list_zero_dpp_x)):
+            jx=list_zero_dpp_x[j]
+            jy=list_zero_dpp_y[j]
             C01ij=jx.AMP01[jx.indx[bn1]]
             C10ij=jy.AMP10[jy.indx[bn1]]
             fij.append(0.5*math.atan(math.sqrt(C01ij*C10ij)))
@@ -879,8 +876,8 @@ def GetCoupling1(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2):
     CG=0.0
     QG=0.0
     for i in range(0,len(dbpms)):
-        jx=ListOfZeroDPPX[j]
-        jy=ListOfZeroDPPY[j]
+        jx=list_zero_dpp_x[j]
+        jy=list_zero_dpp_y[j]
         bn1=str.upper(dbpms[i][1])
         CG=CG+math.sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
@@ -953,7 +950,7 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     return [amp,phase,eamp,ephase]
 
 
-def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phasey, bd, oa):
+def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, Q1, Q2, phasex, phasey, bd, oa):
 
     # find operation point
     try:
@@ -987,14 +984,14 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
 
     # check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
-    if len(ListOfZeroDPPX)!=len(ListOfZeroDPPY):
-        print 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+    if len(list_zero_dpp_x)!=len(list_zero_dpp_y):
+        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
         dum0={}
         dum1=[]
         return [dum0,dum1]
 
 
-    XplusY=ListOfZeroDPPX+ListOfZeroDPPY
+    XplusY=list_zero_dpp_x+list_zero_dpp_y
     dbpms=Utilities.bpm.intersect(XplusY)
     dbpms=Utilities.bpm.modelIntersect(dbpms, MADTwiss)
 
@@ -1020,9 +1017,9 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
         q1jd=[]
         q2jd=[]
         badbpm=0
-        for j in range(0,len(ListOfZeroDPPX)):
-            jx=ListOfZeroDPPX[j]
-            jy=ListOfZeroDPPY[j]
+        for j in range(0,len(list_zero_dpp_x)):
+            jx=list_zero_dpp_x[j]
+            jy=list_zero_dpp_y[j]
             [SA0p1ij,phi0p1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]],
                     jx.PHASE01[jx.indx[bn1]], jx.PHASE01[jx.indx[bn2]])
             [SA0m1ij,phi0m1ij]=ComplexSecondaryLine(delx, jx.AMP01[jx.indx[bn1]], jx.AMP01[jx.indx[bn2]],
@@ -1150,14 +1147,14 @@ def GetCoupling2(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, Q1, Q2, phasex, phase
     CG=0.0
     QG=0.0
     for i in range(0,len(dbpms)-1):
-        jx=ListOfZeroDPPX[0]
-        jy=ListOfZeroDPPY[0]
+        jx=list_zero_dpp_x[0]
+        jy=list_zero_dpp_y[0]
         bn1=str.upper(dbpms[i][1])
         CG=CG+math.sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         QG=QG+fwqw[bn1][1][0]-(jx.MUX[jx.indx[bn1]]-jy.MUY[jy.indx[bn1]])
 
     if len(dbpms)==0:
-        print 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
+        print >> sys.stderr, 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
         fwqw['Global']=[CG,QG] #Quick fix Evian 2012
         return [fwqw,dbpms]
     else:
@@ -1257,17 +1254,11 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
     for i in range(0,len(dbpms)):
         wname=str.upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
         pname=str.upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
-        #print wname
         ws=dbpms[i][0]  # Location
-        #print "name ",wname, pname
         #Check whether the inputs (linx/y) have BPM name of model or experiment
         try:
             exwname=BPMdictionary[wname][0] #Experimental BPM name of horizontal To be paired
-            #print exwname
-
             expname=BPMdictionary[pname][1] #Experimental BPM name of vertical  (one of them does not exist!) to be paired
-
-            #print expname
 
         except:
             if len(BPMdictionary)!=0:
@@ -1574,13 +1565,8 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
 
     #calculation of f,q,h,qh
     for i in range(0,len(dbpms)-1):
-
         bn1=str.upper(dbpms[i][1])
         bn2=str.upper(dbpms[i+1][1])
-
-        #print bn1
-        #print phaseT
-
 
         dell= phaseI[bn1][0] - 0.25
 
@@ -1695,7 +1681,6 @@ def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
 
     chiAMPi=chiTOT.imag
     chiAMPr=chiTOT.real
-    #print chiTOT.imag,chiTOT.real
     chiPHASE=(((np.arctan2(chiTOT.imag,chiTOT.real)))/twoPi)%1
     #chiPHASE=(0.5-chiPHASE)%1
 
@@ -1712,8 +1697,6 @@ def computeChiTerms(amp,phase_20,phase,terms,J,plane,ima,rea):
     chiAMP=chiAMP/Facot4AMP
     chiAMPi=chiAMPi/Facot4AMP
     chiAMPr=chiAMPr/Facot4AMP
-
-    #print 'measured ima + real '+ str(chiAMPi)+' '+str(chiAMPr) + ' model ima + real '+str(ima)+' '+str(rea)
 
     return [chiAMP,chiAMPi,chiAMPr,chiPHASE]
 
@@ -1762,7 +1745,8 @@ def getChiTerms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
         invarianceJx.append(invariantJX[0])
         invarianceJy.append(invariantJY[0])
 
-    #print invarianceJx
+    if DEBUG:
+        print "invarianceJX:",invarianceJx
     #### model chi
     MADTwiss.chiterms(BPMS)
     if name=='chi3000':
@@ -2071,14 +2055,12 @@ def getkick(files,MADTwiss):
     return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
 
 def BPMfinder(IP,model,measured):
-
     # last index
     indxes=model.S
 
     bpml="null"
     bpmh="null"
     for ind in range(len(indxes)):
-        #print ind
         name=model.NAME[ind]
         if "BPMSW.1L"+IP in name:
             bpml=name
@@ -2096,32 +2078,29 @@ def BPMfinder(IP,model,measured):
 
 
 
-def getIP(IP,measured,model,phase,bpms):
+def getIP(ip,measured,model,phase,bpms):
 
-    BPMleft,BPMright=BPMfinder(IP,model,measured)
+    BPMleft,BPMright=BPMfinder(ip,model,measured)
 
-    #print "IN ip"
+    if DEBUG:
+        print "getIP",ip
 
     if "null" in BPMleft or "null" in BPMright:
 
-        print "skipping IP"+IP+" calculation, no BPM found"
-        betahor=[IP,0,0,0,0,0,0]
-        betaver=[IP,0,0,0,0,0,0]
-        #sys.exit()
-
+        print "skipping ip"+ip+" calculation, no BPM found"
+        betahor=[ip,0,0,0,0,0,0]
+        betaver=[ip,0,0,0,0,0,0]
     else:
         # model
         sxl=model.S[model.indx[BPMleft]]
-        sip=model.S[model.indx["IP"+IP]]
+        sip=model.S[model.indx["ip"+ip]]
         sxr=model.S[model.indx[BPMright]]
-        betaipx=model.BETX[model.indx["IP"+IP]]
+        betaipx=model.BETX[model.indx["ip"+ip]]
         #alxl=model.ALFX[[model.indx[BPMleft]]
         #alyl=model.ALFY[[model.indx[BPMleft]]
         #alxr=model.ALFX[[model.indx[BPMright]]
         #alyr=model.ALFY[[model.indx[BPMright]]
-        #print betaipx
-        betaipy=model.BETY[model.indx["IP"+IP]]
-        #print betaipy
+        betaipy=model.BETY[model.indx["ip"+ip]]
 
         # measured value
         betaxl=measured[0][BPMleft][0]
@@ -2139,10 +2118,10 @@ def getIP(IP,measured,model,phase,bpms):
 
         deltaphi=(math.atan((L-location)/betastar)+math.atan((L+location)/betastar))/(2*np.pi)
 
-        betahor=[IP,betastar,location,deltaphi,betaipx,deltaphimodel,0]
+        betahor=[ip,betastar,location,deltaphi,betaipx,deltaphimodel,0]
 
-
-        print "horizontal betastar for ",IP," is ",str(betastar)," at location ",str(location), " of IP center with phase advance ",str(deltaphi)
+        if DEBUG:
+            print "horizontal betastar for ",ip," is ",str(betastar)," at location ",str(location), " of ip center with phase advance ",str(deltaphi)
 
         #vertical
         deltaphimodel=abs(model.MUY[model.indx[BPMright]]-model.MUY[model.indx[BPMleft]])
@@ -2153,9 +2132,10 @@ def getIP(IP,measured,model,phase,bpms):
 
         deltaphi=(math.atan((L-location)/betastar)+math.atan((L+location)/betastar))/(2*np.pi)
 
-        betaver=[IP,betastar,location,deltaphi,betaipy,deltaphimodel,0]
+        betaver=[ip,betastar,location,deltaphi,betaipy,deltaphimodel,0]
 
-        print "vertical betastar for ",IP," is ",str(betastar)," at location ",str(location), " of IP center with phase advance ",str(deltaphi)
+        if DEBUG:
+            print "vertical betastar for ",ip," is ",str(betastar)," at location ",str(location), " of ip center with phase advance ",str(deltaphi)
 
 
     return [betahor,betaver]
@@ -2317,7 +2297,7 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
 
 
     if len(bpms)==0:
-        print "No bpms in getCandGammaQmin. Returning emtpy stuff"
+        print >> sys.stderr, "No bpms in getCandGammaQmin. Returning emtpy stuff"
         return coupleterms,0,0,bpms
 
     for bpm in bpms:
@@ -2332,7 +2312,6 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
 
         if check2>abs(fqwq[bpmm][0][2])**2: # checking if sum or difference resonance is dominant!
             gamma=math.sqrt(1/(1/(1+4*(abs(fqwq[bpmm][0][0])**2-abs(fqwq[bpmm][0][2])**2))))
-            #print detC
             ffactor= 2*gamma*tunefactor*math.sqrt(abs(detC)) # cannot take abs
             C11=-(fqwq[bpmm][0][0].imag-fqwq[bpmm][0][2].imag)*2*gamma
             C12=-(fqwq[bpmm][0][0].real+fqwq[bpmm][0][2].real)*2*gamma
@@ -2377,10 +2356,8 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
 ###### ac-dipole stuff
 
 def getFreeBeta(modelfree,modelac,betal,rmsbb,alfal,bpms,plane): # to check "+"
-
-    # ! how to deal with error !
-
-    #print "Calculating free beta using model"
+    if DEBUG:
+        print "Calculating free beta using model"
     #TODO: twice modelIntersect? check it! (vimaier)
     bpms=Utilities.bpm.modelIntersect(bpms, modelfree)
     bpms=Utilities.bpm.modelIntersect(bpms, modelac)
@@ -2410,12 +2387,11 @@ def getFreeBeta(modelfree,modelac,betal,rmsbb,alfal,bpms,plane): # to check "+"
         betan[bpm]=beta*(1+bb),beterr,betstd # has to be plus!
         alfan[bpm]=alfa*(1+aa),alferr,alfstd
 
-    #sys.exit()
     return betan,rmsbb,alfan,bpms
 
 def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms):
-
-    print "Calculating free fterms"
+    if DEBUG:
+        print "Calculating free fterms"
     couple={}
     couple['Global']=[fterm['Global'][0],fterm['Global'][1]]
 
@@ -2447,8 +2423,9 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
     factor_bottom_diff=sin(np.pi*(tunefreex-tunefreey))
 
     factor_diff=abs((factor_top_diff/factor_bottom_diff))
-
-    print "Factor for coupling diff ",factor_diff
+    
+    if DEBUG:
+        print "Factor for coupling diff ",factor_diff
 
     # sum f1010
     factor_top_sum=math.sqrt(sin(np.pi*(tunedrivenx+tunefreey))*sin(np.pi*(tunefreex+tunedriveny)))
@@ -2456,14 +2433,13 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
 
     factor_sum=abs((factor_top_sum/factor_bottom_sum))
 
-    print "Factor for coupling sum ",factor_sum
+    if DEBUG:
+        print "Factor for coupling sum ",factor_sum
 
     for bpm in bpms:
 
         bpmm=bpm[1].upper()
         [amp,phase]=fterm[bpmm]
-
-        #print amp[2]
 
         ampp=[amp[0]*factor_diff,amp[1],amp[2]*factor_sum,amp[3]]
         pphase=[phase[0]*factor_diff,phase[1],phase[2]*factor_sum,phase[3]]
@@ -2471,6 +2447,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
         couple[bpmm]=[ampp,pphase]
 
     return couple,bpms
+
 
 def getFreeAmpBeta(betai,rmsbb,bpms,invJ,modelac,modelfree,plane): # "-"
 
@@ -2481,7 +2458,8 @@ def getFreeAmpBeta(betai,rmsbb,bpms,invJ,modelac,modelfree,plane): # "-"
 
     betas={}
 
-    #print "Calculating free beta from amplitude using model"
+    if DEBUG:
+        print "Calculating free beta from amplitude using model"
 
     for bpm in bpms:
 
@@ -2498,11 +2476,10 @@ def getFreeAmpBeta(betai,rmsbb,bpms,invJ,modelac,modelfree,plane): # "-"
             betma=modelac.BETY[modelac.indx[bpmm]]
             bb=(betmf-betma)/betma
 
-        #print beta,beta*(1+bb)
-
         betas[bpmm]=[beta*(1+bb),betai[bpmm][1],betai[bpmm][2]]
 
     return betas,rmsbb,bpms,invJ
+
 
 def getfreephase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
     '''
@@ -2513,7 +2490,8 @@ def getfreephase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
         
     '''
 
-    #print "Calculating free phase using model"
+    if DEBUG:
+        print "Calculating free phase using model"
 
     phasef={}
     phi=[]
@@ -2559,7 +2537,8 @@ def getfreephaseTotal(phase,bpms,plane,MADTwiss,MADTwiss_ac):
             phmdl12 and bn1 are note used.
         
     '''
-    #print "Calculating free total phase using model"
+    if DEBUG:
+        print "Calculating free total phase using model"
 
     first=bpms[0][1]
 

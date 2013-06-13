@@ -1831,8 +1831,10 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
     '''    
     print "Calculating phase and Beta for non-zero DPP" 
     #TODO: what is a thingie??(vimaier)
-    print "lenght of zerothingie " + str(len(twiss_d.non_zero_dpp_x))
-    print "lenght of zerothingie " + str(len(twiss_d.non_zero_dpp_y))
+    if DEBUG:
+        print "lenght of zerothingie " + str(len(twiss_d.non_zero_dpp_x))
+        print "lenght of zerothingie " + str(len(twiss_d.non_zero_dpp_y))
+        
     if twiss_d.has_non_zero_dpp_x():
         plane = 'H'
         k = 0
@@ -1958,7 +1960,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
                 tfs_file.add_table_row(list_row_entries)
             
             k += 1
-    # Branch useless except of Q1 and Q2 calculation? Results will not be saved to a file nor returned(vimaier)
+    # TODO: Branch useless except of Q1 and Q2 calculation? Results will not be saved to a file nor returned(vimaier)
     if twiss_d.has_non_zero_dpp_y() and twiss_d.has_non_zero_dpp_x():
         if len(twiss_d.non_zero_dpp_x) != len(twiss_d.non_zero_dpp_y):
             raise ValueError("list of dppx is not equal list of dppy")

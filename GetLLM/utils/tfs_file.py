@@ -208,7 +208,7 @@ class TfsFile(object):
     def write_to_file(self, formatted = False):
         """ Writes the stored data to the file with the given filename. """
         if not self.__is_column_names_set or not self.__is_column_types_set:
-            print >> sys.stderr, "Abort writing file. Cannot write file until column names and types are set:",self.__file_name
+            print >> sys.stderr, self.__file_name, "Abort writing file. Cannot write file until column names and types are set:"
             return
         
         path = os.path.join(TfsFile.s_output_path, self.__file_name)
