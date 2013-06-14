@@ -200,9 +200,8 @@ VERSION = 'V2.38b PRO'
 #########
 #######
 ####
-DEBUG = True 
-# For now only used to decide if getphase(x|y)_dpp_' + str(k + 1) + '.out will be created or not.
-
+DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+print DEBUG,"GetLLM"
 
 #===================================================================================================
 # parse_args()-function
@@ -293,25 +292,22 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     twiss_d = _TwissData()
     tune_d = _TuneData()
 
-    with_ac_calc, mad_twiss, mad_ac, BPMdictionary, mad_elem = intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, BPMU, COcut, lhcphase, NBcpl)
+    with_ac_calc, mad_twiss, mad_ac, BPMdictionary, mad_elem = intial_setup(getllm_d, twiss_d, tune_d, 
+                                                                            outputpath, 
+                                                                            model_filename, 
+                                                                            dict_file, 
+                                                                            accel, 
+                                                                            BPMU, 
+                                                                            COcut, 
+                                                                            lhcphase, 
+                                                                            NBcpl)
 
     #-------- create TfsFile
     files_dict = create_tfs_files(getllm_d, model_filename, with_ac_calc)
 
     FileOfNonZeroDPPX, FileOfNonZeroDPPY = analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, TBTana, files_dict)
 
-    
-    if with_ac_calc:
-        # Get fractional part: frac(62.23) = 0.23; 62.23 % 1 ==> 0.23 (vimaier)
-        tune_d.q1f = abs(mad_twiss.Q1) % 1 #-- Free Q1 (tempolarlly, overwritten later)
-        tune_d.q2f = abs(mad_twiss.Q2) % 1 #-- Free Q2 (tempolarlly, overwritten later)
-        tune_d.q1 = abs(mad_ac.Q1) % 1 #-- Drive Q1 (tempolarlly, overwritten later)
-        tune_d.q2 = abs(mad_ac.Q2) % 1 #-- Drive Q2 (tempolarlly, overwritten later)
-        tune_d.d1 = tune_d.q1-tune_d.q1f #-- Used later to calculate free Q1
-        tune_d.d2 = tune_d.q2-tune_d.q2f #-- Used later to calculate free Q2
-    else:
-        tune_d.q1f = twiss_d.zero_dpp_x[0].Q1
-        tune_d.q2f = twiss_d.zero_dpp_y[0].Q2
+    tune_d.initialize_tunes(with_ac_calc, mad_twiss, mad_ac, twiss_d)
         
     #TODO: initialize variables otherwise calculate_coupling would raise an exception(vimaier)
     PseudoListX = None
@@ -388,7 +384,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-def intial_setup(getllm_d, outputpath,model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_beams_cpl):
+def intial_setup(getllm_d, twiss_d, tune_d, outputpath,model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_beams_cpl):
     getllm_d.set_outputpath(outputpath)
     getllm_d.set_bpmu_and_cut_for_closed_orbit(cut_co, bpm_unit)
     getllm_d.lhc_phase = lhcphase
@@ -427,7 +423,8 @@ def intial_setup(getllm_d, outputpath,model_filename, dict_file, accel, bpm_unit
     except:
         mad_ac = mad_twiss
         print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
-#-- Test if the AC dipole (MKQA) is in the model of LHC
+    
+    #-- Test if the AC dipole (MKQA) is in the model of LHC
     mad_elem = None
     if with_ac_calc:
         if 'LHC' in accel:
@@ -441,8 +438,7 @@ def intial_setup(getllm_d, outputpath,model_filename, dict_file, accel, bpm_unit
                     print 'WARN: AC dipoles not in the model. AC dipole effects not calculated with analytic equations !'
         else:
             print 'WARN: AC dipole effects calculated with analytic equations only for LHC for now'
-    
-
+         
     return with_ac_calc, mad_twiss, mad_ac, BPMdictionary, mad_elem
 # END intial_setup ---------------------------------------------------------------------------------
 
@@ -680,54 +676,41 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
     
     print 'Calculating phase' 
     #---- Calling GetPhases first to save tunes
-    #TODO:redundant code here? Better: if x: doX(); if y: doY();? Check it (vimaier)
     if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
-        #-- Calculate temp value of tune
-        q1_temp = []
-        q2_temp = []
-        for twiss_f in twiss_d.zero_dpp_x:
-            q1_temp.append(np.mean(twiss_f.TUNEX))
-        
-        for twiss_f in twiss_d.zero_dpp_y:
-            q2_temp.append(np.mean(twiss_f.TUNEY))
-        
-        q1_temp = np.mean(q1_temp)
-        q2_temp = np.mean(q2_temp)
         if len(twiss_d.zero_dpp_x[0].NAME) == 0:
             print "No BPMs in linx file"
             sys.exit(1)
         if len(twiss_d.zero_dpp_y[0].NAME) == 0:
             print "No BPMs in liny file"
             sys.exit(1)
-        [phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, q1_temp, 'H')
-        [phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, q2_temp, 'V') 
-        #TODO: what is KK??(vimaier)
-        print "KK end"
-    elif twiss_d.has_zero_dpp_x(): #-- Calculate temp value of tune
+            
+    if twiss_d.has_zero_dpp_x(): 
+        #-- Calculate temp value of tune
         q1_temp = []
         for i in twiss_d.zero_dpp_x:
-            q1_temp.append(np.mean(i.TUNEX))
-        
+            q1_temp.append(np.mean(i.TUNEX))        
         q1_temp = np.mean(q1_temp)
+        
         [phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, q1_temp, 'H')
-        print 'liny missing and output x only ...'
-    elif twiss_d.has_zero_dpp_y(): #-- Calculate temp value of tune
+        if not twiss_d.has_zero_dpp_y():
+            print 'liny missing and output x only ...'
+            
+    if twiss_d.has_zero_dpp_y(): 
+        #-- Calculate temp value of tune
         q2_temp = []
         for twiss_file in twiss_d.zero_dpp_y:
-            q2_temp.append(np.mean(twiss_file.TUNEY))
-        
+            q2_temp.append(np.mean(twiss_file.TUNEY))        
         q2_temp = np.mean(q2_temp)
+        
         [phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, q2_temp, 'V')
-        print 'linx missing and output y only ...'
+        if not twiss_d.has_zero_dpp_y():
+            print 'linx missing and output y only ...'
 
     #---- Re-run GetPhase to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
-        if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
+        if twiss_d.has_zero_dpp_x():
             [phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H')
-            [phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V')
-        elif twiss_d.has_zero_dpp_x():
-            [phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H')
-        elif twiss_d.has_zero_dpp_y():
+        if twiss_d.has_zero_dpp_y():
             [phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V')
 
     #---- ac to free phase from eq and the model
@@ -2118,6 +2101,8 @@ class _GetllmData(object):
         self.cut_for_closed_orbit = 0
         self.num_beams_for_coupling = 0
         
+        self.with_ac_calc = False
+        
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist. 
         
@@ -2196,13 +2181,27 @@ class _TuneData(object):
         self.d1 = None # Used later to calculate free Q1. Only if with ac calculation.
         self.d2 = None # Used later to calculate free Q2. Only if with ac calculation.
         
+    def initialize_tunes(self, with_ac_calc, mad_twiss, mad_ac, twiss_d):
+            # Initialize tunes   
+        if with_ac_calc:
+            # Get fractional part: frac(62.23) = 0.23; 62.23 % 1 ==> 0.23 (vimaier)
+            self.q1f = abs(mad_twiss.Q1) % 1 #-- Free Q1 (tempolarlly, overwritten later)
+            self.q2f = abs(mad_twiss.Q2) % 1 #-- Free Q2 (tempolarlly, overwritten later)
+            self.q1 = abs(mad_ac.Q1) % 1 #-- Drive Q1 (tempolarlly, overwritten later)
+            self.q2 = abs(mad_ac.Q2) % 1 #-- Drive Q2 (tempolarlly, overwritten later)
+            self.d1 = self.q1-self.q1f #-- Used later to calculate free Q1
+            self.d2 = self.q2-self.q2f #-- Used later to calculate free Q2
+        else:
+            self.q1f = twiss_d.zero_dpp_x[0].Q1
+            self.q2f = twiss_d.zero_dpp_y[0].Q2
+    
 
 #===================================================================================================
 # main invocation
 #===================================================================================================
 def _start():
     ''' 
-    Starter function to avoid polluting global space with options,args. 
+    Starter function to avoid polluting global namespace with variables options,args. 
     Before the following code was after 'if __name__=="__main__":'
     '''
     options = parse_args()

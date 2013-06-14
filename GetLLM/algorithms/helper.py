@@ -28,9 +28,7 @@ import numpy as np
 import Utilities.bpm
 
 
-#TODO: rename GetLLM.py to getllm.py and use DEBUG from there
-DEBUG = True
-
+DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 
 
