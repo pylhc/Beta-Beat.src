@@ -25,8 +25,8 @@ def modelIntersect(exp_bpms, model_twiss):
         'model_twiss': metaclass.Twiss
             Should be a Twiss object from model
                 
-    :Return: list of strings
-        A list with BPM_names which are both in exp_bpms and model_twiss.
+    :Return: list with tuples: (<S_value_i>,<bpm_i>)
+        A list with BPMs which are both in exp_bpms and model_twiss.
         
     :Exception: SystemExit
         If the length of exp_bpms is 0 or the length of the resulting list of strings is 0 then 

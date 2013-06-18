@@ -201,7 +201,6 @@ VERSION = 'V2.38b PRO'
 #######
 ####
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
-print DEBUG,"GetLLM"
 
 #===================================================================================================
 # parse_args()-function
@@ -266,8 +265,8 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
             BPM names.
         'accel': string
             Type of accelerator. LHCB1, LHCB2, LHCB4, RHIC, SPS
-        'lhcphase': string "0" or "1"
             Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1
+        'lhcphase': string "0" or "1"
         'BPMU': string
             BPMunit: um, mm, cm, m (default um)
         'COcut': int
@@ -333,7 +332,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
                     #exit()
 
     #-------- START Phase
-    acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, bpmsx, bpmsy, phasexf2, phaseyf2, phasexlist, phaseylist = calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, mad_elem, files_dict)
+    acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, phasexlist, phaseylist = calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, mad_elem, files_dict)
 
     #-------- START Total Phase
     calculate_total_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac)
@@ -345,7 +344,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     betax, betay, bpms, beta2_save, betaxalist, betayalist, betax_ratio, betay_ratio, betaxf_ratio, betayf_ratio = calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac, bpms, betax, betaxf, betay, betayf)
 
     #-------- START IP
-    calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpm_name, acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, bpmsx, bpmsy, phasexf2, phaseyf2, betax, betay)
+    calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpm_name, acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, betax, betay)
 
     #-------- START Orbit
     ListOfCOX, ListOfCOY = calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_dict, FileOfNonZeroDPPX, FileOfNonZeroDPPY, bpms)
@@ -869,7 +868,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
                 list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phaseyf2[bn1][0], phaseyf2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
     
-    return acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, bpmsx, bpmsy, phasexf2, phaseyf2, phasexlist, phaseylist
+    return acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, phasexlist, phaseylist
 # END calculate_phase ------------------------------------------------------------------------------
 
 
@@ -1347,7 +1346,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_
 # END calculate_beta_from_amplitude ----------------------------------------------------------------
 
 
-def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpm_name, acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, bpmsx, bpmsy, phasexf2, phaseyf2, betax, betay):
+def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpm_name, acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, betax, betay):
     '''
     Calculates ip and fills the following TfsFiles:
         getIP.out        
@@ -1369,25 +1368,19 @@ def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, fil
         tfs_file.add_column_names(["NAME", "BETASTARH", "BETASTARHMDL", "H", "PHIH", "PHIXH", "PHIHMDL", "BETASTARV", "BETASTARVMDL", "V", "PHIV", "PHIYV", "PHIVMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         ips = ["1", "2", "3", "4", "5", "6", "7", "8"]
-        try:
-            measured = [betax, betay]
-            phases = [phasex, phasey]
-            bpmss = [bpmsx, bpmsy]
-        except:
-            pass
-        for ip in ips:
+        measured = [betax, betay]
+        for num_ip in ips:
             try:
-                betahor, betaver = algorithms.helper.getIP(ip, measured, mad_twiss, phases, bpmss) #print "entering"
-            except:
+                betahor, betaver = algorithms.helper.get_ip(num_ip, measured, mad_twiss)
+            except KeyError:
                 betahor = [0, 0, 0, 0, 0, 0, 0]
                 betaver = [0, 0, 0, 0, 0, 0, 0]
-            #print str(betahor[6])
-            list_row_entries = ['"IP' + ip + '"', betahor[1], betahor[4], betahor[2], betahor[3], betahor[6], betahor[5], betaver[1], betaver[4], betaver[2], betaver[3], betaver[6], betaver[5]]
+            list_row_entries = ['"IP' + num_ip + '"', betahor[1], betahor[4], betahor[2], betahor[3], betahor[6], betahor[5], betaver[1], betaver[4], betaver[2], betaver[3], betaver[6], betaver[5]]
             tfs_file.add_table_row(list_row_entries)
         
         #-- Parameters at IP1, IP2, IP5, and IP8
-        IPx = algorithms.helper.GetIP2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        IPy = algorithms.helper.GetIP2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+        IPx = algorithms.helper.get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+        IPy = algorithms.helper.get_ip_2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
         tfs_file_x = files_dict['getIPx.out']
         tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JX)", "rt(2JX)STD"])
         tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -2182,7 +2175,6 @@ class _TuneData(object):
         self.d2 = None # Used later to calculate free Q2. Only if with ac calculation.
         
     def initialize_tunes(self, with_ac_calc, mad_twiss, mad_ac, twiss_d):
-            # Initialize tunes   
         if with_ac_calc:
             # Get fractional part: frac(62.23) = 0.23; 62.23 % 1 ==> 0.23 (vimaier)
             self.q1f = abs(mad_twiss.Q1) % 1 #-- Free Q1 (tempolarlly, overwritten later)

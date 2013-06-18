@@ -14,6 +14,8 @@ Change history:
 '''
 
 import sys
+from inspect import Traceback
+import traceback
 if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
     sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 if "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/" not in sys.path: # added for Utilities.bpm (vimaier)
@@ -22,7 +24,7 @@ import metaclass
 import os
 import math
 
-from numpy import sin,cos,tan
+from numpy import sin, cos, tan
 import numpy as np
 
 import Utilities.bpm
@@ -2052,171 +2054,182 @@ def getkick(files,MADTwiss):
 
     return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
 
-def BPMfinder(IP,model,measured):
-    # last index
-    indxes=model.S
-
-    bpml="null"
-    bpmh="null"
-    for ind in range(len(indxes)):
-        name=model.NAME[ind]
-        if "BPMSW.1L"+IP in name:
-            bpml=name
+def bpm_finder(ip_num, model, measured):
+    bpm_left = None
+    bpm_right = None
+    
+    for bpm_name in model.NAME:
+        if "BPMSW.1L"+ip_num in bpm_name:
+            bpm_left = bpm_name
             try:
-                test = measured[0][bpml][0]  # @UnusedVariable
-            except:
-                bpml="null"
-        if "BPMSW.1R"+IP in name:
-            bpmh=name
+                test = measured[0][bpm_left][0]  # @UnusedVariable
+            except KeyError:
+                traceback.print_exc()
+                bpm_left = None
+        if "BPMSW.1R"+ip_num in bpm_name:
+            bpm_right = bpm_name
             try:
-                test = measured[0][bpmh][0]  # @UnusedVariable
-            except:
-                bpmh="null"
-    return [bpml,bpmh]
+                test = measured[0][bpm_right][0]  # @UnusedVariable
+            except KeyError:
+                bpm_right = None
+                
+    return [bpm_left,bpm_right]
 
 
-
-def getIP(ip,measured,model,phase,bpms):
-
-    BPMleft,BPMright=BPMfinder(ip,model,measured)
+def get_ip(ip_num, measured, model):
+    bpm_left, bpm_right = bpm_finder(ip_num, model, measured)
 
     if DEBUG:
-        print "getIP",ip
+        print "getIP", ip_num
 
-    if "null" in BPMleft or "null" in BPMright:
+    if bpm_left is None or bpm_right is None:
+        print "skipping ip%1s calculation, no BPM found" % ip_num
+        betahor = [ip_num, 0, 0, 0, 0, 0, 0]
+        betaver = [ip_num, 0, 0, 0, 0, 0, 0]
+        return [betahor, betaver]
 
-        print "skipping ip"+ip+" calculation, no BPM found"
-        betahor=[ip,0,0,0,0,0,0]
-        betaver=[ip,0,0,0,0,0,0]
-    else:
-        # model
-        sxl=model.S[model.indx[BPMleft]]
-        sip=model.S[model.indx["ip"+ip]]
-        sxr=model.S[model.indx[BPMright]]
-        betaipx=model.BETX[model.indx["ip"+ip]]
-        #alxl=model.ALFX[[model.indx[BPMleft]]
-        #alyl=model.ALFY[[model.indx[BPMleft]]
-        #alxr=model.ALFX[[model.indx[BPMright]]
-        #alyr=model.ALFY[[model.indx[BPMright]]
-        betaipy=model.BETY[model.indx["ip"+ip]]
+    # model
+    sxl = model.S[model.indx[bpm_left]]
+    sip = model.S[model.indx["ip"+ip_num]]
+    sxr = model.S[model.indx[bpm_right]]
+    betaipx = model.BETX[model.indx["ip"+ip_num]]
+    betaipy = model.BETY[model.indx["ip"+ip_num]]
 
-        # measured value
-        betaxl=measured[0][BPMleft][0]
-        betayl=measured[1][BPMleft][0]
+    # measured value
+    betaxl = measured[0][bpm_left][0]
+    betayl = measured[1][bpm_left][0]
 
-        betaxr=measured[0][BPMright][0]
-        betayr=measured[1][BPMright][0]
+    betaxr = measured[0][bpm_right][0]
+    betayr = measured[1][bpm_right][0]
 
-        deltaphimodel=abs(model.MUX[model.indx[BPMright]]-model.MUX[model.indx[BPMleft]])
+    deltaphimodel = abs(model.MUX[model.indx[bpm_right]]-model.MUX[model.indx[bpm_left]])
 
 
-        L=((sip-sxl)+(sxr-sip))/2
-        betastar=(2*math.sqrt(betaxl)*math.sqrt(betaxr)*sin(deltaphimodel*2*np.pi))/(betayl+betayr-2*math.sqrt(betaxl)*math.sqrt(betaxr)*cos(2*np.pi*deltaphimodel))*L
-        location=((betaxl-betaxr)/(betaxl+betaxr-2*math.sqrt(betaxl)*math.sqrt(betaxr)*cos(2*np.pi*deltaphimodel)))*L
+    L = ((sip-sxl)+(sxr-sip))/2
+    betastar = (2*math.sqrt(betaxl)*math.sqrt(betaxr)*sin(deltaphimodel*2*np.pi))/(betayl+betayr-2*math.sqrt(betaxl)*math.sqrt(betaxr)*cos(2*np.pi*deltaphimodel))*L
+    location = ((betaxl-betaxr)/(betaxl+betaxr-2*math.sqrt(betaxl)*math.sqrt(betaxr)*cos(2*np.pi*deltaphimodel)))*L
 
-        deltaphi=(math.atan((L-location)/betastar)+math.atan((L+location)/betastar))/(2*np.pi)
+    deltaphi = (math.atan((L-location)/betastar)+math.atan((L+location)/betastar))/(2*np.pi)
 
-        betahor=[ip,betastar,location,deltaphi,betaipx,deltaphimodel,0]
+    betahor = [ip_num, betastar, location, deltaphi, betaipx, deltaphimodel, 0]
 
-        if DEBUG:
-            print "horizontal betastar for ",ip," is ",str(betastar)," at location ",str(location), " of ip center with phase advance ",str(deltaphi)
+    if DEBUG:
+        print "horizontal betastar for ", ip_num, " is ", str(betastar), " at location ", str(location), " of ip_num center with phase advance ", str(deltaphi)
 
-        #vertical
-        deltaphimodel=abs(model.MUY[model.indx[BPMright]]-model.MUY[model.indx[BPMleft]])
-
-
-        betastar=(2*math.sqrt(betayl)*math.sqrt(betayr)*sin(deltaphimodel*2*np.pi))/(betayl+betayr-2*math.sqrt(betayl)*math.sqrt(betayr)*cos(2*np.pi*deltaphimodel))*L
-        location=((betayl-betayr)/(betayl+betayr-2*math.sqrt(betayl)*math.sqrt(betayr)*cos(2*np.pi*deltaphimodel)))*L
-
-        deltaphi=(math.atan((L-location)/betastar)+math.atan((L+location)/betastar))/(2*np.pi)
-
-        betaver=[ip,betastar,location,deltaphi,betaipy,deltaphimodel,0]
-
-        if DEBUG:
-            print "vertical betastar for ",ip," is ",str(betastar)," at location ",str(location), " of ip center with phase advance ",str(deltaphi)
+    #vertical
+    deltaphimodel = abs(model.MUY[model.indx[bpm_right]]-model.MUY[model.indx[bpm_left]])
 
 
-    return [betahor,betaver]
+    betastar = (2*math.sqrt(betayl)*math.sqrt(betayr)*sin(deltaphimodel*2*np.pi))/(betayl+betayr-2*math.sqrt(betayl)*math.sqrt(betayr)*cos(2*np.pi*deltaphimodel))*L
+    location = ((betayl-betayr)/(betayl+betayr-2*math.sqrt(betayl)*math.sqrt(betayr)*cos(2*np.pi*deltaphimodel)))*L
 
-def GetIP2(MADTwiss,Files,Q,plane,bd,oa,op):
+    deltaphi = (math.atan((L-location)/betastar)+math.atan((L+location)/betastar))/(2*np.pi)
 
+    betaver = [ip_num, betastar, location, deltaphi, betaipy, deltaphimodel, 0]
+
+    if DEBUG:
+        print "vertical betastar for ", ip_num, " is ", str(betastar), " at location ", str(location), " of ip_num center with phase advance ", str(deltaphi)
+
+    return [betahor, betaver]
+
+
+def get_ip_2(mad_twiss,files,Q,plane,beam_direction,accel,lhc_phase):
     #-- Common BPMs
-    bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
-    bpm = [(b[0],str.upper(b[1])) for b in bpm]
+    bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(files), mad_twiss)
+    bpm = [(b[0], str.upper(b[1])) for b in bpm]
+    
+    bpm_names = [ b[1] for b in bpm]
 
     #-- Loop for IPs
-    result={}
+    result = {}
     for ip in ('1','2','5','8'):
 
-        bpml='BPMSW.1L'+ip+'.'+oa[3:]
-        bpmr='BPMSW.1R'+ip+'.'+oa[3:]
+        bpml = 'BPMSW.1L'+ip+'.'+accel[3:]
+        bpmr = 'BPMSW.1R'+ip+'.'+accel[3:]
 
-        if (bpml in zip(*bpm)[1]) and (bpmr in zip(*bpm)[1]):
+        if (bpml in bpm_names) and (bpmr in bpm_names):
 
             #-- Model values
-            L=0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
-            if L<0: L+=0.5*MADTwiss.LENGTH  #-- For sim starting in the middle of an IP
-            if plane=='H':
-                betlmdl=MADTwiss.BETX[MADTwiss.indx[bpml]]
-                alflmdl=MADTwiss.ALFX[MADTwiss.indx[bpml]]
-            if plane=='V':
-                betlmdl=MADTwiss.BETY[MADTwiss.indx[bpml]]
-                alflmdl=MADTwiss.ALFY[MADTwiss.indx[bpml]]
-            betsmdl=betlmdl/(1+alflmdl**2)
-            betmdl =betlmdl-2*alflmdl*L+L**2/betsmdl
-            alfmdl =alflmdl-L/betsmdl
-            dsmdl  =alfmdl*betsmdl
+            L = 0.5*(mad_twiss.S[mad_twiss.indx[bpmr]] - mad_twiss.S[mad_twiss.indx[bpml]])
+            if L < 0: 
+                L += 0.5*mad_twiss.LENGTH  #-- For sim starting in the middle of an IP
+            if plane == 'H':
+                betlmdl = mad_twiss.BETX[mad_twiss.indx[bpml]]
+                alflmdl = mad_twiss.ALFX[mad_twiss.indx[bpml]]
+            if plane == 'V':
+                betlmdl = mad_twiss.BETY[mad_twiss.indx[bpml]]
+                alflmdl = mad_twiss.ALFY[mad_twiss.indx[bpml]]
+            betsmdl = betlmdl/(1+alflmdl**2)
+            betmdl = betlmdl-2*alflmdl*L+L**2/betsmdl
+            alfmdl = alflmdl-L/betsmdl
+            dsmdl = alfmdl*betsmdl
 
             #-- Measurement for each file
-            betall=[]
-            alfall=[]
-            betsall=[]
-            dsall=[]
-            rt2Jall=[]
-            for i in range(len(Files)):
+            betall = []
+            alfall = []
+            betsall = []
+            dsall = []
+            rt2Jall = []
+            for i in range(len(files)):
                 try:
-                    if plane=='H':
-                        al=Files[i].AMPX[Files[i].indx[bpml]]
-                        ar=Files[i].AMPX[Files[i].indx[bpmr]]
-                        if list(zip(*bpm)[1]).index(bpmr)>list(zip(*bpm)[1]).index(bpml):
-                            dpsi=2*np.pi*bd*(Files[i].MUX[Files[i].indx[bpmr]]-Files[i].MUX[Files[i].indx[bpml]])
+                    if plane == 'H':
+                        al = files[i].AMPX[files[i].indx[bpml]]
+                        ar = files[i].AMPX[files[i].indx[bpmr]]
+                        if bpm_names.index(bpmr) > bpm_names.index(bpml):
+                            dpsi = 2*np.pi*beam_direction*(files[i].MUX[files[i].indx[bpmr]]-files[i].MUX[files[i].indx[bpml]])
                         else:
-                            dpsi=2*np.pi*(Q+bd*(Files[i].MUX[Files[i].indx[bpmr]]-Files[i].MUX[Files[i].indx[bpml]]))
+                            dpsi = 2*np.pi*(Q+beam_direction*(files[i].MUX[files[i].indx[bpmr]]-files[i].MUX[files[i].indx[bpml]]))
                         #-- To compensate the phase shift by tune
-                        if op=='1':
-                            if (bd==1 and ip=='2') or (bd==-1 and ip=='8'): dpsi+=2*np.pi*Q
-                    if plane=='V':
-                        al=Files[i].AMPY[Files[i].indx[bpml]]
-                        ar=Files[i].AMPY[Files[i].indx[bpmr]]
-                        if list(zip(*bpm)[1]).index(bpmr)>list(zip(*bpm)[1]).index(bpml):
-                            dpsi=2*np.pi*bd*(Files[i].MUY[Files[i].indx[bpmr]]-Files[i].MUY[Files[i].indx[bpml]])
+                        if lhc_phase == '1':
+                            if (beam_direction==1 and ip=='2') or (beam_direction==-1 and ip=='8'): 
+                                dpsi += 2*np.pi*Q
+                    if plane == 'V':
+                        al = files[i].AMPY[files[i].indx[bpml]]
+                        ar = files[i].AMPY[files[i].indx[bpmr]]
+                        if bpm_names.index(bpmr) > bpm_names.index(bpml):
+                            dpsi = 2*np.pi*beam_direction*(files[i].MUY[files[i].indx[bpmr]]-files[i].MUY[files[i].indx[bpml]])
                         else:
-                            dpsi=2*np.pi*(Q+bd*(Files[i].MUY[Files[i].indx[bpmr]]-Files[i].MUY[Files[i].indx[bpml]]))
+                            dpsi = 2*np.pi*(Q+beam_direction*(files[i].MUY[files[i].indx[bpmr]]-files[i].MUY[files[i].indx[bpml]]))
                         #-- To compensate the phase shift by tune
-                        if op=='1':
-                            if (bd==1 and ip=='2') or (bd==-1 and ip=='8'): dpsi+=2*np.pi*Q
+                        if lhc_phase == '1':
+                            if (beam_direction==1 and ip=='2') or (beam_direction==-1 and ip=='8'): 
+                                dpsi += 2*np.pi*Q
 
                     #-- bet, alf, and math.sqrt(2J) from amp and phase advance
-                    bet =L*(al**2+ar**2+2*al*ar*cos(dpsi))/(2*al*ar*sin(dpsi))
-                    alf =(al**2-ar**2)/(2*al*ar*sin(dpsi))
-                    bets=bet/(1+alf**2)
-                    ds  =alf*bets
-                    rt2J=math.sqrt(al*ar*sin(dpsi)/(2*L))
+                    bet = L*(al**2+ar**2+2*al*ar*cos(dpsi))/(2*al*ar*sin(dpsi))
+                    alf = (al**2-ar**2)/(2*al*ar*sin(dpsi))
+                    bets = bet/(1+alf**2)
+                    ds = alf*bets
+                    rt2J = math.sqrt(al*ar*sin(dpsi)/(2*L))
                     betall.append(bet)
                     alfall.append(alf)
                     betsall.append(bets)
                     dsall.append(ds)
                     rt2Jall.append(rt2J)
                 except:
-                    
-                    pass
+                    traceback.print_exc()
 
             #-- Ave and Std
-            betall =np.array(betall) ; betave =np.mean(betall) ; betstd =math.sqrt(np.mean((betall-betave)**2))
-            alfall =np.array(alfall) ; alfave =np.mean(alfall) ; alfstd =math.sqrt(np.mean((alfall-alfave)**2))
-            betsall=np.array(betsall); betsave=np.mean(betsall); betsstd=math.sqrt(np.mean((betsall-betsave)**2))
-            dsall  =np.array(dsall)  ; dsave  =np.mean(dsall)  ; dsstd  =math.sqrt(np.mean((dsall-dsave)**2))
-            rt2Jall=np.array(rt2Jall); rt2Jave=np.mean(rt2Jall); rt2Jstd=math.sqrt(np.mean((rt2Jall-rt2Jave)**2))
+            betall = np.array(betall)
+            betave = np.mean(betall)
+            betstd = math.sqrt(np.mean((betall-betave)**2))
+            
+            alfall = np.array(alfall)
+            alfave = np.mean(alfall)
+            alfstd = math.sqrt(np.mean((alfall-alfave)**2))
+            
+            betsall = np.array(betsall)
+            betsave = np.mean(betsall)
+            betsstd = math.sqrt(np.mean((betsall-betsave)**2))
+            
+            dsall = np.array(dsall)
+            dsave = np.mean(dsall)
+            dsstd = math.sqrt(np.mean((dsall-dsave)**2))
+            
+            rt2Jall = np.array(rt2Jall)
+            rt2Jave = np.mean(rt2Jall)
+            rt2Jstd = math.sqrt(np.mean((rt2Jall-rt2Jave)**2))
+            
             result['IP'+ip]=[betave,betstd,betmdl,alfave,alfstd,alfmdl,betsave,betsstd,betsmdl,dsave,dsstd,dsmdl,rt2Jave,rt2Jstd]
 
     return result
