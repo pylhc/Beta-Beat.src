@@ -304,7 +304,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     #-------- create TfsFile
     files_dict = create_tfs_files(getllm_d, model_filename, with_ac_calc)
 
-    FileOfNonZeroDPPX, FileOfNonZeroDPPY = analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, TBTana, files_dict)
+    analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, TBTana, files_dict)
 
     tune_d.initialize_tunes(with_ac_calc, mad_twiss, mad_ac, twiss_d)
         
@@ -347,7 +347,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpm_name, acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, betax, betay)
 
     #-------- START Orbit
-    ListOfCOX, ListOfCOY = calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_dict, FileOfNonZeroDPPX, FileOfNonZeroDPPY, bpms)
+    ListOfCOX, ListOfCOY = calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_dict, bpms)
 
     #-------- START Dispersion
     calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, bpms, beta2_save, ListOfCOX, ListOfCOY)
@@ -356,7 +356,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, PseudoListX, PseudoListY, acphasex_ac2bpmac, acphasey_ac2bpmac, phasexlist, phaseylist, bpms)
 
     #-------- Phase, Beta and coupling for non-zero DPP
-    phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, BPMdictionary, mad_twiss, with_ac_calc, files_dict, FileOfNonZeroDPPX, FileOfNonZeroDPPY, PseudoListX, PseudoListY, phasex, phasey, phasexlist, phaseylist, bpms, betax, betay, betaxalist, betayalist)
+    phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, BPMdictionary, mad_twiss, with_ac_calc, files_dict, PseudoListX, PseudoListY, phasex, phasey, phasexlist, phaseylist, bpms, betax, betay, betaxalist, betayalist)
  
     if not higher_order:
         print "Not analysing higher order..."
@@ -508,9 +508,7 @@ def create_tfs_files(getllm_d, model_filename, with_ac_calc):
 
 
 def analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, turn_by_turn_algo, files_dict):
-    FileOfNonZeroDPPX = []
-    FileOfNonZeroDPPY = []
-    
+
     if turn_by_turn_algo == "SUSSIX":
         suffix_x = '_linx'
         suffix_y = '_liny'
@@ -574,7 +572,6 @@ def analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, turn_by
                 files_dict['getcouple_free2.out'].add_filename_to_getllm_header(file_in)
         else:
             twiss_d.non_zero_dpp_x.append(twiss_file_x)
-            FileOfNonZeroDPPX.append(file_x)
             files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
             files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
         try:
@@ -615,7 +612,6 @@ def analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, turn_by
                     files_dict['getampbetay_free2.out'].add_filename_to_getllm_header(file_y)
             else:
                 twiss_d.non_zero_dpp_y.append(twiss_file_y)
-                FileOfNonZeroDPPY.append(file_y)
                 files_dict['getDy.out'].add_filename_to_getllm_header(file_y)
         except:
             print 'Warning: There seems no ' + str(file_y) + ' file in the specified directory.'
@@ -647,7 +643,6 @@ def analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, turn_by
             files_dict['getCOx.out'].add_filename_to_getllm_header("chrommode")
             files_dict['getDy.out'].add_filename_to_getllm_header("chrommode")
         
-    return FileOfNonZeroDPPX, FileOfNonZeroDPPY
 # END analyse_src_files ----------------------------------------------------------------------------
 
 
@@ -1515,7 +1510,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, fil
 # END calculate_ip ---------------------------------------------------------------------------------
 
 
-def calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_dict, FileOfNonZeroDPPX, FileOfNonZeroDPPY, bpms):
+def calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_dict, bpms):
     '''
     Calculates orbit and fills the following TfsFiles:
         getCOx.out       getCOy.out
@@ -1576,7 +1571,7 @@ def calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_
             filename = 'getCOx_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
             tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
+            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(float(twiss_file.DPP)))
             tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
             tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
@@ -1600,7 +1595,7 @@ def calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_
             filename = 'getCOy_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
             tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
+            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(float(twiss_file.DPP)))
             tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
             tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
@@ -1791,7 +1786,7 @@ def calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_a
         fwqw['DPP'] = 0
 # END calculate_coupling ---------------------------------------------------------------------------
 
-def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, BPMdictionary, mad_twiss, with_ac_calc, files_dict, FileOfNonZeroDPPX, FileOfNonZeroDPPY, PseudoListX, PseudoListY, phasex, phasey, phasexlist, phaseylist, bpms, betax, betay, betaxalist, betayalist):
+def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, BPMdictionary, mad_twiss, with_ac_calc, files_dict, PseudoListX, PseudoListY, phasex, phasey, phasexlist, phaseylist, bpms, betax, betay, betaxalist, betayalist):
     '''
     Fills the following TfsFiles:
         getphasex_dpp_' + str(k + 1) + '.out        getbetax_dpp_' + str(k + 1) + '.out
@@ -1827,7 +1822,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
                 filename = 'getphasex_dpp_' + str(k + 1) + '.out'
                 files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
                 tfs_file = files_dict[filename]
-                tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
+                tfs_file.add_filename_to_getllm_header(twiss_file.filename)
                 tfs_file.add_descriptor("DPP", "%le", str(dpop))
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
                 tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
@@ -1860,7 +1855,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
             filename = 'getbetax_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
             tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPX[k])
+            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(dpop))
             tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
             tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
@@ -1890,7 +1885,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
                 filename = 'getphasey_dpp_' + str(k + 1) + '.out'
                 files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
                 tfs_file = files_dict[filename]
-                tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
+                tfs_file.add_filename_to_getllm_header(twiss_file.filename)
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
                 tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
                 tfs_file.add_descriptor("Q2DPP", "%le", str(Q2DPP))
@@ -1922,7 +1917,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
             filename = 'getbetay_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
             tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(FileOfNonZeroDPPY[k])
+            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(dpop))
             tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
             tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))

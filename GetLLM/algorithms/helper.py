@@ -2133,7 +2133,7 @@ def get_ip(ip_num, measured, model):
     return [betahor, betaver]
 
 
-def get_ip_2(mad_twiss,files,Q,plane,beam_direction,accel,lhc_phase):
+def get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
     #-- Common BPMs
     bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(files), mad_twiss)
     bpm = [(b[0], str.upper(b[1])) for b in bpm]
