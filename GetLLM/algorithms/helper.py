@@ -92,50 +92,51 @@ def GetPhasesTotal(mad_twiss, src_files, tune, plane, beam_direction, accel, lhc
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, mad_twiss)
     #-- Last BPM on the same turn to fix the phase shift by tune for exp data of LHC
     s_lastbpm = None
-    if lhc_phase=="1" and accel=="LHCB1": 
-        s_lastbpm=mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
-    if lhc_phase=="1" and accel=="LHCB2": 
-        s_lastbpm=mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
+    if lhc_phase == "1" and accel == "LHCB1": 
+        s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
+    if lhc_phase == "1" and accel == "LHCB2": 
+        s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
 
-    bn1=str.upper(commonbpms[0][1])
-    phaseT={}
+    bn1 = str.upper(commonbpms[0][1])
+    phase_t = {}
     if DEBUG:
         print "Reference BPM:", bn1, "Plane:", plane
-    for i in range(0,len(commonbpms)):
-        bn2=str.upper(commonbpms[i][1])
-        if plane=='H':
-            phmdl12=(mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]) % 1
-        if plane=='V':
-            phmdl12=(mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]) % 1
+    for i in range(0, len(commonbpms)):
+        bn2 = str.upper(commonbpms[i][1])
+        if plane == 'H':
+            phmdl12 = (mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]) % 1
+        if plane == 'V':
+            phmdl12 = (mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]) % 1
 
-        phi12=[]
+        phi12 = []
         for twiss_file in src_files:
             # Phase is in units of 2pi
-            if plane=='H':
+            if plane == 'H':
                 phm12 = (twiss_file.MUX[twiss_file.indx[bn2]]-twiss_file.MUX[twiss_file.indx[bn1]]) % 1
-            if plane=='V':
+            if plane == 'V':
                 phm12 = (twiss_file.MUY[twiss_file.indx[bn2]]-twiss_file.MUY[twiss_file.indx[bn1]]) % 1
             #-- To fix the phase shift by tune in LHC
             try:
-                if s_lastbpm is not None and commonbpms[i][0]>s_lastbpm:
+                if s_lastbpm is not None and commonbpms[i][0] > s_lastbpm:
                     phm12 += beam_direction*tune
             except: 
                 traceback.print_exc()
             phi12.append(phm12)
-        phi12=np.array(phi12)
+        phi12 = np.array(phi12)
         # for the beam circulating reversely to the model
-        if beam_direction==-1: phi12=1.0-phi12
+        if beam_direction == -1:
+            phi12 = 1.0-phi12
 
         #phstd12=math.sqrt(np.average(phi12*phi12)-(np.average(phi12))**2.0+2.2e-15)
         #phi12=np.average(phi12)
-        phstd12=PhaseStd(phi12,1.0)
-        phi12  =PhaseMean(phi12,1.0)
-        phaseT[bn2]=[phi12,phstd12,phmdl12,bn1]
+        phstd12 = PhaseStd(phi12, 1.0)
+        phi12   = PhaseMean(phi12, 1.0)
+        phase_t[bn2] = [phi12, phstd12, phmdl12, bn1]
 
-    return [phaseT,commonbpms]
+    return [phase_t, commonbpms]
 
 
-def GetPhases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
+def get_phases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
     length_commonbpms = len(commonbpms)
@@ -2713,7 +2714,7 @@ def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,bpm]
 
 
-def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
+def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
@@ -2787,7 +2788,7 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,muave,bpm]
 
 
-def GetFreeBetaFromAmp_Eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
+def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm = Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss_ac)
@@ -3198,9 +3199,9 @@ def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
         x=files[0][j]
         y=files[1][j]
         # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJx = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
+        invariantJx = ( get_free_beta_from_amp_eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
         # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJy = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
+        invariantJy = ( get_free_beta_from_amp_eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
         try:
