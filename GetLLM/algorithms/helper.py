@@ -49,7 +49,7 @@ def phiLastAndLastButOne(phi,ftune):
         if phit>1.0: phit=phit-1.0
     return phit
 
-def PhaseMean(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
+def PhaseMean(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
     phase0 = np.array(phase0)%norm
     phase1 = (phase0+0.5*norm)%norm - 0.5*norm
     phase0ave = np.mean(phase0)
@@ -65,52 +65,66 @@ def PhaseMean(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 o
     if mod_phase0std < mod_phase1std: 
         return phase0ave
     else: 
-        return phase1ave%norm
+        return phase1ave % norm
 
-def PhaseStd(phase0,norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
-    phase0   =np.array(phase0)%norm
-    phase1   =(phase0+0.5*norm)%norm-0.5*norm
-    phase0ave=np.mean(phase0)
-    phase1ave=np.mean(phase1)
-    phase0std=math.sqrt(np.mean((phase0-phase0ave)**2))
-    phase1std=math.sqrt(np.mean((phase1-phase1ave)**2))
-    return min(phase0std,phase1std)
+def PhaseStd(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
+    phase0 = np.array(phase0)%norm
+    phase1 = (phase0+0.5*norm)%norm-0.5*norm
+    phase0ave = np.mean(phase0)
+    phase1ave = np.mean(phase1)
+    
+    # Omitted unnecessary computations. Old expressions:
+    #     phase0std=sqrt(mean((phase0-phase0ave)**2))
+    #     phase1std=sqrt(mean((phase1-phase1ave)**2))
+    #     return min(phase0std,phase1std)
+    # -- vimaier 
+    phase0std_sq = np.sum((phase0-phase0ave)**2)
+    phase1std_sq = np.sum((phase1-phase1ave)**2)
+    
+    min_phase_std = min(phase0std_sq, phase1std_sq)
+    phase_std = math.sqrt(min_phase_std/len(phase0))
+    
+    return phase_std
 
 
-def GetPhasesTotal(MADTwiss,ListOfFiles,Q,plane,bd,oa,op):
-    commonbpms = Utilities.bpm.intersect(ListOfFiles)
-    commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
-    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op=="1" and oa=="LHCB1": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    if op=="1" and oa=="LHCB2": s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+def GetPhasesTotal(mad_twiss, src_files, tune, plane, beam_direction, accel, lhc_phase):
+    commonbpms = Utilities.bpm.intersect(src_files)
+    commonbpms = Utilities.bpm.modelIntersect(commonbpms, mad_twiss)
+    #-- Last BPM on the same turn to fix the phase shift by tune for exp data of LHC
+    s_lastbpm = None
+    if lhc_phase=="1" and accel=="LHCB1": 
+        s_lastbpm=mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
+    if lhc_phase=="1" and accel=="LHCB2": 
+        s_lastbpm=mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
 
     bn1=str.upper(commonbpms[0][1])
     phaseT={}
     if DEBUG:
         print "Reference BPM:", bn1, "Plane:", plane
     for i in range(0,len(commonbpms)):
-        #bn2=str.upper(commonbpms[i+1][1]) ?
         bn2=str.upper(commonbpms[i][1])
         if plane=='H':
-            phmdl12=(MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]) % 1
+            phmdl12=(mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]) % 1
         if plane=='V':
-            phmdl12=(MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]) % 1
+            phmdl12=(mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]) % 1
 
         phi12=[]
-        for j in ListOfFiles:
+        for twiss_file in src_files:
             # Phase is in units of 2pi
             if plane=='H':
-                phm12=(j.MUX[j.indx[bn2]]-j.MUX[j.indx[bn1]]) % 1
+                phm12 = (twiss_file.MUX[twiss_file.indx[bn2]]-twiss_file.MUX[twiss_file.indx[bn1]]) % 1
             if plane=='V':
-                phm12=(j.MUY[j.indx[bn2]]-j.MUY[j.indx[bn1]]) % 1
-            #-- To fix the phase shift by Q in LHC
+                phm12 = (twiss_file.MUY[twiss_file.indx[bn2]]-twiss_file.MUY[twiss_file.indx[bn1]]) % 1
+            #-- To fix the phase shift by tune in LHC
             try:
-                if commonbpms[i][0]>s_lastbpm: phm12+=bd*Q
-            except: pass
+                if s_lastbpm is not None and commonbpms[i][0]>s_lastbpm:
+                    phm12 += beam_direction*tune
+            except: 
+                traceback.print_exc()
             phi12.append(phm12)
         phi12=np.array(phi12)
         # for the beam circulating reversely to the model
-        if bd==-1: phi12=1.0-phi12
+        if beam_direction==-1: phi12=1.0-phi12
 
         #phstd12=math.sqrt(np.average(phi12*phi12)-(np.average(phi12))**2.0+2.2e-15)
         #phi12=np.average(phi12)
@@ -1165,26 +1179,26 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, Q1, Q2, phasex, pha
     return [fwqw,dbpms]
 
 #---------------------------
-def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdictionary, model_filename):
-    execfile(model_filename.replace("twiss.dat","BPMpair.py"))
+def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp_y, bpm_dictionary):
+    execfile(mad_twiss.filename.replace("twiss.dat","BPMpair.py"))
 
     # check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
-    if len(ListOfZeroDPPX)!=len(ListOfZeroDPPY):
-        print 'Leaving PseudoDoublePlaneMonitors as linx and liny files seem not correctly paired...'
+    if len(list_of_zero_dpp_x)!=len(list_of_zero_dpp_y):
+        print 'Leaving pseudo_double_plane_monitors as linx and liny files seem not correctly paired...'
         dum0={}
         dum1=[]
         return [dum0,dum1]
 
-    bpmh=Utilities.bpm.intersect(ListOfZeroDPPX)
-    bpmv=Utilities.bpm.intersect(ListOfZeroDPPY)
-    bpmh=Utilities.bpm.modelIntersect(bpmh, MADTwiss)
-    bpmv=Utilities.bpm.modelIntersect(bpmv, MADTwiss)
+    bpmh=Utilities.bpm.intersect(list_of_zero_dpp_x)
+    bpmv=Utilities.bpm.intersect(list_of_zero_dpp_y)
+    bpmh=Utilities.bpm.modelIntersect(bpmh, mad_twiss)
+    bpmv=Utilities.bpm.modelIntersect(bpmv, mad_twiss)
 
 
     fbpmx=[]
     fbpmy=[]
-    for i in range(0,len(ListOfZeroDPPX)):
+    for i in range(0,len(list_of_zero_dpp_x)):
         filex='temp'+str(i)+'_linx'
         filey='temp'+str(i)+'_liny'
         fbpmxi=open(filex,'w')
@@ -1249,107 +1263,111 @@ def PseudoDoublePlaneMonitors(MADTwiss, ListOfZeroDPPX, ListOfZeroDPPY, BPMdicti
 #     dbpms=bpmhp
 
     # tentative solution
-    dbpms=bpmpair() # model BPM name
-    count_of_missing_bpms=0
-    for i in range(0,len(dbpms)):
-        wname=str.upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
-        pname=str.upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
-        ws=dbpms[i][0]  # Location
+    dbpms = bpmpair() # model BPM name
+    count_of_missing_bpms = 0
+    for i in xrange(0, len(dbpms)):
+        wname = str.upper(dbpms[i][1]) # horizontal BPM basis of the pairing (model name)
+        pname = str.upper(dbpms[i][2]) # vertical pair of the horizontal as in SPSBPMpairs (model name)
+        ws = dbpms[i][0]  # Location
         #Check whether the inputs (linx/y) have BPM name of model or experiment
         try:
-            exwname=BPMdictionary[wname][0] #Experimental BPM name of horizontal To be paired
-            expname=BPMdictionary[pname][1] #Experimental BPM name of vertical  (one of them does not exist!) to be paired
+            exwname = bpm_dictionary[wname][0] #Experimental BPM name of horizontal To be paired
+            expname = bpm_dictionary[pname][1] #Experimental BPM name of vertical  (one of them does not exist!) to be paired
 
-        except:
-            if len(BPMdictionary)!=0:
+        except KeyError:
+            if len(bpm_dictionary)!=0:
                 count_of_missing_bpms = count_of_missing_bpms + 1
-                print wname, "or", pname, "not found in the BPMdictionary. Total so far = ",count_of_missing_bpms
+                print wname, "or", pname, "not found in the BPMdictionary. Total so far = ", count_of_missing_bpms
         try:
-            for j in range(0,len(ListOfZeroDPPX)):
-                jx=ListOfZeroDPPX[j]
-                jy=ListOfZeroDPPY[j]
+            for j in xrange(0, len(list_of_zero_dpp_x)):
+                twiss_x = list_of_zero_dpp_x[j]
+                twiss_y = list_of_zero_dpp_y[j]
                 #if dbpms[i][3]==0:
                 # dphix is used only in commented out code beneath (vimaier)
-#                 dphix=MADTwiss.MUX[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[str.upper(wname)]]
-                dphiy=MADTwiss.MUY[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[str.upper(wname)]]
+#                 dphix=mad_twiss.MUX[mad_twiss.indx[str.upper(pname)]]-mad_twiss.MUX[mad_twiss.indx[str.upper(wname)]]
+                dphiy = mad_twiss.MUY[mad_twiss.indx[str.upper(pname)]]-mad_twiss.MUY[mad_twiss.indx[str.upper(wname)]]
                 # Going to try using model names, to be able to use simulation data
                 try:
-                    wampx=jx.AMPX[jx.indx[wname]]
-                    wampy=jy.AMPY[jy.indx[pname]]
-                    wamp01=jx.AMP01[jx.indx[wname]]
-                    wamp10=jy.AMP10[jy.indx[pname]]
-                    wtunex=jx.TUNEX[jx.indx[wname]]
-                    wtuney=jy.TUNEY[jy.indx[pname]]
-                    wmux=jx.MUX[jx.indx[wname]]
-                    wmuy=(jy.MUY[jy.indx[pname]]-dphiy)%1.0
-                    if (wmuy > 0.5): wmuy=wmuy-1.0
-                    wphase01=jx.PHASE01[jx.indx[wname]]
-                    wphase10=(jy.PHASE10[jy.indx[pname]]-dphiy)%1.0
-                    if (wphase10 > 0.5): wphase10=wphase10-1.0
+                    wampx = twiss_x.AMPX[twiss_x.indx[wname]]
+                    wampy = twiss_y.AMPY[twiss_y.indx[pname]]
+                    wamp01 = twiss_x.AMP01[twiss_x.indx[wname]]
+                    wamp10 = twiss_y.AMP10[twiss_y.indx[pname]]
+                    wtunex = twiss_x.TUNEX[twiss_x.indx[wname]]
+                    wtuney = twiss_y.TUNEY[twiss_y.indx[pname]]
+                    wmux = twiss_x.MUX[twiss_x.indx[wname]]
+                    wmuy = (twiss_y.MUY[twiss_y.indx[pname]]-dphiy)%1.0
+                    if (wmuy > 0.5):
+                        wmuy = wmuy-1.0
+                    wphase01 = twiss_x.PHASE01[twiss_x.indx[wname]]
+                    wphase10 = (twiss_y.PHASE10[twiss_y.indx[pname]]-dphiy)%1.0
+                    if (wphase10 > 0.5):
+                        wphase10 = wphase10-1.0
                 # This seems to be experiment data, going to try with experimental names
                 except:
-                    wampx=jx.AMPX[jx.indx[exwname]]
-                    wampy=jy.AMPY[jy.indx[expname]]
-                    wamp01=jx.AMP01[jx.indx[exwname]]
-                    wamp10=jy.AMP10[jy.indx[expname]]
-                    wtunex=jx.TUNEX[jx.indx[exwname]]
-                    wtuney=jy.TUNEY[jy.indx[expname]]
-                    wmux=jx.MUX[jx.indx[exwname]]
-                    wmuy=(jy.MUY[jy.indx[expname]]-dphiy)%1.0
-                    if (wmuy > 0.5): wmuy=wmuy-1.0
-                    wphase01=jx.PHASE01[jx.indx[exwname]]
-                    wphase10=(jy.PHASE10[jy.indx[expname]]-dphiy)%1.0
-                    if (wphase10 > 0.5): wphase10=wphase10-1.0
+                    wampx = twiss_x.AMPX[twiss_x.indx[exwname]]
+                    wampy = twiss_y.AMPY[twiss_y.indx[expname]]
+                    wamp01 = twiss_x.AMP01[twiss_x.indx[exwname]]
+                    wamp10 = twiss_y.AMP10[twiss_y.indx[expname]]
+                    wtunex = twiss_x.TUNEX[twiss_x.indx[exwname]]
+                    wtuney = twiss_y.TUNEY[twiss_y.indx[expname]]
+                    wmux = twiss_x.MUX[twiss_x.indx[exwname]]
+                    wmuy = (twiss_y.MUY[twiss_y.indx[expname]]-dphiy)%1.0
+                    if (wmuy > 0.5): 
+                        wmuy = wmuy-1.0
+                    wphase01 = twiss_x.PHASE01[twiss_x.indx[exwname]]
+                    wphase10 = (twiss_y.PHASE10[twiss_y.indx[expname]]-dphiy)%1.0
+                    if (wphase10 > 0.5): 
+                        wphase10 = wphase10-1.0
                 #elif dbpms[i][3]==1:
-                    #wampx=jx.AMPX[jx.indx[pname]]
-                    #wampy=jy.AMPY[jy.indx[wname]]
-                    #wamp01=jx.AMP01[jx.indx[pname]]
-                    #wamp10=jy.AMP10[jy.indx[wname]]
-                    #wtunex=jx.TUNEX[jx.indx[pname]]
-                    #wtuney=jy.TUNEY[jy.indx[wname]]
-                    #dphix=MADTwiss.MUX[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUX[MADTwiss.indx[str.upper(wname)]]
-                    #dphiy=MADTwiss.MUY[MADTwiss.indx[str.upper(pname)]]-MADTwiss.MUY[MADTwiss.indx[str.upper(wname)]]
-                    #wmux=(jx.MUX[jx.indx[pname]]-dphix)%1.0
+                    #wampx=twiss_x.AMPX[twiss_x.indx[pname]]
+                    #wampy=twiss_y.AMPY[twiss_y.indx[wname]]
+                    #wamp01=twiss_x.AMP01[twiss_x.indx[pname]]
+                    #wamp10=twiss_y.AMP10[twiss_y.indx[wname]]
+                    #wtunex=twiss_x.TUNEX[twiss_x.indx[pname]]
+                    #wtuney=twiss_y.TUNEY[twiss_y.indx[wname]]
+                    #dphix=mad_twiss.MUX[mad_twiss.indx[str.upper(pname)]]-mad_twiss.MUX[mad_twiss.indx[str.upper(wname)]]
+                    #dphiy=mad_twiss.MUY[mad_twiss.indx[str.upper(pname)]]-mad_twiss.MUY[mad_twiss.indx[str.upper(wname)]]
+                    #wmux=(twiss_x.MUX[twiss_x.indx[pname]]-dphix)%1.0
                     #if (wmux > 0.5): wmux=wmux-1
-                    #wmuy=jy.MUY[jy.indx[wname]]
-                    #wphase01=(jx.PHASE01[jx.indx[pname]]-dphix)%1.0
-                    #wphase10=jy.PHASE10[jy.indx[wname]]
+                    #wmuy=twiss_y.MUY[twiss_y.indx[wname]]
+                    #wphase01=(twiss_x.PHASE01[twiss_x.indx[pname]]-dphix)%1.0
+                    #wphase10=twiss_y.PHASE10[twiss_y.indx[wname]]
                     #if (wphase01 > 0.5): wphase01=wphase01-1
                 #elif dbpms[i][3]==2:
-                    #wampx=jx.AMPX[jx.indx[wname]]
-                    #wampy=jy.AMPY[jy.indx[wname]]
-                    #wamp01=jx.AMP01[jx.indx[wname]]
-                    #wamp10=jy.AMP10[jy.indx[wname]]
-                    #wtunex=jx.TUNEX[jx.indx[wname]]
-                    #wtuney=jy.TUNEY[jy.indx[wname]]
-                    #wmux=jx.MUX[jx.indx[wname]]
-                    #wmuy=jy.MUY[jy.indx[wname]]
-                    #wphase01=jx.PHASE01[jx.indx[wname]]
-                    #wphase10=jy.PHASE10[jy.indx[wname]]
+                    #wampx=twiss_x.AMPX[twiss_x.indx[wname]]
+                    #wampy=twiss_y.AMPY[twiss_y.indx[wname]]
+                    #wamp01=twiss_x.AMP01[twiss_x.indx[wname]]
+                    #wamp10=twiss_y.AMP10[twiss_y.indx[wname]]
+                    #wtunex=twiss_x.TUNEX[twiss_x.indx[wname]]
+                    #wtuney=twiss_y.TUNEY[twiss_y.indx[wname]]
+                    #wmux=twiss_x.MUX[twiss_x.indx[wname]]
+                    #wmuy=twiss_y.MUY[twiss_y.indx[wname]]
+                    #wphase01=twiss_x.PHASE01[twiss_x.indx[wname]]
+                    #wphase10=twiss_y.PHASE10[twiss_y.indx[wname]]
                 fbpmx[j].write('"'+wname+'" '+str(ws)+' '+str(wtunex)+' '+str(wmux)+' '+str(wampx)+' '+str(wamp01)+' '+str(wphase01)+'\n')
                 fbpmy[j].write('"'+wname+'" '+str(ws)+' '+str(wtuney)+' '+str(wmuy)+' '+str(wampy)+' '+str(wamp10)+' '+str(wphase10)+'\n')
         except:
-            if len(BPMdictionary)!=0:
+            if len(bpm_dictionary)!=0:
                 count_of_missing_bpms = count_of_missing_bpms + 1
-                print wname, "or", pname, "not found in the DATA. Total so far = ",count_of_missing_bpms
+                print wname, "or", pname, "not found in the DATA. Total so far = ", count_of_missing_bpms
 
 
-    PseudoListX=[]
-    PseudoListY=[]
-    for j in range(0,len(ListOfZeroDPPX)):
+    pseudo_list_x = []
+    pseudo_list_y = []
+    for j in range(0, len(list_of_zero_dpp_x)):
         fbpmx[j].close()
         fbpmy[j].close()
-        filex='temp'+str(j)+'_linx'
-        filey='temp'+str(j)+'_liny'
-        PseudoListX.append(metaclass.twiss(filex))
-        PseudoListY.append(metaclass.twiss(filey))
+        filex = 'temp' + str(j) + '_linx'
+        filey = 'temp' + str(j) +'_liny'
+        pseudo_list_x.append(metaclass.twiss(filex))
+        pseudo_list_y.append(metaclass.twiss(filey))
         
         # Delete temp files again. (vimaier)
         os.remove(filex)
         os.remove(filey)
 
 
-    return [PseudoListX,PseudoListY]
+    return [pseudo_list_x, pseudo_list_y]
 
 #----------------------- for finding the lines of the sextupoles (@ Glenn Vanbavinckhove)
 def f2h(amp,ampphase,termj,factor,term,M2M):    # converts from f-term to h-term
@@ -2046,13 +2064,11 @@ def getkick(files,MADTwiss):
         tunexRMS.append(x.Q1RMS)
         tuneyRMS.append(y.Q2RMS)
 
-
-
-
     tune=[tunex,tuney]
     tuneRMS=[tunexRMS,tuneyRMS]
 
     return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
+
 
 def bpm_finder(ip_num, model, measured):
     bpm_left = None
@@ -2611,8 +2627,8 @@ def GetFreeIP2(MADTwiss,MADTwiss_ac,IP,plane,oa):
 
     return IP
 
-#---------  The following is functions to compensate the AC dipole effect based on analytic formulae (by R. Miyamoto)
 
+#---------  The following is functions to compensate the AC dipole effect based on analytic formulae (by R. Miyamoto)
 def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
     if   oa=='LHCB1':
         bpmac1='BPMYA.5L4.B1'
@@ -3209,26 +3225,17 @@ def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
 #---- Functions for Andy's BetaFromAmp re-scaling
 
-def filterbpm(ListOfBPM):
-    '''Filter non-arc BPM'''
-    if len(ListOfBPM)==0:
+def filterbpm(list_of_bpms):
+    '''Filter non-arc BPM.
+        Returns a list with bpms which start with "bpm.".
+    '''
+    if len(list_of_bpms) == 0:
         print >> sys.stderr, "Nothing to filter!!!!"
         sys.exit(1)
-    result=[]
-    for b in ListOfBPM:
-        if ('BPM.' in b[1] or 'bpm.' in b[1]):
+    result = []
+    for b in list_of_bpms:
+#         if ('BPM.' in b[1] or 'bpm.' in b[1]):
+        if ('BPM.' in b[1].upper()):
             result.append(b)
     return result
-
-def union(a, b):
-    ''' return the union of two lists '''
-    return list(set(a) | set(b))
-
-def fix_output(outputpath):
-    if not os.path.isdir(outputpath):
-        os.makedirs(outputpath)
-    if '/'!=outputpath[-1]:
-        outputpath+='/'
-    return outputpath
-
 

@@ -29,10 +29,13 @@ I_TABLE_LINES = 2
 class TfsFile(object):
     '''
     This class represents a TFS file. It stores all header lines and the table in lists and write
-    all the content at once by calling the write function.
+    all the content at once by calling the write function. This class is adapted for the usage in
+    GetLLM.
     '''
     
     s_output_path = ""
+    s_getllm_version = ""
+    s_mad_filename = ""
 
     def __init__(self, file_name, column_width=DEFAULT_COLUMN_WIDTH):
         """
@@ -64,6 +67,8 @@ class TfsFile(object):
         self.__is_column_names_set = False
         self.__is_column_types_set = False
         self.__num_of_columns = INVALID_COLUMN_NUMBER
+        
+        self.add_getllm_header(TfsFile.s_getllm_version, TfsFile.s_mad_filename)
         
         
     def add_getllm_header(self, version=None, mad_file=None):
@@ -164,6 +169,30 @@ class TfsFile(object):
         tfs_file.write('@ FILES %s "')
         tfs_file.write(" ".join(self.__getllm_srcfiles))
         tfs_file.write('"\n')
+            
+            
+    def write_to_file(self, formatted = False):
+        """ Writes the stored data to the file with the given filename. """
+        if not self.__is_column_names_set or not self.__is_column_types_set:
+            print self.__file_name+":", "Abort writing file. Cannot write file until column names and types are set."
+            return
+        
+        path = os.path.join(TfsFile.s_output_path, self.__file_name)
+        tfs_file = open(path,'w')  
+        
+        # Header
+        self.__write_getllm_header(tfs_file)
+        
+        tfs_file.writelines(self.__header)
+        
+        # Table
+        if formatted:
+            self.__write_formatted_table(tfs_file)
+        else:
+            self.__write_unformatted_table(tfs_file)
+            
+        
+        tfs_file.close()
     
     
     def __write_formatted_table(self, tfs_file):
@@ -203,31 +232,6 @@ class TfsFile(object):
         for row in self.__table[I_TABLE_LINES]:
             tfs_file.write(" ".join(str(entry) for entry in row))
             tfs_file.write("\n")
-            
-            
-    def write_to_file(self, formatted = False):
-        """ Writes the stored data to the file with the given filename. """
-        if not self.__is_column_names_set or not self.__is_column_types_set:
-            print >> sys.stderr, self.__file_name, "Abort writing file. Cannot write file until column names and types are set:"
-            return
-        
-        path = os.path.join(TfsFile.s_output_path, self.__file_name)
-        tfs_file = open(path,'w')  
-        
-        # Header
-        self.__write_getllm_header(tfs_file)
-        
-        tfs_file.writelines(self.__header)
-        
-        # Table
-        if formatted:
-            self.__write_formatted_table(tfs_file)
-        else:
-            self.__write_unformatted_table(tfs_file)
-            
-        
-        tfs_file.close()
-
 
 
         

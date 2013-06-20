@@ -171,6 +171,7 @@ V2.38b 03/dec/2012, tbach:
     New datastructures(classes):
         GetllmData
         TwissHolder
+        TuneData
 
 '''
 import sys
@@ -291,7 +292,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     twiss_d = _TwissData()
     tune_d = _TuneData()
 
-    with_ac_calc, mad_twiss, mad_ac, BPMdictionary, mad_elem = intial_setup(getllm_d, twiss_d, tune_d, 
+    with_ac_calc, mad_twiss, mad_ac, bpm_dictionary, mad_elem = intial_setup(getllm_d,
                                                                             outputpath, 
                                                                             model_filename, 
                                                                             dict_file, 
@@ -301,62 +302,51 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
                                                                             lhcphase, 
                                                                             NBcpl)
 
-    #-------- create TfsFile
     files_dict = create_tfs_files(getllm_d, model_filename, with_ac_calc)
 
     analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, TBTana, files_dict)
-
+    
+    
     tune_d.initialize_tunes(with_ac_calc, mad_twiss, mad_ac, twiss_d)
         
     #TODO: initialize variables otherwise calculate_coupling would raise an exception(vimaier)
-    PseudoListX = None
-    PseudoListY = None
+    pseudo_list_x = None
+    pseudo_list_y = None
     # Construct pseudo-double plane BPMs
     if (getllm_d.accel=="SPS" or "RHIC" in getllm_d.accel) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
-        [PseudoListX,PseudoListY] = algorithms.helper.PseudoDoublePlaneMonitors(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, BPMdictionary, model_filename)
+        [pseudo_list_x,pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
 
 
     #-------- Check monitor compatibility between data and model
-    all_twiss_files = twiss_d.non_zero_dpp_x+twiss_d.zero_dpp_x+twiss_d.non_zero_dpp_y+twiss_d.zero_dpp_y
-    for twiss_file in all_twiss_files:
-        for bpm_name in twiss_file.NAME:
-            #TODO: maybe easier with the usage of intersect?(vimaier)
-            # Check if all BPMs are in the model(vimaier)
-            try:
-                mad_twiss.NAME[mad_twiss.indx[bpm_name]]
-            except KeyError:
-                try:
-                    mad_twiss.NAME[mad_twiss.indx[str.upper(bpm_name)]]
-                except KeyError:
-                    print >> sys.stderr, 'Monitor '+bpm_name+' cannot be found in the model!'
-                    #exit()
+    check_bpm_compatibility(twiss_d, mad_twiss)
 
     #-------- START Phase
-    acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, phasexlist, phaseylist = calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, mad_elem, files_dict)
+    phase_d = calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, mad_elem, files_dict)
 
     #-------- START Total Phase
-    calculate_total_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac)
+    calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, with_ac_calc, mad_twiss, mad_ac, files_dict)
 
     #-------- START Beta
-    bpms, betax, betaxf, betay, betayf = calculate_beta(twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict, phasex, phasexf, phasey, phaseyf)
+    #TODO:bpms? almost never reused
+    bpms, betax, betaxf, betay, betayf = calculate_beta(twiss_d, tune_d, phase_d, with_ac_calc, mad_twiss, mad_ac, files_dict)
 
     #------- START beta from amplitude
-    betax, betay, bpms, beta2_save, betaxalist, betayalist, betax_ratio, betay_ratio, betaxf_ratio, betayf_ratio = calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac, bpms, betax, betaxf, betay, betayf)
+    betax, betay, bpms, beta2_save, betaxalist, betayalist, betax_ratio, betay_ratio, betaxf_ratio, betayf_ratio = calculate_beta_from_amplitude(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpms, betax, betaxf, betay, betayf)
 
     #-------- START IP
-    calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpm_name, acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, betax, betay)
+    calculate_ip(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, with_ac_calc, mad_ac, files_dict, betax, betay)
 
     #-------- START Orbit
-    ListOfCOX, ListOfCOY = calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_dict, bpms)
+    list_of_co_x, list_of_co_y = calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, bpms)
 
     #-------- START Dispersion
-    calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, bpms, beta2_save, ListOfCOX, ListOfCOY)
+    calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, bpms, beta2_save, list_of_co_x, list_of_co_y)
 
     #-------- START coupling.
-    calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, PseudoListX, PseudoListY, acphasex_ac2bpmac, acphasey_ac2bpmac, phasexlist, phaseylist, bpms)
+    calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
 
     #-------- Phase, Beta and coupling for non-zero DPP
-    phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, BPMdictionary, mad_twiss, with_ac_calc, files_dict, PseudoListX, PseudoListY, phasex, phasey, phasexlist, phaseylist, bpms, betax, betay, betaxalist, betayalist)
+    phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, with_ac_calc, files_dict, pseudo_list_x, pseudo_list_y, betaxalist, betayalist)
  
     if not higher_order:
         print "Not analysing higher order..."
@@ -364,16 +354,16 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
      
     if TBTana == "SUSSIX":
         #------ Start getsextupoles @ Glenn Vanbavinckhove
-        calculate_getsextupoles(twiss_d, model_filename, mad_twiss, files_dict, tune_d.q1f, phasexlist)
+        calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
      
         #------ Start getchiterms @ Glenn Vanbavinckhove
-        calculate_chiterms(getllm_d, twiss_d, model_filename, mad_twiss, files_dict)
+        calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
  
     #------ Start get Q,JX,delta
-    calculate_kick(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, with_ac_calc, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac, betax_ratio, betay_ratio, betaxf_ratio, betayf_ratio)
-
+    calculate_kick(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, with_ac_calc, mad_ac, files_dict, betax_ratio, betay_ratio, betaxf_ratio, betayf_ratio)
 
     #----- Write files
+    print "Writing files"
     for tfsfile in files_dict.itervalues():
         tfsfile.write_to_file(formatted=True)
         
@@ -383,17 +373,17 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-def intial_setup(getllm_d, twiss_d, tune_d, outputpath,model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_beams_cpl):
+def intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_beams_cpl):
     getllm_d.set_outputpath(outputpath)
     getllm_d.set_bpmu_and_cut_for_closed_orbit(cut_co, bpm_unit)
     getllm_d.lhc_phase = lhcphase
     getllm_d.num_beams_for_coupling = num_beams_cpl
     
     if dict_file == "0":
-        BPMdictionary = {}
+        bpm_dictionary = {}
     else:
         execfile(dict_file)
-        BPMdictionary = dictionary # temporaryly since presently name is not BPMdictionary
+        bpm_dictionary = dictionary # temporaryly since presently name is not bpm_dictionary
     
     # Beam direction
     getllm_d.beam_direction = 1
@@ -406,7 +396,7 @@ def intial_setup(getllm_d, twiss_d, tune_d, outputpath,model_filename, dict_file
     
     #-- finding base model
     try:
-        mad_twiss = metaclass.twiss(model_filename, BPMdictionary) # model from MAD : Twiss instance
+        mad_twiss = metaclass.twiss(model_filename, bpm_dictionary) # model from MAD : Twiss instance
         print "Base model found!"
     except IOError:
         print >> sys.stderr, "Twiss file loading failed for:\n\t", model_filename
@@ -419,7 +409,7 @@ def intial_setup(getllm_d, twiss_d, tune_d, outputpath,model_filename, dict_file
         mad_ac = metaclass.twiss(model_filename.replace(".dat", "_ac.dat")) # model with ac dipole : Twiss instance
         with_ac_calc = True
         print "Driven Twiss file found. AC dipole effects calculated with the effective model (get***_free2.out)"
-    except:
+    except IOError:
         mad_ac = mad_twiss
         print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
     
@@ -433,12 +423,12 @@ def intial_setup(getllm_d, twiss_d, tune_d, outputpath,model_filename, dict_file
                 try:
                     mad_elem = metaclass.twiss(model_filename.replace(".dat", "_elements.dat"))
                     print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
-                except:
+                except IOError:
                     print 'WARN: AC dipoles not in the model. AC dipole effects not calculated with analytic equations !'
         else:
             print 'WARN: AC dipole effects calculated with analytic equations only for LHC for now'
          
-    return with_ac_calc, mad_twiss, mad_ac, BPMdictionary, mad_elem
+    return with_ac_calc, mad_twiss, mad_ac, bpm_dictionary, mad_elem
 # END intial_setup ---------------------------------------------------------------------------------
 
 
@@ -451,58 +441,61 @@ def create_tfs_files(getllm_d, model_filename, with_ac_calc):
             A dictionary of created TfsFile objects. Keys are the filenames and values are the 
             TfsFile objects.
     '''
-    # Static variable of TfsFile to save the outputfile
+    # Static variable of TfsFile to save the outputfile, GetLLM version and model filename
     utils.tfs_file.TfsFile.s_output_path = getllm_d.outputpath
+    utils.tfs_file.TfsFile.s_getllm_version = VERSION
+    utils.tfs_file.TfsFile.s_mad_filename = model_filename
+    
     files_dict = {}
-    files_dict['getphasex.out'] = utils.tfs_file.TfsFile('getphasex.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getphasey.out'] = utils.tfs_file.TfsFile('getphasey.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getphasetotx.out'] = utils.tfs_file.TfsFile('getphasetotx.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getphasetoty.out'] = utils.tfs_file.TfsFile('getphasetoty.out').add_getllm_header(VERSION, model_filename)
+    files_dict['getphasex.out'] = utils.tfs_file.TfsFile('getphasex.out')
+    files_dict['getphasey.out'] = utils.tfs_file.TfsFile('getphasey.out')
+    files_dict['getphasetotx.out'] = utils.tfs_file.TfsFile('getphasetotx.out')
+    files_dict['getphasetoty.out'] = utils.tfs_file.TfsFile('getphasetoty.out')
     if with_ac_calc:
-        files_dict['getphasex_free.out'] = utils.tfs_file.TfsFile('getphasex_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getphasey_free.out'] = utils.tfs_file.TfsFile('getphasey_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getphasex_free2.out'] = utils.tfs_file.TfsFile('getphasex_free2.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getphasey_free2.out'] = utils.tfs_file.TfsFile('getphasey_free2.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getphasetotx_free.out'] = utils.tfs_file.TfsFile('getphasetotx_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getphasetoty_free.out'] = utils.tfs_file.TfsFile('getphasetoty_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getphasetotx_free2.out'] = utils.tfs_file.TfsFile('getphasetotx_free2.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getphasetoty_free2.out'] = utils.tfs_file.TfsFile('getphasetoty_free2.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getbetax.out'] = utils.tfs_file.TfsFile('getbetax.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getbetay.out'] = utils.tfs_file.TfsFile('getbetay.out').add_getllm_header(VERSION, model_filename)
+        files_dict['getphasex_free.out'] = utils.tfs_file.TfsFile('getphasex_free.out')
+        files_dict['getphasey_free.out'] = utils.tfs_file.TfsFile('getphasey_free.out')
+        files_dict['getphasex_free2.out'] = utils.tfs_file.TfsFile('getphasex_free2.out')
+        files_dict['getphasey_free2.out'] = utils.tfs_file.TfsFile('getphasey_free2.out')
+        files_dict['getphasetotx_free.out'] = utils.tfs_file.TfsFile('getphasetotx_free.out')
+        files_dict['getphasetoty_free.out'] = utils.tfs_file.TfsFile('getphasetoty_free.out')
+        files_dict['getphasetotx_free2.out'] = utils.tfs_file.TfsFile('getphasetotx_free2.out')
+        files_dict['getphasetoty_free2.out'] = utils.tfs_file.TfsFile('getphasetoty_free2.out')
+    files_dict['getbetax.out'] = utils.tfs_file.TfsFile('getbetax.out')
+    files_dict['getbetay.out'] = utils.tfs_file.TfsFile('getbetay.out')
     if with_ac_calc:
-        files_dict['getbetax_free.out'] = utils.tfs_file.TfsFile('getbetax_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getbetay_free.out'] = utils.tfs_file.TfsFile('getbetay_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getbetax_free2.out'] = utils.tfs_file.TfsFile('getbetax_free2.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getbetay_free2.out'] = utils.tfs_file.TfsFile('getbetay_free2.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getampbetax.out'] = utils.tfs_file.TfsFile('getampbetax.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getampbetay.out'] = utils.tfs_file.TfsFile('getampbetay.out').add_getllm_header(VERSION, model_filename)
+        files_dict['getbetax_free.out'] = utils.tfs_file.TfsFile('getbetax_free.out')
+        files_dict['getbetay_free.out'] = utils.tfs_file.TfsFile('getbetay_free.out')
+        files_dict['getbetax_free2.out'] = utils.tfs_file.TfsFile('getbetax_free2.out')
+        files_dict['getbetay_free2.out'] = utils.tfs_file.TfsFile('getbetay_free2.out')
+    files_dict['getampbetax.out'] = utils.tfs_file.TfsFile('getampbetax.out')
+    files_dict['getampbetay.out'] = utils.tfs_file.TfsFile('getampbetay.out')
     if with_ac_calc:
-        files_dict['getampbetax_free.out'] = utils.tfs_file.TfsFile('getampbetax_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getampbetay_free.out'] = utils.tfs_file.TfsFile('getampbetay_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getampbetax_free2.out'] = utils.tfs_file.TfsFile('getampbetax_free2.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getampbetay_free2.out'] = utils.tfs_file.TfsFile('getampbetay_free2.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getCOx.out'] = utils.tfs_file.TfsFile('getCOx.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getCOy.out'] = utils.tfs_file.TfsFile('getCOy.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getNDx.out'] = utils.tfs_file.TfsFile('getNDx.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getDx.out'] = utils.tfs_file.TfsFile('getDx.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getDy.out'] = utils.tfs_file.TfsFile('getDy.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getcouple.out'] = utils.tfs_file.TfsFile('getcouple.out').add_getllm_header(VERSION, model_filename)
+        files_dict['getampbetax_free.out'] = utils.tfs_file.TfsFile('getampbetax_free.out')
+        files_dict['getampbetay_free.out'] = utils.tfs_file.TfsFile('getampbetay_free.out')
+        files_dict['getampbetax_free2.out'] = utils.tfs_file.TfsFile('getampbetax_free2.out')
+        files_dict['getampbetay_free2.out'] = utils.tfs_file.TfsFile('getampbetay_free2.out')
+    files_dict['getCOx.out'] = utils.tfs_file.TfsFile('getCOx.out')
+    files_dict['getCOy.out'] = utils.tfs_file.TfsFile('getCOy.out')
+    files_dict['getNDx.out'] = utils.tfs_file.TfsFile('getNDx.out')
+    files_dict['getDx.out'] = utils.tfs_file.TfsFile('getDx.out')
+    files_dict['getDy.out'] = utils.tfs_file.TfsFile('getDy.out')
+    files_dict['getcouple.out'] = utils.tfs_file.TfsFile('getcouple.out')
     if with_ac_calc:
-        files_dict['getcouple_free.out'] = utils.tfs_file.TfsFile('getcouple_free.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getcouple_free2.out'] = utils.tfs_file.TfsFile('getcouple_free2.out').add_getllm_header(VERSION, model_filename)
-    files_dict['getcoupleterms.out'] = utils.tfs_file.TfsFile('getcoupleterms.out').add_getllm_header(VERSION, model_filename)
+        files_dict['getcouple_free.out'] = utils.tfs_file.TfsFile('getcouple_free.out')
+        files_dict['getcouple_free2.out'] = utils.tfs_file.TfsFile('getcouple_free2.out')
+    files_dict['getcoupleterms.out'] = utils.tfs_file.TfsFile('getcoupleterms.out')
     if "LHC" in getllm_d.accel:
-        files_dict['getIP.out'] = utils.tfs_file.TfsFile('getIP.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getIPx.out'] = utils.tfs_file.TfsFile('getIPx.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getIPy.out'] = utils.tfs_file.TfsFile('getIPy.out').add_getllm_header(VERSION, model_filename)
-        files_dict['getIPfromphase.out'] = utils.tfs_file.TfsFile('getIPfromphase.out').add_getllm_header(VERSION, model_filename)
+        files_dict['getIP.out'] = utils.tfs_file.TfsFile('getIP.out')
+        files_dict['getIPx.out'] = utils.tfs_file.TfsFile('getIPx.out')
+        files_dict['getIPy.out'] = utils.tfs_file.TfsFile('getIPy.out')
+        files_dict['getIPfromphase.out'] = utils.tfs_file.TfsFile('getIPfromphase.out')
         if with_ac_calc:
-            files_dict['getIPx_free.out'] = utils.tfs_file.TfsFile('getIPx_free.out').add_getllm_header(VERSION, model_filename)
-            files_dict['getIPy_free.out'] = utils.tfs_file.TfsFile('getIPy_free.out').add_getllm_header(VERSION, model_filename)
-            files_dict['getIPx_free2.out'] = utils.tfs_file.TfsFile('getIPx_free2.out').add_getllm_header(VERSION, model_filename)
-            files_dict['getIPy_free2.out'] = utils.tfs_file.TfsFile('getIPy_free2.out').add_getllm_header(VERSION, model_filename)
-            files_dict['getIPfromphase_free.out'] = utils.tfs_file.TfsFile('getIPfromphase_free.out').add_getllm_header(VERSION, model_filename)
-            files_dict['getIPfromphase_free2.out'] = utils.tfs_file.TfsFile('getIPfromphase_free2.out').add_getllm_header(VERSION, model_filename)
+            files_dict['getIPx_free.out'] = utils.tfs_file.TfsFile('getIPx_free.out')
+            files_dict['getIPy_free.out'] = utils.tfs_file.TfsFile('getIPy_free.out')
+            files_dict['getIPx_free2.out'] = utils.tfs_file.TfsFile('getIPx_free2.out')
+            files_dict['getIPy_free2.out'] = utils.tfs_file.TfsFile('getIPy_free2.out')
+            files_dict['getIPfromphase_free.out'] = utils.tfs_file.TfsFile('getIPfromphase_free.out')
+            files_dict['getIPfromphase_free2.out'] = utils.tfs_file.TfsFile('getIPfromphase_free2.out')
     return files_dict
 # END create_tfs_files -----------------------------------------------------------------------------
 
@@ -645,6 +638,22 @@ def analyse_src_files(getllm_d, twiss_d, with_ac_calc, files_to_analyse, turn_by
         
 # END analyse_src_files ----------------------------------------------------------------------------
 
+def check_bpm_compatibility(twiss_d, mad_twiss):
+    '''
+    Checks the monitor compatibility between data and model. If a monitor will not be found in the
+    model, a message will be print to sys.stderr.
+    '''
+    all_twiss_files = twiss_d.non_zero_dpp_x + twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_y + twiss_d.zero_dpp_y
+    for twiss_file in all_twiss_files:
+        for bpm_name in twiss_file.NAME: #TODO: maybe easier with the usage of intersect?(vimaier)
+            try:
+                mad_twiss.NAME[mad_twiss.indx[bpm_name]]
+            except KeyError:
+                try:
+                    mad_twiss.NAME[mad_twiss.indx[str.upper(bpm_name)]]
+                except KeyError:
+                    print >> sys.stderr, 'Monitor ' + bpm_name + ' cannot be found in the model!'
+
 
 def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, mad_elem, files_dict):
     '''
@@ -659,14 +668,11 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
             Holds twiss instances of the src files.
         'tune_d': TuneData (In/Out-param, values will be read and set)
             Holds tunes and phase advances
+            
+        :Return: PhaseData
+            an instance of PhaseData with the result of this function
     '''
-    #TODO: initialize variables otherwise return stmt of this function would raie an exception(vimaier)
-    acphasex_ac2bpmac = None
-    acphasey_ac2bpmac = None
-    phasexf = None
-    phasexf2 = None
-    phaseyf = None
-    phaseyf2 = None
+    phase_d = PhaseData()
     
     print 'Calculating phase' 
     #---- Calling GetPhases first to save tunes
@@ -684,10 +690,9 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
         for i in twiss_d.zero_dpp_x:
             q1_temp.append(np.mean(i.TUNEX))        
         q1_temp = np.mean(q1_temp)
-        
-        [phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, q1_temp, 'H')
-        if not twiss_d.has_zero_dpp_y():
-            print 'liny missing and output x only ...'
+
+        [phase_d.phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, q1_temp, 'H')
+
             
     if twiss_d.has_zero_dpp_y(): 
         #-- Calculate temp value of tune
@@ -696,41 +701,39 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
             q2_temp.append(np.mean(twiss_file.TUNEY))        
         q2_temp = np.mean(q2_temp)
         
-        [phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, q2_temp, 'V')
+        [phase_d.phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, q2_temp, 'V')
         if not twiss_d.has_zero_dpp_y():
             print 'linx missing and output y only ...'
 
     #---- Re-run GetPhase to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
         if twiss_d.has_zero_dpp_x():
-            [phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H')
+            [phase_d.phasex, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H')
         if twiss_d.has_zero_dpp_y():
-            [phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V')
-
+            [phase_d.phasey, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V')
+            
     #---- ac to free phase from eq and the model
     if with_ac_calc:
         if twiss_d.has_zero_dpp_x():
             tune_d.q1f = tune_d.q1 - tune_d.d1 #-- Free H-tune
             try:
-                acphasex_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_elem, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel)
-            except:
-                acphasex_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel)
-            [phasexf, tune_d.muxf, bpmsxf] = algorithms.helper.GetFreePhase_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
-            [phasexf2, tune_d.muxf2, bpmsxf2] = algorithms.helper.getfreephase(phasex, tune_d.q1, tune_d.q1f, bpmsx, mad_ac, mad_twiss, "H")
+                phase_d.acphasex_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_elem, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel)
+            except AttributeError:
+                phase_d.acphasex_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel)
+            [phase_d.phasexf, tune_d.muxf, bpmsxf] = algorithms.helper.GetFreePhase_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
+            [phase_d.phasexf2, tune_d.muxf2, bpmsxf2] = algorithms.helper.getfreephase(phase_d.phasex, tune_d.q1, tune_d.q1f, bpmsx, mad_ac, mad_twiss, "H")
         if twiss_d.has_zero_dpp_y():
             tune_d.q2f = tune_d.q2 - tune_d.d2 #-- Free V-tune
             try:
-                acphasey_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_elem, tune_d.q2, tune_d.q2f, 'V', getllm_d.accel)
-            except:
-                acphasey_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q2, tune_d.q2f, 'V', getllm_d.accel)
-            [phaseyf, tune_d.muyf, bpmsyf] = algorithms.helper.GetFreePhase_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.lhc_phase)
-            [phaseyf2, tune_d.muyf2, bpmsyf2] = algorithms.helper.getfreephase(phasey, tune_d.q2, tune_d.q2f, bpmsy, mad_ac, mad_twiss, "V")
+                phase_d.acphasey_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_elem, tune_d.q2, tune_d.q2f, 'V', getllm_d.accel)
+            except AttributeError:
+                phase_d.acphasey_ac2bpmac = algorithms.helper.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q2, tune_d.q2f, 'V', getllm_d.accel)
+            [phase_d.phaseyf, tune_d.muyf, bpmsyf] = algorithms.helper.GetFreePhase_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.lhc_phase)
+            [phase_d.phaseyf2, tune_d.muyf2, bpmsyf2] = algorithms.helper.getfreephase(phase_d.phasey, tune_d.q2, tune_d.q2f, bpmsy, mad_ac, mad_twiss, "V")
 
     #---- H plane result
     if twiss_d.has_zero_dpp_x():
-        phasexlist = []
-        phasex['DPP'] = 0.0
-        phasexlist.append(phasex)
+        phase_d.phasex['DPP'] = 0.0
         tfs_file = files_dict['getphasex.out']
         tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
         tfs_file.add_descriptor("MUX", "%le", str(tune_d.mux))
@@ -741,14 +744,10 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
         for i in range(len(bpmsx)):
             bn1 = str.upper(bpmsx[i][1])
             bns1 = bpmsx[i][0]
-            phmdl = phasex[bn1][4]
-            if i == len(bpmsx) - 1:
-                bn2 = str.upper(bpmsx[0][1])
-                bns2 = bpmsx[0][0]
-            else:
-                bn2 = str.upper(bpmsx[i + 1][1])
-                bns2 = bpmsx[i + 1][0]
-            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phasex[bn1][0], phasex[bn1][1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
+            phmdl = phase_d.phasex[bn1][4]
+            bn2 = str.upper(bpmsx[(i+1)%len(bpmsx)][1])
+            bns2 = bpmsx[(i+1)%len(bpmsx)][0]
+            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.phasex[bn1][0], phase_d.phasex[bn1][1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
         
         #-- ac to free phase
@@ -765,18 +764,14 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
                 for i in range(len(bpmsxf)):
                     bn1 = str.upper(bpmsxf[i][1])
                     bns1 = bpmsxf[i][0]
-                    phmdlf = phasexf[bn1][4]
-                    if i == len(bpmsxf) - 1:
-                        bn2 = str.upper(bpmsxf[0][1])
-                        bns2 = bpmsxf[0][0]
-                    else:
-                        bn2 = str.upper(bpmsxf[i + 1][1])
-                        bns2 = bpmsxf[i + 1][0]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phasexf[bn1][0], phasexf[bn1][1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
+                    phmdlf = phase_d.phasexf[bn1][4]
+                    bn2 = str.upper(bpmsxf[(i+1)%len(bpmsxf)][1])
+                    bns2 = bpmsxf[(i+1)%len(bpmsxf)][0]
+                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.phasexf[bn1][0], phase_d.phasexf[bn1][1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
             
-            except:
-                pass
+            except Exception:
+                traceback.print_exc()
             #-- from the model
             tfs_file = files_dict['getphasex_free2.out']
             tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
@@ -788,17 +783,15 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
             for i in range(0, len(bpmsxf2)):
                 bn1 = str.upper(bpmsxf2[i][1])
                 bns1 = bpmsxf2[i][0]
-                phmdlf2 = phasexf2[bn1][2]
-                bn2 = phasexf2[bn1][3]
-                bns2 = phasexf2[bn1][4]
-                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phasexf2[bn1][0], phasexf2[bn1][1], phmdlf2, mad_twiss.MUX[mad_twiss.indx[bn1]]]
+                phmdlf2 = phase_d.phasexf2[bn1][2]
+                bn2 = phase_d.phasexf2[bn1][3]
+                bns2 = phase_d.phasexf2[bn1][4]
+                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.phasexf2[bn1][0], phase_d.phasexf2[bn1][1], phmdlf2, mad_twiss.MUX[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
     
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
-        phaseylist = []
-        phasey['DPP'] = 0.0
-        phaseylist.append(phasey)
+        phase_d.phasey['DPP'] = 0.0
         tfs_file = files_dict['getphasey.out']
         tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
         tfs_file.add_descriptor("MUX", "%le", str(tune_d.mux))
@@ -809,15 +802,10 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
         for i in range(len(bpmsy)):
             bn1 = str.upper(bpmsy[i][1])
             bns1 = bpmsy[i][0]
-            phmdl = phasey[bn1][4]
-            # TODO easier with modulo(vimaier)
-            if i == len(bpmsy) - 1:
-                bn2 = str.upper(bpmsy[0][1])
-                bns2 = bpmsy[0][0]
-            else:
-                bn2 = str.upper(bpmsy[i + 1][1])
-                bns2 = bpmsy[i + 1][0]
-            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phasey[bn1][0], phasey[bn1][1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+            phmdl = phase_d.phasey[bn1][4]
+            bn2 = str.upper(bpmsy[(i+1)%len(bpmsy)][1])
+            bns2 = bpmsy[(i+1)%len(bpmsy)][0]
+            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.phasey[bn1][0], phase_d.phasey[bn1][1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
         
         #-- ac to free phase
@@ -834,18 +822,18 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
                 for i in range(len(bpmsyf)):
                     bn1 = str.upper(bpmsyf[i][1])
                     bns1 = bpmsyf[i][0]
-                    phmdlf = phaseyf[bn1][4]
+                    phmdlf = phase_d.phaseyf[bn1][4]
                     if i == len(bpmsyf) - 1:
                         bn2 = str.upper(bpmsyf[0][1])
                         bns2 = bpmsyf[0][0]
                     else:
                         bn2 = str.upper(bpmsyf[i + 1][1])
                         bns2 = bpmsyf[i + 1][0]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phaseyf[bn1][0], phaseyf[bn1][1], phmdlf, mad_twiss.MUY[mad_twiss.indx[bn1]]]
+                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.phaseyf[bn1][0], phase_d.phaseyf[bn1][1], phmdlf, mad_twiss.MUY[mad_twiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
             
-            except:
-                pass
+            except Exception:
+                traceback.print_exc()
             #-- from the model
             tfs_file = files_dict['getphasey_free2.out']
             tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
@@ -857,17 +845,17 @@ def calculate_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, 
             for i in range(0, len(bpmsyf2)):
                 bn1 = str.upper(bpmsyf2[i][1])
                 bns1 = bpmsyf2[i][0]
-                phmdlf2 = phaseyf2[bn1][2]
-                bn2 = phaseyf2[bn1][3]
-                bns2 = phaseyf2[bn1][4]
-                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phaseyf2[bn1][0], phaseyf2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
+                phmdlf2 = phase_d.phaseyf2[bn1][2]
+                bn2 = phase_d.phaseyf2[bn1][3]
+                bns2 = phase_d.phaseyf2[bn1][4]
+                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.phaseyf2[bn1][0], phase_d.phaseyf2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
     
-    return acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, phasexlist, phaseylist
+    return phase_d
 # END calculate_phase ------------------------------------------------------------------------------
 
 
-def calculate_total_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac):
+def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, with_ac_calc, mad_twiss, mad_ac, files_dict):
     '''
     Calculates total phase and fills the following TfsFiles:
         getphasetotx.out        getphasetotx_free.out        getphasetotx_free2.out
@@ -905,7 +893,7 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, ma
         if with_ac_calc:
             #-- from eq
             try:
-                [phasexTf, bpmsxTf] = algorithms.helper.GetFreePhaseTotal_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
+                [phasexTf, bpmsxTf] = algorithms.helper.GetFreePhaseTotal_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
                 tfs_file = files_dict['getphasetotx_free.out']
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
                 tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf))
@@ -965,7 +953,7 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, ma
         if with_ac_calc:
             #-- from eq
             try:
-                [phaseyTf, bpmsyTf] = algorithms.helper.GetFreePhaseTotal_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.lhc_phase)
+                [phaseyTf, bpmsyTf] = algorithms.helper.GetFreePhaseTotal_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.lhc_phase)
                 tfs_file = files_dict['getphasetoty_free.out']
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
                 tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf))
@@ -1002,7 +990,7 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, with_ac_calc, mad_twiss, ma
                 tfs_file.add_table_row(list_row_entries)
 # END calculate_total_phase ------------------------------------------------------------------------
 
-def calculate_beta(twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict, phasex, phasexf, phasey, phaseyf):
+def calculate_beta(twiss_d, tune_d, phase_d, with_ac_calc, mad_twiss, mad_ac, files_dict):
     '''
     Calculates beta and fills the following TfsFiles:
         getbetax.out        getbetax_free.out        getbetax_free2.out
@@ -1023,7 +1011,7 @@ def calculate_beta(twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict,
     print 'Calculating beta'
     #---- H plane
     if twiss_d.has_zero_dpp_x():
-        [betax, rmsbbx, alfax, bpms] = algorithms.helper.BetaFromPhase(mad_ac, twiss_d.zero_dpp_x, phasex, 'H')
+        [betax, rmsbbx, alfax, bpms] = algorithms.helper.BetaFromPhase(mad_ac, twiss_d.zero_dpp_x, phase_d.phasex, 'H')
         betax['DPP'] = 0
         tfs_file = files_dict['getbetax.out']
         tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
@@ -1041,7 +1029,7 @@ def calculate_beta(twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict,
         if with_ac_calc:
             #-- from eq
             try:
-                [betaxf, rmsbbxf, alfaxf, bpmsf] = algorithms.helper.BetaFromPhase(mad_twiss, twiss_d.zero_dpp_x, phasexf, 'H')
+                [betaxf, rmsbbxf, alfaxf, bpmsf] = algorithms.helper.BetaFromPhase(mad_twiss, twiss_d.zero_dpp_x, phase_d.phasexf, 'H')
                 tfs_file = files_dict['getbetax_free.out']
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
                 tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
@@ -1071,7 +1059,7 @@ def calculate_beta(twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict,
     
     #---- V plane
     if twiss_d.has_zero_dpp_y():
-        [betay, rmsbby, alfay, bpms] = algorithms.helper.BetaFromPhase(mad_ac, twiss_d.zero_dpp_y, phasey, 'V')
+        [betay, rmsbby, alfay, bpms] = algorithms.helper.BetaFromPhase(mad_ac, twiss_d.zero_dpp_y, phase_d.phasey, 'V')
         betay['DPP'] = 0
         tfs_file = files_dict['getbetay.out']
         tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
@@ -1089,7 +1077,7 @@ def calculate_beta(twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict,
         if with_ac_calc:
             #-- from eq
             try:
-                [betayf, rmsbbyf, alfayf, bpmsf] = algorithms.helper.BetaFromPhase(mad_twiss, twiss_d.zero_dpp_y, phaseyf, 'V')
+                [betayf, rmsbbyf, alfayf, bpmsf] = algorithms.helper.BetaFromPhase(mad_twiss, twiss_d.zero_dpp_y, phase_d.phaseyf, 'V')
                 tfs_file = files_dict['getbetay_free.out']
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
                 tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
@@ -1121,7 +1109,7 @@ def calculate_beta(twiss_d, tune_d, with_ac_calc, mad_twiss, mad_ac, files_dict,
 # END calculate_beta -------------------------------------------------------------------------------
 
 
-def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac, bpms, betax, betaxf, betay, betayf):
+def calculate_beta_from_amplitude(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpms, betax, betaxf, betay, betayf):
     '''
     Calculates beta and fills the following TfsFiles:
         getampbetax.out        getampbetax_free.out        getampbetax_free2.out
@@ -1188,7 +1176,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_
         
         if with_ac_calc: #-- from eq
             try:
-                [betaxf, rmsbbxf, bpmsf] = algorithms.helper.GetFreeBetaFromAmp_Eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)[:3]
+                [betaxf, rmsbbxf, bpmsf] = algorithms.helper.GetFreeBetaFromAmp_Eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)[:3]
                 #-- Rescaling
                 betaxf_ratio = 0
                 skipped_bpmxf = []
@@ -1282,7 +1270,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_
         
         if with_ac_calc: #-- from eq
             try:
-                [betayf, rmsbbyf, bpmsf] = algorithms.helper.GetFreeBetaFromAmp_Eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)[:3] #-- Rescaling
+                [betayf, rmsbbyf, bpmsf] = algorithms.helper.GetFreeBetaFromAmp_Eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)[:3] #-- Rescaling
                 betayf_ratio = 0
                 skipped_bpmyf = []
                 arcbpms = algorithms.helper.filterbpm(bpmsf)
@@ -1341,7 +1329,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_
 # END calculate_beta_from_amplitude ----------------------------------------------------------------
 
 
-def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, bpm_name, acphasex_ac2bpmac, acphasey_ac2bpmac, phasex, phasexf, phasey, phaseyf, phasexf2, phaseyf2, betax, betay):
+def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, with_ac_calc, mad_ac, files_dict, betax, betay):
     '''
     Calculates ip and fills the following TfsFiles:
         getIP.out        
@@ -1402,8 +1390,8 @@ def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, fil
         #-- ac to free parameters at IP1, IP2, IP5, and IP8
         if with_ac_calc:
             #-- From Eq
-            IPxf = algorithms.helper.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-            IPyf = algorithms.helper.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+            IPxf = algorithms.helper.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+            IPyf = algorithms.helper.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
             tfs_file_x = files_dict['getIPx_free.out']
             tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"])
             tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -1456,7 +1444,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, fil
 
         #-- IP beta* and phase from phase only
         try:
-            IPfromphase = algorithms.helper.GetIPFromPhase(mad_ac, phasex, phasey, getllm_d.accel)
+            IPfromphase = algorithms.helper.GetIPFromPhase(mad_ac, phase_d.phasex, phase_d.phasey, getllm_d.accel)
         except:
             print 'No output from IP from phase. H or V file missing?'
         tfs_file = files_dict['getIPfromphase.out']
@@ -1475,7 +1463,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, fil
         if with_ac_calc:
             #-- from eqs
             try:
-                IPfromphasef = algorithms.helper.GetIPFromPhase(mad_twiss, phasexf, phaseyf, getllm_d.accel)
+                IPfromphasef = algorithms.helper.GetIPFromPhase(mad_twiss, phase_d.phasexf, phase_d.phaseyf, getllm_d.accel)
             except:
                 pass
             tfs_file = files_dict['getIPfromphase_free.out']
@@ -1492,7 +1480,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, fil
                     pass
             #-- from the model
             try:
-                IPfromphasef2 = algorithms.helper.GetIPFromPhase(mad_twiss, phasexf2, phaseyf2, getllm_d.accel)
+                IPfromphasef2 = algorithms.helper.GetIPFromPhase(mad_twiss, phase_d.phasexf2, phase_d.phaseyf2, getllm_d.accel)
             except:
                 pass
             tfs_file = files_dict['getIPfromphase_free2.out']
@@ -1510,7 +1498,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, fil
 # END calculate_ip ---------------------------------------------------------------------------------
 
 
-def calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_dict, bpms):
+def calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, bpms):
     '''
     Calculates orbit and fills the following TfsFiles:
         getCOx.out       getCOy.out
@@ -1569,7 +1557,7 @@ def calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
             filename = 'getCOx_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+            files_dict[filename] = utils.tfs_file.TfsFile(filename)
             tfs_file = files_dict[filename]
             tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(float(twiss_file.DPP)))
@@ -1593,7 +1581,7 @@ def calculate_orbit(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, files_
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
             filename = 'getCOy_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+            files_dict[filename] = utils.tfs_file.TfsFile(filename)
             tfs_file = files_dict[filename]
             tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(float(twiss_file.DPP)))
@@ -1658,7 +1646,7 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, bpms,
             tfs_file.add_table_row(list_row_entries)
 # END calculate_dispersion -------------------------------------------------------------------------
 
-def calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, PseudoListX, PseudoListY, acphasex_ac2bpmac, acphasey_ac2bpmac, phasexlist, phaseylist, bpms):
+def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, with_ac_calc, mad_ac, files_dict, pseudo_list_x, pseudo_list_y):
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
@@ -1702,12 +1690,12 @@ def calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_a
         
         elif getllm_d.num_beams_for_coupling == 2:
             if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
-                #TODO: check parameter. Q seems missing
-                [phasexp, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_twiss, PseudoListX, 'H')
-                [phaseyp, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_twiss, PseudoListY, 'V')
-                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, PseudoListX, PseudoListY, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel)
+                #TODO: check parameter. Q is missing
+                [phasexp, tune_d.q1, tune_d.mux, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_twiss, pseudo_list_x, 'H')
+                [phaseyp, tune_d.q2, tune_d.muy, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_twiss, pseudo_list_y, 'V')
+                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel)
             else:
-                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, phasexlist[0], phaseylist[0], getllm_d.beam_direction, getllm_d.accel)
+                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, phase_d.phasex, phase_d.phasey, getllm_d.beam_direction, getllm_d.accel)
             tfs_file = files_dict['getcouple.out']
             tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
             tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
@@ -1727,7 +1715,7 @@ def calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_a
             if with_ac_calc:
                 #-- analytic eqs
                 try:
-                    [fwqwf, bpmsf] = algorithms.helper.GetFreeCoupling_Eq(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, acphasex_ac2bpmac, acphasey_ac2bpmac, getllm_d.beam_direction)
+                    [fwqwf, bpmsf] = algorithms.helper.GetFreeCoupling_Eq(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction)
                     tfs_file = files_dict['getcouple_free.out']
                     tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
                     tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
@@ -1744,7 +1732,7 @@ def calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_a
                 
                 except:
                     traceback.print_exc()
-                    pass
+
                 #-- global factor
                 [fwqwf2, bpmsf2] = algorithms.helper.getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
                 tfs_file = files_dict['getcouple_free2.out']
@@ -1781,12 +1769,9 @@ def calculate_coupling(getllm_d, twiss_d, tune_d, mad_twiss, with_ac_calc, mad_a
             bpmm = bpm[1].upper()
             list_row_entries = [bpmm, bps, coupleterms[bpmm][0], coupleterms[bpmm][1], coupleterms[bpmm][2], coupleterms[bpmm][3], coupleterms[bpmm][4], coupleterms[bpmm][5], coupleterms[bpmm][6], coupleterms[bpmm][7]]
             tfs_file.add_table_row(list_row_entries)
-        
-        #-- For chromatic coupling
-        fwqw['DPP'] = 0
 # END calculate_coupling ---------------------------------------------------------------------------
 
-def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, BPMdictionary, mad_twiss, with_ac_calc, files_dict, PseudoListX, PseudoListY, phasex, phasey, phasexlist, phaseylist, bpms, betax, betay, betaxalist, betayalist):
+def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, with_ac_calc, files_dict, pseudo_list_x, pseudo_list_y, betaxalist, betayalist):
     '''
     Fills the following TfsFiles:
         getphasex_dpp_' + str(k + 1) + '.out        getbetax_dpp_' + str(k + 1) + '.out
@@ -1809,18 +1794,19 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
     if twiss_d.has_non_zero_dpp_x():
         plane = 'H'
         k = 0
+        phasexlist = []
         for twiss_file in twiss_d.non_zero_dpp_x:
             dpop = float(twiss_file.DPP)
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
-            DPPTwiss = algorithms.helper.ConstructOffMomentumModel(mad_twiss, dpop, BPMdictionary)
+            DPPTwiss = algorithms.helper.ConstructOffMomentumModel(mad_twiss, dpop, bpm_dictionary)
             [phasex, Q1DPP, MUX, bpms] = algorithms.helper.GetPhases(getllm_d, DPPTwiss, list_with_single_twiss, tune_d.q1, plane)
             phasex['DPP'] = dpop
             phasexlist.append(phasex)
             # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
             if DEBUG:
                 filename = 'getphasex_dpp_' + str(k + 1) + '.out'
-                files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+                files_dict[filename] = utils.tfs_file.TfsFile(filename)
                 tfs_file = files_dict[filename]
                 tfs_file.add_filename_to_getllm_header(twiss_file.filename)
                 tfs_file.add_descriptor("DPP", "%le", str(dpop))
@@ -1837,8 +1823,8 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
                     bn2 = str.upper(bpms[index][1])
                     bns2 = bpms[index][0]
                     try:
-                        phmdl = phasexlist[0][bn1][4]
-                    except:
+                        phmdl = phase_d.phasex[bn1][4]
+                    except KeyError:
                         phmdl = 0.0
                     #phmdl=mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
                     list_row_entries = ['"' + bn1 + '" ', '"' + bn2 + '"', bns1, bns2, 1, phasex[bn1][0], phasex[bn1][1], phmdl, mad_twiss.MUX[mad_twiss.indx[bn1]]]
@@ -1853,7 +1839,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
             betaxa['DPP'] = dpop
             betaxalist.append(betaxa)
             filename = 'getbetax_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+            files_dict[filename] = utils.tfs_file.TfsFile(filename)
             tfs_file = files_dict[filename]
             tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(dpop))
@@ -1872,18 +1858,19 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
     if twiss_d.has_non_zero_dpp_y():
         plane = 'V'
         k = 0
+        phaseylist = []
         for twiss_file in twiss_d.non_zero_dpp_y:
             dpop = float(twiss_file.DPP)
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
-            DPPTwiss = algorithms.helper.ConstructOffMomentumModel(mad_twiss, dpop, BPMdictionary)
+            DPPTwiss = algorithms.helper.ConstructOffMomentumModel(mad_twiss, dpop, bpm_dictionary)
             [phasey, Q2DPP, MUY, bpms] = algorithms.helper.GetPhases(getllm_d, DPPTwiss, list_with_single_twiss, tune_d.q2, plane)
             phasey['DPP'] = dpop
             phaseylist.append(phasey)
             # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
             if DEBUG:
                 filename = 'getphasey_dpp_' + str(k + 1) + '.out'
-                files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+                files_dict[filename] = utils.tfs_file.TfsFile(filename)
                 tfs_file = files_dict[filename]
                 tfs_file.add_filename_to_getllm_header(twiss_file.filename)
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
@@ -1899,8 +1886,8 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
                     bn2 = str.upper(bpms[index][1])
                     bns2 = bpms[index][0]
                     try:
-                        phmdl = phaseylist[0][bn1][4]
-                    except:
+                        phmdl = phase_d.phasey[bn1][4]
+                    except KeyError:
                         phmdl = 0.0
                     #phmdl=mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
                     list_row_entries = ['"' + bn1 + '" ', '"' + bn2 + '" ', bns1, bns2, 1, phasey[bn1][0], phasey[bn1][1], phmdl, mad_twiss.MUY[mad_twiss.indx[bn1]]]
@@ -1915,7 +1902,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
             betaya['DPP'] = dpop
             betayalist.append(betaya)
             filename = 'getbetay_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+            files_dict[filename] = utils.tfs_file.TfsFile(filename)
             tfs_file = files_dict[filename]
             tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_descriptor("DPP", "%le", str(dpop))
@@ -1931,7 +1918,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
                 tfs_file.add_table_row(list_row_entries)
             
             k += 1
-    # TODO: Branch useless except of Q1 and Q2 calculation? Results will not be saved to a file nor returned(vimaier)
+    # TODO: Branch useless except of Q1 and Q2 calculation? Results will not be saved in a file nor returned(vimaier)
     if twiss_d.has_non_zero_dpp_y() and twiss_d.has_non_zero_dpp_x():
         if len(twiss_d.non_zero_dpp_x) != len(twiss_d.non_zero_dpp_y):
             raise ValueError("list of dppx is not equal list of dppy")
@@ -1949,15 +1936,14 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
             if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
                 #TODO: check parameter. Q seems missing in calls GetPhases (vimaier)
                 plane = 'H'
-                [phasexp, tune_d.q1, MUX, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_twiss, PseudoListX, plane)
+                [phasexp, tune_d.q1, MUX, bpmsx] = algorithms.helper.GetPhases(getllm_d, mad_twiss, pseudo_list_x, plane)
                 plane = 'V'
-                [phaseyp, tune_d.q2, MUY, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_twiss, PseudoListY, plane)
-                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, PseudoListX, PseudoListY, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel)
+                [phaseyp, tune_d.q2, MUY, bpmsy] = algorithms.helper.GetPhases(getllm_d, mad_twiss, pseudo_list_y, plane)
+                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel)
             elif getllm_d.num_beams_for_coupling == 1:
                 [fwqw, bpms] = algorithms.helper.GetCoupling1(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2)
             elif getllm_d.num_beams_for_coupling == 2:
-                print phasexlist[j + 1]['DPP'], dpop
-                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, phasexlist[j + 1], phaseylist[j + 1], getllm_d.beam_direction, getllm_d.accel)
+                [fwqw, bpms] = algorithms.helper.GetCoupling2(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, phasexlist[j], phaseylist[j], getllm_d.beam_direction, getllm_d.accel)
                 if with_ac_calc:
                     [fwqw, bpms] = algorithms.helper.getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
             else:
@@ -1965,7 +1951,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, model_filename, B
             fwqw['DPP'] = dpop
 # END phase_and_beta_for_non_zero_dpp --------------------------------------------------------------
 
-def calculate_getsextupoles(twiss_d, model_filename, mad_twiss, files_dict, q1f, phasexlist):
+def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
     print "Calculating getsextupoles"
     # fsex1200 and 2100 is never used and ouputname is wrong(vimaier)
     #     fsex1200 = open(outputpath+'getsex1200.out','w')
@@ -1978,9 +1964,9 @@ def calculate_getsextupoles(twiss_d, model_filename, mad_twiss, files_dict, q1f,
     #-> 3) f2100 line  (0,0)
     # global stuff
     # 1)
-    htot, afactor, pfactor = algorithms.helper.Getsextupole(mad_twiss, twiss_d.zero_dpp_x, phasexlist[0], q1f, 3, 0)
+    htot, afactor, pfactor = algorithms.helper.Getsextupole(mad_twiss, twiss_d.zero_dpp_x, phase_d.phasex, q1f, 3, 0)
     filename = 'getsex3000.out'
-    files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+    files_dict[filename] = utils.tfs_file.TfsFile(filename)
     tfs_file = files_dict[filename]
     tfs_file.add_descriptor("f2h_factor", "%le", str(afactor))
     tfs_file.add_descriptor("p_f2h_factor", "%le", str(pfactor))
@@ -1993,14 +1979,14 @@ def calculate_getsextupoles(twiss_d, model_filename, mad_twiss, files_dict, q1f,
 # END calculate_getsextupoles ----------------------------------------------------------------------
 
 
-def calculate_chiterms(getllm_d, twiss_d, model_filename, mad_twiss, files_dict):
+def calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict):
 #-> 1) chi3000
 #-> 2) chi1010
 #-> 2) chi4000
     print "Calculating chiterms"
     # 1) chi3000
     filename = 'getchi3000.out'
-    files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+    files_dict[filename] = utils.tfs_file.TfsFile(filename)
     tfs_file = files_dict[filename]
     tfs_file.add_column_names(["NAME", "S", "S1", "S2", "X3000", "X3000i", "X3000r", "X3000RMS", "X3000PHASE", "X3000PHASERMS", "X3000M", "X3000Mi", "X3000Mr", "X3000MPHASE"])
     tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -2016,7 +2002,7 @@ def calculate_chiterms(getllm_d, twiss_d, model_filename, mad_twiss, files_dict)
     # 2) chi1010
     if getllm_d.accel != 'SPS':
         filename = 'getchi1010.out'
-        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+        files_dict[filename] = utils.tfs_file.TfsFile(filename)
         tfs_file = files_dict[filename]
         tfs_file.add_column_names(["NAME", "S", "X1010", "X1010RMS", "X1010PHASE", "X1010PHASERMS", "X1010M", "X1010MPHASE"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -2032,18 +2018,18 @@ def calculate_chiterms(getllm_d, twiss_d, model_filename, mad_twiss, files_dict)
     
     # 1) chi4000
     filename = 'getchi4000.out'
-    files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+    files_dict[filename] = utils.tfs_file.TfsFile(filename)
     tfs_file = files_dict[filename]
     tfs_file.add_column_names(["NAME", "S", "S1", "S2", "X4000", "X4000i", "X4000r", "X4000RMS", "X4000PHASE", "X4000PHASERMS", "X4000M", "X4000Mi", "X4000Mr", "X4000MPHASE"])
     tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 # END calculate_chiterms ---------------------------------------------------------------------------
 
 
-def calculate_kick(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, with_ac_calc, mad_ac, files_dict, acphasex_ac2bpmac, acphasey_ac2bpmac, betax_ratio, betay_ratio, betaxf_ratio, betayf_ratio):
+def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, with_ac_calc, mad_ac, files_dict, betax_ratio, betay_ratio, betaxf_ratio, betayf_ratio):
     print "Calculating kick"
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
     filename = 'getkick.out'
-    files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+    files_dict[filename] = utils.tfs_file.TfsFile(filename)
     tfs_file = files_dict[filename]
     tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(betax_ratio))
     tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(betay_ratio))
@@ -2055,16 +2041,14 @@ def calculate_kick(getllm_d, twiss_d, tune_d, model_filename, mad_twiss, with_ac
         tfs_file.add_table_row(list_row_entries)
     
     if with_ac_calc:
-        #TODO: for what the same initialization as some lines before for files?? (vimaier)
-        files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
         filename = 'getkickac.out'
-        files_dict[filename] = utils.tfs_file.TfsFile(filename).add_getllm_header(VERSION, model_filename)
+        files_dict[filename] = utils.tfs_file.TfsFile(filename)
         tfs_file = files_dict[filename]
         tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(betaxf_ratio))
         tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(betayf_ratio))
         tfs_file.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
         tfs_file.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        [invarianceJx, invarianceJy, tune, tuneRMS, dpp] = algorithms.helper.getkickac(mad_ac, files, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, acphasex_ac2bpmac, acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
+        [invarianceJx, invarianceJy, tune, tuneRMS, dpp] = algorithms.helper.getkickac(mad_ac, files, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
         for i in range(0, len(dpp)):
             list_row_entries = [dpp[i], tune[0][i], tuneRMS[0][i], tune[1][i], tuneRMS[1][i], invarianceJx[i][0], invarianceJx[i][1], invarianceJy[i][0], invarianceJy[i][1], (invarianceJx[i][0] ** 2), (2 * invarianceJx[i][0] * invarianceJx[i][1]), (invarianceJy[i][0] ** 2), (2 * invarianceJy[i][0] * invarianceJy[i][1]), (invarianceJx[i][0] / math.sqrt(betax_ratio)), (invarianceJx[i][1] / math.sqrt(betax_ratio)), (invarianceJy[i][0] / math.sqrt(betay_ratio)), (invarianceJy[i][1] / math.sqrt(betay_ratio)), (invarianceJx[i][0] ** 2 / betax_ratio), (2 * invarianceJx[i][0] * invarianceJx[i][1] / betax_ratio), (invarianceJy[i][0] ** 2 / betay_ratio), (2 * invarianceJy[i][0] * invarianceJy[i][1] / betay_ratio)]
             tfs_file.add_table_row(list_row_entries)
@@ -2181,6 +2165,20 @@ class _TuneData(object):
         else:
             self.q1f = twiss_d.zero_dpp_x[0].Q1
             self.q2f = twiss_d.zero_dpp_y[0].Q2
+            
+            
+class PhaseData(object):
+    ''' File for storing results from GetPhases. '''
+    
+    def __init__(self):
+        self.acphasex_ac2bpmac = None
+        self.acphasey_ac2bpmac = None
+        self.phasex = None
+        self.phasexf = None
+        self.phasey = None
+        self.phaseyf = None
+        self.phasexf2 = None
+        self.phaseyf2 = None
     
 
 #===================================================================================================
