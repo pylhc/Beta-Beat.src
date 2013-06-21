@@ -87,7 +87,7 @@ def PhaseStd(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 o
     return phase_std
 
 
-def GetPhasesTotal(mad_twiss, src_files, tune, plane, beam_direction, accel, lhc_phase):
+def get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, lhc_phase):
     commonbpms = Utilities.bpm.intersect(src_files)
     commonbpms = Utilities.bpm.modelIntersect(commonbpms, mad_twiss)
     #-- Last BPM on the same turn to fix the phase shift by tune for exp data of LHC
@@ -2557,7 +2557,7 @@ def getfreephase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
 
     return phasef,mu,bpms
 
-def getfreephaseTotal(phase,bpms,plane,MADTwiss,MADTwiss_ac):
+def get_free_phase_total(phase,bpms,plane,MADTwiss,MADTwiss_ac):
     '''
     :Parameters:
         'phase': dict
@@ -2654,7 +2654,7 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
     return {bpmac1:psid_ac2bpmac1,bpmac2:psid_ac2bpmac2}
 
 
-def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
+def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
     bpm=Utilities.bpm.modelIntersect(Utilities.bpm.intersect(Files),MADTwiss)
