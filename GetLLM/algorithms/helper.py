@@ -39,17 +39,19 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 # helper-functions
 #===================================================================================================
 #------------ Get phases
-
-def phiLastAndLastButOne(phi,ftune):
+#TODO: awful name! what does this function??? (vimaier)
+def phiLastAndLastButOne(phi, ftune):
     if ftune > 0.0:
-        phit=phi+ftune
-        if phit>1.0: phit=phit-1.0
+        phit = phi+ftune
+        if phit > 1.0:
+            phit = phit-1.0
     elif ftune <= 0.0:
-        phit=phi+(1.0+ftune)
-        if phit>1.0: phit=phit-1.0
+        phit = phi+(1.0+ftune)
+        if phit > 1.0:
+            phit = phit-1.0
     return phit
 
-def PhaseMean(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
+def phase_mean(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
     phase0 = np.array(phase0)%norm
     phase1 = (phase0+0.5*norm)%norm - 0.5*norm
     phase0ave = np.mean(phase0)
@@ -67,7 +69,7 @@ def PhaseMean(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 
     else: 
         return phase1ave % norm
 
-def PhaseStd(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
+def calc_phase_std(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
     phase0 = np.array(phase0)%norm
     phase1 = (phase0+0.5*norm)%norm-0.5*norm
     phase0ave = np.mean(phase0)
@@ -129,31 +131,31 @@ def get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, l
 
         #phstd12=math.sqrt(np.average(phi12*phi12)-(np.average(phi12))**2.0+2.2e-15)
         #phi12=np.average(phi12)
-        phstd12 = PhaseStd(phi12, 1.0)
-        phi12   = PhaseMean(phi12, 1.0)
+        phstd12 = calc_phase_std(phi12, 1.0)
+        phi12   = phase_mean(phi12, 1.0)
         phase_t[bn2] = [phi12, phstd12, phmdl12, bn1]
 
     return [phase_t, commonbpms]
 
 
-def get_phases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
-    commonbpms = Utilities.bpm.intersect(ListOfFiles)
-    commonbpms = Utilities.bpm.modelIntersect(commonbpms, MADTwiss)
+def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
+    commonbpms = Utilities.bpm.intersect(list_of_files)
+    commonbpms = Utilities.bpm.modelIntersect(commonbpms, mad_twiss)
     length_commonbpms = len(commonbpms)
 
-    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if getllm_d.lhc_phase=="1" and getllm_d.accel=="LHCB1": 
-        s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    if getllm_d.lhc_phase=="1" and getllm_d.accel=="LHCB2": 
-        s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+    #-- Last BPM on the same turn to fix the phase shift by tune_q for exp data of LHC
+    if getllm_d.lhc_phase == "1" and getllm_d.accel == "LHCB1": 
+        s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
+    if getllm_d.lhc_phase == "1" and getllm_d.accel == "LHCB2": 
+        s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
 
-    mu=0.0
-    tunem=[]
-    phase={} # Dictionary for the output containing [average phase, rms error]
-    for i in range(0,length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
-        bn1=str.upper(commonbpms[i%length_commonbpms][1])
-        bn2=str.upper(commonbpms[(i+1)%length_commonbpms][1])
-        bn3=str.upper(commonbpms[(i+2)%length_commonbpms][1])
+    mu = 0.0
+    tunem = []
+    phase = {} # Dictionary for the output containing [average phase, rms error]
+    for i in range(0, length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
+        bn1 = str.upper(commonbpms[i%length_commonbpms][1])
+        bn2 = str.upper(commonbpms[(i+1)%length_commonbpms][1])
+        bn3 = str.upper(commonbpms[(i+2)%length_commonbpms][1])
         
         if bn1 == bn2 :
             print >> sys.stderr, "There seem two lines with the same BPM name "+bn1+" in linx/y file."
@@ -161,106 +163,109 @@ def get_phases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
             sys.exit(1)
             
         if plane == 'H':
-            phmdl12 = MADTwiss.MUX[MADTwiss.indx[bn2]] - MADTwiss.MUX[MADTwiss.indx[bn1]]
-            phmdl13 = MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn1]]
+            phmdl12 = mad_twiss.MUX[mad_twiss.indx[bn2]] - mad_twiss.MUX[mad_twiss.indx[bn1]]
+            phmdl13 = mad_twiss.MUX[mad_twiss.indx[bn3]] - mad_twiss.MUX[mad_twiss.indx[bn1]]
         elif plane == 'V':
-            phmdl12 = MADTwiss.MUY[MADTwiss.indx[bn2]] - MADTwiss.MUY[MADTwiss.indx[bn1]]
-            phmdl13 = MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn1]]
+            phmdl12 = mad_twiss.MUY[mad_twiss.indx[bn2]] - mad_twiss.MUY[mad_twiss.indx[bn1]]
+            phmdl13 = mad_twiss.MUY[mad_twiss.indx[bn3]] - mad_twiss.MUY[mad_twiss.indx[bn1]]
             
         if i == length_commonbpms-2:
             if plane == 'H':
-                madtune = MADTwiss.Q1 % 1.0
+                madtune = mad_twiss.Q1 % 1.0
             elif plane == 'V':
-                madtune = MADTwiss.Q2 % 1.0
+                madtune = mad_twiss.Q2 % 1.0
             
             if madtune > 0.5:
                 madtune -= 1.0
             
             phmdl13 = phmdl13 % 1.0
-            phmdl13 = phiLastAndLastButOne(phmdl13,madtune)
+            phmdl13 = phiLastAndLastButOne(phmdl13, madtune)
         elif i == length_commonbpms-1:
             if plane == 'H':
-                madtune = MADTwiss.Q1 % 1.0
+                madtune = mad_twiss.Q1 % 1.0
             elif plane == 'V':
-                madtune = MADTwiss.Q2 % 1.0
+                madtune = mad_twiss.Q2 % 1.0
             
-            if madtune>0.5:
+            if madtune > 0.5:
                 madtune -= 1.0
             
             phmdl12 = phmdl12 % 1.0
             phmdl13 = phmdl13 % 1.0
-            phmdl12 = phiLastAndLastButOne(phmdl12,madtune)
-            phmdl13 = phiLastAndLastButOne(phmdl13,madtune)
+            phmdl12 = phiLastAndLastButOne(phmdl12, madtune)
+            phmdl13 = phiLastAndLastButOne(phmdl13, madtune)
 
 
 
 
-        phi12=[]
-        phi13=[]
-        tunemi=[]
-        for j in ListOfFiles:
+        phi12 = []
+        phi13 = []
+        tunemi = []
+        for src_twiss in list_of_files:
             # Phase is in units of 2pi
-            if plane=='H':
-                phm12=(j.MUX[j.indx[bn2]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM2
-                phm13=(j.MUX[j.indx[bn3]]-j.MUX[j.indx[bn1]]) # the phase advance between BPM1 and BPM3
-                tunemi.append(j.TUNEX[j.indx[bn1]])
-            elif plane=='V':
-                phm12=(j.MUY[j.indx[bn2]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM2
-                phm13=(j.MUY[j.indx[bn3]]-j.MUY[j.indx[bn1]]) # the phase advance between BPM1 and BPM3
-                tunemi.append(j.TUNEY[j.indx[bn1]])
-            #-- To fix the phase shift by Q in LHC
+            if plane == 'H':
+                phm12 = (src_twiss.MUX[src_twiss.indx[bn2]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                phm13 = (src_twiss.MUX[src_twiss.indx[bn3]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
+                tunemi.append(src_twiss.TUNEX[src_twiss.indx[bn1]])
+            elif plane == 'V':
+                phm12 = (src_twiss.MUY[src_twiss.indx[bn2]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                phm13 = (src_twiss.MUY[src_twiss.indx[bn3]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
+                tunemi.append(src_twiss.TUNEY[src_twiss.indx[bn1]])
+            #-- To fix the phase shift by tune_q in LHC
             try:
-                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]] >s_lastbpm: 
-                    phm12 += getllm_d.beam_direction*Q
-                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]] >s_lastbpm: 
-                    phm13 += getllm_d.beam_direction*Q
-                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm: 
-                    phm12 += -getllm_d.beam_direction*Q
-                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm: 
-                    phm13 += -getllm_d.beam_direction*Q
-            except: pass
-            if phm12<0: phm12+=1
-            if phm13<0: phm13+=1
+                if mad_twiss.S[mad_twiss.indx[bn1]] <= s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]] > s_lastbpm: 
+                    phm12 += getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] <= s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]] > s_lastbpm: 
+                    phm13 += getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] > s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]] <= s_lastbpm: 
+                    phm12 += -getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] > s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]] <= s_lastbpm: 
+                    phm13 += -getllm_d.beam_direction*tune_q
+            except UnboundLocalError: 
+                pass # s_lastbpm is not always defined
+            if phm12 < 0:
+                phm12 += 1
+            if phm13 < 0:
+                phm13 += 1
             phi12.append(phm12)
             phi13.append(phm13)
 
-        phi12=np.array(phi12)
-        phi13=np.array(phi13)
-        if getllm_d.beam_direction==-1: # for the beam circulating reversely to the model
-            phi12=1.0-phi12
-            phi13=1.0-phi13
+        phi12 = np.array(phi12)
+        phi13 = np.array(phi13)
+        if getllm_d.beam_direction == -1: # for the beam circulating reversely to the model
+            phi12 = 1.0-phi12
+            phi13 = 1.0-phi13
 
         #if any(phi12)>0.9 and i !=len(commonbpms): # Very small phase advance could result in larger than 0.9 due to measurement error
         #       print 'Warning: there seems too large phase advance! '+bn1+' to '+bn2+' = '+str(phi12)+'in plane '+plane+', recommended to check.'
-        phstd12=PhaseStd(phi12,1.0)
-        phstd13=PhaseStd(phi13,1.0)
-        phi12=PhaseMean(phi12,1.0)
-        phi13=PhaseMean(phi13,1.0)
+        phstd12 = calc_phase_std(phi12, 1.0)
+        phstd13 = calc_phase_std(phi13, 1.0)
+        phi12 = phase_mean(phi12, 1.0)
+        phi13 = phase_mean(phi13, 1.0)
         #phstd12=math.sqrt(np.average(phi12*phi12)-(np.average(phi12))**2.0+2.2e-15)
         #phstd13=math.sqrt(np.average(phi13*phi13)-(np.average(phi13))**2.0+2.2e-15)
         #phi12=np.average(phi12)
         #phi13=np.average(phi13)
-        tunemi=np.array(tunemi)
-        if i<length_commonbpms-1 :
+        tunemi = np.array(tunemi)
+        if i < length_commonbpms-1 :
             tunem.append(np.average(tunemi))
 
         # Note that the phase advance between the last monitor and the first monitor should be find by taking into account the fractional part of tune.
-        if i==length_commonbpms-2:
-            tunem=np.array(tunem)
-            tune=np.average(tunem)
-            phi13=phiLastAndLastButOne(phi13,tune)
-        elif i==length_commonbpms-1:
-            phi12=phiLastAndLastButOne(phi12,tune)
-            phi13=phiLastAndLastButOne(phi13,tune)
-        mu=mu+phi12
+        if i == length_commonbpms-2:
+            tunem = np.array(tunem)
+            tune = np.average(tunem)
+            phi13 = phiLastAndLastButOne(phi13, tune)
+        elif i == length_commonbpms-1:
+            phi12 = phiLastAndLastButOne(phi12, tune)
+            phi13 = phiLastAndLastButOne(phi13, tune)
+        mu = mu+phi12
 
-        small=0.0000001
+        small = 0.0000001
         if (abs(phmdl12) < small):
-            phmdl12=small
+            phmdl12 = small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn2+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
         if (abs(phmdl13) < small):
-            phmdl13=small
+            phmdl13 = small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
         if (abs(phi12) < small ):
@@ -271,9 +276,9 @@ def get_phases(getllm_d, MADTwiss, ListOfFiles, Q, plane):
             phi13 = small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
-        phase[bn1]=[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2]
+        phase[bn1] = [phi12, phstd12, phi13, phstd13, phmdl12, phmdl13, bn2]
 
-    return [phase,tune,mu,commonbpms]
+    return [phase, tune, mu, commonbpms]
 
 #-------- Beta from pahses
 
@@ -1094,13 +1099,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, Q1, Q2, phasex, pha
 
         q1jd=np.array(q1jd)
         q2jd=np.array(q2jd)
-        q1d=PhaseMean(q1jd,1.0)
-        q2d=PhaseMean(q2jd,1.0)
+        q1d=phase_mean(q1jd,1.0)
+        q2d=phase_mean(q2jd,1.0)
 
         q1js=np.array(q1js)
         q2js=np.array(q2js)
-        q1s=PhaseMean(q1js,1.0)
-        q2s=PhaseMean(q2js,1.0)
+        q1s=phase_mean(q1js,1.0)
+        q2s=phase_mean(q2js,1.0)
 
         if min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25 or min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
             badbpm=1
@@ -1123,10 +1128,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, Q1, Q2, phasex, pha
             f1010i=np.average(f1010ij)
             f1010istd=math.sqrt(np.average(f1010ij*f1010ij)-(np.average(f1010ij))**2.0+2.2e-16)
 
-            q1001i=PhaseMean(np.array([q1d,q2d]),1.0)
-            q1010i=PhaseMean(np.array([q1s,q2s]),1.0)
-            q1001istd=PhaseStd(np.append(q1jd,q2jd),1.0)
-            q1010istd=PhaseStd(np.append(q1js,q2js),1.0)
+            q1001i=phase_mean(np.array([q1d,q2d]),1.0)
+            q1010i=phase_mean(np.array([q1s,q2s]),1.0)
+            q1001istd=calc_phase_std(np.append(q1jd,q2jd),1.0)
+            q1010istd=calc_phase_std(np.append(q1js,q2js),1.0)
 
             f1001i=f1001i*complex(cos(tp*q1001i),sin(tp*q1001i))
             f1010i=f1010i*complex(cos(tp*q1010i),sin(tp*q1010i))
@@ -1978,53 +1983,53 @@ def getchi1010(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
     return [dbpms,XItot]
 
+
 #---- construct offmomentum
-def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
+def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
-    j=MADTwiss
-    bpms=Utilities.bpm.intersect([MADTwiss])
+    twi = mad_twiss # abbreviation
+    bpms = Utilities.bpm.intersect([mad_twiss])
 
-    Qx=j.Q1+dpp*j.DQ1
-    Qy=j.Q2+dpp*j.DQ2
+    q_x = twi.Q1+dpp*twi.DQ1
+    q_y = twi.Q2+dpp*twi.DQ2
 
-    ftemp_name = "./TempTwiss.dat"
-    ftemp=open(ftemp_name,"w")
-    ftemp.write("@ Q1 %le "+str(Qx)+"\n")
-    ftemp.write("@ Q2 %le "+str(Qy)+"\n")
+    ftemp_name = "./TempOffMomentumTwiss.dat"
+    ftemp = open(ftemp_name,"w")
+    ftemp.write("@ Q1 %le "+str(q_x)+"\n")
+    ftemp.write("@ Q2 %le "+str(q_y)+"\n")
     ftemp.write("@ DPP %le "+str(dpp)+"\n")
     ftemp.write("* NAME S BETX BETY ALFX ALFY MUX MUY\n")
     ftemp.write("$ %s %le %le  %le  %le  %le  %le %le\n")
 
 
-    for i in range(0,len(bpms)):
-        bn=str.upper(bpms[i][1])
-        bns=bpms[i][0]
+    for bpm in bpms:
+        b_n = str.upper(bpm[1]) # bpm name
+        bpm_s = bpm[0]
 
         # dbeta and dalpha will be extract via metaclass. As it is for the time being.
-        ax=j.WX[j.indx[bn]]*cos(2.0*np.pi*j.PHIX[j.indx[bn]])
-        bx=j.WX[j.indx[bn]]*sin(2.0*np.pi*j.PHIX[j.indx[bn]])
-        bx1=bx+j.ALFX[j.indx[bn]]*ax
-        NBETX=j.BETX[j.indx[bn]]*(1.0+ax*dpp)
-        NALFX=j.ALFX[j.indx[bn]]+bx1*dpp
-        NMUX=j.MUX[j.indx[bn]]+j.DMUX[j.indx[bn]]*dpp
+        a_x = twi.WX[twi.indx[b_n]]*cos(2.0*np.pi*twi.PHIX[twi.indx[b_n]])
+        b_x = twi.WX[twi.indx[b_n]]*sin(2.0*np.pi*twi.PHIX[twi.indx[b_n]])
+        b_x1 = b_x+twi.ALFX[twi.indx[b_n]]*a_x
+        nbetx = twi.BETX[twi.indx[b_n]]*(1.0+a_x*dpp)
+        nalfx = twi.ALFX[twi.indx[b_n]]+b_x1*dpp
+        nmux = twi.MUX[twi.indx[b_n]]+twi.DMUX[twi.indx[b_n]]*dpp
 
-        ay=j.WY[j.indx[bn]]*cos(2.0*np.pi*j.PHIY[j.indx[bn]])
-        by=j.WY[j.indx[bn]]*sin(2.0*np.pi*j.PHIY[j.indx[bn]])
-        by1=by+j.ALFY[j.indx[bn]]*ay
-        NBETY=j.BETY[j.indx[bn]]*(1.0+ay*dpp)
-        NALFY=j.ALFY[j.indx[bn]]+by1*dpp
-        NMUY=j.MUY[j.indx[bn]]+j.DMUY[j.indx[bn]]*dpp
+        a_y = twi.WY[twi.indx[b_n]]*cos(2.0*np.pi*twi.PHIY[twi.indx[b_n]])
+        b_y = twi.WY[twi.indx[b_n]]*sin(2.0*np.pi*twi.PHIY[twi.indx[b_n]])
+        b_y1 = b_y+twi.ALFY[twi.indx[b_n]]*a_y
+        nbety = twi.BETY[twi.indx[b_n]]*(1.0+a_y*dpp)
+        nalfy = twi.ALFY[twi.indx[b_n]]+b_y1*dpp
+        nmuy = twi.MUY[twi.indx[b_n]]+twi.DMUY[twi.indx[b_n]]*dpp
 
-        ftemp.write('"'+bn+'" '+str(bns)+" "+str(NBETX)+" "+str(NBETY)+" "+str(NALFX)+" "+str(NALFY)+" "+str(NMUX)+" "+str(NMUY)+"\n")
+        ftemp.write('"'+b_n+'" '+str(bpm_s)+" "+str(nbetx)+" "+str(nbety)+" "+str(nalfx)+" "+str(nalfy)+" "+str(nmux)+" "+str(nmuy)+"\n")
 
     ftemp.close()
-    dpptwiss=metaclass.twiss(ftemp_name,dictionary)
+    dpp_twiss = metaclass.twiss(ftemp_name, dictionary)
     
     # Delete temp file again(vimaier)
     os.remove(ftemp_name)
-    
 
-    return dpptwiss
+    return dpp_twiss
 
 
 #---- finding kick
@@ -2079,7 +2084,7 @@ def bpm_finder(ip_num, model, measured):
         if "BPMSW.1L"+ip_num in bpm_name:
             bpm_left = bpm_name
             try:
-                test = measured[0][bpm_left][0]  # @UnusedVariable
+                measured[0][bpm_left][0]  # Test if bpm_left exists
             except KeyError:
                 traceback.print_exc()
                 bpm_left = None
@@ -2090,7 +2095,7 @@ def bpm_finder(ip_num, model, measured):
             except KeyError:
                 bpm_right = None
                 
-    return [bpm_left,bpm_right]
+    return [bpm_left, bpm_right]
 
 
 def get_ip(ip_num, measured, model):
@@ -2159,7 +2164,7 @@ def get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
 
     #-- Loop for IPs
     result = {}
-    for ip in ('1','2','5','8'):
+    for ip in ('1', '2', '5', '8'):
 
         bpml = 'BPMSW.1L'+ip+'.'+accel[3:]
         bpmr = 'BPMSW.1R'+ip+'.'+accel[3:]
@@ -2186,44 +2191,47 @@ def get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
             alfall = []
             betsall = []
             dsall = []
-            rt2Jall = []
-            for i in range(len(files)):
+            rt2j_all = []
+            for t_f in files: # t_f := twiss_file
                 try:
                     if plane == 'H':
-                        al = files[i].AMPX[files[i].indx[bpml]]
-                        ar = files[i].AMPX[files[i].indx[bpmr]]
+                        a_l = t_f.AMPX[t_f.indx[bpml]]
+                        a_r = t_f.AMPX[t_f.indx[bpmr]]
                         if bpm_names.index(bpmr) > bpm_names.index(bpml):
-                            dpsi = 2*np.pi*beam_direction*(files[i].MUX[files[i].indx[bpmr]]-files[i].MUX[files[i].indx[bpml]])
+                            dpsi = 2*np.pi*beam_direction*(t_f.MUX[t_f.indx[bpmr]]-t_f.MUX[t_f.indx[bpml]])
                         else:
-                            dpsi = 2*np.pi*(Q+beam_direction*(files[i].MUX[files[i].indx[bpmr]]-files[i].MUX[files[i].indx[bpml]]))
-                        #-- To compensate the phase shift by tune
-                        if lhc_phase == '1':
-                            if (beam_direction==1 and ip=='2') or (beam_direction==-1 and ip=='8'): 
-                                dpsi += 2*np.pi*Q
-                    if plane == 'V':
-                        al = files[i].AMPY[files[i].indx[bpml]]
-                        ar = files[i].AMPY[files[i].indx[bpmr]]
+                            dpsi = 2*np.pi*(Q+beam_direction*(t_f.MUX[t_f.indx[bpmr]]-t_f.MUX[t_f.indx[bpml]]))
+                    elif plane == 'V':
+                        a_l = t_f.AMPY[t_f.indx[bpml]]
+                        a_r = t_f.AMPY[t_f.indx[bpmr]]
                         if bpm_names.index(bpmr) > bpm_names.index(bpml):
-                            dpsi = 2*np.pi*beam_direction*(files[i].MUY[files[i].indx[bpmr]]-files[i].MUY[files[i].indx[bpml]])
+                            dpsi = 2*np.pi*beam_direction*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]])
                         else:
-                            dpsi = 2*np.pi*(Q+beam_direction*(files[i].MUY[files[i].indx[bpmr]]-files[i].MUY[files[i].indx[bpml]]))
-                        #-- To compensate the phase shift by tune
-                        if lhc_phase == '1':
-                            if (beam_direction==1 and ip=='2') or (beam_direction==-1 and ip=='8'): 
-                                dpsi += 2*np.pi*Q
+                            dpsi = 2*np.pi*(Q+beam_direction*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]]))
+                    else:
+                        raise ValueError("plane is neither 'H' nor 'V'.")
+
+                    #-- To compensate the phase shift by tune
+                    if lhc_phase == '1':
+                        if (beam_direction==1 and ip=='2') or (beam_direction==-1 and ip=='8'): 
+                            dpsi += 2*np.pi*Q
 
                     #-- bet, alf, and math.sqrt(2J) from amp and phase advance
-                    bet = L*(al**2+ar**2+2*al*ar*cos(dpsi))/(2*al*ar*sin(dpsi))
-                    alf = (al**2-ar**2)/(2*al*ar*sin(dpsi))
+                    bet = L*(a_l**2+a_r**2+2*a_l*a_r*cos(dpsi))/(2*a_l*a_r*sin(dpsi))
+                    alf = (a_l**2-a_r**2)/(2*a_l*a_r*sin(dpsi))
                     bets = bet/(1+alf**2)
-                    ds = alf*bets
-                    rt2J = math.sqrt(al*ar*sin(dpsi)/(2*L))
+                    d_s = alf*bets
+                    rt2j = math.sqrt(a_l*a_r*sin(dpsi)/(2*L))
                     betall.append(bet)
                     alfall.append(alf)
                     betsall.append(bets)
-                    dsall.append(ds)
-                    rt2Jall.append(rt2J)
-                except:
+                    dsall.append(d_s)
+                    rt2j_all.append(rt2j)
+                except ValueError:
+                    traceback.print_exc() # math domain error
+                except ZeroDivisionError:
+                    traceback.print_exc()
+                except Exception:
                     traceback.print_exc()
 
             #-- Ave and Std
@@ -2243,11 +2251,11 @@ def get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
             dsave = np.mean(dsall)
             dsstd = math.sqrt(np.mean((dsall-dsave)**2))
             
-            rt2Jall = np.array(rt2Jall)
-            rt2Jave = np.mean(rt2Jall)
-            rt2Jstd = math.sqrt(np.mean((rt2Jall-rt2Jave)**2))
+            rt2j_all = np.array(rt2j_all)
+            rt2j_ave = np.mean(rt2j_all)
+            rt2j_std = math.sqrt(np.mean((rt2j_all-rt2j_ave)**2))
             
-            result['IP'+ip]=[betave,betstd,betmdl,alfave,alfstd,alfmdl,betsave,betsstd,betsmdl,dsave,dsstd,dsmdl,rt2Jave,rt2Jstd]
+            result['IP'+ip] = [betave, betstd, betmdl, alfave, alfstd, alfmdl, betsave, betsstd, betsmdl, dsave, dsstd, dsmdl, rt2j_ave, rt2j_std]
 
     return result
 
@@ -2386,7 +2394,6 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
 def getFreeBeta(modelfree,modelac,betal,rmsbb,alfal,bpms,plane): # to check "+"
     if DEBUG:
         print "Calculating free beta using model"
-    #TODO: twice modelIntersect? check it! (vimaier)
     bpms=Utilities.bpm.modelIntersect(bpms, modelfree)
     bpms=Utilities.bpm.modelIntersect(bpms, modelac)
     betan={}
@@ -2707,8 +2714,8 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     #-- Output
     result={}
     for k in range(len(bpm)):
-        psiave=PhaseMean(psiall[k],1)
-        psistd=PhaseStd(psiall[k],1)
+        psiave=phase_mean(psiall[k],1)
+        psistd=calc_phase_std(psiall[k],1)
         result[bpm[k][1]]=[psiave,psistd,psimdl[k],bpm[0][1]]
 
     return [result,bpm]
@@ -2777,10 +2784,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     result={}
     muave=0.0  #-- mu is the same as psi but w/o mod
     for k in range(len(bpm)):
-        psi12ave=PhaseMean(psi12all[k],1)
-        psi12std=PhaseStd(psi12all[k],1)
-        psi13ave=PhaseMean(psi13all[k],1)
-        psi13std=PhaseStd(psi13all[k],1)
+        psi12ave=phase_mean(psi12all[k],1)
+        psi12std=calc_phase_std(psi12all[k],1)
+        psi13ave=phase_mean(psi13all[k],1)
+        psi13std=calc_phase_std(psi13all[k],1)
         muave=muave+psi12ave
         try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
         except: result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[0][1]]    #-- The last BPM
@@ -3045,10 +3052,10 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
         #-- Bad BPM flag based on phase
         badbpm=0
-        f1001xArgAve=PhaseMean(f1001xArg[k],2*np.pi)
-        f1001yArgAve=PhaseMean(f1001yArg[k],2*np.pi)
-        f1010xArgAve=PhaseMean(f1010xArg[k],2*np.pi)
-        f1010yArgAve=PhaseMean(f1010yArg[k],2*np.pi)
+        f1001xArgAve=phase_mean(f1001xArg[k],2*np.pi)
+        f1001yArgAve=phase_mean(f1001yArg[k],2*np.pi)
+        f1010xArgAve=phase_mean(f1010xArg[k],2*np.pi)
+        f1010yArgAve=phase_mean(f1010yArg[k],2*np.pi)
         if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
         if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
 
@@ -3056,14 +3063,14 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         if badbpm==0:
             f1001AbsAve=np.mean(f1001Abs[k])
             f1010AbsAve=np.mean(f1010Abs[k])
-            f1001ArgAve=PhaseMean(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
-            f1010ArgAve=PhaseMean(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
+            f1001ArgAve=phase_mean(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
+            f1010ArgAve=phase_mean(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
             f1001Ave   =f1001AbsAve*np.exp(1j*f1001ArgAve)
             f1010Ave   =f1010AbsAve*np.exp(1j*f1010ArgAve)
             f1001AbsStd=math.sqrt(np.mean((f1001Abs[k]-f1001AbsAve)**2))
             f1010AbsStd=math.sqrt(np.mean((f1010Abs[k]-f1010AbsAve)**2))
-            f1001ArgStd=PhaseStd(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
-            f1010ArgStd=PhaseStd(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
+            f1001ArgStd=calc_phase_std(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
+            f1010ArgStd=calc_phase_std(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
             fwqw[bpm[k][1]]=[[f1001Ave          ,f1001AbsStd       ,f1010Ave          ,f1010AbsStd       ],
                              [f1001ArgAve/(2*np.pi),f1001ArgStd/(2*np.pi),f1010ArgAve/(2*np.pi),f1010ArgStd/(2*np.pi)]]  #-- Phases renormalized to [0,1)
             goodbpm.append(bpm[k])
