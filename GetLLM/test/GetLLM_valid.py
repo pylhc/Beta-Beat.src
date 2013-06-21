@@ -5617,8 +5617,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     fchi1010=open(outputpath+'getchi1010.out','w')
     fchi1010.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
-    fchi4000=open(outputpath+'getchi4000.out','w')
-    fchi4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    # File has no content (vimaier)
+#     fchi4000=open(outputpath+'getchi4000.out','w')
+#     fchi4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
     fkick=open(outputpath+'getkick.out','w')
     if acswitch=='1':
@@ -5695,22 +5696,22 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fchi1010.close()
     # 1) chi4000
 
-        fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
-        fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
-
-        #files=[ListOfZeroDPPX,ListOfZeroDPPY]
-        #name='chi4000'
-        #plane='H'
-
-        #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
-
-        #for i in range(0,len(dbpms)-2):
-
-    #               bn=upper(dbpms[i][1])
-
-        #       fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-
-        fchi4000.close()
+#         fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
+#         fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
+# 
+#         #files=[ListOfZeroDPPX,ListOfZeroDPPY]
+#         #name='chi4000'
+#         #plane='H'
+# 
+#         #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
+# 
+#         #for i in range(0,len(dbpms)-2):
+# 
+#     #               bn=upper(dbpms[i][1])
+# 
+#         #       fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
+# 
+#         fchi4000.close()
 
 
 
