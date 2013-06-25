@@ -109,7 +109,7 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     #-- Output
     result={}
     for k in range(len(bpm)):
-        psiave = phase.phase_mean(psiall[k],1)
+        psiave = phase.calc_phase_mean(psiall[k],1)
         psistd = phase.calc_phase_std(psiall[k],1)
         result[bpm[k][1]]=[psiave,psistd,psimdl[k],bpm[0][1]]
 
@@ -179,9 +179,9 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     result={}
     muave=0.0  #-- mu is the same as psi but w/o mod
     for k in range(len(bpm)):
-        psi12ave = phase.phase_mean(psi12all[k],1)
+        psi12ave = phase.calc_phase_mean(psi12all[k],1)
         psi12std = phase.calc_phase_std(psi12all[k],1)
-        psi13ave = phase.phase_mean(psi13all[k],1)
+        psi13ave = phase.calc_phase_mean(psi13all[k],1)
         psi13std = phase.calc_phase_std(psi13all[k],1)
         muave=muave+psi12ave
         try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
@@ -447,10 +447,10 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
         #-- Bad BPM flag based on phase
         badbpm=0
-        f1001xArgAve = phase.phase_mean(f1001xArg[k],2*np.pi)
-        f1001yArgAve = phase.phase_mean(f1001yArg[k],2*np.pi)
-        f1010xArgAve = phase.phase_mean(f1010xArg[k],2*np.pi)
-        f1010yArgAve = phase.phase_mean(f1010yArg[k],2*np.pi)
+        f1001xArgAve = phase.calc_phase_mean(f1001xArg[k],2*np.pi)
+        f1001yArgAve = phase.calc_phase_mean(f1001yArg[k],2*np.pi)
+        f1010xArgAve = phase.calc_phase_mean(f1010xArg[k],2*np.pi)
+        f1010yArgAve = phase.calc_phase_mean(f1010yArg[k],2*np.pi)
         if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
         if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
 
@@ -458,8 +458,8 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         if badbpm==0:
             f1001AbsAve = np.mean(f1001Abs[k])
             f1010AbsAve = np.mean(f1010Abs[k])
-            f1001ArgAve = phase.phase_mean(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
-            f1010ArgAve = phase.phase_mean(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
+            f1001ArgAve = phase.calc_phase_mean(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
+            f1010ArgAve = phase.calc_phase_mean(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
             f1001Ave = f1001AbsAve*np.exp(1j*f1001ArgAve)
             f1010Ave = f1010AbsAve*np.exp(1j*f1010ArgAve)
             f1001AbsStd = math.sqrt(np.mean((f1001Abs[k]-f1001AbsAve)**2))

@@ -78,7 +78,7 @@ V2.0, 17/Feb/2009:
 V2.01, 10/Mar/2009:
 - Fix bug on SPS double plane BPM monitor, in which missing BPM could cause
   an error.
-- Modify BetaFromAmplitude to output invariant J (Rogelio / finalised by MA)
+- Modify beta_from_amplitude to output invariant J (Rogelio / finalised by MA)
 V2.02, 10/Mar/2009:
 - Fix bug in getcoupling, bad input for x and y
 V2.10, 13/Mar/2009, Glenn Vanbavinckhove:
@@ -182,8 +182,6 @@ if "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/" not in sys.path: # added for Ut
 import os
 import math
 
-import numpy as np
-
 import metaclass
 import traceback
 import utils.tfs_file
@@ -195,7 +193,6 @@ import algorithms.dispersion
 import algorithms.coupling
 import algorithms.interaction_point
 import algorithms.chi_terms
-import Utilities.bpm
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
 
@@ -330,28 +327,28 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     check_bpm_compatibility(twiss_d, mad_twiss)
 
     #-------- START Phase
-    phase_d, tune_d = calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
+    phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
 
     #-------- START Total Phase
-    calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
+    algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
 
     #-------- START Beta
-    beta_d = calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
+    beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
 
     #------- START beta from amplitude
-    beta_d = calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+    beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
 
     #-------- START IP
-    calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+    algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
 
     #-------- START Orbit
     list_of_co_x, list_of_co_y, files_dict = calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
 
     #-------- START Dispersion
-    calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
+    algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
 
     #-------- START coupling.
-    tune_d = calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
+    tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
 
     #-------- Phase, Beta and coupling for non-zero DPP
     phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y)
@@ -365,7 +362,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
         files_dict = calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
      
         #------ Start getchiterms @ Glenn Vanbavinckhove
-        files_dict = calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
+        files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
  
     #------ Start get Q,JX,delta
     files_dict = calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
@@ -504,6 +501,13 @@ def create_tfs_files(getllm_d, model_filename):
             files_dict['getIPy_free2.out'] = utils.tfs_file.TfsFile('getIPy_free2.out')
             files_dict['getIPfromphase_free.out'] = utils.tfs_file.TfsFile('getIPfromphase_free.out')
             files_dict['getIPfromphase_free2.out'] = utils.tfs_file.TfsFile('getIPfromphase_free2.out')
+    
+    files_dict["getsex3000.out"] = utils.tfs_file.TfsFile("getsex3000.out")
+    files_dict['getchi3000.out'] = utils.tfs_file.TfsFile('getchi3000.out')
+    files_dict['getchi1010.out'] = utils.tfs_file.TfsFile('getchi1010.out')
+    files_dict['getkick.out'] = utils.tfs_file.TfsFile('getkick.out')
+    files_dict['getkickac.out'] = utils.tfs_file.TfsFile('getkickac.out')
+    
     return files_dict
 # END create_tfs_files -----------------------------------------------------------------------------
 
@@ -669,866 +673,6 @@ def check_bpm_compatibility(twiss_d, mad_twiss):
                     print >> sys.stderr, 'Monitor ' + bpm_name + ' cannot be found in the model!'
 
 
-def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict):
-    '''
-    Calculates phase and fills the following TfsFiles:
-        getphasex.out        getphasex_free.out        getphasex_free2.out
-        getphasey.out        getphasey_free.out        getphasey_free2.out
-        
-    :Parameters:
-        'getllm_d': GetllmData (In-param, values will only be read)
-            lhc_phase, accel and beam_direction are used.
-        'twiss_d': TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': TuneData (In/Out-param, values will be read and set)
-            Holds tunes and phase advances
-            
-    :Return: _PhaseData, _TuneData
-        an instance of _PhaseData with the result of this function
-        the same instance as param tune_d to indicate changes in the instace.
-    '''
-    phase_d = _PhaseData()
-    
-    print 'Calculating phase' 
-    #---- Calling get_phases first to save tunes
-    if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
-        if len(twiss_d.zero_dpp_x[0].NAME) == 0:
-            print "No BPMs in linx file"
-            sys.exit(1)
-        if len(twiss_d.zero_dpp_y[0].NAME) == 0:
-            print "No BPMs in liny file"
-            sys.exit(1)
-            
-    if twiss_d.has_zero_dpp_x(): 
-        #-- Calculate temp value of tune
-        q1_temp = []
-        for twiss_file in twiss_d.zero_dpp_x:
-            q1_temp.append(np.mean(twiss_file.TUNEX))        
-        q1_temp = np.mean(q1_temp)
-
-        [phase_d.ph_x, tune_d.q1, tune_d.mux, bpmsx] = algorithms.phase.get_phases(getllm_d, mad_ac, twiss_d.zero_dpp_x, q1_temp, 'H')
-
-            
-    if twiss_d.has_zero_dpp_y(): 
-        #-- Calculate temp value of tune
-        q2_temp = []
-        for twiss_file in twiss_d.zero_dpp_y:
-            q2_temp.append(np.mean(twiss_file.TUNEY))        
-        q2_temp = np.mean(q2_temp)
-        
-        [phase_d.ph_y, tune_d.q2, tune_d.muy, bpmsy] = algorithms.phase.get_phases(getllm_d, mad_ac, twiss_d.zero_dpp_y, q2_temp, 'V')
-        if not twiss_d.has_zero_dpp_y():
-            print 'linx missing and output y only ...'
-
-    #---- Re-run GetPhase to fix the phase shift by Q for exp data of LHC
-    if getllm_d.lhc_phase == "1":
-        if twiss_d.has_zero_dpp_x():
-            [phase_d.ph_x, tune_d.q1, tune_d.mux, bpmsx] = algorithms.phase.get_phases(getllm_d, mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H')
-        if twiss_d.has_zero_dpp_y():
-            [phase_d.ph_y, tune_d.q2, tune_d.muy, bpmsy] = algorithms.phase.get_phases(getllm_d, mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V')
-            
-    #---- ac to free phase from eq and the model
-    if getllm_d.with_ac_calc:
-        if twiss_d.has_zero_dpp_x():
-            tune_d.q1f = tune_d.q1 - tune_d.delta1 #-- Free H-tune
-            try:
-                phase_d.acphasex_ac2bpmac = algorithms.compensate_ac_effect.GetACPhase_AC2BPMAC(mad_elem, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel)
-            except AttributeError:
-                phase_d.acphasex_ac2bpmac = algorithms.compensate_ac_effect.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel)
-            [phase_d.x_f, tune_d.muxf, bpmsxf] = algorithms.compensate_ac_effect.get_free_phase_eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
-            [phase_d.x_f2, tune_d.muxf2, bpmsxf2] = algorithms.phase.getfreephase(phase_d.ph_x, tune_d.q1, tune_d.q1f, bpmsx, mad_ac, mad_twiss, "H")
-        if twiss_d.has_zero_dpp_y():
-            tune_d.q2f = tune_d.q2 - tune_d.delta2 #-- Free V-tune
-            try:
-                phase_d.acphasey_ac2bpmac = algorithms.compensate_ac_effect.GetACPhase_AC2BPMAC(mad_elem, tune_d.q2, tune_d.q2f, 'V', getllm_d.accel)
-            except AttributeError:
-                phase_d.acphasey_ac2bpmac = algorithms.compensate_ac_effect.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q2, tune_d.q2f, 'V', getllm_d.accel)
-            [phase_d.y_f, tune_d.muyf, bpmsyf] = algorithms.compensate_ac_effect.get_free_phase_eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.lhc_phase)
-            [phase_d.y_f2, tune_d.muyf2, bpmsyf2] = algorithms.phase.getfreephase(phase_d.ph_y, tune_d.q2, tune_d.q2f, bpmsy, mad_ac, mad_twiss, "V")
-
-    #---- H plane result
-    if twiss_d.has_zero_dpp_x():
-        phase_d.ph_x['DPP'] = 0.0
-        tfs_file = files_dict['getphasex.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("MUX", "%le", str(tune_d.mux))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("MUY", "%le", str(tune_d.muy))
-        tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpmsx)):
-            bn1 = str.upper(bpmsx[i][1])
-            bns1 = bpmsx[i][0]
-            phmdl = phase_d.ph_x[bn1][4]
-            bn2 = str.upper(bpmsx[(i+1)%len(bpmsx)][1])
-            bns2 = bpmsx[(i+1)%len(bpmsx)][0]
-            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.ph_x[bn1][0], phase_d.ph_x[bn1][1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        #-- ac to free phase
-        if getllm_d.with_ac_calc:
-            #-- from eq
-            try:
-                tfs_file = files_dict['getphasex_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf))
-                tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-                tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(len(bpmsxf)):
-                    bn1 = str.upper(bpmsxf[i][1])
-                    bns1 = bpmsxf[i][0]
-                    phmdlf = phase_d.x_f[bn1][4]
-                    bn2 = str.upper(bpmsxf[(i+1)%len(bpmsxf)][1])
-                    bns2 = bpmsxf[(i+1)%len(bpmsxf)][0]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.x_f[bn1][0], phase_d.x_f[bn1][1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-            
-            except Exception:
-                traceback.print_exc()
-                
-            #-- from the model
-            tfs_file = files_dict['getphasex_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf2))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf2))
-            tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-            tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsxf2)):
-                bn1 = str.upper(bpmsxf2[i][1])
-                bns1 = bpmsxf2[i][0]
-                phmdlf2 = phase_d.x_f2[bn1][2]
-                bn2 = phase_d.x_f2[bn1][3]
-                bns2 = phase_d.x_f2[bn1][4]
-                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.x_f2[bn1][0], phase_d.x_f2[bn1][1], phmdlf2, mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-    
-    #---- V plane result
-    if twiss_d.has_zero_dpp_y():
-        phase_d.ph_y['DPP'] = 0.0
-        tfs_file = files_dict['getphasey.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("MUX", "%le", str(tune_d.mux))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("MUY", "%le", str(tune_d.muy))
-        tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpmsy)):
-            bn1 = str.upper(bpmsy[i][1])
-            bns1 = bpmsy[i][0]
-            phmdl = phase_d.ph_y[bn1][4]
-            bn2 = str.upper(bpmsy[(i+1)%len(bpmsy)][1])
-            bns2 = bpmsy[(i+1)%len(bpmsy)][0]
-            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.ph_y[bn1][0], phase_d.ph_y[bn1][1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        #-- ac to free phase
-        if getllm_d.with_ac_calc:
-            #-- from eq
-            try:
-                tfs_file = files_dict['getphasey_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf))
-                tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-                tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(len(bpmsyf)):
-                    bn1 = str.upper(bpmsyf[i][1])
-                    bns1 = bpmsyf[i][0]
-                    phmdlf = phase_d.y_f[bn1][4]
-                    if i == len(bpmsyf) - 1:
-                        bn2 = str.upper(bpmsyf[0][1])
-                        bns2 = bpmsyf[0][0]
-                    else:
-                        bn2 = str.upper(bpmsyf[i + 1][1])
-                        bns2 = bpmsyf[i + 1][0]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.y_f[bn1][0], phase_d.y_f[bn1][1], phmdlf, mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-            
-            except Exception:
-                traceback.print_exc()
-                
-            #-- from the model
-            tfs_file = files_dict['getphasey_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf2))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf2))
-            tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsyf2)):
-                bn1 = str.upper(bpmsyf2[i][1])
-                bns1 = bpmsyf2[i][0]
-                phmdlf2 = phase_d.y_f2[bn1][2]
-                bn2 = phase_d.y_f2[bn1][3]
-                bns2 = phase_d.y_f2[bn1][4]
-                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.y_f2[bn1][0], phase_d.y_f2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-    
-    return phase_d, tune_d
-# END calculate_phase ------------------------------------------------------------------------------
-
-
-def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict):
-    '''
-    Calculates total phase and fills the following TfsFiles:
-        getphasetotx.out        getphasetotx_free.out        getphasetotx_free2.out
-        getphasetoty.out        getphasetoty_free.out        getphasetoty_free2.out
-        
-    :Parameters:
-        'getllm_d': GetllmData (In-param, values will only be read)
-            lhc_phase, accel and beam_direction are used.
-        'twiss_d': TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
-    '''
-    print 'Calculating total phase' 
-    #---- H plane result
-    if twiss_d.has_zero_dpp_x():
-        [phase_x_tot, bpms_x_tot] = algorithms.phase.get_phases_total(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        tfs_file = files_dict['getphasetotx.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("MUX", "%le", str(tune_d.mux))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("MUY", "%le", str(tune_d.muy))
-        tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms_x_tot)):
-            bn1 = str.upper(bpms_x_tot[i][1])
-            bns1 = bpms_x_tot[i][0]
-            phmdl = phase_x_tot[bn1][2]
-            bn2 = str.upper(bpms_x_tot[0][1])
-            bns2 = bpms_x_tot[0][0]
-            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_x_tot[bn1][0], phase_x_tot[bn1][1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        #-- ac to free total phase
-        if getllm_d.with_ac_calc:
-            #-- from eq
-            try:
-                [phase_x_tot_f, bpms_x_tot_f] = algorithms.compensate_ac_effect.get_free_phase_total_eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
-                tfs_file = files_dict['getphasetotx_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf))
-                tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-                tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpms_x_tot_f)):
-                    bn1 = str.upper(bpms_x_tot_f[i][1])
-                    bns1 = bpms_x_tot_f[i][0]
-                    phmdlf = phase_x_tot_f[bn1][2]
-                    bn2 = str.upper(bpms_x_tot_f[0][1])
-                    bns2 = bpms_x_tot_f[0][0]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_x_tot_f[bn1][0], phase_x_tot_f[bn1][1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
-                
-            #-- from the model
-            [phase_x_tot_f2, bpms_x_tot_f2] = algorithms.phase.get_free_phase_total(phase_x_tot, bpms_x_tot, "H", mad_twiss, mad_ac)
-            tfs_file = files_dict['getphasetotx_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf2))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf2))
-            tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-            tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpms_x_tot_f2)):
-                bn1 = str.upper(bpms_x_tot_f2[i][1])
-                bns1 = bpms_x_tot_f2[i][0]
-                phmdlf2 = phase_x_tot_f2[bn1][2]
-                bn2 = str.upper(bpms_x_tot_f2[0][1])
-                bns2 = bpms_x_tot_f2[0][0]
-                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_x_tot_f2[bn1][0], phase_x_tot_f2[bn1][1], phmdlf2, mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-    
-    #---- V plane result
-    if twiss_d.has_zero_dpp_y():
-        [phase_y_tot, bpms_y_tot] = algorithms.phase.get_phases_total(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        tfs_file = files_dict['getphasetoty.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("MUX", "%le", str(tune_d.mux))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("MUY", "%le", str(tune_d.muy))
-        tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms_y_tot)):
-            bn1 = str.upper(bpms_y_tot[i][1])
-            bns1 = bpms_y_tot[i][0]
-            phmdl = phase_y_tot[bn1][2]
-            bn2 = str.upper(bpms_y_tot[0][1])
-            bns2 = bpms_y_tot[0][0]
-            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_y_tot[bn1][0], phase_y_tot[bn1][1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        #-- ac to free total phase
-        if getllm_d.with_ac_calc:
-            #-- from eq
-            try:
-                [phase_y_tot_f, bpms_y_tot_f] = algorithms.compensate_ac_effect.get_free_phase_total_eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.lhc_phase)
-                tfs_file = files_dict['getphasetoty_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf))
-                tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-                tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpms_y_tot_f)):
-                    bn1 = str.upper(bpms_y_tot_f[i][1])
-                    bns1 = bpms_y_tot_f[i][0]
-                    phmdlf = phase_y_tot_f[bn1][2]
-                    bn2 = str.upper(bpms_y_tot_f[0][1])
-                    bns2 = bpms_y_tot_f[0][0]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_y_tot_f[bn1][0], phase_y_tot_f[bn1][1], phmdlf, mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
-            #-- from the model
-            [phase_y_tot_f2, bpms_y_tot_f2] = algorithms.phase.get_free_phase_total(phase_y_tot, bpms_y_tot, "V", mad_twiss, mad_ac)
-            tfs_file = files_dict['getphasetoty_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("MUX", "%le", str(tune_d.muxf2))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("MUY", "%le", str(tune_d.muyf2))
-            tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpms_y_tot_f2)):
-                bn1 = str.upper(bpms_y_tot_f2[i][1])
-                bns1 = bpms_y_tot_f2[i][0]
-                phmdlf2 = phase_y_tot_f2[bn1][2]
-                bn2 = str.upper(bpms_y_tot_f2[0][1])
-                bns2 = bpms_y_tot_f2[0][0]
-                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_y_tot_f2[bn1][0], phase_y_tot_f2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-# END calculate_total_phase ------------------------------------------------------------------------
-
-
-def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict):
-    '''
-    Calculates beta and fills the following TfsFiles:
-        getbetax.out        getbetax_free.out        getbetax_free2.out
-        getbetay.out        getbetay_free.out        getbetay_free2.out
-        
-    :Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            lhc_phase, accel and beam_direction are used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
-        'phase_d': _PhaseData (In-param, values will only be read)
-            Holds results from get_phases
-    '''
-    beta_d = _BetaData()
-    
-    print 'Calculating beta'
-    #---- H plane
-    if twiss_d.has_zero_dpp_x():
-        [beta_d.x_phase, rmsbbx, alfax, bpms] = algorithms.beta.BetaFromPhase(mad_ac, twiss_d.zero_dpp_x, phase_d.ph_x, 'H')
-        beta_d.x_phase['DPP'] = 0
-        tfs_file = files_dict['getbetax.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbx))
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_phase[bn1][0], beta_d.x_phase[bn1][1], beta_d.x_phase[bn1][2], alfax[bn1][0], alfax[bn1][1], alfax[bn1][2], mad_ac.BETX[mad_ac.indx[bn1]], mad_ac.ALFX[mad_ac.indx[bn1]], mad_ac.MUX[mad_ac.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        #-- ac to free beta
-        if getllm_d.with_ac_calc:
-            #-- from eq
-            try:
-                [beta_d.x_phase_f, rmsbbxf, alfaxf, bpmsf] = algorithms.beta.BetaFromPhase(mad_twiss, twiss_d.zero_dpp_x, phase_d.x_f, 'H')
-                tfs_file = files_dict['getbetax_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf))
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpmsf)):
-                    bn1 = str.upper(bpmsf[i][1])
-                    bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_phase_f[bn1][0], beta_d.x_phase_f[bn1][1], beta_d.x_phase_f[bn1][2], alfaxf[bn1][0], alfaxf[bn1][1], alfaxf[bn1][2], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
-                
-            #-- from the model
-            [betaxf2, rmsbbxf2, alfaxf2, bpmsf2] = algorithms.beta.getFreeBeta(mad_ac, mad_twiss, beta_d.x_phase, rmsbbx, alfax, bpms, 'H')
-            tfs_file = files_dict['getbetax_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf2))
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsf2)):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1], betaxf2[bn1][2], alfaxf2[bn1][0], alfaxf2[bn1][1], alfaxf2[bn1][2], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-    
-    #---- V plane
-    if twiss_d.has_zero_dpp_y():
-        [beta_d.y_phase, rmsbby, alfay, bpms] = algorithms.beta.BetaFromPhase(mad_ac, twiss_d.zero_dpp_y, phase_d.ph_y, 'V')
-        beta_d.y_phase['DPP'] = 0
-        tfs_file = files_dict['getbetay.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbby))
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_phase[bn1][0], beta_d.y_phase[bn1][1], beta_d.y_phase[bn1][2], alfay[bn1][0], alfay[bn1][1], alfay[bn1][2], mad_ac.BETY[mad_ac.indx[bn1]], mad_ac.ALFY[mad_ac.indx[bn1]], mad_ac.MUY[mad_ac.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        #-- ac to free beta
-        if getllm_d.with_ac_calc:
-            #-- from eq
-            try:
-                [beta_d.y_phase_f, rmsbbyf, alfayf, bpmsf] = algorithms.beta.BetaFromPhase(mad_twiss, twiss_d.zero_dpp_y, phase_d.y_f, 'V')
-                tfs_file = files_dict['getbetay_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf))
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpmsf)):
-                    bn1 = str.upper(bpmsf[i][1])
-                    bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_phase_f[bn1][0], beta_d.y_phase_f[bn1][1], beta_d.y_phase_f[bn1][2], alfayf[bn1][0], alfayf[bn1][1], alfayf[bn1][2], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.ALFY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
-                
-            #-- from the model
-            [betayf2, rmsbbyf2, alfayf2, bpmsf2] = algorithms.beta.getFreeBeta(mad_ac, mad_twiss, beta_d.y_phase, rmsbby, alfay, bpms, 'V')
-            tfs_file = files_dict['getbetay_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf2))
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsf2)):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf2[bn1][0], betayf2[bn1][1], betayf2[bn1][2], alfayf2[bn1][0], alfayf2[bn1][1], alfayf2[bn1][2], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.ALFY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-    
-    return beta_d
-# END calculate_beta_from_phase -------------------------------------------------------------------------------
-
-
-def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict):
-    '''
-    Calculates beta and fills the following TfsFiles:
-        getampbetax.out        getampbetax_free.out        getampbetax_free2.out
-        getampbetay.out        getampbetay_free.out        getampbetay_free2.out
-        
-    :Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            accel and beam_direction are used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
-        'phase_d': _PhaseData (In-param, values will only be read)
-            Holds results from get_phases
-        'beta_d': _BetaData (In/Out-param, values will be read and set)
-            Holds results from get_beta. Beta from amp and ratios will be set.
-        
-    :Return: _BetaData
-        the same instance as param beta_d to indicate that x_amp,y_amp and ratios were set.
-    '''
-    print 'Calculating beta from amplitude'
-
-    #---- H plane
-    if twiss_d.has_zero_dpp_x():
-        [beta_d.x_amp, rmsbbx, bpms, inv_jx] = algorithms.beta.BetaFromAmplitude(mad_ac, twiss_d.zero_dpp_x, 'H')
-        beta_d.x_amp['DPP'] = 0
-        #-- Rescaling
-        beta_d.x_ratio = 0
-        skipped_bpmx = []
-        arcbpms = Utilities.bpm.filterbpm(bpms)
-        for bpm in arcbpms:
-            name = str.upper(bpm[1]) # second entry is the name
-        #Skip BPM with strange data
-            if abs(beta_d.x_phase[name][0] / beta_d.x_amp[name][0]) > 100:
-                skipped_bpmx.append(name)
-            elif (beta_d.x_amp[name][0] < 0 or beta_d.x_phase[name][0] < 0):
-                skipped_bpmx.append(name)
-            else:
-                beta_d.x_ratio = beta_d.x_ratio + (beta_d.x_phase[name][0] / beta_d.x_amp[name][0])
-        
-        try:
-            beta_d.x_ratio = beta_d.x_ratio / (len(arcbpms) - len(skipped_bpmx))
-        except:
-            traceback.print_exc()
-            beta_d.x_ratio = 1
-        betax_rescale = {}
-        
-        for bpm in bpms:
-            name = str.upper(bpm[1])
-            betax_rescale[name] = [beta_d.x_ratio * beta_d.x_amp[name][0], beta_d.x_ratio * beta_d.x_amp[name][1], beta_d.x_amp[name][2]]
-        
-        tfs_file = files_dict['getampbetax.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbx))
-        tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.x_ratio))
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_amp[bn1][0], beta_d.x_amp[bn1][1], mad_ac.BETX[mad_ac.indx[bn1]], mad_ac.MUX[mad_ac.indx[bn1]], betax_rescale[bn1][0], betax_rescale[bn1][1]]
-            tfs_file.add_table_row(list_row_entries) 
-            
-        #-- ac to free amp beta
-        if getllm_d.with_ac_calc: 
-            #-- from eq
-            try:
-                [betaxf, rmsbbxf, bpmsf] = algorithms.compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)[:3]
-                #-- Rescaling
-                beta_d.x_ratio_f = 0
-                skipped_bpmxf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
-                for bpm in arcbpms:
-                    name = str.upper(bpm[1]) # second entry is the name
-                #Skip BPM with strange data
-                    if abs(beta_d.x_phase_f[name][0] / betaxf[name][0]) > 10:
-                        skipped_bpmxf.append(name)
-                    elif abs(beta_d.x_phase_f[name][0] / betaxf[name][0]) < 0.1:
-                        skipped_bpmxf.append(name)
-                    elif (betaxf[name][0] < 0 or beta_d.x_phase_f[name][0] < 0):
-                        skipped_bpmxf.append(name)
-                    else:
-                        beta_d.x_ratio_f = beta_d.x_ratio_f + (beta_d.x_phase_f[name][0] / betaxf[name][0])
-                
-                try:
-                    beta_d.x_ratio_f = beta_d.x_ratio_f / (len(arcbpms) - len(skipped_bpmxf))
-                except:
-                    traceback.print_exc()
-                    beta_d.x_ratio_f = 1
-                tfs_file = files_dict['getampbetax_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf))
-                tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.x_ratio_f))
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpmsf)):
-                    bn1 = str.upper(bpmsf[i][1])
-                    bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf[bn1][0], betaxf[bn1][1], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], beta_d.x_ratio_f * betaxf[bn1][0], beta_d.x_ratio_f * betaxf[bn1][1]]
-                    tfs_file.add_table_row(list_row_entries) # Since invJxf(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            
-            except:
-                traceback.print_exc()
-            #-- from the model
-            # Since invJxf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betaxf2, rmsbbxf2, bpmsf2] = algorithms.beta.getFreeAmpBeta(beta_d.x_amp, rmsbbx, bpms, inv_jx, mad_ac, mad_twiss, 'H')[:3]
-            betaxf2_rescale = algorithms.beta.getFreeAmpBeta(betax_rescale, rmsbbx, bpms, inv_jx, mad_ac, mad_twiss, 'H')[0]
-            tfs_file = files_dict['getampbetax_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf2))
-            tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.x_ratio))
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsf2)):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], betaxf2_rescale[bn1][0], betaxf2_rescale[bn1][1]]
-                tfs_file.add_table_row(list_row_entries) #---- V plane
-    
-    if twiss_d.has_zero_dpp_y():
-        [beta_d.y_amp, rmsbby, bpms, inv_jy] = algorithms.beta.BetaFromAmplitude(mad_ac, twiss_d.zero_dpp_y, 'V')
-        beta_d.y_amp['DPP'] = 0
-        #-- Rescaling
-        beta_d.y_ratio = 0
-        skipped_bpmy = []
-        arcbpms = Utilities.bpm.filterbpm(bpms)
-        for bpm in arcbpms:
-            name = str.upper(bpm[1]) # second entry is the name
-        #Skip BPM with strange data
-            if abs(beta_d.y_phase[name][0] / beta_d.y_amp[name][0]) > 100:
-                skipped_bpmy.append(name)
-            elif (beta_d.y_amp[name][0] < 0 or beta_d.y_phase[name][0] < 0):
-                skipped_bpmy.append(name)
-            else:
-                beta_d.y_ratio = beta_d.y_ratio + (beta_d.y_phase[name][0] / beta_d.y_amp[name][0])
-        
-        try:
-            beta_d.y_ratio = beta_d.y_ratio / (len(arcbpms) - len(skipped_bpmy))
-        except ZeroDivisionError:
-            beta_d.y_ratio = 1
-        betay_rescale = {}
-        
-        for bpm in bpms:
-            name = str.upper(bpm[1])
-            betay_rescale[name] = [beta_d.y_ratio * beta_d.y_amp[name][0], beta_d.y_ratio * beta_d.y_amp[name][1], beta_d.y_amp[name][2]]
-        
-        tfs_file = files_dict['getampbetay.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbby))
-        tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.y_ratio))
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_amp[bn1][0], beta_d.y_amp[bn1][1], mad_ac.BETY[mad_ac.indx[bn1]], mad_ac.MUY[mad_ac.indx[bn1]], betay_rescale[bn1][0], betay_rescale[bn1][1]]
-            tfs_file.add_table_row(list_row_entries) #-- ac to free amp beta
-        
-        if getllm_d.with_ac_calc: #-- from eq
-            try:
-                # Since invJyf(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-                [betayf, rmsbbyf, bpmsf] = algorithms.compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)[:3] #-- Rescaling
-                beta_d.y_ratio_f = 0
-                skipped_bpmyf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
-                for bpm in arcbpms:
-                    name = str.upper(bpm[1]) # second entry is the name
-                    #Skip BPM with strange data
-                    if abs(beta_d.y_phase_f[name][0] / betayf[name][0]) > 10:
-                        skipped_bpmyf.append(name)
-                    elif (betayf[name][0] < 0 or beta_d.y_phase_f[name][0] < 0):
-                        skipped_bpmyf.append(name)
-                    elif abs(beta_d.y_phase_f[name][0] / betayf[name][0]) < 0.1:
-                        skipped_bpmyf.append(name)
-                    else:
-                        beta_d.y_ratio_f = beta_d.y_ratio_f + (beta_d.y_phase_f[name][0] / betayf[name][0])
-                
-                try:
-                    beta_d.y_ratio_f = beta_d.y_ratio_f / (len(arcbpms) - len(skipped_bpmyf))
-                except:
-                    traceback.print_exc()
-                    beta_d.y_ratio_f = 1
-                tfs_file = files_dict['getampbetay_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf))
-                tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.y_ratio_f))
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpmsf)):
-                    bn1 = str.upper(bpmsf[i][1])
-                    bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf[bn1][0], betayf[bn1][1], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]], (beta_d.y_ratio_f * betayf[bn1][0]), (beta_d.y_ratio_f * betayf[bn1][1])]
-                    tfs_file.add_table_row(list_row_entries) # 'except ALL' catched a SystemExit from filterbpm().(vimaier)
-            
-            except SystemExit:
-                sys.exit(1)
-            except:
-                #-- from the model
-                traceback.print_exc()
-            # Since invJyf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betayf2, rmsbbyf2, bpmsf2] = algorithms.beta.getFreeAmpBeta(beta_d.y_amp, rmsbby, bpms, inv_jy, mad_ac, mad_twiss, 'V')[:3]
-            betayf2_rescale = algorithms.beta.getFreeAmpBeta(betay_rescale, rmsbby, bpms, inv_jy, mad_ac, mad_twiss, 'V')[0]
-            tfs_file = files_dict['getampbetay_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf2))
-            tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.y_ratio))
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsf2)):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf2[bn1][0], betayf2[bn1][1], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]], betayf2_rescale[bn1][0], betayf2_rescale[bn1][1]]
-                tfs_file.add_table_row(list_row_entries)
-    
-    return beta_d
-# END calculate_beta_from_amplitude ----------------------------------------------------------------
-
-
-def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict):
-    '''
-    Calculates ip and fills the following TfsFiles:
-        getIP.out        
-        getIPx.out        getIPx_free.out        getIPx_free2.out        
-        getIPy.out        getIPy_free.out        getIPy_free2.out        
-        getIPfromphase.out        getIPfromphase_free.out        getIPfromphase_free2.out
-        
-    :Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            lhc_phase, accel and beam_direction are used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
-        'phase_d': _PhaseData (In-param, values will only be read)
-            Holds results from get_phases
-        'beta_d': _BetaData (In-param, values will only be read)
-            Holds results from get_beta. Beta from amp and ratios will be set.
-    '''
-    print 'Calculating IP'
-    if "LHC" in getllm_d.accel:
-        tfs_file = files_dict['getIP.out']
-        tfs_file.add_column_names(["NAME", "BETASTARH", "BETASTARHMDL", "H", "PHIH", "PHIXH", "PHIHMDL", "BETASTARV", "BETASTARVMDL", "V", "PHIV", "PHIYV", "PHIVMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        ips = ["1", "2", "3", "4", "5", "6", "7", "8"]
-        measured = [beta_d.x_amp, beta_d.y_amp]
-        for num_ip in ips:
-            try:
-                betahor, betaver = algorithms.interaction_point.get_ip(num_ip, measured, mad_twiss)
-            except KeyError:
-                betahor = [0, 0, 0, 0, 0, 0, 0]
-                betaver = [0, 0, 0, 0, 0, 0, 0]
-            list_row_entries = ['"IP' + num_ip + '"', betahor[1], betahor[4], betahor[2], betahor[3], betahor[6], betahor[5], betaver[1], betaver[4], betaver[2], betaver[3], betaver[6], betaver[5]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        #-- Parameters at IP1, IP2, IP5, and IP8
-        ip_x = algorithms.interaction_point.get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        ip_y = algorithms.interaction_point.get_ip_2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        tfs_file_x = files_dict['getIPx.out']
-        tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JX)", "rt(2JX)STD"])
-        tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        tfs_file_y = files_dict['getIPy.out']
-        tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JY)", "rt(2JY)STD"])
-        tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-            try:
-                list_row_entries = ['"' + ip_name + '"']
-                for ip_value in ip_x[ip_name]:
-                    list_row_entries.append(ip_value)
-                
-                tfs_file_x.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
-            try:
-                list_row_entries = ['"' + ip_name + '"']
-                for ip_value in ip_y[ip_name]:
-                    list_row_entries.append(ip_value)
-                
-                tfs_file_y.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
-
-        #-- ac to free parameters at IP1, IP2, IP5, and IP8
-        if getllm_d.with_ac_calc:
-            #-- From Eq
-            ip_x_f = algorithms.compensate_ac_effect.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-            ip_y_f = algorithms.compensate_ac_effect.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-            tfs_file_x = files_dict['getIPx_free.out']
-            tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"])
-            tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            tfs_file_y = files_dict['getIPy_free.out']
-            tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JYD)", "rt(2JYD)STD"])
-            tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                try:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_x_f[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_x.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
-                try:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_y_f[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_y.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
-            #-- From model
-            ip_x_f_2 = algorithms.interaction_point.get_free_ip_2(mad_twiss, mad_ac, ip_x, 'H', getllm_d.accel)
-            ip_y_f_2 = algorithms.interaction_point.get_free_ip_2(mad_twiss, mad_ac, ip_y, 'V', getllm_d.accel)
-            tfs_file_x = files_dict['getIPx_free2.out']
-            tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"])
-            tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            tfs_file_y = files_dict['getIPy_free2.out']
-            tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JYD)", "rt(2JYD)STD"])
-            tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                try:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_x_f_2[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_x.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
-                try:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_y_f_2[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_y.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
-
-        #-- IP beta* and phase from phase only
-        try:
-            ip_from_phase = algorithms.interaction_point.get_ip_from_phase(mad_ac, phase_d.ph_x, phase_d.ph_y, getllm_d.accel)
-        except:
-            traceback.print_exc()
-            print 'No output from IP from phase. H or V file missing?'
-        tfs_file = files_dict['getIPfromphase.out']
-        tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-            list_row_entries = ['"' + ip_name + '"']
-            try:
-                for ip_value in ip_from_phase[ip_name]:
-                    list_row_entries.append(ip_value)
-                
-                tfs_file.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
-        #-- ac to free beta*
-        if getllm_d.with_ac_calc:
-            #-- from eqs
-            try:
-                ip_from_phase_f = algorithms.interaction_point.get_ip_from_phase(mad_twiss, phase_d.x_f, phase_d.y_f, getllm_d.accel)
-            except:
-                traceback.print_exc()
-            tfs_file = files_dict['getIPfromphase_free.out']
-            tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                list_row_entries = ['"' + ip_name + '"']
-                try:
-                    for ip_value in ip_from_phase_f[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file.add_table_row(list_row_entries)
-                except KeyError:
-                    traceback.print_exc()
-            #-- from the model
-            try:
-                ip_from_phase_f2 = algorithms.interaction_point.get_ip_from_phase(mad_twiss, phase_d.x_f2, phase_d.y_f2, getllm_d.accel)
-            except:
-                traceback.print_exc()
-            tfs_file = files_dict['getIPfromphase_free2.out']
-            tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                list_row_entries = ['"' + ip_name + '"']
-                try:
-                    for ip_value in ip_from_phase_f2[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file.add_table_row(list_row_entries)
-                except KeyError:
-                    pass
-# END calculate_ip ---------------------------------------------------------------------------------
-
-
 def calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
     '''
     Calculates orbit and fills the following TfsFiles:
@@ -1640,193 +784,6 @@ def calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
     return list_of_co_x, list_of_co_y, files_dict
 # END calculate_orbit ------------------------------------------------------------------------------
 
-def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_x_from_amp, list_of_co_x, list_of_co_y):
-    '''
-    Calculates dispersion and fills the following TfsFiles:
-        getNDx.out        getDx.out        getDy.out
-        
-    :Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            accel is used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
-    '''
-    print 'Calculating dispersion'
-    if twiss_d.has_zero_dpp_x() and twiss_d.has_non_zero_dpp_x():
-        [nda, d_x, dpx, bpms] = algorithms.dispersion.NormDispX(mad_twiss, twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, beta_x_from_amp, getllm_d.cut_for_closed_orbit)
-        tfs_file = files_dict['getNDx.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "NDX", "STDNDX", "DX", "DPX", "NDXMDL", "DXMDL", "DPXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            ndmdl = mad_twiss.DX[mad_twiss.indx[bn1]] / math.sqrt(mad_twiss.BETX[mad_twiss.indx[bn1]])
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), nda[bn1][0], nda[bn1][1], d_x[bn1][0], dpx[bn1], ndmdl, mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-        
-        [dxo, bpms] = algorithms.dispersion.DispersionfromOrbit(twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
-        dpx = algorithms.dispersion.GetDPX(mad_twiss, dxo, bpms)
-        tfs_file = files_dict['getDx.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "DX", "STDDX", "DPX", "DXMDL", "DPXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), dxo[bn1][0], dxo[bn1][1], dpx[bn1], mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-    
-    if twiss_d.has_zero_dpp_y() and twiss_d.has_non_zero_dpp_y():
-        [dyo, bpms] = algorithms.dispersion.DispersionfromOrbit(twiss_d.zero_dpp_y, twiss_d.non_zero_dpp_y, list_of_co_y, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
-        dpy = algorithms.dispersion.GetDPY(mad_twiss, dyo, bpms)
-        tfs_file = files_dict['getDy.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "DY", "STDDY", "DPY", "DYMDL", "DPYMDL", "MUYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_y), dyo[bn1][0], dyo[bn1][1], dpy[bn1], mad_twiss.DY[mad_twiss.indx[bn1]], mad_twiss.DPY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-# END calculate_dispersion -------------------------------------------------------------------------
-
-def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y):
-    '''
-    Calculates coupling and fills the following TfsFiles:
-        getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
-        
-    :Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            lhc_phase, accel, beam_direction and num_beams_for_coupling are used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In/Out-param, values will be read and set)
-            Holds tunes and phase advances. q1, mux, q2 and muy will be set if 
-            "num_beams_for_coupling == 2" and accel is 'SPS' or 'RHIC'.
-            
-    :Return: _TuneData
-        the same instance as param tune_d to indicate that tunes will be set.
-    '''
-    print "Calculating coupling"
-
-    if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
-        #-- Coupling in the model
-        try:
-            mad_twiss.Cmatrix()
-        except:
-            traceback.print_exc()
-        #-- Main part
-        if getllm_d.num_beams_for_coupling == 1:
-            # Avoids crashing the programm(vimaier)
-            fwqwf = None
-            fwqwf2 = None
-            [fwqw, bpms] = algorithms.coupling.GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2)
-            tfs_file = files_dict['getcouple.out']
-            tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-            tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD", "Q1001W", "QWSTD", "MDLF1001R", "MDLF1001I"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(len(bpms)):
-                bn1 = str.upper(bpms[i][1])
-                bns1 = bpms[i][0]
-                try:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), (math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2)), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, mad_twiss.f1001[mad_twiss.indx(bn1)].real, mad_twiss.f1001[mad_twiss.indx(bn1)].imag, mad_ac.f1010[mad_ac.indx(bn1)].real, mad_ac.f1010[mad_ac.indx(bn1)].imag]
-                #-- Output zero if the model does not have couping parameters
-                except:
-                    traceback.print_exc()
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), (math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2)), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, 0.0, 0.0]
-                tfs_file.add_table_row(list_row_entries)
-        
-        elif getllm_d.num_beams_for_coupling == 2:
-            if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
-                #TODO: check parameter. Q is missing
-                [phasexp, tune_d.q1, tune_d.mux, bpmsx] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, 'H')
-                [phaseyp, tune_d.q2, tune_d.muy, bpmsy] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, 'V')
-                [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel)
-            else:
-                [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, phase_d.ph_x, phase_d.ph_y, getllm_d.beam_direction, getllm_d.accel)
-            tfs_file = files_dict['getcouple.out']
-            tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-            tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(len(bpms)):
-                bn1 = str.upper(bpms[i][1])
-                bns1 = bpms[i][0]
-                try:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), (math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2)), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, math.sqrt(fwqw[bn1][0][2].real ** 2 + fwqw[bn1][0][2].imag ** 2), fwqw[bn1][0][3], fwqw[bn1][0][2].real, fwqw[bn1][0][2].imag, mad_ac.f1001[mad_ac.indx[bn1]].real, mad_ac.f1001[mad_ac.indx[bn1]].imag, mad_ac.f1010[mad_ac.indx[bn1]].real, mad_ac.f1010[mad_ac.indx[bn1]].imag]
-                #-- Output zero if the model does not have couping parameters
-                except AttributeError:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, math.sqrt(fwqw[bn1][0][2].real ** 2 + fwqw[bn1][0][2].imag ** 2), fwqw[bn1][0][3], fwqw[bn1][0][2].real, fwqw[bn1][0][2].imag, 0.0, 0.0, 0.0, 0.0]
-                tfs_file.add_table_row(list_row_entries)
-            
-            #-- ac to free coupling
-            if getllm_d.with_ac_calc:
-                #-- analytic eqs
-                try:
-                    [fwqwf, bpmsf] = algorithms.compensate_ac_effect.GetFreeCoupling_Eq(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction)
-                    tfs_file = files_dict['getcouple_free.out']
-                    tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-                    tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
-                    tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
-                    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                    for i in range(len(bpmsf)):
-                        bn1 = str.upper(bpmsf[i][1])
-                        bns1 = bpmsf[i][0]
-                        try:
-                            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqwf[bn1][0][0].real ** 2 + fwqwf[bn1][0][0].imag ** 2), fwqwf[bn1][0][1], fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, math.sqrt(fwqwf[bn1][0][2].real ** 2 + fwqwf[bn1][0][2].imag ** 2), fwqwf[bn1][0][3], fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, mad_twiss.f1001[mad_twiss.indx[bn1]].real, mad_twiss.f1001[mad_twiss.indx[bn1]].imag, mad_twiss.f1010[mad_twiss.indx[bn1]].real, mad_twiss.f1010[mad_twiss.indx[bn1]].imag] #-- Output zero if the model does not have couping parameters
-                        except:
-                            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqwf[bn1][0][0].real ** 2 + fwqwf[bn1][0][0].imag ** 2), fwqwf[bn1][0][1], fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, math.sqrt(fwqwf[bn1][0][2].real ** 2 + fwqwf[bn1][0][2].imag ** 2), fwqwf[bn1][0][3], fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, 0.0, 0.0, 0.0, 0.0]
-                        tfs_file.add_table_row(list_row_entries)
-                
-                except:
-                    traceback.print_exc()
-
-                #-- global factor
-                [fwqwf2, bpmsf2] = algorithms.coupling.getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
-                tfs_file = files_dict['getcouple_free2.out']
-                tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-                tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(len(bpmsf2)):
-                    bn1 = str.upper(bpmsf2[i][1])
-                    bns1 = bpmsf2[i][0]
-                    try:
-                        list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqwf2[bn1][0][0].real ** 2 + fwqwf2[bn1][0][0].imag ** 2), fwqwf2[bn1][0][1], fwqwf2[bn1][0][0].real, fwqwf2[bn1][0][0].imag, math.sqrt(fwqwf2[bn1][0][2].real ** 2 + fwqwf2[bn1][0][2].imag ** 2), fwqwf2[bn1][0][3], fwqwf2[bn1][0][2].real, fwqwf2[bn1][0][2].imag, mad_twiss.f1001[mad_twiss.indx[bn1]].real, mad_twiss.f1001[mad_twiss.indx[bn1]].imag, mad_twiss.f1010[mad_twiss.indx[bn1]].real, mad_twiss.f1010[mad_twiss.indx[bn1]].imag] #-- Output zero if the model does not have couping parameters
-                    except:
-                        list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqwf2[bn1][0][0].real ** 2 + fwqwf2[bn1][0][0].imag ** 2), fwqwf2[bn1][0][1], fwqwf2[bn1][0][0].real, fwqwf2[bn1][0][0].imag, math.sqrt(fwqwf2[bn1][0][2].real ** 2 + fwqwf2[bn1][0][2].imag ** 2), fwqwf2[bn1][0][3], fwqwf2[bn1][0][2].real, fwqwf2[bn1][0][2].imag, 0.0, 0.0, 0.0, 0.0]
-                    tfs_file.add_table_row(list_row_entries)
-        
-        else:
-            raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
-        #-- Convert to C-matrix:
-        if getllm_d.with_ac_calc and (fwqwf is not None or fwqwf2 is not None):
-            try:
-                [coupleterms, q_minav, q_minerr, bpms] = algorithms.coupling.getCandGammaQmin(fwqwf, bpmsf, tune_d.q1f, tune_d.q2f, mad_twiss)
-            except:
-                [coupleterms, q_minav, q_minerr, bpms] = algorithms.coupling.getCandGammaQmin(fwqwf2, bpmsf2, tune_d.q1f, tune_d.q2f, mad_twiss)
-        else:
-            [coupleterms, q_minav, q_minerr, bpms] = algorithms.coupling.getCandGammaQmin(fwqw, bpms, tune_d.q1f, tune_d.q2f, mad_twiss)
-        tfs_file = files_dict['getcoupleterms.out']
-        tfs_file.add_descriptor("DQMIN", "%le", q_minav)
-        tfs_file.add_descriptor("DQMINE", "%le", q_minerr)
-        tfs_file.add_column_names(["NAME", "S", "DETC", "DETCE", "GAMMA", "GAMMAE", "C11", "C12", "C21", "C22"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for bpm in bpms:
-            bps = bpm[0]
-            bpmm = bpm[1].upper()
-            list_row_entries = [bpmm, bps, coupleterms[bpmm][0], coupleterms[bpmm][1], coupleterms[bpmm][2], coupleterms[bpmm][3], coupleterms[bpmm][4], coupleterms[bpmm][5], coupleterms[bpmm][6], coupleterms[bpmm][7]]
-            tfs_file.add_table_row(list_row_entries)
-    
-    return tune_d
-# END calculate_coupling ---------------------------------------------------------------------------
 
 def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y):
     '''
@@ -1892,10 +849,10 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
             
             betax = {}
             alfax = {}
-            [betax, rmsbbx, alfax, bpms] = algorithms.beta.BetaFromPhase(mad_twiss, list_with_single_twiss, phasex, plane)
+            [betax, rmsbbx, alfax, bpms] = algorithms.beta.beta_from_phase(mad_twiss, list_with_single_twiss, phasex, plane)
             betax['DPP'] = dpop
             betaxa = {}
-            [betaxa, rmsbbx, bpms, invJx] = algorithms.beta.BetaFromAmplitude(mad_twiss, list_with_single_twiss, plane)
+            [betaxa, rmsbbx, bpms, invJx] = algorithms.beta.beta_from_amplitude(mad_twiss, list_with_single_twiss, plane)
             betaxa['DPP'] = dpop
             filename = 'getbetax_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename)
@@ -1954,10 +911,10 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
             
             betay = {}
             alfay = {}
-            [betay, rmsbby, alfay, bpms] = algorithms.beta.BetaFromPhase(dpp_twiss, list_with_single_twiss, phasey, plane)
+            [betay, rmsbby, alfay, bpms] = algorithms.beta.beta_from_phase(dpp_twiss, list_with_single_twiss, phasey, plane)
             betay['DPP'] = dpop
             betaya = {}
-            [betaya, rmsbby, bpms, invJy] = algorithms.beta.BetaFromAmplitude(dpp_twiss, list_with_single_twiss, plane)
+            [betaya, rmsbby, bpms, invJy] = algorithms.beta.beta_from_amplitude(dpp_twiss, list_with_single_twiss, plane)
             betaya['DPP'] = dpop
             filename = 'getbetay_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename)
@@ -2022,9 +979,8 @@ def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
     # For getsex1200.out andgetsex2100.out take a look at older revisions. (vimaier)
     
     htot, afactor, pfactor = algorithms.helper.Getsextupole(mad_twiss, twiss_d.zero_dpp_x, phase_d.ph_x, q1f, 3, 0)
-    filename = 'getsex3000.out'
-    files_dict[filename] = utils.tfs_file.TfsFile(filename)
-    tfs_file = files_dict[filename]
+    
+    tfs_file = files_dict["getsex3000.out"]
     tfs_file.add_descriptor("f2h_factor", "%le", str(afactor))
     tfs_file.add_descriptor("p_f2h_factor", "%le", str(pfactor))
     tfs_file.add_column_names(["NAME", "S", "AMP_20", "AMP_20std", "PHASE_20", "PHASE_20std", "f3000", "f3000std", "phase_f_3000", "phase_f_3000std", "h3000", "h3000_std", "phase_h_3000", "phase_h_3000_std"])
@@ -2038,58 +994,6 @@ def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
 # END calculate_getsextupoles ----------------------------------------------------------------------
 
 
-def calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict):
-    '''
-    Fills the following TfsFiles:
-        getchi3000.out        getchi1010.out        getchi4000.out
-        
-    :Return: dict: string --> TfsFile
-        The same instace of files_dict to indicate that the dict was extended
-
-    #-> 1) chi3000
-    #-> 2) chi1010
-    #-> 2) chi4000
-    '''
-    print "Calculating chiterms"
-    # 1) chi3000
-    filename = 'getchi3000.out'
-    files_dict[filename] = utils.tfs_file.TfsFile(filename)
-    tfs_file = files_dict[filename]
-    tfs_file.add_column_names(["NAME", "S", "S1", "S2", "X3000", "X3000i", "X3000r", "X3000RMS", "X3000PHASE", "X3000PHASERMS", "X3000M", "X3000Mi", "X3000Mr", "X3000MPHASE"])
-    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-    files = [twiss_d.zero_dpp_x, twiss_d.zero_dpp_y]
-    name = 'chi3000'
-    plane = 'H'
-    [dbpms, pos, xi_tot, xi_model] = algorithms.chi_terms.get_chi_terms(mad_twiss, files, plane, name, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y)
-    for i in range(0, len(dbpms) - 2):
-        bpm_name = str.upper(dbpms[i][1])
-        list_row_entries = ['"' + bpm_name + '"', pos[0][i], pos[1][i], pos[2][i], xi_tot[0][i], xi_tot[1][i], xi_tot[2][i], xi_tot[3][i], xi_tot[4][i], xi_tot[5][i], xi_model[0][i], xi_model[1][i], xi_model[2][i], xi_model[3][i]]
-        tfs_file.add_table_row(list_row_entries)
-    
-    # 2) chi1010
-    if getllm_d.accel != 'SPS':
-        filename = 'getchi1010.out'
-        files_dict[filename] = utils.tfs_file.TfsFile(filename)
-        tfs_file = files_dict[filename]
-        tfs_file.add_column_names(["NAME", "S", "X1010", "X1010RMS", "X1010PHASE", "X1010PHASERMS", "X1010M", "X1010MPHASE"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        files = [twiss_d.zero_dpp_x, twiss_d.zero_dpp_y]
-        name = 'chi1010'
-        plane = 'H'
-        [dbpms, xi_tot] = algorithms.chi_terms.getchi1010(mad_twiss, files, plane, name, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y)
-        for i in range(len(dbpms) - 2):
-            bpm_name = str.upper(dbpms[i][1])
-            bns = dbpms[i][0]
-            list_row_entries = ['"' + bpm_name + '"', bns, xi_tot[0][i], xi_tot[1][i], xi_tot[2][i], xi_tot[3][i], '0', '0']
-            tfs_file.add_table_row(list_row_entries)
-    
-    # 1) chi4000
-    # for getchi4000.out take a look at previous version of GetLLM. Was commented out so I deleted it (vimaier)
-    
-    return files_dict
-# END calculate_chiterms ---------------------------------------------------------------------------
-
-
 def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict,):
     '''
     Fills the following TfsFiles:
@@ -2100,9 +1004,7 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     '''
     print "Calculating kick"
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
-    filename = 'getkick.out'
-    files_dict[filename] = utils.tfs_file.TfsFile(filename)
-    tfs_file = files_dict[filename]
+    tfs_file = files_dict['getkick.out']
     tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(beta_d.x_ratio))
     tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(beta_d.y_ratio))
     tfs_file.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
@@ -2113,9 +1015,7 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
         tfs_file.add_table_row(list_row_entries)
     
     if getllm_d.with_ac_calc:
-        filename = 'getkickac.out'
-        files_dict[filename] = utils.tfs_file.TfsFile(filename)
-        tfs_file = files_dict[filename]
+        tfs_file = files_dict['getkickac.out']
         tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(beta_d.x_ratio_f))
         tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(beta_d.y_ratio_f))
         tfs_file.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
@@ -2241,41 +1141,6 @@ class _TuneData(object):
         else:
             self.q1f = twiss_d.zero_dpp_x[0].Q1
             self.q2f = twiss_d.zero_dpp_y[0].Q2
-            
-            
-class _PhaseData(object):
-    ''' File for storing results from get_phases. 
-        Storing results from getphases_tot are not needed since values not used again.
-    '''
-    
-    def __init__(self):
-        self.acphasex_ac2bpmac = None
-        self.acphasey_ac2bpmac = None
-        self.ph_x = None # horizontal phase
-        self.x_f = None
-        self.x_f2 = None
-        self.ph_y = None # vertical phase
-        self.y_f = None
-        self.y_f2 = None
-
-
-class _BetaData(object):
-    """ File for storing results from beta computations. """
-
-    def __init__(self):
-        self.x_phase = None # beta x from phase
-        self.x_phase_f = None # beta x from phase free
-        self.y_phase = None # beta y from phase
-        self.y_phase_f = None # beta y from phase free
-        
-        self.x_amp = None # beta x from amplitude
-        self.y_amp = None # beta y from amplitude
-        
-        self.x_ratio = None # beta x ratio
-        self.x_ratio_f = None # beta x ratio free
-        self.y_ratio = None # beta x ratio
-        self.y_ratio_f = None # beta x ratio free
-
 
 #===================================================================================================
 # main invocation

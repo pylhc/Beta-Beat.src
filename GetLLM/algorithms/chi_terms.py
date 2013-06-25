@@ -26,6 +26,57 @@ import beta
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
+#===================================================================================================
+# main part
+#===================================================================================================
+
+def calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict):
+    '''
+    Fills the following TfsFiles:
+        getchi3000.out        getchi1010.out        getchi4000.out
+        
+    :Return: dict: string --> TfsFile
+        The same instace of files_dict to indicate that the dict was extended
+
+    #-> 1) chi3000
+    #-> 2) chi1010
+    #-> 2) chi4000
+    '''
+    print "Calculating chiterms"
+    # 1) chi3000
+    tfs_file = files_dict['getchi3000.out']
+    tfs_file.add_column_names(["NAME", "S", "S1", "S2", "X3000", "X3000i", "X3000r", "X3000RMS", "X3000PHASE", "X3000PHASERMS", "X3000M", "X3000Mi", "X3000Mr", "X3000MPHASE"])
+    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    files = [twiss_d.zero_dpp_x, twiss_d.zero_dpp_y]
+    name = 'chi3000'
+    plane = 'H'
+    [dbpms, pos, xi_tot, xi_model] = get_chi_terms(mad_twiss, files, plane, name, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y)
+    for i in range(0, len(dbpms) - 2):
+        bpm_name = str.upper(dbpms[i][1])
+        list_row_entries = ['"' + bpm_name + '"', pos[0][i], pos[1][i], pos[2][i], xi_tot[0][i], xi_tot[1][i], xi_tot[2][i], xi_tot[3][i], xi_tot[4][i], xi_tot[5][i], xi_model[0][i], xi_model[1][i], xi_model[2][i], xi_model[3][i]]
+        tfs_file.add_table_row(list_row_entries)
+    
+    # 2) chi1010
+    if getllm_d.accel != 'SPS':
+        tfs_file = files_dict['getchi1010.out']
+        tfs_file.add_column_names(["NAME", "S", "X1010", "X1010RMS", "X1010PHASE", "X1010PHASERMS", "X1010M", "X1010MPHASE"])
+        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        files = [twiss_d.zero_dpp_x, twiss_d.zero_dpp_y]
+        name = 'chi1010'
+        plane = 'H'
+        [dbpms, xi_tot] = getchi1010(mad_twiss, files, plane, name, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y)
+        for i in range(len(dbpms) - 2):
+            bpm_name = str.upper(dbpms[i][1])
+            bns = dbpms[i][0]
+            list_row_entries = ['"' + bpm_name + '"', bns, xi_tot[0][i], xi_tot[1][i], xi_tot[2][i], xi_tot[3][i], '0', '0']
+            tfs_file.add_table_row(list_row_entries)
+    
+    # 1) chi4000
+    # for getchi4000.out take a look at previous version of GetLLM. Was commented out so I deleted it (vimaier)
+    
+    return files_dict
+# END calculate_chiterms ---------------------------------------------------------------------------
+
 
 #===================================================================================================
 # helper-functions
@@ -110,9 +161,9 @@ def get_chi_terms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
     #### invariance
     for j in range(0,len(ListOfZeroDPPX)):
         # Since betax,rmsbbx,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJX = ( beta.BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H') )[3]
+        invariantJX = ( beta.beta_from_amplitude(MADTwiss,ListOfZeroDPPX,'H') )[3]
         # Since betay,rmsbby,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJY= ( beta.BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V') )[3]
+        invariantJY= ( beta.beta_from_amplitude(MADTwiss,ListOfZeroDPPY,'V') )[3]
         invarianceJx.append(invariantJX[0])
         invarianceJy.append(invariantJY[0])
 
@@ -281,9 +332,9 @@ def getchi1010(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
     #### invariance
     for j in range(0,len(files)):
         # Since betax,rmsbbx,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJX = ( beta.BetaFromAmplitude(MADTwiss,ListOfZeroDPPX,'H') )[3]
+        invariantJX = ( beta.beta_from_amplitude(MADTwiss,ListOfZeroDPPX,'H') )[3]
         # Since betay,rmsbby,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJY = ( beta.BetaFromAmplitude(MADTwiss,ListOfZeroDPPY,'V') )[3]
+        invariantJY = ( beta.beta_from_amplitude(MADTwiss,ListOfZeroDPPY,'V') )[3]
         invarianceJx.append(invariantJX[0])
         invarianceJy.append(invariantJY[0])
 
