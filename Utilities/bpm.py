@@ -14,6 +14,19 @@ Change history:
 
 import sys
 
+def filterbpm(list_of_bpms):
+    '''Filter non-arc BPM.
+        Returns a list with those bpms which start with name "BPM.".
+    '''
+    if len(list_of_bpms) == 0:
+        print >> sys.stderr, "Nothing to filter!!!!"
+        sys.exit(1)
+    result = []
+    for b in list_of_bpms:
+        if ('BPM.' in b[1].upper()):
+            result.append(b)
+    return result
+
 
 def model_intersect(exp_bpms, model_twiss):
     '''
@@ -39,7 +52,7 @@ def model_intersect(exp_bpms, model_twiss):
         sys.exit(1)
     for bpm in exp_bpms:
         try:
-            check_if_bpm_in_model = model_twiss.indx[bpm[1].upper()]  # @UnusedVariable
+            model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
             bpmsin.append(bpm)
         except KeyError:
             print >> sys.stderr, bpm, "Not in Model"
@@ -73,18 +86,18 @@ def intersect(list_of_twiss_files):
         print >> sys.stderr, "Nothing to intersect!!!!"
         sys.exit(1)
         
-    z = list_of_twiss_files[0].NAME
-    if len(z) == 0:
+    names_list = list_of_twiss_files[0].NAME
+    if len(names_list) == 0:
         print >> sys.stderr, "No exp BPMs..."
         sys.exit(1)
-    for b in list_of_twiss_files:
-        z=filter(lambda x: x in z   , b.NAME)
-     
+    for twiss_file in list_of_twiss_files:
+        names_list = [b for b in twiss_file.NAME if b in names_list]
+#         names_list = filter(lambda x: x in names_list   , twiss_file.NAME)
         
-    result = []
-    x0 = list_of_twiss_files[0]
-    for bpm in z:
-        result.append((x0.S[x0.indx[bpm]], bpm))
+    result = [] # list of tupels (S, bpm_name)
+    twiss_0 = list_of_twiss_files[0]
+    for bpm in names_list:
+        result.append((twiss_0.S[twiss_0.indx[bpm]], bpm))
 
     #SORT by S
     result.sort()
