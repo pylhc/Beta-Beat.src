@@ -398,7 +398,8 @@ def _phi_last_and_last_but_one(phi, ftune):
             phit = phit-1.0
     return phit
 
-def calc_phase_mean(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
+def calc_phase_mean(phase0, norm):  
+    ''' phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi '''
     phase0 = np.array(phase0)%norm
     phase1 = (phase0+0.5*norm)%norm - 0.5*norm
     phase0ave = np.mean(phase0)
@@ -416,7 +417,8 @@ def calc_phase_mean(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), nor
     else: 
         return phase1ave % norm
 
-def calc_phase_std(phase0, norm):  #-- phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi
+def calc_phase_std(phase0, norm):
+    ''' phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi '''
     phase0 = np.array(phase0)%norm
     phase1 = (phase0+0.5*norm)%norm-0.5*norm
     phase0ave = np.mean(phase0)
@@ -636,7 +638,7 @@ def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
 # ac-dipole stuff
 #===================================================================================================
 
-def _get_free_phase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
+def _get_free_phase(phase, tune_ac, tune, bpms, mad_ac, mad_twiss, plane):
     '''
     :Parameters:
         'phase': dict
@@ -648,43 +650,46 @@ def _get_free_phase(phase,Qac,Q,bpms,MADTwiss_ac,MADTwiss,plane):
     if DEBUG:
         print "Calculating free phase using model"
 
-    phasef={}
-    phi=[]
+    phasef = {}
+    phi = []
 
     for bpm in bpms:
-        bn1=bpm[1].upper()
+        bn1 = bpm[1].upper()
 
         phase_list = phase[bn1]
         phi12 = phase_list[0]
         phstd12 = phase_list[1]
-        bn2 =phase_list[6]
-        bn2s=MADTwiss.S[MADTwiss.indx[bn2]]
+        bn2 = phase_list[6]
+        bn2s = mad_twiss.S[mad_twiss.indx[bn2]]
         #model ac
-        if plane=="H":
-            ph_ac_m=MADTwiss_ac.MUX[MADTwiss_ac.indx[bn2]]-MADTwiss_ac.MUX[MADTwiss_ac.indx[bn1]]
-            ph_m=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
+        if plane == "H":
+            ph_ac_m = mad_ac.MUX[mad_ac.indx[bn2]]-mad_ac.MUX[mad_ac.indx[bn1]]
+            ph_m = mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
         else:
-            ph_ac_m=MADTwiss_ac.MUY[MADTwiss_ac.indx[bn2]]-MADTwiss_ac.MUY[MADTwiss_ac.indx[bn1]]
-            ph_m=MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
+            ph_ac_m = mad_ac.MUY[mad_ac.indx[bn2]]-mad_ac.MUY[mad_ac.indx[bn1]]
+            ph_m = mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
 
         # take care the last BPM
-        if bn1==bpms[-1][1].upper():
-            ph_ac_m+=Qac; ph_ac_m=ph_ac_m%1
-            ph_m   +=Q  ; ph_m   =ph_m%1
+        if bn1 == bpms[-1][1].upper():
+            ph_ac_m += tune_ac 
+            ph_ac_m = ph_ac_m % 1
+            ph_m += tune
+            ph_m = ph_m % 1
 
-        phi12f=phi12-(ph_ac_m-ph_m)
+        phi12f = phi12-(ph_ac_m-ph_m)
         phi.append(phi12f)
-        phstd12f=phstd12
-        phmdl12f=ph_m
+        phstd12f = phstd12
+        phmdl12f = ph_m
 
-        phasef[bn1]=phi12f,phstd12f,phmdl12f,bn2,bn2s
+        phasef[bn1] = phi12f, phstd12f, phmdl12f, bn2, bn2s
 
-    mu=sum(phi)
+    mu = sum(phi)
 
 
-    return phasef,mu,bpms
+    return phasef, mu, bpms
 
-def get_free_phase_total(phase,bpms,plane,MADTwiss,MADTwiss_ac):
+
+def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
     '''
     :Parameters:
         'phase': dict
@@ -695,30 +700,30 @@ def get_free_phase_total(phase,bpms,plane,MADTwiss,MADTwiss_ac):
     if DEBUG:
         print "Calculating free total phase using model"
 
-    first=bpms[0][1]
+    first = bpms[0][1]
 
-    phasef={}
+    phasef = {}
 
     for bpm in bpms:
-        bn2=bpm[1].upper()
+        bn2 = bpm[1].upper()
 
-        if plane=="H":
+        if plane == "H":
 
-            ph_ac_m=(MADTwiss_ac.MUX[MADTwiss_ac.indx[bn2]]-MADTwiss_ac.MUX[MADTwiss_ac.indx[first]])%1
-            ph_m=(MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[first]])%1
+            ph_ac_m = (mad_ac.MUX[mad_ac.indx[bn2]]-mad_ac.MUX[mad_ac.indx[first]])%1
+            ph_m = (mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[first]])%1
 
         else:
-            ph_ac_m=(MADTwiss_ac.MUY[MADTwiss_ac.indx[bn2]]-MADTwiss_ac.MUY[MADTwiss_ac.indx[first]])%1
-            ph_m=(MADTwiss.MUY[MADTwiss.indx[bn2]]-MADTwiss.MUY[MADTwiss.indx[first]])%1
+            ph_ac_m = (mad_ac.MUY[mad_ac.indx[bn2]]-mad_ac.MUY[mad_ac.indx[first]])%1
+            ph_m = (mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[first]])%1
 
         phase_list = phase[bn2]
         phi12 = phase_list[0]
         phstd12 = phase_list[1]
 
 
-        phi12=phi12-(ph_ac_m-ph_m)
-        phstd12=phstd12
+        phi12 = phi12-(ph_ac_m-ph_m)
+        phstd12 = phstd12
 
-        phasef[bn2]=phi12,phstd12,ph_m
+        phasef[bn2] = phi12, phstd12, ph_m
 
-    return phasef,bpms
+    return phasef, bpms

@@ -457,34 +457,46 @@ def _get_ip_from_phase(MADTwiss,psix,psiy,oa):
 # ac-dipole stuff
 #===================================================================================================
 
-def _get_free_ip_2(MADTwiss,MADTwiss_ac,IP,plane,oa):
+def _get_free_ip_2(mad_twiss, mad_ac, ip, plane, accel):
 
-    for i in ('1','2','5','8'):
+    for i in ('1', '2', '5', '8'):
+        bpml = 'BPMSW.1L'+i+'.'+accel[3:]
+        bpmr = 'BPMSW.1R'+i+'.'+accel[3:]
+        if 'IP'+i in ip:
 
-        bpml='BPMSW.1L'+i+'.'+oa[3:]
-        bpmr='BPMSW.1R'+i+'.'+oa[3:]
-        if 'IP'+i in IP:
-
-            L=0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
-            if L<0: L+=0.5*MADTwiss.LENGTH
+            L = 0.5*(mad_twiss.S[mad_twiss.indx[bpmr]]-mad_twiss.S[mad_twiss.indx[bpml]])
+            if L < 0:
+                L += 0.5*mad_twiss.LENGTH
             #-- bet and alf at the left BPM
-            if plane=='H':
-                betl =MADTwiss.BETX[MADTwiss.indx[bpml]]; betdl=MADTwiss_ac.BETX[MADTwiss_ac.indx[bpml]]
-                alfl =MADTwiss.ALFX[MADTwiss.indx[bpml]]; alfdl=MADTwiss_ac.ALFX[MADTwiss_ac.indx[bpml]]
-            if plane=='V':
-                betl =MADTwiss.BETY[MADTwiss.indx[bpml]]; betdl=MADTwiss_ac.BETY[MADTwiss_ac.indx[bpml]]
-                alfl =MADTwiss.ALFY[MADTwiss.indx[bpml]]; alfdl=MADTwiss_ac.ALFY[MADTwiss_ac.indx[bpml]]
+            if plane == 'H':
+                betl = mad_twiss.BETX[mad_twiss.indx[bpml]]
+                betdl = mad_ac.BETX[mad_ac.indx[bpml]]
+                alfl = mad_twiss.ALFX[mad_twiss.indx[bpml]]
+                alfdl = mad_ac.ALFX[mad_ac.indx[bpml]]
+            if plane == 'V':
+                betl = mad_twiss.BETY[mad_twiss.indx[bpml]]
+                betdl = mad_ac.BETY[mad_ac.indx[bpml]]
+                alfl = mad_twiss.ALFY[mad_twiss.indx[bpml]]
+                alfdl = mad_ac.ALFY[mad_ac.indx[bpml]]
             #-- IP parameters propagated from the left BPM
-            bets =betl/(1+alfl**2)       ; betds=betdl/(1+alfdl**2)
-            bet  =betl-2*alfl*L+L**2/bets; betd =betdl-2*alfdl*L+L**2/betds
-            alf  =alfl-L/bets            ; alfd =alfdl-L/betds
-            ds   =alf*bets               ; dsd  =alfd*betds
+            bets = betl/(1+alfl**2)       
+            betds = betdl/(1+alfdl**2)
+            bet = betl-2*alfl*L+L**2/bets
+            betd = betdl-2*alfdl*L+L**2/betds
+            alf = alfl-L/bets
+            alfd = alfdl-L/betds
+            ds = alf*bets
+            dsd = alfd*betds
             #-- Apply corrections
-            IP['IP'+i][0]=IP['IP'+i][0]+bet-betd  ; IP['IP'+i][2] =bet
-            IP['IP'+i][3]=IP['IP'+i][3]+alf-alfd  ; IP['IP'+i][5] =alf
-            IP['IP'+i][6]=IP['IP'+i][6]+bets-betds; IP['IP'+i][8] =bets
-            IP['IP'+i][9]=IP['IP'+i][9]+ds-dsd    ; IP['IP'+i][11]=ds
+            ip['IP'+i][0] = ip['IP'+i][0]+bet-betd
+            ip['IP'+i][2] = bet
+            ip['IP'+i][3] = ip['IP'+i][3]+alf-alfd
+            ip['IP'+i][5] = alf
+            ip['IP'+i][6] = ip['IP'+i][6]+bets-betds
+            ip['IP'+i][8] = bets
+            ip['IP'+i][9] = ip['IP'+i][9]+ds-dsd
+            ip['IP'+i][11] = ds
 
-    return IP
+    return ip
 
 

@@ -578,150 +578,144 @@ def beta_from_phase(MADTwiss,ListOfFiles,phase,plane):
     return [beta,rmsbb,alfa,commonbpms]
 
 
-def beta_from_amplitude(MADTwiss,ListOfFiles,plane):
+def beta_from_amplitude(mad_twiss, list_of_files, plane):
 
-    beta={}
-    root2J=[]
-    commonbpms=Utilities.bpm.intersect(ListOfFiles)
-    commonbpms=Utilities.bpm.model_intersect(commonbpms,MADTwiss)
-    SumA=0.0
-    Amp=[]
-    Amp2=[]
-    Kick2=[]
-    for i in range(0,len(commonbpms)): # this loop have become complicated after modifications... anybody simplify?
-        bn1=str.upper(commonbpms[i][1])
-        if plane=='H':
-            tembeta=MADTwiss.BETX[MADTwiss.indx[bn1]]
-        elif plane=='V':
-            tembeta=MADTwiss.BETY[MADTwiss.indx[bn1]]
-        Ampi=0.0
-        Ampj2=[]
-        root2Ji=0.0
-        jj=0
-        for j in ListOfFiles:
-            if i==0:
-                Kick2.append(0)
-            if plane=='H':
-                Ampi+=j.AMPX[j.indx[bn1]]
-                Ampj2.append(j.AMPX[j.indx[bn1]]**2)
-                root2Ji+=j.PK2PK[j.indx[bn1]]/2.
+    beta = {}
+    root2j = []
+    commonbpms = Utilities.bpm.intersect(list_of_files)
+    commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    sum_a = 0.0
+    amp = []
+    amp2 = []
+    kick2 = []
+    for i in range(0, len(commonbpms)): # this loop have become complicated after modifications... anybody simplify?
+        bn1 = str.upper(commonbpms[i][1])
+        if plane == 'H':
+            tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]
+        elif plane == 'V':
+            tembeta = mad_twiss.BETY[mad_twiss.indx[bn1]]
+        amp_i = 0.0
+        amp_j2 = []
+        root2j_i = 0.0
+        counter = 0
+        for tw_file in list_of_files:
+            if i == 0:
+                kick2.append(0)
+            if plane == 'H':
+                amp_i += tw_file.AMPX[tw_file.indx[bn1]]
+                amp_j2.append(tw_file.AMPX[tw_file.indx[bn1]]**2)
+                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
+            elif plane == 'V':
+                amp_i += tw_file.AMPY[tw_file.indx[bn1]]
+                amp_j2.append(tw_file.AMPY[tw_file.indx[bn1]]**2)
+                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
+                
+            kick2[counter] += amp_j2[counter]/tembeta
+            counter += 1
+            
+        amp_i = amp_i/len(list_of_files)
+        root2j_i = root2j_i/len(list_of_files)
+        amp.append(amp_i)
+        amp2.append(amp_j2)
 
-            elif plane=='V':
-                Ampi+=j.AMPY[j.indx[bn1]]
-                Ampj2.append(j.AMPY[j.indx[bn1]]**2)
-                root2Ji+=j.PK2PK[j.indx[bn1]]/2.
-            Kick2[jj]+=Ampj2[jj]/tembeta
-            jj+=1
-        Ampi=Ampi/len(ListOfFiles)
-        root2Ji=root2Ji/len(ListOfFiles)
-        Amp.append(Ampi)
-        Amp2.append(Ampj2)
+        sum_a += amp_i**2/tembeta
+        root2j.append(root2j_i/math.sqrt(tembeta))
 
 
+    kick = sum_a/len(commonbpms) # Assuming the average of beta is constant
+    kick2 = np.array(kick2)
+    kick2 = kick2/len(commonbpms)
+    amp2 = np.array(amp2)
+    root2j = np.array(root2j)
+    root2j_ave = np.average(root2j)
+    root2j_rms = math.sqrt(np.average(root2j*root2j)-root2j_ave**2+2.2e-16)
 
-        SumA+=Ampi**2/tembeta
-        root2J.append(root2Ji/math.sqrt(tembeta))
-
-
-    Kick=SumA/len(commonbpms) # Assuming the average of beta is constant
-    Kick2=np.array(Kick2)
-    Kick2=Kick2/len(commonbpms)
-    Amp2=np.array(Amp2)
-    root2J=np.array(root2J)
-    root2Jave=np.average(root2J)
-    root2Jrms=math.sqrt(np.average(root2J*root2J)-root2Jave**2+2.2e-16)
-
-    delbeta=[]
-    for i in range(0,len(commonbpms)):
-        bn1=str.upper(commonbpms[i][1])
-        location=commonbpms[i][0]
-        for j in range(0,len(ListOfFiles)):
-            Amp2[i][j]=Amp2[i][j]/Kick2[j]
-        #print np.average(Amp2[i]*Amp2[i]),np.average(Amp2[i])**2
+    delbeta = []
+    for i in range(0, len(commonbpms)):
+        bn1 = str.upper(commonbpms[i][1])
+        location = commonbpms[i][0]
+        for tw_file in range(0, len(list_of_files)):
+            amp2[i][tw_file] = amp2[i][tw_file]/kick2[tw_file]
+        #print np.average(amp2[i]*amp2[i]),np.average(amp2[i])**2
         try:
-            betstd=math.sqrt(np.average(Amp2[i]*Amp2[i])-np.average(Amp2[i])**2+2.2e-16)
+            betstd = math.sqrt(np.average(amp2[i]*amp2[i])-np.average(amp2[i])**2+2.2e-16)
         except:
-            betstd=0
+            betstd = 0
 
-        beta[bn1]=[Amp[i]**2/Kick,betstd,location]
-        if plane=='H':
-            betmdl=MADTwiss.BETX[MADTwiss.indx[bn1]]
-        elif plane=='V':
-            betmdl=MADTwiss.BETY[MADTwiss.indx[bn1]]
+        beta[bn1] = [amp[i]**2/kick, betstd, location]
+        if plane == 'H':
+            betmdl = mad_twiss.BETX[mad_twiss.indx[bn1]]
+        elif plane == 'V':
+            betmdl = mad_twiss.BETY[mad_twiss.indx[bn1]]
         delbeta.append((beta[bn1][0]-betmdl)/betmdl)
 
-    invariantJ=[root2Jave,root2Jrms]
+    invariant_j = [root2j_ave, root2j_rms]
 
-    delbeta=np.array(delbeta)
-    rmsbb=math.sqrt(np.average(delbeta*delbeta))
-    return [beta,rmsbb,commonbpms,invariantJ]
+    delbeta = np.array(delbeta)
+    rmsbb = math.sqrt(np.average(delbeta*delbeta))
+    return [beta, rmsbb, commonbpms, invariant_j]
 
 #===================================================================================================
 # ac-dipole stuff
 #===================================================================================================
 
-def _get_free_beta(modelfree,modelac,betal,rmsbb,alfal,bpms,plane): # to check "+"
+def _get_free_beta(modelfree, modelac, betal, rmsbb, alfal, bpms, plane): # to check "+"
     if DEBUG:
         print "Calculating free beta using model"
-    bpms=Utilities.bpm.model_intersect(bpms, modelfree)
-    bpms=Utilities.bpm.model_intersect(bpms, modelac)
-    betan={}
-    alfan={}
+    bpms = Utilities.bpm.model_intersect(bpms, modelfree)
+    bpms = Utilities.bpm.model_intersect(bpms, modelac)
+    betan = {}
+    alfan = {}
     for bpma in bpms:
+        bpm = bpma[1].upper()
+        beta, beterr, betstd = betal[bpm]
+        alfa, alferr, alfstd = alfal[bpm]
 
-        bpm=bpma[1].upper()
-        beta,beterr,betstd=betal[bpm]
-        alfa,alferr,alfstd=alfal[bpm]
-
-        if plane=="H":
-            betmf=modelfree.BETX[modelfree.indx[bpm]]
-            betma=modelac.BETX[modelac.indx[bpm]]
-            bb=(betma-betmf)/betmf
-            alfmf=modelfree.ALFX[modelfree.indx[bpm]]
-            alfma=modelac.ALFX[modelac.indx[bpm]]
-            aa=(alfma-alfmf)/alfmf
+        if plane == "H":
+            betmf = modelfree.BETX[modelfree.indx[bpm]]
+            betma = modelac.BETX[modelac.indx[bpm]]
+            bb = (betma-betmf)/betmf
+            alfmf = modelfree.ALFX[modelfree.indx[bpm]]
+            alfma = modelac.ALFX[modelac.indx[bpm]]
+            aa = (alfma-alfmf)/alfmf
         else:
-            betmf=modelfree.BETY[modelfree.indx[bpm]]
-            betma=modelac.BETY[modelac.indx[bpm]]
-            alfmf=modelfree.ALFY[modelfree.indx[bpm]]
-            alfma=modelac.ALFY[modelac.indx[bpm]]
-            bb=(betma-betmf)/betmf
-            aa=(alfma-alfmf)/alfmf
+            betmf = modelfree.BETY[modelfree.indx[bpm]]
+            betma = modelac.BETY[modelac.indx[bpm]]
+            alfmf = modelfree.ALFY[modelfree.indx[bpm]]
+            alfma = modelac.ALFY[modelac.indx[bpm]]
+            bb = (betma-betmf)/betmf
+            aa = (alfma-alfmf)/alfmf
 
-        betan[bpm]=beta*(1+bb),beterr,betstd # has to be plus!
-        alfan[bpm]=alfa*(1+aa),alferr,alfstd
+        betan[bpm] = beta*(1+bb), beterr, betstd # has to be plus!
+        alfan[bpm] = alfa*(1+aa), alferr, alfstd
 
-    return betan,rmsbb,alfan,bpms
+    return betan, rmsbb, alfan, bpms
 
 
-def _get_free_amp_beta(betai,rmsbb,bpms,invJ,modelac,modelfree,plane): # "-"
-
+def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
     #
     # Why difference in betabeta calculation ??
     #
     #
-
-    betas={}
+    betas = {}
 
     if DEBUG:
         print "Calculating free beta from amplitude using model"
 
     for bpm in bpms:
+        bpmm = bpm[1].upper()
+        beta = betai[bpmm][0]
 
-        bpmm=bpm[1].upper()
-        beta=betai[bpmm][0]
-
-        if plane=="H":
-            betmf=modelfree.BETX[modelfree.indx[bpmm]]
-            betma=modelac.BETX[modelac.indx[bpmm]]
-            bb=(betmf-betma)/betma
-
+        if plane == "H":
+            betmf = mad_twiss.BETX[mad_twiss.indx[bpmm]]
+            betma = mad_ac.BETX[mad_ac.indx[bpmm]]
+            bb = (betmf-betma)/betma
         else:
-            betmf=modelfree.BETY[modelfree.indx[bpmm]]
-            betma=modelac.BETY[modelac.indx[bpmm]]
-            bb=(betmf-betma)/betma
+            betmf = mad_twiss.BETY[mad_twiss.indx[bpmm]]
+            betma = mad_ac.BETY[mad_ac.indx[bpmm]]
+            bb = (betmf-betma)/betma
 
-        betas[bpmm]=[beta*(1+bb),betai[bpmm][1],betai[bpmm][2]]
+        betas[bpmm] = [beta*(1+bb), betai[bpmm][1], betai[bpmm][2]]
 
-    return betas,rmsbb,bpms,invJ
+    return betas, rmsbb, bpms, inv_j
 
