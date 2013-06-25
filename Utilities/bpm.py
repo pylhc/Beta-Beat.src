@@ -15,7 +15,7 @@ Change history:
 import sys
 
 
-def modelIntersect(exp_bpms, model_twiss):
+def model_intersect(exp_bpms, model_twiss):
     '''
     Intersects BPMs from
     
@@ -35,7 +35,7 @@ def modelIntersect(exp_bpms, model_twiss):
     bpmsin = []
     #print "start Intersect, exp_bpms #:", len(exp_bpms)
     if len(exp_bpms) == 0:
-        print >> sys.stderr, "Zero exp BPMs sent to modelIntersect"
+        print >> sys.stderr, "Zero exp BPMs sent to model_intersect"
         sys.exit(1)
     for bpm in exp_bpms:
         try:
