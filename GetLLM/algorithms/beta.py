@@ -211,9 +211,12 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         
         try:
             beta_d.x_ratio = beta_d.x_ratio / (len(arcbpms) - len(skipped_bpmx))
+        except ZeroDivisionError:
+            beta_d.x_ratio = 1
         except:
             traceback.print_exc()
             beta_d.x_ratio = 1
+            
         betax_rescale = {}
         
         for bpm in bpms:
