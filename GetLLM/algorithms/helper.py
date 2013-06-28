@@ -3,14 +3,14 @@ Created on 5 Jun 2013
 
 @author: ?, vimaier
 
-@version: 0.0.1
+@version: 0.0.2
 
-GetLLM.algorithms.helper contains the helper funtions which are used by GetLLM.py.
+GetLLM.algorithms.helper contains some helper functions which are used by GetLLM.py.
 This module is not intended to be executed. It stores only functions.
 
 Change history:
- - <version>, <author>, <date>:
-    <description>
+ - 0.0.2, vimaier, 27/06/2013:
+    Extracted reated functions to new modules(phase,beta...)
 '''
 
 import sys

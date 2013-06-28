@@ -155,7 +155,7 @@ V2.38b 03/dec/2012, tbach:
   display the exception, because the messages are not always helpful
 - removed ";" from all over the code (still some left)
 - 207 errors, 983 warning, 574 infos left from static code analysis...
- - x.xxx, vimaier  16th Apr 2013:
+ - 3.0.0, vimaier  16th Apr 2013:
     deleted functions function and GetCoupling2
     Changed GetCoupling2b to GetCoupling2
     Set some TODOs
@@ -202,7 +202,7 @@ import algorithms.chi_terms
 ####
 #######
 #########
-VERSION = 'V2.38b PRO'
+VERSION = 'V3.0.0 Dev'
 #########
 #######
 ####
