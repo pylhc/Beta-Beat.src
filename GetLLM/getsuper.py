@@ -88,9 +88,6 @@ def parse_args():
     parser.add_option("-a", "--accel",
             help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
             metavar="ACCEL", default="LHCB1",dest="accel")
-    parser.add_option("", "--llm_version",
-            help="Run with specific version of GetLLM.py",
-            metavar="<version>", default=None,dest="llm_version")
 
     parser.add_option("-d", "--deltapScalingFactor",
             help="Scaling factor for deltap, remember final value must be in MAD units",
@@ -426,11 +423,7 @@ def rungetllm(twiss_filename, accel, technique, files, options, dpp):
     '''
     Running GetLLM...
     '''
-    if options.llm_version:
-        print "GetLLM_V"+options.llm_version+" as GetLLM"
-        exec("import GetLLM_V"+options.llm_version+" as GetLLM")
-    else:
-        import GetLLM
+    import GetLLM
 
     print "Will run getllm for ", dpp #, command
 
