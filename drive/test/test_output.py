@@ -13,11 +13,15 @@ import sys
 import subprocess
 import filecmp
 
-import Utilities.iotools
-
-
 CURRENT_PATH = os.path.dirname(__file__)
 # Path 'x/Beta-Beat.src/drive/test'
+
+# Add directory to the python search path - needed to run script from command line
+# Otherwise Utilities.iotools.py won't be found
+sys.path.append(os.path.join(CURRENT_PATH, "..", ".."))
+
+import Utilities.iotools
+
 
 class TestOutput(unittest.TestCase):
     
