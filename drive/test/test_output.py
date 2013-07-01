@@ -31,6 +31,8 @@ class TestOutput(unittest.TestCase):
     path_to_valid = os.path.join(CURRENT_PATH, "data", "valid")
     path_to_to_check = os.path.join(CURRENT_PATH, "data", "to_check")
     path_to_input = os.path.join(CURRENT_PATH, "data", "input")
+    
+    successful = False
 
     def setUp(self):
         self._delete_output_dirs()
@@ -38,13 +40,16 @@ class TestOutput(unittest.TestCase):
 
 
     def tearDown(self):
-        pass
+        if TestOutput.successful:
+            self._delete_output_dirs()
 
 
     def testName(self):
+        print "Start TestOutput of drive"
         self._run_valid_file()
         self._run_modified_file()
         self._compare_output_dirs()
+        print "End TestOutput of drive"
     
     #===============================================================================================
     # helper
@@ -63,16 +68,19 @@ class TestOutput(unittest.TestCase):
     
     def _run_valid_file(self):
         ''' Runs drive.test.valid.Drive_God_lin for all directories in drive.test.data.valid '''
+        print "\tRun valid files"
         for directory in os.listdir(self.path_to_valid):
             valid_dir_path = os.path.join(self.path_to_valid, directory)
+            print "\t\tRun:", valid_dir_path
             self._run_drive(self.path_to_valid_drive, valid_dir_path)
             
             
     def _run_modified_file(self):
         ''' Runs drive.Drive_God_lin for all directories in drive.test.data.to_check. '''
-        for directory in os.listdir(self.path_to_valid):
-            valid_dir_path = os.path.join(self.path_to_valid, directory)
-            self._run_drive(self.path_to_valid_drive, valid_dir_path)
+        for directory in os.listdir(self.path_to_to_check):
+            to_check_dir_path = os.path.join(self.path_to_to_check, directory)
+            print "\t\tRun:", to_check_dir_path
+            self._run_drive(self.path_to_valid_drive, to_check_dir_path)
             
     
     def _run_drive(self, path_to_drive, path_to_dir):
@@ -100,9 +108,14 @@ class TestOutput(unittest.TestCase):
 
     def _compare_output_dirs(self):
         ''' Compares output by using filecmp '''
+        print "\tComparing output files"
         dir_compare = filecmp.dircmp(self.path_to_valid, self.path_to_to_check)
         
         dir_compare.report()
+        
+        self.assertEqual(0, len(dir_compare.diff_files), "Files are not equal.")
+        
+        TestOutput.successful = True
         
 # END TestOutput -----------------------------------------------------------------------------------
 
