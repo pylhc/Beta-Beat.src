@@ -525,71 +525,86 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         suffix_y = '_hay'
     
     for file_in in files_to_analyse.split(','):
+        # x file
         if file_in.endswith(".gz"):
             file_x = file_in.replace(".gz", suffix_x + ".gz")
         else:
             file_x = file_in + suffix_x
+            
+        twiss_file_x = None
         try:
             twiss_file_x = metaclass.twiss(file_x)
         except IOError:
             print >> sys.stderr, "Cannot load file:", file_x
-            sys.exit(1)
-            
-        try:
-            dppi = twiss_file_x.DPP
-        except AttributeError:
-            dppi = 0.0
-        if type(dppi) != float:
-            print >> sys.stderr, 'Warning: DPP may not be given as a number in ', file_x, '...trying to forcibly cast it as a number'
+        except ValueError:
+            pass # Information printed by metaclass already
+        
+        if None != twiss_file_x:
             try:
-                dppi = float(dppi)
-                print 'dppi= ', dppi
-            except ValueError:
-                print >> sys.stderr, 'but failing. DPP in ', file_x, ' is something wrong. String? --- leaving GetLLM'
-                print >> sys.stderr, traceback.format_exc()
-                sys.exit(1)
-        if dppi == 0.0:
-            twiss_d.zero_dpp_x.append(twiss_file_x)
-            files_dict['getphasex.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getphasetotx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getbetax.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getampbetax.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getCOx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
-            if "LHC" in getllm_d.accel:
-                files_dict['getIPx.out'].add_filename_to_getllm_header(file_in)
-                files_dict['getIPy.out'].add_filename_to_getllm_header(file_in)
-                files_dict['getIPfromphase.out'].add_filename_to_getllm_header(file_in)
+                dppi = twiss_file_x.DPP
+            except AttributeError:
+                dppi = 0.0
+            if type(dppi) != float:
+                print >> sys.stderr, 'Warning: DPP may not be given as a number in ', file_x, '...trying to forcibly cast it as a number'
+                try:
+                    dppi = float(dppi)
+                    print 'dppi= ', dppi
+                except ValueError:
+                    print >> sys.stderr, 'but failing. DPP in ', file_x, ' is something wrong. String? --- leaving GetLLM'
+                    print >> sys.stderr, traceback.format_exc()
+                    sys.exit(1)
+            if dppi == 0.0:
+                twiss_d.zero_dpp_x.append(twiss_file_x)
+                files_dict['getphasex.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getphasetotx.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getbetax.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getampbetax.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getCOx.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
+                if "LHC" in getllm_d.accel:
+                    files_dict['getIPx.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getIPy.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getIPfromphase.out'].add_filename_to_getllm_header(file_in)
+                    if getllm_d.with_ac_calc:
+                        files_dict['getIPx_free.out'].add_filename_to_getllm_header(file_in)
+                        files_dict['getIPy_free.out'].add_filename_to_getllm_header(file_in)
+                        files_dict['getIPx_free2.out'].add_filename_to_getllm_header(file_in)
+                        files_dict['getIPy_free2.out'].add_filename_to_getllm_header(file_in)
+                        files_dict['getIPfromphase_free.out'].add_filename_to_getllm_header(file_in)
+                        files_dict['getIPfromphase_free2.out'].add_filename_to_getllm_header(file_in)
                 if getllm_d.with_ac_calc:
-                    files_dict['getIPx_free.out'].add_filename_to_getllm_header(file_in)
-                    files_dict['getIPy_free.out'].add_filename_to_getllm_header(file_in)
-                    files_dict['getIPx_free2.out'].add_filename_to_getllm_header(file_in)
-                    files_dict['getIPy_free2.out'].add_filename_to_getllm_header(file_in)
-                    files_dict['getIPfromphase_free.out'].add_filename_to_getllm_header(file_in)
-                    files_dict['getIPfromphase_free2.out'].add_filename_to_getllm_header(file_in)
-            if getllm_d.with_ac_calc:
-                files_dict['getphasex_free.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getphasex_free2.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getphasetotx_free.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getphasetotx_free2.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getbetax_free.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getbetax_free2.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getampbetax_free.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getampbetax_free2.out'].add_filename_to_getllm_header(file_x)
-                files_dict['getcouple_free.out'].add_filename_to_getllm_header(file_in)
-                files_dict['getcouple_free2.out'].add_filename_to_getllm_header(file_in)
-        else:
-            twiss_d.non_zero_dpp_x.append(twiss_file_x)
-            files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
-        try:
-            if file_in.endswith(".gz"):
-                file_y = file_in.replace(".gz", suffix_y + ".gz")
+                    files_dict['getphasex_free.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getphasex_free2.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getphasetotx_free.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getphasetotx_free2.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getbetax_free.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getbetax_free2.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getampbetax_free.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getampbetax_free2.out'].add_filename_to_getllm_header(file_x)
+                    files_dict['getcouple_free.out'].add_filename_to_getllm_header(file_in)
+                    files_dict['getcouple_free2.out'].add_filename_to_getllm_header(file_in)
             else:
-                file_y = file_in + suffix_y
+                twiss_d.non_zero_dpp_x.append(twiss_file_x)
+                files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
+                files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
+        
+        # y file
+        if file_in.endswith(".gz"):
+            file_y = file_in.replace(".gz", suffix_y + ".gz")
+        else:
+            file_y = file_in + suffix_y
+        
+        twiss_file_y = None
+        try:
             twiss_file_y = metaclass.twiss(file_y)
+        except IOError:
+            print 'Warning: There seems no ' + str(file_y) + ' file in the specified directory.'
+        except ValueError:
+            pass # Information printed by metaclass already
+        
+        if None != twiss_file_y:
             try:
                 dppi = twiss_file_y.DPP
             except AttributeError:
@@ -623,8 +638,6 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
             else:
                 twiss_d.non_zero_dpp_y.append(twiss_file_y)
                 files_dict['getDy.out'].add_filename_to_getllm_header(file_y)
-        except IOError:
-            print 'Warning: There seems no ' + str(file_y) + ' file in the specified directory.'
     
     
     if not twiss_d.has_zero_dpp_x():
@@ -804,7 +817,6 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
     '''    
     print "Calculating phase and Beta for non-zero DPP" 
     if DEBUG:
-        #TODO: what is a thingie??(vimaier)
         print "lenght of hor-files(linx) with non zero dpp: " + str(len(twiss_d.non_zero_dpp_x))
         print "lenght of ver-files(liny) with non zero dpp: " + str(len(twiss_d.non_zero_dpp_y))
         
@@ -851,9 +863,9 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
             alfax = {}
             [betax, rmsbbx, alfax, bpms] = algorithms.beta.beta_from_phase(mad_twiss, list_with_single_twiss, phasex, plane)
             betax['DPP'] = dpop
-            betaxa = {}
-            [betaxa, rmsbbx, bpms, invJx] = algorithms.beta.beta_from_amplitude(mad_twiss, list_with_single_twiss, plane)
-            betaxa['DPP'] = dpop
+            #betaxa = {}
+            #[betaxa, rmsbbx, bpms, invJx] = algorithms.beta.beta_from_amplitude(mad_twiss, list_with_single_twiss, plane)
+            #betaxa['DPP'] = dpop
             filename = 'getbetax_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename)
             tfs_file = files_dict[filename]
@@ -912,10 +924,10 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
             betay = {}
             alfay = {}
             [betay, rmsbby, alfay, bpms] = algorithms.beta.beta_from_phase(dpp_twiss, list_with_single_twiss, phasey, plane)
-            betay['DPP'] = dpop
-            betaya = {}
-            [betaya, rmsbby, bpms, invJy] = algorithms.beta.beta_from_amplitude(dpp_twiss, list_with_single_twiss, plane)
-            betaya['DPP'] = dpop
+            #betay['DPP'] = dpop
+            #betaya = {}
+            #[betaya, rmsbby, bpms, invJy] = algorithms.beta.beta_from_amplitude(dpp_twiss, list_with_single_twiss, plane)
+            #betaya['DPP'] = dpop
             filename = 'getbetay_dpp_' + str(k + 1) + '.out'
             files_dict[filename] = utils.tfs_file.TfsFile(filename)
             tfs_file = files_dict[filename]
