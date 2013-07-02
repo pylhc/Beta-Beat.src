@@ -274,14 +274,14 @@ def _find_bpm(ip_num, model, measured):
             bpm_left = bpm_name
             try:
                 measured[0][bpm_left][0]  # Test if bpm_left exists
-            except KeyError:
+            except (KeyError, TypeError):
                 traceback.print_exc()
                 bpm_left = None
         if "BPMSW.1R"+ip_num in bpm_name:
             bpm_right = bpm_name
             try:
                 test = measured[0][bpm_right][0]  # @UnusedVariable
-            except KeyError:
+            except (KeyError, TypeError):
                 bpm_right = None
                 
     return [bpm_left, bpm_right]
@@ -422,6 +422,8 @@ def _get_ip_from_phase(MADTwiss,psix,psiy,oa):
                 betxstd =L*np.pi*dpsixstd/(2*sin(np.pi*dpsix)**2)
                 betystd =L*np.pi*dpsiystd/(2*sin(np.pi*dpsiy)**2)
                 result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
+        except KeyError: 
+            pass
         except: 
             traceback.print_exc()
         #-- This part due to the format difference of phasef2 (from the model)
@@ -448,6 +450,9 @@ def _get_ip_from_phase(MADTwiss,psix,psiy,oa):
                 betxstd =L*np.pi*dpsixstd/(2*sin(np.pi*dpsix)**2)
                 betystd =L*np.pi*dpsiystd/(2*sin(np.pi*dpsiy)**2)
                 result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
+        
+        except KeyError: 
+            pass
         except: 
             traceback.print_exc()
 

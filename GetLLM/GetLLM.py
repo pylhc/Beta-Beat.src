@@ -666,6 +666,10 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
             files_dict['getCOx.out'].add_filename_to_getllm_header("chrommode")
             files_dict['getDy.out'].add_filename_to_getllm_header("chrommode")
             
+    if twiss_d.has_no_input_files():
+        print >> sys.stderr, "No parsed input files"
+        sys.exit(1)
+            
     return twiss_d, files_dict
 # END analyse_src_files ----------------------------------------------------------------------------
 
@@ -1121,6 +1125,9 @@ class _TwissData(object):
     def has_non_zero_dpp_y(self):
         ''' Returns True if _liny file(s) exist(s) with dpp!=0 '''
         return 0 != len(self.non_zero_dpp_y)
+    
+    def has_no_input_files(self):
+        return not self.has_zero_dpp_x() and not self.has_zero_dpp_y() and not self.has_non_zero_dpp_x() and not self.has_non_zero_dpp_y()
     
     
 class _TuneData(object):
