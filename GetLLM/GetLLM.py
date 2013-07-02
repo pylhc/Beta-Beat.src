@@ -318,7 +318,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     if (getllm_d.accel=="SPS" or "RHIC" in getllm_d.accel) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         [pseudo_list_x, pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
     else:
-        #TODO: initialize variables otherwise calculate_coupling would raise an exception(vimaier)
+        # Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
         pseudo_list_x = None
         pseudo_list_y = None
         
@@ -326,51 +326,51 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     #-------- Check monitor compatibility between data and model
     check_bpm_compatibility(twiss_d, mad_twiss)
 
-    #-------- START Phase
-    phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
-
-    #-------- START Total Phase
-    algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
-
-    #-------- START Beta
-    beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
-
-    #------- START beta from amplitude
-    beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
-
-    #-------- START IP
-    algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
-
-    #-------- START Orbit
-    list_of_co_x, list_of_co_y, files_dict = calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
-
-    #-------- START Dispersion
-    algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
-
-    #-------- START coupling.
-    tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
-
-    #-------- Phase, Beta and coupling for non-zero DPP
-    phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y)
- 
-    if not higher_order:
-        print "Not analysing higher order..."
-        return 0
-     
-    if TBTana == "SUSSIX":
-        #------ Start getsextupoles @ Glenn Vanbavinckhove
-        files_dict = calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
-     
-        #------ Start getchiterms @ Glenn Vanbavinckhove
-        files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
- 
-    #------ Start get Q,JX,delta
-    files_dict = calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
-
-    #----- Write files
-    print "Writing files"
-    for tfsfile in files_dict.itervalues():
-        tfsfile.write_to_file(formatted=True)
+    try:
+        #-------- START Phase
+        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
+    
+        #-------- START Total Phase
+        algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
+    
+        #-------- START Beta
+        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
+    
+        #------- START beta from amplitude
+        beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+    
+        #-------- START IP
+        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+    
+        #-------- START Orbit
+        list_of_co_x, list_of_co_y, files_dict = calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
+    
+        #-------- START Dispersion
+        algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
+    
+        #-------- START coupling.
+        tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
+    
+        #-------- Phase, Beta and coupling for non-zero DPP
+        phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y)
+        
+        if higher_order:
+            if TBTana == "SUSSIX":
+                #------ Start getsextupoles @ Glenn Vanbavinckhove
+                files_dict = calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
+             
+                #------ Start getchiterms @ Glenn Vanbavinckhove
+                files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
+         
+            #------ Start get Q,JX,delta
+            files_dict = calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+        else:
+            print "Not analysing higher order..."
+            
+    finally:
+        print "Writing files"
+        for tfsfile in files_dict.itervalues():
+            tfsfile.write_to_file(formatted=True)
         
 # END main() ---------------------------------------------------------------------------------------
 
@@ -1004,12 +1004,17 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     '''
     print "Calculating kick"
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
+    
+    try:
+        [inv_jx, inv_jy, tune, tune_rms, dpp] = algorithms.helper.getkick(files, mad_twiss)
+    except IndexError:# occurs if either no x or no y files exist
+        return files_dict
+        
     tfs_file = files_dict['getkick.out']
     tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(beta_d.x_ratio))
     tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(beta_d.y_ratio))
     tfs_file.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
     tfs_file.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-    [inv_jx, inv_jy, tune, tune_rms, dpp] = algorithms.helper.getkick(files, mad_twiss)
     for i in range(0, len(dpp)):
         list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
         tfs_file.add_table_row(list_row_entries)
@@ -1099,11 +1104,11 @@ class _TwissData(object):
     
     def has_zero_dpp_y(self):
         ''' Returns True if _liny file(s) exist(s) with dpp==0 '''
-        return 0 != len(self.zero_dpp_x)
+        return 0 != len(self.zero_dpp_y)
 
     def has_non_zero_dpp_y(self):
-        ''' Returns True if _linx file(s) exist(s) with dpp!=0 '''
-        return 0 != len(self.non_zero_dpp_x)
+        ''' Returns True if _liny file(s) exist(s) with dpp!=0 '''
+        return 0 != len(self.non_zero_dpp_y)
     
     
 class _TuneData(object):
@@ -1139,8 +1144,11 @@ class _TuneData(object):
             self.delta1 = self.q1-self.q1f #-- Used later to calculate free Q1
             self.delta2 = self.q2-self.q2f #-- Used later to calculate free Q2
         else:
-            self.q1f = twiss_d.zero_dpp_x[0].Q1
-            self.q2f = twiss_d.zero_dpp_y[0].Q2
+            try:
+                self.q1f = twiss_d.zero_dpp_x[0].Q1
+                self.q2f = twiss_d.zero_dpp_y[0].Q2
+            except IndexError:
+                pass
 
 #===================================================================================================
 # main invocation

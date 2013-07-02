@@ -64,16 +64,16 @@ parser = optparse.OptionParser(usage=description)
 parser.add_option("-o", "--valid_output",
                     help="Decides whether the valid script will be run(!=0) and produce output or not(==0)",
                     default=1, dest="CREATE_VALID_OUTPUT")
-parser.add_option("-v","--valid_getllm_script", dest="GETLLM_SCRIPT_VALID",
+parser.add_option("-v", "--valid_getllm_script", dest="GETLLM_SCRIPT_VALID",
                     default="./GetLLM_valid.py",
                     help="Path to original/valid GetLLM.py script")
-parser.add_option("-m","--modified_getllm_script", dest="GETLLM_SCRIPT",
+parser.add_option("-m", "--modified_getllm_script", dest="GETLLM_SCRIPT",
                     default="../GetLLM.py",
                     help="Path to the modified GetLLM.py script")
-parser.add_option("-p","--path_to_test_data", dest="PATH_TO_TEST_DATA",
+parser.add_option("-p", "--path_to_test_data", dest="PATH_TO_TEST_DATA",
                     default="./data",
                     help="Path to the root of the test data directory")
-parser.add_option("-s","--special_output", dest="SPECIAL_OUTPUT",
+parser.add_option("-s", "--special_output", dest="SPECIAL_OUTPUT",
                     default="",
                     help="If special_output is given the output will be produced into this directory."+
                             " Valid output will also be produced.")
@@ -85,7 +85,7 @@ parser.add_option("-s","--special_output", dest="SPECIAL_OUTPUT",
 try:
     CREATE_VALID_OUTPUT = bool( int(options.CREATE_VALID_OUTPUT) )
 except ValueError:
-    print "Wrong option 'valid_output': ",options.CREATE_VALID_OUTPUT
+    print "Wrong option 'valid_output': ", options.CREATE_VALID_OUTPUT
     print "Will produce valid output"
     CREATE_VALID_OUTPUT = True
 # Path to original/valid GetLLM.py script
@@ -98,7 +98,7 @@ SPECIAL_OUTPUT = options.SPECIAL_OUTPUT
 if "" != SPECIAL_OUTPUT :
     CREATE_VALID_OUTPUT = True
     if not os.path.isdir(SPECIAL_OUTPUT):
-        print "special_output is not a directory: ",SPECIAL_OUTPUT
+        print "special_output is not a directory: ", SPECIAL_OUTPUT
         SPECIAL_OUTPUT = ""
     
 
@@ -137,7 +137,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
                 # Valid directory structure to run GetLLM.py
                 
                 print "==============================================================="
-                print "Run test for",run_validator.get_run_dir_name()
+                print "Run test for", run_validator.get_run_dir_name()
                 print "==============================================================="
                 if not self.run_single_test(run_validator):
                     all_tests_valid = False
@@ -248,9 +248,9 @@ class TestFileOutputGetLLM(unittest.TestCase):
         num_equal_files = 0
         num_overall_files = len(valid_filenames)
         for name in valid_filenames:
-            err_msg = compare_tfs_files(os.path.join(valid_output_path,name), os.path.join(to_check_output_path,name) )
+            err_msg = compare_tfs_files(os.path.join(valid_output_path, name), os.path.join(to_check_output_path, name) )
             if "" != err_msg:
-                print name," are not equal:",err_msg
+                print name, "are not equal:", err_msg
             else:
                 num_equal_files += 1
         
@@ -314,7 +314,7 @@ def main():
                    "-m","--modified_getllm_script",
                    "-p","--path_to_test_data")
     del_lst = []
-    for i,option in enumerate(sys.argv):
+    for i, option in enumerate(sys.argv):
         if option in arguments_tpl:
             del_lst.append(i)
             del_lst.append(i+1)
@@ -333,3 +333,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

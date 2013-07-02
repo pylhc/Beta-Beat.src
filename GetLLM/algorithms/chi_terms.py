@@ -42,6 +42,10 @@ def calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict):
     #-> 2) chi1010
     #-> 2) chi4000
     '''
+    # Designed to work only with zero_dpp_x AND zero_dpp_y files
+    if not (twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y()):
+        return files_dict
+    
     print "Calculating chiterms"
     # 1) chi3000
     tfs_file = files_dict['getchi3000.out']

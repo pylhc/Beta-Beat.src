@@ -40,16 +40,14 @@ def model_intersect(exp_bpms, model_twiss):
                 
     :Return: list with tuples: (<S_value_i>,<bpm_i>)
         A list with BPMs which are both in exp_bpms and model_twiss.
-        
-    :Exception: SystemExit
-        If the length of exp_bpms is 0 or the length of the resulting list of strings is 0 then 
-        SystemExit will be raised (sys.exit(1) ),
+
     '''
     bpmsin = []
     #print "start Intersect, exp_bpms #:", len(exp_bpms)
     if len(exp_bpms) == 0:
         print >> sys.stderr, "Zero exp BPMs sent to model_intersect"
-        sys.exit(1)
+        return bpmsin
+    
     for bpm in exp_bpms:
         try:
             model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
@@ -77,14 +75,10 @@ def intersect(list_of_twiss_files):
     :Return: list with tuples: (<S_value_i>,<bpm_i>)
         A list with following tuples: (<S_value_i>,<bpm_i>).
         bpm_i is in every twiss of list_of_twiss_files.
-        
-    :Exception: SystemExit
-        If the length of list_of_twiss_files is 0 or there are no entries in column 'NAME' then 
-        SystemExit will be raised (sys.exit(1) ),
     '''
     if len(list_of_twiss_files) == 0:
         print >> sys.stderr, "Nothing to intersect!!!!"
-        sys.exit(1)
+        return []
         
     names_list = list_of_twiss_files[0].NAME
     if len(names_list) == 0:

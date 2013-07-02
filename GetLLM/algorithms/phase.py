@@ -83,6 +83,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
         q1_temp = np.mean(q1_temp)
 
         [phase_d.ph_x, tune_d.q1, tune_d.mux, bpmsx] = get_phases(getllm_d, mad_ac, twiss_d.zero_dpp_x, q1_temp, 'H')
+        if not twiss_d.has_zero_dpp_y():
+            print 'liny missing and output x only ...'
 
             
     if twiss_d.has_zero_dpp_y(): 
@@ -93,7 +95,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
         q2_temp = np.mean(q2_temp)
         
         [phase_d.ph_y, tune_d.q2, tune_d.muy, bpmsy] = get_phases(getllm_d, mad_ac, twiss_d.zero_dpp_y, q2_temp, 'V')
-        if not twiss_d.has_zero_dpp_y():
+        if not twiss_d.has_zero_dpp_x():
             print 'linx missing and output y only ...'
 
     #---- Re-run GetPhase to fix the phase shift by Q for exp data of LHC
