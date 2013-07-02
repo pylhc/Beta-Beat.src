@@ -13,12 +13,11 @@ Change history:
 """
 
 import os
-import sys
 
 DEFAULT_COLUMN_WIDTH = 17
-""" Indicates width of columns in output file. """
+# Indicates width of columns in output file.
 INVALID_COLUMN_NUMBER = -1
-""" Initial value for number of columns. """
+# Initial value for number of columns.
 
 # Indexes for the self.__table:
 I_COLUMN_TYPES = 0
@@ -83,7 +82,7 @@ class TfsFile(object):
         return self
 
     
-    def add_filename_to_getllm_header(self,file_name):
+    def add_filename_to_getllm_header(self, file_name):
         """ Adds a file to '@ FILES %s "<files-list>"\n' """
         self.__getllm_srcfiles.append(file_name)
     
@@ -177,6 +176,10 @@ class TfsFile(object):
             print self.__file_name+":", "Abort writing file. Cannot write file until column names and types are set."
             return
         
+        if 0 == len(self.__table[I_TABLE_LINES]):
+            print self.__file_name+":", "Abort writing file. No rows in table."
+            return
+        
         path = os.path.join(TfsFile.s_output_path, self.__file_name)
         tfs_file = open(path,'w')  
         
@@ -202,7 +205,7 @@ class TfsFile(object):
         # Write column names
         first_element = self.__table[I_COLUMN_NAMES][0]
         tfs_file.write( ("* {0:>"+str(self.__column_width-2)+"} ").format(first_element))
-        remain =self.__table[I_COLUMN_NAMES][1:]
+        remain = self.__table[I_COLUMN_NAMES][1:]
         tfs_file.write(" ".join(format_for_string.format(entry) for entry in remain))
         tfs_file.write("\n")
         

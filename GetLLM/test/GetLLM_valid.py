@@ -2634,9 +2634,7 @@ def getIP(IP,measured,model,phase,bpms):
     if "null" in BPMleft or "null" in BPMright:
 
         print "skipping IP"+IP+" calculation, no BPM found"
-        betahor=[IP,0,0,0,0,0,0]
-        betaver=[IP,0,0,0,0,0,0]
-        #sys.exit()
+        raise ValueError
 
     else:
         # model
@@ -4238,8 +4236,14 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         d1 =Q1-Q1f                                                        #-- Used later to calculate free Q1
         d2 =Q2-Q2f                                                        #-- Used later to calculate free Q2
     else:
-        Q1f=ListOfZeroDPPX[0].Q1
-        Q2f=ListOfZeroDPPY[0].Q2
+        try:
+            Q1f=ListOfZeroDPPX[0].Q1
+        except IndexError:
+            Q1f = 0.0
+        try:
+            Q2f=ListOfZeroDPPY[0].Q2
+        except IndexError:
+            Q1f = 0.0
 
 
     fphasex.write('"'+'\n')
@@ -4983,11 +4987,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             try:
                 #print "entering"
                 betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
+                fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
             except:
-                betahor=[0,0,0,0,0,0,0]
-                betaver=[0,0,0,0,0,0,0]
+                pass
             #print str(betahor[6])
-            fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
 
         fIP.close()
 

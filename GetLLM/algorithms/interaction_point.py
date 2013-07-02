@@ -59,11 +59,10 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
         for num_ip in ips:
             try:
                 betahor, betaver = _get_ip(num_ip, measured, mad_twiss)
-            except KeyError:
-                betahor = [0, 0, 0, 0, 0, 0, 0]
-                betaver = [0, 0, 0, 0, 0, 0, 0]
-            list_row_entries = ['"IP' + num_ip + '"', betahor[1], betahor[4], betahor[2], betahor[3], betahor[6], betahor[5], betaver[1], betaver[4], betaver[2], betaver[3], betaver[6], betaver[5]]
-            tfs_file.add_table_row(list_row_entries)
+                list_row_entries = ['"IP' + num_ip + '"', betahor[1], betahor[4], betahor[2], betahor[3], betahor[6], betahor[5], betaver[1], betaver[4], betaver[2], betaver[3], betaver[6], betaver[5]]
+                tfs_file.add_table_row(list_row_entries)
+            except (KeyError, ValueError):
+                pass
         
         #-- Parameters at IP1, IP2, IP5, and IP8
         ip_x = _get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
@@ -81,16 +80,16 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
                     list_row_entries.append(ip_value)
                 
                 tfs_file_x.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
+            except KeyError:
+                pass
             try:
                 list_row_entries = ['"' + ip_name + '"']
                 for ip_value in ip_y[ip_name]:
                     list_row_entries.append(ip_value)
                 
                 tfs_file_y.add_table_row(list_row_entries)
-            except:
-                traceback.print_exc()
+            except KeyError:
+                pass
 
         #-- ac to free parameters at IP1, IP2, IP5, and IP8
         if getllm_d.with_ac_calc:
@@ -110,16 +109,17 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
                         list_row_entries.append(ip_value)
                     
                     tfs_file_x.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
+                except KeyError:
+                    pass
                 try:
                     list_row_entries = ['"' + ip_name + '"']
                     for ip_value in ip_y_f[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file_y.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
+                except KeyError:
+                    pass
+                
             #-- From model
             ip_x_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_x, 'H', getllm_d.accel)
             ip_y_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_y, 'V', getllm_d.accel)
@@ -148,23 +148,24 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
                     traceback.print_exc()
 
         #-- IP beta* and phase from phase only
-        try:
-            ip_from_phase = _get_ip_from_phase(mad_ac, phase_d.ph_x, phase_d.ph_y, getllm_d.accel)
-        except:
-            traceback.print_exc()
-            print 'No output from IP from phase. H or V file missing?'
-        tfs_file = files_dict['getIPfromphase.out']
-        tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-            list_row_entries = ['"' + ip_name + '"']
+        if not phase_d.ph_x is None and not phase_d.ph_y is None: # Designed to run with both 
             try:
-                for ip_value in ip_from_phase[ip_name]:
-                    list_row_entries.append(ip_value)
-                
-                tfs_file.add_table_row(list_row_entries)
+                ip_from_phase = _get_ip_from_phase(mad_ac, phase_d.ph_x, phase_d.ph_y, getllm_d.accel)
             except:
                 traceback.print_exc()
+                print 'No output from IP from phase. H or V file missing?'
+            tfs_file = files_dict['getIPfromphase.out']
+            tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
+            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
+                list_row_entries = ['"' + ip_name + '"']
+                try:
+                    for ip_value in ip_from_phase[ip_name]:
+                        list_row_entries.append(ip_value)
+                    
+                    tfs_file.add_table_row(list_row_entries)
+                except KeyError:
+                    pass
         #-- ac to free beta*
         if getllm_d.with_ac_calc:
             #-- from eqs
@@ -218,10 +219,8 @@ def _get_ip(ip_num, measured, model):
 
     if bpm_left is None or bpm_right is None:
         print "skipping ip%1s calculation, no BPM found" % ip_num
-        betahor = [ip_num, 0, 0, 0, 0, 0, 0]
-        betaver = [ip_num, 0, 0, 0, 0, 0, 0]
-        return [betahor, betaver]
-
+        raise ValueError
+        
     # model
     sxl = model.S[model.indx[bpm_left]]
     sip = model.S[model.indx["ip"+ip_num]]
@@ -423,7 +422,8 @@ def _get_ip_from_phase(MADTwiss,psix,psiy,oa):
                 betxstd =L*np.pi*dpsixstd/(2*sin(np.pi*dpsix)**2)
                 betystd =L*np.pi*dpsiystd/(2*sin(np.pi*dpsiy)**2)
                 result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
-        except: pass
+        except: 
+            traceback.print_exc()
         #-- This part due to the format difference of phasef2 (from the model)
         try:
             if psix[bpml][-2]==bpmr:
@@ -448,7 +448,8 @@ def _get_ip_from_phase(MADTwiss,psix,psiy,oa):
                 betxstd =L*np.pi*dpsixstd/(2*sin(np.pi*dpsix)**2)
                 betystd =L*np.pi*dpsiystd/(2*sin(np.pi*dpsiy)**2)
                 result['IP'+i]=[2*L,betx,betxstd,betxmdl,bety,betystd,betymdl,dpsix,dpsixstd,dpsixmdl,dpsiy,dpsiystd,dpsiymdl]
-        except: pass
+        except: 
+            traceback.print_exc()
 
     return result
 

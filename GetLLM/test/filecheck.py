@@ -43,6 +43,7 @@ import shutil
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join( os.path.dirname(os.path.abspath(__file__)),"../../../Python_Classes4MAD" ))
 
+import metaclass
 import vimaier_utils.scriptrunner
 import vimaier_utils.IoUtils
 import runvalidator
@@ -275,6 +276,12 @@ def compare_tfs_files(name_valid, name_to_check):
     """ Compares both files. Whitespace does not matter.
         Returns an error message or in success an empty string.
     """
+    if name_valid.endswith(".gitignore"):
+        return ""
+    
+    if file_not_valid(name_valid):
+        return ""
+    
     file_valid = open(name_valid)
     file_to_check = open(name_to_check)
     
@@ -305,6 +312,18 @@ def compare_tfs_files(name_valid, name_to_check):
     
     return ""
         
+
+def file_not_valid(name_twiss):
+    ''' Checks if the given twiss file is empty, thus not valid. '''
+    try:
+        tw = metaclass.twiss(name_twiss)
+        if 0 == len(getattr(tw, "NAME", [])):
+            return True # empty files are not longer produced by modified GetLLM
+        return False
+    except ValueError:
+        # Probably empty file
+        return True
+
 
 def main():
     # Remove arguments from sys.argv
