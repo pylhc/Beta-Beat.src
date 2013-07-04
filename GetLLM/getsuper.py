@@ -234,7 +234,7 @@ def main(options, args):
     fileobj = chromFileWriter('beta', options.output+"/chrombetax.out", 'H')
 
     bpms = Utilities.bpm.intersect(listx)
-    bpms = Utilities.bpm.modelIntersect(bpms, modeld)
+    bpms = Utilities.bpm.model_intersect(bpms, modeld)
     dolinregbet(fileobj, fileslist.keys(), betalistx, bpms, "H", zerobx, modeld)
     del fileobj
 
@@ -242,7 +242,7 @@ def main(options, args):
     fileobj = chromFileWriter('beta', options.output+"/chrombetay.out", 'V')
 
     bpms = Utilities.bpm.intersect(listy)
-    bpms = Utilities.bpm.modelIntersect(bpms, modeld)
+    bpms = Utilities.bpm.model_intersect(bpms, modeld)
     dolinregbet(fileobj, fileslist.keys(), betalisty, bpms, "V", zeroby, modeld)
     del fileobj
 
@@ -256,7 +256,7 @@ def main(options, args):
     fileobj = chromFileWriter('coupling', options.output+"/chromcoupling.out", '')
 
     bpms = Utilities.bpm.intersect(listc)
-    bpms = Utilities.bpm.modelIntersect(bpms, modeld)
+    bpms = Utilities.bpm.model_intersect(bpms, modeld)
 
     dolinregCoupling(couplelist, bpms, fileslist.keys(), fileobj)
     del fileobj
@@ -272,14 +272,14 @@ def main(options, args):
         fileobj = chromFileWriter('beta', options.output+"/chrombetax_free.out", 'H')
 
         bpms = Utilities.bpm.intersect(listxf)
-        bpms = Utilities.bpm.modelIntersect(bpms, modelf)
+        bpms = Utilities.bpm.model_intersect(bpms, modelf)
         dolinregbet(fileobj, fileslist.keys(), betalistxf, bpms, "H", zerobxf, modelf)
 
         #V
         fileobj = chromFileWriter('beta', options.output+"/chrombetay_free.out", 'V')
 
         bpms = Utilities.bpm.intersect(listyf)
-        bpms = Utilities.bpm.modelIntersect(bpms, modelf)
+        bpms = Utilities.bpm.model_intersect(bpms, modelf)
         dolinregbet(fileobj, fileslist.keys(), betalistyf, bpms, "V", zerobyf, modelf)
 
         print "Free beta finished"
@@ -292,7 +292,7 @@ def main(options, args):
         fileobj = chromFileWriter('coupling', options.output+"/chromcoupling_free.out", '')
 
         bpms = Utilities.bpm.intersect(listcf)
-        bpms = Utilities.bpm.modelIntersect(bpms, modelf)
+        bpms = Utilities.bpm.model_intersect(bpms, modelf)
 
         dolinregCoupling(couplelistf, bpms, fileslist.keys(), fileobj)
 
