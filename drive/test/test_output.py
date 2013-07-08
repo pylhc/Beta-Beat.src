@@ -44,7 +44,7 @@ class TestOutput(unittest.TestCase):
             self._delete_output_dirs()
 
 
-    def testName(self):
+    def testOutput(self):
         print "Start TestOutput of drive"
         self._run_valid_file()
         self._run_modified_file()
@@ -77,11 +77,11 @@ class TestOutput(unittest.TestCase):
             
     def _run_modified_file(self):
         ''' Runs drive.Drive_God_lin for all directories in drive.test.data.to_check. '''
-        print "  Run valid files"
+        print "  Run to_check files"
         for directory in os.listdir(self.path_to_to_check):
             to_check_dir_path = os.path.join(self.path_to_to_check, directory)
             print "    Run:", to_check_dir_path
-            self._run_drive(self.path_to_valid_drive, to_check_dir_path)
+            self._run_drive(self.path_to_modified_drive, to_check_dir_path)
             
     
     def _run_drive(self, path_to_drive, path_to_dir):
@@ -110,11 +110,13 @@ class TestOutput(unittest.TestCase):
     def _compare_output_dirs(self):
         ''' Compares output by using filecmp '''
         print "  Comparing output files"
-        dir_compare = filecmp.dircmp(self.path_to_valid, self.path_to_to_check)
-        
-        dir_compare.report()
-        
-        self.assertEqual(0, len(dir_compare.diff_files), "Files are not equal.")
+
+        for directory in os.listdir(self.path_to_valid):
+            valid_dir = os.path.join(self.path_to_valid, directory)
+            to_check_dir = os.path.join(self.path_to_to_check, directory)
+            dir_compare = filecmp.dircmp(valid_dir, to_check_dir)
+            dir_compare.report()
+            self.assertEqual(0, len(dir_compare.diff_files), "Files are not equal.")
         
         TestOutput.successful = True
         
@@ -122,5 +124,5 @@ class TestOutput(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'TestOutput.testName']
+    #import sys;sys.argv = ['', 'TestOutput.testOutput']
     unittest.main()
