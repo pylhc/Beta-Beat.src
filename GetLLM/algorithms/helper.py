@@ -318,33 +318,45 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             phi16.append(phm16)
             phi17.append(phm17)
 
-        phi12=np.array(phi12)
-        phi13=np.array(phi13)
-        phi14=np.array(phi14)
-        phi15=np.array(phi15)
-        phi16=np.array(phi16)
-        phi17=np.array(phi17)
-        if beam_direction==-1: # for the beam circulating reversely to the model
-            phi12=1.0-phi12
-            phi13=1.0-phi13
-            phi14=1.0-phi14
-            phi15=1.0-phi15
-            phi16=1.0-phi16
-            phi17=1.0-phi17
+        phi12 = np.array(phi12)
+        phi13 = np.array(phi13)
+        phi14 = np.array(phi14)
+        phi15 = np.array(phi15)
+        phi16 = np.array(phi16)
+        phi17 = np.array(phi17)
+        if beam_direction == -1: # for the beam circulating reversely to the model
+            phi12 = 1.0-phi12
+            phi13 = 1.0-phi13
+            phi14 = 1.0-phi14
+            phi15 = 1.0-phi15
+            phi16 = 1.0-phi16
+            phi17 = 1.0-phi17
 
-        phstd12=PhaseStd(phi12,1.0)
-        phstd13=PhaseStd(phi13,1.0)
-        phstd14=PhaseStd(phi14,1.0)
-        phstd15=PhaseStd(phi15,1.0)
-        phstd16=PhaseStd(phi16,1.0)
-        phstd17=PhaseStd(phi17,1.0)
-        phi12=PhaseMean(phi12,1.0)
-        phi13=PhaseMean(phi13,1.0)
-        phi14=PhaseMean(phi14,1.0)
-        phi15=PhaseMean(phi15,1.0)
-        phi16=PhaseMean(phi16,1.0)
-        phi17=PhaseMean(phi17,1.0)
+        phstd12 = PhaseStd(phi12, 1.0)
+        phstd13 = PhaseStd(phi13, 1.0)
+        phstd14 = PhaseStd(phi14, 1.0)
+        phstd15 = PhaseStd(phi15, 1.0)
+        phstd16 = PhaseStd(phi16, 1.0)
+        phstd17 = PhaseStd(phi17, 1.0)
+        phi12 = PhaseMean(phi12, 1.0)
+        phi13 = PhaseMean(phi13, 1.0)
+        phi14 = PhaseMean(phi14, 1.0)
+        phi15 = PhaseMean(phi15, 1.0)
+        phi16 = PhaseMean(phi16, 1.0)
+        phi17 = PhaseMean(phi17, 1.0)
         
+        if i >= length_commonbpms-6:
+            phi17 = phiLastAndLastButOne(phi17, tune)
+            if i >= length_commonbpms-5:
+                phi16 = phiLastAndLastButOne(phi16, tune)
+            if i >= length_commonbpms-4:
+                phi15 = phiLastAndLastButOne(phi15, tune)
+            if i >= length_commonbpms-3:
+                phi14 = phiLastAndLastButOne(phi14, tune)                
+            if i >= length_commonbpms-2:
+                phi13 = phiLastAndLastButOne(phi13, tune)                
+            if i >= length_commonbpms-1:
+                phi12 = phiLastAndLastButOne(phi12, tune)                
 
         if plane=='H':
             phmdl12=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
@@ -361,6 +373,32 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             phmdl16=MADTwiss.MUY[MADTwiss.indx[bn6]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
             phmdl17=MADTwiss.MUY[MADTwiss.indx[bn7]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
  
+        if i >= length_commonbpms-6:
+            if plane == 'H':
+                madtune = MADTwiss.Q1 % 1.0
+            elif plane == 'V':
+                madtune = MADTwiss.Q2 % 1.0
+            if madtune > 0.5:
+                madtune -= 1.0
+
+            phmdl17 = phmdl17 % 1.0
+            phmdl17 = phiLastAndLastButOne(phmdl17,madtune)
+            if i >= length_commonbpms-5:
+                phmdl16 = phmdl16 % 1.0
+                phmdl16 = phiLastAndLastButOne(phmdl16,madtune)                
+            if i >= length_commonbpms-4:
+                phmdl15 = phmdl15 % 1.0
+                phmdl15 = phiLastAndLastButOne(phmdl15,madtune)                
+            if i >= length_commonbpms-3:
+                phmdl14 = phmdl14 % 1.0
+                phmdl14 = phiLastAndLastButOne(phmdl14,madtune)                
+            if i >= length_commonbpms-2:
+                phmdl13 = phmdl13 % 1.0
+                phmdl13 = phiLastAndLastButOne(phmdl13,madtune)                
+            if i == length_commonbpms-1:
+                phmdl12 = phmdl12 % 1.0
+                phmdl12 = phiLastAndLastButOne(phmdl12,madtune)
+                                        
         
         if (abs(phmdl12) < small):
             phmdl12=small
@@ -3018,7 +3056,8 @@ def GetFreePhaseTotal_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             if Psid[k]%(2*np.pi)>np.pi: Psi[k]=Psi[k]+np.pi
         psi=Psi-Psi[0]
         psi[k_bpmac:]=psi[k_bpmac:]+2*np.pi*Q
-        for k in range(len(bpm)): psiall[k][i]=psi[k]/(2*np.pi)  #-- phase range back to [0,1)
+        for k in range(len(bpm)): 
+            psiall[k][i] = psi[k]/(2*np.pi)  #-- phase range back to [0,1)
 
     #-- Output
     result={}
