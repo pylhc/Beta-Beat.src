@@ -780,26 +780,26 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
         sort_cand = sorted(candidates)
 
-        beti = (sort_cand[0][2] + sort_cand[1][2] + sort_cand[2][2] + sort_cand[3][2] + sort_cand[4][2])/5.
-        alfi = (sort_cand[0][4] + sort_cand[1][4] + sort_cand[2][4] + sort_cand[3][4] + sort_cand[4][4])/5.
+#        beti = (sort_cand[0][2] + sort_cand[1][2] + sort_cand[2][2] + sort_cand[3][2] + sort_cand[4][2])/5.
+#        alfi = (sort_cand[0][4] + sort_cand[1][4] + sort_cand[2][4] + sort_cand[3][4] + sort_cand[4][4])/5.
 
-        betstd = math.sqrt(sort_cand[0][1]**2 + sort_cand[1][1]**2 + sort_cand[2][1]**2 + sort_cand[3][1]**2 + sort_cand[4][1]**2)/math.sqrt(5.)
-        alfstd = math.sqrt(sort_cand[0][3]**2 + sort_cand[1][3]**2 + sort_cand[2][3]**2 + sort_cand[3][3]**2 + sort_cand[4][3]**2)/math.sqrt(5.)
+#        betstd = math.sqrt(sort_cand[0][1]**2 + sort_cand[1][1]**2 + sort_cand[2][1]**2 + sort_cand[3][1]**2 + sort_cand[4][1]**2)/math.sqrt(5.)
+#        alfstd = math.sqrt(sort_cand[0][3]**2 + sort_cand[1][3]**2 + sort_cand[2][3]**2 + sort_cand[3][3]**2 + sort_cand[4][3]**2)/math.sqrt(5.)
         
-#        nom_bet = 0
-#        nom_alf = 0
-#        w_err_bet = 0
-#        w_err_alf = 0
-#        for i in range(len(sort_cand)):
-#            nom_bet = nom_bet + sort_cand[i][2]/sort_cand[i][1]**2
-#            nom_alf = nom_alf + sort_cand[i][4]/sort_cand[i][3]**2
-#            w_err_bet = w_err_bet + 1/sort_cand[i][1]**2
-#            w_err_alf = w_err_alf + 1/sort_cand[i][3]**2
-#        beti = nom_bet / w_err_bet
-#        alfi = nom_alf / w_err_alf
-#        
-#        betstd = math.sqrt(1 / w_err_bet)
-#        alfstd = math.sqrt(1 / w_err_alf)
+        nom_bet = 0
+        nom_alf = 0
+        w_err_bet = 0
+        w_err_alf = 0
+        for i in range(len(sort_cand)):
+            nom_bet = nom_bet + sort_cand[i][2]/sort_cand[i][1]**2
+            nom_alf = nom_alf + sort_cand[i][4]/sort_cand[i][3]**2
+            w_err_bet = w_err_bet + 1/sort_cand[i][1]**2
+            w_err_alf = w_err_alf + 1/sort_cand[i][3]**2
+        beti = nom_bet / w_err_bet
+        alfi = nom_alf / w_err_alf
+        
+        betstd = math.sqrt(1 / w_err_bet)
+        alfstd = math.sqrt(1 / w_err_alf)
 
         try:
             beterr = math.sqrt(np.abs((sort_cand[0][2]**2 + sort_cand[1][2]**2 + sort_cand[2][2]**2 + sort_cand[3][2]**2 + sort_cand[4][2]**2)/5.-beti**2.))
