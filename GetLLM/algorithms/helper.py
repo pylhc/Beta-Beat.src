@@ -665,32 +665,29 @@ def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane):
     # Find beta3 and alpha3 from phases assuming model transfer matrix
     # Matrix M: BPM2-> BPM3
     # Matrix N: BPM1-> BPM3
-    M22 = math.sqrt(betmdl2/betmdl3)*(cos(phmdl23)-alpmdl3*sin(phmdl23))
-    M12 = math.sqrt(betmdl2*betmdl3)*sin(phmdl23)
-    N22 = math.sqrt(betmdl1/betmdl3)*(cos(phmdl13)-alpmdl3*sin(phmdl13))
-    N12 = math.sqrt(betmdl1*betmdl3)*sin(phmdl13)
+    M22=math.sqrt(betmdl2/betmdl3)*(cos(phmdl23)-alpmdl3*sin(phmdl23))
+    M12=math.sqrt(betmdl2*betmdl3)*sin(phmdl23)
+    N22=math.sqrt(betmdl1/betmdl3)*(cos(phmdl13)-alpmdl3*sin(phmdl13))
+    N12=math.sqrt(betmdl1*betmdl3)*sin(phmdl13)
 
-    denom = M22/M12-N22/N12+1e-16
-    numer = 1/tan(ph2pi23)-1/tan(ph2pi13)
-    bet = numer/denom
+    denom=M22/M12-N22/N12+1e-16
+    numer=1/tan(ph2pi23)-1/tan(ph2pi13)
+    bet=numer/denom
 
-    betstd =        (2*np.pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-    betstd = betstd+(2*np.pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-    betstd = math.sqrt(betstd)/abs(denom)
+    betstd=        (2*np.pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
+    betstd=betstd+(2*np.pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
+    betstd=math.sqrt(betstd)/abs(denom)
 
-    denom = M12/M22-N12/N22+1e-16
-    numer = M12/M22/tan(ph2pi23)-N12/N22/tan(ph2pi13)
-    alf = numer/denom
+    denom=M12/M22-N12/N22+1e-16
+    numer=M12/M22/tan(ph2pi23)-N12/N22/tan(ph2pi13)
+    alf=numer/denom
 
-    alfstd =        (M12/M22*2*np.pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-    alfstd = alfstd+(N12/N22*2*np.pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-    alfstd = math.sqrt(alfstd)/abs(denom)
+    alfstd=        (M12/M22*2*np.pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
+    alfstd=alfstd+(N12/N22*2*np.pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
+    alfstd=math.sqrt(alfstd)/abs(denom)
 
-    err_assumption = (2*np.pi*0.0005/sin(ph2pi23)**2)**2
-    err_assumption = err_assumption+(2*np.pi*0.0005/sin(ph2pi13)**2)**2
-    err_assumption = math.sqrt(err_assumption)/abs(denom)
 
-    return bet, betstd, alf, alfstd, err_assumption
+    return bet, betstd, alf, alfstd
 
 def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
     ''' 
