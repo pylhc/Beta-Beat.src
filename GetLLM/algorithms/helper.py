@@ -256,8 +256,8 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             print "Beta from amplitude around this monitor will be slightly varied."
         phase[bn1]=[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2]
 
-#TODO: Phase advance for last to first BPM?
- 
+    for i in range(0,length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
+
         bn1 = string.upper(commonbpms[i%len(commonbpms)][1])
         bn2 = string.upper(commonbpms[(i+1)%len(commonbpms)][1])
         bn3 = string.upper(commonbpms[(i+2)%len(commonbpms)][1])
