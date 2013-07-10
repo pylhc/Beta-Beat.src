@@ -802,12 +802,12 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
         alfstd = math.sqrt(1 / w_err_alf)
 
         try:
-            beterr = math.sqrt(np.abs((sort_cand[0][2]**2 + sort_cand[1][2]**2 + sort_cand[2][2]**2 + sort_cand[3][2]**2 + sort_cand[4][2]**2)/5.-beti**2.))
+            beterr = math.sqrt(np.abs((sort_cand[0][2]**2 + sort_cand[1][2]**2 + sort_cand[2][2]**2)/3.-beti**2.))
         except:
             beterr=0
 
         try:
-            alferr = math.sqrt(np.abs((sort_cand[0][4]**2 + sort_cand[1][4]**2 + sort_cand[2][4]**2 + sort_cand[3][4]**2 + sort_cand[4][4]**2)/5.-alfi**2.))
+            alferr = math.sqrt(np.abs((sort_cand[0][4]**2 + sort_cand[1][4]**2 + sort_cand[2][4]**2)/3.-alfi**2.))
         except:
             alferr=0
 
