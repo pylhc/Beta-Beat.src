@@ -280,10 +280,10 @@ def main(options):
     
         elif start.has_key(namename) or end.has_key(namename):
     
-            print "Something strange ....Did you properly define the input ?"
-            print "Like: BPM1,BPM2,ARC12,IP1"
-            print "Structure must be for Segment => BPML,BPMR,NAME"
-            print "For Instrument just name"
+            print >> sys.stderr, "Something strange ....Did you properly define the input ?"
+            print >> sys.stderr, "Like: BPM1,BPM2,ARC12,IP1"
+            print >> sys.stderr, "Structure must be for Segment => BPML,BPMR,NAME"
+            print >> sys.stderr, "For Instrument just name"
             sys.exit()
         else:
             print "Element has been choosen"
@@ -435,8 +435,6 @@ def main(options):
             else:
                 fs=[0,0,0,0,0,0]
                 print "No coupling"
-    
-            #sys.exit()
                 print "madpass", options.madpass        
             if str(options.madpass)=="0":
                 print "Going to run4mad"
@@ -482,8 +480,6 @@ def main(options):
     
             normal_pro.Cmatrix()
     
-#             print normal_pro.C
-#             sys.exit()
             # writing data in list
             phases=[filephasex,filephasey,filephasextot,filephaseytot]
             betah=[filedatax,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedataxA]
@@ -583,7 +579,7 @@ def filterandfind(betaxx,betayy,element,segment,model,errorcut):
         try:
             sele=model.S[model.indx[element]]
         except:
-            print element, " Not found in model=> System exit"
+            print >> sys.stderr, element, " Not found in model=> System exit"
             sys.exit()
         location.append(sele)
         translate[sele]=[1,element]
@@ -596,7 +592,7 @@ def filterandfind(betaxx,betayy,element,segment,model,errorcut):
             sbpml=model.S[model.indx[bpml]]
             sbpmr=model.S[model.indx[bpmr]]
         except:
-            print bpml,bpmr, " Not found in model=> System exit"
+            print >> sys.stderr, bpml,bpmr, " Not found in model=> System exit"
             sys.exit()            
         location.append(sbpml)
         location.append(sbpmr)
@@ -656,7 +652,7 @@ def filterandfind(betaxx,betayy,element,segment,model,errorcut):
     
     location.sort()
     if goodones<3:
-        print "Not enough BPMs! System exit"
+        print >> sys.stderr, "Not enough BPMs! System exit"
         sys.exit()
 
     # finding the BPMs
@@ -697,8 +693,6 @@ def filterandfind(betaxx,betayy,element,segment,model,errorcut):
                 bpright=translate[location[indin+1]][1]
 
     print bpleft,bpright," Will be used for the propogation"
-
-#    sys.exit()
 
     return [bpleft,bpright]
 
@@ -2112,16 +2106,10 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
     print >> fwatch, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py "+madfilename+" "+path+"/gplot_"+str(name)
     fwatch.close()
     os.system("chmod +x "+watchfilename)
-    
-    
-    #sys.exit()
-
    
     
 def runmad(path,name):
-    
     os.system(options.mad+' < '+path+'t_'+str(name)+'.madx')
-    
    
   
 def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
@@ -2308,7 +2296,7 @@ def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainval
     
     else:
 
-        print "cannot create table names for columns are not equal => system exit "
+        print >> sys.stderr, "cannot create table names for columns are not equal => system exit "
         sys.exit()
 
     filefile.close()

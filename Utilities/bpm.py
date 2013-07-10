@@ -14,8 +14,21 @@ Change history:
 
 import sys
 
+def filterbpm(list_of_bpms):
+    '''Filter non-arc BPM.
+        Returns a list with those bpms which start with name "BPM.".
+    '''
+    if len(list_of_bpms) == 0:
+        print >> sys.stderr, "Nothing to filter!!!!"
+        sys.exit(1)
+    result = []
+    for b in list_of_bpms:
+        if ('BPM.' in b[1].upper()):
+            result.append(b)
+    return result
 
-def modelIntersect(exp_bpms, model_twiss):
+
+def model_intersect(exp_bpms, model_twiss):
     '''
     Intersects BPMs from
     
@@ -25,21 +38,19 @@ def modelIntersect(exp_bpms, model_twiss):
         'model_twiss': metaclass.Twiss
             Should be a Twiss object from model
                 
-    :Return: list of strings
-        A list with BPM_names which are both in exp_bpms and model_twiss.
-        
-    :Exception: SystemExit
-        If the length of exp_bpms is 0 or the length of the resulting list of strings is 0 then 
-        SystemExit will be raised (sys.exit(1) ),
+    :Return: list with tuples: (<S_value_i>,<bpm_i>)
+        A list with BPMs which are both in exp_bpms and model_twiss.
+
     '''
     bpmsin = []
     #print "start Intersect, exp_bpms #:", len(exp_bpms)
     if len(exp_bpms) == 0:
-        print >> sys.stderr, "Zero exp BPMs sent to modelIntersect"
-        sys.exit(1)
+        print >> sys.stderr, "Zero exp BPMs sent to model_intersect"
+        return bpmsin
+    
     for bpm in exp_bpms:
         try:
-            check_if_bpm_in_model = model_twiss.indx[bpm[1].upper()]  # @UnusedVariable
+            model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
             bpmsin.append(bpm)
         except KeyError:
             print >> sys.stderr, bpm, "Not in Model"
@@ -64,27 +75,23 @@ def intersect(list_of_twiss_files):
     :Return: list with tuples: (<S_value_i>,<bpm_i>)
         A list with following tuples: (<S_value_i>,<bpm_i>).
         bpm_i is in every twiss of list_of_twiss_files.
-        
-    :Exception: SystemExit
-        If the length of list_of_twiss_files is 0 or there are no entries in column 'NAME' then 
-        SystemExit will be raised (sys.exit(1) ),
     '''
     if len(list_of_twiss_files) == 0:
         print >> sys.stderr, "Nothing to intersect!!!!"
-        sys.exit(1)
+        return []
         
-    z = list_of_twiss_files[0].NAME
-    if len(z) == 0:
+    names_list = list_of_twiss_files[0].NAME
+    if len(names_list) == 0:
         print >> sys.stderr, "No exp BPMs..."
         sys.exit(1)
-    for b in list_of_twiss_files:
-        z=filter(lambda x: x in z   , b.NAME)
-     
+    for twiss_file in list_of_twiss_files:
+        names_list = [b for b in twiss_file.NAME if b in names_list]
+#         names_list = filter(lambda x: x in names_list   , twiss_file.NAME)
         
-    result = []
-    x0 = list_of_twiss_files[0]
-    for bpm in z:
-        result.append((x0.S[x0.indx[bpm]], bpm))
+    result = [] # list of tupels (S, bpm_name)
+    twiss_0 = list_of_twiss_files[0]
+    for bpm in names_list:
+        result.append((twiss_0.S[twiss_0.indx[bpm]], bpm))
 
     #SORT by S
     result.sort()
