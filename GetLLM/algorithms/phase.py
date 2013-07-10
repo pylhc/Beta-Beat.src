@@ -1,7 +1,7 @@
 '''
 Created on 27 May 2013
 
-@author: vimaier
+@author: ?, vimaier
 
 @version: 0.0.1
 

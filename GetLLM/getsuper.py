@@ -7,6 +7,9 @@ Created sometime 2009-2011
 
 @version: 3.1.2
 
+Getsuper calculates with the help of GetLLM chromatic beta functions.
+The Montague W and Phi functions are output.
+
 What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards 
 interpolate the results to see how the functions vary with dp/p.
 
