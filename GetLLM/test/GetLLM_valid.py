@@ -2634,9 +2634,7 @@ def getIP(IP,measured,model,phase,bpms):
     if "null" in BPMleft or "null" in BPMright:
 
         print "skipping IP"+IP+" calculation, no BPM found"
-        betahor=[IP,0,0,0,0,0,0]
-        betaver=[IP,0,0,0,0,0,0]
-        #sys.exit()
+        raise ValueError
 
     else:
         # model
@@ -4206,6 +4204,8 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     if (len(ListOfNonZeroDPPX)!=0) and (len(ListOfZeroDPPX)==0):
         ListOfZeroDPPX=ListOfNonZeroDPPX
         ListOfZeroDPPY=ListOfNonZeroDPPY
+        ListOfNonZeroDPPX = []
+        ListOfNonZeroDPPY = []
         wolinx=0
         woliny=0
         woliny2=1
@@ -4236,8 +4236,14 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         d1 =Q1-Q1f                                                        #-- Used later to calculate free Q1
         d2 =Q2-Q2f                                                        #-- Used later to calculate free Q2
     else:
-        Q1f=ListOfZeroDPPX[0].Q1
-        Q2f=ListOfZeroDPPY[0].Q2
+        try:
+            Q1f=ListOfZeroDPPX[0].Q1
+        except IndexError:
+            Q1f = 0.0
+        try:
+            Q2f=ListOfZeroDPPY[0].Q2
+        except IndexError:
+            Q1f = 0.0
 
 
     fphasex.write('"'+'\n')
@@ -4981,11 +4987,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             try:
                 #print "entering"
                 betahor,betaver=getIP(ip,measured,MADTwiss,phases,bpmss)
+                fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
             except:
-                betahor=[0,0,0,0,0,0,0]
-                betaver=[0,0,0,0,0,0,0]
+                pass
             #print str(betahor[6])
-            fIP.write("\"IP"+ip+"\" "+str(betahor[1])+" "+str(betahor[4])+" "+str(betahor[2])+" "+str(betahor[3])+" "+str(betahor[6])+" "+str(betahor[5])+" "+str(betaver[1])+" "+str(betaver[4])+" "+str(betaver[2])+" "+str(betaver[3])+" "+str(betaver[6])+" "+str(betaver[5])+"\n")
 
         fIP.close()
 
@@ -5615,8 +5620,9 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
     fchi1010=open(outputpath+'getchi1010.out','w')
     fchi1010.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
-    fchi4000=open(outputpath+'getchi4000.out','w')
-    fchi4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
+    # File has no content (vimaier)
+#     fchi4000=open(outputpath+'getchi4000.out','w')
+#     fchi4000.write('@ MAD_FILE %s "'+twiss_model_file+'"'+'\n')
 
     fkick=open(outputpath+'getkick.out','w')
     if acswitch=='1':
@@ -5693,22 +5699,22 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             fchi1010.close()
     # 1) chi4000
 
-        fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
-        fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
-
-        #files=[ListOfZeroDPPX,ListOfZeroDPPY]
-        #name='chi4000'
-        #plane='H'
-
-        #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
-
-        #for i in range(0,len(dbpms)-2):
-
-    #               bn=upper(dbpms[i][1])
-
-        #       fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-
-        fchi4000.close()
+#         fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
+#         fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
+# 
+#         #files=[ListOfZeroDPPX,ListOfZeroDPPY]
+#         #name='chi4000'
+#         #plane='H'
+# 
+#         #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
+# 
+#         #for i in range(0,len(dbpms)-2):
+# 
+#     #               bn=upper(dbpms[i][1])
+# 
+#         #       fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
+# 
+#         fchi4000.close()
 
 
 

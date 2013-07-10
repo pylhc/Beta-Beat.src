@@ -58,8 +58,8 @@ class ScriptRunner(object):
         No output will be printed if error code is 0. 
         Otherwise stdout and stderr will be printed.    
         '''
-        
-        call_command = [sys.executable, self._script_name]
+        debug_option_for_python = "-d" # Needed to run script in DEBUG mode
+        call_command = [sys.executable, debug_option_for_python, self._script_name]
         
         for key in self._args_dict:
             call_command.append(key+self._args_dict[key])
