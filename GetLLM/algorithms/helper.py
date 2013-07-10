@@ -775,7 +775,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
         betstd = math.sqrt(sort_cand[0][0]**2 + sort_cand[1][0]**2 + sort_cand[2][0]**2)/math.sqrt(3.)
         alfstd = math.sqrt(sort_cand[0][2]**2 + sort_cand[1][2]**2 + sort_cand[2][2]**2)/math.sqrt(3.)
 
-
+        
         try:
             beterr = math.sqrt((sort_cand[0][1]**2 + sort_cand[1][1]**2 + sort_cand[2][1]**2)/3.-beti**2.)
         except:
@@ -785,8 +785,25 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
             alferr = math.sqrt((sort_cand[0][3]**2 + sort_cand[1][3]**2 + sort_cand[2][3]**2)/3.-alfi**2.)
         except:
             alferr=0
+            
 
+        if sort_cand[0][0] == 0:
+            beti = (candidates[2][1] + candidates[5][1] + candidates[12][1])/3.
+            alfi = (candidates[2][3] + candidates[5][3] + candidates[12][3])/3.
 
+            betstd = math.sqrt(candidates[2][0]**2 + candidates[5][0]**2 + candidates[12][0]**2)/math.sqrt(3.)
+            alfstd = math.sqrt(candidates[2][2]**2 + candidates[5][2]**2 + candidates[12][2]**2)/math.sqrt(3.)
+            
+            try:
+                beterr = math.sqrt((candidates[2][1]**2 + candidates[5][1]**2 + candidates[12][1]**2)/3.-beti**2.)
+            except:
+                beterr=0
+            try:
+                alferr = math.sqrt((candidates[2][3]**2 + candidates[5][3]**2 + candidates[12][3]**2)/3.-alfi**2.)
+            except:
+                alferr=0
+
+ 
         beta[bn4]=(beti,beterr,betstd)
         alfa[bn4]=(alfi,alferr,alfstd)
         if plane=='H':
