@@ -10,18 +10,18 @@ Created on 11/09/09
 GetLLM calculates a large collection of optics functions and parameters at the BPMs using the output from DRIVE.
 
 The GetLLM output is distributed over different files according to the observable and the transverse plane:
-–getCO*; files containing the closed orbit at all BPMs, one file per plane.
-–getIP*; files containing beta and phase advance functions at the IPs.
-–getampbeta*; files containing the beta function as compputed from amplitude, one file per plane (in case of ACdipole free and driven data is also computed).
-–getbeta*; files containing the beta function as computed from phase advances between 3 BPMs. There is one file per plane (in case of AC-dipole free and driven data is computed).
-–getchi*; files containing the $\chi$ terms.
-–getcouple*; files containing the coupling resonances $f_{1001}$  and $f_{0101}$ (in case of AC-dipole free and driven data is computed).
-–getsex*; files containing the sextupolar resonance driving terms.
-–getphase*; files containing the phase advances between BPMs, one file per plane (in case of AC-dipole free and driven data is computed).
-–getphasetot*; files containing the total phase-advance using the first BPM as reference, one file per plane (in case of ACdipole free and driven data is computed).
-–getkick*; files containing the kick amplitudes and the linear invariants as derived from peak-to-peak values and spectral lines amplitudes.
-–getD*; files containing the dispersion, one per plane ( if off-momentum data is acquired).
-–getNDx*; files containing the normalized horizontal dispersion ( if off-momentum data is acquired).
+-getCO*; files containing the closed orbit at all BPMs, one file per plane.
+-getIP*; files containing beta and phase advance functions at the IPs.
+-getampbeta*; files containing the beta function as compputed from amplitude, one file per plane (in case of ACdipole free and driven data is also computed).
+-getbeta*; files containing the beta function as computed from phase advances between 3 BPMs. There is one file per plane (in case of AC-dipole free and driven data is computed).
+-getchi*; files containing the $\chi$ terms.
+-getcouple*; files containing the coupling resonances $f_{1001}$  and $f_{0101}$ (in case of AC-dipole free and driven data is computed).
+-getsex*; files containing the sextupolar resonance driving terms.
+-getphase*; files containing the phase advances between BPMs, one file per plane (in case of AC-dipole free and driven data is computed).
+-getphasetot*; files containing the total phase-advance using the first BPM as reference, one file per plane (in case of ACdipole free and driven data is computed).
+-getkick*; files containing the kick amplitudes and the linear invariants as derived from peak-to-peak values and spectral lines amplitudes.
+-getD*; files containing the dispersion, one per plane ( if off-momentum data is acquired).
+-getNDx*; files containing the normalized horizontal dispersion ( if off-momentum data is acquired).
 
 
 Usage1 >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./

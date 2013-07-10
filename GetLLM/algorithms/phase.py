@@ -489,8 +489,8 @@ def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, 
     return [phase_t, commonbpms]
 
 
-def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
-    commonbpms = Utilities.bpm.intersect(list_of_files)
+def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
+    commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
     length_commonbpms = len(commonbpms)
 
@@ -500,14 +500,15 @@ def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
     if getllm_d.lhc_phase == "1" and getllm_d.accel == "LHCB2": 
         s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
 
-    mu = 0.0
-    tunem = []
-    phase = {} # Dictionary for the output containing [average phase, rms error]
+    mu=0.0
+    tunem=[]
+    phase={} # Dictionary for the output containing [average phase, rms error]
     
+        
     p_mdl_12 = 0.0 # phase model between BPM1 and BPM2
     p_mdl_13 = 0.0 # phase model between BPM1 and BPM3
     
-    for i in range(0, length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
+    for i in range(0,length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
         bn1 = str.upper(commonbpms[i%length_commonbpms][1])
         bn2 = str.upper(commonbpms[(i+1)%length_commonbpms][1])
         bn3 = str.upper(commonbpms[(i+2)%length_commonbpms][1])
@@ -534,39 +535,39 @@ def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
                 madtune -= 1.0
             
             p_mdl_13 = p_mdl_13 % 1.0
-            p_mdl_13 = _phi_last_and_last_but_one(p_mdl_13, madtune)
+            p_mdl_13 = _phi_last_and_last_but_one(p_mdl_13,madtune)
         elif i == length_commonbpms-1:
             if plane == 'H':
                 madtune = mad_twiss.Q1 % 1.0
             elif plane == 'V':
                 madtune = mad_twiss.Q2 % 1.0
             
-            if madtune > 0.5:
+            if madtune>0.5:
                 madtune -= 1.0
             
             p_mdl_12 = p_mdl_12 % 1.0
             p_mdl_13 = p_mdl_13 % 1.0
-            p_mdl_12 = _phi_last_and_last_but_one(p_mdl_12, madtune)
-            p_mdl_13 = _phi_last_and_last_but_one(p_mdl_13, madtune)
+            p_mdl_12 = _phi_last_and_last_but_one(p_mdl_12,madtune)
+            p_mdl_13 = _phi_last_and_last_but_one(p_mdl_13,madtune)
 
 
 
 
         p_i_12 = [] # list with phases between BPM1 and BPM2 from src files
         p_i_13 = [] # list with phases between BPM1 and BPM3 from src files
-        tunemi = []
-        for src_twiss in list_of_files:
+        tunemi=[]
+        for src_twiss in ListOfFiles:
             # Phase is in units of 2pi
-            if plane == 'H':
-                p_m_12 = (src_twiss.MUX[src_twiss.indx[bn2]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
-                p_m_13 = (src_twiss.MUX[src_twiss.indx[bn3]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
+            if plane=='H':
+                p_m_12=(src_twiss.MUX[src_twiss.indx[bn2]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                p_m_13=(src_twiss.MUX[src_twiss.indx[bn3]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
                 tunemi.append(src_twiss.TUNEX[src_twiss.indx[bn1]])
-            elif plane == 'V':
-                p_m_12 = (src_twiss.MUY[src_twiss.indx[bn2]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
-                p_m_13 = (src_twiss.MUY[src_twiss.indx[bn3]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
+            elif plane=='V':
+                p_m_12=(src_twiss.MUY[src_twiss.indx[bn2]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                p_m_13=(src_twiss.MUY[src_twiss.indx[bn3]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
                 tunemi.append(src_twiss.TUNEY[src_twiss.indx[bn1]])
             
-            #-- To fix the phase shift by tune_q in LHC
+             #-- To fix the phase shift by tune_q in LHC
             try:
                 if mad_twiss.S[mad_twiss.indx[bn1]] <= s_lastbpm:
                     if mad_twiss.S[mad_twiss.indx[bn2]] > s_lastbpm: 
@@ -581,18 +582,18 @@ def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
             except UnboundLocalError: 
                 pass # s_lastbpm is not always defined
             
-            if p_m_12 < 0:
-                p_m_12 += 1
-            if p_m_13 < 0:
-                p_m_13 += 1
+            if p_m_12<0: 
+                p_m_12+=1
+            if p_m_13<0: 
+                p_m_13+=1
             p_i_12.append(p_m_12)
             p_i_13.append(p_m_13)
 
-        p_i_12 = np.array(p_i_12)
-        p_i_13 = np.array(p_i_13)
-        if getllm_d.beam_direction == -1: # for the beam circulating reversely to the model
-            p_i_12 = 1.0-p_i_12
-            p_i_13 = 1.0-p_i_13
+        p_i_12=np.array(p_i_12)
+        p_i_13=np.array(p_i_13)
+        if getllm_d.beam_direction==-1: # for the beam circulating reversely to the model
+            p_i_12=1.0-p_i_12
+            p_i_13=1.0-p_i_13
 
         #if any(p_i_12)>0.9 and i !=len(commonbpms): # Very small phase advance could result in larger than 0.9 due to measurement error
         #       print 'Warning: there seems too large phase advance! '+bn1+' to '+bn2+' = '+str(p_i_12)+'in plane '+plane+', recommended to check.'
@@ -614,13 +615,13 @@ def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
             p_i_13 = _phi_last_and_last_but_one(p_i_13, tune)
         mu = mu+p_i_12
 
-        small = 0.0000001
+        small=0.0000001
         if (abs(p_mdl_12) < small):
-            p_mdl_12 = small
+            p_mdl_12=small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn2+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
         if (abs(p_mdl_13) < small):
-            p_mdl_13 = small
+            p_mdl_13=small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
         if (abs(p_i_12) < small ):
@@ -631,9 +632,218 @@ def get_phases(getllm_d, mad_twiss, list_of_files, tune_q, plane):
             p_i_13 = small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
-        phase[bn1] = [p_i_12, p_std_12, p_i_13, p_std_13, p_mdl_12, p_mdl_13, bn2]
+        phase[bn1]=[p_i_12,p_std_12,p_i_13,p_std_13,p_mdl_12,p_mdl_13,bn2]
 
-    return [phase, tune, mu, commonbpms]
+    for i in range(0,length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
+
+        bn1 = str.upper(commonbpms[i%len(commonbpms)][1])
+        bn2 = str.upper(commonbpms[(i+1)%len(commonbpms)][1])
+        bn3 = str.upper(commonbpms[(i+2)%len(commonbpms)][1])
+        bn4 = str.upper(commonbpms[(i+3)%len(commonbpms)][1])
+        bn5 = str.upper(commonbpms[(i+4)%len(commonbpms)][1])
+        bn6 = str.upper(commonbpms[(i+5)%len(commonbpms)][1])
+        bn7 = str.upper(commonbpms[(i+6)%len(commonbpms)][1])
+
+
+        p_i_12=[]
+        p_i_13=[]
+        phi14=[]
+        phi15=[]
+        phi16=[]
+        phi17=[]
+
+        for src_twiss in ListOfFiles:
+            # Phase is in units of 2pi
+            if plane=='H':
+                p_m_12=(src_twiss.MUX[src_twiss.indx[bn2]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                p_m_13=(src_twiss.MUX[src_twiss.indx[bn3]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
+                phm14=(src_twiss.MUX[src_twiss.indx[bn4]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM4
+                phm15=(src_twiss.MUX[src_twiss.indx[bn5]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM5
+                phm16=(src_twiss.MUX[src_twiss.indx[bn6]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM6
+                phm17=(src_twiss.MUX[src_twiss.indx[bn7]]-src_twiss.MUX[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM7
+            elif plane=='V':
+                p_m_12=(src_twiss.MUY[src_twiss.indx[bn2]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM2
+                p_m_13=(src_twiss.MUY[src_twiss.indx[bn3]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
+                phm14=(src_twiss.MUY[src_twiss.indx[bn4]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM4
+                phm15=(src_twiss.MUY[src_twiss.indx[bn5]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM5
+                phm16=(src_twiss.MUY[src_twiss.indx[bn6]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM6
+                phm17=(src_twiss.MUY[src_twiss.indx[bn7]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM7
+            #-- To fix the phase shift by tune_q in LHC
+            try:
+                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]] >s_lastbpm: p_m_12+= getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]] >s_lastbpm: p_m_13+= getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn4]] >s_lastbpm: phm14+= getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn5]] >s_lastbpm: phm15+= getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn6]] >s_lastbpm: phm16+= getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn7]] >s_lastbpm: phm17+= getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]]<=s_lastbpm: p_m_12+=-getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]]<=s_lastbpm: p_m_13+=-getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn4]]<=s_lastbpm: phm14+=-getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn5]]<=s_lastbpm: phm15+=-getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn6]]<=s_lastbpm: phm16+=-getllm_d.beam_direction*tune_q
+                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn7]]<=s_lastbpm: phm17+=-getllm_d.beam_direction*tune_q
+            except: pass
+            if p_m_12<0: p_m_12+=1
+            if p_m_13<0: p_m_13+=1
+            if phm14<0: phm14+=1
+            if phm15<0: phm15+=1
+            if phm16<0: phm16+=1
+            if phm17<0: phm17+=1
+            p_i_12.append(p_m_12)
+            p_i_13.append(p_m_13)
+            phi14.append(phm14)
+            phi15.append(phm15)
+            phi16.append(phm16)
+            phi17.append(phm17)
+
+        p_i_12 = np.array(p_i_12)
+        p_i_13 = np.array(p_i_13)
+        phi14 = np.array(phi14)
+        phi15 = np.array(phi15)
+        phi16 = np.array(phi16)
+        phi17 = np.array(phi17)
+        if getllm_d.beam_direction == -1: # for the beam circulating reversely to the model
+            p_i_12 = 1.0-p_i_12
+            p_i_13 = 1.0-p_i_13
+            phi14 = 1.0-phi14
+            phi15 = 1.0-phi15
+            phi16 = 1.0-phi16
+            phi17 = 1.0-phi17
+
+        p_std_12 = calc_phase_std(p_i_12, 1.0)
+        p_std_13 = calc_phase_std(p_i_13, 1.0)
+        phstd14 = calc_phase_std(phi14, 1.0)
+        phstd15 = calc_phase_std(phi15, 1.0)
+        phstd16 = calc_phase_std(phi16, 1.0)
+        phstd17 = calc_phase_std(phi17, 1.0)
+        p_i_12 = calc_phase_mean(p_i_12, 1.0)
+        p_i_13 = calc_phase_mean(p_i_13, 1.0)
+        phi14 = calc_phase_mean(phi14, 1.0)
+        phi15 = calc_phase_mean(phi15, 1.0)
+        phi16 = calc_phase_mean(phi16, 1.0)
+        phi17 = calc_phase_mean(phi17, 1.0)
+        
+        if i >= length_commonbpms-6:
+            phi17 = _phi_last_and_last_but_one(phi17, tune)
+            if i >= length_commonbpms-5:
+                phi16 = _phi_last_and_last_but_one(phi16, tune)
+            if i >= length_commonbpms-4:
+                phi15 = _phi_last_and_last_but_one(phi15, tune)
+            if i >= length_commonbpms-3:
+                phi14 = _phi_last_and_last_but_one(phi14, tune)                
+            if i >= length_commonbpms-2:
+                p_i_13 = _phi_last_and_last_but_one(p_i_13, tune)                
+            if i >= length_commonbpms-1:
+                p_i_12 = _phi_last_and_last_but_one(p_i_12, tune)                
+
+        if plane=='H':
+            p_mdl_12=mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
+            p_mdl_13=mad_twiss.MUX[mad_twiss.indx[bn3]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
+            phmdl14=mad_twiss.MUX[mad_twiss.indx[bn4]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
+            phmdl15=mad_twiss.MUX[mad_twiss.indx[bn5]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
+            phmdl16=mad_twiss.MUX[mad_twiss.indx[bn6]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
+            phmdl17=mad_twiss.MUX[mad_twiss.indx[bn7]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
+        elif plane=='V':
+            p_mdl_12=mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
+            p_mdl_13=mad_twiss.MUY[mad_twiss.indx[bn3]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
+            phmdl14=mad_twiss.MUY[mad_twiss.indx[bn4]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
+            phmdl15=mad_twiss.MUY[mad_twiss.indx[bn5]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
+            phmdl16=mad_twiss.MUY[mad_twiss.indx[bn6]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
+            phmdl17=mad_twiss.MUY[mad_twiss.indx[bn7]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
+ 
+        if i >= length_commonbpms-6:
+            if plane == 'H':
+                madtune = mad_twiss.Q1 % 1.0
+            elif plane == 'V':
+                madtune = mad_twiss.Q2 % 1.0
+            if madtune > 0.5:
+                madtune -= 1.0
+
+            phmdl17 = phmdl17 % 1.0
+            phmdl17 = _phi_last_and_last_but_one(phmdl17,madtune)
+            if i >= length_commonbpms-5:
+                phmdl16 = phmdl16 % 1.0
+                phmdl16 = _phi_last_and_last_but_one(phmdl16,madtune)                
+            if i >= length_commonbpms-4:
+                phmdl15 = phmdl15 % 1.0
+                phmdl15 = _phi_last_and_last_but_one(phmdl15,madtune)                
+            if i >= length_commonbpms-3:
+                phmdl14 = phmdl14 % 1.0
+                phmdl14 = _phi_last_and_last_but_one(phmdl14,madtune)                
+            if i >= length_commonbpms-2:
+                p_mdl_13 = p_mdl_13 % 1.0
+                p_mdl_13 = _phi_last_and_last_but_one(p_mdl_13,madtune)                
+            if i == length_commonbpms-1:
+                p_mdl_12 = p_mdl_12 % 1.0
+                p_mdl_12 = _phi_last_and_last_but_one(p_mdl_12,madtune)
+                                        
+        
+        if (abs(p_mdl_12) < small):
+            p_mdl_12=small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn2+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(p_mdl_13) < small):
+            p_mdl_13=small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(p_i_12) < small ):
+            p_i_12 = small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn2+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(p_i_13) < small):
+            p_i_13 = small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn3+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phmdl14) < small):
+            phmdl14=small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn4+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phmdl15) < small):
+            phmdl15=small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn5+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phi14) < small ):
+            phi14 = small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn4+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phi15) < small):
+            phi15 = small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn5+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phmdl16) < small):
+            phmdl16=small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn6+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phmdl17) < small):
+            phmdl17=small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn7+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phi16) < small ):
+            phi16 = small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn6+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+        if (abs(phi17) < small):
+            phi17 = small
+            print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn7+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
+            print "Beta from amplitude around this monitor will be slightly varied."
+            
+        if plane=='H':
+            phase["".join(['H',bn1,bn2])] = [p_i_12,p_std_12,p_mdl_12]
+            phase["".join(['H',bn1,bn3])] = [p_i_13,p_std_13,p_mdl_13]
+            phase["".join(['H',bn1,bn4])] = [phi14,phstd14,phmdl14]
+            phase["".join(['H',bn1,bn5])] = [phi15,phstd15,phmdl15]
+            phase["".join(['H',bn1,bn6])] = [phi16,phstd16,phmdl16]
+            phase["".join(['H',bn1,bn7])] = [phi17,phstd17,phmdl17]
+        elif plane=='V':
+            phase["".join(['V',bn1,bn2])] = [p_i_12,p_std_12,p_mdl_12]
+            phase["".join(['V',bn1,bn3])] = [p_i_13,p_std_13,p_mdl_13]
+            phase["".join(['V',bn1,bn4])] = [phi14,phstd14,phmdl14]
+            phase["".join(['V',bn1,bn5])] = [phi15,phstd15,phmdl15]
+            phase["".join(['V',bn1,bn6])] = [phi16,phstd16,phmdl16]
+            phase["".join(['V',bn1,bn7])] = [phi17,phstd17,phmdl17]
+
+
+    return [phase,tune,mu,commonbpms]
 
 
 #===================================================================================================
