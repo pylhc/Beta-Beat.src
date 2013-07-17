@@ -7,9 +7,7 @@ Created on 27 May 2013
 
 templates.template_main_module <description>
 
-Change history:
- - <version>, <author>, <date>:
-    <description>
+
 '''
 
 import sys

@@ -15,13 +15,7 @@ The module name should contain only lower letters and words should be divided by
 Good examples: 'segment_by_segment.py','io_utils.py', 'get_phase.py'
 Bad examples: 'SegmentBySegment.py', 'IoUtils.py', 'getPhase.py'
 
-There should also be a change history with an entry for every important change.
-
-Change history:
- - 1.0.1, vimaier, 27th May 2013: 
-    Added totally new feature x in method y.
- - <version>, <author>, <date>:
-    <description>
+Since we use Git we need no change history. Every change should be stated in the commit message.
 '''
 
 ## Divide the imports into three sections
