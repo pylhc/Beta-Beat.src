@@ -8,6 +8,8 @@ source /afs/cern.ch/sw/IntelSoftware/linux/all-setup.csh ia32
 
 Hint: You have to run the csh console instead of bash console otherwise
 there will be a syntax error.
+If you want to compile on windows, here is a tutorial:
+https://twiki.cern.ch/twiki/bin/view/Openlab/IntelTools#Obtaining_and_installing_Int_AN1
 
 For the number of cores to use enter: setenv OMP_NUM_THREADS n
 where n is from 1 (use for validation runs) to the number available.
