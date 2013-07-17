@@ -13,6 +13,8 @@ Change history:
 """
 
 import os
+import sys
+import datetime
 
 DEFAULT_COLUMN_WIDTH = 17
 # Indicates width of columns in output file.
@@ -35,6 +37,8 @@ class TfsFile(object):
     s_output_path = ""
     s_getllm_version = ""
     s_mad_filename = ""
+    __s_current_date = datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S")#e.g.: 17. July 2013, 12:28:56
+    __s_getllm_invocation_command = " ".join(sys.argv)
 
     def __init__(self, file_name, column_width=DEFAULT_COLUMN_WIDTH):
         """
@@ -53,8 +57,10 @@ class TfsFile(object):
         self.__getllm_version = ""
         self.__getllm_madfile = ""
         self.__getllm_srcfiles = []
+        self.__date = ""
+        self.__getllm_command = ""
         
-        self.__header = [];
+        self.__header = []
         """ The header contains descriptor lines and comment lines. """
         
         self.__table = ([], [], [])
@@ -67,21 +73,7 @@ class TfsFile(object):
         self.__is_column_types_set = False
         self.__num_of_columns = INVALID_COLUMN_NUMBER
         
-        self.add_getllm_header(TfsFile.s_getllm_version, TfsFile.s_mad_filename)
         
-        
-    def add_getllm_header(self, version=None, mad_file=None):
-        """ Adds '@ GetLLMVersion %s "<version>"\n' and/or '@ MAD_FILE %s "<mad_file>"\n' 
-            Returns self for concatenation reasons
-        """
-        if version is not None:
-            self.__getllm_version = version
-        if mad_file is not None:
-            self.__getllm_madfile = mad_file
-            
-        return self
-
-    
     def add_filename_to_getllm_header(self, file_name):
         """ Adds a file to '@ FILES %s "<files-list>"\n' """
         self.__getllm_srcfiles.append(file_name)
@@ -162,13 +154,14 @@ class TfsFile(object):
     
     def __write_getllm_header(self, tfs_file):
         """ Writes the getllm header to the file. """  
-        tfs_file.write('@ GetLLMVersion %s "'+self.__getllm_version+'"\n')
-        tfs_file.write('@ MAD_FILE %s "'+self.__getllm_madfile+'"\n')
+        tfs_file.write('@ GetLLMVersion %s "'+TfsFile.s_getllm_version+'"\n')
+        tfs_file.write('@ Command %s "'+TfsFile.__s_getllm_invocation_command+'"\n')
+        tfs_file.write('@ DATE %s "'+TfsFile.__s_current_date+'"\n')
+        tfs_file.write('@ MAD_FILE %s "'+TfsFile.s_mad_filename+'"\n')
         
         tfs_file.write('@ FILES %s "')
         tfs_file.write(" ".join(self.__getllm_srcfiles))
         tfs_file.write('"\n')
-            
             
     def write_to_file(self, formatted = False):
         """ Writes the stored data to the file with the given filename. """
