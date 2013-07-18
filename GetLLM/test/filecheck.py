@@ -43,9 +43,9 @@ import shutil
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join( os.path.dirname(os.path.abspath(__file__)),"../../../Python_Classes4MAD" ))
 
-import metaclass
 import vimaier_utils.scriptrunner
 import vimaier_utils.IoUtils
+import vimaier_utils.compare_utils
 import runvalidator
 
 #===================================================================================================
@@ -249,7 +249,8 @@ class TestFileOutputGetLLM(unittest.TestCase):
         num_equal_files = 0
         num_overall_files = len(valid_filenames)
         for name in valid_filenames:
-            err_msg = compare_tfs_files(os.path.join(valid_output_path, name), os.path.join(to_check_output_path, name) )
+            err_msg = vimaier_utils.compare_utils.compare_tfs_files(os.path.join(valid_output_path, name), 
+                                                                   os.path.join(to_check_output_path, name) )
             if "" != err_msg:
                 print name, "are not equal:", err_msg
             else:
@@ -270,60 +271,6 @@ class TestFileOutputGetLLM(unittest.TestCase):
     # END run_single_test() --------------------------------------------
         
 # END class TestFileOutPutGetLLM -------------------------------------------------------------------
-
-
-def compare_tfs_files(name_valid, name_to_check):
-    """ Compares both files. Whitespace does not matter.
-        Returns an error message or in success an empty string.
-    """
-    if name_valid.endswith(".gitignore"):
-        return ""
-    
-    if file_not_valid(name_valid):
-        return ""
-    
-    file_valid = open(name_valid)
-    file_to_check = open(name_to_check)
-    
-    valid_lines = file_valid.readlines()
-    to_check_lines = file_to_check.readlines()
-    
-    i_to_check = 0
-    for i_valid in xrange(len(valid_lines)):
-        # Exclude descriptors GetLLMVersion, MAD_FILE and FILES from comparison
-        if valid_lines[i_valid].startswith("@") and "GetLLMVersion" in valid_lines[i_valid] or "MAD_FILE" in valid_lines[i_valid] or "FILE" in valid_lines[i_valid]:
-            continue
-        while to_check_lines[i_to_check].startswith("@") and "GetLLMVersion" in to_check_lines[i_to_check] or "MAD_FILE" in to_check_lines[i_to_check] or "FILE" in to_check_lines[i_to_check]:
-            i_to_check += 1
-            
-        
-        split_valid = valid_lines[i_valid].split()
-        split_to_check = to_check_lines[i_to_check].split()
-        
-        if len(split_valid) != len(split_to_check):
-            return "Column numbers not equal:\n"+valid_lines[i_valid]+to_check_lines[i_to_check]
-        
-        for i in xrange(len(split_valid)):
-            if split_valid[i] != split_to_check[i]:
-                err_msg = "Entry in column number["+str(i)+"]not equal:\n"+valid_lines[i_valid]+to_check_lines[i_to_check]
-                err_msg += str(split_valid[i]) +" != "+ str(split_to_check[i])
-                return err_msg
-        i_to_check += 1
-    
-    return ""
-        
-
-def file_not_valid(name_twiss):
-    ''' Checks if the given twiss file is empty, thus not valid. '''
-    try:
-        tw = metaclass.twiss(name_twiss)
-        if 0 == len(getattr(tw, "NAME", [])):
-            return True # empty files are not longer produced by modified GetLLM
-        return False
-    except ValueError:
-        # Probably empty file
-        return True
-
 
 def main():
     # Remove arguments from sys.argv
