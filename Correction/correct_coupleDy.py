@@ -111,20 +111,22 @@ else:
 
 
 if "coupling_knobs" in options.var:
-    print "coupling_knobs mode. Trying to do automatic correcting"
-    # we want to have a value which indicates the worst 5 percent, so we sort and get the value from the 95% index (tbach)
-    sortedF1001W = numpy.sort(couple.F1001W)
-    fivePercentIndex = int(round(sortedF1001W.size * 0.95)) # no requirement to be accurate (tbach)
-    fivePercentValue = sortedF1001W[fivePercentIndex];
-    
-    if printDebug: print "fivePercentIndex:", fivePercentIndex
-    
-    if numpy.allclose(fivePercentValue, 0):
-        print "calculated value for modelcut is 0, exit"
-        sys.exit(1)
+    if 0 != couple.F1001W.size:
+        print "coupling_knobs mode. Trying to do automatic correcting"
+        # we want to have a value which indicates the worst 5 percent, so we sort and get the value from the 95% index (tbach)
+        sortedF1001W = numpy.sort(couple.F1001W)
+        fivePercentIndex = int(numpy.floor(sortedF1001W.size * 0.95)) # no requirement to be accurate (tbach)
         
-    print "modelcutC will be changed from:", modelcutC, "to:", fivePercentValue
-    modelcutC = fivePercentValue
+        fivePercentValue = sortedF1001W[fivePercentIndex];
+        
+        if printDebug: print "fivePercentIndex:", fivePercentIndex
+        
+        if numpy.allclose(fivePercentValue, 0):
+            print "calculated value for modelcut is 0, exit"
+            sys.exit(1)
+            
+        print "modelcutC will be changed from:", modelcutC, "to:", fivePercentValue
+        modelcutC = fivePercentValue
     
 
 dispy = []
