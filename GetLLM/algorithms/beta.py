@@ -303,13 +303,14 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         arcbpms = Utilities.bpm.filterbpm(bpms)
         for bpm in arcbpms:
             name = str.upper(bpm[1]) # second entry is the name
-        #Skip BPM with strange data
-            if abs(beta_d.y_phase[name][0] / beta_d.y_amp[name][0]) > 100:
-                skipped_bpmy.append(name)
-            elif (beta_d.y_amp[name][0] < 0 or beta_d.y_phase[name][0] < 0):
-                skipped_bpmy.append(name)
-            else:
-                beta_d.y_ratio = beta_d.y_ratio + (beta_d.y_phase[name][0] / beta_d.y_amp[name][0])
+            #Skip BPM with strange data
+            if name in beta_d.y_phase:
+                if abs(beta_d.y_phase[name][0] / beta_d.y_amp[name][0]) > 100:
+                    skipped_bpmy.append(name)
+                elif (beta_d.y_amp[name][0] < 0 or beta_d.y_phase[name][0] < 0):
+                    skipped_bpmy.append(name)
+                else:
+                    beta_d.y_ratio = beta_d.y_ratio + (beta_d.y_phase[name][0] / beta_d.y_amp[name][0])
         
         try:
             beta_d.y_ratio = beta_d.y_ratio / (len(arcbpms) - len(skipped_bpmy))
@@ -421,7 +422,7 @@ def beta_from_phase(MADTwiss,ListOfFiles,phase,plane):
             rms beta-beating
         'alfa':dict 
             calculated alfa function for all BPMs
-        'commonbpms':dict 
+        'commonbpms':list 
             intersection of common BPMs in measurement files and model
     '''
     alfa={}
@@ -429,7 +430,10 @@ def beta_from_phase(MADTwiss,ListOfFiles,phase,plane):
 
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms,MADTwiss)
-
+    
+    if 7 > len(commonbpms):
+        return ({}, 0.0, {},[])
+        
     delbeta=[]
     for i in range(0,len(commonbpms)):
         bn1 = str.upper(commonbpms[i%len(commonbpms)][1])
