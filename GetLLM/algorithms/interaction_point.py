@@ -130,22 +130,18 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JYD)", "rt(2JYD)STD"])
             tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                try:
+                if ip_name in ip_x_f_2:
                     list_row_entries = ['"' + ip_name + '"']
                     for ip_value in ip_x_f_2[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file_x.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
-                try:
+                if ip_name in ip_y_f_2:
                     list_row_entries = ['"' + ip_name + '"']
                     for ip_value in ip_y_f_2[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file_y.add_table_row(list_row_entries)
-                except:
-                    traceback.print_exc()
 
         #-- IP beta* and phase from phase only
         if not phase_d.ph_x is None and not phase_d.ph_y is None: # Designed to run with both 
@@ -275,7 +271,6 @@ def _find_bpm(ip_num, model, measured):
             try:
                 measured[0][bpm_left][0]  # Test if bpm_left exists
             except (KeyError, TypeError):
-                traceback.print_exc()
                 bpm_left = None
         if "BPMSW.1R"+ip_num in bpm_name:
             bpm_right = bpm_name
@@ -360,6 +355,7 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     dsall.append(d_s)
                     rt2j_all.append(rt2j)
                 except ValueError:
+                    print >> sys.stderr, "Known error: "
                     traceback.print_exc() # math domain error
                 except ZeroDivisionError:
                     traceback.print_exc()
