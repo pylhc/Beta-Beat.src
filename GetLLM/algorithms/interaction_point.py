@@ -74,22 +74,18 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
         tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JY)", "rt(2JY)STD"])
         tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-            try:
+            if ip_name in ip_x:
                 list_row_entries = ['"' + ip_name + '"']
                 for ip_value in ip_x[ip_name]:
                     list_row_entries.append(ip_value)
                 
                 tfs_file_x.add_table_row(list_row_entries)
-            except KeyError:
-                pass
-            try:
+            if ip_name in ip_y:
                 list_row_entries = ['"' + ip_name + '"']
                 for ip_value in ip_y[ip_name]:
                     list_row_entries.append(ip_value)
                 
                 tfs_file_y.add_table_row(list_row_entries)
-            except KeyError:
-                pass
 
         #-- ac to free parameters at IP1, IP2, IP5, and IP8
         if getllm_d.with_ac_calc:
@@ -103,22 +99,18 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JYD)", "rt(2JYD)STD"])
             tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                try:
+                if ip_name in ip_x_f:
                     list_row_entries = ['"' + ip_name + '"']
                     for ip_value in ip_x_f[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file_x.add_table_row(list_row_entries)
-                except KeyError:
-                    pass
-                try:
+                if ip_name in ip_y_f:
                     list_row_entries = ['"' + ip_name + '"']
                     for ip_value in ip_y_f[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file_y.add_table_row(list_row_entries)
-                except KeyError:
-                    pass
                 
             #-- From model
             ip_x_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_x, 'H', getllm_d.accel)
@@ -155,13 +147,12 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
                 list_row_entries = ['"' + ip_name + '"']
-                try:
+                if ip_name in ip_from_phase:
                     for ip_value in ip_from_phase[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file.add_table_row(list_row_entries)
-                except KeyError:
-                    pass
+
         #-- ac to free beta*
         if getllm_d.with_ac_calc:
             #-- from eqs
@@ -174,13 +165,11 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
                 list_row_entries = ['"' + ip_name + '"']
-                try:
+                if ip_name in ip_from_phase_f:
                     for ip_value in ip_from_phase_f[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file.add_table_row(list_row_entries)
-                except KeyError:
-                    traceback.print_exc()
             #-- from the model
             try:
                 ip_from_phase_f2 = _get_ip_from_phase(mad_twiss, phase_d.x_f2, phase_d.y_f2, getllm_d.accel)
@@ -191,13 +180,11 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
                 list_row_entries = ['"' + ip_name + '"']
-                try:
+                if ip_name in ip_from_phase_f2:
                     for ip_value in ip_from_phase_f2[ip_name]:
                         list_row_entries.append(ip_value)
                     
                     tfs_file.add_table_row(list_row_entries)
-                except KeyError:
-                    pass
 # END calculate_ip ---------------------------------------------------------------------------------
 
 
