@@ -43,7 +43,7 @@ clean:
 	$(RM) Drive_God_lin
 
 
-
+ 
 #From old Makefile: Wasn't being used, may be left over from a previous version. 
 
 #Drive_God_lin_dev:  Drive_God_lin_dev.o  sussix4drivexxNoO.o   Makefile
