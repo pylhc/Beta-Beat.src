@@ -379,7 +379,8 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
             files_dict = calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
         else:
             print "Not analysing higher order..."
-            
+    except:
+        traceback.print_exc()
     finally:
         print "Writing files"
         for tfsfile in files_dict.itervalues():
@@ -547,7 +548,7 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         twiss_file_x = None
         try:
             twiss_file_x = metaclass.twiss(file_x)
-            if twiss_file_x.has_no_table_data():
+            if twiss_file_x.has_no_bpm_data():
                 print >> sys.stderr, "Ignoring empty file:", twiss_file_x.filename
                 twiss_file_x = None
         except IOError:
@@ -615,7 +616,7 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         twiss_file_y = None
         try:
             twiss_file_y = metaclass.twiss(file_y)
-            if twiss_file_y.has_no_table_data():
+            if twiss_file_y.has_no_bpm_data():
                 print >> sys.stderr, "Ignoring empty file:", twiss_file_y.filename
                 twiss_file_y = None
         except IOError:

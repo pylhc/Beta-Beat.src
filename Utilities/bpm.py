@@ -18,10 +18,10 @@ def filterbpm(list_of_bpms):
     '''Filter non-arc BPM.
         Returns a list with those bpms which start with name "BPM.".
     '''
+    result = []
     if len(list_of_bpms) == 0:
         print >> sys.stderr, "Nothing to filter!!!!"
-        sys.exit(1)
-    result = []
+        return result
     for b in list_of_bpms:
         if ('BPM.' in b[1].upper()):
             result.append(b)
