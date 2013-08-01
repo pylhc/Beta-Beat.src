@@ -67,13 +67,6 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
     
     print 'Calculating phase' 
     #---- Calling get_phases first to save tunes
-    if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
-        if len(twiss_d.zero_dpp_x[0].NAME) == 0:
-            print "No BPMs in linx file"
-            sys.exit(1)
-        if len(twiss_d.zero_dpp_y[0].NAME) == 0:
-            print "No BPMs in liny file"
-            sys.exit(1)
             
     if twiss_d.has_zero_dpp_x(): 
         #-- Calculate temp value of tune
