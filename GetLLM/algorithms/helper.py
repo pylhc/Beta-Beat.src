@@ -491,7 +491,9 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     for i in range(0,len(dbpms)):
 
         bpm=str.upper(dbpms[i][1])
-
+        
+        #TODO: think about the thing with bpm_name_according_to_tw_file = tw.NAME[tw.indx[bpm_name]]
+        #Maybe change name in twiss ctor to upper.
         bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
 
 
