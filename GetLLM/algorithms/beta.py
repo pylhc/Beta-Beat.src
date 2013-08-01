@@ -373,6 +373,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                     tfs_file.add_table_row(list_row_entries) # 'except ALL' catched a SystemExit from filterbpm().(vimaier)
             
             except SystemExit:
+                traceback.print_exc()
                 sys.exit(1)
             except:
                 #-- from the model
