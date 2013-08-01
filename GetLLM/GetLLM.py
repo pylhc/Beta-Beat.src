@@ -547,6 +547,9 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         twiss_file_x = None
         try:
             twiss_file_x = metaclass.twiss(file_x)
+            if twiss_file_x.has_no_table_data():
+                print >> sys.stderr, "Ignoring empty file:", twiss_file_x.filename
+                twiss_file_x = None
         except IOError:
             print >> sys.stderr, "Cannot load file:", file_x
         except ValueError:
@@ -612,6 +615,9 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         twiss_file_y = None
         try:
             twiss_file_y = metaclass.twiss(file_y)
+            if twiss_file_y.has_no_table_data():
+                print >> sys.stderr, "Ignoring empty file:", twiss_file_y.filename
+                twiss_file_y = None
         except IOError:
             print 'Warning: There seems no ' + str(file_y) + ' file in the specified directory.'
         except ValueError:
