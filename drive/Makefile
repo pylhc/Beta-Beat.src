@@ -8,7 +8,7 @@ ifdef SystemRoot
 	RM = del -f *.obj
 	FFLAGS = /O3 /Qopenmp /Qparallel /Qunroll /Qipo-c 
 	CCFLAGS = /c /Qopenmp /Qparallel /Qunroll /Qipo-c /Wall
-	LINK = xilink -qipo /out:Drive_God_lin
+	LINK = xilink -qipo /out:Drive_God_lin_win.exe
 	FCL = 
 	DRIVE_OBJ = Drive_God_lin.obj
 	SUSSIX_OBJ = sussix4drivexxNoO.obj
