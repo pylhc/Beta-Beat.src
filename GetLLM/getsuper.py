@@ -389,9 +389,23 @@ def madcreator(dpps, options):
     filetoprint.write(linesmad % locals())
 
     filetoprint.close()
+    
     print "Running madx"
-    if subprocess.call(options.madx+' < '+options.output+'/job.chrom.madx', shell=True):
+    process = subprocess.Popen(options.madx+' < '+options.output+'/job.chrom.madx',
+                           stdout=subprocess.PIPE, 
+                           stderr=subprocess.PIPE)
+    # wait for the process to terminate
+    (out, err) = process.communicate()
+    errcode = process.returncode
+        
+    if 0 != errcode:
+        print "Mad-X failed. Printing output:-------------------------"
+        print out
+        print >> sys.stderr, "Mad-X failed. Printing error output:-------------------"
+        print >> sys.stderr, err
         raise ValueError("Mad-X failed")
+    
+
 
 
 def append(files):
