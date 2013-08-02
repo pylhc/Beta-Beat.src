@@ -313,14 +313,17 @@ def get_chi_terms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
 def getchi1010(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
 
-        # bmps
-    files=filesF[0]
-    filesy=filesF[1]
+    files_x=filesF[0]
+    files_y=filesF[1]
 
-    dbpms=Utilities.bpm.intersect(files+filesy)
+    if len(files_x) != files_y:
+        print "Different length of x, y files. Leaving getchi1010 with empty values."
+        return [[], []]
+    
+    dbpms=Utilities.bpm.intersect(files_x+files_y)
     dbpms=Utilities.bpm.model_intersect(dbpms, MADTwiss)
 
-    dbpmsy=Utilities.bpm.intersect(filesy+files)
+    dbpmsy=Utilities.bpm.intersect(files_y+files_x)
     dbpmsy=Utilities.bpm.model_intersect(dbpmsy, MADTwiss)
 
 
@@ -334,7 +337,7 @@ def getchi1010(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
     invarianceJy=[]
 
     #### invariance
-    for j in range(0,len(files)):
+    for j in range(0,len(files_x)):
         # Since betax,rmsbbx,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
         invariantJX = ( beta.beta_from_amplitude(MADTwiss,ListOfZeroDPPX,'H') )[3]
         # Since betay,rmsbby,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
@@ -353,11 +356,11 @@ def getchi1010(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
         bn=str.upper(dbpms[i][1])
         bny=str.upper(dbpmsy[i][1])
 
-        for j in range(0,len(files)):
+        for j in range(0,len(files_x)):
 
-            jx=files[j]
+            jx=files_x[j]
 
-            jy=filesy[j]
+            jy=files_y[j]
 
             amp10x=jx.AMP01[jx.indx[bn]]
             amp10y=jy.AMP10[jy.indx[bny]]
