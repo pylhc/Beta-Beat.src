@@ -316,7 +316,7 @@ def getchi1010(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
     files_x=filesF[0]
     files_y=filesF[1]
 
-    if len(files_x) != files_y:
+    if len(files_x) != len(files_y):
         print "Different length of x, y files. Leaving getchi1010 with empty values."
         return [[], []]
     

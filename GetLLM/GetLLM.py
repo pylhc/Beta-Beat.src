@@ -3,7 +3,7 @@ Created on 11/09/09
 
 @author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
 
-@version: 2.38b
+@version: 3.00dev
 
 
 
@@ -188,8 +188,6 @@ V2.38b 03/dec/2012, tbach:
 
 '''
 import sys
-if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
 import os
 import math
@@ -435,7 +433,7 @@ def intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_uni
     mad_elem = None
     if getllm_d.with_ac_calc:
         if 'LHC' in accel:
-            if 'MKQA.6L4.' + accel[3:] in mad_twiss.NAME:
+            if 'MKQA.6L4.' + accel[3:] in getattr(mad_twiss, "NAME", []):
                 print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
             else:
                 try:
@@ -557,7 +555,7 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         
         if None != twiss_file_x:
             try:
-                dppi = twiss_file_x.DPP
+                dppi = getattr(twiss_file_x, "DPP", 0.0)
             except AttributeError:
                 dppi = 0.0
             if type(dppi) != float:
@@ -625,7 +623,7 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         
         if None != twiss_file_y:
             try:
-                dppi = twiss_file_y.DPP
+                dppi = getattr(twiss_file_y, "DPP", 0.0)
             except AttributeError:
                 dppi = 0.0
             if type(dppi) != float:
@@ -983,7 +981,8 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
             try:
                 mad_twiss.Cmatrix()
             except:
-                pass
+                traceback.print_exc()
+
             if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
                 #TODO: check parameter. Q seems missing in calls get_phases (vimaier)
                 plane = 'H'
@@ -1209,7 +1208,7 @@ def _start():
          TBTana=options.TBTana,
          higher_order=options.higher)
 
-if __name__=="__main__":
+if __name__ == "__main__":
     _start()
     
 
