@@ -192,6 +192,7 @@ import sys
 import os
 import math
 
+import __init__
 import metaclass
 import traceback
 import utils.tfs_file
@@ -203,6 +204,7 @@ import algorithms.dispersion
 import algorithms.coupling
 import algorithms.interaction_point
 import algorithms.chi_terms
+
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
 
