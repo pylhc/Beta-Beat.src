@@ -1,8 +1,11 @@
 import sys
 import os
 
-if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+# Root of Beta-Beat.src
+new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..",".."))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 
-if sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..","..")) not in sys.path: # Root of Beta-Beat.src
-	sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..",".."))
+new_path = os.path.abspath(os.path.join( os.path.dirname(os.path.abspath(__file__)), "..", "..", "Python_Classes4MAD" ))
+if new_path not in sys.path:
+    sys.path.append(new_path)

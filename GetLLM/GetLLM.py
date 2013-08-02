@@ -192,7 +192,7 @@ import sys
 import os
 import math
 
-import __init__
+import __init__ # @UnusedImport init will include paths
 import metaclass
 import traceback
 import utils.tfs_file
