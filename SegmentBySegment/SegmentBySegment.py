@@ -65,6 +65,8 @@ import sys
 sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
 import optparse
 from math import sqrt,cos,sin,pi, tan
+import math
+import numpy as np
 
 try:
     from metaclass import twiss
@@ -482,7 +484,7 @@ def main(options):
     
             # writing data in list
             phases=[filephasex,filephasey,filephasextot,filephaseytot]
-            betah=[filedatax,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedataxA]
+            betah=[filedatax,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedataxA]    #TODO: errbetamin/max 2x the same?
             betav=[filedatay,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedatayA]
             if disp==1:
                 disph=[filedx,filendx,errdmin,errdmax,errdminb,errdmaxb]
@@ -496,7 +498,6 @@ def main(options):
             # calling function to collect and write data
             print "Writing data for function ",namename
             getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,twisstwiss,modelcor,normal_pro,back_pro,savepath,elementswitch,accel)
-    
     
     
             # gnuplot
@@ -1273,6 +1274,17 @@ def getIPfrompara(bpmleft,bpmright,betax,betay,phasex,phasey):
         
     return betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_phase,betastar_h_phase_e,betastar_v_phase,betastar_v_phase_e
 
+
+def propagate_error_beta(errb0, erra0, dphi, bets, bet0, alf0):
+    return math.sqrt((bets*np.sin(4*np.pi*dphi)*alf0/bet0 + bets*np.cos(4*np.pi*dphi)/bet0)**2*errb0**2 + (bets*np.sin(4*np.pi*dphi))**2*erra0**2)
+
+def propagate_error_alfa(errb0, erra0, dphi, alfs, bet0, alf0):
+    return math.sqrt(((alfs*((np.sin(4*np.pi*dphi)*alf0/bet0) + (np.cos(4*np.pi*dphi)/bet0))) - (np.cos(4*np.pi*dphi)*alf0/bet0) + (np.sin(4*np.pi*dphi)/bet0))**2*errb0**2 + ((np.cos(4*np.pi*dphi)) - (alfs*np.sin(4*np.pi*dphi)))**2*erra0**2)
+
+def propagate_error_phase(errb0, erra0, dphi, bet0, alf0):
+    return math.sqrt((((1/2.*np.cos(4*np.pi*dphi)*alf0/bet0)-(1/2.*np.sin(4*np.pi*dphi)/bet0)-(1/2.*alf0/bet0))*errb0)**2+((-(1/2.*np.cos(4*np.pi*dphi))+(1/2.))*erra0)**2)/(2*np.pi)
+
+
 def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,model,modelcor,modelp,modelb,path,switch,accel):
     '''
     Function that returns the optics function at the given element
@@ -1330,22 +1342,22 @@ def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,mod
     # - switch : to tell if it is either element(1)/segment(0)
     ###################################################################
 
-    print "INFO: Start writing files",switch
+    print "INFO: Start writing files", switch
 
 
     #### gathering file
-    if switch==1:
+    if switch == 1:
         if os.path.isfile(path+"sbs_summary_bet.out"):
             print "INFO: Updating summary file"
-            filesum_b=open(path+"sbs_summary_bet.out","a")
-            filesum_c=open(path+"sbs_summary_cou.out","a")
-            filesum_d=open(path+"sbs_summary_disp.out","a")
+            filesum_b = open(path+"sbs_summary_bet.out","a")
+            filesum_c = open(path+"sbs_summary_cou.out","a")
+            filesum_d = open(path+"sbs_summary_disp.out","a")
 
         else:
             print "INFO: Creating summary file"
-            filesum_b=open(path+"sbs_summary_bet.out","w")
-            filesum_c=open(path+"sbs_summary_cou.out","w")
-            filesum_d=open(path+"sbs_summary_disp.out","w")
+            filesum_b = open(path+"sbs_summary_bet.out","w")
+            filesum_c = open(path+"sbs_summary_cou.out","w")
+            filesum_d = open(path+"sbs_summary_disp.out","w")
 
 
             # beta
@@ -1366,20 +1378,20 @@ def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,mod
                 print >> filesum_d, "* NAME S DX_MDL DX_PLAY EDX_PLAY DPX_MDL DPX_PLAY EDPX_PLAY  DY_MDL DY_PLAY EDY_PLAY DPY_MDL DPY_PLAY EDPY_PLAY  S_MODEL"
                 print >> filesum_d, "$ %s %le %le %le %le %le %le %le %le %le  %le %le %le %le %le"
 
-    phasex=phases[0]
-    phasey=phases[1]        
+    phasex = phases[0]
+    phasey = phases[1]        
 
     ##beta
     #-horizontal
-    filex=open(path+"sbsbetax_"+namename+".out","w")
-    filexa=open(path+"sbsalfax_"+namename+".out","w")
+    filex = open(path+"sbsbetax_"+namename+".out","w")
+    filexa = open(path+"sbsalfax_"+namename+".out","w")
 
-    if switch==0:    
-        print >> filex,"* NAME S BETX ERRBETX BETXAMP ERRBETXAMP BETXP ERRBETXP BETXMDL MODEL_S"
-        print >> filex,"$ %s %le %le %le %le %le  %le %le %le %le"
+    if switch == 0:    
+        print >> filex,"* NAME S BETX ERRBETX BETXAMP ERRBETXAMP BETXP ERRBETXP BETXMDL MODEL_S ERRBETXP2"
+        print >> filex,"$ %s %le %le %le %le %le  %le %le %le %le %le"
     
-        print >> filexa,"* NAME S ALFX ERRALFX ALFXP ERRALFXP MODEL_S"
-        print >> filexa,"$ %s %le %le %le %le %le %le"
+        print >> filexa,"* NAME S ALFX ERRALFX ALFXP ERRALFXP ALFMDL MODEL_S ERRALFXP2"
+        print >> filexa,"$ %s %le %le %le %le %le %le %le %le"
     else:
         print >> filex,"* NAME S BETXP ERRBETXP BETXMDL MODEL_S"
         print >> filex,"$ %s %le %le %le %le %le"
@@ -1387,165 +1399,189 @@ def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,mod
         print >> filexa,"* NAME S ALFXP ERRALFXP ALFXMDL MODEL_S"
         print >> filexa,"$ %s %le %le %le %le %le"        
     
-    bme=betah[0] # measurement
-    bmea=betah[9] # measurement amp
-    bmip=betah[1] # min p
-    bmap=betah[2] # max p
-    bmib=betah[3] # min b
-    bmab=betah[4] # max b
-    amip=betah[5] # min p
-    amap=betah[6] # max p
-    amib=betah[7] # min b
-    amab=betah[8] # max b
+    bme = betah[0] # measurement
+    bmea = betah[9] # measurement amp
+    bmip = betah[1] # min p
+    bmap = betah[2] # max p
+    bmib = betah[3] # min b
+    bmab = betah[4] # max b
+    amip = betah[5] # min p
+    amap = betah[6] # max p
+    amib = betah[7] # min b
+    amab = betah[8] # max b
 
     
-    if switch==0: # only enter when it is a segment
-        bpms=intersect([bme,bmip,model,modelcor,modelp,modelb,bmea])
+    if switch == 0: # only enter when it is a segment
+        bpms = intersect([bme, bmip, model, modelcor, modelp, modelb, bmea])
     else:
-        bpms=intersect([bmip,model,modelcor,modelp,modelb])
+        bpms = intersect([bmip, model, modelcor, modelp, modelb])
 
     for bpm in bpms:
-        s=bpm[0]
-        name=bpm[1]
-        smo=model.S[model.indx[name]]
+        s = bpm[0]
+        name = bpm[1]
+        smo = model.S[model.indx[name]]
 
         #beta model
-        betam=model.BETX[model.indx[name]]
+        betam = model.BETX[model.indx[name]]
 
         #beta pro
-        betape=abs(bmap.BETX[bmap.indx[name]]-bmip.BETX[bmip.indx[name]])
-        betabe=abs(bmab.BETX[bmab.indx[name]]-bmib.BETX[bmib.indx[name]])
+        betape = abs(bmap.BETX[bmap.indx[name]]-bmip.BETX[bmip.indx[name]])
+        betabe = abs(bmab.BETX[bmab.indx[name]]-bmib.BETX[bmib.indx[name]])
         #ebep=sqrt((1/betape)**2+(1/betabe)**2)/2
-        ebep=sqrt(((betape)**2+(betabe)**2)/2)
+        ebep = sqrt(((betape)**2+(betabe)**2)/2)
                 
         #alfa
-        amo=model.ALFX[model.indx[name]]
+        amo = model.ALFX[model.indx[name]]
                 
-        alfape=abs(amap.ALFX[amap.indx[name]]-amip.ALFX[amip.indx[name]])
-        alfabe=abs(amab.ALFX[amab.indx[name]]-amib.ALFX[amib.indx[name]])
-        eaep=sqrt(((alfape)**2+(alfabe)**2)/2)
+        alfape = abs(amap.ALFX[amap.indx[name]]-amip.ALFX[amip.indx[name]])
+        alfabe = abs(amab.ALFX[amab.indx[name]]-amib.ALFX[amib.indx[name]])
+        eaep = sqrt(((alfape)**2+(alfabe)**2)/2)
 
-        betap=modelp.BETX[modelp.indx[name]]
-        betab=modelb.BETX[modelb.indx[name]]
-        bep=(1/(betape+betabe))*(betape*betap+betabe*betab)
+        betap = modelp.BETX[modelp.indx[name]]
+        betab = modelb.BETX[modelb.indx[name]]
+        bep = (1/(betape+betabe))*(betape*betap+betabe*betab)
                 
-        alfap=modelp.ALFX[modelp.indx[name]]                
-        alfab=modelb.ALFX[modelb.indx[name]]
-        aep=(1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
+        alfap = modelp.ALFX[modelp.indx[name]]                
+        alfab = modelb.ALFX[modelb.indx[name]]
+        aep = (1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
 
-                
-        if switch==0:
+##################### NEW ERROR
+         
+        first_bpm = bpms[0][1]
+        beta_start = bme.BETX[bme.indx[first_bpm]]
+        alfa_start = bme.ALFX[bme.indx[first_bpm]]
+        err_beta_start = sqrt(bme.ERRBETX[bme.indx[first_bpm]]**2+bme.STDBETX[bme.indx[first_bpm]]**2)
+        err_alfa_start = sqrt(bme.ERRALFX[bme.indx[first_bpm]]**2+bme.STDALFX[bme.indx[first_bpm]]**2)
+        delta_phase = (phasex.PHASEX[phasex.indx[name]] - phasex.PHASEX[phasex.indx[first_bpm]]) %1      
+        beta_s = bme.BETX[bme.indx[name]]
+        alfa_s = bme.ALFX[bme.indx[name]]
+
+        err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start)
+        err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_s, beta_start, alfa_start)
+#        err_phase_prop = propagate_error_phase(err_beta_start, err_alfa_start, delta_phase, beta_start, alfa_start)
+        
+        if switch == 0:
             
-                alfame=bme.ALFX[bme.indx[name]]
-                ealfame=sqrt((bme.ERRALFX[bme.indx[name]]**2+bme.STDALFX[bme.indx[name]]**2)/2)
-                #beta me
-                betaa=bmea.BETX[bmea.indx[name]]
-                ebetaa=bmea.BETXSTD[bmea.indx[name]]
-                betame=bme.BETX[bme.indx[name]]
-                ebetame=sqrt((bme.ERRBETX[bme.indx[name]]**2+bme.STDBETX[bme.indx[name]]**2)/2)
-                bep=modelcor.BETX[modelcor.indx[name]]
-                alfap=modelp.ALFX[modelp.indx[name]]
+            alfame = bme.ALFX[bme.indx[name]]
+            ealfame = sqrt((bme.ERRALFX[bme.indx[name]]**2+bme.STDALFX[bme.indx[name]]**2)/2)
+            #beta me
+            betaa = bmea.BETX[bmea.indx[name]]
+            ebetaa = bmea.BETXSTD[bmea.indx[name]]
+            betame = bme.BETX[bme.indx[name]]
+            ebetame = sqrt((bme.ERRBETX[bme.indx[name]]**2+bme.STDBETX[bme.indx[name]]**2)/2)
+            bep = modelcor.BETX[modelcor.indx[name]]
+            alfap = modelp.ALFX[modelp.indx[name]]
 
                 
-                print >> filexa,name,s,alfame,ealfame,aep,eaep,amo,smo
-                print >> filex,name,s,betame,ebetame,betaa,ebetaa,bep,ebep,betam,smo
+            print >> filexa, name, s, alfame, ealfame, aep, eaep, amo, smo, err_alfa_prop
+            print >> filex, name, s, betame, ebetame, betaa, ebetaa, bep, ebep, betam, smo, err_beta_prop
         else:
-                #print "Adding", name," to the summary ",namename
+            #print "Adding", name," to the summary ",namename
 
-                print >> filexa,name,s,aep,eaep,amo,smo
-                print >> filex,name,s,bep,ebep,betam,smo
+            print >> filexa, name, s, aep, eaep, amo, smo
+            print >> filex, name, s, bep, ebep, betam, smo
 
-                if namename in name:
-                    fileb1=name+" "+str(s)+" "+str(round(bep,2))+" "+str(round(ebep,2))+" "+str(round(betam,2))+" "+str(round(aep,4))+" "+str(round(eaep,4))+" "+str(round(amo,4))
+            if namename in name:
+                fileb1 = name+" "+str(s)+" "+str(round(bep, 2))+" "+str(round(ebep, 2))+" "+str(round(betam, 2))+" "+str(round(aep, 4))+" "+str(round(eaep, 4))+" "+str(round(amo, 4))
         
     filex.close()
     filexa.close()
 
     #-vertical
-    filey=open(path+"sbsbetay_"+namename+".out","w")
-    fileya=open(path+"sbsalfay_"+namename+".out","w")
+    filey = open(path+"sbsbetay_"+namename+".out","w")
+    fileya = open(path+"sbsalfay_"+namename+".out","w")
                 
-    if switch==0:
-                print >> filey,"* NAME S BETY ERRBETY  BETYAMP ERRBETYAMP BETYP ERRBETYP BETYMDL MDL_S"
-                print >> filey,"$ %s %le %le %le %le %le %le %le %le %le "
-                print >> fileya,"* NAME S ALFY ERRALFY ALFYP ERRALFYP ALFMDL MODEL_S"
-                print >> fileya,"$ %s %le %le %le %le %le %le"
+    if switch == 0:
+        print >> filey,"* NAME S BETY ERRBETY  BETYAMP ERRBETYAMP BETYP ERRBETYP BETYMDL MDL_S"
+        print >> filey,"$ %s %le %le %le %le %le %le %le %le %le "
+        print >> fileya,"* NAME S ALFY ERRALFY ALFYP ERRALFYP ALFMDL MODEL_S"
+        print >> fileya,"$ %s %le %le %le %le %le %le %le"
     else:
-                print >> filey,"* NAME S BETY ERRBETY BETYMDL MDL_S"
-                print >> filey,"$ %s %le %le %le %le %le"        
-                print >> fileya,"* NAME S ALFA ERRALFY ALFYMDL MDL_S"
-                print >> fileya,"$ %s %le %le %le %le %le"
+        print >> filey,"* NAME S BETY ERRBETY BETYMDL MDL_S"
+        print >> filey,"$ %s %le %le %le %le %le"        
+        print >> fileya,"* NAME S ALFA ERRALFY ALFYMDL MDL_S"
+        print >> fileya,"$ %s %le %le %le %le %le"
 
     
-    bme=betav[0] # measurement
-    bmea=betav[9] # measurement amp            
-    bmip=betav[1] # min p
-    bmap=betav[2] # max p
-    bmib=betav[3] # min b
-    bmab=betav[4] # max b
-    amip=betav[5] # min p
-    amap=betav[6] # max p
-    amib=betav[7] # min b
-    amab=betav[8] # max b
+    bme = betav[0] # measurement
+    bmea = betav[9] # measurement amp            
+    bmip = betav[1] # min p
+    bmap = betav[2] # max p
+    bmib = betav[3] # min b
+    bmab = betav[4] # max b
+    amip = betav[5] # min p
+    amap = betav[6] # max p
+    amib = betav[7] # min b
+    amab = betav[8] # max b
                 
-    if switch==0: # only enter when it is a segment
-                bpms=intersect([bme,bmip,model,modelcor,modelp,modelb,bmea])
+    if switch == 0: # only enter when it is a segment
+        bpms = intersect([bme, bmip, model, modelcor, modelp, modelb, bmea])
     else:
-                bpms=intersect([bmip,model,modelcor,modelp,modelb])        
+        bpms = intersect([bmip, model, modelcor, modelp, modelb])        
 
     for bpm in bpms:
-        s=bpm[0]
-        name=bpm[1]
-        smo=model.S[model.indx[name]]
+        s = bpm[0]
+        name = bpm[1]
+        smo = model.S[model.indx[name]]
 
         #beta model
-        betam=model.BETY[model.indx[name]]
+        betam = model.BETY[model.indx[name]]
 
                       
         #beta
 
-        betape=abs(bmap.BETY[bmap.indx[name]]-bmip.BETY[bmip.indx[name]])
-        betabe=abs(bmab.BETY[bmab.indx[name]]-bmib.BETY[bmib.indx[name]])
+        betape = abs(bmap.BETY[bmap.indx[name]]-bmip.BETY[bmip.indx[name]])
+        betabe = abs(bmab.BETY[bmab.indx[name]]-bmib.BETY[bmib.indx[name]])
         #ebep=sqrt((1/betape)**2+(1/betabe)**2)/2
-        ebep=sqrt((betape)**2+(betabe)**2)/2
+        ebep = sqrt((betape)**2+(betabe)**2)/2
  
         #alfa
-        amo=model.ALFY[model.indx[name]]
+        amo = model.ALFY[model.indx[name]]
         
-        alfape=abs(amap.ALFY[amap.indx[name]]-amip.ALFY[amip.indx[name]])
-        alfabe=abs(amab.ALFY[amab.indx[name]]-amib.ALFY[amib.indx[name]])
-        eaep=sqrt((alfape)**2+(alfabe)**2)/2
+        alfape = abs(amap.ALFY[amap.indx[name]]-amip.ALFY[amip.indx[name]])
+        alfabe = abs(amab.ALFY[amab.indx[name]]-amib.ALFY[amib.indx[name]])
+        eaep = sqrt((alfape)**2+(alfabe)**2)/2
+
+        first_bpm = bpms[0][1]
+        beta_start = bme.BETY[bme.indx[first_bpm]]
+        alfa_start = bme.ALFY[bme.indx[first_bpm]]
+        err_beta_start = sqrt(bme.ERRBETY[bme.indx[first_bpm]]**2+bme.STDBETY[bme.indx[first_bpm]]**2)
+        err_alfa_start = sqrt(bme.ERRALFY[bme.indx[first_bpm]]**2+bme.STDALFY[bme.indx[first_bpm]]**2)
+        delta_phase = (phasey.PHASEY[phasex.indx[name]] - phasex.PHASEY[phasey.indx[first_bpm]]) %1      
+        beta_s = bme.BETY[bme.indx[name]]
+        alfa_s = bme.ALFY[bme.indx[name]]
+
+        err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start)
+        err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_s, beta_start, alfa_start)        
 
         
-
-        
-        if switch==0:
+        if switch == 0:
                 #beta me               
-            betaa=bmea.BETY[bmea.indx[name]]
-            ebetaa=bmea.BETYSTD[bmea.indx[name]]
-            betame=bme.BETY[bme.indx[name]]                             
-            ebetame=sqrt((bme.ERRBETY[bme.indx[name]]**2+bme.STDBETY[bme.indx[name]]**2)/2)
-            print >> filey,name,s,betame,ebetame,betaa,ebetaa,bep,ebep,betam,smo            
+            betaa = bmea.BETY[bmea.indx[name]]
+            ebetaa = bmea.BETYSTD[bmea.indx[name]]
+            betame = bme.BETY[bme.indx[name]]                             
+            ebetame = sqrt((bme.ERRBETY[bme.indx[name]]**2+bme.STDBETY[bme.indx[name]]**2)/2)
+            print >> filey, name, s, betame, ebetame, betaa, ebetaa, bep, ebep, betam, smo, err_beta_prop           
             #alfa me
-            bep=modelcor.BETY[modelcor.indx[name]]
-            aep=modelcor.ALFY[modelcor.indx[name]]
+            bep = modelcor.BETY[modelcor.indx[name]]
+            aep = modelcor.ALFY[modelcor.indx[name]]
                
-            alfame=bme.ALFY[bme.indx[name]]
-            ealfame=sqrt((bme.ERRALFY[bme.indx[name]]**2+bme.STDALFY[bme.indx[name]]**2)/2)
+            alfame = bme.ALFY[bme.indx[name]]
+            ealfame = sqrt((bme.ERRALFY[bme.indx[name]]**2+bme.STDALFY[bme.indx[name]]**2)/2)
                 
-            print >> fileya,name,s,alfame,ealfame,aep,eaep,amo,smo
+            print >> fileya, name, s, alfame, ealfame, aep, eaep, amo, smo, err_alfa_prop
         else:
-            betap=modelp.BETY[modelp.indx[name]]
-            betab=modelb.BETY[modelb.indx[name]]
-            bep=(1/(betape+betabe))*(betape*betap+betabe*betab)            
-            alfap=modelp.ALFY[modelp.indx[name]]
-            alfab=modelb.ALFY[modelb.indx[name]]
-            aep=(1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
-            print >> fileya,name,s,aep,eaep,amo,smo
-            print >> filey,name,s,bep,ebep,betam,smo
+            betap = modelp.BETY[modelp.indx[name]]
+            betab = modelb.BETY[modelb.indx[name]]
+            bep = (1/(betape+betabe))*(betape*betap+betabe*betab)            
+            alfap = modelp.ALFY[modelp.indx[name]]
+            alfab = modelb.ALFY[modelb.indx[name]]
+            aep = (1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
+            print >> fileya, name, s, aep, eaep, amo, smo
+            print >> filey, name, s, bep, ebep, betam, smo
 
             if namename in name:
-                print >>filesum_b,fileb1,round(bep,2),round(ebep,2),round(betam,2),round(aep,4),round(eaep,4),round(amo,4),round(smo,2)
+                print >> filesum_b, fileb1, round(bep, 2), round(ebep, 2), round(betam, 2), round(aep, 4), round(eaep, 4), round(amo, 4), round(smo, 2)
             
         
     filey.close()
