@@ -78,10 +78,11 @@ def parse_args():
     parser.add_option("-o", "--output",
             help="Output path, where to store the results",
             metavar="<path>", default="./", dest="output")
-    # By default we take the path from where getsuper_dev.py is ran from..
+    # By default we take the path from where getsuper.py is ran from..
     parser.add_option("-b", "--beta",
             help="Path to Beat-Beat.src folder",
-            metavar="<path>", default=os.path.dirname(__file__)+'/../', dest="brc")
+            metavar="<path>", dest="brc",
+            default=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) )
     parser.add_option("-t", "--algorithm",
             help="Which algorithm to use (SUSSIX/SVD)",
             metavar="ALGORITHM", default="SUSSIX", dest="technique")

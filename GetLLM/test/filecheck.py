@@ -39,7 +39,7 @@ import optparse
 import unittest
 import shutil
 
-import __init__
+import __init__ # @UnusedImport init will include paths
 
 import vimaier_utils.scriptrunner
 import Utilities.iotools
