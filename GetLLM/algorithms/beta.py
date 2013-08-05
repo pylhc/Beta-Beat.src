@@ -1,11 +1,11 @@
 '''
 Created on 27 May 2013
 
-@author: vimaier
+@author: ?, vimaier
 
 @version: 0.0.1
 
-GetLLM.algorithms.phase.py stores helper functions for phase calculations for GetLLM.
+GetLLM.algorithms.beta.py stores helper functions for phase calculations for GetLLM.
 This module is not intended to be executed. It stores only functions.
 
 Change history:
