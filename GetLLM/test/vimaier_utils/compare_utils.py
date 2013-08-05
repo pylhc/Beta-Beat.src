@@ -112,14 +112,17 @@ def compare_tfs_files(name_valid, name_to_check):
         return ""
     
     file_valid = open(name_valid)
-    file_to_check = open(name_to_check)
+    try:
+        file_to_check = open(name_to_check)
+    except IOError:
+        return "Cannot open %s" % name_to_check
+    
     
     valid_lines = file_valid.readlines()
     to_check_lines = file_to_check.readlines()
     
     i_to_check = 0
-    for i_valid in xrange(len(valid_lines)):
-        valid_line = valid_lines[i_valid]
+    for valid_line in valid_lines:
         
         # Exclude descriptors GetLLMVersion, MAD_FILE, FILES, DATE and Command from comparison
         if valid_line.startswith("@") and "GetLLMVersion" in valid_line or "MAD_FILE" in valid_line or "FILE" in valid_line:
@@ -154,8 +157,8 @@ def compare_tfs_files(name_valid, name_to_check):
 def __file_not_valid(name_twiss):
     ''' Checks if the given twiss file is empty, thus not valid. '''
     try:
-        tw = metaclass.twiss(name_twiss)
-        if 0 == len(getattr(tw, "NAME", [])):
+        tw_f = metaclass.twiss(name_twiss)
+        if 0 == len(getattr(tw_f, "NAME", [])):
             return True # empty files are not longer produced by modified GetLLM
         return False
     except ValueError:
