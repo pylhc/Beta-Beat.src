@@ -3,9 +3,10 @@
 # INPUT:
 #  - 1: path to Beta-Beat.src
 #  - 2: path to model
-#  - 3: sdds file 1
-#  - 4: sdds file 2
-#  - 5: sdds file 3
+#  - 3: accelerator name
+#  - 4: sdds file 1
+#  - 5: sdds file 2
+#  - 6: sdds file 3
 
 # correct as long as we only use each model once..
 base=`basename $2`
@@ -19,11 +20,11 @@ NUMDIFF=/afs/cern.ch/eng/sl/lintrack/virtualenv-cs-ccr-optics1/bin/numdiff
 $PYTHON $1/GetLLM/getsuper.py \
  --madxbin=$MADX \
  --twissfile="$2/twiss.dat" \
- --output=./out_${base}/ --algorithm=SUSSIX --accel=LHCB1 \
+ --output=./out_${base}/ --algorithm=SUSSIX --accel=$3 \
  --beta=$1/ \
- "$3" \
  "$4" \
  "$5" \
+ "$6" \
   || exit 1
 
 
