@@ -18,7 +18,7 @@ else
 	FFLAGS = -O3 -c -m32 -openmp -Bstatic -static -static-libgcc -parallel -unroll -ipo
 	CCFLAGS = -ansi -c -m32 -openmp -static-libgcc -parallel -unroll -ipo -Wall -Wremarks -diag-disable 981
 	LINK = ifort -o Drive_God_lin 
-	FCL = -lm -m32 -nofor_main -openmp -Bstatic -static-libgcc -static -parallel -unroll -ipo
+	FCL = -lm -m32 -nofor_main -openmp -Bstatic -static-libgcc -static -parallel -unroll -ipo -lstdc++
 	DRIVE_OBJ = Drive_God_lin.o
 	SUSSIX_OBJ = sussix4drivexxNoO.o
 endif	
@@ -32,7 +32,7 @@ $(SUSSIX_OBJ):
 	
 # make drive object file from c source	
 $(DRIVE_OBJ):
-	$(CC) $(CCFLAGS) Drive_God_lin.c 
+	$(CC) $(CCFLAGS) Drive_God_lin.cpp 
 
 # link to binary
 Drive_God_lin: $(DRIVE_OBJ) $(SUSSIX_OBJ)
