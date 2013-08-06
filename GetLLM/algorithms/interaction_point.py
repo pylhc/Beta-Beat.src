@@ -294,7 +294,7 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     dsall.append(d_s)
                     rt2j_all.append(rt2j)
                 except ValueError as val_err:
-                    if "plane is neither 'H' nor 'V'." == val_err.message:
+                    if "plane is neither 'H' nor 'V'." == str(val_err):
                         raise val_err
                     print >> sys.stderr, "Known error: "
                     traceback.print_exc() # math domain error
