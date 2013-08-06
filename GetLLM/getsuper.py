@@ -62,7 +62,6 @@ import Utilities.bpm
 #===================================================================================================
 def parse_args():
     ''' Parses arguments from command line. '''
-    ###### optionparser
     usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
     parser = optparse.OptionParser(usage)
     # general
@@ -328,12 +327,12 @@ def get_twissfile(options):
     Returns the full path to
     the twiss file
     '''
-    if options.twissfile:
-        return options.twissfile
-    if os.path.isfile(options.twissfile+'/twiss.dat'):
-        return options.twissfile+'/twiss.dat'
-    if os.path.isfile(options.twissfile+'/twiss.dat.gz'):
-        return options.twissfile+'/twiss.dat.gz'
+    _twpaths=[options.twissfile,
+              os.path.join(options.twissfile,'twiss.dat'),
+              os.path.join(options.twissfile,'twiss.dat.gz')]
+    for _twpath in _twpaths:
+        if os.path.isfile(_twpath):
+            return _twpath
     # did not find any file..
     raise ValueError("Could not find twissfile! "+options.twissfile)
 
@@ -353,7 +352,11 @@ def madcreator(dpps, options):
     for dpp in dpps:
         if not os.path.exists(options.output+'/twiss_'+str(dpp)+'.dat'):
             dppstring = dppstring+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'.dat";\n'
-            dppstring_ac = dppstring_ac+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'_ac.dat";\n'
+            # if the model has twiss_ac.dat:
+            if os.path.exists(get_twissfile(options)[:-4]+"_ac.dat"): # this is only correct as long as the filenames are <filename>_ac.dat and <filename>.dat!
+                dppstring_ac = dppstring_ac+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'_ac.dat";\n'
+            else: # do not create ac file if we don't have ac in our original model..
+                dppstring_ac = ''
 
     if not dppstring:
         print "No need to run madx"
