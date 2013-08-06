@@ -124,16 +124,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
                 fill_ip_tfs_file(files_dict['getIPfromphase_free2.out'], col_names, col_datatypes, ip_from_phase_f2)
             except:
                 traceback.print_exc()
-#             tfs_file = files_dict['getIPfromphase_free2.out']
-#             tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-#             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-#             for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-#                 list_row_entries = ['"' + ip_name + '"']
-#                 if ip_name in ip_from_phase_f2:
-#                     for ip_value in ip_from_phase_f2[ip_name]:
-#                         list_row_entries.append(ip_value)
-#                     
-#                     tfs_file.add_table_row(list_row_entries)
+
 # END calculate_ip ---------------------------------------------------------------------------------
 
 
@@ -302,7 +293,9 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     betsall.append(bets)
                     dsall.append(d_s)
                     rt2j_all.append(rt2j)
-                except ValueError:
+                except ValueError as val_err:
+                    if "plane is neither 'H' nor 'V'." == val_err.message:
+                        raise val_err
                     print >> sys.stderr, "Known error: "
                     traceback.print_exc() # math domain error
                 except ZeroDivisionError:
