@@ -8,10 +8,12 @@
 #  - 5: sdds file 2
 #  - 6: sdds file 3
 
+# Environment:
+# NUMDIFF variable should be set and point to the numdiff binary
+
 # correct as long as we only use each model once..
 base=`basename $2`
 
-NUMDIFF=/afs/cern.ch/eng/sl/lintrack/virtualenv-cs-ccr-optics1/bin/numdiff
 # use python2.6 if found, otherwise default..
 [ -x /usr/bin/python2.6 ] && PYTHON=/usr/bin/python2.6 || PYTHON=/usr/bin/python
 # use madx from afs if you don't have it in your path..
@@ -37,7 +39,7 @@ do
     fname=`basename $f`
     dname=`dirname $f`
     echo $NUMDIFF -b $f ./out_${base}/$fname ${dname}/default.cfg
-    $NUMDIFF -b $f ./out_${base}/$fname ${dname}/default.cfg 2>&1 | tee tmp_ndiff.out
+    "$NUMDIFF" -b $f ./out_${base}/$fname ${dname}/default.cfg 2>&1 | tee tmp_ndiff.out
     # since numdiff returns 0 always,
     # we grep for warnings in the output..
     grep ^warng tmp_ndiff.out && n_errs=`expr $n_errs + 1`

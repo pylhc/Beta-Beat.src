@@ -16,8 +16,7 @@ add_test(getsuper_b2_kickdata ${CTEST_SOURCE_DIRECTORY}/tests/getsuper
 
 
 
-set_tests_properties(getsuper PROPERTIES
+set_tests_properties(getsuper_b1_acdata getsuper_b2_kickdata PROPERTIES
    TIMEOUT 1200
-   FAIL_REGULAR_EXPRESSION "(Value|Type|ZeroDivision|Name)Error"
    )
 
