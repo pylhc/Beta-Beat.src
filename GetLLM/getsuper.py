@@ -50,11 +50,8 @@ import shutil
 import subprocess
 import math
 import re
-if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-if "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/" not in sys.path: # added for Utilities.bpm
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/')
 
+import __init__  # @UnusedImport init will include paths
 import metaclass
 import linreg
 import Utilities.bpm
@@ -81,10 +78,11 @@ def parse_args():
     parser.add_option("-o", "--output",
             help="Output path, where to store the results",
             metavar="<path>", default="./", dest="output")
-    # By default we take the path from where getsuper_dev.py is ran from..
+    # By default we take the path from where getsuper.py is ran from..
     parser.add_option("-b", "--beta",
             help="Path to Beat-Beat.src folder",
-            metavar="<path>", default=os.path.dirname(__file__)+'/../', dest="brc")
+            metavar="<path>", dest="brc",
+            default=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) )
     parser.add_option("-t", "--algorithm",
             help="Which algorithm to use (SUSSIX/SVD)",
             metavar="ALGORITHM", default="SUSSIX", dest="technique")
@@ -392,9 +390,24 @@ def madcreator(dpps, options):
     filetoprint.write(linesmad % locals())
 
     filetoprint.close()
+    
     print "Running madx"
-    if subprocess.call(options.madx+' < '+options.output+'/job.chrom.madx', shell=True):
+    process = subprocess.Popen(options.madx+' < '+options.output+'/job.chrom.madx',
+                           stdout=subprocess.PIPE, 
+                           stderr=subprocess.PIPE,
+                           shell=True)
+    # wait for the process to terminate
+    (out, err) = process.communicate()
+    errcode = process.returncode
+        
+    if 0 != errcode:
+        print "Mad-X failed. Printing output:-------------------------"
+        print out
+        print >> sys.stderr, "Mad-X failed. Printing error output:-------------------"
+        print >> sys.stderr, err
         raise ValueError("Mad-X failed")
+    
+
 
 
 def append(files):

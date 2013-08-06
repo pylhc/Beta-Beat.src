@@ -1,11 +1,11 @@
 '''
 Created on 27 May 2013
 
-@author: vimaier
+@author: ?, vimaier
 
 @version: 0.0.1
 
-GetLLM.algorithms.phase.py stores helper functions for phase calculations for GetLLM.
+GetLLM.algorithms.interaction_point.py stores helper functions for phase calculations for GetLLM.
 This module is not intended to be executed. It stores only functions.
 
 Change history:
@@ -67,73 +67,37 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
         #-- Parameters at IP1, IP2, IP5, and IP8
         ip_x = _get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
         ip_y = _get_ip_2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        tfs_file_x = files_dict['getIPx.out']
-        tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JX)", "rt(2JX)STD"])
-        tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        tfs_file_y = files_dict['getIPy.out']
-        tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JY)", "rt(2JY)STD"])
-        tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-            if ip_name in ip_x:
-                list_row_entries = ['"' + ip_name + '"']
-                for ip_value in ip_x[ip_name]:
-                    list_row_entries.append(ip_value)
-                
-                tfs_file_x.add_table_row(list_row_entries)
-            if ip_name in ip_y:
-                list_row_entries = ['"' + ip_name + '"']
-                for ip_value in ip_y[ip_name]:
-                    list_row_entries.append(ip_value)
-                
-                tfs_file_y.add_table_row(list_row_entries)
+
+        fill_ip_tfs_file(tfs_file=files_dict['getIPx.out'],
+                         column_names=["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JX)", "rt(2JX)STD"],
+                         column_datatypes=["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"],
+                         results=ip_x)
+        fill_ip_tfs_file(tfs_file=files_dict['getIPy.out'],
+                         column_names=["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JY)", "rt(2JY)STD"],
+                         column_datatypes=["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"],
+                         results=ip_y)
 
         #-- ac to free parameters at IP1, IP2, IP5, and IP8
         if getllm_d.with_ac_calc:
             #-- From Eq
             ip_x_f = compensate_ac_effect.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
             ip_y_f = compensate_ac_effect.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-            tfs_file_x = files_dict['getIPx_free.out']
-            tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"])
-            tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            tfs_file_y = files_dict['getIPy_free.out']
-            tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JYD)", "rt(2JYD)STD"])
-            tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                if ip_name in ip_x_f:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_x_f[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_x.add_table_row(list_row_entries)
-                if ip_name in ip_y_f:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_y_f[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_y.add_table_row(list_row_entries)
-                
+            
+            col_names_x = ["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"]
+            col_datatypes_x = ["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"]
+            fill_ip_tfs_file(files_dict['getIPx_free.out'], col_names_x, col_datatypes_x, ip_x_f)
+            
+            col_names_y = ["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JYD)", "rt(2JYD)STD"]
+            col_datatypes_y = ["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"]
+            fill_ip_tfs_file(files_dict['getIPy_free.out'], col_names_y, col_datatypes_y, ip_y_f)
+            
+            
             #-- From model
             ip_x_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_x, 'H', getllm_d.accel)
             ip_y_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_y, 'V', getllm_d.accel)
-            tfs_file_x = files_dict['getIPx_free2.out']
-            tfs_file_x.add_column_names(["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"])
-            tfs_file_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            tfs_file_y = files_dict['getIPy_free2.out']
-            tfs_file_y.add_column_names(["NAME", "BETY", "BETYSTD", "BETYMDL", "ALFY", "ALFYSTD", "ALFYMDL", "BETY*", "BETY*STD", "BETY*MDL", "SY*", "SY*STD", "SY*MDL", "rt(2JYD)", "rt(2JYD)STD"])
-            tfs_file_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                if ip_name in ip_x_f_2:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_x_f_2[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_x.add_table_row(list_row_entries)
-                if ip_name in ip_y_f_2:
-                    list_row_entries = ['"' + ip_name + '"']
-                    for ip_value in ip_y_f_2[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file_y.add_table_row(list_row_entries)
+            
+            fill_ip_tfs_file(files_dict['getIPx_free2.out'], col_names_x,col_datatypes_x, results=ip_x_f_2)
+            fill_ip_tfs_file(files_dict['getIPy_free2.out'], col_names_y, col_datatypes_y, results=ip_y_f_2)
 
         #-- IP beta* and phase from phase only
         if not phase_d.ph_x is None and not phase_d.ph_y is None: # Designed to run with both 
@@ -142,49 +106,25 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             except:
                 traceback.print_exc()
                 print 'No output from IP from phase. H or V file missing?'
-            tfs_file = files_dict['getIPfromphase.out']
-            tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                list_row_entries = ['"' + ip_name + '"']
-                if ip_name in ip_from_phase:
-                    for ip_value in ip_from_phase[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file.add_table_row(list_row_entries)
+            col_names = ["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"]
+            col_datatypes = ["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"]
+            fill_ip_tfs_file(files_dict['getIPfromphase.out'], col_names, col_datatypes, ip_from_phase)
 
         #-- ac to free beta*
         if getllm_d.with_ac_calc:
             #-- from eqs
             try:
                 ip_from_phase_f =_get_ip_from_phase(mad_twiss, phase_d.x_f, phase_d.y_f, getllm_d.accel)
+                fill_ip_tfs_file(files_dict['getIPfromphase_free.out'], col_names, col_datatypes, ip_from_phase_f)
             except:
                 traceback.print_exc()
-            tfs_file = files_dict['getIPfromphase_free.out']
-            tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                list_row_entries = ['"' + ip_name + '"']
-                if ip_name in ip_from_phase_f:
-                    for ip_value in ip_from_phase_f[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file.add_table_row(list_row_entries)
-            #-- from the model
+
             try:
                 ip_from_phase_f2 = _get_ip_from_phase(mad_twiss, phase_d.x_f2, phase_d.y_f2, getllm_d.accel)
+                fill_ip_tfs_file(files_dict['getIPfromphase_free2.out'], col_names, col_datatypes, ip_from_phase_f2)
             except:
                 traceback.print_exc()
-            tfs_file = files_dict['getIPfromphase_free2.out']
-            tfs_file.add_column_names(["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
-                list_row_entries = ['"' + ip_name + '"']
-                if ip_name in ip_from_phase_f2:
-                    for ip_value in ip_from_phase_f2[ip_name]:
-                        list_row_entries.append(ip_value)
-                    
-                    tfs_file.add_table_row(list_row_entries)
+
 # END calculate_ip ---------------------------------------------------------------------------------
 
 
@@ -193,6 +133,18 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
 #===================================================================================================
 # helper-functions
 #===================================================================================================
+
+def fill_ip_tfs_file(tfs_file, column_names, column_datatypes, results):
+    tfs_file.add_column_names(column_names)
+    tfs_file.add_column_datatypes(column_datatypes)
+    for ip_name in 'IP1', 'IP5', 'IP8', 'IP2':
+        list_row_entries = ['"' + ip_name + '"']
+        if ip_name in results:
+            for ip_value in results[ip_name]:
+                list_row_entries.append(ip_value)
+            
+            tfs_file.add_table_row(list_row_entries)
+
 
 def _get_ip(ip_num, measured, model):
     bpm_left, bpm_right = _find_bpm(ip_num, model, measured)
@@ -262,7 +214,7 @@ def _find_bpm(ip_num, model, measured):
         if "BPMSW.1R"+ip_num in bpm_name:
             bpm_right = bpm_name
             try:
-                test = measured[0][bpm_right][0]  # @UnusedVariable
+                test_if_bpm_exists = measured[0][bpm_right][0]  # @UnusedVariable
             except (KeyError, TypeError):
                 bpm_right = None
                 
@@ -341,7 +293,9 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     betsall.append(bets)
                     dsall.append(d_s)
                     rt2j_all.append(rt2j)
-                except ValueError:
+                except ValueError as val_err:
+                    if "plane is neither 'H' nor 'V'." == val_err.message:
+                        raise val_err
                     print >> sys.stderr, "Known error: "
                     traceback.print_exc() # math domain error
                 except ZeroDivisionError:
