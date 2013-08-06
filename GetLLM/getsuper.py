@@ -394,7 +394,8 @@ def madcreator(dpps, options):
     print "Running madx"
     process = subprocess.Popen(options.madx+' < '+options.output+'/job.chrom.madx',
                            stdout=subprocess.PIPE, 
-                           stderr=subprocess.PIPE)
+                           stderr=subprocess.PIPE,
+                           shell=True)
     # wait for the process to terminate
     (out, err) = process.communicate()
     errcode = process.returncode
