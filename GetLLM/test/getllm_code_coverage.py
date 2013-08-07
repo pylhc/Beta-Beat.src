@@ -57,7 +57,7 @@ if __name__ == "__main__":
     my_files_to_analyse += "data/getsuper_all_three/input/src_files/bpms2.gz,"
     my_files_to_analyse += "data/getsuper_all_three/input/src_files/bpms3.gz"
     my_twiss_model_file = "data/getsuper_all_three/input/model/twiss.dat"
-#     run_getllm()  
+    run_getllm()  
        
     #getsuper_all_three with nbcpl = 1
     print "========================================================================================"
@@ -69,90 +69,102 @@ if __name__ == "__main__":
     run_getllm()   
     my_NBcpl = 2
            
-#     #getsuper_data1
-#     print "========================================================================================"
-#     print "getsuper_data1"
-#     print "========================================================================================"
-#     my_outputpath = "data/getsuper_data1/output/to_check"
-#     my_files_to_analyse = "data/getsuper_data1/input/src_files/bpms.gz"
-#     my_twiss_model_file = "data/getsuper_data1/input/model/twiss.dat"
-#     run_getllm()        
-#            
-#     #getsuper_data2
-#     print "========================================================================================"
-#     print "getsuper_data2"
-#     print "========================================================================================"
-#     my_outputpath = "data/getsuper_data2/output/to_check"
-#     my_files_to_analyse = "data/getsuper_data2/input/src_files/bpms.gz"
-#     my_twiss_model_file = "data/getsuper_data2/input/model/twiss.dat"
-#     run_getllm()        
-#            
-#     #getsuper_data3
-#     print "========================================================================================"
-#     print "getsuper_data3"
-#     print "========================================================================================"
-#     my_outputpath = "data/getsuper_data3/output/to_check"
-#     my_files_to_analyse = "data/getsuper_data3/input/src_files/bpms.gz"
-#     my_twiss_model_file = "data/getsuper_data3/input/model/twiss.dat"
-#     run_getllm()        
-#  
-#     #run_from_gui with my_BPMU = "mm"
-#     print "========================================================================================"
-#     print "run_from_gui with my_BPMU = \"mm\""
-#     print "========================================================================================"
-#     my_outputpath = "data/run_from_gui/output/to_check"
-#     my_files_to_analyse = "data/run_from_gui/input/src_files/ALLBPMs"
-#     my_twiss_model_file = "data/run_from_gui/input/model/twiss.dat"
-#     my_BPMU = "mm"
-#     run_getllm()        
-#     my_BPMU = "um"
-#            
-#     #run_with_ac
-#     print "========================================================================================"
-#     print "run_with_ac"
-#     print "========================================================================================"
-#     my_outputpath = "data/run_with_ac/output/to_check"
-#     my_files_to_analyse = "data/run_with_ac/input/src_files/ALLBPMs"
-#     my_twiss_model_file = "data/run_with_ac/input/model/twiss.dat"
-#     run_getllm()        
-#            
-#     #run_with_ip
-#     print "========================================================================================"
-#     print "run_with_ip"
-#     print "========================================================================================"
-#     my_outputpath = "data/run_with_ip/output/to_check"
-#     my_files_to_analyse = "data/run_with_ip/input/src_files/ALLBPMs"
-#     my_twiss_model_file = "data/run_with_ip/input/model/twiss.dat"
-#     run_getllm()        
-#            
-#     #run_with_ip_and_ac
-#     print "========================================================================================"
-#     print "run_with_ip_and_ac"
-#     print "========================================================================================"
-#     my_outputpath = "data/run_with_ip_and_ac/output/to_check"
-#     my_files_to_analyse = "data/run_with_ip_and_ac/input/src_files/ALLBPMs"
-#     my_twiss_model_file = "data/run_with_ip_and_ac/input/model/twiss.dat"
-#     run_getllm()        
-#           
-#     #run1
-#     print "========================================================================================"
-#     print "run1"
-#     print "========================================================================================"
-#     my_outputpath = "data/run1/output/to_check"
-#     my_files_to_analyse = "data/run1/input/src_files/ALLBPMs"
-#     my_twiss_model_file = "data/run1/input/model/twiss.dat"
-#     run_getllm()        
-#     
-#     #run_with_mte
-#     print "========================================================================================"
-#     print "run_with_mte"
-#     print "========================================================================================"
-#     my_accel = "MTE"
-#     my_BPMU = "mm"
-#     my_outputpath = "data/run_with_mte/output/to_check"
-#     my_files_to_analyse = "data/run_with_mte/input/src_files/Converted_Madx_track-KFA45_60KV.dat.new"
-#     my_twiss_model_file = "data/run_with_mte/input/model/twiss.dat"
-#     run_getllm()        
+    #getsuper_data1
+    print "========================================================================================"
+    print "getsuper_data1"
+    print "========================================================================================"
+    my_outputpath = "data/getsuper_data1/output/to_check"
+    my_files_to_analyse = "data/getsuper_data1/input/src_files/bpms.gz"
+    my_twiss_model_file = "data/getsuper_data1/input/model/twiss.dat"
+    run_getllm()        
+            
+    #getsuper_data2
+    print "========================================================================================"
+    print "getsuper_data2"
+    print "========================================================================================"
+    my_outputpath = "data/getsuper_data2/output/to_check"
+    my_files_to_analyse = "data/getsuper_data2/input/src_files/bpms.gz"
+    my_twiss_model_file = "data/getsuper_data2/input/model/twiss.dat"
+    run_getllm()        
+            
+    #getsuper_data3
+    print "========================================================================================"
+    print "getsuper_data3"
+    print "========================================================================================"
+    my_outputpath = "data/getsuper_data3/output/to_check"
+    my_files_to_analyse = "data/getsuper_data3/input/src_files/bpms.gz"
+    my_twiss_model_file = "data/getsuper_data3/input/model/twiss.dat"
+    run_getllm()        
+
+    #getsuper_test_2
+    print "========================================================================================"
+    print "getsuper_test_2"
+    print "========================================================================================"
+    tmp = my_accel
+    my_accel = "LHCB2"
+    my_outputpath = "data/getsuper_test_2/output/to_check"
+    my_files_to_analyse = "data\getsuper_test_2\input\src_files\Beam2@Turn@2012_03_15@09_27_55_495_0.sdds.new.gz,data\getsuper_test_2\input\src_files\Beam2@Turn@2012_03_15@09_35_57_218_0.sdds.new.gz,data\getsuper_test_2\input\src_files\Beam2@Turn@2012_03_15@09_42_59_188_0.sdds.new.gz"
+    my_twiss_model_file = "data/getsuper_test_2/input/model/twiss.dat"
+    run_getllm()   
+    my_accel = tmp
+  
+    #run_from_gui with my_BPMU = "mm"
+    print "========================================================================================"
+    print "run_from_gui with my_BPMU = \"mm\""
+    print "========================================================================================"
+    my_outputpath = "data/run_from_gui/output/to_check"
+    my_files_to_analyse = "data/run_from_gui/input/src_files/ALLBPMs"
+    my_twiss_model_file = "data/run_from_gui/input/model/twiss.dat"
+    my_BPMU = "mm"
+    run_getllm()        
+    my_BPMU = "um"
+            
+    #run_with_ac
+    print "========================================================================================"
+    print "run_with_ac"
+    print "========================================================================================"
+    my_outputpath = "data/run_with_ac/output/to_check"
+    my_files_to_analyse = "data/run_with_ac/input/src_files/ALLBPMs"
+    my_twiss_model_file = "data/run_with_ac/input/model/twiss.dat"
+    run_getllm()        
+            
+    #run_with_ip
+    print "========================================================================================"
+    print "run_with_ip"
+    print "========================================================================================"
+    my_outputpath = "data/run_with_ip/output/to_check"
+    my_files_to_analyse = "data/run_with_ip/input/src_files/ALLBPMs"
+    my_twiss_model_file = "data/run_with_ip/input/model/twiss.dat"
+    run_getllm()        
+            
+    #run_with_ip_and_ac
+    print "========================================================================================"
+    print "run_with_ip_and_ac"
+    print "========================================================================================"
+    my_outputpath = "data/run_with_ip_and_ac/output/to_check"
+    my_files_to_analyse = "data/run_with_ip_and_ac/input/src_files/ALLBPMs"
+    my_twiss_model_file = "data/run_with_ip_and_ac/input/model/twiss.dat"
+    run_getllm()        
+           
+    #run1
+    print "========================================================================================"
+    print "run1"
+    print "========================================================================================"
+    my_outputpath = "data/run1/output/to_check"
+    my_files_to_analyse = "data/run1/input/src_files/ALLBPMs"
+    my_twiss_model_file = "data/run1/input/model/twiss.dat"
+    run_getllm()        
+     
+    #run_with_mte
+    print "========================================================================================"
+    print "run_with_mte"
+    print "========================================================================================"
+    my_accel = "MTE"
+    my_BPMU = "mm"
+    my_outputpath = "data/run_with_mte/output/to_check"
+    my_files_to_analyse = "data/run_with_mte/input/src_files/Converted_Madx_track-KFA45_60KV.dat.new"
+    my_twiss_model_file = "data/run_with_mte/input/model/twiss.dat"
+    run_getllm()        
     
      
 
