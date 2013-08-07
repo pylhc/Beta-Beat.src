@@ -104,8 +104,6 @@ def notExistsDirectory(path_to_dir):
     return not existsDirectory(path_to_dir)
 
 def get_absolute_path_to_betabeat_root():
-    print os.path.dirname(os.path.abspath(__file__))
-    print os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
     return os.path.abspath(
                     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
                     )

@@ -31,7 +31,8 @@ Change history:
     Changed compare algorithm. Created compare_tfs_files(...) to check content independent from 
     whitespace. The lines with the descriptors "GetLLMVersion", "MAD_FILE" and "FILES" will be 
     ignored.
-Use git
+Use git to view history:
+    git log <file>
 '''
 
 import os
