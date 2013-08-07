@@ -2919,6 +2919,8 @@ def ConstructOffMomentumModel(MADTwiss,dpp, dictionary):
     ftemp.close()
     dpptwiss=twiss("./TempTwiss.dat",dictionary)
 
+    # Delete file again(vimaier)
+    os.remove("./TempTwiss.dat")
 
     return dpptwiss
 
@@ -5424,7 +5426,6 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         fIPy.write('* NAME  BETY  BETYSTD  BETYMDL  ALFY  ALFYSTD  ALFYMDL  BETY*  BETY*STD  BETY*MDL  SY*  SY*STD  SY*MDL  rt(2JY)  rt(2JY)STD\n')
         fIPy.write(" ".join(["$","%s","%le","%le","%le",   "%le",   "%le",  "%le"     ,"%le",     "%le",   "%le",  "%le",  "%le",  "%le",  "%le",  "%le"]))
         fIPy.write('\n')
-        #FIXME: weiter bei getipfromphase
         for i in ('IP1','IP5','IP8','IP2'):
             try:
                 fIPx.write('"'+i+'"'+' ')
