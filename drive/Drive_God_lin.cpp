@@ -192,21 +192,21 @@ int main(int argc, char **argv)
     
     while(!driveInputFile.rdstate()){
         std::getline (driveInputFile, temp_str);  
-        if((pos = temp_str.find("KICK=")) != -1) Data.kick = atoi(temp_str.substr(pos+strlen("KICK=")).c_str())-1;
-        if((pos = temp_str.find("CASE(1[H], 0[V])=")) != -1) Data.kcase = atoi(temp_str.substr(pos+strlen("CASE(1[H], 0[V])=")).c_str());
-        if((pos = temp_str.find("KPER(KICK PERCE.)=")) != -1) Data.kper = atof(temp_str.substr(pos+strlen("KPER(KICK PERCE.)=")).c_str());
-        if((pos = temp_str.find("TUNE X=")) != -1) Data.tunex = atof(temp_str.substr(pos+strlen("TUNE X=")).c_str());
-        if((pos = temp_str.find("TUNE Y=")) != -1) Data.tuney = atof(temp_str.substr(pos+strlen("TUNE Y=")).c_str());
-        if((pos = temp_str.find("PICKUP START=")) != -1) Data.pickstart = atoi(temp_str.substr(pos+strlen("PICKUP START=")).c_str());
-        if((pos = temp_str.find("PICKUP END=")) != -1) Data.pickend = atoi(temp_str.substr(pos+strlen("PICKUP END=")).c_str());
-        if((pos = temp_str.find("ISTUN=")) != -1) Data.istun = atof(temp_str.substr(pos+strlen("ISTUN=")).c_str());
-        if((pos = temp_str.find("LABEL RUN (1[yes])=")) != -1) labelrun = atoi(temp_str.substr(pos+strlen("LABEL RUN (1[yes])=")).c_str());
-        if((pos = temp_str.find("WINDOWa1=")) != -1) windowa1 = atof(temp_str.substr(pos+strlen("WINDOWa1=")).c_str());
-        if((pos = temp_str.find("WINDOWa2=")) != -1) windowa2 = atof(temp_str.substr(pos+strlen("WINDOWa2=")).c_str());
-        if((pos = temp_str.find("WINDOWb1=")) != -1) windowb1 = atof(temp_str.substr(pos+strlen("WINDOWb1=")).c_str());
-        if((pos = temp_str.find("WINDOWb2=")) != -1) windowb2 = atof(temp_str.substr(pos+strlen("WINDOWb2=")).c_str());
-        if((pos = temp_str.find("NATURAL X=")) != -1) nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
-        if((pos = temp_str.find("NATURAL Y=")) != -1) nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
+        if((pos = temp_str.find("KICK=")) != std::string::npos) Data.kick = atoi(temp_str.substr(pos+strlen("KICK=")).c_str())-1;
+        if((pos = temp_str.find("CASE(1[H], 0[V])=")) != std::string::npos) Data.kcase = atoi(temp_str.substr(pos+strlen("CASE(1[H], 0[V])=")).c_str());
+        if((pos = temp_str.find("KPER(KICK PERCE.)=")) != std::string::npos) Data.kper = atof(temp_str.substr(pos+strlen("KPER(KICK PERCE.)=")).c_str());
+        if((pos = temp_str.find("TUNE X=")) != std::string::npos) Data.tunex = atof(temp_str.substr(pos+strlen("TUNE X=")).c_str());
+        if((pos = temp_str.find("TUNE Y=")) != std::string::npos) Data.tuney = atof(temp_str.substr(pos+strlen("TUNE Y=")).c_str());
+        if((pos = temp_str.find("PICKUP START=")) != std::string::npos) Data.pickstart = atoi(temp_str.substr(pos+strlen("PICKUP START=")).c_str());
+        if((pos = temp_str.find("PICKUP END=")) != std::string::npos) Data.pickend = atoi(temp_str.substr(pos+strlen("PICKUP END=")).c_str());
+        if((pos = temp_str.find("ISTUN=")) != std::string::npos) Data.istun = atof(temp_str.substr(pos+strlen("ISTUN=")).c_str());
+        if((pos = temp_str.find("LABEL RUN (1[yes])=")) != std::string::npos) labelrun = atoi(temp_str.substr(pos+strlen("LABEL RUN (1[yes])=")).c_str());
+        if((pos = temp_str.find("WINDOWa1=")) != std::string::npos) windowa1 = atof(temp_str.substr(pos+strlen("WINDOWa1=")).c_str());
+        if((pos = temp_str.find("WINDOWa2=")) != std::string::npos) windowa2 = atof(temp_str.substr(pos+strlen("WINDOWa2=")).c_str());
+        if((pos = temp_str.find("WINDOWb1=")) != std::string::npos) windowb1 = atof(temp_str.substr(pos+strlen("WINDOWb1=")).c_str());
+        if((pos = temp_str.find("WINDOWb2=")) != std::string::npos) windowb2 = atof(temp_str.substr(pos+strlen("WINDOWb2=")).c_str());
+        if((pos = temp_str.find("NATURAL X=")) != std::string::npos) nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
+        if((pos = temp_str.find("NATURAL Y=")) != std::string::npos) nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
      
     }
     driveInputFile.close();
@@ -649,13 +649,13 @@ int readDrivingTerms(std::istream& drivingTermsFile, int *turns, std::string *pa
         return 0;
      
     if(OS == "Windows32") //Path may not exist if drivingtermsfile was created on linux, so this deals with that. (Assumes /afs/cern.ch is 'H' drive)
-        if((pos = (*path).find("/afs/cern.ch")) != -1)
+        if((pos = (*path).find("/afs/cern.ch")) != std::string::npos)
             *path = "H:"+(*path).substr(pos+strlen("/afs/cern.ch"));
             
     if(OS == "linux"){ //Same story as above, replaces H: with /afs/cern.ch, also changes '\' to '/'
-        while((pos = (*path).find("\\")) != -1)
+        while((pos = (*path).find("\\")) != std::string::npos)
             (*path)[pos] = '/';
-        if((pos = (*path).find("H:")) != -1)
+        if((pos = (*path).find("H:")) != std::string::npos)
             *path = "/afs/cern.ch"+(*path).substr(pos+strlen("H:"));
     }
 
@@ -702,7 +702,7 @@ int BPMstatus(const int plane, const int turns)
 {
     double aux = 0, ave = 0, amp = 0,
         maxe = -500000.0, mine = 500000.0;
-    int il,counter = 0;
+    int il,counter,counter3 = 0;
 
     maxpeak = 0;                /*Initialising */
     co = 0.0;
@@ -733,6 +733,9 @@ int BPMstatus(const int plane, const int turns)
     co2 = sqrt(co2 / turns - co * co);
     maxmin = maxe - mine;
 
+    /*if (maxmin < MINSIGNAL || maxmin > MAXSIGNAL)
+        return 0;*/
+    
     /* Compute the spread and average in the intervals [windowa1,windowa2]
        and [windowb1,windowb2] */
 
@@ -765,21 +768,21 @@ int BPMstatus(const int plane, const int turns)
 
             ave = amp + ave;
             noise1 = noise1 + amp * amp;
-            ++counter;
+            ++counter3;
         }
 
     }
-    if (counter > 0) {
-        if (counter > 1)
-            noise1 = sqrt((noise1 / counter - ave * ave / (counter*counter)));
+    if (counter3 > 0) {
+        if (counter3 > 1)
+            noise1 = sqrt((noise1 / counter3 - ave * ave / (counter3*counter3)));
         else
             noise1 = 0;
-        noiseAve = ave / counter;
+        noiseAve = ave / counter3;
     } else {
         noise1 = MINIMUMNOISE;
         noiseAve = MINIMUMNOISE;
     }
-    nslines = counter;
+    nslines = counter3;
 
     /* If tune line isn't larger than background reject
      * Update: No longer, see above */

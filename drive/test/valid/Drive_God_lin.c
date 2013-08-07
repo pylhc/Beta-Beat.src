@@ -707,7 +707,7 @@ int BPMstatus(const int plane, const int turns)
 {
     double aux = 0, ave = 0, amp = 0,
         maxe = -500000.0, mine = 500000.0;
-    int il,counter = 0;
+    int il,counter,counter3 = 0;
 
     maxpeak = 0;                /*Initialising */
     co = 0.0;
@@ -770,21 +770,21 @@ int BPMstatus(const int plane, const int turns)
 
             ave = amp + ave;
             noise1 = noise1 + amp * amp;
-            ++counter;
+            ++counter3;
         }
 
     }
-    if (counter > 0) {
-        if (counter > 1)
-            noise1 = sqrt((noise1 / counter - ave * ave / (counter*counter)));
+    if (counter3 > 0) {
+        if (counter3 > 1)
+            noise1 = sqrt((noise1 / counter3 - ave * ave / (counter3*counter3)));
         else
             noise1 = 0;
-        noiseAve = ave / counter;
+        noiseAve = ave / counter3;
     } else {
         noise1 = MINIMUMNOISE;
         noiseAve = MINIMUMNOISE;
     }
-    nslines = counter;
+    nslines = counter3;
 
     /* If tune line isn't larger than background reject
      * Update: No longer, see above */
