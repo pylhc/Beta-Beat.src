@@ -289,10 +289,17 @@ int main(int argc, char **argv)
 
         linxFile.open(linxFilePath.c_str());
         linyFile.open(linyFilePath.c_str());
-        if (labelrun == 1) noiseFile.open(noiseFilePath.c_str());
+        if (labelrun == 1) {
+            noiseFilePath = workingDirectoryPath+'/'+bpmFileName+"_noise";
+            noiseFile.open(noiseFilePath.c_str());
+            if(cannotOpenFile(noiseFilePath,'o')){
+                std::cerr << "Leaving drive due to error" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }       
         
-        if(cannotOpenFile(noiseFilePath,'o') || cannotOpenFile(linxFilePath,'o') || cannotOpenFile(linyFilePath,'o')){
-            std::cout << "Leaving drive due to error" << std::endl;
+        if(cannotOpenFile(linxFilePath,'o') || cannotOpenFile(linyFilePath,'o')){
+            std::cerr << "Leaving drive due to error" << std::endl;
             exit(EXIT_FAILURE);
         }
         
@@ -695,7 +702,7 @@ int BPMstatus(const int plane, const int turns)
 {
     double aux = 0, ave = 0, amp = 0,
         maxe = -500000.0, mine = 500000.0;
-    int i,j = 0;
+    int il,counter = 0;
 
     maxpeak = 0;                /*Initialising */
     co = 0.0;
@@ -703,44 +710,42 @@ int BPMstatus(const int plane, const int turns)
     /* If peak-to-peak signal smaller than MINSIGNAL reject
      * Update: No longer, see above*/
     if (plane == 1) {
-        for (i = 0; i < turns; i++) {
-            co += doubleToSend[i];
-            co2 += doubleToSend[i] * doubleToSend[i];
-            if (doubleToSend[i] < mine)
-                mine = doubleToSend[i];
-            if (doubleToSend[i] > maxe)
-                maxe = doubleToSend[i];
+        for (il = 0; il < turns; il++) {
+            co += doubleToSend[il];
+            co2 += doubleToSend[il] * doubleToSend[il];
+            if (doubleToSend[il] < mine)
+                mine = doubleToSend[il];
+            if (doubleToSend[il] > maxe)
+                maxe = doubleToSend[il];
         }
     }
     if (plane == 2) {
-        for (i = MAXTURNS; i < MAXTURNS + turns; i++) {
-            co += doubleToSend[i];
-            co2 += doubleToSend[i] * doubleToSend[i];
-            if (doubleToSend[i] < mine)
-                mine = doubleToSend[i];
-            if (doubleToSend[i] > maxe)
-                maxe = doubleToSend[i];
+        for (il = MAXTURNS; il < MAXTURNS + turns; il++) {
+            co += doubleToSend[il];
+            co2 += doubleToSend[il] * doubleToSend[il];
+            if (doubleToSend[il] < mine)
+                mine = doubleToSend[il];
+            if (doubleToSend[il] > maxe)
+                maxe = doubleToSend[il];
         }
     }
     co = co / turns;
     co2 = sqrt(co2 / turns - co * co);
     maxmin = maxe - mine;
 
-    /*if (maxmin < MINSIGNAL || maxmin > MAXSIGNAL)
-            return 0;*/
     /* Compute the spread and average in the intervals [windowa1,windowa2]
        and [windowb1,windowb2] */
 
     noise1 = 0;
 
-    for (i = 0; i < 300; i++) {
+    for (counter = 0; counter < 300; counter++) {
         if (plane == 1) {
-            aux = allfreqsx[i];
-            amp = allampsx[i];
+            aux = allfreqsx[counter];
+            amp = allampsx[counter];
         }
         else if (plane == 2) {
-            aux = allfreqsy[i];
-            amp = allampsy[i];
+            aux = allfreqsy[counter];
+            amp = allampsy[counter];
         }
 
         if (amp > maxpeak && aux > 0.05) {
@@ -760,21 +765,21 @@ int BPMstatus(const int plane, const int turns)
 
             ave = amp + ave;
             noise1 = noise1 + amp * amp;
-            ++j;
+            ++counter;
         }
 
     }
-    if (j > 0) {
-        if (j > 1)
-            noise1 = sqrt((noise1 / j - ave * ave / (j*j)));
+    if (counter > 0) {
+        if (counter > 1)
+            noise1 = sqrt((noise1 / counter - ave * ave / (counter*counter)));
         else
             noise1 = 0;
-        noiseAve = ave / j;
+        noiseAve = ave / counter;
     } else {
         noise1 = MINIMUMNOISE;
         noiseAve = MINIMUMNOISE;
     }
-    nslines = j;
+    nslines = counter;
 
     /* If tune line isn't larger than background reject
      * Update: No longer, see above */

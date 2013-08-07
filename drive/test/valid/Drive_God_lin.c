@@ -198,8 +198,8 @@ int main(int argc, char **argv)
         if (containsString(string1, "NATURAL Y")) nattuney = atof(string2);
     }
     fclose(driveInputFile);
+    
     /* input/option file reading end */
-
     if (kick >= 0)
         printf("Known kick in turn %d\n", kick + 1);
     if (kcase == 1)
@@ -562,7 +562,7 @@ int main(int argc, char **argv)
                         fprintf(spectrumFile, "%s %s %s\n", "*", "FREQ", "AMP");
                         fprintf(spectrumFile, "%s %s %s\n", "$", "%le", "%le");
                         for (kk = 0; kk < 300; ++kk)
-                            fprintf(spectrumFile, "%e %e \n", allfreqsy[kk], allampsy[kk]);
+                            fprintf(spectrumFile, "%e %e\n", allfreqsy[kk], allampsy[kk]); /*used to be space at end of this line, removed because unnecessary (asherman)*/
                         fclose(spectrumFile);
                     }
                 }
@@ -690,10 +690,14 @@ void writeSussixInput(const char* sussixInputFilePath, const int turns, const do
     fprintf(sussixInputFile, "IICF  = 350\n");
     fclose(sussixInputFile);
 }
-
 /************   BPMstatus *************/
 /* Analyse fort.300 to detect noise   */
 /**************************************/
+
+/*UPDATE: All rejections are removed from this code, as other parts
+ * of Beta-beat are in charge of rejecting now.  Calculations are still
+ * kept in place. --asherman (07/2013)
+ */
 #define MINSIGNAL 0.00001
 #define SIGMACUT   1.8
 #define MINIMUMNOISE 0.0
@@ -703,12 +707,13 @@ int BPMstatus(const int plane, const int turns)
 {
     double aux = 0, ave = 0, amp = 0,
         maxe = -500000.0, mine = 500000.0;
-    int counter, il, counter3 = 0;
+    int il,counter = 0;
 
     maxpeak = 0;                /*Initialising */
     co = 0.0;
     co2 = 0.0;
-    /* If peak-to-peak signal smaller than MINSIGNAL reject */
+    /* If peak-to-peak signal smaller than MINSIGNAL reject
+     * Update: No longer, see above*/
     if (plane == 1) {
         for (il = 0; il < turns; il++) {
             co += doubleToSend[il];
@@ -732,8 +737,6 @@ int BPMstatus(const int plane, const int turns)
     co = co / turns;
     co2 = sqrt(co2 / turns - co * co);
     maxmin = maxe - mine;
-    if (maxmin < MINSIGNAL || maxmin > MAXSIGNAL)
-        return 0;
 
     /* Compute the spread and average in the intervals [windowa1,windowa2]
        and [windowb1,windowb2] */
@@ -762,41 +765,42 @@ int BPMstatus(const int plane, const int turns)
                 noiseAve = 100;
                 maxpeak = 100;
                 maxfreq = 100;
-                return 0;
+                return 1;
             }
 
             ave = amp + ave;
             noise1 = noise1 + amp * amp;
-            ++counter3;
+            ++counter;
         }
 
     }
-    if (counter3 > 0) {
-        if (counter3 > 1)
-            noise1 = sqrt((noise1 / counter3 - ave * ave / (counter3 * counter3)));
+    if (counter > 0) {
+        if (counter > 1)
+            noise1 = sqrt((noise1 / counter - ave * ave / (counter*counter)));
         else
             noise1 = 0;
-        noiseAve = ave / counter3;
+        noiseAve = ave / counter;
     } else {
         noise1 = MINIMUMNOISE;
         noiseAve = MINIMUMNOISE;
     }
-    nslines = counter3;
+    nslines = counter;
 
-    /* If tune line isn't larger than background reject */
+    /* If tune line isn't larger than background reject
+     * Update: No longer, see above */
 
     if ((windowa1 < maxfreq && maxfreq < windowa2)
      || (windowb1 < maxfreq && maxfreq < windowb2))
         printf("NoiseWindow includes largest lines, amp %e freq %e!!!!\n",
                maxpeak, maxfreq);
 
-    if (maxpeak <= noiseAve + SIGMACUT * noise1)
+    /*if (maxpeak <= noiseAve + SIGMACUT * noise1)
         return 0;
 
     if (noise1 > BADPICKUP)
-        return 0;
+        return 0;*/
 
-    /* Otherwise pick-up succeeded to first cuts */
+     /*Otherwise pick-up succeeded to first cuts*/ 
     return 1;
 }
 
