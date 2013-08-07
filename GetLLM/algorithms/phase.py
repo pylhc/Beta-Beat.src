@@ -383,14 +383,11 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac,
 #===================================================================================================
 #TODO: awful name! what does this function??? (vimaier)
 def _phi_last_and_last_but_one(phi, ftune):
-    if ftune > 0.0:
-        phit = phi+ftune
-        if phit > 1.0:
-            phit = phit-1.0
-    elif ftune <= 0.0:
-        phit = phi+(1.0+ftune)
-        if phit > 1.0:
-            phit = phit-1.0
+    if ftune <= 0.0:
+        ftune = 1.0 + ftune
+    phit = phi+ftune
+    if phit > 1.0:
+        phit = phit-1.0
     return phit
 
 def calc_phase_mean(phase0, norm):  
