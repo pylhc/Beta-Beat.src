@@ -31,6 +31,7 @@ Change history:
     Changed compare algorithm. Created compare_tfs_files(...) to check content independent from 
     whitespace. The lines with the descriptors "GetLLMVersion", "MAD_FILE" and "FILES" will be 
     ignored.
+Use git
 '''
 
 import os
@@ -79,7 +80,9 @@ parser.add_option("-s", "--special_output", dest="SPECIAL_OUTPUT",
 
 (options, args) = parser.parse_args()
 
-
+#===================================================================================================
+# Checking arguments
+#===================================================================================================
 # Decides whether the valid script will be run and produce output or not
 try:
     CREATE_VALID_OUTPUT = bool( int(options.CREATE_VALID_OUTPUT) )
@@ -89,9 +92,18 @@ except ValueError:
     CREATE_VALID_OUTPUT = True
 # Path to original/valid GetLLM.py script
 GETLLM_SCRIPT_VALID = options.GETLLM_SCRIPT_VALID
+if Utilities.iotools.notExistsDirectory(GETLLM_SCRIPT_VALID):
+    GETLLM_SCRIPT_VALID = os.path.join(
+                                     Utilities.iotools.get_absolute_path_to_betabeat_root(),
+                                     "GetLLM", "test", "./GetLLM_valid.py"
+                                     )
 # Path to GetLLM.py script
 GETLLM_SCRIPT = options.GETLLM_SCRIPT
-PATH_TO_TEST_DATA = options.PATH_TO_TEST_DATA
+if Utilities.iotools.notExistsDirectory(GETLLM_SCRIPT):
+    GETLLM_SCRIPT = os.path.join(
+                                     Utilities.iotools.get_absolute_path_to_betabeat_root(),
+                                     "GetLLM", "GetLLM.py"
+                                     )
 # Path to special output 
 SPECIAL_OUTPUT = options.SPECIAL_OUTPUT
 if "" != SPECIAL_OUTPUT :
@@ -99,7 +111,12 @@ if "" != SPECIAL_OUTPUT :
     if not os.path.isdir(SPECIAL_OUTPUT):
         print "special_output is not a directory: ", SPECIAL_OUTPUT
         SPECIAL_OUTPUT = ""
-    
+PATH_TO_TEST_DATA = options.PATH_TO_TEST_DATA
+if Utilities.iotools.notExistsDirectory(PATH_TO_TEST_DATA):
+    PATH_TO_TEST_DATA = os.path.join(
+                                     Utilities.iotools.get_absolute_path_to_betabeat_root(),
+                                     "GetLLM", "test", "data"
+                                     )
 
 #===================================================================================================
 # # TestFileOutputGetLLM
