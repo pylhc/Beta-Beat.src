@@ -96,3 +96,18 @@ def deleteFilesWithoutGitignore(pathToDirectory):
             os.remove( os.path.join(pathToDirectory,filename) )
     
     return True
+
+def existsDirectory(path_to_dir):
+    return os.path.isdir(path_to_dir)
+
+def notExistsDirectory(path_to_dir):
+    return not existsDirectory(path_to_dir)
+
+def get_absolute_path_to_betabeat_root():
+    print os.path.dirname(os.path.abspath(__file__))
+    print os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
+    return os.path.abspath(
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
+                    )
+    
+    

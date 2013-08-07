@@ -5,7 +5,7 @@ Created sometime 2009-2011
 
 @author: Glenn Vanbavinckhove, Yngve Inntjore Levinsen
 
-@version: 3.1.2
+@version: 3.1.3
 
 Getsuper calculates with the help of GetLLM chromatic beta functions.
 The Montague W and Phi functions are output.
@@ -39,6 +39,10 @@ Changelog:
     Extracted functions modelIntersect and intersect to Utilities.bpm
     Cleaned import section
     Restructured into parse_args, main, helper and main invocation
+ - 3.1.3 ylevinse 6th of August 2013:
+    Fix when analysing non-AC data
+    Moved out some helper functions to superutils.py
+    Some minor cleaning..
 '''
 
 
@@ -56,13 +60,13 @@ import metaclass
 import linreg
 import Utilities.bpm
 
+import superutils
 
 #===================================================================================================
 # parse_args()-function
 #===================================================================================================
 def parse_args():
     ''' Parses arguments from command line. '''
-    ###### optionparser
     usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
     parser = optparse.OptionParser(usage)
     # general
@@ -101,7 +105,7 @@ def parse_args():
 # main()-function
 #===================================================================================================
 def main(options, args):
-    files = get_filelist(options, args)
+    files = superutils.get_filelist(options, args)
     
     if 2 > len(files):
         print >> sys.stderr, "Provide at least two files. Files:", str(files)
@@ -192,7 +196,7 @@ def main(options, args):
         listy.append(bety)
         listc.append(couple)
         
-        path_twissfile = get_twissfile(options)
+        path_twissfile = superutils.get_twissfile(options)
         if not os.path.isfile(path_twissfile):
             print >> sys.stderr, "Twissfile does not exist:", path_twissfile
             sys.exit(1)
@@ -304,38 +308,12 @@ def main(options, args):
 # helper-functions
 #===================================================================================================
 def check_input(options, args):
-    files = get_filelist(options, args)
+    files = superutils.get_filelist(options, args)
     if len(files) == 0:
         raise SyntaxError("You need to define at least one file input")
     for f_name in files:
         if not os.path.isfile(f_name) and not os.path.isfile(f_name+'.gz'):
             raise ValueError(f_name+' does not exist')
-
-
-def get_filelist(options, args):
-    '''
-    Returns list of files to be analysed
-    '''
-    if options.files:
-        files = [f.strip() for f in options.files.split(',')]
-        files.extend(args)
-        return files
-    return args
-
-
-def get_twissfile(options):
-    '''
-    Returns the full path to
-    the twiss file
-    '''
-    if options.twissfile:
-        return options.twissfile
-    if os.path.isfile(options.twissfile+'/twiss.dat'):
-        return options.twissfile+'/twiss.dat'
-    if os.path.isfile(options.twissfile+'/twiss.dat.gz'):
-        return options.twissfile+'/twiss.dat.gz'
-    # did not find any file..
-    raise ValueError("Could not find twissfile! "+options.twissfile)
 
 
 def madcreator(dpps, options):
@@ -353,7 +331,11 @@ def madcreator(dpps, options):
     for dpp in dpps:
         if not os.path.exists(options.output+'/twiss_'+str(dpp)+'.dat'):
             dppstring = dppstring+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'.dat";\n'
-            dppstring_ac = dppstring_ac+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'_ac.dat";\n'
+            # if the model has twiss_ac.dat:
+            if os.path.exists(superutils.get_twissfile(options)[:-4]+"_ac.dat"): # this is only correct as long as the filenames are <filename>_ac.dat and <filename>.dat!
+                dppstring_ac = dppstring_ac+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'_ac.dat";\n'
+            else: # do not create ac file if we don't have ac in our original model..
+                dppstring_ac = ''
 
     if not dppstring:
         print "No need to run madx"
@@ -406,13 +388,6 @@ def madcreator(dpps, options):
         print >> sys.stderr, "Mad-X failed. Printing error output:-------------------"
         print >> sys.stderr, err
         raise ValueError("Mad-X failed")
-    
-
-
-
-def append(files):
-    return ','.join(files)
-
 
 def filenames(dpp=''):
     '''
@@ -444,7 +419,7 @@ def rungetllm(twiss_filename, accel, technique, files, options, dpp):
     print "Will run getllm for ", dpp #, command
 
     GetLLM.main(outputpath=options.output,
-            files_to_analyse=append(files),
+            files_to_analyse=','.join(files),
             model_filename=twiss_filename,
             accel=accel,
             TBTana=technique)
@@ -623,7 +598,7 @@ def getTunes(options,fileslist):
         end=''
     tw_x = metaclass.twiss(fname+'_linx'+end)
     tw_y = metaclass.twiss(fname+'_liny'+end)
-    tw = metaclass.twiss(get_twissfile(options))
+    tw = metaclass.twiss(superutils.get_twissfile(options))
 
     qdx,qdy = tw_x.TUNEX[0],tw_y.TUNEY[0]
     qx,qy = tw.Q1%1,tw.Q2%1
