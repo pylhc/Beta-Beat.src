@@ -85,6 +85,7 @@ def intersect(list_of_twiss_files):
         print >> sys.stderr, "No exp BPMs..."
         sys.exit(1)
     for twiss_file in list_of_twiss_files:
+        #TODO: have to use a set probably, does not detect duplicates! (vimaier)
         names_list = [b for b in twiss_file.NAME if b in names_list]
 #         names_list = filter(lambda x: x in names_list   , twiss_file.NAME)
         
