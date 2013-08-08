@@ -16,11 +16,11 @@ import filecmp
 CURRENT_PATH = os.path.dirname(__file__)
 # Path 'x/Beta-Beat.src/drive/test'
 
-# Add directory to the python search path - needed to run script from command line
-# Otherwise Utilities.iotools.py won't be found
-sys.path.append(os.path.join(CURRENT_PATH, "..", ".."))
-
+import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
+
+_SHORT_RUN = True # If true, Drive 
+_WITH_VALID_RUN = True # Will run valid Drive except if not valid outputfiles are available
 
 
 class TestOutput(unittest.TestCase):
@@ -32,21 +32,23 @@ class TestOutput(unittest.TestCase):
     path_to_to_check = os.path.join(CURRENT_PATH, "data", "to_check")
     path_to_input = os.path.join(CURRENT_PATH, "data", "input")
     
+    __have_to_run_valid_file = False    
     successful = False
 
     def setUp(self):
-        self._delete_output_dirs()
+        self._check_if_valid_output_exist_and_set_attribute()
+        self._delete_modified_and_if_desired_valid_output()
         self._copy_input_files()
 
 
     def tearDown(self):
         if TestOutput.successful:
-            self._delete_output_dirs()
+            self._delete_modified_and_if_desired_valid_output()
 
 
     def testOutput(self):
         print "Start TestOutput of drive"
-        self._run_valid_file()
+        self._run_valid_file_if_desired()
         self._run_modified_file()
         self._compare_output_dirs()
         print "End TestOutput of drive"
@@ -54,34 +56,73 @@ class TestOutput(unittest.TestCase):
     #===============================================================================================
     # helper
     #===============================================================================================
-    def _delete_output_dirs(self):
+    def _check_if_valid_output_exist_and_set_attribute(self):
+        if self._no_valid_output_exists():
+            self.__have_to_run_valid_file = True
+    
+    
+    def _no_valid_output_exists(self):
+        """ 
+        Returns true if cannot find valid output. Assuming that every subdir of path_to_valid has 
+        a linx and liny file(valid output).
+        """
+        is_valid = False
+        for item in os.listdir(TestOutput.path_to_valid):
+            abs_item = os.path.join(TestOutput.path_to_valid, item)
+            if os.path.isdir(abs_item):
+                is_valid = self._is_a_valid_dir(abs_item)
+            if not is_valid:
+                return True
+        return False
+    
+    
+    def _is_a_valid_dir(self, path_to_dir):
+        """ Returns True if dir contains a *linx and a *liny file. """
+        has_linx = False
+        has_liny = False
+        for item in os.listdir(path_to_dir):
+            if item.endswith("linx"):
+                has_linx = True
+            if item.endswith("liny"):
+                has_liny = True
+        return has_linx and has_liny
+    
+        
+    def _delete_modified_and_if_desired_valid_output(self):
         ''' Deletes content in path_to_valid and path_to_to_check. '''
-        Utilities.iotools.delete_content_of_dir(TestOutput.path_to_valid)
         Utilities.iotools.delete_content_of_dir(TestOutput.path_to_to_check)
-
+        if _WITH_VALID_RUN:
+            Utilities.iotools.delete_content_of_dir(TestOutput.path_to_valid)
 
     def _copy_input_files(self):
         ''' Copies input data for drive from path_to_input. '''
         Utilities.iotools.copy_content_of_dir(TestOutput.path_to_input, TestOutput.path_to_valid)
         Utilities.iotools.copy_content_of_dir(TestOutput.path_to_input, TestOutput.path_to_to_check)
         
-    
-    def _run_valid_file(self):
+
+    def _run_valid_file_if_desired(self):
         ''' Runs drive.test.valid.Drive_God_lin for all directories in drive.test.data.valid '''
-        print "  Run valid files"
-        for directory in os.listdir(self.path_to_valid):
-            valid_dir_path = os.path.join(self.path_to_valid, directory)
-            print "    Run:", valid_dir_path
-            self._run_drive(self.path_to_valid_drive, valid_dir_path)
+        if _WITH_VALID_RUN:
+            print "  Run valid files"
+            self._run_dir(self.path_to_valid, self.path_to_valid_drive)
+    
+    def _run_dir(self, path_to_run_dir, path_to_drive):
+        """ Runs drive from path_to_drive for all subdirs in path_to_run_dir """
+        for index, directory in enumerate(os.listdir(path_to_run_dir)):
+            if self._break_after_first_run(index):
+                break
+            single_dir_path = os.path.join(path_to_run_dir, directory)
+            print "    Run:", single_dir_path
+            self._run_drive(path_to_drive, single_dir_path)
             
-            
+    def _break_after_first_run(self, index):
+        return 0 < index and _SHORT_RUN
+    
+    
     def _run_modified_file(self):
         ''' Runs drive.Drive_God_lin for all directories in drive.test.data.to_check. '''
         print "  Run to_check files"
-        for directory in os.listdir(self.path_to_to_check):
-            to_check_dir_path = os.path.join(self.path_to_to_check, directory)
-            print "    Run:", to_check_dir_path
-            self._run_drive(self.path_to_modified_drive, to_check_dir_path)
+        self._run_dir(self.path_to_to_check, self.path_to_modified_drive)
             
     
     def _run_drive(self, path_to_drive, path_to_dir):
@@ -114,11 +155,14 @@ class TestOutput(unittest.TestCase):
         for directory in os.listdir(self.path_to_valid):
             valid_dir = os.path.join(self.path_to_valid, directory)
             to_check_dir = os.path.join(self.path_to_to_check, directory)
-            dir_compare = filecmp.dircmp(valid_dir, to_check_dir)
-            dir_compare.report()
-            self.assertEqual(0, len(dir_compare.diff_files), "Files are not equal.")
+            self._compare_dir_with_filecmp(valid_dir, to_check_dir)
         
         TestOutput.successful = True
+        
+    def _compare_dir_with_filecmp(self, valid_dir, to_check_dir):
+        dir_compare = filecmp.dircmp(valid_dir, to_check_dir)
+        dir_compare.report()
+        self.assertEqual(0, len(dir_compare.diff_files), "Files are not equal.")
         
 # END TestOutput -----------------------------------------------------------------------------------
 
