@@ -108,4 +108,11 @@ def get_absolute_path_to_betabeat_root():
                     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
                     )
     
-    
+def no_dirs_exist(*dirs): 
+    return not dirs_exist(*dirs)
+
+def dirs_exist(*dirs):
+    for d in dirs:
+        if not os.path.isdir(d):
+            return False
+    return True
