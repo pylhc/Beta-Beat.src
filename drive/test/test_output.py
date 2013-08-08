@@ -133,7 +133,8 @@ class TestOutput(unittest.TestCase):
         
         process = subprocess.Popen(call_command,
                            stdout=subprocess.PIPE, 
-                           stderr=subprocess.PIPE)
+                           stderr=subprocess.PIPE,
+                           shell=True)
 
         # wait for the process to terminate
         (out_stream, err_stream) = process.communicate()
