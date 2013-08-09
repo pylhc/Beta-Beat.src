@@ -11,7 +11,7 @@ import os
 
 import Utilities
 
-def equal_dirs_with_double_epsilon_comparing(dir1, dir2):
+def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=[]):
     """ 
     Compares file in given dirs by going through each line, spliting line and trying to parse to 
     double and comparing double with epsilon value. 
@@ -21,28 +21,29 @@ def equal_dirs_with_double_epsilon_comparing(dir1, dir2):
         print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."
         return False
     
-    dir1_items = os.listdir(dir1)
-    dir2_items = os.listdir(dir2)
+    dir1_items = sorted(os.listdir(dir1))
+    dir2_items = sorted(os.listdir(dir2))
     
     if dir1_items != dir2_items:
         print >> sys.stderr, "Items in dirs are not equal:\n",dir1_items, "\n", dir2_items
         return False
 
-    for item in dir1:
+    for item in dir1_items:
         item1 = os.path.join(dir1, item)
         item2 = os.path.join(dir2, item)
         if os.path.isdir(item1):
-            equal_dirs_with_double_epsilon_comparing(item1, item2)
+            equal_dirs_with_double_epsilon_comparing(item1, item2, except_files)
         else:
-            if not equal_files_with_double_epsilon_comparing(open(item1), open(item2)):
-                return False
+            if not item in except_files:
+                if not equal_files_with_double_epsilon_comparing(open(item1), open(item2)):
+                    return False
     return True
     
     
 def equal_files_with_double_epsilon_comparing(file1, file2):
     for line in file1:
         split_line1 = line.split()
-        split_line2 = file2.readline()
+        split_line2 = file2.readline().split()
         if not _equal_splitted_lines_with_double_epsilon(split_line1, split_line2):
             return False
     return True
