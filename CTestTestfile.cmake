@@ -22,11 +22,6 @@ endif()
 # the variable CTEST_SOURCE_DIRECTORY is empty.. so this is fine
 include(${CTEST_SOURCE_DIRECTORY}CTestSetup.cmake)
 
-# Find Mad-X:
-find_program(MADX NAMES madx madx_dev
-   HINTS /afs/cern.ch/group/si/slap/bin/
-   )
-
 subdirs(GetLLM/test)
 subdirs(drive/test)
 subdirs(tests)
