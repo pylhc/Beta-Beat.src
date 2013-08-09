@@ -19,7 +19,7 @@ CURRENT_PATH = os.path.dirname(__file__)
 import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 
-_SHORT_RUN = True # If True, Drive will only run on first dir
+_SHORT_RUN = False # If True, Drive will only run on first dir
 _WITH_VALID_RUN = True # If True, will run valid Drive except if no valid outputfiles are available
 
 
@@ -178,6 +178,8 @@ class TestOutput(unittest.TestCase):
         dir_compare = filecmp.dircmp(valid_dir, to_check_dir)
         dir_compare.report()
         self.assertEqual(0, len(dir_compare.diff_files), "Files are not equal.")
+        self.assertEqual(0, len(dir_compare.left_only), "Files existing in only one dir")
+        self.assertEqual(0, len(dir_compare.right_only), "Files existing in only one dir")
         
 # END TestOutput -----------------------------------------------------------------------------------
 
