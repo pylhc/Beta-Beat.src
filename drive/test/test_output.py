@@ -67,6 +67,9 @@ class TestOutput(unittest.TestCase):
         Returns true if cannot find valid output. Assuming that every subdir of path_to_valid has 
         a linx and liny file(valid output).
         """
+        # if folder is not created yet:
+        if not os.path.isdir(TestOutput.path_to_valid):
+                return False
         is_valid = False
         for item in os.listdir(TestOutput.path_to_valid):
             abs_item = os.path.join(TestOutput.path_to_valid, item)
