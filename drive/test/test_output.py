@@ -19,8 +19,8 @@ CURRENT_PATH = os.path.dirname(__file__)
 import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 
-_SHORT_RUN = True # If true, Drive 
-_WITH_VALID_RUN = True # Will run valid Drive except if not valid outputfiles are available
+_SHORT_RUN = True # If True, Drive will only run on first dir
+_WITH_VALID_RUN = True # If True, will run valid Drive except if no valid outputfiles are available
 
 
 class TestOutput(unittest.TestCase):
@@ -58,6 +58,7 @@ class TestOutput(unittest.TestCase):
     #===============================================================================================
     def _check_if_valid_output_exist_and_set_attribute(self):
         if self._no_valid_output_exists():
+            print "No valid output. Have to run valid file."
             self.__have_to_run_valid_file = True
     
     
@@ -70,13 +71,13 @@ class TestOutput(unittest.TestCase):
         for item in os.listdir(TestOutput.path_to_valid):
             abs_item = os.path.join(TestOutput.path_to_valid, item)
             if os.path.isdir(abs_item):
-                is_valid = self._is_a_valid_dir(abs_item)
+                is_valid = self._dir_has_linx_and_liny(abs_item)
             if not is_valid:
                 return True
         return False
     
     
-    def _is_a_valid_dir(self, path_to_dir):
+    def _dir_has_linx_and_liny(self, path_to_dir):
         """ Returns True if dir contains a *linx and a *liny file. """
         has_linx = False
         has_liny = False
@@ -96,13 +97,14 @@ class TestOutput(unittest.TestCase):
 
     def _copy_input_files(self):
         ''' Copies input data for drive from path_to_input. '''
+        print "Copying input files"
         Utilities.iotools.copy_content_of_dir(TestOutput.path_to_input, TestOutput.path_to_valid)
         Utilities.iotools.copy_content_of_dir(TestOutput.path_to_input, TestOutput.path_to_to_check)
         
 
     def _run_valid_file_if_desired(self):
         ''' Runs drive.test.valid.Drive_God_lin for all directories in drive.test.data.valid '''
-        if _WITH_VALID_RUN:
+        if _WITH_VALID_RUN or self.__have_to_run_valid_file:
             print "  Run valid files"
             self._run_dir(self.path_to_valid, self.path_to_valid_drive)
     
@@ -129,7 +131,7 @@ class TestOutput(unittest.TestCase):
         ''' Runs given drive with path_to_dir. 
         path_to_dir has to contain Drive.inp and DrivingTerms and the sdds file.
         '''
-        call_command = [path_to_drive, path_to_dir]
+        call_command = os.path.abspath(path_to_drive) + " " + os.path.abspath(path_to_dir)
         
         process = subprocess.Popen(call_command,
                            stdout=subprocess.PIPE, 
@@ -142,7 +144,7 @@ class TestOutput(unittest.TestCase):
         errcode = process.returncode
         
         if 0 != errcode:
-            print "Error running command:", " ".join(call_command)
+            print "Error running command:", call_command
             print "Printing output:-------------------------"
             print out_stream
             print >> sys.stderr, "Printing error output:-------------------"
@@ -153,12 +155,24 @@ class TestOutput(unittest.TestCase):
         ''' Compares output by using filecmp '''
         print "  Comparing output files"
 
-        for directory in os.listdir(self.path_to_valid):
+        for index, directory in enumerate(os.listdir(self.path_to_valid)):
+            if self._break_after_first_run(index):
+                break
             valid_dir = os.path.join(self.path_to_valid, directory)
             to_check_dir = os.path.join(self.path_to_to_check, directory)
+#            self.assertTrue((not self._output_files_exist(to_check_dir)), "Dir seems to have no output: "+to_check_dir)
             self._compare_dir_with_filecmp(valid_dir, to_check_dir)
-        
         TestOutput.successful = True
+        
+        
+    def _output_files_exist(self, path_to_dir):
+        """ Assuming output files exist if the dir contains more files than the amount of input files """
+        amount_of_input_files = 3
+        return amount_of_input_files < len(os.listdir(path_to_dir))
+        
+        
+    
+        
         
     def _compare_dir_with_filecmp(self, valid_dir, to_check_dir):
         dir_compare = filecmp.dircmp(valid_dir, to_check_dir)
