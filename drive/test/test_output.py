@@ -71,7 +71,7 @@ class TestOutput(unittest.TestCase):
         """
         # if folder is not created yet:
         if not os.path.isdir(TestOutput.path_to_valid):
-                return True
+            return False
         is_valid = False
         for item in os.listdir(TestOutput.path_to_valid):
             abs_item = os.path.join(TestOutput.path_to_valid, item)
