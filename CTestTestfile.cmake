@@ -28,4 +28,5 @@ find_program(MADX NAMES madx madx_dev
    )
 
 subdirs(GetLLM/test)
+subdirs(drive/test)
 subdirs(tests)
