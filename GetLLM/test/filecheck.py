@@ -1,5 +1,4 @@
-'''
-Created on 19 Mar 2013
+''' Created on 19 Mar 2013
 
 @author: vimaier
 
@@ -78,6 +77,9 @@ parser.add_option("-s", "--special_output", dest="SPECIAL_OUTPUT",
                     default="",
                     help="If special_output is given the output will be produced into this directory."+
                             " Valid output will also be produced.")
+parser.add_option("-t", "--test_name", dest="TEST_NAME",
+                    default=None,
+                    help="If defined, only run the test with this name")
 
 (options, args) = parser.parse_args()
 
@@ -119,6 +121,9 @@ if Utilities.iotools.notExistsDirectory(PATH_TO_TEST_DATA):
                                      "GetLLM", "test", "data"
                                      )
 
+# If defined, run only this test, otherwise run all tests
+TEST_NAME = options.TEST_NAME
+
 #===================================================================================================
 # # TestFileOutputGetLLM
 #===================================================================================================
@@ -142,8 +147,13 @@ class TestFileOutputGetLLM(unittest.TestCase):
         all_tests_valid = True
         num_of_runs = 0
         num_of_valid_runs = 0
+         # if test name is given, only this test, otherwise all
+        if options.TEST_NAME!=None:
+            TESTS=[options.TEST_NAME]
+        else:
+            TESTS=os.listdir(PATH_TO_TEST_DATA)
         # Run test for every directory in PATH_TO_TEST_DATA
-        for element in os.listdir(PATH_TO_TEST_DATA):
+        for element in TESTS:
             run_path = os.path.join(PATH_TO_TEST_DATA, element)
             if os.path.isdir(run_path):
                 run_validator = runvalidator.RunValidator(run_path)
@@ -152,20 +162,20 @@ class TestFileOutputGetLLM(unittest.TestCase):
                     print "Run cancelled for: "+run_path+"\tReason: "+validation_msg
                     continue
                 # Valid directory structure to run GetLLM.py
-                
+
                 print "==============================================================="
                 print "Run test for", run_validator.get_run_dir_name()
                 print "==============================================================="
                 if not self.run_single_test(run_validator):
                     all_tests_valid = False
                     num_of_valid_runs -= 1
-                
+
                 num_of_valid_runs += 1
                 num_of_runs += 1
-                
-                
+
+
         TestFileOutputGetLLM.num_of_failed_tests = num_of_runs - num_of_valid_runs
-                        
+
         print "==============================================================="
         print "Valid runs: %s/%s " % (str(num_of_valid_runs), str(num_of_runs))        
         print "==============================================================="
@@ -294,7 +304,8 @@ def main():
     arguments_tpl = ('-o', "--create_valid_output",
                    "-v","--valid_getllm_script",
                    "-m","--modified_getllm_script",
-                   "-p","--path_to_test_data")
+                   "-p","--path_to_test_data"
+                   "-t","--test_name")
     del_lst = []
     for i, option in enumerate(sys.argv):
         if option in arguments_tpl:
@@ -304,10 +315,10 @@ def main():
     del_lst.reverse()
     for i in del_lst:
         del sys.argv[i]
-        
+
     # Run the test
     text_test_runner = unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(TestFileOutputGetLLM))
-    
+
     if 0 != len(text_test_runner.errors):
         sys.exit(len(text_test_runner.errors))
     elif 0 != len(text_test_runner.failures):
@@ -315,4 +326,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+
