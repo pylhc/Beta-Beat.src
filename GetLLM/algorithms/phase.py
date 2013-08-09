@@ -383,14 +383,11 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac,
 #===================================================================================================
 #TODO: awful name! what does this function??? (vimaier)
 def _phi_last_and_last_but_one(phi, ftune):
-    if ftune > 0.0:
-        phit = phi+ftune
-        if phit > 1.0:
-            phit = phit-1.0
-    elif ftune <= 0.0:
-        phit = phi+(1.0+ftune)
-        if phit > 1.0:
-            phit = phit-1.0
+    if ftune <= 0.0:
+        ftune = 1.0 + ftune
+    phit = phi+ftune
+    if phit > 1.0:
+        phit = phit-1.0
     return phit
 
 def calc_phase_mean(phase0, norm):  
@@ -486,6 +483,10 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
     length_commonbpms = len(commonbpms)
+    
+    if 3 > length_commonbpms:
+        print >> sys.stderr, "get_phases: Less than three BPMs provided for plane", plane, "Please check input."
+        return [{}, 0.0, 0.0, []]
 
     #-- Last BPM on the same turn to fix the phase shift by tune_q for exp data of LHC
     if getllm_d.lhc_phase == "1" and getllm_d.accel == "LHCB1": 
@@ -560,7 +561,7 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                 p_m_13=(src_twiss.MUY[src_twiss.indx[bn3]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM3
                 tunemi.append(src_twiss.TUNEY[src_twiss.indx[bn1]])
             
-             #-- To fix the phase shift by tune_q in LHC
+            #-- To fix the phase shift by tune_q in LHC
             try:
                 if mad_twiss.S[mad_twiss.indx[bn1]] <= s_lastbpm:
                     if mad_twiss.S[mad_twiss.indx[bn2]] > s_lastbpm: 
