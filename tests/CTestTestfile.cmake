@@ -1,8 +1,3 @@
-if(EXISTS "/usr/bin/python2.6")
-   set(PYTHON "/usr/bin/python2.6")
-else()
-   set(PYTHON "python")
-endif()
 
 macro(getsuper testname accel modelname f1 f2 f3)
    set(modelpath ${CTEST_SOURCE_DIR}/tests/models/${accel}/${modelname})

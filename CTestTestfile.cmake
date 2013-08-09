@@ -1,5 +1,5 @@
 
-# Set binary and source directory..
+#Set binary and source directory..
 if("" STREQUAL "${CTEST_SOURCE_DIRECTORY}")
    # Define source directory as current source directory
    file(GLOB _CTEST_SOURCE_DIR CTestTestfile.cmake)
@@ -18,12 +18,9 @@ if(NOT DEFINED CTEST_BINARY_DIR)
    set(CTEST_BINARY_DIR ${CTEST_SOURCE_DIR})
 endif()
 
-# Define numdiff binary path..
-if(WIN32)
-   set(NUMDIFF "${CTEST_SOURCE_DIR}/binaries/windows/numdiff-win32.exe")
-else() # assume linux, could also be osx..
-   set(NUMDIFF "${CTEST_SOURCE_DIR}/binaries/linux/numdiff-linux64")
-endif()
+# Note, for running in non-script mode,
+# the variable CTEST_SOURCE_DIRECTORY is empty.. so this is fine
+include(${CTEST_SOURCE_DIRECTORY}CTestSetup.cmake)
 
 # Find Mad-X:
 find_program(MADX NAMES madx madx_dev
