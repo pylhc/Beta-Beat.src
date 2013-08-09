@@ -116,3 +116,22 @@ def dirs_exist(*dirs):
         if not os.path.isdir(d):
             return False
     return True
+
+def get_all_files_in_dir(path_to_dir):
+    """ Looks for files(not dirs) in dir and subdirs and returns them as a list """
+    if not os.path.isdir(path_to_dir):
+        return []
+    result = []
+    for item in os.listdir(path_to_dir):
+        path_to_item = os.path.join(path_to_dir, item)
+        if os.path.isdir(path_to_item):
+            result = result + get_all_files_in_dir(path_to_item)
+        else:
+            result.append(item)
+    return result
+    
+    
+    
+    
+    
+    
