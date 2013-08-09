@@ -18,10 +18,12 @@ CURRENT_PATH = os.path.dirname(__file__)
 
 import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
+import Utilities.compare
 
-_SHORT_RUN = False # If True, Drive will only run on first dir
-_WITH_VALID_RUN = True # If True, will run valid Drive except if no valid outputfiles are available
+_SHORT_RUN = True # If True, Drive will only run on first dir
+_NO_VALID_RUN = True # If True, will not run valid Drive except if no valid output files are available
 
+_WITH_VALID_RUN = not _NO_VALID_RUN
 
 class TestOutput(unittest.TestCase):
     
@@ -38,7 +40,7 @@ class TestOutput(unittest.TestCase):
     def setUp(self):
         self._check_if_valid_output_exist_and_set_attribute()
         self._delete_modified_and_if_desired_valid_output()
-        self._copy_input_files()
+        self._copied_files = self._copy_input_files()
 
 
     def tearDown(self):
@@ -67,6 +69,9 @@ class TestOutput(unittest.TestCase):
         Returns true if cannot find valid output. Assuming that every subdir of path_to_valid has 
         a linx and liny file(valid output).
         """
+        # if folder is not created yet:
+        if not os.path.isdir(TestOutput.path_to_valid):
+                return True
         is_valid = False
         for item in os.listdir(TestOutput.path_to_valid):
             abs_item = os.path.join(TestOutput.path_to_valid, item)
@@ -96,10 +101,11 @@ class TestOutput(unittest.TestCase):
             Utilities.iotools.delete_content_of_dir(TestOutput.path_to_valid)
 
     def _copy_input_files(self):
-        ''' Copies input data for drive from path_to_input. '''
+        ''' Copies input data for drive from path_to_input. Return all copied files '''
         print "Copying input files"
         Utilities.iotools.copy_content_of_dir(TestOutput.path_to_input, TestOutput.path_to_valid)
         Utilities.iotools.copy_content_of_dir(TestOutput.path_to_input, TestOutput.path_to_to_check)
+        return Utilities.iotools.get_all_files_in_dir(TestOutput.path_to_input)
         
 
     def _run_valid_file_if_desired(self):
@@ -160,18 +166,9 @@ class TestOutput(unittest.TestCase):
                 break
             valid_dir = os.path.join(self.path_to_valid, directory)
             to_check_dir = os.path.join(self.path_to_to_check, directory)
-#            self.assertTrue((not self._output_files_exist(to_check_dir)), "Dir seems to have no output: "+to_check_dir)
-            self._compare_dir_with_filecmp(valid_dir, to_check_dir)
+#            self._compare_dir_with_filecmp(valid_dir, to_check_dir)
+            self._compare_dir_almost_equal_doubles(valid_dir, to_check_dir)
         TestOutput.successful = True
-        
-        
-    def _output_files_exist(self, path_to_dir):
-        """ Assuming output files exist if the dir contains more files than the amount of input files """
-        amount_of_input_files = 3
-        return amount_of_input_files < len(os.listdir(path_to_dir))
-        
-        
-    
         
         
     def _compare_dir_with_filecmp(self, valid_dir, to_check_dir):
@@ -180,6 +177,13 @@ class TestOutput(unittest.TestCase):
         self.assertEqual(0, len(dir_compare.diff_files), "Files are not equal.")
         self.assertEqual(0, len(dir_compare.left_only), "Files existing in only one dir")
         self.assertEqual(0, len(dir_compare.right_only), "Files existing in only one dir")
+        
+        
+    def _compare_dir_almost_equal_doubles(self, valid_dir, to_check_dir):
+        self.assertTrue(
+                        Utilities.compare.equal_dirs_with_double_epsilon_comparing(valid_dir, to_check_dir, except_files=self._copied_files),
+                        "Directories not equal: "+valid_dir+" and "+to_check_dir
+                        )
         
 # END TestOutput -----------------------------------------------------------------------------------
 
