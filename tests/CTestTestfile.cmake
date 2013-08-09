@@ -24,7 +24,11 @@ macro(getsuper testname accel modelname f1 f2 f3)
       add_test(numdiff_${testname}_${REF_FILE} ${NUMDIFF}
          -b ${NDIFF_PATH}/${REF_FILE} ./out_${modelname}/${REF_FILE} ${NDIFF_PATH}/default.cfg
          )
-      set_tests_properties(numdiff_${testname}_${REF_FILE} PROPERTIES FAIL_REGULAR_EXPRESSION "warng")
+      set_tests_properties(numdiff_${testname}_${REF_FILE}
+         PROPERTIES
+         FAIL_REGULAR_EXPRESSION "warng"
+         DEPENDS getsuper_${testname}
+         )
    endforeach()
 endmacro()
 
