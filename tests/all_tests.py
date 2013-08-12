@@ -9,9 +9,9 @@ import sys
 import unittest
 
 import __init__ # @UnusedImport init will include paths
-import drive.test.test_output
+#import drive.test.test_output
 import MODEL.LHCB.model.Corrections.test.filecheck
-import GetLLM.test.filecheck
+#import GetLLM.test.filecheck
 import GetLLM.test.vimaier_utils.test_compare_utils
 
 
@@ -22,9 +22,9 @@ def suite():
     test_loader = unittest.TestLoader()
     test_suite = unittest.TestSuite()
     tests = [
-             drive.test.test_output.TestOutput,
+             #drive.test.test_output.TestOutput,
              MODEL.LHCB.model.Corrections.test.filecheck.TestFileOutputGetdiff,
-             GetLLM.test.filecheck.TestFileOutputGetLLM,
+             #GetLLM.test.filecheck.TestFileOutputGetLLM,
              GetLLM.test.vimaier_utils.test_compare_utils.TestCompareUtils
              ]
     
