@@ -11,6 +11,6 @@ foreach(test ${tests})
           -s ${CTEST_BINARY_DIR}
           -t ${test}
           )
-      set_tests_properties(getllm_${test} PROPERTIES TIMEOUT 1800)
+      set_tests_properties(getllm_${test} PROPERTIES TIMEOUT 900)
    endif()
 endforeach()
