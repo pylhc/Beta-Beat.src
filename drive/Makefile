@@ -4,8 +4,9 @@
 FC = ifort
 
 ifdef SystemRoot
+    DRIVE = Drive_God_lin_win.exe
 	CC = icl
-	RM = del -f *.obj
+	RM = del -f *.obj *.manifest
 	FFLAGS = /O3 /Qopenmp /Qparallel /Qunroll /Qipo-c 
 	CCFLAGS = /c /Qopenmp /Qparallel /Qunroll /Qipo-c /Wall
 	LINK = xilink -qipo /out:Drive_God_lin_win.exe
@@ -13,8 +14,9 @@ ifdef SystemRoot
 	DRIVE_OBJ = Drive_God_lin.obj
 	SUSSIX_OBJ = sussix4drivexxNoO.obj
 else
+    DRIVE = Drive_God_lin
 	CC = icc
-	RM = rm -f *.o
+	RM = rm -f *.o 
 	FFLAGS = -O3 -c -m32 -openmp -Bstatic -static -static-libgcc -parallel -unroll -ipo
 	CCFLAGS = -ansi -c -m32 -openmp -static-libgcc -parallel -unroll -ipo -Wall -Wremarks -diag-disable 981
 	LINK = ifort -o Drive_God_lin 
@@ -24,7 +26,7 @@ else
 endif	
 
 
-all: Drive_God_lin
+all: $(DRIVE)
 
 # make sussix object file from fortran source
 $(SUSSIX_OBJ):
@@ -35,12 +37,12 @@ $(DRIVE_OBJ):
 	$(CC) $(CCFLAGS) Drive_God_lin.cpp 
 
 # link to binary
-Drive_God_lin: $(DRIVE_OBJ) $(SUSSIX_OBJ)
+$(DRIVE): $(DRIVE_OBJ) $(SUSSIX_OBJ)
 	$(LINK) $(DRIVE_OBJ) $(SUSSIX_OBJ) $(FCL)
 
 	
 clean:
-	$(RM) Drive_God_lin
+	$(RM) $(DRIVE) 
 
 
  
