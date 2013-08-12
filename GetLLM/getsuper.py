@@ -632,7 +632,7 @@ class chromFileWriter:
                     'w', 'werr','wm', 'werrm', 'wmo', 'phi', 'phierr','phim','phierrm','pmo',
                     'A','Aerr','Am','Aerrm','B','Berr','Bm','Berrm', 'dbbm','dbberrm',
                     'dam','daerrm']
-        couplecolumns = ['name', 'sloc', 'chr_f1001r', 'chr_err_f1001r', 'chr_f1001i',
+        couplecolumns = ['name', 'sloc',
             'chr_f1001r', 'chr_err_f1001r', 'chr_f1001i', 'chr_err_f1001i',
             'chr_f1010r', 'chr_err_f1010r', 'chr_f1010i', 'chr_err_f1010i',
             'mdl_chr_f1001r', 'mdl_chr_err_f1001r', 'mdl_chr_f1001i', 'mdl_chr_err_f1001i',

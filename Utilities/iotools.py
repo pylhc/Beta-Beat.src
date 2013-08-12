@@ -108,4 +108,30 @@ def get_absolute_path_to_betabeat_root():
                     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
                     )
     
+def no_dirs_exist(*dirs): 
+    return not dirs_exist(*dirs)
+
+def dirs_exist(*dirs):
+    for d in dirs:
+        if not os.path.isdir(d):
+            return False
+    return True
+
+def get_all_files_in_dir(path_to_dir):
+    """ Looks for files(not dirs) in dir and subdirs and returns them as a list """
+    if not os.path.isdir(path_to_dir):
+        return []
+    result = []
+    for item in os.listdir(path_to_dir):
+        path_to_item = os.path.join(path_to_dir, item)
+        if os.path.isdir(path_to_item):
+            result = result + get_all_files_in_dir(path_to_item)
+        else:
+            result.append(item)
+    return result
+    
+    
+    
+    
+    
     
