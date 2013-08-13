@@ -287,10 +287,10 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
         if num_equal_files == num_overall_files:
             # Delete created special folders if files are equal
-            if "" != SPECIAL_OUTPUT:
-                path_to_created_folder = os.path.join(SPECIAL_OUTPUT, run_validator.get_run_dir_name())
-                print "Deleting output folder: ", path_to_created_folder,"\n"
-                shutil.rmtree(path_to_created_folder)
+#             if "" != SPECIAL_OUTPUT:
+#                 path_to_created_folder = os.path.join(SPECIAL_OUTPUT, run_validator.get_run_dir_name())
+#                 print "Deleting output folder: ", path_to_created_folder,"\n"
+#                 shutil.rmtree(path_to_created_folder)
             return True
         else:
             return False
