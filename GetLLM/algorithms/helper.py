@@ -657,10 +657,28 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
 
 #---- finding kick
-def getkick(files,mad_twiss):
+def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
 
-    invarianceJx=[]
-    invarianceJy=[]
+    #One type for each beta-function source
+    Types = ['model','amp','phase']
+    
+    #To count number of BPM rej in each calculation
+    bpmrejx={}
+    bpmrejy={}
+    
+    #meansqrt_2j-> will be mean{sqrt{2Jx}} and mean_2J-> will be mean{2J} where mean is taken over all BPMs not rejected 
+    meansqrt_2jx={}
+    meansqrt_2jy={}
+    mean_2jx={}
+    mean_2jy={}
+    
+    for type in Types:
+        bpmrejx[type] = []
+        bpmrejy[type] = []
+        meansqrt_2jx[type] = []
+        meansqrt_2jy[type] = []
+        mean_2jx[type] = []
+        mean_2jy[type] = []
 
     tunex=[]
     tuney=[]
@@ -669,22 +687,28 @@ def getkick(files,mad_twiss):
     tuneyRMS=[]
 
     dpp=[]
-
-
-
-        # finding the invariances
+    #thresholds for rejecting, input by user
+    bbthreshold = float(bbthreshold);
+    errthreshold = float(errthreshold);
+    
+    commonbpmsx = Utilities.bpm.intersect(files[0])
+    commonbpmsy = Utilities.bpm.intersect(files[1])    
+    
     for j in range(0,len(files[0])):
         x=files[0][j]
-        y=files[1][j]
-
-        # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJx = ( beta.beta_from_amplitude(mad_twiss,[x],'H') )[3]
-        # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJy = ( beta.beta_from_amplitude(mad_twiss,[y],'V') )[3]
-
-        invarianceJx.append(invariantJx)
-        invarianceJy.append(invariantJy)
-
+        y=files[1][j] 	
+        #Loop uses gen_kick_calc to get action for each beta function source in each plane
+        for type in Types:
+            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([x], mad_twiss, beta_d, type, 'H', bbthreshold, errthreshold, commonbpmsx)
+            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([y], mad_twiss, beta_d, type, 'V', bbthreshold, errthreshold, commonbpmsy)
+            meansqrt_2jx[type].append(meansqrt_2jx_temp)
+            meansqrt_2jy[type].append(meansqrt_2jy_temp)
+            mean_2jx[type].append(mean_2jx_temp)
+            mean_2jy[type].append(mean_2jy_temp)
+            bpmrejx[type].append(rejected_bpm_countx)
+            bpmrejy[type].append(rejected_bpm_county)
+        
+        
         try:
             dpp.append(x.DPP)
         except:
@@ -693,11 +717,100 @@ def getkick(files,mad_twiss):
         tuney.append(y.Q2)
         tunexRMS.append(x.Q1RMS)
         tuneyRMS.append(y.Q2RMS)
-
+	
     tune=[tunex,tuney]
     tuneRMS=[tunexRMS,tuneyRMS]
+	
+    return [meansqrt_2jx,meansqrt_2jy,mean_2jx,mean_2jy,tune,tuneRMS,dpp,bpmrejx,bpmrejy]
 
-    return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
+#Gets action for a given beta function source and plane   
+def gen_kick_calc(list_of_files,mad_twiss,beta_d,type, plane, bbthreshold,errthreshold,commonbpms):
 
-
-
+    commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    meansqrt2j = []	
+    mean2j = []	
+    rejbpmcount = 0	
+    
+    #Two different action calcs follow, one is by finding mean(sqrt(2j))-->meansqrt2j and the other is by finding mean(2j)-->mean2j
+    for i in range(0, len(commonbpms)): 
+        bn1 = str.upper(commonbpms[i][1])    
+        #Gets beta function for use in action calculation- performs checks on its quality, rejects if above threshold
+        if plane == 'H':
+            if type == 'model':
+                tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]	   
+            elif type == 'amp':   
+                if beta_d.x_amp[bn1][0] <= 0:
+                    rejbpmcount += 1	   
+                    continue
+                elif abs((beta_d.x_amp[bn1][0] - mad_twiss.BETX[mad_twiss.indx[bn1]])/mad_twiss.BETX[mad_twiss.indx[bn1]]) > bbthreshold:
+                    rejbpmcount += 1  
+                    continue
+                elif (beta_d.x_amp[bn1][1]/beta_d.x_amp[bn1][0]) > errthreshold:
+                    rejbpmcount += 1  
+                    continue
+                tembeta = beta_d.x_amp[bn1][0]  
+            elif type == 'phase':   
+                if 	beta_d.x_phase[bn1][0] <= 0:
+                    rejbpmcount += 1	   
+                    continue
+                elif abs((beta_d.x_phase[bn1][0] - mad_twiss.BETX[mad_twiss.indx[bn1]])/mad_twiss.BETX[mad_twiss.indx[bn1]]) > bbthreshold:
+                    rejbpmcount += 1   
+                    continue
+                elif (beta_d.x_phase[bn1][1]/beta_d.x_phase[bn1][0]) > errthreshold:
+                    rejbpmcount += 1  
+                    continue            
+                tembeta = beta_d.x_phase[bn1][0]
+        elif plane == 'V':
+            if type == 'model':                         
+                tembeta = mad_twiss.BETY[mad_twiss.indx[bn1]]	   
+            elif type == 'amp':   
+                if 	beta_d.y_amp[bn1][0] <= 0:
+                    rejbpmcount += 1	    
+                    continue	
+                elif abs((beta_d.y_amp[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]]) > bbthreshold:
+                    rejbpmcount += 1  
+                    continue
+                elif (beta_d.y_amp[bn1][1]/beta_d.y_amp[bn1][0]) > errthreshold:
+                    rejbpmcount += 1  
+                    continue    
+                tembeta = beta_d.y_amp[bn1][0]       
+            elif type == 'phase':   
+                if 	beta_d.y_phase[bn1][0] <= 0:
+                    rejbpmcount += 1	   
+                    continue	  
+                elif (abs(beta_d.y_phase[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]])> bbthreshold:
+                    rejbpmcount += 1    
+                    continue   
+                elif (beta_d.y_phase[bn1][1]/beta_d.y_phase[bn1][0]) > errthreshold:
+                    rejbpmcount += 1  
+                    continue     
+                tembeta = beta_d.y_phase[bn1][0]        
+                    
+        meansqrt2j_i = 0.0	
+        mean2j_i = 0.0	 
+        
+        for tw_file in list_of_files: 					
+            meansqrt2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
+            mean2j_i = (tw_file.PK2PK[tw_file.indx[bn1]]/2)**2		
+		                           
+        meansqrt2j_i = meansqrt2j_i/len(list_of_files)
+        meansqrt2j.append(meansqrt2j_i/math.sqrt(tembeta))		
+        mean2j_i = mean2j_i/len(list_of_files)
+        mean2j.append(mean2j_i/tembeta)			
+      
+    if len(commonbpms) == rejbpmcount:
+        print "Beta function calculated from", type, "in plane", plane, "is no good, no kick or action will be calculated from it."
+        j_old, mean_2j = [-1,-1], [-1,-1]
+        return j_old, mean_2j, rejbpmcount
+        
+    meansqrt2j = np.array(meansqrt2j)
+    meansqrt2j_ave = np.average(meansqrt2j)
+    meansqrt2j_std = math.sqrt(np.average(meansqrt2j*meansqrt2j)-meansqrt2j_ave**2+2.2e-16) #this is std dev, not RMS
+    mean2j = np.array(mean2j)    
+    mean2j_ave = np.average(mean2j)
+    mean2j_std = math.sqrt(np.average(mean2j*mean2j)-mean2j_ave**2+2.2e-16) #this is std dev, not RMS
+    
+    meansqrt_2j = [meansqrt2j_ave, meansqrt2j_std]
+    mean_2j = [ mean2j_ave, mean2j_std]
+    
+    return meansqrt_2j, mean_2j, rejbpmcount
