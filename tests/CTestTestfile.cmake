@@ -55,5 +55,5 @@ endif()
 
 # test for all PyUnit tests
 add_test(all_pyunit_tests python ${CTEST_SOURCE_DIR}/tests/all_tests.py)
-set_tests_properties(filecheck_getllm PROPERTIES TIMEOUT 5400)
+set_tests_properties(all_pyunit_tests PROPERTIES TIMEOUT 5400)
 
