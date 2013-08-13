@@ -295,13 +295,6 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     if "plane is neither 'H' nor 'V'." == str(val_err):
                         raise val_err
                     print >> sys.stderr, "Known error: "
-                    #TODO: DEBUG remove
-                    print >> sys.stderr,"ip", ip 
-                    print >> sys.stderr,"bpm_names.index(bpmr)", bpm_names.index(bpmr) 
-                    print >> sys.stderr,"bpm_names.index(bpml)", bpm_names.index(bpml) 
-                    print >> sys.stderr,"bpm_names.index(bpmr) > bpm_names.index(bpml)", bpm_names.index(bpmr) > bpm_names.index(bpml) 
-                    print >> sys.stderr,"plane", plane
-                    print >> sys.stderr,"tune", tune
                     if plane == "V":
                         print >> sys.stderr, " dpsi = 2*np.pi*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]]))"
                         print >> sys.stderr,  dpsi,"=", "2*PI*("+str(t_f.MUY[t_f.indx[bpmr]])+"-"+str(t_f.MUY[t_f.indx[bpml]])+")"
