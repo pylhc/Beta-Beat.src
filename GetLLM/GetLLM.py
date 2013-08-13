@@ -113,6 +113,12 @@ def parse_args():
     parser.add_option("-p", "--lhcphase",
                     help="Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1",
                     metavar="LHCPHASE", default="0" , dest="lhcphase")
+    parser.add_option("-k", "--bbthreshold",
+                    help="Set beta-beating threshold for action calculations, default = 0.15",
+                    metavar="BBTHRESH", default="0.15" , dest="bbthreshold")                
+    parser.add_option("-e", "--errthreshold",
+                    help="Set beta relative uncertainty threshold for action calculations, default = 0.1",
+                    metavar="ERRTHRESH", default="0.15" , dest="errthreshold")                
 
     # Take index 0 since index 1(args) is not used (vimaier)
     options = parser.parse_args()[0]
@@ -122,7 +128,7 @@ def parse_args():
 #===================================================================================================
 # main()-function
 #===================================================================================================
-def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHCB1", lhcphase="0", BPMU="um", COcut=4000, NBcpl=2, TBTana="SUSSIX", higher_order=1):
+def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHCB1", lhcphase="0", BPMU="um", COcut=4000, NBcpl=2, TBTana="SUSSIX", higher_order=1, bbthreshold="0.15", errthreshold="0.15"):
     '''
      GetLLM main function.
      
@@ -228,7 +234,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
                 files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
          
             #------ Start get Q,JX,delta
-            files_dict = calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+            files_dict = calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
         else:
             print "Not analysing higher order..."
     except:
@@ -885,7 +891,7 @@ def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
 # END calculate_getsextupoles ----------------------------------------------------------------------
 
 
-def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict,):
+def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
     '''
     Fills the following TfsFiles:
         getkick.out        getkickac.out
@@ -896,19 +902,35 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     print "Calculating kick"
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
     
+    Types = ['model','amp','phase']
+    
+    meansqrt_2jx = {}
+    meansqrt_2jy = {}
+    mean_2jx = {}
+    mean_2jy = {}
+    bpmrejx ={}
+    bpmrejy ={}
+    
     try:
-        [inv_jx, inv_jy, tune, tune_rms, dpp] = algorithms.helper.getkick(files, mad_twiss)
+        [meansqrt_2jx, meansqrt_2jy, mean_2jx, mean_2jy, tune, tune_rms, dpp , bpmrejx, bpmrejy] = algorithms.helper.getkick(files, mad_twiss, beta_d, bbthreshold, errthreshold)
     except IndexError:# occurs if either no x or no y files exist
         return files_dict
         
+    #Currently 2J = mean{2J}, sqrt2J=mean{sqrt{2J}}. Before change 2J=(mean{sqrt{2J}})^2.  
+    #To change back to this, change mean_2j[type][i][0]->(meansqrt_2j[type][i][0])^2 and mean_2j[type][i][1]->meansqrt_2j[i][0]*meansqrt_2j[i][1]/2
+    #To change to sqrt{2J}=sqrt{mean{2J}}, change meansqrt_2j[type][i][0]->sqrt(mean_2j[type][i][0]) and meansqrt_2j[type][i][1]->mean_2j[type][i][1]/(2*sqrt(mean_2j[type][i][0])) (asherman)
+    
     tfs_file = files_dict['getkick.out']
     tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(beta_d.x_ratio))
     tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(beta_d.y_ratio))
-    tfs_file.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
-    tfs_file.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    tfs_file.add_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m:", "%le", bbthreshold)
+    tfs_file.add_descriptor("Threshold_for_uncert(beta_d)/beta_d:", "%le", errthreshold)
+    tfs_file.add_column_names(["Beta Source","DPP", "QX", "QXRMS", "QY", "QYRMS","x_BPMs_Rejected", "y_BPMs_rejected", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
+    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
-        tfs_file.add_table_row(list_row_entries)
+            for type in Types:
+                list_row_entries = [type, dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], bpmrejx[type][i],bpmrejy[type][i], meansqrt_2jx[type][i][0], meansqrt_2jx[type][i][1], meansqrt_2jy[type][i][0], meansqrt_2jy[type][i][1], mean_2jx[type][i][0], mean_2jx[type][i][1], mean_2jy[type][i][0], mean_2jy[type][i][1], (meansqrt_2jx[type][i][0] / math.sqrt(beta_d.x_ratio)), (meansqrt_2jx[type][i][1] / math.sqrt(beta_d.x_ratio)), (meansqrt_2jy[type][i][0] / math.sqrt(beta_d.y_ratio)), (meansqrt_2jy[type][i][1] / math.sqrt(beta_d.y_ratio)), (mean_2jx[type][i][0] / beta_d.x_ratio), (mean_2jx[type][i][1] / beta_d.x_ratio), (mean_2jy[type][i][0] / beta_d.y_ratio), (mean_2jy[type][i][1] / beta_d.y_ratio)]
+                tfs_file.add_table_row(list_row_entries)
     
     if getllm_d.with_ac_calc:
         tfs_file = files_dict['getkickac.out']
@@ -1063,7 +1085,9 @@ def _start():
          COcut=float(options.COcut),
          NBcpl=int(options.NBcpl),
          TBTana=options.TBTana,
-         higher_order=options.higher)
+         higher_order=options.higher,
+         bbthreshold=options.bbthreshold,
+         errthreshold=options.errthreshold)
 
 if __name__ == "__main__":
     _start()
