@@ -260,20 +260,18 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
             rt2j_all = []
             for t_f in files: # t_f := twiss_file
                 try:
+                    if bpm_names.index(bpmr) > bpm_names.index(bpml):
+                        tune = 0
+                    else:
+                        tune = Q
                     if plane == 'H':
-                        a_l = t_f.AMPX[t_f.indx[bpml]]
-                        a_r = t_f.AMPX[t_f.indx[bpmr]]
-                        if bpm_names.index(bpmr) > bpm_names.index(bpml):
-                            dpsi = 2*np.pi*beam_direction*(t_f.MUX[t_f.indx[bpmr]]-t_f.MUX[t_f.indx[bpml]])
-                        else:
-                            dpsi = 2*np.pi*(Q+beam_direction*(t_f.MUX[t_f.indx[bpmr]]-t_f.MUX[t_f.indx[bpml]]))
+                        amp_l = t_f.AMPX[t_f.indx[bpml]]
+                        amp_r = t_f.AMPX[t_f.indx[bpmr]]
+                        dpsi = 2*np.pi*(tune+beam_direction*(t_f.MUX[t_f.indx[bpmr]]-t_f.MUX[t_f.indx[bpml]]))
                     elif plane == 'V':
-                        a_l = t_f.AMPY[t_f.indx[bpml]]
-                        a_r = t_f.AMPY[t_f.indx[bpmr]]
-                        if bpm_names.index(bpmr) > bpm_names.index(bpml):
-                            dpsi = 2*np.pi*beam_direction*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]])
-                        else:
-                            dpsi = 2*np.pi*(Q+beam_direction*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]]))
+                        amp_l = t_f.AMPY[t_f.indx[bpml]]
+                        amp_r = t_f.AMPY[t_f.indx[bpmr]]
+                        dpsi = 2*np.pi*(tune+beam_direction*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]]))
                     else:
                         raise ValueError("plane is neither 'H' nor 'V'.")
 
@@ -283,11 +281,11 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                             dpsi += 2*np.pi*Q
 
                     #-- bet, alf, and math.sqrt(2J) from amp and phase advance
-                    bet = L*(a_l**2+a_r**2+2*a_l*a_r*cos(dpsi))/(2*a_l*a_r*sin(dpsi))
-                    alf = (a_l**2-a_r**2)/(2*a_l*a_r*sin(dpsi))
+                    bet = L*(amp_l**2+amp_r**2+2*amp_l*amp_r*cos(dpsi))/(2*amp_l*amp_r*sin(dpsi))
+                    alf = (amp_l**2-amp_r**2)/(2*amp_l*amp_r*sin(dpsi))
                     bets = bet/(1+alf**2)
                     d_s = alf*bets
-                    rt2j = math.sqrt(a_l*a_r*sin(dpsi)/(2*L))
+                    rt2j = math.sqrt(amp_l*amp_r*sin(dpsi)/(2*L))
                     betall.append(bet)
                     alfall.append(alf)
                     betsall.append(bets)
@@ -297,6 +295,17 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     if "plane is neither 'H' nor 'V'." == str(val_err):
                         raise val_err
                     print >> sys.stderr, "Known error: "
+                    #TODO: DEBUG remove
+                    print >> sys.stderr,"ip", ip 
+                    print >> sys.stderr,"bpm_names.index(bpmr)", bpm_names.index(bpmr) 
+                    print >> sys.stderr,"bpm_names.index(bpml)", bpm_names.index(bpml) 
+                    print >> sys.stderr,"bpm_names.index(bpmr) > bpm_names.index(bpml)", bpm_names.index(bpmr) > bpm_names.index(bpml) 
+                    print >> sys.stderr,"plane", plane
+                    print >> sys.stderr,"tune", tune
+                    if plane == "V":
+                        print >> sys.stderr, " dpsi = 2*np.pi*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]]))"
+                        print >> sys.stderr,  dpsi,"=", "2*PI*("+str(t_f.MUY[t_f.indx[bpmr]])+"-"+str(t_f.MUY[t_f.indx[bpml]])+")"
+                    print >> sys.stderr,"sin(dpsi)", sin(dpsi)
                     traceback.print_exc() # math domain error
                 except ZeroDivisionError:
                     traceback.print_exc()

@@ -433,6 +433,7 @@ def beta_from_phase(MADTwiss,ListOfFiles,phase,plane):
     commonbpms = Utilities.bpm.model_intersect(commonbpms,MADTwiss)
     
     if 7 > len(commonbpms):
+        print "beta_from_phase: Less than seven BPMs for plane",plane+". Returning empty values."
         return ({}, 0.0, {},[])
         
     delbeta=[]
