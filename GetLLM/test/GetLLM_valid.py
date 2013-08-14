@@ -6170,16 +6170,26 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
     files=[ListOfZeroDPPX+ListOfNonZeroDPPX,ListOfZeroDPPY+ListOfNonZeroDPPY]
 
-
-    fkick.write('@ RescalingFactor_for_X %le '+str(betax_ratio)+'\n')
-    fkick.write('@ RescalingFactor_for_Y %le '+str(betay_ratio)+'\n')
-    fkick.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
-    fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
+    # New version does not have the rescaling factors(vimaier)
+#     fkick.write('@ RescalingFactor_for_X %le '+str(betax_ratio)+'\n')
+#     fkick.write('@ RescalingFactor_for_Y %le '+str(betay_ratio)+'\n')
+        # Removed last eight columns in newer version(vimaier)
+#         fkick.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
+#         fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
+    fkick.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD\n')
+    fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
     [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkick(files,MADTwiss)
 
     for i in range(0,len(dpp)):
-        fkick.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
+            # Removed last eight columns in newer version(vimaier)
+#             fkickac.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
+            fkick.write(str(dpp[i])+' '+str(tune[0][i])+' '+
+                          str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+
+                          str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+
+                          str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '
+                          +str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '
+                          +str(2*invarianceJy[i][0]*invarianceJy[i][1])+'\n')
 
 
     fkick.close()
