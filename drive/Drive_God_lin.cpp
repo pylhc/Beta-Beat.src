@@ -38,15 +38,11 @@
    bpm name to sort in order by looking for a " rather than a name string.
    Has matching sussix4drivexxNoO.f      H.Renshall & E.Maclean
    
-   Change 22/07/2013: -Certain local main variables grouped in a struct called 'Data'
-   -Removed any rejections in BPMstatus function
+   Change 05/08/2013:-Removed any rejections in BPMstatus function
    -Changed formatLinFile to be OS compatible, makefile also modified, drive can now 
    be compiled using 'make' on both linux and windows
-   -In general, the makefile and code only distinguish between windows and non-windows 
-   with the hopes that other OS's will work with the linux version.  If this turns out 
-   to not be the case, the code can be modified to allow for another OS.
    -Removed some unused and unnecessary code  
-    05/08: Forced input tune to be in [-0.5,0.5] by taking closes member in this interval
+   -Forced input tune to be in [-0.5,0.5] by taking closes member in this interval
     -Updated code to use c++ string manipulations     -asherman
     12/08: Added two classes and an array of structs for better data organization
    */
@@ -172,9 +168,8 @@ int main(int argc, char **argv)
     #endif  
     
     omp_set_dynamic(0);
-    /* Memory allocation */
     
-    //To output scientific notation
+    //To output scientific notation 
     std::cout << std::setiosflags (std::ios::scientific);
     
     /*  Path to DrivingTerms and Drive.inp */
@@ -495,8 +490,6 @@ int main(int argc, char **argv)
                 fprintf(stderr, "horizontal or vertical BpmCounter < 0. Should not happen.\n");
                 exit(EXIT_FAILURE);
             }
-            /*printf("BPM indexes (H,V):%d %d\n", horizontalBpmCounter, verticalBpmCounter); This is not synchronised and can produce random ordered output for multiple threads (tbach) 
-            Commented out because it provides no information and makes output even messier (asherman)*/
 
             for (j = 0; j < MAXTURNS; ++j) {
                 doubleToSend[j] = BPMs[horizontalBpmCounter].tbtdata[j];
@@ -702,8 +695,7 @@ bool BPMstatus(const int plane, const int turns)
     maxpeak = 0;                /*Initialising */
     co = 0.0;
     co2 = 0.0;
-    /* If peak-to-peak signal smaller than MINSIGNAL reject
-     * Update: No longer, see above*/
+
     if (plane == 1) {
         for (il = 0; il < turns; il++) {
             co += doubleToSend[il];
@@ -728,9 +720,6 @@ bool BPMstatus(const int plane, const int turns)
     co2 = sqrt(co2 / turns - co * co);
     maxmin = maxe - mine;
 
-    /*if (maxmin < MINSIGNAL || maxmin > MAXSIGNAL)
-        return 0;*/
-    
     /* Compute the spread and average in the intervals [windowa1,windowa2]
        and [windowb1,windowb2] */
 
@@ -779,21 +768,11 @@ bool BPMstatus(const int plane, const int turns)
     }
     nslines = counter3;
 
-    /* If tune line isn't larger than background reject
-     * Update: No longer, see above */
-
     if ((InpData.windowa1 < maxfreq && maxfreq < InpData.windowa2)
      || (InpData.windowb1 < maxfreq && maxfreq < InpData.windowb2))
         printf("NoiseWindow includes largest lines, amp %e freq %e!!!!\n",
                maxpeak, maxfreq);
 
-    /*if (maxpeak <= noiseAve + SIGMACUT * noise1)
-        return false;
-
-    if (noise1 > BADPICKUP)
-        return false;*/
-
-     /*Otherwise pick-up succeeded to first cuts*/ 
     return true;
 }
 
@@ -824,18 +803,6 @@ bool outputFileCheck(std::string filePath){
     file.close();
     return failure;
 }
-
-/* what is happening here? we want to sort the lin file and put 2 lines on top.
-     * We could do this in plain c, but it is a bit of work, so we use shell tools.
-     * (this breaks OS compatibility, but this is not a priority right now)
-     * So we put calculations for tune at a temp file.
-     * Then we add the first 2 lines (column headers) to temp file
-     * Then we sort all files from the third line to the end, but them in the temp file (sorted)
-     * Then we rename the temp file to orig file
-     * --tbach*/
-
-/*UPDATE:  Use of shell has been eliminated, uses only c allowing for OS compatibility
- * -- asherman (07/2013) */
 
 void formatLinFile(std::string linFilePath,
         const int tunecount, const double tunesum, const double tune2sum, const int nattunecount, const double nattunesum, const double nattune2sum, int plane_index) {
