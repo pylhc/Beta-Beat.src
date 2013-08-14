@@ -380,6 +380,7 @@ def create_tfs_files(getllm_d, model_filename):
     files_dict['getchi3000.out'] = utils.tfs_file.TfsFile('getchi3000.out')
     files_dict['getchi1010.out'] = utils.tfs_file.TfsFile('getchi1010.out')
     files_dict['getkick.out'] = utils.tfs_file.TfsFile('getkick.out')
+    files_dict['getkickphase.out'] = utils.tfs_file.TfsFile('getkickphase.out')
     files_dict['getkickac.out'] = utils.tfs_file.TfsFile('getkickac.out')
     
     return files_dict
@@ -902,8 +903,6 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     print "Calculating kick"
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
     
-    Types = ['model','amp','phase']
-    
     meansqrt_2jx = {}
     meansqrt_2jy = {}
     mean_2jx = {}
@@ -917,20 +916,28 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
         return files_dict
         
     #Currently 2J = mean{2J}, sqrt2J=mean{sqrt{2J}}. Before change 2J=(mean{sqrt{2J}})^2.  
-    #To change back to this, change mean_2j[type][i][0]->(meansqrt_2j[type][i][0])^2 and mean_2j[type][i][1]->meansqrt_2j[i][0]*meansqrt_2j[i][1]/2
-    #To change to sqrt{2J}=sqrt{mean{2J}}, change meansqrt_2j[type][i][0]->sqrt(mean_2j[type][i][0]) and meansqrt_2j[type][i][1]->mean_2j[type][i][1]/(2*sqrt(mean_2j[type][i][0])) (asherman)
+    #To change back to this, change mean_2j[source][i][0]->(meansqrt_2j[source][i][0])^2 and mean_2j[source][i][1]->meansqrt_2j[i][0]*meansqrt_2j[i][1]/2
+    #To change to sqrt{2J}=sqrt{mean{2J}}, change meansqrt_2j[source][i][0]->sqrt(mean_2j[source][i][0]) and meansqrt_2j[source][i][1]->mean_2j[source][i][1]/(2*sqrt(mean_2j[source][i][0])) (asherman)
+    #where source = 'phase' or 'model'
     
-    tfs_file = files_dict['getkick.out']
-    tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(beta_d.x_ratio))
-    tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(beta_d.y_ratio))
-    tfs_file.add_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m:", "%le", bbthreshold)
-    tfs_file.add_descriptor("Threshold_for_uncert(beta_d)/beta_d:", "%le", errthreshold)
-    tfs_file.add_column_names(["Beta Source","DPP", "QX", "QXRMS", "QY", "QYRMS","x_BPMs_Rejected", "y_BPMs_rejected", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
-    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    tfs_file_model = files_dict['getkick.out']
+    tfs_file_model.add_comment("Calculates the kick from the model beta function")
+    tfs_file_model.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"])
+    tfs_file_model.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le","%le"])
     for i in range(0, len(dpp)):
-            for type in Types:
-                list_row_entries = [type, dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], bpmrejx[type][i],bpmrejy[type][i], meansqrt_2jx[type][i][0], meansqrt_2jx[type][i][1], meansqrt_2jy[type][i][0], meansqrt_2jy[type][i][1], mean_2jx[type][i][0], mean_2jx[type][i][1], mean_2jy[type][i][0], mean_2jy[type][i][1], (meansqrt_2jx[type][i][0] / math.sqrt(beta_d.x_ratio)), (meansqrt_2jx[type][i][1] / math.sqrt(beta_d.x_ratio)), (meansqrt_2jy[type][i][0] / math.sqrt(beta_d.y_ratio)), (meansqrt_2jy[type][i][1] / math.sqrt(beta_d.y_ratio)), (mean_2jx[type][i][0] / beta_d.x_ratio), (mean_2jx[type][i][1] / beta_d.x_ratio), (mean_2jy[type][i][0] / beta_d.y_ratio), (mean_2jy[type][i][1] / beta_d.y_ratio)]
-                tfs_file.add_table_row(list_row_entries)
+            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], mean_2jx['model'][i][0], mean_2jx['model'][i][1], mean_2jy['model'][i][0], mean_2jy['model'][i][1]]
+            tfs_file_model.add_table_row(list_row_entries)
+            
+    tfs_file_phase = files_dict['getkickphase.out']
+    tfs_file_phase.add_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m", "%le", bbthreshold)
+    tfs_file_phase.add_descriptor("Threshold_for_uncert(beta_d)/beta_d", "%le", errthreshold)
+    tfs_file_phase.add_descriptor("X_BPMs_Rejected", "%le", str(bpmrejx['phase'][i]))
+    tfs_file_phase.add_descriptor("Y_BPMs_Rejected", "%le", str(bpmrejy['phase'][i]))
+    tfs_file_phase.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"])
+    tfs_file_phase.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    for i in range(0, len(dpp)):
+            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], mean_2jx['phase'][i][0], mean_2jx['phase'][i][1], mean_2jy['phase'][i][0], mean_2jy['phase'][i][1]]
+            tfs_file_phase.add_table_row(list_row_entries)        
     
     if getllm_d.with_ac_calc:
         tfs_file = files_dict['getkickac.out']

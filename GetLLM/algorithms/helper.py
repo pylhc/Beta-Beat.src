@@ -659,8 +659,8 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 #---- finding kick
 def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
 
-    #One type for each beta-function source
-    Types = ['model','amp','phase']
+    #One source for each beta-function source
+    Sources = ['model','amp','phase']
     
     #To count number of BPM rej in each calculation
     bpmrejx={}
@@ -672,13 +672,13 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
     mean_2jx={}
     mean_2jy={}
     
-    for type in Types:
-        bpmrejx[type] = []
-        bpmrejy[type] = []
-        meansqrt_2jx[type] = []
-        meansqrt_2jy[type] = []
-        mean_2jx[type] = []
-        mean_2jy[type] = []
+    for source in Sources:
+        bpmrejx[source] = []
+        bpmrejy[source] = []
+        meansqrt_2jx[source] = []
+        meansqrt_2jy[source] = []
+        mean_2jx[source] = []
+        mean_2jy[source] = []
 
     tunex=[]
     tuney=[]
@@ -698,15 +698,16 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
         x=files[0][j]
         y=files[1][j] 	
         #Loop uses gen_kick_calc to get action for each beta function source in each plane
-        for type in Types:
-            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([x], mad_twiss, beta_d, type, 'H', bbthreshold, errthreshold, commonbpmsx)
-            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([y], mad_twiss, beta_d, type, 'V', bbthreshold, errthreshold, commonbpmsy)
-            meansqrt_2jx[type].append(meansqrt_2jx_temp)
-            meansqrt_2jy[type].append(meansqrt_2jy_temp)
-            mean_2jx[type].append(mean_2jx_temp)
-            mean_2jy[type].append(mean_2jy_temp)
-            bpmrejx[type].append(rejected_bpm_countx)
-            bpmrejy[type].append(rejected_bpm_county)
+        #Note that the result for source='amp' is not currently being used
+        for source in Sources:
+            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([x], mad_twiss, beta_d, source, 'H', bbthreshold, errthreshold, commonbpmsx)
+            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([y], mad_twiss, beta_d, source, 'V', bbthreshold, errthreshold, commonbpmsy)
+            meansqrt_2jx[source].append(meansqrt_2jx_temp)
+            meansqrt_2jy[source].append(meansqrt_2jy_temp)
+            mean_2jx[source].append(mean_2jx_temp)
+            mean_2jy[source].append(mean_2jy_temp)
+            bpmrejx[source].append(rejected_bpm_countx)
+            bpmrejy[source].append(rejected_bpm_county)
         
         
         try:
@@ -724,8 +725,20 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
     return [meansqrt_2jx,meansqrt_2jy,mean_2jx,mean_2jy,tune,tuneRMS,dpp,bpmrejx,bpmrejy]
 
 #Gets action for a given beta function source and plane   
-def gen_kick_calc(list_of_files,mad_twiss,beta_d,type, plane, bbthreshold,errthreshold,commonbpms):
-
+def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errthreshold,commonbpms):
+    '''
+    TODO:description
+     
+     :Parameters:
+        'list_of_files': list 
+            list of either linx or liny files input, produced by drive
+        'mad_twiss': object (?)
+            The model file.
+        'beta_d': object (?)
+            Contains measured beta functions calculated in GetLLM
+        'source': string
+        From where the beta function was calcuated, either model, phase, or amp
+    '''
     commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
     meansqrt2j = []	
     mean2j = []	
@@ -736,9 +749,9 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,type, plane, bbthreshold,errthr
         bn1 = str.upper(commonbpms[i][1])    
         #Gets beta function for use in action calculation- performs checks on its quality, rejects if above threshold
         if plane == 'H':
-            if type == 'model':
+            if source == 'model':
                 tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]	   
-            elif type == 'amp':   
+            elif source == 'amp':   
                 if beta_d.x_amp[bn1][0] <= 0:
                     rejbpmcount += 1	   
                     continue
@@ -749,7 +762,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,type, plane, bbthreshold,errthr
                     rejbpmcount += 1  
                     continue
                 tembeta = beta_d.x_amp[bn1][0]  
-            elif type == 'phase':   
+            elif source == 'phase':   
                 if 	beta_d.x_phase[bn1][0] <= 0:
                     rejbpmcount += 1	   
                     continue
@@ -761,9 +774,9 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,type, plane, bbthreshold,errthr
                     continue            
                 tembeta = beta_d.x_phase[bn1][0]
         elif plane == 'V':
-            if type == 'model':                         
+            if source == 'model':                         
                 tembeta = mad_twiss.BETY[mad_twiss.indx[bn1]]	   
-            elif type == 'amp':   
+            elif source == 'amp':   
                 if 	beta_d.y_amp[bn1][0] <= 0:
                     rejbpmcount += 1	    
                     continue	
@@ -774,7 +787,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,type, plane, bbthreshold,errthr
                     rejbpmcount += 1  
                     continue    
                 tembeta = beta_d.y_amp[bn1][0]       
-            elif type == 'phase':   
+            elif source == 'phase':   
                 if 	beta_d.y_phase[bn1][0] <= 0:
                     rejbpmcount += 1	   
                     continue	  
@@ -792,15 +805,15 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,type, plane, bbthreshold,errthr
         for tw_file in list_of_files: 					
             meansqrt2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
             mean2j_i = (tw_file.PK2PK[tw_file.indx[bn1]]/2)**2		
-		                           
+
         meansqrt2j_i = meansqrt2j_i/len(list_of_files)
         meansqrt2j.append(meansqrt2j_i/math.sqrt(tembeta))		
         mean2j_i = mean2j_i/len(list_of_files)
         mean2j.append(mean2j_i/tembeta)			
       
     if len(commonbpms) == rejbpmcount:
-        print "Beta function calculated from", type, "in plane", plane, "is no good, no kick or action will be calculated from it."
-        j_old, mean_2j = [-1,-1], [-1,-1]
+        print "Beta function calculated from", source, "in plane", plane, "is no good, no kick or action will be calculated from it."
+        j_old, mean_2j = [0,0], [0,0]
         return j_old, mean_2j, rejbpmcount
         
     meansqrt2j = np.array(meansqrt2j)
