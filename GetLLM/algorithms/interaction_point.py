@@ -285,21 +285,15 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     alf = (amp_l**2-amp_r**2)/(2*amp_l*amp_r*sin(dpsi))
                     bets = bet/(1+alf**2)
                     d_s = alf*bets
-                    rt2j = math.sqrt(amp_l*amp_r*sin(dpsi)/(2*L))
+                    sin_dpsi = sin(dpsi)
+                    if 0 >sin_dpsi:
+                        continue
+                    rt2j = math.sqrt(amp_l*amp_r*sin_dpsi/(2*L))
                     betall.append(bet)
                     alfall.append(alf)
                     betsall.append(bets)
                     dsall.append(d_s)
                     rt2j_all.append(rt2j)
-                except ValueError as val_err:
-                    if "plane is neither 'H' nor 'V'." == str(val_err):
-                        raise val_err
-                    print >> sys.stderr, "Known error: "
-                    if plane == "V":
-                        print >> sys.stderr, " dpsi = 2*np.pi*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]]))"
-                        print >> sys.stderr,  dpsi,"=", "2*PI*("+str(t_f.MUY[t_f.indx[bpmr]])+"-"+str(t_f.MUY[t_f.indx[bpml]])+")"
-                    print >> sys.stderr,"sin(dpsi)", sin(dpsi)
-                    traceback.print_exc() # math domain error
                 except ZeroDivisionError:
                     traceback.print_exc()
                 except Exception:
