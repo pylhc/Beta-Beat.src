@@ -125,9 +125,9 @@ def compare_tfs_files(name_valid, name_to_check):
     for valid_line in valid_lines:
         
         # Exclude descriptors GetLLMVersion, MAD_FILE, FILES, DATE and Command from comparison
-        if valid_line.startswith("@") and "GetLLMVersion" in valid_line or "MAD_FILE" in valid_line or "FILE" in valid_line:
+        if __is_a_line_to_skip(valid_line):
             continue
-        while to_check_lines[i_to_check].startswith("@") and "GetLLMVersion" in to_check_lines[i_to_check] or "MAD_FILE" in to_check_lines[i_to_check] or "FILE" in to_check_lines[i_to_check] or "DATE" in to_check_lines[i_to_check] or "Command" in to_check_lines[i_to_check]:
+        while __is_a_line_to_skip(to_check_lines[i_to_check]):
             i_to_check += 1
         check_line = to_check_lines[i_to_check]
             
@@ -152,15 +152,25 @@ def compare_tfs_files(name_valid, name_to_check):
         i_to_check += 1
     
     return ""
+
+
+def __is_a_line_to_skip(line):
+    """ 
+    Returns true, if it is a comment or one of the following descriptor lines: GetLLMVersion,
+    MAD_FILE, FILE, DATE, Command.
+    """
+    return (line.startswith("@") and "GetLLMVersion" in line or 
+                                        "MAD_FILE" in line or 
+                                        "FILE" in line or "DATE" in line or 
+                                        "Command" in line) or line.startswith("#")
         
 
 def __file_not_valid(name_twiss):
     ''' Checks if the given twiss file is empty, thus not valid. '''
     try:
         tw_f = metaclass.twiss(name_twiss)
-        if 0 == len(getattr(tw_f, "NAME", [])):
-            return True # empty files are not longer produced by modified GetLLM
-        return False
+        return tw_f.has_no_bpm_data()
     except ValueError:
         # Probably empty file
         return True
+    
