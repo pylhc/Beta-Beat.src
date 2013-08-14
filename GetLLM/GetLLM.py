@@ -915,17 +915,14 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     except IndexError:# occurs if either no x or no y files exist
         return files_dict
         
-    #Currently 2J = mean{2J}, sqrt2J=mean{sqrt{2J}}. Before change 2J=(mean{sqrt{2J}})^2.  
-    #To change back to this, change mean_2j[source][i][0]->(meansqrt_2j[source][i][0])^2 and mean_2j[source][i][1]->meansqrt_2j[i][0]*meansqrt_2j[i][1]/2
-    #To change to sqrt{2J}=sqrt{mean{2J}}, change meansqrt_2j[source][i][0]->sqrt(mean_2j[source][i][0]) and meansqrt_2j[source][i][1]->mean_2j[source][i][1]/(2*sqrt(mean_2j[source][i][0])) (asherman)
-    #where source = 'phase' or 'model'
+    #mean_2j = mean{2J} and meansqrt_2j=mean{sqrt(2J)}
     
     tfs_file_model = files_dict['getkick.out']
     tfs_file_model.add_comment("Calculates the kick from the model beta function")
     tfs_file_model.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"])
     tfs_file_model.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le","%le"])
     for i in range(0, len(dpp)):
-            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], mean_2jx['model'][i][0], mean_2jx['model'][i][1], mean_2jy['model'][i][0], mean_2jy['model'][i][1]]
+            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
             tfs_file_model.add_table_row(list_row_entries)
             
     tfs_file_phase = files_dict['getkickphase.out']
@@ -936,7 +933,7 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     tfs_file_phase.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"])
     tfs_file_phase.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     for i in range(0, len(dpp)):
-            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], mean_2jx['phase'][i][0], mean_2jx['phase'][i][1], mean_2jy['phase'][i][0], mean_2jy['phase'][i][1]]
+            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
             tfs_file_phase.add_table_row(list_row_entries)        
     
     if getllm_d.with_ac_calc:
