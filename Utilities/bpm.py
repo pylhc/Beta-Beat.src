@@ -40,7 +40,6 @@ def model_intersect(exp_bpms, model_twiss):
                 
     :Return: list with tuples: (<S_value_i>,<bpm_i>)
         A list with BPMs which are both in exp_bpms and model_twiss.
-
     '''
     bpmsin = []
     #print "start Intersect, exp_bpms #:", len(exp_bpms)
@@ -99,4 +98,23 @@ def intersect(list_of_twiss_files):
     return result
 
 
-
+def intersect_with_bpm_list(exp_bpms, bpm_list):
+    '''
+    Intersects BPMs from
+    
+    :Parameters:
+        'exp_bpms': list with tuples: (<S_value_i>,<bpm_i>)
+            list with tuples: (<S_value_i>,<bpm_i>).
+        'bpm_list': list
+            List of bpm names
+                
+    :Return: list with tuples: (<S_value_i>,<bpm_i>)
+        A list with BPMs which are both in exp_bpms and bpm_list.
+    '''
+    result = []
+    
+    for s_bpm_tupel in exp_bpms:
+        bpm_name = s_bpm_tupel[1]
+        if bpm_name in bpm_list:
+            result.append(s_bpm_tupel)
+    return result
