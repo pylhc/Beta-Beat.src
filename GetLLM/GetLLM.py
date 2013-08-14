@@ -853,7 +853,7 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
                 [phasexp, tune_d.q1, MUX, bpmsx] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, plane)
                 plane = 'V'
                 [phaseyp, tune_d.q2, MUY, bpmsy] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, plane)
-git                 [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
+                [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
             elif getllm_d.num_beams_for_coupling == 1:
                 [fwqw, bpms] = algorithms.coupling.GetCoupling1(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, getllm_d.outputpath)
             elif getllm_d.num_beams_for_coupling == 2:
