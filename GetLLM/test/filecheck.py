@@ -50,7 +50,7 @@ import runvalidator
 #===================================================================================================
 # Parse argument
 #===================================================================================================
-description = ("     filecheck.py [options]\n"
+DESCRIPTION = ("     filecheck.py [options]\n"
                "Examples:"
                "\filecheck.py -o 1"
                "\filecheck.py -o 0 -v ../main/GetLLM_valid.py -m ./GetLLM_valid.py -p ./data"
@@ -60,7 +60,7 @@ description = ("     filecheck.py [options]\n"
                "Use special_output if you want to create output files in a different directory. The"
                " produced files in this directory will be deleted again if  the test passes.\n\n")
 
-parser = optparse.OptionParser(usage=description)
+parser = optparse.OptionParser(usage=DESCRIPTION)
 parser.add_option("-o", "--valid_output",
                     help="Decides whether the valid script will be run(!=0) and produce output or not(==0)",
                     default=1, dest="CREATE_VALID_OUTPUT")
@@ -147,7 +147,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
         all_tests_valid = True
         num_of_runs = 0
         num_of_valid_runs = 0
-         # if test name is given, only this test, otherwise all
+        # if test name is given, only this test, otherwise all
         if options.TEST_NAME!=None:
             TESTS=[options.TEST_NAME]
         else:
