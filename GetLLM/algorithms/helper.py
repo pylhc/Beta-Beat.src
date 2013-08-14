@@ -16,10 +16,7 @@ Change history:
 import sys
 from inspect import Traceback
 import traceback
-if "/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/" not in sys.path: # add internal path for python scripts to current environment (tbach)
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-if "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/" not in sys.path: # added for Utilities.bpm (vimaier)
-    sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/')
+
 import metaclass
 import os
 import math
@@ -691,17 +688,14 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
     bbthreshold = float(bbthreshold);
     errthreshold = float(errthreshold);
     
-    commonbpmsx = Utilities.bpm.intersect(files[0])
-    commonbpmsy = Utilities.bpm.intersect(files[1])    
-    
     for j in range(0,len(files[0])):
         x=files[0][j]
         y=files[1][j] 	
         #Loop uses gen_kick_calc to get action for each beta function source in each plane
         #Note that the result for source='amp' is not currently being used
         for source in Sources:
-            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([x], mad_twiss, beta_d, source, 'H', bbthreshold, errthreshold, commonbpmsx)
-            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([y], mad_twiss, beta_d, source, 'V', bbthreshold, errthreshold, commonbpmsy)
+            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([x], mad_twiss, beta_d, source, 'H', bbthreshold, errthreshold)
+            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([y], mad_twiss, beta_d, source, 'V', bbthreshold, errthreshold)
             meansqrt_2jx[source].append(meansqrt_2jx_temp)
             meansqrt_2jy[source].append(meansqrt_2jy_temp)
             mean_2jx[source].append(mean_2jx_temp)
@@ -725,10 +719,8 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
     return [meansqrt_2jx,meansqrt_2jy,mean_2jx,mean_2jy,tune,tuneRMS,dpp,bpmrejx,bpmrejy]
 
 #Gets action for a given beta function source and plane   
-def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errthreshold,commonbpms):
-    '''
-    TODO:description
-     
+def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errthreshold):
+    '''     
      :Parameters:
         'list_of_files': list 
             list of either linx or liny files input, produced by drive
@@ -737,9 +729,24 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
         'beta_d': object (?)
             Contains measured beta functions calculated in GetLLM
         'source': string
-        From where the beta function was calcuated, either model, phase, or amp
+            From where the beta function was calcuated, either model, phase, or amp
+        returns:  list, list, int
+            The value and uncertainty for sqrt(2J) and 2J resp., along #BPM rej
     '''
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms = Utilities.bpm.intersect(list_of_files)
+    if source == 'model':
+        commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    elif source == 'amp':
+        if plane == 'H':
+            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_amp.keys())
+        elif plane == 'V':
+            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_amp.keys())
+    elif source == 'phase':
+        if plane == 'H':
+            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_phase.keys())
+        elif plane == 'V':
+            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_phase.keys())
+        
     meansqrt2j = []	
     mean2j = []	
     rejbpmcount = 0	
@@ -827,3 +834,4 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
     mean_2j = [ mean2j_ave, mean2j_std]
     
     return meansqrt_2j, mean_2j, rejbpmcount
+    
