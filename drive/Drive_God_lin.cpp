@@ -2,6 +2,15 @@
    NB this version uses as the number of turns the minimum of the number
    actually read or the number given in the DrivingTerms file.
 
+
+   Change 05/08/2013:-Removed any rejections in BPMstatus function
+   -Changed formatLinFile to be OS compatible, makefile also modified, drive can now
+   be compiled using 'make' on both linux and windows
+   -Removed some unused and unnecessary code
+   -Forced input tune to be in [-0.5,0.5] by taking closes member in this interval
+    -Updated code to use c++ string manipulations     -asherman
+    12/08: Added two classes and an array of structs for better data organization
+
    Version <x3> 20121106 (tbach)
    - removed all (?) unused code
    - changed options reading to allow trailing spaces
@@ -37,14 +46,6 @@
    Change 29/09/2011 at lines 715 and 724 to find lines with any
    bpm name to sort in order by looking for a " rather than a name string.
    Has matching sussix4drivexxNoO.f      H.Renshall & E.Maclean
-   
-   Change 05/08/2013:-Removed any rejections in BPMstatus function
-   -Changed formatLinFile to be OS compatible, makefile also modified, drive can now 
-   be compiled using 'make' on both linux and windows
-   -Removed some unused and unnecessary code  
-   -Forced input tune to be in [-0.5,0.5] by taking closes member in this interval
-    -Updated code to use c++ string manipulations     -asherman
-    12/08: Added two classes and an array of structs for better data organization
    */
  
  /*Determines if OS is windows or not and declares external fortran function.
