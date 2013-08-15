@@ -145,7 +145,7 @@ def main(options):
     ##########
     try:
         filedatax=twiss(path+"/getbetax_free.out")
-    except:
+    except (IOError, ValueError):
         filedatax=twiss(path+"/getbetax.out")
     betxtwiss=filedatax
     QXX=filedatax.Q1
@@ -153,7 +153,7 @@ def main(options):
     
     try:
         filedatay=twiss(path+"/getbetay_free.out")
-    except:
+    except (IOError, ValueError):
         filedatay=twiss(path+"/getbetay.out")    
     
     betytwiss=filedatay
@@ -161,21 +161,21 @@ def main(options):
     filedatayA=twiss(path+"/getampbetay.out")
     try:
         filephasex=twiss(path+"/getphasex_free.out")
-    except:
+    except (IOError, ValueError):
         filephasex=twiss(path+"/getphasex.out")    
     
     try:
-        filephasey=twiss(path+"/getphasey.out")
-    except:
         filephasey=twiss(path+"/getphasey_free.out")
+    except (IOError, ValueError):
+        filephasey=twiss(path+"/getphasey.out")
     try:
         filephasextot=twiss(path+"/getphasetotx_free.out")
-    except:
+    except (IOError, ValueError):
         filephasextot=twiss(path+"/getphasetotx.out")
     
     try:
         filephaseytot=twiss(path+"/getphasetoty_free.out")
-    except:
+    except (IOError, ValueError):
         filephaseytot=twiss(path+"/getphasetoty.out")
             
     ### check if dispersion exist
@@ -185,7 +185,7 @@ def main(options):
         filedy=twiss(path+"/getDy.out")
         disp=1
         print "Disp files OK", filedx.DX[0], filedx.NAME[0]
-    except:
+    except (IOError, ValueError):
         print "no dispersion files... will continue without taking into account dispersion"
         filendx=[]
         filedx=[]
@@ -198,7 +198,7 @@ def main(options):
         filecoupleC=twiss(path+"/getcoupleterms.out")
         coupleswitch=1
         method="driven"
-    except:
+    except (IOError, ValueError):
         print "no coupling file... will continue without taking into account coupling"
         filecouple=[]
         filecoupleC=[]
@@ -211,7 +211,7 @@ def main(options):
         method="_free"
         print "Free coupling found"
     
-    except:
+    except (IOError, ValueError):
         print 
         #method=""
         #%method_label="driven"
@@ -1547,7 +1547,9 @@ def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,mod
         alfa_start = bme.ALFY[bme.indx[first_bpm]]
         err_beta_start = sqrt(bme.ERRBETY[bme.indx[first_bpm]]**2+bme.STDBETY[bme.indx[first_bpm]]**2)
         err_alfa_start = sqrt(bme.ERRALFY[bme.indx[first_bpm]]**2+bme.STDALFY[bme.indx[first_bpm]]**2)
-        delta_phase = (phasey.PHASEY[phasex.indx[name]] - phasex.PHASEY[phasey.indx[first_bpm]]) %1      
+        #TODO: Andy, please check the correct deltaphase.
+#        delta_phase = (phasey.PHASEY[phasex.indx[name]] - phasex.PHASEY[phasey.indx[first_bpm]]) %1      
+        delta_phase = abs(phasex.PHASEX[phasex.indx[name]] - phasex.PHASEX[phasex.indx[first_bpm]]) %1      
         beta_s = bme.BETY[bme.indx[name]]
         alfa_s = bme.ALFY[bme.indx[name]]
 
