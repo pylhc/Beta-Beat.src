@@ -20,8 +20,8 @@ import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 import Utilities.compare
 
-_SHORT_RUN = True # If True, Drive will only run on first dir
-_NO_VALID_RUN = True # If True, will not run valid Drive except if no valid output files are available
+_SHORT_RUN = False # If True, Drive will only run on first dir
+_NO_VALID_RUN = False # If True, will not run valid Drive except if no valid output files are available
 
 _WITH_VALID_RUN = not _NO_VALID_RUN
 

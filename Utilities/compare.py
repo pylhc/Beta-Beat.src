@@ -69,14 +69,16 @@ def equal_strings_with_double_epsilon(str1, str2):
         str1 = float_or_false
         float_or_false = is_float(str2)
         if False == float_or_false:
+            print >> sys.stderr, "One is double, other is string:", str1, ";", str2
             equal = False
         else:
             equal = almost_equal_double(str1, float_or_false)
+            if not equal:
+                print >> sys.stderr, "Doubles not Equal:", str1, ";", str2," Delta:", abs(str1-float_or_false)
     else:
         equal = str1 == str2
-    
-    if not equal:
-        print >> sys.stderr, "Tokens not Equal:", str1, ";", str2
+        if not equal:
+            print >> sys.stderr, "Tokens not Equal:", str1, ";", str2
     
     return equal
     
@@ -88,7 +90,7 @@ def is_float(s):
     except ValueError:
         return False
     
-def almost_equal_double(d1, d2, eps=0.000001):
-    return abs(d1-d2) < abs(d1)*eps
+def almost_equal_double(d1, d2, relative_eps=1e-4):
+    return abs(d1-d2) < abs(d1)*relative_eps
 
     
