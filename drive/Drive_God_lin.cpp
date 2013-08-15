@@ -86,6 +86,9 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 #define LOG_INFO 0 /*set to 1 to enable log prints (tbach) */
 #endif
 
+void get_and_check_file_paths(std::string *, std::string *, std::string *, std::string *,const char *);
+void get_inp_data(std::string);
+void check_inp_data();
 int readDrivingTerms(std::istream&, int*, std::string *);
 void writeSussixInput(std::string, const int, const double, const double, const double);
 bool BPMstatus(const int, const int);
@@ -161,8 +164,6 @@ int main(int argc, char **argv)
     std::ifstream driveInputFile, drivingTermsFile, dataFile;       
     std::string temp_str, dataFilePath, bpmFileName, workingDirectoryPath, sussixInputFilePath, 
     driveInputFilePath, drivingTermsFilePath, noiseFilePath, linxFilePath, linyFilePath, spectrumFilePath;  
-   
-    unsigned int pos;
     
     #ifdef _WIN32 /*Changes minor formatting difference in windows regarding the output of a number in scientific notation.*/
         _set_output_format(_TWO_DIGIT_EXPONENT);
@@ -173,84 +174,18 @@ int main(int argc, char **argv)
     //To output scientific notation 
     std::cout << std::setiosflags (std::ios::scientific);
     
-    /*  Path to DrivingTerms and Drive.inp */
-    
-    workingDirectoryPath = argv[1];
-    
-    std::cout << workingDirectoryPath << std::endl;
-    
-    if(cannotOpenFile(workingDirectoryPath,'i') && OS == "linux"){ //Always fails to open in windows
-        std::cout << "Leaving drive due to error" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    std::cout << "\nWorking directory: " << workingDirectoryPath << std::endl;
-    
-        
-    drivingTermsFilePath = workingDirectoryPath+"/DrivingTerms";
-    driveInputFilePath = workingDirectoryPath+"/Drive.inp";
-    sussixInputFilePath = workingDirectoryPath+"/sussix_v4.inp";  
-
-    //check the input files drivingTermsFilePath and Drive.inp
-    
-    if(cannotOpenFile(drivingTermsFilePath,'i') 
-    || cannotOpenFile(driveInputFilePath,'i') || cannotOpenFile(sussixInputFilePath,'o')){
-        std::cout << "Leaving drive due to error" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    std::cout << "DrivingTerms: " <<  drivingTermsFilePath << std::endl;
-    std::cout << "Drive.inp: " <<  driveInputFilePath << std::endl;
-    std::cout << "sussix_v4.inp: " <<  sussixInputFilePath << std::endl;
+    get_and_check_file_paths(&workingDirectoryPath, &drivingTermsFilePath, &driveInputFilePath, &sussixInputFilePath, argv[1]);
+    std::cout << "READ THIS:" << workingDirectoryPath << std::endl;
 
     /* set all options to defaults, it could happen that they are not included in the file (tbach) */
     InpData.init_input_values();
     
-    /* input/option file reading start */
-    driveInputFile.open(driveInputFilePath.c_str());
+    //Reads input data from Drive.inp into global InpData class
+    get_inp_data(driveInputFilePath);
+
+    //Checks tune_x/y, kcase, kick, labelrun, pickend, and pickend
+    check_inp_data();
     
-    while(!driveInputFile.rdstate()){
-        std::getline (driveInputFile, temp_str);  
-        if((pos = temp_str.find("KICK=")) != std::string::npos) InpData.kick = atoi(temp_str.substr(pos+strlen("KICK=")).c_str())-1;
-        if((pos = temp_str.find("CASE(1[H], 0[V])=")) != std::string::npos) InpData.kcase = atoi(temp_str.substr(pos+strlen("CASE(1[H], 0[V])=")).c_str());
-        if((pos = temp_str.find("KPER(KICK PERCE.)=")) != std::string::npos) InpData.kper = atof(temp_str.substr(pos+strlen("KPER(KICK PERCE.)=")).c_str());
-        if((pos = temp_str.find("TUNE X=")) != std::string::npos) InpData.tunex = atof(temp_str.substr(pos+strlen("TUNE X=")).c_str());
-        if((pos = temp_str.find("TUNE Y=")) != std::string::npos) InpData.tuney = atof(temp_str.substr(pos+strlen("TUNE Y=")).c_str());
-        if((pos = temp_str.find("PICKUP START=")) != std::string::npos) InpData.pickstart = atoi(temp_str.substr(pos+strlen("PICKUP START=")).c_str());
-        if((pos = temp_str.find("PICKUP END=")) != std::string::npos) InpData.pickend = atoi(temp_str.substr(pos+strlen("PICKUP END=")).c_str());
-        if((pos = temp_str.find("ISTUN=")) != std::string::npos) InpData.istun = atof(temp_str.substr(pos+strlen("ISTUN=")).c_str());
-        if((pos = temp_str.find("LABEL RUN (1[yes])=")) != std::string::npos) InpData.labelrun = atoi(temp_str.substr(pos+strlen("LABEL RUN (1[yes])=")).c_str());
-        if((pos = temp_str.find("WINDOWa1=")) != std::string::npos) InpData.windowa1 = atof(temp_str.substr(pos+strlen("WINDOWa1=")).c_str());
-        if((pos = temp_str.find("WINDOWa2=")) != std::string::npos) InpData.windowa2 = atof(temp_str.substr(pos+strlen("WINDOWa2=")).c_str());
-        if((pos = temp_str.find("WINDOWb1=")) != std::string::npos) InpData.windowb1 = atof(temp_str.substr(pos+strlen("WINDOWb1=")).c_str());
-        if((pos = temp_str.find("WINDOWb2=")) != std::string::npos) InpData.windowb2 = atof(temp_str.substr(pos+strlen("WINDOWb2=")).c_str());
-        if((pos = temp_str.find("NATURAL X=")) != std::string::npos) InpData.nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
-        if((pos = temp_str.find("NATURAL Y=")) != std::string::npos) InpData.nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
-     
-    }
-    driveInputFile.close();
-    /* input/option file reading end */
-
-    InpData.check_tune(InpData.tunex,'x');
-    InpData.check_tune(InpData.tuney,'y');
-    
-    if (InpData.kick >= 0)
-        printf("Known kick in turn %d\n", InpData.kick + 1);
-    if (InpData.kcase == 1)
-        printf("Horizontal case\n");
-    else if (InpData.kcase == 0)
-        printf("Vertical case\n");
-    else {
-        fprintf(stderr, "No proper kcase in Drive.inp\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (InpData.labelrun == 1)
-        printf("\n LABELRUN: NOISE FILES WILL BE WRITTEN TO NOISEPATH\n");
-    printf("pickstart: %d, pickend: %d\n", InpData.pickstart, InpData.pickend);
-    if (InpData.pickstart < 0 || InpData.pickstart > InpData.pickend || InpData.pickstart > MAXPICK) {
-        fprintf(stderr, "Bad value for pickstart. Must be >= 0 and < pickend and <= MAXPICK(=%d)\n", MAXPICK);
-        exit(EXIT_FAILURE);
-    }
-
 
     drivingTermsFile.open(drivingTermsFilePath.c_str());
     if(cannotOpenFile(drivingTermsFilePath,'i')){
@@ -616,6 +551,91 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
+void get_inp_data(std::string driveInputFilePath){
+
+    std::string temp_str;
+    std::ifstream driveInputFile;
+    unsigned int pos;
+    
+    driveInputFile.open(driveInputFilePath.c_str());
+    
+    while(!driveInputFile.rdstate()){
+        std::getline (driveInputFile, temp_str);  
+        if((pos = temp_str.find("KICK=")) != std::string::npos) InpData.kick = atoi(temp_str.substr(pos+strlen("KICK=")).c_str())-1;
+        if((pos = temp_str.find("CASE(1[H], 0[V])=")) != std::string::npos) InpData.kcase = atoi(temp_str.substr(pos+strlen("CASE(1[H], 0[V])=")).c_str());
+        if((pos = temp_str.find("KPER(KICK PERCE.)=")) != std::string::npos) InpData.kper = atof(temp_str.substr(pos+strlen("KPER(KICK PERCE.)=")).c_str());
+        if((pos = temp_str.find("TUNE X=")) != std::string::npos) InpData.tunex = atof(temp_str.substr(pos+strlen("TUNE X=")).c_str());
+        if((pos = temp_str.find("TUNE Y=")) != std::string::npos) InpData.tuney = atof(temp_str.substr(pos+strlen("TUNE Y=")).c_str());
+        if((pos = temp_str.find("PICKUP START=")) != std::string::npos) InpData.pickstart = atoi(temp_str.substr(pos+strlen("PICKUP START=")).c_str());
+        if((pos = temp_str.find("PICKUP END=")) != std::string::npos) InpData.pickend = atoi(temp_str.substr(pos+strlen("PICKUP END=")).c_str());
+        if((pos = temp_str.find("ISTUN=")) != std::string::npos) InpData.istun = atof(temp_str.substr(pos+strlen("ISTUN=")).c_str());
+        if((pos = temp_str.find("LABEL RUN (1[yes])=")) != std::string::npos) InpData.labelrun = atoi(temp_str.substr(pos+strlen("LABEL RUN (1[yes])=")).c_str());
+        if((pos = temp_str.find("WINDOWa1=")) != std::string::npos) InpData.windowa1 = atof(temp_str.substr(pos+strlen("WINDOWa1=")).c_str());
+        if((pos = temp_str.find("WINDOWa2=")) != std::string::npos) InpData.windowa2 = atof(temp_str.substr(pos+strlen("WINDOWa2=")).c_str());
+        if((pos = temp_str.find("WINDOWb1=")) != std::string::npos) InpData.windowb1 = atof(temp_str.substr(pos+strlen("WINDOWb1=")).c_str());
+        if((pos = temp_str.find("WINDOWb2=")) != std::string::npos) InpData.windowb2 = atof(temp_str.substr(pos+strlen("WINDOWb2=")).c_str());
+        if((pos = temp_str.find("NATURAL X=")) != std::string::npos) InpData.nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
+        if((pos = temp_str.find("NATURAL Y=")) != std::string::npos) InpData.nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
+     
+    }
+    driveInputFile.close();
+    /* input/option file reading end */
+}
+void get_and_check_file_paths(std::string *workingDirectoryPath, std::string *drivingTermsFilePath, std::string *driveInputFilePath, std::string *sussixInputFilePath, const char * cmdinput){
+    
+    *workingDirectoryPath = cmdinput;
+    
+    std::cout << *workingDirectoryPath << std::endl;
+    
+    if(cannotOpenFile(*workingDirectoryPath,'i') && OS == "linux"){ //Always fails to open in windows
+        std::cout << "Leaving drive due to error" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    std::cout << "\nWorking directory: " << *workingDirectoryPath << std::endl;
+    
+        
+    *drivingTermsFilePath = *workingDirectoryPath+"/DrivingTerms";
+    *driveInputFilePath = *workingDirectoryPath+"/Drive.inp";
+    *sussixInputFilePath = *workingDirectoryPath+"/sussix_v4.inp";  
+
+    //check the input files drivingTermsFilePath and Drive.inp
+    
+    if(cannotOpenFile(*drivingTermsFilePath,'i') 
+    || cannotOpenFile(*driveInputFilePath,'i') || cannotOpenFile(*sussixInputFilePath,'o')){
+        std::cout << "Leaving drive due to error" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    std::cout << "DrivingTerms: " <<  *drivingTermsFilePath << std::endl;
+    std::cout << "Drive.inp: " <<  *driveInputFilePath << std::endl;
+    std::cout << "sussix_v4.inp: " <<  *sussixInputFilePath << std::endl;
+
+}
+
+ void check_inp_data(){
+ 
+    InpData.check_tune(InpData.tunex,'x');
+    InpData.check_tune(InpData.tuney,'y');
+    
+    if (InpData.kick >= 0)
+        printf("Known kick in turn %d\n", InpData.kick + 1);
+    if (InpData.kcase == 1)
+        printf("Horizontal case\n");
+    else if (InpData.kcase == 0)
+        printf("Vertical case\n");
+    else {
+        fprintf(stderr, "No proper kcase in Drive.inp\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (InpData.labelrun == 1)
+        printf("\n LABELRUN: NOISE FILES WILL BE WRITTEN TO NOISEPATH\n");
+        
+    printf("pickstart: %d, pickend: %d\n", InpData.pickstart, InpData.pickend);
+    if (InpData.pickstart < 0 || InpData.pickstart > InpData.pickend || InpData.pickstart > MAXPICK) {
+        fprintf(stderr, "Bad value for pickstart. Must be >= 0 and < pickend and <= MAXPICK(=%d)\n", MAXPICK);
+        exit(EXIT_FAILURE);
+    }
+}
 /* *****************  */
 /*    readDrivingTerms*/
 /* *****************  */
