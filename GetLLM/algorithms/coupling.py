@@ -80,9 +80,8 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
         
         elif getllm_d.num_beams_for_coupling == 2:
             if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
-                #TODO: check parameter. Q is missing
-                [phasexp, tune_d.q1, tune_d.mux, bpmsx] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, 'H')
-                [phaseyp, tune_d.q2, tune_d.muy, bpmsy] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, 'V')
+                [phasexp, tune_d.q1, tune_d.mux, bpmsx] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, None, 'H')
+                [phaseyp, tune_d.q2, tune_d.muy, bpmsy] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, None, 'V')
                 [fwqw, bpms] = GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
             else:
                 [fwqw, bpms] = GetCoupling2(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, phase_d.ph_x, phase_d.ph_y, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)

@@ -480,6 +480,11 @@ def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, 
 
 
 def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
+    """
+    Calculates phase.
+    tune_q will be used to fix the phase shift in LHC.
+    For other accelerators use 'None'.
+    """
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
     length_commonbpms = len(commonbpms)
@@ -562,19 +567,20 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                 tunemi.append(src_twiss.TUNEY[src_twiss.indx[bn1]])
             
             #-- To fix the phase shift by tune_q in LHC
-            try:
-                if mad_twiss.S[mad_twiss.indx[bn1]] <= s_lastbpm:
-                    if mad_twiss.S[mad_twiss.indx[bn2]] > s_lastbpm: 
-                        p_m_12 += getllm_d.beam_direction*tune_q
-                    if mad_twiss.S[mad_twiss.indx[bn3]] > s_lastbpm: 
-                        p_m_13 += getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]] > s_lastbpm:
-                    if mad_twiss.S[mad_twiss.indx[bn2]] <= s_lastbpm: 
-                        p_m_12 += -getllm_d.beam_direction*tune_q
-                    if mad_twiss.S[mad_twiss.indx[bn3]] <= s_lastbpm: 
-                        p_m_13 += -getllm_d.beam_direction*tune_q
-            except UnboundLocalError: 
-                pass # s_lastbpm is not always defined
+            if tune_q is not None:
+                try:
+                    if mad_twiss.S[mad_twiss.indx[bn1]] <= s_lastbpm:
+                        if mad_twiss.S[mad_twiss.indx[bn2]] > s_lastbpm: 
+                            p_m_12 += getllm_d.beam_direction*tune_q
+                        if mad_twiss.S[mad_twiss.indx[bn3]] > s_lastbpm: 
+                            p_m_13 += getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]] > s_lastbpm:
+                        if mad_twiss.S[mad_twiss.indx[bn2]] <= s_lastbpm: 
+                            p_m_12 += -getllm_d.beam_direction*tune_q
+                        if mad_twiss.S[mad_twiss.indx[bn3]] <= s_lastbpm: 
+                            p_m_13 += -getllm_d.beam_direction*tune_q
+                except UnboundLocalError: 
+                    pass # s_lastbpm is not always defined
             
             if p_m_12<0: 
                 p_m_12+=1
@@ -663,20 +669,22 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                 phm16=(src_twiss.MUY[src_twiss.indx[bn6]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM6
                 phm17=(src_twiss.MUY[src_twiss.indx[bn7]]-src_twiss.MUY[src_twiss.indx[bn1]]) # the phase advance between BPM1 and BPM7
             #-- To fix the phase shift by tune_q in LHC
-            try:
-                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]] >s_lastbpm: p_m_12+= getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]] >s_lastbpm: p_m_13+= getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn4]] >s_lastbpm: phm14+= getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn5]] >s_lastbpm: phm15+= getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn6]] >s_lastbpm: phm16+= getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn7]] >s_lastbpm: phm17+= getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]]<=s_lastbpm: p_m_12+=-getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]]<=s_lastbpm: p_m_13+=-getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn4]]<=s_lastbpm: phm14+=-getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn5]]<=s_lastbpm: phm15+=-getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn6]]<=s_lastbpm: phm16+=-getllm_d.beam_direction*tune_q
-                if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn7]]<=s_lastbpm: phm17+=-getllm_d.beam_direction*tune_q
-            except: pass
+            if tune_q is not None:
+                try:
+                    if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]] >s_lastbpm: p_m_12+= getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]] >s_lastbpm: p_m_13+= getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn4]] >s_lastbpm: phm14+= getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn5]] >s_lastbpm: phm15+= getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn6]] >s_lastbpm: phm16+= getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]]<=s_lastbpm and mad_twiss.S[mad_twiss.indx[bn7]] >s_lastbpm: phm17+= getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn2]]<=s_lastbpm: p_m_12+=-getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn3]]<=s_lastbpm: p_m_13+=-getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn4]]<=s_lastbpm: phm14+=-getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn5]]<=s_lastbpm: phm15+=-getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn6]]<=s_lastbpm: phm16+=-getllm_d.beam_direction*tune_q
+                    if mad_twiss.S[mad_twiss.indx[bn1]] >s_lastbpm and mad_twiss.S[mad_twiss.indx[bn7]]<=s_lastbpm: phm17+=-getllm_d.beam_direction*tune_q
+                except: 
+                    pass
             if p_m_12<0: p_m_12+=1
             if p_m_13<0: p_m_13+=1
             if phm14<0: phm14+=1
