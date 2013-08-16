@@ -1,0 +1,1 @@
+--accel LHCB1 --start BPM.10L2.B1,BPM.14R2.B1,IP2 --cuts 10
