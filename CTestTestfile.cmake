@@ -24,4 +24,5 @@ include(${CTEST_SOURCE_DIRECTORY}CTestSetup.cmake)
 
 subdirs(GetLLM/test)
 subdirs(drive/test)
+subdirs(SegmentBySegment/test)
 subdirs(tests)
