@@ -12,7 +12,7 @@ import os
 import sys
 import subprocess
 
-CURRENT_PATH = os.path.dirname(__file__)
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 # Path 'x/Beta-Beat.src/SegmentBySegment/test'
 
 import __init__ # @UnusedImport init will include paths
@@ -26,7 +26,7 @@ _NO_VALID_RUN = False # If True, will not run valid SBS except if no valid outpu
 _WITH_VALID_RUN = not _NO_VALID_RUN
 
 
-__ARGUMENTS_FILE_NAME = "arguments.txt" # This file is located in the input run dirs. Stores arguments for sbs
+_TestOutput__ARGUMENTS_FILE_NAME = "arguments.txt" # This file is located in the input run dirs. Stores arguments for sbs
 
 class TestOutput(unittest.TestCase):
     
@@ -51,15 +51,18 @@ class TestOutput(unittest.TestCase):
 
 
     def testOutput(self):
-        print "Start TestOutput of drive"
+        print "Start TestOutput of SBS"
         run_dir_names = Utilities.iotools.get_all_dir_names_in_dir(TestOutput.path_to_input)
-        for index, dir_name in enumerate(run_dir_names):
+        #TODO: debug remove 
+        print TestOutput.path_to_input
+        print run_dir_names
+        for dir_name in run_dir_names:
             self._run_valid_file_if_desired(dir_name)
             self._run_modified_file(dir_name)
             self._compare_output_dir(dir_name)
             if self._break_after_first_run():
                 break
-        print "End TestOutput of drive"
+        print "End TestOutput of SBS"
     
     #===============================================================================================
     # helper
@@ -120,7 +123,7 @@ class TestOutput(unittest.TestCase):
         args_dict["--path"] = path_to_run_input
         args_dict["--save"] = path_to_run_output
         args_dict["--twiss"] = os.path.join(path_to_run_input, "model", "twiss_elements.dat")
-        # model is preassumed to be in subdir model of the run directory
+        # model is presumed to be in subdir model of the run directory
         
         args_list = []
         for key in args_dict:
@@ -133,8 +136,8 @@ class TestOutput(unittest.TestCase):
 
     def _get_args_from_file_in_run_dir(self, path_to_run_input):
         """ Reads the arguments from file __ARGUMENTS_FILE_NAME """
-        arg_file = open(os.path.join(path_to_run_input, __ARGUMENTS_FILE_NAME))
-        arg_line = arg_file.readline() # Arguments are preassumed to be in first line
+        arg_file = open(os.path.join(path_to_run_input, _TestOutput__ARGUMENTS_FILE_NAME))
+        arg_line = arg_file.readline() # Arguments are presumed to be in first line
         arg_file.close()
         return arg_line
     
@@ -145,6 +148,7 @@ class TestOutput(unittest.TestCase):
     
     def _run_sbs(self, path_to_sbs, arguments_list):
         call_command = os.path.abspath(path_to_sbs) + " " + " ".join(arguments_list)
+        call_command = sys.executable+" "+call_command
         
         #TODO: Debug remove
         print call_command
