@@ -12,6 +12,7 @@ The binaries of ndiff are stored in Beta-Beat.src/binaries/ndiff .
 import sys
 import os
 import subprocess
+import re
 
 import Utilities.iotools
 
@@ -20,7 +21,7 @@ IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
 
 
 
-def compare_dirs_with_given_file_endings(dir1, dir2, file_endings_to_compare=None):
+def compare_dirs_with_files_mathing_regex_list(dir1, dir2, regex_list=None):
     """
     Compares also subdirectories recursively
     :Parameters:
@@ -28,9 +29,11 @@ def compare_dirs_with_given_file_endings(dir1, dir2, file_endings_to_compare=Non
             Path to directory a
         'dir2': string
             Path to directory b
-        'file_endings_to_compare': list
+        'regex_list': list
+            List of regular expression patterns. Only files which matches a pattern in the list will be compared.
+            See also http://docs.python.org/2.6/library/re.html
             If list is empty, every file will be compared
-            Example: ["gitignore", "out"]
+            Example: ["^.*gitignore$", "^.*out$"]
                 
         :Return: boolean
             Returns True if dirs are equal, otherwise false
@@ -39,33 +42,31 @@ def compare_dirs_with_given_file_endings(dir1, dir2, file_endings_to_compare=Non
     if Utilities.iotools.no_dirs_exist(dir1, dir2):
         print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."
         return False
-    if file_endings_to_compare is None:
-        file_endings_to_compare = []
+    if regex_list is None:
+        regex_list = []
         
     dir1_items = sorted(os.listdir(dir1))
-    dir2_items = sorted(os.listdir(dir2))
     
-    if dir1_items != dir2_items:
-        print >> sys.stderr, "Items in dirs are not equal:\n",dir1_items, "\n", dir2_items
-        return False
-
     for item in dir1_items:
         item1 = os.path.join(dir1, item)
         item2 = os.path.join(dir2, item)
         if os.path.isdir(item1):
-            if not compare_dirs_with_given_file_endings(item1, item2, file_endings_to_compare):
+            if not compare_dirs_with_files_mathing_regex_list(item1, item2, regex_list):
                 return False
         else:
-            if empty_list_or_ending_matches_list(item1, file_endings_to_compare):
+            if empty_list_or_str_matches_regex_list(item1, regex_list):
                 if not compare_tfs_files_and_ignore_header(item1, item2):
                     return False
     return True
 
-def empty_list_or_ending_matches_list(file_str, file_endings_list):
-    if 0 == len(file_endings_list):
+def empty_list_or_str_matches_regex_list(file_str, regex_list):
+    if 0 == len(regex_list):
         return True
-    ending = (file_str.split("."))[-1]
-    return ending in file_endings_list
+    for re_pattern in regex_list:
+        match = re.match(re_pattern, file_str)
+        if not match is None:
+            return True
+    return False
 
 def compare_tfs_files_and_ignore_header(file_a, file_b):
     """
