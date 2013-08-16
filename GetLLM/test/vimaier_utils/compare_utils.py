@@ -10,6 +10,7 @@ import string
 
 
 import metaclass
+import Utilities.ndiff
 
 #===================================================================================================
 # helper-functions
@@ -103,55 +104,55 @@ def is_whitespace(single_char):
 
 def compare_tfs_files(name_valid, name_to_check):
     """ Compares both files. Whitespace does not matter.
-        Returns an error message or in success an empty string.
+        Returns True in success.
     """
     if name_valid.endswith(".gitignore"):
-        return ""
+        return True
     
     if __file_not_valid(name_valid):
-        return ""
+        return True
     
-    file_valid = open(name_valid)
-    try:
-        file_to_check = open(name_to_check)
-    except IOError:
-        return "Cannot open %s" % name_to_check
-    
-    
-    valid_lines = file_valid.readlines()
-    to_check_lines = file_to_check.readlines()
-    
-    i_to_check = 0
-    for valid_line in valid_lines:
-        
-        # Exclude descriptors GetLLMVersion, MAD_FILE, FILES, DATE and Command from comparison
-        if __is_a_line_to_skip(valid_line):
-            continue
-        while __is_a_line_to_skip(to_check_lines[i_to_check]):
-            i_to_check += 1
-        check_line = to_check_lines[i_to_check]
-            
-        if valid_line.startswith("@"):
-            split_valid = parse_descriptor_line(valid_line)
-        else:            
-            split_valid = valid_line.split()
-        
-        if check_line.startswith("@"):
-            split_to_check = parse_descriptor_line(check_line)
-        else:
-            split_to_check = check_line.split()
-
-        if len(split_valid) != len(split_to_check):
-            return "Column numbers not equal:\n"+valid_line+check_line
-        
-        for i in xrange(len(split_valid)):
-            if split_valid[i] != split_to_check[i]:
-                err_msg = "Entry in column number["+str(i)+"]not equal:\n"+valid_line+check_line
-                err_msg += str(split_valid[i]) +" != "+ str(split_to_check[i])
-                return err_msg
-        i_to_check += 1
-    
-    return ""
+    return Utilities.ndiff.compare_tfs_files_and_ignore_header(name_valid, name_to_check )
+#     file_valid = open(name_valid)
+#     try:
+#         file_to_check = open(name_to_check)
+#     except IOError:
+#         return "Cannot open %s" % name_to_check
+#     
+#     valid_lines = file_valid.readlines()
+#     to_check_lines = file_to_check.readlines()
+#     
+#     i_to_check = 0
+#     for valid_line in valid_lines:
+#         
+#         # Exclude descriptors GetLLMVersion, MAD_FILE, FILES, DATE and Command from comparison
+#         if __is_a_line_to_skip(valid_line):
+#             continue
+#         while __is_a_line_to_skip(to_check_lines[i_to_check]):
+#             i_to_check += 1
+#         check_line = to_check_lines[i_to_check]
+#             
+#         if valid_line.startswith("@"):
+#             split_valid = parse_descriptor_line(valid_line)
+#         else:            
+#             split_valid = valid_line.split()
+#         
+#         if check_line.startswith("@"):
+#             split_to_check = parse_descriptor_line(check_line)
+#         else:
+#             split_to_check = check_line.split()
+# 
+#         if len(split_valid) != len(split_to_check):
+#             return "Column numbers not equal:\n"+valid_line+check_line
+#         
+#         for i in xrange(len(split_valid)):
+#             if split_valid[i] != split_to_check[i]:
+#                 err_msg = "Entry in column number["+str(i)+"]not equal:\n"+valid_line+check_line
+#                 err_msg += str(split_valid[i]) +" != "+ str(split_to_check[i])
+#                 return err_msg
+#         i_to_check += 1
+#     
+#     return ""
 
 
 def __is_a_line_to_skip(line):

@@ -197,8 +197,8 @@ class TestFileOutputGetLLM(unittest.TestCase):
         :Return: boolean
             True if the test run successfully otherwise False.     
         """
-        valid_output_path = run_validator.get_valid_output_path()
-        to_check_output_path = run_validator.get_to_check_output_path()
+        valid_output_path = os.path.abspath(run_validator.get_valid_output_path())
+        to_check_output_path = os.path.abspath(run_validator.get_to_check_output_path())
         
         # Create separate output folder if wanted
         if "" != SPECIAL_OUTPUT:
@@ -275,11 +275,13 @@ class TestFileOutputGetLLM(unittest.TestCase):
         num_equal_files = 0
         num_overall_files = len(valid_filenames)
         for name in valid_filenames:
-            err_msg = vimaier_utils.compare_utils.compare_tfs_files(os.path.join(valid_output_path, name), 
-                                                                   os.path.join(to_check_output_path, name) )
-            if "" != err_msg:
-                print name, "are not equal:", err_msg
-            else:
+#             err_msg = vimaier_utils.compare_utils.compare_tfs_files(os.path.join(valid_output_path, name), 
+#                                                                    os.path.join(to_check_output_path, name) )
+#             if "" != err_msg:
+#                 print name, "are not equal:", err_msg
+            succesful = vimaier_utils.compare_utils.compare_tfs_files(os.path.join(valid_output_path, name), 
+                                                                          os.path.join(to_check_output_path, name) )
+            if succesful:
                 num_equal_files += 1
         
         
@@ -287,10 +289,10 @@ class TestFileOutputGetLLM(unittest.TestCase):
         
         if num_equal_files == num_overall_files:
             # Delete created special folders if files are equal
-#             if "" != SPECIAL_OUTPUT:
-#                 path_to_created_folder = os.path.join(SPECIAL_OUTPUT, run_validator.get_run_dir_name())
-#                 print "Deleting output folder: ", path_to_created_folder,"\n"
-#                 shutil.rmtree(path_to_created_folder)
+            if "" != SPECIAL_OUTPUT:
+                path_to_created_folder = os.path.join(SPECIAL_OUTPUT, run_validator.get_run_dir_name())
+                print "Deleting output folder: ", path_to_created_folder,"\n"
+                shutil.rmtree(path_to_created_folder)
             return True
         else:
             return False
