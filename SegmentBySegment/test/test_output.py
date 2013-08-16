@@ -169,22 +169,19 @@ class TestOutput(unittest.TestCase):
 
     def _compare_output_dir(self, dir_name):
         print "  Comparing output files"
-        #TODO: change so that only one dir will be compared
-        for index, directory in enumerate(os.listdir(self.path_to_valid)):
-            if self._break_after_first_run(index):
-                break
-            valid_dir = os.path.join(self.path_to_valid, directory)
-            to_check_dir = os.path.join(self.path_to_to_check, directory)
+        valid_dir = os.path.join(self.path_to_valid, dir_name)
+        to_check_dir = os.path.join(self.path_to_to_check, dir_name)
 #            self._compare_dir_with_filecmp(valid_dir, to_check_dir)
 #             self._compare_dir_almost_equal_doubles(valid_dir, to_check_dir)
-            self._compare_dirs_with_ndiff(valid_dir, to_check_dir)
+        self._compare_dirs_with_ndiff(valid_dir, to_check_dir)
         TestOutput.successful = True
         
         
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
-        file_endings_for_comparing = ["linx", "liny", "x", "y"] # Relevant output files of drive
+         # Relevant output files of drive
+         #TODO: change to compare not "compare_tfs_files"
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_given_file_endings(valid_dir, to_check_dir, file_endings_for_comparing),
+                        Utilities.ndiff.compare_dirs_with_given_file_endings(valid_dir, to_check_dir),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
                         )
         
