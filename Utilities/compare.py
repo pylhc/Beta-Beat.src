@@ -36,7 +36,13 @@ def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=[]):
         else:
             if not item in except_files:
                 if not equal_files_with_double_epsilon_comparing(open(item1), open(item2)):
+                    item1.close()
+                    item2.close()
                     return False
+                else:
+                    item1.close()
+                    item2.close()
+                
     return True
     
     
