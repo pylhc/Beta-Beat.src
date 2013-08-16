@@ -12,7 +12,7 @@ import os
 import sys
 import subprocess
 
-CURRENT_PATH = os.path.dirname(__file__)
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 # Path 'x/Beta-Beat.src/SegmentBySegment/test'
 
 import __init__ # @UnusedImport init will include paths
@@ -51,15 +51,17 @@ class TestOutput(unittest.TestCase):
 
 
     def testOutput(self):
-        print "Start TestOutput of drive"
+        print "Start TestOutput of SBS"
         run_dir_names = Utilities.iotools.get_all_dir_names_in_dir(TestOutput.path_to_input)
-        for index, dir_name in enumerate(run_dir_names):
+        #TODO: debug remove 
+        print run_dir_names
+        for dir_name in run_dir_names:
             self._run_valid_file_if_desired(dir_name)
             self._run_modified_file(dir_name)
             self._compare_output_dir(dir_name)
             if self._break_after_first_run():
                 break
-        print "End TestOutput of drive"
+        print "End TestOutput of SBS"
     
     #===============================================================================================
     # helper
@@ -178,10 +180,10 @@ class TestOutput(unittest.TestCase):
         
         
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
-         # Relevant output files of drive
-         #TODO: change to compare not "compare_tfs_files"
+        #TODO: change to compare not "compare_tfs_files"
+        regex_to_exclude_files = ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ]
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_given_file_endings(valid_dir, to_check_dir),
+                        Utilities.ndiff.compare_dirs_with_files_mathing_regex_list(valid_dir, to_check_dir, regex_to_exclude_files),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
                         )
         

@@ -193,9 +193,9 @@ class TestOutput(unittest.TestCase):
     
     
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
-        file_endings_for_comparing = ["linx", "liny", "x", "y"] # Relevant output files of drive
+        regex_list = ["^.*\.lin(x|y)$", "^.*\.(x|y)$"] # *.linx; *.liny; *.x; *.y  ==> Output of drive
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_given_file_endings(valid_dir, to_check_dir, file_endings_for_comparing),
+                        Utilities.ndiff.compare_dirs_with_files_mathing_regex_list(valid_dir, to_check_dir, regex_list),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
                         )
         
