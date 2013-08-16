@@ -1,8 +1,8 @@
 # Define numdiff binary path..
 if(WIN32)
-   set(NUMDIFF "${CTEST_SOURCE_DIR}/binaries/windows/numdiff-win32.exe")
+   set(NUMDIFF "${CTEST_SOURCE_DIR}/binaries/ndiff/windows/numdiff-win32.exe")
 else() # assume linux, could also be osx..
-   set(NUMDIFF "${CTEST_SOURCE_DIR}/binaries/linux/numdiff-linux64")
+   set(NUMDIFF "${CTEST_SOURCE_DIR}/binaries/ndiff/linux/numdiff-linux64")
 endif()
 
 # Find Mad-X:
