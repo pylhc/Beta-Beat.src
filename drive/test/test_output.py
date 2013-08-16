@@ -18,7 +18,7 @@ CURRENT_PATH = os.path.dirname(__file__)
 
 import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
-import Utilities.compare
+import Utilities.ndiff
 
 _SHORT_RUN = False # If True, Drive will only run on first dir
 _NO_VALID_RUN = False # If True, will not run valid Drive except if no valid output files are available
