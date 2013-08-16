@@ -1550,7 +1550,7 @@ def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,mod
         err_alfa_start = sqrt(bme.ERRALFY[bme.indx[first_bpm]]**2+bme.STDALFY[bme.indx[first_bpm]]**2)
         #TODO: Andy, please check the correct deltaphase.
 #        delta_phase = (phasey.PHASEY[phasex.indx[name]] - phasex.PHASEY[phasey.indx[first_bpm]]) %1   
-        delta_phase = abs(phasex.PHASEY[phasey.indx[name]] - phasey.PHASEY[phasey.indx[first_bpm]]) %1    
+        delta_phase = abs(phasey.PHASEY[phasey.indx[name]] - phasey.PHASEY[phasey.indx[first_bpm]]) %1    
         beta_s = bme.BETY[bme.indx[name]]
         alfa_s = bme.ALFY[bme.indx[name]]
 
