@@ -18,6 +18,55 @@ import Utilities.iotools
 DEFAULT_CFG = "default.cfg"
 IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
 
+
+
+def compare_dirs_with_given_file_endings(dir1, dir2, file_endings_to_compare=None):
+    """
+    Compares also subdirectories recursively
+    :Parameters:
+        'dir1': string
+            Path to directory a
+        'dir2': string
+            Path to directory b
+        'file_endings_to_compare': list
+            If list is empty, every file will be compared
+            Example: ["gitignore", "out"]
+                
+        :Return: boolean
+            Returns True if dirs are equal, otherwise false
+            (exit_code, std_stream, err_stream)
+    """
+    if Utilities.iotools.no_dirs_exist(dir1, dir2):
+        print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."
+        return False
+    if file_endings_to_compare is None:
+        file_endings_to_compare = []
+        
+    dir1_items = sorted(os.listdir(dir1))
+    dir2_items = sorted(os.listdir(dir2))
+    
+    if dir1_items != dir2_items:
+        print >> sys.stderr, "Items in dirs are not equal:\n",dir1_items, "\n", dir2_items
+        return False
+
+    for item in dir1_items:
+        item1 = os.path.join(dir1, item)
+        item2 = os.path.join(dir2, item)
+        if os.path.isdir(item1):
+            if not compare_dirs_with_given_file_endings(item1, item2, file_endings_to_compare):
+                return False
+        else:
+            if empty_list_or_ending_matches_list(item1, file_endings_to_compare):
+                if not compare_tfs_files_and_ignore_header(item1, item2):
+                    return False
+    return True
+
+def empty_list_or_ending_matches_list(file_str, file_endings_list):
+    if 0 == len(file_endings_list):
+        return True
+    ending = (file_str.split("."))[-1]
+    return ending in file_endings_list
+
 def compare_tfs_files_and_ignore_header(file_a, file_b):
     """
     Returns true, if files are equal based on the ignore_tfs_header.cfg file.

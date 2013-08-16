@@ -172,7 +172,8 @@ class TestOutput(unittest.TestCase):
             valid_dir = os.path.join(self.path_to_valid, directory)
             to_check_dir = os.path.join(self.path_to_to_check, directory)
 #            self._compare_dir_with_filecmp(valid_dir, to_check_dir)
-            self._compare_dir_almost_equal_doubles(valid_dir, to_check_dir)
+#             self._compare_dir_almost_equal_doubles(valid_dir, to_check_dir)
+            self._compare_dirs_with_ndiff(valid_dir, to_check_dir)
         TestOutput.successful = True
         
         
@@ -187,6 +188,14 @@ class TestOutput(unittest.TestCase):
     def _compare_dir_almost_equal_doubles(self, valid_dir, to_check_dir):
         self.assertTrue(
                         Utilities.compare.equal_dirs_with_double_epsilon_comparing(valid_dir, to_check_dir, except_files=self._copied_files),
+                        "Directories not equal: "+valid_dir+" and "+to_check_dir
+                        )
+    
+    
+    def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
+        file_endings_for_comparing = ["linx", "liny", "x", "y"] # Relevant output files of drive
+        self.assertTrue(
+                        Utilities.ndiff.compare_dirs_with_given_file_endings(valid_dir, to_check_dir, file_endings_for_comparing),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
                         )
         
