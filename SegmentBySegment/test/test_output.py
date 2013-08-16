@@ -147,10 +147,7 @@ class TestOutput(unittest.TestCase):
     def _run_sbs(self, path_to_sbs, arguments_list):
         call_command = os.path.abspath(path_to_sbs) + " " + " ".join(arguments_list)
         call_command = sys.executable+" "+call_command
-        
-        #TODO: Debug remove
-        print call_command
-        
+
         process = subprocess.Popen(call_command,
                            stdout=subprocess.PIPE, 
                            stderr=subprocess.PIPE,
@@ -181,7 +178,7 @@ class TestOutput(unittest.TestCase):
         
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
         #TODO: change to compare not "compare_tfs_files"
-        regex_to_exclude_files = ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ]
+        regex_to_exclude_files = ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing since they will not be produced by old script
         self.assertTrue(
                         Utilities.ndiff.compare_dirs_with_files_mathing_regex_list(valid_dir, to_check_dir, regex_to_exclude_files),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
