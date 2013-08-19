@@ -79,7 +79,7 @@ def compare_tfs_files_and_ignore_header(file_a, file_b):
     (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, tfs_ignore_header_cfg, 
                                                     ignore_whitespace_option)
     
-    if 0 == exit_code and ndiff_files_were_equal(std_stream):
+    if 0 == exit_code and ndiff_files_were_equal(err_stream):
         return True
     else:
         print std_stream
@@ -166,4 +166,4 @@ def get_path_to_root_of_ndiff():
     
 def ndiff_files_were_equal(ndiff_output_string):
     """ Returns True if ndiff_output_string did not print a warning. """
-    return "gwarn" not in ndiff_output_string
+    return "warng" not in ndiff_output_string
