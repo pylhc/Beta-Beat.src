@@ -2931,11 +2931,15 @@ def getkick(files,MADTwiss):
     invarianceJx=[]
     invarianceJy=[]
 
-    tunex=[]
-    tuney=[]
+    tunex = []
+    tuney = []
+    tunexRMS = []
+    tuneyRMS = []
 
-    tunexRMS=[]
-    tuneyRMS=[]
+    nat_tunex = []
+    nat_tuney = []
+    nat_tunexRMS = []
+    nat_tuneyRMS = []
 
     dpp=[]
 
@@ -2943,33 +2947,33 @@ def getkick(files,MADTwiss):
 
         # finding the invariances
     for j in range(0,len(files[0])):
-        x=files[0][j]
-        y=files[1][j]
+        tw_x=files[0][j]
+        tw_y=files[1][j]
 
 
-        [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,[x],'H')
+        [beta,rmsbb,bpms,invariantJx]=BetaFromAmplitude(MADTwiss,[tw_x],'H')
 
-        [beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,[y],'V')
+        [beta,rmsbb,bpms,invariantJy]=BetaFromAmplitude(MADTwiss,[tw_y],'V')
 
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
 
         try:
-            dpp.append(x.DPP)
+            dpp.append(tw_x.DPP)
         except:
             dpp.append(0.0)
-        tunex.append(x.Q1)
-        tuney.append(y.Q2)
-        tunexRMS.append(x.Q1RMS)
-        tuneyRMS.append(y.Q2RMS)
+        tunex.append(getattr(tw_x, "Q1", 0.0))
+        tuney.append(getattr(tw_y, "Q2", 0.0))
+        tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
+        tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
+        
+        nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
+        nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
+        nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
+        nat_tuneyRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
 
-
-
-
-    tune=[tunex,tuney]
-    tuneRMS=[tunexRMS,tuneyRMS]
-
-    return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
+    tune_values_list = [tunex, tunexRMS, tuney, tuneyRMS, nat_tunex, nat_tunexRMS, nat_tuney, nat_tuneyRMS]
+    return [invarianceJx,invarianceJy, tune_values_list,dpp]
 
 def BPMfinder(IP,model,measured):
 
@@ -6176,16 +6180,22 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         # Removed last eight columns in newer version(vimaier)
 #         fkick.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
 #         fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
-    fkick.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD\n')
-    fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
-    [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkick(files,MADTwiss)
+    [invarianceJx,invarianceJy, tunes,dpp]=getkick(files,MADTwiss)
+    
+    column_names_list = ["DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
+    column_types_list = ["%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
+    fkick.write('* '+ " ".join(column_names_list))
+    fkick.write('$ '+ " ".join(column_types_list))
+    
 
     for i in range(0,len(dpp)):
             # Removed last eight columns in newer version(vimaier)
 #             fkickac.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
-            fkick.write(str(dpp[i])+' '+str(tune[0][i])+' '+
-                          str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+
+            tunes_str = ""
+            for float_tune in [tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i]]:
+                tunes_str = str(float_tune)+ " "
+            fkick.write(str(dpp[i])+' '+ tunes_str +
                           str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+
                           str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '
                           +str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '
@@ -6200,13 +6210,16 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
         fkickac.write('@ RescalingFactor_for_X %le '+str(betaxf_ratio)+'\n')
         fkickac.write('@ RescalingFactor_for_Y %le '+str(betayf_ratio)+'\n')
-        fkickac.write('*  DPP  QX  QXRMS  QY  QYRMS  sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
-        fkickac.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
+        fkickac.write('*  DPP  QX  QXRMS  QY  QYRMS NATQX NATQXRMS NATQY NATQYRMS sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
+        fkickac.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
         [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkickac(MADTwiss_ac,files,Q1,Q2,Q1f,Q2f,acphasex_ac2bpmac,acphasey_ac2bpmac,bd,lhcphase)
 
         for i in range(0,len(dpp)):
-            fkickac.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
+            tunes_str = ""
+            for float_tune in [tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i]]:
+                tunes_str = str(float_tune)+ " "
+            fkickac.write(str(dpp[i])+' '+tunes_str+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
 
         fkickac.close()
 

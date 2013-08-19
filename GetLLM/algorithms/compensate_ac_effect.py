@@ -635,36 +635,45 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
 def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
-    invarianceJx=[]
-    invarianceJy=[]
-    tunex       =[]
-    tuney       =[]
-    tunexRMS    =[]
-    tuneyRMS    =[]
-    dpp=[]
+    invarianceJx = []
+    invarianceJy = []
+    
+    tunex = []
+    tuney = []
+    tunexRMS = []
+    tuneyRMS = []
+
+    nat_tunex = []
+    nat_tuney = []
+    nat_tunexRMS = []
+    nat_tuneyRMS = []
+
+    dpp = []
 
     for j in range(len(files[0])):
 
-        x=files[0][j]
-        y=files[1][j]
+        tw_x = files[0][j]
+        tw_y = files[1][j]
         # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJx = ( get_free_beta_from_amp_eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
+        invariantJx = ( get_free_beta_from_amp_eq(MADTwiss_ac,[tw_x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
         # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJy = ( get_free_beta_from_amp_eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
+        invariantJy = ( get_free_beta_from_amp_eq(MADTwiss_ac,[tw_y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
-        try:
-            dpp.append(x.DPP)
-        except:
-            dpp.append(0.0)
-        tunex.append(x.Q1)
-        tuney.append(y.Q2)
-        tunexRMS.append(x.Q1RMS)
-        tuneyRMS.append(y.Q2RMS)
+        
+        dpp.append(getattr(tw_x, "DPP", 0.0))
 
-    tune   =[tunex,tuney]
-    tuneRMS=[tunexRMS,tuneyRMS]
-
-    return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
+        tunex.append(getattr(tw_x, "Q1", 0.0))
+        tuney.append(getattr(tw_y, "Q2", 0.0))
+        tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
+        tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
+        
+        nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
+        nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
+        nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
+        nat_tuneyRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
+        
+    tune_values_list = [tunex, tunexRMS, tuney, tuneyRMS, nat_tunex, nat_tunexRMS, nat_tuney, nat_tuneyRMS]
+    return [invarianceJx, invarianceJy, tune_values_list, dpp]
 
 ######### end ac-dipole stuff

@@ -677,25 +677,29 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
         mean_2jx[source] = []
         mean_2jy[source] = []
 
-    tunex=[]
-    tuney=[]
+    tunex = []
+    tuney = []
+    tunexRMS = []
+    tuneyRMS = []
 
-    tunexRMS=[]
-    tuneyRMS=[]
+    nat_tunex = []
+    nat_tuney = []
+    nat_tunexRMS = []
+    nat_tuneyRMS = []
 
     dpp=[]
     #thresholds for rejecting, input by user
-    bbthreshold = float(bbthreshold);
-    errthreshold = float(errthreshold);
+    bbthreshold = float(bbthreshold)
+    errthreshold = float(errthreshold)
     
     for j in range(0,len(files[0])):
-        x=files[0][j]
-        y=files[1][j] 	
+        tw_x = files[0][j]
+        tw_y = files[1][j] 	
         #Loop uses gen_kick_calc to get action for each beta function source in each plane
         #Note that the result for source='amp' is not currently being used
         for source in Sources:
-            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([x], mad_twiss, beta_d, source, 'H', bbthreshold, errthreshold)
-            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([y], mad_twiss, beta_d, source, 'V', bbthreshold, errthreshold)
+            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([tw_x], mad_twiss, beta_d, source, 'H', bbthreshold, errthreshold)
+            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([tw_y], mad_twiss, beta_d, source, 'V', bbthreshold, errthreshold)
             meansqrt_2jx[source].append(meansqrt_2jx_temp)
             meansqrt_2jy[source].append(meansqrt_2jy_temp)
             mean_2jx[source].append(mean_2jx_temp)
@@ -704,29 +708,31 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
             bpmrejy[source].append(rejected_bpm_county)
         
         
-        try:
-            dpp.append(x.DPP)
-        except:
-            dpp.append(0.0)
-        tunex.append(x.Q1)
-        tuney.append(y.Q2)
-        tunexRMS.append(x.Q1RMS)
-        tuneyRMS.append(y.Q2RMS)
-	
-    tune=[tunex,tuney]
-    tuneRMS=[tunexRMS,tuneyRMS]
-	
-    return [meansqrt_2jx,meansqrt_2jy,mean_2jx,mean_2jy,tune,tuneRMS,dpp,bpmrejx,bpmrejy]
+        dpp.append(getattr(tw_x, "DPP", 0.0))
 
-#Gets action for a given beta function source and plane   
+        tunex.append(getattr(tw_x, "Q1", 0.0))
+        tuney.append(getattr(tw_y, "Q2", 0.0))
+        tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
+        tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
+        
+        nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
+        nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
+        nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
+        nat_tuneyRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
+
+    tune_values_list = [tunex, tunexRMS, tuney, tuneyRMS, nat_tunex, nat_tunexRMS, nat_tuney, nat_tuneyRMS]
+    return [meansqrt_2jx, meansqrt_2jy, mean_2jx, mean_2jy, tune_values_list, dpp, bpmrejx, bpmrejy]
+
+
 def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errthreshold):
     '''     
+    Gets action for a given beta function source and plane   
      :Parameters:
         'list_of_files': list 
             list of either linx or liny files input, produced by drive
-        'mad_twiss': object (?)
+        'mad_twiss': twiss
             The model file.
-        'beta_d': object (?)
+        'beta_d': BetaData
             Contains measured beta functions calculated in GetLLM
         'source': string
             From where the beta function was calcuated, either model, phase, or amp

@@ -910,7 +910,7 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     bpmrejy ={}
     
     try:
-        [meansqrt_2jx, meansqrt_2jy, mean_2jx, mean_2jy, tune, tune_rms, dpp , bpmrejx, bpmrejy] = algorithms.helper.getkick(files, mad_twiss, beta_d, bbthreshold, errthreshold)
+        [meansqrt_2jx, meansqrt_2jy, mean_2jx, mean_2jy, tunes, dpp , bpmrejx, bpmrejy] = algorithms.helper.getkick(files, mad_twiss, beta_d, bbthreshold, errthreshold)
     except IndexError:# occurs if either no x or no y files exist
         return files_dict
         
@@ -918,10 +918,12 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     
     tfs_file_model = files_dict['getkick.out']
     tfs_file_model.add_comment("Calculates the kick from the model beta function")
-    tfs_file_model.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"])
-    tfs_file_model.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le","%le"])
+    column_names_list = ["DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
+    column_types_list = ["%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
+    tfs_file_model.add_column_names(column_names_list)
+    tfs_file_model.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
             tfs_file_model.add_table_row(list_row_entries)
             
     tfs_file_phase = files_dict['getkickphase.out']
@@ -929,22 +931,22 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     tfs_file_phase.add_descriptor("Threshold_for_uncert(beta_d)/beta_d", "%le", errthreshold)
     tfs_file_phase.add_descriptor("X_BPMs_Rejected", "%le", str(bpmrejx['phase'][i]))
     tfs_file_phase.add_descriptor("Y_BPMs_Rejected", "%le", str(bpmrejy['phase'][i]))
-    tfs_file_phase.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"])
-    tfs_file_phase.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    tfs_file_phase.add_column_names(column_names_list)
+    tfs_file_phase.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
             tfs_file_phase.add_table_row(list_row_entries)        
     
     if getllm_d.with_ac_calc:
         tfs_file = files_dict['getkickac.out']
         tfs_file.add_descriptor("RescalingFactor_for_X", "%le", str(beta_d.x_ratio_f))
         tfs_file.add_descriptor("RescalingFactor_for_Y", "%le", str(beta_d.y_ratio_f))
-        tfs_file.add_column_names(["DPP", "QX", "QXRMS", "QY", "QYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD", "sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
-        tfs_file.add_column_datatypes(["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        [inv_jx, inv_jy, tune, tune_rms, dpp] = algorithms.compensate_ac_effect.getkickac(mad_ac, files, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
+        tfs_file.add_column_names(column_names_list+["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
+        tfs_file.add_column_datatypes(column_types_list+["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        [inv_jx, inv_jy, tunes, dpp] = algorithms.compensate_ac_effect.getkickac(mad_ac, files, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
         for i in range(0, len(dpp)):
             #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
-            list_row_entries = [dpp[i], tune[0][i], tune_rms[0][i], tune[1][i], tune_rms[1][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
+            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
             tfs_file.add_table_row(list_row_entries)
             
     return files_dict
