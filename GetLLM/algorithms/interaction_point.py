@@ -287,6 +287,8 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
                     d_s = alf*bets
                     sin_dpsi = sin(dpsi)
                     if 0 >sin_dpsi:
+                        if DEBUG:
+                            print "_get_ip_2: Negative sin_dpsi("+str(sin_dpsi)+") for IP:"+str(ip)
                         continue
                     rt2j = math.sqrt(amp_l*amp_r*sin_dpsi/(2*L))
                     betall.append(bet)

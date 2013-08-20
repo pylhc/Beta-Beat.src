@@ -178,9 +178,8 @@ class TestOutput(unittest.TestCase):
         
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
         #TODO: change to compare not "compare_tfs_files"
-        regex_to_exclude_files = ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing since they will not be produced by old script
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_files_mathing_regex_list(valid_dir, to_check_dir, regex_to_exclude_files),
+                        Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
                         )
         

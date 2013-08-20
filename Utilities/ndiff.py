@@ -21,7 +21,7 @@ IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
 
 
 
-def compare_dirs_with_files_mathing_regex_list(dir1, dir2, regex_list=None):
+def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None):
     """
     Compares also subdirectories recursively
     :Parameters:
@@ -34,6 +34,7 @@ def compare_dirs_with_files_mathing_regex_list(dir1, dir2, regex_list=None):
             See also http://docs.python.org/2.6/library/re.html
             If list is empty, every file will be compared
             Example: ["^.*gitignore$", "^.*out$"]
+            ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing
                 
         :Return: boolean
             Returns True if dirs are equal, otherwise false
@@ -51,7 +52,7 @@ def compare_dirs_with_files_mathing_regex_list(dir1, dir2, regex_list=None):
         item1 = os.path.join(dir1, item)
         item2 = os.path.join(dir2, item)
         if os.path.isdir(item1):
-            if not compare_dirs_with_files_mathing_regex_list(item1, item2, regex_list):
+            if not compare_dirs_with_files_matching_regex_list(item1, item2, regex_list):
                 return False
         else:
             if empty_list_or_str_matches_regex_list(item1, regex_list):
