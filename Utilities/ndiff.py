@@ -21,7 +21,7 @@ IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
 
 
 
-def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None):
+def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, file_to_config_file_dict=None):
     """
     Compares also subdirectories recursively
     :Parameters:
@@ -35,6 +35,9 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None):
             If list is empty, every file will be compared
             Example: ["^.*gitignore$", "^.*out$"]
             ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing
+        'file_to_config_file_dict': dict
+            Keys are filenames(without path) and corresponding values are ndiff config filepaths.
+            If File is not in dict a default config file will be used.
                 
         :Return: boolean
             Returns True if dirs are equal, otherwise false
@@ -45,6 +48,8 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None):
         return False
     if regex_list is None:
         regex_list = []
+    if file_to_config_file_dict is None:
+        file_to_config_file_dict = {}
         
     dir1_items = sorted(os.listdir(dir1))
     
@@ -52,12 +57,16 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None):
         item1 = os.path.join(dir1, item)
         item2 = os.path.join(dir2, item)
         if os.path.isdir(item1):
-            if not compare_dirs_with_files_matching_regex_list(item1, item2, regex_list):
+            if not compare_dirs_with_files_matching_regex_list(item1, item2, regex_list, file_to_config_file_dict):
                 return False
         else:
             if empty_list_or_str_matches_regex_list(item1, regex_list):
-                if not compare_tfs_files_and_ignore_header(item1, item2):
-                    return False
+                if item in file_to_config_file_dict:
+                    if not run_ndiff(item1, item2, file_to_config_file_dict[item], {"--blank":""}):
+                        return False
+                else:
+                    if not compare_tfs_files_and_ignore_header(item1, item2):
+                        return False
     return True
 
 def empty_list_or_str_matches_regex_list(file_str, regex_list):
