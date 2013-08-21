@@ -6,6 +6,14 @@
 ### V1.42 bug for the dispersion is fixed.
 ### V1.43 4/Mar/2010
 
+import pickle
+import sys
+import os
+
+new_path = os.path.abspath(os.path.join( os.path.dirname(os.path.abspath(__file__)), "..", "..", "Python_Classes4MAD" ))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
 try:
 	from metaclass import twiss
 except:
@@ -16,7 +24,6 @@ except:
 	from numpy import *
 from math import *
 import cmath
-import sys, pickle,os
 from os import system
 #import operator
 from string import *
