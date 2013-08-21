@@ -177,12 +177,24 @@ class TestOutput(unittest.TestCase):
         
         
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
-        #TODO: change to compare not "compare_tfs_files"
+        # sbsalfax_IP2.out has additional columns and need therefore a special config file
+        files_to_config_files = {"sbsalfax_IP2.out": self._get_special_cfg_file()}
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir),
+                        Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir,
+                                                                                    files_to_config_files),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
                         )
+        Utilities.iotools.delete_item(files_to_config_files["sbsalfax_IP2.out"])
+    
+    def _get_special_cfg_file(self):
+        cfg_str = "2-$ 0-8 any abs=1e-9 rel=1e-9 "
+        path_to_cfg = self.path_to_input+"sbsalfax_IP2.out.cfg"
+        file_cfg = open(path_to_cfg)
+        print >> file_cfg, cfg_str
+        file_cfg.close() 
+        return path_to_cfg
         
+    
     def _break_after_first_run(self):
         return _SHORT_RUN
 # END TestOutput -----------------------------------------------------------------------------------
