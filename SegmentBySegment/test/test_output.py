@@ -189,7 +189,7 @@ class TestOutput(unittest.TestCase):
     def _get_special_cfg_file(self):
         cfg_str = "2-$ 0-8 any abs=1e-9 rel=1e-9 "
         path_to_cfg = self.path_to_input+"sbsalfax_IP2.out.cfg"
-        file_cfg = open(path_to_cfg)
+        file_cfg = open(path_to_cfg, 'w')
         print >> file_cfg, cfg_str
         file_cfg.close() 
         return path_to_cfg
