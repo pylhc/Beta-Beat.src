@@ -20,3 +20,7 @@ def root_mean_square(numbers):
 #     for i in xrange(0, len(numbers)):
 #         sum += numbers[i] * numbers[i]
 #     return numpy.sqrt(sum / len(numbers))
+
+
+def standard_deviation(numbers):
+    return numpy.std(numbers)
