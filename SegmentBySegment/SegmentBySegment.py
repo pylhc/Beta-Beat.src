@@ -62,7 +62,6 @@ Change history:
 
 import os
 import sys
-sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
 import optparse
 from math import sqrt,cos,sin,pi, tan
 import math
