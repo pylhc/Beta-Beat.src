@@ -919,8 +919,8 @@ def getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,mod
         print >> filex,"* NAME S BETX ERRBETX BETXAMP ERRBETXAMP BETXP ERRBETXP BETXMDL MODEL_S"
         print >> filex,"$ %s %le %le %le %le %le  %le %le %le %le"
     
-        print >> filexa,"* NAME S ALFX ERRALFX ALFXP ERRALFXP MODEL_S"
-        print >> filexa,"$ %s %le %le %le %le %le %le"
+        print >> filexa,"* NAME S ALFX ERRALFX ALFXP ERRALFXP ALFMDL MODEL_S"
+        print >> filexa,"$ %s %le %le %le %le %le %le %le"
     else:
         print >> filex,"* NAME S BETXP ERRBETXP BETXMDL MODEL_S"
         print >> filex,"$ %s %le %le %le %le %le"
