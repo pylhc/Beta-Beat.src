@@ -1,12 +1,12 @@
 set terminal postscript enhanced color solid 20
 
 set size 1, 1.15
-set output "%PATH/plot_%LABEL.eps"
+set output "%(PATH)s/plot_%(LABEL)s.eps"
 set multiplot
 set size 1,0.5
 set origin 0,0.5
 set lmargin 8
-set xrange[%StartPoint-50:%EndPoint+50]
+set xrange[%(StartPoint)f-50:%(EndPoint)f+50]
 set yrange[0:*]
 set nokey
 
@@ -15,9 +15,9 @@ set nokey
 
 set ylabel "{/Symbol b}_x[m]"
 
- p "%MEA/getbetax.out"u 2:4:6 t"Measurement" w e pt 7 lt 1,\
-   "< grep BPM %PATHtwiss_%LABEL.dat" u ($2+%StartPoint):3 t"Design with initial cond" pt 3 lt 3 ps 1,\
-   "< grep BPM %PATHtwiss_%LABEL_play.dat" u ($2+%StartPoint):3 t"play" pt 14 lt 7 ps 1.7 lw 2
+ p "%(MEA)s/getbetax.out"u 2:4:6 t"Measurement" w e pt 7 lt 1,\
+   "< grep BPM %(PATH)stwiss_%(LABEL)s.dat" u ($2+%(StartPoint)f):3 t"Design with initial cond" pt 3 lt 3 ps 1,\
+   "< grep BPM %(PATH)stwiss_%(LABEL)s_play.dat" u ($2+%(StartPoint)f):3 t"play" pt 14 lt 7 ps 1.7 lw 2
 
 
 set origin 0,0.
@@ -28,9 +28,9 @@ set xlabel"s [m]"
 set yrange[0:500]
 
 
- p "%MEA/getbetay.out"u 2:4:6 t"Measurement" w e pt 7 lt 1,\
-   "< grep BPM %PATH/twiss_%LABEL.dat" u ($2+%StartPoint):5 t"Design with initial cond" pt 3 lt 3 ps 1,\
-   "< grep BPM %PATH/twiss_%LABEL_play.dat" u ($2+%StartPoint):5 t"play" pt 14 lt 7 ps 1.7 lw 2
+ p "%(MEA)s/getbetay.out"u 2:4:6 t"Measurement" w e pt 7 lt 1,\
+   "< grep BPM %(PATH)s/twiss_%(LABEL)s.dat" u ($2+%(StartPoint)f):5 t"Design with initial cond" pt 3 lt 3 ps 1,\
+   "< grep BPM %(PATH)s/twiss_%(LABEL)s_play.dat" u ($2+%(StartPoint)f):5 t"play" pt 14 lt 7 ps 1.7 lw 2
 
 
 set origin 0,0.95
@@ -40,11 +40,11 @@ unset xtics
 unset ytics
 unset xlabel
 set ylabel "K_1L"
-set label "%LABEL" at 500+%StartPoint, 0.5 center
-set label "%ACCEL" at %StartPoint, 0.5 font "Bold" center
+set label "%(LABEL)s" at 500+%(StartPoint)f, 0.5 center
+set label "%(ACCEL)s" at %(StartPoint)f, 0.5 font "Bold" center
 set zeroaxis
 set yrange[*:*]
-p  "< grep MQ %PATH/twiss_%LABEL.dat" u ($2-$19/2+%StartPoint):($20):($19) w boxes fs solid 0.6 lt 1
+p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
 
 
 
@@ -52,21 +52,21 @@ unset multiplot
 reset 
 
 set size 1,0.95
-set output "%PATH/csbs_%LABEL_3.5Tev.eps"
+set output "%(PATH)s/csbs_%(LABEL)s_3.5Tev.eps"
 set multiplot
 set lmargin 8
 set size 1,0.2
 set origin 0,0.75
 unset xlabel
 set ylabel "K1L" -1
-set label "%ACCEL" at graph 1,1.12  right font "bold, 18"
-set label "%LABEL" at graph 0.55,1.12  right 
+set label "%(ACCEL)s" at graph 1,1.12  right font "bold, 18"
+set label "%(LABEL)s" at graph 0.55,1.12  right 
 unset ytics
 unset xtics
 unset key
 set zeroaxis
-set xrange [%StartPoint-50:%EndPoint+50]
-p "< grep MQ %PATH/twiss_%LABEL.dat" u ($2-$19/2+%StartPoint):($20):($19) w boxes fs solid 0.6 lt 1
+set xrange [%(StartPoint)f-50:%(EndPoint)f+50]
+p "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
 
 set size 1,0.8
 set origin 0,0.0
@@ -79,19 +79,19 @@ set key  bottom left samplen 1
 
 # in case or IR use $23 instead of $2
 
-p  [][-0.135:0.1] "%PATH/sbscouple_%LABEL.out" u ($2):17 w l t"Err model |f_{1001}|" lt 1 lw 2,\
+p  [][-0.135:0.1] "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):17 w l t"Err model |f_{1001}|" lt 1 lw 2,\
        ""  u ($2):18 w l t"Err model Re[f_{1001}]" lt 3 lw 2,\
        ""  u ($2):19 w l t"Err model Im[f_{1001}]" lt 7 lw 2
 
 set key  bottom right samplen 1
-p  [][-0.135:0.1]"%PATH/sbscouple_%LABEL.out" u ($2):3 w l t"Ideal model |f_{1001}|" lt 8 lw 1,\
+p  [][-0.135:0.1]"%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):3 w l t"Ideal model |f_{1001}|" lt 8 lw 1,\
        ""  u ($2):4 w l t"Ideal model Re[f_{1001}]" lt 5 lw 2,\
        ""  u ($2):5 w l t"Ideal model Im[f_{1001}]" lt 9 lw 2
 
 
 
 set key  top left  samplen 1
-p   [][-0.135:0.1]   "%PATH/sbscouple_%LABEL.out" u ($2):9:10 w e t"|f_{1001}|" lt 1 ps 0.7 pt 7 lw 2,\
+p   [][-0.135:0.1]   "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):9:10 w e t"|f_{1001}|" lt 1 ps 0.7 pt 7 lw 2,\
        "" u ($2):11:10 w e t"Re[f_{1001}]" lt 3 ps 0.7 pt 7 lw 2,\
        "" u ($2):12:10 w e t"Im[f_{1001}]" lt 7 ps 0.7 pt 7 lw 2
 
@@ -103,12 +103,12 @@ unset multiplot
 
 
 set size 1, 1.15
-set output "%PATH/plot_%LABEL.phasetotal.eps"
+set output "%(PATH)s/plot_%(LABEL)s.phasetotal.eps"
 set multiplot
 set size 1,0.5
 set origin 0,0.5
 set lmargin 8
-s=%StartPoint
+s=%(StartPoint)f
 set xrange[s-50:s+1000]
 set yrange[*:*]
 set key s+400, 0.06 samplen 1
@@ -124,7 +124,7 @@ qy=0.31
 #
 
 
-p [][-0.02:]"%PATH/sbsphasext_%LABEL.out" u ($2):4:5 t"Meas" w e pt 7 lt 1, "" u  ($2):4 not w l 1,\
+p [][-0.02:]"%(PATH)s/sbsphasext_%(LABEL)s.out" u ($2):4:5 t"Meas" w e pt 7 lt 1, "" u  ($2):4 not w l 1,\
    "" u ($2):6 t"Err" w l lt 7
 
 
@@ -138,7 +138,7 @@ unset key
 
 
 
-p [][-0.02:]"%PATH/sbsphaseyt_%LABEL.out" u ($2):4:5 t"Meas" w e pt 7 lt 1,\
+p [][-0.02:]"%(PATH)s/sbsphaseyt_%(LABEL)s.out" u ($2):4:5 t"Meas" w e pt 7 lt 1,\
    "" u ($2):4 w l 1,\
    "" u ($2):6 w l lt 7
 
@@ -151,11 +151,11 @@ unset xtics
 unset ytics
 unset xlabel
 set ylabel "K_1L" -0.7
-set label "%LABEL" at 450+s, 0.12 center
-set label "%ACCEL" at s, 0.12 font "Bold" center
+set label "%(LABEL)s" at 450+s, 0.12 center
+set label "%(ACCEL)s" at s, 0.12 font "Bold" center
 set zeroaxis
 set yrange[*:*]
-p  "< grep MQ %PATH/twiss_%LABEL.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
+p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
 
 
 
@@ -168,7 +168,7 @@ unset multiplot
 
 
 set size 1, 1.02
-set output "%PATH/plot_%LABEL.Dxy.eps"
+set output "%(PATH)s/plot_%(LABEL)s.Dxy.eps"
 
 set multiplot
 set size 1,0.46
@@ -178,7 +178,7 @@ set xrange[s-50:s+1100]
 set ylabel "D_x[m]"
 set key left samplen 1
 set zeroaxis
-p "%PATH/sbsDx_%LABEL.out" u 2:3:4 w e t"Exp." pt 7 lt 1 lw 2,\
+p "%(PATH)s/sbsDx_%(LABEL)s.out" u 2:3:4 w e t"Exp." pt 7 lt 1 lw 2,\
   "" u 2:5 w l lw 3 lt 3 t"Prop. mod.",\
   "" u 2:6 w l lw 3 lt 7 t"Play mod."
 
@@ -189,7 +189,7 @@ set size 1,0.52
 set ylabel "D_y[m]" 
 set xlabel"s [m]"
 set ytics 0.1
-p "%PATH/sbsDy_%LABEL.out" u 2:3:4 w e pt 7 lt 1 lw 2,\
+p "%(PATH)s/sbsDy_%(LABEL)s.out" u 2:3:4 w e pt 7 lt 1 lw 2,\
   "" u 2:5 w l lw 3 lt 3 t"prop. mod.",\
   "" u 2:6 w l lw 3 lt 7 t"Play mod."
 
@@ -201,11 +201,11 @@ unset xtics
 unset ytics
 unset xlabel
 set ylabel "K_1L" 
-set label "%LABEL" at graph 0.5, 1.12 right
-set label "%ACCEL" at graph 1, 1.12 font "Bold" right
+set label "%(LABEL)s" at graph 0.5, 1.12 right
+set label "%(ACCEL)s" at graph 1, 1.12 font "Bold" right
 set zeroaxis
 set yrange[*:*]
-p  "< grep MQ %PATH/twiss_%LABEL.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
+p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
 
 
 
@@ -220,7 +220,7 @@ unset multiplot
 
 
 set size 1, 1.02
-set output "%PATH/plot_%LABEL.Wxy.eps"
+set output "%(PATH)s/plot_%(LABEL)s.Wxy.eps"
 
 set multiplot
 set size 1,0.46
@@ -230,7 +230,7 @@ set xrange[s-50:s+1100]
 set ylabel "W_x"
 set key left samplen 1
 set zeroaxis
-p [][0:150]"%PATH/sbsWx_%LABEL.out" u 2:3:4 w e t"Exp." pt 7 lt 1 lw 2,\
+p [][0:150]"%(PATH)s/sbsWx_%(LABEL)s.out" u 2:3:4 w e t"Exp." pt 7 lt 1 lw 2,\
   "" u 2:5 w l lw 3 lt 3 t"Prop. mod.",\
   "" u 2:6 w l lw 3 lt 7 t"Play mod."
 
@@ -240,7 +240,7 @@ unset key
 set size 1,0.52
 set ylabel "W_y" 
 set xlabel"s [m]"
-p [][0:150]"%PATH/sbsWy_%LABEL.out" u 2:3:4 w e pt 7 lt 1 lw 2,\
+p [][0:150]"%(PATH)s/sbsWy_%(LABEL)s.out" u 2:3:4 w e pt 7 lt 1 lw 2,\
   "" u 2:5 w l lw 3 lt 3 t"prop. mod.",\
   "" u 2:6 w l lw 3 lt 7 t"Play mod."
 
@@ -252,11 +252,11 @@ unset xtics
 unset ytics
 unset xlabel
 set ylabel "K_1L" 
-set label "%LABEL" at graph 0.5, 1.12 right
-set label "%ACCEL" at graph 1, 1.12 font "Bold" right
+set label "%(LABEL)s" at graph 0.5, 1.12 right
+set label "%(ACCEL)s" at graph 1, 1.12 font "Bold" right
 set zeroaxis
 set yrange[*:*]
-p  "< grep MQ %PATH/twiss_%LABEL.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
+p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
 
 
 
@@ -271,9 +271,9 @@ unset multiplot
 
 
 set size 1, 1.02
-set output "%PATH/plot_%LABEL.PHIxy.eps"
+set output "%(PATH)s/plot_%(LABEL)s.PHIxy.eps"
 
-f1(x)=(int(x*10000)%10000/10000.)
+f1(x)=(int(x*10000)%%10000/10000.)
 f(x)=f1(x)>0.5 ? f1(x)-1:f1(x)
 
 set multiplot
@@ -284,7 +284,7 @@ set xrange[s-50:s+1100]
 set ylabel "PHI_x [2{/Symbol p}]"
 set key left samplen 1
 set zeroaxis
-p [][-0.52:0.52]"%PATH/sbsWx_%LABEL.out" u 2:7:8 w e t"Exp." pt 7 lt 1 lw 2,\
+p [][-0.52:0.52]"%(PATH)s/sbsWx_%(LABEL)s.out" u 2:7:8 w e t"Exp." pt 7 lt 1 lw 2,\
   "" u 2:(f($9)) w l lw 3 lt 3 t"Prop. mod.",\
   "" u 2:(f($10)) w l lw 3 lt 7 t"Play mod."
 
@@ -294,7 +294,7 @@ unset key
 set size 1,0.52
 set ylabel "PHI_y [2{/Symbol p}]" 
 set xlabel"s [m]"
-p [][-0.52:0.52]"%PATH/sbsWy_%LABEL.out" u 2:7:8 w e pt 7 lt 1 lw 2,\
+p [][-0.52:0.52]"%(PATH)s/sbsWy_%(LABEL)s.out" u 2:7:8 w e pt 7 lt 1 lw 2,\
   "" u 2:(f($9)) w l lw 3 lt 3 t"prop. mod.",\
   "" u 2:(f($10)) w l lw 3 lt 7 t"Play mod."
 
@@ -306,11 +306,11 @@ unset xtics
 unset ytics
 unset xlabel
 set ylabel "K_1L" 
-set label "%LABEL" at graph 0.5, 1.12 right
-set label "%ACCEL" at graph 1, 1.12 font "Bold" right
+set label "%(LABEL)s" at graph 0.5, 1.12 right
+set label "%(ACCEL)s" at graph 1, 1.12 font "Bold" right
 set zeroaxis
 set yrange[*:*]
-p  "< grep MQ %PATH/twiss_%LABEL.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
+p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
 
 
 
@@ -329,22 +329,22 @@ unset multiplot
 
 
 set size 1, 1.15
-set output "%PATH/plot_%LABEL_phase.eps"
+set output "%(PATH)s/plot_%(LABEL)s_phase.eps"
 set multiplot
 set lmargin 9
 set size 1,0.5
 set origin 0,0.5
 set zeroaxis
 
-set xrange[%StartPoint-100:%StartPoint+1087.0294+100]
+set xrange[%(StartPoint)f-100:%(StartPoint)f+1087.0294+100]
 set yrange[-0.06:0.06]
 set key top left samplen 1 box
 
 
 set ylabel "{/Symbol Df}_x-beat"
 
-p "< awk '$0!~/BPMS/{print }' %PATH/phasexEM.out" u ($3+%StartPoint):($5-$6):($3+%StartPoint):($4+%StartPoint) w xerr t"Nominal" ps 1.7 pt 7,\
-  "< awk '$0!~/BPMS/{print }' %PATH/phasexEM_play.out" u ($3+%StartPoint):($5-$6) t"MQY.B4L2" ps 1.7 pt 14 lt 7 lw 2
+p "< awk '$0!~/BPMS/{print }' %(PATH)s/phasexEM.out" u ($3+%(StartPoint)f):($5-$6):($3+%(StartPoint)f):($4+%(StartPoint)f) w xerr t"Nominal" ps 1.7 pt 7,\
+  "< awk '$0!~/BPMS/{print }' %(PATH)s/phasexEM_play.out" u ($3+%(StartPoint)f):($5-$6) t"MQY.B4L2" ps 1.7 pt 14 lt 7 lw 2
 
 
 
@@ -356,11 +356,11 @@ set ylabel "{/Symbol Df}_y-beat"
 set xlabel"s [m]"
 #set yrange[*:*]
 
-p "< awk '$0!~/BPMS/{print }' %PATH/phaseyEM.out" u ($3+%StartPoint):($5-$6 ):($3+%StartPoint):($4+%StartPoint) w xerr t"Nominal" ps 1.5 pt 7,\
-  "< awk '$0!~/BPMS/{print }' %PATH/phaseyEM_play.out" u ($3+%StartPoint):($5-$6) t"play" ps 1.7 pt 14 lt 7 lw 2
+p "< awk '$0!~/BPMS/{print }' %(PATH)s/phaseyEM.out" u ($3+%(StartPoint)f):($5-$6 ):($3+%(StartPoint)f):($4+%(StartPoint)f) w xerr t"Nominal" ps 1.5 pt 7,\
+  "< awk '$0!~/BPMS/{print }' %(PATH)s/phaseyEM_play.out" u ($3+%(StartPoint)f):($5-$6) t"play" ps 1.7 pt 14 lt 7 lw 2
 
-# p "%PATH/phaseyEM.out" u ($3+%StartPoint):($5 > 0.5 ? 1-$5-$6:$5-$6 ):($3+%StartPoint):($4+%StartPoint) w xerr t"Nominal" ps 1.5 pt 7,\
-#  "%PATH/phaseyEM_play.out" u ($3+%StartPoint):($5 > 0.5 ? 1-$5-$6:$5-$6 ) t"play" ps 1.7 pt 14 lt 7 lw 2
+# p "%(PATH)s/phaseyEM.out" u ($3+%(StartPoint)f):($5 > 0.5 ? 1-$5-$6:$5-$6 ):($3+%(StartPoint)f):($4+%(StartPoint)f) w xerr t"Nominal" ps 1.5 pt 7,\
+#  "%(PATH)s/phaseyEM_play.out" u ($3+%(StartPoint)f):($5 > 0.5 ? 1-$5-$6:$5-$6 ) t"play" ps 1.7 pt 14 lt 7 lw 2
 
 
 
@@ -373,8 +373,8 @@ unset ytics
 unset xlabel
 set nokey
 set ylabel "K_1L"
-set label "%LABEL" at 546.3+%StartPoint, 0.5 center
-set label "%ACCEL" at %StartPoint, 0.5 font "Bold" center
+set label "%(LABEL)s" at 546.3+%(StartPoint)f, 0.5 center
+set label "%(ACCEL)s" at %(StartPoint)f, 0.5 font "Bold" center
 set zeroaxis
 set yrange[*:*]
-p  "< grep MQ %PATH/twiss_%LABEL.dat" u ($2-$19/2+%StartPoint):($20):($19) w boxes fs solid 0.6 lt 1
+p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
