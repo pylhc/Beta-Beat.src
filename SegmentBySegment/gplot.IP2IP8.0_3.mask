@@ -61,12 +61,12 @@ set yrange[]
 #p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
 
 
-# coupling 1001
+# coupling 1010
 unset multiplot
 reset 
 
 set size 1,0.95
-set output "%(PATH)s/csbs_%(LABEL)s_diff_3.5Tev.eps"
+set output "%(PATH)s/csbs_%(LABEL)s_3.5Tev.eps"
 set multiplot
 set lmargin 8
 set size 1,0.2
@@ -109,12 +109,12 @@ p   [][-0.2:0.2]   "< sort -gk23 %(PATH)s/sbscouple_%(LABEL)s.out" u ($23):13:14
        "" u ($23):15:14 w e t"Re[f_{1010}]" lt 3 ps 0.7 pt 7 lw 2,\
        "" u ($23):16:14 w e t"Im[f_{1010}]" lt 7 ps 0.7 pt 7 lw 2
 
-# coupling 1010
+# coupling 1001
 unset multiplot
 reset 
 
 set size 1,0.95
-set output "%(PATH)s/csbs_%(LABEL)s_3.5Tev.eps"
+set output "%(PATH)s/csbs_%(LABEL)s_diff_3.5Tev.eps"
 set multiplot
 set lmargin 8
 set size 1,0.2
