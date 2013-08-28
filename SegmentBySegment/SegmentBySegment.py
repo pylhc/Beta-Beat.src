@@ -59,14 +59,16 @@ Change history:
 
 '''
 
-
+ 
 import os
 import sys
 import optparse
 from math import sqrt,cos,sin,pi, tan
 import math
+
 import numpy as np
 
+import __init__
 try:
     from metaclass import twiss
 except:
