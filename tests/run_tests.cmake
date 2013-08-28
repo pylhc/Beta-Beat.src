@@ -3,15 +3,16 @@
 # You can see the server at:
 # http://cern.ch/yngve/cdash/index.php?project=Beta-Beat
 
-# To run, change the source and binary directory to a temporary path
-# you have write access to, then run the script with the command:
-#   ctest -S run_tests.cmake -VV
+# To run, change the source directory to a temporary path
+# where you have the project checked out, then run the
+# script with the command:
+#   ctest -S run_tests.cmake
 
 ## -- SRC Dir
 set(CTEST_SOURCE_DIRECTORY "")
 
 ## -- BIN Dir
-set(CTEST_BINARY_DIRECTORY "")
+set(CTEST_BINARY_DIRECTORY "${CTEST_SOURCE_DIRECTORY}test-folder/")
 
 ## -- Dashboard type, possible values are 
 ##     'Experimental', 'Nightly' or 'Continuous'
@@ -57,23 +58,28 @@ set(CTEST_BUILD_NAME                    "${osname}-${cpu}")
 ## -- Update Command
 set(CTEST_UPDATE_COMMAND "git")
 
-## -- Checkout command
-if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
-	set(CTEST_CHECKOUT_COMMAND     "${CTEST_UPDATE_COMMAND} clone git://github.com/pylhc/Beta-Beat.src.git ${CTEST_SOURCE_DIRECTORY}")
-endif()
 
+# Update submodules:
+if (EXISTS "${CTEST_SOURCE_DIRECTORY}/.gitmodules")
+ execute_process(COMMAND git submodule update --init --recursive
+   WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY})
+endif()
+# Set path to submodule:
+set($ENV{PYTHONPATH} "$ENV{PYTHONPATH}:${CTEST_SOURCE_DIRECTORY}/Python_Classes4MAD")
 
 ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
 
 ctest_start(${DASHBOARD})
+ctest_update()
+configure_file("${CTEST_SOURCE_DIRECTORY}/CTestTestfile.cmake"
+               "${CTEST_BINARY_DIRECTORY}/CTestTestfile.cmake")
 
 ## -- Folders containing tests (relative to source directory)
-foreach(test_folder . tests GetLLM/test)
+foreach(test_folder tests GetLLM/test drive/test SegmentBySegment/test)
    # copy test files to binary folder..
-   configure_file("${CTEST_SOURCE_DIRECTORY}/${test_folder}/CTestTestfile.cmake"
-                  "${CTEST_BINARY_DIRECTORY}/${test_folder}/CTestTestfile.cmake")
+   file(COPY      "${CTEST_SOURCE_DIRECTORY}/${test_folder}/CTestTestfile.cmake"
+      DESTINATION "${CTEST_BINARY_DIRECTORY}/${test_folder}")
 endforeach()
 
-ctest_update()
 ctest_test()
 ctest_submit()
