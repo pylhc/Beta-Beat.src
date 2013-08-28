@@ -21,17 +21,13 @@ import Utilities.ndiff
 import madxrunner
 
 _SHORT_RUN = False # If True, SBS will only run on first dir
-_NO_VALID_RUN = False # If True, will not run valid SBS except if no valid output files are available
-
-_WITH_VALID_RUN = not _NO_VALID_RUN
-
+_NO_VALID_RUN = True # If True, will not run valid SBS except if no valid output files are available
 
 _TestOutput__ARGUMENTS_FILE_NAME = "arguments.txt" # This file is located in the input run dirs. Stores arguments for sbs
 
 class TestOutput(unittest.TestCase):
     
     path_to_modified_sbs = os.path.join(CURRENT_PATH, "..", "SegmentBySegment.py")
-    path_to_valid_sbs = os.path.join(CURRENT_PATH, "SegmentBySegment_0.33.py")
     
     path_to_valid = os.path.join(CURRENT_PATH, "data", "valid")
     path_to_to_check = os.path.join(CURRENT_PATH, "data", "to_check")
@@ -55,7 +51,6 @@ class TestOutput(unittest.TestCase):
         run_dir_names = Utilities.iotools.get_all_dir_names_in_dir(TestOutput.path_to_input)
         print run_dir_names
         for dir_name in run_dir_names:
-            self._run_valid_file_if_desired(dir_name)
             self._run_modified_file(dir_name)
             self._compare_output_dir(dir_name)
             if self._break_after_first_run():
@@ -96,13 +91,8 @@ class TestOutput(unittest.TestCase):
     def _delete_modified_and_if_desired_valid_output(self):
         ''' Deletes content in path_to_valid and path_to_to_check. '''
         Utilities.iotools.delete_content_of_dir(TestOutput.path_to_to_check)
-        if _WITH_VALID_RUN:
-            Utilities.iotools.delete_content_of_dir(TestOutput.path_to_valid)
     
 
-    def _run_valid_file_if_desired(self, dir_name):
-        if _WITH_VALID_RUN or self.__have_to_run_valid_file:
-            self._run_dir(self.path_to_valid, self.path_to_valid_sbs, dir_name)
     
     def _run_dir(self, path_to_out_run_dir_root, path_to_sbs, dir_name):
         arguments_list = self._prepare_and_get_arguments_list(path_to_out_run_dir_root, dir_name)
