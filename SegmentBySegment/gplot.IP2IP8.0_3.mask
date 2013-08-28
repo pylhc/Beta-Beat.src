@@ -106,8 +106,8 @@ p  [][-0.2:0.2]"< sort -gk23 %(PATH)s/sbscouple_%(LABEL)s.out" u ($23):6 w l t"I
 
 set key  top left  samplen 1
 p   [][-0.2:0.2]   "< sort -gk23 %(PATH)s/sbscouple_%(LABEL)s.out" u ($23):13:14 w e t"|f_{1010}|" lt 1 ps 0.7 pt 7 lw 2,\
-       "" u ($23):15:13 w e t"Re[f_{1010}]" lt 3 ps 0.7 pt 7 lw 2,\
-       "" u ($23):16:13 w e t"Im[f_{1010}]" lt 7 ps 0.7 pt 7 lw 2
+       "" u ($23):15:14 w e t"Re[f_{1010}]" lt 3 ps 0.7 pt 7 lw 2,\
+       "" u ($23):16:14 w e t"Im[f_{1010}]" lt 7 ps 0.7 pt 7 lw 2
 
 # coupling 1010
 unset multiplot
