@@ -139,7 +139,7 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             bpmac=bpmac2
         except:
             print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
-            return [{},'',[]]
+            return [{}, 0.0, []]
 
     #-- Model phase advances
     if plane=='H': psimdl=np.array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
