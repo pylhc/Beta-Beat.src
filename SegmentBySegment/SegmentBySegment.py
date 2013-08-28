@@ -2069,72 +2069,72 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
     f1010i=fs[3]
     f1001std=fs[4]
 
-    madfilename=path+'/t_'+str(name)+'.madx'
+    madfilename=os.path.join(path,'t_'+str(name)+'.madx')
     
-    filename=path+'/var4mad.sh'
-    file4nad=open(filename,'w')
-    file4nad.write('sed -e \'s/%BETX/\''+str(betx)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%BETY/\''+str(bety)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRBETX/\''+str(errbetx)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRBETY/\''+str(errbety)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ALFX/\''+str(hor[2])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ALFY/\''+str(ver[2])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRALFX/\''+str(hor[3])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRALFY/\''+str(ver[3])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DX/\''+str(dp[0])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRDX/\''+str(dp[4])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DY/\''+str(dp[2])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRDY/\''+str(dp[5])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DPX/\''+str(dp[1])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DPY/\''+str(dp[3])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ENDBX/\''+str(betxb)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ENDBY/\''+str(betyb)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRENDBX/\''+str(errbetxb)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRENDBY/\''+str(errbetyb)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ALFENDX/\''+str(-hore[2])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ALFENDY/\''+str(-vere[2])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRALFENDX/\''+str(hore[3])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRALFENDY/\''+str(vere[3])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DENDX/\''+str(dpe[0])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRDENDX/\''+str(dpe[4])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DENDY/\''+str(dpe[2])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ERRDENDY/\''+str(dpe[5])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DPENDX/\''+str(-dpe[1])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DPENDY/\''+str(-dpe[3])+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%STARTFROM/\''+str(startbpm.replace("-","_"))+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ENDAT/\''+str(endbpm.replace("-","_"))+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%LABEL/\''+str(name)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ACCEL/\''+str(options.accel)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%DIRE/\''+str(dire)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%START/\''+str(start)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%BEAM/\''+str(beam)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%PATH/\'\"'+str(path.replace('/','\/'))+'\"\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1001R/\''+str(f1001r)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1001I/\''+str(f1001i)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1010R/\''+str(f1010r)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1010I/\''+str(f1010i)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1001maR/\''+str(f1001r+f1001std)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1001maI/\''+str(f1001i+f1001std)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1001miR/\''+str(f1001r-f1001std)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1001miI/\''+str(f1001i-f1001std)+'\'/g\' \\\n')    
-    file4nad.write('    -e \'s/%F1010maR/\''+str(f1010r+f1001std)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1010maI/\''+str(f1010i+f1001std)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1010miR/\''+str(f1010r-f1001std)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%F1010miI/\''+str(f1010i-f1001std)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%METHOD/\''+method+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%EXP/\'\"'+exppath.replace("/","\/")+'\"\'/g\' \\\n')
-    file4nad.write('    -e \'s/%WX/\''+str(wxs)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%PHIX/\''+str(phixs)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%WY/\''+str(wys)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%PHIY/\''+str(phiys)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%WPATH/\'\"'+str(options.wpath.replace('/','\/'))+'\"\'/g\' \\\n')
-    
-    file4nad.write('<'+cpath+'/SegmentBySegment/'+'/job.InterpolateBetas.0_2_dev.mask > '+madfilename+'\n')
+#WARNING we are using f1001std here as before instead of f1010std which is not defined
+    variables=dict(
+            BETX=betx,
+            BETY=bety,
+            ERRBETX=errbetx,
+            ERRBETY=errbety,
+            ALFX=hor[2],
+            ALFY=ver[2],
+            ERRALFX=hor[3],
+            ERRALFY=ver[3],
+            DX=dp[0],
+            ERRDX=dp[4],
+            DY=dp[2],
+            ERRDY=dp[5],
+            DPX=dp[1],
+            DPY=dp[3],
+            ENDBX=betxb,
+            ENDBY=betyb,
+            ERRENDBX=errbetxb,
+            ERRENDBY=errbetyb,
+            ALFENDX=-hore[2],
+            ALFENDY=-vere[2],
+            ERRALFENDX=hore[3],
+            ERRALFENDY=vere[3],
+            DENDX=dpe[0],
+            ERRDENDX=dpe[4],
+            DENDY=dpe[2],
+            ERRDENDY=dpe[5],
+            DPENDX=-dpe[1],
+            DPENDY=-dpe[3],
+            STARTFROM=startbpm.replace("-","_"),
+            ENDAT=endbpm.replace("-","_"),
+            LABEL=name,
+            ACCEL=options.accel,
+            DIRE=dire,
+            START=start,
+            BEAM=beam,
+            PATH=path,
+            F1001R=f1001r,
+            F1001I=f1001i,
+            F1010R=f1010r,
+            F1010I=f1010i,
+            F1001maR=f1001r+f1001std,
+            F1001maI=f1001i+f1001std,
+            F1001miR=f1001r-f1001std,
+            F1001miI=f1001i-f1001std,
+            F1010maR=f1010r+f1001std,
+            F1010maI=f1010i+f1001std,
+            F1010miR=f1010r-f1001std,
+            F1010miI=f1010i-f1001std,
+            METHOD=method,
+            EXP=exppath,
+            WX=wxs,
+            PHIX=phixs,
+            WY=wys,
+            PHIY=phiys,
+            WPATH=options.wpath
+            )
 
-    file4nad.close()
-    
-    os.system("chmod 777 "+str(filename))
-    os.system(str(filename))
+    maskfile=os.path.join(cpath,'SegmentBySegment','job.InterpolateBetas.0_2_dev.mask')
+
+    # read mask file, replace all variables and write to mad file:
+    file(madfilename,'w').write(file(maskfile,'r').read() % variables)
+
     runmad(path,name)
 
 
@@ -2152,31 +2152,34 @@ def runmad(path,name):
   
 def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
     if method=="driven": method=""   # patch to make it work at inj. rogelio
-    filename=path+'/var4plot.sh'
-    file4nad=open(filename,'w')
-    file4nad.write('sed -e \'s/%PATH/\'\"'+str(path.replace("/","\/"))+'\"\'/g\' \\\n')
-    file4nad.write('    -e \'s/%EndPoint/\''+str(epos)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%StartPoint/\''+str(spos)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%LABEL/\''+str(name)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%ACCEL/\''+str(options.accel)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%BETA/\''+str(beta4plot)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%QX/\''+str(qx)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%QY/\''+str(qy)+'\'/g\' \\\n')
-    file4nad.write('    -e \'s/%METHOD/\''+method+'\'/g\' \\\n')  
-    file4nad.write('    -e \'s/%MEA/\'\"'+str(meapath.replace("/","\/"))+'\"\'/g\' \\\n')
-    if (name=="IP8" and accel=="LHCB2") or (name=="IP2" and accel=="LHCB1"):
-        file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.IP2IP8.0_3.mask > '+path+'/gplot_'+name)
-    elif "RHIC" in options.accel:
-        file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_1_RHIC.mask > '+path+'/gplot_'+name)
-    else:
-        file4nad.write('<'+cpath+'/SegmentBySegment/'+'/gplot.0_3.mask > '+path+'/gplot_'+name)
         
+    variables=dict(
+            PATH=path,
+            EndPoint=epos,
+            StartPoint=spos,
+            LABEL=name,
+            ACCEL=options.accel,
+            BETA=beta4plot,
+            QX=qx,
+            QY=qy,
+            METHOD=method,
+            MEA=meapath
+         )
 
-    file4nad.close()
-    
-    os.system("chmod 777 "+str(filename))
-    os.system(str(filename))
-    os.system("gnuplot "+str(path+'/gplot_'+name))
+    if (name=="IP8" and accel=="LHCB2") or (name=="IP2" and accel=="LHCB1"):
+        maskfile='gplot.IP2IP8.0_3.mask'
+    elif "RHIC" in options.accel:
+        maskfile='gplot.0_1_RHIC.mask'
+    else:
+        maskfile='gplot.0_3.mask'
+    maskfile=os.path.join(cpath,'SegmentBySegment',maskfile)
+
+    plotscript=os.path.join(path,'gplot_'+name)
+
+    # read mask file, replace all variables and write to plot script:
+    file(plotscript,'w').write(file(maskfile,'r').read() % variables) 
+
+    os.system("gnuplot "+plotscript)
 
  
    
@@ -2347,7 +2350,8 @@ def createTables(outputname,path,columnnames,paranames,data,mainvariable,mainval
 #===================================================================================================
 if __name__ == "__main__":
     (options, args) = parse_args()
-    
+
     return_value = main(options)
-    
+
     sys.exit(return_value)
+
