@@ -148,4 +148,38 @@ def is_empty_dir(directory):
 def is_not_empty_dir(directory):
     return not is_empty_dir(directory)
 
+
+def read_all_lines_in_textfile(path_to_textfile):
+    if not os.path.exists(path_to_textfile):
+        print >> sys.stderr, "read_all_lines_in_textfile: File does not exist:",path_to_textfile
+        return ""
+    textfile = open(path_to_textfile, "r")
+    list_of_lines = textfile.readlines()
+    return "".join(list_of_lines)
     
+def append_string_to_textfile(path_to_textfile, str_to_append):
+    """ If file does not exist, a new file will be created. """
+    if os.path.exists(path_to_textfile):
+        open_mode = "a"
+    else:
+        open_mode = "w"
+    file_to_append = open(path_to_textfile, open_mode)
+    print >> file_to_append, str_to_append
+
+def replace_keywords_in_textfile(path_to_textfile, dict_for_replacing, new_output_path=None):
+    """
+    This function replaces all keywords in a textfile with the corresponding values in the dictionary.
+    E.g.: A textfile with the content "%(This)s will be replaced!" and the dict {"This":"xyz"} results 
+    to the change "xyz will be replaced!" in the textfile.
+    :parameters:
+        new_output_path:string
+            If new_output_path is None, then the source file will be replaced.
+    """
+    if new_output_path is None:
+        destination_file = path_to_textfile
+    else:
+        destination_file = new_output_path
+    
+    all_lines = read_all_lines_in_textfile(path_to_textfile)    
+    lines_with_replaced_keys = all_lines % dict_for_replacing
+    append_string_to_textfile(destination_file, lines_with_replaced_keys)
