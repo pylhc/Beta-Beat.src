@@ -2135,7 +2135,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
 
     maskfile=os.path.join(cpath,'SegmentBySegment','job.InterpolateBetas.0_2_dev.mask')
 
-    # read mask file, replace all dict_for_replacing and write to mad file:
+    # read mask file, replace all keys and write to mad file:
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, madfilename)
 
     runmad(path,name)
@@ -2179,7 +2179,7 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
 
     plotscript=os.path.join(path,'gplot_'+name)
 
-    # read mask file, replace all dict_for_replacing and write to plot script:
+    # read mask file, replace all keys and write to plot script:
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, plotscript)
 
     os.system("gnuplot "+plotscript)

@@ -1,2 +1,0 @@
-python SegmentBySegment_0.0.py -a LHCB2 -p test2/ -s BPM.13R3.B2 -e BPM.13L4.B2 -l ARC34
-
