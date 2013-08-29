@@ -1,8 +1,11 @@
+import sys
+sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
+
+
 try:
 	from metaclass import *
 except:
 	from metaclass25 import *
-
 from optparse import OptionParser
 import sys
 
@@ -23,11 +26,16 @@ parser.add_option("-f", "--fast",
 parser.add_option("-e", "--exp", 
                 help="path to experimental files, only used if fast!=1",
                 metavar="EXP", default="./", dest="exp")
-
-
 parser.add_option("-s", "--start", 
                 help="Start BPM",
                 metavar="START", default="./", dest="start")
+parser.add_option("-m", "--method", 
+                help="Method",
+                metavar="ME", default="_free", dest="ME")
+parser.add_option("-w", "--w", # Path to Chromaticity functions
+                    help="Path to  chromaticity functions, by default this is skiped",
+                    metavar="wpath", default="0", dest="wpath")
+
 
 
 
@@ -36,7 +44,9 @@ parser.add_option("-s", "--start",
 
 
 Model=twiss(options.path+"/twiss_"+options.label+".dat")
-
+method=options.ME
+if method=="driven":
+	method=""
 
 
 
@@ -62,7 +72,7 @@ f.close()
 
 #
 # Continue only  if fast option is not 1
-# to write all f terms in coupling output
+# to write all f terms,phase, Disp and W in files
 #
 
 
@@ -71,8 +81,9 @@ if options.fast != "1":
 
 
     data=open(options.path+'/sbscouple_'+options.label+'.out','w')
-    coupexp=twiss(options.exp+'/getcouple.out')
-    ModelPlay=twiss(options.path+"/twiss_"+options.label+"_play.dat")
+    coupexp=twiss(options.exp+'/getcouple'+method+'.out')
+    print options.exp
+    ModelPlay=twiss(options.path+"/twiss_"+options.label+"_cor.dat")
     ModelPlay.Cmatrix()
     print >> data,'* NAME   S   f1001 f1001re  f1001im    f1010   f1010re   f1010im  f1001_EXP f1001err_EXP  f1001re_EXP  f1001im_EXP    f1010_EXP  f1010err_EXP   f1010re_EXP   f1010im_EXP     f1001_PLAY   f1001re_PLAY  f1001im_PLAY    f1010_PLAY   f1010re_PLAY   f1010im_PLAY  S_MODEL'
     print >> data,'$  %s    %le   %le    %le  %le   %le    %le    %le  %le   %le    %le  %le   %le    %le    %le   %le  %le   %le    %le    %le   %le  %le %le'
@@ -117,8 +128,8 @@ if options.fast != "1":
 
     t=Model
     tp=ModelPlay
-    px=twiss(options.exp+'/getphasetotx.out')
-    py=twiss(options.exp+'/getphasetoty.out')
+    px=twiss(options.exp+'/getphasetotx'+method+'.out')
+    py=twiss(options.exp+'/getphasetoty'+method+'.out')
 
 
 
@@ -192,6 +203,101 @@ if options.fast != "1":
 
 
     fx.close()
+
+#
+#   W functions
+#
+
+    if options.wpath!="0":
+        try:
+            wx=twiss(options.wpath+'/wx.out')
+            wy=twiss(options.wpath+'/wy.out')
+            print "W files loaded correctly"
+        except:
+            print "No or corrupted W files, skipping"
+            options.wpath="0"
+            
+    if options.wpath!="0":
+        # First WX
+        fx= open(options.path+'/sbsWx_'+IP+'.out','w')
+        print >> fx,"* NAME  S  WX   WXERR WX_MDL WX_PLAY  PHIX PHIXERR PHIX_MDL PHIX_PLA    MODEL_S "
+        print >> fx,"$ %s   %le  %le   %le  %le    %le     %le %le  %le    %le     %le "
+        bpmsx=modelIntersect(t, wx)
+        for el in bpmsx:
+            tindx=t.indx[el[1]]
+            tpindx=tp.indx[el[1]]
+            wxindx=wx.indx[el[1]]
+            print >>fx, el[1], wx.S[wxindx], wx.WX[wxindx], wx.WXERR[wxindx], t.WX[tindx], tp.WX[tpindx], wx.PHIX[wxindx],wx.PHIXERR[wxindx], t.PHIX[tindx], tp.PHIX[tpindx],   t.S[tindx]
+        fx.close()
+        # Now WY
+        fx= open(options.path+'/sbsWy_'+IP+'.out','w')
+        print >> fx,"* NAME  S  WY   WYERR WY_MDL WY_PLAY  PHIY PHIYERR PHIY_MDL PHIY_PLAY      MODEL_S "
+        print >> fx,"$ %s   %le  %le   %le  %le    %le     %le  %le %le %le %le "
+        bpmsx=modelIntersect(t, wy)
+        for el in bpmsx:
+            tindx=t.indx[el[1]]
+            tpindx=tp.indx[el[1]]
+            wyindx=wy.indx[el[1]]
+            print >>fx, el[1], wy.S[wyindx], wy.WY[wyindx], wy.WYERR[wyindx], t.WY[tindx], tp.WY[tpindx], wy.PHIY[wyindx],wy.PHIYERR[wyindx], t.PHIY[tindx], tp.PHIY[tpindx] ,  t.S[tindx]
+        fx.close()
+        
+
+
+
+#
+# Dispersion
+#
+  
+    try:
+      dx=twiss(options.exp+'/getDx.out')
+      ndx=twiss(options.exp+'/getNDx.out')
+      dy=twiss(options.exp+'/getDy.out')
+      print "All dispersion files loaded"
+      
+    except:
+      print "No or bad dispersion files in exp dir"
+      sys.exit()
+    # Writting Dx:
+    fx= open(options.path+'/sbsDx_'+IP+'.out','w')
+    print >> fx,"* NAME  S  DX   STDDX DX_MDL DX_PLAY MODEL_S "
+    print >> fx,"$ %s   %le  %le   %le  %le    %le     %le "
+    bpmsx=modelIntersect(t, dx)
+    for el in bpmsx:
+      tindx=t.indx[el[1]]
+      tpindx=tp.indx[el[1]]
+      dxindx=dx.indx[el[1]]
+      print >>fx, el[1], dx.S[dxindx], dx.DX[dxindx], dx.STDDX[dxindx], t.DX[tindx], tp.DX[tpindx], t.S[tindx]
+    fx.close()
+
+    # Writing Dy
+    fx= open(options.path+'/sbsDy_'+IP+'.out','w')
+    print >> fx,"* NAME  S  DY   STDDY DY_MDL DY_PLAY MODEL_S "
+    print >> fx,"$ %s   %le  %le   %le  %le    %le     %le "
+    bpmsx=modelIntersect(t, dy)
+    for el in bpmsx:
+        tindx=t.indx[el[1]]
+        tpindx=tp.indx[el[1]]
+        dyindx=dy.indx[el[1]]
+        print >>fx, el[1], dy.S[dyindx], dy.DY[dyindx], dy.STDDY[dyindx], t.DY[tindx], tp.DY[tpindx], t.S[tindx]
+    fx.close()
+
+    # Writing NDx
+    fx= open(options.path+'/sbsNDx_'+IP+'.out','w')
+    print >> fx,"* NAME  S  NDX   STDNDX NDX_MDL NDX_PLAY MODEL_S "
+    print >> fx,"$ %s   %le  %le   %le   %le    %le     %le "
+    bpmsx=modelIntersect(t, ndx)
+    for el in bpmsx:
+      tindx=t.indx[el[1]]
+      tpindx=tp.indx[el[1]]
+      dxindx=ndx.indx[el[1]]
+      print >>fx, el[1], ndx.S[dxindx], ndx.NDX[dxindx], ndx.STDNDX[dxindx], t.DX[tindx]/sqrt(t.BETX[tindx]), tp.DX[tpindx]/sqrt(tp.BETX[tpindx]), t.S[tindx]
+    fx.close()
+
+
+
+
+
+
 
 
 

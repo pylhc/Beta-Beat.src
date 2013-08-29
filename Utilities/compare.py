@@ -11,7 +11,7 @@ import os
 
 import Utilities
 
-def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=[]):
+def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=None):
     """ 
     Compares file in given dirs by going through each line, spliting line and trying to parse to 
     double and comparing double with epsilon value. 
@@ -20,7 +20,8 @@ def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=[]):
     if Utilities.iotools.no_dirs_exist(dir1, dir2):
         print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."
         return False
-    
+    if except_files is None:
+        except_files = []
     dir1_items = sorted(os.listdir(dir1))
     dir2_items = sorted(os.listdir(dir2))
     
