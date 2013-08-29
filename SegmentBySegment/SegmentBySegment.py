@@ -2170,11 +2170,11 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
          )
 
     if (name=="IP8" and accel=="LHCB2") or (name=="IP2" and accel=="LHCB1"):
-        maskfile='gplot.IP2IP8.0_3.mask'
+        maskfile='gplot.IP2IP8.mask'
     elif "RHIC" in options.accel:
-        maskfile='gplot.0_1_RHIC.mask'
+        maskfile='gplot_RHIC.mask'
     else:
-        maskfile='gplot.0_3.mask'
+        maskfile='gplot.mask'
     maskfile=os.path.join(cpath,'SegmentBySegment',maskfile)
 
     plotscript=os.path.join(path,'gplot_'+name)
