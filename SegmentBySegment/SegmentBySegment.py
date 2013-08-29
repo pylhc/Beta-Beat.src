@@ -2133,7 +2133,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
             WPATH=options.wpath
             )
 
-    maskfile=os.path.join(cpath,'SegmentBySegment','job.InterpolateBetas.0_2_dev.mask')
+    maskfile=os.path.join(cpath,'SegmentBySegment','job.InterpolateBetas.mask')
 
     # read mask file, replace all keys and write to mad file:
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, madfilename)
