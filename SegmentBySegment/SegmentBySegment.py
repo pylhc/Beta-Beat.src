@@ -68,7 +68,8 @@ import math
 
 import numpy as np
 
-import __init__
+import __init__ # @UnusedImport used for appending paths
+import Utilities.iotools
 try:
     from metaclass import twiss
 except:
@@ -2074,7 +2075,7 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
     madfilename=os.path.join(path,'t_'+str(name)+'.madx')
     
 #WARNING we are using f1001std here as before instead of f1010std which is not defined
-    variables=dict(
+    dict_for_replacing=dict(
             BETX=betx,
             BETY=bety,
             ERRBETX=errbetx,
@@ -2134,8 +2135,8 @@ def run4mad(path,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,name, fs, exppath,twis
 
     maskfile=os.path.join(cpath,'SegmentBySegment','job.InterpolateBetas.0_2_dev.mask')
 
-    # read mask file, replace all variables and write to mad file:
-    file(madfilename,'w').write(file(maskfile,'r').read() % variables)
+    # read mask file, replace all dict_for_replacing and write to mad file:
+    Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, madfilename)
 
     runmad(path,name)
 
@@ -2155,7 +2156,7 @@ def runmad(path,name):
 def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
     if method=="driven": method=""   # patch to make it work at inj. rogelio
         
-    variables=dict(
+    dict_for_replacing=dict(
             PATH=path,
             EndPoint=epos,
             StartPoint=spos,
@@ -2178,8 +2179,8 @@ def run4plot(path,spos,epos,beta4plot,cpath,meapath,name,qx,qy,accel,method):
 
     plotscript=os.path.join(path,'gplot_'+name)
 
-    # read mask file, replace all variables and write to plot script:
-    file(plotscript,'w').write(file(maskfile,'r').read() % variables) 
+    # read mask file, replace all dict_for_replacing and write to plot script:
+    Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, plotscript)
 
     os.system("gnuplot "+plotscript)
 

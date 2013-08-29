@@ -154,8 +154,7 @@ def read_all_lines_in_textfile(path_to_textfile):
         print >> sys.stderr, "read_all_lines_in_textfile: File does not exist:",path_to_textfile
         return ""
     textfile = open(path_to_textfile, "r")
-    list_of_lines = textfile.readlines()
-    return "".join(list_of_lines)
+    return textfile.read()
     
 def append_string_to_textfile(path_to_textfile, str_to_append):
     """ If file does not exist, a new file will be created. """
