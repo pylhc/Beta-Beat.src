@@ -1,17 +1,16 @@
 #!/afs/cern.ch/eng/sl/lintrack/Python-2.5_32bit/Python-2.5_32bit/bin/python
 import sys,os,re
 try:
+    from metaclass import twiss
     from numpy import *; svd=linalg.svd; fftt=fft.fft
     from rhicdata25 import rhicdata;
-    from metaclass25 import twiss
 except ImportError:
     try:
-        from Numeric import *; from FFT import fft as fftt 
+        from Numeric import *; from FFT import fft as fftt
         from rhicdata import rhicdata
-        from metaclass import twiss
         from LinearAlgebra import singular_value_decomposition as svd
     except ImportError: print "Numpy/Numeric not found";sys.exit()
-    
+
 from string import split, replace
 from operator import mod
 from optparse import OptionParser
@@ -19,7 +18,7 @@ tp=transpose;ctn=concatenate
 
 def parsse():
     parser = OptionParser()
-    parser.add_option("-a", "--accel", 
+    parser.add_option("-a", "--accel",
                       help="Accelerator: LHCB1 LHCB2 SPS RHIC",
                       metavar="ACCEL", default="LHCB1",dest="ACCEL")
     parser.add_option("-p", "--path",
@@ -42,7 +41,7 @@ def parsse():
 
 def writexy(filename, aDD):
     print filename
-    f=open(filename+'_svdx','w')    
+    f=open(filename+'_svdx','w')
     f.write('@ Q1 %le '+str(Q1)+'\n'+'@ Q1RMS %le '+str(Q1RMS)+'\n')
     f.write('* NAME  S   BINDEX SLABEL  TUNEX   MUX  AMPX'+\
             '  NOISE   PK2PK  AMP01 PHASE01 CO C11 C12 C21 C22\n')
@@ -54,7 +53,7 @@ def writexy(filename, aDD):
               AMP01,PHASE01,COX[j],C11[j],C12[j],C21[j],C22[j]
     f.close()
 
-    f=open(filename+'_svdy','w') 
+    f=open(filename+'_svdy','w')
     f.write('@ Q2 %le '+str(Q2)+'\n'+'@ Q2RMS %le '+str(Q2RMS)+'\n')
     f.write('* NAME  S   BINDEX SLABEL  TUNEY   MUY  AMPY'+\
             '  NOISE   PK2PK  AMP10 PHASE10 CO C11 C12 C21 C22\n')
@@ -79,16 +78,16 @@ def nHist(BBX,BBY,filename,nbinx=70,nbiny=70):
     for j in range(nbinx): print >> fx, ax[1][j], ax[0][j]
     for j in range(nbinx): print >> fy, ay[1][j], ay[0][j]
     fx.close(); fy.close()
-     
+
 def bMat(aa):
     xD=[];yD=[]
-    for j in aa.H: 
+    for j in aa.H:
       xD.append(j.data)
-    for j in aa.V: 
+    for j in aa.V:
       yD.append(j.data)
     return tp(array(xD)),tp(array(yD))
-    
-def phBeta(L1,L2): 
+
+def phBeta(L1,L2):
     #L1=S1*V1;L2=S2*V2
     phase=arctan2(L1,L2)/2./pi
     amp=(L1**2+L2**2)
@@ -102,7 +101,7 @@ def phAdv(phase,bm=1):
         while phadv<0: phadv=phadv+1.0
         adv.append(phadv)
     return adv
-    
+
 def ptp(BB):
     co=[]; ptop=[]
     for j in range(shape(BB)[1]):
@@ -139,12 +138,12 @@ def checkTune(q1,q2):
     if q1> 0.5: q1=1-q1;
     if q2> 0.5: q2=1-q2
     if q1< 0.0: q1=q1 % 1.0;
-    if q2< 0.0: q2=q2 % 1.0 
+    if q2< 0.0: q2=q2 % 1.0
     return q1, q2
 
 def rinput(drr='./'):
     global qx0, qy0, win
-    
+
     try:
         ff=open(drr+'/DrivingTerms').readline()
         FLE=ff.split()[0];NTR=float(ff.split()[2])
@@ -157,11 +156,11 @@ def rinput(drr='./'):
     except IOError:
         print "Drive.inp -or- DrivingTerms not in",drr
         print 'exiting...'
-        sys.exit()        
+        sys.exit()
     return FLE, NTR
 
 def fmod(BB,m1=0,m2=1,m3=2,m4=3,tol=10.0):
-    BB=(BB-average(BB,0))/sqrt(len(BB))    
+    BB=(BB-average(BB,0))/sqrt(len(BB))
     U,S,V = svd(BB,full_matrices=0)
     if S[m1]/S[m2]>tol:
         print "warning: singular vals are very different"
@@ -172,10 +171,10 @@ def fmod(BB,m1=0,m2=1,m3=2,m4=3,tol=10.0):
 def pUSV(U,V,ss,st=0,nm=4):
     F=abs(fftt(U,axis=0));F0=arange(len(F))/1.0/len(F)
     k=0;jj=arange(nm*3)+1
-    for j in range(st,st+nm):        
+    for j in range(st,st+nm):
         pylab.subplot(nm,3,jj[k]);pylab.plot(U[:,j]);k+=1
         pylab.subplot(nm,3,jj[k]);pylab.plot(F0,F[:,j]);k+=1
-        pylab.subplot(nm,3,jj[k]);pylab.plot(V[j,:]);k+=1    
+        pylab.subplot(nm,3,jj[k]);pylab.plot(V[j,:]);k+=1
     pylab.show()
 
 def wUSV(filename,BB,ss,nm=20):
@@ -216,7 +215,7 @@ def bMatXY(aa):
     return ctn((BBX,BBY),1)
 
 def fmodXY(BB,m1=0,m2=1,m3=2,m4=4,tol=10.0):
-    BB=(BB-average(BB,0))/sqrt(len(BB))    
+    BB=(BB-average(BB,0))/sqrt(len(BB))
     U,S,V = svd(BB,full_matrices=0)
     if S[m1]/S[m2]>tol or S[m3]/S[m4]>tol:
         print "warning: singular vals are very different"
@@ -226,7 +225,7 @@ def fmodXY(BB,m1=0,m2=1,m3=2,m4=4,tol=10.0):
 
 def fPeak(UU):
     try: from SussixBS import *
-    except: from SussixBS32 import * 
+    except: from SussixBS32 import *
     print "Sussix input:",qx0,qy0
     sussix_inp(ir=1,turns=len(UU),tunex=qx0,tuney=qy0,\
                istun=0.02,idam=2,narm=100)
@@ -245,7 +244,7 @@ def projA(BB,U,S,V,pln):
     for k in range(4):
         BBR.append([dot(BB[:,j],CS[:,k]) for j in range(NBP)])
     BBR=array(BBR)
-    
+
     try: BBR=dot(linalg.inv(dot(BBR,tp(BBR))), BBR)
     except: raise ValueError, "Singular Matrix"
     SVT=dot(S*identity(4), tp(V))
@@ -270,7 +269,7 @@ def calC21(k11,k12,k22,ph1,ph2):
                - k12[0])/(sin(PH1[j])*sin(PH2[j])))
     return k21
 
-def cMatXY(V1,XL):    
+def cMatXY(V1,XL):
     print 'calculating C Matrix ...'
     A=sqrt(sum(V1[0:2,:]**2,0));B=sqrt(sum(V1[2:4,:]**2,0))
     Ra = V1[0:2,:]/reshape(ctn((A,A)),(2, 2*XL))
@@ -287,10 +286,10 @@ def cMatXY(V1,XL):
     c21=calC21(c11,c12,c22,PHX,PHY)
     #Jratio = abs((A/At/sCa)/(B/Bt/sCb))
     return c11,c12,c21,c22
-    
+
 
 def cMat(U1,V1,U2,V2):
-    print 'calculating C matrix ...'    
+    print 'calculating C matrix ...'
     nbx=shape(V1)[1];nby=shape(V2)[1]
     A=sqrt(sum(V1[0:2,:]**2,0));At=sqrt(sum(V1[2:4,:]**2,0))
     B=sqrt(sum(V2[0:2,:]**2,0));Bt=sqrt(sum(V2[2:4,:]**2,0))
@@ -298,23 +297,23 @@ def cMat(U1,V1,U2,V2):
     Rca=V1[2:4,:]/reshape(ctn((At,At)),(2, nbx))
     Rb=V2[0:2,:]/reshape(ctn((B,B)),(2,nby))
     Rcb=V2[2:4,:]/reshape(ctn((Bt,Bt)),(2,nby))
-        
+
     J = reshape(array([0,1,-1,0]),(2,2))
     cCa=tp(diagonal(dot(tp(Rb),Rca)))
     sCa=tp(diagonal(dot(tp(Rb), dot(J, Rca))))
     cCb=tp(diagonal(dot(tp(Ra),Rcb)))
-    sCb=tp(diagonal(dot(tp(Ra), dot(J, Rcb))))        
+    sCb=tp(diagonal(dot(tp(Ra), dot(J, Rcb))))
     O=dot(tp(U1),ctn((U2[:,2:4], U2[:,0:2]),axis=1))
-        
+
     O[0:2,0:2] = O[0:2,0:2]/sqrt(abs(linalg.det(O[0:2,0:2])))
     O[2:4,2:4] = O[2:4,2:4]/sqrt(abs(linalg.det(O[2:4,2:4])))
     ppp = shape(ctn((cCa, sCa),0))[0]
-    
+
     R=dot(tp(O[2:4,2:4]),reshape(ctn((cCa, sCa)),(2,ppp/2)))
     cCa = R[0,:];sCa = R[1,:]
     R=dot(tp(O[0:2,0:2]),reshape(ctn((cCb, sCb)),(2,ppp/2)))
     cCb = R[0,:];sCb = R[1,:]
-    
+
     c12=sqrt((At*Bt)*sCa*sCb/(A*B))*sign(sCa)
     c11=c12*cCa/sCa; c22 = -c12*cCb/sCb
     c21=calC21(c11,c12,c22,PHX,PHY)
@@ -334,11 +333,11 @@ def findPairs(xx,yy,sr=0):
     return prx, pry
 
 if __name__ == "__main__":
-    
+
     #-- Input options
     opt,args=parsse()
     file, NTURNS=rinput(opt.PATH)
-    print "Input File:", file    
+    print "Input File:", file
     BLABEL=0;SLABEL=0;AMP01=0;PHASE01=0
 
     #--- read tbt input
@@ -355,7 +354,7 @@ if __name__ == "__main__":
     wUSV(file,bx,sx);
     if opt.CALC=="1":
         print "Writing SVD modes only";sys.exit()
-    
+
     #-- Tunes, CO, PTOP & Noise
     TUNEX, TUNEY=fTune(bx,by)
     Q1=average(TUNEX); Q2=average(TUNEY)
@@ -363,7 +362,7 @@ if __name__ == "__main__":
     Q1RMS=std(TUNEX); Q2RMS=std(TUNEY)
     COX, PK2PKX=ptp(bx); COY, PK2PKY=ptp(by)
     NOISEX=noise(bx); NOISEY=noise(by)
-    
+
     #--- find modes & compute phadv(x,y)
     if opt.MODE=="0": #--- ph/amp from uncoupled case
         Ux,Sx,Vx=fmod(bx,m1=0,m2=1,m3=2,m4=3)
@@ -387,7 +386,7 @@ if __name__ == "__main__":
         #except:
         #    C11=zeros(len(AMPX));C12=C11;C21=C11;C22=C11
         #    print "Coupling info not available"
-    elif opt.MODE=="2": 
+    elif opt.MODE=="2":
         bxy=bMatXY(aD);sxy=ctn((sx,sy))
         u,s,v=fmodXY(bxy,m1=0,m2=1,m3=2,m4=3)
         print "Sing vals, X:", round(s[0],3),round(s[1],3)
@@ -407,7 +406,7 @@ if __name__ == "__main__":
     #pylab.scatter(sx[1:],adx);pylab.show()
     #pylab.plot(sx,AMPX);pylab.show()
     #sys.exit()
-    
+
     #-- write svdx & svdy
     writexy(file, aD)
     nHist(NOISEX, NOISEY,file,nbinx=45,nbiny=140)

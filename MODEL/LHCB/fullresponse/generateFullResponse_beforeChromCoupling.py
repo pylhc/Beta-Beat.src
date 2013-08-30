@@ -11,10 +11,7 @@ except:
 from os import system
 import math
 import pickle
-try:
-    from metaclass import twiss
-except:
-    from metaclass25 import twiss
+from metaclass import twiss
 from optparse import OptionParser
 
 

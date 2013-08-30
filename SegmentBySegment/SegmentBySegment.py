@@ -70,10 +70,7 @@ import numpy as np
 
 import __init__ # @UnusedImport used for appending paths
 import Utilities.iotools
-try:
-    from metaclass import twiss
-except:
-    from metaclass25 import twiss
+from metaclass import twiss
 
 
 

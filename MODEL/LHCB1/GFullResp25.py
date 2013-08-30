@@ -4,7 +4,7 @@ import sys
 from os import system
 import math
 from numpy import *
-from metaclass25 import twiss
+from metaclass import twiss
 import pickle
 from AllLists import *
 

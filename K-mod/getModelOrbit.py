@@ -1,9 +1,6 @@
 import sys, os
 from optparse import OptionParser
-try:
-	from metaclass25 import *
-except:
-	from metaclass import *
+from metaclass import *
 
 
 parser = OptionParser()
@@ -29,7 +26,7 @@ if start=="0":
         start="MSIA.EXIT.B1"
     elif accel=="LHCB2":
         start="MKI.A5R8.B2"
-    
+
 
 dic={"Q1R1":["MQXA.1R1"],
      "Q1L1":["MQXA.1L1"],
@@ -60,7 +57,7 @@ print "Quads:", quads, len(quads)
 fs=open('SelectQuad.madx', "w")
 fc=open('ChangeQuad.madx', "w")
 for i in range(len(quads)):
-    
+
     print >>fs, "SELECT, FLAG=ERROR, RANGE=",quads[i],";"
     print >>fc, quads[i]+"->K1=",quads[i]+"->K1+ (",value,");"
 fc.close()

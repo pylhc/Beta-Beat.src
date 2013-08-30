@@ -9,14 +9,7 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 #--- beta beat for store with numpy
 
 import pickle
-#try:
 from metaclass import twiss
-#except:
-#       from metaclass25 import twiss
-#try:
-#       from Numeric import *
-#       from LinearAlgebra import *
-#except:
 from numpy import *
 
 #from numpy.oldnumeric.linear_algebra import generalized_inverse

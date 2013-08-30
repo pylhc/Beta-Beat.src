@@ -1,11 +1,11 @@
-from metaclass25 import *
+from metaclass import *
 from numpy import *
 from string import *
 import sys, pickle
 #import operator
 
 #------------
-def intersect(xx): 
+def intersect(xx):
 	'''Pure intersection of all bpm names in all files '''
 	z=xx[0].NAME
 	#print xx
@@ -15,8 +15,8 @@ def intersect(xx):
 	result=[]
 	x0=xx[0]
 	for bpm in z:
-		result.append((x0.S[x0.indx[bpm]], upper(bpm)))	
-		
+		result.append((x0.S[x0.indx[bpm]], upper(bpm)))
+
 	result.sort()
 	#print result
 	return result
@@ -29,7 +29,7 @@ x1=[]
 #---- Find index of python command in the system call
 i=0
 for entry in sys.argv:
-	if '.py' in entry: 
+	if '.py' in entry:
 		indpy=i
 		break
 	i=i+1

@@ -3,7 +3,7 @@
 #!/usr/bin/env pythonafs
 
 
-# Just to make sure that the path to the libraires is defined 
+# Just to make sure that the path to the libraires is defined
 import sys
 #sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
@@ -11,10 +11,7 @@ import sys
 #--- beta beat for store with numpy
 
 import pickle
-try:
-	from metaclass import twiss
-except:
-	from metaclass25 import twiss
+from metaclass import twiss
 try:
 	from Numeric import *
 	from LinearAlgebra import *
@@ -35,13 +32,13 @@ from GenMatrix_coupleDy import *
 
 
 parser = OptionParser()
-parser.add_option("-a", "--accel", 
+parser.add_option("-a", "--accel",
 		 help="What accelerator: LHCB1 LHCB2 SPS RHIC",
 		 metavar="ACCEL", default="LHCB1",dest="ACCEL")
-#parser.add_option("-t", "--tech", 
+#parser.add_option("-t", "--tech",
 		 #help="Which algorithm: SVD MICADO",
 		 #metavar="TECH", default="SVD",dest="TECH")
-#parser.add_option("-n", "--ncorr", 
+#parser.add_option("-n", "--ncorr",
 		 #help="Number of Correctors for MICADO",
 		 #metavar="NCORR", default=5,dest="ncorr")
 parser.add_option("-p", "--path",
@@ -127,7 +124,7 @@ listvar=options.var.split(",")
 print listvar
 varslist=[]
 for var in listvar:
-    
+
     exec('variable='+var+'()')
     varslist=varslist+variable
 
@@ -187,15 +184,15 @@ if options.ACCEL=="SPS":
 	h=open(options.path+"/changeparameters_couple.madx","w")
         f.write("#PLANE V\n")
 	f.write("#UNIT RAD\n")
-	
+
         g.write("* NAME  DELTA \n")
         g.write("$ %s    %le   \n")
-	
+
 	plane = 'V'
 	beam = '1'
 	for vcorr in vcorrsYASP:
 		print >>f, "#SETTING", vcorr,  vcorrsYASP[vcorr]
-		
+
 	for vcorr in vcorrs:
                 print >>g, "K"+vcorr, vcorrs[vcorr]
 		print >>h, vcorr,"->KICK:=",vcorrs[vcorr],";"
@@ -246,7 +243,7 @@ if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
 
 
 	    else:
-	    
+
 		    if cmp(delta[i],0)==1:
 			    mad.write(names[i]+" = "+names[i]+" + "+str(delta[i])+";\n");
 		    else:
@@ -257,6 +254,6 @@ if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
 
     mad.close()
 
-    
+
 
 print "Correcting couple Dy finished with weight "+ str(wei)

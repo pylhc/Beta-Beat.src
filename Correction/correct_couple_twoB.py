@@ -5,10 +5,7 @@ import sys
 #--- beta beat for store with numpy
 
 import pickle
-try:
-	from metaclass import twiss
-except:
-	from metaclass25 import twiss
+from metaclass import twiss
 try:
 	from Numeric import *
 	from LinearAlgebra import *
@@ -30,13 +27,13 @@ from GenMatrix_couple_twoB import *
 
 
 parser = OptionParser()
-parser.add_option("-a", "--accel", 
+parser.add_option("-a", "--accel",
 		 help="What accelerator: LHCB1 LHCB2",
 		 metavar="ACCEL", default="LHCB1",dest="ACCEL")
-parser.add_option("-b", "--accel2", 
+parser.add_option("-b", "--accel2",
 		 help="What accelerator for another beam: LHCB1 LHCB2",
 		 metavar="ACCEL2", default="LHCB2",dest="ACCEL2")
-parser.add_option("-t", "--tech", 
+parser.add_option("-t", "--tech",
 		 help="Which algorithm: SVD MICADO",
 		 metavar="TECH", default="SVD",dest="TECH")
 parser.add_option("-p", "--path",
@@ -78,7 +75,7 @@ parser.add_option("-w", "--weight",
 
 (options, args) = parser.parse_args()
 
-    
+
 
 print "Selected accelerator:", options.ACCEL
 print "Path to measurements:", options.path
@@ -95,7 +92,7 @@ print "Minimum corrector strength", MinStr
 
 j=int(options.JustOneBeam)
 ##### implementing cuts for
-    
+
 modelcutC=float(options.modelcut.split(",")[0])
 errorcutC=float(options.errorcut.split(",")[0])
 modelcutD=float(options.modelcut.split(",")[1])
@@ -139,7 +136,7 @@ varslist=[]
 for var in listvar:
     exec('variable='+var+'()')
     varslist=varslist+variable
-    
+
 variables=varslist
 
 
@@ -174,8 +171,8 @@ if j==1:
 
 
 print deltas
-    
-        
+
+
 if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
     system("cp "+options.path+"/changeparameters.tfs "+options.path+"/changeparameters.knob")
 
@@ -196,4 +193,4 @@ if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
     mad.write("return;");
 
     mad.close()
-    
+

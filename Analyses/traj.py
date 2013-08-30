@@ -3,7 +3,7 @@ import os, sys,gzip,pylab, re, time
 from string import split
 from YASPmetaclassLHC import YASPtwiss
 from operator import mod
-from metaclass25 import twiss
+from metaclass import twiss
 
 def readYASP(filename):
     B1H={};B2H={};B1V={};B2V={};ctM=0
@@ -16,7 +16,7 @@ def readYASP(filename):
             label=cl[1:]
             for j in cl[1:]:
                 B1H[j]=[];B1V[j]=[];B2H[j]=[];B2V[j]=[]
-        
+
         if ("BPM" in line and "B1" in line and "H" in line) :
             for j in range(2,len(cl)-1):
                 B1H[label[j]].append(float(cl[j]))
@@ -81,7 +81,7 @@ def syby(aa):
         SY.append(b.S[b.indx[aa.VNAME[k]]])
         BETY.append(b.BETY[b.indx[aa.VNAME[k]]])
     return array(SY), array(BETY)
-    
+
 def phase(b):
     mux=b.MUX[1:]-b.MUX[0:-1]
     muy=b.MUY[1:]-b.MUY[0:-1]
@@ -98,8 +98,8 @@ if __name__ == "__main__":
         if 0<aper.APER_1[j]<1 and 0<aper.APER_2[j]<1:
             app.append([aper.S[j], aper.APER_1[j], aper.APER_2[j]])
     app=array(app)
-    
-    
+
+
     dir='/user/slops/data/LHC_DATA/OP_DATA/FILL_DATA/5/'
     x=[];y=[];sx=[];sy=[]
     for j in os.listdir(dir):
@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 #pylab.ylabel("Hor Orbit [sigx units]",fontsize=20)
                 pylab.ylabel("Hor Orbit [mm]",fontsize=20)
                 pylab.xlabel("Longitudinal Position [km]",fontsize=20)
-                
+
                 if len(a.HCO)==73:
                     x.append(a.HCO[6:-7])
         if re.match('TRAJ_LHCRING_10-08-08_0[2-3]',j) \
@@ -129,7 +129,7 @@ if __name__ == "__main__":
                 sy,betay=syby(a)
                 orby=a.VCO[st:]#/sqrt(2*betay*ey*1e6)
                 pylab.subplot(212);pylab.plot(sy/1e3,orby);
-                
+
                 #pylab.ylabel("Ver Orbit [sigy units]",fontsize=20)
                 pylab.ylabel("Ver Orbit [mm]",fontsize=20)
                 pylab.xlabel("Longitudinal Position [km]",fontsize=20)
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     pylab.text(4,12,"Ver Aper Scan LHC Sector 2-3",fontsize=20)
     #pylab.text(4,12,"Ver Bump Scan LHC IR3 region",fontsize=20)
     pylab.show();sys.exit()
-    
+
     x=array(x);y=array(y);x=x[:41,:]
     print shape(x), shape(y)
     #ssx,ssy=scoord(b,sx,sy)
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     #pylab.subplot(212);pylab.plot(ssx, betax/22)
     #pylab.plot(b.S[140:230], b.BETX[140:230])
     #pylab.subplot(412);pylab.plot(phiy)
-    
+
     #pylab.subplot(414);pylab.plot(betay)
     #pylab.show()
     pplot(concatenate((x,y),1))

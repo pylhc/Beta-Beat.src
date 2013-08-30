@@ -4,7 +4,7 @@
 import sys,os,time
 from numpy import *; svd=linalg.svd; fftt=fft.fft
 from rhicdata25 import rhicdata;
-from metaclass25 import twiss
+from metaclass import twiss
 from string import split, replace
 from operator import mod
 from optparse import OptionParser
@@ -14,9 +14,9 @@ tp=transpose;ctn=concatenate
 
 
 def parsse():
-    mode={"0":"uncoupled", "1":"coupled", "2":"Concatenated"} 
+    mode={"0":"uncoupled", "1":"coupled", "2":"Concatenated"}
     parser = OptionParser()
-    parser.add_option("-a", "--accel", 
+    parser.add_option("-a", "--accel",
                       help="Accelerator: LHCB1 LHCB2 SPS RHIC",
                       metavar="ACCEL", default="LHCB1",dest="ACCEL")
     parser.add_option("-p", "--path",
@@ -47,7 +47,7 @@ def checkTune(q1,q2):
     if q1>0.5: q1=1-q1
     if q2>0.5: q2=1-q2
     if q1<0.0: q1=q1%1.0
-    if q2<0.0: q2=q2%1.0 
+    if q2<0.0: q2=q2%1.0
     return q1, q2
 
 def rinput(drr='./'):
@@ -71,11 +71,11 @@ def rinput(drr='./'):
 
 def bMat(aa,nturns,kick):#adjusted by Glenn
 
-    xD=tp(array([j.data[kick:nturns] for j in aa.H]))    
+    xD=tp(array([j.data[kick:nturns] for j in aa.H]))
     yD=tp(array([j.data[kick:nturns] for j in aa.V]))
     #xD=tp(array([j.data[500:] for j in aa.H]))
     #yD=tp(array([j.data[500:] for j in aa.V]))
-    
+
     sx=array([j.location for j in aD.H])
     sy=array([j.location for j in aD.V])
     return xD,yD,sx,sy
@@ -149,7 +149,7 @@ def peak(dt,q1,q2):
     ym1=dt[indx-1];y0=dt[indx];y1=dt[indx+1]
     if ym1!=0.0 and y0!=0.0 and y1!=0.0:
         #--- quad interpolation
-        p = x0+(y1-ym1)/(2*(2*y0-y1-ym1))/lg 
+        p = x0+(y1-ym1)/(2*(2*y0-y1-ym1))/lg
         y = y0-0.25*(ym1-y1)*p
         a = 0.5*(ym1-2*y0+y1)
     else: p = 0.0; y=0.0; a=0.0
@@ -165,9 +165,9 @@ def findmodes(FREQ,q0,tol=0.1):
             mm.append(j)
         else:  print "Tunes outside window", fr/row, "mode",j
         if len(mm)==2: break
-    
+
     return mm
-    
+
 def ptp(data):
     co=[]; ptop=[]; row,col=shape(data)
     for j in range(col):
@@ -182,7 +182,7 @@ def computeSVD(data,level=20):
     else: NOISE=data[0,:]*0.0
     return U,S,tp(V),NOISE
 
-def phBeta(L1,L2): 
+def phBeta(L1,L2):
     #L1=S1*V1;L2=S2*V2
     phase=arctan2(L1,L2)/2./pi
     amp=(L1**2+L2**2)
@@ -222,16 +222,16 @@ def pUSV(U,V,ss,st=0,nm=2):
     import pylab
     F=abs(fftt(U,axis=0));F0=fft.fftfreq(len(F))
     k=0;jj=arange(nm*3)+1;
-    for j in range(st,st+nm):        
+    for j in range(st,st+nm):
         pylab.subplot(nm,3,jj[k]);pylab.plot(U[:,j]);k+=1
         pylab.subplot(nm,3,jj[k]);pylab.plot(F0,F[:,j]);k+=1
-        pylab.subplot(nm,3,jj[k]);pylab.plot(V[j,:]);k+=1    
+        pylab.subplot(nm,3,jj[k]);pylab.plot(V[j,:]);k+=1
     pylab.show()
 
 def wrtUSV(filename,U,S,V,ss,pl=None,nm=20):
     fV=open(filename+'_V'+pl,'w');fF=open(filename+'_F'+pl,'w')
     fS=open(filename+'_S'+pl,'w');fU=open(filename+'_U'+pl,'w')
-    fS.write('* INDEX   S\n$ %le %le\n')    
+    fS.write('* INDEX   S\n$ %le %le\n')
     if nm>len(V): nm=len(V); print '# of modes =',nm
     F=abs(fftt(U,axis=0));F0=fft.fftfreq(len(F))
     fV.write('*  S  ');fF.write('*  INDEX  ');
@@ -260,7 +260,7 @@ def wrtUSV(filename,U,S,V,ss,pl=None,nm=20):
 
 def writexy(filename, aDD):
     print filename
-    f=open(filename+'_svdx','w')    
+    f=open(filename+'_svdx','w')
     f.write('@ Q1 %le '+str(Q1)+'\n'+'@ Q1RMS %le '+str(Q1RMS)+'\n')
     f.write('* NAME  S   BINDEX SLABEL  TUNEX   MUX  AMPX'+\
             '  NOISE   PK2PK  AMP01 PHASE01 CO C11 C12 C21 C22\n')
@@ -268,14 +268,14 @@ def writexy(filename, aDD):
             '  %le  %le  %le  %le  %le  %le  %le  \n')
 
     print len(aDD.H)
-    
+
     for j in range(len(aDD.H)):
         print >> f, aDD.H[j].name, aDD.H[j].location, BLABEL,\
               SLABEL,txclean[j],PHX[j],sqrt(AMPX[j]),NOISEX[j],PK2PKX[j],\
               AMP01,PHASE01,COX[j],C11[j],C12[j],C21[j],C22[j]
     f.close()
 
-    f=open(filename+'_svdy','w') 
+    f=open(filename+'_svdy','w')
     f.write('@ Q2 %le '+str(Q2)+'\n'+'@ Q2RMS %le '+str(Q2RMS)+'\n')
     f.write('* NAME  S   BINDEX SLABEL  TUNEY   MUY  AMPY'+\
             '  NOISE   PK2PK  AMP10 PHASE10 CO C11 C12 C21 C22\n')
@@ -285,7 +285,7 @@ def writexy(filename, aDD):
         print >> f, aDD.V[j].name, aDD.V[j].location, BLABEL,\
               SLABEL,tyclean[j],PHY[j],sqrt(AMPY[j]),NOISEY[j],PK2PKY[j],\
               AMP01,PHASE01,COY[j],C11[j],C12[j],C21[j],C22[j]
-    f.close()    
+    f.close()
 
 def plotOptics(sx,px,sy,py,modelFile):
     import pylab; phm=[]; phx=[]; phy=[]
@@ -305,17 +305,17 @@ def plotOptics(sx,px,sy,py,modelFile):
     pylab.subplot(2,1,2);
     pylab.scatter(sy,phy);pylab.plot(a.S,phm[:,1]);
     pylab.show()
-    
-    
+
+
 if __name__ == "__main__":
     t0=time.time()
     #-- Input options & read data
     opt,args=parsse()
     file, NTURNS,kick=rinput(opt.PATH)
-    print "Input File:", file    
+    print "Input File:", file
     BLABEL=0;SLABEL=0;AMP01=0;PHASE01=0
     aD=rhicdata(file);bx,by,sx,sy=bMat(aD,NTURNS,kick)
-    
+
     #-- Tunes, CO, PTOP & Noise & write modes
     #TUNEX=findTunes(bx,qx0,tol=0.1);
     #TUNEY=findTunes(by,qy0,tol=0.1);
@@ -336,7 +336,7 @@ if __name__ == "__main__":
         x1=int(opt.USE.split(",")[0]);
         x2=int(opt.USE.split(",")[1]);
         y1=int(opt.USE.split(",")[2]);
-        y2=int(opt.USE.split(",")[3]);        
+        y2=int(opt.USE.split(",")[3]);
         PHX,AMPX=phBeta(Sx[x1]*Vx[:,x1],Sx[x2]*Vx[:,y2])
         PHY,AMPY=phBeta(Sy[y1]*Vy[:,y1],Sy[y2]*Vy[:,y2])
         C11=zeros(len(COX)+len(COY));C12=C11;C21=C11;C22=C11
@@ -353,7 +353,7 @@ if __name__ == "__main__":
     #-- write svdx & svdy
     writexy(file, aD)
     nHist(NOISEX, NOISEY,file,nbinx=45,nbiny=140)
-    
+
     print "Total time", round(time.time()-t0,2),'s'
-    
+
     sys.exit()

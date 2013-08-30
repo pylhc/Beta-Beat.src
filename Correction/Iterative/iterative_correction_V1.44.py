@@ -14,10 +14,7 @@ new_path = os.path.abspath(os.path.join( os.path.dirname(os.path.abspath(__file_
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-try:
-	from metaclass import twiss
-except:
-	from metaclass25 import twiss
+from metaclass import twiss
 try:
 	from Numeric import *
 except:
@@ -95,7 +92,7 @@ def phasesubtract(prex,prey,nit,options,maccel,mpath,fmodel):
         #print i, MADTwiss0.S[MADTwiss0.indx[i]], prex.POS1[prex.indx[i]]
         try:
             phasey=prey.PHASEY[prey.indx[i]]-(phase1y[i]-phase0y[i])
-            #print 'phase difference',(phase1y[i]-phase0y[i]) 
+            #print 'phase difference',(phase1y[i]-phase0y[i])
             #print (phase1[i][1]-phase0[i][1])
             fafty.write('"'+i+'" '+'"'+i2+'" '+str(MADTwiss0.S[MADTwiss0.indx[i]])+' '+str(phasey)+' '+str(prey.STDPHY[prey.indx[i]])+' '+str(phase0y[i])+'\n')
         except:
@@ -106,7 +103,7 @@ def phasesubtract(prex,prey,nit,options,maccel,mpath,fmodel):
 
 
 def dispsubtract(predx,nit,options,maccel,mpath,fmodel):
-  
+
     global dictionary
 
     twissfile=mpath+"/twiss.corrected.dat"
@@ -126,14 +123,14 @@ def dispsubtract(predx,nit,options,maccel,mpath,fmodel):
     faftdx.close()
     system('cp '+fpresentDx+' '+mpath+'/getNDx.out.copy')
 
- 
+
 def runcorrection(nit,options,varlist):
 
     correctpy(options,args)
 
     system('cp changeparameters changeparameters.save')
 
-    
+
     fpknobs=options.path+'/changeparameters_all'
     preknobs=open(fpknobs,'r')
     predelta={}
@@ -160,7 +157,7 @@ def runcorrection(nit,options,varlist):
     system(rmpknobs)
 
 
-    
+
     newknobs=open(fpknobs,'w')
     for i in range(0,len(varlist)):
         try:
@@ -196,16 +193,16 @@ def runcorrection(nit,options,varlist):
 ## and are passed to correct.py.
 
 parser = OptionParser()
-parser.add_option("-a", "--accel", 
+parser.add_option("-a", "--accel",
 		 help="What accelerator: LHCB1 LHCB2 SPS RHIC",
 		 metavar="ACCEL", default="LHCB1",dest="ACCEL")
-parser.add_option("-b", "--accel2", 
+parser.add_option("-b", "--accel2",
 		 help="What accelerator for another beam: LHCB1 LHCB2",
 		 metavar="ACCEL2", default="LHCB2",dest="ACCEL2")
-parser.add_option("-t", "--tech", 
+parser.add_option("-t", "--tech",
 		 help="Which algorithm: SVD MICADO",
 		 metavar="TECH", default="SVD",dest="TECH")
-parser.add_option("-n", "--ncorr", 
+parser.add_option("-n", "--ncorr",
 		 help="Number of Correctors for MICADO",
 		 metavar="NCORR", default=5,dest="ncorr")
 parser.add_option("-p", "--path",
@@ -288,7 +285,7 @@ file4nad=open(filename,'w')
 file4nad.write('sed    -e \'s/%filedes/\'\"'+str(options.path.replace('/','\/'))+'\"\'/g\' \\\n')
 file4nad.write('<'+options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL+'/'+'job.iterative.correction.mask > '+options.path+'/job.iterative.correction.madx \n')
 #print options.path+'/job.iterative.correction.madx '
-file4nad.close()    
+file4nad.close()
 os.system("chmod 777 "+str(filename))
 os.system(str(filename))
 
@@ -297,7 +294,7 @@ if j==1:
     file4nad=open(filename,'w')
     file4nad.write('sed    -e \'s/%filedes/\'\"'+str(options.path2.replace('/','\/'))+'\"\'/g\' \\\n')
     file4nad.write('<'+options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL2+'/'+'job.iterative.correction.mask > '+options.path2+'/job.iterative.correction.madx \n')
-    file4nad.close()    
+    file4nad.close()
     os.system("chmod 777 "+str(filename))
     os.system(str(filename))
 
@@ -310,7 +307,7 @@ if os.path.exists(options.path+'/getphasex_free.out'):
 	command2='cp '+options.path+'/getphasex_free.out.copy '+options.path+'/getphasex.00.out'
 else:
 	command='cp '+options.path+'/getphasex.out '+options.path+'/getphasex.out.copy'
-	command2='cp '+options.path+'/getphasex.out.copy '+options.path+'/getphasex.00.out'	
+	command2='cp '+options.path+'/getphasex.out.copy '+options.path+'/getphasex.00.out'
 
 try:
     system(command)
@@ -326,7 +323,7 @@ if j==1:
 	    command2='cp '+options.path2+'/getphasex.out.copy '+options.path2+'/getphasex.00.out'
     else:
 	    command='cp '+options.path2+'/getphasex.out '+options.path2+'/getphasex.out.copy'
-	    command2='cp '+options.path2+'/getphasex.out.copy '+options.path2+'/getphasex.00.out'	    
+	    command2='cp '+options.path2+'/getphasex.out.copy '+options.path2+'/getphasex.00.out'
     try:
         system(command)
         system(command2)
@@ -340,7 +337,7 @@ if os.path.exists(options.path2+'/getphasex_free.out'):
 	command2='cp '+options.path+'/getphasey.out.copy '+options.path+'/getphasey.00.out'
 else:
 	command='cp '+options.path+'/getphasey.out '+options.path+'/getphasey.out.copy'
-	command2='cp '+options.path+'/getphasey.out.copy '+options.path+'/getphasey.00.out'	
+	command2='cp '+options.path+'/getphasey.out.copy '+options.path+'/getphasey.00.out'
 
 try:
     system(command)
@@ -356,7 +353,7 @@ if j==1:
 	command2='cp '+options.path2+'/getphasey.out.copy '+options.path2+'/getphasey.00.out'
     else:
 	command='cp '+options.path2+'/getphasey.out '+options.path2+'/getphasey.out.copy'
-	command2='cp '+options.path2+'/getphasey.out.copy '+options.path2+'/getphasey.00.out'	    
+	command2='cp '+options.path2+'/getphasey.out.copy '+options.path2+'/getphasey.00.out'
     try:
         system(command)
         system(command2)
@@ -483,7 +480,7 @@ listvar=options.var.split(",")
 print listvar
 varlist=[]
 for var in listvar:
-    
+
     exec('variable='+var+'()')
     varlist=varlist+variable
 
@@ -492,7 +489,7 @@ for var in listvar:
 nlimit=int(options.Iteration) # No. of iterations
 
 for nit in range(1,nlimit+1):
-    print "Sending command to madx :",runMAD 
+    print "Sending command to madx :",runMAD
     system(runMAD)
     bn1=upper(prex.NAME[0])
     bn2=upper(prex.NAME2[0])
@@ -506,7 +503,7 @@ for nit in range(1,nlimit+1):
         system(runMAD2)
 	print "Running mad2"
 	fmodel=options.OPT.split(",")[1]+"/twiss.dat"
-        phasesubtract(prex2,prey2,nit,options,options.ACCEL2,options.path2,fmodel)    
+        phasesubtract(prex2,prey2,nit,options,options.ACCEL2,options.path2,fmodel)
         if fragndx==1:
             dispsubtract(predx2,nit,options,options.ACCEL2,options.path2,fmodel)
     runcorrection(nit,options,varlist)
@@ -515,7 +512,7 @@ for nit in range(1,nlimit+1):
     if j==1:
         cpfile='cp '+options.path2+'/twiss.corrected.dat '+options.path2+'/twiss.'+str(nit)+'.dat'
         system(cpfile)
-    
+
 
 # Output twiss.corrected.dat at the end of iteration
 system(runMAD)
@@ -572,15 +569,15 @@ tfsknobs.write("$ %s %le \n")
 
 for line in range(len(kq)):
 
-   
+
     tfsknobs.write(kq[line]+" "+str(predelta[line])+"\n")
-    
+
 tfsknobs.close()
 
 
 # change the values to LSA and YASP
 if options.ACCEL=="SPS":
-      
+
 	b=twiss(options.path+"/changeparameters_all.tfs")
 	execfile(options.rpath+'/Bumps.py')    # LOADS corrs
 	execfile(options.rpath+'/BumpsYASP.py') # LOADS corrsYASP
@@ -590,7 +587,7 @@ if options.ACCEL=="SPS":
         g=open(options.path+"/changeparameters_all.knob", "w")
         f.write("#PLANE H\n")
 	f.write("#UNIT RAD\n")
-	
+
         g.write("* NAME  DELTA \n")
         g.write("$ %s    %le   \n")
 	plane = 'H'

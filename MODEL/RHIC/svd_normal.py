@@ -3,15 +3,15 @@
 from os import system
 import math, pickle, sys, numpy,re
 from string import split, replace
-from metaclass25 import twiss
+from metaclass import twiss
 from operator import mod
 
-def cbpm(s): # some model convention problems    
+def cbpm(s): # some model convention problems
     s=replace(s,"rbpm.","");s=replace(s,"bpm.","")
     s=replace(s,"b-g","g");s=replace(s,"y-g","g")
     s=replace(s,"-bhx","_bx");s=replace(s,"-bvx","_bx")
     if re.match('.*-bh1$',s):s=replace(s,"-bh1","_b1")
-    if re.match(".*-bv1$",s):s=replace(s,"-bv1","_b1")        
+    if re.match(".*-bv1$",s):s=replace(s,"-bv1","_b1")
     s=replace(s,"-bh3","_b3");s=replace(s,"-bv3","_b3")
     s=replace(s,"-bh4","_b4");s=replace(s,"-bv4","_b4")
     s=replace(s,"-bh7","_b7");s=replace(s,"-bv7","_b7")
@@ -66,7 +66,7 @@ def iterate(func, delta1, incr):
     zerovector=numpy.array(func(delta1))
     pickle.dump(zerovector,open('zerovector','w'),-1)
     #--- calc resp. matrix for each quad circ
-    for i in range(0,len(delta1)): 
+    for i in range(0,len(delta1)):
         delta=numpy.array(delta1)
         delta[i]=delta[i]+incr[i]
         print numpy.shape(delta), numpy.shape(incr)
@@ -77,14 +77,14 @@ def iterate(func, delta1, incr):
 #---- main loop to calc response matrix
 def main():
     global variables
-    
+
     #---open pickle file to read circuits names
     variables=pickle.load(open('qCirc.pic','r'))
     incr=numpy.ones(len(variables),'d')*0.0001
     dfam1=numpy.zeros(len(variables),'d')
-    
+
     s_matrix=iterate(twissVec,dfam1,incr)
     pickle.dump(s_matrix,open('sensitivity_matrix','w'),-1)
-    
+
 if __name__ == '__main__':
     main()

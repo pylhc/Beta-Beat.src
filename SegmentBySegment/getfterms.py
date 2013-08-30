@@ -2,10 +2,7 @@ import sys
 sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
 
 
-try:
-	from metaclass import *
-except:
-	from metaclass25 import *
+from metaclass import twiss
 from optparse import OptionParser
 import sys
 
@@ -15,21 +12,21 @@ parser.add_option("-l", "--label",
                 help="Label: IP1 IP2 IP3 IP4...",
                 metavar="LABEL", default="",dest="label")
 
-parser.add_option("-p", "--path", 
+parser.add_option("-p", "--path",
                 help="Path to model files and output",
                 metavar="PATH", default="./", dest="path")
 
-parser.add_option("-f", "--fast", 
+parser.add_option("-f", "--fast",
                 help="1 for very fast calculation only writing initvals file",
                 metavar="FAST", default="0", dest="fast")
 
-parser.add_option("-e", "--exp", 
+parser.add_option("-e", "--exp",
                 help="path to experimental files, only used if fast!=1",
                 metavar="EXP", default="./", dest="exp")
-parser.add_option("-s", "--start", 
+parser.add_option("-s", "--start",
                 help="Start BPM",
                 metavar="START", default="./", dest="start")
-parser.add_option("-m", "--method", 
+parser.add_option("-m", "--method",
                 help="Method",
                 metavar="ME", default="_free", dest="ME")
 parser.add_option("-w", "--w", # Path to Chromaticity functions
@@ -94,7 +91,7 @@ if options.fast != "1":
         f1010=Model.f1010[Model.indx[name]]
         f1001p=ModelPlay.f1001[ModelPlay.indx[name]]
         f1010p=ModelPlay.f1010[ModelPlay.indx[name]]
-        
+
         try:
             expi=coupexp.indx[name]
             l=1
@@ -107,8 +104,8 @@ if options.fast != "1":
                   coupexp.F1010W[expi], coupexp.FWSTD2[expi],coupexp.F1010R[expi],coupexp.F1010I[expi],\
                   abs(f1001p), f1001p.real, f1001p.imag, abs(f1010p), f1010p.real, f1010p.imag,\
                   Model.S[Model.indx[name]]
-                  
-        
+
+
         #data.write(name+"  "+str(Model.S[Model.indx[name]])+" "+str(abs(f1001))+" "+str(f1001.real)+" "+str(f1001.imag)+" "+str(abs(f1010))+" "+str(f1010.real)+" "+str(f1010.imag)+" \n")
 
 
@@ -124,7 +121,7 @@ if options.fast != "1":
 
 
     IP=options.label
-    
+
 
     t=Model
     tp=ModelPlay
@@ -167,7 +164,7 @@ if options.fast != "1":
         print "Selected Start BPM in not in the measurement!"
         print "Quiting getfterms.py"
         sys.exit()
-    
+
     fx= open(options.path+'/sbsphasext_'+IP+'.out','w')
     print >> fx,"* NAME  S PHASEX  PHASEXT    ERRORX PHASE_PLAY MODEL_S "
     print >> fx,"$ %s    %le  %le  %le        %le     %le       %le  "
@@ -216,7 +213,7 @@ if options.fast != "1":
         except:
             print "No or corrupted W files, skipping"
             options.wpath="0"
-            
+
     if options.wpath!="0":
         # First WX
         fx= open(options.path+'/sbsWx_'+IP+'.out','w')
@@ -240,20 +237,20 @@ if options.fast != "1":
             wyindx=wy.indx[el[1]]
             print >>fx, el[1], wy.S[wyindx], wy.WY[wyindx], wy.WYERR[wyindx], t.WY[tindx], tp.WY[tpindx], wy.PHIY[wyindx],wy.PHIYERR[wyindx], t.PHIY[tindx], tp.PHIY[tpindx] ,  t.S[tindx]
         fx.close()
-        
+
 
 
 
 #
 # Dispersion
 #
-  
+
     try:
       dx=twiss(options.exp+'/getDx.out')
       ndx=twiss(options.exp+'/getNDx.out')
       dy=twiss(options.exp+'/getDy.out')
       print "All dispersion files loaded"
-      
+
     except:
       print "No or bad dispersion files in exp dir"
       sys.exit()
