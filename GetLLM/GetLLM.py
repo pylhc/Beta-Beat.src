@@ -118,7 +118,10 @@ def parse_args():
                     metavar="BBTHRESH", default="0.15" , dest="bbthreshold")                
     parser.add_option("-e", "--errthreshold",
                     help="Set beta relative uncertainty threshold for action calculations, default = 0.1",
-                    metavar="ERRTHRESH", default="0.15" , dest="errthreshold")                
+                    metavar="ERRTHRESH", default="0.15" , dest="errthreshold")      
+    parser.add_option("-g", "--threebpm",
+                    help="Forces to use the 3 BPM method, yes=1/no=0, default = 0",
+                    metavar="USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE", default="0" , dest="use_only_three_bpms_for_beta_from_phase")                 
 
     # Take index 0 since index 1(args) is not used (vimaier)
     options = parser.parse_args()[0]
@@ -128,7 +131,7 @@ def parse_args():
 #===================================================================================================
 # main()-function
 #===================================================================================================
-def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHCB1", lhcphase="0", BPMU="um", COcut=4000, NBcpl=2, TBTana="SUSSIX", higher_order=1, bbthreshold="0.15", errthreshold="0.15"):
+def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHCB1", lhcphase="0", BPMU="um", COcut=4000, NBcpl=2, TBTana="SUSSIX", higher_order=1, bbthreshold="0.15", errthreshold="0.15", use_only_three_bpms_for_beta_from_phase=0):
     '''
      GetLLM main function.
      
@@ -205,7 +208,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
         algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
     
         #-------- START Beta
-        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
+        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict, use_only_three_bpms_for_beta_from_phase)
     
         #------- START beta from amplitude
         beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
