@@ -12,7 +12,6 @@ import os
 import sys
 import subprocess
 import filecmp
-from Utilities import iotools
 
 CURRENT_PATH = os.path.dirname(__file__)
 # Path 'x/Beta-Beat.src/drive/test'
@@ -152,7 +151,7 @@ class TestOutput(unittest.TestCase):
 
     def _delete_copied_files(self):
         for copied_file in self._copied_files:
-            iotools.delete_item(copied_file)
+            Utilities.iotools.delete_item(copied_file)
 
 
     def _compare_output_dirs(self):
