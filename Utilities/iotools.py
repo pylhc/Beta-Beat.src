@@ -196,10 +196,3 @@ def replace_keywords_in_textfile(path_to_textfile, dict_for_replacing, new_outpu
     lines_with_replaced_keys = all_lines % dict_for_replacing
     append_string_to_textfile(destination_file, lines_with_replaced_keys)
 
-
-
-#TODO: remove
-
-get_all_filenames_in_dir_and_subdirs("C:\\MyTemp")
-
-
