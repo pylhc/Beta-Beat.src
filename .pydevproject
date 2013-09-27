@@ -5,7 +5,5 @@
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
 <path>/Beta-Beat.src</path>
 </pydev_pathproperty>
-<pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
-<path>C:\eclipse_4_2_2_python\workspace\Python_Classes4MAD</path>
-</pydev_pathproperty>
+
 </pydev_project>
