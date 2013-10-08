@@ -1,11 +1,11 @@
 '''
 Created sometime 2009-2011
 
-@maintainer: Yngve Inntjore Levinsen
+:maintainer: Yngve Inntjore Levinsen
 
-@author: Glenn Vanbavinckhove, Yngve Inntjore Levinsen
+:author: Glenn Vanbavinckhove, Yngve Inntjore Levinsen
 
-@version: 3.1.3
+:version: 3.1.3
 
 Getsuper calculates with the help of GetLLM chromatic beta functions.
 The Montague W and Phi functions are output.
