@@ -95,14 +95,14 @@ except ValueError:
     CREATE_VALID_OUTPUT = True
 # Path to original/valid GetLLM.py script
 GETLLM_SCRIPT_VALID = options.GETLLM_SCRIPT_VALID
-if Utilities.iotools.notExistsDirectory(GETLLM_SCRIPT_VALID):
+if Utilities.iotools.not_exists_directory(GETLLM_SCRIPT_VALID):
     GETLLM_SCRIPT_VALID = os.path.join(
                                      Utilities.iotools.get_absolute_path_to_betabeat_root(),
                                      "GetLLM", "test", "./GetLLM_valid.py"
                                      )
 # Path to GetLLM.py script
 GETLLM_SCRIPT = options.GETLLM_SCRIPT
-if Utilities.iotools.notExistsDirectory(GETLLM_SCRIPT):
+if Utilities.iotools.not_exists_directory(GETLLM_SCRIPT):
     GETLLM_SCRIPT = os.path.join(
                                      Utilities.iotools.get_absolute_path_to_betabeat_root(),
                                      "GetLLM", "GetLLM.py"
@@ -115,7 +115,7 @@ if "" != SPECIAL_OUTPUT :
         print "special_output is not a directory: ", SPECIAL_OUTPUT
         SPECIAL_OUTPUT = ""
 PATH_TO_TEST_DATA = options.PATH_TO_TEST_DATA
-if Utilities.iotools.notExistsDirectory(PATH_TO_TEST_DATA):
+if Utilities.iotools.not_exists_directory(PATH_TO_TEST_DATA):
     PATH_TO_TEST_DATA = os.path.join(
                                      Utilities.iotools.get_absolute_path_to_betabeat_root(),
                                      "GetLLM", "test", "data"

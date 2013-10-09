@@ -97,11 +97,11 @@ def deleteFilesWithoutGitignore(pathToDirectory):
 
     return True
 
-def existsDirectory(path_to_dir):
+def exists_directory(path_to_dir):
     return os.path.isdir(path_to_dir)
 
-def notExistsDirectory(path_to_dir):
-    return not existsDirectory(path_to_dir)
+def not_exists_directory(path_to_dir):
+    return not exists_directory(path_to_dir)
 
 def get_absolute_path_to_betabeat_root():
     return os.path.abspath(

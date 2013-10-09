@@ -356,8 +356,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 
                 try:
                     beta_d.y_ratio_f = beta_d.y_ratio_f / (len(arcbpms) - len(skipped_bpmyf))
-                except:
-                    traceback.print_exc()
+                except ZeroDivisionError:
                     beta_d.y_ratio_f = 1
                 tfs_file = files_dict['getampbetay_free.out']
                 tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
@@ -405,7 +404,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 
 def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase):
     '''
-    Chooses three BPM sets for the beta calculation from combinations of 7 BPMs. 
+    Chooses three BPM sets for the beta calculation from combinations of 7 BPMs.
     If less than 7 BPMs are available it will fall back to using only next neighbours.
     :Parameters:
         'MADTwiss':twiss
@@ -420,9 +419,9 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
             current iterator in the loop of all BPMs
     :Return: tupel(candidate1, candidate2, candidate3, bn4)
         'candidate1-3':list
-            contains calculated beta and alfa 
+            contains calculated beta and alfa
         'bn4':string
-            name of the probed BPM        
+            name of the probed BPM
     '''
     if 7 > len(commonbpms):
         bn1 = str.upper(commonbpms[i % len(commonbpms)][1])
@@ -516,7 +515,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
     if 3 > len(commonbpms):
         print "beta_from_phase: Less than three BPMs for plane", plane+". Returning empty values."
         return ({}, 0.0, {}, [])
-    
+
     if 7 > len(commonbpms):
         print "beta_from_phase: Less than seven BPMs for plane", plane+". Can not use optimised algorithm."
 

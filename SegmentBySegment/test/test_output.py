@@ -76,7 +76,7 @@ class TestOutput(unittest.TestCase):
     def _valid_output_exists(self):
         """ True, if valid output available. 
             Assuming that every subdir of path_to_valid is not empty."""
-        if Utilities.iotools.notExistsDirectory(TestOutput.path_to_valid):
+        if Utilities.iotools.not_exists_directory(TestOutput.path_to_valid):
             return False
         is_valid = False
         for item in os.listdir(TestOutput.path_to_valid):
