@@ -36,16 +36,16 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
-        
+
     :Parameters:
         'getllm_d': _GetllmData (In-param, values will only be read)
             lhc_phase, accel, beam_direction and num_beams_for_coupling are used.
         'twiss_d': _TwissData (In-param, values will only be read)
             Holds twiss instances of the src files.
         'tune_d': _TuneData (In/Out-param, values will be read and set)
-            Holds tunes and phase advances. q1, mux, q2 and muy will be set if 
+            Holds tunes and phase advances. q1, mux, q2 and muy will be set if
             "num_beams_for_coupling == 2" and accel is 'SPS' or 'RHIC'.
-            
+
     :Return: _TuneData
         the same instance as param tune_d to indicate that tunes will be set.
     '''
@@ -64,8 +64,8 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             fwqwf2 = None
             [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, getllm_d.outputpath)
             tfs_file = files_dict['getcouple.out']
-            tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-            tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
+            tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
+            tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
             tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD", "Q1001W", "QWSTD", "MDLF1001R", "MDLF1001I"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(len(bpms)):
@@ -77,7 +77,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
                 except AttributeError:
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), (math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2)), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, 0.0, 0.0]
                 tfs_file.add_table_row(list_row_entries)
-        
+
         elif getllm_d.num_beams_for_coupling == 2:
             if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
                 [phasexp, tune_d.q1, tune_d.mux, bpmsx] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, None, 'H')
@@ -86,8 +86,8 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             else:
                 [fwqw, bpms] = GetCoupling2(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, phase_d.ph_x, phase_d.ph_y, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
             tfs_file = files_dict['getcouple.out']
-            tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-            tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
+            tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
+            tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
             tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(len(bpms)):
@@ -99,15 +99,15 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
                 except AttributeError:
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, math.sqrt(fwqw[bn1][0][2].real ** 2 + fwqw[bn1][0][2].imag ** 2), fwqw[bn1][0][3], fwqw[bn1][0][2].real, fwqw[bn1][0][2].imag, 0.0, 0.0, 0.0, 0.0]
                 tfs_file.add_table_row(list_row_entries)
-            
+
             #-- ac to free coupling
             if getllm_d.with_ac_calc:
                 #-- analytic eqs
                 try:
                     [fwqwf, bpmsf] = compensate_ac_effect.GetFreeCoupling_Eq(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction)
                     tfs_file = files_dict['getcouple_free.out']
-                    tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-                    tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
+                    tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
+                    tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
                     tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
                     tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                     for i in range(len(bpmsf)):
@@ -119,15 +119,15 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
                             traceback.print_exc()
                             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqwf[bn1][0][0].real ** 2 + fwqwf[bn1][0][0].imag ** 2), fwqwf[bn1][0][1], fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, math.sqrt(fwqwf[bn1][0][2].real ** 2 + fwqwf[bn1][0][2].imag ** 2), fwqwf[bn1][0][3], fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, 0.0, 0.0, 0.0, 0.0]
                         tfs_file.add_table_row(list_row_entries)
-                
+
                 except:
                     traceback.print_exc()
 
                 #-- global factor
                 [fwqwf2, bpmsf2] = getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
                 tfs_file = files_dict['getcouple_free2.out']
-                tfs_file.add_descriptor("CG", "%le", str(fwqw['Global'][0]))
-                tfs_file.add_descriptor("QG", "%le", str(fwqw['Global'][1]))
+                tfs_file.add_float_descriptor("CG",  fwqw['Global'][0])
+                tfs_file.add_float_descriptor("QG",  fwqw['Global'][1])
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(len(bpmsf2)):
@@ -139,7 +139,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
                         traceback.print_exc()
                         list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), math.sqrt(fwqwf2[bn1][0][0].real ** 2 + fwqwf2[bn1][0][0].imag ** 2), fwqwf2[bn1][0][1], fwqwf2[bn1][0][0].real, fwqwf2[bn1][0][0].imag, math.sqrt(fwqwf2[bn1][0][2].real ** 2 + fwqwf2[bn1][0][2].imag ** 2), fwqwf2[bn1][0][3], fwqwf2[bn1][0][2].real, fwqwf2[bn1][0][2].imag, 0.0, 0.0, 0.0, 0.0]
                     tfs_file.add_table_row(list_row_entries)
-        
+
         else:
             raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
         #-- Convert to C-matrix:
@@ -152,8 +152,8 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
         else:
             [coupleterms, q_minav, q_minerr, bpms] = getCandGammaQmin(fwqw, bpms, tune_d.q1f, tune_d.q2f, mad_twiss)
         tfs_file = files_dict['getcoupleterms.out']
-        tfs_file.add_descriptor("DQMIN", "%le", q_minav)
-        tfs_file.add_descriptor("DQMINE", "%le", q_minerr)
+        tfs_file.add_float_descriptor("DQMIN", q_minav)
+        tfs_file.add_float_descriptor("DQMINE", q_minerr)
         tfs_file.add_column_names(["NAME", "S", "DETC", "DETCE", "GAMMA", "GAMMAE", "C11", "C12", "C21", "C22"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for bpm in bpms:
@@ -161,7 +161,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             bpmm = bpm[1].upper()
             list_row_entries = [bpmm, bps, coupleterms[bpmm][0], coupleterms[bpmm][1], coupleterms[bpmm][2], coupleterms[bpmm][3], coupleterms[bpmm][4], coupleterms[bpmm][5], coupleterms[bpmm][6], coupleterms[bpmm][7]]
             tfs_file.add_table_row(list_row_entries)
-    
+
     return tune_d
 # END calculate_coupling ---------------------------------------------------------------------------
 
@@ -234,7 +234,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             qistd = math.sqrt(np.average(q1j*q1j)-(np.average(q1j))**2.0+2.2e-16) # Not very exact...
             fi = fi*complex(cos(2.0*np.pi*qi), sin(2.0*np.pi*qi))
             dbpmt.append([dbpms[i][0],dbpms[i][1]])
-            # Trailing "0,0" in following lists because of compatibility. 
+            # Trailing "0,0" in following lists because of compatibility.
             # See issue on github pylhc/Beta-Beat.src#3
             # --vimaier
             fwqw[bn1] = [[fi,fistd,0,0],[qi,qistd,0,0]]
@@ -388,7 +388,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         bn1=str.upper(dbpms[i][1])
         CG=CG+math.sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
         QG=QG+fwqw[bn1][1][0]-(tw_x.MUX[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]])
-        
+
     # find operation point
     sign_QxmQy = _find_sign_QxmQy(outputpath, tune_x, tune_y)
 
@@ -528,7 +528,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
     factor_bottom_diff=sin(np.pi*(tunefreex-tunefreey))
 
     factor_diff=abs((factor_top_diff/factor_bottom_diff))
-    
+
     if DEBUG:
         print "Factor for coupling diff ",factor_diff
 

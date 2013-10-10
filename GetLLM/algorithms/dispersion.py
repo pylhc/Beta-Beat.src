@@ -32,7 +32,7 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
     '''
     Calculates dispersion and fills the following TfsFiles:
         getNDx.out        getDx.out        getDy.out
-        
+
     :Parameters:
         'getllm_d': _GetllmData (In-param, values will only be read)
             accel is used.
@@ -45,8 +45,8 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
     if twiss_d.has_zero_dpp_x() and twiss_d.has_non_zero_dpp_x():
         [nda, d_x, dpx, bpms] = _norm_disp_x(mad_twiss, twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, beta_x_from_amp, getllm_d.cut_for_closed_orbit)
         tfs_file = files_dict['getNDx.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "NDX", "STDNDX", "DX", "DPX", "NDXMDL", "DXMDL", "DPXMDL", "MUXMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(len(bpms)):
@@ -55,12 +55,12 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
             ndmdl = mad_twiss.DX[mad_twiss.indx[bn1]] / math.sqrt(mad_twiss.BETX[mad_twiss.indx[bn1]])
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), nda[bn1][0], nda[bn1][1], d_x[bn1][0], dpx[bn1], ndmdl, mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
-        
+
         [dxo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
         dpx = _get_dpx(mad_twiss, dxo, bpms)
         tfs_file = files_dict['getDx.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "DX", "STDDX", "DPX", "DXMDL", "DPXMDL", "MUXMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(len(bpms)):
@@ -68,13 +68,13 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
             bns1 = bpms[i][0]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), dxo[bn1][0], dxo[bn1][1], dpx[bn1], mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
-    
+
     if twiss_d.has_zero_dpp_y() and twiss_d.has_non_zero_dpp_y():
         [dyo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_y, twiss_d.non_zero_dpp_y, list_of_co_y, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
         dpy = _get_dpy(mad_twiss, dyo, bpms)
         tfs_file = files_dict['getDy.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "DY", "STDDY", "DPY", "DYMDL", "DPYMDL", "MUYMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(len(bpms)):

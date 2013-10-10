@@ -24,3 +24,10 @@ def root_mean_square(numbers):
 
 def standard_deviation(numbers):
     return numpy.std(numbers)
+
+def can_str_be_parsed_to_number(str_to_test):
+    try:
+        float(str_to_test)
+        return True
+    except ValueError:
+        return False

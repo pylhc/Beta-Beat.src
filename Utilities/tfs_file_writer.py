@@ -24,6 +24,7 @@ Usage::
 import os
 
 import Utilities.iotools
+import Utilities.math
 
 
 
@@ -236,7 +237,7 @@ class _TfsDescriptor(_TfsHeaderLine):
             self.__value = str(value_of_descriptor)
         else:
             raise ValueError(str(value_of_descriptor) + " does not correspond to tfs_data_type: "+
-                             self.get_tfs_data_type())
+                             self.get_tfs_data_type_as_string())
 
     def set_tfs_data_type(self, tfs_data_type):
         if isinstance(tfs_data_type, _TfsDataType):
@@ -330,7 +331,7 @@ class _TfsDataType:
         if _TfsDataType.TYPE_STRING == self.__type:
             return isinstance(value, str)
         elif _TfsDataType.TYPE_FLOAT == self.__type:
-            return isinstance(value, (int, long, float, complex))
+            return Utilities.math.can_str_be_parsed_to_number(value)
         else:
             raise TypeError("Type of _TfsDataType is unknown: "+ str(self.__type))
 

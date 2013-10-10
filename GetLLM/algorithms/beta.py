@@ -71,9 +71,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
         [beta_d.x_phase, rmsbbx, alfax, bpms] = beta_from_phase(mad_ac, twiss_d.zero_dpp_x, phase_d.ph_x, 'H', use_only_three_bpms_for_beta_from_phase)
         beta_d.x_phase['DPP'] = 0
         tfs_file = files_dict['getbetax.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbx))
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
+        tfs_file.add_float_descriptor("RMSbetabeat", rmsbbx)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
@@ -88,9 +88,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             try:
                 [beta_d.x_phase_f, rmsbbxf, alfaxf, bpmsf] = beta_from_phase(mad_twiss, twiss_d.zero_dpp_x, phase_d.x_f, 'H', use_only_three_bpms_for_beta_from_phase)
                 tfs_file = files_dict['getbetax_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf))
+                tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+                tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+                tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
@@ -104,9 +104,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             #-- from the model
             [betaxf2, rmsbbxf2, alfaxf2, bpmsf2] = _get_free_beta(mad_ac, mad_twiss, beta_d.x_phase, rmsbbx, alfax, bpms, 'H')
             tfs_file = files_dict['getbetax_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf2))
+            tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+            tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+            tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf2)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(0, len(bpmsf2)):
@@ -120,9 +120,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
         [beta_d.y_phase, rmsbby, alfay, bpms] = beta_from_phase(mad_ac, twiss_d.zero_dpp_y, phase_d.ph_y, 'V', use_only_three_bpms_for_beta_from_phase)
         beta_d.y_phase['DPP'] = 0
         tfs_file = files_dict['getbetay.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbby))
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
+        tfs_file.add_float_descriptor("RMSbetabeat", rmsbby)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
@@ -137,9 +137,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             try:
                 [beta_d.y_phase_f, rmsbbyf, alfayf, bpmsf] = beta_from_phase(mad_twiss, twiss_d.zero_dpp_y, phase_d.y_f, 'V', use_only_three_bpms_for_beta_from_phase)
                 tfs_file = files_dict['getbetay_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf))
+                tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+                tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+                tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
@@ -153,9 +153,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             #-- from the model
             [betayf2, rmsbbyf2, alfayf2, bpmsf2] = _get_free_beta(mad_ac, mad_twiss, beta_d.y_phase, rmsbby, alfay, bpms, 'V')
             tfs_file = files_dict['getbetay_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf2))
+            tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+            tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+            tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf2)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(0, len(bpmsf2)):
@@ -224,10 +224,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             betax_rescale[name] = [beta_d.x_ratio * beta_d.x_amp[name][0], beta_d.x_ratio * beta_d.x_amp[name][1], beta_d.x_amp[name][2]]
 
         tfs_file = files_dict['getampbetax.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbx))
-        tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.x_ratio))
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
+        tfs_file.add_float_descriptor("RMSbetabeat", rmsbbx)
+        tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
@@ -263,10 +263,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                     traceback.print_exc()
                     beta_d.x_ratio_f = 1
                 tfs_file = files_dict['getampbetax_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf))
-                tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.x_ratio_f))
+                tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+                tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+                tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf)
+                tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio_f)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
@@ -282,10 +282,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             [betaxf2, rmsbbxf2, bpmsf2] = _get_free_amp_beta(beta_d.x_amp, rmsbbx, bpms, inv_jx, mad_ac, mad_twiss, 'H')[:3]
             betaxf2_rescale = _get_free_amp_beta(betax_rescale, rmsbbx, bpms, inv_jx, mad_ac, mad_twiss, 'H')[0]
             tfs_file = files_dict['getampbetax_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbxf2))
-            tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.x_ratio))
+            tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+            tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+            tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf2)
+            tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(0, len(bpmsf2)):
@@ -323,10 +323,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             betay_rescale[name] = [beta_d.y_ratio * beta_d.y_amp[name][0], beta_d.y_ratio * beta_d.y_amp[name][1], beta_d.y_amp[name][2]]
 
         tfs_file = files_dict['getampbetay.out']
-        tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1))
-        tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2))
-        tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbby))
-        tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.y_ratio))
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
+        tfs_file.add_float_descriptor("RMSbetabeat", rmsbby)
+        tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
@@ -359,10 +359,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 except ZeroDivisionError:
                     beta_d.y_ratio_f = 1
                 tfs_file = files_dict['getampbetay_free.out']
-                tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-                tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-                tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf))
-                tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.y_ratio_f))
+                tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+                tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+                tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf)
+                tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio_f)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
@@ -381,10 +381,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             [betayf2, rmsbbyf2, bpmsf2] = _get_free_amp_beta(beta_d.y_amp, rmsbby, bpms, inv_jy, mad_ac, mad_twiss, 'V')[:3]
             betayf2_rescale = _get_free_amp_beta(betay_rescale, rmsbby, bpms, inv_jy, mad_ac, mad_twiss, 'V')[0]
             tfs_file = files_dict['getampbetay_free2.out']
-            tfs_file.add_descriptor("Q1", "%le", str(tune_d.q1f))
-            tfs_file.add_descriptor("Q2", "%le", str(tune_d.q2f))
-            tfs_file.add_descriptor("RMSbetabeat", "%le", str(rmsbbyf2))
-            tfs_file.add_descriptor("RescalingFactor", "%le", str(beta_d.y_ratio))
+            tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+            tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+            tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf2)
+            tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(0, len(bpmsf2)):
