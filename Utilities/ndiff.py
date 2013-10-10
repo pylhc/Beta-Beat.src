@@ -85,7 +85,7 @@ def compare_tfs_files_and_ignore_whitespace(file_a, file_b):
     """
     ignore_whitespace_option = {"--blank":""}
 
-    (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, ignore_whitespace_option)
+    (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, options_dict=ignore_whitespace_option)
 
     if 0 == exit_code and ndiff_files_were_equal(err_stream):
         return True
@@ -102,7 +102,7 @@ def compare_tfs_files_and_ignore_header(file_a, file_b):
     ignore_whitespace_option = {"--blank":""}
 
     (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, tfs_ignore_header_cfg,
-                                                    ignore_whitespace_option)
+                                                                    ignore_whitespace_option)
 
     if 0 == exit_code and ndiff_files_were_equal(err_stream):
         return True
@@ -181,7 +181,7 @@ def get_os_dependent_path_to_ndiff():
     else:
         raise OSError("ndiff only available for Linux and Windows. Your OS: "+os.name)
 
-    return os.path.join(path_to_ndiff_root,tail)
+    return os.path.join(path_to_ndiff_root, tail)
 
 
 def get_path_to_root_of_ndiff():
