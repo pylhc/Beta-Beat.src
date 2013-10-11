@@ -1,14 +1,17 @@
 '''
+.. module: Utilities.iotools
+
 Created on 1 Jul 2013
-
-@author: vimaier
-
-@version: 1.0.0
 
 Utilities.iotools.py holds helper functions for input/output issues. This module is not intended to
 be executed.
 
 Feel free to use and extend this module.
+
+
+
+
+.. moduleauthor:: vimaier
 
 '''
 
@@ -22,8 +25,7 @@ import shutil
 def delete_content_of_dir(path_to_dir):
     '''
     Deletes all folders, files and symbolic links in given directory.
-    :parameters:
-        path_to_dir:string
+    :param string path_to_dir:
     '''
     if not os.path.isdir(path_to_dir):
         return
@@ -83,8 +85,7 @@ def deleteFilesWithoutGitignore(pathToDirectory):
     """
     Deletes all files in the given pathToDirectory except of the file with the name '.gitignore'
 
-    :Return: boolean
-          True if the directory exists and the files are deleted otherwise False.
+    :returns: boolean -- True if the directory exists and the files are deleted otherwise False.
     """
     if not os.path.exists(pathToDirectory):
         return False
@@ -183,9 +184,8 @@ def replace_keywords_in_textfile(path_to_textfile, dict_for_replacing, new_outpu
     This function replaces all keywords in a textfile with the corresponding values in the dictionary.
     E.g.: A textfile with the content "%(This)s will be replaced!" and the dict {"This":"xyz"} results
     to the change "xyz will be replaced!" in the textfile.
-    :parameters:
-        new_output_path:string
-            If new_output_path is None, then the source file will be replaced.
+
+    :param string new_output_path: If new_output_path is None, then the source file will be replaced.
     """
     if new_output_path is None:
         destination_file = path_to_textfile

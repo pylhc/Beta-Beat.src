@@ -3,6 +3,8 @@ Created on 8 Aug 2013
 
 @author: vimaier
 
+@deprecated: Use ndiff to compare files.
+
 Hold tools for comparing.
 
 '''
@@ -12,9 +14,9 @@ import os
 import Utilities
 
 def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=None):
-    """ 
-    Compares file in given dirs by going through each line, spliting line and trying to parse to 
-    double and comparing double with epsilon value. 
+    """
+    Compares file in given dirs by going through each line, spliting line and trying to parse to
+    double and comparing double with epsilon value.
     In case of a subdir recursion will be used.
     """
     if Utilities.iotools.no_dirs_exist(dir1, dir2):
@@ -24,7 +26,7 @@ def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=None):
         except_files = []
     dir1_items = sorted(os.listdir(dir1))
     dir2_items = sorted(os.listdir(dir2))
-    
+
     if dir1_items != dir2_items:
         print >> sys.stderr, "Items in dirs are not equal:\n",dir1_items, "\n", dir2_items
         return False
@@ -43,10 +45,10 @@ def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=None):
                 else:
                     item1.close()
                     item2.close()
-                
+
     return True
-    
-    
+
+
 def equal_files_with_double_epsilon_comparing(file1, file2):
     for line in file1:
         split_line1 = line.split()
@@ -62,16 +64,16 @@ def _equal_splitted_lines_with_double_epsilon(str_list1, str_list2):
     for i in xrange(len(str_list1)):
         token1 = str_list1[i]
         token2 = str_list2[i]
-        
+
         if not equal_strings_with_double_epsilon(token1, token2):
             return False
     return True
 
 
-def equal_strings_with_double_epsilon(str1, str2):    
+def equal_strings_with_double_epsilon(str1, str2):
     equal = True
     float_or_false = is_float(str1)
-    
+
     if False != float_or_false:
         str1 = float_or_false
         float_or_false = is_float(str2)
@@ -86,18 +88,17 @@ def equal_strings_with_double_epsilon(str1, str2):
         equal = str1 == str2
         if not equal:
             print >> sys.stderr, "Tokens not Equal:", str1, ";", str2
-    
+
     return equal
-    
-        
+
+
 def is_float(s):
     try:
         result = float(s)
         return result
     except ValueError:
         return False
-    
+
 def almost_equal_double(d1, d2, relative_eps=1e-4):
     return abs(d1-d2) < abs(d1)*relative_eps
 
-    

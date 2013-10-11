@@ -1,18 +1,13 @@
 """
+.. module:: tfs_file_writer
+
 Created on 25 Apr 2013
-
-@author: vimaier
-
-@version: 1.0.0
 
 This module contains the class GetllmTfsFile which handles the output files of GetLLM.
 
-Change history:
- -
-
+.. moduleauthor:: Viktor Maier <viktor.maier@cern.ch>
 """
 
-import os
 import sys
 import datetime
 
@@ -21,7 +16,11 @@ import Utilities.tfs_file_writer
 
 class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
     '''
-    It stores additionally to TfsFileWriter special descriptors for :module:'GetLLM.py'.
+    It stores additionally to TfsFileWriter the following descriptors for :module:'GetLLM.py':
+     - GetLLMVersion
+     - Command
+     - Date
+     - FILES
     '''
 
     s_output_path = ""
@@ -34,11 +33,8 @@ class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
         """
         Constructor
 
-        :Parameters:
-            'file_name': string
-                The file name without path where the file will be written.
-            'column_width': int
-                Indicates the width of each column in the file.
+        :param string file_name: The file name without path where the file will be written.
+        :param int column_width: Indicates the width of each column in the file.
         """
         super(GetllmTfsFile, self).__init__(file_name, column_width)
         self.set_outputpath(GetllmTfsFile.s_output_path)

@@ -9,14 +9,17 @@ This module contains the class TfsFileWriter which is used to create easily TfsF
 Usage::
 
     import Utilities.tfs_file_writer
-
+    ...
     tfs_file_writer = Utilities.tfs_file_writer.TfsFileWriter("my_file.out", column_width=15)
+    tfs_file_writer.set_outputpath("")
+
     tfs_file_writer.add_string_descriptor("NAME", "TWISS")
     tfs_file_writer.add_float_descriptor("MASS", 0.938272013)
     tfs_file_writer.add_comment("I am a comment")
     tfs_file_writer.add_column_names("NAME S BETX ALFX BETY ALFY".split())
     tfs_file_writer.add_column_datatypes("%s %le %le %le %le %le".split())
     tfs_file_writer.add_table_row("BTVSS.6L2.B1  1.125  131.5873094  -1.899115044  67.61780908 1.699566347".split())
+
     tfs_file_writer.write_to_file()
 
 """
@@ -31,7 +34,7 @@ import Utilities.math
 class TfsFileWriter(object):
     '''
     This class represents a TFS file. It stores all header lines and the table and write
-    all the content at once by calling the write function.
+    all the content formatted at once by calling the write function.
     '''
 
     DEFAULT_COLUMN_WIDTH = 17
@@ -123,6 +126,8 @@ class TfsFileWriter(object):
     def add_table_row(self, list_row_entries):
         """
         Adds the entries of one row to the table data.
+        :param list list_row_entries: Values of one row. Datatypes will not be checked. Only length
+                                    will be checked with the length of column names.
         """
         self.__tfs_table.add_table_row(list_row_entries)
 

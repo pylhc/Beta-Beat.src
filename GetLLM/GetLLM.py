@@ -1,10 +1,11 @@
-'''
+r'''
+.. module: GetLLM.GetLLM
+
 Created on 11/09/09
 
 :author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
 
 :version: 3.00dev
-
 
 
 GetLLM calculates a large collection of optics functions and parameters at the BPMs using the output from DRIVE.
@@ -26,20 +27,12 @@ The GetLLM output is distributed over different files according to the observabl
 
 Usage1::
 
-    >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
+    >pythonafs ../GetLLM.py -m ../../MODEL/SPS/twiss.dat -f ../../MODEL/SPS/SimulatedData/ALLBPMs.3 -o ./
 
 Usage2::
 
-    >pythonafs ../GetLLM_V1.8.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
+    >pythonafs ../GetLLM.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
 
-
-
-
-
-Some rules for variable name:
- - Dictionary is used to contain the output of function
- - Variable containing 'm' is a value directly obtained from measurment data
- - Variable containing 'mdl' is a value related to model
 
 Change history:
     We use git::
@@ -48,13 +41,12 @@ Change history:
 
 '''
 import sys
-
-import os
+import traceback
 import math
 
+
 import __init__ # @UnusedImport init will include paths
-import metaclass
-import traceback
+import Python_Classes4MAD.metaclass
 import utils.tfs_file
 import algorithms.helper
 import algorithms.phase
@@ -64,10 +56,7 @@ import algorithms.dispersion
 import algorithms.coupling
 import algorithms.interaction_point
 import algorithms.chi_terms
-
-# tentative solution for SPS pseudo double plane BPM
-# from SPSBPMpair import *
-
+import Utilities.iotools
 
 
 
@@ -140,33 +129,22 @@ def parse_args():
 #===================================================================================================
 def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHCB1", lhcphase="0", BPMU="um", COcut=4000, NBcpl=2, TBTana="SUSSIX", higher_order=1, bbthreshold="0.15", errthreshold="0.15", use_only_three_bpms_for_beta_from_phase=0):
     '''
-     GetLLM main function.
+    GetLLM main function.
 
-     :Parameters:
-        'outputpath': string
-            The output path to store results
-        'files_to_analyse': string
-            List of files, comma separated string.
-        'dict_file': string
-            Name of the script which will be executed. Should store dictionary with mappings of
-            BPM names.
-        'accel': string
-            Type of accelerator. LHCB1, LHCB2, LHCB4, RHIC, SPS
-            Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1
-        'lhcphase': string "0" or "1"
-        'BPMU': string
-            BPMunit: um, mm, cm, m (default um)
-        'COcut': int
-            Cut for closed orbit measurement [um]
-        'NBcpl': int
-            For selecting the coupling measurement method 1 bpm or 2 bpms
-        'TBTana': string
-            Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
-        'higher_order': int
-            output higher order resonance stuff, on=1(default)/off=0
+    :param string outputpath: The output path to store results
+    :param string files_to_analyse: List of files, comma separated string.
+    :param dict_file: Name of the script which will be executed. Should store dictionary with
+                    mappings of BPM names.
+    :param string accel: Type of accelerator. LHCB1, LHCB2, LHCB4, RHIC, SPS
+    :param string lhcphase: "0" or "1" -- Compensate phase shifts by tunes for the LHC experiment data,
+                             off=0(default)/on=1
+    :param string BPMU: BPMunit: "um", "mm", "cm", "m" (default "um")
+    :param int COcut: Cut for closed orbit measurement [um]
+    :param int NBcpl: For selecting the coupling measurement method 1 bpm or 2 bpms
+    :param string TBTana: Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
+    :param int higher_order': output higher order resonance stuff, on=1(default)/off=0
 
-        :Return: int
-            0 if the function run successfully otherwise !=0.
+    :returns: int  -- 0 if the function run successfully otherwise !=0.
     '''
     return_code = 0
     print "Starting GetLLM ", VERSION
@@ -285,7 +263,7 @@ def intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_uni
 
     #-- finding base model
     try:
-        mad_twiss = metaclass.twiss(model_filename, bpm_dictionary) # model from MAD : Twiss instance
+        mad_twiss = Python_Classes4MAD.metaclass.twiss(model_filename, bpm_dictionary) # model from MAD : Twiss instance
         print "Base model found!"
     except IOError:
         print >> sys.stderr, "Twiss file loading failed for:\n\t", model_filename
@@ -295,7 +273,7 @@ def intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_uni
     #-- finding the ac dipole model
     getllm_d.with_ac_calc = False
     try:
-        mad_ac = metaclass.twiss(model_filename.replace(".dat", "_ac.dat")) # model with ac dipole : Twiss instance
+        mad_ac = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_ac.dat")) # model with ac dipole : Twiss instance
         getllm_d.with_ac_calc = True
         print "Driven Twiss file found. AC dipole effects calculated with the effective model (get***_free2.out)"
     except IOError:
@@ -310,7 +288,7 @@ def intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_uni
                 print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
             else:
                 try:
-                    mad_elem = metaclass.twiss(model_filename.replace(".dat", "_elements.dat"))
+                    mad_elem = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements.dat"))
                     print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
                 except IOError:
                     print 'WARN: AC dipoles not in the model. AC dipole effects not calculated with analytic equations !'
@@ -418,7 +396,7 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
 
         twiss_file_x = None
         try:
-            twiss_file_x = metaclass.twiss(file_x)
+            twiss_file_x = Python_Classes4MAD.metaclass.twiss(file_x)
             if twiss_file_x.has_no_bpm_data():
                 print >> sys.stderr, "Ignoring empty file:", twiss_file_x.filename
                 twiss_file_x = None
@@ -486,7 +464,7 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
 
         twiss_file_y = None
         try:
-            twiss_file_y = metaclass.twiss(file_y)
+            twiss_file_y = Python_Classes4MAD.metaclass.twiss(file_y)
             if twiss_file_y.has_no_bpm_data():
                 print >> sys.stderr, "Ignoring empty file:", twiss_file_y.filename
                 twiss_file_y = None
@@ -584,21 +562,19 @@ def check_bpm_compatibility(twiss_d, mad_twiss):
 def calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
     '''
     Calculates orbit and fills the following TfsFiles:
-        getCOx.out       getCOy.out
-        getCOx_dpp_' + str(k + 1) + '.out     getCOy_dpp_' + str(k + 1) + '.out
+     - getCOx.out
+     - getCOy.out
+     - getCOx_dpp_' + str(k + 1) + '.out
+     - getCOy_dpp_' + str(k + 1) + '.out
 
-    :Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            accel is used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
+    :param _GetllmData getllm_d: accel is used(In-param, values will only be read)
+    :param _TwissData twiss_d: Holds twiss instances of the src files. (In-param, values will only be read)
+    :param _TuneData tune_d: Holds tunes and phase advances (In-param, values will only be read)
 
-    :Return: list, list, dict
-        an list of dictionairies from horizontal computations
-        an list of dictionairies from vertical computations
-        the same dict as param files_dict to indicate that dict will be extended here.
+    :returns: (list, list, dict)
+     - an list of dictionairies from horizontal computations
+     - an list of dictionairies from vertical computations
+     - the same dict as param files_dict to indicate that dict will be extended here.
     '''
     print 'Calculating orbit'
     list_of_co_x = []
@@ -696,19 +672,16 @@ def calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
 def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase):
     '''
     Fills the following TfsFiles:
-        getphasex_dpp_' + str(k + 1) + '.out        getbetax_dpp_' + str(k + 1) + '.out
-        getphasey_dpp_' + str(k + 1) + '.out        getbetay_dpp_' + str(k + 1) + '.out
+     - getphasex_dpp_' + str(k + 1) + '.out
+     - getphasey_dpp_' + str(k + 1) + '.out
+     - getbetax_dpp_' + str(k + 1) + '.out
+     - getbetay_dpp_' + str(k + 1) + '.out
 
-    :Parameters:
-        'getllm_d': GetllmData (In-param, values will only be read)
-            lhc_phase, accel, beam_direction and num_beams_for_coupling are used.
-        'twiss_d': TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': TuneData (In/Out-param, values will be read and set)
-            Holds tunes and phase advances. q1 and q2 will be set if accel 'SPS' or 'RHIC'
+    :param _GetllmData getllm_d: lhc_phase, accel, beam_direction and num_beams_for_coupling are used (In-param, values will only be read)
+    :param _TwissData twiss_d: Holds twiss instances of the src files. (In-param, values will only be read)
+    :param _TuneData tune_d: Holds tunes and phase advances. q1 and q2 will be set if accel 'SPS' or 'RHIC' (In/Out-param, values will be read and set)
 
-    :Return: _TuneData
-        the same instance as param tune_d to indicate that tunes will be set.
+    :returns: _TuneData -- the same instance as param tune_d to indicate that tunes will be set.
     '''
     print "Calculating phase and Beta for non-zero DPP"
     if DEBUG:
@@ -877,10 +850,9 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
 def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
     '''
     Fills the following TfsFiles:
-        getsex3000.out
+     - getsex3000.out
 
-    :Return: dict: string --> GetllmTfsFile
-        The same instace of files_dict to indicate that the dict was extended.
+    :returns: dict string --> GetllmTfsFile -- The same instace of files_dict to indicate that the dict was extended.
     '''
     print "Calculating getsextupoles"
     # For getsex1200.out andgetsex2100.out take a look at older revisions. (vimaier)
@@ -904,10 +876,10 @@ def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
 def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
     '''
     Fills the following TfsFiles:
-        getkick.out        getkickac.out
+     - getkick.out
+     - getkickac.out
 
-    :Return: dict: string --> GetllmTfsFile
-        The same instace of files_dict to indicate that the dict was extended
+    :returns: dict string --> GetllmTfsFile -- The same instace of files_dict to indicate that the dict was extended
     '''
     print "Calculating kick"
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
@@ -986,21 +958,15 @@ class _GetllmData(object):
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.
 
-        :Parameters:
-            'outputpath': string
-                Path to output dir. If dir(s) to output do(es) not exist, it/they will be created.
+        :param string outputpath: Path to output dir. If dir(s) to output do(es) not exist, it/they will be created.
         '''
-        if not os.path.isdir(outputpath):
-            os.makedirs(outputpath)
+        Utilities.iotools.create_dirs(outputpath)
         self.outputpath = outputpath
 
     def set_bpmu_and_cut_for_closed_orbit(self, cut_co, bpm_unit):
         ''' Calculates and sets the cut and bpm unit.
-        :Parameters:
-            'cut_co': int
-                Cut in um(micrometer).
-            'bpm_unit': string
-                Indicates used unit. um, mm, cm or m
+        :param int cut_co: Cut in um(micrometer).
+        :param string bpm_unit: Indicates used unit. um, mm, cm or m
         '''
         self.bpm_unit = bpm_unit
 
@@ -1012,6 +978,9 @@ class _GetllmData(object):
             self.cut_for_closed_orbit = cut_co / 1.0e4
         elif bpm_unit == 'm':
             self.cut_for_closed_orbit = cut_co / 1.0e6
+        else:
+            print >> sys.stderr, "Wrong BPM unit:", bpm_unit
+
 
 class _TwissData(object):
     ''' Holds twiss instances of all src files. '''

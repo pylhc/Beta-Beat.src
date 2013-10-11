@@ -1,13 +1,22 @@
 '''
-Created on 15 Aug 2013
+.. module: Utilities.ndiff
 
-@author: vimaier
+Created on 15 Aug 2013
 
 Utilities.ndiff.py is a wrapper for the program ndiff which is written in c.
 This script provides basically the convenience to run ndiff via python methods.
 
 The binaries of ndiff are stored in Beta-Beat.src/binaries/ndiff .
 
+Usage::
+    import Utilities.ndiff
+    ...
+    if Utilities.ndiff.compare_tfs_files_and_ignore_whitespace("file_a.out", "file_b.out"):
+        print "Files are equal"
+    else:
+        print "Files are not equal"
+
+.. moduleauthor:: vimaier
 '''
 import sys
 import os
@@ -24,24 +33,18 @@ IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
 def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, file_to_config_file_dict=None):
     """
     Compares also subdirectories recursively
-    :Parameters:
-        'dir1': string
-            Path to directory a
-        'dir2': string
-            Path to directory b
-        'regex_list': list
-            List of regular expression patterns. Only files which matches a pattern in the list will be compared.
-            See also http://docs.python.org/2.6/library/re.html
-            If list is empty, every file will be compared
-            Example: ["^.*gitignore$", "^.*out$"]
-            ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing
-        'file_to_config_file_dict': dict
-            Keys are filenames(without path) and corresponding values are ndiff config filepaths.
-            If File is not in dict a default config file will be used.
+    :param string dir1: Path to directory a
+    :param string dir2: Path to directory b
+    :param list regex_list: List of regular expression patterns. Only files which matches a pattern in the list will be compared.
+                            See also http://docs.python.org/2.6/library/re.html
+                            If list is empty, every file will be compared
+                            Example: ["^.*gitignore$", "^.*out$"]
+                            ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing
+                            'file_to_config_file_dict': dict
+                            Keys are filenames(without path) and corresponding values are ndiff config filepaths.
+                            If File is not in dict a default config file will be used.
 
-        :Return: boolean
-            Returns True if dirs are equal, otherwise false
-            (exit_code, std_stream, err_stream)
+    :returns: boolean -- True if dirs are equal, otherwise false
     """
     if Utilities.iotools.no_dirs_exist(dir1, dir2):
         print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."
@@ -118,20 +121,14 @@ def run_ndiff(file_a, file_b, config_file="", options_dict=None ):
     Runs ndiff in a new subprocess to compare given files (a and b) with the config_file and the
     options_dict.
 
-    :Parameters:
-        'file_a': string
-            Path to file a
-        'file_b': string
-            Path to file b
-        'config_file': string
-            Path to config file
-        'options_dict': dictionary option_letter --> argument
-            A dictionary with the options.
-            E.g.: a_dict = {"-d":"", "-a":"xyz"}
+    :param string file_a: Path to file a
+    :param string file_b: Path to file b
+    :param string config_file: Path to config file
+    :param dict options_dict: option_letter --> argument -- A dictionary with the options.
+                                E.g.: a_dict = {"-d":"", "-a":"xyz"}
 
-        :Return: tupel(int, string, string)
-            Returns the exit code and the outputstreams of the subprocess.
-            (exit_code, std_stream, err_stream)
+    :returns: tupel(int, string, string) -- Returns the exit code and the outputstreams of the subprocess.
+              (exit_code, std_stream, err_stream)
     """
     options_string = __parse_options_dict(options_dict)
 
