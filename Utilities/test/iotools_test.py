@@ -4,6 +4,7 @@ Created on 15 Oct 2013
 @author: vimaier
 '''
 import unittest
+import os
 
 import Utilities.iotools
 
@@ -56,7 +57,42 @@ value_for_key_a == value_for_key_a
         self.assertTrue(all_lines == assumed_lines, "Strings are not equal:\n"+all_lines+assumed_lines)
 
 
+class TestGetFilenamesInDir(unittest.TestCase):
+    """ tests function Utilities.iotools.replace_keywords_in_textfile """
 
+    def setUp(self):
+        self.__list_of_abs_filepaths = []
+        self.__create_dirs_and_files()
+
+    def tearDown(self):
+        self.__delete_created_dirs_and_files()
+
+
+    def test_filenames(self):
+        all_abs_filenames = Utilities.iotools.get_all_absolute_filenames_in_dir_and_subdirs("root_for_test")
+        self.assertEqual(all_abs_filenames, self.__list_of_abs_filepaths,
+                         "Abs. filenames are not equal:\n"+str(all_abs_filenames)+"\n"+str(self.__list_of_abs_filepaths))
+
+        all_filenames = Utilities.iotools.get_all_filenames_in_dir_and_subdirs("root_for_test")
+        assumed_filenames = ["file1", "file2", "file3", "file4"]
+        self.assertEqual(all_filenames, assumed_filenames,
+                         "Filenames are not equal:\n"+str(all_filenames)+"\n"+str(assumed_filenames))
+
+
+    def __create_dirs_and_files(self):
+        abs_path_to_root = os.path.join(os.path.dirname(os.path.abspath(__file__)),"root_for_test")
+        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "file1"))
+        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "file2"))
+        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "subdir1", "file3"))
+        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "subdir1", "file4"))
+        Utilities.iotools.create_dirs("root_for_test/subdir1")
+        Utilities.iotools.create_dirs("root_for_test/subdir2")
+        for abs_file_name in self.__list_of_abs_filepaths:
+            with open(abs_file_name, "w") as new_file:
+                new_file.write("Hello file!")
+
+    def __delete_created_dirs_and_files(self):
+        Utilities.iotools.delete_item("root_for_test")
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
