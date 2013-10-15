@@ -14,6 +14,7 @@ import MODEL.LHCB.model.Corrections.test.filecheck
 #import GetLLM.test.filecheck
 import GetLLM.test.vimaier_utils.test_compare_utils
 import Utilities.test.tfs_file_writer_test
+import Utilities.test.iotools_test
 
 def suite():
     """
@@ -26,7 +27,8 @@ def suite():
              MODEL.LHCB.model.Corrections.test.filecheck.TestFileOutputGetdiff,
              #GetLLM.test.filecheck.TestFileOutputGetLLM, # Commented out because this test has his own test on CDash
              GetLLM.test.vimaier_utils.test_compare_utils.TestCompareUtils,
-             Utilities.test.tfs_file_writer_test.TestTfsFileWriter
+             Utilities.test.tfs_file_writer_test.TestTfsFileWriter,
+             Utilities.test.iotools_test.TestReplacingKeywords
              ]
 
     for t in tests:

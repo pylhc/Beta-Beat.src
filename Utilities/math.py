@@ -12,10 +12,10 @@ from __future__ import division # To get float division instead of integer divis
 import numpy
 
 def arithmetic_mean(numbers):
-    return sum(numbers)/len(numbers)
+    return numpy.mean(numbers)
 
 def root_mean_square(numbers):
-    return numpy.sqrt(sum(n*n for n in numbers)/len(numbers))
+    return numpy.linalg.norm(numbers) / numpy.sqrt(len(numbers))
 
 def standard_deviation(numbers):
     return numpy.std(numbers)

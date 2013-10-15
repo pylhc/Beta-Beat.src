@@ -165,19 +165,21 @@ def is_not_empty_dir(directory):
 
 def read_all_lines_in_textfile(path_to_textfile):
     if not os.path.exists(path_to_textfile):
-        print >> sys.stderr, "read_all_lines_in_textfile: File does not exist:",path_to_textfile
+        print >> sys.stderr, "read_all_lines_in_textfile: File does not exist:", path_to_textfile
         return ""
-    textfile = open(path_to_textfile, "r")
-    return textfile.read()
+    with open(path_to_textfile) as textfile:
+        return textfile.read()
 
 def append_string_to_textfile(path_to_textfile, str_to_append):
     """ If file does not exist, a new file will be created. """
-    if os.path.exists(path_to_textfile):
-        open_mode = "a"
-    else:
-        open_mode = "w"
-    file_to_append = open(path_to_textfile, open_mode)
-    print >> file_to_append, str_to_append
+    with open(path_to_textfile, "a") as file_to_append:
+        file_to_append.write(str_to_append)
+
+def write_string_into_new_file(path_to_textfile, str_to_insert):
+    """ An existing file will be truncated. """
+    with open(path_to_textfile, "w") as new_file:
+        new_file.write(str_to_insert)
+
 
 def replace_keywords_in_textfile(path_to_textfile, dict_for_replacing, new_output_path=None):
     """
@@ -194,5 +196,5 @@ def replace_keywords_in_textfile(path_to_textfile, dict_for_replacing, new_outpu
 
     all_lines = read_all_lines_in_textfile(path_to_textfile)
     lines_with_replaced_keys = all_lines % dict_for_replacing
-    append_string_to_textfile(destination_file, lines_with_replaced_keys)
+    write_string_into_new_file(destination_file, lines_with_replaced_keys)
 
