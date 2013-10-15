@@ -9,8 +9,9 @@ This script provides basically the convenience to run ndiff via python methods.
 The binaries of ndiff are stored in Beta-Beat.src/binaries/ndiff .
 
 Usage::
+
     import Utilities.ndiff
-    ...
+
     if Utilities.ndiff.compare_tfs_files_and_ignore_whitespace("file_a.out", "file_b.out"):
         print "Files are equal"
     else:

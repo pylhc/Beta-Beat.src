@@ -6,12 +6,13 @@ This module contains the class TfsFileWriter which is used to create easily TfsF
 
 .. moduleauthor:: Viktor Maier <viktor.maier@cern.ch>
 
-Usage::
+Usage1::
 
-    import Utilities.tfs_file_writer
+    import Utilities.tfs_file_writer as tfs_writer
     ...
-    tfs_file_writer = Utilities.tfs_file_writer.TfsFileWriter("my_file.out", column_width=15)
-    tfs_file_writer.set_outputpath("")
+    tfs_file_writer = tfs_writer.TfsFileWriter.open("my_file.out")
+    tfs_file_writer.set_column_width(15) # Specify desired column width
+    tfs_file_writer.set_outputpath("/x/y/z/") # Specify a directory if desired
 
     tfs_file_writer.add_string_descriptor("NAME", "TWISS")
     tfs_file_writer.add_float_descriptor("MASS", 0.938272013)
@@ -20,6 +21,14 @@ Usage::
     tfs_file_writer.add_column_datatypes("%s %le %le %le %le %le".split())
     tfs_file_writer.add_table_row("BTVSS.6L2.B1  1.125  131.5873094  -1.899115044  67.61780908 1.699566347".split())
 
+    tfs_file_writer.write_to_file()
+
+Usage2::
+
+    tfs_file_writer = tfs_writer.TfsFileWriter.open("/x/y/z/my_file.out")
+    #tfs_file_writer.set_outputpath("/x/y/z/") # Don't do this! Outputpath is already in file_name.
+
+    ... # Add at least column_names, dolumn_datatypes and one table_row
     tfs_file_writer.write_to_file()
 
 """
@@ -40,6 +49,15 @@ class TfsFileWriter(object):
     DEFAULT_COLUMN_WIDTH = 17
     # Indicates width of columns in output file.
     MIN_COLUMN_WIDTH = 4
+
+    @staticmethod
+    def open(file_name):
+        """ This function will create and return a TfsFileWriter object with the given filename.
+            No file will be opened on the file system yet. An actual file will first be created
+            after adding at least column_names, dolumn_datatypes and one table_row and the method
+            call write_to_file().
+         """
+        return TfsFileWriter(file_name)
 
     def __init__(self, file_name, outputpath=None, column_width=DEFAULT_COLUMN_WIDTH):
         """

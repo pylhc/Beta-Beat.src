@@ -1,5 +1,5 @@
 Utilities documentation
-********************
+***********************
 
 Module Utilities.bpm
 --------------------
@@ -8,7 +8,7 @@ Module Utilities.bpm
     :members:
 
 Module Utilities.iotools
-----------------------
+------------------------
 
 .. automodule:: Utilities.iotools
     :members:
@@ -26,13 +26,13 @@ Module Utilities.ndiff
     :members:
 
 Module Utilities.tfs_file_writer
-----------------------
+--------------------------------
 
 .. automodule:: Utilities.tfs_file_writer
     :members:
 
 Module Utilities.tfs_file
-----------------------
+-------------------------
 
 .. automodule:: Utilities.tfs_file
     :members:

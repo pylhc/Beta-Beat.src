@@ -26,7 +26,7 @@ class TestTfsFileWriter(unittest.TestCase):
 
     def testTfsFileWriter(self):
         file_from_tfs_writer = "test.out"
-        tfs_file_writer = Utilities.tfs_file_writer.TfsFileWriter(file_from_tfs_writer)
+        tfs_file_writer = Utilities.tfs_file_writer.TfsFileWriter.open(file_from_tfs_writer)
         tfs_file_writer.add_string_descriptor("NAME", "TWISS")
         tfs_file_writer.add_float_descriptor("MASS", 0.938272013)
         tfs_file_writer.add_comment("I am a comment")
