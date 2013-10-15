@@ -123,12 +123,8 @@ def get_all_filenames_in_dir_and_subdirs(path_to_dir):
     if not os.path.isdir(path_to_dir):
         return []
     result = []
-    for item in os.listdir(path_to_dir):
-        path_to_item = os.path.join(path_to_dir, item)
-        if os.path.isdir(path_to_item):
-            result = result + get_all_filenames_in_dir_and_subdirs(path_to_item)
-        else:
-            result.append(item)
+    for root, subFolders, files in os.walk(path_to_dir):
+        result+=files
     return result
 
 def get_all_absolute_filenames_in_dir_and_subdirs(path_to_dir):
