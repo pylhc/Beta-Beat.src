@@ -8,6 +8,7 @@ import sys
 import unittest
 import subprocess
 
+import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 import Utilities.ndiff
 
@@ -21,11 +22,11 @@ class TestSvdClean(unittest.TestCase):
         self.__path_to_input = os.path.join(self.__root, "data", "input")
         self.__path_to_check = os.path.join(self.__root, "data", "output", "to_check")
         self.__path_expected = os.path.join(self.__root, "data", "output", "expected")
+        Utilities.iotools.create_dirs(self.__path_to_check)
 
 
     def tearDown(self):
         self.__delete_created_files()
-        pass
 
 
     def testSvdClean(self):

@@ -213,7 +213,10 @@ class SddsFile(object):
 
         print "writing done. rename to:  ", newfile
         if not use_test_mode:
-            os.remove(newfile)
+            try:
+                os.remove(newfile)
+            except OSError:
+                pass # Will be raised if newfile does not exist (vimaier)
             os.rename(options.file + ".tmp_svd_clean", newfile)
 
     def write_bpm_data_to_file(self, plane, file_to_write):
