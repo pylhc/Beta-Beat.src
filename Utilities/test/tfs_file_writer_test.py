@@ -48,7 +48,7 @@ class TestTfsFileWriter(unittest.TestCase):
         self.__created_files.append(file_assumed)
 
         self.assertTrue(
-                    Utilities.ndiff.compare_tfs_files_and_ignore_whitespace(tfs_file_writer.get_absolute_file_name_path(),
+                    Utilities.ndiff.compare_files_and_ignore_whitespace(tfs_file_writer.get_absolute_file_name_path(),
                                                                             file_assumed),
                         "Created tfs file is not equal to assumed file"
                         )

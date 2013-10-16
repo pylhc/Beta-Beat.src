@@ -12,7 +12,7 @@ Usage::
 
     import Utilities.ndiff
 
-    if Utilities.ndiff.compare_tfs_files_and_ignore_whitespace("file_a.out", "file_b.out"):
+    if Utilities.ndiff.compare_files_and_ignore_whitespace("file_a.out", "file_b.out"):
         print "Files are equal"
     else:
         print "Files are not equal"
@@ -31,19 +31,23 @@ IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
 
 
 
-def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, file_to_config_file_dict=None):
+def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, file_to_config_file_dict=None, master_config_file=""):
     """
     Compares also subdirectories recursively
     :param string dir1: Path to directory a
     :param string dir2: Path to directory b
     :param list regex_list: List of regular expression patterns. Only files which matches a pattern in the list will be compared.
-                            See also http://docs.python.org/2.6/library/re.html
                             If list is empty, every file will be compared
+                            See also http://docs.python.org/2.6/library/re.html
                             Example: ["^.*gitignore$", "^.*out$"]
                             ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing
-                            'file_to_config_file_dict': dict
+    :param dict file_to_config_file_dict:
                             Keys are filenames(without path) and corresponding values are ndiff config filepaths.
                             If File is not in dict a default config file will be used.
+    :param string master_config_file:
+                            Path to config file which will be used for files which have not entry in
+                            file_to_config_file_dict.
+                            If not stated a default config file will be used.
 
     :returns: boolean -- True if dirs are equal, otherwise false
     """
@@ -61,15 +65,15 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, fil
         item1 = os.path.join(dir1, item)
         item2 = os.path.join(dir2, item)
         if os.path.isdir(item1):
-            if not compare_dirs_with_files_matching_regex_list(item1, item2, regex_list, file_to_config_file_dict):
+            if not compare_dirs_with_files_matching_regex_list(item1, item2, regex_list, file_to_config_file_dict, master_config_file):
                 return False
         else:
             if empty_list_or_str_matches_regex_list(item1, regex_list):
                 if item in file_to_config_file_dict:
-                    if not run_ndiff(item1, item2, file_to_config_file_dict[item], {"--blank":""}):
+                    if not compare_files(item1, item2, file_to_config_file_dict[item]):
                         return False
                 else:
-                    if not compare_tfs_files_and_ignore_header(item1, item2):
+                    if not compare_files(item1, item2, master_config_file):
                         return False
     return True
 
@@ -82,20 +86,13 @@ def empty_list_or_str_matches_regex_list(file_str, regex_list):
             return True
     return False
 
-def compare_tfs_files_and_ignore_whitespace(file_a, file_b):
+def compare_files_and_ignore_whitespace(file_a, file_b):
     """
     Returns true, if files are equal with the default config. Whitespace will not be compared.
     Otherwise false, and output from ndiff will be printed.
     """
     ignore_whitespace_option = {"--blank":""}
-
-    (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, options_dict=ignore_whitespace_option)
-
-    if 0 == exit_code and ndiff_files_were_equal(err_stream):
-        return True
-    else:
-        print std_stream
-        print >> sys.stderr, err_stream
+    return compare_files(file_a, file_b, options_dict=ignore_whitespace_option)
 
 def compare_tfs_files_and_ignore_header(file_a, file_b):
     """
@@ -105,16 +102,22 @@ def compare_tfs_files_and_ignore_header(file_a, file_b):
     tfs_ignore_header_cfg = os.path.join(get_path_to_root_of_ndiff(), IGNORE_TFS_HEADER_CFG)
     ignore_whitespace_option = {"--blank":""}
 
-    (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, tfs_ignore_header_cfg,
-                                                                    ignore_whitespace_option)
+    return compare_files(file_a, file_b, tfs_ignore_header_cfg, ignore_whitespace_option)
+
+
+def compare_files(file_a, file_b, config_file="", options_dict=None ):
+    """
+    Returns true, if files are equal based on the given config file.
+    Otherwise false, and output from ndiff will be printed.
+    """
+    (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, config_file, options_dict)
 
     if 0 == exit_code and ndiff_files_were_equal(err_stream):
         return True
     else:
         print std_stream
         print >> sys.stderr, err_stream
-
-
+        return False
 
 
 def run_ndiff(file_a, file_b, config_file="", options_dict=None ):
@@ -136,8 +139,11 @@ def run_ndiff(file_a, file_b, config_file="", options_dict=None ):
     if "" == config_file:
         config_file = get_path_to_default_config_file()
 
-
-    call_command = [get_os_dependent_path_to_ndiff(), options_string, file_a, file_b, config_file]
+    call_command = []
+    call_command.append(get_os_dependent_path_to_ndiff())
+    if "" != options_string:
+        call_command.append(options_string)
+    call_command += [file_a, file_b, config_file]
 
     process = subprocess.Popen(call_command,
                        stdout=subprocess.PIPE,
