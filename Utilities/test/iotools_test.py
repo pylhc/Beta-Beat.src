@@ -62,6 +62,7 @@ class TestGetFilenamesInDir(unittest.TestCase):
 
     def setUp(self):
         self.__list_of_abs_filepaths = []
+        self.__abs_path_to_root = os.path.join(os.path.dirname(os.path.abspath(__file__)),"root_for_test")
         self.__create_dirs_and_files()
 
     def tearDown(self):
@@ -69,7 +70,7 @@ class TestGetFilenamesInDir(unittest.TestCase):
 
 
     def test_filenames(self):
-        all_abs_filenames = Utilities.iotools.get_all_absolute_filenames_in_dir_and_subdirs("root_for_test")
+        all_abs_filenames = Utilities.iotools.get_all_absolute_filenames_in_dir_and_subdirs(self.__abs_path_to_root)
         self.assertEqual(all_abs_filenames, self.__list_of_abs_filepaths,
                          "Abs. filenames are not equal:\n"+str(all_abs_filenames)+"\n"+str(self.__list_of_abs_filepaths))
 
@@ -80,19 +81,18 @@ class TestGetFilenamesInDir(unittest.TestCase):
 
 
     def __create_dirs_and_files(self):
-        abs_path_to_root = os.path.join(os.path.dirname(os.path.abspath(__file__)),"root_for_test")
-        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "file1"))
-        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "file2"))
-        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "subdir1", "file3"))
-        self.__list_of_abs_filepaths.append(os.path.join(abs_path_to_root, "subdir1", "file4"))
-        Utilities.iotools.create_dirs("root_for_test/subdir1")
-        Utilities.iotools.create_dirs("root_for_test/subdir2")
+        self.__list_of_abs_filepaths.append(os.path.join(self.__abs_path_to_root, "file1"))
+        self.__list_of_abs_filepaths.append(os.path.join(self.__abs_path_to_root, "file2"))
+        self.__list_of_abs_filepaths.append(os.path.join(self.__abs_path_to_root, "subdir1", "file3"))
+        self.__list_of_abs_filepaths.append(os.path.join(self.__abs_path_to_root, "subdir1", "file4"))
+        Utilities.iotools.create_dirs(os.path.join(self.__abs_path_to_root, "subdir1"))
+        Utilities.iotools.create_dirs(os.path.join(self.__abs_path_to_root, "subdir2"))
         for abs_file_name in self.__list_of_abs_filepaths:
             with open(abs_file_name, "w") as new_file:
                 new_file.write("Hello file!")
 
     def __delete_created_dirs_and_files(self):
-        Utilities.iotools.delete_item("root_for_test")
+        Utilities.iotools.delete_item(self.__abs_path_to_root)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
