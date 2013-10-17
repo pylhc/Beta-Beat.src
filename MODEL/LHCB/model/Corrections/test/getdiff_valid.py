@@ -1,8 +1,8 @@
 import sys
-sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
-
-from metaclass import *
 import os
+
+import __init__  # @UnusedImport adds path to Beta-Beat.src
+from Python_Classes4MAD.metaclass import *
 
 
 path=sys.argv[1]
@@ -33,7 +33,7 @@ print >> f2,"%s %le %le %le %le"
 if os.path.exists(path+'/getbetax_free.out'):
     t1=twiss(path+'/getbetax_free.out')
 else:
-    t1=twiss(path+'/getbetax.out')   
+    t1=twiss(path+'/getbetax.out')
 
 for i in range(len(t1.NAME)):
     el=t1.NAME[i]
@@ -50,7 +50,7 @@ for i in range(len(t1.NAME)):
 if os.path.exists(path+'/getbetay_free.out'):
     t1=twiss(path+'/getbetay_free.out')
 else:
-    t1=twiss(path+'/getbetay.out')    
+    t1=twiss(path+'/getbetay.out')
 
 for i in range(len(t1.NAME)):
     el=t1.NAME[i]
@@ -110,7 +110,7 @@ print >> f1,"%s %le %le %le %le %le %le"
 if os.path.exists(path+'/getcouple_free.out'):
     t1=twiss(path+'/getcouple_free.out')
 else:
-    t1=twiss(path+'/getcouple.out')    
+    t1=twiss(path+'/getcouple.out')
 
 
 for i in range(len(t1.NAME)):

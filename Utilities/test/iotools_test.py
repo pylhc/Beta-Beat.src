@@ -74,7 +74,7 @@ class TestGetFilenamesInDir(unittest.TestCase):
         self.assertEqual(all_abs_filenames, self.__list_of_abs_filepaths,
                          "Abs. filenames are not equal:\n"+str(all_abs_filenames)+"\n"+str(self.__list_of_abs_filepaths))
 
-        all_filenames = Utilities.iotools.get_all_filenames_in_dir_and_subdirs("root_for_test")
+        all_filenames = Utilities.iotools.get_all_filenames_in_dir_and_subdirs(self.__abs_path_to_root)
         assumed_filenames = ["file1", "file2", "file3", "file4"]
         self.assertEqual(all_filenames, assumed_filenames,
                          "Filenames are not equal:\n"+str(all_filenames)+"\n"+str(assumed_filenames))
