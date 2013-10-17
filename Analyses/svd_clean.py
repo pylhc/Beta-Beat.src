@@ -6,19 +6,54 @@ Created on 30 Dec 2003
 This file cleans BPM turn by turn data.
 The input is expected in the SDDS ASCII Format.
 Criteria to remove bad bpm:
--flat, this mean the difference between min and max value
- for all turns is smaller than a given threshold
--SVD dominant: A singular value decomposition is applied to the bpms x turns
- matrix. If there is dominant mode above a threshold, this will be removed
+ - flat, this mean the difference between min and max value for all turns is smaller than a given threshold
+ - SVD dominant: A singular value decomposition is applied to the bpms x turns matrix. If there is
+   dominant mode above a threshold, this will be removed
 
 After this, the singular values are used to filter the noise.
 All singular value below a given threshold are zeroed.
 
 In the end, the new file is written again.
 
-Usage::
+Usage cmd line::
 
-    python svd_clean.py --turn=1 --p=0.00001 --g_sumsquare=0.925 --g_sing_val=57 --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds
+    python svd_clean.py -f file [other options]
+    python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds
+    python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds --turn=1 --p=0.00001 --g_sumsquare=0.925 --g_sing_val=57
+    python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds --newfile=cleaned.sdds
+
+Options::
+
+ -h, --help            show this help message and exit
+ -f FILE, --file=FILE  File to clean
+ -n NEWFILE, --newfile=NEWFILE
+                       File name for new file. Default is override current
+                       file
+ -t STARTTURN, --turn=STARTTURN
+                       Turn number to start. Default is first turn: 1
+ -m MAXTURNS, --maxturns=MAXTURNS
+                       Maximum number of turns to be analysed. Default is a
+                       number that is lower than the maximum which can be
+                       handled by drive: 9.500
+ -v SING, --sing_val=SING
+                       Keep this amount of singular values in decreasing
+                       order, rest will be cut (set to 0). Default is a large
+                       number: 1e5
+ -p PEAK, --pk-2-pk=PEAK
+                       Peak to peak amplitude cut. This removes BPMs where
+                       abs(max(turn values) - min(turn values)) <= threshold.
+                       Default is 10e-8
+ -s SUM, --sumsquare=SUM
+                       Threshold for single BPM dominating a mode. Should be
+                       > 0.9 for LHC. Default is 0.925
+ --use_test_mode       Set testing mode, this prevents date writing and file
+                       overwriting
+
+Usage in another Python module::
+
+    import Analyses.svd_clean
+    ...
+    Analyses.svd_clean.clean_sdds_file("my_dirty_sdds_ascii_file.sdds")
 
 .. moduleauthor:: Ram Calaga, Thomas Bach
 """
@@ -32,25 +67,6 @@ import numpy
 from numpy import dot as matrixmultiply
 
 
-
-# INPUT VARIABLES
-g_startturn_human = 1                 # turn to start, human readable
-                                    # (startindex 1, not 0)
-g_startturn = g_startturn_human - 1     # turn to start
-g_pk_pk_cut = 0.00000001              # peak to peak amplitude
-g_sumsquare = 0.925                   # sqroot(g_sumsquare of the 4 bpm values)
-                                    #  should be > 0.9
-g_sing_val = 100000                   # keep svdcut number of singular values
-                                    #  in decreasing order
-g_maxturns_human = 9500               # maximum number of turns to parse,
-                                    # human readable (startindex 1, not 0)
-g_maxturns = g_maxturns_human - 1       # maximum number of turns to parse
-g_source_file = ""                    # Path to sdds file which shall be cleaned
-g_newfile = ""                        # new file for SVDClean output
-g_use_test_mode = False
-
-
-
 # internal options
 PRINT_TIMES = False  # If True, (more) execution times will be printed
 PRINT_DEBUG = False  # If True, internal debug information will be printed
@@ -61,12 +77,18 @@ PLANE_Y = "1"
 
 
 #===================================================================================================
-# parse_args()-function
+# _parse_args()-function
 #===================================================================================================
-def parse_args():
+def _parse_args():
     ''' Parses the arguments and returns args '''
     parser = optparse.OptionParser(usage="python %prog -f file [other options]")
 
+    parser.add_option("-f", "--file",
+        help="File to clean",
+        default="./", dest="file")
+    parser.add_option("-n", "--newfile",
+        help="File name for new file. Default is override current file",
+        default="", dest="newfile")
     parser.add_option("-t", "--turn",
         help="Turn number to start. Default is first turn: 1",
         default="1", dest="startturn", type="int")
@@ -86,12 +108,6 @@ def parse_args():
         help="Threshold for single BPM dominating a mode. Should be > 0.9 for LHC."
         + " Default is 0.925",
         default="0.925", dest="sum", type="float")
-    parser.add_option("-f", "--file",
-        help="File to clean",
-        default="./", dest="file")
-    parser.add_option("-n", "--newfile",
-        help="File name for new file. Default is override current file",
-        default="", dest="newfile")
     parser.add_option("--use_test_mode",
         help="Set testing mode, this prevents date writing and file overwriting",
         action="store_true", dest="use_test_mode")
@@ -103,53 +119,76 @@ def parse_args():
 
 
 #===================================================================================================
-# main()-function
+# main-function
 #===================================================================================================
-def main(
+def clean_sdds_file(
          source_file,
-         newfile=g_newfile,
-         startturn_human=g_startturn_human,
-         maxturns_human=g_maxturns_human,
-         pk_pk_cut=g_pk_pk_cut,
-         sumsquare=g_sumsquare,
-         use_test_mode=g_use_test_mode
+         newfile="",
+         startturn=1,
+         maxturns=9500,
+         sing_val=100000,
+         pk_pk_cut=0.00000001,
+         sumsquare=0.925,
+         use_test_mode=False
          ):
     '''
-    Invokes cleaning of given sdds file
+    Invokes cleaning of given SDDS file
+
+    :param string source_file: Path to sdds file which shall be cleaned
+    :param string newfile: File name for new file. source_file will be overwritten for empty string ''
+    :param int startturn: Turn number to start (1-indexed). Default is first turn: 1
+    :param int maxturns: Maximum number of turns to be analysed (1-indexed). Default is a number that is
+                         lower than the maximum which can be handled by drive: 9.500
+    :param int sing_val: Keep this amount of singular values in decreasing order, rest will be cut
+                         (set to 0). Default is a large number: 1e5
+    :param float pk_pk_cut: Peak to peak amplitude cut. This removes BPMs where
+                            abs(max(turn values) - min(turn values)) <= threshold. Default is 10e-8
+    :param float sumsquare: Threshold for single BPM dominating a mode. Should be > 0.9 for LHC.
+                            Default is 0.925
+    :param bool use_test_mode: Set testing mode, this prevents date writing and file overwriting.
+                                  Default: False
     '''
-    global g_startturn_human, g_startturn, g_pk_pk_cut, g_sumsquare, g_sumsquare, g_sing_val
-    global g_sing_val, g_maxturns_human, g_maxturns, g_source_file, g_newfile, g_use_test_mode
-    g_startturn_human = startturn_human
+    _InputData.static_init(source_file, newfile, startturn, maxturns, sing_val, pk_pk_cut, sumsquare, use_test_mode)
 
-    g_source_file = source_file
-    g_newfile = newfile
-    if g_newfile == "":
-        g_newfile = g_source_file
-        print "no g_newfile given, existing file will be replaced with output"
-    g_startturn = g_startturn_human - 1
-    g_maxturns_human = maxturns_human
-    g_maxturns = g_maxturns_human - 1
-    g_pk_pk_cut = pk_pk_cut
-    g_sumsquare = sumsquare
-    g_use_test_mode = use_test_mode
-
-    TIME_START_GLOBAL = time.time()
-    SvdHandler()
-    print "Global Time:", time.time() - TIME_START_GLOBAL, "s"
+    start_time = time.time()
+    _SvdHandler()
+    print "Global Time:", time.time() - start_time, "s"
     return 0
 
 
+class _InputData(object):
+    """This class holds all input variables for svd clean """
 
-class SddsFile(object):
+    @staticmethod
+    def static_init(source_file, newfile, startturn_human, maxturns_human, sing_val, pk_pk_cut, sumsquare, use_test_mode):
+        _InputData.source_file = source_file
+        _InputData.newfile = newfile
+        if _InputData.newfile == "":
+            _InputData.newfile = _InputData.source_file
+            print "no g_newfile given, existing file will be replaced with output"
+        _InputData.startturn_human = startturn_human
+        _InputData.startturn = _InputData.startturn_human - 1
+        _InputData.maxturns_human = maxturns_human
+        _InputData.maxturns = _InputData.maxturns_human - 1
+        _InputData.sing_val = sing_val
+        _InputData.pk_pk_cut = pk_pk_cut
+        _InputData.sumsquare = sumsquare
+        _InputData.use_test_mode = use_test_mode
+
+    def __init__(self):
+        raise NotImplementedError("static class _InputData cannot be instantiated")
+
+
+class _SddsFile(object):
     """This class represents a SDDS file.
     It reads an existing SDDS file and creates & writes the new one"""
     def __init__(self, path_to_sddsfile):
         self.path_to_sddsfile = path_to_sddsfile
-        self.bad_bpmfile = BadBpmFile(path_to_sddsfile)
+        self.bad_bpmfile = _BadBpmFile(path_to_sddsfile)
         self.parsed = False
         self.header = ""
         self.number_of_turns = 0
-        self.dictionary_plane_to_bpms = { PLANE_X:Bpms(), PLANE_Y:Bpms() }
+        self.dictionary_plane_to_bpms = { PLANE_X:_Bpms(), PLANE_Y:_Bpms() }
 
     def init(self):
         """Parse the current SDDS file and sets all member variables"""
@@ -187,8 +226,8 @@ class SddsFile(object):
             # the else part will happen only once, if last_number_of_turns <= 0
             # (or multiple times if we do not have any turn data) (tbach)
             else:
-                if (g_startturn_human > detected_number_of_turns):
-                    print "g_startturn > detected_number_of_turns. g_startturn:", g_startturn_human, "detected_number_of_turns:", detected_number_of_turns
+                if (_InputData.startturn_human > detected_number_of_turns):
+                    print "g_startturn > detected_number_of_turns. g_startturn:", _InputData.startturn_human, "detected_number_of_turns:", detected_number_of_turns
                     sys.exit(1)
             last_number_of_turns = detected_number_of_turns
 
@@ -197,13 +236,13 @@ class SddsFile(object):
             # it is important for other parts of the program
             # -- tbach
 
-            self.number_of_turns = min(g_maxturns, detected_number_of_turns) - g_startturn
-            ndarray_line_data = numpy.array(list_splitted_line_values[3 + g_startturn:3 + g_startturn + self.number_of_turns], dtype=numpy.float64)
+            self.number_of_turns = min(_InputData.maxturns, detected_number_of_turns) - _InputData.startturn
+            ndarray_line_data = numpy.array(list_splitted_line_values[3 + _InputData.startturn:3 + _InputData.startturn + self.number_of_turns], dtype=numpy.float64)
             # this block handles BPMs with the same values for all turns (tbach)
             peak_to_peak_difference = numpy.abs(numpy.max(ndarray_line_data) - numpy.min(ndarray_line_data))
-            if peak_to_peak_difference <= g_pk_pk_cut:  # then do not use this BPM (tbach)
-                reason_for_badbpm = "Flat BPM, the difference between all values is smaller than " + str(g_pk_pk_cut)
-                badbpm = BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
+            if peak_to_peak_difference <= _InputData.pk_pk_cut:  # then do not use this BPM (tbach)
+                reason_for_badbpm = "Flat BPM, the difference between all values is smaller than " + str(_InputData.pk_pk_cut)
+                badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
                 self.bad_bpmfile.add_badbpm(badbpm)
                 flatbpm_counter += 1
                 continue
@@ -217,7 +256,7 @@ class SddsFile(object):
             print ">>Time for init (read file):", time.time() - time_start, "s"
         if flatbpm_counter > 0:
             print "Flat BPMs detected. Number of BPMs removed:", flatbpm_counter
-        print "Startturn:", g_startturn_human, "Maxturns:", g_maxturns_human
+        print "Startturn:", _InputData.startturn_human, "Maxturns:", _InputData.maxturns_human
         print "Number of turns:", self.number_of_turns
         print "Horizontal BPMs:", self.dictionary_plane_to_bpms[PLANE_X].get_number_of_bpms(),
         print "Vertical BPMs:", self.dictionary_plane_to_bpms[PLANE_Y].get_number_of_bpms()
@@ -240,7 +279,7 @@ class SddsFile(object):
             fileclean.write("#NTURNS calculated: " + str(self.number_of_turns) + "\n")
         #fileclean.write("#Modified: {0} By: {1}\n".format(time.strftime("%Y-%m-%d#%H:%M:%S"), __file__)) # to get only the filename: os.path.basename(__file__)
         # The previous line requires at least python 2.6 (tbach)
-        if not g_use_test_mode:
+        if not _InputData.use_test_mode:
             fileclean.write("#Modified: %s By: %s\n" % (time.strftime("%Y-%m-%d#%H:%M:%S"), __file__)) # to get only the filename: os.path.basename(__file__)
         self.write_bpm_data_to_file(PLANE_X, fileclean)
         self.write_bpm_data_to_file(PLANE_Y, fileclean)
@@ -248,13 +287,13 @@ class SddsFile(object):
         if PRINT_TIMES:
             print ">>Time for write_file:", time.time() - time_start, "s"
 
-        print "writing done. rename to:  ", g_newfile
-        if not g_use_test_mode:
+        print "writing done. rename to:  ", _InputData.newfile
+        if not _InputData.use_test_mode:
             try:
-                os.remove(g_newfile)
+                os.remove(_InputData.newfile)
             except OSError:
-                pass # Will be raised if g_newfile does not exist (vimaier)
-            os.rename(g_source_file + ".tmp_svd_clean", g_newfile)
+                pass # Will be raised if newfile does not exist (vimaier)
+            os.rename(_InputData.source_file + ".tmp_svd_clean", _InputData.newfile)
 
     def write_bpm_data_to_file(self, plane, file_to_write):
         """Writes the BPM data for the given plane"""
@@ -271,7 +310,7 @@ class SddsFile(object):
             file_to_write.write("\n")
 
 
-class BadBpmFile(object):
+class _BadBpmFile(object):
     """ Represents a bad bpm file
     Handles interaction with the bad bpm file
     """
@@ -285,7 +324,7 @@ class BadBpmFile(object):
     def __write_header(self, filehandle_badbpm):
         """ Writes the header for the bad bpm file """
         filehandle_badbpm.write(self.header)
-        if not g_use_test_mode:
+        if not _InputData.use_test_mode:
             filehandle_badbpm.write("#Modified: %s By: %s\n" % (time.strftime("%Y-%m-%d#%H:%M:%S"), __file__)) # to get only the filename: os.path.basename(__file__)
         filehandle_badbpm.write("#Bad BPMs from: %s \n" % self.path_to_sddsfile)
 
@@ -318,7 +357,7 @@ class BadBpmFile(object):
             print ">>Time for write_badbpms:", time.time() - time_start, "s"
 
 
-class Bpms(object):
+class _Bpms(object):
     """This represents some BPMs.
     It is used to distinguish between BPMs for X and Y"""
 
@@ -335,12 +374,12 @@ class Bpms(object):
         and returns a list of the given bad BPMs"""
         badbpms = []
         for index in sorted(badbpm_indices, reverse=True):
-            badbpms.append(BadBpm(self.bpms_name_location_plane.pop(index), self.bpm_data.pop(index), reason))
+            badbpms.append(_BadBpm(self.bpms_name_location_plane.pop(index), self.bpm_data.pop(index), reason))
 
         return badbpms
 
 
-class BadBpm(object):
+class _BadBpm(object):
     """Represents a bad BPM"""
 
     def __init__(self, bpms_name_location_plane, data, reason):
@@ -364,11 +403,11 @@ class BadBpm(object):
         return self.bpms_name_location_plane[2]
 
 
-class SvdHandler(object):
+class _SvdHandler(object):
     """ Main workload class. Handles the SVD"""
 
     def __init__(self):
-        self.sddsfile = SddsFile(g_source_file)
+        self.sddsfile = _SddsFile(_InputData.source_file)
         self.sddsfile.init()
         print ""
 
@@ -410,9 +449,9 @@ class SvdHandler(object):
         number_of_bpms = len(goodbpm_indices)
 
         #----SVD cut for noise floor
-        if g_sing_val < number_of_bpms:
-            print "(plane", plane, ") svdcut:", g_sing_val
-            USV[1][g_sing_val:] = 0
+        if _InputData.sing_val < number_of_bpms:
+            print "(plane", plane, ") svdcut:", _InputData.sing_val
+            USV[1][_InputData.sing_val:] = 0
         else:
             print "requested more singular values than available"
 
@@ -453,7 +492,7 @@ class SvdHandler(object):
         for row_index in range(len(U_t_abs)):
             max_index = numpy.argmax(U_t_abs[row_index])
             max_value = U_t_abs[row_index][max_index]
-            if (max_value > g_sumsquare):
+            if (max_value > _InputData.sumsquare):
                 badbpm_indices.add(max_index)
 
         if PRINT_DEBUG:
@@ -464,7 +503,7 @@ class SvdHandler(object):
             print "(plane", plane, ") Bad BPMs from SVD detected. Number of BPMs removed:", len(badbpm_indices)
 
         # add the bad BPMs to the general list of bad BPMs (tbach)
-        reason_for_badbpm = "Detected from SVD, single peak value is greater then " + str(g_sumsquare)
+        reason_for_badbpm = "Detected from SVD, single peak value is greater then " + str(_InputData.sumsquare)
         self.sddsfile.remove_bpms(badbpm_indices, plane, reason_for_badbpm)
 
         number_of_bpms = USV[0].shape[0]
@@ -483,14 +522,15 @@ class SvdHandler(object):
 #===================================================================================================
 def _start():
     '''
-    Starter function to avoid polluting global namespace with variables options.
+    Starter function to avoid polluting global namespace with variable 'options'.
     '''
-    options = parse_args()
-    main(
+    options = _parse_args()
+    clean_sdds_file(
          source_file=options.file,
          newfile=options.newfile,
-         startturn_human=options.startturn,
-         maxturns_human=options.maxturns,
+         startturn=options.startturn,
+         maxturns=options.maxturns,
+         sing_val=options.sing,
          pk_pk_cut=options.peak,
          sumsquare=options.sum,
          use_test_mode=options.use_test_mode

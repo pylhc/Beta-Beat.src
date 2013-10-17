@@ -193,7 +193,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
             'run_validator': RunValidator
                 A valid RunValidator object.
 
-        :Return: boolean
+        :Return: bool
             True if the test run successfully otherwise False.
         """
         valid_output_path = os.path.abspath(run_validator.get_valid_output_path())

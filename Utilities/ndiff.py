@@ -49,7 +49,7 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, fil
                             file_to_config_file_dict.
                             If not stated a default config file will be used.
 
-    :returns: boolean -- True if dirs are equal, otherwise false
+    :returns: bool -- True if dirs are equal, otherwise false
     """
     if Utilities.iotools.no_dirs_exist(dir1, dir2):
         print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."

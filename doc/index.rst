@@ -11,6 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   Analyses/index
    getllm/index
    Utilities/index
 

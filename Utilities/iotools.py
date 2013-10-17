@@ -85,7 +85,7 @@ def deleteFilesWithoutGitignore(pathToDirectory):
     """
     Deletes all files in the given pathToDirectory except of the file with the name '.gitignore'
 
-    :returns: boolean -- True if the directory exists and the files are deleted otherwise False.
+    :returns: bool -- True if the directory exists and the files are deleted otherwise False.
     """
     if not os.path.exists(pathToDirectory):
         return False
