@@ -18,8 +18,16 @@ macro(getsuper testname accel modelname f1 f2 f3)
          file(GLOB REF_FILES RELATIVE ${NDIFF_PATH}
             ${NDIFF_PATH}/*.out)
          foreach(REF_FILE ${REF_FILES})
-            add_test(numdiff_${testname}_${REF_FILE} ${NUMDIFF}
-               -b ${NDIFF_PATH}/${REF_FILE} ./out_${modelname}/${REF_FILE} ${NDIFF_PATH}/default.cfg
+            string(REGEX REPLACE ".out" "" FILE_BASE "${REF_FILE}")
+            # check if cfg file exists for this output file:
+            if(EXISTS ${NDIFF_PATH}/${FILE_BASE}.cfg)
+               set(CFG_FILE ${FILE_BASE}.cfg)
+            else()
+               # select default instead
+               set(CFG_FILE default.cfg)
+            endif()
+            add_test(numdiff_${testname}_${FILE_BASE} ${NUMDIFF}
+               -b ${NDIFF_PATH}/${REF_FILE} ./out_${modelname}/${REF_FILE} ${NDIFF_PATH}/${CFG_FILE}
                )
             set_tests_properties(numdiff_${testname}_${REF_FILE}
                PROPERTIES
