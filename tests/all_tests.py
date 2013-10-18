@@ -12,7 +12,6 @@ import __init__ # @UnusedImport init will include paths
 #import drive.test.test_output
 import MODEL.LHCB.model.Corrections.test.filecheck
 #import GetLLM.test.filecheck
-import GetLLM.test.vimaier_utils.test_compare_utils
 import Utilities.test.tfs_file_writer_test
 import Utilities.test.iotools_test
 import Analyses.test.svd_clean_test
@@ -27,7 +26,6 @@ def suite():
              #drive.test.test_output.TestOutput, # Commented out because this test has his own test on CDash
              MODEL.LHCB.model.Corrections.test.filecheck.TestFileOutputGetdiff,
              #GetLLM.test.filecheck.TestFileOutputGetLLM, # Commented out because this test has his own test on CDash
-             GetLLM.test.vimaier_utils.test_compare_utils.TestCompareUtils,
              Utilities.test.tfs_file_writer_test.TestTfsFileWriter,
              Utilities.test.iotools_test.TestReplacingKeywords,
              Utilities.test.iotools_test.TestGetFilenamesInDir,

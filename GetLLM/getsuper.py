@@ -95,7 +95,7 @@ def parse_args():
 
     parser.add_option("-d", "--deltapScalingFactor",
             help="Scaling factor for deltap, remember final value must be in MAD units",
-            metavar="<deltapScalingFactor>", default=1.0, type=float,dest="deltapScalingFactor")
+            metavar="<deltapScalingFactor>", default=1.0, type=float,dest="deltap_scaling_factor")
 
     return parser.parse_args()
 
@@ -127,8 +127,8 @@ def main(options, args):
             datax = metaclass.twiss(f_name+"_linx")
             datay = metaclass.twiss(f_name+"_liny")
 
-        dppx = datax.DPP * _InputData.deltapScalingFactor      # Quick hack to be able to use old files with bad dpp input
-        dppy = datay.DPP * _InputData.deltapScalingFactor
+        dppx = datax.DPP * _InputData.deltap_scaling_factor      # Quick hack to be able to use old files with bad dpp input
+        dppy = datay.DPP * _InputData.deltap_scaling_factor
 
         if dppx != dppy:
             raise ValueError("Discrepancy between horizontal and vertical => "+str(dppx)+" "+str(dppy))
@@ -423,7 +423,7 @@ def copy_default_outfiles():
     for fname in filenames('0.0'):
         src_path = _join_with_output_path(fname)
         dst_path = _join_with_output_path(fname.replace("_0.0.out", ".out"))
-        shutil.move(src_path, dst_path)
+        shutil.copy(src_path, dst_path)
 
 
 ##### for chromatic
@@ -598,7 +598,7 @@ def _get_tunes(fileslist):
 
 
 def _join_with_output_path(*path_tokens):
-    return os.path.join(_InputData, path_tokens)
+    return os.path.join(_InputData.output_path, *path_tokens)
 
 
 class _chromFileWriter:
