@@ -10,25 +10,25 @@ Created sometime 2009-2011
 Getsuper calculates with the help of GetLLM chromatic beta functions.
 The Montague W and Phi functions are output.
 
-What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards 
+What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards
 interpolate the results to see how the functions vary with dp/p.
 
-To run getsuper.py you need several source files(sdds files) with different DPP(delta_p/p). 
+To run getsuper.py you need several source files(sdds files) with different DPP(delta_p/p).
 At least one of the source files must have DPP=0.0 .
 Hint: You can change DPP in the GUI application in the Analysis panel. Change the entries in the
 column 'dp/d' in the table at the top.
 
-Further you need AC dipole in your model. If your twissfile is 'Twiss.dat' you need to provide the 
-file 'Twiss_ac.dat' in the same directory. 
+Further you need AC dipole in your model. If your twissfile is 'Twiss.dat' you need to provide the
+file 'Twiss_ac.dat' in the same directory.
 
 Use argument --help for further information
 
 Changelog:
 
- - 3.1 ylevinse 2012: 
-    Cleaned macro writer in madcreator
+ - 3.1 ylevinse 2012:
+    Cleaned macro writer in _madcreator
     modifiers.madx should be in options.output
- - 3.1.1 vimaier 28th May 2013: 
+ - 3.1.1 vimaier 28th May 2013:
     Added module docstring
     Removed option 'twiss'. See github issue #15
  - 3.1.2 vimaier 31th May 2013:
@@ -56,10 +56,9 @@ import math
 import re
 
 import __init__  # @UnusedImport init will include paths
-import metaclass
-import linreg
+import Python_Classes4MAD.metaclass as metaclass
+import Python_Classes4MAD.linreg as linreg
 import Utilities.bpm
-
 import superutils
 
 #===================================================================================================
@@ -105,56 +104,55 @@ def parse_args():
 # main()-function
 #===================================================================================================
 def main(options, args):
-    files = superutils.get_filelist(options, args)
-    
-    if 2 > len(files):
-        print >> sys.stderr, "Provide at least two files. Files:", str(files)
-        sys.exit(1)
+    _InputData.static_init(
+                           source_files=superutils.get_filelist(options, args),
+                           path_to_madx=options.madx,
+                           twissfile=options.twissfile,
+                           output_path=options.output,
+                           path_to_beta_beat=options.brc,
+                           technique=options.technique,
+                           accel=options.accel,
+                           deltap_scaling_factor=options.deltap_scaling_factor
+                           )
 
-    if not os.path.isdir(options.output):
-        os.makedirs(options.output)
-    accel = options.accel
-    technique = options.technique
 
-    fileslist = {}
+    files_dict = {} # dpp --> files with corresponding dpp
 
-    for f_name in files:
+    for f_name in _InputData.source_files:
 
-        if(f_name[-3:]=='.gz'):
-            datax = metaclass.twiss(f_name[:-3]+"_linx.gz")
-            datay = metaclass.twiss(f_name[:-3]+"_liny.gz")
+        if f_name.endswith('.gz'):
+            datax = metaclass.twiss(f_name.replace(".gz", "_linx.gz"))
+            datay = metaclass.twiss(f_name.replace(".gz", "_liny.gz"))
         else:
             datax = metaclass.twiss(f_name+"_linx")
             datay = metaclass.twiss(f_name+"_liny")
 
-        dppx = datax.DPP*options.deltapScalingFactor      # Quick hack to be able to use old files with bad dpp input
-        dppy = datay.DPP*options.deltapScalingFactor
+        dppx = datax.DPP * _InputData.deltapScalingFactor      # Quick hack to be able to use old files with bad dpp input
+        dppy = datay.DPP * _InputData.deltapScalingFactor
 
         if dppx != dppy:
             raise ValueError("Discrepancy between horizontal and vertical => "+str(dppx)+" "+str(dppy))
         else:
             dpp = dppx/1.0
 
-        if dpp not in fileslist:
+        if dpp not in files_dict:
             print "Adding dpp", dpp
-            fileslist[dpp] = [f_name]
+            files_dict[dpp] = [f_name]
         else:
-            fileslist[dpp].append(f_name)
+            files_dict[dpp].append(f_name)
 
-    if 0 not in fileslist:
+    if 0 not in files_dict:
         raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0.\n"+
                          "In GUI you can change DPP in the table at the top of the analyses panel."+
                          "Click in the column 'delta p /p' on a value to change it.")
 
-    getTunes(options, fileslist)
-
-    madcreator(fileslist.keys(), options)
+    _madcreator(files_dict.keys(), files_dict)
     print "All models are created"
-    for dpp in fileslist:
-        files = fileslist[dpp]
-        rungetllm(options.output+"/twiss_"+str(dpp)+".dat", accel, technique, files, options, dpp)
+    for dpp in files_dict:
+        files = files_dict[dpp]
+        _rungetllm(_join_with_output_path("twiss_"+str(dpp)+".dat"), files, dpp)
     # The GUI wants the default files to have the names without _0.0
-    copy_default_outfiles(options)
+    copy_default_outfiles()
 
     ##adding data
     betalistx = {}
@@ -172,17 +170,17 @@ def main(options, args):
     listcf = []
 
     try:
-        metaclass.twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
+        metaclass.twiss(_join_with_output_path('getbetax_free_'+str(dpp)+'.out'))
         freeswitch = 1
     except IOError:
-        print "WARNING: Could not open", options.output+'/getbetax_free_'+str(dpp)+'.out'
+        print "WARNING: Could not open", _join_with_output_path('getbetax_free_'+str(dpp)+'.out')
         freeswitch = 0
 
-    for dpp in fileslist.keys():
+    for dpp in files_dict.keys():
         print "Loading driven data for ", dpp
-        betx = metaclass.twiss(options.output+'/getbetax_'+str(dpp)+'.out')
-        bety = metaclass.twiss(options.output+'/getbetay_'+str(dpp)+'.out')
-        couple = metaclass.twiss(options.output+'/getcouple_'+str(dpp)+'.out')
+        betx = metaclass.twiss(_join_with_output_path('getbetax_'+str(dpp)+'.out'))
+        bety = metaclass.twiss(_join_with_output_path('getbetay_'+str(dpp)+'.out'))
+        couple = metaclass.twiss(_join_with_output_path('getcouple_'+str(dpp)+'.out'))
         #couple=twiss(options.output+'/getbetay_'+str(dpp)+'.out')
         betalistx[dpp] = betx
         betalisty[dpp] = bety
@@ -195,21 +193,16 @@ def main(options, args):
         listx.append(betx)
         listy.append(bety)
         listc.append(couple)
-        
-        path_twissfile = superutils.get_twissfile(options)
-        if not os.path.isfile(path_twissfile):
-            print >> sys.stderr, "Twissfile does not exist:", path_twissfile
-            sys.exit(1)
-        modeld = metaclass.twiss(path_twissfile)
+
+        modeld = metaclass.twiss(_InputData.twissfile)
 
         #try:
         if freeswitch == 1:
             print "Loading free data"
-            freeswitch = 1 #TODO: Actually senseless. Previous condition asserts ==1(vimaier)
             print 'getbetax_free_'+str(dpp)+'.out'
-            betxf = metaclass.twiss(options.output+'/getbetax_free_'+str(dpp)+'.out')
-            betyf = metaclass.twiss(options.output+'/getbetay_free_'+str(dpp)+'.out')
-            couplef = metaclass.twiss(options.output+'/getcouple_free_'+str(dpp)+'.out')
+            betxf = metaclass.twiss(_join_with_output_path('getbetax_free_'+str(dpp)+'.out'))
+            betyf = metaclass.twiss(_join_with_output_path('getbetay_free_'+str(dpp)+'.out'))
+            couplef = metaclass.twiss(_join_with_output_path('getcouple_free_'+str(dpp)+'.out'))
             betalistxf[dpp] = betxf
             betalistyf[dpp] = betyf
             couplelistf[dpp] = couplef
@@ -217,7 +210,7 @@ def main(options, args):
             listyf.append(betyf)
             listcf.append(couplef)
             modelf = modeld
-            path_ac_file = path_twissfile.replace(".dat","_ac.dat")
+            path_ac_file = _InputData.twissfile.replace(".dat","_ac.dat")
             if not os.path.isfile(path_ac_file):
                 print >> sys.stderr, "Ac file does not exist:", path_ac_file,"\nIn GUI check 'Ac dipole' box to create a model with ac dipole."
                 sys.exit(1)
@@ -236,19 +229,19 @@ def main(options, args):
     print "Driven beta"
 
     #H
-    fileobj = chromFileWriter('beta', options.output+"/chrombetax.out", 'H')
+    fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetax.out"), 'H')
 
     bpms = Utilities.bpm.intersect(listx)
     bpms = Utilities.bpm.model_intersect(bpms, modeld)
-    dolinregbet(fileobj, fileslist.keys(), betalistx, bpms, "H", zerobx, modeld)
+    dolinregbet(fileobj, files_dict.keys(), betalistx, bpms, "H", zerobx, modeld)
     del fileobj
 
     #V
-    fileobj = chromFileWriter('beta', options.output+"/chrombetay.out", 'V')
+    fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetay.out"), 'V')
 
     bpms = Utilities.bpm.intersect(listy)
     bpms = Utilities.bpm.model_intersect(bpms, modeld)
-    dolinregbet(fileobj, fileslist.keys(), betalisty, bpms, "V", zeroby, modeld)
+    dolinregbet(fileobj, files_dict.keys(), betalisty, bpms, "V", zeroby, modeld)
     del fileobj
 
     print "Driven beta finished"
@@ -257,13 +250,13 @@ def main(options, args):
     # driven coupling
     #
     print "Driven coupling"
-    
-    fileobj = chromFileWriter('coupling', options.output+"/chromcoupling.out", '')
+
+    fileobj = _chromFileWriter('coupling', _join_with_output_path("chromcoupling.out"), '')
 
     bpms = Utilities.bpm.intersect(listc)
     bpms = Utilities.bpm.model_intersect(bpms, modeld)
 
-    dolinregCoupling(couplelist, bpms, fileslist.keys(), fileobj)
+    dolinregCoupling(couplelist, bpms, files_dict.keys(), fileobj)
     del fileobj
 
     print "Driven coupling finished"
@@ -274,18 +267,18 @@ def main(options, args):
         #
         print "Free beta"
         #H
-        fileobj = chromFileWriter('beta', options.output+"/chrombetax_free.out", 'H')
+        fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetax_free.out"), 'H')
 
         bpms = Utilities.bpm.intersect(listxf)
         bpms = Utilities.bpm.model_intersect(bpms, modelf)
-        dolinregbet(fileobj, fileslist.keys(), betalistxf, bpms, "H", zerobxf, modelf)
+        dolinregbet(fileobj, files_dict.keys(), betalistxf, bpms, "H", zerobxf, modelf)
 
         #V
-        fileobj = chromFileWriter('beta', options.output+"/chrombetay_free.out", 'V')
+        fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetay_free.out"), 'V')
 
         bpms = Utilities.bpm.intersect(listyf)
         bpms = Utilities.bpm.model_intersect(bpms, modelf)
-        dolinregbet(fileobj, fileslist.keys(), betalistyf, bpms, "V", zerobyf, modelf)
+        dolinregbet(fileobj, files_dict.keys(), betalistyf, bpms, "V", zerobyf, modelf)
 
         print "Free beta finished"
 
@@ -294,12 +287,12 @@ def main(options, args):
         #
         print "Free coupling"
 
-        fileobj = chromFileWriter('coupling', options.output+"/chromcoupling_free.out", '')
+        fileobj = _chromFileWriter('coupling', _join_with_output_path("chromcoupling_free.out"), '')
 
         bpms = Utilities.bpm.intersect(listcf)
         bpms = Utilities.bpm.model_intersect(bpms, modelf)
 
-        dolinregCoupling(couplelistf, bpms, fileslist.keys(), fileobj)
+        dolinregCoupling(couplelistf, bpms, files_dict.keys(), fileobj)
 
         print "Free coupling finished"
 
@@ -307,33 +300,22 @@ def main(options, args):
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-def check_input(options, args):
-    files = superutils.get_filelist(options, args)
-    if len(files) == 0:
-        raise SyntaxError("You need to define at least one file input")
-    for f_name in files:
-        if not os.path.isfile(f_name) and not os.path.isfile(f_name+'.gz'):
-            raise ValueError(f_name+' does not exist')
-
-
-def madcreator(dpps, options):
+def _madcreator(dpps, files_dict):
     '''
     :param dpps: list of dp/p to create model for
-    :param options: dictionary of options from input arguments
     '''
-    madfile = options.brc+"/MODEL/LHCB/model/"
-
-    linesmad = open(madfile+"/job.twiss_chrom.madx.macro","r").read()
 
     # creating the DPP
     dppstring = ''
     dppstring_ac = ''
     for dpp in dpps:
-        if not os.path.exists(options.output+'/twiss_'+str(dpp)+'.dat'):
-            dppstring = dppstring+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'.dat";\n'
+        path_to_twiss_dpp = _join_with_output_path("twiss_"+str(dpp)+".dat")
+        if not os.path.exists(path_to_twiss_dpp):
+            dppstring = dppstring+'twiss, chrom,sequence='+_InputData.accel+', deltap='+str(dpp)+', file="'+path_to_twiss_dpp+'";\n'
             # if the model has twiss_ac.dat:
-            if os.path.exists(superutils.get_twissfile(options)[:-4]+"_ac.dat"): # this is only correct as long as the filenames are <filename>_ac.dat and <filename>.dat!
-                dppstring_ac = dppstring_ac+'twiss, chrom,sequence='+options.accel+', deltap='+str(dpp)+', file="'+options.output+'/twiss_'+str(dpp)+'_ac.dat";\n'
+            if os.path.exists(_InputData.twissfile.replace(".dat","_ac.dat")): # this is only correct as long as the filenames are <filename>_ac.dat and <filename>.dat!
+                path_to_twiss_ac_dpp = _join_with_output_path("twiss_"+str(dpp)+"_ac.dat")
+                dppstring_ac = dppstring_ac+'twiss, chrom,sequence='+_InputData.accel+', deltap='+str(dpp)+', file="'+path_to_twiss_ac_dpp+'";\n'
             else: # do not create ac file if we don't have ac in our original model..
                 dppstring_ac = ''
 
@@ -343,22 +325,25 @@ def madcreator(dpps, options):
 
     DPP = dppstring
     DP_AC_P = dppstring_ac
-    ACCEL=options.accel
-    if options.accel == 'LHCB1':
+    ACCEL = _InputData.accel
+    if _InputData.accel == 'LHCB1':
         BEAM = 'B1'
-    elif options.accel == 'LHCB2':
+    elif _InputData.accel == 'LHCB2':
         BEAM = 'B2'
     else:
         print "WARNING: Could not decide what BEAM should be"
-    QX = options.qx
-    QY = options.qy
-    QDX = options.qdx
-    QDY = options.qdy
-    QMX = int(options.qx*1000000)
-    QMY = int(options.qy*1000000)
+
+    (qx, qy, qdx, qdy) = _get_tunes(files_dict)
+    #TODO: create dict instead of using locals (vimaier)
+    QX = qx
+    QY = qy
+    QDX = qdx
+    QDY = qdy
+    QMX = int(qx*1000000)
+    QMY = int(qy*1000000)
     STOP = '!'
 
-    for testpath in [options.output, os.path.dirname(options.twissfile)]:
+    for testpath in [_InputData.output_path, os.path.dirname(_InputData.twissfile)]:
         _tmpmod = os.path.join(testpath, 'modifiers.madx')
         if os.path.isfile(_tmpmod):
             print "INFO: Using", _tmpmod
@@ -366,22 +351,25 @@ def madcreator(dpps, options):
             break
 
     print "Creating madx"
-    filetoprint = open(options.output+"/job.chrom.madx", "w")
+    path_to_job_chrom_madx = _join_with_output_path("job.chrom.madx")
+    filetoprint = open(path_to_job_chrom_madx, "w")
 
+    madfile = os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro")
+    linesmad = open(madfile,"r").read()
     #changing variables
     filetoprint.write(linesmad % locals())
 
     filetoprint.close()
-    
+
     print "Running madx"
-    process = subprocess.Popen(options.madx+' < '+options.output+'/job.chrom.madx',
-                           stdout=subprocess.PIPE, 
+    process = subprocess.Popen(_InputData.path_to_madx+' < '+path_to_job_chrom_madx,
+                           stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE,
                            shell=True)
     # wait for the process to terminate
     (out, err) = process.communicate()
     errcode = process.returncode
-        
+
     if 0 != errcode:
         print "Mad-X failed. Printing output:-------------------------"
         print out
@@ -394,46 +382,48 @@ def filenames(dpp=''):
     Returns list of available file names
     for the given dpp.
 
-    Example: varnames('0.0')
+    Example: filenames('0.0')
 
     :param dpp: [str] dpp appendix to list of files
     '''
     ret = []
-    for fname in os.listdir(options.output):
+    for fname in os.listdir(_InputData.output_path):
         if dpp:
             extra = '_'+dpp
         else:
             extra = ''
         # thank you for making this easy..
-        if re.search("get[A-Za-z]*[0-9]*[xy]*(_free[2]*)*"+extra+".out", fname): 
+        if re.search("get[A-Za-z]*[0-9]*[xy]*(_free[2]*)*"+extra+".out", fname):
             ret.append(fname)
     return ret
 
 
-def rungetllm(twiss_filename, accel, technique, files, options, dpp):
+def _rungetllm(twiss_filename, files, dpp):
     '''
     Running GetLLM...
     '''
     import GetLLM
 
-    print "Will run getllm for ", dpp #, command
+    print "Will run getllm for ", dpp
 
-    GetLLM.main(outputpath=options.output,
+    GetLLM.main(outputpath=_InputData.output_path,
             files_to_analyse=','.join(files),
             model_filename=twiss_filename,
-            accel=accel,
-            TBTana=technique)
+            accel=_InputData.accel,
+            TBTana=_InputData.technique)
     print "GetLLM finished"
 
     for fname in filenames():
-        f_identifier = fname.strip('.out')
-        shutil.move(options.output+'/'+fname, options.output+'/'+f_identifier+'_'+str(dpp)+'.out')
+        src_path = _join_with_output_path(fname)
+        dst_path = _join_with_output_path(fname.replace(".out", "_"+str(dpp)+".out"))
+        shutil.move(src_path, dst_path)
 
 
-def copy_default_outfiles(options):
+def copy_default_outfiles():
     for fname in filenames('0.0'):
-        f_identifier = fname.strip('_0.0.out')
-        shutil.copy(options.output+'/'+fname, options.output+'/'+f_identifier+'.out')
+        src_path = _join_with_output_path(fname)
+        dst_path = _join_with_output_path(fname.replace("_0.0.out", ".out"))
+        shutil.move(src_path, dst_path)
 
 
 ##### for chromatic
@@ -443,7 +433,7 @@ def dolinregbet(fileobj, listx, listy, bpms, plane, zero, twiss):
     Calculates stuff and writes to the file in a table
     Closes the file afterwards
 
-    :param fileobj: chromFileWriter for output table
+    :param fileobj: _chromFileWriter for output table
     :param listx: List of variables...
     :param listy: List of variables...
     :param bpms: List of BPMs
@@ -576,40 +566,42 @@ def dolinregCoupling(couplelist, bpms, dpplist, fileobj):
         mdl_chr_f1010i, mdl_chr_err_f1010i = get_f( couplelist, dpplist, name, 'MDLF1010I')
 
         fileobj.writeLine(locals().copy())
-        
 
-def getTunes(options,fileslist):
+
+def _get_tunes(fileslist):
     '''
     Reads in the driven tunes from the
     file with dpp=0
-    Reads in the model tunes from the 
+    Reads in the model tunes from the
     twiss model (twiss.dat)
-    Appends the attributes to options.
-    
-    :param options: options from parse_args
+
     :param fileslist: dictionary of files, dpp used as key
+    :returns: (
     :raise ValueError: If fileslist[0] does not exist
     '''
-    if fileslist[0][0][-3:] == '.gz':
-        fname=fileslist[0][0][:-3]
-        end='.gz'
+    if fileslist[0][0].endswith(".gz"):
+        fname = fileslist[0][0].replace(".gz", "")
+        end = '.gz'
     else:
-        fname=fileslist[0][0]
-        end=''
+        fname = fileslist[0][0]
+        end = ''
     tw_x = metaclass.twiss(fname+'_linx'+end)
     tw_y = metaclass.twiss(fname+'_liny'+end)
-    tw = metaclass.twiss(superutils.get_twissfile(options))
+    tw = metaclass.twiss(_InputData.twissfile)
 
-    qdx,qdy = tw_x.TUNEX[0],tw_y.TUNEY[0]
-    qx,qy = tw.Q1%1,tw.Q2%1
+    qdx = tw_x.TUNEX[0]
+    qdy = tw_y.TUNEY[0]
+    qx = tw.Q1 % 1
+    qy = tw.Q2 % 1
 
-    setattr(options, "qx", qx)
-    setattr(options, "qy", qy)
-    setattr(options, "qdx", qdx)
-    setattr(options, "qdy", qdy)
+    return (qx, qy, qdx, qdy)
 
 
-class chromFileWriter:
+def _join_with_output_path(*path_tokens):
+    return os.path.join(_InputData, path_tokens)
+
+
+class _chromFileWriter:
     def __init__(self, ftype, fname, plane, overwrite=True):
         '''
         :param ftype: string, 'beta' or 'coupling'
@@ -628,7 +620,7 @@ class chromFileWriter:
         if os.path.isfile(fname) and not overwrite:
             raise ValueError("Cannot overwrite file "+fname)
 
-        betacolumns = ['name', 'sloc',  'dbb', 'dbberr', 'da', 'daerr', 
+        betacolumns = ['name', 'sloc',  'dbb', 'dbberr', 'da', 'daerr',
                     'w', 'werr','wm', 'werrm', 'wmo', 'phi', 'phierr','phim','phierrm','pmo',
                     'A','Aerr','Am','Aerrm','B','Berr','Bm','Berrm', 'dbbm','dbberrm',
                     'dam','daerrm']
@@ -657,7 +649,7 @@ class chromFileWriter:
             'dbbm':'dbbM',
             'dbberrm':'dbberrM',
             'dam':'dalfaM',
-            'daerrm':'daerrM', 
+            'daerrm':'daerrM',
             'wm':'W%(plane)sM',
             'werrm':'W%(plane)sERRM',
             'A':'CHROM_A%(plane)s',
@@ -698,15 +690,15 @@ class chromFileWriter:
             self.columns = couplecolumns
         else:
             raise ValueError("ftype %s not understood" % (ftype))
-        
+
         self.head = [headnames[c] % locals() for c in self.columns]
         headcount = [i+1 for i in xrange(len(self.head))]
         self.types = [headtypes[c] for c in self.columns]
-        
+
         self.head[0] = '* '+(self.head[0].rjust(self._clen-3))
         headcount[0] = '# '+(str(headcount[0]).rjust(self._clen-3))
         self.types[0] = '$ '+(self.types[0].rjust(self._clen-3))
-        
+
         self._write_list(self.head)
         # According to SL-CO-Note-91-32, this is allowed...
         self._write_list(headcount)
@@ -714,7 +706,7 @@ class chromFileWriter:
 
     def writeLine(self, data):
         '''
-        Write one line. 
+        Write one line.
         :param data: Dictionary of data columns to write
         '''
         tmp_line = [data[c] for c in self.columns]
@@ -727,11 +719,57 @@ class chromFileWriter:
         self.fstream.write(line[:-1]+'\n')
 
 
+class _InputData(object):
+    """This static class holds all input variables for getsuper """
+    source_files = ""
+    path_to_madx = ""
+    twissfile = ""
+    output_path = ""
+    path_to_beta_beat = ""
+    technique = ""
+    accel = ""
+    deltap_scaling_factor = 0.0
+
+    @staticmethod
+    def static_init(source_files, path_to_madx, twissfile, output_path, path_to_beta_beat, technique, accel, deltap_scaling_factor):
+        _InputData.source_files = source_files
+        _InputData.__check_src_files()
+        _InputData.path_to_madx = path_to_madx
+        _InputData.twissfile = superutils.get_twissfile(twissfile)
+        if not os.path.isfile(_InputData.twissfile):
+            raise ValueError("Twissfile does not exist: "+_InputData.twissfile)
+        _InputData.output_path = output_path
+        if not os.path.isdir(output_path):
+            os.makedirs(output_path)
+        _InputData.path_to_beta_beat = path_to_beta_beat
+        _InputData.technique = technique
+        if technique not in ("SUSSIX", "SVD"):
+            raise ValueError("Chosen  technique is unknown: "+technique)
+        _InputData.accel = accel
+        if _InputData.accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
+            raise ValueError("Provided accelerator is not valid: "+_InputData.accel)
+        _InputData.deltap_scaling_factor = deltap_scaling_factor
+
+
+    @staticmethod
+    def __check_src_files():
+        if 2 > len(_InputData.source_files):
+            raise ValueError("Provide at least two files. Files: "+str(_InputData.source_files))
+        for f_name in _InputData.source_files:
+            if not os.path.isfile(f_name) and not os.path.isfile(f_name+'.gz'):
+                raise ValueError(f_name+' does not exist')
+
+    def __init__(self):
+        raise NotImplementedError("static class _InputData cannot be instantiated")
+
+
 #===================================================================================================
 # main invocation
 #===================================================================================================
-if __name__ == "__main__":
-
+def _start():
+    """ Starter function to not pollute the global space with variables options and args """
     options,args = parse_args()
-    check_input(options, args)
     main(options, args)
+
+if __name__ == "__main__":
+    _start()

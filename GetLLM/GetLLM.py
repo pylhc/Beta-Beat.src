@@ -70,9 +70,9 @@ VERSION = 'V3.0.0 Dev'
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 #===================================================================================================
-# parse_args()-function
+# _parse_args()-function
 #===================================================================================================
-def parse_args():
+def _parse_args():
     ''' Parses command line arguments. '''
     from optparse import OptionParser
     parser = OptionParser()
@@ -127,7 +127,22 @@ def parse_args():
 #===================================================================================================
 # main()-function
 #===================================================================================================
-def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHCB1", lhcphase="0", BPMU="um", COcut=4000, NBcpl=2, TBTana="SUSSIX", higher_order=1, bbthreshold="0.15", errthreshold="0.15", use_only_three_bpms_for_beta_from_phase=0):
+def main(
+         outputpath,
+         files_to_analyse,
+         model_filename,
+         dict_file="0",
+         accel="LHCB1",
+         lhcphase="0",
+         BPMU="um",
+         COcut=4000,
+         NBcpl=2,
+         TBTana="SUSSIX",
+         higher_order=1,
+         bbthreshold="0.15",
+         errthreshold="0.15",
+         use_only_three_bpms_for_beta_from_phase=0
+         ):
     '''
     GetLLM main function.
 
@@ -156,7 +171,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
     twiss_d = _TwissData()
     tune_d = _TuneData()
 
-    getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem = intial_setup(getllm_d,
+    getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem = _intial_setup(getllm_d,
                                                                         outputpath,
                                                                         model_filename,
                                                                         dict_file,
@@ -166,9 +181,9 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
                                                                         lhcphase,
                                                                         NBcpl)
 
-    files_dict = create_tfs_files(getllm_d, model_filename)
+    files_dict = _create_tfs_files(getllm_d, model_filename)
 
-    twiss_d, files_dict = analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict)
+    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict)
 
 
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
@@ -183,7 +198,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
 
 
     #-------- Check monitor compatibility between data and model
-    check_bpm_compatibility(twiss_d, mad_twiss)
+    _check_bpm_compatibility(twiss_d, mad_twiss)
 
     try:
         #-------- START Phase
@@ -202,7 +217,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
         algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
 
         #-------- START Orbit
-        list_of_co_x, list_of_co_y, files_dict = calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
+        list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
 
         #-------- START Dispersion
         algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
@@ -211,18 +226,18 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
         tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
 
         #-------- Phase, Beta and coupling for non-zero DPP
-        phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase)
+        _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase)
 
         if higher_order:
             if TBTana == "SUSSIX":
                 #------ Start getsextupoles @ Glenn Vanbavinckhove
-                files_dict = calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
+                files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
 
                 #------ Start getchiterms @ Glenn Vanbavinckhove
                 files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
 
             #------ Start get Q,JX,delta
-            files_dict = calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
+            files_dict = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
         else:
             print "Not analysing higher order..."
     except:
@@ -240,7 +255,7 @@ def main(outputpath, files_to_analyse, model_filename, dict_file="0", accel="LHC
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-def intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_beams_cpl):
+def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_beams_cpl):
     getllm_d.set_outputpath(outputpath)
     getllm_d.set_bpmu_and_cut_for_closed_orbit(cut_co, bpm_unit)
     getllm_d.lhc_phase = lhcphase
@@ -296,10 +311,10 @@ def intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_uni
             print 'WARN: AC dipole effects calculated with analytic equations only for LHC for now'
 
     return getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem
-# END intial_setup ---------------------------------------------------------------------------------
+# END _intial_setup ---------------------------------------------------------------------------------
 
 
-def create_tfs_files(getllm_d, model_filename):
+def _create_tfs_files(getllm_d, model_filename):
     '''
     Creates the most tfs files and stores it in an dictionary whereby the key represents the file
     and the value is the corresponding GetllmTfsFile.
@@ -372,10 +387,10 @@ def create_tfs_files(getllm_d, model_filename):
     files_dict['getkickac.out'] = utils.tfs_file.GetllmTfsFile('getkickac.out')
 
     return files_dict
-# END create_tfs_files -----------------------------------------------------------------------------
+# END _create_tfs_files -----------------------------------------------------------------------------
 
 
-def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict):
+def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict):
 
     if turn_by_turn_algo == "SUSSIX":
         suffix_x = '_linx'
@@ -540,9 +555,9 @@ def analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, fi
         sys.exit(1)
 
     return twiss_d, files_dict
-# END analyse_src_files ----------------------------------------------------------------------------
+# END _analyse_src_files ----------------------------------------------------------------------------
 
-def check_bpm_compatibility(twiss_d, mad_twiss):
+def _check_bpm_compatibility(twiss_d, mad_twiss):
     '''
     Checks the monitor compatibility between data and model. If a monitor will not be found in the
     model, a message will be print to sys.stderr.
@@ -559,7 +574,7 @@ def check_bpm_compatibility(twiss_d, mad_twiss):
                     print >> sys.stderr, 'Monitor ' + bpm_name + ' cannot be found in the model!'
 
 
-def calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
+def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
     '''
     Calculates orbit and fills the following TfsFiles:
      - getCOx.out
@@ -666,10 +681,10 @@ def calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
             k += 1
 
     return list_of_co_x, list_of_co_y, files_dict
-# END calculate_orbit ------------------------------------------------------------------------------
+# END _calculate_orbit ------------------------------------------------------------------------------
 
 
-def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase):
+def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase):
     '''
     Fills the following TfsFiles:
      - getphasex_dpp_' + str(k + 1) + '.out
@@ -845,9 +860,9 @@ def phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dict
             else:
                 raise ValueError('Number of monitors for coupling analysis (option -n) should be 1 or 2.')
             fwqw['DPP'] = dpop
-# END phase_and_beta_for_non_zero_dpp --------------------------------------------------------------
+# END _phase_and_beta_for_non_zero_dpp --------------------------------------------------------------
 
-def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
+def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
     '''
     Fills the following TfsFiles:
      - getsex3000.out
@@ -870,10 +885,10 @@ def calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
         tfs_file.add_table_row(list_row_entries)
 
     return files_dict
-# END calculate_getsextupoles ----------------------------------------------------------------------
+# END _calculate_getsextupoles ----------------------------------------------------------------------
 
 
-def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
+def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
     '''
     Fills the following TfsFiles:
      - getkick.out
@@ -905,8 +920,8 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     tfs_file_model.add_column_names(column_names_list)
     tfs_file_model.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
-            tfs_file_model.add_table_row(list_row_entries)
+        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        tfs_file_model.add_table_row(list_row_entries)
 
     tfs_file_phase = files_dict['getkickphase.out']
     tfs_file_phase.add_float_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m", bbthreshold)
@@ -916,8 +931,8 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
     tfs_file_phase.add_column_names(column_names_list)
     tfs_file_phase.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
-            tfs_file_phase.add_table_row(list_row_entries)
+        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        tfs_file_phase.add_table_row(list_row_entries)
 
     if getllm_d.with_ac_calc:
         tfs_file = files_dict['getkickac.out']
@@ -932,7 +947,7 @@ def calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac
             tfs_file.add_table_row(list_row_entries)
 
     return files_dict
-# END calculate_kick -------------------------------------------------------------------------------
+# END _calculate_kick -------------------------------------------------------------------------------
 
 
 #===================================================================================================
@@ -1058,7 +1073,7 @@ def _start():
     Starter function to avoid polluting global namespace with variables options,args.
     Before the following code was after 'if __name__=="__main__":'
     '''
-    options = parse_args()
+    options = _parse_args()
     main(outputpath=options.output,
          dict_file=options.dict,
          files_to_analyse=options.files,

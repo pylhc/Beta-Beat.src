@@ -1,5 +1,5 @@
 '''
-Collection of functions of more general use that 
+Collection of functions of more general use that
 were originally in getsuper.py
 
 Feel free to move these around to more suitable places.
@@ -7,7 +7,7 @@ Feel free to move these around to more suitable places.
 '''
 
 
-def get_twissfile(options):
+def get_twissfile(path_twissfile):
     '''
     Returns the full path to
     the twiss file
@@ -15,14 +15,14 @@ def get_twissfile(options):
 
     import os
 
-    _twpaths=[options.twissfile,
-              os.path.join(options.twissfile,'twiss.dat'),
-              os.path.join(options.twissfile,'twiss.dat.gz')]
+    _twpaths=[path_twissfile,
+              os.path.join(path_twissfile,'twiss.dat'),
+              os.path.join(path_twissfile,'twiss.dat.gz')]
     for _twpath in _twpaths:
         if os.path.isfile(_twpath):
             return _twpath
     # did not find any file..
-    raise ValueError("Could not find twissfile! "+options.twissfile)
+    raise ValueError("Could not find twissfile! "+path_twissfile)
 
 def get_filelist(options, args):
     '''
