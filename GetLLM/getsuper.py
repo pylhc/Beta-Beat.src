@@ -21,31 +21,36 @@ column 'dp/d' in the table at the top.
 Further you need AC dipole in your model. If your twissfile is 'Twiss.dat' you need to provide the
 file 'Twiss_ac.dat' in the same directory.
 
-Use argument --help for further information
+Usage cmd line::
 
-Changelog:
+    Usage: getsuper.py [options] sdds-file1 [sdds-file2 ...]
 
- - 3.1 ylevinse 2012:
-    Cleaned macro writer in _madcreator
-    modifiers.madx should be in options.output
- - 3.1.1 vimaier 28th May 2013:
-    Added module docstring
-    Removed option 'twiss'. See github issue #15
- - 3.1.2 vimaier 31th May 2013:
-    Insterted checks for preconditions:
-        more than 1 file needed
-        at least one file with DPP=0.0 (adapted)
-        ac file
-    Extracted functions modelIntersect and intersect to Utilities.bpm
-    Cleaned import section
-    Restructured into parse_args, main, helper and main invocation
- - 3.1.3 ylevinse 6th of August 2013:
-    Fix when analysing non-AC data
-    Moved out some helper functions to superutils.py
-    Some minor cleaning..
+    Options:
+      -h, --help            show this help message and exit
+      -f TwissFile, --files=TwissFile
+                            Files from analysis, separated by comma
+      --madxbin=<path>      Path to mad-x binary
+      --twissfile=/path/to/twiss.dat
+                            Twiss file to use
+      -o <path>, --output=<path>
+                            Output path, where to store the results
+      -b <path>, --beta=<path>
+                            Path to Beat-Beat.src folder
+      -t ALGORITHM, --algorithm=ALGORITHM
+                            Which algorithm to use (SUSSIX/SVD)
+      -a ACCEL, --accel=ACCEL
+                            Which accelerator: LHCB1 LHCB2 SPS RHIC
+      -d <deltapScalingFactor>, --deltapScalingFactor=<deltapScalingFactor>
+                            Scaling factor for deltap, remember final value must
+                            be in MAD units
+
+Usage in another Python module::
+
+    import GetLLM.getsuper
+    ...
+    GetLLM.getsuper.main(my_src_files_list, path_to_twiss_file)
+
 '''
-
-
 
 import optparse
 import os
@@ -62,9 +67,9 @@ import Utilities.bpm
 import superutils
 
 #===================================================================================================
-# parse_args()-function
+# _parse_args()-function
 #===================================================================================================
-def parse_args():
+def _parse_args():
     ''' Parses arguments from command line. '''
     usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
     parser = optparse.OptionParser(usage)
@@ -103,17 +108,30 @@ def parse_args():
 #===================================================================================================
 # main()-function
 #===================================================================================================
-def main(options, args):
+def main(
+        source_files,
+        twissfile,
+        path_to_madx = "madx",
+        output_path = "./",
+        path_to_beta_beat = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+        technique = "SUSSIX",
+        accel = "LHCB1",
+        deltap_scaling_factor = 1.0
+        ):
+    """ getsuper main function 
+    
+    :param list source_files: list of strings with file_paths to TFS files
+    :param string twissfile: path to TFS model file
+    :param string path_to_madx: path to madx binary
+    :param string output_path: Path to store created files
+    :param string path_to_beta_beat: root of Beta-Beat.src
+    :param string technique: Used Turn-by-turn data analysis algorithm: 'SUSSIX' or 'SVD'
+    :param string accel: Accelerator(LHCB1 LHCB2 SPS or RHIC)
+    :param float deltap_scaling_factor: Scaling factor for deltap, remember final value must be in MAD units
+    """
     _InputData.static_init(
-                           source_files=superutils.get_filelist(options, args),
-                           path_to_madx=options.madx,
-                           twissfile=options.twissfile,
-                           output_path=options.output,
-                           path_to_beta_beat=options.brc,
-                           technique=options.technique,
-                           accel=options.accel,
-                           deltap_scaling_factor=options.deltap_scaling_factor
-                           )
+            source_files, path_to_madx, twissfile, output_path, path_to_beta_beat, technique, accel, deltap_scaling_factor
+    )
 
 
     files_dict = {} # dpp --> files with corresponding dpp
@@ -152,7 +170,7 @@ def main(options, args):
         files = files_dict[dpp]
         _rungetllm(_join_with_output_path("twiss_"+str(dpp)+".dat"), files, dpp)
     # The GUI wants the default files to have the names without _0.0
-    copy_default_outfiles()
+    _copy_default_outfiles()
 
     ##adding data
     betalistx = {}
@@ -233,7 +251,7 @@ def main(options, args):
 
     bpms = Utilities.bpm.intersect(listx)
     bpms = Utilities.bpm.model_intersect(bpms, modeld)
-    dolinregbet(fileobj, files_dict.keys(), betalistx, bpms, "H", zerobx, modeld)
+    _do_lin_reg_bet(fileobj, files_dict.keys(), betalistx, bpms, "H", zerobx, modeld)
     del fileobj
 
     #V
@@ -241,7 +259,7 @@ def main(options, args):
 
     bpms = Utilities.bpm.intersect(listy)
     bpms = Utilities.bpm.model_intersect(bpms, modeld)
-    dolinregbet(fileobj, files_dict.keys(), betalisty, bpms, "V", zeroby, modeld)
+    _do_lin_reg_bet(fileobj, files_dict.keys(), betalisty, bpms, "V", zeroby, modeld)
     del fileobj
 
     print "Driven beta finished"
@@ -256,7 +274,7 @@ def main(options, args):
     bpms = Utilities.bpm.intersect(listc)
     bpms = Utilities.bpm.model_intersect(bpms, modeld)
 
-    dolinregCoupling(couplelist, bpms, files_dict.keys(), fileobj)
+    _do_linreg_coupling(couplelist, bpms, files_dict.keys(), fileobj)
     del fileobj
 
     print "Driven coupling finished"
@@ -271,14 +289,14 @@ def main(options, args):
 
         bpms = Utilities.bpm.intersect(listxf)
         bpms = Utilities.bpm.model_intersect(bpms, modelf)
-        dolinregbet(fileobj, files_dict.keys(), betalistxf, bpms, "H", zerobxf, modelf)
+        _do_lin_reg_bet(fileobj, files_dict.keys(), betalistxf, bpms, "H", zerobxf, modelf)
 
         #V
         fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetay_free.out"), 'V')
 
         bpms = Utilities.bpm.intersect(listyf)
         bpms = Utilities.bpm.model_intersect(bpms, modelf)
-        dolinregbet(fileobj, files_dict.keys(), betalistyf, bpms, "V", zerobyf, modelf)
+        _do_lin_reg_bet(fileobj, files_dict.keys(), betalistyf, bpms, "V", zerobyf, modelf)
 
         print "Free beta finished"
 
@@ -292,7 +310,7 @@ def main(options, args):
         bpms = Utilities.bpm.intersect(listcf)
         bpms = Utilities.bpm.model_intersect(bpms, modelf)
 
-        dolinregCoupling(couplelistf, bpms, files_dict.keys(), fileobj)
+        _do_linreg_coupling(couplelistf, bpms, files_dict.keys(), fileobj)
 
         print "Free coupling finished"
 
@@ -303,6 +321,7 @@ def main(options, args):
 def _madcreator(dpps, files_dict):
     '''
     :param dpps: list of dp/p to create model for
+    :param dict files_dict: dpp_value --> corresponding_filenames
     '''
 
     # creating the DPP
@@ -322,32 +341,33 @@ def _madcreator(dpps, files_dict):
     if not dppstring:
         print "No need to run madx"
         return 0
-
-    DPP = dppstring
-    DP_AC_P = dppstring_ac
-    ACCEL = _InputData.accel
+    
+    dict_for_replacing = {}
+    dict_for_replacing["DPP"] = dppstring
+    dict_for_replacing["DP_AC_P"] = dppstring_ac
+    dict_for_replacing["ACCEL"] = _InputData.accel
     if _InputData.accel == 'LHCB1':
-        BEAM = 'B1'
+        dict_for_replacing["BEAM"] = "B1"
     elif _InputData.accel == 'LHCB2':
-        BEAM = 'B2'
+        dict_for_replacing["BEAM"] = "B2"
     else:
         print "WARNING: Could not decide what BEAM should be"
 
     (qx, qy, qdx, qdy) = _get_tunes(files_dict)
-    #TODO: create dict instead of using locals (vimaier)
-    QX = qx
-    QY = qy
-    QDX = qdx
-    QDY = qdy
-    QMX = int(qx*1000000)
-    QMY = int(qy*1000000)
-    STOP = '!'
+
+    dict_for_replacing["QX"] = qx
+    dict_for_replacing["QY"] = qy
+    dict_for_replacing["QDX"] = qdx
+    dict_for_replacing["QDY"] = qdy
+    dict_for_replacing["QMX"] = int(qx*1000000)
+    dict_for_replacing["QMY"] = int(qy*1000000)
+    dict_for_replacing["QMY"] = "!"
 
     for testpath in [_InputData.output_path, os.path.dirname(_InputData.twissfile)]:
         _tmpmod = os.path.join(testpath, 'modifiers.madx')
         if os.path.isfile(_tmpmod):
             print "INFO: Using", _tmpmod
-            MODIFIERS = _tmpmod
+            dict_for_replacing["MODIFIERS"] = _tmpmod
             break
 
     print "Creating madx"
@@ -357,7 +377,7 @@ def _madcreator(dpps, files_dict):
     madfile = os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro")
     linesmad = open(madfile,"r").read()
     #changing variables
-    filetoprint.write(linesmad % locals())
+    filetoprint.write(linesmad % dict_for_replacing)
 
     filetoprint.close()
 
@@ -377,12 +397,12 @@ def _madcreator(dpps, files_dict):
         print >> sys.stderr, err
         raise ValueError("Mad-X failed")
 
-def filenames(dpp=''):
+def _get_filenames_in_output_with_dpp(dpp=''):
     '''
     Returns list of available file names
     for the given dpp.
 
-    Example: filenames('0.0')
+    Example: _get_filenames_in_output_with_dpp('0.0')
 
     :param dpp: [str] dpp appendix to list of files
     '''
@@ -413,14 +433,14 @@ def _rungetllm(twiss_filename, files, dpp):
             TBTana=_InputData.technique)
     print "GetLLM finished"
 
-    for fname in filenames():
+    for fname in _get_filenames_in_output_with_dpp():
         src_path = _join_with_output_path(fname)
         dst_path = _join_with_output_path(fname.replace(".out", "_"+str(dpp)+".out"))
         shutil.move(src_path, dst_path)
 
 
-def copy_default_outfiles():
-    for fname in filenames('0.0'):
+def _copy_default_outfiles():
+    for fname in _get_filenames_in_output_with_dpp('0.0'):
         src_path = _join_with_output_path(fname)
         dst_path = _join_with_output_path(fname.replace("_0.0.out", ".out"))
         shutil.copy(src_path, dst_path)
@@ -428,7 +448,7 @@ def copy_default_outfiles():
 
 ##### for chromatic
 
-def dolinregbet(fileobj, listx, listy, bpms, plane, zero, twiss):
+def _do_lin_reg_bet(fileobj, listx, listy, bpms, plane, zero, twiss):
     '''
     Calculates stuff and writes to the file in a table
     Closes the file afterwards
@@ -524,7 +544,7 @@ def dolinregbet(fileobj, listx, listy, bpms, plane, zero, twiss):
         fileobj.writeLine(locals().copy())
 
 
-def get_f( couplelist, dpplist, bpm_name, value):
+def _get_f( couplelist, dpplist, bpm_name, value):
     '''
     calculates the linear regression of 'value' for each
     dpp in dpplist
@@ -544,7 +564,7 @@ def get_f( couplelist, dpplist, bpm_name, value):
     return lreg[0], lreg[3]
 
 
-def dolinregCoupling(couplelist, bpms, dpplist, fileobj):
+def _do_linreg_coupling(couplelist, bpms, dpplist, fileobj):
     '''
     linreg for chromatic coupling
 
@@ -555,15 +575,15 @@ def dolinregCoupling(couplelist, bpms, dpplist, fileobj):
         name = bpm[1]
         sloc = bpm[0]
 
-        chr_f1001r, chr_err_f1001r = get_f( couplelist, dpplist, name, 'F1001R')
-        chr_f1001i, chr_err_f1001i = get_f( couplelist, dpplist, name, 'F1001I')
-        chr_f1010r, chr_err_f1010r = get_f( couplelist, dpplist, name, 'F1010R')
-        chr_f1010i, chr_err_f1010i = get_f( couplelist, dpplist, name, 'F1010I')
+        chr_f1001r, chr_err_f1001r = _get_f( couplelist, dpplist, name, 'F1001R')
+        chr_f1001i, chr_err_f1001i = _get_f( couplelist, dpplist, name, 'F1001I')
+        chr_f1010r, chr_err_f1010r = _get_f( couplelist, dpplist, name, 'F1010R')
+        chr_f1010i, chr_err_f1010i = _get_f( couplelist, dpplist, name, 'F1010I')
 
-        mdl_chr_f1001r, mdl_chr_err_f1001r = get_f( couplelist, dpplist, name, 'MDLF1001R')
-        mdl_chr_f1001i, mdl_chr_err_f1001i = get_f( couplelist, dpplist, name, 'MDLF1001I')
-        mdl_chr_f1010r, mdl_chr_err_f1010r = get_f( couplelist, dpplist, name, 'MDLF1010R')
-        mdl_chr_f1010i, mdl_chr_err_f1010i = get_f( couplelist, dpplist, name, 'MDLF1010I')
+        mdl_chr_f1001r, mdl_chr_err_f1001r = _get_f( couplelist, dpplist, name, 'MDLF1001R')
+        mdl_chr_f1001i, mdl_chr_err_f1001i = _get_f( couplelist, dpplist, name, 'MDLF1001I')
+        mdl_chr_f1010r, mdl_chr_err_f1010r = _get_f( couplelist, dpplist, name, 'MDLF1010R')
+        mdl_chr_f1010i, mdl_chr_err_f1010i = _get_f( couplelist, dpplist, name, 'MDLF1010I')
 
         fileobj.writeLine(locals().copy())
 
@@ -768,8 +788,17 @@ class _InputData(object):
 #===================================================================================================
 def _start():
     """ Starter function to not pollute the global space with variables options and args """
-    options,args = parse_args()
-    main(options, args)
+    options,args = _parse_args()
+    main(
+        source_files=superutils.get_filelist(options, args),
+        path_to_madx=options.madx,
+        twissfile=options.twissfile,
+        output_path=options.output,
+        path_to_beta_beat=options.brc,
+        technique=options.technique,
+        accel=options.accel,
+        deltap_scaling_factor=options.deltap_scaling_factor
+        )
 
 if __name__ == "__main__":
     _start()
