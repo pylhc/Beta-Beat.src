@@ -14,10 +14,8 @@ Change history:
 '''
 
 import sys
-from inspect import Traceback
-import traceback
 
-import metaclass
+import Python_Classes4MAD.metaclass as metaclass
 import os
 import math
 
@@ -51,15 +49,15 @@ def calculate_orbit(mad_twiss, list_of_files):
         bpm_name=str.upper(commonbpms[i][1])
         coi=0.0
         coi2=0.0
-        
+
         for tw_file in list_of_files:
             coi=coi + tw_file.CO[tw_file.indx[bpm_name]]
             coi2=coi2 + tw_file.CO[tw_file.indx[bpm_name]]**2
-        
+
         coi = coi/len(list_of_files)
         corms = math.sqrt(coi2/len(list_of_files)-coi**2+2.2e-16)
         co[bpm_name] = [coi,corms]
-        
+
     return [co, commonbpms]
 
 
@@ -154,7 +152,7 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
         fbpmx[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
         fbpmy[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
 
-        # bpmhp will be used for storing in this section. Not used further. Replaced by 
+        # bpmhp will be used for storing in this section. Not used further. Replaced by
         # 'tentative solution' with bpmpair. See some lines below.
         # --vimaier
 #     bpmhp=[]
@@ -176,7 +174,7 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
 #             if sdiff<smin:
 #                 smin=sdiff
 #                 jsave=j
-# 
+#
 #         bpmhp.append([bpmh[i][0],bpmh[i][1],bpmv[jsave][1],0])
 
 
@@ -256,11 +254,11 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
                     wtuney = twiss_y.TUNEY[twiss_y.indx[expname]]
                     wmux = twiss_x.MUX[twiss_x.indx[exwname]]
                     wmuy = (twiss_y.MUY[twiss_y.indx[expname]]-dphiy)%1.0
-                    if (wmuy > 0.5): 
+                    if (wmuy > 0.5):
                         wmuy = wmuy-1.0
                     wphase01 = twiss_x.PHASE01[twiss_x.indx[exwname]]
                     wphase10 = (twiss_y.PHASE10[twiss_y.indx[expname]]-dphiy)%1.0
-                    if (wphase10 > 0.5): 
+                    if (wphase10 > 0.5):
                         wphase10 = wphase10-1.0
                 #elif dbpms[i][3]==1:
                     #wampx=twiss_x.AMPX[twiss_x.indx[pname]]
@@ -305,7 +303,7 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
         filey = 'temp' + str(j) +'_liny'
         pseudo_list_x.append(metaclass.twiss(filex))
         pseudo_list_y.append(metaclass.twiss(filey))
-        
+
         # Delete temp files again. (vimaier)
         os.remove(filex)
         os.remove(filey)
@@ -476,7 +474,7 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
         singleFiley=[twiss_files[1][j]]
 
         # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice return value([3])(vimaier)
-        invariantJx = ( beta.beta_from_amplitude(MADTwiss,singleFilex,'H') )[3] 
+        invariantJx = ( beta.beta_from_amplitude(MADTwiss,singleFilex,'H') )[3]
 
         # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice return value([3])(vimaier)
         invariantJy = ( beta.beta_from_amplitude(MADTwiss,singleFiley,'V') )[3]
@@ -488,7 +486,7 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     for i in range(0,len(dbpms)):
 
         bpm=str.upper(dbpms[i][1])
-        
+
         #TODO: think about the thing with bpm_name_according_to_tw_file = tw.NAME[tw.indx[bpm_name]]
         #Maybe change name in twiss ctor to upper.
         bpmC=MADTwiss.NAME[MADTwiss.indx[bpm]]
@@ -646,7 +644,7 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
     ftemp.close()
     dpp_twiss = metaclass.twiss(ftemp_name, dictionary)
-    
+
     # Delete temp file again(vimaier)
     os.remove(ftemp_name)
 
@@ -658,17 +656,17 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
 
     #One source for each beta-function source
     Sources = ['model','amp','phase']
-    
+
     #To count number of BPM rej in each calculation
     bpmrejx={}
     bpmrejy={}
-    
-    #meansqrt_2j-> will be mean{sqrt{2Jx}} and mean_2J-> will be mean{2J} where mean is taken over all BPMs not rejected 
+
+    #meansqrt_2j-> will be mean{sqrt{2Jx}} and mean_2J-> will be mean{2J} where mean is taken over all BPMs not rejected
     meansqrt_2jx={}
     meansqrt_2jy={}
     mean_2jx={}
     mean_2jy={}
-    
+
     for source in Sources:
         bpmrejx[source] = []
         bpmrejy[source] = []
@@ -691,10 +689,10 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
     #thresholds for rejecting, input by user
     bbthreshold = float(bbthreshold)
     errthreshold = float(errthreshold)
-    
+
     for j in range(0,len(files[0])):
         tw_x = files[0][j]
-        tw_y = files[1][j] 	
+        tw_y = files[1][j]
         #Loop uses gen_kick_calc to get action for each beta function source in each plane
         #Note that the result for source='amp' is not currently being used
         for source in Sources:
@@ -706,15 +704,15 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
             mean_2jy[source].append(mean_2jy_temp)
             bpmrejx[source].append(rejected_bpm_countx)
             bpmrejy[source].append(rejected_bpm_county)
-        
-        
+
+
         dpp.append(getattr(tw_x, "DPP", 0.0))
 
         tunex.append(getattr(tw_x, "Q1", 0.0))
         tuney.append(getattr(tw_y, "Q2", 0.0))
         tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
         tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
-        
+
         nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
         nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
         nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
@@ -725,10 +723,10 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
 
 
 def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errthreshold):
-    '''     
-    Gets action for a given beta function source and plane   
+    '''
+    Gets action for a given beta function source and plane
      :Parameters:
-        'list_of_files': list 
+        'list_of_files': list
             list of either linx or liny files input, produced by drive
         'mad_twiss': twiss
             The model file.
@@ -752,92 +750,91 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
             commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_phase.keys())
         elif plane == 'V':
             commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_phase.keys())
-        
-    meansqrt2j = []	
-    mean2j = []	
-    rejbpmcount = 0	
-    
+
+    meansqrt2j = []
+    mean2j = []
+    rejbpmcount = 0
+
     #Two different action calcs follow, one is by finding mean(sqrt(2j))-->meansqrt2j and the other is by finding mean(2j)-->mean2j
-    for i in range(0, len(commonbpms)): 
-        bn1 = str.upper(commonbpms[i][1])    
+    for i in range(0, len(commonbpms)):
+        bn1 = str.upper(commonbpms[i][1])
         #Gets beta function for use in action calculation- performs checks on its quality, rejects if above threshold
         if plane == 'H':
             if source == 'model':
-                tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]	   
-            elif source == 'amp':   
+                tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]
+            elif source == 'amp':
                 if beta_d.x_amp[bn1][0] <= 0:
-                    rejbpmcount += 1	   
+                    rejbpmcount += 1
                     continue
                 elif abs((beta_d.x_amp[bn1][0] - mad_twiss.BETX[mad_twiss.indx[bn1]])/mad_twiss.BETX[mad_twiss.indx[bn1]]) > bbthreshold:
-                    rejbpmcount += 1  
+                    rejbpmcount += 1
                     continue
                 elif (beta_d.x_amp[bn1][1]/beta_d.x_amp[bn1][0]) > errthreshold:
-                    rejbpmcount += 1  
+                    rejbpmcount += 1
                     continue
-                tembeta = beta_d.x_amp[bn1][0]  
-            elif source == 'phase':   
+                tembeta = beta_d.x_amp[bn1][0]
+            elif source == 'phase':
                 if 	beta_d.x_phase[bn1][0] <= 0:
-                    rejbpmcount += 1	   
+                    rejbpmcount += 1
                     continue
                 elif abs((beta_d.x_phase[bn1][0] - mad_twiss.BETX[mad_twiss.indx[bn1]])/mad_twiss.BETX[mad_twiss.indx[bn1]]) > bbthreshold:
-                    rejbpmcount += 1   
+                    rejbpmcount += 1
                     continue
                 elif (beta_d.x_phase[bn1][1]/beta_d.x_phase[bn1][0]) > errthreshold:
-                    rejbpmcount += 1  
-                    continue            
+                    rejbpmcount += 1
+                    continue
                 tembeta = beta_d.x_phase[bn1][0]
         elif plane == 'V':
-            if source == 'model':                         
-                tembeta = mad_twiss.BETY[mad_twiss.indx[bn1]]	   
-            elif source == 'amp':   
+            if source == 'model':
+                tembeta = mad_twiss.BETY[mad_twiss.indx[bn1]]
+            elif source == 'amp':
                 if 	beta_d.y_amp[bn1][0] <= 0:
-                    rejbpmcount += 1	    
-                    continue	
+                    rejbpmcount += 1
+                    continue
                 elif abs((beta_d.y_amp[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]]) > bbthreshold:
-                    rejbpmcount += 1  
+                    rejbpmcount += 1
                     continue
                 elif (beta_d.y_amp[bn1][1]/beta_d.y_amp[bn1][0]) > errthreshold:
-                    rejbpmcount += 1  
-                    continue    
-                tembeta = beta_d.y_amp[bn1][0]       
-            elif source == 'phase':   
+                    rejbpmcount += 1
+                    continue
+                tembeta = beta_d.y_amp[bn1][0]
+            elif source == 'phase':
                 if 	beta_d.y_phase[bn1][0] <= 0:
-                    rejbpmcount += 1	   
-                    continue	  
+                    rejbpmcount += 1
+                    continue
                 elif (abs(beta_d.y_phase[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]])> bbthreshold:
-                    rejbpmcount += 1    
-                    continue   
+                    rejbpmcount += 1
+                    continue
                 elif (beta_d.y_phase[bn1][1]/beta_d.y_phase[bn1][0]) > errthreshold:
-                    rejbpmcount += 1  
-                    continue     
-                tembeta = beta_d.y_phase[bn1][0]        
-                    
-        meansqrt2j_i = 0.0	
-        mean2j_i = 0.0	 
-        
-        for tw_file in list_of_files: 					
+                    rejbpmcount += 1
+                    continue
+                tembeta = beta_d.y_phase[bn1][0]
+
+        meansqrt2j_i = 0.0
+        mean2j_i = 0.0
+
+        for tw_file in list_of_files:
             meansqrt2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
-            mean2j_i = (tw_file.PK2PK[tw_file.indx[bn1]]/2)**2		
+            mean2j_i = (tw_file.PK2PK[tw_file.indx[bn1]]/2)**2
 
         meansqrt2j_i = meansqrt2j_i/len(list_of_files)
-        meansqrt2j.append(meansqrt2j_i/math.sqrt(tembeta))		
+        meansqrt2j.append(meansqrt2j_i/math.sqrt(tembeta))
         mean2j_i = mean2j_i/len(list_of_files)
-        mean2j.append(mean2j_i/tembeta)			
-      
+        mean2j.append(mean2j_i/tembeta)
+
     if len(commonbpms) == rejbpmcount:
         print "Beta function calculated from", source, "in plane", plane, "is no good, no kick or action will be calculated from it."
         j_old, mean_2j = [0,0], [0,0]
         return j_old, mean_2j, rejbpmcount
-        
+
     meansqrt2j = np.array(meansqrt2j)
     meansqrt2j_ave = np.average(meansqrt2j)
     meansqrt2j_std = math.sqrt(np.average(meansqrt2j*meansqrt2j)-meansqrt2j_ave**2+2.2e-16) #this is std dev, not RMS
-    mean2j = np.array(mean2j)    
+    mean2j = np.array(mean2j)
     mean2j_ave = np.average(mean2j)
     mean2j_std = math.sqrt(np.average(mean2j*mean2j)-mean2j_ave**2+2.2e-16) #this is std dev, not RMS
-    
+
     meansqrt_2j = [meansqrt2j_ave, meansqrt2j_std]
     mean_2j = [ mean2j_ave, mean2j_std]
-    
+
     return meansqrt_2j, mean_2j, rejbpmcount
-    

@@ -15,7 +15,7 @@ Change history:
 
 import os
 
-import metaclass
+import Python_Classes4MAD.metaclass as metaclass
 
 # Relative paths to the run directory
 RELATIVE_PATH_TO_MODEL = "input/model/twiss.dat"
