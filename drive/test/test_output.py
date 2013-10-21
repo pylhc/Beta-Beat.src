@@ -24,7 +24,6 @@ _SHORT_RUN = False # If True, Drive will only run on first dir
 
 class TestOutput(unittest.TestCase):
 
-    path_to_modified_drive = os.path.join(CURRENT_PATH, "..", "Drive_God_lin")
     path_to_valid_drive = os.path.join(CURRENT_PATH, "valid", "Drive_God_lin")
 
     path_to_valid = os.path.join(CURRENT_PATH, "data", "valid")
@@ -33,6 +32,16 @@ class TestOutput(unittest.TestCase):
 
     __have_to_run_valid_file = False
     successful = False
+
+    @staticmethod
+    def get_os_dependent_path_to_modified_drive():
+        if sys.platform == "linux" or sys.platform == "linux2":
+            return os.path.join(CURRENT_PATH, "..", "Drive_God_lin")
+        elif sys.platform == "win32":
+            return os.path.join(CURRENT_PATH, "..", "Drive_God_lin_win.exe")
+            # Windows...
+        else:
+            raise OSError("No drive version for given os: "+sys.platform)
 
     def setUp(self):
         self._check_if_valid_output_exist_and_set_attribute()
@@ -102,8 +111,17 @@ class TestOutput(unittest.TestCase):
     def _copy_input_files(self):
         ''' Copies input data for drive from path_to_input. Return all copied files '''
         print "Copying input files"
-        Utilities.iotools.copy_content_of_dir(TestOutput.path_to_input, TestOutput.path_to_to_check)
-        return Utilities.iotools.get_all_absolute_filenames_in_dir_and_subdirs(TestOutput.path_to_input)
+        # Only Drive.inp and DrivingTerms are needed. DrivingTerms holds abs path to sdds file (vimaier)
+        all_run_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestOutput.path_to_input)
+        for run_dir in all_run_dirs:
+            src = os.path.join(TestOutput.path_to_input, run_dir, "Drive.inp")
+            dst = os.path.join(TestOutput.path_to_to_check, run_dir)
+            Utilities.iotools.create_dirs(dst)
+            Utilities.iotools.copy_item(src, dst)
+            src = os.path.join(TestOutput.path_to_input, run_dir, "DrivingTerms")
+            dst = os.path.join(TestOutput.path_to_to_check, run_dir)
+            Utilities.iotools.copy_item(src, dst)
+        return Utilities.iotools.get_all_absolute_filenames_in_dir_and_subdirs(TestOutput.path_to_to_check)
 
 
     def _run_dir(self, path_to_run_dir, path_to_drive):
@@ -122,12 +140,12 @@ class TestOutput(unittest.TestCase):
     def _run_modified_file(self):
         ''' Runs drive.Drive_God_lin for all directories in drive.test.data.to_check. '''
         print "  Run to_check files"
-        self._run_dir(self.path_to_to_check, self.path_to_modified_drive)
+        self._run_dir(self.path_to_to_check, TestOutput.get_os_dependent_path_to_modified_drive())
 
 
     def _run_drive(self, path_to_drive, path_to_dir):
         ''' Runs given drive with path_to_dir.
-        path_to_dir has to contain Drive.inp and DrivingTerms and the sdds file.
+        path_to_dir has to contain Drive.inp and DrivingTerms.
         '''
         call_command = os.path.abspath(path_to_drive) + " " + os.path.abspath(path_to_dir)
 
