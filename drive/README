@@ -1,14 +1,42 @@
-Directory /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/DRIVE_src.Harry
+Caution: The information at the bottom is not up-to-date.
+See following link to get latest information:
+http://beta-beating.web.cern.ch/Beta-beating/doc/bbeat/drive/index.html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Directory /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/drive
 contains a parallelised version of Drive_God_lin using the icc and
-Intel Fortran IA32 32-bit Openmp compiler options. 
+Intel Fortran IA32 32-bit Openmp compiler options.
 A good Openmp tutorial is at: https://computing.llnl.gov/tutorials/openMP/
-To use the Intel compiler on CERN lxplus needs to execute:
+To use the Intel compiler on CERN lxplus one needs to execute:
 
 source /afs/cern.ch/sw/IntelSoftware/linux/all-setup.csh ia32
 
-Hint: You have to run the csh console instead of bash console otherwise
+Hint: One have to run the csh console instead of bash console otherwise
 there will be a syntax error.
-If you want to compile on windows, here is a tutorial:
+The following tutorial shows how to obtain the Intel compilers on windows:
 https://twiki.cern.ch/twiki/bin/view/Openlab/IntelTools#Obtaining_and_installing_Int_AN1
 
 For the number of cores to use enter: setenv OMP_NUM_THREADS n
@@ -21,17 +49,6 @@ data then extra values of zero will be filled and used.
 
 Files in this directory are:
 
-README                   these instructions
-Drive_God_lin.c          the parallelised C-code with #pragma omp constructs.
-sussix4drivexxNoO.f      the parallelised Fortran with !$OMP constructs.
-Makefile                 the make file for building the executable (needs cleaning!)
-Drive_God_lin            the executable created by running make in this directory
-Drive_God_lin.o          the compiled C-code
-sussix4drivexxNoO.o      the compiled Fortran
-TEST                     a directory containing the TEST data from E.Macleod
-The TEST directory contains required input files and also
-ALLBPMs_linx.orig and ALLBPMs_liny.orig
-to compare with the TEST output from the original non-parallel version.
 
 The Makefile uses the static linking option and does not need the Intel compiler
 environment on lxplus but may do on other machines.
@@ -51,7 +68,7 @@ so real time from 44 to 6 seconds and effectively about 10 cores being used.
 Note that the stdout in the testout file is in a random order in the multicore
 case while the ALLBPMs files are sorted into the original order. There is often
 a small numerical difference in the 6th or 7th significant figures of the Q2RMS
-values in line 2 of the ALLBPMs linx and liny files between the single and 
+values in line 2 of the ALLBPMs linx and liny files between the single and
 multicore executions. This is put down to the different order in which the
 tune values are summed during parallel execution to which the RMS values are
 sensitive and is not considered important.

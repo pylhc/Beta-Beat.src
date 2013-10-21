@@ -34,8 +34,7 @@ Usage2::
     >pythonafs ../GetLLM.py -m ../../MODEL/SPS/twiss.dat -d mydictionary.py -f 37gev270amp2_12.sdds.new -o ./
 
 
-Change history:
-    We use git::
+Change history::
 
         git log GetLLM.py
 

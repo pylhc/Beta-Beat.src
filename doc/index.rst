@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    Analyses/index
+   drive/index
    getllm/index
    Utilities/index
 
