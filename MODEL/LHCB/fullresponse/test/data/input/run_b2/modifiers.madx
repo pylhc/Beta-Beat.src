@@ -1,0 +1,5 @@
+call file="db5/V6.5.inj.str";
+call file="%(BB_SRC)s/MODEL/LHCB/model/StrengthFiles/Nominal/IR1/new_ip1_b2_squeeze/IP1_beta11.00m.str";
+call file="%(BB_SRC)s/MODEL/LHCB/model/StrengthFiles/Nominal/IR2/3.5TeV/special/ip2_0.00889_beta0.50m.str";
+call file="%(BB_SRC)s/MODEL/LHCB/model/StrengthFiles/Nominal/IR5/new_ip5_b2_squeeze/IP5_beta11.00m.str";
+call file="%(BB_SRC)s/MODEL/LHCB/model/StrengthFiles/Nominal/IR8/3.5TeV/special/ip8_0.00872_beta2.00m.str";

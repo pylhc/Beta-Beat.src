@@ -14,13 +14,14 @@ import subprocess
 import filecmp
 import shutil
 
-CURRENT_PATH = os.path.dirname(__file__)
-# Path 'x/Beta-Beat.src/MODEL/LHCB/fullresponse/test'
 
 import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 
-_SHORT_RUN = False # If True, genFullResp will only run on first dir
+CURRENT_PATH = os.path.dirname(__file__)
+# Path 'x/Beta-Beat.src/MODEL/LHCB/fullresponse/test'
+#TODO: set to False after finishing this test
+_SHORT_RUN = True # If True, genFullResp will only run on first dir
 _ARGUMENTS_FILE_NAME = "arguments.txt"
 _DELETE_VALID_OUTPUT = False #TODO: set to True after finishing this test
 
@@ -75,20 +76,18 @@ class TestGenFullRespParallel(unittest.TestCase):
         the files FullResponse, FullResponse_couple and FullResponse_chromcouple.
         """
         return not self._valid_output_exists()
-
     def _valid_output_exists(self):
         all_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestGenFullRespParallel.path_to_valid)
-        if 0 == len(all_dirs):
+        if 0 == len(all_dirs) or len(self._run_dirs) != len(all_dirs):
             return False
         is_valid = False
         for dir_in_valid_output in all_dirs:
-            is_valid = self._dir_has_fullresponse_files(dir_in_valid_output)
+            is_valid = self._dir_has_fullresponse_files(
+                            os.path.join(TestGenFullRespParallel.path_to_valid, dir_in_valid_output)
+                            )
             if not is_valid:
                 return False
         return True
-
-
-
     def _dir_has_fullresponse_files(self, path_to_dir):
         """ Returns True if dir contains FullResponse, FullResponse_couple and FullResponse_chromcouple. """
         has_all_files = True
@@ -149,7 +148,7 @@ class TestGenFullRespParallel(unittest.TestCase):
         for comparing.
         """
         output_path = os.path.join(TestGenFullRespParallel.path_to_input, run_dir_name)
-        self._run_dir(path_to_script, output_path)
+        self._run_script(path_to_script, output_path)
         self._move_produced_files(output_path, output_dst_path)
         
 
@@ -158,9 +157,9 @@ class TestGenFullRespParallel(unittest.TestCase):
         self._run_in_src_dir(TestGenFullRespParallel.path_to_modified_script, run_dir, os.path.join(TestGenFullRespParallel.path_to_to_check, run_dir))
     
 
-    def _run_dir(self, path_to_script, path_to_out_run_dir_root):
+    def _run_script(self, path_to_script, path_to_out_run_dir_root):
         ''' Runs given script with path_to_dir.
-        path_to_dir has to contain 'job.iterate.madx' and 'modifiers.madx'.
+        path_to_dir has to contain 'job.iterate.madx' and 'modifiers.madx' and if needed the file ___ARGUMENTS_FILE_NAME.
         '''
         arguments_list = self._prepare_and_get_arguments_list(path_to_out_run_dir_root)
         call_command =sys.executable + " " + os.path.abspath(path_to_script) + " " + " ".join(arguments_list)
@@ -181,6 +180,7 @@ class TestGenFullRespParallel(unittest.TestCase):
             print out_stream
             print >> sys.stderr, "Printing error output:-------------------"
             print >> sys.stderr, err_stream
+        self.assertEqual(0, errcode, "Execution failed")
     
     def _move_produced_files(self, src_path, dst_path):
         Utilities.iotools.create_dirs(dst_path)

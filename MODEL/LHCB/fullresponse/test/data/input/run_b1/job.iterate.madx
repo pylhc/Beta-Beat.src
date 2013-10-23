@@ -7,7 +7,7 @@ System,"test -e ats || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 option, -echo, -info,  warn;
 !call,   file = "db5/V6.5.seq";  ! Ideal
 call,   file = "db5/as-built/V6.5.seq";       
-call,   file = "%(BB_SRC)s/MODEL/LHCB/fullresponse/test/data/input/run1/modifiers.madx";	
+call,   file = "%(BB_SRC)s/MODEL/LHCB/fullresponse/test/data/input/run_b1/modifiers.madx";	
 call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
 
 
@@ -46,7 +46,7 @@ select, flag=twiss, clear;
 select, flag=twiss, pattern="BPM.*\.B1", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
 
 call, file="%(BB_SRC)s/MODEL/LHCB/tools/LHCB1_coupling_knob.madx";
-call, file="%(BB_SRC)s/MODEL/LHCB/fullresponse/test/data/input/run1/iter.madx";
+call, file="%(BB_SRC)s/MODEL/LHCB/fullresponse/test/data/input/run_b1/iter.madx";
 
 
 stop;
