@@ -1,0 +1,2 @@
+--accel=LHCB2
+--deltak=0.00002
