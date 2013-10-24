@@ -20,10 +20,10 @@ import Utilities.iotools
 
 CURRENT_PATH = os.path.dirname(__file__)
 # Path 'x/Beta-Beat.src/MODEL/LHCB/fullresponse/test'
-#TODO: set to False after finishing this test
-_SHORT_RUN = True # If True, genFullResp will only run on first dir
-_ARGUMENTS_FILE_NAME = "arguments.txt"
-_DELETE_VALID_OUTPUT = False #TODO: set to True after finishing this test
+
+_SHORT_RUN = False # If True, genFullResp will only run on first dir
+_ARGUMENTS_FILE_NAME = "arguments.txt" # Optional file which is located inside the run dir to manipulate the arguments for genFullResp
+_DELETE_VALID_OUTPUT = True
 
 class TestGenFullRespParallel(unittest.TestCase):
 
@@ -249,7 +249,9 @@ class TestGenFullRespParallel(unittest.TestCase):
             with open(path2, "rb") as file2:
                 buffer1 = file1.read(1024)
                 buffer2 = file2.read(1024)
-                self.assertEqual(buffer1, buffer2, "Files are not equal. "+buffer1+ " != "+buffer2+"\nFile1: "+path1+"\nFile2: "+path2)
+                self.assertEqual(buffer1, buffer2, "Files are not equal. \n######################### Buffer1:\n"+
+                                 buffer1+ "\n#########################\n != \n######################### Buffer2:\n"+buffer2+
+                                 "\n#########################\nFile1: "+path1+"\nFile2: "+path2)
                     
 
 
