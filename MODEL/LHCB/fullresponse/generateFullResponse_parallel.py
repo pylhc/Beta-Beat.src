@@ -3,11 +3,31 @@
 
 Created on ??
 
-Creates the fullresponse and stores it in the following 'pickled' files:
+This Python script produces the responses of the beta, phase and horizontal dispersion on the quadrupole strengths or 
+on other variables as horizontal orbit bumps at sextupoles. 
+The fullresponse.couple does the corresponding calculation for the coupling and the vertical dispersion.
+
+The response matrices are stored it in the following 'pickled' files:
  - FullResponse
  - FullResponse_couple
  - FullResponse_chromcouple
- The files are saved in option -p. They are used in the correction scripts.
+ The files are saved in option -p(output_path).
+
+These response matrices are used to calculate the corrections by the correction scripts.
+
+
+Parallel execution:
+
+*multiprocessing* from Python stdlib is used to spwan subprocesses and run MADX in parallel. Further the loading of the 
+MADX outputfiles will be executed in parallel.
+Possible improvements:
+ - The order of the three _gen*_for_*() functions are irrelevant and they do not depend on each other. Thus the execution
+   could be parallelized. Therefore the created iter.madx and twiss files need an unique prefix. E.g.: 'beta_iter.madx'.
+   All three functions would need own process pools and the handling of the input data have to be considered.
+   For test_fullresponse_parallel.py the comparing of *iter.madx should then be avoided since the 'valid' script does not produce them.
+ - The three functions in the main function do basically the same. A good pattern to handle this is the template method:
+   http://en.wikipedia.org/wiki/Template_method_pattern
+ 
 
 Options::
 
