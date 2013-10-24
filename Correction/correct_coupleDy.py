@@ -1,30 +1,28 @@
 #!/usr/bin/env pythonafs
 
 
-# Just to make sure that the path to the libraires is defined 
+# Just to make sure that the path to the libraires is defined
 import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-
-
-#--- beta beat for store with numpy
-
 import pickle
-import metaclass
 import os
 import optparse
-import GenMatrix_coupleDy
+
 import numpy
 
+import __init__ # @UnusedImport init will include paths
+import Python_Classes4MAD.GenMatrix_coupleDy as GenMatrix_coupleDy
+import Python_Classes4MAD.metaclass as metaclass
+
 ########### START ###############
-# /usr/bin/python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//Correction/correct_coupleDy.py 
+# /usr/bin/python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//Correction/correct_coupleDy.py
 # -a LHCB1
 # -p /afs/cern.ch/work/t/tbach/public/betabeatGui/temp/2012-09-28/LHCB1/Results/22-50-04_NORMALANALYSIS_SUSSIX_1
 # -c 0.01
-# -e 0.01,0.1 
+# -e 0.01,0.1
 # -m 0.02,0.1
 # -r /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/
 # -s 0.00003
-# -d 1,1,0,0,0 
+# -d 1,1,0,0,0
 # -o /afs/cern.ch/work/t/tbach/public/betabeatGui/temp/2012-09-28/models/LHCB1/test2fr/
 # -v coupling_knobs
 
@@ -116,18 +114,18 @@ if "coupling_knobs" in options.var:
         # we want to have a value which indicates the worst 5 percent, so we sort and get the value from the 95% index (tbach)
         sortedF1001W = numpy.sort(couple.F1001W)
         fivePercentIndex = int(numpy.floor(sortedF1001W.size * 0.95)) # no requirement to be accurate (tbach)
-        
+
         fivePercentValue = sortedF1001W[fivePercentIndex];
-        
+
         if printDebug: print "fivePercentIndex:", fivePercentIndex
-        
+
         if numpy.allclose(fivePercentValue, 0):
             print "calculated value for modelcut is 0, exit"
             sys.exit(1)
-            
+
         print "modelcutC will be changed from:", modelcutC, "to:", fivePercentValue
         modelcutC = fivePercentValue
-    
+
 
 dispy = []
 if weights[4] == "1":
@@ -186,7 +184,7 @@ if options.ACCEL == "SPS":
     beam = '1'
     for vcorr in vcorrsYASP:
         print >>f, "#SETTING", vcorr,  vcorrsYASP[vcorr]
-        
+
     for vcorr in vcorrs:
         print >>g, "K"+vcorr, vcorrs[vcorr]
         print >>h, vcorr,"->KICK:=",vcorrs[vcorr],";"
