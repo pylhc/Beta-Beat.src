@@ -14,6 +14,8 @@ Contents:
    Analyses/index
    drive/index
    getllm/index
+   SegmentBySegment/index
+   fullresponse/index
    Utilities/index
 
 

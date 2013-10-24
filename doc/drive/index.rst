@@ -34,7 +34,7 @@ almost every UNIX system available. For windows `MinGW <http://www.mingw.org/>`_
 The Intel compilers are commercial but CERN has licences. The section below shows how to obtain it.
 
 To build drive execute ``make``. In case you have ancient build files use ``make clean`` before.
-*make* will build according to your Os either Drive_God_lin(Linux) or Drive_God_lin_win.exe(Windows).
+*make* will build according to your Os either *Drive_God_lin*(Linux) or *Drive_God_lin_win.exe*(Windows).
 
 Linux - Intel compilers
 ```````````````````````
@@ -81,7 +81,7 @@ multicore executions. This is put down to the different order in which the
 tune values are summed during parallel execution to which the RMS values are
 sensitive and is not considered important.
 
-A minor problem is that the sussix_v4.inp file created by Drive_God_lin.c defines NLINE= 0 which,
+A minor problem is that the sussix_v4.inp file created by Drive_God_lin.cpp defines NLINE= 0 which,
 using the Intel Fortran compiler, turns the following read of L, M, K into a zero-trip
 loop and all values after are taken out of sequence. This does not affect
 execution so has been left as it is but if NLINE is given a value then
