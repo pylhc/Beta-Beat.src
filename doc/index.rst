@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    Analyses/index
+   Correction/index
    drive/index
    getllm/index
    SegmentBySegment/index

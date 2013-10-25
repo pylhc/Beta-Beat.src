@@ -7,15 +7,6 @@ Created on ??
 Single beam correction of coupling resonances and vertical dispersion.
 TODO: get better description (vimaier)
 
-The response matrices are stored it in the following 'pickled' files:
- - FullResponse
- - FullResponse_couple
- - FullResponse_chromcouple
- The files are saved in option -p(output_path).
-
-These response matrices are used to calculate the corrections by the correction scripts.
-
-
 Usage example::
 
     python correct_coupleDy.py --accel=LHCB1
