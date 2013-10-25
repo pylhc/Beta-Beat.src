@@ -23,7 +23,7 @@ CURRENT_PATH = os.path.dirname(__file__)
 
 _SHORT_RUN = False # If True, correct_coupleDy will only run on first dir
 _ARGUMENTS_FILE_NAME = "arguments.txt" # Optional file which is located inside the run dir to manipulate the arguments for genFullResp
-_DELETE_VALID_OUTPUT = False
+_DELETE_VALID_OUTPUT = True
 
 class TestCorrectCoupleDy(unittest.TestCase):
 
