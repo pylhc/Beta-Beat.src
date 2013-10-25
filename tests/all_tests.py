@@ -16,6 +16,7 @@ import Utilities.test.tfs_file_writer_test
 import Utilities.test.iotools_test
 import Analyses.test.svd_clean_test
 #import MODEL.LHCB.fullresponse.test.test_fullresponse_parallel
+import Correction.test.test_correct_coupleDy
 
 def suite():
     """
@@ -31,7 +32,8 @@ def suite():
              Utilities.test.iotools_test.TestReplacingKeywords,
              Utilities.test.iotools_test.TestGetFilenamesInDir,
              #MODEL.LHCB.fullresponse.test.test_fullresponse_parallel.TestGenFullRespParallel, # Commented out because this test has his own test on CDash
-             Analyses.test.svd_clean_test.TestSvdClean
+             Analyses.test.svd_clean_test.TestSvdClean,
+             Correction.test.test_correct_coupleDy.TestCorrectCoupleDy
              ]
 
     for t in tests:

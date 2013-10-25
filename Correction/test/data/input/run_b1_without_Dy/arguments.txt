@@ -1,0 +1,7 @@
+--accel=LHCB1 
+--cut=0.01 
+--errorcut=0.02,0.02 
+--modelcut=0.0,0.01  
+--MinStr=0.000001 
+--Dy=1,1,1,1,0
+--Variables=coupling_knobs

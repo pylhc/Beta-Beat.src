@@ -43,9 +43,9 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, fil
                             ["(?!^gplot_IP2$)", "(?!^plot_IP2.eps$)", "(?!^var4plot.sh$)", ] # Exclude these three files from comparing
     :param dict file_to_config_file_dict:
                             Keys are filenames(without path) and corresponding values are ndiff config filepaths.
-                            If File is not in dict a default config file will be used.
+                            If File is not in dict a default/master config file will be used.
     :param string master_config_file:
-                            Path to config file which will be used for files which have not entry in
+                            Path to config file which will be used for files which have no entry in
                             file_to_config_file_dict.
                             If not stated a default config file will be used.
 

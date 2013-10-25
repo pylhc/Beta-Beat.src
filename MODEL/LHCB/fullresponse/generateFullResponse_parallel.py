@@ -1,13 +1,39 @@
-"""
+r"""
 .. module: MODEL.LHCB.fullresponse.generateFullResponse_parallel
 
 Created on ??
 
-Creates the fullresponse and stores it in the following 'pickled' files:
+This Python script produces the responses of the beta, phase and horizontal dispersion on the quadrupole strengths or
+on other variables as horizontal orbit bumps at sextupoles.
+The fullresponse.couple does the corresponding calculation for the coupling and the vertical dispersion.
+
+The response matrices are stored it in the following 'pickled' files:
  - FullResponse
  - FullResponse_couple
  - FullResponse_chromcouple
- The files are saved in option -p. They are used in the correction scripts.
+ The files are saved in option -p(output_path).
+
+These response matrices are used to calculate the corrections by the correction scripts.
+
+
+Parallel execution:
+*multiprocessing* from Python stdlib is used to spwan subprocesses and run MADX in parallel. Further the loading of the
+MADX outputfiles will be executed in parallel.
+
+Possible improvements:
+ - The order of the three _gen*_for_*() functions are irrelevant and they do not depend on each other. Thus the execution
+   could be parallelized. Therefore the created iter.madx and twiss files need an unique prefix. E.g.: 'beta_iter.madx'.
+   All three functions would need own process pools and the handling of the input data have to be considered.
+   For test_fullresponse_parallel.py the comparing of \*iter.madx should then be avoided since the 'valid' script does not produce them.
+ - The three functions in the main function do basically the same. A good pattern to handle this is the template method:
+   http://en.wikipedia.org/wiki/Template_method_pattern
+ - Removing of the exec statements. This is very ugly and could be replaced with a function *get_variables_for_accel_and_fullresponse_type(accel, type)*.
+   The function could import the corresponding module by checking function parameters in if/else statements and deliver the
+   appropriate list.
+
+Usage example::
+
+    python generateFullResponse_parallel.py --accel=LHCB1 --path=/afs/cern.ch/work/v/vimaier/public/betabeatGui/temp/2013-10-22/models/LHCB1/a_mod --core=/afs/cern.ch/work/v/vimaier/public/Beta-Beat.src/MODEL/LHCB1/fullresponse --deltak=0.00002
 
 Options::
 
@@ -39,9 +65,9 @@ import Utilities.math
 
 
 #===================================================================================================
-# parse_args()-function
+# _parse_args()-function
 #===================================================================================================
-def parse_args():
+def _parse_args():
     ''' Parses the arguments, checks for valid input and returns tupel '''
     parser = optparse.OptionParser()
     parser.add_option("-a", "--accel",
@@ -56,10 +82,10 @@ def parse_args():
     parser.add_option("-k", "--deltak",
                       help="delta k to be applied to quads for sensitivity matrix",
                       default="0.00002", dest="k")
-    
-    
+
+
     (options, args) = parser.parse_args() # @UnusedVariable no args needed
-    
+
     return options
 
 
@@ -68,7 +94,7 @@ class _InputData(object):
     output_path = ""
     delta_k = 0.0
     core_path_with_accel = ""
-    
+
     number_of_cpus = 0
     process_pool = None
 
@@ -82,7 +108,7 @@ class _InputData(object):
             raise ValueError("Delta k is not a number: "+delta_k)
         if not Utilities.iotools.dirs_exist(os.path.join(path_to_core_files_without_accel, accel)):
             raise ValueError("Core path does not exist: "+_InputData.core_path_with_accel)
-        
+
         _InputData.output_path = output_path
         _InputData.delta_k = float(delta_k)
         _InputData.core_path_with_accel = os.path.join(path_to_core_files_without_accel, accel)
@@ -97,13 +123,13 @@ class _InputData(object):
 # main()-function
 #=======================================================================================================================
 def main(accel, output_path, path_to_core_files_without_accel, delta_k):
-    
+
     _InputData.static_init(accel, output_path, path_to_core_files_without_accel, delta_k)
-    
+
     _generate_fullresponse_for_chromatic_coupling()
     _generate_fullresponse_for_coupling()
     _generate_fullresponse_for_beta()
-    
+
 
 def _generate_fullresponse_for_chromatic_coupling():
     variables = None
@@ -115,8 +141,8 @@ def _generate_fullresponse_for_chromatic_coupling():
     dpp = 0.0001
     FullResponse['incr'] = incr           #Store this info for future use
     FullResponse['delta1'] = delta1
-    
-    
+
+
     ######## loop over normal variables
     f = open(_join_with_output("iter.madx"), "w")
     for i in range(0, len(delta1)) : #Loop over variables
@@ -127,16 +153,16 @@ def _generate_fullresponse_for_chromatic_coupling():
         print >> f, "twiss, deltap= " + str(dpp) + ",file=\"" + _join_with_output("twiss.dp+.") + var + "\";"
         print >> f, "twiss, deltap=-" + str(dpp) + ",file=\"" + _join_with_output("twiss.dp-.") + var + "\";"
         print >> f, var, "=", var, "-(", delta[i], ");"
-    
-    
+
+
     print >> f, "twiss, deltap= " + str(dpp) + ",file=\"" + _join_with_output("twiss.dp+.0")+"\";"
     print >> f, "twiss, deltap=-" + str(dpp) + ",file=\"" + _join_with_output("twiss.dp-.0")+"\";"
     f.close()
     print "Running MADX"
     _parallel_command(period=4, number_of_cases=len(delta1) + 1) # period=4 since there are 4 lines in iter.madx per case, number_of_cases has +1 since there is the 0 case
-    
-    
-    
+
+
+
     varsforloop = variables + ['0']
     newvarsforloop = []
     for value in varsforloop:
@@ -144,10 +170,10 @@ def _generate_fullresponse_for_chromatic_coupling():
     a = _InputData.process_pool.map(_loadtwiss_chrom_coup, newvarsforloop)
     for key, value in a:
         FullResponse[key] = value
-    
+
     _dump(_join_with_output('FullResponse_chromcouple'), FullResponse)
-    
-    
+
+
 def _generate_fullresponse_for_coupling():
     variables = None
     FullResponse = {}   #Initialize FullResponse
@@ -155,11 +181,11 @@ def _generate_fullresponse_for_coupling():
     exec('variables=Qs()')           #Define variables
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.0001    #increment of variables
-    
-    
+
+
     FullResponse['incr'] = incr           #Store this info for future use
     FullResponse['delta1'] = delta1       #"     "     "
-    
+
     ######## loop over normal variables
     f = open(_join_with_output('iter.madx'), 'w')
     for i in range(0, len(delta1)) : #Loop over variables
@@ -169,12 +195,12 @@ def _generate_fullresponse_for_coupling():
         print >> f, var, "=", var, "+(", delta[i], ");"
         print >> f, "twiss, file=\"" + _join_with_output("twiss." + var)+"\";"
         print >> f, var, "=", var, "-(", delta[i], ");"
-    
+
     print >> f, "twiss, file=\"" + _join_with_output("twiss.0")+"\";"
     f.close()
     #Sending the mad jobs in parallel
     _parallel_command(period=3, number_of_cases=len(delta1) + 1)
-    
+
     #Loading the twiss files into fullresp in parallel
     varsforloop = variables + ['0']
     newvarsforloop = []
@@ -183,10 +209,10 @@ def _generate_fullresponse_for_coupling():
     a = _InputData.process_pool.map(_loadtwiss_coup, newvarsforloop)
     for key, value in a:
         FullResponse[key] = value
-        
+
     _dump(_join_with_output("FullResponse_couple"), FullResponse)
-    
-    
+
+
 def _generate_fullresponse_for_beta():
     variables = None
     FullResponse = {}   #Initialize FullResponse
@@ -195,11 +221,11 @@ def _generate_fullresponse_for_beta():
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     #incr=ones(len(variables))*0.00005    #increment of variables    #### when squeeze low twiss fails because of to big delta
     incr = numpy.ones(len(variables)) * _InputData.delta_k
-    
-    
+
+
     FullResponse['incr'] = incr           #Store this info for future use
     FullResponse['delta1'] = delta1       #"     "     "
-    
+
     ######## loop over normal variables
     f = open(_join_with_output("iter.madx"), "w")
     for i in range(0, len(delta1)) : #Loop over variables
@@ -209,12 +235,12 @@ def _generate_fullresponse_for_beta():
         print >> f, var, "=", var, "+(", delta[i], ");"
         print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
         print >> f, var, "=", var, "-(", delta[i], ");"
-    
+
     print >> f, "twiss,file=\"" + _join_with_output("twiss.0")+"\";"
     f.close()
-    
+
     _parallel_command(period=3, number_of_cases=len(delta1) + 1)
-    
+
     #Loading the twiss files into fullresp in parallel
     varsforloop = variables + ['0']
     newvarsforloop = []
@@ -223,10 +249,10 @@ def _generate_fullresponse_for_beta():
     a = _InputData.process_pool.map(_loadtwiss_beta, newvarsforloop)
     for key, value in a:
         FullResponse[key] = value
-    
+
     _dump(_join_with_output("FullResponse"), FullResponse)
-    
-    
+
+
 #=======================================================================================================================
 # helper functions
 #=======================================================================================================================
@@ -247,7 +273,7 @@ def _callMadx(pathToInputFile, attemptsLeft=5):
         time.sleep(0.5)
         return _callMadx(pathToInputFile, attemptsLeft - 1)
     return result
-    
+
 def _dump(pathToDump, content):
     dumpFile = open(pathToDump, 'wb')
     cPickle.Pickler(dumpFile, -1).dump(content)
@@ -255,14 +281,14 @@ def _dump(pathToDump, content):
 
 
 def _parallel_command(period, number_of_cases):
-    iterfile=open(_join_with_output("iter.madx"), 'r')
-    lines=iterfile.readlines()
+    iterfile = open(_join_with_output("iter.madx"), 'r')
+    lines = iterfile.readlines()
     iterfile.close()
-    casesperprocess=int(math.ceil(number_of_cases*1.0/_InputData.number_of_cpus))
-    linesperprocess=casesperprocess*period
-    
+    casesperprocess = int(math.ceil(number_of_cases*1.0/_InputData.number_of_cpus))
+    linesperprocess = casesperprocess*period
+
     iterFilePaths = []
-    for i in range(len(lines)):      #split the iter.madx using in final number of processes 
+    for i in range(len(lines)):      #split the iter.madx using in final number of processes
         if (i % linesperprocess == 0):
             proid = i / linesperprocess + 1
             iterFilePath = _join_with_output("iter." + str(proid) + ".madx")
@@ -271,18 +297,18 @@ def _parallel_command(period, number_of_cases):
         iterFile.write(lines[i])
         if i == len(lines) - 1 or (i % linesperprocess == linesperprocess - 1):
             iterFile.close()
-            
-    
+
+
     # Prepare copies of the job.iterate.madx and all the shell commands
     madxFilePaths = []
-    for i in range(1,proid+1):
-        cmd='sed \'s/iter.madx/iter.'+str(i)+'.madx/g\' '+_InputData.output_path+'/job.iterate.madx > '+_InputData.output_path+'/job.iterate.'+str(i)+'.madx'
+    for i in range(1, proid+1):
+        cmd = 'sed \'s/iter.madx/iter.'+str(i)+'.madx/g\' '+_InputData.output_path+'/job.iterate.madx > '+_InputData.output_path+'/job.iterate.'+str(i)+'.madx'
         _shell_command(cmd)
         madxFilePaths.append(_InputData.output_path+'/job.iterate.'+str(i)+'.madx')
-    
+
 #    print "send jobs to madx in parallel, number of jobs:", len(madxFilePaths)
     _InputData.process_pool.map(_callMadx, madxFilePaths)
-    
+
     # clean up again (tbach)
     for madxFilePathsItem in madxFilePaths:
         os.remove(madxFilePathsItem)
@@ -366,18 +392,18 @@ def _loadtwiss_chrom_coup(varandpathanddpp):
 #=======================================================================================================================
 def _start():
     timeStartGlobal = time.time()
-    options = parse_args()
-    
+    options = _parse_args()
+
     main(
-         accel=options.accel, 
-         output_path=options.path, 
-         path_to_core_files_without_accel=options.core, 
+         accel=options.accel,
+         output_path=options.path,
+         path_to_core_files_without_accel=options.core,
          delta_k=options.k
          )
-    
+
     timeGlobal = time.time() - timeStartGlobal
     print "Duration:", timeGlobal, "s"
 
 if __name__ == '__main__':
     _start()
-    
+
