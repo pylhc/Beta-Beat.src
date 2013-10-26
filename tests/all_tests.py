@@ -32,8 +32,8 @@ def suite():
              Utilities.test.iotools_test.TestReplacingKeywords,
              Utilities.test.iotools_test.TestGetFilenamesInDir,
              #MODEL.LHCB.fullresponse.test.test_fullresponse_parallel.TestGenFullRespParallel, # Commented out because this test has his own test on CDash
-             Analyses.test.svd_clean_test.TestSvdClean,
-             Correction.test.test_correct_coupleDy.TestCorrectCoupleDy
+             Analyses.test.svd_clean_test.TestSvdClean
+             #Correction.test.test_correct_coupleDy.TestCorrectCoupleDy #TODO: commit test input files from office pc(vimaier)
              ]
 
     for t in tests:
