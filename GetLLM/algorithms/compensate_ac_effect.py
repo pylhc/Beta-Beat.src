@@ -264,7 +264,7 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             bpmac=bpmac2
         except ValueError:
             print >> sys.stderr,'WARN: BPMs next to AC dipoles missing.'
-            return [{},'',[],[]]
+            return [{}, 0.0, [], []]
 
     #-- Model beta and phase advance
     if plane=='H': betmdl=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
