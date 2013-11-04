@@ -20,7 +20,7 @@ import Correction.test.test_correct_coupleDy
 
 def suite():
     """
-    Creates a TestSuit, adds all available testcases and returns the suite.
+    Creates a TestSuit, adds all available tests and returns the suite.
     """
     test_loader = unittest.TestLoader()
     test_suite = unittest.TestSuite()
@@ -32,8 +32,8 @@ def suite():
              Utilities.test.iotools_test.TestReplacingKeywords,
              Utilities.test.iotools_test.TestGetFilenamesInDir,
              #MODEL.LHCB.fullresponse.test.test_fullresponse_parallel.TestGenFullRespParallel, # Commented out because this test has his own test on CDash
-             Analyses.test.svd_clean_test.TestSvdClean
-             #Correction.test.test_correct_coupleDy.TestCorrectCoupleDy #TODO: commit test input files from office pc(vimaier)
+             Analyses.test.svd_clean_test.TestSvdClean,
+             Correction.test.test_correct_coupleDy.TestCorrectCoupleDy
              ]
 
     for t in tests:
