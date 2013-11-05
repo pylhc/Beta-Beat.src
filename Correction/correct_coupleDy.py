@@ -275,7 +275,7 @@ def _calculate_automatic_model_cut(couple_twiss):
         print "five_percent_index:", five_percent_index
 
     if numpy.allclose(five_percent_value, 0):
-        print "calculated value for modelcut is 0, exit"
+        print >> sys.stderr, "calculated value for modelcut is 0, exit"
         sys.exit(1)
 
     print "modelcutC will be changed from:", _InputData.model_cut_c, "to:", five_percent_value
@@ -303,7 +303,7 @@ def _generate_changeparameters_couple_file():
     disp_y = _get_dispersion_y_if_set_and_available()
 
     execfile(os.path.join(_InputData.accel_path, "AllLists_couple.py"))
-    print os.path.join(_InputData.accel_path, "AllLists_couple.py") + "executed"
+    print os.path.join(_InputData.accel_path, "AllLists_couple.py") + " executed"
     varslist = []
     for var in _InputData.variables_list:
         variable = None # Will be assigned in following awful command (vimaier)
@@ -317,10 +317,15 @@ def _generate_changeparameters_couple_file():
     mode = 'D'
     disp_y_list = GenMatrix_coupleDy.MakeList(disp_y, mad_twiss, _InputData.model_cut_d, _InputData.error_cut_d, mode)
 
+    if 0 == len(couple_list) and 0 == len(disp_y_list):
+        print >> sys.stderr, "Couple and dispersion lists are empty. Are model and/or error cuts too strict?"
+        sys.exit(1)
+
     print "entering couple input", len(couple_list)
     couple_inp = GenMatrix_coupleDy.couple_input(varslist, couple_list, disp_y_list, _InputData.weights_list)
     print "computing the sensitivity matrix"
     sensitivity_matrix = couple_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
+
 
     print "computing correct coupling "
     [deltas, varslist ] = GenMatrix_coupleDy.correctcouple(couple, disp_y, couple_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path)
