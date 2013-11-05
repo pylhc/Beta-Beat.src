@@ -64,6 +64,7 @@ import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
 import Python_Classes4MAD.linreg as linreg
 import Utilities.bpm
+import Utilities.iotools
 import superutils
 
 #===================================================================================================
@@ -361,7 +362,7 @@ def _madcreator(dpps, files_dict):
     dict_for_replacing["QDY"] = qdy
     dict_for_replacing["QMX"] = int(qx*1000000)
     dict_for_replacing["QMY"] = int(qy*1000000)
-    dict_for_replacing["QMY"] = "!"
+    dict_for_replacing["STOP"] = "!"
 
     for testpath in [_InputData.output_path, os.path.dirname(_InputData.twissfile)]:
         _tmpmod = os.path.join(testpath, 'modifiers.madx')
@@ -372,14 +373,11 @@ def _madcreator(dpps, files_dict):
 
     print "Creating madx"
     path_to_job_chrom_madx = _join_with_output_path("job.chrom.madx")
-    filetoprint = open(path_to_job_chrom_madx, "w")
-
-    madfile = os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro")
-    linesmad = open(madfile,"r").read()
-    #changing variables
-    filetoprint.write(linesmad % dict_for_replacing)
-
-    filetoprint.close()
+    Utilities.iotools.replace_keywords_in_textfile(
+                                                   os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro"), 
+                                                   dict_for_replacing, 
+                                                   path_to_job_chrom_madx
+                                                   )
 
     print "Running madx"
     process = subprocess.Popen(_InputData.path_to_madx+' < '+path_to_job_chrom_madx,
