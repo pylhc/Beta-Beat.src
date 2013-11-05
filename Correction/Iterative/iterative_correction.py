@@ -1,3 +1,30 @@
+"""
+IMPORTANT
+
+iterative_correction is not used for several years. It is currently not required and thus no refactoring and improving
+will be applied to this script.
+
+It is not working with the current GUI version. It crashes on a lot of places.
+If this script will be needed again one have to put effort to get it running again.
+TODOs for the script would be:
+ - Insert error handling to get it running
+ - Clean import section and use __init__ to add root of Beta-Beat.src(see GetLLM.py for example)
+ - Put global executions in a proper main() function
+ - Clean the awful thing with options.JustOneBeam --> if j=='1' could then be replaced through:
+     use_two_beams = options.JustOneBeam == '1'
+     ...
+     if use_two_beams:
+         ...
+ - Clean also correctTESTFUNC5.py
+ - Remove versionnumbers in script files and delete old versions. Git does this job for us(pretty well)
+
+--vimaier
+
+"""
+
+
+
+
 ### Module for Iterative correction
 ### V1.0 created by Masa. Aiba 15/Mar/2009
 ### V1.1 created by Glenn Vanbavinckhove 15/June/2009
@@ -26,7 +53,7 @@ from os import system
 from string import *
 #from AllLists import *
 from optparse import OptionParser
-from correctTESTFUNC4 import correctpy
+import correct
 
 
 def GetPhases(prex,prey,j):
@@ -47,7 +74,7 @@ def GetPhases(prex,prey,j):
 
 
 
-def phasesubtract(prex,prey,nit,options,maccel,mpath):
+def phasesubtract(prex,prey,nit,options,maccel,mpath,fmodel):
 
     global dictionary
 
@@ -59,8 +86,8 @@ def phasesubtract(prex,prey,nit,options,maccel,mpath):
     print "Where to read the twiss file "+twissfile
     MADTwiss1=twiss(twissfile,dictionary)
     [phase1x,phase1y]=GetPhases(prex,prey,MADTwiss1)
-    fmodel=options.OPT+'/twiss.dat'
     MADTwiss0=twiss(fmodel,dictionary)
+    print "Reading model from ",fmodel
     [phase0x,phase0y]=GetPhases(prex,prey,MADTwiss0)
     fpresentx=mpath+'/getphasex.0'+str(nit)+'.out'
     fpresenty=mpath+'/getphasey.0'+str(nit)+'.out'
@@ -102,13 +129,12 @@ def phasesubtract(prex,prey,nit,options,maccel,mpath):
     system('cp '+fpresenty+' '+mpath+'/getphasey.out.copy')
 
 
-def dispsubtract(predx,nit,options,maccel,mpath):
+def dispsubtract(predx,nit,options,maccel,mpath,fmodel):
 
     global dictionary
 
     twissfile=mpath+"/twiss.corrected.dat"
     MADTwiss1=twiss(twissfile,dictionary)
-    fmodel=options.OPT+'/twiss.dat'
     MADTwiss0=twiss(fmodel,dictionary)
     fpresentDx=mpath+'/getNDx.0'+str(nit)+'.out'
     faftdx=open(fpresentDx,'w')
@@ -127,7 +153,7 @@ def dispsubtract(predx,nit,options,maccel,mpath):
 
 def runcorrection(nit,options,varlist):
 
-    correctpy(options,args)
+    correct(options,args)
 
     system('cp changeparameters changeparameters.save')
 
@@ -284,7 +310,7 @@ j=int(options.JustOneBeam)
 filename=options.path+'/var4mad.sh'
 file4nad=open(filename,'w')
 file4nad.write('sed    -e \'s/%filedes/\'\"'+str(options.path.replace('/','\/'))+'\"\'/g\' \\\n')
-file4nad.write('<'+options.OPT+'/'+'job.iterative.correction.mask > '+options.path+'/job.iterative.correction.madx \n')
+file4nad.write('<'+options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL+'/'+'job.iterative.correction.mask > '+options.path+'/job.iterative.correction.madx \n')
 #print options.path+'/job.iterative.correction.madx '
 file4nad.close()
 os.system("chmod 777 "+str(filename))
@@ -294,7 +320,7 @@ if j==1:
     filename=options.path2+'/var4mad.sh'
     file4nad=open(filename,'w')
     file4nad.write('sed    -e \'s/%filedes/\'\"'+str(options.path2.replace('/','\/'))+'\"\'/g\' \\\n')
-    file4nad.write('<'+options.OPT+'/'+'job.iterative.correction.mask > '+options.path2+'/job.iterative.correction.madx \n')
+    file4nad.write('<'+options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL2+'/'+'job.iterative.correction.mask > '+options.path2+'/job.iterative.correction.madx \n')
     file4nad.close()
     os.system("chmod 777 "+str(filename))
     os.system(str(filename))
@@ -303,9 +329,12 @@ if j==1:
 #sys.exit()
 
 # Save getphasex/y.out, getDx.out for correction
-
-command='cp '+options.path+'/getphasex.out '+options.path+'/getphasex.out.copy'
-command2='cp '+options.path+'/getphasex.out.copy '+options.path+'/getphasex.00.out'
+if os.path.exists(options.path+'/getphasex_free.out'):
+	command='cp '+options.path+'/getphasex_free.out '+options.path+'/getphasex_free.out.copy'
+	command2='cp '+options.path+'/getphasex_free.out.copy '+options.path+'/getphasex.00.out'
+else:
+	command='cp '+options.path+'/getphasex.out '+options.path+'/getphasex.out.copy'
+	command2='cp '+options.path+'/getphasex.out.copy '+options.path+'/getphasex.00.out'
 
 try:
     system(command)
@@ -316,8 +345,12 @@ except:
     sys.exit()
 
 if j==1:
-    command='cp '+options.path2+'/getphasex.out '+options.path2+'/getphasex.out.copy'
-    command2='cp '+options.path2+'/getphasex.out.copy '+options.path2+'/getphasex.00.out'
+    if os.path.exists(options.path2+'/getphasex_free.out'):
+	    command='cp '+options.path2+'/getphasex_free.out '+options.path2+'/getphasex.out.copy'
+	    command2='cp '+options.path2+'/getphasex.out.copy '+options.path2+'/getphasex.00.out'
+    else:
+	    command='cp '+options.path2+'/getphasex.out '+options.path2+'/getphasex.out.copy'
+	    command2='cp '+options.path2+'/getphasex.out.copy '+options.path2+'/getphasex.00.out'
     try:
         system(command)
         system(command2)
@@ -326,9 +359,12 @@ if j==1:
         print 'Correction is not possible... leaving Iterative Correction.'
         sys.exit()
 
-
-command='cp '+options.path+'/getphasey.out '+options.path+'/getphasey.out.copy'
-command2='cp '+options.path+'/getphasey.out.copy '+options.path+'/getphasey.00.out'
+if os.path.exists(options.path2+'/getphasex_free.out'):
+	command='cp '+options.path+'/getphasey_free.out '+options.path+'/getphasey.out.copy'
+	command2='cp '+options.path+'/getphasey.out.copy '+options.path+'/getphasey.00.out'
+else:
+	command='cp '+options.path+'/getphasey.out '+options.path+'/getphasey.out.copy'
+	command2='cp '+options.path+'/getphasey.out.copy '+options.path+'/getphasey.00.out'
 
 try:
     system(command)
@@ -339,8 +375,12 @@ except:
     sys.exit()
 
 if j==1:
-    command='cp '+options.path2+'/getphasey.out '+options.path2+'/getphasey.out.copy'
-    command2='cp '+options.path2+'/getphasey.out.copy '+options.path2+'/getphasey.00.out'
+    if os.path.exists(options.path2+'/getphasex_free.out'):
+	command='cp '+options.path2+'/getphasey_free.out '+options.path2+'/getphasey.out.copy'
+	command2='cp '+options.path2+'/getphasey.out.copy '+options.path2+'/getphasey.00.out'
+    else:
+	command='cp '+options.path2+'/getphasey.out '+options.path2+'/getphasey.out.copy'
+	command2='cp '+options.path2+'/getphasey.out.copy '+options.path2+'/getphasey.00.out'
     try:
         system(command)
         system(command2)
@@ -458,9 +498,9 @@ runMAD=options.mad+' < '+options.path+'/job.iterative.correction.madx > out.mou'
 if j==1:
     runMAD2=options.mad+' < '+options.path2+'/job.iterative.correction.madx > out.mou'
 # import knobs list
-execfile(options.OPT+'/AllLists.py')
+execfile(options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL+'/AllLists.py')
 if j==1:
-    execfile(options.OPT+'/AllLists.py')
+    execfile(options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL2+'/AllLists.py')
 
 
 listvar=options.var.split(",")
@@ -476,18 +516,23 @@ for var in listvar:
 nlimit=int(options.Iteration) # No. of iterations
 
 for nit in range(1,nlimit+1):
+    print "Sending command to madx :",runMAD
     system(runMAD)
     bn1=upper(prex.NAME[0])
     bn2=upper(prex.NAME2[0])
     print bn1,bn2
-    phasesubtract(prex,prey,nit,options,options.ACCEL,options.path)
+    fmodel=options.OPT.split(",")[0]+"/twiss.dat"
+    print fmodel
+    phasesubtract(prex,prey,nit,options,options.ACCEL,options.path,fmodel)
     if fragndx==1:
-        dispsubtract(predx,nit,options,options.ACCEL,options.path)
+        dispsubtract(predx,nit,options,options.ACCEL,options.path,fmodel)
     if j==1:
         system(runMAD2)
-        phasesubtract(prex2,prey2,nit,options,options.ACCEL2,options.path2)
+	print "Running mad2"
+	fmodel=options.OPT.split(",")[1]+"/twiss.dat"
+        phasesubtract(prex2,prey2,nit,options,options.ACCEL2,options.path2,fmodel)
         if fragndx==1:
-            dispsubtract(predx2,nit,options,options.ACCEL2,options.path2)
+            dispsubtract(predx2,nit,options,options.ACCEL2,options.path2,fmodel)
     runcorrection(nit,options,varlist)
     cpfile='cp '+options.path+'/twiss.corrected.dat '+options.path+'/twiss.'+str(nit)+'.dat'
     system(cpfile)

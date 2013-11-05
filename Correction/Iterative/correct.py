@@ -1,4 +1,6 @@
-
+"""
+See docstring of iterative_correction.py (vimaier)
+"""
 
 
 ##
@@ -9,11 +11,14 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src///Numeric-23_p2.3/lib/python2.3/site-packages/Numeric/')
 
 import pickle
-from Numeric import *
+try:
+	from Numeric import *
+	from LinearAlgebra import *
+except:
+	from numpy import *
 from os import system
 from metaclass import twiss
 import random,re,sys
-from LinearAlgebra import *
 from optparse import OptionParser
 from GenMatrix_twoB import *
 from BCORR import *
@@ -23,14 +28,20 @@ from BCORR import *
 ########### START ###############
 
 
+
+
+
+
+
 def  correctpy(options, args):
 
     print "Selected accelerator:", options.ACCEL
     print "Path to measurements:", options.path
     betapath = options.rpath
     print "Path to Repository:", betapath
-    accelpath=betapath+'/MODEL/'+options.ACCEL+'/'+options.OPT+'/'
-    accelpath2=betapath+'/MODEL/'+options.ACCEL2+'/'+options.OPT+'/'
+    accelpath=options.OPT.split(",")[0]+"/"
+    #accelpath=options.OPT+"/"
+    #accelpath2=options.OPT+"/"
     print "Path to Accelerator model", accelpath
     print "Selected algorithm:", options.TECH
 
@@ -56,25 +67,29 @@ def  correctpy(options, args):
     cut= float(options.cut)
     print "Model, error and SVD cuts:", modelcut, errorcut, cut
     print "Starting loading Full Response optics"
-    FullResponse=pickle.load(open(accelpath+'/FullResponse.Numeric','r'))
+    FullResponse=pickle.load(open(accelpath+'/FullResponse','r'))
     if j==1:
-        FullResponse2=pickle.load(open(accelpath2+'/FullResponse.Numeric','r'))
+    	accelpath2=options.OPT.split(",")[1]+'/'
+        FullResponse2=pickle.load(open(accelpath2+'/FullResponse','r'))
     print "Loading ended"
 
 
-    x=twiss(options.path+'/getphasex.out')
-    y=twiss(options.path+'/getphasey.out')
+    x=twiss(options.path+'/getphasex.out.copy')
+    y=twiss(options.path+'/getphasey.out.copy')
+    #xbet=twiss(options.path+'/getphasex.out.copy')
+    #ybet=twiss(options.path+'/getphasey.out.copy')
+    
     if j==1:
-        x2=twiss(options.path2+'/getphasex.out')
-        y2=twiss(options.path2+'/getphasey.out')
+        x2=twiss(options.path2+'/getphasex.out.copy')
+        y2=twiss(options.path2+'/getphasey.out.copy')
 
     try:
         if options.WGT.split(",")[4]=='1':
-            dx=twiss(options.path+'/getNDx.out') # changed by Glenn Vanbavinckhove (26/02/09)
+            dx=twiss(options.path+'/getNDx.out.copy') # changed by Glenn Vanbavinckhove (26/02/09)
         else:
             dx=[]
         if j==1 and options.WGT.split(",")[4]=='1':
-            dx2=twiss(options.path2+'/getNDx.out')
+            dx2=twiss(options.path2+'/getNDx.out.copy')
         else:
             dx2=[]
     except:
@@ -84,9 +99,9 @@ def  correctpy(options, args):
         dx2=[]
         
 
-    execfile(accelpath+'/AllLists.py')
+    execfile(options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL+'/AllLists.py')
     if j==1:
-        execfile(accelpath2+'/AllLists.py')
+        execfile(options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL2+'/AllLists.py')
         # extra depdency to be able to handle to different magnets group
     listvar=options.var.split(",")
     varslist=[]
@@ -135,6 +150,8 @@ def  correctpy(options, args):
     variables=varslist
     phasexlist=MakePairs(x, FullResponse['0'], modelcut=modelcut, errorcut=errorcut)
     phaseylist=MakePairs(y, FullResponse['0'], modelcut=modelcut, errorcut=errorcut)
+#   betaxlist=MakeBetaList(x, FullResponse['0'], modelcut=modelcut, errorcut=errorcut)
+ #  betaylist=MakeBetaList(y, FullResponse['0'], modelcut=modelcut, errorcut=errorcut)
     betaxlist=[]
     betaylist=betaxlist
     displist=MakeList(dx, FullResponse['0'])
@@ -149,7 +166,9 @@ def  correctpy(options, args):
 
     wei=[]
     for i in range(0,6):
-        wei.append(int(options.WGT.split(",")[i]))#wei=[1,1,1,1,1,10] # Weights of phasex phasey betax betay disp and tunes
+        wei.append(float(options.WGT.split(",")[i]))#wei=[1,1,1,1,1,10] # Weights of phasex phasey betax betay disp and tunes
+        #wei.append(int(options.WGT.split(",")[i]))#wei=[1,1,1,1,1,10] # Weights of phasex phasey betax betay disp and tunes
+
     print "weight=",wei
 
     if j==0:
@@ -166,7 +185,7 @@ def  correctpy(options, args):
             [deltas, varslist ] = correctbeatEXP(x,y,dx, beat_inp, cut=cut, app=0, path=options.path)
         if j==1:
             [deltas, varslist ] = correctbeatEXP2(x,x2,y,y2,dx,dx2, beat_inp, cut=cut, app=0, path=options.path)
-        if 1:                           #All accelerators
+        if 1:#All accelerators
             iteration=0 # Let's remove too low useless correctors
             while (len(filter(lambda x: abs(x)< MinStr, deltas))>0):
                 iteration=1+iteration
@@ -195,25 +214,22 @@ def  correctpy(options, args):
         bNCorrNumeric(x,y,dx,beat_inp, cut=cut,ncorr=ncorr,app=0,path=options.path)
     
     if options.ACCEL=="SPS":
-	b=twiss(options.path+"/changeparameters.tfs")
-	execfile(accelpath+'/Bumps.py')    # LOADS corrs
-	execfile(accelpath+'/BumpsYASP.py') # LOADS corrsYASP
+        b=twiss(options.path+"/changeparameters.tfs")
+        execfile(accelpath+'/Bumps.py')    # LOADS corrs
+        execfile(accelpath+'/BumpsYASP.py') # LOADS corrsYASP
         #Output for YASP...
-	f=open(options.path+"/changeparameters.yasp", "w")
+        f=open(options.path+"/changeparameters.yasp", "w")
         #Output for Knob...
         g=open(options.path+"/changeparameters.knob", "w")
         f.write("#PLANE H\n")
-	f.write("#UNIT RAD\n")
-	
+        f.write("#UNIT RAD\n")
         g.write("* NAME  DELTA \n")
         g.write("$ %s    %le   \n")
-	plane = 'H'
-	beam = '1'
-	for corr in corrsYASP:
-		print >>f, "#SETTING", corr,  corrsYASP[corr]
-	for corr in corrs:
-                print >>g, "K"+corr, corrs[corr]
-	f.close()
+        for corr in corrsYASP:
+            print >>f, "#SETTING", corr,  corrsYASP[corr]
+        for corr in corrs:
+            print >>g, "K"+corr, corrs[corr]
+        f.close()
         g.close()
         
     if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
