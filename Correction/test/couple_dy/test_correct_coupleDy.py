@@ -3,9 +3,9 @@ Created on 24 Oct 2013
 
 :author: vimaier
 
-This module tests the output files of correct_coupleDy.py . First it runs the 'valid' version in the dir test
+This module tests the output files of correct_coupleDy.py . First it runs the 'valid' version in the dir test/couple_dy
 and then it runs the modified version in the dir Correction. After that it compares the content of the dirs
-test.data.output.valid and to_check.
+test.couple_dy.data.output.valid and to_check.
 '''
 import unittest
 import os
@@ -19,28 +19,28 @@ import Utilities.iotools
 import Utilities.ndiff
 
 CURRENT_PATH = os.path.dirname(__file__)
-# Path 'x/Beta-Beat.src/Correction/test'
+# Path 'x/Beta-Beat.src/Correction/test/couple_dy'
 
 _SHORT_RUN = False # If True, correct_coupleDy will only run on first dir
-_ARGUMENTS_FILE_NAME = "arguments.txt" # Optional file which is located inside the run dir to manipulate the arguments for genFullResp
+_ARGUMENTS_FILE_NAME = "arguments.txt" # Optional file which is located inside the run dir to manipulate the arguments for the script
 _DELETE_VALID_OUTPUT = True
 
 class TestCorrectCoupleDy(unittest.TestCase):
 
-    path_to_modified_script = os.path.join(CURRENT_PATH, "..", "correct_coupleDy.py")
-    path_to_valid_script = os.path.join(CURRENT_PATH, "valid_correct_coupleDy.py")
+    PATH_TO_MODIFIED_SCRIPT = os.path.join(CURRENT_PATH, "..", "..", "correct_coupleDy.py")
+    PATH_TO_VALID_SCRIPT = os.path.join(CURRENT_PATH, "valid_correct_coupleDy.py")
 
-    path_to_valid = os.path.join(CURRENT_PATH, "data", "output", "valid")
-    path_to_to_check = os.path.join(CURRENT_PATH, "data", "output", "to_check")
-    path_to_input = os.path.join(CURRENT_PATH, "data", "input")
+    PATH_TO_VALID = os.path.join(CURRENT_PATH, "data", "output", "valid")
+    PATH_TO_TO_CHECK = os.path.join(CURRENT_PATH, "data", "output", "to_check")
+    PATH_TO_INPUT = os.path.join(CURRENT_PATH, "data", "input")
 
-    betabeat_root = Utilities.iotools.get_absolute_path_to_betabeat_root()
+    BETABEAT_ROOT = Utilities.iotools.get_absolute_path_to_betabeat_root()
 
     successful = False
     __have_to_run_valid_file = False
 
     def setUp(self):
-        self._run_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestCorrectCoupleDy.path_to_input)
+        self._run_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestCorrectCoupleDy.PATH_TO_INPUT)
         self._check_if_valid_output_exist_and_set_attribute()
         self._delete_modified_output()
 
@@ -70,18 +70,18 @@ class TestCorrectCoupleDy(unittest.TestCase):
 
     def _no_valid_output_exists(self):
         """
-        Returns true if cannot find valid output. Assuming valid when every subdir of path_to_valid has
+        Returns true if cannot find valid output. Assuming valid when every subdir of PATH_TO_VALID has
         the files x, x.knob, x.madx and x.tfs.(x:=changeparameters_couple)
         """
         return not self._valid_output_exists()
     def _valid_output_exists(self):
-        all_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestCorrectCoupleDy.path_to_valid)
+        all_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestCorrectCoupleDy.PATH_TO_VALID)
         if 0 == len(all_dirs) or len(self._run_dirs) != len(all_dirs):
             return False
         is_valid = False
         for dir_in_valid_output in all_dirs:
             is_valid = self._dir_has_valid_files(
-                            os.path.join(TestCorrectCoupleDy.path_to_valid, dir_in_valid_output)
+                            os.path.join(TestCorrectCoupleDy.PATH_TO_VALID, dir_in_valid_output)
                             )
             if not is_valid:
                 return False
@@ -97,12 +97,12 @@ class TestCorrectCoupleDy(unittest.TestCase):
 
     def _delete_output(self):
         if _DELETE_VALID_OUTPUT:
-            Utilities.iotools.delete_content_of_dir(TestCorrectCoupleDy.path_to_valid)
+            Utilities.iotools.delete_content_of_dir(TestCorrectCoupleDy.PATH_TO_VALID)
         self._delete_modified_output()
 
     def _delete_modified_output(self):
-        ''' Deletes content in path_to_valid and path_to_to_check. '''
-        Utilities.iotools.delete_content_of_dir(TestCorrectCoupleDy.path_to_to_check)
+        ''' Deletes content in PATH_TO_TO_CHECK. '''
+        Utilities.iotools.delete_content_of_dir(TestCorrectCoupleDy.PATH_TO_TO_CHECK)
 
     def _break_after_first_run(self, index):
         return 0 < index and _SHORT_RUN
@@ -112,7 +112,7 @@ class TestCorrectCoupleDy(unittest.TestCase):
         ''' Runs valid script for given dir '''
         if self.__have_to_run_valid_file:
             print "  Run valid script for "+run_dir
-            self._run_in_src_dir(TestCorrectCoupleDy.path_to_valid_script, run_dir, os.path.join(TestCorrectCoupleDy.path_to_valid, run_dir))
+            self._run_in_src_dir(TestCorrectCoupleDy.PATH_TO_VALID_SCRIPT, run_dir, os.path.join(TestCorrectCoupleDy.PATH_TO_VALID, run_dir))
 
     def _run_in_src_dir(self, path_to_script, run_dir_name, output_dst_path):
         """
@@ -121,14 +121,14 @@ class TestCorrectCoupleDy(unittest.TestCase):
         Solution: Both scripts will be run in the input folder and the output files will be moved to the output_dst_path
         for comparing.
         """
-        output_path = os.path.join(TestCorrectCoupleDy.path_to_input, run_dir_name)
+        output_path = os.path.join(TestCorrectCoupleDy.PATH_TO_INPUT, run_dir_name)
         self._run_script(path_to_script, output_path)
         self._move_produced_files(output_path, output_dst_path)
 
 
     def _run_modified_file(self, run_dir):
         print "  Run modified script for "+run_dir
-        self._run_in_src_dir(TestCorrectCoupleDy.path_to_modified_script, run_dir, os.path.join(TestCorrectCoupleDy.path_to_to_check, run_dir))
+        self._run_in_src_dir(TestCorrectCoupleDy.PATH_TO_MODIFIED_SCRIPT, run_dir, os.path.join(TestCorrectCoupleDy.PATH_TO_TO_CHECK, run_dir))
 
 
     def _run_script(self, path_to_script, path_to_out_run_dir_root):
@@ -173,7 +173,7 @@ class TestCorrectCoupleDy(unittest.TestCase):
         args_dict["--cut"] = "0.01"
         args_dict["--errorcut"] = "0.02,0.02"
         args_dict["--modelcut"] = "0.00,0.01"
-        args_dict["--rpath"] = TestCorrectCoupleDy.betabeat_root
+        args_dict["--rpath"] = TestCorrectCoupleDy.BETABEAT_ROOT
         args_dict["--MinStr"] = "0.000001"
         args_dict["--Dy"] = "1,1,0,0,1"
         args_dict["--opt"] = path_to_out_run_dir_root
@@ -212,11 +212,11 @@ class TestCorrectCoupleDy(unittest.TestCase):
     def _compare_output_dirs(self, run_dir):
         ''' Compares output by using filecmp '''
         print "  Comparing output files"
-        valid_dir = os.path.join(self.path_to_valid, run_dir)
-        to_check_dir = os.path.join(self.path_to_to_check, run_dir)
+        valid_dir = os.path.join(self.PATH_TO_VALID, run_dir)
+        to_check_dir = os.path.join(self.PATH_TO_TO_CHECK, run_dir)
         dict_file_to_config_file = {
-                        "changeparameters_couple.knob" : os.path.join(TestCorrectCoupleDy.path_to_input, "ignore_date_in_line_3.cfg"),
-                        "changeparameters_couple.tfs" : os.path.join(TestCorrectCoupleDy.path_to_input, "ignore_date_in_line_3.cfg")
+                        "changeparameters_couple.knob" : os.path.join(TestCorrectCoupleDy.PATH_TO_INPUT, "ignore_date_in_line_3.cfg"),
+                        "changeparameters_couple.tfs" : os.path.join(TestCorrectCoupleDy.PATH_TO_INPUT, "ignore_date_in_line_3.cfg")
                                     }
         self.assertTrue(
                         Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir, file_to_config_file_dict=dict_file_to_config_file),
