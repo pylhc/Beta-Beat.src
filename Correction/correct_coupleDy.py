@@ -10,7 +10,7 @@ TODO: get better description (vimaier)
 Usage example::
 
     python correct_coupleDy.py --accel=LHCB1
-                                --path=C:\MyTemp\correct_coupleDy_out
+                                --path=C:\MyTemp\correct_coupleDy_out\
                                 --cut=0.01
                                 --errorcut=0.02,0.02
                                 --modelcut=0.0,0.01
@@ -19,6 +19,9 @@ Usage example::
                                 --Dy=1,1,0,0,1
                                 --opt=C:\MyTemp\correct_coupleDy_out\
                                 --Variables=coupling_knobs
+                                
+Hint: MinStr is not used in the script except of a print. The reason is possibly the author wanted to have the same set
+of arguments for all correction scripts due to GUI compatibility(vimaier).
 
 Options::
 
@@ -108,105 +111,6 @@ def _parse_args():
     return options
 
 
-class _InputData(object):
-    """ Static class to access user input parameter. Necessary parameters will be checked. """
-    output_path = ""
-    accel_path = ""
-    singular_value_cut = 0.0
-    error_cut_c = 0.0
-    error_cut_d = 0.0
-    model_cut_c = 0.0
-    model_cut_d = 0.0
-    min_strength = 0.0 #TODO: not used in code except of a print. Check it(vimaier)
-    weights_list = []
-    path_to_optics_files_dir = ""
-    variables_list = []
-
-
-    @staticmethod
-    def static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength, weights_on_corrections, path_to_optics_files_dir, variables):
-        if not Utilities.iotools.dirs_exist(output_path):
-            raise ValueError("Output path does not exists. It has to contain getcouple[_free].out and getDy.out(when last flag in weights is 1.")
-        _InputData.output_path = output_path
-
-        _InputData._check_and_set_cuts(singular_value_cut, errorcut, modelcut)
-        _InputData._check_and_set_accel_path(beta_beat_root, accel)
-
-        if not Utilities.math.can_str_be_parsed_to_number(min_strength):
-            raise ValueError("Given min strength is not a number: "+min_strength)
-        _InputData.min_strength = float(min_strength)
-
-        if re.match("^[01],[01],[01],[01],[01]$", weights_on_corrections) is None:
-            raise ValueError("Wrong syntax of weigths: "+weights_on_corrections)
-        weights = weights_on_corrections.split(',')
-        _InputData.weights_list = [int(weights[0]), int(weights[1]), int(weights[2]), int(weights[3]), int(weights[4])]
-
-        if not Utilities.iotools.dirs_exist(path_to_optics_files_dir):
-            raise ValueError("Given path to optics files does not exist: "+path_to_optics_files_dir)
-        _InputData.path_to_optics_files_dir = path_to_optics_files_dir
-        _InputData.variables_list = variables.split(",")
-
-
-    @staticmethod
-    def _check_and_set_cuts(singular_value_cut, errorcut, modelcut):
-        if not Utilities.math.can_str_be_parsed_to_number(singular_value_cut):
-            raise ValueError("Given cut is not a number: "+singular_value_cut)
-        modelcuts = modelcut.split(",")
-        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[0]):
-            raise ValueError("Given model cut is not a number: "+modelcuts[0]+" from "+modelcuts)
-        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[1]):
-            raise ValueError("Given model cut is not a number: "+modelcuts[1]+" from "+modelcuts)
-        errorcuts = errorcut.split(",")
-        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[0]):
-            raise ValueError("Given error cut is not a number: "+errorcuts[0]+" from "+errorcuts)
-        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[1]):
-            raise ValueError("Given error cut is not a number: "+errorcuts[1]+" from "+errorcuts)
-        _InputData.singular_value_cut = float(singular_value_cut)
-        _InputData.error_cut_c = float(errorcuts[0])
-        _InputData.error_cut_d = float(errorcuts[1])
-        _InputData.model_cut_c = float(modelcuts[0])
-        _InputData.model_cut_d = float(modelcuts[1])
-
-    @staticmethod
-    def _check_and_set_accel_path(beta_beat_root, accel):
-        if not Utilities.iotools.dirs_exist(beta_beat_root):
-            print >> sys.stderr, "Given Beta-Beat.src path does not exist: "+beta_beat_root
-            beta_beat_root = Utilities.iotools.get_absolute_path_to_betabeat_root()
-            print >> sys.stderr, "Will take current Beta-Beat.src: "+beta_beat_root
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
-            raise ValueError("Unknown/not supported accelerator: "+accel)
-        if "LHC" in accel:
-            accel_name = "LHCB"
-        else:
-            accel_name = "SPS"
-        accel_path = os.path.join(beta_beat_root, "MODEL", accel_name, "fullresponse", accel)
-        if not Utilities.iotools.dirs_exist(accel_path):
-            raise ValueError("Acclelerator path does not exist: "+accel_path)
-        _InputData.accel_path = accel_path
-
-    @staticmethod
-    def is_dy_switch_set():
-        return 1 == _InputData.weights_list[4]
-
-    @staticmethod
-    def print_input_data():
-        print "---------------------_InputData"
-        print "Path to measurements:", _InputData.output_path
-        print "Path to Accelerator model", _InputData.accel_path
-        print "Path to opticvs files:", _InputData.path_to_optics_files_dir
-        print "Minimum corrector strength", _InputData.min_strength
-        print "Variables", _InputData.variables_list
-        print "Singular value cut", _InputData.singular_value_cut
-        print "Error cut C", _InputData.error_cut_c
-        print "Error cut D", _InputData.error_cut_d
-        print "Model cut C", _InputData.error_cut_c
-        print "Model cut D", _InputData.error_cut_d
-        print "Weights for correctors", _InputData.weights_list
-        print "------------------------------"
-
-    def __init__(self):
-        raise NotImplementedError("static class _InputData cannot be instantiated")
-
 
 #=======================================================================================================================
 # main()-function
@@ -227,9 +131,7 @@ def main(
     _InputData.static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength, weights_on_corrections, path_to_optics_files_dir, variables)
 
     print "Start Correcting couple Dy"
-    if PRINT_DEBUG:
-        _InputData.print_input_data()
-
+    
     _generate_changeparameters_couple_file()
 
     print "handling data"
@@ -246,6 +148,44 @@ def main(
 # helper functions
 #=======================================================================================================================
 
+def _generate_changeparameters_couple_file():
+    print "Starting loading Full Response optics"
+    full_response = pickle.load(open(os.path.join(_InputData.path_to_optics_files_dir,"FullResponse_couple"), 'rb'))
+    print "Loading ended"
+
+    disp_y = _get_dispersion_y_if_set_and_available()
+
+    execfile(os.path.join(_InputData.accel_path, "AllLists_couple.py"))
+    print os.path.join(_InputData.accel_path, "AllLists_couple.py") + " executed"
+    varslist = []
+    for var in _InputData.variables_list:
+        variable = None # Will be assigned in following awful command (vimaier)
+        exec('variable=' + var + '()') # this is completely awful. You should never ever do such things, whoever it was :/ (tbach)
+        varslist = varslist + variable
+
+    couple_twiss = _get_twiss_instance_of_getcouple()
+    _InputData.model_cut_c = _calculate_automatic_model_cut_if_desired(couple_twiss)
+    mad_twiss = full_response['0']
+    mad_twiss.Cmatrix()
+    mode = 'C'
+    couple_list = GenMatrix_coupleDy.MakeList(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
+    mode = 'D'
+    disp_y_list = GenMatrix_coupleDy.MakeList(disp_y, mad_twiss, _InputData.model_cut_d, _InputData.error_cut_d, mode)
+
+    if 0 == len(couple_list) and 0 == len(disp_y_list):
+        print >> sys.stderr, "Couple and dispersion lists are empty. Are model and/or error cuts too strict?"
+        sys.exit(1)
+
+    print "entering couple input", len(couple_list)
+    couple_inp = GenMatrix_coupleDy.couple_input(varslist, couple_list, disp_y_list, _InputData.weights_list)
+    print "computing the sensitivity matrix"
+    sensitivity_matrix = couple_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
+
+    print "computing correct coupling "
+    [deltas, varslist ] = GenMatrix_coupleDy.correctcouple(couple_twiss, disp_y, couple_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path)
+    print "deltas:", deltas
+    
+    
 def _get_twiss_instance_of_getcouple():
     """ Loads either getcouple_free.out or getcouple.out or raises an Exception """
     file_path_free = os.path.join(_InputData.output_path, "getcouple_free.out")
@@ -261,14 +201,15 @@ def _get_twiss_instance_of_getcouple():
     return couple
 
 
-def _calculate_automatic_model_cut(couple_twiss):
+def _calculate_automatic_model_cut_if_desired(couple_twiss):
+    if not"coupling_knobs" in _InputData.variables_list: # then it is not desired(vimaier)
+        return _InputData.model_cut_c
     if 0 == couple_twiss.F1001W.size:
         return _InputData.model_cut_c
     print "coupling_knobs mode. Trying to do automatic correcting"
     # we want to have a value which indicates the worst 5 percent, so we sort and get the value from the 95% index (tbach)
     sortedF1001W = numpy.sort(couple_twiss.F1001W)
     five_percent_index = int(numpy.floor(sortedF1001W.size * 0.95)) # no requirement to be accurate (tbach)
-
     five_percent_value = sortedF1001W[five_percent_index]
 
     if PRINT_DEBUG:
@@ -288,48 +229,6 @@ def _get_dispersion_y_if_set_and_available():
         if os.path.exists(dispersion_y_filenpath):
             return metaclass.twiss(dispersion_y_filenpath)
     return []
-
-
-def _generate_changeparameters_couple_file():
-    print "Starting loading Full Response optics"
-    full_response = pickle.load(open(os.path.join(_InputData.path_to_optics_files_dir,"FullResponse_couple"), 'rb'))
-    print "Loading ended"
-
-    couple = _get_twiss_instance_of_getcouple()
-
-    if "coupling_knobs" in _InputData.variables_list:
-        _InputData.model_cut_c = _calculate_automatic_model_cut(couple)
-
-    disp_y = _get_dispersion_y_if_set_and_available()
-
-    execfile(os.path.join(_InputData.accel_path, "AllLists_couple.py"))
-    print os.path.join(_InputData.accel_path, "AllLists_couple.py") + " executed"
-    varslist = []
-    for var in _InputData.variables_list:
-        variable = None # Will be assigned in following awful command (vimaier)
-        exec('variable=' + var + '()') # this is completely awful. You should never ever do such things, whoever it was :/ (tbach)
-        varslist = varslist + variable
-
-    mad_twiss = full_response['0']
-    mad_twiss.Cmatrix()
-    mode = 'C'
-    couple_list = GenMatrix_coupleDy.MakeList(couple, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
-    mode = 'D'
-    disp_y_list = GenMatrix_coupleDy.MakeList(disp_y, mad_twiss, _InputData.model_cut_d, _InputData.error_cut_d, mode)
-
-    if 0 == len(couple_list) and 0 == len(disp_y_list):
-        print >> sys.stderr, "Couple and dispersion lists are empty. Are model and/or error cuts too strict?"
-        sys.exit(1)
-
-    print "entering couple input", len(couple_list)
-    couple_inp = GenMatrix_coupleDy.couple_input(varslist, couple_list, disp_y_list, _InputData.weights_list)
-    print "computing the sensitivity matrix"
-    sensitivity_matrix = couple_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
-
-
-    print "computing correct coupling "
-    [deltas, varslist ] = GenMatrix_coupleDy.correctcouple(couple, disp_y, couple_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path)
-    print "deltas:", deltas
 
 
 def _handle_data_for_sps():
@@ -405,6 +304,113 @@ def _handle_data_for_lhc():
 
     mad_script.write("return;")
     mad_script.close()
+    
+    
+#=======================================================================================================================
+# helper class for script arguments
+#=======================================================================================================================    
+class _InputData(object):
+    """ Static class to access user input parameter. Necessary parameters will be checked. """
+    output_path = ""
+    accel_path = ""
+    singular_value_cut = 0.0
+    error_cut_c = 0.0
+    error_cut_d = 0.0
+    model_cut_c = 0.0
+    model_cut_d = 0.0
+    min_strength = 0.0 # Not used in code except of a print(vimaier)
+    weights_list = []
+    path_to_optics_files_dir = ""
+    variables_list = []
+
+
+    @staticmethod
+    def static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength, weights_on_corrections, path_to_optics_files_dir, variables):
+        if not Utilities.iotools.dirs_exist(output_path):
+            raise ValueError("Output path does not exists. It has to contain getcouple[_free].out and getDy.out(when last flag in weights is 1.")
+        _InputData.output_path = output_path
+
+        _InputData._check_and_set_cuts(singular_value_cut, errorcut, modelcut)
+        _InputData._check_and_set_accel_path(beta_beat_root, accel)
+
+        if not Utilities.math.can_str_be_parsed_to_number(min_strength):
+            raise ValueError("Given min strength is not a number: "+min_strength)
+        _InputData.min_strength = float(min_strength)
+
+        if re.match("^[01],[01],[01],[01],[01]$", weights_on_corrections) is None:
+            raise ValueError("Wrong syntax of weigths: "+weights_on_corrections)
+        weights = weights_on_corrections.split(',')
+        _InputData.weights_list = [int(weights[0]), int(weights[1]), int(weights[2]), int(weights[3]), int(weights[4])]
+
+        if not Utilities.iotools.dirs_exist(path_to_optics_files_dir):
+            raise ValueError("Given path to optics files does not exist: "+path_to_optics_files_dir)
+        _InputData.path_to_optics_files_dir = path_to_optics_files_dir
+        _InputData.variables_list = variables.split(",")
+        
+        if PRINT_DEBUG:
+            _InputData.print_input_data()
+
+
+    @staticmethod
+    def _check_and_set_cuts(singular_value_cut, errorcut, modelcut):
+        if not Utilities.math.can_str_be_parsed_to_number(singular_value_cut):
+            raise ValueError("Given cut is not a number: "+singular_value_cut)
+        modelcuts = modelcut.split(",")
+        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[0]):
+            raise ValueError("Given model cut is not a number: "+modelcuts[0]+" from "+modelcuts)
+        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[1]):
+            raise ValueError("Given model cut is not a number: "+modelcuts[1]+" from "+modelcuts)
+        errorcuts = errorcut.split(",")
+        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[0]):
+            raise ValueError("Given error cut is not a number: "+errorcuts[0]+" from "+errorcuts)
+        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[1]):
+            raise ValueError("Given error cut is not a number: "+errorcuts[1]+" from "+errorcuts)
+        _InputData.singular_value_cut = float(singular_value_cut)
+        _InputData.error_cut_c = float(errorcuts[0])
+        _InputData.error_cut_d = float(errorcuts[1])
+        _InputData.model_cut_c = float(modelcuts[0])
+        _InputData.model_cut_d = float(modelcuts[1])
+
+    @staticmethod
+    def _check_and_set_accel_path(beta_beat_root, accel):
+        if not Utilities.iotools.dirs_exist(beta_beat_root):
+            print >> sys.stderr, "Given Beta-Beat.src path does not exist: "+beta_beat_root
+            beta_beat_root = Utilities.iotools.get_absolute_path_to_betabeat_root()
+            print >> sys.stderr, "Will take current Beta-Beat.src: "+beta_beat_root
+        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
+            raise ValueError("Unknown/not supported accelerator: "+accel)
+        if "LHC" in accel:
+            accel_name = "LHCB"
+        else:
+            accel_name = "SPS"
+        accel_path = os.path.join(beta_beat_root, "MODEL", accel_name, "fullresponse", accel)
+        if not Utilities.iotools.dirs_exist(accel_path):
+            raise ValueError("Acclelerator path does not exist: "+accel_path)
+        _InputData.accel_path = accel_path
+
+    @staticmethod
+    def is_dy_switch_set():
+        return 1 == _InputData.weights_list[4]
+
+    @staticmethod
+    def print_input_data():
+        print "---------------------_InputData"
+        print "Path to measurements:", _InputData.output_path
+        print "Path to Accelerator model", _InputData.accel_path
+        print "Path to opticvs files:", _InputData.path_to_optics_files_dir
+        print "Minimum corrector strength", _InputData.min_strength
+        print "Variables", _InputData.variables_list
+        print "Singular value cut", _InputData.singular_value_cut
+        print "Error cut C", _InputData.error_cut_c
+        print "Error cut D", _InputData.error_cut_d
+        print "Model cut C", _InputData.model_cut_c
+        print "Model cut D", _InputData.model_cut_d
+        print "Weights for correctors", _InputData.weights_list
+        print "------------------------------"
+
+    def __init__(self):
+        raise NotImplementedError("static class _InputData cannot be instantiated")
+    
 
 #=======================================================================================================================
 # main invocation
