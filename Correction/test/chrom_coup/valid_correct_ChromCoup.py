@@ -1,11 +1,4 @@
 
-
-
-# Just to make sure that the path to the libraires is defined
-import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
-
-
 #--- beta beat for store with numpy
 
 import pickle
@@ -101,7 +94,7 @@ errorcutD=float(errorcuts[1])
 cut= float(options.cut)
 #print "Model, error and SVD cuts:", modelcut, errorcut, cut
 print "Starting loading Full Response optics"
-FullResponse=pickle.load(open(options.opt+'/FullResponse_chromcouple','r'))
+FullResponse=pickle.load(open(options.opt+'/FullResponse_chromcouple','rb'))
 
 print "Loading ended"
 

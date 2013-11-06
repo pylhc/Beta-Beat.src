@@ -8,7 +8,6 @@ import os
 import optparse
 
 import numpy
-
 import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 import Python_Classes4MAD.GenMatrix_coupleDy as GenMatrix_coupleDy
