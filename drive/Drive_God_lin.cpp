@@ -47,19 +47,19 @@
    bpm name to sort in order by looking for a " rather than a name string.
    Has matching sussix4drivexxNoO.f      H.Renshall & E.Maclean
    */
- 
+
  /*Determines if OS is windows or not and declares external fortran function.
-Linux and windows have different requirements for names of subroutines in fortran called from C. 
-Code works on assumption that other operating systems will work with the linux version, but if this 
+Linux and windows have different requirements for names of subroutines in fortran called from C.
+Code works on assumption that other operating systems will work with the linux version, but if this
 is not the case then it is easy to add another OS to be used*/
  #ifdef _WIN32
-extern "C" { void SUSSIX4DRIVENOISE (double *, double*, double*, double*, double*, double*, double*, double*, char*); }  
+extern "C" { void SUSSIX4DRIVENOISE (double *, double*, double*, double*, double*, double*, double*, double*, char*); }
 #define OS "Windows32"
 #else
 extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double*, double*, double*, double*, char*); }
 #define OS "linux"
 #endif
- 
+
 //C++ libraries
 #include <iostream>
 #include <string>
@@ -102,7 +102,7 @@ public:
     double  istun, kper, tunex, tuney, windowa1, windowa2, windowb1, windowb2, nattunex, nattuney;
     int     turns, pickstart, pickend, kcase, kick, labelrun;
     void init_input_values(){ //initializes all input data to 0 except for natural tunes which have default value defined
-        istun = kper = tunex = tuney = windowa1 = windowa2 = windowb1 = windowb2 = 0.0; 
+        istun = kper = tunex = tuney = windowa1 = windowa2 = windowb1 = windowb2 = 0.0;
         turns = pickstart = pickend = kcase = kick = labelrun = 0;
         nattunex = nattuney = NATTUNE_DEFAULT;
     }
@@ -117,7 +117,7 @@ public:
             while(tune < -0.5){
                 tune += 1;
                 change++;
-            }        
+            }
             std::cout << "tune_" << plane <<" input increased by " << change << ". Should be less than or equal to 0.5 in magnitude. New value is: " << tune << std::endl;
         }
     }
@@ -130,7 +130,7 @@ public:
     void init_calc_values(){ //initializes all values to be calculated to zero
         tunesumx = tunesumy = tune2sumx = tune2sumy = nattunexsum = nattunex2sum = nattuneysum = nattuney2sum = 0.0;
         tunecountx = tunecounty = nattunexcount = nattuneycount = 0;
-    }    
+    }
 }CalcData;
 
     double calculatednattuney, calculatednattunex, calculatednatampy, calculatednatampx, co, co2, maxamp,
@@ -140,7 +140,7 @@ public:
                doubleToSend[MAXTURNS4 + 4], phase[19], tune[2];
 
     int nslines=0, Nturns=0;
-    
+
     struct BPM{ /*Structure for each BPM- has name, position, plane, if it's pickedup, and it's tbtdata*/
     std::string bpmname;
     double bpmpos;
@@ -157,58 +157,58 @@ int main(int argc, char **argv)
 {
 
     char string1[1000];
-    
+
     int counth, countv, maxcounthv, start, Nbpms,i, j, bpmCounter, columnCounter, horizontalBpmCounter, verticalBpmCounter, flag, loopcounter=0;
-    
+
     std::ofstream linxFile, linyFile, noiseFile, spectrumFile;
-    std::ifstream driveInputFile, drivingTermsFile, dataFile;       
-    std::string temp_str, dataFilePath, bpmFileName, workingDirectoryPath, sussixInputFilePath, 
-    driveInputFilePath, drivingTermsFilePath, noiseFilePath, linxFilePath, linyFilePath, spectrumFilePath;  
-    
+    std::ifstream driveInputFile, drivingTermsFile, dataFile;
+    std::string temp_str, dataFilePath, bpmFileName, workingDirectoryPath, sussixInputFilePath,
+    driveInputFilePath, drivingTermsFilePath, noiseFilePath, linxFilePath, linyFilePath, spectrumFilePath;
+
     #ifdef _WIN32 /*Changes minor formatting difference in windows regarding the output of a number in scientific notation.*/
         _set_output_format(_TWO_DIGIT_EXPONENT);
-    #endif  
-    
+    #endif
+
     omp_set_dynamic(0);
-    
-    //To output scientific notation 
+
+    //To output scientific notation
     std::cout << std::setiosflags (std::ios::scientific);
-    
+
     get_and_check_file_paths(&workingDirectoryPath, &drivingTermsFilePath, &driveInputFilePath, &sussixInputFilePath, argv[1]);
     std::cout << "READ THIS:" << workingDirectoryPath << std::endl;
 
     /* set all options to defaults, it could happen that they are not included in the file (tbach) */
     InpData.init_input_values();
-    
+
     //Reads input data from Drive.inp into global InpData class
     get_inp_data(driveInputFilePath);
 
     //Checks tune_x/y, kcase, kick, labelrun, pickend, and pickend
     check_inp_data();
-    
+
 
     drivingTermsFile.open(drivingTermsFilePath.c_str());
     if(cannotOpenFile(drivingTermsFilePath,'i')){
         std::cout << "Leaving drive due to error" << std::endl;
         exit(EXIT_FAILURE);
     }
-    
+
     /* From drivingTermsFilePath assign dataFilePath, assign turns. */
     while (readDrivingTerms(drivingTermsFile, &(InpData.turns), &dataFilePath)) {
-        /* set all values to be calculated to default values */     
+        /* set all values to be calculated to default values */
         CalcData.init_calc_values();
 
         dataFile.open(dataFilePath.c_str());
         /* Check the file dataFilePath */
         if(cannotOpenFile(dataFilePath,'i'))
             continue;
-        loopcounter++;    
+        loopcounter++;
         std::cout << "Data file: " << dataFilePath << std::endl;
 
         bpmFileName = dataFilePath.substr(dataFilePath.rfind('/',dataFilePath.size()-2));
-        
+
         std::cout << "bpmFileName: " << bpmFileName << std::endl;
-        
+
         noiseFilePath = workingDirectoryPath+'/'+bpmFileName+"_noise";
         linxFilePath = workingDirectoryPath+'/'+bpmFileName+"_linx";
         linyFilePath = workingDirectoryPath+'/'+bpmFileName+"_liny";
@@ -224,13 +224,13 @@ int main(int argc, char **argv)
                 std::cerr << "Leaving drive due to error" << std::endl;
                 exit(EXIT_FAILURE);
             }
-        }       
-        
+        }
+
         if(cannotOpenFile(linxFilePath,'o') || cannotOpenFile(linyFilePath,'o')){
             std::cerr << "Leaving drive due to error" << std::endl;
             exit(EXIT_FAILURE);
         }
-        
+
         linxFile << "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n";
         linxFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le   %le     %le  %le    %le   %le     %le    %le      %le   %le     %le   %le     %le     %le\n";
         linyFile << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
@@ -254,6 +254,7 @@ int main(int argc, char **argv)
         /* after this, we have skipped all the comment lines, and s[0] is the first character of a new line which is not a "#" (tbach) */
         if (LOG_INFO)
             printf("BPM file content:\n");
+		int currentPlane = -1;
         while (string1[0] != EOF) {
             if (string1[0] == '\n') {
                 ++bpmCounter;
@@ -287,15 +288,15 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
                 }
                 if (columnCounter == 0) {   /*plane (tbach) */
-                    BPMs[bpmCounter].plane = atoi(string1);
-                    if (BPMs[bpmCounter].plane == 0) /* 0 is horizontal, 1 is vertical (tbach) */
-                        ++horizontalBpmCounter;
+                	currentPlane = atoi(string1);
+                    if (currentPlane == 0) /* 0 is horizontal, 1 is vertical (tbach) */
+                        BPMs[++horizontalBpmCounter].plane = currentPlane;
                     else
-                        ++verticalBpmCounter;
+                        BPMs[++verticalBpmCounter].plane = currentPlane;
                 }
 
                 else if (columnCounter == 1) {   /*bpm name (tbach) */
-                    if (BPMs[bpmCounter].plane == 0) {
+                    if (currentPlane == 0) {
                         if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
                         {
                             fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
@@ -310,7 +311,7 @@ int main(int argc, char **argv)
                 }
 
                 else if (columnCounter == 2) {   /*bpm location (tbach) */
-                    if (BPMs[bpmCounter].plane == 0)
+                    if (currentPlane == 0)
                     {
                         if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
                         {
@@ -324,7 +325,7 @@ int main(int argc, char **argv)
                 }
 
                 else {    /*bpm data (tbach) */
-                    if (BPMs[bpmCounter].plane == 0)
+                    if (currentPlane == 0)
                         BPMs[horizontalBpmCounter].tbtdata[columnCounter - 3] = atof(string1);
                     else
                         BPMs[verticalBpmCounter].tbtdata[columnCounter - 3] = atof(string1);
@@ -404,7 +405,7 @@ int main(int argc, char **argv)
 
         if (maxcounthv > InpData.pickend)
             maxcounthv = InpData.pickend;
-       
+
         if (maxcounthv >= MAXPICK) {
             fprintf(stderr, "\nNot enough Pick-up mexmory\n");
             exit(EXIT_FAILURE);
@@ -470,15 +471,15 @@ int main(int argc, char **argv)
                 BPMs[horizontalBpmCounter].pickedup = BPMstatus(1, InpData.turns); /*Always returns true*/
                 if (InpData.labelrun == 1)
                     noiseFile << std::scientific << "1 " << horizontalBpmCounter << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[i].pickedup << ' ' << phase[0] / 360. << std::endl;
-                          
+
                 /* PRINT LINEAR FILE */
                 if (amplitude[0] > 0 && BPMs[i].pickedup == true && horizontalBpmCounter == i) {
                     linxFile <<  std::scientific << '"' << BPMs[horizontalBpmCounter].bpmname << "\" " << BPMs[horizontalBpmCounter].bpmpos << ' ' << horizontalBpmCounter << ' ' << BPMs[horizontalBpmCounter].pickedup << ' ' << tune[0] << ' ' <<
                             phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
-                            phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' << 
+                            phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
                             phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
                             phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' << calculatednatampx << std::endl;
-                  
+
                     ++CalcData.tunecountx;
                     CalcData.tunesumx += tune[0];
                     CalcData.tune2sumx += tune[0] * tune[0];
@@ -510,7 +511,7 @@ int main(int argc, char **argv)
                             phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' << phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' <<
                             amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
                             amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' <<
-                            amplitude[11] / amplitude[3] << ' ' << phase[11] / 360. << ' ' << calculatednattuney << ' ' << calculatednatampy << std::endl;   
+                            amplitude[11] / amplitude[3] << ' ' << phase[11] / 360. << ' ' << calculatednattuney << ' ' << calculatednatampy << std::endl;
                     ++CalcData.tunecounty;
                     CalcData.tunesumy += tune[1];
                     CalcData.tune2sumy += tune[1] * tune[1];
@@ -520,7 +521,7 @@ int main(int argc, char **argv)
                         CalcData.nattuney2sum += calculatednattuney * calculatednattuney;
                     }
                     if (verticalBpmCounter < MAXPICK / 2 + 10) {
-                        spectrumFilePath = workingDirectoryPath+'/'+BPMs[i].bpmname+".y";
+                        spectrumFilePath = workingDirectoryPath+'/'+BPMs[i].bpmname+".y";//TODO: probably bug. Should be BPMs[verticalBpmCounter] (not i) --> wrong name
                         spectrumFile.open(spectrumFilePath.c_str());
                         if(cannotOpenFile(spectrumFilePath,'o')){
                             std::cout << "Leaving drive due to error" << std::endl;
@@ -547,7 +548,7 @@ int main(int argc, char **argv)
 
     if (loopcounter == 0)
         std::cout << "Drivingterms file has bad input, no data ever read\n";
-    
+
     return EXIT_SUCCESS;
 }
 
@@ -556,11 +557,11 @@ void get_inp_data(std::string driveInputFilePath){
     std::string temp_str;
     std::ifstream driveInputFile;
     unsigned int pos;
-    
+
     driveInputFile.open(driveInputFilePath.c_str());
-    
+
     while(!driveInputFile.rdstate()){
-        std::getline (driveInputFile, temp_str);  
+        std::getline (driveInputFile, temp_str);
         if((pos = temp_str.find("KICK=")) != std::string::npos) InpData.kick = atoi(temp_str.substr(pos+strlen("KICK=")).c_str())-1;
         if((pos = temp_str.find("CASE(1[H], 0[V])=")) != std::string::npos) InpData.kcase = atoi(temp_str.substr(pos+strlen("CASE(1[H], 0[V])=")).c_str());
         if((pos = temp_str.find("KPER(KICK PERCE.)=")) != std::string::npos) InpData.kper = atof(temp_str.substr(pos+strlen("KPER(KICK PERCE.)=")).c_str());
@@ -576,31 +577,31 @@ void get_inp_data(std::string driveInputFilePath){
         if((pos = temp_str.find("WINDOWb2=")) != std::string::npos) InpData.windowb2 = atof(temp_str.substr(pos+strlen("WINDOWb2=")).c_str());
         if((pos = temp_str.find("NATURAL X=")) != std::string::npos) InpData.nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
         if((pos = temp_str.find("NATURAL Y=")) != std::string::npos) InpData.nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
-     
+
     }
     driveInputFile.close();
     /* input/option file reading end */
 }
 void get_and_check_file_paths(std::string *workingDirectoryPath, std::string *drivingTermsFilePath, std::string *driveInputFilePath, std::string *sussixInputFilePath, const char * cmdinput){
-    
+
     *workingDirectoryPath = cmdinput;
-    
+
     std::cout << *workingDirectoryPath << std::endl;
-    
+
     if(cannotOpenFile(*workingDirectoryPath,'i') && OS == "linux"){ //Always fails to open in windows
         std::cout << "Leaving drive due to error" << std::endl;
         exit(EXIT_FAILURE);
     }
     std::cout << "\nWorking directory: " << *workingDirectoryPath << std::endl;
-    
-        
+
+
     *drivingTermsFilePath = *workingDirectoryPath+"/DrivingTerms";
     *driveInputFilePath = *workingDirectoryPath+"/Drive.inp";
-    *sussixInputFilePath = *workingDirectoryPath+"/sussix_v4.inp";  
+    *sussixInputFilePath = *workingDirectoryPath+"/sussix_v4.inp";
 
     //check the input files drivingTermsFilePath and Drive.inp
-    
-    if(cannotOpenFile(*drivingTermsFilePath,'i') 
+
+    if(cannotOpenFile(*drivingTermsFilePath,'i')
     || cannotOpenFile(*driveInputFilePath,'i') || cannotOpenFile(*sussixInputFilePath,'o')){
         std::cout << "Leaving drive due to error" << std::endl;
         exit(EXIT_FAILURE);
@@ -612,10 +613,10 @@ void get_and_check_file_paths(std::string *workingDirectoryPath, std::string *dr
 }
 
  void check_inp_data(){
- 
+
     InpData.check_tune(InpData.tunex,'x');
     InpData.check_tune(InpData.tuney,'y');
-    
+
     if (InpData.kick >= 0)
         printf("Known kick in turn %d\n", InpData.kick + 1);
     if (InpData.kcase == 1)
@@ -629,7 +630,7 @@ void get_and_check_file_paths(std::string *workingDirectoryPath, std::string *dr
 
     if (InpData.labelrun == 1)
         printf("\n LABELRUN: NOISE FILES WILL BE WRITTEN TO NOISEPATH\n");
-        
+
     printf("pickstart: %d, pickend: %d\n", InpData.pickstart, InpData.pickend);
     if (InpData.pickstart < 0 || InpData.pickstart > InpData.pickend || InpData.pickstart > MAXPICK) {
         fprintf(stderr, "Bad value for pickstart. Must be >= 0 and < pickend and <= MAXPICK(=%d)\n", MAXPICK);
@@ -649,18 +650,18 @@ int readDrivingTerms(std::istream& drivingTermsFile, int *turns, std::string *pa
 
     int num;
     unsigned int pos;
-    *path = ""; 
+    *path = "";
     *turns = 0;
-        
-    drivingTermsFile >> *path >> num >> *turns; 
-    
+
+    drivingTermsFile >> *path >> num >> *turns;
+
     if(*path == "" || *turns == 0)
         return 0;
-     
+
     if(OS == "Windows32") //Path may not exist if drivingtermsfile was created on linux, so this deals with that. (Assumes /afs/cern.ch is 'H' drive)
         if((pos = (*path).find("/afs/cern.ch")) != std::string::npos)
             *path = "H:"+(*path).substr(pos+strlen("/afs/cern.ch"));
-            
+
     if(OS == "linux"){ //Same story as above, replaces H: with /afs/cern.ch, also changes '\' to '/'
         while((pos = (*path).find("\\")) != std::string::npos)
             (*path)[pos] = '/';
@@ -677,7 +678,7 @@ int readDrivingTerms(std::istream& drivingTermsFile, int *turns, std::string *pa
 void writeSussixInput(std::string sussixInputFilePath, const int turns, const double istun, const double tunex, const double tuney)
 {
     std::ofstream sussixInputFile(sussixInputFilePath.c_str());
-    
+
     if(cannotOpenFile(sussixInputFilePath,'o')){
         std::cout << "Leaving drive due to error: " << std::endl;
         exit(EXIT_SUCCESS);
@@ -834,9 +835,9 @@ void formatLinFile(std::string linFilePath,
     int max=0, min = 1300, bIndex;
     unsigned int pos;
     double temp_double;
-    
+
     if (tunecount > 0) {
-        tempFilePath = linFilePath+"_temp";       
+        tempFilePath = linFilePath+"_temp";
         tempFile.open(tempFilePath.c_str());
         if(cannotOpenFile(tempFilePath,'o')){
             std::cout << "Leaving drive due to error" << std::endl;
@@ -845,7 +846,7 @@ void formatLinFile(std::string linFilePath,
         tempFile << std::scientific << "@ Q" << plane_index << " %le " << tunesum / tunecount << "\n@ Q" << plane_index << "RMS %le " << sqrt(tune2sum / tunecount - (tunesum / tunecount) * (tunesum / tunecount)) << std::endl;
         if (nattunecount > 0)
             tempFile << std::scientific << "@ NATQ" << plane_index << " %le " << nattunesum / nattunecount << "\n@ NATQ" << plane_index << "RMS %le " << sqrt(nattune2sum / nattunecount - (nattunesum / nattunecount) * (nattunesum / nattunecount)) << std::endl;
-            
+
         /*Gets linFile to read*/
         linFile.open(linFilePath.c_str());
         if(cannotOpenFile(linFilePath,'i')){
@@ -858,14 +859,14 @@ void formatLinFile(std::string linFilePath,
         tempFile << temp_str << std::endl;
         getline(linFile,temp_str);
         tempFile << temp_str << std::endl;
-        
+
         /*Begins loop which simultaneously places lines of linFile
          * into fileHolder and sorts them according to bIndex which
          * is an integer in the third column of each line.
          */
-        while(!linFile.rdstate()){     
+        while(!linFile.rdstate()){
             pos = linFile.tellg();
-            linFile >> temp_str >> temp_double >> bIndex; 
+            linFile >> temp_str >> temp_double >> bIndex;
             linFile.seekg(pos);
             getline(linFile, temp_str);
             if(temp_str[0] == '"'){
@@ -874,7 +875,7 @@ void formatLinFile(std::string linFilePath,
                     max = bIndex;
                 if(bIndex < min) /*Finds lowest bIndex in linFile*/
                     min = bIndex;
-                }               
+                }
         }
 
         /*Writes sorted lines into tempfile*/
