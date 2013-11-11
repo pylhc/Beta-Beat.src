@@ -87,6 +87,7 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 #endif
 
 void harmonicAnalyseForSingleTbtDataFile(std::string&, std::string&, std::string&);
+int readTbtDataFile(std::string&, int&, int&);
 
 void get_and_check_file_paths(std::string *, std::string *, std::string *, std::string *,const char *);
 void get_inp_data(std::string);
@@ -207,12 +208,8 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
+
 void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string& workingDirectoryPath, std::string& sussixInputFilePath){
-
-	char string1[1000];
-
-	int counth, countv, maxcounthv, start, Nbpms,i, j, bpmCounter, columnCounter, horizontalBpmCounter, verticalBpmCounter, flag=0;
-	std::string temp_str;
 
 	std::ofstream linxFile, linyFile, noiseFile, spectrumFile;
 
@@ -260,121 +257,16 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 	linyFile << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
 	linyFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le       %le\n";
 
-	flag = 0;
-	for (i = 0; i < MAXPICK; i++)
+	for (int i = 0; i < MAXPICK; i++)
 		BPMs[i].pickedup = false;
 
 	/* start data file reading, puts the tbt data each BPM struct into  with all the data from the pick-ups */
-	bpmCounter = 0;
-	columnCounter = 0;
-	horizontalBpmCounter = -1;
-	verticalBpmCounter = MAXPICK / 2 - 1;
-	i = 0;
+	int horizontalBpmCounter = -1;
+	int verticalBpmCounter = MAXPICK / 2 - 1;
 
-	std::ifstream dataFile;
-	dataFile.open(dataFilePath.c_str());
-	string1[0] = (char)dataFile.get();
-	while (string1[0] == '#') {       /* then it is a comment line (tbach) */
-		while (dataFile.get() != '\n');       /* read until the end of the line (tbach) */
-		string1[0] = (char)dataFile.get();        /* read the first char of the new line (tbach) */
-	}
-	/* after this, we have skipped all the comment lines, and s[0] is the first character of a new line which is not a "#" (tbach) */
-	if (LOG_INFO)
-		printf("BPM file content:\n");
-	int currentPlane = -1;
-	while (string1[0] != EOF) {
-		if (string1[0] == '\n') {
-			++bpmCounter;
-			if (LOG_INFO)
-				printf("\n");
-			columnCounter = 0;
-		}
-		if (isspace((int)string1[0]) && flag == 1)
-			flag = 0;
-		if (!isspace((int)string1[0]) && flag == 0) {
-			while (!isspace((int)string1[i]) && string1[i] != EOF) {
-				++i;
-				string1[i] = (char)dataFile.get();
-				if (i > 100) {
-					string1[i + 1] = '\0';
-					fprintf(stderr, "Found a value which has more than 100 characters, exit parsing.\n"
-						"This is most probably a malformatted file. bpmCounter=%d columnCounter=%d string1=%s\n", bpmCounter, columnCounter, string1);
-					exit(EXIT_FAILURE);
-				}
-			}
-			string1[i + 1] = string1[i];
-			string1[i] = '\0';
-			if (LOG_INFO)
-				printf("%s ", string1);
-			if (columnCounter >= MAXTURNS) {
-				fprintf(stderr, "Found >= %d Turns, this turn size is not supported. Reduce amount of turns. bpmCounter:%d\n", MAXTURNS - 3, bpmCounter); /* 0,1,2 is plane, name and location (tbach) */
-				exit(EXIT_FAILURE);
-			}
-			if (bpmCounter >= MAXPICK) {
-				fprintf(stderr, "Found >= %d BPMs, this size is not supported. Reduce amount of BPMs. columnCounter:%d\n", MAXPICK, columnCounter);
-				exit(EXIT_FAILURE);
-			}
-			if (columnCounter == 0) {   /*plane (tbach) */
-				currentPlane = atoi(string1);
-				if (currentPlane == 0) /* 0 is horizontal, 1 is vertical (tbach) */
-					BPMs[++horizontalBpmCounter].plane = currentPlane;
-				else
-					BPMs[++verticalBpmCounter].plane = currentPlane;
-			}
-
-			else if (columnCounter == 1) {   /*bpm name (tbach) */
-				if (currentPlane == 0) {
-					if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
-					{
-						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
-						exit(EXIT_FAILURE);
-					}
-					BPMs[horizontalBpmCounter].bpmname = string1;
-					BPMs[horizontalBpmCounter].pickedup = true;
-				} else {
-					BPMs[verticalBpmCounter].bpmname = string1;
-					BPMs[verticalBpmCounter].pickedup = true;
-				}
-			}
-
-			else if (columnCounter == 2) {   /*bpm location (tbach) */
-				if (currentPlane == 0)
-				{
-					if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
-					{
-						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
-						exit(EXIT_FAILURE);
-					}
-					BPMs[horizontalBpmCounter].bpmpos = atof(string1);
-				}
-				else
-					BPMs[verticalBpmCounter].bpmpos = atof(string1);
-			}
-
-			else {    /*bpm data (tbach) */
-				if (currentPlane == 0)
-					BPMs[horizontalBpmCounter].tbtdata[columnCounter - 3] = atof(string1);
-				else
-					BPMs[verticalBpmCounter].tbtdata[columnCounter - 3] = atof(string1);
-				Nturns = columnCounter - 3 + 1;
-				/* If the last line is an empty line, then we can get the number of turns only from here.
-				   First 3 are plane, name and location.
-				   Plus 1 for index start at 0
-				   (tbach) */
-			}
-			++columnCounter;
-			flag = 1;
-			string1[0] = string1[i + 1];
-			i = 0;
-		}
-		if (flag == 0)
-			string1[0] = (char)dataFile.get();
-	}
-	dataFile.close();
-
-	Nbpms = bpmCounter;
-	counth = horizontalBpmCounter + 1;
-	countv = verticalBpmCounter + 1;
+	int Nbpms = readTbtDataFile(dataFilePath, horizontalBpmCounter, verticalBpmCounter);
+	int counth = horizontalBpmCounter + 1;
+	int countv = verticalBpmCounter + 1;
 
 	/* now redefine turns as the minimum of the Nturns read and the DrivingTerms data card */
 	/* NB assumes all BPMs have the same number of turns as the last one read is used */
@@ -391,14 +283,14 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 	/* searching for two working adjacent pick-ups */
 	/* after the Q-kickers for finding the kick */
 	if (InpData.kick < 0) {
-		start = -(InpData.kcase - 1) * MAXPICK / 2 + 2;
+		int start = -(InpData.kcase - 1) * MAXPICK / 2 + 2;
 		while (BPMs[start].pickedup == false || BPMs[start + 2].pickedup == false) {
 			start = start + 2;
 		}
 
 		printf("looking for kick in pick-up:%d\n", start + 1);
 		/* Find kick here and get kick */
-		for (columnCounter = 1; (InpData.kick < 0) && (columnCounter < InpData.turns); ++columnCounter) {
+		for (int columnCounter = 1; (InpData.kick < 0) && (columnCounter < InpData.turns); ++columnCounter) {
 			if (fabs(BPMs[start].tbtdata[columnCounter] - BPMs[start].tbtdata[columnCounter - 1]) > InpData.kper) {
 				InpData.kick = columnCounter;
 			}
@@ -412,9 +304,9 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 	}
 
 	if (InpData.kick > 0) {
-		for (i = 0; i < MAXPICK; i++) {
+		for (int i = 0; i < MAXPICK; i++) {
 			if (BPMs[i].pickedup == true) {
-				for (j = InpData.kick; j < InpData.turns; j++)
+				for (int j = InpData.kick; j < InpData.turns; j++)
 					BPMs[i].tbtdata[j - InpData.kick] = BPMs[i].tbtdata[j];
 			}
 		}
@@ -425,6 +317,7 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 	/* First part of the analysis: Determine  phase of all pick-ups and noise */
 	writeSussixInput(sussixInputFilePath, InpData.turns, InpData.istun, InpData.tunex, InpData.tuney);
 
+	int maxcounthv = 0;
 	if (counth >= (countv - MAXPICK / 2))
 		maxcounthv = counth;
 	else
@@ -440,24 +333,24 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 	printf("BPMs in loop: %d, pickstart: %d, resulting loop length: %d\n",
 		 maxcounthv, InpData.pickstart, maxcounthv - InpData.pickstart);
 
-#pragma omp parallel for private(i, horizontalBpmCounter, verticalBpmCounter, j, maxamp, calculatednattunex, calculatednattuney, calculatednatampx, calculatednatampy)
-	for (i = InpData.pickstart; i < maxcounthv; ++i) {
-		horizontalBpmCounter = i;
-		verticalBpmCounter = i + MAXPICK / 2;
+#pragma omp parallel for private(maxamp, calculatednattunex, calculatednattuney, calculatednatampx, calculatednatampy)
+	for (int i = InpData.pickstart; i < maxcounthv; ++i) {
+		int horizontalBpmIndex = i;
+		int verticalBpmIndex = i + MAXPICK / 2;
 
-		if (verticalBpmCounter >= countv)
-			verticalBpmCounter = countv - 1;
-		if (horizontalBpmCounter >= counth)
-			horizontalBpmCounter = counth - 1;
-		if (horizontalBpmCounter < 0 || verticalBpmCounter < 0)
+		if (verticalBpmIndex >= countv)
+			verticalBpmIndex = countv - 1;
+		if (horizontalBpmIndex >= counth)
+			horizontalBpmIndex = counth - 1;
+		if (horizontalBpmIndex < 0 || verticalBpmIndex < 0)
 		{
 			fprintf(stderr, "horizontal or vertical BpmCounter < 0. Should not happen.\n");
 			exit(EXIT_FAILURE);
 		}
 
-		for (j = 0; j < MAXTURNS; ++j) {
-			doubleToSend[j] = BPMs[horizontalBpmCounter].tbtdata[j];
-			doubleToSend[j + MAXTURNS] = BPMs[verticalBpmCounter].tbtdata[j];
+		for (int j = 0; j < MAXTURNS; ++j) {
+			doubleToSend[j] = BPMs[horizontalBpmIndex].tbtdata[j];
+			doubleToSend[j + MAXTURNS] = BPMs[verticalBpmIndex].tbtdata[j];
 			doubleToSend[j + 2 * MAXTURNS] = 0.0;
 			doubleToSend[j + 3 * MAXTURNS] = 0.0;
 		}
@@ -473,7 +366,7 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 		maxamp = 0;
 		calculatednattunex = NATTUNE_DEFAULT;
 		if (InpData.nattunex > NATTUNE_DEFAULT) {
-			for (j = 0; j < 300; ++j) {
+			for (int j = 0; j < 300; ++j) {
 				if ((InpData.nattunex - InpData.istun < allfreqsx[j] && allfreqsx[j] < InpData.nattunex + InpData.istun) && (maxamp < allampsx[j])) {
 					maxamp = allampsx[j];
 					calculatednattunex = allfreqsx[j];
@@ -484,7 +377,7 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 		maxamp = 0;
 		calculatednattuney = NATTUNE_DEFAULT;
 		if (InpData.nattuney > NATTUNE_DEFAULT) {
-			for (j = 0; j < 300; ++j) {
+			for (int j = 0; j < 300; ++j) {
 				if ((InpData.nattuney - InpData.istun < allfreqsy[j] && allfreqsy[j] < InpData.nattuney + InpData.istun) && (maxamp < allampsy[j])) {
 					maxamp = allampsy[j];
 					calculatednattuney = allfreqsy[j];
@@ -495,13 +388,13 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 
 		#pragma omp critical
 		{
-			BPMs[horizontalBpmCounter].pickedup = BPMstatus(1, InpData.turns); /*Always returns true*/
+			BPMs[horizontalBpmIndex].pickedup = BPMstatus(1, InpData.turns); /*Always returns true*/
 			if (InpData.labelrun == 1)
-				noiseFile << std::scientific << "1 " << horizontalBpmCounter << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[i].pickedup << ' ' << phase[0] / 360. << std::endl;
+				noiseFile << std::scientific << "1 " << horizontalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[i].pickedup << ' ' << phase[0] / 360. << std::endl;
 
 			/* PRINT LINEAR FILE */
-			if (amplitude[0] > 0 && BPMs[i].pickedup == true && horizontalBpmCounter == i) {
-				linxFile <<  std::scientific << '"' << BPMs[horizontalBpmCounter].bpmname << "\" " << BPMs[horizontalBpmCounter].bpmpos << ' ' << horizontalBpmCounter << ' ' << BPMs[horizontalBpmCounter].pickedup << ' ' << tune[0] << ' ' <<
+			if (amplitude[0] > 0 && BPMs[i].pickedup == true && horizontalBpmIndex == i) {
+				linxFile <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmname << "\" " << BPMs[horizontalBpmIndex].bpmpos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedup << ' ' << tune[0] << ' ' <<
 						phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
 						phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
 						phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
@@ -525,27 +418,27 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 						exit(EXIT_FAILURE);
 					}
 					spectrumFile << "* FREQ AMP\n$ %le %le\n";
-					for (j = 0; j < 300; ++j)
+					for (int j = 0; j < 300; ++j)
 						spectrumFile << std::scientific << allfreqsx[j] << ' ' << allampsx[j] << std::endl;
 					spectrumFile.close();
 				}
 			}else{
 				//TODO: remove debug(vimaier)
 				printf("amplitude[0] > 0 && BPMs[i].pickedup == true && horizontalBpmCounter == i\n");
-				printf("%12f > 0 && %33d == true && %20i == %i\n", amplitude[0], BPMs[i].pickedup, horizontalBpmCounter, i );
+				printf("%12f > 0 && %33d == true && %20i == %i\n", amplitude[0], BPMs[i].pickedup, horizontalBpmIndex, i );
 				printf("BPM %s not in lin file\n", BPMs[i].bpmname.c_str());
-				rejectedBpmsFileX <<  std::scientific << '"' << BPMs[horizontalBpmCounter].bpmname << "\" " << BPMs[horizontalBpmCounter].bpmpos << ' ' << horizontalBpmCounter << ' ' << BPMs[horizontalBpmCounter].pickedup << ' ' << tune[0] << ' ' <<
+				rejectedBpmsFileX <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmname << "\" " << BPMs[horizontalBpmIndex].bpmpos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedup << ' ' << tune[0] << ' ' <<
 											phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
 											phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
 											phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
 											phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' << calculatednatampx << std::endl;
 			}
 
-			BPMs[verticalBpmCounter].pickedup = BPMstatus(2, InpData.turns); /*Always returns true*/
+			BPMs[verticalBpmIndex].pickedup = BPMstatus(2, InpData.turns); /*Always returns true*/
 			if (InpData.labelrun == 1)
-				noiseFile << std::scientific << "2 " << verticalBpmCounter << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[verticalBpmCounter].pickedup << ' ' << phase[3] / 360. << std::endl;
-			if (amplitude[3] > 0 && BPMs[verticalBpmCounter].pickedup == true && verticalBpmCounter == i + MAXPICK / 2) {
-				linyFile <<  std::scientific << '"' << BPMs[verticalBpmCounter].bpmname << "\" " << BPMs[verticalBpmCounter].bpmpos << ' ' << verticalBpmCounter << ' ' << BPMs[verticalBpmCounter].pickedup << ' ' << tune[1] << ' ' <<
+				noiseFile << std::scientific << "2 " << verticalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[verticalBpmIndex].pickedup << ' ' << phase[3] / 360. << std::endl;
+			if (amplitude[3] > 0 && BPMs[verticalBpmIndex].pickedup == true && verticalBpmIndex == i + MAXPICK / 2) {
+				linyFile <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmname << "\" " << BPMs[verticalBpmIndex].bpmpos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedup << ' ' << tune[1] << ' ' <<
 						phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' << phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' <<
 						amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
 						amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' <<
@@ -558,24 +451,24 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 					CalcData.nattuneysum += calculatednattuney;
 					CalcData.nattuney2sum += calculatednattuney * calculatednattuney;
 				}
-				if (verticalBpmCounter < MAXPICK / 2 + 10) {
-					std::string spectrumFilePath = workingDirectoryPath+'/'+BPMs[verticalBpmCounter].bpmname+".y";//TODO: probably bug. Should be BPMs[verticalBpmCounter] (not i) --> wrong name
+				if (verticalBpmIndex < MAXPICK / 2 + 10) {
+					std::string spectrumFilePath = workingDirectoryPath+'/'+BPMs[verticalBpmIndex].bpmname+".y";
 					spectrumFile.open(spectrumFilePath.c_str());
 					if(cannotOpenFile(spectrumFilePath,'o')){
 						std::cout << "Leaving drive due to error" << std::endl;
 						exit(EXIT_FAILURE);
 					}
 					spectrumFile << "* FREQ AMP\n$ %le %le\n";
-					for (j = 0; j < 300; ++j)
+					for (int j = 0; j < 300; ++j)
 						spectrumFile << std::scientific << allfreqsy[j] << ' ' << allampsy[j] << std::endl;
 					spectrumFile.close();
 				}
 			}else{
 				//TODO: remove debug(vimaier)
-				printf("amplitude[3] > 0 && BPMs[verticalBpmCounter].pickedup == true && verticalBpmCounter == i + MAXPICK / 2\n");
-				printf("%12f > 0 && %33d == true && %18i == %i\n", amplitude[3], BPMs[verticalBpmCounter].pickedup, verticalBpmCounter, i + MAXPICK / 2 );
-				printf("BPM %s not in lin file\n", BPMs[verticalBpmCounter].bpmname.c_str());
-				rejectedBpmsFileY <<  std::scientific << '"' << BPMs[verticalBpmCounter].bpmname << "\" " << BPMs[verticalBpmCounter].bpmpos << ' ' << verticalBpmCounter << ' ' << BPMs[verticalBpmCounter].pickedup << ' ' << tune[1] << ' ' <<
+				printf("amplitude[3] > 0 && BPMs[verticalBpmIndex].pickedup == true && verticalBpmCounter == i + MAXPICK / 2\n");
+				printf("%12f > 0 && %33d == true && %18i == %i\n", amplitude[3], BPMs[verticalBpmIndex].pickedup, verticalBpmIndex, i + MAXPICK / 2 );
+				printf("BPM %s not in lin file\n", BPMs[verticalBpmIndex].bpmname.c_str());
+				rejectedBpmsFileY <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmname << "\" " << BPMs[verticalBpmIndex].bpmpos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedup << ' ' << tune[1] << ' ' <<
 											phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' << phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' <<
 											amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
 											amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' <<
@@ -597,6 +490,120 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 	formatLinFile(linyFilePath,
 			CalcData.tunecounty, CalcData.tunesumy, CalcData.tune2sumy, CalcData.nattuneycount, CalcData.nattuneysum, CalcData.nattuney2sum, 2);
 }
+
+int readTbtDataFile(std::string& dataFilePath, int& horizontalBpmCounter, int& verticalBpmCounter) {
+	char string1[1000];
+	std::ifstream dataFile;
+	dataFile.open(dataFilePath.c_str());
+	string1[0] = (char) (dataFile.get());
+	while (string1[0] == '#') {
+		/* then it is a comment line (tbach) */
+		while (dataFile.get() != '\n')
+			; /* read until the end of the line (tbach) */
+
+		string1[0] = (char) (dataFile.get()); /* read the first char of the new line (tbach) */
+	}
+	/* after this, we have skipped all the comment lines, and s[0] is the first character of a new line which is not a "#" (tbach) */
+	if (LOG_INFO)
+		printf("BPM file content:\n");
+
+	int i = 0;
+	int flag = 0;
+	int columnCounter = 0;
+	int bpmCounter = 0;
+	int currentPlane = -1;
+	while (string1[0] != EOF) {
+		if (string1[0] == '\n') {
+			++bpmCounter;
+			if (LOG_INFO)
+				printf("\n");
+			columnCounter = 0;
+		}
+		if (isspace((int) string1[0]) && flag == 1)
+			flag = 0;
+		if (!isspace((int) string1[0]) && flag == 0) {
+			while (!isspace((int) string1[i]) && string1[i] != EOF) {
+				++i;
+				string1[i] = (char) dataFile.get();
+				if (i > 100) {
+					string1[i + 1] = '\0';
+					fprintf(stderr,"Found a value which has more than 100 characters, exit parsing.\n"
+						"This is most probably a malformatted file. bpmCounter=%d columnCounter=%d string1=%s\n", bpmCounter, columnCounter, string1);
+					exit(EXIT_FAILURE);
+				}
+			}
+			string1[i + 1] = string1[i];
+			string1[i] = '\0';
+			if (LOG_INFO)
+				printf("%s ", string1);
+			if (columnCounter >= MAXTURNS) {
+				fprintf(stderr, "Found >= %d Turns, this turn size is not supported. Reduce amount of turns. bpmCounter:%d\n", MAXTURNS - 3, bpmCounter); /* 0,1,2 is plane, name and location (tbach) */
+				exit(EXIT_FAILURE);
+			}
+			if (bpmCounter >= MAXPICK) {
+				fprintf(stderr, "Found >= %d BPMs, this size is not supported. Reduce amount of BPMs. columnCounter:%d\n", MAXPICK, columnCounter);
+				exit(EXIT_FAILURE);
+			}
+			if (columnCounter == 0) { /*plane (tbach) */
+				currentPlane = atoi(string1);
+				if (currentPlane == 0) /* 0 is horizontal, 1 is vertical (tbach) */
+					BPMs[++horizontalBpmCounter].plane = currentPlane;
+				else
+					BPMs[++verticalBpmCounter].plane = currentPlane;
+			}
+
+			else if (columnCounter == 1) { /*bpm name (tbach) */
+				if (currentPlane == 0) {
+					if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
+					{
+						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
+						exit(EXIT_FAILURE);
+					}
+					BPMs[horizontalBpmCounter].bpmname = string1;
+					BPMs[horizontalBpmCounter].pickedup = true;
+				} else {
+					BPMs[verticalBpmCounter].bpmname = string1;
+					BPMs[verticalBpmCounter].pickedup = true;
+				}
+			}
+
+			else if (columnCounter == 2) { /*bpm location (tbach) */
+				if (currentPlane == 0)
+				{
+					if (horizontalBpmCounter < 0) /* Branch prediction will cry, but well lets have security (tbach) */
+					{
+						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
+						exit(EXIT_FAILURE);
+					}
+					BPMs[horizontalBpmCounter].bpmpos = atof(string1);
+				}
+				else
+				BPMs[verticalBpmCounter].bpmpos = atof(string1);
+			}
+
+			else { /*bpm data (tbach) */
+				if (currentPlane == 0)
+				BPMs[horizontalBpmCounter].tbtdata[columnCounter - 3] = atof(string1);
+				else
+				BPMs[verticalBpmCounter].tbtdata[columnCounter - 3] = atof(string1);
+				Nturns = columnCounter - 3 + 1;
+				/* If the last line is an empty line, then we can get the number of turns only from here.
+				 First 3 are plane, name and location.
+				 Plus 1 for index start at 0
+				 (tbach) */
+			}
+			++columnCounter;
+			flag = 1;
+			string1[0] = string1[i + 1];
+			i = 0;
+		}
+		if (flag == 0)
+			string1[0] = (char) dataFile.get();
+	}
+	dataFile.close();
+	return bpmCounter;
+}
+
 
 void get_inp_data(std::string driveInputFilePath){
 
