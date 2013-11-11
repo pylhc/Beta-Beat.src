@@ -521,7 +521,7 @@ int main(int argc, char **argv)
                         CalcData.nattuney2sum += calculatednattuney * calculatednattuney;
                     }
                     if (verticalBpmCounter < MAXPICK / 2 + 10) {
-                        spectrumFilePath = workingDirectoryPath+'/'+BPMs[i].bpmname+".y";//TODO: probably bug. Should be BPMs[verticalBpmCounter] (not i) --> wrong name
+                        spectrumFilePath = workingDirectoryPath+'/'+BPMs[verticalBpmCounter].bpmname+".y";
                         spectrumFile.open(spectrumFilePath.c_str());
                         if(cannotOpenFile(spectrumFilePath,'o')){
                             std::cout << "Leaving drive due to error" << std::endl;
