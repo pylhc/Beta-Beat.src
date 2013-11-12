@@ -87,113 +87,49 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 #define LOG_INFO 0 /*set to 1 to enable log prints (tbach) */
 #endif
 
-void harmonicAnalyseForSingleTbtDataFile(std::string&, std::string&, std::string&);
-void readTbtDataFile(std::string&, int&, int&, int&);
 
-void get_and_check_file_paths(std::string *, std::string *, std::string *, std::string *,const char *);
-bool readDrivingTerms(std::istream&, int*, std::string *);
-void writeSussixInput(std::string, const int, const double, const double, const double);
-bool BPMstatus(const int, const int);
-void formatLinFile(std::string, const int, const double, const double, const int, const double, const double,int);
-bool cannotOpenFile(std::string,char);
-bool inputFileCheck(std::string);
-bool outputFileCheck(std::string);
 
 
 class InputData{
+	void check_inp_data();
+	void check_tune(double& tune, char plane);
+	void readInputDataFromFileDriveInp(std::string driveInputFilePath);
+
 public:
+    void initAndReadInputValues(std::string& driveInpFilePath);
+
     double  istun, kper, tunex, tuney, windowa1, windowa2, windowb1, windowb2, nattunex, nattuney;
-    int     turns, pickStart, pickEnd, kcase, kick, labelrun;
-
-    void init_input_values(){ //initializes all input data to 0 except for natural tunes which have default value defined
-        istun = kper = tunex = tuney = windowa1 = windowa2 = windowb1 = windowb2 = 0.0;
-        turns = pickStart = pickEnd = kcase = kick = labelrun = 0;
-        nattunex = nattuney = NATTUNE_DEFAULT;
-    }
-
-    void check_inp_data(){
-
-       this->check_tune(this->tunex,'x');
-       this->check_tune(this->tuney,'y');
-
-       if (this->kick >= 0)
-           printf("Known kick in turn %d\n", this->kick + 1);
-       if (this->kcase == 1)
-           printf("Horizontal case\n");
-       else if (this->kcase == 0)
-           printf("Vertical case\n");
-       else {
-           fprintf(stderr, "No proper kcase in Drive.inp\n");
-           exit(EXIT_FAILURE);
-       }
-
-       if (this->labelrun == 1)
-           printf("\n LABELRUN: NOISE FILES WILL BE WRITTEN TO NOISEPATH\n");
-
-       printf("pickStart: %d, pickEnd: %d\n", this->pickStart, this->pickEnd);
-       if (this->pickStart < 0 || this->pickStart > this->pickEnd || this->pickStart > MAXPICK) {
-           fprintf(stderr, "Bad value for pickStart. Must be >= 0 and < pickEnd and <= MAXPICK(=%d)\n", MAXPICK);
-           exit(EXIT_FAILURE);
-       }
-   }
-
-    void check_tune(double tune, char plane){ //checks that magnitude of tune is less than 0.5, changes it by integer value until it is
-        int change;
-        if(tune > 0.5 || tune < -0.5){
-            change=0;
-            while(tune > 0.5){
-                tune -= 1;
-                change--;
-            }
-            while(tune < -0.5){
-                tune += 1;
-                change++;
-            }
-            std::cout << "tune_" << plane <<" input increased by " << change << ". Should be less than or equal to 0.5 in magnitude. New value is: " << tune << std::endl;
-        }
-    }
-
-    void readInputDataFromFileDriveInp(std::string driveInputFilePath){
-        std::string temp_str;
-        std::ifstream driveInputFile;
-        unsigned int pos;
-        driveInputFile.open(driveInputFilePath.c_str());
-        while(!driveInputFile.rdstate()){
-            std::getline (driveInputFile, temp_str);
-            if((pos = temp_str.find("KICK=")) != std::string::npos)
-            	this->kick = atoi(temp_str.substr(pos+strlen("KICK=")).c_str())-1;
-            if((pos = temp_str.find("CASE(1[H], 0[V])=")) != std::string::npos)
-            	this->kcase = atoi(temp_str.substr(pos+strlen("CASE(1[H], 0[V])=")).c_str());
-            if((pos = temp_str.find("KPER(KICK PERCE.)=")) != std::string::npos)
-            	this->kper = atof(temp_str.substr(pos+strlen("KPER(KICK PERCE.)=")).c_str());
-            if((pos = temp_str.find("TUNE X=")) != std::string::npos)
-            	this->tunex = atof(temp_str.substr(pos+strlen("TUNE X=")).c_str());
-            if((pos = temp_str.find("TUNE Y=")) != std::string::npos)
-            	this->tuney = atof(temp_str.substr(pos+strlen("TUNE Y=")).c_str());
-            if((pos = temp_str.find("PICKUP START=")) != std::string::npos)
-            	this->pickStart = atoi(temp_str.substr(pos+strlen("PICKUP START=")).c_str());
-            if((pos = temp_str.find("PICKUP END=")) != std::string::npos)
-            	this->pickEnd = atoi(temp_str.substr(pos+strlen("PICKUP END=")).c_str());
-            if((pos = temp_str.find("ISTUN=")) != std::string::npos)
-            	this->istun = atof(temp_str.substr(pos+strlen("ISTUN=")).c_str());
-            if((pos = temp_str.find("LABEL RUN (1[yes])=")) != std::string::npos)
-            	this->labelrun = atoi(temp_str.substr(pos+strlen("LABEL RUN (1[yes])=")).c_str());
-            if((pos = temp_str.find("WINDOWa1=")) != std::string::npos)
-            	this->windowa1 = atof(temp_str.substr(pos+strlen("WINDOWa1=")).c_str());
-            if((pos = temp_str.find("WINDOWa2=")) != std::string::npos)
-            	this->windowa2 = atof(temp_str.substr(pos+strlen("WINDOWa2=")).c_str());
-            if((pos = temp_str.find("WINDOWb1=")) != std::string::npos)
-            	this->windowb1 = atof(temp_str.substr(pos+strlen("WINDOWb1=")).c_str());
-            if((pos = temp_str.find("WINDOWb2=")) != std::string::npos)
-            	this->windowb2 = atof(temp_str.substr(pos+strlen("WINDOWb2=")).c_str());
-            if((pos = temp_str.find("NATURAL X=")) != std::string::npos)
-            	this->nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
-            if((pos = temp_str.find("NATURAL Y=")) != std::string::npos)
-            	this->nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
-        }
-        driveInputFile.close();
-    }
+    int turns, pickStart, pickEnd, kcase, kick, labelrun;
 }inpData;
+
+
+class IoHelper{
+	static bool inputFileCheck(std::string filePath);
+	static bool outputFileCheck(std::string filePath);
+public:
+	static void getAndCheckFilePaths(std::string *drivingTermsFilePath, std::string *driveInputFilePath, const char * cmdinput);
+	static bool cannotOpenFile(std::string filePath,char type);
+	static void writeSussixInputFile(const int, const double, const double, const double);
+	static void formatLinFile(std::string linFilePath, const int tunecount, const double tunesum, const double tune2sum,
+			const int nattunecount, const double nattunesum, const double nattune2sum, int plane_index);
+
+	static std::string workingDirectoryPath;
+	static std::string sussixInputFilePath;
+};
+std::string IoHelper::workingDirectoryPath;
+std::string IoHelper::sussixInputFilePath;
+
+
+class OutFilesHandler{
+public:
+	OutFilesHandler(std::string &dataFilePath);
+	~OutFilesHandler();
+
+	void writeLine();
+
+	std::ofstream linxFile, linyFile, noiseFile, rejectedBpmsFileX, rejectedBpmsFileY;
+	std::string linxFilePath, linyFilePath;
+};
 
 
 class TuneCalcData{
@@ -204,8 +140,33 @@ public:
         tuneSumX = tuneSumY = tune2sumX = tune2sumY = nattuneSumX = nattune2sumX = nattuneSumY = nattune2sumY = 0.0;
         tuneCountX = tuneCountY = nattuneCountX = nattuneCountY = 0;
     }
+    void addTuneX(double tune, double natTune) {
+    	addTune(tuneCountX, tuneSumX, tune2sumX, nattuneCountX, nattuneSumX, nattune2sumX, tune, natTune);
+    }
+    void addTuneY(double tune, double natTune) {
+    	addTune(tuneCountY, tuneSumY, tune2sumY, nattuneCountY, nattuneSumY, nattune2sumY, tune, natTune);
+    }
+private:
+    void addTune(int& tuneCount, double& tuneSum, double& tune2Sum, int& natTuneCount, double& natTuneSum, double& natTune2Sum,
+    		double& tune, double& natTune) {
+    	++tuneCount;
+    	tuneSum += tune;
+    	tune2Sum += tune * tune;
+		if (natTune > NATTUNE_DEFAULT) { /*  Initialized to -100. Condition true if nat tune found */
+			++natTuneCount;
+			natTuneSum += natTune;
+			natTune2Sum += natTune * natTune;
+		}
+    }
 }tuneCalcData;
 
+
+void harmonicAnalyseForSingleTbtDataFile(std::string&);
+void readTbtDataFile(std::string&, int&, int&, int&);
+void findKick();
+inline void writeLineIntoLinXFile(OutFilesHandler& filesHandler, int& horizontalBpmIndex);
+bool readLineInDrivingTerms(std::istream&, int*, std::string *);
+bool BPMstatus(const int, const int);
 
 double calculatednattuney, calculatednattunex, calculatednatampy, calculatednatampx, co, co2, maxamp,
 	   noise1, maxfreq, maxmin, maxpeak, noiseAve;
@@ -216,60 +177,53 @@ double allampsx[300], allampsy[300], allfreqsx[300], allfreqsy[300], amplitude[1
 int nslines=0;
 
 struct BPM{ /*Structure for each BPM- has name, position, plane, if it's pickedup, and it's tbtdata*/
-	std::string bpmname;
-	double bpmpos;
+	std::string bpmName;
+	double bpmPos;
 	int plane; /* 0 is horizontal, 1 is vertical*/
-	bool pickedup;
-	double tbtdata[MAXTURNS];
+	bool pickedUp;
+	double tbtData[MAXTURNS];
 }BPMs[MAXPICK];
 
 #pragma omp threadprivate(amplitude, doubleToSend, tune, phase,\
         noise1, noiseAve, maxpeak, maxfreq, maxmin, co, co2,\
         allfreqsx, allampsx, allfreqsy, allampsy)
 
+//======================================================================================================================
+// main function
+//======================================================================================================================
 int main(int argc, char **argv)
 {
-    std::ifstream driveInputFile, drivingTermsFile, dataFile;
-    std::string workingDirectoryPath, drivingTermsFilePath, driveInputFilePath, sussixInputFilePath, dataFilePath;
 
     #ifdef _WIN32 /*Changes minor formatting difference in windows regarding the output of a number in scientific notation.*/
         _set_output_format(_TWO_DIGIT_EXPONENT);
     #endif
-
-    omp_set_dynamic(0);
-
     //To output scientific notation
     std::cout << std::setiosflags (std::ios::scientific);
 
-    get_and_check_file_paths(&workingDirectoryPath, &drivingTermsFilePath, &driveInputFilePath, &sussixInputFilePath, argv[1]);
-    std::cout << "READ THIS:" << workingDirectoryPath << std::endl;
-
-    /* set all options to defaults, it could happen that they are not included in the file (tbach) */
-    inpData.init_input_values();
-
-    //Reads input data from Drive.inp into global InpData class
-    inpData.readInputDataFromFileDriveInp(driveInputFilePath);
-
-    //Checks tune_x/y, kcase, kick, labelrun, pickend, and pickend
-    inpData.check_inp_data();
+    omp_set_dynamic(0);
 
 
+    std::string drivingTermsFilePath, driveInpFilePath;
+    IoHelper::getAndCheckFilePaths(&drivingTermsFilePath, &driveInpFilePath, argv[1]);
+
+    inpData.initAndReadInputValues(driveInpFilePath);
+
+
+    std::ifstream drivingTermsFile;
     drivingTermsFile.open(drivingTermsFilePath.c_str());
-    if(cannotOpenFile(drivingTermsFilePath,'i')){
+    if(IoHelper::cannotOpenFile(drivingTermsFilePath,'i')){
         exit(EXIT_FAILURE);
     }
 
+    std::string dataFilePath;
     /* From drivingTermsFilePath assign dataFilePath, assign turns. */
 	int loopcounter = 0;
-    while (readDrivingTerms(drivingTermsFile, &(inpData.turns), &dataFilePath)) {
-        /* set all values to be calculated to default values */
-        tuneCalcData.init_calc_values();
-
+    while (readLineInDrivingTerms(drivingTermsFile, &(inpData.turns), &dataFilePath)) {
         /* Check the file dataFilePath */
-        if(cannotOpenFile(dataFilePath,'i'))
+        if(IoHelper::cannotOpenFile(dataFilePath,'i'))
             continue;
         loopcounter++;
-        harmonicAnalyseForSingleTbtDataFile(dataFilePath, workingDirectoryPath, sussixInputFilePath);
+        harmonicAnalyseForSingleTbtDataFile(dataFilePath);
     } /* end of while loop over all files to analyse */
     drivingTermsFile.close();
 
@@ -280,126 +234,46 @@ int main(int argc, char **argv)
 }
 
 
-void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string& workingDirectoryPath, std::string& sussixInputFilePath){
-
-	std::ofstream linxFile, linyFile, noiseFile, spectrumFile;
-
-
-	std::cout << "Data file: " << dataFilePath << std::endl;
-
-	std::string bpmFileName = dataFilePath.substr(dataFilePath.rfind('/',dataFilePath.size()-2)+1);
-
-	std::cout << "bpmFileName: " << bpmFileName << std::endl;
-
-	std::string noiseFilePath = workingDirectoryPath+'/'+bpmFileName+"_noise";
-	std::string linxFilePath = workingDirectoryPath+'/'+bpmFileName+"_linx";
-	std::string linyFilePath = workingDirectoryPath+'/'+bpmFileName+"_liny";
-	bpmFileName +="_bpm";
-
-	//TODO: remove rejectedBpmsFile
-	std::ofstream rejectedBpmsFileX;
-	rejectedBpmsFileX.open((workingDirectoryPath+'/'+bpmFileName+"_rejectedBpmsx").c_str());
-	std::ofstream rejectedBpmsFileY;
-	rejectedBpmsFileY.open((workingDirectoryPath+'/'+bpmFileName+"_rejectedBpmsy").c_str());
-	rejectedBpmsFileX << "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n";
-	rejectedBpmsFileX << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le   %le     %le  %le    %le   %le     %le    %le      %le   %le     %le   %le     %le     %le\n";
-	rejectedBpmsFileY << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
-	rejectedBpmsFileY << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le       %le\n";
-	//TODO END
-
-	if (inpData.labelrun == 1) {
-		noiseFilePath = workingDirectoryPath+'/'+bpmFileName+"_noise";
-		noiseFile.open(noiseFilePath.c_str());
-		if(cannotOpenFile(noiseFilePath,'o')){
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	if(cannotOpenFile(linxFilePath,'o') || cannotOpenFile(linyFilePath,'o')){
-		exit(EXIT_FAILURE);
-	}
-
-	linxFile.open(linxFilePath.c_str());
-	linyFile.open(linyFilePath.c_str());
-	linxFile << "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n";
-	linxFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le   %le     %le  %le    %le   %le     %le    %le      %le   %le     %le   %le     %le     %le\n";
-	linyFile << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
-	linyFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le       %le\n";
-
-
-
+void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath){
+    /* set all values to be calculated to default values */
+    tuneCalcData.init_calc_values();
+	OutFilesHandler filesHandler(dataFilePath);
 	int maxOfHorBpmsAndVerBpms = 0; /** max(numOfHorBpms, numOfVerBpms) */
 	int lastBpmIndexHor = 0;
 	int lastBpmIndexVer = 0;
 	readTbtDataFile(dataFilePath, maxOfHorBpmsAndVerBpms, lastBpmIndexHor, lastBpmIndexVer);
 
+	findKick();
 
-	printf("kick: %d \n", inpData.kick);
-	/* searching for two working adjacent pick-ups */
-	/* after the Q-kickers for finding the kick */
-	if (inpData.kick < 0) {
-		int start = -(inpData.kcase - 1) * MAXPICK / 2 + 2;
-		while (BPMs[start].pickedup == false || BPMs[start + 2].pickedup == false) {
-			start = start + 2;
-		}
-
-		printf("looking for kick in pick-up:%d\n", start + 1);
-		/* Find kick here and get kick */
-		for (int columnCounter = 1; (inpData.kick < 0) && (columnCounter < inpData.turns); ++columnCounter) {
-			if (fabs(BPMs[start].tbtdata[columnCounter] - BPMs[start].tbtdata[columnCounter - 1]) > inpData.kper) {
-				inpData.kick = columnCounter;
-			}
-		}
-
-		if (inpData.kick < 0) {
-			fprintf(stderr, "NO KICK FOUND\n");
-			exit(EXIT_FAILURE);
-		} else
-			printf("Found kick in turn:%d\n", inpData.kick + 1);    /*Natural count */
-	}
-
-	if (inpData.kick > 0) {
-		for (int i = 0; i < MAXPICK; i++) {
-			if (BPMs[i].pickedup == true) {
-				for (int j = inpData.kick; j < inpData.turns; j++)
-					BPMs[i].tbtdata[j - inpData.kick] = BPMs[i].tbtdata[j];
-			}
-		}
-		inpData.turns -= inpData.kick;
-	}
-	printf("Turns to be processed after kick offset: %d BPMs[0].tbtdata[0]: %f \n", inpData.turns, BPMs[0].tbtdata[0]);
-
-	/* First part of the analysis: Determine  phase of all pick-ups and noise */
-	writeSussixInput(sussixInputFilePath, inpData.turns, inpData.istun, inpData.tunex, inpData.tuney);
+	IoHelper::writeSussixInputFile(inpData.turns, inpData.istun, inpData.tunex, inpData.tuney);
 
 #pragma omp parallel for private(maxamp, calculatednattunex, calculatednattuney, calculatednatampx, calculatednatampy)
 	for (int i = inpData.pickStart; i < maxOfHorBpmsAndVerBpms; ++i) {
 		int horizontalBpmIndex = i;
-		int verticalBpmIndex = i + MAXPICK / 2;
+		int verticalBpmIndex = i + MAXPICK/2;
 
 		if (verticalBpmIndex > lastBpmIndexVer)
 			verticalBpmIndex = lastBpmIndexVer;
 		if (horizontalBpmIndex > lastBpmIndexHor)
 			horizontalBpmIndex = lastBpmIndexHor;
-		if (horizontalBpmIndex < 0 || verticalBpmIndex < 0)
+		if (horizontalBpmIndex < 0 || verticalBpmIndex < MAXPICK/2)
 		{
-			fprintf(stderr, "horizontal or vertical BpmIndex < 0. Should not happen.\n");
+			fprintf(stderr, "horizontal < 0 or vertical BpmIndex < MAXPICK/2. Should not happen.\n");
 			exit(EXIT_FAILURE);
 		}
 
 		for (int j = 0; j < MAXTURNS; ++j) {
-			doubleToSend[j] = BPMs[horizontalBpmIndex].tbtdata[j];
-			doubleToSend[j + MAXTURNS] = BPMs[verticalBpmIndex].tbtdata[j];
+			doubleToSend[j] = BPMs[horizontalBpmIndex].tbtData[j];
+			doubleToSend[j + MAXTURNS] = BPMs[verticalBpmIndex].tbtData[j];
 			doubleToSend[j + 2 * MAXTURNS] = 0.0;
 			doubleToSend[j + 3 * MAXTURNS] = 0.0;
 		}
 
-
 		/* This calls the external Fortran code (tbach)-Different name depending on OS (asherman)*/
 		#ifdef _WIN32
-			SUSSIX4DRIVENOISE (&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], (char *)sussixInputFilePath.c_str());
+			SUSSIX4DRIVENOISE (&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], (char*)IoHelper::sussixInputFilePath.c_str());
 		#else
-			sussix4drivenoise_(&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], (char *)sussixInputFilePath.c_str());
+			sussix4drivenoise_(&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], (char*)IoHelper::sussixInputFilePath.c_str());
 		#endif
 		/* Let's look for natural tunes in the istun range if natural tunes input is given*/
 		maxamp = 0;
@@ -427,32 +301,21 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 
 		#pragma omp critical
 		{
-			BPMs[horizontalBpmIndex].pickedup = BPMstatus(1, inpData.turns); /*Always returns true*/
+			BPMs[horizontalBpmIndex].pickedUp = BPMstatus(1, inpData.turns); /*Always returns true*/
 			if (inpData.labelrun == 1)
-				noiseFile << std::scientific << "1 " << horizontalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[i].pickedup << ' ' << phase[0] / 360. << std::endl;
+				filesHandler.noiseFile << std::scientific << "1 " << horizontalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[i].pickedUp << ' ' << phase[0] / 360. << std::endl;
 
 			/* PRINT LINEAR FILE */
-			if (amplitude[0] > 0 && BPMs[i].pickedup == true && horizontalBpmIndex == i) {
-				linxFile <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmname << "\" " << BPMs[horizontalBpmIndex].bpmpos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedup << ' ' << tune[0] << ' ' <<
-						phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
-						phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
-						phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
-						phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' << calculatednatampx << std::endl;
+			if (amplitude[0] > 0 && BPMs[i].pickedUp == true && horizontalBpmIndex == i) {
+				writeLineIntoLinXFile(filesHandler, horizontalBpmIndex);
+				tuneCalcData.addTuneX(tune[0], calculatednattunex);
 
-				++tuneCalcData.tuneCountX;
-				tuneCalcData.tuneSumX += tune[0];
-				tuneCalcData.tune2sumX += tune[0] * tune[0];
-				if (calculatednattunex > NATTUNE_DEFAULT) { /*  Initialized to -100. Condition true if nat tune found */
-					++tuneCalcData.nattuneCountX;
-					tuneCalcData.nattuneSumX += calculatednattunex;
-					tuneCalcData.nattune2sumX += calculatednattunex * calculatednattunex;
-				}
 
 				/* Horizontal Spectrum output */
 				if (i < 10) {
-					std::string spectrumFilePath = workingDirectoryPath+'/'+BPMs[i].bpmname+".x";
-					spectrumFile.open(spectrumFilePath.c_str());
-					if(cannotOpenFile(spectrumFilePath,'o')){
+					std::string spectrumFilePath = IoHelper::workingDirectoryPath+'/'+BPMs[i].bpmName+".x";
+					std::ofstream spectrumFile(spectrumFilePath.c_str());
+					if(IoHelper::cannotOpenFile(spectrumFilePath,'o')){
 						exit(EXIT_FAILURE);
 					}
 					spectrumFile << "* FREQ AMP\n$ %le %le\n";
@@ -462,39 +325,32 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 				}
 			}else{
 				//TODO: remove debug(vimaier)
+				printf("BPM %s not in lin file\nFollowing condition failed", BPMs[i].bpmName.c_str());
 				printf("amplitude[0] > 0 && BPMs[i].pickedup == true && horizontalBpmCounter == i\n");
-				printf("%12f > 0 && %33d == true && %20i == %i\n", amplitude[0], BPMs[i].pickedup, horizontalBpmIndex, i );
-				printf("BPM %s not in lin file\n", BPMs[i].bpmname.c_str());
-				rejectedBpmsFileX <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmname << "\" " << BPMs[horizontalBpmIndex].bpmpos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedup << ' ' << tune[0] << ' ' <<
+				printf("%12f > 0 && %33d == true && %20i == %i\n", amplitude[0], BPMs[i].pickedUp, horizontalBpmIndex, i );
+				filesHandler.rejectedBpmsFileX <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmName << "\" " << BPMs[horizontalBpmIndex].bpmPos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedUp << ' ' << tune[0] << ' ' <<
 											phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
 											phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
 											phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
 											phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' << calculatednatampx << std::endl;
 			}
 
-			BPMs[verticalBpmIndex].pickedup = BPMstatus(2, inpData.turns); /*Always returns true*/
+			BPMs[verticalBpmIndex].pickedUp = BPMstatus(2, inpData.turns); /*Always returns true*/
 			if (inpData.labelrun == 1)
-				noiseFile << std::scientific << "2 " << verticalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[verticalBpmIndex].pickedup << ' ' << phase[3] / 360. << std::endl;
-			if (amplitude[3] > 0 && BPMs[verticalBpmIndex].pickedup == true && verticalBpmIndex == i + MAXPICK / 2) {
-				linyFile <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmname << "\" " << BPMs[verticalBpmIndex].bpmpos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedup << ' ' << tune[1] << ' ' <<
+				filesHandler.noiseFile << std::scientific << "2 " << verticalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' << phase[3] / 360. << std::endl;
+			if (amplitude[3] > 0 && BPMs[verticalBpmIndex].pickedUp == true && verticalBpmIndex == i + MAXPICK / 2) {
+				filesHandler.linyFile <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmName << "\" " << BPMs[verticalBpmIndex].bpmPos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' << tune[1] << ' ' <<
 						phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' << phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' <<
 						amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
 						amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' <<
 						amplitude[11] / amplitude[3] << ' ' << phase[11] / 360. << ' ' << calculatednattuney << ' ' << calculatednatampy << std::endl;
 
-				++tuneCalcData.tuneCountY;
-				tuneCalcData.tuneSumY += tune[1];
-				tuneCalcData.tune2sumY += tune[1] * tune[1];
-				if (calculatednattuney > NATTUNE_DEFAULT) { /*  Initialized to -100. Condition true if nat tune found */
-					++tuneCalcData.nattuneCountY;
-					tuneCalcData.nattuneSumY += calculatednattuney;
-					tuneCalcData.nattune2sumY += calculatednattuney * calculatednattuney;
-				}
+				tuneCalcData.addTuneY(tune[1], calculatednattuney);
 
 				if (verticalBpmIndex < MAXPICK / 2 + 10) {
-					std::string spectrumFilePath = workingDirectoryPath+'/'+BPMs[verticalBpmIndex].bpmname+".y";
-					spectrumFile.open(spectrumFilePath.c_str());
-					if(cannotOpenFile(spectrumFilePath,'o')){
+					std::string spectrumFilePath = IoHelper::workingDirectoryPath+'/'+BPMs[verticalBpmIndex].bpmName+".y";
+					std::ofstream spectrumFile(spectrumFilePath.c_str());
+					if(IoHelper::cannotOpenFile(spectrumFilePath,'o')){
 						exit(EXIT_FAILURE);
 					}
 					spectrumFile << "* FREQ AMP\n$ %le %le\n";
@@ -505,9 +361,9 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 			}else{
 				//TODO: remove debug(vimaier)
 				printf("amplitude[3] > 0 && BPMs[verticalBpmIndex].pickedup == true && verticalBpmCounter == i + MAXPICK / 2\n");
-				printf("%12f > 0 && %33d == true && %18i == %i\n", amplitude[3], BPMs[verticalBpmIndex].pickedup, verticalBpmIndex, i + MAXPICK / 2 );
-				printf("BPM %s not in lin file\n", BPMs[verticalBpmIndex].bpmname.c_str());
-				rejectedBpmsFileY <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmname << "\" " << BPMs[verticalBpmIndex].bpmpos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedup << ' ' << tune[1] << ' ' <<
+				printf("%12f > 0 && %33d == true && %18i == %i\n", amplitude[3], BPMs[verticalBpmIndex].pickedUp, verticalBpmIndex, i + MAXPICK / 2 );
+				printf("BPM %s not in lin file\n", BPMs[verticalBpmIndex].bpmName.c_str());
+				filesHandler.rejectedBpmsFileY <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmName << "\" " << BPMs[verticalBpmIndex].bpmPos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' << tune[1] << ' ' <<
 											phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' << phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' <<
 											amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
 											amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' <<
@@ -516,17 +372,11 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 			}
 		} /* end of omp critical section */
 	} /* end of parallel for */
-	//TODO remove file
-	rejectedBpmsFileX.close();
-	rejectedBpmsFileY.close();
-	//TODO END
-	linxFile.close();
-	linyFile.close();
-	if (inpData.labelrun == 1) noiseFile.close();
+
 	/* Sort and move the "@..." lines to the top of the _linx/y files */
-	formatLinFile(linxFilePath,
+	IoHelper::formatLinFile(filesHandler.linxFilePath,
 			tuneCalcData.tuneCountX, tuneCalcData.tuneSumX, tuneCalcData.tune2sumX, tuneCalcData.nattuneCountX, tuneCalcData.nattuneSumX, tuneCalcData.nattune2sumX, 1);
-	formatLinFile(linyFilePath,
+	IoHelper::formatLinFile(filesHandler.linyFilePath,
 			tuneCalcData.tuneCountY, tuneCalcData.tuneSumY, tuneCalcData.tune2sumY, tuneCalcData.nattuneCountY, tuneCalcData.nattuneSumY, tuneCalcData.nattune2sumY, 2);
 }
 
@@ -538,7 +388,7 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
  */
 void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int& lastUsedIndexHor, int& lastUsedIndexVer) {
 	for (int i = 0; i < MAXPICK; i++)
-			BPMs[i].pickedup = false;
+			BPMs[i].pickedUp = false;
 
 	char string1[1000];
 	std::ifstream dataFile;
@@ -610,11 +460,11 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
 						exit(EXIT_FAILURE);
 					}
-					BPMs[lastUsedIndexHor].bpmname = string1;
-					BPMs[lastUsedIndexHor].pickedup = true;
+					BPMs[lastUsedIndexHor].bpmName = string1;
+					BPMs[lastUsedIndexHor].pickedUp = true;
 				} else {
-					BPMs[lastUsedIndexVer].bpmname = string1;
-					BPMs[lastUsedIndexVer].pickedup = true;
+					BPMs[lastUsedIndexVer].bpmName = string1;
+					BPMs[lastUsedIndexVer].pickedUp = true;
 				}
 			}
 
@@ -626,10 +476,10 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
 						exit(EXIT_FAILURE);
 					}
-					BPMs[lastUsedIndexHor].bpmpos = atof(string1);
+					BPMs[lastUsedIndexHor].bpmPos = atof(string1);
 				}
 				else
-				BPMs[lastUsedIndexVer].bpmpos = atof(string1);
+				BPMs[lastUsedIndexVer].bpmPos = atof(string1);
 			}
 
 			else { /*bpm data (tbach) */
@@ -639,9 +489,9 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 				 Plus 1 for index start at 0
 				 (tbach) */
 				if (currentPlane == 0)
-					BPMs[lastUsedIndexHor].tbtdata[numTurns-1] = atof(string1);
+					BPMs[lastUsedIndexHor].tbtData[numTurns-1] = atof(string1);
 				else
-					BPMs[lastUsedIndexVer].tbtdata[numTurns-1] = atof(string1);
+					BPMs[lastUsedIndexVer].tbtData[numTurns-1] = atof(string1);
 			}
 			++columnCounter;
 			flag = 1;
@@ -664,7 +514,7 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 	printf("Total number of pick-ups: %d Last turn number: %d, turns to run: %d\n", bpmCounter, numTurns, inpData.turns);
 	printf("Horizontal pick-ups: %d   Vertical pick-ups: %d\n", counth, -MAXPICK / 2 + countv);
 	printf("name of BPM[0]: %s, pos: %f, first turn: %f, second turn: %f, last turn: %f, last turn to run: %f \n",
-		 BPMs[0].bpmname.c_str(), BPMs[0].bpmpos, BPMs[0].tbtdata[0], BPMs[0].tbtdata[1], BPMs[0].tbtdata[numTurns - 1], BPMs[0].tbtdata[inpData.turns - 1]);
+		 BPMs[0].bpmName.c_str(), BPMs[0].bpmPos, BPMs[0].tbtData[0], BPMs[0].tbtData[1], BPMs[0].tbtData[numTurns - 1], BPMs[0].tbtData[inpData.turns - 1]);
 
 	if (counth >= (countv - MAXPICK / 2))
 		maxOfHorBpmsAndVerBpms = counth;
@@ -682,39 +532,54 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 		 maxOfHorBpmsAndVerBpms, inpData.pickStart, maxOfHorBpmsAndVerBpms - inpData.pickStart);
 }
 
+void findKick() {
+	printf("kick: %d \n", inpData.kick);
+	/* searching for two working adjacent pick-ups */
+	/* after the Q-kickers for finding the kick */
+	if (inpData.kick < 0) {
+		int start = -(inpData.kcase - 1) * MAXPICK / 2 + 2;
+		while (BPMs[start].pickedUp == false
+				|| BPMs[start + 2].pickedUp == false) {
+			start = start + 2;
+		}
 
-void get_and_check_file_paths(std::string *workingDirectoryPath, std::string *drivingTermsFilePath, std::string *driveInputFilePath, std::string *sussixInputFilePath, const char * cmdinput){
+		printf("looking for kick in pick-up:%d\n", start + 1);
+		/* Find kick here and get kick */
+		for (int columnCounter = 1;
+				(inpData.kick < 0) && (columnCounter < inpData.turns);
+				++columnCounter) {
+			if (fabs(
+					BPMs[start].tbtData[columnCounter]
+							- BPMs[start].tbtData[columnCounter - 1])
+					> inpData.kper) {
+				inpData.kick = columnCounter;
+			}
+		}
 
-    *workingDirectoryPath = cmdinput;
-
-    std::cout << *workingDirectoryPath << std::endl;
-
-    if(cannotOpenFile(*workingDirectoryPath,'i') && OS == "linux"){ //Always fails to open in windows
-        exit(EXIT_FAILURE);
-    }
-    std::cout << "\nWorking directory: " << *workingDirectoryPath << std::endl;
-
-
-    *drivingTermsFilePath = *workingDirectoryPath+"/DrivingTerms";
-    *driveInputFilePath = *workingDirectoryPath+"/Drive.inp";
-    *sussixInputFilePath = *workingDirectoryPath+"/sussix_v4.inp";
-
-    //check the input files drivingTermsFilePath and Drive.inp
-
-    if(cannotOpenFile(*drivingTermsFilePath,'i')
-    || cannotOpenFile(*driveInputFilePath,'i') || cannotOpenFile(*sussixInputFilePath,'o')){
-        exit(EXIT_FAILURE);
-    }
-    std::cout << "DrivingTerms: " <<  *drivingTermsFilePath << std::endl;
-    std::cout << "Drive.inp: " <<  *driveInputFilePath << std::endl;
-    std::cout << "sussix_v4.inp: " <<  *sussixInputFilePath << std::endl;
-
+		if (inpData.kick < 0) {
+			fprintf(stderr, "NO KICK FOUND\n");
+			exit(EXIT_FAILURE);
+		} else
+		printf("Found kick in turn:%d\n", inpData.kick + 1); /*Natural count */
+	}
+	if (inpData.kick > 0) {
+		for (int i = 0; i < MAXPICK; i++) {
+			if (BPMs[i].pickedUp == true) {
+				for (int j = inpData.kick; j < inpData.turns; j++)
+					BPMs[i].tbtData[j - inpData.kick] = BPMs[i].tbtData[j];
+			}
+		}
+		inpData.turns -= inpData.kick;
+	}
+	printf(
+			"Turns to be processed after kick offset: %d BPMs[0].tbtdata[0]: %f \n",
+			inpData.turns, BPMs[0].tbtData[0]);
 }
 
 /* *****************  */
-/*    readDrivingTerms*/
+/*    readLineInDrivingTerms*/
 /* *****************  */
-bool readDrivingTerms(std::istream& drivingTermsFile, int *turns, std::string *path)
+bool readLineInDrivingTerms(std::istream& drivingTermsFile, int *turns, std::string *path)
 {
     /* This functions reads from the given FILE one line of this format:
      * <path to datafile> <int start turn> <int end turn>
@@ -744,28 +609,6 @@ bool readDrivingTerms(std::istream& drivingTermsFile, int *turns, std::string *p
     }
 
 	return true;
-}
-
-/* ***************** */
-/*    sussix_inp     */
-/* ***************** */
-void writeSussixInput(std::string sussixInputFilePath, const int turns, const double istun, const double tunex, const double tuney)
-{
-    std::ofstream sussixInputFile(sussixInputFilePath.c_str());
-
-    if(cannotOpenFile(sussixInputFilePath,'o')){
-        exit(EXIT_FAILURE);
-    }
-    sussixInputFile << "C" << std::endl << "C INPUT FOR SUSSIX_V4 ---17/09/1997---" << std::endl << "C DETAILS ARE IN THE MAIN PROGRAM SUSSIX_V4.F\n";
-    sussixInputFile << "C" << std::endl << std::endl;
-    sussixInputFile << "ISIX  = 0" << std::endl << "NTOT  = 1" << std::endl << "IANA  = 1" << std::endl << "ICONV = 0" << std::endl;
-    sussixInputFile << std::scientific << "TURNS = 1 " << turns << std::endl << "NARM  = 300" << std::endl << "ISTUN = 1 " << istun << ' ' << istun << std::endl;
-    sussixInputFile << std::scientific << "TUNES = " << tunex << ' ' << tuney << " .07" << std::endl << "NSUS  = 0" << std::endl << "IDAM  = 2" << std::endl << "NTWIX = 1" << std::endl;
-    sussixInputFile << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 4" << std::endl << "EPS   = 2D-3" << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
-    sussixInputFile << "NLINE = 0" << std::endl << "L,M,K = " << std::endl << "IDAMX = 1" << std::endl << "NFIN  = 500" << std::endl;
-    sussixInputFile << "ISME  = 0" << std::endl << "IUSME = 200" << std::endl << "INV   = 0" << std::endl << "IINV  = 250" << std::endl;
-    sussixInputFile << "ICF   = 0" << std::endl << "IICF  = 350" << std::endl;
-    sussixInputFile.close();
 }
 
 /************   BPMstatus *************/
@@ -871,7 +714,38 @@ bool BPMstatus(const int plane, const int turns)
     return true;
 }
 
-bool cannotOpenFile(std::string filePath,char type){
+//======================================================================================================================
+// IoHelper definitions
+//======================================================================================================================
+void IoHelper::getAndCheckFilePaths(std::string *drivingTermsFilePath, std::string *driveInputFilePath, const char * cmdinput){
+
+    workingDirectoryPath = cmdinput;
+
+    std::cout << "Working directory path: " << workingDirectoryPath << std::endl;
+
+    if(cannotOpenFile(workingDirectoryPath,'i') && OS == "linux"){ //Always fails to open in windows
+        exit(EXIT_FAILURE);
+    }
+    std::cout << "\nWorking directory: " << workingDirectoryPath << std::endl;
+
+
+    *drivingTermsFilePath = workingDirectoryPath+"/DrivingTerms";
+    *driveInputFilePath = workingDirectoryPath+"/Drive.inp";
+    sussixInputFilePath = workingDirectoryPath+"/sussix_v4.inp";
+
+    //check the input files drivingTermsFilePath and Drive.inp
+
+    if(cannotOpenFile(*drivingTermsFilePath,'i')
+    || cannotOpenFile(*driveInputFilePath,'i') || cannotOpenFile(sussixInputFilePath,'o')){
+        exit(EXIT_FAILURE);
+    }
+    std::cout << "DrivingTerms: " <<  *drivingTermsFilePath << std::endl;
+    std::cout << "Drive.inp: " <<  *driveInputFilePath << std::endl;
+    std::cout << "sussix_v4.inp: " <<  sussixInputFilePath << std::endl;
+}
+
+
+bool IoHelper::cannotOpenFile(std::string filePath,char type){
     bool failure;
     if(type == 'o')
         failure = outputFileCheck(filePath);
@@ -885,24 +759,42 @@ bool cannotOpenFile(std::string filePath,char type){
         return failure;
 }
 
-bool inputFileCheck(std::string filePath){
+bool IoHelper::inputFileCheck(std::string filePath){
     std::ifstream file(filePath.c_str());
     bool failure = file.fail();
     file.close();
     return failure;
 }
 
-bool outputFileCheck(std::string filePath){
+bool IoHelper::outputFileCheck(std::string filePath){
     std::ofstream file(filePath.c_str());
     bool failure = file.fail();
     file.close();
     return failure;
 }
 
+void IoHelper::writeSussixInputFile(const int turns, const double istun, const double tunex, const double tuney)
+{
+    std::ofstream sussixInputFile(sussixInputFilePath.c_str());
+    if(IoHelper::cannotOpenFile(sussixInputFilePath,'o')){
+        exit(EXIT_FAILURE);
+    }
+    sussixInputFile << "C" << std::endl << "C INPUT FOR SUSSIX_V4 ---17/09/1997---" << std::endl << "C DETAILS ARE IN THE MAIN PROGRAM SUSSIX_V4.F\n";
+    sussixInputFile << "C" << std::endl << std::endl;
+    sussixInputFile << "ISIX  = 0" << std::endl << "NTOT  = 1" << std::endl << "IANA  = 1" << std::endl << "ICONV = 0" << std::endl;
+    sussixInputFile << std::scientific << "TURNS = 1 " << turns << std::endl << "NARM  = 300" << std::endl << "ISTUN = 1 " << istun << ' ' << istun << std::endl;
+    sussixInputFile << std::scientific << "TUNES = " << tunex << ' ' << tuney << " .07" << std::endl << "NSUS  = 0" << std::endl << "IDAM  = 2" << std::endl << "NTWIX = 1" << std::endl;
+    sussixInputFile << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 4" << std::endl << "EPS   = 2D-3" << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
+    sussixInputFile << "NLINE = 0" << std::endl << "L,M,K = " << std::endl << "IDAMX = 1" << std::endl << "NFIN  = 500" << std::endl;
+    sussixInputFile << "ISME  = 0" << std::endl << "IUSME = 200" << std::endl << "INV   = 0" << std::endl << "IINV  = 250" << std::endl;
+    sussixInputFile << "ICF   = 0" << std::endl << "IICF  = 350" << std::endl;
+    sussixInputFile.close();
+}
+
 /**
  * Restructures x_lin* file. Brings the descriptors(lines starting with '@') to the top of the file.
  */
-void formatLinFile(std::string linFilePath,
+void IoHelper::formatLinFile(std::string linFilePath,
         const int tunecount, const double tunesum, const double tune2sum, const int nattunecount, const double nattunesum, const double nattune2sum, int plane_index) {
 
     std::string tempFilePath, temp_str, fileHolder[MAXPICK];
@@ -966,4 +858,161 @@ void formatLinFile(std::string linFilePath,
         rename(tempFilePath.c_str(), linFilePath.c_str());
         std::cout <<  linFilePath << ":\ntune: \n  sum: " << tunesum << ", count: " << tunecount << ", sum2: " << tune2sum << ", \nnatural tune: \n  sum:" << nattunesum << ", count:" << nattunecount << ", sum2:" << nattune2sum << std::endl;
     }
+}
+
+
+//======================================================================================================================
+// Inputdata definitions
+//======================================================================================================================
+void InputData::initAndReadInputValues(std::string& driveInpFilePath){ //initializes all input data to 0 except for natural tunes which have default value defined
+        istun = kper = tunex = tuney = windowa1 = windowa2 = windowb1 = windowb2 = 0.0;
+        turns = pickStart = pickEnd = kcase = kick = labelrun = 0;
+        nattunex = nattuney = NATTUNE_DEFAULT;
+
+        //Reads input data from Drive.inp into global InpData class
+        this->readInputDataFromFileDriveInp(driveInpFilePath);
+
+        //Checks tune_x/y, kcase, kick, labelrun, pickend, and pickend
+        this->check_inp_data();
+    }
+
+
+void InputData::check_inp_data(){
+
+   this->check_tune(this->tunex,'x');
+   this->check_tune(this->tuney,'y');
+
+   if (this->kick >= 0)
+	   printf("Known kick in turn %d\n", this->kick + 1);
+   if (this->kcase == 1)
+	   printf("Horizontal case\n");
+   else if (this->kcase == 0)
+	   printf("Vertical case\n");
+   else {
+	   fprintf(stderr, "No proper kcase in Drive.inp\n");
+	   exit(EXIT_FAILURE);
+   }
+
+   if (this->labelrun == 1)
+	   printf("\n LABELRUN: NOISE FILES WILL BE WRITTEN TO NOISEPATH\n");
+
+   printf("pickStart: %d, pickEnd: %d\n", this->pickStart, this->pickEnd);
+   if (this->pickStart < 0 || this->pickStart > this->pickEnd || this->pickStart > MAXPICK) {
+	   fprintf(stderr, "Bad value for pickStart. Must be >= 0 and < pickEnd and <= MAXPICK(=%d)\n", MAXPICK);
+	   exit(EXIT_FAILURE);
+   }
+}
+
+void InputData::check_tune(double& tuneValue, char plane){ //checks that magnitude of tune is less than 0.5, changes it by integer value until it is
+	int change;
+	if(tuneValue > 0.5 || tuneValue < -0.5){
+		change=0;
+		while(tuneValue > 0.5){
+			tuneValue -= 1;
+			change--;
+		}
+		while(tuneValue < -0.5){
+			tuneValue += 1;
+			change++;
+		}
+		std::cout << "tune_" << plane <<" input increased by " << change << ". Should be less than or equal to 0.5 in magnitude. New value is: " << tuneValue << std::endl;
+	}
+}
+
+void InputData::readInputDataFromFileDriveInp(std::string driveInputFilePath){
+	std::string temp_str;
+	std::ifstream driveInputFile;
+	unsigned int pos;
+	driveInputFile.open(driveInputFilePath.c_str());
+	while(!driveInputFile.rdstate()){
+		std::getline (driveInputFile, temp_str);
+		if((pos = temp_str.find("KICK=")) != std::string::npos)
+			this->kick = atoi(temp_str.substr(pos+strlen("KICK=")).c_str())-1;
+		if((pos = temp_str.find("CASE(1[H], 0[V])=")) != std::string::npos)
+			this->kcase = atoi(temp_str.substr(pos+strlen("CASE(1[H], 0[V])=")).c_str());
+		if((pos = temp_str.find("KPER(KICK PERCE.)=")) != std::string::npos)
+			this->kper = atof(temp_str.substr(pos+strlen("KPER(KICK PERCE.)=")).c_str());
+		if((pos = temp_str.find("TUNE X=")) != std::string::npos)
+			this->tunex = atof(temp_str.substr(pos+strlen("TUNE X=")).c_str());
+		if((pos = temp_str.find("TUNE Y=")) != std::string::npos)
+			this->tuney = atof(temp_str.substr(pos+strlen("TUNE Y=")).c_str());
+		if((pos = temp_str.find("PICKUP START=")) != std::string::npos)
+			this->pickStart = atoi(temp_str.substr(pos+strlen("PICKUP START=")).c_str());
+		if((pos = temp_str.find("PICKUP END=")) != std::string::npos)
+			this->pickEnd = atoi(temp_str.substr(pos+strlen("PICKUP END=")).c_str());
+		if((pos = temp_str.find("ISTUN=")) != std::string::npos)
+			this->istun = atof(temp_str.substr(pos+strlen("ISTUN=")).c_str());
+		if((pos = temp_str.find("LABEL RUN (1[yes])=")) != std::string::npos)
+			this->labelrun = atoi(temp_str.substr(pos+strlen("LABEL RUN (1[yes])=")).c_str());
+		if((pos = temp_str.find("WINDOWa1=")) != std::string::npos)
+			this->windowa1 = atof(temp_str.substr(pos+strlen("WINDOWa1=")).c_str());
+		if((pos = temp_str.find("WINDOWa2=")) != std::string::npos)
+			this->windowa2 = atof(temp_str.substr(pos+strlen("WINDOWa2=")).c_str());
+		if((pos = temp_str.find("WINDOWb1=")) != std::string::npos)
+			this->windowb1 = atof(temp_str.substr(pos+strlen("WINDOWb1=")).c_str());
+		if((pos = temp_str.find("WINDOWb2=")) != std::string::npos)
+			this->windowb2 = atof(temp_str.substr(pos+strlen("WINDOWb2=")).c_str());
+		if((pos = temp_str.find("NATURAL X=")) != std::string::npos)
+			this->nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
+		if((pos = temp_str.find("NATURAL Y=")) != std::string::npos)
+			this->nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
+	}
+	driveInputFile.close();
+}
+
+//======================================================================================================================
+// OutFilesHandler definitions
+//======================================================================================================================
+OutFilesHandler::OutFilesHandler(std::string &dataFilePath){
+	std::cout << "Data file: " << dataFilePath << std::endl;
+
+	std::string bpmFileName = dataFilePath.substr(dataFilePath.rfind('/',dataFilePath.size()-2)+1);
+
+	std::cout << "bpmFileName: " << bpmFileName << std::endl;
+
+	std::string noiseFilePath = IoHelper::workingDirectoryPath+'/'+bpmFileName+"_noise";
+	linxFilePath = IoHelper::workingDirectoryPath+'/'+bpmFileName+"_linx";
+	linyFilePath = IoHelper::workingDirectoryPath+'/'+bpmFileName+"_liny";
+
+	rejectedBpmsFileX.open((IoHelper::workingDirectoryPath+'/'+bpmFileName+"_rejectedBpms_x").c_str());
+	rejectedBpmsFileX << "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n";
+	rejectedBpmsFileX << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le   %le     %le  %le    %le   %le     %le    %le      %le   %le     %le   %le     %le     %le\n";
+	rejectedBpmsFileY.open((IoHelper::workingDirectoryPath+'/'+bpmFileName+"_rejectedBpms_y").c_str());
+	rejectedBpmsFileY << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
+	rejectedBpmsFileY << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le       %le\n";
+
+	if (inpData.labelrun == 1) {
+		noiseFilePath = IoHelper::workingDirectoryPath+'/'+bpmFileName+"_bpm_noise";
+		noiseFile.open(noiseFilePath.c_str());
+		if(IoHelper::cannotOpenFile(noiseFilePath,'o')){
+			exit(EXIT_FAILURE);
+		}
+	}
+	if(IoHelper::cannotOpenFile(linxFilePath,'o') || IoHelper::cannotOpenFile(linyFilePath,'o')){
+		exit(EXIT_FAILURE);
+	}
+	linxFile.open(linxFilePath.c_str());
+	linxFile << "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n";
+	linxFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le   %le     %le  %le    %le   %le     %le    %le      %le   %le     %le   %le     %le     %le\n";
+	linyFile.open(linyFilePath.c_str());
+	linyFile << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
+	linyFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le       %le\n";
+}
+
+OutFilesHandler::~OutFilesHandler() {
+	rejectedBpmsFileX.close();
+	rejectedBpmsFileY.close();
+	linxFile.close();
+	linyFile.close();
+	if (inpData.labelrun == 1)
+		noiseFile.close();
+}
+
+inline void writeLineIntoLinXFile(OutFilesHandler& filesHandler, int& horizontalBpmIndex){
+	filesHandler.linxFile <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmName << "\" " << BPMs[horizontalBpmIndex].bpmPos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedUp << ' ' << tune[0] << ' ' <<
+			phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
+			phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
+			phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
+			phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' << calculatednatampx << std::endl;
+
 }
