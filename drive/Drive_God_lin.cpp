@@ -99,6 +99,7 @@ bool cannotOpenFile(std::string,char);
 bool inputFileCheck(std::string);
 bool outputFileCheck(std::string);
 
+
 class InputData{
 public:
     double  istun, kper, tunex, tuney, windowa1, windowa2, windowb1, windowb2, nattunex, nattuney;
@@ -228,9 +229,9 @@ struct BPM{ /*Structure for each BPM- has name, position, plane, if it's pickedu
 
 int main(int argc, char **argv)
 {
-	int loopcounter = 0;
     std::ifstream driveInputFile, drivingTermsFile, dataFile;
     std::string workingDirectoryPath, drivingTermsFilePath, driveInputFilePath, sussixInputFilePath, dataFilePath;
+
     #ifdef _WIN32 /*Changes minor formatting difference in windows regarding the output of a number in scientific notation.*/
         _set_output_format(_TWO_DIGIT_EXPONENT);
     #endif
@@ -255,11 +256,11 @@ int main(int argc, char **argv)
 
     drivingTermsFile.open(drivingTermsFilePath.c_str());
     if(cannotOpenFile(drivingTermsFilePath,'i')){
-        std::cout << "Leaving drive due to error" << std::endl;
         exit(EXIT_FAILURE);
     }
 
     /* From drivingTermsFilePath assign dataFilePath, assign turns. */
+	int loopcounter = 0;
     while (readDrivingTerms(drivingTermsFile, &(inpData.turns), &dataFilePath)) {
         /* set all values to be calculated to default values */
         tuneCalcData.init_calc_values();
@@ -273,7 +274,7 @@ int main(int argc, char **argv)
     drivingTermsFile.close();
 
     if (loopcounter == 0)
-        std::cout << "Drivingterms file has bad input, no data ever read\n";
+        std::cerr << "Drivingterms file has bad input, no data ever read\n";
 
     return EXIT_SUCCESS;
 }
@@ -310,13 +311,11 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 		noiseFilePath = workingDirectoryPath+'/'+bpmFileName+"_noise";
 		noiseFile.open(noiseFilePath.c_str());
 		if(cannotOpenFile(noiseFilePath,'o')){
-			std::cerr << "Leaving drive due to error" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 	}
 
 	if(cannotOpenFile(linxFilePath,'o') || cannotOpenFile(linyFilePath,'o')){
-		std::cerr << "Leaving drive due to error" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -454,7 +453,6 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 					std::string spectrumFilePath = workingDirectoryPath+'/'+BPMs[i].bpmname+".x";
 					spectrumFile.open(spectrumFilePath.c_str());
 					if(cannotOpenFile(spectrumFilePath,'o')){
-						std::cout << "Leaving drive due to error" << std::endl;
 						exit(EXIT_FAILURE);
 					}
 					spectrumFile << "* FREQ AMP\n$ %le %le\n";
@@ -497,7 +495,6 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 					std::string spectrumFilePath = workingDirectoryPath+'/'+BPMs[verticalBpmIndex].bpmname+".y";
 					spectrumFile.open(spectrumFilePath.c_str());
 					if(cannotOpenFile(spectrumFilePath,'o')){
-						std::cout << "Leaving drive due to error" << std::endl;
 						exit(EXIT_FAILURE);
 					}
 					spectrumFile << "* FREQ AMP\n$ %le %le\n";
@@ -534,7 +531,10 @@ void harmonicAnalyseForSingleTbtDataFile(std::string &dataFilePath, std::string&
 }
 
 /**
- * Reads the turn-by-turn file and stores each BPM into struct array BPMs
+ * Reads the turn-by-turn file and stores each BPM into struct array BPMs.
+ * @param maxOfHorBpmsAndVerBpms: 1 + max(numOfReadHorBpms, numOfReadVerBpms)
+ * @param lastUsedIndexHor: The last used index of horizontal BPMs in BPMs struct array will be stored here
+ * @param lastUsedIndexVer: The last used index of vertical BPMs in BPMs struct array will be stored here
  */
 void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int& lastUsedIndexHor, int& lastUsedIndexVer) {
 	for (int i = 0; i < MAXPICK; i++)
@@ -690,7 +690,6 @@ void get_and_check_file_paths(std::string *workingDirectoryPath, std::string *dr
     std::cout << *workingDirectoryPath << std::endl;
 
     if(cannotOpenFile(*workingDirectoryPath,'i') && OS == "linux"){ //Always fails to open in windows
-        std::cout << "Leaving drive due to error" << std::endl;
         exit(EXIT_FAILURE);
     }
     std::cout << "\nWorking directory: " << *workingDirectoryPath << std::endl;
@@ -704,7 +703,6 @@ void get_and_check_file_paths(std::string *workingDirectoryPath, std::string *dr
 
     if(cannotOpenFile(*drivingTermsFilePath,'i')
     || cannotOpenFile(*driveInputFilePath,'i') || cannotOpenFile(*sussixInputFilePath,'o')){
-        std::cout << "Leaving drive due to error" << std::endl;
         exit(EXIT_FAILURE);
     }
     std::cout << "DrivingTerms: " <<  *drivingTermsFilePath << std::endl;
@@ -756,7 +754,6 @@ void writeSussixInput(std::string sussixInputFilePath, const int turns, const do
     std::ofstream sussixInputFile(sussixInputFilePath.c_str());
 
     if(cannotOpenFile(sussixInputFilePath,'o')){
-        std::cout << "Leaving drive due to error: " << std::endl;
         exit(EXIT_FAILURE);
     }
     sussixInputFile << "C" << std::endl << "C INPUT FOR SUSSIX_V4 ---17/09/1997---" << std::endl << "C DETAILS ARE IN THE MAIN PROGRAM SUSSIX_V4.F\n";
@@ -881,7 +878,7 @@ bool cannotOpenFile(std::string filePath,char type){
     else
         failure = inputFileCheck(filePath);
     if(failure){
-        std::cout << "Failed to open file " << filePath << std::endl;
+        std::cerr << "Failed to open file " << filePath << std::endl;
         return failure;
         }
     else
@@ -902,6 +899,9 @@ bool outputFileCheck(std::string filePath){
     return failure;
 }
 
+/**
+ * Restructures x_lin* file. Brings the descriptors(lines starting with '@') to the top of the file.
+ */
 void formatLinFile(std::string linFilePath,
         const int tunecount, const double tunesum, const double tune2sum, const int nattunecount, const double nattunesum, const double nattune2sum, int plane_index) {
 
@@ -916,7 +916,7 @@ void formatLinFile(std::string linFilePath,
         tempFilePath = linFilePath+"_temp";
         tempFile.open(tempFilePath.c_str());
         if(cannotOpenFile(tempFilePath,'o')){
-            std::cout << "Leaving drive due to error" << std::endl;
+            std::cerr << "Leaving drive due to error" << std::endl;
             exit(EXIT_FAILURE);
         }
         tempFile << std::scientific << "@ Q" << plane_index << " %le " << tunesum / tunecount << "\n@ Q" << plane_index << "RMS %le " << sqrt(tune2sum / tunecount - (tunesum / tunecount) * (tunesum / tunecount)) << std::endl;
@@ -926,7 +926,6 @@ void formatLinFile(std::string linFilePath,
         /*Gets linFile to read*/
         linFile.open(linFilePath.c_str());
         if(cannotOpenFile(linFilePath,'i')){
-            std::cout << "Leaving drive due to error" << std::endl;
             exit(EXIT_FAILURE);
         }
 
