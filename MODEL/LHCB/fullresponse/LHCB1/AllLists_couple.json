@@ -1,4 +1,8 @@
 {
+  "coupling_knobs": [
+    "b1_re_ip1_knob",  
+    "b1_im_ip1_knob"
+  ], 
   "MQS": [
     "kqs.r1l2b1", 
     "kqs.a23b1", 
@@ -7,7 +11,7 @@
     "kqs.a67b1", 
     "kqs.r7l8b1", 
     "kqs.a81b1"
-  ], 
+  ],
   "MQSORG": [
     "kqs.r1b1", 
     "kqs.l2b1", 
