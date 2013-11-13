@@ -3,17 +3,17 @@ r"""
 
 Created on ??
 
-Single beam correction of chromatic coupling using skew sextupoles at dispersive locations. 
+Single beam correction of chromatic coupling using skew sextupoles at dispersive locations.
 TODO: get better description (vimaier)
 
 Usage example::
 
-    python correct_ChromCoup.py --accel=LHCB1 
-                                --Variables=kss 
-                                --rpath=/afs/cern.ch/work/v/vimaier/public/Beta-Beat.src 
-                                --modelcut=100,100 
-                                --MinStr=0.000001 
-                                --path=/afs/cern.ch/work/v/vimaier/public/Beta-Beat.src/Correction/test/chrom_coup/data/input/run2 
+    python correct_ChromCoup.py --accel=LHCB1
+                                --Variables=kss
+                                --rpath=/afs/cern.ch/work/v/vimaier/public/Beta-Beat.src
+                                --modelcut=100,100
+                                --MinStr=0.000001
+                                --path=/afs/cern.ch/work/v/vimaier/public/Beta-Beat.src/Correction/test/chrom_coup/data/input/run2
                                 --errorcut=20,20
                                 --Dy=1,1,0,0,0
                                 --cut=0.01
@@ -54,6 +54,8 @@ import sys
 import pickle
 import re
 from optparse import OptionParser
+import json
+
 
 import __init__ # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
@@ -71,7 +73,7 @@ PRINT_DEBUG = False or sys.flags.debug  # If True, internal debug information wi
 #===================================================================================================
 def _parse_args():
     ''' Parses the arguments, checks for valid input and returns tupel '''
-    
+
     parser = OptionParser()
     parser.add_option("-a", "--accel",
                      help="What accelerator: LHCB1 LHCB2 SPS RHIC",
@@ -125,15 +127,15 @@ def main(
          ):
 
     _InputData.static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength, weights_on_corrections, path_to_optics_files_dir, variables)
-    
+
     print "Start Correcting chromcouple "
-    
+
     _generate_changeparameters_couple_file()
-    
-    print "handling data" 
+
+    print "handling data"
     if "LHC" in accel:
-        _create_changeparameters_madx_script_for_lhc() 
-    
+        _create_changeparameters_madx_script_for_lhc()
+
     print "Correcting chrom couple finished "
 
 
@@ -145,16 +147,14 @@ def _generate_changeparameters_couple_file():
     print "Starting loading Full Response optics"
     full_response = pickle.load(open(os.path.join(_InputData.path_to_optics_files_dir,"FullResponse_chromcouple"), "rb"))
     print "Loading ended"
-    
-    path_all_lists_script = os.path.join(_InputData.accel_path, "AllLists_chromcouple.py")
-    execfile(path_all_lists_script)
-    print path_all_lists_script + " executed"
+
+    path_all_lists_json_file = os.path.join(_InputData.accel_path, "AllLists_chromcouple.json")
+    knobsdict = json.load(file(path_all_lists_json_file, 'r'))
+    print "Loaded json file: " + path_all_lists_json_file
     varslist=[]
     for var in _InputData.variables_list:
-        variable = None # Will be assigned in following awful command (vimaier)
-        exec('variable='+var+'()')
-        varslist=varslist+variable
-    
+        varslist = varslist + knobsdict[var]
+
     couple_twiss = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "chromcoupling.out"))
     mad_twiss=full_response['0']
     mad_twiss.Cmatrix()
@@ -163,19 +163,19 @@ def _generate_changeparameters_couple_file():
     if 0 == len(couple_list):
         print >> sys.stderr, "No valid BPM measurements, maybe your model-/errorcuts are too strict?"
         sys.exit(1)
-    
+
     print "entering chromcouple input",len(couple_list)
     chromcouple_inp = Python_Classes4MAD.GenMatrix_chromcouple.chromcouple_input(varslist, couple_list, _InputData.weights_list)
     print "computing the sensitivity matrix"
     sensitivity_matrix=chromcouple_inp.computeSensitivityMatrix(full_response) # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
-    
+
     print "computing correct coupling "
     [deltas, varslist ] = Python_Classes4MAD.GenMatrix_chromcouple.correctcouple(
                                     couple_twiss, chromcouple_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path
                                     )
     print "deltas:", deltas
-    
-    
+
+
 def _create_changeparameters_madx_script_for_lhc():
     #.knob should always exist to be sent to LSA!
     #TODO: check if gui sends changeparameters_chromcouple.knob or changeparameters_couple.knob(vimaier)
@@ -196,8 +196,8 @@ def _create_changeparameters_madx_script_for_lhc():
 
     mad_script.write("return;");
     mad_script.close()
-    
-    
+
+
 #=======================================================================================================================
 # helper class for script arguments
 #=======================================================================================================================
@@ -238,7 +238,7 @@ class _InputData(object):
             raise ValueError("Given path to optics files does not exist: "+path_to_optics_files_dir)
         _InputData.path_to_optics_files_dir = path_to_optics_files_dir
         _InputData.variables_list = variables.split(",")
-        
+
         if PRINT_DEBUG:
             _InputData.print_input_data()
 
