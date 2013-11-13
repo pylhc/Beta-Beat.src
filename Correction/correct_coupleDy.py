@@ -19,7 +19,7 @@ Usage example::
                                 --Dy=1,1,0,0,1
                                 --opt=C:\MyTemp\correct_coupleDy_out\
                                 --Variables=coupling_knobs
-                                
+
 Hint: MinStr is not used in the script except of a print. The reason is possibly the author wanted to have the same set
 of arguments for all correction scripts due to GUI compatibility(vimaier).
 
@@ -55,6 +55,7 @@ import pickle
 import os
 import optparse
 import re
+import json
 
 import numpy
 
@@ -131,7 +132,7 @@ def main(
     _InputData.static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength, weights_on_corrections, path_to_optics_files_dir, variables)
 
     print "Start Correcting couple Dy"
-    
+
     _generate_changeparameters_couple_file()
 
     print "handling data"
@@ -155,13 +156,12 @@ def _generate_changeparameters_couple_file():
 
     disp_y = _get_dispersion_y_if_set_and_available()
 
-    execfile(os.path.join(_InputData.accel_path, "AllLists_couple.py"))
-    print os.path.join(_InputData.accel_path, "AllLists_couple.py") + " executed"
+    path_all_lists_json_file = os.path.join(_InputData.accel_path, "AllLists_couple.json")
+    knobsdict=json.load(file(path_all_lists_json_file, 'r'))
+    print "Loaded json file: " + path_all_lists_json_file
     varslist = []
     for var in _InputData.variables_list:
-        variable = None # Will be assigned in following awful command (vimaier)
-        exec('variable=' + var + '()') # this is completely awful. You should never ever do such things, whoever it was :/ (tbach)
-        varslist = varslist + variable
+        varslist = varslist + knobsdict[var]
 
     couple_twiss = _get_twiss_instance_of_getcouple()
     _InputData.model_cut_c = _calculate_automatic_model_cut_if_desired(couple_twiss)
@@ -184,8 +184,8 @@ def _generate_changeparameters_couple_file():
     print "computing correct coupling "
     [deltas, varslist ] = GenMatrix_coupleDy.correctcouple(couple_twiss, disp_y, couple_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path)
     print "deltas:", deltas
-    
-    
+
+
 def _get_twiss_instance_of_getcouple():
     """ Loads either getcouple_free.out or getcouple.out or raises an Exception """
     file_path_free = os.path.join(_InputData.output_path, "getcouple_free.out")
@@ -304,11 +304,11 @@ def _handle_data_for_lhc():
 
     mad_script.write("return;")
     mad_script.close()
-    
-    
+
+
 #=======================================================================================================================
 # helper class for script arguments
-#=======================================================================================================================    
+#=======================================================================================================================
 class _InputData(object):
     """ Static class to access user input parameter. Necessary parameters will be checked. """
     output_path = ""
@@ -346,7 +346,7 @@ class _InputData(object):
             raise ValueError("Given path to optics files does not exist: "+path_to_optics_files_dir)
         _InputData.path_to_optics_files_dir = path_to_optics_files_dir
         _InputData.variables_list = variables.split(",")
-        
+
         if PRINT_DEBUG:
             _InputData.print_input_data()
 
@@ -410,7 +410,7 @@ class _InputData(object):
 
     def __init__(self):
         raise NotImplementedError("static class _InputData cannot be instantiated")
-    
+
 
 #=======================================================================================================================
 # main invocation

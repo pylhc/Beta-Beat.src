@@ -36,6 +36,8 @@ TODOs for the script would be:
 import pickle
 import sys
 import os
+import json
+
 
 new_path = os.path.abspath(os.path.join( os.path.dirname(os.path.abspath(__file__)), "..", "..", "Python_Classes4MAD" ))
 if new_path not in sys.path:
@@ -498,17 +500,21 @@ runMAD=options.mad+' < '+options.path+'/job.iterative.correction.madx > out.mou'
 if j==1:
     runMAD2=options.mad+' < '+options.path2+'/job.iterative.correction.madx > out.mou'
 # import knobs list
-execfile(options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL+'/AllLists.py')
+path_to_json_file = os.path.join(options.rpath, "MODEL", "LHCB", "fullresponse", options.ACCEL, "AllLists.json")
+knobsdict=json.load(file(path_to_json_file,'r'))
 if j==1:
-    execfile(options.rpath+'/MODEL/LHCB/fullresponse/'+options.ACCEL2+'/AllLists.py')
+    path_to_json_file = os.path.join(options.rpath, "MODEL", "LHCB", "fullresponse", options.ACCEL2, "AllLists.json")
+    knobsdict=json.load(file(path_to_json_file,'r'))
+    #TODO: overrides knobsdict reference of first options.ACCEL. Seems not to be correct.
+    # AllLists have same keys but different values. A union of both dicts seems to be the solution
+    # -- vimaier
 
 
 listvar=options.var.split(",")
 print listvar
 varlist=[]
 for var in listvar:
-
-    exec('variable='+var+'()')
+    variable=knobsdict[var]
     varlist=varlist+variable
 
 
