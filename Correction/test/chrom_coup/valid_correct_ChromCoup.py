@@ -2,6 +2,7 @@
 #--- beta beat for store with numpy
 
 import pickle
+import json
 
 import os,shutil
 
@@ -106,16 +107,14 @@ couple = Python_Classes4MAD.metaclass.twiss(os.path.join(options.path,'chromcoup
 weights=options.Dy.split(',')
 
 
-
-execfile(accelpath+'/AllLists_chromcouple.py')
-print accelpath+'/AllLists_chromcouple.py'
+path_all_lists_json_file = os.path.join(accelpath, "AllLists_chromcouple.json")
+knobsdict = json.load(file(path_all_lists_json_file, 'r'))
+print "Loaded json file: " + path_all_lists_json_file
 listvar=options.var.split(",")
 print listvar
 varslist=[]
 for var in listvar:
-
-    exec('variable='+var+'()')
-    varslist=varslist+variable
+    varslist = varslist + knobsdict[var]
 
 variables=varslist
 

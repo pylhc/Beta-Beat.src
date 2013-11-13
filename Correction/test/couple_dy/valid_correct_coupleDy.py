@@ -6,6 +6,7 @@ import sys
 import pickle
 import os
 import optparse
+import json
 
 import numpy
 import __init__ # @UnusedImport init will include paths
@@ -131,13 +132,13 @@ dispy = []
 if weights[4] == "1":
     dispy = metaclass.twiss(options.path + '/getDy.out')
 
-execfile(accelpath + '/AllLists_couple.py')
-print accelpath + '/AllLists_couple.py executed'
+path_all_lists_json_file = os.path.join(accelpath, "AllLists_couple.json")
+knobsdict=json.load(file(path_all_lists_json_file, 'r'))
+print "Loaded json file: " + path_all_lists_json_file
 listvar = options.var.split(",")
 varslist = []
 for var in listvar:
-    exec('variable=' + var + '()') # this is completely awful. You should never ever do such things, whoever it was :/ (tbach)
-    varslist = varslist + variable
+    varslist = varslist + knobsdict[var]
 
 MADTwiss = FullResponse['0']
 MADTwiss.Cmatrix()
