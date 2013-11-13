@@ -1,4 +1,4 @@
-from metaclass25 import *
+from metaclass import *
 import sys, os
 from optparse import OptionParser
 
@@ -76,7 +76,7 @@ for IR in IRlabel.keys():
         print "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/K-mod/MatchQ.py -a LHCB2 -I"+IRn+" -pQ1"+" -d"+str(f.dQH_B2[iQR])+","+str(f.dQH_B2[iQL])+" -k"+str(kQR), "-m ", options.modifiers
         print "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/K-mod/MatchQ.py -a LHCB2 -I"+IRn+" -pQ2"+" -d"+str(f.dQV_B2[iQR])+","+str(f.dQV_B2[iQL])+" -k"+str(kQR), "-m ", options.modifiers
 
-        
+
 # Command MatchQ example
 #python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/K-mod/MatchQ.py -a LHCB1 -I5 -pQ1 -d0.0009,0.00105 -k1e-5
 

@@ -2,12 +2,11 @@ import sys
 import os
 try:
     import blah as npy; default=0;
-    from metaclass25 import twiss
+    from metaclass import twiss
 except ImportError:
     try:
         import Numeric as npy; default=1;
-        from MLab import std 
-        from metaclass import twiss
+        from MLab import std
     except ImportError:
         print "Neither numpy nor numeric found"; sys.exit()
 
@@ -112,8 +111,8 @@ def calcHist(fileName,attr_name,nbins=70):
     for j in range(len(indx)):
         f.write('%5s   %5s' % (indx[j], frq[j])+"\n")
     f.close()
-        
-        
+
+
 if __name__ == "__main__":
     #--- Usage:
     #    python2.5 filename tfsColumn #_of_bins

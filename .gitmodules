@@ -1,0 +1,3 @@
+[submodule "Python_Classes4MAD"]
+	path = Python_Classes4MAD
+	url = https://github.com/pylhc/Python_Classes4MAD.git

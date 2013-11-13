@@ -1,0 +1,52 @@
+title,      "Full response for java";
+
+option, -echo, -info,  warn;
+System,"test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"test -e ats || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+
+option, -echo, -info,  warn;
+!call,   file = "db5/V6.5.seq";  ! Ideal
+call,   file = "db5/as-built/V6.5.seq";       
+call,   file = "%(BB_SRC)s/MODEL/LHCB/fullresponse/test/data/input/run_b2/modifiers.madx";	
+call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+
+
+seqedit, sequence=LHCB1;
+flatten;               
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+seqedit, sequence=LHCB2;
+flatten;
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+option,  echo,  info,  warn;
+
+beam, sequence=LHCB1,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=1;
+beam, sequence=LHCB2,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=-1;
+
+
+use, period=LHCB2;
+
+!  set switches to 1 if crossing scheme is required
+on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
+on_alice:= 0; on_lhcb := 0;
+
+
+! call,file="%(BB_SRC)s/MODEL/LHCB/model/matcher.madx";
+! use, period=LHCB2;
+
+
+!!! for ATS MD
+!call,file="%(BB_SRC)s/MODEL/LHCB/fullresponse/skew_quad.madx";
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="BPM.*\.B2", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
+
+call, file="%(BB_SRC)s/MODEL/LHCB/tools/LHCB2_coupling_knob.madx";
+call, file="%(BB_SRC)s/MODEL/LHCB/fullresponse/test/data/input/run_b2/iter.madx";
+
+
+stop;

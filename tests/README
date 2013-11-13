@@ -1,0 +1,9 @@
+getsuper tests:
+ - getsuper_b1_acdata: Unsure about origin, some ac dipole data from 2011..
+
+ - getsuper_b2_kickdata: MKQ kick data from 15. of March 2013. This was done at injection.
+                         The data analysed are after corrections were applied.
+                         More info can be found in
+                         /afs/cern.ch/eng/sl/lintrack/LHC_commissioning2012/EXP_15-3-2012_Injection/
+
+

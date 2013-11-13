@@ -1,7 +1,7 @@
 import sys, os
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 from optparse import OptionParser
-from metaclass25 import *
+from metaclass import *
 
 
 parser = OptionParser()
@@ -53,7 +53,7 @@ if options.FAST=="1":
     deltal=float(deltal)
     deltak=float(deltak)
     pi=3.1415926
-    
+
     q1r=abs(deltar/(deltak*6.37)*4*pi);
     q1l=abs(deltal/(deltak*6.37)*4*pi);
     betastar=2*26.15**2/(q1r+q1l);
@@ -62,7 +62,7 @@ if options.FAST=="1":
     print "beta"+XY+" @ q1r=",q1r
     print "beta"+XY+" @ q1l=",q1l
     sys.exit()
-    
+
 
 if start=="0":
     if accel=="LCHB1":

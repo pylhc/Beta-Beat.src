@@ -15,10 +15,7 @@ sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src///Numeric-23_p2.3/lib/python2.3/site-packages/Numeric/')
 
 
-try:
-	from metaclass import twiss
-except:
-	from metaclass25 import twiss
+from metaclass import twiss
 try:
 	from Numeric import *
 	from LinearAlgebra import *
@@ -36,13 +33,13 @@ from BCORR import *
 
 
 parser = OptionParser()
-parser.add_option("-a", "--accel", 
+parser.add_option("-a", "--accel",
 		 help="What accelerator: LHCB1 LHCB2 SPS RHIC",
 		 metavar="ACCEL", default="LHCB1",dest="ACCEL")
-parser.add_option("-t", "--tech", 
+parser.add_option("-t", "--tech",
 		 help="Which algorithm: SVD MICADO",
 		 metavar="TECH", default="SVD",dest="TECH")
-parser.add_option("-n", "--ncorr", 
+parser.add_option("-n", "--ncorr",
 		 help="Number of Correctors for MICADO",
 		 metavar="NCORR", default=5,dest="ncorr")
 parser.add_option("-p", "--path",
@@ -92,7 +89,7 @@ def  MakeBetaList(x, m, modelcut=40, errorcut=20):   # Errors are in meters (
 		bmdl="BETYMDL"
 		STD=x.STDBETY
 		BET=x.BETY
-		
+
     else:
 		bmdl="BETXMDL"
 		STD=x.STDBETX
@@ -140,7 +137,7 @@ else:
     print "Minimum corrector strength", MinStr
 
 ##### implementing cuts for
-    
+
 modelcut=float(options.modelcut.split(",")[0])
 errorcut=float(options.errorcut.split(",")[0])
 modelcutdx=float(options.modelcut.split(",")[1])
@@ -171,10 +168,10 @@ execfile(accelpath+'/AllLists.py')
 listvar=options.var.split(",")
 varslist=[]
 for var in listvar:
-    
+
     exec('variable='+var+'()')
     varslist=varslist+variable
-    
+
 
 intqx=int(FullResponse['0'].Q1)
 intqy=int(FullResponse['0'].Q2)
@@ -235,11 +232,11 @@ if options.TECH=="SVD":
             [deltas, varslist ] = correctbeatEXP(x,y,dx, beat_inp, cut=cut, app=0, path=options.path, xbet=xbet, ybet=ybet)
             print "Initial correctors:", il, ". Current: ",len(varslist), ". Removed for being lower than:", MinStr, "Iteration:", iteration
     print deltas
-    
-    
+
+
 if options.TECH=="MICADO":
     bNCorrNumeric(x,y,dx,beat_inp, cut=cut,ncorr=ncorr,app=0,path=options.path)
-    
+
 if options.ACCEL=="SPS":
 	b=twiss(options.path+"/changeparameters.tfs")
 	execfile(accelpath+'/Bumps.py')    # LOADS corrs
@@ -250,7 +247,7 @@ if options.ACCEL=="SPS":
         g=open(options.path+"/changeparameters.knob", "w")
         f.write("#PLANE H\n")
 	f.write("#UNIT RAD\n")
-	
+
         g.write("* NAME  DELTA \n")
         g.write("$ %s    %le   \n")
 	plane = 'H'
@@ -261,7 +258,7 @@ if options.ACCEL=="SPS":
                 print >>g, "K"+corr, corrs[corr]
 	f.close()
         g.close()
-        
+
 if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
     system("cp "+options.path+"/changeparameters.tfs "+options.path+"/changeparameters.knob")
 
@@ -282,4 +279,4 @@ if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
     mad.write("return;");
 
     mad.close()
-    
+

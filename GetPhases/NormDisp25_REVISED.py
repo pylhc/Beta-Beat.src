@@ -1,11 +1,11 @@
-from metaclass25 import *
+from metaclass import *
 from numpy import *
 from string import *
 import sys, pickle
 #import operator
 
 #------------
-def intersect(xx): 
+def intersect(xx):
 	'''Pure intersection of all bpm names in all files '''
 	z=xx[0].NAME
 	#print xx
@@ -15,8 +15,8 @@ def intersect(xx):
 	result=[]
 	x0=xx[0]
 	for bpm in z:
-		result.append((x0.S[x0.indx[bpm]], upper(bpm)))	
-		
+		result.append((x0.S[x0.indx[bpm]], upper(bpm)))
+
 	result.sort()
 	#print result
 	return result
@@ -28,7 +28,7 @@ x1=[]
 #---- Find index of python command in the system call
 i=0
 for entry in sys.argv:
-	if '.py' in entry: 
+	if '.py' in entry:
 		indpy=i
 		break
 	i=i+1
@@ -48,7 +48,7 @@ for i in range(indpy+3,len(sys.argv)):
 	file1=sys.argv[i]
 	x1.append(twiss(file1))
 	fx.write(file1+' ')
-	
+
 fx.write('\n')
 fx.write('* NAME   S      Norm_DX\n')
 fx.write('$ %s     %le    %le\n')
@@ -64,7 +64,7 @@ for i in range(0,len(x1)):
 		mydp.append(0.0)
 
 mydp=array(mydp)
-nzdpp=len(filter(lambda x: x!=0, mydp)) # How many non zero dpp 
+nzdpp=len(filter(lambda x: x!=0, mydp)) # How many non zero dpp
 wf=array(mydp)/sum(mydp) #Weitghs for the average
 zdpp=len(x1)-nzdpp  # How many zero dpp
 

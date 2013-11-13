@@ -1,0 +1,13 @@
+ndiff is a tool for comparing textfiles which include a lot of numbers.
+We use it for comparing output files in our scripts.
+
+This folder contains:
+	-linux dir: contains binary for linux 64bit
+	-windows dir: contains binary for win32
+	
+	-default.cfg: A default configuration file which is used by ndiff
+	-ignore_tfs_header.cfg: A configuration file which is used to compare tfs files without the descriptors at the top	
+
+See also the Python wrapper Utilities.ndiff.py
+Here is the official manual:
+https://cds.cern.ch/record/1574594

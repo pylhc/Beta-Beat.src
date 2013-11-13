@@ -9,10 +9,7 @@ except:
 import sys
 from os import system
 import math
-try:
-        from metaclass import twiss
-except:
-        from metaclass25 import twiss
+from metaclass import twiss
 import pickle
 #from AllLists import *
 

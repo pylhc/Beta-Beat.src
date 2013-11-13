@@ -5,28 +5,28 @@
 ## Usage python2.5 GetPhaseDisp25_V1.0.py <ouput path> <lin file1 w/o _lin> <lin file2 w/o _lin> ...
 
 
-from metaclass25 import *
+from metaclass import *
 from numpy import *
 import sys, pickle
 #import operator
 from string import *
 
 #------------
-def intersect(xx): 
+def intersect(xx):
 	'''Pure intersection of all bpm names in all files '''
 	if len(xx)==0:
 		print "Nothing to intersect!!!!"
 		exit()
 	z=xx[0].NAME
 	for b in xx:
-		z=filter(lambda x: x in z   , b.NAME)	
+		z=filter(lambda x: x in z   , b.NAME)
 		#print "len",len(z)
 	#SORT by S
 	result=[]
 	x0=xx[0]
 	for bpm in z:
-		result.append((x0.S[x0.indx[bpm]], bpm))	
-		
+		result.append((x0.S[x0.indx[bpm]], bpm))
+
 	result.sort()
 	return result
 
@@ -109,7 +109,7 @@ def ComputeNormDisp(MADTwiss, ListOfZeroDPPX, ListOfNonZeroDPPX):
 
 
 
-#-------- START 
+#-------- START
 x=[]
 y=[]
 
@@ -117,7 +117,7 @@ y=[]
 #-- Find index of python command in the system call
 i=0
 for entry in sys.argv:
-	if '.py' in entry: 
+	if '.py' in entry:
 		indpy=i
 		break
 	i=i+1
@@ -176,7 +176,7 @@ fx.write('\n')
 fy.write('\n')
 
 if len(ListOfZeroDPPY)==0:
-	print 'Warning: There seems to be no LINY file in the specified directory.' 
+	print 'Warning: There seems to be no LINY file in the specified directory.'
 
 
 fx.write('* NAME   NAME2  POS1   POS2   COUNT  PHASE  STDPH  PHMDL  NDX    STDNDX\n')
@@ -219,7 +219,7 @@ for i in range(1,len(commonbpmsx)):
 	except:
 		ndai=0.0
 		ndstd=-100.0
-		
+
 	fx.write('"'+bn1+'" '+'"'+bn2+'" '+str(bns1)+' '+str(bns2)+' '+str(len(a))+' '+str(ave)+' '+str( sqrt(abs(ave2-ave**2)))+' '+str(ndai)+' '+str(ndstd)+'\n' )
 
 

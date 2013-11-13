@@ -2,7 +2,7 @@
 
 import  sddsdata as sdds
 import re, sys
-from metaclass25 import *
+from metaclass import *
 from string import *
 
 def Uncrypt(bpm):
@@ -39,7 +39,7 @@ convertdir=join(convert.split('/')[0:-1], '/')
 if convertdir=='':
   convertdir='.'
 tf=convertdir+'/twiss.dat'
-print "TWISS FILE: ", tf 
+print "TWISS FILE: ", tf
 tw=twiss(tf)
 
 
@@ -65,7 +65,7 @@ bunchfile={}
 
 
 for bpm in channelnames:
-  
+
     bpmname, plane, bunch = Uncrypt(bpm)
     #print bpm, bpmname, plane, bunch
 
@@ -74,7 +74,7 @@ for bpm in channelnames:
     except:
       print bpmname, "Not in model"
       s=-1
-             
+
     if (plane==0 or plane==1) and s > -0.1:
       try:
         bunchfile[bunch]
@@ -85,7 +85,7 @@ for bpm in channelnames:
 
 
       bunchfile[bunch].write(str(plane)+" "+bpmname+" "+str(s)+" ")
-      
+
       for el in a.data[bpm]:
         bunchfile[bunch].write(str(el)+" ")
       bunchfile[bunch].write("\n")
@@ -95,7 +95,7 @@ for i in bunchfile.keys():
   bunchfile[i].close()
 
 
-#Take the first bunch as default:  
+#Take the first bunch as default:
 bunch=bunchfile.keys()[0]
 os.system('cp '+filenamedir+onlyfilename+' '+filenamedir+onlyfilename+'.sdds')
 

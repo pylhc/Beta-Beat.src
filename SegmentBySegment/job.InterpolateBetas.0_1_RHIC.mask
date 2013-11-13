@@ -5,30 +5,30 @@ option, -echo, warn, -info;
 !  RHIC definition
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-beam, mass=%MASS, charge=%CHARGE, gamma=%GAMMA, exn=%EMX, eyn=%EMY, sige=%SIGE;
+beam, mass=%(MASS)s, charge=%(CHARGE)s, gamma=%(GAMMA)s, exn=%(EMX)s, eyn=%(EMY)s, sige=%(SIGE)s;
 !--- calling sequence => beam switch handled inside python
-call, file="%MPATH/%BEAM";
-call, file="%BBPATH/defs/rhic_utilities.madx";
+call, file="%(MPATH)s/%(BEAM)s";
+call, file="%(BBPATH)s/defs/rhic_utilities.madx";
 
 !--- change bpms names
-call,file="%BBPATH/defs/BPMSdef";
+call,file="%(BBPATH)s/defs/BPMSdef";
 select,flag=seqedit,pattern=BPM;select,flag=seqedit,pattern=CPLMON;
 seqedit,sequence=rhic;remove,element=selected;
-call,file="%BBPATH/defs/BPMSinstall";endedit;
+call,file="%(BBPATH)s/defs/BPMSinstall";endedit;
 use,sequence=rhic;
 
 !--- change GAMMAT
-call,file="%BBPATH/defs/GAMMATdefs";
+call,file="%(BBPATH)s/defs/GAMMATdefs";
 select,flag=seqedit,pattern=QJGTP;
 select,flag=seqedit,pattern=QJQ;
 select,flag=seqedit,pattern=QGT;
 seqedit,sequence=rhic;remove,element=selected;
-call,file="%BBPATH/defs/GAMMATinstall";endedit;
+call,file="%(BBPATH)s/defs/GAMMATinstall";endedit;
 use,sequence=rhic;
 
 !--- tunes, chroms
-Qx := %QX; Qy := %QY;
-chromX := %CHROMX;chromY := %CHROMY;
+Qx := %(QX)s; Qy := %(QY)s;
+chromX := %(CHROMX)s;chromY := %(CHROMY)s;
 exec, setarcquads; exec, setchrom;
 
 
@@ -39,21 +39,21 @@ exec, setarcquads; exec, setchrom;
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 seqedit, sequence=rhic; 
 flatten;
-cycle, start=%START;
+cycle, start=%(START)s;
 endedit;
 
 use, period=rhic;
 select, flag=twiss, clear;
-select, flag=twiss, range=%ENDAT;
-select, flag=twiss, range=%STARTFROM, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-twiss, file="%PATH/StartPoint.twiss";
+select, flag=twiss, range=%(ENDAT)s;
+select, flag=twiss, range=%(STARTFROM)s, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+twiss, file="%(PATH)s/StartPoint.twiss";
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! normal propogation
 
 seqedit, sequence=rhic; 
-cycle, start=%STARTFROM;
+cycle, start=%(STARTFROM)s;
 endedit;
-use, period=rhic, range=%STARTFROM/%ENDAT;
+use, period=rhic, range=%(STARTFROM)s/%(ENDAT)s;
 select, flag=twiss, clear;
 select, flag=twiss, class=quadrupole;
 select, flag=twiss, class=monitor;
@@ -61,11 +61,11 @@ select, flag=twiss, class=rcollimator;
 select, flag=twiss, class=marker;
 select, flag=twiss, class=tkicker;
 select, flag=twiss, class=instrument,column=name,s,L, K1l;
-twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL_nom.dat";
+twiss, betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss_%(LABEL)s_nom.dat";
 
  
 
-use, period=rhic, range=%STARTFROM/%ENDAT;
+use, period=rhic, range=%(STARTFROM)s/%(ENDAT)s;
 select, flag=twiss, clear;
 select, flag=twiss, class=quadrupole;
 select, flag=twiss, class=monitor;
@@ -75,7 +75,7 @@ select, flag=twiss, class=tkicker;
 select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
 
 
-twiss,betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL.dat";
+twiss,betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss_%(LABEL)s.dat";
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !
@@ -85,9 +85,9 @@ twiss,betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=
 
 
 
-twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss_%LABEL_play.dat";
+twiss, betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss_%(LABEL)s_play.dat";
 
-system, "python %PATH/getfterms_RHIC.py -p %PATH/ -l %LABEL  -f 0  -e %EXP -s %STARTFROM";
+system, "python %(PATH)s/getfterms_RHIC.py -p %(PATH)s/ -l %(LABEL)s  -f 0  -e %(EXP)s -s %(STARTFROM)s";
 !stop;
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
@@ -97,22 +97,22 @@ system, "python %PATH/getfterms_RHIC.py -p %PATH/ -l %LABEL  -f 0  -e %EXP -s %S
 
 
 
-twiss, betx=%BETX+%ERRBETX, alfx=%ALFX, bety=%BETY+%ERRBETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.b+.dat";
-twiss, betx=%BETX-%ERRBETX, alfx=%ALFX, bety=%BETY-%ERRBETY, alfy=%ALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.b-.dat";
-twiss, betx=%BETX, alfx=%ALFX+%ERRALFX, bety=%BETY, alfy=%ALFY+%ERRALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.a+.dat";
-twiss, betx=%BETX, alfx=%ALFX-%ERRALFX, bety=%BETY, alfy=%ALFY-%ERRALFY,dx=%DX,dy=%DY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.a-.dat";
-twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX+%ERRDX,dy=%DY+%ERRDY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.d+.dat";
-twiss, betx=%BETX, alfx=%ALFX, bety=%BETY, alfy=%ALFY,dx=%DX-%ERRDX,dy=%DY-%ERRDY,dpx=%DPX,dpy=%DPY, file="%PATH/twiss.d-.dat";
+twiss, betx=%(BETX)s+%(ERRBETX)s, alfx=%(ALFX)s, bety=%(BETY)s+%(ERRBETY)s, alfy=%(ALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss.b+.dat";
+twiss, betx=%(BETX)s-%(ERRBETX)s, alfx=%(ALFX)s, bety=%(BETY)s-%(ERRBETY)s, alfy=%(ALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss.b-.dat";
+twiss, betx=%(BETX)s, alfx=%(ALFX)s+%(ERRALFX)s, bety=%(BETY)s, alfy=%(ALFY)s+%(ERRALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss.a+.dat";
+twiss, betx=%(BETX)s, alfx=%(ALFX)s-%(ERRALFX)s, bety=%(BETY)s, alfy=%(ALFY)s-%(ERRALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss.a-.dat";
+twiss, betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX)s+%(ERRDX)s,dy=%(DY)s+%(ERRDY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss.d+.dat";
+twiss, betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX)s-%(ERRDX)s,dy=%(DY)s-%(ERRDY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss.d-.dat";
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! back propogation
 
 seqedit, sequence=rhic; 
-cycle, start=%ENDAT;
+cycle, start=%(ENDAT)s;
 flatten;reflect; ! reverse command
 endedit;
 
-use, period=rhic, range=%ENDAT/%STARTFROM;
+use, period=rhic, range=%(ENDAT)s/%(STARTFROM)s;
 select, flag=twiss, clear;
 select, flag=twiss, class=quadrupole;
 select, flag=twiss, class=monitor;
@@ -120,11 +120,11 @@ select, flag=twiss, class=rcollimator;
 select, flag=twiss, class=marker;
 select, flag=twiss, class=tkicker;
 select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY, file="%PATH/twiss_%LABEL_nom_back.dat";
+twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s, file="%(PATH)s/twiss_%(LABEL)s_nom_back.dat";
 
  
 
-use, period=rhic, range=%ENDAT/%STARTFROM;
+use, period=rhic, range=%(ENDAT)s/%(STARTFROM)s;
 select, flag=twiss, clear;
 select, flag=twiss, class=quadrupole;
 select, flag=twiss, class=monitor;
@@ -135,14 +135,14 @@ select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, 
 
 
 
-twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss_%LABEL_back.dat";
-twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss_%LABEL_play_back.dat";
-twiss, betx=%ENDBX+%ERRENDBX, alfx=%ALFENDX, bety=%ENDBY+%ERRENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.b+_back.dat";
-twiss, betx=%ENDBX-%ERRENDBX, alfx=%ALFENDX, bety=%ENDBY-%ERRENDBY, alfy=%ALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.b-_back.dat";
-twiss, betx=%ENDBX, alfx=%ALFENDX+%ERRALFENDX, bety=%ENDBY, alfy=%ALFENDY+%ERRALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.a+_back.dat";
-twiss, betx=%ENDBX, alfx=%ALFENDX-%ERRALFENDX, bety=%ENDBY, alfy=%ALFENDY-%ERRALFENDY,dx=%DENDX,dy=%DENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.a-_back.dat";
-twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX+%ERRDENDX,dy=%DENDY+%ERRDENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.d+_back.dat";
-twiss, betx=%ENDBX, alfx=%ALFENDX, bety=%ENDBY, alfy=%ALFENDY,dx=%DENDX-%ERRDENDX,dy=%DENDY-%ERRDENDY,dpx=%DPENDX,dpy=%DPENDY, file="%PATH/twiss.d-_back.dat";
+twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_back.dat";
+twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_play_back.dat";
+twiss, betx=%(ENDBX)s+%(ERRENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s+%(ERRENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.b+_back.dat";
+twiss, betx=%(ENDBX)s-%(ERRENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s-%(ERRENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.b-_back.dat";
+twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s+%(ERRALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s+%(ERRALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.a+_back.dat";
+twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s-%(ERRALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s-%(ERRALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.a-_back.dat";
+twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s+%(ERRDENDX)s,dy=%(DENDY)s+%(ERRDENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.d+_back.dat";
+twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s-%(ERRDENDX)s,dy=%(DENDY)s-%(ERRDENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.d-_back.dat";
 
 
 stop;

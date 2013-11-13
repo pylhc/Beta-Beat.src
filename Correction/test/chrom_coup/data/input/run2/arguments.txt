@@ -1,0 +1,4 @@
+--accel=LHCB1 
+--cut=0.01 
+--errorcut=20,20  
+--modelcut=100,100  

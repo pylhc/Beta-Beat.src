@@ -7,7 +7,7 @@ from os import system
 import math
 from numpy import *
 #from pymadtable import madtable
-from metaclass25 import twiss
+from metaclass import twiss
 import pickle
 
 
