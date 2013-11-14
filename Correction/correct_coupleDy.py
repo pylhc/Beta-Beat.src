@@ -1,4 +1,3 @@
-#!/usr/bin/env pythonafs
 r"""
 .. module: Correction.correct_coupleDy
 
@@ -168,16 +167,16 @@ def _generate_changeparameters_couple_file():
     mad_twiss = full_response['0']
     mad_twiss.Cmatrix()
     mode = 'C'
-    couple_list = GenMatrix_coupleDy.MakeList(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
+    couple_list = GenMatrix_coupleDy.make_list(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
     mode = 'D'
-    disp_y_list = GenMatrix_coupleDy.MakeList(disp_y, mad_twiss, _InputData.model_cut_d, _InputData.error_cut_d, mode)
+    disp_y_list = GenMatrix_coupleDy.make_list(disp_y, mad_twiss, _InputData.model_cut_d, _InputData.error_cut_d, mode)
 
     if 0 == len(couple_list) and 0 == len(disp_y_list):
         print >> sys.stderr, "Couple and dispersion lists are empty. Are model and/or error cuts too strict?"
         sys.exit(1)
 
     print "entering couple input", len(couple_list)
-    couple_inp = GenMatrix_coupleDy.couple_input(varslist, couple_list, disp_y_list, _InputData.weights_list)
+    couple_inp = GenMatrix_coupleDy.CoupleInput(varslist, couple_list, disp_y_list, _InputData.weights_list)
     print "computing the sensitivity matrix"
     sensitivity_matrix = couple_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
 

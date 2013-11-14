@@ -159,13 +159,13 @@ def _generate_changeparameters_couple_file():
     mad_twiss=full_response['0']
     mad_twiss.Cmatrix()
     mode='C'
-    couple_list = Python_Classes4MAD.GenMatrix_chromcouple.MakeList(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
+    couple_list = Python_Classes4MAD.GenMatrix_chromcouple.make_list(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
     if 0 == len(couple_list):
         print >> sys.stderr, "No valid BPM measurements, maybe your model-/errorcuts are too strict?"
         sys.exit(1)
 
     print "entering chromcouple input",len(couple_list)
-    chromcouple_inp = Python_Classes4MAD.GenMatrix_chromcouple.chromcouple_input(varslist, couple_list, _InputData.weights_list)
+    chromcouple_inp = Python_Classes4MAD.GenMatrix_chromcouple.ChromCoupleInput(varslist, couple_list, _InputData.weights_list)
     print "computing the sensitivity matrix"
     sensitivity_matrix=chromcouple_inp.computeSensitivityMatrix(full_response) # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
 

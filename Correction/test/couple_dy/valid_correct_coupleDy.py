@@ -143,9 +143,9 @@ for var in listvar:
 MADTwiss = FullResponse['0']
 MADTwiss.Cmatrix()
 mode = 'C'
-couplelist = GenMatrix_coupleDy.MakeList(couple, MADTwiss, modelcutC, errorcutC, mode)
+couplelist = GenMatrix_coupleDy.make_list(couple, MADTwiss, modelcutC, errorcutC, mode)
 mode = 'D'
-dispylist = GenMatrix_coupleDy.MakeList(dispy, MADTwiss, modelcutD, errorcutD, mode)
+dispylist = GenMatrix_coupleDy.make_list(dispy, MADTwiss, modelcutD, errorcutD, mode)
 
 wei = [int(weights[0]), int(weights[1]), int(weights[2]), int(weights[3]), int(weights[4])]
 
@@ -153,7 +153,7 @@ print "the weight option is " + str(wei)
 
 optDy = options.Dy
 print "entering couple input", len(couplelist)
-couple_inp = GenMatrix_coupleDy.couple_input(varslist, couplelist, dispylist, wei)
+couple_inp = GenMatrix_coupleDy.CoupleInput(varslist, couplelist, dispylist, wei)
 print "computing the sensitivity matrix"
 sensitivity_matrix = couple_inp.computeSensitivityMatrix(FullResponse)
 

@@ -143,10 +143,10 @@ variables=varslist
 MADTwiss=FullResponse['0']
 MADTwiss.Cmatrix()
 mode='C'
-couplelist=MakeList(couple, MADTwiss, modelcutC, errorcutC, mode)
+couplelist=make_list(couple, MADTwiss, modelcutC, errorcutC, mode)
 #print couplelist
 mode='D'
-dispylist=MakeList(dispy, MADTwiss, modelcutD, errorcutD, mode)
+dispylist=make_list(dispy, MADTwiss, modelcutD, errorcutD, mode)
 
 
 #if int(options.Dy)==0:
@@ -164,7 +164,7 @@ print "the weight option is "+str(wei)
 
 optDy=options.Dy
 print "entering couple input",len(couplelist)
-couple_inp=couple_input(varslist, couplelist, dispylist, wei)
+couple_inp=CoupleInput(varslist, couplelist, dispylist, wei)
 print "computing the sensitivity matrix"
 sensitivity_matrix=couple_inp.computeSensitivityMatrix(FullResponse)
 #print "sensitivity matrix", sensitivity_matrix

@@ -18,12 +18,6 @@ parser = OptionParser()
 parser.add_option("-a", "--accel",
                  help="What accelerator: LHCB1 LHCB2 SPS RHIC",
                  metavar="ACCEL", default="LHCB1",dest="ACCEL")
-#parser.add_option("-t", "--tech",
-                 #help="Which algorithm: SVD MICADO",
-                 #metavar="TECH", default="SVD",dest="TECH")
-#parser.add_option("-n", "--ncorr",
-                 #help="Number of Correctors for MICADO",
-                 #metavar="NCORR", default=5,dest="ncorr")
 parser.add_option("-p", "--path",
                  help="Path to experimental files",
                  metavar="PATH", default="./",dest="path")
@@ -123,7 +117,7 @@ variables=varslist
 MADTwiss=FullResponse['0']
 MADTwiss.Cmatrix()
 mode='C'
-couplelist = Python_Classes4MAD.GenMatrix_chromcouple.MakeList(couple, MADTwiss, modelcutC, errorcutC, mode)
+couplelist = Python_Classes4MAD.GenMatrix_chromcouple.make_list(couple, MADTwiss, modelcutC, errorcutC, mode)
 if len(couplelist)==0:
     raise ValueError("No valid BPM measurements, maybe your model-/errorcuts are too strict?")
 #print couplelist
@@ -146,7 +140,7 @@ print "the weight option is "+str(wei)
 
 
 print "entering couple input",len(couplelist)
-chromcouple_inp = Python_Classes4MAD.GenMatrix_chromcouple.chromcouple_input(varslist, couplelist, wei)
+chromcouple_inp = Python_Classes4MAD.GenMatrix_chromcouple.ChromCoupleInput(varslist, couplelist, wei)
 print "computing the sensitivity matrix"
 sensitivity_matrix=chromcouple_inp.computeSensitivityMatrix(FullResponse)
 #print "sensitivity matrix", sensitivity_matrix
