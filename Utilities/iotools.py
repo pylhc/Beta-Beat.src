@@ -48,6 +48,8 @@ def delete_item(path_to_item):
             os.unlink(path_to_item)
     except IOError:
         print >> sys.stderr, "Could not delete item because of IOError.", path_to_item
+    except OSError:
+        print >> sys.stderr, "Could not delete item because of OSError.", path_to_item
 
 
 def copy_content_of_dir(src_dir, dst_dir):
