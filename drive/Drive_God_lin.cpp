@@ -90,7 +90,7 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 
 
 //======================================================================================================================
-// main function
+// Declarations and definitions
 //======================================================================================================================
 class InputData{
 	void check_inp_data();
@@ -216,6 +216,7 @@ int main(int argc, char **argv)
 
 
     std::string drivingTermsFilePath, driveInpFilePath;
+
     IoHelper::getAndCheckFilePaths(&drivingTermsFilePath, &driveInpFilePath, argv[1]);
 
     inpData.initAndReadInputValues(driveInpFilePath);
@@ -223,12 +224,7 @@ int main(int argc, char **argv)
 
     std::ifstream drivingTermsFile;
     drivingTermsFile.open(drivingTermsFilePath.c_str());
-    if(IoHelper::cannotOpenFile(drivingTermsFilePath,'i')){
-        exit(EXIT_FAILURE);
-    }
-
     std::string dataFilePath;
-    /* From drivingTermsFilePath assign dataFilePath, assign turns. */
 	int loopcounter = 0;
     while (readLineInDrivingTerms(drivingTermsFile, &(inpData.turns), &dataFilePath)) {
         /* Check the file dataFilePath */
@@ -333,16 +329,16 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 	for (int i = 0; i < MAXPICK; i++)
 			BPMs[i].pickedUp = false;
 
-	char string1[1000];
+	char tempStr[1000];
 	std::ifstream dataFile;
 	dataFile.open(dataFilePath.c_str());
-	string1[0] = (char) (dataFile.get());
-	while (string1[0] == '#') {
+	tempStr[0] = (char) (dataFile.get());
+	while (tempStr[0] == '#') {
 		/* then it is a comment line (tbach) */
 		while (dataFile.get() != '\n')
 			; /* read until the end of the line (tbach) */
 
-		string1[0] = (char) (dataFile.get()); /* read the first char of the new line (tbach) */
+		tempStr[0] = (char) (dataFile.get()); /* read the first char of the new line (tbach) */
 	}
 	/* after this, we have skipped all the comment lines, and s[0] is the first character of a new line which is not a "#" (tbach) */
 	if (LOG_INFO)
@@ -354,32 +350,49 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 	lastUsedIndexVer = MAXPICK / 2 - 1;
 	int columnCounter = 0;
 	int numTurns = 0;
+	int minNumTurns = -1;
 	int bpmCounter = 0;
 	int currentPlane = -1;
-	while (string1[0] != EOF) {
-		if (string1[0] == '\n') {
+	while (tempStr[0] != EOF) {
+		if (tempStr[0] == '\n') {
 			++bpmCounter;
 			if (LOG_INFO)
 				printf("\n");
 			columnCounter = 0;
+			if(numTurns != 0)
+				if(-1 == minNumTurns)
+					minNumTurns = numTurns;
+				if(minNumTurns > numTurns){
+					// We have a BPM with less turns than previous BPMs (vimaier)
+					fprintf(stderr, "##Probably unequal lengths of turns detected.\n"
+							"##  lastNumOfTurns: %d\n##  newNumOfTurns: %d\n##  bpmCounter: %d\n",
+							minNumTurns, numTurns, bpmCounter-1);
+					std::string bpmName;
+					if (currentPlane == 0) /* 0 is horizontal, 1 is vertical (tbach) */
+						bpmName = BPMs[lastUsedIndexHor].bpmName;
+					else
+						bpmName = BPMs[lastUsedIndexVer].bpmName;
+					fprintf(stderr, "##  Check BPM %s\n", bpmName.c_str());
+					minNumTurns = numTurns;
+				}
 		}
-		if (isspace((int) string1[0]) && flag == 1)
+		if (isspace((int) tempStr[0]) && flag == 1)
 			flag = 0;
-		if (!isspace((int) string1[0]) && flag == 0) {
-			while (!isspace((int) string1[i]) && string1[i] != EOF) {
+		if (!isspace((int) tempStr[0]) && flag == 0) {
+			while (!isspace((int) tempStr[i]) && tempStr[i] != EOF) {
 				++i;
-				string1[i] = (char) dataFile.get();
+				tempStr[i] = (char) dataFile.get();
 				if (i > 100) {
-					string1[i + 1] = '\0';
+					tempStr[i + 1] = '\0';
 					fprintf(stderr,"Found a value which has more than 100 characters, exit parsing.\n"
-						"This is most probably a malformatted file. bpmCounter=%d columnCounter=%d string1=%s\n", bpmCounter, columnCounter, string1);
+						"This is most probably a malformatted file. bpmCounter=%d columnCounter=%d string1=%s\n", bpmCounter, columnCounter, tempStr);
 					exit(EXIT_FAILURE);
 				}
 			}
-			string1[i + 1] = string1[i];
-			string1[i] = '\0';
+			tempStr[i + 1] = tempStr[i];
+			tempStr[i] = '\0';
 			if (LOG_INFO)
-				printf("%s ", string1);
+				printf("%s ", tempStr);
 			if (columnCounter >= MAXTURNS) {
 				fprintf(stderr, "Found >= %d Turns, this turn size is not supported. Reduce amount of turns. bpmCounter:%d\n", MAXTURNS - 3, bpmCounter); /* 0,1,2 is plane, name and location (tbach) */
 				exit(EXIT_FAILURE);
@@ -389,7 +402,7 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 				exit(EXIT_FAILURE);
 			}
 			if (columnCounter == 0) { /*plane (tbach) */
-				currentPlane = atoi(string1);
+				currentPlane = atoi(tempStr);
 				if (currentPlane == 0) /* 0 is horizontal, 1 is vertical (tbach) */
 					BPMs[++lastUsedIndexHor].plane = currentPlane;
 				else
@@ -403,10 +416,10 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
 						exit(EXIT_FAILURE);
 					}
-					BPMs[lastUsedIndexHor].bpmName = string1;
+					BPMs[lastUsedIndexHor].bpmName = tempStr;
 					BPMs[lastUsedIndexHor].pickedUp = true;
 				} else {
-					BPMs[lastUsedIndexVer].bpmName = string1;
+					BPMs[lastUsedIndexVer].bpmName = tempStr;
 					BPMs[lastUsedIndexVer].pickedUp = true;
 				}
 			}
@@ -419,10 +432,10 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 						fprintf(stderr, "horizontalBpmCounter < 0. Should not happen. Probably malformatted input file?\n");
 						exit(EXIT_FAILURE);
 					}
-					BPMs[lastUsedIndexHor].bpmPos = atof(string1);
+					BPMs[lastUsedIndexHor].bpmPos = atof(tempStr);
 				}
 				else
-				BPMs[lastUsedIndexVer].bpmPos = atof(string1);
+				BPMs[lastUsedIndexVer].bpmPos = atof(tempStr);
 			}
 
 			else { /*bpm data (tbach) */
@@ -432,17 +445,17 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 				 Plus 1 for index start at 0
 				 (tbach) */
 				if (currentPlane == 0)
-					BPMs[lastUsedIndexHor].tbtData[numTurns-1] = atof(string1);
+					BPMs[lastUsedIndexHor].tbtData[numTurns-1] = atof(tempStr);
 				else
-					BPMs[lastUsedIndexVer].tbtData[numTurns-1] = atof(string1);
+					BPMs[lastUsedIndexVer].tbtData[numTurns-1] = atof(tempStr);
 			}
 			++columnCounter;
 			flag = 1;
-			string1[0] = string1[i + 1];
+			tempStr[0] = tempStr[i + 1];
 			i = 0;
 		}
 		if (flag == 0)
-			string1[0] = (char) dataFile.get();
+			tempStr[0] = (char) dataFile.get();
 	}
 	dataFile.close();
 
@@ -451,6 +464,7 @@ void readTbtDataFile(std::string& dataFilePath, int& maxOfHorBpmsAndVerBpms, int
 
 	/* now redefine turns as the minimum of the Nturns read and the DrivingTerms data card */
 	/* NB assumes all BPMs have the same number of turns as the last one read is used */
+	numTurns = minNumTurns;
 	if (inpData.turns > numTurns) inpData.turns = numTurns;
 
 	/* Some statistics and checks */
@@ -669,18 +683,15 @@ void IoHelper::getAndCheckFilePaths(std::string *drivingTermsFilePath, std::stri
 
     std::cout << "Working directory path: " << workingDirectoryPath << std::endl;
 
-    if(cannotOpenFile(workingDirectoryPath,'i') && OS == "linux"){ //Always fails to open in windows
+    if(OS == "linux" && cannotOpenFile(workingDirectoryPath,'i')){ //Always fails to open in windows
         exit(EXIT_FAILURE);
     }
-    std::cout << "\nWorking directory: " << workingDirectoryPath << std::endl;
-
 
     *drivingTermsFilePath = workingDirectoryPath+"/DrivingTerms";
     *driveInputFilePath = workingDirectoryPath+"/Drive.inp";
     sussixInputFilePath = workingDirectoryPath+"/sussix_v4.inp";
 
     //check the input files drivingTermsFilePath and Drive.inp
-
     if(cannotOpenFile(*drivingTermsFilePath,'i')
     || cannotOpenFile(*driveInputFilePath,'i') || cannotOpenFile(sussixInputFilePath,'o')){
         exit(EXIT_FAILURE);
