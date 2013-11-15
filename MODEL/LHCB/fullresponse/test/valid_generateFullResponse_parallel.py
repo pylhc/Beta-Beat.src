@@ -28,6 +28,7 @@ import time
 import cPickle
 import optparse
 import multiprocessing
+import json
 
 import numpy
 
@@ -196,8 +197,8 @@ if __name__ == '__main__':
     #
     
     FullResponse = {}   #Initialize FullResponse
-    execfile(corepath + "/" + accel + '/AllLists_chromcouple.py')
-    exec('variables=kss()')           #Define variables
+    knobsdict = json.load(file(corepath + "/" + accel + '/AllLists_chromcouple.json', 'r'))
+    variables = knobsdict["kss"]
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.05    #increment of variables
     dpp = 0.0001
@@ -243,8 +244,8 @@ if __name__ == '__main__':
     #
     
     FullResponse = {}   #Initialize FullResponse
-    execfile(corepath + "/" + accel + '/AllLists_couple.py')
-    exec('variables=Qs()')           #Define variables
+    knobsdict = json.load(file(corepath + "/" + accel + '/AllLists_couple.json', 'r'))
+    variables = knobsdict["Qs"]
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.0001    #increment of variables
     
@@ -285,8 +286,8 @@ if __name__ == '__main__':
     #
     #
     FullResponse = {}   #Initialize FullResponse
-    execfile(corepath + "/" + accel + '/AllLists.py')
-    exec('variables=Q()')           #Define variables
+    knobsdict = json.load(file(corepath + "/" + accel + '/AllLists.json', 'r'))
+    variables = knobsdict["Q"]
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     #incr=ones(len(variables))*0.00005    #increment of variables    #### when squeeze low twiss fails because of to big delta
     incr = numpy.ones(len(variables)) * float(options.k)

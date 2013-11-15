@@ -54,6 +54,7 @@ import time
 import cPickle
 import optparse
 import multiprocessing
+import json
 
 import numpy
 
@@ -132,13 +133,16 @@ def main(accel, output_path, path_to_core_files_without_accel, delta_k):
 
 
 def _generate_fullresponse_for_chromatic_coupling():
-    variables = None
-    FullResponse = {}   #Initialize FullResponse
-    execfile(os.path.join(_InputData.core_path_with_accel, "AllLists_chromcouple.py"))
-    exec('variables=kss()')           #Define variables
+    print "_generate_fullresponse_for_chromatic_coupling"
+    path_all_lists_json_file = os.path.join(_InputData.core_path_with_accel, "AllLists_chromcouple.json")
+    knobsdict = json.load(file(path_all_lists_json_file, 'r'))
+    print "Loaded json file: " + path_all_lists_json_file
+    variables = knobsdict["kss"]
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.05    #increment of variables
     dpp = 0.0001
+
+    FullResponse = {}   #Initialize FullResponse
     FullResponse['incr'] = incr           #Store this info for future use
     FullResponse['delta1'] = delta1
 
@@ -160,7 +164,9 @@ def _generate_fullresponse_for_chromatic_coupling():
     f.close()
     print "Running MADX"
     _parallel_command(period=4, number_of_cases=len(delta1) + 1) # period=4 since there are 4 lines in iter.madx per case, number_of_cases has +1 since there is the 0 case
+    print "Finished MADX"
 
+    
 
 
     varsforloop = variables + ['0']
@@ -175,14 +181,16 @@ def _generate_fullresponse_for_chromatic_coupling():
 
 
 def _generate_fullresponse_for_coupling():
-    variables = None
-    FullResponse = {}   #Initialize FullResponse
-    execfile(os.path.join(_InputData.core_path_with_accel, "AllLists_couple.py"))
-    exec('variables=Qs()')           #Define variables
+    print "_generate_fullresponse_for_coupling"
+    path_all_lists_json_file = os.path.join(_InputData.core_path_with_accel, "AllLists_couple.json")
+    knobsdict = json.load(file(path_all_lists_json_file, 'r'))
+    print "Loaded json file: " + path_all_lists_json_file
+    variables = knobsdict["Qs"]
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.0001    #increment of variables
 
 
+    FullResponse = {}   #Initialize FullResponse
     FullResponse['incr'] = incr           #Store this info for future use
     FullResponse['delta1'] = delta1       #"     "     "
 
@@ -199,7 +207,9 @@ def _generate_fullresponse_for_coupling():
     print >> f, "twiss, file=\"" + _join_with_output("twiss.0")+"\";"
     f.close()
     #Sending the mad jobs in parallel
+    print "Running MADX"
     _parallel_command(period=3, number_of_cases=len(delta1) + 1)
+    print "Finished MADX"
 
     #Loading the twiss files into fullresp in parallel
     varsforloop = variables + ['0']
@@ -214,15 +224,17 @@ def _generate_fullresponse_for_coupling():
 
 
 def _generate_fullresponse_for_beta():
-    variables = None
-    FullResponse = {}   #Initialize FullResponse
-    execfile(os.path.join(_InputData.core_path_with_accel, "AllLists.py"))
-    exec('variables=Q()')           #Define variables
+    print "_generate_fullresponse_for_beta"
+    path_all_lists_json_file = os.path.join(_InputData.core_path_with_accel, "AllLists.json")
+    knobsdict = json.load(file(path_all_lists_json_file, 'r'))
+    print "Loaded json file: " + path_all_lists_json_file
+    variables = knobsdict["Q"]
     delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
     #incr=ones(len(variables))*0.00005    #increment of variables    #### when squeeze low twiss fails because of to big delta
     incr = numpy.ones(len(variables)) * _InputData.delta_k
 
 
+    FullResponse = {}   #Initialize FullResponse
     FullResponse['incr'] = incr           #Store this info for future use
     FullResponse['delta1'] = delta1       #"     "     "
 
@@ -239,7 +251,9 @@ def _generate_fullresponse_for_beta():
     print >> f, "twiss,file=\"" + _join_with_output("twiss.0")+"\";"
     f.close()
 
+    print "Running MADX"
     _parallel_command(period=3, number_of_cases=len(delta1) + 1)
+    print "Finished MADX"
 
     #Loading the twiss files into fullresp in parallel
     varsforloop = variables + ['0']
