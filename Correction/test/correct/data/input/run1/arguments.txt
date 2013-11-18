@@ -1,0 +1,10 @@
+--accel=LHCB1
+--cut=0.01
+--errorcut=0.5,0.5
+--modelcut=0.3,0.3
+--MinStr=0.00003
+--weight=1,1,0,0,0,10
+--JustOneBeam=0
+--ncorr=5
+--tech=SVD
+--Variables=Q

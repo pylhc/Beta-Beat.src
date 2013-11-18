@@ -396,7 +396,7 @@ class _InputData(object):
         print "---------------------_InputData"
         print "Path to measurements:", _InputData.output_path
         print "Path to Accelerator model", _InputData.accel_path
-        print "Path to opticvs files:", _InputData.path_to_optics_files_dir
+        print "Path to optics files:", _InputData.path_to_optics_files_dir
         print "Minimum corrector strength", _InputData.min_strength
         print "Variables", _InputData.variables_list
         print "Singular value cut", _InputData.singular_value_cut
