@@ -1,20 +1,75 @@
-##
-## version November updated for LHC by Glenn Vanbavinckhove + removing mad2dev (handled in GUI now)
-## + also removed option j (one beam or both beam, was not used for anything)
-##################################################################################################
-##
-##
-##
-##
+r"""
+.. module: Correction.correct
 
-from optparse import OptionParser
+Created on ??
+
+Single beam correction of phase, beta and horizontal dispersion.
+TODO: get better description (vimaier)
+
+Usage example::
+
+    python correct_coupleDy.py --JustOneBeam=0
+                                --accel=LHCB1
+                                 --Variables=Q
+                                --ncorr=5
+                                --rpath=C:\eclipse_4_2_2_python\workspace\Beta-Beat.src
+                                --modelcut=0.3,0.3
+                                --weight=1,1,0,0,0,10
+                                --MinStr=0.00003
+                                --path=C:\eclipse_4_2_2_python\workspace\Beta-Beat.src\Correction\test\correct\data\input\run1
+                                --errorcut=0.5,0.5
+                                --cut=0.01
+                                --tech=SVD
+                                --opt=C:\eclipse_4_2_2_python\workspace\Beta-Beat.src\Correction\test\correct\data\input
+
+Hint: MinStr is not used in the script except of a print. The reason is possibly the author wanted to have the same set
+of arguments for all correction scripts due to GUI compatibility(vimaier).
+
+Options::
+
+      -h, --help            show this help message and exit
+      -a ACCEL, --accel=ACCEL
+                            What accelerator: LHCB1 LHCB2 SPS RHIC
+      -t TECH, --tech=TECH  Which algorithm: SVD MICADO
+      -n NCORR, --ncorr=NCORR
+                            Number of Correctors for MICADO
+      -p PATH, --path=PATH  Path to experimental files
+      -c CUT, --cut=CUT     Singular value cut for the generalized inverse
+      -e ERRORCUT, --errorcut=ERRORCUT
+                            Maximum error allowed for the phase and dispersion
+                            measurements, separated by commas; e.g. -e 0.013,0.2
+      -m MODELCUT, --modelcut=MODELCUT
+                            Maximum difference allowed between model and measured
+                            phase and dispersion, separated by commas; e.g. -e
+                            0.02,0.2
+      -r RPATH, --rpath=RPATH
+                            Path to BetaBeat repository (default is the afs
+                            repository)
+      -o opt, --optics=opt  optics
+      -s MinStr, --MinStr=MinStr
+                            Minimum strength of correctors in SVD correction
+                            (default is 1e-6)
+      -v var, --Variables=var
+                            variables split with ,
+      -j JUSTONEBEAM, --JustOneBeam=JUSTONEBEAM
+                            0 Just quads from one beam are used, 1 all quads
+                            (default is 0)
+      -w WGT, --weight=WGT  Weighting factor (phasex, phasey, betax, betay,
+                            dispersion, tunes)
+
+.. moduleauthor:: Unknown
+"""
+import sys
+import os
+import optparse
 import json
-
+import pickle
+import re
 
 
 import __init__ # @UnusedImport init will include paths
-from Python_Classes4MAD.GenMatrix import *
-from Python_Classes4MAD.BCORR import *
+import Python_Classes4MAD.GenMatrix
+import Python_Classes4MAD.BCORR
 import Python_Classes4MAD.metaclass
 import Utilities.iotools
 import Utilities.math
@@ -26,7 +81,7 @@ PRINT_DEBUG = False or sys.flags.debug # Change to 'True or...' or invoke python
 #=======================================================================================================================
 def _parse_args():
     ''' Parses the arguments, checks for valid input and returns options '''
-    parser = OptionParser()
+    parser = optparse.OptionParser()
     parser.add_option("-a", "--accel",
                      help="What accelerator: LHCB1 LHCB2 SPS RHIC",
                      metavar="ACCEL", default="LHCB1",dest="ACCEL")
@@ -73,7 +128,6 @@ def _parse_args():
 # main()-function
 #=======================================================================================================================
 def main(
-         options,
          output_path,
          accel="LHCB1",
          singular_value_cut=0.1,
@@ -94,148 +148,149 @@ def main(
                            num_of_correctors, algorithm)
 
 
-    print "Starting loading Full Response optics"
-    FullResponse = pickle.load(open(_InputData.path_to_optics_files_dir+'/FullResponse','rb'))
-    print "Loading ended"
+    _generate_changeparameters()
+
+    _handle_data_for_accel(accel)
 
 
+#=======================================================================================================================
+# helper functions
+#=======================================================================================================================
+def _generate_changeparameters():
+    full_response, phase_x, phase_y, beta_x, beta_y, dx, varslist = _load_input_files()
 
-    try:
-        x = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getphasex_free.out')
-        y = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getphasey_free.out')
-        print "Loading free"
-    except:
-        x = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getphasex.out')
-        y = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getphasey.out')
-
-    try:
-        xbet = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getbetax_free.out')
-        ybet = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getbetay_free.out')
-    except:
-        xbet = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getbetax.out')
-        ybet = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getbetay.out')
-
-    try:
-        dx = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+'/getNDx.out') # changed by Glenn Vanbavinckhove (26/02/09)
-    except:
-        print "WARNING: No good dispersion or inexistent file getDx"
-        print "WARNING: Correction will not take into account NDx"
-        dx = []
-
-
-    knobsdict = json.load(file(_InputData.accel_path + '/AllLists.json','r'))
-    # extra depdency to be able to handle to different magnets group
-    varslist = []
-    for var in _InputData.variables_list:
-        variable = knobsdict[var]
-        varslist = varslist+variable
-
-
-
-    intqx = int(FullResponse['0'].Q1)
-    intqy = int(FullResponse['0'].Q2)
-
-    print "Integer part of tunes: ", intqx, intqy
-
-    # remember to add integer part of the tunes to exp data!!!
-    if x.Q1 > 0.0:
-        x.Q1 = x.Q1+intqx
-    else:
-        x.Q1 = x.Q1 + intqx + 1.0
-    if y.Q2 > 0.0:
-        y.Q2 = y.Q2 + intqy
-    else:
-        y.Q2 = y.Q2 + intqy + 1.0
-
-
-    print "Experiment tunes: ", x.Q1, y.Q2
-
-    variables=varslist
-    phasexlist = MakePairs(x, FullResponse['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    phaseylist = MakePairs(y, FullResponse['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    betaxlist = MakeBetaList(xbet, FullResponse['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    betaylist = MakeBetaList(ybet, FullResponse['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    displist = MakeList(dx, FullResponse['0'])
+    phasexlist = Python_Classes4MAD.GenMatrix.MakePairs(phase_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
+    phaseylist = Python_Classes4MAD.GenMatrix.MakePairs(phase_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
+    betaxlist = make_beta_list(beta_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
+    betaylist = make_beta_list(beta_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
+    displist = Python_Classes4MAD.GenMatrix.MakeList(dx, full_response['0'])
     print "Input ready"
 
-    beat_inp = beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
-
-    sensitivity_matrix = beat_inp.computeSensitivityMatrix(FullResponse)
-
-
+    beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
+    sensitivity_matrix = beat_inp.computeSensitivityMatrix(full_response) # @UnusedVariable sensitivity_matrix will be stored in beat_inp
 
     if _InputData.algorithm == "SVD":
-        [deltas, varslist ] = correctbeatEXP(x, y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=xbet, ybet=ybet)
-        if 1:                           #All accelerators
-            iteration = 0
-            # Let's remove too low useless correctors
-            while (len(filter(lambda x: abs(x) < _InputData.min_strength, deltas))>0):
-                iteration = 1 + iteration
-                il = len(varslist)
-                varslist_t = []
-                for i in range(il):
-                    if (abs(deltas[i]) > _InputData.min_strength):
-                        varslist_t.append(varslist[i])
-                varslist = varslist_t
-                if len(varslist)==0:
-                    print "You want to correct with too high cut on the corrector strength"
-                    sys.exit()
-                beat_inp = beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
-                sensitivity_matrix = beat_inp.computeSensitivityMatrix(FullResponse)
-                [deltas, varslist ] = correctbeatEXP(x, y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=xbet, ybet=ybet)
-                print "Initial correctors:", il, ". Current: ", len(varslist), ". Removed for being lower than:", _InputData.min_strength, "Iteration:", iteration
-        print deltas
+        [deltas, varslist] = Python_Classes4MAD.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
+        iteration = 0 # Let's remove too low useless correctors
+        while len([x for x in deltas if abs(x) < _InputData.min_strength]) > 0:
+            iteration += 1
+            il = len(varslist)
+            varslist_t = []
+            for i in range(il):
+                if (abs(deltas[i]) > _InputData.min_strength):
+                    varslist_t.append(varslist[i])
 
+            varslist = varslist_t
+            if len(varslist) == 0:
+                print >> sys.stderr, "You want to correct with too high cut on the corrector strength"
+                sys.exit()
+            beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
+            sensitivity_matrix = beat_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensitivity_matrix will be stored in beat_inp
+            [deltas, varslist] = Python_Classes4MAD.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
+            print "Initial correctors:", il, ". Current: ", len(varslist), ". Removed for being lower than:", _InputData.min_strength, "Iteration:", iteration
+        if PRINT_DEBUG:
+            print deltas
 
     if _InputData.algorithm == "MICADO":
-        bNCorrNumeric(x, y, dx, beat_inp, cut=_InputData.singular_value_cut, ncorr=_InputData.num_of_correctors,app=0, path=_InputData.output_path)
+        Python_Classes4MAD.BCORR.bNCorrNumeric(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, ncorr=_InputData.num_of_correctors, app=0, path=_InputData.output_path)
 
-    if options.ACCEL == "SPS":
-        b = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+"/changeparameters.tfs")
+
+def _handle_data_for_accel(accel):
+    if accel == "SPS":
+        b = Python_Classes4MAD.metaclass.twiss(_InputData.output_path + "/changeparameters.tfs")
         corrs = []
         corrsYASP = []
-        execfile(_InputData.accel_path+'/Bumps.py')    # LOADS corrs
-        execfile(_InputData.accel_path+'/BumpsYASP.py') # LOADS corrsYASP
-        #Output for YASP...
-        f = open(_InputData.output_path+"/changeparameters.yasp", "w")
-        #Output for Knob...
-        g = open(_InputData.output_path+"/changeparameters.knob", "w")
+        execfile(os.path.join(_InputData.accel_path, "Bumps.py")) # LOADS corrs
+        execfile(os.path.join(_InputData.accel_path, "BumpsYASP.py")) # LOADS corrsYASP
+
+        f = open(os.path.join(_InputData.output_path, "changeparameters.yasp"), "w") #Output for YASP...
+        g = open(os.path.join(_InputData.output_path, "changeparameters.knob"), "w") #Output for Knob...
         f.write("#PLANE H\n")
         f.write("#UNIT RAD\n")
         g.write("* NAME  DELTA \n")
         g.write("$ %s    %le   \n")
         for corr in corrsYASP:
-            print >> f, "#SETTING", corr,  corrsYASP[corr]
+            print >> f, "#SETTING", corr, corrsYASP[corr]
+
         for corr in corrs:
-            print >> g, "K"+corr, corrs[corr]
+            print >> g, "K" + corr, corrs[corr]
+
         f.close()
         g.close()
-
-    if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
+    if "LHC" in accel: #.knob should always exist to be sent to LSA!
         src = os.path.join(os.path.join(_InputData.output_path, "changeparameters.tfs"))
         dst = os.path.join(os.path.join(_InputData.output_path, "changeparameters.knob"))
-        Utilities.iotools.copy_item(src, dst)
-
-        # madx table
-        b = Python_Classes4MAD.metaclass.twiss(_InputData.output_path+"\\changeparameters.tfs")
-        mad = open(_InputData.output_path+"/changeparameters.madx", "w")
-        names = b.NAME
-        delta = b.DELTA
-
+        Utilities.iotools.copy_item(src, dst) # madx table
+        b = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "changeparameters.tfs"))
+        mad_script = open(os.path.join(_InputData.output_path, "changeparameters.madx"), "w")
+        names = getattr(b, "NAME", [])
+        delta = getattr(b, "DELTA", [])
         for i in range(len(names)):
             if cmp(delta[i], 0) == 1:
-                mad.write(names[i]+" = "+names[i]+" + "+str(delta[i])+";\n")
+                mad_script.write(names[i] + " = " + names[i] + " + " + str(delta[i]) + ";\n")
             else:
-                mad.write(names[i]+" = "+names[i]+" "+str(delta[i])+";\n")
+                mad_script.write(names[i] + " = " + names[i] + " " + str(delta[i]) + ";\n")
 
-        mad.write("return;")
-        mad.close()
-
-
+        mad_script.write("return;")
+        mad_script.close()
 
 
+def _load_input_files():
+    print "Starting loading Full Response optics"
+    full_response = pickle.load(open(_InputData.path_to_optics_files_dir + '/FullResponse', 'rb'))
+    print "Loading ended"
 
-def  MakeBetaList(x, m, modelcut=40, errorcut=20):   # Errors are in meters (
+    path_to_phase_x = os.path.join(_InputData.output_path, "getphasex_free.out")
+    path_to_phase_y = os.path.join(_InputData.output_path, "getphasey_free.out")
+    if not os.path.exists(path_to_phase_x) or not os.path.exists(path_to_phase_y):
+        path_to_phase_x = os.path.join(_InputData.output_path, "getphasex.out")
+        path_to_phase_y = os.path.join(_InputData.output_path, "getphasey.out")
+
+    path_to_beta_x = os.path.join(_InputData.output_path, "getbetax_free.out")
+    path_to_beta_y = os.path.join(_InputData.output_path, "getbetay_free.out")
+    if not os.path.exists(path_to_beta_x) or not os.path.exists(path_to_beta_y):
+        path_to_beta_x = os.path.join(_InputData.output_path, "getbetax.out")
+        path_to_beta_y = os.path.join(_InputData.output_path, "getbetay.out")
+
+    phase_x = Python_Classes4MAD.metaclass.twiss(path_to_phase_x)
+    phase_y = Python_Classes4MAD.metaclass.twiss(path_to_phase_y)
+    beta_x = Python_Classes4MAD.metaclass.twiss(path_to_beta_x)
+    beta_y = Python_Classes4MAD.metaclass.twiss(path_to_beta_y)
+
+    path_to_ndx = os.path.join(_InputData.output_path, "getNDx.out")
+    if os.path.exists(path_to_ndx):
+        dx = Python_Classes4MAD.metaclass.twiss(path_to_ndx)
+    else:
+        print "WARNING: No good dispersion or inexistent file getDx"
+        print "WARNING: Correction will not take into account NDx"
+        dx = []
+
+    _add_int_part_of_tunes_to_exp_data(full_response, phase_x, phase_y)
+
+    # Load vars in AllLists
+    knobsdict = json.load(file(os.path.join(_InputData.accel_path, "AllLists.json"), 'r'))
+    # extra depdency to be able to handle to different magnets group
+    varslist = []
+    for var in _InputData.variables_list:
+        varslist += knobsdict[var]
+
+    return full_response, phase_x, phase_y, beta_x, beta_y, dx, varslist
+def _add_int_part_of_tunes_to_exp_data(full_response, phase_x, phase_y):
+    intqx = int(full_response['0'].Q1)
+    intqy = int(full_response['0'].Q2)
+    tune_x = getattr(phase_x, "Q1")
+    tune_y = getattr(phase_y, "Q2")
+    if tune_x < 0.0:
+        tune_x += 1.0
+    if tune_y < 0.0:
+        tune_y += 1.0
+    setattr(phase_x, "Q1", tune_x + intqx)
+    setattr(phase_y, "Q2", tune_y + intqy)
+    print "Integer part of tunes: ", intqx, intqy
+    print "Experiment tunes: ", getattr(phase_x, "Q1"), getattr(phase_y, "Q2")
+
+
+def  make_beta_list(x, m, modelcut=40, errorcut=20):   # Errors are in meters
     t = []
     cou = 0
     keys = x.__dict__.keys()
@@ -253,15 +308,15 @@ def  MakeBetaList(x, m, modelcut=40, errorcut=20):   # Errors are in meters (
         if (STD[i] < errorcut and abs(BET[i]-bm) < modelcut):
             try:
                 m.indx[x.NAME[i].upper()]
-            except:
+            except KeyError:
                 print "Not in Response:", x.NAME[i].upper()
-                cou = cou+1
+                cou += 1
             else:
                 t.append(x.NAME[i])
         else:
-            cou = cou+1
+            cou += 1
     if cou > 0:
-        print "Warning in MakeBetaList: ", cou, " BPM  removed from data for not beeing in the model or having too large error deviations: ", bmdl, modelcut, "STDPH", errorcut, "LEN", len(t)
+        print "Warning in make_beta_list: ", cou, "BPM  removed from data for not beeing in the model or having too large error deviations: ", bmdl, modelcut, "STDPH", errorcut, "LEN", len(t)
     return t
 
 #=======================================================================================================================
@@ -370,16 +425,19 @@ class _InputData(object):
     def print_input_data():
         print "---------------------_InputData"
         print "Path to measurements:", _InputData.output_path
-        print "Path to Accelerator model", _InputData.accel_path
+        print "Path to Accelerator model:", _InputData.accel_path
         print "Path to optics files:", _InputData.path_to_optics_files_dir
-        print "Minimum corrector strength", _InputData.min_strength
-        print "Variables", _InputData.variables_list
-        print "Singular value cut", _InputData.singular_value_cut
-        print "Error cut C", _InputData.error_cut
-        print "Error cut D", _InputData.error_cut_dx
-        print "Model cut C", _InputData.model_cut
-        print "Model cut D", _InputData.model_cut_dx
-        print "Weights for correctors", _InputData.weights_list
+        print "Minimum corrector strength:", _InputData.min_strength
+        print "Variables:", _InputData.variables_list
+        print "Singular value cut:", _InputData.singular_value_cut
+        print "Error cut:", _InputData.error_cut
+        print "Error cut Dx:", _InputData.error_cut_dx
+        print "Model cut:", _InputData.model_cut
+        print "Model cut Dx:", _InputData.model_cut_dx
+        print "Weights for correctors:", _InputData.weights_list
+        print "Use two beams?:", _InputData.use_two_beams
+        print "Number of correctors:", _InputData.num_of_correctors
+        print "Chosen algorithm:", _InputData.algorithm
         print "------------------------------"
 
     def __init__(self):
@@ -392,7 +450,6 @@ class _InputData(object):
 def _start():
     options = _parse_args()
     main(
-         options=options,
          output_path=options.path,
          accel=options.ACCEL,
          singular_value_cut=options.cut,
