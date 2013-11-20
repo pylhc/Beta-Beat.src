@@ -31,7 +31,7 @@ IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
 
 
 
-def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, file_to_config_file_dict=None, master_config_file=""):
+def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, file_to_config_file_dict=None, master_config_file="", options_dict=None):
     """
     Compares also subdirectories recursively
     :param string dir1: Path to directory a
@@ -65,15 +65,15 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, fil
         item1 = os.path.join(dir1, item)
         item2 = os.path.join(dir2, item)
         if os.path.isdir(item1):
-            if not compare_dirs_with_files_matching_regex_list(item1, item2, regex_list, file_to_config_file_dict, master_config_file):
+            if not compare_dirs_with_files_matching_regex_list(item1, item2, regex_list, file_to_config_file_dict, master_config_file, options_dict):
                 return False
         else:
             if empty_list_or_str_matches_regex_list(item1, regex_list):
                 if item in file_to_config_file_dict:
-                    if not compare_files(item1, item2, file_to_config_file_dict[item]):
+                    if not compare_files(item1, item2, file_to_config_file_dict[item], options_dict):
                         return False
                 else:
-                    if not compare_files(item1, item2, master_config_file):
+                    if not compare_files(item1, item2, master_config_file, options_dict):
                         return False
     return True
 
@@ -110,11 +110,12 @@ def compare_files(file_a, file_b, config_file="", options_dict=None ):
     Returns true, if files are equal based on the given config file.
     Otherwise false, and output from ndiff will be printed.
     """
-    (exit_code, std_stream, err_stream) = run_ndiff(file_a, file_b, config_file, options_dict)
+    (exit_code, std_stream, err_stream, call_command) = run_ndiff(file_a, file_b, config_file, options_dict)
 
     if 0 == exit_code and ndiff_files_were_equal(err_stream):
         return True
     else:
+        print "ndiff Command:", call_command
         print std_stream
         print >> sys.stderr, err_stream
         return False
@@ -153,7 +154,7 @@ def run_ndiff(file_a, file_b, config_file="", options_dict=None ):
     (std_stream, err_stream) = process.communicate()
     exit_code = process.returncode
 
-    return (exit_code, std_stream, err_stream)
+    return (exit_code, std_stream, err_stream, " ".join(call_command) )
 
 
 
