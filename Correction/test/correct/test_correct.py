@@ -221,8 +221,12 @@ class TestCorrect(unittest.TestCase):
                         "changeparameters.knob" : os.path.join(TestCorrect.PATH_TO_INPUT, "ignore_date_in_line_3.cfg"),
                         "changeparameters.tfs" : os.path.join(TestCorrect.PATH_TO_INPUT, "ignore_date_in_line_3.cfg")
                                     }
+        ignore_whitespace_dict = {"--blank":""}
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir, file_to_config_file_dict=dict_file_to_config_file),
+                        Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir,
+                                                                                    file_to_config_file_dict=dict_file_to_config_file,
+                                                                                    options_dict=ignore_whitespace_dict
+                                                                                    ),
                         "Output files are not equal"
                         )
 

@@ -243,7 +243,7 @@ if options.TECH=="SVD":
 
 
 if options.TECH=="MICADO":
-    bNCorrNumeric(x,y,dx,beat_inp, cut=cut,ncorr=ncorr,app=0,path=options.path)
+    bNCorrNumeric(x,y,dx,beat_inp, cut=cut,ncorr=ncorr,app=0,path=options.path, beta_x=xbet, beta_y=ybet)
 
 if options.ACCEL=="SPS":
     b= Python_Classes4MAD.metaclass.twiss(options.path+"/changeparameters.tfs")

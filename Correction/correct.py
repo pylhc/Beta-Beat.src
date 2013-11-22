@@ -192,7 +192,7 @@ def _generate_changeparameters():
             print deltas
 
     if _InputData.algorithm == "MICADO":
-        Python_Classes4MAD.BCORR.bNCorrNumeric(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, ncorr=_InputData.num_of_correctors, app=0, path=_InputData.output_path)
+        Python_Classes4MAD.BCORR.bNCorrNumeric(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, ncorr=_InputData.num_of_correctors, app=0, path=_InputData.output_path, beta_x=beta_x, beta_y=beta_y)
 
 
 def _handle_data_for_accel(accel):
