@@ -8,9 +8,8 @@ TODO: get better description (vimaier)
 
 Usage example::
 
-    python correct_coupleDy.py --JustOneBeam=0
-                                --accel=LHCB1
-                                 --Variables=Q
+    python correct_coupleDy.py  --accel=LHCB1
+                                --Variables=Q
                                 --ncorr=5
                                 --rpath=C:\eclipse_4_2_2_python\workspace\Beta-Beat.src
                                 --modelcut=0.3,0.3
@@ -22,7 +21,7 @@ Usage example::
                                 --tech=SVD
                                 --opt=C:\eclipse_4_2_2_python\workspace\Beta-Beat.src\Correction\test\correct\data\input
 
-Hint: MinStr is not used in the script except of a print. The reason is possibly the author wanted to have the same set
+Hint: JustOneBeam is not used in the script except of a print. The reason is possibly the author wanted to have the same set
 of arguments for all correction scripts due to GUI compatibility(vimaier).
 
 Options::
@@ -183,7 +182,7 @@ def _generate_changeparameters():
             varslist = varslist_t
             if len(varslist) == 0:
                 print >> sys.stderr, "You want to correct with too high cut on the corrector strength"
-                sys.exit()
+                sys.exit(1)
             beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
             sensitivity_matrix = beat_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensitivity_matrix will be stored in beat_inp
             [deltas, varslist] = Python_Classes4MAD.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
@@ -268,11 +267,15 @@ def _load_input_files():
     _add_int_part_of_tunes_to_exp_data(full_response, phase_x, phase_y)
 
     # Load vars in AllLists
-    knobsdict = json.load(file(os.path.join(_InputData.accel_path, "AllLists.json"), 'r'))
+    var_source_file_path = os.path.join(_InputData.accel_path, "AllLists.json")
+    knobsdict = json.load(file(var_source_file_path, 'r'))
     # extra depdency to be able to handle to different magnets group
     varslist = []
     for var in _InputData.variables_list:
-        varslist += knobsdict[var]
+        try:
+            varslist += knobsdict[var]
+        except KeyError:
+            print >> sys.stderr, "Given variable({0}) not in dictionary({1})".format(var, var_source_file_path)
 
     return full_response, phase_x, phase_y, beta_x, beta_y, dx, varslist
 def _add_int_part_of_tunes_to_exp_data(full_response, phase_x, phase_y):
@@ -335,7 +338,7 @@ class _InputData(object):
     weights_list = []
     path_to_optics_files_dir = ""
     variables_list = []
-    use_two_beams = False
+    use_two_beams = False # not used in code except of a print (vimaier)
     num_of_correctors = 0
     algorithm = ""
 
