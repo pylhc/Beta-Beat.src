@@ -156,7 +156,7 @@ def _generate_changeparameters_couple_file():
     disp_y = _get_dispersion_y_if_set_and_available()
 
     path_all_lists_json_file = os.path.join(_InputData.accel_path, "AllLists_couple.json")
-    knobsdict=json.load(file(path_all_lists_json_file, 'r'))
+    knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
     varslist = []
     for var in _InputData.variables_list:

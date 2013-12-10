@@ -151,23 +151,23 @@ def _generate_changeparameters_couple_file():
     path_all_lists_json_file = os.path.join(_InputData.accel_path, "AllLists_chromcouple.json")
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
-    varslist=[]
+    varslist = []
     for var in _InputData.variables_list:
         varslist = varslist + knobsdict[var]
 
     couple_twiss = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "chromcoupling.out"))
-    mad_twiss=full_response['0']
+    mad_twiss = full_response['0']
     mad_twiss.Cmatrix()
-    mode='C'
+    mode = 'C'
     couple_list = Python_Classes4MAD.GenMatrix_chromcouple.make_list(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
     if 0 == len(couple_list):
         print >> sys.stderr, "No valid BPM measurements, maybe your model-/errorcuts are too strict?"
         sys.exit(1)
 
-    print "entering chromcouple input",len(couple_list)
+    print "entering chromcouple input", len(couple_list)
     chromcouple_inp = Python_Classes4MAD.GenMatrix_chromcouple.ChromCoupleInput(varslist, couple_list, _InputData.weights_list)
     print "computing the sensitivity matrix"
-    sensitivity_matrix=chromcouple_inp.computeSensitivityMatrix(full_response) # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
+    sensitivity_matrix = chromcouple_inp.computeSensitivityMatrix(full_response) # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
 
     print "computing correct coupling "
     [deltas, varslist ] = Python_Classes4MAD.GenMatrix_chromcouple.correctcouple(
@@ -178,15 +178,14 @@ def _generate_changeparameters_couple_file():
 
 def _create_changeparameters_madx_script_for_lhc():
     #.knob should always exist to be sent to LSA!
-    #TODO: check if gui sends changeparameters_chromcouple.knob or changeparameters_couple.knob(vimaier)
     src = os.path.join(os.path.join(_InputData.output_path, "changeparameters_chromcouple.tfs"))
     dst = os.path.join(os.path.join(_InputData.output_path, "changeparameters_chromcouple.knob"))
     Utilities.iotools.copy_item(src, dst)
 
     changeparams_twiss = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "changeparameters_chromcouple.tfs"))
     mad_script = open(os.path.join(_InputData.output_path, "changeparameters_chromcouple.madx"), "w")
-    name_list = changeparams_twiss.NAME
-    delta_list = changeparams_twiss.DELTA
+    name_list = getattr(changeparams_twiss, "NAME", [])
+    delta_list = getattr(changeparams_twiss, "DELTA", [])
 
     for i in range(len(name_list)):
         if cmp(delta_list[i],0)==1:
@@ -194,7 +193,7 @@ def _create_changeparameters_madx_script_for_lhc():
         else:
             mad_script.write("{0} = {0} {1};\n".format(name_list[i], delta_list[i]))
 
-    mad_script.write("return;");
+    mad_script.write("return;")
     mad_script.close()
 
 
