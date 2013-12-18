@@ -19,7 +19,7 @@ Usage example::
                                 --cut=0.01
                                 --opt=/afs/cern.ch/work/v/vimaier/public/Beta-Beat.src/Correction/test/chrom_coup/data/input/run2
 
-Hint: The latter parts of modelcut and errorcut and MinStr is not used in the script except of a print. The reason is
+Hint: The latter parts of modelcut and errorcut and MinStr are not used in the script except of a print. The reason is
 possibly the author wanted to have the same set of arguments for all correction scripts due to GUI compatibility(vimaier).
 
 Options::
