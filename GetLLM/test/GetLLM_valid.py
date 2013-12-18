@@ -156,7 +156,8 @@ VERSION='V2.38b PRO'
 ####
 
 import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+
+import __init__ # @UnusedImport init will include paths
 
 import traceback
 from Python_Classes4MAD.metaclass import *
