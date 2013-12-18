@@ -159,7 +159,7 @@ import sys
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
 
 import traceback
-from metaclass import *
+from Python_Classes4MAD.metaclass import *
 from numpy import *
 import numpy
 import numpy as np
@@ -172,7 +172,7 @@ import pickle,os
 from string import *
 
 from math import *
-from linreg import *
+from Python_Classes4MAD.linreg import *
 
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
