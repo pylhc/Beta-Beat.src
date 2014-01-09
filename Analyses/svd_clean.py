@@ -94,15 +94,15 @@ def _parse_args():
         default="1", dest="startturn", type="int")
     parser.add_option("-m", "--maxturns",
         help="Maximum number of turns to be analysed. Default is a number that is "
-         +"lower than the maximum which can be handled by drive: 9.500",
+         + "lower than the maximum which can be handled by drive: 9.500",
         default="9500", dest="maxturns", type="int")
     parser.add_option("-v", "--sing_val",
         help="Keep this amount of singular values in decreasing order, rest will "
-         +"be cut (set to 0). Default is a large number: 1e5",
+         + "be cut (set to 0). Default is a large number: 1e5",
         default="100000", dest="sing", type="int")
     parser.add_option("-p", "--pk-2-pk",
         help="Peak to peak amplitude cut. This removes BPMs where "
-        +"abs(max(turn values) - min(turn values)) <= threshold. Default is 10e-8",
+        + "abs(max(turn values) - min(turn values)) <= threshold. Default is 10e-8",
         default="0.00000001", dest="peak", type="float")
     parser.add_option("-s", "--sumsquare",
         help="Threshold for single BPM dominating a mode. Should be > 0.9 for LHC."
@@ -111,7 +111,6 @@ def _parse_args():
     parser.add_option("--use_test_mode",
         help="Set testing mode, this prevents date writing and file overwriting",
         action="store_true", dest="use_test_mode")
-
 
     (options, args) = parser.parse_args()  # @UnusedVariable args is not used
 
@@ -188,7 +187,7 @@ class _SddsFile(object):
         self.parsed = False
         self.header = ""
         self.number_of_turns = 0
-        self.dictionary_plane_to_bpms = { PLANE_X:_Bpms(), PLANE_Y:_Bpms() }
+        self.dictionary_plane_to_bpms = {PLANE_X: _Bpms(), PLANE_Y: _Bpms()}
 
     def init(self):
         """Parse the current SDDS file and sets all member variables"""
@@ -277,10 +276,8 @@ class _SddsFile(object):
         fileclean.write(self.header)
         if "NTURNS calculated" not in self.header:
             fileclean.write("#NTURNS calculated: " + str(self.number_of_turns) + "\n")
-        #fileclean.write("#Modified: {0} By: {1}\n".format(time.strftime("%Y-%m-%d#%H:%M:%S"), __file__)) # to get only the filename: os.path.basename(__file__)
-        # The previous line requires at least python 2.6 (tbach)
         if not _InputData.use_test_mode:
-            fileclean.write("#Modified: %s By: %s\n" % (time.strftime("%Y-%m-%d#%H:%M:%S"), __file__)) # to get only the filename: os.path.basename(__file__)
+            fileclean.write("#Modified: {0} By: {1}\n".format(time.strftime("%Y-%m-%d#%H:%M:%S"), __file__))  # to get only the filename: os.path.basename(__file__)
         self.write_bpm_data_to_file(PLANE_X, fileclean)
         self.write_bpm_data_to_file(PLANE_Y, fileclean)
         fileclean.close()
@@ -292,18 +289,17 @@ class _SddsFile(object):
             try:
                 os.remove(_InputData.newfile)
             except OSError:
-                pass # Will be raised if newfile does not exist (vimaier)
+                pass  # Will be raised if newfile does not exist (vimaier)
             os.rename(_InputData.source_file + ".tmp_svd_clean", _InputData.newfile)
 
     def write_bpm_data_to_file(self, plane, file_to_write):
         """Writes the BPM data for the given plane"""
         current_bpms = self.dictionary_plane_to_bpms[plane]
         for i, bpms_name_location_plane_item in enumerate(current_bpms.bpms_name_location_plane):
-            # file_to_write.write("{0} {1[0]:<15} {1[1]:>12.5f} ".format(plane, bpms_name_location_plane_item)) # This line requires at least python 2.6 (tbach)
+            file_to_write.write("{0} {1[0]:<15} {1[1]:>12.5f} ".format(plane, bpms_name_location_plane_item))
             # {0} is the first argument, {1[0]} from the second argument the first entry, {1[1] from the second argument the second entry (tbach)
             # :>15 means right aligned, filled up to 15 characters. example: "   BPMYA.4L1.B1" (tbach)
             # :>12.5 means right aligned float, filled up to 12 characters and fixed precision of 5. Example: " 23347.14262" (tbach)
-            file_to_write.write("%s %15s %12.5f " % (plane, bpms_name_location_plane_item[0], bpms_name_location_plane_item[1]))
             current_bpms.bpm_data[i].tofile(file_to_write, sep=" ", format="% 8.5f")
             # % 8.5f is a float, filled up to 8 characters and fixed precision of 5. if negative, preceded by a sign, if positive by a space (tbach)
             # Example1: " -0.94424", example2: "  1.25630" (tbach)
@@ -325,7 +321,7 @@ class _BadBpmFile(object):
         """ Writes the header for the bad bpm file """
         filehandle_badbpm.write(self.header)
         if not _InputData.use_test_mode:
-            filehandle_badbpm.write("#Modified: %s By: %s\n" % (time.strftime("%Y-%m-%d#%H:%M:%S"), __file__)) # to get only the filename: os.path.basename(__file__)
+            filehandle_badbpm.write("#Modified: %s By: %s\n" % (time.strftime("%Y-%m-%d#%H:%M:%S"), __file__))  # to get only the filename: os.path.basename(__file__)
         filehandle_badbpm.write("#Bad BPMs from: %s \n" % self.path_to_sddsfile)
 
     def add_badbpm(self, badbpm):
@@ -516,7 +512,6 @@ class _SvdHandler(object):
         return goodbpm_indices
 
 
-
 #===================================================================================================
 # main invocation
 #===================================================================================================
@@ -538,5 +533,3 @@ def _start():
 
 if __name__ == "__main__":
     _start()
-
-

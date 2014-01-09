@@ -8,12 +8,12 @@ import sys
 import unittest
 import subprocess
 
-import __init__ # @UnusedImport init will include paths
+import __init__  # @UnusedImport init will include paths
 import Utilities.iotools
 import Utilities.ndiff
 
-class TestSvdClean(unittest.TestCase):
 
+class TestSvdClean(unittest.TestCase):
 
     def setUp(self):
         self.__root = os.path.dirname(os.path.abspath(__file__))
@@ -24,10 +24,8 @@ class TestSvdClean(unittest.TestCase):
         self.__path_expected = os.path.join(self.__root, "data", "output", "expected")
         Utilities.iotools.create_dirs(self.__path_to_check)
 
-
     def tearDown(self):
         self.__delete_created_files()
-
 
     def testSvdClean(self):
         self.__run_svd_clean_for_every_file_in_input_dir()
@@ -44,7 +42,6 @@ class TestSvdClean(unittest.TestCase):
             if file_path.endswith(".bad"):
                 Utilities.iotools.delete_item(file_path)
 
-
     def __run_svd_clean_for_every_file_in_input_dir(self):
         print "Run svd_clean..."
         input_file_names = Utilities.iotools.get_all_filenames_in_dir_and_subdirs(self.__path_to_input)
@@ -52,7 +49,7 @@ class TestSvdClean(unittest.TestCase):
             self.__run_svd_clean_for_file(file_name)
 
     def __run_svd_clean_for_file(self, file_name):
-        debug_option_for_python = "-d" # Needed to run script in DEBUG mode
+        debug_option_for_python = "-d"  # Needed to run script in DEBUG mode
         call_command = [sys.executable, debug_option_for_python]
         call_command.append(self.__path_svd_clean)
         call_command.append("--file")
@@ -77,11 +74,15 @@ class TestSvdClean(unittest.TestCase):
     def __compare_expected_and_to_check_dirs(self):
         print "Compare dirs..."
         ndiff_cfg_file = os.path.join(self.__root, "data", "ignore_line_modified_in_header.cfg")
+        ignore_whitespace_option = {"--blank": ""}
         self.assertTrue(
                 Utilities.ndiff.compare_dirs_with_files_matching_regex_list(
-                            self.__path_expected, self.__path_to_check, master_config_file=ndiff_cfg_file
+                            self.__path_expected,
+                            self.__path_to_check,
+                            master_config_file=ndiff_cfg_file,
+                            options_dict=ignore_whitespace_option
                             ),
-                "Created files differ from expected files." )
+                "Created files differ from expected files.")
 
 
 if __name__ == "__main__":
