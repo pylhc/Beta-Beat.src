@@ -570,7 +570,7 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
     amp = []
     amp2 = []
     kick2 = []
-    for i in range(0, len(commonbpms)): # this loop have become complicated after modifications... anybody simplify?
+    for i in range(0, len(commonbpms)):  # this loop have become complicated after modifications... anybody simplify?
         bn1 = str.upper(commonbpms[i][1])
         if plane == 'H':
             tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]
@@ -586,55 +586,54 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
             if plane == 'H':
                 amp_i += tw_file.AMPX[tw_file.indx[bn1]]
                 amp_j2.append(tw_file.AMPX[tw_file.indx[bn1]]**2)
-                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
+                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]] / 2.
             elif plane == 'V':
                 amp_i += tw_file.AMPY[tw_file.indx[bn1]]
                 amp_j2.append(tw_file.AMPY[tw_file.indx[bn1]]**2)
-                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
+                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]] / 2.
 
-            kick2[counter] += amp_j2[counter]/tembeta
+            kick2[counter] += amp_j2[counter] / tembeta
             counter += 1
 
-        amp_i = amp_i/len(list_of_files)
-        root2j_i = root2j_i/len(list_of_files)
+        amp_i = amp_i / len(list_of_files)
+        root2j_i = root2j_i / len(list_of_files)
         amp.append(amp_i)
         amp2.append(amp_j2)
 
-        sum_a += amp_i**2/tembeta
-        root2j.append(root2j_i/math.sqrt(tembeta))
+        sum_a += amp_i**2 / tembeta
+        root2j.append(root2j_i / math.sqrt(tembeta))
 
-
-    kick = sum_a/len(commonbpms) # Assuming the average of beta is constant
+    kick = sum_a / len(commonbpms)  # Assuming the average of beta is constant
     kick2 = np.array(kick2)
-    kick2 = kick2/len(commonbpms)
+    kick2 = kick2 / len(commonbpms)
     amp2 = np.array(amp2)
     root2j = np.array(root2j)
     root2j_ave = np.average(root2j)
-    root2j_rms = math.sqrt(np.average(root2j*root2j)-root2j_ave**2+2.2e-16)
+    root2j_rms = math.sqrt(np.average(root2j * root2j) - root2j_ave**2 + 2.2e-16)
 
     delbeta = []
     for i in range(0, len(commonbpms)):
         bn1 = str.upper(commonbpms[i][1])
         location = commonbpms[i][0]
-        for tw_file in range(0, len(list_of_files)):
-            amp2[i][tw_file] = amp2[i][tw_file]/kick2[tw_file]
+        for j in range(0, len(list_of_files)):
+            amp2[i][j] = amp2[i][j] / kick2[j]
         #print np.average(amp2[i]*amp2[i]),np.average(amp2[i])**2
         try:
-            betstd = math.sqrt(np.average(amp2[i]*amp2[i])-np.average(amp2[i])**2+2.2e-16)
+            betstd = math.sqrt(np.average(amp2[i] * amp2[i]) - np.average(amp2[i])**2 + 2.2e-16)
         except:
             betstd = 0
 
-        beta[bn1] = [amp[i]**2/kick, betstd, location]
+        beta[bn1] = [amp[i]**2 / kick, betstd, location]
         if plane == 'H':
             betmdl = mad_twiss.BETX[mad_twiss.indx[bn1]]
         elif plane == 'V':
             betmdl = mad_twiss.BETY[mad_twiss.indx[bn1]]
-        delbeta.append((beta[bn1][0]-betmdl)/betmdl)
+        delbeta.append((beta[bn1][0] - betmdl) / betmdl)
 
     invariant_j = [root2j_ave, root2j_rms]
 
     delbeta = np.array(delbeta)
-    rmsbb = math.sqrt(np.average(delbeta*delbeta))
+    rmsbb = math.sqrt(np.average(delbeta * delbeta))
     return [beta, rmsbb, commonbpms, invariant_j]
 
 #===================================================================================================

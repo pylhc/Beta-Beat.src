@@ -156,10 +156,11 @@ VERSION='V2.38b PRO'
 ####
 
 import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+
+import __init__ # @UnusedImport init will include paths
 
 import traceback
-from metaclass import *
+from Python_Classes4MAD.metaclass import *
 from numpy import *
 import numpy
 import numpy as np
@@ -172,7 +173,7 @@ import pickle,os
 from string import *
 
 from math import *
-from linreg import *
+from Python_Classes4MAD.linreg import *
 
 # tentative solution for SPS pseudo double plane BPM
 # from SPSBPMpair import *
@@ -312,9 +313,9 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
     #sys.exit()
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if lhcphase=="1" and accel=="LHCB1": 
+    if lhcphase=="1" and accel=="LHCB1":
         s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    if lhcphase=="1" and accel=="LHCB2": 
+    if lhcphase=="1" and accel=="LHCB2":
         s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     mu=0.0
@@ -324,28 +325,28 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
         bn1=string.upper(commonbpms[i%length_commonbpms][1])
         bn2=string.upper(commonbpms[(i+1)%length_commonbpms][1])
         bn3=string.upper(commonbpms[(i+2)%length_commonbpms][1])
-        
+
         if bn1 == bn2 :
             print >> sys.stderr, "There seem two lines with the same BPM name "+bn1+" in linx/y file."
             print >> sys.stderr, "Please check your input data....leaving GetLLM."
             sys.exit(1)
-            
+
         if plane == 'H':
             phmdl12 = MADTwiss.MUX[MADTwiss.indx[bn2]] - MADTwiss.MUX[MADTwiss.indx[bn1]]
             phmdl13 = MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn1]]
         elif plane == 'V':
             phmdl12 = MADTwiss.MUY[MADTwiss.indx[bn2]] - MADTwiss.MUY[MADTwiss.indx[bn1]]
             phmdl13 = MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn1]]
-            
+
         if i == length_commonbpms-2:
             if plane == 'H':
                 madtune = MADTwiss.Q1 % 1.0
             elif plane == 'V':
                 madtune = MADTwiss.Q2 % 1.0
-            
+
             if madtune > 0.5:
                 madtune -= 1.0
-            
+
             phmdl13 = phmdl13 % 1.0
             phmdl13 = phiLastAndLastButOne(phmdl13,madtune)
         elif i == length_commonbpms-1:
@@ -353,10 +354,10 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
                 madtune = MADTwiss.Q1 % 1.0
             elif plane == 'V':
                 madtune = MADTwiss.Q2 % 1.0
-            
+
             if madtune>0.5:
                 madtune -= 1.0
-            
+
             phmdl12 = phmdl12 % 1.0
             phmdl13 = phmdl13 % 1.0
             phmdl12 = phiLastAndLastButOne(phmdl12,madtune)
@@ -380,13 +381,13 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
                 tunemi.append(j.TUNEY[j.indx[bn1]])
             #-- To fix the phase shift by Q in LHC
             try:
-                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]] >s_lastbpm: 
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]] >s_lastbpm:
                     phm12 += beam_direction*Q
-                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]] >s_lastbpm: 
+                if MADTwiss.S[MADTwiss.indx[bn1]]<=s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]] >s_lastbpm:
                     phm13 += beam_direction*Q
-                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm: 
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn2]]<=s_lastbpm:
                     phm12 += -beam_direction*Q
-                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm: 
+                if MADTwiss.S[MADTwiss.indx[bn1]] >s_lastbpm and MADTwiss.S[MADTwiss.indx[bn3]]<=s_lastbpm:
                     phm13 += -beam_direction*Q
             except: pass
             if phm12<0: phm12+=1
@@ -531,7 +532,7 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
         phi15 = PhaseMean(phi15, 1.0)
         phi16 = PhaseMean(phi16, 1.0)
         phi17 = PhaseMean(phi17, 1.0)
-        
+
         if i >= length_commonbpms-6:
             phi17 = phiLastAndLastButOne(phi17, tune)
             if i >= length_commonbpms-5:
@@ -539,11 +540,11 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             if i >= length_commonbpms-4:
                 phi15 = phiLastAndLastButOne(phi15, tune)
             if i >= length_commonbpms-3:
-                phi14 = phiLastAndLastButOne(phi14, tune)                
+                phi14 = phiLastAndLastButOne(phi14, tune)
             if i >= length_commonbpms-2:
-                phi13 = phiLastAndLastButOne(phi13, tune)                
+                phi13 = phiLastAndLastButOne(phi13, tune)
             if i >= length_commonbpms-1:
-                phi12 = phiLastAndLastButOne(phi12, tune)                
+                phi12 = phiLastAndLastButOne(phi12, tune)
 
         if plane=='H':
             phmdl12=MADTwiss.MUX[MADTwiss.indx[bn2]]-MADTwiss.MUX[MADTwiss.indx[bn1]]
@@ -559,7 +560,7 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             phmdl15=MADTwiss.MUY[MADTwiss.indx[bn5]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
             phmdl16=MADTwiss.MUY[MADTwiss.indx[bn6]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
             phmdl17=MADTwiss.MUY[MADTwiss.indx[bn7]]-MADTwiss.MUY[MADTwiss.indx[bn1]]
- 
+
         if i >= length_commonbpms-6:
             if plane == 'H':
                 madtune = MADTwiss.Q1 % 1.0
@@ -572,21 +573,21 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             phmdl17 = phiLastAndLastButOne(phmdl17,madtune)
             if i >= length_commonbpms-5:
                 phmdl16 = phmdl16 % 1.0
-                phmdl16 = phiLastAndLastButOne(phmdl16,madtune)                
+                phmdl16 = phiLastAndLastButOne(phmdl16,madtune)
             if i >= length_commonbpms-4:
                 phmdl15 = phmdl15 % 1.0
-                phmdl15 = phiLastAndLastButOne(phmdl15,madtune)                
+                phmdl15 = phiLastAndLastButOne(phmdl15,madtune)
             if i >= length_commonbpms-3:
                 phmdl14 = phmdl14 % 1.0
-                phmdl14 = phiLastAndLastButOne(phmdl14,madtune)                
+                phmdl14 = phiLastAndLastButOne(phmdl14,madtune)
             if i >= length_commonbpms-2:
                 phmdl13 = phmdl13 % 1.0
-                phmdl13 = phiLastAndLastButOne(phmdl13,madtune)                
+                phmdl13 = phiLastAndLastButOne(phmdl13,madtune)
             if i == length_commonbpms-1:
                 phmdl12 = phmdl12 % 1.0
                 phmdl12 = phiLastAndLastButOne(phmdl12,madtune)
-                                        
-        
+
+
         if (abs(phmdl12) < small):
             phmdl12=small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn2+" in MAD model is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
@@ -635,7 +636,7 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
             phi17 = small
             print "Note: Phase advance (Plane"+plane+") between "+bn1+" and "+bn7+" in measurement is EXACTLY n*pi. GetLLM slightly differ the phase advance here, artificially."
             print "Beta from amplitude around this monitor will be slightly varied."
-            
+
         if plane=='H':
             phase["".join(['H',bn1,bn2])] = [phi12,phstd12,phmdl12]
             phase["".join(['H',bn1,bn3])] = [phi13,phstd13,phmdl13]
@@ -656,36 +657,36 @@ def GetPhases(MADTwiss,ListOfFiles,Q,plane,outputpath,beam_direction,accel,lhcph
 
 #-------- Beta from pahses
 
-def BetaFromPhase_BPM_left(bn1,bn2,bn3,MADTwiss,phase,plane):  
-    ''' 
-    Calculates the beta/alfa function and their errors using the 
+def BetaFromPhase_BPM_left(bn1,bn2,bn3,MADTwiss,phase,plane):
+    '''
+    Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is left of the other two BPMs
-    :Parameters: 
-        'bn1':string 
-            Name of probed BPM 
-        'bn2':string 
+    :Parameters:
+        'bn1':string
+            Name of probed BPM
+        'bn2':string
             Name of first BPM right of the probed BPM
-        'bn3':string 
-            Name of second BPM right of the probed BPM 
-        'MADTwiss':twiss 
-            model twiss file 
+        'bn3':string
+            Name of second BPM right of the probed BPM
+        'MADTwiss':twiss
+            model twiss file
         'phase':dict
-            measured phase advances 
-        'plane':string 
+            measured phase advances
+        'plane':string
             'H' or 'V'
-    :Return:tupel (bet,betstd,alf,alfstd) 
-        'bet':float 
+    :Return:tupel (bet,betstd,alf,alfstd)
+        'bet':float
             calculated beta function at probed BPM
-        'betstd':float 
+        'betstd':float
             calculated error on beta function at probed BPM
-        'alf':float 
+        'alf':float
             calculated alfa function at probed BPM
-        'alfstd':float 
+        'alfstd':float
             calculated error on alfa function at probed BPM
     '''
     ph2pi12=2.*np.pi*phase["".join([plane,bn1,bn2])][0]
     ph2pi13=2.*np.pi*phase["".join([plane,bn1,bn3])][0]
-      
+
     # Find the model transfer matrices for beta1
     phmdl12 = 2.*np.pi*phase["".join([plane,bn1,bn2])][2]
     phmdl13=2.*np.pi*phase["".join([plane,bn1,bn3])][2]
@@ -728,37 +729,37 @@ def BetaFromPhase_BPM_left(bn1,bn2,bn3,MADTwiss,phase,plane):
     alfstd=math.sqrt(alfstd)/denom
 
     return bet, betstd, alf, alfstd
-    
-def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane): 
-    ''' 
-    Calculates the beta/alfa function and their errors using the 
+
+def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane):
+    '''
+    Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is between the other two BPMs
-    :Parameters: 
-        'bn1':string 
+    :Parameters:
+        'bn1':string
             Name of BPM left of the probed BPM
-        'bn2':string 
-            Name of probed BPM 
-        'bn3':string 
-            Name of BPM right of the probed BPM 
-        'MADTwiss':twiss 
-            model twiss file 
+        'bn2':string
+            Name of probed BPM
+        'bn3':string
+            Name of BPM right of the probed BPM
+        'MADTwiss':twiss
+            model twiss file
         'phase':dict
-            measured phase advances 
-        'plane':string 
+            measured phase advances
+        'plane':string
             'H' or 'V'
-    :Return:tupel (bet,betstd,alf,alfstd) 
-        'bet':float 
+    :Return:tupel (bet,betstd,alf,alfstd)
+        'bet':float
             calculated beta function at probed BPM
-        'betstd':float 
+        'betstd':float
             calculated error on beta function at probed BPM
-        'alf':float 
+        'alf':float
             calculated alfa function at probed BPM
-        'alfstd':float 
+        'alfstd':float
             calculated error on alfa function at probed BPM
     '''
     ph2pi12=2.*np.pi*phase["".join([plane,bn1,bn2])][0]
     ph2pi23=2.*np.pi*phase["".join([plane,bn2,bn3])][0]
-      
+
     # Find the model transfer matrices for beta1
     phmdl12=2.*np.pi*phase["".join([plane,bn1,bn2])][2]
     phmdl23=2.*np.pi*phase["".join([plane,bn2,bn3])][2]
@@ -803,35 +804,35 @@ def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane):
     return bet, betstd, alf, alfstd
 
 def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane):
-    ''' 
-    Calculates the beta/alfa function and their errors using the 
+    '''
+    Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is right the other two BPMs
-    :Parameters: 
-        'bn1':string 
+    :Parameters:
+        'bn1':string
             Name of second BPM left of the probed BPM
-        'bn2':string 
+        'bn2':string
             Name of first BPM left of the probed BPM
-        'bn3':string 
-            Name of probed BPM 
-        'MADTwiss':twiss 
-            model twiss file 
+        'bn3':string
+            Name of probed BPM
+        'MADTwiss':twiss
+            model twiss file
         'phase':dict
-            measured phase advances 
-        'plane':string 
+            measured phase advances
+        'plane':string
             'H' or 'V'
-    :Return:tupel (bet,betstd,alf,alfstd) 
-        'bet':float 
+    :Return:tupel (bet,betstd,alf,alfstd)
+        'bet':float
             calculated beta function at probed BPM
-        'betstd':float 
+        'betstd':float
             calculated error on beta function at probed BPM
-        'alf':float 
+        'alf':float
             calculated alfa function at probed BPM
-        'alfstd':float 
+        'alfstd':float
             calculated error on alfa function at probed BPM
     '''
     ph2pi23=2.*np.pi*phase["".join([plane,bn2,bn3])][0]
     ph2pi13=2.*np.pi*phase["".join([plane,bn1,bn3])][0]
-      
+
     # Find the model transfer matrices for beta1
     phmdl13=2.*np.pi*phase["".join([plane,bn1,bn3])][2]
     phmdl23=2.*np.pi*phase["".join([plane,bn2,bn3])][2]
@@ -876,27 +877,27 @@ def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane):
     return bet, betstd, alf, alfstd
 
 def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
-    ''' 
+    '''
     Uses 3 BPM left and right of a probed BPM and calculates the beta/alfa from the
     phase advances (15 combinations of 3 BPM stes -> 15 betas).
     The 3 betas with the lowest errors are chosen, and averaged for the final beta.
-    :Parameters: 
-        'MADTwiss':twiss 
-            model twiss file 
-        'ListOfFiles':twiss 
-            measurement files 
+    :Parameters:
+        'MADTwiss':twiss
+            model twiss file
+        'ListOfFiles':twiss
+            measurement files
         'phase':dict
-            measured phase advances 
-        'plane':string 
+            measured phase advances
+        'plane':string
             'H' or 'V'
-    :Return:tupel (beta,rmsbb,alfa,commonbpms) 
+    :Return:tupel (beta,rmsbb,alfa,commonbpms)
         'beta':dict
             calculated beta function for all BPMs
-        'rmsbb':float 
+        'rmsbb':float
             rms beta-beating
-        'alfa':dict 
+        'alfa':dict
             calculated alfa function for all BPMs
-        'commonbpms':dict 
+        'commonbpms':dict
             intersection of common BPMs in measurement files and model
     '''
     alfa={}
@@ -913,7 +914,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
         bn4=string.upper(commonbpms[(i+3)%len(commonbpms)][1])
         bn5=string.upper(commonbpms[(i+4)%len(commonbpms)][1])
         bn6=string.upper(commonbpms[(i+5)%len(commonbpms)][1])
-        bn7=string.upper(commonbpms[(i+6)%len(commonbpms)][1]) 
+        bn7=string.upper(commonbpms[(i+6)%len(commonbpms)][1])
 
 
         candidates = []
@@ -961,7 +962,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
         betstd = math.sqrt(sort_cand[0][0]**2 + sort_cand[1][0]**2 + sort_cand[2][0]**2)/math.sqrt(3.)
         alfstd = math.sqrt(sort_cand[0][2]**2 + sort_cand[1][2]**2 + sort_cand[2][2]**2)/math.sqrt(3.)
 
-        
+
         try:
             beterr = math.sqrt((sort_cand[0][1]**2 + sort_cand[1][1]**2 + sort_cand[2][1]**2)/3.-beti**2.)
         except:
@@ -971,7 +972,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
             alferr = math.sqrt((sort_cand[0][3]**2 + sort_cand[1][3]**2 + sort_cand[2][3]**2)/3.-alfi**2.)
         except:
             alferr=0
-            
+
 
         if sort_cand[0][0] == 0:
             beti = (candidates[2][1] + candidates[5][1] + candidates[12][1])/3.
@@ -979,7 +980,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
 
             betstd = math.sqrt(candidates[2][0]**2 + candidates[5][0]**2 + candidates[12][0]**2)/math.sqrt(3.)
             alfstd = math.sqrt(candidates[2][2]**2 + candidates[5][2]**2 + candidates[12][2]**2)/math.sqrt(3.)
-            
+
             try:
                 beterr = math.sqrt((candidates[2][1]**2 + candidates[5][1]**2 + candidates[12][1]**2)/3.-beti**2.)
             except:
@@ -989,7 +990,7 @@ def BetaFromPhase(MADTwiss,ListOfFiles,phase,plane):
             except:
                 alferr=0
 
- 
+
         beta[bn4]=(beti,beterr,betstd)
         alfa[bn4]=(alfi,alferr,alfstd)
         if plane=='H':
@@ -2966,7 +2967,7 @@ def getkick(files,MADTwiss):
         tuney.append(getattr(tw_y, "Q2", 0.0))
         tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
         tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
-        
+
         nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
         nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
         nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
@@ -3706,10 +3707,10 @@ def GetFreePhase_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             result["".join(['H',bn1,bn3])] = [psi13ave,psi13std,psi13mdl[k]]
             result["".join(['H',bn1,bn4])] = [psi14ave,psi14std,psi14mdl[k]]
             result["".join(['H',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
-            result["".join(['H',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]] 
+            result["".join(['H',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]]
             result["".join(['H',bn1,bn7])] = [psi17ave,psi17std,psi17mdl[k]]
         elif plane=='V':
-            result["".join(['V',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]    
+            result["".join(['V',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]
             result["".join(['V',bn1,bn3])] = [psi13ave,psi13std,psi13mdl[k]]
             result["".join(['V',bn1,bn4])] = [psi14ave,psi14std,psi14mdl[k]]
             result["".join(['V',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
@@ -4112,35 +4113,46 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
 def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
-    invarianceJx=[]
-    invarianceJy=[]
-    tunex       =[]
-    tuney       =[]
-    tunexRMS    =[]
-    tuneyRMS    =[]
-    dpp=[]
+    invarianceJx = []
+    invarianceJy = []
+
+    tunex = []
+    tuney = []
+    tunexRMS = []
+    tuneyRMS = []
+
+    nat_tunex = []
+    nat_tuney = []
+    nat_tunexRMS = []
+    nat_tuneyRMS = []
+
+    dpp = []
 
     for j in range(len(files[0])):
 
-        x=files[0][j]
-        y=files[1][j]
-        [beta,rmsbb,bpms,invariantJx]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[x],Qh,Qx,psih_ac2bpmac,'H',bd,op)
-        [beta,rmsbb,bpms,invariantJy]=GetFreeBetaFromAmp_Eq(MADTwiss_ac,[y],Qv,Qy,psiv_ac2bpmac,'V',bd,op)
+        tw_x = files[0][j]
+        tw_y = files[1][j]
+        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJx = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,[tw_x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
+        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJy = ( GetFreeBetaFromAmp_Eq(MADTwiss_ac,[tw_y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
-        try:
-            dpp.append(x.DPP)
-        except:
-            dpp.append(0.0)
-        tunex.append(x.Q1)
-        tuney.append(y.Q2)
-        tunexRMS.append(x.Q1RMS)
-        tuneyRMS.append(y.Q2RMS)
 
-    tune   =[tunex,tuney]
-    tuneRMS=[tunexRMS,tuneyRMS]
+        dpp.append(getattr(tw_x, "DPP", 0.0))
 
-    return [invarianceJx,invarianceJy,tune,tuneRMS,dpp]
+        tunex.append(getattr(tw_x, "Q1", 0.0))
+        tuney.append(getattr(tw_y, "Q2", 0.0))
+        tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
+        tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
+
+        nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
+        nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
+        nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
+        nat_tuneyRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
+
+    tune_values_list = [tunex, tunexRMS, tuney, tuneyRMS, nat_tunex, nat_tunexRMS, nat_tuney, nat_tuneyRMS]
+    return [invarianceJx, invarianceJy, tune_values_list, dpp]
 
 ######### end ac-dipole stuff
 
@@ -5679,10 +5691,10 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             bn1=upper(bpms[i][1])
             bns1=bpms[i][0]
             fDx.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPX))+' '+str(dxo[bn1][0])+' '+str(dxo[bn1][1])+' '+str(DPX[bn1])+' '+str(MADTwiss.DX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.DPX[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUX[MADTwiss.indx[bn1]])+'\n' )
-        
+
         fNDx.close()
         fDx.close()
-        
+
     # Nothing to write so delete empty files (vimaier)
     else:
         fNDx.close()
@@ -5690,7 +5702,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         os.remove(outputpath+'getNDx.out')
         os.remove(outputpath+'getDx.out')
 
-        
+
     if woliny!=1 and woliny2!=1:
         [dyo,bpms]=DispersionfromOrbit(ListOfZeroDPPY,ListOfNonZeroDPPY,ListOfCOY,COcut,BPMU)
         DPY=GetDPY(MADTwiss,dyo,bpms)
@@ -5703,7 +5715,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
             bn1=upper(bpms[i][1])
             bns1=bpms[i][0]
             fDy.write('"'+bn1+'" '+str(bns1)+' '+str(len(ListOfNonZeroDPPY))+' '+str(dyo[bn1][0])+' '+str(dyo[bn1][1])+' '+str(DPY[bn1])+' '+str(MADTwiss.DY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.DPY[MADTwiss.indx[bn1]])+' '+str(MADTwiss.MUY[MADTwiss.indx[bn1]])+'\n' )
-    
+
     # Nothing to write so delete empty files (vimaier)
     else:
         fDy.close()
@@ -6127,19 +6139,19 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 #         fchi4000.write('* NAME    S    S1    S2    X4000    X4000i    X4000r    X4000RMS   X4000PHASE   X4000PHASERMS   X4000M    X4000Mi   X4000Mr    X4000MPHASE \n')
 #         fchi4000.write('$ %s   %le    %le   %le   %le   %le   %le   %le   %le %le   %le   %le   %le   %le \n')
-# 
+#
 #         #files=[ListOfZeroDPPX,ListOfZeroDPPY]
 #         #name='chi4000'
 #         #plane='H'
-# 
+#
 #         #[dbpms,POS,XItot,XIMODEL]=getChiTerms(MADTwiss,files,plane,name,ListOfZeroDPPX,ListOfZeroDPPY)
-# 
+#
 #         #for i in range(0,len(dbpms)-2):
-# 
+#
 #     #               bn=upper(dbpms[i][1])
-# 
+#
 #         #       fchi4000.write('"'+bn+'" '+str(POS[0][i])+' '+str(POS[1][i])+' '+str(POS[2][i])+' '+str(XItot[0][i])+' '+' '+str(XItot[1][i])+' '+str(XItot[2][i])+' '+str(XItot[3][i])+' '+str(XItot[4][i])+' '+str(XItot[5][i])+' '+str(XIMODEL[0][i])+' '+str(XIMODEL[1][i])+' '+str(XIMODEL[2][i])+' '+str(XIMODEL[3][i])+'\n')
-# 
+#
 #         fchi4000.close()
 
 
@@ -6152,7 +6164,7 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 
 #         foct4000.write('* NAME    S    AMP_30    AMP_30RMS   PHASE_30   PHASE_30RMS   H4000   H4000I   H4000R   H4000RMS  H4000PHASE  H4000PHASERMS    H4000M    H4000MI    H4000MR    HMPHASE4000  \n')
 #         foct4000.write('$ %s   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le   %le  \n')
-# 
+#
 #         files=[ListOfZeroDPPX,ListOfZeroDPPY]
 #         Q=[Q1,Q2]
 #         plane='H'
@@ -6182,20 +6194,18 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
 #         fkick.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
     [invarianceJx,invarianceJy, tunes,dpp]=getkick(files,MADTwiss)
-    
+
     column_names_list = ["DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
     column_types_list = ["%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
-    fkick.write('* '+ " ".join(column_names_list))
-    fkick.write('$ '+ " ".join(column_types_list))
-    
+    fkick.write('* ' + " ".join(column_names_list) + "\n")
+    fkick.write('$ ' + " ".join(column_types_list) + "\n")
+
 
     for i in range(0,len(dpp)):
             # Removed last eight columns in newer version(vimaier)
 #             fkickac.write(str(dpp[i])+' '+str(tune[0][i])+' '+str(tuneRMS[0][i])+' '+str(tune[1][i])+' '+str(tuneRMS[1][i])+' '+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
-            tunes_str = ""
-            for float_tune in [tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i]]:
-                tunes_str = str(float_tune)+ " "
-            fkick.write(str(dpp[i])+' '+ tunes_str +
+            tunes_list = [str(x[i]) for x in tunes]
+            fkick.write(str(dpp[i]) + ' ' + " ".join(tunes_list) + " " +
                           str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+
                           str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '
                           +str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '
@@ -6213,13 +6223,11 @@ def main(outputpath,files_to_analyse,twiss_model_file,dict_file="0",accel="LHCB1
         fkickac.write('*  DPP  QX  QXRMS  QY  QYRMS NATQX NATQXRMS NATQY NATQYRMS sqrt2JX  sqrt2JXSTD  sqrt2JY  sqrt2JYSTD  2JX  2JXSTD  2JY  2JYSTD  sqrt2JXRES  sqrt2JXSTDRES  sqrt2JYRES  sqrt2JYSTDRES  2JXRES  2JXSTDRES  2JYRES  2JYSTDRES\n')
         fkickac.write('$  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le  %le\n')
 
-        [invarianceJx,invarianceJy,tune,tuneRMS,dpp]=getkickac(MADTwiss_ac,files,Q1,Q2,Q1f,Q2f,acphasex_ac2bpmac,acphasey_ac2bpmac,bd,lhcphase)
+        [invarianceJx,invarianceJy,tune_values_list,dpp] = getkickac(MADTwiss_ac,files,Q1,Q2,Q1f,Q2f,acphasex_ac2bpmac,acphasey_ac2bpmac,bd,lhcphase)
 
         for i in range(0,len(dpp)):
-            tunes_str = ""
-            for float_tune in [tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i]]:
-                tunes_str = str(float_tune)+ " "
-            fkickac.write(str(dpp[i])+' '+tunes_str+str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
+            tunes_list = [str(x[i]) for x in tune_values_list]
+            fkickac.write(str(dpp[i])+' '+ " ".join(tunes_list) + " " +str(invarianceJx[i][0])+' '+str(invarianceJx[i][1])+' '+str(invarianceJy[i][0])+' '+str(invarianceJy[i][1])+' '+str(invarianceJx[i][0]**2)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1])+' '+str(invarianceJy[i][0]**2)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1])+' '+str(invarianceJx[i][0]/sqrt(betax_ratio))+' '+str(invarianceJx[i][1]/sqrt(betax_ratio))+' '+str(invarianceJy[i][0]/sqrt(betay_ratio))+' '+str(invarianceJy[i][1]/sqrt(betay_ratio))+' '+str(invarianceJx[i][0]**2/betax_ratio)+' '+str(2*invarianceJx[i][0]*invarianceJx[i][1]/betax_ratio)+' '+str(invarianceJy[i][0]**2/betay_ratio)+' '+str(2*invarianceJy[i][0]*invarianceJy[i][1]/betay_ratio)+'\n')
 
         fkickac.close()
 

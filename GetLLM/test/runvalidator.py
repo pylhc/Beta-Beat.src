@@ -42,7 +42,7 @@ class RunValidator(object):
             'run_path': string
                 The path to the directory which has to be validated.
         '''
-        self.__run_path = run_path # Root of the directory with the input and output files
+        self.__run_path = os.path.abspath(run_path) # Root of the directory with the input and output files
         self.__run_dir_name = self.determine_dirname()
         self.__model_name = ""
         self.__names_of_src_files = ""

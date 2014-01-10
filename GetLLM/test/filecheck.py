@@ -216,7 +216,8 @@ class TestFileOutputGetLLM(unittest.TestCase):
         dict_args = {"-f":run_validator.get_names_of_src_files(),
                      "-m":run_validator.get_model_name(),
                      "-a":run_validator.get_accelerator_type(),
-                     "-o":valid_output_path}
+                     "-o":valid_output_path
+                     }
 
         if CREATE_VALID_OUTPUT or run_validator.has__no_valid_output_files():
             # Run original/valid script
@@ -232,6 +233,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
                 sys.exit(errorcode)
 
         dict_args["-o"] = to_check_output_path
+        dict_args["-g"] = "1"
 
         script_runner = vimaier_utils.scriptrunner.ScriptRunner(GETLLM_SCRIPT, dict_args)
         print "Deleting old output in "+to_check_output_path

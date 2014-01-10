@@ -34,7 +34,7 @@ almost every UNIX system available. For windows `MinGW <http://www.mingw.org/>`_
 The Intel compilers are commercial but CERN has licences. The section below shows how to obtain it.
 
 To build drive execute ``make``. In case you have ancient build files use ``make clean`` before.
-*make* will build according to your Os either *Drive_God_lin*(Linux) or *Drive_God_lin_win.exe*(Windows).
+``make`` will build according to your Os either *Drive_God_lin* (Linux) or *Drive_God_lin_win.exe* (Windows).
 
 Linux - Intel compilers
 ```````````````````````

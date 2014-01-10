@@ -1,4 +1,8 @@
 {
+  "coupling_knobs": [
+    "b2_re_ip7_knob",  
+    "b2_im_ip7_knob"
+  ], 
   "MQS": [
     "kqs.a12b2", 
     "kqs.r2b2", 

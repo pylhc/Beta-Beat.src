@@ -2,7 +2,7 @@
 IMPORTANT
 
 iterative_correction is not used for several years. It is currently not required and thus no refactoring and improving
-will be applied to this script.
+was applied to this script.
 
 It is not working with the current GUI version. It crashes on a lot of places.
 If this script will be needed again one have to put effort to get it running again.
