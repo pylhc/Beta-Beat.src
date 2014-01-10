@@ -937,8 +937,8 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
         tfs_file = files_dict['getkickac.out']
         tfs_file.add_float_descriptor("RescalingFactor_for_X", beta_d.x_ratio_f)
         tfs_file.add_float_descriptor("RescalingFactor_for_Y", beta_d.y_ratio_f)
-        tfs_file.add_column_names(column_names_list+["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
-        tfs_file.add_column_datatypes(column_types_list+["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        tfs_file.add_column_names(column_names_list + ["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
+        tfs_file.add_column_datatypes(column_types_list + ["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         [inv_jx, inv_jy, tunes, dpp] = algorithms.compensate_ac_effect.getkickac(mad_ac, files, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
         for i in range(0, len(dpp)):
             #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
