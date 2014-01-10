@@ -506,6 +506,8 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
         'commonbpms':list
             intersection of common BPMs in measurement files and model
     '''
+    if phase == {}:
+        return [{}, 0.0, {}, []]
     alfa = {}
     beta = {}
 
