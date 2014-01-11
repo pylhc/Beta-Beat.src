@@ -774,7 +774,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
                     continue
                 tembeta = beta_d.x_amp[bn1][0]
             elif source == 'phase':
-                if 	beta_d.x_phase[bn1][0] <= 0:
+                if     beta_d.x_phase[bn1][0] <= 0:
                     rejbpmcount += 1
                     continue
                 elif abs((beta_d.x_phase[bn1][0] - mad_twiss.BETX[mad_twiss.indx[bn1]])/mad_twiss.BETX[mad_twiss.indx[bn1]]) > bbthreshold:
@@ -788,7 +788,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
             if source == 'model':
                 tembeta = mad_twiss.BETY[mad_twiss.indx[bn1]]
             elif source == 'amp':
-                if 	beta_d.y_amp[bn1][0] <= 0:
+                if     beta_d.y_amp[bn1][0] <= 0:
                     rejbpmcount += 1
                     continue
                 elif abs((beta_d.y_amp[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]]) > bbthreshold:
@@ -799,7 +799,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
                     continue
                 tembeta = beta_d.y_amp[bn1][0]
             elif source == 'phase':
-                if 	beta_d.y_phase[bn1][0] <= 0:
+                if     beta_d.y_phase[bn1][0] <= 0:
                     rejbpmcount += 1
                     continue
                 elif (abs(beta_d.y_phase[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]])> bbthreshold:
@@ -823,8 +823,8 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
         mean2j.append(mean2j_i/tembeta)
 
     if len(commonbpms) == rejbpmcount:
-        print "Beta function calculated from {} in plane {} is not good, no kick or action will be calculated from it.".format(source, plane)
-        j_old, mean_2j = [0, 0], [0, 0]
+        print "Beta function calculated from", source, "in plane", plane, "is no good, no kick or action will be calculated from it."
+        j_old, mean_2j = [0,0], [0,0]
         return j_old, mean_2j, rejbpmcount
 
     meansqrt2j = np.array(meansqrt2j)

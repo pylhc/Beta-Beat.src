@@ -17,7 +17,6 @@ Change history:
 
 import sys
 import math
-import traceback
 
 import numpy as np
 from numpy import sin, cos, tan
@@ -32,7 +31,7 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-#---------  The following is functions 
+#---------  The following is functions
 def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
     if   oa=='LHCB1':
         bpmac1='BPMYA.5L4.B1'
@@ -211,7 +210,7 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         muave=muave+psi12ave
         try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
         except: result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[0][1]]    #-- The last BPM
-        
+
         bn1 = str.upper(bpm[k%len(bpm)][1])
         bn2 = str.upper(bpm[(k+1)%len(bpm)][1])
         bn3 = str.upper(bpm[(k+2)%len(bpm)][1])
@@ -225,10 +224,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             result["".join(['H',bn1,bn3])] = [psi13ave,psi13std,psi13mdl[k]]
             result["".join(['H',bn1,bn4])] = [psi14ave,psi14std,psi14mdl[k]]
             result["".join(['H',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
-            result["".join(['H',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]] 
+            result["".join(['H',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]]
             result["".join(['H',bn1,bn7])] = [psi17ave,psi17std,psi17mdl[k]]
         elif plane=='V':
-            result["".join(['V',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]    
+            result["".join(['V',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]
             result["".join(['V',bn1,bn3])] = [psi13ave,psi13std,psi13mdl[k]]
             result["".join(['V',bn1,bn4])] = [psi14ave,psi14std,psi14mdl[k]]
             result["".join(['V',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
@@ -238,83 +237,79 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,muave,bpm]
 
 
-def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):
+def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
-    bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files), MADTwiss_ac)
-    bpm = [(b[0], str.upper(b[1])) for b in bpm]
+    bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss_ac)
+    bpm = [(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op == "1" and bd == 1:
-        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
-    if op == "1" and bd == -1:
-        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
+    if op=="1" and bd==1:
+        s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
+    if op=="1" and bd==-1:
+        s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
     for b in psid_ac2bpmac.keys():
         if '5L4' in b:
-            bpmac1 = b
+            bpmac1=b
         if '6L4' in b:
-            bpmac2 = b
+            bpmac2=b
     try:
-        k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
-        bpmac = bpmac1
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
     except:
         try:
-            k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
-            bpmac = bpmac2
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
         except ValueError:
-            print >> sys.stderr, 'WARN: BPMs next to AC dipoles missing.'
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing.'
             return [{}, 0.0, [], [float('nan'), float('nan')]]
 
     #-- Model beta and phase advance
-    if plane == 'H':
-        betmdl = np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
-    if plane == 'V':
-        betmdl = np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in bpm])
+    if plane=='H': betmdl=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
+    if plane=='V': betmdl=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in bpm])
 
     #-- Global parameters of the driven motion
-    r = sin(np.pi * (Qd - Q)) / sin(np.pi * (Qd + Q))
+    r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
 
     #-- Loop for files
-    betall = np.zeros((len(bpm), len(Files)))
-    Adall = np.zeros((len(bpm), len(Files)))
+    betall=np.zeros((len(bpm),len(Files)))
+    Adall=np.zeros((len(bpm),len(Files)))
     for i in range(len(Files)):
-        if plane == 'H':
-            amp = np.array([2 * Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
-            psid = bd * 2 * np.pi * np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  # bd flips B2 phase to B1 direction
-        if plane == 'V':
-            amp = np.array([2 * Files[i].AMPY[Files[i].indx[b[1]]] for b in bpm])
-            psid = bd * 2 * np.pi * np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  # bd flips B2 phase to B1 direction
+        if plane=='H':
+            amp =np.array([2*Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
+            psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        if plane=='V':
+            amp =np.array([2*Files[i].AMPY[Files[i].indx[b[1]]] for b in bpm])
+            psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
-                if bpm[k][0] > s_lastbpm:
-                    psid[k] += 2 * np.pi * Qd  # To fix the phase shift by Q
-            except:
-                traceback.print_exc()
-        Ad = amp / map(math.sqrt, betmdl)
-        psid = psid - (psid[k_bpmac] - psid_ac2bpmac[bpmac])
-        Psid = psid + np.pi * Qd
-        Psid[k_bpmac:] = Psid[k_bpmac:] - 2 * np.pi * Qd
-        bet = (amp / np.mean(Ad))**2 * (1 + r**2 + 2*r*np.cos(2*Psid)) / (1 - r**2)
+                if bpm[k][0]>s_lastbpm: psid[k]+=2*np.pi*Qd  #-- To fix the phase shift by Q
+            except: pass
+        Ad  =amp/map(math.sqrt,betmdl)
+        psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
+        Psid=psid+np.pi*Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-2*np.pi*Qd
+        bet =(amp/np.mean(Ad))**2*(1+r**2+2*r*np.cos(2*Psid))/(1-r**2)
         for k in range(len(bpm)):
-            betall[k][i] = bet[k]
-            Adall[k][i] = Ad[k]
+            betall[k][i]=bet[k]
+            Adall[k][i]=Ad[k]
 
     #-- Output
-    result = {}
-    bb = []
-    Adave = []
+    result={}
+    bb=[]
+    Adave=[]
     for k in range(len(bpm)):
-        betave = np.mean(betall[k])
-        betstd = math.sqrt(np.mean((betall[k] - betave)**2))
-        bb.append((betave - betmdl[k]) / betmdl[k])
+        betave=np.mean(betall[k])
+        betstd=math.sqrt(np.mean((betall[k]-betave)**2))
+        bb.append((betave-betmdl[k])/betmdl[k])
         Adave.append(np.mean(Adall[k]))
-        result[bpm[k][1]] = [betave, betstd, bpm[k][0]]
-    bb = math.sqrt(np.mean(np.array(bb)**2))
-    Ad = [np.mean(Adave), math.sqrt(np.mean((Adave-np.mean(Adave))**2))]
+        result[bpm[k][1]]=[betave,betstd,bpm[k][0]]
+    bb=math.sqrt(np.mean(np.array(bb)**2))
+    Ad=[np.mean(Adave),math.sqrt(np.mean((Adave-np.mean(Adave))**2))]
 
-    return [result, bb, bpm, Ad]
+    return [result,bb,bpm,Ad]
 
 
 def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd):
@@ -638,8 +633,7 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
     return result
 
-
-def getkickac(MADTwiss_ac, files, Qh, Qv, Qx, Qy, psih_ac2bpmac, psiv_ac2bpmac, bd, op):
+def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
     invarianceJx = []
     invarianceJy = []
@@ -660,9 +654,10 @@ def getkickac(MADTwiss_ac, files, Qh, Qv, Qx, Qy, psih_ac2bpmac, psiv_ac2bpmac, 
 
         tw_x = files[0][j]
         tw_y = files[1][j]
-        # Identifier '_' means unused variable
-        _, _, _, invariantJx = get_free_beta_from_amp_eq(MADTwiss_ac, [tw_x], Qh, Qx, psih_ac2bpmac, 'H', bd, op)
-        _, _, _, invariantJy = get_free_beta_from_amp_eq(MADTwiss_ac, [tw_y], Qv, Qy, psiv_ac2bpmac, 'V', bd, op)
+        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJx = ( get_free_beta_from_amp_eq(MADTwiss_ac,[tw_x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
+        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
+        invariantJy = ( get_free_beta_from_amp_eq(MADTwiss_ac,[tw_y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)
 
