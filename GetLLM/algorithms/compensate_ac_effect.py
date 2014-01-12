@@ -250,20 +250,22 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
+    bpm_ac1 = ""
+    bpm_ac2 = ""
     for b in psid_ac2bpmac.keys():
         if '5L4' in b:
-            bpmac1=b
+            bpm_ac1 = b
         if '6L4' in b:
-            bpmac2=b
+            bpm_ac2 = b
     try:
-        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
-        bpmac=bpmac1
+        k_bpmac = list(zip(*bpm)[1]).index(bpm_ac1)
+        bpmac = bpm_ac1
     except:
         try:
-            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
-            bpmac=bpmac2
+            k_bpmac = list(zip(*bpm)[1]).index(bpm_ac2)
+            bpmac = bpm_ac2
         except ValueError:
-            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing.'
+            print >> sys.stderr, 'WARN: BPMs next to AC dipoles missing. Was looking for: bpm_ac1="{0}" and bpm_ac2="{1}"'.format(bpm_ac1, bpm_ac2)
             return [{}, 0.0, [], [float('nan'), float('nan')]]
 
     #-- Model beta and phase advance
