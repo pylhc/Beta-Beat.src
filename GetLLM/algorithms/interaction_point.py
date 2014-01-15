@@ -147,7 +147,7 @@ def fill_ip_tfs_file(tfs_file, column_names, column_datatypes, results):
 
 
 def _get_ip(ip_num, measured, model):
-    bpm_left, bpm_right = _find_bpm(ip_num, model, measured)
+    bpm_left, bpm_right = _get_closest_bpm_names_to_ip(ip_num, model, measured)
 
     if DEBUG:
         print "_get_ip", ip_num
@@ -200,25 +200,25 @@ def _get_ip(ip_num, measured, model):
     return [betahor, betaver]
 
 
-def _find_bpm(ip_num, model, measured):
+def _get_closest_bpm_names_to_ip(ip_num, model, measured):
     bpm_left = None
     bpm_right = None
-    
+
     for bpm_name in model.NAME:
-        if "BPMSW.1L"+ip_num in bpm_name:
+        if "BPMSW.1L" + ip_num in bpm_name:
             bpm_left = bpm_name
-            try:
-                measured[0][bpm_left][0]  # Test if bpm_left exists
-            except (KeyError, TypeError):
+            if _bpm_is_not_in_measured_data(bpm_name, measured):
                 bpm_left = None
-        if "BPMSW.1R"+ip_num in bpm_name:
+        if "BPMSW.1R" + ip_num in bpm_name:
             bpm_right = bpm_name
-            try:
-                test_if_bpm_exists = measured[0][bpm_right][0]  # @UnusedVariable
-            except (KeyError, TypeError):
-                bpm_right = None
-                
+            if _bpm_is_not_in_measured_data(bpm_name, measured):
+                bpm_left = None
+
     return [bpm_left, bpm_right]
+
+
+def _bpm_is_not_in_measured_data(bpm_name, measured):
+    return bpm_name not in measured[0] or 0 >= len([bpm_name][0])
 
 
 def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
