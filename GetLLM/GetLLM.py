@@ -44,7 +44,7 @@ import traceback
 import math
 
 
-import __init__ # @UnusedImport init will include paths
+import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
 import utils.tfs_file
 import algorithms.helper
@@ -58,7 +58,6 @@ import algorithms.chi_terms
 import Utilities.iotools
 
 
-
 ####
 #######
 #########
@@ -66,7 +65,8 @@ VERSION = 'V3.0.0 Dev'
 #########
 #######
 ####
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+
 
 #===================================================================================================
 # _parse_args()-function
@@ -77,7 +77,7 @@ def _parse_args():
     parser = OptionParser()
     parser.add_option("-a", "--accel",
                     help="Which accelerator: LHCB1 LHCB2 LHCB4? SPS RHIC TEVATRON",
-                    metavar="ACCEL", default="LHCB1",dest="ACCEL")
+                    metavar="ACCEL", default="LHCB1", dest="ACCEL")
     parser.add_option("-d", "--dictionary",
                     help="File with the BPM dictionary",
                     metavar="DICT", default="0", dest="dict")
@@ -104,19 +104,19 @@ def _parse_args():
                     metavar="BPMUNIT", default="um", dest="BPMUNIT")
     parser.add_option("-l", "--nonlinear",
                     help="Switch to output higher order resonance stuffs, on=1(default)/off=0",
-                    metavar="HIGHER", default="1" , dest="higher")
+                    metavar="HIGHER", default="1", dest="higher")
     parser.add_option("-p", "--lhcphase",
                     help="Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1",
-                    metavar="LHCPHASE", default="0" , dest="lhcphase")
+                    metavar="LHCPHASE", default="0", dest="lhcphase")
     parser.add_option("-k", "--bbthreshold",
                     help="Set beta-beating threshold for action calculations, default = 0.15",
-                    metavar="BBTHRESH", default="0.15" , dest="bbthreshold")
+                    metavar="BBTHRESH", default="0.15", dest="bbthreshold")
     parser.add_option("-e", "--errthreshold",
                     help="Set beta relative uncertainty threshold for action calculations, default = 0.1",
-                    metavar="ERRTHRESH", default="0.15" , dest="errthreshold")
+                    metavar="ERRTHRESH", default="0.15", dest="errthreshold")
     parser.add_option("-g", "--threebpm",
                     help="Forces to use the 3 BPM method, yes=1/no=0, default = 0",
-                    metavar="USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE", default="0" , dest="use_only_three_bpms_for_beta_from_phase")
+                    metavar="USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE", default="0", dest="use_only_three_bpms_for_beta_from_phase")
 
     # Take index 0 since index 1(args) is not used (vimaier)
     options = parser.parse_args()[0]
@@ -184,17 +184,15 @@ def main(
 
     twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict)
 
-
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
 
     # Construct pseudo-double plane BPMs
-    if (getllm_d.accel=="SPS" or "RHIC" in getllm_d.accel) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
+    if (getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         [pseudo_list_x, pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
     else:
         # Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
         pseudo_list_x = None
         pseudo_list_y = None
-
 
     #-------- Check monitor compatibility between data and model
     _check_bpm_compatibility(twiss_d, mad_twiss)
@@ -264,20 +262,20 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
         bpm_dictionary = {}
     else:
         execfile(dict_file)
-        bpm_dictionary = dictionary # temporaryly since presently name is not bpm_dictionary
+        bpm_dictionary = dictionary  # temporarily since presently name is not bpm_dictionary
 
     # Beam direction
     getllm_d.beam_direction = 1
     getllm_d.accel = accel
     if accel == "LHCB2":
-        getllm_d.beam_direction = -1 # THIS IS CORRECT, be careful with tune sign in SUSSIX and eigenmode order in SVD
+        getllm_d.beam_direction = -1  # THIS IS CORRECT, be careful with tune sign in SUSSIX and eigenmode order in SVD
     elif accel == "LHCB4":
-        getllm_d.beam_direction = 1 # IS THIS CORRECT? I (rogelio) try for Simon...
-        getllm_d.accel = "LHCB2" #This is because elements later are named B2 anyway, not B4
+        getllm_d.beam_direction = 1  # IS THIS CORRECT? I (rogelio) try for Simon...
+        getllm_d.accel = "LHCB2"  # This is because elements later are named B2 anyway, not B4
 
     #-- finding base model
     try:
-        mad_twiss = Python_Classes4MAD.metaclass.twiss(model_filename, bpm_dictionary) # model from MAD : Twiss instance
+        mad_twiss = Python_Classes4MAD.metaclass.twiss(model_filename, bpm_dictionary)  # model from MAD : Twiss instance
         print "Base model found!"
     except IOError:
         print >> sys.stderr, "Twiss file loading failed for:\n\t", model_filename
@@ -287,7 +285,7 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
     #-- finding the ac dipole model
     getllm_d.with_ac_calc = False
     try:
-        mad_ac = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_ac.dat")) # model with ac dipole : Twiss instance
+        mad_ac = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_ac.dat"))  # model with ac dipole : Twiss instance
         getllm_d.with_ac_calc = True
         print "Driven Twiss file found. AC dipole effects calculated with the effective model (get***_free2.out)"
     except IOError:
@@ -417,7 +415,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
         except IOError:
             print >> sys.stderr, "Cannot load file:", file_x
         except ValueError:
-            pass # Information printed by metaclass already
+            pass  # Information printed by metaclass already
 
         if None != twiss_file_x:
             try:
@@ -485,7 +483,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
         except IOError:
             print 'Warning: There seems no ' + str(file_y) + ' file in the specified directory.'
         except ValueError:
-            pass # Information printed by metaclass already
+            pass  # Information printed by metaclass already
 
         if None != twiss_file_y:
             try:
@@ -522,7 +520,6 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 twiss_d.non_zero_dpp_y.append(twiss_file_y)
                 files_dict['getDy.out'].add_filename_to_getllm_header(file_y)
 
-
     if not twiss_d.has_zero_dpp_x():
         print 'Warning: you are running GetLLM without "linx of dp/p=0". Are you sure?'
 
@@ -555,6 +552,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
 
     return twiss_d, files_dict
 # END _analyse_src_files ----------------------------------------------------------------------------
+
 
 def _check_bpm_compatibility(twiss_d, mad_twiss):
     '''
@@ -711,7 +709,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
             dpp_twiss = algorithms.helper.construct_off_momentum_model(mad_twiss, dpop, bpm_dictionary)
-            [phasex, q1_dpp, MUX, bpms] = algorithms.phase.get_phases(getllm_d, dpp_twiss, list_with_single_twiss, tune_d.q1, plane)
+            [phasex, q1_dpp, _, bpms] = algorithms.phase.get_phases(getllm_d, dpp_twiss, list_with_single_twiss, tune_d.q1, plane)
             phasex['DPP'] = dpop
             phasexlist.append(phasex)
             # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
@@ -743,7 +741,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
 
             betax = {}
             alfax = {}
-            [betax, rmsbbx, alfax, bpms] = algorithms.beta.beta_from_phase(mad_twiss, list_with_single_twiss, phasex, plane, use_only_three_bpms_for_beta_from_phase)
+            [betax, _, alfax, bpms] = algorithms.beta.beta_from_phase(mad_twiss, list_with_single_twiss, phasex, plane, use_only_three_bpms_for_beta_from_phase)
             betax['DPP'] = dpop
             #betaxa = {}
             #[betaxa, rmsbbx, bpms, invJx] = algorithms.beta.beta_from_amplitude(mad_twiss, list_with_single_twiss, plane)
@@ -774,7 +772,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
             dpp_twiss = algorithms.helper.construct_off_momentum_model(mad_twiss, dpop, bpm_dictionary)
-            [phasey, q2_dpp, MUY, bpms] = algorithms.phase.get_phases(getllm_d, dpp_twiss, list_with_single_twiss, tune_d.q2, plane)
+            [phasey, q2_dpp, _, bpms] = algorithms.phase.get_phases(getllm_d, dpp_twiss, list_with_single_twiss, tune_d.q2, plane)
             phasey['DPP'] = dpop
             phaseylist.append(phasey)
             # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
@@ -805,7 +803,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
 
             betay = {}
             alfay = {}
-            [betay, rmsbby, alfay, bpms] = algorithms.beta.beta_from_phase(dpp_twiss, list_with_single_twiss, phasey, plane, use_only_three_bpms_for_beta_from_phase)
+            [betay, _, alfay, bpms] = algorithms.beta.beta_from_phase(dpp_twiss, list_with_single_twiss, phasey, plane, use_only_three_bpms_for_beta_from_phase)
             #betay['DPP'] = dpop
             #betaya = {}
             #[betaya, rmsbby, bpms, invJy] = algorithms.beta.beta_from_amplitude(dpp_twiss, list_with_single_twiss, plane)
@@ -846,9 +844,9 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
 
             if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
                 plane = 'H'
-                [phasexp, tune_d.q1, MUX, bpmsx] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, None, plane)
+                [phasexp, tune_d.q1, _, _] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, None, plane)
                 plane = 'V'
-                [phaseyp, tune_d.q2, MUY, bpmsy] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, None, plane)
+                [phaseyp, tune_d.q2, _, _] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, None, plane)
                 [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
             elif getllm_d.num_beams_for_coupling == 1:
                 [fwqw, bpms] = algorithms.coupling.GetCoupling1(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, getllm_d.outputpath)
@@ -860,6 +858,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
                 raise ValueError('Number of monitors for coupling analysis (option -n) should be 1 or 2.')
             fwqw['DPP'] = dpop
 # END _phase_and_beta_for_non_zero_dpp --------------------------------------------------------------
+
 
 def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
     '''
@@ -900,14 +899,12 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
 
     meansqrt_2jx = {}
     meansqrt_2jy = {}
-    mean_2jx = {}
-    mean_2jy = {}
-    bpmrejx ={}
-    bpmrejy ={}
+    bpmrejx = {}
+    bpmrejy = {}
 
     try:
-        [meansqrt_2jx, meansqrt_2jy, mean_2jx, mean_2jy, tunes, dpp , bpmrejx, bpmrejy] = algorithms.helper.getkick(files, mad_twiss, beta_d, bbthreshold, errthreshold)
-    except IndexError:# occurs if either no x or no y files exist
+        [meansqrt_2jx, meansqrt_2jy, _, _, tunes, dpp, bpmrejx, bpmrejy] = algorithms.helper.getkick(files, mad_twiss, beta_d, bbthreshold, errthreshold)
+    except IndexError:  # occurs if either no x or no y files exist
         return files_dict
 
     #mean_2j = mean{2J} and meansqrt_2j=mean{sqrt(2J)}
@@ -918,6 +915,7 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
     column_types_list = ["%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
     tfs_file_model.add_column_names(column_names_list)
     tfs_file_model.add_column_datatypes(column_types_list)
+
     for i in range(0, len(dpp)):
         list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_model.add_table_row(list_row_entries)
@@ -925,8 +923,8 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
     tfs_file_phase = files_dict['getkickphase.out']
     tfs_file_phase.add_float_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m", bbthreshold)
     tfs_file_phase.add_float_descriptor("Threshold_for_uncert(beta_d)/beta_d", errthreshold)
-    tfs_file_phase.add_float_descriptor("X_BPMs_Rejected", bpmrejx['phase'][i])
-    tfs_file_phase.add_float_descriptor("Y_BPMs_Rejected", bpmrejy['phase'][i])
+    tfs_file_phase.add_float_descriptor("X_BPMs_Rejected", bpmrejx['phase'][len(dpp) - 1])
+    tfs_file_phase.add_float_descriptor("Y_BPMs_Rejected", bpmrejy['phase'][len(dpp) - 1])
     tfs_file_phase.add_column_names(column_names_list)
     tfs_file_phase.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
@@ -937,8 +935,8 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
         tfs_file = files_dict['getkickac.out']
         tfs_file.add_float_descriptor("RescalingFactor_for_X", beta_d.x_ratio_f)
         tfs_file.add_float_descriptor("RescalingFactor_for_Y", beta_d.y_ratio_f)
-        tfs_file.add_column_names(column_names_list+["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
-        tfs_file.add_column_datatypes(column_types_list+["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        tfs_file.add_column_names(column_names_list + ["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
+        tfs_file.add_column_datatypes(column_types_list + ["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         [inv_jx, inv_jy, tunes, dpp] = algorithms.compensate_ac_effect.getkickac(mad_ac, files, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
         for i in range(0, len(dpp)):
             #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
@@ -1000,10 +998,10 @@ class _TwissData(object):
     ''' Holds twiss instances of all src files. '''
     def __init__(self):
         '''Constructor'''
-        self.zero_dpp_x = [] # List of src files which have dpp==0.0
-        self.non_zero_dpp_x = [] # List of src files which have dpp!=0.0
-        self.zero_dpp_y = [] # List of src files which have dpp==0.0
-        self.non_zero_dpp_y = [] # List of src files which have dpp!=0.0
+        self.zero_dpp_x = []  # List of src files which have dpp==0.0
+        self.non_zero_dpp_x = []  # List of src files which have dpp!=0.0
+        self.zero_dpp_y = []  # List of src files which have dpp==0.0
+        self.non_zero_dpp_y = []  # List of src files which have dpp!=0.0
 
     def has_zero_dpp_x(self):
         ''' Returns True if _linx file(s) exist(s) with dpp==0 '''
@@ -1029,34 +1027,34 @@ class _TuneData(object):
     ''' Used as data structure to hold tunes and phase advances. '''
     def __init__(self):
         '''Constructor'''
-        self.q1 = 0.0 # Driven horizontal tune
-        self.q2 = 0.0 # Driven vertical tune
-        self.mux = 0.0 # Driven horizontal phase advance
-        self.muy = 0.0 # Driven vertical phase advance
+        self.q1 = 0.0  # Driven horizontal tune
+        self.q2 = 0.0  # Driven vertical tune
+        self.mux = 0.0  # Driven horizontal phase advance
+        self.muy = 0.0  # Driven vertical phase advance
 
         # Free is from analytic equation
-        self.q1f = 0.0 # Free horizontal tune
-        self.q2f = 0.0 # Free vertical tune
-        self.muxf = 0.0 # Free horizontal phase advance
-        self.muyf = 0.0 # Free vertical phase advance
+        self.q1f = 0.0  # Free horizontal tune
+        self.q2f = 0.0  # Free vertical tune
+        self.muxf = 0.0  # Free horizontal phase advance
+        self.muyf = 0.0  # Free vertical phase advance
 
         # Free2 is using the effective model
-        self.muxf2 = 0.0 # Free2 horizontal phase advance
-        self.muyf2 = 0.0 # Free2 vertical phase advance
+        self.muxf2 = 0.0  # Free2 horizontal phase advance
+        self.muyf2 = 0.0  # Free2 vertical phase advance
 
-        self.delta1 = None # Used later to calculate free Q1. Only if with ac calculation.
-        self.delta2 = None # Used later to calculate free Q2. Only if with ac calculation.
+        self.delta1 = None  # Used later to calculate free Q1. Only if with ac calculation.
+        self.delta2 = None  # Used later to calculate free Q2. Only if with ac calculation.
 
     def initialize_tunes(self, with_ac_calc, mad_twiss, mad_ac, twiss_d):
         ''' Calculates and sets the initial tunes. '''
         if with_ac_calc:
             # Get fractional part: frac(62.23) = 0.23; 62.23 % 1 ==> 0.23 (vimaier)
-            self.q1f = abs(mad_twiss.Q1) % 1 #-- Free Q1 (tempolarlly, overwritten later)
-            self.q2f = abs(mad_twiss.Q2) % 1 #-- Free Q2 (tempolarlly, overwritten later)
-            self.q1 = abs(mad_ac.Q1) % 1 #-- Drive Q1 (tempolarlly, overwritten later)
-            self.q2 = abs(mad_ac.Q2) % 1 #-- Drive Q2 (tempolarlly, overwritten later)
-            self.delta1 = self.q1-self.q1f #-- Used later to calculate free Q1
-            self.delta2 = self.q2-self.q2f #-- Used later to calculate free Q2
+            self.q1f = abs(mad_twiss.Q1) % 1  # -- Free Q1 (tempolarlly, overwritten later)
+            self.q2f = abs(mad_twiss.Q2) % 1  # -- Free Q2 (tempolarlly, overwritten later)
+            self.q1 = abs(mad_ac.Q1) % 1  # -- Drive Q1 (tempolarlly, overwritten later)
+            self.q2 = abs(mad_ac.Q2) % 1  # -- Drive Q2 (tempolarlly, overwritten later)
+            self.delta1 = self.q1 - self.q1f  # -- Used later to calculate free Q1
+            self.delta2 = self.q2 - self.q2f  # -- Used later to calculate free Q2
         else:
             try:
                 self.q1f = twiss_d.zero_dpp_x[0].Q1
@@ -1067,6 +1065,8 @@ class _TuneData(object):
 #===================================================================================================
 # main invocation
 #===================================================================================================
+
+
 def _start():
     '''
     Starter function to avoid polluting global namespace with variables options,args.
@@ -1090,5 +1090,3 @@ def _start():
 
 if __name__ == "__main__":
     _start()
-
-
