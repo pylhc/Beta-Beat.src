@@ -1085,7 +1085,8 @@ def _start():
          TBTana=options.TBTana,
          higher_order=options.higher,
          bbthreshold=options.bbthreshold,
-         errthreshold=options.errthreshold)
+         errthreshold=options.errthreshold,
+         use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase)
 
 if __name__ == "__main__":
     _start()
