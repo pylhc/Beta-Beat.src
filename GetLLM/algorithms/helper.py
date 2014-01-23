@@ -814,17 +814,17 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
         mean2j_i = 0.0
 
         for tw_file in list_of_files:
-            meansqrt2j_i += tw_file.PK2PK[tw_file.indx[bn1]]/2.
-            mean2j_i = (tw_file.PK2PK[tw_file.indx[bn1]]/2)**2
+            meansqrt2j_i += tw_file.PK2PK[tw_file.indx[bn1]] / 2.
+            mean2j_i = (tw_file.PK2PK[tw_file.indx[bn1]] / 2)**2
 
-        meansqrt2j_i = meansqrt2j_i/len(list_of_files)
-        meansqrt2j.append(meansqrt2j_i/math.sqrt(tembeta))
-        mean2j_i = mean2j_i/len(list_of_files)
-        mean2j.append(mean2j_i/tembeta)
+        meansqrt2j_i = meansqrt2j_i / len(list_of_files)
+        meansqrt2j.append(meansqrt2j_i / math.sqrt(tembeta))
+        mean2j_i = mean2j_i / len(list_of_files)
+        mean2j.append(mean2j_i / tembeta)
 
     if len(commonbpms) == rejbpmcount:
         print "Beta function calculated from", source, "in plane", plane, "is no good, no kick or action will be calculated from it."
-        j_old, mean_2j = [0,0], [0,0]
+        j_old, mean_2j = [0, 0], [0, 0]
         return j_old, mean_2j, rejbpmcount
 
     meansqrt2j = np.array(meansqrt2j)
