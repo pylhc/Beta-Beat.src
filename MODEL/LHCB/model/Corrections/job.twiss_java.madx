@@ -6,14 +6,14 @@ System,"test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
 
  option, -echo, -info,  warn;
 !call,   file = "db5/V6.5.seq"; ! Ideal
- call,   file = "db5/as-built/V6.5.seq";  
- call,   file = "%OPT/modifiers.madx";	
+ call,   file = "db5/as-built/V6.5.seq";
+ call,   file = "%OPT/modifiers.madx";
  call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
 
-system, "rm db5";
+! system, "rm db5"; Makes trouble if GetLLM per file will be executed in prallel -- vimaier
 
 seqedit, sequence=LHCB1;
-flatten;               
+flatten;
 cycle, start=MSIA.EXIT.B1;
 endedit;
 
