@@ -476,7 +476,13 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
     tbet, tbetstd, talf, talfstd = BetaFromPhase_BPM_left(bn4, bn6, bn7, MADTwiss, phase, plane)
     candidates.append([tbetstd, tbet, talfstd, talf])
     sort_cand = sorted(candidates)
-    if sort_cand[0][0] > 0 and use_only_three_bpms_for_beta_from_phase == 0:
+    if sort_cand[0][0] > 0 and  not use_only_three_bpms_for_beta_from_phase:
+        # TODO: remove again
+        print """
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        Using new function:
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        """
         return sort_cand[0], sort_cand[1], sort_cand[2], bn4
     else:
         return candidates[2], candidates[5], candidates[12], bn4
