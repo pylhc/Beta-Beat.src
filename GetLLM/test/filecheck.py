@@ -39,7 +39,7 @@ import optparse
 import unittest
 import shutil
 
-import __init__ # @UnusedImport init will include paths
+import __init__  # @UnusedImport init will include paths
 
 import vimaier_utils.scriptrunner
 import Utilities.iotools
@@ -74,7 +74,7 @@ parser.add_option("-p", "--path_to_test_data", dest="PATH_TO_TEST_DATA",
                     help="Path to the root of the test data directory")
 parser.add_option("-s", "--special_output", dest="SPECIAL_OUTPUT",
                     default="",
-                    help="If special_output is given the output will be produced into this directory."+
+                    help="If special_output is given the output will be produced into this directory." +
                             " Valid output will also be produced.")
 parser.add_option("-t", "--test_name", dest="TEST_NAME",
                     default=None,
@@ -87,7 +87,7 @@ parser.add_option("-t", "--test_name", dest="TEST_NAME",
 #===================================================================================================
 # Decides whether the valid script will be run and produce output or not
 try:
-    CREATE_VALID_OUTPUT = bool( int(options.CREATE_VALID_OUTPUT) )
+    CREATE_VALID_OUTPUT = bool(int(options.CREATE_VALID_OUTPUT))
 except ValueError:
     print "Wrong option 'valid_output': ", options.CREATE_VALID_OUTPUT
     print "Will produce valid output"
@@ -108,7 +108,7 @@ if Utilities.iotools.not_exists_directory(GETLLM_SCRIPT):
                                      )
 # Path to special output
 SPECIAL_OUTPUT = options.SPECIAL_OUTPUT
-if "" != SPECIAL_OUTPUT :
+if "" != SPECIAL_OUTPUT:
     CREATE_VALID_OUTPUT = True
     if not os.path.isdir(SPECIAL_OUTPUT):
         print "special_output is not a directory: ", SPECIAL_OUTPUT
@@ -123,12 +123,12 @@ if Utilities.iotools.not_exists_directory(PATH_TO_TEST_DATA):
 # If defined, run only this test, otherwise run all tests
 TEST_NAME = options.TEST_NAME
 
+
 #===================================================================================================
 # # TestFileOutputGetLLM
 #===================================================================================================
 class TestFileOutputGetLLM(unittest.TestCase):
     """TestCase which compares the output of GetLLM.py"""
-
 
     num_of_failed_tests = 0
     """Static variable which is used as exit code."""
@@ -136,10 +136,8 @@ class TestFileOutputGetLLM(unittest.TestCase):
     def setUp(self):
         pass
 
-
     def tearDown(self):
         pass
-
 
     def test_file_output(self):
         """ Tests the output files of the GetLLM.py script."""
@@ -158,7 +156,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
                 run_validator = runvalidator.RunValidator(run_path)
                 validation_msg = run_validator.validate()
                 if not "" == validation_msg:
-                    print "Run cancelled for: "+run_path+"\tReason: "+validation_msg
+                    print "Run cancelled for: " + run_path + "\tReason: " + validation_msg
                     continue
                 # Valid directory structure to run GetLLM.py
 
@@ -172,7 +170,6 @@ class TestFileOutputGetLLM(unittest.TestCase):
                 num_of_valid_runs += 1
                 num_of_runs += 1
 
-
         TestFileOutputGetLLM.num_of_failed_tests = num_of_runs - num_of_valid_runs
 
         print "==============================================================="
@@ -181,11 +178,9 @@ class TestFileOutputGetLLM(unittest.TestCase):
         if not all_tests_valid:
             raise AssertionError()
 
-
     #====================================================================
     # Helper methods
     #====================================================================
-
     def run_single_test(self, run_validator):
         """Runs the script with one single run directory
 
@@ -206,29 +201,29 @@ class TestFileOutputGetLLM(unittest.TestCase):
                                              "valid")
             to_check_output_path = os.path.join(SPECIAL_OUTPUT,
                                                  run_validator.get_run_dir_name(),
-                                                "to_check" )
+                                                "to_check")
             if not os.path.exists(valid_output_path):
                 os.makedirs(valid_output_path)
             if not os.path.exists(to_check_output_path):
                 os.makedirs(to_check_output_path)
 
         # Run script with corresponding arguments
-        dict_args = {"-f":run_validator.get_names_of_src_files(),
-                     "-m":run_validator.get_model_name(),
-                     "-a":run_validator.get_accelerator_type(),
-                     "-o":valid_output_path
+        dict_args = {"-f": run_validator.get_names_of_src_files(),
+                     "-m": run_validator.get_model_name(),
+                     "-a": run_validator.get_accelerator_type(),
+                     "-o": valid_output_path
                      }
 
         if CREATE_VALID_OUTPUT or run_validator.has__no_valid_output_files():
             # Run original/valid script
-            print "Deleting old output in "+valid_output_path
+            print "Deleting old output in " + valid_output_path
             if not Utilities.iotools.deleteFilesWithoutGitignore(valid_output_path):
-                print >> sys.stderr,"Could not delete old output files. Will run anyway..."
+                print >> sys.stderr, "Could not delete old output files. Will run anyway..."
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
                                                 GETLLM_SCRIPT_VALID, dict_args)
-            print "Starting GetLLM_valid.py("+run_validator.get_run_path()+")..."
+            print "Starting GetLLM_valid.py(" + run_validator.get_run_path() + ")..."
             errorcode = valid_script_runner.run_script()
-            print "GetLLM_valid.py("+run_validator.get_run_path()+") finished...\n"
+            print "GetLLM_valid.py(" + run_validator.get_run_path() + ") finished...\n"
             if errorcode != 0:
                 sys.exit(errorcode)
 
@@ -236,12 +231,12 @@ class TestFileOutputGetLLM(unittest.TestCase):
         dict_args["-g"] = "1"
 
         script_runner = vimaier_utils.scriptrunner.ScriptRunner(GETLLM_SCRIPT, dict_args)
-        print "Deleting old output in "+to_check_output_path
+        print "Deleting old output in " + to_check_output_path
         if not Utilities.iotools.deleteFilesWithoutGitignore(to_check_output_path):
-            print >> sys.stderr,"Could not delete old output files. Will run anyway..."
-        print "Starting GetLLM.py("+run_validator.get_run_path()+")..."
+            print >> sys.stderr, "Could not delete old output files. Will run anyway..."
+        print "Starting GetLLM.py(" + run_validator.get_run_path() + ")..."
         errorcode = script_runner.run_script()
-        print "GetLLM.py finished("+run_validator.get_run_path()+")..."
+        print "GetLLM.py finished(" + run_validator.get_run_path() + ")..."
         if errorcode != 0:
             sys.exit(errorcode)
 
@@ -250,28 +245,28 @@ class TestFileOutputGetLLM(unittest.TestCase):
         to_check_filenames = []
         for dirname_dirnames_outfilenames in os.walk(to_check_output_path):
             to_check_filenames = dirname_dirnames_outfilenames[2]
-            break #there are no subdirectories
+            break  # there are no subdirectories
 
         # Downward compatibility for Python interpreter < 2.7
         #self.assertGreater(len(to_check_filenames), 0,
         #                   "No to_check output files in "+to_check_output_path)
         self.assertNotEqual(len(to_check_filenames), 0,
-                           "No to_check output files in "+to_check_output_path)
+                           "No to_check output files in " + to_check_output_path)
 
         # Read filenames of valid_output_path
         valid_filenames = []
         for dirname_dirnames_validfilenames in os.walk(valid_output_path):
             valid_filenames = dirname_dirnames_validfilenames[2]
-            break #there are no subdirectories
+            break  # there are no subdirectories
 
         # Downward compatibility for Python interpreter < 2.7
         #self.assertGreater(len(valid_filenames), 0,
         #                   "No valid output files in "+valid_output_path)
         self.assertNotEqual(len(valid_filenames), 0,
-                           "No valid output files in "+valid_output_path)
+                           "No valid output files in " + valid_output_path)
 
         # Compare each valid file with corresponding to_check file
-        print "Checking output files for run: "+ run_validator.get_run_path()
+        print "Checking output files for run: " + run_validator.get_run_path()
 
         num_equal_files = 0
         num_overall_files = len(valid_filenames)
@@ -281,18 +276,17 @@ class TestFileOutputGetLLM(unittest.TestCase):
 #             if "" != err_msg:
 #                 print name, "are not equal:", err_msg
             succesful = vimaier_utils.compare_utils.compare_tfs_files(os.path.join(valid_output_path, name),
-                                                                          os.path.join(to_check_output_path, name) )
+                                                                          os.path.join(to_check_output_path, name))
             if succesful:
                 num_equal_files += 1
 
-
-        print str(num_equal_files)+" of "+str(num_overall_files)+ " are equal"
+        print str(num_equal_files) + " of " + str(num_overall_files) + " are equal"
 
         if num_equal_files == num_overall_files:
             # Delete created special folders if files are equal
             if "" != SPECIAL_OUTPUT:
                 path_to_created_folder = os.path.join(SPECIAL_OUTPUT, run_validator.get_run_dir_name())
-                print "Deleting output folder: ", path_to_created_folder,"\n"
+                print "Deleting output folder: ", path_to_created_folder, "\n"
                 shutil.rmtree(path_to_created_folder)
             return True
         else:
@@ -301,19 +295,20 @@ class TestFileOutputGetLLM(unittest.TestCase):
 
 # END class TestFileOutPutGetLLM -------------------------------------------------------------------
 
+
 def main():
     # Remove arguments from sys.argv
     # Needed to avoid conflicts with the options from unittest module
     arguments_tpl = ('-o', "--create_valid_output",
-                   "-v","--valid_getllm_script",
-                   "-m","--modified_getllm_script",
-                   "-p","--path_to_test_data"
-                   "-t","--test_name")
+                   "-v", "--valid_getllm_script",
+                   "-m", "--modified_getllm_script",
+                   "-p", "--path_to_test_data"
+                   "-t", "--test_name")
     del_lst = []
     for i, option in enumerate(sys.argv):
         if option in arguments_tpl:
             del_lst.append(i)
-            del_lst.append(i+1)
+            del_lst.append(i + 1)
 
     del_lst.reverse()
     for i in del_lst:
@@ -329,4 +324,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

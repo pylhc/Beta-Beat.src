@@ -24,6 +24,7 @@ RELATIVE_PATH_TO_ACCELERATOR_FILE = "input"
 RELATIVE_PATH_TO_VALID_OUTPUT = "output/valid"
 RELATIVE_PATH_TO_OUTPUT_TO_CHECK = "output/to_check"
 
+
 #===================================================================================================
 # RunValidator
 #===================================================================================================
@@ -33,7 +34,6 @@ class RunValidator(object):
     arguments for a run.
     '''
 
-
     def __init__(self, run_path):
         '''
         Constructor
@@ -42,7 +42,7 @@ class RunValidator(object):
             'run_path': string
                 The path to the directory which has to be validated.
         '''
-        self.__run_path = os.path.abspath(run_path) # Root of the directory with the input and output files
+        self.__run_path = os.path.abspath(run_path)  # Root of the directory with the input and output files
         self.__run_dir_name = self.determine_dirname()
         self.__model_name = ""
         self.__names_of_src_files = ""
@@ -51,7 +51,6 @@ class RunValidator(object):
         self.__has_valid_output_files = False
         self.__to_check_output_path = ""
         self.__is_valid = False
-
 
     def validate(self):
         """ Validates the run_path and its content.
@@ -68,11 +67,11 @@ class RunValidator(object):
         # Check model file
         self.__model_name = os.path.join(self.__run_path, RELATIVE_PATH_TO_MODEL)
         if not os.path.isfile(self.__model_name):
-            return "No model file was found: "+self.__model_name
+            return "No model file was found: " + self.__model_name
 
         self.__names_of_src_files = self._validate_src_files()
         if "" == self.__names_of_src_files:
-            return "No src files from analysis were found in "+self.__run_path
+            return "No src files from analysis were found in " + self.__run_path
 
         # Check accelerator type
         # The model file contains the type of the accelerator
@@ -88,7 +87,7 @@ class RunValidator(object):
 
         # Check if output files exist. If not filecheck will run GetLLM_valid.py.
         # Just a simple check. If more as two files(consider .gitignore) in the directory the test will pass.
-        if 2 < len( os.listdir(self.__valid_output_path) ):
+        if 2 < len(os.listdir(self.__valid_output_path)):
             self.__has_valid_output_files = True
 
         # Check path to 'to_check' output
@@ -100,7 +99,6 @@ class RunValidator(object):
 
         return ""
     # END validate() --------------------------------------------------------
-
 
     def _validate_src_files(self):
         """ Valid if source dir contains at least one file with the tbt_dataending_tupel """
@@ -121,7 +119,7 @@ class RunValidator(object):
                                       os.path.join(path_src_file_directory, filename_without_ending)
                                                          )
                                )
-            break # There should be no sub-directories
+            break  # There should be no sub-directories
 
         return ",".join(result)
 
@@ -141,7 +139,6 @@ class RunValidator(object):
         else:
             return ""
 
-
     def determine_dirname(self):
         path = self.get_run_path()
         path.replace("/", os.sep)
@@ -152,21 +149,19 @@ class RunValidator(object):
         index = -1
 
         # For case when the separator is at the end of the string
-        while "" == splitted_path[index] :
+        while "" == splitted_path[index]:
             index -= 1
 
         return splitted_path[index]
 
-
     def print_yourself(self):
         """Method for debugging purposes"""
-        print "RunValidator\nrun_path: "+self.get_run_path()
-        print "model_name: "+self.get_model_name()
-        print "src_files: "+self.get_names_of_src_files()
-        print "acc-type: "+self.get_accelerator_type()
-        print "valid_out: "+self.get_valid_output_path()
-        print "to_check_out: "+self.get_to_check_output_path()
-
+        print "RunValidator\nrun_path: " + self.get_run_path()
+        print "model_name: " + self.get_model_name()
+        print "src_files: " + self.get_names_of_src_files()
+        print "acc-type: " + self.get_accelerator_type()
+        print "valid_out: " + self.get_valid_output_path()
+        print "to_check_out: " + self.get_to_check_output_path()
 
     # GETTERS ---------------------------------------------------------------
     def get_run_path(self):
@@ -178,22 +173,22 @@ class RunValidator(object):
 
     def get_model_name(self):
         """Returns the attribute model_name"""
-        assert self.__is_valid, "No valid run path: "+self.__run_path
+        assert self.__is_valid, "No valid run path: " + self.__run_path
         return self.__model_name
 
     def get_names_of_src_files(self):
         """Returns the attribute names_of_src_files"""
-        assert self.__is_valid, "No valid run path: "+self.__run_path
+        assert self.__is_valid, "No valid run path: " + self.__run_path
         return self.__names_of_src_files
 
     def get_accelerator_type(self):
         """Returns the attribute accelerator_type"""
-        assert self.__is_valid, "No valid run path: "+self.__run_path
+        assert self.__is_valid, "No valid run path: " + self.__run_path
         return self.__accelerator_type
 
     def get_valid_output_path(self):
         """Returns the attribute run_path"""
-        assert self.__is_valid, "No valid run path: "+self.__run_path
+        assert self.__is_valid, "No valid run path: " + self.__run_path
         return self.__valid_output_path
 
     def has__no_valid_output_files(self):
@@ -202,7 +197,7 @@ class RunValidator(object):
 
     def get_to_check_output_path(self):
         """Returns the attribute run_path"""
-        assert self.__is_valid, "No valid run path: "+self.__run_path
+        assert self.__is_valid, "No valid run path: " + self.__run_path
         return self.__to_check_output_path
 
 # END class RunValidator ---------------------------------------------------------------------------

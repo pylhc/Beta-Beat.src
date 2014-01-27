@@ -15,13 +15,13 @@ Change history:
 import sys
 import subprocess
 
+
 class ScriptRunner(object):
     '''A ScriptRunner runs a python script with optional arguments.
 
     Construct an instance and pass the name of the script with path and optional
     arguments. Use the run() Method to start the script.
     '''
-
 
     def __init__(self, script_name, args_dict=None):
         '''Constructor
@@ -51,18 +51,17 @@ class ScriptRunner(object):
         ''' Returns the error output of the script or None '''
         return self._err
 
-
     def run_script(self):
         '''Runs the script which was passed to the constructor and returns the
         error code of the script.
         No output will be printed if error code is 0.
         Otherwise stdout and stderr will be printed.
         '''
-        debug_option_for_python = "-d" # Needed to run script in DEBUG mode
+        debug_option_for_python = "-d"  # Needed to run script in DEBUG mode
         call_command = [sys.executable, debug_option_for_python, self._script_name]
 
         for key in self._args_dict:
-            call_command.append(key+self._args_dict[key])
+            call_command.append(key + self._args_dict[key])
 
         print "Running:", " ".join(call_command)
         process = subprocess.Popen(call_command,
@@ -71,7 +70,6 @@ class ScriptRunner(object):
 
         # wait for the process to terminate
         (self._out, self._err) = process.communicate()
-
 
         errcode = process.returncode
 
@@ -82,4 +80,3 @@ class ScriptRunner(object):
             print >> sys.stderr, self._err
 
         return errcode
-
