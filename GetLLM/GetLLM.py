@@ -795,7 +795,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
                     bns2 = bpms[index][0]
                     try:
                         phmdl = phase_d.ph_y[bn1][4]
-                    except KeyError:
+                    except(KeyError, TypeError):
                         phmdl = 0.0
                     #phmdl=mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
                     list_row_entries = ['"' + bn1 + '" ', '"' + bn2 + '" ', bns1, bns2, 1, phasey[bn1][0], phasey[bn1][1], phmdl, mad_twiss.MUY[mad_twiss.indx[bn1]]]
