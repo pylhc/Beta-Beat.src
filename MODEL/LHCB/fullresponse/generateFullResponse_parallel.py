@@ -58,7 +58,7 @@ import json
 
 import numpy
 
-import __init__ # @UnusedImport init will include paths
+import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
 import Python_Classes4MAD.madxrunner as madxrunner
 import Utilities.iotools
@@ -84,8 +84,7 @@ def _parse_args():
                       help="delta k to be applied to quads for sensitivity matrix",
                       default="0.00002", dest="k")
 
-
-    (options, args) = parser.parse_args() # @UnusedVariable no args needed
+    options, _ = parser.parse_args()
 
     return options
 
@@ -102,13 +101,13 @@ class _InputData(object):
     @staticmethod
     def static_init(accel, output_path, path_to_core_files_without_accel, delta_k):
         if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL"):
-            raise ValueError("Unknown accelerator: "+accel)
+            raise ValueError("Unknown accelerator: " + accel)
         if not Utilities.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")
         if not Utilities.math.can_str_be_parsed_to_number(delta_k):
-            raise ValueError("Delta k is not a number: "+delta_k)
+            raise ValueError("Delta k is not a number: " + delta_k)
         if not Utilities.iotools.dirs_exist(os.path.join(path_to_core_files_without_accel, accel)):
-            raise ValueError("Core path does not exist: "+_InputData.core_path_with_accel)
+            raise ValueError("Core path does not exist: " + _InputData.core_path_with_accel)
 
         _InputData.output_path = output_path
         _InputData.delta_k = float(delta_k)
@@ -138,18 +137,17 @@ def _generate_fullresponse_for_chromatic_coupling():
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
     variables = knobsdict["kss"]
-    delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
-    incr = numpy.ones(len(variables)) * 0.05    #increment of variables
+    delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
+    incr = numpy.ones(len(variables)) * 0.05    # increment of variables
     dpp = 0.0001
 
-    FullResponse = {}   #Initialize FullResponse
-    FullResponse['incr'] = incr           #Store this info for future use
+    FullResponse = {}   # Initialize FullResponse
+    FullResponse['incr'] = incr           # Store this info for future use
     FullResponse['delta1'] = delta1
-
 
     ######## loop over normal variables
     f = open(_join_with_output("iter.madx"), "w")
-    for i in range(0, len(delta1)) : #Loop over variables
+    for i in range(0, len(delta1)):  # Loop over variables
         delta = numpy.array(delta1)
         delta[i] = delta[i] + incr[i]
         var = variables[i]
@@ -158,16 +156,12 @@ def _generate_fullresponse_for_chromatic_coupling():
         print >> f, "twiss, deltap=-" + str(dpp) + ",file=\"" + _join_with_output("twiss.dp-.") + var + "\";"
         print >> f, var, "=", var, "-(", delta[i], ");"
 
-
-    print >> f, "twiss, deltap= " + str(dpp) + ",file=\"" + _join_with_output("twiss.dp+.0")+"\";"
-    print >> f, "twiss, deltap=-" + str(dpp) + ",file=\"" + _join_with_output("twiss.dp-.0")+"\";"
+    print >> f, "twiss, deltap= " + str(dpp) + ",file=\"" + _join_with_output("twiss.dp+.0") + "\";"
+    print >> f, "twiss, deltap=-" + str(dpp) + ",file=\"" + _join_with_output("twiss.dp-.0") + "\";"
     f.close()
     print "Running MADX"
-    _parallel_command(period=4, number_of_cases=len(delta1) + 1) # period=4 since there are 4 lines in iter.madx per case, number_of_cases has +1 since there is the 0 case
+    _parallel_command(period=4, number_of_cases=len(delta1) + 1)  # period=4 since there are 4 lines in iter.madx per case, number_of_cases has +1 since there is the 0 case
     print "Finished MADX"
-
-    
-
 
     varsforloop = variables + ['0']
     newvarsforloop = []
@@ -179,6 +173,8 @@ def _generate_fullresponse_for_chromatic_coupling():
 
     _dump(_join_with_output('FullResponse_chromcouple'), FullResponse)
 
+    Utilities.iotools.copy_item(_join_with_output("iter.madx"), _join_with_output("chromcouple_iter.madx"))
+
 
 def _generate_fullresponse_for_coupling():
     print "_generate_fullresponse_for_coupling"
@@ -186,25 +182,24 @@ def _generate_fullresponse_for_coupling():
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
     variables = knobsdict["Qs"]
-    delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
-    incr = numpy.ones(len(variables)) * 0.0001    #increment of variables
+    delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
+    incr = numpy.ones(len(variables)) * 0.0001    # increment of variables
 
-
-    FullResponse = {}   #Initialize FullResponse
-    FullResponse['incr'] = incr           #Store this info for future use
-    FullResponse['delta1'] = delta1       #"     "     "
+    FullResponse = {}   # Initialize FullResponse
+    FullResponse['incr'] = incr           # Store this info for future use
+    FullResponse['delta1'] = delta1       # "     "     "
 
     ######## loop over normal variables
     f = open(_join_with_output('iter.madx'), 'w')
-    for i in range(0, len(delta1)) : #Loop over variables
+    for i in range(0, len(delta1)):  # Loop over variables
         delta = numpy.array(delta1)
         delta[i] = delta[i] + incr[i]
         var = variables[i]
         print >> f, var, "=", var, "+(", delta[i], ");"
-        print >> f, "twiss, file=\"" + _join_with_output("twiss." + var)+"\";"
+        print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
         print >> f, var, "=", var, "-(", delta[i], ");"
 
-    print >> f, "twiss, file=\"" + _join_with_output("twiss.0")+"\";"
+    print >> f, "twiss, file=\"" + _join_with_output("twiss.0") + "\";"
     f.close()
     #Sending the mad jobs in parallel
     print "Running MADX"
@@ -221,6 +216,7 @@ def _generate_fullresponse_for_coupling():
         FullResponse[key] = value
 
     _dump(_join_with_output("FullResponse_couple"), FullResponse)
+    Utilities.iotools.copy_item(_join_with_output("iter.madx"), _join_with_output("couple_iter.madx"))
 
 
 def _generate_fullresponse_for_beta():
@@ -229,18 +225,17 @@ def _generate_fullresponse_for_beta():
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
     variables = knobsdict["Q"]
-    delta1 = numpy.zeros(len(variables)) * 1.0   #Zero^th of the variables
+    delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
     #incr=ones(len(variables))*0.00005    #increment of variables    #### when squeeze low twiss fails because of to big delta
     incr = numpy.ones(len(variables)) * _InputData.delta_k
 
-
-    FullResponse = {}   #Initialize FullResponse
-    FullResponse['incr'] = incr           #Store this info for future use
-    FullResponse['delta1'] = delta1       #"     "     "
+    FullResponse = {}   # Initialize FullResponse
+    FullResponse['incr'] = incr           # Store this info for future use
+    FullResponse['delta1'] = delta1       # "     "     "
 
     ######## loop over normal variables
     f = open(_join_with_output("iter.madx"), "w")
-    for i in range(0, len(delta1)) : #Loop over variables
+    for i in range(0, len(delta1)):  # Loop over variables
         delta = numpy.array(delta1)
         delta[i] = delta[i] + incr[i]
         var = variables[i]
@@ -248,7 +243,7 @@ def _generate_fullresponse_for_beta():
         print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
         print >> f, var, "=", var, "-(", delta[i], ");"
 
-    print >> f, "twiss,file=\"" + _join_with_output("twiss.0")+"\";"
+    print >> f, "twiss,file=\"" + _join_with_output("twiss.0") + "\";"
     f.close()
 
     print "Running MADX"
@@ -277,9 +272,10 @@ def _join_with_output(*path_tokens):
 
 DEV_NULL = open(os.devnull, "w")
 
+
 def _callMadx(pathToInputFile, attemptsLeft=5):
     result = madxrunner.runForInputFile(pathToInputFile, stdout=DEV_NULL)
-    if result is not 0: # then madx failed for whatever reasons, lets try it again (tbach)
+    if result is not 0:  # then madx failed for whatever reasons, lets try it again (tbach)
         print "madx failed. result:", result, "pathToInputFile:", pathToInputFile, "attempts left:", attemptsLeft
         if attemptsLeft is 0:
             raise Exception("madx finally failed, can not continue")
@@ -287,6 +283,7 @@ def _callMadx(pathToInputFile, attemptsLeft=5):
         time.sleep(0.5)
         return _callMadx(pathToInputFile, attemptsLeft - 1)
     return result
+
 
 def _dump(pathToDump, content):
     dumpFile = open(pathToDump, 'wb')
@@ -298,11 +295,11 @@ def _parallel_command(period, number_of_cases):
     iterfile = open(_join_with_output("iter.madx"), 'r')
     lines = iterfile.readlines()
     iterfile.close()
-    casesperprocess = int(math.ceil(number_of_cases*1.0/_InputData.number_of_cpus))
-    linesperprocess = casesperprocess*period
+    casesperprocess = int(math.ceil(number_of_cases*1.0 / _InputData.number_of_cpus))
+    linesperprocess = casesperprocess * period
 
     iterFilePaths = []
-    for i in range(len(lines)):      #split the iter.madx using in final number of processes
+    for i in range(len(lines)):   # split the iter.madx using in final number of processes
         if (i % linesperprocess == 0):
             proid = i / linesperprocess + 1
             iterFilePath = _join_with_output("iter." + str(proid) + ".madx")
@@ -312,13 +309,12 @@ def _parallel_command(period, number_of_cases):
         if i == len(lines) - 1 or (i % linesperprocess == linesperprocess - 1):
             iterFile.close()
 
-
     # Prepare copies of the job.iterate.madx and all the shell commands
     madxFilePaths = []
-    for i in range(1, proid+1):
+    for i in range(1, proid + 1):
         cmd = 'sed \'s/iter.madx/iter.'+str(i)+'.madx/g\' '+_InputData.output_path+'/job.iterate.madx > '+_InputData.output_path+'/job.iterate.'+str(i)+'.madx'
         _shell_command(cmd)
-        madxFilePaths.append(_InputData.output_path+'/job.iterate.'+str(i)+'.madx')
+        madxFilePaths.append(_InputData.output_path + '/job.iterate.' + str(i) + '.madx')
 
 #    print "send jobs to madx in parallel, number of jobs:", len(madxFilePaths)
     _InputData.process_pool.map(_callMadx, madxFilePaths)
@@ -349,6 +345,7 @@ def _loadtwiss_beta(varandpath):
         return []
     return var, x
 
+
 def _loadtwiss_coup(varandpath):
     var, path = varandpath
 #    print "Reading twiss." + var
@@ -361,6 +358,7 @@ def _loadtwiss_coup(varandpath):
         print e
         return []
     return var, x
+
 
 def _loadtwiss_chrom_coup(varandpathanddpp):
     var, path, dpp = varandpathanddpp
@@ -400,7 +398,6 @@ def _loadtwiss_chrom_coup(varandpathanddpp):
     return var, xp
 
 
-
 #=======================================================================================================================
 # main invocation
 #=======================================================================================================================
@@ -420,4 +417,3 @@ def _start():
 
 if __name__ == '__main__':
     _start()
-
