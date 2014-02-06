@@ -5,11 +5,8 @@ Created on 19 Mar 2013
 
 @version: 1.0.1
 
-This module contains the class TfsFile which handles the output files of GetLLM.
+This module contains the class ScriptRunner.
 
-Change history:
- - 1.0.1:
-     Suppressed output of the script and saved it in the new attributes _out and _err
 '''
 
 import sys
