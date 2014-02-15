@@ -141,6 +141,17 @@ def get_all_absolute_filenames_in_dir_and_subdirs(path_to_dir):
     return result
 
 
+def get_all_filenames_in_dir(path_to_dir):
+    """ Looks for files in dir(not subdir) and returns them as a list """
+    if not os.path.isdir(path_to_dir):
+        return []
+    result = []
+    for item in os.listdir(path_to_dir):
+        item_path = os.path.join(path_to_dir, item)
+        if os.path.isfile(item_path):
+            result.append(item)
+    return result
+
 def get_all_dir_names_in_dir(path_to_dir):
     """ Looks for directories in dir and returns them as a list """
     if not os.path.isdir(path_to_dir):
