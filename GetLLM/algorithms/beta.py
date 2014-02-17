@@ -24,28 +24,29 @@ import Utilities.bpm
 import compensate_ac_effect
 
 
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+
 
 #===================================================================================================
 # main part
 #===================================================================================================
-
 class BetaData(object):
     """ File for storing results from beta computations. """
 
     def __init__(self):
-        self.x_phase = None # beta x from phase
-        self.x_phase_f = None # beta x from phase free
-        self.y_phase = None # beta y from phase
-        self.y_phase_f = None # beta y from phase free
+        self.x_phase = None  # beta x from phase
+        self.x_phase_f = None  # beta x from phase free
+        self.y_phase = None  # beta y from phase
+        self.y_phase_f = None  # beta y from phase free
 
-        self.x_amp = None # beta x from amplitude
-        self.y_amp = None # beta y from amplitude
+        self.x_amp = None  # beta x from amplitude
+        self.y_amp = None  # beta y from amplitude
 
-        self.x_ratio = None # beta x ratio
-        self.x_ratio_f = None # beta x ratio free
-        self.y_ratio = None # beta x ratio
-        self.y_ratio_f = None # beta x ratio free
+        self.x_ratio = None  # beta x ratio
+        self.x_ratio_f = None  # beta x ratio free
+        self.y_ratio = None  # beta x ratio
+        self.y_ratio_f = None  # beta x ratio free
+
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict, use_only_three_bpms_for_beta_from_phase):
     '''
@@ -200,7 +201,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         skipped_bpmx = []
         arcbpms = Utilities.bpm.filterbpm(bpms)
         for bpm in arcbpms:
-            name = str.upper(bpm[1]) # second entry is the name
+            name = str.upper(bpm[1])  # second entry is the name
         #Skip BPM with strange data
             if abs(beta_d.x_phase[name][0] / beta_d.x_amp[name][0]) > 100:
                 skipped_bpmx.append(name)
@@ -246,7 +247,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 skipped_bpmxf = []
                 arcbpms = Utilities.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
-                    name = str.upper(bpm[1]) # second entry is the name
+                    name = str.upper(bpm[1])  # second entry is the name
                 #Skip BPM with strange data
                     if abs(beta_d.x_phase_f[name][0] / betaxf[name][0]) > 10:
                         skipped_bpmxf.append(name)
@@ -273,7 +274,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                     bn1 = str.upper(bpmsf[i][1])
                     bns1 = bpmsf[i][0]
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf[bn1][0], betaxf[bn1][1], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], beta_d.x_ratio_f * betaxf[bn1][0], beta_d.x_ratio_f * betaxf[bn1][1]]
-                    tfs_file.add_table_row(list_row_entries) # Since invJxf(return_value[3]) is not used, slice the return value([:3]) (vimaier)
+                    tfs_file.add_table_row(list_row_entries)
 
             except:
                 traceback.print_exc()
@@ -292,7 +293,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 bn1 = str.upper(bpmsf2[i][1])
                 bns1 = bpmsf2[i][0]
                 list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], betaxf2_rescale[bn1][0], betaxf2_rescale[bn1][1]]
-                tfs_file.add_table_row(list_row_entries) #---- V plane
+                tfs_file.add_table_row(list_row_entries)  # V plane
 
     if twiss_d.has_zero_dpp_y():
         [beta_d.y_amp, rmsbby, bpms, inv_jy] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_y, 'V')
@@ -302,7 +303,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         skipped_bpmy = []
         arcbpms = Utilities.bpm.filterbpm(bpms)
         for bpm in arcbpms:
-            name = str.upper(bpm[1]) # second entry is the name
+            name = str.upper(bpm[1])  # second entry is the name
             #Skip BPM with strange data
             if name in beta_d.y_phase:
                 if abs(beta_d.y_phase[name][0] / beta_d.y_amp[name][0]) > 100:
@@ -333,16 +334,16 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             bn1 = str.upper(bpms[i][1])
             bns1 = bpms[i][0]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_amp[bn1][0], beta_d.y_amp[bn1][1], mad_ac.BETY[mad_ac.indx[bn1]], mad_ac.MUY[mad_ac.indx[bn1]], betay_rescale[bn1][0], betay_rescale[bn1][1]]
-            tfs_file.add_table_row(list_row_entries) #-- ac to free amp beta
+            tfs_file.add_table_row(list_row_entries)  # ac to free amp beta
 
-        if getllm_d.with_ac_calc: #-- from eq
+        if getllm_d.with_ac_calc:  # from eq
             try:
-                betayf, rmsbbyf, bpmsf, _ = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel) #-- Rescaling
+                betayf, rmsbbyf, bpmsf, _ = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)  # Rescaling
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
                 arcbpms = Utilities.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
-                    name = str.upper(bpm[1]) # second entry is the name
+                    name = str.upper(bpm[1])  # second entry is the name
                     #Skip BPM with strange data
                     if abs(beta_d.y_phase_f[name][0] / betayf[name][0]) > 10:
                         skipped_bpmyf.append(name)
@@ -368,7 +369,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                     bn1 = str.upper(bpmsf[i][1])
                     bns1 = bpmsf[i][0]
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf[bn1][0], betayf[bn1][1], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]], (beta_d.y_ratio_f * betayf[bn1][0]), (beta_d.y_ratio_f * betayf[bn1][1])]
-                    tfs_file.add_table_row(list_row_entries) # 'except ALL' catched a SystemExit from filterbpm().(vimaier)
+                    tfs_file.add_table_row(list_row_entries)  # 'except ALL' catched a SystemExit from filterbpm().(vimaier)
 
             except SystemExit:
                 traceback.print_exc()
@@ -481,6 +482,7 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
     else:
         return candidates[2], candidates[5], candidates[12], bn4
 
+
 def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for_beta_from_phase):
     '''
     Uses 3 BPM left and right of a probed BPM and calculates the beta/alfa from the
@@ -514,19 +516,19 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
     commonbpms = Utilities.bpm.model_intersect(commonbpms, MADTwiss)
 
     if 3 > len(commonbpms):
-        print "beta_from_phase: Less than three BPMs for plane", plane+". Returning empty values."
+        print "beta_from_phase: Less than three BPMs for plane", plane + ". Returning empty values."
         return ({}, 0.0, {}, [])
 
     if 7 > len(commonbpms):
-        print "beta_from_phase: Less than seven BPMs for plane", plane+". Can not use optimised algorithm."
+        print "beta_from_phase: Less than seven BPMs for plane", plane + ". Can not use optimised algorithm."
 
     delbeta = []
     for i in range(0, len(commonbpms)):
 
         alfa_beta_b1, alfa_beta_b2, alfa_beta_b3, probed_bpm_name = get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase)
 
-        beti = (alfa_beta_b1[1] + alfa_beta_b2[1] + alfa_beta_b3[1])/3.
-        alfi = (alfa_beta_b1[3] + alfa_beta_b2[3] + alfa_beta_b3[3])/3.
+        beti = (alfa_beta_b1[1] + alfa_beta_b2[1] + alfa_beta_b3[1]) / 3.
+        alfi = (alfa_beta_b1[3] + alfa_beta_b2[3] + alfa_beta_b3[3]) / 3.
 
         betstd = math.sqrt(alfa_beta_b1[0]**2 + alfa_beta_b2[0]**2 + alfa_beta_b3[0]**2)/math.sqrt(3.)
         alfstd = math.sqrt(alfa_beta_b1[2]**2 + alfa_beta_b2[2]**2 + alfa_beta_b3[2]**2)/math.sqrt(3.)
@@ -542,21 +544,18 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
         except ValueError:
             alferr = 0
 
-
         beta[probed_bpm_name] = (beti, beterr, betstd)
         alfa[probed_bpm_name] = (alfi, alferr, alfstd)
         if plane == 'H':
             betmdl1 = MADTwiss.BETX[MADTwiss.indx[probed_bpm_name]]
         elif plane == 'V':
             betmdl1 = MADTwiss.BETY[MADTwiss.indx[probed_bpm_name]]
-        delbeta.append((beti-betmdl1)/betmdl1)
-
+        delbeta.append((beti - betmdl1) / betmdl1)
 
     delbeta = np.array(delbeta)
-    rmsbb = math.sqrt(np.average(delbeta*delbeta))
+    rmsbb = math.sqrt(np.average(delbeta * delbeta))
 
     return [beta, rmsbb, alfa, commonbpms]
-
 
 
 def beta_from_amplitude(mad_twiss, list_of_files, plane):
@@ -635,11 +634,11 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
     rmsbb = math.sqrt(np.average(delbeta * delbeta))
     return [beta, rmsbb, commonbpms, invariant_j]
 
+
 #===================================================================================================
 # ac-dipole stuff
 #===================================================================================================
-
-def _get_free_beta(modelfree, modelac, betal, rmsbb, alfal, bpms, plane): # to check "+"
+def _get_free_beta(modelfree, modelac, betal, rmsbb, alfal, bpms, plane):  # to check "+"
     if DEBUG:
         print "Calculating free beta using model"
     bpms = Utilities.bpm.model_intersect(bpms, modelfree)
@@ -654,25 +653,25 @@ def _get_free_beta(modelfree, modelac, betal, rmsbb, alfal, bpms, plane): # to c
         if plane == "H":
             betmf = modelfree.BETX[modelfree.indx[bpm]]
             betma = modelac.BETX[modelac.indx[bpm]]
-            bb = (betma-betmf)/betmf
+            bb = (betma - betmf) / betmf
             alfmf = modelfree.ALFX[modelfree.indx[bpm]]
             alfma = modelac.ALFX[modelac.indx[bpm]]
-            aa = (alfma-alfmf)/alfmf
+            aa = (alfma - alfmf) / alfmf
         else:
             betmf = modelfree.BETY[modelfree.indx[bpm]]
             betma = modelac.BETY[modelac.indx[bpm]]
             alfmf = modelfree.ALFY[modelfree.indx[bpm]]
             alfma = modelac.ALFY[modelac.indx[bpm]]
-            bb = (betma-betmf)/betmf
-            aa = (alfma-alfmf)/alfmf
+            bb = (betma - betmf) / betmf
+            aa = (alfma - alfmf) / alfmf
 
-        betan[bpm] = beta*(1+bb), beterr, betstd # has to be plus!
-        alfan[bpm] = alfa*(1+aa), alferr, alfstd
+        betan[bpm] = beta * (1 + bb), beterr, betstd  # has to be plus!
+        alfan[bpm] = alfa * (1 + aa), alferr, alfstd
 
     return betan, rmsbb, alfan, bpms
 
 
-def BetaFromPhase_BPM_left(bn1,bn2,bn3,MADTwiss,phase,plane):
+def BetaFromPhase_BPM_left(bn1, bn2, bn3, MADTwiss, phase, plane):
     '''
     Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is left of the other two BPMs
