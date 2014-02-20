@@ -20,7 +20,7 @@ import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 import Utilities.ndiff
 
-_SHORT_RUN = False # If True, Drive will only run on first dir
+_SHORT_RUN = True # If True, Drive will only run on first dir
 
 class TestOutput(unittest.TestCase):
 
@@ -50,8 +50,9 @@ class TestOutput(unittest.TestCase):
 
 
     def tearDown(self):
-        if TestOutput.successful:
-            self._delete_modified_output()
+        pass
+#         if TestOutput.successful:
+#             self._delete_modified_output()
 
 
     def testOutput(self):
@@ -203,7 +204,7 @@ class TestOutput(unittest.TestCase):
 
 
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
-        regex_list = [r"^.*\.lin(x|y)$", r"^.*\.(x|y)$"] # *.linx; *.liny; *.x; *.y  ==> Output of drive
+        regex_list = [r"^.*lin(x|y)$", r"^.*\.(x|y)$"] # *.linx; *.liny; *.x; *.y  ==> Output of drive
         self.assertTrue(
                         Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir, regex_list),
                         "Directories not equal: "+valid_dir+" and "+to_check_dir
