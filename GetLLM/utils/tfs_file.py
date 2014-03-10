@@ -27,7 +27,7 @@ class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
     s_getllm_version = ""
     s_mad_filename = ""
     __s_current_date = datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S")#e.g.: 17. July 2013, 12:28:56
-    __s_getllm_invocation_command = " ".join(sys.argv)
+    __s_getllm_invocation_command = sys.executable+" '"+"' '".join([]+sys.argv)+"'"
 
     def __init__(self, file_name, column_width=Utilities.tfs_file_writer.TfsFileWriter.DEFAULT_COLUMN_WIDTH):
         """
