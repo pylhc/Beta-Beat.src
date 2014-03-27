@@ -179,7 +179,7 @@ inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex)
 double calculatednattuney, calculatednattunex, calculatednatampy, calculatednatampx, co, co2,
 	   noise1, maxfreq, maxmin, maxpeak, noiseAve;
 
-double allampsx[500], allampsy[500], allfreqsx[500], allfreqsy[500], amplitude[33],
+double allampsx[300], allampsy[300], allfreqsx[300], allfreqsy[300], amplitude[33],
 		   doubleToSend[MAXTURNS4 + 4], phase[33], tune[2];
 
 int nslines=0;
@@ -677,7 +677,7 @@ bool BPMstatus(const int plane, const int turns)
 
     noise1 = 0;
 
-    for (counter = 0; counter < 500; counter++) {
+    for (counter = 0; counter < 300; counter++) {
         if (plane == 1) {
             aux = allfreqsx[counter];
             amp = allampsx[counter];
@@ -793,9 +793,9 @@ void IoHelper::writeSussixInputFile(const int turns, const double istun, const d
     sussixInputFile << "C" << std::endl << "C INPUT FOR SUSSIX_V4 ---17/09/1997---" << std::endl << "C DETAILS ARE IN THE MAIN PROGRAM SUSSIX_V4.F\n";
     sussixInputFile << "C" << std::endl << std::endl;
     sussixInputFile << "ISIX  = 0" << std::endl << "NTOT  = 1" << std::endl << "IANA  = 1" << std::endl << "ICONV = 0" << std::endl;
-    sussixInputFile << std::scientific << "TURNS = 1 " << turns << std::endl << "NARM  = 500" << std::endl << "ISTUN = 1 " << istun << ' ' << istun << std::endl;
+    sussixInputFile << std::scientific << "TURNS = 1 " << turns << std::endl << "NARM  = 300" << std::endl << "ISTUN = 1 " << istun << ' ' << istun << std::endl;
     sussixInputFile << std::scientific << "TUNES = " << tunex << ' ' << tuney << " .07" << std::endl << "NSUS  = 0" << std::endl << "IDAM  = 2" << std::endl << "NTWIX = 1" << std::endl;
-    sussixInputFile << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 5" << std::endl << "EPS   = 2D-3" << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
+    sussixInputFile << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 4" << std::endl << "EPS   = 2D-3" << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
     sussixInputFile << "NLINE = 0" << std::endl << "L,M,K = " << std::endl << "IDAMX = 1" << std::endl << "NFIN  = 500" << std::endl;
     sussixInputFile << "ISME  = 0" << std::endl << "IUSME = 200" << std::endl << "INV   = 0" << std::endl << "IINV  = 250" << std::endl;
     sussixInputFile << "ICF   = 0" << std::endl << "IICF  = 350" << std::endl;
@@ -1038,7 +1038,7 @@ inline void calculateNaturalTune() {
 	double maxamp = 0.0;
 	calculatednattunex = NATTUNE_DEFAULT;
 	if (inpData.nattunex > NATTUNE_DEFAULT) {
-		for (int j = 0; j < 500; ++j) {
+		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattunex - inpData.istun < allfreqsx[j] && allfreqsx[j] < inpData.nattunex + inpData.istun) && (maxamp < allampsx[j])) {
 				maxamp = allampsx[j];
 				calculatednattunex = allfreqsx[j];
@@ -1049,7 +1049,7 @@ inline void calculateNaturalTune() {
 	maxamp = 0;
 	calculatednattuney = NATTUNE_DEFAULT;
 	if (inpData.nattuney > NATTUNE_DEFAULT) {
-		for (int j = 0; j < 500; ++j) {
+		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattuney - inpData.istun < allfreqsy[j] && allfreqsy[j] < inpData.nattuney + inpData.istun) && (maxamp < allampsy[j])) {
 				maxamp = allampsy[j];
 				calculatednattuney = allfreqsy[j];
@@ -1066,7 +1066,7 @@ inline void writeSpectrumToFile(std::string& spectrumFilePath, const double* all
 	}
 	std::ofstream spectrumFile(spectrumFilePath.c_str());
 	spectrumFile << "* FREQ AMP\n$ %le %le\n";
-	for (int j = 0; j < 500; ++j)
+	for (int j = 0; j < 300; ++j)
 		spectrumFile << std::scientific << allFrequencies[j] << ' ' << allAmplitudes[j] << std::endl;
 	spectrumFile.close();
 }
