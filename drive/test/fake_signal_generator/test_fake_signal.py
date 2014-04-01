@@ -7,6 +7,7 @@ import datetime
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import numpy as np
+import Utilities.iotools
 
 CURRENT_PATH = os.path.dirname(__file__)
 
@@ -18,7 +19,7 @@ class test_fake_data(unittest.TestCase):
 	path_to_test = os.path.join(CURRENT_PATH, "fake_signal")
 	path_to_driving_terms = os.path.join(CURRENT_PATH, "fake_signal", "DrivingTerms")
 	path_to_sdds = os.path.join(CURRENT_PATH, "fake_signal", "test.sdds.cleaned")
-	
+
 	def setUp(self):
 		self._generate_fake_data()
 		self._run_drive()
@@ -35,7 +36,7 @@ class test_fake_data(unittest.TestCase):
 		qy = 0.31
 	
 		# BPMs
-		bpms_data = {
+		self.bpms_data = {
 			'BPMX.1.BTEST':{'pos':0.0, 'plane':'x', 'phaseOffset':0.},
 			'BPMY.1.BTEST':{'pos':0.0, 'plane':'y', 'phaseOffset':0.},
 			'BPMX.2.BTEST':{'pos':1.0, 'plane':'x', 'phaseOffset':.5},
@@ -47,28 +48,35 @@ class test_fake_data(unittest.TestCase):
 		}
 		
 		# Resonances (random examples, may be adjusted)
-		amps   = {
+		self.amps   = {
 			'x':[100., 10.,        1.,        .1,     1.],
 			'y':[100., 10.,        1.,        .1]
 		}
-		tunes  = {
+		self.tunes  = {
 			'x':[  qx,  qy, 1-(qx+qy),      2*qx, qx-.01],
 			'y':[  qy,  qx, 1-(qx+qy), 1-(qx-qy)]
 		}
-		phases = {
+		self.phases = {
 			'x':[  0.,  0.,        0.,        0.,     0.],
 			'y':[  0.,  0.,        0.,        0.]
 		}
 	
-		turns    = 2000
-		kickTurn =  100
+		self.turns    = 2000
+		self.kick_turn =  100
 	
-		bpm_to_signal_dict = self._get_bpm_to_signal_dict(bpms_data, amps, tunes, phases, turns=turns, kick_turn=kickTurn)
+		bpm_to_signal_dict = self._get_bpm_to_signal_dict(
+														self.bpms_data,
+														self.amps, 
+														self.tunes,
+														self.phases,
+														self.turns,
+														self.kick_turn
+														)
 	
 		if self.plot_fake_data:
-			self._do_plot_fake_data(bpm_to_signal_dict, bpms_data, fft=True)
+			self._do_plot_fake_data(bpm_to_signal_dict, self.bpms_data, fft=True)
 	
-		wroteToFile = self._write_fake_data_to_file(bpm_to_signal_dict, bpms_data)
+		wroteToFile = self._write_fake_data_to_file(bpm_to_signal_dict, self.bpms_data)
 		if wroteToFile:
 			print('Wrote data file to: %s' % self.fake_data_file_path)
 		else:
@@ -173,7 +181,17 @@ class test_fake_data(unittest.TestCase):
 			print >> sys.stderr, err_stream
 		print "Printing output:-------------------------"
 		print out_stream
+		
+	def _delete_drive_output(self):
+		Utilities.iotools.delete_item(os.path.join(self.path_to_test, "sussix_v4.inp"))
+		Utilities.iotools.delete_item(os.path.join(self.path_to_test, "test.sdds.cleaned_linx"))
+		Utilities.iotools.delete_item(os.path.join(self.path_to_test, "test.sdds.cleaned_liny"))
+		Utilities.iotools.delete_item(os.path.join(self.path_to_test, "test.sdds.cleaned_rejectedBpms_x"))
+		Utilities.iotools.delete_item(os.path.join(self.path_to_test, "test.sdds.cleaned_rejectedBpms_y"))
 
+	def _delete_fake_data(self):
+		Utilities.iotools.delete_item(self.fake_data_file_path)
+		Utilities.iotools.delete_item(self.path_to_driving_terms)
 
 if __name__=='__main__':
 	unittest.main()
