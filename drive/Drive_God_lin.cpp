@@ -163,6 +163,12 @@ private:
     }
 }tuneCalcData;
 
+struct CalculatedNaturalData{
+            double calculatednattunex;
+            double calculatednattuney;
+            double calculatednatampx;
+            double calculatednatampy;
+        };
 
 void harmonicAnalysisForSingleTbtDataFile(std::string&);
 void readTbtDataFile(std::string&, int&, int&, int&);
@@ -172,12 +178,11 @@ bool BPMstatus(const int, const int);
 
 // Functions inside of the omp parallel for loop
 inline void callExternalFortranFunctionForHarmonicAnalysis();
-inline void calculateNaturalTune();
+inline void calculateNaturalTune(struct CalculatedNaturalData* naturalData);
 inline void createSpectrumFileForCurrentHorizontalBpm(const int& horizontalBpmIndex);
 inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex);
 
-double calculatednattuney, calculatednattunex, calculatednatampy, calculatednatampx, co, co2,
-	   noise1, maxfreq, maxmin, maxpeak, noiseAve;
+double co, co2, noise1, maxfreq, maxmin, maxpeak, noiseAve;
 
 double allampsx[300], allampsy[300], allfreqsx[300], allfreqsy[300], amplitude[33],
 		   doubleToSend[MAXTURNS4 + 4], phase[33], tune[2];
@@ -191,6 +196,8 @@ struct BPM{ /*Structure for each BPM- has name, position, plane, if it's pickedu
 	bool pickedUp;
 	double tbtData[MAXTURNS];
 }BPMs[MAXPICK];
+
+
 
 #pragma omp threadprivate(amplitude, doubleToSend, tune, phase,\
         noise1, noiseAve, maxpeak, maxfreq, maxmin, co, co2,\
@@ -252,8 +259,9 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 
 	IoHelper::writeSussixInputFile(inpData.turns, inpData.istun, inpData.tunex, inpData.tuney);
 
-#pragma omp parallel for private(calculatednattunex, calculatednattuney, calculatednatampx, calculatednatampy)
+#pragma omp parallel for
 	for (int i = inpData.pickStart; i < maxOfHorBpmsAndVerBpms; ++i) {
+
 		int horizontalBpmIndex = i;
 		int verticalBpmIndex = i + MAXPICK/2;
 
@@ -279,7 +287,14 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 
 		#pragma omp critical
 		{
-			calculateNaturalTune();
+
+		    CalculatedNaturalData naturalData;
+		    naturalData.calculatednatampx = 0.0;
+		    naturalData.calculatednatampy = 0.0;
+		    naturalData.calculatednattunex = 0.0;
+		    naturalData.calculatednattuney = 0.0;
+			calculateNaturalTune(&naturalData);
+
 			BPMs[horizontalBpmIndex].pickedUp = BPMstatus(1, inpData.turns); /*Always returns true*/
 			if (inpData.labelrun == 1)
 				filesHandler.noiseFile << std::scientific << "1 " << horizontalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[i].pickedUp << ' ' << phase[0] / 360. << std::endl;
@@ -305,9 +320,9 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
                                                                                         amplitude[ 9] / amplitude[0] << ' ' << phase[ 9] / 360. << ' ' <<
                                                                                         amplitude[30] / amplitude[0] << ' ' << phase[30] / 360. << ' ' <<
                                                                                         amplitude[32] / amplitude[0] << ' ' << phase[32] / 360. << ' ' <<
-                                                                                        calculatednattunex << ' ' << calculatednatampx << std::endl;
+                                                                                        naturalData.calculatednattunex << ' ' << naturalData.calculatednatampx << std::endl;
 
-				tuneCalcData.addTuneX(tune[0], calculatednattunex);
+				tuneCalcData.addTuneX(tune[0], naturalData.calculatednattunex);
 				createSpectrumFileForCurrentHorizontalBpm(horizontalBpmIndex);
 			}else if(true == (BPMs[horizontalBpmIndex].pickedUp == true && horizontalBpmIndex == i)){
 				printf("Hor. BPM %s not in lin file because following condition failed: ", BPMs[horizontalBpmIndex].bpmName.c_str());
@@ -319,8 +334,8 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
                                                                                         phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
                                                                                         phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
                                                                                         phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
-                                                                                        phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' <<
-                                                                                        calculatednatampx << std::endl;
+                                                                                        phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << naturalData.calculatednattunex << ' ' <<
+                                                                                        naturalData.calculatednatampx << std::endl;
 
 
 			}
@@ -345,8 +360,8 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
                                                                                         amplitude[23] / amplitude[3] << ' ' << phase[23] / 360. << ' ' <<
                                                                                         amplitude[25] / amplitude[3] << ' ' << phase[25] / 360. << ' ' <<
                                                                                         amplitude[27] / amplitude[3] << ' ' << phase[27] / 360. << ' ' <<
-                                                                                        calculatednattuney << ' ' << calculatednatampy << std::endl;
-				tuneCalcData.addTuneY(tune[1], calculatednattuney);
+                                                                                        naturalData.calculatednattuney << ' ' << naturalData.calculatednatampy << std::endl;
+				tuneCalcData.addTuneY(tune[1], naturalData.calculatednattuney);
 				createSpectrumFileForCurrentVerticalBpm(verticalBpmIndex);
 			}else if(true == (BPMs[verticalBpmIndex].pickedUp == true && verticalBpmIndex == i + MAXPICK/2)){
 				printf("Ver. BPM %s not in lin file because following condition failed: ", BPMs[verticalBpmIndex].bpmName.c_str());
@@ -358,8 +373,8 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
                                                                                         phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[13] / amplitude[3] << ' ' <<
                                                                                         phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' << amplitude[17] / amplitude[3] << ' ' <<
                                                                                         phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' << amplitude[11] / amplitude[3] << ' ' <<
-                                                                                        phase[11] / 360. << ' ' << amplitude[19] / amplitude[3] << ' ' << phase[19] / 360. << ' ' << calculatednattuney << ' ' <<
-                                                                                        calculatednatampy << std::endl;
+                                                                                        phase[11] / 360. << ' ' << amplitude[19] / amplitude[3] << ' ' << phase[19] / 360. << ' ' << naturalData.calculatednattuney << ' ' <<
+                                                                                        naturalData.calculatednatampy << std::endl;
 
 			}
 		} /* end of omp critical section */
@@ -1033,27 +1048,27 @@ inline void callExternalFortranFunctionForHarmonicAnalysis() {
 
 }
 
-inline void calculateNaturalTune() {
+inline void calculateNaturalTune(CalculatedNaturalData* naturalData) {
 	/* Let's look for natural tunes in the istun range if natural tunes input is given*/
 	double maxamp = 0.0;
-	calculatednattunex = NATTUNE_DEFAULT;
+	naturalData->calculatednattunex = NATTUNE_DEFAULT;
 	if (inpData.nattunex > NATTUNE_DEFAULT) {
 		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattunex - inpData.istun < allfreqsx[j] && allfreqsx[j] < inpData.nattunex + inpData.istun) && (maxamp < allampsx[j])) {
 				maxamp = allampsx[j];
-				calculatednattunex = allfreqsx[j];
-				calculatednatampx = maxamp;
+				naturalData->calculatednattunex = allfreqsx[j];
+				naturalData->calculatednatampx = maxamp;
 			}
 		}
 	}
 	maxamp = 0;
-	calculatednattuney = NATTUNE_DEFAULT;
+	naturalData->calculatednattuney = NATTUNE_DEFAULT;
 	if (inpData.nattuney > NATTUNE_DEFAULT) {
 		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattuney - inpData.istun < allfreqsy[j] && allfreqsy[j] < inpData.nattuney + inpData.istun) && (maxamp < allampsy[j])) {
 				maxamp = allampsy[j];
-				calculatednattuney = allfreqsy[j];
-				calculatednatampy = maxamp;
+				naturalData->calculatednattuney = allfreqsy[j];
+				naturalData->calculatednatampy = maxamp;
 			}
 		}
 	}
