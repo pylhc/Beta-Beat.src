@@ -1294,7 +1294,7 @@ c            write(*,*) l1, m1, k1, j1, flagad(1), tx(n)
             endif
             
             if(flagad(9).eq.0.and.l1.eq.-5.and.m1.eq.0.and.
-     &           k1.eq.0.and.j1.eq.0)then
+     &           k1.eq.0)then
               amplitude(9)=px
               phase(9)=-fx
               flagad(9)=1
@@ -1315,70 +1315,70 @@ c            write(*,*) l1, m1, k1, j1, flagad(1), tx(n)
             endif
 
             if(flagad(13).eq.0.and.l1.eq.0.and.m1.eq.2.and.
-     &           k1.eq.0.and.j1.eq.0)then
+     &           k1.eq.0)then
               amplitude(13)=px
               phase(13)=-fx
               flagad(13)=1
             endif 
 	    
 	    if(l1.eq.-1.and.m1.eq.-1.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(15).eq.0) then
+     &           flagad(15).eq.0) then
               amplitude(15)=px
               phase(15)=-fx
               flagad(15)=1
             endif
 	    
 	    if(l1.eq.2.and.m1.eq.-2.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(17).eq.0) then
+     &           flagad(17).eq.0) then
               amplitude(17)=px
               phase(17)=-fx
               flagad(17)=1
             endif
 	    
 	    if(l1.eq.0.and.m1.eq.-2.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(19).eq.0) then
+     &           flagad(19).eq.0) then
               amplitude(19)=px
               phase(19)=-fx
               flagad(19)=1
             endif
 	    if(l1.eq.1.and.m1.eq.-2.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(21).eq.0) then
+     &           flagad(21).eq.0) then
               amplitude(21)=px
               phase(21)=-fx
               flagad(21)=1
             endif
             if(l1.eq.-1.and.m1.eq.3.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(23).eq.0) then
+     &           flagad(23).eq.0) then
               amplitude(23)=px
               phase(23)=-fx
               flagad(23)=1
             endif
             if(l1.eq.1.and.m1.eq.2.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(25).eq.0) then
+     &           flagad(25).eq.0) then
               amplitude(25)=px
               phase(25)=-fx
               flagad(25)=1
             endif
             if(l1.eq.-2.and.m1.eq.1.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(27).eq.0) then
+     &           flagad(27).eq.0) then
               amplitude(27)=px
               phase(27)=-fx
               flagad(27)=1
             endif
             if(l1.eq.1.and.m1.eq.1.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(29).eq.0) then
+     &           flagad(29).eq.0) then
               amplitude(29)=px
               phase(29)=-fx
               flagad(29)=1
             endif
             if(l1.eq.-1.and.m1.eq.-2.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(31).eq.0) then
+     &           flagad(31).eq.0) then
               amplitude(31)=px
               phase(31)=-fx
               flagad(31)=1
             endif
             if(l1.eq.3.and.m1.eq.0.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(33).eq.0) then
+     &           flagad(33).eq.0) then
               amplitude(33)=px
               phase(33)=-fx
               flagad(33)=1
@@ -1510,14 +1510,14 @@ c              write(*,*)"p32 ", fy, py, ty(n)
             endif
             
             if(flagad(12).eq.0.and.l1.eq.0.and.m1.eq.-3.and.
-     &         k1.eq.0.and.j1.eq.0)then
+     &         k1.eq.0)then
               amplitude(12)=py
               phase(12)=-fy
               flagad(12)=1
             endif        
 
             if(flagad(14).eq.0.and.l1.eq.-1.and.m1.eq.-1.and.
-     &           k1.eq.0.and.j1.eq.0)then
+     &           k1.eq.0)then
               amplitude(14)=py
               phase(14)=-fy
               flagad(14)=1

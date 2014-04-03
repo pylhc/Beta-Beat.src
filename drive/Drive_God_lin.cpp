@@ -83,6 +83,7 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 #define MAXTURNS4 40000 /*Always four times  MAXTURNS*/
 #define MAXRUNS 100
 #define NATTUNE_DEFAULT -100
+#define NATAMP_DEFAULT -100
 
 #if !defined(LOG_INFO)
 #define LOG_INFO 0 /*set to 1 to enable log prints (tbach) */
@@ -115,6 +116,8 @@ public:
 	static void writeSussixInputFile(const int, const double, const double, const double);
 	static void formatLinFile(std::string linFilePath, const int tunecount, const double tunesum, const double tune2sum,
 			const int nattunecount, const double nattunesum, const double nattune2sum, int plane_index);
+
+	static void createBPMDirectory();
 
 	static std::string workingDirectoryPath;
 	static std::string sussixInputFilePath;
@@ -222,6 +225,7 @@ int main(int argc, char **argv)
     std::string drivingTermsFilePath, driveInpFilePath;
 
     IoHelper::getAndCheckFilePaths(&drivingTermsFilePath, &driveInpFilePath, argv[1]);
+    IoHelper::createBPMDirectory();
 
     inpData.initAndReadInputValues(driveInpFilePath);
 
@@ -289,10 +293,6 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 		{
 
 		    CalculatedNaturalData naturalData;
-		    naturalData.calculatednatampx = 0.0;
-		    naturalData.calculatednatampy = 0.0;
-		    naturalData.calculatednattunex = 0.0;
-		    naturalData.calculatednattuney = 0.0;
 			calculateNaturalTune(&naturalData);
 
 			BPMs[horizontalBpmIndex].pickedUp = BPMstatus(1, inpData.turns); /*Always returns true*/
@@ -886,6 +886,13 @@ void IoHelper::formatLinFile(std::string linFilePath,
     }
 }
 
+void IoHelper::createBPMDirectory(){
+    #ifdef _WIN32
+        system(("cmd mkdir " + workingDirectoryPath + "\\BPM").c_str());
+    #else
+        mkdir((IoHelper::workingDirectoryPath+"/BPM/").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    #endif
+}
 
 //======================================================================================================================
 // Inputdata definitions
@@ -1052,6 +1059,7 @@ inline void calculateNaturalTune(CalculatedNaturalData* naturalData) {
 	/* Let's look for natural tunes in the istun range if natural tunes input is given*/
 	double maxamp = 0.0;
 	naturalData->calculatednattunex = NATTUNE_DEFAULT;
+	naturalData->calculatednatampx = NATAMP_DEFAULT;
 	if (inpData.nattunex > NATTUNE_DEFAULT) {
 		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattunex - inpData.istun < allfreqsx[j] && allfreqsx[j] < inpData.nattunex + inpData.istun) && (maxamp < allampsx[j])) {
@@ -1063,6 +1071,7 @@ inline void calculateNaturalTune(CalculatedNaturalData* naturalData) {
 	}
 	maxamp = 0;
 	naturalData->calculatednattuney = NATTUNE_DEFAULT;
+	naturalData->calculatednatampy = maxamp;
 	if (inpData.nattuney > NATTUNE_DEFAULT) {
 		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattuney - inpData.istun < allfreqsy[j] && allfreqsy[j] < inpData.nattuney + inpData.istun) && (maxamp < allampsy[j])) {
@@ -1090,7 +1099,6 @@ inline void createSpectrumFileForCurrentHorizontalBpm(const int& horizontalBpmIn
 	/*if (horizontalBpmIndex >= 10) {
 		return;
 	}*/
-	mkdir((IoHelper::workingDirectoryPath+"/BPM/").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	std::string spectrumFilePath = IoHelper::workingDirectoryPath+"/BPM/"+BPMs[horizontalBpmIndex].bpmName+".x";
 	writeSpectrumToFile(spectrumFilePath, allfreqsx, allampsx);
 }
@@ -1099,7 +1107,6 @@ inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex)
 	/*if (verticalBpmIndex >= MAXPICK/2 + 10) {
 		return;
 	}*/
-	mkdir((IoHelper::workingDirectoryPath+"/BPM/").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	std::string spectrumFilePath = IoHelper::workingDirectoryPath+"/BPM/"+BPMs[verticalBpmIndex].bpmName+".y";
 	writeSpectrumToFile(spectrumFilePath, allfreqsy, allampsy);
 }

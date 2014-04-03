@@ -37,7 +37,7 @@ class TestOutput(unittest.TestCase):
 
     @staticmethod
     def get_os_dependent_path_to_modified_drive():
-        if sys.platform == "linux" or sys.platform == "linux2":
+        if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "linux3":
             return os.path.join(CURRENT_PATH, "..", "Drive_God_lin")
         elif sys.platform == "win32":
             return os.path.join(CURRENT_PATH, "..", "Drive_God_lin_win.exe")
