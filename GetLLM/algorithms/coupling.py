@@ -18,7 +18,6 @@ import traceback
 import math
 
 import numpy as np
-from numpy import sin, cos
 
 import Utilities.bpm
 import phase
@@ -232,7 +231,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             fi = np.average(fij)
             fistd = math.sqrt(np.average(fij*fij)-(np.average(fij))**2.0+2.2e-16)
             qistd = math.sqrt(np.average(q1j*q1j)-(np.average(q1j))**2.0+2.2e-16) # Not very exact...
-            fi = fi*complex(cos(2.0*np.pi*qi), sin(2.0*np.pi*qi))
+            fi = fi*complex(np.cos(2.0*np.pi*qi), np.sin(2.0*np.pi*qi))
             dbpmt.append([dbpms[i][0],dbpms[i][1]])
             # Trailing "0,0" in following lists because of compatibility.
             # See issue on github pylhc/Beta-Beat.src#3
@@ -367,8 +366,8 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             q1001istd = phase.calc_phase_std(np.append(q1jd,q2jd),1.0)
             q1010istd = phase.calc_phase_std(np.append(q1js,q2js),1.0)
 
-            f1001i=f1001i*complex(cos(2.0*np.pi*q1001i),sin(2.0*np.pi*q1001i))
-            f1010i=f1010i*complex(cos(2.0*np.pi*q1010i),sin(2.0*np.pi*q1010i))
+            f1001i=f1001i*complex(np.cos(2.0*np.pi*q1001i),np.sin(2.0*np.pi*q1001i))
+            f1010i=f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))
             dbpmt.append([dbpms[i][0],dbpms[i][1]])
 
             if beam_direction==1:
@@ -386,8 +385,8 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         tw_x=list_zero_dpp_x[0]
         tw_y=list_zero_dpp_y[0]
         bn1=str.upper(dbpms[i][1])
-        CG=CG+math.sqrt(fwqw[bn1][0][0].real**2+fwqw[bn1][0][0].imag**2)
-        QG=QG+fwqw[bn1][1][0]-(tw_x.MUX[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]])
+        CG+=abs(fwqw[bn1][0][0])
+        QG+=fwqw[bn1][1][0]-(tw_x.MUX[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]])
 
     # find operation point
     sign_QxmQy = _find_sign_QxmQy(outputpath, tune_x, tune_y)
@@ -412,7 +411,7 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
     tunex=float(tunex)+QQ1
     tuney=float(tuney)+QQ2
 
-    tunefactor=(cos(2*np.pi*tunex)-cos(2*np.pi*tuney))/(np.pi*(sin(2*np.pi*tunex)+sin(2*np.pi*tuney)))
+    tunefactor=(np.cos(2*np.pi*tunex)-np.cos(2*np.pi*tuney))/(np.pi*(np.sin(2*np.pi*tunex)+np.sin(2*np.pi*tuney)))
 
     coupleterms={}
     Qmin=[]
@@ -524,8 +523,8 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
 
 
     # diff f1001
-    factor_top_diff=math.sqrt(sin(np.pi*(tunedrivenx-tunefreey))*sin(np.pi*(tunefreex-tunedriveny)))
-    factor_bottom_diff=sin(np.pi*(tunefreex-tunefreey))
+    factor_top_diff=math.sqrt(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny)))
+    factor_bottom_diff=np.sin(np.pi*(tunefreex-tunefreey))
 
     factor_diff=abs((factor_top_diff/factor_bottom_diff))
 
@@ -533,8 +532,8 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
         print "Factor for coupling diff ",factor_diff
 
     # sum f1010
-    factor_top_sum=math.sqrt(sin(np.pi*(tunedrivenx+tunefreey))*sin(np.pi*(tunefreex+tunedriveny)))
-    factor_bottom_sum=sin(np.pi*(tunefreex+tunefreey))
+    factor_top_sum=math.sqrt(np.sin(np.pi*(tunedrivenx+tunefreey))*np.sin(np.pi*(tunefreex+tunedriveny)))
+    factor_bottom_sum=np.sin(np.pi*(tunefreex+tunefreey))
 
     factor_sum=abs((factor_top_sum/factor_bottom_sum))
 
