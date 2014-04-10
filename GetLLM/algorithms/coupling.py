@@ -409,13 +409,12 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
     if len(dbpms)==0:
         print >> sys.stderr, 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
-        fwqw['Global']=[CG_new_abs,CG_new_phase] #Quick fix Evian 2012
+        fwqw['Global']=[CG,QG] #Quick fix Evian 2012
         return [fwqw,dbpms]
     else:
-        CG=abs(4.0*(tune_x-tune_y)*CG/len(dbpms))
-        QG=(QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0
-  	print 'OldCMINIS' ,CG
-    fwqw['Global']=[CG,QG]
+        CG_old=abs(4.0*(tune_x-tune_y)*CG/len(dbpms))
+	print 'OldCMINIS' ,CG_old
+    fwqw['Global']=[CG_new_abs,CG_new_phase]
 
     return [fwqw,dbpms]
 
