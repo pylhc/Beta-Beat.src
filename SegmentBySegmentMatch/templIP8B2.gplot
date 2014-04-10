@@ -1,0 +1,65 @@
+set terminal postscript enhanced color solid 20
+
+
+
+
+###
+Qx   = __QX__
+Qy   = __QY__
+fIP8(s,x,Q)=(s>25000.0 && s<26532.07)?(x):(x+Q)
+fIP2(s,x,Q)=(s<200 || s > 20000 ) ? (x):(x+Q)
+f(s,x,Q)=fIP8(s,x,Q)
+###
+
+
+
+#phase total
+reset
+unset multiplot
+
+
+set size 1, 1.15
+set output "__FILENAME__"
+set multiplot
+set size 1,0.5
+set origin 0,0.5
+set lmargin 8
+s=__srangestart__
+#set xrange[0:1200]
+#set xrange[__srangestart__-50:__srangeend__+50]
+set yrange[]
+set key top left samplen 1
+
+set ylabel "{/Symbol Df}_x[2{/Symbol p}]" 0.5
+
+
+p [][-0.06:0.06]"< sort -gk7 Beam__BEAMNO__/sbs/sbsphasext_IP__IPNO__.out" u ($7):(f($2,$4,Qx)):5 t"Meas" w e pt 7 lt 1,\
+   "" u  ($7):(f($2,$4,Qx)) not w l 1,\
+   "" u ($7):6 t"Err" w l lt 7
+
+set origin 0,0.
+set size 1,0.54
+#set key 9000,470  samplen 1
+set ylabel "{/Symbol Df}_y[2{/Symbol p}]"
+set xlabel"s [m]"
+set yrange[]
+unset key
+
+p [][-0.06:0.06]"< sort -gk7 Beam__BEAMNO__/sbs/sbsphaseyt_IP__IPNO__.out" u ($7):(f($2,$4,Qy)):5 t"Meas" w e pt 7 lt 1,\
+   "" u ($7):(f($2,$4,Qy)) w l 1,\
+   "" u ($7):6 w l lt 7
+
+set origin 0,0.95
+set size 1,0.2
+unset arrow
+unset xtics
+unset ytics
+unset xlabel
+set ylabel "K_1L" -0.7
+set label "IP__IPNO__" at graph 0.5, 1.12 center
+set label "LHCB__BEAMNO__" at graph 0.85, 1.12 font "Bold" center
+set zeroaxis
+set yrange[]
+p  "< grep MQ Beam__BEAMNO__/sbs/twiss_IP__IPNO__.dat" u ($2-$19/2):($20):($19) w boxes fs solid 0.6 lt 1
+
+
