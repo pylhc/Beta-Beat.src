@@ -1,0 +1,130 @@
+
+call, file="Beam1/sbs/t_IP__IPNO__.madx";
+call, file="Beam2/sbs/t_IP__IPNO__.madx";
+
+print, text="Input files Done";
+
+print,text="genphases.py";
+system, "python genphases.py __IPNO__";
+
+beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+use, period=LHCB1, range=__RANGEB1__;
+twiss, beta0=b1, chrom;
+plot, haxis=s, vaxis=betx, bety, title=B1;
+plot, haxis=s, vaxis=mux, muy, title=B1;
+
+print,text="phases0b1.seqx";
+call, file="phases0b1.seqx";
+
+beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+use, period=LHCB2, range=__RANGEB2__;
+twiss, beta0=b2, chrom;
+plot, haxis=s, vaxis=betx, bety, title=B2;
+plot, haxis=s, vaxis=mux, muy, title=B2;
+
+print,text="phases0b2.seqx";
+call, file="phases0b2.seqx";
+
+
+
+system, "addtheader.sh __IPNO__";
+readtable, table=phxB1, file="Beam1/sbs/sbsphasext_IP__IPNO__.out";
+readtable, table=phyB1, file="Beam1/sbs/sbsphaseyt_IP__IPNO__.out";
+!Beam2/sbs/sbsphasext_IP1.out
+readtable, table=phxB2, file="Beam2/sbs/sbsphasext_IP__IPNO__.out";
+readtable, table=phyB2, file="Beam2/sbs/sbsphaseyt_IP__IPNO__.out";
+
+call, file="phases.seqx";
+
+
+system, "python genconstraints.py __IPNO__";
+
+system, "python genvariables.py __IPNO__";
+call, file="svariables.seqx";
+call, file="dvariables.seqx";
+
+call, file="genchangpars.seqx";
+system, "rm Beam1/sbs/twiss_IP__IPNO___cor.dat";
+system, "rm Beam2/sbs/twiss_IP__IPNO___cor.dat";
+
+
+!print, text="=======   Beam 1 =========";
+!
+! beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+! use, period=LHCB1, range=__RANGEB1__;
+! twiss, beta0=b1, chrom, file="Beam1/sbs/twiss_IP__IPNO___cor.dat";
+!
+!
+!print, text="=======   Beam 2 =========";
+!
+! beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+! use, period=LHCB2, range=__RANGEB2__;
+! twiss, beta0=b2, chrom, file="Beam2/sbs/twiss_IP__IPNO___cor.dat";!twiss_IP8_cor.dat
+!
+!plot, haxis=s, vaxis=betx;
+
+
+
+match, use_macro;
+   
+   
+   call, file="variablesb1.seqx";
+   call, file="variablesc.seqx";
+   call, file="variablesb2.seqx";
+   
+
+   mab1: macro =
+    {
+      
+      beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+      use, period=LHCB1, range=__RANGEB1__;
+      twiss, beta0=b1, chrom, file="Beam1/sbs/twiss_IP__IPNO___cor.dat";
+      
+      call, file="dumpb1.seqx";
+      system, "gnuplot dumpB1.gplot";
+      system, "./mergedump.sh 1";
+
+    };
+ 
+   call, file="constraintsb1.seqx";
+
+
+    mab2: macro =
+      {
+       
+       beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+       use, period=LHCB2, range=__RANGEB2__;
+       twiss, beta0=b2, chrom, file="Beam2/sbs/twiss_IP__IPNO___cor.dat";!twiss_IP8_cor.dat
+      
+
+       call, file="dumpb2.seqx";
+       system, "gnuplot dumpB2.gplot";
+       system, "./mergedump.sh 2";
+      
+       print, text="======================================";
+      
+      };
+ 
+   call, file="constraintsb2.seqx";
+   
+   
+   
+  lmdif,    tolerance:=1e-24, calls:=120;
+
+
+endmatch;
+
+call, file="genchangpars.seqx";
+
+ beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+ use, period=LHCB1, range=__RANGEB1__;
+ twiss, beta0=b1, chrom, file="Beam1/sbs/twiss_IP__IPNO___cor.dat";
+
+
+ beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+ use, period=LHCB2, range=__RANGEB2__;
+ twiss, beta0=b2, chrom, file="Beam2/sbs/twiss_IP__IPNO___cor.dat";!twiss_IP8_cor.dat
+
+
+
+stop;
