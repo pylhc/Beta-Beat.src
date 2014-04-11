@@ -70,6 +70,7 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 
  //C libraries
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -82,6 +83,7 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 #define MAXTURNS4 40000 /*Always four times  MAXTURNS*/
 #define MAXRUNS 100
 #define NATTUNE_DEFAULT -100
+#define NATAMP_DEFAULT -100
 
 #if !defined(LOG_INFO)
 #define LOG_INFO 0 /*set to 1 to enable log prints (tbach) */
@@ -114,6 +116,8 @@ public:
 	static void writeSussixInputFile(const int, const double, const double, const double);
 	static void formatLinFile(std::string linFilePath, const int tunecount, const double tunesum, const double tune2sum,
 			const int nattunecount, const double nattunesum, const double nattune2sum, int plane_index);
+
+	static void createBPMDirectory();
 
 	static std::string workingDirectoryPath;
 	static std::string sussixInputFilePath;
@@ -162,6 +166,12 @@ private:
     }
 }tuneCalcData;
 
+struct CalculatedNaturalData{
+            double calculatednattunex;
+            double calculatednattuney;
+            double calculatednatampx;
+            double calculatednatampy;
+        };
 
 void harmonicAnalysisForSingleTbtDataFile(std::string&);
 void readTbtDataFile(std::string&, int&, int&, int&);
@@ -171,15 +181,14 @@ bool BPMstatus(const int, const int);
 
 // Functions inside of the omp parallel for loop
 inline void callExternalFortranFunctionForHarmonicAnalysis();
-inline void calculateNaturalTune();
+inline void calculateNaturalTune(struct CalculatedNaturalData* naturalData);
 inline void createSpectrumFileForCurrentHorizontalBpm(const int& horizontalBpmIndex);
 inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex);
 
-double calculatednattuney, calculatednattunex, calculatednatampy, calculatednatampx, co, co2,
-	   noise1, maxfreq, maxmin, maxpeak, noiseAve;
+double co, co2, noise1, maxfreq, maxmin, maxpeak, noiseAve;
 
-double allampsx[300], allampsy[300], allfreqsx[300], allfreqsy[300], amplitude[19],
-		   doubleToSend[MAXTURNS4 + 4], phase[19], tune[2];
+double allampsx[300], allampsy[300], allfreqsx[300], allfreqsy[300], amplitude[33],
+		   doubleToSend[MAXTURNS4 + 4], phase[33], tune[2];
 
 int nslines=0;
 
@@ -190,6 +199,8 @@ struct BPM{ /*Structure for each BPM- has name, position, plane, if it's pickedu
 	bool pickedUp;
 	double tbtData[MAXTURNS];
 }BPMs[MAXPICK];
+
+
 
 #pragma omp threadprivate(amplitude, doubleToSend, tune, phase,\
         noise1, noiseAve, maxpeak, maxfreq, maxmin, co, co2,\
@@ -214,6 +225,7 @@ int main(int argc, char **argv)
     std::string drivingTermsFilePath, driveInpFilePath;
 
     IoHelper::getAndCheckFilePaths(&drivingTermsFilePath, &driveInpFilePath, argv[1]);
+    IoHelper::createBPMDirectory();
 
     inpData.initAndReadInputValues(driveInpFilePath);
 
@@ -251,8 +263,9 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 
 	IoHelper::writeSussixInputFile(inpData.turns, inpData.istun, inpData.tunex, inpData.tuney);
 
-#pragma omp parallel for private(calculatednattunex, calculatednattuney, calculatednatampx, calculatednatampy)
+#pragma omp parallel for
 	for (int i = inpData.pickStart; i < maxOfHorBpmsAndVerBpms; ++i) {
+
 		int horizontalBpmIndex = i;
 		int verticalBpmIndex = i + MAXPICK/2;
 
@@ -278,30 +291,51 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 
 		#pragma omp critical
 		{
-			calculateNaturalTune();
+
+		    CalculatedNaturalData naturalData;
+			calculateNaturalTune(&naturalData);
+
 			BPMs[horizontalBpmIndex].pickedUp = BPMstatus(1, inpData.turns); /*Always returns true*/
 			if (inpData.labelrun == 1)
 				filesHandler.noiseFile << std::scientific << "1 " << horizontalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[i].pickedUp << ' ' << phase[0] / 360. << std::endl;
 
 			/* PRINT LINEAR FILE */
 			if (amplitude[0] > 0 && BPMs[horizontalBpmIndex].pickedUp == true && horizontalBpmIndex == i) {
-				filesHandler.linxFile <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmName << "\" " << BPMs[horizontalBpmIndex].bpmPos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedUp << ' ' << tune[0] << ' ' <<
-							phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
-							phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
-							phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
-							phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' << calculatednatampx << std::endl;
+				filesHandler.linxFile <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmName << "\" " << BPMs[horizontalBpmIndex].bpmPos << ' ' <<
+                                                                                        horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedUp << ' ' <<
+                                                                                        tune     [ 0] << ' ' << noise1 << ' ' << maxmin << ' ' << co << ' ' << co2 << ' ' <<
+                                                                                        amplitude[ 0]                << ' ' << phase[ 0] / 360. << ' ' <<
+                                                                                        amplitude[ 2] / amplitude[0] << ' ' << phase[ 2] / 360. << ' ' <<
+                                                                                        amplitude[ 1] / amplitude[0] << ' ' << phase[ 1] / 360. << ' ' <<
+                                                                                        amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' <<
+                                                                                        amplitude[ 6] / amplitude[0] << ' ' << phase[ 6] / 360. << ' ' <<
+                                                                                        amplitude[14] / amplitude[0] << ' ' << phase[14] / 360. << ' ' <<
+                                                                                        amplitude[16] / amplitude[0] << ' ' << phase[16] / 360. << ' ' <<
+                                                                                        amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' <<
+                                                                                        amplitude[20] / amplitude[0] << ' ' << phase[20] / 360. << ' ' <<
+                                                                                        amplitude[22] / amplitude[0] << ' ' << phase[22] / 360. << ' ' <<
+                                                                                        amplitude[24] / amplitude[0] << ' ' << phase[24] / 360. << ' ' <<
+                                                                                        amplitude[26] / amplitude[0] << ' ' << phase[26] / 360. << ' ' <<
+                                                                                        amplitude[28] / amplitude[0] << ' ' << phase[28] / 360. << ' ' <<
+                                                                                        amplitude[ 9] / amplitude[0] << ' ' << phase[ 9] / 360. << ' ' <<
+                                                                                        amplitude[30] / amplitude[0] << ' ' << phase[30] / 360. << ' ' <<
+                                                                                        amplitude[32] / amplitude[0] << ' ' << phase[32] / 360. << ' ' <<
+                                                                                        naturalData.calculatednattunex << ' ' << naturalData.calculatednatampx << std::endl;
 
-				tuneCalcData.addTuneX(tune[0], calculatednattunex);
+				tuneCalcData.addTuneX(tune[0], naturalData.calculatednattunex);
 				createSpectrumFileForCurrentHorizontalBpm(horizontalBpmIndex);
 			}else if(true == (BPMs[horizontalBpmIndex].pickedUp == true && horizontalBpmIndex == i)){
 				printf("Hor. BPM %s not in lin file because following condition failed: ", BPMs[horizontalBpmIndex].bpmName.c_str());
 				printf("false == amplitude[0] > 0\n");
 				printf("false == %12f > 0\n", amplitude[0]);
-				filesHandler.rejectedBpmsFileX <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmName << "\" " << BPMs[horizontalBpmIndex].bpmPos << ' ' << horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedUp << ' ' << tune[0] << ' ' <<
-											phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' << phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
-											phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
-											phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
-											phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << calculatednattunex << ' ' << calculatednatampx << std::endl;
+				filesHandler.rejectedBpmsFileX <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmName << "\" " << BPMs[horizontalBpmIndex].bpmPos << ' ' <<
+                                                                                        horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedUp << ' ' << tune[0] << ' ' <<
+                                                                                        phase[0] / 360. << ' ' << amplitude[0] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[2] / amplitude[0] << ' ' <<
+                                                                                        phase[2] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[1] / amplitude[0] << ' ' <<
+                                                                                        phase[1] / 360. << ' ' << amplitude[12] / amplitude[0] << ' ' << phase[12] / 360. << ' ' << amplitude[6] / amplitude[0] << ' ' <<
+                                                                                        phase[6] / 360. << ' ' << amplitude[14] / amplitude[0]  << ' ' << phase[14] / 360. << ' ' << amplitude[16] / amplitude[0] << ' ' <<
+                                                                                        phase[16] / 360. << ' ' << amplitude[18] / amplitude[0] << ' ' << phase[18] / 360. << ' ' << naturalData.calculatednattunex << ' ' <<
+                                                                                        naturalData.calculatednatampx << std::endl;
 
 
 			}
@@ -311,22 +345,36 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 				filesHandler.noiseFile << std::scientific << "2 " << verticalBpmIndex << "  " <<  noise1 << ' ' <<  noiseAve << ' ' << maxpeak << ' ' << maxfreq << ' ' << maxmin << ' ' << nslines << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' << phase[3] / 360. << std::endl;
 
 			if (amplitude[3] > 0 && BPMs[verticalBpmIndex].pickedUp == true && verticalBpmIndex == i + MAXPICK/2) {
-				filesHandler.linyFile <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmName << "\" " << BPMs[verticalBpmIndex].bpmPos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' << tune[1] << ' ' <<
-											phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' << phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' <<
-											amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
-											amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' <<
-											amplitude[11] / amplitude[3] << ' ' << phase[11] / 360. << ' ' << calculatednattuney << ' ' << calculatednatampy << std::endl;
-				tuneCalcData.addTuneY(tune[1], calculatednattuney);
+				filesHandler.linyFile <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmName << "\" " << BPMs[verticalBpmIndex].bpmPos << ' ' <<
+                                                                                        verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' <<
+                                                                                        tune     [ 1] << ' ' << noise1 << ' ' << maxmin << ' ' << co << ' ' << co2 << ' ' <<
+                                                                                        amplitude[ 3]                << ' ' << phase[ 3] / 360. << ' ' <<
+                                                                                        amplitude[ 5] / amplitude[3] << ' ' << phase[ 5] / 360. << ' ' << 
+                                                                                        amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' <<
+                                                                                        amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
+                                                                                        amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' <<
+                                                                                        amplitude[ 4] / amplitude[3] << ' ' << phase[ 4] / 360. << ' ' <<
+                                                                                        amplitude[11] / amplitude[3] << ' ' << phase[11] / 360. << ' ' <<
+                                                                                        amplitude[19] / amplitude[3] << ' ' << phase[19] / 360. << ' ' <<
+                                                                                        amplitude[21] / amplitude[3] << ' ' << phase[21] / 360. << ' ' <<
+                                                                                        amplitude[23] / amplitude[3] << ' ' << phase[23] / 360. << ' ' <<
+                                                                                        amplitude[25] / amplitude[3] << ' ' << phase[25] / 360. << ' ' <<
+                                                                                        amplitude[27] / amplitude[3] << ' ' << phase[27] / 360. << ' ' <<
+                                                                                        naturalData.calculatednattuney << ' ' << naturalData.calculatednatampy << std::endl;
+				tuneCalcData.addTuneY(tune[1], naturalData.calculatednattuney);
 				createSpectrumFileForCurrentVerticalBpm(verticalBpmIndex);
 			}else if(true == (BPMs[verticalBpmIndex].pickedUp == true && verticalBpmIndex == i + MAXPICK/2)){
 				printf("Ver. BPM %s not in lin file because following condition failed: ", BPMs[verticalBpmIndex].bpmName.c_str());
 				printf("false == amplitude[3] > 0\n");
 				printf("false == %12f > 0\n", amplitude[3]);
-				filesHandler.rejectedBpmsFileY <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmName << "\" " << BPMs[verticalBpmIndex].bpmPos << ' ' << verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' << tune[1] << ' ' <<
-											phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' << phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' <<
-											amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' <<
-											amplitude[17] / amplitude[3] << ' ' << phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' <<
-											amplitude[11] / amplitude[3] << ' ' << phase[11] / 360. << ' ' << calculatednattuney << ' ' << calculatednatampy << std::endl;
+				filesHandler.rejectedBpmsFileY <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmName << "\" " << BPMs[verticalBpmIndex].bpmPos << ' ' <<
+                                                                                        verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' << tune[1] << ' ' <<
+											phase[3] / 360. << ' ' << amplitude[3] << ' ' << noise1 << ' ' << maxmin << ' ' << amplitude[5] / amplitude[3] << ' ' <<
+                                                                                        phase[5] / 360. << ' ' << co << ' ' << co2 << ' ' << amplitude[13] / amplitude[3] << ' ' <<
+                                                                                        phase[13] / 360. << ' ' << amplitude[15] / amplitude[3] << ' ' << phase[15] / 360. << ' ' << amplitude[17] / amplitude[3] << ' ' <<
+                                                                                        phase[17] / 360. << ' ' << amplitude[4] / amplitude[3] << ' ' << phase[4] / 360. << ' ' << amplitude[11] / amplitude[3] << ' ' <<
+                                                                                        phase[11] / 360. << ' ' << amplitude[19] / amplitude[3] << ' ' << phase[19] / 360. << ' ' << naturalData.calculatednattuney << ' ' <<
+                                                                                        naturalData.calculatednatampy << std::endl;
 
 			}
 		} /* end of omp critical section */
@@ -838,6 +886,13 @@ void IoHelper::formatLinFile(std::string linFilePath,
     }
 }
 
+void IoHelper::createBPMDirectory(){
+    #ifdef _WIN32
+        system(("cmd mkdir " + workingDirectoryPath + "\\BPM").c_str());
+    #else
+        mkdir((IoHelper::workingDirectoryPath+"/BPM/").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    #endif
+}
 
 //======================================================================================================================
 // Inputdata definitions
@@ -956,8 +1011,8 @@ OutFilesHandler::OutFilesHandler(std::string &dataFilePath){
 	rejectedBpmsFileX << "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n";
 	rejectedBpmsFileX << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le   %le     %le  %le    %le   %le     %le    %le      %le   %le     %le   %le     %le     %le\n";
 	rejectedBpmsFileY.open((IoHelper::workingDirectoryPath+'/'+bpmFileName+"_rejectedBpms_y").c_str());
-	rejectedBpmsFileY << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
-	rejectedBpmsFileY << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le       %le\n";
+	rejectedBpmsFileY << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 AMP_11 PHASE_11 NATTUNEY NATAMPY\n";
+	rejectedBpmsFileY << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le   %le    %le       %le\n";
 
 	if (inpData.labelrun == 1) {
 		noiseFilePath = IoHelper::workingDirectoryPath+'/'+bpmFileName+"_bpm_noise";
@@ -970,11 +1025,11 @@ OutFilesHandler::OutFilesHandler(std::string &dataFilePath){
 		exit(EXIT_FAILURE);
 	}
 	linxFile.open(linxFilePath.c_str());
-	linxFile << "* NAME S    BINDEX SLABEL TUNEX MUX  AMPX NOISE PK2PK AMP01 PHASE01 CO   CORMS AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 NATTUNEX NATAMPX\n";
-	linxFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le   %le     %le  %le    %le   %le     %le    %le      %le   %le     %le   %le     %le     %le\n";
+	linxFile << "* NAME S BINDEX SLABEL TUNEX NOISE PK2PK CO CORMS AMPX MUX AMP01 PHASE01 AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 AMP1_2 PHASE1_2 AMP_13 PHASE_13 AMP12 PHASE12 AMP_21 PHASE_21 AMP11 PHASE11 AMP20 PHASE20 AMP_1_2 PHASE_1_2 AMP30 PHASE30 NATTUNEX NATAMPX\n";
+	linxFile << std::scientific << "$ %s %le %le %le %le %le %le %le %le %le %le   %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le   %le %le\n";
 	linyFile.open(linyFilePath.c_str());
-	linyFile << "* NAME S    BINDEX SLABEL TUNEY MUY  AMPY NOISE PK2PK AMP10 PHASE10 CO   CORMS AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 NATTUNEY NATAMPY\n";
-	linyFile << std::scientific << "$ %s  %le %le   %le   %le  %le %le %le  %le  %le  %le    %le %le  %le    %le      %le   %le     %le   %le     %le   %le     %le   %le     %le       %le\n";
+	linyFile << "* NAME S BINDEX SLABEL TUNEY NOISE PK2PK CO CORMS AMPY MUY AMP10 PHASE10 AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 AMP_11 PHASE_11 AMP21 PHASE21 AMP_13 PHASE_13 AMP11 PHASE11 AMP_12 PHASE_12 NATTUNEY NATAMPY\n";
+	linyFile << std::scientific << "$ %s %le %le %le %le %le %le %le %le %le %le   %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le   %le %le\n";
 }
 
 OutFilesHandler::~OutFilesHandler() {
@@ -1000,27 +1055,29 @@ inline void callExternalFortranFunctionForHarmonicAnalysis() {
 
 }
 
-inline void calculateNaturalTune() {
+inline void calculateNaturalTune(CalculatedNaturalData* naturalData) {
 	/* Let's look for natural tunes in the istun range if natural tunes input is given*/
 	double maxamp = 0.0;
-	calculatednattunex = NATTUNE_DEFAULT;
+	naturalData->calculatednattunex = NATTUNE_DEFAULT;
+	naturalData->calculatednatampx = NATAMP_DEFAULT;
 	if (inpData.nattunex > NATTUNE_DEFAULT) {
 		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattunex - inpData.istun < allfreqsx[j] && allfreqsx[j] < inpData.nattunex + inpData.istun) && (maxamp < allampsx[j])) {
 				maxamp = allampsx[j];
-				calculatednattunex = allfreqsx[j];
-				calculatednatampx = maxamp;
+				naturalData->calculatednattunex = allfreqsx[j];
+				naturalData->calculatednatampx = maxamp;
 			}
 		}
 	}
 	maxamp = 0;
-	calculatednattuney = NATTUNE_DEFAULT;
+	naturalData->calculatednattuney = NATTUNE_DEFAULT;
+	naturalData->calculatednatampy = maxamp;
 	if (inpData.nattuney > NATTUNE_DEFAULT) {
 		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattuney - inpData.istun < allfreqsy[j] && allfreqsy[j] < inpData.nattuney + inpData.istun) && (maxamp < allampsy[j])) {
 				maxamp = allampsy[j];
-				calculatednattuney = allfreqsy[j];
-				calculatednatampy = maxamp;
+				naturalData->calculatednattuney = allfreqsy[j];
+				naturalData->calculatednatampy = maxamp;
 			}
 		}
 	}
@@ -1039,18 +1096,18 @@ inline void writeSpectrumToFile(std::string& spectrumFilePath, const double* all
 }
 inline void createSpectrumFileForCurrentHorizontalBpm(const int& horizontalBpmIndex) {
 	/* Horizontal Spectrum output */
-	if (horizontalBpmIndex >= 10) {
+	/*if (horizontalBpmIndex >= 10) {
 		return;
-	}
-	std::string spectrumFilePath = IoHelper::workingDirectoryPath+'/'+BPMs[horizontalBpmIndex].bpmName+".x";
+	}*/
+	std::string spectrumFilePath = IoHelper::workingDirectoryPath+"/BPM/"+BPMs[horizontalBpmIndex].bpmName+".x";
 	writeSpectrumToFile(spectrumFilePath, allfreqsx, allampsx);
 }
 inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex) {
 	/* Horizontal Spectrum output */
-	if (verticalBpmIndex >= MAXPICK/2 + 10) {
+	/*if (verticalBpmIndex >= MAXPICK/2 + 10) {
 		return;
-	}
-	std::string spectrumFilePath = IoHelper::workingDirectoryPath+'/'+BPMs[verticalBpmIndex].bpmName+".y";
+	}*/
+	std::string spectrumFilePath = IoHelper::workingDirectoryPath+"/BPM/"+BPMs[verticalBpmIndex].bpmName+".y";
 	writeSpectrumToFile(spectrumFilePath, allfreqsy, allampsy);
 }
 

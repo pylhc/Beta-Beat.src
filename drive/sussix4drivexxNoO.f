@@ -135,9 +135,9 @@ C
      &maxturns
       parameter (maxturns=10000)
       double precision eps,etune,tunex,tuney,tunez, xy(maxturns*4+4),
-     &tunexy(2),amplitude(19), phase(19), ox(300), ax(300), oy(300), 
-     &ay(300)
-      parameter(mterm=300)
+     &tunexy(2),amplitude(19), phase(19), ox(500), ax(500), oy(500), 
+     &ay(500)
+      parameter(mterm=500)
       dimension lr(100),mr(100),kr(100),etune(3)
       character*200 ch,ch1
       character*8 filename
@@ -522,7 +522,7 @@ C=======================================================================
       external tunelasr,tunenewt
       double precision duepi,freq,pi,tune,tunelasr,tunenewt,x,xp
       double complex z,zef,zgs,zpesi,zw,zx,zz
-      parameter(mterm=300)
+      parameter(mterm=500)
       parameter(maxiter=100000)
       dimension x(maxiter),xp(maxiter)
       dimension z(maxiter),zz(maxiter)
@@ -862,7 +862,7 @@ C=======================================================================
       integer idams,j,k,max,maxn,mterm,nfile,nsus
       double precision duepi,ss,ssp,xx,xxp,yy,yyp
       double complex zpots,zpotx,zpoty,zts,ztx,zty,zxs,zys,zss
-      parameter(mterm=300)
+      parameter(mterm=500)
       parameter(maxn=100000)
       dimension zxs(maxn),zys(maxn),zss(maxn)
       double precision s,sp,x,xp,y,yp
@@ -965,15 +965,15 @@ C=======================================================================
       implicit none
       integer idam,imiss,imissx,imissy,imissz,ir,isca,iscax,iscay,iscaz,
      &isearx,iseary,isearz,istune,iunit,j,j1,k,k1,l,l1,
-     &m,m1,mterm,n,narm,narm2,nr,nt,nturn,ntx,nty,ntz, flagad(19),myint
+     &m,m1,mterm,n,narm,narm2,nr,nt,nturn,ntx,nty,ntz, flagad(33),myint
       double precision az,checkn,dt,dtunex,dtuney,dtunez,dtxz,dty,dtyz,
      &eps,epsx,epsy,epsz,etune,ex,ey,ez,fx,fxt,fy,fyt,fz,fzt,ordc,ordcx,
      &ordcy,ordcz,pi,px,pxt,pxti,pxtr,py,pyt,pyti,pytr,pz,pzt,pzti,pztr,
      &tunex,tuney,tunez,tx,txt,ty,tyt,tz,tzt, tunexy(2), 
-     &amplitude(19), phase(19), ox(300), ax(300),
-     &oy(300), ay(300)
+     &amplitude(33), phase(33), ox(500), ax(500),
+     &oy(500), ay(500)
       double complex zpx,zpy,zpz
-      parameter(mterm=300)
+      parameter(mterm=500)
       double precision tsa,txa,tya
       common/tune/txa(mterm),tya(mterm),tsa(mterm)
       double complex zspes,zxpes,zypes
@@ -1011,6 +1011,20 @@ C=======================================================================
       flagad(17)=0
       flagad(18)=0
       flagad(19)=0
+      flagad(20)=0
+      flagad(21)=0
+      flagad(22)=0
+      flagad(23)=0
+      flagad(24)=0
+      flagad(25)=0
+      flagad(26)=0
+      flagad(27)=0
+      flagad(28)=0
+      flagad(29)=0
+      flagad(30)=0
+      flagad(31)=0
+      flagad(32)=0
+      flagad(33)=0
       if(nr.gt.10) then
 C        write(6,*)'ERROR IN ORDRES: NR LARGER THAN 10'
         close(10)
@@ -1280,7 +1294,7 @@ c            write(*,*) l1, m1, k1, j1, flagad(1), tx(n)
             endif
             
             if(flagad(9).eq.0.and.l1.eq.-5.and.m1.eq.0.and.
-     &           k1.eq.0.and.j1.eq.0)then
+     &           k1.eq.0)then
               amplitude(9)=px
               phase(9)=-fx
               flagad(9)=1
@@ -1301,37 +1315,75 @@ c            write(*,*) l1, m1, k1, j1, flagad(1), tx(n)
             endif
 
             if(flagad(13).eq.0.and.l1.eq.0.and.m1.eq.2.and.
-     &           k1.eq.0.and.j1.eq.0)then
+     &           k1.eq.0)then
               amplitude(13)=px
               phase(13)=-fx
               flagad(13)=1
             endif 
 	    
 	    if(l1.eq.-1.and.m1.eq.-1.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(15).eq.0) then
+     &           flagad(15).eq.0) then
               amplitude(15)=px
               phase(15)=-fx
               flagad(15)=1
             endif
 	    
 	    if(l1.eq.2.and.m1.eq.-2.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(17).eq.0) then
+     &           flagad(17).eq.0) then
               amplitude(17)=px
               phase(17)=-fx
               flagad(17)=1
             endif
 	    
 	    if(l1.eq.0.and.m1.eq.-2.and.k1.eq.0.and.
-     &           j1.eq.0.and.flagad(19).eq.0) then
+     &           flagad(19).eq.0) then
               amplitude(19)=px
               phase(19)=-fx
               flagad(19)=1
             endif
-	    
+	    if(l1.eq.1.and.m1.eq.-2.and.k1.eq.0.and.
+     &           flagad(21).eq.0) then
+              amplitude(21)=px
+              phase(21)=-fx
+              flagad(21)=1
+            endif
+            if(l1.eq.-1.and.m1.eq.3.and.k1.eq.0.and.
+     &           flagad(23).eq.0) then
+              amplitude(23)=px
+              phase(23)=-fx
+              flagad(23)=1
+            endif
+            if(l1.eq.1.and.m1.eq.2.and.k1.eq.0.and.
+     &           flagad(25).eq.0) then
+              amplitude(25)=px
+              phase(25)=-fx
+              flagad(25)=1
+            endif
+            if(l1.eq.-2.and.m1.eq.1.and.k1.eq.0.and.
+     &           flagad(27).eq.0) then
+              amplitude(27)=px
+              phase(27)=-fx
+              flagad(27)=1
+            endif
+            if(l1.eq.1.and.m1.eq.1.and.k1.eq.0.and.
+     &           flagad(29).eq.0) then
+              amplitude(29)=px
+              phase(29)=-fx
+              flagad(29)=1
+            endif
+            if(l1.eq.-1.and.m1.eq.-2.and.k1.eq.0.and.
+     &           flagad(31).eq.0) then
+              amplitude(31)=px
+              phase(31)=-fx
+              flagad(31)=1
+            endif
+            if(l1.eq.3.and.m1.eq.0.and.k1.eq.0.and.
+     &           flagad(33).eq.0) then
+              amplitude(33)=px
+              phase(33)=-fx
+              flagad(33)=1
+            endif
 
-
-
-            
 c...  End of Insertion	
 C            write(30,100)n,-tx(n),px,-fx,epsx,l1,m1,k1,j1
           elseif(px.eq.0) then
@@ -1458,14 +1510,14 @@ c              write(*,*)"p32 ", fy, py, ty(n)
             endif
             
             if(flagad(12).eq.0.and.l1.eq.0.and.m1.eq.-3.and.
-     &         k1.eq.0.and.j1.eq.0)then
+     &         k1.eq.0)then
               amplitude(12)=py
               phase(12)=-fy
               flagad(12)=1
             endif        
 
             if(flagad(14).eq.0.and.l1.eq.-1.and.m1.eq.-1.and.
-     &           k1.eq.0.and.j1.eq.0)then
+     &           k1.eq.0)then
               amplitude(14)=py
               phase(14)=-fy
               flagad(14)=1
@@ -1485,8 +1537,40 @@ c              write(*,*)"p32 ", fy, py, ty(n)
               flagad(18)=1
             endif
 	    
-	    
-	    
+	     if(l1.eq.-1.and.m1.eq.1.and.k1.eq.0.and.
+     &           flagad(20).eq.0) then
+              amplitude(20)=py
+              phase(20)=-fy
+              flagad(20)=1
+            endif
+
+	     if(l1.eq.2.and.m1.eq.1.and.k1.eq.0.and.
+     &           flagad(22).eq.0) then
+              amplitude(22)=py
+              phase(22)=-fy
+              flagad(22)=1
+            endif
+
+	     if(l1.eq.-1.and.m1.eq.3.and.k1.eq.0.and.
+     &           flagad(24).eq.0) then
+              amplitude(24)=py
+              phase(24)=-fy
+              flagad(24)=1
+            endif
+
+	     if(l1.eq.1.and.m1.eq.1.and.k1.eq.0.and.
+     &           flagad(26).eq.0) then
+              amplitude(26)=py
+              phase(26)=-fy
+              flagad(26)=1
+            endif
+
+	     if(l1.eq.-1.and.m1.eq.2.and.k1.eq.0.and.
+     &           flagad(28).eq.0) then
+              amplitude(28)=py
+              phase(28)=-fy
+              flagad(28)=1
+            endif
 
 c...  End of Insertion
             oy(n)=-ty(n)
@@ -1678,7 +1762,7 @@ C=======================================================================
       parameter (maxturns=10000)
       double precision duepi,xy(maxturns*4+4),eps
       complex zsing
-      parameter(mterm=300)
+      parameter(mterm=500)
       parameter(maxn=100000)
       double precision s,sp,x,xp,y,yp
       common/data/x(maxn),y(maxn),xp(maxn),yp(maxn),s(maxn),sp(maxn)
@@ -1888,7 +1972,7 @@ C=======================================================================
       integer i,idam,idamx,ifoun,imax,imin,iout,istep,j,k,ki,kr,l,lr,m,
      &mr,mterm,n,narm,ni
       double precision ex,fx,pi,px,tx
-      parameter(mterm=300)
+      parameter(mterm=500)
       dimension tx(mterm)
       double precision dtfx,dtpx,dttx
       common/dt/dtpx(100),dtfx(100),dttx(100)
@@ -2550,7 +2634,7 @@ C=======================================================================
       integer i,idam,idamx,imax,imin,istep,iusm,j,k,ki,l,m,mterm,n,narm,
      &ni
       double precision ex,fx,pi,px,qsme,tx
-      parameter(mterm=300)
+      parameter(mterm=500)
       dimension tx(mterm)
       character*200 ch,ch1
 !$OMP THREADPRIVATE(i,istep,j,k,ki,l,m,n,ni,
@@ -2631,7 +2715,7 @@ C=======================================================================
       integer i,idam,idamx,ii,iinv,imax,imin,istep,j,k,ki,kii,kkini,l,
      &lkini,m,mkini,mterm,n,narm,ni
       double precision ex,fx,pi,psinv,px,pxinv,pyinv,tx,zero
-      parameter(mterm=300)
+      parameter(mterm=500)
       parameter(zero=0d0)
       dimension px(3,mterm)
       dimension l(3,mterm),m(3,mterm),k(3,mterm)
