@@ -391,9 +391,11 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         theInd_2 = MADTwiss.indx[bn2]
         s1 = (MADTwiss.S[theInd_1])
         s2 = (MADTwiss.S[theInd_2])
-        CG_new = CG_new + complex(fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag)*np.exp(complex(0,1)*2*np.pi*(tw_x.MUX[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]]))
+	mux = MADTwiss.MUX[theInd_1]
+	muy = MADTwiss.MUY[theInd_1]
+	CG_new = CG_new + complex(fwqw[bn2][0][0].real, fwqw[bn2][0][0].imag)*np.exp(complex(0,1)*2*np.pi*(mux-muy))
         #sumDiffDistance = sumDiffDistance + abs((s1-s2))
-    CG_new_abs = 4*abs(tune_x-tune_y)*abs(CG_new)/(len(dbpms)-2)
+    CG_new_abs = 4*abs(tune_x-tune_y)*abs(CG_new)/(len(dbpms))
     CG_new_phase = np.angle(CG_new)
     print 'NewCMINUS', CG_new_abs;
     for i in range(0,len(dbpms)-1):
