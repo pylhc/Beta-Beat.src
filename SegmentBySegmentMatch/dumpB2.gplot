@@ -1,0 +1,7 @@
+#set size 1, 1.15
+set term postscript landscape
+set output "XB2.ps"
+plot "dmuxb2.tfs" using 1:2 with linespoints title 'Correction H B2', "dmuxb2.tfs" using 1:3 with linespoints title 'Measurement H B2'  pt 7 lt 1 lc rgb 'red'
+set output "YB2.ps"
+plot "dmuyb2.tfs" using 1:2 with linespoints title 'Correction V B2', "dmuyb2.tfs" using 1:3 with linespoints title 'Measurement V B2'  pt 7 lt 1 lc rgb 'red'
+

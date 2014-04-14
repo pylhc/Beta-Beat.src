@@ -27,7 +27,7 @@ call, file="phases0b2.seqx";
 
 
 
-system, "addtheader.sh __IPNO__";
+system, "./addtheader.sh __IPNO__";
 readtable, table=phxB1, file="Beam1/sbs/sbsphasext_IP__IPNO__.out";
 readtable, table=phyB1, file="Beam1/sbs/sbsphaseyt_IP__IPNO__.out";
 !Beam2/sbs/sbsphasext_IP1.out
@@ -39,7 +39,6 @@ call, file="phases.seqx";
 
 system, "python genconstraints.py __IPNO__";
 
-system, "python genvariables.py __IPNO__";
 call, file="svariables.seqx";
 call, file="dvariables.seqx";
 
