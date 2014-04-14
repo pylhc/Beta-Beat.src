@@ -1,3 +1,4 @@
+import __init__  # @UnusedImport used for appending paths
 import os
 import shutil
 import optparse
@@ -5,26 +6,51 @@ from Utilities import iotools
 import subprocess
 from Python_Classes4MAD.metaclass import twiss
 from Python_Classes4MAD import madxrunner
+import sys
+import json
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
-SBS_DATA_B1_PATH = "/user/slops/data/LHC_DATA/OP_DATA/Betabeat/10-7-2012/LHCB1/Results/0-4-46"
-SBS_DATA_B2_PATH = "/user/slops/data/LHC_DATA/OP_DATA/Betabeat/10-7-2012/LHCB2/Results/0-5-39"
+ALL_LISTS_BEAM1_PATH = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB1/AllLists.json'
+ALL_LISTS_BEAM2_PATH = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB2/AllLists.json'
 
 
 def parse_args():
     parser = optparse.OptionParser()
-    parser.add_option("-i", "--iteraction_point",
+    parser.add_option("--ip",
                     help="Which interaction point: 1, 2, 3...",
-                    metavar="IP", default="8", dest="ip")
+                    metavar="IP", default="1", dest="ip")
+    parser.add_option("--beam1",
+                    help="Path to the measurement files for beam 1",
+                    metavar="BEAM1", dest="b1")
+    parser.add_option("--beam2",
+                    help="Path to the measurement files for beam 2",
+                    metavar="BEAM2", dest="b2")
+    parser.add_option("-t", "--temp",
+                    help="Path to the a temporary folder",
+                    metavar="TEMP", default="", dest="temp")
     (options, args) = parser.parse_args()
     return options, args
 
 
-def main(options):
+def main(options, args):
+    command = args[0]
     ip = options.ip
+    temporary_path = options.temp
+    match_temporary_path = os.path.join(CURRENT_PATH, temporary_path, "match")
+    if command == "variables":
+        generate_variables(ip, match_temporary_path)
+    elif command == "clean":
+        clean_up_temporary_dir(match_temporary_path)
+    else:
+        sbs_data_b1_path = options.b1
+        sbs_data_b2_path = options.b2
+        temporary_path = options.temp
+        match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
 
-    match_temporary_path = os.path.join(CURRENT_PATH, "match")
+
+def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
+
     beam1_temporary_path = os.path.join(match_temporary_path, "Beam1")
     beam2_temporary_path = os.path.join(match_temporary_path, "Beam2")
 
@@ -34,13 +60,18 @@ def main(options):
     print "Copying necessary files into temporary folder..."
     iotools.copy_item(os.path.join(CURRENT_PATH, "genconstraints.py"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "genphases.py"), match_temporary_path)
-    iotools.copy_item(os.path.join(CURRENT_PATH, "genvariables.py"), match_temporary_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "mergedump.sh"), match_temporary_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB1.gplot"), match_temporary_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB2.gplot"), match_temporary_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "addtheader.sh"), match_temporary_path)
 
-    _copy_beam1_temp_files(ip, beam1_temporary_path)
-    _apply_replace_to_beam1_files(beam1_temporary_path, os.path.join(beam1_temporary_path, "sbs"), ip)
+    _check_and_run_genvariables(ip, match_temporary_path)
 
-    _copy_beam2_temp_files(ip, beam2_temporary_path)
-    _apply_replace_to_beam2_files(beam2_temporary_path, os.path.join(beam2_temporary_path, "sbs"), ip)
+    _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path)
+    _apply_replace_to_beam1_files(sbs_data_b1_path, beam1_temporary_path, os.path.join(beam1_temporary_path, "sbs"), ip)
+
+    _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path)
+    _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, os.path.join(beam2_temporary_path, "sbs"), ip)
 
     print "Getting matching range..."
     ((range_beam1_start_s, range_beam1_start_name),
@@ -62,28 +93,85 @@ def main(options):
     print "Running GNUPlot..."
     _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s)
 
-    print "Cleaning temporary folder..."
-    _clean_up_temporary_dir(match_temporary_path)
-
     print "Done"
 
 
-def _copy_beam1_temp_files(ip, beam1_temporary_path):
-    _copy_files_with_extension(SBS_DATA_B1_PATH, beam1_temporary_path, ".out")
-    _copy_files_with_extension(os.path.join(SBS_DATA_B1_PATH, "sbs"),
+def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match")):
+    variables_beam1 = json.load(file(ALL_LISTS_BEAM1_PATH, 'r'))['getListsByIR'][1]
+    variables_common, variables_beam2 = json.load(file(ALL_LISTS_BEAM2_PATH, 'r'))['getListsByIR']
+
+    ip_string = str(ip)
+
+    apply_correction_file = open(os.path.join(variables_path, "applycorrection.seqx"), 'w')
+    variables_common_file = open(os.path.join(variables_path, "variablesc.seqx"), 'w')
+    variables_beam1_file = open(os.path.join(variables_path, "variablesb1.seqx"), 'w')
+    variables_beam2_file = open(os.path.join(variables_path, "variablesb2.seqx"), 'w')
+    variables_s_file = open(os.path.join(variables_path, "svariables.seqx"), 'w')
+    variables_d_file = open(os.path.join(variables_path, "dvariables.seqx"), 'w')
+
+    param_change_generator_file = open(os.path.join(variables_path, "genchangpars.seqx"), 'w')
+    param_change_generator_file.write('select,flag=save, clear;')
+
+    variables = variables_beam1[ip_string]
+    param_change_generator_file.write('!B1\n')
+    _vars_to_files(apply_correction_file, variables_beam1_file, variables_s_file,
+                   variables_d_file, param_change_generator_file, variables)
+
+    variables = variables_beam2[ip_string]
+    param_change_generator_file.write('\n!B2\n')
+    _vars_to_files(apply_correction_file, variables_beam2_file, variables_s_file,
+                   variables_d_file, param_change_generator_file, variables)
+
+    variables = variables_common[ip_string]
+    param_change_generator_file.write('\n!B1 and B2\n')
+    _vars_to_files(apply_correction_file, variables_common_file, variables_s_file,
+                   variables_d_file, param_change_generator_file, variables)
+
+    variables_common_file.close()
+    variables_beam1_file.close()
+    variables_beam2_file.close()
+    variables_s_file.close()
+    variables_d_file.close()
+
+    param_change_generator_file.write('\n save, file=\"changeparameters.madx\";\n')
+    param_change_generator_file.close()
+
+
+def _vars_to_files(apply_correction_file, variables_file, variables_s_file, variables_d_file, param_change_generator_file, variables):
+    for variable in variables:
+        variables_file.write('   vary, name=d' + variable + ', step:=1e-4;\n')
+        variables_s_file.write(' ' + variable + '_0 = ' + variable + ';\n')
+        variables_d_file.write(' ' + variable + ' := ' + variable + '_0 + d' + variable + ';\n')
+        param_change_generator_file.write('select,flag=save,pattern=\"d' + variable + '\";\n')
+        apply_correction_file.write(variable + ' = ' + variable + '_0 + d' + variable + ';\n')
+
+
+def _check_and_run_genvariables(ip, match_temporary_path):
+    for file_name in ["applycorrection.seqx", "dvariables.seqx", "genchangpars.seqx",
+                      "svariables.seqx", "variablesb1.seqx", "variablesb2.seqx", "variablesc.seqx"]:
+        full_file_path = os.path.join(match_temporary_path, file_name)
+        if not os.path.exists(full_file_path):
+            print "File " + file_name + " not found, generating new variables files..."
+            generate_variables(ip, match_temporary_path)
+            break
+
+
+def _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path):
+    _copy_files_with_extension(sbs_data_b1_path, beam1_temporary_path, ".out")
+    _copy_files_with_extension(os.path.join(sbs_data_b1_path, "sbs"),
                                os.path.join(beam1_temporary_path, "sbs"),
                                ".madx")
-    _copy_files_which_contains(os.path.join(SBS_DATA_B1_PATH, "sbs"),
+    _copy_files_which_contains(os.path.join(sbs_data_b1_path, "sbs"),
                                os.path.join(beam1_temporary_path, "sbs"),
                                "IP" + str(ip))
-    _copy_files_with_extension(os.path.join(SBS_DATA_B1_PATH, "sbs"),
+    _copy_files_with_extension(os.path.join(sbs_data_b1_path, "sbs"),
                                os.path.join(beam1_temporary_path, "sbs"),
                                ".py")
 
 
-def _apply_replace_to_beam1_files(beam1_temporary_path, beam1_temporary_sbs_path, ip):
+def _apply_replace_to_beam1_files(sbs_data_b1_path, beam1_temporary_path, beam1_temporary_sbs_path, ip):
     strings_to_replace_madx = [("//", "/"),
-                               (SBS_DATA_B1_PATH, beam1_temporary_path),
+                               (sbs_data_b1_path, beam1_temporary_path),
                                ("stop;", "return;"),
                                ("install,", "!install,")]
     strings_to_replace_ip = [("! Write here some correction", "return;")]
@@ -91,21 +179,21 @@ def _apply_replace_to_beam1_files(beam1_temporary_path, beam1_temporary_sbs_path
     _replace_in_files_with_extension(beam1_temporary_sbs_path, strings_to_replace_ip, "t_IP" + ip + ".madx")
 
 
-def _copy_beam2_temp_files(ip, beam2_temporary_path):
-    _copy_files_with_extension(os.path.join(SBS_DATA_B2_PATH), beam2_temporary_path, ".out")
-    _copy_files_with_extension(os.path.join(SBS_DATA_B2_PATH, "sbs"),
+def _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path):
+    _copy_files_with_extension(os.path.join(sbs_data_b2_path), beam2_temporary_path, ".out")
+    _copy_files_with_extension(os.path.join(sbs_data_b2_path, "sbs"),
                                os.path.join(beam2_temporary_path, "sbs"),
                                ".madx")
-    _copy_files_which_contains(os.path.join(SBS_DATA_B2_PATH, "sbs"),
+    _copy_files_which_contains(os.path.join(sbs_data_b2_path, "sbs"),
                                os.path.join(beam2_temporary_path, "sbs"), "IP" + str(ip))
-    _copy_files_with_extension(os.path.join(SBS_DATA_B2_PATH, "sbs"),
+    _copy_files_with_extension(os.path.join(sbs_data_b2_path, "sbs"),
                                os.path.join(beam2_temporary_path, "sbs"),
                                ".py")
 
 
-def _apply_replace_to_beam2_files(beam2_temporary_path, beam2_temporary_sbs_path, ip):
+def _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, beam2_temporary_sbs_path, ip):
     strings_to_replace_madx = [("//", "/"),
-                               (SBS_DATA_B2_PATH, beam2_temporary_path),
+                               (sbs_data_b2_path, beam2_temporary_path),
                                ("stop;", "return;"),
                                ("install,", "!install,"),
                                ("label=b0", "label=b02"),
@@ -127,7 +215,7 @@ def _get_match_bpm_range(file_path):
 
 
 def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, madx_script_path, match_temporary_path):
-    iotools.copy_item("matchIP.madx", madx_script_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "matchIP.madx"), madx_script_path)
     _replace_in_file(madx_script_path, [("__IPNO__", str(ip)), ("__RANGEB1__", range_beam1), ("__RANGEB2__", range_beam2)])
     madx_binary_path = madxrunner.get_sys_dependent_path_to_mad_x()
     call_command = madx_binary_path + " < " + madx_script_path
@@ -136,30 +224,31 @@ def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, madx_script_path,
                                stderr=subprocess.PIPE,
                                shell=True,
                                cwd=match_temporary_path)
-    process.communicate()
+    (out_stream, err_stream) = process.communicate()
+    print >> sys.stderr, err_stream
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
     beam1_plot_path = os.path.join(match_temporary_path, "IP" + ip + "B1.gplot")
     beam2_plot_path = os.path.join(match_temporary_path, "IP" + ip + "B2.gplot")
     beam1_plot_replacements = [("__IPNO__", str(ip)), ("__BEAMNO__", "1"),
-        ("__FILENAME__", "../IP" + str(ip) + "B1.eps"),
+        ("__FILENAME__", "IP" + str(ip) + "B1.eps"),
         ("__srangestart__", str(range_beam1_start_s)),
         ("__srangeend__", str(range_beam1_end_s))]
     beam2_plot_replacements = [("__IPNO__", str(ip)),
         ("__BEAMNO__", "2"),
-        ("__FILENAME__", "../IP" + str(ip) + "B2.eps"),
+        ("__FILENAME__", "IP" + str(ip) + "B2.eps"),
         ("__srangestart__", str(range_beam2_start_s)),
         ("__srangeend__", str(range_beam2_end_s))]
-    iotools.copy_item("templ.gplot", beam1_plot_path)
-    iotools.copy_item("templ.gplot", beam2_plot_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "templ.gplot"), beam1_plot_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "templ.gplot"), beam2_plot_path)
     if str(ip) == "2":
-        iotools.copy_item("templIP2B1.gplot", beam1_plot_path)
+        iotools.copy_item(os.path.join(CURRENT_PATH, "templIP2B1.gplot"), beam1_plot_path)
         beam1_qx, beam1_qy = _get_q_value(match_temporary_path, 1)
         beam1_plot_replacements.append(("__QX__", beam1_qx))
         beam1_plot_replacements.append(("__QY__", beam1_qy))
     elif str(ip) == "8":
-        iotools.copy_item("templIP8B2.gplot", beam2_plot_path)
+        iotools.copy_item(os.path.join(CURRENT_PATH, "templIP8B2.gplot"), beam2_plot_path)
         beam2_qx, beam2_qy = _get_q_value(match_temporary_path, 2)
         beam2_plot_replacements.append(("__QX__", beam2_qx))
         beam2_plot_replacements.append(("__QY__", beam2_qy))
@@ -182,7 +271,7 @@ def _get_q_value(match_temporary_path, beam_num):
     return qx, qy
 
 
-def _clean_up_temporary_dir(match_temporary_path):
+def clean_up_temporary_dir(match_temporary_path):
     os.unlink(os.path.join(match_temporary_path, "ats"))
     os.unlink(os.path.join(match_temporary_path, "db"))
     os.unlink(os.path.join(match_temporary_path, "db5"))
@@ -231,4 +320,4 @@ def _get_filtered_file_list(src, filter_function):
 
 if __name__ == "__main__":
     (options, args) = parse_args()
-    main(options)
+    main(options, args)

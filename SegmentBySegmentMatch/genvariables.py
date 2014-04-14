@@ -1,85 +1,66 @@
 import sys
-
 import json
 
-#execfile('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB1/AllLists.py') 
-#vco,vb1=getListsByIR()
-vco,vb1=json.load(file('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB1/AllLists.json','r'))['getListsByIR']
+
+ALL_LISTS_BEAM1_PATH = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB1/AllLists.json'
+ALL_LISTS_BEAM2_PATH = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB2/AllLists.json'
 
 
-#execfile('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB2/AllLists.py') 
-#vco,vb2=getListsByIR()
-vco,vb2=json.load(file('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB2/AllLists.json','r'))['getListsByIR']
+def main():
+    variables_beam1 = json.load(file(ALL_LISTS_BEAM1_PATH, 'r'))['getListsByIR'][1]
+    variables_common, variables_beam2 = json.load(file(ALL_LISTS_BEAM2_PATH, 'r'))['getListsByIR']
+
+    ip_int = 1
+    if len(sys.argv) > 1:
+        ip_int = int(sys.argv[1])
+    if ip_int > 8 or ip_int < 1:
+        ip_int = 1
+    ip_string = str(ip_int)
+
+    apply_correction_file = open("applycorrection.seqx", 'w')
+    variables_common_file = open("variablesc.seqx", 'w')
+    variables_beam1_file = open("variablesb1.seqx", 'w')
+    variables_beam2_file = open("variablesb2.seqx", 'w')
+    variables_s_file = open("svariables.seqx", 'w')
+    variables_d_file = open("dvariables.seqx", 'w')
+
+    param_change_generator_file = open("genchangpars.seqx", 'w')
+    param_change_generator_file.write('select,flag=save, clear;')
+
+    variables = variables_beam1[ip_string]
+    print '\nBeam 1\n'
+    param_change_generator_file.write('!B1\n')
+    _vars_to_files(apply_correction_file, variables_beam1_file, variables_s_file, variables_d_file, param_change_generator_file, variables)
+
+    variables = variables_beam2[ip_string]
+    print '\nBeam 2\n'
+    param_change_generator_file.write('\n!B2\n')
+    _vars_to_files(apply_correction_file, variables_beam2_file, variables_s_file, variables_d_file, param_change_generator_file, variables)
+
+    variables = variables_common[ip_string]
+    print '\nBeam 1 and Beam 2\n'
+    param_change_generator_file.write('\n!B1 and B2\n')
+    _vars_to_files(apply_correction_file, variables_common_file, variables_s_file, variables_d_file, param_change_generator_file, variables)
+
+    variables_common_file.close()
+    variables_beam1_file.close()
+    variables_beam2_file.close()
+    variables_s_file.close()
+    variables_d_file.close()
+
+    param_change_generator_file.write('\n save, file=\"changeparameters.madx\";\n')
+    param_change_generator_file.close()
 
 
-
-IPN=1
-if len(sys.argv) > 1:
- IPN=int(sys.argv[1])
-
-if IPN>8 or IPN<1:
- IPN=1
-
-#IPNO='\''+str(IPN)+'\''
-IPNO=str(IPN)
-#print IPN, IPNO
+def _vars_to_files(apply_correction_file, variables_file, variables_s_file, variables_d_file, param_change_generator_file, variables):
+    for variable in variables:
+        print variable
+        variables_file.write('   vary, name=d' + variable + ', step:=1e-4;\n')
+        variables_s_file.write(' ' + variable + '_0 = ' + variable + ';\n')
+        variables_d_file.write(' ' + variable + ' := ' + variable + '_0 + d' + variable + ';\n')
+        param_change_generator_file.write('select,flag=save,pattern=\"d' + variable + '\";\n')
+        apply_correction_file.write(variable + ' = ' + variable + '_0 + d' + variable + ';\n')
 
 
-fouta= open("applycorrection.seqx",'w')
-
-foutc= open("variablesc.seqx",'w')
-foutb1= open("variablesb1.seqx",'w')
-foutb2= open("variablesb2.seqx",'w')
-fout2 = open("svariables.seqx",'w')
-fout3 = open("dvariables.seqx",'w')
-
-fout = open("genchangpars.seqx",'w')
-fout.write('select,flag=save, clear;')
-
-
-v = vb1[IPNO];
-print '\nBeam 1\n'
-fout.write('!B1\n'); 
-for q in v:
-  print q
-  foutb1.write('   vary, name=d'+q+', step:=1e-4;\n');
-  fout2.write(' '+q+'_0 = '+q+';\n');
-  fout3.write(' '+q+' := '+q+'_0 + d'+q+';\n');
-  fout.write('select,flag=save,pattern=\"d'+q+'\";\n')
-  
-  fouta.write(q+' = '+q+'_0 + d' +  q+';\n');
-################################################################
-
-
-v = vb2[IPNO];
-print '\nBeam 2\n'
-fout.write('\n!B2\n'); 
-for q in v:
-  print q
-  foutb2.write('   vary, name=d'+q+', step:=1e-4;\n');
-  fout2.write(' '+q+'_0 = '+q+';\n');
-  fout3.write(' '+q+' := '+q+'_0 + d'+q+';\n');
-  fout.write('select,flag=save,pattern=\"d'+q+'\";\n')
-  fouta.write(q+' = '+q+'_0 + d' +  q+';\n');
-
-################################################################
-
-v = vco[IPNO];
-print '\nBeam 1 and Beam 2\n'
-fout.write('\n!B1 and B2\n'); 
-for q in v:
-  print q
-  foutc.write('   vary, name=d'+q+', step:=1e-4;\n');
-  fout2.write(' '+q+'_0 = '+q+';\n');
-  fout3.write(' '+q+' := '+q+'_0 + d'+q+';\n');
-  fout.write('select,flag=save,pattern=\"d'+q+'\";\n')
-  fouta.write(q+' = '+q+'_0 + d' +  q+';\n');
-  
-foutc.close();
-foutb1.close();
-foutb2.close();
-fout2.close();  
-fout3.close();
-
-fout.write('\n save, file=\"changeparameters.madx\";\n');
-fout.close()
+if __name__ == "__main__":
+    main()
