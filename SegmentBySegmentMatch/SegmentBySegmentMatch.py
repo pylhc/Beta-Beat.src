@@ -6,13 +6,12 @@ from Utilities import iotools
 import subprocess
 from Python_Classes4MAD.metaclass import twiss
 from Python_Classes4MAD import madxrunner
-import sys
 import json
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
-ALL_LISTS_BEAM1_PATH = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB1/AllLists.json'
-ALL_LISTS_BEAM2_PATH = '/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/LHCB2/AllLists.json'
+ALL_LISTS_BEAM1_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists.json')
+ALL_LISTS_BEAM2_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB2', 'AllLists.json')
 
 
 def parse_args():
@@ -29,17 +28,24 @@ def parse_args():
     parser.add_option("-t", "--temp",
                     help="Path to the a temporary folder",
                     metavar="TEMP", default="", dest="temp")
+    parser.add_option("--exclude",
+                    help="Variables to exclude",
+                    metavar="EXCLUDE", default="", dest="exclude")
     (options, args) = parser.parse_args()
     return options, args
 
 
 def main(options, args):
-    command = args[0]
+    if len(args) > 0:
+        command = args[0]
+    else:
+        command = "match"
     ip = options.ip
     temporary_path = options.temp
     match_temporary_path = os.path.join(CURRENT_PATH, temporary_path, "match")
     if command == "variables":
-        generate_variables(ip, match_temporary_path)
+        exclude_vars_string = options.exclude
+        generate_variables(ip, match_temporary_path, exclude_vars_string)
     elif command == "clean":
         clean_up_temporary_dir(match_temporary_path)
     else:
@@ -57,6 +63,8 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     iotools.create_dirs(os.path.join(beam1_temporary_path, "sbs"))
     iotools.create_dirs(os.path.join(beam2_temporary_path, "sbs"))
 
+    _check_and_run_genvariables(ip, match_temporary_path)
+
     print "Copying necessary files into temporary folder..."
     iotools.copy_item(os.path.join(CURRENT_PATH, "genconstraints.py"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "genphases.py"), match_temporary_path)
@@ -64,8 +72,6 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB1.gplot"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB2.gplot"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "addtheader.sh"), match_temporary_path)
-
-    _check_and_run_genvariables(ip, match_temporary_path)
 
     _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path)
     _apply_replace_to_beam1_files(sbs_data_b1_path, beam1_temporary_path, os.path.join(beam1_temporary_path, "sbs"), ip)
@@ -87,16 +93,25 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     print "Matching range for Beam 2:", range_beam2_start_name, range_beam2_end_name
 
     print "Running MADX..."
-    madx_script_path = os.path.join(match_temporary_path, "matchIP" + ip + ".madx")
-    _prepare_script_and_run_madx(ip, range_beam1, range_beam2, madx_script_path, match_temporary_path)
+    _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_path)
+
+    print "Running getfterms"
+    _call_getfterms(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name)
 
     print "Running GNUPlot..."
-    _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s)
+    _prepare_and_run_gnuplot(ip, match_temporary_path,
+                             range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s)
 
     print "Done"
 
 
-def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match")):
+def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+    if not os.path.exists(variables_path):
+        iotools.create_dirs(variables_path)
+    if not exclude_string == "":
+        exclude_list = [var_name.strip() for var_name in exclude_string.strip('"').split(",")]
+    else:
+        exclude_list = []
     variables_beam1 = json.load(file(ALL_LISTS_BEAM1_PATH, 'r'))['getListsByIR'][1]
     variables_common, variables_beam2 = json.load(file(ALL_LISTS_BEAM2_PATH, 'r'))['getListsByIR']
 
@@ -115,17 +130,17 @@ def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match")):
     variables = variables_beam1[ip_string]
     param_change_generator_file.write('!B1\n')
     _vars_to_files(apply_correction_file, variables_beam1_file, variables_s_file,
-                   variables_d_file, param_change_generator_file, variables)
+                   variables_d_file, param_change_generator_file, variables, exclude_list)
 
     variables = variables_beam2[ip_string]
     param_change_generator_file.write('\n!B2\n')
     _vars_to_files(apply_correction_file, variables_beam2_file, variables_s_file,
-                   variables_d_file, param_change_generator_file, variables)
+                   variables_d_file, param_change_generator_file, variables, exclude_list)
 
     variables = variables_common[ip_string]
     param_change_generator_file.write('\n!B1 and B2\n')
     _vars_to_files(apply_correction_file, variables_common_file, variables_s_file,
-                   variables_d_file, param_change_generator_file, variables)
+                   variables_d_file, param_change_generator_file, variables, exclude_list)
 
     variables_common_file.close()
     variables_beam1_file.close()
@@ -137,9 +152,10 @@ def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match")):
     param_change_generator_file.close()
 
 
-def _vars_to_files(apply_correction_file, variables_file, variables_s_file, variables_d_file, param_change_generator_file, variables):
+def _vars_to_files(apply_correction_file, variables_file, variables_s_file, variables_d_file, param_change_generator_file, variables, excluded):
     for variable in variables:
-        variables_file.write('   vary, name=d' + variable + ', step:=1e-4;\n')
+        if "d" + variable not in excluded:
+            variables_file.write('   vary, name=d' + variable + ', step:=1e-4;\n')
         variables_s_file.write(' ' + variable + '_0 = ' + variable + ';\n')
         variables_d_file.write(' ' + variable + ' := ' + variable + '_0 + d' + variable + ';\n')
         param_change_generator_file.write('select,flag=save,pattern=\"d' + variable + '\";\n')
@@ -150,7 +166,7 @@ def _check_and_run_genvariables(ip, match_temporary_path):
     for file_name in ["applycorrection.seqx", "dvariables.seqx", "genchangpars.seqx",
                       "svariables.seqx", "variablesb1.seqx", "variablesb2.seqx", "variablesc.seqx"]:
         full_file_path = os.path.join(match_temporary_path, file_name)
-        if not os.path.exists(full_file_path):
+        if not os.path.exists(full_file_path):  # TODO: Here the variables should be recreated if they are for a different IP
             print "File " + file_name + " not found, generating new variables files..."
             generate_variables(ip, match_temporary_path)
             break
@@ -214,18 +230,35 @@ def _get_match_bpm_range(file_path):
     return bpms_with_distances_list[0], bpms_with_distances_list[-1]
 
 
-def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, madx_script_path, match_temporary_path):
+def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_path):
+    madx_script_path = os.path.join(match_temporary_path, "matchIP" + ip + ".madx")
     iotools.copy_item(os.path.join(CURRENT_PATH, "matchIP.madx"), madx_script_path)
     _replace_in_file(madx_script_path, [("__IPNO__", str(ip)), ("__RANGEB1__", range_beam1), ("__RANGEB2__", range_beam2)])
+
+    remadx_script_path = os.path.join(match_temporary_path, "rematchIP" + ip + ".madx")
+    iotools.copy_item(madx_script_path, remadx_script_path)
+    _replace_in_file(remadx_script_path, [('system, \"python', '!system, \"python'), ('s#system, \"./addtheader', '!system, \"./addtheader')])
+
     madx_binary_path = madxrunner.get_sys_dependent_path_to_mad_x()
     call_command = madx_binary_path + " < " + madx_script_path
     process = subprocess.Popen(call_command,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE,
                                shell=True,
                                cwd=match_temporary_path)
-    (out_stream, err_stream) = process.communicate()
-    print >> sys.stderr, err_stream
+    process.communicate()
+
+
+def _call_getfterms(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
+    os.system("/usr/bin/python " + os.path.join(beam1_temporary_path, "sbs", "getfterms_0.3.py") +
+              " -p " + os.path.join(beam1_temporary_path, "sbs") +
+              " -l IP" + ip + " -e " + beam1_temporary_path +
+              " -s " + range_beam1_start_name +
+              " -m _free")
+    os.system("/usr/bin/python " + os.path.join(beam2_temporary_path, "sbs", "getfterms_0.3.py") +
+              " -p " + os.path.join(beam2_temporary_path, "sbs") +
+              " -l IP" + ip +
+              " -e " + beam2_temporary_path +
+              " -s " + range_beam2_start_name +
+              " -m _free")
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
