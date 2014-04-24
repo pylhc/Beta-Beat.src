@@ -1,6 +1,6 @@
 import sys
-import __init__  # @UnusedImport used for appending paths
-from Python_Classes4MAD.metaclass import twiss
+sys.path.append("/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD")
+from metaclass import *
 import numpy
 
 

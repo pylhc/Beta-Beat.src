@@ -1,6 +1,6 @@
 import sys
-import __init__  # @UnusedImport used for appending paths
-from Python_Classes4MAD.metaclass import twiss
+sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD')
+from metaclass import *
 
 
 def main():
@@ -23,7 +23,6 @@ def main():
     print 'B2: Q1=', fulldataxb2.Q1
     print 'B2: Q2=', fulldataxb2.Q2
 
-    #driven is closer to what it should be than the free
     B1QX = fulldataxb1.Q1
     B1QY = fulldataxb1.Q2
     B2QX = fulldataxb2.Q1
