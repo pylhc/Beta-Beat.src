@@ -78,10 +78,6 @@ match, use_macro;
       beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
       use, period=LHCB1, range=__RANGEB1__;
       twiss, beta0=b1, chrom, file="Beam1/sbs/twiss_IP__IPNO___cor.dat";
-      
-      call, file="dumpb1.seqx";
-      system, "gnuplot dumpB1.gplot";
-      system, "./mergedump.sh 1";
 
     };
  
@@ -94,11 +90,6 @@ match, use_macro;
        beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
        use, period=LHCB2, range=__RANGEB2__;
        twiss, beta0=b2, chrom, file="Beam2/sbs/twiss_IP__IPNO___cor.dat";!twiss_IP8_cor.dat
-      
-
-       call, file="dumpb2.seqx";
-       system, "gnuplot dumpB2.gplot";
-       system, "./mergedump.sh 2";
       
        print, text="======================================";
       

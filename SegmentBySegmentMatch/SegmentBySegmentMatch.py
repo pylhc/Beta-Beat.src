@@ -237,7 +237,7 @@ def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_p
 
     remadx_script_path = os.path.join(match_temporary_path, "rematchIP" + ip + ".madx")
     iotools.copy_item(madx_script_path, remadx_script_path)
-    _replace_in_file(remadx_script_path, [('system, \"python', '!system, \"python'), ('s#system, \"./addtheader', '!system, \"./addtheader')])
+    _replace_in_file(remadx_script_path, [('system, \"python', '!system, \"python'), ('system, \"./addtheader', '!system, \"./addtheader')])
 
     madx_binary_path = madxrunner.get_sys_dependent_path_to_mad_x()
     call_command = madx_binary_path + " < " + madx_script_path
@@ -248,17 +248,21 @@ def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_p
 
 
 def _call_getfterms(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
-    os.system("/usr/bin/python " + os.path.join(beam1_temporary_path, "sbs", "getfterms_0.3.py") +
-              " -p " + os.path.join(beam1_temporary_path, "sbs") +
-              " -l IP" + ip + " -e " + beam1_temporary_path +
-              " -s " + range_beam1_start_name +
-              " -m _free")
-    os.system("/usr/bin/python " + os.path.join(beam2_temporary_path, "sbs", "getfterms_0.3.py") +
-              " -p " + os.path.join(beam2_temporary_path, "sbs") +
-              " -l IP" + ip +
-              " -e " + beam2_temporary_path +
-              " -s " + range_beam2_start_name +
-              " -m _free")
+    proccess_beam1 = subprocess.Popen("/usr/bin/python " + os.path.join(beam1_temporary_path, "sbs", "getfterms_0.3.py") +
+                                      " -p " + os.path.join(beam1_temporary_path, "sbs") +
+                                      " -l IP" + ip + " -e " + beam1_temporary_path +
+                                      " -s " + range_beam1_start_name +
+                                      " -m _free",
+                                      shell=True)
+    proccess_beam1.communicate()
+    proccess_beam2 = subprocess.Popen("/usr/bin/python " + os.path.join(beam2_temporary_path, "sbs", "getfterms_0.3.py") +
+                                      " -p " + os.path.join(beam2_temporary_path, "sbs") +
+                                      " -l IP" + ip +
+                                      " -e " + beam2_temporary_path +
+                                      " -s " + range_beam2_start_name +
+                                      " -m _free",
+                                      shell=True)
+    proccess_beam2.communicate()
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
