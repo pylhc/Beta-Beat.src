@@ -79,6 +79,9 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path)
     _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, os.path.join(beam2_temporary_path, "sbs"), ip)
 
+    iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam1_temporary_path, "sbs"))
+    iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam2_temporary_path, "sbs"))
+    
     print "Getting matching range..."
     ((range_beam1_start_s, range_beam1_start_name),
     (range_beam1_end_s, range_beam1_end_name)) = _get_match_bpm_range(os.path.join(beam1_temporary_path, "sbs",
@@ -154,7 +157,7 @@ def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match"), e
 
 def _vars_to_files(apply_correction_file, variables_file, variables_s_file, variables_d_file, param_change_generator_file, variables, excluded):
     for variable in variables:
-        if "d" + variable not in excluded:
+        if variable not in excluded:
             variables_file.write('   vary, name=d' + variable + ', step:=1e-4;\n')
         variables_s_file.write(' ' + variable + '_0 = ' + variable + ';\n')
         variables_d_file.write(' ' + variable + ' := ' + variable + '_0 + d' + variable + ';\n')

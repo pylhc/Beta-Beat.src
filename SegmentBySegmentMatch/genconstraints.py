@@ -13,7 +13,6 @@ def main():
         IPN = 1
 
     IPNO = str(IPN)
-    print IPN
 
     fulldataxb1 = twiss('Beam1/getphasex.out')
     print 'B1: Q1=', fulldataxb1.Q1
