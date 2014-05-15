@@ -135,9 +135,9 @@ C
      &maxturns
       parameter (maxturns=10000)
       double precision eps,etune,tunex,tuney,tunez, xy(maxturns*4+4),
-     &tunexy(2),amplitude(19), phase(19), ox(500), ax(500), oy(500), 
-     &ay(500)
-      parameter(mterm=500)
+     &tunexy(2),amplitude(19), phase(19), ox(1600), ax(1600), oy(1600), 
+     &ay(1600)
+      parameter(mterm=1600)
       dimension lr(100),mr(100),kr(100),etune(3)
       character*200 ch,ch1
       character*8 filename
@@ -522,7 +522,7 @@ C=======================================================================
       external tunelasr,tunenewt
       double precision duepi,freq,pi,tune,tunelasr,tunenewt,x,xp
       double complex z,zef,zgs,zpesi,zw,zx,zz
-      parameter(mterm=500)
+      parameter(mterm=1600)
       parameter(maxiter=100000)
       dimension x(maxiter),xp(maxiter)
       dimension z(maxiter),zz(maxiter)
@@ -862,7 +862,7 @@ C=======================================================================
       integer idams,j,k,max,maxn,mterm,nfile,nsus
       double precision duepi,ss,ssp,xx,xxp,yy,yyp
       double complex zpots,zpotx,zpoty,zts,ztx,zty,zxs,zys,zss
-      parameter(mterm=500)
+      parameter(mterm=1600)
       parameter(maxn=100000)
       dimension zxs(maxn),zys(maxn),zss(maxn)
       double precision s,sp,x,xp,y,yp
@@ -970,10 +970,10 @@ C=======================================================================
      &eps,epsx,epsy,epsz,etune,ex,ey,ez,fx,fxt,fy,fyt,fz,fzt,ordc,ordcx,
      &ordcy,ordcz,pi,px,pxt,pxti,pxtr,py,pyt,pyti,pytr,pz,pzt,pzti,pztr,
      &tunex,tuney,tunez,tx,txt,ty,tyt,tz,tzt, tunexy(2), 
-     &amplitude(33), phase(33), ox(500), ax(500),
-     &oy(500), ay(500)
+     &amplitude(33), phase(33), ox(1600), ax(1600),
+     &oy(1600), ay(1600)
       double complex zpx,zpy,zpz
-      parameter(mterm=500)
+      parameter(mterm=1600)
       double precision tsa,txa,tya
       common/tune/txa(mterm),tya(mterm),tsa(mterm)
       double complex zspes,zxpes,zypes
@@ -1762,7 +1762,7 @@ C=======================================================================
       parameter (maxturns=10000)
       double precision duepi,xy(maxturns*4+4),eps
       complex zsing
-      parameter(mterm=500)
+      parameter(mterm=1600)
       parameter(maxn=100000)
       double precision s,sp,x,xp,y,yp
       common/data/x(maxn),y(maxn),xp(maxn),yp(maxn),s(maxn),sp(maxn)
@@ -1972,7 +1972,7 @@ C=======================================================================
       integer i,idam,idamx,ifoun,imax,imin,iout,istep,j,k,ki,kr,l,lr,m,
      &mr,mterm,n,narm,ni
       double precision ex,fx,pi,px,tx
-      parameter(mterm=500)
+      parameter(mterm=1600)
       dimension tx(mterm)
       double precision dtfx,dtpx,dttx
       common/dt/dtpx(100),dtfx(100),dttx(100)
@@ -2634,7 +2634,7 @@ C=======================================================================
       integer i,idam,idamx,imax,imin,istep,iusm,j,k,ki,l,m,mterm,n,narm,
      &ni
       double precision ex,fx,pi,px,qsme,tx
-      parameter(mterm=500)
+      parameter(mterm=1600)
       dimension tx(mterm)
       character*200 ch,ch1
 !$OMP THREADPRIVATE(i,istep,j,k,ki,l,m,n,ni,
@@ -2715,7 +2715,7 @@ C=======================================================================
       integer i,idam,idamx,ii,iinv,imax,imin,istep,j,k,ki,kii,kkini,l,
      &lkini,m,mkini,mterm,n,narm,ni
       double precision ex,fx,pi,psinv,px,pxinv,pyinv,tx,zero
-      parameter(mterm=500)
+      parameter(mterm=1600)
       parameter(zero=0d0)
       dimension px(3,mterm)
       dimension l(3,mterm),m(3,mterm),k(3,mterm)
