@@ -1071,7 +1071,7 @@ inline void calculateNaturalTune(CalculatedNaturalData* naturalData) {
 	}
 	maxamp = 0;
 	naturalData->calculatednattuney = NATTUNE_DEFAULT;
-	naturalData->calculatednatampy = maxamp;
+	naturalData->calculatednatampy = NATAMP_DEFAULT;
 	if (inpData.nattuney > NATTUNE_DEFAULT) {
 		for (int j = 0; j < 300; ++j) {
 			if ((inpData.nattuney - inpData.istun < allfreqsy[j] && allfreqsy[j] < inpData.nattuney + inpData.istun) && (maxamp < allampsy[j])) {

@@ -24,7 +24,7 @@ ISTUN = 0.005
 
 class TestFakeData(unittest.TestCase):
 
-    plot_fake_data = True
+    plot_fake_data = False
 
     fake_data_file_path = os.path.join(CURRENT_PATH, "fake_signal", "test.sdds.cleaned")
 
