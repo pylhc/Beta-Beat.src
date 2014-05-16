@@ -84,7 +84,7 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 #define MAXRUNS 100
 #define NATTUNE_DEFAULT -100
 #define NATAMP_DEFAULT -100
-#define FREQS_PER_BPM 1000
+#define FREQS_PER_BPM 300
 
 #if !defined(LOG_INFO)
 #define LOG_INFO 0 /*set to 1 to enable log prints (tbach) */
@@ -809,9 +809,9 @@ void IoHelper::writeSussixInputFile(const int turns, const double istun, const d
     sussixInputFile << "C" << std::endl << "C INPUT FOR SUSSIX_V4 ---17/09/1997---" << std::endl << "C DETAILS ARE IN THE MAIN PROGRAM SUSSIX_V4.F\n";
     sussixInputFile << "C" << std::endl << std::endl;
     sussixInputFile << "ISIX  = 0" << std::endl << "NTOT  = 1" << std::endl << "IANA  = 1" << std::endl << "ICONV = 0" << std::endl;
-    sussixInputFile << std::scientific << "TURNS = 1 " << turns << std::endl << "NARM  = " << FREQS_PER_BPM << std::endl << "ISTUN = 2 " << istun << ' ' << istun << std::endl;
+    sussixInputFile << std::scientific << "TURNS = 1 " << turns << std::endl << "NARM  = " << FREQS_PER_BPM << std::endl << "ISTUN = 1 " << istun << ' ' << istun << std::endl;
     sussixInputFile << std::scientific << "TUNES = " << tunex << ' ' << tuney << " .07" << std::endl << "NSUS  = 0" << std::endl << "IDAM  = 2" << std::endl << "NTWIX = 1" << std::endl;
-    sussixInputFile << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 4" << std::endl << "EPS   = 1D-3" << std::endl; //"EPS   = 2D-3" << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
+    sussixInputFile << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 4" << std::endl << "EPS   = 2D-3" << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
     sussixInputFile << "NLINE = 0" << std::endl << "L,M,K = " << std::endl << "IDAMX = 1" << std::endl << "NFIN  = 500" << std::endl;
     sussixInputFile << "ISME  = 0" << std::endl << "IUSME = 200" << std::endl << "INV   = 0" << std::endl << "IINV  = 250" << std::endl;
     sussixInputFile << "ICF   = 0" << std::endl << "IICF  = 350" << std::endl;
