@@ -53,6 +53,7 @@ import algorithms.beta
 import algorithms.compensate_ac_effect
 import algorithms.dispersion
 import algorithms.coupling
+import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
 import Utilities.iotools
@@ -222,6 +223,9 @@ def main(
         #-------- START coupling.
         tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
 
+        #-------- START RDTs
+        algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y)
+
         #-------- Phase, Beta and coupling for non-zero DPP
         _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase)
 
@@ -359,6 +363,8 @@ def _create_tfs_files(getllm_d, model_filename):
     files_dict['getDx.out'] = utils.tfs_file.GetllmTfsFile('getDx.out')
     files_dict['getDy.out'] = utils.tfs_file.GetllmTfsFile('getDy.out')
     files_dict['getcouple.out'] = utils.tfs_file.GetllmTfsFile('getcouple.out')
+    files_dict['f3000_line.out'] = utils.tfs_file.GetllmTfsFile('f3000_line.out')
+    files_dict['f4000_line.out'] = utils.tfs_file.GetllmTfsFile('f4000_line.out')
     if getllm_d.with_ac_calc:
         files_dict['getcouple_free.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free.out')
         files_dict['getcouple_free2.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free2.out')
@@ -441,6 +447,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
+                files_dict['f3000_line.out'].add_filename_to_getllm_header(file_in)
+                files_dict['f4000_line.out'].add_filename_to_getllm_header(file_in)
                 if "LHC" in getllm_d.accel:
                     files_dict['getIPx.out'].add_filename_to_getllm_header(file_in)
                     files_dict['getIPy.out'].add_filename_to_getllm_header(file_in)
