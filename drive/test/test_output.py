@@ -81,7 +81,7 @@ class TestOutput(unittest.TestCase):
         if Utilities.iotools.not_exists_directory(TestOutput.path_to_valid):
             return False
         is_valid = False
-        for item in os.listdir(TestOutput.path_to_valid):
+        for item in sorted(os.listdir(TestOutput.path_to_valid)):
             abs_item = os.path.join(TestOutput.path_to_valid, item)
             if os.path.isdir(abs_item):
                 is_valid = self._dir_has_linx_and_liny(abs_item)
@@ -93,7 +93,7 @@ class TestOutput(unittest.TestCase):
         """ Returns True if dir contains a *linx and a *liny file. """
         has_linx = False
         has_liny = False
-        for item in os.listdir(path_to_dir):
+        for item in sorted(os.listdir(path_to_dir)):
             if item.endswith("linx"):
                 has_linx = True
             if item.endswith("liny"):
@@ -121,7 +121,7 @@ class TestOutput(unittest.TestCase):
 
     def _run_dir(self, path_to_run_dir, path_to_drive):
         """ Runs drive from path_to_drive for all subdirs in path_to_run_dir """
-        for index, directory in enumerate(os.listdir(path_to_run_dir)):
+        for index, directory in enumerate(sorted(os.listdir(path_to_run_dir))):
             if self._break_after_first_run(index):
                 break
             single_dir_path = os.path.join(path_to_run_dir, directory)
@@ -167,7 +167,7 @@ class TestOutput(unittest.TestCase):
         ''' Compares output by using filecmp '''
         print "  Comparing output files"
         self._delete_copied_files()
-        for index, directory in enumerate(os.listdir(self.path_to_valid)):
+        for index, directory in enumerate(sorted(os.listdir(self.path_to_valid))):
             if self._break_after_first_run(index):
                 break
             valid_dir = os.path.join(self.path_to_valid, directory)

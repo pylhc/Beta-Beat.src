@@ -7,6 +7,7 @@ Temporary extension of the test_output file, to test the drive results with diff
 amount of columns.
 
 """
+import __init__  # @UnusedImport
 import os
 import unittest
 from Utilities import ndiff
@@ -26,7 +27,7 @@ class TestOutputForExtension(test_output.TestOutput):
     def _search_and_compare_recursive(self, relative_path=""):
         full_valid_path = os.path.join(self.path_to_valid, relative_path)
         full_to_check_path = os.path.join(self.path_to_to_check, relative_path)
-        for index, directory in enumerate(os.listdir(full_valid_path)):
+        for index, directory in enumerate(sorted(os.listdir(full_valid_path))):
             if relative_path == "" and self._break_after_first_run(index):
                 break
             new_valid_path = os.path.join(full_valid_path, directory)
@@ -50,11 +51,10 @@ class TestOutputForExtension(test_output.TestOutput):
             for row_index in range(len(valid_data[col_index])):
                 fail = False
                 if type(valid_data[col_index][row_index]) is float:
-                    if (self._get_absolute_error(valid_data[col_index][row_index],
+                    fail = (self._get_absolute_error(valid_data[col_index][row_index],
                                                  to_check_data[col_index][row_index]) > self.MAXIMUM_ABS_ERR and
-                        self._get_relative_error(valid_data[col_index][row_index],
-                                                 to_check_data[col_index][row_index]) > self.MAXIMUM_REL_ERR):
-                        fail = not (col_index == "NATAMPX" or col_index == "NATAMPY") # TODO change this!
+                            self._get_relative_error(valid_data[col_index][row_index],
+                                                 to_check_data[col_index][row_index]) > self.MAXIMUM_REL_ERR)
                 elif type(valid_data[col_index][row_index]) is str:
                     if valid_data[col_index][row_index] != to_check_data[col_index][row_index]:
                         fail = True
