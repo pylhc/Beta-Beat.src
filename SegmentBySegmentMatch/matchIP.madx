@@ -36,9 +36,6 @@ readtable, table=phyB2, file="Beam2/sbs/sbsphaseyt_IP__IPNO__.out";
 
 call, file="phases.seqx";
 
-
-system, "python genconstraints.py __IPNO__";
-
 call, file="svariables.seqx";
 call, file="dvariables.seqx";
 

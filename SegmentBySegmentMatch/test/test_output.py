@@ -1,3 +1,4 @@
+import __init__  # @UnusedImport
 import unittest
 import os
 from Utilities import iotools, ndiff
