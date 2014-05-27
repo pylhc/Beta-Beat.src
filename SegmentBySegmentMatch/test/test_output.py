@@ -17,9 +17,9 @@ class TestOutput(unittest.TestCase):
     path_to_modified_sbs_match = os.path.join(CURRENT_PATH, "..", "SegmentBySegmentMatch.py")
 
     def tearDown(self):
-        input_files = iotools.get_all_filenames_in_dir(self.path_to_input)
-        for input_file_name in input_files:
-            directory_to_check = os.path.join(self.path_to_check, input_file_name)
+        to_check_dirs = iotools.get_all_dir_names_in_dir(self.path_to_check)
+        for to_check_dir in to_check_dirs:
+            directory_to_check = os.path.join(self.path_to_check, to_check_dir)
             input_arguments = " clean --temp=" + directory_to_check
             call_command = os.path.abspath(self.path_to_modified_sbs_match) + " " + input_arguments
             call_command = sys.executable + " " + call_command
@@ -29,25 +29,64 @@ class TestOutput(unittest.TestCase):
             iotools.delete_item(directory_to_check)
 
     def testOutput(self):
-        input_files = iotools.get_all_filenames_in_dir(self.path_to_input)
-        for input_file_name in input_files:
-            directory_valid = os.path.join(self.path_to_valid, input_file_name)
-            self.assertTrue(iotools.exists_directory(directory_valid),
-                            "Valid directory for input file " + input_file_name + " doesn't exists")
-            print "Starting run for " + input_file_name
-            self._run_sbsmatch_for_input(input_file_name)
-            print "Checking results..."
-            self._check_results_for_input(input_file_name)
-            print "Done"
+        input_dirs = iotools.get_all_dir_names_in_dir(self.path_to_input)
+        for input_dir_name in input_dirs:
+            input_dir_path = os.path.join(self.path_to_input, input_dir_name) + os.sep
+            self._preprocess_input(input_dir_path)
+            ips_to_test = self._get_ips_to_test(os.path.join(input_dir_path, "test.cfg"))
+            for ip in ips_to_test:
+                valid_dir_name = input_dir_name + "_IP" + ip
+                directory_valid = os.path.join(self.path_to_valid, valid_dir_name)
+                self.assertTrue(iotools.exists_directory(directory_valid),
+                                "Valid directory for input file " + valid_dir_name + " doesn't exists")
+                print "Starting run for " + valid_dir_name
+                self._run_sbsmatch_for_input(ip, valid_dir_name, input_dir_path)
+                print "Checking results..."
+                self._check_results_for_input(valid_dir_name)
+                print "Done"
+            self._restore_input(input_dir_path)
 
-    def _run_sbsmatch_for_input(self, input_file_name):
+    def _preprocess_input(self, input_dir_path):
+        sbs_beam1_path = os.path.join(input_dir_path, "Beam1", "sbs")
+        sbs_beam2_path = os.path.join(input_dir_path, "Beam2", "sbs")
+        replace = [("__PATH__", input_dir_path)]
+        self._replace_in_files(sbs_beam1_path, replace)
+        self._replace_in_files(sbs_beam2_path, replace)
+
+    def _restore_input(self, input_dir_path):
+        sbs_beam1_path = os.path.join(input_dir_path, "Beam1", "sbs")
+        sbs_beam2_path = os.path.join(input_dir_path, "Beam2", "sbs")
+        replace = [(input_dir_path, "__PATH__")]
+        self._replace_in_files(sbs_beam1_path, replace)
+        self._replace_in_files(sbs_beam2_path, replace)
+
+    def _replace_in_files(self, src, replace_pairs):
+        src_files = iotools.get_all_filenames_in_dir(src)
+        for file_name in src_files:
+            full_file_name = os.path.join(src, file_name)
+            self._replace_in_file(full_file_name, replace_pairs)
+
+    def _replace_in_file(self, full_file_name, replace_pairs):  # TODO: Use a python function instead of sed
+        sed_command = "sed -i "
+        for pattern, replace in replace_pairs:
+            full_command = sed_command + "'s" + "#" + pattern + "#" + replace + "#" + "g' " + full_file_name
+            subprocess.call(full_command, shell=True)
+
+    def _get_ips_to_test(self, cfg_file_path):
+        ip_list = []
+        cfg_file = open(cfg_file_path)
+        for line in cfg_file.readlines():
+            if line.strip() != "":
+                ip_list.append(line.strip())
+        return ip_list
+
+    def _run_sbsmatch_for_input(self, ip, input_file_name, input_dir_path):
         directory_to_check = os.path.join(self.path_to_check, input_file_name)
-        file_input = os.path.join(self.path_to_input, input_file_name)
 
-        input_arguments_file = open(file_input, "r")
-        input_arguments = input_arguments_file.readline()
-        self.assertFalse(input_arguments is None, "Can't read input file " + input_file_name)
-        input_arguments += " --temp=" + directory_to_check
+        input_arguments = " --temp=" + directory_to_check
+        input_arguments += " --ip=" + ip
+        input_arguments += " --beam1=" + os.path.join(input_dir_path, "Beam1")
+        input_arguments += " --beam2=" + os.path.join(input_dir_path, "Beam2")
 
         call_command = os.path.abspath(self.path_to_modified_sbs_match) + " " + input_arguments
         call_command = sys.executable + " " + call_command
@@ -84,7 +123,7 @@ class TestOutput(unittest.TestCase):
                 self._compare_files_with_ndiff(valid_item_path, to_check_item_path)
 
     def _compare_files_with_ndiff(self, valid_file_path, to_check_file_path):
-        self.assertTrue(ndiff.compare_tfs_files_and_ignore_header(valid_file_path, to_check_file_path),
+        self.assertTrue(ndiff.compare_files(valid_file_path, to_check_file_path, os.path.join(CURRENT_PATH, "sbs_match_ndiff.cfg")),
                         "Differences found in file: " + to_check_file_path)
 
 
