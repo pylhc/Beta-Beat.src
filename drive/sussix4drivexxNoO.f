@@ -135,7 +135,7 @@ C
      &maxturns
       parameter (maxturns=10000)
       double precision eps,etune,tunex,tuney,tunez, xy(maxturns*4+4),
-     &tunexy(2),amplitude(19), phase(19), ox(1600), ax(1600), oy(1600), 
+     &tunexy(2),amplitude(33), phase(33), ox(1600), ax(1600), oy(1600), 
      &ay(1600)
       parameter(mterm=1600)
       dimension lr(100),mr(100),kr(100),etune(3)
@@ -1601,7 +1601,7 @@ C            write(30,100)n,-ty(n),py,0,0
       enddo
  
       
-      do myint=1,19
+      do myint=1,33
          if(flagad(myint).eq.0) then
             amplitude(myint)=0
             phase(myint)=0
