@@ -46,6 +46,11 @@ def main(options, args):
     if command == "variables":
         exclude_vars_string = options.exclude
         generate_variables(ip, match_temporary_path, exclude_vars_string)
+    elif command == "constraints":
+        sbs_data_b1_path = options.b1
+        sbs_data_b2_path = options.b2
+        exclude_constr_string = options.exclude
+        generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, exclude_constr_string)
     elif command == "clean":
         clean_up_temporary_dir(match_temporary_path)
     else:
@@ -64,9 +69,9 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     iotools.create_dirs(os.path.join(beam2_temporary_path, "sbs"))
 
     _check_and_run_genvariables(ip, match_temporary_path)
+    _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
 
     print "Copying necessary files into temporary folder..."
-    iotools.copy_item(os.path.join(CURRENT_PATH, "genconstraints.py"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "genphases.py"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "mergedump.sh"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB1.gplot"), match_temporary_path)
@@ -81,7 +86,7 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
 
     iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam1_temporary_path, "sbs"))
     iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam2_temporary_path, "sbs"))
-    
+
     print "Getting matching range..."
     ((range_beam1_start_s, range_beam1_start_name),
     (range_beam1_end_s, range_beam1_end_name)) = _get_match_bpm_range(os.path.join(beam1_temporary_path, "sbs",
@@ -108,13 +113,31 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     print "Done"
 
 
+def _check_and_run_genvariables(ip, match_temporary_path):
+    for file_name in ["applycorrection.seqx", "dvariables.seqx", "genchangpars.seqx",
+                      "svariables.seqx", "variablesb1.seqx", "variablesb2.seqx", "variablesc.seqx"]:
+        full_file_path = os.path.join(match_temporary_path, file_name)
+        if not os.path.exists(full_file_path):  # TODO: Here the variables should be recreated if they are for a different IP
+            print "File " + file_name + " not found, generating new variables files..."
+            generate_variables(ip, match_temporary_path)
+            break
+
+
+def _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
+    for file_name in ["constraintsb1.seqx", "constraintsb2.seqx", "dumpb1.seqx", "dumpb2.seqx"]:
+        full_file_path = os.path.join(match_temporary_path, file_name)
+        if not os.path.exists(full_file_path):  # TODO: Here the constraints should be recreated if they are for a different IP
+            print "File " + file_name + " not found, generating new constraints files..."
+            generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
+            break
+
+
 def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
     if not os.path.exists(variables_path):
         iotools.create_dirs(variables_path)
-    if not exclude_string == "":
-        exclude_list = [var_name.strip() for var_name in exclude_string.strip('"').split(",")]
-    else:
-        exclude_list = []
+
+    exclude_list = _parse_exclude_string(exclude_string)
+
     variables_beam1 = json.load(file(ALL_LISTS_BEAM1_PATH, 'r'))['getListsByIR'][1]
     variables_common, variables_beam2 = json.load(file(ALL_LISTS_BEAM2_PATH, 'r'))['getListsByIR']
 
@@ -165,14 +188,82 @@ def _vars_to_files(apply_correction_file, variables_file, variables_s_file, vari
         apply_correction_file.write(variable + ' = ' + variable + '_0 + d' + variable + ';\n')
 
 
-def _check_and_run_genvariables(ip, match_temporary_path):
-    for file_name in ["applycorrection.seqx", "dvariables.seqx", "genchangpars.seqx",
-                      "svariables.seqx", "variablesb1.seqx", "variablesb2.seqx", "variablesc.seqx"]:
-        full_file_path = os.path.join(match_temporary_path, file_name)
-        if not os.path.exists(full_file_path):  # TODO: Here the variables should be recreated if they are for a different IP
-            print "File " + file_name + " not found, generating new variables files..."
-            generate_variables(ip, match_temporary_path)
-            break
+def generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, constraints_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+    full_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'getphasex.out'))
+    x_tune_beam1 = full_data_beam1.Q1
+    y_tune_beam1 = full_data_beam1.Q2
+
+    full_data_beam2 = twiss(os.path.join(sbs_data_b2_path, 'getphasex.out'))
+    x_tune_beam2 = full_data_beam2.Q1
+    y_tune_beam2 = full_data_beam2.Q2
+
+    sbs_x_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'sbs', 'sbsphasext_IP' + ip + '.out'))
+    sbs_y_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'sbs', 'sbsphaseyt_IP' + ip + '.out'))
+    sbs_x_data_beam2 = twiss(os.path.join(sbs_data_b2_path, 'sbs', 'sbsphasext_IP' + ip + '.out'))
+    sbs_y_data_beam2 = twiss(os.path.join(sbs_data_b2_path, 'sbs', 'sbsphaseyt_IP' + ip + '.out'))
+
+    constr_file_beam1 = open(os.path.join(constraints_path, 'constraintsb1.seqx'), 'w')
+    constr_file_beam2 = open(os.path.join(constraints_path, 'constraintsb2.seqx'), 'w')
+    dump_file_beam1 = open(os.path.join(constraints_path, "dumpb1.seqx"), 'w')
+    dump_file_beam2 = open(os.path.join(constraints_path, "dumpb2.seqx"), 'w')
+
+    exclude_list = _parse_exclude_string(exclude_string)
+
+    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list)
+    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list)
+    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list)
+    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list)
+
+
+def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, tune, exclude_list):
+    if plane == "x":
+        constr_file.write('\n!!!! BEAM ' + str(beam) + ' H !!!!!\n\n')
+    else:
+        constr_file.write('\n!!!! BEAM ' + str(beam) + ' V !!!!!\n\n')
+
+    dump_file.write('delete,table=dmu' + plane + 'b' + str(beam) + ';\n')
+    dump_file.write('create,table=dmu' + plane + 'b' + str(beam) +
+                    ',column=sss,cdmu' + plane +
+                    ',tdmu' + plane + ';\n')
+
+    for index in range(0, len(sbs_data.NAME)):
+        name = sbs_data.NAME[index]
+        if name not in exclude_list:
+            phase = sbs_data.PHASEXT[index] if plane == "x" else sbs_data.PHASEYT[index]
+            s = sbs_data.S[index]
+
+            phase, ckstr = _check_and_fix_tune_discontinuity(phase, s, ip, beam, plane, tune)
+
+            weight = 1e-6 if abs(phase) > 0.25 else 1
+
+            constr_file.write('   constraint, weight = ' + str(weight) + ' , ')
+            constr_file.write('expr =  dmu' + plane + name + ' = ' + str(phase) + '; ')
+
+            constr_file.write('!   S = ' + str(s) + ' ' + ckstr)
+            constr_file.write(';\n')
+
+            dump_file.write('   sss = table(twiss, ' + name + ', s); cdmu' +
+                            plane + ' = dmu' + plane + name + ';  tdmu' + plane + ' =  ' + str(phase) + ';\n')
+            dump_file.write('   fill,table=dmu' + plane + 'b' + str(beam) + ';\n')
+
+    dump_file.write('write,table=dmu' + plane + 'b' + str(beam) + ', file=dmu' + plane + 'b' + str(beam) + '.tfs;\n')
+
+
+def _check_and_fix_tune_discontinuity(phase, s, ip, beam, plane, tune):
+    if ip == "2" and beam == 1 and s > 214.0 and s < 681.0:
+        return phase + tune, '+ B1 Q' + plane + '(' + str(tune) + ')'
+    elif ip == "8" and beam == 2 and (s < 460.0 or s > 26532.0):
+        return phase + tune, '+ B2 Q' + plane + '(' + str(tune) + ')'
+    else:
+        return phase, '+ 0.0'
+
+
+def _parse_exclude_string(exclude_string):
+    if not exclude_string == "":
+        exclude_list = [var_name.strip() for var_name in exclude_string.strip('"').split(",")]
+    else:
+        exclude_list = []
+    return exclude_list
 
 
 def _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path):
