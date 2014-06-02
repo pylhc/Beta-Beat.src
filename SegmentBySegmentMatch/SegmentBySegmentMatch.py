@@ -7,7 +7,6 @@ import subprocess
 from Python_Classes4MAD.metaclass import twiss
 from Python_Classes4MAD import madxrunner
 import json
-import sys
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -208,11 +207,13 @@ def generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, constraints_pat
     dump_file_beam1 = open(os.path.join(constraints_path, "dumpb1.seqx"), 'w')
     dump_file_beam2 = open(os.path.join(constraints_path, "dumpb2.seqx"), 'w')
 
-
-    exclude_both_planes = exclude_string.split(";")
-    exclude_list_x = _parse_exclude_string(exclude_both_planes[0])
-    exclude_list_y = _parse_exclude_string(exclude_both_planes[1])
-
+    if exclude_string.strip() == "":
+        exclude_list_x = ""
+        exclude_list_y = ""
+    else:
+        exclude_both_planes = exclude_string.split(";")
+        exclude_list_x = _parse_exclude_string(exclude_both_planes[0])
+        exclude_list_y = _parse_exclude_string(exclude_both_planes[1])
 
     _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x)
     _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y)
