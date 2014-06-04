@@ -84,8 +84,8 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path)
     _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, os.path.join(beam2_temporary_path, "sbs"), ip)
 
-    iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam1_temporary_path, "sbs"))
-    iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam2_temporary_path, "sbs"))
+    iotools.copy_item(os.path.join(CURRENT_PATH, "write_sbs_data_files.py"), os.path.join(beam1_temporary_path, "sbs", "getfterms_0.3.py"))
+    iotools.copy_item(os.path.join(CURRENT_PATH, "write_sbs_data_files.py"), os.path.join(beam2_temporary_path, "sbs", "getfterms_0.3.py"))
 
     print "Getting matching range..."
     ((range_beam1_start_s, range_beam1_start_name),
