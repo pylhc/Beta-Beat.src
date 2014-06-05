@@ -36,7 +36,7 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
     syntax is: rdt_set = [(plane, out_file, line), ...]
     with:
         plane in ["H", "V"]
-        out_file in files_dict is the out file to write the data to
+        out_file in files_dict is the out file to write the data to (must be added to GetLLM.py)
         line in (int, int) is the corresponding line to the driving term
     """
     rdt_set = [
@@ -44,9 +44,9 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
         ("H", files_dict["f4000_line.out"], (-3, 0))  # sextupolar
     ]
     for rdt in range(len(rdt_set)):
-        _process_RDT(mad_twiss, phase_d, twiss_d, *rdt_set[rdt])
+        _process_RDT(mad_twiss, phase_d, twiss_d, rdt_set[rdt])
 
-def _process_RDT(mad_twiss, phase_d, twiss_d, plane, out_file, line):
+def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
     assert plane in ["H", "V"] # check user input plane
 
     # get plane corresponding phase and twiss data
@@ -91,8 +91,10 @@ def _get_best_fitting_bpm(phase_d, bpm1, plane):
             possible_pairs[bpm_pair] = phase_d[bpm_pair]
     
     if not possible_pairs: raise KeyError
-    # find best_fitting bpm_pair. We want the second bpm to be as close as possible to .5 offset
-    bpm_pair = min(possible_pairs, key=lambda bpm_pair:abs(float(possible_pairs[bpm_pair][0])-.5))
+    # find best_fitting bpm_pair. We want the second bpm to be as close as possible to .25 offset
+    #bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0] - .25)))
+    # for now we just pick the next bpm for pairing -> 0.0 phase offset
+    bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0])))
     return (bpm_pair[1:].replace(bpm1, ""), possible_pairs[bpm_pair])
 
 def _line_to_amp_and_phase_attr(line, zero_dpp):
