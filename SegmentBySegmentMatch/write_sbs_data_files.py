@@ -2,7 +2,7 @@ import sys
 sys.path.append("/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/")
 import os
 import optparse
-import metaclass
+import metaclass  # @UnresolvedImport
 import math
 
 
@@ -29,17 +29,17 @@ def parse_args():
     parser.add_option("-w", "--w",  # Path to Chromaticity functions
                         help="Path to  chromaticity functions, by default this is skiped",
                         metavar="wpath", default="0", dest="wpath")
-    (options, args) = parser.parse_args()
-    return options, args
+    options = parser.parse_args()[0]
+    main(options.path, options.exp, options.label, options.fast, options.start, options.ME, options.wpath)
 
 
-def main(options, args):
-    model_twiss = _try_to_load_twiss(options.path, "twiss_" + options.label + ".dat")
+def main(output_path, experimental_path, label, fast, start_bpm, method, w_path):
+    model_twiss = _try_to_load_twiss(output_path, "twiss_" + label + ".dat")
     if not model_twiss:
         print >> sys.stderr, "Can't continue without model..."
         return
 
-    method = options.ME
+    method = method
     if method == "driven":
         method = ""
 
@@ -47,19 +47,19 @@ def main(options, args):
     model_twiss.Cmatrix()
     elements_names = model_twiss.NAME
 
-    write_initial_values_file(options.path, model_twiss, elements_names)
+    write_initial_values_file(output_path, model_twiss, elements_names)
 
-    if options.fast != "1":
-        model_play_twiss = _try_to_load_twiss(options.path, "twiss_" + options.label + "_cor.dat")
+    if fast != "1":
+        model_play_twiss = _try_to_load_twiss(output_path, "twiss_" + label + "_cor.dat")
         if not model_play_twiss:
             print >> sys.stderr, "Can't continue without model play..."
             return
         model_play_twiss.Cmatrix()
 
-        write_coupling_files(options.path, options.exp, options.label, method, model_twiss, model_play_twiss)
-        write_phase_files(options.path, options.exp, options.label, method, options.start, model_twiss, model_play_twiss)
-        write_w_function_files(options.path, options.wpath, options.label, model_twiss, model_play_twiss)
-        write_dispersion_files(options.path, options.exp, options.label, model_twiss, model_play_twiss)
+        write_coupling_files(output_path, experimental_path, label, method, model_twiss, model_play_twiss)
+        write_phase_files(output_path, experimental_path, label, method, start_bpm, model_twiss, model_play_twiss)
+        write_w_function_files(output_path, w_path, label, model_twiss, model_play_twiss)
+        write_dispersion_files(output_path, experimental_path, label, model_twiss, model_play_twiss)
 
 
 def write_initial_values_file(path, model_twiss, elements_names):
@@ -336,5 +336,4 @@ def _get_data_type_header_for(file_type):
     }[file_type]
 
 if __name__ == "__main__":
-    (options, args) = parse_args()
-    main(options, args)
+    parse_args()
