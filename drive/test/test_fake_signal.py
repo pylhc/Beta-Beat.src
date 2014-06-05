@@ -1,10 +1,10 @@
+import __init__  # @UnusedImport
 import os
 import sys
 import subprocess
 import unittest
 import time
 import datetime
-import matplotlib.pyplot as plt
 import numpy as np
 import Utilities.iotools
 import random as rnd
@@ -23,8 +23,6 @@ ISTUN = 0.005
 
 
 class TestFakeData(unittest.TestCase):
-
-    plot_fake_data = False
 
     fake_data_file_path = os.path.join(CURRENT_PATH, "fake_signal", "test.sdds.cleaned")
 
@@ -95,37 +93,11 @@ class TestFakeData(unittest.TestCase):
                                                         self.kick_turn
                                                         )
 
-        if self.plot_fake_data:
-            self._do_plot_fake_data(bpm_to_signal_dict, self.bpms_data, fft=True)
-
         write_result = self._write_fake_data_to_file(bpm_to_signal_dict, self.bpms_data)
         if write_result:
             print('Wrote data file to: %s' % self.fake_data_file_path)
         else:
             print('Something went wrong while writing the data to file!')
-
-    def _do_plot_fake_data(self, bpmSignalDict, bpms, fft=True):
-        if fft:
-            x = np.fft.fftfreq(2000, d=1.)
-            y = []
-            for bpm in bpms:
-                y.append(abs(np.fft.fft(bpmSignalDict[bpm])))
-                plt.plot(x, y[-1], alpha=.7, label=bpm)
-            plt.xlim(-0.5, 0.5)
-            plt.xticks()
-            plt.semilogy()
-            plt.xlabel('Tune [1/Turns]')
-            plt.ylabel('Amplitude [a.u.]')
-        else:
-            for bpm in bpms:
-                plt.plot(bpmSignalDict[bpm], alpha=.7, label=bpm)
-            plt.xlabel('Turns [1]')
-            plt.ylabel('Amplitude [a.u.]')
-
-        plt.subplots_adjust(left=0.04, right=0.97, top=0.97, bottom=0.04)
-        plt.grid(which='both')
-        plt.legend()
-        plt.show()
 
     def _get_bpm_to_signal_dict(self, bpms_data, resonances_dict, turns=2000, kick_turn=100):
         bpm_dict = {}
