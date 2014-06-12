@@ -14,6 +14,11 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 ALL_LISTS_BEAM1_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists.json')
 ALL_LISTS_BEAM2_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB2', 'AllLists.json')
 
+_IP2_FIX_START = 214.0
+_IP2_FIX_END = 841.0
+_IP8_FIX_START = 511.0
+_IP8_FIX_END = 26532.0
+
 
 def parse_args():
     parser = optparse.OptionParser()
@@ -258,9 +263,9 @@ def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, t
 
 
 def _check_and_fix_tune_discontinuity(phase, s, ip, beam, plane, tune):
-    if ip == "2" and beam == 1 and s > 214.0 and s < 681.0:
+    if ip == "2" and beam == 1 and s > _IP2_FIX_START and s < _IP2_FIX_END:
         return phase + tune, '+ B1 Q' + plane + '(' + str(tune) + ')'
-    elif ip == "8" and beam == 2 and (s < 460.0 or s > 26532.0):
+    elif ip == "8" and beam == 2 and (s < _IP8_FIX_START or s > _IP8_FIX_END):
         return phase + tune, '+ B2 Q' + plane + '(' + str(tune) + ')'
     else:
         return phase, '+ 0.0'
