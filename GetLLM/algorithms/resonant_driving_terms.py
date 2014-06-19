@@ -90,11 +90,11 @@ def _get_best_fitting_bpm(phase_d, bpm1, plane):
         if bpm_pair[0] == plane and bpm_pair[1:].startswith(bpm1):
             possible_pairs[bpm_pair] = phase_d[bpm_pair]
     
-    if not possible_pairs: raise KeyError
+    if not possible_pairs: raise KeyError("No possible BPM pairs for the given BPM found!")
     # find best_fitting bpm_pair. We want the second bpm to be as close as possible to .25 offset
-    #bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0] - .25)))
+    bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0]) - .25))
     # for now we just pick the next bpm for pairing -> 0.0 phase offset
-    bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0])))
+    #bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0])))
     return (bpm_pair[1:].replace(bpm1, ""), possible_pairs[bpm_pair])
 
 def _line_to_amp_and_phase_attr(line, zero_dpp):
