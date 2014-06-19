@@ -400,8 +400,8 @@ class TestFakeData(unittest.TestCase):
                             max_amplitude = amplitude
                             result_params = [tune, amplitude]
         if len(result_params) == 0:
-            result_params[0] = -100.0
-            result_params[1] = -100.0
+            result_params.append(-100.0)
+            result_params.append(-100.0)
         return result_params
 
 
