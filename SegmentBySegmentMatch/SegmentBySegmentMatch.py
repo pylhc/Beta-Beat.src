@@ -7,11 +7,17 @@ import subprocess
 from Python_Classes4MAD.metaclass import twiss
 from Python_Classes4MAD import madxrunner
 import json
+import write_sbs_data_files
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 ALL_LISTS_BEAM1_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists.json')
 ALL_LISTS_BEAM2_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB2', 'AllLists.json')
+
+_IP2_FIX_START = 214.0
+_IP2_FIX_END = 841.0
+_IP8_FIX_START = 511.0
+_IP8_FIX_END = 26532.0
 
 
 def parse_args():
@@ -84,8 +90,9 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path)
     _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, os.path.join(beam2_temporary_path, "sbs"), ip)
 
-    iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam1_temporary_path, "sbs"))
-    iotools.copy_item(os.path.join(CURRENT_PATH, "getfterms_0.3.py"), os.path.join(beam2_temporary_path, "sbs"))
+    # TODO: getfterms shouldn't be called from MADX, this has to be fixed in the SegmentBySegment.py script (jcoellod)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "write_sbs_data_files.py"), os.path.join(beam1_temporary_path, "sbs", "getfterms_0.3.py"))
+    iotools.copy_item(os.path.join(CURRENT_PATH, "write_sbs_data_files.py"), os.path.join(beam2_temporary_path, "sbs", "getfterms_0.3.py"))
 
     print "Getting matching range..."
     ((range_beam1_start_s, range_beam1_start_name),
@@ -103,8 +110,8 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     print "Running MADX..."
     _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_path)
 
-    print "Running getfterms"
-    _call_getfterms(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name)
+    print "Writting sbs files from MADX results..."
+    _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name)
 
     print "Running GNUPlot..."
     _prepare_and_run_gnuplot(ip, match_temporary_path,
@@ -207,12 +214,18 @@ def generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, constraints_pat
     dump_file_beam1 = open(os.path.join(constraints_path, "dumpb1.seqx"), 'w')
     dump_file_beam2 = open(os.path.join(constraints_path, "dumpb2.seqx"), 'w')
 
-    exclude_list = _parse_exclude_string(exclude_string)
+    if exclude_string.strip() == "":
+        exclude_list_x = ""
+        exclude_list_y = ""
+    else:
+        exclude_both_planes = exclude_string.split(";")
+        exclude_list_x = _parse_exclude_string(exclude_both_planes[0])
+        exclude_list_y = _parse_exclude_string(exclude_both_planes[1])
 
-    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list)
-    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list)
-    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list)
-    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list)
+    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x)
+    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y)
+    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list_x)
+    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list_y)
 
 
 def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, tune, exclude_list):
@@ -250,9 +263,9 @@ def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, t
 
 
 def _check_and_fix_tune_discontinuity(phase, s, ip, beam, plane, tune):
-    if ip == "2" and beam == 1 and s > 214.0 and s < 681.0:
+    if ip == "2" and beam == 1 and s > _IP2_FIX_START and s < _IP2_FIX_END:
         return phase + tune, '+ B1 Q' + plane + '(' + str(tune) + ')'
-    elif ip == "8" and beam == 2 and (s < 460.0 or s > 26532.0):
+    elif ip == "8" and beam == 2 and (s < _IP8_FIX_START or s > _IP8_FIX_END):
         return phase + tune, '+ B2 Q' + plane + '(' + str(tune) + ')'
     else:
         return phase, '+ 0.0'
@@ -341,22 +354,11 @@ def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_p
     process.communicate()
 
 
-def _call_getfterms(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
-    proccess_beam1 = subprocess.Popen("/usr/bin/python " + os.path.join(beam1_temporary_path, "sbs", "getfterms_0.3.py") +
-                                      " -p " + os.path.join(beam1_temporary_path, "sbs") +
-                                      " -l IP" + ip + " -e " + beam1_temporary_path +
-                                      " -s " + range_beam1_start_name +
-                                      " -m _free",
-                                      shell=True)
-    proccess_beam1.communicate()
-    proccess_beam2 = subprocess.Popen("/usr/bin/python " + os.path.join(beam2_temporary_path, "sbs", "getfterms_0.3.py") +
-                                      " -p " + os.path.join(beam2_temporary_path, "sbs") +
-                                      " -l IP" + ip +
-                                      " -e " + beam2_temporary_path +
-                                      " -s " + range_beam2_start_name +
-                                      " -m _free",
-                                      shell=True)
-    proccess_beam2.communicate()
+def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
+    write_sbs_data_files.main(os.path.join(beam1_temporary_path, "sbs"), beam1_temporary_path, "IP" + ip, "0",
+                              range_beam1_start_name, "_free", "0")
+    write_sbs_data_files.main(os.path.join(beam2_temporary_path, "sbs"), beam2_temporary_path, "IP" + ip, "0",
+                              range_beam2_start_name, "_free", "0")
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
