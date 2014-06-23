@@ -32,32 +32,35 @@ class TestFakeData(unittest.TestCase):
     path_to_sdds = os.path.join(CURRENT_PATH, "fake_signal", "test.sdds.cleaned")
 
     def setUp(self):
+        print "Generating fake data..."
         self._generate_fake_data()
+        print "Running drive..."
         self._run_drive()
 
     def tearDown(self):
+        print "Deleting output..."
         self._delete_drive_output()
         self._delete_fake_data()
+        print "Done"
 
     def testFakeData(self):
+        print "Comparing drive output with fake input..."
         self._compare_drive_output_with_fake_input()
 
     def _generate_fake_data(self):
         self.qx = 0.28
         self.qy = 0.31
+        self.number_of_bpms = 8
+        self.turns = 2000
+        self.kick_turn = 100
 
-        self.bpms_data = {
-            'BPMX.1.BTEST': {'pos': 0.0, 'plane': 'x', 'phaseOffset': 0.0},
-            'BPMY.1.BTEST': {'pos': 0.0, 'plane': 'y', 'phaseOffset': 0.0},
-            'BPMX.2.BTEST': {'pos': 1.0, 'plane': 'x', 'phaseOffset': 0.0},
-            'BPMY.2.BTEST': {'pos': 1.0, 'plane': 'y', 'phaseOffset': 0.0},
-            'BPMX.3.BTEST': {'pos': 2.0, 'plane': 'x', 'phaseOffset': 0.0},
-            'BPMY.3.BTEST': {'pos': 2.0, 'plane': 'y', 'phaseOffset': 0.0},
-            'BPMX.4.BTEST': {'pos': 3.0, 'plane': 'x', 'phaseOffset': 0.0},
-            'BPMY.4.BTEST': {'pos': 3.0, 'plane': 'y', 'phaseOffset': 0.0},
-        }
+        self.bpms_data = {}
 
-        #  Resonances (random examples, may be adjusted)
+        for i in range(0, self.number_of_bpms / 2):
+            position = i * self.number_of_bpms / 27000
+            self.bpms_data['BPMX.' + str(i) + '.BTEST'] = {'pos': position, 'plane': 'x', 'phaseOffset': 0.0}
+            self.bpms_data['BPMY.' + str(i) + '.BTEST'] = {'pos': position, 'plane': 'y', 'phaseOffset': 0.0}
+
         self.resonances_dict = {"x": {}, "y": {}}
 
         ResonanceLineData.add(self, "x", 1, 0, 100.0 * rnd.random(), np.pi * (2 * rnd.random() - 1))
@@ -83,8 +86,8 @@ class TestFakeData(unittest.TestCase):
         ResonanceLineData.add(self, "y", 0, 3, 0.1 * rnd.random(), np.pi * (2 * rnd.random() - 1))
         ResonanceLineData.add(self, "y", -1, 3, 0.01 * rnd.random(), np.pi * (2 * rnd.random() - 1))
 
-        self.turns = 2000
-        self.kick_turn = 100
+        self.np_amplitudes_x, self.np_tunes_x, self.np_phases_x = ResonanceLineData.get_np_arrays(self, "x")
+        self.np_amplitudes_y, self.np_tunes_y, self.np_phases_y = ResonanceLineData.get_np_arrays(self, "y")
 
         bpm_to_signal_dict = self._get_bpm_to_signal_dict(
                                                         self.bpms_data,
@@ -105,16 +108,28 @@ class TestFakeData(unittest.TestCase):
         for bpm_name in bpms_data:
             bpm_dict[bpm_name] = []
 
+        i = 1
         for bpm_name in bpms_data:
+            sys.stdout.write("\rBPM " + str(i) + " of " + str(len(bpms_data)))
+            sys.stdout.flush()
+            i += 1
             plane = bpms_data[bpm_name]['plane']
             max_signal = -500000.0
             min_signal = 500000.0
             co = 0.0
             corms = 0.0
 
+            if plane == "x":
+                np_amplitudes, np_tunes, np_phases = self.np_amplitudes_x, self.np_tunes_x, self.np_phases_x
+            elif plane == "y":
+                np_amplitudes, np_tunes, np_phases = self.np_amplitudes_y, self.np_tunes_y, self.np_phases_y
+
+            bpm_signal_list = bpm_dict[bpm_name]
+
             for turn in range(turns):
-                bpm_signal = self._compute_signal_of_bpm(turn, plane, bpms_data[bpm_name]["phaseOffset"])
-                bpm_dict[bpm_name].append(bpm_signal)
+                bpm_signal = self._compute_signal_of_bpm(np_amplitudes, np_tunes, np_phases,
+                                                         turn, plane, bpms_data[bpm_name]["phaseOffset"])
+                bpm_signal_list.append(bpm_signal)
 
                 co += bpm_signal
                 corms += bpm_signal ** 2
@@ -129,16 +144,12 @@ class TestFakeData(unittest.TestCase):
             bpms_data[bpm_name]['pk2pk'] = max_signal - min_signal
             bpms_data[bpm_name]['co'] = co
             bpms_data[bpm_name]['corms'] = corms
+        print ""  # New line
         return bpm_dict
 
-    def _compute_signal_of_bpm(self, turn, plane, bpm_offset):
+    def _compute_signal_of_bpm(self, np_amplitudes, np_tunes, np_phases, turn, plane, bpm_offset):
         pi2 = np.pi * 2
-
-        signal = 0
-        for resonance_data in self.resonances_dict[plane].values():
-            signal += resonance_data.amplitude * np.cos(pi2 * resonance_data.tune * turn +
-                                                        resonance_data.phase +
-                                                        bpm_offset)
+        signal = np.sum(np_amplitudes * np.cos(pi2 * np_tunes * turn + np_phases + bpm_offset))
         return signal
 
     def _write_fake_data_to_file(self, bpmData, bpms):
@@ -172,7 +183,7 @@ class TestFakeData(unittest.TestCase):
 
     def _run_drive(self):
         file_driving_terms = open(self.path_to_driving_terms, "w")
-        print >> file_driving_terms, self.path_to_sdds, "1", "2000"
+        print >> file_driving_terms, self.path_to_sdds, "1", str(self.turns)
         file_driving_terms.close()
 
         call_command = os.path.abspath(self.path_to_drive) + " " + os.path.abspath(self.path_to_test)
@@ -422,6 +433,17 @@ class ResonanceLineData(object):
         @staticmethod
         def add(father, plane, tune_i, tune_j, amplitude, phase):
             father.resonances_dict[plane][tune_i, tune_j] = ResonanceLineData(father, tune_i, tune_j, amplitude, phase)
+
+        @staticmethod
+        def get_np_arrays(father, plane):
+            amplitude_list = []
+            tune_list = []
+            phases_list = []
+            for resonance_line_data in father.resonances_dict[plane].values():
+                amplitude_list.append(resonance_line_data.amplitude)
+                tune_list.append(resonance_line_data.tune)
+                phases_list.append(resonance_line_data.phase)
+            return np.array(amplitude_list), np.array(tune_list), np.array(phases_list)
 
 
 if __name__ == '__main__':
