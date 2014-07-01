@@ -41,30 +41,39 @@ import sys
 import __init__  # @UnusedImport __init__ adds the path to Beta-Beat.src
 import Python_Classes4MAD.metaclass
 
-
-
-
-
 #===================================================================================================
 # parse_args()-function
 #===================================================================================================
+
 def parse_args():
     ''' Parses the sys.argv[1], checks for valid input and returns the path to src files  '''
-    try:
+    if len(sys.argv) == 2:
         path_to_src_files = sys.argv[1]
-    except IndexError:
-        print >> sys.stderr, str("Provide path to GetLLM output as first command line argument. E.g:"+
-                                    "  python getdiff.py /path/to/getllm/output/")
+        if not os.path.isdir(path_to_src_files):
+            print >> sys.stderr, "No valid directory:", path_to_src_files
+            sys.exit(1)
+        corrected_model_path = os.path.join(path_to_src_files, 'twiss_cor.dat')
+        uncorrected_model_path = os.path.join(path_to_src_files, 'twiss_no.dat')
+    elif len(sys.argv) == 4:
+        path_to_src_files = sys.argv[1]
+        if not os.path.isdir(path_to_src_files):
+            print >> sys.stderr, "No valid directory:", path_to_src_files
+            sys.exit(1)
+        corrected_model_path = sys.argv[2]
+        uncorrected_model_path = sys.argv[3]
+    else:
+        print >> sys.stderr, "Provide a path for a measurement file and optionally the path to the corrected and" \
+                             "uncorrected models."
         sys.exit(1)
 
-    if not os.path.isdir(path_to_src_files):
-        print >> sys.stderr, "No valid directory:", path_to_src_files
-    return path_to_src_files
+    return path_to_src_files, corrected_model_path, uncorrected_model_path
 
 #===================================================================================================
 # main()-function
 #===================================================================================================
-def main(path):
+
+
+def main(path, corrected_model_path, uncorrected_model_path):
     '''
     :Parameters:
         'path': string
@@ -72,27 +81,26 @@ def main(path):
     :Return: int
         0 if execution was successful otherwise !=0
     '''
-    twiss_cor = Python_Classes4MAD.metaclass.twiss(os.path.join(path,'twiss_cor.dat'))
-    twiss_no = Python_Classes4MAD.metaclass.twiss(os.path.join(path,'twiss_no.dat'))
+    twiss_cor = Python_Classes4MAD.metaclass.twiss(corrected_model_path)
+    twiss_no = Python_Classes4MAD.metaclass.twiss(uncorrected_model_path)
     twiss_cor.Cmatrix()
     twiss_no.Cmatrix()
 
-
     # normal quad
 
-    file_bbx = open( os.path.join(path,"bbx.out"), "w")
-    file_bby = open( os.path.join(path,"bby.out"), "w")
+    file_bbx = open(os.path.join(path, "bbx.out"), "w")
+    file_bby = open(os.path.join(path, "bby.out"), "w")
 
-    print >> file_bbx,"NAME S MEA ERROR MODEL"
-    print >> file_bbx,"%s %le %le %le %le"
+    print >> file_bbx, "* NAME S MEA ERROR MODEL"
+    print >> file_bbx, "$ %s %le %le %le %le"
 
-    print >> file_bby,"NAME S MEA ERROR MODEL"
-    print >> file_bby,"%s %le %le %le %le"
+    print >> file_bby, "* NAME S MEA ERROR MODEL"
+    print >> file_bby, "$ %s %le %le %le %le"
 
-    if os.path.exists( os.path.join(path,'getbetax_free.out') ):
-        twiss_getbetax = Python_Classes4MAD.metaclass.twiss( os.path.join(path,'getbetax_free.out') )
+    if os.path.exists(os.path.join(path, 'getbetax_free.out')):
+        twiss_getbetax = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetax_free.out'))
     else:
-        twiss_getbetax = Python_Classes4MAD.metaclass.twiss( os.path.join(path,'getbetax.out') )
+        twiss_getbetax = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetax.out'))
 
     for i in range(len(twiss_getbetax.NAME)):
         bpm_name = twiss_getbetax.NAME[i]
@@ -103,9 +111,9 @@ def main(path):
             print "No ", bpm_name
             bpm_included = False
         if bpm_included:
-            j=twiss_cor.indx[bpm_name]
-            t_x = twiss_getbetax # Variable for abbreviation
-            print>> file_bbx,bpm_name, t_x.S[i], (t_x.BETX[i]-t_x.BETXMDL[i])/t_x.BETXMDL[i], t_x.STDBETX[i]/t_x.BETXMDL[i],(twiss_cor.BETX[j]-twiss_no.BETX[j])/twiss_no.BETX[j]
+            j = twiss_cor.indx[bpm_name]
+            t_x = twiss_getbetax  # Variable for abbreviation
+            print>> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i]-t_x.BETXMDL[i])/t_x.BETXMDL[i], t_x.STDBETX[i]/t_x.BETXMDL[i],(twiss_cor.BETX[j]-twiss_no.BETX[j])/twiss_no.BETX[j]
 
     if os.path.exists( os.path.join(path,'getbetay_free.out') ):
         twiss_getbetay = Python_Classes4MAD.metaclass.twiss( os.path.join(path,'getbetay_free.out') )
@@ -133,8 +141,8 @@ def main(path):
 
         file_dx = open( os.path.join(path,"dx.out") ,"w")
 
-        print >> file_dx,"NAME S MEA ERROR MODEL"
-        print >> file_dx,"%s %le %le %le %le"
+        print >> file_dx,"* NAME S MEA ERROR MODEL"
+        print >> file_dx,"$ %s %le %le %le %le"
 
         for i in range(len(twiss_getdx.NAME)):
             bpm_name = twiss_getdx.NAME[i]
@@ -160,8 +168,8 @@ def main(path):
     file_couple = open( os.path.join(path,"couple.out") ,"w")
 
 
-    print >> file_couple,"NAME S F1001re F1001im F1001e F1001re_m F1001im_m"
-    print >> file_couple,"%s %le %le %le %le %le %le"
+    print >> file_couple,"* NAME S F1001re F1001im F1001e F1001re_m F1001im_m"
+    print >> file_couple,"$ %s %le %le %le %le %le %le"
 
 
 
@@ -191,8 +199,8 @@ def main(path):
 
         file_dy = open( os.path.join(path,"dy.out") ,"w")
 
-        print >> file_dy,"NAME S MEA ERROR MODEL"
-        print >> file_dy,"%s %le %le %le %le"
+        print >> file_dy,"* NAME S MEA ERROR MODEL"
+        print >> file_dy,"$ %s %le %le %le %le"
 
         for i in range(len(twiss_getdy.NAME)):
             bpm_name = twiss_getdy.NAME[i]
@@ -219,10 +227,10 @@ def main(path):
 # main invocation
 #===================================================================================================
 def _start():
-    path_to_src_files = parse_args()
+    path_to_src_files, corrected_model_path, uncorrected_model_path = parse_args()
 
     print "Start getdiff.main..."
-    return_value = main(path = path_to_src_files)
+    return_value = main(path_to_src_files, corrected_model_path, uncorrected_model_path)
     print "getdiff.main finished with",return_value
 
     sys.exit(return_value)

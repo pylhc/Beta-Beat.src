@@ -24,11 +24,11 @@ t3.Cmatrix()
 f1=open(path+"/bbx.out","w")
 f2=open(path+"/bby.out","w")
 
-print >> f1,"NAME S MEA ERROR MODEL"
-print >> f1,"%s %le %le %le %le"
+print >> f1,"* NAME S MEA ERROR MODEL"
+print >> f1,"$ %s %le %le %le %le"
 
-print >> f2,"NAME S MEA ERROR MODEL"
-print >> f2,"%s %le %le %le %le"
+print >> f2,"* NAME S MEA ERROR MODEL"
+print >> f2,"$ %s %le %le %le %le"
 
 if os.path.exists(path+'/getbetax_free.out'):
     t1=twiss(path+'/getbetax_free.out')
@@ -77,8 +77,8 @@ except:
 if dx==1:
     f3=open(path+"/dx.out","w")
 
-    print >> f3,"NAME S MEA ERROR MODEL"
-    print >> f3,"%s %le %le %le %le"
+    print >> f3,"* NAME S MEA ERROR MODEL"
+    print >> f3,"$ %s %le %le %le %le"
 
     for i in range(len(t1.NAME)):
         el=t1.NAME[i]
@@ -102,8 +102,8 @@ if dx==1:
 f1=open(path+"/couple.out","w")
 
 
-print >> f1,"NAME S F1001re F1001im F1001e F1001re_m F1001im_m"
-print >> f1,"%s %le %le %le %le %le %le"
+print >> f1,"* NAME S F1001re F1001im F1001e F1001re_m F1001im_m"
+print >> f1,"$ %s %le %le %le %le %le %le"
 
 
 
@@ -138,8 +138,8 @@ except:
 if dy==1:
     f3=open(path+"/dy.out","w")
 
-    print >> f3,"NAME S MEA ERROR MODEL"
-    print >> f3,"%s %le %le %le %le"
+    print >> f3,"* NAME S MEA ERROR MODEL"
+    print >> f3,"$ %s %le %le %le %le"
 
     for i in range(len(t1.NAME)):
         el=t1.NAME[i]
