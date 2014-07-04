@@ -55,6 +55,8 @@ select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,d
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 twiss, chrom,sequence=%ACCEL, deltap=0, file="%PATH/twiss_no.dat";
 
+call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/tools/%ACCEL_coupling_knob.madx";
+
 %COR
 
 select, flag=twiss, clear;
