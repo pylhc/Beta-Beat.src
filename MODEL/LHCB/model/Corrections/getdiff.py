@@ -24,6 +24,8 @@ getdiff produces the following output in the directory stated as argument:
     - couple.out
     - dx.out
     - dy.out
+    - phasex.out
+    - phasey.out
 
 
 Change history:
@@ -40,10 +42,12 @@ import sys
 
 import __init__  # @UnusedImport __init__ adds the path to Beta-Beat.src
 import Python_Classes4MAD.metaclass
+from numpy.ma.core import sqrt
 
 #===================================================================================================
 # parse_args()-function
 #===================================================================================================
+
 
 def parse_args():
     ''' Parses the sys.argv[1], checks for valid input and returns the path to src files  '''
@@ -121,7 +125,8 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
         if bpm_included:
             j = twiss_cor.indx[bpm_name]
             t_x = twiss_getbetax  # Variable for abbreviation
-            print >> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i] - t_x.BETXMDL[i]) / t_x.BETXMDL[i], t_x.STDBETX[i] / t_x.BETXMDL[i], (twiss_cor.BETX[j] - twiss_no.BETX[j]) / twiss_no.BETX[j]
+            error_beta = sqrt(t_x.STDBETX[i] ** 2 + t_x.ERRBETX[i] ** 2) / t_x.BETXMDL[i]
+            print >> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i] - t_x.BETXMDL[i]) / t_x.BETXMDL[i], error_beta, (twiss_cor.BETX[j] - twiss_no.BETX[j]) / twiss_no.BETX[j]
 
     if os.path.exists(os.path.join(path, 'getbetay_free.out')):
         twiss_getbetay = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetay_free.out'))
@@ -138,7 +143,8 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
         if bpm_included:
             j = twiss_cor.indx[bpm_name]
             t_y = twiss_getbetay  # Variable for abbreviation
-            print >> file_bby, bpm_name, t_y.S[i], (t_y.BETY[i] - t_y.BETYMDL[i]) / t_y.BETYMDL[i], t_y.STDBETY[i] / t_y.BETYMDL[i], (twiss_cor.BETY[j] - twiss_no.BETY[j]) / twiss_no.BETY[j]
+            error_beta = sqrt(t_y.STDBETY[i] ** 2 + t_y.ERRBETY[i] ** 2) / t_y.BETYMDL[i]
+            print >> file_bby, bpm_name, t_y.S[i], (t_y.BETY[i] - t_y.BETYMDL[i]) / t_y.BETYMDL[i], error_beta, (twiss_cor.BETY[j] - twiss_no.BETY[j]) / twiss_no.BETY[j]
 
     file_bbx.close()
     file_bby.close()
@@ -154,7 +160,7 @@ def write_dispersion_diff_files(path, twiss_cor, twiss_no):
             bpm_name = twiss_getdx.NAME[i]
             bpm_included = True
             try:
-                check = twiss_cor.NAME[twiss_cor.indx[bpm_name]] # @UnusedVariable
+                check = twiss_cor.NAME[twiss_cor.indx[bpm_name]]  # @UnusedVariable
             except:
                 print "No ", bpm_name
                 bpm_included = False
@@ -176,7 +182,7 @@ def write_dispersion_diff_files(path, twiss_cor, twiss_no):
             bpm_name = twiss_getdy.NAME[i]
             bpm_included = True
             try:
-                check = twiss_cor.NAME[twiss_cor.indx[bpm_name]] # @UnusedVariable
+                check = twiss_cor.NAME[twiss_cor.indx[bpm_name]]  # @UnusedVariable
             except:
                 print "No ", bpm_name
                 bpm_included = False
@@ -292,6 +298,7 @@ def _try_to_load_twiss(twiss_path, twiss_file_name):
 
     return twiss_file
 
+
 def _get_bpms_in_experiment_and_model(experimental_twiss, model_twiss):
         common_bpms_list = []
         for bpm_name in model_twiss.NAME:
@@ -305,12 +312,14 @@ def _get_bpms_in_experiment_and_model(experimental_twiss, model_twiss):
 #===================================================================================================
 # main invocation
 #===================================================================================================
+
+
 def _start():
     path_to_src_files, corrected_model_path, uncorrected_model_path = parse_args()
 
     print "Start getdiff.main..."
     return_value = main(path_to_src_files, corrected_model_path, uncorrected_model_path)
-    print "getdiff.main finished with",return_value
+    print "getdiff.main finished with", return_value
 
     sys.exit(return_value)
 
