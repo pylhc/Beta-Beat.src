@@ -113,6 +113,9 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     print "Writting sbs files from MADX results..."
     _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name)
 
+    print "Building changeparameters_match.madx..."
+    _build_changeparameters_file(match_temporary_path)
+
     print "Running GNUPlot..."
     _prepare_and_run_gnuplot(ip, match_temporary_path,
                              range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s)
@@ -411,6 +414,17 @@ def clean_up_temporary_dir(match_temporary_path):
     os.unlink(os.path.join(match_temporary_path, "ds"))
     os.unlink(os.path.join(match_temporary_path, "lt"))
     iotools.delete_content_of_dir(match_temporary_path)
+
+
+def _build_changeparameters_file(match_temporary_path):
+    original_changeparameters_file = open(os.path.join(match_temporary_path, "changeparameters.madx"), "r")
+    changeparameters_match_file = open(os.path.join(match_temporary_path, "changeparameters_match.madx"), "w")
+    for original_line in original_changeparameters_file.readlines():
+        parts = original_line.split("=")
+        variable_name = parts[0].replace("d", "", 1).strip()
+        variable_value = float(parts[1].replace(";", "").strip())
+        print >> changeparameters_match_file, variable_name, " = ", variable_name, " + ", variable_value, ";"
+    print >> changeparameters_match_file, "return;"
 
 
 def _copy_files_with_extension(src, dest, ext):
