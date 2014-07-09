@@ -39,7 +39,6 @@ def main(output_path, experimental_path, label, fast, start_bpm, method, w_path)
         print >> sys.stderr, "Can't continue without model..."
         return
 
-    method = method
     if method == "driven":
         method = ""
 
@@ -80,6 +79,8 @@ def write_coupling_files(output_path, experimental_path, label, method, model_tw
 
     exp_coupling_file = _try_to_load_twiss(experimental_path, "getcouple" + method + ".out")
     if not exp_coupling_file:
+        exp_coupling_file = _try_to_load_twiss(experimental_path, "getcouple.out")
+    if not exp_coupling_file:
         print >> sys.stderr, "Won't write coupling file"
         return
 
@@ -111,7 +112,13 @@ def write_coupling_files(output_path, experimental_path, label, method, model_tw
 
 def write_phase_files(output_path, experimental_path, label, method, start_bpm, model_twiss, model_play_twiss):
     exp_phase_twiss_x = _try_to_load_twiss(experimental_path, "getphasetotx" + method + ".out")
+    if not exp_phase_twiss_x:
+        exp_phase_twiss_x = _try_to_load_twiss(experimental_path, "getphasetotx.out")
+
     exp_phase_twiss_y = _try_to_load_twiss(experimental_path, "getphasetoty" + method + ".out")
+    if not exp_phase_twiss_y:
+        exp_phase_twiss_y = _try_to_load_twiss(experimental_path, "getphasetoty.out")
+
     if not exp_phase_twiss_x or not exp_phase_twiss_y:
         print >> sys.stderr, "Won't write phase files"
         return
