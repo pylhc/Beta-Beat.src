@@ -103,7 +103,7 @@ class InputData{
 public:
     void initAndReadInputValues(std::string& driveInpFilePath);
 
-    double  istun, kper, tunex, tuney, windowa1, windowa2, windowb1, windowb2, nattunex, nattuney;
+    double  istun, kper, tunex, tuney, windowa1, windowa2, windowb1, windowb2, nattunex, nattuney, eps;
     int turns, pickStart, pickEnd, kcase, kick, labelrun;
 }inpData;
 
@@ -114,7 +114,7 @@ class IoHelper{
 public:
 	static void getAndCheckFilePaths(std::string *drivingTermsFilePath, std::string *driveInputFilePath, const char * cmdinput);
 	static bool cannotOpenFile(std::string filePath,char type);
-	static void writeSussixInputFile(const int, const double, const double, const double);
+	static void writeSussixInputFile(const int, const double, const double, const double, double);
 	static void formatLinFile(std::string linFilePath, const int tunecount, const double tunesum, const double tune2sum,
 			const int nattunecount, const double nattunesum, const double nattune2sum, int plane_index);
 
@@ -262,7 +262,7 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 
 	findKick();
 
-	IoHelper::writeSussixInputFile(inpData.turns, inpData.istun, inpData.tunex, inpData.tuney);
+	IoHelper::writeSussixInputFile(inpData.turns, inpData.istun, inpData.tunex, inpData.tuney, inpData.eps);
 
 #pragma omp parallel for
 	for (int i = inpData.pickStart; i < maxOfHorBpmsAndVerBpms; ++i) {
@@ -800,18 +800,21 @@ bool IoHelper::outputFileCheck(std::string filePath){
     return failure;
 }
 
-void IoHelper::writeSussixInputFile(const int turns, const double istun, const double tunex, const double tuney)
+void IoHelper::writeSussixInputFile(const int turns, const double istun, const double tunex, const double tuney, double eps)
 {
     std::ofstream sussixInputFile(sussixInputFilePath.c_str());
     if(IoHelper::cannotOpenFile(sussixInputFilePath,'o')){
         exit(EXIT_FAILURE);
+    }
+    if(eps==0) {
+    	eps = 2e-3;
     }
     sussixInputFile << "C" << std::endl << "C INPUT FOR SUSSIX_V4 ---17/09/1997---" << std::endl << "C DETAILS ARE IN THE MAIN PROGRAM SUSSIX_V4.F\n";
     sussixInputFile << "C" << std::endl << std::endl;
     sussixInputFile << "ISIX  = 0" << std::endl << "NTOT  = 1" << std::endl << "IANA  = 1" << std::endl << "ICONV = 0" << std::endl;
     sussixInputFile << std::scientific << "TURNS = 1 " << turns << std::endl << "NARM  = " << FREQS_PER_BPM << std::endl << "ISTUN = 1 " << istun << ' ' << istun << std::endl;
     sussixInputFile << std::scientific << "TUNES = " << tunex << ' ' << tuney << " .07" << std::endl << "NSUS  = 0" << std::endl << "IDAM  = 2" << std::endl << "NTWIX = 1" << std::endl;
-    sussixInputFile << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 4" << std::endl << "EPS   = 2D-3" << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
+    sussixInputFile << std::scientific << "IR    = 1" << std::endl << "IMETH = 2" << std::endl << "NRC   = 4" << std::endl << "EPS   = " << eps << std::endl; /* EPS is the window in the secondary lines, very imp!!! */
     sussixInputFile << "NLINE = 0" << std::endl << "L,M,K = " << std::endl << "IDAMX = 1" << std::endl << "NFIN  = 500" << std::endl;
     sussixInputFile << "ISME  = 0" << std::endl << "IUSME = 200" << std::endl << "INV   = 0" << std::endl << "IINV  = 250" << std::endl;
     sussixInputFile << "ICF   = 0" << std::endl << "IICF  = 350" << std::endl;
@@ -990,6 +993,8 @@ void InputData::readInputDataFromFileDriveInp(std::string driveInputFilePath){
 			this->nattunex = atof(temp_str.substr(pos+strlen("NATURAL X=")).c_str());
 		if((pos = temp_str.find("NATURAL Y=")) != std::string::npos)
 			this->nattuney = atof(temp_str.substr(pos+strlen("NATURAL Y=")).c_str());
+		if((pos = temp_str.find("EPS=")) != std::string::npos)
+			this->eps = atof(temp_str.substr(pos+strlen("EPS=")).c_str());
 	}
 	driveInputFile.close();
 }
