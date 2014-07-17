@@ -98,7 +98,7 @@ def main(path, corrected_model_path, uncorrected_model_path):
 
     write_phase_diff_files(path, twiss_cor, twiss_no)
 
-    # TODO chromatic coupling
+    write_chromatic_coupling_files(path, corrected_model_path)
 
     return 0
 
@@ -280,6 +280,56 @@ def write_phase_diff_files(path, twiss_cor, twiss_no):
 
     file_phase_x.close()
     file_phase_y.close()
+
+
+def write_chromatic_coupling_files(path, corrected_model_path):
+
+    twiss_cor_plus = _try_to_load_twiss(os.path.split(corrected_model_path)[0], "twiss_cor_dpp.dat")
+    twiss_cor_minus = _try_to_load_twiss(os.path.split(corrected_model_path)[0], "twiss_cor_dpm.dat")
+    meas_chrom_coupling = _try_to_load_twiss(path, "chromcoupling.out")
+
+    if not twiss_cor_plus or not twiss_cor_minus or not meas_chrom_coupling:
+        print "Cannot read chromatic coupling files. NO chromatic coupling"
+        return
+
+    twiss_cor_plus.Cmatrix()
+    twiss_cor_minus.Cmatrix()
+
+    corr_cf1001r = []
+    corr_cf1001i = []
+    corr_cf1010r = []
+    corr_cf1010i = []
+
+    deltap = abs(twiss_cor_plus.DELTAP - twiss_cor_minus.DELTAP)
+
+    for i in range(len(twiss_cor_plus.NAME)):
+        ccoupling = (twiss_cor_plus.F1001R[i] - twiss_cor_minus.F1001R[i]) / deltap
+        corr_cf1001r.append(ccoupling)
+
+        ccoupling = (twiss_cor_plus.F1001I[i] - twiss_cor_minus.F1001I[i]) / deltap
+        corr_cf1001i.append(ccoupling)
+
+        ccoupling = (twiss_cor_plus.F1001R[i] - twiss_cor_minus.F1001R[i]) / deltap
+        corr_cf1010r.append(ccoupling)
+
+        ccoupling = (twiss_cor_plus.F1010I[i] - twiss_cor_minus.F1010I[i]) / deltap
+        corr_cf1010i.append(ccoupling)
+
+    file_chromatic_coupling = open(os.path.join(path, "chromatic_coupling.out"), "w")
+
+    print >> file_chromatic_coupling, "* NAME S Cf1001r Cf1001rERR Cf1001i Cf1001iERR Cf1001r_model Cf1001i_model"
+    print >> file_chromatic_coupling, "$ %s %le %le %le %le %le %le %le"
+
+    common_bpm_names = _get_bpms_in_experiment_and_model(meas_chrom_coupling, twiss_cor_plus)
+    for i in range(len(common_bpm_names)):
+        bpm_name = common_bpm_names[i]
+        twiss_exp_bpm_indx = meas_chrom_coupling.indx[bpm_name]
+        twiss_corr_bpm_indx = twiss_cor_plus.indx[bpm_name]
+
+        print >> file_chromatic_coupling, bpm_name, twiss_cor_plus.S[twiss_corr_bpm_indx],\
+                    meas_chrom_coupling.Cf1001r[twiss_exp_bpm_indx], meas_chrom_coupling.Cf1001rERR[twiss_exp_bpm_indx],\
+                    meas_chrom_coupling.Cf1001i[twiss_exp_bpm_indx], meas_chrom_coupling.Cf1001iERR[twiss_exp_bpm_indx],\
+                    corr_cf1001r[twiss_corr_bpm_indx], corr_cf1001i[twiss_corr_bpm_indx]
 
 
 def _try_to_load_twiss(twiss_path, twiss_file_name):
