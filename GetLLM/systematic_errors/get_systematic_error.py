@@ -58,44 +58,39 @@ def get_systematic_errors(model_twiss, num_simulations, output_dir):
 def _run_single_madx_simulation(seed_path_tuple):
     seed = seed_path_tuple[0]
     run_data_path = seed_path_tuple[1]
-    output_path = os.path.join(run_data_path, 'job.tracking' + str(seed) + '.madx')
-    temp_path = os.path.join(run_data_path, "temp" + str(seed))
-    iotools.create_dirs(temp_path)
 
-    with open(output_path, 'w') as outfile:
-        with open('job.tracking.mask', 'r') as infile:
-            for line in infile:
-                new_line = line
+    madx_job = ""
+    with open('job.tracking.mask', 'r') as infile:
+        for line in infile:
+            new_line = line
 
-                if line.startswith('eoption, seed= SEEDR + 50  ; exec SetEfcomp_Q;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(1 + seed * 9) + '  ; exec SetEfcomp_Q;\n'
-                elif line.startswith('eoption, seed= SEEDR + 2    ; exec SetEfcomp_Q;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(2 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
-                elif line.startswith('eoption, seed= SEEDR + 4    ; exec SetEfcomp_Q;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(3 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
-                elif line.startswith('eoption, seed= SEEDR + 5    ; exec SetEfcomp_Q;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(4 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
-                elif line.startswith('eoption, seed= SEEDR + 6    ; exec SetEfcomp_Q;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(5 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
-                elif line.startswith('eoption, seed= SEEDR + 7    ; exec SetEfcomp_Q;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(6 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
-                elif line.startswith('eoption, seed= SEEDR + 8;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(7 + seed * 9) + ';\n'
-                elif line.startswith('eoption, seed= SEEDR + 9;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(8 + seed * 9) + ';\n'
-                elif line.startswith('eoption, seed= SEEDR + 10;'):
-                    new_line = 'eoption, seed= SEEDR + ' + str(9 + seed * 9) + ';\n'
-                elif line.startswith('readtable, file="/afs/cern.ch/work/a/alangner/b2_errors/lhc-4TeV-emfqcs-0001.tfs";'):
-                    new_line = 'readtable, file="/afs/cern.ch/work/a/alangner/public/b2_errors/lhc-4TeV-emfqcs-' + \
-                                str((seed % 60) + 1).zfill(4) + '.tfs";\n'
+            if line.startswith('eoption, seed= SEEDR + 50  ; exec SetEfcomp_Q;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(1 + seed * 9) + '  ; exec SetEfcomp_Q;'
+            elif line.startswith('eoption, seed= SEEDR + 2    ; exec SetEfcomp_Q;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(2 + seed * 9) + '    ; exec SetEfcomp_Q;'
+            elif line.startswith('eoption, seed= SEEDR + 4    ; exec SetEfcomp_Q;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(3 + seed * 9) + '    ; exec SetEfcomp_Q;'
+            elif line.startswith('eoption, seed= SEEDR + 5    ; exec SetEfcomp_Q;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(4 + seed * 9) + '    ; exec SetEfcomp_Q;'
+            elif line.startswith('eoption, seed= SEEDR + 6    ; exec SetEfcomp_Q;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(5 + seed * 9) + '    ; exec SetEfcomp_Q;'
+            elif line.startswith('eoption, seed= SEEDR + 7    ; exec SetEfcomp_Q;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(6 + seed * 9) + '    ; exec SetEfcomp_Q;'
+            elif line.startswith('eoption, seed= SEEDR + 8;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(7 + seed * 9) + ';'
+            elif line.startswith('eoption, seed= SEEDR + 9;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(8 + seed * 9) + ';'
+            elif line.startswith('eoption, seed= SEEDR + 10;'):
+                new_line = 'eoption, seed= SEEDR + ' + str(9 + seed * 9) + ';'
+            elif line.startswith('readtable, file="/afs/cern.ch/work/a/alangner/b2_errors/lhc-4TeV-emfqcs-0001.tfs";'):
+                new_line = 'readtable, file="/afs/cern.ch/work/a/alangner/public/b2_errors/lhc-4TeV-emfqcs-' + \
+                            str((seed % 60) + 1).zfill(4) + '.tfs";'
 
-                new_line = new_line.replace("%SEED", str(seed))
-                new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
-                outfile.write(new_line)
+            new_line = new_line.replace("%SEED", str(seed))
+            new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
+            madx_job += new_line + "\n"
 
-    result = madxrunner.runForInputFile(output_path, stdout=open(os.devnull, "w"))
-    iotools.delete_item(output_path)
-    iotools.delete_item(temp_path)
+    result = madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
     return result
 
 
@@ -260,7 +255,6 @@ def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_p
                          np.sqrt(beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                                           list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
                                           list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] / num_valid_data)
-
     np.save(os.path.join(output_path, 'test_bet_deviations'), [beta_hor, beta_ver])
 
 

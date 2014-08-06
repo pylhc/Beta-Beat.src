@@ -1,7 +1,6 @@
 title, "Model creator for java" ;
 
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
 option, -echo, -info,  warn;
 call, file = "db5/as-built/V6.5.seq";       
@@ -66,7 +65,7 @@ endmatch;
  select, flag=twiss,pattern=MQT\.21,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
  select, flag=twiss,class=MQS                      ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
  select, flag=twiss,class=MSS                      ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
- twiss,  file='%RUN_DATA_PATH/temp%SEED/optics0_MB.mad';
+ !!! twiss,  file='%RUN_DATA_PATH/temp%SEED/optics0_MB.mad';
 
 
 ON_A1s =  0 ; ON_A1r =  0 ; ON_B1s =  0 ; ON_B1r =  0;
@@ -100,19 +99,17 @@ readtable, file="/afs/cern.ch/work/a/alangner/public/b2_errors/lhc-4TeV-emfqcs-0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !               correction of field errors in MB (compatible with V6.503 & SLHC)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- select, flag=error, clear;
- select, flag=error, pattern=MB\.;
- esave,  file="%RUN_DATA_PATH/temp%SEED/MB.errors";
- select, flag=error, clear;
- select, flag=error, pattern=MBRC\.;
- select, flag=error, pattern=MBRS\.;
- select, flag=error, pattern=MBRB\.;
- select, flag=error, pattern=MBX\.;
- select, flag=error, pattern=MBXW\.;
- select, flag=error, pattern=MBW\.;
- esave,  file="%RUN_DATA_PATH/temp%SEED/MBx.errors";
-! system, "slhc/errors/corr_MB_phaseI";
-! call,   file="%RUN_DATA_PATH/temp%SEED/MB_corr_setting.mad";
+!!! select, flag=error, clear;
+!!! select, flag=error, pattern=MB\.;
+!!! esave,  file="%RUN_DATA_PATH/temp%SEED/MB.errors";
+!!! select, flag=error, clear;
+!!! select, flag=error, pattern=MBRC\.;
+!!! select, flag=error, pattern=MBRS\.;
+!!! select, flag=error, pattern=MBRB\.;
+!!! select, flag=error, pattern=MBX\.;
+!!! select, flag=error, pattern=MBXW\.;
+!!! select, flag=error, pattern=MBW\.;
+!!! esave,  file="%RUN_DATA_PATH/temp%SEED/MBx.errors";
 
  call, file="MB_corr_setting_4TeV.mad";
 
@@ -172,9 +169,9 @@ EALIGN, DS:=0.001*TGAUSS(GCUTR);
 !eoption, seed= SEEDR + 10;
 !EALIGN, DS:=0.001*TGAUSS(GCUTR);
 
- select, flag=error, clear;
- select, flag=error, pattern=MQ\.;
- esave,  file="%RUN_DATA_PATH/temp%SEED/MQ1.errors";
+!!! select, flag=error, clear;
+!!! select, flag=error, pattern=MQ\.;
+!!! esave,  file="%RUN_DATA_PATH/temp%SEED/MQ1.errors";
 
 
 select, flag=twiss, clear;
