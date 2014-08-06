@@ -1,0 +1,188 @@
+title, "Model creator for java" ;
+
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+
+option, -echo, -info,  warn;
+call, file = "db5/as-built/V6.5.seq";       
+call, file = "db5/V6.5.inj.str";
+
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR1//new_ip1_b2_squeeze/IP1_beta_0.60m.str";
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR2/3.5TeV/ip2_0.00889_beta3.00m.str";
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR5//new_ip5_b2_squeeze/IP5_beta_0.60m.str";
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR8/3.5TeV/ip8_0.00875_beta3.00m.str";
+
+call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+
+seqedit, sequence=LHCB1;
+flatten;               
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+seqedit, sequence=LHCB2;
+flatten;
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=LHCB1, energy = 450.0;
+ beam, sequence=LHCB1,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=1;
+ beam, sequence=LHCB2,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=-1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
+ on_alice:= 0; on_lhcb := 0;
+
+use, period=LHCB1;
+
+!!!!!!!!! matching
+match;
+
+vary, name=KQTD.B1;
+vary, name=KQTF.B1;
+
+constraint, range=#E, mux=64.31, muy=59.32;
+lmdif;
+endmatch;
+
+ select, flag=twiss, clear;
+ select, flag=twiss,pattern=MB\.                   ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MBRC\.                 ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MBRS\.                 ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MBRB\.                 ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MBX\.                  ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MBXW\.                 ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MBW\.                  ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.14,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.15,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.16,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.17,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.18,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.19,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.20,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,pattern=MQT\.21,class=multipole,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,class=MQS                      ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ select, flag=twiss,class=MSS                      ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
+ twiss,  file='%RUN_DATA_PATH/temp%SEED/optics0_MB.mad';
+
+
+ON_A1s =  0 ; ON_A1r =  0 ; ON_B1s =  0 ; ON_B1r =  0;
+ON_A2s =  0 ; ON_A2r =  0 ; ON_B2s =  1 ; ON_B2r =  1;
+ON_A3s =  0 ; ON_A3r =  0 ; ON_B3s =  0 ; ON_B3r =  0;
+ON_A4s =  0 ; ON_A4r =  0 ; ON_B4s =  0 ; ON_B4r =  0;
+ON_A5s =  0 ; ON_A5r =  0 ; ON_B5s =  0 ; ON_B5r =  0;
+ON_A6s =  0 ; ON_A6r =  0 ; ON_B6s =  0 ; ON_B6r =  0;
+ON_A7s =  0 ; ON_A7r =  0 ; ON_B7s =  0 ; ON_B7r =  0;
+ON_A8s =  0 ; ON_A8r =  0 ; ON_B8s =  0 ; ON_B8r =  0;
+ON_A9s =  0 ; ON_A9r =  0 ; ON_B9s =  0 ; ON_B9r =  0;
+ON_A10s =  0; ON_A10r =  0; ON_B10s =  0; ON_B10r =  0;
+ON_A11s =  0; ON_A11r =  0; ON_B11s =  0; ON_B11r =  0;
+
+
+readtable, file="/afs/cern.ch/work/a/alangner/public/b2_errors/lhc-4TeV-emfqcs-0001.tfs";
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!             apply field errors to MB magnets
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ call,   file="db5/measured_errors/Msubroutines.madx"  ;
+ call,   file="db5/measured_errors/Efcomp_MB.madx"  ;
+ call,   file="db5/measured_errors/Efcomp_MBRC.madx"  ;
+ call,   file="db5/measured_errors/Efcomp_MBRS.madx"  ;
+ call,   file="db5/measured_errors/Efcomp_MBRB.madx"  ;
+ call,   file="db5/measured_errors/Efcomp_MBX.madx"  ;
+ call,   file="db5/measured_errors/Efcomp_MBXW.madx"  ;
+ call,   file="db5/measured_errors/Efcomp_MBW.madx"  ;
+
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!               correction of field errors in MB (compatible with V6.503 & SLHC)
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ select, flag=error, clear;
+ select, flag=error, pattern=MB\.;
+ esave,  file="%RUN_DATA_PATH/temp%SEED/MB.errors";
+ select, flag=error, clear;
+ select, flag=error, pattern=MBRC\.;
+ select, flag=error, pattern=MBRS\.;
+ select, flag=error, pattern=MBRB\.;
+ select, flag=error, pattern=MBX\.;
+ select, flag=error, pattern=MBXW\.;
+ select, flag=error, pattern=MBW\.;
+ esave,  file="%RUN_DATA_PATH/temp%SEED/MBx.errors";
+! system, "slhc/errors/corr_MB_phaseI";
+! call,   file="%RUN_DATA_PATH/temp%SEED/MB_corr_setting.mad";
+
+ call, file="MB_corr_setting_4TeV.mad";
+
+
+
+
+call,   file="/afs/cern.ch/eng/lhc/optics/V6.5//errors/Esubroutines.madx"  ;
+
+ENLARGE=1;
+
+!Quadrupole errors MQ
+select, flag=error, clear; select, flag=error, PATTERN="^MQ\.";
+Rr=0.017;
+B2r =15*ENLARGE;
+ON_B2R=1;
+GCUTR=3;
+eoption, seed= SEEDR + 50  ; exec SetEfcomp_Q;
+
+!! MQM
+select, flag=error, clear; select, flag=error, PATTERN="^MQM";
+B2r =16*ENLARGE;
+eoption, seed= SEEDR + 2    ; exec SetEfcomp_Q;
+
+!! MQY
+select, flag=error, clear; select, flag=error, PATTERN="^MQY";
+B2r =14*ENLARGE;
+eoption, seed= SEEDR + 4    ; exec SetEfcomp_Q;
+
+!! MQX
+select, flag=error, clear; select, flag=error, PATTERN="^MQX";
+B2r =5*ENLARGE;
+!!!!!B2r =11*ENLARGE; 
+eoption, seed= SEEDR + 5    ; exec SetEfcomp_Q;
+
+!! MQW
+select, flag=error, clear; select, flag=error, PATTERN="^MQW";
+B2r =22;
+eoption, seed= SEEDR + 6    ; exec SetEfcomp_Q;
+
+!! MQT
+select, flag=error, clear; select, flag=error, PATTERN="^MQT";
+B2r =17;
+eoption, seed= SEEDR + 7    ; exec SetEfcomp_Q;
+
+!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=sextupole;
+eoption, seed= SEEDR + 8;
+EALIGN, DX:=0.001*TGAUSS(GCUTR), DY:=0.001*TGAUSS(GCUTR);
+
+!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=quadrupole;
+eoption, seed= SEEDR + 9;
+EALIGN, DS:=0.001*TGAUSS(GCUTR);
+
+!!Alignment
+!select, flag=error, clear; SELECT,FLAG=ERROR, PATTERN="^BPM";
+!eoption, seed= SEEDR + 10;
+!EALIGN, DS:=0.001*TGAUSS(GCUTR);
+
+ select, flag=error, clear;
+ select, flag=error, pattern=MQ\.;
+ esave,  file="%RUN_DATA_PATH/temp%SEED/MQ1.errors";
+
+
+select, flag=twiss, clear;
+select, flag=twiss,pattern=MKQA.6L4.B1,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss, chrom,sequence=LHCB1, deltap=0, file='%RUN_DATA_PATH/twiss%SEED.dat';
+
+stop;
+

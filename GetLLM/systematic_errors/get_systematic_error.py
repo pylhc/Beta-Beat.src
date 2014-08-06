@@ -1,0 +1,468 @@
+import __init__  # @UnusedImport
+import os
+import multiprocessing
+import time
+import numpy as np
+from optparse import OptionParser
+from Utilities import iotools
+from Python_Classes4MAD import madxrunner, metaclass
+import math
+import sys
+
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+
+NUM_SIMULATIONS = 1000  # Default number of simulations, used if no input argument is found
+NUM_PROCESSES = multiprocessing.cpu_count()  # Default number of processes to use in simulations
+
+
+def _parse_args():
+    parser = OptionParser()
+    parser.add_option("-m", "--model",
+                    help="Model twiss file to use.",
+                    metavar="model", default="", dest="model_twiss")  # TODO remove default value
+    parser.add_option("-o", "--output",
+                    help="Output directory for the results.",
+                    metavar="output", default="", dest="output_dir")  # TODO set default value to model dir
+    parser.add_option("-n", "--numsim",
+                    help="Number of simulations to run",
+                    metavar="numsim", default=NUM_SIMULATIONS, dest="num_simulations")
+    options, _ = parser.parse_args()
+
+    return options.model_twiss, options.num_simulations, options.output_dir
+
+
+def get_systematic_errors(model_twiss, num_simulations, output_dir):
+    run_data_path = os.path.join(output_dir, "RUN_DATA")
+    iotools.create_dirs(run_data_path)
+
+    print "Running " + str(num_simulations) + " simulations using " + str(NUM_PROCESSES) + " processes..."
+    start_time = time.time()
+    pool = multiprocessing.Pool(processes=NUM_PROCESSES)
+    args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
+    tasks = pool.map_async(_run_single_madx_simulation, args)
+    tasks.wait()
+    end_time = time.time()
+    print "Done (" + str(end_time - start_time) + " seconds)\n"
+
+    print "Calculating systematic error bars..."
+    start_time = time.time()
+    _get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir)
+    end_time = time.time()
+    print "Done (" + str(end_time - start_time) + " seconds)\n"
+
+    print "Cleaning output directory..."
+    iotools.delete_item(run_data_path)
+    print "All done."
+
+
+def _run_single_madx_simulation(seed_path_tuple):
+    seed = seed_path_tuple[0]
+    run_data_path = seed_path_tuple[1]
+    output_path = os.path.join(run_data_path, 'job.tracking' + str(seed) + '.madx')
+    temp_path = os.path.join(run_data_path, "temp" + str(seed))
+    iotools.create_dirs(temp_path)
+
+    with open(output_path, 'w') as outfile:
+        with open('job.tracking.mask', 'r') as infile:
+            for line in infile:
+                new_line = line
+
+                if line.startswith('eoption, seed= SEEDR + 50  ; exec SetEfcomp_Q;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(1 + seed * 9) + '  ; exec SetEfcomp_Q;\n'
+                elif line.startswith('eoption, seed= SEEDR + 2    ; exec SetEfcomp_Q;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(2 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
+                elif line.startswith('eoption, seed= SEEDR + 4    ; exec SetEfcomp_Q;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(3 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
+                elif line.startswith('eoption, seed= SEEDR + 5    ; exec SetEfcomp_Q;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(4 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
+                elif line.startswith('eoption, seed= SEEDR + 6    ; exec SetEfcomp_Q;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(5 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
+                elif line.startswith('eoption, seed= SEEDR + 7    ; exec SetEfcomp_Q;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(6 + seed * 9) + '    ; exec SetEfcomp_Q;\n'
+                elif line.startswith('eoption, seed= SEEDR + 8;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(7 + seed * 9) + ';\n'
+                elif line.startswith('eoption, seed= SEEDR + 9;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(8 + seed * 9) + ';\n'
+                elif line.startswith('eoption, seed= SEEDR + 10;'):
+                    new_line = 'eoption, seed= SEEDR + ' + str(9 + seed * 9) + ';\n'
+                elif line.startswith('readtable, file="/afs/cern.ch/work/a/alangner/b2_errors/lhc-4TeV-emfqcs-0001.tfs";'):
+                    new_line = 'readtable, file="/afs/cern.ch/work/a/alangner/public/b2_errors/lhc-4TeV-emfqcs-' + \
+                                str((seed % 60) + 1).zfill(4) + '.tfs";\n'
+
+                new_line = new_line.replace("%SEED", str(seed))
+                new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
+                outfile.write(new_line)
+
+    result = madxrunner.runForInputFile(output_path, stdout=open(os.devnull, "w"))
+    iotools.delete_item(output_path)
+    iotools.delete_item(temp_path)
+    return result
+
+
+def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path):
+    beta_hor = {}
+    beta_ver = {}
+    model_twiss = metaclass.twiss(model_twiss_path)
+
+    list_of_bpm = []
+    for i in model_twiss.NAME:
+        if "BPM" in i:
+            list_of_bpm.append(i)
+
+    for probed_bpm in range(len(list_of_bpm)):
+        for i in range(5):
+            for j in range(5 - i):
+                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = 0
+                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = 0
+
+                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
+                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
+
+    for probed_bpm in range(len(list_of_bpm)):
+        for i in range(6):
+            for j in range(6):
+                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
+                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
+
+    num_valid_data = 0
+
+    for i in range(NUM_SIMULATIONS):
+        try:
+            error_twiss = metaclass.twiss(os.path.join(run_data_path, 'twiss' + str(i + 1) + '.dat'))
+            for probed_bpm in range(len(list_of_bpm)):
+                for i in range(5):
+                    for j in range(5 - i):
+                        beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
+                                 beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] + \
+                                          (BetaFromPhase_BPM_right(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
+                                                                   list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)],
+                                                                   list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)],
+                                                                   model_twiss, error_twiss, 'H') -
+                                           error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+
+                        beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
+                                 beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] + \
+                                          (BetaFromPhase_BPM_right(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
+                                                                   list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)],
+                                                                   list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)],
+                                                                   model_twiss, error_twiss, 'V') -
+                                           error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+
+                        beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                                 beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
+                                          (BetaFromPhase_BPM_left(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
+                                                                  list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)],
+                                                                  list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
+                                                                  model_twiss, error_twiss, 'H') -
+                                           error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+
+                        beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                                 beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
+                                          (BetaFromPhase_BPM_left(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
+                                                                  list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)],
+                                                                  list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
+                                                                  model_twiss, error_twiss, 'V') -
+                                           error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+
+            for probed_bpm in range(len(list_of_bpm)):
+                for i in range(6):
+                    for j in range(6):
+                        beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                                 beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
+                                          (BetaFromPhase_BPM_mid(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
+                                                                 list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)],
+                                                                 list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
+                                                                 model_twiss, error_twiss, 'H') -
+                                           error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+
+                        beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                                 beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
+                                          (BetaFromPhase_BPM_mid(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
+                                                                 list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)],
+                                                                 list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
+                                                                 model_twiss, error_twiss, 'V') -
+                                           error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+            num_valid_data = num_valid_data + 1
+        except:
+            pass
+
+    for probed_bpm in range(len(list_of_bpm)):
+        for i in range(5):
+            for j in range(5 - i):
+                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
+                         np.sqrt(beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] / num_valid_data)
+                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
+                         np.sqrt(beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] / num_valid_data)
+
+                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                         np.sqrt(beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] / num_valid_data)
+                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                         np.sqrt(beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] / num_valid_data)
+
+    for probed_bpm in range(len(list_of_bpm)):
+        for i in range(6):
+            for j in range(6):
+                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                         np.sqrt(beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] / num_valid_data)
+                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
+                         np.sqrt(beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
+                                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] / num_valid_data)
+
+    np.save(os.path.join(output_path, 'test_bet_deviations'), [beta_hor, beta_ver])
+
+
+def BetaFromPhase_BPM_left(bn1, bn3, bn2, MADTwiss, ERRTwiss, plane):
+    '''
+    Calculates the beta/alfa function and their errors using the
+    phase advance between three BPMs for the case that the probed BPM is left of the other two BPMs
+    :Parameters:
+        'bn1':string
+            Name of probed BPM
+        'bn2':string
+            Name of first BPM right of the probed BPM
+        'bn3':string
+            Name of second BPM right of the probed BPM
+        'MADTwiss':twiss
+            model twiss file
+        'phase':dict
+            measured phase advances
+        'plane':string
+            'H' or 'V'
+    :Return:tupel (bet,betstd,alf,alfstd)
+        'bet':float
+            calculated beta function at probed BPM
+        'betstd':float
+            calculated error on beta function at probed BPM
+        'alf':float
+            calculated alfa function at probed BPM
+        'alfstd':float
+            calculated error on alfa function at probed BPM
+    '''
+
+    if plane == 'H':
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn2]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
+        phmdl12 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn2]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
+        phmdl13 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
+
+        betmdl1 = MADTwiss.BETX[MADTwiss.indx[bn1]]
+        betmdl2 = MADTwiss.BETX[MADTwiss.indx[bn2]]
+        betmdl3 = MADTwiss.BETX[MADTwiss.indx[bn3]]
+        alpmdl1 = MADTwiss.ALFX[MADTwiss.indx[bn1]]
+    elif plane == 'V':
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn2]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
+        phmdl12 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn2]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
+        phmdl13 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
+
+        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
+        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
+        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
+        alpmdl1 = MADTwiss.ALFY[MADTwiss.indx[bn1]]
+    if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
+        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
+        sys.exit(1)
+
+    # Find beta1 and alpha1 from phases assuming model transfer matrix
+    # Matrix M: BPM1-> BPM2
+    # Matrix N: BPM1-> BPM3
+    M11 = math.sqrt(betmdl2 / betmdl1) * (np.cos(phmdl12) + alpmdl1 * np.sin(phmdl12))
+    M12 = math.sqrt(betmdl1 * betmdl2) * np.sin(phmdl12)
+    N11 = math.sqrt(betmdl3 / betmdl1) * (np.cos(phmdl13) + alpmdl1 * np.sin(phmdl13))
+    N12 = math.sqrt(betmdl1 * betmdl3) * np.sin(phmdl13)
+
+    denom = M11 / M12 - N11 / N12 + 1e-16
+    numer = 1 / np.tan(ph2pi12) - 1 / np.tan(ph2pi13)
+    bet = numer / denom
+
+    return bet
+
+
+def BetaFromPhase_BPM_mid(bn2, bn1, bn3, MADTwiss, ERRTwiss, plane):
+    '''
+    Calculates the beta/alfa function and their errors using the
+    phase advance between three BPMs for the case that the probed BPM is between the other two BPMs
+    :Parameters:
+        'bn1':string
+            Name of BPM left of the probed BPM
+        'bn2':string
+            Name of probed BPM
+        'bn3':string
+            Name of BPM right of the probed BPM
+        'MADTwiss':twiss
+            model twiss file
+        'phase':dict
+            measured phase advances
+        'plane':string
+            'H' or 'V'
+    :Return:tupel (bet,betstd,alf,alfstd)
+        'bet':float
+            calculated beta function at probed BPM
+        'betstd':float
+            calculated error on beta function at probed BPM
+        'alf':float
+            calculated alfa function at probed BPM
+        'alfstd':float
+            calculated error on alfa function at probed BPM
+    '''
+    if plane == 'H':
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn2]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn2]]) % ERRTwiss.Q1
+        phmdl12 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn2]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
+        phmdl23 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn2]]) % MADTwiss.Q1
+
+        betmdl1 = MADTwiss.BETX[MADTwiss.indx[bn1]]
+        betmdl2 = MADTwiss.BETX[MADTwiss.indx[bn2]]
+        betmdl3 = MADTwiss.BETX[MADTwiss.indx[bn3]]
+        alpmdl2 = MADTwiss.ALFX[MADTwiss.indx[bn2]]
+    elif plane == 'V':
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn2]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn2]]) % ERRTwiss.Q2
+        phmdl12 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn2]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
+        phmdl23 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn2]]) % MADTwiss.Q2
+
+        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
+        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
+        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
+        alpmdl2 = MADTwiss.ALFY[MADTwiss.indx[bn2]]
+    if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
+        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
+        sys.exit(1)
+
+    # Find beta2 and alpha2 from phases assuming model transfer matrix
+    # Matrix M: BPM1-> BPM2
+    # Matrix N: BPM2-> BPM3
+    M22 = math.sqrt(betmdl1 / betmdl2) * (np.cos(phmdl12) - alpmdl2 * np.sin(phmdl12))
+    M12 = math.sqrt(betmdl1 * betmdl2) * np.sin(phmdl12)
+    N11 = math.sqrt(betmdl3 / betmdl2) * (np.cos(phmdl23) + alpmdl2 * np.sin(phmdl23))
+    N12 = math.sqrt(betmdl2 * betmdl3) * np.sin(phmdl23)
+
+    denom = M22 / M12 + N11 / N12 + 1e-16
+    numer = 1 / np.tan(ph2pi12) + 1 / np.tan(ph2pi23)
+    bet = numer / denom
+
+    return bet
+
+
+def BetaFromPhase_BPM_right(bn3, bn1, bn2, MADTwiss, ERRTwiss, plane):
+    '''
+    Calculates the beta/alfa function and their errors using the
+    phase advance between three BPMs for the case that the probed BPM is right the other two BPMs
+    :Parameters:
+        'bn1':string
+            Name of second BPM left of the probed BPM
+        'bn2':string
+            Name of first BPM left of the probed BPM
+        'bn3':string
+            Name of probed BPM
+        'MADTwiss':twiss
+            model twiss file
+        'phase':dict
+            measured phase advances
+        'plane':string
+            'H' or 'V'
+    :Return:tupel (bet,betstd,alf,alfstd)
+        'bet':float
+            calculated beta function at probed BPM
+        'betstd':float
+            calculated error on beta function at probed BPM
+        'alf':float
+            calculated alfa function at probed BPM
+        'alfstd':float
+            calculated error on alfa function at probed BPM
+    '''
+    if plane == 'H':
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn2]]) % ERRTwiss.Q1
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
+        phmdl23 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn2]]) % MADTwiss.Q1
+        phmdl13 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
+
+        betmdl1 = MADTwiss.BETX[MADTwiss.indx[bn1]]
+        betmdl2 = MADTwiss.BETX[MADTwiss.indx[bn2]]
+        betmdl3 = MADTwiss.BETX[MADTwiss.indx[bn3]]
+        alpmdl3 = MADTwiss.ALFX[MADTwiss.indx[bn3]]
+    elif plane == 'V':
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn2]]) % ERRTwiss.Q2
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
+        phmdl23 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn2]]) % MADTwiss.Q2
+        phmdl13 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
+
+        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
+        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
+        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
+        alpmdl3 = MADTwiss.ALFY[MADTwiss.indx[bn3]]
+    if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
+        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
+        sys.exit(1)
+
+    # Find beta3 and alpha3 from phases assuming model transfer matrix
+    # Matrix M: BPM2-> BPM3
+    # Matrix N: BPM1-> BPM3
+    M22 = math.sqrt(betmdl2 / betmdl3) * (np.cos(phmdl23) - alpmdl3 * np.sin(phmdl23))
+    M12 = math.sqrt(betmdl2 * betmdl3) * np.sin(phmdl23)
+    N22 = math.sqrt(betmdl1 / betmdl3) * (np.cos(phmdl13) - alpmdl3 * np.sin(phmdl13))
+    N12 = math.sqrt(betmdl1 * betmdl3) * np.sin(phmdl13)
+
+    denom = M22 / M12 - N22 / N12 + 1e-16
+    numer = 1 / np.tan(ph2pi23) - 1 / np.tan(ph2pi13)
+    bet = numer / denom
+
+    return bet
+
+
+if __name__ == "__main__":
+    model_twiss, num_simulations, output_dir = _parse_args()
+    get_systematic_errors(model_twiss, num_simulations, output_dir)
