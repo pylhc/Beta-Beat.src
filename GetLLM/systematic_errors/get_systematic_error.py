@@ -26,23 +26,34 @@ def _parse_args():
     parser.add_option("-n", "--numsim",
                     help="Number of simulations to run",
                     metavar="numsim", default=NUM_SIMULATIONS, dest="num_simulations")
+    parser.add_option("-p", "--processes",
+                    help="Number of parallel processes to use in the simulation.",
+                    metavar="numproc", default=NUM_PROCESSES, dest="num_processes")
     options, _ = parser.parse_args()
 
-    return options.model_twiss, options.num_simulations, options.output_dir
+    return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir
 
 
-def get_systematic_errors(model_twiss, num_simulations, output_dir):
+def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir):
     run_data_path = os.path.join(output_dir, "RUN_DATA")
     iotools.create_dirs(run_data_path)
+    try:
+        os.symlink("/afs/cern.ch/eng/lhc/optics/V6.503", "db5")
+    except(OSError):
+        pass
 
-    print "Running " + str(num_simulations) + " simulations using " + str(NUM_PROCESSES) + " processes..."
+    print "Running " + str(num_simulations) + " simulations using " + str(num_processes) + " processes..."
     start_time = time.time()
-    pool = multiprocessing.Pool(processes=NUM_PROCESSES)
+    pool = multiprocessing.Pool(processes=num_processes)
+    times = []
     args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
-    tasks = pool.map_async(_run_single_madx_simulation, args)
+    tasks = pool.map_async(_run_single_madx_simulation, args, callback=times.append)
     tasks.wait()
+    _show_time_statistics(times)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
+
+    os.unlink("db5")
 
     print "Calculating systematic error bars..."
     start_time = time.time()
@@ -58,7 +69,6 @@ def get_systematic_errors(model_twiss, num_simulations, output_dir):
 def _run_single_madx_simulation(seed_path_tuple):
     seed = seed_path_tuple[0]
     run_data_path = seed_path_tuple[1]
-
     madx_job = ""
     with open('job.tracking.mask', 'r') as infile:
         for line in infile:
@@ -90,8 +100,27 @@ def _run_single_madx_simulation(seed_path_tuple):
             new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
             madx_job += new_line + "\n"
 
-    result = madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
-    return result
+    start_time = time.time()
+    madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
+    end_time = time.time()
+    return end_time - start_time
+
+
+def _show_time_statistics(times):
+    times = times[0]
+    average_time = 0
+    max_time = 0
+    min_time = sys.float_info.max
+    for time in times:
+        average_time += time
+        if time > max_time:
+            max_time = time
+        if time < min_time:
+            min_time = time
+    average_time = average_time / len(times)
+    print "Average simulation time: " + str(average_time) + " seconds"
+    print "Max simulation time: " + str(max_time) + " seconds"
+    print "Min simulation time: " + str(min_time) + " seconds"
 
 
 def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path):
@@ -458,5 +487,5 @@ def BetaFromPhase_BPM_right(bn3, bn1, bn2, MADTwiss, ERRTwiss, plane):
 
 
 if __name__ == "__main__":
-    model_twiss, num_simulations, output_dir = _parse_args()
-    get_systematic_errors(model_twiss, num_simulations, output_dir)
+    model_twiss, num_simulations, num_processes, output_dir = _parse_args()
+    get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir)

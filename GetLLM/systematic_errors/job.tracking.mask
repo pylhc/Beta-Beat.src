@@ -1,7 +1,5 @@
 title, "Model creator for java" ;
 
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-
 option, -echo, -info,  warn;
 call, file = "db5/as-built/V6.5.seq";       
 call, file = "db5/V6.5.inj.str";
