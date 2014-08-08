@@ -37,6 +37,7 @@ def _parse_args():
 def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir):
     run_data_path = os.path.join(output_dir, "RUN_DATA")
     iotools.create_dirs(run_data_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "MB_corr_setting_4TeV.mad"), run_data_path)
     try:
         os.symlink("/afs/cern.ch/eng/lhc/optics/V6.503", "db5")
     except(OSError):
@@ -83,7 +84,7 @@ def _prepare_single_error_file(seed_path_tuple):
     err_num = str((seed_path_tuple[0] % 60) + 1).zfill(4)
     run_data_path = seed_path_tuple[1]
     madx_job = ""
-    with open('error_table.mask', 'r') as infile:
+    with open(os.path.join(CURRENT_PATH, 'error_table.mask'), 'r') as infile:
         for line in infile:
             new_line = line
             new_line = new_line.replace("%ERR_NUM", err_num)
@@ -105,7 +106,7 @@ def _run_single_madx_simulation(seed_path_tuple):
     seed = seed_path_tuple[0]
     run_data_path = seed_path_tuple[1]
     madx_job = ""
-    with open('job.tracking.mask', 'r') as infile:
+    with open(os.path.join(CURRENT_PATH, 'job.tracking.mask'), 'r') as infile:
         for line in infile:
             err_num = str((seed % 60) + 1).zfill(4)
             new_line = line

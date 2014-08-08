@@ -48,7 +48,7 @@ endmatch;
 READMYTABLE,file="%RUN_DATA_PATH/MBx-%ERR_NUM.errors",table=errtab;
 SETERR,TABLE=errtab;
 
- call, file="MB_corr_setting_4TeV.mad";
+ call, file="%RUN_DATA_PATH/MB_corr_setting_4TeV.mad";
 
 
 
