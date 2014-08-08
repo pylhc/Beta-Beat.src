@@ -42,13 +42,15 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     except(OSError):
         pass
 
+    print "Preparing error files..."
+    start_time = time.time()
+    _parallel_prepare_error_files(run_data_path)
+    end_time = time.time()
+    print "Done (" + str(end_time - start_time) + " seconds)\n"
+
     print "Running " + str(num_simulations) + " simulations using " + str(num_processes) + " processes..."
     start_time = time.time()
-    pool = multiprocessing.Pool(processes=num_processes)
-    times = []
-    args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
-    tasks = pool.map_async(_run_single_madx_simulation, args, callback=times.append)
-    tasks.wait()
+    times = _run_parallel_simulations(run_data_path)
     _show_time_statistics(times)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
@@ -57,7 +59,7 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
 
     print "Calculating systematic error bars..."
     start_time = time.time()
-    _get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir)
+    _get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, num_simulations)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
@@ -66,12 +68,42 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "All done."
 
 
+def _parallel_prepare_error_files(run_data_path):
+    pool = multiprocessing.Pool(processes=num_processes)
+    args = [(seed, run_data_path) for seed in range(1, 61)]
+    tasks = pool.map_async(_prepare_single_error_file, args)
+    tasks.wait()
+
+
+def _prepare_single_error_file(seed_path_tuple):
+    err_num = str((seed_path_tuple[0] % 60) + 1).zfill(4)
+    run_data_path = seed_path_tuple[1]
+    madx_job = ""
+    with open('error_table.mask', 'r') as infile:
+        for line in infile:
+            new_line = line
+            new_line = new_line.replace("%ERR_NUM", err_num)
+            new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
+            madx_job += new_line + "\n"
+    madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
+
+
+def _run_parallel_simulations(run_data_path):
+    pool = multiprocessing.Pool(processes=num_processes)
+    times = []
+    args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
+    tasks = pool.map_async(_run_single_madx_simulation, args, callback=times.append)
+    tasks.wait()
+    return times
+
+
 def _run_single_madx_simulation(seed_path_tuple):
     seed = seed_path_tuple[0]
     run_data_path = seed_path_tuple[1]
     madx_job = ""
     with open('job.tracking.mask', 'r') as infile:
         for line in infile:
+            err_num = str((seed % 60) + 1).zfill(4)
             new_line = line
 
             if line.startswith('eoption, seed= SEEDR + 50  ; exec SetEfcomp_Q;'):
@@ -92,10 +124,8 @@ def _run_single_madx_simulation(seed_path_tuple):
                 new_line = 'eoption, seed= SEEDR + ' + str(8 + seed * 9) + ';'
             elif line.startswith('eoption, seed= SEEDR + 10;'):
                 new_line = 'eoption, seed= SEEDR + ' + str(9 + seed * 9) + ';'
-            elif line.startswith('readtable, file="/afs/cern.ch/work/a/alangner/b2_errors/lhc-4TeV-emfqcs-0001.tfs";'):
-                new_line = 'readtable, file="/afs/cern.ch/work/a/alangner/public/b2_errors/lhc-4TeV-emfqcs-' + \
-                            str((seed % 60) + 1).zfill(4) + '.tfs";'
 
+            new_line = new_line.replace("%ERR_NUM", str(err_num))
             new_line = new_line.replace("%SEED", str(seed))
             new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
             madx_job += new_line + "\n"
@@ -123,7 +153,7 @@ def _show_time_statistics(times):
     print "Min simulation time: " + str(min_time) + " seconds"
 
 
-def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path):
+def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, num_simulations):
     beta_hor = {}
     beta_ver = {}
     model_twiss = metaclass.twiss(model_twiss_path)
@@ -146,7 +176,6 @@ def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_p
                 beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
                          list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
 
-    for probed_bpm in range(len(list_of_bpm)):
         for i in range(6):
             for j in range(6):
                 beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
@@ -156,7 +185,7 @@ def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_p
 
     num_valid_data = 0
 
-    for i in range(NUM_SIMULATIONS):
+    for i in range(num_simulations):
         try:
             error_twiss = metaclass.twiss(os.path.join(run_data_path, 'twiss' + str(i + 1) + '.dat'))
             for probed_bpm in range(len(list_of_bpm)):
@@ -210,7 +239,6 @@ def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_p
                                                                   model_twiss, error_twiss, 'V') -
                                            error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
 
-            for probed_bpm in range(len(list_of_bpm)):
                 for i in range(6):
                     for j in range(6):
                         beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
@@ -268,8 +296,6 @@ def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_p
                          np.sqrt(beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                                           list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
                                           list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] / num_valid_data)
-
-    for probed_bpm in range(len(list_of_bpm)):
         for i in range(6):
             for j in range(6):
                 beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
@@ -284,6 +310,7 @@ def _get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_p
                          np.sqrt(beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                                           list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
                                           list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] / num_valid_data)
+
     np.save(os.path.join(output_path, 'test_bet_deviations'), [beta_hor, beta_ver])
 
 
