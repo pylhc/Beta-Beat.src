@@ -35,6 +35,7 @@ def _parse_args():
 
 
 def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir):
+    print "Started systematic error script, using " + str(num_processes) + " processes for " + str(num_simulations) + " simulations"
     run_data_path = os.path.join(output_dir, "RUN_DATA")
     iotools.create_dirs(run_data_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "MB_corr_setting_4TeV.mad"), run_data_path)
@@ -43,15 +44,17 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     except(OSError):
         pass
 
+    pool = multiprocessing.Pool(processes=num_processes)
+
     print "Preparing error files..."
     start_time = time.time()
-    _parallel_prepare_error_files(run_data_path)
+    _parallel_prepare_error_files(run_data_path, pool)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
-    print "Running " + str(num_simulations) + " simulations using " + str(num_processes) + " processes..."
+    print "Running simulations..."
     start_time = time.time()
-    times = _run_parallel_simulations(run_data_path)
+    times = _run_parallel_simulations(run_data_path, pool)
     _show_time_statistics(times)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
@@ -62,9 +65,9 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     except(OSError):
         pass
 
-    print "Parallel calculating systematic error bars..."
+    print "Calculating systematic error bars..."
     start_time = time.time()
-    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, num_simulations)
+    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, pool, num_simulations)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
@@ -73,8 +76,7 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "All done."
 
 
-def _parallel_prepare_error_files(run_data_path):
-    pool = multiprocessing.Pool(processes=num_processes)
+def _parallel_prepare_error_files(run_data_path, pool):
     args = [(seed, run_data_path) for seed in range(1, 61)]
     tasks = pool.map_async(_prepare_single_error_file, args)
     tasks.wait()
@@ -93,8 +95,7 @@ def _prepare_single_error_file(seed_path_tuple):
     madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
 
 
-def _run_parallel_simulations(run_data_path):
-    pool = multiprocessing.Pool(processes=num_processes)
+def _run_parallel_simulations(run_data_path, pool):
     times = []
     args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
     tasks = pool.map_async(_run_single_madx_simulation, args, callback=times.append)
@@ -158,7 +159,7 @@ def _show_time_statistics(times):
     print "Min simulation time: " + str(min_time) + " seconds"
 
 
-def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, num_simulations):
+def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, pool, num_simulations):
     model_twiss = metaclass.twiss(model_twiss_path)
 
     list_of_bpm = []
@@ -166,7 +167,6 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
         if "BPM" in i and i not in list_of_bpm:
             list_of_bpm.append(i)
 
-    pool = multiprocessing.Pool(processes=num_processes)
     args = [(run_data_path, model_twiss, list_of_bpm, sim_num) for sim_num in range(1, num_simulations + 1)]
     all_betas = pool.map(_get_error_bar_for_single_simulation, args, chunksize=num_simulations // num_processes)
 
@@ -253,7 +253,7 @@ def _get_error_bar_for_single_simulation(args_tuple):
                                        error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
         num_valid_data = num_valid_data + 1
     except:
-        pass
+        print >> sys.stderr, "Cannot read ", "twiss" + str(sim_num) + ".dat, something went wrong."
     return beta_hor, beta_ver, num_valid_data
 
 
