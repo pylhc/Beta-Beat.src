@@ -159,8 +159,6 @@ def _show_time_statistics(times):
 
 
 def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, num_simulations):
-    beta_hor = {}
-    beta_ver = {}
     model_twiss = metaclass.twiss(model_twiss_path)
 
     list_of_bpm = []
@@ -168,29 +166,9 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
         if "BPM" in i and i not in list_of_bpm:
             list_of_bpm.append(i)
 
-    for probed_bpm in range(len(list_of_bpm)):
-        for i in range(5):
-            for j in range(5 - i):
-                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
-                         list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = 0
-                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
-                         list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = 0
-
-                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
-                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
-                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
-                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
-
-        for i in range(6):
-            for j in range(6):
-                beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
-                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
-                beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] + list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
-                         list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = 0
-
     pool = multiprocessing.Pool(processes=num_processes)
-    args = [(run_data_path, model_twiss, list_of_bpm, beta_hor, beta_ver, sim_num) for sim_num in range(1, num_simulations + 1)]
-    all_betas = pool.map(_get_error_bar_for_single_simulation, args)
+    args = [(run_data_path, model_twiss, list_of_bpm, sim_num) for sim_num in range(1, num_simulations + 1)]
+    all_betas = pool.map(_get_error_bar_for_single_simulation, args, chunksize=num_simulations // num_processes)
 
     beta_hor, beta_ver, num_valid_data = _merge_betas_dicts(all_betas)
 
@@ -203,7 +181,9 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
 
 
 def _get_error_bar_for_single_simulation(args_tuple):
-    run_data_path, model_twiss, list_of_bpm, beta_hor, beta_ver, sim_num = args_tuple
+    run_data_path, model_twiss, list_of_bpm, sim_num = args_tuple
+    beta_hor = {}
+    beta_ver = {}
     num_valid_data = 0
     try:
         error_twiss = metaclass.twiss(os.path.join(run_data_path, 'twiss' + str(sim_num) + '.dat'))
@@ -213,9 +193,6 @@ def _get_error_bar_for_single_simulation(args_tuple):
                     beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
-                             beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] + \
                                       ((BetaFromPhase_BPM_right(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)],
@@ -226,9 +203,6 @@ def _get_error_bar_for_single_simulation(args_tuple):
                     beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
-                             beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] + \
                                       ((BetaFromPhase_BPM_right(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)],
@@ -239,9 +213,6 @@ def _get_error_bar_for_single_simulation(args_tuple):
                     beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                             beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
                                       ((BetaFromPhase_BPM_left(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
@@ -252,9 +223,6 @@ def _get_error_bar_for_single_simulation(args_tuple):
                     beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                             beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
                                       ((BetaFromPhase_BPM_left(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
@@ -267,9 +235,6 @@ def _get_error_bar_for_single_simulation(args_tuple):
                     beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                             beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
                                       ((BetaFromPhase_BPM_mid(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
@@ -280,9 +245,6 @@ def _get_error_bar_for_single_simulation(args_tuple):
                     beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                             beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
-                                      list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] + \
                                       ((BetaFromPhase_BPM_mid(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
