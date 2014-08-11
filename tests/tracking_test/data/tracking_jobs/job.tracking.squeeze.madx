@@ -1,0 +1,84 @@
+title, "Model creator for java" ;
+
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
+
+option, -echo, -info,  warn;
+call, file = "db5/V6.5.seq";       
+call, file = "db5/V6.5.inj.str";
+
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR1//new_ip1_b2_squeeze/IP1_beta_0.60m.str";
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR2/3.5TeV/ip2_0.00889_beta3.00m.str";
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR5//new_ip5_b2_squeeze/IP5_beta_0.60m.str";
+call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR8/3.5TeV/ip8_0.00875_beta3.00m.str";
+
+call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+
+seqedit, sequence=LHCB1;
+flatten;               
+cycle, start=MSIA.EXIT.B1;
+endedit;
+
+seqedit, sequence=LHCB2;
+flatten;
+cycle, start=MKI.A5R8.B2;
+endedit;
+
+
+ option,  echo,  info,  warn;
+
+ beam, particle = proton, sequence=LHCB1, energy = 450.0;
+ beam, sequence=LHCB1,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=1;
+ beam, sequence=LHCB2,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=-1;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
+ on_alice:= 0; on_lhcb := 0;
+
+use, period=LHCB1;
+
+!!!!!!!!! matching
+match;
+
+vary, name=KQTD.B1;
+vary, name=KQTF.B1;
+
+constraint, range=#E, mux=64.31, muy=59.32;
+lmdif;
+endmatch;
+
+
+!!!!! nominal
+
+select, flag=twiss, clear;
+select, flag=twiss,pattern=MKQA.6L4.B1,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss, chrom,sequence=LHCB1, deltap=0, file='%OUTPUT_PATH/twiss.dat';
+
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! PTC tracking module
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+PTC_CREATE_UNIVERSE;
+PTC_CREATE_LAYOUT, model=3, method=6, nst=10;
+PTC_ALIGN;
+call, file="%DATA_PATH/bpm.ptc_obs.madx";
+PTC_START, x=0.001, y=0.001; !!!! change: kick (units m)
+PTC_TRACK, deltap=0.0,icase=5, turns=1024, ELEMENT_BY_ELEMENT, dump, onetable, file='%OUTPUT_PATH/track';
+PTC_TRACK_END;
+PTC_END;
+
+System,"chmod a+x %OUTPUT_PATH/parse_track_file.sh";
+System,"%OUTPUT_PATH/parse_track_file.sh";
+
+stop;
+
