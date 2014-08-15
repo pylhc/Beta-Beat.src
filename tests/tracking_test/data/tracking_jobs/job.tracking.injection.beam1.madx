@@ -4,13 +4,9 @@ System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
 option, -echo, -info,  warn;
-call, file = "db5/V6.5.seq";       
+call, file = "db5/as-built/V6.5.seq";
+        
 call, file = "db5/V6.5.inj.str";
-
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR1//new_ip1_b2_squeeze/IP1_beta_0.60m.str";
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR2/3.5TeV/ip2_0.00889_beta3.00m.str";
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR5//new_ip5_b2_squeeze/IP5_beta_0.60m.str";
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR8/3.5TeV/ip8_0.00875_beta3.00m.str";
 
 call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
 
@@ -44,7 +40,7 @@ match;
 vary, name=KQTD.B1;
 vary, name=KQTF.B1;
 
-constraint, range=#E, mux=64.31, muy=59.32;
+constraint, range=#E, mux=64.28, muy=59.31;
 lmdif;
 endmatch;
 
@@ -58,8 +54,23 @@ select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,d
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 twiss, chrom,sequence=LHCB1, deltap=0, file='%OUTPUT_PATH/twiss.dat';
 
+select, flag=twiss, clear;
+select, flag=twiss,class=rcollimator,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k1sl,k2l,k3l,k4l,wx,wy,p
+hix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+select, flag=twiss, class=monitor;
+select,flag=twiss,class=instrument;
+select,flag=twiss,class=marker;
+select,flag=twiss,class=quadrupole;
+select,flag=twiss,class=skewquadrupole;
+select,flag=twiss,class=sextupole;
+select,flag=twiss,class=octupole;
+select,flag=twiss,class=tkicker;
+select,flag=twiss,class=rcollimator;
+select,flag=twiss,class=collimator;
+select,flag=twiss,class=rbend;
+twiss, chrom,sequence=LHCB1, deltap=0, file="%OUTPUT_PATH/twiss_elements.dat";
 
-
+kq8.l2b1 = kq8.l2b1  + 0.2e-4;
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

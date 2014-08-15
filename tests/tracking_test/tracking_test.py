@@ -8,6 +8,7 @@ The maximum allowed relative error can be set in the constant MAX_BETA_REL_ERR.
 
 @author: jcoellod
 '''
+import __init__  # @UnusedImport
 import unittest
 import os
 from Python_Classes4MAD import madxrunner, metaclass
@@ -19,6 +20,10 @@ import re
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 MAX_BETA_REL_ERR = 0.0004
+SHORT_RUN = False
+
+IP_SEGMENTS_B1 = "BPM.15L2.B1,BPM.15R2.B1,IP2"
+IP_SEGMENTS_B2 = "BPM.15L2.B2,BPM.15R2.B2,IP2"
 
 
 class Test(unittest.TestCase):
@@ -28,8 +33,16 @@ class Test(unittest.TestCase):
         self._prepare_tracking_scripts()
 
     def tearDown(self):
+        try:
+            os.unlink("ats")
+            os.unlink("db")
+            os.unlink("db5")
+            os.unlink("ds")
+        except:
+            pass
         for output_path in self._output_paths:
-            iotools.delete_item(output_path)
+            # iotools.delete_item(output_path)
+            pass
 
     def testName(self):
         for madx_file_path, output_path in zip(self._madx_file_paths, self._output_paths):
@@ -37,7 +50,11 @@ class Test(unittest.TestCase):
             self._run_tracking_script(madx_file_path)
             self._run_drive(output_path, madx_file_path)
             self._run_getLLM(output_path)
+            self._run_Segment_by_Segment(output_path)
+            self._run_Segment_by_Segment_Match(output_path)
             self._compare_output(output_path)
+            if SHORT_RUN:
+                break
             print "Done\n"
 
     def _set_up_paths(self):
@@ -47,11 +64,12 @@ class Test(unittest.TestCase):
         self._madx_template_paths = []
         self._madx_file_paths = []
         for file_name in iotools.get_all_filenames_in_dir(self._tracking_jobs_path):
-            output_path = os.path.join(self._data_path, "output_" + file_name)
-            iotools.create_dirs(output_path)
-            self._output_paths.append(output_path)
-            self._madx_template_paths.append(os.path.join(self._tracking_jobs_path, file_name))
-            self._madx_file_paths.append(os.path.join(output_path, file_name))
+            if not file_name.startswith("~"):
+                output_path = os.path.join(self._data_path, "output_" + file_name)
+                iotools.create_dirs(output_path)
+                self._output_paths.append(output_path)
+                self._madx_template_paths.append(os.path.join(self._tracking_jobs_path, file_name))
+                self._madx_file_paths.append(os.path.join(output_path, file_name))
 
         if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "linux3":
             self._path_to_drive = os.path.join(CURRENT_PATH, "..", "..", "drive", "Drive_God_lin")
@@ -61,6 +79,8 @@ class Test(unittest.TestCase):
             raise OSError("No drive version for given os: " + sys.platform)
 
         self._path_to_getllm = os.path.join(CURRENT_PATH, "..", "..", "GetLLM", "GetLLM.py")
+        self._path_to_sbs = os.path.join(CURRENT_PATH, "..", "..", "SegmentBySegment", "SegmentBySegment.py")
+        self._path_to_sbs_match = os.path.join(CURRENT_PATH, "..", "..", "SegmentBySegmentMatch", "SegmentBySegmentMatch.py")
 
     def _prepare_tracking_scripts(self):
         for template, output_job, output_dir in zip(self._madx_template_paths, self._madx_file_paths, self._output_paths):
@@ -76,27 +96,14 @@ class Test(unittest.TestCase):
         self.assertEqual(errcode, 0, "Error running MADX tracking code.")
 
     def _run_drive(self, output_path, madx_file_path):
-        print "Running drive..."
+        print "Running Drive..."
         self._prepare_drive_input(output_path, madx_file_path)
         self._replace_keywords_in_file(os.path.join(self._data_path, "DrivingTerms"),
                                        os.path.join(output_path, "DrivingTerms"),
                                        {"%OUTPUT_PATH": output_path})
         call_command = os.path.abspath(self._path_to_drive) + " " + os.path.abspath(output_path)
 
-        process = subprocess.Popen(call_command,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE,
-                           shell=True)
-
-        (out_stream, err_stream) = process.communicate()
-        errcode = process.returncode
-        if 0 != errcode:
-            print "Error running drive:", call_command
-            print "Printing output:-------------------------"
-            print out_stream
-            print >> sys.stderr, "Printing error output:-------------------"
-            print >> sys.stderr, err_stream
-        self.assertEqual(errcode, 0, "Error running drive.")
+        self._run_outer_process(call_command, "Drive")
 
     def _prepare_drive_input(self, output_path, madx_file_path):
         tune_x, tune_y = 0.0, 0.0
@@ -120,20 +127,62 @@ class Test(unittest.TestCase):
         " -f " + os.path.join(output_path, "ALLBPMs") + \
         " -o " + output_path
 
-        process = subprocess.Popen(call_command,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE,
-                           shell=True)
+        self._run_outer_process(call_command, "GetLLM")
 
-        (out_stream, err_stream) = process.communicate()
-        errcode = process.returncode
-        if 0 != errcode:
-            print "Error running getLLM:", call_command
-            print "Printing output:-------------------------"
-            print out_stream
-            print >> sys.stderr, "Printing error output:-------------------"
-            print >> sys.stderr, err_stream
-        self.assertEqual(errcode, 0, "Error running getLLM.")
+    def _run_Segment_by_Segment(self, output_path):
+        print "Running Segment by Segment..."
+        madx_bin_path = madxrunner.get_sys_dependent_path_to_mad_x()
+        bb_source_path = iotools.get_absolute_path_to_betabeat_root()
+        sbs_output_path = os.path.join(output_path, "sbs")
+        twiss_model_path = os.path.join(output_path, "twiss.dat")
+
+        ip_segments = None
+        sequence = self._get_sequence(twiss_model_path)
+        if sequence == "LHCB1":
+            ip_segments = IP_SEGMENTS_B1
+        elif sequence == "LHCB2":
+            ip_segments = IP_SEGMENTS_B2
+        self.assertTrue(ip_segments, "Unknown accelerator sequence.")
+
+        call_command = sys.executable + " " + os.path.abspath(self._path_to_sbs) + \
+        " --path " + output_path + \
+        " --save " + sbs_output_path + \
+        " --twiss " + twiss_model_path + \
+        " --mad " + madx_bin_path + \
+        " --bbsource " + bb_source_path + \
+        " --accel " + sequence + " --cuts 10 --start " + ip_segments
+
+        self._run_outer_process(call_command, "Segment by Segment")
+
+    def _get_sequence(self, twiss_path):
+        with open(twiss_path, "r") as twiss_file:
+            for line in twiss_file:
+                if "SEQUENCE" in line:
+                    return line.split()[3].strip('"')
+
+    def _run_Segment_by_Segment_Match(self, output_path):
+        print "Running Segment by Segment Match..."
+        beam1path = ""
+        beam2path = ""
+        if "beam1" in output_path:
+            beam1path = output_path
+            beam2path = beam1path.replace("beam1", "beam2")
+        if "beam2" in output_path:
+            beam2path = output_path
+            beam1path = beam2path.replace("beam2", "beam1")
+        if os.path.isdir(os.path.join(beam1path, "sbs")) and os.path.isdir(os.path.join(beam2path, "sbs")):
+            temp_dir = beam1path.replace("beam1", "match")
+            iotools.create_dirs(temp_dir)
+            ip = 2
+            call_command = sys.executable + " " + os.path.abspath(self._path_to_sbs_match) + \
+            " --ip " + str(ip) + \
+            " --beam1 " + beam1path + \
+            " --beam2 " + beam2path + \
+            " --temp " + temp_dir
+
+            self._run_outer_process(call_command, "Segment by Segment Match")
+        else:
+            print "No data for both beams yet."
 
     def _compare_output(self, output_path):
         print "Comparing output..."
@@ -148,6 +197,22 @@ class Test(unittest.TestCase):
             rel_error = abs((beta_y_twiss.BETY[index] - beta_y_twiss.BETYMDL[index]) / beta_y_twiss.BETYMDL[index])
             self.assertTrue(rel_error < MAX_BETA_REL_ERR,
                             "Relative error too big found in: " + beta_y_twiss.NAME[index] + " (" + str(rel_error) + ")")
+
+    def _run_outer_process(self, command, name):
+        process = subprocess.Popen(command,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE,
+                           shell=True)
+
+        (out_stream, err_stream) = process.communicate()
+        errcode = process.returncode
+        if 0 != errcode:
+            print "Error running", name + ":", command
+            print "Printing output:-------------------------"
+            print out_stream
+            print >> sys.stderr, "Printing error output:-------------------"
+            print >> sys.stderr, err_stream
+        self.assertEqual(errcode, 0, "Error running " + name)
 
     def _replace_keywords_in_file(self, input_file, output_file, dict_to_replace):
         with open(output_file, "w") as output_data:

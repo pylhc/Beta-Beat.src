@@ -3,8 +3,9 @@ title, "Model creator for java" ;
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
-option, -echo, -info,  warn;
-call, file = "db5/V6.5.seq";       
+option, -echo, -info,  warn;   
+call, file = "db5/as-built/V6.5.seq";
+
 call, file = "db5/V6.5.inj.str";
 
 call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
@@ -31,13 +32,13 @@ endedit;
  on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
  on_alice:= 0; on_lhcb := 0;
 
-use, period=LHCB1;
+use, period=LHCB2;
 
 !!!!!!!!! matching
 match;
 
-vary, name=KQTD.B1;
-vary, name=KQTF.B1;
+vary, name=KQTD.B2;
+vary, name=KQTF.B2;
 
 constraint, range=#E, mux=64.28, muy=59.31;
 lmdif;
@@ -47,14 +48,28 @@ endmatch;
 !!!!! nominal
 
 select, flag=twiss, clear;
-select, flag=twiss,pattern=MKQA.6L4.B1,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+select, flag=twiss,pattern=MKQA.6L4.B2,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
-twiss, chrom,sequence=LHCB1, deltap=0, file='%OUTPUT_PATH/twiss.dat';
+twiss, chrom,sequence=LHCB2, deltap=0, file='%OUTPUT_PATH/twiss.dat';
 
 
-
+select, flag=twiss, clear;
+select, flag=twiss,class=rcollimator,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k1sl,k2l,k3l,k4l,wx,wy,p
+hix,phiy, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+select, flag=twiss, class=monitor;
+select,flag=twiss,class=instrument;
+select,flag=twiss,class=marker;
+select,flag=twiss,class=quadrupole;
+select,flag=twiss,class=skewquadrupole;
+select,flag=twiss,class=sextupole;
+select,flag=twiss,class=octupole;
+select,flag=twiss,class=tkicker;
+select,flag=twiss,class=rcollimator;
+select,flag=twiss,class=collimator;
+select,flag=twiss,class=rbend;
+twiss, chrom,sequence=LHCB2, deltap=0, file="%OUTPUT_PATH/twiss_elements.dat";
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -66,7 +81,7 @@ twiss, chrom,sequence=LHCB1, deltap=0, file='%OUTPUT_PATH/twiss.dat';
 PTC_CREATE_UNIVERSE;
 PTC_CREATE_LAYOUT, model=3, method=6, nst=10;
 PTC_ALIGN;
-call, file="%DATA_PATH/bpm.ptc_obs.madx";
+call, file="%DATA_PATH/bpm.ptc_obs.b2.madx";
 PTC_START, x=0.001, y=0.001; !!!! change: kick (units m)
 PTC_TRACK, deltap=0.0,icase=5, turns=1024, ELEMENT_BY_ELEMENT, dump, onetable, file='%OUTPUT_PATH/track';
 PTC_TRACK_END;
