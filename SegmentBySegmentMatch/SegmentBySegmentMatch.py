@@ -423,7 +423,7 @@ def _build_changeparameters_file(match_temporary_path):
         parts = original_line.split("=")
         variable_name = parts[0].replace("d", "", 1).strip()
         variable_value = float(parts[1].replace(";", "").strip())
-        print >> changeparameters_match_file, variable_name, " = ", variable_name, " + ", variable_value, ";"
+        print >> changeparameters_match_file, variable_name, " = ", variable_value, " + ", variable_name, ";"
     print >> changeparameters_match_file, "return;"
 
 
