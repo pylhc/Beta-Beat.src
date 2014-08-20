@@ -20,6 +20,7 @@ Then the test will check if segment by segment match has found the error.
 
 
 The maximum allowed relative error can be set in the constant MAX_BETA_REL_ERR.
+The maximon allowed deviation on the errors found by SbSMatch can be set in the constant MAX_CORRECTION_DEVIATION.
 
 @author: jcoellod
 '''
@@ -31,6 +32,7 @@ from Utilities import iotools
 import sys
 import subprocess
 from numpy.ma.core import abs
+from Utilities import ADDbpmerror
 import re
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -38,8 +40,9 @@ MAX_BETA_REL_ERR = 0.0004
 MAX_CORRECTION_DEVIATION = 1e-5
 SHORT_RUN = False
 
-IP_SEGMENTS_B1 = "BPM.15L1.B1,BPM.15R1.B1,IP1"
-IP_SEGMENTS_B2 = "BPM.15L1.B2,BPM.15R1.B2,IP1"
+IP_SEGMENTS_TO_RUN = [1, 2]
+IP_SEGMENT_START = "BPM.15L"
+IP_SEGMENT_END = "BPM.15R"
 
 
 class Test(unittest.TestCase):
@@ -58,13 +61,15 @@ class Test(unittest.TestCase):
             pass
         for output_path in self._output_paths:
             iotools.delete_item(output_path)
+            pass
         for output_path in self._sbs_match_output_paths:
             iotools.delete_item(output_path)
+            pass
 
     def testName(self):
         for madx_file_path, output_path in zip(self._madx_file_paths, self._output_paths):
             print "Testing madx job " + os.path.basename(madx_file_path)
-            self._run_tracking_script(madx_file_path)
+            self._run_tracking_script(madx_file_path, output_path)
             sequence = self._get_sequence(os.path.join(output_path, "twiss.dat"))
             self._run_drive(output_path, madx_file_path, sequence)
             self._run_getLLM(output_path, sequence)
@@ -108,9 +113,6 @@ class Test(unittest.TestCase):
     def _prepare_tracking_scripts(self):
         for template, output_job, output_dir in zip(self._madx_template_paths, self._madx_file_paths, self._output_paths):
             dict_to_replace = {"%DATA_PATH": self._data_path, "%OUTPUT_PATH": output_dir}
-            self._replace_keywords_in_file(os.path.join(self._data_path, "parse_track_file.sh"),
-                                           os.path.join(output_dir, "parse_track_file.sh"),
-                                           dict_to_replace)
             self._replace_keywords_in_file(template, output_job, dict_to_replace)
             self._errors[output_dir] = {}
             modifiers = self._find_optics_and_errors_in_job(output_job, output_dir)
@@ -140,10 +142,11 @@ class Test(unittest.TestCase):
         iotools.write_string_into_new_file(madx_job, new_lines)
         return modifiers
 
-    def _run_tracking_script(self, madx_file_path):
+    def _run_tracking_script(self, madx_file_path, output_path):
         print "Running tracking code..."
         errcode = madxrunner.runForInputFile(madx_file_path, stdout=subprocess.PIPE)
         self.assertEqual(errcode, 0, "Error running MADX tracking code.")
+        ADDbpmerror.convert_files(1, os.path.join(output_path, "trackone"), os.path.join(output_path, "ALLBPMs"))
 
     def _run_drive(self, output_path, madx_file_path, sequence):
         print "Running Drive..."
@@ -189,12 +192,12 @@ class Test(unittest.TestCase):
         sbs_output_path = os.path.join(output_path, "sbs")
         twiss_model_path = os.path.join(output_path, "twiss_elements.dat")
 
-        ip_segments = None
-        if sequence == "LHCB1":
-            ip_segments = IP_SEGMENTS_B1
-        elif sequence == "LHCB2":
-            ip_segments = IP_SEGMENTS_B2
-        self.assertTrue(ip_segments, "Unknown accelerator sequence.")
+        ip_segments = ""
+        for ip in IP_SEGMENTS_TO_RUN:
+            beam = sequence.replace("LHC", "")
+            ip_segments += IP_SEGMENT_START + str(ip) + "." + beam + "," + IP_SEGMENT_END + str(ip) + "." + beam + ",IP" + str(ip) + ","
+        ip_segments = ip_segments[:-1]  # Remove last comma
+        self.assertTrue(len(ip_segments) > 0, "Cannot create segment list.")
 
         call_command = sys.executable + " " + os.path.abspath(self._path_to_sbs) + \
         " --path=" + output_path + \
@@ -226,14 +229,18 @@ class Test(unittest.TestCase):
             temp_dir = beam1path.replace("beam1", "match")
             iotools.create_dirs(temp_dir)
             self._sbs_match_output_paths.append(temp_dir)
-            ip = 1  # TODO: This has to fit the segments
-            call_command = sys.executable + " " + os.path.abspath(self._path_to_sbs_match) + \
-            " --ip " + str(ip) + \
-            " --beam1 " + beam1path + \
-            " --beam2 " + beam2path + \
-            " --temp " + temp_dir
+            for ip in IP_SEGMENTS_TO_RUN:
+                print "For IP" + str(ip) + "..."
+                call_command = sys.executable + " " + os.path.abspath(self._path_to_sbs_match) + \
+                " --ip " + str(ip) + \
+                " --beam1 " + beam1path + \
+                " --beam2 " + beam2path + \
+                " --temp " + temp_dir
+                self._run_outer_process(call_command, "Segment by Segment Match")
+                iotools.copy_item(os.path.join(temp_dir, "match", "changeparameters.madx"),
+                                  os.path.join(temp_dir, "changeparametersIP" + str(ip) + ".madx"))
+                iotools.delete_item(os.path.join(temp_dir, "match"))
 
-            self._run_outer_process(call_command, "Segment by Segment Match")
         else:
             print "No data for both beams yet."
 
@@ -257,28 +264,28 @@ class Test(unittest.TestCase):
     def _compare_match_errors(self):
         for sbs_match_output_path in self._sbs_match_output_paths:
             print "Checking path", sbs_match_output_path, "..."
-            match_dir = os.path.join(sbs_match_output_path, "match")
-            changeparameters_path = os.path.join(match_dir, "changeparameters.madx")
             beam1_path = sbs_match_output_path.replace("match", "beam1")
             beam2_path = sbs_match_output_path.replace("match", "beam2")
             errors_beam1 = self._errors[beam1_path]
             errors_beam2 = self._errors[beam2_path]
-            with open(changeparameters_path, "r") as correction_lines:
-                for correction_line in correction_lines:
-                    correction_split = correction_line.replace(";", "").replace("d", "").replace("\n", "").split("=")
-                    variable, value = correction_split[0].strip(), float(correction_split[1])
-                    if variable in errors_beam1:
-                        difference = abs(value - errors_beam1[variable])
-                        self.assertTrue(difference < MAX_CORRECTION_DEVIATION,
-                                               "Wrong correction for variable: " + variable)
-                        print "Error for variable", variable, "corrected."
-                    elif variable in errors_beam2:
-                        difference = abs(value - errors_beam2[variable])
-                        self.assertTrue(difference < MAX_CORRECTION_DEVIATION,
-                                               "Wrong correction for variable: " + variable)
-                        print "Error for variable", variable, "corrected."
-                    else:
-                        self.assertTrue(value < MAX_CORRECTION_DEVIATION, "Wrong correction for variable: " + variable)
+            for ip in IP_SEGMENTS_TO_RUN:
+                changeparameters_path = os.path.join(sbs_match_output_path, "changeparametersIP" + str(ip) + ".madx")
+                with open(changeparameters_path, "r") as correction_lines:
+                    for correction_line in correction_lines:
+                        correction_split = correction_line.replace(";", "").replace("d", "").replace("\n", "").split("=")
+                        variable, value = correction_split[0].strip(), float(correction_split[1])
+                        if variable in errors_beam1:
+                            difference = abs(value - errors_beam1[variable])
+                            self.assertTrue(difference < MAX_CORRECTION_DEVIATION,
+                                                   "Wrong correction for variable: " + variable)
+                            print "Error for variable", variable, "corrected."
+                        elif variable in errors_beam2:
+                            difference = abs(value - errors_beam2[variable])
+                            self.assertTrue(difference < MAX_CORRECTION_DEVIATION,
+                                                   "Wrong correction for variable: " + variable)
+                            print "Error for variable", variable, "corrected."
+                        else:
+                            self.assertTrue(value < MAX_CORRECTION_DEVIATION, "Wrong correction for variable: " + variable)
         print "Done\n"
 
     def _run_outer_process(self, command, name):

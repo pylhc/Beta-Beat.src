@@ -93,8 +93,5 @@ PTC_TRACK, deltap=0.0,icase=5, turns=1024, ELEMENT_BY_ELEMENT, dump, onetable, f
 PTC_TRACK_END;
 PTC_END;
 
-System,"chmod a+x %OUTPUT_PATH/parse_track_file.sh";
-System,"%OUTPUT_PATH/parse_track_file.sh";
-
 stop;
 

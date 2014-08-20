@@ -31,7 +31,7 @@ endedit;
 
 !  set switches to 1 if crossing scheme is required
  on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
- on_sep1 := 1; on_sep2 := 1; on_sep5 := 1; on_sep8 := 1;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
  on_alice:= 0; on_lhcb := 0;
 
 use, period=LHCB2;
@@ -89,9 +89,6 @@ PTC_START, x=0.001, y=0.001; !!!! change: kick (units m)
 PTC_TRACK, deltap=0.0,icase=5, turns=1024, ELEMENT_BY_ELEMENT, dump, onetable, file='%OUTPUT_PATH/track';
 PTC_TRACK_END;
 PTC_END;
-
-System,"chmod a+x %OUTPUT_PATH/parse_track_file.sh";
-System,"%OUTPUT_PATH/parse_track_file.sh";
 
 stop;
 

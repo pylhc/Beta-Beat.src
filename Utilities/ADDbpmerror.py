@@ -8,6 +8,7 @@ Created April, 2014
 '''
 
 from __future__ import print_function
+from numpy.random import normal, randint
 
 def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs', x_error=0.0, y_error=0.0, n_faulty=0):
     '''
@@ -23,8 +24,6 @@ def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs', x_error=0
     :param float y_error: Sigma of noise in vertical plane
     :param int n_faulty: Number of faulty BPMs
     '''
-
-    from numpy.random import normal,randint
 
     # Print information:
     print("Parsing Mad-X track file %s to %s"%(infile,outfile))
@@ -54,8 +53,12 @@ def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs', x_error=0
             if bpm_name not in bpms:
                 bpms.append(bpm_name)
                 bpm_loc.append(lsp[-2])
-            x[pid][bpm_name].append(str(float(lsp[2])*1000+normal(0.0, x_error)))
-            y[pid][bpm_name].append(str(float(lsp[4])*1000+normal(0.0, y_error)))
+            if x_error and y_error:
+                x[pid][bpm_name].append(str(float(lsp[2]) * 1000 + normal(0.0, x_error)))
+                y[pid][bpm_name].append(str(float(lsp[4]) * 1000 + normal(0.0, y_error)))
+            else:
+                x[pid][bpm_name].append(str(float(lsp[2]) * 1000))
+                y[pid][bpm_name].append(str(float(lsp[4]) * 1000))
 
     if n_faulty:
         failing_bpms=randint(0,len(bpms)*2,n_faulty)
