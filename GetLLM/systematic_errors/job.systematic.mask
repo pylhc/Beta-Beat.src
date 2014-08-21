@@ -4,10 +4,7 @@ option, -echo, -info,  warn;
 call, file = "db5/as-built/V6.5.seq";       
 call, file = "db5/V6.5.inj.str";
 
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR1//new_ip1_b2_squeeze/IP1_beta_0.60m.str";
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR2/3.5TeV/ip2_0.00889_beta3.00m.str";
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR5//new_ip5_b2_squeeze/IP5_beta_0.60m.str";
-call file="/afs/cern.ch/eng/lhc/optics/V6.503//IR8/3.5TeV/ip8_0.00875_beta3.00m.str";
+call, file = "%PATH/modifiers.madx"
 
 call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
 
@@ -41,14 +38,14 @@ match;
 vary, name=KQTD.B1;
 vary, name=KQTF.B1;
 
-constraint, range=#E, mux=64.31, muy=59.32;
+constraint, range=#E, mux=%QMX, muy=%QMY;
 lmdif;
 endmatch;
 
 READMYTABLE,file="%RUN_DATA_PATH/MBx-%ERR_NUM.errors",table=errtab;
 SETERR,TABLE=errtab;
 
- call, file="%RUN_DATA_PATH/MB_corr_setting_4TeV.mad";
+ call, file="%ERRORS_PATH/MB_corr_setting_%BEAM_%ENERGY.mad";
 
 
 

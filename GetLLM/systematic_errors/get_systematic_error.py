@@ -1,3 +1,18 @@
+'''
+This script calculates the bet_deviations.npy binary file to improve the betas calculation.
+
+It uses two madx mask: error_table.mask and job.systematic.mask, that must be processed before running this script.
+The labels to be replaced are:
+
+- %PATH -> The path to the modifiers.madx file
+- %QMX and %QMY -> The tunes of the beam for that optic.
+- %ENERGY -> The energy of the beam. It must be: 0.35TeV, 3.5TeV, 4TeV or 6.5TeV.
+
+The modified masks must be placed in the same directory where the model is.
+
+@author: alangner, jcoellod
+'''
+
 import __init__  # @UnusedImport
 import os
 import multiprocessing
@@ -19,26 +34,42 @@ def _parse_args():
     parser = OptionParser()
     parser.add_option("-m", "--model",
                     help="Model twiss file to use.",
-                    metavar="model", default="", dest="model_twiss")  # TODO remove default value
+                    metavar="model", dest="model_twiss")
     parser.add_option("-o", "--output",
                     help="Output directory for the results.",
-                    metavar="output", default="", dest="output_dir")  # TODO set default value to model dir
+                    metavar="output", default="", dest="output_dir")
     parser.add_option("-n", "--numsim",
                     help="Number of simulations to run",
                     metavar="numsim", default=NUM_SIMULATIONS, dest="num_simulations")
     parser.add_option("-p", "--processes",
                     help="Number of parallel processes to use in the simulation.",
                     metavar="numproc", default=NUM_PROCESSES, dest="num_processes")
+    parser.add_option("-b", "--beam",
+                    help="Beam to use, either LHCB1 or LHCB2.",
+                    metavar="BEAM", default=NUM_PROCESSES, dest="beam")
     options, _ = parser.parse_args()
 
-    return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir
+    if options.output_dir == "":
+        options.output_dir = os.path.dirname(options.model_twiss)
+    if not os.path.isfile(os.path.join(os.path.dirname(options.model_twiss), "error_table.mask")):
+        print >> sys.stderr, "Cannot find the error_table.mask file in the model directory."
+        sys.exit(-1)
+    if not os.path.isfile(os.path.join(os.path.dirname(options.model_twiss), "job.systematic.mask")):
+        print >> sys.stderr, "Cannot find the job.systematic.mask file in the model directory."
+        sys.exit(-1)
+    beam = options.beam.upper().replace("LHC", "")
+    if(beam not in ["B1", "B2"]):
+        print >> sys.stderr, "Incorrect beam sequence, it must be LHCB1 or LHCB2."
+        sys.exit(-1)
+    return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir, beam
 
 
-def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir):
+def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir, beam):
     print "Started systematic error script, using " + str(num_processes) + " processes for " + str(num_simulations) + " simulations"
+    model_dir_path = os.path.dirname(model_twiss)
     run_data_path = os.path.join(output_dir, "RUN_DATA")
+    errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
     iotools.create_dirs(run_data_path)
-    iotools.copy_item(os.path.join(CURRENT_PATH, "MB_corr_setting_4TeV.mad"), run_data_path)
     try:
         os.symlink("/afs/cern.ch/eng/lhc/optics/V6.503", "db5")
     except(OSError):
@@ -48,13 +79,13 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
 
     print "Preparing error files..."
     start_time = time.time()
-    _parallel_prepare_error_files(run_data_path, pool)
+    _parallel_prepare_error_files(run_data_path, model_dir_path, beam, pool)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
     print "Running simulations..."
     start_time = time.time()
-    times = _run_parallel_simulations(run_data_path, pool)
+    times = _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, beam, pool)
     _show_time_statistics(times)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
@@ -76,8 +107,8 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "All done."
 
 
-def _parallel_prepare_error_files(run_data_path, pool):
-    args = [(seed, run_data_path) for seed in range(1, 61)]
+def _parallel_prepare_error_files(run_data_path, model_dir_path, beam, pool):
+    args = [(seed, run_data_path, model_dir_path, beam) for seed in range(1, 61)]
     tasks = pool.map_async(_prepare_single_error_file, args)
     tasks.wait()
 
@@ -85,19 +116,22 @@ def _parallel_prepare_error_files(run_data_path, pool):
 def _prepare_single_error_file(seed_path_tuple):
     err_num = str((seed_path_tuple[0] % 60) + 1).zfill(4)
     run_data_path = seed_path_tuple[1]
+    model_dir_path = seed_path_tuple[2]
+    beam = seed_path_tuple[3]
     madx_job = ""
-    with open(os.path.join(CURRENT_PATH, 'error_table.mask'), 'r') as infile:
+    with open(os.path.join(model_dir_path, 'error_table.mask'), 'r') as infile:
         for line in infile:
             new_line = line
             new_line = new_line.replace("%ERR_NUM", err_num)
             new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
+            new_line = new_line.replace("%BEAM", beam)
             madx_job += new_line + "\n"
     madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
 
 
-def _run_parallel_simulations(run_data_path, pool):
+def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, beam, pool):
     times = []
-    args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
+    args = [(seed, run_data_path, model_dir_path, errors_path, beam) for seed in range(1, num_simulations + 1)]
     tasks = pool.map_async(_run_single_madx_simulation, args, callback=times.append)
     tasks.wait()
     return times
@@ -106,8 +140,11 @@ def _run_parallel_simulations(run_data_path, pool):
 def _run_single_madx_simulation(seed_path_tuple):
     seed = seed_path_tuple[0]
     run_data_path = seed_path_tuple[1]
+    model_dir_path = seed_path_tuple[2]
+    errors_path = seed_path_tuple[3]
+    beam = seed_path_tuple[4]
     madx_job = ""
-    with open(os.path.join(CURRENT_PATH, 'job.tracking.mask'), 'r') as infile:
+    with open(os.path.join(model_dir_path, 'job.systematic.mask'), 'r') as infile:
         for line in infile:
             err_num = str((seed % 60) + 1).zfill(4)
             new_line = line
@@ -134,6 +171,8 @@ def _run_single_madx_simulation(seed_path_tuple):
             new_line = new_line.replace("%ERR_NUM", str(err_num))
             new_line = new_line.replace("%SEED", str(seed))
             new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
+            new_line = new_line.replace("%ERRORS_PATH", errors_path)
+            new_line = new_line.replace("%BEAM", beam)
             madx_job += new_line + "\n"
 
     start_time = time.time()
@@ -168,7 +207,7 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
             list_of_bpm.append(i)
 
     args = [(run_data_path, model_twiss, list_of_bpm, sim_num) for sim_num in range(1, num_simulations + 1)]
-    all_betas = pool.map(_get_error_bar_for_single_simulation, args, chunksize=num_simulations // num_processes)
+    all_betas = pool.map(_get_error_bar_for_single_simulation, args)
 
     beta_hor, beta_ver, num_valid_data = _merge_betas_dicts(all_betas)
 
@@ -499,5 +538,5 @@ def BetaFromPhase_BPM_right(bn3, bn1, bn2, MADTwiss, ERRTwiss, plane):
 
 
 if __name__ == "__main__":
-    model_twiss, num_simulations, num_processes, output_dir = _parse_args()
-    get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir)
+    _model_twiss, _num_simulations, _num_processes, _output_dir, _beam = _parse_args()
+    get_systematic_errors(_model_twiss, _num_simulations, _num_processes, _output_dir, _beam)
