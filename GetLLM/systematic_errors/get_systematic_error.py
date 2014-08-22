@@ -218,6 +218,8 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
     pool.close()
     pool.join()
 
+    sys.stdout.write("\n")
+
     final_beta_hor, final_beta_ver, final_num_valid_data = final_list
 
     for key, value in final_beta_hor.iteritems():
@@ -317,6 +319,8 @@ def _merge_betas_dict(final_list, result):
         else:
             final_list[1][key] += value
     final_list[2] += num_valid_data
+    sys.stdout.write("Done for: " + str(final_list[2]) + " files.\r")
+    sys.stdout.flush()
 
 
 def _TEST_compare_with_template(dict_list):
