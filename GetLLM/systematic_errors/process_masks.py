@@ -1,7 +1,6 @@
 from optparse import OptionParser
 import os
 import sys
-from Utilities import iotools
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -21,7 +20,7 @@ def _parse_args():
                     help="Vertical tune.",
                     metavar="TUNEY", dest="tuney")
     parser.add_option("-e", "--energy",
-                    help="The energy of the beam. It must be: 0.35TeV, 3.5TeV, 4TeV or 6.5TeV.",
+                    help="The energy of the beam. It must be: 0.45TeV, 3.5TeV, 4TeV or 6.5TeV.",
                     metavar="ENERGY", dest="energy")
     options, _ = parser.parse_args()
     if not os.path.isfile(options.model_twiss):
@@ -30,8 +29,8 @@ def _parse_args():
     modifiers_path = options.path
     if modifiers_path is None:
         modifiers_path = os.path.dirname(options.model_twiss)
-    if options.energy not in ["0.35TeV", "3.5TeV", "4TeV", "6.5TeV"]:
-        print >> sys.stderr, "No valid energy specified, it must be one of: 0.35TeV, 3.5TeV, 4TeV or 6.5TeV"
+    if options.energy not in ["0.45TeV", "3.5TeV", "4TeV", "6.5TeV"]:
+        print >> sys.stderr, "No valid energy specified, it must be one of: 0.45TeV, 3.5TeV, 4TeV or 6.5TeV"
         sys.exit(-1)
     return options.model_twiss, modifiers_path, options.tunex, options.tuney, options.energy
 

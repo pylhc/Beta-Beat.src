@@ -46,7 +46,7 @@ def _parse_args():
                     metavar="numproc", default=NUM_PROCESSES, dest="num_processes")
     parser.add_option("-b", "--beam",
                     help="Beam to use, either LHCB1 or LHCB2.",
-                    metavar="BEAM", default=NUM_PROCESSES, dest="beam")
+                    metavar="BEAM", dest="beam")
     options, _ = parser.parse_args()
 
     if options.output_dir == "":
@@ -56,6 +56,9 @@ def _parse_args():
         sys.exit(-1)
     if not os.path.isfile(os.path.join(os.path.dirname(options.model_twiss), "job.systematic.mask")):
         print >> sys.stderr, "Cannot find the job.systematic.mask file in the model directory."
+        sys.exit(-1)
+    if options.beam is None:
+        print >> sys.stderr, "Beam sequence must be defined, it must be LHCB1 or LHCB2."
         sys.exit(-1)
     beam = options.beam.upper().replace("LHC", "")
     if(beam not in ["B1", "B2"]):
@@ -206,21 +209,26 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
         if "BPM" in i and i not in list_of_bpm:
             list_of_bpm.append(i)
 
+    final_list = [{}, {}, 0]  # This list is used to pass the parameters "by reference" to the callback method
+
     args = [(run_data_path, model_twiss, list_of_bpm, sim_num) for sim_num in range(1, num_simulations + 1)]
-    all_betas = pool.map(_get_error_bar_for_single_simulation, args)
+    for run_data_path, model_twiss, list_of_bpm, sim_num in args:
+        pool.apply_async(_get_error_bar_for_single_simulation, (run_data_path, model_twiss, list_of_bpm, sim_num),
+                         callback=lambda result: _merge_betas_dict(final_list, result))
+    pool.close()
+    pool.join()
 
-    beta_hor, beta_ver, num_valid_data = _merge_betas_dicts(all_betas)
+    final_beta_hor, final_beta_ver, final_num_valid_data = final_list
 
-    for key, value in beta_hor.iteritems():
-        beta_hor[key] = np.sqrt(value / num_valid_data)
-    for key, value in beta_ver.iteritems():
-        beta_ver[key] = np.sqrt(value / num_valid_data)
+    for key, value in final_beta_hor.iteritems():
+        final_beta_hor[key] = np.sqrt(value / final_num_valid_data)
+    for key, value in final_beta_ver.iteritems():
+        final_beta_ver[key] = np.sqrt(value / final_num_valid_data)
 
-    np.save(os.path.join(output_path, 'bet_deviations'), [beta_hor, beta_ver])
+    np.save(os.path.join(output_path, 'bet_deviations'), [final_beta_hor, final_beta_ver])
 
 
-def _get_error_bar_for_single_simulation(args_tuple):
-    run_data_path, model_twiss, list_of_bpm, sim_num = args_tuple
+def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm, sim_num):
     beta_hor = {}
     beta_ver = {}
     num_valid_data = 0
@@ -296,23 +304,19 @@ def _get_error_bar_for_single_simulation(args_tuple):
     return beta_hor, beta_ver, num_valid_data
 
 
-def _merge_betas_dicts(all_betas):
-    final_beta_hor = {}
-    final_beta_ver = {}
-    final_num_valid_data = 0
-    for beta_hor, beta_ver, num_valid_data in all_betas:
-        for key, value in beta_hor.iteritems():
-            if not key in final_beta_hor:
-                final_beta_hor[key] = value
-            else:
-                final_beta_hor[key] += value
-        for key, value in beta_ver.iteritems():
-            if not key in final_beta_ver:
-                final_beta_ver[key] = value
-            else:
-                final_beta_ver[key] += value
-        final_num_valid_data += num_valid_data
-    return final_beta_hor, final_beta_ver, final_num_valid_data
+def _merge_betas_dict(final_list, result):
+    beta_hor, beta_ver, num_valid_data = result
+    for key, value in beta_hor.iteritems():
+        if not key in final_list[0]:
+            final_list[0][key] = value
+        else:
+            final_list[0][key] += value
+    for key, value in beta_ver.iteritems():
+        if not key in final_list[1]:
+            final_list[1][key] = value
+        else:
+            final_list[1][key] += value
+    final_list[2] += num_valid_data
 
 
 def _TEST_compare_with_template(dict_list):
