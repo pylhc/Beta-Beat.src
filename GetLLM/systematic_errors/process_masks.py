@@ -38,17 +38,6 @@ def _parse_args():
 def process_masks(model_twiss, modifiers_path, tunex, tuney, energy):
     model_path = os.path.dirname(model_twiss)
 
-    with open(os.path.join(CURRENT_PATH, "error_table.mask"), "r") as error_mask_lines:
-        with open(os.path.join(model_path, "error_table.mask"), "w") as error_mask_output:
-            for line in error_mask_lines:
-                new_line = line
-                new_line = new_line.replace("%PATH", modifiers_path)
-                new_line = new_line.replace("%QMX", tunex)
-                new_line = new_line.replace("%QMY", tuney)
-                new_line = new_line.replace("%ENERGY", energy)
-
-                error_mask_output.write(new_line)
-
     with open(os.path.join(CURRENT_PATH, "job.systematic.mask"), "r") as error_mask_lines:
         with open(os.path.join(model_path, "job.systematic.mask"), "w") as error_mask_output:
             for line in error_mask_lines:

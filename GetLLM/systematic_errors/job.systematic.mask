@@ -42,7 +42,7 @@ constraint, range=#E, mux=%QMX, muy=%QMY;
 lmdif;
 endmatch;
 
-READMYTABLE,file="%RUN_DATA_PATH/MBx-%ERR_NUM.errors",table=errtab;
+READMYTABLE,file="%ERRORS_PATH/error_tables_%ENERGY/MBx-%ERR_NUM.errors",table=errtab;
 SETERR,TABLE=errtab;
 
  call, file="%ERRORS_PATH/MB_corr_setting_%BEAM_%ENERGY.mad";

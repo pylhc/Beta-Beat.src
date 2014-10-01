@@ -80,12 +80,6 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
 
     pool = multiprocessing.Pool(processes=num_processes)
 
-    print "Preparing error files..."
-    start_time = time.time()
-    _parallel_prepare_error_files(run_data_path, model_dir_path, beam, pool)
-    end_time = time.time()
-    print "Done (" + str(end_time - start_time) + " seconds)\n"
-
     print "Running simulations..."
     start_time = time.time()
     times = _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, beam, pool)
@@ -108,28 +102,6 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "Cleaning output directory..."
     iotools.delete_item(run_data_path)
     print "All done."
-
-
-def _parallel_prepare_error_files(run_data_path, model_dir_path, beam, pool):
-    args = [(seed, run_data_path, model_dir_path, beam) for seed in range(1, 61)]
-    tasks = pool.map_async(_prepare_single_error_file, args)
-    tasks.wait()
-
-
-def _prepare_single_error_file(seed_path_tuple):
-    err_num = str((seed_path_tuple[0] % 60) + 1).zfill(4)
-    run_data_path = seed_path_tuple[1]
-    model_dir_path = seed_path_tuple[2]
-    beam = seed_path_tuple[3]
-    madx_job = ""
-    with open(os.path.join(model_dir_path, 'error_table.mask'), 'r') as infile:
-        for line in infile:
-            new_line = line
-            new_line = new_line.replace("%ERR_NUM", err_num)
-            new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
-            new_line = new_line.replace("%BEAM", beam)
-            madx_job += new_line + "\n"
-    madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
 
 
 def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, beam, pool):

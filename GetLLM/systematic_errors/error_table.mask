@@ -30,6 +30,7 @@ endedit;
 
 use, period=LHC%BEAM;
 
+mylhcbeam = %NUM_BEAM;
 
  select, flag=twiss, clear;
  select, flag=twiss,pattern=MB\.                   ,column=name,k0L,k1L,betx,bety,dx,mux,muy;
@@ -65,7 +66,7 @@ ON_A10s =  0; ON_A10r =  0; ON_B10s =  0; ON_B10r =  0;
 ON_A11s =  0; ON_A11r =  0; ON_B11s =  0; ON_B11r =  0;
 
 
-readtable, file="/afs/cern.ch/work/a/alangner/public/b2_errors/lhc-4TeV-emfqcs-%ERR_NUM.tfs";
+readtable, file="%B2_ERRORS_PATH/b2_errors_%ENERGY/lhc-%ENERGY-emfqcs-%ERR_NUM.tfs";
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !             apply field errors to MB magnets
