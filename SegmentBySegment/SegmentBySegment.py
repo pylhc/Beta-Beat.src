@@ -1244,11 +1244,17 @@ def getIPfrompara(bpmleft, bpmright, betax, betay, phasex, phasey):
 def propagate_error_beta(errb0, erra0, dphi, bets, bet0, alf0):
     return math.sqrt((bets*np.sin(4*np.pi*dphi)*alf0/bet0 + bets*np.cos(4*np.pi*dphi)/bet0)**2*errb0**2 + (bets*np.sin(4*np.pi*dphi))**2*erra0**2)
 
+
 def propagate_error_alfa(errb0, erra0, dphi, alfs, bet0, alf0):
     return math.sqrt(((alfs*((np.sin(4*np.pi*dphi)*alf0/bet0) + (np.cos(4*np.pi*dphi)/bet0))) - (np.cos(4*np.pi*dphi)*alf0/bet0) + (np.sin(4*np.pi*dphi)/bet0))**2*errb0**2 + ((np.cos(4*np.pi*dphi)) - (alfs*np.sin(4*np.pi*dphi)))**2*erra0**2)
 
+
 def propagate_error_phase(errb0, erra0, dphi, bet0, alf0):
     return math.sqrt((((1/2.*np.cos(4*np.pi*dphi)*alf0/bet0)-(1/2.*np.sin(4*np.pi*dphi)/bet0)-(1/2.*alf0/bet0))*errb0)**2+((-(1/2.*np.cos(4*np.pi*dphi))+(1/2.))*erra0)**2)/(2*np.pi)
+
+
+def propagate_error_dispersion(std_D0, bet0, bets, dphi, alf0):
+    return np.abs(std_D0 * math.sqrt(bets/bet0) * (np.cos(2*np.pi*dphi)+alf0*np.sin(2*np.pi*dphi)))
 
 
 def getAndWriteData(namename, phases, betah, betav, disph, dispv, couple, chromatic, model, modelcor, modelp, modelb, path, switch, accel, method, savepath):
