@@ -128,6 +128,8 @@ def parse_args():
 #===================================================================================================
 # main()-function
 #===================================================================================================
+
+
 def main(options):
     '''
     :Parameters:
@@ -136,384 +138,349 @@ def main(options):
     :Return: int
         0 if execution was successful otherwise !=0
     '''
-    path=options.path
-    ##########
-    #
-    # LOADING DATA
-    #
-    ##########
-    try:
-        filedatax=twiss(path+"/getbetax_free.out")
-    except (IOError, ValueError):
-        filedatax=twiss(path+"/getbetax.out")
-    betxtwiss=filedatax
-    QXX=filedatax.Q1
-    QYY=filedatax.Q2
 
-    try:
-        filedatay=twiss(path+"/getbetay_free.out")
-    except (IOError, ValueError):
-        filedatay=twiss(path+"/getbetay.out")
+    output_path = options.path
+    input_data = _InputData(output_path)
 
-    betytwiss=filedatay
-    filedataxA=twiss(path+"/getampbetax.out")
-    filedatayA=twiss(path+"/getampbetay.out")
-    try:
-        filephasex=twiss(path+"/getphasex_free.out")
-    except (IOError, ValueError):
-        filephasex=twiss(path+"/getphasex.out")
+    save_path = options.save + os.path.sep
+    Utilities.iotools.create_dirs(save_path)
 
-    try:
-        filephasey=twiss(path+"/getphasey_free.out")
-    except (IOError, ValueError):
-        filephasey=twiss(path+"/getphasey.out")
-    try:
-        filephasextot=twiss(path+"/getphasetotx_free.out")
-    except (IOError, ValueError):
-        filephasextot=twiss(path+"/getphasetotx.out")
+    elements_data = options.segf.split(',')
+    error_cut = float(options.cuts)
+    selected_accelerator = options.accel
 
-    try:
-        filephaseytot=twiss(path+"/getphasetoty_free.out")
-    except (IOError, ValueError):
-        filephaseytot=twiss(path+"/getphasetoty.out")
+    twiss_file = options.twiss
+    if twiss_file == "./":
+        twiss_file = os.path.join(options.bb, "MODEL", options.accel, "nominal.opt", "twiss_elements.dat")
+    print "Twiss file ", twiss_file
+    twiss_data = twiss(twiss_file)
 
-    ### check if dispersion exist
-    try:
-        filedx=twiss(path+"/getDx.out")
-        filendx=twiss(path+"/getNDx.out")
-        filedy=twiss(path+"/getDy.out")
-        disp=1
-        print "Disp files OK", filedx.DX[0], filedx.NAME[0]
-    except (IOError, ValueError):
-        print "no dispersion files... will continue without taking into account dispersion"
-        filendx=[]
-        filedx=[]
-        filedy=[]
-        disp=0
+    twiss_directory = os.path.dirname(twiss_file) + os.path.sep
 
-    ### check if coupling exist
-    try:
-        filecouple=twiss(path+"/getcouple.out")
-        filecoupleC=twiss(path+"/getcoupleterms.out")
-        coupleswitch=1
-        method="driven"
-    except (IOError, ValueError):
-        print "no coupling file... will continue without taking into account coupling"
-        filecouple=[]
-        filecoupleC=[]
-        coupleswitch=0
-        fs=[0,0,0,0]
+    elements_names, start_bpms, end_bpms = structure_elements_info(elements_data)
 
+    for element_name in elements_names:
 
-    try:
-        filecouple=twiss(path+"/getcouple_free.out")
-        method="_free"
-        print "Free coupling found"
+        print element_name
 
-    except (IOError, ValueError):
-        print
-        #method=""
-        #%method_label="driven"
-        #filecouple=twiss(path+"/getcouple.out")
-        #print "WARN: Free coupling not found!!"
+        start_bpm_name, end_bpm_name, is_an_instrument = get_good_bpms(input_data, error_cut, twiss_data, start_bpms, end_bpms, element_name)
 
+        (start_bpm_horizontal_data,
+         start_bpm_vertical_data,
+         end_bpm_horizontal_data,
+         end_bpm_vertical_data) = gather_data(input_data, start_bpm_name, end_bpm_name)
 
-    # checking if end element is BPM or instrument (IP,collimators)
-    elementswitch=-1
-    savepath = options.SAVE + "/"
-    if not os.path.isdir(savepath):
-        os.makedirs(savepath)
-    list2run=options.segf.split(',')
-    errorcut=float(options.cuts)
-    accel=options.accel
-
-    start={}
-    end={}
-    names=[]
-
-
-    twissfile=options.twiss
-    twisspath=os.path.dirname(twissfile)+'/'
-    if twissfile=="./":
-        twissfile=options.bb+"/MODEL/"+options.accel+"/nominal.opt/twiss_elements.dat"
-
-    print "twissfile ",twissfile
-
-
-    twisstwiss=twiss(twissfile)
-
-    step=0# for selecting segments and elements
-    for run in range(len(list2run)):
-        run=run+step
-
-        if run==(len(list2run)):
-            break
-
-        print list2run[run],run
-
-        if "BPM" in list2run[run]: # segment
-
-            start[list2run[run+2]]=list2run[run]
-            end[list2run[run+2]]=list2run[run+1]
-            names.append(list2run[run+2])
-            step=2+step
-        else: #element
-            step=0+step
-            names.append(list2run[run])
-
-
-    ####### Difference between segment or instrument #######
-    # For segment => Startbpm,endbpm,NameOfSegment
-    # For instrument => instrument
-    #######
-
-    for namename in names:
-
-        print namename
-        ##
-        # Getting the BPM's
-        ##
-        if start.has_key(namename) and end.has_key(namename):
-            print "Segment has been choosen"
-            elementswitch=0
-            segment=[start[namename],end[namename]]
-            startbpm,endbpm=filterandfind(betxtwiss,betytwiss,"null",segment,twisstwiss,errorcut)
-
-        elif start.has_key(namename) or end.has_key(namename):
-
-            print >> sys.stderr, "Something strange ....Did you properly define the input ?"
-            print >> sys.stderr, "Like: BPM1,BPM2,ARC12,IP1"
-            print >> sys.stderr, "Structure must be for Segment => BPML,BPMR,NAME"
-            print >> sys.stderr, "For Instrument just name"
-            sys.exit()
+        if input_data.has_dispersion:
+            start_bpm_dispersion, end_bpm_dispersion = get_dispersion_info(input_data, start_bpm_name, end_bpm_name)
         else:
-            print "Element has been choosen"
-            elementswitch=1
-            startbpm,endbpm=filterandfind(betxtwiss,betytwiss,namename,[],twisstwiss,errorcut)
-
-        passs=1 # why?
-
-        #gathering data
-        hor=[betxtwiss.BETX[betxtwiss.indx[startbpm]],
-             sqrt(betxtwiss.STDBETX[betxtwiss.indx[startbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[startbpm]]**2),
-             betxtwiss.ALFX[betxtwiss.indx[startbpm]],
-             sqrt(betxtwiss.ERRALFX[betxtwiss.indx[startbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[startbpm]]**2)]
-        ver=[betytwiss.BETY[betytwiss.indx[startbpm]],
-             sqrt(betytwiss.STDBETY[betytwiss.indx[startbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[startbpm]]**2),
-             betytwiss.ALFY[betytwiss.indx[startbpm]],
-             sqrt(betytwiss.ERRALFY[betytwiss.indx[startbpm]]**2+betytwiss.STDALFY[betytwiss.indx[startbpm]]**2)]
-        hore=[betxtwiss.BETX[betxtwiss.indx[endbpm]],
-             sqrt(betxtwiss.STDBETX[betxtwiss.indx[endbpm]]**2+betxtwiss.ERRBETX[betxtwiss.indx[endbpm]]**2),
-             betxtwiss.ALFX[betxtwiss.indx[endbpm]],
-             sqrt(betxtwiss.ERRALFX[betxtwiss.indx[endbpm]]**2+betxtwiss.STDALFX[betxtwiss.indx[endbpm]]**2)]
-        vere=[betytwiss.BETY[betytwiss.indx[endbpm]],
-             sqrt(betytwiss.STDBETY[betytwiss.indx[endbpm]]**2+betytwiss.ERRBETY[betytwiss.indx[endbpm]]**2),
-             betytwiss.ALFY[betytwiss.indx[endbpm]],
-             sqrt(betytwiss.ERRALFY[betytwiss.indx[endbpm]]**2+betytwiss.STDALFY[betytwiss.indx[endbpm]]**2)]
-
-        beta4plot=hor[2]
-
-        if disp==1:
-
-            try: #horizontal
-                filedx.indx[startbpm]
-                dxpass=1
-            except:
-                print "startbpm for horizontal dispersion not found"
-                dxpass=0
-
-            try: #vertical
-                filedy.indx[startbpm]
-                dypass=1
-            except:
-                print "startbpm for  vertical dispersion not found"
-                dypass=0
-
-            try: #horizontal
-                filedx.indx[endbpm]
-                dxpasse=1
-            except:
-                print "endbpm for horizontal dispersion not found"
-                dxpasse=0
-
-            try: #vertical
-                filedy.indx[endbpm]
-                dypasse=1
-            except:
-                print "endbpm for  vertical dispersion not found"
-                dypasse=0
-
-            if dxpass==1:
-                dxx=filedx.DX[filedx.indx[startbpm]]
-                dxp=filedx.DPX[filedx.indx[startbpm]]
-                dxe=filedx.STDDX[filedx.indx[startbpm]]
-            else:
-                dxx=0
-                dxp=0
-                dxe=0
-
-            if dypass==1:
-                dyy=filedy.DY[filedy.indx[startbpm]]
-                dyp=filedy.DPY[filedy.indx[startbpm]]
-                dye=filedy.STDDY[filedy.indx[startbpm]]
-            else:
-                dyy=0
-                dyp=0
-                dye=0
-
-            dp=[dxx,
-                dxp,
-                dyy,
-                dyp,
-                dxe,
-                dye]
-
-
-            if dxpasse==1:
-                dxx=filedx.DX[filedx.indx[endbpm]]
-                dxp=filedx.DPX[filedx.indx[endbpm]]
-                dxe=filedx.STDDX[filedx.indx[endbpm]]
-            else:
-                dxx=0
-                dxp=0
-                dxe=0
-
-            if dypasse==1:
-                dyy=filedy.DY[filedy.indx[endbpm]]
-                dyp=filedy.DPY[filedy.indx[endbpm]]
-                dye=filedy.STDDY[filedy.indx[endbpm]]
-            else:
-                dyy=0
-                dyp=0
-                dye=0
-
-            dpe=[dxx,
-                dxp,
-                dyy,
-                dyp,
-                dxe,
-                dye]
-        else:
-            dp=[0,0,0,0,0,0]
-            dpe=[0,0,0,0,0,0]
+            start_bpm_dispersion = [0, 0, 0, 0, 0, 0]
+            end_bpm_dispersion = [0, 0, 0, 0, 0, 0]
             print "No dispersion"
 
+        if input_data.has_coupling:
+            f_coupling_parameters = get_coupling_parameters(input_data, start_bpm_name)
+        else:
+            f_coupling_parameters = [0, 0, 0, 0, 0, 0]
+            print "No coupling"
 
-        if passs==1:#TODO: Pretty useless. passs will always be initialized with 1(vimaier)
+        print "Madpass", options.madpass
+        if str(options.madpass) == "0":
+            print "Going to run4mad"
+            run4mad(save_path,
+                    start_bpm_horizontal_data,
+                    start_bpm_vertical_data,
+                    end_bpm_horizontal_data,
+                    end_bpm_vertical_data,
+                    start_bpm_dispersion,
+                    end_bpm_dispersion,
+                    start_bpm_name,
+                    end_bpm_name,
+                    element_name,
+                    f_coupling_parameters,
+                    options.path + "/",
+                    twiss_directory,
+                    input_data.couple_method)
 
+        else:
+            runmad(save_path, element_name)
+            print "Just rerunning mad"
 
-            if coupleswitch==1:
-                print "coupling,"
-                try:
-                    filecouple.indx[startbpm]
-                    cpass=1
-                except:
-                    cpass=0
-                    print "startbpm ",startbpm," not found in coupling measurement => values=0"
+        reversetable(save_path, element_name)
 
-                if cpass==1:
-                    f1001r=filecouple.F1001R[filecouple.indx[startbpm]]
-                    f1001i=filecouple.F1001I[filecouple.indx[startbpm]]
-                    f1010r=filecouple.F1010R[filecouple.indx[startbpm]]
-                    f1010i=filecouple.F1010I[filecouple.indx[startbpm]]
+        error_data = ErrorData(save_path, element_name)
 
-                    f1001std=filecouple.FWSTD1[filecouple.indx[startbpm]]
-                    f1010std=filecouple.FWSTD2[filecouple.indx[startbpm]]
+        (phase_list,
+         horizontal_beta_list,
+         vertical_beta_list,
+         horizontal_dispersion_list,
+         vertical_dispersion_list) = structure_error_info_as_lists(input_data, error_data)
 
-                    ### add error
-                else:
-                    f1001r=0
-                    f1001i=0
-                    f1010r=0
-                    f1010i=0
-                    f1001std=0
-                    f1010std=0
+        couple = [input_data.couple, input_data.couple_terms, error_data.max_c_error, error_data.min_c_error]
+        chromatic = []
 
-                fs=[f1001r,f1001i,f1010r,f1010i,f1001std,f1010std]
+        print "Writing data for function ", element_name
+        getAndWriteData(element_name,
+                        phase_list,
+                        horizontal_beta_list,
+                        vertical_beta_list,
+                        horizontal_dispersion_list,
+                        vertical_dispersion_list,
+                        couple,
+                        chromatic,
+                        twiss_data,
+                        error_data.modelcor,
+                        error_data.normal_pro,
+                        error_data.back_pro,
+                        save_path,
+                        is_an_instrument,
+                        selected_accelerator,
+                        input_data.couple_method,
+                        save_path)
 
-
-
-            else:
-                fs=[0,0,0,0,0,0]
-                print "No coupling"
-                print "madpass", options.madpass
-            if str(options.madpass)=="0":
-                print "Going to run4mad"
-                run4mad(savepath,hor,ver,hore,vere,dp,dpe,startbpm,endbpm,namename, fs, options.path+"/",twisspath, method)
-
-            else:
-                runmad(savepath,namename)
-                print "Just rerunning mad"
-            reversetable(savepath,namename)
-
-
-                    ###############################################
-            #
-            # =>>>>>> including new writer
-            #
-                    ###############################################
-
-            # loading twiss
-            errbetamin=twiss(savepath+'/twiss.b-.dat')
-
-            errbetamax=twiss(savepath+'/twiss.b+.dat')
-
-            erralfmin=twiss(savepath+'/twiss.a-.dat')
-            erralfminb=twiss(savepath+'/twiss.a-_back.dat')
-
-            erralfmax=twiss(savepath+'/twiss.a+.dat')
-            erralfmaxb=twiss(savepath+'/twiss.a+_back.dat')
-
-            errdmin=twiss(savepath+'/twiss.d-.dat')
-            errdminb=twiss(savepath+'/twiss.d-_back.dat')
-
-            errdmax=twiss(savepath+'/twiss.d+.dat')
-            errdmaxb=twiss(savepath+'/twiss.d+_back.dat')
-
-            errcmax=twiss(savepath+'/twiss_c_max.dat')
-            errcmin=twiss(savepath+'/twiss_c_min.dat')
-
-            modelcor=twiss(savepath+'/twiss_'+namename+'_cor.dat')
-
-            normal_pro=twiss(savepath+'/twiss_'+namename+'.dat')
-            back_pro=twiss(savepath+'/twiss_'+namename+'_back_rev.dat')
-
-
-            normal_pro.Cmatrix()
-
-            # writing data in list
-            phases=[filephasex,filephasey,filephasextot,filephaseytot]
-            betah=[filedatax,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedataxA]    #TODO: errbetamin/max 2x the same?
-            betav=[filedatay,errbetamin,errbetamax,errbetamin,errbetamax,erralfmin,erralfmax,erralfminb,erralfmaxb,filedatayA]
-            if disp==1:
-                disph=[filedx,filendx,errdmin,errdmax,errdminb,errdmaxb]
-                dispv=[filedy,errdmin,errdmax,errdminb,errdmaxb]
-            else:
-                disph=[]
-                dispv=[]
-            couple=[filecouple,filecoupleC,errcmax,errcmin]
-            chromatic=[]
-
-            # calling function to collect and write data
-            print "Writing data for function ",namename
-            getAndWriteData(namename,phases,betah,betav,disph,dispv,couple,chromatic,twisstwiss,modelcor,normal_pro,back_pro,savepath,elementswitch,accel)
-
-
-            # gnuplot
-            if elementswitch==0:
-
-                startpos=twisstwiss.S[twisstwiss.indx[startbpm]]
-                endpos=twisstwiss.S[twisstwiss.indx[endbpm]]
-                print startpos,endpos
-                run4plot(savepath,startpos,endpos,beta4plot,options.bb,path,namename,QXX,QYY,options.accel,method)
+        # gnuplot  ### TODO: what is this? (jcoellod)
+        if is_an_instrument == 0:
+            beta4plot = start_bpm_horizontal_data[2]
+            startpos = twiss_data.S[twiss_data.indx[start_bpm_name]]
+            endpos = twiss_data.S[twiss_data.indx[end_bpm_name]]
+            print startpos, endpos
+            run4plot(save_path, startpos, endpos, beta4plot, options.bb, output_path, element_name, input_data.QXX, input_data.QYY, options.accel, input_data.couple_method)
 
     return 0
 
 # END main() ---------------------------------------------------------------------------------------
 
+
+def structure_elements_info(elements_data):
+    start_bpms = {}
+    end_bpms = {}
+    elements_names = []
+
+    step = 0
+    for position in range(len(elements_data)):
+        position = position + step
+        if position == (len(elements_data)):
+            break
+
+        print elements_data[position], position
+        if "BPM" in elements_data[position]:
+            segment_name = elements_data[position + 2]
+            start_bpms[segment_name] = elements_data[position]
+            end_bpms[segment_name] = elements_data[position + 1]
+            elements_names.append(segment_name)
+            step = 2 + step
+
+        else:
+            step = 0 + step
+            elements_names.append(elements_data[position])
+
+    return elements_names, start_bpms, end_bpms
+
+
+def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, element_name):
+    #  checking if end_bpms element is BPM or instrument (IP,collimators)
+    is_an_instrument = -1  # TODO this has to be changed for a boolean
+    if element_name in start_bpms and element_name in end_bpms:
+        print "Segment has been choosen"
+        is_an_instrument = 0
+        segment = [start_bpms[element_name], end_bpms[element_name]]
+        start_bpm_name, end_bpm_name = filterandfind(input_data.beta_x,
+                                                     input_data.beta_y,
+                                                     "null", segment,
+                                                     twiss_data, errorcut)
+    elif element_name in start_bpms or element_name in end_bpms:
+        print >> sys.stderr, "Something strange ....Did you properly define the input ?"
+        print >> sys.stderr, "Like: BPM1,BPM2,ARC12,IP1"
+        print >> sys.stderr, "Structure must be for Segment => BPML,BPMR,NAME"
+        print >> sys.stderr, "For Instrument just name"
+        sys.exit()
+    else:
+        print "Element has been choosen"
+        is_an_instrument = 1
+        start_bpm_name, end_bpm_name = filterandfind(input_data.beta_x,
+                                                     input_data.beta_y,
+                                                     element_name,
+                                                     [],
+                                                     twiss_data,
+                                                     errorcut)
+    return start_bpm_name, end_bpm_name, is_an_instrument
+
+
+def gather_data(input_data, startbpm, endbpm):
+    start_bpm_horizontal_data = [input_data.beta_x.BETX[input_data.beta_x.indx[startbpm]],
+        sqrt(input_data.beta_x.STDBETX[input_data.beta_x.indx[startbpm]] ** 2 + input_data.beta_x.ERRBETX[input_data.beta_x.indx[startbpm]] ** 2),
+        input_data.beta_x.ALFX[input_data.beta_x.indx[startbpm]],
+        sqrt(input_data.beta_x.ERRALFX[input_data.beta_x.indx[startbpm]] ** 2 + input_data.beta_x.STDALFX[input_data.beta_x.indx[startbpm]] ** 2)]
+    start_bpm_vertical_data = [input_data.beta_y.BETY[input_data.beta_y.indx[startbpm]],
+        sqrt(input_data.beta_y.STDBETY[input_data.beta_y.indx[startbpm]] ** 2 + input_data.beta_y.ERRBETY[input_data.beta_y.indx[startbpm]] ** 2),
+        input_data.beta_y.ALFY[input_data.beta_y.indx[startbpm]],
+        sqrt(input_data.beta_y.ERRALFY[input_data.beta_y.indx[startbpm]] ** 2 + input_data.beta_y.STDALFY[input_data.beta_y.indx[startbpm]] ** 2)]
+    end_bpm_horizontal_data = [input_data.beta_x.BETX[input_data.beta_x.indx[endbpm]],
+        sqrt(input_data.beta_x.STDBETX[input_data.beta_x.indx[endbpm]] ** 2 + input_data.beta_x.ERRBETX[input_data.beta_x.indx[endbpm]] ** 2),
+        input_data.beta_x.ALFX[input_data.beta_x.indx[endbpm]],
+        sqrt(input_data.beta_x.ERRALFX[input_data.beta_x.indx[endbpm]] ** 2 + input_data.beta_x.STDALFX[input_data.beta_x.indx[endbpm]] ** 2)]
+    end_bpm_vertical_data = [input_data.beta_y.BETY[input_data.beta_y.indx[endbpm]],
+        sqrt(input_data.beta_y.STDBETY[input_data.beta_y.indx[endbpm]] ** 2 + input_data.beta_y.ERRBETY[input_data.beta_y.indx[endbpm]] ** 2),
+        input_data.beta_y.ALFY[input_data.beta_y.indx[endbpm]],
+        sqrt(input_data.beta_y.ERRALFY[input_data.beta_y.indx[endbpm]] ** 2 + input_data.beta_y.STDALFY[input_data.beta_y.indx[endbpm]] ** 2)]
+    return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
+
+
+def get_dispersion_info(input_data, startbpm, endbpm):
+    if startbpm in input_data.dispersion_x.indx:
+        dxx = input_data.dispersion_x.DX[input_data.dispersion_x.indx[startbpm]]
+        dxp = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[startbpm]]
+        dxe = input_data.dispersion_x.STDDX[input_data.dispersion_x.indx[startbpm]]
+    else:
+        dxx = 0
+        dxp = 0
+        dxe = 0
+        print "Start BPM for horizontal dispersion not found"
+    if startbpm in input_data.dispersion_y.indx:
+        dyy = input_data.dispersion_y.DY[input_data.dispersion_y.indx[startbpm]]
+        dyp = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[startbpm]]
+        dye = input_data.dispersion_y.STDDY[input_data.dispersion_y.indx[startbpm]]
+    else:
+        dyy = 0
+        dyp = 0
+        dye = 0
+        print "Start BPM for vertical dispersion not found"
+    start_bpm_dispersion = [dxx,
+          dxp,
+          dyy,
+          dyp,
+          dxe,
+          dye]
+
+    if endbpm in input_data.dispersion_x.indx:
+        dxx = input_data.dispersion_x.DX[input_data.dispersion_x.indx[endbpm]]
+        dxp = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[endbpm]]
+        dxe = input_data.dispersion_x.STDDX[input_data.dispersion_x.indx[endbpm]]
+    else:
+        dxx = 0
+        dxp = 0
+        dxe = 0
+        print "End BPM for horizontal dispersion not found"
+    if endbpm in input_data.dispersion_y.indx:
+        dyy = input_data.dispersion_y.DY[input_data.dispersion_y.indx[endbpm]]
+        dyp = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[endbpm]]
+        dye = input_data.dispersion_y.STDDY[input_data.dispersion_y.indx[endbpm]]
+    else:
+        dyy = 0
+        dyp = 0
+        dye = 0
+        print "End BPM for vertical dispersion not found"
+    end_bpm_dispersion = [dxx,
+           dxp,
+           dyy,
+           dyp,
+           dxe,
+           dye]
+
+    return start_bpm_dispersion, end_bpm_dispersion
+
+
+def get_coupling_parameters(input_data, startbpm):
+    print "Coupling"
+    if startbpm in input_data.couple.indx:
+        f1001r = input_data.couple.F1001R[input_data.couple.indx[startbpm]]
+        f1001i = input_data.couple.F1001I[input_data.couple.indx[startbpm]]
+        f1010r = input_data.couple.F1010R[input_data.couple.indx[startbpm]]
+        f1010i = input_data.couple.F1010I[input_data.couple.indx[startbpm]]
+        f1001std = input_data.couple.FWSTD1[input_data.couple.indx[startbpm]]
+        f1010std = input_data.couple.FWSTD2[input_data.couple.indx[startbpm]]
+    else:
+        f1001r = 0
+        f1001i = 0
+        f1010r = 0
+        f1010i = 0
+        f1001std = 0
+        f1010std = 0
+        print "Start BPM ", startbpm, " not found in coupling measurement => values=0"
+    f_coupling_parameters = [f1001r, f1001i, f1010r, f1010i, f1001std, f1010std]
+    return f_coupling_parameters
+
+
+def structure_error_info_as_lists(input_data, error_data):
+    phase_list = [input_data.phase_x, input_data.phase_y, input_data.total_phase_x, input_data.total_phase_y]
+    horizontal_beta_list = [input_data.beta_x,
+                            error_data.min_error_beta,
+                            error_data.max_error_beta,
+                            error_data.min_error_beta,
+                            error_data.max_error_beta,
+                            error_data.min_error_alpha,
+                            error_data.max_error_alpha,
+                            error_data.min_error_alpha_back,
+                            error_data.max_error_alpha_back,
+                            input_data.amplitude_beta_x]  # TODO: error_data.min_error_beta/max_error_beta 2x the same?
+    vertical_beta_list = [input_data.beta_y,
+                          error_data.min_error_beta,
+                          error_data.max_error_beta,
+                          error_data.min_error_beta,
+                          error_data.max_error_beta,
+                          error_data.min_error_alpha,
+                          error_data.max_error_alpha,
+                          error_data.min_error_alpha_back,
+                          error_data.max_error_alpha_back,
+                          input_data.amplitude_beta_y]
+    if input_data.has_dispersion:
+        horizontal_dispersion_list = [input_data.dispersion_x,
+                                      input_data.normalized_dispersion_x,
+                                      error_data.min_error_dispersion,
+                                      error_data.max_error_dispersion,
+                                      error_data.min_error_dispersion_back,
+                                      error_data.max_error_dispersion_back]
+        vertical_dispersion_list = [input_data.dispersion_y,
+                                    error_data.min_error_dispersion,
+                                    error_data.max_error_dispersion,
+                                    error_data.min_error_dispersion_back,
+                                    error_data.max_error_dispersion_back]
+    else:
+        horizontal_dispersion_list = []
+        vertical_dispersion_list = []
+
+    return (phase_list,
+            horizontal_beta_list,
+            vertical_beta_list,
+            horizontal_dispersion_list,
+            vertical_dispersion_list)
+
+
+class ErrorData(object):
+
+    def __init__(self, save_path, element_name):
+        self.__save_path = save_path
+
+        self.min_error_beta = self.__get_twiss_for_file('twiss.b-.dat')
+        self.max_error_beta = self.__get_twiss_for_file('twiss.b+.dat')
+
+        self.min_error_alpha = self.__get_twiss_for_file('twiss.a-.dat')
+        self.min_error_alpha_back = self.__get_twiss_for_file('twiss.a-_back.dat')
+        self.max_error_alpha = self.__get_twiss_for_file('twiss.a+.dat')
+        self.max_error_alpha_back = self.__get_twiss_for_file('twiss.a+_back.dat')
+
+        self.min_error_dispersion = self.__get_twiss_for_file('twiss.d-.dat')
+        self.min_error_dispersion_back = self.__get_twiss_for_file('twiss.d-_back.dat')
+        self.max_error_dispersion = self.__get_twiss_for_file('twiss.d+.dat')
+        self.max_error_dispersion_back = self.__get_twiss_for_file('twiss.d+_back.dat')
+
+        self.max_c_error = self.__get_twiss_for_file('twiss_c_max.dat')
+        self.min_c_error = self.__get_twiss_for_file('twiss_c_min.dat')
+
+        self.modelcor = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
+
+        self.normal_pro = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
+        self.back_pro = self.__get_twiss_for_file('twiss_' + element_name + '_back_rev.dat')
+
+        self.normal_pro.Cmatrix()
+
+    def __get_twiss_for_file(self, file_name):
+        return twiss(os.path.join(self.__save_path, file_name))
+
 #===================================================================================================
 # helper-functions
 #===================================================================================================
+
+
 def modelIntersect(expbpms, model):
     bpmsin=[]
     for bpm in expbpms:
