@@ -91,6 +91,42 @@ twiss ,chrom, betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX
 !!!! Matching for coupling initial cond, R matrix
 !!
 
+option,-echo,-info;  ! otherwise the output is somewhat confusing
+getfterms(bpmname): macro = {
+    savebeta, label=b1, place=bpmname;  ! This will update b1 with all the betas and coupling input
+    twiss, beta0=b0, chrom, R11=ir11 ,R12=ir12, R21=ir21, R22=ir22, table;
+    
+    savebeta, label=b1, place=bpmname;
+    twiss,beta0=b0, chrom, R11=ir11,R12=ir12,R21=ir21,R22=ir22,file="%(PATH)s/twiss_%(LABEL)s.dat";
+    
+
+    NORMR=sqrt(1+table(twiss, bpmname, R11)*table(twiss, bpmname, R22)-table(twiss, bpmname, R12)*table(twiss, bpmname, R21));
+
+    !--- Gb is actually inv(Gb)
+    Ga11=1/sqrt(table(twiss, bpmname,BETX));                            Ga22=sqrt(table(twiss, bpmname,BETX));
+    Ga21= table(twiss, bpmname,ALFX)/sqrt(table(twiss, bpmname,BETX));  Ga12=0;
+
+    Gb21=-table(twiss, bpmname,ALFY)/sqrt(table(twiss, bpmname,BETY));  Gb12=0;
+    Gb11=sqrt(table(twiss,bpmname,BETY));                               Gb22=1/sqrt(table(twiss, bpmname,BETY));
+
+    R11=table(twiss, bpmname,R11)/NORMR;   R12=table(twiss, bpmname,R12)/NORMR; 
+    R21=table(twiss, bpmname,R21)/NORMR;   R22=table(twiss, bpmname,R22)/NORMR; 
+
+    CP11= R22*Gb11-R12*Gb21;  CP12= R22*Gb12-R12*Gb22;
+    CP21=-R21*Gb11+R11*Gb21;  CP22=-R21*Gb12+R11*Gb22;
+
+    C11=Ga11*CP11+Ga12*CP21;  C12=Ga11*CP12+Ga12*CP22;
+    C21=Ga21*CP11+Ga22*CP21;  C22=Ga21*CP12+Ga22*Cp22;
+
+    GAMMA2=1-(C11*C22-C12*C21);
+
+    f1001r = ( C12 - C21)/4/GAMMA2;
+    f1001i = ( C11 + C22)/4/GAMMA2;
+    f1010r = (-C12 - C21)/4/GAMMA2;
+    f1010i = ( C11 - C22)/4/GAMMA2;
+};
+option, echo;
+
 select, flag=twiss, clear;
 select, flag=twiss, pattern=BPM ,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
 
@@ -101,10 +137,7 @@ VARY, name=ir21, step=0.00001;
 VARY, name=ir22, step=0.00001;
 
 M1: MACRO={
-    savebeta,label=b1,place=%(STARTFROM)s;  ! This will update b1 with all the betas and coupling input
-    twiss,beta0=b0, chrom, R11=ir11,R12=ir12,R21=ir21,R22=ir22,file="%(PATH)s/twiss_%(LABEL)s.dat";
-    system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s -f 1 -m %(METHOD)s";
-    call, file="%(PATH)s/initvals.dat";
+    exec, getfterms(%(STARTFROM)s);
 }
 
  CONSTRAINT, EXPR= f1001r= %(F1001R)f;
@@ -175,10 +208,7 @@ VARY, name=ir21, step=0.00001;
 VARY, name=ir22, step=0.00001;
 
 M1: MACRO={
-    savebeta,label=b1,place=%(STARTFROM)s;  ! This will update b1 with all the betas and coupling input
-    twiss,beta0=b0, chrom, R11=ir11,R12=ir12,R21=ir21,R22=ir22,file="%(PATH)s/twiss_%(LABEL)s.dat";
-    system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s  -e %(EXP)s -s %(STARTFROM)s -f 1 -m %(METHOD)s";
-    call, file="%(PATH)s/initvals.dat";
+    exec, getfterms(%(STARTFROM)s);
 }
 
  CONSTRAINT, EXPR= f1001r= %(F1001maR)f;
@@ -201,10 +231,7 @@ VARY, name=ir21, step=0.00001;
 VARY, name=ir22, step=0.00001;
 
 M1: MACRO={
-    savebeta,label=b1,place=%(STARTFROM)s;  ! This will update b1 with all the betas and coupling input
-    twiss,beta0=b0, chrom, R11=ir11,R12=ir12,R21=ir21,R22=ir22,file="%(PATH)s/twiss_%(LABEL)s.dat";
-    system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s  -e %(EXP)s -s %(STARTFROM)s -f 1 -m %(METHOD)s";
-    call, file="%(PATH)s/initvals.dat";
+    exec, getfterms(%(STARTFROM)s);
 }
 
  CONSTRAINT, EXPR= f1001r= %(F1001miR)f;

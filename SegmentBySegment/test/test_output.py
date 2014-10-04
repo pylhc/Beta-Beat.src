@@ -27,6 +27,8 @@ _NO_VALID_RUN = True  # If True, will not run valid SBS except if no valid outpu
 
 _TestOutput__ARGUMENTS_FILE_NAME = "arguments.txt"  # This file is located in the input run dirs. Stores arguments for sbs
 
+_MAX_RELATIVE_ERROR = 1e-5
+
 
 class TestOutput(unittest.TestCase):
 
@@ -167,7 +169,7 @@ class TestOutput(unittest.TestCase):
                 try:
                     valid_twiss = metaclass.twiss(valid_item)
                     to_check_twiss = metaclass.twiss(to_check_item)
-                    self.assertTrue(Utilities.tfs_comparator.compare_tfs(valid_twiss, to_check_twiss, 1e-5,
+                    self.assertTrue(Utilities.tfs_comparator.compare_tfs(valid_twiss, to_check_twiss, _MAX_RELATIVE_ERROR,
                                                                          ignore_names=ignore_names),
                                     "Difference found in file: " + to_check_item)
                 except (UnboundLocalError, ValueError, IndexError):
