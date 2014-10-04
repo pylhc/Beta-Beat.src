@@ -70,6 +70,7 @@ import numpy as np
 
 import __init__ # @UnusedImport used for appending paths
 import Utilities.iotools
+from Utilities import tfs_file_writer as tfs_writer
 from metaclass import twiss
 
 
@@ -103,7 +104,7 @@ def parse_args():
                     metavar="GRA", default="1", dest="gra")
     parser.add_option("-p", "--save",
                     help="Output path",
-                    metavar="SAVE", default="./", dest="SAVE")
+                    metavar="SAVE", default="./", dest="save")
     parser.add_option("-m", "--mad", # assumes that output is same as input
                     help="mad link",
               metavar="mad", default="", dest="mad")
@@ -2353,7 +2354,7 @@ def _get_twiss_for_one_of(*file_names):
 
 
 def _exists(path_to_file):
-    return Utilities.iotools.exists_file(path_to_file)
+    return os.path.isfile(path_to_file) and os.path.exists(path_to_file)
 
 
 def _all_exists_in_output_path(*file_names):
