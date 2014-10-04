@@ -4,6 +4,16 @@ from Python_Classes4MAD.metaclass import twiss
 
 
 def compare_tfs(tfs_file_1, tfs_file_2, max_relative_error=1e-9, check_globals=False, check_same_columns=False, ignore_names=[]):
+    '''
+    Module to compare tfs files.
+    It will return false and output the errors it found to the error output and true if the files are equal.
+    :param tfs_file_1: The first TFS file, either a path o a metaclass.twiss object
+    :param tfs_file_2: The second TFS file.
+    :param max_relative_error: Maximum relative error allowed in the numeric values.
+    :param check_globals: If true, it will also compare the value of the global parameters.
+    :param check_same_columns: If true, both files must have the same number and names of columns
+    :param ignore_names: List of columns or global parameters names that will be ignored while comparing.
+    '''
     ignore_names.append("indx")
     ignore_names.append("keys")
     ignore_names.append("filename")
