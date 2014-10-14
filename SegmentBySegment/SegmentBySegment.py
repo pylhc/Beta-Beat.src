@@ -63,16 +63,15 @@ Change history:
 import os
 import sys
 import optparse
-from math import sqrt,cos,sin,pi, tan
+from math import sqrt, cos, sin, pi, tan
 import math
 
 import numpy as np
 
-import __init__ # @UnusedImport used for appending paths
+import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
-from Utilities import tfs_file_writer as tfs_writer
-from metaclass import twiss
-
+from Python_Classes4MAD.metaclass import twiss
+import Utilities.tfs_file_writer as tfs_writer
 
 
 #===================================================================================================
@@ -83,11 +82,11 @@ def parse_args():
     parser = optparse.OptionParser()
     parser.add_option("-a", "--accel",
                     help="Which accelerator: LHCB1 LHCB2 SPS RHIC SOLEIL",
-                    metavar="ACCEL", default="LHCB1",dest="accel")
-    parser.add_option("-f", "--path", # assumes that output is same as input
+                    metavar="ACCEL", default="LHCB1", dest="accel")
+    parser.add_option("-f", "--path",  # assumes that output is same as input
                     help="Path to measurement files",
                     metavar="PATH", default="./", dest="path")
-    parser.add_option("-i", "--path2", # assumes that output is same as input
+    parser.add_option("-i", "--path2",  # assumes that output is same as input
                     help="Path to second measurement files",
                     metavar="PATH2", default="./", dest="path2")
     parser.add_option("-s", "--start",
@@ -105,25 +104,25 @@ def parse_args():
     parser.add_option("-p", "--save",
                     help="Output path",
                     metavar="SAVE", default="./", dest="save")
-    parser.add_option("-m", "--mad", # assumes that output is same as input
+    parser.add_option("-m", "--mad",  # assumes that output is same as input
                     help="mad link",
               metavar="mad", default="", dest="mad")
-    parser.add_option("-b", "--bbsource", # assumes that output is same as input
+    parser.add_option("-b", "--bbsource",  # assumes that output is same as input
                     help="beta beat source",
                     metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
-    parser.add_option("-x", "--take", # take or create mad input, default should be 0 for creating
+    parser.add_option("-x", "--take",  # take or create mad input, default should be 0 for creating
                     help="take or create madx 0/1",
                     metavar="mad", default="0", dest="madpass")
     parser.add_option("-c", "--cuts",
                     help="cut on error of beta in percentage",
                     metavar="cuts", default="10", dest="cuts")
-    parser.add_option("-w", "--w", # Path to Chromaticity functions
+    parser.add_option("-w", "--w",  # Path to Chromaticity functions
                         help="Path to  chromaticity functions, by default this is skiped",
                         metavar="wpath", default="0", dest="wpath")
 
     (options, args) = parser.parse_args()
 
-    return options,args
+    return options, args
 
 
 #===================================================================================================
@@ -1358,11 +1357,11 @@ def getAndWriteData(namename, phases, betah, betav, disph, dispv, couple, chroma
     filexa = open(path+"sbsalfax_"+namename+".out", "w")
 
     if switch == 0:
-        print >> filex, "* NAME S BETX ERRBETX BETXAMP ERRBETXAMP BETXP ERRBETXP BETXMDL MODEL_S BETX2 ERRBETXP2"
-        print >> filex, "$ %s %le %le %le %le %le  %le %le %le %le %le %le"
+        print >> filex, "* NAME S BETX ERRBETX BETXAMP ERRBETXAMP BETXP ERRBETXP BETXMDL MODEL_S ERRBETX2"
+        print >> filex, "$ %s %le %le %le %le %le  %le %le %le %le %le"
 
-        print >> filexa, "* NAME S ALFX ERRALFX ALFXP ERRALFXP ALFMDL MODEL_S ALFX2 ERRALFXP2"
-        print >> filexa, "$ %s %le %le %le %le %le %le %le %le %le"
+        print >> filexa, "* NAME S ALFX ERRALFX ALFXP ERRALFXP ALFMDL MODEL_S ERRALFXP2"
+        print >> filexa, "$ %s %le %le %le %le %le %le %le %le"
     else:
         print >> filex, "* NAME S BETXP ERRBETXP BETXMDL MODEL_S BETX2 ERRBETXP2"
         print >> filex, "$ %s %le %le %le %le %le %le %le"
@@ -1422,17 +1421,14 @@ def getAndWriteData(namename, phases, betah, betav, disph, dispv, couple, chroma
         alfa_start = bme.ALFX[bme.indx[first_bpm]]
         err_beta_start = sqrt(bme.ERRBETX[bme.indx[first_bpm]]**2+bme.STDBETX[bme.indx[first_bpm]]**2)
         err_alfa_start = sqrt(bme.ERRALFX[bme.indx[first_bpm]]**2+bme.STDALFX[bme.indx[first_bpm]]**2)
-        #TODO: Andy, probably you have to insert an abs(x)
-#        delta_phase = (phasex.PHASEX[phasex.indx[name]] - phasex.PHASEX[phasex.indx[first_bpm]]) %1
-
-#        err_phase_prop = propagate_error_phase(err_beta_start, err_alfa_start, delta_phase, beta_start, alfa_start)
 
         if switch == 0:
-            delta_phase = (phasex.PHASEX[phasex.indx[name]] - phasex.PHASEX[phasex.indx[first_bpm]]) %1
-            beta_s = bme.BETX[bme.indx[name]]
-            alfa_s = bme.ALFX[bme.indx[name]]
+            delta_phase = (modelp.MUX[modelp.indx[name]]) %1
+            beta_s = modelp.BETX[modelp.indx[name]]
+            alfa_s = modelp.ALFX[modelp.indx[name]]
 
             err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start)
+            print err_beta_prop, err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start
             err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_s, beta_start, alfa_start)
 
             alfame = bme.ALFX[bme.indx[name]]
@@ -1448,7 +1444,6 @@ def getAndWriteData(namename, phases, betah, betav, disph, dispv, couple, chroma
             print >> filexa, name, s, alfame, ealfame, aep, eaep, amo, smo, err_alfa_prop
             print >> filex, name, s, betame, ebetame, betaa, ebetaa, bep, ebep, betam, smo, err_beta_prop
         else:
-
             delta_phase = (modelp.MUX[modelp.indx[name]]) %1
             beta_sp = modelp.BETX[modelp.indx[name]]
             alfa_sp = modelp.ALFX[modelp.indx[name]]
@@ -1534,10 +1529,10 @@ def getAndWriteData(namename, phases, betah, betav, disph, dispv, couple, chroma
     fileya = open(path+"sbsalfay_"+namename+".out", "w")
 
     if switch == 0:
-        print >> filey, "* NAME S BETY ERRBETY  BETYAMP ERRBETYAMP BETYP ERRBETYP BETYMDL MDL_S BETY2 ERRBETY2"
-        print >> filey, "$ %s %le %le %le %le %le %le %le %le %le  %le %le"
-        print >> fileya, "* NAME S ALFY ERRALFY ALFYP ERRALFYP ALFMDL MODEL_S ALFY2 ERRALFY2"
-        print >> fileya, "$ %s %le %le %le %le %le %le %le %le %le"
+        print >> filey, "* NAME S BETY ERRBETY  BETYAMP ERRBETYAMP BETYP ERRBETYP BETYMDL MDL_S ERRBETY2"
+        print >> filey, "$ %s %le %le %le %le %le %le %le %le %le %le"
+        print >> fileya, "* NAME S ALFY ERRALFY ALFYP ERRALFYP ALFMDL MODEL_S ERRALFY2"
+        print >> fileya, "$ %s %le %le %le %le %le %le %le %le"
     else:
         print >> filey, "* NAME S BETY ERRBETY BETYMDL MDL_S BETY2 ERRBETY2"
         print >> filey, "$ %s %le %le %le %le %le %le %le"
@@ -1586,14 +1581,11 @@ def getAndWriteData(namename, phases, betah, betav, disph, dispv, couple, chroma
         alfa_start = bme.ALFY[bme.indx[first_bpm]]
         err_beta_start = sqrt(bme.ERRBETY[bme.indx[first_bpm]]**2+bme.STDBETY[bme.indx[first_bpm]]**2)
         err_alfa_start = sqrt(bme.ERRALFY[bme.indx[first_bpm]]**2+bme.STDALFY[bme.indx[first_bpm]]**2)
-        #TODO: Andy, please check the correct deltaphase.
-#        delta_phase = (phasey.PHASEY[phasex.indx[name]] - phasex.PHASEY[phasey.indx[first_bpm]]) %1
-#        delta_phase = abs(phasey.PHASEY[phasey.indx[name]] - phasey.PHASEY[phasey.indx[first_bpm]]) %1
 
         if switch == 0:
-            delta_phase = (phasey.PHASEY[phasey.indx[name]] - phasey.PHASEY[phasey.indx[first_bpm]]) %1
-            beta_s = bme.BETY[bme.indx[name]]
-            alfa_s = bme.ALFY[bme.indx[name]]
+            delta_phase = (modelp.MUY[modelp.indx[name]]) %1
+            beta_s = modelp.BETY[modelp.indx[name]]
+            alfa_s = modelp.ALFY[modelp.indx[name]]
 
             err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start)
             err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_s, beta_start, alfa_start)
