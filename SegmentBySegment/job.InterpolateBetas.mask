@@ -174,8 +174,8 @@ select, flag=twiss, class=tkicker;
 select,flag=twiss,pattern="XRP";
 select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
 
-
 twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s.dat";
+
 
 !
 ! Write here some correction
@@ -189,60 +189,6 @@ system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s -e %(EX
 !
 ! Please remove the correction if you want the rest to make sense
 !
-
-
-twiss, beta0=b1, betx=%(BETX)s+%(ERRBETX)s, bety=%(BETY)s+%(ERRBETY)s, file="%(PATH)s/twiss.b+.dat";
-twiss, beta0=b1, betx=%(BETX)s-%(ERRBETX)s, bety=%(BETY)s-%(ERRBETY)s, file="%(PATH)s/twiss.b-.dat";
-twiss, beta0=b1, alfx=%(ALFX)s+%(ERRALFX)s, alfy=%(ALFY)s+%(ERRALFY)s, file="%(PATH)s/twiss.a+.dat";
-twiss, beta0=b1, alfx=%(ALFX)s-%(ERRALFX)s, alfy=%(ALFY)s-%(ERRALFY)s, file="%(PATH)s/twiss.a-.dat";
-twiss, beta0=b1, dx=%(DX)s+%(ERRDX)s,dy=%(DY)s+%(ERRDY)s, file="%(PATH)s/twiss.d+.dat";
-twiss, beta0=b1, dx=%(DX)s-%(ERRDX)s,dy=%(DY)s-%(ERRDY)s, file="%(PATH)s/twiss.d-.dat";
-
-
-!!!!!! errors coupling max
-
-MATCH,USE_MACRO;
-VARY, name=ir11, step=0.00001;
-VARY, name=ir12, step=0.00001;
-VARY, name=ir21, step=0.00001;
-VARY, name=ir22, step=0.00001;
-
-M1: MACRO={
-    exec, getfterms(%(STARTFROM)s);
-}
-
- CONSTRAINT, EXPR= f1001r= %(F1001maR)f;
- CONSTRAINT, EXPR= f1001i= %(F1001maI)f;
- CONSTRAINT, EXPR= f1010r= %(F1010maR)f;
- CONSTRAINT, EXPR= f1010i= %(F1010maI)f;
-
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_c_max.dat";
-
-
-!!!!!! errors coupling min
-
-MATCH,USE_MACRO;
-VARY, name=ir11, step=0.00001;
-VARY, name=ir12, step=0.00001;
-VARY, name=ir21, step=0.00001;
-VARY, name=ir22, step=0.00001;
-
-M1: MACRO={
-    exec, getfterms(%(STARTFROM)s);
-}
-
- CONSTRAINT, EXPR= f1001r= %(F1001miR)f;
- CONSTRAINT, EXPR= f1001i= %(F1001miI)f;
- CONSTRAINT, EXPR= f1010r= %(F1010miR)f;
- CONSTRAINT, EXPR= f1010i= %(F1010miI)f;
-
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_c_min.dat";
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! back propagation
@@ -278,16 +224,8 @@ select, flag=twiss, class=rbend;
 select,flag=twiss,pattern="XRP";
 select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
 
-
-
 twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_back.dat";
 twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_play_back.dat";
-twiss, betx=%(ENDBX)s+%(ERRENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s+%(ERRENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.b+_back.dat";
-twiss, betx=%(ENDBX)s-%(ERRENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s-%(ERRENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.b-_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s+%(ERRALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s+%(ERRALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.a+_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s-%(ERRALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s-%(ERRALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.a-_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s+%(ERRDENDX)s,dy=%(DENDY)s+%(ERRDENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.d+_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s-%(ERRDENDX)s,dy=%(DENDY)s-%(ERRDENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.d-_back.dat";
 
 
 stop;

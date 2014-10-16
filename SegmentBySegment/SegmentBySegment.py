@@ -43,7 +43,7 @@ Change history:
 #  !=>  SegementBySegment_0.31.py : - Adjusting filtering
 #                                   - Adding C-matrix,angle,waist calculation,...
 #                                   - Adding IP calculation from getllm... if BPM is not found you take another.
-#   Added system path to the beginning to avoid having to define it in the shell
+#   Added system save_path to the beginning to avoid having to define it in the shell
 #
 # 0.33 20120820 (tbach):
 # - changed savepath = options.SAVE to savepath = options.SAVE + "/"
@@ -72,6 +72,8 @@ import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
 from Python_Classes4MAD.metaclass import twiss
 import Utilities.tfs_file_writer as tfs_writer
+import sbs_beta_writer
+from Utilities import tfs_file_writer
 
 
 #===================================================================================================
@@ -139,8 +141,8 @@ def main(options):
         0 if execution was successful otherwise !=0
     '''
 
-    output_path = options.path
-    input_data = _InputData(output_path)
+    measurement_path = options.path
+    input_data = _InputData(measurement_path)
 
     save_path = options.save + os.path.sep
     Utilities.iotools.create_dirs(save_path)
@@ -153,7 +155,7 @@ def main(options):
     if twiss_file == "./":
         twiss_file = os.path.join(options.bb, "MODEL", options.accel, "nominal.opt", "twiss_elements.dat")
     print "Twiss file ", twiss_file
-    twiss_data = twiss(twiss_file)
+    input_model = twiss(twiss_file)
 
     twiss_directory = os.path.dirname(twiss_file) + os.path.sep
 
@@ -163,7 +165,7 @@ def main(options):
 
         print element_name
 
-        start_bpm_name, end_bpm_name, is_an_instrument = get_good_bpms(input_data, error_cut, twiss_data, start_bpms, end_bpms, element_name)
+        start_bpm_name, end_bpm_name, is_element = get_good_bpms(input_data, error_cut, input_model, start_bpms, end_bpms, element_name)
 
         (start_bpm_horizontal_data,
          start_bpm_vertical_data,
@@ -207,43 +209,24 @@ def main(options):
 
         reversetable(save_path, element_name)
 
-        error_data = ErrorData(save_path, element_name)
-
-        (phase_list,
-         horizontal_beta_list,
-         vertical_beta_list,
-         horizontal_dispersion_list,
-         vertical_dispersion_list) = structure_error_info_as_lists(input_data, error_data)
-
-        couple = [input_data.couple, input_data.couple_terms, error_data.max_c_error, error_data.min_c_error]
-        chromatic = []
+        propagated_models = PropagatedModels(save_path, element_name)
 
         print "Writing data for function ", element_name
         getAndWriteData(element_name,
-                        phase_list,
-                        horizontal_beta_list,
-                        vertical_beta_list,
-                        horizontal_dispersion_list,
-                        vertical_dispersion_list,
-                        couple,
-                        chromatic,
-                        twiss_data,
-                        error_data.modelcor,
-                        error_data.normal_pro,
-                        error_data.back_pro,
+                        input_data,
+                        input_model,
+                        propagated_models,
                         save_path,
-                        is_an_instrument,
-                        selected_accelerator,
-                        input_data.couple_method,
-                        save_path)
+                        is_element,
+                        selected_accelerator)
 
         # gnuplot  ### TODO: what is this? (jcoellod)
-        if is_an_instrument == 0:
+        if is_element == 0:
             beta4plot = start_bpm_horizontal_data[2]
-            startpos = twiss_data.S[twiss_data.indx[start_bpm_name]]
-            endpos = twiss_data.S[twiss_data.indx[end_bpm_name]]
+            startpos = input_model.S[input_model.indx[start_bpm_name]]
+            endpos = input_model.S[input_model.indx[end_bpm_name]]
             print startpos, endpos
-            run4plot(save_path, startpos, endpos, beta4plot, options.bb, output_path, element_name, input_data.QXX, input_data.QYY, options.accel, input_data.couple_method)
+            run4plot(save_path, startpos, endpos, beta4plot, options.bb, measurement_path, element_name, input_data.QXX, input_data.QYY, options.accel, input_data.couple_method)
 
     return 0
 
@@ -278,10 +261,9 @@ def structure_elements_info(elements_data):
 
 def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, element_name):
     #  checking if end_bpms element is BPM or instrument (IP,collimators)
-    is_an_instrument = -1  # TODO this has to be changed for a boolean
     if element_name in start_bpms and element_name in end_bpms:
         print "Segment has been choosen"
-        is_an_instrument = 0
+        is_element = False
         segment = [start_bpms[element_name], end_bpms[element_name]]
         start_bpm_name, end_bpm_name = filterandfind(input_data.beta_x,
                                                      input_data.beta_y,
@@ -295,14 +277,14 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
         sys.exit()
     else:
         print "Element has been choosen"
-        is_an_instrument = 1
+        is_element = True
         start_bpm_name, end_bpm_name = filterandfind(input_data.beta_x,
                                                      input_data.beta_y,
                                                      element_name,
                                                      [],
                                                      twiss_data,
                                                      errorcut)
-    return start_bpm_name, end_bpm_name, is_an_instrument
+    return start_bpm_name, end_bpm_name, is_element
 
 
 def gather_data(input_data, startbpm, endbpm):
@@ -400,78 +382,16 @@ def get_coupling_parameters(input_data, startbpm):
     return f_coupling_parameters
 
 
-def structure_error_info_as_lists(input_data, error_data):
-    phase_list = [input_data.phase_x, input_data.phase_y, input_data.total_phase_x, input_data.total_phase_y]
-    horizontal_beta_list = [input_data.beta_x,
-                            error_data.min_error_beta,
-                            error_data.max_error_beta,
-                            error_data.min_error_beta,
-                            error_data.max_error_beta,
-                            error_data.min_error_alpha,
-                            error_data.max_error_alpha,
-                            error_data.min_error_alpha_back,
-                            error_data.max_error_alpha_back,
-                            input_data.amplitude_beta_x]  # TODO: error_data.min_error_beta/max_error_beta 2x the same?
-    vertical_beta_list = [input_data.beta_y,
-                          error_data.min_error_beta,
-                          error_data.max_error_beta,
-                          error_data.min_error_beta,
-                          error_data.max_error_beta,
-                          error_data.min_error_alpha,
-                          error_data.max_error_alpha,
-                          error_data.min_error_alpha_back,
-                          error_data.max_error_alpha_back,
-                          input_data.amplitude_beta_y]
-    if input_data.has_dispersion:
-        horizontal_dispersion_list = [input_data.dispersion_x,
-                                      input_data.normalized_dispersion_x,
-                                      error_data.min_error_dispersion,
-                                      error_data.max_error_dispersion,
-                                      error_data.min_error_dispersion_back,
-                                      error_data.max_error_dispersion_back]
-        vertical_dispersion_list = [input_data.dispersion_y,
-                                    error_data.min_error_dispersion,
-                                    error_data.max_error_dispersion,
-                                    error_data.min_error_dispersion_back,
-                                    error_data.max_error_dispersion_back]
-    else:
-        horizontal_dispersion_list = []
-        vertical_dispersion_list = []
-
-    return (phase_list,
-            horizontal_beta_list,
-            vertical_beta_list,
-            horizontal_dispersion_list,
-            vertical_dispersion_list)
-
-
-class ErrorData(object):
+class PropagatedModels(object):
 
     def __init__(self, save_path, element_name):
         self.__save_path = save_path
 
-        self.min_error_beta = self.__get_twiss_for_file('twiss.b-.dat')
-        self.max_error_beta = self.__get_twiss_for_file('twiss.b+.dat')
+        self.corrected = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
+        self.propagation = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
+        self.back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back_rev.dat')
 
-        self.min_error_alpha = self.__get_twiss_for_file('twiss.a-.dat')
-        self.min_error_alpha_back = self.__get_twiss_for_file('twiss.a-_back.dat')
-        self.max_error_alpha = self.__get_twiss_for_file('twiss.a+.dat')
-        self.max_error_alpha_back = self.__get_twiss_for_file('twiss.a+_back.dat')
-
-        self.min_error_dispersion = self.__get_twiss_for_file('twiss.d-.dat')
-        self.min_error_dispersion_back = self.__get_twiss_for_file('twiss.d-_back.dat')
-        self.max_error_dispersion = self.__get_twiss_for_file('twiss.d+.dat')
-        self.max_error_dispersion_back = self.__get_twiss_for_file('twiss.d+_back.dat')
-
-        self.max_c_error = self.__get_twiss_for_file('twiss_c_max.dat')
-        self.min_c_error = self.__get_twiss_for_file('twiss_c_min.dat')
-
-        self.modelcor = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
-
-        self.normal_pro = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
-        self.back_pro = self.__get_twiss_for_file('twiss_' + element_name + '_back_rev.dat')
-
-        self.normal_pro.Cmatrix()
+        self.propagation.Cmatrix()
 
     def __get_twiss_for_file(self, file_name):
         return twiss(os.path.join(self.__save_path, file_name))
@@ -962,7 +882,7 @@ def getIP(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,accel,p
             name of the IP
         'accel': string
             name of the accelerator
-        'path': string
+        'save_path': string
             where to save file
     :Return: None
         nothing => writing to file in this function (new/appending)
@@ -1257,836 +1177,59 @@ def propagate_error_dispersion(std_D0, bet0, bets, dphi, alf0):
     return np.abs(std_D0 * math.sqrt(bets/bet0) * (np.cos(2*np.pi*dphi)+alf0*np.sin(2*np.pi*dphi)))
 
 
-def getAndWriteData(namename, phases, betah, betav, disph, dispv, couple, chromatic, model, modelcor, modelp, modelb, path, switch, accel, method, savepath):
+def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, selected_accelerator):
     '''
     Function that returns the optics function at the given element
 
     :Parameters:
-        'namename': string
-            name of the element
-        'phase': list
-            horizontal and vertical phase [phasex,phasey,phasext,phaseyt]
-        'betah': list
-            horizontal beta [betax,betaxminp,betaxmaxp,betaxminb,betaxmaxb,alfaxminp,alfaxmaxp,alfaxminb,alfaxmaxb,ampbetax]
-        'betav': list
-            vertical beta [betay,betayminp,betaymaxp,betayminb,betaymaxb,alfayminp,alfaymaxp,alfayminb,alfaymaxb,ampbetay]
-        'disph': list
-            horizontal dispersion [dispx,ndispx,dispminxp,dispmaxp,dispminxb,dispmaxb]
-        'dispv': list
-            vertical dispersion [dispy,dispminyp,dispmayp,dispminyb,dispmayb]
-        'couple': list
-            containing the coupling [coupleme,couplecme,couplemip,couplemap]
-        'chromatic': list
-            containing the chromatic ouput [wx,wxminp,wxmqxp,wy,wyminp,wymaxp]
-        'model': twiss
-            model in twiss format
-        'modelcor': twiss
-            model containing twiss with corrections values (former known as model_play)
-        'modelp': twiss
-            model from propagation
-        'modelb': twiss
-            model from back propagation
-        'path': string
-            where to save file
-        'switch': int
-            to tell if it is either element(1)/segment(0)
-        'accel': string
-            name of the accelerator
+        # TODO: rewrite this
     :Return: None
         nothing => writing to file in this function (new/appending)
     '''
-    ###################################################################
-    # Function that returns the optics function at the given element
-    # Parameters:
-    # - name : name of the element
-    # - phase: (list) horizontal and vertical phase [phasex,phasey,phasext,phaseyt]
-    # - betah : (list) horizontal beta [betax,betaxminp,betaxmaxp,betaxminb,betaxmaxb,alfaxminp,alfaxmaxp,alfaxminb,alfaxmaxb,ampbetax]
-    # - betav : (list) vertical beta [betay,betayminp,betaymaxp,betayminb,betaymaxb,alfayminp,alfaymaxp,alfayminb,alfaymaxb,ampbetay]
-    # - disph : (list) horizontal dispersion [dispx,ndispx,dispminxp,dispmaxp,dispminxb,dispmaxb]
-    # - dispv : (list) vertical dispersion [dispy,dispminyp,dispmayp,dispminyb,dispmayb]
-    # - couple : twiss containing the coupling [coupleme,couplecme,couplemip,couplemap]
-    # - chromatic : containing the chromatic ouput [wx,wxminp,wxmqxp,wy,wyminp,wymaxp]
-    # - model : model in twiss format
-    # - modelcor : model containing twiss with corrections values (former known as model_play)
-    # - modelp : model from propagation
-    # - modelb : model from back propagation
-    # - path : path where to save
-    # - switch : to tell if it is either element(1)/segment(0)
-    ###################################################################
 
-    print "INFO: Start writing files", switch
+    print "INFO: Start writing files", is_element
 
-    #### gathering file
-    if switch == 1:
-        if os.path.isfile(path+"sbs_summary_bet.out"):
-            print "INFO: Updating summary file"
-            filesum_b = open(path+"sbs_summary_bet.out", "a")
-            filesum_c = open(path+"sbs_summary_cou.out", "a")
-            filesum_d = open(path+"sbs_summary_disp.out", "a")
+    chromatic = []
 
-        else:
-            print "INFO: Creating summary file"
-            filesum_b = open(path+"sbs_summary_bet.out", "w")
-            filesum_c = open(path+"sbs_summary_cou.out", "w")
-            filesum_d = open(path+"sbs_summary_disp.out", "w")
+    filesum_b, filesum_d, filesum_c = _get_summary_files(chromatic, save_path, is_element)
 
-            # beta
-            print >> filesum_b, "* NAME S BETXP ERRBETXP BETXMDL ALFXP ERRALFXP ALFXMDL BETX2 ERRBETXP2 BETY ERRBETY BETYMDL ALFA ERRALFY ALFYMDL MDL_S BETY2 ERRBETYP2"
-            print >> filesum_b, "$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
-
-            #coupling
-            print >> filesum_c, "* NAME   S   f1001 f1001re  f1001im    f1010   f1010re   f1010im  f1001_PLAY ef1001_play   f1001re_PLAY  f1001im_PLAY    f1010_PLAY ef1010_play   f1010re_PLAY   f1010im_PLAY C11Mo C12Mo C21Mo C22Mo ANDMo C11_cor eC11_cor C12_cor eC12_cor C21_cor eC21_cor C22_cor eC22_cor ANG_cor eANG_cor S_MODEL"
-            print >> filesum_c, "$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
-
-            # disp and chromatic
-            if len(chromatic)!=0:
-
-                print >> filesum_d, "* NAME S DX_MDL DX_PLAY EDX_PLAY DPX_MDL DPX_PLAY EDPX_PLAY DX2 ERRDX DY_MDL DY_PLAY EDY_PLAY DPY_MDL DPY_PLAY EDPY_PLAY DY2 ERRDY WX_MDL WX_PLAY eWX_play PHIX_MDL PHIX_PLAY ePHIX_PLAY WY_MDL WY_PLAY eWY_play PHIY_MDL PHIY_PLAY ePHIY_PLAY S_MODEL"
-                print >> filesum_d, "$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
-
-            else:
-                print >> filesum_d, "* NAME S DX_MDL DX_PLAY EDX_PLAY DPX_MDL DPX_PLAY EDPX_PLAY DX2 ERRDX DY_MDL DY_PLAY EDY_PLAY DPY_MDL DPY_PLAY EDPY_PLAY  S_MODEL DY2 ERRDY"
-                print >> filesum_d, "$ %s %le %le %le %le %le %le %le %le %le  %le %le %le %le %le %le %le %le %le"
-
-    phasex = phases[0]
-    phasey = phases[1]
-
-    ##beta
-    #-horizontal
-    filex = open(path+"sbsbetax_"+namename+".out", "w")
-    filexa = open(path+"sbsalfax_"+namename+".out", "w")
-
-    if switch == 0:
-        print >> filex, "* NAME S BETX ERRBETX BETXAMP ERRBETXAMP BETXP ERRBETXP BETXMDL MODEL_S ERRBETX2"
-        print >> filex, "$ %s %le %le %le %le %le  %le %le %le %le %le"
-
-        print >> filexa, "* NAME S ALFX ERRALFX ALFXP ERRALFXP ALFMDL MODEL_S ERRALFXP2"
-        print >> filexa, "$ %s %le %le %le %le %le %le %le %le"
-    else:
-        print >> filex, "* NAME S BETXP ERRBETXP BETXMDL MODEL_S BETX2 ERRBETXP2"
-        print >> filex, "$ %s %le %le %le %le %le %le %le"
-
-        print >> filexa, "* NAME S ALFXP ERRALFXP ALFXMDL MODEL_S ALFX2 ERRALFXP2"
-        print >> filexa, "$ %s %le %le %le %le %le %le %le"
-
-    bme = betah[0]  # measurement
-    bmea = betah[9]  # measurement amp
-    bmip = betah[1]  # min p
-    bmap = betah[2]  # max p
-    bmib = betah[3]  # min b
-    bmab = betah[4]  # max b
-    amip = betah[5]  # min p
-    amap = betah[6]  # max p
-    amib = betah[7]  # min b
-    amab = betah[8]  # max b
-
-    if switch == 0:  # only enter when it is a segment
-        bpms = intersect([bme, bmip, model, modelcor, modelp, modelb, bmea])
-    else:
-        bpms = intersect([bmip, model, modelcor, modelp, modelb])
-
-    for bpm in bpms:
-        s = bpm[0]
-        name = bpm[1]
-        smo = model.S[model.indx[name]]
-
-        #beta model
-        betam = model.BETX[model.indx[name]]
-
-        #beta pro
-        betape = abs(bmap.BETX[bmap.indx[name]]-bmip.BETX[bmip.indx[name]])
-        betabe = abs(bmab.BETX[bmab.indx[name]]-bmib.BETX[bmib.indx[name]])
-        #ebep=sqrt((1/betape)**2+(1/betabe)**2)/2
-        ebep = sqrt(((betape)**2+(betabe)**2)/2)
-
-        #alfa
-        amo = model.ALFX[model.indx[name]]
-
-        alfape = abs(amap.ALFX[amap.indx[name]]-amip.ALFX[amip.indx[name]])
-        alfabe = abs(amab.ALFX[amab.indx[name]]-amib.ALFX[amib.indx[name]])
-        eaep = sqrt(((alfape)**2+(alfabe)**2)/2)
-
-        betap = modelp.BETX[modelp.indx[name]]
-        betab = modelb.BETX[modelb.indx[name]]
-        bep = (1/(betape+betabe))*(betape*betap+betabe*betab)
-
-        alfap = modelp.ALFX[modelp.indx[name]]
-        alfab = modelb.ALFX[modelb.indx[name]]
-        aep = (1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
-
-##################### NEW ERROR
-
-        first_bpm = bpms[0][1]
-        beta_start = bme.BETX[bme.indx[first_bpm]]
-        alfa_start = bme.ALFX[bme.indx[first_bpm]]
-        err_beta_start = sqrt(bme.ERRBETX[bme.indx[first_bpm]]**2+bme.STDBETX[bme.indx[first_bpm]]**2)
-        err_alfa_start = sqrt(bme.ERRALFX[bme.indx[first_bpm]]**2+bme.STDALFX[bme.indx[first_bpm]]**2)
-
-        if switch == 0:
-            delta_phase = (modelp.MUX[modelp.indx[name]]) %1
-            beta_s = modelp.BETX[modelp.indx[name]]
-            alfa_s = modelp.ALFX[modelp.indx[name]]
-
-            err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start)
-            print err_beta_prop, err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start
-            err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_s, beta_start, alfa_start)
-
-            alfame = bme.ALFX[bme.indx[name]]
-            ealfame = sqrt((bme.ERRALFX[bme.indx[name]]**2+bme.STDALFX[bme.indx[name]]**2)/2)
-            #beta me
-            betaa = bmea.BETX[bmea.indx[name]]
-            ebetaa = bmea.BETXSTD[bmea.indx[name]]
-            betame = bme.BETX[bme.indx[name]]
-            ebetame = sqrt((bme.ERRBETX[bme.indx[name]]**2+bme.STDBETX[bme.indx[name]]**2)/2)
-            bep = modelcor.BETX[modelcor.indx[name]]
-            alfap = modelp.ALFX[modelp.indx[name]]
-
-            print >> filexa, name, s, alfame, ealfame, aep, eaep, amo, smo, err_alfa_prop
-            print >> filex, name, s, betame, ebetame, betaa, ebetaa, bep, ebep, betam, smo, err_beta_prop
-        else:
-            delta_phase = (modelp.MUX[modelp.indx[name]]) %1
-            beta_sp = modelp.BETX[modelp.indx[name]]
-            alfa_sp = modelp.ALFX[modelp.indx[name]]
-
-            err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_sp, beta_start, alfa_start)
-            err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_sp, beta_start, alfa_start)
-
-            #print "Adding", name," to the summary ",namename
-
-            #only for a test
-            beta_sb = modelb.BETX[modelb.indx[name]]
-            alfa_sb = modelb.ALFX[modelb.indx[name]]
-
-            last_bpm = bpms[-1][1]
-            beta_end = bme.BETX[bme.indx[last_bpm]]
-            alfa_end = -bme.ALFX[bme.indx[last_bpm]]
-            err_beta_end = sqrt(bme.ERRBETX[bme.indx[last_bpm]]**2+bme.STDBETX[bme.indx[last_bpm]]**2)
-            err_alfa_end = sqrt(bme.ERRALFX[bme.indx[last_bpm]]**2+bme.STDALFX[bme.indx[last_bpm]]**2)
-
-            delta_phase = (modelb.MUX[modelb.indx[name]]) %1
-            err_beta_back = propagate_error_beta(err_beta_end, err_alfa_end, delta_phase, beta_sb, beta_end, alfa_end)
-            err_alfa_back = propagate_error_beta(err_beta_end, err_alfa_end, delta_phase, beta_sb, beta_end, alfa_end)
-
-            beta_f = (1/err_beta_prop**2 *beta_sp + 1/err_beta_back**2 *beta_sb) / (1/err_beta_prop**2 + 1/err_beta_back**2)
-            err_beta_f = sqrt(1 / (1/err_beta_prop**2 + 1/err_beta_back**2))
-
-            alfa_f = (1/err_alfa_prop**2 *alfa_sp + 1/err_alfa_back**2 *alfa_sb) / (1/err_alfa_prop**2 + 1/err_alfa_back**2)
-            err_alfa_f = sqrt(1 / (1/err_alfa_prop**2 + 1/err_alfa_back**2))
-
-            std_wght = sqrt(2 * (1/err_beta_prop**2 * (betap - beta_f)**2 + 1/err_beta_back**2 * (betab - beta_f)**2) / (1/err_beta_prop**2 + 1/err_beta_back**2))
-            err_beta_f = sqrt(err_beta_f**2 + std_wght**2)
-
-            std_wght = sqrt(2 * (1/err_alfa_prop**2 * (alfap - alfa_f)**2 + 1/err_alfa_back**2 * (alfab - alfa_f)**2) / (1/err_alfa_prop**2 + 1/err_alfa_back**2))
-            err_alfa_f = sqrt(err_alfa_f**2 + std_wght**2)
-
-            print >> filexa, name, s, aep, eaep, amo, smo, alfa_f, err_alfa_f
-            print >> filex, name, s, bep, ebep, betam, smo, beta_f, err_beta_f
-
-            if namename in name:
-                fileb1 = name+" "+str(s)+" "+str(round(bep, 2))+" "+str(round(ebep, 2))+" "+str(round(betam, 2))+" "+str(round(aep, 4))+" "+str(round(eaep, 4))+" "+str(round(amo, 4))+" "+str(round(beta_f, 4))+" "+str(round(err_beta_f, 4))
-
-    filex.close()
-    filexa.close()
-
-    Model = twiss(savepath + "/twiss_" + namename + ".dat")
-    if method == "driven":
-        method = ""
-    Model.Cmatrix()
-    ModelPlay = twiss(savepath + "/twiss_" + namename + "_cor.dat")
-    ModelPlay.Cmatrix()
-    t = Model
-    tp = ModelPlay
-    px = twiss(options.path + '/getphasetotx' + method + '.out')
-
-    bpmsx = modelIntersectgetf(t, px)
-
-    bpmx1 = bpms[0][1]
-    if bpmx1 not in zip(*bpmsx)[1]:   # zip(*a) is like transpose of a list
-        print "Selected Start BPM in not in the measurement!"
-        print "Quiting SbS"
-        sys.exit()
-
-    fx = tfs_writer.TfsFileWriter.open(savepath + '/test_sbsphasext_' + namename + '.out')
-    fx.add_column_names(["NAME", "S", "PHASEX", "PHASEXT", "ERRORX", "PHSTDX", "PHASE_PLAY", "MODEL_S"])
-    fx.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-#TODO:
-    for el in bpmsx:
-        tindx = t.indx[el[1]]
-        pxindx = px.indx[el[1]]
-        mdl = (t.MUX[tindx] - t.MUX[t.indx[bpmx1]]) % 1
-        exp = (px.PHASEX[pxindx] - px.PHASEX[px.indx[bpmx1]]) % 1
-        exp_mdl = (exp - mdl) % 1
-        if exp_mdl > 0.5:
-            exp_mdl = exp_mdl - 1
-        mdl_play = -t.MUX[tindx] + tp.MUX[tindx]
-        phase_error = propagate_error_phase(err_beta_start, err_alfa_start, exp, beta_start, alfa_start)
-        fx.add_table_row([el[1], px.S[pxindx], exp, exp_mdl, px.STDPHX[pxindx], phase_error, mdl_play, t.S[tindx]])
-    fx.write_to_file()
-
-
-    #-vertical
-    filey = open(path+"sbsbetay_"+namename+".out", "w")
-    fileya = open(path+"sbsalfay_"+namename+".out", "w")
-
-    if switch == 0:
-        print >> filey, "* NAME S BETY ERRBETY  BETYAMP ERRBETYAMP BETYP ERRBETYP BETYMDL MDL_S ERRBETY2"
-        print >> filey, "$ %s %le %le %le %le %le %le %le %le %le %le"
-        print >> fileya, "* NAME S ALFY ERRALFY ALFYP ERRALFYP ALFMDL MODEL_S ERRALFY2"
-        print >> fileya, "$ %s %le %le %le %le %le %le %le %le"
-    else:
-        print >> filey, "* NAME S BETY ERRBETY BETYMDL MDL_S BETY2 ERRBETY2"
-        print >> filey, "$ %s %le %le %le %le %le %le %le"
-        print >> fileya, "* NAME S ALFA ERRALFY ALFYMDL MDL_S ALFY2 ERRALFY2"
-        print >> fileya, "$ %s %le %le %le %le %le %le %le"
-
-    bme = betav[0]  # measurement
-    bmea = betav[9]  # measurement amp
-    bmip = betav[1]  # min p
-    bmap = betav[2]  # max p
-    bmib = betav[3]  # min b
-    bmab = betav[4]  # max b
-    amip = betav[5]  # min p
-    amap = betav[6]  # max p
-    amib = betav[7]  # min b
-    amab = betav[8]  # max b
-
-    if switch == 0:  # only enter when it is a segment
-        bpms = intersect([bme, bmip, model, modelcor, modelp, modelb, bmea])
-    else:
-        bpms = intersect([bmip, model, modelcor, modelp, modelb])
-
-    for bpm in bpms:
-        s = bpm[0]
-        name = bpm[1]
-        smo = model.S[model.indx[name]]
-
-        #beta model
-        betam = model.BETY[model.indx[name]]
-
-        #beta
-        betape = abs(bmap.BETY[bmap.indx[name]]-bmip.BETY[bmip.indx[name]])
-        betabe = abs(bmab.BETY[bmab.indx[name]]-bmib.BETY[bmib.indx[name]])
-        #ebep=sqrt((1/betape)**2+(1/betabe)**2)/2
-        ebep = sqrt((betape)**2+(betabe)**2)/2
-
-        #alfa
-        amo = model.ALFY[model.indx[name]]
-
-        alfape = abs(amap.ALFY[amap.indx[name]]-amip.ALFY[amip.indx[name]])
-        alfabe = abs(amab.ALFY[amab.indx[name]]-amib.ALFY[amib.indx[name]])
-        eaep = sqrt((alfape)**2+(alfabe)**2)/2
-
-        first_bpm = bpms[0][1]
-        beta_start = bme.BETY[bme.indx[first_bpm]]
-        alfa_start = bme.ALFY[bme.indx[first_bpm]]
-        err_beta_start = sqrt(bme.ERRBETY[bme.indx[first_bpm]]**2+bme.STDBETY[bme.indx[first_bpm]]**2)
-        err_alfa_start = sqrt(bme.ERRALFY[bme.indx[first_bpm]]**2+bme.STDALFY[bme.indx[first_bpm]]**2)
-
-        if switch == 0:
-            delta_phase = (modelp.MUY[modelp.indx[name]]) %1
-            beta_s = modelp.BETY[modelp.indx[name]]
-            alfa_s = modelp.ALFY[modelp.indx[name]]
-
-            err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_s, beta_start, alfa_start)
-            err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_s, beta_start, alfa_start)
-                #beta me
-            betaa = bmea.BETY[bmea.indx[name]]
-            ebetaa = bmea.BETYSTD[bmea.indx[name]]
-            betame = bme.BETY[bme.indx[name]]
-            ebetame = sqrt((bme.ERRBETY[bme.indx[name]]**2+bme.STDBETY[bme.indx[name]]**2)/2)
-            print >> filey, name, s, betame, ebetame, betaa, ebetaa, bep, ebep, betam, smo, err_beta_prop
-            #alfa me
-            bep = modelcor.BETY[modelcor.indx[name]]
-            aep = modelcor.ALFY[modelcor.indx[name]]
-
-            alfame = bme.ALFY[bme.indx[name]]
-            ealfame = sqrt((bme.ERRALFY[bme.indx[name]]**2+bme.STDALFY[bme.indx[name]]**2)/2)
-
-            print >> fileya, name, s, alfame, ealfame, aep, eaep, amo, smo, err_alfa_prop
-        else:
-            delta_phase = (modelp.MUY[modelp.indx[name]]) %1
-            beta_sp = modelp.BETY[modelp.indx[name]]
-            alfa_sp = modelp.ALFY[modelp.indx[name]]
-
-            err_beta_prop = propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_sp, beta_start, alfa_start)
-            err_alfa_prop = propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_sp, beta_start, alfa_start)
-
-            betap = modelp.BETY[modelp.indx[name]]
-            betab = modelb.BETY[modelb.indx[name]]
-            bep = (1/(betape+betabe))*(betape*betap+betabe*betab)
-            alfap = modelp.ALFY[modelp.indx[name]]
-            alfab = modelb.ALFY[modelb.indx[name]]
-            aep = (1/(alfape+alfabe))*(alfape*alfap+alfabe*alfab)
-
-            delta_phase = (modelb.MUY[modelb.indx[name]]) %1
-            beta_sb = modelb.BETY[modelb.indx[name]]
-            alfa_sb = modelb.ALFY[modelb.indx[name]]
-
-            last_bpm = bpms[-1][1]
-            beta_end = bme.BETY[bme.indx[last_bpm]]
-            alfa_end = -bme.ALFY[bme.indx[last_bpm]]
-            err_beta_end = sqrt(bme.ERRBETY[bme.indx[last_bpm]]**2+bme.STDBETY[bme.indx[last_bpm]]**2)
-            err_alfa_end = sqrt(bme.ERRALFY[bme.indx[last_bpm]]**2+bme.STDALFY[bme.indx[last_bpm]]**2)
-
-            err_beta_back = propagate_error_beta(err_beta_end, err_alfa_end, delta_phase, beta_sb, beta_end, alfa_end)
-            err_alfa_back = propagate_error_beta(err_beta_end, err_alfa_end, delta_phase, beta_sb, beta_end, alfa_end)
-
-            beta_f = (1/err_beta_prop**2 *beta_sp + 1/err_beta_back**2 *beta_sb) / (1/err_beta_prop**2 + 1/err_beta_back**2)
-            err_beta_f = sqrt(1 / (1/err_beta_prop**2 + 1/err_beta_back**2))
-
-            alfa_f = (1/err_alfa_prop**2 *alfa_sp + 1/err_alfa_back**2 *alfa_sb) / (1/err_alfa_prop**2 + 1/err_alfa_back**2)
-            err_alfa_f = sqrt(1 / (1/err_alfa_prop**2 + 1/err_alfa_back**2))
-
-            std_wght = sqrt(2 * (1/err_beta_prop**2 * (betap - beta_f)**2 + 1/err_beta_back**2 * (betab - beta_f)**2) / (1/err_beta_prop**2 + 1/err_beta_back**2))
-            err_beta_f = sqrt(err_beta_f**2 + std_wght**2)
-
-            std_wght = sqrt(2 * (1/err_alfa_prop**2 * (alfap - alfa_f)**2 + 1/err_alfa_back**2 * (alfab - alfa_f)**2) / (1/err_alfa_prop**2 + 1/err_alfa_back**2))
-            err_alfa_f = sqrt(err_alfa_f**2 + std_wght**2)
-
-            print >> fileya, name, s, aep, eaep, amo, smo, alfa_f, err_alfa_f
-            print >> filey, name, s, bep, ebep, betam, smo, beta_f, err_beta_f
-
-            if namename in name:
-                print >> filesum_b, fileb1, round(bep, 2), round(ebep, 2), round(betam, 2), round(aep, 4), round(eaep, 4), round(amo, 4), round(smo, 2), round(beta_f, 4), round(err_beta_f, 4)
-
-    filey.close()
-    fileya.close()
-
-    py = twiss(options.path + '/getphasetoty' + method + '.out')
-
-    bpmsy = modelIntersectgetf(t, py)
-
-    bpmy1 = bpms[0][1]
-    if bpmy1 not in zip(*bpmsy)[1]:   # zip(*a) is like transpose of a list
-        print "Selected Start BPM in not in the measurement!"
-        print "Quiting SbS"
-        sys.exit()
-
-    fy = tfs_writer.TfsFileWriter.open(savepath + '/test_sbsphaseyt_' + namename + '.out')
-    fy.add_column_names(["NAME", "S", "PHASEY", "PHASEYT", "ERRORY", "PHSTDY", "PHASE_PLAY", "MODEL_S"])
-    fy.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-#TODO:
-    for el in bpmsy:
-        tindx = t.indx[el[1]]
-        pyindx = py.indx[el[1]]
-        mdl = (t.MUY[tindx] - t.MUY[t.indx[bpmy1]]) % 1
-        exp = (py.PHASEY[pyindx] - py.PHASEY[py.indx[bpmy1]]) % 1
-        exp_mdl = (exp - mdl) % 1
-        if exp_mdl > 0.5:
-            exp_mdl = exp_mdl - 1
-        mdl_play = -t.MUY[tindx] + tp.MUY[tindx]
-        phase_error = propagate_error_phase(err_beta_start, err_alfa_start, exp, beta_start, alfa_start)
-        fy.add_table_row([el[1], py.S[pyindx], exp, exp_mdl, py.STDPHY[pyindx], phase_error, mdl_play, t.S[tindx]])
-    fy.write_to_file()
-
-    ##dispersion
-    if len(disph) != 0:
-        dme = disph[0]
-        dnme = disph[1]
-        dminp = disph[2]
-        dmaxp = disph[3]
-        dminb = disph[4]
-        dmaxb = disph[5]
-
-            #dispersion
-        filex = open(path+'/sbsDx_'+namename+'.out', 'w')
-
-        if switch == 0:
-            print >> filex, "* NAME  S  DX  STDDX  DX_MDL DX_PLAY EDX_PLAY DPX DPX_MDL DPX_PLAY EDPX_PLAY MODEL_S ERRDX"
-            print >> filex, "$ %s %le %le %le %le %le %le %le %le %le %le %le %le"
-
-            bpms = intersect([dme, dminp, modelp, model, modelb])
-        else:
-            print >> filex, "* NAME  S  DX_MDL DX_PLAY EDX_PLAY DPX_MDL DPX_PLAY EDPX_PLAY  MODEL_S DX2 ERRDX"
-            print >> filex, "$ %s %le %le %le %le %le %le %le %le %le %le"
-            bpms = intersect([dminp, modelp, model, modelb])
-
-        for bpm in bpms:
-            s = bpm[0]
-            name = bpm[1]
-            first_bpm = bpms[0][1]
-
-            #model
-            dmo = model.DX[model.indx[name]]
-            smo = model.S[model.indx[name]]
-            dpmo = model.DPX[model.indx[name]]
-            # pro
-            dpe = abs(dmaxp.DX[dmaxp.indx[name]] - dminp.DX[dminp.indx[name]])
-            dbe = abs(dmaxb.DX[dmaxb.indx[name]] - dminb.DX[dminb.indx[name]])
-            dppe = abs(dmaxp.DPX[dmaxp.indx[name]] - dminp.DPX[dminp.indx[name]])
-            dpbe = abs(dmaxb.DPX[dmaxb.indx[name]] - dminb.DPX[dminb.indx[name]])
-            edep = sqrt((dpe)**2+(dbe)**2)/2
-            edepp = sqrt((dppe)**2+(dpbe)**2)/2
-            delta_phase = (modelp.MUX[modelp.indx[name]]) %1
-
-            newerrD = propagate_error_dispersion(dme.STDDX[dme.indx[first_bpm]], modelp.BETX[modelp.indx[first_bpm]], modelp.BETX[modelp.indx[name]], delta_phase, modelp.ALFX[modelp.indx[first_bpm]])
-
-            if switch == 0:
-                #mea
-                dmea = dme.DX[dme.indx[name]]
-                edmea = dme.STDDX[dme.indx[name]]
-                dpmea = dme.DPX[dme.indx[name]]
-
-                #pro
-                dep = modelcor.DX[modelcor.indx[name]]
-                depp = modelcor.DPX[modelcor.indx[name]]
-
-                print >> filex, name, s, dmea, edmea, dmo, dep, edep, dpmea, dpmo, depp, edepp, smo, newerrD
-            else:
-                dp = modelp.DX[modelp.indx[name]]
-                db = modelb.DX[modelb.indx[name]]
-                dep = (1/(dpe+dbe))*(dpe*dp+dbe*db)
-
-                dpp = modelp.DPX[modelp.indx[name]]
-                dpb = modelb.DPX[modelb.indx[name]]
-                try:
-                    depp = (1/(dppe+dpbe))*(dppe*dpp + dpbe*dpb)
-                except:
-                    depp = 0
-                last_bpm = bpms[-1][1]
-                delta_phase_back = (modelb.MUX[modelb.indx[name]]) %1
-                newerrD_back = propagate_error_dispersion(dme.STDDX[dme.indx[last_bpm]], modelb.BETX[modelb.indx[last_bpm]], modelb.BETX[modelb.indx[name]], delta_phase_back, modelb.ALFX[modelb.indx[last_bpm]])
-                D_f = (1/newerrD**2 *modelp.DX[modelp.indx[name]] + 1/newerrD_back**2 *modelb.DX[modelb.indx[name]]) / (1/newerrD**2 + 1/newerrD_back**2)
-                err_D_f = sqrt(1 / (1/newerrD**2 + 1/newerrD_back**2))
-
-                std_wght = sqrt(2 * (1/newerrD**2 * (modelp.DX[modelp.indx[name]]-D_f)**2 + 1/newerrD_back**2 * (modelb.DX[modelb.indx[name]]-D_f)**2) / (1/newerrD**2 + 1/newerrD_back**2))
-                err_D_f = sqrt(err_D_f**2 + std_wght**2)
-
-                print >> filex, name, s, dmo, dep, edep, dpmo, depp, edepp, smo, D_f, err_D_f
-
-                if namename in name:
-                    filed1 = name+" "+str(s)+" "+str(dmo)+" "+str(dep)+" "+str(edep)+" "+str(dpmo)+" "+str(depp)+" "+str(edepp)+" "+str(D_f)+" "+str(err_D_f)
-
-        filex.close()
-
-            #normalized dispersion
-        filex = open(path+'/sbsNDx_'+namename+'.out', 'w')
-
-        if switch == 0:
-            print >> filex, "* NAME  S  NDX   STDNDX NDX_MDL NDX_PLAY ENDX_PLAY MODEL_S "
-            print >> filex, "$ %s   %le  %le   %le   %le    %le %le    %le "
-            bpms = intersect([dnme, dminp, modelp, model, modelb, bme])
-        else:
-            print >> filex, "* NAME  S  NDX_MDL NDX_PLAY ENDX_PLAY MODEL_S "
-            print >> filex, "$ %s   %le   %le    %le %le    %le "
-            bpms = intersect([dminp, modelp, model, modelb, modelcor])
-
-        for bpm in bpms:
-            s = bpm[0]
-            name = bpm[1]
-
-            #model
-            dmo = model.DX[model.indx[name]]
-            smo = model.S[model.indx[name]]
-
-                # pro
-            dpe = (abs(dmaxp.DX[dmaxp.indx[name]] - dminp.DX[dminp.indx[name]])) / sqrt(modelp.BETX[modelp.indx[name]])
-            dbe = (abs(dmaxb.DX[dmaxb.indx[name]] - dminb.DX[dminb.indx[name]])) / sqrt(modelp.BETX[modelp.indx[name]])
-            try:
-                edep = sqrt((1/dpe)**2+(1/dbe)**2)/2
-            except:
-                edep = 0
-
-            if switch == 0:
-                #mea
-                dmea = dnme.NDX[dnme.indx[name]]
-                edmea = dnme.STDNDX[dnme.indx[name]]
-                #pro
-                dp = modelp.DX[modelp.indx[name]] / sqrt(modelp.BETX[modelp.indx[name]])
-                db = modelb.DX[modelb.indx[name]] / sqrt(modelb.BETX[modelp.indx[name]])
-                dep = (1/(dpe+dbe)) * (dpe*dp + dbe*db)
-
-                print >> filex, name, s, dmea, edmea, dmo, dep, edep, smo
-            else:
-
-                dep = modelcor.DX[modelcor.indx[name]] / sqrt(modelcor.BETX[modelcor.indx[name]])
-                print >> filex, name, s, dmo, dep, edep, smo
-
-            #if namename in name:
-
-                #filed1=filed1+" "+str(dmo)+" "+str(dep)+" "+str(edep)
-
-    #vertical dispersion
-    if len(dispv) != 0:
-        dme = dispv[0]
-        dminp = dispv[1]
-        dmaxp = dispv[2]
-        dminb = dispv[3]
-        dmaxb = dispv[4]
-        filey = open(path + '/sbsDy_' + namename + '.out', 'w')
-
-        if switch == 0:
-            bpms = intersect([dme, dminp, modelp, model, modelb])
-            print >> filey, "* NAME  S  DY  STDDY  DY_MDL DY_PLAY EDY_PLAY DPY DPY_MDL DPY_PLAY EDPY_PLAY MODEL_S ERRDY"
-            print >> filey, "$ %s %le %le %le %le %le %le %le %le %le %le %le %le"
-        else:
-            bpms = intersect([dminp, modelp, model, modelb])
-            print >> filey, "* NAME  S  DY_MDL DY_PLAY EDY_PLAY DPY_MDL DPY_PLAY EDPY_PLAY  MODEL_S DY2 ERRDY"
-            print >> filey, "$ %s %le %le %le %le %le %le %le %le %le %le"
-
-        for bpm in bpms:
-            s = bpm[0]
-            name = bpm[1]
-            first_bpm = bpms[0][1]
-
-            #model
-            dmo = model.DY[model.indx[name]]
-            smo = model.S[model.indx[name]]
-            dpmo = model.DPY[model.indx[name]]
-            # pro
-            dpe = abs(dmaxp.DY[dmaxp.indx[name]] - dminp.DY[dminp.indx[name]])
-            dbe = abs(dmaxb.DY[dmaxb.indx[name]] - dminb.DY[dminb.indx[name]])
-            dppe = abs(dmaxp.DPY[dmaxp.indx[name]] - dminp.DPY[dminp.indx[name]])
-            dpbe = abs(dmaxb.DPY[dmaxb.indx[name]] - dminb.DPY[dminb.indx[name]])
-            edep = sqrt((dpe)**2 + (dbe)**2)/2
-            edepp = sqrt((dppe)**2 + (dpbe)**2)/2
-            delta_phase = (modelp.MUY[modelp.indx[name]]) %1
-#TODO: Model Cor or normal one? also in horizontal
-            newerrD = propagate_error_dispersion(dme.STDDY[dme.indx[first_bpm]], modelp.BETY[modelp.indx[first_bpm]], modelp.BETY[modelp.indx[name]], delta_phase, modelp.ALFY[modelp.indx[first_bpm]])
-
-            if switch == 0:
-                #mea
-                dmea = dme.DY[dme.indx[name]]
-                edmea = dme.STDDY[dme.indx[name]]
-                dpmea = dme.DPY[dme.indx[name]]
-
-                #pro
-                dep = modelcor.DY[modelcor.indx[name]]
-                depp = modelcor.DPY[modelcor.indx[name]]
-
-                print >> filey, name, s, dmea, edmea, dmo, dep, edep, dpmea, dpmo, depp, edepp, smo, newerrD
-            else:
-                dp = modelp.DY[modelp.indx[name]]
-                db = modelb.DY[modelb.indx[name]]
-                dep = (1/(dpe + dbe)) * (dpe*dp + dbe*db)
-
-                dpp = modelp.DPY[modelp.indx[name]]
-                dpb = modelb.DPY[modelb.indx[name]]
-                depp = (1/(dppe + dpbe)) * (dppe*dpp + dpbe*dpb)
-
-                last_bpm = bpms[-1][1]
-                delta_phase_back = (modelb.MUY[modelb.indx[name]]) %1
-                newerrD_back = propagate_error_dispersion(dme.STDDY[dme.indx[last_bpm]], modelb.BETY[modelb.indx[last_bpm]], modelb.BETY[modelb.indx[name]], delta_phase_back, modelb.ALFY[modelb.indx[last_bpm]])
-                D_f = (1/newerrD**2 *modelp.DY[modelp.indx[name]] + 1/newerrD_back**2 *modelb.DY[modelb.indx[name]]) / (1/newerrD**2 + 1/newerrD_back**2)
-                err_D_f = sqrt(1 / (1/newerrD**2 + 1/newerrD_back**2))
-
-                std_wght = sqrt(2 * (1/newerrD**2 * (modelp.DY[modelp.indx[name]]-D_f)**2 + 1/newerrD_back**2 * (modelb.DY[modelb.indx[name]]-D_f)**2) / (1/newerrD**2 + 1/newerrD_back**2))
-                err_D_f = sqrt(err_D_f**2 + std_wght**2)
-                print >> filey, name, s, dmo, dep, edep, dpmo, depp, edepp, smo, D_f, err_D_f
-
-                if namename in name:
-
-                    if len(chromatic) != 0:
-                        filed1 = filed1+" "+str(dmo)+" "+str(dep)+" "+str(edep)+" "+str(D_f)+" "+str(err_D_f)
-                    else:
-                        print >> filesum_d, filed1, dmo, dep, edep, dpmo, depp, edepp, smo, D_f, err_D_f
-        filey.close()
-
-    ##coupling
-    couplemi=couple[2]
-    couplema=couple[3]
-
-    couplemi.Cmatrix()
-    couplema.Cmatrix()
-    model.Cmatrix()
-    modelp.Cmatrix()
-    modelcor.Cmatrix()
-    #modelb.Cmatrix()
-
-    #if (switch==0) and (len(couple)!=0):
-        #bpms=intersect([coupleme,couplemi,model])
-
-        #fterms
-        #print >> filex,'* NAME   S   f1001 f1001re  f1001im    f1010   f1010re   f1010im  f1001_EXP f1001err_EXP  f1001re_EXP  f1001im_EXP    f1010_EXP  f1010err_EXP   f1010re_EXP   f1010im_EXP     f1001_PLAY ef1001_play   f1001re_PLAY  f1001im_PLAY    f1010_PLAY ef1010_play   f1010re_PLAY   f1010im_PLAY  S_MODEL'
-        #print >> filex,'$  %s    %le   %le    %le  %le   %le    %le    %le  %le   %le    %le  %le   %le    %le    %le   %le  %le   %le    %le    %le   %le  %le %le %le %le'
-
-        #cterms
-        #print >>filex2,"NAME S C11Me eC11Me C12Me eC12Me C21Me eC21Me C22Me eC22 ANGMe eANGMe C11Mo C12Mo C21Mo C22Mo ANDMo C11_cor eC11_cor C12_cor eC12_cor C21_cor eC21_cor C22_cor eC22_cor ANG_cor eANG_cor"
-        #print >>filex2,"%s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
-
-    if switch != 0:
-        filex=open(path+'/sbscouple_'+namename+'.out','w')
-        filex2=open(path+'/sbscouple2_'+namename+'.out','w')
-        bpms=intersect([couplemi,model])
-
-        #fterms
-        print >> filex,'* NAME   S   f1001 f1001re  f1001im    f1010   f1010re   f1010im  f1001_PLAY ef1001_play   f1001re_PLAY  f1001im_PLAY    f1010_PLAY ef1010_play   f1010re_PLAY   f1010im_PLAY  S_MODEL'
-        print >> filex,'$  %s    %le    %le  %le   %le    %le  %le    %le  %le   %le  %le   %le    %le    %le   %le  %le %le'
-
-        #cterms
-        print >>filex2,"NAME S C11Mo C12Mo C21Mo C22Mo ANDMo C11_cor eC11_cor C12_cor eC12_cor C21_cor eC21_cor C22_cor eC22_cor ANG_cor eANG_cor"
-        print >>filex2,"%s %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le"
-    else:
-        bpms=[]
-
-    for bpm in bpms:
-        s=bpm[0]
-        name=bpm[1]
-
-        #fterms
-        f1001=model.f1001[model.indx[name]]
-        f1010=model.f1010[model.indx[name]]
-        f1001e=couplema.f1001[couplema.indx[name]]-couplemi.f1001[couplemi.indx[name]]
-        f1010e=couplema.f1010[couplema.indx[name]]-couplemi.f1010[couplemi.indx[name]]
-
-        #cterms
-        C11=model.C[model.indx[name]][0]
-        C12=model.C[model.indx[name]][1]
-        C21=model.C[model.indx[name]][2]
-        C22=model.C[model.indx[name]][3]
-        angmo="x"
-
-        eC11c=couplema.C[couplema.indx[name]][0]-couplemi.C[couplemi.indx[name]][0]
-        eC12c=couplema.C[couplema.indx[name]][1]-couplemi.C[couplemi.indx[name]][1]
-        eC21c=couplema.C[couplema.indx[name]][2]-couplemi.C[couplemi.indx[name]][3]
-        eC22c=couplema.C[couplema.indx[name]][3]-couplemi.C[couplemi.indx[name]][3]
-
-        smo=model.S[model.indx[name]]
-
-        C11c=modelp.C[modelp.indx[name]][0]
-        C12c=modelp.C[modelp.indx[name]][1]
-        C21c=modelp.C[modelp.indx[name]][2]
-        C22c=modelp.C[modelp.indx[name]][3]
-
-
-        angle="x"
-
-        f1001c=modelp.f1001[modelp.indx[name]]
-        f1010c=modelp.f1010[modelp.indx[name]]
-        f1001e=couplema.f1001[couplema.indx[name]]-couplemi.f1001[couplemi.indx[name]]
-        f1010e=couplema.f1010[couplema.indx[name]]-couplemi.f1010[couplemi.indx[name]]
-            #fterms
-        print >>filex,name,s,abs(f1001),f1001.real,f1001.imag,abs(f1010),f1010.real,f1010.imag,abs(f1001c),f1001e,f1001c.real,f1001c.imag,abs(f1010c),f1010e,f1010c.real,f1010c.imag,smo
-
-            #cterms
-        print >>filex2,name,s,C11,C12,C21,C22,angmo,C11c,eC11c,C12c,eC12c,C21c,eC21c,C22c,eC22c,angle
-
-        if namename in name:
-            print >>filesum_c,name,s,abs(f1001),f1001.real,f1001.imag,abs(f1010),f1010.real,f1010.imag,abs(f1001c),f1001e,f1001c.real,f1001c.imag,abs(f1010c),f1010e,f1010c.real,f1010c.imag,C11,C12,C21,C22,angmo,C11c,eC11c,C12c,eC12c,C21c,eC21c,C22c,eC22c,"x","X",smo
-
-
-    if switch!=0:
-        filex.close()
-        filex2.close()
-
-    ##chromatic beta
-    if len(chromatic)!=0:
-
-        # horizontal
-        chromame=chromatic[0]
-        chromamip=chromatic[1]
-        chromamap=chromatic[2]
-
-        filex= open(path+'/sbsWx_'+namename+'.out','w')
-
-        if (switch==0):
-            bpms=intersect([chromame,chromamip,model,modelp])
-
-            print >> filex,"* NAME  S  WX   WXERR WX_MDL WX_PLAY eWX_play  PHIX PHIXERR PHIX_MDL PHIX_PLAY ePHIX_PLAY    MODEL_S "
-            print >> filex,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
-        else:
-            bpms=intersect([chromamip,model,modelp])
-
-            print >> filex,"* NAME  S  WX_MDL WX_PLAY eWX_play PHIX_MDL PHIX_PLAY ePHIX_PLAY    MODEL_S "
-            print >> filex,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
-
-
-        for bpm in bpms:
-            s=bpm[0]
-            name=bpm[1]
-
-            wmo=model.WX[model.indx[name]]
-            phmo=model.PHIX[model.indx[name]]
-            smo=model.S[model.indx[name]]
-
-            we=chromamap.WX[chromamap.indx[name]]-chromamip.WX[chromamip.indx[name]]
-            phe=chromamap.PHIX[chromamap.indx[name]]-chromamip.PHIX[chromamip.indx[name]]
-
-            if switch==0:
-                wme=chromame.WX[chromame.indx[name]]
-                ewme=chromame.WXERR[chromame.indx[name]]
-                phme=chromame.PHIX[chromame.indx[name]]
-                ephme=chromame.PHIXERR[chromame.indx[name]]
-
-                w_cor=modelcor.WX[modelcor.indx[name]]
-                ph_cor=modelcor.PHIX[modelcor.indx[name]]
-
-                print >> filex,name,s,wme,ewme,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-            else:
-
-                w_cor=modelp.WX[modelp.indx[name]]
-                ph_cor=modelp.PHIX[modelp.indx[name]]
-
-                print >> filex,name,s,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-                if namename in name:
-
-                    filed1=filed1+" "+str(wmo)+" "+str(w_cor)+" "+str(we)+" "+str(phme)+" "+str(ephme)+" "+str(phmo)+" "+str(ph_cor)+" "+str(phe)
-
-        # vertical
-        chromame=chromatic[3]
-        chromamip=chromatic[4]
-        chromamap=chromatic[5]
-
-        filey= open(path+'/sbsWy_'+namename+'.out','w')
-
-        if switch==0:
-            bpms=intersect([chromame,chromamip,model,modelp])
-
-            print >> filey,"* NAME  S  WY   WYERR WY_MDL WY_PLAY eWY_play  PHIY PHIYERR PHIYMDL PHIY_PLAY ePHIY_PLAY    MODEL_S "
-            print >> filey,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
-        else:
-            bpms=intersect([chromamip,model,modelp])
-
-            print >> filey,"* NAME  S  WY_MDL WY_PLAY eWY_play PHIY_MDL PHIY_PLAY ePHIY_PLAY    MODEL_S "
-            print >> filey,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
-
-        for bpm in bpms:
-            s=bpm[0]
-            name=bpm[1]
-
-            wmo=model.WY[model.indx[name]]
-            phmo=model.PHIY[model.indx[name]]
-            smo=model.S[model.indx[name]]
-
-            we=chromamap.WY[chromamap.indx[name]]-chromamip.WY[chromamip.indx[name]]
-            phe=chromamap.PHIY[chromamap.indx[name]]-chromamip.PHIY[chromamip.indx[name]]
-
-            if switch==0:
-                wme=chromame.WY[chromame.indx[name]]
-                ewme=chromame.WYERR[chromame.indx[name]]
-                phme=chromame.PHIY[chromame.indx[name]]
-                ephme=chromame.PHIYERR[chromame.indx[name]]
-
-                w_cor=modelcor.WY[modelcor.indx[name]]
-                ph_cor=modelcor.PHIY[modelcor.indx[name]]
-
-                print >> filey,name,s,wme,ewme,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-            else:
-
-                w_cor=modelp.WY[modelp.indx[name]]
-                ph_cor=modelp.PHIY[modelp.indx[name]]
-
-                print >> filey,name,s,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-                if namename in name:
-
-                    print >>filesum_d,filed1,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-        filesum_b.close()
-        filesum_c.close()
-        filesum_d.close()
-
-        filey.close()
+    sbs_beta_writer.write_beta(element_name,
+                               is_element,
+                               input_data.beta_x,
+                               input_data.beta_y,
+                               input_model,
+                               propagated_models,
+                               save_path,
+                               filesum_b)
 
     ## to find IP
-    if ("IP" in namename) and (switch==1):
+    if "IP" in element_name and is_element:
         getIP([betah[9],betav[9]],[modelp,modelb],[betah[1],betah[3],betah[2],betah[4]],[betah[5],betah[7],betah[6],betah[8]],model,phasex,phasey,namename,accel,path)
     elif ("ADT" in namename) and (switch==1):
         errors=[betah[1],betah[3],betah[2],betah[4]]
         TransverseDampers(modelp,modelb,namename,model,path,phases[0],phases[1],errors)
+
+
+def _get_summary_files(chromatic, save_path, is_element):
+    if is_element:
+        filesum_b = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_bet.out"))
+        filesum_b.add_column_names("NAME", "S", "BETXP", "ERRBETXP", "BETXMDL", "ALFXP", "ERRALFXP", "ALFXMDL", "BETX2", "ERRBETXP2", "BETY", "ERRBETY", "BETYMDL", "ALFA", "ERRALFY", "ALFYMDL", "MDL_S", "BETY2", "ERRBETYP2")
+        filesum_b.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
+
+        filesum_c = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_cou.out"))
+        filesum_c.add_column_names("NAME", "S", "f1001", "f1001re", "f1001im", "f1010", "f1010re", "f1010im", "f1001_PLAY", "ef1001_play", "f1001re_PLAY", "f1001im_PLAY", "f1010_PLAY", "ef1010_play", "f1010re_PLAY", "f1010im_PLAY", "C11Mo", "C12Mo", "C21Mo", "C22Mo", "ANDMo", "C11_cor", "eC11_cor", "C12_cor", "eC12_cor", "C21_cor", "eC21_cor", "C22_cor", "eC22_cor", "ANG_cor", "eANG_cor", "S_MODEL")
+        filesum_c.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
+
+        filesum_d = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_disp.out"))
+        if len(chromatic) != 0:
+            filesum_d.add_column_names("NAME", "S", "DX_MDL", "DX_PLAY", "EDX_PLAY", "DPX_MDL", "DPX_PLAY", "EDPX_PLAY", "DX2", "ERRDX", "DY_MDL", "DY_PLAY", "EDY_PLAY", "DPY_MDL", "DPY_PLAY", "EDPY_PLAY", "DY2", "ERRDY", "WX_MDL", "WX_PLAY", "eWX_play", "PHIX_MDL", "PHIX_PLAY", "ePHIX_PLAY", "WY_MDL", "WY_PLAY", "eWY_play", "PHIY_MDL", "PHIY_PLAY", "ePHIY_PLAY", "S_MODEL")
+            filesum_d.add_column_datatypes("$", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
+        else:
+            filesum_d.add_column_names("NAME", "S", "DX_MDL", "DX_PLAY", "EDX_PLAY", "DPX_MDL", "DPX_PLAY", "EDPX_PLAY", "DX2", "ERRDX", "DY_MDL", "DY_PLAY", "EDY_PLAY", "DPY_MDL", "DPY_PLAY", "EDPY_PLAY", "S_MODEL", "DY2", "ERRDY")
+            filesum_d.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
+        return filesum_b, filesum_d, filesum_c
+    else:
+        return None, None, None
 
 
 def run4mad(save_path,
@@ -2222,7 +1365,7 @@ def _check_chromatic_functions_in_wpath(start_bpm_name):
     wy_value = 0
     phi_y_value = 0
     if options.wpath != "0":
-        print "Chromatic save path,", options.wpath
+        print "Chromatic save save_path,", options.wpath
         wx_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wx_twiss.out"))
         wy_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wy_twiss.out"))
         if not wx_twiss is None and not wy_twiss is None:
