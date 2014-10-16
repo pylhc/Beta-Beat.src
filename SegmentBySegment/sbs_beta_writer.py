@@ -62,21 +62,9 @@ def _get_beta_tfs_files(element_name, save_path, is_element):
 
 
 def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, model, model_cor, model_propagation, model_back_propagation, output_path, is_element):
-    first_bpm = bpms_list[0][1]
 
-    beta_start = getattr(measured_beta, "BET" + plane)[measured_beta.indx[first_bpm]]
-    alfa_start = getattr(measured_beta, "ALF" + plane)[measured_beta.indx[first_bpm]]
-
-    err_beta_start = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
-    err_alfa_start = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
-
-    last_bpm = bpms_list[-1][1]
-
-    beta_end = getattr(measured_beta, "BET" + plane)[measured_beta.indx[last_bpm]]
-    alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
-
-    err_beta_end = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)
-    err_alfa_end = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
+    (beta_start, err_beta_start, alfa_start, err_alfa_start,
+     beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, plane)
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
@@ -134,6 +122,26 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
 
     file_beta.write_to_file()
     file_alfa.write_to_file()
+
+
+def _get_start_end_betas(bpms_list, measured_beta, plane):
+    first_bpm = bpms_list[0][1]
+
+    beta_start = getattr(measured_beta, "BET" + plane)[measured_beta.indx[first_bpm]]
+    alfa_start = getattr(measured_beta, "ALF" + plane)[measured_beta.indx[first_bpm]]
+
+    err_beta_start = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
+    err_alfa_start = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
+
+    last_bpm = bpms_list[-1][1]
+
+    beta_end = getattr(measured_beta, "BET" + plane)[measured_beta.indx[last_bpm]]
+    alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
+
+    err_beta_end = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)
+    err_alfa_end = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
+
+    return beta_start, err_beta_start, alfa_start, err_alfa_start, beta_end, err_beta_end, alfa_end, err_alfa_end
 
 
 def _propagate_error_beta(errb0, erra0, dphi, bets, bet0, alf0):

@@ -74,6 +74,7 @@ from Python_Classes4MAD.metaclass import twiss
 import Utilities.tfs_file_writer as tfs_writer
 import sbs_beta_writer
 from Utilities import tfs_file_writer
+import sbs_phase_writer
 
 
 #===================================================================================================
@@ -1193,14 +1194,16 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
 
     filesum_b, filesum_d, filesum_c = _get_summary_files(chromatic, save_path, is_element)
 
-    sbs_beta_writer.write_beta(element_name,
-                               is_element,
-                               input_data.beta_x,
-                               input_data.beta_y,
-                               input_model,
-                               propagated_models,
-                               save_path,
-                               filesum_b)
+    sbs_beta_writer.write_beta(element_name, is_element,
+                               input_data.beta_x, input_data.beta_y,
+                               input_model, propagated_models,
+                               save_path, filesum_b)
+
+    sbs_phase_writer.write_phase(element_name,
+                                 input_data.phase_x, input_data.phase_y, input_data.beta_x, input_data.beta_y,
+                                 input_model, propagated_models.propagation, propagated_models.corrected, save_path)
+    
+    
 
     ## to find IP
     if "IP" in element_name and is_element:
