@@ -47,7 +47,8 @@ class TestOutput(unittest.TestCase):
 
     def tearDown(self):
         if TestOutput.successful:
-            self._delete_modified_and_if_desired_valid_output()
+            pass
+            #self._delete_modified_and_if_desired_valid_output()
 
     def testOutput(self):
         print "Start TestOutput of SBS"

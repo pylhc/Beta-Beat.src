@@ -71,10 +71,11 @@ import numpy as np
 import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
 from Python_Classes4MAD.metaclass import twiss
-import Utilities.tfs_file_writer as tfs_writer
-import sbs_beta_writer
 from Utilities import tfs_file_writer
+import sbs_beta_writer
 import sbs_phase_writer
+import sbs_dispersion_writer
+from SegmentBySegment import sbs_coupling_writer
 
 
 #===================================================================================================
@@ -162,6 +163,8 @@ def main(options):
 
     elements_names, start_bpms, end_bpms = structure_elements_info(elements_data)
 
+    summaries = _Summaries(save_path)
+
     for element_name in elements_names:
 
         print element_name
@@ -210,7 +213,7 @@ def main(options):
 
         reversetable(save_path, element_name)
 
-        propagated_models = PropagatedModels(save_path, element_name)
+        propagated_models = _PropagatedModels(save_path, element_name)
 
         print "Writing data for function ", element_name
         getAndWriteData(element_name,
@@ -219,7 +222,8 @@ def main(options):
                         propagated_models,
                         save_path,
                         is_element,
-                        selected_accelerator)
+                        selected_accelerator,
+                        summaries)
 
         # gnuplot  ### TODO: what is this? (jcoellod)
         if is_element == 0:
@@ -229,6 +233,7 @@ def main(options):
             print startpos, endpos
             run4plot(save_path, startpos, endpos, beta4plot, options.bb, measurement_path, element_name, input_data.QXX, input_data.QYY, options.accel, input_data.couple_method)
 
+    summaries.write_summaries_to_files()
     return 0
 
 # END main() ---------------------------------------------------------------------------------------
@@ -382,20 +387,6 @@ def get_coupling_parameters(input_data, startbpm):
     f_coupling_parameters = [f1001r, f1001i, f1010r, f1010i, f1001std, f1010std]
     return f_coupling_parameters
 
-
-class PropagatedModels(object):
-
-    def __init__(self, save_path, element_name):
-        self.__save_path = save_path
-
-        self.corrected = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
-        self.propagation = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
-        self.back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back_rev.dat')
-
-        self.propagation.Cmatrix()
-
-    def __get_twiss_for_file(self, file_name):
-        return twiss(os.path.join(self.__save_path, file_name))
 
 #===================================================================================================
 # helper-functions
@@ -1013,7 +1004,7 @@ def getIPfromProp(betaip, errbetaip, alfaip, ealfaip):
     waist = alfaip * betaip  # (sign flip)
 
     #errors
-    ewaist=((ealfaip/abs(alfaip))+(errbetaip/abs(betaip)))*abs(waist)
+    ewaist=((ealfaip/abs(alfaip))+(errbetaip    /abs(betaip)))*abs(waist)
     ebetastar=sqrt(errbetaip**2+(((-2*alfaip)/(1+alfaip**2)**2)*alfaip)**2 )
 
     waist=waist*100 # transferring to CM!!!!
@@ -1162,23 +1153,7 @@ def getIPfrompara(bpmleft, bpmright, betax, betay, phasex, phasey):
     return betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_phase,betastar_h_phase_e,betastar_v_phase,betastar_v_phase_e
 
 
-def propagate_error_beta(errb0, erra0, dphi, bets, bet0, alf0):
-    return math.sqrt((bets*np.sin(4*np.pi*dphi)*alf0/bet0 + bets*np.cos(4*np.pi*dphi)/bet0)**2*errb0**2 + (bets*np.sin(4*np.pi*dphi))**2*erra0**2)
-
-
-def propagate_error_alfa(errb0, erra0, dphi, alfs, bet0, alf0):
-    return math.sqrt(((alfs*((np.sin(4*np.pi*dphi)*alf0/bet0) + (np.cos(4*np.pi*dphi)/bet0))) - (np.cos(4*np.pi*dphi)*alf0/bet0) + (np.sin(4*np.pi*dphi)/bet0))**2*errb0**2 + ((np.cos(4*np.pi*dphi)) - (alfs*np.sin(4*np.pi*dphi)))**2*erra0**2)
-
-
-def propagate_error_phase(errb0, erra0, dphi, bet0, alf0):
-    return math.sqrt((((1/2.*np.cos(4*np.pi*dphi)*alf0/bet0)-(1/2.*np.sin(4*np.pi*dphi)/bet0)-(1/2.*alf0/bet0))*errb0)**2+((-(1/2.*np.cos(4*np.pi*dphi))+(1/2.))*erra0)**2)/(2*np.pi)
-
-
-def propagate_error_dispersion(std_D0, bet0, bets, dphi, alf0):
-    return np.abs(std_D0 * math.sqrt(bets/bet0) * (np.cos(2*np.pi*dphi)+alf0*np.sin(2*np.pi*dphi)))
-
-
-def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, selected_accelerator):
+def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, selected_accelerator, summaries):
     '''
     Function that returns the optics function at the given element
 
@@ -1192,18 +1167,23 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
 
     chromatic = []
 
-    filesum_b, filesum_d, filesum_c = _get_summary_files(chromatic, save_path, is_element)
-
     sbs_beta_writer.write_beta(element_name, is_element,
                                input_data.beta_x, input_data.beta_y,
                                input_model, propagated_models,
-                               save_path, filesum_b)
+                               save_path, summaries.beta)
 
     sbs_phase_writer.write_phase(element_name,
                                  input_data.phase_x, input_data.phase_y, input_data.beta_x, input_data.beta_y,
-                                 input_model, propagated_models.propagation, propagated_models.corrected, save_path)
-    
-    
+                                 input_model, propagated_models, save_path)
+
+    if input_data.has_dispersion:
+        sbs_dispersion_writer.write_dispersion(element_name, is_element,
+                                               input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
+                                               input_model, propagated_models, save_path)
+
+    if input_data.has_coupling:
+        sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path)
+
 
     ## to find IP
     if "IP" in element_name and is_element:
@@ -1213,26 +1193,12 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
         TransverseDampers(modelp,modelb,namename,model,path,phases[0],phases[1],errors)
 
 
-def _get_summary_files(chromatic, save_path, is_element):
-    if is_element:
-        filesum_b = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_bet.out"))
-        filesum_b.add_column_names("NAME", "S", "BETXP", "ERRBETXP", "BETXMDL", "ALFXP", "ERRALFXP", "ALFXMDL", "BETX2", "ERRBETXP2", "BETY", "ERRBETY", "BETYMDL", "ALFA", "ERRALFY", "ALFYMDL", "MDL_S", "BETY2", "ERRBETYP2")
-        filesum_b.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
-
-        filesum_c = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_cou.out"))
-        filesum_c.add_column_names("NAME", "S", "f1001", "f1001re", "f1001im", "f1010", "f1010re", "f1010im", "f1001_PLAY", "ef1001_play", "f1001re_PLAY", "f1001im_PLAY", "f1010_PLAY", "ef1010_play", "f1010re_PLAY", "f1010im_PLAY", "C11Mo", "C12Mo", "C21Mo", "C22Mo", "ANDMo", "C11_cor", "eC11_cor", "C12_cor", "eC12_cor", "C21_cor", "eC21_cor", "C22_cor", "eC22_cor", "ANG_cor", "eANG_cor", "S_MODEL")
-        filesum_c.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
-
-        filesum_d = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_disp.out"))
-        if len(chromatic) != 0:
-            filesum_d.add_column_names("NAME", "S", "DX_MDL", "DX_PLAY", "EDX_PLAY", "DPX_MDL", "DPX_PLAY", "EDPX_PLAY", "DX2", "ERRDX", "DY_MDL", "DY_PLAY", "EDY_PLAY", "DPY_MDL", "DPY_PLAY", "EDPY_PLAY", "DY2", "ERRDY", "WX_MDL", "WX_PLAY", "eWX_play", "PHIX_MDL", "PHIX_PLAY", "ePHIX_PLAY", "WY_MDL", "WY_PLAY", "eWY_play", "PHIY_MDL", "PHIY_PLAY", "ePHIY_PLAY", "S_MODEL")
-            filesum_d.add_column_datatypes("$", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
-        else:
-            filesum_d.add_column_names("NAME", "S", "DX_MDL", "DX_PLAY", "EDX_PLAY", "DPX_MDL", "DPX_PLAY", "EDPX_PLAY", "DX2", "ERRDX", "DY_MDL", "DY_PLAY", "EDY_PLAY", "DPY_MDL", "DPY_PLAY", "EDPY_PLAY", "S_MODEL", "DY2", "ERRDY")
-            filesum_d.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
-        return filesum_b, filesum_d, filesum_c
-    else:
-        return None, None, None
+def weighted_average_for_SbS_elements(value1, sigma1, value2, sigma2):
+    weighted_average =  (1/sigma1**2 * value1 + 1/sigma2**2 * value2) / (1/sigma1**2 + 1/sigma2**2)  # @IgnorePep8
+    uncertainty_of_average = np.sqrt(1 / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
+    weighted_rms = np.sqrt(2 * (1/sigma1**2 * (value1 - weighted_average)**2 + 1/sigma2**2 * (value2 - weighted_average)**2) / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
+    final_error = np.sqrt(uncertainty_of_average**2 + weighted_rms**2)  # @IgnorePep8
+    return weighted_average, final_error
 
 
 def run4mad(save_path,
@@ -1349,10 +1315,6 @@ def run4mad(save_path,
     runmad(save_path, element_name)
 
     _prepare_watchdog_file_command(save_path, element_name, mad_file_name)
-
-
-def _copy_getfterms_locally(copy_path, save_path):  # TODO: this has to be made platform independent
-    os.system('cp ' + copy_path + '/SegmentBySegment/getfterms.py' + ' ' + save_path + '/')
 
 
 def _copy_modifiers_locally(save_path, twiss_directory):  # TODO: this has to be made platform independent
@@ -1522,6 +1484,42 @@ def _set_save_path(save_path):
 
 def _get_twiss_for_file_in_save_path(file_name):
     return twiss(os.path.join(__save_path, file_name))
+
+
+class _PropagatedModels(object):
+
+    def __init__(self, save_path, element_name):
+        self.__save_path = save_path
+
+        self.corrected = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
+        self.propagation = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
+        self.back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back_rev.dat')
+        self.corrected_back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back_rev_cor.dat')
+
+    def __get_twiss_for_file(self, file_name):
+        return twiss(os.path.join(self.__save_path, file_name))
+
+
+class _Summaries(object):
+
+    def __init__(self, save_path):
+        self.beta = sbs_beta_writer.get_beta_summary_file(save_path)
+
+        self.coupling = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_cou.out"))
+        self.coupling.add_column_names("NAME", "S", "f1001", "f1001re", "f1001im", "f1010", "f1010re", "f1010im", "f1001_PLAY", "ef1001_play", "f1001re_PLAY", "f1001im_PLAY", "f1010_PLAY", "ef1010_play", "f1010re_PLAY", "f1010im_PLAY", "C11Mo", "C12Mo", "C21Mo", "C22Mo", "ANDMo", "C11_cor", "eC11_cor", "C12_cor", "eC12_cor", "C21_cor", "eC21_cor", "C22_cor", "eC22_cor", "ANG_cor", "eANG_cor", "S_MODEL")
+        self.coupling.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
+
+        self.dispersion = sbs_dispersion_writer.get_dispersion_summary_file(save_path)
+
+        self.chrom = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_chrom.out"))
+        self.chrom.add_column_names("NAME", "S", "WX_MDL", "WX_PLAY", "eWX_play", "PHIX_MDL", "PHIX_PLAY", "ePHIX_PLAY", "WY_MDL", "WY_PLAY", "eWY_play", "PHIY_MDL", "PHIY_PLAY", "ePHIY_PLAY", "S_MODEL")
+        self.chrom.add_column_datatypes("%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le")
+
+    def write_summaries_to_files(self):
+        self.beta.write_to_file()
+        self.coupling.write_to_file()
+        self.dispersion.write_to_file()
+        self.chrom.write_to_file()
 
 
 class _InputData(object):

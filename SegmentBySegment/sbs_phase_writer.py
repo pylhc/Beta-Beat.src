@@ -9,7 +9,7 @@ from Utilities import tfs_file_writer
 
 
 def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_hor_beta, measured_ver_beta,
-                   input_model, model_propagation, model_cor, save_path):
+                   input_model, propagated_models, save_path):
 
     file_phase_x, file_phase_y = _get_phase_tfs_files(element_name, save_path)
 
@@ -32,11 +32,12 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
         model_index = model_propagation.indx[bpm_name]
         meas_index = measured_phase.indx[bpm_name]
 
+        meas_phase = (getattr(measured_phase, "PHASE" + plane)[meas_index] -
+                      getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[first_bpm]]) % 1
+                      
         model_phase = (getattr(model_propagation, "MU" + plane)[model_index] -
                        getattr(model_propagation, "MU" + plane)[model_propagation.indx[first_bpm]]) % 1
 
-        meas_phase = (getattr(measured_phase, "PHASE" + plane)[meas_index] -
-                      getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[first_bpm]]) % 1
 
         phase_difference = (meas_phase - model_phase) % 1
         if phase_difference > 0.5:

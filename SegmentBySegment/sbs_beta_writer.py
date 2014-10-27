@@ -8,27 +8,41 @@ from math import sqrt
 from Utilities import tfs_file_writer
 
 
-def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, filesum_b):
+def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, beta_summary_file):
     file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element)
 
     model_propagation = propagated_models.propagation
     model_back_propagation = propagated_models.back_propagation
     model_cor = propagated_models.corrected
+    model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = SegmentBySegment.intersect([measured_hor_beta, input_model, model_cor, model_propagation, model_back_propagation])
+        bpms_list = SegmentBySegment.intersect([measured_hor_beta, input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
     else:
-        bpms_list = SegmentBySegment.intersect([input_model, model_cor, model_propagation, model_back_propagation])
+        bpms_list = SegmentBySegment.intersect([input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
 
     _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
                           element_name, bpms_list, measured_hor_beta,
-                          input_model, model_cor, model_propagation, model_back_propagation,
-                          save_path, is_element)
+                          input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                          save_path, is_element, beta_summary_file)
 
     _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
                           element_name, bpms_list, measured_ver_beta,
-                          input_model, model_cor, model_propagation, model_back_propagation,
-                          save_path, is_element)
+                          input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                          save_path, is_element, beta_summary_file)
+
+
+def get_beta_summary_file(save_path):
+        beta_summary_file = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_bet.out"))
+        beta_summary_file.beta.add_column_names(["NAME", "S",
+                                                 "BETPROPX", "ERRBETPROPX", "ALFPROPX", "ERRALFPROPX",
+                                                 "BETPROPY", "ERRBETPROPY", "ALFPROPY", "ERRALFPROPY",
+                                                 "BETXMDL", "BETYMDL", "MDL_S"])
+        beta_summary_file.beta.add_column_datatypes(["%bpm_s", "%le",
+                                                     "%le", "%le", "%le", "%le",
+                                                     "%le", "%le", "%le", "%le",
+                                                     "%le", "%le", "%le"])
+        return beta_summary_file
 
 
 def _get_beta_tfs_files(element_name, save_path, is_element):
@@ -38,15 +52,15 @@ def _get_beta_tfs_files(element_name, save_path, is_element):
     file_alfa_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfay_" + element_name + ".out"))
 
     if not is_element:
-        file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETCORX", "ERRBETCORX", "BETXMDL", "MODEL_S"])
-        file_beta_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        file_alfa_x.add_column_names(["NAME", "S", "ALFPROPX", "ERRALFPROPX", "ALFCORX", "ERRALFCORX", "ALFXMDL", "MODEL_S"])
-        file_alfa_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETCORX", "ERRBETCORX", "BETBACKX", "ERRBETBACKX", "BETBACKCORX", "ERRBETBACKCORX", "BETXMDL", "MODEL_S"])
+        file_beta_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_alfa_x.add_column_names(["NAME", "S", "ALFPROPX", "ERRALFPROPX", "ALFCORX", "ERRALFCORX", "ALFBACKX", "ERRALFBACKX", "ALFBACKCORX", "ERRALFBACKCORX", "ALFXMDL", "MODEL_S"])
+        file_alfa_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-        file_beta_y.add_column_names(["NAME", "S", "BETPROPY", "ERRBETPROPY", "BETCORY", "ERRBETCORY", "BETYMDL", "MODEL_S"])
-        file_beta_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        file_alfa_y.add_column_names(["NAME", "S", "ALFPROPY", "ERRALFPROPY", "ALFCORY", "ERRALFCORY", "ALFYMDL", "MODEL_S"])
-        file_alfa_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_beta_y.add_column_names(["NAME", "S", "BETPROPY", "ERRBETPROPY", "BETCORY", "ERRBETCORY", "BETBACKY", "ERRBETBACKY", "BETBACKCORY", "ERRBETBACKCORY", "BETYMDL", "MODEL_S"])
+        file_beta_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_alfa_y.add_column_names(["NAME", "S", "ALFPROPY", "ERRALFPROPY", "ALFCORY", "ERRALFCORY", "ALFBACKY", "ERRALFBACKY", "ALFBACKCORY", "ERRALFBACKCORY", "ALFYMDL", "MODEL_S"])
+        file_alfa_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     else:
         file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETXMDL", "MODEL_S"])
         file_beta_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le"])
@@ -61,7 +75,7 @@ def _get_beta_tfs_files(element_name, save_path, is_element):
     return file_alfa_x, file_beta_x, file_alfa_y, file_beta_y
 
 
-def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, model, model_cor, model_propagation, model_back_propagation, output_path, is_element):
+def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor, output_path, is_element, beta_summary_file):
 
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, plane)
@@ -70,9 +84,9 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
         bpm_s = bpm[0]
         bpm_name = bpm[1]
 
-        model_s = model.S[model.indx[bpm_name]]
-        beta_model = getattr(model, "BET" + plane)[model.indx[bpm_name]]
-        alfa_model = getattr(model, "ALF" + plane)[model.indx[bpm_name]]
+        model_s = input_model.S[input_model.indx[bpm_name]]
+        beta_model = getattr(input_model, "BET" + plane)[input_model.indx[bpm_name]]
+        alfa_model = getattr(input_model, "ALF" + plane)[input_model.indx[bpm_name]]
 
         beta_propagation = getattr(model_propagation, "BET" + plane)[model_propagation.indx[bpm_name]]
         beta_back_propagation = getattr(model_back_propagation, "BET" + plane)[model_back_propagation.indx[bpm_name]]
@@ -80,45 +94,45 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
         alfa_propagation = getattr(model_propagation, "ALF" + plane)[model_propagation.indx[bpm_name]]
         alfa_back_propagation = getattr(model_back_propagation, "ALF" + plane)[model_back_propagation.indx[bpm_name]]
 
-        delta_phase = (getattr(model_propagation, "MU" + plane)[model_propagation.indx[bpm_name]]) % 1
+        delta_phase_prop = (getattr(model_propagation, "MU" + plane)[model_propagation.indx[bpm_name]]) % 1
+        delta_phase_corr = (getattr(model_cor, "MU" + plane)[model_cor.indx[bpm_name]]) % 1
+        delta_phase_back = (getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]]) % 1
+        delta_phase_back_corr = (getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[bpm_name]]) % 1
+
+        err_beta_prop = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase_prop, beta_propagation, beta_start, alfa_start)
+        err_alfa_prop = _propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase_prop, alfa_propagation, beta_start, alfa_start)
+        err_beta_back = _propagate_error_beta(err_beta_end, err_alfa_end, delta_phase_back, beta_back_propagation, beta_end, alfa_end)
+        err_alfa_back = _propagate_error_beta(err_beta_end, err_alfa_end, delta_phase_back, beta_back_propagation, beta_end, alfa_end)
 
         if not is_element:
-            meas_beta = getattr(measured_beta, "BET" + plane)[measured_beta.indx[bpm_name]]
-            err_beta_prop = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, meas_beta, beta_start, alfa_start)
-
-            meas_alfa = getattr(measured_beta, "ALF" + plane)[measured_beta.indx[bpm_name]]
-            err_alfa_prop = _propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, meas_alfa, beta_start, alfa_start)
-
             beta_cor = getattr(model_cor, "BET" + plane)[model_cor.indx[bpm_name]]
-            err_beta_cor = 0  # TODO: Propagate?
+            err_beta_cor = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase_corr, beta_cor, beta_start, alfa_start)
 
             alfa_cor = getattr(model_cor, "ALF" + plane)[model_cor.indx[bpm_name]]
-            err_alfa_cor = 0  # TODO: Propagate?
+            err_alfa_cor = _propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase_corr, alfa_cor, beta_start, alfa_start)
 
-            file_beta.add_table_row([bpm_name, bpm_s, meas_beta, err_beta_prop, beta_cor, err_beta_cor, beta_model, model_s])
-            file_alfa.add_table_row([bpm_name, bpm_s, meas_alfa, err_alfa_prop, alfa_cor, err_alfa_cor, alfa_model, model_s])
+            beta_back_cor = getattr(model_back_cor, "BET" + plane)[model_back_cor.indx[bpm_name]]
+            err_beta_back_cor = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase_back_corr, beta_back_cor, beta_start, alfa_start)
+
+            alfa_back_cor = getattr(model_back_cor, "ALF" + plane)[model_back_cor.indx[bpm_name]]
+            err_alfa_back_cor = _propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase_back_corr, alfa_back_cor, beta_start, alfa_start)
+
+            file_beta.add_table_row([bpm_name, bpm_s,
+                                     beta_propagation, err_beta_prop, beta_cor, err_beta_cor,
+                                     beta_back_propagation, err_beta_back, beta_back_cor, err_beta_back_cor,
+                                     beta_model, model_s])
+            file_alfa.add_table_row([bpm_name, bpm_s,
+                                     alfa_propagation, err_alfa_prop, alfa_cor, err_alfa_cor,
+                                     alfa_back_propagation, err_alfa_back, alfa_back_cor, err_alfa_back_cor,
+                                     alfa_model, model_s])
         else:
-            err_beta_prop = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase, beta_propagation, beta_start, alfa_start)
-            err_alfa_prop = _propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase, alfa_propagation, beta_start, alfa_start)
+            averaged_beta, final_beta_error = SegmentBySegment.weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
+            averaged_alfa, final_alfa_error = SegmentBySegment.weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
 
-            delta_phase_back = (getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]]) % 1
-            err_beta_back = _propagate_error_beta(err_beta_end, err_alfa_end, delta_phase_back, beta_back_propagation, beta_end, alfa_end)
-            err_alfa_back = _propagate_error_beta(err_beta_end, err_alfa_end, delta_phase_back, beta_back_propagation, beta_end, alfa_end)
-
-            beta_f = (1 / err_beta_prop ** 2 * beta_propagation + 1 / err_beta_back ** 2 * beta_back_propagation) / (1 / err_beta_prop ** 2 + 1 / err_beta_back ** 2)
-            err_beta_f = sqrt(1 / (1 / err_beta_prop ** 2 + 1 / err_beta_back ** 2))
-
-            alfa_f = (1 / err_alfa_prop ** 2 * alfa_propagation + 1 / err_alfa_back ** 2 * alfa_back_propagation) / (1 / err_alfa_prop ** 2 + 1 / err_alfa_back ** 2)
-            err_alfa_f = sqrt(1 / (1 / err_alfa_prop ** 2 + 1 / err_alfa_back ** 2))
-
-            std_wght = sqrt(2 * (1 / err_beta_prop ** 2 * (beta_propagation - beta_f) ** 2 + 1 / err_beta_back ** 2 * (beta_back_propagation - beta_f) ** 2) / (1 / err_beta_prop ** 2 + 1 / err_beta_back ** 2))
-            err_beta_f = sqrt(err_beta_f ** 2 + std_wght ** 2)
-
-            std_wght = sqrt(2 * (1 / err_alfa_prop ** 2 * (alfa_propagation - alfa_f) ** 2 + 1 / err_alfa_back ** 2 * (alfa_back_propagation - alfa_f) ** 2) / (1 / err_alfa_prop ** 2 + 1 / err_alfa_back ** 2))
-            err_alfa_f = sqrt(err_alfa_f ** 2 + std_wght ** 2)
-
-            file_alfa.add_table_row([bpm_name, bpm_s, alfa_f, err_alfa_f, alfa_model, model_s])
-            file_beta.add_table_row([bpm_name, bpm_s, beta_f, err_beta_f, beta_model, model_s])
+            file_alfa.add_table_row([bpm_name, bpm_s, averaged_alfa, final_alfa_error, alfa_model, model_s])
+            file_beta.add_table_row([bpm_name, bpm_s, averaged_beta, final_beta_error, beta_model, model_s])
+            if element_name in bpm_name:
+                beta_summary_file.add_table_row([])
 
     file_beta.write_to_file()
     file_alfa.write_to_file()
