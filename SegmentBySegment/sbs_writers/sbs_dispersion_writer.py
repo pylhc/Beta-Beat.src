@@ -29,16 +29,16 @@ def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_d
 
 def get_dispersion_summary_file(save_path):
         dispersion_summary_file = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_disp.out"))
-        dispersion_summary_file.beta.add_column_names(["NAME", "S",
-                                                       "DXPROP", "DXPROPERR", "DPXPROP", "DPXPROPERR",
-                                                       "DYPROP", "DYPROPERR", "DPYPROP", "DPYPROPERR",
-                                                       "NDXPROP", "NDXPROPERR",
-                                                       "DXMODEL", "DYMODEL", "NDXMODEL", "DPXMODEL", "DYPMODEL", "MODEL_S"])
-        dispersion_summary_file.beta.add_column_datatypes(["%bpm_s", "%le",
-                                                           "%le", "%le", "%le", "%le",
-                                                           "%le", "%le", "%le", "%le",
-                                                           "%le", "%le",
-                                                           "%le", "%le", "%le", "%le", "%le", "%le"])
+        dispersion_summary_file.add_column_names(["NAME", "S",
+                                                  "DXPROP", "DXPROPERR", "DPXPROP", "DPXPROPERR",
+                                                  "DYPROP", "DYPROPERR", "DPYPROP", "DPYPROPERR",
+                                                  "NDXPROP", "NDXPROPERR",
+                                                  "DXMODEL", "DYMODEL", "NDXMODEL", "DPXMODEL", "DYPMODEL", "MODEL_S"])
+        dispersion_summary_file.add_column_datatypes(["%bpm_s", "%le",
+                                                      "%le", "%le", "%le", "%le",
+                                                      "%le", "%le", "%le", "%le",
+                                                      "%le", "%le",
+                                                      "%le", "%le", "%le", "%le", "%le", "%le"])
         return dispersion_summary_file
 
 
@@ -50,13 +50,13 @@ def _get_dispersion_tfs_files(element_name, is_element, save_path):
 
     if not is_element:
         file_disp_x.add_column_names(["NAME", "S", "DXPROP", "DXPROPERR", "DXCOR", "DXCORERR", "DXBACK", "DXBACKERR", "DPXPROP", "DPXPROPERR", "DPXCOR", "DPXCORERR", "DXMODEL", "DPXMODEL", "MODEL_S"])
-        file_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
         file_norm_disp_x.add_column_names(["NAME", "S", "NDXPROP", "NDXPROPERR", "NDXCOR", "NDXCORERR", "NDXBACK", "NDXBACKERR", "NDXMODEL", "MODEL_S"])
         file_norm_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
         file_disp_y.add_column_names(["NAME", "S", "DYPROP", "DYPROPERR", "DYCOR", "DYCORERR", "DYBACK", "DYBACKERR", "DPYPROP", "DPYPROPERR", "DPYCOR", "DPYCORERR", "DYMODEL", "DPYMODEL", "MODEL_S"])
-        file_disp_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_disp_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     else:
         file_disp_x.add_column_names(["NAME", "S", "DXPROP", "DXPROPERR", "DPXPROP", "DPXPROPERR", "DXMODEL", "DPXMODEL", "MODEL_S"])
         file_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
