@@ -207,7 +207,7 @@ def main(options):
                     input_data.couple_method)
 
         else:
-            runmad(save_path, element_name)
+            _runmad(save_path, element_name)
             print "Just rerunning mad"
 
         reversetable(save_path, element_name)
@@ -270,7 +270,7 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
         print "Segment has been choosen"
         is_element = False
         segment = [start_bpms[element_name], end_bpms[element_name]]
-        start_bpm_name, end_bpm_name = filterandfind(input_data.beta_x,
+        start_bpm_name, end_bpm_name = _filter_and_find(input_data.beta_x,
                                                      input_data.beta_y,
                                                      "null", segment,
                                                      twiss_data, errorcut)
@@ -283,7 +283,7 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
     else:
         print "Element has been choosen"
         is_element = True
-        start_bpm_name, end_bpm_name = filterandfind(input_data.beta_x,
+        start_bpm_name, end_bpm_name = _filter_and_find(input_data.beta_x,
                                                      input_data.beta_y,
                                                      element_name,
                                                      [],
@@ -382,7 +382,8 @@ def get_coupling_parameters(input_data, startbpm):
         f1010i = 0
         f1001std = 0
         f1010std = 0
-        print "Start BPM ", startbpm, " not found in coupling measurement => values=0"
+        print "Start BPM ", startbpm, " not found in coupling measurement, will not compute coupling."
+        input_data.has_coupling = False
     f_coupling_parameters = [f1001r, f1001i, f1010r, f1010i, f1001std, f1010std]
     return f_coupling_parameters
 
@@ -426,7 +427,7 @@ def intersect(list_of_files):
     return result
 
 
-def filterandfind(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_names, model, errorcut):
+def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_names, model, errorcut):
     '''
     Automatic BPM filter and BPM finder
 
@@ -508,8 +509,6 @@ def filterandfind(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_names, 
                 total_err_x = sqrt(err_beta_x ** 2 + stdbetax ** 2)
                 total_err_y = sqrt(err_beta_y ** 2 + stdbetay ** 2)
 
-                #print (beta_x>0),(beta_y>0),(total_err_x<beta_x),(total_err_y<beta_y),(total_err_x>0),(total_err_y>0),(((total_err_x/beta_x)*100)<errorcut),(((total_err_y/beta_y)*100)<errorcut)
-
                 if (beta_x > 0 and
                     beta_y > 0 and
                     beta_x > total_err_x and
@@ -573,8 +572,6 @@ def filterandfind(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_names, 
     return [selected_left_bpm, selected_right_bpm]
 
 
-
-
 def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, selected_accelerator, summaries):
     '''
     Function that returns the optics function at the given element
@@ -587,34 +584,38 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
 
     print "INFO: Start writing files", is_element
 
-    chromatic = []
+    (beta_x, err_beta_x, alfa_x, err_alfa_x,
+     beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(element_name, is_element,
+                                                                                      input_data.beta_x, input_data.beta_y,
+                                                                                      input_model, propagated_models,
+                                                                                      save_path, summaries.beta)
 
-    sbs_writers.sbs_beta_writer.write_beta(element_name, is_element,
-                               input_data.beta_x, input_data.beta_y,
-                               input_model, propagated_models,
-                               save_path, summaries.beta)
-
-    sbs_writers.sbs_phase_writer.write_phase(element_name,
-                                 input_data.phase_x, input_data.phase_y, input_data.beta_x, input_data.beta_y,
-                                 input_model, propagated_models, save_path)
+    if not is_element:
+        sbs_writers.sbs_phase_writer.write_phase(element_name,
+                                                 input_data.phase_x, input_data.phase_y, input_data.beta_x, input_data.beta_y,
+                                                 input_model, propagated_models, save_path)
 
     if input_data.has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
-                                               input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
-                                               input_model, propagated_models, save_path)
+                                                           input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
+                                                           input_model, propagated_models, save_path, summaries.dispersion)
 
     if input_data.has_coupling:
-        sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path)
+        sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, summaries.coupling)
 
     #  TODO: Chromatic coupling... the condition in the original file was: if len(chromatic) != 0..., but it was always empty.
 
     if "IP" in element_name and is_element:
-        sbs_writers.sbs_special_element_writer.write_ip(betameA, basetwiss, betatwiss, alfatwiss, model, phasex, phasey, name, accel, path)
-        #getIP([betah[9],betav[9]],[modelp,modelb],[betah[1],betah[3],betah[2],betah[4]],[betah[5],betah[7],betah[6],betah[8]],model,phasex,phasey,namename,accel,path)
+        sbs_writers.sbs_special_element_writer.write_ip(input_data.beta_x, input_data.beta_y,
+                                                        beta_x, err_beta_x, alfa_x, err_alfa_x,
+                                                        beta_y, err_beta_y, alfa_y, err_alfa_y,
+                                                        input_model, input_data.phase_x, input_data.phase_y, element_name,
+                                                        selected_accelerator, save_path)
     elif "ADT" in element_name and is_element:
-        sbs_writers.sbs_special_element_writer.write_transverse_damper(twissp, twissb, element, model, savepath, phasex, phasey, errors)
-        #errors=[betah[1],betah[3],betah[2],betah[4]]
-        #TransverseDampers(modelp,modelb,namename,model,path,phases[0],phases[1],errors)
+        sbs_writers.sbs_special_element_writer.write_transverse_damper(propagated_models, element_name, input_model,
+                                                                       save_path, input_data.phase_x, input_data.phase_y,
+                                                                       input_data.beta_x, input_data.beta_y,
+                                                                       selected_accelerator)
 
 
 def weighted_average_for_SbS_elements(value1, sigma1, value2, sigma2):
@@ -735,7 +736,7 @@ def _run4mad(save_path,
 
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, mad_file_name)
 
-    runmad(save_path, element_name)
+    _runmad(save_path, element_name)
 
     _prepare_watchdog_file_command(save_path, element_name, mad_file_name)
 
@@ -780,7 +781,7 @@ def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):   # 
     os.system("chmod +x " + watch_file_name)
 
 
-def runmad(path, name):
+def _runmad(path, name):
     os.system(options.mad + ' < ' + path + 't_' + str(name) + '.madx')
 
 
@@ -917,7 +918,7 @@ class _PropagatedModels(object):
         self.corrected = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
         self.propagation = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
         self.back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back.dat')
-        self.corrected_back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_play_back.dat')  # TODO: Change these names
+        self.corrected_back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_cor_back.dat')  # TODO: Change these names
 
     def __get_twiss_for_file(self, file_name):
         return twiss(os.path.join(self.__save_path, file_name))

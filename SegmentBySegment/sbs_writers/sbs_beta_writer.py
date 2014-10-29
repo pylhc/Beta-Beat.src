@@ -17,19 +17,23 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, i
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = SegmentBySegment.intersect([measured_hor_beta, input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
+        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_hor_beta])
     else:
-        bpms_list = SegmentBySegment.intersect([input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
+        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
-    _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
-                          element_name, bpms_list, measured_hor_beta,
-                          input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
-                          save_path, is_element, beta_summary_file)
+    summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
+                                           element_name, bpms_list, measured_hor_beta,
+                                           input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                           save_path, is_element, beta_summary_file)
 
-    _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
-                          element_name, bpms_list, measured_ver_beta,
-                          input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
-                          save_path, is_element, beta_summary_file)
+    summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
+                                           element_name, bpms_list, measured_ver_beta,
+                                           input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                           save_path, is_element, beta_summary_file)
+    if is_element:
+        _write_summary_data(beta_summary_file, summary_data_x, summary_data_y)
+        return (summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
+                summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5])
 
 
 def get_beta_summary_file(save_path):
@@ -37,12 +41,19 @@ def get_beta_summary_file(save_path):
         beta_summary_file.add_column_names(["NAME", "S",
                                             "BETPROPX", "ERRBETPROPX", "ALFPROPX", "ERRALFPROPX",
                                             "BETPROPY", "ERRBETPROPY", "ALFPROPY", "ERRALFPROPY",
-                                            "BETXMDL", "BETYMDL", "MDL_S"])
+                                            "BETXMDL", "BETYMDL", "ALFXMDL", "ALFYMDL", "MDL_S"])
         beta_summary_file.add_column_datatypes(["%bpm_s", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
-                                                "%le", "%le", "%le"])
+                                                "%le", "%le", "%le", "%le", "%le"])
         return beta_summary_file
+
+
+def _write_summary_data(beta_summary_file, summary_data_x, summary_data_y):
+    beta_summary_file.add_table_row([summary_data_x[0], summary_data_x[1],
+                                     summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
+                                     summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5],
+                                     summary_data_x[6], summary_data_y[6], summary_data_x[7], summary_data_y[7], summary_data_x[8]])
 
 
 def _get_beta_tfs_files(element_name, save_path, is_element):
@@ -79,6 +90,8 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
 
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, plane)
+
+    summary_data = []
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
@@ -132,10 +145,11 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
             file_alfa.add_table_row([bpm_name, bpm_s, averaged_alfa, final_alfa_error, alfa_model, model_s])
             file_beta.add_table_row([bpm_name, bpm_s, averaged_beta, final_beta_error, beta_model, model_s])
             if element_name in bpm_name:
-                beta_summary_file.add_table_row([])
+                summary_data = [bpm_name, bpm_s, averaged_beta, final_beta_error, averaged_alfa, final_alfa_error, beta_model, alfa_model, model_s]
 
     file_beta.write_to_file()
     file_alfa.write_to_file()
+    return summary_data
 
 
 def _get_start_end_betas(bpms_list, measured_beta, plane):

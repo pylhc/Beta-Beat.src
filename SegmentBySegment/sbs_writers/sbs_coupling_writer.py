@@ -5,7 +5,7 @@ from Utilities import tfs_file_writer
 import SegmentBySegment
 
 
-def write_coupling(element_name, is_element, measured_coupling, input_model, propagated_models, save_path):
+def write_coupling(element_name, is_element, measured_coupling, input_model, propagated_models, save_path, coupling_summary_file):
 
     file_f_terms, file_C_terms = _get_coupling_tfs_files(element_name, save_path, is_element)
 
@@ -20,20 +20,46 @@ def write_coupling(element_name, is_element, measured_coupling, input_model, pro
     model_cor.Cmatrix()
     model_back_cor.Cmatrix()
 
-    bpms_list = SegmentBySegment.intersect([measured_coupling, model_propagation])
+    if not is_element:
+        bpms_list = SegmentBySegment.intersect([measured_coupling, input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
+    else:
+        bpms_list = SegmentBySegment.intersect([input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
 
-    _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
+    summary_data_f = _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
 
-    _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
+    summary_data_C = _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
+
+    if is_element:
+        _write_summary_data(coupling_summary_file, summary_data_f, summary_data_C)
 
 
 def get_coupling_summary_file(save_path):
         coupling_summary_file = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_cou.out"))
 
-        coupling_summary_file.add_column_names(["NAME", "S", "f1001", "f1001re", "f1001im", "f1010", "f1010re", "f1010im", "f1001_PLAY", "ef1001_play", "f1001re_PLAY", "f1001im_PLAY", "f1010_PLAY", "ef1010_play", "f1010re_PLAY", "f1010im_PLAY", "C11Mo", "C12Mo", "C21Mo", "C22Mo", "ANDMo", "C11_cor", "eC11_cor", "C12_cor", "eC12_cor", "C21_cor", "eC21_cor", "C22_cor", "eC22_cor", "ANG_cor", "eANG_cor", "S_MODEL"])
-        coupling_summary_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        coupling_summary_file.add_column_names(["NAME", "S",
+                                                "F1001ABSPROP", "ERRF1001ABSPROP", "F1001REPROP", "ERRF1001REPROP", "F1001IMPROP", "ERRF1001IMPROP",
+                                                "F1010ABSPROP", "ERRF1010ABSPROP", "F1010REPROP", "ERRF1010REPROP", "F1010IMPROP", "ERRF1010IMPROP",
+                                                "PROPC11", "ERRPROPC11", "PROPC12", "ERRPROPC12", "PROPC21", "ERRPROPC21", "PROPC22", "ERRPROPC22",
+                                                "MODEL_F1001ABS", "MODEL_F1001RE", "MODEL_F1001IM", "MODEL_F1010ABS", "MODEL_F1010RE", "MODEL_F1010IM",
+                                                "MODEL_C11", "MODEL_C12", "MODEL_C21", "MODEL_C22", "MODEL_S"
+                                                ])
+        coupling_summary_file.add_column_datatypes(["%s", "%le",
+                                                    "%le", "%le", "%le", "%le", "%le", "%le",
+                                                    "%le", "%le", "%le", "%le", "%le", "%le",
+                                                    "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
+                                                    "%le", "%le", "%le", "%le", "%le", "%le",
+                                                    "%le", "%le", "%le", "%le", "%le"])
 
         return coupling_summary_file
+
+
+def _write_summary_data(coupling_summary_file, summary_data_f, summary_data_C):
+    coupling_summary_file.add_table_row([summary_data_f[0], summary_data_f[1],
+                                         summary_data_f[2], summary_data_f[3], summary_data_f[4], summary_data_f[5], summary_data_f[6], summary_data_f[7],
+                                         summary_data_f[8], summary_data_f[9], summary_data_f[10], summary_data_f[11], summary_data_f[12], summary_data_f[13],
+                                         summary_data_C[2], summary_data_C[3], summary_data_C[4], summary_data_C[5], summary_data_C[6], summary_data_C[7], summary_data_C[8], summary_data_C[9],
+                                         summary_data_f[14], summary_data_f[15], summary_data_f[16], summary_data_f[17], summary_data_f[18], summary_data_f[19],
+                                         summary_data_C[10], summary_data_C[11], summary_data_C[12], summary_data_C[13], summary_data_f[20]])
 
 
 def _get_coupling_tfs_files(element_name, save_path, is_element):
@@ -67,13 +93,13 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
                                        "CORC11", "ERRCORC11", "CORC12", "ERRCORC12", "CORC21", "ERRCORC21", "CORC22", "ERRCORC22",
                                        "BACKC11", "ERRBACKC11", "BACKC12", "ERRBACKC12", "BACKC21", "ERRBACKC21", "BACKC22", "ERRBACKC22",
                                        "BACKCORC11", "ERRBACKCORC11", "BACKCORC12", "ERRBACKCORC12", "BACKCORC21", "ERRBACKCORC21", "BACKCORC22", "ERRBACKCORC22",
-                                       "MODEL_S"])
+                                       "MODEL_C11", "MODEL_C12", "MODEL_C21", "MODEL_C22", "MODEL_S"])
         file_C_terms.add_column_datatypes(["%bpm_s", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
-                                           "%le"])
+                                           "%le", "%le", "%le", "%le", "%le"])
     else:
         file_f_terms.add_column_names(["NAME", "S",
                                        "F1001ABSPROP", "ERRF1001ABSPROP", "F1001REPROP", "ERRF1001REPROP", "F1001IMPROP", "ERRF1001IMPROP",
@@ -86,10 +112,10 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
 
         file_C_terms.add_column_names(["NAME", "S",
                                        "PROPC11", "ERRPROPC11", "PROPC12", "ERRPROPC12", "PROPC21", "ERRPROPC21", "PROPC22", "ERRPROPC22",
-                                       "MODEL_S"])
+                                       "MODEL_C11", "MODEL_C12", "MODEL_C21", "MODEL_C22", "MODEL_S"])
         file_C_terms.add_column_datatypes(["%bpm_s", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
-                                           "%le"])
+                                           "%le", "%le", "%le", "%le", "%le"])
 
     return file_f_terms, file_C_terms
 
@@ -184,11 +210,18 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
                                         average_f1001ab, final_f1001abs_err, average_f1001re, final_f1001re_err, average_f1001im, final_f1001im_err,
                                         average_f1010ab, final_f1010abs_err, average_f1010re, final_f1010re_err, average_f1010im, final_f1010im_err,
                                         abs(model_f1001), model_f1001.real, model_f1001.imag, abs(model_f1010), model_f1010.real, model_f1010.imag, model_s])
-
+            if bpm_name == element_name:
+                summary_data = [bpm_name, bpm_s,
+                                average_f1001ab, final_f1001abs_err, average_f1001re, final_f1001re_err, average_f1001im, final_f1001im_err,
+                                average_f1010ab, final_f1010abs_err, average_f1010re, final_f1010re_err, average_f1010im, final_f1010im_err,
+                                abs(model_f1001), model_f1001.real, model_f1001.imag, abs(model_f1010), model_f1010.real, model_f1010.imag, model_s]
     file_f_terms.write_to_file()
+    return summary_data
 
 
 def _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor):
+
+    summary_data = []
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
@@ -214,7 +247,7 @@ def _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_c
                                         cor_c11, err_cor_c11, cor_c12, err_cor_c12, cor_c21, err_cor_c21, cor_c22, err_cor_c22,
                                         back_c11, err_back_c11, back_c12, err_back_c12, back_c21, err_back_c21, back_c22, err_back_c22,
                                         back_cor_c11, err_back_cor_c11, back_cor_c12, err_back_cor_c12, back_cor_c21, err_back_cor_c21, back_cor_c22, err_back_cor_c22,
-                                        model_s])
+                                        input_model.C[0], input_model.C[1], input_model.C[2], input_model.C[3], model_s])
         else:
             average_c11, final_err_c11 = SegmentBySegment.weighted_average_for_SbS_elements(prop_c11, err_prop_c11, back_c11, err_back_c11)
             average_c12, final_err_c12 = SegmentBySegment.weighted_average_for_SbS_elements(prop_c12, err_prop_c12, back_c12, err_back_c12)
@@ -222,7 +255,13 @@ def _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_c
             average_c21, final_err_c21 = SegmentBySegment.weighted_average_for_SbS_elements(prop_c22, err_prop_c22, back_c22, err_back_c22)
             file_C_terms.add_table_row([bpm_name, bpm_s,
                                         average_c11, final_err_c11, average_c12, final_err_c12, average_c21, final_err_c21, average_c21, final_err_c21,
-                                        model_s])
+                                        input_model.C[0], input_model.C[1], input_model.C[2], input_model.C[3], model_s])
+            if bpm_name == element_name:
+                summary_data = [bpm_name, bpm_s,
+                                average_c11, final_err_c11, average_c12, final_err_c12, average_c21, final_err_c21, average_c21, final_err_c21,
+                                input_model.C[0], input_model.C[1], input_model.C[2], input_model.C[3], model_s]
+    file_C_terms.write_to_file()
+    return summary_data
 
 
 def _get_start_end_f1001(measured_coupling, first_bpm, last_bpm):

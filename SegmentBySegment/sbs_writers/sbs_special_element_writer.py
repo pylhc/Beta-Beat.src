@@ -1,8 +1,34 @@
 import os
 from math import sqrt, tan, sin, cos, pi
+from Utilities import tfs_file_writer
+import sbs_phase_writer
+import sbs_beta_writer
+import SegmentBySegment
 
 
-def write_ip(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,accel,path):
+def _get_ip_tfs_files(save_path):
+    file_ip_parabola = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_para.out"))
+
+    file_ip_parabola.add_column_names(["NAME", "S", "BETX", "EBETX", "X", "EX", "BETY", "EBETY", "Y", "EY", "BETX_ph", "EBETX_ph", "BETY_ph", "EBETY_ph"])
+    file_ip_parabola.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+
+    file_ip_propagation_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_x.out"))
+
+    file_ip_propagation_x.add_column_names(["NAME", "S", "BETSTARX", "EBETSTARX", "X[cm]", "EX[cm]", "BETIPX", "EBETIPX", "ALFIPX", "EALFIPX"])
+    file_ip_propagation_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+
+    file_ip_propagation_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_y.out"))
+
+    file_ip_propagation_y.add_column_names(["NAME", "S", "BETY", "EBETY", "Y[cm]", "EY[cm]", "BETIPY", "EBETIPY", "ALFIPY", "EALFIPY"])
+    file_ip_propagation_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+
+    return file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y
+
+
+def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
+             beta_x_ip, err_beta_x_ip, alfa_x_ip, err_alfa_x_ip,
+             beta_y_ip, err_beta_y_ip, alfa_y_ip, err_alfa_y_ip,
+             input_model, measured_hor_phase, measured_ver_phase, element_name, accel, save_path):
     '''
     Function calculating the optics parameters at the IP
 
@@ -15,13 +41,13 @@ def write_ip(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,acce
             list of twisses for beta errors
         'alfatwiss': list
             list of twisses for alfa errors
-        'model': twiss
-            twiss model
-        'phasex':
+        'input_model': twiss
+            twiss input_model
+        'measured_hor_phase':
             measured phase advances
-        'phasey':
+        'measured_ver_phase':
             measured phase advances
-        'name': string
+        'element_name': string
             name of the IP
         'accel': string
             name of the accelerator
@@ -30,121 +56,54 @@ def write_ip(betameA,basetwiss,betatwiss,alfatwiss,model,phasex,phasey,name,acce
     :Return: None
         nothing => writing to file in this function (new/appending)
     '''
-    if os.path.isfile(path+"/IP_para.out"):
-        ipfilepara=open(path+"/IP_para.out","a")
-    else:
-        ipfilepara=open(path+"/IP_para.out","w")
-        print >> ipfilepara,"* NAME S BETX EBETX X EX BETY EBETY Y EY BETX_ph EBETX_ph BETY_ph EBETY_ph"
-        print >> ipfilepara,"$ %s %le %le %le %le %le %le %le %le %le %le %le %le %le"
 
-
-    if os.path.isfile(path+"/IP_pro_x.out"):
-        ipfileprox=open(path+"/IP_pro_x.out","a")
-    else:
-        ipfileprox=open(path+"/IP_pro_x.out","w")
-        print >> ipfileprox,"* NAME S BETSTARX EBETSTARX X[cm] EX[cm] BETIPX EBETIPX ALFIPX EALFIPX"
-        print >> ipfileprox,"$ %s %le %le %le %le %le %le %le %le %le"
-
-    if os.path.isfile(path+"/IP_pro_y.out"):
-        ipfileproy=open(path+"/IP_pro_y.out","a")
-    else:
-        ipfileproy=open(path+"/IP_pro_y.out","w")
-        print >> ipfileproy,"* NAME S BETY EBETY Y[cm] EY[cm] BETIPY EBETIPY ALFIPY EALFIPY"
-        print >> ipfileproy,"$ %s %le %le %le %le %le %le %le %le %le"
+    file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y = _get_ip_tfs_files(save_path)
 
     ## constructor
     if "B1" in accel:
-        accelb="B1"
+        accel_beam = "B1"
     else:
-        accelb="B2"
-    twissp=basetwiss[0]
-    twissb=basetwiss[1]
-
-    twissbmip=betatwiss[0]
-    twissbmib=betatwiss[1]
-    twissbmap=betatwiss[2]
-    twissbmab=betatwiss[3]
-
-    twissamip=alfatwiss[0]
-    twissamib=alfatwiss[1]
-    twissamap=alfatwiss[2]
-    twissamab=alfatwiss[3]
-
-    ampbetx=betameA[0]
-    ampbety=betameA[1]
+        accel_beam = "B2"
 
     ## beta from parabola calculation
     # Map bpm's
-    bpmmap={}
-    bpmmap['IP1']=["BPMSW.1L1.","BPMSW.1R1."]
-    bpmmap['IP2']=["BPMSW.1L2.","BPMSW.1R2."]
-    bpmmap['IP5']=["BPMSW.1L5.","BPMSW.1R5."]
-    bpmmap['IP8']=["BPMSW.1L8.","BPMSW.1R8."]
+    ip_to_bpm_map = {}
+    ip_to_bpm_map['IP1'] = ["BPMSW.1L1.", "BPMSW.1R1."]
+    ip_to_bpm_map['IP2'] = ["BPMSW.1L2.", "BPMSW.1R2."]
+    ip_to_bpm_map['IP5'] = ["BPMSW.1L5.", "BPMSW.1R5."]
+    ip_to_bpm_map['IP8'] = ["BPMSW.1L8.", "BPMSW.1R8."]
 
-    if(name in bpmmap):
+    if element_name in ip_to_bpm_map:
         # Removed unusedphix, ephix, phiy, ephiy.
         # If needed --> git commit eca47b2d06ab7eab911c830f30dc222a8bcd91a0
         # --vimaier
-        betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p=_get_ip_from_para(bpmmap[name][0]+accelb,bpmmap[name][1]+accelb,ampbetx,ampbety,phasex,phasey)
+        (betastar_h, errbx, location_h, errsx, betastar_v, errby, location_v, errsy, betastar_h_p,
+         ebetastar_h_p, betastar_v_p, ebetastar_v_p) = _get_ip_from_parabola(ip_to_bpm_map[element_name][0] + accel_beam,
+                                                                             ip_to_bpm_map[element_name][1] + accel_beam,
+                                                                             measured_hor_beta_amp, measured_ver_beta_amp,
+                                                                             measured_hor_phase, measured_ver_phase)
     else:
-        betastar_h_p=ebetastar_h_p=betastar_v_p=ebetastar_v_p=betastar_h=errbx=location_h=errsx=betastar_v=errby=location_v=errsy=0
+        betastar_h_p = ebetastar_h_p = betastar_v_p = ebetastar_v_p = betastar_h = errbx = location_h = errsx = betastar_v = errby = location_v = errsy = 0
 
-    print >> ipfilepara,name,model.S[model.indx[name]],betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_p,ebetastar_h_p,betastar_v_p,ebetastar_v_p
-    ipfilepara.close()
-
-    ## beta from propogations
-    #gathering info
-    #error alfa
-
-    dalfaxp=1/abs(twissamap.ALFX[twissamap.indx[name]]-twissamip.ALFX[twissamip.indx[name]])
-    dalfaxb=1/abs(twissamab.ALFX[twissamab.indx[name]]-twissamib.ALFX[twissamib.indx[name]])
-
-    dalfayp=1/abs(twissamap.ALFY[twissamap.indx[name]]-twissamip.ALFY[twissamip.indx[name]])
-    dalfayb=1/abs(twissamab.ALFY[twissamab.indx[name]]-twissamib.ALFY[twissamib.indx[name]])
-
-    #error beta's
-    dbxp=1/abs(twissbmap.BETX[twissbmap.indx[name]]-twissbmip.BETX[twissbmip.indx[name]])
-    dbxb=1/abs(twissbmab.BETX[twissbmab.indx[name]]-twissbmib.BETX[twissbmib.indx[name]])
-
-    dbyp=1/abs(twissbmap.BETY[twissbmap.indx[name]]-twissbmip.BETY[twissbmip.indx[name]])
-    dbyb=1/abs(twissbmab.BETY[twissbmab.indx[name]]-twissbmib.BETY[twissbmib.indx[name]])
-
-    bb=twissb.ALFX[twissb.indx[name]]
-    if bb<0.0:
-        Balfx=abs(bb)
-    else:
-        Balfx=-bb
-
-    bb=twissb.ALFY[twissb.indx[name]]
-    if bb<0.0:
-        Balfy=abs(bb)
-    else:
-        Balfy=-bb
-
-    alfax=(1/(dalfaxp+dalfaxb))*(dalfaxp*twissp.ALFX[twissp.indx[name]]+Balfx*dalfaxb)
-
-    ealfax=(sqrt((1/dalfaxp)**2+(1/dalfaxb)**2))/2
-
-    alfay=(1/(dalfayp+dalfayb))*(dalfayp*twissp.ALFY[twissp.indx[name]]+Balfy*dalfayb)
-    ealfay=(sqrt((1/dalfayp)**2+(1/dalfayb)**2))/2
-
-    betxip=(1/(dbxp+dbxb))*(dbxp*twissp.BETX[twissp.indx[name]]+dbxb*twissb.BETX[twissb.indx[name]])
-
-    betyip=(1/(dbyp+dbyb))*(dbyp*twissp.BETY[twissp.indx[name]]+dbyb*twissb.BETY[twissb.indx[name]])
-    errbetxip=sqrt((1/dbxp)**2+(1/dbxb)**2)/2
-    errbetyip=sqrt((1/dbyp)**2+(1/dbyb)**2)/2
+    file_ip_parabola.add_table_row([element_name, input_model.S[input_model.indx[element_name]],
+                                    betastar_h, errbx, location_h, errsx,
+                                    betastar_v, errby, location_v, errsy,
+                                    betastar_h_p, ebetastar_h_p, betastar_v_p, ebetastar_v_p])
+    file_ip_parabola.write_to_file()
 
     #betstar and waist
     #x
-    betastar,ebetastar,waist,ewaist=_get_ip_from_prop(betxip,errbetxip,alfax,ealfax)
-    print >> ipfileprox,name,model.S[model.indx[name]],betastar,ebetastar,waist,ewaist,round(betxip,3),round(errbetxip,3),round(alfax,4),round(ealfax,4)
-    ipfileprox.close()
+    betastar, errbetastar, waist, errwaist = _get_ip_from_prop(beta_x_ip, err_beta_x_ip, alfa_x_ip, err_alfa_x_ip)
+    file_ip_propagation_x.add_table_row([element_name, input_model.S[input_model.indx[element_name]],
+                                         betastar, errbetastar, waist, errwaist, round(beta_x_ip, 3), round(err_beta_x_ip, 3), round(alfa_x_ip, 4), round(err_alfa_x_ip, 4)])
 
     #y
-    betastar,ebetastar,waist,ewaist=_get_ip_from_prop(betyip,errbetyip,alfay,ealfay)
-    print >> ipfileproy,name,model.S[model.indx[name]],betastar,ebetastar,waist,ewaist,round(betyip,3),round(errbetyip,3),round(alfay,4),round(ealfay,4)
-    ipfileproy.close()
+    betastar, errbetastar, waist, errwaist = _get_ip_from_prop(beta_y_ip, err_beta_y_ip, alfa_y_ip, err_alfa_y_ip)
+    file_ip_propagation_y.add_table_row([element_name, input_model.S[input_model.indx[element_name]],
+                                         betastar, errbetastar, waist, errwaist, round(beta_y_ip, 3), round(err_beta_y_ip, 3), round(alfa_y_ip, 4), round(err_alfa_y_ip, 4)])
 
+    file_ip_propagation_x.write_to_file()
+    file_ip_propagation_y.write_to_file()
     ##dispersion
 
 
@@ -155,16 +114,16 @@ def _get_ip_from_prop(betaip, errbetaip, alfaip, ealfaip):
     waist = alfaip * betaip  # (sign flip)
 
     #errors
-    ewaist=((ealfaip/abs(alfaip))+(errbetaip    /abs(betaip)))*abs(waist)
-    ebetastar=sqrt(errbetaip**2+(((-2*alfaip)/(1+alfaip**2)**2)*alfaip)**2 )
+    errwaist = ((ealfaip / abs(alfaip)) + (errbetaip / abs(betaip))) * abs(waist)
+    errbetastar = sqrt(errbetaip ** 2 + (((-2 * alfaip) / (1 + alfaip ** 2) ** 2) * alfaip) ** 2)
 
-    waist=waist*100 # transferring to CM!!!!
-    ewaist=ewaist*100 # transferring to CM!!!!
+    waist = waist * 100  # transferring to CM!!!!
+    errwaist = errwaist * 100  # transferring to CM!!!!
 
-    return round(betastar, 3), round(ebetastar, 3), round(waist, 3), round(ewaist, 3)
+    return round(betastar, 3), round(errbetastar, 3), round(waist, 3), round(errwaist, 3)
 
 
-def _get_ip_from_para(bpmleft, bpmright, betax, betay, phasex, phasey):
+def _get_ip_from_parabola(bpmleft, bpmright, betax, betay, phasex, phasey):
     '''
     Function calculating beta at IP (based on Rioichy thesis)
     b(s)=b*+(s^2/b*)
@@ -182,7 +141,6 @@ def _get_ip_from_para(bpmleft, bpmright, betax, betay, phasex, phasey):
     #left horizontal
     try:
         blx=betax.BETX[betax.indx[bpmleft]]
-        betax.BETXSTD[betax.indx[bpmleft]]
         hlp=1
     except:
         hlp=0
@@ -190,7 +148,6 @@ def _get_ip_from_para(bpmleft, bpmright, betax, betay, phasex, phasey):
     #right horizontal
     try:
         brx=betax.BETX[betax.indx[bpmright]]
-        betax.BETXSTD[betax.indx[bpmright]]
         hrp=1
     except:
         hrp=0
@@ -199,7 +156,6 @@ def _get_ip_from_para(bpmleft, bpmright, betax, betay, phasex, phasey):
     #left vertical
     try:
         bly=betay.BETY[betay.indx[bpmleft]]
-        betay.BETYSTD[betay.indx[bpmleft]]
         vlp=1
     except:
         vlp=0
@@ -207,7 +163,6 @@ def _get_ip_from_para(bpmleft, bpmright, betax, betay, phasex, phasey):
     #right vertical
     try:
         bry=betay.BETY[betay.indx[bpmright]]
-        betay.BETYSTD[betay.indx[bpmright]]
         vrp=1
     except:
         vrp=0
@@ -304,24 +259,24 @@ def _get_ip_from_para(bpmleft, bpmright, betax, betay, phasex, phasey):
     return betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_phase,betastar_h_phase_e,betastar_v_phase,betastar_v_phase_e
 
 
-def write_transverse_damper(twissp,twissb,element,model,savepath,phasex,phasey,errors):
+def write_transverse_damper(propagated_models, element_name, input_model, save_path, measured_hor_phase, measured_ver_phase, measured_hor_beta, measured_ver_beta, accel):
     '''
     Function for getting the phase advance between the dampers and pick-ups
 
     :Parameters:
-        'twissp': twiss?
+        'propagated_models.propagation': twiss?
             containing propagation from BPM to damper
-        'twissb': twiss?
+        'propagated_models.back_propagation': twiss?
             containing back propagation from BPM to damper
-        'element': string?
+        'element_name': string?
             element name
-        'model': twiss
-            twiss model
-        'savepath': string
+        'input_model': twiss
+            twiss input model
+        'save_path': string
             where to save file
-        'phasex':
+        'measured_hor_phase':
             measured phase advances
-        'phasey':
+        'measured_ver_phase':
             measured phase advances
         'errors':
             twissmin,twissminb,twissmax,twissmaxb
@@ -329,253 +284,246 @@ def write_transverse_damper(twissp,twissb,element,model,savepath,phasex,phasey,e
         nothing => writing to file in this function (new/appending)
     '''
     # initial
-    dampermap={}
-    bpmmap={}
-    path=savepath+"phases.out"
-    accel=model.SEQUENCE
-    if os.path.exists(path):
-        writer=open(path,"a")
-        firsttime=0
-    else:
-        writer=open(path,"w")
-        firsttime=1
-        print >> writer,"@ BEAM %s",accel
-        print >> writer,"@ NIM %s Not In Measurement"
-        print >> writer,"* NAME1 NAME2 S1 S2 PHX PHXe PHXM PHY PHYe PHYM"
-        print >> writer,"$ %s %s %le %le %le %le %le %le %le %le "
+    damper_map = {}
+    bpms_map = {}
 
+    file_transverse_damper = _get_transverse_damper_tfs_file(save_path, accel)
 
     #beam1
-    dampermap['ADTKH.D5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
-    dampermap['ADTKH.C5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
-    dampermap['ADTKH.B5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
-    dampermap['ADTKH.A5L4.B1']=['BPMWA.B5L4.B1','BPMWA.A5L4.B1']
+    damper_map['ADTKH.D5L4.B1'] = ['BPMWA.B5L4.B1', 'BPMWA.A5L4.B1']
+    damper_map['ADTKH.C5L4.B1'] = ['BPMWA.B5L4.B1', 'BPMWA.A5L4.B1']
+    damper_map['ADTKH.B5L4.B1'] = ['BPMWA.B5L4.B1', 'BPMWA.A5L4.B1']
+    damper_map['ADTKH.A5L4.B1'] = ['BPMWA.B5L4.B1', 'BPMWA.A5L4.B1']
 
-    dampermap['ADTKV.A5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']
-    dampermap['ADTKV.B5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']
-    dampermap['ADTKV.C5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']
-    dampermap['ADTKV.D5R4.B1']=['BPMWA.A5R4.B1','BPMWA.B5R4.B1']
+    damper_map['ADTKV.A5R4.B1'] = ['BPMWA.A5R4.B1', 'BPMWA.B5R4.B1']
+    damper_map['ADTKV.B5R4.B1'] = ['BPMWA.A5R4.B1', 'BPMWA.B5R4.B1']
+    damper_map['ADTKV.C5R4.B1'] = ['BPMWA.A5R4.B1', 'BPMWA.B5R4.B1']
+    damper_map['ADTKV.D5R4.B1'] = ['BPMWA.A5R4.B1', 'BPMWA.B5R4.B1']
 
-    bpmmap['LHCB1_1']=['BPMC.9L4.B1','BPMC.7L4.B1','BPMC.8L4.B1'] #H
-    bpmmap['LHCB1_2']=['BPMCA.7R4.B1','BPMC.9R4.B1','BPMC.8R4.B1'] #V
+    bpms_map['LHCB1_1'] = ['BPMC.9L4.B1', 'BPMC.7L4.B1', 'BPMC.8L4.B1']  # H
+    bpms_map['LHCB1_2'] = ['BPMCA.7R4.B1', 'BPMC.9R4.B1', 'BPMC.8R4.B1']  # V
 
     #beam2
-    dampermap['ADTKV.D5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
-    dampermap['ADTKV.C5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
-    dampermap['ADTKV.B5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
-    dampermap['ADTKV.A5L4.B2']=['BPMWA.B5L4.B2','BPMWA.A5L4.B2']
+    damper_map['ADTKV.D5L4.B2'] = ['BPMWA.B5L4.B2', 'BPMWA.A5L4.B2']
+    damper_map['ADTKV.C5L4.B2'] = ['BPMWA.B5L4.B2', 'BPMWA.A5L4.B2']
+    damper_map['ADTKV.B5L4.B2'] = ['BPMWA.B5L4.B2', 'BPMWA.A5L4.B2']
+    damper_map['ADTKV.A5L4.B2'] = ['BPMWA.B5L4.B2', 'BPMWA.A5L4.B2']
 
-    dampermap['ADTKH.A5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
-    dampermap['ADTKH.B5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
-    dampermap['ADTKH.C5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
-    dampermap['ADTKH.D5R4.B2']=['BPMWA.B5R4.B2','BPMWA.A5R4.B2']
+    damper_map['ADTKH.A5R4.B2'] = ['BPMWA.B5R4.B2', 'BPMWA.A5R4.B2']
+    damper_map['ADTKH.B5R4.B2'] = ['BPMWA.B5R4.B2', 'BPMWA.A5R4.B2']
+    damper_map['ADTKH.C5R4.B2'] = ['BPMWA.B5R4.B2', 'BPMWA.A5R4.B2']
+    damper_map['ADTKH.D5R4.B2'] = ['BPMWA.B5R4.B2', 'BPMWA.A5R4.B2']
 
-
-    bpmmap['LHCB2_1']=['BPMCA.7R4.B2','BPMC.9R4.B2','BPMC.8R4.B2'] #H
-    bpmmap['LHCB2_2']=['BPMC.9L4.B2','BPMC.7L4.B2','BPMC.8L4.B2'] #V
+    bpms_map['LHCB2_1'] = ['BPMCA.7R4.B2', 'BPMC.9R4.B2', 'BPMC.8R4.B2']  # H
+    bpms_map['LHCB2_2'] = ['BPMC.9L4.B2', 'BPMC.7L4.B2', 'BPMC.8L4.B2']  # V
 
     ## main
-    if firsttime==1:
+    if file_transverse_damper._TfsFileWriter__tfs_table.is_empty():  # To check if the file is empty
 
-        #
-        counter=2
-        #
+        for count in [1, 2]:
 
-        for count in range(0,counter):
+            ref_bpm, end_bpm, eight_bpm = bpms_map[accel + "_" + str(count)]
 
-            count=count+1
-
-            print "counter for loop ", count
-
-            bpms=bpmmap[accel+"_"+str(count)]
-            refBpm=bpms[0]
-            eightbpm=bpms[2]
-            endbpm=bpms[1]
-
-            # hor bpms's
+            # hor bpm_pair's
             try:
-                in1x=phasex.indx[refBpm]
+                in1x = measured_hor_phase.indx[ref_bpm]
 
             except:
-                in1x=-1
+                in1x = -1
 
-            if (in1x<len(phasex.indx)-1) and (in1x!=-1): # when BPM is not last
-                if phasex.NAME[phasex.indx[refBpm]+1]==endbpm:
-                    in2x=1
-                    eightinphasex=0
-                elif phasex.NAME[phasex.indx[refBpm]+2]==endbpm:
-                    in2x=1
-                    eightinphasex=1
-                else: # not in measurement
-                    in2x=-1
-                    eightinphasex=0
-            elif (in1x!=-1): # when BPM is last
-                if phasex.NAME[0]==endbpm:
-                    in2x=1
-                    eightinphasex=0
-                elif phasex.NAME[1]==endbpm:
-                    in2x=1
-                    eightinphasex=1
-                else: # not in measurement
-                    in2x=-1
-                    eightinphasex=0
+            if (in1x < len(measured_hor_phase.indx) - 1) and (in1x != -1):  # when BPM is not last
+                if measured_hor_phase.NAME[measured_hor_phase.indx[ref_bpm] + 1] == end_bpm:
+                    in2x = 1
+                    eightinphasex = 0
+                elif measured_hor_phase.NAME[measured_hor_phase.indx[ref_bpm] + 2] == end_bpm:
+                    in2x = 1
+                    eightinphasex = 1
+                else:  # not in measurement
+                    in2x = -1
+                    eightinphasex = 0
+            elif (in1x != -1):  # when BPM is last
+                if measured_hor_phase.NAME[0] == end_bpm:
+                    in2x = 1
+                    eightinphasex = 0
+                elif measured_hor_phase.NAME[1] == end_bpm:
+                    in2x = 1
+                    eightinphasex = 1
+                else:  # not in measurement
+                    in2x = -1
+                    eightinphasex = 0
             else:
-                in2x=-1
-                eightinphasex=0
-
+                in2x = -1
+                eightinphasex = 0
 
             # ver bpm's
             try:
-                in1y=phasey.indx[refBpm]
+                in1y = measured_ver_phase.indx[ref_bpm]
             except:
-                in1y=-1
+                in1y = -1
 
-            if (in1y<len(phasey.indx)-1) and (in1y!=-1): # when BPM is not last
-                if phasey.NAME[phasey.indx[refBpm]+1]==endbpm:
-                    in2y=1
-                    eightinphasey=0
-                elif phasey.NAME[phasey.indx[refBpm]+2]==endbpm:
-                    in2y=1
-                    eightinphasey=1
-                else: # not in measurement
-                    in2y=-1
-                    eightinphasey=0
-            elif in1y!=-1: # when BPM is last
-                if phasey.NAME[0]==endbpm:
-                    in2y=1
-                    eightinphasey=0
-                elif phasey.NAME[1]==endbpm:
-                    in2y=1
-                    eightinphasey=1
-                else: # not in measurement
-                    in2y=-1
-                    eightinphasey=0
+            if (in1y < len(measured_ver_phase.indx) - 1) and (in1y != -1):  # when BPM is not last
+                if measured_ver_phase.NAME[measured_ver_phase.indx[ref_bpm] + 1] == end_bpm:
+                    in2y = 1
+                    eightinphasey = 0
+                elif measured_ver_phase.NAME[measured_ver_phase.indx[ref_bpm] + 2] == end_bpm:
+                    in2y = 1
+                    eightinphasey = 1
+                else:  # not in measurement
+                    in2y = -1
+                    eightinphasey = 0
+            elif in1y != -1:  # when BPM is last
+                if measured_ver_phase.NAME[0] == end_bpm:
+                    in2y = 1
+                    eightinphasey = 0
+                elif measured_ver_phase.NAME[1] == end_bpm:
+                    in2y = 1
+                    eightinphasey = 1
+                else:  # not in measurement
+                    in2y = -1
+                    eightinphasey = 0
             else:
-                in2y=-1
-                eightinphasey=0
-
-
-
-
+                in2y = -1
+                eightinphasey = 0
 
             ###### H plane
-            if (in1x!=-1) and (in2x!=-1):
-                if eightinphasex==1:
-                    phaseh="%.5f" %float(phasex.PHASEX[phasex.indx[refBpm]]+phasex.PHASEX[phasex.indx[eightbpm]])
-                    errphaseh="%.5f" %float(phasex.STDPHX[phasex.indx[refBpm]]+phasex.STDPHX[phasex.indx[eightbpm]])
-                    phasemodelh="%.5f" %float(phasex.PHXMDL[phasex.indx[refBpm]]+phasex.PHXMDL[phasex.indx[eightbpm]])
+            if in1x != -1 and in2x != -1:
+                if eightinphasex == 1:
+                    phaseh = "% .5f" % float(measured_hor_phase.PHASEX[measured_hor_phase.indx[ref_bpm]] + measured_hor_phase.PHASEX[measured_hor_phase.indx[eight_bpm]])
+                    errphaseh = "% .5f" % float(measured_hor_phase.STDPHX[measured_hor_phase.indx[ref_bpm]] + measured_hor_phase.STDPHX[measured_hor_phase.indx[eight_bpm]])
+                    phasemodelh = "% .5f" % float(measured_hor_phase.PHXMDL[measured_hor_phase.indx[ref_bpm]] + measured_hor_phase.PHXMDL[measured_hor_phase.indx[eight_bpm]])
                 else:
-                    phaseh="%.5f" %float(phasex.PHASEX[phasex.indx[refBpm]])
-                    errphaseh="%.5f" %float(phasex.STDPHX[phasex.indx[refBpm]])
-                    phasemodelh="%.5f" %float(phasex.PHXMDL[phasex.indx[refBpm]])
+                    phaseh = "% .5f" % float(measured_hor_phase.PHASEX[measured_hor_phase.indx[ref_bpm]])
+                    errphaseh = "% .5f" % float(measured_hor_phase.STDPHX[measured_hor_phase.indx[ref_bpm]])
+                    phasemodelh = "% .5f" % float(measured_hor_phase.PHXMDL[measured_hor_phase.indx[ref_bpm]])
             else:
                 print "Horizontal plane not found for transverse dampers pick-ups"
-                phaseh='NIM'
-                errphaseh='NIM'
-                phasemodelh='NIM'
+                phaseh = 'NIM'
+                errphaseh = 'NIM'
+                phasemodelh = 'NIM'
 
             ###### V plane
-            print in1y,in2y,eightinphasey
-            if (in1y!=-1) and (in2y!=-1):
-                if eightinphasey==1:
-                    phasev="%.5f" %float(phasey.PHASEY[phasey.indx[refBpm]]+phasey.PHASEY[phasey.indx[eightbpm]])
-                    errphasev="%.5f" %float(phasey.STDPHY[phasey.indx[refBpm]]+phasey.STDPHY[phasey.indx[eightbpm]])
-                    phasemodelv="%.5f" %float(phasey.PHYMDL[phasey.indx[refBpm]]+phasey.PHYMDL[phasey.indx[eightbpm]])
+            print in1y, in2y, eightinphasey
+            if (in1y != -1) and (in2y != -1):
+                if eightinphasey == 1:
+                    phasev = "% .5f" % float(measured_ver_phase.PHASEY[measured_ver_phase.indx[ref_bpm]] + measured_ver_phase.PHASEY[measured_ver_phase.indx[eight_bpm]])
+                    errphasev = "% .5f" % float(measured_ver_phase.STDPHY[measured_ver_phase.indx[ref_bpm]] + measured_ver_phase.STDPHY[measured_ver_phase.indx[eight_bpm]])
+                    phasemodelv = "% .5f" % float(measured_ver_phase.PHYMDL[measured_ver_phase.indx[ref_bpm]] + measured_ver_phase.PHYMDL[measured_ver_phase.indx[eight_bpm]])
                 else:
-
-                    phasev="%.5f" %float(phasey.PHASEY[phasey.indx[refBpm]])
-                    errphasev="%.5f" %float(phasey.STDPHY[phasey.indx[refBpm]])
-                    phasemodelv="%.5f" %float(phasey.PHYMDL[phasey.indx[refBpm]])
+                    phasev = "% .5f" % float(measured_ver_phase.PHASEY[measured_ver_phase.indx[ref_bpm]])
+                    errphasev = "% .5f" % float(measured_ver_phase.STDPHY[measured_ver_phase.indx[ref_bpm]])
+                    phasemodelv = "% .5f" % float(measured_ver_phase.PHYMDL[measured_ver_phase.indx[ref_bpm]])
 
             else:
                 print "Vertical plane not found for transverse dampers pick-ups"
-                phasev='NIM'
-                errphasev='NIM'
-                phasemodelv='NIM'
+                phasev = 'NIM'
+                errphasev = 'NIM'
+                phasemodelv = 'NIM'
 
+            file_transverse_damper.add_table_row([ref_bpm, end_bpm, input_model.S[input_model.indx[ref_bpm]], input_model.S[input_model.indx[end_bpm]], phaseh, errphaseh, phasemodelh, phasev, errphasev, phasemodelv])
 
-            print >> writer,refBpm,endbpm,model.S[model.indx[refBpm]],model.S[model.indx[endbpm]],phaseh,errphaseh,phasemodelh,phasev,errphasev,phasemodelv
+    if element_name in damper_map:
+        bpm_pair = damper_map[element_name]
 
-    if element in dampermap:
-        bpms=dampermap[element]
-        passs=1
+        mux_bpm1_prop = propagated_models.propagation.MUX[propagated_models.propagation.indx[bpm_pair[0]]]
+        mux_bpm2_prop = propagated_models.propagation.MUX[propagated_models.propagation.indx[bpm_pair[1]]]
+        mux_elem_prop = propagated_models.propagation.MUX[propagated_models.propagation.indx[element_name]]
+        muy_bpm1_prop = propagated_models.propagation.MUY[propagated_models.propagation.indx[bpm_pair[0]]]
+        muy_bpm2_prop = propagated_models.propagation.MUY[propagated_models.propagation.indx[bpm_pair[1]]]
+        muy_elem_prop = propagated_models.propagation.MUY[propagated_models.propagation.indx[element_name]]
+
+        model_mux_bpm1 = input_model.MUX[input_model.indx[bpm_pair[0]]]
+        model_mux_bpm2 = input_model.MUX[input_model.indx[bpm_pair[1]]]
+        model_mux_elem = input_model.MUX[input_model.indx[element_name]]
+
+        model_muy_bpm1 = input_model.MUY[input_model.indx[bpm_pair[0]]]
+        model_muy_bpm2 = input_model.MUY[input_model.indx[bpm_pair[1]]]
+        model_muy_elem = input_model.MUY[input_model.indx[element_name]]
+
+        phase_advance_x_bpm1_prop = abs(mux_elem_prop - mux_bpm1_prop)
+        phase_advance_x_bpm2_prop = abs(mux_bpm2_prop - mux_elem_prop)
+        phase_advance_y_bpm1_prop = abs(muy_elem_prop - muy_bpm1_prop)
+        phase_advance_y_bpm2_prop = abs(muy_bpm2_prop - muy_elem_prop)
+
+        mux_bpm1_back = propagated_models.back_propagation.MUX[propagated_models.back_propagation.indx[bpm_pair[0]]]
+        mux_bpm2_back = propagated_models.back_propagation.MUX[propagated_models.back_propagation.indx[bpm_pair[1]]]
+        mux_elem_back = propagated_models.back_propagation.MUX[propagated_models.back_propagation.indx[element_name]]
+        muy_bpm1_back = propagated_models.back_propagation.MUY[propagated_models.back_propagation.indx[bpm_pair[0]]]
+        muy_bpm2_back = propagated_models.back_propagation.MUY[propagated_models.back_propagation.indx[bpm_pair[1]]]
+        muy_elem_back = propagated_models.back_propagation.MUY[propagated_models.back_propagation.indx[element_name]]
+
+        phase_advance_x_bpm1_back = abs(mux_bpm1_back - mux_elem_back)
+        phase_advance_x_bpm2_back = abs(mux_elem_back - mux_bpm2_back)
+        phase_advance_y_bpm1_back = abs(muy_bpm1_back - muy_elem_back)
+        phase_advance_y_bpm2_back = abs(muy_elem_back - muy_bpm2_back)
+
+        model_phase_advance_x_bpm1 = abs(model_mux_elem - model_mux_bpm1)
+        model_phase_advance_x_bpm2 = abs(model_mux_bpm2 - model_mux_elem)
+        model_phase_advance_y_bpm1 = abs(model_muy_elem - model_muy_bpm1)
+        model_phase_advance_y_bpm2 = abs(model_muy_bpm2 - model_muy_elem)
+
+        gather_betas_list = [[0, bpm_pair[0]], [0, bpm_pair[1]]]  # The function expects this kind of input
+        (beta_x_bpm1, err_beta_x_bpm1, alfa_x_bpm1, err_alfa_x_bpm1,
+         beta_x_bpm2, err_beta_x_bpm2, alfa_x_bpm2, err_alfa_x_bpm2) = sbs_beta_writer._get_start_end_betas(gather_betas_list, measured_hor_beta, "X")
+
+        (beta_y_bpm1, err_beta_y_bpm1, alfa_y_bpm1, err_alfa_y_bpm1,
+         beta_y_bpm2, err_beta_y_bpm2, alfa_y_bpm2, err_alfa_y_bpm2) = sbs_beta_writer._get_start_end_betas(gather_betas_list, measured_ver_beta, "Y")
+
+        err_phase_x_bpm1_prop = sbs_phase_writer._propagate_error_phase(err_beta_x_bpm1, err_alfa_x_bpm1, phase_advance_x_bpm1_prop, beta_x_bpm1, alfa_x_bpm1)
+        err_phase_x_bpm1_back = sbs_phase_writer._propagate_error_phase(err_beta_x_bpm1, err_alfa_x_bpm1, phase_advance_x_bpm1_back, beta_x_bpm1, alfa_x_bpm1)
+        err_phase_x_bpm2_prop = sbs_phase_writer._propagate_error_phase(err_beta_x_bpm2, err_alfa_x_bpm2, phase_advance_x_bpm2_prop, beta_x_bpm2, alfa_x_bpm2)
+        err_phase_x_bpm2_back = sbs_phase_writer._propagate_error_phase(err_beta_x_bpm2, err_alfa_x_bpm2, phase_advance_x_bpm2_back, beta_x_bpm2, alfa_x_bpm2)
+        err_phase_y_bpm1_prop = sbs_phase_writer._propagate_error_phase(err_beta_y_bpm1, err_alfa_y_bpm1, phase_advance_y_bpm1_prop, beta_y_bpm1, alfa_y_bpm1)
+        err_phase_y_bpm1_back = sbs_phase_writer._propagate_error_phase(err_beta_y_bpm1, err_alfa_y_bpm1, phase_advance_y_bpm1_back, beta_y_bpm1, alfa_y_bpm1)
+        err_phase_y_bpm2_prop = sbs_phase_writer._propagate_error_phase(err_beta_y_bpm2, err_alfa_y_bpm2, phase_advance_y_bpm2_prop, beta_y_bpm2, alfa_y_bpm2)
+        err_phase_y_bpm2_back = sbs_phase_writer._propagate_error_phase(err_beta_y_bpm2, err_alfa_y_bpm2, phase_advance_y_bpm2_back, beta_y_bpm2, alfa_y_bpm2)
+
+        average_phase_advance_x_bpm1, final_error_phase_advance_x_bpm1 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_x_bpm1_prop,
+                                                                                                                            err_phase_x_bpm1_prop,
+                                                                                                                            phase_advance_x_bpm1_back,
+                                                                                                                            err_phase_x_bpm1_back)
+        average_phase_advance_y_bpm1, final_error_phase_advance_y_bpm1 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_y_bpm1_prop,
+                                                                                                                            err_phase_y_bpm1_prop,
+                                                                                                                            phase_advance_y_bpm1_back,
+                                                                                                                            err_phase_y_bpm1_back)
+        average_phase_advance_x_bpm2, final_error_phase_advance_x_bpm2 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_x_bpm2_prop,
+                                                                                                                            err_phase_x_bpm2_prop,
+                                                                                                                            phase_advance_x_bpm2_back,
+                                                                                                                            err_phase_x_bpm2_back)
+        average_phase_advance_y_bpm2, final_error_phase_advance_y_bpm2 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_y_bpm2_prop,
+                                                                                                                            err_phase_y_bpm2_prop,
+                                                                                                                            phase_advance_y_bpm2_back,
+                                                                                                                            err_phase_y_bpm2_back)
+        file_transverse_damper.add_table_row([bpm_pair[0], element_name,
+                                              input_model.S[input_model.indx[bpm_pair[0]]],
+                                              input_model.S[input_model.indx[element_name]],
+                                              "%.5f" % float(average_phase_advance_x_bpm1),
+                                              "%.5f" % float(final_error_phase_advance_x_bpm1),
+                                              "%.5f" % float(model_phase_advance_x_bpm1),
+                                              "%.5f" % float(average_phase_advance_y_bpm1),
+                                              "%.5f" % float(final_error_phase_advance_y_bpm1),
+                                              "%.5f" % float(model_phase_advance_y_bpm1)])
+        file_transverse_damper.add_table_row([element_name, bpm_pair[1],
+                                              input_model.S[input_model.indx[element_name]],
+                                              input_model.S[input_model.indx[bpm_pair[1]]],
+                                              "%.5f" % float(average_phase_advance_x_bpm2),
+                                              "%.5f" % float(final_error_phase_advance_x_bpm2),
+                                              "%.5f" % float(model_phase_advance_x_bpm2),
+                                              "%.5f" % float(average_phase_advance_y_bpm2),
+                                              "%.5f" % float(final_error_phase_advance_y_bpm2),
+                                              "%.5f" % float(model_phase_advance_y_bpm2)])
     else:
-        print "WARN: Element ",element," Not found in dampermap"
-        passs=0
+        print "WARN: Element ", element_name, " Not found in damper_map"
 
-    if passs==1:
-        muxbpm1=twissp.MUX[twissp.indx[bpms[0]]]
-        muxbpm2=twissp.MUX[twissp.indx[bpms[1]]]
-        mux=twissp.MUX[twissp.indx[element]]
-        muybpm1=twissp.MUY[twissp.indx[bpms[0]]]
-        muybpm2=twissp.MUY[twissp.indx[bpms[1]]]
-        muy=twissp.MUY[twissp.indx[element]]
-
-        muxbpm1m=model.MUX[model.indx[bpms[0]]]
-        muxbpm2m=model.MUX[model.indx[bpms[1]]]
-        muxm=model.MUX[model.indx[element]]
-
-        muybpm1m=model.MUY[model.indx[bpms[0]]]
-        muybpm2m=model.MUY[model.indx[bpms[1]]]
-        muym=model.MUY[model.indx[element]]
-
-        pha1xp=abs(mux-muxbpm1)
-        pha2xp=abs(muxbpm2-mux)
-        pha1yp=abs(muy-muybpm1)
-        pha2yp=abs(muybpm2-muy)
-
-        muxbpm1=twissb.MUX[twissb.indx[bpms[0]]]
-        muxbpm2=twissb.MUX[twissb.indx[bpms[1]]]
-        mux=twissb.MUX[twissb.indx[element]]
-        muybpm1=twissb.MUY[twissb.indx[bpms[0]]]
-        muybpm2=twissb.MUY[twissb.indx[bpms[1]]]
-        muy=twissb.MUY[twissb.indx[element]]
+    file_transverse_damper.write_to_file()
 
 
-        pha1xb=abs(muxbpm1-mux)
-        pha2xb=abs(mux-muxbpm2)
-        pha1yb=abs(muybpm1-muy)
-        pha2yb=abs(muy-muybpm2)
+def _get_transverse_damper_tfs_file(save_path, accel):
+    file_transverse_damper = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "transverse_dampers_phases.out"))
 
+    file_transverse_damper.add_string_descriptor("BEAM", accel)
+    file_transverse_damper.add_string_descriptor("NIM", "Not In Measurement")
 
-        pha1xm=abs(muxm-muxbpm1m)
-        pha2xm=abs(muxbpm2m-muxm)
-        pha1ym=abs(muym-muybpm1m)
-        pha2ym=abs(muybpm2m-muym)
+    file_transverse_damper.add_column_names(["NAME1", "NAME2", "S1", "S2", "PHX", "PHXe", "PHXM", "PHY", "PHYe", "PHYM"])
+    file_transverse_damper.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-
-
-
-        #mean
-        pha1x=(pha1xp+pha1xb)/2
-        pha1y=(pha1yp+pha1yb)/2
-        pha2x=(pha2xp+pha2xb)/2
-        pha2y=(pha2yp+pha2yb)/2
-
-        #error
-        twissmin=errors[0]
-        twissminb=errors[1]
-        twissmax=errors[2]
-        twissmaxb=errors[3]
-
-        minn=abs(abs(twissmin.MUX[twissmin.indx[element]]-twissmin.MUX[twissmin.indx[bpms[0]]])-abs(twissminb.MUX[twissminb.indx[element]]-twissminb.MUX[twissminb.indx[bpms[0]]]))
-        maxx=abs(abs(twissmax.MUX[twissmax.indx[element]]-twissmax.MUX[twissmax.indx[bpms[0]]])-abs(twissmaxb.MUX[twissmaxb.indx[element]]-twissmaxb.MUX[twissmaxb.indx[bpms[0]]]))
-        pha1xe=minn+maxx
-
-
-        minn=abs(abs(twissmin.MUX[twissmin.indx[bpms[1]]]-twissmin.MUX[twissmin.indx[element]])-abs(twissminb.MUX[twissminb.indx[bpms[1]]]-twissminb.MUX[twissminb.indx[element]]))
-        maxx=abs(abs(twissmax.MUX[twissmax.indx[bpms[1]]]-twissmax.MUX[twissmax.indx[element]])-abs(twissmaxb.MUX[twissmaxb.indx[bpms[1]]]-twissmaxb.MUX[twissmaxb.indx[element]]))
-        pha2xe=minn+maxx
-
-        minn=abs(abs(twissmin.MUY[twissmin.indx[element]]-twissmin.MUY[twissmin.indx[bpms[0]]])-abs(twissminb.MUY[twissminb.indx[element]]-twissminb.MUY[twissminb.indx[bpms[0]]]))
-        maxx=abs(abs(twissmax.MUY[twissmax.indx[element]]-twissmax.MUY[twissmax.indx[bpms[0]]])-abs(twissmaxb.MUY[twissmaxb.indx[element]]-twissmaxb.MUY[twissmaxb.indx[bpms[0]]]))
-        pha1ye=minn+maxx
-
-        minn=abs(abs(twissmin.MUY[twissmin.indx[bpms[1]]]-twissmin.MUY[twissmin.indx[element]])-abs(twissminb.MUY[twissminb.indx[bpms[1]]]-twissminb.MUY[twissminb.indx[element]]))
-        maxx=abs(abs(twissmax.MUY[twissmax.indx[bpms[1]]]-twissmax.MUY[twissmax.indx[element]])-abs(twissmaxb.MUY[twissmaxb.indx[bpms[1]]]-twissmaxb.MUY[twissmaxb.indx[element]]))
-        pha2ye=minn+maxx
-
-        print >> writer,bpms[0],element,model.S[model.indx[bpms[0]]],model.S[model.indx[element]],"%.5f" %float(pha1x),"%.5f" %float(pha1xe),"%.5f" %float(pha1xm),"%.5f" %float(pha1y),"%.5f" %float(pha1ye),"%.5f" %float(pha1ym)
-        print >> writer,element,bpms[1],model.S[model.indx[element]],model.S[model.indx[bpms[1]]],"%.5f" %float(pha2x),"%.5f" %float(pha2xe),"%.5f" %float(pha2xm),"%.5f" %float(pha2y),"%.5f" %float(pha2ye),"%.5f" %float(pha2ym)
-
-    writer.close()
+    return file_transverse_damper

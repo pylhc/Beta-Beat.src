@@ -8,7 +8,7 @@ from math import sqrt
 from Utilities import tfs_file_writer
 
 
-def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_disp, measured_norm_disp, input_model, propagated_models, save_path):
+def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_disp, measured_norm_disp, input_model, propagated_models, save_path, dispersion_summary_file):
     file_disp_x, file_norm_disp_x, file_disp_y = _get_dispersion_tfs_files(element_name, is_element, save_path)
 
     model_propagation = propagated_models.propagation
@@ -20,11 +20,14 @@ def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_d
     else:
         bpms_list = SegmentBySegment.intersect([model_propagation, input_model, model_back_propagation])
 
-    _write_dispersion_for_plane(file_disp_x, "X", element_name, bpms_list, measured_hor_disp, input_model, model_cor, model_propagation, model_back_propagation, is_element)
+    summary_data_x = _write_dispersion_for_plane(file_disp_x, "X", element_name, bpms_list, measured_hor_disp, input_model, model_cor, model_propagation, model_back_propagation, is_element)
 
-    _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, measured_norm_disp, input_model, model_cor, model_propagation, model_back_propagation, is_element)
+    summary_data_nx = _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, measured_norm_disp, input_model, model_cor, model_propagation, model_back_propagation, is_element)
 
-    _write_dispersion_for_plane(file_disp_y, "Y", element_name, bpms_list, measured_ver_disp, input_model, model_cor, model_propagation, model_back_propagation, is_element)
+    summary_data_y = _write_dispersion_for_plane(file_disp_y, "Y", element_name, bpms_list, measured_ver_disp, input_model, model_cor, model_propagation, model_back_propagation, is_element)
+
+    if is_element:
+        _write_summary_data(dispersion_summary_file, summary_data_x, summary_data_nx, summary_data_y)
 
 
 def get_dispersion_summary_file(save_path):
@@ -40,6 +43,14 @@ def get_dispersion_summary_file(save_path):
                                                       "%le", "%le",
                                                       "%le", "%le", "%le", "%le", "%le", "%le"])
         return dispersion_summary_file
+
+
+def _write_summary_data(dispersion_summary_file, summary_data_x, summary_data_nx, summary_data_y):
+    dispersion_summary_file.add_table_row([summary_data_x[0], summary_data_x[1],
+                                           summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
+                                           summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5],
+                                           summary_data_nx[0], summary_data_nx[1],
+                                           summary_data_x[6], summary_data_y[6], summary_data_nx[2], summary_data_x[7], summary_data_y[7], summary_data_x[8]])
 
 
 def _get_dispersion_tfs_files(element_name, is_element, save_path):
@@ -59,18 +70,21 @@ def _get_dispersion_tfs_files(element_name, is_element, save_path):
         file_disp_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     else:
         file_disp_x.add_column_names(["NAME", "S", "DXPROP", "DXPROPERR", "DPXPROP", "DPXPROPERR", "DXMODEL", "DPXMODEL", "MODEL_S"])
-        file_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
         file_norm_disp_x.add_column_names(["NAME", "S", "NDXPROP", "NDXPROPERR", "NDXMODEL", "MODEL_S"])
-        file_norm_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_norm_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le"])
 
         file_disp_y.add_column_names(["NAME", "S", "DYPROP", "DYPROPERR", "DPYPROP", "DPYPROPERR", "DYMODEL", "DPYMODEL", "MODEL_S"])
-        file_disp_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_disp_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     return file_disp_x, file_norm_disp_x, file_disp_y
 
 
 def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list, measured_dispersion, input_model, model_cor, model_propagation, model_back_propagation, is_element):
+
+    summary_data = []
+
     for bpm in bpms_list:
         bpm_s = bpm[0]
         bpm_name = bpm[1]
@@ -91,7 +105,7 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
 
         prop_disp_p = getattr(model_propagation, "DP" + plane)[model_propagation.indx[bpm_name]]
         back_prop_disp_p = getattr(model_back_propagation, "DP" + plane)[model_back_propagation.indx[bpm_name]]
-        prop_disp_p_err = 0  # TODO: Propagate?
+        prop_disp_p_err = 1e-8  # TODO: Propagate?
 
         normal_prop_disp_err = _propagate_error_dispersion(getattr(measured_dispersion, "STDD" + plane)[measured_dispersion.indx[first_bpm]],
                                                            getattr(model_propagation, "BET" + plane)[model_propagation.indx[first_bpm]],
@@ -122,12 +136,15 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
             average_disp_p, final_disp_p_err = SegmentBySegment.weighted_average_for_SbS_elements(prop_disp_p, prop_disp_p_err, back_prop_disp_p, back_prop_disp_err)
 
             file_dispersion.add_table_row([bpm_name, bpm_s, average_disp, final_disp_err, average_disp_p, final_disp_p_err, model_disp, model_disp_p, model_s])
-
-            # TODO: Summary thing
+            if bpm_name == element_name:
+                summary_data = [bpm_name, bpm_s, average_disp, final_disp_err, average_disp_p, final_disp_p_err, model_disp, model_disp_p, model_s]
     file_dispersion.write_to_file()
+    return summary_data
 
 
 def _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, measured_norm_disp, input_model, model_cor, model_propagation, model_back_propagation, is_element):
+
+    summary_data = []
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
@@ -139,19 +156,21 @@ def _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, 
         prop_norm_disp = model_propagation.DX[model_propagation.indx[bpm_name]] / sqrt(model_propagation.BETX[model_propagation.indx[bpm_name]])
         back_prop_norm_disp = model_back_propagation.DX[model_back_propagation.indx[bpm_name]] / sqrt(model_back_propagation.BETX[model_propagation.indx[bpm_name]])
 
-        prop_norm_disp_err = 0  # TODO: Propagate
-        back_prop_norm_disp_err = 0  # TODO: Propagate
+        prop_norm_disp_err = 1e-8  # TODO: Propagate
+        back_prop_norm_disp_err = 1e-8  # TODO: Propagate
 
         if not is_element:
             corr_norm_disp = model_cor.DX[model_cor.indx[bpm_name]] / sqrt(model_cor.BETX[model_cor.indx[bpm_name]])
-            err_corr_norm_disp = 0  # TODO: Propagate
+            err_corr_norm_disp = 1e-8  # TODO: Propagate
 
             file_norm_disp_x.add_table_row([bpm_name, bpm_s, prop_norm_disp, prop_norm_disp_err, corr_norm_disp, err_corr_norm_disp, back_prop_norm_disp, back_prop_norm_disp_err, model_norm_disp, model_s])
         else:
             average_norm_disp, final_norm_disp_err = SegmentBySegment.weighted_average_for_SbS_elements(prop_norm_disp, prop_norm_disp_err, back_prop_norm_disp, back_prop_norm_disp_err)
             file_norm_disp_x.add_table_row([bpm_name, bpm_s, average_norm_disp, final_norm_disp_err, model_norm_disp, model_s])
+            if bpm_name == element_name:
+                summary_data = [average_norm_disp, final_norm_disp_err, model_norm_disp]
     file_norm_disp_x.write_to_file()
-
+    return summary_data
 
 def _propagate_error_dispersion(std_D0, bet0, bets, dphi, alf0):
     return np.abs(std_D0 * math.sqrt(bets/bet0) * (np.cos(2*np.pi*dphi)+alf0*np.sin(2*np.pi*dphi)))  # @IgnorePep8
