@@ -1,115 +1,112 @@
+from Utilities import tfs_file_writer
+import os
+import SegmentBySegment
 
 
+def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_chromatic_wy, input_model, propagated_models, save_path):
+    file_chromatic_wx, file_chromatic_wy = _get_chromatic_w_files(save_path, element_name, is_element)
 
-def write_chromatic():
-    ##chromatic beta
-    if len(chromatic)!=0:
+    model_propagation = propagated_models.propagation
+    model_back_propagation = propagated_models.back_propagation
+    model_cor = propagated_models.corrected
+    model_back_cor = propagated_models.corrected_back_propagation
 
-        # horizontal
-        chromame=chromatic[0]
-        chromamip=chromatic[1]
-        chromamap=chromatic[2]
+    if not is_element:
+        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_chromatic_wx])
+    else:
+        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
-        filex= open(path+'/sbsWx_'+namename+'.out','w')
+    _write_chromatic_w_for_plane(file_chromatic_wx, "X",
+                                 element_name, bpms_list, measured_chromatic_wx,
+                                 input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                 save_path, is_element)
+    _write_chromatic_w_for_plane(file_chromatic_wy, "Y",
+                                 element_name, bpms_list, measured_chromatic_wy,
+                                 input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                 save_path, is_element)
 
-        if (switch==0):
-            bpms=intersect([chromame,chromamip,model,modelp])
 
-            print >> filex,"* NAME  S  WX   WXERR WX_MDL WX_PLAY eWX_play  PHIX PHIXERR PHIX_MDL PHIX_PLAY ePHIX_PLAY    MODEL_S "
-            print >> filex,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
+def _get_chromatic_w_files(save_path, element_name, is_element):
+    file_chromatic_wx = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetax_" + element_name + ".out"))
+    file_chromatic_wy = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetay_" + element_name + ".out"))
+
+    if not is_element:
+        file_chromatic_wx.add_column_names(["NAME", "S",
+                                            "WPROPX", "ERRWPROPX", "PHIPROPX", "ERRPHIPROPX",
+                                            "WCORX", "ERRWCORX", "PHICORX", "ERRPHICORX",
+                                            "WBACKX", "ERRWBACKX", "PHIBACKX", "ERRPHIBACKX",
+                                            "WBACKCORX", "ERRWBACKCORX", "PHIBACKCORX", "ERRPHIBACKCORX",
+                                            "MODELWX", "MODELPHIX", "MODEL_S"])
+        file_chromatic_wx.add_column_datatypes(["%bpm_s", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le"])
+
+        file_chromatic_wy.add_column_names(["NAME", "S",
+                                            "WPROPY", "ERRWPROPY", "PHIPROPY", "ERRPHIPROPY",
+                                            "WCORY", "ERRWCORY", "PHICORY", "ERRPHICORY",
+                                            "WBACKY", "ERRWBACKY", "PHIBACKY", "ERRPHIBACKY",
+                                            "WBACKCORY", "ERRWBACKCORY", "PHIBACKCORY", "ERRPHIBACKCORY",
+                                            "MODELWY", "MODELPHIY", "MODEL_S"])
+        file_chromatic_wy.add_column_datatypes(["%bpm_s", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le"])
+    else:
+        file_chromatic_wx.add_column_names(["NAME", "S", "WPROPX", "ERRWPROPX", "PHIPROPX", "ERRPHIPROPX", "MODELWX", "MODELPHIX", "MODEL_S"])
+        file_chromatic_wx.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+
+        file_chromatic_wy.add_column_names(["NAME", "S", "WPROPY", "ERRWPROPY", "PHIPROPY", "ERRPHIPROPY", "MODELWY", "MODELPHIY", "MODEL_S"])
+        file_chromatic_wy.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+
+    return file_chromatic_wx, file_chromatic_wy
+
+
+def _write_chromatic_w_for_plane(file_chromatic, plane, element_name, bpms_list, measured_chromatic_w,
+                                    input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                    save_path, is_element):
+    for bpm in bpms_list:
+        bpm_s = bpm[0]
+        bpm_name = bpm[1]
+
+        model_s = input_model.S[input_model.indx[bpm_name]]
+        model_w = getattr(input_model, "W" + plane)[input_model.indx[bpm_name]]
+        model_phi = getattr(input_model, "PHI" + plane)[input_model.indx[bpm_name]]
+
+        w_prop = getattr(model_propagation, "W" + plane)[model_propagation.indx[bpm_name]]
+        phi_prop = getattr(model_propagation, "PHI" + plane)[model_propagation.indx[bpm_name]]
+        err_w_prop = 1e-8  # TODO: Propagate
+        err_phi_prop = 1e-8  # TODO: Propagate
+
+        w_back = getattr(model_back_propagation, "W" + plane)[model_back_propagation.indx[bpm_name]]
+        phi_back = getattr(model_back_propagation, "PHI" + plane)[model_back_propagation.indx[bpm_name]]
+        err_w_back = 1e-8  # TODO: Propagate
+        err_phi_back = 1e-8  # TODO: Propagate
+
+        if not is_element:
+            w_cor = getattr(model_cor, "W" + plane)[model_cor.indx[bpm_name]]
+            phi_cor = getattr(model_cor, "PHI" + plane)[model_cor.indx[bpm_name]]
+            err_w_cor = 1e-8  # TODO: Propagate
+            err_phi_cor = 1e-8  # TODO: Propagate
+
+            w_back_cor = getattr(model_back_cor, "W" + plane)[model_back_cor.indx[bpm_name]]
+            phi_back_cor = getattr(model_back_cor, "PHI" + plane)[model_back_cor.indx[bpm_name]]
+            err_w_back_cor = 1e-8  # TODO: Propagate
+            err_phi_back_cor = 1e-8  # TODO: Propagate
+
+            file_chromatic.add_table_row([bpm_name, bpm_s,
+                                          w_prop, err_w_prop, phi_prop, err_phi_prop,
+                                          w_cor, err_w_cor, phi_cor, err_phi_cor,
+                                          w_back, err_w_back, phi_back, err_phi_back,
+                                          w_back_cor, err_w_back_cor, phi_back_cor, err_phi_back_cor,
+                                          model_w, model_phi, model_s])
         else:
-            bpms=intersect([chromamip,model,modelp])
+            average_w, final_err_w = SegmentBySegment.weighted_average_for_SbS_elements(w_prop, err_w_prop, w_back, err_w_prop)
+            average_phi, final_err_phi = SegmentBySegment.weighted_average_for_SbS_elements(phi_prop, err_phi_prop, phi_back, err_phi_prop)
+            file_chromatic.add_table_row([bpm_name, bpm_s, average_w, final_err_w, average_phi, final_err_phi, model_w, model_phi, model_s])
 
-            print >> filex,"* NAME  S  WX_MDL WX_PLAY eWX_play PHIX_MDL PHIX_PLAY ePHIX_PLAY    MODEL_S "
-            print >> filex,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
-
-
-        for bpm in bpms:
-            s=bpm[0]
-            name=bpm[1]
-
-            wmo=model.WX[model.indx[name]]
-            phmo=model.PHIX[model.indx[name]]
-            smo=model.S[model.indx[name]]
-
-            we=chromamap.WX[chromamap.indx[name]]-chromamip.WX[chromamip.indx[name]]
-            phe=chromamap.PHIX[chromamap.indx[name]]-chromamip.PHIX[chromamip.indx[name]]
-
-            if switch==0:
-                wme=chromame.WX[chromame.indx[name]]
-                ewme=chromame.WXERR[chromame.indx[name]]
-                phme=chromame.PHIX[chromame.indx[name]]
-                ephme=chromame.PHIXERR[chromame.indx[name]]
-
-                w_cor=modelcor.WX[modelcor.indx[name]]
-                ph_cor=modelcor.PHIX[modelcor.indx[name]]
-
-                print >> filex,name,s,wme,ewme,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-            else:
-
-                w_cor=modelp.WX[modelp.indx[name]]
-                ph_cor=modelp.PHIX[modelp.indx[name]]
-
-                print >> filex,name,s,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-                if namename in name:
-
-                    filed1=filed1+" "+str(wmo)+" "+str(w_cor)+" "+str(we)+" "+str(phme)+" "+str(ephme)+" "+str(phmo)+" "+str(ph_cor)+" "+str(phe)
-
-        # vertical
-        chromame=chromatic[3]
-        chromamip=chromatic[4]
-        chromamap=chromatic[5]
-
-        filey= open(path+'/sbsWy_'+namename+'.out','w')
-
-        if switch==0:
-            bpms=intersect([chromame,chromamip,model,modelp])
-
-            print >> filey,"* NAME  S  WY   WYERR WY_MDL WY_PLAY eWY_play  PHIY PHIYERR PHIYMDL PHIY_PLAY ePHIY_PLAY    MODEL_S "
-            print >> filey,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
-        else:
-            bpms=intersect([chromamip,model,modelp])
-
-            print >> filey,"* NAME  S  WY_MDL WY_PLAY eWY_play PHIY_MDL PHIY_PLAY ePHIY_PLAY    MODEL_S "
-            print >> filey,"$ %s   %le  %le %le   %le  %le  %le    %le     %le %le  %le    %le     %le "
-
-        for bpm in bpms:
-            s=bpm[0]
-            name=bpm[1]
-
-            wmo=model.WY[model.indx[name]]
-            phmo=model.PHIY[model.indx[name]]
-            smo=model.S[model.indx[name]]
-
-            we=chromamap.WY[chromamap.indx[name]]-chromamip.WY[chromamip.indx[name]]
-            phe=chromamap.PHIY[chromamap.indx[name]]-chromamip.PHIY[chromamip.indx[name]]
-
-            if switch==0:
-                wme=chromame.WY[chromame.indx[name]]
-                ewme=chromame.WYERR[chromame.indx[name]]
-                phme=chromame.PHIY[chromame.indx[name]]
-                ephme=chromame.PHIYERR[chromame.indx[name]]
-
-                w_cor=modelcor.WY[modelcor.indx[name]]
-                ph_cor=modelcor.PHIY[modelcor.indx[name]]
-
-                print >> filey,name,s,wme,ewme,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-            else:
-
-                w_cor=modelp.WY[modelp.indx[name]]
-                ph_cor=modelp.PHIY[modelp.indx[name]]
-
-                print >> filey,name,s,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-                if namename in name:
-
-                    print >>filesum_d,filed1,wmo,w_cor,we,phme,ephme,phmo,ph_cor,phe,smo
-
-        filesum_b.close()
-        filesum_c.close()
-        filesum_d.close()
-
-        filey.close()
+    file_chromatic.write_to_file()

@@ -214,9 +214,12 @@ def main(options):
 
         propagated_models = _PropagatedModels(save_path, element_name)
 
+        chromatic_x_y = _get_chromatic_data(options.wpath)
+
         print "Writing data for function ", element_name
         getAndWriteData(element_name,
                         input_data,
+                        chromatic_x_y,
                         input_model,
                         propagated_models,
                         save_path,
@@ -572,7 +575,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     return [selected_left_bpm, selected_right_bpm]
 
 
-def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, selected_accelerator, summaries):
+def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propagated_models, save_path, is_element, selected_accelerator, summaries):
     '''
     Function that returns the optics function at the given element
 
@@ -589,21 +592,19 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
                                                                                       input_data.beta_x, input_data.beta_y,
                                                                                       input_model, propagated_models,
                                                                                       save_path, summaries.beta)
-
     if not is_element:
         sbs_writers.sbs_phase_writer.write_phase(element_name,
                                                  input_data.phase_x, input_data.phase_y, input_data.beta_x, input_data.beta_y,
                                                  input_model, propagated_models, save_path)
-
     if input_data.has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
                                                            input_model, propagated_models, save_path, summaries.dispersion)
-
     if input_data.has_coupling:
         sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, summaries.coupling)
 
-    #  TODO: Chromatic coupling... the condition in the original file was: if len(chromatic) != 0..., but it was always empty.
+    if len(chromatic_x_y) != 0:
+        sbs_writers.sbs_chromatic_writer.write_chromatic()
 
     if "IP" in element_name and is_element:
         sbs_writers.sbs_special_element_writer.write_ip(input_data.beta_x, input_data.beta_y,
@@ -771,6 +772,18 @@ def _check_chromatic_functions_in_wpath(start_bpm_name):
         else:
             print "No Chromatic functions (wx_twiss,wy_twiss) available at ", options.wpath
     return wx_value, phi_x_value, wy_value, phi_y_value
+
+
+def _get_chromatic_data(w_path):
+    if w_path != "0":
+        wx_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wx_twiss.out"))
+        wy_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wy_twiss.out"))
+        if wx_twiss is None or wy_twiss is None:
+            return []
+        else:
+            return [wx_twiss, wy_twiss]
+    else:
+        return []
 
 
 def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):   # TODO: this has to be made platform independent
