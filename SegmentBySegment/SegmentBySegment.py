@@ -77,6 +77,7 @@ import sbs_writers.sbs_dispersion_writer
 import sbs_writers.sbs_coupling_writer
 import sbs_writers.sbs_chromatic_writer
 import sbs_writers.sbs_special_element_writer
+import stat
 
 
 #===================================================================================================
@@ -709,11 +710,13 @@ def _get_files_for_mad(save_path, element_name):
     return mad_file_path, log_file_path
 
 
-def _copy_modifiers_locally(save_path, twiss_directory):  # TODO: this has to be made platform independent
-    if os.path.isfile(twiss_directory + '/modifiers.madx'):
-        os.system('cp ' + twiss_directory + '/modifiers.madx' + ' ' + save_path + '/')
+def _copy_modifiers_locally(save_path, twiss_directory):
+    modifiers_file_path = os.path.join(twiss_directory, 'modifiers.madx')
+    if os.path.isfile(modifiers_file_path):
+        Utilities.iotools.copy_item(modifiers_file_path, save_path)
     else:
-        os.system('touch ' + save_path + '/modifiers.madx')  # If the modifiers file does not exist create empty file
+        print >> sys.stderr, "Cannot find modifiers.madx file, will create a empty file."
+        open(os.path.join(save_path, 'modifiers.madx'), "a").close()
 
 
 def _check_chromatic_functions_in_wpath(start_bpm_name, w_path):
@@ -753,12 +756,12 @@ def _get_chromatic_data(w_path):
         return []
 
 
-def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):   # TODO: this has to be made platform independent
+def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):
     watch_file_name = os.path.join(save_path, "watch_" + str(element_name))
     watch_file = open(watch_file_name, "w")
     print >> watch_file, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py " + mad_file_name + " " + save_path + "/gplot_" + str(element_name)
     watch_file.close()
-    os.system("chmod +x " + watch_file_name)
+    os.chmod(watch_file_name, stat.S_IEXEC)
 
 
 def _runmad(file_path, log_file_path, mad_exe_path):
@@ -898,27 +901,16 @@ class _PropagatedModels(object):
         self.__save_path = save_path
 
         self.corrected = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
-        if self.corrected is None:
-            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '_cor.dat', ", see mad log. Aborting"
-            sys.exit(-1)
-
         self.propagation = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
-        if self.propagation is None:
-            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '.dat', ", see mad log. Aborting"
-            sys.exit(-1)
-
         self.back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back.dat')
-        if self.back_propagation is None:
-            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '_back.dat', ", see mad log. Aborting"
-            sys.exit(-1)
-
         self.corrected_back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_cor_back.dat')
-        if self.corrected_back_propagation is None:
-            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '_cor_back', ", see mad log. Aborting"
-            sys.exit(-1)
 
     def __get_twiss_for_file(self, file_name):
-        return _try_to_load_twiss(os.path.join(self.__save_path, file_name))
+        twiss_file = _try_to_load_twiss(os.path.join(self.__save_path, file_name))
+        if twiss_file is None:
+            print >> sys.stderr, "Cannot load", file_name, ". See mad log. Aborting"
+            sys.exit(-1)
+        return twiss_file
 
 
 class _Summaries(object):
