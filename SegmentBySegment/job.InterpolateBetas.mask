@@ -169,8 +169,6 @@ twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s.dat";
 
 twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s_cor.dat";
 
-system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s -e %(EXP)s -s %(STARTFROM)s -m %(METHOD)s";
-
 
 !
 ! Please remove the correction if you want the rest to make sense

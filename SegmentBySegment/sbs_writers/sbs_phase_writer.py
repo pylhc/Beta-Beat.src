@@ -18,14 +18,14 @@ def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_h
     model_cor = propagated_models.corrected
     model_back_cor = propagated_models.corrected_back_propagation
 
-    bpms_list = SegmentBySegment.intersect([measured_hor_phase, input_model, model_cor, model_propagation])
+    bpms_list = SegmentBySegment.intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_hor_phase, input_model])
 
-    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list, measured_hor_phase, measured_hor_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list, measured_hor_phase, measured_hor_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
-    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list, measured_ver_phase, measured_ver_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list, measured_ver_phase, measured_ver_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
 
-def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, model_propagation, model_cor, model_back_propagation, model_back_cor):
+def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor):
     first_bpm = bpms_list[0][1]
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = sbs_beta_writer._get_start_end_betas(bpms_list, measured_beta, plane)
@@ -33,6 +33,8 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
     for bpm in bpms_list:
         bpm_s = bpm[0]
         bpm_name = bpm[1]
+
+        model_s = input_model.S[input_model.indx[bpm_name]]
 
         meas_phase = (getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[bpm_name]] -
                       getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[first_bpm]]) % 1
@@ -67,7 +69,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
         back_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_propagation_phase, beta_end, alfa_end)
         back_cor_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_cor_phase, beta_end, alfa_end)
 
-        file_phase.add_table_row([bpm_name, bpm_s, meas_phase, std_err_phase, prop_phase_difference, prop_phase_error, prop_cor_phase, cor_phase_error, back_prop_phase_difference, back_phase_error, back_cor_phase, back_cor_phase_error, bpm_s])
+        file_phase.add_table_row([bpm_name, bpm_s, meas_phase, std_err_phase, prop_phase_difference, prop_phase_error, prop_cor_phase, cor_phase_error, back_prop_phase_difference, back_phase_error, back_cor_phase, back_cor_phase_error, model_s])
 
     file_phase.write_to_file()
 

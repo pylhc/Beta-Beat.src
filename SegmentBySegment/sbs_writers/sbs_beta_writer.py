@@ -34,6 +34,8 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, i
         _write_summary_data(beta_summary_file, summary_data_x, summary_data_y)
         return (summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
                 summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5])
+    else:
+        return [0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def get_beta_summary_file(save_path):

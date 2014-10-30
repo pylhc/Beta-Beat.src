@@ -3,7 +3,7 @@ import os
 import SegmentBySegment
 
 
-def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_chromatic_wy, input_model, propagated_models, save_path):
+def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_chromatic_wy, input_model, propagated_models, save_path, chrom_summary_file):
     file_chromatic_wx, file_chromatic_wy = _get_chromatic_w_files(save_path, element_name, is_element)
 
     model_propagation = propagated_models.propagation
@@ -16,14 +16,29 @@ def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_ch
     else:
         bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
-    _write_chromatic_w_for_plane(file_chromatic_wx, "X",
-                                 element_name, bpms_list, measured_chromatic_wx,
-                                 input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
-                                 save_path, is_element)
-    _write_chromatic_w_for_plane(file_chromatic_wy, "Y",
-                                 element_name, bpms_list, measured_chromatic_wy,
-                                 input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
-                                 save_path, is_element)
+    summary_data_x = _write_chromatic_w_for_plane(file_chromatic_wx, "X",
+                                                  element_name, bpms_list, measured_chromatic_wx,
+                                                  input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                                  save_path, is_element)
+    summary_data_y = _write_chromatic_w_for_plane(file_chromatic_wy, "Y",
+                                                  element_name, bpms_list, measured_chromatic_wy,
+                                                  input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                                  save_path, is_element)
+    if is_element:
+        _write_summary_data(chrom_summary_file, summary_data_x, summary_data_y)
+
+
+def get_chrom_summary_file(save_path):
+        chrom_summary_file = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_chrom.out"))
+        chrom_summary_file.add_column_names(["NAME", "S",
+                                             "WPROPX", "ERRWPROPX", "PHIPROPX", "ERRPHIPROPX",
+                                             "WPROPY", "ERRWPROPY", "PHIPROPY", "ERRPHIPROPY",
+                                             "MODELWX", "MODELWY", "MODELPHIX", "MODELPHIY", "MODEL_S"])
+        chrom_summary_file.add_column_datatypes(["%bpm_s", "%le",
+                                                 "%le", "%le", "%le", "%le",
+                                                 "%le", "%le", "%le", "%le",
+                                                 "%le", "%le", "%le", "%le", "%le"])
+        return chrom_summary_file
 
 
 def _get_chromatic_w_files(save_path, element_name, is_element):
@@ -69,6 +84,7 @@ def _get_chromatic_w_files(save_path, element_name, is_element):
 def _write_chromatic_w_for_plane(file_chromatic, plane, element_name, bpms_list, measured_chromatic_w,
                                     input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
                                     save_path, is_element):
+    summary_data = []
     for bpm in bpms_list:
         bpm_s = bpm[0]
         bpm_name = bpm[1]
@@ -108,5 +124,15 @@ def _write_chromatic_w_for_plane(file_chromatic, plane, element_name, bpms_list,
             average_w, final_err_w = SegmentBySegment.weighted_average_for_SbS_elements(w_prop, err_w_prop, w_back, err_w_prop)
             average_phi, final_err_phi = SegmentBySegment.weighted_average_for_SbS_elements(phi_prop, err_phi_prop, phi_back, err_phi_prop)
             file_chromatic.add_table_row([bpm_name, bpm_s, average_w, final_err_w, average_phi, final_err_phi, model_w, model_phi, model_s])
+            if element_name == bpm_name:
+                summary_data = [bpm_name, bpm_s, average_w, final_err_w, average_phi, final_err_phi, model_w, model_phi, model_s]
 
     file_chromatic.write_to_file()
+    return summary_data
+
+
+def  _write_summary_data(chrom_summary_file, summary_data_x, summary_data_y):
+    chrom_summary_file.add_table_row([summary_data_x[0], summary_data_x[1],
+                                      summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
+                                      summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5],
+                                      summary_data_x[6], summary_data_y[6], summary_data_x[7], summary_data_y[7], summary_data_x[8]])

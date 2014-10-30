@@ -69,11 +69,13 @@ from math import sqrt
 import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
 from Python_Classes4MAD.metaclass import twiss
+from Python_Classes4MAD import madxrunner
 
 import sbs_writers.sbs_beta_writer
 import sbs_writers.sbs_phase_writer
 import sbs_writers.sbs_dispersion_writer
 import sbs_writers.sbs_coupling_writer
+import sbs_writers.sbs_chromatic_writer
 import sbs_writers.sbs_special_element_writer
 
 
@@ -155,8 +157,12 @@ def main(options):
     twiss_file = options.twiss
     if twiss_file == "./":
         twiss_file = os.path.join(options.bb, "MODEL", options.accel, "nominal.opt", "twiss_elements.dat")
-    print "Twiss file ", twiss_file
-    input_model = twiss(twiss_file)
+
+    print "Input model twiss file", twiss_file
+    input_model = _try_to_load_twiss(twiss_file)
+    if input_model is None:
+        print >> sys.stderr, "Cannot read input model, aborting."
+        sys.exit(-1)
 
     twiss_directory = os.path.dirname(twiss_file) + os.path.sep
 
@@ -166,7 +172,7 @@ def main(options):
 
     for element_name in elements_names:
 
-        print element_name
+        print "Started processing", element_name
 
         start_bpm_name, end_bpm_name, is_element = get_good_bpms(input_data, error_cut, input_model, start_bpms, end_bpms, element_name)
 
@@ -188,9 +194,8 @@ def main(options):
             f_coupling_parameters = [0, 0, 0, 0, 0, 0]
             print "No coupling"
 
-        print "Madpass", options.madpass
         if str(options.madpass) == "0":
-            print "Going to _run4mad"
+            print "Running mad"
             _run4mad(save_path,
                     start_bpm_horizontal_data,
                     start_bpm_vertical_data,
@@ -204,11 +209,16 @@ def main(options):
                     f_coupling_parameters,
                     options.path + "/",
                     twiss_directory,
-                    input_data.couple_method)
+                    input_data.couple_method,
+                    options.accel,
+                    options.bb,
+                    options.wpath,
+                    options.mad)
 
         else:
-            _runmad(save_path, element_name)
             print "Just rerunning mad"
+            mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
+            _runmad(mad_file_path, log_file_path, options.mad)
 
         reversetable(save_path, element_name)
 
@@ -216,7 +226,6 @@ def main(options):
 
         chromatic_x_y = _get_chromatic_data(options.wpath)
 
-        print "Writing data for function ", element_name
         getAndWriteData(element_name,
                         input_data,
                         chromatic_x_y,
@@ -227,13 +236,12 @@ def main(options):
                         selected_accelerator,
                         summaries)
 
-        # gnuplot  ### TODO: what is this? (jcoellod)
-        if is_element == 0:
-            beta4plot = start_bpm_horizontal_data[2]
+        if not is_element:
+            beta4plot = start_bpm_horizontal_data[0]
             startpos = input_model.S[input_model.indx[start_bpm_name]]
             endpos = input_model.S[input_model.indx[end_bpm_name]]
-            print startpos, endpos
             run4plot(save_path, startpos, endpos, beta4plot, options.bb, measurement_path, element_name, input_data.QXX, input_data.QYY, options.accel, input_data.couple_method)
+        print "Everything done for", element_name, "\n"
 
     summaries.write_summaries_to_files()
     return 0
@@ -252,7 +260,6 @@ def structure_elements_info(elements_data):
         if position == (len(elements_data)):
             break
 
-        print elements_data[position], position
         if "BPM" in elements_data[position]:
             segment_name = elements_data[position + 2]
             start_bpms[segment_name] = elements_data[position]
@@ -270,7 +277,6 @@ def structure_elements_info(elements_data):
 def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, element_name):
     #  checking if end_bpms element is BPM or instrument (IP,collimators)
     if element_name in start_bpms and element_name in end_bpms:
-        print "Segment has been choosen"
         is_element = False
         segment = [start_bpms[element_name], end_bpms[element_name]]
         start_bpm_name, end_bpm_name = _filter_and_find(input_data.beta_x,
@@ -284,7 +290,6 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
         print >> sys.stderr, "For Instrument just name"
         sys.exit()
     else:
-        print "Element has been choosen"
         is_element = True
         start_bpm_name, end_bpm_name = _filter_and_find(input_data.beta_x,
                                                      input_data.beta_y,
@@ -297,21 +302,13 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
 
 def gather_data(input_data, startbpm, endbpm):
     start_bpm_horizontal_data = [input_data.beta_x.BETX[input_data.beta_x.indx[startbpm]],
-        sqrt(input_data.beta_x.STDBETX[input_data.beta_x.indx[startbpm]] ** 2 + input_data.beta_x.ERRBETX[input_data.beta_x.indx[startbpm]] ** 2),
-        input_data.beta_x.ALFX[input_data.beta_x.indx[startbpm]],
-        sqrt(input_data.beta_x.ERRALFX[input_data.beta_x.indx[startbpm]] ** 2 + input_data.beta_x.STDALFX[input_data.beta_x.indx[startbpm]] ** 2)]
+                                 input_data.beta_x.ALFX[input_data.beta_x.indx[startbpm]]]
     start_bpm_vertical_data = [input_data.beta_y.BETY[input_data.beta_y.indx[startbpm]],
-        sqrt(input_data.beta_y.STDBETY[input_data.beta_y.indx[startbpm]] ** 2 + input_data.beta_y.ERRBETY[input_data.beta_y.indx[startbpm]] ** 2),
-        input_data.beta_y.ALFY[input_data.beta_y.indx[startbpm]],
-        sqrt(input_data.beta_y.ERRALFY[input_data.beta_y.indx[startbpm]] ** 2 + input_data.beta_y.STDALFY[input_data.beta_y.indx[startbpm]] ** 2)]
+                               input_data.beta_y.ALFY[input_data.beta_y.indx[startbpm]]]
     end_bpm_horizontal_data = [input_data.beta_x.BETX[input_data.beta_x.indx[endbpm]],
-        sqrt(input_data.beta_x.STDBETX[input_data.beta_x.indx[endbpm]] ** 2 + input_data.beta_x.ERRBETX[input_data.beta_x.indx[endbpm]] ** 2),
-        input_data.beta_x.ALFX[input_data.beta_x.indx[endbpm]],
-        sqrt(input_data.beta_x.ERRALFX[input_data.beta_x.indx[endbpm]] ** 2 + input_data.beta_x.STDALFX[input_data.beta_x.indx[endbpm]] ** 2)]
+                               input_data.beta_x.ALFX[input_data.beta_x.indx[endbpm]]]
     end_bpm_vertical_data = [input_data.beta_y.BETY[input_data.beta_y.indx[endbpm]],
-        sqrt(input_data.beta_y.STDBETY[input_data.beta_y.indx[endbpm]] ** 2 + input_data.beta_y.ERRBETY[input_data.beta_y.indx[endbpm]] ** 2),
-        input_data.beta_y.ALFY[input_data.beta_y.indx[endbpm]],
-        sqrt(input_data.beta_y.ERRALFY[input_data.beta_y.indx[endbpm]] ** 2 + input_data.beta_y.STDALFY[input_data.beta_y.indx[endbpm]] ** 2)]
+                             input_data.beta_y.ALFY[input_data.beta_y.indx[endbpm]]]
     return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
 
 
@@ -319,58 +316,45 @@ def get_dispersion_info(input_data, startbpm, endbpm):
     if startbpm in input_data.dispersion_x.indx:
         dxx = input_data.dispersion_x.DX[input_data.dispersion_x.indx[startbpm]]
         dxp = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[startbpm]]
-        dxe = input_data.dispersion_x.STDDX[input_data.dispersion_x.indx[startbpm]]
     else:
         dxx = 0
         dxp = 0
-        dxe = 0
         print "Start BPM for horizontal dispersion not found"
     if startbpm in input_data.dispersion_y.indx:
         dyy = input_data.dispersion_y.DY[input_data.dispersion_y.indx[startbpm]]
         dyp = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[startbpm]]
-        dye = input_data.dispersion_y.STDDY[input_data.dispersion_y.indx[startbpm]]
     else:
         dyy = 0
         dyp = 0
-        dye = 0
         print "Start BPM for vertical dispersion not found"
     start_bpm_dispersion = [dxx,
           dxp,
           dyy,
-          dyp,
-          dxe,
-          dye]
+          dyp]
 
     if endbpm in input_data.dispersion_x.indx:
         dxx = input_data.dispersion_x.DX[input_data.dispersion_x.indx[endbpm]]
         dxp = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[endbpm]]
-        dxe = input_data.dispersion_x.STDDX[input_data.dispersion_x.indx[endbpm]]
     else:
         dxx = 0
         dxp = 0
-        dxe = 0
         print "End BPM for horizontal dispersion not found"
     if endbpm in input_data.dispersion_y.indx:
         dyy = input_data.dispersion_y.DY[input_data.dispersion_y.indx[endbpm]]
         dyp = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[endbpm]]
-        dye = input_data.dispersion_y.STDDY[input_data.dispersion_y.indx[endbpm]]
     else:
         dyy = 0
         dyp = 0
-        dye = 0
         print "End BPM for vertical dispersion not found"
     end_bpm_dispersion = [dxx,
            dxp,
            dyy,
-           dyp,
-           dxe,
-           dye]
+           dyp]
 
     return start_bpm_dispersion, end_bpm_dispersion
 
 
 def get_coupling_parameters(input_data, startbpm):
-    print "Coupling"
     if startbpm in input_data.couple.indx:
         f1001r = input_data.couple.F1001R[input_data.couple.indx[startbpm]]
         f1001i = input_data.couple.F1001I[input_data.couple.indx[startbpm]]
@@ -378,6 +362,7 @@ def get_coupling_parameters(input_data, startbpm):
         f1010i = input_data.couple.F1010I[input_data.couple.indx[startbpm]]
         f1001std = input_data.couple.FWSTD1[input_data.couple.indx[startbpm]]
         f1010std = input_data.couple.FWSTD2[input_data.couple.indx[startbpm]]
+        print "Start BPM ", startbpm, " found in coupling measurement."
     else:
         f1001r = 0
         f1001i = 0
@@ -570,7 +555,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
             else:
                 selected_right_bpm = translate[locations_list[element_location_index + 1]][1]
 
-    print selected_left_bpm, selected_right_bpm, " Will be used for the propogation"
+    print selected_left_bpm, selected_right_bpm, "Will be used for the propagation"
 
     return [selected_left_bpm, selected_right_bpm]
 
@@ -585,7 +570,7 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
         nothing => writing to file in this function (new/appending)
     '''
 
-    print "INFO: Start writing files", is_element
+    print "Start writing files for", element_name
 
     (beta_x, err_beta_x, alfa_x, err_alfa_x,
      beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(element_name, is_element,
@@ -640,106 +625,88 @@ def _run4mad(save_path,
              f_coupling_parameters,
              exppath,
              twiss_directory,
-             coupling_method):
+             coupling_method,
+             accelerator,
+             bb_path,
+             w_path,
+             madx_exe_path):
 
-    copy_path = options.bb
+    copy_path = bb_path
     _copy_modifiers_locally(save_path, twiss_directory)
 
-    if options.accel == "LHCB2":
+    if accelerator == "LHCB2":
         direction = -1
         start = "MKI.A5R8.B2"
-        beam = "B2"
 
-    elif options.accel == "LHCB1":
+    elif accelerator == "LHCB1":
         direction = 1
         start = "MSIA.EXIT.B1"
-        beam = "B1"
 
-    wx_value, phi_x_value, wy_value, phi_y_value = _check_chromatic_functions_in_wpath(start_bpm_name)
+    wx_value, phi_x_value, wy_value, phi_y_value = _check_chromatic_functions_in_wpath(start_bpm_name, w_path)
 
     ### check on error propogation
-    errbetx = start_bpm_horizontal_data[1]
     betx = start_bpm_horizontal_data[0]
-    errbety = start_bpm_vertical_data[1]
     bety = start_bpm_vertical_data[0]
-    errbetxb = end_bpm_horizontal_data[1]
     betxb = end_bpm_horizontal_data[0]
-    errbetyb = end_bpm_vertical_data[1]
     betyb = end_bpm_vertical_data[0]
     f1001r = f_coupling_parameters[0]
     f1001i = f_coupling_parameters[1]
     f1010r = f_coupling_parameters[2]
     f1010i = f_coupling_parameters[3]
-    f1001std = f_coupling_parameters[4]
 
-    mad_file_name = os.path.join(save_path, 't_' + str(element_name) + '.madx')
+    mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
 
-#WARNING we are using f1001std here as before instead of f1010std which is not defined
     dict_for_replacing = dict(
             BETX=betx,
             BETY=bety,
-            ERRBETX=errbetx,
-            ERRBETY=errbety,
-            ALFX=start_bpm_horizontal_data[2],
-            ALFY=start_bpm_vertical_data[2],
-            ERRALFX=start_bpm_horizontal_data[3],
-            ERRALFY=start_bpm_vertical_data[3],
+            ALFX=start_bpm_horizontal_data[1],
+            ALFY=start_bpm_vertical_data[1],
             DX=start_bpm_dispersion[0],
-            ERRDX=start_bpm_dispersion[4],
             DY=start_bpm_dispersion[2],
-            ERRDY=start_bpm_dispersion[5],
             DPX=start_bpm_dispersion[1],
             DPY=start_bpm_dispersion[3],
             ENDBX=betxb,
             ENDBY=betyb,
-            ERRENDBX=errbetxb,
-            ERRENDBY=errbetyb,
-            ALFENDX=-end_bpm_horizontal_data[2],
-            ALFENDY=-end_bpm_vertical_data[2],
-            ERRALFENDX=end_bpm_horizontal_data[3],
-            ERRALFENDY=end_bpm_vertical_data[3],
+            ALFENDX=-end_bpm_horizontal_data[1],
+            ALFENDY=-end_bpm_vertical_data[1],
             DENDX=end_bpm_dispersion[0],
-            ERRDENDX=end_bpm_dispersion[4],
             DENDY=end_bpm_dispersion[2],
-            ERRDENDY=end_bpm_dispersion[5],
             DPENDX=-end_bpm_dispersion[1],
             DPENDY=-end_bpm_dispersion[3],
             STARTFROM=start_bpm_name.replace("-", "_"),
             ENDAT=end_bpm_name.replace("-", "_"),
             LABEL=element_name,
-            ACCEL=options.accel,
+            ACCEL=accelerator,
             DIRE=direction,
             START=start,
-            BEAM=beam,
             PATH=save_path,
             F1001R=f1001r,
             F1001I=f1001i,
             F1010R=f1010r,
             F1010I=f1010i,
-            F1001maR=f1001r + f1001std,
-            F1001maI=f1001i + f1001std,
-            F1001miR=f1001r - f1001std,
-            F1001miI=f1001i - f1001std,
-            F1010maR=f1010r + f1001std,
-            F1010maI=f1010i + f1001std,
-            F1010miR=f1010r - f1001std,
-            F1010miI=f1010i - f1001std,
             METHOD=coupling_method,
             EXP=exppath,
             WX=wx_value,
             PHIX=phi_x_value,
             WY=wy_value,
             PHIY=phi_y_value,
-            WPATH=options.wpath
             )
 
     maskfile = os.path.join(copy_path, 'SegmentBySegment', 'job.InterpolateBetas.mask')
 
-    Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, mad_file_name)
+    Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, mad_file_path)
 
-    _runmad(save_path, element_name)
+    _runmad(mad_file_path, log_file_path, madx_exe_path)
 
-    _prepare_watchdog_file_command(save_path, element_name, mad_file_name)
+    _prepare_watchdog_file_command(save_path, element_name, mad_file_path)
+
+
+def _get_files_for_mad(save_path, element_name):
+    mad_file_name = 't_' + str(element_name) + '.madx'
+    log_file_name = element_name + "_mad.log"
+    mad_file_path = os.path.join(save_path, mad_file_name)
+    log_file_path = os.path.join(save_path, log_file_name)
+    return mad_file_path, log_file_path
 
 
 def _copy_modifiers_locally(save_path, twiss_directory):  # TODO: this has to be made platform independent
@@ -749,15 +716,15 @@ def _copy_modifiers_locally(save_path, twiss_directory):  # TODO: this has to be
         os.system('touch ' + save_path + '/modifiers.madx')  # If the modifiers file does not exist create empty file
 
 
-def _check_chromatic_functions_in_wpath(start_bpm_name):
+def _check_chromatic_functions_in_wpath(start_bpm_name, w_path):
     wx_value = 0
     phi_x_value = 0
     wy_value = 0
     phi_y_value = 0
-    if options.wpath != "0":
-        print "Chromatic save save_path,", options.wpath
-        wx_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wx_twiss.out"))
-        wy_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wy_twiss.out"))
+    if w_path != "0":
+        print "Chromatic save save_path,", w_path
+        wx_twiss = _try_to_load_twiss(os.path.join(w_path, "wx_twiss.out"))
+        wy_twiss = _try_to_load_twiss(os.path.join(w_path, "wy_twiss.out"))
         if not wx_twiss is None and not wy_twiss is None:
             if start_bpm_name in wx_twiss.indx:
                 wx_value = wx_twiss.WX[wx_twiss.indx[start_bpm_name]]
@@ -770,14 +737,14 @@ def _check_chromatic_functions_in_wpath(start_bpm_name):
             else:
                 print "Start BPM, ", start_bpm_name, " not in WY file"
         else:
-            print "No Chromatic functions (wx_twiss,wy_twiss) available at ", options.wpath
+            print "No Chromatic functions (wx_twiss,wy_twiss) available at ", w_path
     return wx_value, phi_x_value, wy_value, phi_y_value
 
 
 def _get_chromatic_data(w_path):
     if w_path != "0":
-        wx_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wx_twiss.out"))
-        wy_twiss = _try_to_load_twiss(os.path.join(options.wpath, "wy_twiss.out"))
+        wx_twiss = _try_to_load_twiss(os.path.join(w_path, "wx_twiss.out"))
+        wy_twiss = _try_to_load_twiss(os.path.join(w_path, "wy_twiss.out"))
         if wx_twiss is None or wy_twiss is None:
             return []
         else:
@@ -794,8 +761,9 @@ def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):   # 
     os.system("chmod +x " + watch_file_name)
 
 
-def _runmad(path, name):
-    os.system(options.mad + ' < ' + path + 't_' + str(name) + '.madx')
+def _runmad(file_path, log_file_path, mad_exe_path):
+    madxrunner.runForInputFile(file_path, mad_exe_path, open(log_file_path, "w"))
+    print "MAD done, log file:", log_file_path
 
 
 def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measurements_path, element_name, qx, qy, accelerator, method):
@@ -806,7 +774,7 @@ def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measu
                               EndPoint=end_point,
                               StartPoint=start_point,
                               LABEL=element_name,
-                              ACCEL=options.accel,
+                              ACCEL=accelerator,
                               BETA=beta4plot,
                               QX=qx,
                               QY=qy,
@@ -816,7 +784,7 @@ def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measu
 
     if (element_name == "IP8" and accelerator == "LHCB2") or (element_name == "IP2" and accelerator == "LHCB1"):
         maskfile = 'gplot.IP2IP8.mask'
-    elif "RHIC" in options.accel:
+    elif "RHIC" in accelerator:
         maskfile = 'gplot_RHIC.mask'
     else:
         maskfile = 'gplot.mask'
@@ -867,8 +835,6 @@ def reversetable(save_path, element_name):
         muxx = mux[index]
         muyy = muy[index]
 
-        #print bpm, dex
-
         reverse_file.write(str(bpm) + ' ' + str(endpos - ss) + ' ' + str(bex) + ' ' + str(alx) + ' ' + str(bey) + ' ' + str(aly) + '  ' + str(dex) + ' ' + str(depx) + ' ' + str(dey) + ' ' + str(depy) + ' ' + str(muxx) + ' ' + str(muyy) + '\n')
 
     reverse_file.close()
@@ -876,7 +842,10 @@ def reversetable(save_path, element_name):
 
 def _try_to_load_twiss(file_path):
     try:
+        syserr = sys.stderr
+        sys.stderr = open(os.devnull, "w")
         twiss_data = twiss(file_path)
+        sys.stderr = syserr
     except ValueError:
         twiss_data = None
     return twiss_data
@@ -943,14 +912,17 @@ class _Summaries(object):
         self.beta = sbs_writers.sbs_beta_writer.get_beta_summary_file(save_path)
         self.coupling = sbs_writers.sbs_coupling_writer.get_coupling_summary_file(save_path)
         self.dispersion = sbs_writers.sbs_dispersion_writer.get_dispersion_summary_file(save_path)
-
-        # TODO: Chrom summary
+        self.chrom = sbs_writers.sbs_chromatic_writer.get_chrom_summary_file(save_path)
 
     def write_summaries_to_files(self):
-        self.beta.write_to_file()
-        self.coupling.write_to_file()
-        self.dispersion.write_to_file()
-        self.chrom.write_to_file()
+        if not self.beta._TfsFileWriter__tfs_table.is_empty():
+            self.beta.write_to_file()
+        if not self.coupling._TfsFileWriter__tfs_table.is_empty():
+            self.coupling.write_to_file()
+        if not self.dispersion._TfsFileWriter__tfs_table.is_empty():
+            self.dispersion.write_to_file()
+        if not self.chrom._TfsFileWriter__tfs_table.is_empty():
+            self.chrom.write_to_file()
 
 
 class _InputData(object):
@@ -1030,8 +1002,8 @@ class _InputData(object):
 # main invocation
 #===================================================================================================
 if __name__ == "__main__":
-    (options, args) = parse_args()
+    (_options, _args) = parse_args()
 
-    return_value = main(options)
+    return_value = main(_options)
 
     sys.exit(return_value)

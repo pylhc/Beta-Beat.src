@@ -477,6 +477,7 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
         err_phase_y_bpm2_prop = sbs_phase_writer._propagate_error_phase(err_beta_y_bpm2, err_alfa_y_bpm2, phase_advance_y_bpm2_prop, beta_y_bpm2, alfa_y_bpm2)
         err_phase_y_bpm2_back = sbs_phase_writer._propagate_error_phase(err_beta_y_bpm2, err_alfa_y_bpm2, phase_advance_y_bpm2_back, beta_y_bpm2, alfa_y_bpm2)
 
+        # TODO: Is this OK?
         average_phase_advance_x_bpm1, final_error_phase_advance_x_bpm1 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_x_bpm1_prop,
                                                                                                                             err_phase_x_bpm1_prop,
                                                                                                                             phase_advance_x_bpm1_back,
