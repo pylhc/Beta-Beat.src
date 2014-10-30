@@ -801,7 +801,7 @@ def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measu
 #delete  TODO delete?? can this be removed??
 def reversetable(save_path, element_name):
     reverse_file = open(os.path.join(save_path, "twiss_" + element_name + "_back_rev.dat"), 'w')
-    original_file = twiss(os.path.join(save_path, "twiss_" + element_name + "_back.dat"))
+    original_file = _try_to_load_twiss(os.path.join(save_path, "twiss_" + element_name + "_back.dat"))
 
     reverse_file.write("* NAME                                S               BETX               ALFX               BETY               ALFY    DX       DPX     DY     DPY   MUX   MUY\n")
     reverse_file.write("$ %s                                %le                %le                %le                %le                %le      %le                %le      %le   %le            %le                %le \n")
@@ -898,12 +898,27 @@ class _PropagatedModels(object):
         self.__save_path = save_path
 
         self.corrected = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
+        if self.corrected is None:
+            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '_cor.dat', ", see mad log. Aborting"
+            sys.exit(-1)
+
         self.propagation = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
+        if self.propagation is None:
+            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '.dat', ", see mad log. Aborting"
+            sys.exit(-1)
+
         self.back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back.dat')
-        self.corrected_back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_cor_back.dat')  # TODO: Change these names
+        if self.back_propagation is None:
+            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '_back.dat', ", see mad log. Aborting"
+            sys.exit(-1)
+
+        self.corrected_back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_cor_back.dat')
+        if self.corrected_back_propagation is None:
+            print >> sys.stderr, "Cannot load", 'twiss_' + element_name + '_cor_back', ", see mad log. Aborting"
+            sys.exit(-1)
 
     def __get_twiss_for_file(self, file_name):
-        return twiss(os.path.join(self.__save_path, file_name))
+        return _try_to_load_twiss(os.path.join(self.__save_path, file_name))
 
 
 class _Summaries(object):
