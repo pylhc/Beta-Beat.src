@@ -54,10 +54,6 @@ select, flag=twiss, range=%(ENDAT)s;
 select, flag=twiss, range=%(STARTFROM)s, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
 twiss, file="%(PATH)s/StartPoint.twiss";
 
-!use, period=%(ACCEL)s;
-!select, flag=twiss, clear;
-!select, flag=twiss, range=%(ENDAT)s, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-!twiss, file="%(PATH)s/EndPoint.twiss";
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!mathing
@@ -148,42 +144,35 @@ M1: MACRO={
     lmdif, TOLERANCE=1.0E-6;
 ENDMATCH;
 
+!!!! TODO: beam 2!
+EXTRACT, SEQUENCE=%(ACCEL)s, FROM=%(STARTFROM)s, TO=%(ENDAT)s, NEWNAME=front_propagation;
+beam, particle = proton, sequence=front_propagation, energy = 450.0, bv=1;
 
-use, period=%(ACCEL)s, range=%(STARTFROM)s/%(ENDAT)s;
-select, flag=twiss, clear;
-select, flag=twiss, class=quadrupole;
-select, flag=twiss, class=monitor;
-select, flag=twiss, class=rcollimator;
-select, flag=twiss, class=marker;
-select, flag=twiss, class=rbend;
-select, flag=twiss, class=tkicker;
-select,flag=twiss,pattern="XRP";
-select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s.dat";
-
-
-!
-! Write here some correction
-!
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s_cor.dat";
-
-
-!
-! Please remove the correction if you want the rest to make sense
-!
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! back propagation
-
-
-seqedit, sequence=%(ACCEL)s;
+EXTRACT, SEQUENCE=%(ACCEL)s, FROM=%(STARTFROM)s, TO=%(ENDAT)s, NEWNAME=back_propagation;
+beam, particle = proton, sequence=back_propagation, energy = 450.0, bv=1;
+seqedit, sequence=back_propagation;
 cycle, start=%(ENDAT)s;
 flatten;reflect; ! reverse command
 endedit;
 
-use, period=%(ACCEL)s, range=%(ENDAT)s/%(STARTFROM)s;
+
+!!! Normal propagation
+
+use, period=front_propagation, range=%(STARTFROM)s/%(ENDAT)s;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=rbend;
+select, flag=twiss, class=tkicker;
+select, flag=twiss,pattern="XRP";
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
+twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s.dat";
+
+!!! Back propagation
+
+use, period=back_propagation, range=%(ENDAT)s/%(STARTFROM)s;
 select, flag=twiss, clear;
 select, flag=twiss, class=quadrupole;
 select, flag=twiss, class=monitor;
@@ -191,24 +180,41 @@ select, flag=twiss, class=rcollimator;
 select, flag=twiss, class=marker;
 select, flag=twiss, class=tkicker;
 select, flag=twiss, class=rbend;
-select,flag=twiss,pattern="XRP";
+select, flag=twiss,pattern="XRP";
 select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s, file="%(PATH)s/twiss_%(LABEL)s_nom_back.dat";
-
-
-
-use, period=%(ACCEL)s, range=%(ENDAT)s/%(STARTFROM)s;
-select, flag=twiss, clear;
-select, flag=twiss, class=quadrupole;
-select, flag=twiss, class=monitor;
-select, flag=twiss, class=rcollimator;
-select, flag=twiss, class=marker;
-select, flag=twiss, class=tkicker;
-select, flag=twiss, class=rbend;
-select,flag=twiss,pattern="XRP";
-select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-
 twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_back.dat";
+
+
+!!! Loading corrections
+call,  file="%(PATH)s/corrections.madx";
+
+
+!!! Corrected normal propagation
+
+use, period=front_propagation, range=%(STARTFROM)s/%(ENDAT)s;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=rbend;
+select, flag=twiss, class=tkicker;
+select, flag=twiss,pattern="XRP";
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
+twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s_cor.dat";
+
+!!! Corrected back propagation
+
+use, period=back_propagation, range=%(ENDAT)s/%(STARTFROM)s;
+select, flag=twiss, clear;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=rbend;
+select, flag=twiss,pattern="XRP";
+select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
 twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_cor_back.dat";
 
 

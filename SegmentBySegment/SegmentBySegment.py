@@ -77,7 +77,6 @@ import sbs_writers.sbs_dispersion_writer
 import sbs_writers.sbs_coupling_writer
 import sbs_writers.sbs_chromatic_writer
 import sbs_writers.sbs_special_element_writer
-import stat
 
 
 #===================================================================================================
@@ -598,7 +597,8 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
                                                         beta_y, err_beta_y, alfa_y, err_alfa_y,
                                                         input_model, input_data.phase_x, input_data.phase_y, element_name,
                                                         selected_accelerator, save_path)
-    elif "ADT" in element_name and is_element:
+    # TODO: This need to be fixed before using (find BPMs)
+    elif False and "ADT" in element_name and is_element:  # if False to avoid going inside
         sbs_writers.sbs_special_element_writer.write_transverse_damper(propagated_models, element_name, input_model,
                                                                        save_path, input_data.phase_x, input_data.phase_y,
                                                                        input_data.beta_x, input_data.beta_y,
@@ -633,7 +633,7 @@ def _run4mad(save_path,
              madx_exe_path):
 
     copy_path = bb_path
-    _copy_modifiers_locally(save_path, twiss_directory)
+    _copy_modifiers_and_corrections_locally(save_path, twiss_directory)
 
     if accelerator == "LHCB2":
         direction = -1
@@ -710,13 +710,24 @@ def _get_files_for_mad(save_path, element_name):
     return mad_file_path, log_file_path
 
 
-def _copy_modifiers_locally(save_path, twiss_directory):
+def _copy_modifiers_and_corrections_locally(save_path, twiss_directory):
     modifiers_file_path = os.path.join(twiss_directory, 'modifiers.madx')
     if os.path.isfile(modifiers_file_path):
         Utilities.iotools.copy_item(modifiers_file_path, save_path)
     else:
         print >> sys.stderr, "Cannot find modifiers.madx file, will create a empty file."
         open(os.path.join(save_path, 'modifiers.madx'), "a").close()
+
+    output_corrections_file_path = os.path.join(save_path, "corrections.madx")
+    if not os.path.isfile(output_corrections_file_path):
+        corrections_file_path = os.path.join(twiss_directory, "corrections.madx")
+        if os.path.isfile(corrections_file_path):
+            Utilities.iotools.copy_item(corrections_file_path, save_path)
+        else:
+            print >> sys.stderr, "Cannot find corrections.madx file, will create a empty file."
+            open(os.path.join(save_path, 'corrections.madx'), "a").close()
+    else:
+        print "corrections.madx file found in output path."
 
 
 def _check_chromatic_functions_in_wpath(start_bpm_name, w_path):
@@ -761,7 +772,7 @@ def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):
     watch_file = open(watch_file_name, "w")
     print >> watch_file, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py " + mad_file_name + " " + save_path + "/gplot_" + str(element_name)
     watch_file.close()
-    os.chmod(watch_file_name, stat.S_IEXEC)
+    os.chmod(watch_file_name, 0777)
 
 
 def _runmad(file_path, log_file_path, mad_exe_path):
