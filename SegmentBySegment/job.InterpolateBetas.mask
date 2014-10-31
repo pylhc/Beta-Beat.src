@@ -144,12 +144,15 @@ M1: MACRO={
     lmdif, TOLERANCE=1.0E-6;
 ENDMATCH;
 
-!!!! TODO: beam 2!
+
 EXTRACT, SEQUENCE=%(ACCEL)s, FROM=%(STARTFROM)s, TO=%(ENDAT)s, NEWNAME=front_propagation;
-beam, particle = proton, sequence=front_propagation, energy = 450.0, bv=1;
+IF (%(ACCEL)s == LHCB1) { beam, particle = proton, sequence=front_propagation, energy = 450.0, bv=1; }
+ELSEIF (%(ACCEL)s == LHCB2) { beam, particle = proton, sequence=front_propagation, energy = 450.0, bv=-1; }
+
 
 EXTRACT, SEQUENCE=%(ACCEL)s, FROM=%(STARTFROM)s, TO=%(ENDAT)s, NEWNAME=back_propagation;
-beam, particle = proton, sequence=back_propagation, energy = 450.0, bv=1;
+IF (%(ACCEL)s == LHCB1) { beam, particle = proton, sequence=back_propagation, energy = 450.0, bv=1; }
+ELSEIF (%(ACCEL)s == LHCB2) { beam, particle = proton, sequence=back_propagation, energy = 450.0, bv=-1; }
 seqedit, sequence=back_propagation;
 cycle, start=%(ENDAT)s;
 flatten;reflect; ! reverse command
