@@ -144,6 +144,7 @@ def main(options):
         0 if execution was successful otherwise !=0
     '''
 
+    print "+++ Starting Segment by Segment +++"
     measurement_path = options.path
     input_data = _InputData(measurement_path)
 
@@ -189,9 +190,9 @@ def main(options):
             print "No dispersion"
 
         if input_data.has_coupling:
-            f_coupling_parameters = get_coupling_parameters(input_data, start_bpm_name)
+            element_has_coupling, f_coupling_parameters = get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
         else:
-            f_coupling_parameters = [0, 0, 0, 0, 0, 0]
+            element_has_coupling, f_coupling_parameters = False, [0, 0, 0, 0, 0, 0]
             print "No coupling"
 
         if str(options.madpass) == "0":
@@ -233,10 +234,12 @@ def main(options):
                         propagated_models,
                         save_path,
                         is_element,
+                        element_has_coupling,
                         selected_accelerator,
                         summaries)
 
-        if not is_element:
+        # TODO: This has to be fixed
+        if False and not is_element:
             beta4plot = start_bpm_horizontal_data[0]
             startpos = input_model.S[input_model.indx[start_bpm_name]]
             endpos = input_model.S[input_model.indx[end_bpm_name]]
@@ -244,6 +247,8 @@ def main(options):
         print "Everything done for", element_name, "\n"
 
     summaries.write_summaries_to_files()
+
+    print "+++  Ended Segment by Segment   +++"
     return 0
 
 # END main() ---------------------------------------------------------------------------------------
@@ -354,26 +359,29 @@ def get_dispersion_info(input_data, startbpm, endbpm):
     return start_bpm_dispersion, end_bpm_dispersion
 
 
-def get_coupling_parameters(input_data, startbpm):
-    if startbpm in input_data.couple.indx:
+def get_coupling_parameters(input_data, startbpm, endbpm):
+    f1001r = 0
+    f1001i = 0
+    f1010r = 0
+    f1010i = 0
+    f1001std = 0
+    f1010std = 0
+    element_has_coupling = False
+    if not startbpm in input_data.couple.indx:
+        print "Start BPM ", startbpm, " not found in coupling measurement, will not compute coupling."
+    elif not endbpm in input_data.couple.indx:
+        print "End BPM ", endbpm, " not found in coupling measurement, will not compute coupling."
+    else:
         f1001r = input_data.couple.F1001R[input_data.couple.indx[startbpm]]
         f1001i = input_data.couple.F1001I[input_data.couple.indx[startbpm]]
         f1010r = input_data.couple.F1010R[input_data.couple.indx[startbpm]]
         f1010i = input_data.couple.F1010I[input_data.couple.indx[startbpm]]
         f1001std = input_data.couple.FWSTD1[input_data.couple.indx[startbpm]]
         f1010std = input_data.couple.FWSTD2[input_data.couple.indx[startbpm]]
+        element_has_coupling = True
         print "Start BPM ", startbpm, " found in coupling measurement."
-    else:
-        f1001r = 0
-        f1001i = 0
-        f1010r = 0
-        f1010i = 0
-        f1001std = 0
-        f1010std = 0
-        print "Start BPM ", startbpm, " not found in coupling measurement, will not compute coupling."
-        input_data.has_coupling = False
     f_coupling_parameters = [f1001r, f1001i, f1010r, f1010i, f1001std, f1010std]
-    return f_coupling_parameters
+    return element_has_coupling, f_coupling_parameters
 
 
 #===================================================================================================
@@ -560,7 +568,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     return [selected_left_bpm, selected_right_bpm]
 
 
-def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propagated_models, save_path, is_element, selected_accelerator, summaries):
+def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propagated_models, save_path, is_element, element_has_coupling, selected_accelerator, summaries):
     '''
     Function that returns the optics function at the given element
 
@@ -579,13 +587,13 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
                                                                                       save_path, summaries.beta)
     if not is_element:
         sbs_writers.sbs_phase_writer.write_phase(element_name,
-                                                 input_data.phase_x, input_data.phase_y, input_data.beta_x, input_data.beta_y,
+                                                 input_data.total_phase_x, input_data.total_phase_y, input_data.beta_x, input_data.beta_y,
                                                  input_model, propagated_models, save_path)
     if input_data.has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
                                                            input_model, propagated_models, save_path, summaries.dispersion)
-    if input_data.has_coupling:
+    if element_has_coupling:
         sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, summaries.coupling)
 
     if len(chromatic_x_y) != 0:
@@ -809,7 +817,7 @@ def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measu
     # read mask file, replace all keys and write to plot script:
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, plotscript)
 
-    os.system("gnuplot " + plotscript)
+    os.system("gnuplot --persist " + plotscript)
 
 
 #delete  TODO delete?? can this be removed??
@@ -980,12 +988,14 @@ class _InputData(object):
             self.couple_method = "driven"
         else:
             self.has_coupling = False
-            print "No coupling file... will continue without taking into account coupling"
 
         if _exists(_join_output_with("getcouple_free.out")):
             self.couple = twiss(_join_output_with("getcouple_free.out"))
             self.couple_method = "_free"
+            self.has_coupling = True
             print "Free coupling found"
+        if not self.has_coupling:
+            print "No coupling file... will continue without taking into account coupling"
 
     def __try_to_load_dispersion_files(self):
         if _all_exists_in_output_path("getDx.out", "getNDx.out", "getDy.out"):

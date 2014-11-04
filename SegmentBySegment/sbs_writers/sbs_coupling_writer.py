@@ -21,9 +21,9 @@ def write_coupling(element_name, is_element, measured_coupling, input_model, pro
     model_back_cor.Cmatrix()
 
     if not is_element:
-        bpms_list = SegmentBySegment.intersect([measured_coupling, input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
+        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_coupling])
     else:
-        bpms_list = SegmentBySegment.intersect([input_model, model_cor, model_propagation, model_back_propagation, model_back_cor])
+        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
     summary_data_f = _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
 
@@ -121,7 +121,7 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
 
 
 def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor):
-
+    summary_data = []
     first_bpm = bpms_list[0][1]
     last_bpm = bpms_list[-1][1]
 

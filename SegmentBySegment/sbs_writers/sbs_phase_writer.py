@@ -27,6 +27,7 @@ def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_h
 
 def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor):
     first_bpm = bpms_list[0][1]
+    last_bpm = bpms_list[-1][1]
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = sbs_beta_writer._get_start_end_betas(bpms_list, measured_beta, plane)
 
@@ -47,17 +48,20 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
         model_cor_phase = (getattr(model_cor, "MU" + plane)[model_cor.indx[bpm_name]] -
                            getattr(model_cor, "MU" + plane)[model_cor.indx[first_bpm]]) % 1
 
-        model_back_propagation_phase = (getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]] -
-                                        getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[first_bpm]]) % 1
+        meas_phase_back = (getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[bpm_name]] -
+                           getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[last_bpm]]) % 1
 
-        model_back_cor_phase = (getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[bpm_name]] -
-                                getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[first_bpm]]) % 1
+        model_back_propagation_phase = (getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[last_bpm]] -
+                                        getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]]) % 1
+
+        model_back_cor_phase = (getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[last_bpm]] -
+                                getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[bpm_name]]) % 1
 
         prop_phase_difference = (meas_phase - model_prop_phase) % 1
         if prop_phase_difference > 0.5:
             prop_phase_difference = prop_phase_difference - 1
 
-        back_prop_phase_difference = (meas_phase - model_back_propagation_phase) % 1
+        back_prop_phase_difference = (meas_phase_back - model_back_propagation_phase) % 1
         if back_prop_phase_difference > 0.5:
             back_prop_phase_difference = back_prop_phase_difference - 1
 
@@ -66,6 +70,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
 
         prop_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_prop_phase, beta_start, alfa_start)
         cor_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_cor_phase, beta_start, alfa_start)
+
         back_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_propagation_phase, beta_end, alfa_end)
         back_cor_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_cor_phase, beta_end, alfa_end)
 
