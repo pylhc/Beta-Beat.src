@@ -1,6 +1,6 @@
 from Utilities import tfs_file_writer
+from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 import os
-import SegmentBySegment
 
 
 def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_chromatic_wy, input_model, propagated_models, save_path, chrom_summary_file):
@@ -12,9 +12,9 @@ def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_ch
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_chromatic_wx])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_chromatic_wx])
     else:
-        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
     summary_data_x = _write_chromatic_w_for_plane(file_chromatic_wx, "X",
                                                   element_name, bpms_list, measured_chromatic_wx,
@@ -121,8 +121,8 @@ def _write_chromatic_w_for_plane(file_chromatic, plane, element_name, bpms_list,
                                           w_back_cor, err_w_back_cor, phi_back_cor, err_phi_back_cor,
                                           model_w, model_phi, model_s])
         else:
-            average_w, final_err_w = SegmentBySegment.weighted_average_for_SbS_elements(w_prop, err_w_prop, w_back, err_w_prop)
-            average_phi, final_err_phi = SegmentBySegment.weighted_average_for_SbS_elements(phi_prop, err_phi_prop, phi_back, err_phi_prop)
+            average_w, final_err_w = weighted_average_for_SbS_elements(w_prop, err_w_prop, w_back, err_w_prop)
+            average_phi, final_err_phi = weighted_average_for_SbS_elements(phi_prop, err_phi_prop, phi_back, err_phi_prop)
             file_chromatic.add_table_row([bpm_name, bpm_s, average_w, final_err_w, average_phi, final_err_phi, model_w, model_phi, model_s])
             if element_name == bpm_name:
                 summary_data = [bpm_name, bpm_s, average_w, final_err_w, average_phi, final_err_phi, model_w, model_phi, model_s]

@@ -7,7 +7,9 @@ import subprocess
 from Python_Classes4MAD.metaclass import twiss
 from Python_Classes4MAD import madxrunner
 import json
-import write_sbs_data_files
+import numpy as np
+from SegmentBySegment import SegmentBySegment
+import Utilities
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -48,7 +50,7 @@ def main(options, args):
         command = "match"
     ip = options.ip
     temporary_path = options.temp
-    match_temporary_path = os.path.join(CURRENT_PATH, temporary_path, "match")
+    match_temporary_path = os.path.join(temporary_path, "match")
     if command == "variables":
         exclude_vars_string = options.exclude
         generate_variables(ip, match_temporary_path, exclude_vars_string)
@@ -76,39 +78,31 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
 
     _check_and_run_genvariables(ip, match_temporary_path)
     _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
+    run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path)
 
-    print "Copying necessary files into temporary folder..."
-    iotools.copy_item(os.path.join(CURRENT_PATH, "genphases.py"), match_temporary_path)
-    iotools.copy_item(os.path.join(CURRENT_PATH, "mergedump.sh"), match_temporary_path)
+    print "Copying plotting files into temporary folder..."
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB1.gplot"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB2.gplot"), match_temporary_path)
-    iotools.copy_item(os.path.join(CURRENT_PATH, "addtheader.sh"), match_temporary_path)
 
     _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path)
-    _apply_replace_to_beam1_files(sbs_data_b1_path, beam1_temporary_path, os.path.join(beam1_temporary_path, "sbs"), ip)
 
     _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path)
-    _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, os.path.join(beam2_temporary_path, "sbs"), ip)
-
-    # TODO: getfterms shouldn't be called from MADX, this has to be fixed in the SegmentBySegment.py script (jcoellod)
-    iotools.copy_item(os.path.join(CURRENT_PATH, "write_sbs_data_files.py"), os.path.join(beam1_temporary_path, "sbs", "getfterms_0.3.py"))
-    iotools.copy_item(os.path.join(CURRENT_PATH, "write_sbs_data_files.py"), os.path.join(beam2_temporary_path, "sbs", "getfterms_0.3.py"))
 
     print "Getting matching range..."
     ((range_beam1_start_s, range_beam1_start_name),
     (range_beam1_end_s, range_beam1_end_name)) = _get_match_bpm_range(os.path.join(beam1_temporary_path, "sbs",
                                                                            "sbsphasext_IP" + ip + ".out"))
-    range_beam1 = range_beam1_start_name + " / " + range_beam1_end_name
-
     ((range_beam2_start_s, range_beam2_start_name),
     (range_beam2_end_s, range_beam2_end_name)) = _get_match_bpm_range(os.path.join(beam2_temporary_path, "sbs",
                                                                            "sbsphasext_IP" + ip + ".out"))
-    range_beam2 = range_beam2_start_name + " / " + range_beam2_end_name
     print "Matching range for Beam 1:", range_beam1_start_name, range_beam1_end_name
     print "Matching range for Beam 2:", range_beam2_start_name, range_beam2_end_name
 
     print "Running MADX..."
-    _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_path)
+    label = "IP" + str(ip)
+    _prepare_script_and_run_madx(label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
+                                 range_beam1_start_name, range_beam1_end_name,
+                                 range_beam2_start_name, range_beam2_end_name)
 
     print "Writting sbs files from MADX results..."
     _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name)
@@ -245,7 +239,7 @@ def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, t
     for index in range(0, len(sbs_data.NAME)):
         name = sbs_data.NAME[index]
         if name not in exclude_list:
-            phase = sbs_data.PHASEXT[index] if plane == "x" else sbs_data.PHASEYT[index]
+            phase = sbs_data.PROPPHASEX[index] if plane == "x" else sbs_data.PROPPHASEY[index]
             s = sbs_data.S[index]
 
             phase, ckstr = _check_and_fix_tune_discontinuity(phase, s, ip, beam, plane, tune)
@@ -282,6 +276,112 @@ def _parse_exclude_string(exclude_string):
     return exclude_list
 
 
+def run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path):
+
+    sbs_x_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'sbs', 'sbsphasext_IP' + ip + '.out'))
+    sbs_y_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'sbs', 'sbsphaseyt_IP' + ip + '.out'))
+    sbs_x_data_beam2 = twiss(os.path.join(sbs_data_b2_path, 'sbs', 'sbsphasext_IP' + ip + '.out'))
+    sbs_y_data_beam2 = twiss(os.path.join(sbs_data_b2_path, 'sbs', 'sbsphaseyt_IP' + ip + '.out'))
+
+    phases_file = open(os.path.join(match_temporary_path, "phases.seqx"), 'w')
+    phases0_beam1_file = open(os.path.join(match_temporary_path, "phases0b1.seqx"), 'w')
+    phases0_beam2_file = open(os.path.join(match_temporary_path, "phases0b2.seqx"), 'w')
+
+    beam1_s_list = sbs_x_data_beam1.MODEL_S
+    sorted_index_beam1 = np.argsort(beam1_s_list)
+
+    beam2_s_list = sbs_x_data_beam2.MODEL_S
+    sorted_index_beam2 = np.argsort(beam2_s_list)
+
+    phases_file.write('\n!!!! BEAM 1 H !!!!!\n\n')
+    phases0_beam1_file.write('\n!!!! BEAM 1 H !!!!!\n\n')
+
+    for name in sbs_x_data_beam1.NAME:
+        phases0_beam1_file.write('mux0' + name + ' = ')
+        phases0_beam1_file.write('table(twiss, ' + name + ', mux) - ')
+        phases0_beam1_file.write('table(twiss, ' + sbs_x_data_beam1.NAME[sorted_index_beam1[0]] + ', mux);\n')
+
+        phases_file.write('mux' + name + ' := ')
+        phases_file.write('table(twiss, ' + name + ', mux) - ')
+        phases_file.write('table(twiss, ' + sbs_x_data_beam1.NAME[sorted_index_beam1[0]] + ', mux);\n')
+
+    phases_file.write('\n')
+
+    for name in sbs_x_data_beam1.NAME:
+        phases_file.write('dmux' + name + ' := ')
+        phases_file.write('mux' + name + ' - ' 'mux0' + name + ';\n')
+
+    phases_file.write('\n!!!! BEAM 2 H !!!!!\n\n')
+
+    phases0_beam2_file.write('\n!!!! BEAM 2 H !!!!!\n\n')
+
+    for idx in sorted_index_beam2:
+        name = sbs_x_data_beam2.NAME[idx]
+
+        phases0_beam2_file.write('mux0' + name + ' = ')
+        phases0_beam2_file.write('table(twiss, ' + name + ', mux) - ')
+        phases0_beam2_file.write('table(twiss, ' + sbs_x_data_beam2.NAME[sorted_index_beam2[0]] + ', mux);\n')
+
+        phases_file.write('mux' + name + ' := ')
+        phases_file.write('table(twiss, ' + name + ', mux) - ')
+        phases_file.write('table(twiss, ' + sbs_x_data_beam2.NAME[sorted_index_beam2[0]] + ', mux);\n')
+
+    phases_file.write('\n')
+
+    for name in sbs_x_data_beam2.NAME:
+        phases_file.write('dmux' + name + ' := ')
+        phases_file.write('mux' + name + ' - ' 'mux0' + name + ';\n')
+
+    beam1_s_list = sbs_y_data_beam1.MODEL_S
+    sorted_index_beam1 = np.argsort(beam1_s_list)
+
+    beam2_s_list = sbs_y_data_beam2.MODEL_S
+    sorted_index_beam2 = np.argsort(beam2_s_list)
+
+    phases_file.write('\n!!!! BEAM 1 V !!!!!\n\n')
+
+    phases0_beam1_file.write('\n!!!! BEAM 1 V !!!!!\n\n')
+
+    for name in sbs_y_data_beam1.NAME:
+
+        phases0_beam1_file.write('muy0' + name + ' = ')
+        phases0_beam1_file.write('table(twiss, ' + name + ', muy) - ')
+        phases0_beam1_file.write('table(twiss, ' + sbs_y_data_beam1.NAME[sorted_index_beam1[0]] + ', muy);\n')
+
+        phases_file.write('muy' + name + ' := ')
+        phases_file.write('table(twiss, ' + name + ', muy) - ')
+        phases_file.write('table(twiss, ' + sbs_y_data_beam1.NAME[sorted_index_beam1[0]] + ', muy);\n')
+
+    phases_file.write('\n')
+
+    for name in sbs_y_data_beam1.NAME:
+        phases_file.write('dmuy' + name + ' := ')
+        phases_file.write('muy' + name + ' - ' 'muy0' + name + ';\n')
+
+    phases_file.write('\n!!!! BEAM 2 V !!!!!\n\n')
+
+    phases0_beam2_file.write('\n!!!! BEAM 2 V !!!!!\n\n')
+
+    for name in sbs_y_data_beam2.NAME:
+        phases0_beam2_file.write('muy0' + name + ' = ')
+        phases0_beam2_file.write('table(twiss, ' + name + ', muy) - ')
+        phases0_beam2_file.write('table(twiss, ' + sbs_y_data_beam2.NAME[sorted_index_beam2[0]] + ', muy);\n')
+
+        phases_file.write('muy' + name + ' := ')
+        phases_file.write('table(twiss, ' + name + ', muy) - ')
+        phases_file.write('table(twiss, ' + sbs_y_data_beam2.NAME[sorted_index_beam2[0]] + ', muy);\n')
+
+    phases_file.write('\n')
+
+    for name in sbs_y_data_beam2.NAME:
+        phases_file.write('dmuy' + name + ' := ')
+        phases_file.write('muy' + name + ' - ' 'muy0' + name + ';\n')
+
+    phases0_beam1_file.close()
+    phases0_beam2_file.close()
+    phases_file.close()
+
+
 def _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path):
     _copy_files_with_extension(sbs_data_b1_path, beam1_temporary_path, ".out")
     _copy_files_with_extension(os.path.join(sbs_data_b1_path, "sbs"),
@@ -297,10 +397,10 @@ def _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path):
 
 def _apply_replace_to_beam1_files(sbs_data_b1_path, beam1_temporary_path, beam1_temporary_sbs_path, ip):
     strings_to_replace_madx = [("//", "/"),
-                               (sbs_data_b1_path, beam1_temporary_path),
+                               (sbs_data_b1_path, beam1_temporary_path + "/"),
                                ("stop;", "return;"),
                                ("install,", "!install,")]
-    strings_to_replace_ip = [("! Write here some correction", "return;")]
+    strings_to_replace_ip = [("!!! Back propagation", "return;")]
     _replace_in_files_with_extension(beam1_temporary_sbs_path, strings_to_replace_madx, ".madx")
     _replace_in_files_with_extension(beam1_temporary_sbs_path, strings_to_replace_ip, "t_IP" + ip + ".madx")
 
@@ -319,15 +419,15 @@ def _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path):
 
 def _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, beam2_temporary_sbs_path, ip):
     strings_to_replace_madx = [("//", "/"),
-                               (sbs_data_b2_path, beam2_temporary_path),
+                               (sbs_data_b2_path, beam2_temporary_path + "/"),
                                ("stop;", "return;"),
                                ("install,", "!install,"),
                                ("label=b0", "label=b02"),
                                ("beta0=b0", "beta0=b02"),
                                ("label=b1", "label=b2"),
                                ("beta0=b1", "beta0=b2")]
-    strings_to_replace_ip = [("! Write here some correction", "return;")]
-    strings_to_replace_madx_slash = [(".*back propagation.*", ("return;"))]
+    strings_to_replace_ip = [("!!! Back propagation", "return;")]
+    strings_to_replace_madx_slash = [(".*back propagation.*", ("return;")), (".*\.seq.*", ("!!! No load seq")), (".*modifiers\.madx.*", ("!!! No load seq")), (".*install_additional_elements\.madx.*", ("!!! No load seq"))]
     _replace_in_files_with_extension(beam2_temporary_sbs_path, strings_to_replace_madx, ".madx")
     _replace_in_files_with_extension(beam2_temporary_sbs_path, strings_to_replace_ip, "t_IP" + ip + ".madx")
     _replace_in_files_with_extension(beam2_temporary_sbs_path, strings_to_replace_madx_slash, "t_IP" + ip + ".madx", "/")
@@ -340,28 +440,39 @@ def _get_match_bpm_range(file_path):
     return bpms_with_distances_list[0], bpms_with_distances_list[-1]
 
 
-def _prepare_script_and_run_madx(ip, range_beam1, range_beam2, match_temporary_path):
-    madx_script_path = os.path.join(match_temporary_path, "matchIP" + ip + ".madx")
-    iotools.copy_item(os.path.join(CURRENT_PATH, "matchIP.madx"), madx_script_path)
-    _replace_in_file(madx_script_path, [("__IPNO__", str(ip)), ("__RANGEB1__", range_beam1), ("__RANGEB2__", range_beam2)])
+def _prepare_script_and_run_madx(label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
+                                 b1_range_start, b1_range_end, b2_range_start, b2_range_end):
+    sbs_path = os.path.join(CURRENT_PATH, "..", "SegmentBySegment")
+    dict_for_replacing = dict(
+        PATHB1=os.path.join(beam1_temporary_path, "sbs"),
+        PATHB2=os.path.join(beam2_temporary_path, "sbs"),
+        MATCH=match_temporary_path,
+        LABEL=label,
+        SBSPATH=sbs_path,
+        STARTFROMB1=b1_range_start,
+        ENDATB1=b1_range_end,
+        STARTFROMB2=b2_range_start,
+        ENDATB2=b2_range_end
+        )
 
-    remadx_script_path = os.path.join(match_temporary_path, "rematchIP" + ip + ".madx")
-    iotools.copy_item(madx_script_path, remadx_script_path)
-    _replace_in_file(remadx_script_path, [('system, \"python', '!system, \"python'), ('system, \"./addtheader', '!system, \"./addtheader')])
+    mask_file = os.path.join(CURRENT_PATH, "job.match.madx")
+    madx_script_path = os.path.join(match_temporary_path, "job.match" + label + ".madx")
 
-    madx_binary_path = madxrunner.get_sys_dependent_path_to_mad_x()
-    call_command = madx_binary_path + " < " + madx_script_path
-    process = subprocess.Popen(call_command,
-                               shell=True,
-                               cwd=match_temporary_path)
-    process.communicate()
+    Utilities.iotools.replace_keywords_in_textfile(mask_file, dict_for_replacing, madx_script_path)
+
+    madxrunner.runForInputFile(madx_script_path, stdout=open(os.path.join(match_temporary_path, "match_madx_out.log"), "w"))
 
 
 def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
-    write_sbs_data_files.main(os.path.join(beam1_temporary_path, "sbs"), beam1_temporary_path, "IP" + ip, "0",
-                              range_beam1_start_name, "_free", "0")
-    write_sbs_data_files.main(os.path.join(beam2_temporary_path, "sbs"), beam2_temporary_path, "IP" + ip, "0",
-                              range_beam2_start_name, "_free", "0")
+    save_path_b1 = os.path.join(beam1_temporary_path, "sbs")
+    save_path_b2 = os.path.join(beam2_temporary_path, "sbs")
+    input_data_b1 = SegmentBySegment._InputData(beam1_temporary_path)
+    input_data_b2 = SegmentBySegment._InputData(beam2_temporary_path)
+    prop_models_b1 = SegmentBySegment._PropagatedModels(save_path_b1, "IP" + str(ip))
+    prop_models_b2 = SegmentBySegment._PropagatedModels(save_path_b2, "IP" + str(ip))
+
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, [], None, prop_models_b1, save_path_b1, False, False, "LHCB1", None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, [], None, prop_models_b2, save_path_b2, False, False, "LHCB2", None)
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):

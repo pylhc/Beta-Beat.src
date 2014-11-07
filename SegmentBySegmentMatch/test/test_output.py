@@ -92,19 +92,10 @@ class TestOutput(unittest.TestCase):
         call_command = sys.executable + " " + call_command
 
         process = subprocess.Popen(call_command,
-                           stdout=subprocess.PIPE,
+                           stdout=open("test_log.log", "w"),
                            stderr=subprocess.PIPE,
                            shell=True)
-        (out_stream, err_stream) = process.communicate()
-
-        errcode = process.returncode
-
-        if 0 != errcode:
-            print "Error running command:", call_command
-            print "Printing output:-------------------------"
-            print out_stream
-            print >> sys.stderr, "Printing error output:-------------------"
-            print >> sys.stderr, err_stream
+        process.communicate()
 
     def _check_results_for_input(self, input_file_name):
         directory_valid = os.path.join(self.path_to_valid, input_file_name)

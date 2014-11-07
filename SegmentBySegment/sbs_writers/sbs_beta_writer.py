@@ -1,6 +1,6 @@
 import __init__  # @UnusedImport
 import os
-import SegmentBySegment
+import sys
 import numpy as np
 import math
 
@@ -8,7 +8,7 @@ from math import sqrt
 from Utilities import tfs_file_writer
 
 
-def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, beta_summary_file):
+def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, propagated_models, save_path, beta_summary_file):
     file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element)
 
     model_propagation = propagated_models.propagation
@@ -17,18 +17,18 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, i
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_hor_beta])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta])
     else:
-        bpms_list = SegmentBySegment.intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor])
 
     summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
                                            element_name, bpms_list, measured_hor_beta,
-                                           input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                           model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
 
     summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
                                            element_name, bpms_list, measured_ver_beta,
-                                           input_model, model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                           model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
     if is_element:
         _write_summary_data(beta_summary_file, summary_data_x, summary_data_y)
@@ -88,7 +88,7 @@ def _get_beta_tfs_files(element_name, save_path, is_element):
     return file_alfa_x, file_beta_x, file_alfa_y, file_beta_y
 
 
-def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor, output_path, is_element, beta_summary_file):
+def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, model_propagation, model_cor, model_back_propagation, model_back_cor, output_path, is_element, beta_summary_file):
 
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, plane)
@@ -99,9 +99,9 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
         bpm_s = bpm[0]
         bpm_name = bpm[1]
 
-        model_s = input_model.S[input_model.indx[bpm_name]]
-        beta_model = getattr(input_model, "BET" + plane)[input_model.indx[bpm_name]]
-        alfa_model = getattr(input_model, "ALF" + plane)[input_model.indx[bpm_name]]
+        model_s = measured_beta.S[measured_beta.indx[bpm_name]]
+        beta_model = getattr(measured_beta, "BET" + plane + "MDL")[measured_beta.indx[bpm_name]]
+        alfa_model = getattr(measured_beta, "ALF" + plane + "MDL")[measured_beta.indx[bpm_name]]
 
         beta_propagation = getattr(model_propagation, "BET" + plane)[model_propagation.indx[bpm_name]]
         beta_back_propagation = getattr(model_back_propagation, "BET" + plane)[model_back_propagation.indx[bpm_name]]
@@ -141,8 +141,8 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
                                      alfa_back_propagation, err_alfa_back, alfa_back_cor, err_alfa_back_cor,
                                      alfa_model, model_s])
         else:
-            averaged_beta, final_beta_error = SegmentBySegment.weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
-            averaged_alfa, final_alfa_error = SegmentBySegment.weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
+            averaged_beta, final_beta_error = weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
+            averaged_alfa, final_alfa_error = weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
 
             file_alfa.add_table_row([bpm_name, bpm_s, averaged_alfa, final_alfa_error, alfa_model, model_s])
             file_beta.add_table_row([bpm_name, bpm_s, averaged_beta, final_beta_error, beta_model, model_s])
@@ -180,3 +180,28 @@ def _propagate_error_beta(errb0, erra0, dphi, bets, bet0, alf0):
 
 def _propagate_error_alfa(errb0, erra0, dphi, alfs, bet0, alf0):
     return math.sqrt(((alfs*((np.sin(4*np.pi*dphi)*alf0/bet0) + (np.cos(4*np.pi*dphi)/bet0))) - (np.cos(4*np.pi*dphi)*alf0/bet0) + (np.sin(4*np.pi*dphi)/bet0))**2*errb0**2 + ((np.cos(4*np.pi*dphi)) - (alfs*np.sin(4*np.pi*dphi)))**2*erra0**2)  # @IgnorePep8
+
+
+def intersect(list_of_files):
+    '''Pure intersection of all bpm names in all files '''
+    if len(list_of_files) == 0:
+        print "Nothing to intersect!!!!"
+        sys.exit()
+    z = list_of_files[0].NAME
+    for b in list_of_files:
+        z = filter(lambda x: x in z, b.NAME)
+    #SORT by S
+    result = []
+    x0 = list_of_files[0]
+    for bpm in z:
+        result.append((x0.S[x0.indx[bpm]], bpm))
+    result.sort()
+    return result
+
+
+def weighted_average_for_SbS_elements(value1, sigma1, value2, sigma2):
+    weighted_average =  (1/sigma1**2 * value1 + 1/sigma2**2 * value2) / (1/sigma1**2 + 1/sigma2**2)  # @IgnorePep8
+    uncertainty_of_average = np.sqrt(1 / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
+    weighted_rms = np.sqrt(2 * (1/sigma1**2 * (value1 - weighted_average)**2 + 1/sigma2**2 * (value2 - weighted_average)**2) / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
+    final_error = np.sqrt(uncertainty_of_average**2 + weighted_rms**2)  # @IgnorePep8
+    return weighted_average, final_error

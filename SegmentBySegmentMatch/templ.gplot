@@ -14,14 +14,14 @@ set lmargin 9
 s=__srangestart__
 #set xrange[__srangestart__-50:__srangeend__+50]
 set yrange[]
-set key s+400, 0.06 samplen 1
+set key on
 
 set ylabel "{/Symbol Df}_x[2{/Symbol p}]" 0.5
 
 
 
-p [][-0.06:0.06]"Beam__BEAMNO__/sbs/sbsphasext_IP__IPNO__.out" u ($2):4:5 t"Meas" w e pt 7 lt 1, "" u  ($2):4 not w l 1,\
-   "" u ($2):6 t"Err" w l lt 7
+p [][-0.06:0.06]"Beam__BEAMNO__/sbs/sbsphasext_IP__IPNO__.out" u 2:5:6 t"Prop" w e pt 7 lt 1,\
+    "" u 2:7:8 t"Cor prop" w e
 
 
 set origin 0,0.
@@ -30,13 +30,12 @@ set size 1,0.54
 set ylabel "{/Symbol Df}_y[2{/Symbol p}]"
 set xlabel"s [m]"
 set yrange[]
-unset key
+set key on
 
 
 
-p [][-0.06:0.06]"Beam__BEAMNO__/sbs/sbsphaseyt_IP__IPNO__.out" u ($2):4:5 t"Meas" w e pt 7 lt 1,\
-   "" u ($2):4 w l 1,\
-   "" u ($2):6 w l lt 7
+p [][-0.06:0.06]"Beam__BEAMNO__/sbs/sbsphaseyt_IP__IPNO__.out" u 2:5:6 t"Prop" w e pt 7 lt 1,\
+    "" u 2:7:8 t"Cor prop" w e
 
 
 

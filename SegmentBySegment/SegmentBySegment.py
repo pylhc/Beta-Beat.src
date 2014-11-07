@@ -64,7 +64,6 @@ import os
 import sys
 import optparse
 
-import numpy as np
 from math import sqrt
 import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
@@ -196,7 +195,6 @@ def main(options):
             print "No coupling"
 
         if str(options.madpass) == "0":
-            print "Running mad"
             _run4mad(save_path,
                     start_bpm_horizontal_data,
                     start_bpm_vertical_data,
@@ -388,41 +386,6 @@ def get_coupling_parameters(input_data, startbpm, endbpm):
 # helper-functions
 #===================================================================================================
 
-
-def modelIntersectgetf(exp, model):
-    bpmsin = []
-    for bpm in exp.NAME:
-            try:
-                    check = model.indx[bpm.upper()]
-                    bpmsin.append([model.S[check], bpm])
-            except:
-                    print bpm, "Not in Model"
-    if len(bpmsin) == 0:
-            print "Zero intersection of Exp and Model"
-            print "Please, provide a good Dictionary"
-            print "Now we better leave!"
-            sys.exit()
-    bpmsin.sort()
-    return bpmsin
-
-
-def intersect(list_of_files):
-    '''Pure intersection of all bpm names in all files '''
-    if len(list_of_files) == 0:
-        print "Nothing to intersect!!!!"
-        sys.exit()
-    z = list_of_files[0].NAME
-    for b in list_of_files:
-        z = filter(lambda x: x in z, b.NAME)
-    #SORT by S
-    result = []
-    x0 = list_of_files[0]
-    for bpm in z:
-        result.append((x0.S[x0.indx[bpm]], bpm))
-    result.sort()
-    return result
-
-
 def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_names, model, errorcut):
     '''
     Automatic BPM filter and BPM finder
@@ -580,21 +543,30 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
 
     print "Start writing files for", element_name
 
+    if hasattr(summaries, 'beta'):
+        beta_summary = summaries.beta
+        disp_summary = summaries.dispersion
+        coupling_summary = summaries.coupling
+    else:
+        beta_summary = None
+        disp_summary = None
+        coupling_summary = None
+
     (beta_x, err_beta_x, alfa_x, err_alfa_x,
      beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(element_name, is_element,
                                                                                       input_data.beta_x, input_data.beta_y,
-                                                                                      input_model, propagated_models,
-                                                                                      save_path, summaries.beta)
+                                                                                      propagated_models,
+                                                                                      save_path, beta_summary)
     if not is_element:
         sbs_writers.sbs_phase_writer.write_phase(element_name,
                                                  input_data.total_phase_x, input_data.total_phase_y, input_data.beta_x, input_data.beta_y,
-                                                 input_model, propagated_models, save_path)
+                                                 propagated_models, save_path)
     if input_data.has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
-                                                           input_model, propagated_models, save_path, summaries.dispersion)
+                                                           propagated_models, save_path, disp_summary)
     if element_has_coupling:
-        sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, summaries.coupling)
+        sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, propagated_models, save_path, coupling_summary)
 
     if len(chromatic_x_y) != 0:
         sbs_writers.sbs_chromatic_writer.write_chromatic()
@@ -611,14 +583,6 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
                                                                        save_path, input_data.phase_x, input_data.phase_y,
                                                                        input_data.beta_x, input_data.beta_y,
                                                                        selected_accelerator)
-
-
-def weighted_average_for_SbS_elements(value1, sigma1, value2, sigma2):
-    weighted_average =  (1/sigma1**2 * value1 + 1/sigma2**2 * value2) / (1/sigma1**2 + 1/sigma2**2)  # @IgnorePep8
-    uncertainty_of_average = np.sqrt(1 / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
-    weighted_rms = np.sqrt(2 * (1/sigma1**2 * (value1 - weighted_average)**2 + 1/sigma2**2 * (value2 - weighted_average)**2) / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
-    final_error = np.sqrt(uncertainty_of_average**2 + weighted_rms**2)  # @IgnorePep8
-    return weighted_average, final_error
 
 
 def _run4mad(save_path,
@@ -644,11 +608,9 @@ def _run4mad(save_path,
     _copy_modifiers_and_corrections_locally(save_path, twiss_directory)
 
     if accelerator == "LHCB2":
-        direction = -1
         start = "MKI.A5R8.B2"
 
     elif accelerator == "LHCB1":
-        direction = 1
         start = "MSIA.EXIT.B1"
 
     wx_value, phi_x_value, wy_value, phi_y_value = _check_chromatic_functions_in_wpath(start_bpm_name, w_path)
@@ -666,44 +628,50 @@ def _run4mad(save_path,
     mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
 
     dict_for_replacing = dict(
-            BETX=betx,
-            BETY=bety,
-            ALFX=start_bpm_horizontal_data[1],
-            ALFY=start_bpm_vertical_data[1],
-            DX=start_bpm_dispersion[0],
-            DY=start_bpm_dispersion[2],
-            DPX=start_bpm_dispersion[1],
-            DPY=start_bpm_dispersion[3],
-            ENDBX=betxb,
-            ENDBY=betyb,
-            ALFENDX=-end_bpm_horizontal_data[1],
-            ALFENDY=-end_bpm_vertical_data[1],
-            DENDX=end_bpm_dispersion[0],
-            DENDY=end_bpm_dispersion[2],
-            DPENDX=-end_bpm_dispersion[1],
-            DPENDY=-end_bpm_dispersion[3],
+            SBSPATH=os.path.join(bb_path, "SegmentBySegment"),
             STARTFROM=start_bpm_name.replace("-", "_"),
             ENDAT=end_bpm_name.replace("-", "_"),
             LABEL=element_name,
             ACCEL=accelerator,
-            DIRE=direction,
             START=start,
             PATH=save_path,
-            F1001R=f1001r,
-            F1001I=f1001i,
-            F1010R=f1010r,
-            F1010I=f1010i,
             METHOD=coupling_method,
-            EXP=exppath,
-            WX=wx_value,
-            PHIX=phi_x_value,
-            WY=wy_value,
-            PHIY=phi_y_value,
+            EXP=exppath
             )
 
-    maskfile = os.path.join(copy_path, 'SegmentBySegment', 'job.InterpolateBetas.mask')
+    measurement_dict = dict(
+            betx_ini=betx,
+            bety_ini=bety,
+            alfx_ini=start_bpm_horizontal_data[1],
+            alfy_ini=start_bpm_vertical_data[1],
+            dx_ini=start_bpm_dispersion[0],
+            dy_ini=start_bpm_dispersion[2],
+            dpx_ini=start_bpm_dispersion[1],
+            dpy_ini=start_bpm_dispersion[3],
+            wx_ini=wx_value,
+            phix_ini=phi_x_value,
+            wy_ini=wy_value,
+            phiy_ini=phi_y_value,
+            ini_f1001r=f1001r,
+            ini_f1001i=f1001i,
+            ini_f1010r=f1010r,
+            ini_f1010i=f1010i,
+            betx_end=betxb,
+            bety_end=betyb,
+            alfx_end=-end_bpm_horizontal_data[1],
+            alfy_end=-end_bpm_vertical_data[1],
+            dx_end=end_bpm_dispersion[0],
+            dy_end=end_bpm_dispersion[2],
+            dpx_end=-end_bpm_dispersion[1],
+            dpy_end=-end_bpm_dispersion[3],
+    )
 
+    maskfile = os.path.join(copy_path, 'SegmentBySegment', 'job.InterpolateBetas.mask')
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, mad_file_path)
+
+    with open(os.path.join(save_path, "measurement.madx"), "w") as measurement_file:
+        for name, value in measurement_dict.iteritems():
+            print >> measurement_file, name, "=", value, ";"
 
     _runmad(mad_file_path, log_file_path, madx_exe_path)
 
@@ -784,7 +752,12 @@ def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):
 
 
 def _runmad(file_path, log_file_path, mad_exe_path):
-    madxrunner.runForInputFile(file_path, mad_exe_path, open(log_file_path, "w"))
+    return_code = madxrunner.runForInputFile(file_path, mad_exe_path, open(log_file_path, "w"))
+    print return_code
+    if return_code != 0:
+        print >> sys.stderr, "MAD execution failed, see log:", log_file_path
+        print >> sys.stderr, "Aborting..."
+        sys.exit(return_code)
     print "MAD done, log file:", log_file_path
 
 

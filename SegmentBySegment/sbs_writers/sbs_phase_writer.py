@@ -1,15 +1,15 @@
 import __init__  # @UnusedImport
 import os
-import SegmentBySegment
 import sbs_beta_writer
 import numpy as np
 import math
 
 from Utilities import tfs_file_writer
+from sbs_beta_writer import intersect
 
 
 def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_hor_beta, measured_ver_beta,
-                   input_model, propagated_models, save_path):
+                    propagated_models, save_path):
 
     file_phase_x, file_phase_y = _get_phase_tfs_files(element_name, save_path)
 
@@ -18,14 +18,14 @@ def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_h
     model_cor = propagated_models.corrected
     model_back_cor = propagated_models.corrected_back_propagation
 
-    bpms_list = SegmentBySegment.intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_hor_phase, input_model])
+    bpms_list = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_hor_phase])
 
-    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list, measured_hor_phase, measured_hor_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list, measured_hor_phase, measured_hor_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
-    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list, measured_ver_phase, measured_ver_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list, measured_ver_phase, measured_ver_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
 
-def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor):
+def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, model_propagation, model_cor, model_back_propagation, model_back_cor):
     first_bpm = bpms_list[0][1]
     last_bpm = bpms_list[-1][1]
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
@@ -35,7 +35,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
         bpm_s = bpm[0]
         bpm_name = bpm[1]
 
-        model_s = input_model.S[input_model.indx[bpm_name]]
+        model_s = measured_phase.S[measured_phase.indx[bpm_name]]
 
         meas_phase = (getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[bpm_name]] -
                       getattr(measured_phase, "PHASE" + plane)[measured_phase.indx[first_bpm]]) % 1
@@ -82,6 +82,8 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
 def _get_phase_tfs_files(element_name, save_path):
     file_phase_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphasext_" + element_name + ".out"))
     file_phase_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphaseyt_" + element_name + ".out"))
+    file_phase_x.add_string_descriptor("TYPE", "USER")  # Needed for sbs match
+    file_phase_y.add_string_descriptor("TYPE", "USER")  # Needed for sbs match
 
     file_phase_x.add_column_names(["NAME", "S", "MEASPHASEX", "STDERRPHASEX", "PROPPHASEX", "ERRPROPPHASEX", "CORPHASEX", "ERRCORPHASEX", "BACKPHASEX", "ERRBACKPHASEX", "BACKCORPHASEX", "ERRBACKCORPHASEX", "MODEL_S"])
     file_phase_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])

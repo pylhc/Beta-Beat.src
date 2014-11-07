@@ -3,7 +3,7 @@ from math import sqrt, tan, sin, cos, pi
 from Utilities import tfs_file_writer
 import sbs_phase_writer
 import sbs_beta_writer
-import SegmentBySegment
+from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 
 
 def _get_ip_tfs_files(save_path):
@@ -478,22 +478,22 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
         err_phase_y_bpm2_back = sbs_phase_writer._propagate_error_phase(err_beta_y_bpm2, err_alfa_y_bpm2, phase_advance_y_bpm2_back, beta_y_bpm2, alfa_y_bpm2)
 
         # TODO: Is this OK?
-        average_phase_advance_x_bpm1, final_error_phase_advance_x_bpm1 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_x_bpm1_prop,
-                                                                                                                            err_phase_x_bpm1_prop,
-                                                                                                                            phase_advance_x_bpm1_back,
-                                                                                                                            err_phase_x_bpm1_back)
-        average_phase_advance_y_bpm1, final_error_phase_advance_y_bpm1 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_y_bpm1_prop,
-                                                                                                                            err_phase_y_bpm1_prop,
-                                                                                                                            phase_advance_y_bpm1_back,
-                                                                                                                            err_phase_y_bpm1_back)
-        average_phase_advance_x_bpm2, final_error_phase_advance_x_bpm2 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_x_bpm2_prop,
-                                                                                                                            err_phase_x_bpm2_prop,
-                                                                                                                            phase_advance_x_bpm2_back,
-                                                                                                                            err_phase_x_bpm2_back)
-        average_phase_advance_y_bpm2, final_error_phase_advance_y_bpm2 = SegmentBySegment.weighted_average_for_SbS_elements(phase_advance_y_bpm2_prop,
-                                                                                                                            err_phase_y_bpm2_prop,
-                                                                                                                            phase_advance_y_bpm2_back,
-                                                                                                                            err_phase_y_bpm2_back)
+        average_phase_advance_x_bpm1, final_error_phase_advance_x_bpm1 = weighted_average_for_SbS_elements(phase_advance_x_bpm1_prop,
+                                                                                                           err_phase_x_bpm1_prop,
+                                                                                                           phase_advance_x_bpm1_back,
+                                                                                                           err_phase_x_bpm1_back)
+        average_phase_advance_y_bpm1, final_error_phase_advance_y_bpm1 = weighted_average_for_SbS_elements(phase_advance_y_bpm1_prop,
+                                                                                                           err_phase_y_bpm1_prop,
+                                                                                                           phase_advance_y_bpm1_back,
+                                                                                                           err_phase_y_bpm1_back)
+        average_phase_advance_x_bpm2, final_error_phase_advance_x_bpm2 = weighted_average_for_SbS_elements(phase_advance_x_bpm2_prop,
+                                                                                                           err_phase_x_bpm2_prop,
+                                                                                                           phase_advance_x_bpm2_back,
+                                                                                                           err_phase_x_bpm2_back)
+        average_phase_advance_y_bpm2, final_error_phase_advance_y_bpm2 = weighted_average_for_SbS_elements(phase_advance_y_bpm2_prop,
+                                                                                                           err_phase_y_bpm2_prop,
+                                                                                                           phase_advance_y_bpm2_back,
+                                                                                                           err_phase_y_bpm2_back)
         file_transverse_damper.add_table_row([bpm_pair[0], element_name,
                                               input_model.S[input_model.indx[bpm_pair[0]]],
                                               input_model.S[input_model.indx[element_name]],
