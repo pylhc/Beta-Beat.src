@@ -691,7 +691,7 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory):
     if os.path.isfile(modifiers_file_path):
         Utilities.iotools.copy_item(modifiers_file_path, save_path)
     else:
-        print >> sys.stderr, "Cannot find modifiers.madx file, will create a empty file."
+        print "Cannot find modifiers.madx file, will create an empty file."
         open(os.path.join(save_path, 'modifiers.madx'), "a").close()
 
     output_corrections_file_path = os.path.join(save_path, "corrections.madx")
@@ -700,7 +700,7 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory):
         if os.path.isfile(corrections_file_path):
             Utilities.iotools.copy_item(corrections_file_path, save_path)
         else:
-            print >> sys.stderr, "Cannot find corrections.madx file, will create a empty file."
+            print "Cannot find corrections.madx file, will create an empty file."
             open(os.path.join(save_path, 'corrections.madx'), "a").close()
     else:
         print "corrections.madx file found in output path."
@@ -753,7 +753,6 @@ def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):
 
 def _runmad(file_path, log_file_path, mad_exe_path):
     return_code = madxrunner.runForInputFile(file_path, mad_exe_path, open(log_file_path, "w"))
-    print return_code
     if return_code != 0:
         print >> sys.stderr, "MAD execution failed, see log:", log_file_path
         print >> sys.stderr, "Aborting..."

@@ -70,6 +70,8 @@ def main(options, args):
 
 def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
 
+    print "+++ Starting Segment by Segment Match +++"
+
     beam1_temporary_path = os.path.join(match_temporary_path, "Beam1")
     beam2_temporary_path = os.path.join(match_temporary_path, "Beam2")
 
@@ -114,7 +116,8 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     _prepare_and_run_gnuplot(ip, match_temporary_path,
                              range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s)
 
-    print "Done"
+    print "+++  Ended Segment by Segment Match  +++"
+    return 0
 
 
 def _check_and_run_genvariables(ip, match_temporary_path):
@@ -395,16 +398,6 @@ def _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path):
                                ".py")
 
 
-def _apply_replace_to_beam1_files(sbs_data_b1_path, beam1_temporary_path, beam1_temporary_sbs_path, ip):
-    strings_to_replace_madx = [("//", "/"),
-                               (sbs_data_b1_path, beam1_temporary_path + "/"),
-                               ("stop;", "return;"),
-                               ("install,", "!install,")]
-    strings_to_replace_ip = [("!!! Back propagation", "return;")]
-    _replace_in_files_with_extension(beam1_temporary_sbs_path, strings_to_replace_madx, ".madx")
-    _replace_in_files_with_extension(beam1_temporary_sbs_path, strings_to_replace_ip, "t_IP" + ip + ".madx")
-
-
 def _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path):
     _copy_files_with_extension(os.path.join(sbs_data_b2_path), beam2_temporary_path, ".out")
     _copy_files_with_extension(os.path.join(sbs_data_b2_path, "sbs"),
@@ -417,25 +410,9 @@ def _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path):
                                ".py")
 
 
-def _apply_replace_to_beam2_files(sbs_data_b2_path, beam2_temporary_path, beam2_temporary_sbs_path, ip):
-    strings_to_replace_madx = [("//", "/"),
-                               (sbs_data_b2_path, beam2_temporary_path + "/"),
-                               ("stop;", "return;"),
-                               ("install,", "!install,"),
-                               ("label=b0", "label=b02"),
-                               ("beta0=b0", "beta0=b02"),
-                               ("label=b1", "label=b2"),
-                               ("beta0=b1", "beta0=b2")]
-    strings_to_replace_ip = [("!!! Back propagation", "return;")]
-    strings_to_replace_madx_slash = [(".*back propagation.*", ("return;")), (".*\.seq.*", ("!!! No load seq")), (".*modifiers\.madx.*", ("!!! No load seq")), (".*install_additional_elements\.madx.*", ("!!! No load seq"))]
-    _replace_in_files_with_extension(beam2_temporary_sbs_path, strings_to_replace_madx, ".madx")
-    _replace_in_files_with_extension(beam2_temporary_sbs_path, strings_to_replace_ip, "t_IP" + ip + ".madx")
-    _replace_in_files_with_extension(beam2_temporary_sbs_path, strings_to_replace_madx_slash, "t_IP" + ip + ".madx", "/")
-
-
 def _get_match_bpm_range(file_path):
     twiss_data = twiss(file_path)
-    bpms_with_distances_list = zip(twiss_data.MODEL_S, twiss_data.NAME)
+    bpms_with_distances_list = zip(twiss_data.S, twiss_data.NAME)
     bpms_with_distances_list.sort()
     return bpms_with_distances_list[0], bpms_with_distances_list[-1]
 
@@ -478,31 +455,40 @@ def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
     beam1_plot_path = os.path.join(match_temporary_path, "IP" + ip + "B1.gplot")
     beam2_plot_path = os.path.join(match_temporary_path, "IP" + ip + "B2.gplot")
-    beam1_plot_replacements = [("__IPNO__", str(ip)), ("__BEAMNO__", "1"),
-        ("__FILENAME__", "IP" + str(ip) + "B1.eps"),
-        ("__srangestart__", str(range_beam1_start_s)),
-        ("__srangeend__", str(range_beam1_end_s))]
-    beam2_plot_replacements = [("__IPNO__", str(ip)),
-        ("__BEAMNO__", "2"),
-        ("__FILENAME__", "IP" + str(ip) + "B2.eps"),
-        ("__srangestart__", str(range_beam2_start_s)),
-        ("__srangeend__", str(range_beam2_end_s))]
-    iotools.copy_item(os.path.join(CURRENT_PATH, "templ.gplot"), beam1_plot_path)
-    iotools.copy_item(os.path.join(CURRENT_PATH, "templ.gplot"), beam2_plot_path)
+    beam1_plot_replacements = dict(
+                                   IPNO=str(ip),
+                                   BEAMNO="1",
+                                   FILENAME="IP" + str(ip) + "B1.eps",
+                                   SRANGESTART=str(range_beam1_start_s),
+                                   SRANGEEND=str(range_beam1_end_s)
+                                   )
+
+    beam2_plot_replacements = dict(
+                                   IPNO=str(ip),
+                                   BEAMNO="2",
+                                   FILENAME="IP" + str(ip) + "B2.eps",
+                                   SRANGESTART=str(range_beam2_start_s),
+                                   SRANGEEND=str(range_beam2_end_s)
+                                   )
+    beam1_plot_template = os.path.join(CURRENT_PATH, "templ.gplot")
+    beam2_plot_template = os.path.join(CURRENT_PATH, "templ.gplot")
     if str(ip) == "2":
-        iotools.copy_item(os.path.join(CURRENT_PATH, "templIP2B1.gplot"), beam1_plot_path)
+        beam1_plot_template = os.path.join(CURRENT_PATH, "templIP2B1.gplot")
         beam1_qx, beam1_qy = _get_q_value(match_temporary_path, 1)
-        beam1_plot_replacements.append(("__QX__", beam1_qx))
-        beam1_plot_replacements.append(("__QY__", beam1_qy))
+        beam1_plot_replacements["QX"] = beam1_qx
+        beam1_plot_replacements["QY"] = beam1_qy
     elif str(ip) == "8":
-        iotools.copy_item(os.path.join(CURRENT_PATH, "templIP8B2.gplot"), beam2_plot_path)
+        beam2_plot_template = os.path.join(CURRENT_PATH, "templIP8B2.gplot")
         beam2_qx, beam2_qy = _get_q_value(match_temporary_path, 2)
-        beam2_plot_replacements.append(("__QX__", beam2_qx))
-        beam2_plot_replacements.append(("__QY__", beam2_qy))
-    _replace_in_file(beam1_plot_path, beam1_plot_replacements)
-    _replace_in_file(beam2_plot_path, beam2_plot_replacements)
+        beam2_plot_replacements["QX"] = beam2_qx
+        beam2_plot_replacements["QY"] = beam2_qy
+
+    Utilities.iotools.replace_keywords_in_textfile(beam1_plot_template, beam1_plot_replacements, beam1_plot_path)
+    Utilities.iotools.replace_keywords_in_textfile(beam2_plot_template, beam2_plot_replacements, beam2_plot_path)
+
     proccess_beam1 = subprocess.Popen("gnuplot " + beam1_plot_path, shell=True, cwd=match_temporary_path)
     proccess_beam2 = subprocess.Popen("gnuplot " + beam2_plot_path, shell=True, cwd=match_temporary_path)
+
     proccess_beam1.communicate()
     proccess_beam2.communicate()
 
@@ -551,20 +537,6 @@ def _copy_files_with_filter(src, dest, filter_function):
     for file_name in src_files:
         full_file_name = os.path.join(src, file_name)
         shutil.copy(full_file_name, dest)
-
-
-def _replace_in_files_with_extension(src, replace_pairs, ext, sed_sep="#"):
-    src_files = _get_filtered_file_list(src, lambda file_name: file_name.endswith(ext))
-    for file_name in src_files:
-        full_file_name = os.path.join(src, file_name)
-        _replace_in_file(full_file_name, replace_pairs, sed_sep)
-
-
-def _replace_in_file(full_file_name, replace_pairs, sed_sep="#"):  # TODO: Use a python function instead of sed
-    sed_command = "sed -i "
-    for pattern, replace in replace_pairs:
-        full_command = sed_command + "'s" + sed_sep + pattern + sed_sep + replace + sed_sep + "g' " + full_file_name
-        subprocess.call(full_command, shell=True)
 
 
 def _get_filtered_file_list(src, filter_function):
