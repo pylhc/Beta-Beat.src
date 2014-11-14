@@ -87,7 +87,6 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB2.gplot"), match_temporary_path)
 
     _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path)
-
     _copy_beam2_temp_files(ip, sbs_data_b2_path, beam2_temporary_path)
 
     print "Getting matching range..."

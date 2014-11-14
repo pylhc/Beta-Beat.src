@@ -24,36 +24,17 @@ call, file="%(PATH)s/measurement.madx";
 !!! Segment by segment main
 exec, sbs_main(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s, path, b0%(ACCEL)s);
 
-!!! For some reason, matching cannot be done inside a macro...
-MATCH, USE_MACRO;
-    VARY, name=ir11, step=0.00001;
-    VARY, name=ir12, step=0.00001;
-    VARY, name=ir21, step=0.00001;
-    VARY, name=ir22, step=0.00001;
-    
-    M1: MACRO={
-        exec, getfterms(%(STARTFROM)s, b0%(ACCEL)s, b1%(ACCEL)s);
-    }
-    
-    CONSTRAINT, EXPR= f1001r= ini_f1001r;
-    CONSTRAINT, EXPR= f1001i= ini_f1001i;
-    CONSTRAINT, EXPR= f1010r= ini_f1010r;
-    CONSTRAINT, EXPR= f1010i= ini_f1010i;
-    
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
 !!! Extract front and back propagation sequences
 exec, extract_seq(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s);
 
 !!! Propagation front and back
-exec, twiss_fr_bk(%(ACCEL)s, twiss_fr, twiss_bck, b1%(ACCEL)s);
+exec, twiss_fr_bk(%(ACCEL)s, twiss_fr, twiss_bck, b0%(ACCEL)s);
 
 !!! Loading corrections
 call,  file="%(PATH)s/corrections.madx";
 
 !!! Corrected propagation front and back
-exec, twiss_fr_bk(%(ACCEL)s, twiss_fr_cor, twiss_bck_cor, b1%(ACCEL)s);
+exec, twiss_fr_bk(%(ACCEL)s, twiss_fr_cor, twiss_bck_cor, b0%(ACCEL)s);
 
 !!! Clean the links
 system, "unlink path";

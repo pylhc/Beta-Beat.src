@@ -33,30 +33,11 @@ call, file="%(PATHB1)s/measurement.madx";
 !!! Segment by segment main
 exec, sbs_main(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s, pathb1, b0LHCB1);
 
-!!! For some reason, matching cannot be done inside a macro...
-MATCH, USE_MACRO;
-    VARY, name=ir11, step=0.00001;
-    VARY, name=ir12, step=0.00001;
-    VARY, name=ir21, step=0.00001;
-    VARY, name=ir22, step=0.00001;
-    
-    M1: MACRO={
-        exec, getfterms(%(STARTFROMB1)s, b0LHCB1, b1LHCB1);
-    }
-    
-    CONSTRAINT, EXPR= f1001r= ini_f1001r;
-    CONSTRAINT, EXPR= f1001i= ini_f1001i;
-    CONSTRAINT, EXPR= f1010r= ini_f1010r;
-    CONSTRAINT, EXPR= f1010i= ini_f1010i;
-    
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
 !!! Extract front and back propagation sequences
 exec, extract_seq(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s);
 
 !!! Propagation front and back
-exec, twiss_fr_bk(LHCB1, twiss_fr_b1, twiss_bck_b1, b1LHCB1);
+exec, twiss_fr_bk(LHCB1, twiss_fr_b1, twiss_bck_b1, b0LHCB1);
 
 
 !!!!!! Beam 2 Segment by segment !!!!!
@@ -67,43 +48,24 @@ call, file="%(PATHB2)s/measurement.madx";
 !!! Segment by segment main
 exec, sbs_main(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s, pathb2, b0LHCB2);
 
-!!! For some reason, matching cannot be done inside a macro...
-MATCH, USE_MACRO;
-    VARY, name=ir11, step=0.00001;
-    VARY, name=ir12, step=0.00001;
-    VARY, name=ir21, step=0.00001;
-    VARY, name=ir22, step=0.00001;
-    
-    M1: MACRO={
-        exec, getfterms(%(STARTFROMB2)s, b0LHCB2, b1LHCB2);
-    }
-    
-    CONSTRAINT, EXPR= f1001r= ini_f1001r;
-    CONSTRAINT, EXPR= f1001i= ini_f1001i;
-    CONSTRAINT, EXPR= f1010r= ini_f1010r;
-    CONSTRAINT, EXPR= f1010i= ini_f1010i;
-    
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
 !!! Extract front and back propagation sequences
 exec, extract_seq(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s);
 
 !!! Propagation front and back
-exec, twiss_fr_bk(LHCB2, twiss_fr_b2, twiss_bck_b2, b1LHCB2);
+exec, twiss_fr_bk(LHCB2, twiss_fr_b2, twiss_bck_b2, b0LHCB2);
 
 
 !!!!!! Matching !!!!!!
 
 beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
 use, period=front_LHCB1;
-twiss, beta0=b1LHCB1, chrom;
+twiss, beta0=b0LHCB1, chrom;
 
 call, file="%(MATCH)s/phases0b1.seqx";
 
 beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
 use, period=front_LHCB2;
-twiss, beta0=b1LHCB2, chrom;
+twiss, beta0=b0LHCB2, chrom;
 
 call, file="%(MATCH)s/phases0b2.seqx";
 
@@ -131,7 +93,7 @@ match, use_macro;
     {
       beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
       use, period=front_LHCB1;
-      twiss, beta0=b1LHCB1, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
+      twiss, beta0=b0LHCB1, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
     };
  
    call, file="%(MATCH)s/constraintsb1.seqx";
@@ -140,7 +102,7 @@ match, use_macro;
       {
        beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
        use, period=front_LHCB2;
-       twiss, beta0=b1LHCB2, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
+       twiss, beta0=b0LHCB2, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
       
        print, text="======================================";
       };
@@ -153,8 +115,8 @@ endmatch;
 call, file="%(MATCH)s/genchangpars.seqx";
 save, file="%(MATCH)s/changeparameters.madx";
 
-exec, twiss_fr_bk(LHCB1, twiss_fr_cor_b1, twiss_bck_cor_b1, b1LHCB1);
-exec, twiss_fr_bk(LHCB2, twiss_fr_cor_b2, twiss_bck_cor_b2, b1LHCB2);
+exec, twiss_fr_bk(LHCB1, twiss_fr_cor_b1, twiss_bck_cor_b1, b0LHCB1);
+exec, twiss_fr_bk(LHCB2, twiss_fr_cor_b2, twiss_bck_cor_b2, b0LHCB2);
 
 !!! Clean the links
 system, "unlink pathb1";

@@ -70,6 +70,8 @@ import Utilities.iotools
 from Python_Classes4MAD.metaclass import twiss
 from Python_Classes4MAD import madxrunner
 
+import numpy
+from numpy.linalg import inv, det
 import sbs_writers.sbs_beta_writer
 import sbs_writers.sbs_phase_writer
 import sbs_writers.sbs_dispersion_writer
@@ -615,15 +617,15 @@ def _run4mad(save_path,
 
     wx_value, phi_x_value, wy_value, phi_y_value = _check_chromatic_functions_in_wpath(start_bpm_name, w_path)
 
-    ### check on error propogation
     betx = start_bpm_horizontal_data[0]
     bety = start_bpm_vertical_data[0]
     betxb = end_bpm_horizontal_data[0]
     betyb = end_bpm_vertical_data[0]
-    f1001r = f_coupling_parameters[0]
-    f1001i = f_coupling_parameters[1]
-    f1010r = f_coupling_parameters[2]
-    f1010i = f_coupling_parameters[3]
+
+    alfx = start_bpm_horizontal_data[1]
+    alfy = start_bpm_vertical_data[1]
+
+    r11, r12, r21, r22 = _get_R_terms(betx, bety, alfx, alfy, f_coupling_parameters)
 
     mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
 
@@ -652,10 +654,10 @@ def _run4mad(save_path,
             phix_ini=phi_x_value,
             wy_ini=wy_value,
             phiy_ini=phi_y_value,
-            ini_f1001r=f1001r,
-            ini_f1001i=f1001i,
-            ini_f1010r=f1010r,
-            ini_f1010i=f1010i,
+            ini_r11=r11,
+            ini_r12=r12,
+            ini_r21=r21,
+            ini_r22=r22,
             betx_end=betxb,
             bety_end=betyb,
             alfx_end=-end_bpm_horizontal_data[1],
@@ -676,6 +678,38 @@ def _run4mad(save_path,
     _runmad(mad_file_path, log_file_path, madx_exe_path)
 
     _prepare_watchdog_file_command(save_path, element_name, mad_file_path)
+
+
+def _get_R_terms(betx, bety, alfx, alfy, f_coupling_parameters):
+    f1001r = f_coupling_parameters[0]
+    f1001i = f_coupling_parameters[1]
+    f1010r = f_coupling_parameters[2]
+    f1010i = f_coupling_parameters[3]
+
+    ga11 = 1 / numpy.sqrt(betx)
+    ga12 = 0
+    ga21 = alfx / numpy.sqrt(betx)
+    ga22 = numpy.sqrt(betx)
+    Ga = numpy.reshape(numpy.array([ga11, ga12, ga21, ga22]), (2, 2))
+
+    gb11 = 1 / numpy.sqrt(bety)
+    gb12 = 0
+    gb21 = alfy / numpy.sqrt(bety)
+    gb22 = numpy.sqrt(bety)
+    Gb = numpy.reshape(numpy.array([gb11, gb12, gb21, gb22]), (2, 2))
+
+    J = numpy.reshape(numpy.array([0, 1, -1, 0]), (2, 2))
+
+    gamma2 = 1. / (1. + 4. * (f1001r ** 2. + f1001i ** 2. - f1010r ** 2. - f1010i ** 2.))
+    c11 = (f1001i + f1010i)
+    c22 = (f1001i - f1010i)
+    c12 = -(f1010r - f1001r)
+    c21 = -(f1010r + f1001r)
+    C = numpy.reshape(2 * gamma2 * numpy.array([c11, c12, c21, c22]), (2, 2))
+
+    R = numpy.transpose(J.dot(inv(Ga)).dot(C).dot(Gb).dot(-J))
+    R = numpy.sqrt(1 + det(R)) * R
+    return numpy.ravel(R)
 
 
 def _get_files_for_mad(save_path, element_name):

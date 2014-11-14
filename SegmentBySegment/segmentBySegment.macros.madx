@@ -57,7 +57,6 @@ sbs_main(accel, startfrom, endat, path_link, b0name): macro = {
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! normal propagation
 
-
     !!
     !!  Start at the first BPM
     !!
@@ -71,16 +70,7 @@ sbs_main(accel, startfrom, endat, path_link, b0name): macro = {
     !!
     use, period=accel, range=startfrom/startfrom;  ! Just the starting element for speed
     savebeta,label=b0name, place=startfrom;
-    twiss ,chrom, betx=betx_ini, alfx=alfx_ini, bety=bety_ini, alfy=alfy_ini, dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini, wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini;
-
-    !!
-    !!!! Matching for coupling initial cond, R matrix
-    !!
-
-    select, flag=twiss, clear;
-    select, flag=twiss, pattern=BPM ,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
-    
-    !!! IMPORTANT: The actual matching has to be done outside the macro, just after calling this one.
+    twiss ,chrom, betx=betx_ini, alfx=alfx_ini, bety=bety_ini, alfy=alfy_ini, dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini, wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini, r11=ini_r11 ,r12=ini_r12, r21=ini_r21, r22=ini_r22;
 };
 
 extract_seq(accel, startfrom, endat): macro = {
@@ -97,36 +87,6 @@ extract_seq(accel, startfrom, endat): macro = {
     exec, sel_accel();  ! To select the corresponding beams
 };
 
-getfterms(bpmname, b0name, b1name): macro = {
-    savebeta, label=b1name, place=bpmname;  ! This will update b1 with all the betas and coupling input
-    twiss, beta0=b0name, chrom, R11=ir11 ,R12=ir12, R21=ir21, R22=ir22, table;
-    
-    NORMR=sqrt(1+table(twiss, bpmname, R11)*table(twiss, bpmname, R22)-table(twiss, bpmname, R12)*table(twiss, bpmname, R21));
-    
-    !--- Gb is actually inv(Gb)
-    Ga11=1/sqrt(table(twiss, bpmname,BETX));                            Ga22=sqrt(table(twiss, bpmname,BETX));
-    Ga21= table(twiss, bpmname,ALFX)/sqrt(table(twiss, bpmname,BETX));  Ga12=0;
-    
-    Gb21=-table(twiss, bpmname,ALFY)/sqrt(table(twiss, bpmname,BETY));  Gb12=0;
-    Gb11=sqrt(table(twiss,bpmname,BETY));                               Gb22=1/sqrt(table(twiss, bpmname,BETY));
-    
-    R11=table(twiss, bpmname,R11)/NORMR;   R12=table(twiss, bpmname,R12)/NORMR; 
-    R21=table(twiss, bpmname,R21)/NORMR;   R22=table(twiss, bpmname,R22)/NORMR; 
-    
-    CP11= R22*Gb11-R12*Gb21;  CP12= R22*Gb12-R12*Gb22;
-    CP21=-R21*Gb11+R11*Gb21;  CP22=-R21*Gb12+R11*Gb22;
-    
-    C11=Ga11*CP11+Ga12*CP21;  C12=Ga11*CP12+Ga12*CP22;
-    C21=Ga21*CP11+Ga22*CP21;  C22=Ga21*CP12+Ga22*Cp22;
-    
-    GAMMA2=1-(C11*C22-C12*C21);
-    
-    f1001r = ( C12 - C21)/4/GAMMA2;
-    f1001i = ( C11 + C22)/4/GAMMA2;
-    f1010r = (-C12 - C21)/4/GAMMA2;
-    f1010i = ( C11 - C22)/4/GAMMA2;
-};
-
 sel_LHCB1(): macro = {
     beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
     beam, particle = proton, sequence=back_LHCB1, energy = 450.0, bv=1;
@@ -137,7 +97,7 @@ sel_LHCB2(): macro = {
     beam, particle = proton, sequence=back_LHCB2, energy = 450.0, bv=-1;
 };
 
-twiss_fr_bk(accel, fr_filename, bck_filename, b1name): macro = {
+twiss_fr_bk(accel, fr_filename, bck_filename, b0name): macro = {
     value, accel;
     use, period=front_accel;
     select, flag=twiss, clear;
@@ -149,7 +109,7 @@ twiss_fr_bk(accel, fr_filename, bck_filename, b1name): macro = {
     select, flag=twiss, class=tkicker;
     select, flag=twiss,pattern="XRP";
     select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
-    twiss, beta0=b1name, chrom, file="fr_filename";
+    twiss, beta0=b0name, chrom, file="fr_filename";
 
     use, period=back_accel;
     select, flag=twiss, clear;
