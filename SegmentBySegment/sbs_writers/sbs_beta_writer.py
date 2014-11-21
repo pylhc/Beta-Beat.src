@@ -8,7 +8,7 @@ from math import sqrt
 from Utilities import tfs_file_writer
 
 
-def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, propagated_models, save_path, beta_summary_file):
+def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, beta_summary_file):
     file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element)
 
     model_propagation = propagated_models.propagation
@@ -19,15 +19,17 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, p
     if not is_element:
         bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta])
     else:
-        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
     summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
                                            element_name, bpms_list, measured_hor_beta,
+                                           input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
 
     summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
                                            element_name, bpms_list, measured_ver_beta,
+                                           input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
     if is_element:
@@ -88,7 +90,7 @@ def _get_beta_tfs_files(element_name, save_path, is_element):
     return file_alfa_x, file_beta_x, file_alfa_y, file_beta_y
 
 
-def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, model_propagation, model_cor, model_back_propagation, model_back_cor, output_path, is_element, beta_summary_file):
+def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor, output_path, is_element, beta_summary_file):
 
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, plane)
@@ -98,10 +100,6 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
     for bpm in bpms_list:
         bpm_s = bpm[0]
         bpm_name = bpm[1]
-
-        model_s = measured_beta.S[measured_beta.indx[bpm_name]]
-        beta_model = getattr(measured_beta, "BET" + plane + "MDL")[measured_beta.indx[bpm_name]]
-        alfa_model = getattr(measured_beta, "ALF" + plane + "MDL")[measured_beta.indx[bpm_name]]
 
         beta_propagation = getattr(model_propagation, "BET" + plane)[model_propagation.indx[bpm_name]]
         beta_back_propagation = getattr(model_back_propagation, "BET" + plane)[model_back_propagation.indx[bpm_name]]
@@ -120,6 +118,10 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
         err_alfa_back = _propagate_error_beta(err_beta_end, err_alfa_end, delta_phase_back, beta_back_propagation, beta_end, alfa_end)
 
         if not is_element:
+            model_s = measured_beta.S[measured_beta.indx[bpm_name]]
+            beta_model = getattr(measured_beta, "BET" + plane + "MDL")[measured_beta.indx[bpm_name]]
+            alfa_model = getattr(measured_beta, "ALF" + plane + "MDL")[measured_beta.indx[bpm_name]]
+
             beta_cor = getattr(model_cor, "BET" + plane)[model_cor.indx[bpm_name]]
             err_beta_cor = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase_corr, beta_cor, beta_start, alfa_start)
 
@@ -141,6 +143,10 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
                                      alfa_back_propagation, err_alfa_back, alfa_back_cor, err_alfa_back_cor,
                                      alfa_model, model_s])
         else:
+            model_s = input_model.S[input_model.indx[bpm_name]]
+            beta_model = getattr(input_model, "BET" + plane)[input_model.indx[bpm_name]]
+            alfa_model = getattr(input_model, "ALF" + plane)[input_model.indx[bpm_name]]
+
             averaged_beta, final_beta_error = weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
             averaged_alfa, final_alfa_error = weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
 

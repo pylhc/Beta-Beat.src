@@ -46,7 +46,7 @@ load_seq(path_link): macro = {
 }
 
 
-sbs_main(accel, startfrom, endat, path_link, b0name): macro = {
+sbs_main(accel, startfrom, endat, path_link, bininame, bendname): macro = {
     !!! Start segment by segment
 
     use, period=accel;
@@ -66,11 +66,17 @@ sbs_main(accel, startfrom, endat, path_link, b0name): macro = {
     endedit;
 
     !!
-    !! Save initial beta in beta0 variable
+    !! Save initial and final betas
     !!
-    use, period=accel, range=startfrom/startfrom;  ! Just the starting element for speed
-    savebeta,label=b0name, place=startfrom;
+
+    use, period=accel, range=startfrom/startfrom;
+    savebeta,label=bininame, place=startfrom;
     twiss ,chrom, betx=betx_ini, alfx=alfx_ini, bety=bety_ini, alfy=alfy_ini, dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini, wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini, r11=ini_r11 ,r12=ini_r12, r21=ini_r21, r22=ini_r22;
+
+    use, period=accel, range=endat/endat;
+    savebeta,label=bendname, place=endat;
+    twiss ,chrom, betx=betx_end, alfx=alfx_end, bety=bety_end, alfy=alfy_end, dx=dx_end, dy=dy_end, dpx=dpx_end, dpy=dpy_end, wx=wx_end, phix=phix_end, wy=wy_end, phiy=phiy_end, r11=end_r11 ,r12=end_r12, r21=end_r21, r22=end_r22;
+
 };
 
 extract_seq(accel, startfrom, endat): macro = {
@@ -97,8 +103,7 @@ sel_LHCB2(): macro = {
     beam, particle = proton, sequence=back_LHCB2, energy = 450.0, bv=-1;
 };
 
-twiss_fr_bk(accel, fr_filename, bck_filename, b0name): macro = {
-    value, accel;
+twiss_fr_bk(accel, fr_filename, bck_filename, bininame, bendname): macro = {
     use, period=front_accel;
     select, flag=twiss, clear;
     select, flag=twiss, class=quadrupole;
@@ -109,7 +114,7 @@ twiss_fr_bk(accel, fr_filename, bck_filename, b0name): macro = {
     select, flag=twiss, class=tkicker;
     select, flag=twiss,pattern="XRP";
     select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
-    twiss, beta0=b0name, chrom, file="fr_filename";
+    twiss, beta0=bininame, chrom, file="fr_filename";
 
     use, period=back_accel;
     select, flag=twiss, clear;
@@ -121,6 +126,6 @@ twiss_fr_bk(accel, fr_filename, bck_filename, b0name): macro = {
     select, flag=twiss, class=rbend;
     select, flag=twiss,pattern="XRP";
     select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-    twiss, betx=betx_end, alfx=alfx_end, bety=bety_end, alfy=alfy_end,dx=dx_end,dy=dy_end,dpx=dpx_end,dpy=dpy_end, file="bck_filename";
+    twiss, beta0=bendname, chrom, file="bck_filename";
 };
 

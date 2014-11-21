@@ -190,11 +190,7 @@ def main(options):
             end_bpm_dispersion = [0, 0, 0, 0, 0, 0]
             print "No dispersion"
 
-        if input_data.has_coupling:
-            element_has_coupling, f_coupling_parameters = get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
-        else:
-            element_has_coupling, f_coupling_parameters = False, [0, 0, 0, 0, 0, 0]
-            print "No coupling"
+        element_has_coupling, f_ini, f_end = _get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
 
         if str(options.madpass) == "0":
             _run4mad(save_path,
@@ -207,7 +203,8 @@ def main(options):
                     start_bpm_name,
                     end_bpm_name,
                     element_name,
-                    f_coupling_parameters,
+                    f_ini,
+                    f_end,
                     options.path + "/",
                     twiss_directory,
                     input_data.couple_method,
@@ -359,29 +356,45 @@ def get_dispersion_info(input_data, startbpm, endbpm):
     return start_bpm_dispersion, end_bpm_dispersion
 
 
-def get_coupling_parameters(input_data, startbpm, endbpm):
-    f1001r = 0
-    f1001i = 0
-    f1010r = 0
-    f1010i = 0
-    f1001std = 0
-    f1010std = 0
+def _get_coupling_parameters(input_data, startbpm, endbpm):
+    f_ini = {}
+    f_end = {}
+    f_ini["f1001r"] = 0.
+    f_ini["f1001i"] = 0.
+    f_ini["f1010r"] = 0.
+    f_ini["f1010i"] = 0.
+    f_ini["f1001std"] = 0.
+    f_ini["f1010std"] = 0.
+    f_end["f1001r"] = 0.
+    f_end["f1001i"] = 0.
+    f_end["f1010r"] = 0.
+    f_end["f1010i"] = 0.
+    f_end["f1001std"] = 0.
+    f_end["f1010std"] = 0.
     element_has_coupling = False
-    if not startbpm in input_data.couple.indx:
-        print "Start BPM ", startbpm, " not found in coupling measurement, will not compute coupling."
-    elif not endbpm in input_data.couple.indx:
-        print "End BPM ", endbpm, " not found in coupling measurement, will not compute coupling."
+    if input_data.has_coupling:
+        if not startbpm in input_data.couple.indx:
+            print "Start BPM ", startbpm, " not found in coupling measurement, will not compute coupling."
+        elif not endbpm in input_data.couple.indx:
+            print "End BPM ", endbpm, " not found in coupling measurement, will not compute coupling."
+        else:
+            f_ini["f1001r"] = input_data.couple.F1001R[input_data.couple.indx[startbpm]]
+            f_ini["f1001i"] = input_data.couple.F1001I[input_data.couple.indx[startbpm]]
+            f_ini["f1010r"] = input_data.couple.F1010R[input_data.couple.indx[startbpm]]
+            f_ini["f1010i"] = input_data.couple.F1010I[input_data.couple.indx[startbpm]]
+            f_ini["f1001std"] = input_data.couple.FWSTD1[input_data.couple.indx[startbpm]]
+            f_ini["f1010std"] = input_data.couple.FWSTD2[input_data.couple.indx[startbpm]]
+            f_end["f1001r"] = input_data.couple.F1001R[input_data.couple.indx[endbpm]]
+            f_end["f1001i"] = input_data.couple.F1001I[input_data.couple.indx[endbpm]]
+            f_end["f1010r"] = input_data.couple.F1010R[input_data.couple.indx[endbpm]]
+            f_end["f1010i"] = input_data.couple.F1010I[input_data.couple.indx[endbpm]]
+            f_end["f1001std"] = input_data.couple.FWSTD1[input_data.couple.indx[endbpm]]
+            f_end["f1010std"] = input_data.couple.FWSTD2[input_data.couple.indx[endbpm]]
+            element_has_coupling = True
+            print "Start and end BPMs found in coupling measurement."
     else:
-        f1001r = input_data.couple.F1001R[input_data.couple.indx[startbpm]]
-        f1001i = input_data.couple.F1001I[input_data.couple.indx[startbpm]]
-        f1010r = input_data.couple.F1010R[input_data.couple.indx[startbpm]]
-        f1010i = input_data.couple.F1010I[input_data.couple.indx[startbpm]]
-        f1001std = input_data.couple.FWSTD1[input_data.couple.indx[startbpm]]
-        f1010std = input_data.couple.FWSTD2[input_data.couple.indx[startbpm]]
-        element_has_coupling = True
-        print "Start BPM ", startbpm, " found in coupling measurement."
-    f_coupling_parameters = [f1001r, f1001i, f1010r, f1010i, f1001std, f1010std]
-    return element_has_coupling, f_coupling_parameters
+        print "No coupling measurement"
+    return element_has_coupling, f_ini, f_end
 
 
 #===================================================================================================
@@ -557,6 +570,7 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
     (beta_x, err_beta_x, alfa_x, err_alfa_x,
      beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(element_name, is_element,
                                                                                       input_data.beta_x, input_data.beta_y,
+                                                                                      input_model,
                                                                                       propagated_models,
                                                                                       save_path, beta_summary)
     if not is_element:
@@ -566,9 +580,10 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
     if input_data.has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
+                                                           input_model,
                                                            propagated_models, save_path, disp_summary)
     if element_has_coupling:
-        sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, propagated_models, save_path, coupling_summary)
+        sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, coupling_summary)
 
     if len(chromatic_x_y) != 0:
         sbs_writers.sbs_chromatic_writer.write_chromatic()
@@ -597,7 +612,8 @@ def _run4mad(save_path,
              start_bpm_name,
              end_bpm_name,
              element_name,
-             f_coupling_parameters,
+             f_ini,
+             f_end,
              exppath,
              twiss_directory,
              coupling_method,
@@ -617,15 +633,18 @@ def _run4mad(save_path,
 
     wx_value, phi_x_value, wy_value, phi_y_value = _check_chromatic_functions_in_wpath(start_bpm_name, w_path)
 
-    betx = start_bpm_horizontal_data[0]
-    bety = start_bpm_vertical_data[0]
-    betxb = end_bpm_horizontal_data[0]
-    betyb = end_bpm_vertical_data[0]
+    betx_ini = start_bpm_horizontal_data[0]
+    bety_ini = start_bpm_vertical_data[0]
+    betx_end = end_bpm_horizontal_data[0]
+    bety_end = end_bpm_vertical_data[0]
 
-    alfx = start_bpm_horizontal_data[1]
-    alfy = start_bpm_vertical_data[1]
+    alfx_ini = start_bpm_horizontal_data[1]
+    alfy_ini = start_bpm_vertical_data[1]
+    alfx_end = -end_bpm_horizontal_data[1]
+    alfy_end = -end_bpm_vertical_data[1]
 
-    r11, r12, r21, r22 = _get_R_terms(betx, bety, alfx, alfy, f_coupling_parameters)
+    ini_r11, ini_r12, ini_r21, ini_r22 = _get_R_terms(betx_ini, bety_ini, alfx_ini, alfy_ini, f_ini["f1001r"], f_ini["f1001i"], f_ini["f1010r"], f_ini["f1010i"])
+    end_r11, end_r12, end_r21, end_r22 = _get_R_terms(betx_end, bety_end, alfx_end, alfy_end, f_end["f1001r"], f_end["f1001i"], f_end["f1010r"], f_end["f1010i"])
 
     mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
 
@@ -642,10 +661,10 @@ def _run4mad(save_path,
             )
 
     measurement_dict = dict(
-            betx_ini=betx,
-            bety_ini=bety,
-            alfx_ini=start_bpm_horizontal_data[1],
-            alfy_ini=start_bpm_vertical_data[1],
+            betx_ini=betx_ini,
+            bety_ini=bety_ini,
+            alfx_ini=alfx_ini,
+            alfy_ini=alfy_ini,
             dx_ini=start_bpm_dispersion[0],
             dy_ini=start_bpm_dispersion[2],
             dpx_ini=start_bpm_dispersion[1],
@@ -654,14 +673,18 @@ def _run4mad(save_path,
             phix_ini=phi_x_value,
             wy_ini=wy_value,
             phiy_ini=phi_y_value,
-            ini_r11=r11,
-            ini_r12=r12,
-            ini_r21=r21,
-            ini_r22=r22,
-            betx_end=betxb,
-            bety_end=betyb,
-            alfx_end=-end_bpm_horizontal_data[1],
-            alfy_end=-end_bpm_vertical_data[1],
+            ini_r11=ini_r11,
+            ini_r12=ini_r12,
+            ini_r21=ini_r21,
+            ini_r22=ini_r22,
+            end_r11=end_r11,
+            end_r12=end_r12,
+            end_r21=end_r21,
+            end_r22=end_r22,
+            betx_end=betx_end,
+            bety_end=bety_end,
+            alfx_end=alfx_end,
+            alfy_end=alfy_end,
             dx_end=end_bpm_dispersion[0],
             dy_end=end_bpm_dispersion[2],
             dpx_end=-end_bpm_dispersion[1],
@@ -671,7 +694,7 @@ def _run4mad(save_path,
     maskfile = os.path.join(copy_path, 'SegmentBySegment', 'job.InterpolateBetas.mask')
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, mad_file_path)
 
-    with open(os.path.join(save_path, "measurement.madx"), "w") as measurement_file:
+    with open(os.path.join(save_path, "measurement_" + element_name + ".madx"), "w") as measurement_file:
         for name, value in measurement_dict.iteritems():
             print >> measurement_file, name, "=", value, ";"
 
@@ -680,11 +703,7 @@ def _run4mad(save_path,
     _prepare_watchdog_file_command(save_path, element_name, mad_file_path)
 
 
-def _get_R_terms(betx, bety, alfx, alfy, f_coupling_parameters):
-    f1001r = f_coupling_parameters[0]
-    f1001i = f_coupling_parameters[1]
-    f1010r = f_coupling_parameters[2]
-    f1010i = f_coupling_parameters[3]
+def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
 
     ga11 = 1 / numpy.sqrt(betx)
     ga12 = 0

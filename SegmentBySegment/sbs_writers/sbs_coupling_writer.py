@@ -5,7 +5,7 @@ from Utilities import tfs_file_writer
 from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 
 
-def write_coupling(element_name, is_element, measured_coupling, propagated_models, save_path, coupling_summary_file):
+def write_coupling(element_name, is_element, measured_coupling, input_model, propagated_models, save_path, coupling_summary_file):
 
     file_f_terms, file_C_terms = _get_coupling_tfs_files(element_name, save_path, is_element)
 
@@ -22,9 +22,9 @@ def write_coupling(element_name, is_element, measured_coupling, propagated_model
     if not is_element:
         bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_coupling])
     else:
-        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
-    summary_data_f = _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, model_propagation, model_back_propagation, model_cor, model_back_cor)
+    summary_data_f = _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
 
     summary_data_C = _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, model_propagation, model_back_propagation, model_cor, model_back_cor)
 
@@ -119,7 +119,7 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
     return file_f_terms, file_C_terms
 
 
-def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, model_propagation, model_back_propagation, model_cor, model_back_cor):
+def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor):
     summary_data = []
     first_bpm = bpms_list[0][1]
     last_bpm = bpms_list[-1][1]
@@ -132,12 +132,6 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
     for bpm in bpms_list:
         bpm_s = bpm[0]
         bpm_name = bpm[1]
-
-        model_s = measured_coupling.S[measured_coupling.indx[bpm_name]]
-        model_f1001r = measured_coupling.MDLF1001R[measured_coupling.indx[bpm_name]]
-        model_f1001i = measured_coupling.MDLF1001I[measured_coupling.indx[bpm_name]]
-        model_f1010r = measured_coupling.MDLF1010R[measured_coupling.indx[bpm_name]]
-        model_f1010i = measured_coupling.MDLF1010I[measured_coupling.indx[bpm_name]]
 
         delta_phase_prop_x = model_propagation.MUX[model_propagation.indx[bpm_name]] % 1
         delta_phase_prop_y = model_propagation.MUY[model_propagation.indx[bpm_name]] % 1
@@ -164,6 +158,12 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
         err_f1010abs_back = f1010_std_end
 
         if not is_element:
+            model_s = measured_coupling.S[measured_coupling.indx[bpm_name]]
+            model_f1001r = measured_coupling.MDLF1001R[measured_coupling.indx[bpm_name]]
+            model_f1001i = measured_coupling.MDLF1001I[measured_coupling.indx[bpm_name]]
+            model_f1010r = measured_coupling.MDLF1010R[measured_coupling.indx[bpm_name]]
+            model_f1010i = measured_coupling.MDLF1010I[measured_coupling.indx[bpm_name]]
+
             delta_phase_corr_x = model_cor.MUX[model_cor.indx[bpm_name]] % 1
             delta_phase_corr_y = model_cor.MUY[model_cor.indx[bpm_name]] % 1
 
@@ -199,6 +199,14 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
                                         abs(f1010_back_corr), err_f1010abs_back_corr, f1010_back_corr.real, err_f1010re_back_corr, f1010_back_corr.imag, err_f1010im_back_corr,
                                        model_f1001r, model_f1001i, model_f1010r, model_f1010i, model_s])
         else:
+            model_s = input_model.S[input_model.indx[bpm_name]]
+
+            input_model.Cmatrix()
+            model_f1001r = input_model.f1001[input_model.indx[bpm_name]].real
+            model_f1001i = input_model.f1001[input_model.indx[bpm_name]].imag
+            model_f1010r = input_model.f1010[input_model.indx[bpm_name]].real
+            model_f1010i = input_model.f1010[input_model.indx[bpm_name]].imag
+
             average_f1001ab, final_f1001abs_err = weighted_average_for_SbS_elements(abs(f1001_prop), err_f1001abs_prop, abs(f1001_back), err_f1001abs_back)
             average_f1001re, final_f1001re_err = weighted_average_for_SbS_elements(f1001_prop.real, err_f1001re_prop, f1001_back.real, err_f1001re_back)
             average_f1001im, final_f1001im_err = weighted_average_for_SbS_elements(f1001_prop.imag, err_f1001im_prop, f1001_back.imag, err_f1001im_back)

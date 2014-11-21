@@ -8,23 +8,30 @@ from Utilities import tfs_file_writer
 from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 
 
-def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_disp, measured_norm_disp, propagated_models, save_path, dispersion_summary_file):
+def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_disp, measured_norm_disp, input_model, propagated_models, save_path, dispersion_summary_file):
     file_disp_x, file_norm_disp_x, file_disp_y = _get_dispersion_tfs_files(element_name, is_element, save_path)
 
     model_propagation = propagated_models.propagation
     model_back_propagation = propagated_models.back_propagation
     model_cor = propagated_models.corrected
+    model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = intersect([measured_hor_disp, model_propagation, model_back_propagation])
+        bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_hor_disp])
     else:
-        bpms_list = intersect([model_propagation, model_back_propagation])
+        bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, input_model])
 
-    summary_data_x = _write_dispersion_for_plane(file_disp_x, "X", element_name, bpms_list, measured_hor_disp, model_cor, model_propagation, model_back_propagation, is_element)
+    summary_data_x = _write_dispersion_for_plane(file_disp_x, "X", element_name, bpms_list, measured_hor_disp,
+                                                 input_model,
+                                                 model_cor, model_propagation, model_back_propagation, model_back_cor, is_element)
 
-    summary_data_nx = _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, measured_norm_disp, model_cor, model_propagation, model_back_propagation, is_element)
+    summary_data_nx = _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, measured_norm_disp,
+                                                       input_model,
+                                                       model_cor, model_propagation, model_back_propagation, model_back_cor, is_element)
 
-    summary_data_y = _write_dispersion_for_plane(file_disp_y, "Y", element_name, bpms_list, measured_ver_disp, model_cor, model_propagation, model_back_propagation, is_element)
+    summary_data_y = _write_dispersion_for_plane(file_disp_y, "Y", element_name, bpms_list, measured_ver_disp,
+                                                 input_model,
+                                                 model_cor, model_propagation, model_back_propagation, model_back_cor, is_element)
 
     if is_element:
         _write_summary_data(dispersion_summary_file, summary_data_x, summary_data_nx, summary_data_y)
@@ -81,7 +88,7 @@ def _get_dispersion_tfs_files(element_name, is_element, save_path):
     return file_disp_x, file_norm_disp_x, file_disp_y
 
 
-def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list, measured_dispersion, model_cor, model_propagation, model_back_propagation, is_element):
+def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list, measured_dispersion, input_model, model_cor, model_propagation, model_back_propagation, model_back_cor, is_element):
 
     summary_data = []
 
@@ -91,10 +98,6 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
     for bpm in bpms_list:
         bpm_s = bpm[0]
         bpm_name = bpm[1]
-
-        model_s = measured_dispersion.S[measured_dispersion.indx[bpm_name]]
-        model_disp = (getattr(measured_dispersion, "D" + plane + "MDL"))[measured_dispersion.indx[bpm_name]]
-        model_disp_p = (getattr(measured_dispersion, "DP" + plane + "MDL"))[measured_dispersion.indx[bpm_name]]
 
         delta_phase = (getattr(model_propagation, "MU" + plane)[model_propagation.indx[bpm_name]]) % 1
         delta_phase_back = (getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]]) % 1
@@ -120,6 +123,10 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
                                                          getattr(model_back_propagation, "ALF" + plane)[model_back_propagation.indx[last_bpm]])
 
         if not is_element:
+            model_s = measured_dispersion.S[measured_dispersion.indx[bpm_name]]
+            model_disp = (getattr(measured_dispersion, "D" + plane + "MDL"))[measured_dispersion.indx[bpm_name]]
+            model_disp_p = (getattr(measured_dispersion, "DP" + plane + "MDL"))[measured_dispersion.indx[bpm_name]]
+
             corr_disp = getattr(model_cor, "D" + plane)[model_cor.indx[bpm_name]]
             corr_disp_err = _propagate_error_dispersion(getattr(measured_dispersion, "STDD" + plane)[measured_dispersion.indx[last_bpm]],
                                                          getattr(model_cor, "BET" + plane)[model_cor.indx[last_bpm]],
@@ -132,6 +139,10 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
 
             file_dispersion.add_table_row([bpm_name, bpm_s, normal_prop_disp, normal_prop_disp_err, corr_disp, corr_disp_err, back_prop_disp, back_prop_disp_err, prop_disp_p, prop_disp_p_err, corr_disp_p, corr_disp_p_err, model_disp, model_disp_p, model_s])
         else:
+            model_s = input_model.S[input_model.indx[bpm_name]]
+            model_disp = (getattr(input_model, "D" + plane))[input_model.indx[bpm_name]]
+            model_disp_p = (getattr(input_model, "DP" + plane))[input_model.indx[bpm_name]]
+
             average_disp, final_disp_err = weighted_average_for_SbS_elements(normal_prop_disp, normal_prop_disp_err, back_prop_disp, back_prop_disp_err)
             average_disp_p, final_disp_p_err = weighted_average_for_SbS_elements(prop_disp_p, prop_disp_p_err, back_prop_disp_p, back_prop_disp_err)
 

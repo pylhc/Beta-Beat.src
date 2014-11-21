@@ -28,7 +28,7 @@ option, echo;
 !!!!!! Beam 1 Segment by segment !!!!!
 
 !!! Load measurement values
-call, file="%(PATHB1)s/measurement.madx";
+call, file="%(PATHB1)s/measurement_%(LABEL)s.madx";
 
 !!! Segment by segment main
 exec, sbs_main(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s, pathb1, b0LHCB1);
@@ -43,7 +43,7 @@ exec, twiss_fr_bk(LHCB1, twiss_fr_b1, twiss_bck_b1, b0LHCB1);
 !!!!!! Beam 2 Segment by segment !!!!!
 
 !!! Load measurement values
-call, file="%(PATHB2)s/measurement.madx";
+call, file="%(PATHB2)s/measurement_%(LABEL)s.madx";
 
 !!! Segment by segment main
 exec, sbs_main(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s, pathb2, b0LHCB2);

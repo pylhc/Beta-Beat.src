@@ -82,7 +82,7 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
     run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path)
 
-    print "Copying plotting files into temporary folder..."
+    print "Copying files into temporary folder..."
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB1.gplot"), match_temporary_path)
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB2.gplot"), match_temporary_path)
 

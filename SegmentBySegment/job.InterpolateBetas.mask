@@ -19,22 +19,22 @@ exec, load_seq(path);
 option, echo;
 
 !!! Load measurement values
-call, file="%(PATH)s/measurement.madx";
+call, file="%(PATH)s/measurement_%(LABEL)s.madx";
 
 !!! Segment by segment main
-exec, sbs_main(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s, path, b0%(ACCEL)s);
+exec, sbs_main(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s, path, bini%(ACCEL)s, bend%(ACCEL)s);
 
 !!! Extract front and back propagation sequences
 exec, extract_seq(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s);
 
 !!! Propagation front and back
-exec, twiss_fr_bk(%(ACCEL)s, twiss_fr, twiss_bck, b0%(ACCEL)s);
+exec, twiss_fr_bk(%(ACCEL)s, twiss_fr, twiss_bck, bini%(ACCEL)s, bend%(ACCEL)s);
 
 !!! Loading corrections
 call,  file="%(PATH)s/corrections.madx";
 
 !!! Corrected propagation front and back
-exec, twiss_fr_bk(%(ACCEL)s, twiss_fr_cor, twiss_bck_cor, b0%(ACCEL)s);
+exec, twiss_fr_bk(%(ACCEL)s, twiss_fr_cor, twiss_bck_cor, bini%(ACCEL)s, bend%(ACCEL)s);
 
 !!! Clean the links
 system, "unlink path";
