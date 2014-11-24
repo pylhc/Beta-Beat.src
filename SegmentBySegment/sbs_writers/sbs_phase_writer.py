@@ -7,6 +7,9 @@ import math
 from Utilities import tfs_file_writer
 from sbs_beta_writer import intersect
 
+FIRST_BPM_B1 = "BPMSW.1L2.B1"
+FIRST_BPM_B2 = "BPMSW.1L8.B2"
+
 
 def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_hor_beta, measured_ver_beta,
                     propagated_models, save_path):
@@ -30,6 +33,15 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
     last_bpm = bpms_list[-1][1]
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = sbs_beta_writer._get_start_end_betas(bpms_list, measured_beta, plane)
+     
+    # Fix for phase jump at the start of the ring
+    tune, fix_start_s = {}, None
+    if "LHCB1" in model_propagation.SEQUENCE and FIRST_BPM_B1 in model_propagation.NAME:
+        tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
+        fix_start_s = model_propagation.S[model_propagation.indx[FIRST_BPM_B1]]
+    elif "LHCB2" in model_propagation.SEQUENCE and FIRST_BPM_B2 in model_propagation.NAME:
+        tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
+        fix_start_s = model_propagation.S[model_propagation.indx[FIRST_BPM_B2]]
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
@@ -64,6 +76,12 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
         back_prop_phase_difference = (meas_phase_back - model_back_propagation_phase) % 1
         if back_prop_phase_difference > 0.5:
             back_prop_phase_difference = back_prop_phase_difference - 1
+
+        if not fix_start_s is None:
+            if bpm_s > fix_start_s:
+                prop_phase_difference += tune[plane]
+            elif bpm_s <= fix_start_s:
+                back_prop_phase_difference -= tune[plane]
 
         prop_cor_phase = -getattr(model_propagation, "MU" + plane)[model_propagation.indx[bpm_name]] + getattr(model_cor, "MU" + plane)[model_cor.indx[bpm_name]]
         back_cor_phase = -getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]] + getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[bpm_name]]

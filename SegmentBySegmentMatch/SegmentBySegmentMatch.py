@@ -16,11 +16,6 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 ALL_LISTS_BEAM1_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists.json')
 ALL_LISTS_BEAM2_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB2', 'AllLists.json')
 
-_IP2_FIX_START = 214.0
-_IP2_FIX_END = 841.0
-_IP8_FIX_START = 511.0
-_IP8_FIX_END = 26532.0
-
 
 def parse_args():
     parser = optparse.OptionParser()
@@ -244,14 +239,12 @@ def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, t
             phase = sbs_data.PROPPHASEX[index] if plane == "x" else sbs_data.PROPPHASEY[index]
             s = sbs_data.S[index]
 
-            phase, ckstr = _check_and_fix_tune_discontinuity(phase, s, ip, beam, plane, tune)
-
             weight = 1e-6 if abs(phase) > 0.25 else 1
 
             constr_file.write('   constraint, weight = ' + str(weight) + ' , ')
             constr_file.write('expr =  dmu' + plane + name + ' = ' + str(phase) + '; ')
 
-            constr_file.write('!   S = ' + str(s) + ' ' + ckstr)
+            constr_file.write('!   S = ' + str(s))
             constr_file.write(';\n')
 
             dump_file.write('   sss = table(twiss, ' + name + ', s); cdmu' +
@@ -259,15 +252,6 @@ def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, t
             dump_file.write('   fill,table=dmu' + plane + 'b' + str(beam) + ';\n')
 
     dump_file.write('write,table=dmu' + plane + 'b' + str(beam) + ', file=dmu' + plane + 'b' + str(beam) + '.tfs;\n')
-
-
-def _check_and_fix_tune_discontinuity(phase, s, ip, beam, plane, tune):
-    if ip == "2" and beam == 1 and s > _IP2_FIX_START and s < _IP2_FIX_END:
-        return phase + tune, '+ B1 Q' + plane + '(' + str(tune) + ')'
-    elif ip == "8" and beam == 2 and (s < _IP8_FIX_START or s > _IP8_FIX_END):
-        return phase + tune, '+ B2 Q' + plane + '(' + str(tune) + ')'
-    else:
-        return phase, '+ 0.0'
 
 
 def _parse_exclude_string(exclude_string):
