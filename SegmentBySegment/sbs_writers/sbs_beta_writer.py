@@ -17,7 +17,7 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, i
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta, measured_ver_beta])
     else:
         bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 

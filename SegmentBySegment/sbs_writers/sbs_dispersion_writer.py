@@ -17,7 +17,7 @@ def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_d
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_hor_disp])
+        bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_hor_disp, measured_ver_disp])
     else:
         bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, input_model])
 

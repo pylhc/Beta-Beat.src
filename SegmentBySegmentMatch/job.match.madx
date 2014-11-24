@@ -102,7 +102,7 @@ match, use_macro;
       {
        beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
        use, period=front_LHCB2;
-       twiss, beta0=b0LHCB2, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
+       twiss, beta0=b0LHCB2, chrom, file="%(PATHB2)s/twiss_%(LABEL)s_cor.dat";
       
        print, text="======================================";
       };

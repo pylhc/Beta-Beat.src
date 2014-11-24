@@ -12,7 +12,7 @@ def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_ch
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_chromatic_wx])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model, measured_chromatic_wx, measured_chromatic_wy])
     else:
         bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
