@@ -147,7 +147,10 @@ def main(options):
 
     print "+++ Starting Segment by Segment +++"
     measurement_path = options.path
-    input_data = _InputData(measurement_path)
+    w_path = options.wpath
+    if w_path == "0":
+        w_path = measurement_path
+    input_data = _InputData(measurement_path, w_path)
 
     save_path = options.save + os.path.sep
     Utilities.iotools.create_dirs(save_path)
@@ -191,6 +194,8 @@ def main(options):
             print "No dispersion"
 
         element_has_coupling, f_ini, f_end = _get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
+        
+        element_has_chrom, chrom_ini, chrom_end = _get_chrom_parameters(input_data, start_bpm_name, end_bpm_name)
 
         if str(options.madpass) == "0":
             _run4mad(save_path,
@@ -205,12 +210,13 @@ def main(options):
                     element_name,
                     f_ini,
                     f_end,
+                    chrom_ini,
+                    chrom_end,
                     options.path + "/",
                     twiss_directory,
                     input_data.couple_method,
                     options.accel,
                     options.bb,
-                    options.wpath,
                     options.mad)
 
         else:
@@ -222,16 +228,14 @@ def main(options):
 
         propagated_models = _PropagatedModels(save_path, element_name)
 
-        chromatic_x_y = _get_chromatic_data(options.wpath)
-
         getAndWriteData(element_name,
                         input_data,
-                        chromatic_x_y,
                         input_model,
                         propagated_models,
                         save_path,
                         is_element,
                         element_has_coupling,
+                        element_has_chrom,
                         selected_accelerator,
                         summaries)
 
@@ -397,6 +401,36 @@ def _get_coupling_parameters(input_data, startbpm, endbpm):
     return element_has_coupling, f_ini, f_end
 
 
+def _get_chrom_parameters(input_data, startbpm, endbpm):
+    chrom_ini = {}
+    chrom_end = {}
+    chrom_ini["wx"] = 0.
+    chrom_ini["wy"] = 0.
+    chrom_ini["phi_x"] = 0.
+    chrom_ini["phi_y"] = 0.
+    chrom_end["wx"] = 0.
+    chrom_end["wy"] = 0.
+    chrom_end["phi_x"] = 0.
+    chrom_end["phi_y"] = 0.
+    element_has_chrom = False
+    if input_data.has_chromatic:
+        if not startbpm in input_data.wx.indx:
+            print "Start BPM ", startbpm, " not found in chromatic measurement, will not compute chromatic."
+        elif not endbpm in input_data.wy.indx:
+            print "End BPM ", endbpm, " not found in chromatic measurement, will not compute chromatic."
+        else:
+            chrom_ini["wx"] = input_data.wx.WX[input_data.wx.indx[startbpm]]
+            chrom_ini["wy"] = input_data.wy.WY[input_data.wy.indx[startbpm]]
+            chrom_ini["phi_x"] = input_data.wx.PHIX[input_data.wx.indx[startbpm]]
+            chrom_ini["phi_y"] = input_data.wy.PHIY[input_data.wy.indx[startbpm]]
+            chrom_end["wx"] = input_data.wx.WX[input_data.wx.indx[endbpm]]
+            chrom_end["wy"] = input_data.wy.WY[input_data.wy.indx[endbpm]]
+            chrom_end["phi_x"] = input_data.wx.PHIX[input_data.wx.indx[endbpm]]
+            chrom_end["phi_y"] = input_data.wy.PHIY[input_data.wy.indx[endbpm]]
+            element_has_chrom = True
+            print "Start and end BPMs found in chromatic measurement."
+    return element_has_chrom, chrom_ini, chrom_end
+
 #===================================================================================================
 # helper-functions
 #===================================================================================================
@@ -546,7 +580,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     return [selected_left_bpm, selected_right_bpm]
 
 
-def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propagated_models, save_path, is_element, element_has_coupling, selected_accelerator, summaries):
+def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, element_has_coupling, element_has_chrom, selected_accelerator, summaries):
     '''
     Function that returns the optics function at the given element
 
@@ -562,10 +596,12 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
         beta_summary = summaries.beta
         disp_summary = summaries.dispersion
         coupling_summary = summaries.coupling
+        chrom_summary = summaries.chrom
     else:
         beta_summary = None
         disp_summary = None
         coupling_summary = None
+        chrom_summary = None
 
     (beta_x, err_beta_x, alfa_x, err_alfa_x,
      beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(element_name, is_element,
@@ -585,8 +621,8 @@ def getAndWriteData(element_name, input_data, chromatic_x_y, input_model, propag
     if element_has_coupling:
         sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, coupling_summary)
 
-    if len(chromatic_x_y) != 0:
-        sbs_writers.sbs_chromatic_writer.write_chromatic()
+    if element_has_chrom:
+        sbs_writers.sbs_chromatic_writer.write_chromatic(element_name, is_element, input_data.wx, input_data.wy, input_model, propagated_models, save_path, chrom_summary)
 
     if "IP" in element_name and is_element:
         sbs_writers.sbs_special_element_writer.write_ip(input_data.beta_x, input_data.beta_y,
@@ -614,12 +650,13 @@ def _run4mad(save_path,
              element_name,
              f_ini,
              f_end,
+             chrom_ini,
+             chrom_end,
              exppath,
              twiss_directory,
              coupling_method,
              accelerator,
              bb_path,
-             w_path,
              madx_exe_path):
 
     copy_path = bb_path
@@ -630,8 +667,6 @@ def _run4mad(save_path,
 
     elif accelerator == "LHCB1":
         start = "MSIA.EXIT.B1"
-
-    wx_value, phi_x_value, wy_value, phi_y_value = _check_chromatic_functions_in_wpath(start_bpm_name, w_path)
 
     betx_ini = start_bpm_horizontal_data[0]
     bety_ini = start_bpm_vertical_data[0]
@@ -669,10 +704,14 @@ def _run4mad(save_path,
             dy_ini=start_bpm_dispersion[2],
             dpx_ini=start_bpm_dispersion[1],
             dpy_ini=start_bpm_dispersion[3],
-            wx_ini=wx_value,
-            phix_ini=phi_x_value,
-            wy_ini=wy_value,
-            phiy_ini=phi_y_value,
+            wx_ini=chrom_ini["wx"],
+            phix_ini=chrom_ini["phi_x"],
+            wy_ini=chrom_ini["wy"],
+            phiy_ini=chrom_ini["phi_y"],
+            wx_end=chrom_end["wx"],
+            phix_end=chrom_end["phi_x"],
+            wy_end=chrom_end["wy"],
+            phiy_end=chrom_end["phi_y"],
             ini_r11=ini_r11,
             ini_r12=ini_r12,
             ini_r21=ini_r21,
@@ -757,43 +796,6 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory):
             open(os.path.join(save_path, 'corrections.madx'), "a").close()
     else:
         print "corrections.madx file found in output path."
-
-
-def _check_chromatic_functions_in_wpath(start_bpm_name, w_path):
-    wx_value = 0
-    phi_x_value = 0
-    wy_value = 0
-    phi_y_value = 0
-    if w_path != "0":
-        print "Chromatic save save_path,", w_path
-        wx_twiss = _try_to_load_twiss(os.path.join(w_path, "wx_twiss.out"))
-        wy_twiss = _try_to_load_twiss(os.path.join(w_path, "wy_twiss.out"))
-        if not wx_twiss is None and not wy_twiss is None:
-            if start_bpm_name in wx_twiss.indx:
-                wx_value = wx_twiss.WX[wx_twiss.indx[start_bpm_name]]
-                phi_x_value = wx_twiss.PHIX[wx_twiss.indx[start_bpm_name]]
-            else:
-                print "Start BPM, ", start_bpm_name, " not in WX file"
-            if start_bpm_name in wy_twiss.indx:
-                wy_value = wy_twiss.WY[wy_twiss.indx[start_bpm_name]]
-                phi_y_value = wy_twiss.PHIY[wy_twiss.indx[start_bpm_name]]
-            else:
-                print "Start BPM, ", start_bpm_name, " not in WY file"
-        else:
-            print "No Chromatic functions (wx_twiss,wy_twiss) available at ", w_path
-    return wx_value, phi_x_value, wy_value, phi_y_value
-
-
-def _get_chromatic_data(w_path):
-    if w_path != "0":
-        wx_twiss = _try_to_load_twiss(os.path.join(w_path, "wx_twiss.out"))
-        wy_twiss = _try_to_load_twiss(os.path.join(w_path, "wy_twiss.out"))
-        if wx_twiss is None or wy_twiss is None:
-            return []
-        else:
-            return [wx_twiss, wy_twiss]
-    else:
-        return []
 
 
 def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):
@@ -978,8 +980,8 @@ class _Summaries(object):
 
 class _InputData(object):
 
-    def __init__(self, output_path):
-        _set_output_path(output_path)
+    def __init__(self, measurement_path, w_path):
+        _set_output_path(measurement_path)
         self.beta_x = _get_twiss_for_one_of("getbetax_free.out", "getbetax.out")
         self.QXX = self.beta_x.Q1
         self.QYY = self.beta_x.Q2
@@ -1021,6 +1023,9 @@ class _InputData(object):
             print "Free coupling found"
         if not self.has_coupling:
             print "No coupling file... will continue without taking into account coupling"
+        
+        ### check if chromatic exists
+        self.has_chromatic = self.__try_to_load_chromatic_files(w_path)
 
     def __try_to_load_dispersion_files(self):
         if _all_exists_in_output_path("getDx.out", "getNDx.out", "getDy.out"):
@@ -1041,6 +1046,17 @@ class _InputData(object):
                     not self.couple_terms is None)
         else:
             return False
+    
+    def __try_to_load_chromatic_files(self, w_path):
+        wx_twiss = _try_to_load_twiss(os.path.join(w_path, "chrombetax.out"))
+        wy_twiss = _try_to_load_twiss(os.path.join(w_path, "chrombetay.out"))
+        if wx_twiss is None or wy_twiss is None:
+            print "No chromatic files... will continue without taking into account chromatic"
+            return False
+        else:
+            self.wx = wx_twiss
+            self.wy = wy_twiss
+            return True
 
     def __try_to_load_twiss_from_output(self, file_name):
         try:

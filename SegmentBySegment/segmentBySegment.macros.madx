@@ -125,7 +125,7 @@ twiss_fr_bk(accel, fr_filename, bck_filename, bininame, bendname): macro = {
     select, flag=twiss, class=tkicker;
     select, flag=twiss, class=rbend;
     select, flag=twiss,pattern="XRP";
-    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
+    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
     twiss, beta0=bendname, chrom, file="bck_filename";
 };
 

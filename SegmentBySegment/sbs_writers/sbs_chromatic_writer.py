@@ -42,8 +42,8 @@ def get_chrom_summary_file(save_path):
 
 
 def _get_chromatic_w_files(save_path, element_name, is_element):
-    file_chromatic_wx = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetax_" + element_name + ".out"))
-    file_chromatic_wy = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetay_" + element_name + ".out"))
+    file_chromatic_wx = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbschromx_" + element_name + ".out"))
+    file_chromatic_wy = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbschromy_" + element_name + ".out"))
 
     if not is_element:
         file_chromatic_wx.add_column_names(["NAME", "S",

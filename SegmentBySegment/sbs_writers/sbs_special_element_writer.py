@@ -3,7 +3,7 @@ from math import sqrt, tan, sin, cos, pi
 from Utilities import tfs_file_writer
 import sbs_phase_writer
 import sbs_beta_writer
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from sbs_beta_writer import weighted_average_for_SbS_elements
 
 
 def _get_ip_tfs_files(save_path):
