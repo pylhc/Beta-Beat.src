@@ -890,6 +890,8 @@ def reversetable(save_path, element_name):
 
 
 def _try_to_load_twiss(file_path):
+    if not os.path.isfile(file_path):
+        return None
     try:
         syserr = sys.stderr
         sys.stderr = open(os.devnull, "w")
@@ -980,7 +982,7 @@ class _Summaries(object):
 
 class _InputData(object):
 
-    def __init__(self, measurement_path, w_path):
+    def __init__(self, measurement_path, w_path=None):
         _set_output_path(measurement_path)
         self.beta_x = _get_twiss_for_one_of("getbetax_free.out", "getbetax.out")
         self.QXX = self.beta_x.Q1
@@ -1025,6 +1027,8 @@ class _InputData(object):
             print "No coupling file... will continue without taking into account coupling"
         
         ### check if chromatic exists
+        if w_path is None:
+            w_path = measurement_path
         self.has_chromatic = self.__try_to_load_chromatic_files(w_path)
 
     def __try_to_load_dispersion_files(self):

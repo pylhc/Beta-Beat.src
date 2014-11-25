@@ -431,8 +431,8 @@ def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_
     prop_models_b1 = SegmentBySegment._PropagatedModels(save_path_b1, "IP" + str(ip))
     prop_models_b2 = SegmentBySegment._PropagatedModels(save_path_b2, "IP" + str(ip))
 
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, [], None, prop_models_b1, save_path_b1, False, False, "LHCB1", None)
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, [], None, prop_models_b2, save_path_b2, False, False, "LHCB2", None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, False, "LHCB1", None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, False, "LHCB2", None)
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
