@@ -1,267 +1,46 @@
-title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
 
- system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
- system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
- system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
- system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
- system,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats"; ! To allow to use ATS optics
+!!! As paths cannot be passed as parameters to the macros, we have to link the output
+!!! path to a standard name "path"
+system, "ln  -fns %(PATH)s path";
 
+!!! The names of the files cannot be passed as parameters, because MAD isn't case 
+!!! sensitive, so this link trick is necessary...
+system, "ln  -fns %(PATH)s/twiss_%(LABEL)s.dat twiss_fr";
+system, "ln  -fns %(PATH)s/twiss_%(LABEL)s_cor.dat twiss_fr_cor";
+system, "ln  -fns %(PATH)s/twiss_%(LABEL)s_back.dat twiss_bck";
+system, "ln  -fns %(PATH)s/twiss_%(LABEL)s_cor_back.dat twiss_bck_cor";
 
+option, -echo;
 
+call, file="%(SBSPATH)s/segmentBySegment.macros.madx";
 
- option, -echo, -info,  warn;
- call,   file = "db/as-built/V6.5.seq";
-!call,   file = "db/as-built/V6.5.inj.str";
-call,  file="%(PATH)s/modifiers.madx";
-call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+exec, load_seq(path);
 
-!call, file= "/nfs/cs-ccr-nfs4/lhc_data/OP_DATA/Betabeat/Extractions/str_inj.str";
+option, echo;
 
+!!! Load measurement values
+call, file="%(PATH)s/measurement_%(LABEL)s.madx";
 
+!!! Segment by segment main
+exec, sbs_main(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s, path, bini%(ACCEL)s, bend%(ACCEL)s);
 
-! temporaery compensation of wrong sign in LSA
-!temp = (-1 * kq4.lr7);
-!kq4.lr7 := temp;
+!!! Extract front and back propagation sequences
+exec, extract_seq(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s);
 
-beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
-beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+!!! Propagation front and back
+exec, twiss_fr_bk(%(ACCEL)s, twiss_fr, twiss_bck, bini%(ACCEL)s, bend%(ACCEL)s);
 
+!!! Loading corrections
+call,  file="%(PATH)s/corrections.madx";
 
+!!! Corrected propagation front and back
+exec, twiss_fr_bk(%(ACCEL)s, twiss_fr_cor, twiss_bck_cor, bini%(ACCEL)s, bend%(ACCEL)s);
 
-
-
-seqedit, sequence=%(ACCEL)s;
-flatten;
-install, element=BGI,class=MARKER,at=real;
-cycle, start=%(START)s;
-endedit;
-
-
-seqedit, sequence=LHCB1;
-flatten;
-install, element=BGI_B1,class=MARKER,at=6794.45142;
-endedit;
-
-
-seqedit, sequence=LHCB2;
-flatten;
-install, element=BGI_B2,class=MARKER,at=13255.4495;
-endedit;
-
-use, period=%(ACCEL)s;
-select, flag=twiss, clear;
-select, flag=twiss, range=%(ENDAT)s;
-select, flag=twiss, range=%(STARTFROM)s, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
-twiss, file="%(PATH)s/StartPoint.twiss";
-
-!use, period=%(ACCEL)s;
-!select, flag=twiss, clear;
-!select, flag=twiss, range=%(ENDAT)s, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-!twiss, file="%(PATH)s/EndPoint.twiss";
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!mathing
-!call, file="%(PATH)s/matchjob4_%(LABEL)s_sbs.madx";
-!!!!!!!!!!! end matching
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! normal propogation
-
-
-!!
-!!  Start at the first BPM
-!!
-
-seqedit, sequence=%(ACCEL)s;
-cycle, start=%(STARTFROM)s;
-endedit;
-
-
-
-!!
-!! Save initial beta in beta0 variable
-!!
-
-use, period=%(ACCEL)s, range=%(STARTFROM)s/%(STARTFROM)s;  ! Just the starting element for speed
-savebeta,label=b0, place=%(STARTFROM)s;
-twiss ,chrom, betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, wx=%(WX)s, phix=%(PHIX)s, wy=%(WY)s, phiy=%(PHIY)s;
-
-!!
-!!!! Matching for coupling initial cond, R matrix
-!!
-
-select, flag=twiss, clear;
-select, flag=twiss, pattern=BPM ,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
-
-MATCH,USE_MACRO;
-VARY, name=ir11, step=0.00001;
-VARY, name=ir12, step=0.00001;
-VARY, name=ir21, step=0.00001;
-VARY, name=ir22, step=0.00001;
-
-M1: MACRO={
-    savebeta,label=b1,place=%(STARTFROM)s;  ! This will update b1 with all the betas and coupling input
-    twiss,beta0=b0, chrom, R11=ir11,R12=ir12,R21=ir21,R22=ir22,file="%(PATH)s/twiss_%(LABEL)s.dat";
-    system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s -f 1 -m %(METHOD)s";
-    call, file="%(PATH)s/initvals.dat";
-}
-
- CONSTRAINT, EXPR= f1001r= %(F1001R)f;
- CONSTRAINT, EXPR= f1001i= %(F1001I)f;
- CONSTRAINT, EXPR= f1010r= %(F1010R)f;
- CONSTRAINT, EXPR= f1010i= %(F1010I)f;
-
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
-
-
-
-!use, period=%(ACCEL)s, range=%(STARTFROM)s/%(ENDAT)s;
-!select, flag=twiss, clear;
-!select, flag=twiss, class=quadrupole;
-!select, flag=twiss, class=monitor;
-!select, flag=twiss, class=rcollimator;
-!select, flag=twiss, class=marker;
-!select, flag=twiss, class=tkicker;
-!select, flag=twiss, class=instrument,column=name,s,L, K1l;
-!twiss, betx=%(BETX)s, alfx=%(ALFX)s, bety=%(BETY)s, alfy=%(ALFY)s,dx=%(DX)s,dy=%(DY)s,dpx=%(DPX)s,dpy=%(DPY)s, file="%(PATH)s/twiss_%(LABEL)s_nom.dat";
-
-
-
-use, period=%(ACCEL)s, range=%(STARTFROM)s/%(ENDAT)s;
-select, flag=twiss, clear;
-select, flag=twiss, class=quadrupole;
-select, flag=twiss, class=monitor;
-select, flag=twiss, class=rcollimator;
-select, flag=twiss, class=marker;
-select, flag=twiss, class=rbend;
-select, flag=twiss, class=tkicker;
-select,flag=twiss,pattern="XRP";
-select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
-
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s.dat";
-
-!
-! Write here some correction
-!
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_%(LABEL)s_cor.dat";
-
-system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s -e %(EXP)s -s %(STARTFROM)s -m %(METHOD)s";
-
-
-!
-! Please remove the correction if you want the rest to make sense
-!
-
-
-twiss, beta0=b1, betx=%(BETX)s+%(ERRBETX)s, bety=%(BETY)s+%(ERRBETY)s, file="%(PATH)s/twiss.b+.dat";
-twiss, beta0=b1, betx=%(BETX)s-%(ERRBETX)s, bety=%(BETY)s-%(ERRBETY)s, file="%(PATH)s/twiss.b-.dat";
-twiss, beta0=b1, alfx=%(ALFX)s+%(ERRALFX)s, alfy=%(ALFY)s+%(ERRALFY)s, file="%(PATH)s/twiss.a+.dat";
-twiss, beta0=b1, alfx=%(ALFX)s-%(ERRALFX)s, alfy=%(ALFY)s-%(ERRALFY)s, file="%(PATH)s/twiss.a-.dat";
-twiss, beta0=b1, dx=%(DX)s+%(ERRDX)s,dy=%(DY)s+%(ERRDY)s, file="%(PATH)s/twiss.d+.dat";
-twiss, beta0=b1, dx=%(DX)s-%(ERRDX)s,dy=%(DY)s-%(ERRDY)s, file="%(PATH)s/twiss.d-.dat";
-
-
-!!!!!! errors coupling max
-
-MATCH,USE_MACRO;
-VARY, name=ir11, step=0.00001;
-VARY, name=ir12, step=0.00001;
-VARY, name=ir21, step=0.00001;
-VARY, name=ir22, step=0.00001;
-
-M1: MACRO={
-    savebeta,label=b1,place=%(STARTFROM)s;  ! This will update b1 with all the betas and coupling input
-    twiss,beta0=b0, chrom, R11=ir11,R12=ir12,R21=ir21,R22=ir22,file="%(PATH)s/twiss_%(LABEL)s.dat";
-    system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s  -e %(EXP)s -s %(STARTFROM)s -f 1 -m %(METHOD)s";
-    call, file="%(PATH)s/initvals.dat";
-}
-
- CONSTRAINT, EXPR= f1001r= %(F1001maR)f;
- CONSTRAINT, EXPR= f1001i= %(F1001maI)f;
- CONSTRAINT, EXPR= f1010r= %(F1010maR)f;
- CONSTRAINT, EXPR= f1010i= %(F1010maI)f;
-
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_c_max.dat";
-
-
-!!!!!! errors coupling min
-
-MATCH,USE_MACRO;
-VARY, name=ir11, step=0.00001;
-VARY, name=ir12, step=0.00001;
-VARY, name=ir21, step=0.00001;
-VARY, name=ir22, step=0.00001;
-
-M1: MACRO={
-    savebeta,label=b1,place=%(STARTFROM)s;  ! This will update b1 with all the betas and coupling input
-    twiss,beta0=b0, chrom, R11=ir11,R12=ir12,R21=ir21,R22=ir22,file="%(PATH)s/twiss_%(LABEL)s.dat";
-    system, "/usr/bin/python %(PATH)s/getfterms.py -p %(PATH)s/ -l %(LABEL)s  -e %(EXP)s -s %(STARTFROM)s -f 1 -m %(METHOD)s";
-    call, file="%(PATH)s/initvals.dat";
-}
-
- CONSTRAINT, EXPR= f1001r= %(F1001miR)f;
- CONSTRAINT, EXPR= f1001i= %(F1001miI)f;
- CONSTRAINT, EXPR= f1010r= %(F1010miR)f;
- CONSTRAINT, EXPR= f1010i= %(F1010miI)f;
-
-    lmdif, TOLERANCE=1.0E-6;
-ENDMATCH;
-
-twiss, beta0=b1, chrom, file="%(PATH)s/twiss_c_min.dat";
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! back propagation
-
-
-seqedit, sequence=%(ACCEL)s;
-cycle, start=%(ENDAT)s;
-flatten;reflect; ! reverse command
-endedit;
-
-use, period=%(ACCEL)s, range=%(ENDAT)s/%(STARTFROM)s;
-select, flag=twiss, clear;
-select, flag=twiss, class=quadrupole;
-select, flag=twiss, class=monitor;
-select, flag=twiss, class=rcollimator;
-select, flag=twiss, class=marker;
-select, flag=twiss, class=tkicker;
-select, flag=twiss, class=rbend;
-select,flag=twiss,pattern="XRP";
-select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s, file="%(PATH)s/twiss_%(LABEL)s_nom_back.dat";
-
-
-
-use, period=%(ACCEL)s, range=%(ENDAT)s/%(STARTFROM)s;
-select, flag=twiss, clear;
-select, flag=twiss, class=quadrupole;
-select, flag=twiss, class=monitor;
-select, flag=twiss, class=rcollimator;
-select, flag=twiss, class=marker;
-select, flag=twiss, class=tkicker;
-select, flag=twiss, class=rbend;
-select,flag=twiss,pattern="XRP";
-select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy;
-
-
-
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss_%(LABEL)s_play_back.dat";
-twiss, betx=%(ENDBX)s+%(ERRENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s+%(ERRENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.b+_back.dat";
-twiss, betx=%(ENDBX)s-%(ERRENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s-%(ERRENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.b-_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s+%(ERRALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s+%(ERRALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.a+_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s-%(ERRALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s-%(ERRALFENDY)s,dx=%(DENDX)s,dy=%(DENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.a-_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s+%(ERRDENDX)s,dy=%(DENDY)s+%(ERRDENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.d+_back.dat";
-twiss, betx=%(ENDBX)s, alfx=%(ALFENDX)s, bety=%(ENDBY)s, alfy=%(ALFENDY)s,dx=%(DENDX)s-%(ERRDENDX)s,dy=%(DENDY)s-%(ERRDENDY)s,dpx=%(DPENDX)s,dpy=%(DPENDY)s, file="%(PATH)s/twiss.d-_back.dat";
-
-
-stop;
+!!! Clean the links
+system, "unlink path";
+system, "unlink twiss_fr";
+system, "unlink twiss_fr_cor";
+system, "unlink twiss_bck";
+system, "unlink twiss_bck_cor";
+return;
 

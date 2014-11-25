@@ -1,0 +1,133 @@
+
+!!! As paths cannot be passed as parameters to the macros, we have to link the output
+!!! path to a standard name "path"
+system, "ln  -fns %(PATHB1)s pathb1";
+system, "ln  -fns %(PATHB2)s pathb2";
+
+!!! The names of the files cannot be passed as parameters, because MAD isn't case 
+!!! sensitive, so this link trick is necessary...
+system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s.dat twiss_fr_b1";
+system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s_cor.dat twiss_fr_cor_b1";
+system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s_back.dat twiss_bck_b1";
+system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s_cor_back.dat twiss_bck_cor_b1";
+
+system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s.dat twiss_fr_b2";
+system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s_cor.dat twiss_fr_cor_b2";
+system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s_back.dat twiss_bck_b2";
+system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s_cor_back.dat twiss_bck_cor_b2";
+
+option, -echo;
+
+call, file="%(SBSPATH)s/segmentBySegment.macros.madx";
+
+exec, load_seq(pathb1);
+
+option, echo;
+
+
+!!!!!! Beam 1 Segment by segment !!!!!
+
+!!! Load measurement values
+call, file="%(PATHB1)s/measurement_%(LABEL)s.madx";
+
+!!! Segment by segment main
+exec, sbs_main(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s, pathb1, b0LHCB1);
+
+!!! Extract front and back propagation sequences
+exec, extract_seq(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s);
+
+!!! Propagation front and back
+exec, twiss_fr_bk(LHCB1, twiss_fr_b1, twiss_bck_b1, b0LHCB1);
+
+
+!!!!!! Beam 2 Segment by segment !!!!!
+
+!!! Load measurement values
+call, file="%(PATHB2)s/measurement_%(LABEL)s.madx";
+
+!!! Segment by segment main
+exec, sbs_main(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s, pathb2, b0LHCB2);
+
+!!! Extract front and back propagation sequences
+exec, extract_seq(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s);
+
+!!! Propagation front and back
+exec, twiss_fr_bk(LHCB2, twiss_fr_b2, twiss_bck_b2, b0LHCB2);
+
+
+!!!!!! Matching !!!!!!
+
+beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
+use, period=front_LHCB1;
+twiss, beta0=b0LHCB1, chrom;
+
+call, file="%(MATCH)s/phases0b1.seqx";
+
+beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
+use, period=front_LHCB2;
+twiss, beta0=b0LHCB2, chrom;
+
+call, file="%(MATCH)s/phases0b2.seqx";
+
+readtable, table=phxB1, file="%(PATHB1)s/sbsphasext_%(LABEL)s.out";
+readtable, table=phyB1, file="%(PATHB1)s/sbsphaseyt_%(LABEL)s.out";
+
+readtable, table=phxB2, file="%(PATHB2)s/sbsphasext_%(LABEL)s.out";
+readtable, table=phyB2, file="%(PATHB2)s/sbsphaseyt_%(LABEL)s.out";
+
+call, file="%(MATCH)s/phases.seqx";
+
+call, file="%(MATCH)s/svariables.seqx";
+call, file="%(MATCH)s/dvariables.seqx";
+
+call, file="%(MATCH)s/genchangpars.seqx";
+
+match, use_macro;
+
+   call, file="%(MATCH)s/variablesb1.seqx";
+   call, file="%(MATCH)s/variablesc.seqx";
+   call, file="%(MATCH)s/variablesb2.seqx";
+   
+
+   mab1: macro =
+    {
+      beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
+      use, period=front_LHCB1;
+      twiss, beta0=b0LHCB1, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
+    };
+ 
+   call, file="%(MATCH)s/constraintsb1.seqx";
+
+    mab2: macro =
+      {
+       beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
+       use, period=front_LHCB2;
+       twiss, beta0=b0LHCB2, chrom, file="%(PATHB2)s/twiss_%(LABEL)s_cor.dat";
+      
+       print, text="======================================";
+      };
+
+    call, file="%(MATCH)s/constraintsb2.seqx";
+    lmdif,    tolerance:=1e-24, calls:=120;
+
+endmatch;
+
+call, file="%(MATCH)s/genchangpars.seqx";
+save, file="%(MATCH)s/changeparameters.madx";
+
+exec, twiss_fr_bk(LHCB1, twiss_fr_cor_b1, twiss_bck_cor_b1, b0LHCB1);
+exec, twiss_fr_bk(LHCB2, twiss_fr_cor_b2, twiss_bck_cor_b2, b0LHCB2);
+
+!!! Clean the links
+system, "unlink pathb1";
+system, "unlink pathb2";
+system, "unlink twiss_fr_b1";
+system, "unlink twiss_fr_cor_b1";
+system, "unlink twiss_bck_b1";
+system, "unlink twiss_bck_cor_b1";
+system, "unlink twiss_fr_b2";
+system, "unlink twiss_fr_cor_b2";
+system, "unlink twiss_bck_b2";
+system, "unlink twiss_bck_cor_b2";
+
+stop;

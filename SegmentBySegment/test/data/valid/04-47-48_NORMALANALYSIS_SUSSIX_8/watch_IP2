@@ -1,1 +1,0 @@
-python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py /home/ylevinse/Programming/Beta-Beat.src/SegmentBySegment/test/data/valid/04-47-48_NORMALANALYSIS_SUSSIX_8//t_IP2.madx /home/ylevinse/Programming/Beta-Beat.src/SegmentBySegment/test/data/valid/04-47-48_NORMALANALYSIS_SUSSIX_8//gplot_IP2

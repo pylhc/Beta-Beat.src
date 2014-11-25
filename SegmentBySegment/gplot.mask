@@ -1,35 +1,47 @@
 set terminal postscript enhanced color solid 20
+# set terminal X11
 
 set size 1, 1.15
+
 set output "%(PATH)s/plot_%(LABEL)s.eps"
+
 set multiplot
 set size 1,0.5
 set origin 0,0.5
 set lmargin 8
 set xrange[%(StartPoint)f-50:%(EndPoint)f+50]
 set yrange[0:*]
-set nokey
+set key on
 
-
+# Beta X
 
 set ylabel "{/Symbol b}_x[m]"
 
- p "%(MEA)s/getbetax%(METHOD)s.out"u 2:4:6 t"Measurement" w e pt 7 lt 1,\
-   "< grep BPM %(PATH)stwiss_%(LABEL)s.dat" u ($2+%(StartPoint)f):3 t"Design with initial cond" pt 3 lt 3 ps 1,\
-   "< grep BPM %(PATH)stwiss_%(LABEL)s_cor.dat" u ($2+%(StartPoint)f):3 t"cor" pt 14 lt 7 ps 1.7 lw 2
+ plot "%(MEA)s/getbetax%(METHOD)s.out" using 2:4:6 title "Measurement" with errorbars linetype 1,\
+      "< grep BPM %(PATH)ssbsbetax_%(LABEL)s.out" using ($2+%(StartPoint)f):3 with lines linetype 2 notitle,\
+      "< grep BPM %(PATH)ssbsbetax_%(LABEL)s.out" using ($2+%(StartPoint)f):3:4  title "Propagated" with errorbars linetype 2,\
+      "< grep BPM %(PATH)ssbsbetax_%(LABEL)s.out" using ($2+%(StartPoint)f):5:6  title "Corrected"  with errorbars linetype 3,\
+      "< grep BPM %(PATH)ssbsbetax_%(LABEL)s.out" using ($2+%(StartPoint)f):7 with lines linetype 4 notitle,\
+      "< grep BPM %(PATH)ssbsbetax_%(LABEL)s.out" using ($2+%(StartPoint)f):7:8  title "Back" with errorbars linetype 4,\
+      "< grep BPM %(PATH)ssbsbetax_%(LABEL)s.out" using ($2+%(StartPoint)f):9:10 title "Back corrected"  with errorbars linetype 5
 
 
 set origin 0,0.
 set size 1,0.54
-#set key 9000,470  samplen 1
+
 set ylabel "{/Symbol b}_y[m]"
 set xlabel"s [m]"
 set yrange[0:500]
 
+# Beta y
 
- p "%(MEA)s/getbetay%(METHOD)s.out"u 2:4:6 t"Measurement" w e pt 7 lt 1,\
-   "< grep BPM %(PATH)s/twiss_%(LABEL)s.dat" u ($2+%(StartPoint)f):5 t"Design with initial cond" pt 3 lt 3 ps 1,\
-   "< grep BPM %(PATH)s/twiss_%(LABEL)s_cor.dat" u ($2+%(StartPoint)f):5 t"cor" pt 14 lt 7 ps 1.7 lw 2
+ plot "%(MEA)s/getbetay%(METHOD)s.out" using 2:4:6 title "Measurement" with errorbars linetype 1,\
+      "< grep BPM %(PATH)ssbsbetay_%(LABEL)s.out" using ($2+%(StartPoint)f):3 with lines linetype 2 notitle,\
+      "< grep BPM %(PATH)ssbsbetay_%(LABEL)s.out" using ($2+%(StartPoint)f):3:4  title "Propagated" with errorbars linetype 2,\
+      "< grep BPM %(PATH)ssbsbetay_%(LABEL)s.out" using ($2+%(StartPoint)f):5:6  title "Corrected"  with errorbars linetype 3,\
+      "< grep BPM %(PATH)ssbsbetay_%(LABEL)s.out" using ($2+%(StartPoint)f):7 with lines linetype 4 notitle,\
+      "< grep BPM %(PATH)ssbsbetay_%(LABEL)s.out" using ($2+%(StartPoint)f):7:8  title "Back" with errorbars linetype 4,\
+      "< grep BPM %(PATH)ssbsbetay_%(LABEL)s.out" using ($2+%(StartPoint)f):9:10 title "Back corrected"  with errorbars linetype 5
 
 
 set origin 0,0.95
@@ -43,111 +55,14 @@ set label "%(LABEL)s" at 500+%(StartPoint)f, 0.5 center
 set label "%(ACCEL)s" at %(StartPoint)f, 0.5 font "Bold" center
 set zeroaxis
 set yrange[]
-p  "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
 
+# K strength
+plot "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1 notitle
 
-# coupling f1001
 unset multiplot
-reset 
-
-set size 1,0.95
-set output "%(PATH)s/csbs_%(LABEL)s_diff_3.5Tev.eps"
-set multiplot
-set lmargin 8
-set size 1,0.2
-set origin 0,0.75
-unset xlabel
-set ylabel "K1L" -1
-set label "%(ACCEL)s" at graph 1,1.12  right font "bold, 18"
-set label "%(LABEL)s" at graph 0.55,1.12  right 
-unset ytics
-unset xtics
-unset key
-set zeroaxis
-set xrange [%(StartPoint)f-50:%(EndPoint)f+50]
-p "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
-
-set size 1,0.8
-set origin 0,0.0
-set xlabel "Longitudinal location [m]"
-set ylabel "f_{1001}" 0.5
-set ytics 0.05
-set xtics 200
-unset label
-set key  bottom left samplen 1
-
-# in case or IR use $23 instead of $2
-
-p  [][-0.2:0.2] "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):17 w l t"Err model |f_{1001}|" lt 1 lw 2,\
-       ""  u ($2):18 w l t"Err model Re[f_{1001}]" lt 3 lw 2,\
-       ""  u ($2):19 w l t"Err model Im[f_{1001}]" lt 7 lw 2
-
-set key  bottom right samplen 1
-p  [][-0.2:0.2]"%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):3 w l t"Ideal model |f_{1001}|" lt 8 lw 1,\
-       ""  u ($2):4 w l t"Ideal model Re[f_{1001}]" lt 5 lw 2,\
-       ""  u ($2):5 w l t"Ideal model Im[f_{1001}]" lt 9 lw 2
-
-
-
-set key  top left  samplen 1
-p   [][-0.2:0.2]   "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):9:10 w e t"|f_{1001}|" lt 1 ps 0.7 pt 7 lw 2,\
-       "" u ($2):11:10 w e t"Re[f_{1001}]" lt 3 ps 0.7 pt 7 lw 2,\
-       "" u ($2):12:10 w e t"Im[f_{1001}]" lt 7 ps 0.7 pt 7 lw 2
-
-# coupling 1010
-unset multiplot
-reset 
-
-set size 1,0.95
-set output "%(PATH)s/csbs_%(LABEL)s_3.5Tev.eps"
-set multiplot
-set lmargin 8
-set size 1,0.2
-set origin 0,0.75
-unset xlabel
-set ylabel "K1L" -1
-set label "%(ACCEL)s" at graph 1,1.12  right font "bold, 18"
-set label "%(LABEL)s" at graph 0.55,1.12  right 
-unset ytics
-unset xtics
-unset key
-set zeroaxis
-set xrange [%(StartPoint)f-50:%(EndPoint)f+50]
-p "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
-
-set size 1,0.8
-set origin 0,0.0
-set xlabel "Longitudinal location [m]"
-set ylabel "f_{1010}" 0.5
-set ytics 0.05
-set xtics 200
-unset label
-set key  bottom left samplen 1
-
-# in case or IR use $23 instead of $2
-
-p  [][-0.2:0.2] "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):20 w l t"Err model |f_{1010}|" lt 1 lw 2,\
-       ""  u ($2):21 w l t"Err model Re[f_{1010}]" lt 3 lw 2,\
-       ""  u ($2):22 w l t"Err model Im[f_{1010}]" lt 7 lw 2
-
-set key  bottom right samplen 1
-p  [][-0.2:0.2]"%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):6 w l t"Ideal model |f_{1010}|" lt 8 lw 1,\
-       ""  u ($2):7 w l t"Ideal model Re[f_{1010}]" lt 5 lw 2,\
-       ""  u ($2):8 w l t"Ideal model Im[f_{1010}]" lt 9 lw 2
-
-
-
-set key  top left  samplen 1
-p   [][-0.2:0.2]   "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):13:14 w e t"|f_{1010}|" lt 1 ps 0.7 pt 7 lw 2,\
-       "" u ($2):15:14 w e t"Re[f_{1010}]" lt 3 ps 0.7 pt 7 lw 2,\
-       "" u ($2):16:14 w e t"Im[f_{1010}]" lt 7 ps 0.7 pt 7 lw 2
-
-
+reset
 
 #phasetotal
-reset
-unset multiplot
-
 
 set size 1, 1.15
 set output "%(PATH)s/plot_%(LABEL)s.phasetotal.eps"
@@ -158,10 +73,8 @@ set lmargin 8
 s=%(StartPoint)f
 set xrange[%(StartPoint)f-50:%(EndPoint)f+50]
 set yrange[]
-set key s+400, 0.06 samplen 1
 
-set ylabel "{/Symbol Df}_x[2{/Symbol p}]" 0.5
-
+set ylabel "{/Symbol Df}_x[2{/Symbol p}]"
 
 qx=0.28
 qy=0.31
@@ -197,7 +110,7 @@ unset arrow
 unset xtics
 unset ytics
 unset xlabel
-set ylabel "K_1L" -0.7
+set ylabel "K_1L"
 set label "%(LABEL)s" at 450+s, 0.12 center
 set label "%(ACCEL)s" at s, 0.12 font "Bold" center
 set zeroaxis
@@ -366,6 +279,100 @@ reset
 unset multiplot
 
 
+
+# coupling f1001
+
+set size 1,0.95
+set output "%(PATH)s/csbs_%(LABEL)s_diff_3.5Tev.eps"
+set multiplot
+set lmargin 8
+set size 1,0.2
+set origin 0,0.75
+unset xlabel
+set ylabel "K1L"
+set label "%(ACCEL)s" at graph 1,1.12  right font "bold, 18"
+set label "%(LABEL)s" at graph 0.55,1.12  right 
+unset ytics
+unset xtics
+unset key
+set zeroaxis
+set xrange [%(StartPoint)f-50:%(EndPoint)f+50]
+p "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
+
+set size 1,0.8
+set origin 0,0.0
+set xlabel "Longitudinal location [m]"
+set ylabel "f_{1001}"
+set ytics 0.05
+set xtics 200
+unset label
+set key  bottom left samplen 1
+
+# in case or IR use $23 instead of $2
+
+p  [][-0.2:0.2] "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):17 w l t"Err model |f_{1001}|" lt 1 lw 2,\
+       ""  u ($2):18 w l t"Err model Re[f_{1001}]" lt 3 lw 2,\
+       ""  u ($2):19 w l t"Err model Im[f_{1001}]" lt 7 lw 2
+
+set key  bottom right samplen 1
+p  [][-0.2:0.2]"%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):3 w l t"Ideal model |f_{1001}|" lt 8 lw 1,\
+       ""  u ($2):4 w l t"Ideal model Re[f_{1001}]" lt 5 lw 2,\
+       ""  u ($2):5 w l t"Ideal model Im[f_{1001}]" lt 9 lw 2
+
+
+
+set key  top left  samplen 1
+p   [][-0.2:0.2]   "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):9:10 w e t"|f_{1001}|" lt 1 ps 0.7 pt 7 lw 2,\
+       "" u ($2):11:10 w e t"Re[f_{1001}]" lt 3 ps 0.7 pt 7 lw 2,\
+       "" u ($2):12:10 w e t"Im[f_{1001}]" lt 7 ps 0.7 pt 7 lw 2
+
+# coupling 1010
+unset multiplot
+reset 
+
+set size 1,0.95
+set output "%(PATH)s/csbs_%(LABEL)s_3.5Tev.eps"
+set multiplot
+set lmargin 8
+set size 1,0.2
+set origin 0,0.75
+unset xlabel
+set ylabel "K1L"
+set label "%(ACCEL)s" at graph 1,1.12  right font "bold, 18"
+set label "%(LABEL)s" at graph 0.55,1.12  right 
+unset ytics
+unset xtics
+unset key
+set zeroaxis
+set xrange [%(StartPoint)f-50:%(EndPoint)f+50]
+p "< grep MQ %(PATH)s/twiss_%(LABEL)s.dat" u ($2-$19/2+%(StartPoint)f):($20):($19) w boxes fs solid 0.6 lt 1
+
+set size 1,0.8
+set origin 0,0.0
+set xlabel "Longitudinal location [m]"
+set ylabel "f_{1010}"
+set ytics 0.05
+set xtics 200
+unset label
+set key  bottom left samplen 1
+
+# in case or IR use $23 instead of $2
+
+p  [][-0.2:0.2] "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):20 w l t"Err model |f_{1010}|" lt 1 lw 2,\
+       ""  u ($2):21 w l t"Err model Re[f_{1010}]" lt 3 lw 2,\
+       ""  u ($2):22 w l t"Err model Im[f_{1010}]" lt 7 lw 2
+
+set key  bottom right samplen 1
+p  [][-0.2:0.2]"%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):6 w l t"Ideal model |f_{1010}|" lt 8 lw 1,\
+       ""  u ($2):7 w l t"Ideal model Re[f_{1010}]" lt 5 lw 2,\
+       ""  u ($2):8 w l t"Ideal model Im[f_{1010}]" lt 9 lw 2
+
+
+
+set key  top left  samplen 1
+p   [][-0.2:0.2]   "%(PATH)s/sbscouple_%(LABEL)s.out" u ($2):13:14 w e t"|f_{1010}|" lt 1 ps 0.7 pt 7 lw 2,\
+       "" u ($2):15:14 w e t"Re[f_{1010}]" lt 3 ps 0.7 pt 7 lw 2,\
+       "" u ($2):16:14 w e t"Im[f_{1010}]" lt 7 ps 0.7 pt 7 lw 2
 
 
 

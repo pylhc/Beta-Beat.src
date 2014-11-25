@@ -1,0 +1,131 @@
+load_seq(path_link): macro = {
+    title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+    system,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats"; ! To allow to use ATS optics
+    
+    option, -echo, -info,  warn;
+
+    call, file = "db/as-built/V6.5.seq";
+    call, file="path_link/modifiers.madx";
+    call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+    
+    !call, file= "/nfs/cs-ccr-nfs4/lhc_data/OP_DATA/Betabeat/Extractions/str_inj.str";
+
+    ! temporaery compensation of wrong sign in LSA
+    !temp = (-1 * kq4.lr7);
+    !kq4.lr7 := temp;
+
+    beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+    beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+
+    seqedit, sequence=LHCB1;
+    flatten;
+    install, element=BGI,class=MARKER,at=real;
+    cycle, start=MSIA.EXIT.B1;
+    endedit;
+
+    seqedit, sequence=LHCB2;
+    flatten;
+    install, element=BGI,class=MARKER,at=real;
+    cycle, start="MKI.A5R8.B2";
+    endedit;
+
+    seqedit, sequence=LHCB1;
+    flatten;
+    install, element=BGI_B1,class=MARKER,at=6794.45142;
+    endedit;
+
+    !seqedit, sequence=LHCB2;
+    !flatten;
+    !install, element=BGI_B2,class=MARKER,at=13255.4495;
+    !endedit;
+}
+
+
+sbs_main(accel, startfrom, endat, path_link, bininame, bendname): macro = {
+    !!! Start segment by segment
+
+    use, period=accel;
+    select, flag=twiss, clear;
+    select, flag=twiss, range=endat;
+    select, flag=twiss, range=startfrom, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
+    twiss, file="path_link/StartPoint.twiss";
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! normal propagation
+
+    !!
+    !!  Start at the first BPM
+    !!
+
+    seqedit, sequence=accel;
+    cycle, start=startfrom;
+    endedit;
+
+    !!
+    !! Save initial and final betas
+    !!
+
+    use, period=accel, range=startfrom/startfrom;
+    savebeta,label=bininame, place=startfrom;
+    twiss ,chrom, betx=betx_ini, alfx=alfx_ini, bety=bety_ini, alfy=alfy_ini, dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini, wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini, r11=ini_r11 ,r12=ini_r12, r21=ini_r21, r22=ini_r22;
+
+    use, period=accel, range=endat/endat;
+    savebeta,label=bendname, place=endat;
+    twiss ,chrom, betx=betx_end, alfx=alfx_end, bety=bety_end, alfy=alfy_end, dx=dx_end, dy=dy_end, dpx=dpx_end, dpy=dpy_end, wx=wx_end, phix=phix_end, wy=wy_end, phiy=phiy_end, r11=end_r11 ,r12=end_r12, r21=end_r21, r22=end_r22;
+
+};
+
+extract_seq(accel, startfrom, endat): macro = {
+    EXTRACT, SEQUENCE=accel, FROM=startfrom, TO=endat, NEWNAME=front_accel;
+    seqedit, sequence=front_accel;
+    flatten;
+    endedit;
+
+    EXTRACT, SEQUENCE=accel, FROM=startfrom, TO=endat, NEWNAME=back_accel;
+    seqedit, sequence=back_accel;
+    flatten;reflect; ! reverse command
+    endedit;
+
+    exec, sel_accel();  ! To select the corresponding beams
+};
+
+sel_LHCB1(): macro = {
+    beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
+    beam, particle = proton, sequence=back_LHCB1, energy = 450.0, bv=1;
+};
+
+sel_LHCB2(): macro = {
+    beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
+    beam, particle = proton, sequence=back_LHCB2, energy = 450.0, bv=-1;
+};
+
+twiss_fr_bk(accel, fr_filename, bck_filename, bininame, bendname): macro = {
+    use, period=front_accel;
+    select, flag=twiss, clear;
+    select, flag=twiss, class=quadrupole;
+    select, flag=twiss, class=monitor;
+    select, flag=twiss, class=rcollimator;
+    select, flag=twiss, class=marker;
+    select, flag=twiss, class=rbend;
+    select, flag=twiss, class=tkicker;
+    select, flag=twiss,pattern="XRP";
+    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
+    twiss, beta0=bininame, chrom, file="fr_filename";
+
+    use, period=back_accel;
+    select, flag=twiss, clear;
+    select, flag=twiss, class=quadrupole;
+    select, flag=twiss, class=monitor;
+    select, flag=twiss, class=rcollimator;
+    select, flag=twiss, class=marker;
+    select, flag=twiss, class=tkicker;
+    select, flag=twiss, class=rbend;
+    select, flag=twiss,pattern="XRP";
+    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
+    twiss, beta0=bendname, chrom, file="bck_filename";
+};
+
