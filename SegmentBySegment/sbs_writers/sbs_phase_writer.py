@@ -88,11 +88,18 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
 
         prop_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_prop_phase, beta_start, alfa_start)
         cor_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_cor_phase, beta_start, alfa_start)
+        
 
         back_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_propagation_phase, beta_end, alfa_end)
         back_cor_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_cor_phase, beta_end, alfa_end)
+        
+        # Error for the phase difference -> sqrt(e1**2 + e2**2 - 2cov(e1, e2)) and assuming no covariance
+        prop_meas_diff_error = np.sqrt(prop_phase_error ** 2 + std_err_phase ** 2)
+        prop_cor_diff_error = np.sqrt(prop_meas_diff_error ** 2 + cor_phase_error ** 2)
+        back_meas_diff_error = np.sqrt(back_phase_error ** 2 + std_err_phase ** 2)
+        back_cor_diff_error = np.sqrt(back_meas_diff_error ** 2 + back_cor_phase_error ** 2)
 
-        file_phase.add_table_row([bpm_name, bpm_s, meas_phase, std_err_phase, prop_phase_difference, prop_phase_error, prop_cor_phase, cor_phase_error, back_prop_phase_difference, back_phase_error, back_cor_phase, back_cor_phase_error, model_s])
+        file_phase.add_table_row([bpm_name, bpm_s, meas_phase, std_err_phase, prop_phase_difference, prop_meas_diff_error, prop_cor_phase, prop_cor_diff_error, back_prop_phase_difference, back_meas_diff_error, back_cor_phase, back_cor_diff_error, model_s])
 
     file_phase.write_to_file()
 

@@ -672,6 +672,15 @@ def _run4mad(save_path,
     bety_ini = start_bpm_vertical_data[0]
     betx_end = end_bpm_horizontal_data[0]
     bety_end = end_bpm_vertical_data[0]
+    
+    if betx_ini < 0. or bety_ini <0.:
+        print >> sys.stderr, "Negative betas in initial BPM of segment!"
+        print >> sys.stderr, "Aborting..."
+        sys.exit(1)
+    if betx_end < 0. or bety_end <0.:
+        print >> sys.stderr, "Negative betas in last BPM of segment!"
+        print >> sys.stderr, "Aborting..."
+        sys.exit(1)
 
     alfx_ini = start_bpm_horizontal_data[1]
     alfy_ini = start_bpm_vertical_data[1]
