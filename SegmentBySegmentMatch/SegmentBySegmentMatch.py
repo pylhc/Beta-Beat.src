@@ -16,6 +16,8 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 ALL_LISTS_BEAM1_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists.json')
 ALL_LISTS_BEAM2_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB2', 'AllLists.json')
 
+ERROR_CONSTRAINT_FACTOR = 1000
+MAX_WEIGHT = 4
 
 def parse_args():
     parser = optparse.OptionParser()
@@ -34,6 +36,9 @@ def parse_args():
     parser.add_option("--exclude",
                     help="Variables to exclude",
                     metavar="EXCLUDE", default="", dest="exclude")
+    parser.add_option("-r", "--useerrors",
+                    help="Use errors in constraint generation",
+                    metavar="USE_ERRORS", action="store_true", default=False, dest="use_errors")
     (options, args) = parser.parse_args()
     return options, args
 
@@ -53,17 +58,17 @@ def main(options, args):
         sbs_data_b1_path = options.b1
         sbs_data_b2_path = options.b2
         exclude_constr_string = options.exclude
-        generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, exclude_constr_string)
+        generate_constraints(ip, options.use_errors, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, exclude_constr_string)
     elif command == "clean":
         clean_up_temporary_dir(match_temporary_path)
     else:
         sbs_data_b1_path = options.b1
         sbs_data_b2_path = options.b2
         temporary_path = options.temp
-        match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
+        match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, options.use_errors)
 
 
-def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
+def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors):
 
     print "+++ Starting Segment by Segment Match +++"
 
@@ -74,7 +79,7 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
     iotools.create_dirs(os.path.join(beam2_temporary_path, "sbs"))
 
     _check_and_run_genvariables(ip, match_temporary_path)
-    _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
+    _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors)
     run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path)
 
     print "Copying files into temporary folder..."
@@ -124,12 +129,12 @@ def _check_and_run_genvariables(ip, match_temporary_path):
             break
 
 
-def _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path):
+def _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors):
     for file_name in ["constraintsb1.seqx", "constraintsb2.seqx", "dumpb1.seqx", "dumpb2.seqx"]:
         full_file_path = os.path.join(match_temporary_path, file_name)
         if not os.path.exists(full_file_path):  # TODO: Here the constraints should be recreated if they are for a different IP
             print "File " + file_name + " not found, generating new constraints files..."
-            generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
+            generate_constraints(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
             break
 
 
@@ -189,7 +194,7 @@ def _vars_to_files(apply_correction_file, variables_file, variables_s_file, vari
         apply_correction_file.write(variable + ' = ' + variable + '_0 + d' + variable + ';\n')
 
 
-def generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, constraints_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+def generate_constraints(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, constraints_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
     full_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'getphasex.out'))
     x_tune_beam1 = full_data_beam1.Q1
     y_tune_beam1 = full_data_beam1.Q2
@@ -216,13 +221,13 @@ def generate_constraints(ip, sbs_data_b1_path, sbs_data_b2_path, constraints_pat
         exclude_list_x = _parse_exclude_string(exclude_both_planes[0])
         exclude_list_y = _parse_exclude_string(exclude_both_planes[1])
 
-    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x)
-    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y)
-    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list_x)
-    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list_y)
+    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x, use_errors)
+    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y, use_errors)
+    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list_x, use_errors)
+    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list_y, use_errors)
 
 
-def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, tune, exclude_list):
+def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, tune, exclude_list, use_errors):
     if plane == "x":
         constr_file.write('\n!!!! BEAM ' + str(beam) + ' H !!!!!\n\n')
     else:
@@ -237,9 +242,17 @@ def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, t
         name = sbs_data.NAME[index]
         if name not in exclude_list:
             phase = sbs_data.PROPPHASEX[index] if plane == "x" else sbs_data.PROPPHASEY[index]
+            error = sbs_data.ERRPROPPHASEX[index] if plane == "x" else sbs_data.ERRPROPPHASEY[index]
             s = sbs_data.S[index]
 
-            weight = 1e-6 if abs(phase) > 0.25 else 1
+            if abs(phase) > 0.25:
+                weight = 1e-6
+            elif not use_errors:
+                weight = 1
+            else:
+                weight = 1 / ((ERROR_CONSTRAINT_FACTOR * error) ** 2)
+                if weight > MAX_WEIGHT:
+                    weight = MAX_WEIGHT
 
             constr_file.write('   constraint, weight = ' + str(weight) + ' , ')
             constr_file.write('expr =  dmu' + plane + name + ' = ' + str(phase) + '; ')
@@ -262,6 +275,7 @@ def _parse_exclude_string(exclude_string):
     return exclude_list
 
 
+# TODO: Refactor this function
 def run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path):
 
     sbs_x_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'sbs', 'sbsphasext_IP' + ip + '.out'))

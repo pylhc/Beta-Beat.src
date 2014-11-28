@@ -774,7 +774,7 @@ def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
     c21 = -(f1010r + f1001r)
     C = numpy.reshape(2 * gamma2 * numpy.array([c11, c12, c21, c22]), (2, 2))
 
-    R = numpy.transpose(J.dot(inv(Ga)).dot(C).dot(Gb).dot(-J))
+    R = numpy.dot(J, numpy.dot(inv(Ga), numpy.dot(C, numpy.dot(Gb, -J))))
     R = numpy.sqrt(1 + det(R)) * R
     return numpy.ravel(R)
 
