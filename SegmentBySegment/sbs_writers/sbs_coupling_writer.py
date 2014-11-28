@@ -26,7 +26,7 @@ def write_coupling(element_name, is_element, measured_coupling, input_model, pro
 
     summary_data_f = _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
 
-    summary_data_C = _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, model_propagation, model_back_propagation, model_cor, model_back_cor)
+    summary_data_C = _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor)
 
     if is_element:
         _write_summary_data(coupling_summary_file, summary_data_f, summary_data_C)
@@ -58,7 +58,7 @@ def _write_summary_data(coupling_summary_file, summary_data_f, summary_data_C):
                                          summary_data_f[8], summary_data_f[9], summary_data_f[10], summary_data_f[11], summary_data_f[12], summary_data_f[13],
                                          summary_data_C[2], summary_data_C[3], summary_data_C[4], summary_data_C[5], summary_data_C[6], summary_data_C[7], summary_data_C[8], summary_data_C[9],
                                          summary_data_f[14], summary_data_f[15], summary_data_f[16], summary_data_f[17],
-                                         summary_data_C[10], summary_data_C[11], summary_data_C[12], summary_data_C[13], summary_data_f[18]])
+                                         summary_data_f[18]])
 
 
 def _get_coupling_tfs_files(element_name, save_path, is_element):
@@ -228,7 +228,7 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
     return summary_data
 
 
-def _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, model_propagation, model_back_propagation, model_cor, model_back_cor):
+def _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_coupling, input_model, model_propagation, model_back_propagation, model_cor, model_back_cor):
 
     summary_data = []
 
@@ -236,20 +236,19 @@ def _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_c
         bpm_s = bpm[0]
         bpm_name = bpm[1]
 
-        model_s = measured_coupling.S[measured_coupling.indx[bpm_name]]
-
         prop_c11, prop_c12, prop_c21, prop_c22 = model_propagation.C[model_propagation.indx[bpm_name]]
-        err_prop_c11, err_prop_c12, err_prop_c21, err_prop_c22 = [0, 0, 0, 0]  # TODO: propagate errors
+        err_prop_c11, err_prop_c12, err_prop_c21, err_prop_c22 = [1e-8, 1e-8, 1e-8, 1e-8]  # TODO: propagate errors
 
         back_c11, back_c12, back_c21, back_c22 = model_back_propagation.C[model_back_propagation.indx[bpm_name]]
-        err_back_c11, err_back_c12, err_back_c21, err_back_c22 = [0, 0, 0, 0]  # TODO: propagate errors
+        err_back_c11, err_back_c12, err_back_c21, err_back_c22 = [1e-8, 1e-8, 1e-8, 1e-8]  # TODO: propagate errors
 
         if not is_element:
+            model_s = measured_coupling.S[measured_coupling.indx[bpm_name]]
             cor_c11, cor_c12, cor_c21, cor_c22 = model_cor.C[model_cor.indx[bpm_name]]
-            err_cor_c11, err_cor_c12, err_cor_c21, err_cor_c22 = [0, 0, 0, 0]  # TODO: propagate errors
+            err_cor_c11, err_cor_c12, err_cor_c21, err_cor_c22 = [1e-8, 1e-8, 1e-8, 1e-8]  # TODO: propagate errors
 
             back_cor_c11, back_cor_c12, back_cor_c21, back_cor_c22 = model_back_cor.C[model_back_cor.indx[bpm_name]]
-            err_back_cor_c11, err_back_cor_c12, err_back_cor_c21, err_back_cor_c22 = [0, 0, 0, 0]  # TODO: propagate errors
+            err_back_cor_c11, err_back_cor_c12, err_back_cor_c21, err_back_cor_c22 = [1e-8, 1e-8, 1e-8, 1e-8]  # TODO: propagate errors
 
             file_C_terms.add_table_row([bpm_name, bpm_s,
                                         prop_c11, err_prop_c11, prop_c12, err_prop_c12, prop_c21, err_prop_c21, prop_c22, err_prop_c22,
@@ -258,6 +257,7 @@ def _write_C_terms(file_C_terms, element_name, is_element, bpms_list, measured_c
                                         back_cor_c11, err_back_cor_c11, back_cor_c12, err_back_cor_c12, back_cor_c21, err_back_cor_c21, back_cor_c22, err_back_cor_c22,
                                         model_s])
         else:
+            model_s = input_model.S[input_model.indx[bpm_name]]
             average_c11, final_err_c11 = weighted_average_for_SbS_elements(prop_c11, err_prop_c11, back_c11, err_back_c11)
             average_c12, final_err_c12 = weighted_average_for_SbS_elements(prop_c12, err_prop_c12, back_c12, err_back_c12)
             average_c21, final_err_c21 = weighted_average_for_SbS_elements(prop_c21, err_prop_c21, back_c21, err_back_c21)

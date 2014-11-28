@@ -194,7 +194,7 @@ def main(options):
             print "No dispersion"
 
         element_has_coupling, f_ini, f_end = _get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
-        
+
         element_has_chrom, chrom_ini, chrom_end = _get_chrom_parameters(input_data, start_bpm_name, end_bpm_name)
 
         if str(options.madpass) == "0":
@@ -435,6 +435,7 @@ def _get_chrom_parameters(input_data, startbpm, endbpm):
 # helper-functions
 #===================================================================================================
 
+
 def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_names, model, errorcut):
     '''
     Automatic BPM filter and BPM finder
@@ -672,12 +673,12 @@ def _run4mad(save_path,
     bety_ini = start_bpm_vertical_data[0]
     betx_end = end_bpm_horizontal_data[0]
     bety_end = end_bpm_vertical_data[0]
-    
-    if betx_ini < 0. or bety_ini <0.:
+
+    if betx_ini < 0. or bety_ini < 0.:
         print >> sys.stderr, "Negative betas in initial BPM of segment!"
         print >> sys.stderr, "Aborting..."
         sys.exit(1)
-    if betx_end < 0. or bety_end <0.:
+    if betx_end < 0. or bety_end < 0.:
         print >> sys.stderr, "Negative betas in last BPM of segment!"
         print >> sys.stderr, "Aborting..."
         sys.exit(1)
@@ -1034,7 +1035,7 @@ class _InputData(object):
             print "Free coupling found"
         if not self.has_coupling:
             print "No coupling file... will continue without taking into account coupling"
-        
+
         ### check if chromatic exists
         if w_path is None:
             w_path = measurement_path
@@ -1059,7 +1060,7 @@ class _InputData(object):
                     not self.couple_terms is None)
         else:
             return False
-    
+
     def __try_to_load_chromatic_files(self, w_path):
         wx_twiss = _try_to_load_twiss(os.path.join(w_path, "chrombetax.out"))
         wy_twiss = _try_to_load_twiss(os.path.join(w_path, "chrombetay.out"))
