@@ -19,6 +19,7 @@ ALL_LISTS_BEAM2_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullre
 ERROR_CONSTRAINT_FACTOR = 1000
 MAX_WEIGHT = 4
 
+
 def parse_args():
     parser = optparse.OptionParser()
     parser.add_option("--ip",
@@ -130,7 +131,7 @@ def _check_and_run_genvariables(ip, match_temporary_path):
 
 
 def _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors):
-    for file_name in ["constraintsb1.seqx", "constraintsb2.seqx", "dumpb1.seqx", "dumpb2.seqx"]:
+    for file_name in ["constraintsb1.seqx", "constraintsb2.seqx"]:
         full_file_path = os.path.join(match_temporary_path, file_name)
         if not os.path.exists(full_file_path):  # TODO: Here the constraints should be recreated if they are for a different IP
             print "File " + file_name + " not found, generating new constraints files..."
@@ -210,8 +211,6 @@ def generate_constraints(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, con
 
     constr_file_beam1 = open(os.path.join(constraints_path, 'constraintsb1.seqx'), 'w')
     constr_file_beam2 = open(os.path.join(constraints_path, 'constraintsb2.seqx'), 'w')
-    dump_file_beam1 = open(os.path.join(constraints_path, "dumpb1.seqx"), 'w')
-    dump_file_beam2 = open(os.path.join(constraints_path, "dumpb2.seqx"), 'w')
 
     if exclude_string.strip() == "":
         exclude_list_x = ""
@@ -221,22 +220,17 @@ def generate_constraints(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, con
         exclude_list_x = _parse_exclude_string(exclude_both_planes[0])
         exclude_list_y = _parse_exclude_string(exclude_both_planes[1])
 
-    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x, use_errors)
-    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, dump_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y, use_errors)
-    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list_x, use_errors)
-    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, dump_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list_y, use_errors)
+    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x, use_errors)
+    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y, use_errors)
+    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list_x, use_errors)
+    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list_y, use_errors)
 
 
-def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, tune, exclude_list, use_errors):
+def _write_constraints_file(sbs_data, constr_file, ip, beam, plane, tune, exclude_list, use_errors):
     if plane == "x":
         constr_file.write('\n!!!! BEAM ' + str(beam) + ' H !!!!!\n\n')
     else:
         constr_file.write('\n!!!! BEAM ' + str(beam) + ' V !!!!!\n\n')
-
-    dump_file.write('delete,table=dmu' + plane + 'b' + str(beam) + ';\n')
-    dump_file.write('create,table=dmu' + plane + 'b' + str(beam) +
-                    ',column=sss,cdmu' + plane +
-                    ',tdmu' + plane + ';\n')
 
     for index in range(0, len(sbs_data.NAME)):
         name = sbs_data.NAME[index]
@@ -259,12 +253,6 @@ def _write_constraints_file(sbs_data, constr_file, dump_file, ip, beam, plane, t
 
             constr_file.write('!   S = ' + str(s))
             constr_file.write(';\n')
-
-            dump_file.write('   sss = table(twiss, ' + name + ', s); cdmu' +
-                            plane + ' = dmu' + plane + name + ';  tdmu' + plane + ' =  ' + str(phase) + ';\n')
-            dump_file.write('   fill,table=dmu' + plane + 'b' + str(beam) + ';\n')
-
-    dump_file.write('write,table=dmu' + plane + 'b' + str(beam) + ', file=dmu' + plane + 'b' + str(beam) + '.tfs;\n')
 
 
 def _parse_exclude_string(exclude_string):
@@ -469,16 +457,6 @@ def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, rang
                                    )
     beam1_plot_template = os.path.join(CURRENT_PATH, "templ.gplot")
     beam2_plot_template = os.path.join(CURRENT_PATH, "templ.gplot")
-    if str(ip) == "2":
-        beam1_plot_template = os.path.join(CURRENT_PATH, "templIP2B1.gplot")
-        beam1_qx, beam1_qy = _get_q_value(match_temporary_path, 1)
-        beam1_plot_replacements["QX"] = beam1_qx
-        beam1_plot_replacements["QY"] = beam1_qy
-    elif str(ip) == "8":
-        beam2_plot_template = os.path.join(CURRENT_PATH, "templIP8B2.gplot")
-        beam2_qx, beam2_qy = _get_q_value(match_temporary_path, 2)
-        beam2_plot_replacements["QX"] = beam2_qx
-        beam2_plot_replacements["QY"] = beam2_qy
 
     Utilities.iotools.replace_keywords_in_textfile(beam1_plot_template, beam1_plot_replacements, beam1_plot_path)
     Utilities.iotools.replace_keywords_in_textfile(beam2_plot_template, beam2_plot_replacements, beam2_plot_path)
@@ -488,17 +466,6 @@ def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, rang
 
     proccess_beam1.communicate()
     proccess_beam2.communicate()
-
-
-def _get_q_value(match_temporary_path, beam_num):
-    with open(os.path.join(match_temporary_path, "Beam" + str(beam_num), "getphasex.out")) as file_content:
-        for line in file_content:
-            line_pieces = line.split(" ")
-            if line_pieces[1] == "Q1":
-                qx = line_pieces[3].strip()
-            elif line_pieces[1] == "Q2":
-                qy = line_pieces[3].strip()
-    return qx, qy
 
 
 def clean_up_temporary_dir(match_temporary_path):

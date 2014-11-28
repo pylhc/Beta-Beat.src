@@ -69,12 +69,6 @@ twiss, beta0=b0LHCB2, chrom;
 
 call, file="%(MATCH)s/phases0b2.seqx";
 
-readtable, table=phxB1, file="%(PATHB1)s/sbsphasext_%(LABEL)s.out";
-readtable, table=phyB1, file="%(PATHB1)s/sbsphaseyt_%(LABEL)s.out";
-
-readtable, table=phxB2, file="%(PATHB2)s/sbsphasext_%(LABEL)s.out";
-readtable, table=phyB2, file="%(PATHB2)s/sbsphaseyt_%(LABEL)s.out";
-
 call, file="%(MATCH)s/phases.seqx";
 
 call, file="%(MATCH)s/svariables.seqx";
