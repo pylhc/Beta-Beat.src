@@ -777,7 +777,7 @@ def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
 
     R = numpy.dot(J, numpy.dot(inv(Ga), numpy.dot(C, numpy.dot(Gb, -J))))
     R = numpy.sqrt(1 + det(R)) * R
-    return numpy.ravel(R)
+    return numpy.ravel(numpy.transpose(R))
 
 
 def _get_files_for_mad(save_path, element_name):
