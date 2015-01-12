@@ -150,6 +150,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     psi15mdl=(np.append(psimdl[4:],psimdl[:4] +Q)-psimdl)%1
     psi16mdl=(np.append(psimdl[5:],psimdl[:5] +Q)-psimdl)%1
     psi17mdl=(np.append(psimdl[6:],psimdl[:6] +Q)-psimdl)%1
+    psi18mdl=(np.append(psimdl[7:],psimdl[:7] +Q)-psimdl)%1
+    psi19mdl=(np.append(psimdl[8:],psimdl[:8] +Q)-psimdl)%1
+    psi110mdl=(np.append(psimdl[9:],psimdl[:9] +Q)-psimdl)%1
+    psi111mdl=(np.append(psimdl[10:],psimdl[:10] +Q)-psimdl)%1
 
     #-- Global parameters of the driven motion
     r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
@@ -161,6 +165,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     psi15all=np.zeros((len(bpm),len(Files)))
     psi16all=np.zeros((len(bpm),len(Files)))
     psi17all=np.zeros((len(bpm),len(Files)))
+    psi18all=np.zeros((len(bpm),len(Files)))
+    psi19all=np.zeros((len(bpm),len(Files)))
+    psi110all=np.zeros((len(bpm),len(Files)))
+    psi111all=np.zeros((len(bpm),len(Files)))
     for i in range(len(Files)):
         if plane=='H': psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         if plane=='V': psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
@@ -183,6 +191,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         psi15=(np.append(psi[4:],psi[:4]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
         psi16=(np.append(psi[5:],psi[:5]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
         psi17=(np.append(psi[6:],psi[:6]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi18=(np.append(psi[7:],psi[:7]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi19=(np.append(psi[8:],psi[:8]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi110=(np.append(psi[9:],psi[:9]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi111=(np.append(psi[10:],psi[:10]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
         for k in range(len(bpm)):
             psi12all[k][i]=psi12[k]
             psi13all[k][i]=psi13[k]
@@ -190,6 +202,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             psi15all[k][i]=psi15[k]
             psi16all[k][i]=psi16[k]
             psi17all[k][i]=psi17[k]
+            psi18all[k][i]=psi18[k]
+            psi19all[k][i]=psi19[k]
+            psi110all[k][i]=psi110[k]
+            psi111all[k][i]=psi111[k]
 
     #-- Output
     result={}
@@ -207,6 +223,14 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         psi16std = phase.calc_phase_std(psi16all[k],1)
         psi17ave = phase.calc_phase_mean(psi17all[k],1)
         psi17std = phase.calc_phase_std(psi17all[k],1)
+        psi18ave = phase.calc_phase_mean(psi18all[k],1)
+        psi18std = phase.calc_phase_std(psi18all[k],1)
+        psi19ave = phase.calc_phase_mean(psi19all[k],1)
+        psi19std = phase.calc_phase_std(psi19all[k],1)
+        psi110ave = phase.calc_phase_mean(psi110all[k],1)
+        psi110std = phase.calc_phase_std(psi110all[k],1)
+        psi111ave = phase.calc_phase_mean(psi111all[k],1)
+        psi111std = phase.calc_phase_std(psi111all[k],1)
         muave=muave+psi12ave
         try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
         except: result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[0][1]]    #-- The last BPM
@@ -218,6 +242,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         bn5 = str.upper(bpm[(k+4)%len(bpm)][1])
         bn6 = str.upper(bpm[(k+5)%len(bpm)][1])
         bn7 = str.upper(bpm[(k+6)%len(bpm)][1])
+        bn8 = str.upper(bpm[(k+7)%len(bpm)][1])
+        bn9 = str.upper(bpm[(k+8)%len(bpm)][1])
+        bn10 = str.upper(bpm[(k+9)%len(bpm)][1])
+        bn11 = str.upper(bpm[(k+10)%len(bpm)][1])
 
         if plane=='H':
             result["".join(['H',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]
@@ -226,6 +254,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             result["".join(['H',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
             result["".join(['H',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]]
             result["".join(['H',bn1,bn7])] = [psi17ave,psi17std,psi17mdl[k]]
+            result["".join(['H',bn1,bn8])] = [psi18ave,psi18std,psi18mdl[k]]
+            result["".join(['H',bn1,bn9])] = [psi19ave,psi19std,psi19mdl[k]]
+            result["".join(['H',bn1,bn10])] = [psi110ave,psi110std,psi110mdl[k]]
+            result["".join(['H',bn1,bn11])] = [psi111ave,psi111std,psi111mdl[k]]
         elif plane=='V':
             result["".join(['V',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]
             result["".join(['V',bn1,bn3])] = [psi13ave,psi13std,psi13mdl[k]]
@@ -233,7 +265,10 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             result["".join(['V',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
             result["".join(['V',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]]
             result["".join(['V',bn1,bn7])] = [psi17ave,psi17std,psi17mdl[k]]
-
+            result["".join(['V',bn1,bn8])] = [psi18ave,psi18std,psi18mdl[k]]
+            result["".join(['V',bn1,bn9])] = [psi19ave,psi19std,psi19mdl[k]]
+            result["".join(['V',bn1,bn10])] = [psi110ave,psi110std,psi110mdl[k]]
+            result["".join(['V',bn1,bn11])] = [psi111ave,psi111std,psi111mdl[k]]
     return [result,muave,bpm]
 
 
