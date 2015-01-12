@@ -118,6 +118,12 @@ def _parse_args():
     parser.add_option("-g", "--threebpm",
                     help="Forces to use the 3 BPM method, yes=1/no=0, default = 0",
                     metavar="USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE", default="0", dest="use_only_three_bpms_for_beta_from_phase")
+    parser.add_option("-j", "--numbpm",
+                    help="Number of different BPM combinations for beta-calculation, default = 10",
+                    metavar="NUMBER_OF_BPMS", default=10, dest="number_of_bpms")
+    parser.add_option("-i", "--range",
+                    help="Range of BPM for beta-calculation (>=3 and odd), default = 11",
+                    metavar="RANGE_OF_BPMS", default=11, dest="range_of_bpms")
 
     options, _ = parser.parse_args()
     options.use_only_three_bpms_for_beta_from_phase = "1" == options.use_only_three_bpms_for_beta_from_phase
@@ -141,7 +147,9 @@ def main(
          higher_order=1,
          bbthreshold="0.15",
          errthreshold="0.15",
-         use_only_three_bpms_for_beta_from_phase=False
+         use_only_three_bpms_for_beta_from_phase=False,
+         number_of_bpms=10,
+         range_of_bpms=11
          ):
     '''
     GetLLM main function.
@@ -171,15 +179,15 @@ def main(
     twiss_d = _TwissData()
     tune_d = _TuneData()
 
-    getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem = _intial_setup(getllm_d,
-                                                                        outputpath,
-                                                                        model_filename,
-                                                                        dict_file,
-                                                                        accel,
-                                                                        BPMU,
-                                                                        COcut,
-                                                                        lhcphase,
-                                                                        NBcpl)
+    getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge = _intial_setup(getllm_d,
+                                                                                                                     outputpath,
+                                                                                                                     model_filename,
+                                                                                                                     dict_file,
+                                                                                                                     accel,
+                                                                                                                     BPMU,
+                                                                                                                     COcut,
+                                                                                                                     lhcphase,
+                                                                                                                     NBcpl)
 
     files_dict = _create_tfs_files(getllm_d, model_filename)
 
@@ -206,7 +214,7 @@ def main(
         algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
 
         #-------- START Beta
-        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict, use_only_three_bpms_for_beta_from_phase)
+        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, mad_best_knowledge, mad_ac_best_knowledge, files_dict, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
 
         #------- START beta from amplitude
         beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
@@ -292,8 +300,15 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
         mad_ac = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_ac.dat"))  # model with ac dipole : Twiss instance
         getllm_d.with_ac_calc = True
         print "Driven Twiss file found. AC dipole effects calculated with the effective model (get***_free2.out)"
+        try:
+            mad_ac_best_knowledge = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_ac_best_knowledge.dat"))
+            print "Best knowledge model found for AC diapole, it will be used for beta calculation."
+        except IOError:
+            mad_ac_best_knowledge = mad_ac
+            print "Best knowledge model not found for AC diapole."
     except IOError:
         mad_ac = mad_twiss
+        mad_ac_best_knowledge = mad_twiss
         print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
 
     #-- Test if the AC dipole (MKQA) is in the model of LHC
@@ -311,7 +326,17 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
         else:
             print 'WARN: AC dipole effects calculated with analytic equations only for LHC for now'
 
-    return getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem
+    #-- Try to find the best knowledge model
+    try:
+        mad_best_knowledge = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_best_knowledge.dat"))
+        if not getllm_d.with_ac_calc:
+            mad_ac_best_knowledge = mad_best_knowledge
+        print "Best knowledge model found, it will be used for beta calculation."
+    except IOError:
+        mad_best_knowledge = mad_twiss
+        print "Best knowledge model not found."
+
+    return getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge
 # END _intial_setup ---------------------------------------------------------------------------------
 
 
@@ -1094,7 +1119,8 @@ def _start():
          higher_order=options.higher,
          bbthreshold=options.bbthreshold,
          errthreshold=options.errthreshold,
-         use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase)
-
+         use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase,
+         number_of_bpms=options.number_of_bpms,
+         range_of_bpms=options.range_of_bpms)
 if __name__ == "__main__":
     _start()

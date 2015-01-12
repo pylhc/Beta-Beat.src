@@ -389,6 +389,30 @@ def _phi_last_and_last_but_one(phi, ftune):
         phi -= 1
     return phi
 
+def t_value_correction(num):
+    ''' Calculations are based on Hill, G. W. (1970)
+    Algorithm 396: Student's t-quantiles. Communications of the ACM, 
+    13(10), 619-620.
+
+    http://en.wikipedia.org/wiki/Quantile_function#The_Student.27s_t-distribution
+
+    It is not implemented directly here because a library for the erfinv() function, the inverse error function
+    cannot be accessed from our servers in their current python installation (Jan-2015).
+    (http://en.wikipedia.org/wiki/Error_function#Inverse_function)
+    '''
+    correction_dict = {2:1.8394733927562799, 3:1.3224035682262103, 4:1.1978046912864673, 
+                       5:1.1424650980932523, 6:1.1112993008590089, 7:1.0913332519214189, 
+                       8:1.0774580800762166, 9:1.0672589736833817, 10:1.0594474783177483,
+                       11:1.053273802733051, 12:1.0482721313740653, 13:1.0441378866779087,
+                       14:1.0406635564353071, 15:1.0377028976401199, 16:1.0351498875115406,
+                       17:1.0329257912610941, 18:1.0309709166064416, 19:1.029239186837585, 
+                       20:1.0276944692596461}
+    if num > 1 and num <=20:
+        t_factor = correction_dict[num]
+    else:
+        t_factor = 0
+    return t_factor
+
 def calc_phase_mean(phase0, norm):
     ''' phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi '''
     phase0 = np.array(phase0)%norm
@@ -424,8 +448,11 @@ def calc_phase_std(phase0, norm):
     phase1std_sq = np.sum((phase1-phase1ave)**2)
 
     min_phase_std = min(phase0std_sq, phase1std_sq)
-    phase_std = math.sqrt(min_phase_std/len(phase0))
-
+    if len(phase0) > 1:
+        phase_std = math.sqrt(min_phase_std/(len(phase0)-1))
+        phase_std = phase_std * t_value_correction(len(phase0)-1)
+    else:
+        phase_std = 0
     return phase_std
 
 def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, lhc_phase):
@@ -523,8 +550,8 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             tune = np.average(tunem)
 
     for i in range(length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
-        bpms = [str.upper(commonbpms[j % length_commonbpms][1]) for j in range(i, i+7)] # seven consecutive monitors
-        p_i = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]} # dict for the six bpm pairs i.e. p_i[1] is for pair bpm[0], bpm[1]
+        bpms = [str.upper(commonbpms[j % length_commonbpms][1]) for j in range(i, i+11)] # seven consecutive monitors
+        p_i = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[]} # dict for the six bpm pairs i.e. p_i[1] is for pair bpm[0], bpm[1]
 
         for src_twiss in ListOfFiles:
             # Phase is in units of 2pi
@@ -563,9 +590,9 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             p_std[bpm_pair] = calc_phase_std(p_i[bpm_pair], 1.)
             p_i[bpm_pair] = calc_phase_mean(p_i[bpm_pair], 1.)
 
-        if i >= length_commonbpms-6:
-            p_i[6] = _phi_last_and_last_but_one(p_i[6], tune)
-            for j in range(1,6):
+        if i >= length_commonbpms-10:
+            p_i[10] = _phi_last_and_last_but_one(p_i[10], tune)
+            for j in range(1,10):
                 if i >= length_commonbpms-j:
                     p_i[j] = _phi_last_and_last_but_one(p_i[j], tune)
 
@@ -577,7 +604,7 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
         for bpm_pair in p_i:
             p_mdl[bpm_pair] = twiss_column[mad_twiss.indx[bpms[bpm_pair]]] - twiss_column[mad_twiss.indx[bpms[0]]]
 
-        if i >= length_commonbpms-6:
+        if i >= length_commonbpms-10:
             if plane == 'H':
                 madtune = mad_twiss.Q1 % 1
             elif plane == 'V':
@@ -585,8 +612,8 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             if madtune > .5:
                 madtune -= 1
 
-            p_mdl[6] = p_mdl[6] % 1
-            p_mdl[6] = _phi_last_and_last_but_one(p_mdl[6], madtune)
+            p_mdl[10] = p_mdl[10] % 1
+            p_mdl[10] = _phi_last_and_last_but_one(p_mdl[10], madtune)
             for j in range(1, len(p_i)): # iterate only over the first 5 bpm pairs
                 if i >= length_commonbpms-j:
                     p_mdl[j] = p_mdl[j] % 1
