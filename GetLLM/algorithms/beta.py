@@ -426,8 +426,8 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
             name of the probed BPM
     '''
 
-    NUM_BPM_COMBOS = int(n)
-    RANGE = int(m)
+    NUM_BPM_COMBOS = int(number_of_bpms)
+    RANGE = int(range_of_bpms)
     probed_index = int((RANGE-1)/2.)
 
     if 7 > len(commonbpms) or use_only_three_bpms_for_beta_from_phase:

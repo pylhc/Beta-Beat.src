@@ -450,7 +450,7 @@ def calc_phase_std(phase0, norm):
     min_phase_std = min(phase0std_sq, phase1std_sq)
     if len(phase0) > 1:
         phase_std = math.sqrt(min_phase_std/(len(phase0)-1))
-        phase_std = phase_std * t_factor(len(phase0)-1)
+        phase_std = phase_std * t_value_correction(len(phase0)-1)
     else:
         phase_std = 0
     return phase_std
