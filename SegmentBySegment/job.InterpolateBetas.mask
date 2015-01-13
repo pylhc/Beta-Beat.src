@@ -31,7 +31,7 @@ exec, extract_seq(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s);
 exec, twiss_fr_bk(%(ACCEL)s, twiss_fr, twiss_bck, bini%(ACCEL)s, bend%(ACCEL)s);
 
 !!! Loading corrections
-call,  file="%(PATH)s/corrections.madx";
+call,  file="%(PATH)s/corrections_%(LABEL)s.madx";
 
 !!! Corrected propagation front and back
 exec, twiss_fr_bk(%(ACCEL)s, twiss_fr_cor, twiss_bck_cor, bini%(ACCEL)s, bend%(ACCEL)s);

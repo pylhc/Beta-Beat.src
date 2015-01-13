@@ -67,6 +67,7 @@ import optparse
 from math import sqrt
 import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
+import json
 from Python_Classes4MAD.metaclass import twiss
 from Python_Classes4MAD import madxrunner
 
@@ -661,7 +662,7 @@ def _run4mad(save_path,
              madx_exe_path):
 
     copy_path = bb_path
-    _copy_modifiers_and_corrections_locally(save_path, twiss_directory)
+    _copy_modifiers_and_corrections_locally(save_path, twiss_directory, element_name, accelerator)
 
     if accelerator == "LHCB2":
         start = "MKI.A5R8.B2"
@@ -788,7 +789,7 @@ def _get_files_for_mad(save_path, element_name):
     return mad_file_path, log_file_path
 
 
-def _copy_modifiers_and_corrections_locally(save_path, twiss_directory):
+def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, element_name, accelerator):
     modifiers_file_path = os.path.join(twiss_directory, 'modifiers.madx')
     if os.path.isfile(modifiers_file_path):
         Utilities.iotools.copy_item(modifiers_file_path, save_path)
@@ -796,16 +797,42 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory):
         print "Cannot find modifiers.madx file, will create an empty file."
         open(os.path.join(save_path, 'modifiers.madx'), "a").close()
 
-    output_corrections_file_path = os.path.join(save_path, "corrections.madx")
+    correction_file_comments = ""
+    if element_name.lower().startswith("ip") and accelerator.upper().startswith("LHCB"):
+        correction_file_comments = _get_corrections_file_comments_for_ip(element_name, accelerator)
+
+    output_corrections_file_path = os.path.join(save_path, "corrections_" + element_name + ".madx")
     if not os.path.isfile(output_corrections_file_path):
-        corrections_file_path = os.path.join(twiss_directory, "corrections.madx")
+        corrections_file_path = os.path.join(twiss_directory, "corrections_" + element_name + ".madx")
         if os.path.isfile(corrections_file_path):
             Utilities.iotools.copy_item(corrections_file_path, save_path)
         else:
-            print "Cannot find corrections.madx file, will create an empty file."
-            open(os.path.join(save_path, 'corrections.madx'), "a").close()
+            print "Cannot find corrections file, will create an empty file."
+            with open(os.path.join(save_path, "corrections_" + element_name + ".madx"), "a") as corrections_file:
+                corrections_file.write(correction_file_comments)
     else:
-        print "corrections.madx file found in output path."
+        print "corrections file found in output path."
+
+
+def _get_corrections_file_comments_for_ip(element_name, accelerator):
+    this_file_path = os.path.abspath(os.path.dirname(__file__))
+    try:
+        ip = element_name.lower().replace("ip", "")
+        beam = int(accelerator.lower().replace("lhcb", ""))
+    except:
+        return ""
+    if beam == 1:
+        all_list = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB1", "AllLists.json")))
+    elif beam == 2 or beam == 4:
+        all_list = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB2", "AllLists.json")))
+    else:
+        return ""
+    comments_string = ""
+    for variable in all_list["getListsByIR"][0][ip]:
+        comments_string += "! " + variable + "\n"
+    for variable in all_list["getListsByIR"][1][ip]:
+        comments_string += "! " + variable + "\n"
+    return comments_string
 
 
 def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):
