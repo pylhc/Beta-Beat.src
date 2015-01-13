@@ -1,18 +1,3 @@
-'''
-This script calculates the bet_deviations.npy binary file to improve the betas calculation.
-
-It uses two madx mask: error_table.mask and job.systematic.mask, that must be processed before running this script.
-The labels to be replaced are:
-
-- %PATH -> The path to the modifiers.madx file
-- %QMX and %QMY -> The tunes of the beam for that optic.
-- %ENERGY -> The energy of the beam. It must be: 0.35TeV, 3.5TeV, 4TeV or 6.5TeV.
-
-The modified masks must be placed in the same directory where the model is.
-
-@author: alangner, jcoellod
-'''
-
 import __init__  # @UnusedImport
 import os
 import multiprocessing
@@ -34,55 +19,39 @@ def _parse_args():
     parser = OptionParser()
     parser.add_option("-m", "--model",
                     help="Model twiss file to use.",
-                    metavar="model", dest="model_twiss")
+                    metavar="model", default="", dest="model_twiss")  # TODO remove default value
     parser.add_option("-o", "--output",
                     help="Output directory for the results.",
-                    metavar="output", default="", dest="output_dir")
+                    metavar="output", default="", dest="output_dir")  # TODO set default value to model dir
     parser.add_option("-n", "--numsim",
                     help="Number of simulations to run",
                     metavar="numsim", default=NUM_SIMULATIONS, dest="num_simulations")
     parser.add_option("-p", "--processes",
                     help="Number of parallel processes to use in the simulation.",
                     metavar="numproc", default=NUM_PROCESSES, dest="num_processes")
-    parser.add_option("-b", "--beam",
-                    help="Beam to use, either LHCB1 or LHCB2.",
-                    metavar="BEAM", dest="beam")
     options, _ = parser.parse_args()
 
-    if options.output_dir == "":
-        options.output_dir = os.path.dirname(options.model_twiss)
-    if not os.path.isfile(os.path.join(os.path.dirname(options.model_twiss), "error_table.mask")):
-        print >> sys.stderr, "Cannot find the error_table.mask file in the model directory."
-        sys.exit(-1)
-    if not os.path.isfile(os.path.join(os.path.dirname(options.model_twiss), "job.systematic.mask")):
-        print >> sys.stderr, "Cannot find the job.systematic.mask file in the model directory."
-        sys.exit(-1)
-    if options.beam is None:
-        print >> sys.stderr, "Beam sequence must be defined, it must be LHCB1 or LHCB2."
-        sys.exit(-1)
-    beam = options.beam.upper().replace("LHC", "")
-    if(beam not in ["B1", "B2"]):
-        print >> sys.stderr, "Incorrect beam sequence, it must be LHCB1 or LHCB2."
-        sys.exit(-1)
-    return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir, beam
+    return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir
 
 
-def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir, beam):
-    print "Started systematic error script, using " + str(num_processes) + " processes for " + str(num_simulations) + " simulations"
-    model_dir_path = os.path.dirname(model_twiss)
+def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir):
     run_data_path = os.path.join(output_dir, "RUN_DATA")
-    errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
     iotools.create_dirs(run_data_path)
+    iotools.copy_item(os.path.join(CURRENT_PATH, "MB_corr_setting_4TeV.mad"), run_data_path)
     try:
         os.symlink("/afs/cern.ch/eng/lhc/optics/V6.503", "db5")
     except(OSError):
         pass
 
-    pool = multiprocessing.Pool(processes=num_processes)
-
-    print "Running simulations..."
+    print "Preparing error files..."
     start_time = time.time()
-    times = _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, beam, pool)
+    _parallel_prepare_error_files(run_data_path)
+    end_time = time.time()
+    print "Done (" + str(end_time - start_time) + " seconds)\n"
+
+    print "Running " + str(num_simulations) + " simulations using " + str(num_processes) + " processes..."
+    start_time = time.time()
+    times = _run_parallel_simulations(run_data_path)
     _show_time_statistics(times)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
@@ -93,9 +62,9 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     except(OSError):
         pass
 
-    print "Calculating systematic error bars..."
+    print "Parallel calculating systematic error bars..."
     start_time = time.time()
-    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, pool, num_simulations)
+    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, num_simulations)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
@@ -104,10 +73,32 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "All done."
 
 
-def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, beam, pool):
+def _parallel_prepare_error_files(run_data_path):
+    pool = multiprocessing.Pool(processes=num_processes)
+    args = [(seed, run_data_path) for seed in range(1, 61)]
+    tasks = pool.map_async(_prepare_single_error_file, args)
+    tasks.wait()
+
+
+def _prepare_single_error_file(seed_path_tuple):
+    err_num = str((seed_path_tuple[0] % 60) + 1).zfill(4)
+    run_data_path = seed_path_tuple[1]
+    madx_job = ""
+    with open(os.path.join(CURRENT_PATH, 'error_table.mask'), 'r') as infile:
+        for line in infile:
+            new_line = line
+            new_line = new_line.replace("%ERR_NUM", err_num)
+            new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
+            madx_job += new_line + "\n"
+    madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
+
+
+def _run_parallel_simulations(run_data_path):
+    pool = multiprocessing.Pool(processes=num_processes)
     times = []
-    args = [(seed, run_data_path, model_dir_path, errors_path, beam) for seed in range(1, num_simulations + 1)]
+    args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
     tasks = pool.map_async(_run_single_madx_simulation, args, callback=times.append)
+    # map(_run_single_madx_simulation, args)
     tasks.wait()
     return times
 
@@ -115,11 +106,8 @@ def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, er
 def _run_single_madx_simulation(seed_path_tuple):
     seed = seed_path_tuple[0]
     run_data_path = seed_path_tuple[1]
-    model_dir_path = seed_path_tuple[2]
-    errors_path = seed_path_tuple[3]
-    beam = seed_path_tuple[4]
     madx_job = ""
-    with open(os.path.join(model_dir_path, 'job.systematic.mask'), 'r') as infile:
+    with open(os.path.join(CURRENT_PATH, 'job.tracking.mask'), 'r') as infile:
         for line in infile:
             err_num = str((seed % 60) + 1).zfill(4)
             new_line = line
@@ -146,8 +134,6 @@ def _run_single_madx_simulation(seed_path_tuple):
             new_line = new_line.replace("%ERR_NUM", str(err_num))
             new_line = new_line.replace("%SEED", str(seed))
             new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
-            new_line = new_line.replace("%ERRORS_PATH", errors_path)
-            new_line = new_line.replace("%BEAM", beam)
             madx_job += new_line + "\n"
 
     start_time = time.time()
@@ -173,9 +159,10 @@ def _show_time_statistics(times):
     print "Min simulation time: " + str(min_time) + " seconds"
 
 
-def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, pool, num_simulations):
+def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, num_simulations):
     model_twiss = metaclass.twiss(model_twiss_path)
-
+    num_processes = 32
+    pool = multiprocessing.Pool(processes=num_processes)
     list_of_bpm = []
     for i in model_twiss.NAME:
         if "BPM" in i and i not in list_of_bpm:
@@ -195,86 +182,104 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
     final_beta_hor, final_beta_ver, final_num_valid_data = final_list
 
     for key, value in final_beta_hor.iteritems():
-        final_beta_hor[key] = np.sqrt(value / final_num_valid_data)
+        final_beta_hor[key] = value / final_num_valid_data
     for key, value in final_beta_ver.iteritems():
-        final_beta_ver[key] = np.sqrt(value / final_num_valid_data)
+        final_beta_ver[key] = value / final_num_valid_data
 
     np.save(os.path.join(output_path, 'bet_deviations'), [final_beta_hor, final_beta_ver])
-
 
 def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm, sim_num):
     beta_hor = {}
     beta_ver = {}
     num_valid_data = 0
+
+    BPM_RANGE = 13
+    BPM_EACH_SIDE = int((BPM_RANGE - 1) / 2.)
+    left = range(-1, -1 * (BPM_EACH_SIDE + 1), -1)
+    right = range(1, BPM_EACH_SIDE + 1)
+    left_comb = [[x, y] for x in left for y in left if x< y]
+    right_comb = [[x, y] for x in right for y in right if x< y]
+    mid_comb = [[x, y] for x in left for y in right]
+    all_comb = left_comb + mid_comb + right_comb
+    count = 0
     try:
         error_twiss = metaclass.twiss(os.path.join(run_data_path, 'twiss' + str(sim_num) + '.dat'))
         for probed_bpm in range(len(list_of_bpm)):
-            for i in range(5):
-                for j in range(5 - i):
-                    beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
-                                      ((BetaFromPhase_BPM_right(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)],
-                                                               model_twiss, error_twiss, 'H') -
-                                       error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) /
-                                       error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+            err_betx = error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]
+            err_bety = error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]
+            probed_bpm_name = list_of_bpm[(probed_bpm) % len(list_of_bpm)]
+            for term1 in all_comb:
+                t1_index = all_comb.index(term1)
+                for term2 in all_comb[t1_index:]:
+                    if term1 in left_comb:
+                        s1_hor = (BetaFromPhase_BPM_right(probed_bpm_name,
+                                                               list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                               model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                        s1_ver = (BetaFromPhase_BPM_right(probed_bpm_name,
+                                                               list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                               model_twiss, error_twiss, 'V')  - err_bety) / err_bety
+                    elif term1 in mid_comb:
+                        s1_hor = (BetaFromPhase_BPM_mid(probed_bpm_name,
+                                                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                             model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                        s1_ver = (BetaFromPhase_BPM_mid(probed_bpm_name,
+                                                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                             model_twiss, error_twiss, 'V') - err_bety) / err_bety
+                    elif term1 in right_comb:
+                        s1_hor = (BetaFromPhase_BPM_left(probed_bpm_name,
+                                                              list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                              model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                        s1_ver = (BetaFromPhase_BPM_left(probed_bpm_name,
+                                                              list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                              model_twiss, error_twiss, 'V') - err_bety) / err_bety
 
-                    beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)]] = \
-                                      ((BetaFromPhase_BPM_right(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm - 6 + i) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm - 1 - j) % len(list_of_bpm)],
-                                                               model_twiss, error_twiss, 'V') -
-                                       error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) /
-                                       error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
+                    if term2 in left_comb:
+                        s2_hor = (BetaFromPhase_BPM_right(probed_bpm_name,
+                                                               list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
+                                                               model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                        s2_ver = (BetaFromPhase_BPM_right(probed_bpm_name,
+                                                               list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
+                                                               model_twiss, error_twiss, 'V') - err_bety) / err_bety
+                    elif term2 in mid_comb:
+                        s2_hor = (BetaFromPhase_BPM_mid(probed_bpm_name,
+                                                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
+                                                             model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                        s2_ver = (BetaFromPhase_BPM_mid(probed_bpm_name,
+                                                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
+                                                             model_twiss, error_twiss, 'V') - err_bety) / err_bety
+                    elif term2 in right_comb:
+                        s2_hor = (BetaFromPhase_BPM_left(probed_bpm_name,
+                                                              list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
+                                                              model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                        s2_ver = (BetaFromPhase_BPM_left(probed_bpm_name,
+                                                              list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
+                                                              model_twiss, error_twiss, 'V') - err_bety) / err_bety
+                    beta_hor[probed_bpm_name +
+                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)] +
+                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)] +
+                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)] +
+                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)]] = s1_hor * s2_hor
+                    beta_ver[probed_bpm_name +
+                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)] +
+                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)] +
+                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)] +
+                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)]] = s1_ver * s2_ver
 
-                    beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                                      ((BetaFromPhase_BPM_left(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
-                                                              model_twiss, error_twiss, 'H') -
-                                       error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) /
-                                       error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
-
-                    beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                                      ((BetaFromPhase_BPM_left(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + 6 - i) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
-                                                              model_twiss, error_twiss, 'V') -
-                                       error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) /
-                                       error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
-
-            for i in range(6):
-                for j in range(6):
-                    beta_hor[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                                      ((BetaFromPhase_BPM_mid(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
-                                                             model_twiss, error_twiss, 'H') -
-                                       error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) /
-                                       error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
-
-                    beta_ver[list_of_bpm[(probed_bpm) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)]] = \
-                                      ((BetaFromPhase_BPM_mid(list_of_bpm[(probed_bpm) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm - 1 - i) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm + 1 + j) % len(list_of_bpm)],
-                                                             model_twiss, error_twiss, 'V') -
-                                       error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) /
-                                       error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]) ** 2
         num_valid_data = num_valid_data + 1
     except:
-        print >> sys.stderr, "Cannot read ", "twiss" + str(sim_num) + ".dat, something went wrong."
+        pass
     return beta_hor, beta_ver, num_valid_data
 
 
@@ -345,27 +350,32 @@ def BetaFromPhase_BPM_left(bn1, bn3, bn2, MADTwiss, ERRTwiss, plane):
         'alfstd':float
             calculated error on alfa function at probed BPM
     '''
-
+    bn1_err_index = ERRTwiss.indx[bn1]
+    bn2_err_index = ERRTwiss.indx[bn2]
+    bn3_err_index = ERRTwiss.indx[bn3]
+    bn1_mdl_index = MADTwiss.indx[bn1]
+    bn2_mdl_index = MADTwiss.indx[bn2]
+    bn3_mdl_index = MADTwiss.indx[bn3]
     if plane == 'H':
-        ph2pi12 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn2]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
-        ph2pi13 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
-        phmdl12 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn2]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
-        phmdl13 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUX[bn2_err_index] - ERRTwiss.MUX[bn1_err_index]) % ERRTwiss.Q1
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUX[bn3_err_index] - ERRTwiss.MUX[bn1_err_index]) % ERRTwiss.Q1
+        phmdl12 = 2. * np.pi * (MADTwiss.MUX[bn2_mdl_index] - MADTwiss.MUX[bn1_mdl_index]) % MADTwiss.Q1
+        phmdl13 = 2. * np.pi * (MADTwiss.MUX[bn3_mdl_index] - MADTwiss.MUX[bn1_mdl_index]) % MADTwiss.Q1
 
-        betmdl1 = MADTwiss.BETX[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETX[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETX[MADTwiss.indx[bn3]]
-        alpmdl1 = MADTwiss.ALFX[MADTwiss.indx[bn1]]
+        betmdl1 = MADTwiss.BETX[bn1_mdl_index]
+        betmdl2 = MADTwiss.BETX[bn2_mdl_index]
+        betmdl3 = MADTwiss.BETX[bn3_mdl_index]
+        alpmdl1 = MADTwiss.ALFX[bn1_mdl_index]
     elif plane == 'V':
-        ph2pi12 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn2]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
-        ph2pi13 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
-        phmdl12 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn2]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
-        phmdl13 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUY[bn2_err_index] - ERRTwiss.MUY[bn1_err_index]) % ERRTwiss.Q2
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUY[bn3_err_index] - ERRTwiss.MUY[bn1_err_index]) % ERRTwiss.Q2
+        phmdl12 = 2. * np.pi * (MADTwiss.MUY[bn2_mdl_index] - MADTwiss.MUY[bn1_mdl_index]) % MADTwiss.Q2
+        phmdl13 = 2. * np.pi * (MADTwiss.MUY[bn3_mdl_index] - MADTwiss.MUY[bn1_mdl_index]) % MADTwiss.Q2
 
-        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alpmdl1 = MADTwiss.ALFY[MADTwiss.indx[bn1]]
+        betmdl1 = MADTwiss.BETY[bn1_mdl_index]
+        betmdl2 = MADTwiss.BETY[bn2_mdl_index]
+        betmdl3 = MADTwiss.BETY[bn3_mdl_index]
+        alpmdl1 = MADTwiss.ALFY[bn1_mdl_index]
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
@@ -412,26 +422,32 @@ def BetaFromPhase_BPM_mid(bn2, bn1, bn3, MADTwiss, ERRTwiss, plane):
         'alfstd':float
             calculated error on alfa function at probed BPM
     '''
+    bn1_err_index = ERRTwiss.indx[bn1]
+    bn2_err_index = ERRTwiss.indx[bn2]
+    bn3_err_index = ERRTwiss.indx[bn3]
+    bn1_mdl_index = MADTwiss.indx[bn1]
+    bn2_mdl_index = MADTwiss.indx[bn2]
+    bn3_mdl_index = MADTwiss.indx[bn3]
     if plane == 'H':
-        ph2pi12 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn2]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
-        ph2pi23 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn2]]) % ERRTwiss.Q1
-        phmdl12 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn2]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
-        phmdl23 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn2]]) % MADTwiss.Q1
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUX[bn2_err_index] - ERRTwiss.MUX[bn1_err_index]) % ERRTwiss.Q1
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUX[bn3_err_index] - ERRTwiss.MUX[bn2_err_index]) % ERRTwiss.Q1
+        phmdl12 = 2. * np.pi * (MADTwiss.MUX[bn2_mdl_index] - MADTwiss.MUX[bn1_mdl_index]) % MADTwiss.Q1
+        phmdl23 = 2. * np.pi * (MADTwiss.MUX[bn3_mdl_index] - MADTwiss.MUX[bn2_mdl_index]) % MADTwiss.Q1
 
-        betmdl1 = MADTwiss.BETX[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETX[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETX[MADTwiss.indx[bn3]]
-        alpmdl2 = MADTwiss.ALFX[MADTwiss.indx[bn2]]
+        betmdl1 = MADTwiss.BETX[bn1_mdl_index]
+        betmdl2 = MADTwiss.BETX[bn2_mdl_index]
+        betmdl3 = MADTwiss.BETX[bn3_mdl_index]
+        alpmdl2 = MADTwiss.ALFX[bn2_mdl_index]
     elif plane == 'V':
-        ph2pi12 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn2]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
-        ph2pi23 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn2]]) % ERRTwiss.Q2
-        phmdl12 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn2]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
-        phmdl23 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn2]]) % MADTwiss.Q2
+        ph2pi12 = 2. * np.pi * (ERRTwiss.MUY[bn2_err_index] - ERRTwiss.MUY[bn1_err_index]) % ERRTwiss.Q2
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUY[bn3_err_index] - ERRTwiss.MUY[bn2_err_index]) % ERRTwiss.Q2
+        phmdl12 = 2. * np.pi * (MADTwiss.MUY[bn2_mdl_index] - MADTwiss.MUY[bn1_mdl_index]) % MADTwiss.Q2
+        phmdl23 = 2. * np.pi * (MADTwiss.MUY[bn3_mdl_index] - MADTwiss.MUY[bn2_mdl_index]) % MADTwiss.Q2
 
-        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alpmdl2 = MADTwiss.ALFY[MADTwiss.indx[bn2]]
+        betmdl1 = MADTwiss.BETY[bn1_mdl_index]
+        betmdl2 = MADTwiss.BETY[bn2_mdl_index]
+        betmdl3 = MADTwiss.BETY[bn3_mdl_index]
+        alpmdl2 = MADTwiss.ALFY[bn2_mdl_index]
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
@@ -478,26 +494,32 @@ def BetaFromPhase_BPM_right(bn3, bn1, bn2, MADTwiss, ERRTwiss, plane):
         'alfstd':float
             calculated error on alfa function at probed BPM
     '''
+    bn1_err_index = ERRTwiss.indx[bn1]
+    bn2_err_index = ERRTwiss.indx[bn2]
+    bn3_err_index = ERRTwiss.indx[bn3]
+    bn1_mdl_index = MADTwiss.indx[bn1]
+    bn2_mdl_index = MADTwiss.indx[bn2]
+    bn3_mdl_index = MADTwiss.indx[bn3]
     if plane == 'H':
-        ph2pi23 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn2]]) % ERRTwiss.Q1
-        ph2pi13 = 2. * np.pi * (ERRTwiss.MUX[ERRTwiss.indx[bn3]] - ERRTwiss.MUX[ERRTwiss.indx[bn1]]) % ERRTwiss.Q1
-        phmdl23 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn2]]) % MADTwiss.Q1
-        phmdl13 = 2. * np.pi * (MADTwiss.MUX[MADTwiss.indx[bn3]] - MADTwiss.MUX[MADTwiss.indx[bn1]]) % MADTwiss.Q1
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUX[bn3_err_index] - ERRTwiss.MUX[bn2_err_index]) % ERRTwiss.Q1
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUX[bn3_err_index] - ERRTwiss.MUX[bn1_err_index]) % ERRTwiss.Q1
+        phmdl23 = 2. * np.pi * (MADTwiss.MUX[bn3_mdl_index] - MADTwiss.MUX[bn2_mdl_index]) % MADTwiss.Q1
+        phmdl13 = 2. * np.pi * (MADTwiss.MUX[bn3_mdl_index] - MADTwiss.MUX[bn1_mdl_index]) % MADTwiss.Q1
 
-        betmdl1 = MADTwiss.BETX[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETX[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETX[MADTwiss.indx[bn3]]
-        alpmdl3 = MADTwiss.ALFX[MADTwiss.indx[bn3]]
+        betmdl1 = MADTwiss.BETX[bn1_mdl_index]
+        betmdl2 = MADTwiss.BETX[bn2_mdl_index]
+        betmdl3 = MADTwiss.BETX[bn3_mdl_index]
+        alpmdl3 = MADTwiss.ALFX[bn3_mdl_index]
     elif plane == 'V':
-        ph2pi23 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn2]]) % ERRTwiss.Q2
-        ph2pi13 = 2. * np.pi * (ERRTwiss.MUY[ERRTwiss.indx[bn3]] - ERRTwiss.MUY[ERRTwiss.indx[bn1]]) % ERRTwiss.Q2
-        phmdl23 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn2]]) % MADTwiss.Q2
-        phmdl13 = 2. * np.pi * (MADTwiss.MUY[MADTwiss.indx[bn3]] - MADTwiss.MUY[MADTwiss.indx[bn1]]) % MADTwiss.Q2
+        ph2pi23 = 2. * np.pi * (ERRTwiss.MUY[bn3_err_index] - ERRTwiss.MUY[bn2_err_index]) % ERRTwiss.Q2
+        ph2pi13 = 2. * np.pi * (ERRTwiss.MUY[bn3_err_index] - ERRTwiss.MUY[bn1_err_index]) % ERRTwiss.Q2
+        phmdl23 = 2. * np.pi * (MADTwiss.MUY[bn3_mdl_index] - MADTwiss.MUY[bn2_mdl_index]) % MADTwiss.Q2
+        phmdl13 = 2. * np.pi * (MADTwiss.MUY[bn3_mdl_index] - MADTwiss.MUY[bn1_mdl_index]) % MADTwiss.Q2
 
-        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alpmdl3 = MADTwiss.ALFY[MADTwiss.indx[bn3]]
+        betmdl1 = MADTwiss.BETY[bn1_mdl_index]
+        betmdl2 = MADTwiss.BETY[bn2_mdl_index]
+        betmdl3 = MADTwiss.BETY[bn3_mdl_index]
+        alpmdl3 = MADTwiss.ALFY[bn3_mdl_index]
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
@@ -518,5 +540,5 @@ def BetaFromPhase_BPM_right(bn3, bn1, bn2, MADTwiss, ERRTwiss, plane):
 
 
 if __name__ == "__main__":
-    _model_twiss, _num_simulations, _num_processes, _output_dir, _beam = _parse_args()
-    get_systematic_errors(_model_twiss, _num_simulations, _num_processes, _output_dir, _beam)
+    model_twiss, num_simulations, num_processes, output_dir = _parse_args()
+    get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir)
