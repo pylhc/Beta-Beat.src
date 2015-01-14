@@ -71,12 +71,15 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
     print 'Calculating beta'
     #---- H plane
     if twiss_d.has_zero_dpp_x():
-        [beta_d.x_phase, rmsbbx, alfax, bpms] = beta_from_phase(mad_ac_best_knowledge, twiss_d.zero_dpp_x, phase_d.ph_x, 'H', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
+        [beta_d.x_phase, rmsbbx, alfax, bpms, error_method] = beta_from_phase(mad_ac_best_knowledge, twiss_d.zero_dpp_x, phase_d.ph_x, 'H', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
         beta_d.x_phase['DPP'] = 0
         tfs_file = files_dict['getbetax.out']
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_float_descriptor("RMSbetabeat", rmsbbx)
+        tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+        tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+        tfs_file.add_string_descriptor("ErrorsFrom", error_method)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
@@ -89,11 +92,14 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
         if getllm_d.with_ac_calc:
             #-- from eq
             try:
-                [beta_d.x_phase_f, rmsbbxf, alfaxf, bpmsf] = beta_from_phase(mad_best_knowledge, twiss_d.zero_dpp_x, phase_d.x_f, 'H', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
+                [beta_d.x_phase_f, rmsbbxf, alfaxf, bpmsf, error_method] = beta_from_phase(mad_best_knowledge, twiss_d.zero_dpp_x, phase_d.x_f, 'H', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
                 tfs_file = files_dict['getbetax_free.out']
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
                 tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf)
+                tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+                tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+                tfs_file.add_string_descriptor("ErrorsFrom", error_method)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
@@ -120,12 +126,15 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
 
     #---- V plane
     if twiss_d.has_zero_dpp_y():
-        [beta_d.y_phase, rmsbby, alfay, bpms] = beta_from_phase(mad_ac_best_knowledge, twiss_d.zero_dpp_y, phase_d.ph_y, 'V', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
+        [beta_d.y_phase, rmsbby, alfay, bpms, error_method] = beta_from_phase(mad_ac_best_knowledge, twiss_d.zero_dpp_y, phase_d.ph_y, 'V', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
         beta_d.y_phase['DPP'] = 0
         tfs_file = files_dict['getbetay.out']
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_float_descriptor("RMSbetabeat", rmsbby)
+        tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+        tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+        tfs_file.add_string_descriptor("ErrorsFrom", error_method)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
@@ -138,11 +147,14 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
         if getllm_d.with_ac_calc:
             #-- from eq
             try:
-                [beta_d.y_phase_f, rmsbbyf, alfayf, bpmsf] = beta_from_phase(mad_best_knowledge, twiss_d.zero_dpp_y, phase_d.y_f, 'V', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
+                [beta_d.y_phase_f, rmsbbyf, alfayf, bpmsf, error_method] = beta_from_phase(mad_best_knowledge, twiss_d.zero_dpp_y, phase_d.y_f, 'V', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
                 tfs_file = files_dict['getbetay_free.out']
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
                 tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf)
+                tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+                tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+                tfs_file.add_string_descriptor("ErrorsFrom", error_method)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
@@ -547,6 +559,9 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
     if 7 > len(commonbpms):
         print "beta_from_phase: Less than seven BPMs for plane", plane + ". Can not use optimised algorithm."
 
+    errors_method = "Covariance matrix"
+    if use_only_three_bpms_for_beta_from_phase:
+        errors_method = "Estimated by std (3 BPM method), 3 BPMs flag set"
     systematic_errors_found = False
     systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(MADTwiss.filename)), "bet_deviations.npy")
     systematic_errors = None
@@ -554,6 +569,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
         systematic_errors = np.load(systematics_error_path)
         systematic_errors_found = True
     elif not use_only_three_bpms_for_beta_from_phase:
+        errors_method = "Estimated by std (3 BPM method), no bet_deviations.npy file found"
         print >> sys.stderr, "WARNING: Cannot find bet_deviations.npy file!"
 
     delbeta = []
@@ -573,7 +589,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
         elif plane == 'V':
             betmdl1 = MADTwiss.BETY[MADTwiss.indx[probed_bpm_name]]
 
-        if not use_only_three_bpms_for_beta_from_phase:
+        if not use_only_three_bpms_for_beta_from_phase and systematic_errors_found:
 
             T = np.transpose(np.matrix([alfa_beta[i][7] for i in range(len(alfa_beta))]))
             V1 = M * T
@@ -636,7 +652,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
     delbeta = np.array(delbeta)
     rmsbb = math.sqrt(np.average(delbeta * delbeta))
 
-    return [beta, rmsbb, alfa, commonbpms]
+    return [beta, rmsbb, alfa, commonbpms, errors_method]
 
 
 def beta_from_amplitude(mad_twiss, list_of_files, plane):
