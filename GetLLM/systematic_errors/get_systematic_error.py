@@ -1,3 +1,9 @@
+'''
+This script calculates the bet_deviations.npy binary file to improve the betas calculation.
+
+@author: alangner, jcoellod
+'''
+
 import __init__  # @UnusedImport
 import os
 import multiprocessing
@@ -18,53 +24,69 @@ NUM_PROCESSES = multiprocessing.cpu_count()  # Default number of processes to us
 def _parse_args():
     parser = OptionParser()
     parser.add_option("-m", "--model",
-                    help="Model twiss file to use.",
-                    metavar="model", default="", dest="model_twiss")  # TODO remove default value
+                    help="Model twiss file to use, the modifiers.madx file is assumed to be in the same directory.",
+                    metavar="model", dest="model_twiss")
     parser.add_option("-o", "--output",
                     help="Output directory for the results.",
-                    metavar="output", default="", dest="output_dir")  # TODO set default value to model dir
+                    metavar="output", default="", dest="output_dir")
+    parser.add_option("--error-tables",
+                      help="Where to find the error tables, if not specified, will try to use the templates.",
+                      metavar="ERROR", dest="errors_path")
     parser.add_option("-n", "--numsim",
                     help="Number of simulations to run",
                     metavar="numsim", default=NUM_SIMULATIONS, dest="num_simulations")
     parser.add_option("-p", "--processes",
                     help="Number of parallel processes to use in the simulation.",
                     metavar="numproc", default=NUM_PROCESSES, dest="num_processes")
+    parser.add_option("-a", "--accelerator",
+                    help="Accelerator to use: either LHCB1, LHCB2 or ALBA.",
+                    metavar="ACCEL", dest="accelerator")
+    parser.add_option("-x", "--tunex",
+                    help="Horizontal tune.",
+                    metavar="TUNEX", dest="tunex")
+    parser.add_option("-y", "--tuney",
+                    help="Vertical tune.",
+                    metavar="TUNEY", dest="tuney")
+    parser.add_option("-e", "--energy",
+                    help="The energy of the beam.",
+                    metavar="ENERGY", dest="energy")
     options, _ = parser.parse_args()
 
-    return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir
+    if options.output_dir == "":
+        options.output_dir = os.path.dirname(options.model_twiss)
+    if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "ALBA"]:
+        print >> sys.stderr, "Accelerator sequence must be defined, it must be LHCB1, LHCB2 or ALBA."
+        sys.exit(-1)
+    if options.tunex is None or options.tuney is None:
+        print >> sys.stderr, "Both vertical and horizontal tunes must be defined."
+        sys.exit(-1)
+    return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir, options.errors_path, options.accelerator, options.energy, options.tunex, options.tuney
 
 
-def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir):
+def get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir, errors_path, accelerator, energy, tunex, tuney):
+    print "Started systematic error script, using " + str(num_processes) + " processes for " + str(num_simulations) + " simulations"
+    model_dir_path = os.path.dirname(model_twiss)
     run_data_path = os.path.join(output_dir, "RUN_DATA")
+    if errors_path is None and accelerator.upper().startswith("LHCB"):
+        beam = accelerator.upper().replace("LHC", "")
+        errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
+    else:
+        print >> sys.stderr, "No error table templates available for", accelerator, "specify an error tables path (--error-tables option)"
+        sys.exit(-1)
     iotools.create_dirs(run_data_path)
-    iotools.copy_item(os.path.join(CURRENT_PATH, "MB_corr_setting_4TeV.mad"), run_data_path)
-    try:
-        os.symlink("/afs/cern.ch/eng/lhc/optics/V6.503", "db5")
-    except(OSError):
-        pass
 
-    print "Preparing error files..."
-    start_time = time.time()
-    _parallel_prepare_error_files(run_data_path)
-    end_time = time.time()
-    print "Done (" + str(end_time - start_time) + " seconds)\n"
+    pool = multiprocessing.Pool(processes=num_processes)
 
-    print "Running " + str(num_simulations) + " simulations using " + str(num_processes) + " processes..."
+    print "Running simulations..."
     start_time = time.time()
-    times = _run_parallel_simulations(run_data_path)
+    times = _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, accelerator, energy, tunex, tuney, pool)
     _show_time_statistics(times)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
-    try:
-        os.unlink("db5")
-        os.unlink("ats")
-    except(OSError):
-        pass
-
-    print "Parallel calculating systematic error bars..."
+    print "Calculating systematic error bars..."
     start_time = time.time()
-    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, num_simulations)
+    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, pool, num_simulations)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
@@ -73,68 +95,53 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "All done."
 
 
-def _parallel_prepare_error_files(run_data_path):
-    pool = multiprocessing.Pool(processes=num_processes)
-    args = [(seed, run_data_path) for seed in range(1, 61)]
-    tasks = pool.map_async(_prepare_single_error_file, args)
-    tasks.wait()
-
-
-def _prepare_single_error_file(seed_path_tuple):
-    err_num = str((seed_path_tuple[0] % 60) + 1).zfill(4)
-    run_data_path = seed_path_tuple[1]
-    madx_job = ""
-    with open(os.path.join(CURRENT_PATH, 'error_table.mask'), 'r') as infile:
-        for line in infile:
-            new_line = line
-            new_line = new_line.replace("%ERR_NUM", err_num)
-            new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
-            madx_job += new_line + "\n"
-    madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
-
-
-def _run_parallel_simulations(run_data_path):
-    pool = multiprocessing.Pool(processes=num_processes)
+def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, accelerator, energy, tunex, tuney, pool):
     times = []
-    args = [(seed, run_data_path) for seed in range(1, num_simulations + 1)]
-    tasks = pool.map_async(_run_single_madx_simulation, args, callback=times.append)
-    # map(_run_single_madx_simulation, args)
+    if accelerator.upper() in ["LHCB1", "LHCB2"]:
+        simulation_function = _run_single_lhc_madx_simulation
+    else:
+        print >> sys.stderr, "Accelerator", accelerator, "not yet implemented"
+        sys.exit(-1)
+    args = [(seed, run_data_path, model_dir_path, errors_path, accelerator, energy, tunex, tuney) for seed in range(1, num_simulations + 1)]
+    tasks = pool.map_async(simulation_function, args, callback=times.append)
     tasks.wait()
     return times
 
 
-def _run_single_madx_simulation(seed_path_tuple):
+def _run_single_lhc_madx_simulation(seed_path_tuple):
     seed = seed_path_tuple[0]
     run_data_path = seed_path_tuple[1]
-    madx_job = ""
-    with open(os.path.join(CURRENT_PATH, 'job.tracking.mask'), 'r') as infile:
-        for line in infile:
-            err_num = str((seed % 60) + 1).zfill(4)
-            new_line = line
+    model_dir_path = seed_path_tuple[2]
+    errors_path = seed_path_tuple[3]
+    accelerator = seed_path_tuple[4]
+    energy = seed_path_tuple[5]
+    tunex = seed_path_tuple[6]
+    tuney = seed_path_tuple[7]
+    dict_for_replacing = dict(
+            ERR_NUM=str((seed % 60) + 1).zfill(4),
+            SEED=str(seed),
+            RUN_DATA_PATH=run_data_path,
+            ERRORS_PATH=errors_path,
+            ACCEL=accelerator,
+            BEAM=accelerator.upper().replace("LHC", ""),
 
-            if line.startswith('eoption, seed= SEEDR + 50  ; exec SetEfcomp_Q;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(1 + seed * 9) + '  ; exec SetEfcomp_Q;'
-            elif line.startswith('eoption, seed= SEEDR + 2    ; exec SetEfcomp_Q;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(2 + seed * 9) + '    ; exec SetEfcomp_Q;'
-            elif line.startswith('eoption, seed= SEEDR + 4    ; exec SetEfcomp_Q;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(3 + seed * 9) + '    ; exec SetEfcomp_Q;'
-            elif line.startswith('eoption, seed= SEEDR + 5    ; exec SetEfcomp_Q;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(4 + seed * 9) + '    ; exec SetEfcomp_Q;'
-            elif line.startswith('eoption, seed= SEEDR + 6    ; exec SetEfcomp_Q;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(5 + seed * 9) + '    ; exec SetEfcomp_Q;'
-            elif line.startswith('eoption, seed= SEEDR + 7    ; exec SetEfcomp_Q;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(6 + seed * 9) + '    ; exec SetEfcomp_Q;'
-            elif line.startswith('eoption, seed= SEEDR + 8;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(7 + seed * 9) + ';'
-            elif line.startswith('eoption, seed= SEEDR + 9;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(8 + seed * 9) + ';'
-            elif line.startswith('eoption, seed= SEEDR + 10;'):
-                new_line = 'eoption, seed= SEEDR + ' + str(9 + seed * 9) + ';'
+            PATH=model_dir_path,
+            QMX=tunex,
+            QMY=tuney,
+            ENERGY=energy,
 
-            new_line = new_line.replace("%ERR_NUM", str(err_num))
-            new_line = new_line.replace("%SEED", str(seed))
-            new_line = new_line.replace("%RUN_DATA_PATH", run_data_path)
-            madx_job += new_line + "\n"
+            SEEDMQ=str(1 + seed * 9),
+            SEEDMQM=str(2 + seed * 9),
+            SEEDMQY=str(3 + seed * 9),
+            SEEDMQX=str(4 + seed * 9),
+            SEEDMQW=str(5 + seed * 9),
+            SEEDMQT=str(6 + seed * 9),
+            SEEDALIGNSEX=str(7 + seed * 9),
+            SEEDALIGNQUAD=str(8 + seed * 9),
+            SEEDALIGNBPM=str(9 + seed * 9),
+            )
+    raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.mask'))
+    madx_job = raw_madx_mask % dict_for_replacing
 
     start_time = time.time()
     madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
@@ -159,10 +166,9 @@ def _show_time_statistics(times):
     print "Min simulation time: " + str(min_time) + " seconds"
 
 
-def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, num_simulations):
+def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, pool, num_simulations):
     model_twiss = metaclass.twiss(model_twiss_path)
-    num_processes = 32
-    pool = multiprocessing.Pool(processes=num_processes)
+
     list_of_bpm = []
     for i in model_twiss.NAME:
         if "BPM" in i and i not in list_of_bpm:
@@ -181,12 +187,14 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
 
     final_beta_hor, final_beta_ver, final_num_valid_data = final_list
 
+    #TODO: sqrt or not?
     for key, value in final_beta_hor.iteritems():
         final_beta_hor[key] = value / final_num_valid_data
     for key, value in final_beta_ver.iteritems():
         final_beta_ver[key] = value / final_num_valid_data
 
     np.save(os.path.join(output_path, 'bet_deviations'), [final_beta_hor, final_beta_ver])
+
 
 def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm, sim_num):
     beta_hor = {}
@@ -197,11 +205,10 @@ def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm
     BPM_EACH_SIDE = int((BPM_RANGE - 1) / 2.)
     left = range(-1, -1 * (BPM_EACH_SIDE + 1), -1)
     right = range(1, BPM_EACH_SIDE + 1)
-    left_comb = [[x, y] for x in left for y in left if x< y]
-    right_comb = [[x, y] for x in right for y in right if x< y]
+    left_comb = [[x, y] for x in left for y in left if x < y]
+    right_comb = [[x, y] for x in right for y in right if x < y]
     mid_comb = [[x, y] for x in left for y in right]
     all_comb = left_comb + mid_comb + right_comb
-    count = 0
     try:
         error_twiss = metaclass.twiss(os.path.join(run_data_path, 'twiss' + str(sim_num) + '.dat'))
         for probed_bpm in range(len(list_of_bpm)):
@@ -215,16 +222,16 @@ def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm
                         s1_hor = (BetaFromPhase_BPM_right(probed_bpm_name,
                                                                list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
-                                                               model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                                                               model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s1_ver = (BetaFromPhase_BPM_right(probed_bpm_name,
                                                                list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
-                                                               model_twiss, error_twiss, 'V')  - err_bety) / err_bety
+                                                               model_twiss, error_twiss, 'V') - err_bety) / err_bety
                     elif term1 in mid_comb:
                         s1_hor = (BetaFromPhase_BPM_mid(probed_bpm_name,
                                                              list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
-                                                             model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                                                             model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s1_ver = (BetaFromPhase_BPM_mid(probed_bpm_name,
                                                              list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
@@ -233,7 +240,7 @@ def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm
                         s1_hor = (BetaFromPhase_BPM_left(probed_bpm_name,
                                                               list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
-                                                              model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                                                              model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s1_ver = (BetaFromPhase_BPM_left(probed_bpm_name,
                                                               list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
@@ -243,7 +250,7 @@ def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm
                         s2_hor = (BetaFromPhase_BPM_right(probed_bpm_name,
                                                                list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                               model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                                                               model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s2_ver = (BetaFromPhase_BPM_right(probed_bpm_name,
                                                                list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
                                                                list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
@@ -252,7 +259,7 @@ def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm
                         s2_hor = (BetaFromPhase_BPM_mid(probed_bpm_name,
                                                              list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                             model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                                                             model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s2_ver = (BetaFromPhase_BPM_mid(probed_bpm_name,
                                                              list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
                                                              list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
@@ -261,7 +268,7 @@ def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm
                         s2_hor = (BetaFromPhase_BPM_left(probed_bpm_name,
                                                               list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                              model_twiss, error_twiss, 'H') - err_betx) /  err_betx
+                                                              model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s2_ver = (BetaFromPhase_BPM_left(probed_bpm_name,
                                                               list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
                                                               list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
@@ -540,5 +547,5 @@ def BetaFromPhase_BPM_right(bn3, bn1, bn2, MADTwiss, ERRTwiss, plane):
 
 
 if __name__ == "__main__":
-    model_twiss, num_simulations, num_processes, output_dir = _parse_args()
-    get_systematic_errors(model_twiss, num_simulations, num_processes, output_dir)
+    _model_twiss, _num_simulations, _num_processes, _output_dir, _errors_path, _accelerator, _energy, _tunex, _tuney = _parse_args()
+    get_systematic_errors(_model_twiss, _num_simulations, _num_processes, _output_dir, _errors_path, _accelerator, _energy, _tunex, _tuney)

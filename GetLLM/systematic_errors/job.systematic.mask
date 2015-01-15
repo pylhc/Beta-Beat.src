@@ -1,12 +1,12 @@
 title, "Model creator for java" ;
 
 option, -echo, -info,  warn;
-call, file = "db5/as-built/V6.5.seq";       
-call, file = "db5/V6.5.inj.str";
+call, file = "/afs/cern.ch/eng/lhc/optics/V6.503/as-built/V6.5.seq";       
+call, file = "/afs/cern.ch/eng/lhc/optics/V6.503/V6.5.inj.str";
 
-call, file = "%PATH/modifiers.madx"
+call, file = "%(PATH)s/modifiers.madx"
 
-call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
+call, file = "/afs/cern.ch/eng/lhc/optics/V6.503/install_additional_elements.madx";
 
 seqedit, sequence=LHCB1;
 flatten;               
@@ -21,7 +21,7 @@ endedit;
 
  option,  echo,  info,  warn;
 
- beam, particle = proton, sequence=LHCB1, energy = 450.0;
+ beam, particle = proton, sequence=%(ACCEL)s, energy = 450.0;
  beam, sequence=LHCB1,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=1;
  beam, sequence=LHCB2,particle=proton,energy=450,kbunch=1,npart=1.15E11,bv=-1;
 
@@ -30,7 +30,7 @@ endedit;
  on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
  on_alice:= 0; on_lhcb := 0;
 
-use, period=LHCB1;
+use, period=%(ACCEL)s;
 
 !!!!!!!!! matching
 match;
@@ -38,14 +38,14 @@ match;
 vary, name=KQTD.B1;
 vary, name=KQTF.B1;
 
-constraint, range=#E, mux=%QMX, muy=%QMY;
+constraint, range=#E, mux=%(QMX)s, muy=%(QMY)s;
 lmdif;
 endmatch;
 
-READMYTABLE,file="%ERRORS_PATH/error_tables_%ENERGY/MBx-%ERR_NUM.errors",table=errtab;
+READMYTABLE,file="%(ERRORS_PATH)s/error_tables_%(ENERGY)s/MBx-%(ERR_NUM)s.errors",table=errtab;
 SETERR,TABLE=errtab;
 
- call, file="%ERRORS_PATH/MB_corr_setting_%BEAM_%ENERGY.mad";
+ call, file="%(ERRORS_PATH)s/MB_corr_setting_%(BEAM)s_%(ENERGY)s.mad";
 
 
 
@@ -60,60 +60,58 @@ Rr=0.017;
 B2r =15*ENLARGE;
 ON_B2R=1;
 GCUTR=3;
-eoption, seed= SEEDR + 50  ; exec SetEfcomp_Q;
+eoption, seed= SEEDR + %(SEEDMQ)s  ; exec SetEfcomp_Q;
 
 !! MQM
 select, flag=error, clear; select, flag=error, PATTERN="^MQM";
 B2r =16*ENLARGE;
-eoption, seed= SEEDR + 2    ; exec SetEfcomp_Q;
+eoption, seed= SEEDR + %(SEEDMQM)s    ; exec SetEfcomp_Q;
 
 !! MQY
 select, flag=error, clear; select, flag=error, PATTERN="^MQY";
 B2r =14*ENLARGE;
-eoption, seed= SEEDR + 4    ; exec SetEfcomp_Q;
+eoption, seed= SEEDR + %(SEEDMQY)s    ; exec SetEfcomp_Q;
 
 !! MQX
 select, flag=error, clear; select, flag=error, PATTERN="^MQX";
 B2r =5*ENLARGE;
 !!!!!B2r =11*ENLARGE; 
-eoption, seed= SEEDR + 5    ; exec SetEfcomp_Q;
+eoption, seed= SEEDR + %(SEEDMQX)s    ; exec SetEfcomp_Q;
 
 !! MQW
 select, flag=error, clear; select, flag=error, PATTERN="^MQW";
 B2r =22;
-eoption, seed= SEEDR + 6    ; exec SetEfcomp_Q;
+eoption, seed= SEEDR + %(SEEDMQW)s    ; exec SetEfcomp_Q;
 
 !! MQT
 select, flag=error, clear; select, flag=error, PATTERN="^MQT";
 B2r =17;
-eoption, seed= SEEDR + 7    ; exec SetEfcomp_Q;
+eoption, seed= SEEDR + %(SEEDMQT)s    ; exec SetEfcomp_Q;
 
 !Alignment
 select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=sextupole;
-eoption, seed= SEEDR + 8;
+eoption, seed= SEEDR + %(SEEDALIGNSEX)s;
 EALIGN, DX:=0.001*TGAUSS(GCUTR), DY:=0.001*TGAUSS(GCUTR);
 
 !Alignment
 select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=quadrupole;
-eoption, seed= SEEDR + 9;
+eoption, seed= SEEDR + %(SEEDALIGNQUAD)s;
 EALIGN, DS:=0.001*TGAUSS(GCUTR);
 
 !!Alignment
 !select, flag=error, clear; SELECT,FLAG=ERROR, PATTERN="^BPM";
-!eoption, seed= SEEDR + 10;
+!eoption, seed= SEEDR + %(SEEDALIGNBPM)s;
 !EALIGN, DS:=0.001*TGAUSS(GCUTR);
 
 !!! select, flag=error, clear;
 !!! select, flag=error, pattern=MQ\.;
-!!! esave,  file="%RUN_DATA_PATH/temp%SEED/MQ1.errors";
+!!! esave,  file="%(RUN_DATA_PATH)s/temp%(SEED)s/MQ1.errors";
 
 
 select, flag=twiss, clear;
-select, flag=twiss,pattern=MKQA.6L4.B1,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
-, dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
-twiss, chrom,sequence=LHCB1, deltap=0, file='%RUN_DATA_PATH/twiss%SEED.dat';
+twiss, chrom,sequence=%(ACCEL)s, deltap=0, file='%(RUN_DATA_PATH)s/twiss%(SEED)s.dat';
 
 stop;
 
