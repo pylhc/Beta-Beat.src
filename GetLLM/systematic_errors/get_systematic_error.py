@@ -57,9 +57,10 @@ def _parse_args():
     if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "ALBA"]:
         print >> sys.stderr, "Accelerator sequence must be defined, it must be LHCB1, LHCB2 or ALBA."
         sys.exit(-1)
-    if options.tunex is None or options.tuney is None:
-        print >> sys.stderr, "Both vertical and horizontal tunes must be defined."
-        sys.exit(-1)
+    if options.accelerator.startswith("LHCB"):
+        if options.tunex is None or options.tuney is None or options.energy is None:
+            print >> sys.stderr, "Vertical and horizontal tunes and energy must be defined."
+            sys.exit(-1)
     return options.model_twiss, int(options.num_simulations), int(options.num_processes), options.output_dir, options.errors_path, options.accelerator, options.energy, options.tunex, options.tuney
 
 
@@ -70,6 +71,9 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     if errors_path is None and accelerator.upper().startswith("LHCB"):
         beam = accelerator.upper().replace("LHC", "")
         errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
+    elif accelerator.upper() == "ALBA":
+        if not errors_path is None:
+            print >> sys.stdout, "ALBA doesn't need error tables, ignoring input"
     else:
         print >> sys.stderr, "No error table templates available for", accelerator, "specify an error tables path (--error-tables option)"
         sys.exit(-1)
@@ -99,6 +103,8 @@ def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, er
     times = []
     if accelerator.upper() in ["LHCB1", "LHCB2"]:
         simulation_function = _run_single_lhc_madx_simulation
+    elif accelerator.upper() == "ALBA":
+        simulation_function = _run_single_alba_madx_simulation
     else:
         print >> sys.stderr, "Accelerator", accelerator, "not yet implemented"
         sys.exit(-1)
@@ -140,7 +146,27 @@ def _run_single_lhc_madx_simulation(seed_path_tuple):
             SEEDALIGNQUAD=str(8 + seed * 9),
             SEEDALIGNBPM=str(9 + seed * 9),
             )
-    raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.mask'))
+    raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.LHC.mask'))
+    madx_job = raw_madx_mask % dict_for_replacing
+
+    start_time = time.time()
+    madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
+    end_time = time.time()
+    return end_time - start_time
+
+
+def _run_single_alba_madx_simulation(seed_path_tuple):
+    seed = seed_path_tuple[0]
+    run_data_path = seed_path_tuple[1]
+    dict_for_replacing = dict(
+            ALBA_MODEL=os.path.join(CURRENT_PATH, "..", "..", "MODEL", "ALBA"),
+            SEED=str(seed),
+            SEED1=str(1 + seed * 4),
+            SEED2=str(2 + seed * 4),
+            SEED3=str(3 + seed * 4),
+            SEED4=str(4 + seed * 4),
+            RUN_DATA_PATH=run_data_path)
+    raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.ALBA.mask'))
     madx_job = raw_madx_mask % dict_for_replacing
 
     start_time = time.time()

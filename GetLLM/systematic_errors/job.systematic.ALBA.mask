@@ -1,0 +1,58 @@
+title, "Madx" ;
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! sequence files + beam definition
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+option, -echo, -info,  warn;
+call,   file = "%(ALBA_MODEL)s/a25_2013.seq";
+
+
+option,  echo,  info,  warn;
+
+beam, particle = electron, sequence=MACHINE, energy = 100.0;
+beam, sequence=MACHINE,particle=electron,energy=100,kbunch=1,npart=1.15E10,bv=1;
+
+
+call, file="%(ALBA_MODEL)s/ALBABeamLine.madx";
+
+use, period=MACHINE;
+
+call, file="%(ALBA_MODEL)s/put_quad_bend_k.madx";
+
+call, file="%(ALBA_MODEL)s/put_sext_displacements.madx";
+
+!
+! Put errors
+!
+
+select, flag=error, clear;
+select,FLAG=ERROR,CLASS=sbend;
+eoption, seed= %(SEED1)s;
+EFCOMP, ORDER:=1,RADIUS:=1, DKNR:= {0,0.002*GAUSS()};
+
+select, flag=error, clear;
+select,FLAG=ERROR,CLASS=quadrupole;
+eoption, seed= %(SEED2)s;
+EFCOMP, ORDER:=1,RADIUS:=1, DKNR:= {0,0.001*GAUSS()};
+
+!!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=sextupole;
+eoption, seed= %(SEED3)s;
+EALIGN, DX:=0.00015*TGAUSS(GCUTR), DY:=0.00015*TGAUSS(GCUTR);
+
+!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=quadrupole;
+eoption, seed= %(SEED4)s;
+EALIGN, DS:=0.0003*TGAUSS(GCUTR);
+
+
+!esave, file=errors.tfs;
+
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern=^BPM,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy,dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss, chrom,sequence=MACHINE, deltap=0, file="%(RUN_DATA_PATH)s/twiss%(SEED)s.dat";
