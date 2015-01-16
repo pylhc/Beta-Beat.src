@@ -632,7 +632,10 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
                 for i in range(len(alfa_beta)):
                     for j in range(len(alfa_beta)):
                         beterr = beterr + w[i] * w[j] * V_syst.item(i, j)
-                beterr = np.sqrt(float(beterr))
+                if beterr < 0:
+                    beterr = DEFAULT_WRONG_BETA
+                else:
+                    beterr = np.sqrt(float(beterr))
             else:
                 betstd = DEFAULT_WRONG_BETA
                 beterr = DEFAULT_WRONG_BETA
