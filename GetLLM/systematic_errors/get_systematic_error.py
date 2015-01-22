@@ -90,7 +90,7 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
 
     print "Calculating systematic error bars..."
     start_time = time.time()
-    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, pool, num_simulations)
+    _parallel_get_systematic_errors_binary_file(model_twiss, run_data_path, output_dir, pool, num_simulations, num_processes)
     end_time = time.time()
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
@@ -192,7 +192,7 @@ def _show_time_statistics(times):
     print "Min simulation time: " + str(min_time) + " seconds"
 
 
-def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, pool, num_simulations):
+def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path, output_path, pool, num_simulations, num_processes):
     model_twiss = metaclass.twiss(model_twiss_path)
 
     list_of_bpm = []
@@ -202,9 +202,11 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
 
     final_list = [{}, {}, 0]  # This list is used to pass the parameters "by reference" to the callback method
 
-    args = [(run_data_path, model_twiss, list_of_bpm, sim_num) for sim_num in range(1, num_simulations + 1)]
-    for run_data_path, model_twiss, list_of_bpm, sim_num in args:
-        pool.apply_async(_get_error_bar_for_single_simulation, (run_data_path, model_twiss, list_of_bpm, sim_num),
+    chunksize = _compute_chunksize(num_simulations, num_processes)
+    print "Using chunk size:", chunksize
+    args = [(run_data_path, model_twiss, list_of_bpm, range(1, num_simulations + 1)[x:x + chunksize]) for x in xrange(0, num_simulations, chunksize)]
+    for run_data_path, model_twiss, list_of_bpm, sim_nums in args:
+        pool.apply_async(_get_error_bar_for_single_simulation, (run_data_path, model_twiss, list_of_bpm, sim_nums),
                          callback=lambda result: _merge_betas_dict(final_list, result))
     pool.close()
     pool.join()
@@ -213,7 +215,6 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
 
     final_beta_hor, final_beta_ver, final_num_valid_data = final_list
 
-    #TODO: sqrt or not?
     for key, value in final_beta_hor.iteritems():
         final_beta_hor[key] = value / final_num_valid_data
     for key, value in final_beta_ver.iteritems():
@@ -222,101 +223,90 @@ def _parallel_get_systematic_errors_binary_file(model_twiss_path, run_data_path,
     np.save(os.path.join(output_path, 'bet_deviations'), [final_beta_hor, final_beta_ver])
 
 
-def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm, sim_num):
-    beta_hor = {}
-    beta_ver = {}
-    num_valid_data = 0
+def _compute_chunksize(num_simulations, num_processes):
+    if num_simulations <= num_processes:
+        return 1
+    else:
+        return int(num_simulations / num_processes)
 
-    BPM_RANGE = 13
-    BPM_EACH_SIDE = int((BPM_RANGE - 1) / 2.)
-    left = range(-1, -1 * (BPM_EACH_SIDE + 1), -1)
-    right = range(1, BPM_EACH_SIDE + 1)
-    left_comb = [[x, y] for x in left for y in left if x < y]
-    right_comb = [[x, y] for x in right for y in right if x < y]
-    mid_comb = [[x, y] for x in left for y in right]
-    all_comb = left_comb + mid_comb + right_comb
-    try:
-        error_twiss = metaclass.twiss(os.path.join(run_data_path, 'twiss' + str(sim_num) + '.dat'))
-        for probed_bpm in range(len(list_of_bpm)):
-            err_betx = error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]
-            err_bety = error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]
-            probed_bpm_name = list_of_bpm[(probed_bpm) % len(list_of_bpm)]
-            for term1 in all_comb:
-                t1_index = all_comb.index(term1)
-                for term2 in all_comb[t1_index:]:
-                    if term1 in left_comb:
+
+def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm, sim_nums):
+    final_list = [{}, {}, 0]
+    for current_sim_index in range(len(sim_nums)):
+        sim_num = sim_nums[current_sim_index]
+        beta_hor = {}
+        beta_ver = {}
+        num_valid_data = 0
+        BPM_RANGE = 13
+        BPM_EACH_SIDE = int((BPM_RANGE - 1) / 2.)
+        left = range(-1, -1 * (BPM_EACH_SIDE + 1), -1)
+        right = range(1, BPM_EACH_SIDE + 1)
+        left_comb = [(x, y) for x in left for y in left if x < y]
+        right_comb = [(x, y) for x in right for y in right if x < y]
+        mid_comb = [(x, y) for x in left for y in right]
+        all_comb = left_comb + mid_comb + right_comb
+        try:
+            error_twiss = metaclass.twiss(os.path.join(run_data_path, 'twiss' + str(sim_num) + '.dat'))
+            for probed_bpm in range(len(list_of_bpm)):
+                err_betx = error_twiss.BETX[error_twiss.indx[list_of_bpm[probed_bpm]]]
+                err_bety = error_twiss.BETY[error_twiss.indx[list_of_bpm[probed_bpm]]]
+                probed_bpm_name = list_of_bpm[(probed_bpm) % len(list_of_bpm)]
+                terms = {}
+                for term in all_comb:
+                    if term in left_comb:
                         s1_hor = (BetaFromPhase_BPM_right(probed_bpm_name,
-                                                               list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term[0]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term[1]) % len(list_of_bpm)],
                                                                model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s1_ver = (BetaFromPhase_BPM_right(probed_bpm_name,
-                                                               list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term[0]) % len(list_of_bpm)],
+                                                               list_of_bpm[(probed_bpm + term[1]) % len(list_of_bpm)],
                                                                model_twiss, error_twiss, 'V') - err_bety) / err_bety
-                    elif term1 in mid_comb:
+                    elif term in mid_comb:
                         s1_hor = (BetaFromPhase_BPM_mid(probed_bpm_name,
-                                                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term[0]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term[1]) % len(list_of_bpm)],
                                                              model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s1_ver = (BetaFromPhase_BPM_mid(probed_bpm_name,
-                                                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term[0]) % len(list_of_bpm)],
+                                                             list_of_bpm[(probed_bpm + term[1]) % len(list_of_bpm)],
                                                              model_twiss, error_twiss, 'V') - err_bety) / err_bety
-                    elif term1 in right_comb:
+                    elif term in right_comb:
                         s1_hor = (BetaFromPhase_BPM_left(probed_bpm_name,
-                                                              list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term[0]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term[1]) % len(list_of_bpm)],
                                                               model_twiss, error_twiss, 'H') - err_betx) / err_betx
                         s1_ver = (BetaFromPhase_BPM_left(probed_bpm_name,
-                                                              list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term[0]) % len(list_of_bpm)],
+                                                              list_of_bpm[(probed_bpm + term[1]) % len(list_of_bpm)],
                                                               model_twiss, error_twiss, 'V') - err_bety) / err_bety
-
-                    if term2 in left_comb:
-                        s2_hor = (BetaFromPhase_BPM_right(probed_bpm_name,
-                                                               list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                               model_twiss, error_twiss, 'H') - err_betx) / err_betx
-                        s2_ver = (BetaFromPhase_BPM_right(probed_bpm_name,
-                                                               list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
-                                                               list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                               model_twiss, error_twiss, 'V') - err_bety) / err_bety
-                    elif term2 in mid_comb:
-                        s2_hor = (BetaFromPhase_BPM_mid(probed_bpm_name,
-                                                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                             model_twiss, error_twiss, 'H') - err_betx) / err_betx
-                        s2_ver = (BetaFromPhase_BPM_mid(probed_bpm_name,
-                                                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
-                                                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                             model_twiss, error_twiss, 'V') - err_bety) / err_bety
-                    elif term2 in right_comb:
-                        s2_hor = (BetaFromPhase_BPM_left(probed_bpm_name,
-                                                              list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                              model_twiss, error_twiss, 'H') - err_betx) / err_betx
-                        s2_ver = (BetaFromPhase_BPM_left(probed_bpm_name,
-                                                              list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)],
-                                                              list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)],
-                                                              model_twiss, error_twiss, 'V') - err_bety) / err_bety
-                    beta_hor[probed_bpm_name +
-                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)]] = s1_hor * s2_hor
-                    beta_ver[probed_bpm_name +
-                             list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)] +
-                             list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)]] = s1_ver * s2_ver
-
-        num_valid_data = num_valid_data + 1
-    except:
-        pass
-    return beta_hor, beta_ver, num_valid_data
+                    terms[term] = (s1_hor, s1_ver)
+                for term1 in all_comb:
+                    t1_index = all_comb.index(term1)
+                    for term2 in all_comb[t1_index:]:
+                        s1_hor, s1_ver = terms[term1]
+                        s2_hor, s2_ver = terms[term2]
+                        beta_hor[probed_bpm_name +
+                                 list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)]] = s1_hor * s2_hor
+                        beta_ver[probed_bpm_name +
+                                 list_of_bpm[(probed_bpm + term1[0]) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + term1[1]) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + term2[0]) % len(list_of_bpm)] +
+                                 list_of_bpm[(probed_bpm + term2[1]) % len(list_of_bpm)]] = s1_ver * s2_ver
+            num_valid_data = num_valid_data + 1
+        except:
+            pass
+        if len(sim_nums) == 1:
+            return beta_hor, beta_ver, num_valid_data
+        else:
+            _merge_betas_dict(final_list, (beta_hor, beta_ver, num_valid_data), False)
+    return final_list
 
 
-def _merge_betas_dict(final_list, result):
+def _merge_betas_dict(final_list, result, print_num=True):
     beta_hor, beta_ver, num_valid_data = result
     for key, value in beta_hor.iteritems():
         if not key in final_list[0]:
@@ -329,8 +319,9 @@ def _merge_betas_dict(final_list, result):
         else:
             final_list[1][key] += value
     final_list[2] += num_valid_data
-    sys.stdout.write("Done for: " + str(final_list[2]) + " files.\r")
-    sys.stdout.flush()
+    if print_num:
+        sys.stdout.write("Done for: " + str(final_list[2]) + " files.\r")
+        sys.stdout.flush()
 
 
 def _TEST_compare_with_template(dict_list):
