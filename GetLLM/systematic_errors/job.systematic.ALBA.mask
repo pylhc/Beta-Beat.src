@@ -21,18 +21,11 @@ call, file="%(ALBA_MODEL)s/ALBABeamLine.madx";
 
 use, period=MACHINE;
 
-call, file="%(ALBA_MODEL)s/put_quad_bend_k.madx";
+eoption, seed= %(SEED1)s;
+call, file="%(ALBA_MODEL)s/put_quad_bend_k_random.madx"; ! inluding b2 uncertainty for sbend
 
 call, file="%(ALBA_MODEL)s/put_sext_displacements.madx";
 
-!
-! Put errors
-!
-
-select, flag=error, clear;
-select,FLAG=ERROR,CLASS=sbend;
-eoption, seed= %(SEED1)s;
-EFCOMP, ORDER:=1,RADIUS:=1, DKNR:= {0,0.002*GAUSS()};
 
 select, flag=error, clear;
 select,FLAG=ERROR,CLASS=quadrupole;
