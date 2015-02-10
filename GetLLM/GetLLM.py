@@ -235,7 +235,7 @@ def main(
         algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y)
 
         #-------- Phase, Beta and coupling for non-zero DPP
-        _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase)
+        _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
 
         if higher_order:
             if TBTana == "SUSSIX":
@@ -714,7 +714,7 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
 # END _calculate_orbit ------------------------------------------------------------------------------
 
 
-def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase):
+def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms):
     '''
     Fills the following TfsFiles:
      - getphasex_dpp_' + str(k + 1) + '.out
@@ -774,7 +774,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
 
             betax = {}
             alfax = {}
-            [betax, _, alfax, bpms] = algorithms.beta.beta_from_phase(mad_twiss, list_with_single_twiss, phasex, plane, use_only_three_bpms_for_beta_from_phase)
+            [betax, _, alfax, bpms, _] = algorithms.beta.beta_from_phase(mad_twiss, list_with_single_twiss, phasex, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
             betax['DPP'] = dpop
             #betaxa = {}
             #[betaxa, rmsbbx, bpms, invJx] = algorithms.beta.beta_from_amplitude(mad_twiss, list_with_single_twiss, plane)
@@ -836,7 +836,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
 
             betay = {}
             alfay = {}
-            [betay, _, alfay, bpms] = algorithms.beta.beta_from_phase(dpp_twiss, list_with_single_twiss, phasey, plane, use_only_three_bpms_for_beta_from_phase)
+            [betay, _, alfay, bpms, _] = algorithms.beta.beta_from_phase(dpp_twiss, list_with_single_twiss, phasey, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
             #betay['DPP'] = dpop
             #betaya = {}
             #[betaya, rmsbby, bpms, invJy] = algorithms.beta.beta_from_amplitude(dpp_twiss, list_with_single_twiss, plane)
