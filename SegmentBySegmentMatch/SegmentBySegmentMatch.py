@@ -239,7 +239,7 @@ def _write_constraints_file(sbs_data, constr_file, ip, beam, plane, tune, exclud
             error = sbs_data.ERRPROPPHASEX[index] if plane == "x" else sbs_data.ERRPROPPHASEY[index]
             s = sbs_data.S[index]
 
-            if abs(phase) > 0.25:
+            if abs(phase) > 0.25 or error == 0.:
                 weight = 1e-6
             elif not use_errors:
                 weight = 1
@@ -483,8 +483,11 @@ def _build_changeparameters_file(match_temporary_path):
     for original_line in original_changeparameters_file.readlines():
         parts = original_line.split("=")
         variable_name = parts[0].replace("d", "", 1).strip()
-        variable_value = float(parts[1].replace(";", "").strip())
-        print >> changeparameters_match_file, variable_name, " = ", variable_value, " + ", variable_name, ";"
+        variable_value = -float(parts[1].replace(";", "").strip())
+        if variable_value < 0.0:
+            print >> changeparameters_match_file, variable_name, " = ", variable_name, " - ", abs(variable_value), ";"
+        else:
+            print >> changeparameters_match_file, variable_name, " = ", variable_name, " + ", abs(variable_value), ";"
     print >> changeparameters_match_file, "return;"
 
 
