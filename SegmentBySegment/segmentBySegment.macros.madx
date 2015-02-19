@@ -109,6 +109,7 @@ twiss_fr_bk(accel, fr_filename, bck_filename, bininame, bendname): macro = {
     select, flag=twiss, class=quadrupole;
     select, flag=twiss, class=monitor;
     select, flag=twiss, class=rcollimator;
+    select, flag=twiss, class=collimator;
     select, flag=twiss, class=marker;
     select, flag=twiss, class=rbend;
     select, flag=twiss, class=tkicker;
@@ -121,6 +122,7 @@ twiss_fr_bk(accel, fr_filename, bck_filename, bininame, bendname): macro = {
     select, flag=twiss, class=quadrupole;
     select, flag=twiss, class=monitor;
     select, flag=twiss, class=rcollimator;
+    select, flag=twiss, class=collimator;
     select, flag=twiss, class=marker;
     select, flag=twiss, class=tkicker;
     select, flag=twiss, class=rbend;
