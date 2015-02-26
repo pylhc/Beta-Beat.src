@@ -161,10 +161,11 @@ def _run_single_alba_madx_simulation(seed_path_tuple):
     dict_for_replacing = dict(
             ALBA_MODEL=os.path.join(CURRENT_PATH, "..", "..", "MODEL", "ALBA"),
             SEED=str(seed),
-            SEED1=str(1 + seed * 4),
-            SEED2=str(2 + seed * 4),
-            SEED3=str(3 + seed * 4),
-            SEED4=str(4 + seed * 4),
+            SEED1=str(1 + seed * 5),
+            SEED2=str(2 + seed * 5),
+            SEED3=str(3 + seed * 5),
+            SEED4=str(4 + seed * 5),
+            SEED5=str(5 + seed * 5),
             RUN_DATA_PATH=run_data_path)
     raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.ALBA.mask'))
     madx_job = raw_madx_mask % dict_for_replacing
