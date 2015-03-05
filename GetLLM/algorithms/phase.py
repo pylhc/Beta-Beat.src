@@ -410,7 +410,7 @@ def t_value_correction(num):
     if num > 1 and num <=20:
         t_factor = correction_dict[num]
     else:
-        t_factor = 0
+        t_factor = 1
     return t_factor
 
 def calc_phase_mean(phase0, norm):

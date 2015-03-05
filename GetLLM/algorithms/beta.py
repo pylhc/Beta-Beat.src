@@ -449,11 +449,11 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
         bn4 = str.upper(commonbpms[(i + 3) % len(commonbpms)][1])
         bn5 = str.upper(commonbpms[(i + 4) % len(commonbpms)][1])
         candidates = []
-        tbet, tbetstd, talf, talfstd = BetaFromPhase_BPM_right(bn1, bn2, bn3, MADTwiss, phase, plane)
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_right(bn1, bn2, bn3, MADTwiss, phase, plane, 0, 0, 0)
         candidates.append([tbetstd, tbet, talfstd, talf])
-        tbet, tbetstd, talf, talfstd = BetaFromPhase_BPM_mid(bn2, bn3, bn4, MADTwiss, phase, plane)
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_mid(bn2, bn3, bn4, MADTwiss, phase, plane, 0, 0, 0)
         candidates.append([tbetstd, tbet, talfstd, talf])
-        tbet, tbetstd, talf, talfstd = BetaFromPhase_BPM_left(bn3, bn4, bn5, MADTwiss, phase, plane)
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_left(bn3, bn4, bn5, MADTwiss, phase, plane, 0, 0, 0)
         candidates.append([tbetstd, tbet, talfstd, talf])
         return [candidates[0], candidates[1], candidates[2]], bn3, []
 
@@ -568,7 +568,8 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
     if os.path.isfile(systematics_error_path):
         systematic_errors = np.load(systematics_error_path)
         systematic_errors_found = True
-    elif not use_only_three_bpms_for_beta_from_phase:
+    else:
+        use_only_three_bpms_for_beta_from_phase = True
         errors_method = "Estimated by std (3 BPM method), no bet_deviations.npy file found"
         print >> sys.stderr, "WARNING: Cannot find bet_deviations.npy file!"
 
@@ -580,7 +581,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
         alfi = sum([alfa_beta[i][3] for i in range(len(alfa_beta))]) / len(alfa_beta)
         alfstd = math.sqrt(sum([alfa_beta[i][2]**2 for i in range(len(alfa_beta))])) / math.sqrt(len(alfa_beta))
         try:
-            alferr = math.sqrt(sum([alfa_beta[i][3]**2 for i in range(len(alfa_beta))])/len(alfa_beta)-alfi**2.)
+            alferr = math.sqrt(sum([alfa_beta[i][3]**2 for i in range(len(alfa_beta))])/len(alfa_beta) - alfi**2.)
         except ValueError:
             alferr = 0
 
@@ -604,7 +605,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
                 sindex = 1
             for comb1 in range(len(alfa_beta)):
                 for comb2 in range(len(alfa_beta)):
-                    possible_dict_key = [''.join([probed_bpm_name, alfa_beta[comb1][i], alfa_beta[comb1][j], alfa_beta[comb2][k], alfa_beta[comb2][l]]) for i in [5, 6] for j in [5, 6] if i != j for k in [5, 6] for l in [5, 6] if k!= l]
+                    possible_dict_key = [''.join([probed_bpm_name, alfa_beta[comb1][i], alfa_beta[comb1][j], alfa_beta[comb2][k], alfa_beta[comb2][l]]) for i in [5, 6] for j in [5, 6] if i != j for k in [5, 6] for l in [5, 6] if k != l]
                     for keyname in possible_dict_key:
                         if keyname in systematic_errors[sindex]:
                             V_syst[comb1][comb2] = systematic_errors[sindex][keyname] * betmdl1**2
@@ -612,7 +613,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
 
             for k in range(len(alfa_beta)):
                 for l in range(len(alfa_beta)):
-                    V[k][l] = V_stat.item(k, l) + V_syst[k][l] 
+                    V[k][l] = V_stat.item(k, l) + V_syst[k][l]
             V_inv = np.linalg.pinv(V)
 
             w = np.zeros(len(alfa_beta))
@@ -643,7 +644,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
             beti = sum([alfa_beta[i][1] for i in range(len(alfa_beta))]) / len(alfa_beta)
             betstd = math.sqrt(sum([alfa_beta[i][0]**2 for i in range(len(alfa_beta))])) / math.sqrt(len(alfa_beta))
             try:
-                beterr = math.sqrt(sum([alfa_beta[i][1]**2 for i in range(len(alfa_beta))])/len(alfa_beta)-beti**2.)
+                beterr = math.sqrt(sum([alfa_beta[i][1]**2 for i in range(len(alfa_beta))]) / len(alfa_beta) - beti**2.)
             except ValueError:
                 beterr = 0
 
