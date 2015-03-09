@@ -420,10 +420,11 @@ void getPhaseFromAverageTune(double averageTuneX, double averageTuneY, int maxOf
             exit(EXIT_FAILURE);
         }
 
-        std::complex<double> computedPhaseX, computedPhaseY;
-        for (int j = MAXTURNS - 1; j >= 0; j--){
+        std::complex<double> computedPhaseX (BPMs[horizontalBpmIndex].tbtData[inpData.turns - 1], 0.0);
+        std::complex<double> computedPhaseY (BPMs[verticalBpmIndex].tbtData[inpData.turns - 1], 0.0);
+        for (int j = inpData.turns - 2; j >= 0; j--){
             computedPhaseX = computedPhaseX * complexAvgTuneX + std::complex<double> (BPMs[horizontalBpmIndex].tbtData[j], 0.0);
-            computedPhaseY = computedPhaseY * complexAvgTuneY + std::complex<double> (BPMs[verticalBpmIndex].tbtData[j], 0.0);;
+            computedPhaseY = computedPhaseY * complexAvgTuneY + std::complex<double> (BPMs[verticalBpmIndex].tbtData[j], 0.0);
         }
         phaseFromAvgX[i] = std::arg(computedPhaseX) / (2.0 * PI);
         phaseFromAvgY[i] = std::arg(computedPhaseY) / (2.0 * PI);
