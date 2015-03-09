@@ -77,8 +77,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_float_descriptor("RMSbetabeat", rmsbbx)
-        tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
-        tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+        if error_method == "Estimated by std (3 BPM method), no bet_deviations.npy file found":
+            tfs_file.add_float_descriptor("NumberOfBPMs", 3)
+            tfs_file.add_float_descriptor("RangeOfBPMs", 5)
+        else:
+            tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+            tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+
         tfs_file.add_string_descriptor("ErrorsFrom", error_method)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -97,8 +102,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
                 tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf)
-                tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
-                tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+                if error_method == "Estimated by std (3 BPM method), no bet_deviations.npy file found":
+                    tfs_file.add_float_descriptor("NumberOfBPMs", 3)
+                    tfs_file.add_float_descriptor("RangeOfBPMs", 5)
+                else:
+                    tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+                    tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
                 tfs_file.add_string_descriptor("ErrorsFrom", error_method)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -132,8 +141,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_float_descriptor("RMSbetabeat", rmsbby)
-        tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
-        tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+        if error_method == "Estimated by std (3 BPM method), no bet_deviations.npy file found":
+            tfs_file.add_float_descriptor("NumberOfBPMs", 3)
+            tfs_file.add_float_descriptor("RangeOfBPMs", 5)
+        else:
+            tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+            tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
         tfs_file.add_string_descriptor("ErrorsFrom", error_method)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -152,8 +165,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
                 tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf)
-                tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
-                tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+                if error_method == "Estimated by std (3 BPM method), no bet_deviations.npy file found":
+                    tfs_file.add_float_descriptor("NumberOfBPMs", 3)
+                    tfs_file.add_float_descriptor("RangeOfBPMs", 5)
+                else:
+                    tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+                    tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
                 tfs_file.add_string_descriptor("ErrorsFrom", error_method)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "ERRBETY", "STDBETY", "ALFY", "ERRALFY", "STDALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
