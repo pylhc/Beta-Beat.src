@@ -20,6 +20,14 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 NUM_SIMULATIONS = 1000  # Default number of simulations, used if no input argument is found
 NUM_PROCESSES = multiprocessing.cpu_count()  # Default number of processes to use in simulations
 
+LHC_RUNI_BASE_SEQ = \
+              'call, file = "db5/as-built/V6.5.seq";\n' \
+            + 'call, file = "db5/install_additional_elements.madx";'
+
+BB_PATH = os.path.abspath(os.path.join(CURRENT_PATH, "..", "..", ))
+LHC_RUNII_BASE_SEQ = \
+              'call, file = "' + os.path.join(BB_PATH, "MODEL", "LHCB_II", "model", "base_sequence.madx") + '";'
+
 
 def _parse_args():
     parser = OptionParser()
@@ -54,7 +62,7 @@ def _parse_args():
 
     if options.output_dir == "":
         options.output_dir = os.path.dirname(options.model_twiss)
-    if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "ALBA"]:
+    if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "LHCB1RUNII", "LHCB2RUNII", "ALBA"]:
         print >> sys.stderr, "Accelerator sequence must be defined, it must be LHCB1, LHCB2 or ALBA."
         sys.exit(-1)
     if options.accelerator.startswith("LHCB"):
@@ -69,7 +77,7 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     model_dir_path = os.path.dirname(model_twiss)
     run_data_path = os.path.join(output_dir, "RUN_DATA")
     if errors_path is None and accelerator.upper().startswith("LHCB"):
-        beam = accelerator.upper().replace("LHC", "")
+        beam = accelerator.upper().replace("LHC", "").replace("RUNII", "")
         errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
     elif accelerator.upper() == "ALBA":
         if not errors_path is None:
@@ -101,7 +109,7 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
 
 def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, accelerator, energy, tunex, tuney, pool):
     times = []
-    if accelerator.upper() in ["LHCB1", "LHCB2"]:
+    if accelerator.upper() in ["LHCB1", "LHCB2", "LHCB1RUNII", "LHCB2RUNII"]:
         simulation_function = _run_single_lhc_madx_simulation
     elif accelerator.upper() == "ALBA":
         simulation_function = _run_single_alba_madx_simulation
@@ -124,12 +132,14 @@ def _run_single_lhc_madx_simulation(seed_path_tuple):
     tunex = seed_path_tuple[6]
     tuney = seed_path_tuple[7]
     dict_for_replacing = dict(
+            BB_PATH=BB_PATH,
+            BASE_SEQ=LHC_RUNII_BASE_SEQ if accelerator.upper().endswith("RUNII") else LHC_RUNI_BASE_SEQ,
             ERR_NUM=str((seed % 60) + 1).zfill(4),
             SEED=str(seed),
             RUN_DATA_PATH=run_data_path,
             ERRORS_PATH=errors_path,
-            ACCEL=accelerator,
-            BEAM=accelerator.upper().replace("LHC", ""),
+            ACCEL=accelerator.upper().replace("RUNII", ""),
+            BEAM=accelerator.upper().replace("LHC", "").replace("RUNII", ""),
 
             PATH=model_dir_path,
             QMX=tunex,

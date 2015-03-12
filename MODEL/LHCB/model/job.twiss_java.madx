@@ -1,14 +1,15 @@
 title, "Model creator for java" ;
 
+System,"test -e runII || ln -ns %BB_PATH/MODEL/LHCB_II/model/StrengthFiles/Nominal runII";
 System,"test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
 System,"test -e ats || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
 
- option, -echo, -info,  warn;
-! call,   file = "db5/V6.5.seq";              ! Ideal
- call,   file = "db5/as-built/V6.5.seq";       
- call,   file = "%PATH/modifiers.madx";	
- call,   file = "db5/install_additional_elements.madx";
+option, -echo, -info,  warn;
+
+%BASE_SEQ
+
+call,   file = "%PATH/modifiers.madx";
 
 seqedit, sequence=LHCB1;
 flatten;               
