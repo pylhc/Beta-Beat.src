@@ -1,26 +1,23 @@
 
-!!! As paths cannot be passed as parameters to the macros, we have to link the output
-!!! path to a standard name "path"
-system, "ln  -fns %(PATHB1)s pathb1";
-system, "ln  -fns %(PATHB2)s pathb2";
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Segment by segment phase matching script !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!!! The names of the files cannot be passed as parameters, because MAD isn't case 
-!!! sensitive, so this link trick is necessary...
-system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s.dat twiss_fr_b1";
-system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s_cor.dat twiss_fr_cor_b1";
-system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s_back.dat twiss_bck_b1";
-system, "ln  -fns %(PATHB1)s/twiss_%(LABEL)s_cor_back.dat twiss_bck_cor_b1";
-
-system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s.dat twiss_fr_b2";
-system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s_cor.dat twiss_fr_cor_b2";
-system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s_back.dat twiss_bck_b2";
-system, "ln  -fns %(PATHB2)s/twiss_%(LABEL)s_cor_back.dat twiss_bck_cor_b2";
+system, "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+system, "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+system, "test -e runII || ln -ns %(BBPATH)s/MODEL/LHCB_II/model/StrengthFiles/Nominal runII";
 
 option, -echo;
 
 call, file="%(SBSPATH)s/segmentBySegment.macros.madx";
 
-exec, load_seq(pathb1);
+
+lhc_run = %(LHC_RUN)s;
+if(lhc_run == 1){
+    exec, load_seq_lhc("%(PATHB1)s/modifiers.madx");
+}elseif(lhc_run == 2){
+    exec, load_seq_lhc_ii("%(PATHB1)s/modifiers.madx", "%(BBPATH)s/MODEL/LHCB_II/model/base_sequence.madx");
+}
 
 option, echo;
 
@@ -31,13 +28,13 @@ option, echo;
 call, file="%(PATHB1)s/measurement_%(LABEL)s.madx";
 
 !!! Segment by segment main
-exec, sbs_main(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s, pathb1, b0LHCB1);
+exec, sbs_main(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s, "%(PATHB1)s/StartPoint.twiss", biniLHCB1, bendLHCB1);
 
 !!! Extract front and back propagation sequences
 exec, extract_seq(LHCB1, %(STARTFROMB1)s, %(ENDATB1)s);
 
 !!! Propagation front and back
-exec, twiss_fr_bk(LHCB1, twiss_fr_b1, twiss_bck_b1, b0LHCB1);
+exec, twiss_fr_bk(LHCB1, "%(PATHB1)s/twiss_%(LABEL)s.dat", "%(PATHB1)s/twiss_%(LABEL)s_back.dat", biniLHCB1, bendLHCB1);
 
 
 !!!!!! Beam 2 Segment by segment !!!!!
@@ -46,26 +43,26 @@ exec, twiss_fr_bk(LHCB1, twiss_fr_b1, twiss_bck_b1, b0LHCB1);
 call, file="%(PATHB2)s/measurement_%(LABEL)s.madx";
 
 !!! Segment by segment main
-exec, sbs_main(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s, pathb2, b0LHCB2);
+exec, sbs_main(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s, "%(PATHB2)s/StartPoint.twiss", biniLHCB2, bendLHCB2);
 
 !!! Extract front and back propagation sequences
 exec, extract_seq(LHCB2, %(STARTFROMB2)s, %(ENDATB2)s);
 
 !!! Propagation front and back
-exec, twiss_fr_bk(LHCB2, twiss_fr_b2, twiss_bck_b2, b0LHCB2);
+exec, twiss_fr_bk(LHCB2, "%(PATHB2)s/twiss_%(LABEL)s.dat", "%(PATHB2)s/twiss_%(LABEL)s_back.dat", biniLHCB2, bendLHCB2);
 
 
 !!!!!! Matching !!!!!!
 
 beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
 use, period=front_LHCB1;
-twiss, beta0=b0LHCB1, chrom;
+twiss, beta0=biniLHCB1, chrom;
 
 call, file="%(MATCH)s/phases0b1.seqx";
 
 beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
 use, period=front_LHCB2;
-twiss, beta0=b0LHCB2, chrom;
+twiss, beta0=biniLHCB2, chrom;
 
 call, file="%(MATCH)s/phases0b2.seqx";
 
@@ -87,7 +84,7 @@ match, use_macro;
     {
       beam, particle = proton, sequence=front_LHCB1, energy = 450.0, bv=1;
       use, period=front_LHCB1;
-      twiss, beta0=b0LHCB1, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
+      twiss, beta0=biniLHCB1, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
     };
  
    call, file="%(MATCH)s/constraintsb1.seqx";
@@ -96,7 +93,7 @@ match, use_macro;
       {
        beam, particle = proton, sequence=front_LHCB2, energy = 450.0, bv=-1;
        use, period=front_LHCB2;
-       twiss, beta0=b0LHCB2, chrom, file="%(PATHB2)s/twiss_%(LABEL)s_cor.dat";
+       twiss, beta0=biniLHCB2, chrom, file="%(PATHB2)s/twiss_%(LABEL)s_cor.dat";
       
        print, text="======================================";
       };
@@ -109,19 +106,7 @@ endmatch;
 call, file="%(MATCH)s/genchangpars.seqx";
 save, file="%(MATCH)s/changeparameters.madx";
 
-exec, twiss_fr_bk(LHCB1, twiss_fr_cor_b1, twiss_bck_cor_b1, b0LHCB1);
-exec, twiss_fr_bk(LHCB2, twiss_fr_cor_b2, twiss_bck_cor_b2, b0LHCB2);
-
-!!! Clean the links
-system, "unlink pathb1";
-system, "unlink pathb2";
-system, "unlink twiss_fr_b1";
-system, "unlink twiss_fr_cor_b1";
-system, "unlink twiss_bck_b1";
-system, "unlink twiss_bck_cor_b1";
-system, "unlink twiss_fr_b2";
-system, "unlink twiss_fr_cor_b2";
-system, "unlink twiss_bck_b2";
-system, "unlink twiss_bck_cor_b2";
+exec, twiss_fr_bk(LHCB1, "%(PATHB1)s/twiss_%(LABEL)s_cor.dat", "%(PATHB1)s/twiss_%(LABEL)s_cor_back.dat", biniLHCB1);
+exec, twiss_fr_bk(LHCB2, "%(PATHB2)s/twiss_%(LABEL)s_cor.dat", "%(PATHB2)s/twiss_%(LABEL)s_cor_back.dat", biniLHCB2);
 
 stop;

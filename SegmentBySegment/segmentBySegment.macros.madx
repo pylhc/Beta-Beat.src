@@ -1,16 +1,8 @@
-load_seq(path_link): macro = {
-    title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
 
-    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
-    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
-    system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
-    system,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats"; ! To allow to use ATS optics
-    
-    option, -echo, -info,  warn;
+load_seq_lhc(modifiers_file): macro = {
 
-    call, file = "db/as-built/V6.5.seq";
-    call, file="path_link/modifiers.madx";
+    call, file = "/afs/cern.ch/eng/lhc/optics/V6.503/as-built/V6.5.seq";
+    call, file = modifiers_file;
     call, file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
     
     !call, file= "/nfs/cs-ccr-nfs4/lhc_data/OP_DATA/Betabeat/Extractions/str_inj.str";
@@ -45,15 +37,34 @@ load_seq(path_link): macro = {
     !endedit;
 }
 
+load_seq_lhc_ii(modifiers_file, base_seq_file): macro = {
+    call, file = base_seq_file;
+    call, file = modifiers_file;
 
-sbs_main(accel, startfrom, endat, path_link, bininame, bendname): macro = {
+    beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+    beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+
+    seqedit, sequence=LHCB1;
+    flatten;
+    install, element=BGI,class=MARKER,at=real;
+    cycle, start=MSIA.EXIT.B1;
+    endedit;
+
+    seqedit, sequence=LHCB2;
+    flatten;
+    install, element=BGI,class=MARKER,at=real;
+    cycle, start="MKI.A5R8.B2";
+    endedit;
+}
+
+sbs_main(accel, startfrom, endat, startpoint_file, bininame, bendname): macro = {
     !!! Start segment by segment
 
     use, period=accel;
     select, flag=twiss, clear;
     select, flag=twiss, range=endat;
     select, flag=twiss, range=startfrom, column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, wx, phix, wy, phiy;
-    twiss, file="path_link/StartPoint.twiss";
+    twiss, file=startpoint_file;
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! normal propagation
 
@@ -115,7 +126,7 @@ twiss_fr_bk(accel, fr_filename, bck_filename, bininame, bendname): macro = {
     select, flag=twiss, class=tkicker;
     select, flag=twiss,pattern="XRP";
     select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
-    twiss, beta0=bininame, chrom, file="fr_filename";
+    twiss, beta0=bininame, chrom, file=fr_filename;
 
     use, period=back_accel;
     select, flag=twiss, clear;
@@ -128,6 +139,6 @@ twiss_fr_bk(accel, fr_filename, bck_filename, bininame, bendname): macro = {
     select, flag=twiss, class=rbend;
     select, flag=twiss,pattern="XRP";
     select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
-    twiss, beta0=bendname, chrom, file="bck_filename";
+    twiss, beta0=bendname, chrom, file=bck_filename;
 };
 

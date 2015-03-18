@@ -159,10 +159,11 @@ def main(options):
     elements_data = options.segf.split(',')
     error_cut = float(options.cuts)
     selected_accelerator = options.accel
+    selected_accelerator_no_suffix = options.accel.replace("_II", "II")
 
     twiss_file = options.twiss
     if twiss_file == "./":
-        twiss_file = os.path.join(options.bb, "MODEL", options.accel, "nominal.opt", "twiss_elements.dat")
+        twiss_file = os.path.join(options.bb, "MODEL", selected_accelerator_no_suffix, "nominal.opt", "twiss_elements.dat")
 
     print "Input model twiss file", twiss_file
     input_model = _try_to_load_twiss(twiss_file)
@@ -216,7 +217,7 @@ def main(options):
                     options.path + "/",
                     twiss_directory,
                     input_data.couple_method,
-                    options.accel,
+                    selected_accelerator,
                     options.bb,
                     options.mad)
 
@@ -237,7 +238,7 @@ def main(options):
                         is_element,
                         element_has_coupling,
                         element_has_chrom,
-                        selected_accelerator,
+                        selected_accelerator_no_suffix,
                         summaries)
 
         # TODO: This has to be fixed
@@ -662,6 +663,11 @@ def _run4mad(save_path,
              madx_exe_path):
 
     copy_path = bb_path
+
+    is_lhc_run_ii = False
+    if accelerator.endswith("_II"):
+        is_lhc_run_ii = True
+    accelerator = accelerator.replace("_II", "")
     _copy_modifiers_and_corrections_locally(save_path, twiss_directory, element_name, accelerator)
 
     if accelerator == "LHCB2":
@@ -695,7 +701,9 @@ def _run4mad(save_path,
     mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
 
     dict_for_replacing = dict(
+            BBPATH=bb_path,
             SBSPATH=os.path.join(bb_path, "SegmentBySegment"),
+            LHC_RUN=2 if is_lhc_run_ii else 1,
             STARTFROM=start_bpm_name.replace("-", "_"),
             ENDAT=end_bpm_name.replace("-", "_"),
             LABEL=element_name,
@@ -828,10 +836,12 @@ def _get_corrections_file_comments_for_ip(element_name, accelerator):
     else:
         return ""
     comments_string = ""
-    for variable in all_list["getListsByIR"][0][ip]:
-        comments_string += "! " + variable + "\n"
-    for variable in all_list["getListsByIR"][1][ip]:
-        comments_string += "! " + variable + "\n"
+    if ip in all_list["getListsByIR"][0]:
+        for variable in all_list["getListsByIR"][0][ip]:
+            comments_string += "! " + variable + "\n"
+    if ip in all_list["getListsByIR"][1]:
+        for variable in all_list["getListsByIR"][1][ip]:
+            comments_string += "! " + variable + "\n"
     return comments_string
 
 

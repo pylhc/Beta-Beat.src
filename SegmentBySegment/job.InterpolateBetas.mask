@@ -1,20 +1,22 @@
 
-!!! As paths cannot be passed as parameters to the macros, we have to link the output
-!!! path to a standard name "path"
-system, "ln  -fns %(PATH)s path";
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Segment by segment propagation script !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!!! The names of the files cannot be passed as parameters, because MAD isn't case 
-!!! sensitive, so this link trick is necessary...
-system, "ln  -fns %(PATH)s/twiss_%(LABEL)s.dat twiss_fr";
-system, "ln  -fns %(PATH)s/twiss_%(LABEL)s_cor.dat twiss_fr_cor";
-system, "ln  -fns %(PATH)s/twiss_%(LABEL)s_back.dat twiss_bck";
-system, "ln  -fns %(PATH)s/twiss_%(LABEL)s_cor_back.dat twiss_bck_cor";
+system, "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+system, "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+system, "test -e runII || ln -ns %(BBPATH)s/MODEL/LHCB_II/model/StrengthFiles/Nominal runII";
 
 option, -echo;
 
 call, file="%(SBSPATH)s/segmentBySegment.macros.madx";
 
-exec, load_seq(path);
+lhc_run = %(LHC_RUN)s;
+if(lhc_run == 1){
+    exec, load_seq_lhc("%(PATH)s/modifiers.madx");
+}elseif(lhc_run == 2){
+    exec, load_seq_lhc_ii("%(PATH)s/modifiers.madx", "%(BBPATH)s/MODEL/LHCB_II/model/base_sequence.madx");
+}
 
 option, echo;
 
@@ -22,25 +24,18 @@ option, echo;
 call, file="%(PATH)s/measurement_%(LABEL)s.madx";
 
 !!! Segment by segment main
-exec, sbs_main(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s, path, bini%(ACCEL)s, bend%(ACCEL)s);
+exec, sbs_main(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s, "%(PATH)s/StartPoint.twiss", bini%(ACCEL)s, bend%(ACCEL)s);
 
 !!! Extract front and back propagation sequences
 exec, extract_seq(%(ACCEL)s, %(STARTFROM)s, %(ENDAT)s);
 
 !!! Propagation front and back
-exec, twiss_fr_bk(%(ACCEL)s, twiss_fr, twiss_bck, bini%(ACCEL)s, bend%(ACCEL)s);
+exec, twiss_fr_bk(%(ACCEL)s, "%(PATH)s/twiss_%(LABEL)s.dat", "%(PATH)s/twiss_%(LABEL)s_back.dat", bini%(ACCEL)s, bend%(ACCEL)s);
 
 !!! Loading corrections
 call,  file="%(PATH)s/corrections_%(LABEL)s.madx";
 
 !!! Corrected propagation front and back
-exec, twiss_fr_bk(%(ACCEL)s, twiss_fr_cor, twiss_bck_cor, bini%(ACCEL)s, bend%(ACCEL)s);
+exec, twiss_fr_bk(%(ACCEL)s, "%(PATH)s/twiss_%(LABEL)s_cor.dat", "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", bini%(ACCEL)s, bend%(ACCEL)s);
 
-!!! Clean the links
-system, "unlink path";
-system, "unlink twiss_fr";
-system, "unlink twiss_fr_cor";
-system, "unlink twiss_bck";
-system, "unlink twiss_bck_cor";
 return;
-

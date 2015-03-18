@@ -22,6 +22,9 @@ MAX_WEIGHT = 4
 
 def parse_args():
     parser = optparse.OptionParser()
+    parser.add_option("--run",
+                    help="LHC run 1 or 2",
+                    metavar="RUN", default="1", dest="lhc_run")
     parser.add_option("--ip",
                     help="Which interaction point: 1, 2, 3...",
                     metavar="IP", default="1", dest="ip")
@@ -66,10 +69,10 @@ def main(options, args):
         sbs_data_b1_path = options.b1
         sbs_data_b2_path = options.b2
         temporary_path = options.temp
-        match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, options.use_errors)
+        match(options.lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, options.use_errors)
 
 
-def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors):
+def match(lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors):
 
     print "+++ Starting Segment by Segment Match +++"
 
@@ -102,7 +105,7 @@ def match(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_erro
 
     print "Running MADX..."
     label = "IP" + str(ip)
-    _prepare_script_and_run_madx(label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
+    _prepare_script_and_run_madx(lhc_run, label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
                                  range_beam1_start_name, range_beam1_end_name,
                                  range_beam2_start_name, range_beam2_end_name)
 
@@ -402,14 +405,17 @@ def _get_match_bpm_range(file_path):
     return bpms_with_distances_list[0], bpms_with_distances_list[-1]
 
 
-def _prepare_script_and_run_madx(label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
+def _prepare_script_and_run_madx(lhc_run, label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
                                  b1_range_start, b1_range_end, b2_range_start, b2_range_end):
-    sbs_path = os.path.join(CURRENT_PATH, "..", "SegmentBySegment")
+    bb_path = os.path.abspath(os.path.join(CURRENT_PATH, ".."))
+    sbs_path = os.path.join(bb_path, "SegmentBySegment")
     dict_for_replacing = dict(
+        LHC_RUN=lhc_run,
         PATHB1=os.path.join(beam1_temporary_path, "sbs"),
         PATHB2=os.path.join(beam2_temporary_path, "sbs"),
         MATCH=match_temporary_path,
         LABEL=label,
+        BBPATH=bb_path,
         SBSPATH=sbs_path,
         STARTFROMB1=b1_range_start,
         ENDATB1=b1_range_end,
