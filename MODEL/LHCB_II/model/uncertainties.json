@@ -1,0 +1,122 @@
+{
+    "0.45TeV":{
+        "B2_errors":{
+            "MQ":{
+                "select": "PATTERN=\"^MQ\\.\"",
+                "uncertainty": 18
+            },
+            "MQM":{
+                "select": "PATTERN=\"^MQM\"",
+                "uncertainty": 13
+            },
+            "MQY":{
+                "select": "PATTERN=\"^MQY\"",
+                "uncertainty": 11
+            },
+            "MQX":{
+                "select": "PATTERN=\"^MQX\"",
+                "uncertainty": 4
+            },
+            "MQW":{
+                "select": "PATTERN=\"^MQW\"",
+                "uncertainty": 33
+            },
+            "MQT":{
+                "select": "PATTERN=\"^MQT\"",
+                "uncertainty": 79
+            }
+        },
+        "Alignment_longitudinal":{
+            "quadrupole":{
+                "select": "CLASS=quadrupole",
+                "uncertainty": 0.001
+            }
+        },
+        "Alignment_transverse":{
+            "sextupole":{
+                "select": "CLASS=sextupole",
+                "uncertainty": 0.001
+            }
+        }
+    },
+    "4TeV":{
+        "B2_errors":{
+            "MQ":{
+                "select": "PATTERN=\"^MQ\\.\"",
+                "uncertainty": 18
+            },
+            "MQM":{
+                "select": "PATTERN=\"^MQM\"",
+                "uncertainty": 12
+            },
+            "MQY":{
+                "select": "PATTERN=\"^MQY\"",
+                "uncertainty": 8
+            },
+            "MQX":{
+                "select": "PATTERN=\"^MQX\"",
+                "uncertainty": 4
+            },
+            "MQW":{
+                "select": "PATTERN=\"^MQW\"",
+                "uncertainty": 13
+            },
+            "MQT":{
+                "select": "PATTERN=\"^MQT\"",
+                "uncertainty": 75
+            }
+        },
+        "Alignment_longitudinal":{
+            "quadrupole":{
+                "select": "CLASS=quadrupole",
+                "uncertainty": 0.001
+            }
+        },
+        "Alignment_transverse":{
+            "sextupole":{
+                "select": "CLASS=sextupole",
+                "uncertainty": 0.001
+            }
+        }
+    },
+    "6.5TeV":{
+        "B2_errors":{
+            "MQ":{
+                "select": "PATTERN=\"^MQ\\.\"",
+                "uncertainty": 18
+            },
+            "MQM":{
+                "select": "PATTERN=\"^MQM\"",
+                "uncertainty": 12
+            },
+            "MQY":{
+                "select": "PATTERN=\"^MQY\"",
+                "uncertainty": 8
+            },
+            "MQX":{
+                "select": "PATTERN=\"^MQX\"",
+                "uncertainty": 4
+            },
+            "MQW":{
+                "select": "PATTERN=\"^MQW\"",
+                "uncertainty": 15
+            },
+            "MQT":{
+                "select": "PATTERN=\"^MQT\"",
+                "uncertainty": 75
+            }
+        },
+        "Alignment_longitudinal":{
+            "quadrupole":{
+                "select": "CLASS=quadrupole",
+                "uncertainty": 0.001
+            }
+        },
+        "Alignment_transverse":{
+            "sextupole":{
+                "select": "CLASS=sextupole",
+                "uncertainty": 0.001
+            }
+        }
+    }
+}

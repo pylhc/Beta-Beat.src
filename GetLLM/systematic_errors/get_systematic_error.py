@@ -14,8 +14,27 @@ from Utilities import iotools
 from Python_Classes4MAD import madxrunner, metaclass
 import math
 import sys
+import json
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+LHC_UNCERTAINTIES_FILE = os.path.abspath(os.path.join(CURRENT_PATH,
+                                                      "..", "..", "MODEL", "LHCB_II", "model", "uncertainties.json"))
+
+B2_ERRORS_TEMPLATE = \
+'!!! %(NAME)s\n\
+select, flag=error, clear; select, flag=error, %(SELECT)s;\n\
+B2r = %(UNCERTAINTY)s;\n\
+exec SetEfcomp_Q;\n'
+
+TRANS_ALING_ERROR_TEMPLATE = \
+"!!! %(NAME)s\n\
+select, flag=error, clear; SELECT,FLAG=ERROR, %(SELECT)s; \n\
+EALIGN, DX:=%(UNCERTAINTY)s*TGAUSS(GCUTR), DY:=%(UNCERTAINTY)s*TGAUSS(GCUTR);\n"
+
+LONG_ALING_ERROR_TEMPLATE = \
+"!!! %(NAME)s\n\
+select, flag=error, clear; SELECT,FLAG=ERROR, %(SELECT)s; \n\
+EALIGN, DS:=%(UNCERTAINTY)s*TGAUSS(GCUTR);\n"
 
 NUM_SIMULATIONS = 1000  # Default number of simulations, used if no input argument is found
 NUM_PROCESSES = multiprocessing.cpu_count()  # Default number of processes to use in simulations
@@ -76,9 +95,10 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "Started systematic error script, using " + str(num_processes) + " processes for " + str(num_simulations) + " simulations"
     model_dir_path = os.path.dirname(model_twiss)
     run_data_path = os.path.join(output_dir, "RUN_DATA")
-    if errors_path is None and accelerator.upper().startswith("LHCB"):
-        beam = accelerator.upper().replace("LHC", "").replace("RUNII", "")
-        errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
+    if accelerator.upper().startswith("LHCB"):
+        if errors_path is None:
+            beam = accelerator.upper().replace("LHC", "").replace("RUNII", "")
+            errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
     elif accelerator.upper() == "ALBA":
         if not errors_path is None:
             print >> sys.stdout, "ALBA doesn't need error tables, ignoring input"
@@ -103,23 +123,50 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     print "Done (" + str(end_time - start_time) + " seconds)\n"
 
     print "Cleaning output directory..."
+    _create_summary(model_twiss, num_simulations, num_processes, output_dir, errors_path, accelerator, energy, tunex, tuney)
     iotools.delete_item(run_data_path)
     print "All done."
 
 
 def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, accelerator, energy, tunex, tuney, pool):
     times = []
+    uncertainties = None
     if accelerator.upper() in ["LHCB1", "LHCB2", "LHCB1RUNII", "LHCB2RUNII"]:
+        print "Using uncertainties file: ", LHC_UNCERTAINTIES_FILE
+        uncertainties_json = json.load(open(LHC_UNCERTAINTIES_FILE, "r"))
+        uncertainties = _extract_uncertainties(uncertainties_json, energy)
         simulation_function = _run_single_lhc_madx_simulation
     elif accelerator.upper() == "ALBA":
         simulation_function = _run_single_alba_madx_simulation
     else:
         print >> sys.stderr, "Accelerator", accelerator, "not yet implemented"
         sys.exit(-1)
-    args = [(seed, run_data_path, model_dir_path, errors_path, accelerator, energy, tunex, tuney) for seed in range(1, num_simulations + 1)]
+    args = [(seed, run_data_path, model_dir_path, errors_path, accelerator, energy, tunex, tuney, uncertainties) for seed in range(1, num_simulations + 1)]
     tasks = pool.map_async(simulation_function, args, callback=times.append)
     tasks.wait()
     return times
+
+
+def _extract_uncertainties(uncertainties_json, energy):
+    if not energy in uncertainties_json:
+        print >> sys.stderr, "The selected energy isn't specified in the uncertainties file."
+    uncertainties_json = uncertainties_json[energy]
+    uncertainties = ""
+    for uncertainty_type_name, uncertainty_type in uncertainties_json.iteritems():
+        print "Adding", uncertainty_type_name, "..."
+        uncertainties += "!!! " + uncertainty_type_name + " !!!\n\n"
+        if uncertainty_type_name == "B2_errors":
+            template = B2_ERRORS_TEMPLATE
+        elif uncertainty_type_name == "Alignment_longitudinal":
+            template = LONG_ALING_ERROR_TEMPLATE
+        elif uncertainty_type_name == "Alignment_transverse":
+            template = TRANS_ALING_ERROR_TEMPLATE
+        for name, error in uncertainty_type.iteritems():
+            select = error["select"]
+            uncertainty = error["uncertainty"]
+            uncertainties += template % dict(NAME=name, SELECT=select, UNCERTAINTY=uncertainty) + "\n"
+    print "Done adding uncertainties."
+    return uncertainties
 
 
 def _run_single_lhc_madx_simulation(seed_path_tuple):
@@ -131,10 +178,12 @@ def _run_single_lhc_madx_simulation(seed_path_tuple):
     energy = seed_path_tuple[5]
     tunex = seed_path_tuple[6]
     tuney = seed_path_tuple[7]
+    uncertainties = seed_path_tuple[8]
     dict_for_replacing = dict(
             BB_PATH=BB_PATH,
             BASE_SEQ=LHC_RUNII_BASE_SEQ if accelerator.upper().endswith("RUNII") else LHC_RUNI_BASE_SEQ,
             ERR_NUM=str((seed % 60) + 1).zfill(4),
+            UNCERTAINTIES=uncertainties,
             SEED=str(seed),
             RUN_DATA_PATH=run_data_path,
             ERRORS_PATH=errors_path,
@@ -144,17 +193,7 @@ def _run_single_lhc_madx_simulation(seed_path_tuple):
             PATH=model_dir_path,
             QMX=tunex,
             QMY=tuney,
-            ENERGY=energy,
-
-            SEEDMQ=str(1 + seed * 9),
-            SEEDMQM=str(2 + seed * 9),
-            SEEDMQY=str(3 + seed * 9),
-            SEEDMQX=str(4 + seed * 9),
-            SEEDMQW=str(5 + seed * 9),
-            SEEDMQT=str(6 + seed * 9),
-            SEEDALIGNSEX=str(7 + seed * 9),
-            SEEDALIGNQUAD=str(8 + seed * 9),
-            SEEDALIGNBPM=str(9 + seed * 9),
+            ENERGY=energy
             )
     raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.LHC.mask'))
     madx_job = raw_madx_mask % dict_for_replacing
@@ -572,6 +611,29 @@ def BetaFromPhase_BPM_right(bn3, bn1, bn2, MADTwiss, ERRTwiss, plane):
     bet = numer / denom
 
     return bet
+
+
+def _create_summary(model_twiss, num_simulations, num_processes, output_dir, errors_path, accelerator, energy, tunex, tuney):
+    with open(os.path.join(output_dir, "bet_deviation_summary.txt"), "w") as summary_file:
+        summary_file.write("*** Systematic errors computed at: " + time.strftime("%Y-%m-%d %H:%M:%S") + " ***\n")
+        summary_file.write("\n")
+        summary_file.write("Accelerator: " + accelerator + "\n")
+        if accelerator.lower().startswith("lhc"):
+            summary_file.write("Energy: " + energy + "\n")
+            summary_file.write("Tune X: " + tunex + "\n")
+            summary_file.write("Tune Y: " + tuney + "\n")
+            if errors_path is None:
+                summary_file.write("Error tables from templates.\n")
+            else:
+                summary_file.write("Error tables from: \"" + os.path.abspath(errors_path) + "\"\n")
+            modifiers_file_path = os.path.join(os.path.dirname(model_twiss), "modifiers.madx")
+            if os.path.exists(modifiers_file_path):
+                summary_file.write("Optics: \n")
+                with open(modifiers_file_path, "r") as modifiers_file:
+                    for modifier_line in modifiers_file:
+                        summary_file.write("    " + modifier_line)
+        summary_file.write("\n")
+        summary_file.write("Computed using " + str(num_simulations) + " simulations." + "\n")
 
 
 if __name__ == "__main__":
