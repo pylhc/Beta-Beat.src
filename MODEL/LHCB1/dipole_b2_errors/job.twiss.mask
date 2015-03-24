@@ -38,6 +38,8 @@ endedit;
 
 use, period=LHCB1;
  
+call, file = "%PATH/extracted_mqts.str";
+
 READMYTABLE,file="%ERRORS_PATH/MB_B1_%ENERGY.errors",table=errtab;
 SETERR,TABLE=errtab;
 

@@ -38,6 +38,8 @@ mylhcbeam = 2;
 
 use, period=LHCB2;
 
+call, file = "%PATH/extracted_mqts.str";
+
 READMYTABLE,file="%ERRORS_PATH/MB_B2_%ENERGY.errors",table=errtab;
 SETERR,TABLE=errtab;
 
