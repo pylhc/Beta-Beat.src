@@ -1,0 +1,30 @@
+ link to LHC V6.5 directory in AFS for measured errors
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.5 dm";
+! link to LHC V6.5xx directory in AFS for optics sequence and strengths
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 ds";
+
+
+
+! LHC optics layout as f(lensedesc,beamno)
+option,    -info, -warn, verify, -echo;
+call,      file="ds/V6.5.seq";
+
+
+! Optics strength as f(cycle,beam)
+call,      file="ds/V6.5.inj.str";
+beam,      sequence=lhcb1,particle=proton,energy=450,kbunch=1,npart=1.15E11;
+use,       sequence=lhcb1;
+
+
+!  set switches to 1 if crossing scheme is required
+ on_x1 := 0; on_sep1 := 0;
+ on_x2 := 0; on_sep2 := 0; on_alice:= 0;
+ on_x5 := 0; on_sep5 := 0;
+ on_x8 := 0; on_sep8 := 0; on_lhcb := 0;
+
+
+call, file="used_c-imag_b1.dat";
+
+
+system, "sed 's/%LABEL/ttt/g' computeDQmin.mask > t.madx ";
+call, file="t.madx";

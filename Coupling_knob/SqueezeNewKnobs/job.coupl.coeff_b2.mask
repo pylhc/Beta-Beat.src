@@ -1,0 +1,364 @@
+title,      "LHC V6.503  -  LHC thick lense, beam 2, inj";
+
+! Coupling knobs (28-10-2009)
+
+
+! link to LHC V6.5 directory in AFS for measured errors
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.5 dm";
+! link to LHC V6.5xx directory in AFS for optics sequence and strengths
+system,    "ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 ds";
+! system,"mkdir temp";
+
+
+! LHC optics layout as f(lensedesc,beamno)
+option,    -info, -warn, verify, -echo;
+call,      file="ds/V6.5.seq";
+
+
+!!seqedit, sequence=lhcb2; ! The first monitor in data acquisition is BPMYB.5L2.B1
+!!flatten;                 ! as far as I could let Verena understand my question exactly.... 5/Sep/2008 MA
+!!cycle, start=MSIA.EXIT.B2;
+!!endedit;
+
+
+! Optics strength as f(cycle,beam)
+call,      file="ds/V6.5.inj.str";
+call, file="modifiers.madx";
+
+beam,      sequence=lhcb2,particle=proton,energy=450,kbunch=1,npart=1.15E11, bv=-1;
+use,       sequence=lhcb2;
+
+!  set switches to 1 if crossing scheme is required
+ on_x1 := 0; on_sep1 := 0;
+ on_x2 := 0; on_sep2 := 0; on_alice:= 0;
+ on_x5 := 0; on_sep5 := 0;
+ on_x8 := 0; on_sep8 := 0; on_lhcb := 0;
+
+select, flag=twiss, clear;
+!select,    flag=twiss, pattern="^MQ";
+!select,    flag=twiss, pattern="^MQM.*B.$";
+!select,    flag=twiss, pattern="^MQT.*B.$";
+!select,    flag=twiss, pattern="^MQY.*[RLB].$";
+!select,    flag=twiss, pattern="^MQX.*[RL].$";
+
+!##########################
+! coupling knob: cminusreal
+!##########################
+
+kqs.r2b2_init=kqs.r2b2;
+kqs.r4b2_init=kqs.r4b2;
+kqs.r6b2_init=kqs.r6b2;
+kqs.r8b2_init=kqs.r8b2;
+kqs.l1b2_init=kqs.l1b2;
+kqs.l3b2_init=kqs.l3b2;
+kqs.l5b2_init=kqs.l5b2;
+kqs.l7b2_init=kqs.l7b2;
+kqs.a12b2_init=kqs.a12b2;
+kqs.a78b2_init=kqs.a78b2;
+kqs.a56b2_init=kqs.a56b2;
+kqs.a34b2_init=kqs.a34b2;
+
+
+kqs.r2b2:=kqs.r2b2_init+f1;
+kqs.l3b2:=kqs.l3b2_init+f1;
+kqs.r4b2:=kqs.r4b2_init+f2;
+kqs.l5b2:=kqs.l5b2_init+f2;
+kqs.r6b2:=kqs.r6b2_init+f3;
+kqs.l7b2:=kqs.l7b2_init+f3;
+kqs.r8b2:=kqs.r8b2_init+f4;
+kqs.l1b2:=kqs.l1b2_init+f4;
+
+match, use_macro;
+!vary, name=kqs.r2b2, step=0.00001;
+!!vary, name=kqs.r4b2, step=0.00001;
+!vary, name=kqs.r6b2, step=0.00001;
+!vary, name=kqs.r8b2, step=0.00001;
+!vary, name=kqs.l1b2, step=0.00001;
+!!vary, name=kqs.l3b2, step=0.00001;
+!vary, name=kqs.l5b2, step=0.00001;
+!vary, name=kqs.l7b2, step=0.00001;
+!vary, name=kqs.a12b2, step=0.00001;
+!vary, name=kqs.a78b2, step=0.00001;
+!vary, name=kqs.a56b2, step=0.00001;
+!vary, name=kqs.a34b2, step=0.00001;
+
+vary, name=f1, step=0.00001;
+vary, name=f2, step=0.00001;
+vary, name=f3, step=0.00001;
+vary, name=f4, step=0.00001;
+vary, name=kqs.a12b2, step=0.00001;
+vary, name=kqs.a78b2, step=0.00001;
+vary, name=kqs.a56b2, step=0.00001;
+vary, name=kqs.a34b2, step=0.00001;
+
+M1: MACRO {
+    select,    flag=twiss, range=IP5, column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+    twiss,     sequence=lhcb2, file="twiss.C.dat";
+    system, "python GetC.py";
+    !system, "/afs/cern.ch/eng/sl/lintrack/Python-2.5_32bit/Python-2.5_32bit/bin/python /afs/cern.ch/eng/sl/online/om/repository/core/THICK_MODEL_INPUTS/CORRECTIONS/coupling_correction/GetC.py";
+    call, file="C.madx";
+    value, cminusreal, cminusimag;
+    !twiss, sequence=lhcb2;dq=table(summ,Q1)-table(summ,Q2)-5;
+    }
+
+!constraint, EXPR=cminusreal=0;
+constraint, EXPR=cminusreal* 1e5 =0.001 * 1e5;
+constraint, EXPR=cminusimag =0;
+constraint, EXPR=cplusreal=0;
+constraint, EXPR=cplusimag=0;
+!constraint, EXPR = (kqs.r2b2^2+kqs.r4b2^2+kqs.r6b2^2+kqs.r8b2^2+kqs.l1b2^2+kqs.l3b2^2+kqs.l5b2^2+kqs.l7b2^2+kqs.a12b2^2+kqs.a78b2^2+kqs.a56b2^2+kqs.a34b2^2)*1e9=0;
+jacobian, calls=50, tolerance=1e-6;
+endmatch;
+
+value, kqs.r2b2;
+value, kqs.r4b2;
+value, kqs.r6b2;
+value, kqs.r8b2;
+value, kqs.l1b2;
+value, kqs.l3b2;
+value, kqs.l5b2;
+value, kqs.l7b2;
+value, kqs.a12b2;
+value, kqs.a78b2;
+value, kqs.a56b2;
+value, kqs.a34b2;
+
+!!select,    flag=twiss, column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+!!twiss,     sequence=lhcb2, file="twiss.C.dat";
+!!system, "python GetC.py";
+!!call, file="C.madx";
+value, cminusreal, cminusimag, cplusreal, cplusimag;
+
+!option, echo, warn,info;
+!twiss;
+!option, -echo, -warn, -info;
+
+
+!! compute dq_min:
+
+kqf_init=kqf;
+
+match, use_macro;
+vary, name=kqf;
+M1: MACRO {twiss, table=twiss;dq=table(summ, Q1) -table(summ,Q2)-5; }
+constraint, EXPR= table(summ, Q1) -table(summ,Q2) =5;
+simplex, tolerance=0.00000001;
+endmatch;
+
+value, kqf;
+value, dq;
+
+kqf=kqf_init;
+
+
+assign, echo="coupling_cminusreal_b2.IP5.dat";
+value, kqs.r2b2;
+value, kqs.r4b2;
+value, kqs.r6b2;
+value, kqs.r8b2;
+value, kqs.l1b2;
+value, kqs.l3b2;
+value, kqs.l5b2;
+value, kqs.l7b2;
+value, kqs.a12b2;
+value, kqs.a78b2;
+value, kqs.a56b2;
+value, kqs.a34b2;
+assign, echo=terminal;
+
+
+!! knobs in units of dq_min:
+
+kqs.r2b2=kqs.r2b2/abs(dq);
+kqs.r4b2=kqs.r4b2/abs(dq);
+kqs.r6b2=kqs.r6b2/abs(dq);
+kqs.r8b2=kqs.r8b2/abs(dq);
+kqs.l1b2=kqs.l1b2/abs(dq);
+kqs.l3b2=kqs.l3b2/abs(dq);
+kqs.l5b2=kqs.l5b2/abs(dq);
+kqs.l7b2=kqs.l7b2/abs(dq);
+kqs.a12b2=kqs.a12b2/abs(dq);
+kqs.a78b2=kqs.a78b2/abs(dq);
+kqs.a56b2=kqs.a56b2/abs(dq);
+kqs.a34b2=kqs.a34b2/abs(dq);
+
+
+assign, echo="coupling_cminusreal_b2.IP5.knob";
+value, kqs.r2b2;
+value, kqs.r4b2;
+value, kqs.r6b2;
+value, kqs.r8b2;
+value, kqs.l1b2;
+value, kqs.l3b2;
+value, kqs.l5b2;
+value, kqs.l7b2;
+value, kqs.a12b2;
+value, kqs.a78b2;
+value, kqs.a56b2;
+value, kqs.a34b2;
+assign, echo=terminal;
+
+system, "sed -e 's/=//g' -e's/;//g' coupling_cminusreal_b2.IP5.knob > ttt";
+system, "mv ttt coupling_cminusreal_b2.IP5.knob ";
+
+
+!##########################
+! coupling knob: cminusimag
+!##########################
+
+kqs.r2b2=kqs.r2b2_init;
+kqs.r4b2=kqs.r4b2_init;
+kqs.r6b2=kqs.r6b2_init;
+kqs.r8b2=kqs.r8b2_init;
+kqs.l1b2=kqs.l1b2_init;
+kqs.l3b2=kqs.l3b2_init;
+kqs.l5b2=kqs.l5b2_init;
+kqs.l7b2=kqs.l7b2_init;
+kqs.a12b2=kqs.a12b2_init;
+kqs.a78b2=kqs.a78b2_init;
+kqs.a56b2=kqs.a56b2_init;
+kqs.a34b2=kqs.a34b2_init;
+
+kqs.r2b2:=kqs.r2b2_init+f1;
+kqs.l3b2:=kqs.l3b2_init+f1;
+kqs.r4b2:=kqs.r4b2_init+f2;
+kqs.l5b2:=kqs.l5b2_init+f2;
+kqs.r6b2:=kqs.r6b2_init+f3;
+kqs.l7b2:=kqs.l7b2_init+f3;
+kqs.r8b2:=kqs.r8b2_init+f4;
+kqs.l1b2:=kqs.l1b2_init+f4;
+
+
+match, use_macro;
+!vary, name=kqs.r2b2, step=0.00001;
+!!vary, name=kqs.r4b2, step=0.00001;
+!vary, name=kqs.r6b2, step=0.00001;
+!vary, name=kqs.r8b2, step=0.00001;
+!vary, name=kqs.l1b2, step=0.00001;
+!!vary, name=kqs.l3b2, step=0.00001;
+!vary, name=kqs.l5b2, step=0.00001;
+!vary, name=kqs.l7b2, step=0.00001;
+!vary, name=kqs.a12b2, step=0.00001;
+!vary, name=kqs.a78b2, step=0.00001;
+!vary, name=kqs.a56b2, step=0.00001;
+!!vary, name=kqs.a34b2, step=0.00001;
+
+vary, name=f1, step=0.00001;
+vary, name=f2, step=0.00001;
+vary, name=f3, step=0.00001;
+vary, name=f4, step=0.00001;
+vary, name=kqs.a12b2, step=0.00001;
+vary, name=kqs.a78b2, step=0.00001;
+vary, name=kqs.a56b2, step=0.00001;
+vary, name=kqs.a34b2, step=0.00001;
+
+M1: MACRO {
+    select,    flag=twiss, range=IP5, column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+    twiss,     sequence=lhcb2, file="twiss.C.dat";
+    system, "python GetC.py";
+    !system, "/afs/cern.ch/eng/sl/lintrack/Python-2.5_32bit/Python-2.5_32bit/bin/python /afs/cern.ch/eng/sl/online/om/repository/core/THICK_MODEL_INPUTS/CORRECTIONS/coupling_correction/GetC.py";
+    call, file="C.madx";
+    value, cminusreal, cminusimag;
+    !twiss, sequence=lhcb1;dq=table(summ,Q1)-table(summ,Q2)-5;
+    }
+
+constraint, EXPR=cminusreal=0;
+constraint, EXPR=cminusimag * 1e5 =0.001 * 1e5;
+!constraint, EXPR=cminusimag =0;
+constraint, EXPR=cplusreal=0;
+constraint, EXPR=cplusimag=0;
+!constraint, EXPR = (kqs.r2b2^2+kqs.r4b2^2+kqs.r6b2^2+kqs.r8b2^2+kqs.l1b2^2+kqs.l3b2^2+kqs.l5b2^2+kqs.l7b2^2+kqs.a12b2^2+kqs.a78b2^2+kqs.a56b2^2+kqs.a34b2^2)*1e9=0;
+jacobian, calls=50, tolerance=1e-6;
+endmatch;
+
+value, kqs.r2b2;
+value, kqs.r4b2;
+value, kqs.r6b2;
+value, kqs.r8b2;
+value, kqs.l1b2;
+value, kqs.l3b2;
+value, kqs.l5b2;
+value, kqs.l7b2;
+value, kqs.a12b2;
+value, kqs.a78b2;
+value, kqs.a56b2;
+value, kqs.a34b2;
+
+
+!!select,    flag=twiss, column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+!!twiss,     sequence=lhcb2, file="twiss.C.dat";
+!!system, "python GetC.py";
+!!call, file="C.madx";
+value, cminusreal, cminusimag, cplusreal, cplusimag;
+
+
+!! compute dq_min:
+
+kqf_init=kqf;
+
+match, use_macro;
+vary, name=kqf;
+M1: MACRO {twiss, table=twiss;dq=table(summ, Q1) -table(summ,Q2)-5; }
+constraint, EXPR= table(summ, Q1) -table(summ,Q2) =5;
+simplex, tolerance=0.00000001;
+endmatch;
+
+value, kqf;
+value, dq;
+
+kqf=kqf_init;
+
+assign, echo="coupling_cminusimag_b2.IP5.dat";
+value, kqs.r2b2;
+value, kqs.r4b2;
+value, kqs.r6b2;
+value, kqs.r8b2;
+value, kqs.l1b2;
+value, kqs.l3b2;
+value, kqs.l5b2;
+value, kqs.l7b2;
+value, kqs.a12b2;
+value, kqs.a78b2;
+value, kqs.a56b2;
+value, kqs.a34b2;
+assign, echo=terminal;
+
+!! knobs in units of dq_min:
+
+kqs.r2b2=kqs.r2b2/abs(dq);
+kqs.r4b2=kqs.r4b2/abs(dq);
+kqs.r6b2=kqs.r6b2/abs(dq);
+kqs.r8b2=kqs.r8b2/abs(dq);
+kqs.l1b2=kqs.l1b2/abs(dq);
+kqs.l3b2=kqs.l3b2/abs(dq);
+kqs.l5b2=kqs.l5b2/abs(dq);
+kqs.l7b2=kqs.l7b2/abs(dq);
+kqs.a12b2=kqs.a12b2/abs(dq);
+kqs.a78b2=kqs.a78b2/abs(dq);
+kqs.a56b2=kqs.a56b2/abs(dq);
+kqs.a34b2=kqs.a34b2/abs(dq);
+
+
+assign, echo="coupling_cminusimag_b2.IP5.knob";
+value, kqs.r2b2;
+value, kqs.r4b2;
+value, kqs.r6b2;
+value, kqs.r8b2;
+value, kqs.l1b2;
+value, kqs.l3b2;
+value, kqs.l5b2;
+value, kqs.l7b2;
+value, kqs.a12b2;
+value, kqs.a78b2;
+value, kqs.a56b2;
+value, kqs.a34b2;
+assign, echo=terminal;
+
+system, "sed -e 's/=//g' -e's/;//g' coupling_cminusimag_b2.IP5.knob > ttt";
+system, "mv ttt coupling_cminusimag_b2.IP5.knob ";
+
+
+system, "rm -fv dm";
+system, "rm -fv ds";
+
+stop;
