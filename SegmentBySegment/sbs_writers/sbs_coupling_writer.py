@@ -67,8 +67,8 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
 
     if not is_element:
         file_f_terms.add_column_names(["NAME", "S",
-                                       "F1001ABSPROP", "ERRF1001ABSPROP", "F1001REPROP", "ERRF1001REPROP", "F1001IMPROP", "ERRF1001IMPROP",
-                                       "F1010ABSPROP", "ERRF1010ABSPROP", "F1010REPROP", "ERRF1010REPROP", "F1010IMPROP", "ERRF1010IMPROP",
+                                       "F1001ABSMEAS", "ERRF1001ABSMEAS", "F1001REMEAS", "ERRF1001REMEAS", "F1001IMMEAS", "ERRF1001IMMEAS",
+                                       "F1010ABSMEAS", "ERRF1010ABSMEAS", "F1010REMEAS", "ERRF1010REMEAS", "F1010IMMEAS", "ERRF1010IMMEAS",
                                        "F1001ABSCOR", "ERRF1001ABSCOR", "F1001RECOR", "ERRF1001RECOR", "F1001IMCOR", "ERRF1001IMCOR",
                                        "F1010ABSCOR", "ERRF1010ABSCOR", "F1010RECOR", "ERRF1010RECOR", "F1010IMCOR", "ERRF1010IMCOR",
                                        "F1001ABSBACK", "ERRF1001ABSBACK", "F1001REBACK", "ERRF1001REBACK", "F1001IMBACK", "ERRF1001IMBACK",
@@ -164,6 +164,24 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
             model_f1010r = measured_coupling.MDLF1010R[measured_coupling.indx[bpm_name]]
             model_f1010i = measured_coupling.MDLF1010I[measured_coupling.indx[bpm_name]]
 
+            meas_abs_f1001 = measured_coupling.F1001W[measured_coupling.indx[bpm_name]]
+            meas_q1001 = measured_coupling.Q1001[measured_coupling.indx[bpm_name]]
+            meas_f1001r = measured_coupling.F1001R[measured_coupling.indx[bpm_name]]
+            meas_f1001i = measured_coupling.F1001I[measured_coupling.indx[bpm_name]]
+            err_meas_abs_f1001 = measured_coupling.FWSTD1[measured_coupling.indx[bpm_name]]
+            err_meas_q1001 = measured_coupling.Q1001STD[measured_coupling.indx[bpm_name]]
+            err_meas_f1001r = _propagate_error_coupling_1001_re(meas_abs_f1001, meas_q1001, 0., 0., err_meas_abs_f1001, err_meas_q1001)
+            err_meas_f1001i = _propagate_error_coupling_1001_im(meas_abs_f1001, meas_q1001, 0., 0., err_meas_abs_f1001, err_meas_q1001)
+
+            meas_abs_f1010 = measured_coupling.F1010W[measured_coupling.indx[bpm_name]]
+            meas_q1010 = measured_coupling.Q1010[measured_coupling.indx[bpm_name]]
+            meas_f1010r = measured_coupling.F1010R[measured_coupling.indx[bpm_name]]
+            meas_f1010i = measured_coupling.F1010I[measured_coupling.indx[bpm_name]]
+            err_meas_abs_f1010 = measured_coupling.FWSTD1[measured_coupling.indx[bpm_name]]
+            err_meas_q1010 = measured_coupling.Q1010STD[measured_coupling.indx[bpm_name]]
+            err_meas_f1010r = _propagate_error_coupling_1010_re(meas_abs_f1010, meas_q1010, 0., 0., err_meas_abs_f1010, err_meas_q1010)
+            err_meas_f1010i = _propagate_error_coupling_1010_im(meas_abs_f1010, meas_q1010, 0., 0., err_meas_abs_f1010, err_meas_q1010)
+
             delta_phase_corr_x = model_cor.MUX[model_cor.indx[bpm_name]] % 1
             delta_phase_corr_y = model_cor.MUY[model_cor.indx[bpm_name]] % 1
 
@@ -189,8 +207,8 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
             err_f1010abs_back_corr = f1010_std_end
 
             file_f_terms.add_table_row([bpm_name, bpm_s,
-                                        abs(f1001_prop), err_f1001abs_prop, f1001_prop.real, err_f1001re_prop, f1001_prop.imag, err_f1001im_prop,
-                                        abs(f1010_prop), err_f1010abs_prop, f1010_prop.real, err_f1010re_prop, f1010_prop.imag, err_f1010im_prop,
+                                        meas_abs_f1001, err_meas_abs_f1001, meas_f1001r, err_meas_f1001r, meas_f1001i, err_meas_f1001i,
+                                        meas_abs_f1010, err_meas_abs_f1010, meas_f1010r, err_meas_f1010r, meas_f1010i, err_meas_f1010i,
                                         abs(f1001_corr), err_f1001abs_corr, f1001_corr.real, err_f1001re_corr, f1001_corr.imag, err_f1001im_corr,
                                         abs(f1010_corr), err_f1010abs_corr, f1010_corr.real, err_f1010re_corr, f1010_corr.imag, err_f1010im_corr,
                                         abs(f1001_back), err_f1001abs_back, f1001_back.real, err_f1001re_back, f1001_back.imag, err_f1001im_back,
