@@ -242,7 +242,7 @@ def main(options):
                         summaries)
 
         # TODO: This has to be fixed
-        if False and not is_element:
+        if not is_element:
             beta4plot = start_bpm_horizontal_data[0]
             startpos = input_model.S[input_model.indx[start_bpm_name]]
             endpos = input_model.S[input_model.indx[end_bpm_name]]
@@ -878,9 +878,7 @@ def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measu
                               MEA=measurements_path
                               )
 
-    if (element_name == "IP8" and accelerator == "LHCB2") or (element_name == "IP2" and accelerator == "LHCB1"):
-        maskfile = 'gplot.IP2IP8.mask'
-    elif "RHIC" in accelerator:
+    if "RHIC" in accelerator:
         maskfile = 'gplot_RHIC.mask'
     else:
         maskfile = 'gplot.mask'
@@ -891,7 +889,7 @@ def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measu
     # read mask file, replace all keys and write to plot script:
     Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, plotscript)
 
-    os.system("gnuplot --persist " + plotscript)
+    os.system("gnuplot " + plotscript)
 
 
 #delete  TODO delete?? can this be removed??
