@@ -1,7 +1,7 @@
 {
   "coupling_knobs": [
-    "b1_re_ip1_knob",  
-    "b1_im_ip1_knob"
+    "b1_re_ip7_knob",  
+    "b1_im_ip7_knob"
   ], 
   "MQS": [
     "kqs.r1l2b1", 
