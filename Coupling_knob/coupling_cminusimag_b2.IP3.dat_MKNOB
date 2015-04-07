@@ -1,0 +1,12 @@
+kqs.r2b2 := ( 2.867275644e-06 )*lambda ;
+kqs.r4b2 := ( -1.982669315e-06 )*lambda ;
+kqs.r6b2 := ( -1.619619594e-06 )*lambda ;
+kqs.r8b2 := ( 2.108604542e-06 )*lambda ;
+kqs.l1b2 := ( 2.108604542e-06 )*lambda ;
+kqs.l3b2 := ( 2.867275644e-06 )*lambda ;
+kqs.l5b2 := ( -1.982669315e-06 )*lambda ;
+kqs.l7b2 := ( -1.619619594e-06 )*lambda ;
+kqs.a12b2 := ( -8.165407448e-07 )*lambda ;
+kqs.a78b2 := ( 1.706197466e-06 )*lambda ;
+kqs.a56b2 := ( -2.890087136e-06 )*lambda ;
+kqs.a34b2 := ( -2.24476754e-06 )*lambda ;

@@ -1,0 +1,30 @@
+
+set terminal postscript enhanced color solid 24
+
+
+
+set output "compknobs_real.eps"
+set key bottom
+set xlabel "Longitudinal location [m]"
+
+set ylabel "f_{1001}"
+
+p [][0:]"f_c_real_b1.dat" u 2:(sqrt($3**2+$4**2)) t"Current knob" w l lw 4,\
+   "../f_cminusreal_b1.dat" u 2:(sqrt($3**2+$4**2)) t"New knob" w l lw 4 lt 3
+
+
+set output "compknobs_imag.eps"
+
+set xlabel "Longitudinal location [m]"
+
+set ylabel "f_{1001}"
+
+p [][0:]"f_c_imag_b1.dat" u 2:(sqrt($3**2+$4**2)/0.00118*0.00100) t"Current knob" w l lw 4,\
+   "../f_cminusimag_b1.dat" u 2:(sqrt($3**2+$4**2)) t"New knob" w l lw 4 lt 3
+
+
+set output "orthogonality.eps"
+
+p "< paste ../f_cminusimag_b2.IP1.dat ../f_cminusreal_b2.IP1.dat" u 2:(($3*$9+$4*$10)/sqrt(($3**2+$4**2)*($9**2+$10**2)))  
+
+

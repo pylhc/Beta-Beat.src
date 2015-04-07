@@ -1,0 +1,1 @@
+awk '{print $1,":=", "(",$2,")*lambda ;"}' $1 > $1_MKNOB

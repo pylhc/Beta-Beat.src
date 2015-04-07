@@ -1,0 +1,12 @@
+kqf_init=kqf;
+match, use_macro;
+vary, name=kqf;
+M1: MACRO {twiss, table=twiss;  dq=table(summ, Q1) -table(summ,Q2)-5; }
+constraint, EXPR= table(summ, Q1) -table(summ,Q2) =5;
+lmdif, tolerance=0.00000001;
+endmatch;
+value, dq;
+assign, echo="DQmin_c_imag_b1.dat";
+value, dq;
+assign, echo=terminal;
+kqf=kqf_init;
