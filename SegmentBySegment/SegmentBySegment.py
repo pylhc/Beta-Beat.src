@@ -831,8 +831,10 @@ def _get_corrections_file_comments_for_ip(element_name, accelerator):
         return ""
     if beam == 1:
         all_list = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB1", "AllLists.json")))
+        all_list_couple = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB1", "AllLists_couple.json")))
     elif beam == 2 or beam == 4:
         all_list = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB2", "AllLists.json")))
+        all_list_couple = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB1", "AllLists_couple.json")))
     else:
         return ""
     comments_string = ""
@@ -841,6 +843,9 @@ def _get_corrections_file_comments_for_ip(element_name, accelerator):
             comments_string += "! " + variable + "\n"
     if ip in all_list["getListsByIR"][1]:
         for variable in all_list["getListsByIR"][1][ip]:
+            comments_string += "! " + variable + "\n"
+    for variable in all_list_couple["Qs"]:
+        if "r" + str(ip) in variable or "l" + str(ip) in variable:
             comments_string += "! " + variable + "\n"
     return comments_string
 
