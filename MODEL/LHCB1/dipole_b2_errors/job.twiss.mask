@@ -38,7 +38,6 @@ endedit;
 
 use, period=LHCB1;
  
-call, file = "%PATH/extracted_mqts.str";
 
 READMYTABLE,file="%ERRORS_PATH/MB_B1_%ENERGY.errors",table=errtab;
 SETERR,TABLE=errtab;
@@ -59,6 +58,8 @@ endmatch;
 KQTD.B1_temp = KQTD.B1;
 KQTF.B1_temp = KQTF.B1;
 
+
+call, file = "%PATH/extracted_mqts.str";
 
 !!!!! nominal
 
