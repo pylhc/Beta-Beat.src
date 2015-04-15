@@ -198,9 +198,12 @@ class _SddsFile(object):
         last_number_of_turns = 0
         detected_number_of_turns = 0
         flatbpm_counter = 0
+        bpm_with_exact_zero_counter = 0
+        bpm_with_spike = 0
 
         filesdds = open(self.path_to_sddsfile, "r")
         print "Extracting data from file..."
+
         for line in filesdds:  # Iterator over all lines (tbach)
             if line.startswith("#"):  # we have a comment line (tbach)
                 self.header += line
@@ -237,13 +240,37 @@ class _SddsFile(object):
 
             self.number_of_turns = min(_InputData.maxturns, detected_number_of_turns) - _InputData.startturn
             ndarray_line_data = numpy.array(list_splitted_line_values[3 + _InputData.startturn:3 + _InputData.startturn + self.number_of_turns], dtype=numpy.float64)
-            # this block handles BPMs with the same values for all turns (tbach)
+
             peak_to_peak_difference = numpy.abs(numpy.max(ndarray_line_data) - numpy.min(ndarray_line_data))
             if peak_to_peak_difference <= _InputData.pk_pk_cut:  # then do not use this BPM (tbach)
                 reason_for_badbpm = "Flat BPM, the difference between all values is smaller than " + str(_InputData.pk_pk_cut)
                 badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
                 self.bad_bpmfile.add_badbpm(badbpm)
                 flatbpm_counter += 1
+                continue
+            list_of_OoR = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x > 20] 
+            # detects the turn numbers of all occurrences of a spike >20mm
+            has_OoR = False
+            if len(list_of_OoR) > 0:
+                has_OoR = True
+            if has_OoR:
+                reason_for_badbpm = "Found a spike >20mm"
+                badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
+                self.bad_bpmfile.add_badbpm(badbpm)
+                bpm_with_spike += 1
+                continue
+            list_of_zeros = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x == 0.] 
+            # detects the turn numbers of all occurrences of an exact zero value since this was a workaround 
+            # for the large spikes and is still unwanted. Could possible remove a good BPM but unlikely
+            has_zero = False
+            if len(list_of_zeros) > 0:
+                has_zero = True
+            # this block handles BPMs with the same values for all turns (tbach)
+            if has_zero:
+                reason_for_badbpm = "Found an exact zero"
+                badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
+                self.bad_bpmfile.add_badbpm(badbpm)
+                bpm_with_exact_zero_counter += 1
                 continue
 
             self.dictionary_plane_to_bpms[plane].bpm_data.append(ndarray_line_data)
@@ -255,6 +282,10 @@ class _SddsFile(object):
             print ">>Time for init (read file):", time.time() - time_start, "s"
         if flatbpm_counter > 0:
             print "Flat BPMs detected. Number of BPMs removed:", flatbpm_counter
+        if bpm_with_exact_zero_counter > 0:
+            print "Exact zeros detected. Number of BPMs removed:", bpm_with_exact_zero_counter
+        if bpm_with_spike > 0:
+            print "Spikes >20mm detected. Number of BPMs removed:", bpm_with_spike
         print "Startturn:", _InputData.startturn_human, "Maxturns:", _InputData.maxturns_human
         print "Number of turns:", self.number_of_turns
         print "Horizontal BPMs:", self.dictionary_plane_to_bpms[PLANE_X].get_number_of_bpms(),
