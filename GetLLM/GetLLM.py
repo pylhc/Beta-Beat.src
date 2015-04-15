@@ -210,11 +210,14 @@ def main(
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
 
+        #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
+        phase_d_bk, tune_d_bk = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac, mad_elem, files_dict)
+
         #-------- START Total Phase
         algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
 
         #-------- START Beta
-        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, mad_best_knowledge, mad_ac_best_knowledge, files_dict, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
+        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d_bk, mad_twiss, mad_ac, mad_best_knowledge, mad_ac_best_knowledge, files_dict, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
 
         #------- START beta from amplitude
         beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
