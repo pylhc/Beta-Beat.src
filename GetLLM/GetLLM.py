@@ -207,11 +207,11 @@ def main(
     _check_bpm_compatibility(twiss_d, mad_twiss)
 
     try:
-        #-------- START Phase
-        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
-
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         phase_d_bk, tune_d_bk = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac, mad_elem, files_dict)
+
+        #-------- START Phase
+        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
 
         #-------- START Total Phase
         algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
