@@ -57,6 +57,7 @@ import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
 import Utilities.iotools
+import copy
 
 
 ####
@@ -208,7 +209,8 @@ def main(
 
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
-        phase_d_bk, tune_d_bk = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac, mad_elem, files_dict)
+        temp_dict = copy.deepcopy(files_dict)
+        phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac, mad_elem, temp_dict)
 
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
