@@ -85,6 +85,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
 
 def _get_best_fitting_bpm(phase_d, bpm1, plane):
     ''' 
+    @author: F Carlier
     phase_d is a dictionary containing two different sets of keys. 
     First there are the keys for the bpm pairs in the H & V planes, for example: 
     HBPM.33R3.B1BPM.32R3.B1 for which the values are [phase difference measurement, error phase difference, phase difference model]
