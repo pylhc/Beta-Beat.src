@@ -134,8 +134,6 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             bn2 = str.upper(bpmsx[(i+1)%len(bpmsx)][1])
             bns2 = bpmsx[(i+1)%len(bpmsx)][0]
             list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.ph_x[bn1][0], phase_d.ph_x[bn1][1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
-            with open("something.out", "w") as somefile:
-                somefile.write(str(phase_d.ph_x))
             tfs_file.add_table_row(list_row_entries)
 
         #-- ac to free phase

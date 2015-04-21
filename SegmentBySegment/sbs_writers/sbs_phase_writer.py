@@ -33,15 +33,16 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
     last_bpm = bpms_list[-1][1]
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = sbs_beta_writer._get_start_end_betas(bpms_list, measured_beta, plane)
-     
+
     # Fix for phase jump at the start of the ring
     tune, fix_start_s = {}, None
-    if "LHCB1" in model_propagation.SEQUENCE and FIRST_BPM_B1 in model_propagation.NAME:
-        tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
-        fix_start_s = model_propagation.S[model_propagation.indx[FIRST_BPM_B1]]
-    elif "LHCB2" in model_propagation.SEQUENCE and FIRST_BPM_B2 in model_propagation.NAME:
-        tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
-        fix_start_s = model_propagation.S[model_propagation.indx[FIRST_BPM_B2]]
+    first_bpm_on_ring = measured_phase.NAME[np.argmin(measured_phase.S)]
+    if first_bpm_on_ring in model_propagation.NAME:
+        fix_start_s = model_propagation.S[model_propagation.indx[first_bpm_on_ring]]
+        if "LHCB1" in model_propagation.SEQUENCE and first_bpm_on_ring in model_propagation.NAME:
+            tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
+        elif "LHCB2" in model_propagation.SEQUENCE and first_bpm_on_ring in model_propagation.NAME:
+            tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
@@ -78,7 +79,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
             back_prop_phase_difference = back_prop_phase_difference - 1
 
         if not fix_start_s is None:
-            if bpm_s > fix_start_s:
+            if bpm_s >= fix_start_s:
                 prop_phase_difference += tune[plane]
             elif bpm_s <= fix_start_s:
                 back_prop_phase_difference -= tune[plane]
@@ -88,11 +89,10 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
 
         prop_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_prop_phase, beta_start, alfa_start)
         cor_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_cor_phase, beta_start, alfa_start)
-        
 
         back_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_propagation_phase, beta_end, alfa_end)
         back_cor_phase_error = _propagate_error_phase(err_beta_end, err_alfa_end, model_back_cor_phase, beta_end, alfa_end)
-        
+
         # Error for the phase difference -> sqrt(e1**2 + e2**2 - 2cov(e1, e2)) and assuming no covariance
         prop_meas_diff_error = np.sqrt(prop_phase_error ** 2 + std_err_phase ** 2)
         prop_cor_diff_error = np.sqrt(prop_meas_diff_error ** 2 + cor_phase_error ** 2)
