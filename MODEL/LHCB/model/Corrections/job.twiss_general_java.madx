@@ -2,7 +2,7 @@ title, "Model creator for java" ;
 
 
 System,"test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-
+System, "test -e runII || ln -ns /afs/cern.ch/eng/lhc/optics/runII/2015/ runII";
 
 option, -echo, -info,  warn;
 
