@@ -1,0 +1,12 @@
+/*
+* Specific macros for runII of the LHC
+*/
+
+!@require lhc.macros.madx
+
+/*
+* Load the LHC runII main sequence.
+*/
+load_main_sequence(): macro = {
+    call, file = "/afs/cern.ch/eng/lhc/optics/runII/2015/lhc_as-built.seq";
+};

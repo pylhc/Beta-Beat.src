@@ -1,0 +1,13 @@
+/*
+* Specific macros for runI of the LHC
+*/
+
+!@require lhc.macros.madx
+
+/*
+* Load the LHC runI main sequence.
+*/
+load_main_sequence(): macro = {
+    call, file = "db5/as-built/V6.5.seq";
+    call, file = "db5/install_additional_elements.madx";
+};
