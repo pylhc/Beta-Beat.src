@@ -67,6 +67,16 @@ import Utilities.bpm
 import Utilities.iotools
 import superutils
 
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+LHC_RUNI_BASE_SEQ = \
+              'call, file = "db5/as-built/V6.5.seq";\n' \
+            + 'call, file = "db5/install_additional_elements.madx";'
+
+BB_PATH = os.path.abspath(os.path.join(CURRENT_PATH, "..", ))
+LHC_RUNII_BASE_SEQ = \
+              'call, file = "' + os.path.join(BB_PATH, "MODEL", "LHCB_II", "model", "base_sequence.madx") + '";'
+
+
 #===================================================================================================
 # _parse_args()-function
 #===================================================================================================
@@ -347,6 +357,12 @@ def _madcreator(dpps, files_dict):
     dict_for_replacing["DPP"] = dppstring
     dict_for_replacing["DP_AC_P"] = dppstring_ac
     dict_for_replacing["ACCEL"] = _InputData.accel
+    if not _InputData.lhc_run is None:
+        if _InputData.lhc_run == 1:
+            base_sequence = LHC_RUNI_BASE_SEQ
+        else:
+            base_sequence = LHC_RUNII_BASE_SEQ
+    dict_for_replacing["BASE_SEQ"] = base_sequence
     if _InputData.accel == 'LHCB1':
         dict_for_replacing["BEAM"] = "B1"
     elif _InputData.accel == 'LHCB2':
@@ -354,6 +370,7 @@ def _madcreator(dpps, files_dict):
     else:
         print "WARNING: Could not decide what BEAM should be"
 
+    dict_for_replacing["BB_PATH"] = BB_PATH
     (qx, qy, qdx, qdy) = _get_tunes(files_dict)
 
     dict_for_replacing["QX"] = qx
@@ -763,7 +780,13 @@ class _InputData(object):
         _InputData.technique = technique
         if technique not in ("SUSSIX", "SVD"):
             raise ValueError("Chosen  technique is unknown: "+technique)
-        _InputData.accel = accel
+        _InputData.accel = accel.upper()
+        if "LHCB" in _InputData.accel:
+            if _InputData.accel.endswith("RUNII"):
+                _InputData.accel = _InputData.accel.replace("RUNII", "")
+                _InputData.lhc_run = 2
+            else:
+                _InputData.lhc_run = 1
         if _InputData.accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
             raise ValueError("Provided accelerator is not valid: "+_InputData.accel)
         _InputData.deltap_scaling_factor = deltap_scaling_factor
