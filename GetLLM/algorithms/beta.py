@@ -615,6 +615,7 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
 
             V = np.zeros([len(alfa_beta), len(alfa_beta)])
             V_syst = np.zeros([len(alfa_beta), len(alfa_beta)])
+            np.fill_diagonal(V_syst, 100000)
             all_comb = [[alfa_beta[i][5], alfa_beta[i][6]] for i in range(len(alfa_beta))]
             if plane == 'H':
                 sindex = 0
@@ -650,7 +651,10 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
                 for i in range(len(alfa_beta)):
                     for j in range(len(alfa_beta)):
                         beterr = beterr + w[i] * w[j] * V_syst.item(i, j)
-                beterr = np.sqrt(abs(float(beterr)))
+                if beterr < 0:
+                    beterr = DEFAULT_WRONG_BETA
+                else:
+                    beterr = np.sqrt(float(beterr))
             else:
                 betstd = DEFAULT_WRONG_BETA
                 beterr = DEFAULT_WRONG_BETA
