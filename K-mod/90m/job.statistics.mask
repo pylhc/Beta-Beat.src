@@ -1,0 +1,230 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+ option, -echo, -info,  -warn;
+ call,   file = "db/V6.5.seq";
+ call,   file = "db/V6.5.inj.str";
+call, file="%MPATH/modifiers.madx";
+
+
+
+
+option,  -echo,  -info,  warn;
+
+beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+
+
+
+ 
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
+ on_alice:= 0; on_lhcb := 0;
+
+
+use, period=LHCB1;
+seqedit, sequence=LHCB1;
+cycle, start=IP3;
+endedit;
+use, period=LHCB1;
+
+
+
+use, period=LHCB2;
+seqedit, sequence=LHCB2;
+cycle, start=IP3;
+endedit;
+use, period=LHCB2;
+
+
+
+
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor,column=name,s,x,y;
+
+twiss, sequence=LHCB1;
+qxb1ref=table(summ,Q1);
+qyb1ref=table(summ,Q2);
+
+twiss, sequence=LHCB2;
+qxb2ref=table(summ,Q1);
+qyb2ref=table(summ,Q2);
+
+value, qxb1ref, qyb1ref, qxb2ref, qyb2ref; 
+
+
+! For mask
+MQXA.1R%IP.REF=MQXA.1R%IP->K1;
+MQXA.1L%IP.REF=MQXA.1L%IP->K1;
+
+! Uncomment for IP1:
+!MQXA.1R1.REF=MQXA.1R1->K1;
+!MQXA.1L1.REF=MQXA.1L1->K1;
+
+
+
+
+r1b1=kq8.r2b1;	 
+r2b1=kq9.r1b1;	 
+r3b1=kq10.l6b1;	 
+r4b1=kqtl11.l5b1;
+r5b1=kqt12.r4b1; 
+r6b1=kqt13.l2b1; 
+r7b1=kq5.l8b1;	 
+r8b1=kqtl7.l7b1; 
+
+
+
+r1b2=kq8.r2b2;	 
+r2b2=kq9.r1b2;	 
+r3b2=kq10.l6b2;	 
+r4b2=kqtl11.l5b2;
+r5b2=kqt12.r4b2; 
+r6b2=kqt13.l2b2; 
+r7b2=kq5.l8b2;	 
+r8b2=kqtl7.l7b2; 
+
+create, table=tabb1, column=betxb1,betyb1,wxb1,wyb1,dqxLb1,dqyLb1, dqxRb1,dqyRb1, dphixb1, dphiyb1,qxb1,qyb1;
+create, table=tabb2, column=betxb2,betyb2,wxb2,wyb2,dqxLb2,dqyLb2, dqxRb2,dqyRb2, dphixb2, dphiyb2,qxb2,qyb2;
+
+
+i=0;
+dk=%DELTAK;
+
+while (i<100) {
+val=(i+1.)*0.1e-5;
+
+kq8.r2b1    =   r1b1+val*Gauss(1);	 
+kq9.r1b1    =	r2b1+val*Gauss(1);
+kq10.l6b1   =	r3b1+val*Gauss(1);
+kqtl11.l5b1 =	r4b1+val*Gauss(1);
+kqt12.r4b1  =	r5b1+val*Gauss(1);
+kqt13.l2b1  =	r6b1+val*Gauss(1);
+kq5.l8b1    =	r7b1+val*Gauss(1)/log(i+3);
+kqtl7.l7b1  = 	r8b1+val*Gauss(1)/log(i+3);
+
+
+kq8.r2b2     =	r1b2+val*Gauss(1); 
+kq9.r1b2     =	r2b2+val*Gauss(1) ;
+kq10.l6b2    =	r3b2+val*Gauss(1) ;
+kqtl11.l5b2  =	r4b2+val*Gauss(1);
+kqt12.r4b2   =	r5b2+val*Gauss(1);
+kqt13.l2b2   =	r6b2+val*Gauss(1);
+kq5.l8b2     =	r7b2+val*Gauss(1)/log(i+3);
+kqtl7.l7b2   =	r8b2+val*Gauss(1)/log(i+3);
+
+
+match, sequence=LHCB1;
+vary, name=kqtf.b1;
+vary, name=kqtd.b1;
+constraint,range=#e, mux=qxb1ref, muy=qyb1ref;
+jacobian;
+endmatch;
+
+
+match, sequence=LHCB2;
+vary, name=kqtf.b2;
+vary, name=kqtd.b2;
+constraint,range=#e, mux=qxb2ref, muy=qyb2ref;
+jacobian;
+endmatch;
+
+
+
+
+savebeta,label=IPb1,place=IP%IP;
+savebeta,label=BP1Lb1,place=BPMSW.1L%IP.B1;
+savebeta,label=BP1Rb1,place=BPMSW.1R%IP.B1;
+twiss, sequence=LHCB1;
+betxb1=IPb1->betx;
+betyb1=IPb1->bety;
+wxb1=betxb1*IPb1->alfx;
+wyb1=betyb1*IPb1->alfy;
+qxb1=table(summ,Q1);
+qyb1=table(summ,Q2);
+dphixb1=BP1Rb1->mux-BP1Lb1->mux;
+dphiyb1=BP1Rb1->muy-BP1Lb1->muy;
+
+
+
+
+savebeta,label=IPb2,place=IP%IP;
+savebeta,label=BP1Lb2,place=BPMSW.1L%IP.B2;
+savebeta,label=BP1Rb2,place=BPMSW.1R%IP.B2;
+twiss, sequence=LHCB2;
+betxb2=IPb2->betx;
+betyb2=IPb2->bety;
+wxb2=betxb2*IPb2->alfx;
+wyb2=betyb2*IPb2->alfy;
+qxb2=table(summ,Q1);
+qyb2=table(summ,Q2);
+dphixb2=BP1Rb2->mux-BP1Lb2->mux;
+dphiyb2=BP1Rb2->muy-BP1Lb2->muy;
+
+
+
+MQXA.1R%IP->K1=MQXA.1R%IP.REF+ dk;
+!MQXA.1R1->K1=MQXA.1R1.REF+ dk;
+
+twiss, sequence=LHCB1;
+qxb1r=table(summ,Q1);
+qyb1r=table(summ,Q2);
+
+twiss, sequence=LHCB2;
+qxb2r=table(summ,Q1);
+qyb2r=table(summ,Q2);
+
+
+MQXA.1R%IP->K1=MQXA.1R%IP.REF;
+MQXA.1L%IP->K1=MQXA.1L%IP.REF + dk;
+!MQXA.1R1->K1=MQXA.1R1.REF;
+!MQXA.1L1->K1=MQXA.1L1.REF+ dk;
+
+twiss, sequence=LHCB1;
+qxb1l=table(summ,Q1);
+qyb1l=table(summ,Q2);
+
+value, qxb1l, qyb1l;
+
+
+twiss, sequence=LHCB2;
+qxb2l=table(summ,Q1);
+qyb2l=table(summ,Q2);
+
+value, qxb2l, qyb2l;
+
+MQXA.1L%IP->K1=MQXA.1L%IP.REF;
+!MQXA.1L1->K1=MQXA.1L1.REF;
+
+
+dqxLb1=qxb1l-qxb1;
+dqyLb1=qyb1l-qyb1;
+dqxRb1=qxb1r-qxb1;
+dqyRb1=qyb1r-qyb1;
+
+dqxLb2=qxb2l-qxb2;
+dqyLb2=qyb2l-qyb2;
+dqxRb2=qxb2r-qxb2;
+dqyRb2=qyb2r-qyb2;
+
+value, dqxLb1, dqyLb1;
+
+fill, table=tabb1;
+fill, table=tabb2;
+
+
+i=i+1;
+}
+
+
+
+write, table=tabb1, file="TunesVsBetas.IP%IP.b1";
+write, table=tabb2, file="TunesVsBetas.IP%IP.b2";
+
+stop;

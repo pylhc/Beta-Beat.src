@@ -1,0 +1,22 @@
+set terminal postscript enhanced color solid 24
+
+
+
+set output"IP5byb2.eps"
+load "gnuplot.funcs"
+
+set view 64,131
+
+set ztics 0.2
+set xtics 0.1
+set ytics 0.1
+
+set zlabel "{/Symbol b}*_y"
+
+set xlabel"{/Symbol D}Q_y from Q1L5 [10^{-3}]" 0,-2
+set ylabel "{/Symbol D}Q_y from Q1R5 [10^{-3}]" 0,-1.4
+set key samplen 1
+#set contour
+#set pm3d
+sp [2.5:2.85][2:2.25][1.4:1.7] ip5byb2(x/1e3,y/1e3) t"Fit" w l,\
+    "TunesVsBetas.IP5.b2" u ($6*1e3):($8*1e3):2 t"Simulation" w p ps 2. pt 7 palette  
