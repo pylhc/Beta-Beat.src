@@ -104,6 +104,10 @@ def _parse_args():
         help="Peak to peak amplitude cut. This removes BPMs where "
         + "abs(max(turn values) - min(turn values)) <= threshold. Default is 10e-8",
         default="0.00000001", dest="peak", type="float")
+    parser.add_option("-c", "--max-peak-cut",
+        help="Maximum peak tolerance in mm. This removes BPMs where "
+        + "the maximum measured oscillation > threshold. Default is 20mm",
+        default="20", dest="max_peak", type="float")
     parser.add_option("-s", "--sumsquare",
         help="Threshold for single BPM dominating a mode. Should be > 0.9 for LHC."
         + " Default is 0.925",
@@ -127,6 +131,7 @@ def clean_sdds_file(
          maxturns=9500,
          sing_val=100000,
          pk_pk_cut=0.00000001,
+         max_peak_cut=20,
          sumsquare=0.925,
          use_test_mode=False
          ):
@@ -147,7 +152,7 @@ def clean_sdds_file(
     :param bool use_test_mode: Set testing mode, this prevents date writing and file overwriting.
                                   Default: False
     '''
-    _InputData.static_init(source_file, newfile, startturn, maxturns, sing_val, pk_pk_cut, sumsquare, use_test_mode)
+    _InputData.static_init(source_file, newfile, startturn, maxturns, sing_val, pk_pk_cut, max_peak_cut, sumsquare, use_test_mode)
 
     start_time = time.time()
     _SvdHandler()
@@ -159,7 +164,7 @@ class _InputData(object):
     """This class holds all input variables for svd clean """
 
     @staticmethod
-    def static_init(source_file, newfile, startturn_human, maxturns_human, sing_val, pk_pk_cut, sumsquare, use_test_mode):
+    def static_init(source_file, newfile, startturn_human, maxturns_human, sing_val, pk_pk_cut, max_peak_cut, sumsquare, use_test_mode):
         _InputData.source_file = source_file
         _InputData.newfile = newfile
         if _InputData.newfile == "":
@@ -171,6 +176,7 @@ class _InputData(object):
         _InputData.maxturns = _InputData.maxturns_human - 1
         _InputData.sing_val = sing_val
         _InputData.pk_pk_cut = pk_pk_cut
+        _InputData.max_peak_cut = max_peak_cut
         _InputData.sumsquare = sumsquare
         _InputData.use_test_mode = use_test_mode
 
@@ -248,19 +254,19 @@ class _SddsFile(object):
                 self.bad_bpmfile.add_badbpm(badbpm)
                 flatbpm_counter += 1
                 continue
-            list_of_OoR = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x > 20] 
-            # detects the turn numbers of all occurrences of a spike >20mm
+            list_of_OoR = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x > _InputData.max_peak_cut]
+            # detects the turn numbers of all occurrences of a spike > _InputData.max_peak_cut
             has_OoR = False
             if len(list_of_OoR) > 0:
                 has_OoR = True
             if has_OoR:
-                reason_for_badbpm = "Found a spike >20mm"
+                reason_for_badbpm = "Found a spike > " + str(_InputData.max_peak_cut) + "mm"
                 badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
                 self.bad_bpmfile.add_badbpm(badbpm)
                 bpm_with_spike += 1
                 continue
-            list_of_zeros = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x == 0.] 
-            # detects the turn numbers of all occurrences of an exact zero value since this was a workaround 
+            list_of_zeros = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x == 0.]
+            # detects the turn numbers of all occurrences of an exact zero value since this was a workaround
             # for the large spikes and is still unwanted. Could possible remove a good BPM but unlikely
             has_zero = False
             if len(list_of_zeros) > 0:
@@ -285,7 +291,7 @@ class _SddsFile(object):
         if bpm_with_exact_zero_counter > 0:
             print "Exact zeros detected. Number of BPMs removed:", bpm_with_exact_zero_counter
         if bpm_with_spike > 0:
-            print "Spikes >20mm detected. Number of BPMs removed:", bpm_with_spike
+            print "Spikes > " + str(_InputData.max_peak_cut) + "mm detected. Number of BPMs removed:", bpm_with_spike
         print "Startturn:", _InputData.startturn_human, "Maxturns:", _InputData.maxturns_human
         print "Number of turns:", self.number_of_turns
         print "Horizontal BPMs:", self.dictionary_plane_to_bpms[PLANE_X].get_number_of_bpms(),
@@ -558,6 +564,7 @@ def _start():
          maxturns=options.maxturns,
          sing_val=options.sing,
          pk_pk_cut=options.peak,
+         max_peak_cut=options.max_peak,
          sumsquare=options.sum,
          use_test_mode=options.use_test_mode
          )
