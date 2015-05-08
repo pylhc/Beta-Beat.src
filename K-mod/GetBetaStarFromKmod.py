@@ -323,9 +323,11 @@ dqr=float(dqs[1])
 edqs=options.edqs.split(",")
 edql=float(edqs[0])
 edqr=float(edqs[1])
-DK=float(options.DK)
+DK=options.DK.split(",")
+DKL=float(DK[0])
+DKR=float(DK[1])
 Q=float(options.Q)
-guess=[1000,-0.]
+guess=[20,-0.]
 incr=[0.01,0.001]
 
 
@@ -333,8 +335,8 @@ incr=[0.01,0.001]
 
 def betasfromtunes(Tdql,Tdqr):
     global Q,dql,dqr,l,DK,maxdb,mindb
-    dbl= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdql))+sin(2*pi*Tdql))/(l*DK)
-    dbr= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdqr))+sin(2*pi*Tdqr))/(l*DK)
+    dbl= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdql))+sin(2*pi*Tdql))/(l*DKL)
+    dbr= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdqr))+sin(2*pi*Tdqr))/(l*DKR)
     mindb=min(abs(dbl),abs(dbr))
     maxdb=max(abs(dbl),abs(dbr))
     return mindb, maxdb

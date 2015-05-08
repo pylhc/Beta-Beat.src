@@ -1,0 +1,6 @@
+call, file="db/IR1/new_ip1_b2_squeeze/IP1_beta_1.00m.str";
+call, file="db/IR5/new_ip5_b2_squeeze/IP5_beta_1.00m.str";
+call, file="db/IR8/3.5TeV/ip8_0.00875_beta3.00m.str";
+
+
+
