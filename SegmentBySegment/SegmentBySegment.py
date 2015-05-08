@@ -758,7 +758,7 @@ def _run4mad(save_path,
 
     _runmad(mad_file_path, log_file_path, madx_exe_path)
 
-    _prepare_watchdog_file_command(save_path, element_name, mad_file_path)
+    _prepare_watchdog_file_command(save_path, element_name)
 
 
 def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
@@ -850,10 +850,15 @@ def _get_corrections_file_comments_for_ip(element_name, accelerator):
     return comments_string
 
 
-def _prepare_watchdog_file_command(save_path, element_name, mad_file_name):
+def _prepare_watchdog_file_command(save_path, element_name):
+    corrections_file_name = "corrections_" + element_name + ".madx"
+    sbs_command = "\"" + " ".join(sys.argv) + "\""  # Gets the full command to run in the watchfile
     watch_file_name = os.path.join(save_path, "watch_" + str(element_name))
     watch_file = open(watch_file_name, "w")
-    print >> watch_file, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py " + mad_file_name + " " + save_path + "/gplot_" + str(element_name)
+    print >> watch_file, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py " +\
+                          corrections_file_name + " " +\
+                          save_path + "/gplot_" + str(element_name) + " " +\
+                          sbs_command
     watch_file.close()
     os.chmod(watch_file_name, 0777)
 
