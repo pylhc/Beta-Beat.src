@@ -201,6 +201,9 @@ class _SddsFile(object):
             return
         time_start = time.time()
 
+
+        ListOfKnownBadBpms = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", "BPMS.2L2.B2", "BPMWB.4R8.B1" ]
+
         last_number_of_turns = 0
         detected_number_of_turns = 0
         flatbpm_counter = 0
@@ -223,6 +226,9 @@ class _SddsFile(object):
             plane = list_splitted_line_values[0]
             bpm_name = list_splitted_line_values[1]
             location = float(list_splitted_line_values[2])
+
+            if bpm_name in ListOfKnownBadBpms: # Remove known bad BPMs
+                continue 
 
             # first 3 entries metadata, rest should be turn data (tbach)
             detected_number_of_turns = number_of_columns - 3
