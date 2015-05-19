@@ -1,0 +1,103 @@
+title, "V6.5: new IR3/7, moved Q3 in IR1/2/5/8 -  March 2004" ;
+
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.5/toolkit lt";
+ system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.500/ ds";
+
+
+ option, -echo, -info,  -warn;
+ call,   file = "db/V6.5.seq";
+ call,   file = "db/V6.5.inj.str";
+call, file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/K-mod/modifiers.madx";
+
+
+seqedit, sequence=LHCB1;
+flatten;
+cycle, start=0;
+endedit;
+
+
+ option,  -echo,  -info,  warn;
+
+beam, particle = proton, sequence=LHCB1, energy = 450.0, bv=1;
+beam, particle = proton, sequence=LHCB2, energy = 450.0, bv=-1;
+
+ 
+
+!  set switches to 1 if crossing scheme is required
+ on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
+ on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
+ on_alice:= 0; on_lhcb := 0;
+
+
+use, period=LHCB1;
+
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor,column=name,s,x,y;
+
+twiss;
+qxref=table(summ,Q1);
+qyref=table(summ,Q2);
+
+option,  echo,  info,  warn;
+
+MQXA.1R5.REF=MQXA.1R5->K1;
+MQXA.1L5.REF=MQXA.1L5->K1;
+
+
+match, use_macro;
+
+vary, name=kqtl11.l8B1;
+vary, name=kq10.l8B1;
+vary, name=kqf;
+vary, name=kqd;
+
+M1: macro{
+     twiss;
+     qx0=table(summ,Q1);
+     qx=table(summ,Q1);
+     qy=table(summ,Q2);
+     MQXA.1R5->K1=MQXA.1R5.REF+ 1e-5;
+     twiss;
+     qx1=table(summ,Q1);
+     MQXA.1R5->K1=MQXA.1R5.REF;
+     MQXA.1L5->K1=MQXA.1L5.REF+ 1e-5;
+     twiss;
+     MQXA.1L5->K1=MQXA.1L5.REF;
+     qx2=table(summ,Q1);
+     value, qx1-qx0, qx2-qx0,qx,qy;
+}
+
+constraint, EXPR = qx1-qx0=0.0009 ;
+constraint, EXPR = qx2-qx0=0.00105 ;
+constraint, EXPR = qx = qxref;
+constraint, EXPR = qy = qyref;
+jacobian, tolerance=1e-10;
+endmatch;
+option,  -echo,  -info,  -warn;
+
+savebeta,label=bIP,place=IP5;
+savebeta,label=bQR,place=MQXA.1R5;
+savebeta,label=bQL,place=MQXA.1L5;
+
+twiss, centre,file=final.twiss,save;
+value, bIP->betx;
+value, bIP->alfx;
+value, bQR->betx;
+value, bQL->betx;
+
+
+
+!Using known formula
+q1r=abs(0.0009/(1e-5*6.37)*4*pi);
+q1l=abs(0.00105/(1e-5*6.37)*4*pi);
+betastar=2*26.15^2/(q1r+q1l);
+betastar26.5=2*26.5^2/(q1r+q1l);
+value, q1r,q1l, betastar,betastar26.5;
+
+
+
+
+
+stop;
+

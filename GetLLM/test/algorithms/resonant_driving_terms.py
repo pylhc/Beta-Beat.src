@@ -82,20 +82,55 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
             line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2)
             out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
 
+
 def _get_best_fitting_bpm(phase_d, bpm1, plane):
-    '''Returns best fitting bpm_pair+phase_d of the given phase_d in the given plane for the given bpm1.'''
-    # get all possible_pairs
-    possible_pairs = {}
-    for bpm_pair in phase_d:
-        if bpm_pair[0] == plane and bpm_pair[1:].startswith(bpm1):
-            possible_pairs[bpm_pair] = phase_d[bpm_pair]
+    ''' 
+    @author: F Carlier
+    phase_d is a dictionary containing two different sets of keys. 
+    First there are the keys for the bpm pairs in the H & V planes, for example: 
+    HBPM.33R3.B1BPM.32R3.B1 for which the values are [phase difference measurement, error phase difference, phase difference model]
+
+    Second keys are the individual bpms ["BPM.33R3.B1","BPM.32R3.B1", etc..], with their values given by:
+    [phase diff X, std phase diff X, phase diff Y, std phase diff Y, phase diff Model X, phase diff model Y, NEXT BPM]   
+
+    Using the second key one iterates over the list of bpms to find the pair for which the phase difference is closest to 90 degrees (.25)
+    The phase advances between a pair of bpms is always compared to the advance of the previous set. As soon as the absolute difference to .25 
+    rises the last bpm is used for the pair. This iterations makes sure that the integer phase advance is taken into account. 
     
-    if not possible_pairs: raise KeyError("No possible BPM pairs for the given BPM found!")
-    # find best_fitting bpm_pair. We want the second bpm to be as close as possible to .25 offset
-    bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0]) - .25))
-    # for now we just pick the next bpm for pairing -> 0.0 phase offset
-    #bpm_pair = min(possible_pairs, key=lambda bpm_pair: abs(float(possible_pairs[bpm_pair][0])))
-    return (bpm_pair[1:].replace(bpm1, ""), possible_pairs[bpm_pair])
+    plane_idx       : makes sure the right plane is used for the phase
+    ph_advance      : total phase advance between first bpm and target bpm
+    ph_advance_next : total phase advance between first bpm and next bpm
+    value           : absolute difference between phase advance and .25 of first bpm set
+    value_next      : absolute difference between phase advance and .25 of the next bpm set
+    
+    '''
+
+    if plane == 'H':
+        plane_idx = 0
+    elif plane == 'V':
+        plane_idx = 2
+    else: 
+        raise KeyError("No valid plane was found!")
+    
+    ph_advance = float(phase_d[bpm1][0+plane_idx])  
+    next_bpm = phase_d[bpm1][6]
+    target_bpm = next_bpm
+    ph_advance_next = ph_advance + float(phase_d[next_bpm][0+plane_idx])
+    value = abs(ph_advance - .25) 
+    value_next = abs(ph_advance_next - .25)
+
+    while value_next < value:
+        target_bpm = next_bpm
+        ph_advance = ph_advance_next
+        next_bpm = phase_d[target_bpm][6]
+        ph_advance_next += float(phase_d[next_bpm][0+plane_idx])
+        value = value_next
+        value_next = abs(ph_advance_next - .25)
+        
+    bpm_pair = plane + bpm1 + target_bpm
+    
+    return next_bpm , phase_d[bpm_pair]
+
 
 def _line_to_amp_and_phase_attr(line, zero_dpp):
     '''To turn input line (-1,2) to (zero_dpp.AMP_12, zero_dpp.PHASE_12).'''

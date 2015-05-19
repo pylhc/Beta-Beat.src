@@ -286,7 +286,7 @@ def write_chromatic_coupling_files(path, corrected_model_path):
 
     twiss_cor_plus = _try_to_load_twiss(os.path.split(corrected_model_path)[0], "twiss_cor_dpp.dat")
     twiss_cor_minus = _try_to_load_twiss(os.path.split(corrected_model_path)[0], "twiss_cor_dpm.dat")
-    meas_chrom_coupling = _try_to_load_twiss(path, "chromcoupling.out")
+    meas_chrom_coupling = _try_to_load_one_of(path, "chromcoupling_free.out", "chromcoupling.out")
 
     if not twiss_cor_plus or not twiss_cor_minus or not meas_chrom_coupling:
         print "Cannot read chromatic coupling files. NO chromatic coupling"
@@ -347,6 +347,14 @@ def _try_to_load_twiss(twiss_path, twiss_file_name):
         return False
 
     return twiss_file
+
+
+def _try_to_load_one_of(twiss_path, *twiss_file_names):
+    for twiss_file_name in twiss_file_names:
+        atempted_twiss = _try_to_load_twiss(twiss_path, twiss_file_name)
+        if atempted_twiss:
+            return atempted_twiss
+    return False
 
 
 def _get_bpms_in_experiment_and_model(experimental_twiss, model_twiss):

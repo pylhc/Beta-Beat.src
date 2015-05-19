@@ -85,7 +85,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
                 back_prop_phase_difference -= tune[plane]
 
         prop_cor_phase = -getattr(model_propagation, "MU" + plane)[model_propagation.indx[bpm_name]] + getattr(model_cor, "MU" + plane)[model_cor.indx[bpm_name]]
-        back_cor_phase = -getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]] + getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[bpm_name]]
+        back_cor_phase = getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]] - getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[bpm_name]]
 
         prop_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_prop_phase, beta_start, alfa_start)
         cor_phase_error = _propagate_error_phase(err_beta_start, err_alfa_start, model_cor_phase, beta_start, alfa_start)

@@ -155,7 +155,7 @@ def _generate_changeparameters_couple_file():
     for var in _InputData.variables_list:
         varslist = varslist + knobsdict[var]
 
-    couple_twiss = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "chromcoupling.out"))
+    couple_twiss = _twiss_in_output_one_of("chromcoupling_free.out", "chromcoupling.out")
     mad_twiss = full_response['0']
     mad_twiss.Cmatrix()
     mode = 'C'
@@ -195,6 +195,13 @@ def _create_changeparameters_madx_script_for_lhc():
 
     mad_script.write("return;")
     mad_script.close()
+
+
+def _twiss_in_output_one_of(*file_names):
+    for file_name in file_names:
+        file_to_try = os.path.join(_InputData.output_path, file_name)
+        if os.path.exists(file_to_try):
+            return Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, file_to_try))
 
 
 #=======================================================================================================================

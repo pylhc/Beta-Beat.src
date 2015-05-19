@@ -4,14 +4,15 @@ title, "Model creator for java" ;
 ! is that variables are set as 
 ! percent(VARNAME)s instead of percentVARNAME
 
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-System,"ln -fns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
-
+System,"test -e runII || ln -ns %(BB_PATH)s/MODEL/LHCB_II/model/StrengthFiles/Nominal runII";
+System,"test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"test -e ats || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 
 option, -echo, -info,  warn;
-call,   file = "db5/V6.5.seq";
+
+%(BASE_SEQ)s
+
 call,   file = "%(MODIFIERS)s";
-call,   file = "/afs/cern.ch/eng/lhc/optics/V6.503//install_additional_elements.madx";
 
 seqedit, sequence=LHCB1;
 flatten;               
@@ -33,7 +34,7 @@ endedit;
 !  set switches to 1 if crossing scheme is required
  on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
  on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
- on_alice:= 0; on_lhcb := 0;
+ on_alice:= 0; on_lhcb := 0; on_a8 := 0; on_o8 := 0;
 
 
 use, period=%(ACCEL)s;
