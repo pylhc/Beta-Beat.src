@@ -1,3 +1,4 @@
+import __init__  # @UnusedImport
 import os
 import sys
 import re

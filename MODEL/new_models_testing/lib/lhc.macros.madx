@@ -6,8 +6,6 @@
 
 /*
 * Defines runII(runII nominal), db5(runI nominal) and ats(runI ats) links.
-* @param beta_beat_src: Path to the Beta-Beat.src directory. Quotes needed to
-* preserve upper case characters.
 */
 define_lhc_links(): macro = {
     System, "test -e runII || ln -ns /afs/cern.ch/eng/lhc/optics/runII/2015/ runII";
@@ -56,7 +54,7 @@ define_nominal_beams_for(accel): macro = {
 set_default_crossing_scheme(): macro = {
     on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
     on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
-    on_alice:= 0; on_lhcb := 0;
+    on_alice:= 0; on_lhcb := 0; on_a8 := 0; on_o8 := 0;
 };
 
 
@@ -183,3 +181,32 @@ full_lhc_twiss_ac(m_p, b_num, qx, qy, q_nx, q_ny, q_dx, q_dy, dpp, m_f, e_f, a_f
     exec, full_lhc_twiss(m_p, b_num, qx, qy, dpp, m_f, e_f);
     exec, twis_ac_dipole(q_nx, q_ny, q_dx, q_dy, b_num, a_f, dpp);
 };
+
+
+/*
+* TODO: Documentation for this
+* @param energy: The energy to be used.
+* @param beam_number: The beam to use either 1 or 2.
+* @param error_num: The number of the error table to load, has to be a 4 digits number (e.g. 0004).
+*/
+load_error_table_number(energy, beam_number, error_num): macro = {
+    call, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/error_tables_energyTeV/MBx-error_num.errors";
+    readmytable, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/error_tables_energyTeV/MBx-error_num.errors",
+                 table=errtab;
+    seterr, table = errtab;
+
+    call, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_corr_setting_Bbeam_number_energyTeV.mad";
+};
+
+
+/*
+* TODO: Documentation for this
+* @param energy: The energy to be used.
+* @param beam_number: The beam to use either 1 or 2.
+*/
+load_average_error_table(energy, beam_number): macro = {
+    readmytable, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_B1_energyTeV.errors", table=errtab;
+    seterr, table=errtab;
+    call, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_corr_setting_Bbeam_number_energyTeV.mad";
+}
+
