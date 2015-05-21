@@ -153,6 +153,12 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
             model_disp = (getattr(measured_dispersion, "D" + plane + "MDL"))[measured_dispersion.indx[bpm_name]]
             model_disp_p = (getattr(measured_dispersion, "DP" + plane + "MDL"))[measured_dispersion.indx[bpm_name]]
 
+            prop_disp_diff = getattr(measured_dispersion, "D" + plane)[measured_dispersion.indx[bpm_name]] - normal_prop_disp
+            back_prop_disp_diff = getattr(measured_dispersion, "D" + plane)[measured_dispersion.indx[bpm_name]] - back_prop_disp
+            measured_disp_std = getattr(measured_dispersion, "STDD" + plane)[measured_dispersion.indx[bpm_name]]
+            prop_disp_diff_err = math.sqrt(measured_disp_std ** 2 + normal_prop_disp_err ** 2)
+            back_prop_disp_diff_err = math.sqrt(measured_disp_std ** 2 + back_prop_disp_err ** 2)
+
             delta_phase_corr = (getattr(model_cor, "MU" + plane)[model_cor.indx[bpm_name]]) % 1
             delta_phase_back_corr = (getattr(model_back_cor, "MU" + plane)[model_back_cor.indx[bpm_name]]) % 1
 
@@ -162,6 +168,8 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
                                                          getattr(model_cor, "BET" + plane)[model_cor.indx[bpm_name]],
                                                          delta_phase_corr,
                                                          getattr(model_back_propagation, "ALF" + plane)[model_cor.indx[last_bpm]])
+            corr_disp_diff = corr_disp - normal_prop_disp
+            corr_disp_diff_err = math.sqrt(measured_disp_std ** 2 + corr_disp_err ** 2)
 
             back_corr_prop_disp = getattr(model_back_cor, "D" + plane)[model_back_cor.indx[bpm_name]]
             back_corr_prop_disp_err = _propagate_error_dispersion(getattr(measured_dispersion, "STDD" + plane)[measured_dispersion.indx[last_bpm]],
@@ -169,18 +177,32 @@ def _write_dispersion_for_plane(file_dispersion, plane, element_name, bpms_list,
                                                                      getattr(model_back_cor, "BET" + plane)[model_back_cor.indx[bpm_name]],
                                                                      delta_phase_back_corr,
                                                                      getattr(model_back_cor, "ALF" + plane)[model_back_cor.indx[last_bpm]])
+            back_corr_disp_diff = back_corr_prop_disp - back_prop_disp
+            back_corr_disp_diff_err = math.sqrt(measured_disp_std ** 2 + back_corr_prop_disp_err ** 2)
+
+            measured_disp_p_std = getattr(measured_dispersion, "STDD" + plane)[measured_dispersion.indx[bpm_name]]
+
+            prop_disp_p_diff = getattr(measured_dispersion, "DP" + plane)[measured_dispersion.indx[bpm_name]] - prop_disp_p
+            prop_disp_p_diff_err = math.sqrt(measured_disp_p_std ** 2 + prop_disp_p_err ** 2)
+
+            back_prop_disp_p_diff = getattr(measured_dispersion, "DP" + plane)[measured_dispersion.indx[bpm_name]] - back_prop_disp_p
+            back_prop_disp_p_diff_err = math.sqrt(measured_disp_p_std ** 2 + back_prop_disp_p_err ** 2)
 
             corr_disp_p = getattr(model_cor, "DP" + plane)[model_cor.indx[bpm_name]]
-            corr_disp_p_err = 0  # TODO: propagate?
+            corr_disp_p_err = 1e-8  # TODO: propagate?
+            corr_disp_p_diff = corr_disp_p - prop_disp_p
+            corr_disp_p_diff_err = math.sqrt(measured_disp_p_std ** 2 + corr_disp_p_err ** 2)
 
             back_corr_disp_p = getattr(model_back_cor, "DP" + plane)[model_back_cor.indx[bpm_name]]
-            back_corr_disp_p_err = 0  # TODO: propagate?
+            back_corr_disp_p_err = 1e-8  # TODO: propagate?
+            back_corr_disp_p_diff = back_corr_disp_p - back_prop_disp_p
+            back_corr_disp_p_diff_err = math.sqrt(measured_disp_p_std ** 2 + back_corr_disp_p_err ** 2)
 
             file_dispersion.add_table_row([bpm_name, bpm_s,
-                                           normal_prop_disp, normal_prop_disp_err, corr_disp, corr_disp_err,
-                                           back_prop_disp, back_prop_disp_err, back_corr_prop_disp, back_corr_prop_disp_err,
-                                           prop_disp_p, prop_disp_p_err, corr_disp_p, corr_disp_p_err,
-                                           back_prop_disp_p, back_prop_disp_p_err, back_corr_disp_p, back_corr_disp_p_err,
+                                           prop_disp_diff, prop_disp_diff_err, corr_disp_diff, corr_disp_diff_err,
+                                           back_prop_disp_diff, back_prop_disp_diff_err, back_corr_disp_diff, back_corr_disp_diff_err,
+                                           prop_disp_p_diff, prop_disp_p_diff_err, corr_disp_p_diff, corr_disp_p_diff_err,
+                                           back_prop_disp_p_diff, back_prop_disp_p_diff_err, back_corr_disp_p_diff, back_corr_disp_p_diff_err,
                                            model_disp, model_disp_p, model_s])
         else:
             model_s = input_model.S[input_model.indx[bpm_name]]
@@ -215,13 +237,18 @@ def _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, 
             model_s = measured_norm_disp.S[measured_norm_disp.indx[bpm_name]]
             model_norm_disp = measured_norm_disp.NDXMDL[measured_norm_disp.indx[bpm_name]]
 
+            norm_disp_diff = measured_norm_disp.NDX[measured_norm_disp.indx[bpm_name]] - prop_norm_disp
+            back_norm_disp_diff = measured_norm_disp.NDX[measured_norm_disp.indx[bpm_name]] - back_prop_norm_disp
+
             corr_norm_disp = model_cor.DX[model_cor.indx[bpm_name]] / sqrt(model_cor.BETX[model_cor.indx[bpm_name]])
+            corr_norm_disp_diff = corr_norm_disp - prop_norm_disp
             err_corr_norm_disp = 1e-8  # TODO: Propagate
 
             back_corr_norm_disp = model_back_cor.DX[model_back_cor.indx[bpm_name]] / sqrt(model_back_cor.BETX[model_back_cor.indx[bpm_name]])
+            back_corr_norm_disp_diff = back_corr_norm_disp - back_prop_norm_disp
             err_back_corr_norm_disp = 1e-8  # TODO: Propagate
 
-            file_norm_disp_x.add_table_row([bpm_name, bpm_s, prop_norm_disp, prop_norm_disp_err, corr_norm_disp, err_corr_norm_disp, back_prop_norm_disp, back_prop_norm_disp_err, back_corr_norm_disp, err_back_corr_norm_disp, model_norm_disp, model_s])
+            file_norm_disp_x.add_table_row([bpm_name, bpm_s, norm_disp_diff, prop_norm_disp_err, corr_norm_disp_diff, err_corr_norm_disp, back_norm_disp_diff, back_prop_norm_disp_err, back_corr_norm_disp_diff, err_back_corr_norm_disp, model_norm_disp, model_s])
         else:
             model_s = input_model.S[input_model.indx[bpm_name]]
             model_norm_disp = input_model.DX[input_model.indx[bpm_name]] / sqrt(input_model.BETX[input_model.indx[bpm_name]])
