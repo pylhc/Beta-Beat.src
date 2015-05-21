@@ -1,0 +1,683 @@
+/****************************************************
+ * Sequence and magnet strengths                   *
+ ****************************************************/
+
+
+option, -echo;
+  /*********************************************************
+  * Basic period (for reference)
+  **********************************************************
+  PERIOD: sequence, refer = centre , l  =   9.81750;
+  L1                               , at =   1.3269999985;
+  B1                               , at =   3.46284869;
+  L2                               , at =   4.4548473865;
+  QF                               , at =   4.88979739;
+  L3                               , at =   5.46847239;
+  QD                               , at =   6.23479739;
+  L4                               , at =   7.00162239;
+  QF                               , at =   7.58079739;
+  L5                               , at =   8.0162000035;
+  B1                               , at =   9.00865131;
+  endsequence;
+  *********************************************************/
+
+
+/************************************************************************************/
+/*                       PSB RING 1 SEQUENCE                                        */
+/************************************************************************************/
+
+P01 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 01
+ BI1.KSW1L1          : MKMAG001     , AT = .585         , SLOT_ID = 2458828;
+ BI.MTV50                           , AT = .792         , SLOT_ID = 2458832;
+ BI.SMH1L1                          , AT = 1.7274       , SLOT_ID = 2458834;
+ BI.MTV60                           , AT = 2.2479       , SLOT_ID = 2458835;
+ BR.BHZ11                           , AT = 3.462849    , SLOT_ID = 2458836;
+ BR.SPSCRAP11                       , AT = 4.2717       , SLOT_ID = 2458838;
+ BR.QFO11                          , AT = 4.889797    ;
+ BR1.UPH1L5          : UPH__002     , AT = 5.141597     , SLOT_ID = 2458841;
+ BR1.ONOH0.1L3       : ONOH0        , AT = 5.467797     , SLOT_ID = 2458845;
+ BR1.QSKH0.1L3       : QSKH0        , AT = 5.467797     , SLOT_ID = 2458846;
+ BR1.BPM1L3          : UES          , AT = 5.467797     , SLOT_ID = 2458847;
+ BR1.XNOH0.1L3       : XNOH0        , AT = 5.467797     , SLOT_ID = 2458848;
+ BR.QDE1                            , AT = 6.234797;
+ BI1.KSW1L4          : MKMAG002     , AT = 7.001797     , SLOT_ID = 2458862;
+ BR.QFO12                           , AT = 7.580797;
+ BR.STSCRAP12                       , AT = 8.1998       , SLOT_ID = 2458866;
+ BR.BHZ12                           , AT = 9.0086515    , SLOT_ID = 2458837;
+ENDSEQUENCE;
+
+P02 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 02
+ BR1.VVS2L1          : VVS          , AT = .1825        , SLOT_ID = 3783288;
+ BR1.BWS.2L1.V_ROT   : BWSV         , AT = .918         , SLOT_ID = 2458867;
+ BR1.BWS.2L1.H_ROT   : BWSH         , AT = 1.016        , SLOT_ID = 2458871;
+ BI1.KSW2L1          : MKMAG002     , AT = 1.737        , SLOT_ID = 2458875;
+ BR.BHZ21                           , AT = 3.4628485    , SLOT_ID = 2458879;
+ BR.STSCRAP21                       , AT = 4.2717       , SLOT_ID = 2458881;
+ BR.QFO21                           , AT = 4.889797;
+ BR1.ONOH0.2L3       : ONOH0        , AT = 5.467802     , SLOT_ID = 2458885;
+ BR1.QSK2L3          : QSK          , AT = 5.467802     , SLOT_ID = 2458886;
+ BR1.BPM2L3          : UES          , AT = 5.467802     , SLOT_ID = 2458887;
+ BR1.XNOH0.2L3       : XNOH0        , AT = 5.467802     , SLOT_ID = 2458888;
+ BR.QDE2                            , AT = 6.234797;
+ BR1.DHZ2L4          : DHZ__003     , AT = 7.001802     , SLOT_ID = 2458902;
+ BR1.DVT2L4          : DVT__003     , AT = 7.001802     , SLOT_ID = 2458903;
+ BR1.OSK2L4          : OSK          , AT = 7.001802     , SLOT_ID = 2458904;
+ BR1.XSK2L4          : XSK          , AT = 7.001802     , SLOT_ID = 2458905;
+ BR.QFO22                           , AT = 7.580797;
+ BR.STSCRAP22                       , AT = 8.1998       , SLOT_ID = 2458882;
+ BR.BHZ22                           , AT = 9.0086515    , SLOT_ID = 2458880;
+ENDSEQUENCE;
+
+P03 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 03
+ BR1.DES3L1          : DES          , AT = .8065        , SLOT_ID = 2458918;
+ BR1.ONO3L1          : ONO          , AT = 1.463        , SLOT_ID = 2458926;
+ BR1.QNO3L1          : QNO__001     , AT = 1.463        , SLOT_ID = 2458927;
+ BR1.UQD3L1          : UQD          , AT = 1.463        , SLOT_ID = 2458928;
+ BR1.XNO3L1          : XNO__001     , AT = 1.463        , SLOT_ID = 2458929;
+ BR1.BPM3L1          : UES          , AT = 2.043        , SLOT_ID = 2458939;
+ BR.BHZ31                           , AT = 3.4628485    , SLOT_ID = 2458943;
+ BR.STSCRAP31                       , AT = 4.2717       , SLOT_ID = 2458945;
+ BR.QFO31                           , AT = 4.889797;
+ BR1.ONOH0.3L3       : ONOH0        , AT = 5.467807     , SLOT_ID = 2458949;
+ BR1.QSKH0.3L3       : QSKH0        , AT = 5.467807     , SLOT_ID = 2458950;
+ BR1.BPM3L3          : UES          , AT = 5.467807     , SLOT_ID = 2458951;
+ BR1.XNOH0.3L3       : XNOH0        , AT = 5.467807     , SLOT_ID = 2458952;
+ BR.QDE3                            , AT = 6.234797;
+ BR1.DHZ3L4          : DHZ__003     , AT = 7.001807     , SLOT_ID = 2458966;
+ BR1.DVT3L4          : DVT__003     , AT = 7.001807     , SLOT_ID = 2458967;
+ BR.QFO32                           , AT = 7.580797;
+ BR.STSCRAP32                       , AT = 8.1998       , SLOT_ID = 2458946;
+ BR.BHZ32                           , AT = 9.0086515    , SLOT_ID = 2458944;
+ENDSEQUENCE;
+
+P04 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 04
+ BR1.ONO4L1          : ONO          , AT = .363         , SLOT_ID = 2458974;
+ BR1.XNO4L1          : XNO__001     , AT = .363         , SLOT_ID = 2458976;
+ BR1.OSK4L1          : OSK          , AT = .37          , SLOT_ID = 2458975;
+ BR1.XSK4L1          : XSK          , AT = .37          , SLOT_ID = 2458977;
+ BE1.DHZ4L1          : DHZ__003     , AT = 1.3355       , SLOT_ID = 2458990;
+ BE1.DVT4L1          : DVT__003     , AT = 1.3355       , SLOT_ID = 2458991;
+ BR.BHZ41                           , AT = 3.4628485    , SLOT_ID = 2458998;
+ BR.STSCRAP41                       , AT = 4.2717       , SLOT_ID = 2459000;
+ BR.QFO41                           , AT = 4.889797;
+ BR1.ONOH0.4L3       : ONOH0        , AT = 5.467812     , SLOT_ID = 2459004;
+ BR1.QNO4L3          : QNO__001     , AT = 5.467812     , SLOT_ID = 2459005;
+ BR1.BPM4L3          : UES          , AT = 5.467812     , SLOT_ID = 2459006;
+ BR1.XNOH0.4L3       : XNOH0        , AT = 5.467812     , SLOT_ID = 2459007;
+ BR.QDE4                            , AT = 6.234797;
+ BR1.DHZ4L4          : DHZ__003     , AT = 7.001812     , SLOT_ID = 2459021;
+ BR1.DSHAV4L4        : DSHAV        , AT = 7.001812     , SLOT_ID = 2459022;
+ BR.QFO42                           , AT = 7.580797;
+ BR1.UTFB4L5         : UTFB         , AT = 7.99794      , SLOT_ID = 2459029;
+ BR.STSCRAP42                       , AT = 8.1998       , SLOT_ID = 2459001;
+ BR.BHZ42                           , AT = 9.0086515    , SLOT_ID = 2458999;
+ENDSEQUENCE;
+
+P05 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 05
+ BR1.UPH5L1          : UPH__002     , AT = .5225        , SLOT_ID = 2459033;
+ BR1.C16.5L1         : ACC16        , AT = 1.63787      , SLOT_ID = 2459037;
+ BR.BHZ51                           , AT = 3.4628485    , SLOT_ID = 2459041;
+ BR.STSCRAP51                       , AT = 4.2717       , SLOT_ID = 2459043;
+ BR.QFO51                           , AT = 4.889797;
+ BR1.ONOH0.5L3       : ONOH0        , AT = 5.467806     , SLOT_ID = 2459047;
+ BR1.QSKH0.5L3       : QSKH0        , AT = 5.467806     , SLOT_ID = 2459048;
+ BR1.BPM5L3          : UES          , AT = 5.467806     , SLOT_ID = 2459049;
+ BR1.XNOH0.5L3       : XNOH0        , AT = 5.467806     , SLOT_ID = 2459050;
+ BR.QDE5                            , AT = 6.234797;
+ BR1.DHZ5L4          : DHZ__003     , AT = 6.840806     , SLOT_ID = 2459064;
+ BR1.DVT5L4          : DVT__003     , AT = 6.840806     , SLOT_ID = 2459065;
+ BR.QFO52                           , AT = 7.580797;
+ BR.STSCRAP52                       , AT = 8.1998       , SLOT_ID = 2459044;
+ BR.BHZ52                           , AT = 9.0086515    , SLOT_ID = 2459042;
+ENDSEQUENCE;
+
+P06 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 06
+ BR1.ONO6L1          : ONO          , AT = .363         , SLOT_ID = 2459072;
+ BR1.XNO6L1          : XNO__001     , AT = .363         , SLOT_ID = 2459074;
+ BR1.OSK6L1          : OSK          , AT = .37          , SLOT_ID = 2459073;
+ BR1.XSK6L1          : XSK          , AT = .37          , SLOT_ID = 2459075;
+ BR.BHZ61                           , AT = 3.4628485    , SLOT_ID = 2459088;
+ BR.STSCRAP61                       , AT = 4.2717       , SLOT_ID = 2459090;
+ BR.QFO61                           , AT = 4.889797;
+ BR1.ONOH0.6L3       : ONOH0        , AT = 5.467811     , SLOT_ID = 2459094;
+ BR1.QSK6L3          : QSK          , AT = 5.467811     , SLOT_ID = 2459095;
+ BR1.BPM6L3          : UES          , AT = 5.467811     , SLOT_ID = 2459096;
+ BR1.XNOH0.6L3       : XNOH0        , AT = 5.467811     , SLOT_ID = 2459097;
+ BR.QDE6                            , AT = 6.234797;
+ BR1.DHZ6L4          : DHZ__003     , AT = 7.001811     , SLOT_ID = 2459111;
+ BR1.DVT6L4          : DVT__003     , AT = 7.001811     , SLOT_ID = 2459112;
+ BR1.OSK6L4          : OSK          , AT = 7.001811     , SLOT_ID = 2459113;
+ BR1.XSK6L4          : XSK          , AT = 7.001811     , SLOT_ID = 2459114;
+ BR.QFO62                           , AT = 7.580797;
+ BR.STSCRAP62                       , AT = 8.1998       , SLOT_ID = 2459091;
+ BR.BHZ62                           , AT = 9.0086515    , SLOT_ID = 2459089;
+ENDSEQUENCE;
+
+P07 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 07
+ BR.BHZ71                           , AT = 3.4628485    , SLOT_ID = 2459129;
+ BR.STSCRAP71                       , AT = 4.2717       , SLOT_ID = 2459131;
+ BR1.BPM7L2          : UES          , AT = 4.47354      , SLOT_ID = 2459133;
+ BR.QFO71                           , AT = 4.889797;
+ BR1.ONOH0.7L3       : ONOH0        , AT = 5.467816     , SLOT_ID = 2459139;
+ BR1.QSKH0.7L3       : QSKH0        , AT = 5.467816     , SLOT_ID = 2459140;
+ BR1.BPM7L3          : UES          , AT = 5.467816     , SLOT_ID = 2459141;
+ BR1.XNOH0.7L3       : XNOH0        , AT = 5.467816     , SLOT_ID = 2459142;
+ BR.QDE7                            , AT = 6.234797;
+ BR1.DBSH7L4         : DBSH         , AT = 7.001816     , SLOT_ID = 2459156;
+ BR1.DBSV7L4         : DBSV         , AT = 7.001816     , SLOT_ID = 2459157;
+ BR.QFO72                           , AT = 7.580797;
+ BR.STSCRAP72                       , AT = 8.1998       , SLOT_ID = 2459132;
+ BR.BHZ72                           , AT = 9.0086515    , SLOT_ID = 2459130;
+ENDSEQUENCE;
+
+P08 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 08
+ BR1.ONO8L1          : ONO          , AT = .36375       , SLOT_ID = 2459164;
+ BR1.QNO8L1          : QNO__001     , AT = .36375       , SLOT_ID = 2459165;
+ BR1.XNO8L1          : XNO__001     , AT = .36375       , SLOT_ID = 2459166;
+ BR1.DHZ8L1          : DHZ__003     , AT = .86675       , SLOT_ID = 2459176;
+ BR1.DVT8L1          : DVT__003     , AT = .86675       , SLOT_ID = 2459177;
+ BR1.TFA8L1          : TFA          , AT = 1.4824       , SLOT_ID = 2459184;
+ BR1.UWBL8L1         : UWBL         , AT = 2.013023     , SLOT_ID = 2459188;
+ BR1.UPH8L1          : UPH__002     , AT = 2.183273     , SLOT_ID = 2459192;
+ BR1.VVS8L1          : VVS          , AT = 2.1875       , SLOT_ID = 3783284;
+ BR.BHZ81                           , AT = 3.4628485    , SLOT_ID = 2459196;
+ BR.STSCRAP81                       , AT = 4.2717       , SLOT_ID = 2459198;
+ BR1.WBS8L2          : WBS          , AT = 4.47354      , SLOT_ID = 2459200;
+ BR.QFO81                           , AT = 4.889797;
+ BR1.ONOH0.8L3       : ONOH0        , AT = 5.467821     , SLOT_ID = 2459206;
+ BR1.QNO8L3          : QNO__001     , AT = 5.467821     , SLOT_ID = 2459207;
+ BR1.BPM8L3          : UES          , AT = 5.467821     , SLOT_ID = 2459208;
+ BR1.XNOH0.8L3       : XNOH0        , AT = 5.467821     , SLOT_ID = 2459209;
+ BR.QDE8                            , AT = 6.234797;
+ BR1.DBSH8L4         : DBSH         , AT = 7.001821     , SLOT_ID = 2459223;
+ BR1.DBSV8L4         : DBSV         , AT = 7.001821     , SLOT_ID = 2459224;
+ BR.QFO82                           , AT = 7.580797;
+ BR.STSCRAP82                       , AT = 8.1998       , SLOT_ID = 2459199;
+ BR.BHZ82                           , AT = 9.0086515    , SLOT_ID = 2459197;
+ENDSEQUENCE;
+
+P09 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 09
+ BR1.DHZ9L1          : DHZ__003     , AT = .322         , SLOT_ID = 2459231;
+ BR1.DVT9L1          : DVT__003     , AT = .322         , SLOT_ID = 2459232;
+ BR1.TDC9L1          : TDC          , AT = 1.0383205    , SLOT_ID = 2459239;
+ BR1.ONO9L1          : ONO          , AT = 2.087        , SLOT_ID = 2459243;
+ BR1.XNO9L1          : XNO__001     , AT = 2.087        , SLOT_ID = 2459245;
+ BR1.OSK9L1          : OSK          , AT = 2.094        , SLOT_ID = 2459244;
+ BR1.XSK9L1          : XSK          , AT = 2.094        , SLOT_ID = 2459246;
+ BR.BHZ91                           , AT = 3.4628485    , SLOT_ID = 2459259;
+ BR.STSCRAP91                       , AT = 4.2717       , SLOT_ID = 2459261;
+ BR.QFO91                           , AT = 4.889797;
+ BR1.ONOH0.9L3       : ONOH0        , AT = 5.467826     , SLOT_ID = 2459265;
+ BR1.QSKH0.9L3       : QSKH0        , AT = 5.467826     , SLOT_ID = 2459266;
+ BR1.BPM9L3          : UES          , AT = 5.467826     , SLOT_ID = 2459267;
+ BR1.XNOH0.9L3       : XNOH0        , AT = 5.467826     , SLOT_ID = 2459268;
+ BR.QDE9                            , AT = 6.234797;
+ BR1.DBSH9L4         : DBSH         , AT = 7.001826     , SLOT_ID = 2459282;
+ BR1.DBSV9L4         : DBSV         , AT = 7.001826     , SLOT_ID = 2459283;
+ BR.QFO92                           , AT = 7.580797;
+ BR.STSCRAP92                       , AT = 8.1998       , SLOT_ID = 2459262;
+ BR.BHZ92                           , AT = 9.0086515    , SLOT_ID = 2459260;
+ENDSEQUENCE;
+
+P10 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 10
+ BR1.C02.10L1        : ACDTC        , AT = 1.327023     , SLOT_ID = 2459290;
+ BR.BHZ101                          , AT = 3.4628485    , SLOT_ID = 2459292;
+ BR.STSCRAP101                      , AT = 4.2717       , SLOT_ID = 2459294;
+ BR.QFO101                          , AT = 4.889797;
+ BR1.ONOH0.10L3      : ONOH0        , AT = 5.46782      , SLOT_ID = 2459298;
+ BR1.QSK10L3         : QSK          , AT = 5.46782      , SLOT_ID = 2459299;
+ BR1.BPM10L3         : UES          , AT = 5.46782      , SLOT_ID = 2459300;
+ BR1.XNOH0.10L3      : XNOH0        , AT = 5.46782      , SLOT_ID = 2459301;
+ BR.QDE10                           , AT = 6.234797;
+ BR1.DSHAH10L4       : DSHAH        , AT = 7.00182      , SLOT_ID = 2459315;
+ BR1.DVT10L4         : DVT__003     , AT = 7.00182      , SLOT_ID = 2459316;
+ BR.QFO102                          , AT = 7.580797;
+ BR.STSCRAP102                      , AT = 8.1998       , SLOT_ID = 2459295;
+ BR.BHZ102                          , AT = 9.0086515    , SLOT_ID = 2459293;
+ENDSEQUENCE;
+
+P11 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 11
+ BE1.DHZ11L1         : DHZ__003     , AT = .296         , SLOT_ID = 2459323;
+ BE1.DVT11L1         : DVT__003     , AT = .296         , SLOT_ID = 2459324;
+ BR1.ONO11L1         : ONO          , AT = 1.463        , SLOT_ID = 2459331;
+ BR1.QNO11L1         : QNO__001     , AT = 1.463        , SLOT_ID = 2459332;
+ BR1.XNO11L1         : XNO__001     , AT = 1.463        , SLOT_ID = 2459333;
+ BR.BHZ111                          , AT = 3.4628485    , SLOT_ID = 2459343;
+ BR.STSCRAP111                      , AT = 4.2717       , SLOT_ID = 2459345;
+ BR1.UPH11L2         : UPH__002     , AT = 4.3037       , SLOT_ID = 2459347;
+ BR.QFO111                          , AT = 4.889797;
+ BR1.ONOH0.11L3      : ONOH0        , AT = 5.467825     , SLOT_ID = 2459353;
+ BR1.QSKH0.11L3      : QSKH0        , AT = 5.467825     , SLOT_ID = 2459354;
+ BR1.BPM11L3         : UES          , AT = 5.467825     , SLOT_ID = 2459355;
+ BR1.XNOH0.11L3      : XNOH0        , AT = 5.467825     , SLOT_ID = 2459356;
+ BR.QDE11                           , AT = 6.234797;
+ BR1.DHZ11L4         : DHZ__003     , AT = 7.001825     , SLOT_ID = 2459370;
+ BR1.DVT11L4         : DVT__003     , AT = 7.001825     , SLOT_ID = 2459371;
+ BR1.OSK11L4         : OSK          , AT = 7.001825     , SLOT_ID = 2459372;
+ BR1.XSK11L4         : XSK          , AT = 7.001825     , SLOT_ID = 2459373;
+ BR.QFO112                          , AT = 7.580797;
+ BR.STSCRAP112                      , AT = 8.1998       , SLOT_ID = 2459346;
+ BR.BHZ112                          , AT = 9.0086515    , SLOT_ID = 2459344;
+ENDSEQUENCE;
+
+P12 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 12
+ BR1.KQM12L1         : KQM__002     , AT = .914         , SLOT_ID = 2459386;
+ BR1.ONO12L1         : ONO          , AT = 2.087        , SLOT_ID = 2459390;
+ BR1.XNO12L1         : XNO__001     , AT = 2.087        , SLOT_ID = 2459392;
+ BR1.OSK12L1         : OSK          , AT = 2.094        , SLOT_ID = 2459391;
+ BR1.XSK12L1         : XSK          , AT = 2.094        , SLOT_ID = 2459393;
+ BR.BHZ121                          , AT = 3.4628485    , SLOT_ID = 2459406;
+ BR.STSCRAP121                      , AT = 4.2717       , SLOT_ID = 2459408;
+ BR.QFO121                          , AT = 4.889797;
+ BR1.ONOH0.12L3      : ONOH0        , AT = 5.46783      , SLOT_ID = 2459412;
+ BR1.QNO12L3         : QNO__001     , AT = 5.46783      , SLOT_ID = 2459413;
+ BR1.BPM12L3         : UES          , AT = 5.46783      , SLOT_ID = 2459414;
+ BR1.XNOH0.12L3      : XNOH0        , AT = 5.46783      , SLOT_ID = 2459415;
+ BR.QDE12                           , AT = 6.234797;
+ BR1.DHZ12L4         : DHZ__003     , AT = 7.00183      , SLOT_ID = 2459429;
+ BR1.DVT12L4         : DVT__003     , AT = 7.00183      , SLOT_ID = 2459430;
+ BR1.OSK12L4         : OSK          , AT = 7.00183      , SLOT_ID = 2459431;
+ BR1.XSK12L4         : XSK          , AT = 7.00183      , SLOT_ID = 2459432;
+ BR.QFO122                          , AT = 7.580797;
+ BR.STSCRAP122                      , AT = 8.1998       , SLOT_ID = 2459409;
+ BR.BHZ122                          , AT = 9.0086515    , SLOT_ID = 2459407;
+ENDSEQUENCE;
+
+P13 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 13
+ BR1.C04.13L1        : ACC04        , AT = 1.327        , SLOT_ID = 2459445;
+ BR.BHZ131                          , AT = 3.4628485    , SLOT_ID = 2459449;
+ BR.STSCRAP131                      , AT = 4.2717       , SLOT_ID = 2459451;
+ BR.QFO131                          , AT = 4.889797;
+ BR1.ONOH0.13L3      : ONOH0        , AT = 5.467835     , SLOT_ID = 2459455;
+ BR1.QSKH0.13L3      : QSKH0        , AT = 5.467835     , SLOT_ID = 2459456;
+ BR1.BPM13L3         : UES          , AT = 5.467835     , SLOT_ID = 2459457;
+ BR1.XNOH0.13L3      : XNOH0        , AT = 5.467835     , SLOT_ID = 2459458;
+ BR.QDE13                           , AT = 6.234797;
+ BR1.DHZ13L4         : DHZ__003     , AT = 7.001835     , SLOT_ID = 2459472;
+ BR1.DVT13L4         : DVT__003     , AT = 7.001835     , SLOT_ID = 2459473;
+ BR.QFO132                          , AT = 7.580797;
+ BR.STSCRAP132                      , AT = 8.1998       , SLOT_ID = 2459452;
+ BR.BHZ132                          , AT = 9.0086515    , SLOT_ID = 2459450;
+ENDSEQUENCE;
+
+P14 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 14
+ BR1.DHZ14L1         : DHZ__003     , AT = .234928      , SLOT_ID = 2459480;
+ BR1.DVT14L1         : DVT__003     , AT = .234928      , SLOT_ID = 2459481;
+ BE1.KFA14L1         : MKMAG005     , AT = 1.52379      , SLOT_ID = 2459488;
+ BR.BHZ141                          , AT = 3.4628485    , SLOT_ID = 2459492;
+ BR.STSCRAP141                      , AT = 4.2717       , SLOT_ID = 2459494;
+ BR1.VVS14L2         : VVS          , AT = 4.3725       , SLOT_ID = 3783356;
+ BR.QFO141                          , AT = 4.889797;
+ BR1.ONOH0.14L3      : ONOH0        , AT = 5.467839     , SLOT_ID = 2459497;
+ BR1.QSK14L3         : QSK          , AT = 5.467839     , SLOT_ID = 2459498;
+ BR1.BPM14L3         : UES          , AT = 5.467839     , SLOT_ID = 2459499;
+ BR1.XNOH0.14L3      : XNOH0        , AT = 5.467839     , SLOT_ID = 2459500;
+ BR.QDE14                           , AT = 6.234797;
+ BR1.UPH14L4         : UPH__002     , AT = 6.79374      , SLOT_ID = 2459514;
+ BE1.BSW14L4         : MKMAG003     , AT = 7.05474      , SLOT_ID = 2459518;
+ BR.QFO142                          , AT = 7.580797;
+ BR.SPSCRAP142                      , AT = 8.1998       , SLOT_ID = 2459522;
+ BR.BHZ142                          , AT = 9.0086515    , SLOT_ID = 2459493;
+ENDSEQUENCE;
+
+P15 : SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 15
+ BR.MTV15                           , AT = .192         , SLOT_ID = 2459523;
+ BE1.SMH15L1         : SMH__006     , AT = .909892      , SLOT_ID = 2459524;
+ BR1.DHZ15L1         : DHZ__003     , AT = 1.8213       , SLOT_ID = 2459528;
+ BR1.DVT15L1         : DVT__003     , AT = 1.8213       , SLOT_ID = 2459529;
+ BE1.BSW15L1         : MKMAG004     , AT = 2.36666      , SLOT_ID = 2459536;
+ BR.BHZ151                          , AT = 3.4628485    , SLOT_ID = 2459540;
+ BR.SPSCRAP151                      , AT = 4.2717       , SLOT_ID = 2459542;
+ BR.QFO151                          , AT = 4.889797;
+ BR1.ONOH0.15L3      : ONOH0        , AT = 5.467834     , SLOT_ID = 2459545;
+ BR1.QSKH0.15L3      : QSKH0        , AT = 5.467834     , SLOT_ID = 2459546;
+ BR1.BPM15L3         : UES          , AT = 5.467834     , SLOT_ID = 2459547;
+ BR1.XNOH0.15L3      : XNOH0        , AT = 5.467834     , SLOT_ID = 2459548;
+ BR.QDE15                           , AT = 6.234797;
+ BE1.BSW15L4         : MKMAG003     , AT = 7.001834     , SLOT_ID = 2459562;
+ BR.QFO152                          , AT = 7.580797;
+ BR.STSCRAP152                      , AT = 8.1998       , SLOT_ID = 2459566;
+ BR.BHZ152                          , AT = 9.0086515    , SLOT_ID = 2459541;
+ENDSEQUENCE;
+
+P16: SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 16
+ BR1.ONO16L1         : ONO          , AT = .363         , SLOT_ID = 2459567;
+ BR1.QNO16L1         : QNO__001     , AT = .363         , SLOT_ID = 2459568;
+ BR1.XNO16L1         : XNO__001     , AT = .363         , SLOT_ID = 2459569;
+ BR1.DHZ16L1         : DHZ__003     , AT = 1.99601      , SLOT_ID = 2459579;
+ BR1.DVT16L1         : DVT__003     , AT = 1.99601      , SLOT_ID = 2459580;
+ BR.BHZ161                          , AT = 3.4628485    , SLOT_ID = 2459587;
+ BR.STSCRAP161                      , AT = 4.2717       , SLOT_ID = 2459589;
+ BR.QFO161                          , AT = 4.889797;
+ BR1.ONOH0.16L3      : ONOH0        , AT = 5.467839     , SLOT_ID = 2459593;
+ BR1.QNO16L3         : QNO__001     , AT = 5.467839     , SLOT_ID = 2459594;
+ BR1.BPM16L3         : UES          , AT = 5.467839     , SLOT_ID = 2459595;
+ BR1.XNOH0.16L3      : XNOH0        , AT = 5.467839     , SLOT_ID = 2459596;
+ BR.QDE16                           , AT = 6.234797;
+ BI1.KSW16L4         : MKMAG002     , AT = 7.001839     , SLOT_ID = 2459610;
+ BR.QFO162                          , AT = 7.580797;
+ BR.STSCRAP162                      , AT = 8.1998       , SLOT_ID = 2459590;
+ BR.BHZ162                          , AT = 9.0086515    , SLOT_ID = 2459588;
+ENDSEQUENCE;
+
+
+/****************************************************
+ * Main elements
+ ****************************************************/
+! The angle is negative because the protons
+! have opposite direction compared to the PS.
+! When combining the files from the BOOSTER
+! to the PS, the angle must be negative.
+
+ kB1=-0.19634954;!2p
+
+
+ kKF=	 	 0.742319;		!kF=0.78614*(1+(If+delIf/2)/Ib)
+ kKD=		-0.76003;		!kD=0.78614*(1+(Id+delId/2)/Ib)
+ 
+
+/****************************************************
+ * Injection kickers (off)
+ ****************************************************/
+
+kBIKSW1L1  = 0;
+kBIKSW1L4  = 0;
+kBIKSW2L1  = 0;
+kBIKSW16L4 = 0;
+
+/************************************************************************************/
+/*                     main bending magnet STRENGTH settings                        */
+/************************************************************************************/
+ 
+ BR.BHZ11           , ANGLE := kB1;
+ BR.BHZ12           , ANGLE := kB1;
+ BR.BHZ21           , ANGLE := kB1;
+ BR.BHZ22           , ANGLE := kB1;
+ BR.BHZ31           , ANGLE := kB1;
+ BR.BHZ32           , ANGLE := kB1;
+ BR.BHZ41           , ANGLE := kB1;
+ BR.BHZ42           , ANGLE := kB1;
+ BR.BHZ51           , ANGLE := kB1;
+ BR.BHZ52           , ANGLE := kB1;
+ BR.BHZ61           , ANGLE := kB1;
+ BR.BHZ62           , ANGLE := kB1;
+ BR.BHZ71           , ANGLE := kB1;
+ BR.BHZ72           , ANGLE := kB1;
+ BR.BHZ81           , ANGLE := kB1;
+ BR.BHZ82           , ANGLE := kB1;
+ BR.BHZ91           , ANGLE := kB1;
+ BR.BHZ92           , ANGLE := kB1;
+ BR.BHZ101          , ANGLE := kB1;
+ BR.BHZ102          , ANGLE := kB1;
+ BR.BHZ111          , ANGLE := kB1;
+ BR.BHZ112          , ANGLE := kB1;
+ BR.BHZ121          , ANGLE := kB1;
+ BR.BHZ122          , ANGLE := kB1;
+ BR.BHZ131          , ANGLE := kB1;
+ BR.BHZ132          , ANGLE := kB1;
+ BR.BHZ141          , ANGLE := kB1;
+ BR.BHZ142          , ANGLE := kB1;
+ BR.BHZ151          , ANGLE := kB1;
+ BR.BHZ152          , ANGLE := kB1;
+ BR.BHZ161          , ANGLE := kB1;
+ BR.BHZ162          , ANGLE := kB1;
+
+
+
+
+ 
+/************************************************************************************/
+/*                      Ring 1 dipoles:                                             */
+/************************************************************************************/
+ 
+ BR1.DHZ2L4         , KICK := kBR1DHZ2L4;
+ BR1.DHZ3L4         , KICK := kBR1DHZ3L4;
+ BR1.DHZ4L4         , KICK := kBR1DHZ4L4;
+ BR1.DHZ5L4         , KICK := kBR1DHZ5L4;
+ BR1.DHZ6L4         , KICK := kBR1DHZ6L4;
+ BR1.DHZ8L1         , KICK := kBR1DHZ8L1;
+ BR1.DHZ9L1         , KICK := kBR1DHZ9L1;
+ BR1.DHZ11L4        , KICK := kBR1DHZ11L4;
+ BR1.DHZ12L4        , KICK := kBR1DHZ12L4;
+ BR1.DHZ13L4        , KICK := kBR1DHZ13L4;
+ BR1.DHZ14L1        , KICK := kBR1DHZ14L1;
+ BR1.DHZ15L1        , KICK := kBR1DHZ15L1;
+ BR1.DHZ16L1        , KICK := kBR1DHZ16L1;
+  
+ BR1.DVT2L4         , KICK := kBR1DVT2L4;
+ BR1.DVT3L4         , KICK := kBR1DVT3L4;
+ BR1.DVT5L4         , KICK := kBR1DVT5L4;
+ BR1.DVT6L4         , KICK := kBR1DVT6L4;
+ BR1.DVT8L1         , KICK := kBR1DVT8L1;
+ BR1.DVT9L1         , KICK := kBR1DVT9L1;
+ BR1.DVT10L4        , KICK := kBR1DVT10L4;
+ BR1.DVT11L4        , KICK := kBR1DVT11L4;
+ BR1.DVT12L4        , KICK := kBR1DVT12L4;
+ BR1.DVT13L4        , KICK := kBR1DVT13L4;
+ BR1.DVT14L1        , KICK := kBR1DVT14L1;
+ BR1.DVT15L1        , KICK := kBR1DVT15L1;
+ BR1.DVT16L1        , KICK := kBR1DVT16L1;
+ 
+/************************************************************************************/
+/*                      Ring 1 multipoles:	                                    */
+/************************************************************************************/
+ 
+  Br := 10/2.9979*momentum; 	! beam rigidity
+
+/*************QUADRUPOLES**********************************/ 
+
+ tQ=0.0496/85;		! integrated B' per amp
+
+ 
+ ! magnet currents in amps:
+ 
+ iBR1QNO311L1	=	0;
+ iBR1QNO412L3	=	0;
+ iBR1QNO816L1	=	0;
+ iBR1QNO816L3	=	0;
+
+ iBR1QSK210L3	=	0;
+ iBR1QSK614L3	=	0;
+
+ iBR1QSKHO	=	0;
+
+ 
+ ! magnet strengths:
+ 
+ kBR1QNO311L1   := 	iBR1QNO311L1	* tQ/Br;
+ kBR1QNO412L3   := 	iBR1QNO412L3	* tQ/Br;
+ kBR1QNO816L1   := 	iBR1QNO816L1	* tQ/Br;
+ kBR1QNO8161L3  := 	iBR1QNO816L3	* tQ/Br;
+
+ kBR1QSK614L3   := 	iBR1QSK614L3	* tQ/Br;
+ kBR1QSK210L3   := 	iBR1QSK210L3	* tQ/Br;
+
+ kBR1QSKHO	:= 	iBR1QSKHO	* tQ/Br;
+
+
+ ! magnet definitions: (polarities need to be verified) 
+ 
+ BR1.QNO3L1         , KNL := {0,-kBR1QNO311L1};!these magnets have inverted polarity
+ BR1.QNO4L3         , KNL := {0,-kBR1QNO412L3};
+ BR1.QNO8L1         , KNL := {0,-kBR1QNO816L1};
+ BR1.QNO8L3         , KNL := {0,-kBR1QNO816L3};
+ BR1.QNO11L1        , KNL := {0, kBR1QNO311L1};!these magnets are short-circuited
+ BR1.QNO12L3        , KNL := {0, kBR1QNO412L3};
+ BR1.QNO16L1        , KNL := {0, kBR1QNO816L1};
+ BR1.QNO16L3        , KNL := {0, kBR1QNO816L3};
+ 
+ BR1.QSK2L3		, KSL = {0,-kBR1QSK210L3};
+ BR1.QSK10L3		, KSL = {0, kBR1QSK210L3};
+ BR1.QSK6L3		, KSL = {0,-kBR1QSK614L3};
+ BR1.QSK14L3		, KSL = {0, kBR1QSK614L3};
+  
+ BR1.QSKH0.1L3	    , KSL := {0,kBR1QSKHO};
+ BR1.QSKH0.3L3	    , KSL := {0,kBR1QSKHO};
+ BR1.QSKH0.5L3	    , KSL := {0,kBR1QSKHO};
+ BR1.QSKH0.7L3	    , KSL := {0,kBR1QSKHO};
+ BR1.QSKH0.9L3	    , KSL := {0,kBR1QSKHO};
+ BR1.QSKH0.11L3	    , KSL := {0,kBR1QSKHO};
+ BR1.QSKH0.13L3	    , KSL := {0,kBR1QSKHO};
+ BR1.QSKH0.15L3	    , KSL := {0,kBR1QSKHO};
+  
+
+
+/*************SEXTUPOLES**********************************/ 
+
+ tSX=		2.052/270; 		! integrated B'' per amp
+
+ ! magnet currents in amps:
+
+ iBR1XNO4L1	=	0;			
+ iBR1XNO6L1	=	0;			
+ iBR1XNO9L1	=	0;	
+ iBR1XNO12L1	=	0;	
+ iBR1XNO311L1	=	0;
+ iBR1XNO816L1	=	0;
+
+ iBR1XNOH0	=	0;		
+
+ iBR1XSK2L4	=	0;			
+ iBR1XSK4L1	=	0;			
+ iBR1XSK6L1	=	0;			
+ iBR1XSK6L4	=	0;			
+ iBR1XSK9L1	=	0;			
+ iBR1XSK11L4	=	0;			
+ iBR1XSK12L1	=	0;			
+ iBR1XSK12L4	=	0;			
+ 
+
+ ! magnet strengths:
+
+ kBR1XNO4L1	:=	iBR1XNO4L1	* tSX/Br;
+ kBR1XNO6L1	:=	iBR1XNO6L1	* tSX/Br;
+ kBR1XNO9L1	:=	iBR1XNO9L1	* tSX/Br;
+ kBR1XNO12L1	:=	iBR1XNO12L1	* tSX/Br;
+ kBR1XNO311L1	:=	iBR1XNO311L1	* tSX/Br;
+ kBR1XNO816L1	:=	iBR1XNO816L1	* tSX/Br;
+
+ kBR1XNOH0	:=	iBR1XNOH0	* tSX/Br;
+ 
+ kBR1XSK2L4	:=	iBR1XSK2L4	* tSX/Br;
+ kBR1XSK4L1	:=	iBR1XSK4L1	* tSX/Br;
+ kBR1XSK6L1	:=	iBR1XSK6L1	* tSX/Br;
+ kBR1XSK6L4	:=	iBR1XSK6L4	* tSX/Br;
+ kBR1XSK9L1	:=	iBR1XSK9L1	* tSX/Br;			
+ kBR1XSK11L4	:=	iBR1XSK11L4	* tSX/Br;			
+ kBR1XSK12L1	:=	iBR1XSK12L1	* tSX/Br;			
+ kBR1XSK12L4	:=	iBR1XSK12L4	* tSX/Br;			
+ 
+
+ ! magnet definitions: (polarities need to be verified) 
+ 
+ BR1.XNO3L1         , KNL := {0,0,kBR1XNO311L1};
+ BR1.XNO4L1         , KNL := {0,0,kBR1XNO4L1};
+ BR1.XNO6L1         , KNL := {0,0,kBR1XNO6L1};
+ BR1.XNO8L1         , KNL := {0,0,kBR1XNO816L1};
+ BR1.XNO9L1         , KNL := {0,0,kBR1XNO9L1};
+ BR1.XNO11L1        , KNL := {0,0,kBR1XNO311L1};
+ BR1.XNO12L1        , KNL := {0,0,kBR1XNO12L1};
+ BR1.XNO16L1        , KNL := {0,0,kBR1XNO816L1};
+
+ BR1.XNOH0.1L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.2L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.3L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.4L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.5L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.6L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.7L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.8L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.9L3      , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.10L3     , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.11L3     , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.12L3     , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.13L3     , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.14L3     , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.15L3     , KNL := {0,0,kBR1XNOH0};
+ BR1.XNOH0.16L3     , KNL := {0,0,kBR1XNOH0};
+ 
+ BR1.XSK2L4         , KSL := {0,0,kBR1XSK2L4};
+ BR1.XSK4L1         , KSL := {0,0,kBR1XSK4L1};
+ BR1.XSK6L1         , KSL := {0,0,kBR1XSK6L1};
+ BR1.XSK6L4         , KSL := {0,0,kBR1XSK6L4};
+ BR1.XSK9L1         , KSL := {0,0,kBR1XSK9L1};
+ BR1.XSK11L4        , KSL := {0,0,kBR1XSK11L4};
+ BR1.XSK12L1        , KSL := {0,0,kBR1XSK12L1};
+ BR1.XSK12L4        , KSL := {0,0,kBR1XSK12L4};
+ 
+
+/*************OCTUPOLES**********************************/ 
+
+ tOCT=		80.41/270; 		! integrated B''' per amp
+  
+
+ ! magnet currents in amps:
+
+ iBR1ONO311L1	=	0;
+ iBR1ONO816L1	=	0;
+
+ iBR1ONOH0	=	0; 
+ 
+ 
+ ! magnet strengths:
+
+ kBR1ONO311L1	=	iBR1ONO311L1 	* tOCT/Br;
+ kBR1ONO816L1	=	iBR1ONO816L1 	* tOCT/Br;
+
+ kBR1ONOH0	=	iBR1ONOH0 	* tOCT/Br;
+
+
+ ! magnet definitions: (polarities need to be verified) 
+ 
+ BR1.ONO3L1         , KNL := {0,0,0,kBR1ONO311L1};
+ BR1.ONO8L1         , KNL := {0,0,0,kBR1ONO816L1};
+ BR1.ONO11L1        , KNL := {0,0,0,kBR1ONO311L1};
+ BR1.ONO16L1        , KNL := {0,0,0,kBR1ONO816L1};
+ 
+ BR1.ONOH0.1L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.2L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.3L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.4L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.5L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.6L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.7L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.8L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.9L3      , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.10L3     , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.11L3     , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.12L3     , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.13L3     , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.14L3     , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.15L3     , KNL := {0,0,0,kBR1ONOH0};
+ BR1.ONOH0.16L3     , KNL := {0,0,0,kBR1ONOH0};
+ 
+
+/#####################################################/
+
+ BE1.BSW14L4        , ANGLE := kBEBSW14L4;
+ BE1.BSW15L1        , ANGLE := kBEBSW15L1;
+ BE1.BSW15L4        , ANGLE := kBEBSW15L4;
+ 
+ BE1.KFA14L1        , KICK := kBEKFA14L1;
+ BE1.SMH15L1        , KICK := kBEKFA15L1;
+ BI1.KSW16L4        , KICK := kBIKSW16L4;
+ BI1.KSW1L1         , KICK := kBIKSW1L1;
+ BI1.KSW1L4         , KICK := kBIKSW1L4;
+ BI1.KSW2L1         , KICK := kBIKSW2L1;
+ 
+ BI.SMH1L1          , KICK := kBISMH1L1;
+ 
+ BR1.DBSH7L4        , KICK := kBR1DBSH7L4;
+ BR1.DBSH8L4        , KICK := kBR1DBSH8L4;
+ BR1.DBSH9L4        , KICK := kBR1DBSH9L4;
+ BR1.DBSV7L4        , KICK := kBR1DBSV7L4;
+ BR1.DBSV8L4        , KICK := kBR1DBSV8L4;
+ BR1.DBSV9L4        , KICK := kBR1DBSV9L4;
+ BR1.DSHAH10L4      , KICK := kBR1DSHAH10L4;
+ BR1.DSHAV4L4       , KICK := kBR1DSHAV4L4;
+ BR1.DES3L1         , KICK := kBRDES3L1;
+ 
+ BR1.C04.13L1       , VOLT := vACC04, FREQ=4;
+ BR1.C16.5L1        , VOLT := vACC16, FREQ=16;
+ 
+return;
