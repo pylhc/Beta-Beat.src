@@ -85,7 +85,7 @@ match_tunes(qx, qy, beam_number): macro = {
 * preserve upper case characters.
 * @param dpp: delta p / p to use in the twiss command.
 */
-twis_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number, output_file, dpp): macro = {
+twiss_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number, output_file, dpp): macro = {
     Qx = natural_qx;
     Qxd = driven_qx;
     
@@ -117,11 +117,8 @@ twis_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number, output
 * @param modifiers_path: Modifiers file to use, should contain at least the
 * injection settings.
 * @param beam_number: The beam to use either 1 or 2.
-* @param qx: The horizontal tune to match to (with integer part).
-* @param qy: The vertical tune to match to (with integer part).
-* @param dpp: Delta p / p to use in the twiss command.
 */
-full_lhc_def(modifiers_path, beam_number, qx, qy, dpp): macro = {
+full_lhc_def(modifiers_path, beam_number): macro = {
     exec, define_lhc_links();
     exec, load_main_sequence();
     call, file = modifiers_path;
@@ -129,7 +126,6 @@ full_lhc_def(modifiers_path, beam_number, qx, qy, dpp): macro = {
     exec, define_nominal_beams();
     exec, set_default_crossing_scheme();
     use, period = LHCBbeam_number;
-    exec, match_tunes(qx, qy, beam_number);
 };
 
 
@@ -150,6 +146,7 @@ full_lhc_def(modifiers_path, beam_number, qx, qy, dpp): macro = {
 full_lhc_twiss(modifiers_path, beam_number, qx, qy, dpp,
                monitors_file, elements_file): macro = {
     exec, full_lhc_def(modifiers_path, beam_number, qx, qy, dpp);
+    exec, match_tunes(qx, qy, beam_number);
     exec, do_twiss_monitors(LHCBbeam_number, monitors_file, dpp);
     exec, do_twiss_elements(LHCBbeam_number, elements_file, dpp);
 };
@@ -179,7 +176,7 @@ full_lhc_twiss(modifiers_path, beam_number, qx, qy, dpp,
 */
 full_lhc_twiss_ac(m_p, b_num, qx, qy, q_nx, q_ny, q_dx, q_dy, dpp, m_f, e_f, a_f): macro = {
     exec, full_lhc_twiss(m_p, b_num, qx, qy, dpp, m_f, e_f);
-    exec, twis_ac_dipole(q_nx, q_ny, q_dx, q_dy, b_num, a_f, dpp);
+    exec, twiss_ac_dipole(q_nx, q_ny, q_dx, q_dy, b_num, a_f, dpp);
 };
 
 
@@ -205,7 +202,7 @@ load_error_table_number(energy, beam_number, error_num): macro = {
 * @param beam_number: The beam to use either 1 or 2.
 */
 load_average_error_table(energy, beam_number): macro = {
-    readmytable, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_B1_energyTeV.errors", table=errtab;
+    readmytable, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_Bbeam_number_energyTeV.errors", table=errtab;
     seterr, table=errtab;
     call, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_corr_setting_Bbeam_number_energyTeV.mad";
 }
