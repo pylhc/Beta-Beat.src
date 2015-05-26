@@ -59,6 +59,7 @@ KQTD.B1_temp = KQTD.B1;
 KQTF.B1_temp = KQTF.B1;
 
 
+call, file = "%PATH/corrections.madx";
 call, file = "%PATH/extracted_mqts.str";
 
 !!!!! nominal
