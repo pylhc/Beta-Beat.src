@@ -123,6 +123,8 @@ SETERR,TABLE=errtab;
 KQTD.B1 = KQTD.B1_temp;
 KQTF.B1 = KQTF.B1_temp;
 
+call, file = "%PATH/extracted_mqts.str";
+
 select, flag=twiss, clear;
 select, flag=twiss,pattern=MKQA.6L4.B1,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
