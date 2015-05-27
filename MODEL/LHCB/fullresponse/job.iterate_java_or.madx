@@ -38,6 +38,16 @@ on_alice:= 0; on_lhcb := 0; on_a8 := 0; on_o8 := 0;
 
 %MATCHER call,file="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/model/matcher.madx";
 
+!!!!!!!!! matching
+match;
+
+vary, name=KQTD.%BEAM;
+vary, name=KQTF.%BEAM;
+
+constraint, range=#E, mux=%QMX, muy=%QMY;
+lmdif;
+endmatch;
+
 
 select, flag=twiss, clear;
 select,    flag=twiss, pattern="BPM.*\.%BEAM", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
