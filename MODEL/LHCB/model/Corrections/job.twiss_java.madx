@@ -40,10 +40,18 @@ endedit;
 ! To be properly fixed with the %MATCHER replacement as for job_iterate
 
 
-
-
 use, period=%ACCEL;
 
+
+!!!!!!!!! matching
+match;
+
+vary, name=KQTD.%BEAM;
+vary, name=KQTF.%BEAM;
+
+constraint, range=#E, mux=%QMX, muy=%QMY;
+lmdif;
+endmatch;
 
 
 !!!!! nominal

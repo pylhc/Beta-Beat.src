@@ -59,6 +59,7 @@ KQTD.B2_temp = KQTD.B2;
 KQTF.B2_temp = KQTF.B2;
 
 
+call, file = "%PATH/corrections.madx";
 call, file = "%PATH/extracted_mqts.str";
 
 !!!!! nominal
@@ -122,6 +123,7 @@ SETERR,TABLE=errtab;
 KQTD.B2 = KQTD.B2_temp;
 KQTF.B2 = KQTF.B2_temp;
 
+call, file = "%PATH/extracted_mqts.str";
 
 select, flag=twiss, clear;
 select, flag=twiss,pattern=MKQA.6L4.B2,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
