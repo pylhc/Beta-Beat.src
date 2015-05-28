@@ -41,13 +41,13 @@ def resolve_and_run_file(input_file, output_file=None, log_file=None):
     _check_files(input_file, output_file, log_file)
     main_file_content = iotools.read_all_lines_in_textfile(input_file)
     full_madx_script = resolve(main_file_content, output_file, log_file)
-    run(full_madx_script, log_file)
+    return run(full_madx_script, log_file)
 
 
 def resolve_and_run_string(input_string, output_file=None, log_file=None):
     _check_files(None, output_file, log_file)
     full_madx_script = resolve(input_string, output_file, log_file)
-    run(full_madx_script, log_file)
+    return run(full_madx_script, log_file)
 
 
 def resolve(input_string, output_file=None, log_file=None):
@@ -76,7 +76,7 @@ def run(full_madx_script, log_file=None):
         log_stream = sys.stdout
     else:
         log_stream = open(log_file, "w")
-    madxrunner.runForInputString(full_madx_script, stdout=log_stream, stderr=log_stream)
+    return madxrunner.runForInputString(full_madx_script, stdout=log_stream, stderr=log_stream)
 
 
 def _resolve_required_macros(file_content):

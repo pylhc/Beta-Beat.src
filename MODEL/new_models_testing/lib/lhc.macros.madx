@@ -257,3 +257,130 @@ high_beta_matcher(): macro = {
     return;
 }
 
+
+/*
+* Redefining skew quads l,r from arc for ATS MD
+*/
+full_response_ats(): macro = {
+    
+    !!!!!!!!!!!!!!!!!!!!
+    ! b1
+    !!!!!!!!!!!!!!!!!!!!
+    
+    kqs.r1l2b1=0;
+    kqs.r5l6b1=0;
+    kqs.r7l8b1=0;
+    
+    kqs.r1b1:=kqs.r1l2b1;
+    kqs.l2b1:=kqs.r1l2b1;
+    
+    kqs.r5b1:=kqs.r5l6b1;
+    kqs.l6b1:=kqs.r5l6b1;
+    
+    
+    kqs.r7b1:=kqs.r7l8b1;
+    kqs.l8b1:=kqs.r7l8b1;
+    
+    
+    !!!!!!!!!!!!!!!!!!!!
+    ! b2
+    !!!!!!!!!!!!!!!!!!!!
+    
+    kqs.r2l3b2=0;
+    kqs.r4l5b2=0;
+    kqs.r6l7b2=0;
+    kqs.r8l1b2=0;
+    
+    kqs.r2b2:=kqs.r2l3b2;
+    kqs.l3b2:=kqs.r2l3b2;
+    
+    kqs.r4b2:=kqs.r4l5b2;
+    kqs.l5b2:=kqs.r4l5b2;
+    
+    kqs.r6b2:=kqs.r6l7b2;
+    kqs.l7b2:=kqs.r6l7b2;
+    
+    kqs.r8b2:=kqs.r8l1b2;
+    kqs.l1b2:=kqs.r8l1b2;
+}
+
+/*
+* Coupling knob for both beams, evaluated at IP7. 
+* @param beam_number: The beam to use either 1 or 2.
+*/
+coupling_knob(beam_number): macro = {
+    if(beam == 1){
+        startVal_kqs.r7b1=kqs.r7b1;
+        kqs.r7b1:=startVal_kqs.r7b1 - b1_re_ip7_knob * 0.02014185827   + b1_im_ip7_knob *   0.01620130394 ;
+        
+        startVal_kqs.r5b1=kqs.r5b1;
+        kqs.r5b1:=startVal_kqs.r5b1 - b1_re_ip7_knob * 0.02499588911    - b1_im_ip7_knob *  0.02934398871 ;
+        
+        startVal_kqs.r3b1=kqs.r3b1;
+        kqs.r3b1:=startVal_kqs.r3b1 - b1_re_ip7_knob * 0.02168476823    - b1_im_ip7_knob *  0.02294503443 ;
+        
+        startVal_kqs.r1b1=kqs.r1b1;
+        kqs.r1b1:=startVal_kqs.r1b1 - b1_re_ip7_knob * 0.01546232447    - b1_im_ip7_knob * 0.002517989547 ;
+        
+        startVal_kqs.l8b1=kqs.l8b1;
+        kqs.l8b1:=startVal_kqs.l8b1 - b1_re_ip7_knob * 0.02014185827    + b1_im_ip7_knob *   0.01620130394 ;
+        
+        startVal_kqs.l6b1=kqs.l6b1;
+        kqs.l6b1:=startVal_kqs.l6b1 - b1_re_ip7_knob * 0.02499588911    - b1_im_ip7_knob *  0.02934398871 ;
+        
+        startVal_kqs.l4b1=kqs.l4b1;
+        kqs.l4b1:=startVal_kqs.l4b1 - b1_re_ip7_knob * 0.02168476823    - b1_im_ip7_knob *  0.02294503443 ;
+        
+        startVal_kqs.l2b1 =kqs.l2b1;
+        kqs.l2b1:=startVal_kqs.l2b1 - b1_re_ip7_knob * 0.01546232447    - b1_im_ip7_knob * 0.002517989547 ;
+        
+        startVal_kqs.a81b1 =kqs.a81b1;
+        kqs.a81b1:=startVal_kqs.a81b1 + b1_re_ip7_knob *  0.02831612456   - b1_im_ip7_knob *   0.01300153444;
+        
+        startVal_kqs.a67b1 =kqs.a67b1;
+        kqs.a67b1:=startVal_kqs.a67b1 - b1_re_ip7_knob * 0.004969661125   + b1_im_ip7_knob *   0.009335016552;
+        
+        startVal_kqs.a45b1 = kqs.a45b1;
+        kqs.a45b1:=startVal_kqs.a45b1 + b1_re_ip7_knob *  0.02070614029   - b1_im_ip7_knob *  0.002069719464;
+        
+        startVal_kqs.a23b1 = kqs.a23b1;
+        kqs.a23b1:=startVal_kqs.a23b1 + b1_re_ip7_knob *  0.02602337014   - b1_im_ip7_knob *  0.003672896065;
+    }elseif(beam == 2){
+        startVal_kqs.r2b2 = kqs.r2b2;
+        kqs.r2b2:=startVal_kqs.r2b2 + b2_im_ip7_knob * 0.001827918176  + b2_re_ip7_knob *   0.01534010755; 
+        
+        startVal_kqs.r4b2 = kqs.r4b2;
+        kqs.r4b2:=startVal_kqs.r4b2 + b2_im_ip7_knob *  0.01112179805  + b2_re_ip7_knob *   0.01203980682; 
+        
+        startVal_kqs.r6b2 = kqs.r6b2;
+        kqs.r6b2:=startVal_kqs.r6b2 + b2_im_ip7_knob *  0.02535517273  + b2_re_ip7_knob *  0.001176507532; 
+        
+        startVal_kqs.r8b2 = kqs.r8b2;
+        kqs.r8b2:=startVal_kqs.r8b2 - b2_im_ip7_knob * 0.0255466789  + b2_re_ip7_knob *   0.01724080586; 
+        
+        startVal_kqs.l1b2 = kqs.l1b2;
+        kqs.l1b2:=startVal_kqs.l1b2 - b2_im_ip7_knob * 0.0255466789  + b2_re_ip7_knob *   0.01724080586; 
+        
+        startVal_kqs.l3b2 = kqs.l3b2;
+        kqs.l3b2:=startVal_kqs.l3b2 + b2_im_ip7_knob * 0.001827918176  + b2_re_ip7_knob *   0.01534010755; 
+        
+        startVal_kqs.l5b2 = kqs.l5b2;
+        kqs.l5b2:=startVal_kqs.l5b2 + b2_im_ip7_knob *  0.01112179805  + b2_re_ip7_knob *   0.01203980682; 
+        
+        startVal_kqs.l7b2 = kqs.l7b2;
+        kqs.l7b2:=startVal_kqs.l7b2 + b2_im_ip7_knob *  0.02535517273  + b2_re_ip7_knob * 0.001176507532;
+        
+        startVal_kqs.a12b2 =kqs.a12b2;
+        kqs.a12b2:=startVal_kqs.a12b2 + b2_im_ip7_knob *   0.01053252495 - b2_re_ip7_knob * 0.002613242711;
+        
+        startVal_kqs.a78b2 =kqs.a78b2;
+        kqs.a78b2:=startVal_kqs.a78b2 + b2_im_ip7_knob *   0.02043337213 + b2_re_ip7_knob *  0.01408233751;
+        
+        startVal_kqs.a56b2 =kqs.a56b2;
+        kqs.a56b2:=startVal_kqs.a56b2 - b2_im_ip7_knob * 0.004807311266 - b2_re_ip7_knob *  0.02152571928;
+        
+        startVal_kqs.a34b2 =kqs.a34b2;
+        kqs.a34b2:=startVal_kqs.a34b2 + b2_im_ip7_knob *   0.01390953298 - b2_re_ip7_knob *  0.02452644363;
+    }
+}
+
