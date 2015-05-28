@@ -188,12 +188,7 @@ def main(options):
          end_bpm_horizontal_data,
          end_bpm_vertical_data) = gather_data(input_data, start_bpm_name, end_bpm_name)
 
-        if input_data.has_dispersion:
-            start_bpm_dispersion, end_bpm_dispersion = get_dispersion_info(input_data, start_bpm_name, end_bpm_name)
-        else:
-            start_bpm_dispersion = [0, 0, 0, 0, 0, 0]
-            end_bpm_dispersion = [0, 0, 0, 0, 0, 0]
-            print "No dispersion"
+        element_has_dispersion, start_bpm_dispersion, end_bpm_dispersion = _get_dispersion_parameters(input_data, start_bpm_name, end_bpm_name)
 
         element_has_coupling, f_ini, f_end = _get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
 
@@ -236,6 +231,7 @@ def main(options):
                         propagated_models,
                         save_path,
                         is_element,
+                        element_has_dispersion,
                         element_has_coupling,
                         element_has_chrom,
                         selected_accelerator_no_suffix,
@@ -320,46 +316,34 @@ def gather_data(input_data, startbpm, endbpm):
     return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
 
 
-def get_dispersion_info(input_data, startbpm, endbpm):
-    if startbpm in input_data.dispersion_x.indx:
-        dxx = input_data.dispersion_x.DX[input_data.dispersion_x.indx[startbpm]]
-        dxp = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[startbpm]]
-    else:
-        dxx = 0
-        dxp = 0
-        print "Start BPM for horizontal dispersion not found"
-    if startbpm in input_data.dispersion_y.indx:
-        dyy = input_data.dispersion_y.DY[input_data.dispersion_y.indx[startbpm]]
-        dyp = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[startbpm]]
-    else:
-        dyy = 0
-        dyp = 0
-        print "Start BPM for vertical dispersion not found"
-    start_bpm_dispersion = [dxx,
-          dxp,
-          dyy,
-          dyp]
+def _get_dispersion_parameters(input_data, startbpm, endbpm):
+    start_bpm_dispersion = [0, 0, 0, 0]
+    end_bpm_dispersion = [0, 0, 0, 0]
+    element_has_dispersion = False
+    if input_data.has_dispersion:
+        if startbpm not in input_data.dispersion_x.indx:
+            print "Start BPM ", startbpm, " not found in horizontal dispersion measurement, will not compute dispersion."
+        elif startbpm not in input_data.dispersion_y.indx:
+            print "Start BPM ", startbpm, " not found in vertical dispersion measurement, will not compute dispersion."
+        elif endbpm not in input_data.dispersion_x.indx:
+            print "End BPM ", endbpm, " not found in horizontal dispersion measurement, will not compute dispersion."
+        elif endbpm not in input_data.dispersion_y.indx:
+            print "End BPM ", endbpm, " not found in vertical dispersion measurement, will not compute dispersion."
+        else:
+            dxx_start = input_data.dispersion_x.DX[input_data.dispersion_x.indx[startbpm]]
+            dxp_start = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[startbpm]]
+            dyy_start = input_data.dispersion_y.DY[input_data.dispersion_y.indx[startbpm]]
+            dyp_start = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[startbpm]]
+            start_bpm_dispersion = [dxx_start, dxp_start, dyy_start, dyp_start]
 
-    if endbpm in input_data.dispersion_x.indx:
-        dxx = input_data.dispersion_x.DX[input_data.dispersion_x.indx[endbpm]]
-        dxp = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[endbpm]]
-    else:
-        dxx = 0
-        dxp = 0
-        print "End BPM for horizontal dispersion not found"
-    if endbpm in input_data.dispersion_y.indx:
-        dyy = input_data.dispersion_y.DY[input_data.dispersion_y.indx[endbpm]]
-        dyp = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[endbpm]]
-    else:
-        dyy = 0
-        dyp = 0
-        print "End BPM for vertical dispersion not found"
-    end_bpm_dispersion = [dxx,
-           dxp,
-           dyy,
-           dyp]
-
-    return start_bpm_dispersion, end_bpm_dispersion
+            dxx_end = input_data.dispersion_x.DX[input_data.dispersion_x.indx[endbpm]]
+            dxp_end = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[endbpm]]
+            dyy_end = input_data.dispersion_y.DY[input_data.dispersion_y.indx[endbpm]]
+            dyp_end = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[endbpm]]
+            end_bpm_dispersion = [dxx_end, dxp_end, dyy_end, dyp_end]
+            element_has_dispersion = True
+            print "Start and end BPMs found in dispersion measurement."
+    return element_has_dispersion, start_bpm_dispersion, end_bpm_dispersion
 
 
 def _get_coupling_parameters(input_data, startbpm, endbpm):
@@ -583,7 +567,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     return [selected_left_bpm, selected_right_bpm]
 
 
-def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, element_has_coupling, element_has_chrom, selected_accelerator, summaries):
+def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, element_has_dispersion, element_has_coupling, element_has_chrom, selected_accelerator, summaries):
     '''
     Function that returns the optics function at the given element
 
@@ -616,7 +600,7 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
         sbs_writers.sbs_phase_writer.write_phase(element_name,
                                                  input_data.total_phase_x, input_data.total_phase_y, input_data.beta_x, input_data.beta_y,
                                                  propagated_models, save_path)
-    if input_data.has_dispersion:
+    if element_has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
                                                            input_model,
