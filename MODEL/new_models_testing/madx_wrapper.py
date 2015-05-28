@@ -12,6 +12,9 @@ LIB = "lib"
 
 def _parse_args():
     parser = optparse.OptionParser()
+    parser.add_option("-f", "--file",
+                    help="The file with the annotated MADX input to run, for compatibility with madxrunner.",
+                    metavar="FILE", dest="file")
     parser.add_option("-o", "--output",
                     help="If defined, it will write the processed MADX script into the file.",
                     metavar="OUTPUT", dest="output")
@@ -19,10 +22,16 @@ def _parse_args():
                     help="File where to write the MADX output.",
                     metavar="LOG", dest="log")
     (options, args) = parser.parse_args()
-    if len(args) != 1:
+    if len(args) == 0 and options.file is None or\
+       len(args) == 1 and not options.file is None or\
+       len(args) > 1:
+        print sys.stderr, "Define the input either passing the file as first parameter or using --file (-f)"
         parser.print_help()
         sys.exit(-1)
-    file_to_load = args[0]
+    if len(args) == 1:
+        file_to_load = args[0]
+    else:
+        file_to_load = options.file
     output_file = options.output
     log_file = options.log
     return file_to_load, output_file, log_file

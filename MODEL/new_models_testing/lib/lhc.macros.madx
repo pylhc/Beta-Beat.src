@@ -75,17 +75,15 @@ match_tunes(qx, qy, beam_number): macro = {
 
 
 /*
-* Computes the twiss file affected by the AC dipole.
+* Installs the AC dipole into the LHC sequence, subsequent twiss calls
+* will take the AC dipoles effects into account.
 * @param natural_qx: Fractional part of the natural horizontal tune.
 * @param natural_qy: Fractional part of the natural vertical tune.
 * @param driven_qx: Fractional part of the driven horizontal tune.
 * @param driven_qy: Fractional part of the driven vertical tune.
 * @param beam_number: LHC beam number, either 1 or 2.
-* @param output_file: path to the file to write, it has to be input in "" to
-* preserve upper case characters.
-* @param dpp: delta p / p to use in the twiss command.
 */
-twiss_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number, output_file, dpp): macro = {
+install_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number): macro = {
     Qx = natural_qx;
     Qxd = driven_qx;
     
@@ -106,8 +104,24 @@ twiss_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number, outpu
         install, element=hacmap, at=1.583/2, from=MKQA.6L4.Bbeam_number;
         install, element=vacmap, at=1.583/2, from=MKQA.6L4.Bbeam_number;
     endedit;
-    
+
     use, period=LHCBbeam_number;
+}
+
+
+/*
+* Computes the twiss file affected by the AC dipole.
+* @param natural_qx: Fractional part of the natural horizontal tune.
+* @param natural_qy: Fractional part of the natural vertical tune.
+* @param driven_qx: Fractional part of the driven horizontal tune.
+* @param driven_qy: Fractional part of the driven vertical tune.
+* @param beam_number: LHC beam number, either 1 or 2.
+* @param output_file: path to the file to write, it has to be input in "" to
+* preserve upper case characters.
+* @param dpp: delta p / p to use in the twiss command.
+*/
+twiss_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number, output_file, dpp): macro = {
+    exec, install_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number);
     exec, do_twiss_monitors(LHCBbeam_number, output_file, dpp);
 };
 
@@ -181,7 +195,7 @@ full_lhc_twiss_ac(m_p, b_num, qx, qy, q_nx, q_ny, q_dx, q_dy, dpp, m_f, e_f, a_f
 
 
 /*
-* TODO: Documentation for this
+* Loads random dipole b2 errors and correction from the 60 seeds provided by WISE.
 * @param energy: The energy to be used.
 * @param beam_number: The beam to use either 1 or 2.
 * @param error_num: The number of the error table to load, has to be a 4 digits number (e.g. 0004).
@@ -197,7 +211,7 @@ load_error_table_number(energy, beam_number, error_num): macro = {
 
 
 /*
-* TODO: Documentation for this
+* Loads the average dipole b2 errors and correction.
 * @param energy: The energy to be used.
 * @param beam_number: The beam to use either 1 or 2.
 */
@@ -205,5 +219,41 @@ load_average_error_table(energy, beam_number): macro = {
     readmytable, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_Bbeam_number_energyTeV.errors", table=errtab;
     seterr, table=errtab;
     call, file = "/afs/cern.ch/work/o/omcsyst/public/error_tables/Beambeam_number/MB_corr_setting_Bbeam_number_energyTeV.mad";
+}
+
+
+/*
+* Special for TOTEM Optics.
+* Match Tune to collision values using main quads.
+* Match Chromaticity to nominal 2.0 values.
+*/
+high_beta_matcher(): macro = {
+    use, sequence=lhcb1;
+    use, sequence=lhcb2;
+    
+    match,sequence=lhcb1, lhcb2;
+    global, q1=64.31, q2=59.32;
+    vary, name=KQF,step=0.000001;
+    vary, name=KQD,step=0.000001;
+    lmdif,calls=500,tolerance=1.0e-20;
+    endmatch;
+    
+    match,sequence=lhcb1, lhcb2;
+    global, dq1=2.0, dq2=2.0;
+    vary, name=KSF.B1,step=0.000001;
+    vary, name=KSD.B1,step=0.000001;
+    vary, name=KSF.B2,step=0.000001;
+    vary, name=KSD.B2,step=0.000001;
+    lmdif,calls=500,tolerance=1.0e-20;
+    endmatch;
+    
+    match,sequence=lhcb1, lhcb2;
+    global, q1=64.31, q2=59.32;
+    vary, name=KQF,step=0.000001;
+    vary, name=KQD,step=0.000001;
+    lmdif,calls=500,tolerance=1.0e-20;
+    endmatch;
+    
+    return;
 }
 
