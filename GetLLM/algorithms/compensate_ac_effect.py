@@ -116,7 +116,7 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,bpm]
 
 
-def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
+def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 
     #-- Select common BPMs
     bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
@@ -144,16 +144,16 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     #-- Model phase advances
     if plane=='H': psimdl=np.array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
     if plane=='V': psimdl=np.array([MADTwiss.MUY[MADTwiss.indx[b[1]]] for b in bpm])
-    psi12mdl=(np.append(psimdl[1:],psimdl[0] +Q)-psimdl)%1
-    psi13mdl=(np.append(psimdl[2:],psimdl[:2]+Q)-psimdl)%1
-    psi14mdl=(np.append(psimdl[3:],psimdl[:3] +Q)-psimdl)%1
-    psi15mdl=(np.append(psimdl[4:],psimdl[:4] +Q)-psimdl)%1
-    psi16mdl=(np.append(psimdl[5:],psimdl[:5] +Q)-psimdl)%1
-    psi17mdl=(np.append(psimdl[6:],psimdl[:6] +Q)-psimdl)%1
-    psi18mdl=(np.append(psimdl[7:],psimdl[:7] +Q)-psimdl)%1
-    psi19mdl=(np.append(psimdl[8:],psimdl[:8] +Q)-psimdl)%1
-    psi110mdl=(np.append(psimdl[9:],psimdl[:9] +Q)-psimdl)%1
-    psi111mdl=(np.append(psimdl[10:],psimdl[:10] +Q)-psimdl)%1
+    psi12mdl=(np.append(psimdl[1:],psimdl[0] +Qmdl)-psimdl)%1
+    psi13mdl=(np.append(psimdl[2:],psimdl[:2]+Qmdl)-psimdl)%1
+    psi14mdl=(np.append(psimdl[3:],psimdl[:3] +Qmdl)-psimdl)%1
+    psi15mdl=(np.append(psimdl[4:],psimdl[:4] +Qmdl)-psimdl)%1
+    psi16mdl=(np.append(psimdl[5:],psimdl[:5] +Qmdl)-psimdl)%1
+    psi17mdl=(np.append(psimdl[6:],psimdl[:6] +Qmdl)-psimdl)%1
+    psi18mdl=(np.append(psimdl[7:],psimdl[:7] +Qmdl)-psimdl)%1
+    psi19mdl=(np.append(psimdl[8:],psimdl[:8] +Qmdl)-psimdl)%1
+    psi110mdl=(np.append(psimdl[9:],psimdl[:9] +Qmdl)-psimdl)%1
+    psi111mdl=(np.append(psimdl[10:],psimdl[:10] +Qmdl)-psimdl)%1
 
     #-- Global parameters of the driven motion
     r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
