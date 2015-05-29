@@ -202,7 +202,7 @@ class _SddsFile(object):
         time_start = time.time()
 
 
-        ListOfKnownBadBpms = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMS.2L5.B1", 'BPMS.2R5.B1', "BPMSI.A4R6.B1", "BPM.22R8.B1"]
+        ListOfKnownBadBpms = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMS.2L5.B1", 'BPMS.2R5.B1', "BPMSI.A4R6.B1", "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2"]
 
         last_number_of_turns = 0
         detected_number_of_turns = 0

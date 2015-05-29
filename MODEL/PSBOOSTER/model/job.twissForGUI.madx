@@ -1,0 +1,81 @@
+title, "PSB model with tune matching for LOCO; Jan 2013" ;
+
+
+ option, -echo, info,  warn;
+ 
+ 
+ call,   file = "%BB_PATH/MODEL/PSBOOSTER/model/psbGUI.ele";
+
+
+/******************************************************************************************
+ * change these values based on ring, beam momentum, and tune of trajectory measurements
+ ******************************************************************************************/
+ momentum = %MOMENTUM;
+ measTuneX = %QX - 0.005; ! (programmed tunes minus intensity-dependent difference)
+ measTuneY = %QY - 0.011;
+ call,   file = "%BB_PATH/MODEL/PSBOOSTER/model/psbGUI_ring%RING.str";
+/******************************************************************************************
+ ******************************************************************************************/
+
+
+
+psb: sequence, refer=entry,  l = 157.08000;
+  P01                   , at =   0.00000;
+  P02                   , at =   9.81750;
+  P03                   , at =  19.63500;
+  P04                   , at =  29.45250;
+  P05                   , at =  39.27000;
+  P06                   , at =  49.08750;
+  P07                   , at =  58.90500;
+  P08                   , at =  68.72250;
+  P09                   , at =  78.54000;
+  P10                   , at =  88.35750;
+  P11                   , at =  98.17500;
+  P12                   , at = 107.99250;
+  P13                   , at = 117.81000;
+  P14                   , at = 127.62750;
+  P15                   , at = 137.44500;
+  P16                   , at = 147.26250;
+endsequence;
+
+
+/******************************************************************************************
+ * beam, use
+ ******************************************************************************************/
+ beam, particle=PROTON, pc= momentum, exn=15E-6*3.0,eyn=8E-6*3.0, sige=1.35E-3*3.0, sigt=230E-9 ;  ! 3 sigma ISOLDE type beam.
+ use, sequence=psb;
+
+
+
+/******************************************************************************************
+ * Match for measured working point 
+ ******************************************************* ***********************************/
+
+MATCH,sequence=psb;
+ vary, NAME=kKF, step = 0.0001;
+ vary, NAME=kKD, step = 0.0001;
+ constraint, range=#E, MUX = measTuneX, MUY = measTuneY;
+ lmdif, calls = 10000, tolerance = 1.0E-21;
+ENDMATCH;
+
+
+
+/************************************************************
+ * MAD uses pt as the 5th variable NOT delta-p.
+ * The result is that all derivatives are with repect to pt.
+ * This is the reason for the non-standard dispersion values
+ * for non-relativistic machines, like the PSB
+ * Ax and Ay are the apertures in number of sigmas
+ ************************************************************/
+ beta=sqrt(1-1/beam->gamma^2);
+ dispx := beta*table(twiss,dx); ! Delta_x=dispx*Delta_p/p;
+ dispy := beta*table(twiss,dy); ! Delta_y=dispy*Delta_p/p;
+
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="BPM.*L3$",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
+twiss, centre, DELTAP = 0, sequence=psb, file="%PATH/twiss.dat";
+
+
+stop;
+

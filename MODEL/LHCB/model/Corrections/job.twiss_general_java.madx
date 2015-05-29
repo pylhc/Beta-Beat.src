@@ -32,7 +32,7 @@ endedit;
 !  set switches to 1 if crossing scheme is required
  on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
  on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
- on_alice:= 0; on_lhcb := 0;
+ on_alice:= 0; on_lhcb := 0; on_a8 := 0; on_o8 := 0;
 
 
 ! This line must be commented for nominal LHC and ATS but cuncommented for highbeta. Left uncommented on the 21-June-2012 for use during MD at 500m:
@@ -40,10 +40,18 @@ endedit;
 ! To be properly fixed with the %MATCHER replacement as for job_iterate
 
 
-
-
 use, period=%ACCEL;
 
+
+!!!!!!!!! matching
+match;
+
+vary, name=KQTD.%BEAM;
+vary, name=KQTF.%BEAM;
+
+constraint, range=#E, mux=%QMX, muy=%QMY;
+lmdif;
+endmatch;
 
 
 !!!!! nominal
