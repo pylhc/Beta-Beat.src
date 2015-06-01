@@ -63,7 +63,7 @@ import Python_Classes4MAD.metaclass as metaclass
 import Utilities.iotools
 import Utilities.math
 
-from MODEL.new_models_testing import madx_wrapper
+from madx import madx_wrapper
 
 #===================================================================================================
 # _parse_args()-function

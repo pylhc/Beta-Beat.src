@@ -2,8 +2,8 @@ import __init__  # @UnusedImport
 import os
 import sys
 import re
-import madxrunner
 import optparse
+from Python_Classes4MAD import madxrunner
 from Utilities import iotools
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
