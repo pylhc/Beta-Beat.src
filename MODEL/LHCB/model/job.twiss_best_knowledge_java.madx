@@ -19,8 +19,8 @@ KQTF.B1_temp = KQTF.B1;
 call, file = "%PATH/corrections.madx";
 call, file = "%PATH/extracted_mqts.str";
 
-exec, do_twiss_monitors(%ACCEL, "%PATH/twiss_best_knowledge.dat", %DPP);
-exec, do_twiss_elements(%ACCEL, "%PATH/twiss_elements_best_knowledge.dat", %DPP);
+exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss_best_knowledge.dat", %DPP);
+exec, do_twiss_elements(LHCB%NUM_BEAM, "%PATH/twiss_elements_best_knowledge.dat", %DPP);
 
 %STOP
 
@@ -33,4 +33,4 @@ exec, load_average_error_table(%ENERGY, %NUM_BEAM);
 call, file = "%PATH/corrections.madx";
 call, file = "%PATH/extracted_mqts.str";
 
-exec, do_twiss_monitors(%ACCEL, "%PATH/twiss_ac_best_knowledge.dat", %DPP);
+exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss_ac_best_knowledge.dat", %DPP);

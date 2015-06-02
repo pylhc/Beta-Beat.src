@@ -11,8 +11,8 @@ option, echo;
 
 exec, match_tunes(%QMX, %QMY, %NUM_BEAM);
 
-exec, do_twiss_monitors(%ACCEL, "%PATH/twiss.dat", %DPP);
-exec, do_twiss_elements(%ACCEL, "%PATH/twiss_elements.dat", %DPP);
+exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss.dat", %DPP);
+exec, do_twiss_elements(LHCB%NUM_BEAM, "%PATH/twiss_elements.dat", %DPP);
 
 %STOP
 
