@@ -2,33 +2,23 @@
 * General macros for beta beating
 */
 
-
 /*
-* Simple twiss file output with only monitors.
-* @param sequence: name of the sequence to use.
-* @param output_file: path to the file to write, it has to be input in "" to
-* preserve upper case characters.
-* @param dpp: delta p / p to use in the twiss command.
+* Selects only monitors for the next twiss command.
 */
-do_twiss_monitors(use_sequence, output_file, dpp): macro = {
+select_monitors(): macro = {
     select, flag=twiss, clear;
     select, flag=twiss, class=monitor, column=name, s, betx, alfx, bety, alfy, 
                                               mux, muy, dx, dy, dpx, dpy, x, y,
                                               k1l, k2l, k3l, k4l, wx, wy, phix,
                                               phiy, dmux, dmuy, keyword, dbx, dby,
                                               r11, r12, r21, r22;
-    twiss, chrom, sequence=use_sequence, deltap=dpp, file=output_file;
-};
+}
 
 
 /*
-* Simple twiss file output with relevant elements.
-* @param sequence: name of the sequence to use.
-* @param output_file: path to the file to write, it has to be input in "" to
-* preserve upper case characters.
-* @param dpp: delta p / p to use in the twiss command.
+* Selects relevant elements for the next twiss command.
 */
-do_twiss_elements(use_sequence, output_file, dpp): macro = {
+select_elements(): macro = {
     select, flag=twiss, clear;
     select, flag=twiss, class=monitor, column=name, s, betx, alfx, bety, alfy, 
                                               mux, muy, dx, dy, dpx, dpy, x, y,
@@ -46,5 +36,30 @@ do_twiss_elements(use_sequence, output_file, dpp): macro = {
     select, flag=twiss, class=rcollimator;
     select, flag=twiss, class=collimator;
     select, flag=twiss, class=rbend;
+}
+
+
+/*
+* Simple twiss file output with only monitors.
+* @param sequence: name of the sequence to use.
+* @param output_file: path to the file to write, it has to be input in "" to
+* preserve upper case characters.
+* @param dpp: delta p / p to use in the twiss command.
+*/
+do_twiss_monitors(use_sequence, output_file, dpp): macro = {
+    exec, select_monitors();
+    twiss, chrom, sequence=use_sequence, deltap=dpp, file=output_file;
+};
+
+
+/*
+* Simple twiss file output with relevant elements.
+* @param sequence: name of the sequence to use.
+* @param output_file: path to the file to write, it has to be input in "" to
+* preserve upper case characters.
+* @param dpp: delta p / p to use in the twiss command.
+*/
+do_twiss_elements(use_sequence, output_file, dpp): macro = {
+    exec, select_elements();
     twiss, chrom, sequence=use_sequence, deltap=dpp, file=output_file;
 };
