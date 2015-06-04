@@ -13,8 +13,8 @@ exec, load_average_error_table(%ENERGY, %NUM_BEAM);
 
 exec, match_tunes(%QMX, %QMY, %NUM_BEAM);
 
-KQTD.B1_temp = KQTD.B1;
-KQTF.B1_temp = KQTF.B1;
+KQTD.B%NUM_BEAM_temp = KQTD.B%NUM_BEAM;
+KQTF.B%NUM_BEAM_temp = KQTF.B%NUM_BEAM;
 
 call, file = "%PATH/corrections.madx";
 call, file = "%PATH/extracted_mqts.str";
@@ -26,8 +26,8 @@ exec, do_twiss_elements(LHCB%NUM_BEAM, "%PATH/twiss_elements_best_knowledge.dat"
 
 exec, install_ac_dipole(%QX, %QY, %QDX, %QDY, %NUM_BEAM);
 
-KQTD.B1 = KQTD.B1_temp;
-KQTF.B1 = KQTF.B1_temp;
+KQTD.B%NUM_BEAM = KQTD.B%NUM_BEAM_temp;
+KQTF.B%NUM_BEAM = KQTF.B%NUM_BEAM_temp;
 
 exec, load_average_error_table(%ENERGY, %NUM_BEAM);
 call, file = "%PATH/corrections.madx";
