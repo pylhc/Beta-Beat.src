@@ -88,7 +88,7 @@ def _resolve_required_macros(file_content):
     for line in file_content.split("\n"):
         match = re.search("^!@require\s+([^\s]+).*$", line)
         if not match is None:
-            required_macros = match.group(1)
+            required_macros = _add_macro_lib_ending(match.group(1))
             required_macros_file = os.path.abspath(os.path.join(CURRENT_PATH, LIB, required_macros))
             if not os.path.exists(required_macros_file):
                 print >> sys.stderr, "Trying to import non existing macros library \"" + required_macros + "\". Aborting."
@@ -115,6 +115,14 @@ def _check_files(input_file, output_file, log_file):
         except:
             print >> sys.stderr, "Cannot write log file: " + log_file + ". Aborting."
             sys.exit(-1)
+
+
+def _add_macro_lib_ending(macro_lib_name):
+    macro_lib_name = macro_lib_name.strip()
+    if macro_lib_name.endswith(".macros.madx"):
+        return macro_lib_name
+    else:
+        return macro_lib_name + ".macros.madx"
 
 
 if __name__ == "__main__":

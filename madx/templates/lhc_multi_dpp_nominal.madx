@@ -1,0 +1,20 @@
+title, "Model creator for java" ;
+
+
+!@require lhc_run%(RUN)s.macros.madx
+
+option, -echo;
+exec, full_lhc_def("%(MODIFIERS)s", %(NUM_BEAM)s);
+option, echo;
+
+exec, match_tunes(64.%(QMX)s, 59.%(QMY)s, %(NUM_BEAM)s);
+
+exec, select_monitors();
+%(DPP)s
+
+%(STOP)s
+
+exec, install_ac_dipole(%(QX)s, %(QY)s, %(QDX)s, %(QDY)s, %(NUM_BEAM)s);
+
+exec, select_monitors();
+%(DP_AC_P)s
