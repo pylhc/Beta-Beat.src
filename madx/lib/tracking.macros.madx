@@ -19,7 +19,7 @@ do_track_single_particle(hkick, vkick, num_turns, output_path): macro = {
     exec, define_observation_points();
 
     PTC_START, x=hkick, y=vkick; !!!! change: kick (units m)
-    PTC_TRACK, deltap=0.0, icase=5, turns=num_turns, ELEMENT_BY_ELEMENT, dump, onetable, file="output_path";
+    PTC_TRACK, deltap=0.0, icase=5, turns=num_turns, ELEMENT_BY_ELEMENT, dump, onetable, file=output_path;
     PTC_TRACK_END;
     PTC_END;
 

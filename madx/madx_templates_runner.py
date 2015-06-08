@@ -64,11 +64,13 @@ class MadxTemplates():
         placeholder_replacement_dict = placeholder_replacement_dict[:-2] + "}"
         new_function_code = new_function_code[:-2] + "):\n"
         print new_function_code[:-2]
+        output_file = None if self.__output_file is None else "\"" + self.__output_file + "\""
+        log_file = None if self.__log_file is None else "\"" + self.__log_file + "\""
         new_function_code += "    from Utilities import iotools\n"
         new_function_code += "    from madx import madx_wrapper\n"
         new_function_code += "    template_content = iotools.read_all_lines_in_textfile(\"" + template_path + "\")" + "\n"
         new_function_code += "    resolved_template = template_content % " + placeholder_replacement_dict + "\n"
-        new_function_code += "    madx_wrapper.resolve_and_run_string(resolved_template, output_file=" + self.__output_file + ", log_file=" + self.__log_file + ")\n"
+        new_function_code += "    madx_wrapper.resolve_and_run_string(resolved_template, output_file=" + str(output_file) + ", log_file=" + str(log_file) + ")\n"
         exec new_function_code in self.__dict__
 
 
