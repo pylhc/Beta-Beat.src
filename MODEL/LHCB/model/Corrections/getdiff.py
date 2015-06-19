@@ -112,6 +112,8 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
     print >> file_bby, "$ %s %le %le %le %le"
     if os.path.exists(os.path.join(path, 'getbetax_free.out')):
         twiss_getbetax = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetax_free.out'))
+    elif os.path.exists(os.path.join(path, 'getbetax_free2.out')):
+        twiss_getbetax = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetax_free2.out'))
     else:
         twiss_getbetax = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetax.out'))
     for i in range(len(twiss_getbetax.NAME)):
@@ -130,6 +132,8 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
 
     if os.path.exists(os.path.join(path, 'getbetay_free.out')):
         twiss_getbetay = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetay_free.out'))
+    elif os.path.exists(os.path.join(path, 'getbetay_free2.out')):
+        twiss_getbetay = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetay_free2.out'))
     else:
         twiss_getbetay = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetay.out'))
     for i in range(len(twiss_getbetay.NAME)):
@@ -203,6 +207,8 @@ def write_coupling_diff_file(path, twiss_cor):
     print >> file_couple, "$ %s %le %le %le %le %le %le"
     if os.path.exists(os.path.join(path, 'getcouple_free.out')):
         twiss_getcouple = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getcouple_free.out'))
+    elif os.path.exists(os.path.join(path, 'getcouple_free2.out')):
+        twiss_getcouple = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getcouple_free2.out'))
     else:
         twiss_getcouple = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getcouple.out'))
     for i in range(len(twiss_getcouple.NAME)):
@@ -232,6 +238,10 @@ def write_phase_diff_files(path, twiss_cor, twiss_no):
 
     twiss_phase_x = _try_to_load_twiss(path, 'getphasex_free.out')
     twiss_phase_y = _try_to_load_twiss(path, 'getphasey_free.out')
+
+    if not twiss_phase_x or not twiss_phase_y:
+        twiss_phase_x = _try_to_load_twiss(path, 'getphasex_free2.out')
+        twiss_phase_y = _try_to_load_twiss(path, 'getphasey_free2.out')
 
     if not twiss_phase_x or not twiss_phase_y:
         twiss_phase_x = _try_to_load_twiss(path, 'getphasex.out')
