@@ -10,6 +10,7 @@ option, echo;
 exec, match_tunes(64.%(QMX)i, 59.%(QMY)i, %(NUM_BEAM)s);
 
 exec, select_monitors();
+select, flag=twiss, pattern=MKQA.6L4.B%(NUM_BEAM)s; ! Selects the AC dipole as well
 %(DPP)s
 
 %(STOP)s
@@ -17,4 +18,5 @@ exec, select_monitors();
 exec, install_ac_dipole(%(QX)s, %(QY)s, %(QDX)s, %(QDY)s, %(NUM_BEAM)s);
 
 exec, select_monitors();
+select, flag=twiss, pattern=MKQA.6L4.B%(NUM_BEAM)s; ! Selects the AC dipole as well
 %(DP_AC_P)s
