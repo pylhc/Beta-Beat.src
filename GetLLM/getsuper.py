@@ -427,11 +427,16 @@ def _rungetllm(twiss_filename, files, dpp):
 
     print "Will run getllm for ", dpp
 
+    if "LHC" in _InputData.accel.upper():
+        lhcphase = "1"
+    else:
+        lhcphase = "0"
     GetLLM.main(outputpath=_InputData.output_path,
             files_to_analyse=','.join(files),
             model_filename=twiss_filename,
             accel=_InputData.accel,
-            TBTana=_InputData.technique)
+            TBTana=_InputData.technique,
+            lhcphase=lhcphase)
     print "GetLLM finished"
 
     for fname in _get_filenames_in_output_with_dpp():
