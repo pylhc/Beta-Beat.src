@@ -147,6 +147,41 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
             beta_model = getattr(input_model, "BET" + plane)[input_model.indx[bpm_name]]
             alfa_model = getattr(input_model, "ALF" + plane)[input_model.indx[bpm_name]]
 
+            magnet_err_forward = []
+            magnet_err_back = []
+            if plane == 'X':
+                tune = input_model.Q1
+            elif plane == 'Y':
+                tune = input_model.Q2
+            reference_radius = 0.017
+            distributed_uncertainty_in_units = 1
+            relative_K1L_uncertainty = distributed_uncertainty_in_units * 1E-4 / reference_radius
+
+            for elem in model_propagation.NAME:
+                if abs(getattr(model_propagation, "K1L")[model_propagation.indx[elem]]) > 1E-8: # i.e. if elem == quadrupole
+                    K1L_uncertainy = abs(getattr(model_propagation, "K1L")[model_propagation.indx[elem]]) * relative_K1L_uncertainty
+                    beta_at_magnet = getattr(model_propagation, "BET" + plane)[model_propagation.indx[elem]]
+                    phase_at_magnet = getattr(model_propagation, "MU" + plane)[model_propagation.indx[elem]]
+                    phase_at_element = getattr(model_propagation, "MU" + plane)[model_propagation.indx[bpm_name]]
+                    delta_phase_from_magnet = phase_at_element - phase_at_magnet
+                    if delta_phase_from_magnet > 0:
+                        beta_uncertainty = beta_model * _relative_beta_err_from_magnet_err(K1L_uncertainy, beta_at_magnet, delta_phase_from_magnet, tune)
+                        magnet_err_forward.append(beta_uncertainty)
+
+            for elem in model_back_propagation.NAME:
+                if abs(getattr(model_back_propagation, "K1L")[model_back_propagation.indx[elem]]) > 1E-8: # i.e. if elem == quadrupole
+                    K1L_uncertainy = abs(getattr(model_back_propagation, "K1L")[model_back_propagation.indx[elem]]) * relative_K1L_uncertainty
+                    beta_at_magnet = getattr(model_back_propagation, "BET" + plane)[model_back_propagation.indx[elem]]
+                    phase_at_magnet = getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[elem]]
+                    phase_at_element = getattr(model_back_propagation, "MU" + plane)[model_back_propagation.indx[bpm_name]]
+                    delta_phase_from_magnet = phase_at_element - phase_at_magnet
+                    if delta_phase_from_magnet > 0:
+                        beta_uncertainty = beta_model * _relative_beta_err_from_magnet_err(K1L_uncertainy, beta_at_magnet, delta_phase_from_magnet, tune)
+                        magnet_err_back.append(beta_uncertainty)
+
+            err_beta_prop = np.sqrt(err_beta_prop**2 + sum([x**2 for x in magnet_err_forward])) 
+            err_beta_back = np.sqrt(err_beta_back**2 + sum([x**2 for x in magnet_err_back])) 
+
             averaged_beta, final_beta_error = weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
             averaged_alfa, final_alfa_error = weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
 
@@ -182,6 +217,10 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
 
 def _propagate_error_beta(errb0, erra0, dphi, bets, bet0, alf0):
     return math.sqrt((bets*np.sin(4*np.pi*dphi)*alf0/bet0 + bets*np.cos(4*np.pi*dphi)/bet0)**2*errb0**2 + (bets*np.sin(4*np.pi*dphi))**2*erra0**2)  # @IgnorePep8
+
+
+def _relative_beta_err_from_magnet_err(K1L_uncertainy, beta_at_magnet, delta_phase_from_magnet, tune):
+    return K1L_uncertainy * abs(beta_at_magnet * np.sin(4 * np.pi * delta_phase_from_magnet))
 
 
 def _propagate_error_alfa(errb0, erra0, dphi, alfs, bet0, alf0):
