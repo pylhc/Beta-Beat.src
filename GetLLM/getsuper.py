@@ -56,7 +56,6 @@ import optparse
 import os
 import sys
 import shutil
-import subprocess
 import math
 import re
 
@@ -66,6 +65,7 @@ import Python_Classes4MAD.linreg as linreg
 import Utilities.bpm
 import Utilities.iotools
 import superutils
+from madx import madx_wrapper
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 LHC_RUNI_BASE_SEQ = \
@@ -356,29 +356,22 @@ def _madcreator(dpps, files_dict):
     dict_for_replacing = {}
     dict_for_replacing["DPP"] = dppstring
     dict_for_replacing["DP_AC_P"] = dppstring_ac
-    dict_for_replacing["ACCEL"] = _InputData.accel
-    if not _InputData.lhc_run is None:
-        if _InputData.lhc_run == 1:
-            base_sequence = LHC_RUNI_BASE_SEQ
-        else:
-            base_sequence = LHC_RUNII_BASE_SEQ
-    dict_for_replacing["BASE_SEQ"] = base_sequence
+    dict_for_replacing["RUN"] = "I" if _InputData.lhc_run == 1 else "II"
     if _InputData.accel == 'LHCB1':
-        dict_for_replacing["BEAM"] = "B1"
+        dict_for_replacing["NUM_BEAM"] = "1"
     elif _InputData.accel == 'LHCB2':
-        dict_for_replacing["BEAM"] = "B2"
+        dict_for_replacing["NUM_BEAM"] = "2"
     else:
         print "WARNING: Could not decide what BEAM should be"
 
-    dict_for_replacing["BB_PATH"] = BB_PATH
     (qx, qy, qdx, qdy) = _get_tunes(files_dict)
 
     dict_for_replacing["QX"] = qx
     dict_for_replacing["QY"] = qy
     dict_for_replacing["QDX"] = qdx
     dict_for_replacing["QDY"] = qdy
-    dict_for_replacing["QMX"] = int(qx*1000000)
-    dict_for_replacing["QMY"] = int(qy*1000000)
+    dict_for_replacing["QMX"] = int(qx * 1000000)
+    dict_for_replacing["QMY"] = int(qy * 1000000)
     dict_for_replacing["STOP"] = "!"
 
     for testpath in [_InputData.output_path, os.path.dirname(_InputData.twissfile)]:
@@ -390,27 +383,20 @@ def _madcreator(dpps, files_dict):
 
     print "Creating madx"
     path_to_job_chrom_madx = _join_with_output_path("job.chrom.madx")
+    path_to_job_chrom_madx_log = _join_with_output_path("log.job.chrom.madx")
     Utilities.iotools.replace_keywords_in_textfile(
-                                                   os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro"), 
-                                                   dict_for_replacing, 
+                                                   os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro"),
+                                                   dict_for_replacing,
                                                    path_to_job_chrom_madx
                                                    )
 
     print "Running madx"
-    process = subprocess.Popen(_InputData.path_to_madx+' < '+path_to_job_chrom_madx,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE,
-                           shell=True)
-    # wait for the process to terminate
-    (out, err) = process.communicate()
-    errcode = process.returncode
+    errcode = madx_wrapper.resolve_and_run_file(path_to_job_chrom_madx, log_file=path_to_job_chrom_madx_log)
 
     if 0 != errcode:
-        print "Mad-X failed. Printing output:-------------------------"
-        print out
-        print >> sys.stderr, "Mad-X failed. Printing error output:-------------------"
-        print >> sys.stderr, err
+        print >> sys.stderr, "Mad-X failed. Check log file: " + str(path_to_job_chrom_madx_log)
         raise ValueError("Mad-X failed")
+
 
 def _get_filenames_in_output_with_dpp(dpp=''):
     '''
@@ -441,11 +427,16 @@ def _rungetllm(twiss_filename, files, dpp):
 
     print "Will run getllm for ", dpp
 
+    if "LHC" in _InputData.accel.upper():
+        lhcphase = "1"
+    else:
+        lhcphase = "0"
     GetLLM.main(outputpath=_InputData.output_path,
             files_to_analyse=','.join(files),
             model_filename=twiss_filename,
             accel=_InputData.accel,
-            TBTana=_InputData.technique)
+            TBTana=_InputData.technique,
+            lhcphase=lhcphase)
     print "GetLLM finished"
 
     for fname in _get_filenames_in_output_with_dpp():

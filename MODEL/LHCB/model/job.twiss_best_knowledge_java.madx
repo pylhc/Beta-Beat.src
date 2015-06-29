@@ -1,0 +1,36 @@
+
+title, "Model creator for java";
+
+!@require lhc_run%RUN.macros.madx
+
+option, -echo;
+exec, full_lhc_def("%PATH/modifiers.madx", %NUM_BEAM);
+option, echo;
+
+%MATCHER exec, high_beta_matcher();
+
+exec, load_average_error_table(%ENERGY, %NUM_BEAM);
+
+exec, match_tunes(%QMX, %QMY, %NUM_BEAM);
+
+KQTD.B%NUM_BEAM_temp = KQTD.B%NUM_BEAM;
+KQTF.B%NUM_BEAM_temp = KQTF.B%NUM_BEAM;
+
+call, file = "%PATH/corrections.madx";
+call, file = "%PATH/extracted_mqts.str";
+
+exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss_best_knowledge.dat", %DPP);
+exec, do_twiss_elements(LHCB%NUM_BEAM, "%PATH/twiss_elements_best_knowledge.dat", %DPP);
+
+%STOP
+
+exec, install_ac_dipole(%QX, %QY, %QDX, %QDY, %NUM_BEAM);
+
+KQTD.B%NUM_BEAM = KQTD.B%NUM_BEAM_temp;
+KQTF.B%NUM_BEAM = KQTF.B%NUM_BEAM_temp;
+
+exec, load_average_error_table(%ENERGY, %NUM_BEAM);
+call, file = "%PATH/corrections.madx";
+call, file = "%PATH/extracted_mqts.str";
+
+exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss_ac_best_knowledge.dat", %DPP);

@@ -3,51 +3,16 @@
 
 Created on 30 Dec 2003
 
-This file cleans BPM turn by turn data.
-The input is expected in the SDDS ASCII Format.
-Criteria to remove bad bpm:
- - flat, this mean the difference between min and max value for all turns is smaller than a given threshold
- - SVD dominant: A singular value decomposition is applied to the bpms x turns matrix. If there is
-   dominant mode above a threshold, this will be removed
+Options::
 
-After this, the singular values are used to filter the noise.
-All singular value below a given threshold are zeroed.
-
-In the end, the new file is written again.
+use -h
 
 Usage cmd line::
 
     python svd_clean.py -f file [other options]
     python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds
-    python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds --turn=1 --p=0.00001 --g_sumsquare=0.925 --g_sing_val=57
-    python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds --newfile=cleaned.sdds
-
-Options::
-
- -h, --help            show this help message and exit
- -f FILE, --file=FILE  File to clean
- -n NEWFILE, --newfile=NEWFILE
-                       File name for new file. Default is override current
-                       file
- -t STARTTURN, --turn=STARTTURN
-                       Turn number to start. Default is first turn: 1
- -m MAXTURNS, --maxturns=MAXTURNS
-                       Maximum number of turns to be analysed. Default is a
-                       number that is lower than the maximum which can be
-                       handled by drive: 9.500
- -v SING, --sing_val=SING
-                       Keep this amount of singular values in decreasing
-                       order, rest will be cut (set to 0). Default is a large
-                       number: 1e5
- -p PEAK, --pk-2-pk=PEAK
-                       Peak to peak amplitude cut. This removes BPMs where
-                       abs(max(turn values) - min(turn values)) <= threshold.
-                       Default is 10e-8
- -s SUM, --sumsquare=SUM
-                       Threshold for single BPM dominating a mode. Should be
-                       > 0.9 for LHC. Default is 0.925
- --use_test_mode       Set testing mode, this prevents date writing and file
-                       overwriting
+    python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds --turn=1 --p=0.00001 --sumsquare=0.925 --sing_val=57
+    python svd_clean.py --file=Beam1@Turn@2012_03_15@04_19_55_001_0.sdds --output=cleaned.sdds
 
 Usage in another Python module::
 
@@ -61,10 +26,11 @@ Usage in another Python module::
 import sys
 import os
 import time
-import optparse
+import argparse
 
 import numpy
 from numpy import dot as matrixmultiply
+from __builtin__ import max
 
 
 # internal options
@@ -75,88 +41,93 @@ PRINT_DEBUG = False  # If True, internal debug information will be printed
 PLANE_X = "0"
 PLANE_Y = "1"
 
+#dev hints:
+# print ">> Time for removeBadBpms: {}s".format(time.time() - time_start)  # does not work with python <= 2.6
+# print ">> Time for removeBadBpms: {0}s".format(time.time() - time_start) # works with python 2.6
+# -tbach
+
 
 #===================================================================================================
 # _parse_args()-function
 #===================================================================================================
+
 def _parse_args():
-    ''' Parses the arguments and returns args '''
-    parser = optparse.OptionParser(usage="python %prog -f file [other options]")
+    """ Parses the arguments and returns args """
+    parser = argparse.ArgumentParser(description="""Takes a SDDS ASCII file and cleans it.\n 1) remove BPM with bad data
+    (constant, spikes, zero-values)\n 2) reduce noise with a SVD.""")
 
-    parser.add_option("-f", "--file",
-        help="File to clean",
-        default="./", dest="file")
-    parser.add_option("-n", "--newfile",
-        help="File name for new file. Default is override current file",
-        default="", dest="newfile")
-    parser.add_option("-t", "--turn",
-        help="Turn number to start. Default is first turn: 1",
-        default="1", dest="startturn", type="int")
-    parser.add_option("-m", "--maxturns",
-        help="Maximum number of turns to be analysed. Default is a number that is "
-         + "lower than the maximum which can be handled by drive: 9.500",
-        default="9500", dest="maxturns", type="int")
-    parser.add_option("-v", "--sing_val",
-        help="Keep this amount of singular values in decreasing order, rest will "
-         + "be cut (set to 0). Default is a large number: 1e5",
-        default="100000", dest="sing", type="int")
-    parser.add_option("-p", "--pk-2-pk",
-        help="Peak to peak amplitude cut. This removes BPMs where "
-        + "abs(max(turn values) - min(turn values)) <= threshold. Default is 10e-8",
-        default="0.00000001", dest="peak", type="float")
-    parser.add_option("-c", "--max-peak-cut",
-        help="Maximum peak tolerance in mm. This removes BPMs where "
-        + "the maximum measured oscillation > threshold. Default is 20mm",
-        default="20", dest="max_peak", type="float")
-    parser.add_option("-s", "--sumsquare",
-        help="Threshold for single BPM dominating a mode. Should be > 0.9 for LHC."
-        + " Default is 0.925",
-        default="0.925", dest="sum", type="float")
-    parser.add_option("--use_test_mode",
-        help="Set testing mode, this prevents date writing and file overwriting",
+    parser.add_argument("-f", "--file", "--inputfile", 
+        help="File to clean", 
+        required=True, dest="inputfile")
+    parser.add_argument("-n", "--newfile", "-o", "--outputfile", 
+        help="File name for output file. Default (or empty) is override current file", 
+        dest="outputfile")
+    parser.add_argument("-t", "--turn", "--startturn",
+        help="Turn number to start (first is 1, not 0). Default is first turn: %(default)s",
+        default="1", dest="startturn", type=int)
+    parser.add_argument("-m", "--maxturns",
+        help="""Maximum number of turns to be analysed. Default is a number that is lower than the maximum 
+             which can be handled by drive: %(default)s""",
+        default="9500", dest="maxturns", type=int)
+    parser.add_argument("-v", "--sing_val", "--singular_values_amount_to_keep",
+        help="""Keep this amount of singular values in decreasing order, rest will be cut (set to 0). 
+             Default is a large number: %(default)s""",
+        default="100000", dest="singular_values_amount_to_keep", type=int)
+    parser.add_argument("-p", "--p", "--pk-2-pk", "--min_peak_to_peak", 
+        help="""Peak to peak amplitude cut. This removes BPMs where 
+             abs(max(turn values) - min(turn values)) <= threshold. Default: %(default)s""",
+        default="0.00000001", dest="min_peak_to_peak", type=float)
+    parser.add_argument("-c", "--max-peak-cut", "--max-peak",
+        help="""Maximum peak tolerance in mm. This removes BPMs where the maximum measured oscillation > threshold.
+             Default: %(default)s""",
+        default="20", dest="max_peak", type=float)
+    parser.add_argument("-s", "--sumsquare", "--single_svd_bpm_threshold",
+        help="""Threshold for single BPM dominating a mode. Should be > 0.9 for LHC. Default: %(default)s""",
+        default="0.925", dest="single_svd_bpm_threshold", type=float)
+    parser.add_argument("--use_test_mode",
+        help="""Set testing mode, this prevents date writing. Useful for automated tests, because otherwise each run
+        will have a new date, therefore a diff will fail""",
         action="store_true", dest="use_test_mode")
-
-    (options, args) = parser.parse_args()  # @UnusedVariable args is not used
-
-    return options
+    parser.add_argument("--print_times",
+        help="""Prints (more verbose) execution times""",
+        action="store_true", dest="print_times")
+    
+    args = parser.parse_args()
+    print str(args).replace("Namespace(", "Arguments:\n").replace(", ", "\n") + "\n"
+    
+#     sys.exit()
+    if args.print_times:
+        global PRINT_TIMES
+        PRINT_TIMES = True
+        
+    return args
 
 
 #===================================================================================================
 # main-function
 #===================================================================================================
-def clean_sdds_file(
-         source_file,
-         newfile="",
-         startturn=1,
-         maxturns=9500,
-         sing_val=100000,
-         pk_pk_cut=0.00000001,
-         max_peak_cut=20,
-         sumsquare=0.925,
-         use_test_mode=False
-         ):
-    '''
+def clean_sdds_file(options):
+    """
     Invokes cleaning of given SDDS file
 
-    :param string source_file: Path to sdds file which shall be cleaned
-    :param string newfile: File name for new file. source_file will be overwritten for empty string ''
-    :param int startturn: Turn number to start (1-indexed). Default is first turn: 1
-    :param int maxturns: Maximum number of turns to be analysed (1-indexed). Default is a number that is
-                         lower than the maximum which can be handled by drive: 9.500
-    :param int sing_val: Keep this amount of singular values in decreasing order, rest will be cut
-                         (set to 0). Default is a large number: 1e5
-    :param float pk_pk_cut: Peak to peak amplitude cut. This removes BPMs where
-                            abs(max(turn values) - min(turn values)) <= threshold. Default is 10e-8
-    :param float sumsquare: Threshold for single BPM dominating a mode. Should be > 0.9 for LHC.
-                            Default is 0.925
-    :param bool use_test_mode: Set testing mode, this prevents date writing and file overwriting.
-                                  Default: False
-    '''
-    _InputData.static_init(source_file, newfile, startturn, maxturns, sing_val, pk_pk_cut, max_peak_cut, sumsquare, use_test_mode)
+    For more details, see @_parse_args implementation or call this file with -h
+    """
+
+    _InputData.static_init(
+       inputfile=options.inputfile,
+       outputfile=options.outputfile,
+       startturn_human=options.startturn,
+       maxturns_human=options.maxturns,
+       singular_values_amount_to_keep=options.singular_values_amount_to_keep,
+       min_peak_to_peak=options.min_peak_to_peak,
+       max_peak_cut=options.max_peak,
+       single_svd_bpm_threshold=options.single_svd_bpm_threshold,
+       use_test_mode=options.use_test_mode
+    )
 
     start_time = time.time()
     _SvdHandler()
-    print "Global Time:", time.time() - start_time, "s"
+    print "Global Time: {0}s".format(time.time() - start_time)
     return 0
 
 
@@ -164,20 +135,24 @@ class _InputData(object):
     """This class holds all input variables for svd clean """
 
     @staticmethod
-    def static_init(source_file, newfile, startturn_human, maxturns_human, sing_val, pk_pk_cut, max_peak_cut, sumsquare, use_test_mode):
-        _InputData.source_file = source_file
-        _InputData.newfile = newfile
-        if _InputData.newfile == "":
-            _InputData.newfile = _InputData.source_file
-            print "no g_newfile given, existing file will be replaced with output"
+    def static_init(inputfile, outputfile, startturn_human, maxturns_human, singular_values_amount_to_keep, 
+                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, use_test_mode):
+        _InputData.inputfile = inputfile
+        print "inputfile:  " + str(inputfile)
+        _InputData.outputfile = outputfile
+        if not _InputData.outputfile or _InputData.outputfile == "":
+            #_InputData.outputfile = str(inputfile) + "_svd_cleaned"
+            _InputData.outputfile = _InputData.inputfile
+            print "Warning: no outputfile given, output=input (*overwrite*)"
+        print "outputfile: " + str(_InputData.outputfile)
         _InputData.startturn_human = startturn_human
-        _InputData.startturn = _InputData.startturn_human - 1
+        _InputData.startturn = startturn_human - 1
         _InputData.maxturns_human = maxturns_human
-        _InputData.maxturns = _InputData.maxturns_human - 1
-        _InputData.sing_val = sing_val
-        _InputData.pk_pk_cut = pk_pk_cut
+        _InputData.maxturns = maxturns_human - 1
+        _InputData.singular_values_amount_to_keep = singular_values_amount_to_keep
+        _InputData.min_peak_to_peak = min_peak_to_peak
         _InputData.max_peak_cut = max_peak_cut
-        _InputData.sumsquare = sumsquare
+        _InputData.single_svd_bpm_threshold = single_svd_bpm_threshold
         _InputData.use_test_mode = use_test_mode
 
     def __init__(self):
@@ -185,174 +160,201 @@ class _InputData(object):
 
 
 class _SddsFile(object):
-    """This class represents a SDDS file.
-    It reads an existing SDDS file and creates & writes the new one"""
+    """This class represents a SDDS file. It reads an existing SDDS file and creates & writes the new one"""
+    
     def __init__(self, path_to_sddsfile):
         self.path_to_sddsfile = path_to_sddsfile
-        self.bad_bpmfile = _BadBpmFile(path_to_sddsfile)
+        self.bad_bpm_file = _BadBpmFile(path_to_sddsfile)
         self.parsed = False
         self.header = ""
         self.number_of_turns = 0
         self.dictionary_plane_to_bpms = {PLANE_X: _Bpms(), PLANE_Y: _Bpms()}
 
     def init(self):
-        """Parse the current SDDS file and sets all member variables"""
+        """Parses the current SDDS file and sets all member variables"""
         if (self.parsed):
             return
-        time_start = time.time()
 
-
-        ListOfKnownBadBpms = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMS.2L5.B1", 'BPMS.2R5.B1', "BPMSI.A4R6.B1", "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2"]
+        list_of_known_bad_bpms = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", 
+                                  "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMS.2L5.B1", 'BPMS.2R5.B1', "BPMSI.A4R6.B1", 
+                                  "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2", "BPM.15L8.B2"]
 
         last_number_of_turns = 0
         detected_number_of_turns = 0
-        flatbpm_counter = 0
+        
         bpm_with_exact_zero_counter = 0
-        bpm_with_spike = 0
+        known_bad_bpms_counter = 0
+        flatbpm_counter = 0
+        bpm_with_spike_counter = 0
+        
+        time_start = time.time()
+        print "Extracting data from file " + str(self.path_to_sddsfile)
+        
+        with open(self.path_to_sddsfile, "r") as filesdds:
+            for line in filesdds:  # Iterator over all lines -tbach
+                # example: 0 BPMSY.4L1.B1 23461.055 <fp values whitespace separated>  -tbach
+                
+                if line.startswith("#"):  # we have a comment line -tbach
+                    self.header += line
+                    continue
+                
+                # detects if a turn has a value of exact zero and removes it since this was a workaround
+                # for the large spikes and is still unwanted. Could possible remove a good BPM but unlikely -alangner
+                if " 0.0 " in line: # example: 0 BPMSY.4L1.B1 23461.055 0.0 0.0 -tbach
+                    reason_for_badbpm = "Found an exact zero"
+                    badbpm = _BadBpm(line, reason_for_badbpm)
+                    self.bad_bpm_file.add_badbpm(badbpm)
+                    bpm_with_exact_zero_counter += 1
+                    continue
+                
+                # from here, we have a data line -tbach
+                list_splitted_line_values = line.split()
+                number_of_columns = len(list_splitted_line_values)
+                if (number_of_columns < 3):  # this is not a valid data line -tbach
+                    print "not a valid data line: " + str(line)
+                    continue
+                
+                plane = list_splitted_line_values[0]
+                bpm_name = list_splitted_line_values[1]
+                location = float(list_splitted_line_values[2])
+    
+                if bpm_name in list_of_known_bad_bpms: # Remove known bad BPMs
+                    reason_for_badbpm = "removed (known) bad bpm: " + str(bpm_name)
+                    #print reason_for_badbpm
+                    badbpm = _BadBpm(line, reason_for_badbpm)
+                    self.bad_bpm_file.add_badbpm(badbpm)
+                    known_bad_bpms_counter += 1
+                    continue 
+    
+                # first 3 entries metadata, rest should be turn data -tbach
+                detected_number_of_turns = number_of_columns - 3
+    
+                if last_number_of_turns > 0:
+                    if last_number_of_turns != detected_number_of_turns:
+                        print """(plane {0}) BPM has a different number of turns then previous BPM. 
+                                Current BPM: {1}, previous turns: {2}, current turns: {3}""" \
+                                .format(plane, bpm_name, last_number_of_turns, detected_number_of_turns)
+                        sys.exit(1)
+                # the else part will happen only once, if last_number_of_turns <= 0
+                # (or multiple times if we do not have any turn data) -tbach
+                else:
+                    if (_InputData.startturn_human > detected_number_of_turns):
+                        print "startturn > detected_number_of_turns. startturn: {0}, detected_number_of_turns: {1}" \
+                                .format(_InputData.startturn_human, detected_number_of_turns)
+                        sys.exit(1)
+                last_number_of_turns = detected_number_of_turns
+    
+                bpm_name_location_plane = (bpm_name, location, plane)
+                # be careful with the bpm_name_location_plane format,
+                # it is important for other parts of the program
+                # -- tbach
+    
+                self.number_of_turns = min(_InputData.maxturns, detected_number_of_turns) - _InputData.startturn
+                ndarray_line_data = numpy.array(\
+                    list_splitted_line_values[3 + _InputData.startturn:3 + _InputData.startturn + self.number_of_turns], \
+                    dtype=numpy.float64)
+    
+                ndarray_line_data_max = numpy.max(ndarray_line_data)
+                ndarray_line_data_min = numpy.min(ndarray_line_data)
+                
+                 # this block handles BPMs with the same values for all turns -tbach
+                peak_to_peak_difference = numpy.abs(ndarray_line_data_max - ndarray_line_data_min)
+                if peak_to_peak_difference <= _InputData.min_peak_to_peak:  # then do not use this BPM -tbach
+                    reason_for_badbpm = "Flat BPM, the difference between min/max is smaller than " + str(_InputData.min_peak_to_peak)
+                    badbpm = _BadBpm(bpm_name_location_plane, ndarray_line_data, reason_for_badbpm)
+                    self.bad_bpm_file.add_badbpm(badbpm)
+                    flatbpm_counter += 1
+                    continue
+                
+                # detects the turn numbers of all occurrences of a spike > _InputData.max_peak_cut
+                if max(abs(ndarray_line_data_min), abs(ndarray_line_data_max)) > _InputData.max_peak_cut:
+                    reason_for_badbpm = "Found a spike: abs({0}) > {1}mm" \
+                        .format(ndarray_line_data_max, max(abs(ndarray_line_data_min), abs(ndarray_line_data_max)))
+                    badbpm = _BadBpm(bpm_name_location_plane, ndarray_line_data, reason_for_badbpm)
+                    self.bad_bpm_file.add_badbpm(badbpm)
+                    bpm_with_spike_counter += 1
+                    continue
+                
+                self.dictionary_plane_to_bpms[plane].bpm_data.append(ndarray_line_data)
+                self.dictionary_plane_to_bpms[plane].bpm_name_location_plane.append(bpm_name_location_plane)
 
-        filesdds = open(self.path_to_sddsfile, "r")
-        print "Extracting data from file..."
-
-        for line in filesdds:  # Iterator over all lines (tbach)
-            if line.startswith("#"):  # we have a comment line (tbach)
-                self.header += line
-                continue
-
-            # from here, we have a data line (tbach)
-            list_splitted_line_values = line.split()
-            number_of_columns = len(list_splitted_line_values)
-            if (number_of_columns < 3):  # this is not a valid data line (tbach)
-                continue
-            plane = list_splitted_line_values[0]
-            bpm_name = list_splitted_line_values[1]
-            location = float(list_splitted_line_values[2])
-
-            if bpm_name in ListOfKnownBadBpms: # Remove known bad BPMs
-                continue 
-
-            # first 3 entries metadata, rest should be turn data (tbach)
-            detected_number_of_turns = number_of_columns - 3
-
-            if last_number_of_turns > 0:
-                if last_number_of_turns != detected_number_of_turns:
-                    print "(plane", plane, ") BPM has a different number of turns then previous. BPM:", bpm_name, "previous turns:", last_number_of_turns, "current turns:", detected_number_of_turns
-                    sys.exit(1)
-            # the else part will happen only once, if last_number_of_turns <= 0
-            # (or multiple times if we do not have any turn data) (tbach)
-            else:
-                if (_InputData.startturn_human > detected_number_of_turns):
-                    print "g_startturn > detected_number_of_turns. g_startturn:", _InputData.startturn_human, "detected_number_of_turns:", detected_number_of_turns
-                    sys.exit(1)
-            last_number_of_turns = detected_number_of_turns
-
-            bpms_name_location_plane = (bpm_name, location, plane)
-            # be careful with the bpms_name_location_plane format,
-            # it is important for other parts of the program
-            # -- tbach
-
-            self.number_of_turns = min(_InputData.maxturns, detected_number_of_turns) - _InputData.startturn
-            ndarray_line_data = numpy.array(list_splitted_line_values[3 + _InputData.startturn:3 + _InputData.startturn + self.number_of_turns], dtype=numpy.float64)
-
-            peak_to_peak_difference = numpy.abs(numpy.max(ndarray_line_data) - numpy.min(ndarray_line_data))
-            if peak_to_peak_difference <= _InputData.pk_pk_cut:  # then do not use this BPM (tbach)
-                reason_for_badbpm = "Flat BPM, the difference between all values is smaller than " + str(_InputData.pk_pk_cut)
-                badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
-                self.bad_bpmfile.add_badbpm(badbpm)
-                flatbpm_counter += 1
-                continue
-            list_of_OoR = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x > _InputData.max_peak_cut]
-            # detects the turn numbers of all occurrences of a spike > _InputData.max_peak_cut
-            has_OoR = False
-            if len(list_of_OoR) > 0:
-                has_OoR = True
-            if has_OoR:
-                reason_for_badbpm = "Found a spike > " + str(_InputData.max_peak_cut) + "mm"
-                badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
-                self.bad_bpmfile.add_badbpm(badbpm)
-                bpm_with_spike += 1
-                continue
-            list_of_zeros = [list(ndarray_line_data).index(x) for x in ndarray_line_data if x == 0.]
-            # detects the turn numbers of all occurrences of an exact zero value since this was a workaround
-            # for the large spikes and is still unwanted. Could possible remove a good BPM but unlikely
-            has_zero = False
-            if len(list_of_zeros) > 0:
-                has_zero = True
-            # this block handles BPMs with the same values for all turns (tbach)
-            if has_zero:
-                reason_for_badbpm = "Found an exact zero"
-                badbpm = _BadBpm(bpms_name_location_plane, ndarray_line_data, reason_for_badbpm)
-                self.bad_bpmfile.add_badbpm(badbpm)
-                bpm_with_exact_zero_counter += 1
-                continue
-
-            self.dictionary_plane_to_bpms[plane].bpm_data.append(ndarray_line_data)
-            self.dictionary_plane_to_bpms[plane].bpms_name_location_plane.append(bpms_name_location_plane)
-
-        filesdds.close()
         self.parsed = True
-        if PRINT_TIMES:
-            print ">>Time for init (read file):", time.time() - time_start, "s"
-        if flatbpm_counter > 0:
-            print "Flat BPMs detected. Number of BPMs removed:", flatbpm_counter
+
+        print ""
         if bpm_with_exact_zero_counter > 0:
-            print "Exact zeros detected. Number of BPMs removed:", bpm_with_exact_zero_counter
-        if bpm_with_spike > 0:
-            print "Spikes > " + str(_InputData.max_peak_cut) + "mm detected. Number of BPMs removed:", bpm_with_spike
-        print "Startturn:", _InputData.startturn_human, "Maxturns:", _InputData.maxturns_human
-        print "Number of turns:", self.number_of_turns
-        print "Horizontal BPMs:", self.dictionary_plane_to_bpms[PLANE_X].get_number_of_bpms(),
-        print "Vertical BPMs:", self.dictionary_plane_to_bpms[PLANE_Y].get_number_of_bpms()
+            print "Exact zeros detected. BPMs removed: " + str(bpm_with_exact_zero_counter)
+        if known_bad_bpms_counter > 0:
+            print "Known bad BPMs removed: " + str(known_bad_bpms_counter)
+        if flatbpm_counter > 0:
+            print "Flat BPMS detected (diff min/max <= {0}. BPMs removed: {1}".format(_InputData.min_peak_to_peak, flatbpm_counter)
+        if bpm_with_spike_counter > 0:
+            print "Spikes > {0}mm detected. BPMs removed: {1}".format(_InputData.max_peak_cut, bpm_with_spike_counter)
+        print "Startturn: {0} Maxturns: {1}".format(_InputData.startturn_human, _InputData.maxturns_human)
+        print "Number of turns: " + str(self.number_of_turns)
+        
+        print "Horizontal BPMs: " + str(self.dictionary_plane_to_bpms[PLANE_X].get_number_of_bpms())
+        print "Vertical   BPMs: "   + str(self.dictionary_plane_to_bpms[PLANE_Y].get_number_of_bpms())
+        
+        bpms_removed = bpm_with_exact_zero_counter + known_bad_bpms_counter + flatbpm_counter + bpm_with_spike_counter
+        good_bpms = self.dictionary_plane_to_bpms[PLANE_X].get_number_of_bpms() + self.dictionary_plane_to_bpms[PLANE_Y].get_number_of_bpms()
+        total_bpms = bpms_removed + good_bpms
+        print "(Statistics for file reading) Total BPMs: {0}, Good BPMs: {1} ({2:2.2f}%), bad BPMs: {3} ({4:2.2f}%)"\
+            .format(total_bpms, good_bpms, 100.0*good_bpms/total_bpms, bpms_removed, 100.0*bpms_removed/total_bpms)
+        
         print "Reading done"
+        if PRINT_TIMES:
+            print ">>Time for init (read file): {0}s".format(time.time() - time_start)
 
     def remove_bpms(self, badbpm_indices, plane, reason):
         """Removes the given BPMs for the given plane with the given reason"""
         badbpms = self.dictionary_plane_to_bpms[plane].remove_badbpm_and_get_badbpms(badbpm_indices, reason)
-        self.bad_bpmfile.add_badbpms(badbpms)
+        self.bad_bpm_file.add_badbpms(badbpms)
 
     def write_file(self):
         """Writes the new file"""
-        self.bad_bpmfile.header = self.header
-        self.bad_bpmfile.write_badbpms()
-        print "writing data to temp file: " + self.path_to_sddsfile + ".tmp_svd_clean"
         time_start = time.time()
-        fileclean = open(self.path_to_sddsfile + ".tmp_svd_clean", "w")
-        fileclean.write(self.header)
-        if "NTURNS calculated" not in self.header:
-            fileclean.write("#NTURNS calculated: " + str(self.number_of_turns) + "\n")
-        if not _InputData.use_test_mode:
-            fileclean.write("#Modified: {0} By: {1}\n".format(time.strftime("%Y-%m-%d#%H:%M:%S"), __file__))  # to get only the filename: os.path.basename(__file__)
-        self.write_bpm_data_to_file(PLANE_X, fileclean)
-        self.write_bpm_data_to_file(PLANE_Y, fileclean)
-        fileclean.close()
-        if PRINT_TIMES:
-            print ">>Time for write_file:", time.time() - time_start, "s"
+        self.bad_bpm_file.header = self.header
+        self.bad_bpm_file.write_badbpms()
+        temp_path = self.path_to_sddsfile + ".tmp_svd_clean"
+        print "writing data to temp file: " + temp_path
 
-        print "writing done. rename to:  ", _InputData.newfile
+        with open(temp_path, "w") as temp_file:
+            temp_file.write(self.header)
+            if "NTURNS calculated" not in self.header:
+                temp_file.write("#NTURNS calculated: " + str(self.number_of_turns) + "\n")
+            if not _InputData.use_test_mode:
+                temp_file.write("#Modified: {0} By: {1}\n".format(time.strftime("%Y-%m-%d#%H:%M:%S"), __file__))  # to get only the filename: os.path.basename(__file__)
+            self.write_bpm_data_to_file(PLANE_X, temp_file)
+            self.write_bpm_data_to_file(PLANE_Y, temp_file)
+
+        print "writing done. rename to: " + str(_InputData.outputfile)
         if not _InputData.use_test_mode:
             try:
-                os.remove(_InputData.newfile)
+                os.remove(_InputData.outputfile)
             except OSError:
-                pass  # Will be raised if newfile does not exist (vimaier)
-            os.rename(_InputData.source_file + ".tmp_svd_clean", _InputData.newfile)
+                pass  # Will be raised if outputfile does not exist or no access -vimaier
+            os.rename(temp_path, _InputData.outputfile)
+        
+        if PRINT_TIMES:
+            print ">> Time for write_file: {0}s".format(time.time() - time_start)
 
     def write_bpm_data_to_file(self, plane, file_to_write):
         """Writes the BPM data for the given plane"""
         current_bpms = self.dictionary_plane_to_bpms[plane]
-        for i, bpms_name_location_plane_item in enumerate(current_bpms.bpms_name_location_plane):
-            file_to_write.write("{0} {1[0]:<15} {1[1]:>12.5f} ".format(plane, bpms_name_location_plane_item))
-            # {0} is the first argument, {1[0]} from the second argument the first entry, {1[1] from the second argument the second entry (tbach)
-            # :>15 means right aligned, filled up to 15 characters. example: "   BPMYA.4L1.B1" (tbach)
-            # :>12.5 means right aligned float, filled up to 12 characters and fixed precision of 5. Example: " 23347.14262" (tbach)
+        for i, bpm_name_location_plane_item in enumerate(current_bpms.bpm_name_location_plane):
+            file_to_write.write("{0} {1[0]:<15} {1[1]:>12.5f} ".format(plane, bpm_name_location_plane_item))
+            # {0} is the first argument, {1[0]} from the second argument the first entry, {1[1] from the second argument the second entry -tbach
+            # :>15 means right aligned, filled up to 15 characters. example: "   BPMYA.4L1.B1" -tbach
+            # :>12.5 means right aligned float, filled up to 12 characters and fixed precision of 5. Example: " 23347.14262" -tbach
             current_bpms.bpm_data[i].tofile(file_to_write, sep=" ", format="% 8.5f")
-            # % 8.5f is a float, filled up to 8 characters and fixed precision of 5. if negative, preceded by a sign, if positive by a space (tbach)
-            # Example1: " -0.94424", example2: "  1.25630" (tbach)
+            # % 8.5f is a float, filled up to 8 characters and fixed precision of 5. if negative, preceded by a sign, if positive by a space -tbach
+            # Example1: " -0.94424", example2: "  1.25630" -tbach
             file_to_write.write("\n")
 
 
 class _BadBpmFile(object):
     """ Represents a bad bpm file
-    Handles interaction with the bad bpm file
-    """
+    Handles interaction with the bad bpm file """
 
     def __init__(self, path_to_sddsfile):
         self.path_to_sddsfile = path_to_sddsfile
@@ -364,89 +366,89 @@ class _BadBpmFile(object):
         """ Writes the header for the bad bpm file """
         filehandle_badbpm.write(self.header)
         if not _InputData.use_test_mode:
-            filehandle_badbpm.write("#Modified: %s By: %s\n" % (time.strftime("%Y-%m-%d#%H:%M:%S"), __file__))  # to get only the filename: os.path.basename(__file__)
-        filehandle_badbpm.write("#Bad BPMs from: %s \n" % self.path_to_sddsfile)
+            filehandle_badbpm.write("#Modified: {0} By: {1}\n".format(time.strftime("%Y-%m-%d#%H:%M:%S"), __file__))  # to get only the filename: os.path.basename(__file__)
+        filehandle_badbpm.write("#Bad BPMs from: {0}\n".format(self.path_to_sddsfile))
 
     def add_badbpm(self, badbpm):
         """ Adds a new bad BPM to write """
-        self.lines_to_write.append("%s %15s %12.5f %s \n#%s\n" % \
-                                 (badbpm.plane, badbpm.name, badbpm.location, " ".join(["%12.5f" % x for x in badbpm.data]), badbpm.reason))
-        # for string formatting explanation, see write_bpm_data_to_file (tbach)
-        # requires at least python 2.6:
-        # "{0} {1:<15} {2:>12.5f} {3} \n# {4}\n".format(badbpm.plane, badbpm.name, badbpm.location, " ".join(["{0:>10.5f}".format(x) for x in badbpm.data])
-        # --tbach
+        self.lines_to_write.append(badbpm.to_string)
 
     def add_badbpms(self, list_badbpm):
-        """ Adds all bad BPM to write """
+        """Adds all bad BPM to write """
         for badbpm in list_badbpm:
             self.add_badbpm(badbpm)
 
     def write_badbpms(self):
-        """ Writes all the current bad BPM"""
+        """Writes all the current bad BPM"""
         if not self.lines_to_write:
             return
         time_start = time.time()
         print "Create file for bad BPMs: ", self.path_to_badbpmfile
-        file_badbpms = open(self.path_to_badbpmfile, "w")
-        self.__write_header(file_badbpms)
-        for line in self.lines_to_write:
-            file_badbpms.write(line)
-        file_badbpms.close()
+
+        with open(self.path_to_badbpmfile, "w") as file_badbpms:
+            self.__write_header(file_badbpms)
+            for line in self.lines_to_write:
+                file_badbpms.write(line)
+        
         if PRINT_TIMES:
-            print ">>Time for write_badbpms:", time.time() - time_start, "s"
+            print ">> Time for write_badbpms: {0}s".format(time.time() - time_start)
 
 
 class _Bpms(object):
-    """This represents some BPMs.
-    It is used to distinguish between BPMs for X and Y"""
+    """This represents some BPMs. It is used to distinguish between BPMs for X and Y"""
 
     def __init__(self):
         self.bpm_data = []
-        self.bpms_name_location_plane = []
+        self.bpm_name_location_plane = []
 
     def get_number_of_bpms(self):
-        """ Get the number of BPMs"""
-        return len(self.bpms_name_location_plane)
+        """ Get the number of BPMs """
+        return len(self.bpm_name_location_plane)
 
     def remove_badbpm_and_get_badbpms(self, badbpm_indices, reason):
-        """ Removes the given BPM indices from the current BPM list
-        and returns a list of the given bad BPMs"""
+        """Removes the given BPM indices from the current BPM list and returns a list of the given bad BPMs"""
         badbpms = []
         for index in sorted(badbpm_indices, reverse=True):
-            badbpms.append(_BadBpm(self.bpms_name_location_plane.pop(index), self.bpm_data.pop(index), reason))
-
+            badbpms.append(_BadBpm(self.bpm_name_location_plane.pop(index), self.bpm_data.pop(index), reason))
         return badbpms
 
 
 class _BadBpm(object):
     """Represents a bad BPM"""
+    
+    def __init__(self, *args, **kwargs): #this is python, we can not have multiple constructors :/ -tbach
+        if len(args) == 3:
+            self.init_with_variables(args[0], args[1], args[2])
+        elif len(args) == 2:
+            self.init_with_line(args[0], args[1])
+        else:
+            print "WARNING. unknown arguments, check source. len(args): " + str(len(args))
+            self.init_with_line(str(args), "unknown arguments")
 
-    def __init__(self, bpms_name_location_plane, data, reason):
-        self.bpms_name_location_plane = bpms_name_location_plane
-        self.data = data
-        self.reason = reason  # The reason why this is a bad bpm (tbach)
+    def init_with_variables(self, bpm_name_location_plane, data, reason):
+        #print "badbpm " + str(reason) #show all removed bad bpms with reason -tbach
+        name = bpm_name_location_plane[0]
+        location = bpm_name_location_plane[1]
+        plane = bpm_name_location_plane[2]
+        
+        self.line_to_write = "{0} {1:<15} {2:>12.5f} {3}\n#{4}\n" \
+            .format(plane, name, location, " ".join(["{0:>12.5f}".format(x) for x in data]), reason)
+        # for string formatting explanation, see write_bpm_data_to_file -tbach
+        
+    def init_with_line(self, line, reason):
+        self.line_to_write = "{0}#{1}\n".format(line, reason)
 
     @property
-    def name(self):
-        """ returns the name from bpms_name_location_plane"""
-        return self.bpms_name_location_plane[0]
-
-    @property
-    def location(self):
-        """ returns the location from bpms_name_location_plane"""
-        return self.bpms_name_location_plane[1]
-
-    @property
-    def plane(self):
-        """ returns the plane from bpms_name_location_plane"""
-        return self.bpms_name_location_plane[2]
+    def to_string(self):
+        """ returns the String representation for this bad bpm"""
+        return self.line_to_write
 
 
 class _SvdHandler(object):
     """ Main workload class. Handles the SVD"""
 
     def __init__(self):
-        self.sddsfile = _SddsFile(_InputData.source_file)
+        self.sddsfile = _SddsFile(_InputData.inputfile)
         self.sddsfile.init()
         print ""
 
@@ -454,7 +456,7 @@ class _SvdHandler(object):
         self.do_svd_clean(PLANE_X)
         self.do_svd_clean(PLANE_Y)
         if PRINT_TIMES:
-            print ">>Time for svdClean (all):", time.time() - time_start, "s"
+            print ">> Time for svdClean (X&Y): {0}s".format(time.time() - time_start)
         print ""
 
         self.sddsfile.write_file()
@@ -463,7 +465,7 @@ class _SvdHandler(object):
     def do_svd_clean(self, plane):
         """Does a SVD clean on the given plane"""
         time_start = time.time()
-        print "(plane", plane, ") removing noise floor with SVD"
+        print "(plane {0}) removing noise floor with SVD".format(plane)
 
         A = numpy.array(self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data)
         number_of_bpms = A.shape[0]
@@ -477,22 +479,22 @@ class _SvdHandler(object):
         A = (A - A_mean) / sqrt_number_of_turns
 
         if PRINT_TIMES:
-            print ">>Time for svdClean (before SVD call):", time.time() - time_start, "s"
+            print ">> Time for svdClean (before SVD call): {0}s".format(time.time() - time_start)
         USV = self.get_singular_value_decomposition(A)
         if PRINT_TIMES:
-            print ">>Time for svdClean (after SVD call): ", time.time() - time_start, "s"
+            print ">> Time for svdClean (after SVD call): {0}s".format(time.time() - time_start)
 
-        # remove bad BPM by SVD (tbach)
-        goodbpm_indices = self.get_badbpm_indices(USV, plane)
-        USV = (USV[0][goodbpm_indices], USV[1], USV[2])
-        number_of_bpms = len(goodbpm_indices)
+        # remove bad BPM by SVD -tbach
+        good_bpm_indices = self.remove_bad_bpms_and_get_good_bpm_indices(USV, plane)
+        USV = (USV[0][good_bpm_indices], USV[1], USV[2])
+        number_of_bpms = len(good_bpm_indices)
 
         #----SVD cut for noise floor
-        if _InputData.sing_val < number_of_bpms:
-            print "(plane", plane, ") svdcut:", _InputData.sing_val
-            USV[1][_InputData.sing_val:] = 0
+        if _InputData.singular_values_amount_to_keep < number_of_bpms:
+            print "(plane {0}) amount of singular values to keep: {1}".format(plane, _InputData.singular_values_amount_to_keep)
+            USV[1][_InputData.singular_values_amount_to_keep:] = 0
         else:
-            print "requested more singular values than available"
+            print "requested more singular values than available(={0})".format(number_of_bpms)
 
         A = matrixmultiply(USV[0], matrixmultiply(numpy.diag(USV[1]), USV[2]))
         # A0 * (A1 * A2) should require less operations than (A0 * A1) * A2,
@@ -504,19 +506,19 @@ class _SvdHandler(object):
         A = (A * sqrt_number_of_turns) + A_mean
         self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data = A
         if PRINT_TIMES:
-            print ">>Time for do_svd_clean:", time.time() - time_start, "s"
+            print ">> Time for do_svd_clean: {0}s".format(time.time() - time_start)
 
     def get_singular_value_decomposition(self, matrix):
         """Calls the SVD, returns a USV representation
         For details, see numpy documentation"""
-        return numpy.linalg.svd(matrix, full_matrices=False)  # full matrices do not have any interesting value for us (tbach)
+        return numpy.linalg.svd(matrix, full_matrices=False)  # full matrices do not have any interesting value for us -tbach
 
-    def get_badbpm_indices(self, USV, plane):
-        """ Get the indices from bad BPMs for the given plane"""
+    def remove_bad_bpms_and_get_good_bpm_indices(self, USV, plane):
+        """ Removes bad(dominant) BPMs and gets the indices from good BPMs for the given plane"""
         time_start = time.time()
 
-        # A is [u,s,v] with u * np.diag(s) * v = original matrix (tbach)
-        U_t_abs = numpy.transpose(abs(USV[0]))  # This creates a view, which is nice and fast (tbach)
+        # A is [u,s,v] with u * np.diag(s) * v = original matrix -tbach
+        U_t_abs = numpy.transpose(abs(USV[0]))  # This creates a view, which is nice and fast -tbach
         # What happens here?
         # From the SDDS ASCII file, We have a BPM x Turns matrix.
         # Let B = Number of BPM, T = Number of Turns, then matrix size is (B,T)
@@ -526,23 +528,23 @@ class _SvdHandler(object):
         # If one BPM is dominating, we remove it as a bad BPM
         # --tbach
 
-        badbpm_indices = set()  # we do not want duplicates (tbach)
+        badbpm_indices = set()  # we do not want duplicates -tbach
 
         for row_index in range(len(U_t_abs)):
             max_index = numpy.argmax(U_t_abs[row_index])
             max_value = U_t_abs[row_index][max_index]
-            if (max_value > _InputData.sumsquare):
+            if (max_value > _InputData.single_svd_bpm_threshold):
                 badbpm_indices.add(max_index)
 
         if PRINT_DEBUG:
-            print "Bad BPM indices: ", badbpm_indices
+            print "Bad BPM indices: " + str(badbpm_indices)
 
         number_of_badbpms = len(badbpm_indices)
         if number_of_badbpms > 0:
-            print "(plane", plane, ") Bad BPMs from SVD detected. Number of BPMs removed:", len(badbpm_indices)
+            print "(plane {0}) Bad BPMs from SVD detected. Number of BPMs removed: {1}".format(plane, len(badbpm_indices))
 
-        # add the bad BPMs to the general list of bad BPMs (tbach)
-        reason_for_badbpm = "Detected from SVD, single peak value is greater then " + str(_InputData.sumsquare)
+        # add the bad BPMs to the general list of bad BPMs -tbach
+        reason_for_badbpm = "Detected from SVD, single peak value is greater then " + str(_InputData.single_svd_bpm_threshold)
         self.sddsfile.remove_bpms(badbpm_indices, plane, reason_for_badbpm)
 
         number_of_bpms = USV[0].shape[0]
@@ -551,7 +553,7 @@ class _SvdHandler(object):
             goodbpm_indices.remove(value)
 
         if PRINT_TIMES:
-            print ">>Time for removeBadBpms:", time.time() - time_start, "s"
+            print ">> Time for removeBadBpms: {0}s".format(time.time() - time_start)
         return goodbpm_indices
 
 
@@ -559,21 +561,9 @@ class _SvdHandler(object):
 # main invocation
 #===================================================================================================
 def _start():
-    '''
-    Starter function to avoid polluting global namespace with variable 'options'.
-    '''
+    """Starter function to avoid polluting global namespace with variable 'options'."""
     options = _parse_args()
-    clean_sdds_file(
-         source_file=options.file,
-         newfile=options.newfile,
-         startturn=options.startturn,
-         maxturns=options.maxturns,
-         sing_val=options.sing,
-         pk_pk_cut=options.peak,
-         max_peak_cut=options.max_peak,
-         sumsquare=options.sum,
-         use_test_mode=options.use_test_mode
-         )
+    clean_sdds_file(options)
 
 if __name__ == "__main__":
     _start()

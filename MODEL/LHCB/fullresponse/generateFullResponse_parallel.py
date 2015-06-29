@@ -60,10 +60,10 @@ import numpy
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
-import Python_Classes4MAD.madxrunner as madxrunner
 import Utilities.iotools
 import Utilities.math
 
+from madx import madx_wrapper
 
 #===================================================================================================
 # _parse_args()-function
@@ -270,11 +270,11 @@ def _join_with_output(*path_tokens):
     return os.path.join(_InputData.output_path, *path_tokens)
 
 
-DEV_NULL = open(os.devnull, "w")
+DEV_NULL = os.devnull
 
 
 def _callMadx(pathToInputFile, attemptsLeft=5):
-    result = madxrunner.runForInputFile(pathToInputFile, stdout=DEV_NULL)
+    result = madx_wrapper.resolve_and_run_file(pathToInputFile, log_file=DEV_NULL)
     if result is not 0:  # then madx failed for whatever reasons, lets try it again (tbach)
         print "madx failed. result:", result, "pathToInputFile:", pathToInputFile, "attempts left:", attemptsLeft
         if attemptsLeft is 0:
