@@ -7,6 +7,10 @@ from Python_Classes4MAD import madxrunner
 from Utilities import iotools
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+if "win" in sys.platform:
+    MADX_PATH = "\\\\AFS\\cern.ch\\project\\mad\\madx\\releases\\last-pro\\madx-win64.exe"
+else:
+    MADX_PATH = "/afs/cern.ch/group/si/slap/bin/madx"
 LIB = "lib"
 
 
@@ -76,7 +80,10 @@ def run(full_madx_script, log_file=None):
         log_stream = sys.stdout
     else:
         log_stream = open(log_file, "w")
-    return madxrunner.runForInputString(full_madx_script, stdout=log_stream, stderr=log_stream)
+    return madxrunner.runForInputString(full_madx_script, 
+                                        stdout=log_stream,
+                                        stderr=log_stream, 
+                                        madxPath=MADX_PATH)
 
 
 def _resolve_required_macros(file_content):

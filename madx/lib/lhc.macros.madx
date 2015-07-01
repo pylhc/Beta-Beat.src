@@ -259,6 +259,28 @@ high_beta_matcher(): macro = {
 
 
 /*
+* Selects the LHC IPs only.
+*/
+select_lhc_ips(): macro = {
+    select, flag=twiss, clear;
+    select, flag=twiss, pattern = "^IP[1-8]$";
+}
+
+
+/*
+* Simple twiss file output with only the LHC IPs.
+* @param sequence: name of the sequence to use.
+* @param output_file: path to the file to write, it has to be input in "" to
+* preserve upper case characters.
+* @param dpp: delta p / p to use in the twiss command.
+*/
+do_twiss_lhc_ips(use_sequence, output_file, dpp): macro = {
+    exec, select_lhc_ips();
+    twiss, chrom, sequence=use_sequence, deltap=dpp, file=output_file;
+};
+
+
+/*
 * Redefining skew quads l,r from arc for ATS MD
 */
 full_response_ats(): macro = {

@@ -27,6 +27,29 @@ load_main_sequence(): macro = {
 
 
 /*
+*
+*/
+set_field_errors(magnet_pattern, b2r_error, random_seed): macro = {
+    call,   file="/afs/cern.ch/eng/lhc/optics/V6.5/errors/Esubroutines.madx"  ;
+    GCUTR=3;
+    Rr=0.05;
+    ON_B2R=1;
+    select, flag=error, clear; SELECT,FLAG=ERROR, pattern="magnet_pattern";
+    B2r = b2r_error ;
+    eoption, seed= random_seed;
+    exec SetEfcomp_Q;
+};
+
+
+set_alignment_errors(magnet_pattern, random_seed): macro = {
+    GCUTR=3;
+    select, flag=error, clear; SELECT,FLAG=ERROR, pattern="magnet_pattern";
+    eoption, seed= random_seed;
+    EALIGN, DS:=0.001*TGAUSS(GCUTR);
+}
+
+
+/*
 * Define observation points for PTC track.
 */
 define_observation_points(): macro = {

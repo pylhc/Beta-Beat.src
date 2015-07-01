@@ -16,12 +16,14 @@ class MadxTemplates():
     into the template.
     """
 
-    def __init__(self, template_dirs=[], output_file=None, log_file=None):
+    def __init__(self, template_dirs=[], output_file=None, log_file=None, verbose=False):
         self.__output_file = output_file
         self.__log_file = log_file
+        self._verbose = verbose
         template_dirs.append(os.path.join(CURRENT_PATH, "templates"))
-        print "Using template directories: " + str(template_dirs)
-        print "Generating methods..."
+        if self._verbose:
+            print "Using template directories: " + str(template_dirs)
+            print "Generating methods..."
         for template_dir in template_dirs:
             if os.path.isdir(template_dir):
                 for template_name in os.listdir(template_dir):
@@ -30,13 +32,20 @@ class MadxTemplates():
                         placeholder_list = self.__parse_template(template_path)
                         if len(placeholder_list) != 0:
                             self.__assing_new_method(template_name, template_path, placeholder_list)
-                        else:
+                        elif self._verbose:
                             print "WARNING: Ignoring non-template: " + os.path.abspath(template_path) + ". Cannot find placeholders."
-                    else:
+                    elif self._verbose:
                         print "WARNING: Ignoring non-file: " + os.path.abspath(template_path)
-            else:
+            elif self._verbose:
                 print "WARNING: Ignoring non-directory: " + os.path.abspath(template_dir)
-        print "All done."
+        if self._verbose:
+            print "All done."
+
+    def set_log_path(self, log_path):
+        self.log_file = log_path
+
+    def set_output_path(self, output_path):
+        self.output_file = output_path
 
     def __parse_template(self, template_path):
         template_content = iotools.read_all_lines_in_textfile(template_path)
@@ -50,7 +59,7 @@ class MadxTemplates():
     def __remove_duplicated(self, item_list):
         new_list = []
         for item in item_list:
-            if not item in new_list:
+            if item not in new_list:
                 new_list.append(item)
         return new_list
 
@@ -63,18 +72,19 @@ class MadxTemplates():
             placeholder_replacement_dict += "\"" + placeholder + "\"" + ": " + placeholder + ", "
         placeholder_replacement_dict = placeholder_replacement_dict[:-2] + "}"
         new_function_code = new_function_code[:-2] + "):\n"
-        print new_function_code[:-2]
+        if self._verbose:
+            print new_function_code[:-2]
         output_file = None if self.__output_file is None else "\"" + self.__output_file + "\""
         log_file = None if self.__log_file is None else "\"" + self.__log_file + "\""
         new_function_code += "    from Utilities import iotools\n"
         new_function_code += "    from madx import madx_wrapper\n"
-        new_function_code += "    template_content = iotools.read_all_lines_in_textfile(\"" + template_path + "\")" + "\n"
+        new_function_code += "    template_content = iotools.read_all_lines_in_textfile(r\"" + template_path + "\")" + "\n"
         new_function_code += "    resolved_template = template_content % " + placeholder_replacement_dict + "\n"
         new_function_code += "    madx_wrapper.resolve_and_run_string(resolved_template, output_file=" + str(output_file) + ", log_file=" + str(log_file) + ")\n"
         exec new_function_code in self.__dict__
 
 
 if __name__ == '__main__':
-    MadxTemplates()
+    MadxTemplates(verbose=True)
     print >> sys.stderr, "This module is only meant to be imported."
     sys.exit(-1)
