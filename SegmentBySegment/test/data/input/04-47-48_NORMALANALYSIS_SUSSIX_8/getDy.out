@@ -1,3 +1,0 @@
-@ GetLLMVersion %s "V2.38b PRO"
-@ MAD_FILE %s "/user/slops/data/LHC_DATA/OP_DATA/Betabeat/2013-01-11/models/LHCB1/1_1_1_2_re_tune/twiss.dat"
-@ FILES %s "/user/slops/data/LHC_DATA/OP_DATA/Betabeat/2013-01-11/LHCB1/Measurements/Beam1@Turn@2013_01_12@03_30_37_386_0.new/Beam1@Turn@2013_01_12@03_30_37_386_0.sdds.new.new_liny /user/slops/data/LHC_DATA/OP_DATA/Betabeat/2013-01-11/LHCB1/Measurements/Beam1@Turn@2013_01_12@03_29_03_506_0.new/Beam1@Turn@2013_01_12@03_29_03_506_0.sdds.new.new_liny /user/slops/data/LHC_DATA/OP_DATA/Betabeat/2013-01-11/LHCB1/Measurements/Beam1@Turn@2013_01_12@03_27_39_226_0.new/Beam1@Turn@2013_01_12@03_27_39_226_0.sdds.new.new_liny "

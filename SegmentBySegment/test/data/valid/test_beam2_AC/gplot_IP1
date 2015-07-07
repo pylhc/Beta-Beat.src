@@ -1,0 +1,254 @@
+set terminal postscript enhanced color solid 20
+# set terminal X11
+
+set size 1, 1.15
+
+set output "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//plot_IP1.eps"
+
+set multiplot
+set size 1,0.5
+set origin 0,0.5
+set lmargin 8
+set xrange[2701.989442-50:3682.980842+50]
+set yrange[0:*]
+set key on
+
+# Beta X
+
+set ylabel "{/Symbol b}_x[m]"
+
+ plot "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/input/test_beam2_AC/getbetax_free.out" using 2:4:6 title "Measurement" with errorbars linetype 1,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetax_IP1.out" using ($2+2701.989442):3 with lines linetype 2 notitle,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetax_IP1.out" using ($2+2701.989442):3:4  title "Propagated" with errorbars linetype 2,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetax_IP1.out" using ($2+2701.989442):5:6  title "Corrected"  with errorbars linetype 3,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetax_IP1.out" using ($2+2701.989442):7 with lines linetype 4 notitle,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetax_IP1.out" using ($2+2701.989442):7:8  title "Back" with errorbars linetype 4,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetax_IP1.out" using ($2+2701.989442):9:10 title "Back corrected"  with errorbars linetype 5
+
+
+set origin 0,0.
+set size 1,0.54
+
+set ylabel "{/Symbol b}_y[m]"
+set xlabel"s [m]"
+set yrange[0:500]
+
+# Beta y
+
+ plot "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/input/test_beam2_AC/getbetay_free.out" using 2:4:6 title "Measurement" with errorbars linetype 1,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetay_IP1.out" using ($2+2701.989442):3 with lines linetype 2 notitle,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetay_IP1.out" using ($2+2701.989442):3:4  title "Propagated" with errorbars linetype 2,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetay_IP1.out" using ($2+2701.989442):5:6  title "Corrected"  with errorbars linetype 3,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetay_IP1.out" using ($2+2701.989442):7 with lines linetype 4 notitle,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetay_IP1.out" using ($2+2701.989442):7:8  title "Back" with errorbars linetype 4,\
+      "< grep BPM /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC/sbsbetay_IP1.out" using ($2+2701.989442):9:10 title "Back corrected"  with errorbars linetype 5
+
+
+set origin 0,0.95
+set size 1,0.2
+
+unset arrow
+unset xtics
+unset ytics
+unset xlabel
+
+set ylabel "K_1L"
+set label "IP1" at 500+2701.989442, 0.5 center
+set label "LHCB2" at 2701.989442, 0.5 font "Bold" center
+set zeroaxis
+set yrange[]
+
+# K strength
+plot "< grep MQ /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//twiss_IP1.dat" u ($2-$19/2+2701.989442):($20):($19) w boxes fs solid 0.6 lt 1 notitle
+
+unset multiplot
+reset
+
+
+
+#phasetotal
+
+set size 1, 1.15
+set output "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//plot_IP1.phasetotal.eps"
+set multiplot
+set size 1,0.5
+set origin 0,0.5
+set lmargin 8
+s=2701.989442
+
+set ylabel "{/Symbol Df}_x[2{/Symbol p}]"
+
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//sbsphasext_IP1.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,\
+   "" u ($2):7 t"Err" w l lt 7
+
+set origin 0,0.
+set size 1,0.54
+#set key 9000,470  samplen 1
+set ylabel "{/Symbol Df}_y[2{/Symbol p}]"
+set xlabel"s [m]"
+set yrange[]
+unset key
+
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//sbsphaseyt_IP1.out" u ($2):5:6 t"Meas" w e pt 7 lt 1,\
+   "" u ($2):5 w l 1,\
+   "" u ($2):7 w l lt 7
+
+set origin 0,0.95
+set size 1,0.2
+unset arrow
+unset xtics
+unset ytics
+unset xlabel
+set ylabel "K_1L"
+set label "IP1" at 450+s, 0.12 center
+set label "LHCB2" at s, 0.12 font "Bold" center
+set zeroaxis
+set yrange[]
+p  "< grep MQ /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//twiss_IP1.dat" u ($2-$19/2+s):($20):($19) w boxes fs solid 0.6 lt 1
+
+
+reset
+unset multiplot
+
+
+# coupling f1001
+
+set size 1,0.95
+set output "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//csbs_IP1_diff_3.5Tev.eps"
+set multiplot
+set lmargin 8
+set size 1,0.2
+set origin 0,0.75
+unset xlabel
+set ylabel "K1L"
+set label "LHCB2" at graph 1,1.12  right font "bold, 18"
+set label "IP1" at graph 0.55,1.12  right 
+unset ytics
+unset xtics
+unset key
+set zeroaxis
+set xrange []
+p "< grep MQ /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//twiss_IP1.dat" u ($2-$19/2+2701.989442):($20):($19) w boxes fs solid 0.6 lt 1
+
+set size 1,0.8
+set origin 0,0.0
+set xlabel "Longitudinal location [m]"
+set ylabel "f_{1001}"
+set ytics 0.05
+set xtics 200
+unset label
+set key  bottom left samplen 1
+
+# in case or IR use $23 instead of $2
+
+p  [][-0.2:0.2] "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//sbscouple_IP1.out" u ($2):15 w l t"Corr model |f_{1010}|" lt 1 lw 2,\
+       ""  u ($2):17 w l t"Corr model Re[f_{1010}]" lt 3 lw 2,\
+       ""  u ($2):18 w l t"Corr model Im[f_{1010}]" lt 7 lw 2
+
+
+set key  top left  samplen 1
+p   [][-0.2:0.2]   "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//sbscouple_IP1.out" u ($2):3:4 w e t"Measured |f_{1010}|" lt 1 ps 0.7 pt 7 lw 2,\
+       "" u ($2):5:6 w e t"Measured Re[f_{1010}]" lt 3 ps 0.7 pt 7 lw 2,\
+       "" u ($2):7:8 w e t"Measured Im[f_{1010}]" lt 7 ps 0.7 pt 7 lw 2
+
+# coupling 1010
+unset multiplot
+reset 
+
+set size 1,0.95
+set output "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//csbs_IP1_3.5Tev.eps"
+set multiplot
+set lmargin 8
+set size 1,0.2
+set origin 0,0.75
+unset xlabel
+set ylabel "K1L"
+set label "LHCB2" at graph 1,1.12  right font "bold, 18"
+set label "IP1" at graph 0.55,1.12  right 
+unset ytics
+unset xtics
+unset key
+set zeroaxis
+set xrange []
+p "< grep MQ /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//twiss_IP1.dat" u ($2-$19/2+2701.989442):($20):($19) w boxes fs solid 0.6 lt 1
+
+set size 1,0.8
+set origin 0,0.0
+set xlabel "Longitudinal location [m]"
+set ylabel "f_{1010}"
+set ytics 0.05
+set xtics 200
+unset label
+set key  bottom left samplen 1
+
+# in case or IR use $23 instead of $2
+
+p  [][-0.2:0.2] "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//sbscouple_IP1.out" u ($2):20 w l t"Corr model |f_{1010}|" lt 1 lw 2,\
+       ""  u ($2):22 w l t"Corr model Re[f_{1010}]" lt 3 lw 2,\
+       ""  u ($2):24 w l t"Corr model Im[f_{1010}]" lt 7 lw 2
+
+
+set key  top left  samplen 1
+p   [][-0.2:0.2]   "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//sbscouple_IP1.out" u ($2):9:10 w e t"Measured |f_{1010}|" lt 1 ps 0.7 pt 7 lw 2,\
+       "" u ($2):11:12 w e t"Measured Re[f_{1010}]" lt 3 ps 0.7 pt 7 lw 2,\
+       "" u ($2):13:14 w e t"Measured Im[f_{1010}]" lt 7 ps 0.7 pt 7 lw 2
+
+
+exit
+
+#COMMAND
+#
+#
+#
+
+
+set size 1, 1.15
+set output "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//plot_IP1_phase.eps"
+set multiplot
+set lmargin 9
+set size 1,0.5
+set origin 0,0.5
+set zeroaxis
+
+set xrange[]
+set yrange[-0.06:0.06]
+set key top left samplen 1 box
+
+
+set ylabel "{/Symbol Df}_x-beat"
+
+p "< awk '$0!~/BPMS/{print }' /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//phasexEM.out" u ($3+2701.989442):($5-$6):($3+2701.989442):($4+2701.989442) w xerr t"Nominal" ps 1.7 pt 7,\
+  "< awk '$0!~/BPMS/{print }' /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//phasexEM_play.out" u ($3+2701.989442):($5-$6) t"MQY.B4L2" ps 1.7 pt 14 lt 7 lw 2
+
+
+
+
+set origin 0,0.
+set size 1,0.54
+set nokey
+set ylabel "{/Symbol Df}_y-beat"
+set xlabel"s [m]"
+#set yrange[]
+
+p "< awk '$0!~/BPMS/{print }' /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//phaseyEM.out" u ($3+2701.989442):($5-$6 ):($3+2701.989442):($4+2701.989442) w xerr t"Nominal" ps 1.5 pt 7,\
+  "< awk '$0!~/BPMS/{print }' /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//phaseyEM_play.out" u ($3+2701.989442):($5-$6) t"play" ps 1.7 pt 14 lt 7 lw 2
+
+# p "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//phaseyEM.out" u ($3+2701.989442):($5 > 0.5 ? 1-$5-$6:$5-$6 ):($3+2701.989442):($4+2701.989442) w xerr t"Nominal" ps 1.5 pt 7,\
+#  "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//phaseyEM_play.out" u ($3+2701.989442):($5 > 0.5 ? 1-$5-$6:$5-$6 ) t"play" ps 1.7 pt 14 lt 7 lw 2
+
+
+
+
+set origin 0,0.95
+set size 1,0.2
+unset arrow
+unset xtics
+unset ytics
+unset xlabel
+set nokey
+set ylabel "K_1L"
+set label "IP1" at 546.3+2701.989442, 0.5 center
+set label "LHCB2" at 2701.989442, 0.5 font "Bold" center
+set zeroaxis
+set yrange[]
+p  "< grep MQ /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam2_AC//twiss_IP1.dat" u ($2-$19/2+2701.989442):($20):($19) w boxes fs solid 0.6 lt 1

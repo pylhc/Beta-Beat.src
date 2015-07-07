@@ -47,8 +47,7 @@ class TestOutput(unittest.TestCase):
 
     def tearDown(self):
         if TestOutput.successful:
-            pass
-            #self._delete_modified_and_if_desired_valid_output()
+            self._delete_modified_and_if_desired_valid_output()
 
     def testOutput(self):
         print "Start TestOutput of SBS"
@@ -159,22 +158,30 @@ class TestOutput(unittest.TestCase):
 #             self._compare_dir_almost_equal_doubles(valid_dir, to_check_dir)
 #        self._compare_dirs_with_ndiff(valid_dir, to_check_dir)
         self._compare_dirs_with_tfs_comparator(valid_dir, to_check_dir)
+        print "  Everything right"
         TestOutput.successful = True
 
     def _compare_dirs_with_tfs_comparator(self, valid_dir, to_check_dir):
         ignore_names = ["L", "NAME"]
         for item in os.listdir(valid_dir):
+            if not item.startswith("sbs"):  # Only check the SbS files
+                continue
             valid_item = os.path.join(valid_dir, item)
             to_check_item = os.path.join(to_check_dir, item)
             if os.path.isfile(valid_item) and os.path.isfile(to_check_item):
                 try:
+                    syserr = sys.stderr
+                    sys.stderr = open(os.devnull, "w")
                     valid_twiss = metaclass.twiss(valid_item)
                     to_check_twiss = metaclass.twiss(to_check_item)
+                    sys.stderr = syserr
                     self.assertTrue(Utilities.tfs_comparator.compare_tfs(valid_twiss, to_check_twiss, _MAX_RELATIVE_ERROR,
                                                                          ignore_names=ignore_names),
                                     "Difference found in file: " + to_check_item)
-                except (UnboundLocalError, ValueError, IndexError):
-                    pass
+                except:
+                    raise
+                finally:
+                    sys.stderr = syserr
 
     def _compare_dirs_with_ndiff(self, valid_dir, to_check_dir):
         # sbsalfax_IP2.out has additional columns and need therefore a special config file

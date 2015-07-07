@@ -1,0 +1,57 @@
+set terminal postscript enhanced color solid 22
+
+
+
+
+##### cor bb
+reset
+unset multiplot
+set output "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/bb_cor.eps"
+
+set multiplot
+
+set size 1,0.5
+set origin 0,0.5
+
+p [][-0.6:0.6] "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/bbx.out" u 2:3:4 w e t "measured",  "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/bbx.out" u 2:($3+$5) t "correction"
+
+set origin 0,0.0
+unset key
+
+p [][-0.6:0.6] "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/bby.out" u 2:3:4 w e, "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/bby.out" u 2:($3+$5)
+
+
+
+##### cor coupling
+reset
+unset multiplot
+set output "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/coupling_cor.eps"
+
+set multiplot
+
+set size 1,0.5
+set origin 0,0.5
+
+p [][-0.6:0.6] "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/couple.out" u 2:3:5 w e t "measured", "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/couple.out" u 2:6 t "correction"
+
+set origin 0,0.0
+unset key
+
+p [][-0.6:0.6] "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/couple.out" u 2:4:5 w e, "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/couple.out" u 2:7
+
+
+##### cor disp
+reset
+unset multiplot
+set output "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1/dispy_cor.eps"
+
+
+
+
+##### cor disp
+reset
+unset multiplot
+set output "disp_cor.eps"
+
+
+
