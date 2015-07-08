@@ -80,9 +80,9 @@ def run(full_madx_script, log_file=None):
         log_stream = sys.stdout
     else:
         log_stream = open(log_file, "w")
-    return madxrunner.runForInputString(full_madx_script, 
+    return madxrunner.runForInputString(full_madx_script,
                                         stdout=log_stream,
-                                        stderr=log_stream, 
+                                        stderr=log_stream,
                                         madxPath=MADX_PATH)
 
 

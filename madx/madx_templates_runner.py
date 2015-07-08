@@ -17,8 +17,8 @@ class MadxTemplates():
     """
 
     def __init__(self, template_dirs=[], output_file=None, log_file=None, verbose=False):
-        self.__output_file = output_file
-        self.__log_file = log_file
+        self._output_file = output_file
+        self._log_file = log_file
         self._verbose = verbose
         template_dirs.append(os.path.join(CURRENT_PATH, "templates"))
         if self._verbose:
@@ -42,10 +42,10 @@ class MadxTemplates():
             print "All done."
 
     def set_log_path(self, log_path):
-        self.log_file = log_path
+        self._log_file = log_path
 
     def set_output_path(self, output_path):
-        self.output_file = output_path
+        self._output_file = output_path
 
     def __parse_template(self, template_path):
         template_content = iotools.read_all_lines_in_textfile(template_path)
@@ -65,7 +65,7 @@ class MadxTemplates():
 
     def __assing_new_method(self, template_name, template_path, placeholder_list):
         function_name = template_name.replace(".", "_")
-        new_function_code = "def " + function_name + "("
+        new_function_code = "def " + function_name + "(self, "
         placeholder_replacement_dict = "{"
         for placeholder in placeholder_list:
             new_function_code += placeholder + ", "
@@ -74,14 +74,12 @@ class MadxTemplates():
         new_function_code = new_function_code[:-2] + "):\n"
         if self._verbose:
             print new_function_code[:-2]
-        output_file = None if self.__output_file is None else "\"" + self.__output_file + "\""
-        log_file = None if self.__log_file is None else "\"" + self.__log_file + "\""
         new_function_code += "    from Utilities import iotools\n"
         new_function_code += "    from madx import madx_wrapper\n"
         new_function_code += "    template_content = iotools.read_all_lines_in_textfile(r\"" + template_path + "\")" + "\n"
         new_function_code += "    resolved_template = template_content % " + placeholder_replacement_dict + "\n"
-        new_function_code += "    madx_wrapper.resolve_and_run_string(resolved_template, output_file=" + str(output_file) + ", log_file=" + str(log_file) + ")\n"
-        exec new_function_code in self.__dict__
+        new_function_code += "    return madx_wrapper.resolve_and_run_string(resolved_template, output_file=self._output_file, log_file=self._log_file)\n"
+        exec new_function_code in MadxTemplates.__dict__
 
 
 if __name__ == '__main__':
