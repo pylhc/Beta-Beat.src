@@ -41,8 +41,8 @@
 @ SYNCH_5          %le                   0
 @ TITLE            %08s "no-title"
 @ ORIGIN           %22s "MAD-X 5.02.00 Linux 64"
-@ DATE             %08s "07/07/15"
-@ TIME             %08s "16.13.41"
+@ DATE             %08s "08/07/15"
+@ TIME             %08s "16.55.37"
 * NAME                                S               BETX               ALFX               BETY               ALFY                MUX                MUY                 DX                R11                R12                R22                R21                  X                  Y                 DY                DPX                DPY                  L                K1L                 WX               PHIX                 WY               PHIY 
 $ %s                                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le 
  "BACK_LHCB1$END"                     0        47.52229586       -1.768660031        70.32653617       -2.013409949                  0                  0       0.1243069187                  0                  0                  0                  0                  0                  0       -0.009191375     0.003547067133   -0.0006285468735                  0                  0                  0                  0                  0                  0

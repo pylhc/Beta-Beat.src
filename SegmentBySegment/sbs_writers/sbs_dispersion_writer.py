@@ -228,7 +228,7 @@ def _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, 
         bpm_name = bpm[1]
 
         prop_norm_disp = model_propagation.DX[model_propagation.indx[bpm_name]] / sqrt(model_propagation.BETX[model_propagation.indx[bpm_name]])
-        back_prop_norm_disp = model_back_propagation.DX[model_back_propagation.indx[bpm_name]] / sqrt(model_back_propagation.BETX[model_propagation.indx[bpm_name]])
+        back_prop_norm_disp = model_back_propagation.DX[model_back_propagation.indx[bpm_name]] / sqrt(model_back_propagation.BETX[model_back_propagation.indx[bpm_name]])
 
         prop_norm_disp_err = 1e-8  # TODO: Propagate
         back_prop_norm_disp_err = 1e-8  # TODO: Propagate

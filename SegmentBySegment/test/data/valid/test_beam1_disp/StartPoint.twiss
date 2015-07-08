@@ -8,10 +8,10 @@
 @ PC               %le         449.9990218
 @ GAMMA            %le         479.6050377
 @ KBUNCH           %le                   1
-@ BCURRENT         %le                   0
+@ BCURRENT         %le     0.0002071982211
 @ SIGE             %le                   0
 @ SIGT             %le                   0
-@ NPART            %le                   0
+@ NPART            %le            1.15e+11
 @ EX               %le                   1
 @ EY               %le                   1
 @ ET               %le                   1
@@ -31,7 +31,7 @@
 @ BETYMAX          %le         609.5259281
 @ XCORMS           %le                   0
 @ YCORMS           %le                   0
-@ DXRMS            %le         1.396685113
+@ DXRMS            %le         1.396843757
 @ DYRMS            %le                   0
 @ DELTAP           %le                   0
 @ SYNCH_1          %le                   0
@@ -41,8 +41,8 @@
 @ SYNCH_5          %le                   0
 @ TITLE            %08s "no-title"
 @ ORIGIN           %22s "MAD-X 5.02.00 Linux 64"
-@ DATE             %08s "07/07/15"
-@ TIME             %08s "16.13.41"
+@ DATE             %08s "08/07/15"
+@ TIME             %08s "16.55.37"
 * NAME                                S               BETX               ALFX               BETY               ALFY                MUX                MUY                 DX                R11                R12                R22                R21                  X                  Y                 DY                DPX                DPY                 WX               PHIX                 WY               PHIY 
 $ %s                                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le                %le 
  "BPMSY.4L1.B1"             23461.05512        104.3929404      -0.1214418363        187.1952916       -1.166190085        56.24893334        52.08369441   -1.790562686e-08                 -0                  0                  0                 -0                  0                  0                  0   -3.813350037e-10                  0                  0                  0                  0                  0

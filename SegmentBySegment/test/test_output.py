@@ -168,6 +168,8 @@ class TestOutput(unittest.TestCase):
                 continue
             valid_item = os.path.join(valid_dir, item)
             to_check_item = os.path.join(to_check_dir, item)
+            self.assertTrue(os.path.isfile(to_check_item),
+                            "File " + str(to_check_item) + " doesn't exist.")
             if os.path.isfile(valid_item) and os.path.isfile(to_check_item):
                 try:
                     syserr = sys.stderr

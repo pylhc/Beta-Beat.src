@@ -1,41 +1,26 @@
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! Segment by segment propagation script !!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-System, "test -e db5 || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
-System, "test -e ats || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
-system, "test -e runII || ln -ns /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/MODEL/LHCB_II/model/StrengthFiles/Nominal runII";
-
 option, -echo;
-
-call, file="/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/segmentBySegment.macros.madx";
-
-lhc_run = 1;
-if(lhc_run == 1){
-    exec, load_seq_lhc("/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//modifiers.madx");
-}elseif(lhc_run == 2){
-    exec, load_seq_lhc_ii("/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//modifiers.madx", "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/MODEL/LHCB_II/model/base_sequence.madx");
-}
-
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/beta_beat.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc_runI.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/segments.macros.madx";
 option, echo;
 
-!!! Load measurement values
-call, file="/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//measurement_IP5.madx";
 
-!!! Segment by segment main
-exec, sbs_main(LHCB1, BPM.12L5.B1, BPM.12R5.B1, "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//StartPoint.twiss", biniLHCB1, bendLHCB1);
+!@require lhc_runI
+!@require segments
 
-!!! Extract front and back propagation sequences
-exec, extract_seq(LHCB1, BPM.12L5.B1, BPM.12R5.B1);
+option, -echo;
+exec, full_lhc_def("/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//modifiers.madx", 1);  ! The beam number doesn't matter here
+option, echo;
 
-!!! Propagation front and back
-exec, twiss_fr_bk(LHCB1, "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5.dat", "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5_back.dat", biniLHCB1, bendLHCB1);
+exec, start_and_end_point_twiss(LHCB1, BPM.12L5.B1, BPM.12R5.B1, "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//StartPoint.twiss");
 
-!!! Loading corrections
-call,  file="/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//corrections_IP5.madx";
+exec, save_initial_and_final_values(LHCB1, BPM.12L5.B1, BPM.12R5.B1, "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//measurement_IP5.madx", biniLHCB1, bendLHCB1);
 
-!!! Corrected propagation front and back
-exec, twiss_fr_bk(LHCB1, "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5_cor.dat", "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5_cor_back.dat", biniLHCB1, bendLHCB1);
+exec, extract_front_back_sequences(LHCB1, BPM.12L5.B1, BPM.12R5.B1);
 
-return;
+exec, twiss_front_back(LHCB1, "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5.dat", "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5_back.dat", biniLHCB1, bendLHCB1);
+
+call, file="/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//corrections_IP5.madx";
+
+exec, twiss_front_back(LHCB1, "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5_cor.dat", "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/test/data/to_check/test_beam1_disp//twiss_IP5_cor_back.dat", biniLHCB1, bendLHCB1);
