@@ -331,7 +331,7 @@ full_response_ats(): macro = {
 * @param beam_number: The beam to use either 1 or 2.
 */
 coupling_knob(beam_number): macro = {
-    if(beam == 1){
+    if(beam_number == 1){
         startVal_kqs.r7b1=kqs.r7b1;
         kqs.r7b1:=startVal_kqs.r7b1 - b1_re_ip7_knob * 0.02014185827   + b1_im_ip7_knob *   0.01620130394 ;
         
@@ -367,7 +367,7 @@ coupling_knob(beam_number): macro = {
         
         startVal_kqs.a23b1 = kqs.a23b1;
         kqs.a23b1:=startVal_kqs.a23b1 + b1_re_ip7_knob *  0.02602337014   - b1_im_ip7_knob *  0.003672896065;
-    }elseif(beam == 2){
+    }elseif(beam_number == 2){
         startVal_kqs.r2b2 = kqs.r2b2;
         kqs.r2b2:=startVal_kqs.r2b2 + b2_im_ip7_knob * 0.001827918176  + b2_re_ip7_knob *   0.01534010755; 
         
