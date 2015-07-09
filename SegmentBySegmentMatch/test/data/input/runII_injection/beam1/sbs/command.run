@@ -1,0 +1,104 @@
+2015-07-09#10-54-11:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L1.B1,BPM.12R1.B1,IP1 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-13:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP1.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP1", line 83: ';' expected
+
+
+
+2015-07-09#10-54-24:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L2.B1,BPM.12R2.B1,IP2 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-27:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP2.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP2", line 83: ';' expected
+
+
+
+2015-07-09#10-54-28:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L3.B1,BPM.12R3.B1,IP3 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-31:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP3.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP3", line 83: ';' expected
+
+
+
+2015-07-09#10-54-33:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L4.B1,BPM.12R4.B1,IP4 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-35:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP4.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP4", line 83: ';' expected
+
+
+
+2015-07-09#10-54-36:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L5.B1,BPM.12R5.B1,IP5 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-39:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP5.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP5", line 83: ';' expected
+
+
+
+2015-07-09#10-54-41:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L6.B1,BPM.12R6.B1,IP6 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-43:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP6.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP6", line 83: ';' expected
+
+
+
+2015-07-09#10-54-45:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L7.B1,BPM.12R7.B1,IP7 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-48:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP7.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP7", line 83: ';' expected
+
+
+
+2015-07-09#10-54-50:
+Name: SegmentBySegment
+Command:
+/usr/bin/python /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/SegmentBySegment/SegmentBySegment.py --accel=LHCB1_II --path=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1 --start=BPM.12L8.B1,BPM.12R8.B1,IP8 --twiss=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/models/LHCB1/model_injection_b1/twiss_elements.dat --save=/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs --mad=/afs/cern.ch/group/si/slap/bin/madx --bbsource=/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/
+
+2015-07-09#10-54-52:
+Errors: 
+p [][-0.02:]"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//sbsphasext_IP8.out" u ($2):5:6 t"Meas" w e pt 7 lt 1, "" u  ($2):5 not w l 1,   "" u ($2):7 t"Err" w l lt 7
+                                                                                                                                                                                                            ^
+"/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs/gplot_IP8", line 83: ';' expected
+
+
+

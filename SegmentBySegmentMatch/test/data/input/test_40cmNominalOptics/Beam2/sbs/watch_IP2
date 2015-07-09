@@ -1,1 +1,0 @@
-python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py /afs/cern.ch/user/r/rtomas/lintrack/LHC_commissioning2012/EXP_10-10-12_40cmNominalOptics/Beam2/0.4m_sbs/sbs///t_IP2.madx /afs/cern.ch/user/r/rtomas/lintrack/LHC_commissioning2012/EXP_10-10-12_40cmNominalOptics/Beam2/0.4m_sbs/sbs///gplot_IP2

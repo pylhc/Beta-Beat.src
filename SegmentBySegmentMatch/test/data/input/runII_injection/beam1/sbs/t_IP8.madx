@@ -1,0 +1,26 @@
+option, -echo;
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/beta_beat.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc_runII.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/segments.macros.madx";
+option, echo;
+
+
+!@require lhc_runII
+!@require segments
+
+option, -echo;
+exec, full_lhc_def("/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//modifiers.madx", 1);  ! The beam number doesn't matter here
+option, echo;
+
+exec, start_and_end_point_twiss(LHCB1, BPM.12L8.B1, BPM.12R8.B1, "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//StartPoint.twiss");
+
+exec, save_initial_and_final_values(LHCB1, BPM.12L8.B1, BPM.12R8.B1, "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//measurement_IP8.madx", biniLHCB1, bendLHCB1);
+
+exec, extract_front_back_sequences(LHCB1, BPM.12L8.B1, BPM.12R8.B1);
+
+exec, twiss_front_back(LHCB1, "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//twiss_IP8.dat", "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//twiss_IP8_back.dat", biniLHCB1, bendLHCB1);
+
+call, file="/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//corrections_IP8.madx";
+
+exec, twiss_front_back(LHCB1, "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//twiss_IP8_cor.dat", "/afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2015-07-09/LHCB1/Results/10-48-25_NORMALANALYSIS_SUSSIX_1/sbs//twiss_IP8_cor_back.dat", biniLHCB1, bendLHCB1);

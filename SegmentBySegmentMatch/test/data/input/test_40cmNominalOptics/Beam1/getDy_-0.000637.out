@@ -1,3 +1,0 @@
-@ GetLLMVersion %s "V2.38 PRO"
-@ MAD_FILE %s "/user/slops/data/LHC_DATA/OP_DATA/Betabeat/2012-10-10/LHCB1/Results/19-45-55_WANALYSIS_SUSSIX_7//twiss_-0.000637.dat"
-@ FILES %s "/user/slops/data/LHC_DATA/OP_DATA/Betabeat/2012-10-10/LHCB1/Measurements/Beam1@BunchTurn@2012_10_10@17_08_04_308_1.new/Beam1@BunchTurn@2012_10_10@17_08_04_308_1.sdds.new.new_liny /user/slops/data/LHC_DATA/OP_DATA/Betabeat/2012-10-10/LHCB1/Measurements/Beam1@BunchTurn@2012_10_10@17_08_04_308_1235.new/Beam1@BunchTurn@2012_10_10@17_08_04_308_1235.sdds.new.new_liny /user/slops/data/LHC_DATA/OP_DATA/Betabeat/2012-10-10/LHCB1/Measurements/Beam1@BunchTurn@2012_10_10@17_08_04_308_2609.new/Beam1@BunchTurn@2012_10_10@17_08_04_308_2609.sdds.new.new_liny chrommode"
