@@ -69,7 +69,7 @@ import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
 import json
 from Python_Classes4MAD.metaclass import twiss
-from Python_Classes4MAD import madxrunner
+from madx import madx_templates_runner
 
 import numpy
 from numpy.linalg import inv, det
@@ -646,19 +646,19 @@ def _run4mad(save_path,
              bb_path,
              madx_exe_path):
 
-    copy_path = bb_path
-
-    is_lhc_run_ii = False
+    lhc_mode = "lhc_runI"
     if accelerator.endswith("_II"):
-        is_lhc_run_ii = True
-    accelerator = accelerator.replace("_II", "")
+        lhc_mode = "lhc_runII"
+        accelerator = accelerator.upper().replace("_II", "")
+    elif accelerator.endswith("_HL"):
+        lhc_mode = "hllhc"
+        accelerator = accelerator.upper().replace("_HL", "")
     _copy_modifiers_and_corrections_locally(save_path, twiss_directory, element_name, accelerator)
 
     if accelerator == "LHCB2":
-        start = "MKI.A5R8.B2"
-
+        beam = 2
     elif accelerator == "LHCB1":
-        start = "MSIA.EXIT.B1"
+        beam = 1
 
     betx_ini = start_bpm_horizontal_data[0]
     bety_ini = start_bpm_vertical_data[0]
@@ -684,19 +684,8 @@ def _run4mad(save_path,
 
     mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
 
-    dict_for_replacing = dict(
-            BBPATH=bb_path,
-            SBSPATH=os.path.join(bb_path, "SegmentBySegment"),
-            LHC_RUN=2 if is_lhc_run_ii else 1,
-            STARTFROM=start_bpm_name.replace("-", "_"),
-            ENDAT=end_bpm_name.replace("-", "_"),
-            LABEL=element_name,
-            ACCEL=accelerator,
-            START=start,
-            PATH=save_path,
-            METHOD=coupling_method,
-            EXP=exppath
-            )
+    start_bpm_name = start_bpm_name.replace("-", "_")
+    end_bpm_name = end_bpm_name.replace("-", "_")
 
     measurement_dict = dict(
             betx_ini=betx_ini,
@@ -733,14 +722,12 @@ def _run4mad(save_path,
             dpy_end=-end_bpm_dispersion[3],
     )
 
-    maskfile = os.path.join(copy_path, 'SegmentBySegment', 'job.InterpolateBetas.mask')
-    Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, mad_file_path)
-
     with open(os.path.join(save_path, "measurement_" + element_name + ".madx"), "w") as measurement_file:
         for name, value in measurement_dict.iteritems():
             print >> measurement_file, name, "=", value, ";"
 
-    _runmad(mad_file_path, log_file_path, madx_exe_path)
+    _runmad(lhc_mode, save_path, beam, start_bpm_name, end_bpm_name, element_name,
+            mad_file_path, log_file_path)
 
     _prepare_watchdog_file_command(save_path, element_name)
 
@@ -847,8 +834,13 @@ def _prepare_watchdog_file_command(save_path, element_name):
     os.chmod(watch_file_name, 0777)
 
 
-def _runmad(file_path, log_file_path, mad_exe_path):
-    return_code = madxrunner.runForInputFile(file_path, mad_exe_path, open(log_file_path, "w"))
+def _runmad(lhc_mode, path, beam, startfrom, endat, label,
+            madx_file_path, log_file_path):
+    templates = madx_templates_runner.MadxTemplates(output_file=madx_file_path,
+                                                    log_file=log_file_path)
+    # def lhc_segment_by_segment_madx(self, LHC_MODE, PATH, NUM_BEAM, STARTFROM, ENDAT, LABEL)
+    return_code = templates.lhc_segment_by_segment_madx(lhc_mode, path, beam,
+                                                        startfrom, endat, label)
     if return_code != 0:
         print >> sys.stderr, "MAD execution failed, see log:", log_file_path
         print >> sys.stderr, "Aborting..."
