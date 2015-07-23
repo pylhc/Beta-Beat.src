@@ -1,15 +1,15 @@
 import __init__  # @UnusedImport used for appending paths
 import os
+import sys
 import shutil
 import optparse
 from Utilities import iotools
 import subprocess
 from Python_Classes4MAD.metaclass import twiss
-from Python_Classes4MAD import madxrunner
+from madx import madx_templates_runner
 import json
 import numpy as np
 from SegmentBySegment import SegmentBySegment
-import Utilities
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -23,7 +23,7 @@ MAX_WEIGHT = 4
 def parse_args():
     parser = optparse.OptionParser()
     parser.add_option("--run",
-                    help="LHC run 1 or 2",
+                    help="LHC run 1, 2 or HL",
                     metavar="RUN", default="1", dest="lhc_run")
     parser.add_option("--ip",
                     help="Which interaction point: 1, 2, 3...",
@@ -407,28 +407,24 @@ def _get_match_bpm_range(file_path):
 
 def _prepare_script_and_run_madx(lhc_run, label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
                                  b1_range_start, b1_range_end, b2_range_start, b2_range_end):
-    bb_path = os.path.abspath(os.path.join(CURRENT_PATH, ".."))
-    sbs_path = os.path.join(bb_path, "SegmentBySegment")
-    dict_for_replacing = dict(
-        LHC_RUN=lhc_run,
-        PATHB1=os.path.join(beam1_temporary_path, "sbs"),
-        PATHB2=os.path.join(beam2_temporary_path, "sbs"),
-        MATCH=match_temporary_path,
-        LABEL=label,
-        BBPATH=bb_path,
-        SBSPATH=sbs_path,
-        STARTFROMB1=b1_range_start,
-        ENDATB1=b1_range_end,
-        STARTFROMB2=b2_range_start,
-        ENDATB2=b2_range_end
-        )
-
-    mask_file = os.path.join(CURRENT_PATH, "job.match.madx")
+    if lhc_run == "1":
+        lhc_mode = "lhc_runI"
+    elif lhc_run == "2":
+        lhc_mode = "lhc_runII"
+    elif lhc_run == "HL":
+        lhc_mode = "hllhc"
+    else:
+        print >> sys.stderr, "Wrong LHC run: ", lhc_run, ", must be 1, 2 or HL. Aborting."
+        sys.exit(-1)
+    beam1_path = os.path.join(beam1_temporary_path, "sbs")
+    beam2_path = os.path.join(beam2_temporary_path, "sbs")
     madx_script_path = os.path.join(match_temporary_path, "job.match" + label + ".madx")
-
-    Utilities.iotools.replace_keywords_in_textfile(mask_file, dict_for_replacing, madx_script_path)
-
-    madxrunner.runForInputFile(madx_script_path, stdout=open(os.path.join(match_temporary_path, "match_madx_out.log"), "w"))
+    templates = madx_templates_runner.MadxTemplates(output_file=madx_script_path,
+                                                    log_file=os.path.join(match_temporary_path, "match_madx_out.log"))
+    # def lhc_sbs_match_madx(self, LHC_MODE, PATH, STARTFROMB1, ENDATB1, PATHB1, STARTFROMB2, ENDATB2, PATHB2, LABEL, MATCH)
+    templates.lhc_sbs_match_madx(lhc_mode, beam1_path, b1_range_start, b1_range_end,
+                                 b2_range_start, b2_range_end, beam2_path, label,
+                                 match_temporary_path)
 
 
 def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
@@ -464,8 +460,8 @@ def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, rang
     beam1_plot_template = os.path.join(CURRENT_PATH, "templ.gplot")
     beam2_plot_template = os.path.join(CURRENT_PATH, "templ.gplot")
 
-    Utilities.iotools.replace_keywords_in_textfile(beam1_plot_template, beam1_plot_replacements, beam1_plot_path)
-    Utilities.iotools.replace_keywords_in_textfile(beam2_plot_template, beam2_plot_replacements, beam2_plot_path)
+    iotools.replace_keywords_in_textfile(beam1_plot_template, beam1_plot_replacements, beam1_plot_path)
+    iotools.replace_keywords_in_textfile(beam2_plot_template, beam2_plot_replacements, beam2_plot_path)
 
     proccess_beam1 = subprocess.Popen("gnuplot " + beam1_plot_path, shell=True, cwd=match_temporary_path)
     proccess_beam2 = subprocess.Popen("gnuplot " + beam2_plot_path, shell=True, cwd=match_temporary_path)
@@ -475,11 +471,12 @@ def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, rang
 
 
 def clean_up_temporary_dir(match_temporary_path):
-    os.unlink(os.path.join(match_temporary_path, "ats"))
-    os.unlink(os.path.join(match_temporary_path, "db"))
-    os.unlink(os.path.join(match_temporary_path, "db5"))
-    os.unlink(os.path.join(match_temporary_path, "ds"))
-    os.unlink(os.path.join(match_temporary_path, "lt"))
+    try:
+        os.unlink(os.path.join(match_temporary_path, "db5"))
+        os.unlink(os.path.join(match_temporary_path, "ats"))
+        os.unlink(os.path.join(match_temporary_path, "runII"))
+    except:
+        pass
     iotools.delete_content_of_dir(match_temporary_path)
 
 

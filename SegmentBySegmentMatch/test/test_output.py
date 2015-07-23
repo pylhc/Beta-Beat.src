@@ -131,9 +131,10 @@ class TestOutput(unittest.TestCase):
                 print >> sys.stderr, "Name", name, "not in file", to_check_file_path
             else:
                 to_check_value = to_check_delta_to_value[name]
-                if abs(to_check_value - valid_value) > TOLERANCE:
+                difference = abs(to_check_value - valid_value)
+                if  difference > TOLERANCE:
                     are_equal = False
-                    print >> sys.stderr, "Too big difference found in", name
+                    print >> sys.stderr, "Too big difference found in", name, difference
         return are_equal
 
     def _get_deltas_from_changeparameters(self, changeparamenters_path):
