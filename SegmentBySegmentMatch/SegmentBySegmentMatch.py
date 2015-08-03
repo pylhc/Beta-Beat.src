@@ -10,11 +10,15 @@ from madx import madx_templates_runner
 import json
 import numpy as np
 from SegmentBySegment import SegmentBySegment
+import math
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 ALL_LISTS_BEAM1_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists.json')
 ALL_LISTS_BEAM2_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB2', 'AllLists.json')
+
+# There are only common variables in coupling
+ALL_LISTS_COUPLE_BEAM1_PATH = os.path.join(CURRENT_PATH, '..', 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists_couple.json')
 
 ERROR_CONSTRAINT_FACTOR = 1000
 MAX_WEIGHT = 4
@@ -28,6 +32,9 @@ def parse_args():
     parser.add_option("--ip",
                     help="Which interaction point: 1, 2, 3...",
                     metavar="IP", default="1", dest="ip")
+    parser.add_option("-m", "--mode",
+                    help="Parameter to match, phase (default) or coupling",
+                    metavar="MODE", default="phase", dest="mode")
     parser.add_option("--beam1",
                     help="Path to the measurement files for beam 1",
                     metavar="BEAM1", dest="b1")
@@ -55,24 +62,34 @@ def main(options, args):
     ip = options.ip
     temporary_path = options.temp
     match_temporary_path = os.path.join(temporary_path, "match")
+    mode = options.mode
+    if mode not in ["phase", "coupling"]:
+        print >> sys.stderr, "The matching mode should be phase or coupling"
+        sys.exit(-1)
     if command == "variables":
         exclude_vars_string = options.exclude
-        generate_variables(ip, match_temporary_path, exclude_vars_string)
+        if mode == "phase":
+            generate_variables_phase(ip, match_temporary_path, exclude_vars_string)
+        elif mode == "coupling":
+            generate_variables_coupling(ip, match_temporary_path, exclude_vars_string)
     elif command == "constraints":
         sbs_data_b1_path = options.b1
         sbs_data_b2_path = options.b2
         exclude_constr_string = options.exclude
-        generate_constraints(ip, options.use_errors, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, exclude_constr_string)
+        if mode == "phase":
+            generate_constraints_phase(ip, options.use_errors, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, exclude_constr_string)
+        elif mode == "coupling":
+            generate_constraints_coupling(ip, options.use_errors, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, exclude_constr_string)
     elif command == "clean":
         clean_up_temporary_dir(match_temporary_path)
     else:
         sbs_data_b1_path = options.b1
         sbs_data_b2_path = options.b2
         temporary_path = options.temp
-        match(options.lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, options.use_errors)
+        match(options.lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, options.use_errors, mode)
 
 
-def match(lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors):
+def match(lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors, mode):
 
     print "+++ Starting Segment by Segment Match +++"
 
@@ -82,9 +99,10 @@ def match(lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path,
     iotools.create_dirs(os.path.join(beam1_temporary_path, "sbs"))
     iotools.create_dirs(os.path.join(beam2_temporary_path, "sbs"))
 
-    _check_and_run_genvariables(ip, match_temporary_path)
-    _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors)
-    run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path)
+    if mode == "phase":
+        run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path)
+    elif mode == "coupling":
+        run_gen_f_terms(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path)
 
     print "Copying files into temporary folder..."
     iotools.copy_item(os.path.join(CURRENT_PATH, "dumpB1.gplot"), match_temporary_path)
@@ -105,7 +123,9 @@ def match(lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path,
 
     print "Running MADX..."
     label = "IP" + str(ip)
-    _prepare_script_and_run_madx(lhc_run, label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
+    _prepare_script_and_run_madx(lhc_run, label, mode,
+                                 beam1_temporary_path, beam2_temporary_path,
+                                 match_temporary_path,
                                  range_beam1_start_name, range_beam1_end_name,
                                  range_beam2_start_name, range_beam2_end_name)
 
@@ -123,26 +143,7 @@ def match(lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path,
     return 0
 
 
-def _check_and_run_genvariables(ip, match_temporary_path):
-    for file_name in ["applycorrection.seqx", "dvariables.seqx", "genchangpars.seqx",
-                      "svariables.seqx", "variablesb1.seqx", "variablesb2.seqx", "variablesc.seqx"]:
-        full_file_path = os.path.join(match_temporary_path, file_name)
-        if not os.path.exists(full_file_path):  # TODO: Here the variables should be recreated if they are for a different IP
-            print "File " + file_name + " not found, generating new variables files..."
-            generate_variables(ip, match_temporary_path)
-            break
-
-
-def _check_and_run_genconstraints(ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path, use_errors):
-    for file_name in ["constraintsb1.seqx", "constraintsb2.seqx"]:
-        full_file_path = os.path.join(match_temporary_path, file_name)
-        if not os.path.exists(full_file_path):  # TODO: Here the constraints should be recreated if they are for a different IP
-            print "File " + file_name + " not found, generating new constraints files..."
-            generate_constraints(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path)
-            break
-
-
-def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+def generate_variables_phase(ip, variables_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
     if not os.path.exists(variables_path):
         iotools.create_dirs(variables_path)
 
@@ -165,17 +166,17 @@ def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match"), e
 
     variables = variables_beam1[ip_string]
     param_change_generator_file.write('!B1\n')
-    _vars_to_files(apply_correction_file, variables_beam1_file, variables_s_file,
+    _phase_vars_to_files(apply_correction_file, variables_beam1_file, variables_s_file,
                    variables_d_file, param_change_generator_file, variables, exclude_list)
 
     variables = variables_beam2[ip_string]
     param_change_generator_file.write('\n!B2\n')
-    _vars_to_files(apply_correction_file, variables_beam2_file, variables_s_file,
+    _phase_vars_to_files(apply_correction_file, variables_beam2_file, variables_s_file,
                    variables_d_file, param_change_generator_file, variables, exclude_list)
 
     variables = variables_common[ip_string]
     param_change_generator_file.write('\n!B1 and B2\n')
-    _vars_to_files(apply_correction_file, variables_common_file, variables_s_file,
+    _phase_vars_to_files(apply_correction_file, variables_common_file, variables_s_file,
                    variables_d_file, param_change_generator_file, variables, exclude_list)
 
     variables_common_file.close()
@@ -184,11 +185,10 @@ def generate_variables(ip, variables_path=os.path.join(CURRENT_PATH, "match"), e
     variables_s_file.close()
     variables_d_file.close()
 
-    param_change_generator_file.write('\n save, file=\"changeparameters.madx\";\n')
     param_change_generator_file.close()
 
 
-def _vars_to_files(apply_correction_file, variables_file, variables_s_file, variables_d_file, param_change_generator_file, variables, excluded):
+def _phase_vars_to_files(apply_correction_file, variables_file, variables_s_file, variables_d_file, param_change_generator_file, variables, excluded):
     for variable in variables:
         if variable not in excluded:
             variables_file.write('   vary, name=d' + variable + ', step:=1e-4;\n')
@@ -198,7 +198,29 @@ def _vars_to_files(apply_correction_file, variables_file, variables_s_file, vari
         apply_correction_file.write(variable + ' = ' + variable + '_0 + d' + variable + ';\n')
 
 
-def generate_constraints(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, constraints_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+def generate_variables_coupling(ip, variables_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+    if not os.path.exists(variables_path):
+        iotools.create_dirs(variables_path)
+
+    exclude_list = _parse_exclude_string(exclude_string)
+
+    variables_coupling = json.load(file(ALL_LISTS_COUPLE_BEAM1_PATH, 'r'))['getListsByIR'][ip]
+    redefine_strengths_path = os.path.join(variables_path, "redefine_strengths.madx")
+    define_variables_path = os.path.join(variables_path, "define_variables.madx")
+    genchangpars_path = os.path.join(variables_path, "genchangpars.seqx")
+    with open(redefine_strengths_path, "w") as redefine_strengths_file,\
+         open(define_variables_path, "w") as define_variables_file,\
+         open(genchangpars_path, "w") as genchangpars_file:
+        genchangpars_file.write("select,flag=save, clear;\n")
+        for variable_name in variables_coupling:
+            if variable_name not in exclude_list:
+                redefine_strengths_file.write(variable_name + "_0 = " + variable_name + ";\n")
+                redefine_strengths_file.write(variable_name + " := " + variable_name + "_0 + " + "d" + variable_name + ";\n")
+                define_variables_file.write("vary, name=d" + variable_name + ", step:=1e-4;\n")
+                genchangpars_file.write("select,flag=save,pattern=\"d" + variable_name + "\";\n")
+
+
+def generate_constraints_phase(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, constraints_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
     full_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'getphasex.out'))
     x_tune_beam1 = full_data_beam1.Q1
     y_tune_beam1 = full_data_beam1.Q2
@@ -223,13 +245,13 @@ def generate_constraints(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, con
         exclude_list_x = _parse_exclude_string(exclude_both_planes[0])
         exclude_list_y = _parse_exclude_string(exclude_both_planes[1])
 
-    _write_constraints_file(sbs_x_data_beam1, constr_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x, use_errors)
-    _write_constraints_file(sbs_y_data_beam1, constr_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y, use_errors)
-    _write_constraints_file(sbs_x_data_beam2, constr_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list_x, use_errors)
-    _write_constraints_file(sbs_y_data_beam2, constr_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list_y, use_errors)
+    _write_constraints_file_phase(sbs_x_data_beam1, constr_file_beam1, ip, 1, "x", x_tune_beam1, exclude_list_x, use_errors)
+    _write_constraints_file_phase(sbs_y_data_beam1, constr_file_beam1, ip, 1, "y", y_tune_beam1, exclude_list_y, use_errors)
+    _write_constraints_file_phase(sbs_x_data_beam2, constr_file_beam2, ip, 2, "x", x_tune_beam2, exclude_list_x, use_errors)
+    _write_constraints_file_phase(sbs_y_data_beam2, constr_file_beam2, ip, 2, "y", y_tune_beam2, exclude_list_y, use_errors)
 
 
-def _write_constraints_file(sbs_data, constr_file, ip, beam, plane, tune, exclude_list, use_errors):
+def _write_constraints_file_phase(sbs_data, constr_file, ip, beam, plane, tune, exclude_list, use_errors):
     if plane == "x":
         constr_file.write('\n!!!! BEAM ' + str(beam) + ' H !!!!!\n\n')
     else:
@@ -256,6 +278,38 @@ def _write_constraints_file(sbs_data, constr_file, ip, beam, plane, tune, exclud
 
             constr_file.write('!   S = ' + str(s))
             constr_file.write(';\n')
+
+
+def generate_constraints_coupling(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, constraints_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+    sbs_coupling_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'sbs', 'sbscouple_IP' + ip + '.out'))
+    sbs_coupling_data_beam2 = twiss(os.path.join(sbs_data_b2_path, 'sbs', 'sbscouple_IP' + ip + '.out'))
+
+    constr_file_beam1 = open(os.path.join(constraints_path, 'constraintsb1.seqx'), 'w')
+    constr_file_beam2 = open(os.path.join(constraints_path, 'constraintsb2.seqx'), 'w')
+    exclude_list = _parse_exclude_string(exclude_string)
+
+    _write_constraints_file_coupling(sbs_coupling_data_beam1, constr_file_beam1, ip, 1, exclude_list, use_errors)
+    _write_constraints_file_coupling(sbs_coupling_data_beam2, constr_file_beam2, ip, 2, exclude_list, use_errors)
+
+
+def _write_constraints_file_coupling(sbs_coupling_data, constr_file, ip, beam, exclude_list, use_errors):
+    for index in range(len(sbs_coupling_data.NAME)):
+        name = sbs_coupling_data.NAME[index]
+        s = sbs_coupling_data.S[index]
+
+        f1001r = sbs_coupling_data.F1001REMEAS[index]
+        f1001i = sbs_coupling_data.F1001IMMEAS[index]
+        absf1001 = math.sqrt(f1001r ** 2 + f1001i ** 2)
+        f1010r = sbs_coupling_data.F1010REMEAS[index]
+        f1010i = sbs_coupling_data.F1010IMMEAS[index]
+        absf1010 = math.sqrt(f1010r ** 2 + f1010i ** 2)
+
+        constr_file.write('   constraint, weight = ' + str(1.0) + ' , ')  # TODO: Dynamic weights if use_errors is true
+        constr_file.write('expr = ' + name + '_absf1001 = ' + str(absf1001) + '; \n')
+        constr_file.write('   constraint, weight = ' + str(1.0) + ' , ')
+        constr_file.write('expr = ' + name + '_absf1010 = ' + str(absf1010) + '; \n')
+        constr_file.write('!   S = ' + str(s))
+        constr_file.write(';\n')
 
 
 def _parse_exclude_string(exclude_string):
@@ -373,6 +427,23 @@ def run_genphases(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path):
     phases_file.close()
 
 
+def run_gen_f_terms(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path):
+    sbs_coupling_data_beam1 = twiss(os.path.join(sbs_data_b1_path, 'sbs', 'sbscouple_IP' + ip + '.out'))
+    sbs_coupling_data_beam2 = twiss(os.path.join(sbs_data_b2_path, 'sbs', 'sbscouple_IP' + ip + '.out'))
+    fterms_b1_path = os.path.join(match_temporary_path, "f_terms_beam1.madx")
+    fterms_b2_path = os.path.join(match_temporary_path, "f_terms_beam2.madx")
+    with open(fterms_b1_path, "w") as fterms_b1_file:
+        for bpm_name in sbs_coupling_data_beam1.NAME:
+            fterms_b1_file.write("exec, get_f_terms_for(twiss, " + bpm_name + ");\n")
+            fterms_b1_file.write(bpm_name + "_absf1001 := sqrt(" + bpm_name + "_f1001r ^ 2 + " + bpm_name + "_f1001i ^ 2);\n")
+            fterms_b1_file.write(bpm_name + "_absf1010 := sqrt(" + bpm_name + "_f1010r ^ 2 + " + bpm_name + "_f1010i ^ 2);\n")
+    with open(fterms_b2_path, "w") as fterms_b2_file:
+        for bpm_name in sbs_coupling_data_beam2.NAME:
+            fterms_b2_file.write("exec, get_f_terms_for(twiss, " + bpm_name + ");\n")
+            fterms_b2_file.write(bpm_name + "_absf1001 := sqrt(" + bpm_name + "_f1001r ^ 2 + " + bpm_name + "_f1001i ^ 2);\n")
+            fterms_b2_file.write(bpm_name + "_absf1010 := sqrt(" + bpm_name + "_f1010r ^ 2 + " + bpm_name + "_f1010i ^ 2);\n")
+
+
 def _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path):
     _copy_files_with_extension(sbs_data_b1_path, beam1_temporary_path, ".out")
     _copy_files_with_extension(os.path.join(sbs_data_b1_path, "sbs"),
@@ -405,7 +476,7 @@ def _get_match_bpm_range(file_path):
     return bpms_with_distances_list[0], bpms_with_distances_list[-1]
 
 
-def _prepare_script_and_run_madx(lhc_run, label, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
+def _prepare_script_and_run_madx(lhc_run, label, mode, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
                                  b1_range_start, b1_range_end, b2_range_start, b2_range_end):
     if lhc_run == "1":
         lhc_mode = "lhc_runI"
@@ -422,9 +493,17 @@ def _prepare_script_and_run_madx(lhc_run, label, beam1_temporary_path, beam2_tem
     templates = madx_templates_runner.MadxTemplates(output_file=madx_script_path,
                                                     log_file=os.path.join(match_temporary_path, "match_madx_out.log"))
     # def lhc_sbs_match_madx(self, LHC_MODE, PATH, STARTFROMB1, ENDATB1, PATHB1, STARTFROMB2, ENDATB2, PATHB2, LABEL, MATCH)
-    templates.lhc_sbs_match_madx(lhc_mode, beam1_path, b1_range_start, b1_range_end,
-                                 b2_range_start, b2_range_end, beam2_path, label,
-                                 match_temporary_path)
+    if mode == "phase":
+        templates.lhc_sbs_match_madx(lhc_mode, beam1_path, b1_range_start, b1_range_end,
+                                     b2_range_start, b2_range_end, beam2_path, label,
+                                     match_temporary_path)
+    elif mode == "coupling":
+        templates.lhc_sbs_match_coupling_madx(
+            lhc_mode, beam1_path,
+            b1_range_start, b1_range_end,
+            b2_range_start, b2_range_end,
+            beam2_path, label, match_temporary_path
+        )
 
 
 def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
@@ -435,8 +514,8 @@ def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_
     prop_models_b1 = SegmentBySegment._PropagatedModels(save_path_b1, "IP" + str(ip))
     prop_models_b2 = SegmentBySegment._PropagatedModels(save_path_b2, "IP" + str(ip))
 
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, False, False, "LHCB1", None)
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, False, False, "LHCB2", None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, True, False, "LHCB1", None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, True, False, "LHCB2", None)
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
@@ -516,6 +595,14 @@ def _get_filtered_file_list(src, filter_function):
         if os.path.isfile(os.path.join(src, file_name)) and filter_function(file_name):
             filtered_file_list.append(file_name)
     return filtered_file_list
+
+
+def _get_one_of_twiss(base_dir, *file_names):
+    for file_name in file_names:
+        single_path = os.path.join(base_dir, file_name)
+        if os.path.isfile(single_path):
+            return twiss(single_path)
+    raise IOError("None of the files exist:\n\t" + "\n\t".join(file_names))
 
 
 if __name__ == "__main__":
