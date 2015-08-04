@@ -63,6 +63,8 @@ class TestOutput(unittest.TestCase):
     def _run_sbsmatch_for_input(self, ip, input_dir_path, directory_to_check):
         beam1_directory_path = os.path.join(input_dir_path, "beam1")
         beam2_directory_path = os.path.join(input_dir_path, "beam2")
+
+        iotools.create_dirs(self.path_to_check)
         log_stream = open(os.path.join(self.path_to_check, "test_log.log"), "w")
 
         self._run_sbsmatch_variables_for_input(ip, directory_to_check, log_stream)
