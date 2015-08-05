@@ -208,16 +208,16 @@ def generate_variables_coupling(ip, variables_path=os.path.join(CURRENT_PATH, "m
     redefine_strengths_path = os.path.join(variables_path, "redefine_strengths.madx")
     define_variables_path = os.path.join(variables_path, "define_variables.madx")
     genchangpars_path = os.path.join(variables_path, "genchangpars.seqx")
-    with open(redefine_strengths_path, "w") as redefine_strengths_file,\
-         open(define_variables_path, "w") as define_variables_file,\
-         open(genchangpars_path, "w") as genchangpars_file:
-        genchangpars_file.write("select,flag=save, clear;\n")
-        for variable_name in variables_coupling:
-            if variable_name not in exclude_list:
-                redefine_strengths_file.write(variable_name + "_0 = " + variable_name + ";\n")
-                redefine_strengths_file.write(variable_name + " := " + variable_name + "_0 + " + "d" + variable_name + ";\n")
-                define_variables_file.write("vary, name=d" + variable_name + ", step:=1e-4;\n")
-                genchangpars_file.write("select,flag=save,pattern=\"d" + variable_name + "\";\n")
+    with open(redefine_strengths_path, "w") as redefine_strengths_file:
+        with open(define_variables_path, "w") as define_variables_file:
+            with open(genchangpars_path, "w") as genchangpars_file:
+                genchangpars_file.write("select,flag=save, clear;\n")
+                for variable_name in variables_coupling:
+                    if variable_name not in exclude_list:
+                        redefine_strengths_file.write(variable_name + "_0 = " + variable_name + ";\n")
+                        redefine_strengths_file.write(variable_name + " := " + variable_name + "_0 + " + "d" + variable_name + ";\n")
+                        define_variables_file.write("vary, name=d" + variable_name + ", step:=1e-4;\n")
+                        genchangpars_file.write("select,flag=save,pattern=\"d" + variable_name + "\";\n")
 
 
 def generate_constraints_phase(ip, use_errors, sbs_data_b1_path, sbs_data_b2_path, constraints_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
