@@ -1,0 +1,87 @@
+title, "Madx" ;
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! sequence files + beam definition
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+option, -echo, -info,  warn;
+set,format="18.11g";
+
+call,  file = '%(ESRF_MODEL)s/storage_2012_history.txt';
+
+call,  file = '%(ESRF_MODEL)s/storage_2012_macros.madx';
+
+Pc        := 6.03; ! [GeV/c]
+BRHO      := Pc * 3.3356;
+Beam, particle = electron,pc=Pc, ex=4.000E-9, ey=0.025E-9,
+      sige=0.0,NPART=2E10,BUNCHED;
+
+call,  file = '%(ESRF_MODEL)s/storage_2012.init';
+
+call,  file = '%(ESRF_MODEL)s/storage_2012.strx';
+
+call,   file = "%(ESRF_MODEL)s/storage_2012_7mSS23.seqx";
+
+beam; USE, sequence=STORAGE04_ss23_7m;
+
+K1.QD4_7m:=-0.674465682; 
+K1.QF5_7m:= 0.751824073;
+K1.QD6_7m:=-1.147207038;  
+K1.QF7_7m:= 1.185885317;
+K1.QDX_7m:= OFF;
+K1.QF2:= 0.39100749;
+K1.QD3:=-0.60355343;
+K1.QD4:=-0.60152556;
+K1.QF5:= 0.73458675;
+K1.QD6   :=-0.819121621;
+K1.QF7   := 0.681750980; 
+
+option,  echo,  info,  warn;
+
+movebpm(ii,j): macro = {
+    seqedit, sequence=STORAGE04_SS23_7m;
+    move, element=BPM.ii.j, by=0.0005*TGAUSS(GCUTR);
+    endedit;
+};
+GCUTR = 3;
+eoption, seed= %(SEED5)s;
+n = 1;
+while (n<=32.5)
+{
+    m = 1;
+    while (m<=7.5)
+    {
+        exec, movebpm($n,$m);
+        m = m+1;
+    };
+    n = n+1;
+};
+
+use, period=STORAGE04_SS23_7m;
+
+select, flag=error, clear;
+select,FLAG=ERROR,CLASS=quadrupole;
+eoption, seed= %(SEED2)s;
+EFCOMP, ORDER:=1,RADIUS:=1, DKNR:= {0,0.001*GAUSS(GCUTR)};
+
+!!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=sextupole;
+eoption, seed= %(SEED3)s;
+EALIGN, DX:=0.00015*TGAUSS(GCUTR), DY:=0.00015*TGAUSS(GCUTR);
+
+!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=quadrupole;
+eoption, seed= %(SEED4)s;
+EALIGN, DS:=0.0003*TGAUSS(GCUTR);
+
+
+
+!esave, file=errors.tfs;
+
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern=^BPM,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy,dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
+twiss, chrom,sequence=STORAGE04_SS23_7m, deltap=0, file="%(RUN_DATA_PATH)s/twiss%(SEED)s.dat";

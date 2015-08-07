@@ -26,7 +26,7 @@ movebpm(ii): macro = {
 GCUTR = 3;
 eoption, seed= %(SEED5)s;
 n = 1;
-while (n<=120)
+while (n<=120.5)
 {
     exec, movebpm($n);
     n = n+1;
