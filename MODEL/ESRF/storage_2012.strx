@@ -1,0 +1,771 @@
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!             MADX-PTC LATTICE OF THE ESR STORAGE RING                  !
+!                                                                       !
+!                       2009 STRENGTH FILE                              !
+!            created by Andrea Franchi  (April 3rd 2009)                !
+!                                                                       !
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+OFF :=0;
+
+!============= quadrupole strengths [m^-2] =============================!
+K1.QD1:= OFF;
+K1.QF2:= 0.39100749;
+K1.QD3:=-0.60355343;
+K1.QD4:=-0.60152556;
+K1.QF5:= 0.73458675;
+K1.QD6:=-0.81881188;
+K1.QF7:= 0.68156621;
+K1.QD8:= OFF;
+
+
+!----------- setting from Laurent's file for mini-beta SS23 ------------!
+!K1.QD4_7m:=-0.729270784;
+!K1.QF5_7m:= 0.728856315;
+!K1.QD6_7m:=-1.132257331; 
+!K1.QF7_7m:= 1.086345288;
+!K1.QDX_7m:=-1.225647381;
+!k1.qd6 =  -0.8134985377; ! retuned with MADX
+!k1.qf7 =   0.6835363261; ! retuned with MADX
+
+!------- setting from Laurent's file for By(min)=3.5m SS23 -------------!
+!K1.QD4_7m:=-0.673646333;
+!K1.QF5_7m:= 0.752019621;
+!K1.QD6_7m:=-1.148327684; 
+!K1.QF7_7m:= 1.186213871;
+!K1.QDX_7m:= OFF;
+!k1.qd6 :=-8.19096e-01; ! for Q=(36.44,13.39)
+!k1.qf7 := 6.81696e-01; ! for Q=(36.44,13.39)
+
+!------- setting from Laurent's file for By(min)=3.0m SS23 -------------!
+!K1.QD4_7m:=-0.642374895;
+!K1.QF5_7m:= 0.742771531;
+!K1.QD6_7m:=-1.187485449; 
+!K1.QF7_7m:= 1.195956073;
+!K1.QDX_7m:= OFF;
+!k1.qd6 :=-8.18729e-01; ! for Q=(36.44,13.39)
+!k1.qf7 := 6.81621e-01; ! for Q=(36.44,13.39)
+
+!============= end of quadrupole strengths [m^-2] ======================!
+
+
+
+!============= sextupole strengths [m^-2] ==============================!
+!----- turn off all sextupoles -----------------------------------------!
+K2.S04:= OFF;
+K2.S06:= OFF;
+K2.S13:= OFF;
+K2.S19:= OFF;
+K2.S20:= OFF;
+K2.S22:= OFF;
+K2.S24:= OFF;
+
+!---- modifications of 6-m straight sections ---------------------------!
+K2.S04C15:= K2.S04;
+K2.S04C16:= K2.S04;
+K2.S04C29:= K2.S04;
+K2.S04C30:= K2.S04;
+
+!---- modifications of 7-m straight sections ---------------------------!
+K2.S22C22:= K2.S22;
+K2.S22C23:= K2.S22;
+K2.S24C22:= K2.S24;
+K2.S24C23:= K2.S24;
+
+!============= end of sextupole strengths [m^-2] =======================!
+
+
+
+!============= octupole strengths [m^-2] ===============================!
+!----- octupolar components in quads -------!
+!   k3L = integrated strength in [m^-3]     !
+QD1.k3L:=OFF*L.QD1;
+QF2.k3L:=OFF;! 0.229106*L.QF2;
+QD3.k3L:=OFF;!-0.353645*L.QD3;
+QD4.k3L:=OFF;!-0.352456*L.QD4;
+QF5.k3L:=OFF;! 0.430422*L.QF5;
+QD6.k3L:=OFF;!-0.480698*L.QD6;
+QF7.k3L:=OFF;! 0.399489*L.QF7;
+QD8.k3L:=OFF*L.QD8;
+
+
+!qf2.k3l := 8.02041e-01  
+!qd3.k3l := 1.87536e+00  
+!qd4.k3l :=-1.09165e+01  
+!qf5.k3l := 1.47802e+01  
+!qd6.k3l := 4.70008e+00  
+!qf7.k3l :=-7.60440e+00  
+!============= end of octupole strengths [m^-2] ========================!
+
+
+
+!============= injection kicker strengths ==============================!
+!   k0L = integrated strength in [rad]      !
+K0L_K1:=OFF;
+K0L_K2:=OFF;
+K0L_K3:=OFF;
+K0L_K4:=OFF;
+!============= end of injection kicker strengths =======================!
+
+
+
+
+!============= 92 horizontal orbit corrector ===========================!
+!>> load_corcalib('s13s20','sr','h')
+!Using default calibration
+!ans =
+!   1.0e-03 *
+! 0.4398  0.3762  0.4368  0.4368  0.3762  0.4398
+! H06_C04 H19_C04 H22_C04 H22_C05 H19_C05 H06_C05
+! max current in steerers is 1.5 A 
+! check with Laurent whether the matlab calibration 
+! table is in rad or mrad (with rad orbit distorsion 
+! seems too large)
+!---------------------------------------------------------!
+CCC_H06:=0.4398E-3; ! [rad/A]
+CCC_H19:=0.3762E-3; ! [rad/A]
+CCC_H22:=0.4368E-3; ! [rad/A]
+K0L_DH_H06_C01 :=IDH_H06_C01*CCC_H06; ! [rad] cell #  1
+K0L_DH_H19_C01 :=IDH_H19_C01*CCC_H19; ! [rad] cell #  1
+K0L_DH_H22_C01 :=IDH_H22_C01*CCC_H22; ! [rad] cell #  1
+K0L_DH_H06_C02 :=IDH_H06_C02*CCC_H06; ! [rad] cell #  2
+K0L_DH_H19_C02 :=IDH_H19_C02*CCC_H19; ! [rad] cell #  2
+K0L_DH_H22_C02 :=IDH_H22_C02*CCC_H22; ! [rad] cell #  2
+K0L_DH_H06_C03 :=IDH_H06_C03*CCC_H06; ! [rad] cell #  3
+K0L_DH_H19_C03 :=IDH_H19_C03*CCC_H19; ! [rad] cell #  3
+K0L_DH_H22_C03 :=IDH_H22_C03*CCC_H22; ! [rad] cell #  3
+K0L_DH_H06_C04 :=IDH_H06_C04*CCC_H06; ! [rad] cell #  4
+K0L_DH_H19_C04 :=IDH_H19_C04*CCC_H19; ! [rad] cell #  4
+K0L_DH_H22_C04 :=IDH_H22_C04*CCC_H22; ! [rad] cell #  4
+K0L_DH_H06_C05 :=IDH_H06_C05*CCC_H06; ! [rad] cell #  5
+K0L_DH_H19_C05 :=IDH_H19_C05*CCC_H19; ! [rad] cell #  5
+K0L_DH_H22_C05 :=IDH_H22_C05*CCC_H22; ! [rad] cell #  5
+K0L_DH_H06_C06 :=IDH_H06_C06*CCC_H06; ! [rad] cell #  6
+K0L_DH_H19_C06 :=IDH_H19_C06*CCC_H19; ! [rad] cell #  6
+K0L_DH_H22_C06 :=IDH_H22_C06*CCC_H22; ! [rad] cell #  6
+K0L_DH_H06_C07 :=IDH_H06_C07*CCC_H06; ! [rad] cell #  7
+K0L_DH_H19_C07 :=IDH_H19_C07*CCC_H19; ! [rad] cell #  7
+K0L_DH_H22_C07 :=IDH_H22_C07*CCC_H22; ! [rad] cell #  7
+K0L_DH_H06_C08 :=IDH_H06_C08*CCC_H06; ! [rad] cell #  8
+K0L_DH_H19_C08 :=IDH_H19_C08*CCC_H19; ! [rad] cell #  8
+K0L_DH_H22_C08 :=IDH_H22_C08*CCC_H22; ! [rad] cell #  8
+K0L_DH_H06_C09 :=IDH_H06_C09*CCC_H06; ! [rad] cell #  9
+K0L_DH_H19_C09 :=IDH_H19_C09*CCC_H19; ! [rad] cell #  9
+K0L_DH_H22_C09 :=IDH_H22_C09*CCC_H22; ! [rad] cell #  9
+K0L_DH_H06_C10 :=IDH_H06_C10*CCC_H06; ! [rad] cell # 10
+K0L_DH_H19_C10 :=IDH_H19_C10*CCC_H19; ! [rad] cell # 10
+K0L_DH_H22_C10 :=IDH_H22_C10*CCC_H22; ! [rad] cell # 10
+K0L_DH_H06_C11 :=IDH_H06_C11*CCC_H06; ! [rad] cell # 11
+K0L_DH_H19_C11 :=IDH_H19_C11*CCC_H19; ! [rad] cell # 11
+K0L_DH_H22_C11 :=IDH_H22_C11*CCC_H22; ! [rad] cell # 11
+K0L_DH_H06_C12 :=IDH_H06_C12*CCC_H06; ! [rad] cell # 12
+K0L_DH_H19_C12 :=IDH_H19_C12*CCC_H19; ! [rad] cell # 12
+K0L_DH_H22_C12 :=IDH_H22_C12*CCC_H22; ! [rad] cell # 12
+K0L_DH_H06_C13 :=IDH_H06_C13*CCC_H06; ! [rad] cell # 13
+K0L_DH_H19_C13 :=IDH_H19_C13*CCC_H19; ! [rad] cell # 13
+K0L_DH_H22_C13 :=IDH_H22_C13*CCC_H22; ! [rad] cell # 13
+K0L_DH_H06_C14 :=IDH_H06_C14*CCC_H06; ! [rad] cell # 14
+K0L_DH_H19_C14 :=IDH_H19_C14*CCC_H19; ! [rad] cell # 14
+K0L_DH_H22_C14 :=IDH_H22_C14*CCC_H22; ! [rad] cell # 14
+K0L_DH_H06_C15 :=IDH_H06_C15*CCC_H06; ! [rad] cell # 15
+K0L_DH_H19_C15 :=IDH_H19_C15*CCC_H19; ! [rad] cell # 15
+K0L_DH_H22_C15 :=IDH_H22_C15*CCC_H22; ! [rad] cell # 15
+K0L_DH_H06_C16 :=IDH_H06_C16*CCC_H06; ! [rad] cell # 16
+K0L_DH_H19_C16 :=IDH_H19_C16*CCC_H19; ! [rad] cell # 16
+K0L_DH_H22_C16 :=IDH_H22_C16*CCC_H22; ! [rad] cell # 16
+K0L_DH_H06_C17 :=IDH_H06_C17*CCC_H06; ! [rad] cell # 17
+K0L_DH_H19_C17 :=IDH_H19_C17*CCC_H19; ! [rad] cell # 17
+K0L_DH_H22_C17 :=IDH_H22_C17*CCC_H22; ! [rad] cell # 17
+K0L_DH_H06_C18 :=IDH_H06_C18*CCC_H06; ! [rad] cell # 18
+K0L_DH_H19_C18 :=IDH_H19_C18*CCC_H19; ! [rad] cell # 18
+K0L_DH_H22_C18 :=IDH_H22_C18*CCC_H22; ! [rad] cell # 18
+K0L_DH_H06_C19 :=IDH_H06_C19*CCC_H06; ! [rad] cell # 19
+K0L_DH_H19_C19 :=IDH_H19_C19*CCC_H19; ! [rad] cell # 19
+K0L_DH_H22_C19 :=IDH_H22_C19*CCC_H22; ! [rad] cell # 19
+K0L_DH_H06_C20 :=IDH_H06_C20*CCC_H06; ! [rad] cell # 20
+K0L_DH_H19_C20 :=IDH_H19_C20*CCC_H19; ! [rad] cell # 20
+K0L_DH_H22_C20 :=IDH_H22_C20*CCC_H22; ! [rad] cell # 20
+K0L_DH_H06_C21 :=IDH_H06_C21*CCC_H06; ! [rad] cell # 21
+K0L_DH_H19_C21 :=IDH_H19_C21*CCC_H19; ! [rad] cell # 21
+K0L_DH_H22_C21 :=IDH_H22_C21*CCC_H22; ! [rad] cell # 21
+K0L_DH_H06_C22 :=IDH_H06_C22*CCC_H06; ! [rad] cell # 22
+K0L_DH_H19_C22 :=IDH_H19_C22*CCC_H19; ! [rad] cell # 22
+K0L_DH_H22_C22 :=IDH_H22_C22*CCC_H22; ! [rad] cell # 22
+K0L_DH_H06_C23 :=IDH_H06_C23*CCC_H06; ! [rad] cell # 23
+K0L_DH_H19_C23 :=IDH_H19_C23*CCC_H19; ! [rad] cell # 23
+K0L_DH_H22_C23 :=IDH_H22_C23*CCC_H22; ! [rad] cell # 23
+K0L_DH_H06_C24 :=IDH_H06_C24*CCC_H06; ! [rad] cell # 24
+K0L_DH_H19_C24 :=IDH_H19_C24*CCC_H19; ! [rad] cell # 24
+K0L_DH_H22_C24 :=IDH_H22_C24*CCC_H22; ! [rad] cell # 24
+K0L_DH_H06_C25 :=IDH_H06_C25*CCC_H06; ! [rad] cell # 25
+K0L_DH_H19_C25 :=IDH_H19_C25*CCC_H19; ! [rad] cell # 25
+K0L_DH_H22_C25 :=IDH_H22_C25*CCC_H22; ! [rad] cell # 25
+K0L_DH_H06_C26 :=IDH_H06_C26*CCC_H06; ! [rad] cell # 26
+K0L_DH_H19_C26 :=IDH_H19_C26*CCC_H19; ! [rad] cell # 26
+K0L_DH_H22_C26 :=IDH_H22_C26*CCC_H22; ! [rad] cell # 26
+K0L_DH_H06_C27 :=IDH_H06_C27*CCC_H06; ! [rad] cell # 27
+K0L_DH_H19_C27 :=IDH_H19_C27*CCC_H19; ! [rad] cell # 27
+K0L_DH_H22_C27 :=IDH_H22_C27*CCC_H22; ! [rad] cell # 27
+K0L_DH_H06_C28 :=IDH_H06_C28*CCC_H06; ! [rad] cell # 28
+K0L_DH_H19_C28 :=IDH_H19_C28*CCC_H19; ! [rad] cell # 28
+K0L_DH_H22_C28 :=IDH_H22_C28*CCC_H22; ! [rad] cell # 28
+K0L_DH_H06_C29 :=IDH_H06_C29*CCC_H06; ! [rad] cell # 29
+K0L_DH_H19_C29 :=IDH_H19_C29*CCC_H19; ! [rad] cell # 29
+K0L_DH_H22_C29 :=IDH_H22_C29*CCC_H22; ! [rad] cell # 29
+K0L_DH_H06_C30 :=IDH_H06_C30*CCC_H06; ! [rad] cell # 30
+K0L_DH_H19_C30 :=IDH_H19_C30*CCC_H19; ! [rad] cell # 30
+K0L_DH_H22_C30 :=IDH_H22_C30*CCC_H22; ! [rad] cell # 30
+K0L_DH_H06_C31 :=IDH_H06_C31*CCC_H06; ! [rad] cell # 31
+K0L_DH_H19_C31 :=IDH_H19_C31*CCC_H19; ! [rad] cell # 31
+K0L_DH_H22_C31 :=IDH_H22_C31*CCC_H22; ! [rad] cell # 31
+K0L_DH_H06_C32 :=IDH_H06_C32*CCC_H06; ! [rad] cell # 32
+K0L_DH_H19_C32 :=IDH_H19_C32*CCC_H19; ! [rad] cell # 32
+K0L_DH_H22_C32 :=IDH_H22_C32*CCC_H22; ! [rad] cell # 32
+!============= end of 92 horizontal orbit corrector ====================!
+
+!============= 92 vertical orbit corrector =============================!
+!>> load_corcalib('s13s20','sr','v')
+!Using default calibration
+!ans =
+!   1.0e-03 *
+! 0.2693  0.2508  0.2742  0.2742  0.2508  0.2693
+! V06_C04 V19_C04 V22_C04 V22_C05 V19_C05 V06_C05
+! max current in steerers is 1.5 A 
+! check with Laurent whether the matlab calibration 
+! table is in rad or mrad (with rad orbit distorsion 
+! seems too large)
+!---------------------------------------------------------!
+CCC_V06:=0.2693E-3; ! [rad/A]
+CCC_V19:=0.2508E-3; ! [rad/A]
+CCC_V22:=0.2742E-3; ! [rad/A]
+K0L_DV_V06_C01 :=IDV_V06_C01*CCC_V06; ! [rad] cell #  1
+K0L_DV_V19_C01 :=IDV_V19_C01*CCC_V19; ! [rad] cell #  1
+K0L_DV_V22_C01 :=IDV_V22_C01*CCC_V22; ! [rad] cell #  1
+K0L_DV_V06_C02 :=IDV_V06_C02*CCC_V06; ! [rad] cell #  2
+K0L_DV_V19_C02 :=IDV_V19_C02*CCC_V19; ! [rad] cell #  2
+K0L_DV_V22_C02 :=IDV_V22_C02*CCC_V22; ! [rad] cell #  2
+K0L_DV_V06_C03 :=IDV_V06_C03*CCC_V06; ! [rad] cell #  3
+K0L_DV_V19_C03 :=IDV_V19_C03*CCC_V19; ! [rad] cell #  3
+K0L_DV_V22_C03 :=IDV_V22_C03*CCC_V22; ! [rad] cell #  3
+K0L_DV_V06_C04 :=IDV_V06_C04*CCC_V06; ! [rad] cell #  4
+K0L_DV_V19_C04 :=IDV_V19_C04*CCC_V19; ! [rad] cell #  4
+K0L_DV_V22_C04 :=IDV_V22_C04*CCC_V22; ! [rad] cell #  4
+K0L_DV_V06_C05 :=IDV_V06_C05*CCC_V06; ! [rad] cell #  5
+K0L_DV_V19_C05 :=IDV_V19_C05*CCC_V19; ! [rad] cell #  5
+K0L_DV_V22_C05 :=IDV_V22_C05*CCC_V22; ! [rad] cell #  5
+K0L_DV_V06_C06 :=IDV_V06_C06*CCC_V06; ! [rad] cell #  6
+K0L_DV_V19_C06 :=IDV_V19_C06*CCC_V19; ! [rad] cell #  6
+K0L_DV_V22_C06 :=IDV_V22_C06*CCC_V22; ! [rad] cell #  6
+K0L_DV_V06_C07 :=IDV_V06_C07*CCC_V06; ! [rad] cell #  7
+K0L_DV_V19_C07 :=IDV_V19_C07*CCC_V19; ! [rad] cell #  7
+K0L_DV_V22_C07 :=IDV_V22_C07*CCC_V22; ! [rad] cell #  7
+K0L_DV_V06_C08 :=IDV_V06_C08*CCC_V06; ! [rad] cell #  8
+K0L_DV_V19_C08 :=IDV_V19_C08*CCC_V19; ! [rad] cell #  8
+K0L_DV_V22_C08 :=IDV_V22_C08*CCC_V22; ! [rad] cell #  8
+K0L_DV_V06_C09 :=IDV_V06_C09*CCC_V06; ! [rad] cell #  9
+K0L_DV_V19_C09 :=IDV_V19_C09*CCC_V19; ! [rad] cell #  9
+K0L_DV_V22_C09 :=IDV_V22_C09*CCC_V22; ! [rad] cell #  9
+K0L_DV_V06_C10 :=IDV_V06_C10*CCC_V06; ! [rad] cell # 10
+K0L_DV_V19_C10 :=IDV_V19_C10*CCC_V19; ! [rad] cell # 10
+K0L_DV_V22_C10 :=IDV_V22_C10*CCC_V22; ! [rad] cell # 10
+K0L_DV_V06_C11 :=IDV_V06_C11*CCC_V06; ! [rad] cell # 11
+K0L_DV_V19_C11 :=IDV_V19_C11*CCC_V19; ! [rad] cell # 11
+K0L_DV_V22_C11 :=IDV_V22_C11*CCC_V22; ! [rad] cell # 11
+K0L_DV_V06_C12 :=IDV_V06_C12*CCC_V06; ! [rad] cell # 12
+K0L_DV_V19_C12 :=IDV_V19_C12*CCC_V19; ! [rad] cell # 12
+K0L_DV_V22_C12 :=IDV_V22_C12*CCC_V22; ! [rad] cell # 12
+K0L_DV_V06_C13 :=IDV_V06_C13*CCC_V06; ! [rad] cell # 13
+K0L_DV_V19_C13 :=IDV_V19_C13*CCC_V19; ! [rad] cell # 13
+K0L_DV_V22_C13 :=IDV_V22_C13*CCC_V22; ! [rad] cell # 13
+K0L_DV_V06_C14 :=IDV_V06_C14*CCC_V06; ! [rad] cell # 14
+K0L_DV_V19_C14 :=IDV_V19_C14*CCC_V19; ! [rad] cell # 14
+K0L_DV_V22_C14 :=IDV_V22_C14*CCC_V22; ! [rad] cell # 14
+K0L_DV_V06_C15 :=IDV_V06_C15*CCC_V06; ! [rad] cell # 15
+K0L_DV_V19_C15 :=IDV_V19_C15*CCC_V19; ! [rad] cell # 15
+K0L_DV_V22_C15 :=IDV_V22_C15*CCC_V22; ! [rad] cell # 15
+K0L_DV_V06_C16 :=IDV_V06_C16*CCC_V06; ! [rad] cell # 16
+K0L_DV_V19_C16 :=IDV_V19_C16*CCC_V19; ! [rad] cell # 16
+K0L_DV_V22_C16 :=IDV_V22_C16*CCC_V22; ! [rad] cell # 16
+K0L_DV_V06_C17 :=IDV_V06_C17*CCC_V06; ! [rad] cell # 17
+K0L_DV_V19_C17 :=IDV_V19_C17*CCC_V19; ! [rad] cell # 17
+K0L_DV_V22_C17 :=IDV_V22_C17*CCC_V22; ! [rad] cell # 17
+K0L_DV_V06_C18 :=IDV_V06_C18*CCC_V06; ! [rad] cell # 18
+K0L_DV_V19_C18 :=IDV_V19_C18*CCC_V19; ! [rad] cell # 18
+K0L_DV_V22_C18 :=IDV_V22_C18*CCC_V22; ! [rad] cell # 18
+K0L_DV_V06_C19 :=IDV_V06_C19*CCC_V06; ! [rad] cell # 19
+K0L_DV_V19_C19 :=IDV_V19_C19*CCC_V19; ! [rad] cell # 19
+K0L_DV_V22_C19 :=IDV_V22_C19*CCC_V22; ! [rad] cell # 19
+K0L_DV_V06_C20 :=IDV_V06_C20*CCC_V06; ! [rad] cell # 20
+K0L_DV_V19_C20 :=IDV_V19_C20*CCC_V19; ! [rad] cell # 20
+K0L_DV_V22_C20 :=IDV_V22_C20*CCC_V22; ! [rad] cell # 20
+K0L_DV_V06_C21 :=IDV_V06_C21*CCC_V06; ! [rad] cell # 21
+K0L_DV_V19_C21 :=IDV_V19_C21*CCC_V19; ! [rad] cell # 21
+K0L_DV_V22_C21 :=IDV_V22_C21*CCC_V22; ! [rad] cell # 21
+K0L_DV_V06_C22 :=IDV_V06_C22*CCC_V06; ! [rad] cell # 22
+K0L_DV_V19_C22 :=IDV_V19_C22*CCC_V19; ! [rad] cell # 22
+K0L_DV_V22_C22 :=IDV_V22_C22*CCC_V22; ! [rad] cell # 22
+K0L_DV_V06_C23 :=IDV_V06_C23*CCC_V06; ! [rad] cell # 23
+K0L_DV_V19_C23 :=IDV_V19_C23*CCC_V19; ! [rad] cell # 23
+K0L_DV_V22_C23 :=IDV_V22_C23*CCC_V22; ! [rad] cell # 23
+K0L_DV_V06_C24 :=IDV_V06_C24*CCC_V06; ! [rad] cell # 24
+K0L_DV_V19_C24 :=IDV_V19_C24*CCC_V19; ! [rad] cell # 24
+K0L_DV_V22_C24 :=IDV_V22_C24*CCC_V22; ! [rad] cell # 24
+K0L_DV_V06_C25 :=IDV_V06_C25*CCC_V06; ! [rad] cell # 25
+K0L_DV_V19_C25 :=IDV_V19_C25*CCC_V19; ! [rad] cell # 25
+K0L_DV_V22_C25 :=IDV_V22_C25*CCC_V22; ! [rad] cell # 25
+K0L_DV_V06_C26 :=IDV_V06_C26*CCC_V06; ! [rad] cell # 26
+K0L_DV_V19_C26 :=IDV_V19_C26*CCC_V19; ! [rad] cell # 26
+K0L_DV_V22_C26 :=IDV_V22_C26*CCC_V22; ! [rad] cell # 26
+K0L_DV_V06_C27 :=IDV_V06_C27*CCC_V06; ! [rad] cell # 27
+K0L_DV_V19_C27 :=IDV_V19_C27*CCC_V19; ! [rad] cell # 27
+K0L_DV_V22_C27 :=IDV_V22_C27*CCC_V22; ! [rad] cell # 27
+K0L_DV_V06_C28 :=IDV_V06_C28*CCC_V06; ! [rad] cell # 28
+K0L_DV_V19_C28 :=IDV_V19_C28*CCC_V19; ! [rad] cell # 28
+K0L_DV_V22_C28 :=IDV_V22_C28*CCC_V22; ! [rad] cell # 28
+K0L_DV_V06_C29 :=IDV_V06_C29*CCC_V06; ! [rad] cell # 29
+K0L_DV_V19_C29 :=IDV_V19_C29*CCC_V19; ! [rad] cell # 29
+K0L_DV_V22_C29 :=IDV_V22_C29*CCC_V22; ! [rad] cell # 29
+K0L_DV_V06_C30 :=IDV_V06_C30*CCC_V06; ! [rad] cell # 30
+K0L_DV_V19_C30 :=IDV_V19_C30*CCC_V19; ! [rad] cell # 30
+K0L_DV_V22_C30 :=IDV_V22_C30*CCC_V22; ! [rad] cell # 30
+K0L_DV_V06_C31 :=IDV_V06_C31*CCC_V06; ! [rad] cell # 31
+K0L_DV_V19_C31 :=IDV_V19_C31*CCC_V19; ! [rad] cell # 31
+K0L_DV_V22_C31 :=IDV_V22_C31*CCC_V22; ! [rad] cell # 31
+K0L_DV_V06_C32 :=IDV_V06_C32*CCC_V06; ! [rad] cell # 32
+K0L_DV_V19_C32 :=IDV_V19_C32*CCC_V19; ! [rad] cell # 32
+K0L_DV_V22_C32 :=IDV_V22_C32*CCC_V22; ! [rad] cell # 32
+!============= end of 92 vertical orbit correctors ======================!
+
+
+!============= 32 norm-quad correctors ==================================!
+!>> load_corcalib('s13s20','sr','q')
+!Using default calibration
+!ans =
+!   0.0065 
+! [actually load_corcalib edited gives 6.480e-3]
+! to check array order: 
+! >> help selcor
+! >> [a,b]=selcor(6)
+! max current in quads is 6 A 
+!---------------------------------------------------------!
+CCC_QP_N:=6.480E-3; ! [m^-1/A]
+K1L_QP_N04_C04 :=IQP_N04_C04*CCC_QP_N; ! [m^-1] cell #  4
+K1L_QP_N20_C04 :=IQP_N20_C04*CCC_QP_N; ! [m^-1] cell #  4
+K1L_QP_N24_C05 :=IQP_N24_C05*CCC_QP_N; ! [m^-1] cell #  5
+K1L_QP_N13_C06 :=IQP_N13_C06*CCC_QP_N; ! [m^-1] cell #  6
+K1L_QP_N24_C07 :=IQP_N24_C07*CCC_QP_N; ! [m^-1] cell #  7
+K1L_QP_N13_C08 :=IQP_N13_C08*CCC_QP_N; ! [m^-1] cell #  8
+K1L_QP_N13_C09 :=IQP_N13_C09*CCC_QP_N; ! [m^-1] cell #  9
+K1L_QP_N24_C10 :=IQP_N24_C10*CCC_QP_N; ! [m^-1] cell # 10
+K1L_QP_N13_C11 :=IQP_N13_C11*CCC_QP_N; ! [m^-1] cell # 11
+K1L_QP_N20_C12 :=IQP_N20_C12*CCC_QP_N; ! [m^-1] cell # 12
+K1L_QP_N13_C13 :=IQP_N13_C13*CCC_QP_N; ! [m^-1] cell # 13
+K1L_QP_N04_C14 :=IQP_N04_C14*CCC_QP_N; ! [m^-1] cell # 14
+K1L_QP_N24_C14 :=IQP_N24_C14*CCC_QP_N; ! [m^-1] cell # 14
+K1L_QP_N13_C15 :=IQP_N13_C15*CCC_QP_N; ! [m^-1] cell # 15
+K1L_QP_N13_C17 :=IQP_N13_C17*CCC_QP_N; ! [m^-1] cell # 17
+K1L_QP_N24_C18 :=IQP_N24_C18*CCC_QP_N; ! [m^-1] cell # 18
+K1L_QP_N13_C19 :=IQP_N13_C19*CCC_QP_N; ! [m^-1] cell # 19
+K1L_QP_N20_C20 :=IQP_N20_C20*CCC_QP_N; ! [m^-1] cell # 20
+K1L_QP_N13_C21 :=IQP_N13_C21*CCC_QP_N; ! [m^-1] cell # 21
+K1L_QP_N13_C22 :=IQP_N13_C22*CCC_QP_N; ! [m^-1] cell # 22
+K1L_QP_N04_C23 :=IQP_N04_C23*CCC_QP_N; ! [m^-1] cell # 23
+K1L_QP_N13_C25 :=IQP_N13_C25*CCC_QP_N; ! [m^-1] cell # 25
+K1L_QP_N24_C26 :=IQP_N24_C26*CCC_QP_N; ! [m^-1] cell # 26
+K1L_QP_N13_C27 :=IQP_N13_C27*CCC_QP_N; ! [m^-1] cell # 27
+K1L_QP_N04_C28 :=IQP_N04_C28*CCC_QP_N; ! [m^-1] cell # 28
+K1L_QP_N24_C28 :=IQP_N24_C28*CCC_QP_N; ! [m^-1] cell # 28
+K1L_QP_N13_C29 :=IQP_N13_C29*CCC_QP_N; ! [m^-1] cell # 29
+K1L_QP_N20_C30 :=IQP_N20_C30*CCC_QP_N; ! [m^-1] cell # 30
+K1L_QP_N13_C31 :=IQP_N13_C31*CCC_QP_N; ! [m^-1] cell # 31
+K1L_QP_N13_C32 :=IQP_N13_C32*CCC_QP_N; ! [m^-1] cell # 32
+K1L_QP_N24_C02 :=IQP_N24_C02*CCC_QP_N; ! [m^-1] cell #  2
+K1L_QP_N13_C03 :=IQP_N13_C03*CCC_QP_N; ! [m^-1] cell #  3
+!============= end of 32 norm-quad correctors ===========================!
+
+!============= skew-quad correctors =====================================!
+!>> load_corcalib('s13s20','sr','s')
+!Using default calibration
+!ans =
+!    0.0044  [4.420E-3]
+!    0.0050  [4.983E-3]
+!    0.0050
+!    ....
+! actually load_corcalib edited gives:
+! s([2 3 4 5 7 8 9 10 11 12])=4.983e-3; % S4   calibration LF 16/01/2008
+! s([1 6 13 14 15 16])=4.420e-3;        % S13
+! s(17:32)=4.420e-3;                    % S20 [assumed]
+! to check array order: 
+! >> help selcor
+! >> [a,b]=selcor(7)
+! max current in skew quads is 6 A 
+!---------------------------------------------------------!
+CCC_QPSA := 4.420E-3; ! [m^-1/A] skews in S13
+CCC_QPSB := 4.983E-3; ! [m^-1/A] skews in S04
+CCC_QPSC := CCC_QPSA; ! [m^-1/A] skews in S20 [assumed]
+J1L_QP_S13_C04 :=IQP_S13_C04*CCC_QPSA; ! [m^-1] cell #  4
+J1L_QP_S20_C05 :=IQP_S20_C05*CCC_QPSC; ! [m^-1] cell #  5
+J1L_QP_S04_C05 :=IQP_S04_C05*CCC_QPSB; ! [m^-1] cell #  5
+J1L_QP_S04_C06 :=IQP_S04_C06*CCC_QPSB; ! [m^-1] cell #  6
+J1L_QP_S20_C06 :=IQP_S20_C06*CCC_QPSC; ! [m^-1] cell #  6
+J1L_QP_S20_C07 :=IQP_S20_C07*CCC_QPSC; ! [m^-1] cell #  7
+J1L_QP_S13_C07 :=IQP_S13_C07*CCC_QPSA; ! [m^-1] cell #  7
+J1L_QP_S04_C07 :=IQP_S04_C07*CCC_QPSB; ! [m^-1] cell #  8
+J1L_QP_S04_C08 :=IQP_S04_C08*CCC_QPSB; ! [m^-1] cell #  9
+J1L_QP_S20_C09 :=IQP_S20_C09*CCC_QPSC; ! [m^-1] cell #  9
+J1L_QP_S04_C09 :=IQP_S04_C09*CCC_QPSB; ! [m^-1] cell #  9
+J1L_QP_S04_C10 :=IQP_S04_C10*CCC_QPSB; ! [m^-1] cell # 10
+J1L_QP_S13_C10 :=IQP_S13_C10*CCC_QPSA; ! [m^-1] cell # 10
+J1L_QP_S20_C11 :=IQP_S20_C11*CCC_QPSC; ! [m^-1] cell # 11
+J1L_QP_S04_C11 :=IQP_S04_C11*CCC_QPSB; ! [m^-1] cell # 11
+J1L_QP_S04_C12 :=IQP_S04_C12*CCC_QPSB; ! [m^-1] cell # 12
+J1L_QP_S13_C12 :=IQP_S13_C12*CCC_QPSA; ! [m^-1] cell # 12
+J1L_QP_S20_C13 :=IQP_S20_C13*CCC_QPSC; ! [m^-1] cell # 13
+J1L_QP_S04_C13 :=IQP_S04_C13*CCC_QPSB; ! [m^-1] cell # 13
+J1L_QP_S13_C14 :=IQP_S13_C13*CCC_QPSA; ! [m^-1] cell # 13
+J1L_QP_S20_C14 :=IQP_S20_C14*CCC_QPSC; ! [m^-1] cell # 14
+J1L_QP_S20_C15 :=IQP_S20_C15*CCC_QPSC; ! [m^-1] cell # 15
+J1L_QP_S04_C16 :=IQP_S04_C16*CCC_QPSB; ! [m^-1] cell # 16
+J1L_QP_S13_C16 :=IQP_S13_C16*CCC_QPSA; ! [m^-1] cell # 16
+J1L_QP_S20_C17 :=IQP_S20_C17*CCC_QPSC; ! [m^-1] cell # 17
+J1L_QP_S04_C17 :=IQP_S04_C17*CCC_QPSB; ! [m^-1] cell # 17
+J1L_QP_S04_C18 :=IQP_S04_C18*CCC_QPSB; ! [m^-1] cell # 18                                    
+J1L_QP_S13_C18 :=IQP_S13_C18*CCC_QPSA; ! [m^-1] cell # 18
+J1L_QP_S20_C19 :=IQP_S20_C19*CCC_QPSC; ! [m^-1] cell # 19
+J1L_QP_S04_C19 :=IQP_S04_C19*CCC_QPSB; ! [m^-1] cell # 19
+J1L_QP_S04_C20 :=IQP_S04_C20*CCC_QPSB; ! [m^-1] cell # 20
+J1L_QP_S13_C20 :=IQP_S13_C20*CCC_QPSA; ! [m^-1] cell # 20
+J1L_QP_S20_C21 :=IQP_S20_C21*CCC_QPSC; ! [m^-1] cell # 21
+J1L_QP_S04_C21 :=IQP_S04_C21*CCC_QPSB; ! [m^-1] cell # 21
+J1L_QP_S04_C22 :=IQP_S04_C22*CCC_QPSB; ! [m^-1] cell # 22
+J1L_QP_S20_C22 :=IQP_S20_C22*CCC_QPSC; ! [m^-1] cell # 22
+J1L_QP_S20_C23 :=IQP_S20_C23*CCC_QPSC; ! [m^-1] cell # 23
+J1L_QP_S13_C23 :=IQP_S13_C23*CCC_QPSA; ! [m^-1] cell # 23
+J1L_QP_S04_C24 :=IQP_S04_C24*CCC_QPSB; ! [m^-1] cell # 24
+J1L_QP_S13_C24 :=IQP_S13_C24*CCC_QPSA; ! [m^-1] cell # 24
+J1L_QP_S20_C25 :=IQP_S20_C25*CCC_QPSC; ! [m^-1] cell # 25
+J1L_QP_S04_C25 :=IQP_S04_C25*CCC_QPSB; ! [m^-1] cell # 25
+J1L_QP_S04_C26 :=IQP_S04_C26*CCC_QPSB; ! [m^-1] cell # 26
+J1L_QP_S13_C26 :=IQP_S13_C26*CCC_QPSA; ! [m^-1] cell # 26
+J1L_QP_S20_C26 :=IQP_S20_C26*CCC_QPSC; ! [m^-1] cell # 26
+J1L_QP_S20_C27 :=IQP_S20_C27*CCC_QPSC; ! [m^-1] cell # 27
+J1L_QP_S04_C27 :=IQP_S04_C27*CCC_QPSB; ! [m^-1] cell # 27
+J1L_QP_S13_C28 :=IQP_S13_C28*CCC_QPSA; ! [m^-1] cell # 28
+J1L_QP_S20_C28 :=IQP_S20_C28*CCC_QPSC; ! [m^-1] cell # 28
+J1L_QP_S20_C29 :=IQP_S20_C29*CCC_QPSC; ! [m^-1] cell # 29
+J1L_QP_S04_C29 :=IQP_S04_C29*CCC_QPSB; ! [m^-1] cell # 29
+J1L_QP_S04_C30 :=IQP_S04_C30*CCC_QPSB; ! [m^-1] cell # 30
+J1L_QP_S13_C30 :=IQP_S13_C30*CCC_QPSA; ! [m^-1] cell # 30
+J1L_QP_S20_C31 :=IQP_S20_C31*CCC_QPSC; ! [m^-1] cell # 31
+J1L_QP_S04_C31 :=IQP_S04_C31*CCC_QPSB; ! [m^-1] cell # 31
+J1L_QP_S04_C32 :=IQP_S04_C32*CCC_QPSB; ! [m^-1] cell # 32
+J1L_QP_S20_C01 :=IQP_S20_C01*CCC_QPSC; ! [m^-1] cell #  1
+J1L_QP_S13_C01 :=IQP_S13_C01*CCC_QPSA; ! [m^-1] cell #  1
+J1L_QP_S04_C01 :=IQP_S04_C01*CCC_QPSB; ! [m^-1] cell #  1
+J1L_QP_S04_C02 :=IQP_S04_C02*CCC_QPSB; ! [m^-1] cell #  2
+J1L_QP_S13_C02 :=IQP_S13_C02*CCC_QPSA; ! [m^-1] cell #  2
+J1L_QP_S20_C02 :=IQP_S20_C02*CCC_QPSC; ! [m^-1] cell #  2
+J1L_QP_S20_C03 :=IQP_S20_C03*CCC_QPSC; ! [m^-1] cell #  3
+J1L_QP_S04_C03 :=IQP_S04_C03*CCC_QPSB; ! [m^-1] cell #  3
+!============= end of 32 skew-quad correctors ===========================!
+
+!============= 12 norm-sext correctors ==================================!
+! max current in norm. sextupole is 5.2 A [checked]       !
+!---------------------------------------------------------!
+CCC_SX24:=0.440; ! [m^-2/A] should be ok for S24 ~  60A & corr. current <1A
+CCC_SX20:=0.354; ! [m^-2/A] should be ok for S20 ~-200A & corr. current <1A
+
+CCC_SX24:=0.437; ![m^-2/A] for S24=  80A any corr. current 
+CCC_SX20:=0.380; ![m^-2/A] for S20=-192A corr. current <1A       !!!!
+CCC_SX20:=0.315; ![m^-2/A] for S20=-192A corr. current 1A<I<2.5A !!!!
+CCC_SX20:=0.265; ![m^-2/A] for S20=-192A corr. current 3A<I<4.5A !!!!
+CCC_SX20:=0.309; ![m^-2/A] for S20=-192A any corr. current but not precise
+
+K2L_SX_C20_C08 :=ISX_C20_C08*CCC_SX20; ! [m^-2] cell #  8 !DX~0.24 m DY~ 0
+K2L_SX_C24_C08 :=ISX_C24_C08*CCC_SX24; ! [m^-2] cell #  8 !DX~0.04 m DY~-0.0004
+K2L_SX_C24_C09 :=ISX_C24_C09*CCC_SX24; ! [m^-2] cell #  9 !DX~0.03 m DY~-0.001
+K2L_SX_C20_C16 :=ISX_C20_C16*CCC_SX20; ! [m^-2] cell # 16 !DX~0.24 m DY~ 0.0004
+K2L_SX_C24_C16 :=ISX_C24_C16*CCC_SX24; ! [m^-2] cell # 16 !DX~0.05 m DY~ 0.0004
+K2L_SX_C24_C23 :=ISX_C24_C23*CCC_SX24; ! [m^-2] cell # 23 !DX~0.07 m DY~-0.002
+K2L_SX_C20_C24 :=ISX_C20_C24*CCC_SX20; ! [m^-2] cell # 24 !DX~0.23 m DY~ 0.001
+K2L_SX_C24_C24 :=ISX_C24_C24*CCC_SX24; ! [m^-2] cell # 24 !DX~0.05 m DY~ 0.001
+K2L_SX_C24_C29 :=ISX_C24_C29*CCC_SX24; ! [m^-2] cell # 29 !DX~0.06 m DY~-0.0003
+K2L_SX_C20_C32 :=ISX_C20_C32*CCC_SX20; ! [m^-2] cell # 32 !DX~0.21 m DY~ 0.0009
+K2L_SX_C24_C32 :=ISX_C24_C32*CCC_SX24; ! [m^-2] cell # 32 !DX~0.09 m DY~ 0.0006
+K2L_SX_C24_C03 :=ISX_C24_C03*CCC_SX24; ! [m^-2] cell #  3 !DX~0.01 m DY~-0.001
+!============= end of 12 norm-sext correctors ==========================!
+
+
+!----- dipole kicks from main bending magnet rolls [rad] --------!
+! to be estimated from orbit and dispersion measurements         !
+! Note that kickers are used, rather than the TILT option of     !
+! SBEND, in order to see the impact on the closed orbit x,y      !
+! (the TILT option would give in output always a zero closed     !
+! orbit)                                                         !
+!----------------------------------------------------------------! 
+KH_D11_04:=OFF;  KV_D11_04:=OFF;  KH_D20_04:=OFF;  KV_D20_04:=OFF; 
+KH_D11_05:=OFF;  KV_D11_05:=OFF;  KH_D20_05:=OFF;  KV_D20_05:=OFF; 
+KH_D11_06:=OFF;  KV_D11_06:=OFF;  KH_D20_06:=OFF;  KV_D20_06:=OFF; 
+KH_D11_07:=OFF;  KV_D11_07:=OFF;  KH_D20_07:=OFF;  KV_D20_07:=OFF; 
+KH_D11_08:=OFF;  KV_D11_08:=OFF;  KH_D20_08:=OFF;  KV_D20_08:=OFF; 
+KH_D11_09:=OFF;  KV_D11_09:=OFF;  KH_D20_09:=OFF;  KV_D20_09:=OFF; 
+KH_D11_10:=OFF;  KV_D11_10:=OFF;  KH_D20_10:=OFF;  KV_D20_10:=OFF; 
+KH_D11_11:=OFF;  KV_D11_11:=OFF;  KH_D20_11:=OFF;  KV_D20_11:=OFF; 
+KH_D11_12:=OFF;  KV_D11_12:=OFF;  KH_D20_12:=OFF;  KV_D20_12:=OFF; 
+KH_D11_13:=OFF;  KV_D11_13:=OFF;  KH_D20_13:=OFF;  KV_D20_13:=OFF; 
+KH_D11_14:=OFF;  KV_D11_14:=OFF;  KH_D20_14:=OFF;  KV_D20_14:=OFF; 
+KH_D11_15:=OFF;  KV_D11_15:=OFF;  KH_D20_15:=OFF;  KV_D20_15:=OFF; 
+KH_D11_16:=OFF;  KV_D11_16:=OFF;  KH_D20_16:=OFF;  KV_D20_16:=OFF; 
+KH_D11_17:=OFF;  KV_D11_17:=OFF;  KH_D20_17:=OFF;  KV_D20_17:=OFF; 
+KH_D11_18:=OFF;  KV_D11_18:=OFF;  KH_D20_18:=OFF;  KV_D20_18:=OFF; 
+KH_D11_19:=OFF;  KV_D11_19:=OFF;  KH_D20_19:=OFF;  KV_D20_19:=OFF; 
+KH_D11_20:=OFF;  KV_D11_20:=OFF;  KH_D20_20:=OFF;  KV_D20_20:=OFF; 
+KH_D11_21:=OFF;  KV_D11_21:=OFF;  KH_D20_21:=OFF;  KV_D20_21:=OFF; 
+KH_D11_22:=OFF;  KV_D11_22:=OFF;  KH_D20_22:=OFF;  KV_D20_22:=OFF; 
+KH_D11_23:=OFF;  KV_D11_23:=OFF;  KH_D20_23:=OFF;  KV_D20_23:=OFF; 
+KH_D11_24:=OFF;  KV_D11_24:=OFF;  KH_D20_24:=OFF;  KV_D20_24:=OFF; 
+KH_D11_25:=OFF;  KV_D11_25:=OFF;  KH_D20_25:=OFF;  KV_D20_25:=OFF; 
+KH_D11_26:=OFF;  KV_D11_26:=OFF;  KH_D20_26:=OFF;  KV_D20_26:=OFF; 
+KH_D11_27:=OFF;  KV_D11_27:=OFF;  KH_D20_27:=OFF;  KV_D20_27:=OFF; 
+KH_D11_28:=OFF;  KV_D11_28:=OFF;  KH_D20_28:=OFF;  KV_D20_28:=OFF; 
+KH_D11_29:=OFF;  KV_D11_29:=OFF;  KH_D20_29:=OFF;  KV_D20_29:=OFF; 
+KH_D11_30:=OFF;  KV_D11_30:=OFF;  KH_D20_30:=OFF;  KV_D20_30:=OFF; 
+KH_D11_31:=OFF;  KV_D11_31:=OFF;  KH_D20_31:=OFF;  KV_D20_31:=OFF; 
+KH_D11_32:=OFF;  KV_D11_32:=OFF;  KH_D20_32:=OFF;  KV_D20_32:=OFF;
+KH_D11_01:=OFF;  KV_D11_01:=OFF;  KH_D20_01:=OFF;  KV_D20_01:=OFF; 
+KH_D11_02:=OFF;  KV_D11_02:=OFF;  KH_D20_02:=OFF;  KV_D20_02:=OFF; 
+KH_D11_03:=OFF;  KV_D11_03:=OFF;  KH_D20_03:=OFF;  KV_D20_03:=OFF;
+
+
+!------------- main bending magnets rolls [rad] -----------------!
+! to be estimated from dispersion measurements                   !
+!----------------------------------------------------------------!
+T_SBEND11_C04:=OFF; T_SBEND20_C04:=OFF; T_SBEND11_C05:=OFF; T_SBEND20_C05:=OFF; 
+T_SBEND11_C06:=OFF; T_SBEND20_C06:=OFF; T_SBEND11_C07:=OFF; T_SBEND20_C07:=OFF; 
+T_SBEND11_C08:=OFF; T_SBEND20_C08:=OFF; T_SBEND11_C09:=OFF; T_SBEND20_C09:=OFF; 
+T_SBEND11_C10:=OFF; T_SBEND20_C10:=OFF; T_SBEND11_C11:=OFF; T_SBEND20_C11:=OFF; 
+T_SBEND11_C12:=OFF; T_SBEND20_C12:=OFF; T_SBEND11_C13:=OFF; T_SBEND20_C13:=OFF; 
+T_SBEND11_C14:=OFF; T_SBEND20_C14:=OFF; T_SBEND11_C15:=OFF; T_SBEND20_C15:=OFF; 
+T_SBEND11_C16:=OFF; T_SBEND20_C16:=OFF; T_SBEND11_C17:=OFF; T_SBEND20_C17:=OFF; 
+T_SBEND11_C18:=OFF; T_SBEND20_C18:=OFF; T_SBEND11_C19:=OFF; T_SBEND20_C19:=OFF; 
+T_SBEND11_C20:=OFF; T_SBEND20_C20:=OFF; T_SBEND11_C21:=OFF; T_SBEND20_C21:=OFF; 
+T_SBEND11_C22:=OFF; T_SBEND20_C22:=OFF; T_SBEND11_C23:=OFF; T_SBEND20_C23:=OFF; 
+T_SBEND11_C24:=OFF; T_SBEND20_C24:=OFF; T_SBEND11_C25:=OFF; T_SBEND20_C25:=OFF; 
+T_SBEND11_C26:=OFF; T_SBEND20_C26:=OFF; T_SBEND11_C27:=OFF; T_SBEND20_C27:=OFF; 
+T_SBEND11_C28:=OFF; T_SBEND20_C28:=OFF; T_SBEND11_C29:=OFF; T_SBEND20_C29:=OFF; 
+T_SBEND11_C30:=OFF; T_SBEND20_C30:=OFF; T_SBEND11_C31:=OFF; T_SBEND20_C31:=OFF; 
+T_SBEND11_C32:=OFF; T_SBEND20_C32:=OFF; T_SBEND11_C01:=OFF; T_SBEND20_C01:=OFF; 
+T_SBEND11_C02:=OFF; T_SBEND20_C02:=OFF; T_SBEND11_C03:=OFF; T_SBEND20_C03:=OFF; 
+
+!----------- main normal quadrupole rolls [rad] -----------------!
+! to be estimated from coupling and dispersion measurements      !
+!----------------------------------------------------------------!
+T_QF2__C04:=OFF; T_QD3__C04:=OFF; T_QD4A_C04:=OFF; T_QF5A_C04:=OFF;  
+T_QF5B_C04:=OFF; T_QD4B_C04:=OFF; T_QD6__C04:=OFF; T_QF7__C04:=OFF;
+T_QF2__C05:=OFF; T_QD3__C05:=OFF; T_QD4A_C05:=OFF; T_QF5A_C05:=OFF;  
+T_QF5B_C05:=OFF; T_QD4B_C05:=OFF; T_QD6__C05:=OFF; T_QF7__C05:=OFF;
+T_QF2__C06:=OFF; T_QD3__C06:=OFF; T_QD4A_C06:=OFF; T_QF5A_C06:=OFF;  
+T_QF5B_C06:=OFF; T_QD4B_C06:=OFF; T_QD6__C06:=OFF; T_QF7__C06:=OFF;
+T_QF2__C07:=OFF; T_QD3__C07:=OFF; T_QD4A_C07:=OFF; T_QF5A_C07:=OFF;  
+T_QF5B_C07:=OFF; T_QD4B_C07:=OFF; T_QD6__C07:=OFF; T_QF7__C07:=OFF;
+T_QF2__C08:=OFF; T_QD3__C08:=OFF; T_QD4A_C08:=OFF; T_QF5A_C08:=OFF;  
+T_QF5B_C08:=OFF; T_QD4B_C08:=OFF; T_QD6__C08:=OFF; T_QF7__C08:=OFF;
+T_QF2__C09:=OFF; T_QD3__C09:=OFF; T_QD4A_C09:=OFF; T_QF5A_C09:=OFF;  
+T_QF5B_C09:=OFF; T_QD4B_C09:=OFF; T_QD6__C09:=OFF; T_QF7__C09:=OFF;
+T_QF2__C10:=OFF; T_QD3__C10:=OFF; T_QD4A_C10:=OFF; T_QF5A_C10:=OFF;  
+T_QF5B_C10:=OFF; T_QD4B_C10:=OFF; T_QD6__C10:=OFF; T_QF7__C10:=OFF;
+T_QF2__C11:=OFF; T_QD3__C11:=OFF; T_QD4A_C11:=OFF; T_QF5A_C11:=OFF;  
+T_QF5B_C11:=OFF; T_QD4B_C11:=OFF; T_QD6__C11:=OFF; T_QF7__C11:=OFF;
+T_QF2__C12:=OFF; T_QD3__C12:=OFF; T_QD4A_C12:=OFF; T_QF5A_C12:=OFF;  
+T_QF5B_C12:=OFF; T_QD4B_C12:=OFF; T_QD6__C12:=OFF; T_QF7__C12:=OFF;
+T_QF2__C13:=OFF; T_QD3__C13:=OFF; T_QD4A_C13:=OFF; T_QF5A_C13:=OFF;  
+T_QF5B_C13:=OFF; T_QD4B_C13:=OFF; T_QD6__C13:=OFF; T_QF7__C13:=OFF;
+T_QF2__C14:=OFF; T_QD3__C14:=OFF; T_QD4A_C14:=OFF; T_QF5A_C14:=OFF;  
+T_QF5B_C14:=OFF; T_QD4B_C14:=OFF; T_QD6__C14:=OFF; T_QF7__C14:=OFF;
+T_QF2__C15:=OFF; T_QD3__C15:=OFF; T_QD4A_C15:=OFF; T_QF5A_C15:=OFF;  
+T_QF5B_C15:=OFF; T_QD4B_C15:=OFF; T_QD6__C15:=OFF; T_QF7__C15:=OFF;
+T_QF2__C16:=OFF; T_QD3__C16:=OFF; T_QD4A_C16:=OFF; T_QF5A_C16:=OFF;  
+T_QF5B_C16:=OFF; T_QD4B_C16:=OFF; T_QD6__C16:=OFF; T_QF7__C16:=OFF;
+T_QF2__C17:=OFF; T_QD3__C17:=OFF; T_QD4A_C17:=OFF; T_QF5A_C17:=OFF;  
+T_QF5B_C17:=OFF; T_QD4B_C17:=OFF; T_QD6__C17:=OFF; T_QF7__C17:=OFF;
+T_QF2__C18:=OFF; T_QD3__C18:=OFF; T_QD4A_C18:=OFF; T_QF5A_C18:=OFF;  
+T_QF5B_C18:=OFF; T_QD4B_C18:=OFF; T_QD6__C18:=OFF; T_QF7__C18:=OFF;
+T_QF2__C19:=OFF; T_QD3__C19:=OFF; T_QD4A_C19:=OFF; T_QF5A_C19:=OFF;  
+T_QF5B_C19:=OFF; T_QD4B_C19:=OFF; T_QD6__C19:=OFF; T_QF7__C19:=OFF;
+T_QF2__C20:=OFF; T_QD3__C20:=OFF; T_QD4A_C20:=OFF; T_QF5A_C20:=OFF;  
+T_QF5B_C20:=OFF; T_QD4B_C20:=OFF; T_QD6__C20:=OFF; T_QF7__C20:=OFF;
+T_QF2__C21:=OFF; T_QD3__C21:=OFF; T_QD4A_C21:=OFF; T_QF5A_C21:=OFF;  
+T_QF5B_C21:=OFF; T_QD4B_C21:=OFF; T_QD6__C21:=OFF; T_QF7__C21:=OFF;
+T_QF2__C22:=OFF; T_QD3__C22:=OFF; T_QD4A_C22:=OFF; T_QF5A_C22:=OFF;  
+T_QF5B_C22:=OFF; T_QD4B_C22:=OFF; T_QD6__C22:=OFF; T_QF7__C22:=OFF;
+T_QF2__C23:=OFF; T_QD3__C23:=OFF; T_QD4A_C23:=OFF; T_QF5A_C23:=OFF;  
+T_QF5B_C23:=OFF; T_QD4B_C23:=OFF; T_QD6__C23:=OFF; T_QF7__C23:=OFF;
+T_QF2__C24:=OFF; T_QD3__C24:=OFF; T_QD4A_C24:=OFF; T_QF5A_C24:=OFF;  
+T_QF5B_C24:=OFF; T_QD4B_C24:=OFF; T_QD6__C24:=OFF; T_QF7__C24:=OFF;
+T_QF2__C25:=OFF; T_QD3__C25:=OFF; T_QD4A_C25:=OFF; T_QF5A_C25:=OFF;  
+T_QF5B_C25:=OFF; T_QD4B_C25:=OFF; T_QD6__C25:=OFF; T_QF7__C25:=OFF;
+T_QF2__C26:=OFF; T_QD3__C26:=OFF; T_QD4A_C26:=OFF; T_QF5A_C26:=OFF;  
+T_QF5B_C26:=OFF; T_QD4B_C26:=OFF; T_QD6__C26:=OFF; T_QF7__C26:=OFF;
+T_QF2__C27:=OFF; T_QD3__C27:=OFF; T_QD4A_C27:=OFF; T_QF5A_C27:=OFF;  
+T_QF5B_C27:=OFF; T_QD4B_C27:=OFF; T_QD6__C27:=OFF; T_QF7__C27:=OFF;
+T_QF2__C28:=OFF; T_QD3__C28:=OFF; T_QD4A_C28:=OFF; T_QF5A_C28:=OFF;  
+T_QF5B_C28:=OFF; T_QD4B_C28:=OFF; T_QD6__C28:=OFF; T_QF7__C28:=OFF;
+T_QF2__C29:=OFF; T_QD3__C29:=OFF; T_QD4A_C29:=OFF; T_QF5A_C29:=OFF;  
+T_QF5B_C29:=OFF; T_QD4B_C29:=OFF; T_QD6__C29:=OFF; T_QF7__C29:=OFF;
+T_QF2__C30:=OFF; T_QD3__C30:=OFF; T_QD4A_C30:=OFF; T_QF5A_C30:=OFF;  
+T_QF5B_C30:=OFF; T_QD4B_C30:=OFF; T_QD6__C30:=OFF; T_QF7__C30:=OFF;
+T_QF2__C31:=OFF; T_QD3__C31:=OFF; T_QD4A_C31:=OFF; T_QF5A_C31:=OFF;  
+T_QF5B_C31:=OFF; T_QD4B_C31:=OFF; T_QD6__C31:=OFF; T_QF7__C31:=OFF;
+T_QF2__C32:=OFF; T_QD3__C32:=OFF; T_QD4A_C32:=OFF; T_QF5A_C32:=OFF;  
+T_QF5B_C32:=OFF; T_QD4B_C32:=OFF; T_QD6__C32:=OFF; T_QF7__C32:=OFF;
+T_QF2__C01:=OFF; T_QD3__C01:=OFF; T_QD4A_C01:=OFF; T_QF5A_C01:=OFF;  
+T_QF5B_C01:=OFF; T_QD4B_C01:=OFF; T_QD6__C01:=OFF; T_QF7__C01:=OFF;
+T_QF2__C02:=OFF; T_QD3__C02:=OFF; T_QD4A_C02:=OFF; T_QF5A_C02:=OFF;  
+T_QF5B_C02:=OFF; T_QD4B_C02:=OFF; T_QD6__C02:=OFF; T_QF7__C02:=OFF;
+T_QF2__C03:=OFF; T_QD3__C03:=OFF; T_QD4A_C03:=OFF; T_QF5A_C03:=OFF;  
+T_QF5B_C03:=OFF; T_QD4B_C03:=OFF; T_QD6__C03:=OFF; T_QF7__C03:=OFF;
+
+!--------------------------- quadrupolar errors in quads from errors in the integegrated field length ------------------------------------------------!
+!                                                k1L = integrated strength in [m^-1]                                                                  !
+!-----------------------------------------------------------------------------------------------------------------------------------------------------!
+dk1_qf2__c04:=OFF; dk1_qd3__c04:=OFF; dk1_qd4a_c04:=OFF; dk1_qf5a_c04:=OFF; dk1_qf5b_c04:=OFF; dk1_qd4b_c04:=OFF; dk1_qd6__c04:=OFF; dk1_qf7__c04:=OFF;
+dk1_qf2__c05:=OFF; dk1_qd3__c05:=OFF; dk1_qd4a_c05:=OFF; dk1_qf5a_c05:=OFF; dk1_qf5b_c05:=OFF; dk1_qd4b_c05:=OFF; dk1_qd6__c05:=OFF; dk1_qf7__c05:=OFF;
+dk1_qf2__c06:=OFF; dk1_qd3__c06:=OFF; dk1_qd4a_c06:=OFF; dk1_qf5a_c06:=OFF; dk1_qf5b_c06:=OFF; dk1_qd4b_c06:=OFF; dk1_qd6__c06:=OFF; dk1_qf7__c06:=OFF;
+dk1_qf2__c07:=OFF; dk1_qd3__c07:=OFF; dk1_qd4a_c07:=OFF; dk1_qf5a_c07:=OFF; dk1_qf5b_c07:=OFF; dk1_qd4b_c07:=OFF; dk1_qd6__c07:=OFF; dk1_qf7__c07:=OFF;
+dk1_qf2__c08:=OFF; dk1_qd3__c08:=OFF; dk1_qd4a_c08:=OFF; dk1_qf5a_c08:=OFF; dk1_qf5b_c08:=OFF; dk1_qd4b_c08:=OFF; dk1_qd6__c08:=OFF; dk1_qf7__c08:=OFF;
+dk1_qf2__c09:=OFF; dk1_qd3__c09:=OFF; dk1_qd4a_c09:=OFF; dk1_qf5a_c09:=OFF; dk1_qf5b_c09:=OFF; dk1_qd4b_c09:=OFF; dk1_qd6__c09:=OFF; dk1_qf7__c09:=OFF;
+dk1_qf2__c10:=OFF; dk1_qd3__c10:=OFF; dk1_qd4a_c10:=OFF; dk1_qf5a_c10:=OFF; dk1_qf5b_c10:=OFF; dk1_qd4b_c10:=OFF; dk1_qd6__c10:=OFF; dk1_qf7__c10:=OFF;
+dk1_qf2__c11:=OFF; dk1_qd3__c11:=OFF; dk1_qd4a_c11:=OFF; dk1_qf5a_c11:=OFF; dk1_qf5b_c11:=OFF; dk1_qd4b_c11:=OFF; dk1_qd6__c11:=OFF; dk1_qf7__c11:=OFF;
+dk1_qf2__c12:=OFF; dk1_qd3__c12:=OFF; dk1_qd4a_c12:=OFF; dk1_qf5a_c12:=OFF; dk1_qf5b_c12:=OFF; dk1_qd4b_c12:=OFF; dk1_qd6__c12:=OFF; dk1_qf7__c12:=OFF;
+dk1_qf2__c13:=OFF; dk1_qd3__c13:=OFF; dk1_qd4a_c13:=OFF; dk1_qf5a_c13:=OFF; dk1_qf5b_c13:=OFF; dk1_qd4b_c13:=OFF; dk1_qd6__c13:=OFF; dk1_qf7__c13:=OFF;
+dk1_qf2__c14:=OFF; dk1_qd3__c14:=OFF; dk1_qd4a_c14:=OFF; dk1_qf5a_c14:=OFF; dk1_qf5b_c14:=OFF; dk1_qd4b_c14:=OFF; dk1_qd6__c14:=OFF; dk1_qf7__c14:=OFF;
+dk1_qf2__c15:=OFF; dk1_qd3__c15:=OFF; dk1_qd4a_c15:=OFF; dk1_qf5a_c15:=OFF; dk1_qf5b_c15:=OFF; dk1_qd4b_c15:=OFF; dk1_qd6__c15:=OFF; dk1_qf7__c15:=OFF;
+dk1_qf2__c16:=OFF; dk1_qd3__c16:=OFF; dk1_qd4a_c16:=OFF; dk1_qf5a_c16:=OFF; dk1_qf5b_c16:=OFF; dk1_qd4b_c16:=OFF; dk1_qd6__c16:=OFF; dk1_qf7__c16:=OFF;
+dk1_qf2__c17:=OFF; dk1_qd3__c17:=OFF; dk1_qd4a_c17:=OFF; dk1_qf5a_c17:=OFF; dk1_qf5b_c17:=OFF; dk1_qd4b_c17:=OFF; dk1_qd6__c17:=OFF; dk1_qf7__c17:=OFF;
+dk1_qf2__c18:=OFF; dk1_qd3__c18:=OFF; dk1_qd4a_c18:=OFF; dk1_qf5a_c18:=OFF; dk1_qf5b_c18:=OFF; dk1_qd4b_c18:=OFF; dk1_qd6__c18:=OFF; dk1_qf7__c18:=OFF;
+dk1_qf2__c19:=OFF; dk1_qd3__c19:=OFF; dk1_qd4a_c19:=OFF; dk1_qf5a_c19:=OFF; dk1_qf5b_c19:=OFF; dk1_qd4b_c19:=OFF; dk1_qd6__c19:=OFF; dk1_qf7__c19:=OFF;
+dk1_qf2__c20:=OFF; dk1_qd3__c20:=OFF; dk1_qd4a_c20:=OFF; dk1_qf5a_c20:=OFF; dk1_qf5b_c20:=OFF; dk1_qd4b_c20:=OFF; dk1_qd6__c20:=OFF; dk1_qf7__c20:=OFF;
+dk1_qf2__c21:=OFF; dk1_qd3__c21:=OFF; dk1_qd4a_c21:=OFF; dk1_qf5a_c21:=OFF; dk1_qf5b_c21:=OFF; dk1_qd4b_c21:=OFF; dk1_qd6__c21:=OFF; dk1_qf7__c21:=OFF;
+dk1_qf2__c22:=OFF; dk1_qd3__c22:=OFF; dk1_qd4a_c22:=OFF; dk1_qf5a_c22:=OFF; dk1_qf5b_c22:=OFF; dk1_qd4b_c22:=OFF; dk1_qd6__c22:=OFF; dk1_qf7__c22:=OFF;
+dk1_qf2__c23:=OFF; dk1_qd3__c23:=OFF; dk1_qd4a_c23:=OFF; dk1_qf5a_c23:=OFF; dk1_qf5b_c23:=OFF; dk1_qd4b_c23:=OFF; dk1_qd6__c23:=OFF; dk1_qf7__c23:=OFF;
+dk1_qf2__c24:=OFF; dk1_qd3__c24:=OFF; dk1_qd4a_c24:=OFF; dk1_qf5a_c24:=OFF; dk1_qf5b_c24:=OFF; dk1_qd4b_c24:=OFF; dk1_qd6__c24:=OFF; dk1_qf7__c24:=OFF;
+dk1_qf2__c25:=OFF; dk1_qd3__c25:=OFF; dk1_qd4a_c25:=OFF; dk1_qf5a_c25:=OFF; dk1_qf5b_c25:=OFF; dk1_qd4b_c25:=OFF; dk1_qd6__c25:=OFF; dk1_qf7__c25:=OFF;
+dk1_qf2__c26:=OFF; dk1_qd3__c26:=OFF; dk1_qd4a_c26:=OFF; dk1_qf5a_c26:=OFF; dk1_qf5b_c26:=OFF; dk1_qd4b_c26:=OFF; dk1_qd6__c26:=OFF; dk1_qf7__c26:=OFF;
+dk1_qf2__c27:=OFF; dk1_qd3__c27:=OFF; dk1_qd4a_c27:=OFF; dk1_qf5a_c27:=OFF; dk1_qf5b_c27:=OFF; dk1_qd4b_c27:=OFF; dk1_qd6__c27:=OFF; dk1_qf7__c27:=OFF;
+dk1_qf2__c28:=OFF; dk1_qd3__c28:=OFF; dk1_qd4a_c28:=OFF; dk1_qf5a_c28:=OFF; dk1_qf5b_c28:=OFF; dk1_qd4b_c28:=OFF; dk1_qd6__c28:=OFF; dk1_qf7__c28:=OFF;
+dk1_qf2__c29:=OFF; dk1_qd3__c29:=OFF; dk1_qd4a_c29:=OFF; dk1_qf5a_c29:=OFF; dk1_qf5b_c29:=OFF; dk1_qd4b_c29:=OFF; dk1_qd6__c29:=OFF; dk1_qf7__c29:=OFF;
+dk1_qf2__c30:=OFF; dk1_qd3__c30:=OFF; dk1_qd4a_c30:=OFF; dk1_qf5a_c30:=OFF; dk1_qf5b_c30:=OFF; dk1_qd4b_c30:=OFF; dk1_qd6__c30:=OFF; dk1_qf7__c30:=OFF;
+dk1_qf2__c31:=OFF; dk1_qd3__c31:=OFF; dk1_qd4a_c31:=OFF; dk1_qf5a_c31:=OFF; dk1_qf5b_c31:=OFF; dk1_qd4b_c31:=OFF; dk1_qd6__c31:=OFF; dk1_qf7__c31:=OFF;
+dk1_qf2__c32:=OFF; dk1_qd3__c32:=OFF; dk1_qd4a_c32:=OFF; dk1_qf5a_c32:=OFF; dk1_qf5b_c32:=OFF; dk1_qd4b_c32:=OFF; dk1_qd6__c32:=OFF; dk1_qf7__c32:=OFF;
+dk1_qf2__c01:=OFF; dk1_qd3__c01:=OFF; dk1_qd4a_c01:=OFF; dk1_qf5a_c01:=OFF; dk1_qf5b_c01:=OFF; dk1_qd4b_c01:=OFF; dk1_qd6__c01:=OFF; dk1_qf7__c01:=OFF;
+dk1_qf2__c02:=OFF; dk1_qd3__c02:=OFF; dk1_qd4a_c02:=OFF; dk1_qf5a_c02:=OFF; dk1_qf5b_c02:=OFF; dk1_qd4b_c02:=OFF; dk1_qd6__c02:=OFF; dk1_qf7__c02:=OFF;
+dk1_qf2__c03:=OFF; dk1_qd3__c03:=OFF; dk1_qd4a_c03:=OFF; dk1_qf5a_c03:=OFF; dk1_qf5b_c03:=OFF; dk1_qd4b_c03:=OFF; dk1_qd6__c03:=OFF; dk1_qf7__c03:=OFF;
+
+
+!-------------------------------------------------- octupolar field components in quads ---------------------------------------------------------!
+!                                                   k3L = integrated strength in [m^-3]                                                          !
+!------------------------------------------------------------------------------------------------------------------------------------------------!
+k3_qf2_c04:=OFF; k3_qd3_c04:=OFF; k3_qd4a_c04:=OFF; k3_qf5a_c04:=OFF; k3_qf5b_c04:=OFF; k3_qd4b_c04:=OFF; k3_qd6_c04:=OFF; k3_qf7_c04:=OFF;
+k3_qf2_c05:=OFF; k3_qd3_c05:=OFF; k3_qd4a_c05:=OFF; k3_qf5a_c05:=OFF; k3_qf5b_c05:=OFF; k3_qd4b_c05:=OFF; k3_qd6_c05:=OFF; k3_qf7_c05:=OFF;
+k3_qf2_c06:=OFF; k3_qd3_c06:=OFF; k3_qd4a_c06:=OFF; k3_qf5a_c06:=OFF; k3_qf5b_c06:=OFF; k3_qd4b_c06:=OFF; k3_qd6_c06:=OFF; k3_qf7_c06:=OFF;
+k3_qf2_c07:=OFF; k3_qd3_c07:=OFF; k3_qd4a_c07:=OFF; k3_qf5a_c07:=OFF; k3_qf5b_c07:=OFF; k3_qd4b_c07:=OFF; k3_qd6_c07:=OFF; k3_qf7_c07:=OFF;
+k3_qf2_c08:=OFF; k3_qd3_c08:=OFF; k3_qd4a_c08:=OFF; k3_qf5a_c08:=OFF; k3_qf5b_c08:=OFF; k3_qd4b_c08:=OFF; k3_qd6_c08:=OFF; k3_qf7_c08:=OFF;
+k3_qf2_c09:=OFF; k3_qd3_c09:=OFF; k3_qd4a_c09:=OFF; k3_qf5a_c09:=OFF; k3_qf5b_c09:=OFF; k3_qd4b_c09:=OFF; k3_qd6_c09:=OFF; k3_qf7_c09:=OFF;
+k3_qf2_c10:=OFF; k3_qd3_c10:=OFF; k3_qd4a_c10:=OFF; k3_qf5a_c10:=OFF; k3_qf5b_c10:=OFF; k3_qd4b_c10:=OFF; k3_qd6_c10:=OFF; k3_qf7_c10:=OFF;
+k3_qf2_c11:=OFF; k3_qd3_c11:=OFF; k3_qd4a_c11:=OFF; k3_qf5a_c11:=OFF; k3_qf5b_c11:=OFF; k3_qd4b_c11:=OFF; k3_qd6_c11:=OFF; k3_qf7_c11:=OFF;
+k3_qf2_c12:=OFF; k3_qd3_c12:=OFF; k3_qd4a_c12:=OFF; k3_qf5a_c12:=OFF; k3_qf5b_c12:=OFF; k3_qd4b_c12:=OFF; k3_qd6_c12:=OFF; k3_qf7_c12:=OFF;
+k3_qf2_c13:=OFF; k3_qd3_c13:=OFF; k3_qd4a_c13:=OFF; k3_qf5a_c13:=OFF; k3_qf5b_c13:=OFF; k3_qd4b_c13:=OFF; k3_qd6_c13:=OFF; k3_qf7_c13:=OFF;
+k3_qf2_c14:=OFF; k3_qd3_c14:=OFF; k3_qd4a_c14:=OFF; k3_qf5a_c14:=OFF; k3_qf5b_c14:=OFF; k3_qd4b_c14:=OFF; k3_qd6_c14:=OFF; k3_qf7_c14:=OFF;
+k3_qf2_c15:=OFF; k3_qd3_c15:=OFF; k3_qd4a_c15:=OFF; k3_qf5a_c15:=OFF; k3_qf5b_c15:=OFF; k3_qd4b_c15:=OFF; k3_qd6_c15:=OFF; k3_qf7_c15:=OFF;
+k3_qf2_c16:=OFF; k3_qd3_c16:=OFF; k3_qd4a_c16:=OFF; k3_qf5a_c16:=OFF; k3_qf5b_c16:=OFF; k3_qd4b_c16:=OFF; k3_qd6_c16:=OFF; k3_qf7_c16:=OFF;
+k3_qf2_c17:=OFF; k3_qd3_c17:=OFF; k3_qd4a_c17:=OFF; k3_qf5a_c17:=OFF; k3_qf5b_c17:=OFF; k3_qd4b_c17:=OFF; k3_qd6_c17:=OFF; k3_qf7_c17:=OFF;
+k3_qf2_c18:=OFF; k3_qd3_c18:=OFF; k3_qd4a_c18:=OFF; k3_qf5a_c18:=OFF; k3_qf5b_c18:=OFF; k3_qd4b_c18:=OFF; k3_qd6_c18:=OFF; k3_qf7_c18:=OFF;
+k3_qf2_c19:=OFF; k3_qd3_c19:=OFF; k3_qd4a_c19:=OFF; k3_qf5a_c19:=OFF; k3_qf5b_c19:=OFF; k3_qd4b_c19:=OFF; k3_qd6_c19:=OFF; k3_qf7_c19:=OFF;
+k3_qf2_c20:=OFF; k3_qd3_c20:=OFF; k3_qd4a_c20:=OFF; k3_qf5a_c20:=OFF; k3_qf5b_c20:=OFF; k3_qd4b_c20:=OFF; k3_qd6_c20:=OFF; k3_qf7_c20:=OFF;
+k3_qf2_c21:=OFF; k3_qd3_c21:=OFF; k3_qd4a_c21:=OFF; k3_qf5a_c21:=OFF; k3_qf5b_c21:=OFF; k3_qd4b_c21:=OFF; k3_qd6_c21:=OFF; k3_qf7_c21:=OFF;
+k3_qf2_c22:=OFF; k3_qd3_c22:=OFF; k3_qd4a_c22:=OFF; k3_qf5a_c22:=OFF; k3_qf5b_c22:=OFF; k3_qd4b_c22:=OFF; k3_qd6_c22:=OFF; k3_qf7_c22:=OFF;
+k3_qf2_c23:=OFF; k3_qd3_c23:=OFF; k3_qd4a_c23:=OFF; k3_qf5a_c23:=OFF; k3_qf5b_c23:=OFF; k3_qd4b_c23:=OFF; k3_qd6_c23:=OFF; k3_qf7_c23:=OFF;
+k3_qf2_c24:=OFF; k3_qd3_c24:=OFF; k3_qd4a_c24:=OFF; k3_qf5a_c24:=OFF; k3_qf5b_c24:=OFF; k3_qd4b_c24:=OFF; k3_qd6_c24:=OFF; k3_qf7_c24:=OFF;
+k3_qf2_c25:=OFF; k3_qd3_c25:=OFF; k3_qd4a_c25:=OFF; k3_qf5a_c25:=OFF; k3_qf5b_c25:=OFF; k3_qd4b_c25:=OFF; k3_qd6_c25:=OFF; k3_qf7_c25:=OFF;
+k3_qf2_c26:=OFF; k3_qd3_c26:=OFF; k3_qd4a_c26:=OFF; k3_qf5a_c26:=OFF; k3_qf5b_c26:=OFF; k3_qd4b_c26:=OFF; k3_qd6_c26:=OFF; k3_qf7_c26:=OFF;
+k3_qf2_c27:=OFF; k3_qd3_c27:=OFF; k3_qd4a_c27:=OFF; k3_qf5a_c27:=OFF; k3_qf5b_c27:=OFF; k3_qd4b_c27:=OFF; k3_qd6_c27:=OFF; k3_qf7_c27:=OFF;
+k3_qf2_c28:=OFF; k3_qd3_c28:=OFF; k3_qd4a_c28:=OFF; k3_qf5a_c28:=OFF; k3_qf5b_c28:=OFF; k3_qd4b_c28:=OFF; k3_qd6_c28:=OFF; k3_qf7_c28:=OFF;
+k3_qf2_c29:=OFF; k3_qd3_c29:=OFF; k3_qd4a_c29:=OFF; k3_qf5a_c29:=OFF; k3_qf5b_c29:=OFF; k3_qd4b_c29:=OFF; k3_qd6_c29:=OFF; k3_qf7_c29:=OFF;
+k3_qf2_c30:=OFF; k3_qd3_c30:=OFF; k3_qd4a_c30:=OFF; k3_qf5a_c30:=OFF; k3_qf5b_c30:=OFF; k3_qd4b_c30:=OFF; k3_qd6_c30:=OFF; k3_qf7_c30:=OFF;
+k3_qf2_c31:=OFF; k3_qd3_c31:=OFF; k3_qd4a_c31:=OFF; k3_qf5a_c31:=OFF; k3_qf5b_c31:=OFF; k3_qd4b_c31:=OFF; k3_qd6_c31:=OFF; k3_qf7_c31:=OFF;
+k3_qf2_c32:=OFF; k3_qd3_c32:=OFF; k3_qd4a_c32:=OFF; k3_qf5a_c32:=OFF; k3_qf5b_c32:=OFF; k3_qd4b_c32:=OFF; k3_qd6_c32:=OFF; k3_qf7_c32:=OFF;
+k3_qf2_c01:=OFF; k3_qd3_c01:=OFF; k3_qd4a_c01:=OFF; k3_qf5a_c01:=OFF; k3_qf5b_c01:=OFF; k3_qd4b_c01:=OFF; k3_qd6_c01:=OFF; k3_qf7_c01:=OFF;
+k3_qf2_c02:=OFF; k3_qd3_c02:=OFF; k3_qd4a_c02:=OFF; k3_qf5a_c02:=OFF; k3_qf5b_c02:=OFF; k3_qd4b_c02:=OFF; k3_qd6_c02:=OFF; k3_qf7_c02:=OFF;
+k3_qf2_c03:=OFF; k3_qd3_c03:=OFF; k3_qd4a_c03:=OFF; k3_qf5a_c03:=OFF; k3_qf5b_c03:=OFF; k3_qd4b_c03:=OFF; k3_qd6_c03:=OFF; k3_qf7_c03:=OFF;
+
+!-------------------------------- sextupolar errors in main sextupoles -----------------------------------------------------!
+!                                 k2L = integrated strength in [m^-2]                                                       !
+!---------------------------------------------------------------------------------------------------------------------------!
+dk2_s04_c04:=OFF; dk2_s06_c04:=OFF; dk2_s13_c04:=OFF; dk2_s19_c04:=OFF; dk2_s20_c04:=OFF; dk2_s22_c04:=OFF; dk2_s24_c04:=OFF;
+dk2_s04_c05:=OFF; dk2_s06_c05:=OFF; dk2_s13_c05:=OFF; dk2_s19_c05:=OFF; dk2_s20_c05:=OFF; dk2_s22_c05:=OFF; dk2_s24_c05:=OFF;
+dk2_s04_c06:=OFF; dk2_s06_c06:=OFF; dk2_s13_c06:=OFF; dk2_s19_c06:=OFF; dk2_s20_c06:=OFF; dk2_s22_c06:=OFF; dk2_s24_c06:=OFF;
+dk2_s04_c07:=OFF; dk2_s06_c07:=OFF; dk2_s13_c07:=OFF; dk2_s19_c07:=OFF; dk2_s20_c07:=OFF; dk2_s22_c07:=OFF; dk2_s24_c07:=OFF;
+dk2_s04_c08:=OFF; dk2_s06_c08:=OFF; dk2_s13_c08:=OFF; dk2_s19_c08:=OFF; dk2_s20_c08:=OFF; dk2_s22_c08:=OFF; dk2_s24_c08:=OFF;
+dk2_s04_c09:=OFF; dk2_s06_c09:=OFF; dk2_s13_c09:=OFF; dk2_s19_c09:=OFF; dk2_s20_c09:=OFF; dk2_s22_c09:=OFF; dk2_s24_c09:=OFF;
+dk2_s04_c10:=OFF; dk2_s06_c10:=OFF; dk2_s13_c10:=OFF; dk2_s19_c10:=OFF; dk2_s20_c10:=OFF; dk2_s22_c10:=OFF; dk2_s24_c10:=OFF;
+dk2_s04_c11:=OFF; dk2_s06_c11:=OFF; dk2_s13_c11:=OFF; dk2_s19_c11:=OFF; dk2_s20_c11:=OFF; dk2_s22_c11:=OFF; dk2_s24_c11:=OFF;
+dk2_s04_c12:=OFF; dk2_s06_c12:=OFF; dk2_s13_c12:=OFF; dk2_s19_c12:=OFF; dk2_s20_c12:=OFF; dk2_s22_c12:=OFF; dk2_s24_c12:=OFF;
+dk2_s04_c13:=OFF; dk2_s06_c13:=OFF; dk2_s13_c13:=OFF; dk2_s19_c13:=OFF; dk2_s20_c13:=OFF; dk2_s22_c13:=OFF; dk2_s24_c13:=OFF;
+dk2_s04_c14:=OFF; dk2_s06_c14:=OFF; dk2_s13_c14:=OFF; dk2_s19_c14:=OFF; dk2_s20_c14:=OFF; dk2_s22_c14:=OFF; dk2_s24_c14:=OFF;
+dk2_s04_c15:=OFF; dk2_s06_c15:=OFF; dk2_s13_c15:=OFF; dk2_s19_c15:=OFF; dk2_s20_c15:=OFF; dk2_s22_c15:=OFF; dk2_s24_c15:=OFF;
+dk2_s04_c16:=OFF; dk2_s06_c16:=OFF; dk2_s13_c16:=OFF; dk2_s19_c16:=OFF; dk2_s20_c16:=OFF; dk2_s22_c16:=OFF; dk2_s24_c16:=OFF;
+dk2_s04_c17:=OFF; dk2_s06_c17:=OFF; dk2_s13_c17:=OFF; dk2_s19_c17:=OFF; dk2_s20_c17:=OFF; dk2_s22_c17:=OFF; dk2_s24_c17:=OFF;
+dk2_s04_c18:=OFF; dk2_s06_c18:=OFF; dk2_s13_c18:=OFF; dk2_s19_c18:=OFF; dk2_s20_c18:=OFF; dk2_s22_c18:=OFF; dk2_s24_c18:=OFF;
+dk2_s04_c19:=OFF; dk2_s06_c19:=OFF; dk2_s13_c19:=OFF; dk2_s19_c19:=OFF; dk2_s20_c19:=OFF; dk2_s22_c19:=OFF; dk2_s24_c19:=OFF;
+dk2_s04_c20:=OFF; dk2_s06_c20:=OFF; dk2_s13_c20:=OFF; dk2_s19_c20:=OFF; dk2_s20_c20:=OFF; dk2_s22_c20:=OFF; dk2_s24_c20:=OFF;
+dk2_s04_c21:=OFF; dk2_s06_c21:=OFF; dk2_s13_c21:=OFF; dk2_s19_c21:=OFF; dk2_s20_c21:=OFF; dk2_s22_c21:=OFF; dk2_s24_c21:=OFF;
+dk2_s04_c22:=OFF; dk2_s06_c22:=OFF; dk2_s13_c22:=OFF; dk2_s19_c22:=OFF; dk2_s20_c22:=OFF; dk2_s22_c22:=OFF; dk2_s24_c22:=OFF;
+dk2_s04_c23:=OFF; dk2_s06_c23:=OFF; dk2_s13_c23:=OFF; dk2_s19_c23:=OFF; dk2_s20_c23:=OFF; dk2_s22_c23:=OFF; dk2_s24_c23:=OFF;
+dk2_s04_c24:=OFF; dk2_s06_c24:=OFF; dk2_s13_c24:=OFF; dk2_s19_c24:=OFF; dk2_s20_c24:=OFF; dk2_s22_c24:=OFF; dk2_s24_c24:=OFF;
+dk2_s04_c25:=OFF; dk2_s06_c25:=OFF; dk2_s13_c25:=OFF; dk2_s19_c25:=OFF; dk2_s20_c25:=OFF; dk2_s22_c25:=OFF; dk2_s24_c25:=OFF;
+dk2_s04_c26:=OFF; dk2_s06_c26:=OFF; dk2_s13_c26:=OFF; dk2_s19_c26:=OFF; dk2_s20_c26:=OFF; dk2_s22_c26:=OFF; dk2_s24_c26:=OFF;
+dk2_s04_c27:=OFF; dk2_s06_c27:=OFF; dk2_s13_c27:=OFF; dk2_s19_c27:=OFF; dk2_s20_c27:=OFF; dk2_s22_c27:=OFF; dk2_s24_c27:=OFF;
+dk2_s04_c28:=OFF; dk2_s06_c28:=OFF; dk2_s13_c28:=OFF; dk2_s19_c28:=OFF; dk2_s20_c28:=OFF; dk2_s22_c28:=OFF; dk2_s24_c28:=OFF;
+dk2_s04_c29:=OFF; dk2_s06_c29:=OFF; dk2_s13_c29:=OFF; dk2_s19_c29:=OFF; dk2_s20_c29:=OFF; dk2_s22_c29:=OFF; dk2_s24_c29:=OFF;
+dk2_s04_c30:=OFF; dk2_s06_c30:=OFF; dk2_s13_c30:=OFF; dk2_s19_c30:=OFF; dk2_s20_c30:=OFF; dk2_s22_c30:=OFF; dk2_s24_c30:=OFF;
+dk2_s04_c31:=OFF; dk2_s06_c31:=OFF; dk2_s13_c31:=OFF; dk2_s19_c31:=OFF; dk2_s20_c31:=OFF; dk2_s22_c31:=OFF; dk2_s24_c31:=OFF;
+dk2_s04_c32:=OFF; dk2_s06_c32:=OFF; dk2_s13_c32:=OFF; dk2_s19_c32:=OFF; dk2_s20_c32:=OFF; dk2_s22_c32:=OFF; dk2_s24_c32:=OFF;
+dk2_s04_c01:=OFF; dk2_s06_c01:=OFF; dk2_s13_c01:=OFF; dk2_s19_c01:=OFF; dk2_s20_c01:=OFF; dk2_s22_c01:=OFF; dk2_s24_c01:=OFF;
+dk2_s04_c02:=OFF; dk2_s06_c02:=OFF; dk2_s13_c02:=OFF; dk2_s19_c02:=OFF; dk2_s20_c02:=OFF; dk2_s22_c02:=OFF; dk2_s24_c02:=OFF;
+dk2_s04_c03:=OFF; dk2_s06_c03:=OFF; dk2_s13_c03:=OFF; dk2_s19_c03:=OFF; dk2_s20_c03:=OFF; dk2_s22_c03:=OFF; dk2_s24_c03:=OFF;
+
+!------------------------------ skew sextupole componenents in main sextupoles rolls ----------------------------------------------!
+!             from sextupole tilts J2L = integrated strength in [m^-2]  to be estimated from TbT data                              !
+!----------------------------------------------------------------------------------------------------------------------------------!
+J2L_SS04_C04:=OFF; J2L_SS06_C04:=OFF; J2L_SS13_C04:=OFF; J2L_SS19_C04:=OFF; J2L_SS20_C04:=OFF; J2L_SS22_C04:=OFF; J2L_SS24_C04:=OFF;
+J2L_SS04_C05:=OFF; J2L_SS06_C05:=OFF; J2L_SS13_C05:=OFF; J2L_SS19_C05:=OFF; J2L_SS20_C05:=OFF; J2L_SS22_C05:=OFF; J2L_SS24_C05:=OFF;
+J2L_SS04_C06:=OFF; J2L_SS06_C06:=OFF; J2L_SS13_C06:=OFF; J2L_SS19_C06:=OFF; J2L_SS20_C06:=OFF; J2L_SS22_C06:=OFF; J2L_SS24_C06:=OFF;
+J2L_SS04_C07:=OFF; J2L_SS06_C07:=OFF; J2L_SS13_C07:=OFF; J2L_SS19_C07:=OFF; J2L_SS20_C07:=OFF; J2L_SS22_C07:=OFF; J2L_SS24_C07:=OFF;
+J2L_SS04_C08:=OFF; J2L_SS06_C08:=OFF; J2L_SS13_C08:=OFF; J2L_SS19_C08:=OFF; J2L_SS20_C08:=OFF; J2L_SS22_C08:=OFF; J2L_SS24_C08:=OFF;
+J2L_SS04_C09:=OFF; J2L_SS06_C09:=OFF; J2L_SS13_C09:=OFF; J2L_SS19_C09:=OFF; J2L_SS20_C09:=OFF; J2L_SS22_C09:=OFF; J2L_SS24_C09:=OFF;
+J2L_SS04_C10:=OFF; J2L_SS06_C10:=OFF; J2L_SS13_C10:=OFF; J2L_SS19_C10:=OFF; J2L_SS20_C10:=OFF; J2L_SS22_C10:=OFF; J2L_SS24_C10:=OFF;
+J2L_SS04_C11:=OFF; J2L_SS06_C11:=OFF; J2L_SS13_C11:=OFF; J2L_SS19_C11:=OFF; J2L_SS20_C11:=OFF; J2L_SS22_C11:=OFF; J2L_SS24_C11:=OFF;
+J2L_SS04_C12:=OFF; J2L_SS06_C12:=OFF; J2L_SS13_C12:=OFF; J2L_SS19_C12:=OFF; J2L_SS20_C12:=OFF; J2L_SS22_C12:=OFF; J2L_SS24_C12:=OFF;
+J2L_SS04_C13:=OFF; J2L_SS06_C13:=OFF; J2L_SS13_C13:=OFF; J2L_SS19_C13:=OFF; J2L_SS20_C13:=OFF; J2L_SS22_C13:=OFF; J2L_SS24_C13:=OFF;
+J2L_SS04_C14:=OFF; J2L_SS06_C14:=OFF; J2L_SS13_C14:=OFF; J2L_SS19_C14:=OFF; J2L_SS20_C14:=OFF; J2L_SS22_C14:=OFF; J2L_SS24_C14:=OFF;
+J2L_SS04_C15:=OFF; J2L_SS06_C15:=OFF; J2L_SS13_C15:=OFF; J2L_SS19_C15:=OFF; J2L_SS20_C15:=OFF; J2L_SS22_C15:=OFF; J2L_SS24_C15:=OFF;
+J2L_SS04_C16:=OFF; J2L_SS06_C16:=OFF; J2L_SS13_C16:=OFF; J2L_SS19_C16:=OFF; J2L_SS20_C16:=OFF; J2L_SS22_C16:=OFF; J2L_SS24_C16:=OFF;
+J2L_SS04_C17:=OFF; J2L_SS06_C17:=OFF; J2L_SS13_C17:=OFF; J2L_SS19_C17:=OFF; J2L_SS20_C17:=OFF; J2L_SS22_C17:=OFF; J2L_SS24_C17:=OFF;
+J2L_SS04_C18:=OFF; J2L_SS06_C18:=OFF; J2L_SS13_C18:=OFF; J2L_SS19_C18:=OFF; J2L_SS20_C18:=OFF; J2L_SS22_C18:=OFF; J2L_SS24_C18:=OFF;
+J2L_SS04_C19:=OFF; J2L_SS06_C19:=OFF; J2L_SS13_C19:=OFF; J2L_SS19_C19:=OFF; J2L_SS20_C19:=OFF; J2L_SS22_C19:=OFF; J2L_SS24_C19:=OFF;
+J2L_SS04_C20:=OFF; J2L_SS06_C20:=OFF; J2L_SS13_C20:=OFF; J2L_SS19_C20:=OFF; J2L_SS20_C20:=OFF; J2L_SS22_C20:=OFF; J2L_SS24_C20:=OFF;
+J2L_SS04_C21:=OFF; J2L_SS06_C21:=OFF; J2L_SS13_C21:=OFF; J2L_SS19_C21:=OFF; J2L_SS20_C21:=OFF; J2L_SS22_C21:=OFF; J2L_SS24_C21:=OFF;
+J2L_SS04_C22:=OFF; J2L_SS06_C22:=OFF; J2L_SS13_C22:=OFF; J2L_SS19_C22:=OFF; J2L_SS20_C22:=OFF; J2L_SS22_C22:=OFF; J2L_SS24_C22:=OFF;
+J2L_SS04_C23:=OFF; J2L_SS06_C23:=OFF; J2L_SS13_C23:=OFF; J2L_SS19_C23:=OFF; J2L_SS20_C23:=OFF; J2L_SS22_C23:=OFF; J2L_SS24_C23:=OFF;
+J2L_SS04_C24:=OFF; J2L_SS06_C24:=OFF; J2L_SS13_C24:=OFF; J2L_SS19_C24:=OFF; J2L_SS20_C24:=OFF; J2L_SS22_C24:=OFF; J2L_SS24_C24:=OFF;
+J2L_SS04_C25:=OFF; J2L_SS06_C25:=OFF; J2L_SS13_C25:=OFF; J2L_SS19_C25:=OFF; J2L_SS20_C25:=OFF; J2L_SS22_C25:=OFF; J2L_SS24_C25:=OFF;
+J2L_SS04_C26:=OFF; J2L_SS06_C26:=OFF; J2L_SS13_C26:=OFF; J2L_SS19_C26:=OFF; J2L_SS20_C26:=OFF; J2L_SS22_C26:=OFF; J2L_SS24_C26:=OFF;
+J2L_SS04_C27:=OFF; J2L_SS06_C27:=OFF; J2L_SS13_C27:=OFF; J2L_SS19_C27:=OFF; J2L_SS20_C27:=OFF; J2L_SS22_C27:=OFF; J2L_SS24_C27:=OFF;
+J2L_SS04_C28:=OFF; J2L_SS06_C28:=OFF; J2L_SS13_C28:=OFF; J2L_SS19_C28:=OFF; J2L_SS20_C28:=OFF; J2L_SS22_C28:=OFF; J2L_SS24_C28:=OFF;
+J2L_SS04_C29:=OFF; J2L_SS06_C29:=OFF; J2L_SS13_C29:=OFF; J2L_SS19_C29:=OFF; J2L_SS20_C29:=OFF; J2L_SS22_C29:=OFF; J2L_SS24_C29:=OFF;
+J2L_SS04_C30:=OFF; J2L_SS06_C30:=OFF; J2L_SS13_C30:=OFF; J2L_SS19_C30:=OFF; J2L_SS20_C30:=OFF; J2L_SS22_C30:=OFF; J2L_SS24_C30:=OFF;
+J2L_SS04_C31:=OFF; J2L_SS06_C31:=OFF; J2L_SS13_C31:=OFF; J2L_SS19_C31:=OFF; J2L_SS20_C31:=OFF; J2L_SS22_C31:=OFF; J2L_SS24_C31:=OFF;
+J2L_SS04_C32:=OFF; J2L_SS06_C32:=OFF; J2L_SS13_C32:=OFF; J2L_SS19_C32:=OFF; J2L_SS20_C32:=OFF; J2L_SS22_C32:=OFF; J2L_SS24_C32:=OFF;
+J2L_SS04_C01:=OFF; J2L_SS06_C01:=OFF; J2L_SS13_C01:=OFF; J2L_SS19_C01:=OFF; J2L_SS20_C01:=OFF; J2L_SS22_C01:=OFF; J2L_SS24_C01:=OFF;
+J2L_SS04_C02:=OFF; J2L_SS06_C02:=OFF; J2L_SS13_C02:=OFF; J2L_SS19_C02:=OFF; J2L_SS20_C02:=OFF; J2L_SS22_C02:=OFF; J2L_SS24_C02:=OFF;
+J2L_SS04_C03:=OFF; J2L_SS06_C03:=OFF; J2L_SS13_C03:=OFF; J2L_SS19_C03:=OFF; J2L_SS20_C03:=OFF; J2L_SS22_C03:=OFF; J2L_SS24_C03:=OFF;
+

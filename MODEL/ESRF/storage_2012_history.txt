@@ -1,0 +1,210 @@
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!             MADX-PTC LATTICE OF THE ESR STORAGE RING                  !
+!                                                                       !
+!                       2009 MAIN FILE                                  !
+!            created  by Andrea Franchi  (April 3rd 2009)               !
+!            modified by Andrea Franchi  (February 6nd 2012)            !
+!                                                                       !
+! Sept. 3rd 2010:.MODULES/compute_sext_rdt_2.f updated in order to      !
+!                 compute RDT and CHI from lattice and FFT (correct and !
+!                 exper. moment. reconstruction), and the sextupole RM  !
+!                 from all main sextupoles (RML) and 12 correctors (RMS)!
+!                .In "storage_2012.seqx" the 224 main sextupoles are    !
+!                 individually defined in order to include errors (no   !
+!                 tilt for the time being). individual error integrated !
+!                 strengths dk2 are defined (& initialized to OFF) in   !
+!                 "storage_2012.strx". they will be assigned from sext. !
+!                 "measured" RDT and cured with the 12 corrector sext.  !
+!                .Sext. error model in storage_sext_YYMMDD_model.modx   !
+!                .MODULES/generate_sext_err.f creates a random sext.    ! 
+!                 model for tests                                       !
+!                ."storage_2012_sext_cor.cmdx" has been created:        !
+!                 it computes RDT and CHI twice:
+!                 first to compute sext. RDTs and CHI3000 for the ideal !
+!                 sextupole setting, copied in SEXT_IDEAL/; second to   !
+!                 compute them with sextupole errors included, copied in!
+!                 SEXT_ERRORS/. Data in these two directories can be    !
+!                 analized in order to find the best corrector setting  !
+!                 (for simulations only, see matlab commands).          !
+!                .A measured RDT vector is used to infer sext.          !
+!                 error model from SVD of sext_rdt_RML. The corrector   !
+!                 setting may be found from the difference between meas.!
+!                 and ideal RDT vector via SVD of sext_rdt_RMS.         !
+! Sept. 27th 2010:SVD analysis of real FFT of x to compute H(+-2,0) and !
+!                 infer zf3=3*f3000-f1200^ and sextupole strengths      !
+!                 from linear system of Andrea's thesis, page 36,       !
+!                 Eqs.(4.14)-(4.15) in MODULES/compute_sext_rdt.f       !
+!                 zf3 from lattice saved in sext_rdt_lat.dat; from fft  !
+!                 saved in sext_rdt_fft3.dat, 224x2x4 vector in         !
+!                 sext_zf3vector.dat (for SVD). The latter is used to   !
+!                 infer sext. error model from SVD of sext_zf3_RML.     !
+!                 The corrector etting may be found from the difference !
+!                 sbetween meas. and ideal RDT vector via SVD of        !
+!                 sext_zf3_RMS.                                         !
+! Oct. 1st 2010:-Matlab commands for SVD are in matlab_svd.m            !
+!               -added coupling response matrix calculation (the same of!
+!                sextupole RDTs) in MODULES/compute_coupling.f          !
+! Oct. 28th 2010: added separate calibration coefficients for corrector !
+!		  sextupoles, one for those in S24 and another for those!
+!		  on S20 in storage_2012.strx. They depend on the main  !
+!		  sextupole currents and shall be re-defined according  !
+!		  to the specific sextupole setting, see MDT 26/10/10.  !
+! Oct. 28th 2010: including other zf 1-BPM sext. RDT from FFT(x,y) in   !
+!                 MODULES/compute_sext_rdt.f zf3,zf2,zf1,zf0 in         !
+!		  sext_rdt_fft3.dat and sext_rdt_lat.dat                !
+! Nov.4-5th 2010: extended sextupole RM for all zf3-2-1-0 (it was for   !
+!		  fz3 only) in MODULES/compute_sext_rdt.f. Bug found in !
+!                 generator of sext. errors (it didn't mirrored the     !
+!		  sextupole names 4-6-13-19-20-22-24-24-22-20 ....      !
+! Dec. 14th 2010: added skew sextupole errors J2L_S??_C!! . The routine !
+!                 MODULES/generate_sext_err.f modified accordingly: The !
+!		  routine generates random sextupole tilts and the skew !
+!		  sextupole gradinet J2 is evaluated from the K2 of its !
+!		  main corresponding sextupole.                         ! 
+! Jan. 17th 2011: RDT analysis of skew sextupoles added in 
+!		  MODULES/compute_sext_rdt.f . NOTE that for a correct  !
+!		  analysis, coupling RDTs need to be evaluated, hence   !
+!		  the call of 'storage_2012_coupling.cmdx' needs to be  !
+!		  uncommented and launched. For hand-written formulas,  !
+!		  see email to Rogelio "Re: unexpected RDT effect" of   !
+!		  Jan, 13th. In MODULES/compute_sext_rdt.f other norm.  !
+!		  sext. RDT (from xy^2 from FFT of correct x-ipx) are   !
+!                 computed. 'storage_2012_sext_rdt.cmdx' modified in    !
+!                 order to print out skew sextupole strengths (J2) and  !
+!                 Twiss parameters for RDT from lattice.                !
+! May  16th 2011: including fx,fy 1-BPM coupling RDT from FFT(x,y) in   !
+!                 MODULES/compute_coupling_rdt.f zfx,zfy in             !
+!		  coup_rdt_fft3.dat and coup_rdt_lat.dat . 1-bpm FFT in !
+!                 coup_fft3.dat (Courant-Snyder).                       !
+! May  16th 2011: Routine MODULES/compute_sext_rdt.f modified to read   !
+!                 properly new coup_rdt_lat.dat and to comput 1-BPM RDTs!
+!                 zg3-2-1-0 from skew sextupoles: values from lattice   !
+!                 are written in the last 8 columns of ssex_rdt_lat.dat,!      
+!                 whereas values from FFT of 1-BPM tracking data are    !
+!                 saved in  ssex_rdt_fft3.dat.                          !
+! May  24th 2011  All tests with skew-sextupole RDTs 1st and 2nd order  !
+!                 plus zf-RDTs (from 1 BPM) are completed succesfully:  !
+!                 formulas do work! See TEST_SKEWSEXT_* directory       !
+! June 24th 2011  Problem encountered in the analysis of TBT data for   !
+!                 normal sextupoles zf-RDTs: it is suspected that second-
+!                 order contribution from beta-beat+norm. sextupole need!
+!                 to be included in order to infer realistic sextupole  !
+!                 error. The same second-order analysis carried out for !
+!                 skew sextupole needs to be extended to norm. sextupole!
+!                 First problem: since the new definition AT-compatible !
+!                 of errors in main quadrupoles, the latter are no longer
+!                 assigned as thin integrated kicks, but added to the   !
+!                 nominal non-integrated gradients: this makes the      !
+!                 computation of f2000 and f0020 from lattice wrong,    !
+!                 because it searches for integrated normal quadrupole  !
+!                 gradients. Modifications in MODULES/compute_beating.f ! 
+!                 and storage_2012_betabeat.cmdx are necessary.         !
+!                 OK, both files modified, tests are ok, See results in !
+!		  BETA_BEAT_TESTS/ . Note that second-order beta-beat   !
+!		  seem important and FFT-RDTs reproduce very well beta- !
+!		  beating. But first-order lattice RDTs will be used by !
+!		  MODULES/compute_sext_rdt.f because those are needed in!
+!		  the formulas.
+! July  7th 2011  2 bugs fixed in MODULES/compute_sext_rdt.f . In the   !
+!		  FFT of 1-BPM tracking Courant-Snyder data there was an!
+!		  ambiguity over the tune line <0.5 or >0.5: solved with!
+!		  and IF before detecting lines. In the routine SPECTRUM!
+!		  the search of the peak closest to the guessed tune has!
+!		  been removed (an heritage from coupling studies with  !
+!		  tunes very closed), as with strong detuning the tune  !
+!		  and secondary lines may be missed or misassigned      !
+! Sept  2nd 2011  Modify MODULES/compute_beating.f to compute a response!
+!                 matrix on beta-beat against the 32 corr. norm. quads. !
+!                 MODULES/compute_beating.f.bkp created as backup.      !
+!                 Two new files are created: "beat_rdtvector.dat" with  !
+!                 f2000 and f0020 and "beat_rdt_RMS.dat" RM over the    !
+!                 32 (52) correctors. The SVD inversion is done by the  !
+!		  matlab routine "get_quad_correctors.m" that generates !
+!                 "storage_NormQuadCorr.strx" to be called by           !
+!                 storage_2012_betabeat.cmdx  to test its validity      !
+! Sept 16th 2011  Modify MODULES/compute_sext_rdt.f in order to compute !
+!		  the response matrix between skew-sextupole CRDTs and  !
+!		  skew sextupole strengths in the 224 main sextupoles,  !
+!		  to be then converted in angles. The backup copy is    ! 
+!		  MODULES/compute_sext_rdt.f.bkp.sept6 . The computed RM!
+!		  is written in ssext_zf3_RML.dat (224*8,224).The224x2x4!
+!                 CRDTs (zfss3-2-1-0) vector in written in the file     !
+!		  ssex_zf3vector.dat (for SVD inversion, done by the    !
+!		  matlab routine "get_ssex_model2.m". results from tests!
+!		  in TEST_SKEWSEXT_*ONLY_1ORDER (no coupling from ORM). !
+!		  Tests removing the baseline Fss vector from coupling  !
+!		  (2nd order) are in TEST_SKEWSEXT_110614_BASELINE and  !
+!		  TEST_SKEWSEXT_110614_4SKEWS: "get_ssex_model2.m" is   !
+!		  modified to substract the baaseline 2nd-order Fss vec.!
+!		  and to perform SVD on the difference only.
+!		  Bug fixed in .MODULES/generate_sext_err.f J2 were     ! 
+!                 computed from -K2*sin(3*Tilt), whereas no minus sign  !
+!		  is needed. K2 is also modified with K2*cos(3*Tilt).   !
+! Sept 17th 2011  Modify MODULES/compute_sext_rdt.f to output a TBT file!
+!		  compatible with "fft_compute_hv5.f": units in [mm] and!
+!		  first 17 turns are zeros.                             !
+! Feb.  6th 2012: g77 no longer avaliable on the new linux cluster rnice!
+!		  gfortran is used, which seems however not compatibe   !
+!		  with mimac libraries used to generate random numbers  !
+! Feb.  6th 2012: Short and shifted S4 at the ends of SS16 & SS30 (10cm !
+!		  in thin-lens approx) with independent power supplies. !
+!                 Sequence file "storage_2012.seqx" updated and new file!
+!                 "storage_2012_6mSS.corx" to correct sext. RDT perturba!
+!	          tions introduced by this symmetry breakdown.          !
+! Feb. 14th 2012: new BPM positions in 6-m long SS14-16-18-20-24-30-32-1!
+!                 with BPMs at those SS 3.6026*2 m apart (from standard !
+!                 3.0526*2 m). Email from Laurent on 13-02-2012. PICK.* !
+!                 markers displaced in files "storage_2012.seqx" and    !
+!                 "storage_2012_7mSS23.seqx" (for 7-m lons SS23 with    !
+!                 mini-beta insertion).                                 !
+! Feb. 14th 2012: 7-m SS23 with shorter and shifted S24, new shorter QD6!
+! 		  & QF7 with independent power supplies, independent QD4!
+!                 and QF5: testbench for the mini-beta lattice with a   !
+!                 test new quadrupole QDX at the SS centre. All thses   !
+!                 (independent) quads are labelled as "_7m" in the files!
+!                 "storage_2012.seqx" and "storage_2012.strx". A new    !
+!                 sequence is created with the modified lattice         !
+!                 STORAGE04_ss23_7m in file "storage_2012_7mSS23.seqx". !
+!		  A new macro is created to match the insertion in      !
+!		  "storage_2012_macros.madx". A new command file is     !
+!                 created for the inserion, "storage_2012_7mSS23.cmdx". !
+!                 See Laurent's email of 8-02-2012.                     !
+! March     2012: A new insertion in SS23 is created for a closed hor.  !
+!                 dispersion bump (by means of the independent quads) to!
+!                 explore the possibility of generating a dispesion-domi!
+!                 nated beam to generate monocromatic x-rays trough an  ! 
+!                 undulator with horizontal gradient. Matching modules  !
+!                 and settings in "storage_2012_7mSS23_DispBump.cmdx".  !
+! April 18th 2012: bug found and fixed in the definition of bendings:the!
+!                 two pole faces E1 and E2 were wrong. The sequence     !
+!                 files storage_2012.seqx and storage_2012_7mSS23.seqx  !
+!                 have been corrected. This affected mainly DX and DPX, !
+!                 and the simmetry of the focusing                      !
+! April 18th 2012: bug found and fixed in the position of the BPM4 in   !
+!                 the odd cells: they are not symmetric w.r.t. the      !
+!                 straight section centre. The two sequence files       !
+!                 "storage_2012.seqx" & "storage_2012_7mSS23.seqx" have !
+!                 been modified accordngly (shift of -0.76599976 m).    !
+! April 19th 2012: definining (in the file "storage_2012_7mSS23.seqx"   !
+!                 only, and not in "storage_2012.seqx") new independent !
+!                 sextupoles for 7m SS23 through indepent int. gradients!
+!                 (sext.s22.c22,sext.s22.c23,sext.s24.c22 &sext.s24.c23)!
+!                 They remain defined as thin lenses. Their initial     !
+!                 int. gradients K2.S2*C2* are set equal to the corresp.!
+!                 families in "storage_2012.strx", and are changed in   !
+!                 "storage_2012_7mSS23.cmdx".                           !
+! July  18th 2012: Laurent implemented a fit on the main bending angles !
+!                  to fit the horizontal dispersion from ORM of qempanel!
+!                  These are defined as qemb.dipdelta (relative errors).!
+!                  In the sequence file "storage_2012.seqx", the angles !
+!		   of SBENDS are then defined for each magnet, instead  !
+!		   of being defined once. The ORM error model file      !
+!		   "storage_mdt_YYMMDD_model.modx" contains the actual  !
+!		   bending angles for all 64 mangets. In QEMPANEL2MADX  !
+!		   "errors_at2madx.m" and "at2madx_new.f" are modified. !
+!		   Note that the bending soft-end part is unaffected.   !
+! July   25th 2012: 1mm unwanted drift space at QF5A_C04 and QF7_C30    !
+!                  detected and removed. Unwanted 5 um drift between QF2!
+!		   and nl_qf2 in even cells and cell20. pick.20.2 moved !
+!		   upstream of 5 um. Modified file "storage_2012.seqx"  !
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
