@@ -66,7 +66,7 @@ def _parse_args():
                     help="Number of parallel processes to use in the simulation.",
                     metavar="numproc", default=NUM_PROCESSES, dest="num_processes")
     parser.add_option("-a", "--accelerator",
-                    help="Accelerator to use: either LHCB1, LHCB2 or ALBA.",
+                    help="Accelerator to use: either LHCB1, LHCB2, ALBA or ESRF.",
                     metavar="ACCEL", dest="accelerator")
     parser.add_option("-x", "--tunex",
                     help="Horizontal tune.",
@@ -81,8 +81,8 @@ def _parse_args():
 
     if options.output_dir == "":
         options.output_dir = os.path.dirname(options.model_twiss)
-    if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "LHCB1RUNII", "LHCB2RUNII", "ALBA"]:
-        print >> sys.stderr, "Accelerator sequence must be defined, it must be LHCB1, LHCB2 or ALBA."
+    if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "LHCB1RUNII", "LHCB2RUNII", "ALBA", "ESRF"]:
+        print >> sys.stderr, "Accelerator sequence must be defined, it must be LHCB1, LHCB2, ALBA or ESRF."
         sys.exit(-1)
     if options.accelerator.startswith("LHCB"):
         if options.tunex is None or options.tuney is None or options.energy is None:
@@ -99,9 +99,9 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
         if errors_path is None:
             beam = accelerator.upper().replace("LHC", "").replace("RUNII", "")
             errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
-    elif accelerator.upper() == "ALBA":
+    elif accelerator.upper() in ["ALBA", "ESRF"]:
         if not errors_path is None:
-            print >> sys.stdout, "ALBA doesn't need error tables, ignoring input"
+            print >> sys.stdout, str(accelerator) + " doesn't need error tables, ignoring input"
     else:
         print >> sys.stderr, "No error table templates available for", accelerator, "specify an error tables path (--error-tables option)"
         sys.exit(-1)
@@ -138,6 +138,8 @@ def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, er
         simulation_function = _run_single_lhc_madx_simulation
     elif accelerator.upper() == "ALBA":
         simulation_function = _run_single_alba_madx_simulation
+    elif accelerator.upper() == "ESRF":
+        simulation_function = _run_single_esrf_madx_simulation
     else:
         print >> sys.stderr, "Accelerator", accelerator, "not yet implemented"
         sys.exit(-1)
@@ -217,6 +219,27 @@ def _run_single_alba_madx_simulation(seed_path_tuple):
             SEED5=str(5 + seed * 5),
             RUN_DATA_PATH=run_data_path)
     raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.ALBA.mask'))
+    madx_job = raw_madx_mask % dict_for_replacing
+
+    start_time = time.time()
+    madxrunner.runForInputString(madx_job, stdout=open(os.devnull, "w"))
+    end_time = time.time()
+    return end_time - start_time
+
+
+def _run_single_esrf_madx_simulation(seed_path_tuple):
+    seed = seed_path_tuple[0]
+    run_data_path = seed_path_tuple[1]
+    dict_for_replacing = dict(
+            ESRF_MODEL=os.path.join(CURRENT_PATH, "..", "..", "MODEL", "ESRF"),
+            SEED=str(seed),
+            SEED1=str(1 + seed * 5),
+            SEED2=str(2 + seed * 5),
+            SEED3=str(3 + seed * 5),
+            SEED4=str(4 + seed * 5),
+            SEED5=str(5 + seed * 5),
+            RUN_DATA_PATH=run_data_path)
+    raw_madx_mask = iotools.read_all_lines_in_textfile(os.path.join(CURRENT_PATH, 'job.systematic.ESRF.mask'))
     madx_job = raw_madx_mask % dict_for_replacing
 
     start_time = time.time()
