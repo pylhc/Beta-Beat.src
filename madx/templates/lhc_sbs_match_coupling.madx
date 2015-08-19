@@ -33,6 +33,7 @@ call, file="%(MATCH)s/f_terms_beam2.madx";
 
 call, file="%(MATCH)s/redefine_strengths.madx";
 
+option, -echo;
 match, use_macro;
     call, file="%(MATCH)s/define_variables.madx";
 
@@ -40,6 +41,7 @@ match, use_macro;
         exec, beam_LHCB1(front_LHCB1);
         use, period=front_LHCB1;
         twiss, beta0=biniLHCB1, chrom, file="%(PATHB1)s/twiss_%(LABEL)s_cor.dat";
+        call, file="%(MATCH)s/f_terms_beam1.madx";
     };
     call, file="%(MATCH)s/constraintsb1.seqx";
 
@@ -47,12 +49,14 @@ match, use_macro;
         exec, beam_LHCB2(front_LHCB2);
         use, period=front_LHCB2;
         twiss, beta0=biniLHCB2, chrom, file="%(PATHB2)s/twiss_%(LABEL)s_cor.dat";
+        call, file="%(MATCH)s/f_terms_beam2.madx";
         print, text="======================================";
     };
     call, file="%(MATCH)s/constraintsb2.seqx";
 
     lmdif,    tolerance:=1e-24, calls:=120;
 endmatch;
+option, echo;
 
 call, file="%(MATCH)s/genchangpars.seqx";
 save, file="%(MATCH)s/changeparameters.madx";

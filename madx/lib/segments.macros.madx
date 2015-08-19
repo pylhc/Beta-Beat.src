@@ -95,7 +95,7 @@ twiss_front_back(accel, front_filename, back_filename, bininame, bendname): macr
     select, flag=twiss, class=rbend;
     select, flag=twiss, class=tkicker;
     select, flag=twiss,pattern="XRP";
-    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
+    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,K1SL,K2l,K3l,wx,phix,wy,phiy;
     twiss, beta0 = bininame, chrom, file = front_filename;
 
     use, period = back_accel;
@@ -108,6 +108,6 @@ twiss_front_back(accel, front_filename, back_filename, bininame, bendname): macr
     select, flag=twiss, class=rbend;
     select, flag=twiss, class=tkicker;
     select, flag=twiss,pattern="XRP";
-    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,wx,phix,wy,phiy;
+    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,K1SL,K2l,K3l,wx,phix,wy,phiy;
     twiss, beta0 = bendname, chrom, file = back_filename;
 };
