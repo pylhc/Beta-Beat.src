@@ -3,9 +3,10 @@ import sys
 import json
 import datetime
 from optparse import OptionParser
-from scipy.io import loadmat
+
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+AFS_ANACONDA_PATH = "/afs/cern.ch/work/o/omc/anaconda/bin/python"
 
 
 def _parse_args():
@@ -35,7 +36,7 @@ def main(input_file_path):
 
     for set_number in range(num_sets_x):
         set_string = str(set_number + 1) if len(str(set_number + 1)) > 1 else "0" + str(set_number + 1)
-        output_file_name = os.path.basename(input_file_path).replace(".mat", "." + set_string + '.sdds.new.new.new')
+        output_file_name = os.path.basename(input_file_path).replace(".mat", "." + set_string + '.sdds')
         output_file_path = os.path.join(os.path.dirname(input_file_path), output_file_name)
         with open(output_file_path, "w") as output_file:
             output_file.write("#SDDSASCIIFORMAT v1 \n")
@@ -60,6 +61,16 @@ def _write_sdds_data_line(bpm_number, set_number, all_data, plane_string, bpm_da
     output_file.write("\n")
 
 
+def _launch_with_afs_anaconda(input_file_path):
+    command = AFS_ANACONDA_PATH + " " + os.path.abspath(__file__) + " " + input_file_path
+    print "Cannot import scipy, trying using afs version, command: " + command
+    os.system(command)
+
+
 if __name__ == "__main__":
     _input_file_path = _parse_args()
-    main(_input_file_path)
+    try:
+        from scipy.io import loadmat
+        main(_input_file_path)
+    except ImportError:
+        _launch_with_afs_anaconda(_input_file_path)
