@@ -504,9 +504,12 @@ class _SvdHandler(object):
         #  the number of BPM, so M > N
         # --tbach
         A = (A * sqrt_number_of_turns) + A_mean
+        bpmres = numpy.mean(numpy.std(A - self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data, axis=1))
+        print "(plane {0}) Average BPM resolution: ".format(plane) + str(bpmres)
         self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data = A
         if PRINT_TIMES:
             print ">> Time for do_svd_clean: {0}s".format(time.time() - time_start)
+            
 
     def get_singular_value_decomposition(self, matrix):
         """Calls the SVD, returns a USV representation
