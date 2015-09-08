@@ -748,16 +748,22 @@ def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
 
     J = numpy.reshape(numpy.array([0, 1, -1, 0]), (2, 2))
 
-    gamma2 = 1. / (1. + 4. * (f1001r ** 2. + f1001i ** 2. - f1010r ** 2. - f1010i ** 2.))
+    absf1001 = numpy.sqrt(f1001r ** 2 + f1001i ** 2)
+    absf1010 = numpy.sqrt(f1010r ** 2 + f1010i ** 2)
+
+    gamma2 = 1. / (1. + 4. * (absf1001 ** 2 - absf1010 ** 2))
     c11 = (f1001i + f1010i)
     c22 = (f1001i - f1010i)
     c12 = -(f1010r - f1001r)
     c21 = -(f1010r + f1001r)
-    C = numpy.reshape(2 * gamma2 * numpy.array([c11, c12, c21, c22]), (2, 2))
+    Cbar = numpy.reshape(2 * numpy.sqrt(gamma2) * numpy.array([c11, c12, c21, c22]), (2, 2))
 
-    R = numpy.dot(J, numpy.dot(inv(Ga), numpy.dot(C, numpy.dot(Gb, -J))))
-    R = numpy.sqrt(1 + det(R)) * R
-    return numpy.ravel(numpy.transpose(R))
+    C = numpy.dot(numpy.linalg.inv(Ga), numpy.dot(Cbar, Gb))
+    jCj = numpy.dot(J, numpy.dot(C, -J))
+    c = numpy.linalg.det(C)
+    r = -c / (c - 1)
+    R = numpy.transpose(numpy.sqrt(1 + r) * jCj)
+    return numpy.ravel(R)
 
 
 def _get_files_for_mad(save_path, element_name):
