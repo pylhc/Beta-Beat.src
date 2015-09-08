@@ -10,7 +10,6 @@ from madx import madx_templates_runner
 import json
 import numpy as np
 from SegmentBySegment import SegmentBySegment
-import math
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -299,15 +298,11 @@ def _write_constraints_file_coupling(sbs_coupling_data, constr_file, ip, beam, e
 
         f1001r = sbs_coupling_data.F1001REMEAS[index]
         f1001i = sbs_coupling_data.F1001IMMEAS[index]
-        absf1001 = math.sqrt(f1001r ** 2 + f1001i ** 2)
-        f1010r = sbs_coupling_data.F1010REMEAS[index]
-        f1010i = sbs_coupling_data.F1010IMMEAS[index]
-        absf1010 = math.sqrt(f1010r ** 2 + f1010i ** 2)
 
         constr_file.write('   constraint, weight = ' + str(1.0) + ' , ')  # TODO: Dynamic weights if use_errors is true
-        constr_file.write('expr = ' + name + '_absf1001 = ' + str(absf1001) + '; \n')
-        constr_file.write('   constraint, weight = ' + str(1.0) + ' , ')
-        constr_file.write('expr = ' + name + '_absf1010 = ' + str(absf1010) + '; \n')
+        constr_file.write('expr = ' + name + '_f1001r = ' + str(f1001r) + '; \n')
+        constr_file.write('   constraint, weight = ' + str(1.0) + ' , ')  # TODO: Dynamic weights if use_errors is true
+        constr_file.write('expr = ' + name + '_f1001i = ' + str(f1001i) + '; \n')
         constr_file.write('!   S = ' + str(s))
         constr_file.write(';\n')
 
@@ -435,13 +430,9 @@ def run_gen_f_terms(ip, match_temporary_path, sbs_data_b1_path, sbs_data_b2_path
     with open(fterms_b1_path, "w") as fterms_b1_file:
         for bpm_name in sbs_coupling_data_beam1.NAME:
             fterms_b1_file.write("exec, get_f_terms_for(twiss, " + bpm_name + ");\n")
-            fterms_b1_file.write(bpm_name + "_absf1001 := sqrt(" + bpm_name + "_f1001r ^ 2 + " + bpm_name + "_f1001i ^ 2);\n")
-            fterms_b1_file.write(bpm_name + "_absf1010 := sqrt(" + bpm_name + "_f1010r ^ 2 + " + bpm_name + "_f1010i ^ 2);\n")
     with open(fterms_b2_path, "w") as fterms_b2_file:
         for bpm_name in sbs_coupling_data_beam2.NAME:
             fterms_b2_file.write("exec, get_f_terms_for(twiss, " + bpm_name + ");\n")
-            fterms_b2_file.write(bpm_name + "_absf1001 := sqrt(" + bpm_name + "_f1001r ^ 2 + " + bpm_name + "_f1001i ^ 2);\n")
-            fterms_b2_file.write(bpm_name + "_absf1010 := sqrt(" + bpm_name + "_f1010r ^ 2 + " + bpm_name + "_f1010i ^ 2);\n")
 
 
 def _copy_beam1_temp_files(ip, sbs_data_b1_path, beam1_temporary_path):
