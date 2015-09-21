@@ -1,0 +1,21 @@
+In job.Beam2.ACdipoletracking.6500GEV.40cm.madx  
+   call.LHCglobalknob.matchCoupling.b2.madx
+   ExeDiffAmplitudes_jobs.sh
+replace PATH_TO_FOLDER by the full path to the folder in which the simulations are done (this folder)
+
+Change tunes in DriveFiles/Drive.inp if changed in job.Beam2.ACdipoletracking.6500GEV.40cm.madx + replace corresponding models twiss_elements.dat and twiss_elements_ac.dat
+
+Execute ./ExeDiffAmplitudes_jobs.sh
+When jobs are all finished (important!): execute ./ExeDiffAmplitudes_analyse.sh
+
+Results can be found in DataAnalysis.
+
+________________________________________________________________________
+ATTENTION: if simulated amplitudes changed in ExeDiffAmplitudes_jobs.sh:
+	   change as well in 
+	   - ExeDiffAmplitudes_analyse.sh
+	   - DataAnalysis/python_getacTuneAndAction.py in array amplitude=[...] (same digits then in ExeDiffAmplitudes_jobs.sh!)
+________________________________________________________________________
+Trackone files are kept, for the case, the analysis fails; they can be removed by hand afterwards to save memory
+________________________________________________________________________
+In some cases, the natural tune might be misidentified by GetLLM, leading to jumps in the amplitude detuning plots; in this case, look at BPM spectrum for concerned amplitude(s)

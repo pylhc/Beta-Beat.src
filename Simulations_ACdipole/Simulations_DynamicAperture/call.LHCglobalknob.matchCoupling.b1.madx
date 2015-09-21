@@ -1,0 +1,30 @@
+
+match, use_macro;
+vary, name=b1_re_ip7_knob, step=1.0E-6;
+vary, name=b1_im_ip7_knob, step=1.0E-6;
+
+M1: MACRO {
+    select,    flag=twiss, clear;
+    !select,    flag=twiss, pattern="bqsh.7r4.b1", column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+    !select,    flag=twiss, pattern="ip1", column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+    !select,    flag=twiss, pattern="bpm.12l1.b1", column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+    select,    flag=twiss, pattern="ip7", column=name,s,betx,bety,alfx,alfy,mux, muy,x,y,dx,r11,r12,r21,r22 ;
+    twiss,     sequence=lhcb1, file="twiss.C.dat";
+    !system, "head -48 twiss.C.dat > ttt; mv ttt twiss.C.dat";
+    system, "python PATH_TO_FOLDER/GetC.py";
+    call, file="C.madx";
+    value, cminusreal, cminusimag, cplusreal, cplusimag;
+    !twiss, sequence=lhcb1;dq=table(summ,Q1)-table(summ,Q2)-5;
+
+    assign, echo="couplmatch.b1.mad";
+    value, cminusreal, cminusimag, cplusreal, cplusimag;
+    value, b1_re_ip7_knob    ;
+    value, b1_im_ip7_knob    ;
+    assign, echo=terminal;
+    }
+constraint, EXPR=cminusreal=CMRB1;
+constraint, EXPR=cminusimag=CMIB1;
+!constraint, EXPR=cplusreal=CPRB1;
+!constraint, EXPR=cplusimag=CPIB1;
+jacobian, calls=500, tolerance=couplingmatchingtolerance;
+endmatch;

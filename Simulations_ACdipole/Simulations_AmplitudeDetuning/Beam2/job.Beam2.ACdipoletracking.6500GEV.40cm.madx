@@ -1,0 +1,380 @@
+! Links definitions
+option, warn,info;
+set,    format="15.9f";
+System,"rm -rf temp";
+System,"mkdir temp";
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
+System,"ln -fns /afs/cern.ch/eng/lhc/optics/SLHCV1.0 slhc";
+system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503/FiDeL fidel";
+system,"ln -fns /afs/cern.ch/eng/lhc/optics/V6.503/WISE wise";
+system,"ln -fns /afs/cern.ch/eng/lhc/optics/runII/2015 optics2015";
+Option, -echo,warn,-info,-debug;
+
+!###########################################################################################################################
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!    DEFINE SOME INITIAL QUANTITIES, i.e. BEAM, TUNE, COUPLING, ENERGY, LANDAU OCTUPOLES
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+mylhcbeam:=4 ;
+
+
+NRJ=6500;
+emittance=7.29767146889e-09;
+
+qxinit  := 64.309 ;  
+qyinit  := 59.320 ;
+dqxinit :=  2.00 ;
+dqyinit :=  2.00 ;
+
+couplamptarget   := 0.002 ;
+couplphasetarget := 0.0 ;
+couplmatchtol    := 1e-4 ;
+
+MOpowering=0.0;
+
+
+!###########################################################################################################################
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!  CALL THE SEQUENCE AND STRENGTH FILES. DEFINE THE BEAM. ADD VIRTUAL ORBIT CORRECTORS. CYCLE SEQ.
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+call,file="optics2015/lhcb4_as-built.seq";  !!! THICK LATTICE
+call,file="optics2015/toolkit/slice.madx"; !!! THIN LATTICE
+
+!Cycling w.r.t. to IP3 (mandatory to find closed orbit in collision in the presence of errors)
+seqedit,sequence=lhcb1;flatten;cycle,start=IP3;endedit;
+seqedit,sequence=lhcb2;flatten;cycle,start=IP3;endedit;
+
+!call, file="optics2015/opt_inj_thin.madx";
+call, file="optics2015/opt_400_10000_400_3000_thin.madx";
+  beam, sequence=lhcb1, bv= 1, energy=NRJ, particle=proton, npart=1.2e11, kbunch=1, ex=emittance, ey=emittance;
+  beam, sequence=lhcb2, bv= 1, energy=NRJ, particle=proton, npart=1.2e11, kbunch=1, ex=emittance, ey=emittance;
+
+Use, sequence=lhcb2;
+twiss,  sequence=lhcb2,file=twiss_thin.dat; 
+
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!   SETTUP FOR ORBIT AND ERROR CORRECTIONS
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+on_x1= 0    ; on_sep1= 0 ; on_o1= 0 ;
+on_x2= 0    ; on_sep2= 0 ; on_o2= 0 ; on_a2= 0 ;                                       
+on_x5= 0    ; on_sep5= 0 ; on_o5= 0 ;                                                 
+on_x8= 0    ; on_sep8= 0 ; on_o8= 0 ; on_a8= 0 ;  on_sep8h= 0 ; on_x8v= 0 ;   
+on_alice= 0 ;                                                                            
+on_lhcb = 0 ;  
+
+if(mylhcbeam==1) {Use, sequence=lhcb1;};
+if(mylhcbeam> 1) {Use, sequence=lhcb2;};
+
+if(mylhcbeam==1){
+match;
+ global, q1=qxinit, q2=qyinit;
+ global, dq1=dqxinit, dq2=dqyinit;
+ vary,   name=kqtf.b1, step=1.0E-7 ;
+ vary,   name=kqtd.b1, step=1.0E-7 ;
+ vary,   name=ksf.b1, step=1.0E-7 ;
+ vary,   name=ksd.b1, step=1.0E-7 ;
+ lmdif,  calls=100, tolerance=1.0E-21;
+endmatch;
+};
+if(mylhcbeam>1){
+match;
+ global, q1=qxinit, q2=qyinit;
+ global, dq1=dqxinit, dq2=dqyinit;
+ vary,   name=kqtf.b2, step=1.0E-7 ;
+ vary,   name=kqtd.b2, step=1.0E-7 ;
+ vary,   name=ksf.b2, step=1.0E-7 ;
+ vary,   name=ksd.b2, step=1.0E-7 ;
+ lmdif,  calls=100, tolerance=1.0E-21;
+endmatch;
+};
+
+!###########################################################################################################################
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+                         AC Dipole                           +
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+pbeam=beam%lhcb2->pc;
+betxac=table(twiss,MKQA.6L4.B2,betx);
+betyac=table(twiss,MKQA.6L4.B2,bety);
+Qx0=table(summ,Q1);
+Qy0=table(summ,Q2);
+Qx=Qx0-64.0;
+Qy=Qy0-59.0;
+
+!AC Dipole tune
+!******************************
+Qxd=Qx-0.012;
+Qyd=Qy+0.012;
+
+!AD Dipole voltage 
+!******************************
+ampx=XAMPLITUDE;    !-- unit: [mm]
+ampy=YAMPLITUDE;    !-- unit: [mm]
+MKACH.6L4.B2: hacdipole, l=0, freq=Qxd, lag=0, volt=0.042*pbeam*abs(Qxd-Qx)/sqrt(180.0*betxac)*ampx, ramp1=0, ramp2=2000, ramp3=8000, ramp4=10000;
+MKACV.6L4.B2: vacdipole, l=0, freq=Qyd, lag=0, volt=0.042*pbeam*abs(Qyd-Qy)/sqrt(177.0*betyac)*ampy, ramp1=0, ramp2=2000, ramp3=8000, ramp4=10000;
+
+  seqedit, sequence=lhcb2; flatten;
+  install, element=MKACH.6L4.B2, at=0.0, from=MKQA.6L4.B2;
+  install, element=MKACV.6L4.B2, at=0.0, from=MKQA.6L4.B2;
+  endedit;
+
+if(mylhcbeam==1) {Use, sequence=lhcb1;};
+if(mylhcbeam> 1) {Use, sequence=lhcb2;};
+
+select,flag=twiss,clear;
+select, flag=twiss, pattern="MKQA",  column=name,s,x,y,px,py,betx,bety;
+twiss, chrom, sequence=lhcb2,file=MKQA.dat;
+
+Qx0=table(summ,Q1);
+Qy0=table(summ,Q2);
+
+!###########################################################################################################################
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!         Call error subroutines (nominal machine and new IT/D1)
+!                         and error tables
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Error routine and measured error table for nominal LHC
+call,file="PATH_TO_FOLDER/Msubroutines.madx";
+call,file="db5/toolkit/Orbit_Routines.madx";
+call,file="slhc/errors/SelectLHCMonCor_phaseI.madx";
+readtable, file="db5/measured_errors/rotations_Q2_integral.tab";
+call,file="slhc/errors/macro_error.madx";  ! some macros for error generation
+
+!###########################################################################################################################
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!   NOW APPLY MEASURED MAGNETIC ERRORS
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!                Switch ON/OFF some multipole
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+exec ON_ALL_MULT;
+ON_LSF:=1;             ! to be set to 0 if run is performed on BOINC.
+
+ ON_A1s =  0 ; ON_A1r =  0 ; ON_B1s =  0 ; ON_B1r =  0;
+ ON_A2s =  0 ; ON_A2r =  0 ; ON_B2s =  0 ; ON_B2r =  0;
+ ON_A3s =  1 ; ON_A3r =  1 ; ON_B3s =  1 ; ON_B3r =  1;
+ ON_A4s =  1 ; ON_A4r =  1 ; ON_B4s =  1 ; ON_B4r =  1;
+ ON_A5s =  1 ; ON_A5r =  1 ; ON_B5s =  1 ; ON_B5r =  1;
+ ON_A6s =  1 ; ON_A6r =  1 ; ON_B6s =  1 ; ON_B6r =  1;
+ ON_A7s =  1 ; ON_A7r =  1 ; ON_B7s =  1 ; ON_B7r =  1;
+ ON_A8s =  1 ; ON_A8r =  1 ; ON_B8s =  1 ; ON_B8r =  1;
+ ON_A9s =  1 ; ON_A9r =  1 ; ON_B9s =  1 ; ON_B9r =  1;
+ ON_A10s =  1; ON_A10r =  1; ON_B10s =  1; ON_B10r =  1;
+ ON_A11s =  1; ON_A11r =  1; ON_B11s =  1; ON_B11r =  1;
+ ON_A12s =  ON_LSF; ON_A12r = ON_LSF; ON_B12s = ON_LSF; ON_B12r =  ON_LSF;
+ ON_A13s =  ON_LSF; ON_A13r = ON_LSF; ON_B13s = ON_LSF; ON_B13r =  ON_LSF;
+ ON_A14s =  ON_LSF; ON_A14r = ON_LSF; ON_B14s = ON_LSF; ON_B14r =  ON_LSF;
+ ON_A15s =  ON_LSF; ON_A15r = ON_LSF; ON_B15s = ON_LSF; ON_B15r =  ON_LSF;
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Define the seed number and call the corresponding measured error table for nominal LHC magnets
+!
+! NOTE THAT FOR MOST CASES HAVE DIFFERENT ERROR FILES IN BOTH WISE AND FIDEL DIRECTORIES? MAY WISH TO CHECK UP ON WHAT IS BEST
+!
+! NOTE THAT DON'T HAVE ANY 6500 GeV ERROR TABLES, 7000 IS THE CLOSEST. MAY WANT TO TALK TO EZIO OR PER ABOUT DIFFERENCE
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!For the madx file
+eoption,seed=1;
+if (NRJ==450) {!!readtable, file="fidel/injection/injection_errors-emfqcs-1.tfs" ;
+                 readtable, file="wise/After_sector_3-4_repair/injection/injection_errors-emfqcs-1.tfs" ;  !!! WISE error tables vs FIDEL error table... 
+};
+if (NRJ==6500) {!!readtable, file="fidel/collision_7000/collision_7000_errors-emfqcs-1.tfs" ;
+                  readtable, file="wise/After_sector_3-4_repair/collision/collision_7000-emfqcs-1.tfs" ;  !!! WISE error tables vs FIDEL error table... 
+};
+
+!For the mask
+!eoption,seed=%SEEDRAN;
+!if (NRJ==450) {!!!readtable, file="fidel/injection/injection_errors-emfqcs-%SEEDRAN.tfs" ;
+!                  readtable, file="wise/After_sector_3-4_repair/injection/injection_errors-emfqcs-%SEEDRAN.tfs" ;  !!! WISE error tables vs FIDEL error table... 
+!};
+!if (NRJ==6500) {!!readtable, file="fidel/collision_7000/collision_7000_errors-emfqcs-%SEEDRAN.tfs" ;
+!                  readtable, file="wise/After_sector_3-4_repair/collision/collision_7000-emfqcs-%SEEDRAN.tfs" ;  !!! WISE error tables vs FIDEL error table... 
+!};
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!           apply field errors to all other magnets
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Nominal LHC magnets
+
+call,   file="db5/measured_errors/Efcomp_MB.madx"  ;
+call,   file="db5/measured_errors/Efcomp_MBRB.madx"; ! for IP4
+call,   file="db5/measured_errors/Efcomp_MBRS.madx"; ! for IP4
+call,   file="db5/measured_errors/Efcomp_MBRC.madx"; ! this is the D2 
+call,   file="db5/measured_errors/Efcomp_MBX.madx"; ! this is the D1 in IP2 and IP8
+call,   file="db5/measured_errors/Efcomp_MBXW.madx";! this is the D1 in IP1 and IP5
+call,   file="db5/measured_errors/Efcomp_MBW.madx" ; ! this is for IP7 and IP3
+
+call,   file="db5/measured_errors/Efcomp_MQ.madx";
+call,   file="db5/measured_errors/Efcomp_MQM.madx" ;
+call,   file="db5/measured_errors/Efcomp_MQMC.madx";
+call,   file="db5/measured_errors/Efcomp_MQML.madx";
+call,   file="db5/measured_errors/Efcomp_MQTL.madx";
+call,   file="db5/measured_errors/Efcomp_MQW.madx" ;
+call,   file="db5/measured_errors/Efcomp_MQY.madx" ;
+call,   file="db5/measured_errors/Efcomp_MQX.madx";
+
+select, flag=error, pattern=MQX;
+select, flag=error, pattern=MBX;
+esave,  file="ALL.errors";
+
+!###########################################################################################################################  !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  !         MATCH THE COUPLING
+  !         strategy used here is to pick a dqmin, then get the corresponding |f1001|. The f1001 is matched at an arbitrary location.
+  !         No a2 errors are in so f1001 should be ~flat around the ring. (this was the case for beam2 should check the model f1001 agains injection oscillations to see this method is valid for beam 1.
+  !         The LHC global coupling knobs are used to match the real and imaginary parts of the f1001.
+  !         In general this has worked (seeded coupling studies for beam2) okay. Will want to check the matching is comming out okay. 
+  !         C+ is being matched to zero
+  !         Tunes are matched before and after coupling matching.
+  !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+couplingmatchingtolerance=couplmatchtol;
+couplphase    =  (couplphasetarget*pi) ;
+couplamp      =  couplamptarget;  !This is the approximately the mean of the C- distribution determined from f1001 found by analysis of the injection oscillations. 
+f1010amptarget=0.0;
+f1010phasetarget=0.0;
+ thiscouplphase=couplphase;
+ thiscouplamp=couplamp;
+dq=(qyinit-59.00)-(qxinit-64.00);
+ampf1001=thiscouplamp/(4.0*dq);
+
+CMRb1=ampf1001*cos(thiscouplphase) ;
+CMIb1=ampf1001*sin(thiscouplphase) ;
+CPRb1=f1010amptarget*cos(f1010phasetarget*pi) ;
+CPIb1=f1010amptarget*sin(f1010phasetarget*pi) ;
+CMRb2=ampf1001*cos(thiscouplphase) ;
+CMIb2=ampf1001*sin(thiscouplphase) ;
+CPRb2=f1010amptarget*cos(f1010phasetarget*pi) ;
+CPIb2=f1010amptarget*sin(f1010phasetarget*pi) ;
+
+select,flag=twiss,clear;
+if(mylhcbeam==1){ call, file="PATH_TO_FOLDER/LHCB1_coupling_knob.madx";  call, file="PATH_TO_FOLDER/call.LHCglobalknob.matchCoupling.b1.madx";};
+if(mylhcbeam>1){  call, file="PATH_TO_FOLDER/LHCB2_coupling_knob.madx";  call, file="PATH_TO_FOLDER/call.LHCglobalknob.matchCoupling.b2.madx";};
+
+if(mylhcbeam==1){
+match;
+ global, q1=qxinit, q2=qyinit;
+ global, dq1=dqxinit, dq2=dqyinit;
+ vary,   name=kqtf.b1, step=1.0E-7 ;
+ vary,   name=kqtd.b1, step=1.0E-7 ;
+ vary,   name=ksf.b1, step=1.0E-7 ;
+ vary,   name=ksd.b1, step=1.0E-7 ;
+ lmdif,  calls=100, tolerance=1.0E-21;
+endmatch;
+};
+if(mylhcbeam>1){
+match;
+ global, q1=qxinit, q2=qyinit;
+ global, dq1=dqxinit, dq2=dqyinit;
+ vary,   name=kqtf.b2, step=1.0E-7 ;
+ vary,   name=kqtd.b2, step=1.0E-7 ;
+ vary,   name=ksf.b2, step=1.0E-7 ;
+ vary,   name=ksd.b2, step=1.0E-7 ;
+ lmdif,  calls=100, tolerance=1.0E-21;
+endmatch;
+};
+
+!###########################################################################################################################
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!      REPLACE THE NOMINAL MADX CORRECTIONS WITH THE NOMINAL LSA SETTINGS 
+! (i.e. before any beam-based corrections of NLchroma at injection)
+! (i.e. but including the skew sextupole corrections of the chromatic coupling)
+!      NOTE WILL NEED TO CHECK THESE ARE CONSISTENT WITH THE OBSERVATIONS ON THE DAY MEASURED
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  KCS.a12b2 = -7.9272631832E-02;
+  KCS.a23b2 = -8.4756351700E-02;
+  KCS.a34b2 = -4.7013795965E-02;
+  KCS.a45b2 = -7.9868136151E-02;
+  KCS.a56b2 = -6.3882655280E-02;
+  KCS.a67b2 = -9.0685994233E-02;
+  KCS.a78b2 = -1.1391912957E-01;
+  KCS.a81b2 = -7.1711702585E-02;
+
+  KCO.a12b2 = -2.4511715866E+00;
+  KCO.a23b2 =  2.4511715866E+00;
+  KCO.a34b2 =  2.4511715866E+00;
+  KCO.a45b2 =  2.4511715866E+00;
+  KCO.a56b2 = -2.4511715866E+00;
+  KCO.a67b2 =  0.0000000000E+00;
+  KCO.a78b2 = -1.7158201106E+00;
+  KCO.a81b2 =  2.4511715866E+00
+
+  KCD.a12b2 =  7.1396880936E+02;
+  KCD.a23b2 =  1.0067354906E+02;
+  KCD.a34b2 =  3.5045062468E+02;
+  KCD.a45b2 =  5.8572004184E+02;
+  KCD.a56b2 =  1.1220500405E+03;
+  KCD.a67b2 =  0.0000000000E+00;
+  KCD.a78b2 = -1.4667669399E+03;
+  KCD.a81b2 = -2.3604280336E+02;
+
+if(mylhcbeam==1){
+match;
+ global, q1=qxinit, q2=qyinit;
+ global, dq1=dqxinit, dq2=dqyinit;
+ vary,   name=kqtf.b1, step=1.0E-7 ;
+ vary,   name=kqtd.b1, step=1.0E-7 ;
+ vary,   name=ksf.b1, step=1.0E-7 ;
+ vary,   name=ksd.b1, step=1.0E-7 ;
+ lmdif,  calls=100, tolerance=1.0E-21;
+endmatch;
+};
+if(mylhcbeam>1){
+match;
+ global, q1=qxinit, q2=qyinit;
+ global, dq1=dqxinit, dq2=dqyinit;
+ vary,   name=kqtf.b2, step=1.0E-7 ;
+ vary,   name=kqtd.b2, step=1.0E-7 ;
+ vary,   name=ksf.b2, step=1.0E-7 ;
+ vary,   name=ksd.b2, step=1.0E-7 ;
+ lmdif,  calls=100, tolerance=1.0E-21;
+endmatch;
+};
+
+select,flag=twiss,clear;
+select, flag=twiss, pattern="BPM",   column=name,s;
+twiss, chrom, sequence=lhcb2,file=BPMs.dat;
+
+ beta.ip1=table(twiss,IP1,betx);
+
+
+select, flag=twiss, class=monitor, column=name, s, betx, alfx, bety, alfy,
+                                              mux, muy, dx, dy, dpx, dpy, x, y,
+                                              k1l, k2l, k3l, k4l, wx, wy, phix,
+                                              phiy, dmux, dmuy, keyword, dbx, dby,
+                                              r11, r12, r21, r22;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=instrument;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=skewquadrupole;
+select, flag=twiss, class=sextupole;
+select, flag=twiss, class=octupole;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=collimator;
+select, flag=twiss, class=rbend;
+select, flag=twiss, class=multipole;
+
+twiss, chrom, sequence=lhcb2,file=twiss_elements2.dat; 
+
+
+! Tracking:
+!******************************
+track, onetable, deltap=0.0, onepass, dump;
+start, x=0.0, px=0.0, y=0.0, py=0.0;
+call, file="PATH_TO_FOLDER/observeLIST_beam2.madx";
+run, turns=8000;
+endtrack;
+
+value, pbeam, betxac, betyac, Qx0, Qy0, Qx, Qy, Qxd, Qyd, voltx;
+
+!***************************************************************************************
+system, "cp ./* PATH_TO_FOLDER/DetuningWithAmplitude_PLANE/Amplitude_AMPLITUDE"
+!***************************************************************************************
+
+stop;
+
+
+

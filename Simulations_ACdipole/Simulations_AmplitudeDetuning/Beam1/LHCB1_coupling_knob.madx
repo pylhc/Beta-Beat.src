@@ -1,0 +1,36 @@
+!Coupling knob for lhc beam2, evaluated at IP7. 
+startVal_kqs.r7b1=kqs.r7b1;
+kqs.r7b1:=startVal_kqs.r7b1 - b1_re_ip7_knob * 0.02014185827   + b1_im_ip7_knob *   0.01620130394 ;
+
+startVal_kqs.r5b1=kqs.r5b1;
+kqs.r5b1:=startVal_kqs.r5b1 - b1_re_ip7_knob * 0.02499588911    - b1_im_ip7_knob *  0.02934398871 ;
+
+startVal_kqs.r3b1=kqs.r3b1;
+kqs.r3b1:=startVal_kqs.r3b1 - b1_re_ip7_knob * 0.02168476823    - b1_im_ip7_knob *  0.02294503443 ;
+
+startVal_kqs.r1b1=kqs.r1b1;
+kqs.r1b1:=startVal_kqs.r1b1 - b1_re_ip7_knob * 0.01546232447    - b1_im_ip7_knob * 0.002517989547 ;
+
+startVal_kqs.l8b1=kqs.l8b1;
+kqs.l8b1:=startVal_kqs.l8b1 - b1_re_ip7_knob * 0.02014185827    + b1_im_ip7_knob *   0.01620130394 ;
+
+startVal_kqs.l6b1=kqs.l6b1;
+kqs.l6b1:=startVal_kqs.l6b1 - b1_re_ip7_knob * 0.02499588911    - b1_im_ip7_knob *  0.02934398871 ;
+
+startVal_kqs.l4b1=kqs.l4b1;
+kqs.l4b1:=startVal_kqs.l4b1 - b1_re_ip7_knob * 0.02168476823    - b1_im_ip7_knob *  0.02294503443 ;
+
+startVal_kqs.l2b1 =kqs.l2b1;
+kqs.l2b1:=startVal_kqs.l2b1 - b1_re_ip7_knob * 0.01546232447    - b1_im_ip7_knob * 0.002517989547 ;
+
+startVal_kqs.a81b1 =kqs.a81b1;
+kqs.a81b1:=startVal_kqs.a81b1 + b1_re_ip7_knob *  0.02831612456   - b1_im_ip7_knob *   0.01300153444;
+
+startVal_kqs.a67b1 =kqs.a67b1;
+kqs.a67b1:=startVal_kqs.a67b1 - b1_re_ip7_knob * 0.004969661125   + b1_im_ip7_knob *   0.009335016552;
+
+startVal_kqs.a45b1 = kqs.a45b1;
+kqs.a45b1:=startVal_kqs.a45b1 + b1_re_ip7_knob *  0.02070614029   - b1_im_ip7_knob *  0.002069719464;
+
+startVal_kqs.a23b1 = kqs.a23b1;
+kqs.a23b1:=startVal_kqs.a23b1 + b1_re_ip7_knob *  0.02602337014   - b1_im_ip7_knob *  0.003672896065;

@@ -1,0 +1,16 @@
+In job.Beam1.ACdipoletracking.6500GEV.40cm.madx  
+   call.LHCglobalknob.matchCoupling.b1.madx
+   ExeDiffAmplitudes_DynAppert.sh
+replace PATH_TO_FOLDER by the full path to the folder in which the simulations are done (this folder)
+
+Execute ./ExeDiffAmplitudes_DynAppert.sh
+	python2.6 python_CalculateAmplitudes.py
+	gnuplot gnuplot_DynamicApperture.gp
+
+Resulting plot: DA with AC dipole compared to free DA (plottet from dynamic_apperture_single.dat)
+
+________________________________________________________________________
+ATTENTION: if simulated amplitudes changed in ExeDiffAmplitudes_jobs.sh:
+	   change as well in 
+	   - ExeDiffAmplitudes_analyse.sh
+	   - DataAnalysis/python_getacTuneAndAction.py in array amplitude=[...] (same digits then in ExeDiffAmplitudes_jobs.sh!)
