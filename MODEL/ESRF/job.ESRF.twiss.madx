@@ -63,6 +63,25 @@ select, flag=twiss, clear;
 select, flag=twiss, pattern=^BPM,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy,dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 twiss, chrom,sequence=STORAGE04_SS23_7m, deltap=0, file="%PATH/twiss.dat";
 
+select, flag=twiss, clear;
+select, flag=twiss, class=monitor, column=name, s, betx, alfx, bety, alfy, 
+                                          mux, muy, dx, dy, dpx, dpy, x, y,
+                                          k1l, k1sl, k2l, k3l, k4l, wx, wy, phix,
+                                          phiy, dmux, dmuy, keyword, dbx, dby,
+                                          r11, r12, r21, r22;
+select, flag=twiss, class=monitor;
+select, flag=twiss, class=instrument;
+select, flag=twiss, class=marker;
+select, flag=twiss, class=quadrupole;
+select, flag=twiss, class=skewquadrupole;
+select, flag=twiss, class=sextupole;
+select, flag=twiss, class=octupole;
+select, flag=twiss, class=tkicker;
+select, flag=twiss, class=rcollimator;
+select, flag=twiss, class=collimator;
+select, flag=twiss, class=rbend;
+
+write, table=twiss, file="%PATH/twiss_elements.dat";
 stop;
 
 
