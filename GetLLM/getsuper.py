@@ -339,6 +339,8 @@ def _madcreator(dpps, files_dict):
     dppstring = ''
     dppstring_ac = ''
     for dpp in dpps:
+        if _InputData.accel == "ESRF":
+            _InputData.accel = "STORAGE04_SS23_7m"
         path_to_twiss_dpp = _join_with_output_path("twiss_"+str(dpp)+".dat")
         if not os.path.exists(path_to_twiss_dpp):
             dppstring = dppstring+'twiss, chrom,sequence='+_InputData.accel+', deltap='+str(dpp)+', file="'+path_to_twiss_dpp+'";\n'
@@ -352,27 +354,33 @@ def _madcreator(dpps, files_dict):
     if not dppstring:
         print "No need to run madx"
         return 0
-    
+
     dict_for_replacing = {}
     dict_for_replacing["DPP"] = dppstring
-    dict_for_replacing["DP_AC_P"] = dppstring_ac
-    dict_for_replacing["RUN"] = "I" if _InputData.lhc_run == 1 else "II"
-    if _InputData.accel == 'LHCB1':
-        dict_for_replacing["NUM_BEAM"] = "1"
-    elif _InputData.accel == 'LHCB2':
-        dict_for_replacing["NUM_BEAM"] = "2"
-    else:
-        print "WARNING: Could not decide what BEAM should be"
+    (qx, qy, qdx, qdy, qmx, qmy) = _get_tunes(files_dict)
+    if _InputData.accel.upper().startswith("LHCB"):
+        dict_for_replacing["DP_AC_P"] = dppstring_ac
+        dict_for_replacing["RUN"] = "I" if _InputData.lhc_run == 1 else "II"
+        if _InputData.accel == 'LHCB1':
+            dict_for_replacing["NUM_BEAM"] = "1"
+        elif _InputData.accel == 'LHCB2':
+            dict_for_replacing["NUM_BEAM"] = "2"
+        else:
+            print "WARNING: Could not decide what BEAM should be"
 
-    (qx, qy, qdx, qdy) = _get_tunes(files_dict)
-
-    dict_for_replacing["QX"] = qx
-    dict_for_replacing["QY"] = qy
-    dict_for_replacing["QDX"] = qdx
-    dict_for_replacing["QDY"] = qdy
-    dict_for_replacing["QMX"] = int(qx * 1000000)
-    dict_for_replacing["QMY"] = int(qy * 1000000)
-    dict_for_replacing["STOP"] = "!"
+        dict_for_replacing["QMX"] = int(qx * 1000000)
+        dict_for_replacing["QMY"] = int(qy * 1000000)
+        dict_for_replacing["QX"] = qx
+        dict_for_replacing["QY"] = qy
+        dict_for_replacing["QDX"] = qdx
+        dict_for_replacing["QDY"] = qdy
+        dict_for_replacing["STOP"] = "!"
+        path_to_job_chrom_template = os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro")
+    elif _InputData.accel == "STORAGE04_SS23_7m":
+        dict_for_replacing["QMX"] = qmx
+        dict_for_replacing["QMY"] = qmy
+        dict_for_replacing["ESRF_MODEL"] = os.path.join(_InputData.path_to_beta_beat, "MODEL", "ESRF")
+        path_to_job_chrom_template = os.path.join(_InputData.path_to_beta_beat, "MODEL", "ESRF", "job.ESRF.twiss_chrom.madx")
 
     for testpath in [_InputData.output_path, os.path.dirname(_InputData.twissfile)]:
         _tmpmod = os.path.join(testpath, 'modifiers.madx')
@@ -385,7 +393,7 @@ def _madcreator(dpps, files_dict):
     path_to_job_chrom_madx = _join_with_output_path("job.chrom.madx")
     path_to_job_chrom_madx_log = _join_with_output_path("log.job.chrom.madx")
     Utilities.iotools.replace_keywords_in_textfile(
-                                                   os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro"),
+                                                   path_to_job_chrom_template,
                                                    dict_for_replacing,
                                                    path_to_job_chrom_madx
                                                    )
@@ -619,8 +627,10 @@ def _get_tunes(fileslist):
     qdy = tw_y.TUNEY[0]
     qx = tw.Q1 % 1
     qy = tw.Q2 % 1
+    qmx = tw.Q1
+    qmy = tw.Q2
 
-    return (qx, qy, qdx, qdy)
+    return (qx, qy, qdx, qdy, qmx, qmy)
 
 
 def _join_with_output_path(*path_tokens):
@@ -778,7 +788,7 @@ class _InputData(object):
                 _InputData.lhc_run = 2
             else:
                 _InputData.lhc_run = 1
-        if _InputData.accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
+        if _InputData.accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "ESRF"):
             raise ValueError("Provided accelerator is not valid: "+_InputData.accel)
         _InputData.deltap_scaling_factor = deltap_scaling_factor
 
