@@ -125,6 +125,9 @@ def _parse_args():
     parser.add_option("-i", "--range",
                     help="Range of BPM for beta-calculation (>=3 and odd), default = 11",
                     metavar="RANGE_OF_BPMS", default=11, dest="range_of_bpms")
+    parser.add_option("-r", "--average_tune",
+                    help="Set to 1 to use average tune for all BPMs instead of specific for each one.",
+                    metavar="AVERAGE_TUNE", type="int", default=0, dest="use_average")
 
     options, _ = parser.parse_args()
     options.use_only_three_bpms_for_beta_from_phase = "1" == options.use_only_three_bpms_for_beta_from_phase
@@ -150,7 +153,8 @@ def main(
          errthreshold="0.15",
          use_only_three_bpms_for_beta_from_phase=False,
          number_of_bpms=10,
-         range_of_bpms=11
+         range_of_bpms=11,
+         use_average=False
          ):
     '''
     GetLLM main function.
@@ -192,7 +196,7 @@ def main(
 
     files_dict = _create_tfs_files(getllm_d, model_filename)
 
-    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict)
+    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict, use_average)
 
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
 
@@ -423,7 +427,7 @@ def _create_tfs_files(getllm_d, model_filename):
 # END _create_tfs_files -----------------------------------------------------------------------------
 
 
-def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict):
+def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict, use_average):
 
     if turn_by_turn_algo == "SUSSIX":
         suffix_x = '_linx'
@@ -454,6 +458,9 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
             pass  # Information printed by metaclass already
 
         if None != twiss_file_x:
+            if use_average:
+                twiss_file_x.MUX = twiss_file_x.AVG_MUX
+                twiss_file_x.MUY = twiss_file_x.AVG_MUY
             try:
                 dppi = getattr(twiss_file_x, "DPP", 0.0)
             except AttributeError:
@@ -524,6 +531,9 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
             pass  # Information printed by metaclass already
 
         if None != twiss_file_y:
+            if use_average:
+                twiss_file_y.MUX = twiss_file_y.AVG_MUX
+                twiss_file_y.MUY = twiss_file_y.AVG_MUY
             try:
                 dppi = getattr(twiss_file_y, "DPP", 0.0)
             except AttributeError:
@@ -1126,6 +1136,7 @@ def _start():
          errthreshold=options.errthreshold,
          use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase,
          number_of_bpms=options.number_of_bpms,
-         range_of_bpms=options.range_of_bpms)
+         range_of_bpms=options.range_of_bpms,
+         use_average=True if options.use_average == 1 else False)
 if __name__ == "__main__":
     _start()
