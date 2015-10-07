@@ -460,7 +460,6 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
         if None != twiss_file_x:
             if use_average:
                 twiss_file_x.MUX = twiss_file_x.AVG_MUX
-                twiss_file_x.MUY = twiss_file_x.AVG_MUY
             try:
                 dppi = getattr(twiss_file_x, "DPP", 0.0)
             except AttributeError:
@@ -532,7 +531,6 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
 
         if None != twiss_file_y:
             if use_average:
-                twiss_file_y.MUX = twiss_file_y.AVG_MUX
                 twiss_file_y.MUY = twiss_file_y.AVG_MUY
             try:
                 dppi = getattr(twiss_file_y, "DPP", 0.0)
