@@ -65,9 +65,9 @@ def main(input_file_path):
 def _write_sdds_data_line(bpm_number, set_number, all_data, plane_string, bpm_data, output_file, this_file_tbt_data, previous_file_tbt_data):
     bpm_name = bpm_data["names"][bpm_number].replace("PICK", "BPM")
     bpm_s = bpm_data["s"][bpm_number]
-    output_file.write(plane_string + " " + bpm_name + " " + str(bpm_s) + " ")
     tbt_data = map(float, map(lambda x: "{0:f}".format(x), all_data[:, bpm_number, set_number]))
     if _check_tbt_data(bpm_name, plane_string, tbt_data, previous_file_tbt_data):
+        output_file.write(plane_string + " " + bpm_name + " " + str(bpm_s) + " ")
         this_file_tbt_data[plane_string][bpm_name] = tbt_data
         output_file.write(" ".join(map(str, tbt_data)))
         output_file.write("\n")
