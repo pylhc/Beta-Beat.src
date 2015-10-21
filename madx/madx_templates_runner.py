@@ -16,10 +16,11 @@ class MadxTemplates():
     into the template.
     """
 
-    def __init__(self, template_dirs=[], output_file=None, log_file=None, verbose=False):
+    def __init__(self, template_dirs=[], output_file=None, log_file=None, verbose=False, madx_path=None):
         self._output_file = output_file
         self._log_file = log_file
         self._verbose = verbose
+        self._madx_path = madx_path
         template_dirs.append(os.path.join(CURRENT_PATH, "templates"))
         if self._verbose:
             print "Using template directories: " + str(template_dirs)
@@ -78,6 +79,8 @@ class MadxTemplates():
         new_function_code += "    from madx import madx_wrapper\n"
         new_function_code += "    template_content = iotools.read_all_lines_in_textfile(r\"" + template_path + "\")" + "\n"
         new_function_code += "    resolved_template = template_content % " + placeholder_replacement_dict + "\n"
+        new_function_code += "    if self._madx_path is not None:\n"
+        new_function_code += "        return madx_wrapper.resolve_and_run_string(resolved_template, output_file=self._output_file, log_file=self._log_file, madx_path=self._madx_path)\n"
         new_function_code += "    return madx_wrapper.resolve_and_run_string(resolved_template, output_file=self._output_file, log_file=self._log_file)\n"
         exec new_function_code in MadxTemplates.__dict__
 

@@ -25,6 +25,9 @@ def _parse_args():
     parser.add_option("-l", "--log",
                     help="File where to write the MADX output.",
                     metavar="LOG", dest="log")
+    parser.add_option("-m", "--madx",
+                    help="Path to the MAD-X executable to use",
+                    metavar="MADX", dest="madx_path")
     (options, args) = parser.parse_args()
     if len(args) == 0 and options.file is None or\
        len(args) == 1 and not options.file is None or\
@@ -38,20 +41,21 @@ def _parse_args():
         file_to_load = options.file
     output_file = options.output
     log_file = options.log
-    return file_to_load, output_file, log_file
+    madx_path = options.madx_path
+    return file_to_load, output_file, log_file, madx_path
 
 
-def resolve_and_run_file(input_file, output_file=None, log_file=None):
+def resolve_and_run_file(input_file, output_file=None, log_file=None, madx_path=MADX_PATH):
     _check_files(input_file, output_file, log_file)
     main_file_content = iotools.read_all_lines_in_textfile(input_file)
     full_madx_script = resolve(main_file_content, output_file, log_file)
-    return run(full_madx_script, log_file)
+    return run(full_madx_script, log_file, madx_path)
 
 
-def resolve_and_run_string(input_string, output_file=None, log_file=None):
+def resolve_and_run_string(input_string, output_file=None, log_file=None, madx_path=MADX_PATH):
     _check_files(None, output_file, log_file)
     full_madx_script = resolve(input_string, output_file, log_file)
-    return run(full_madx_script, log_file)
+    return run(full_madx_script, log_file, madx_path)
 
 
 def resolve(input_string, output_file=None, log_file=None):
@@ -71,7 +75,7 @@ def resolve(input_string, output_file=None, log_file=None):
     return full_madx_script
 
 
-def run(full_madx_script, log_file=None):
+def run(full_madx_script, log_file=None, madx_path=MADX_PATH):
     """
     Runs MADX with the given, already resolved, MADX script.
     If log_file is given the MADX log will be written there.
@@ -83,7 +87,7 @@ def run(full_madx_script, log_file=None):
     return madxrunner.runForInputString(full_madx_script,
                                         stdout=log_stream,
                                         stderr=log_stream,
-                                        madxPath=MADX_PATH)
+                                        madxPath=madx_path)
 
 
 def _resolve_required_macros(file_content):
@@ -133,5 +137,5 @@ def _add_macro_lib_ending(macro_lib_name):
 
 
 if __name__ == "__main__":
-    _file_to_load, _output_file, _log_file = _parse_args()
-    resolve_and_run_file(_file_to_load, _output_file, _log_file)
+    _file_to_load, _output_file, _log_file, _madx_path = _parse_args()
+    resolve_and_run_file(_file_to_load, _output_file, _log_file, _madx_path)
