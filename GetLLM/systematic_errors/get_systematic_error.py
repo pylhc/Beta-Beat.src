@@ -20,6 +20,9 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 LHC_UNCERTAINTIES_FILE = os.path.abspath(os.path.join(CURRENT_PATH,
                                                       "..", "..", "MODEL", "LHCB_II", "model", "uncertainties.json"))
 
+BPM_RANGE = 15
+BPM_EACH_SIDE = int((BPM_RANGE - 1) / 2.)
+
 B2_ERRORS_TEMPLATE = \
 '!!! %(NAME)s\n\
 select, flag=error, clear; select, flag=error, %(SELECT)s;\n\
@@ -310,8 +313,6 @@ def _get_error_bar_for_single_simulation(run_data_path, model_twiss, list_of_bpm
         beta_hor = {}
         beta_ver = {}
         num_valid_data = 0
-        BPM_RANGE = 13
-        BPM_EACH_SIDE = int((BPM_RANGE - 1) / 2.)
         left = range(-1, -1 * (BPM_EACH_SIDE + 1), -1)
         right = range(1, BPM_EACH_SIDE + 1)
         left_comb = [(x, y) for x in left for y in left if x < y]
