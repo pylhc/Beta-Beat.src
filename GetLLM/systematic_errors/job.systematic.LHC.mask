@@ -36,8 +36,8 @@ use, period=%(ACCEL)s;
 !!!!!!!!! matching
 match;
 
-vary, name=KQTD.B1;
-vary, name=KQTF.B1;
+vary, name=KQTD.%(BEAM)s;
+vary, name=KQTF.%(BEAM)s;
 
 constraint, range=#E, mux=%(QMX)s, muy=%(QMY)s;
 lmdif;
