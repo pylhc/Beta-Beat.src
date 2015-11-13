@@ -166,7 +166,7 @@ def _generate_changeparameters():
     phaseylist = Python_Classes4MAD.GenMatrix.MakePairs(phase_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
     betaxlist = make_beta_list(beta_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
     betaylist = make_beta_list(beta_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    displist = Python_Classes4MAD.GenMatrix.MakeList(dx, full_response['0'])
+    displist = Python_Classes4MAD.GenMatrix.MakeList(dx, full_response['0'], modelcut=_InputData.model_cut_dx, errorcut=_InputData.error_cut_dx)
     print "Input ready"
 
     beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
