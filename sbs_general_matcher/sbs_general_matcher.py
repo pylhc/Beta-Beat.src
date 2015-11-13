@@ -16,7 +16,7 @@ MATCHER_TYPES = {
 
 def main(input_file_path):
 
-    print "+++ Starting Segment by Segment Match +++"
+    print "+++ Segment-by-segment general matcher +++"
 
     print "Preparing MAD-X script..."
     input_data = InputData(input_file_path)
@@ -28,6 +28,7 @@ def main(input_file_path):
                         matcher.match_data_b1.range_start_name,
                         matcher.match_data_b2.range_start_name,
                         )
+    _build_changeparameters_file(input_data)
 
 
 def _run_madx_matching(input_data):
@@ -49,8 +50,8 @@ def _run_madx_matching(input_data):
         apply_correction_list.append(matcher.apply_correction())
         run_corrected_twiss_list.append(matcher.run_corrected_twiss())
     madx_templates = madx_templates_runner.MadxTemplates(
-        log_file=os.path.join(input_data.match_path, "log.out"),
-        output_file=os.path.join(input_data.match_path, "resolved.madx"),
+        log_file=os.path.join(input_data.match_path, "match_madx_log.out"),
+        output_file=os.path.join(input_data.match_path, "resolved_madx_match.madx"),
         madx_path="/afs/cern.ch/user/m/mad/bin/madx_dev64"
     )
     madx_templates.lhc_super_matcher_madx(
@@ -76,6 +77,20 @@ def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_
 
     SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, True, False, "LHCB1", None)
     SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, True, False, "LHCB2", None)
+
+
+def _build_changeparameters_file(input_data):
+    original_changeparameters_file = open(os.path.join(input_data.match_path, "changeparameters.madx"), "r")
+    changeparameters_match_file = open(os.path.join(input_data.match_path, "changeparameters_match.madx"), "w")
+    for original_line in original_changeparameters_file.readlines():
+        parts = original_line.split("=")
+        variable_name = parts[0].replace("d", "", 1).strip()
+        variable_value = -float(parts[1].replace(";", "").strip())
+        if variable_value < 0.0:
+            print >> changeparameters_match_file, variable_name, " = ", variable_name, " - ", abs(variable_value), ";"
+        else:
+            print >> changeparameters_match_file, variable_name, " = ", variable_name, " + ", abs(variable_value), ";"
+    print >> changeparameters_match_file, "return;"
 
 
 class InputData():
@@ -138,4 +153,5 @@ class InputData():
 
 
 if __name__ == "__main__":
-    main(os.path.abspath(os.path.join(CURRENT_PATH, "match_test", "input_test.json")))
+    _, _input_path = sys.argv
+    main(os.path.abspath(_input_path))
