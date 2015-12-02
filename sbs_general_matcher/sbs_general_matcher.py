@@ -2,7 +2,7 @@ import __init__  # @UnusedImport
 import os
 import sys
 import json
-from matchers import phase_matcher, coupling_matcher
+from matchers import matcher, phase_matcher, coupling_matcher, ip_matcher
 from SegmentBySegment import SegmentBySegment
 from madx import madx_templates_runner
 
@@ -10,7 +10,8 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 MATCHER_TYPES = {
     "phase": phase_matcher.PhaseMatcher,
-    "coupling": coupling_matcher.CouplingMatcher
+    "coupling": coupling_matcher.CouplingMatcher,
+    "ip": ip_matcher.IpMatcher
 }
 
 
@@ -106,38 +107,18 @@ class InputData():
     def _get_matchers_list(self, input_data):
         raw_matchers_list = input_data["matchers"]
         for matcher_name, matcher_data in raw_matchers_list.iteritems():
-            for attribute_name in ["type", "ip", "beam1_path", "beam2_path",
-                                   "use_errors", "propagation"]:
-                InputData._check_attribute(matcher_name, matcher_data, attribute_name)
+            matcher.Matcher._check_attribute(matcher_name, matcher_data, "type")
             matcher_type = matcher_data["type"]
             MatcherClass = MATCHER_TYPES.get(matcher_type, None)
             if MatcherClass is None:
-                print >> sys.stderr, 'Unknown matcher type: ' + matcher_type + ' must be in: ' + MATCHER_TYPES.keys()
+                print >> sys.stderr, 'Unknown matcher type: ' + matcher_type +\
+                                     ' must be in: ' + str(MATCHER_TYPES.keys())
                 sys.exit(-1)
-            exclude_constr_string = ""
-            if "exclude_constraints" in matcher_data:
-                exclude_constr_string = matcher_data["exclude_constraints"]
-            exclude_vars_string = ""
-            if "exclude_variables" in matcher_data:
-                exclude_vars_string = matcher_data["exclude_variables"]
-            print "Successfully read matcher " + matcher_name
-            self.matchers.append(MatcherClass(
-                matcher_name, matcher_data["ip"],
-                str(matcher_data["beam1_path"]), str(matcher_data["beam2_path"]),
-                str(self.match_path),
-                matcher_data["use_errors"], matcher_data["propagation"],
-                exclude_constr_string, exclude_vars_string
-            ))
+            self.matchers.append(MatcherClass.from_matcher_dict(matcher_name, matcher_data, self.match_path))
 
     def _check_and_assign_attribute(self, input_data, attribute_name):
-            InputData._check_attribute("input data", input_data, attribute_name)
+            matcher.Matcher._check_attribute("input data", input_data, attribute_name)
             setattr(self, attribute_name, input_data[attribute_name])
-
-    @staticmethod
-    def _check_attribute(base_dict_name, base_dict, attribute_name):
-        if not attribute_name in base_dict:
-            print >> sys.stderr, 'Cannot find ' + attribute_name + ' attribute in ' + base_dict_name + '. Aborting.'
-            sys.exit(-1)
 
     # This transforms annoying unicode string into common byte string
     @staticmethod

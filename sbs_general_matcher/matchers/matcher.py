@@ -1,6 +1,7 @@
-import abc
 import os
+import sys
 import shutil
+import json
 from Python_Classes4MAD import metaclass
 from Utilities import iotools
 
@@ -44,20 +45,21 @@ exec, twiss_segment(%(FRONT_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor.dat", %(B_INI)s
 exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", %(B_END)s);
 """
 
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
-class Matcher():
 
-    __metaclass__ = abc.ABCMeta
+class Matcher(object):
 
     ERROR_CONSTRAINT_FACTOR = 1000
     MAX_WEIGHT = 4
     MAX_REL_DELTA_LIMIT = 0.1
+    ALL_LISTS = os.path.join(CURRENT_PATH, '..', '..', 'MODEL', 'LHCB', 'fullresponse')
 
     def __init__(self, name, ip,
                  measurement_data_b1_path, measurement_data_b2_path,
                  match_path,
                  use_errors, front_or_back,
-                 exclude_constr_string, exclude_vars_string):
+                 exclude_constr_string, exclude_vars_string, all_lists=None):
         self.name = name
         self.match_data_b1 = MatchData(name, ip, measurement_data_b1_path, match_path, 1)
         self.match_data_b2 = MatchData(name, ip, measurement_data_b2_path, match_path, 2)
@@ -77,43 +79,45 @@ class Matcher():
         self.front_or_back = self.front_or_back[0]
         self.ini_end = "ini" if self.front_or_back == "f" else "end"
 
-    @abc.abstractmethod
+        if all_lists is None:
+            all_lists = Matcher.ALL_LISTS
+        self.variables_beam1 = json.load(
+            file(os.path.join(all_lists, "LHCB1", "AllLists.json"), 'r')
+        )['getListsByIR'][1]
+        self.variables_common, self.variables_beam2 = json.load(
+            file(os.path.join(all_lists, "LHCB2", "AllLists.json"), 'r')
+        )['getListsByIR']
+
     def define_aux_values(self):
         """Returns the MAD-X string to define the auxiliary values to use
         during the matching"""
         raise NotImplementedError
 
-    @abc.abstractmethod
     def define_variables(self):
         """Returns the MAD-X string to define the matching variables for this
         matcher"""
         raise NotImplementedError
 
-    @abc.abstractmethod
     def define_constraints(self, beam):
         """Returns two MAD-X strings to define the matching constraints for this
         matcher for beam 1 and 2"""
         raise NotImplementedError
 
-    @abc.abstractmethod
     def update_constraints_values(self, beam):
         """Returns the MAD-X string that updates the value of the constraints to
         let MAD-X reevaluate in every iteration."""
         raise NotImplementedError
 
-    @abc.abstractmethod
     def update_variables_definition(self, beam):
         """Returns the MAD-X string that updates the definition of the variables
         that may have been override by the modifiers file."""
         raise NotImplementedError
 
-    @abc.abstractmethod
     def generate_changeparameters(self):
         """Returns the MAD-X string that selects the variables to dump to the
         changeparameters file."""
         raise NotImplementedError
 
-    @abc.abstractmethod
     def apply_correction(self):
         """Returns the MAD-X string that applies the final correction to the
         variables, in order to get the corrected twiss files"""
@@ -180,6 +184,39 @@ class Matcher():
             }
         return run_corrected_twiss_str
 
+    @classmethod
+    def from_matcher_dict(cls, matcher_name, matcher_dict, match_path):
+        for attribute_name in ["type", "ip", "beam1_path", "beam2_path",
+                               "use_errors", "propagation"]:
+            Matcher._check_attribute(matcher_name, matcher_dict, attribute_name)
+
+        exclude_constr_string = ""
+        if "exclude_constraints" in matcher_dict:
+            exclude_constr_string = matcher_dict["exclude_constraints"]
+        exclude_vars_string = ""
+        if "exclude_variables" in matcher_dict:
+            exclude_vars_string = matcher_dict["exclude_variables"]
+        all_lists = None
+        if "all_lists" in matcher_dict:
+            all_lists = matcher_dict["all_lists"]
+        print "Successfully read matcher " + matcher_name
+        instance = Matcher(
+            matcher_name, matcher_dict["ip"],
+            str(matcher_dict["beam1_path"]), str(matcher_dict["beam2_path"]),
+            str(match_path),
+            matcher_dict["use_errors"], matcher_dict["propagation"],
+            exclude_constr_string, exclude_vars_string,
+            all_lists=all_lists
+        )
+        instance.__class__ = cls
+        return instance
+
+    @staticmethod
+    def _check_attribute(base_dict_name, base_dict, attribute_name):
+        if attribute_name not in base_dict:
+            print >> sys.stderr, 'Cannot find ' + attribute_name + ' attribute in ' + base_dict_name + '. Aborting.'
+            sys.exit(-1)
+
     def _parse_exclude_string(self, exclude_string):
         if not exclude_string == "":
             exclude_list = [var_name.strip()
@@ -195,6 +232,16 @@ class Matcher():
             return self.match_data_b2
         else:
             return None
+
+    def get_constraint_weight(self, value, error, filter_function):
+        if not filter_function(value):
+            weight = 1e-6
+        elif not self.use_errors:
+            weight = 1.
+        else:
+            weight = 1. / ((Matcher.ERROR_CONSTRAINT_FACTOR * error) ** 2)
+            if weight > Matcher.MAX_WEIGHT:
+                weight = Matcher.MAX_WEIGHT
 
 
 class MatchData():

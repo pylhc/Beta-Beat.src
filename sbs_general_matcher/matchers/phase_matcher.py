@@ -1,46 +1,24 @@
 import os
-import json
-from matchers.matcher import Matcher
+from sbs_general_matcher.matchers.matcher import Matcher
 from Python_Classes4MAD import metaclass
 
-DEF_CONSTR_AUX_VALUES_TEMPLATE = """
-use, period=%(SEQ_B1)s;
-twiss, beta0=%(INIT_VALS_B1)s, chrom, table=%(B1_TABLE_NAME)s;
-
-use, period=%(SEQ_B2)s;
-twiss, beta0=%(INIT_VALS_B2)s, chrom, table=%(B2_TABLE_NAME)s;
-
-%(PHASES)s
-
-%(S_VARIABLES)s
-%(D_VARIABLES)s
-"""
-
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
-ALL_LISTS = os.path.join(CURRENT_PATH, '..', '..', 'MODEL', 'LHCB', 'fullresponse')
 
 
 class PhaseMatcher(Matcher):
 
-    def __init__(self, name, ip,
-                 measurement_data_b1_path, measurement_data_b2_path,
-                 match_path,
-                 use_errors, front_or_back,
-                 exclude_constr_string, exclude_vars_string,
-                 all_lists=ALL_LISTS):
-        super(PhaseMatcher, self).__init__(
-            name, ip,
-            measurement_data_b1_path, measurement_data_b2_path,
-            match_path,
-            use_errors, front_or_back,
-            exclude_constr_string, exclude_vars_string,
-        )
-        self.variables_beam1 = json.load(
-            file(os.path.join(all_lists, "LHCB1", "AllLists.json"), 'r')
-        )['getListsByIR'][1]
-        self.variables_common, self.variables_beam2 = json.load(
-            file(os.path.join(all_lists, "LHCB2", "AllLists.json"), 'r')
-        )['getListsByIR']
+    DEF_CONSTR_AUX_VALUES_TEMPLATE = """
+    use, period=%(SEQ_B1)s;
+    twiss, beta0=%(INIT_VALS_B1)s, chrom, table=%(B1_TABLE_NAME)s;
+
+    use, period=%(SEQ_B2)s;
+    twiss, beta0=%(INIT_VALS_B2)s, chrom, table=%(B2_TABLE_NAME)s;
+
+    %(PHASES)s
+
+    %(S_VARIABLES)s
+    %(D_VARIABLES)s
+    """
 
     def define_aux_values(self):
         phases_str = ""
@@ -68,7 +46,7 @@ class PhaseMatcher(Matcher):
                 variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
                 variables_d_str += variable + ' := ' + self.name + "." + variable + '_0' + ' + d' + variable + ';\n'
 
-        return DEF_CONSTR_AUX_VALUES_TEMPLATE % {
+        return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
             "SEQ_B1": "lhcb1_" + self.front_or_back + "_" + self.name,
             "SEQ_B2": "lhcb2_" + self.front_or_back + "_" + self.name,
             "INIT_VALS_B1": "b1_" + self.ini_end + "_" + self.name,
@@ -113,14 +91,7 @@ class PhaseMatcher(Matcher):
                         error = sbs_data.ERRBACKPHASEX[index] if plane == "x" else sbs_data.ERRBACKPHASEY[index]
                     s = sbs_data.S[index]
 
-                    if abs(phase) > 0.25:
-                        weight = 1e-6
-                    elif not self.use_errors:
-                        weight = 1
-                    else:
-                        weight = 1 / ((Matcher.ERROR_CONSTRAINT_FACTOR * error) ** 2)
-                        if weight > Matcher.MAX_WEIGHT:
-                            weight = Matcher.MAX_WEIGHT
+                    weight = self.get_constraint_weight(phase, error, lambda value: abs(value) <= 0.25)
 
                     constr_string += '    constraint, weight = ' + str(weight) + ' , '
                     constr_string += 'expr =  ' + self.name + '.dmu' + plane + name + ' = ' + str(phase) + '; '
@@ -157,5 +128,3 @@ class PhaseMatcher(Matcher):
                 if variable not in self.excluded_variables_list:
                     apply_correction_str += variable + ' = ' + self.name + "." + variable + '_0 + d' + variable + ';\n'
         return apply_correction_str
-
-Matcher.register(PhaseMatcher)  # @UndefinedVariable Eclipse doesn't like this

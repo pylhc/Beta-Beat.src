@@ -1,6 +1,6 @@
 import os
 import json
-from matchers.matcher import Matcher
+from sbs_general_matcher.matchers.matcher import Matcher
 from Python_Classes4MAD import metaclass
 
 DEF_CONSTR_AUX_VALUES_TEMPLATE = """
@@ -31,11 +31,8 @@ class CouplingMatcher(Matcher):
             measurement_data_b1_path, measurement_data_b2_path,
             match_path,
             use_errors, front_or_back,
-            exclude_constr_string, exclude_vars_string,
+            exclude_constr_string, exclude_vars_string, all_lists
         )
-        self.variables_common = json.load(
-            file(os.path.join(all_lists, "LHCB2", "AllLists_couple.json"), 'r')
-        )['getListsByIR']
         self.f_terms_strings_b1 = self._get_f_terms_strings(1)
         self.f_terms_strings_b2 = self._get_f_terms_strings(2)
 
@@ -132,5 +129,10 @@ class CouplingMatcher(Matcher):
             f_terms_string += self.name + "." + bpm_name + "_f1010i = " + bpm_name + "_f1010i;\n"
         return f_terms_string
 
-
-Matcher.register(CouplingMatcher)  # @UndefinedVariable Eclipse doesn't like this
+    @classmethod
+    def from_matcher_dict(cls, matcher_name, matcher_dict, match_path):
+        instance = Matcher.from_matcher_dict(matcher_name, matcher_dict, match_path)
+        instance.__class__ = cls
+        instance.f_terms_strings_b1 = instance._get_f_terms_strings(1)
+        instance.f_terms_strings_b2 = instance._get_f_terms_strings(2)
+        return instance

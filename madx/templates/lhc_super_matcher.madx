@@ -1,0 +1,63 @@
+
+!@require %(LHC_MODE)s
+!@require segments
+
+!!! Sequences definition
+option, -echo, -warn;
+    exec, define_lhc_links();
+    exec, load_main_sequence();
+    exec, cycle_sequences();
+    exec, define_nominal_beams();
+    exec, set_default_crossing_scheme();
+option, echo, warn;
+
+extract_segment_sequence(base_seq, front_seq, back_seq, start_from, end_at): macro = {
+    EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=front_seq;
+    seqedit, sequence=front_seq;
+    flatten;
+    endedit;
+
+    EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=back_seq;
+    seqedit, sequence=back_seq;
+    flatten;
+    reflect; ! reverse command
+    endedit;
+};
+
+twiss_segment(sequence, filename, init_vals): macro = {
+    use, period = sequence;
+    exec, select_elements();
+    twiss, beta0 = init_vals, chrom, file = filename;
+};
+
+!!! Extract segments sequences
+%(EXTRACT_SEQUENCES)s
+
+
+!!! Initial values gathering
+%(SET_INITIAL_VALUES)s
+
+
+!!!!!! Matching !!!!!!
+
+%(DEFINE_CONSTRAINTS_AUX_VALS)s
+
+match, use_macro;
+
+%(DEFINE_VARIABLES)s
+
+option, -warn;
+%(SET_MATCHING_MACROS)s
+option, warn;
+
+lmdif,    tolerance:=1e-24, calls:=100000000;
+endmatch;
+
+
+!!! Generating final changeparameters file
+select, flag=save, clear;
+%(GEN_CHANGEPARAMETERS)s
+save, file="%(MATCH_PATH)s/changeparameters.madx";
+
+!!! Running corrected twiss
+%(RUN_CORRECTED_TWISS)s
