@@ -199,6 +199,28 @@ def write_dispersion_diff_files(path, twiss_cor, twiss_no):
         print "NO dispersion."
     except AttributeError:
         print "Empty table in getDy.out?! NO dispersion"
+    try:
+        twiss_getndx = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getNDx.out'))
+        file_ndx = open(os.path.join(path, "ndx.out"), "w")
+        print >> file_ndx, "* NAME S MEA ERROR MODEL"
+        print >> file_ndx, "$ %s %le %le %le %le"
+        for i in range(len(twiss_getndx.NAME)):
+            bpm_name = twiss_getndx.NAME[i]
+            bpm_included = True
+            try:
+                check = twiss_cor.NAME[twiss_cor.indx[bpm_name]]  # @UnusedVariable
+            except:
+                print "No ", bpm_name
+                bpm_included = False
+            if bpm_included:
+                j = twiss_cor.indx[bpm_name]
+                print >> file_ndx, bpm_name, twiss_getndx.S[i], twiss_getndx.NDX[i] - twiss_getndx.NDXMDL[i], twiss_getndx.STDNDX[i], (twiss_cor.DX[j] / sqrt(twiss_cor.BETX[j])) - (twiss_no.DX[j] / sqrt(twiss_no.BETX[j]))
+
+        file_ndx.close()
+    except IOError:
+        print "NO normalized dispersion"
+    except AttributeError:
+        print "Empty table in getNDx.out?! NO normalized dispersion"
 
 
 def write_coupling_diff_file(path, twiss_cor):
