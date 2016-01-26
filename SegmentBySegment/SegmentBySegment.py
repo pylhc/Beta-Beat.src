@@ -74,6 +74,7 @@ from madx import madx_templates_runner
 import numpy
 from numpy.linalg import inv, det
 import sbs_writers.sbs_beta_writer
+import sbs_writers.sbs_beta_beating_writer
 import sbs_writers.sbs_phase_writer
 import sbs_writers.sbs_dispersion_writer
 import sbs_writers.sbs_coupling_writer
@@ -600,6 +601,11 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
         sbs_writers.sbs_phase_writer.write_phase(element_name,
                                                  input_data.total_phase_x, input_data.total_phase_y, input_data.beta_x, input_data.beta_y,
                                                  propagated_models, save_path)
+        sbs_writers.sbs_beta_beating_writer.write_beta_beat(
+            element_name,
+            input_data.beta_x, input_data.beta_y,
+            input_data.amplitude_beta_x, input_data.amplitude_beta_y,
+            propagated_models, save_path)
     if element_has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
@@ -1027,8 +1033,12 @@ class _InputData(object):
 
         self.beta_y = _get_twiss_for_one_of("getbetay_free.out", "getbetay.out")
 
-        self.amplitude_beta_x = twiss(_join_output_with("getampbetax.out"))
-        self.amplitude_beta_y = twiss(_join_output_with("getampbetay.out"))
+        try:
+            self.amplitude_beta_x = twiss(_join_output_with("calibrated_betas_x.out"))
+            self.amplitude_beta_y = twiss(_join_output_with("calibrated_betas_y.out"))
+        except IOError:
+            self.amplitude_beta_x = None
+            self.amplitude_beta_y = None
 
         self.phase_x = _get_twiss_for_one_of("getphasex_free.out", "getphasex.out")
         self.phase_y = _get_twiss_for_one_of("getphasey_free.out", "getphasey.out")
