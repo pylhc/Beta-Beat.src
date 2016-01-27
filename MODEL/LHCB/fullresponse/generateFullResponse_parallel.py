@@ -83,6 +83,9 @@ def _parse_args():
     parser.add_option("-k", "--deltak",
                       help="delta k to be applied to quads for sensitivity matrix",
                       default="0.00002", dest="k")
+    parser.add_option("-l", "--deltakl",
+                      help="delta kl to be applied to quads for sensitivity matrix",
+                      default="0.0", dest="kl")
 
     options, _ = parser.parse_args()
 
@@ -93,24 +96,28 @@ class _InputData(object):
     """ Static class to access user input parameter and num_of_cpus and process pool"""
     output_path = ""
     delta_k = 0.0
+    delta_kl = 0.0
     core_path_with_accel = ""
 
     number_of_cpus = 0
     process_pool = None
 
     @staticmethod
-    def static_init(accel, output_path, path_to_core_files_without_accel, delta_k):
+    def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl):
         if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL"):
             raise ValueError("Unknown accelerator: " + accel)
         if not Utilities.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")
         if not Utilities.math.can_str_be_parsed_to_number(delta_k):
             raise ValueError("Delta k is not a number: " + delta_k)
+        if not Utilities.math.can_str_be_parsed_to_number(delta_kl):
+            raise ValueError("Delta kl is not a number: " + delta_kl)
         if not Utilities.iotools.dirs_exist(os.path.join(path_to_core_files_without_accel, accel)):
             raise ValueError("Core path does not exist: " + _InputData.core_path_with_accel)
 
         _InputData.output_path = output_path
         _InputData.delta_k = float(delta_k)
+        _InputData.delta_kl = float(delta_kl)
         _InputData.core_path_with_accel = os.path.join(path_to_core_files_without_accel, accel)
         _InputData.number_of_cpus = multiprocessing.cpu_count()
         _InputData.process_pool = multiprocessing.Pool(processes=_InputData.number_of_cpus)
@@ -122,9 +129,9 @@ class _InputData(object):
 #=======================================================================================================================
 # main()-function
 #=======================================================================================================================
-def main(accel, output_path, path_to_core_files_without_accel, delta_k):
+def main(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl):
 
-    _InputData.static_init(accel, output_path, path_to_core_files_without_accel, delta_k)
+    _InputData.static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl)
 
     _generate_fullresponse_for_chromatic_coupling()
     _generate_fullresponse_for_coupling()
@@ -139,10 +146,12 @@ def _generate_fullresponse_for_chromatic_coupling():
     variables = knobsdict["kss"]
     delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.05    # increment of variables
+    incr_dict = {}
     dpp = 0.0001
 
     FullResponse = {}   # Initialize FullResponse
     FullResponse['incr'] = incr           # Store this info for future use
+    FullResponse['incr_dict'] = incr_dict # "     "     "
     FullResponse['delta1'] = delta1
 
     ######## loop over normal variables
@@ -151,6 +160,7 @@ def _generate_fullresponse_for_chromatic_coupling():
         delta = numpy.array(delta1)
         delta[i] = delta[i] + incr[i]
         var = variables[i]
+        incr_dict[var] = incr[i]
         print >> f, var, "=", var, "+(", delta[i], ");"
         print >> f, "twiss, deltap= " + str(dpp) + ",file=\"" + _join_with_output("twiss.dp+.") + var + "\";"
         print >> f, "twiss, deltap=-" + str(dpp) + ",file=\"" + _join_with_output("twiss.dp-.") + var + "\";"
@@ -184,9 +194,11 @@ def _generate_fullresponse_for_coupling():
     variables = knobsdict["Qs"]
     delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.0001    # increment of variables
+    incr_dict = {}
 
     FullResponse = {}   # Initialize FullResponse
     FullResponse['incr'] = incr           # Store this info for future use
+    FullResponse['incr_dict'] = incr_dict # "     "     "
     FullResponse['delta1'] = delta1       # "     "     "
 
     ######## loop over normal variables
@@ -195,6 +207,7 @@ def _generate_fullresponse_for_coupling():
         delta = numpy.array(delta1)
         delta[i] = delta[i] + incr[i]
         var = variables[i]
+        incr_dict[var] = incr[i]
         print >> f, var, "=", var, "+(", delta[i], ");"
         print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
         print >> f, var, "=", var, "-(", delta[i], ");"
@@ -228,20 +241,40 @@ def _generate_fullresponse_for_beta():
     delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
     #incr=ones(len(variables))*0.00005    #increment of variables    #### when squeeze low twiss fails because of to big delta
     incr = numpy.ones(len(variables)) * _InputData.delta_k
-
+    incr_dict = {}
+    if _InputData.delta_kl > 0.0:
+        variables2 = knobsdict["LQ"]
+        delta2 = numpy.zeros(len(variables2)) * 1.0   # Zero^th of the variables
+        incr2 = numpy.ones(len(variables2)) * _InputData.delta_kl
+        variables = variables + variables2
+        delta1 = numpy.concatenate((delta1,delta2))
+        incr = numpy.concatenate((incr,incr2))
     FullResponse = {}   # Initialize FullResponse
     FullResponse['incr'] = incr           # Store this info for future use
+    FullResponse['incr_dict'] = incr_dict # "     "     "
     FullResponse['delta1'] = delta1       # "     "     "
-
+    if _InputData.core_path_with_accel[-5:] == "LHCB1":
+        path_B1tfs = os.path.join(_InputData.core_path_with_accel, "varsKLvsK_B1.tfs")
+        twiss_kl = metaclass.twiss(path_B1tfs)
+    if _InputData.core_path_with_accel[-5:] == "LHCB2":
+        path_B2tfs = os.path.join(_InputData.core_path_with_accel, "varsKLvsK_B2.tfs")
+        twiss_kl = metaclass.twiss(path_B2tfs)
+    
     ######## loop over normal variables
     f = open(_join_with_output("iter.madx"), "w")
     for i in range(0, len(delta1)):  # Loop over variables
         delta = numpy.array(delta1)
         delta[i] = delta[i] + incr[i]
         var = variables[i]
-        print >> f, var, "=", var, "+(", delta[i], ");"
-        print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
-        print >> f, var, "=", var, "-(", delta[i], ");"
+        incr_dict[var] = incr[i]
+        if var[0] == "l":
+            print >> f, var, "=", var, "+(", delta[i], ");", var[1:], "=", var[1:], "+(", var, "/", str(twiss_kl.LENGTH[twiss_kl.indx[var]]), ");"
+            print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
+            print >> f, var[1:], "=", var[1:], "-(", var, "/", str(twiss_kl.LENGTH[twiss_kl.indx[var]]), ");", var, "=", var, "-(", delta[i], ");"
+        else:
+            print >> f, var, "=", var, "+(", delta[i], ");"
+            print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
+            print >> f, var, "=", var, "-(", delta[i], ");"
 
     print >> f, "twiss,file=\"" + _join_with_output("twiss.0") + "\";"
     f.close()
@@ -409,7 +442,8 @@ def _start():
          accel=options.accel,
          output_path=options.path,
          path_to_core_files_without_accel=options.core,
-         delta_k=options.k
+         delta_k=options.k,
+         delta_kl=options.kl
          )
 
     timeGlobal = time.time() - timeStartGlobal

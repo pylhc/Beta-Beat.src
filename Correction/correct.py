@@ -122,6 +122,9 @@ def _parse_args():
     parser.add_option("-w", "--weight",
                     help="Weighting factor (phasex, phasey, betax, betay, dispersion, tunes)",
                     metavar="WGT", default="1,1,0,0,1,10", dest="WGT")
+    parser.add_option("-x", "--errweight",
+                    help="Switcher for error based weights",
+                    metavar="ErrWeight", default="1", dest="ErrWeight")
     (options, args) = parser.parse_args()  # @UnusedVariable no args
     return options
 
@@ -140,6 +143,7 @@ def main(
          beta_beat_root=Utilities.iotools.get_absolute_path_to_betabeat_root(),
          min_strength=0.000001,
          weights_on_corrections="1,1,0,0,1,10",
+         error_weights=1,
          path_to_optics_files_dir="nominal.opt",
          variables="MQTb1",
          index_of_num_of_beams_in_gui=0,
@@ -148,7 +152,7 @@ def main(
          ):
 
     _InputData.static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength,
-                           weights_on_corrections, path_to_optics_files_dir, variables, index_of_num_of_beams_in_gui,
+                           weights_on_corrections, error_weights, path_to_optics_files_dir, variables, index_of_num_of_beams_in_gui,
                            num_of_correctors, algorithm)
 
     _generate_changeparameters()
@@ -164,12 +168,12 @@ def _generate_changeparameters():
 
     phasexlist = Python_Classes4MAD.GenMatrix.MakePairs(phase_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
     phaseylist = Python_Classes4MAD.GenMatrix.MakePairs(phase_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    betaxlist = make_beta_list(beta_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    betaylist = make_beta_list(beta_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    displist = Python_Classes4MAD.GenMatrix.MakeList(dx, full_response['0'], modelcut=_InputData.model_cut_dx, errorcut=_InputData.error_cut_dx)
+    betaxlist = Python_Classes4MAD.GenMatrix.MakeBetaList(beta_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
+    betaylist = Python_Classes4MAD.GenMatrix.MakeBetaList(beta_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
+    displist = Python_Classes4MAD.GenMatrix.MakeDispList(dx, full_response['0'], modelcut=_InputData.model_cut_dx, errorcut=_InputData.error_cut_dx)
     print "Input ready"
 
-    beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
+    beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, _InputData.accel_path, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list, _InputData.error_weights)
     sensitivity_matrix = beat_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensitivity_matrix will be stored in beat_inp
 
     if _InputData.algorithm == "SVD":
@@ -187,7 +191,7 @@ def _generate_changeparameters():
             if len(varslist) == 0:
                 print >> sys.stderr, "You want to correct with too high cut on the corrector strength"
                 sys.exit(1)
-            beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list)
+            beat_inp = Python_Classes4MAD.GenMatrix.beat_input(varslist, _InputData.accel_path, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list, _InputData.error_weights)
             sensitivity_matrix = beat_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensitivity_matrix will be stored in beat_inp
             [deltas, varslist] = Python_Classes4MAD.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
             print "Initial correctors:", il, ". Current: ", len(varslist), ". Removed for being lower than:", _InputData.min_strength, "Iteration:", iteration
@@ -345,6 +349,7 @@ class _InputData(object):
     model_cut_dx = 0.0
     min_strength = 0.0
     weights_list = []
+    error_weights = 1
     path_to_optics_files_dir = ""
     variables_list = []
     use_two_beams = False  # not used in code except of a print (vimaier)
@@ -353,7 +358,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength,
-                    weights_on_corrections, path_to_optics_files_dir, variables, index_of_num_of_beams_in_gui,
+                    weights_on_corrections, error_weights, path_to_optics_files_dir, variables, index_of_num_of_beams_in_gui,
                     num_of_correctors, algorithm):
         if not Utilities.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain getcouple[_free].out and getDy.out(when last flag in weights is 1.")
@@ -367,10 +372,15 @@ class _InputData(object):
         if "SPS" != accel:
             _InputData.min_strength = float(min_strength)
 
-        if re.match("^[01],[01],[01],[01],[01],\\d\\d$", weights_on_corrections) is None:
-            raise ValueError("Wrong syntax of weigths: " + weights_on_corrections)
+        if not Utilities.math.can_str_be_parsed_to_number(error_weights):
+            raise ValueError("Given error based weight is not a number: " + error_weights)
+        _InputData.error_weights = int(error_weights)
+        
         weights = weights_on_corrections.split(',')
-        _InputData.weights_list = [int(weights[0]), int(weights[1]), int(weights[2]), int(weights[3]), int(weights[4]), int(weights[5])]
+        for i in range(len(weights)):
+            if not Utilities.math.can_str_be_parsed_to_number(weights[i]):
+                raise ValueError("Wrong syntax of weigths: " + weights_on_corrections)
+        _InputData.weights_list = [float(weights[0]), float(weights[1]), float(weights[2]), float(weights[3]), float(weights[4]), float(weights[5])]
 
         if not Utilities.iotools.dirs_exist(path_to_optics_files_dir):
             raise ValueError("Given path to optics files does not exist: " + path_to_optics_files_dir)
@@ -443,6 +453,7 @@ class _InputData(object):
         print "Model cut:", _InputData.model_cut
         print "Model cut Dx:", _InputData.model_cut_dx
         print "Weights for correctors:", _InputData.weights_list
+        print "Error based weights:", _InputData.error_weights
         print "Use two beams?:", _InputData.use_two_beams
         print "Number of correctors:", _InputData.num_of_correctors
         print "Chosen algorithm:", _InputData.algorithm
@@ -466,6 +477,7 @@ def _start():
          beta_beat_root=options.rpath,
          min_strength=options.MinStr,
          weights_on_corrections=options.WGT,
+         error_weights=options.ErrWeight,
          path_to_optics_files_dir=options.opt,
          variables=options.var,
          index_of_num_of_beams_in_gui=options.JustOneBeam,
