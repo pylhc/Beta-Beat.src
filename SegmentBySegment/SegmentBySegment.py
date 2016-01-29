@@ -69,10 +69,11 @@ import __init__  # @UnusedImport used for appending paths
 import Utilities.iotools
 import json
 from Python_Classes4MAD.metaclass import twiss
+from Utilities import bpm
 from madx import madx_templates_runner
 
 import numpy
-from numpy.linalg import inv, det
+
 import sbs_writers.sbs_beta_writer
 import sbs_writers.sbs_beta_beating_writer
 import sbs_writers.sbs_phase_writer
@@ -226,6 +227,8 @@ def main(options):
 
         propagated_models = _PropagatedModels(save_path, element_name)
 
+        kmod_data_file_x, kmod_data_file_y = _get_kmod_files(element_name)
+
         getAndWriteData(element_name,
                         input_data,
                         input_model,
@@ -236,7 +239,9 @@ def main(options):
                         element_has_coupling,
                         element_has_chrom,
                         selected_accelerator_no_suffix,
-                        summaries)
+                        summaries,
+                        kmod_data_file_x,
+                        kmod_data_file_y)
 
         # TODO: This has to be fixed
         if not is_element:
@@ -418,6 +423,49 @@ def _get_chrom_parameters(input_data, startbpm, endbpm):
             print "Start and end BPMs found in chromatic measurement."
     return element_has_chrom, chrom_ini, chrom_end
 
+
+def _get_kmod_files(element_name):
+    try:
+        kmod_path_x = twiss(_join_output_with("kmod_data_" + element_name + "_x.out"))
+        kmod_path_y = twiss(_join_output_with("kmod_data_" + element_name + "_y.out"))
+    except IOError:
+        kmod_path_x = None
+        kmod_path_y = None
+    return kmod_path_x, kmod_path_y
+
+
+def _get_calibrated_betas(plane):
+    amplitude_beta = None
+    calibration_data = None
+    try:
+        amplitude_beta = _get_twiss_for_one_of("getampbeta" + plane + "_free.out", "getampbeta" + plane + ".out")
+        calibration_data = twiss(_join_output_with("calibration_" + plane + ".out"))
+    except IOError:
+        return None
+    calibrated_betas = CalibratedBetas(calibration_data.NAME, calibration_data.POSITION,  # TODO: Change the tables to S not POSITION
+                                       plane, calibration_data.indx)
+    for bpm_name in calibration_data.NAME:
+        if bpm_name in amplitude_beta.NAME:
+            amp_index = amplitude_beta.indx[bpm_name]
+            amp_beta = getattr(amplitude_beta, "BET" + plane.upper())[amp_index]
+            getattr(calibrated_betas, "BET" + plane.upper()).append(amp_beta)
+            err_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "STD")[amp_index]
+            getattr(calibrated_betas, "BET" + plane.upper() + "STD").append(err_amp_beta)
+            mdl_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "MDL")[amp_index]
+            getattr(calibrated_betas, "BET" + plane.upper() + "MDL").append(mdl_amp_beta)
+    return calibrated_betas
+
+
+class CalibratedBetas(object):
+    def __init__(self, name, s, plane, indx_dict):
+        self.NAME = name
+        self.S = s
+        setattr(self, "BET" + plane.upper(), [])
+        setattr(self, "BET" + plane.upper() + "STD", [])
+        setattr(self, "BET" + plane.upper() + "MDL", [])
+        self.indx = indx_dict
+
+
 #===================================================================================================
 # helper-functions
 #===================================================================================================
@@ -568,7 +616,13 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     return [selected_left_bpm, selected_right_bpm]
 
 
-def getAndWriteData(element_name, input_data, input_model, propagated_models, save_path, is_element, element_has_dispersion, element_has_coupling, element_has_chrom, selected_accelerator, summaries):
+def getAndWriteData(
+    element_name, input_data, input_model, propagated_models,
+    save_path, is_element,
+    element_has_dispersion, element_has_coupling, element_has_chrom,
+    selected_accelerator, summaries,
+    kmod_data_x, kmod_data_y
+):
     '''
     Function that returns the optics function at the given element
 
@@ -605,6 +659,7 @@ def getAndWriteData(element_name, input_data, input_model, propagated_models, sa
             element_name,
             input_data.beta_x, input_data.beta_y,
             input_data.amplitude_beta_x, input_data.amplitude_beta_y,
+            kmod_data_x, kmod_data_y,
             propagated_models, save_path)
     if element_has_dispersion:
         sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
@@ -1033,12 +1088,8 @@ class _InputData(object):
 
         self.beta_y = _get_twiss_for_one_of("getbetay_free.out", "getbetay.out")
 
-        try:
-            self.amplitude_beta_x = twiss(_join_output_with("calibrated_betas_x.out"))
-            self.amplitude_beta_y = twiss(_join_output_with("calibrated_betas_y.out"))
-        except IOError:
-            self.amplitude_beta_x = None
-            self.amplitude_beta_y = None
+        self.amplitude_beta_x = _get_calibrated_betas("x")
+        self.amplitude_beta_y = _get_calibrated_betas("y")
 
         self.phase_x = _get_twiss_for_one_of("getphasex_free.out", "getphasex.out")
         self.phase_y = _get_twiss_for_one_of("getphasey_free.out", "getphasey.out")
