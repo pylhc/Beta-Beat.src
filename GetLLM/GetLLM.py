@@ -39,6 +39,7 @@ Change history::
         git log GetLLM.py
 
 '''
+import os
 import sys
 import traceback
 import math
@@ -58,6 +59,8 @@ import algorithms.interaction_point
 import algorithms.chi_terms
 import Utilities.iotools
 import copy
+
+from numpy import array
 
 
 ####
@@ -128,6 +131,9 @@ def _parse_args():
     parser.add_option("-r", "--average_tune",
                     help="Set to 1 to use average tune for all BPMs instead of specific for each one.",
                     metavar="AVERAGE_TUNE", type="int", default=0, dest="use_average")
+    parser.add_option("--calibration",
+                    help="Path to the directory where the calibration files (calibration_x.out, calibration_y.out) are stored.",
+                    metavar="CALIBRATION", default=None, dest="calibration_dir_path")
 
     options, _ = parser.parse_args()
     options.use_only_three_bpms_for_beta_from_phase = "1" == options.use_only_three_bpms_for_beta_from_phase
@@ -154,7 +160,8 @@ def main(
          use_only_three_bpms_for_beta_from_phase=False,
          number_of_bpms=10,
          range_of_bpms=11,
-         use_average=False
+         use_average=False,
+         calibration_dir_path=None
          ):
     '''
     GetLLM main function.
@@ -196,7 +203,8 @@ def main(
 
     files_dict = _create_tfs_files(getllm_d, model_filename)
 
-    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict, use_average)
+    calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
+    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict, use_average, calibration_twiss)
 
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
 
@@ -427,7 +435,7 @@ def _create_tfs_files(getllm_d, model_filename):
 # END _create_tfs_files -----------------------------------------------------------------------------
 
 
-def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict, use_average):
+def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict, use_average, calibration_twiss):
 
     if turn_by_turn_algo == "SUSSIX":
         suffix_x = '_linx'
@@ -460,6 +468,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
         if None != twiss_file_x:
             if use_average:
                 twiss_file_x.MUX = twiss_file_x.AVG_MUX
+            if calibration_twiss is not None:
+                twiss_file_x.AMPX, twiss_file_x.ERRAMPX = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
             try:
                 dppi = getattr(twiss_file_x, "DPP", 0.0)
             except AttributeError:
@@ -532,6 +542,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
         if None != twiss_file_y:
             if use_average:
                 twiss_file_y.MUY = twiss_file_y.AVG_MUY
+            if calibration_twiss is not None:
+                twiss_file_y.AMPY, twiss_file_y.ERRAMPY = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
             try:
                 dppi = getattr(twiss_file_y, "DPP", 0.0)
             except AttributeError:
@@ -993,6 +1005,42 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
 # END _calculate_kick -------------------------------------------------------------------------------
 
 
+def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
+    calibration_file = calibration_twiss[plane]
+    cal_amplitudes = []
+    err_cal_amplitudes = []
+    for bpm_name in drive_file.NAME:
+        drive_index = drive_file.indx[bpm_name]
+        cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
+        err_cal_amplitude = 0.
+        if bpm_name in calibration_file.NAME:
+            cal_index = calibration_file.indx[bpm_name]
+            cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
+            err_cal_amplitude = calibration_file.ERROR_CALIBRATION[cal_index]
+        cal_amplitudes.append(cal_amplitude)
+        err_cal_amplitudes.append(err_cal_amplitude)
+    return array(cal_amplitudes), array(err_cal_amplitudes)
+# END _get_calibrated_amplitudes --------------------------------------------------------------------
+
+
+def _copy_calibration_files(output_path, calibration_dir_path):
+    calibration_twiss = {}
+    if calibration_dir_path is not None:
+        original_cal_file_path_x = os.path.join(calibration_dir_path, "calibration_x.out")
+        original_cal_file_path_y = os.path.join(calibration_dir_path, "calibration_y.out")
+        cal_file_path_x = os.path.join(output_path, "calibration_x.out")
+        cal_file_path_y = os.path.join(output_path, "calibration_y.out")
+        Utilities.iotools.copy_item(original_cal_file_path_x, cal_file_path_x)
+        Utilities.iotools.copy_item(original_cal_file_path_y, cal_file_path_y)
+
+        calibration_twiss["X"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_x)
+        calibration_twiss["Y"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_y)
+        return calibration_twiss
+    else:
+        return None
+# END _copy_calibration_files --------------------------------------------------------------------
+
+
 #===================================================================================================
 # helper classes for data structures
 #===================================================================================================
@@ -1135,6 +1183,7 @@ def _start():
          use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase,
          number_of_bpms=options.number_of_bpms,
          range_of_bpms=options.range_of_bpms,
-         use_average=True if options.use_average == 1 else False)
+         use_average=True if options.use_average == 1 else False,
+         calibration_dir_path=options.calibration_dir_path)
 if __name__ == "__main__":
     _start()
