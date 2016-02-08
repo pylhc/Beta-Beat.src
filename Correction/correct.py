@@ -99,11 +99,11 @@ def _parse_args():
                       help="Singular value cut for the generalized inverse",
                       metavar="CUT", default=0.1, dest="cut")
     parser.add_option("-e", "--errorcut",
-                      help="Maximum error allowed for the phase and dispersion measurements, separated by commas; e.g. -e 0.013,0.2",
-                      metavar="ERRORCUT", default="0.013,0.2", dest="errorcut")
+                      help="Maximum error allowed for the beta, phase and dispersion measurements, separated by commas; e.g. -e 0.013,0.2",
+                      metavar="ERRORCUT", default="0.013,0.013,0.2", dest="errorcut")
     parser.add_option("-m", "--modelcut",
-                      help="Maximum difference allowed between model and measured phase and dispersion, separated by commas; e.g. -e 0.02,0.2",
-                      metavar="MODELCUT", default="0.02,0.2", dest="modelcut")
+                      help="Maximum difference allowed between model and measured beta, phase and dispersion, separated by commas; e.g. -e 0.02,0.2",
+                      metavar="MODELCUT", default="0.02,0.02,0.2", dest="modelcut")
     parser.add_option("-r", "--rpath",
                       help="Path to BetaBeat repository (default is the afs repository)",
                       metavar="RPATH", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="rpath")
@@ -138,8 +138,8 @@ def main(
          output_path,
          accel="LHCB1",
          singular_value_cut=0.1,
-         errorcut="0.013,0.2",
-         modelcut="0.02,0.2",
+         errorcut="0.013,0.013,0.2",
+         modelcut="0.02,0.02,0.2",
          beta_beat_root=Utilities.iotools.get_absolute_path_to_betabeat_root(),
          min_strength=0.000001,
          weights_on_corrections="1,1,0,0,1,10",
@@ -166,10 +166,10 @@ def main(
 def _generate_changeparameters():
     full_response, phase_x, phase_y, beta_x, beta_y, dx, varslist = _load_input_files()
 
-    phasexlist = Python_Classes4MAD.GenMatrix.MakePairs(phase_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    phaseylist = Python_Classes4MAD.GenMatrix.MakePairs(phase_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    betaxlist = Python_Classes4MAD.GenMatrix.MakeBetaList(beta_x, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
-    betaylist = Python_Classes4MAD.GenMatrix.MakeBetaList(beta_y, full_response['0'], modelcut=_InputData.model_cut, errorcut=_InputData.error_cut)
+    phasexlist = Python_Classes4MAD.GenMatrix.MakePairs(phase_x, full_response['0'], modelcut=_InputData.model_cut_phase, errorcut=_InputData.error_cut_phase)
+    phaseylist = Python_Classes4MAD.GenMatrix.MakePairs(phase_y, full_response['0'], modelcut=_InputData.model_cut_phase, errorcut=_InputData.error_cut_phase)
+    betaxlist = Python_Classes4MAD.GenMatrix.MakeBetaList(beta_x, full_response['0'], modelcut=_InputData.model_cut_beta, errorcut=_InputData.error_cut_beta)
+    betaylist = Python_Classes4MAD.GenMatrix.MakeBetaList(beta_y, full_response['0'], modelcut=_InputData.model_cut_beta, errorcut=_InputData.error_cut_beta)
     displist = Python_Classes4MAD.GenMatrix.MakeDispList(dx, full_response['0'], modelcut=_InputData.model_cut_dx, errorcut=_InputData.error_cut_dx)
     print "Input ready"
 
@@ -407,16 +407,24 @@ class _InputData(object):
             raise ValueError("Given model cut is not a number: " + modelcuts[0] + " from " + modelcuts)
         if not Utilities.math.can_str_be_parsed_to_number(modelcuts[1]):
             raise ValueError("Given model cut is not a number: " + modelcuts[1] + " from " + modelcuts)
+        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[2]):
+            raise ValueError("Given model cut is not a number: " + modelcuts[2] + " from " + modelcuts)
         errorcuts = errorcut.split(",")
         if not Utilities.math.can_str_be_parsed_to_number(errorcuts[0]):
             raise ValueError("Given error cut is not a number: " + errorcuts[0] + " from " + errorcuts)
         if not Utilities.math.can_str_be_parsed_to_number(errorcuts[1]):
             raise ValueError("Given error cut is not a number: " + errorcuts[1] + " from " + errorcuts)
+        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[2]):
+            raise ValueError("Given error cut is not a number: " + errorcuts[2] + " from " + errorcuts)
         _InputData.singular_value_cut = float(singular_value_cut)
-        _InputData.error_cut = float(errorcuts[0])
-        _InputData.error_cut_dx = float(errorcuts[1])
-        _InputData.model_cut = float(modelcuts[0])
-        _InputData.model_cut_dx = float(modelcuts[1])
+
+        _InputData.error_cut_beta = float(errorcuts[0])
+        _InputData.error_cut_phase = float(errorcuts[1])
+        _InputData.error_cut_dx = float(errorcuts[2])
+
+        _InputData.model_cut_beta = float(modelcuts[0])
+        _InputData.model_cut_phase = float(modelcuts[1])
+        _InputData.model_cut_dx = float(modelcuts[2])
 
     @staticmethod
     def _check_and_set_accel_path(beta_beat_root, accel):
@@ -448,9 +456,11 @@ class _InputData(object):
         print "Minimum corrector strength:", _InputData.min_strength
         print "Variables:", _InputData.variables_list
         print "Singular value cut:", _InputData.singular_value_cut
-        print "Error cut:", _InputData.error_cut
+        print "Beta error cut:", _InputData.error_cut_beta
+        print "Phase error cut:", _InputData.error_cut_phase
         print "Error cut Dx:", _InputData.error_cut_dx
-        print "Model cut:", _InputData.model_cut
+        print "Beta model cut:", _InputData.model_cut_beta
+        print "Phase model cut:", _InputData.model_cut_phase
         print "Model cut Dx:", _InputData.model_cut_dx
         print "Weights for correctors:", _InputData.weights_list
         print "Error based weights:", _InputData.error_weights
