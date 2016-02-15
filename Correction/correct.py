@@ -125,6 +125,10 @@ def _parse_args():
     parser.add_option("-x", "--errweight",
                     help="Switcher for error based weights",
                     metavar="ErrWeight", default="1", dest="ErrWeight")
+    parser.add_option("-b", "--betafile",
+                    help="Selects which beta file to use for the correction",
+                    metavar="betaFile", default="getbeta", dest="betaFile")
+
     (options, args) = parser.parse_args()  # @UnusedVariable no args
     return options
 
@@ -148,12 +152,13 @@ def main(
          variables="MQTb1",
          index_of_num_of_beams_in_gui=0,
          num_of_correctors=5,
-         algorithm="SVD"
+         algorithm="SVD",
+	 beta_file_name = "getbeta"
          ):
 
     _InputData.static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength,
                            weights_on_corrections, error_weights, path_to_optics_files_dir, variables, index_of_num_of_beams_in_gui,
-                           num_of_correctors, algorithm)
+                           num_of_correctors, algorithm, beta_file_name)
 
     _generate_changeparameters()
 
@@ -253,11 +258,11 @@ def _load_input_files():
         path_to_phase_x = os.path.join(_InputData.output_path, "getphasex.out")
         path_to_phase_y = os.path.join(_InputData.output_path, "getphasey.out")
 
-    path_to_beta_x = os.path.join(_InputData.output_path, "getbetax_free.out")
-    path_to_beta_y = os.path.join(_InputData.output_path, "getbetay_free.out")
+    path_to_beta_x = os.path.join(_InputData.output_path, _InputData.beta_file_name + "x_free.out")
+    path_to_beta_y = os.path.join(_InputData.output_path, _InputData.beta_file_name + "y_free.out")
     if not os.path.exists(path_to_beta_x) or not os.path.exists(path_to_beta_y):
-        path_to_beta_x = os.path.join(_InputData.output_path, "getbetax.out")
-        path_to_beta_y = os.path.join(_InputData.output_path, "getbetay.out")
+        path_to_beta_x = os.path.join(_InputData.output_path, _InputData.beta_file_name + "x.out")
+        path_to_beta_y = os.path.join(_InputData.output_path, _InputData.beta_file_name + "y.out")
 
     phase_x = Python_Classes4MAD.metaclass.twiss(path_to_phase_x)
     phase_y = Python_Classes4MAD.metaclass.twiss(path_to_phase_y)
@@ -359,7 +364,8 @@ class _InputData(object):
     @staticmethod
     def static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength,
                     weights_on_corrections, error_weights, path_to_optics_files_dir, variables, index_of_num_of_beams_in_gui,
-                    num_of_correctors, algorithm):
+                    num_of_correctors, algorithm, beta_file_name):
+	_InputData.beta_file_name = beta_file_name
         if not Utilities.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain getcouple[_free].out and getDy.out(when last flag in weights is 1.")
         _InputData.output_path = output_path
@@ -492,7 +498,8 @@ def _start():
          variables=options.var,
          index_of_num_of_beams_in_gui=options.JustOneBeam,
          num_of_correctors=options.ncorr,
-         algorithm=options.TECH
+         algorithm=options.TECH,
+	 beta_file_name=options.betaFile
          )
 
 if __name__ == "__main__":
