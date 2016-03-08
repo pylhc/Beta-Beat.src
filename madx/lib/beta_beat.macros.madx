@@ -7,7 +7,7 @@
 */
 select_monitors(): macro = {
     select, flag=twiss, clear;
-    select, flag=twiss, class=monitor, column=name, s, betx, alfx, bety, alfy, 
+    select, flag=twiss, pattern="^BPM.*B[12]$", column=name, s, betx, alfx, bety, alfy, 
                                               mux, muy, dx, dy, dpx, dpy, x, y,
                                               k1l, k1sl, k2l, k3l, k4l, wx, wy, phix,
                                               phiy, dmux, dmuy, keyword, dbx, dby,
