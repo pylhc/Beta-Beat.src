@@ -58,7 +58,7 @@ eoption, seed=%(SEED)s ;
 %(UNCERTAINTIES)s
 
 select, flag=twiss, clear;
-select, flag=twiss, class=monitor,column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
+select, flag=twiss, pattern="^BPM.*B[12]$", column=name,s,betx,alfx,bety,alfy,mux,muy,dx,dy,dpx,dpy,x,y,k1l,k2l,k3l,k4l,wx,wy,phix,phiy
 , dmux,dmuy ,keyword,dbx,dby, r11,r12,r21,r22;
 twiss, chrom,sequence=%(ACCEL)s, deltap=0, file='%(RUN_DATA_PATH)s/twiss%(SEED)s.dat';
 
