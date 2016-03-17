@@ -1,11 +1,15 @@
+#!/afs/cern.ch/work/o/omc/anaconda/bin/python
+
 # import __init__
-import sys, os
-new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../Beta-Beat.src/"))
+import sys
+import os
+new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
 if new_path not in sys.path:
     sys.path.append(new_path)
 import numpy as np
 import matplotlib
-matplotlib.use('qt4agg') #THIS BACKEND IS NEEDED FOR THE CLEANING !
+
+matplotlib.use('qt4agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
 
 import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass
@@ -305,27 +309,20 @@ def parse_args():
     return options
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     options = parse_args()
     working_directory = options.work_dir
     beam = options.beam
-    ip   = options.ip
-    bs   = options.betastar
-    
-    working_directory = '/afs/cern.ch/work/f/fcarlier/public/from/Jaime/timber_data/'
-#     working_directory = '/afs/cern.ch/work/f/fcarlier/public/from/Jaime/k-mod-extracted-meas/'
-#     working_directory = '/afs/cern.ch/work/f/fcarlier/public/codes/kmod/testdata/'
-    beam = 'b1'
-    ip = 'ip1'
-    bs = '0.8'
-    IR = ip+beam
-    
+    ip = options.ip
+    bs = options.betastar
+
+    IR = ip + beam
+
     merge_data(working_directory, IR)
-    
-    path = working_directory+IR
+
+    path = working_directory + IR
     if check_files(path) == True:
         if not os.path.exists(path):
             os.makedirs(path)
-            print '%s folder created..' %IR
+            print '%s folder created..' % IR
         run_analysis_simplex(path, beam, ip, bs)
-
