@@ -1,0 +1,78 @@
+import __init__
+import os
+import numpy as np
+from Timber import *
+from Python_Classes4MAD import metaclass
+from Utilities import tfs_file_writer
+
+
+
+def merge_data(working_directory, IR):
+    planes = ['X','Y']
+    sides  = ['L','R']
+    for side in sides:
+        result = {'X':[],'Y':[]}
+        tdatax = metaclass.twiss(os.path.join(working_directory,IR+side+'X.tfs'))
+        tdatay = metaclass.twiss(os.path.join(working_directory,IR+side+'Y.tfs'))
+        kdata= metaclass.twiss(os.path.join(working_directory,side+'K.tfs'))
+        K, Qx, Qxrms, Qy, Qyrms = pair(tdatax,tdatay,kdata)
+        
+        write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, IR, side)
+        
+        
+def write_tfs_files(Kx, Qx, Qxrms, Qy, Qyrms, working_directory, IR, side):
+    result = tfs_file_writer.TfsFileWriter.open(os.path.join(working_directory, IR+side+'.dat'))
+    result.set_column_width(20)
+    result.add_column_names(['K',    'TUNEX',     'TUNEX_ERR',     'TUNEY',     'TUNEY_ERR'])
+    result.add_column_datatypes(['%le', '%le', '%le', '%le', '%le'])
+
+    for i in range(len(Kx)):
+        result.add_table_row([Kx[i], Qx[i], Qxrms[i], Qy[i], Qyrms[i] ])
+    result.write_to_file()  
+    
+        
+def pair(tdatax,tdatay,kdata):
+    j = 0
+    Qx    = []
+    Qxrms = []
+    Qy    = []
+    Qyrms = []
+    K = []
+    
+    print 'kdata:   ', kdata.TIME[0]- kdata.TIME[len(kdata.TIME)-1]
+    print 'tdatax:  ', tdatax.TIME[0]- tdatax.TIME[len(tdatax.TIME)-1]
+    print 'tdatay:  ', tdatay.TIME[0]- tdatay.TIME[len(tdatay.TIME)-1]
+    print len(tdatax.TIME), len(tdatay.TIME),len(kdata.TIME)
+
+    if len(tdatax.TIME) > len(kdata.TIME):
+        step = (kdata.TIME[1]-kdata.TIME[0])/2.
+        step = 400
+        for i in range(len(kdata.TIME)):
+            if kdata.TIME[i] > tdatax.TIME[0] and kdata.TIME[i] < tdatax.TIME[len(tdatax.TIME)-1]:
+                new_timex = tdatax.TIME - kdata.TIME[i]
+                maskx  = (new_timex**2<step**2)
+                tunex_mask= tdatax.TUNE[maskx]
+                aveQ = sum(tunex_mask)/len(tunex_mask)
+                Qrms = np.sqrt(sum(tunex_mask)**2/len(tunex_mask) - aveQ**2)
+                
+                new_timey = tdatay.TIME - kdata.TIME[i]
+                masky  = (new_timey**2<step**2)
+                tuney_mask= tdatay.TUNE[masky]
+                aveQ = sum(tuney_mask)/len(tuney_mask)
+                Qrms = np.sqrt(sum(tuney_mask)**2/len(tuney_mask) - aveQ**2)
+    
+                if len(tunex_mask)>0:# and len(tuney_mask)>0:
+                    Qx.append(aveQ)
+                    Qxrms.append(Qrms)
+                
+                if len(tuney_mask)>0:
+                    Qy.append(aveQ)
+                    Qyrms.append(Qrms)
+                    K.append(kdata.K[i])
+    
+    return K, Qx, Qxrms, Qy, Qyrms
+
+
+
+if __name__=='__main__':
+    merge_data()
