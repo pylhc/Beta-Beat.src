@@ -320,7 +320,7 @@ if __name__ == '__main__':
 
     merge_data(working_directory, IR)
 
-    path = working_directory + IR
+    path = os.path.join(working_directory, IR)
     if check_files(path) == True:
         if not os.path.exists(path):
             os.makedirs(path)
