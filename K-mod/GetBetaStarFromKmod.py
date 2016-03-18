@@ -2,7 +2,7 @@ from math import *
 from optparse import OptionParser
 from string import split
 import sys, copy
-
+from IR_planes import IR_definitions
 
 parser = OptionParser()
 #parser.add_option("-f", "--file",
@@ -41,11 +41,9 @@ parser.add_option("-t", "--label",
         help="Measurement lable, B1VIP1, B2HIP5, etc",
         metavar="LABEL", default="B", dest="label")
 
-
 parser.add_option("-b", "--beta",
         help="Design beta* in order to compute ratio",
         metavar="BETA", default="0.6", dest="beta")
-
 
 
 def abh(b,L,w,KL,K):
@@ -317,6 +315,7 @@ L=float(options.Lstar)
 K=sqrt(float(options.K))
 l=float(options.l)
 KL=K*l
+ir = options.label
 dqs=options.dqs.split(",")
 dql=float(dqs[0])
 dqr=float(dqs[1])
@@ -330,30 +329,35 @@ Q=float(options.Q)
 guess=[20,-0.]
 incr=[0.01,0.001]
 
+if IR_definitions[ir][0] == 'foc':
+    print 'Computing %s : Left is focussing...' %ir
+elif IR_definitions[ir][0] == 'def':
+    print 'Computing %s : Left is defocussing...' %ir
 
-
-
-def betasfromtunes(Tdql,Tdqr):
+def betasfromtunes(Tdql,Tdqr,ir):
     global Q,dql,dqr,l,DK,maxdb,mindb
     dbl= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdql))+sin(2*pi*Tdql))/(l*DKL)
     dbr= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdqr))+sin(2*pi*Tdqr))/(l*DKR)
-    mindb=min(abs(dbl),abs(dbr))
-    maxdb=max(abs(dbl),abs(dbr))
-    return mindb, maxdb
+    #mindb=min(abs(dbl),abs(dbr))
+    #maxdb=max(abs(dbl),abs(dbr))
+    if IR_definitions[ir][0] == 'foc':
+        mindb = abs(dbl)
+        maxdb = abs(dbr)
+    elif IR_definitions[ir][0] == 'def':
+        mindb = abs(dbr)
+        maxdb = abs(dbl)
+    return maxdb, mindb #mindb, maxdb
 
 
 idealab=ab(float(options.beta),L,0.0,KL,K)
 idealabh=abh(float(options.beta),L,0.0,KL,K)
-
-
-
 
 resb=[]
 resw=[]
 resabbeat=[]
 resabhbeat=[]
 
-mindb, maxdb=betasfromtunes(dql,dqr)
+mindb, maxdb=betasfromtunes(dql,dqr,ir)
 s = Simplex(chi2, guess, incr)
 values, err, iter = s.minimize(epsilon=0.00000001,maxiters=10000)
 
@@ -365,7 +369,7 @@ resabbeat.append(abbeat)
 resabhbeat.append(abhbeat)
 
 
-mindb, maxdb=betasfromtunes(dql+edql,dqr)
+mindb, maxdb=betasfromtunes(dql+edql,dqr,ir)
 s = Simplex(chi2, guess, incr)
 values, err, iter = s.minimize(epsilon=0.00000001,maxiters=10000)
 
@@ -376,7 +380,7 @@ abhbeat= (maxdb-idealabh)/idealabh
 resabbeat.append(abbeat)
 resabhbeat.append(abhbeat)
 
-mindb, maxdb=betasfromtunes(dql-edql,dqr)
+mindb, maxdb=betasfromtunes(dql-edql,dqr,ir)
 s = Simplex(chi2, guess, incr)
 values, err, iter = s.minimize(epsilon=0.00000001,maxiters=10000)
 
@@ -387,7 +391,7 @@ abhbeat= (maxdb-idealabh)/idealabh
 resabbeat.append(abbeat)
 resabhbeat.append(abhbeat)
 
-mindb, maxdb=betasfromtunes(dql,dqr+edqr)
+mindb, maxdb=betasfromtunes(dql,dqr+edqr,ir)
 s = Simplex(chi2, guess, incr)
 values, err, iter = s.minimize(epsilon=0.00000001,maxiters=10000)
 
@@ -398,7 +402,7 @@ abhbeat= (maxdb-idealabh)/idealabh
 resabbeat.append(abbeat)
 resabhbeat.append(abhbeat)
 
-mindb, maxdb=betasfromtunes(dql,dqr-edqr)
+mindb, maxdb=betasfromtunes(dql,dqr-edqr,ir)
 s = Simplex(chi2, guess, incr)
 values, err, iter = s.minimize(epsilon=0.00000001,maxiters=10000)
 resb.append(values[0])
@@ -411,16 +415,14 @@ resabhbeat.append(abhbeat)
 
 
 
-print
-
-print 'betastar = ', resb
-print 'ws = ', resw
+# print 'betastar = ', resb
+# print 'ws = ', resw
 
 IPb=[]
 for i in range(len(resb)):
     IPb.append(resb[i]+resw[i]**2/resb[i])
 
-print 'IP betas=', IPb
+# print 'IP betas=', IPb
 #ave=sum(resb)/len(resb)
 #std=sqrt(sum(map(lambda x: x*x,resb))/len(resb)-ave*ave)
 #resb=IPb
@@ -442,8 +444,9 @@ stdabh=sqrt(max(abs(resabhbeat[1]-resabhbeat[0]), abs(resabhbeat[2]-resabhbeat[0
              max(abs(resabhbeat[3]-resabhbeat[0]), abs(resabhbeat[4]-resabhbeat[0]))**2)
 
 
-print 'IP beta = ', resb[0], "+/-", std
+# print 'IP beta = ', resb[0], "+/-", std
 #print 'iterations = ', iter
+
 
 f=open("BetaStarResults.dat","a")
 print >>f, options.label, IPb[0], stdIPb, resw[0], stdw, resb[0], std, resabbeat[0], stdab,resabhbeat[0], stdabh
