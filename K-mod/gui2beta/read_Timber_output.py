@@ -39,37 +39,30 @@ def pair(tdatax,tdatay,kdata):
     Qyrms = []
     K = []
     
-    print 'kdata:   ', kdata.TIME[0]- kdata.TIME[len(kdata.TIME)-1]
-    print 'tdatax:  ', tdatax.TIME[0]- tdatax.TIME[len(tdatax.TIME)-1]
-    print 'tdatay:  ', tdatay.TIME[0]- tdatay.TIME[len(tdatay.TIME)-1]
-    print len(tdatax.TIME), len(tdatay.TIME),len(kdata.TIME)
-
     if len(tdatax.TIME) > len(kdata.TIME):
-        step = (kdata.TIME[1]-kdata.TIME[0])/2.
-        step = 400
+        step = 300
         for i in range(len(kdata.TIME)):
             if kdata.TIME[i] > tdatax.TIME[0] and kdata.TIME[i] < tdatax.TIME[len(tdatax.TIME)-1]:
                 new_timex = tdatax.TIME - kdata.TIME[i]
                 maskx  = (new_timex**2<step**2)
                 tunex_mask= tdatax.TUNE[maskx]
-                aveQ = sum(tunex_mask)/len(tunex_mask)
-                Qrms = np.sqrt(sum(tunex_mask)**2/len(tunex_mask) - aveQ**2)
+                aveQx = np.average(tunex_mask)
+                Qrmsx = np.std(tunex_mask)
                 
                 new_timey = tdatay.TIME - kdata.TIME[i]
                 masky  = (new_timey**2<step**2)
                 tuney_mask= tdatay.TUNE[masky]
-                aveQ = sum(tuney_mask)/len(tuney_mask)
-                Qrms = np.sqrt(sum(tuney_mask)**2/len(tuney_mask) - aveQ**2)
-    
-                if len(tunex_mask)>0:# and len(tuney_mask)>0:
-                    Qx.append(aveQ)
-                    Qxrms.append(Qrms)
-                
-                if len(tuney_mask)>0:
-                    Qy.append(aveQ)
-                    Qyrms.append(Qrms)
+                aveQy = np.average(tuney_mask)
+                Qrmsy = np.std(tuney_mask)
+
+                if len(tunex_mask)>0 and len(tuney_mask)>0:
+                    Qx.append(aveQx)
+                    Qxrms.append(Qrmsx)
+                    Qy.append(aveQy)
+                    Qyrms.append(Qrmsy)
                     K.append(kdata.K[i])
-    
+                
+   
     return K, Qx, Qxrms, Qy, Qyrms
 
 

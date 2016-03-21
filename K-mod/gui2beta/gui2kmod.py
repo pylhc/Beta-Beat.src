@@ -20,6 +20,7 @@ from optparse import OptionParser
 from Utilities import tfs_file_writer
 from read_Timber_output import merge_data
 
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 class clicker_class(object):
     def __init__(self, ax, data, pix_err=1):
@@ -147,23 +148,18 @@ def in_hull(p, hull):
 
 
 def clean(data, trapezium):
-    mask =  in_hull(data,trapezium)
+    mask =  in_hull([data[0,:,0:2]],trapezium)
     cleaned_data = data[mask]
     return cleaned_data
 
 
-def start_cleaning_data(k,tune_data):
-    print '''CLEAN THE DATA:' 
-        Left click  :  Select corners of trapezium
-        Right click :  Cancel selections
-        "c"         :  Skip cleaning for presented data'''
-
-    data = np.dstack((k,tune_data))
+def start_cleaning_data(k,tune_data,tune_data_err):
+    data = np.dstack((k,tune_data,tune_data_err))
     plt.figure(figsize=(15,15))
     plt.xlabel('K')
     plt.ylabel('Tune')
     plt.title('Left click: Select corners,  Right click: Cancel selection,  c: Skip')
-    plt.plot(k,tune_data, 'o')
+    plt.errorbar(k,tune_data, yerr=tune_data_err, fmt='o')
     ax = plt.gca()
     cc = clicker_class(ax, data)
     plt.show()
@@ -171,12 +167,22 @@ def start_cleaning_data(k,tune_data):
 
 
 def run_analysis_simplex(path, beam, ip, bs):
-    kdata = lin_fit_data(path)
+    fitx_L, fitx_R, fity_L, fity_R, errx_r, erry_r, errx_l, erry_l, K, dK = lin_fit_data(path)
+    
+    fitx_L = fitx_L*dK
+    fitx_R = fitx_R*dK
+    fity_L = fity_L*dK
+    fity_R = fity_R*dK
+    
+    pathx = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.28 -L 22.965 -l 6.37 -K %s -D ' %str(abs(K))
+    commandx = pathx + str(dK) +','+ str(dK)+ ' -d ' + str(abs(fitx_L))+','+str(abs(fitx_R)) + ' -e ' + str(abs(errx_l))+','+str(abs(errx_r)) + ' -b ' + bs + ' -t ' + (ip+beam)+'.X' 
+    pathy = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.31 -L 22.965 -l 6.37 -K %s -D ' %str(abs(K))
+    commandy = pathy + str(dK) +','+ str(dK)+ ' -d ' + str(abs(fity_L))+','+str(abs(fity_R)) + ' -e ' + str(abs(erry_l))+','+str(abs(erry_r)) + ' -b ' + bs + ' -t ' + (ip+beam)+'.Y' 
 
-    pathx = 'python /afs/cern.ch/work/f/fcarlier/public/Beta-Beat.src/K-mod/GetBetaStarFromKmod.py -Q 0.28 -L 22.965 -l 6.37 -K %s -D ' %str(abs(kdata[4]))
-    commandx = pathx + str(kdata[5]) +','+ str(kdata[5])+ ' -d ' + str(abs(kdata[0]))+','+str(abs(kdata[1])) + ' -e 1e-5,1e-5 -b ' + bs + ' -t ' + (ip+beam)+'.X' 
-    pathy = 'python /afs/cern.ch/work/f/fcarlier/public/Beta-Beat.src/K-mod/GetBetaStarFromKmod.py -Q 0.31 -L 22.965 -l 6.37 -K %s -D ' %str(abs(kdata[4]))
-    commandy = pathy + str(kdata[5]) +','+ str(kdata[5])+ ' -d ' + str(abs(kdata[2]))+','+str(abs(kdata[3])) + ' -e 1e-5,1e-5 -b ' + bs + ' -t ' + (ip+beam)+'.Y'
+#     pathx = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.28 -L 22.965 -l 6.37 -K %s -D ' %str(abs(kdata[4]))
+#     commandx = pathx + str(kdata[5]) +','+ str(kdata[5])+ ' -d ' + str(abs(kdata[0]))+','+str(abs(kdata[1])) + ' -e 1e-5,1e-5 -b ' + bs + ' -t ' + (ip+beam)+'.X' 
+#     pathy = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.31 -L 22.965 -l 6.37 -K %s -D ' %str(abs(kdata[4]))
+#     commandy = pathy + str(kdata[5]) +','+ str(kdata[5])+ ' -d ' + str(abs(kdata[2]))+','+str(abs(kdata[3])) + ' -e 1e-5,1e-5 -b ' + bs + ' -t ' + (ip+beam)+'.Y'
     os.system(commandx)
     os.system(commandy)
 
@@ -198,15 +204,20 @@ def lin_fit_data(path):
     right_data = metaclass.twiss(file_path_R)
     left_data  = metaclass.twiss(file_path_L)
 
-    cleaned_xR = start_cleaning_data(right_data.K, right_data.TUNEX)
-    cleaned_yR = start_cleaning_data(right_data.K, right_data.TUNEY)
-    cleaned_xL = start_cleaning_data(left_data.K, left_data.TUNEX)
-    cleaned_yL = start_cleaning_data(left_data.K, left_data.TUNEY)
+    cleaned_xR = start_cleaning_data(right_data.K, right_data.TUNEX,right_data.TUNEX_ERR)
+    cleaned_yR = start_cleaning_data(right_data.K, right_data.TUNEY,right_data.TUNEY_ERR)
+    cleaned_xL = start_cleaning_data(left_data.K, left_data.TUNEX,left_data.TUNEX_ERR)
+    cleaned_yL = start_cleaning_data(left_data.K, left_data.TUNEY,left_data.TUNEY_ERR)
 
-    fitx_R = stats.linregress(cleaned_xR[:,0], cleaned_xR[:,1])
-    fity_R = stats.linregress(cleaned_yR[:,0], cleaned_yR[:,1])
-    fitx_L = stats.linregress(cleaned_xL[:,0], cleaned_xL[:,1])
-    fity_L = stats.linregress(cleaned_yL[:,0], cleaned_yL[:,1])
+#     fitx_R = stats.linregress(cleaned_xR[:,0], cleaned_xR[:,1])
+#     fity_R = stats.linregress(cleaned_yR[:,0], cleaned_yR[:,1])
+#     fitx_L = stats.linregress(cleaned_xL[:,0], cleaned_xL[:,1])
+#     fity_L = stats.linregress(cleaned_yL[:,0], cleaned_yL[:,1])
+
+    fitx_R, covx_r = np.polyfit(cleaned_xR[:,0], cleaned_xR[:,1], 1, cov=True, w = 1/cleaned_xR[:,2]**2)
+    fity_R, covy_r = np.polyfit(cleaned_yR[:,0], cleaned_yR[:,1], 1, cov=True, w = 1/cleaned_yR[:,2]**2)
+    fitx_L, covx_l = np.polyfit(cleaned_xL[:,0], cleaned_xL[:,1], 1, cov=True, w = 1/cleaned_xL[:,2]**2)
+    fity_L, covy_l = np.polyfit(cleaned_yL[:,0], cleaned_yL[:,1], 1, cov=True, w = 1/cleaned_yL[:,2]**2)
 
     plot_fitting(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path)
 
@@ -215,14 +226,19 @@ def lin_fit_data(path):
     Q1 = np.average(right_data.TUNEX)
     Q2 = np.average(right_data.TUNEY)
 
-    kmod_data    = np.zeros(6)
-    kmod_data[0] = fitx_L[0]*dK
-    kmod_data[1] = fitx_R[0]*dK
-    kmod_data[2] = fity_L[0]*dK
-    kmod_data[3] = fity_R[0]*dK
-    kmod_data[4] = K
-    kmod_data[5] = dK
-    return kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
+    errx_r = np.sqrt(np.diag(covx_r)[0]) *dK
+    erry_r = np.sqrt(np.diag(covy_r)[0]) *dK
+    errx_l = np.sqrt(np.diag(covx_l)[0]) *dK
+    erry_l = np.sqrt(np.diag(covy_l)[0]) *dK
+
+#     kmod_data    = np.zeros(6)
+#     kmod_data[0] = fitx_L[0]*dK
+#     kmod_data[1] = fitx_R[0]*dK
+#     kmod_data[2] = fity_L[0]*dK
+#     kmod_data[3] = fity_R[0]*dK
+#     kmod_data[4] = K
+#     kmod_data[5] = dK
+    return fitx_L[0], fitx_R[0], fity_L[0], fity_R[0], errx_r, erry_r, errx_l, erry_l, K, dK #kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
 
 
 def which_bpms(ips):
@@ -243,22 +259,24 @@ def calc_BPM_beta(path, ip, beam):
     w_err  = ip_data.WAIST_ERR
     label  = ip_data.LABEL
     
+    
     b_bpmR = bw + (L_ip2bpm - w)**2/bw
     b_bpmL = bw + (L_ip2bpm + w)**2/bw
-    rerr = []
-    lerr = []
+
     b_bpmR_err = []
     b_bpmL_err = []
 
     for l in range(len(label)):
-        we = np.linspace(-w_err[l], w_err[l],2) + w[l]
+        rerr = []
+        lerr = []
+        we  = np.linspace(-w_err[l] , w_err[l] ,2) + w[l]
         bwe = np.linspace(-bw_err[l], bw_err[l],2) + bw[l]
         for i in range(2):
             for j in range(2):
                 rerr.append(bwe[i] + (L_ip2bpm - we[j])**2/bwe[i])
                 lerr.append(bwe[i] + (L_ip2bpm + we[j])**2/bwe[i])
-        b_bpmR_err.append((max(lerr)-min(lerr))/2.)
-        b_bpmL_err.append((max(rerr)-min(rerr))/2.)
+        b_bpmR_err.append((max(rerr)-min(rerr))/2.)
+        b_bpmL_err.append((max(lerr)-min(lerr))/2.)
 
     beta_bpm = np.transpose(np.vstack((b_bpmL,b_bpmR)))
     beta_bpm_err = np.transpose(np.vstack((b_bpmL_err,b_bpmR_err)))
@@ -266,17 +284,17 @@ def calc_BPM_beta(path, ip, beam):
 
     xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'betakmodx.dat'))
     xdata.set_column_width(20)
-    xdata.add_column_names(['NAME',    'BETX',    'ERRBETX'])
-    xdata.add_column_datatypes(['%s', '%le', '%le'])
+    xdata.add_column_names(['NAME', 'S'  , 'COUNT',   'BETX',    'BETXSTD',       'BETXMDL'    ,        'MUXMDL'     ,      'BETXRES'    ,    'BETXSTDRES' ])
+    xdata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
 
     ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'betakmody.dat'))
     ydata.set_column_width(20)
-    ydata.add_column_names(['NAME',    'BETY',    'ERRBETY'])
-    ydata.add_column_datatypes(['%s', '%le', '%le'])
+    ydata.add_column_names(['NAME', 'S'  , 'COUNT',    'BETY',    'BETYSTD',   'BETYMDL'      ,      'MUYMDL'    ,       'BETYRES'    ,    'BETYSTDRES'])
+    ydata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
 
     for i in range(len(bpms)):
-        xdata.add_table_row([bpms[i], beta_bpm[0][i], beta_bpm_err[0][i] ])
-        ydata.add_table_row([bpms[i], beta_bpm[1][i], beta_bpm_err[1][i] ])
+        xdata.add_table_row([bpms[i], 0, 0, beta_bpm[0][i], beta_bpm_err[0][i], 0, 0, 0, 0 ])
+        ydata.add_table_row([bpms[i], 0, 0, beta_bpm[1][i], beta_bpm_err[1][i], 0, 0, 0, 0 ])
     xdata.write_to_file()  
     ydata.write_to_file()  
 

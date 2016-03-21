@@ -338,15 +338,13 @@ def betasfromtunes(Tdql,Tdqr,ir):
     global Q,dql,dqr,l,DK,maxdb,mindb
     dbl= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdql))+sin(2*pi*Tdql))/(l*DKL)
     dbr= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdqr))+sin(2*pi*Tdqr))/(l*DKR)
-    #mindb=min(abs(dbl),abs(dbr))
-    #maxdb=max(abs(dbl),abs(dbr))
     if IR_definitions[ir][0] == 'foc':
         mindb = abs(dbl)
         maxdb = abs(dbr)
     elif IR_definitions[ir][0] == 'def':
         mindb = abs(dbr)
         maxdb = abs(dbl)
-    return maxdb, mindb #mindb, maxdb
+    return mindb, maxdb
 
 
 idealab=ab(float(options.beta),L,0.0,KL,K)
