@@ -360,7 +360,12 @@ def _madcreator(dpps, files_dict):
     (qx, qy, qdx, qdy, qmx, qmy) = _get_tunes(files_dict)
     if _InputData.accel.upper().startswith("LHCB"):
         dict_for_replacing["DP_AC_P"] = dppstring_ac
-        dict_for_replacing["RUN"] = "I" if _InputData.lhc_run == 1 else "II"
+        if _InputData.lhc_run == "RUNI":
+            dict_for_replacing["RUN"] = "I"
+        elif _InputData.lhc_run == "RUNII":
+            dict_for_replacing["RUN"] = "II"
+        elif _InputData.lhc_run == "RUNII_2016":
+            dict_for_replacing["RUN"] = "II_2016"
         if _InputData.accel == 'LHCB1':
             dict_for_replacing["NUM_BEAM"] = "1"
         elif _InputData.accel == 'LHCB2':
@@ -783,11 +788,14 @@ class _InputData(object):
             raise ValueError("Chosen  technique is unknown: "+technique)
         _InputData.accel = accel.upper()
         if "LHCB" in _InputData.accel:
-            if _InputData.accel.endswith("RUNII"):
+            if _InputData.accel.endswith("RUNII_2016"):
+                _InputData.accel = _InputData.accel.replace("RUNII_2016", "")
+                _InputData.lhc_run = "RUNII_2016"
+            elif _InputData.accel.endswith("RUNII"):
                 _InputData.accel = _InputData.accel.replace("RUNII", "")
-                _InputData.lhc_run = 2
+                _InputData.lhc_run = "RUNII"
             else:
-                _InputData.lhc_run = 1
+                _InputData.lhc_run = "RUNI"
         if _InputData.accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "ESRF"):
             raise ValueError("Provided accelerator is not valid: "+_InputData.accel)
         _InputData.deltap_scaling_factor = deltap_scaling_factor
