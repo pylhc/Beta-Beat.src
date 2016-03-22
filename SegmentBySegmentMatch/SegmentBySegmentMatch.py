@@ -476,10 +476,12 @@ def _get_match_bpm_range(file_path):
 
 def _prepare_script_and_run_madx(lhc_run, label, mode, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
                                  b1_range_start, b1_range_end, b2_range_start, b2_range_end):
-    if lhc_run == "1":
+    if lhc_run == "RunI":
         lhc_mode = "lhc_runI"
-    elif lhc_run == "2":
+    elif lhc_run == "RunII":
         lhc_mode = "lhc_runII"
+    elif lhc_run == "RunII_2016":
+        lhc_mode = "lhc_runII_2016"
     elif lhc_run == "HL":
         lhc_mode = "hllhc"
     else:
@@ -512,8 +514,8 @@ def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_
     prop_models_b1 = SegmentBySegment._PropagatedModels(save_path_b1, "IP" + str(ip))
     prop_models_b2 = SegmentBySegment._PropagatedModels(save_path_b2, "IP" + str(ip))
 
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, True, False, "LHCB1", None)
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, True, False, "LHCB2", None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, True, False, "LHCB1", None, None, None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, True, False, "LHCB2", None, None, None)
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):
