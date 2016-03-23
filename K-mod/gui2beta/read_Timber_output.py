@@ -5,6 +5,7 @@ from Timber import *
 from Python_Classes4MAD import metaclass
 from Utilities import tfs_file_writer
 
+TUNE_MEAS_PRECISION = 2.5e-5
 
 
 def merge_data(working_directory, IR):
@@ -20,19 +21,18 @@ def merge_data(working_directory, IR):
         write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, IR, side)
         
         
-def write_tfs_files(Kx, Qx, Qxrms, Qy, Qyrms, working_directory, IR, side):
+def write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, IR, side):
     result = tfs_file_writer.TfsFileWriter.open(os.path.join(working_directory, IR+side+'.dat'))
     result.set_column_width(20)
     result.add_column_names(['K',    'TUNEX',     'TUNEX_ERR',     'TUNEY',     'TUNEY_ERR'])
     result.add_column_datatypes(['%le', '%le', '%le', '%le', '%le'])
 
-    for i in range(len(Kx)):
-        result.add_table_row([Kx[i], Qx[i], Qxrms[i], Qy[i], Qyrms[i] ])
+    for i in range(len(K)):
+        result.add_table_row([K[i], Qx[i], Qxrms[i], Qy[i], Qyrms[i] ])
     result.write_to_file()  
     
         
 def pair(tdatax,tdatay,kdata):
-    j = 0
     Qx    = []
     Qxrms = []
     Qy    = []
@@ -62,7 +62,10 @@ def pair(tdatax,tdatay,kdata):
                     Qyrms.append(Qrmsy)
                     K.append(kdata.K[i])
                 
-   
+    
+    
+    Qxrms = np.sqrt(np.array(Qxrms) ** 2 + TUNE_MEAS_PRECISION ** 2);
+    Qyrms = np.sqrt(np.array(Qyrms) ** 2 + TUNE_MEAS_PRECISION ** 2);
     return K, Qx, Qxrms, Qy, Qyrms
 
 

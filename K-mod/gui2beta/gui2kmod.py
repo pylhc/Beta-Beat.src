@@ -167,7 +167,7 @@ def start_cleaning_data(k,tune_data,tune_data_err):
 
 
 def run_analysis_simplex(path, beam, ip, bs):
-    fitx_L, fitx_R, fity_L, fity_R, errx_r, erry_r, errx_l, erry_l, K, dK = lin_fit_data(path)
+    fitx_L, fitx_R, fity_L, fity_R, errx_r, erry_r, errx_l, erry_l, K, dK, Q1, Q2 = lin_fit_data(path)
     
     fitx_L = fitx_L*dK
     fitx_R = fitx_R*dK
@@ -226,19 +226,12 @@ def lin_fit_data(path):
     Q1 = np.average(right_data.TUNEX)
     Q2 = np.average(right_data.TUNEY)
 
-    errx_r = np.sqrt(np.diag(covx_r)[0]) *dK
-    erry_r = np.sqrt(np.diag(covy_r)[0]) *dK
-    errx_l = np.sqrt(np.diag(covx_l)[0]) *dK
-    erry_l = np.sqrt(np.diag(covy_l)[0]) *dK
+    errx_r = np.sqrt(np.diag(covx_r)[0]) * dK
+    erry_r = np.sqrt(np.diag(covy_r)[0]) * dK
+    errx_l = np.sqrt(np.diag(covx_l)[0]) * dK
+    erry_l = np.sqrt(np.diag(covy_l)[0]) * dK
 
-#     kmod_data    = np.zeros(6)
-#     kmod_data[0] = fitx_L[0]*dK
-#     kmod_data[1] = fitx_R[0]*dK
-#     kmod_data[2] = fity_L[0]*dK
-#     kmod_data[3] = fity_R[0]*dK
-#     kmod_data[4] = K
-#     kmod_data[5] = dK
-    return fitx_L[0], fitx_R[0], fity_L[0], fity_R[0], errx_r, erry_r, errx_l, erry_l, K, dK #kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
+    return fitx_L[0], fitx_R[0], fity_L[0], fity_R[0], errx_r, erry_r, errx_l, erry_l, K, dK, Q1, Q2 #kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
 
 
 def which_bpms(ips):
