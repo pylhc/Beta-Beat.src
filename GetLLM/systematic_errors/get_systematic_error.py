@@ -49,6 +49,8 @@ LHC_RUNI_BASE_SEQ = \
 BB_PATH = os.path.abspath(os.path.join(CURRENT_PATH, "..", "..", ))
 LHC_RUNII_BASE_SEQ = \
               'call, file = "' + os.path.join(BB_PATH, "MODEL", "LHCB_II", "model", "base_sequence.madx") + '";'
+LHC_RUNII_2016_BASE_SEQ = \
+              'call, file = "' + os.path.join(BB_PATH, "MODEL", "LHCB_II_2016", "model", "StrengthFiles", "Nominal", "lhc_as-built.seq") + '";'
 
 
 def _parse_args():
@@ -84,7 +86,7 @@ def _parse_args():
 
     if options.output_dir == "":
         options.output_dir = os.path.dirname(options.model_twiss)
-    if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "LHCB1RUNII", "LHCB2RUNII", "ALBA", "ESRF"]:
+    if options.accelerator is None or options.accelerator.upper() not in ["LHCB1", "LHCB2", "LHCB1RUNII_2016", "LHCB2RUNII_2016", "LHCB1RUNII", "LHCB2RUNII", "ALBA", "ESRF"]:
         print >> sys.stderr, "Accelerator sequence must be defined, it must be LHCB1, LHCB2, ALBA or ESRF."
         sys.exit(-1)
     if options.accelerator.startswith("LHCB"):
@@ -100,7 +102,7 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
     run_data_path = os.path.join(output_dir, "RUN_DATA")
     if accelerator.upper().startswith("LHCB"):
         if errors_path is None:
-            beam = accelerator.upper().replace("LHC", "").replace("RUNII", "")
+            beam = accelerator.upper().replace("LHC", "").replace("RUNII", "").replace("_2016", "")
             errors_path = os.path.join(CURRENT_PATH, "..", "..", "MODEL", "LHC" + beam, "dipole_b2_errors")
     elif accelerator.upper() in ["ALBA", "ESRF"]:
         if not errors_path is None:
@@ -134,7 +136,7 @@ def get_systematic_errors(model_twiss, num_simulations, num_processes, output_di
 def _run_parallel_simulations(run_data_path, model_dir_path, num_simulations, errors_path, accelerator, energy, tunex, tuney, pool):
     times = []
     uncertainties = None
-    if accelerator.upper() in ["LHCB1", "LHCB2", "LHCB1RUNII", "LHCB2RUNII"]:
+    if accelerator.upper() in ["LHCB1", "LHCB2", "LHCB1RUNII_2016", "LHCB2RUNII_2016", "LHCB1RUNII", "LHCB2RUNII"]:
         print "Using uncertainties file: ", LHC_UNCERTAINTIES_FILE
         uncertainties_json = json.load(open(LHC_UNCERTAINTIES_FILE, "r"))
         uncertainties = _extract_uncertainties(uncertainties_json, energy)
@@ -184,16 +186,21 @@ def _run_single_lhc_madx_simulation(seed_path_tuple):
     tunex = seed_path_tuple[6]
     tuney = seed_path_tuple[7]
     uncertainties = seed_path_tuple[8]
+    base_sequence = LHC_RUNI_BASE_SEQ
+    if accelerator.upper().endswith("RUNII_2016"):
+        base_sequence = LHC_RUNII_2016_BASE_SEQ
+    elif accelerator.upper().endswith("RUNII"):
+        base_sequence = LHC_RUNII_BASE_SEQ
     dict_for_replacing = dict(
             BB_PATH=BB_PATH,
-            BASE_SEQ=LHC_RUNII_BASE_SEQ if accelerator.upper().endswith("RUNII") else LHC_RUNI_BASE_SEQ,
+            BASE_SEQ=base_sequence,
             ERR_NUM=str((seed % 60) + 1).zfill(4),
             UNCERTAINTIES=uncertainties,
             SEED=str(seed),
             RUN_DATA_PATH=run_data_path,
             ERRORS_PATH=errors_path,
-            ACCEL=accelerator.upper().replace("RUNII", ""),
-            BEAM=accelerator.upper().replace("LHC", "").replace("RUNII", ""),
+            ACCEL=accelerator.upper().replace("RUNII", "").replace("_2016", ""),
+            BEAM=accelerator.upper().replace("LHC", "").replace("RUNII", "").replace("_2016", ""),
 
             PATH=model_dir_path,
             QMX=tunex,
