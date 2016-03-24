@@ -329,7 +329,7 @@ if __name__ == '__main__':
 
     IR = ip + beam
 
-    merge_data(working_directory, IR)
+    merge_data(working_directory, ip ,beam)
 
     path = os.path.join(working_directory, IR)
     if check_files(path) == True:
