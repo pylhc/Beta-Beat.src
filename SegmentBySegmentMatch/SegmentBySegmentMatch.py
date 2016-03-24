@@ -49,6 +49,9 @@ def parse_args():
     parser.add_option("-r", "--useerrors",
                     help="Use errors in constraint generation",
                     metavar="USE_ERRORS", action="store_true", default=False, dest="use_errors")
+    parser.add_option("-l", "--lists",
+                    help="Dir containing LHCB1 and LHCB2 dirs containing AllLists.json to use",
+                    metavar="LISTS", default=None, dest="lists")
     (options, args) = parser.parse_args()
     return options, args
 
@@ -68,7 +71,7 @@ def main(options, args):
     if command == "variables":
         exclude_vars_string = options.exclude
         if mode == "phase":
-            generate_variables_phase(ip, match_temporary_path, exclude_vars_string)
+            generate_variables_phase(ip, match_temporary_path, exclude_vars_string, options.lists)
         elif mode == "coupling":
             generate_variables_coupling(ip, match_temporary_path, exclude_vars_string)
     elif command == "constraints":
@@ -142,14 +145,18 @@ def match(lhc_run, ip, sbs_data_b1_path, sbs_data_b2_path, match_temporary_path,
     return 0
 
 
-def generate_variables_phase(ip, variables_path=os.path.join(CURRENT_PATH, "match"), exclude_string=""):
+def generate_variables_phase(ip, variables_path=os.path.join(CURRENT_PATH, "match"), exclude_string="", lists=None):
     if not os.path.exists(variables_path):
         iotools.create_dirs(variables_path)
 
     exclude_list = _parse_exclude_string(exclude_string)
 
-    variables_beam1 = json.load(file(ALL_LISTS_BEAM1_PATH, 'r'))['getListsByIR'][1]
-    variables_common, variables_beam2 = json.load(file(ALL_LISTS_BEAM2_PATH, 'r'))['getListsByIR']
+    if lists == None:
+        variables_beam1 = json.load(file(ALL_LISTS_BEAM1_PATH, 'r'))['getListsByIR'][1]
+        variables_common, variables_beam2 = json.load(file(ALL_LISTS_BEAM2_PATH, 'r'))['getListsByIR']
+    else:
+        variables_beam1 = json.load(file(os.path.join(lists, "LHCB1", "AllLists.json"), 'r'))['getListsByIR'][1]
+        variables_common, variables_beam2 = json.load(file(os.path.join(lists, "LHCB2", "AllLists.json"), 'r'))['getListsByIR']
 
     ip_string = str(ip)
 
@@ -263,7 +270,7 @@ def _write_constraints_file_phase(sbs_data, constr_file, ip, beam, plane, tune, 
             error = sbs_data.ERRPROPPHASEX[index] if plane == "x" else sbs_data.ERRPROPPHASEY[index]
             s = sbs_data.S[index]
 
-            if abs(phase) > 0.25 or error == 0.:
+            if abs(phase) > 0.25:
                 weight = 1e-6
             elif not use_errors:
                 weight = 1
@@ -469,10 +476,12 @@ def _get_match_bpm_range(file_path):
 
 def _prepare_script_and_run_madx(lhc_run, label, mode, beam1_temporary_path, beam2_temporary_path, match_temporary_path,
                                  b1_range_start, b1_range_end, b2_range_start, b2_range_end):
-    if lhc_run == "1":
+    if lhc_run == "RunI":
         lhc_mode = "lhc_runI"
-    elif lhc_run == "2":
+    elif lhc_run == "RunII":
         lhc_mode = "lhc_runII"
+    elif lhc_run == "RunII_2016":
+        lhc_mode = "lhc_runII_2016"
     elif lhc_run == "HL":
         lhc_mode = "hllhc"
     else:
@@ -505,8 +514,8 @@ def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_
     prop_models_b1 = SegmentBySegment._PropagatedModels(save_path_b1, "IP" + str(ip))
     prop_models_b2 = SegmentBySegment._PropagatedModels(save_path_b2, "IP" + str(ip))
 
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, True, False, "LHCB1", None)
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, True, False, "LHCB2", None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, True, False, "LHCB1", None, None, None)
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, True, False, "LHCB2", None, None, None)
 
 
 def _prepare_and_run_gnuplot(ip, match_temporary_path, range_beam1_start_s, range_beam1_end_s, range_beam2_start_s, range_beam2_end_s):

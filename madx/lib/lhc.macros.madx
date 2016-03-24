@@ -9,6 +9,7 @@
 */
 define_lhc_links(): macro = {
     System, "test -e runII || ln -ns /afs/cern.ch/eng/lhc/optics/runII/2015/ runII";
+    System, "test -e runII_2016 || ln -ns /afs/cern.ch/eng/lhc/optics/runII/2016/ runII_2016";
     System, "test -e db5   || ln -ns /afs/cern.ch/eng/lhc/optics/V6.503 db5";
     System, "test -e ats   || ln -ns /afs/cern.ch/eng/lhc/optics/ATS_V6.503 ats";
 };

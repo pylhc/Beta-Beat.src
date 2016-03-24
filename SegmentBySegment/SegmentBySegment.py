@@ -711,6 +711,9 @@ def _run4mad(save_path,
     if accelerator.endswith("_II"):
         lhc_mode = "lhc_runII"
         accelerator = accelerator.upper().replace("_II", "")
+    if accelerator.endswith("_II_2016"):
+        lhc_mode = "lhc_runII_2016"
+        accelerator = accelerator.upper().replace("_II_2016", "")
     elif accelerator.endswith("_HL"):
         lhc_mode = "hllhc"
         accelerator = accelerator.upper().replace("_HL", "")
