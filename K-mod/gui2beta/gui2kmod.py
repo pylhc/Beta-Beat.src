@@ -236,8 +236,10 @@ def lin_fit_data(path):
 
 def which_bpms(ips):
     bpm_dict = {'ip1b1': ['"BPMSW.1L1.B1"', '"BPMSW.1R1.B1"'],
+                'ip2b1': ['"BPMSW.1L2.B1"', '"BPMSW.1R2.B1"'],
                 'ip5b1': ['"BPMSW.1L5.B1"', '"BPMSW.1R5.B1"'],
                 'ip1b2': ['"BPMSW.1L1.B2"', '"BPMSW.1R1.B2"'],
+                'ip2b2': ['"BPMSW.1L2.B2"', '"BPMSW.1R2.B2"'],
                 'ip5b2': ['"BPMSW.1L5.B2"', '"BPMSW.1R5.B2"'],
                 }
     return bpm_dict[ips]
