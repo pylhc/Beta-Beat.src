@@ -8,14 +8,15 @@ from Utilities import tfs_file_writer
 TUNE_MEAS_PRECISION = 2.5e-5
 
 
-def merge_data(working_directory, IR):
+def merge_data(working_directory,  ip ,beam):
+    IR =  ip + beam
     planes = ['X','Y']
     sides  = ['L','R']
     for side in sides:
         result = {'X':[],'Y':[]}
         tdatax = metaclass.twiss(os.path.join(working_directory,IR+side+'X.tfs'))
         tdatay = metaclass.twiss(os.path.join(working_directory,IR+side+'Y.tfs'))
-        kdata= metaclass.twiss(os.path.join(working_directory,side+'K.tfs'))
+        kdata= metaclass.twiss(os.path.join(working_directory,ip+side+'K.tfs'))
         K, Qx, Qxrms, Qy, Qyrms = pair(tdatax,tdatay,kdata)
         
         write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, IR, side)
