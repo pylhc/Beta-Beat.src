@@ -227,7 +227,7 @@ def main(options):
 
         propagated_models = _PropagatedModels(save_path, element_name)
 
-        kmod_data_file_x, kmod_data_file_y = _get_kmod_files(element_name)
+        kmod_data_file_x, kmod_data_file_y = _get_kmod_files()
 
         getAndWriteData(element_name,
                         input_data,
@@ -424,10 +424,10 @@ def _get_chrom_parameters(input_data, startbpm, endbpm):
     return element_has_chrom, chrom_ini, chrom_end
 
 
-def _get_kmod_files(element_name):
+def _get_kmod_files():
     try:
-        kmod_path_x = twiss(_join_output_with("kmod_data_" + element_name + "_x.out"))
-        kmod_path_y = twiss(_join_output_with("kmod_data_" + element_name + "_y.out"))
+        kmod_path_x = twiss(_join_output_with("getkmodbetax.out"))
+        kmod_path_y = twiss(_join_output_with("getkmodbetay.out"))
     except IOError:
         kmod_path_x = None
         kmod_path_y = None
