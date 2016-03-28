@@ -9,5 +9,9 @@ IR_definitions = {'ip1b1.X': ('def','foc'),
                   'ip5b1.X': ('def','foc'), 
                   'ip5b1.Y': ('foc','def'), 
                   'ip5b2.X': ('foc','def'), 
-                  'ip5b2.Y': ('def','foc') 
+                  'ip5b2.Y': ('def','foc'), 
+                  'ip8b1.X': ('foc','def'), 
+                  'ip8b1.Y': ('def','foc'), 
+                  'ip8b2.X': ('def','foc'), 
+                  'ip8b2.Y': ('foc','def') 
                   }
