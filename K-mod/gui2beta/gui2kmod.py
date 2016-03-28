@@ -270,12 +270,12 @@ def calc_BPM_beta(path, ip, beam):
     beta_bpm_err = np.transpose(np.vstack((b_bpmL_err,b_bpmR_err)))
     bpms = which_bpms(ip+beam)
 
-    xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'betakmodx.dat'))
+    xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax.out'))
     xdata.set_column_width(20)
     xdata.add_column_names(['NAME', 'S'  , 'COUNT',   'BETX',    'BETXSTD',       'BETXMDL'    ,        'MUXMDL'     ,      'BETXRES'    ,    'BETXSTDRES' ])
     xdata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
 
-    ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'betakmody.dat'))
+    ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay.out'))
     ydata.set_column_width(20)
     ydata.add_column_names(['NAME', 'S'  , 'COUNT',    'BETY',    'BETYSTD',   'BETYMDL'      ,      'MUYMDL'    ,       'BETYRES'    ,    'BETYSTDRES'])
     ydata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
