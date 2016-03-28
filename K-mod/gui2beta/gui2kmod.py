@@ -179,10 +179,6 @@ def run_analysis_simplex(path, beam, ip, bs):
     pathy = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.31 -L 22.965 -l 6.37 -K %s -D ' %str(abs(K))
     commandy = pathy + str(dK) +','+ str(dK)+ ' -d ' + str(abs(fity_L))+','+str(abs(fity_R)) + ' -e ' + str(abs(erry_l))+','+str(abs(erry_r)) + ' -b ' + bs + ' -t ' + (ip+beam)+'.Y' 
 
-#     pathx = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.28 -L 22.965 -l 6.37 -K %s -D ' %str(abs(kdata[4]))
-#     commandx = pathx + str(kdata[5]) +','+ str(kdata[5])+ ' -d ' + str(abs(kdata[0]))+','+str(abs(kdata[1])) + ' -e 1e-5,1e-5 -b ' + bs + ' -t ' + (ip+beam)+'.X' 
-#     pathy = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.31 -L 22.965 -l 6.37 -K %s -D ' %str(abs(kdata[4]))
-#     commandy = pathy + str(kdata[5]) +','+ str(kdata[5])+ ' -d ' + str(abs(kdata[2]))+','+str(abs(kdata[3])) + ' -e 1e-5,1e-5 -b ' + bs + ' -t ' + (ip+beam)+'.Y'
     os.system(commandx)
     os.system(commandy)
 
@@ -209,11 +205,6 @@ def lin_fit_data(path):
     cleaned_xL = start_cleaning_data(left_data.K, left_data.TUNEX,left_data.TUNEX_ERR)
     cleaned_yL = start_cleaning_data(left_data.K, left_data.TUNEY,left_data.TUNEY_ERR)
 
-#     fitx_R = stats.linregress(cleaned_xR[:,0], cleaned_xR[:,1])
-#     fity_R = stats.linregress(cleaned_yR[:,0], cleaned_yR[:,1])
-#     fitx_L = stats.linregress(cleaned_xL[:,0], cleaned_xL[:,1])
-#     fity_L = stats.linregress(cleaned_yL[:,0], cleaned_yL[:,1])
-
     fitx_R, covx_r = np.polyfit(cleaned_xR[:,0], cleaned_xR[:,1], 1, cov=True, w = 1/cleaned_xR[:,2]**2)
     fity_R, covy_r = np.polyfit(cleaned_yR[:,0], cleaned_yR[:,1], 1, cov=True, w = 1/cleaned_yR[:,2]**2)
     fitx_L, covx_l = np.polyfit(cleaned_xL[:,0], cleaned_xL[:,1], 1, cov=True, w = 1/cleaned_xL[:,2]**2)
@@ -238,9 +229,11 @@ def which_bpms(ips):
     bpm_dict = {'ip1b1': ['"BPMSW.1L1.B1"', '"BPMSW.1R1.B1"'],
                 'ip2b1': ['"BPMSW.1L2.B1"', '"BPMSW.1R2.B1"'],
                 'ip5b1': ['"BPMSW.1L5.B1"', '"BPMSW.1R5.B1"'],
+                'ip8b1': ['"BPMSW.1L8.B1"', '"BPMSW.1R8.B1"'],
                 'ip1b2': ['"BPMSW.1L1.B2"', '"BPMSW.1R1.B2"'],
                 'ip2b2': ['"BPMSW.1L2.B2"', '"BPMSW.1R2.B2"'],
                 'ip5b2': ['"BPMSW.1L5.B2"', '"BPMSW.1R5.B2"'],
+                'ip8b2': ['"BPMSW.1L8.B2"', '"BPMSW.1R8.B2"'],
                 }
     return bpm_dict[ips]
 
