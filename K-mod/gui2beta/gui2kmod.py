@@ -239,7 +239,10 @@ def which_bpms(ips):
 
 
 def calc_BPM_beta(path, ip, beam):
-    L_ip2bpm = 21.475  # Length between IP and first BPM:  BPMSW.1L1.B1, BPMSW.1R1.B1, BPMSW.1L5.B1, BPMSW.1R5.B1
+    if ip == 'ip1' or ip == 'ip5':
+        L_ip2bpm = 21.564  # Length between IP and first BPM:  BPMSW.1L1.B1, BPMSW.1R1.B1, BPMSW.1L5.B1, BPMSW.1R5.B1
+    elif ip == 'ip8' or ip == 'ip2':
+        L_ip2bpm = 21.595    
     ip_data = metaclass.twiss(os.path.join(path,'%s.results' %(ip+beam)))
     bw     = ip_data.BETAWAIST
     bw_err = ip_data.BETAWAIST_ERR
@@ -270,12 +273,12 @@ def calc_BPM_beta(path, ip, beam):
     beta_bpm_err = np.transpose(np.vstack((b_bpmL_err,b_bpmR_err)))
     bpms = which_bpms(ip+beam)
 
-    xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax.out'))
+    xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax_%s.out' %ip))
     xdata.set_column_width(20)
     xdata.add_column_names(['NAME', 'S'  , 'COUNT',   'BETX',    'BETXSTD',       'BETXMDL'    ,        'MUXMDL'     ,      'BETXRES'    ,    'BETXSTDRES' ])
     xdata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
 
-    ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay.out'))
+    ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay_%s.out' %ip))
     ydata.set_column_width(20)
     ydata.add_column_names(['NAME', 'S'  , 'COUNT',    'BETY',    'BETYSTD',   'BETYMDL'      ,      'MUYMDL'    ,       'BETYRES'    ,    'BETYSTDRES'])
     ydata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
