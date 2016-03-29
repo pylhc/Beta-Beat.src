@@ -41,6 +41,13 @@ PRINT_DEBUG = False  # If True, internal debug information will be printed
 PLANE_X = "0"
 PLANE_Y = "1"
 
+LIST_OF_KNOWN_BAD_BPMS = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", 
+                          "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMSI.A4R6.B1", 
+                          "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2", "BPM.15L8.B2", "BPM.20L2.B2", "BPM.21L2.B2"]
+
+LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = ["BPMSW.1L5.B1", "BPMSW.1L5.B2"]
+
+
 #dev hints:
 # print ">> Time for removeBadBpms: {}s".format(time.time() - time_start)  # does not work with python <= 2.6
 # print ">> Time for removeBadBpms: {0}s".format(time.time() - time_start) # works with python 2.6
@@ -175,10 +182,6 @@ class _SddsFile(object):
         if (self.parsed):
             return
 
-        list_of_known_bad_bpms = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", 
-                                  "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMS.2L5.B1", 'BPMS.2R5.B1', "BPMSI.A4R6.B1", 
-                                  "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2", "BPM.15L8.B2"]
-
         last_number_of_turns = 0
         detected_number_of_turns = 0
         
@@ -218,7 +221,7 @@ class _SddsFile(object):
                 bpm_name = list_splitted_line_values[1]
                 location = float(list_splitted_line_values[2])
     
-                if bpm_name in list_of_known_bad_bpms: # Remove known bad BPMs
+                if bpm_name in LIST_OF_KNOWN_BAD_BPMS: # Remove known bad BPMs
                     reason_for_badbpm = "removed (known) bad bpm: " + str(bpm_name)
                     #print reason_for_badbpm
                     badbpm = _BadBpm(line, reason_for_badbpm)
@@ -253,6 +256,9 @@ class _SddsFile(object):
                 ndarray_line_data = numpy.array(\
                     list_splitted_line_values[3 + _InputData.startturn:3 + _InputData.startturn + self.number_of_turns], \
                     dtype=numpy.float64)
+
+                if bpm_name in LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES:
+                    ndarray_line_data = -1. * ndarray_line_data
     
                 ndarray_line_data_max = numpy.max(ndarray_line_data)
                 ndarray_line_data_min = numpy.min(ndarray_line_data)
