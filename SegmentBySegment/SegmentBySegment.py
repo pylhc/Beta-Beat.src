@@ -443,7 +443,7 @@ def _get_calibrated_betas(plane):
         calibration_data = twiss(_join_output_with("calibration_" + plane + ".out"))
     except IOError:
         return None
-    calibrated_betas = CalibratedBetas(calibration_data.NAME, calibration_data.POSITION,  # TODO: Change the tables to S not POSITION
+    calibrated_betas = CalibratedBetas(calibration_data.NAME, calibration_data.S,
                                        plane, calibration_data.indx)
     for bpm_name in calibration_data.NAME:
         if bpm_name in amplitude_beta.NAME:
