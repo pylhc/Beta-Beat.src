@@ -19,6 +19,7 @@ from scipy.spatial import Delaunay
 from optparse import OptionParser
 from Utilities import tfs_file_writer
 from read_Timber_output import merge_data
+from IR_planes import IR_definitions
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -184,7 +185,10 @@ def run_analysis_simplex(path, beam, ip, bs):
 
     with open('BetaStarResults.dat', 'r') as results_read:
         content = results_read.read()
-
+        print 'reading data works'
+    
+    print content
+    print os.path.join(path,'%s.results' %(ip+beam))
     with open(os.path.join(path,'%s.results' %(ip+beam)), 'w') as results_write:
         results_write.write('* LABEL   BETASTAR   BETASTAR_ERR   WAIST       WAIST_ERR   BETAWAIST   BETAWAIST_ERR   BBEAT_FOC   BBEAT_FOC_ERR   BBEAT_DEF   BBEAT_DEF_ERR \n')
         results_write.write('$ %s      %le        %le            %le         %le         %le         %le             %le         %le             %le         %le \n')
@@ -250,7 +254,14 @@ def calc_BPM_beta(path, ip, beam):
     w_err  = ip_data.WAIST_ERR
     label  = ip_data.LABEL
     
-    
+    IR = ip + beam 
+
+    if IR_definitions[IR+'.X'][0] == 'foc':
+        w[0] = -w[0] 
+    elif IR_definitions[IR+'.Y'][0] == 'foc':
+        w[1] = -w[1]
+
+
     b_bpmR = bw + (L_ip2bpm - w)**2/bw
     b_bpmL = bw + (L_ip2bpm + w)**2/bw
 
