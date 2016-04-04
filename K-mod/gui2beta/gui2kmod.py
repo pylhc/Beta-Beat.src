@@ -182,13 +182,14 @@ def run_analysis_simplex(path, beam, ip, bs):
 
     os.system(commandx)
     os.system(commandy)
+    
+    with open('command.run', 'a') as commands_write:
+        commands_write.write(commandx +' \n')
+        commands_write.write(commandy)
 
     with open('BetaStarResults.dat', 'r') as results_read:
         content = results_read.read()
-        print 'reading data works'
     
-    print content
-    print os.path.join(path,'%s.results' %(ip+beam))
     with open(os.path.join(path,'%s.results' %(ip+beam)), 'w') as results_write:
         results_write.write('* LABEL   BETASTAR   BETASTAR_ERR   WAIST       WAIST_ERR   BETAWAIST   BETAWAIST_ERR   BBEAT_FOC   BBEAT_FOC_ERR   BBEAT_DEF   BBEAT_DEF_ERR \n')
         results_write.write('$ %s      %le        %le            %le         %le         %le         %le             %le         %le             %le         %le \n')
