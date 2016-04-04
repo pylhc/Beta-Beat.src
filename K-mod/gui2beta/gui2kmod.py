@@ -167,7 +167,7 @@ def start_cleaning_data(k,tune_data,tune_data_err):
     return cc.return_clean_data()
 
 
-def run_analysis_simplex(path, beam, ip, bs):
+def run_analysis_simplex(path, beam, ip, bs, working_directory):
     fitx_L, fitx_R, fity_L, fity_R, errx_r, erry_r, errx_l, erry_l, K, dK, Q1, Q2 = lin_fit_data(path)
     
     fitx_L = fitx_L*dK
@@ -182,8 +182,9 @@ def run_analysis_simplex(path, beam, ip, bs):
 
     os.system(commandx)
     os.system(commandy)
+
     
-    with open('command.run', 'a') as commands_write:
+    with open(os.path.join(working_directory,'command.run'), 'a') as commands_write:
         commands_write.write(commandx +' \n')
         commands_write.write(commandy)
 
@@ -268,8 +269,10 @@ def calc_BPM_beta(path, ip, beam):
 
     b_bpmR_err = []
     b_bpmL_err = []
+    count = 0
 
     for l in range(len(label)):
+        count += 1
         rerr = []
         lerr = []
         we  = np.linspace(-w_err[l] , w_err[l] ,2) + w[l]
@@ -346,4 +349,4 @@ if __name__ == '__main__':
         if not os.path.exists(path):
             os.makedirs(path)
             print '%s folder created..' % IR
-        run_analysis_simplex(path, beam, ip, bs)
+        run_analysis_simplex(path, beam, ip, bs,working_directory)
