@@ -38,7 +38,7 @@ parser.add_option("-e", "--errorintunes",
     metavar="EDQ", default="0,0", dest="edqs")
 
 parser.add_option("-t", "--label",
-        help="Measurement lable, B1VIP1, B2HIP5, etc",
+        help="Measurement label, ip1b1.X, ip1b1.Y etc",
         metavar="LABEL", default="B", dest="label")
 
 parser.add_option("-b", "--beta",
@@ -341,9 +341,13 @@ def betasfromtunes(Tdql,Tdqr,ir):
     if IR_definitions[ir][0] == 'foc':
         mindb = abs(dbl)
         maxdb = abs(dbr)
+        print 'Right av beta = ', maxdb
+        print 'Left  av beta = ', mindb
     elif IR_definitions[ir][0] == 'def':
         mindb = abs(dbr)
         maxdb = abs(dbl)
+        print 'Right av beta = ', mindb
+        print 'Left  av beta = ', maxdb
     return mindb, maxdb
 
 
