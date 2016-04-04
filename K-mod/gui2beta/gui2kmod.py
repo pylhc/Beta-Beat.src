@@ -186,7 +186,7 @@ def run_analysis_simplex(path, beam, ip, bs, working_directory):
     
     with open(os.path.join(working_directory,'command.run'), 'a') as commands_write:
         commands_write.write(commandx +' \n')
-        commands_write.write(commandy)
+        commands_write.write(commandy +' \n')
 
     with open('BetaStarResults.dat', 'r') as results_read:
         content = results_read.read()
