@@ -1,7 +1,6 @@
 
 import os
 import __init__  # @UnusedImport
-
 import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -43,15 +42,16 @@ Aluminium5 = '#555753'
 Aluminium6 = '#2E3436'
 
 OUTPUT_FILE_PREFIX_PLOT = "plot_beta_ip"
-OUTPUT_FILE_PREFIX_CALIBRATION_FILE = "calibration_bpms_file"
+OUTPUT_FILE_PREFIX_CALIBRATION_FILE = "calibration"
 
 BPM_PREFIXES = ["BPMWB.4L", "BPMSY.4L", "BPMS.2L", "BPMSW.1L", "BPMSW.1L", "BPMSW.1R", "BPMS.2R", "BPMSY.4R", "BPMWB.4R"]
-COLUMN_NAMES = ["NAME", "S", "CAL_AMP", "CAL_AMP_STD", "CAL_AMP_MEAS", "CAL_AMP_MEAS_STD", "CAL_BETA", "CAL_BETA_STD"]
+COLUMN_NAMES = ["NAME", "S", "CAL_AMP", "CAL_AMP_STD", "CALIBRATION", "ERROR_CALIBRATION", "CAL_BETA", "CAL_BETA_STD"]
 
 IPS = [1, 5]
 PLANES = ["X", "Y"]
 
 INITIAL_BETA_STAR_ESTIMATION = 200
+LEGEND_POSITION = 1
 
 
 def _parse_args():
@@ -72,15 +72,15 @@ def _parse_args():
 
 
 def main(input_path, input_path_model, output_path) :
+    Utilities.iotools.create_dirs(output_path)
     (beta_from_phase_x, beta_from_amp_x) = _get_twiss_for_one_of(input_path, "getbetax_free.out", "getbetax.out")
     (beta_from_phase_y, beta_from_amp_y) = _get_twiss_for_one_of(input_path, "getbetay_free.out", "getbetay.out")
-    nominal_model = metaclass.twiss(os.path.join(input_path_model, "twiss.dat"))
+    nominal_model = metaclass.twiss(input_path_model)
     _configure_plots()
     files_phase = (beta_from_phase_x, beta_from_phase_y)
     files_amplitude = (beta_from_amp_x, beta_from_amp_y)
     beam = _get_beam_from_model(nominal_model)
     for i in range(len(PLANES)):
-        print i
         tfs_file = _get_tfs_file(output_path, PLANES[i], beam)
         for ip in IPS:
             (names_range, positions_range, amplitude_ratio_phasefit, error_amplitude_ratio_phasefit, amplitude_ratio_measured, error_amplitude_ratio_measured, beta_ratio_phasefit, error_beta_ratio_phasefit) = _compute_calibration_for_ip_and_plane(ip, PLANES[i], files_phase[i], files_amplitude[i], nominal_model, beam, output_path)
@@ -115,9 +115,9 @@ def _get_beam_from_model(nominal_model):
     else:
         raise ValueError("Wrong sequence in model.")
 
-
 def _get_tfs_file(output_path, plane, beam):
-    name_file = OUTPUT_FILE_PREFIX_CALIBRATION_FILE + "_" + str(plane) + "_Beam" + str(beam) + ".out"
+
+    name_file = OUTPUT_FILE_PREFIX_CALIBRATION_FILE + "_" + str(plane.lower()) + ".out"
     file_path = os.path.join(output_path, name_file)
     tfs_file_writer_calibration = tfs_writer.TfsFileWriter.open(file_path)
     tfs_file_writer_calibration.add_string_descriptor("PLANE", plane)
@@ -189,13 +189,11 @@ def _compute_calibration_for_ip_and_plane(
         beta_phasefit_err.append((beta_phasefit_max[i] - beta_phasefit_min[i]) / 2)
         amplitude_ratio_phasefit.append((beta_phasefit[i] / beta_range_amp[i]) ** 0.5)
         amplitude_ratio_measured.append((beta_range[i] / beta_range_amp[i]) ** 0.5)
-
         error_amplitude_ratio_phasefit.append(((beta_phasefit_err[i]) ** 2 * 1 / (beta_range_amp[i] * beta_phasefit[i] * 4) + beta_phasefit_err[i] ** 2 * beta_phasefit[i] / (beta_range_amp[i] ** 3 * 4)) ** 0.5)
-
         error_amplitude_ratio_measured.append(((beta_range_err[i]) ** 2 * 1 / (beta_range_amp[i] * beta_range[i] * 4) + beta_range_amp_err[i]**2 * beta_range[i] / (beta_range_amp[i] ** 3 * 4)) ** 0.5)
         beta_ratio.append(beta_phasefit[i] / beta_range_amp[i])
         error_beta_ratio.append(((beta_range_amp_err[i] * beta_phasefit[i] / beta_range_amp[i] ** 2) ** 2 + (beta_phasefit_err[i] / beta_range_amp[i]) ** 2) ** 0.5)
-
+   
     _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, position_fit, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err)
     return(names_range_IP, IR_positions_common, amplitude_ratio_phasefit, error_amplitude_ratio_phasefit, amplitude_ratio_measured, error_amplitude_ratio_measured, beta_ratio, error_beta_ratio)
 
@@ -214,12 +212,10 @@ def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, bet
         label_amp = r'$\beta$ from amplitude (x) '
         label_phase = r'$\beta$ from phase (x) '
         label_phase_fit = r'$\beta$ fit (x) '
-        localitation = 2
     elif plane == "Y":
         label_amp = r'$\beta$ from amplitude (y) '
         label_phase = r'$\beta$ from phase (y) '
         label_phase_fit = r'$\beta$ fit (y) '
-        localitation = 1
     for i in position_fit:
         beta_phasefit_allpositions.append(func_phase(i, beta_phasefit_curve[0], beta_phasefit_curve[1]))
         beta_phasefit_max_allpositions.append(func_phase(i, beta_phasefit_curve[0] + beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] + beta_phasefit_curve_err[1, 1] ** 0.5))
@@ -229,7 +225,6 @@ def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, bet
     xfine = np.linspace(position_fit[0], position_fit[len(position_fit) - 1], 2000)
     for i in xfine:
         beta_mdl.append(func_phase(i, beta_phasefit_curve[0], beta_phasefit_curve[1]))
-
     gs = matplotlib.gridspec.GridSpec(1, 1, height_ratios=[1])
     ax2 = plt.subplot(gs[0])
     plt.grid(False)
@@ -240,7 +235,7 @@ def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, bet
     ax2.errorbar(IR_positions_common, beta_range_amp, yerr=beta_range_amp_err, fmt='o', color=ScarletRed1, markersize=3, markeredgecolor=ScarletRed3, label= label_amp)
     ax2.errorbar(position_fit, beta_phasefit_allpositions, yerr=beta_phasefit_err_allpositions, fmt='o', color=Orange1, markersize=4, markeredgecolor=Orange3, label=label_phase_fit )
     ax2.errorbar(xfine, beta_mdl, fmt='r', color=Orange1, markersize=4, markeredgecolor=Orange3)
-    ax2.legend(numpoints=1, ncol=1, loc=localitation, fontsize=14)
+    ax2.legend(numpoints=1, ncol=1, loc=LEGEND_POSITION, fontsize=14)
     matplotlib.pyplot.savefig(file_path_pdf, bbox_inches='tight')
 
 
