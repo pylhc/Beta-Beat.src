@@ -341,13 +341,9 @@ def betasfromtunes(Tdql,Tdqr,ir):
     if IR_definitions[ir][0] == 'foc':
         mindb = abs(dbl)
         maxdb = abs(dbr)
-        print 'Right av beta = ', maxdb
-        print 'Left  av beta = ', mindb
     elif IR_definitions[ir][0] == 'def':
         mindb = abs(dbr)
         maxdb = abs(dbl)
-        print 'Right av beta = ', mindb
-        print 'Left  av beta = ', maxdb
     return mindb, maxdb
 
 
