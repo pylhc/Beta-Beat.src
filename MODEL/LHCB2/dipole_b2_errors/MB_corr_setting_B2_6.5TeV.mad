@@ -1,6 +1,24 @@
  option,-echo;
 
  !!! b2-correction for beam           2
+
+ KQTF.a12B2_init  =  KQTF.a12B2;
+ KQTF.a23B2_init  =  KQTF.a23B2;
+ KQTF.a34B2_init  =  KQTF.a34B2;
+ KQTF.a45B2_init  =  KQTF.a45B2;
+ KQTF.a56B2_init  =  KQTF.a56B2;
+ KQTF.a67B2_init  =  KQTF.a67B2;
+ KQTF.a78B2_init  =  KQTF.a78B2;
+ KQTF.a81B2_init  =  KQTF.a81B2;
+ KQTD.a12B2_init  =  KQTD.a12B2;
+ KQTD.a23B2_init  =  KQTD.a23B2;
+ KQTD.a34B2_init  =  KQTD.a34B2;
+ KQTD.a45B2_init  =  KQTD.a45B2;
+ KQTD.a56B2_init  =  KQTD.a56B2;
+ KQTD.a67B2_init  =  KQTD.a67B2;
+ KQTD.a78B2_init  =  KQTD.a78B2;
+ KQTD.a81B2_init  =  KQTD.a81B2;
+
  kqtf.b2:=0;
  kqtd.b2:=0;
  dKQTF.a12B2 :=     0.9172173922E-04 ;
@@ -20,22 +38,22 @@
  dKQTD.a78B2 :=     0.4962152451E-03 ;
  dKQTD.a81B2 :=    -0.3512699790E-03 ;
 
- KQTF.a12B2  :=    -0.1151956551E-03  + dKQTF.a12B2 - 1.0*kqtf.b2;
- KQTF.a23B2  :=    -0.1151956551E-03  + dKQTF.a23B2 + 3.0*kqtf.b2;
- KQTF.a34B2  :=    -0.1151956551E-03  + dKQTF.a34B2 + 3.0*kqtf.b2;
- KQTF.a45B2  :=    -0.1151956551E-03  + dKQTF.a45B2 - 1.0*kqtf.b2;
- KQTF.a56B2  :=    -0.1151956551E-03  + dKQTF.a56B2 - 1.0*kqtf.b2;
- KQTF.a67B2  :=    -0.1151956551E-03  + dKQTF.a67B2 + 3.0*kqtf.b2;
- KQTF.a78B2  :=    -0.1151956551E-03  + dKQTF.a78B2 + 3.0*kqtf.b2;
- KQTF.a81B2  :=    -0.1151956551E-03  + dKQTF.a81B2 - 1.0*kqtf.b2;
- KQTD.a12B2  :=     0.5633666613E-04  + dKQTD.a12B2 - 1.0*kqtd.b2;
- KQTD.a23B2  :=     0.5633666613E-04  + dKQTD.a23B2 + 3.0*kqtd.b2;
- KQTD.a34B2  :=     0.5633666613E-04  + dKQTD.a34B2 + 3.0*kqtd.b2;
- KQTD.a45B2  :=     0.5633666613E-04  + dKQTD.a45B2 - 1.0*kqtd.b2;
- KQTD.a56B2  :=     0.5633666613E-04  + dKQTD.a56B2 - 1.0*kqtd.b2;
- KQTD.a67B2  :=     0.5633666613E-04  + dKQTD.a67B2 + 3.0*kqtd.b2;
- KQTD.a78B2  :=     0.5633666613E-04  + dKQTD.a78B2 + 3.0*kqtd.b2;
- KQTD.a81B2  :=     0.5633666613E-04  + dKQTD.a81B2 - 1.0*kqtd.b2;
+ KQTF.a12B2  :=    KQTF.a12B2_init  + dKQTF.a12B2;
+ KQTF.a23B2  :=    KQTF.a23B2_init  + dKQTF.a23B2;
+ KQTF.a34B2  :=    KQTF.a34B2_init  + dKQTF.a34B2;
+ KQTF.a45B2  :=    KQTF.a45B2_init  + dKQTF.a45B2;
+ KQTF.a56B2  :=    KQTF.a56B2_init  + dKQTF.a56B2;
+ KQTF.a67B2  :=    KQTF.a67B2_init  + dKQTF.a67B2;
+ KQTF.a78B2  :=    KQTF.a78B2_init  + dKQTF.a78B2;
+ KQTF.a81B2  :=    KQTF.a81B2_init  + dKQTF.a81B2;
+ KQTD.a12B2  :=    KQTD.a12B2_init  + dKQTD.a12B2;
+ KQTD.a23B2  :=    KQTD.a23B2_init  + dKQTD.a23B2;
+ KQTD.a34B2  :=    KQTD.a34B2_init  + dKQTD.a34B2;
+ KQTD.a45B2  :=    KQTD.a45B2_init  + dKQTD.a45B2;
+ KQTD.a56B2  :=    KQTD.a56B2_init  + dKQTD.a56B2;
+ KQTD.a67B2  :=    KQTD.a67B2_init  + dKQTD.a67B2;
+ KQTD.a78B2  :=    KQTD.a78B2_init  + dKQTD.a78B2;
+ KQTD.a81B2  :=    KQTD.a81B2_init  + dKQTD.a81B2;
 
  !!! a2-correction for beam           2
     CMRSKEW=0.;
