@@ -30,6 +30,7 @@ import argparse
 
 import numpy
 from numpy import dot as matrixmultiply
+from datetime import datetime
 from __builtin__ import max
 
 
@@ -41,20 +42,24 @@ PRINT_DEBUG = False  # If True, internal debug information will be printed
 PLANE_X = "0"
 PLANE_Y = "1"
 
-#2016 04 11
-#LIST_OF_KNOWN_BAD_BPMS = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", 
-#                          "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMSI.A4R6.B1", 
-#                          "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2", "BPM.15L8.B2", "BPM.20L2.B2", "BPM.21L2.B2"]
-
 # piotr: for data 20160408 01:45+ (40cm) B1
 LIST_OF_KNOWN_BAD_BPMS = ["BPM.17L8.B1", "BPM.16L8.B1", "BPM.8R8.B1", "BPM.9R8.B1", # H B1 (big ones)
                           "BPM.26L8.B1","BPM.24L8.B1", "BPM.10R6.B1","BPM.8R6.B1","BPM.32R1.B1","BPM.33R1.B1", # V B1 (big ones)
-	      "BPM.12R2.B1","BPM.13R2.B1","BPM.15R6.B1","BPM.16R6.B1","BPM.19L7.B1","BPM.18L7.B1", # H B1 (small ones)
-	      "BPM.21R7.B1","BPM.22R7.B1","BPM.20R8.B1","BPM.21R8.B1","BPM.19L2.B1","BPM.18L2.B1",  # H B1 (small ones)
-	      "BPMR.7L5.B1","BPM.6L5.B1","BPM.8L1.B1","BPM.6L1.B1"] 
+                           "BPM.12R2.B1","BPM.13R2.B1","BPM.15R6.B1","BPM.16R6.B1","BPM.19L7.B1","BPM.18L7.B1", # H B1 (small ones)
+                           "BPM.21R7.B1","BPM.22R7.B1","BPM.20R8.B1","BPM.21R8.B1","BPM.19L2.B1","BPM.18L2.B1",  # H B1 (small ones)
+                           "BPMR.7L5.B1","BPM.6L5.B1","BPM.8L1.B1","BPM.6L1.B1"]
 
 LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = []
 
+RESYNC_FROM = datetime(2016, 4, 1)  # 1st of April of 2016 -> Date around when the BPM synchronization was changed.
+LIST_OF_OUT_OF_SYNC_BPMS_B1 = ["BPM.33L2.B1", "BPM.32L2.B1", "BPM.31L2.B1", "BPM.30L2.B1",
+                               "BPM.29L2.B1", "BPM.28L2.B1", "BPM.27L2.B1", "BPM.26L2.B1", "BPM.25L2.B1", "BPM.24L2.B1", "BPM.23L2.B1", "BPM.22L2.B1", "BPM.21L2.B1", "BPM.20L2.B1",
+                               "BPM.19L2.B1", "BPM.18L2.B1", "BPM.17L2.B1", "BPM.16L2.B1", "BPM.15L2.B1", "BPM.14L2.B1", "BPM.13L2.B1", "BPM.12L2.B1", "BPM.11L2.B1", "BPM.10L2.B1",
+                               "BPM.9L2.B1", "BPM.8L2.B1", "BPM.7L2.B1", "BPMR.6L2.B1", "BPMYB.5L2.B1", "BPMYB.4L2.B1", "BPMWI.4L2.B1", "BPMS.2L2.B1", "BPMSW.1L2.B1"]
+LIST_OF_OUT_OF_SYNC_BPMS_B2 = ["BPM.34R8.B2", "BPM.33R8.B2", "BPM.32R8.B2", "BPM.31R8.B2", "BPM.30R8.B2",
+                               "BPM.29R8.B2", "BPM.28R8.B2", "BPM.27R8.B2", "BPM.26R8.B2", "BPM.25R8.B2", "BPM.24R8.B2", "BPM.23R8.B2", "BPM.22R8.B2", "BPM.21R8.B2", "BPM.20R8.B2",
+                               "BPM.19R8.B2", "BPM.18R8.B2", "BPM.17R8.B2", "BPM.16R8.B2", "BPM.15R8.B2", "BPM.14R8.B2", "BPM.13R8.B2", "BPM.12R8.B2", "BPM.11R8.B2", "BPM.10R8.B2",
+                               "BPM.9R8.B2", "BPM.8R8.B2", "BPM_A.7R8.B2", "BPMR.6R8.B2", "BPMYB.5R8.B2", "BPMYB.4R8.B2", "BPMWI.4R8.B2", "BPMS.2R8.B2", "BPMSW.1R8.B2"]
 
 #dev hints:
 # print ">> Time for removeBadBpms: {}s".format(time.time() - time_start)  # does not work with python <= 2.6
@@ -99,6 +104,9 @@ def _parse_args():
     parser.add_argument("-s", "--sumsquare", "--single_svd_bpm_threshold",
         help="""Threshold for single BPM dominating a mode. Should be > 0.9 for LHC. Default: %(default)s""",
         default="0.925", dest="single_svd_bpm_threshold", type=float)
+    parser.add_argument("-r", "--resync",
+        help="""Fix the synchronization of the BPMs if the file timestamp is present and is after May of 2016.""",
+        dest="resync", action="store_true")
     parser.add_argument("--use_test_mode",
         help="""Set testing mode, this prevents date writing. Useful for automated tests, because otherwise each run
         will have a new date, therefore a diff will fail""",
@@ -137,6 +145,7 @@ def clean_sdds_file(options):
        min_peak_to_peak=options.min_peak_to_peak,
        max_peak_cut=options.max_peak,
        single_svd_bpm_threshold=options.single_svd_bpm_threshold,
+       resync=options.resync,
        use_test_mode=options.use_test_mode
     )
 
@@ -151,7 +160,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(inputfile, outputfile, startturn_human, maxturns_human, singular_values_amount_to_keep, 
-                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, use_test_mode):
+                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, resync, use_test_mode):
         _InputData.inputfile = inputfile
         print "inputfile:  " + str(inputfile)
         _InputData.outputfile = outputfile
@@ -168,6 +177,7 @@ class _InputData(object):
         _InputData.min_peak_to_peak = min_peak_to_peak
         _InputData.max_peak_cut = max_peak_cut
         _InputData.single_svd_bpm_threshold = single_svd_bpm_threshold
+        _InputData.resync = resync
         _InputData.use_test_mode = use_test_mode
 
     def __init__(self):
@@ -197,6 +207,7 @@ class _SddsFile(object):
         known_bad_bpms_counter = 0
         flatbpm_counter = 0
         bpm_with_spike_counter = 0
+        do_resync = False
         
         time_start = time.time()
         print "Extracting data from file " + str(self.path_to_sddsfile)
@@ -206,6 +217,16 @@ class _SddsFile(object):
                 # example: 0 BPMSY.4L1.B1 23461.055 <fp values whitespace separated>  -tbach
                 
                 if line.startswith("#"):  # we have a comment line -tbach
+                    if line.startswith("#acquisition stamp :") and _InputData.resync:
+                        raw_acq_stamp = line.replace("#acquisition stamp :", "")
+                        try:
+                            acq_stamp = int(float(raw_acq_stamp) / 1.0e9)  # The timestamp comes in nanoseconds...
+                            acq_date = datetime.fromtimestamp(acq_stamp)
+                            print "Acquisition date: ", str(acq_date)
+                        except ValueError:
+                            print >> sys.stderr, "Cannot parse timestamp, will not resynchronize the BPMs."
+                        if acq_date is not None:
+                            do_resync = RESYNC_FROM < acq_date
                     self.header += line
                     continue
                 
@@ -267,7 +288,13 @@ class _SddsFile(object):
 
                 if bpm_name in LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES:
                     ndarray_line_data = -1. * ndarray_line_data
-    
+
+                if do_resync:
+                    if bpm_name in LIST_OF_OUT_OF_SYNC_BPMS_B1 or bpm_name in LIST_OF_OUT_OF_SYNC_BPMS_B2:
+                        ndarray_line_data = numpy.roll(ndarray_line_data, -1)
+                    if len(LIST_OF_OUT_OF_SYNC_BPMS_B1) != 0 or len(LIST_OF_OUT_OF_SYNC_BPMS_B2) != 0:
+                        ndarray_line_data = numpy.delete(ndarray_line_data, len(ndarray_line_data) - 1)
+
                 ndarray_line_data_max = numpy.max(ndarray_line_data)
                 ndarray_line_data_min = numpy.min(ndarray_line_data)
                 
