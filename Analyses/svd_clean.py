@@ -41,9 +41,17 @@ PRINT_DEBUG = False  # If True, internal debug information will be printed
 PLANE_X = "0"
 PLANE_Y = "1"
 
-LIST_OF_KNOWN_BAD_BPMS = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", 
-                          "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMSI.A4R6.B1", 
-                          "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2", "BPM.15L8.B2", "BPM.20L2.B2", "BPM.21L2.B2"]
+#2016 04 11
+#LIST_OF_KNOWN_BAD_BPMS = ["BPMWC.6L7.B2" ,"BPMR.6L7.B2", "BPMSI.B4L6.B2", "BPMSI.A4L6.B2", "BPMSX.4L2.B2", 
+#                          "BPMS.2L2.B2", "BPMWB.4R8.B1", "BPMSI.A4R6.B1", 
+#                          "BPM.22R8.B1", "BPM.23L6.B1", "BPM.10R4.B2", "BPM.15L8.B2", "BPM.20L2.B2", "BPM.21L2.B2"]
+
+# piotr: for data 20160408 01:45+ (40cm) B1
+LIST_OF_KNOWN_BAD_BPMS = ["BPM.17L8.B1", "BPM.16L8.B1", "BPM.8R8.B1", "BPM.9R8.B1", # H B1 (big ones)
+                          "BPM.26L8.B1","BPM.24L8.B1", "BPM.10R6.B1","BPM.8R6.B1","BPM.32R1.B1","BPM.33R1.B1", # V B1 (big ones)
+	      "BPM.12R2.B1","BPM.13R2.B1","BPM.15R6.B1","BPM.16R6.B1","BPM.19L7.B1","BPM.18L7.B1", # H B1 (small ones)
+	      "BPM.21R7.B1","BPM.22R7.B1","BPM.20R8.B1","BPM.21R8.B1","BPM.19L2.B1","BPM.18L2.B1",  # H B1 (small ones)
+	      "BPMR.7L5.B1","BPM.6L5.B1","BPM.8L1.B1","BPM.6L1.B1"] 
 
 LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = []
 
