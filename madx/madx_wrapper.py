@@ -10,7 +10,7 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 if "win" in sys.platform:
     MADX_PATH = "\\\\AFS\\cern.ch\\project\\mad\\madx\\releases\\last-pro\\madx-win64.exe"
 else:
-    MADX_PATH = "/afs/cern.ch/group/si/slap/bin/madx"
+    MADX_PATH = "/afs/cern.ch/user/m/mad/bin/madx"
 LIB = "lib"
 
 
