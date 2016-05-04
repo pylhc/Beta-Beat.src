@@ -136,6 +136,14 @@ twiss_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number, outpu
 full_lhc_def(modifiers_path, beam_number): macro = {
     exec, define_lhc_links();
     exec, load_main_sequence();
+
+    !!! Coupling knobs convetion for ATS
+    Cmrs.b1 := b1_re_ip7_knob;
+    Cmrs.b2 := b2_re_ip7_knob;
+    Cmis.b1 := b1_im_ip7_knob;
+    Cmis.b2 := b2_im_ip7_knob;
+    !!!
+
     call, file = modifiers_path;
     exec, cycle_sequences();
     exec, define_nominal_beams();
