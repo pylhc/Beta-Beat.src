@@ -1,0 +1,15 @@
+/*
+* Specific macros for runII of 2016 of the LHC
+*/
+
+!@require lhc_runII_2016
+
+/*
+* Coupling knobs convetion for 2016 ATS optics
+*/
+coupling_knob(beam_number): macro = {
+    b1_re_ip7_knob := Cmrs.b1;
+    b2_re_ip7_knob := Cmrs.b2;
+    b1_im_ip7_knob := Cmis.b1;
+    b2_im_ip7_knob := Cmis.b2;
+}
