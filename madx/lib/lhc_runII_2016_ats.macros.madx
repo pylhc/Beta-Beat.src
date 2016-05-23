@@ -5,11 +5,11 @@
 !@require lhc_runII_2016
 
 /*
-* Coupling knobs convetion for 2016 ATS optics
+* Coupling knobs convention for 2016 ATS optics
 */
 coupling_knob(beam_number): macro = {
-    b1_re_ip7_knob := Cmrs.b1;
-    b2_re_ip7_knob := Cmrs.b2;
-    b1_im_ip7_knob := Cmis.b1;
-    b2_im_ip7_knob := Cmis.b2;
+    Cmrs.b1 := b1_re_ip7_knob;
+    Cmrs.b2 := b2_re_ip7_knob;
+    Cmis.b1 := b1_im_ip7_knob;
+    Cmis.b2 := b2_im_ip7_knob;
 }
