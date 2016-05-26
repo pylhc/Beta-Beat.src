@@ -7,16 +7,12 @@ if new_path not in sys.path:
     sys.path.append(new_path)
 
 import numpy as np
-import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass
 from scipy import stats
 from optparse import OptionParser
 from Utilities import tfs_file_writer
 from read_Timber_output import merge_data
 from IR_planes import IR_definitions
-
-CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
-
 
 
 def write_global_files(beam, kmod_dir, res_dir, mod_path):
@@ -28,7 +24,7 @@ def write_global_files(beam, kmod_dir, res_dir, mod_path):
     
     IPs = ['ip1', 'ip5', 'ip8']
     for ip in IPs:
-        pathx, pathy = get_paths(path, beam, ip)
+        pathx, pathy = get_paths(kmod_dir, beam, ip)
         datax = metaclass.twiss(pathx)
         datay = metaclass.twiss(pathy)
         bpms = np.concatenate((bpms, datax.NAME))
@@ -38,7 +34,6 @@ def write_global_files(beam, kmod_dir, res_dir, mod_path):
         bety_std = np.concatenate((bety_std, datay.BETYSTD))
 
     betx_mod, bety_mod = get_model_beta(bpms, mod_path)
-
     
     xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(res_dir, 'getkmodbetax.out'))
     xdata.set_column_width(20)
@@ -48,7 +43,7 @@ def write_global_files(beam, kmod_dir, res_dir, mod_path):
     ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(res_dir, 'getkmodbetay.out'))
     ydata.set_column_width(20)
     ydata.add_column_names(['NAME', 'S', 'COUNT', 'BETY', 'STDBETY', 'BETYMDL', 'ERRBETY', 'BETYRES', 'BETYSTDRES'])
-    xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
+    ydata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
 
     for i in range(len(bpms)):
         xdata.add_table_row([bpms[i], 0, 0, betx[i], betx_std[i], betx_mod[i], 0, 0, 0 ])
@@ -59,12 +54,11 @@ def write_global_files(beam, kmod_dir, res_dir, mod_path):
 
 def get_model_beta(bpms, mod_path):
     model_twiss = metaclass.twiss(mod_path)
-    names = model_twiss.NAME
+    names = np.array(model_twiss.NAME)
     betx =  model_twiss.BETX
     bety =  model_twiss.BETY
-
     betasx = []
-    betasx = []
+    betasy = []
     for bpm in bpms:
         index = np.where(names==bpm)[0][0]
         betasx.append(betx[index])
@@ -98,6 +92,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    options = parse_args()
     beam = options.beam
     kmod_dir = options.kmod_dir
     res_dir  = options.res_dir
