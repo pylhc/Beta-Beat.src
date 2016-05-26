@@ -212,12 +212,12 @@ def _write_kmod_beta_beat_for_plane(file_kmod_beta_beat, plane, bpms_list,
         # Beta from kmod beating (front)
         beta_kmod = _get_from_twiss(measured_kmod, bpm_name, "BET", plane)
         beta_beat_kmod = (beta_kmod - beta_propagation) / beta_propagation
-        err_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "BET", plane, "STD") / beta_propagation
+        err_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane) / beta_propagation
 
         # Beta from kmod beating (back)
         beta_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "BET", plane)
         beta_beat_kmod_back = (beta_kmod_back - beta_back_propagation) / beta_back_propagation
-        err_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "BET", plane, "STD") / beta_back_propagation
+        err_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane) / beta_back_propagation
 
         model_s = measured_kmod.S[measured_kmod.indx[bpm_name]]
         beta_model = _get_from_twiss(measured_kmod, bpm_name, "BET", plane, "MDL")
