@@ -1759,7 +1759,7 @@ C=======================================================================
       implicit none
       integer iana,idam,imeth,ir,iunit,j,k,
      &maxn,mterm,narm,nrc,nt1,nt2,nturn,nturn2,maxturns
-      parameter (maxturns=40000)
+      parameter (maxturns=50010)
       double precision duepi,xy(maxturns*4+4),eps
       complex zsing
       parameter(mterm=1600)
