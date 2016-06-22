@@ -111,6 +111,9 @@ def _parse_args():
     parser.add_argument("-r", "--resync",
         help="""Fix the synchronization of the BPMs if the file timestamp is present and is after May of 2016.""",
         dest="resync", action="store_true")
+    parser.add_argument("-d", "--subtract",
+        help="""Subtracts the closed orbit.""",
+        dest="subtract_co", action="store_true")
     parser.add_argument("--use_test_mode",
         help="""Set testing mode, this prevents date writing. Useful for automated tests, because otherwise each run
         will have a new date, therefore a diff will fail""",
@@ -150,6 +153,7 @@ def clean_sdds_file(options):
        max_peak_cut=options.max_peak,
        single_svd_bpm_threshold=options.single_svd_bpm_threshold,
        resync=options.resync,
+       subtract_co=options.subtract_co,
        use_test_mode=options.use_test_mode
     )
 
@@ -164,7 +168,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(inputfile, outputfile, startturn_human, maxturns_human, singular_values_amount_to_keep, 
-                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, resync, use_test_mode):
+                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, resync, subtract_co, use_test_mode):
         _InputData.inputfile = inputfile
         print "inputfile:  " + str(inputfile)
         _InputData.outputfile = outputfile
@@ -182,6 +186,7 @@ class _InputData(object):
         _InputData.max_peak_cut = max_peak_cut
         _InputData.single_svd_bpm_threshold = single_svd_bpm_threshold
         _InputData.resync = resync
+        _InputData.subtract_co = subtract_co
         _InputData.use_test_mode = use_test_mode
 
     def __init__(self):
@@ -305,7 +310,9 @@ class _SddsFile(object):
                 ndarray_line_data = numpy.array(\
                     list_splitted_line_values[3 + _InputData.startturn:3 + _InputData.startturn + self.number_of_turns], \
                     dtype=numpy.float64)
-
+                
+                if _InputData.subtract_co:                
+                    ndarray_line_data = ndarray_line_data - numpy.average(ndarray_line_data)    #Removing the average orbit
                 
                 if bpm_name in LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES:
                     ndarray_line_data = -1. * ndarray_line_data
