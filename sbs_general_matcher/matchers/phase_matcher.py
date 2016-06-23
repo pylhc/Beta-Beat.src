@@ -1,5 +1,5 @@
 import os
-from sbs_general_matcher.matchers.matcher import Matcher
+from .matcher import Matcher
 from Python_Classes4MAD import metaclass
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -93,6 +93,7 @@ class PhaseMatcher(Matcher):
 
                     weight = self.get_constraint_weight(phase, error, lambda value: abs(value) <= 0.25)
 
+                    weight = 1.0
                     constr_string += '    constraint, weight = ' + str(weight) + ' , '
                     constr_string += 'expr =  ' + self.name + '.dmu' + plane + name + ' = ' + str(phase) + '; '
 

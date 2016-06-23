@@ -1,6 +1,5 @@
 import os
-import json
-from sbs_general_matcher.matchers.matcher import Matcher
+from .matcher import Matcher
 from Python_Classes4MAD import metaclass
 
 DEF_CONSTR_AUX_VALUES_TEMPLATE = """

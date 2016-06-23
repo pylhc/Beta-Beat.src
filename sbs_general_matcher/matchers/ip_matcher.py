@@ -1,5 +1,5 @@
-from sbs_general_matcher.matchers.matcher import Matcher
-from sbs_general_matcher.matchers.phase_matcher import PhaseMatcher
+from .matcher import Matcher
+from .phase_matcher import PhaseMatcher
 from Python_Classes4MAD import metaclass
 
 
@@ -50,14 +50,16 @@ class IpMatcher(PhaseMatcher):
 
             measured_beta = getattr(ip_data, "BET" + plane.upper())[ip_index]
             measured_beta_err = getattr(ip_data, "ERRBET" + plane.upper())[ip_index]
-            beta_weight = self.get_constraint_weight(measured_beta, measured_beta_err, lambda: True)
+            beta_weight = self.get_constraint_weight(measured_beta, measured_beta_err, lambda x: True)
+            beta_weight = 1.0
             constr_string += '    constraint, weight = ' + str(beta_weight) + ', '
             constr_string += 'expr =  table(twiss, IP' + str(self.ip) + ', bet' + plane + ') = '
             constr_string += str(measured_beta) + ';\n'
 
             measured_alpha = getattr(ip_data, "ALF" + plane.upper())[ip_index]
             measured_alpha_err = getattr(ip_data, "ERRALF" + plane.upper())[ip_index]
-            alpha_weight = self.get_constraint_weight(measured_alpha, measured_alpha_err, lambda: True)
+            alpha_weight = self.get_constraint_weight(measured_alpha, measured_alpha_err, lambda x: True)
+            alpha_weight = 1.0
             constr_string += '    constraint, weight = ' + str(alpha_weight) + ', '
             constr_string += 'expr =  table(twiss, IP' + str(self.ip) + ', alf' + plane + ') = '
             constr_string += str(measured_alpha) + ';\n'
