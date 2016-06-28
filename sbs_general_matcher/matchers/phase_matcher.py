@@ -1,4 +1,5 @@
 import os
+import json
 from .matcher import Matcher
 from Python_Classes4MAD import metaclass
 
@@ -6,6 +7,27 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 class PhaseMatcher(Matcher):
+
+    ALL_LISTS = os.path.join(CURRENT_PATH, '..', '..', 'MODEL', 'LHCB', 'fullresponse')
+
+    @Matcher.override(Matcher)
+    def __init__(self, matcher_name, matcher_dict, match_path):
+        super(PhaseMatcher, self).__init__(matcher_name, matcher_dict, match_path)
+        self._variables = {}
+        all_lists = None
+        if "all_lists" in matcher_dict:
+            all_lists = matcher_dict["all_lists"]
+        else:
+            all_lists = PhaseMatcher.ALL_LISTS
+        all_list_file_beam1 = json.load(
+            file(os.path.join(all_lists, "LHCB1", "AllLists.json"), 'r')
+        )
+        all_list_file_beam2 = json.load(
+            file(os.path.join(all_lists, "LHCB2", "AllLists.json"), 'r')
+        )
+        self._variables[1] = all_list_file_beam1['getListsByIR'][1][str(self.get_ip())]
+        self._variables[2] = all_list_file_beam2['getListsByIR'][1][str(self.get_ip())]
+        self._variables_common = all_list_file_beam1['getListsByIR'][0][str(self.get_ip())]
 
     DEF_CONSTR_AUX_VALUES_TEMPLATE = """
     use, period=%(SEQ_B1)s;
@@ -17,72 +39,76 @@ class PhaseMatcher(Matcher):
     %(PHASES)s
 
     %(S_VARIABLES)s
-    %(D_VARIABLES)s
     """
 
-    def define_aux_values(self):
+    @Matcher.override(Matcher)
+    def define_aux_vars(self):
         phases_str = ""
         variables_s_str = ""
-        variables_d_str = ""
 
         sign = ""
-        if "b" in self.front_or_back:
+        if "b" in self._front_or_back:
             sign = "-"
-        for beam in [1, 2]:
+        for beam in self.get_beams():
             for plane in ["x", "y"]:
                 sbs_data_path = os.path.join(
-                    self.get_match_data_for_beam(beam).beam_match_sbs_path,
-                    'sbsphase' + plane + 't_IP' + str(self.ip) + '.out'
+                    self.get_match_data(beam).get_beam_match_sbs_path(),
+                    'sbsphase' + plane + 't_IP' + str(self._ip) + '.out'
                 )
                 sbs_data = metaclass.twiss(sbs_data_path)
                 for name in sbs_data.NAME:
-                    phases_str += self.name + '.dmu' + plane + name + ' := '
+                    phases_str += self._name + '.dmu' + plane + name + ' := '
                     phases_str += sign + "(table(twiss, " + name + ", mu" + plane + ") - "
                     phases_str += "table(" + self._get_nominal_table_name(beam) + ", " + name + ", mu" + plane + "));\n"
 
-        for variable_list in [self.variables_beam1, self.variables_beam2,
-                              self.variables_common]:
-            for variable in variable_list[str(self.ip)]:
-                variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
-                variables_d_str += variable + ' := ' + self.name + "." + variable + '_0' + ' + d' + variable + ';\n'
+        for variable in self.get_variables():
+            variables_s_str += self._name + '.' + variable + '_0' + ' = ' + variable + ';\n'
 
         return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
-            "SEQ_B1": "lhcb1_" + self.front_or_back + "_" + self.name,
-            "SEQ_B2": "lhcb2_" + self.front_or_back + "_" + self.name,
-            "INIT_VALS_B1": "b1_" + self.ini_end + "_" + self.name,
-            "INIT_VALS_B2": "b2_" + self.ini_end + "_" + self.name,
+            "SEQ_B1": "lhcb1_" + self._front_or_back + "_" + self._name,
+            "SEQ_B2": "lhcb2_" + self._front_or_back + "_" + self._name,
+            "INIT_VALS_B1": "b1_" + self._ini_end + "_" + self._name,
+            "INIT_VALS_B2": "b2_" + self._ini_end + "_" + self._name,
             "B1_TABLE_NAME": self._get_nominal_table_name(1),
             "B2_TABLE_NAME": self._get_nominal_table_name(2),
             "PHASES": phases_str,
             "S_VARIABLES": variables_s_str,
-            "D_VARIABLES": variables_d_str,
         }
 
     def _get_nominal_table_name(self, beam):
-        return self.name + ".twiss.b" + str(beam)
+        return self._name + ".twiss.b" + str(beam)
 
-    def define_variables(self):
-        def_variables_string = ""
-        for variable_list in [self.variables_beam1, self.variables_beam2,
-                              self.variables_common]:
-            for variable in variable_list[str(self.ip)]:
-                if variable not in self.excluded_variables_list:
-                    def_variables_string += '    vary, name=d' + variable
-                    def_variables_string += ', step:=1e-4;\n'
-        return def_variables_string
+    @Matcher.override(Matcher)
+    def get_variables(self):
+        variable_list = []
+        for variable in self._get_common_variables():
+            if variable not in self._excluded_variables_list:
+                variable_list.append(variable)
+        for beam in self.get_beams():
+            for variable in self._get_variables(beam):
+                if variable not in self._excluded_variables_list:
+                    variable_list.append(variable)
+        return variable_list
 
+    def _get_variables(self, beam):
+        return self._variables[beam]
+
+    def _get_common_variables(self):
+        return self._variables_common
+
+    @Matcher.override(Matcher)
     def define_constraints(self, beam):
         constr_string = ""
         for plane in ["x", "y"]:
             sbs_data = metaclass.twiss(
-                os.path.join(self.get_match_data_for_beam(beam).beam_match_sbs_path,
-                             'sbsphase' + plane + 't_IP' + str(self.ip) + '.out')
+                os.path.join(self.get_match_data(beam).get_beam_match_sbs_path(),
+                             'sbsphase' + plane + 't_IP' + str(self._ip) + '.out')
             )
 
-            is_back = "b" in self.front_or_back
+            is_back = "b" in self._front_or_back
             for index in range(0, len(sbs_data.NAME)):
                 name = sbs_data.NAME[index]
-                if name not in self.excluded_constraints_list:
+                if name not in self._excluded_constraints_list:
                     if is_back is not True:
                         phase = sbs_data.PROPPHASEX[index] if plane == "x" else sbs_data.PROPPHASEY[index]
                         error = sbs_data.ERRPROPPHASEX[index] if plane == "x" else sbs_data.ERRPROPPHASEY[index]
@@ -95,37 +121,39 @@ class PhaseMatcher(Matcher):
 
                     weight = 1.0
                     constr_string += '    constraint, weight = ' + str(weight) + ' , '
-                    constr_string += 'expr =  ' + self.name + '.dmu' + plane + name + ' = ' + str(phase) + '; '
+                    constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' = ' + str(phase) + '; '
 
                     constr_string += '!   S = ' + str(s)
                     constr_string += ';\n'
         return constr_string
 
+    @Matcher.override(Matcher)
     def update_constraints_values(self, beam):
         return ""
 
+    @Matcher.override(Matcher)
     def update_variables_definition(self):
         update_vars_str = ""
-        for variable_list in [self.variables_beam1, self.variables_beam2,
-                              self.variables_common]:
-            for variable in variable_list[str(self.ip)]:
-                update_vars_str += "        " + variable + ' := ' + self.name + "." + variable + '_0 + d' + variable + ';\n'
+        for variable in self.get_variables():
+            update_vars_str += "        " + variable + ' := ' + self._name + "." + variable + '_0 + d' + variable + ';\n'
         return update_vars_str
 
+    @Matcher.override(Matcher)
     def generate_changeparameters(self):
         changeparameters_str = ""
         for variable_list in [self.variables_beam1, self.variables_beam2,
                               self.variables_common]:
-            for variable in variable_list[str(self.ip)]:
+            for variable in variable_list[str(self._ip)]:
                 if variable not in self.excluded_variables_list:
                     changeparameters_str += 'select,flag=save,pattern=\"d' + variable + '\";\n'
         return changeparameters_str
 
+    @Matcher.override(Matcher)
     def apply_correction(self):
         apply_correction_str = ""
         for variable_list in [self.variables_beam1, self.variables_beam2,
                               self.variables_common]:
-            for variable in variable_list[str(self.ip)]:
+            for variable in variable_list[str(self._ip)]:
                 if variable not in self.excluded_variables_list:
-                    apply_correction_str += variable + ' = ' + self.name + "." + variable + '_0 + d' + variable + ';\n'
+                    apply_correction_str += variable + ' = ' + self._name + "." + variable + '_0 + d' + variable + ';\n'
         return apply_correction_str

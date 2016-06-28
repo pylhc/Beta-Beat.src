@@ -4,23 +4,17 @@ from Python_Classes4MAD import metaclass
 
 
 class IpMatcher(PhaseMatcher):
-    def __init__(self, name, ip_data_b1, ip_data_b2, ip,
-                 measurement_data_b1_path, measurement_data_b2_path,
-                 match_path,
-                 use_errors, front_or_back,
-                 exclude_constr_string, exclude_vars_string,
-                 all_lists=PhaseMatcher.ALL_LISTS):
-        super(PhaseMatcher, self).__init__(
-            name, ip,
-            measurement_data_b1_path, measurement_data_b2_path,
-            match_path,
-            use_errors, front_or_back,
-            exclude_constr_string, exclude_vars_string, all_lists
-        )
-        self.ip_data_b1 = metaclass.twiss(ip_data_b1)
-        self.ip_data_b2 = metaclass.twiss(ip_data_b2)
 
-    def define_aux_values(self):
+    @Matcher.override(PhaseMatcher)
+    def __init__(self, matcher_name, matcher_dict, match_path):
+        super(IpMatcher, self).__init__(matcher_name, matcher_dict, match_path)
+        IpMatcher._check_attribute(matcher_name, matcher_dict, "ip_data_b1")
+        IpMatcher._check_attribute(matcher_name, matcher_dict, "ip_data_b2")
+        self.ip_data_b1 = metaclass.twiss(matcher_dict["ip_data_b1"])
+        self.ip_data_b2 = metaclass.twiss(matcher_dict["ip_data_b2"])
+
+    @Matcher.override(PhaseMatcher)
+    def define_aux_vars(self):
         variables_s_str = ""
         variables_d_str = ""
 
@@ -42,6 +36,7 @@ class IpMatcher(PhaseMatcher):
             "D_VARIABLES": variables_d_str,
         }
 
+    @Matcher.override(PhaseMatcher)
     def define_constraints(self, beam):
         constr_string = ""
         for plane in ["x", "y"]:
@@ -64,13 +59,3 @@ class IpMatcher(PhaseMatcher):
             constr_string += 'expr =  table(twiss, IP' + str(self.ip) + ', alf' + plane + ') = '
             constr_string += str(measured_alpha) + ';\n'
         return constr_string
-
-    @classmethod
-    def from_matcher_dict(cls, matcher_name, matcher_dict, match_path):
-        instance = Matcher.from_matcher_dict(matcher_name, matcher_dict, match_path)
-        instance.__class__ = cls
-        IpMatcher._check_attribute(matcher_name, matcher_dict, "ip_data_b1")
-        IpMatcher._check_attribute(matcher_name, matcher_dict, "ip_data_b2")
-        instance.ip_data_b1 = metaclass.twiss(matcher_dict["ip_data_b1"])
-        instance.ip_data_b2 = metaclass.twiss(matcher_dict["ip_data_b2"])
-        return instance

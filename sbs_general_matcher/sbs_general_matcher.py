@@ -3,6 +3,7 @@ import os
 import sys
 import json
 from matchers import matcher, phase_matcher, coupling_matcher, ip_matcher, beta_matcher
+from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
 from madx import madx_templates_runner
 
@@ -24,61 +25,31 @@ def main(input_file_path):
     input_data = InputData(input_file_path)
     _run_madx_matching(input_data)
     for matcher in input_data.matchers:
-        _write_sbs_data(str(matcher.ip),
-                        matcher.match_data_b1.beam_match_path,
-                        matcher.match_data_b2.beam_match_path,
-                        matcher.match_data_b1.range_start_name,
-                        matcher.match_data_b2.range_start_name,
-                        )
+        for beam in matcher.get_beams():
+            _write_sbs_data(beam, str(matcher.get_ip()),
+                            matcher.get_match_data(beam).get_beam_match_path(),
+                            matcher.get_match_data(beam).get_range_start_name(),
+                            )
     _build_changeparameters_file(input_data)
 
 
 def _run_madx_matching(input_data):
-    extract_sequences_list = []
-    set_initial_values_list = []
-    constraints_aux_vals_list = []
-    define_variables_list = []
-    set_matching_macros_list = []
-    gen_changeparameters_list = []
-    apply_correction_list = []
-    run_corrected_twiss_list = []
-    for matcher in input_data.matchers:
-        extract_sequences_list.append(matcher.extract_sequences())
-        set_initial_values_list.append(matcher.set_initial_values())
-        constraints_aux_vals_list.append(matcher.define_aux_values())
-        define_variables_list.append(matcher.define_variables())
-        set_matching_macros_list.append(matcher.set_matching_macros())
-        gen_changeparameters_list.append(matcher.generate_changeparameters())
-        apply_correction_list.append(matcher.apply_correction())
-        run_corrected_twiss_list.append(matcher.run_corrected_twiss())
     madx_templates = madx_templates_runner.MadxTemplates(
         log_file=os.path.join(input_data.match_path, "match_madx_log.out"),
-        output_file=os.path.join(input_data.match_path, "resolved_madx_match.madx"),
-        madx_path="/afs/cern.ch/user/m/mad/bin/madx_dev64"
+        output_file=os.path.join(input_data.match_path, "resolved_madx_match.madx")
     )
-    madx_templates.lhc_super_matcher_madx(
-        input_data.lhc_mode,
-        "\n".join(extract_sequences_list),
-        "\n".join(set_initial_values_list),
-        "\n".join(constraints_aux_vals_list),
-        "\n".join(define_variables_list),
-        "\n".join(set_matching_macros_list),
-        "\n".join(gen_changeparameters_list),
-        input_data.match_path,
-        "\n".join(run_corrected_twiss_list),
-    )
+    template_processor = TemplateProcessor(input_data.matchers,
+                                           input_data.match_path,
+                                           input_data.lhc_mode,
+                                           madx_templates)
+    template_processor.run()
 
 
-def _write_sbs_data(ip, beam1_temporary_path, beam2_temporary_path, range_beam1_start_name, range_beam2_start_name):
-    save_path_b1 = os.path.join(beam1_temporary_path, "sbs")
-    save_path_b2 = os.path.join(beam2_temporary_path, "sbs")
-    input_data_b1 = SegmentBySegment._InputData(beam1_temporary_path)
-    input_data_b2 = SegmentBySegment._InputData(beam2_temporary_path)
-    prop_models_b1 = SegmentBySegment._PropagatedModels(save_path_b1, "IP" + str(ip))
-    prop_models_b2 = SegmentBySegment._PropagatedModels(save_path_b2, "IP" + str(ip))
-
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b1, None, prop_models_b1, save_path_b1, False, False, True, False, "LHCB1", None)
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data_b2, None, prop_models_b2, save_path_b2, False, False, True, False, "LHCB2", None)
+def _write_sbs_data(beam, ip, temporary_path, range_start_name):
+    save_path = os.path.join(temporary_path, "sbs")
+    input_data = SegmentBySegment._InputData(temporary_path)
+    prop_models = SegmentBySegment._PropagatedModels(save_path, "IP" + str(ip))
+    SegmentBySegment.getAndWriteData("IP" + ip, input_data, None, prop_models, save_path, False, False, True, False, "LHCB" + str(beam), None, None, None)
 
 
 def _build_changeparameters_file(input_data):
@@ -115,7 +86,7 @@ class InputData():
                 print >> sys.stderr, 'Unknown matcher type: ' + matcher_type +\
                                      ' must be in: ' + str(MATCHER_TYPES.keys())
                 sys.exit(-1)
-            self.matchers.append(MatcherClass.from_matcher_dict(matcher_name, matcher_data, self.match_path))
+            self.matchers.append(MatcherClass(matcher_name, matcher_data, self.match_path))
 
     def _check_and_assign_attribute(self, input_data, attribute_name):
             matcher.Matcher._check_attribute("input data", input_data, attribute_name)

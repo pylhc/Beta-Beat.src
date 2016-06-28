@@ -1,7 +1,6 @@
 import os
 import sys
 import shutil
-import json
 from Python_Classes4MAD import metaclass
 from Utilities import iotools
 
@@ -53,49 +52,63 @@ class Matcher(object):
     ERROR_CONSTRAINT_FACTOR = 1000
     MAX_WEIGHT = 4
     MAX_REL_DELTA_LIMIT = 0.1
-    ALL_LISTS = os.path.join(CURRENT_PATH, '..', '..', 'MODEL', 'LHCB', 'fullresponse')
 
-    def __init__(self, name, ip,
-                 measurement_data_b1_path, measurement_data_b2_path,
-                 match_path,
-                 use_errors, front_or_back,
-                 exclude_constr_string, exclude_vars_string, all_lists=None):
-        self.name = name
-        self.match_data_b1 = MatchData(name, ip, measurement_data_b1_path, match_path, 1)
-        self.match_data_b2 = MatchData(name, ip, measurement_data_b2_path, match_path, 2)
+    def __init__(self, matcher_name, matcher_dict, match_path):
+        for attribute_name in ["type", "ip", "use_errors", "propagation"]:
+            Matcher._check_attribute(matcher_name, matcher_dict, attribute_name)
 
-        self.ip = ip
-        self.use_errors = use_errors
+        self._name = matcher_name
+        self._type = matcher_dict["type"]
+        self._ip = matcher_dict["ip"]
+        self._use_errors = matcher_dict["use_errors"]
+        self._front_or_back = matcher_dict["propagation"].lower()
 
-        self.excluded_constraints_list = self._parse_exclude_string(
+        beams_paths = {}
+        for beam in [1, 2]:
+            try:
+                Matcher._check_attribute(matcher_name, matcher_dict,
+                                         "beam" + str(beam) + "_path")
+                beams_paths[beam] = str(matcher_dict["beam" + str(beam) + "_path"])
+            except InputError:
+                pass
+        if len(beams_paths) == 0:
+            raise InputError("No beam1_path or beam2_path defined for matcher " + matcher_name)
+
+        exclude_constr_string = ""
+        if "exclude_constraints" in matcher_dict:
+            exclude_constr_string = matcher_dict["exclude_constraints"]
+        exclude_vars_string = ""
+        if "exclude_variables" in matcher_dict:
+            exclude_vars_string = matcher_dict["exclude_variables"]
+        print "Successfully read matcher " + matcher_name
+
+        self._match_data = {}
+        for beam in beams_paths:
+            self._match_data[beam] = MatchData(matcher_name, self._ip,
+                                               beams_paths[beam],
+                                               match_path, beam)
+
+        self._excluded_constraints_list = self._parse_exclude_string(
             exclude_constr_string
         )
-        self.excluded_variables_list = self._parse_exclude_string(
+        self._excluded_variables_list = self._parse_exclude_string(
             exclude_vars_string
         )
 
-        self.front_or_back = front_or_back.lower()
-        assert self.front_or_back in ["front", "back", "f", "b"]
-        self.front_or_back = self.front_or_back[0]
-        self.ini_end = "ini" if self.front_or_back == "f" else "end"
+        assert self._front_or_back in ["front", "back", "f", "b"]
+        self._front_or_back = self._front_or_back[0]
+        self._ini_end = "ini" if self._front_or_back == "f" else "end"
 
-        if all_lists is None:
-            all_lists = Matcher.ALL_LISTS
-        self.variables_beam1 = json.load(
-            file(os.path.join(all_lists, "LHCB1", "AllLists.json"), 'r')
-        )['getListsByIR'][1]
-        self.variables_common, self.variables_beam2 = json.load(
-            file(os.path.join(all_lists, "LHCB2", "AllLists.json"), 'r')
-        )['getListsByIR']
-
-    def define_aux_values(self):
+    def define_aux_vars(self):
         """Returns the MAD-X string to define the auxiliary values to use
         during the matching"""
         raise NotImplementedError
 
-    def define_variables(self):
-        """Returns the MAD-X string to define the matching variables for this
-        matcher"""
+    def get_variables(self):
+        """Returns either a list of variable names or a MAD-X string defining
+        the variables. If a list is given, this function can be used by other
+        matchers to read the variable names and the variables won't be duplicated
+        in the resulting MAD-X script."""
         raise NotImplementedError
 
     def define_constraints(self, beam):
@@ -123,99 +136,28 @@ class Matcher(object):
         variables, in order to get the corrected twiss files"""
         raise NotImplementedError
 
-    def extract_sequences(self):
-        extract_sequences_str = ""
-        for beam in [1, 2]:
-            extract_sequences_str += EXTRACT_SEQUENCES_TEMPLATE % {
-                "BEAM_NUM": str(beam),
-                "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + self.name,
-                "BACK_SEQ": "lhcb" + str(beam) + "_b_" + self.name,
-                "START_FROM": getattr(self, "match_data_b" + str(beam)).range_start_name,
-                "END_AT": getattr(self, "match_data_b" + str(beam)).range_end_name,
-            }
-        return extract_sequences_str
+    def get_name(self):
+        return self._name
 
-    def set_initial_values(self):
-        set_initial_values_str = ""
-        for beam in [1, 2]:
-            set_initial_values_str += SET_INITIAL_VALUES_TEMPLATE % {
-                "MODIFIERS_OPTICS": getattr(self, "match_data_b" + str(beam)).modifiers,
-                "BEAM_NUM": str(beam),
-                "PATH": getattr(self, "match_data_b" + str(beam)).beam_match_sbs_path,
-                "LABEL": "IP" + str(self.ip),
-                "START_FROM": getattr(self, "match_data_b" + str(beam)).range_start_name,
-                "END_AT": getattr(self, "match_data_b" + str(beam)).range_end_name,
-                "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + self.name,
-                "BACK_SEQ": "lhcb" + str(beam) + "_b_" + self.name,
-                "B_INI": "b" + str(beam) + "_ini_" + self.name,
-                "B_END": "b" + str(beam) + "_end_" + self.name
-            }
-        return set_initial_values_str
+    def get_ip(self):
+        return self._ip
 
-    def set_matching_macros(self):
-        matching_macros = ""
-        for beam in [1, 2]:
-            matching_macros += MATCHING_MACRO_TEMPLATE % {
-                "MODIFIERS_OPTICS": getattr(self, "match_data_b" + str(beam)).modifiers,
-                "MACRO_NAME": "macro_" + self.name + "_b" + str(beam),
-                "BEAM_NUM": str(beam),
-                "SEQ": "lhcb" + str(beam) + "_" + self.front_or_back + "_" + self.name,
-                "UPDATE_CONSTRAINTS": self.update_constraints_values(beam),
-                "UPDATE_VARIABLES": self.update_variables_definition(),
-                "B_INI_END": "b" + str(beam) + "_" + self.ini_end + "_" + self.name,
-                "DEFINE_CONSTRAINTS": self.define_constraints(beam)
-            }
-            matching_macros += "\n"
-        return matching_macros
+    def get_beams(self):
+        return self._match_data.keys()
 
-    def run_corrected_twiss(self):
-        run_corrected_twiss_str = ""
-        for beam in [1, 2]:
-            run_corrected_twiss_str += RUN_CORRECTED_TWISS_TEMPLATE % {
-                "MODIFIERS_OPTICS": getattr(self, "match_data_b" + str(beam)).modifiers,
-                "APPLY_CORRECTIONS": self.apply_correction(),
-                "BEAM_NUM": str(beam),
-                "PATH": getattr(self, "match_data_b" + str(beam)).beam_match_sbs_path,
-                "LABEL": "IP" + str(self.ip),
-                "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + self.name,
-                "BACK_SEQ": "lhcb" + str(beam) + "_b_" + self.name,
-                "B_INI": "b" + str(beam) + "_ini_" + self.name,
-                "B_END": "b" + str(beam) + "_end_" + self.name
-            }
-        return run_corrected_twiss_str
+    def get_match_data(self, beam):
+        return self._match_data[beam]
 
-    @classmethod
-    def from_matcher_dict(cls, matcher_name, matcher_dict, match_path):
-        for attribute_name in ["type", "ip", "beam1_path", "beam2_path",
-                               "use_errors", "propagation"]:
-            Matcher._check_attribute(matcher_name, matcher_dict, attribute_name)
+    def get_front_or_back(self):
+        return self._front_or_back
 
-        exclude_constr_string = ""
-        if "exclude_constraints" in matcher_dict:
-            exclude_constr_string = matcher_dict["exclude_constraints"]
-        exclude_vars_string = ""
-        if "exclude_variables" in matcher_dict:
-            exclude_vars_string = matcher_dict["exclude_variables"]
-        all_lists = None
-        if "all_lists" in matcher_dict:
-            all_lists = matcher_dict["all_lists"]
-        print "Successfully read matcher " + matcher_name
-        instance = Matcher(
-            matcher_name, matcher_dict["ip"],
-            str(matcher_dict["beam1_path"]), str(matcher_dict["beam2_path"]),
-            str(match_path),
-            matcher_dict["use_errors"], matcher_dict["propagation"],
-            exclude_constr_string, exclude_vars_string,
-            all_lists=all_lists
-        )
-        instance.__class__ = cls
-        return instance
+    def get_ini_end(self):
+        return self._ini_end
 
     @staticmethod
     def _check_attribute(base_dict_name, base_dict, attribute_name):
         if attribute_name not in base_dict:
-            print >> sys.stderr, 'Cannot find ' + attribute_name + ' attribute in ' + base_dict_name + '. Aborting.'
-            sys.exit(-1)
+            raise InputError('Cannot find ' + attribute_name + ' attribute in ' + base_dict_name + '. Aborting.')
 
     def _parse_exclude_string(self, exclude_string):
         if not exclude_string == "":
@@ -225,61 +167,100 @@ class Matcher(object):
             exclude_list = []
         return exclude_list
 
-    def get_match_data_for_beam(self, beam):
-        if beam == 1:
-            return self.match_data_b1
-        elif beam == 2:
-            return self.match_data_b2
-        else:
-            return None
-
     def get_constraint_weight(self, value, error, filter_function):
         if not filter_function(value):
             weight = 1e-6
-        elif not self.use_errors:
+        elif not self._use_errors:
             weight = 1.
         else:
             weight = 1. / ((Matcher.ERROR_CONSTRAINT_FACTOR * error) ** 2)
             if weight > Matcher.MAX_WEIGHT:
                 weight = Matcher.MAX_WEIGHT
 
+    @staticmethod
+    def override(parent_cls):
+        """
+        Decorator that checks if the decorated method overrides some method in the given parent class.
+        Similar to java @override annotation.
+        To use it:
+        @Matcher.override(Superclass)
+        def some_method():
+            pass
+        """
+        def override_decorator(method):
+            if not (method.__name__ in dir(parent_cls)):
+                raise TypeError(method.__name__ + " must override a method from class " + parent_cls.__name__ + ".")
+            else:
+                method._doc__ = getattr(parent_cls, method.__name__).__doc__
+            return method
+        return override_decorator
+
+
+class InputError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
 
 class MatchData():
 
     def __init__(self, name, ip, measurement_data_path, match_path, beam):
-        self.beam_match_path = os.path.join(match_path, "Beam" + str(beam) + "_" + name)
-        self.beam_match_sbs_path = os.path.join(self.beam_match_path, "sbs")
+        self._beam_match_path = os.path.join(match_path, "Beam" + str(beam) + "_" + name)
+        self._beam_match_sbs_path = os.path.join(self._beam_match_path, "sbs")
 
         print "Copying measurement files for beam", str(beam),\
               "into match folder..."
-        iotools.create_dirs(self.beam_match_sbs_path)
+        iotools.create_dirs(self._beam_match_sbs_path)
         self._copy_measurement_files(ip,
                                      measurement_data_path)
 
         print "Getting matching range for beam" + str(beam) + "..."
-        ((self.range_start_s,
-          self.range_start_name),
-        (self.range_end_s,
-         self.range_end_name)) = MatchData._get_match_bpm_range(
-            os.path.join(self.beam_match_sbs_path, "sbsphasext_IP" + str(ip) + ".out")
+        ((self._range_start_s,
+          self._range_start_name),
+         (self._range_end_s,
+          self._range_end_name)) = MatchData._get_match_bpm_range(
+            os.path.join(self._beam_match_sbs_path, "sbsphasext_IP" + str(ip) + ".out")
         )
         print "Matching range for Beam " + str(beam),\
-              self.range_start_name, self.range_end_name
+              self._range_start_name, self._range_end_name
 
-        self.modifiers = os.path.join(self.beam_match_sbs_path, "modifiers.madx")
-        assert os.path.isfile(self.modifiers)
+        self._modifiers = os.path.join(self._beam_match_sbs_path, "modifiers.madx")
+        assert os.path.isfile(self._modifiers)
+
+    def get_beam_match_path(self):
+        return self._beam_match_path
+
+    def get_beam_match_sbs_path(self):
+        return self._beam_match_sbs_path
+
+    def get_range_start_name(self):
+        return self._range_start_name
+
+    def get_range_start_s(self):
+        return self._range_start_s
+
+    def get_range_end_name(self):
+        return self._range_end_name
+
+    def get_range_end_s(self):
+        return self._range_end_s
+
+    def get_modifiers(self):
+        return self._modifiers
 
     def _copy_measurement_files(self, ip, measurement_path):
         # GetLLM output files:
         MatchData._copy_files_with_extension(measurement_path,
-                                             self.beam_match_path, ".out")
+                                             self._beam_match_path, ".out")
         # SbS output files for the given IP:
         MatchData._copy_files_which_contains(os.path.join(measurement_path, "sbs"),
-                                             self.beam_match_sbs_path,
+                                             self._beam_match_sbs_path,
                                              "IP" + str(ip))
         # SbS MAD-X files (not necessary but useful):
         MatchData._copy_files_with_extension(os.path.join(measurement_path, "sbs"),
-                                             self.beam_match_sbs_path,
+                                             self._beam_match_sbs_path,
                                              ".madx")
 
     @staticmethod
