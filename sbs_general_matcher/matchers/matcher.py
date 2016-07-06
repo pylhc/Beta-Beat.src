@@ -54,11 +54,10 @@ class Matcher(object):
     MAX_REL_DELTA_LIMIT = 0.1
 
     def __init__(self, matcher_name, matcher_dict, match_path):
-        for attribute_name in ["type", "ip", "use_errors", "propagation"]:
+        for attribute_name in ["ip", "use_errors", "propagation"]:
             Matcher._check_attribute(matcher_name, matcher_dict, attribute_name)
 
         self._name = matcher_name
-        self._type = matcher_dict["type"]
         self._ip = matcher_dict["ip"]
         self._use_errors = matcher_dict["use_errors"]
         self._front_or_back = matcher_dict["propagation"].lower()

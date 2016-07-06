@@ -7,6 +7,7 @@ from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
 from madx import madx_templates_runner
 
+
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 MATCHER_TYPES = {
@@ -106,5 +107,9 @@ class InputData():
 
 
 if __name__ == "__main__":
-    _, _input_path = sys.argv
-    main(os.path.abspath(_input_path))
+    if len(sys.argv) == 2:
+        _, _input_path = sys.argv
+        main(os.path.abspath(_input_path))
+    elif len(sys.argv) == 1:
+        from gui import gui
+        gui.main()

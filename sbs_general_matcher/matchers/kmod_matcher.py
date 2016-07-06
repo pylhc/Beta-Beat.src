@@ -26,18 +26,19 @@ class KmodMatcher(PhaseMatcher):
             for plane in ["x", "y"]:
                 for name in self._sbs_kmod_data[beam][plane].NAME:
                     beatings_str += self._name + '.beating' + plane + name + ' := '
-                    beatings_str += "(table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ")"
-                    beatings_str += " - table(twiss, " + name + ", bet" + plane + ")) /\ntable(twiss, " + name + ", bet" + plane + ");\n"
+                    beatings_str += "(table(twiss, " + name + ", bet" + plane + ")"
+                    beatings_str += " - table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ")) /\n"
+                    beatings_str += "table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ");\n"
 
         variables_s_str = ""
         for variable in self.get_variables():
-            variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
+            variables_s_str += self.get_name() + '.' + variable + '_0' + ' = ' + variable + ';\n'
 
         return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
-            "SEQ_B1": "lhcb1_" + self.front_or_back + "_" + self.name,
-            "SEQ_B2": "lhcb2_" + self.front_or_back + "_" + self.name,
-            "INIT_VALS_B1": "b1_" + self.ini_end + "_" + self.name,
-            "INIT_VALS_B2": "b2_" + self.ini_end + "_" + self.name,
+            "SEQ_B1": "lhcb1_" + self.get_front_or_back() + "_" + self.get_name(),
+            "SEQ_B2": "lhcb2_" + self.get_front_or_back() + "_" + self.get_name(),
+            "INIT_VALS_B1": "b1_" + self.get_ini_end() + "_" + self.get_name(),
+            "INIT_VALS_B2": "b2_" + self.get_ini_end() + "_" + self.get_name(),
             "B1_TABLE_NAME": self._get_nominal_table_name(1),
             "B2_TABLE_NAME": self._get_nominal_table_name(2),
             "PHASES": beatings_str,
@@ -56,6 +57,8 @@ class KmodMatcher(PhaseMatcher):
                 s = this_kmod_data.S[index]
                 weight = self.get_constraint_weight(beta_beating, err_beta_beating,
                                                     lambda value: abs(value) <= 0.25)
+                if weight is None:
+                    weight = 1.0
 
                 constr_string += '    constraint, weight = ' + str(weight) + ' , '
                 constr_string += 'expr =  ' + self._name + '.beating' + plane + name + ' = ' + str(beta_beating) + '; '
