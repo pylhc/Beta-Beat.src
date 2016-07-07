@@ -12,8 +12,8 @@ class MatcherViewPhase(MatcherViewDefault):
 
 class MatcherControllerPhase(MatcherControllerDefault):
 
-    def _get_matcher_model(self, name, beam1_path, beam2_path, ip, use_errors, propagation):
-        return MatcherModelPhase(name, beam1_path, beam2_path, ip, use_errors, propagation)
+    def _get_matcher_model(self, main_controller, name, beam1_path, beam2_path, ip, use_errors, propagation):
+        return MatcherModelPhase(main_controller, name, beam1_path, beam2_path, ip, use_errors, propagation)
 
     def _get_new_name(self):
         return "ph_match"

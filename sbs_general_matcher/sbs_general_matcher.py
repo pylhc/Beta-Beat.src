@@ -23,15 +23,8 @@ def main(input_file_path):
     print "+++ Segment-by-segment general matcher +++"
 
     print "Preparing MAD-X script..."
-    input_data = InputData(input_file_path)
-    _run_madx_matching(input_data)
-    for matcher in input_data.matchers:
-        for beam in matcher.get_beams():
-            _write_sbs_data(beam, str(matcher.get_ip()),
-                            matcher.get_match_data(beam).get_beam_match_path(),
-                            matcher.get_match_data(beam).get_range_start_name(),
-                            )
-    _build_changeparameters_file(input_data)
+    input_data = InputData.init_from_json_file(input_file_path)
+    run_full_madx_matching(input_data)
 
 
 def _run_madx_matching(input_data):
@@ -44,6 +37,17 @@ def _run_madx_matching(input_data):
                                            input_data.lhc_mode,
                                            madx_templates)
     template_processor.run()
+
+
+def run_full_madx_matching(input_data):
+    _run_madx_matching(input_data)
+    for matcher in input_data.matchers:
+        for beam in matcher.get_beams():
+            _write_sbs_data(beam, str(matcher.get_ip()),
+                            matcher.get_match_data(beam).get_beam_match_path(),
+                            matcher.get_match_data(beam).get_range_start_name(),
+                            )
+    _build_changeparameters_file(input_data)
 
 
 def _write_sbs_data(beam, ip, temporary_path, range_start_name):
@@ -68,14 +72,26 @@ def _build_changeparameters_file(input_data):
 
 
 class InputData():
-    def __init__(self, input_file_path):
+
+    @staticmethod
+    def init_from_json_file(input_file_path):
+        instance = InputData()
         with open(input_file_path, "r") as input_file:
             input_data = InputData._byteify(json.load(input_file))
-            self._check_and_assign_attribute(input_data, "lhc_mode")
-            self._check_and_assign_attribute(input_data, "match_path")
-            self.matchers = []
+            instance._check_and_assign_attribute(input_data, "lhc_mode")
+            instance._check_and_assign_attribute(input_data, "match_path")
+            instance.matchers = []
             if "matchers" in input_data:
-                self._get_matchers_list(input_data)
+                instance._get_matchers_list(input_data)
+        return instance
+
+    @staticmethod
+    def init_from_matchers_list(lhc_mode, match_path, matchers_list):
+        instance = InputData()
+        instance.lhc_mode = lhc_mode
+        instance.match_path = match_path
+        instance.matchers = matchers_list
+        return instance
 
     def _get_matchers_list(self, input_data):
         raw_matchers_list = input_data["matchers"]

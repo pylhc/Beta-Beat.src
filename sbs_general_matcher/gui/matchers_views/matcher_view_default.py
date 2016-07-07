@@ -76,7 +76,8 @@ class MatcherViewDefault(QtGui.QDialog):
 
 class MatcherControllerDefault(object):
 
-    def __init__(self):
+    def __init__(self, main_controller):
+        self._main_controller = main_controller
         self._view = MatcherViewDefault(self)
         self._matcher_model = None
 
@@ -96,7 +97,10 @@ class MatcherControllerDefault(object):
         else:
             propagation = "back"
 
-        self._matcher_model = self._get_matcher_model(name, beam1_path, beam2_path, ip, use_errors, propagation)
+        self._matcher_model = self._get_matcher_model(
+            self._main_controller, name,
+            beam1_path, beam2_path, ip, use_errors, propagation
+        )
         self._view.accept()
 
     def get_selected_matcher_model(self):
@@ -131,7 +135,7 @@ class MatcherControllerDefault(object):
             return False
         return True
 
-    def _get_matcher_model(self, name, beam1_path, beam2_path, ip, use_errors, propagation):
+    def _get_matcher_model(self, main_controller, name, beam1_path, beam2_path, ip, use_errors, propagation):
         raise NotImplementedError
 
 

@@ -1,8 +1,9 @@
 import sys
 from PyQt4 import QtGui
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
-from widgets import FileSelectionPopup
+from widgets import InitialConfigPopup
 from sbs_gui_match_result_view import SbSGuiMatchResultController
+import sbs_general_matcher
 
 
 class SbSGuiMain(QtGui.QMainWindow):
@@ -38,6 +39,9 @@ class SbSGuiMain(QtGui.QMainWindow):
 
     def get_selected_matcher_index(self):
         return self._main_widget._matchers_tabs_widget.currentIndex()
+
+    def get_figures_for_tab(self, index):
+        return self._main_widget._matchers_tabs_widget.widget(index).get_figures()
 
     def _get_new_matcher_action(self):
         new_matcher_action = QtGui.QAction("New matcher...", self)
@@ -76,17 +80,20 @@ class SbSGuiMainController(object):
         self._matchers_models = []
 
     @staticmethod
-    def ask_for_match_path():
-        file_selection_dialog = FileSelectionPopup()
-        file_selection_dialog.setWindowTitle("Please choose an output path")
-        result_code = file_selection_dialog.exec_()
+    def ask_for_initial_config():
+        initial_config_popup = InitialConfigPopup()
+        initial_config_popup.setWindowTitle("Please choose an output path")
+        result_code = initial_config_popup.exec_()
         if result_code == QtGui.QDialog.Accepted:
-            return file_selection_dialog.get_selected_file()
+            return initial_config_popup.get_selected_lhc_mode(), initial_config_popup.get_selected_file()
         else:
-            return None
+            return None, None
 
     def set_match_path(self, match_path):
         self._match_path = match_path
+
+    def set_lhc_mode(self, lhc_mode):
+        self._lhc_mode = lhc_mode
 
     def get_match_path(self):
         return self._match_path
@@ -95,7 +102,7 @@ class SbSGuiMainController(object):
         self._view.show()
 
     def new_matcher(self):
-        sbs_gui_matcher_selection_dialog = SbSGuiMatcherSelection()
+        sbs_gui_matcher_selection_dialog = SbSGuiMatcherSelection(self)
         result_code = sbs_gui_matcher_selection_dialog.exec_()
         if result_code == QtGui.QDialog.Accepted:
             selected_matcher_model = sbs_gui_matcher_selection_dialog.get_selected_matcher()
@@ -111,7 +118,18 @@ class SbSGuiMainController(object):
         del(self._matchers_models[index])
 
     def run_matching(self):
-        pass
+        matchers_list = []
+        for matcher_model in self._matchers_models:
+            matcher_model.create_matcher(self._match_path)
+            matchers_list.append(matcher_model.get_matcher())
+        input_data = sbs_general_matcher.InputData.init_from_matchers_list(
+            self._lhc_mode, self._match_path, matchers_list
+        )
+        sbs_general_matcher.run_full_madx_matching(input_data)
+        for index in range(len(self._matchers_models)):
+            matcher_model = self._matchers_models[index]
+            figures = self._view.get_figures_for_tab(index)
+            matcher_model.get_plotter(figures).plot()
 
 
 if __name__ == "__main__":

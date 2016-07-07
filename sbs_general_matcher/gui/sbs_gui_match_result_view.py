@@ -67,6 +67,10 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         layout.addWidget(canvas)
         return layout
 
+    def get_figures(self):
+        return ((self._beam1_upper_figure, self._beam1_lower_figure),
+                (self._beam2_upper_figure, self._beam2_lower_figure))
+
 
 class _BorderedGroupBox(QtGui.QGroupBox):
 

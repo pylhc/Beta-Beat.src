@@ -1,17 +1,20 @@
 import sys
 from PyQt4 import QtGui
 from matchers_views.matcher_view_phase import MatcherControllerPhase
+from matchers_views.matcher_view_kmod import MatcherControllerKmod
 
 
 class SbSGuiMatcherSelection(QtGui.QDialog):
 
     WINDOW_TITLE = "Select matcher to add"
     MATCHER_TYPES = {
-        "phase": MatcherControllerPhase
+        "phase": MatcherControllerPhase,
+        "kmod": MatcherControllerKmod,
     }
 
-    def __init__(self, parent=None):
+    def __init__(self, main_controller, parent=None):
         super(SbSGuiMatcherSelection, self).__init__(parent)
+        self._main_controller = main_controller
         self._build_gui()
         self._selected_matcher = None
 
@@ -45,7 +48,7 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
 
     def _accept_action(self):
         self._selected_matcher = str(self._matchers_list_widget.currentItem().text())
-        matcher_controller_instance = SbSGuiMatcherSelection.MATCHER_TYPES[self._selected_matcher]()
+        matcher_controller_instance = SbSGuiMatcherSelection.MATCHER_TYPES[self._selected_matcher](self._main_controller)
         result_code = matcher_controller_instance.show_view()
         if result_code == QtGui.QDialog.Accepted:
             self._selected_matcher = matcher_controller_instance.get_selected_matcher_model()
