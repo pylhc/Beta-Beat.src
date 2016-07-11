@@ -28,24 +28,28 @@ class MatcherPlotterPhase(object):
 
     def plot(self):
         figure_b1_x = self._figures[0][0]
+        figure_b1_x.clear()
         file_beam1_horizontal = metaclass.twiss(os.path.join(
             self._matcher_model.get_beam1_output_path(), "sbs",
             "sbsphasext_IP" + str(self._matcher_model.get_ip()) + ".out")
         )
         self._plot_match(figure_b1_x, file_beam1_horizontal, "X")
         figure_b1_y = self._figures[0][1]
+        figure_b1_y.clear()
         file_beam1_vertical = metaclass.twiss(os.path.join(
             self._matcher_model.get_beam1_output_path(), "sbs",
             "sbsphaseyt_IP" + str(self._matcher_model.get_ip()) + ".out")
         )
         self._plot_match(figure_b1_y, file_beam1_vertical, "Y")
         figure_b2_x = self._figures[1][0]
+        figure_b2_x.clear()
         file_beam2_horizontal = metaclass.twiss(os.path.join(
             self._matcher_model.get_beam2_output_path(), "sbs",
             "sbsphasext_IP" + str(self._matcher_model.get_ip()) + ".out")
         )
         self._plot_match(figure_b2_x, file_beam2_horizontal, "X")
         figure_b2_y = self._figures[1][1]
+        figure_b2_y.clear()
         file_beam2_vertical = metaclass.twiss(os.path.join(
             self._matcher_model.get_beam2_output_path(), "sbs",
             "sbsphaseyt_IP" + str(self._matcher_model.get_ip()) + ".out")
@@ -55,25 +59,49 @@ class MatcherPlotterPhase(object):
     def _plot_match(self, figure, sbs_file, plane):
         ax = figure.add_subplot(1, 1, 1)
 
-        ax.errorbar(sbs_file.S,
-                    getattr(sbs_file, "PROPPHASE" + plane),
-                    getattr(sbs_file, "ERRPROPPHASE" + plane),
-                    label=r"$\Delta\Phi$ measured", color="blue")
-        ax.plot(sbs_file.S,
-                getattr(sbs_file, "PROPPHASE" + plane),
-                marker="o", markersize=7., color="blue")
-
-        ax.plot(sbs_file.S,
-                getattr(sbs_file, "CORPHASE" + plane),
-                label=r"$\Delta\Phi$ model", color="green")
-        ax.plot(sbs_file.S,
-                getattr(sbs_file, "CORPHASE" + plane),
-                marker="o", markersize=7., color="green")
+        if self._matcher_model.get_propagation() == "front":
+            MatcherPlotterPhase._plot_front(ax, sbs_file, plane)
+        elif self._matcher_model.get_propagation() == "back":
+            MatcherPlotterPhase._plot_back(ax, sbs_file, plane)
 
         ax.legend(loc="lower left", prop={'size': 16})
         ax.set_ylabel(r"$\Delta\Phi$")
         figure.patch.set_visible(False)
         figure.canvas.draw()
+
+    @staticmethod
+    def _plot_front(axes, sbs_file, plane):
+        axes.errorbar(sbs_file.S,
+                      getattr(sbs_file, "PROPPHASE" + plane),
+                      getattr(sbs_file, "ERRPROPPHASE" + plane),
+                      label=r"$\Delta\Phi$ measured", color="blue")
+        axes.plot(sbs_file.S,
+                  getattr(sbs_file, "PROPPHASE" + plane),
+                  marker="o", markersize=7., color="blue")
+
+        axes.plot(sbs_file.S,
+                  getattr(sbs_file, "CORPHASE" + plane),
+                  label=r"$\Delta\Phi$ model", color="green")
+        axes.plot(sbs_file.S,
+                  getattr(sbs_file, "CORPHASE" + plane),
+                  marker="o", markersize=7., color="green")
+
+    @staticmethod
+    def _plot_back(axes, sbs_file, plane):
+        axes.errorbar(sbs_file.S,
+                      getattr(sbs_file, "BACKPHASE" + plane),
+                      getattr(sbs_file, "ERRBACKPHASE" + plane),
+                      label=r"$\Delta\Phi$ measured", color="blue")
+        axes.plot(sbs_file.S,
+                  getattr(sbs_file, "BACKPHASE" + plane),
+                  marker="o", markersize=7., color="blue")
+
+        axes.plot(sbs_file.S,
+                  getattr(sbs_file, "BACKCORPHASE" + plane),
+                  label=r"$\Delta\Phi$ model", color="green")
+        axes.plot(sbs_file.S,
+                  getattr(sbs_file, "BACKCORPHASE" + plane),
+                  marker="o", markersize=7., color="green")
 
 
 if __name__ == "__main__":

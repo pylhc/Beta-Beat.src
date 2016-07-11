@@ -106,8 +106,25 @@ class MatcherControllerDefault(object):
     def get_selected_matcher_model(self):
         return self._matcher_model
 
-    def _get_new_name(self):
+    def _get_matcher_prefix(self):
         raise NotImplementedError
+
+    def _get_new_name(self):
+        counter = 1
+        suffix = ""
+        if not self._view.get_back_prop():
+            propagation = "f"
+        else:
+            propagation = "b"
+
+        def new_name(suffix):
+            return (self._get_matcher_prefix() + "_ip" + str(self._view.get_ip()) + "_" +
+                    propagation + suffix)
+
+        while not self._main_controller.is_this_matcher_name_ok(new_name(suffix)):
+            counter += 1
+            suffix = "_" + str(counter)
+        return new_name(suffix)
 
     def _cancel_action(self):
         return self._view.reject()

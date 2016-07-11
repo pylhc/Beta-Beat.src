@@ -15,8 +15,8 @@ class MatcherControllerKmod(MatcherControllerDefault):
     def _get_matcher_model(self, main_controller, name, beam1_path, beam2_path, ip, use_errors, propagation):
         return MatcherModelKmod(main_controller, name, beam1_path, beam2_path, ip, use_errors, propagation)
 
-    def _get_new_name(self):
-        return "kmod_match"
+    def _get_matcher_prefix(self):
+        return "kmod"
 
 
 if __name__ == "__main__":

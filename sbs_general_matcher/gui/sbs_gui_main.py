@@ -110,6 +110,13 @@ class SbSGuiMainController(object):
             tab_controller = SbSGuiMatchResultController()
             self._view.add_tab(selected_matcher_model.get_name(), tab_controller.get_view())
 
+    def is_this_matcher_name_ok(self, matcher_name):
+        for matcher_model in self._matchers_models:
+            model_name = matcher_model.get_name()
+            if matcher_name == model_name:
+                return False
+        return True
+
     def remove_matcher(self):
         if len(self._matchers_models) == 0:
             return

@@ -15,9 +15,8 @@ class MatcherControllerPhase(MatcherControllerDefault):
     def _get_matcher_model(self, main_controller, name, beam1_path, beam2_path, ip, use_errors, propagation):
         return MatcherModelPhase(main_controller, name, beam1_path, beam2_path, ip, use_errors, propagation)
 
-    def _get_new_name(self):
-        return "ph_match"
-
+    def _get_matcher_prefix(self):
+        return "phase"
 
 if __name__ == "__main__":
     print >> sys.stderr, "This module is meant to be imported."
