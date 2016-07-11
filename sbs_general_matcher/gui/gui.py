@@ -17,5 +17,6 @@ def main(match_path=None):
     main_controller.show_view()
     sys.exit(app.exec_())
 
+
 if __name__ == "__main__":
     main()

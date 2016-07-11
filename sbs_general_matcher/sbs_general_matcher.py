@@ -2,7 +2,7 @@ import __init__  # @UnusedImport
 import os
 import sys
 import json
-from matchers import matcher, phase_matcher, coupling_matcher, kmod_matcher, beta_matcher
+from matchers import matcher, phase_matcher, coupling_matcher, kmod_matcher, amp_matcher
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
 from madx import madx_templates_runner
@@ -14,7 +14,7 @@ MATCHER_TYPES = {
     "phase": phase_matcher.PhaseMatcher,
     "coupling": coupling_matcher.CouplingMatcher,
     "kmod": kmod_matcher.KmodMatcher,
-    "beta": beta_matcher.BetaMatcher
+    "amp": amp_matcher.AmpMatcher
 }
 
 

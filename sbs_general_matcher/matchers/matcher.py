@@ -103,12 +103,26 @@ class Matcher(object):
         during the matching"""
         raise NotImplementedError
 
-    def get_variables(self):
+    def get_all_variables(self):
         """Returns either a list of variable names or a MAD-X string defining
         the variables. If a list is given, this function can be used by other
         matchers to read the variable names and the variables won't be duplicated
         in the resulting MAD-X script."""
-        raise NotImplementedError
+        return []
+
+    def get_common_variables(self):
+        """Returns either a list of variable names or a MAD-X string defining
+        the variables. If a list is given, this function can be used by other
+        matchers to read the variable names and the variables won't be duplicated
+        in the resulting MAD-X script."""
+        return []
+
+    def get_variables_for_beam(self, beam):
+        """Returns either a list of variable names or a MAD-X string defining
+        the variables. If a list is given, this function can be used by other
+        matchers to read the variable names and the variables won't be duplicated
+        in the resulting MAD-X script."""
+        return []
 
     def define_constraints(self, beam):
         """Returns two MAD-X strings to define the matching constraints for this

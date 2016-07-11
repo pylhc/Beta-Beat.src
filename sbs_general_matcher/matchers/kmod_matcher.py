@@ -25,13 +25,13 @@ class KmodMatcher(PhaseMatcher):
         for beam in self.get_beams():
             for plane in ["x", "y"]:
                 for name in self._sbs_kmod_data[beam][plane].NAME:
-                    beatings_str += self._name + '.beating' + plane + name + ' := '
+                    beatings_str += self._name + self._get_suffix() + plane + name + ' := '
                     beatings_str += "(table(twiss, " + name + ", bet" + plane + ")"
                     beatings_str += " - table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ")) /\n"
                     beatings_str += "table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ");\n"
 
         variables_s_str = ""
-        for variable in self.get_variables():
+        for variable in self.get_all_variables():
             variables_s_str += self.get_name() + '.' + variable + '_0' + ' = ' + variable + ';\n'
 
         return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
@@ -61,7 +61,10 @@ class KmodMatcher(PhaseMatcher):
                     weight = 1.0
 
                 constr_string += '    constraint, weight = ' + str(weight) + ' , '
-                constr_string += 'expr =  ' + self._name + '.beating' + plane + name + ' = ' + str(beta_beating) + '; '
+                constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' = ' + str(beta_beating) + '; '
                 constr_string += '!   S = ' + str(s)
                 constr_string += ';\n'
         return constr_string
+
+    def _get_suffix(self):
+        return ".kmodbeating"

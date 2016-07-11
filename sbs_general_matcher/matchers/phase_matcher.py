@@ -61,7 +61,7 @@ class PhaseMatcher(Matcher):
                     phases_str += sign + "(table(twiss, " + name + ", mu" + plane + ") - "
                     phases_str += "table(" + self._get_nominal_table_name(beam) + ", " + name + ", mu" + plane + "));\n"
 
-        for variable in self.get_variables():
+        for variable in self.get_all_variables():
             variables_s_str += self._name + '.' + variable + '_0' + ' = ' + variable + ';\n'
 
         return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
@@ -79,21 +79,23 @@ class PhaseMatcher(Matcher):
         return self._name + ".twiss.b" + str(beam)
 
     @Matcher.override(Matcher)
-    def get_variables(self):
+    def get_all_variables(self):
         variable_list = []
-        for variable in self._get_common_variables():
+        for variable in self.get_common_variables():
             if variable not in self._excluded_variables_list:
                 variable_list.append(variable)
         for beam in self.get_beams():
-            for variable in self._get_variables(beam):
+            for variable in self.get_variables_for_beam(beam):
                 if variable not in self._excluded_variables_list:
                     variable_list.append(variable)
         return variable_list
 
-    def _get_variables(self, beam):
+    @Matcher.override(Matcher)
+    def get_variables_for_beam(self, beam):
         return self._variables[beam]
 
-    def _get_common_variables(self):
+    @Matcher.override(Matcher)
+    def get_common_variables(self):
         return self._variables_common
 
     @Matcher.override(Matcher)
@@ -134,7 +136,7 @@ class PhaseMatcher(Matcher):
     @Matcher.override(Matcher)
     def update_variables_definition(self):
         update_vars_str = ""
-        for variable in self.get_variables():
+        for variable in self.get_all_variables():
             update_vars_str += "        " + variable + ' := ' + self._name + "." + variable + '_0 + d' + variable + ';\n'
         return update_vars_str
 

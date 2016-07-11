@@ -40,7 +40,7 @@ class CouplingMatcher(Matcher):
         variables_s_str = ""
         variables_d_str = ""
 
-        for variable in self.get_variables():
+        for variable in self.get_all_variables():
             variables_s_str += self.get_name() + '.' + variable + '_0' + ' = ' + variable + ';\n'
             variables_d_str += variable + ' := ' + self.get_name() + "." + variable + '_0' + ' + d' + variable + ';\n'
 
@@ -59,14 +59,15 @@ class CouplingMatcher(Matcher):
         return self.get_name() + ".twiss.b" + str(beam)
 
     @Matcher.override(Matcher)
-    def get_variables(self):
+    def get_all_variables(self):
         variable_list = []
         for variable in self._get_common_variables():
             if variable not in self._excluded_variables_list:
                 variable_list.append(variable)
         return variable_list
 
-    def _get_common_variables(self):
+    @Matcher.override(Matcher)
+    def get_common_variables(self):
         return self._variables_common
 
     @Matcher.override(Matcher)
@@ -103,7 +104,7 @@ class CouplingMatcher(Matcher):
     @Matcher.override(Matcher)
     def update_variables_definition(self):
         update_vars_str = ""
-        for variable in self.get_variables():
+        for variable in self.get_all_variables():
             update_vars_str += "        " + variable + ' := ' + self.get_name() + "." + variable + '_0 + d' + variable + ';\n'
         return update_vars_str
 

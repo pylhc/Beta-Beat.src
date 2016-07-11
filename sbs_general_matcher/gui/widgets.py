@@ -48,7 +48,7 @@ class InitialConfigPopup(QtGui.QDialog):
         main_layout.addLayout(buttons_layout)
 
     def get_selected_file(self):
-        return self._file_selector.get_selected_file()
+        return str(self._file_selector.get_selected_file())
 
     def get_selected_lhc_mode(self):
         return str(self._lhc_mode_combo.currentText())
