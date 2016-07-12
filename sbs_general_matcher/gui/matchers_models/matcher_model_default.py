@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 
 
 class MatcherModelDefault(object):
@@ -38,6 +39,22 @@ class MatcherModelDefault(object):
     def get_propagation(self):
         return self._propagation
 
+    def get_ignore_vars_list(self):
+        return self._ignore_vars_list
+
+    def set_ignore_vars_list(self, ignore_vars_list):
+        if self._matcher is not None:
+            self._matcher.set_exclude_variables(ignore_vars_list)
+        else:
+            raise ValueError("Cannot set excluded variables of not created matcher")
+
+    def get_variables_for_beam(self):
+        return {1: self._matcher.get_variables_for_beam(1),
+                2: self._matcher.get_variables_for_beam(2)}
+
+    def get_common_variables(self):
+        return self._matcher.get_common_variables()
+
     def get_matcher_dict(self):
         matcher_dict = {}
         matcher_dict["ip"] = self._ip
@@ -49,6 +66,10 @@ class MatcherModelDefault(object):
 
     def create_matcher(self, match_path):
         raise NotImplementedError
+
+    def delete_matcher(self):
+        shutil.rmtree(self.get_beam1_output_path())
+        shutil.rmtree(self.get_beam2_output_path())
 
     def get_plotter(self, figures):
         raise NotImplementedError

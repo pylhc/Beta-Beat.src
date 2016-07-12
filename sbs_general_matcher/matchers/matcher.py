@@ -167,6 +167,9 @@ class Matcher(object):
     def get_ini_end(self):
         return self._ini_end
 
+    def set_exclude_variables(self, excluded_variables_list):
+        self._excluded_variables_list = excluded_variables_list
+
     @staticmethod
     def _check_attribute(base_dict_name, base_dict, attribute_name):
         if attribute_name not in base_dict:

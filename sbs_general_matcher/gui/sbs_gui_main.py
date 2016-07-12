@@ -40,9 +40,6 @@ class SbSGuiMain(QtGui.QMainWindow):
     def get_selected_matcher_index(self):
         return self._main_widget._matchers_tabs_widget.currentIndex()
 
-    def get_figures_for_tab(self, index):
-        return self._main_widget._matchers_tabs_widget.widget(index).get_figures()
-
     def _get_new_matcher_action(self):
         new_matcher_action = QtGui.QAction("New matcher...", self)
         new_matcher_action.triggered.connect(self._controller.new_matcher)
@@ -77,7 +74,7 @@ class SbSGuiMainController(object):
     def __init__(self):
         self._view = SbSGuiMain(self)
         self._match_path = None
-        self._matchers_models = []
+        self._matchers_tabs = []
 
     @staticmethod
     def ask_for_initial_config():
@@ -106,37 +103,51 @@ class SbSGuiMainController(object):
         result_code = sbs_gui_matcher_selection_dialog.exec_()
         if result_code == QtGui.QDialog.Accepted:
             selected_matcher_model = sbs_gui_matcher_selection_dialog.get_selected_matcher()
-            self._matchers_models.append(selected_matcher_model)
-            tab_controller = SbSGuiMatchResultController()
+            selected_matcher_model.create_matcher(self._match_path)
+            variables_for_beam = selected_matcher_model.get_variables_for_beam()
+            variables_common = selected_matcher_model.get_common_variables()
+            tab_controller = SbSGuiMatchResultController(variables_for_beam, variables_common)
+            self._matchers_tabs.append(SbSGuiMainController.Tab(selected_matcher_model, tab_controller))
             self._view.add_tab(selected_matcher_model.get_name(), tab_controller.get_view())
 
     def is_this_matcher_name_ok(self, matcher_name):
-        for matcher_model in self._matchers_models:
-            model_name = matcher_model.get_name()
+        for matcher_tab in self._matchers_tabs:
+            model_name = matcher_tab.model.get_name()
             if matcher_name == model_name:
                 return False
         return True
 
     def remove_matcher(self):
-        if len(self._matchers_models) == 0:
+        if len(self._matchers_tabs) == 0:
             return
         index = self._view.get_selected_matcher_index()
+        self._matchers_tabs[index].model.delete_matcher()
+        del(self._matchers_tabs[index])
         self._view.remove_tab(index)
-        del(self._matchers_models[index])
 
     def run_matching(self):
         matchers_list = []
-        for matcher_model in self._matchers_models:
-            matcher_model.create_matcher(self._match_path)
-            matchers_list.append(matcher_model.get_matcher())
+        for index in range(len(self._matchers_tabs)):
+            matcher_model = self._matchers_tabs[index].model
+
+        for matcher_tab in self._matchers_tabs:
+            matcher_tab.model.set_ignore_vars_list(
+                matcher_tab.results_controller.get_unselected_variables()
+            )
+            matchers_list.append(matcher_tab.model.get_matcher())
         input_data = sbs_general_matcher.InputData.init_from_matchers_list(
             self._lhc_mode, self._match_path, matchers_list
         )
         sbs_general_matcher.run_full_madx_matching(input_data)
-        for index in range(len(self._matchers_models)):
-            matcher_model = self._matchers_models[index]
-            figures = self._view.get_figures_for_tab(index)
+        for index in range(len(self._matchers_tabs)):
+            matcher_model = self._matchers_tabs[index].model
+            figures = self._matchers_tabs[index].results_controller.get_figures()
             matcher_model.get_plotter(figures).plot()
+
+    class Tab(object):
+        def __init__(self, matcher_model, matcher_results_controller):
+            self.model = matcher_model
+            self.results_controller = matcher_results_controller
 
 
 if __name__ == "__main__":
