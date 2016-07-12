@@ -1,5 +1,6 @@
 import sys
 from PyQt4 import QtGui
+from PyQt4.QtCore import QThread, Qt
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
 from widgets import InitialConfigPopup
 from sbs_gui_match_result_view import SbSGuiMatchResultController
@@ -14,6 +15,7 @@ class SbSGuiMain(QtGui.QMainWindow):
         super(SbSGuiMain, self).__init__(parent)
 
         self._controller = controller
+        self._active_background_dialog = None
         self._build_gui()
 
     def _build_gui(self):
@@ -22,7 +24,7 @@ class SbSGuiMain(QtGui.QMainWindow):
         screen_shape = QtGui.QDesktopWidget().screenGeometry()
         self.resize(2 * screen_shape.width() / 3, 2 * screen_shape.height() / 3)
 
-        self._main_widget = _SbSMainWidget(self._controller)
+        self._main_widget = SbSGuiMain.SbSMainWidget(self._controller)
         self.setCentralWidget(self._main_widget)
 
         main_menu = self.menuBar()
@@ -40,6 +42,15 @@ class SbSGuiMain(QtGui.QMainWindow):
     def get_selected_matcher_index(self):
         return self._main_widget._matchers_tabs_widget.currentIndex()
 
+    def show_background_task_dialog(self, message):
+        self._active_background_dialog = SbSGuiMain.BackgroundTaskDialog(message)
+        self._active_background_dialog.setModal(True)
+        self._active_background_dialog.setVisible(True)
+
+    def hide_background_task_dialog(self):
+        self._active_background_dialog.setVisible(False)
+        self._active_background_dialog = None
+
     def _get_new_matcher_action(self):
         new_matcher_action = QtGui.QAction("New matcher...", self)
         new_matcher_action.triggered.connect(self._controller.new_matcher)
@@ -50,23 +61,33 @@ class SbSGuiMain(QtGui.QMainWindow):
         remove_matcher_action.triggered.connect(self._controller.remove_matcher)
         return remove_matcher_action
 
+    class SbSMainWidget(QtGui.QWidget):
+        def __init__(self, controller, parent=None):
+            super(SbSGuiMain.SbSMainWidget, self).__init__(parent)
+            self._controller = controller
+            self._build_gui()
 
-class _SbSMainWidget(QtGui.QWidget):
-    def __init__(self, controller, parent=None):
-        super(_SbSMainWidget, self).__init__(parent)
-        self._controller = controller
-        self._build_gui()
+        def _build_gui(self):
+            main_layout = QtGui.QVBoxLayout()
+            self.setLayout(main_layout)
 
-    def _build_gui(self):
-        main_layout = QtGui.QVBoxLayout()
-        self.setLayout(main_layout)
+            self._matchers_tabs_widget = QtGui.QTabWidget()
+            main_layout.addWidget(self._matchers_tabs_widget)
 
-        self._matchers_tabs_widget = QtGui.QTabWidget()
-        main_layout.addWidget(self._matchers_tabs_widget)
+            run_button = QtGui.QPushButton("Run matching")
+            run_button.clicked.connect(self._controller.run_matching)
+            main_layout.addWidget(run_button)
 
-        run_button = QtGui.QPushButton("Run matching")
-        run_button.clicked.connect(self._controller.run_matching)
-        main_layout.addWidget(run_button)
+    class BackgroundTaskDialog(QtGui.QMessageBox):
+        def __init__(self, message, parent=None):
+            super(SbSGuiMain.BackgroundTaskDialog, self).__init__(
+                QtGui.QMessageBox.NoIcon,
+                "Please wait...",
+                message
+            )
+            self.setWindowFlags(Qt.CustomizeWindowHint)
+            self.setStandardButtons(QtGui.QMessageBox.NoButton)
+            self.resize(420, 240)
 
 
 class SbSGuiMainController(object):
@@ -127,9 +148,6 @@ class SbSGuiMainController(object):
 
     def run_matching(self):
         matchers_list = []
-        for index in range(len(self._matchers_tabs)):
-            matcher_model = self._matchers_tabs[index].model
-
         for matcher_tab in self._matchers_tabs:
             matcher_tab.model.set_ignore_vars_list(
                 matcher_tab.results_controller.get_unselected_variables()
@@ -138,16 +156,34 @@ class SbSGuiMainController(object):
         input_data = sbs_general_matcher.InputData.init_from_matchers_list(
             self._lhc_mode, self._match_path, matchers_list
         )
-        sbs_general_matcher.run_full_madx_matching(input_data)
+
+        def background_task():
+            sbs_general_matcher.run_full_madx_matching(input_data)
+
+        backgroud_thread = SbSGuiMainController.BackgroudThread(background_task)
+        backgroud_thread.finished.connect(self._on_match_end)
+        backgroud_thread.start()
+        self._view.show_background_task_dialog("Running matching...")
+
+    def _on_match_end(self):
         for index in range(len(self._matchers_tabs)):
             matcher_model = self._matchers_tabs[index].model
             figures = self._matchers_tabs[index].results_controller.get_figures()
             matcher_model.get_plotter(figures).plot()
+        self._view.hide_background_task_dialog()
 
     class Tab(object):
         def __init__(self, matcher_model, matcher_results_controller):
             self.model = matcher_model
             self.results_controller = matcher_results_controller
+
+    class BackgroudThread(QThread):
+        def __init__(self, function):
+            QThread.__init__(self)
+            self._function = function
+
+        def run(self):
+            self._function()
 
 
 if __name__ == "__main__":
