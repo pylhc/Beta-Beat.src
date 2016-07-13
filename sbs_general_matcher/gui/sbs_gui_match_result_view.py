@@ -23,9 +23,9 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         beam1_frame.setLayout(beam1_layout)
 
         self._beam1_upper_figure = plt.figure()
-        beam1_layout.addLayout(self._get_new_canvas_layout(self._beam1_upper_figure))
+        beam1_layout.addLayout(self._get_new_canvas_layout(self._beam1_upper_figure, 1))
         self._beam1_lower_figure = plt.figure()
-        beam1_layout.addLayout(self._get_new_canvas_layout(self._beam1_lower_figure))
+        beam1_layout.addLayout(self._get_new_canvas_layout(self._beam1_lower_figure, 1))
         main_layout.addWidget(beam1_frame)
 
         beam2_layout = QtGui.QVBoxLayout()
@@ -33,9 +33,9 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         beam2_frame.setLayout(beam2_layout)
 
         self._beam2_upper_figure = plt.figure()
-        beam2_layout.addLayout(self._get_new_canvas_layout(self._beam2_upper_figure))
+        beam2_layout.addLayout(self._get_new_canvas_layout(self._beam2_upper_figure, 2))
         self._beam2_lower_figure = plt.figure()
-        beam2_layout.addLayout(self._get_new_canvas_layout(self._beam2_lower_figure))
+        beam2_layout.addLayout(self._get_new_canvas_layout(self._beam2_lower_figure, 2))
         main_layout.addWidget(beam2_frame)
 
         variables_layout = QtGui.QVBoxLayout()
@@ -95,9 +95,13 @@ class SbSGuiMatchResultView(QtGui.QWidget):
 
         self.setLayout(main_layout)
 
-    def _get_new_canvas_layout(self, figure):
+    def _get_new_canvas_layout(self, figure, beam):
         layout = QtGui.QVBoxLayout()
         canvas = FigureCanvas(figure)
+        canvas.mpl_connect(
+            'motion_notify_event',
+            lambda event: self._mouse_moved_on_figure(event, figure, beam)
+        )
         toolbar = NavigationToolbar(canvas, self)
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
@@ -134,6 +138,9 @@ class SbSGuiMatchResultView(QtGui.QWidget):
                 if type(checkbox) is QtGui.QCheckBox:
                     function(checkbox)
 
+    def _mouse_moved_on_figure(self, event, figure, beam):
+        self._controller.on_mouse_movement(event, figure, beam)
+
 
 class _BorderedGroupBox(QtGui.QGroupBox):
 
@@ -156,8 +163,13 @@ class _BorderedGroupBox(QtGui.QGroupBox):
 
 class SbSGuiMatchResultController(object):
 
-    def __init__(self, variables_for_beam, variables_common):
+    DISTANCE_THRESHOLD2 = 10 ** 2
+    BOX_STYLE = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+
+    def __init__(self, variables_for_beam, variables_common, get_positions_function):
         self._view = SbSGuiMatchResultView(self, variables_for_beam, variables_common)
+        self._elements_positions = {1: get_positions_function(1), 2: get_positions_function(2)}
+        self._latest_annotation = None
 
     def get_view(self):
         return self._view
@@ -167,6 +179,41 @@ class SbSGuiMatchResultController(object):
 
     def get_figures(self):
         return self._view.get_figures()
+
+    def on_mouse_movement(self, event, figure, beam):
+        x_plot, y_plot = event.xdata, event.ydata
+        x_fig, y_fig = event.x, event.y
+        if x_plot is not None and y_plot is not None:
+            elements_positions = self._elements_positions[beam]
+            for axes in figure.axes:
+                for line in axes.get_lines():
+                    xydata_in_plot = line.get_xydata()
+                    min_distance2 = sys.float_info.max
+                    selected_point_plot = None
+                    for data_point in xydata_in_plot:
+                        fig_point_x, fig_point_y = axes.transData.transform(data_point)
+                        distance2 = (fig_point_x - x_fig) ** 2 + (fig_point_y - y_fig) ** 2
+                        if distance2 < min_distance2:
+                            min_distance2 = distance2
+                            selected_point_plot = data_point
+                    if min_distance2 < SbSGuiMatchResultController.DISTANCE_THRESHOLD2:
+                        x, y = selected_point_plot
+                        del axes.texts[:]
+                        new_text = (elements_positions[x] + "\n" +
+                                    "S = " + str(x))
+                        self._latest_annotation = axes.text(
+                            x_plot,
+                            y_plot,
+                            new_text,
+                            bbox=SbSGuiMatchResultController.BOX_STYLE
+                        )
+                        figure.canvas.draw()
+                        break
+                    else:
+                        if self._latest_annotation is not None:
+                            del axes.texts[:]
+                            self._latest_annotation = None
+                            figure.canvas.draw()
 
 
 if __name__ == "__main__":

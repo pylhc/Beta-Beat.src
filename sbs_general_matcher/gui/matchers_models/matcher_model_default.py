@@ -1,6 +1,7 @@
 import sys
 import os
 import shutil
+from Python_Classes4MAD import metaclass
 
 
 class MatcherModelDefault(object):
@@ -14,6 +15,7 @@ class MatcherModelDefault(object):
         self._use_errors = use_errors
         self._propagation = propagation
         self._matcher = None
+        self._elements_positions = None
 
     def get_name(self):
         return self._name
@@ -76,6 +78,24 @@ class MatcherModelDefault(object):
 
     def get_matcher(self):
         return self._matcher
+
+    def get_elements_positions(self, beam):
+        if self._elements_positions is None:
+            self._read_elements_positions()
+        return self._elements_positions[beam]
+
+    def _read_elements_positions(self):
+        self._elements_positions = {1: {}, 2: {}}
+        segment_model_beam1 = metaclass.twiss(
+            os.path.join(self.get_beam1_output_path(), "sbs", "twiss_IP" + str(self.get_ip()) + ".dat")
+        )
+        for index in range(len(segment_model_beam1.NAME)):
+            self._elements_positions[1][segment_model_beam1.S[index]] = segment_model_beam1.NAME[index]
+        segment_model_beam2 = metaclass.twiss(
+            os.path.join(self.get_beam2_output_path(), "sbs", "twiss_IP" + str(self.get_ip()) + ".dat")
+        )
+        for index in range(len(segment_model_beam2.NAME)):
+            self._elements_positions[2][segment_model_beam2.S[index]] = segment_model_beam2.NAME[index]
 
 
 if __name__ == "__main__":

@@ -127,7 +127,11 @@ class SbSGuiMainController(object):
             selected_matcher_model.create_matcher(self._match_path)
             variables_for_beam = selected_matcher_model.get_variables_for_beam()
             variables_common = selected_matcher_model.get_common_variables()
-            tab_controller = SbSGuiMatchResultController(variables_for_beam, variables_common)
+            tab_controller = SbSGuiMatchResultController(
+                variables_for_beam,
+                variables_common,
+                lambda beam: selected_matcher_model.get_elements_positions(beam)
+            )
             self._matchers_tabs.append(SbSGuiMainController.Tab(selected_matcher_model, tab_controller))
             self._view.add_tab(selected_matcher_model.get_name(), tab_controller.get_view())
 
