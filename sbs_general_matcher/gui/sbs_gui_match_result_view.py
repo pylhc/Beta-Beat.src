@@ -102,7 +102,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
             'motion_notify_event',
             lambda event: self._mouse_moved_on_figure(event, figure, beam)
         )
-        toolbar = NavigationToolbar(canvas, self)
+        toolbar = SbSGuiMatchResultView.CustomNavigationBar(canvas, figure, self)
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
         return layout
@@ -141,6 +141,23 @@ class SbSGuiMatchResultView(QtGui.QWidget):
     def _mouse_moved_on_figure(self, event, figure, beam):
         self._controller.on_mouse_movement(event, figure, beam)
 
+    class CustomNavigationBar(NavigationToolbar):
+        def __init__(self, canvas, figure, parent=None):
+            self.toolitems = list(self.toolitems)
+            self.toolitems.append((
+                "Toggle legend", "Hide and show the legend", "hand", "toggle_legend"
+            ))
+            super(SbSGuiMatchResultView.CustomNavigationBar, self).__init__(canvas, parent)
+
+            self._figure = figure
+            self._legend_visible = True
+
+        def toggle_legend(self, *args):
+            for axes in self._figure.axes:
+                axes.get_legend().set_visible(not self._legend_visible)
+            self._legend_visible = not self._legend_visible
+            self.draw()
+
 
 class _BorderedGroupBox(QtGui.QGroupBox):
 
@@ -158,6 +175,7 @@ class _BorderedGroupBox(QtGui.QGroupBox):
 
     def __init__(self, label, parent=None):
         super(_BorderedGroupBox, self).__init__(label, parent)
+        # TODO: Find a nice style for the boxes
         # self.setStyleSheet(_BorderedGroupBox.GROUP_BOX_STYLE)
 
 
