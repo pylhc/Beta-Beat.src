@@ -58,17 +58,20 @@ def _write_sbs_data(beam, ip, temporary_path, range_start_name):
 
 
 def _build_changeparameters_file(input_data):
-    original_changeparameters_file = open(os.path.join(input_data.match_path, "changeparameters.madx"), "r")
-    changeparameters_match_file = open(os.path.join(input_data.match_path, "changeparameters_match.madx"), "w")
-    for original_line in original_changeparameters_file.readlines():
-        parts = original_line.split("=")
-        variable_name = parts[0].replace("d", "", 1).strip()
-        variable_value = -float(parts[1].replace(";", "").strip())
-        if variable_value < 0.0:
-            print >> changeparameters_match_file, variable_name, " = ", variable_name, " - ", abs(variable_value), ";"
-        else:
-            print >> changeparameters_match_file, variable_name, " = ", variable_name, " + ", abs(variable_value), ";"
-    print >> changeparameters_match_file, "return;"
+    original_changeparameters_file = os.path.join(input_data.match_path, "changeparameters.madx")
+    changeparameters_match_file = os.path.join(input_data.match_path, "changeparameters_match.madx")
+    with open(original_changeparameters_file, "r") as original_changeparameters_data:
+        with open(changeparameters_match_file, "w") as changeparameters_match_data:
+            for original_line in original_changeparameters_data:
+                parts = original_line.split("=")
+                variable_name = parts[0].replace("d", "", 1).strip()
+                variable_value = -float(parts[1].replace(";", "").strip())
+                sign = " - " if variable_value < 0.0 else " + "
+                changeparameters_match_data.write(
+                    variable_name + " = " +
+                    variable_name + sign + str(abs(variable_value)) + ";\n"
+                )
+            changeparameters_match_data.write("return;\n")
 
 
 class InputData():

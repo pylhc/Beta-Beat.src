@@ -27,34 +27,36 @@ class MatcherPlotterPhase(object):
         self._matcher_model = matcher_model
 
     def plot(self):
-        figure_b1_x = self._figures[0][0]
-        figure_b1_x.clear()
-        file_beam1_horizontal = metaclass.twiss(os.path.join(
-            self._matcher_model.get_beam1_output_path(), "sbs",
-            "sbsphasext_IP" + str(self._matcher_model.get_ip()) + ".out")
-        )
-        self._plot_match(figure_b1_x, file_beam1_horizontal, "X")
-        figure_b1_y = self._figures[0][1]
-        figure_b1_y.clear()
-        file_beam1_vertical = metaclass.twiss(os.path.join(
-            self._matcher_model.get_beam1_output_path(), "sbs",
-            "sbsphaseyt_IP" + str(self._matcher_model.get_ip()) + ".out")
-        )
-        self._plot_match(figure_b1_y, file_beam1_vertical, "Y")
-        figure_b2_x = self._figures[1][0]
-        figure_b2_x.clear()
-        file_beam2_horizontal = metaclass.twiss(os.path.join(
-            self._matcher_model.get_beam2_output_path(), "sbs",
-            "sbsphasext_IP" + str(self._matcher_model.get_ip()) + ".out")
-        )
-        self._plot_match(figure_b2_x, file_beam2_horizontal, "X")
-        figure_b2_y = self._figures[1][1]
-        figure_b2_y.clear()
-        file_beam2_vertical = metaclass.twiss(os.path.join(
-            self._matcher_model.get_beam2_output_path(), "sbs",
-            "sbsphaseyt_IP" + str(self._matcher_model.get_ip()) + ".out")
-        )
-        self._plot_match(figure_b2_y, file_beam2_vertical, "Y")
+        if 1 in self._matcher_model._matcher.get_beams():
+            figure_b1_x = self._figures[0][0]
+            figure_b1_x.clear()
+            file_beam1_horizontal = metaclass.twiss(os.path.join(
+                self._matcher_model.get_beam1_output_path(), "sbs",
+                "sbsphasext_IP" + str(self._matcher_model.get_ip()) + ".out")
+            )
+            self._plot_match(figure_b1_x, file_beam1_horizontal, "X")
+            figure_b1_y = self._figures[0][1]
+            figure_b1_y.clear()
+            file_beam1_vertical = metaclass.twiss(os.path.join(
+                self._matcher_model.get_beam1_output_path(), "sbs",
+                "sbsphaseyt_IP" + str(self._matcher_model.get_ip()) + ".out")
+            )
+            self._plot_match(figure_b1_y, file_beam1_vertical, "Y")
+        if 2 in self._matcher_model._matcher.get_beams():
+            figure_b2_x = self._figures[1][0]
+            figure_b2_x.clear()
+            file_beam2_horizontal = metaclass.twiss(os.path.join(
+                self._matcher_model.get_beam2_output_path(), "sbs",
+                "sbsphasext_IP" + str(self._matcher_model.get_ip()) + ".out")
+            )
+            self._plot_match(figure_b2_x, file_beam2_horizontal, "X")
+            figure_b2_y = self._figures[1][1]
+            figure_b2_y.clear()
+            file_beam2_vertical = metaclass.twiss(os.path.join(
+                self._matcher_model.get_beam2_output_path(), "sbs",
+                "sbsphaseyt_IP" + str(self._matcher_model.get_ip()) + ".out")
+            )
+            self._plot_match(figure_b2_y, file_beam2_vertical, "Y")
 
     def _plot_match(self, figure, sbs_file, plane):
         ax = figure.add_subplot(1, 1, 1)

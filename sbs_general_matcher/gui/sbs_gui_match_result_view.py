@@ -186,7 +186,12 @@ class SbSGuiMatchResultController(object):
 
     def __init__(self, variables_for_beam, variables_common, get_positions_function):
         self._view = SbSGuiMatchResultView(self, variables_for_beam, variables_common)
-        self._elements_positions = {1: get_positions_function(1), 2: get_positions_function(2)}
+        self._elements_positions = {}
+        for beam in [1, 2]:
+            try:
+                self._elements_positions[beam] = get_positions_function(beam)
+            except KeyError:
+                continue
         self._latest_annotation = None
 
     def get_view(self):

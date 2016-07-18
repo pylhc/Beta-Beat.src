@@ -60,8 +60,10 @@ class MatcherModelDefault(object):
     def get_matcher_dict(self):
         matcher_dict = {}
         matcher_dict["ip"] = self._ip
-        matcher_dict["beam1_path"] = self._beam1_path
-        matcher_dict["beam2_path"] = self._beam2_path
+        if self._beam1_path is not None:
+            matcher_dict["beam1_path"] = self._beam1_path
+        if self._beam2_path is not None:
+            matcher_dict["beam2_path"] = self._beam2_path
         matcher_dict["use_errors"] = self._use_errors
         matcher_dict["propagation"] = self._propagation
         return matcher_dict
@@ -85,17 +87,15 @@ class MatcherModelDefault(object):
         return self._elements_positions[beam]
 
     def _read_elements_positions(self):
-        self._elements_positions = {1: {}, 2: {}}
-        segment_model_beam1 = metaclass.twiss(
-            os.path.join(self.get_beam1_output_path(), "sbs", "twiss_IP" + str(self.get_ip()) + ".dat")
-        )
-        for index in range(len(segment_model_beam1.NAME)):
-            self._elements_positions[1][segment_model_beam1.S[index]] = segment_model_beam1.NAME[index]
-        segment_model_beam2 = metaclass.twiss(
-            os.path.join(self.get_beam2_output_path(), "sbs", "twiss_IP" + str(self.get_ip()) + ".dat")
-        )
-        for index in range(len(segment_model_beam2.NAME)):
-            self._elements_positions[2][segment_model_beam2.S[index]] = segment_model_beam2.NAME[index]
+        self._elements_positions = {}
+        for beam in self._matcher.get_beams():
+            self._elements_positions[beam] = {}
+            segment_model = metaclass.twiss(
+                os.path.join(getattr(self, "get_beam" + str(beam) + "_output_path")(),
+                             "sbs", "twiss_IP" + str(self.get_ip()) + ".dat")
+            )
+            for index in range(len(segment_model.NAME)):
+                self._elements_positions[beam][segment_model.S[index]] = segment_model.NAME[index]
 
 
 if __name__ == "__main__":

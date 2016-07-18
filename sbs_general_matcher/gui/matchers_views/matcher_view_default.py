@@ -54,10 +54,16 @@ class MatcherViewDefault(QtGui.QDialog):
             return None
 
     def get_beam1_path(self):
-        return str(self._beam1_file_selector.get_selected_file())
+        selected_file = self._beam1_file_selector.get_selected_file()
+        if selected_file == "":
+            return None
+        return str(selected_file)
 
     def get_beam2_path(self):
-        return str(self._beam2_file_selector.get_selected_file())
+        selected_file = self._beam2_file_selector.get_selected_file()
+        if selected_file == "":
+            return None
+        return str(selected_file)
 
     def get_use_errors(self):
         return self._use_errors_checkbox.isChecked()
@@ -135,11 +141,14 @@ class MatcherControllerDefault(object):
             self._view.show_error("Please select a valid IP.")
             return False
         beam1_path = self._view.get_beam1_path()
-        if not os.path.isdir(beam1_path):
+        if beam1_path is None and beam1_path is None:
+            self._view.show_error("Al least one beam results directory has to be given.")
+            return False
+        if not beam1_path is None and not os.path.isdir(beam1_path):
             self._view.show_error("The selected beam 1 path must be an existing directory, containing GetLLM results.")
             return False
         beam2_path = self._view.get_beam2_path()
-        if not os.path.isdir(beam2_path):
+        if not beam2_path is None and not os.path.isdir(beam2_path):
             self._view.show_error("The selected beam 2 path must be an existing directory, containing GetLLM results.")
             return False
         use_errors = self._view.get_use_errors()

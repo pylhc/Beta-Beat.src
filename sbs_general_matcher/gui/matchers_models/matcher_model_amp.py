@@ -27,29 +27,31 @@ class MatcherPlotterAmp(object):
         self._matcher_model = matcher_model
 
     def plot(self):
-        figure_b1_x = self._figures[0][0]
-        figure_b1_x.clear()
-        amp_bb_beam1_horizontal = self._get_amp_beta_beat_file(1, "X")
-        bb_beam1_horizontal = self._get_beta_beat_file(1, "X")
-        self._plot_match(figure_b1_x, amp_bb_beam1_horizontal, bb_beam1_horizontal, "X")
+        if 1 in self._matcher_model._matcher.get_beams():
+            figure_b1_x = self._figures[0][0]
+            figure_b1_x.clear()
+            amp_bb_beam1_horizontal = self._get_amp_beta_beat_file(1, "X")
+            bb_beam1_horizontal = self._get_beta_beat_file(1, "X")
+            self._plot_match(figure_b1_x, amp_bb_beam1_horizontal, bb_beam1_horizontal, "X")
 
-        figure_b1_y = self._figures[0][1]
-        figure_b1_y.clear()
-        amp_bb_beam1_vertical = self._get_amp_beta_beat_file(1, "Y")
-        bb_beam1_vertical = self._get_beta_beat_file(1, "Y")
-        self._plot_match(figure_b1_y, amp_bb_beam1_vertical, bb_beam1_vertical, "Y")
+            figure_b1_y = self._figures[0][1]
+            figure_b1_y.clear()
+            amp_bb_beam1_vertical = self._get_amp_beta_beat_file(1, "Y")
+            bb_beam1_vertical = self._get_beta_beat_file(1, "Y")
+            self._plot_match(figure_b1_y, amp_bb_beam1_vertical, bb_beam1_vertical, "Y")
 
-        figure_b2_x = self._figures[1][0]
-        figure_b2_x.clear()
-        amp_bb_beam2_horizontal = self._get_amp_beta_beat_file(2, "X")
-        bb_beam2_horizontal = self._get_beta_beat_file(2, "X")
-        self._plot_match(figure_b2_x, amp_bb_beam2_horizontal, bb_beam2_horizontal, "X")
+        if 2 in self._matcher_model._matcher.get_beams():
+            figure_b2_x = self._figures[1][0]
+            figure_b2_x.clear()
+            amp_bb_beam2_horizontal = self._get_amp_beta_beat_file(2, "X")
+            bb_beam2_horizontal = self._get_beta_beat_file(2, "X")
+            self._plot_match(figure_b2_x, amp_bb_beam2_horizontal, bb_beam2_horizontal, "X")
 
-        figure_b2_y = self._figures[1][1]
-        figure_b2_y.clear()
-        amp_bb_beam2_vertical = self._get_amp_beta_beat_file(2, "Y")
-        bb_beam2_vertical = self._get_beta_beat_file(2, "Y")
-        self._plot_match(figure_b2_y, amp_bb_beam2_vertical, bb_beam2_vertical, "Y")
+            figure_b2_y = self._figures[1][1]
+            figure_b2_y.clear()
+            amp_bb_beam2_vertical = self._get_amp_beta_beat_file(2, "Y")
+            bb_beam2_vertical = self._get_beta_beat_file(2, "Y")
+            self._plot_match(figure_b2_y, amp_bb_beam2_vertical, bb_beam2_vertical, "Y")
 
     def _get_amp_beta_beat_file(self, beam, plane):
         amp_bb_path = getattr(self._matcher_model, "get_beam" + str(beam) + "_output_path")()
