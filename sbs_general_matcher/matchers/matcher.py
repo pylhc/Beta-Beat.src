@@ -170,6 +170,9 @@ class Matcher(object):
     def set_exclude_variables(self, excluded_variables_list):
         self._excluded_variables_list = excluded_variables_list
 
+    def set_disabled_constraints(self, disbled_constraints):
+        self._excluded_constraints_list = disbled_constraints
+
     @staticmethod
     def _check_attribute(base_dict_name, base_dict, attribute_name):
         if attribute_name not in base_dict:

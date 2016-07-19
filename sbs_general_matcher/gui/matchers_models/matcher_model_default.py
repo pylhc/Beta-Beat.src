@@ -50,6 +50,12 @@ class MatcherModelDefault(object):
         else:
             raise ValueError("Cannot set excluded variables of not created matcher")
 
+    def set_disabled_constraints(self, disabled_constraints):
+        if self._matcher is not None:
+            self._matcher.set_disabled_constraints(disabled_constraints)
+        else:
+            raise ValueError("Cannot set diabled constraints of not created matcher")
+
     def get_variables_for_beam(self):
         return {1: self._matcher.get_variables_for_beam(1),
                 2: self._matcher.get_variables_for_beam(2)}

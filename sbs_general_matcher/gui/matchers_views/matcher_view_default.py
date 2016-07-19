@@ -79,6 +79,9 @@ class MatcherViewDefault(QtGui.QDialog):
         msg.setStandardButtons(QtGui.QMessageBox.Ok)
         msg.exec_()
 
+    def plot(self, dto):
+        raise NotImplementedError
+
 
 class MatcherControllerDefault(object):
 

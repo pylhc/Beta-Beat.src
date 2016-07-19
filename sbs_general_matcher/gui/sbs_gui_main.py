@@ -156,6 +156,9 @@ class SbSGuiMainController(object):
             matcher_tab.model.set_ignore_vars_list(
                 matcher_tab.results_controller.get_unselected_variables()
             )
+            matcher_tab.model.set_disabled_constraints(
+                matcher_tab.results_controller.get_disabled_constraints()
+            )
             matchers_list.append(matcher_tab.model.get_matcher())
         input_data = sbs_general_matcher.InputData.init_from_matchers_list(
             self._lhc_mode, self._match_path, matchers_list
