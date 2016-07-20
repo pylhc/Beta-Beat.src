@@ -58,6 +58,7 @@ class Matcher(object):
             Matcher._check_attribute(matcher_name, matcher_dict, attribute_name)
 
         self._name = matcher_name
+        self._match_path = match_path
         self._ip = matcher_dict["ip"]
         self._use_errors = matcher_dict["use_errors"]
         self._front_or_back = matcher_dict["propagation"].lower()
@@ -151,6 +152,9 @@ class Matcher(object):
 
     def get_name(self):
         return self._name
+
+    def get_match_path(self):
+        return self._match_path
 
     def get_ip(self):
         return self._ip

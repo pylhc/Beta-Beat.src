@@ -175,8 +175,10 @@ class SbSGuiMainController(object):
     def _on_match_end(self):
         for index in range(len(self._matchers_tabs)):
             matcher_model = self._matchers_tabs[index].model
-            figures = self._matchers_tabs[index].results_controller.get_figures()
+            results_controller = self._matchers_tabs[index].results_controller
+            figures = results_controller.get_figures()
             matcher_model.get_plotter(figures).plot()
+            results_controller.update_variables(matcher_model.get_match_results())
         self._view.hide_background_task_dialog()
 
     class Tab(object):

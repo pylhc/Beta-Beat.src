@@ -58,7 +58,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
             beam1_vars_frame.setLayout(beam1_vars_frame_layout)
             variables_layout.addWidget(beam1_vars_frame)
             for variable in self._variables_for_beam[1]:
-                self._beam1_vars_layout.addWidget(QtGui.QCheckBox(variable))
+                self._beam1_vars_layout.addWidget(SbSGuiMatchResultView.CustomCheckBox(variable))
 
         self._beam2_vars_layout = QtGui.QVBoxLayout()
         if not len(self._variables_for_beam[2]) == 0:
@@ -73,7 +73,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
             beam2_vars_frame.setLayout(beam2_vars_frame_layout)
             variables_layout.addWidget(beam2_vars_frame)
             for variable in self._variables_for_beam[2]:
-                self._beam2_vars_layout.addWidget(QtGui.QCheckBox(variable))
+                self._beam2_vars_layout.addWidget(SbSGuiMatchResultView.CustomCheckBox(variable))
 
         self._common_vars_layout = QtGui.QVBoxLayout()
         if not len(self._variables_common) == 0:
@@ -88,7 +88,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
             common_vars_frame.setLayout(common_vars_frame_layout)
             variables_layout.addWidget(common_vars_frame)
             for variable in self._variables_common:
-                self._common_vars_layout.addWidget(QtGui.QCheckBox(variable))
+                self._common_vars_layout.addWidget(SbSGuiMatchResultView.CustomCheckBox(variable))
 
         select_all_checkbox = QtGui.QCheckBox("Toggle select all")
         select_all_checkbox.stateChanged.connect(self._toogle_select_all)
@@ -142,13 +142,19 @@ class SbSGuiMatchResultView(QtGui.QWidget):
 
         self._loop_through_checkboxes(toggle_checkbox)
 
+    def update_variables(self, name_value_dict):
+        def update(checkbox):
+            checkbox.set_variable_value_from_dict(name_value_dict)
+
+        self._loop_through_checkboxes(update)
+
     def _loop_through_checkboxes(self, function):
         for layout in [self._beam1_vars_layout,
                        self._beam2_vars_layout,
                        self._common_vars_layout]:
             for index in range(layout.count()):
                 checkbox = layout.itemAt(index).widget()
-                if type(checkbox) is QtGui.QCheckBox:
+                if issubclass(checkbox.__class__, QtGui.QCheckBox):
                     function(checkbox)
 
     def _mouse_moved_on_figure(self, event, figure, beam):
@@ -237,23 +243,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
                         fontsize=15, color='red')
             if selected_axes is not None:
                 selected_axes.texts.append(self._latest_annotation)
-            # SbSGuiMatchResultView._fast_redraw(figure)
             figure.canvas.draw()
-
-    @staticmethod
-    def _fast_redraw(figure):
-        if len(figure.axes == 0):
-            return
-        figure.axes[0].draw_artist(figure.axes[0].get_legend())
-        for axes in figure.axes:
-            figure.cla()
-            background = figure.canvas.copy_from_bbox(axes.bbox)
-            figure.canvas.restore_region(background)
-            for line in axes.get_lines():
-                axes.draw_artist(line)
-            for text in axes.texts:
-                axes.draw_artist(text)
-            figure.canvas.blit(axes.bbox)
 
     @staticmethod
     def _get_point_within_range(figure, event):
@@ -292,25 +282,55 @@ class SbSGuiMatchResultView(QtGui.QWidget):
             self._legend_visible = not self._legend_visible
             self.draw()
 
+    class CustomCheckBox(QtGui.QCheckBox):
+        STRENGH_COLOR_LIMIT = 1e-3
+        BACKGROUND_COLOR_TEMPLATE = "QCheckBox { background-color: %(COLOR)s;}"
+        DISABLED_CSS_COLOR = "rgb(224, 224, 224)"
+
+        def __init__(self, text):
+            super(SbSGuiMatchResultView.CustomCheckBox, self).__init__(text)
+            self.setMouseTracking(True)
+            self._tooltip_text = ""
+
+        def mouseMoveEvent(self, event):
+            super(SbSGuiMatchResultView.CustomCheckBox, self).mouseMoveEvent(event)
+            QtGui.QToolTip.showText(event.globalPos(),
+                                    self._tooltip_text,
+                                    widget=self)
+
+        def set_variable_value_from_dict(self, name_value_dict):
+            StaticRef = SbSGuiMatchResultView.CustomCheckBox
+            try:
+                variable_value = name_value_dict[str(self.text())]
+                tooltip_text = str(variable_value)
+                color_string = StaticRef._get_css_color_for_value(variable_value)
+            except KeyError:
+                tooltip_text = "Disabled"
+                color_string = StaticRef.DISABLED_CSS_COLOR
+            self._tooltip_text = str(tooltip_text)
+            style = StaticRef.BACKGROUND_COLOR_TEMPLATE % {
+                "COLOR": color_string,
+            }
+            self.setStyleSheet(style)
+            self.update()
+
+        @staticmethod
+        def _get_css_color_for_value(value):
+            absolute_strength = abs(value)
+            limit = SbSGuiMatchResultView.CustomCheckBox.STRENGH_COLOR_LIMIT
+            if absolute_strength > limit:
+                red = 255
+            else:
+                red = int((absolute_strength / limit) * 255)
+            green = 255 - red
+            blue = 0
+            return "rgb(" + str(red) + ", " + str(green) + ", " + str(blue) + ")"
+
 
 class _BorderedGroupBox(QtGui.QGroupBox):
 
-    GROUP_BOX_STYLE = """
-        QGroupBox {
-            border: 1px solid gray;
-            border-radius: 3px;
-        }
-        QGroupBox::title {
-            background-color: transparent;
-            subcontrol-position: top left;
-            padding:2 13px;
-        }
-    """
-
     def __init__(self, label, parent=None):
         super(_BorderedGroupBox, self).__init__(label, parent)
-        # TODO: Find a nice style for the boxes
-        # self.setStyleSheet(_BorderedGroupBox.GROUP_BOX_STYLE)
 
 
 class SbSGuiMatchResultController(object):
@@ -341,6 +361,9 @@ class SbSGuiMatchResultController(object):
 
     def get_elements_positions(self):
         return self._elements_positions
+
+    def update_variables(self, name_value_dict):
+        self._view.update_variables(name_value_dict)
 
 
 if __name__ == "__main__":

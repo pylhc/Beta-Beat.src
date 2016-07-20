@@ -103,6 +103,22 @@ class MatcherModelDefault(object):
             for index in range(len(segment_model.NAME)):
                 self._elements_positions[beam][segment_model.S[index]] = segment_model.NAME[index]
 
+    def get_match_results(self):
+        match_results = {}
+        if self._matcher is not None:
+            try:
+                with open(os.path.join(
+                          self._matcher.get_match_path(),
+                          "changeparameters.madx")) as changeparameters:
+                    for line in changeparameters:
+                        parts = line.split("=")
+                        variable_name = parts[0].replace("d", "", 1).strip()
+                        variable_value = float(parts[1].replace(";", "").strip())
+                        match_results[variable_name] = variable_value
+            except IOError:
+                pass
+        return match_results
+
 
 if __name__ == "__main__":
     print >> sys.stderr, "This module is meant to be imported."
