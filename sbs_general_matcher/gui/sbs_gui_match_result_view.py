@@ -154,21 +154,29 @@ class SbSGuiMatchResultView(QtGui.QWidget):
     def _mouse_moved_on_figure(self, event, figure, beam):
         for axes in figure.axes:
             del axes.texts[:]
+        annotation_was_none = True
         if self._latest_annotation is not None:
             self._latest_annotation = None
+            annotation_was_none = False
         axes, element_name, element_position = self.get_element_within_range(
             figure, event, beam
         )
         if element_name is not None and element_position is not None:
+            x, y = element_position
             new_text = (element_name + "\n" +
-                        "S = " + str(element_position))
-            x_plot, y_plot = event.xdata, event.ydata
+                        "S = " + str(x))
             self._latest_annotation = axes.text(
-                x_plot, y_plot,
+                x, y,
                 new_text,
                 bbox=SbSGuiMatchResultController.BOX_STYLE
             )
-        self._redraw_figure(beam, axes)
+        # TODO: Only redraw on element transition (no repeat same element)
+        have_to_redraw = (
+            (self._latest_annotation is not None) or
+            (self._latest_annotation is None and not annotation_was_none)
+        )
+        if have_to_redraw:
+            self._redraw_figure(beam, axes)
 
     def _mouse_clicked_on_figure(self, event, figure, beam):
         axes, selected_point = SbSGuiMatchResultView._get_point_within_range(
@@ -191,9 +199,9 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         )
         if axes is not None and selected_point is not None:
             elements_positions = self._elements_positions[beam]
-            x, _ = selected_point
+            x, y = selected_point
             element_name = elements_positions[x]
-            element_position = x
+            element_position = (x, y)
             return axes, element_name, element_position
         return None, None, None
 
@@ -229,7 +237,23 @@ class SbSGuiMatchResultView(QtGui.QWidget):
                         fontsize=15, color='red')
             if selected_axes is not None:
                 selected_axes.texts.append(self._latest_annotation)
+            # SbSGuiMatchResultView._fast_redraw(figure)
             figure.canvas.draw()
+
+    @staticmethod
+    def _fast_redraw(figure):
+        if len(figure.axes == 0):
+            return
+        figure.axes[0].draw_artist(figure.axes[0].get_legend())
+        for axes in figure.axes:
+            figure.cla()
+            background = figure.canvas.copy_from_bbox(axes.bbox)
+            figure.canvas.restore_region(background)
+            for line in axes.get_lines():
+                axes.draw_artist(line)
+            for text in axes.texts:
+                axes.draw_artist(text)
+            figure.canvas.blit(axes.bbox)
 
     @staticmethod
     def _get_point_within_range(figure, event):
