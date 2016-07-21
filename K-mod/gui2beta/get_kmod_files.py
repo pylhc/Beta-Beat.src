@@ -25,8 +25,12 @@ def write_global_files(beam, kmod_dir, res_dir, mod_path):
     IPs = ['ip1', 'ip5', 'ip8']
     for ip in IPs:
         pathx, pathy = get_paths(kmod_dir, beam, ip)
-        datax = metaclass.twiss(pathx)
-        datay = metaclass.twiss(pathy)
+        try:
+            datax = metaclass.twiss(pathx)
+            datay = metaclass.twiss(pathy)
+        except IOError:
+            print "Cannot find " + ip + " kmod data, won't copy those files."
+            continue
         bpms = np.concatenate((bpms, datax.NAME))
         betx     = np.concatenate((betx, datax.BETX))
         bety     = np.concatenate((bety, datay.BETY))
