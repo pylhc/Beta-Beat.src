@@ -2,6 +2,8 @@ import sys
 from PyQt4 import QtGui
 from matchers_views.matcher_view_phase import MatcherControllerPhase
 from matchers_views.matcher_view_kmod import MatcherControllerKmod
+from matchers_views.matcher_view_amp import MatcherControllerAmp
+from matchers_views.matcher_view_coupling import MatcherControllerCoupling
 
 
 class SbSGuiMatcherSelection(QtGui.QDialog):
@@ -10,6 +12,8 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
     MATCHER_TYPES = {
         "phase": MatcherControllerPhase,
         "kmod": MatcherControllerKmod,
+        "beta from amplitude": MatcherControllerAmp,
+        "coupling": MatcherControllerCoupling,
     }
 
     def __init__(self, main_controller, parent=None):

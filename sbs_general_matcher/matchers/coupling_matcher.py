@@ -24,8 +24,9 @@ class CouplingMatcher(Matcher):
     @Matcher.override(Matcher)
     def __init__(self, matcher_name, matcher_dict, match_path):
         super(CouplingMatcher, self).__init__(matcher_name, matcher_dict, match_path)
-        self.f_terms_strings_b1 = self._get_f_terms_strings(1)
-        self.f_terms_strings_b2 = self._get_f_terms_strings(2)
+        self._f_terms_strings = {}
+        for beam in self.get_beams():
+            self._f_terms_strings[beam] = self._get_f_terms_strings(beam)
         if "all_lists" in matcher_dict:
             all_lists = matcher_dict["all_lists"]
         else:
@@ -61,7 +62,7 @@ class CouplingMatcher(Matcher):
     @Matcher.override(Matcher)
     def get_all_variables(self):
         variable_list = []
-        for variable in self._get_common_variables():
+        for variable in self.get_common_variables():
             if variable not in self._excluded_variables_list:
                 variable_list.append(variable)
         return variable_list
@@ -98,7 +99,7 @@ class CouplingMatcher(Matcher):
     @Matcher.override(Matcher)
     def update_constraints_values(self, beam):
         update_constraints_str = ""
-        update_constraints_str += getattr(self, "f_terms_strings_b" + str(beam))
+        update_constraints_str += self._f_terms_strings[beam]
         return update_constraints_str
 
     @Matcher.override(Matcher)

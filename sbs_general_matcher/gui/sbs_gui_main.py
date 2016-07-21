@@ -118,11 +118,15 @@ class SbSGuiMainController(object):
         self._lhc_mode = lhc_mode
 
     def set_input_dir(self, input_dir):
+        if input_dir is None:
+            return
         self._input_dir = os.path.abspath(input_dir)
         self._find_measurements()
 
     def _find_measurements(self):
         self._possible_measurements = {1: [], 2: []}
+        if self._input_dir is None:
+            return
         for lhcb1or2 in os.listdir(self._input_dir):
             if lhcb1or2 == "LHCB1":
                 beam = 1
