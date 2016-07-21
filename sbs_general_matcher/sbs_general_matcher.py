@@ -2,6 +2,7 @@ import __init__  # @UnusedImport
 import os
 import sys
 import json
+import argparse
 from matchers import matcher, phase_matcher, coupling_matcher, kmod_matcher, amp_matcher
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
@@ -125,10 +126,42 @@ class InputData():
             return input_data
 
 
-if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        _, _input_path = sys.argv
-        main(os.path.abspath(_input_path))
+def _run_gui(lhc_mode=None, match_path=None, input_dir=None):
+    from gui import gui
+    gui.main(lhc_mode, match_path, input_dir)
+
+
+def _parse_args():
+    if len(sys.argv) >= 2:
+        first_arg = sys.argv[1]
+        if first_arg == "gui":
+            print "Running GUI..."
+            parser = argparse.ArgumentParser()
+            parser.add_argument(
+                "gui", help="Run GUI mode.",
+                type=str,
+            )
+            parser.add_argument(
+                "--lhc_mode", help="LHC mode.",
+                type=str,
+            )
+            parser.add_argument(
+                "--input", help="Beta-beating GUI output directory.",
+                type=str,
+            )
+            parser.add_argument(
+                "--match", help="Match ouput directory.",
+                type=str,
+            )
+            args = parser.parse_args()
+            _run_gui(args.lhc_mode, args.match, args.input)
+        elif os.path.isfile(first_arg):
+            print "Given input is a file, matching from JSON file..."
+            main(os.path.abspath(first_arg))
     elif len(sys.argv) == 1:
-        from gui import gui
-        gui.main()
+        print "No given input, running GUI..."
+        _run_gui()
+
+
+if __name__ == "__main__":
+    _parse_args()

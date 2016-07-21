@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt4 import QtGui
 from PyQt4.QtCore import QThread, Qt
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
@@ -95,11 +96,14 @@ class SbSGuiMainController(object):
     def __init__(self):
         self._view = SbSGuiMain(self)
         self._match_path = None
+        self._possible_measurements = {1: [], 2: []}
+        self._input_dir = None
         self._matchers_tabs = []
+        self._current_thread = None
 
     @staticmethod
-    def ask_for_initial_config():
-        initial_config_popup = InitialConfigPopup()
+    def ask_for_initial_config(lhc_mode, match_path):
+        initial_config_popup = InitialConfigPopup(lhc_mode, match_path)
         initial_config_popup.setWindowTitle("Please choose an output path")
         result_code = initial_config_popup.exec_()
         if result_code == QtGui.QDialog.Accepted:
@@ -112,6 +116,30 @@ class SbSGuiMainController(object):
 
     def set_lhc_mode(self, lhc_mode):
         self._lhc_mode = lhc_mode
+
+    def set_input_dir(self, input_dir):
+        self._input_dir = os.path.abspath(input_dir)
+        self._find_measurements()
+
+    def _find_measurements(self):
+        self._possible_measurements = {1: [], 2: []}
+        for lhcb1or2 in os.listdir(self._input_dir):
+            if lhcb1or2 == "LHCB1":
+                beam = 1
+            elif lhcb1or2 == "LHCB2":
+                beam = 2
+            else:
+                continue
+            results_path = os.path.join(self._input_dir, lhcb1or2, "Results")
+            if not os.path.isdir(results_path):
+                continue
+            for individual_result in os.listdir(results_path):
+                individual_result_path = os.path.join(results_path,
+                                                      individual_result)
+                self._possible_measurements[beam].append(individual_result_path)
+
+    def get_posible_measurements(self, beam):
+        return self._possible_measurements[beam]
 
     def get_match_path(self):
         return self._match_path
@@ -167,9 +195,9 @@ class SbSGuiMainController(object):
         def background_task():
             sbs_general_matcher.run_full_madx_matching(input_data)
 
-        backgroud_thread = SbSGuiMainController.BackgroudThread(background_task)
-        backgroud_thread.finished.connect(self._on_match_end)
-        backgroud_thread.start()
+        self._current_thread = SbSGuiMainController.BackgroudThread(background_task)
+        self._current_thread.finished.connect(self._on_match_end)
+        self._current_thread.start()
         self._view.show_background_task_dialog("Running matching...")
 
     def _on_match_end(self):
@@ -180,6 +208,7 @@ class SbSGuiMainController(object):
             matcher_model.get_plotter(figures).plot()
             results_controller.update_variables(matcher_model.get_match_results())
         self._view.hide_background_task_dialog()
+        self._current_thread = None
 
     class Tab(object):
         def __init__(self, matcher_model, matcher_results_controller):

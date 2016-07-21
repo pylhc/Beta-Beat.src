@@ -2,7 +2,7 @@ import sys
 import os
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
-from ..widgets import FileSelectionDialogWidget
+from ..widgets import FileSelectionComboWidget
 
 
 class MatcherViewDefault(QtGui.QDialog):
@@ -21,9 +21,9 @@ class MatcherViewDefault(QtGui.QDialog):
         self.setLayout(main_layout)
 
         selectors_layout = QtGui.QVBoxLayout()
-        self._beam1_file_selector = FileSelectionDialogWidget(label_text="Beam 1 path:")
+        self._beam1_file_selector = FileSelectionComboWidget(label_text="Beam 1 path:")
         selectors_layout.addWidget(self._beam1_file_selector)
-        self._beam2_file_selector = FileSelectionDialogWidget(label_text="Beam 2 path:")
+        self._beam2_file_selector = FileSelectionComboWidget(label_text="Beam 2 path:")
         selectors_layout.addWidget(self._beam2_file_selector)
         main_layout.addLayout(selectors_layout)
 
@@ -54,16 +54,22 @@ class MatcherViewDefault(QtGui.QDialog):
             return None
 
     def get_beam1_path(self):
-        selected_file = self._beam1_file_selector.get_selected_file()
+        selected_file = str(self._beam1_file_selector.get_selected_file())
         if selected_file == "":
             return None
-        return str(selected_file)
+        return selected_file
 
     def get_beam2_path(self):
-        selected_file = self._beam2_file_selector.get_selected_file()
+        selected_file = str(self._beam2_file_selector.get_selected_file())
         if selected_file == "":
             return None
-        return str(selected_file)
+        return selected_file
+
+    def reload_list(self, beam, dir_list):
+        if beam == 1:
+            self._beam1_file_selector.reload_items(dir_list)
+        elif beam == 2:
+            self._beam2_file_selector.reload_items(dir_list)
 
     def get_use_errors(self):
         return self._use_errors_checkbox.isChecked()
@@ -89,9 +95,15 @@ class MatcherControllerDefault(object):
         self._main_controller = main_controller
         self._view = MatcherViewDefault(self)
         self._matcher_model = None
+        self.load_possible_measurements()
 
     def show_view(self):
         return self._view.exec_()
+
+    def load_possible_measurements(self):
+        for beam in [1, 2]:
+            possible_measurements = self._main_controller.get_posible_measurements(beam)
+            self._view.reload_list(beam, possible_measurements)
 
     def _accept_action(self):
         if not self._check_input():
@@ -144,13 +156,13 @@ class MatcherControllerDefault(object):
             self._view.show_error("Please select a valid IP.")
             return False
         beam1_path = self._view.get_beam1_path()
-        if beam1_path is None and beam1_path is None:
+        beam2_path = self._view.get_beam2_path()
+        if beam1_path is None and beam2_path is None:
             self._view.show_error("Al least one beam results directory has to be given.")
             return False
         if not beam1_path is None and not os.path.isdir(beam1_path):
             self._view.show_error("The selected beam 1 path must be an existing directory, containing GetLLM results.")
             return False
-        beam2_path = self._view.get_beam2_path()
         if not beam2_path is None and not os.path.isdir(beam2_path):
             self._view.show_error("The selected beam 2 path must be an existing directory, containing GetLLM results.")
             return False
