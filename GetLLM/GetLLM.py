@@ -398,6 +398,8 @@ def _create_tfs_files(getllm_d, model_filename):
     files_dict['getDx.out'] = utils.tfs_file.GetllmTfsFile('getDx.out')
     files_dict['getDy.out'] = utils.tfs_file.GetllmTfsFile('getDy.out')
     files_dict['getcouple.out'] = utils.tfs_file.GetllmTfsFile('getcouple.out')
+    for rdt in algorithms.resonant_driving_terms.rdt_list:
+        files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
     files_dict['f3000_line.out'] = utils.tfs_file.GetllmTfsFile('f3000_line.out')
     files_dict['f4000_line.out'] = utils.tfs_file.GetllmTfsFile('f4000_line.out')
     if getllm_d.with_ac_calc:
@@ -486,6 +488,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
+                for rdt in algorithms.resonant_driving_terms.rdt_list:
+                    files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f3000_line.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f4000_line.out'].add_filename_to_getllm_header(file_in)
                 if "LHC" in getllm_d.accel:
