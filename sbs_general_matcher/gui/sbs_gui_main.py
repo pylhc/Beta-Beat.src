@@ -1,7 +1,8 @@
 import sys
 import os
+import subprocess
 from PyQt4 import QtGui
-from PyQt4.QtCore import QThread, Qt
+from PyQt4.QtCore import QThread, Qt, QFileSystemWatcher
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
 from widgets import InitialConfigPopup
 from sbs_gui_match_result_view import SbSGuiMatchResultController
@@ -79,6 +80,10 @@ class SbSGuiMain(QtGui.QMainWindow):
             run_button.clicked.connect(self._controller.run_matching)
             main_layout.addWidget(run_button)
 
+            edit_corr_button = QtGui.QPushButton("Edit corrections file")
+            edit_corr_button.clicked.connect(self._controller.edit_corrections_file)
+            main_layout.addWidget(edit_corr_button)
+
     class BackgroundTaskDialog(QtGui.QMessageBox):
         def __init__(self, message, parent=None):
             super(SbSGuiMain.BackgroundTaskDialog, self).__init__(
@@ -100,6 +105,7 @@ class SbSGuiMainController(object):
         self._input_dir = None
         self._matchers_tabs = []
         self._current_thread = None
+        self._active_watcher = None
 
     @staticmethod
     def ask_for_initial_config(lhc_mode, match_path):
@@ -113,6 +119,8 @@ class SbSGuiMainController(object):
 
     def set_match_path(self, match_path):
         self._match_path = match_path
+        self._corrections_file = os.path.join(match_path,
+                                              "changeparameters.madx")
 
     def set_lhc_mode(self, lhc_mode):
         self._lhc_mode = lhc_mode
@@ -182,7 +190,7 @@ class SbSGuiMainController(object):
         del(self._matchers_tabs[index])
         self._view.remove_tab(index)
 
-    def run_matching(self):
+    def run_matching(self, just_twiss=False):
         matchers_list = []
         for matcher_tab in self._matchers_tabs:
             matcher_tab.model.set_ignore_vars_list(
@@ -196,8 +204,19 @@ class SbSGuiMainController(object):
             self._lhc_mode, self._match_path, matchers_list
         )
 
-        def background_task():
-            sbs_general_matcher.run_full_madx_matching(input_data)
+        if not just_twiss:
+            def background_task():
+                had_active_watcher = False
+                if self._active_watcher is not None:
+                    had_active_watcher = True
+                    self._active_watcher.removePath(self._match_path)
+                    self._active_watcher = None
+                sbs_general_matcher.run_full_madx_matching(input_data)
+                if had_active_watcher:
+                    self._watch_dir(self._match_path)
+        else:
+            def background_task():
+                sbs_general_matcher.run_twiss_and_sbs(input_data)
 
         self._current_thread = SbSGuiMainController.BackgroudThread(background_task)
         self._current_thread.finished.connect(self._on_match_end)
@@ -213,6 +232,32 @@ class SbSGuiMainController(object):
             results_controller.update_variables(matcher_model.get_match_results())
         self._view.hide_background_task_dialog()
         self._current_thread = None
+
+    def edit_corrections_file(self):
+        if not os.path.isfile(self._corrections_file):
+            open(self._corrections_file, "a").close()  # Create empty file
+        self._launch_text_editor(self._corrections_file)
+        if (self._active_watcher is not None and
+            self._corrections_file in self._active_watcher.files()):
+            return
+        self._watch_dir(self._match_path)
+
+    def _watch_dir(self, directory):
+        self._active_watcher = QFileSystemWatcher([directory])
+        self._active_watcher.directoryChanged.connect(self._match_dir_changed)
+
+    def _launch_text_editor(self, file_path):
+        if sys.platform.startswith('darwin'):
+            subprocess.call(('open', file_path))
+        elif os.name == 'nt':
+            os.startfile(file_path)
+        elif os.name == 'posix':
+            subprocess.call(('xdg-open', file_path))
+
+    def _match_dir_changed(self, path):
+        if os.path.samefile(path, self._match_path):
+            if self._current_thread is None:
+                self.run_matching(just_twiss=True)
 
     class Tab(object):
         def __init__(self, matcher_model, matcher_results_controller):

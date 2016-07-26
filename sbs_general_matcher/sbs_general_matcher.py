@@ -28,7 +28,7 @@ def main(input_file_path):
     run_full_madx_matching(input_data)
 
 
-def _run_madx_matching(input_data):
+def _run_madx_matching(input_data, just_twiss=False):
     madx_templates = madx_templates_runner.MadxTemplates(
         log_file=os.path.join(input_data.match_path, "match_madx_log.out"),
         output_file=os.path.join(input_data.match_path, "resolved_madx_match.madx")
@@ -37,18 +37,31 @@ def _run_madx_matching(input_data):
                                            input_data.match_path,
                                            input_data.lhc_mode,
                                            madx_templates)
-    template_processor.run()
+    if not just_twiss:
+        template_processor.run()
+    else:
+        template_processor.run_just_twiss()
 
 
 def run_full_madx_matching(input_data):
     _run_madx_matching(input_data)
+    _write_sbs_data_for_matchers(input_data)
+    _build_changeparameters_file(input_data)
+
+
+def run_twiss_and_sbs(input_data):
+    _run_madx_matching(input_data, just_twiss=True)
+    _write_sbs_data_for_matchers(input_data)
+    _build_changeparameters_file(input_data)
+
+
+def _write_sbs_data_for_matchers(input_data):
     for matcher in input_data.matchers:
         for beam in matcher.get_beams():
             _write_sbs_data(beam, str(matcher.get_ip()),
                             matcher.get_match_data(beam).get_beam_match_path(),
                             matcher.get_match_data(beam).get_range_start_name(),
                             )
-    _build_changeparameters_file(input_data)
 
 
 def _write_sbs_data(beam, ip, temporary_path, range_start_name):
@@ -110,8 +123,8 @@ class InputData():
             self.matchers.append(MatcherClass(matcher_name, matcher_data, self.match_path))
 
     def _check_and_assign_attribute(self, input_data, attribute_name):
-            matcher.Matcher._check_attribute("input data", input_data, attribute_name)
-            setattr(self, attribute_name, input_data[attribute_name])
+        matcher.Matcher._check_attribute("input data", input_data, attribute_name)
+        setattr(self, attribute_name, input_data[attribute_name])
 
     # This transforms annoying unicode string into common byte string
     @staticmethod
@@ -127,8 +140,26 @@ class InputData():
 
 
 def _run_gui(lhc_mode=None, match_path=None, input_dir=None):
-    from gui import gui
+    try:
+        from gui import gui
+    except ImportError:
+        print "Cannot start GUI using the current Python installation."
+        print "Launching OMC Anaconda Python..."
+        _run_gui_anaconda()
+        return
     gui.main(lhc_mode, match_path, input_dir)
+
+
+def _run_gui_anaconda():
+    from subprocess import call
+    if "win" in sys.platform:
+        print "There is not Windows version of Anaconda in OMC. Aborting."
+        return
+    interpreter = os.path.join("/afs", "cern.ch", "work", "o", "omc",
+                               "anaconda", "bin", "python")
+    command = sys.argv
+    command.insert(0, interpreter)
+    call(command)
 
 
 def _parse_args():

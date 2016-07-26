@@ -3,13 +3,32 @@ import os
 
 class TemplateProcessor(object):
 
-    DEFAULT_TEMPLATE_PATH = os.path.join("../../madx/templates/lhc_super_matcher.madx")
+    DEFAULT_TEMPLATE_PATH = os.path.join(
+        "..", "..", "madx", "templates", "lhc_super_matcher.madx"
+    )
+
+    START_MATCH = """
+match, use_macro;
+"""
+    END_MATCH = """
+lmdif,    tolerance:=1e-24, calls:=120;
+endmatch;
+"""
+    SAVE_CHANGEPARAMETERS = """
+save, file="%(MATCH_PATH)s/changeparameters.madx";
+"""
+    CALL_CHANGEPARAMETERS = """
+call, file="%(MATCH_PATH)s/changeparameters.madx";
+"""
 
     def __init__(self, matchers_list, match_path, lhc_mode, madx_templates_runner):
         self._matchers_list = matchers_list
         self._match_path = match_path
         self._lhc_mode = lhc_mode
         self._madx_templates_runner = madx_templates_runner
+        self._set_up_collections()
+
+    def _set_up_collections(self):
         self._variables = set()
         self._extract_sequences_list = []
         self._set_initial_values_list = []
@@ -26,10 +45,32 @@ class TemplateProcessor(object):
             "\n".join(self._extract_sequences_list),
             "\n".join(self._set_initial_values_list),
             "\n".join(self._aux_var_definition_list),
+            TemplateProcessor.START_MATCH,
             "\n".join(self._define_variables_list),
             "\n".join(self._set_matching_macros_list),
+            TemplateProcessor.END_MATCH,
             "\n".join(self._gen_changeparameters_list),
-            self._match_path,
+            TemplateProcessor.SAVE_CHANGEPARAMETERS % {"MATCH_PATH": self._match_path},
+            "\n".join(self._run_corrected_twiss_list),
+        )
+
+    def run_just_twiss(self):
+        for matcher in self._matchers_list:
+            self._extract_sequences(matcher)
+            self._set_initial_values(matcher)
+            self._define_aux_vars(matcher)
+            self._run_corrected_twiss(matcher)
+        self._madx_templates_runner.lhc_super_matcher_madx(
+            self._lhc_mode,
+            "\n".join(self._extract_sequences_list),
+            "\n".join(self._set_initial_values_list),
+            "\n".join(self._aux_var_definition_list),
+            "",
+            "\n".join(self._define_variables_list),
+            "\n".join(self._set_matching_macros_list),
+            "",
+            "\n".join(self._gen_changeparameters_list),
+            TemplateProcessor.CALL_CHANGEPARAMETERS % {"MATCH_PATH": self._match_path},
             "\n".join(self._run_corrected_twiss_list),
         )
 
