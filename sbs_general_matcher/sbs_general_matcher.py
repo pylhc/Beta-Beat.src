@@ -29,6 +29,7 @@ def main(input_file_path):
 
 
 def _run_madx_matching(input_data, just_twiss=False):
+    _try_to_delete_twiss_cors(input_data)
     madx_templates = madx_templates_runner.MadxTemplates(
         log_file=os.path.join(input_data.match_path, "match_madx_log.out"),
         output_file=os.path.join(input_data.match_path, "resolved_madx_match.madx")
@@ -41,6 +42,7 @@ def _run_madx_matching(input_data, just_twiss=False):
         template_processor.run()
     else:
         template_processor.run_just_twiss()
+    _check_twiss_cors(input_data)
 
 
 def run_full_madx_matching(input_data):
@@ -53,6 +55,45 @@ def run_twiss_and_sbs(input_data):
     _run_madx_matching(input_data, just_twiss=True)
     _write_sbs_data_for_matchers(input_data)
     _build_changeparameters_file(input_data)
+
+
+def _manipulate_twiss_cors(input_data, function):
+    for matcher in input_data.matchers:
+        for beam in matcher.get_beams():
+            matcher_path = matcher.get_match_data(beam).get_beam_match_path()
+            matcher_path_sbs = os.path.join(matcher_path, "sbs")
+            if os.path.isdir(matcher_path_sbs):
+                twiss_cor_path = os.path.join(
+                    matcher_path_sbs,
+                    "twiss_IP" + str(matcher.get_ip()) + "_cor.dat"
+                )
+                function(twiss_cor_path)
+                twiss_cor_back_path = os.path.join(
+                    matcher_path_sbs,
+                    "twiss_IP" + str(matcher.get_ip()) + "_cor_back.dat"
+                )
+                function(twiss_cor_back_path)
+
+
+def _try_to_delete_twiss_cors(input_data):
+    def function(twiss_cor_path):
+        if os.path.isfile(twiss_cor_path):
+            os.remove(twiss_cor_path)
+    _manipulate_twiss_cors(input_data, function)
+
+
+def _check_twiss_cors(input_data):
+    def function(twiss_cor_path):
+        if not os.path.isfile(twiss_cor_path):
+            raise TwissFailedError(twiss_cor_path)
+    _manipulate_twiss_cors(input_data, function)
+
+
+class TwissFailedError(Exception):
+    def __init__(self, twiss_path):
+        super(TwissFailedError, self).__init__(
+            "Twiss failed for twiss file: " + twiss_path
+        )
 
 
 def _write_sbs_data_for_matchers(input_data):

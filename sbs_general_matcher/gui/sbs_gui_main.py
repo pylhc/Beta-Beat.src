@@ -2,7 +2,7 @@ import sys
 import os
 import subprocess
 from PyQt4 import QtGui
-from PyQt4.QtCore import QThread, Qt, QFileSystemWatcher
+from PyQt4.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
 from widgets import InitialConfigPopup
 from sbs_gui_match_result_view import SbSGuiMatchResultController
@@ -52,6 +52,16 @@ class SbSGuiMain(QtGui.QMainWindow):
     def hide_background_task_dialog(self):
         self._active_background_dialog.setVisible(False)
         self._active_background_dialog = None
+
+    def show_error_dialog(self, title, message):
+        message_box = QtGui.QMessageBox(
+            QtGui.QMessageBox.Critical,
+            title,
+            message,
+            QtGui.QMessageBox.Ok,
+            self
+        )
+        message_box.exec_()
 
     def _get_new_matcher_action(self):
         new_matcher_action = QtGui.QAction("New matcher...", self)
@@ -218,8 +228,9 @@ class SbSGuiMainController(object):
             def background_task():
                 sbs_general_matcher.run_twiss_and_sbs(input_data)
 
-        self._current_thread = SbSGuiMainController.BackgroudThread(background_task)
+        self._current_thread = SbSGuiMainController.BackgroundThread(background_task)
         self._current_thread.finished.connect(self._on_match_end)
+        self._current_thread.on_exception.connect(self._on_match_exception)
         self._current_thread.start()
         self._view.show_background_task_dialog("Running matching...")
 
@@ -230,6 +241,11 @@ class SbSGuiMainController(object):
             figures = results_controller.get_figures()
             matcher_model.get_plotter(figures).plot()
             results_controller.update_variables(matcher_model.get_match_results())
+        self._view.hide_background_task_dialog()
+        self._current_thread = None
+
+    def _on_match_exception(self, message):
+        self._view.show_error_dialog("Error", message)
         self._view.hide_background_task_dialog()
         self._current_thread = None
 
@@ -264,13 +280,19 @@ class SbSGuiMainController(object):
             self.model = matcher_model
             self.results_controller = matcher_results_controller
 
-    class BackgroudThread(QThread):
+    class BackgroundThread(QThread):
+
+        on_exception = pyqtSignal([str])
+
         def __init__(self, function):
             QThread.__init__(self)
             self._function = function
 
         def run(self):
-            self._function()
+            try:
+                self._function()
+            except Exception as e:
+                self.on_exception.emit(str(e))
 
 
 if __name__ == "__main__":
