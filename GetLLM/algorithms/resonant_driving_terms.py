@@ -74,7 +74,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
         bpm2 = bpm_pair_data[0]
         for j in range(0,len(list_zero_dpp)):
             amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
-            delta, edelta = bpm_pair_data[1][:2]
+            delta, edelta = bpm_pair_data[1:]
             amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
             amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
             phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
@@ -112,24 +112,26 @@ def _get_best_fitting_bpm(phase_d, bpm1, plane):
     else: 
         raise KeyError("No valid plane was found!")
     
-    ph_advance = float(phase_d[bpm1][0+plane_idx])  
+    ph_advance = float(phase_d[bpm1][plane_idx])  
+    ph_adv_err = float(phase_d[bpm1][plane_idx+1])  
     next_bpm = phase_d[bpm1][6]
     target_bpm = next_bpm
-    ph_advance_next = ph_advance + float(phase_d[next_bpm][0+plane_idx])
+    ph_advance_next = ph_advance + float(phase_d[next_bpm][plane_idx])
+    ph_advance_next_err = float(phase_d[next_bpm][plane_idx+1])
     value = abs(ph_advance - .25) 
     value_next = abs(ph_advance_next - .25)
 
     while value_next < value:
         target_bpm = next_bpm
+        ph_adv_err = ph_advance**2*ph_adv_err + (ph_advance_next*ph_advance_next_err)**2 
         ph_advance = ph_advance_next
         next_bpm = phase_d[target_bpm][6]
-        ph_advance_next += float(phase_d[next_bpm][0+plane_idx])
+        ph_advance_next += float(phase_d[next_bpm][plane_idx])
+        ph_advance_next_err = float(phase_d[next_bpm][plane_idx+1])
         value = value_next
         value_next = abs(ph_advance_next - .25)
         
-    bpm_pair = plane + bpm1 + target_bpm
-    
-    return next_bpm , phase_d[bpm_pair]
+    return next_bpm , ph_advance, ph_adv_err
 
 
 def _line_to_amp_and_phase_attr(line, zero_dpp):
