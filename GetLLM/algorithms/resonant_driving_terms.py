@@ -17,18 +17,17 @@ import helper
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 
-rdt_list = ['f1001H', 'f3000H', 'f1002H', 'f4000H', 'f2010H', 'f1220H', 'f1020H', 'f1120H', 'f2003H', 'f2020H', 'f3001H', 'f1101H', 'f1200H', 'f0110V', 'f1020V', 'f1011V', 'f0111V', 'f2010V', 'f0120V', 'f0030V', 'f0040V', 'f0211V', 'f1012V', 'f1013V']
+RDT_LIST = ['f1001H', 'f3000H', 'f1002H', 
+            'f4000H', 'f2010H', 'f1220H', 
+            'f1020H', 'f1120H', 'f2003H', 
+            'f2020H', 'f3001H', 'f1101H', 
+            'f1200H', 
+            'f0110V', 'f1020V', 'f1011V', 
+            'f0111V', 'f2010V', 'f0120V', 
+            'f0030V', 'f0040V', 'f0211V', 
+            'f1012V', 'f1013V'
+            ]
 
-# rdt_list = ['f3000', 'f4000']
-
-def determine_lines_temp(rdt, plane):
-    r = list(rdt)
-    j, k, l, m = int(r[1]), int(r[2]), int(r[3]), int(r[4]) #, r[5]
-    if plane == 'H':
-        line = (1-j+k, m-l)
-    elif plane == 'V':
-        line = (k-l, 1-l+m)
-    return line #, plane
 
 def determine_lines(rdt):
     r = list(rdt)
@@ -64,25 +63,9 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
         line in (int, int) is the corresponding line to the driving term
     """
 
-    rdt_set = [
-        ("H", files_dict["f3000_line.out"], (-2, 0)), # sextupolar
-        ("H", files_dict["f4000_line.out"], (-3, 0))  # sextupolar
-    ]
-#     for rdt in range(len(rdt_set)):
-#         _process_RDT(mad_twiss, phase_d, twiss_d, rdt_set[rdt])
-
-
-    for rdt in rdt_list:
+    for rdt in RDT_LIST:
         line, plane = determine_lines(rdt)
-        print rdt, line, plane
         _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], line))
-
-
-#     for rdt in rdt_list:
-#         plane = 'H'
-#         line = determine_lines(rdt, plane)
-#         _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], line))
-
 
 
 def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
