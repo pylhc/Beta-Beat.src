@@ -194,7 +194,9 @@ class SbSGuiMainController(object):
         result_code = sbs_gui_matcher_selection_dialog.exec_()
         if result_code == QtGui.QDialog.Accepted:
             selected_matcher_model = sbs_gui_matcher_selection_dialog.get_selected_matcher()
+            self._view.show_background_task_dialog("Copying files...")
             selected_matcher_model.create_matcher(self._match_path)
+            self._view.hide_background_task_dialog()
             variables_for_beam = selected_matcher_model.get_variables_for_beam()
             variables_common = selected_matcher_model.get_common_variables()
             tab_controller = SbSGuiMatchResultController(
