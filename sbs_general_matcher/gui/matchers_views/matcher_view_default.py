@@ -100,6 +100,19 @@ class MatcherControllerDefault(object):
     def show_view(self):
         return self._view.exec_()
 
+    def clone_matcher(self, matcher_to_clone):
+        ip = matcher_to_clone.get_ip()
+        name = self._get_new_name(ip)
+        beam1_path = matcher_to_clone.get_beam1_path()
+        beam2_path = matcher_to_clone.get_beam2_path()
+        use_errors = matcher_to_clone.get_use_errors()
+        propagation = matcher_to_clone.get_propagation()
+
+        self._matcher_model = self._get_matcher_model(
+            self._main_controller, name,
+            beam1_path, beam2_path, ip, use_errors, propagation
+        )
+
     def load_possible_measurements(self):
         for beam in [1, 2]:
             possible_measurements = self._main_controller.get_posible_measurements(beam)
@@ -108,7 +121,7 @@ class MatcherControllerDefault(object):
     def _accept_action(self):
         if not self._check_input():
             return
-        name = self._get_new_name()
+        name = self._get_new_name(self._view.get_ip())
         ip = self._view.get_ip()
         beam1_path = self._view.get_beam1_path()
         beam2_path = self._view.get_beam2_path()
@@ -130,7 +143,7 @@ class MatcherControllerDefault(object):
     def _get_matcher_prefix(self):
         raise NotImplementedError
 
-    def _get_new_name(self):
+    def _get_new_name(self, ip):
         counter = 1
         suffix = ""
         if not self._view.get_back_prop():
@@ -139,7 +152,7 @@ class MatcherControllerDefault(object):
             propagation = "b"
 
         def new_name(suffix):
-            return (self._get_matcher_prefix() + "_ip" + str(self._view.get_ip()) + "_" +
+            return (self._get_matcher_prefix() + "_ip" + str(ip) + "_" +
                     propagation + suffix)
 
         while not self._main_controller.is_this_matcher_name_ok(new_name(suffix)):

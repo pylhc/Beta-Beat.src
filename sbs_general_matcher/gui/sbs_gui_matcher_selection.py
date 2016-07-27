@@ -16,11 +16,12 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
         "coupling": MatcherControllerCoupling,
     }
 
-    def __init__(self, main_controller, parent=None):
+    def __init__(self, main_controller, clone_matcher=None, parent=None):
         super(SbSGuiMatcherSelection, self).__init__(parent)
         self._main_controller = main_controller
-        self._build_gui()
+        self._clone_matcher = clone_matcher
         self._selected_matcher = None
+        self._build_gui()
 
     def _build_gui(self):
         self.setWindowTitle(SbSGuiMatcherSelection.WINDOW_TITLE)
@@ -32,10 +33,16 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
         self._matchers_list_widget = SbSGuiMatcherSelection._get_matchers_list_widget()
         dialog_layout.addWidget(self._matchers_list_widget)
 
-        add_button = QtGui.QPushButton("Add", self)
+        if self._clone_matcher is None:
+            add_button = QtGui.QPushButton("Add", self)
 
-        add_button.clicked.connect(self._accept_action)
-        buttons_layout.addWidget(add_button)
+            add_button.clicked.connect(self._accept_action)
+            buttons_layout.addWidget(add_button)
+        else:
+            clone_button = QtGui.QPushButton("Clone", self)
+
+            clone_button.clicked.connect(self._clone_action)
+            buttons_layout.addWidget(clone_button)
 
         cancel_button = QtGui.QPushButton("Cancel", self)
         cancel_button.clicked.connect(self.reject)
@@ -57,6 +64,13 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
         if result_code == QtGui.QDialog.Accepted:
             self._selected_matcher = matcher_controller_instance.get_selected_matcher_model()
             self.accept()
+
+    def _clone_action(self):
+        self._selected_matcher = str(self._matchers_list_widget.currentItem().text())
+        matcher_controller_instance = SbSGuiMatcherSelection.MATCHER_TYPES[self._selected_matcher](self._main_controller)
+        matcher_controller_instance.clone_matcher(self._clone_matcher)
+        self._selected_matcher = matcher_controller_instance.get_selected_matcher_model()
+        self.accept()
 
     def get_selected_matcher(self):
         return self._selected_matcher

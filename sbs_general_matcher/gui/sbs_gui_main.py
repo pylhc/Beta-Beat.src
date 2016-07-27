@@ -33,6 +33,7 @@ class SbSGuiMain(QtGui.QMainWindow):
         main_menu.setNativeMenuBar(False)
         matchers_menu = main_menu.addMenu("Matchers")
         matchers_menu.addAction(self._get_new_matcher_action())
+        matchers_menu.addAction(self._get_clone_matcher_action())
         matchers_menu.addAction(self._get_remove_matcher_action())
 
     def add_tab(self, name, widget):
@@ -72,6 +73,11 @@ class SbSGuiMain(QtGui.QMainWindow):
         remove_matcher_action = QtGui.QAction("Remove matcher", self)
         remove_matcher_action.triggered.connect(self._controller.remove_matcher)
         return remove_matcher_action
+
+    def _get_clone_matcher_action(self):
+        clone_matcher_action = QtGui.QAction("Clone matcher", self)
+        clone_matcher_action.triggered.connect(self._controller.clone_matcher)
+        return clone_matcher_action
 
     class SbSMainWidget(QtGui.QWidget):
         def __init__(self, controller, parent=None):
@@ -170,7 +176,18 @@ class SbSGuiMainController(object):
         self._view.show()
 
     def new_matcher(self):
-        sbs_gui_matcher_selection_dialog = SbSGuiMatcherSelection(self)
+        self._new_matcher_from_chooser()
+
+    def clone_matcher(self):
+        if len(self._matchers_tabs) == 0:
+            return
+        index = self._view.get_selected_matcher_index()
+        self._new_matcher_from_chooser(self._matchers_tabs[index].model)
+
+    def _new_matcher_from_chooser(self, matcher_to_clone=None):
+        sbs_gui_matcher_selection_dialog = SbSGuiMatcherSelection(
+            self, clone_matcher=matcher_to_clone
+        )
         result_code = sbs_gui_matcher_selection_dialog.exec_()
         if result_code == QtGui.QDialog.Accepted:
             selected_matcher_model = sbs_gui_matcher_selection_dialog.get_selected_matcher()
