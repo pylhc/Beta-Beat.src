@@ -266,20 +266,32 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         return None, None
 
     class CustomNavigationBar(NavigationToolbar):
+        LEGEND_LOCATIONS = [1, 2, 3, 4, None]
+
         def __init__(self, canvas, figure, parent=None):
             self.toolitems = list(self.toolitems)
             self.toolitems.append((
-                "Toggle legend", "Hide and show the legend", "hand", "toggle_legend"
+                "Move legend", "Move or hide the legend", "hand", "move_legend"
             ))
             super(SbSGuiMatchResultView.CustomNavigationBar, self).__init__(canvas, parent)
 
             self._figure = figure
-            self._legend_visible = True
+            self._legend_location_index = 0
 
-        def toggle_legend(self, *args):
+        def move_legend(self, *args):
+            self._legend_location_index = (
+                self._legend_location_index + 1
+            ) % len(SbSGuiMatchResultView.CustomNavigationBar.LEGEND_LOCATIONS)
             for axes in self._figure.axes:
-                axes.get_legend().set_visible(not self._legend_visible)
-            self._legend_visible = not self._legend_visible
+                legend = axes.get_legend()
+                loc = SbSGuiMatchResultView.CustomNavigationBar.LEGEND_LOCATIONS[
+                    self._legend_location_index
+                ]
+                if loc is None:
+                    legend.set_visible(False)
+                else:
+                    legend.set_visible(True)
+                    legend._set_loc(loc)
             self.draw()
 
     class CustomCheckBox(QtGui.QCheckBox):
