@@ -7,7 +7,7 @@ from ..widgets import FileSelectionComboWidget
 
 class MatcherViewDefault(QtGui.QDialog):
 
-    IPS = ["1", "2", "5", "8"]
+    IPS = ["1", "2", "3", "4", "5", "6", "7", "8"]
 
     def __init__(self, controller, parent=None):
         super(MatcherViewDefault, self).__init__(parent)

@@ -54,8 +54,9 @@ class SbSGuiMain(QtGui.QMainWindow):
         self._active_background_dialog.setVisible(True)
 
     def hide_background_task_dialog(self):
-        self._active_background_dialog.setVisible(False)
-        self._active_background_dialog = None
+        if self._active_background_dialog is not None:
+            self._active_background_dialog.setVisible(False)
+            self._active_background_dialog = None
 
     def show_error_dialog(self, title, message):
         message_box = QtGui.QMessageBox(
