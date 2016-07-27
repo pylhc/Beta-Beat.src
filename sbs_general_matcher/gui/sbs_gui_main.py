@@ -24,7 +24,8 @@ class SbSGuiMain(QtGui.QMainWindow):
 
         self.setWindowTitle(SbSGuiMain.WINDOW_TITLE)
         screen_shape = QtGui.QDesktopWidget().screenGeometry()
-        self.resize(2 * screen_shape.width() / 3, 2 * screen_shape.height() / 3)
+        self.resize(2 * screen_shape.width() / 3,
+                    2 * screen_shape.height() / 3)
 
         self._main_widget = SbSGuiMain.SbSMainWidget(self._controller)
         self.setCentralWidget(self._main_widget)
@@ -46,7 +47,9 @@ class SbSGuiMain(QtGui.QMainWindow):
         return self._main_widget._matchers_tabs_widget.currentIndex()
 
     def show_background_task_dialog(self, message):
-        self._active_background_dialog = SbSGuiMain.BackgroundTaskDialog(message)
+        self._active_background_dialog = SbSGuiMain.BackgroundTaskDialog(
+            message, parent=self
+        )
         self._active_background_dialog.setModal(True)
         self._active_background_dialog.setVisible(True)
 
