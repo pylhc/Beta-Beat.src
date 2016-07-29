@@ -3,6 +3,7 @@ import os
 import subprocess
 from PyQt4 import QtGui
 from PyQt4.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
+from contextlib import contextmanager
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
 from widgets import InitialConfigPopup
 from sbs_gui_match_result_view import SbSGuiMatchResultController
@@ -162,13 +163,17 @@ class SbSGuiMainController(object):
                 beam = 2
             else:
                 continue
-            results_path = os.path.join(self._input_dir, lhcb1or2, "Results")
+            results_path = os.path.join(self._input_dir, lhcb1or2,
+                                        "Results")
             if not os.path.isdir(results_path):
                 continue
             for individual_result in os.listdir(results_path):
                 individual_result_path = os.path.join(results_path,
                                                       individual_result)
-                self._possible_measurements[beam].append(individual_result_path)
+                if os.path.isdir(individual_result_path):
+                    self._possible_measurements[beam].append(
+                        individual_result_path
+                    )
 
     def get_posible_measurements(self, beam):
         return self._possible_measurements[beam]
@@ -195,9 +200,8 @@ class SbSGuiMainController(object):
         result_code = sbs_gui_matcher_selection_dialog.exec_()
         if result_code == QtGui.QDialog.Accepted:
             selected_matcher_model = sbs_gui_matcher_selection_dialog.get_selected_matcher()
-            self._view.show_background_task_dialog("Copying files...")
-            selected_matcher_model.create_matcher(self._match_path)
-            self._view.hide_background_task_dialog()
+            with self._heavy_task("Copying files..."):
+                selected_matcher_model.create_matcher(self._match_path)
             variables_for_beam = selected_matcher_model.get_variables_for_beam()
             variables_common = selected_matcher_model.get_common_variables()
             tab_controller = SbSGuiMatchResultController(
@@ -207,6 +211,16 @@ class SbSGuiMainController(object):
             )
             self._matchers_tabs.append(SbSGuiMainController.Tab(selected_matcher_model, tab_controller))
             self._view.add_tab(selected_matcher_model.get_name(), tab_controller.get_view())
+
+    @contextmanager
+    def _heavy_task(self, message):
+        self._view.show_background_task_dialog(message)
+        try:
+            yield
+        except Exception as e:
+            self._view.show_error_dialog("Error", str(e))
+        finally:
+            self._view.hide_background_task_dialog()
 
     def is_this_matcher_name_ok(self, matcher_name):
         for matcher_tab in self._matchers_tabs:
@@ -219,9 +233,10 @@ class SbSGuiMainController(object):
         if len(self._matchers_tabs) == 0:
             return
         index = self._view.get_selected_matcher_index()
-        self._matchers_tabs[index].model.delete_matcher()
-        del(self._matchers_tabs[index])
-        self._view.remove_tab(index)
+        with self._heavy_task("Deleting matcher..."):
+            self._matchers_tabs[index].model.delete_matcher()
+            del(self._matchers_tabs[index])
+            self._view.remove_tab(index)
 
     def run_matching(self, just_twiss=False):
         matchers_list = []
@@ -251,11 +266,14 @@ class SbSGuiMainController(object):
             def background_task():
                 sbs_general_matcher.run_twiss_and_sbs(input_data)
 
-        self._current_thread = SbSGuiMainController.BackgroundThread(background_task)
-        self._current_thread.finished.connect(self._on_match_end)
-        self._current_thread.on_exception.connect(self._on_match_exception)
+        self._current_thread = BackgroundThread(
+            self._view,
+            background_task,
+            message="Running matching...",
+            on_end_function=self._on_match_end,
+            on_exception_function=self._on_match_exception
+        )
         self._current_thread.start()
-        self._view.show_background_task_dialog("Running matching...")
 
     def _on_match_end(self):
         for index in range(len(self._matchers_tabs)):
@@ -264,12 +282,9 @@ class SbSGuiMainController(object):
             figures = results_controller.get_figures()
             matcher_model.get_plotter(figures).plot()
             results_controller.update_variables(matcher_model.get_match_results())
-        self._view.hide_background_task_dialog()
         self._current_thread = None
 
     def _on_match_exception(self, message):
-        self._view.show_error_dialog("Error", message)
-        self._view.hide_background_task_dialog()
         self._current_thread = None
 
     def edit_corrections_file(self):
@@ -303,19 +318,40 @@ class SbSGuiMainController(object):
             self.model = matcher_model
             self.results_controller = matcher_results_controller
 
-    class BackgroundThread(QThread):
 
-        on_exception = pyqtSignal([str])
+class BackgroundThread(QThread):
 
-        def __init__(self, function):
-            QThread.__init__(self)
-            self._function = function
+    on_exception = pyqtSignal([str])
 
-        def run(self):
-            try:
-                self._function()
-            except Exception as e:
-                self.on_exception.emit(str(e))
+    def __init__(self, view, function, message=None,
+                 on_end_function=None, on_exception_function=None):
+        QThread.__init__(self)
+        self._view = view
+        self._function = function
+        self._message = message
+        self._on_end_function = on_end_function
+        self._on_exception_function = on_exception_function
+
+    def run(self):
+        try:
+            self._function()
+        except Exception as e:
+            self.on_exception.emit(str(e))
+
+    def start(self):
+        self.finished.connect(self._on_end)
+        self.on_exception.connect(self._on_exception)
+        super(BackgroundThread, self).start()
+        self._view.show_background_task_dialog(self._message)
+
+    def _on_end(self):
+        self._view.hide_background_task_dialog()
+        self._on_end_function()
+
+    def _on_exception(self, exception_message):
+        self._view.hide_background_task_dialog()
+        self._view.show_error_dialog("Error", exception_message)
+        self._on_exception_function()
 
 
 if __name__ == "__main__":

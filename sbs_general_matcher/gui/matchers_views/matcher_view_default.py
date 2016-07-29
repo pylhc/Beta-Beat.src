@@ -165,7 +165,7 @@ class MatcherControllerDefault(object):
 
     def _check_input(self):
         ip = self._view.get_ip()
-        if ip not in [1, 2, 5, 8]:
+        if ip not in [1, 2, 3, 4, 5, 6, 7, 8]:
             self._view.show_error("Please select a valid IP.")
             return False
         beam1_path = self._view.get_beam1_path()

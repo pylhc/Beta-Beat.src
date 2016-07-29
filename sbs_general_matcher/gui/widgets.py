@@ -27,6 +27,9 @@ class FileSelectionDialogWidget(QtGui.QWidget):
 
 
 class FileSelectionComboWidget(QtGui.QWidget):
+
+    added_items = []
+
     def __init__(self, label_text="", initial_list=[], parent=None):
         super(FileSelectionComboWidget, self).__init__(parent)
         layout = QtGui.QHBoxLayout(self)
@@ -34,7 +37,7 @@ class FileSelectionComboWidget(QtGui.QWidget):
         layout.addWidget(label)
         self._items_combo = QtGui.QComboBox()
         layout.addWidget(self._items_combo)
-        self._items_combo.addItems(initial_list)
+        self._items_combo.addItems(initial_list + self.added_items)
         self._select_button = QtGui.QPushButton("Add...")
         self._select_button.clicked.connect(self._select_file_action)
         layout.addWidget(self._select_button)
@@ -43,6 +46,7 @@ class FileSelectionComboWidget(QtGui.QWidget):
         return self._items_combo.currentText()
 
     def add_item(self, text):
+        self.added_items.append(text)
         self._items_combo.insertItem(0, text)
         self._items_combo.setCurrentIndex(0)
 

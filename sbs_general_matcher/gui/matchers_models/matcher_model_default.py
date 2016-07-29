@@ -78,8 +78,10 @@ class MatcherModelDefault(object):
         raise NotImplementedError
 
     def delete_matcher(self):
-        shutil.rmtree(self.get_beam1_output_path())
-        shutil.rmtree(self.get_beam2_output_path())
+        if self._beam1_path is not None:
+            shutil.rmtree(self.get_beam1_output_path())
+        if self._beam2_path is not None:
+            shutil.rmtree(self.get_beam2_output_path())
 
     def get_plotter(self, figures):
         raise NotImplementedError
