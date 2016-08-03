@@ -326,7 +326,7 @@ DK=options.DK.split(",")
 DKL=float(DK[0])
 DKR=float(DK[1])
 Q=float(options.Q)
-guess=[20,-0.]
+guess=[float(options.beta),-0.]
 incr=[0.01,0.001]
 
 if IR_definitions[ir][0] == 'foc':

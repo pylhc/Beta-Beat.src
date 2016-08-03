@@ -273,11 +273,36 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 
 
 def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
-
+    BAD_BPM_LIST = ['BPM.16R3.B1', 'BPM.21L1.B1','BPM.27R3.B1','BPM.29L5.B1','BPM.18L8.B1','BPM.19L2.B1','BPM.16L8.B1','BPM.20L2.B1']
     #-- Select common BPMs
     bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss_ac)
     bpm = [(b[0],str.upper(b[1])) for b in bpm]
+    bpm_arcs = []
+    bpm_arcs_clean = []
+    betmdl_arcs = []
+    betmdl_arcs_clean = []
+    amp_arcs = []
+    # selecting ARC BPMs 
+    for b in bpm:
+        if ((b[1][4]) == '1' and (b[1][5]) >= '4') or (b[1][4]) == '2':
+                bpm_arcs.append(b[1])
+    for b in bpm_arcs:  
+        if b not in BAD_BPM_LIST:
+             bpm_arcs_clean.append(b)
+        else:
+             continue
+    print bpm_arcs_clean
 
+    # selecting ARC BPMs between 7-8 
+    bpm_arcs_81 = []
+    for b in bpm_arcs: 
+        if ((b[-4]) == '8' and (b[-5]) == 'R') or ((b[-4]) == '1' and (b[-5]) == 'L'):
+                bpm_arcs_81.append(b)
+    print "set"
+    print bpm_arcs_81
+
+
+                 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op=="1" and bd==1:
         s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
@@ -306,7 +331,12 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     #-- Model beta and phase advance
     if plane=='H': betmdl=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
     if plane=='V': betmdl=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in bpm])
-
+    if plane=='H': betmdl_arcs=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b]] for b in bpm_arcs])
+    if plane=='V': betmdl_arcs=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b]] for b in bpm_arcs])
+    if plane=='H': betmdl_arcs_clean=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b]] for b in bpm_arcs_clean])
+    if plane=='V': betmdl_arcs_clean=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b]] for b in bpm_arcs_clean])
+    if plane=='H': betmdl_arcs_81=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b]] for b in bpm_arcs_81])
+    if plane=='V': betmdl_arcs_81=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b]] for b in bpm_arcs_81])
     #-- Global parameters of the driven motion
     r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
 
@@ -316,19 +346,26 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     for i in range(len(Files)):
         if plane=='H':
             amp =np.array([2*Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
+            amp_arcs =np.array([2*Files[i].AMPX[Files[i].indx[b]] for b in bpm_arcs])
+            amp_arcs_clean =np.array([2*Files[i].AMPX[Files[i].indx[b]] for b in bpm_arcs_clean])
+            amp_arcs_81 =np.array([2*Files[i].AMPX[Files[i].indx[b]] for b in bpm_arcs_81])
             psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         if plane=='V':
             amp =np.array([2*Files[i].AMPY[Files[i].indx[b[1]]] for b in bpm])
+            amp_arcs =np.array([2*Files[i].AMPY[Files[i].indx[b]] for b in bpm_arcs])
+            amp_arcs_clean =np.array([2*Files[i].AMPY[Files[i].indx[b]] for b in bpm_arcs_clean])
+            amp_arcs_81 =np.array([2*Files[i].AMPY[Files[i].indx[b]] for b in bpm_arcs_81])
             psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
                 if bpm[k][0]>s_lastbpm: psid[k]+=2*np.pi*Qd  #-- To fix the phase shift by Q
             except: pass
+        Ad_arcs_81=amp_arcs_81/map(math.sqrt,betmdl_arcs_81)
         Ad  =amp/map(math.sqrt,betmdl)
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
         Psid=psid+np.pi*Qd
         Psid[k_bpmac:]=Psid[k_bpmac:]-2*np.pi*Qd
-        bet =(amp/np.mean(Ad))**2*(1+r**2+2*r*np.cos(2*Psid))/(1-r**2)
+        bet =(amp/np.mean(Ad_arcs_81))**2*(1+r**2+2*r*np.cos(2*Psid))/(1-r**2)
         for k in range(len(bpm)):
             betall[k][i]=bet[k]
             Adall[k][i]=Ad[k]

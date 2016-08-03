@@ -442,14 +442,18 @@ def _get_calibrated_betas(plane):
         calibration_data = twiss(_join_output_with("calibration_" + plane + ".out"))
     except IOError:
         return None
-    calibrated_betas = CalibratedBetas(calibration_data.NAME, calibration_data.S,
-                                       plane, calibration_data.indx)
+    calibrated_betas = CalibratedBetas(plane)
+    index_counter = 0
     for bpm_name in calibration_data.NAME:
         if bpm_name in amplitude_beta.NAME:
             amp_index = amplitude_beta.indx[bpm_name]
             amp_beta = getattr(amplitude_beta, "BET" + plane.upper())[amp_index]
+            calibrated_betas.NAME.append(bpm_name)
+            calibrated_betas.S.append(amplitude_beta.S[amp_index])
+            calibrated_betas.indx[bpm_name] = index_counter
+            index_counter += 1
             getattr(calibrated_betas, "BET" + plane.upper()).append(amp_beta)
-            err_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "STD")[amp_index]
+            err_amp_beta = getattr(amplitude_beta, "STDBET" + plane.upper())[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "STD").append(err_amp_beta)
             mdl_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "MDL")[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "MDL").append(mdl_amp_beta)
@@ -457,13 +461,13 @@ def _get_calibrated_betas(plane):
 
 
 class CalibratedBetas(object):
-    def __init__(self, name, s, plane, indx_dict):
-        self.NAME = name
-        self.S = s
+    def __init__(self, plane):
+        self.NAME = []
+        self.S = []
         setattr(self, "BET" + plane.upper(), [])
         setattr(self, "BET" + plane.upper() + "STD", [])
         setattr(self, "BET" + plane.upper() + "MDL", [])
-        self.indx = indx_dict
+        self.indx = {}
 
 
 #===================================================================================================
@@ -646,15 +650,20 @@ def getAndWriteData(
         chrom_summary = None
 
     (beta_x, err_beta_x, alfa_x, err_alfa_x,
-     beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(element_name, is_element,
-                                                                                      input_data.beta_x, input_data.beta_y,
-                                                                                      input_model,
-                                                                                      propagated_models,
-                                                                                      save_path, beta_summary)
+     beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(
+        element_name, is_element,
+        input_data.beta_x, input_data.beta_y,
+        input_model,
+        propagated_models,
+        save_path, beta_summary
+    )
     if not is_element:
-        sbs_writers.sbs_phase_writer.write_phase(element_name,
-                                                 input_data.total_phase_x, input_data.total_phase_y, input_data.beta_x, input_data.beta_y,
-                                                 propagated_models, save_path)
+        sbs_writers.sbs_phase_writer.write_phase(
+            element_name,
+            input_data.total_phase_x, input_data.total_phase_y,
+            input_data.beta_x, input_data.beta_y,
+            propagated_models, save_path
+        )
         sbs_writers.sbs_beta_beating_writer.write_beta_beat(
             element_name,
             input_data.beta_x, input_data.beta_y,

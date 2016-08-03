@@ -109,9 +109,6 @@ def _parse_args():
     parser.add_option("-b", "--bpmu",
                     help="BPMunit: um, mm, cm, m (default um)",
                     metavar="BPMUNIT", default="um", dest="BPMUNIT")
-    parser.add_option("-l", "--nonlinear",
-                    help="Switch to output higher order resonance stuffs, on=1(default)/off=0",
-                    metavar="HIGHER", default="1", dest="higher")
     parser.add_option("-p", "--lhcphase",
                     help="Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1",
                     metavar="LHCPHASE", default="0", dest="lhcphase")
@@ -164,7 +161,6 @@ def main(
          COcut=4000,
          NBcpl=2,
          TBTana="SUSSIX",
-         higher_order=1,
          bbthreshold="0.15",
          errthreshold="0.15",
          use_only_three_bpms_for_beta_from_phase=False,
@@ -188,10 +184,7 @@ def main(
     :param int COcut: Cut for closed orbit measurement [um]
     :param int NBcpl: For selecting the coupling measurement method 1 bpm or 2 bpms
     :param string TBTana: Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
-    :param int higher_order': output higher order resonance stuff, on=1(default)/off=0
-    
     :param string errordefs: path to the error definition file. 
-    
     :returns: int  -- 0 if the function run successfully otherwise !=0.
     '''
     return_code = 0
@@ -275,18 +268,16 @@ def main(
         #-------- Phase, Beta and coupling for non-zero DPP
         _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
 
-        if higher_order:
-            if TBTana == "SUSSIX":
-                #------ Start getsextupoles @ Glenn Vanbavinckhove
-                files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
+        if TBTana == "SUSSIX":
+            #------ Start getsextupoles @ Glenn Vanbavinckhove
+            files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
 
-                #------ Start getchiterms @ Glenn Vanbavinckhove
-                files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
+            #------ Start getchiterms @ Glenn Vanbavinckhove
+            files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
 
-            #------ Start get Q,JX,delta
-            files_dict = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
-        else:
-            print "Not analysing higher order..."
+        #------ Start get Q,JX,delta
+        files_dict = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
+
     except:
         traceback.print_exc()
         return_code = 1
@@ -430,6 +421,8 @@ def _create_tfs_files(getllm_d, model_filename):
     files_dict['getDx.out'] = utils.tfs_file.GetllmTfsFile('getDx.out')
     files_dict['getDy.out'] = utils.tfs_file.GetllmTfsFile('getDy.out')
     files_dict['getcouple.out'] = utils.tfs_file.GetllmTfsFile('getcouple.out')
+    for rdt in algorithms.resonant_driving_terms.RDT_LIST:
+        files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
     files_dict['f3000_line.out'] = utils.tfs_file.GetllmTfsFile('f3000_line.out')
     files_dict['f4000_line.out'] = utils.tfs_file.GetllmTfsFile('f4000_line.out')
     if getllm_d.with_ac_calc:
@@ -518,6 +511,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
+                for rdt in algorithms.resonant_driving_terms.RDT_LIST:
+                    files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f3000_line.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f4000_line.out'].add_filename_to_getllm_header(file_in)
                 if "LHC" in getllm_d.accel:
@@ -1206,7 +1201,6 @@ def _start():
          COcut=float(options.COcut),
          NBcpl=int(options.NBcpl),
          TBTana=options.TBTana,
-         higher_order=options.higher,
          bbthreshold=options.bbthreshold,
          errthreshold=options.errthreshold,
          use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase,

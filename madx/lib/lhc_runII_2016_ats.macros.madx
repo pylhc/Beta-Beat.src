@@ -13,3 +13,19 @@ coupling_knob(beam_number): macro = {
     Cmis.b1 := b1_im_ip7_knob;
     Cmis.b2 := b2_im_ip7_knob;
 }
+
+
+/*
+* Performs the matching of the LHC tunes, adapted to ATS optics.
+* @param qx: The horizontal tune to match to (with integer part).
+* @param qy: The vertical tune to match to (with integer part).
+* @param beam_number: The beam to use either 1 or 2.
+*/
+match_tunes(nqx, nqy, beam_number): macro = {
+    match;
+    vary, name=dQx.bbeam_number;
+    vary, name=dQy.bbeam_number;
+    constraint, range=#E, mux=nqx, muy=nqy;
+    lmdif;
+    endmatch;
+};

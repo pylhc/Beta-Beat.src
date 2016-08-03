@@ -94,9 +94,10 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     # functions
     tp=2.0*np.pi
     C=cos(delta*tp)
+    S=sin(delta*tp)
     T=tan(delta*tp)
     SC=sin(delta*tp)/((cos(delta*tp*2)+1)/2)
-
+    S2_1 = 1/S**2
     # signal
     cs1=cos(tp*phase1)
     ss1=sin(tp*phase1)
@@ -107,13 +108,13 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     sig2=amp2*complex(cs2,ss2)
 
     # computing complex secondary line (h-)
-    sig=sig1*complex(1,-T)-sig2*complex(0,1)*(1/C)
+    sig=sig1*complex(1,-1/T)-sig2*complex(0,1/S)
 
     amp=abs(sig)
     phase=(np.arctan2(sig.imag,sig.real)/tp) %1.0
 
     # computing error secondary line (h-)
-    esig=(sig1*complex(1,-(1/C))-sig2*complex(0,1)*(SC))*edelta
+    esig = (sig1 * complex(0, S2_1 ) + sig2*complex(0, -S2_1*C))*edelta
 
     eamp=abs(esig)
     ephase=(np.arctan2(esig.imag,esig.real)/tp) %1.0

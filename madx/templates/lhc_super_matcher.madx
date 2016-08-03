@@ -50,7 +50,7 @@ option, -warn;
 %(SET_MATCHING_MACROS)s
 option, warn;
 
-lmdif,    tolerance:=1e-24, calls:=100000000;
+lmdif,    tolerance:=1e-24, calls:=120;
 endmatch;
 
 

@@ -27,12 +27,16 @@ import sys
 import os
 import time
 import argparse
-
 import numpy
 from numpy import dot as matrixmultiply
+sys.path.append("/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD/")
+import __init__  # @UnusedImport init will include paths
+from metaclass import twiss
 from datetime import datetime
 from __builtin__ import max
 
+CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+BAD_BPMS_DIR = os.path.join(CURRENT_PATH, "bad_bpms_files")
 
 # internal options
 PRINT_TIMES = False  # If True, (more) execution times will be printed
@@ -107,6 +111,9 @@ def _parse_args():
     parser.add_argument("-r", "--resync",
         help="""Fix the synchronization of the BPMs if the file timestamp is present and is after May of 2016.""",
         dest="resync", action="store_true")
+    parser.add_argument("-d", "--subtract",
+        help="""Subtracts the closed orbit.""",
+        dest="subtract_co", action="store_true")
     parser.add_argument("--use_test_mode",
         help="""Set testing mode, this prevents date writing. Useful for automated tests, because otherwise each run
         will have a new date, therefore a diff will fail""",
@@ -146,6 +153,7 @@ def clean_sdds_file(options):
        max_peak_cut=options.max_peak,
        single_svd_bpm_threshold=options.single_svd_bpm_threshold,
        resync=options.resync,
+       subtract_co=options.subtract_co,
        use_test_mode=options.use_test_mode
     )
 
@@ -160,7 +168,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(inputfile, outputfile, startturn_human, maxturns_human, singular_values_amount_to_keep, 
-                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, resync, use_test_mode):
+                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, resync, subtract_co, use_test_mode):
         _InputData.inputfile = inputfile
         print "inputfile:  " + str(inputfile)
         _InputData.outputfile = outputfile
@@ -178,6 +186,7 @@ class _InputData(object):
         _InputData.max_peak_cut = max_peak_cut
         _InputData.single_svd_bpm_threshold = single_svd_bpm_threshold
         _InputData.resync = resync
+        _InputData.subtract_co = subtract_co
         _InputData.use_test_mode = use_test_mode
 
     def __init__(self):
@@ -200,6 +209,14 @@ class _SddsFile(object):
         if (self.parsed):
             return
 
+        try:
+            swapped_bpms = twiss(os.path.join(BAD_BPMS_DIR, "SwappedBPMs_2016-06-20.tfs"))
+        except IOError:
+            print >> sys.stderr, "Can't read swapped BPMs file."
+            swapped_bpms = None
+        except ValueError:
+            swapped_bpms = None
+
         last_number_of_turns = 0
         detected_number_of_turns = 0
         
@@ -211,6 +228,7 @@ class _SddsFile(object):
         
         time_start = time.time()
         print "Extracting data from file " + str(self.path_to_sddsfile)
+
         
         with open(self.path_to_sddsfile, "r") as filesdds:
             for line in filesdds:  # Iterator over all lines -tbach
@@ -249,7 +267,14 @@ class _SddsFile(object):
                 plane = list_splitted_line_values[0]
                 bpm_name = list_splitted_line_values[1]
                 location = float(list_splitted_line_values[2])
-    
+
+                if swapped_bpms is not None:
+                    if bpm_name in swapped_bpms.NAME:
+                        if plane == swapped_bpms.PLANE[swapped_bpms.indx[bpm_name]]:
+                            plane = swapped_bpms.PLANE2[swapped_bpms.indx[bpm_name]]
+                            location = float(swapped_bpms.S2[swapped_bpms.indx[bpm_name]])
+                            bpm_name = swapped_bpms.NAME2[swapped_bpms.indx[bpm_name]]
+
                 if bpm_name in LIST_OF_KNOWN_BAD_BPMS: # Remove known bad BPMs
                     reason_for_badbpm = "removed (known) bad bpm: " + str(bpm_name)
                     #print reason_for_badbpm
@@ -285,7 +310,10 @@ class _SddsFile(object):
                 ndarray_line_data = numpy.array(\
                     list_splitted_line_values[3 + _InputData.startturn:3 + _InputData.startturn + self.number_of_turns], \
                     dtype=numpy.float64)
-
+                
+                if _InputData.subtract_co:                
+                    ndarray_line_data = ndarray_line_data - numpy.average(ndarray_line_data)    #Removing the average orbit
+                
                 if bpm_name in LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES:
                     ndarray_line_data = -1. * ndarray_line_data
 
