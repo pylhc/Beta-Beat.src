@@ -39,6 +39,7 @@ Change history::
         git log GetLLM.py
 
 '''
+import os
 import sys
 import traceback
 import math
@@ -58,6 +59,8 @@ import algorithms.interaction_point
 import algorithms.chi_terms
 import Utilities.iotools
 import copy
+
+from numpy import array
 
 
 ####
@@ -104,9 +107,6 @@ def _parse_args():
     parser.add_option("-b", "--bpmu",
                     help="BPMunit: um, mm, cm, m (default um)",
                     metavar="BPMUNIT", default="um", dest="BPMUNIT")
-    parser.add_option("-l", "--nonlinear",
-                    help="Switch to output higher order resonance stuffs, on=1(default)/off=0",
-                    metavar="HIGHER", default="1", dest="higher")
     parser.add_option("-p", "--lhcphase",
                     help="Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1",
                     metavar="LHCPHASE", default="0", dest="lhcphase")
@@ -125,6 +125,12 @@ def _parse_args():
     parser.add_option("-i", "--range",
                     help="Range of BPM for beta-calculation (>=3 and odd), default = 11",
                     metavar="RANGE_OF_BPMS", default=11, dest="range_of_bpms")
+    parser.add_option("-r", "--average_tune",
+                    help="Set to 1 to use average tune for all BPMs instead of specific for each one.",
+                    metavar="AVERAGE_TUNE", type="int", default=0, dest="use_average")
+    parser.add_option("--calibration",
+                    help="Path to the directory where the calibration files (calibration_x.out, calibration_y.out) are stored.",
+                    metavar="CALIBRATION", default=None, dest="calibration_dir_path")
 
     options, _ = parser.parse_args()
     options.use_only_three_bpms_for_beta_from_phase = "1" == options.use_only_three_bpms_for_beta_from_phase
@@ -145,12 +151,13 @@ def main(
          COcut=4000,
          NBcpl=2,
          TBTana="SUSSIX",
-         higher_order=1,
          bbthreshold="0.15",
          errthreshold="0.15",
          use_only_three_bpms_for_beta_from_phase=False,
          number_of_bpms=10,
-         range_of_bpms=11
+         range_of_bpms=11,
+         use_average=False,
+         calibration_dir_path=None
          ):
     '''
     GetLLM main function.
@@ -166,7 +173,6 @@ def main(
     :param int COcut: Cut for closed orbit measurement [um]
     :param int NBcpl: For selecting the coupling measurement method 1 bpm or 2 bpms
     :param string TBTana: Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
-    :param int higher_order': output higher order resonance stuff, on=1(default)/off=0
 
     :returns: int  -- 0 if the function run successfully otherwise !=0.
     '''
@@ -192,7 +198,8 @@ def main(
 
     files_dict = _create_tfs_files(getllm_d, model_filename)
 
-    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict)
+    calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
+    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict, use_average, calibration_twiss)
 
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
 
@@ -210,7 +217,7 @@ def main(
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         temp_dict = copy.deepcopy(files_dict)
-        phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac, mad_elem, temp_dict)
+        phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
 
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
@@ -242,18 +249,16 @@ def main(
         #-------- Phase, Beta and coupling for non-zero DPP
         _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
 
-        if higher_order:
-            if TBTana == "SUSSIX":
-                #------ Start getsextupoles @ Glenn Vanbavinckhove
-                files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
+        if TBTana == "SUSSIX":
+            #------ Start getsextupoles @ Glenn Vanbavinckhove
+            files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
 
-                #------ Start getchiterms @ Glenn Vanbavinckhove
-                files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
+            #------ Start getchiterms @ Glenn Vanbavinckhove
+            files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
 
-            #------ Start get Q,JX,delta
-            files_dict = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
-        else:
-            print "Not analysing higher order..."
+        #------ Start get Q,JX,delta
+        files_dict = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
+
     except:
         traceback.print_exc()
         return_code = 1
@@ -393,6 +398,8 @@ def _create_tfs_files(getllm_d, model_filename):
     files_dict['getDx.out'] = utils.tfs_file.GetllmTfsFile('getDx.out')
     files_dict['getDy.out'] = utils.tfs_file.GetllmTfsFile('getDy.out')
     files_dict['getcouple.out'] = utils.tfs_file.GetllmTfsFile('getcouple.out')
+    for rdt in algorithms.resonant_driving_terms.RDT_LIST:
+        files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
     files_dict['f3000_line.out'] = utils.tfs_file.GetllmTfsFile('f3000_line.out')
     files_dict['f4000_line.out'] = utils.tfs_file.GetllmTfsFile('f4000_line.out')
     if getllm_d.with_ac_calc:
@@ -423,7 +430,7 @@ def _create_tfs_files(getllm_d, model_filename):
 # END _create_tfs_files -----------------------------------------------------------------------------
 
 
-def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict):
+def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict, use_average, calibration_twiss):
 
     if turn_by_turn_algo == "SUSSIX":
         suffix_x = '_linx'
@@ -454,6 +461,10 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
             pass  # Information printed by metaclass already
 
         if None != twiss_file_x:
+            if use_average:
+                twiss_file_x.MUX = twiss_file_x.AVG_MUX
+            if calibration_twiss is not None:
+                twiss_file_x.AMPX, twiss_file_x.ERRAMPX = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
             try:
                 dppi = getattr(twiss_file_x, "DPP", 0.0)
             except AttributeError:
@@ -477,6 +488,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
+                for rdt in algorithms.resonant_driving_terms.RDT_LIST:
+                    files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f3000_line.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f4000_line.out'].add_filename_to_getllm_header(file_in)
                 if "LHC" in getllm_d.accel:
@@ -524,6 +537,10 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
             pass  # Information printed by metaclass already
 
         if None != twiss_file_y:
+            if use_average:
+                twiss_file_y.MUY = twiss_file_y.AVG_MUY
+            if calibration_twiss is not None:
+                twiss_file_y.AMPY, twiss_file_y.ERRAMPY = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
             try:
                 dppi = getattr(twiss_file_y, "DPP", 0.0)
             except AttributeError:
@@ -985,6 +1002,42 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
 # END _calculate_kick -------------------------------------------------------------------------------
 
 
+def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
+    calibration_file = calibration_twiss[plane]
+    cal_amplitudes = []
+    err_cal_amplitudes = []
+    for bpm_name in drive_file.NAME:
+        drive_index = drive_file.indx[bpm_name]
+        cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
+        err_cal_amplitude = 0.
+        if bpm_name in calibration_file.NAME:
+            cal_index = calibration_file.indx[bpm_name]
+            cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
+            err_cal_amplitude = calibration_file.ERROR_CALIBRATION[cal_index]
+        cal_amplitudes.append(cal_amplitude)
+        err_cal_amplitudes.append(err_cal_amplitude)
+    return array(cal_amplitudes), array(err_cal_amplitudes)
+# END _get_calibrated_amplitudes --------------------------------------------------------------------
+
+
+def _copy_calibration_files(output_path, calibration_dir_path):
+    calibration_twiss = {}
+    if calibration_dir_path is not None:
+        original_cal_file_path_x = os.path.join(calibration_dir_path, "calibration_x.out")
+        original_cal_file_path_y = os.path.join(calibration_dir_path, "calibration_y.out")
+        cal_file_path_x = os.path.join(output_path, "calibration_x.out")
+        cal_file_path_y = os.path.join(output_path, "calibration_y.out")
+        Utilities.iotools.copy_item(original_cal_file_path_x, cal_file_path_x)
+        Utilities.iotools.copy_item(original_cal_file_path_y, cal_file_path_y)
+
+        calibration_twiss["X"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_x)
+        calibration_twiss["Y"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_y)
+        return calibration_twiss
+    else:
+        return None
+# END _copy_calibration_files --------------------------------------------------------------------
+
+
 #===================================================================================================
 # helper classes for data structures
 #===================================================================================================
@@ -1121,11 +1174,12 @@ def _start():
          COcut=float(options.COcut),
          NBcpl=int(options.NBcpl),
          TBTana=options.TBTana,
-         higher_order=options.higher,
          bbthreshold=options.bbthreshold,
          errthreshold=options.errthreshold,
          use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase,
          number_of_bpms=options.number_of_bpms,
-         range_of_bpms=options.range_of_bpms)
+         range_of_bpms=options.range_of_bpms,
+         use_average=True if options.use_average == 1 else False,
+         calibration_dir_path=options.calibration_dir_path)
 if __name__ == "__main__":
     _start()

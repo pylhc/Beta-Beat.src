@@ -16,6 +16,29 @@ import helper
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
+
+RDT_LIST = ['f1001H', 'f3000H', 'f1002H', 
+            'f4000H', 'f2010H', 'f1220H', 
+            'f1020H', 'f1120H', 'f2003H', 
+            'f2020H', 'f3001H', 'f1101H', 
+            'f1200H', 
+            'f0110V', 'f1020V', 'f1011V', 
+            'f0111V', 'f2010V', 'f0120V', 
+            'f0030V', 'f0040V', 'f0211V', 
+            'f1012V', 'f1013V'
+            ]
+
+
+def determine_lines(rdt):
+    r = list(rdt)
+    j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
+    if plane == 'H':
+        line = (1-j+k, m-l)
+    elif plane == 'V':
+        line = (k-j, 1-l+m)
+    return line, plane
+
+
 def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y):
     '''
     Calculates line RDT amplitudes and phases and fills the following TfsFiles:
@@ -39,12 +62,11 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
         out_file in files_dict is the out file to write the data to (must be added to GetLLM.py)
         line in (int, int) is the corresponding line to the driving term
     """
-    rdt_set = [
-        ("H", files_dict["f3000_line.out"], (-2, 0)), # sextupolar
-        ("H", files_dict["f4000_line.out"], (-3, 0))  # sextupolar
-    ]
-    for rdt in range(len(rdt_set)):
-        _process_RDT(mad_twiss, phase_d, twiss_d, rdt_set[rdt])
+
+    for rdt in RDT_LIST:
+        line, plane = determine_lines(rdt)
+        _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], line))
+
 
 def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
     assert plane in ["H", "V"] # check user input plane
@@ -74,7 +96,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
         bpm2 = bpm_pair_data[0]
         for j in range(0,len(list_zero_dpp)):
             amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
-            delta, edelta = bpm_pair_data[1][:2]
+            delta, edelta = bpm_pair_data[1:]
             amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
             amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
             phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
@@ -112,24 +134,26 @@ def _get_best_fitting_bpm(phase_d, bpm1, plane):
     else: 
         raise KeyError("No valid plane was found!")
     
-    ph_advance = float(phase_d[bpm1][0+plane_idx])  
+    ph_advance = float(phase_d[bpm1][plane_idx])  
+    ph_adv_err = float(phase_d[bpm1][plane_idx+1])  
     next_bpm = phase_d[bpm1][6]
     target_bpm = next_bpm
-    ph_advance_next = ph_advance + float(phase_d[next_bpm][0+plane_idx])
+    ph_advance_next = ph_advance + float(phase_d[next_bpm][plane_idx])
+    ph_advance_next_err = float(phase_d[next_bpm][plane_idx+1])
     value = abs(ph_advance - .25) 
     value_next = abs(ph_advance_next - .25)
 
     while value_next < value:
         target_bpm = next_bpm
+        ph_adv_err = ph_advance**2*ph_adv_err + (ph_advance_next*ph_advance_next_err)**2 
         ph_advance = ph_advance_next
         next_bpm = phase_d[target_bpm][6]
-        ph_advance_next += float(phase_d[next_bpm][0+plane_idx])
+        ph_advance_next += float(phase_d[next_bpm][plane_idx])
+        ph_advance_next_err = float(phase_d[next_bpm][plane_idx+1])
         value = value_next
         value_next = abs(ph_advance_next - .25)
         
-    bpm_pair = plane + bpm1 + target_bpm
-    
-    return next_bpm , phase_d[bpm_pair]
+    return next_bpm , ph_advance, ph_adv_err
 
 
 def _line_to_amp_and_phase_attr(line, zero_dpp):
