@@ -67,7 +67,7 @@ class MatcherPlotterPhase(object):
             MatcherPlotterPhase._plot_back(ax, sbs_file, plane)
 
         ax.legend(loc="lower left", prop={'size': 16})
-        ax.set_ylabel(r"$\Delta\Phi$")
+        ax.set_ylabel(r"$\Delta\Phi_{" + plane.lower() + "}$")
         figure.patch.set_visible(False)
         figure.canvas.draw()
 
