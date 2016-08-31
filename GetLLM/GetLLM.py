@@ -38,6 +38,42 @@ Change history::
 
         git log GetLLM.py
 
+
+        --- STRUCTURE ---
+
+_parse_args()-function
+    _parse_args
+main()-function
+    main
+helper-functions
+    _intial_setup       note the missing i in the name!
+    _create_tfs_files   
+    _analyse_src_files
+    _check_bpm_compatibility
+    _calculate_orbit
+    _phase_and_beta_for_non_zero_dpp
+    _calculate_getsextupoles
+    _calculate_kick
+    _get_calibrated_amplitudes
+    _copy_calibration_files
+helper-classes
+    _GetllmData
+        __init__
+        set_outputpath
+        set_bpmu_and_cut_for_closed_orbit
+    _TwissData
+        __init__
+        has_zero_dpp_x
+        has_non_zero_dpp_x
+        has_zero_dpp_y
+        has_non_zero_dpp_y
+        has_no_input_files
+    _TuneData
+        __init__
+        initialize_tunes
+main invocation
+    _start
+    call _start()
 '''
 import os
 import sys
@@ -164,7 +200,8 @@ def main(
 
     :param string outputpath: The output path to store results
     :param string files_to_analyse: List of files, comma separated string.
-    :param dict_file: Name of the script which will be executed. Should store dictionary with
+    :param string model_filename: Path and filename of model to be used
+    :param string dict_file: Name of the script which will be executed. Should store dictionary with
                     mappings of BPM names.
     :param string accel: Type of accelerator. LHCB1, LHCB2, LHCB4, RHIC, SPS
     :param string lhcphase: "0" or "1" -- Compensate phase shifts by tunes for the LHC experiment data,
@@ -173,19 +210,27 @@ def main(
     :param int COcut: Cut for closed orbit measurement [um]
     :param int NBcpl: For selecting the coupling measurement method 1 bpm or 2 bpms
     :param string TBTana: Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
+    :param string bbthreshold: Threshold for _calculate_kick for (beta_d-beta_m)/beta_m
+    :param string errthreshold: Threshold for calculate_kick for sigma(beta_d)/beta_d 
+    :param bool use_only_three_bpms_for_beta_from_phase:
+    :param int number_of_bpms: Number of BPM-combos for beta from phase
+    :param int range_of_bpms: Range of BPMs for beta from phase
+    :param bool use_average: Uses AVG_MUX and AVG_MUY in _analyse_src_files if True
+    :param string calibration_dir_path: Path to copy calibration files from
 
     :returns: int  -- 0 if the function run successfully otherwise !=0.
     '''
     return_code = 0
     print "Starting GetLLM ", VERSION
 
-    # The following objects stores multiple variables for GetLLM to avoid having much local
+    # The following objects stores multiple variables for GetLLM to avoid having many local
     # variables. Identifiers supposed to be as short as possible.
     # --vimaier
     getllm_d = _GetllmData()
     twiss_d = _TwissData()
     tune_d = _TuneData()
 
+    # Setup 
     getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge = _intial_setup(getllm_d,
                                                                                                                      outputpath,
                                                                                                                      model_filename,
@@ -196,11 +241,14 @@ def main(
                                                                                                                      lhcphase,
                                                                                                                      NBcpl)
 
+    # Creates the output files dictionary
     files_dict = _create_tfs_files(getllm_d, model_filename)
 
+    # Copy calibration files calibration_x/y.out from calibration_dir_path to outputpath
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
     twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict, use_average, calibration_twiss)
 
+    # Load tunes from twiss instances, depending on with_ac_calc
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
 
     # Construct pseudo-double plane BPMs
@@ -263,6 +311,7 @@ def main(
         traceback.print_exc()
         return_code = 1
     finally:
+        # Write results to files in files_dict
         print "Writing files"
         for tfsfile in files_dict.itervalues():
             tfsfile.write_to_file(formatted=True)
@@ -274,11 +323,11 @@ def main(
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_beams_cpl):
+def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_bpms_cpl):
     getllm_d.set_outputpath(outputpath)
     getllm_d.set_bpmu_and_cut_for_closed_orbit(cut_co, bpm_unit)
     getllm_d.lhc_phase = lhcphase
-    getllm_d.num_beams_for_coupling = num_beams_cpl
+    getllm_d.num_bpms_for_coupling = num_bpms_cpl
 
     if dict_file == "0":
         bpm_dictionary = {}
@@ -744,7 +793,7 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
      - getbetax_dpp_' + str(k + 1) + '.out
      - getbetay_dpp_' + str(k + 1) + '.out
 
-    :param _GetllmData getllm_d: lhc_phase, accel, beam_direction and num_beams_for_coupling are used (In-param, values will only be read)
+    :param _GetllmData getllm_d: lhc_phase, accel, beam_direction and num_bpms_for_coupling are used (In-param, values will only be read)
     :param _TwissData twiss_d: Holds twiss instances of the src files. (In-param, values will only be read)
     :param _TuneData tune_d: Holds tunes and phase advances. q1 and q2 will be set if accel 'SPS' or 'RHIC' (In/Out-param, values will be read and set)
 
@@ -903,9 +952,9 @@ def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dic
                 plane = 'V'
                 [phaseyp, tune_d.q2, _, _] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, None, plane)
                 [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
-            elif getllm_d.num_beams_for_coupling == 1:
+            elif getllm_d.num_bpms_for_coupling == 1:
                 [fwqw, bpms] = algorithms.coupling.GetCoupling1(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, getllm_d.outputpath)
-            elif getllm_d.num_beams_for_coupling == 2:
+            elif getllm_d.num_bpms_for_coupling == 2:
                 [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, phasexlist[j], phaseylist[j], getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
                 if getllm_d.with_ac_calc:
                     [fwqw, bpms] = algorithms.coupling.getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
@@ -1054,7 +1103,7 @@ class _GetllmData(object):
         self.lhc_phase = ""
         self.bpm_unit = ""
         self.cut_for_closed_orbit = 0
-        self.num_beams_for_coupling = 0
+        self.num_bpms_for_coupling = 0 
 
         self.with_ac_calc = False
 
