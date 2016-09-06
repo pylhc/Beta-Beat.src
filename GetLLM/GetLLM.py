@@ -137,13 +137,13 @@ def _parse_args():
                     help="Forces to use the simulated systematic error file, yes=1/no=0, default = 0",
                     metavar="USE_SIM", default="0", dest="use_sim")
     # awegsche June 2016, option to include an errorfile
-    # update August 2016, looking by default for this file, raising error if unable to find it 
-#     parser.add_option("--errordefs",
-#                     help="Error Definition File (in Twiss format) that contains the expected standard deviations of field errors, missalignment errors.",
-#                     metavar="ErrorDefs", default="0", dest="errordefs")
-
+    # update August 2016, looking by default for this file, raising error if unable to find it
     options, _ = parser.parse_args()
     options.use_only_three_bpms_for_beta_from_phase = "1" == options.use_only_three_bpms_for_beta_from_phase
+    options.use_sim = ("1" == options.use_sim)
+    
+    if options.use_sim:
+        print "\33[36mINFO  \33[0mUSE_SIM = TRUE"
     return options
 
 
@@ -154,21 +154,21 @@ def main(
          outputpath,
          files_to_analyse,
          model_filename,
-         dict_file="0",
-         accel="LHCB1",
-         lhcphase="0",
-         BPMU="um",
-         COcut=4000,
-         NBcpl=2,
-         TBTana="SUSSIX",
-         bbthreshold="0.15",
-         errthreshold="0.15",
-         use_only_three_bpms_for_beta_from_phase=False,
-         number_of_bpms=10,
-         range_of_bpms=11,
-         use_average=False,
-         calibration_dir_path=None,
-         use_sim = False
+         dict_file,
+         accel,
+         lhcphase,
+         BPMU,
+         COcut,
+         NBcpl,
+         TBTana,
+         bbthreshold,
+         errthreshold,
+         use_only_three_bpms_for_beta_from_phase,
+         number_of_bpms,
+         range_of_bpms,
+         use_average,
+         calibration_dir_path,
+         use_sim
          ):
     '''
     GetLLM main function.
@@ -196,9 +196,6 @@ def main(
     getllm_d = _GetllmData()
     twiss_d = _TwissData()
     tune_d = _TuneData()
-    
-    
-    
 
     getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge = _intial_setup(getllm_d,
                                                                                                                      outputpath,
@@ -210,8 +207,8 @@ def main(
                                                                                                                      lhcphase,
                                                                                                                      NBcpl)
     
-    if __debug__:
-        print "INFO: \033[36mDEBUG ON\033[0m"
+    if sys.flags.debug:
+        print "\033[36mINFO:\033[0m DEBUG ON"
 
     files_dict = _create_tfs_files(getllm_d, model_filename)
 
@@ -227,9 +224,7 @@ def main(
         # Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
         pseudo_list_x = None
         pseudo_list_y = None
-        
-    
-
+ 
     #-------- Check monitor compatibility between data and model
     _check_bpm_compatibility(twiss_d, mad_twiss)
 
@@ -364,13 +359,9 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
     except IOError:
         mad_best_knowledge = mad_twiss
         print "Best knowledge model not found."
-        
-   
-        
 
     return getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge
 # END _intial_setup ---------------------------------------------------------------------------------
-
 
     
 def _create_tfs_files(getllm_d, model_filename):
@@ -1186,11 +1177,7 @@ def _start():
     Before the following code was after 'if __name__=="__main__":'
     '''
     options = _parse_args()
-    
-    us = False
-    if options.use_sim == 1:
-        us = True
-    
+      
     main(outputpath=options.output,
          dict_file=options.dict,
          files_to_analyse=options.files,
@@ -1208,6 +1195,6 @@ def _start():
          range_of_bpms=options.range_of_bpms,
          use_average=True if options.use_average == 1 else False,
          calibration_dir_path=options.calibration_dir_path,
-         use_sim = us)
+         use_sim=options.use_sim)
 if __name__ == "__main__":
     _start()
