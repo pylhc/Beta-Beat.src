@@ -62,19 +62,30 @@ def calculate_orbit(mad_twiss, list_of_files):
 
 
 
-
 def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
-    tp=2.0*np.pi
-    a1=complex(1.0,-tan(tp*delta))
-    a2=cw*complex(cos(tp*pw),sin(tp*pw))
-    a3=-1.0/cos(tp*delta)*complex(0.0,1.0)
-    a4=cw1*complex(cos(tp*pw1),sin(tp*pw1))
-    SL=a1*a2+a3*a4
-    sizeSL=math.sqrt(SL.real**2+SL.imag**2)
-    phiSL=(np.arctan2(SL.imag , SL.real)/tp) %1.0
+    tp = 2.0*np.pi
+    a1 = complex(1.0,-tan(tp*delta))
+    a2 = cw*complex(cos(tp*pw),sin(tp*pw))
+    a3 = -1.0/cos(tp*delta)*complex(0.0,1.0)
+    a4 = cw1*complex(cos(tp*pw1),sin(tp*pw1))
+    SL = a1*a2+a3*a4
+    sizeSL = math.sqrt(SL.real**2+SL.imag**2)
+    phiSL = (np.arctan2(SL.imag , SL.real)/tp) %1.0
     #SL=complex(-SL.real,SL.imag)    # This sign change in the real part is to comply with MAD output
     return [sizeSL,phiSL]
 
+
+def ComplexSecondaryLineSTD(delta, cw, cw1, pw, pw1, std, std1):
+    '''Calculates the propagated error on ComplexSecondaryLine'''
+    tp = 2.0*np.pi
+    # Aij corresponds to ai*aj from above without cw/cw1
+    A12 = complex(1.0,-tan(tp*delta))*complex(cos(tp*pw),sin(tp*pw))
+    A34 = -1.0/cos(tp*delta)*complex(0.0,1.0)*complex(cos(tp*pw1),sin(tp*pw1))
+    # calculate the propagated STD on the output
+    # the first np.abs in the sqrt suppresses an error but canNOT modify the result!
+    sigma = 0.5/np.abs(A12*cw+A34*cw1)*math.sqrt(np.abs((std*(2*np.abs(A12)**2*cw+cw1*(A12*np.conj(A34)+np.conj(A12)*A34)))**2+((std1*(2*np.abs(A34)**2*cw1+cw*(np.conj(A12)*A34+A12*np.conj(A34)))))**2))
+    
+    return sigma
 
 def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     '''

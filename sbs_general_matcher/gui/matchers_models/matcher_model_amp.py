@@ -78,7 +78,7 @@ class MatcherPlotterAmp(object):
             MatcherPlotterAmp._plot_back(ax, amp_bb_data, bb_data, plane)
 
         ax.legend(loc="upper left", prop={'size': 16})
-        ax.set_ylabel(r"$\Delta\beta/\beta_{model}$")
+        ax.set_ylabel(r"$\Delta\beta_{" + plane.lower() + r"} / {\beta_{model}}$")
         ax.set_xlabel("S along the segment [m]")
         figure.patch.set_visible(False)
         figure.canvas.draw()
@@ -86,26 +86,31 @@ class MatcherPlotterAmp(object):
     @staticmethod
     def _plot_front(axes, amp_bb_data, bb_data, plane):
         axes.plot(bb_data.S, getattr(bb_data, "BETABEATCOR" + plane),
-                  label=r"$\Delta\beta/\beta_{model}$ model", color="green")
+                  label=r"$\Delta\beta / {\beta_{model}}$ model",
+                  color="green")
         axes.plot(bb_data.S, getattr(bb_data, "BETABEATCOR" + plane),
                   marker="o", markersize=7., color="green")
 
         axes.errorbar(amp_bb_data.S,
                       getattr(amp_bb_data, "BETABEATAMP" + plane),
                       getattr(amp_bb_data, "ERRBETABEATAMP" + plane),
-                      fmt='o', markersize=8., label=r"$\Delta\beta/\beta_{model}$ k-mod", color="blue")
+                      fmt='o', markersize=8.,
+                      label=r"$\Delta\beta / \beta_{model}$ amplitude",
+                      color="blue")
 
     @staticmethod
     def _plot_back(axes, amp_bb_data, bb_data, plane):
         axes.plot(bb_data.S, getattr(bb_data, "BETABEATCORBACK" + plane),
-                  label=r"$\Delta\beta/\beta_{model}$ model", color="green")
+                  label=r"$\Delta\beta / {\beta_{model}}$ model", color="green")
         axes.plot(bb_data.S, getattr(bb_data, "BETABEATCORBACK" + plane),
                   marker="o", markersize=7., color="green")
 
         axes.errorbar(amp_bb_data.S,
                       getattr(amp_bb_data, "BETABEATAMPBACK" + plane),
                       getattr(amp_bb_data, "ERRBETABEATAMPBACK" + plane),
-                      fmt='o', markersize=8., label=r"$\Delta\beta/\beta_{model}$ k-mod", color="blue")
+                      fmt='o', markersize=8.,
+                      label=r"$\Delta\beta / \{beta_{model}}$ amplitude",
+                      color="blue")
 
 
 if __name__ == "__main__":

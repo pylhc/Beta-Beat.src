@@ -6,6 +6,8 @@ from Python_Classes4MAD import metaclass
 
 class AmpMatcher(KmodMatcher):
 
+    BETA_BEATING_CONSTR_WEIGHT = 1.
+
     @Matcher.override(KmodMatcher)
     def __init__(self, matcher_name, matcher_dict, match_path):
         super(AmpMatcher, self).__init__(matcher_name, matcher_dict, match_path)
@@ -29,15 +31,22 @@ class AmpMatcher(KmodMatcher):
                 beta_beating = getattr(this_kmod_data, "BETABEATAMP" + plane.upper())[index]
                 err_beta_beating = getattr(this_kmod_data, "ERRBETABEATAMP" + plane.upper())[index]
                 s = this_kmod_data.S[index]
-                weight = self.get_constraint_weight(beta_beating, err_beta_beating,
-                                                    lambda value: abs(value) <= 0.25)
-                if weight is None:
-                    weight = 1.0
 
-                constr_string += '    constraint, weight = ' + str(weight) + ' , '
-                constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' = ' + str(beta_beating) + '; '
-                constr_string += '!   S = ' + str(s)
-                constr_string += ';\n'
+                if self._use_errors:
+                    constr_string += '    constraint, weight = 1.0, '
+                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' > ' + str(beta_beating - err_beta_beating / 2) + '; '
+                    constr_string += '!   S = ' + str(s)
+                    constr_string += ';\n'
+
+                    constr_string += '    constraint, weight = 1.0, '
+                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' < ' + str(beta_beating + err_beta_beating / 2) + '; '
+                    constr_string += '!   S = ' + str(s)
+                    constr_string += ';\n'
+                else:
+                    constr_string += '    constraint, weight = 1.0, '
+                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' = ' + str(beta_beating) + '; '
+                    constr_string += '!   S = ' + str(s)
+                    constr_string += ';\n'
         return constr_string
 
     @Matcher.override(KmodMatcher)

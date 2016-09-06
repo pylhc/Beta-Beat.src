@@ -1,5 +1,4 @@
 import os
-import sys
 import shutil
 from Python_Classes4MAD import metaclass
 from Utilities import iotools
@@ -48,10 +47,6 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 class Matcher(object):
-
-    ERROR_CONSTRAINT_FACTOR = 1000
-    MAX_WEIGHT = 4
-    MAX_REL_DELTA_LIMIT = 0.1
 
     def __init__(self, matcher_name, matcher_dict, match_path):
         for attribute_name in ["ip", "use_errors", "propagation"]:
@@ -189,16 +184,6 @@ class Matcher(object):
         else:
             exclude_list = []
         return exclude_list
-
-    def get_constraint_weight(self, value, error, filter_function):
-        if not filter_function(value):
-            weight = 1e-6
-        elif not self._use_errors:
-            weight = 1.
-        else:
-            weight = 1. / ((Matcher.ERROR_CONSTRAINT_FACTOR * error) ** 2)
-            if weight > Matcher.MAX_WEIGHT:
-                weight = Matcher.MAX_WEIGHT
 
     @staticmethod
     def override(parent_cls):

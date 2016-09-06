@@ -309,7 +309,7 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
             if (amplitude[0] > 0 && BPMs[horizontalBpmIndex].pickedUp == true && horizontalBpmIndex == i) {
                 filesHandler.linxFile <<  std::scientific << '"' << BPMs[horizontalBpmIndex].bpmName << "\" " << BPMs[horizontalBpmIndex].bpmPos << ' ' <<
                                                                                         horizontalBpmIndex << ' ' << BPMs[horizontalBpmIndex].pickedUp << ' ' <<
-                                                                                        tune     [ 0] << ' ' << noise1 << ' ' << maxmin << ' ' << co << ' ' << co2 << ' ' <<
+                                                                                        tune     [ 0] << ' ' << noiseAve << ' ' << noise1 << ' ' << maxmin << ' ' << co << ' ' << co2 << ' ' <<
                                                                                         amplitude[ 0]                << ' ' << phase[ 0] / 360. << ' ' << "%AVG_MU" << ' ' <<
                                                                                         amplitude[ 2] / amplitude[0] << ' ' << phase[ 2] / 360. << ' ' <<
                                                                                         amplitude[ 1] / amplitude[0] << ' ' << phase[ 1] / 360. << ' ' <<
@@ -330,7 +330,7 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
 
                 tuneCalcData.addTuneX(tune[0], naturalData.calculatednattunex);
                 createSpectrumFileForCurrentHorizontalBpm(horizontalBpmIndex);
-            }else if(true == (BPMs[horizontalBpmIndex].pickedUp == true && horizontalBpmIndex == i)){
+            }else if(BPMs[horizontalBpmIndex].pickedUp == true && horizontalBpmIndex == i){
                 printf("Hor. BPM %s not in lin file because following condition failed: ", BPMs[horizontalBpmIndex].bpmName.c_str());
                 printf("false == amplitude[0] > 0\n");
                 printf("false == %12f > 0\n", amplitude[0]);
@@ -353,7 +353,7 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
             if (amplitude[3] > 0 && BPMs[verticalBpmIndex].pickedUp == true && verticalBpmIndex == i + MAXPICK/2) {
                 filesHandler.linyFile <<  std::scientific << '"' << BPMs[verticalBpmIndex].bpmName << "\" " << BPMs[verticalBpmIndex].bpmPos << ' ' <<
                                                                                         verticalBpmIndex << ' ' << BPMs[verticalBpmIndex].pickedUp << ' ' <<
-                                                                                        tune     [ 1] << ' ' << noise1 << ' ' << maxmin << ' ' << co << ' ' << co2 << ' ' <<
+                                                                                        tune     [ 1] << ' ' << noiseAve << ' ' << noise1 << ' ' << maxmin << ' ' << co << ' ' << co2 << ' ' <<
                                                                                         amplitude[ 3]                << ' ' << phase[ 3] / 360. << ' ' << "%AVG_MU" << ' ' <<
                                                                                         amplitude[ 5] / amplitude[3] << ' ' << phase[ 5] / 360. << ' ' << 
                                                                                         amplitude[13] / amplitude[3] << ' ' << phase[13] / 360. << ' ' <<
@@ -369,7 +369,7 @@ void harmonicAnalysisForSingleTbtDataFile(std::string &dataFilePath){
                                                                                         naturalData.calculatednattuney << ' ' << naturalData.calculatednatampy << std::endl;
                 tuneCalcData.addTuneY(tune[1], naturalData.calculatednattuney);
                 createSpectrumFileForCurrentVerticalBpm(verticalBpmIndex);
-            }else if(true == (BPMs[verticalBpmIndex].pickedUp == true && verticalBpmIndex == i + MAXPICK/2)){
+            }else if(BPMs[verticalBpmIndex].pickedUp == true && verticalBpmIndex == i + MAXPICK/2){
                 printf("Ver. BPM %s not in lin file because following condition failed: ", BPMs[verticalBpmIndex].bpmName.c_str());
                 printf("false == amplitude[3] > 0\n");
                 printf("false == %12f > 0\n", amplitude[3]);
@@ -1084,11 +1084,11 @@ OutFilesHandler::OutFilesHandler(std::string &dataFilePath){
         exit(EXIT_FAILURE);
     }
     linxFile.open(linxFilePath.c_str());
-    linxFile << "* NAME S BINDEX SLABEL TUNEX NOISE PK2PK CO CORMS AMPX MUX AVG_MUX AMP01 PHASE01 AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 AMP1_2 PHASE1_2 AMP_13 PHASE_13 AMP12 PHASE12 AMP_21 PHASE_21 AMP11 PHASE11 AMP20 PHASE20 AMP_1_2 PHASE_1_2 AMP30 PHASE30 NATTUNEX NATAMPX\n";
-    linxFile << std::scientific << "$ %s %le %le %le %le %le %le %le %le %le %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le   %le %le\n";
+    linxFile << "* NAME S BINDEX SLABEL TUNEX AVG_NOISE NOISE PK2PK CO CORMS AMPX MUX AVG_MUX AMP01 PHASE01 AMP_20 PHASE_20 AMP02 PHASE02 AMP_30 PHASE_30 AMP_1_1 PHASE_1_1 AMP2_2 PHASE2_2 AMP0_2 PHASE0_2 AMP1_2 PHASE1_2 AMP_13 PHASE_13 AMP12 PHASE12 AMP_21 PHASE_21 AMP11 PHASE11 AMP20 PHASE20 AMP_1_2 PHASE_1_2 AMP30 PHASE30 NATTUNEX NATAMPX\n";
+    linxFile << std::scientific << "$ %s %le %le %le %le %le %le %le %le %le %le %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le   %le %le\n";
     linyFile.open(linyFilePath.c_str());
-    linyFile << "* NAME S BINDEX SLABEL TUNEY NOISE PK2PK CO CORMS AMPY MUY AVG_MUY AMP10 PHASE10 AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 AMP_11 PHASE_11 AMP21 PHASE21 AMP_13 PHASE_13 AMP11 PHASE11 AMP_12 PHASE_12 NATTUNEY NATAMPY\n";
-    linyFile << std::scientific << "$ %s %le %le %le %le %le %le %le %le %le %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le   %le %le\n";
+    linyFile << "* NAME S BINDEX SLABEL TUNEY AVG_NOISE NOISE PK2PK CO CORMS AMPY MUY AVG_MUY AMP10 PHASE10 AMP_1_1 PHASE_1_1 AMP_20 PHASE_20 AMP1_1 PHASE1_1 AMP0_2 PHASE0_2 AMP0_3 PHASE0_3 AMP_11 PHASE_11 AMP21 PHASE21 AMP_13 PHASE_13 AMP11 PHASE11 AMP_12 PHASE_12 NATTUNEY NATAMPY\n";
+    linyFile << std::scientific << "$ %s %le %le %le %le %le %le %le %le %le %le %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le  %le %le   %le %le\n";
 }
 
 OutFilesHandler::~OutFilesHandler() {
