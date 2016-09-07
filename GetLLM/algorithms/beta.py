@@ -1413,7 +1413,7 @@ def ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of
             #--- calculate errors
         for i in range(len_w):
             for j in range(len_w):
-                beterr += w[i] * w[j] * abs(V_Beta.item(i, j))
+                beterr += w[i] * w[j] * V_Beta.item(i, j)
                 alferr += walfa[i] * walfa[j] * V_Alfa.item(i, j)
                    
         if beterr < 0:
