@@ -260,10 +260,13 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             if ampx==0.0 or ampy==0.0: # 
                 print('Main amplitude(s) is/are 0 for BPM',bn1)
             # Get noise average values to estimate secondary lines not recognized by drive
-            if C01ij==0.0: 
-                C01ij = tw_x.AVG_NOISE[tw_x.indx[bn1]]
-            if C10ij==0.0:
-                C10ij = tw_y.AVG_NOISE[tw_y.indx[bn1]]
+            try:
+                if C01ij==0.0: 
+                    C01ij = tw_x.AVG_NOISE[tw_x.indx[bn1]]
+                if C10ij==0.0:
+                    C10ij = tw_y.AVG_NOISE[tw_y.indx[bn1]]
+            except AttributeError:
+                print "AVG_NOISE column not found, cannot estimate C matrix."
             # Get noise standard deviation to estimate uncertainty of amplitudes
             std_noise_x = tw_x.NOISE[tw_x.indx[bn1]] 
             std_noise_y = tw_y.NOISE[tw_y.indx[bn1]]
@@ -398,16 +401,15 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
-    if len(list_zero_dpp_x)!=len(list_zero_dpp_y):
+    if len(list_zero_dpp_x) != len(list_zero_dpp_y):
         print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
-        dum0 = {"Global":[0.0,0.0]}
+        dum0 = {"Global": [0.0, 0.0]}
         dum1 = []
-        return [dum0,dum1]
+        return [dum0, dum1]
     # Determine intersection of BPM-lists between measurement and model, create list dbpms
-    XplusY = list_zero_dpp_x+list_zero_dpp_y
+    XplusY = list_zero_dpp_x + list_zero_dpp_y
     dbpms = Utilities.bpm.intersect(XplusY)
     dbpms = Utilities.bpm.model_intersect(dbpms, MADTwiss)
-
 
     ### Calculate fw and qw, exclude BPMs having wrong phases ###
 
@@ -418,13 +420,12 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
     # Initialize list of BPMs with correct phases
     dbpmt = []
     # Count number of BPM-pairs in intersection of model and measurement
-    Numbpmpairs = len(dbpms)-1
+    Numbpmpairs = len(dbpms) - 1
     # Loop through BPM-pairs
     for i in range(Numbpmpairs):
         # Get BPM names
         bn1 = str.upper(dbpms[i][1])
-        bn2 = str.upper(dbpms[i+1][1])
-        #  
+        bn2 = str.upper(dbpms[i + 1][1])
         delx = phasex[bn1][0] - 0.25  # Missprint in the coupling note
         dely = phasey[bn1][0] - 0.25
 
@@ -437,10 +438,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         q2js = []
         q1jd = []
         q2jd = []
-        # Initialize as not bad BPM 
+        # Initialize as not bad BPM
         badbpm = 0
         # Loop through files to analyze
-        for j in range(0,len(list_zero_dpp_x)):
+        for j in range(0, len(list_zero_dpp_x)):
             # Get twiss instance for current BPM and file
             tw_x = list_zero_dpp_x[j]
             tw_y = list_zero_dpp_y[j]
@@ -448,24 +449,27 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             [ampx_1, ampy_1] = [tw_x.AMPX[tw_x.indx[bn1]], tw_y.AMPY[tw_y.indx[bn1]]]
             [ampx_2, ampy_2] = [tw_x.AMPX[tw_x.indx[bn2]], tw_y.AMPY[tw_y.indx[bn2]]]
             # Exclude BPM if no main line was found
-            if ampx_1==0 or ampy_1==0 or ampx_2==0 or ampy_2==0:
+            if ampx_1 == 0 or ampy_1 == 0 or ampx_2 == 0 or ampy_2 == 0:
                 badbpm = 1
-                ampx_1 = 1 # Dummy value, badbpm variable makes sure the BPM is ignored
-                ampy_1 = 1 # Dummy value, badbpm variable makes sure the BPM is ignored
-                ampx_2 = 1 # Dummy value, badbpm variable makes sure the BPM is ignored
-                ampy_2 = 1 # Dummy value, badbpm variable makes sure the BPM is ignored
+                ampx_1 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
+                ampy_1 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
+                ampx_2 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
+                ampy_2 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
             # Get coupled amplitude ratios
-            [amp01_1, amp10_1] = [tw_x.AMP01[tw_x.indx[bn1]], tw_y.AMP10[tw_y.indx[bn1]]] 
-            [amp01_2, amp10_2] = [tw_x.AMP01[tw_x.indx[bn2]], tw_y.AMP10[tw_y.indx[bn2]]] 
+            [amp01_1, amp10_1] = [tw_x.AMP01[tw_x.indx[bn1]], tw_y.AMP10[tw_y.indx[bn1]]]
+            [amp01_2, amp10_2] = [tw_x.AMP01[tw_x.indx[bn2]], tw_y.AMP10[tw_y.indx[bn2]]]
             # Replace secondary lines with amplitude infinity or 0 by noise average
-            if amp01_1==float("inf") or amp01_1==0:
-                amp01_1 = tw_x.AVG_NOISE[tw_x.indx[bn1]]/ampx_1
-            if amp10_1==float("inf") or amp10_1==0:
-                amp10_1 = tw_y.AVG_NOISE[tw_y.indx[bn1]]/ampy_1
-            if amp01_2==float("inf") or amp01_2==0:
-                amp01_2 = tw_x.AVG_NOISE[tw_x.indx[bn1]]/ampx_2
-            if amp10_2==float("inf") or amp10_2==0:
-                amp10_2 = tw_y.AVG_NOISE[tw_y.indx[bn1]]/ampy_2
+            try:
+                if amp01_1 == float("inf") or amp01_1 == 0:
+                    amp01_1 = tw_x.AVG_NOISE[tw_x.indx[bn1]] / ampx_1
+                if amp10_1 == float("inf") or amp10_1 == 0:
+                    amp10_1 = tw_y.AVG_NOISE[tw_y.indx[bn1]] / ampy_1
+                if amp01_2 == float("inf") or amp01_2 == 0:
+                    amp01_2 = tw_x.AVG_NOISE[tw_x.indx[bn1]] / ampx_2
+                if amp10_2 == float("inf") or amp10_2 == 0:
+                    amp10_2 = tw_y.AVG_NOISE[tw_y.indx[bn1]] / ampy_2
+            except AttributeError:
+                print "AVG_NOISE column not found, cannot use noise floor."
 
             # Call routine in helper.py to get secondary lines for 2-BPM method
             [SA0p1ij,phi0p1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
