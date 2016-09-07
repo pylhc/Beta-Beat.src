@@ -1413,7 +1413,7 @@ def ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of
             #--- calculate errors
         for i in range(len_w):
             for j in range(len_w):
-                beterr += w[i] * w[j] * V_Beta.item(i, j)
+                beterr += w[i] * w[j] * abs(V_Beta.item(i, j))
                 alferr += walfa[i] * walfa[j] * V_Alfa.item(i, j)
                    
         if beterr < 0:
@@ -2177,8 +2177,8 @@ def _get_free_beta(modelfree, modelac, betal, rmsbb, alfal, bpms, plane):  # to 
     alfan = {}
     for bpma in bpms:
         bpm = bpma[1].upper()
-        beta, beterr, betstd = betal[bpm]
-        alfa, alferr, alfstd = alfal[bpm]
+        beta, betsys, betstat, beterr = betal[bpm]
+        alfa, alfsys, alfstat, alferr = alfal[bpm]
 
         if plane == "H":
             betmf = modelfree.BETX[modelfree.indx[bpm]]
@@ -2195,8 +2195,8 @@ def _get_free_beta(modelfree, modelac, betal, rmsbb, alfal, bpms, plane):  # to 
             bb = (betma - betmf) / betmf
             aa = (alfma - alfmf) / alfmf
 
-        betan[bpm] = beta * (1 + bb), beterr, betstd  # has to be plus!
-        alfan[bpm] = alfa * (1 + aa), alferr, alfstd
+        betan[bpm] = beta * (1 + bb), betsys, betstat, beterr  # has to be plus!
+        alfan[bpm] = alfa * (1 + aa), alfsys, alfstat, alferr
 
     return betan, rmsbb, alfan, bpms
 
