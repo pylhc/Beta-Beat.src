@@ -200,17 +200,35 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
 
     beta_start = getattr(measured_beta, "BET" + plane)[measured_beta.indx[first_bpm]]
     alfa_start = getattr(measured_beta, "ALF" + plane)[measured_beta.indx[first_bpm]]
-
-    err_beta_start = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
-    err_alfa_start = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
+    #check if STDBET columns exist
+    stdbet_exists = True
+    try:
+        getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]]
+    except:
+        stdbet_exists = False
+    stdalf_exists = True
+    try:
+        getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]]
+    except:
+        stdalf_exists = False
 
     last_bpm = bpms_list[-1][1]
 
     beta_end = getattr(measured_beta, "BET" + plane)[measured_beta.indx[last_bpm]]
     alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
 
-    err_beta_end = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)
-    err_alfa_end = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
+    if stdbet_exists:
+        err_beta_start = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
+        err_beta_end = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)     
+    else:
+        err_beta_start = getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]]
+        err_beta_end = getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]]
+    if stdalf_exists:
+        err_alfa_start = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
+        err_alfa_end = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
+    else:
+        err_alfa_start = getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] 
+        err_alfa_end = getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]]
 
     return beta_start, err_beta_start, alfa_start, err_alfa_start, beta_end, err_beta_end, alfa_end, err_alfa_end
 
