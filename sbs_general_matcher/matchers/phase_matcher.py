@@ -121,11 +121,11 @@ class PhaseMatcher(Matcher):
 
                     if self._use_errors:
                         constr_string += '    constraint, weight = 1.0, '
-                        constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' > ' + str(phase - error / 2) + ';'
+                        constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' > ' + str(phase - error) + ';'
                         constr_string += '!   S = ' + str(s) + ';\n'
 
                         constr_string += '    constraint, weight = 1.0, '
-                        constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' < ' + str(phase + error / 2) + ';'
+                        constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' < ' + str(phase + error) + ';'
                         constr_string += '!   S = ' + str(s) + ';\n'
                     else:
                         constr_string += '    constraint, weight = 1.0, '

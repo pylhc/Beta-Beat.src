@@ -60,12 +60,12 @@ class KmodMatcher(PhaseMatcher):
 
                 if self._use_errors:
                     constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' > ' + str(beta_beating - err_beta_beating / 2) + '; '
+                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' > ' + str(beta_beating - err_beta_beating) + '; '
                     constr_string += '!   S = ' + str(s)
                     constr_string += ';\n'
 
                     constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' < ' + str(beta_beating + err_beta_beating / 2) + '; '
+                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' < ' + str(beta_beating + err_beta_beating) + '; '
                     constr_string += '!   S = ' + str(s)
                     constr_string += ';\n'
                 else:
