@@ -177,6 +177,19 @@ class Matcher(object):
         if attribute_name not in base_dict:
             raise InputError('Cannot find ' + attribute_name + ' attribute in ' + base_dict_name + '. Aborting.')
 
+    def _get_constraint_instruction(self, constr_name, value, error, sigmas=1.):
+        if self._use_errors:
+            upper_bound = str(value + error * sigmas)
+            lower_bound = str(value - error * sigmas)
+            constr_string = '    constraint, weight = 1.0, '
+            constr_string += 'expr =  ' + constr_name + ' < ' + upper_bound + ';\n'
+            constr_string += '    constraint, weight = 1.0, '
+            constr_string += 'expr =  ' + constr_name + ' > ' + lower_bound + ';\n'
+        else:
+            constr_string = '    constraint, weight = 1.0, '
+            constr_string += 'expr =  ' + constr_name + ' = ' + value + ';\n'
+        return constr_string
+
     def _parse_exclude_string(self, exclude_string):
         if not exclude_string == "":
             exclude_list = [var_name.strip()

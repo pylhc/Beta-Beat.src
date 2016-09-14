@@ -11,42 +11,29 @@ class AmpMatcher(KmodMatcher):
     @Matcher.override(KmodMatcher)
     def __init__(self, matcher_name, matcher_dict, match_path):
         super(AmpMatcher, self).__init__(matcher_name, matcher_dict, match_path)
-        self._sbs_kmod_data = {}
+        self._sbs_amp_data = {}
         for beam in self.get_beams():
-            self._sbs_kmod_data[beam] = {}
+            self._sbs_amp_data[beam] = {}
             for plane in ["x", "y"]:
-                sbs_kmod_data_path = os.path.join(
+                sbs_amp_data_path = os.path.join(
                     self.get_match_data(beam).get_beam_match_sbs_path(),
                     'sbsampbetabeat' + plane + '_IP' + str(self._ip) + '.out'
                 )
-                self._sbs_kmod_data[beam][plane] = metaclass.twiss(sbs_kmod_data_path)
+                self._sbs_amp_data[beam][plane] = metaclass.twiss(sbs_amp_data_path)
 
     @Matcher.override(KmodMatcher)
     def define_constraints(self, beam):
         constr_string = ""
         for plane in ["x", "y"]:
-            this_kmod_data = self._sbs_kmod_data[beam][plane]
-            for name in this_kmod_data.NAME:
-                index = this_kmod_data.indx[name]
-                beta_beating = getattr(this_kmod_data, "BETABEATAMP" + plane.upper())[index]
-                err_beta_beating = getattr(this_kmod_data, "ERRBETABEATAMP" + plane.upper())[index]
-                s = this_kmod_data.S[index]
+            this_amp_data = self._sbs_amp_data[beam][plane]
+            for name in this_amp_data.NAME:
+                index = this_amp_data.indx[name]
+                beta_beating = getattr(this_amp_data, "BETABEATAMP" + plane.upper())[index]
+                err_beta_beating = getattr(this_amp_data, "ERRBETABEATAMP" + plane.upper())[index]
+                constr_string += self._get_constraint_instruction(
+                    self._name + self._get_suffix() + plane + name,
+                    beta_beating, err_beta_beating)
 
-                if self._use_errors:
-                    constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' > ' + str(beta_beating - err_beta_beating) + '; '
-                    constr_string += '!   S = ' + str(s)
-                    constr_string += ';\n'
-
-                    constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' < ' + str(beta_beating + err_beta_beating) + '; '
-                    constr_string += '!   S = ' + str(s)
-                    constr_string += ';\n'
-                else:
-                    constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' = ' + str(beta_beating) + '; '
-                    constr_string += '!   S = ' + str(s)
-                    constr_string += ';\n'
         return constr_string
 
     @Matcher.override(KmodMatcher)

@@ -117,20 +117,9 @@ class PhaseMatcher(Matcher):
                     else:
                         phase = sbs_data.BACKPHASEX[index] if plane == "x" else sbs_data.BACKPHASEY[index]
                         error = sbs_data.ERRBACKPHASEX[index] if plane == "x" else sbs_data.ERRBACKPHASEY[index]
-                    s = sbs_data.S[index]
-
-                    if self._use_errors:
-                        constr_string += '    constraint, weight = 1.0, '
-                        constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' > ' + str(phase - error) + ';'
-                        constr_string += '!   S = ' + str(s) + ';\n'
-
-                        constr_string += '    constraint, weight = 1.0, '
-                        constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' < ' + str(phase + error) + ';'
-                        constr_string += '!   S = ' + str(s) + ';\n'
-                    else:
-                        constr_string += '    constraint, weight = 1.0, '
-                        constr_string += 'expr =  ' + self._name + '.dmu' + plane + name + ' = ' + str(phase) + ';'
-                        constr_string += '!   S = ' + str(s) + ';\n'
+                    constr_string += self._get_constraint_instruction(
+                        self._name + '.dmu' + plane + name,
+                        phase, error)
         return constr_string
 
     @Matcher.override(Matcher)

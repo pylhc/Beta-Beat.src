@@ -56,23 +56,10 @@ class KmodMatcher(PhaseMatcher):
                 index = this_kmod_data.indx[name]
                 beta_beating = getattr(this_kmod_data, "BETABEAT" + plane.upper())[index]
                 err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
-                s = this_kmod_data.S[index]
+                constr_string += self._get_constraint_instruction(
+                    self._name + self._get_suffix() + plane + name,
+                    beta_beating, err_beta_beating)
 
-                if self._use_errors:
-                    constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' > ' + str(beta_beating - err_beta_beating) + '; '
-                    constr_string += '!   S = ' + str(s)
-                    constr_string += ';\n'
-
-                    constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' < ' + str(beta_beating + err_beta_beating) + '; '
-                    constr_string += '!   S = ' + str(s)
-                    constr_string += ';\n'
-                else:
-                    constr_string += '    constraint, weight = 1.0, '
-                    constr_string += 'expr =  ' + self._name + self._get_suffix() + plane + name + ' = ' + str(beta_beating) + '; '
-                    constr_string += '!   S = ' + str(s)
-                    constr_string += ';\n'
         return constr_string
 
     def _get_suffix(self):
