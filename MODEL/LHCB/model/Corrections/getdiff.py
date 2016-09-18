@@ -127,9 +127,18 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
         if bpm_included:
             j = twiss_cor.indx[bpm_name]
             t_x = twiss_getbetax  # Variable for abbreviation
-            error_beta = sqrt(t_x.STDBETX[i] ** 2 + t_x.ERRBETX[i] ** 2) / t_x.BETXMDL[i]
-            print >> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i] - t_x.BETXMDL[i]) / t_x.BETXMDL[i], error_beta, (twiss_cor.BETX[j] - twiss_no.BETX[j]) / twiss_no.BETX[j]
-
+            stdbetx_exist = True
+            try:
+                check_stdbetx = t_x.STDBETX[i]  # @UnusedVariable
+            except AttributeError:
+                stdbetx_exist = False  
+            if stdbetx_exist:
+                error_beta = sqrt(t_x.STDBETX[i] ** 2 + t_x.ERRBETX[i] ** 2) / t_x.BETXMDL[i]    
+                print >> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i] - t_x.BETXMDL[i]) / t_x.BETXMDL[i], error_beta, (twiss_cor.BETX[j] - twiss_no.BETX[j]) / twiss_no.BETX[j]
+            else:
+                error_beta = t_x.ERRBETX[i]
+                print >> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i] - t_x.BETXMDL[i]) / t_x.BETXMDL[i], error_beta, (twiss_cor.BETX[j] - twiss_no.BETX[j]) / twiss_no.BETX[j]
+                               
     if os.path.exists(os.path.join(path, 'getbetay_free.out')):
         twiss_getbetay = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getbetay_free.out'))
     elif os.path.exists(os.path.join(path, 'getbetay_free2.out')):
@@ -147,9 +156,18 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
         if bpm_included:
             j = twiss_cor.indx[bpm_name]
             t_y = twiss_getbetay  # Variable for abbreviation
-            error_beta = sqrt(t_y.STDBETY[i] ** 2 + t_y.ERRBETY[i] ** 2) / t_y.BETYMDL[i]
-            print >> file_bby, bpm_name, t_y.S[i], (t_y.BETY[i] - t_y.BETYMDL[i]) / t_y.BETYMDL[i], error_beta, (twiss_cor.BETY[j] - twiss_no.BETY[j]) / twiss_no.BETY[j]
-
+            stdbety_exist = True
+            try:
+                check_stdbety = t_y.STDBETY[i]  # @UnusedVariable
+            except:
+                stdbety_exist = False  
+            if stdbety_exist:
+                error_beta = sqrt(t_y.STDBETY[i] ** 2 + t_y.ERRBETY[i] ** 2) / t_y.BETYMDL[i]
+                print >> file_bby, bpm_name, t_y.S[i], (t_y.BETY[i] - t_y.BETYMDL[i]) / t_y.BETYMDL[i], error_beta, (twiss_cor.BETY[j] - twiss_no.BETY[j]) / twiss_no.BETY[j]
+            else:
+                error_beta = t_y.ERRBETY[i]
+                print >> file_bby, bpm_name, t_y.S[i], (t_y.BETY[i] - t_y.BETYMDL[i]) / t_y.BETYMDL[i], error_beta, (twiss_cor.BETY[j] - twiss_no.BETY[j]) / twiss_no.BETY[j]
+            
     file_bbx.close()
     file_bby.close()
 

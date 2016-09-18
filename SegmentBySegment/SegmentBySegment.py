@@ -550,12 +550,28 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
                 beta_y = beta_y_twiss.BETY[beta_y_twiss.indx[current_element_name]]
                 beta_x = beta_x_twiss.BETX[beta_x_twiss.indx[current_element_name]]
                 err_beta_x = beta_x_twiss.ERRBETX[beta_x_twiss.indx[current_element_name]]
-                stdbetax = beta_x_twiss.STDBETX[beta_x_twiss.indx[current_element_name]]
                 err_beta_y = beta_y_twiss.ERRBETY[beta_y_twiss.indx[current_element_name]]
-                stdbetay = beta_y_twiss.STDBETY[beta_y_twiss.indx[current_element_name]]
-
-                total_err_x = sqrt(err_beta_x ** 2 + stdbetax ** 2)
-                total_err_y = sqrt(err_beta_y ** 2 + stdbetay ** 2)
+                
+                stdbetax_exists = True
+                try:
+                    check_stdbetax =  beta_x_twiss.STDBETX[beta_x_twiss.indx[current_element_name]] # @UnusedVariable
+                except AttributeError:
+                    stdbetax_exists = False
+                if stdbetax_exists:
+                    stdbetax = beta_x_twiss.STDBETX[beta_x_twiss.indx[current_element_name]]
+                    total_err_x = sqrt(err_beta_x ** 2 + stdbetax ** 2)
+                else:
+                    total_err_x = err_beta_x
+                stdbetay_exists = True
+                try:
+                    check_stdbetay =  beta_y_twiss.STDBETY[beta_y_twiss.indx[current_element_name]] # @UnusedVariable
+                except AttributeError:
+                    stdbetay_exists = False
+                if stdbetay_exists:
+                    stdbetay = beta_y_twiss.STDBETY[beta_y_twiss.indx[current_element_name]]
+                    total_err_y = sqrt(err_beta_y ** 2 + stdbetay ** 2)
+                else:
+                    total_err_y = err_beta_y
 
                 if (beta_x > 0 and
                     beta_y > 0 and

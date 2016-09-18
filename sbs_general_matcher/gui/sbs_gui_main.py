@@ -69,6 +69,9 @@ class SbSGuiMain(QtGui.QMainWindow):
         )
         message_box.exec_()
 
+    def is_minimize_selected(self):
+        return self._main_widget.is_minimize_selected()
+
     def _get_new_matcher_action(self):
         new_matcher_action = QtGui.QAction("New matcher...", self)
         new_matcher_action.triggered.connect(self._controller.new_matcher)
@@ -90,6 +93,9 @@ class SbSGuiMain(QtGui.QMainWindow):
             self._controller = controller
             self._build_gui()
 
+        def is_minimize_selected(self):
+            return self._minimize_checkbox.isChecked()
+
         def _build_gui(self):
             main_layout = QtGui.QVBoxLayout()
             self.setLayout(main_layout)
@@ -97,13 +103,23 @@ class SbSGuiMain(QtGui.QMainWindow):
             self._matchers_tabs_widget = QtGui.QTabWidget()
             main_layout.addWidget(self._matchers_tabs_widget)
 
+            lower_panel_layout = QtGui.QHBoxLayout()
+            buttons_layout = QtGui.QVBoxLayout()
+            global_options_layout = QtGui.QVBoxLayout()
+            lower_panel_layout.addLayout(buttons_layout, stretch=3)
+            lower_panel_layout.addLayout(global_options_layout)
+            main_layout.addLayout(lower_panel_layout)
+
+            self._minimize_checkbox = QtGui.QCheckBox("Minimize variables")
+            global_options_layout.addWidget(self._minimize_checkbox)
+
             run_button = QtGui.QPushButton("Run matching")
             run_button.clicked.connect(self._controller.run_matching)
-            main_layout.addWidget(run_button)
+            buttons_layout.addWidget(run_button)
 
             edit_corr_button = QtGui.QPushButton("Edit corrections file")
             edit_corr_button.clicked.connect(self._controller.edit_corrections_file)
-            main_layout.addWidget(edit_corr_button)
+            buttons_layout.addWidget(edit_corr_button)
 
     class BackgroundTaskDialog(QtGui.QMessageBox):
         def __init__(self, message, parent=None):
@@ -248,8 +264,9 @@ class SbSGuiMainController(object):
                 matcher_tab.results_controller.get_disabled_constraints()
             )
             matchers_list.append(matcher_tab.model.get_matcher())
+        minimize = self._view.is_minimize_selected()
         input_data = sbs_general_matcher.InputData.init_from_matchers_list(
-            self._lhc_mode, self._match_path, matchers_list
+            self._lhc_mode, self._match_path, minimize, matchers_list
         )
 
         if not just_twiss:
@@ -351,7 +368,7 @@ class BackgroundThread(QThread):
     def _on_exception(self, exception_message):
         self._view.hide_background_task_dialog()
         self._view.show_error_dialog("Error", exception_message)
-        self._on_exception_function()
+        self._on_exception_function(exception_message)
 
 
 if __name__ == "__main__":
