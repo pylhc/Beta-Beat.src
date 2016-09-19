@@ -37,12 +37,11 @@ twiss_segment(sequence, filename, init_vals): macro = {
 !!! Initial values gathering
 %(SET_INITIAL_VALUES)s
 
+%(DEFINE_CONSTRAINTS_AUX_VALS)s
 
 !!!!!! Matching !!!!!!
 
-%(DEFINE_CONSTRAINTS_AUX_VALS)s
-
-match, use_macro;
+%(START_MATCH)s
 
 %(DEFINE_VARIABLES)s
 
@@ -50,14 +49,13 @@ option, -warn;
 %(SET_MATCHING_MACROS)s
 option, warn;
 
-lmdif,    tolerance:=1e-24, calls:=120;
-endmatch;
+%(END_MATCH)s
 
 
 !!! Generating final changeparameters file
 select, flag=save, clear;
 %(GEN_CHANGEPARAMETERS)s
-save, file="%(MATCH_PATH)s/changeparameters.madx";
+%(SAVE_CHANGEPARAMETERS)s
 
 !!! Running corrected twiss
 %(RUN_CORRECTED_TWISS)s
