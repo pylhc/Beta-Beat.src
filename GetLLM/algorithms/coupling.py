@@ -73,6 +73,22 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             # Avoids crashing the programm(vimaier)
             fwqwf = None
             fwqwf2 = None
+            [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, getllm_d.outputpath)
+            tfs_file = files_dict['getcouple.out']
+            tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
+            tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
+            tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010R", "F1010I"])
+            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+            for i in range(len(bpms)):
+                bn1 = str.upper(bpms[i][1])
+                bns1 = bpms[i][0]
+                try:
+                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), (math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2)), fwqw[bn1][0][1], -fwqw[bn1][0][0].real, -fwqw[bn1][0][0].imag, mad_twiss.f1001[mad_twiss.indx[bn1]].real, mad_twiss.f1001[mad_twiss.indxy[bn1]].imag, mad_ac.f1010[mad_ac.indx[bn1]].real, mad_ac.f1010[mad_ac.indx[bn1]].imag]
+                #-- Output zero if the model does not have couping parameters
+                except AttributeError:
+                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), (math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2)), fwqw[bn1][0][1], -fwqw[bn1][0][0].real, -fwqw[bn1][0][0].imag, 0.0, 0.0]
+                tfs_file.add_table_row(list_row_entries)
+
             # Call 1-BPM method coupling function to get dictionary of BPMs with f, std_f as well as phase with std (Here the tunes were changed to the free ones)
             [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, getllm_d.outputpath)
         # 2-BPM method
@@ -313,7 +329,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
                 if val==0:
                     std_fij = np.delete(std_fij,k)
             # If no results are left for this BPM, set coupling to nan
-            if not std_fij:
+            if not std_fij:  # TODO: Check this, python complained that you cannot stablish the true of a vector (std_fij)
                 fi = float("nan") # To be discussed
                 fistd = float("nan") # To be discussed
             # Average coupling over all files, weighted with variance, and get std of weighted average
