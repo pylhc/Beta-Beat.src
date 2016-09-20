@@ -36,6 +36,7 @@ select_elements(): macro = {
     select, flag=twiss, class=rcollimator;
     select, flag=twiss, class=collimator;
     select, flag=twiss, class=rbend;
+    select, flag=twiss, class=drift;
 }
 
 
@@ -103,10 +104,10 @@ get_f_terms_for(table_name, elem_name): macro = {
     C21 = Ga21 * CP11 + Ga22 * CP21;
     C22 = Ga21 * CP12 + Ga22 * CP22;
     
-    GAMMA2 = sqrt(1 - (C11 * C22 - C12 * C21));
+    GAMMA = sqrt(1 - (C11 * C22 - C12 * C21));
     
-    elem_name_f1001r = ( C12 - C21)/4/GAMMA2; !--- F1001R
-    elem_name_f1001i = ( C11 + C22)/4/GAMMA2; !--- F1001I
-    elem_name_f1010r = (-C12 - C21)/4/GAMMA2; !--- F1010R
-    elem_name_f1010i = ( C11 - C22)/4/GAMMA2; !--- F1010I
+    elem_name_f1001r = ( C12 - C21)/4/GAMMA; !--- F1001R
+    elem_name_f1001i = ( C11 + C22)/4/GAMMA; !--- F1001I
+    elem_name_f1010r = (-C12 - C21)/4/GAMMA; !--- F1010R
+    elem_name_f1010i = ( C11 - C22)/4/GAMMA; !--- F1010I
 };
