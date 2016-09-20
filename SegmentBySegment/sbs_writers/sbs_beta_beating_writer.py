@@ -142,7 +142,12 @@ def _write_beta_beat_from_phase_for_plane(file_beta_beat, plane, bpms_list,
         beta_phase = _get_from_twiss(measured_beta_phase, bpm_name, "BET", plane)
         beta_beat_phase = (beta_phase - beta_propagation) / beta_propagation
         syst_err_beta_phase = _get_from_twiss(measured_beta_phase, bpm_name, "ERRBET", plane)
-        rand_err_beta_phase = _get_from_twiss(measured_beta_phase, bpm_name, "STDBET", plane)
+        stdbet_exist = True
+        try:
+            rand_err_beta_phase = _get_from_twiss(measured_beta_phase, bpm_name, "STDBET", plane)
+        except AttributeError:
+            stdbet_exist = False
+
         prop_err_beta_phase = sbs_beta_writer._propagate_error_beta(
             initial_values.err_beta_start,
             initial_values.err_alfa_start,
@@ -151,10 +156,13 @@ def _write_beta_beat_from_phase_for_plane(file_beta_beat, plane, bpms_list,
             initial_values.beta_start,
             initial_values.alfa_start
         )
-        err_beta_beat_phase = sqrt(syst_err_beta_phase ** 2 +
-                                   rand_err_beta_phase ** 2 +
-                                   prop_err_beta_phase ** 2) / beta_propagation
-
+        if stdbet_exist:
+            err_beta_beat_phase = sqrt(syst_err_beta_phase ** 2 +
+                                       rand_err_beta_phase ** 2 +
+                                       prop_err_beta_phase ** 2) / beta_propagation
+        else:
+            err_beta_beat_phase = sqrt(syst_err_beta_phase ** 2 +
+                                       prop_err_beta_phase ** 2) / beta_propagation
         # Beta from corrected model beating (front)
         beta_cor = _get_from_twiss(model_cor, bpm_name, "BET", plane)
         beta_beat_cor = (beta_cor - beta_propagation) / beta_propagation
@@ -162,7 +170,11 @@ def _write_beta_beat_from_phase_for_plane(file_beta_beat, plane, bpms_list,
         # Beta from phase beating (back)
         beta_beat_phase_back = (beta_phase - beta_back_propagation) / beta_back_propagation
         syst_err_beta_phase_back = _get_from_twiss(measured_beta_phase, bpm_name, "ERRBET", plane)
-        rand_err_beta_phase_back = _get_from_twiss(measured_beta_phase, bpm_name, "STDBET", plane)
+        stdbet_exist = True
+        try:
+            rand_err_beta_phase_back = _get_from_twiss(measured_beta_phase, bpm_name, "STDBET", plane)
+        except AttributeError:
+            stdbet_exist = False
         prop_err_beta_phase_back = sbs_beta_writer._propagate_error_beta(
             initial_values.err_beta_end,
             initial_values.err_alfa_end,
@@ -171,9 +183,13 @@ def _write_beta_beat_from_phase_for_plane(file_beta_beat, plane, bpms_list,
             initial_values.beta_end,
             initial_values.alfa_end
         )
-        err_beta_beat_phase_back = sqrt(syst_err_beta_phase_back ** 2 +
-                                        rand_err_beta_phase_back ** 2 +
-                                        prop_err_beta_phase_back) / beta_back_propagation
+        if stdbet_exist:
+            err_beta_beat_phase_back = sqrt(syst_err_beta_phase_back ** 2 +
+                                            rand_err_beta_phase_back ** 2 +
+                                            prop_err_beta_phase_back) / beta_back_propagation
+        else:
+            err_beta_beat_phase_back = sqrt(syst_err_beta_phase_back ** 2 +
+                                            prop_err_beta_phase_back) / beta_back_propagation
 
         # Beta from corrected model beating (back)
         beta_back_cor = _get_from_twiss(model_back_cor, bpm_name, "BET", plane)
