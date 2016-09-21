@@ -386,6 +386,27 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,bb,bpm,Ad]
 
 
+def get_kick_from_arcs(MADTwiss_ac, bpm_list, measurements, plane):
+    if plane=='H': betmdl=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list])
+    if plane=='V': betmdl=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list])
+
+    actions_sqrt = []
+    actions_sqrt_err = []
+
+    for i in range(len(measurements)):
+        if plane=='H':
+            amp =np.array([2*measurements[i].AMPX[measurements[i].indx[b[1]]] for bpm in bpm_list])
+        if plane=='V':
+            amp =np.array([2*measurements[i].AMPY[measurements[i].indx[b[1]]] for bpm in bpm_list])
+
+
+        actions_sqrt[i]     = np.average(amp/np.sqrt(betmdl))
+        actions_sqrt_err[i] = np.std(amp/np.sqrt(betmdl))
+
+    return actions_sqrt, actions_sqrt_err 
+    
+
+
 def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd):
 
     #-- Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
