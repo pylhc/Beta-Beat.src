@@ -388,6 +388,7 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
 def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane):
     '''
+    @author: F Carlier
     Function calculates kick from measurements with AC dipole using the amplitude of the main line. The main line
     amplitude is obtained from Drive/SUSSIX and is normalized with the model beta-function.
 
