@@ -331,7 +331,6 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
 
     #-- Loop for files
     betall = np.zeros((len(all_bpms), len(Files)))
-    adall = np.zeros((len(all_bpms), len(Files)))
     for i in range(len(Files)):
         if plane == 'H':
             amp = np.array(
@@ -367,13 +366,10 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
     #-- Output
     result = {}
     bb = []
-    Adave = []
     for k in range(len(all_bpms)):
         betave = np.mean(betall[k])
         betstd = np.std(betall[k])
         bb.append((betave - betmdl[k]) / betmdl[k])
-        # Adave.append(np.mean(adall[k]))
-        Adave.append(np.mean(adall, axis=0))
         result[all_bpms[k][1]] = [betave, betstd, all_bpms[k][0]]
     bb = math.sqrt(np.mean(np.array(bb) ** 2))
 
