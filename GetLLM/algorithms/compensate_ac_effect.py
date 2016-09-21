@@ -23,6 +23,7 @@ from numpy import sin, cos, tan
 
 import Utilities.bpm
 import phase
+from SegmentBySegment.SegmentBySegment import get_good_bpms
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -272,42 +273,23 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
     return [result,muave,bpm]
 
 
-def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
-    BAD_BPM_LIST = ['BPM.16R3.B1', 'BPM.21L1.B1','BPM.27R3.B1','BPM.29L5.B1','BPM.18L8.B1','BPM.19L2.B1','BPM.16L8.B1','BPM.20L2.B1']
+def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):
     #-- Select common BPMs
-    bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss_ac)
-    bpm = [(b[0],str.upper(b[1])) for b in bpm]
-    bpm_arcs = []
-    bpm_arcs_clean = []
-    betmdl_arcs = []
-    betmdl_arcs_clean = []
-    amp_arcs = []
-    # selecting ARC BPMs 
-    for b in bpm:
-        if ((b[1][4]) == '1' and (b[1][5]) >= '4') or (b[1][4]) == '2':
-                bpm_arcs.append(b[1])
-    for b in bpm_arcs:  
-        if b not in BAD_BPM_LIST:
-             bpm_arcs_clean.append(b)
-        else:
-             continue
-    print bpm_arcs_clean
+    all_bpms = Utilities.bpm.model_intersect(
+        Utilities.bpm.intersect(Files),
+        MADTwiss_ac,
+    )
+    all_bpms = [(b[0], str.upper(b[1])) for b in all_bpms]
 
-    # selecting ARC BPMs between 7-8 
-    bpm_arcs_81 = []
-    for b in bpm_arcs: 
-        if ((b[-4]) == '8' and (b[-5]) == 'R') or ((b[-4]) == '1' and (b[-5]) == 'L'):
-                bpm_arcs_81.append(b)
-    print "set"
-    print bpm_arcs_81
+    good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(
+        intersect_bpms_list_with_bad_known_bpms(all_bpms)
+    )
 
-
-                 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op=="1" and bd==1:
-        s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
-    if op=="1" and bd==-1:
-        s_lastbpm=MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
+    if op == "1" and bd == 1:
+        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
+    if op == "1" and bd == -1:
+        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
     bpm_ac1 = ""
@@ -317,94 +299,134 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
             bpm_ac1 = b
         if '6L4' in b:
             bpm_ac2 = b
-    try:
-        k_bpmac = list(zip(*bpm)[1]).index(bpm_ac1)
+
+    bpm_names = list(zip(*all_bpms)[1])
+    if bpm_ac1 in bpm_names:
+        k_bpmac = bpm_names.index(bpm_ac1)
         bpmac = bpm_ac1
-    except:
-        try:
-            k_bpmac = list(zip(*bpm)[1]).index(bpm_ac2)
-            bpmac = bpm_ac2
-        except ValueError:
-            print >> sys.stderr, 'WARN: BPMs next to AC dipoles missing. Was looking for: bpm_ac1="{0}" and bpm_ac2="{1}"'.format(bpm_ac1, bpm_ac2)
-            return [{}, 0.0, [], [float('nan'), float('nan')]]
+    elif bpm_ac2 in bpm_names:
+        k_bpmac = bpm_names.index(bpm_ac2)
+        bpmac = bpm_ac2
+    else:
+        print >> sys.stderr, 'WARN: BPMs next to AC dipoles missing. Was looking for: bpm_ac1="{0}" and bpm_ac2="{1}"'.format(bpm_ac1, bpm_ac2)
+        return [{}, 0.0, [], [float('nan'), float('nan')]]
 
     #-- Model beta and phase advance
-    if plane=='H': betmdl=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in bpm])
-    if plane=='V': betmdl=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in bpm])
-    if plane=='H': betmdl_arcs=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b]] for b in bpm_arcs])
-    if plane=='V': betmdl_arcs=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b]] for b in bpm_arcs])
-    if plane=='H': betmdl_arcs_clean=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b]] for b in bpm_arcs_clean])
-    if plane=='V': betmdl_arcs_clean=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b]] for b in bpm_arcs_clean])
-    if plane=='H': betmdl_arcs_81=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[b]] for b in bpm_arcs_81])
-    if plane=='V': betmdl_arcs_81=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[b]] for b in bpm_arcs_81])
+    if plane == 'H':
+        betmdl = np.array(
+            [MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in all_bpms]
+        )
+    if plane == 'V':
+        betmdl = np.array(
+            [MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in all_bpms]
+        )
+
     #-- Global parameters of the driven motion
-    r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
+    r = sin(np.pi * (Qd - Q)) / sin(np.pi * (Qd + Q))
+
+    # TODO: Use std to compute errorbars.
+    sqrt2j, sqrt2j_std = get_kick_from_bpm_list(
+        MADTwiss_ac, good_bpms_for_kick, Files, plane
+    )
 
     #-- Loop for files
-    betall=np.zeros((len(bpm),len(Files)))
-    Adall=np.zeros((len(bpm),len(Files)))
+    betall = np.zeros((len(all_bpms), len(Files)))
+    adall = np.zeros((len(all_bpms), len(Files)))
     for i in range(len(Files)):
-        if plane=='H':
-            amp =np.array([2*Files[i].AMPX[Files[i].indx[b[1]]] for b in bpm])
-            amp_arcs =np.array([2*Files[i].AMPX[Files[i].indx[b]] for b in bpm_arcs])
-            amp_arcs_clean =np.array([2*Files[i].AMPX[Files[i].indx[b]] for b in bpm_arcs_clean])
-            amp_arcs_81 =np.array([2*Files[i].AMPX[Files[i].indx[b]] for b in bpm_arcs_81])
-            psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-        if plane=='V':
-            amp =np.array([2*Files[i].AMPY[Files[i].indx[b[1]]] for b in bpm])
-            amp_arcs =np.array([2*Files[i].AMPY[Files[i].indx[b]] for b in bpm_arcs])
-            amp_arcs_clean =np.array([2*Files[i].AMPY[Files[i].indx[b]] for b in bpm_arcs_clean])
-            amp_arcs_81 =np.array([2*Files[i].AMPY[Files[i].indx[b]] for b in bpm_arcs_81])
-            psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-        for k in range(len(bpm)):
+        if plane == 'H':
+            amp = np.array(
+                [2 * Files[i].AMPX[Files[i].indx[b[1]]] for b in all_bpms]
+            )
+            psid = bd * 2 * np.pi * np.array(
+                [Files[i].MUX[Files[i].indx[b[1]]] for b in all_bpms]
+            )  # bd flips B2 phase to B1 direction
+        if plane == 'V':
+            amp = np.array(
+                [2 * Files[i].AMPY[Files[i].indx[b[1]]] for b in all_bpms]
+            )
+            psid = bd * 2 * np.pi * np.array(
+                [Files[i].MUY[Files[i].indx[b[1]]] for b in all_bpms]
+            )  # bd flips B2 phase to B1 direction
+
+        # This loop is just to fix the phase jump at the beginning of the ring.
+        for k in range(len(all_bpms)):
             try:
-                if bpm[k][0]>s_lastbpm: psid[k]+=2*np.pi*Qd  #-- To fix the phase shift by Q
-            except: pass
-        Ad_arcs_81=amp_arcs_81/map(math.sqrt,betmdl_arcs_81)
-        Ad  =amp/map(math.sqrt,betmdl)
-        psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
-        Psid=psid+np.pi*Qd
-        Psid[k_bpmac:]=Psid[k_bpmac:]-2*np.pi*Qd
-        bet =(amp/np.mean(Ad_arcs_81))**2*(1+r**2+2*r*np.cos(2*Psid))/(1-r**2)
-        for k in range(len(bpm)):
-            betall[k][i]=bet[k]
-            Adall[k][i]=Ad[k]
+                if all_bpms[k][0] > s_lastbpm:
+                    psid[k] += 2 * np.pi * Qd
+            except:
+                pass
+
+        psid = psid - (psid[k_bpmac] - psid_ac2bpmac[bpmac])
+        Psid = psid + np.pi * Qd
+        Psid[k_bpmac:] = Psid[k_bpmac:] - 2 * np.pi * Qd
+        bet = ((amp / sqrt2j[i]) ** 2 *
+               (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
+        for bpm_index in range(len(all_bpms)):
+            betall[bpm_index][i] = bet[bpm_index]
 
     #-- Output
-    result={}
-    bb=[]
-    Adave=[]
-    for k in range(len(bpm)):
-        betave=np.mean(betall[k])
-        betstd=math.sqrt(np.mean((betall[k]-betave)**2))
-        bb.append((betave-betmdl[k])/betmdl[k])
-        Adave.append(np.mean(Adall[k]))
-        result[bpm[k][1]]=[betave,betstd,bpm[k][0]]
-    bb=math.sqrt(np.mean(np.array(bb)**2))
-    Ad=[np.mean(Adave),math.sqrt(np.mean((Adave-np.mean(Adave))**2))]
+    result = {}
+    bb = []
+    Adave = []
+    for k in range(len(all_bpms)):
+        betave = np.mean(betall[k])
+        betstd = np.std(betall[k])
+        bb.append((betave - betmdl[k]) / betmdl[k])
+        # Adave.append(np.mean(adall[k]))
+        Adave.append(np.mean(adall, axis=0))
+        result[all_bpms[k][1]] = [betave, betstd, all_bpms[k][0]]
+    bb = math.sqrt(np.mean(np.array(bb) ** 2))
 
-    return [result,bb,bpm,Ad]
+    return [result, bb, all_bpms]
 
 
-def get_kick_from_arcs(MADTwiss_ac, bpm_list, measurements, plane):
-    if plane=='H': betmdl=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list])
-    if plane=='V': betmdl=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list])
+def intersect_bpm_list_with_arc_bpms(bpms_list):
+    bpm_arcs = []
+    # Selecting ARC BPMs
+    for b in bpms_list:
+        if ((b[1][4]) == '1' and (b[1][5]) >= '4') or (b[1][4]) == '2':
+            bpm_arcs.append(b)
+    return bpm_arcs
+
+
+BAD_BPM_LIST = ['BPM.15R8.B1', 'BPM.16R3.B1', 'BPM.31L5.B1', 'BPM.23L6.B1',
+                'BPM.22R8.B1', 'BPM.11R6.B1', 'BPM.18R6.B1', 'BPM.34R5.B1']
+
+
+def intersect_bpms_list_with_bad_known_bpms(bpms_list):
+    bpm_arcs_clean = []
+    for b in bpms_list:
+        if b[1] not in BAD_BPM_LIST:
+            bpm_arcs_clean.append(b)
+    return bpm_arcs_clean
+
+
+def get_kick_from_bpm_list(MADTwiss_ac, bpm_list, measurements, plane):
+    if plane == 'H':
+        betmdl = np.array(
+            [MADTwiss_ac.BETX[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list]
+        )
+    if plane == 'V':
+        betmdl = np.array(
+            [MADTwiss_ac.BETY[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list]
+        )
 
     actions_sqrt = []
     actions_sqrt_err = []
 
-    for i in range(len(measurements)):
-        if plane=='H':
-            amp =np.array([2*measurements[i].AMPX[measurements[i].indx[bpm[1]]] for bpm in bpm_list])
-        if plane=='V':
-            amp =np.array([2*measurements[i].AMPY[measurements[i].indx[bpm[1]]] for bpm in bpm_list])
+    for measurement in measurements:
+        if plane == 'H':
+            amp = np.array(
+                [2 * measurement.AMPX[measurement.indx[bpm[1]]] for bpm in bpm_list]
+            )
+        if plane == 'V':
+            amp = np.array(
+                [2 * measurement.AMPY[measurement.indx[bpm[1]]] for bpm in bpm_list]
+            )
+        actions_sqrt.append(np.average(amp / np.sqrt(betmdl)))
+        actions_sqrt_err.append(np.std(amp / np.sqrt(betmdl)))
 
-
-        actions_sqrt[i]     = np.average(amp/np.sqrt(betmdl))
-        actions_sqrt_err[i] = np.std(amp/np.sqrt(betmdl))
-
-    return actions_sqrt, actions_sqrt_err 
-    
+    return actions_sqrt, actions_sqrt_err
 
 
 def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd):
