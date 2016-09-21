@@ -381,7 +381,11 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
 
     #-- Test if the AC dipole (MKQA) is in the model of LHC
     mad_elem = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements.dat"))
-    mad_elem_centre = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements_centre.dat"))
+    try:
+        mad_elem_centre = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements_centre.dat"))
+    except Exception:
+        mad_elem_centre = mad_elem
+        print "WARN: No elements_centre found, use end points instead. This shouldn't change much but is not recommended"
     if getllm_d.with_ac_calc:
         if 'LHC' in accel:
             if 'MKQA.6L4.' + accel[3:] in getattr(mad_twiss, "NAME", []):
