@@ -35,16 +35,16 @@ DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py..."
 
 #--- Constants
 
-PI      = 3.14159265358979323846
-TWOPI   = PI * 2.0
+PI      = 3.14159265358979323846    #@IgnorePep8
+TWOPI   = PI * 2.0                  #@IgnorePep8
 
-DEFAULT_WRONG_BETA  = 1000
-EPSILON             = 1.0E-16
-PROGRESSBAR_LENGTH  = 60
-SEXT_FACT           = 1.0
-A_FACT              = -.5
+DEFAULT_WRONG_BETA  = 1000          #@IgnorePep8
+EPSILON             = 1.0E-16       #@IgnorePep8
+PROGRESSBAR_LENGTH  = 60            #@IgnorePep8
+SEXT_FACT           = 2.0           #@IgnorePep8
+A_FACT              = -.5           #@IgnorePep8
 
-PINV_THRESHOLD      = -9.0
+PINV_THRESHOLD      = -9.0          #@IgnorePep8
 
 
 #===================================================================================================
@@ -68,9 +68,10 @@ class BetaData(object):
         self.y_ratio_f = None  # beta x ratio free
 
 
-def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, mad_best_knowledge,
-                              mad_ac_best_knowledge, files_dict, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms,
-                              use_sim):
+def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
+                              mad_twiss, mad_ac, mad_elem, mad_elem_centre, mad_best_knowledge, mad_ac_best_knowledge,
+                              files_dict, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms,
+                              errordefspath):
     '''
     Calculates beta and fills the following TfsFiles:
         getbetax.out        getbetax_free.out        getbetax_free2.out
@@ -93,7 +94,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
         print "WARNING: use_only_three_bpms_for_beta_from_phase = True"
     #---- H plane
     if twiss_d.has_zero_dpp_x():
-        [beta_d.x_phase, rmsbbx, alfax, bpms, error_method] = beta_from_phase(mad_ac_best_knowledge, twiss_d.zero_dpp_x, phase_d.ph_x, 'H', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, use_sim)
+        [beta_d.x_phase, rmsbbx, alfax, bpms, error_method, corr] = beta_from_phase(mad_ac_best_knowledge, mad_elem, mad_elem_centre,
+                                                                                    twiss_d.zero_dpp_x, phase_d.ph_x, 'H',
+                                                                                    use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
         beta_d.x_phase['DPP'] = 0
         tfs_file = files_dict['getbetax.out']
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
@@ -107,19 +110,25 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
 
         tfs_file.add_string_descriptor("ErrorsFrom", error_method)
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "SYSBETX", "STATBETX", "ERRBETX", "ALFX", "SYSALFX", "STATALFX", "ERRALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "SYSBETX", "STATBETX", "ERRBETX", "CORR_ALFABETA", "ALFX", "SYSALFX", "STATALFX", "ERRALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
+        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
             bn1 = str.upper(bpms[i][1])
             bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_phase[bn1][0], beta_d.x_phase[bn1][1], beta_d.x_phase[bn1][2], beta_d.x_phase[bn1][3], alfax[bn1][0], alfax[bn1][1], alfax[bn1][2], alfax[bn1][3], mad_ac.BETX[mad_ac.indx[bn1]], mad_ac.ALFX[mad_ac.indx[bn1]], mad_ac.MUX[mad_ac.indx[bn1]]]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x),
+                                beta_d.x_phase[bn1][0], beta_d.x_phase[bn1][1], beta_d.x_phase[bn1][2], beta_d.x_phase[bn1][3],
+                                corr[bn1],
+                                alfax[bn1][0], alfax[bn1][1], alfax[bn1][2], alfax[bn1][3],
+                                mad_ac.BETX[mad_ac.indx[bn1]], mad_ac.ALFX[mad_ac.indx[bn1]], mad_ac.MUX[mad_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
 
         #-- ac to free beta
         if getllm_d.with_ac_calc:
             #-- from eq
             try:
-                [beta_d.x_phase_f, rmsbbxf, alfaxf, bpmsf, error_method] = beta_from_phase(mad_best_knowledge, twiss_d.zero_dpp_x, phase_d.x_f, 'H', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, use_sim)
+                [beta_d.x_phase_f, rmsbbxf, alfaxf, bpmsf, error_method, corr] = beta_from_phase(mad_best_knowledge, mad_elem, mad_elem_centre,
+                                                                                                 twiss_d.zero_dpp_x, phase_d.x_f, 'H',
+                                                                                                 use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
                 tfs_file = files_dict['getbetax_free.out']
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
@@ -131,12 +140,16 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
                     tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
                     tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
                 tfs_file.add_string_descriptor("ErrorsFrom", error_method)
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "SYSBETX", "STATBETX", "ERRBETX", "ALFX", "SYSALFX", "STATALFX", "ERRALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "SYSBETX", "STATBETX", "ERRBETX", "CORR_ALFABETA", "ALFX", "SYSALFX", "STATALFX", "ERRALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
+                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
                     bn1 = str.upper(bpmsf[i][1])
                     bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_phase_f[bn1][0], beta_d.x_phase_f[bn1][1], beta_d.x_phase_f[bn1][2], beta_d.x_phase_f[bn1][3], alfaxf[bn1][0], alfaxf[bn1][1], alfaxf[bn1][2], alfaxf[bn1][3], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
+                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x),
+                                        beta_d.x_phase_f[bn1][0], beta_d.x_phase_f[bn1][1], beta_d.x_phase_f[bn1][2], beta_d.x_phase_f[bn1][3],
+                                        corr[bn1],
+                                        alfaxf[bn1][0], alfaxf[bn1][1], alfaxf[bn1][2], alfaxf[bn1][3],
+                                        mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
             except:
                 traceback.print_exc()
@@ -147,17 +160,23 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
             tfs_file.add_float_descriptor("Q2", tune_d.q2f)
             tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf2)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "SYSBETX", "STATBETX", "ERRBETX", "ALFX", "SYSALFX", "STATALFX", "ERRALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "SYSBETX", "STATBETX", "ERRBETX", "CORR_ALFABETA", "ALFX", "SYSALFX", "STATALFX", "ERRALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
+            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(0, len(bpmsf2)):
                 bn1 = str.upper(bpmsf2[i][1])
                 bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1], betaxf2[bn1][2], betaxf2[bn1][3], alfaxf2[bn1][0], alfaxf2[bn1][1], alfaxf2[bn1][2],alfaxf2[bn1][3], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
+                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x),
+                                    betaxf2[bn1][0], betaxf2[bn1][1], betaxf2[bn1][2], betaxf2[bn1][3],
+                                    corr[bn1],
+                                    alfaxf2[bn1][0], alfaxf2[bn1][1], alfaxf2[bn1][2], alfaxf2[bn1][3],
+                                    mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
 
     #---- V plane
     if twiss_d.has_zero_dpp_y():
-        [beta_d.y_phase, rmsbby, alfay, bpms, error_method] = beta_from_phase(mad_ac_best_knowledge, twiss_d.zero_dpp_y, phase_d.ph_y, 'V', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, use_sim)
+        [beta_d.y_phase, rmsbby, alfay, bpms, error_method, corr] = beta_from_phase(mad_ac_best_knowledge, mad_elem, mad_elem_centre,
+                                                                                    twiss_d.zero_dpp_y, phase_d.ph_y, 'V',
+                                                                                    use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
         beta_d.y_phase['DPP'] = 0
         tfs_file = files_dict['getbetay.out']
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
@@ -170,19 +189,25 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
             tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
         tfs_file.add_string_descriptor("ErrorsFrom", error_method)
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "SYSBETY", "STATBETY", "ERRBETY", "ALFY", "SYSALFY", "STATALFY", "ERRALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "SYSBETY", "STATBETY", "ERRBETY", "CORR_ALFABETA", "ALFY", "SYSALFY", "STATALFY", "ERRALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
+        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for i in range(0, len(bpms)):
             bn1 = str.upper(bpms[i][1])
             bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_phase[bn1][0], beta_d.y_phase[bn1][1], beta_d.y_phase[bn1][2], beta_d.y_phase[bn1][3], alfay[bn1][0], alfay[bn1][1], alfay[bn1][2], alfay[bn1][3], mad_ac.BETY[mad_ac.indx[bn1]], mad_ac.ALFY[mad_ac.indx[bn1]], mad_ac.MUY[mad_ac.indx[bn1]]]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y),
+                                beta_d.y_phase[bn1][0], beta_d.y_phase[bn1][1], beta_d.y_phase[bn1][2], beta_d.y_phase[bn1][3],
+                                corr[bn1],
+                                alfay[bn1][0], alfay[bn1][1], alfay[bn1][2], alfay[bn1][3],
+                                mad_ac.BETY[mad_ac.indx[bn1]], mad_ac.ALFY[mad_ac.indx[bn1]], mad_ac.MUY[mad_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
 
         #-- ac to free beta
         if getllm_d.with_ac_calc:
             #-- from eq
             try:
-                [beta_d.y_phase_f, rmsbbyf, alfayf, bpmsf, error_method] = beta_from_phase(mad_best_knowledge, twiss_d.zero_dpp_y, phase_d.y_f, 'V', use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, use_sim)
+                [beta_d.y_phase_f, rmsbbyf, alfayf, bpmsf, error_method, corr] = beta_from_phase(mad_best_knowledge, mad_elem, mad_elem_centre,
+                                                                                                 twiss_d.zero_dpp_y, phase_d.y_f, 'V',
+                                                                                                 use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
                 tfs_file = files_dict['getbetay_free.out']
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
@@ -194,12 +219,16 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
                     tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
                     tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
                 tfs_file.add_string_descriptor("ErrorsFrom", error_method)
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "SYSBETY", "STATBETY", "ERRBETY", "ALFY", "SYSALFY", "STATALFY", "ERRALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "SYSBETY", "STATBETY", "ERRBETY", "CORR_ALFABETA", "ALFY", "SYSALFY", "STATALFY", "ERRALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
+                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(bpmsf)):
                     bn1 = str.upper(bpmsf[i][1])
                     bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_phase_f[bn1][0], beta_d.y_phase_f[bn1][1], beta_d.y_phase_f[bn1][2], beta_d.y_phase_f[bn1][3], alfayf[bn1][0], alfayf[bn1][1], alfayf[bn1][2],alfayf[bn1][3], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.ALFY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
+                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y),
+                                        beta_d.y_phase_f[bn1][0], beta_d.y_phase_f[bn1][1], beta_d.y_phase_f[bn1][2], beta_d.y_phase_f[bn1][3],
+                                        corr[bn1],
+                                        alfayf[bn1][0], alfayf[bn1][1], alfayf[bn1][2], alfayf[bn1][3],
+                                        mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.ALFY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
             except:
                 traceback.print_exc()
@@ -210,12 +239,16 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
             tfs_file.add_float_descriptor("Q2", tune_d.q2f)
             tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf2)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "SYSBETY", "STATBETY", "ERRBETY", "ALFY", "SYSALFY", "STATALFY", "ERRALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "SYSBETY", "STATBETY", "ERRBETY", "CORR_ALFABETA", "ALFY", "SYSALFY", "STATALFY", "ERRALFY", "BETYMDL", "ALFYMDL", "MUYMDL"])
+            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
             for i in range(0, len(bpmsf2)):
                 bn1 = str.upper(bpmsf2[i][1])
                 bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf2[bn1][0], betayf2[bn1][1], betayf2[bn1][2], betayf2[bn1][3], alfayf2[bn1][0], alfayf2[bn1][1], alfayf2[bn1][2], alfayf2[bn1][3], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.ALFY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
+                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y),
+                                    betayf2[bn1][0], betayf2[bn1][1], betayf2[bn1][2], betayf2[bn1][3],
+                                    corr[bn1],
+                                    alfayf2[bn1][0], alfayf2[bn1][1], alfayf2[bn1][2], alfayf2[bn1][3],
+                                    mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.ALFY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
 
     return beta_d
@@ -450,15 +483,15 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 # END calculate_beta_from_amplitude ----------------------------------------------------------------
 
 
-def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, use_sim):
+def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath):
     '''
-    Calculate the beta funcstion from phase advances
+    Calculate the beta function from phase advances
     If range of BPMs is sufficiently large use averaging with weighted mean. The weights are determinde using either the
     output of Monte Carlo simulations or using analytical formulas derived from exacter formulas to calculate the beta
     function.
     
     :Parameters:
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'ListOfFiles':twiss
             measurement files
@@ -469,11 +502,11 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
         'use_only_three_bpms_for_beta_from_phase':Boolean
             self-explanatory
         'number_of_bpms':int
-            use the number_of_bpm betas with the lowest phase advance (only used when use_sim = True)
+            use the number_of_bpm betas with the lowest phase advance (only used when monte carlo simulations are used)
         'range_of_bpms':int
             length of range of bpms used to calculate the beta function. Has to be an odd number 1 < r < 21
-        'use_sim':Boolean
-            if True use the Monta Carlo simulations rather than analytic calculation
+        'errordefspath':String
+            the paths to the error definition file. If not specified, Monte Carlo simulation is used
     :Return:tupel (beta,rmsbb,alfa,commonbpms)
         'beta':dict
             calculated beta function for all BPMs
@@ -488,15 +521,17 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
         return [{}, 0.0, {}, []]
     alfa = {}
     beta = {}
+    corr = {}
     
     print "START beta from phase"
 
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, MADTwiss)
+    commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
     
     errorfile = None
-    if not use_sim and not use_only_three_bpms_for_beta_from_phase:
-        errorfile = create_errorfile(MADTwiss, commonbpms, plane)
+    if not use_only_three_bpms_for_beta_from_phase:
+        errorfile = create_errorfile(errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane)
+    use_sim = (errorfile == None)
         
     if 3 > len(commonbpms):
         print "beta_from_phase: Less than three BPMs for plane", plane + ". Returning empty values."
@@ -515,13 +550,13 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
     # systematic errors
     if errorfile != None and not use_sim and not use_only_three_bpms_for_beta_from_phase:
              
-        rmsbb, errors_method = ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of_bpms, alfa, beta, commonbpms, delbeta)
-        return [beta, rmsbb, alfa, commonbpms, errors_method]
+        rmsbb, errors_method = ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of_bpms, alfa, beta, corr, commonbpms, delbeta)
+        return [beta, rmsbb, alfa, commonbpms, errors_method, corr]
     #---- use the simulations
     else:
-        rmsbb, errors_method = ScanAllBPMS_sim_3bpm(MADTwiss, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, alfa, beta, commonbpms, delbeta)
+        rmsbb, errors_method = ScanAllBPMS_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, alfa, beta, corr, commonbpms, delbeta)
 
-    return [beta, rmsbb, alfa, commonbpms, errors_method]
+    return [beta, rmsbb, alfa, commonbpms, errors_method, corr]
 
 
 def beta_from_amplitude(mad_twiss, list_of_files, plane):
@@ -605,9 +640,9 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 #---============== using the simulations to calculate the beta function and error bars =================================
 #=======================================================================================================================
 
-def ScanAllBPMS_sim_3bpm(MADTwiss, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, alfa, beta, commonbpms, delbeta):
+def ScanAllBPMS_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, alfa, beta, corr, commonbpms, delbeta):
     systematic_errors_found = False
-    systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(MADTwiss.filename)), "bet_deviations.npy")
+    systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
     systematic_errors = None
     errors_method = "Obtained using Monte-Carlo Simulations"
     if not os.path.isfile(systematics_error_path):
@@ -626,7 +661,7 @@ def ScanAllBPMS_sim_3bpm(MADTwiss, phase, plane, use_only_three_bpms_for_beta_fr
     for i in range(0, len(commonbpms)):
         if (i % 10) == 0:
             progress(float(i) / len(commonbpms) * 100.0)
-        alfa_beta, probed_bpm_name, M = get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
+        alfa_beta, probed_bpm_name, M = get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
         alfi = sum([alfa_beta[i][3] for i in range(len(alfa_beta))]) / len(alfa_beta)
         alfstd = math.sqrt(sum([alfa_beta[i][2] ** 2 for i in range(len(alfa_beta))])) / math.sqrt(len(alfa_beta))
         try:
@@ -634,9 +669,9 @@ def ScanAllBPMS_sim_3bpm(MADTwiss, phase, plane, use_only_three_bpms_for_beta_fr
         except ValueError:
             alferr = 0
         if plane == 'H':
-            betmdl1 = MADTwiss.BETX[MADTwiss.indx[probed_bpm_name]]
+            betmdl1 = madTwiss.BETX[madTwiss.indx[probed_bpm_name]]
         elif plane == 'V':
-            betmdl1 = MADTwiss.BETY[MADTwiss.indx[probed_bpm_name]]
+            betmdl1 = madTwiss.BETY[madTwiss.indx[probed_bpm_name]]
         beti = DEFAULT_WRONG_BETA
         if not use_only_three_bpms_for_beta_from_phase and systematic_errors_found:
             T = np.transpose(np.matrix([alfa_beta[i][7] for i in range(len(alfa_beta))]))
@@ -730,6 +765,7 @@ def ScanAllBPMS_sim_3bpm(MADTwiss, phase, plane, use_only_three_bpms_for_beta_fr
                 
         beta[probed_bpm_name] = beti, beterr, betstd, math.sqrt(beterr ** 2 + betstd ** 2)
         alfa[probed_bpm_name] = alfi, alferr, alfstd, math.sqrt(alferr ** 2 + alfstd ** 2)
+        corr[probed_bpm_name] = .0
         delbeta.append((beti - betmdl1) / betmdl1)
         if DEBUG:
             matrixfile_andi.write("end\n")
@@ -742,12 +778,12 @@ def ScanAllBPMS_sim_3bpm(MADTwiss, phase, plane, use_only_three_bpms_for_beta_fr
     return rmsbb, errors_method
 
 
-def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms):
+def get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms):
     '''
     Sorts BPM sets for the beta calculation based on their phase advance.
     If less than 7 BPMs are available it will fall back to using only next neighbours.
     :Parameters:
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'phase':dict
             measured phase advances
@@ -774,11 +810,11 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
         bn4 = str.upper(commonbpms[(i + 3) % len(commonbpms)][1])
         bn5 = str.upper(commonbpms[(i + 4) % len(commonbpms)][1])
         candidates = []
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_right(bn1, bn2, bn3, MADTwiss, phase, plane, 0, 0, 0)
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_right(bn1, bn2, bn3, madTwiss, phase, plane, 0, 0, 0)
         candidates.append([tbetstd, tbet, talfstd, talf])
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_mid(bn2, bn3, bn4, MADTwiss, phase, plane, 0, 0, 0)
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_mid(bn2, bn3, bn4, madTwiss, phase, plane, 0, 0, 0)
         candidates.append([tbetstd, tbet, talfstd, talf])
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_left(bn3, bn4, bn5, MADTwiss, phase, plane, 0, 0, 0)
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_left(bn3, bn4, bn5, madTwiss, phase, plane, 0, 0, 0)
         candidates.append([tbetstd, tbet, talfstd, talf])
         return candidates, bn3, []
 
@@ -789,17 +825,17 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
     if plane == 'H':
         for i in range(RANGE):
             if i < probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]])
+                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[i]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]])
             elif i > probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]])
-        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
+                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[i]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]])
+        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETX[madTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
     if plane == 'V':
         for i in range(RANGE):
             if i < probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]])
+                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[i]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]])
             if i > probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]])
-        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
+                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[i]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]])
+        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETY[madTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
    
     M = np.zeros([RANGE - 1, RANGE - 1])
     for k in range(RANGE - 1):
@@ -824,7 +860,7 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
     #left_combo = []     # BBA
    
     for n in left_combo:
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_right(bpm_name[n[0]], bpm_name[n[1]], bpm_name[probed_index], MADTwiss, phase, plane, phase_err[n[0]], phase_err[n[1]], phase_err[probed_index])
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_right(bpm_name[n[0]], bpm_name[n[1]], bpm_name[probed_index], madTwiss, phase, plane, phase_err[n[0]], phase_err[n[1]], phase_err[probed_index])
         t_matrix_row = [0] * (RANGE-1)
         t_matrix_row[RANGE-2 - n[0]] = t1
         t_matrix_row[RANGE-2 - n[1]] = t2
@@ -835,7 +871,7 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
         candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
     for n in mid_combo:
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_mid(bpm_name[n[0]], bpm_name[probed_index], bpm_name[n[1]], MADTwiss, phase, plane, phase_err[n[0]], phase_err[probed_index], phase_err[n[1]])
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_mid(bpm_name[n[0]], bpm_name[probed_index], bpm_name[n[1]], madTwiss, phase, plane, phase_err[n[0]], phase_err[probed_index], phase_err[n[1]])
         t_matrix_row = [0] * (RANGE - 1)
         t_matrix_row[RANGE - 2 - n[0]] = t1
         t_matrix_row[n[1] - 1 - probed_index] = t2
@@ -846,7 +882,7 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
         candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
     for n in right_combo:
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_left(bpm_name[probed_index], bpm_name[n[0]], bpm_name[n[1]], MADTwiss, phase, plane, phase_err[probed_index], phase_err[n[0]], phase_err[n[1]])
+        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2 = BetaFromPhase_BPM_left(bpm_name[probed_index], bpm_name[n[0]], bpm_name[n[1]], madTwiss, phase, plane, phase_err[probed_index], phase_err[n[0]], phase_err[n[1]])
         t_matrix_row = [0] * (RANGE-1)
         t_matrix_row[n[0] - 1 - probed_index] = t1
         t_matrix_row[n[1] - 1 - probed_index] = t2
@@ -861,7 +897,7 @@ def get_best_three_bpms_with_beta_and_alfa(MADTwiss, phase, plane, commonbpms, i
     return candidates, bpm_name[probed_index], M
 
 
-def BetaFromPhase_BPM_left(bn1, bn2, bn3, MADTwiss, phase, plane, p1, p2, p3):
+def BetaFromPhase_BPM_left(bn1, bn2, bn3, madTwiss, phase, plane, p1, p2, p3):
     '''
     Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is left of the other two BPMs (ABB)
@@ -872,7 +908,7 @@ def BetaFromPhase_BPM_left(bn1, bn2, bn3, MADTwiss, phase, plane, p1, p2, p3):
             Name of first BPM right of the probed BPM
         'bn3':string
             Name of second BPM right of the probed BPM
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'phase':dict
             measured phase advances
@@ -895,15 +931,15 @@ def BetaFromPhase_BPM_left(bn1, bn2, bn3, MADTwiss, phase, plane, p1, p2, p3):
     phmdl12 = 2.*np.pi*phase["".join([plane,bn1,bn2])][2]
     phmdl13=2.*np.pi*phase["".join([plane,bn1,bn3])][2]
     if plane=='H':
-        betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
-        betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
-        betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
-        alpmdl1=MADTwiss.ALFX[MADTwiss.indx[bn1]]
+        betmdl1=madTwiss.BETX[madTwiss.indx[bn1]]
+        betmdl2=madTwiss.BETX[madTwiss.indx[bn2]]
+        betmdl3=madTwiss.BETX[madTwiss.indx[bn3]]
+        alpmdl1=madTwiss.ALFX[madTwiss.indx[bn1]]
     elif plane=='V':
-        betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alpmdl1=MADTwiss.ALFY[MADTwiss.indx[bn1]]
+        betmdl1=madTwiss.BETY[madTwiss.indx[bn1]]
+        betmdl2=madTwiss.BETY[madTwiss.indx[bn2]]
+        betmdl3=madTwiss.BETY[madTwiss.indx[bn3]]
+        alpmdl1=madTwiss.ALFY[madTwiss.indx[bn1]]
     if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
@@ -941,7 +977,7 @@ def BetaFromPhase_BPM_left(bn1, bn2, bn3, MADTwiss, phase, plane, p1, p2, p3):
 
     return bet, betstd, alf, alfstd, mdlerr, term1, term2
 
-def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
+def BetaFromPhase_BPM_mid(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3):
     '''
     Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is between the other two BPMs
@@ -952,7 +988,7 @@ def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
             Name of probed BPM
         'bn3':string
             Name of BPM right of the probed BPM
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'phase':dict
             measured phase advances
@@ -975,15 +1011,15 @@ def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
     phmdl12=2.*np.pi*phase["".join([plane,bn1,bn2])][2]
     phmdl23=2.*np.pi*phase["".join([plane,bn2,bn3])][2]
     if plane=='H':
-        betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
-        betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
-        betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
-        alpmdl2=MADTwiss.ALFX[MADTwiss.indx[bn2]]
+        betmdl1=madTwiss.BETX[madTwiss.indx[bn1]]
+        betmdl2=madTwiss.BETX[madTwiss.indx[bn2]]
+        betmdl3=madTwiss.BETX[madTwiss.indx[bn3]]
+        alpmdl2=madTwiss.ALFX[madTwiss.indx[bn2]]
     elif plane=='V':
-        betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alpmdl2=MADTwiss.ALFY[MADTwiss.indx[bn2]]
+        betmdl1=madTwiss.BETY[madTwiss.indx[bn1]]
+        betmdl2=madTwiss.BETY[madTwiss.indx[bn2]]
+        betmdl3=madTwiss.BETY[madTwiss.indx[bn3]]
+        alpmdl2=madTwiss.ALFY[madTwiss.indx[bn2]]
     if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
@@ -1022,7 +1058,7 @@ def BetaFromPhase_BPM_mid(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
 
     return bet, betstd, alf, alfstd, mdlerr, term1, term2
 
-def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
+def BetaFromPhase_BPM_right(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3):
     '''
     Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is right the other two BPMs
@@ -1033,7 +1069,7 @@ def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
             Name of first BPM left of the probed BPM
         'bn3':string
             Name of probed BPM
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'phase':dict
             measured phase advances
@@ -1056,15 +1092,15 @@ def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
     phmdl13=2.*np.pi*phase["".join([plane,bn1,bn3])][2]
     phmdl23=2.*np.pi*phase["".join([plane,bn2,bn3])][2]
     if plane=='H':
-        betmdl1=MADTwiss.BETX[MADTwiss.indx[bn1]]
-        betmdl2=MADTwiss.BETX[MADTwiss.indx[bn2]]
-        betmdl3=MADTwiss.BETX[MADTwiss.indx[bn3]]
-        alpmdl3=MADTwiss.ALFX[MADTwiss.indx[bn3]]
+        betmdl1=madTwiss.BETX[madTwiss.indx[bn1]]
+        betmdl2=madTwiss.BETX[madTwiss.indx[bn2]]
+        betmdl3=madTwiss.BETX[madTwiss.indx[bn3]]
+        alpmdl3=madTwiss.ALFX[madTwiss.indx[bn3]]
     elif plane=='V':
-        betmdl1=MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2=MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3=MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alpmdl3=MADTwiss.ALFY[MADTwiss.indx[bn3]]
+        betmdl1=madTwiss.BETY[madTwiss.indx[bn1]]
+        betmdl2=madTwiss.BETY[madTwiss.indx[bn2]]
+        betmdl3=madTwiss.BETY[madTwiss.indx[bn3]]
+        alpmdl3=madTwiss.ALFY[madTwiss.indx[bn3]]
     if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
@@ -1108,189 +1144,13 @@ def BetaFromPhase_BPM_right(bn1,bn2,bn3,MADTwiss,phase,plane,p1,p2,p3):
 #=======================================================================================================================
 
 
-def get_beta_from_phase_systematic_errors(MADTwiss, errorfile, phase, plane, commonbpms,
-                                          list_of_Ks, CurrentIndex, range_of_bpms,
-                                          ABB_combo, BAB_combo, BBA_combo):
-    '''
-    Calculates the beta function at one BPM for all combinations.
-    If less than 7 BPMs are available it will fall back to using only next neighbours.
-    :Parameters:
-        'MADTwiss':twiss
-            model twiss file
-        'MADTwiss':twiss
-            final error twiss file
-        'phase':dict
-            measured phase advances
-        'plane':string
-            'H' or 'V'
-        'commonbpms':list
-            intersection of common BPMs in measurement files and model
-        'list_of_Ks':vector (of vectors)
-            contains information about the errors the i-th entry in list_of_Ks yields the errors of all the lattice
-            elements that come after the i-th BPM
-        'CurrentIndex': integer
-            current iterator in the loop of all BPMs
-        'xyz_combo':vector
-            contain all the BPM combinations for the three different cases ABB, BAB, BBA
-    :Return: tupel(T_trans, betadata, bpm_name[probed_index], M)
-        'T_Trans':np.matrix
-            the T matrix to transform the variance matrix M into the covariance matrix V.
-            In comparision with Andy's paper, the transposed is calculated, thus the name T_Trans
-        'betadata':list
-            contains calculated betas with information about the combination that was used
-            consists of: betafunction, name of first used bpm, name of second used bpm, patternstring
-            the pattern string is primarily for debugging purposes, to see which combination got which weight
-            should be discarded afterwards
-        'M':np-matrix
-            variance matrix for all error kinds.
-    '''
-       
-    RANGE = int(range_of_bpms)
-    probed_index = int((RANGE - 1) / 2.)
-      
-    #--- Make a dictionary<int, string> to get the names of the BPMs
-    bpm_name = {}
-    for n in range(RANGE):
-        bpm_name[n] = str.upper(commonbpms[(CurrentIndex + n) % len(commonbpms)][1])
-        phase_err = {}
-    if plane == 'H':
-        for i in range(RANGE):
-            if i < probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]])
-            elif i > probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]])
-        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETX[MADTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
-    if plane == 'V':
-        for i in range(RANGE):
-            if i < probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]])
-            if i > probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[i]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]])
-        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index]]] / MADTwiss.BETY[MADTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
-
-    #---- calculate the size of the M matrix = M_phi (+) M_K (+) M_X (+) M_S
-        #---- the first block is M_phi the variance matrix of the phase errors
-    sizeOfMatrix = RANGE - 1
-    
-        #---- add the block M_K
-    for k in range(RANGE):
-        sizeOfMatrix += len(list_of_Ks[(CurrentIndex + k) % len(list_of_Ks)][0])
-        
-        #---- add the block M_X, the sextupole transversal missalignments
-    for k in range(RANGE):
-        sizeOfMatrix += len(list_of_Ks[(CurrentIndex + k) % len(list_of_Ks)][1])
-    
-        #---- add the block M_S, the quadrupole longitudinal missalignments
-    for k in range(RANGE):
-        sizeOfMatrix += len(list_of_Ks[(CurrentIndex + k) % len(list_of_Ks)][2])
-        
-        #---- add the block M_BPM, the BPM missalignment errors
-    sizeOfMatrix += RANGE
-          
-    M = np.zeros([sizeOfMatrix, sizeOfMatrix])
-    
-    #---- assign the variances:
-        #---- assign phase errors
-    for k in range(RANGE - 1):
-        for l in range(RANGE - 1):
-            if k == l and k < probed_index:
-                M[k][l] = TWOPI ** 2 * phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + k + 1]])][1] ** 2
-            elif k == l and k >= probed_index:
-                M[k][l] = TWOPI ** 2 * phase["".join([plane, bpm_name[RANGE - 2 - k], bpm_name[probed_index]])][1] ** 2
-            elif (k < probed_index and l >= probed_index) or (k >= probed_index and l < probed_index):
-                M[k][l] = -TWOPI ** 2 * phase_err[probed_index] ** 2
-            else:
-                M[k][l] = TWOPI ** 2 * phase_err[probed_index] ** 2
-
-        #---- assign field errors
-    position = RANGE - 1
-    for j in range(RANGE):
-        index = (CurrentIndex + j) % len(list_of_Ks)
-        for k in range(len(list_of_Ks[index][0])):
-            M[k + position][k + position] = errorfile.dK1[list_of_Ks[index][0][k]] ** 2
-        position += len(list_of_Ks[index][0])
-        
-        #---- assign sextupole transversal missalignments
-    for j in range(RANGE):
-        index = (CurrentIndex + j) % len(list_of_Ks)
-        for k in range(len(list_of_Ks[index][1])):
-            M[k + position][k + position] = errorfile.dX[list_of_Ks[index][1][k]] ** 2
-        position += len(list_of_Ks[index][1])
-        
-        #---- assign longitudinal missalignments
-    for j in range(RANGE):
-        index = (CurrentIndex + j) % len(list_of_Ks)
-        for k in range(len(list_of_Ks[index][2])):
-            M[k + position][k + position] = errorfile.dS[list_of_Ks[index][2][k]] ** 2
-        position += len(list_of_Ks[index][2])
-        
-        #---- assign BPM missalignments
-    for j in range(RANGE):
-        M[j + position][j + position] = errorfile.dS[errorfile.indx[bpm_name[j]]] ** 2
-               
-    #---- calculate betas_from_phase for the three cases.
-    #     and add matrix_row for the given combination
-    matrix_rows_Beta = []
-    matrix_rows_Alfa = []
-    
-    betadata = []
-    alfadata = []
-    
-    for n in BBA_combo:
-        n0 = probed_index + n[0]
-        n1 = probed_index + n[1]
-
-        tbet, talf, alfstd, TrowBeta, TrowAlfa, patternstr = BetaFromPhase_BPM_BBA_with_systematicerrors(CurrentIndex,
-                                                                                             bpm_name[n0], bpm_name[n1], bpm_name[probed_index], n0, n1, probed_index,
-                                                                                             MADTwiss, errorfile, phase, plane,
-                                                                                             list_of_Ks, sizeOfMatrix, RANGE)
-
-        betadata.append([tbet, bpm_name[n0], bpm_name[n1], patternstr])
-        alfadata.append([talf, alfstd])
-        matrix_rows_Beta.append(TrowBeta)
-        matrix_rows_Alfa.append(TrowAlfa)
-
-    for n in BAB_combo:
-        n0 = probed_index + n[0]
-        n1 = probed_index + n[1]
-
-        tbet, talf, alfstd, TrowBeta, TrowAlfa, patternstr = BetaFromPhase_BPM_BAB_with_systematicerrors(CurrentIndex,
-                                                                                          bpm_name[n0], bpm_name[probed_index], bpm_name[n1], n0, probed_index, n1,
-                                                                                          MADTwiss, errorfile, phase, plane,
-                                                                                          list_of_Ks, sizeOfMatrix, RANGE)
-        
-        betadata.append([tbet, bpm_name[n0], bpm_name[n1], patternstr])
-        alfadata.append([talf, alfstd])
-        matrix_rows_Alfa.append(TrowAlfa)
-        matrix_rows_Beta.append(TrowBeta)
-             
-    for n in ABB_combo:
-        n0 = probed_index + n[0]
-        n1 = probed_index + n[1]
-        
-        tbet, talf, alfstd, TrowBeta, TrowAlfa, patternstr = BetaFromPhase_BPM_ABB_with_systematicerrors(CurrentIndex,
-                                                                                           bpm_name[probed_index], bpm_name[n0], bpm_name[n1], probed_index, n0, n1,
-                                                                                           MADTwiss, errorfile, phase, plane,
-                                                                                           list_of_Ks, sizeOfMatrix, RANGE)
-        
-        betadata.append([tbet, bpm_name[n0], bpm_name[n1], patternstr])
-        alfadata.append([talf, alfstd])
-        matrix_rows_Alfa.append(TrowAlfa)
-        matrix_rows_Beta.append(TrowBeta)
-          
-    T_Beta = np.matrix(matrix_rows_Beta)
-    T_Alfa = np.matrix(matrix_rows_Alfa)
-      
-    return T_Alfa, T_Beta, betadata, alfadata, bpm_name[probed_index], M
-
-    
-def ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of_bpms, alfa, beta, commonbpms, delbeta):
+def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of_bpms, alfa, beta, corr, commonbpms, delbeta):
     '''
     If errorfile is given (!= "0") this function calculates the beta function for each BPM using the analytic expression
     for the estimation of the error matrix.
     
     :Parameters:
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'errorfile':twiss
             final errorfile (not error definitions)
@@ -1370,15 +1230,17 @@ def ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of
         if (i % 10) == 0:
             progress(float(i) / len(commonbpms) * 100.0)
             #--- RUN get_beta_from_phase_systematic_errors
-        T_Alfa, T_Beta, betadata, alfadata, probed_bpm_name, M = get_beta_from_phase_systematic_errors(MADTwiss, errorfile,
+        T_rows_Alfa, T_rows_Beta, betadata, alfadata, probed_bpm_name, M = get_beta_from_phase_systematic_errors(madTwiss, errorfile,
                                                                                                phase, plane, commonbpms, list_of_Ks, i,
                                                                                                range_of_bpms,
                                                                                                ABB_combo, BAB_combo, BBA_combo)
+        T_Alfa = np.matrix(T_rows_Alfa)
+        T_Beta = np.matrix(T_rows_Beta)
         
         if plane == 'H':
-            betmdl1 = MADTwiss.BETX[MADTwiss.indx[probed_bpm_name]]
+            betmdl1 = madTwiss.BETX[madTwiss.indx[probed_bpm_name]]
         elif plane == 'V':
-            betmdl1 = MADTwiss.BETY[MADTwiss.indx[probed_bpm_name]]
+            betmdl1 = madTwiss.BETY[madTwiss.indx[probed_bpm_name]]
         beti = DEFAULT_WRONG_BETA
         
         #--- calculate V and its inverse
@@ -1415,7 +1277,7 @@ def ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of
             for j in range(len_w):
                 beterr += w[i] * w[j] * V_Beta.item(i, j)
                 alferr += walfa[i] * walfa[j] * V_Alfa.item(i, j)
-                   
+                
         if beterr < 0:
             beterr = DEFAULT_WRONG_BETA
         else:
@@ -1424,12 +1286,24 @@ def ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of
             alferr = DEFAULT_WRONG_BETA
         else:
             alferr = np.sqrt(float(alferr))
-            
+                  
+            #--- calculate correlation coefficient
+        rho_alfa_beta = 0.0
+        for i in range(M.shape[0]):
+            betaterm = 0.0
+            alfaterm = 0.0
+            for k in range(len(betas)):
+                betaterm += w[k] * T_rows_Beta[k][i]
+                alfaterm += walfa[k] * T_rows_Alfa[k][i]
+            rho_alfa_beta += betaterm * alfaterm * M[i][i]
+        rho_alfa_beta /= (beterr * alferr)
+ 
         # so far, beta_syst and beta_stat are not separated
         beta[probed_bpm_name] = beti, 0, 0, beterr
         alfa[probed_bpm_name] = alfi, 0, 0, alferr
+        corr[probed_bpm_name] = rho_alfa_beta
         delbeta.append((beti - betmdl1) / betmdl1)
-   
+                
         #--- DEBUG
         if DEBUG:
             matrixfile.write("\n\nbegin BPM " + probed_bpm_name + " :\n")
@@ -1481,9 +1355,177 @@ def ScanAllBPMs_withSystematicErrors(MADTwiss, errorfile, phase, plane, range_of
     return rmsbb, errors_method
 
 
-# Do maybe some clean up in the parameters. why use indices and name keys at the same time. Would be faster (and
-# easier to read if we had just indices.
-def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3, MADTwiss, errorfile, phase, plane, list_of_Ks, matrixSize, RANGE):
+def get_beta_from_phase_systematic_errors(madTwiss, errorfile, phase, plane, commonbpms,
+                                          list_of_Ks, CurrentIndex, range_of_bpms,
+                                          ABB_combo, BAB_combo, BBA_combo):
+    '''
+    Calculates the beta function at one BPM for all combinations.
+    If less than 7 BPMs are available it will fall back to using only next neighbours.
+    :Parameters:
+        'madTwiss':twiss
+            model twiss file
+        'madTwiss':twiss
+            final error twiss file
+        'phase':dict
+            measured phase advances
+        'plane':string
+            'H' or 'V'
+        'commonbpms':list
+            intersection of common BPMs in measurement files and model
+        'list_of_Ks':vector (of vectors)
+            contains information about the errors the i-th entry in list_of_Ks yields the errors of all the lattice
+            elements that come after the i-th BPM
+        'CurrentIndex': integer
+            current iterator in the loop of all BPMs
+        'xyz_combo':vector
+            contain all the BPM combinations for the three different cases ABB, BAB, BBA
+    :Return: tupel(T_trans, betadata, bpm_name[probed_index], M)
+        'T_Trans':np.matrix
+            the T matrix to transform the variance matrix M into the covariance matrix V.
+            In comparision with Andy's paper, the transposed is calculated, thus the name T_Trans
+        'betadata':list
+            contains calculated betas with information about the combination that was used
+            consists of: betafunction, name of first used bpm, name of second used bpm, patternstring
+            the pattern string is primarily for debugging purposes, to see which combination got which weight
+            should be discarded afterwards
+        'M':np-matrix
+            variance matrix for all error kinds.
+    '''
+       
+    RANGE = int(range_of_bpms)
+    probed_index = int((RANGE - 1) / 2.)
+      
+    #--- Make a dictionary<int, string> to get the names of the BPMs
+    bpm_name = {}
+    for n in range(RANGE):
+        bpm_name[n] = str.upper(commonbpms[(CurrentIndex + n) % len(commonbpms)][1])
+        phase_err = {}
+    if plane == 'H':
+        for i in range(RANGE):
+            if i < probed_index:
+                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[i]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]])
+            elif i > probed_index:
+                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[i]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]])
+        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETX[madTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
+    if plane == 'V':
+        for i in range(RANGE):
+            if i < probed_index:
+                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[i]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]])
+            if i > probed_index:
+                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[i]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]])
+        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETY[madTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
+
+    #---- calculate the size of the M matrix = M_phi (+) M_K (+) M_X (+) M_S
+        #---- the first block is M_phi the variance matrix of the phase errors
+    sizeOfMatrix = RANGE - 1
+    
+        #---- add the block M_K
+    for k in range(RANGE):
+        sizeOfMatrix += len(list_of_Ks[(CurrentIndex + k) % len(list_of_Ks)][0])
+        
+        #---- add the block M_X, the sextupole transversal missalignments
+    for k in range(RANGE):
+        sizeOfMatrix += len(list_of_Ks[(CurrentIndex + k) % len(list_of_Ks)][1])
+    
+        #---- add the block M_S, the quadrupole longitudinal missalignments
+    for k in range(RANGE):
+        sizeOfMatrix += len(list_of_Ks[(CurrentIndex + k) % len(list_of_Ks)][2])
+        
+        #---- add the block M_BPM, the BPM missalignment errors
+    sizeOfMatrix += RANGE
+          
+    M = np.zeros([sizeOfMatrix, sizeOfMatrix])
+    
+    #---- assign the variances:
+        #---- assign phase errors
+    for k in range(RANGE - 1):
+        for l in range(RANGE - 1):
+            if k == l and k < probed_index:
+                M[k][l] = TWOPI ** 2 * phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + k + 1]])][1] ** 2
+            elif k == l and k >= probed_index:
+                M[k][l] = TWOPI ** 2 * phase["".join([plane, bpm_name[RANGE - 2 - k], bpm_name[probed_index]])][1] ** 2
+            elif (k < probed_index and l >= probed_index) or (k >= probed_index and l < probed_index):
+                M[k][l] = -TWOPI ** 2 * phase_err[probed_index] ** 2
+            else:
+                M[k][l] = TWOPI ** 2 * phase_err[probed_index] ** 2
+
+        #---- assign field errors
+    position = RANGE - 1
+    for j in range(RANGE):
+        index = (CurrentIndex + j) % len(list_of_Ks)
+        for k in range(len(list_of_Ks[index][0])):
+            M[k + position][k + position] = errorfile.dK1[list_of_Ks[index][0][k]] ** 2
+        position += len(list_of_Ks[index][0])
+        
+        #---- assign sextupole transversal missalignments
+    for j in range(RANGE):
+        index = (CurrentIndex + j) % len(list_of_Ks)
+        for k in range(len(list_of_Ks[index][1])):
+            M[k + position][k + position] = errorfile.dX[list_of_Ks[index][1][k]] ** 2
+        position += len(list_of_Ks[index][1])
+        
+        #---- assign longitudinal missalignments
+    for j in range(RANGE):
+        index = (CurrentIndex + j) % len(list_of_Ks)
+        for k in range(len(list_of_Ks[index][2])):
+            M[k + position][k + position] = errorfile.dS[list_of_Ks[index][2][k]] ** 2
+        position += len(list_of_Ks[index][2])
+        
+        #---- assign BPM missalignments
+    for j in range(RANGE):
+        M[j + position][j + position] = errorfile.dS[errorfile.indx[bpm_name[j]]] ** 2
+               
+    #---- calculate betas_from_phase for the three cases.
+    #     and add matrix_row for the given combination
+    matrix_rows_Beta = []
+    matrix_rows_Alfa = []
+    
+    betadata = []
+    alfadata = []
+    
+    for n in BBA_combo:
+        n0 = probed_index + n[0]
+        n1 = probed_index + n[1]
+
+        tbet, talf, alfstd, TrowBeta, TrowAlfa, patternstr = BetaFromPhase_BPM_BBA_with_systematicerrors(CurrentIndex,
+                                                                                             bpm_name[n0], bpm_name[n1], bpm_name[probed_index], n0, n1, probed_index,
+                                                                                             madTwiss, errorfile, phase, plane,
+                                                                                             list_of_Ks, sizeOfMatrix, RANGE)
+        betadata.append([tbet, bpm_name[n0], bpm_name[n1], patternstr])
+        alfadata.append([talf, alfstd])
+        matrix_rows_Beta.append(TrowBeta)
+        matrix_rows_Alfa.append(TrowAlfa)
+
+    for n in BAB_combo:
+        n0 = probed_index + n[0]
+        n1 = probed_index + n[1]
+
+        tbet, talf, alfstd, TrowBeta, TrowAlfa, patternstr = BetaFromPhase_BPM_BAB_with_systematicerrors(CurrentIndex,
+                                                                                          bpm_name[n0], bpm_name[probed_index], bpm_name[n1], n0, probed_index, n1,
+                                                                                          madTwiss, errorfile, phase, plane,
+                                                                                          list_of_Ks, sizeOfMatrix, RANGE)
+        betadata.append([tbet, bpm_name[n0], bpm_name[n1], patternstr])
+        alfadata.append([talf, alfstd])
+        matrix_rows_Alfa.append(TrowAlfa)
+        matrix_rows_Beta.append(TrowBeta)
+             
+    for n in ABB_combo:
+        n0 = probed_index + n[0]
+        n1 = probed_index + n[1]
+        
+        tbet, talf, alfstd, TrowBeta, TrowAlfa, patternstr = BetaFromPhase_BPM_ABB_with_systematicerrors(CurrentIndex,
+                                                                                           bpm_name[probed_index], bpm_name[n0], bpm_name[n1], probed_index, n0, n1,
+                                                                                           madTwiss, errorfile, phase, plane,
+                                                                                           list_of_Ks, sizeOfMatrix, RANGE)
+        betadata.append([tbet, bpm_name[n0], bpm_name[n1], patternstr])
+        alfadata.append([talf, alfstd])
+        matrix_rows_Alfa.append(TrowAlfa)
+        matrix_rows_Beta.append(TrowBeta)
+    
+    return matrix_rows_Alfa, matrix_rows_Beta, betadata, alfadata, bpm_name[probed_index], M
+
+
+def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3, madTwiss, errorfile, phase, plane, list_of_Ks, matrixSize, RANGE):
     '''
        Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is left of the other two BPMs (case ABB)
@@ -1494,7 +1536,7 @@ def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
             the names of the three BPMs
         'bi1,bi2,bi3':string
             the indices of the three BPMs (important to find the errors)
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'phase':dict
             measured phase advances
@@ -1522,9 +1564,9 @@ def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
             [For Debugging] string which represents the combination used
             For example AxxBxB
     '''
-    I1 = MADTwiss.indx[bn1]
-    I2 = MADTwiss.indx[bn2]
-    I3 = MADTwiss.indx[bn3]
+    I1 = madTwiss.indx[bn1]
+    I2 = madTwiss.indx[bn2]
+    I3 = madTwiss.indx[bn3]
     
     ph2pi12 = TWOPI * phase["".join([plane, bn1, bn2])][0]
     ph2pi13 = TWOPI * phase["".join([plane, bn1, bn3])][0]
@@ -1533,19 +1575,19 @@ def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     phmdl12 = TWOPI * phase["".join([plane, bn1, bn2])][2]
     phmdl13 = TWOPI * phase["".join([plane, bn1, bn3])][2]
     if plane == 'H':
-        betmdl1 = MADTwiss.BETX[I1]
-        betmdl2 = MADTwiss.BETX[I2]
-        betmdl3 = MADTwiss.BETX[I3]
-        alfmdl1 = MADTwiss.ALFX[I1]
+        betmdl1 = madTwiss.BETX[I1]
+        betmdl2 = madTwiss.BETX[I2]
+        betmdl3 = madTwiss.BETX[I3]
+        alfmdl1 = madTwiss.ALFX[I1]
     elif plane == 'V':
-        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alfmdl1 = MADTwiss.ALFY[MADTwiss.indx[bn1]]
+        betmdl1 = madTwiss.BETY[madTwiss.indx[bn1]]
+        betmdl2 = madTwiss.BETY[madTwiss.indx[bn2]]
+        betmdl3 = madTwiss.BETY[madTwiss.indx[bn3]]
+        alfmdl1 = madTwiss.ALFY[madTwiss.indx[bn1]]
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-  
+
     #--- Calculate beta
     denom = (1.0 / tan(phmdl12) - 1.0 / tan(phmdl13)) / betmdl1
     numer = 1.0 / tan(ph2pi12) - 1.0 / tan(ph2pi13)
@@ -1575,14 +1617,14 @@ def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     T_Alf[bi2 - 1 - bi1] += 0.5 * phi_err1 * denomalf
     T_Alf[bi3 - 1 - bi1] += 0.5 * phi_err2 * denomalf
     
-    phi_2 = MADTwiss.MUX[I2] * TWOPI
-    phi_3 = MADTwiss.MUX[I3] * TWOPI
+    phi_2 = madTwiss.MUX[I2] * TWOPI
+    phi_3 = madTwiss.MUX[I3] * TWOPI
     
     frac = 1.0 / denom
     if plane == 'V':
         frac *= -1.0
-        phi_2 = MADTwiss.MUY[I2] * TWOPI
-        phi_3 = MADTwiss.MUY[I3] * TWOPI
+        phi_2 = madTwiss.MUY[I2] * TWOPI
+        phi_3 = madTwiss.MUY[I3] * TWOPI
         
     s_i2 = sin(phmdl12) ** 2
     s_i3 = sin(phmdl13) ** 2
@@ -1666,8 +1708,10 @@ def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
         which_k = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[which_k][2])):
             idx_k = list_of_Ks[which_k][2][w]
-            T[K_offset + w] += -frac * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
-            T_Alf[K_offset + w] += 0.5 * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
+            err_beta = -frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
+            T[K_offset + w] += err_beta
+            T_Alf[K_offset + w] += 0.5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
+            T_Alf[K_offset + w] += 0.5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][2])
     
     # go back because the second h_ij begins at 1
@@ -1678,8 +1722,8 @@ def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
         
         for w in range(len(list_of_Ks[which_k][2])):
             idx_k = list_of_Ks[which_k][2][w]
-            T[K_offset + w] += frac * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_3) ** 2 / s_i3)
-            T_Alf[K_offset + w] += -0.5 * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_3) ** 2 / s_i3)
+            T[K_offset + w] += frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_3) ** 2 / s_i3)
+            T_Alf[K_offset + w] += -0.5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_3) ** 2 / s_i3)
         K_offset += len(list_of_Ks[which_k][2])
            
     #--- BPM Missalignments
@@ -1711,7 +1755,7 @@ def BetaFromPhase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     return bet, alf, 0, T, T_Alf, "".join(patternstr)
 
 
-def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3, MADTwiss, errorfile, phase, plane, list_of_Ks, matrixSize, RANGE):
+def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3, madTwiss, errorfile, phase, plane, list_of_Ks, matrixSize, RANGE):
     '''
     Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is betweeb the other two BPMs (case BAB)
@@ -1722,7 +1766,7 @@ def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
             the names of the three BPMs
         'bi1,bi2,bi3':string
             the indices of the three BPMs (important to find the errors)
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'phase':dict
             measured phase advances
@@ -1748,9 +1792,9 @@ def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
             For example AxxBxB
     '''
     
-    I1 = MADTwiss.indx[bn1]
-    I2 = MADTwiss.indx[bn2]
-    I3 = MADTwiss.indx[bn3]
+    I1 = madTwiss.indx[bn1]
+    I2 = madTwiss.indx[bn2]
+    I3 = madTwiss.indx[bn3]
     
     ph2pi12 = -TWOPI * phase["".join([plane, bn1, bn2])][0]
     ph2pi23 = TWOPI * phase["".join([plane, bn2, bn3])][0]
@@ -1759,15 +1803,15 @@ def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     phmdl12 = -TWOPI * phase["".join([plane, bn1, bn2])][2]
     phmdl23 = TWOPI * phase["".join([plane, bn2, bn3])][2]
     if plane == 'H':
-        betmdl1 = MADTwiss.BETX[I1]
-        betmdl2 = MADTwiss.BETX[I2]
-        betmdl3 = MADTwiss.BETX[I3]
-        alpmdl2 = MADTwiss.ALFX[I2]
+        betmdl1 = madTwiss.BETX[I1]
+        betmdl2 = madTwiss.BETX[I2]
+        betmdl3 = madTwiss.BETX[I3]
+        alpmdl2 = madTwiss.ALFX[I2]
     elif plane == 'V':
-        betmdl1 = MADTwiss.BETY[MADTwiss.indx[bn1]]
-        betmdl2 = MADTwiss.BETY[MADTwiss.indx[bn2]]
-        betmdl3 = MADTwiss.BETY[MADTwiss.indx[bn3]]
-        alpmdl2 = MADTwiss.ALFY[I2]
+        betmdl1 = madTwiss.BETY[madTwiss.indx[bn1]]
+        betmdl2 = madTwiss.BETY[madTwiss.indx[bn2]]
+        betmdl3 = madTwiss.BETY[madTwiss.indx[bn3]]
+        alpmdl2 = madTwiss.ALFY[I2]
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
@@ -1800,14 +1844,14 @@ def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     T_Alf[RANGE - 2 - bi1] += 0.5 * phi_err1 * denomalf
     T_Alf[bi3 - 1 - bi2] += 0.5 * phi_err2 * denomalf
     
-    phi_1 = MADTwiss.MUX[I1] * TWOPI
-    phi_3 = MADTwiss.MUX[I3] * TWOPI
+    phi_1 = madTwiss.MUX[I1] * TWOPI
+    phi_3 = madTwiss.MUX[I3] * TWOPI
     
     frac = 1.0 / denom
     if plane == 'V':
         frac *= -1.0
-        phi_1 = MADTwiss.MUY[I1] * TWOPI
-        phi_3 = MADTwiss.MUY[I3] * TWOPI
+        phi_1 = madTwiss.MUY[I1] * TWOPI
+        phi_3 = madTwiss.MUY[I3] * TWOPI
         
     s_1i = sin(phmdl12) ** 2
     s_i3 = sin(phmdl23) ** 2
@@ -1891,7 +1935,10 @@ def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][2])):
             idx_k = list_of_Ks[whichK][2][w]
-            T[K_offset + w] += frac * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_1i)
+            err_beta = frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_1i)
+            T[K_offset + w] += err_beta
+            T[K_offset + w] += -.5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_1i)
+            T[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[whichK][2])
        
     # assign T matrix elements for phase errors between BPM 2 and 3
@@ -1901,7 +1948,10 @@ def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][2])):
             idx_k = list_of_Ks[whichK][2][w]
-            T[K_offset + w] += frac * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_3) ** 2 / s_i3)
+            err_beta = frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_3) ** 2 / s_i3)
+            T[K_offset + w] += err_beta
+            T[K_offset + w] += .5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_3) ** 2 / s_i3)
+            T[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[whichK][2])
     
     #--- BPM Missalignments
@@ -1933,7 +1983,7 @@ def BetaFromPhase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     return bet, alf, 0, T, T_Alf, "".join(patternstr)
 
 
-def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3, MADTwiss, errorfile, phase, plane, list_of_Ks, matrixSize, RANGE):
+def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3, madTwiss, errorfile, phase, plane, list_of_Ks, matrixSize, RANGE):
     '''
         Calculates the beta/alfa function and their errors using the
     phase advance between three BPMs for the case that the probed BPM is right of the other two BPMs (case BBA)
@@ -1944,7 +1994,7 @@ def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
             the names of the three BPMs
         'bi1,bi2,bi3':string
             the indices of the three BPMs (important to find the errors)
-        'MADTwiss':twiss
+        'madTwiss':twiss
             model twiss file
         'phase':dict
             measured phase advances
@@ -1970,9 +2020,9 @@ def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
             For example AxxBxB
     '''
     
-    I1 = MADTwiss.indx[bn1]
-    I2 = MADTwiss.indx[bn2]
-    I3 = MADTwiss.indx[bn3]
+    I1 = madTwiss.indx[bn1]
+    I2 = madTwiss.indx[bn2]
+    I3 = madTwiss.indx[bn3]
     
     ph2pi32 = -TWOPI * phase["".join([plane, bn2, bn3])][0]
     ph2pi31 = -TWOPI * phase["".join([plane, bn1, bn3])][0]
@@ -1981,19 +2031,19 @@ def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     phmdl32 = -TWOPI * phase["".join([plane, bn2, bn3])][2]
     phmdl31 = -TWOPI * phase["".join([plane, bn1, bn3])][2]
     if plane == 'H':
-        betmdl1 = MADTwiss.BETX[I1]
-        betmdl2 = MADTwiss.BETX[I2]
-        betmdl3 = MADTwiss.BETX[I3]
-        alpmdl3 = MADTwiss.ALFX[I3]
+        betmdl1 = madTwiss.BETX[I1]
+        betmdl2 = madTwiss.BETX[I2]
+        betmdl3 = madTwiss.BETX[I3]
+        alpmdl3 = madTwiss.ALFX[I3]
     elif plane == 'V':
-        betmdl1 = MADTwiss.BETY[I1]
-        betmdl2 = MADTwiss.BETY[I2]
-        betmdl3 = MADTwiss.BETY[I3]
-        alpmdl3 = MADTwiss.ALFY[I3]
+        betmdl1 = madTwiss.BETY[I1]
+        betmdl2 = madTwiss.BETY[I2]
+        betmdl3 = madTwiss.BETY[I3]
+        alpmdl3 = madTwiss.ALFY[I3]
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-
+        
     #--- Calculate beta
     denom = (1.0 / tan(phmdl32) - 1.0 / tan(phmdl31) + 1.0e-10) / betmdl3
     numer = 1.0 / tan(ph2pi32) - 1.0 / tan(ph2pi31)
@@ -2022,14 +2072,14 @@ def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
     T_Alf[RANGE - 2 - bi1] += 0.5 * phi_err1 * denomalf
     T_Alf[RANGE - 2 - bi2] += 0.5 * phi_err2 * denomalf
     
-    phi_2 = MADTwiss.MUX[I2] * TWOPI
-    phi_1 = MADTwiss.MUX[I1] * TWOPI
+    phi_2 = madTwiss.MUX[I2] * TWOPI
+    phi_1 = madTwiss.MUX[I1] * TWOPI
     
     frac = 1.0 / denom
     if plane == 'V':
         frac *= -1.0
-        phi_2 = MADTwiss.MUY[I + bi2] * TWOPI
-        phi_1 = MADTwiss.MUY[I + bi1] * TWOPI
+        phi_2 = madTwiss.MUY[I + bi2] * TWOPI
+        phi_1 = madTwiss.MUY[I + bi1] * TWOPI
     
     s_i2 = sin(phmdl32) ** 2
     s_i1 = sin(phmdl31) ** 2
@@ -2119,7 +2169,10 @@ def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
         which_k = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[which_k][2])):
             idx_k = list_of_Ks[which_k][2][w]
-            T[K_offset + w] += -frac * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = -frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
+            T[K_offset + w] += err_beta
+            T_Alf[K_offset + w] += -.5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][2])
         
     K_offset = K_begin
@@ -2132,7 +2185,10 @@ def BetaFromPhase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi3,
         
         for w in range(len(list_of_Ks[which_k][2])):
             idx_k = list_of_Ks[which_k][2][w]
-            T[K_offset + w] += frac * errorfile.K1L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
+            err_beta = frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
+            T[K_offset + w] += err_beta
+            T_Alf[K_offset + w] += .5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
+            T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][2])
         
     #--- BPM Missalignments
@@ -2233,7 +2289,7 @@ def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
 #=======================================================================================================================
 
 
-def create_errorfile(model, commonbpms, plane):
+def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, commonbpms, plane):
     '''
     Creates a file in Twiss format that contains the information about the expected errors for each element .
     
@@ -2241,30 +2297,24 @@ def create_errorfile(model, commonbpms, plane):
     
     There has to be a twiss model file called "twiss_full.dat" with all the elments in the lattice (also drift spaces) which contains the
     following columns:
-    NAME, S, BETX, BETY, MU, MUY, K1L, K2L
+    NAME, S, BETX, BETY, MUX, MUY, K1L, K2L
     '''
+    
+    if errordefspath == None:
+        return None
     
     bpms = []
     for bpm in commonbpms:
         bpms.append(bpm[1])
     
-    if not os.path.exists("./errordefs"):
-        print "INFO: No error definitions given for systematic error calculation. Continue without analytic calculation of systematic errors."
-        return None
-    if not os.path.exists("twiss_full.dat"):
-        print "INFO: No full twiss model found. Continue without analytic calculation of systematic errors."
-        return None
-
     print "\33[36mSTART\33[0m Creating errorfile"
     
-    definitions = Python_Classes4MAD.metaclass.twiss("./errordefs")
+    definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
     filename = "error_elements_" + plane + ".dat"
     errorfile = Utilities.tfs_file_writer.TfsFileWriter(filename)
      
-    errorfile.add_column_names(["NAME", "BET", "MU", "dK1", "K1L", "K2L", "dX", "dS"])
-    errorfile.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-    
-    twiss_full = Python_Classes4MAD.metaclass.twiss("twiss_full.dat")
+    errorfile.add_column_names(     ["NAME",    "BET",  "BETEND",   "MU",   "MUEND",    "dK1",  "K1L",  "K1LEND",   "K2L",  "dX",   "dS"])  #@IgnorePep8
+    errorfile.add_column_datatypes( ["%s",      "%le",  "%le",      "%le",  "%le",      "%le",  "%le",  "%le",      "%le",  "%le",  "%le"])  #@IgnorePep8
     
     mainfield = definitions.RELATIVE == "MAINFIELD"
     
@@ -2275,16 +2325,23 @@ def create_errorfile(model, commonbpms, plane):
     # OLD:
     for index_twissfull in range(len(twiss_full.NAME)):
 
-        BET = twiss_full.BETX[index_twissfull]
-        MU = twiss_full.MUX[index_twissfull]
-        BETminus1 = twiss_full.BETX[index_twissfull - 1]
-        MUminus1 = twiss_full.MUX[index_twissfull - 1]
+        BET = twiss_full_centre.BETX[index_twissfull]
+        MU = twiss_full_centre.MUX[index_twissfull]
 
         if plane == 'V':
-            BET = twiss_full.BETY[index_twissfull]
-            MU = twiss_full.MUY[index_twissfull]
-            BETminus1 = twiss_full.BETY[index_twissfull - 1]
-            MUminus1 = twiss_full.MUY[index_twissfull - 1]
+            BET = twiss_full_centre.BETY[index_twissfull]
+            MU = twiss_full_centre.MUY[index_twissfull]
+            
+        BET_end = twiss_full.BETX[index_twissfull]
+        MU_end = twiss_full.MUX[index_twissfull]
+        BETminus1_end = twiss_full.BETX[index_twissfull - 1]
+        MUminus1_end = twiss_full.MUX[index_twissfull - 1]
+
+        if plane == 'V':
+            BET_end = twiss_full.BETY[index_twissfull]
+            MU_end = twiss_full.MUY[index_twissfull]
+            BETminus1_end = twiss_full.BETY[index_twissfull - 1]
+            MUminus1_end = twiss_full.MUY[index_twissfull - 1]
 
         found = False
         for index_defs in range(len(definitions.PATTERN)):
@@ -2296,31 +2353,37 @@ def create_errorfile(model, commonbpms, plane):
                 MF = 1000
                 if mainfield:
                     if definitions.MAINFIELD[index_defs] == "QUAD":
-                        MF = twiss_full.K1L[index_twissfull]
+                        MF = twiss_full_centre.K1L[index_twissfull]
                         isQuad = True
                     elif definitions.MAINFIELD[index_defs] == "SEXT":
-                        MF = twiss_full.K2L[index_twissfull]
+                        MF = twiss_full_centre.K2L[index_twissfull]
                     elif definitions.MAINFIELD[index_defs] == "DIPL":
-                        MF = twiss_full.K0L[index_twissfull]
+                        MF = twiss_full_centre.K0L[index_twissfull]
                 else:
                     MF = twiss_full.K1L[index_twissfull]
                
                 errorfile.add_table_row([
                                          twiss_full.NAME[index_twissfull],
                                          BET,
+                                         BET_end,
                                          MU,
+                                         MU_end,
                                          definitions.dK1[index_defs] * MF,
+                                         twiss_full_centre.K1L[index_twissfull],
                                          twiss_full.K1L[index_twissfull],
-                                         twiss_full.K2L[index_twissfull],
+                                         twiss_full_centre.K2L[index_twissfull],
                                          definitions.dX[index_defs],
                                          definitions.dS[index_defs]
                                          ])
                 if definitions.dS[index_defs] != 0 and isQuad:
                     errorfile.add_table_row([
                                              twiss_full.NAME[index_twissfull - 1],
-                                             BETminus1,
-                                             MUminus1,
-                                             0,     # dK1
+                                             0,     # BET
+                                             BETminus1_end,
+                                             0,     # MU
+                                             MUminus1_end,
+                                             0,     # dK1,
+                                             0,     # K1L,
                                              - twiss_full.K1L[index_twissfull],  # same index
                                              0,     # K2L
                                              0,     # dX
@@ -2333,9 +2396,12 @@ def create_errorfile(model, commonbpms, plane):
                 errorfile.add_table_row([
                                          model.NAME[index_model],
                                          BET,
+                                         0,  # BETEND
                                          MU,
+                                         0,  # MUEND
                                          0,  # dK1
                                          0,  # K1L
+                                         0,  # K1LEND
                                          0,  # K2L
                                          0,  # dX
                                          0   # dS
@@ -2352,4 +2418,3 @@ def printMatrix(matrixfile, M, name):
 
     np.savetxt(matrixfile, M, fmt="%13.5e")
     matrixfile.write("\nend\n")
-
