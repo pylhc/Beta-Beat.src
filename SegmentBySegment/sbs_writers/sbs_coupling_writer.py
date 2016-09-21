@@ -129,7 +129,8 @@ def _write_f_terms(file_f_terms, element_name, is_element, bpms_list, measured_c
     (f1010ab_ini, f1010_std_ini, p1010_ini, p1010_std_ini,
      f1010ab_end, f1010_std_end, p1010_end, p1010_std_end) = _get_start_end_f1010(measured_coupling, first_bpm, last_bpm)
 
-    input_model.Cmatrix()
+    if input_model is not None:
+        input_model.Cmatrix()
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
