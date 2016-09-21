@@ -171,7 +171,7 @@ def _parse_args():
                     metavar="CALIBRATION", default=None, dest="calibration_dir_path")
     parser.add_option("--errordefs",
                     help="Gives path to the error definition file. If specified, the analytical formula will be used to calculate weighted beta and alpha. Default = None",
-                    metavar="USE_SIM", default=None, dest="errordefspath")
+                    metavar="PATH_TO_FILE", default=None, dest="errordefspath")
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
     options, _ = parser.parse_args()

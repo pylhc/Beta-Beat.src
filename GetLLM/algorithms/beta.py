@@ -25,13 +25,20 @@ import Utilities.bpm
 import compensate_ac_effect
 import os
 import re
-from Utilities.progressbar import startProgress, progress, endProgress
-
-#from Andi_Errorcalc import *  #debug
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
-
+if DEBUG:
+    from Utilities.progressbar import startProgress, progress, endProgress
+else:
+    def startProgress(name):
+        print "START " + name
+        
+    def progress(i):
+        return
+    
+    def endProgress():
+        print "Done"
 
 #--- Constants
 
