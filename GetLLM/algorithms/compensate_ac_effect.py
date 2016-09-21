@@ -386,7 +386,21 @@ def get_free_beta_from_amp_eq(MADTwiss_ac,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,bb,bpm,Ad]
 
 
-def get_kick_from_arcs(MADTwiss_ac, bpm_list, measurements, plane):
+def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane):
+    '''
+    Function calculates kick from measurements with AC dipole using the amplitude of the main line. The main line
+    amplitude is obtained from Drive/SUSSIX and is normalized with the model beta-function.
+
+    Input:
+        bpm_list:     Can be any list of bpms. Preferably only arc bpms for kick calculations, but other bad bpms may be 
+                      included as well.
+        measurements: List of measurements when analyzing multiple measurements at once
+        plane:        Either H or V 
+    Output:
+        actions_sqrt:       is a list containing the actions of each measurement. Notice this is the square root of the 
+                            action, so sqrt(2JX) or sqrt(2JY) depending on the plane
+        actions_sqrt_err:   is the list containing the errors for sqrt(2Jx/y) for each measurement. 
+    '''
     if plane=='H': betmdl=np.array([MADTwiss_ac.BETX[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list])
     if plane=='V': betmdl=np.array([MADTwiss_ac.BETY[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list])
 
