@@ -395,9 +395,9 @@ def get_kick_from_arcs(MADTwiss_ac, bpm_list, measurements, plane):
 
     for i in range(len(measurements)):
         if plane=='H':
-            amp =np.array([2*measurements[i].AMPX[measurements[i].indx[b[1]]] for bpm in bpm_list])
+            amp =np.array([2*measurements[i].AMPX[measurements[i].indx[bpm[1]]] for bpm in bpm_list])
         if plane=='V':
-            amp =np.array([2*measurements[i].AMPY[measurements[i].indx[b[1]]] for bpm in bpm_list])
+            amp =np.array([2*measurements[i].AMPY[measurements[i].indx[bpm[1]]] for bpm in bpm_list])
 
 
         actions_sqrt[i]     = np.average(amp/np.sqrt(betmdl))
