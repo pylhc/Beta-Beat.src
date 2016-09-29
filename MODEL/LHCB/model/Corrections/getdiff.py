@@ -159,7 +159,7 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
             stdbety_exist = True
             try:
                 check_stdbety = t_y.STDBETY[i]  # @UnusedVariable
-            except:
+            except AttributeError:
                 stdbety_exist = False  
             if stdbety_exist:
                 error_beta = sqrt(t_y.STDBETY[i] ** 2 + t_y.ERRBETY[i] ** 2) / t_y.BETYMDL[i]

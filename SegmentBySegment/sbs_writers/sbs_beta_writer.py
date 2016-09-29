@@ -267,4 +267,5 @@ def weighted_average_for_SbS_elements(value1, sigma1, value2, sigma2):
     uncertainty_of_average = np.sqrt(1 / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
     weighted_rms = np.sqrt(2 * (1/sigma1**2 * (value1 - weighted_average)**2 + 1/sigma2**2 * (value2 - weighted_average)**2) / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
     final_error = np.sqrt(uncertainty_of_average**2 + weighted_rms**2)  # @IgnorePep8
+    #print "INPUT OF WeightAV FOR SBS: Value1: " + str(value1)+ " Sigma1: " + str(sigma1)+ " Value 2: " + str(value2) + " Sigma 2: "+str(sigma2)
     return weighted_average, final_error

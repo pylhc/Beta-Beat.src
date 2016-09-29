@@ -86,6 +86,8 @@ def _parse_args():
     parser.add_option("-l", "--deltakl",
                       help="delta kl to be applied to quads for sensitivity matrix",
                       default="0.0", dest="kl")
+    parser.add_option("-f", action="store_false", dest="fullresponse")
+    parser.add_option("-t", action="store_true", dest="fullresponse")
 
     options, _ = parser.parse_args()
 
@@ -101,9 +103,10 @@ class _InputData(object):
 
     number_of_cpus = 0
     process_pool = None
+    fullresponse = True
 
     @staticmethod
-    def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl):
+    def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse):
         if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL"):
             raise ValueError("Unknown accelerator: " + accel)
         if not Utilities.iotools.dirs_exist(output_path):
@@ -121,6 +124,7 @@ class _InputData(object):
         _InputData.core_path_with_accel = os.path.join(path_to_core_files_without_accel, accel)
         _InputData.number_of_cpus = multiprocessing.cpu_count()
         _InputData.process_pool = multiprocessing.Pool(processes=_InputData.number_of_cpus)
+        _InputData.fullresponse = fullresponse
 
     def __init__(self):
         raise NotImplementedError("static class _InputData cannot be instantiated")
@@ -129,13 +133,15 @@ class _InputData(object):
 #=======================================================================================================================
 # main()-function
 #=======================================================================================================================
-def main(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl):
+def main(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse):
 
-    _InputData.static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl)
-
-    _generate_fullresponse_for_chromatic_coupling()
-    _generate_fullresponse_for_coupling()
-    _generate_fullresponse_for_beta()
+    _InputData.static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse)
+    if fullresponse == True:
+        _generate_fullresponse_for_coupling(fullresponse)
+        _generate_fullresponse_for_chromatic_coupling()
+        _generate_fullresponse_for_beta()
+    if fullresponse == False:
+        _generate_fullresponse_for_coupling(fullresponse)
 
 
 def _generate_fullresponse_for_chromatic_coupling():
@@ -186,12 +192,17 @@ def _generate_fullresponse_for_chromatic_coupling():
     Utilities.iotools.copy_item(_join_with_output("iter.madx"), _join_with_output("chromcouple_iter.madx"))
 
 
-def _generate_fullresponse_for_coupling():
+def _generate_fullresponse_for_coupling(fullresponse):
+
     print "_generate_fullresponse_for_coupling"
     path_all_lists_json_file = os.path.join(_InputData.core_path_with_accel, "AllLists_couple.json")
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
-    variables = knobsdict["Qs"]
+    if fullresponse == True:
+        variables = knobsdict["Qs"]
+    if fullresponse == False:
+        print "Small coupling"
+        variables = knobsdict["coupling_knobs"]
     delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
     incr = numpy.ones(len(variables)) * 0.0001    # increment of variables
     incr_dict = {}
@@ -443,7 +454,8 @@ def _start():
          output_path=options.path,
          path_to_core_files_without_accel=options.core,
          delta_k=options.k,
-         delta_kl=options.kl
+         delta_kl=options.kl,
+         fullresponse=options.fullresponse
          )
 
     timeGlobal = time.time() - timeStartGlobal

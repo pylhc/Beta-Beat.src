@@ -917,16 +917,17 @@ def _get_corrections_file_comments_for_ip(element_name, accelerator):
 
 
 def _prepare_watchdog_file_command(save_path, element_name):
-    corrections_file_name = "corrections_" + element_name + ".madx"
-    sbs_command = "\"" + " ".join(sys.argv) + "\""  # Gets the full command to run in the watchfile
-    watch_file_name = os.path.join(save_path, "watch_" + str(element_name))
-    watch_file = open(watch_file_name, "w")
-    print >> watch_file, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py " +\
-                          corrections_file_name + " " +\
-                          save_path + "/gplot_" + str(element_name) + " " +\
-                          sbs_command
-    watch_file.close()
-    os.chmod(watch_file_name, 0777)
+#     corrections_file_name = "corrections_" + element_name + ".madx"
+#     sbs_command = "\"" + " ".join(sys.argv) + "\""  # Gets the full command to run in the watchfile
+#     watch_file_name = os.path.join(save_path, "watch_" + str(element_name))
+#     watch_file = open(watch_file_name, "w")
+#     print >> watch_file, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py " +\
+#                           corrections_file_name + " " +\
+#                           save_path + "/gplot_" + str(element_name) + " " +\
+#                           sbs_command
+#     watch_file.close()
+#     os.chmod(watch_file_name, 0777)
+    pass
 
 
 def _runmad(lhc_mode, path, beam, startfrom, endat, label,
