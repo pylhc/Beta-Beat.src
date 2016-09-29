@@ -25,6 +25,7 @@ import Utilities.bpm
 import compensate_ac_effect
 import os
 import re
+from Python_Classes4MAD.BCORR import default
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -556,7 +557,7 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     #---- Error definitions given and we decided to not use the simulation => use analytical formulas to calculate the
     # systematic errors
     if errorfile != None and not use_only_three_bpms_for_beta_from_phase:
-             
+        
         rmsbb, errors_method = ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of_bpms, alfa, beta, corr, commonbpms, delbeta)
         return [beta, rmsbb, alfa, commonbpms, errors_method, corr]
     #---- use the simulations
@@ -653,20 +654,22 @@ def ScanAllBPMS_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_fr
     systematic_errors = None
     
     montecarlo = True
-    errors_method = "Obtained using Monte-Carlo Simulations"
+    errors_method = "Monte-Carlo Simulations"
     
     if use_only_three_bpms_for_beta_from_phase:
         montecarlo = False
-        errors_method = "Estimated by std (3 BPM method)"
+        errors_method = "Standard (3 BPM method)"
     elif not os.path.isfile(systematics_error_path):
         montecarlo = False
-        errors_method = "Estimated by std (3 BPM method) because no bet_deviations.npy could be found"
+        errors_method = "Stdandard (3 BPM method) because no bet_deviations.npy could be found"
+        use_only_three_bpms_for_beta_from_phase = True
             
     if DEBUG:
-        debugfile = open("debugfileAndy" + plane, "w+")
-    startProgress("Calculate betas")
+        debugfile = open("debugfileMonteCarlo" + plane, "w+")
+        startProgress("Calculate betas")
+    print "Errors from " + errors_method
     for i in range(0, len(commonbpms)):
-        if (i % 10) == 0:
+        if (i % 10) == 0 and DEBUG:
             progress(float(i) / len(commonbpms) * 100.0)
         alfa_beta, probed_bpm_name, M = get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
         alfi = sum([alfa_beta[i][3] for i in range(len(alfa_beta))]) / len(alfa_beta)
@@ -704,7 +707,10 @@ def ScanAllBPMS_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_fr
                 for l in range(len(alfa_beta)):
                     V[k][l] = V_stat.item(k, l) + V_syst[k][l]
             
-            V_inv = np.linalg.pinv(V)
+            try:
+                V_inv = np.linalg.pinv(V)
+            except LinAlgError:
+                V_inv = np.diag(1.0, V.shape[0])
             if DEBUG:
                 debugfile.write("\n\nbegin BPM " + probed_bpm_name + " :\n")
                 printMatrix(debugfile, V_stat, "V_stat")
@@ -776,7 +782,8 @@ def ScanAllBPMS_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_fr
         if DEBUG:
             debugfile.write("end\n")
     
-    endProgress()
+    if DEBUG:
+        endProgress()
     delbeta = np.array(delbeta)
     rmsbb = math.sqrt(np.average(delbeta * delbeta))
     if DEBUG:
@@ -1173,7 +1180,8 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
     print "INFO: errorfile given. Create list_of_Ks"
     list_of_Ks = []
     
-    errors_method = "Obtained using analytical formula"
+    errors_method = "Analytical Formula"
+    print "Errors from " + errors_method
        
     #---- create list of Ks, i.e. assign to each BPM a vector with all the errore lements that come after the bpm
     # and their respective errors
@@ -1256,8 +1264,23 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
                  
         betas = []
         betas = [x[0] for x in betadata]
-        V_Beta_inv = np.linalg.pinv(V_Beta)
-        V_Alfa_inv = np.linalg.pinv(V_Alfa)
+        
+        try:
+            V_Beta_inv = np.linalg.pinv(V_Beta)
+        except LinAlgError:
+            V_Beta_inv = np.zeros(V.shape)
+            np.fill_diagonal(V_Beta_inv, 1.0)
+            np.fill_diagonal(V_Beta, 1000.0)
+            print "WARN: LinAlgEror in V_Beta_inv for " + probed_bpm_name
+            
+        try:
+            V_Alfa_inv = np.linalg.pinv(V_Alfa)
+        except LinAlgError:
+            V_Alfa_inv = np.zeros(V.shape)
+            np.fill_diagonal(V_Alfa, 1000.0)
+            np.fill_diagonal(V_Alfa_inv, 1.0)
+            print "WARN: LinAlgEror in V_Alfa_inv for " + probed_bpm_name
+            
         len_w = len(betas)
        
         #--- calculate weights, weighted beta and beta_error
@@ -1304,6 +1327,9 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
                 alfaterm -= walfa[k] * T_rows_Alfa[k][i]
             rho_alfa_beta += betaterm * alfaterm * M[i][i]
         rho_alfa_beta /= (beterr * alferr)
+        
+        if beterr > DEFAULT_WRONG_BETA and beterr > 100 * beti:
+            beterr = DEFAULT_WRONG_BETA
  
         # so far, beta_syst and beta_stat are not separated
         beta[probed_bpm_name] = beti, 0, 0, beterr
@@ -2376,9 +2402,14 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     
     print "\33[36mSTART\33[0m Creating errorfile"
     
-    definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
-    filename = "error_elements_" + plane + ".dat"
-    errorfile = Utilities.tfs_file_writer.TfsFileWriter(filename)
+    # if something in loading / writing the files goes wrong, return None
+    # which forces the script to fall back to 3bpm
+    try:
+        definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
+        filename = "error_elements_" + plane + ".dat"
+        errorfile = Utilities.tfs_file_writer.TfsFileWriter(filename)
+    except:
+        return None
      
     errorfile.add_column_names(     ["NAME",    "BET",  "BETEND",   "MU",   "MUEND",    "dK1",  "K1L",  "K1LEND",   "K2L",  "dX",   "dS"])  #@IgnorePep8
     errorfile.add_column_datatypes( ["%s",      "%le",  "%le",      "%le",  "%le",      "%le",  "%le",  "%le",      "%le",  "%le",  "%le"])  #@IgnorePep8
