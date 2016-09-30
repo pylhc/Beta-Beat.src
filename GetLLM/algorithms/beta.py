@@ -663,6 +663,8 @@ def ScanAllBPMS_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_fr
         montecarlo = False
         errors_method = "Stdandard (3 BPM method) because no bet_deviations.npy could be found"
         use_only_three_bpms_for_beta_from_phase = True
+    else
+        systematic_errors = np.load(systematics_error_path)
             
     if DEBUG:
         debugfile = open("debugfileMonteCarlo" + plane, "w+")
