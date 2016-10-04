@@ -136,7 +136,7 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
                 error_beta = sqrt(t_x.STDBETX[i] ** 2 + t_x.ERRBETX[i] ** 2) / t_x.BETXMDL[i]    
                 print >> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i] - t_x.BETXMDL[i]) / t_x.BETXMDL[i], error_beta, (twiss_cor.BETX[j] - twiss_no.BETX[j]) / twiss_no.BETX[j]
             else:
-                error_beta = t_x.ERRBETX[i]
+                error_beta = t_x.ERRBETX[i] / t_x.BETXMDL[i]
                 print >> file_bbx, bpm_name, t_x.S[i], (t_x.BETX[i] - t_x.BETXMDL[i]) / t_x.BETXMDL[i], error_beta, (twiss_cor.BETX[j] - twiss_no.BETX[j]) / twiss_no.BETX[j]
                                
     if os.path.exists(os.path.join(path, 'getbetay_free.out')):
@@ -165,7 +165,7 @@ def write_beta_diff_files(path, twiss_cor, twiss_no):
                 error_beta = sqrt(t_y.STDBETY[i] ** 2 + t_y.ERRBETY[i] ** 2) / t_y.BETYMDL[i]
                 print >> file_bby, bpm_name, t_y.S[i], (t_y.BETY[i] - t_y.BETYMDL[i]) / t_y.BETYMDL[i], error_beta, (twiss_cor.BETY[j] - twiss_no.BETY[j]) / twiss_no.BETY[j]
             else:
-                error_beta = t_y.ERRBETY[i]
+                error_beta = t_y.ERRBETY[i] / t_y.BETYMDL[i]
                 print >> file_bby, bpm_name, t_y.S[i], (t_y.BETY[i] - t_y.BETYMDL[i]) / t_y.BETYMDL[i], error_beta, (twiss_cor.BETY[j] - twiss_no.BETY[j]) / twiss_no.BETY[j]
             
     file_bbx.close()
