@@ -629,8 +629,8 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
     ftemp.write("@ Q1 %le "+str(q_x)+"\n")
     ftemp.write("@ Q2 %le "+str(q_y)+"\n")
     ftemp.write("@ DPP %le "+str(dpp)+"\n")
-    ftemp.write("* NAME S BETX BETY ALFX ALFY MUX MUY\n")
-    ftemp.write("$ %s %le %le  %le  %le  %le  %le %le\n")
+    ftemp.write("* NAME S BETX BETY ALFX ALFY MUX MUY K1L K2L\n")
+    ftemp.write("$ %s %le %le  %le  %le  %le  %le %le %le %le\n")
 
 
     for bpm in bpms:
@@ -651,8 +651,10 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
         nbety = twi.BETY[twi.indx[b_n]]*(1.0+a_y*dpp)
         nalfy = twi.ALFY[twi.indx[b_n]]+b_y1*dpp
         nmuy = twi.MUY[twi.indx[b_n]]+twi.DMUY[twi.indx[b_n]]*dpp
+        k1l = twi.K1L[twi.indx[b_n]]  # TODO: Check this formula
+        k2l = twi.K2L[twi.indx[b_n]]  # TODO: Check this formula
 
-        ftemp.write('"'+b_n+'" '+str(bpm_s)+" "+str(nbetx)+" "+str(nbety)+" "+str(nalfx)+" "+str(nalfy)+" "+str(nmux)+" "+str(nmuy)+"\n")
+        ftemp.write('"'+b_n+'" '+str(bpm_s)+" "+str(nbetx)+" "+str(nbety)+" "+str(nalfx)+" "+str(nalfy)+" "+str(nmux)+" "+str(nmuy)+" "+str(k1l)+" "+str(k2l)+"\n")
 
     ftemp.close()
     dpp_twiss = metaclass.twiss(ftemp_name, dictionary)
