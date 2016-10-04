@@ -187,21 +187,21 @@ def main(
          outputpath,
          files_to_analyse,
          model_filename,
-         dict_file,
-         accel,
-         lhcphase,
-         BPMU,
-         COcut,
-         NBcpl,
-         TBTana,
-         bbthreshold,
-         errthreshold,
-         use_only_three_bpms_for_beta_from_phase,
-         number_of_bpms,
-         range_of_bpms,
-         use_average,
-         calibration_dir_path,
-         errordefspath
+         dict_file="0",
+         accel="LHCB1",
+         lhcphase="0",
+         BPMU="um",
+         COcut=4000,
+         NBcpl=2,
+         TBTana="SUSSIX",
+         bbthreshold="0.15",
+         errthreshold="0.15",
+         use_only_three_bpms_for_beta_from_phase="False",
+         number_of_bpms=10,
+         range_of_bpms=11,
+         use_average=False,
+         calibration_dir_path=None,
+         errordefspath=None
          ):
     '''
     GetLLM main function.
@@ -380,12 +380,17 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
         print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
 
     #-- Test if the AC dipole (MKQA) is in the model of LHC
-    mad_elem = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements.dat"))
+    #TODO: This was crashing for dpp cases (WAnalysis or normal) I put this try to "fix" it, it should be check.
     try:
-        mad_elem_centre = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements_centre.dat"))
-    except Exception:
+        mad_elem = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements.dat"))
+        try:
+            mad_elem_centre = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_elements_centre.dat"))
+        except Exception:
+            mad_elem_centre = mad_elem
+            print "WARN: No elements_centre found, use end points instead. This shouldn't change much but is not recommended"
+    except IOError:
+        mad_elem = mad_twiss
         mad_elem_centre = mad_elem
-        print "WARN: No elements_centre found, use end points instead. This shouldn't change much but is not recommended"
     if getllm_d.with_ac_calc:
         if 'LHC' in accel:
             if 'MKQA.6L4.' + accel[3:] in getattr(mad_twiss, "NAME", []):

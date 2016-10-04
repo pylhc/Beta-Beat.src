@@ -1267,18 +1267,20 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
         betas = []
         betas = [x[0] for x in betadata]
         
+        # TODO The LinalgError doesnt seem to be defined in 2.6 version of python, this should be checked.
+        # TODO Should we really output a zero matrix if the pinv fails? Play with rcond in pinv.
         try:
             V_Beta_inv = np.linalg.pinv(V_Beta)
-        except LinAlgError:
-            V_Beta_inv = np.zeros(V.shape)
+        except:
+            V_Beta_inv = np.zeros(V_Beta.shape)
             np.fill_diagonal(V_Beta_inv, 1.0)
             np.fill_diagonal(V_Beta, 1000.0)
             print "WARN: LinAlgEror in V_Beta_inv for " + probed_bpm_name
             
         try:
             V_Alfa_inv = np.linalg.pinv(V_Alfa)
-        except LinAlgError:
-            V_Alfa_inv = np.zeros(V.shape)
+        except:
+            V_Alfa_inv = np.zeros(V_Alfa.shape)
             np.fill_diagonal(V_Alfa, 1000.0)
             np.fill_diagonal(V_Alfa_inv, 1.0)
             print "WARN: LinAlgEror in V_Alfa_inv for " + probed_bpm_name
