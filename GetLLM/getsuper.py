@@ -491,7 +491,11 @@ def _do_lin_reg_bet(fileobj, listx, listy, bpms, plane, zero, twiss):
         if "H" in plane:
             beta0 = zero.BETX[zero.indx[name]]
             alfa0 = zero.ALFX[zero.indx[name]]
-            alfa0err = zero.STDALFX[zero.indx[name]]
+            try:
+                alfa0err = zero.STDALFX[zero.indx[name]]
+            except AttributeError:
+                alfa0err = zero.ERRALFX[zero.indx[name]]
+
 
             beta0m = twiss.BETX[twiss.indx[name]]
             alfa0m = twiss.ALFX[twiss.indx[name]]
@@ -502,7 +506,10 @@ def _do_lin_reg_bet(fileobj, listx, listy, bpms, plane, zero, twiss):
 
             beta0 = zero.BETY[zero.indx[name]]
             alfa0 = zero.ALFY[zero.indx[name]]
-            alfa0err = zero.STDALFY[zero.indx[name]]
+            try:
+                alfa0err = zero.STDALFY[zero.indx[name]]
+            except AttributeError:
+                alfa0err = zero.ERRALFY[zero.indx[name]]
 
             beta0m = twiss.BETY[twiss.indx[name]]
             alfa0m = twiss.ALFY[twiss.indx[name]]
