@@ -73,7 +73,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             # Avoids crashing the programm(vimaier)
             fwqwf = None
             fwqwf2 = None
-            [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, getllm_d.outputpath)
+            [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, getllm_d.outputpath, getllm_d.beam_direction)
             tfs_file = files_dict['getcouple.out']
             tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
             tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
@@ -90,7 +90,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
                 tfs_file.add_table_row(list_row_entries)
 
             # Call 1-BPM method coupling function to get dictionary of BPMs with f, std_f as well as phase with std (Here the tunes were changed to the free ones)
-            [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, getllm_d.outputpath)
+            [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, getllm_d.outputpath,getllm_d.beam_direction)
         # 2-BPM method
         elif getllm_d.num_bpms_for_coupling == 2:
             # Use pseudo-lists to analyse for SPS and RHIC
@@ -208,7 +208,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
 # helper-functions
 #===================================================================================================
 
-def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, outputpath):
+def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, outputpath, beam_direction):
     """Calculate coupling and phase with 1-BPM method for all BPMs and overall
     INPUT
      MADTwiss        - twiss instance of model from MAD 
@@ -340,6 +340,10 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             qistd = math.sqrt(np.average(q1j*q1j)-q1**2.0+2.2e-16) # Not very exact...
             # Calculate complex coupling with qi
             fi = fi*complex(np.cos(2.0*np.pi*qi), np.sin(2.0*np.pi*qi))
+	    if beam_direction==1:
+	    	fi = complex(-fi.real, -fi.imag)
+            if beam_direction==-1:
+		fi = complex(fi.real, -fi.imag)
             # Append BPM to list of BPMs with correct phase
             dbpmt.append([dbpms[i][0],dbpms[i][1]])
             # Trailing 0s provide compatibility with 2-BPM method
