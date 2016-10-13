@@ -28,10 +28,14 @@ import os
 import time
 import argparse
 import numpy
+import re
 from numpy import dot as matrixmultiply
-sys.path.append("/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD/")
+from numpy import mean
+sys.path.append("/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/")
+from Python_Classes4MAD import metaclass
+
+
 import __init__  # @UnusedImport init will include paths
-from metaclass import twiss
 from datetime import datetime
 from __builtin__ import max
 
@@ -121,10 +125,15 @@ def _parse_args():
     parser.add_argument("--print_times",
         help="""Prints (more verbose) execution times""",
         action="store_true", dest="print_times")
-    
+    parser.add_argument("-e", "--model",
+                        help="Model where to read dispersion data", dest="model")
+    parser.add_argument("-a", "--accel",
+                        help="Accelerator to use", dest="accel")
+
     args = parser.parse_args()
     print str(args).replace("Namespace(", "Arguments:\n").replace(", ", "\n") + "\n"
     
+
 #     sys.exit()
     if args.print_times:
         global PRINT_TIMES
@@ -154,7 +163,9 @@ def clean_sdds_file(options):
        single_svd_bpm_threshold=options.single_svd_bpm_threshold,
        resync=options.resync,
        subtract_co=options.subtract_co,
-       use_test_mode=options.use_test_mode
+       use_test_mode=options.use_test_mode,
+       model=options.model,
+       accel=options.accel
     )
 
     start_time = time.time()
@@ -167,8 +178,9 @@ class _InputData(object):
     """This class holds all input variables for svd clean """
 
     @staticmethod
-    def static_init(inputfile, outputfile, startturn_human, maxturns_human, singular_values_amount_to_keep, 
-                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, resync, subtract_co, use_test_mode):
+    def static_init(inputfile, outputfile, startturn_human, maxturns_human, singular_values_amount_to_keep,
+                    min_peak_to_peak, max_peak_cut, single_svd_bpm_threshold, resync, subtract_co, use_test_mode,
+                    model, accel):
         _InputData.inputfile = inputfile
         print "inputfile:  " + str(inputfile)
         _InputData.outputfile = outputfile
@@ -188,6 +200,8 @@ class _InputData(object):
         _InputData.resync = resync
         _InputData.subtract_co = subtract_co
         _InputData.use_test_mode = use_test_mode
+        _InputData.model = model
+        _InputData.accel = accel
 
     def __init__(self):
         raise NotImplementedError("static class _InputData cannot be instantiated")
@@ -203,6 +217,7 @@ class _SddsFile(object):
         self.header = ""
         self.number_of_turns = 0
         self.dictionary_plane_to_bpms = {PLANE_X: _Bpms(), PLANE_Y: _Bpms()}
+        self.dpp = 0;
 
     def init(self):
         """Parses the current SDDS file and sets all member variables"""
@@ -210,7 +225,7 @@ class _SddsFile(object):
             return
 
         try:
-            swapped_bpms = twiss(os.path.join(BAD_BPMS_DIR, "SwappedBPMs_2016-06-20.tfs"))
+            swapped_bpms = metaclass.twiss(os.path.join(BAD_BPMS_DIR, "SwappedBPMs_2016-06-20.tfs"))
         except IOError:
             print >> sys.stderr, "Can't read swapped BPMs file."
             swapped_bpms = None
@@ -343,7 +358,7 @@ class _SddsFile(object):
                     self.bad_bpm_file.add_badbpm(badbpm)
                     bpm_with_spike_counter += 1
                     continue
-                
+
                 self.dictionary_plane_to_bpms[plane].bpm_data.append(ndarray_line_data)
                 self.dictionary_plane_to_bpms[plane].bpm_name_location_plane.append(bpm_name_location_plane)
 
@@ -386,9 +401,10 @@ class _SddsFile(object):
         self.bad_bpm_file.write_badbpms()
         temp_path = self.path_to_sddsfile + ".tmp_svd_clean"
         print "writing data to temp file: " + temp_path
-
+        
         with open(temp_path, "w") as temp_file:
             temp_file.write(self.header)
+            temp_file.write("#dpp: " + str(self.dpp) + "\n")
             if "NTURNS calculated" not in self.header:
                 temp_file.write("#NTURNS calculated: " + str(self.number_of_turns) + "\n")
             if not _InputData.use_test_mode:
@@ -519,17 +535,83 @@ class _SvdHandler(object):
     def __init__(self):
         self.sddsfile = _SddsFile(_InputData.inputfile)
         self.sddsfile.init()
+        self.model = _InputData.model
+        self.accel = _InputData.accel
         print ""
 
         time_start = time.time()
         self.do_svd_clean(PLANE_X)
         self.do_svd_clean(PLANE_Y)
+
+        if self.model is not None:       # dpp will be computed only if a model exists (efol)
+            try:
+                self.calc_dp_over_p()
+            except ValueError:
+                if self.accel is None:
+                    print >> sys.stderr, "accel is None. Model requires accelerator. SvdClean without computing dpp "
+            print ">> dpp calculated in SVD: " + str(self.calc_dp_over_p())
+     
+
         if PRINT_TIMES:
             print ">> Time for svdClean (X&Y): {0}s".format(time.time() - time_start)
         print ""
 
         self.sddsfile.write_file()
         print ""
+
+    def calc_dp_over_p(self):
+        numer = 0
+        denom = 0
+        print self.model
+        model_twiss = metaclass.twiss(self.model)
+        bpm_data_x = self.sddsfile.dictionary_plane_to_bpms[PLANE_X]
+
+        print len(bpm_data_x.bpm_data)
+        bpm_names, _, _ = zip(*bpm_data_x.bpm_name_location_plane)
+        print len(bpm_names), len(bpm_data_x.bpm_data)
+        for bpm_name in model_twiss.NAME:
+            if bpm_name in bpm_names:
+                if self._get_arc_bpm_test_function(bpm_name):
+                    dispersion = model_twiss.DX[model_twiss.indx[bpm_name]] * 1e3  # We need it in mm
+                    bpm_index = bpm_names.index(bpm_name)
+                    closed_orbit = mean(bpm_data_x.bpm_data[bpm_index])
+                    numer += dispersion * closed_orbit
+                    denom += dispersion ** 2
+        if denom == 0.:
+            print >> sys.stderr, "0 denominator, probably no arc BPMS found"
+        dp_over_p = numer / denom
+        self.sddsfile.dpp = dp_over_p
+        return dp_over_p
+
+    def _get_arc_bpm_test_function(self, bpm_name):
+        dummy_function = lambda bpm_name: True
+        accel = self.accel
+        if accel is None:
+            return dummy_function
+        accel = accel.upper()
+        if "LHCB" in accel:
+            return self._is_arc_bpm_lhc
+        elif "ESRF" in accel:
+            return self._is_arc_bpm_esrf
+        else:
+            return dummy_function
+
+    def _is_arc_bpm_lhc(self, bpm_name):
+        match = re.search("BPM.*\.([0-9]+)[RL].\..*", bpm_name, re.IGNORECASE)
+        if match:
+            return int(match.group(1)) > 14  # The arc bpms are from BPM.14... and up
+        else:
+            return False
+
+    def _is_arc_bpm_esrf(self, bpm_name):
+        match = re.search("BPM\.([0-9]+)\.([1-7])", bpm_name, re.IGNORECASE)
+        if match:
+            cell = int(match.group(1))
+            bpm_number = int(match.group(2))
+            return not ((cell % 2 == 0 and bpm_number in [6, 7]) or
+                    (cell % 2 != 0 and bpm_number in [1, 2]))
+        else:
+            return False
 
     def do_svd_clean(self, plane):
         """Does a SVD clean on the given plane"""
@@ -557,6 +639,8 @@ class _SvdHandler(object):
         good_bpm_indices = self.remove_bad_bpms_and_get_good_bpm_indices(USV, plane)
         USV = (USV[0][good_bpm_indices], USV[1], USV[2])
         number_of_bpms = len(good_bpm_indices)
+        print ">> Values in GOOD BPMs: "
+        print number_of_bpms
 
         #----SVD cut for noise floor
         if _InputData.singular_values_amount_to_keep < number_of_bpms:
@@ -578,7 +662,6 @@ class _SvdHandler(object):
         self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data = A
         if PRINT_TIMES:
             print ">> Time for do_svd_clean: {0}s".format(time.time() - time_start)
-            
 
     def get_singular_value_decomposition(self, matrix):
         """Calls the SVD, returns a USV representation
