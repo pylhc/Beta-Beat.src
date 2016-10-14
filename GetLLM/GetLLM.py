@@ -465,8 +465,6 @@ def _create_tfs_files(getllm_d, model_filename):
     for rdt in algorithms.resonant_driving_terms.RDT_LIST:
         files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
         files_dict[rdt+'.out'] = utils.tfs_file.GetllmTfsFile(rdt+'.out')
-    files_dict['f3000_line.out'] = utils.tfs_file.GetllmTfsFile('f3000_line.out')
-    files_dict['f4000_line.out'] = utils.tfs_file.GetllmTfsFile('f4000_line.out')
     if getllm_d.with_ac_calc:
         files_dict['getcouple_free.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free.out')
         files_dict['getcouple_free2.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free2.out')
@@ -556,8 +554,6 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 for rdt in algorithms.resonant_driving_terms.RDT_LIST:
                     files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
                     files_dict[rdt+'.out'].add_filename_to_getllm_header(file_in)
-                files_dict['f3000_line.out'].add_filename_to_getllm_header(file_in)
-                files_dict['f4000_line.out'].add_filename_to_getllm_header(file_in)
                 if "LHC" in getllm_d.accel:
                     files_dict['getIPx.out'].add_filename_to_getllm_header(file_in)
                     files_dict['getIPy.out'].add_filename_to_getllm_header(file_in)
