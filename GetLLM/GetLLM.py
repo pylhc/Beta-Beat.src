@@ -300,8 +300,11 @@ def main(
         #-------- START coupling.
         tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
 
+        #------ Start get Q,JX,delta
+        files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
+
         #-------- START RDTs
-        algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y)
+        algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
 
         #-------- Phase, Beta and coupling for non-zero DPP
         _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, mad_elem, mad_elem_centre, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
@@ -312,9 +315,6 @@ def main(
 
             #------ Start getchiterms @ Glenn Vanbavinckhove
             files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
-
-        #------ Start get Q,JX,delta
-        files_dict = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
 
     except:
         traceback.print_exc()
@@ -464,6 +464,7 @@ def _create_tfs_files(getllm_d, model_filename):
     files_dict['getcouple.out'] = utils.tfs_file.GetllmTfsFile('getcouple.out')
     for rdt in algorithms.resonant_driving_terms.RDT_LIST:
         files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
+        files_dict[rdt+'.out'] = utils.tfs_file.GetllmTfsFile(rdt+'.out')
     files_dict['f3000_line.out'] = utils.tfs_file.GetllmTfsFile('f3000_line.out')
     files_dict['f4000_line.out'] = utils.tfs_file.GetllmTfsFile('f4000_line.out')
     if getllm_d.with_ac_calc:
@@ -554,6 +555,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
                 for rdt in algorithms.resonant_driving_terms.RDT_LIST:
                     files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
+                    files_dict[rdt+'.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f3000_line.out'].add_filename_to_getllm_header(file_in)
                 files_dict['f4000_line.out'].add_filename_to_getllm_header(file_in)
                 if "LHC" in getllm_d.accel:
@@ -1040,6 +1042,7 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
     for i in range(0, len(dpp)):
         list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_model.add_table_row(list_row_entries)
+        actions_x, actions_y = meansqrt_2jx['phase'], meansqrt_2jy['phase']
 
     tfs_file_phase = files_dict['getkickphase.out']
     tfs_file_phase.add_float_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m", bbthreshold)
@@ -1063,8 +1066,9 @@ def _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_a
             #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
             list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
             tfs_file.add_table_row(list_row_entries)
+            actions_x, actions_y = inv_jx, inv_jx
 
-    return files_dict
+    return files_dict, actions_x, actions_y
 # END _calculate_kick -------------------------------------------------------------------------------
 
 
