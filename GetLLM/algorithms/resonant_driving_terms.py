@@ -19,14 +19,15 @@ from scipy.optimize import curve_fit
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 
-RDT_LIST = ['f1001H', 'f3000H', 'f1002H', 
-            'f4000H', 'f2010H', 'f1220H', 
-            'f1020H', 'f1120H', 'f2003H', 
-            'f2020H', 'f3001H', 'f1101H', 
-            'f0110V', 'f1020V', 'f1011V', 
-            'f0111V', 'f2010V', 'f0120V', 
-            'f0030V', 'f0040V', 'f0211V', 
-            'f1012V', 'f1013V'
+RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
+            'f3000H', 'f1200H', 'f1020H', 'f1002H',  #Normal Sextupolar
+            'f0111V', 'f1020V', 'f0120V', 'f1011V', 
+            'f0030V', 'f0012V', 'f0210V', 'f2010V',  #Skew Sextupolar
+            'f1101H', 'f2010H', 'f1110H', 'f2001H', 
+            'f4000H', 'f1300H', 'f2002H', 'f1120H',  #Normal Octupolar
+            'f1102H', 'f2020H', 'f2020V', 'f2011V', 
+            'f0220V', 'f0211V', 'f0040V', 'f0013V',
+            'f3001H', 'f1210H'                       #Skew Octupolar
             ]
 
 
@@ -66,7 +67,6 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
 
     for rdt in RDT_LIST:
         line, plane = determine_lines(rdt)
-        print rdt
         _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], files_dict[rdt+'.out'], line), inv_x, inv_y, rdt)
 
 
@@ -92,44 +92,45 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     line_amplitudes_err = []
     line_phases = []
     line_phases_err = []
-        
-    
-    for i in range(len(dbpms)-4):
-        bpm1 = dbpms[i][1].upper()
-        try:
-            bpm_pair_data = _get_best_fitting_bpm(phase_data, bpm1, plane)
-        except KeyError:
-            print >> sys.stderr, "Could not find a BPM pair (%s, %s)!\n\t" % (plane, bpm1)
-            continue
-        bpm2 = bpm_pair_data[0]
-        for j in range(0,len(list_zero_dpp)):
-            use_line = False
-            use_opposite_line = False   
-            
-            try:
-                amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
-                use_line = True
-            except KeyError:
-                print >> sys.stderr, "Line not found, trying opposite line.. (%s, %s)!\n\t" % line
-                continue
-            try:
-                amp_line_opp, phase_line_opp = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
-                phase_line_opp = -phase_line_opp 
-                use_opposite_line = True
-            except KeyError:
-                print >> sys.stderr, "Opposite line not found.. (%s, %s)!\n\t" % (-line[0],-line[1])
-                continue
 
-            if use_opposite_line:
-                if use_line & use_opposite_line:
+    use_line = False
+    use_opposite_line = False   
+    
+    
+    try:
+        _, _ = _line_to_amp_and_phase_attr(line, list_zero_dpp[0])
+        use_line = True
+    except AttributeError:
+        print >> sys.stderr, "Line not found, trying opposite line.. (%s, %s)!\n\t" % line
+    try:
+        _, _ = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[0])
+        use_opposite_line = True
+    except AttributeError:
+        print >> sys.stderr, "Opposite line not found.. (%s, %s)!\n\t" % (-line[0],-line[1])
+
+    if use_line or use_opposite_line:  
+        for i in range(len(dbpms)-4):
+            bpm1 = dbpms[i][1].upper()
+            try:
+                bpm_pair_data = _get_best_fitting_bpm(phase_data, bpm1, plane)
+            except KeyError:
+                print >> sys.stderr, "Could not find a BPM pair (%s, %s)!\n\t" % (plane, bpm1)
+                continue
+            bpm2 = bpm_pair_data[0]
+            for j in range(0,len(list_zero_dpp)):
+    
+                if use_line and use_opposite_line:
+                    amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
+                    amp_line_opp, phase_line_opp = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
+                    phase_line_opp = -phase_line_opp 
                     amp_line = (amp_line + amp_line_opp)/2.
                     phase_line = (phase_line + phase_line_opp)/2.
-                else:
-                    amp_line = amp_line_opp
-                    phase_line = phase_line_opp
-            
-
-            if use_line or use_opposite_line:
+                elif use_line and not use_opposite_line:
+                    amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
+                elif use_opposite_line and not use_line:
+                    amp_line, phase_line = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
+                    phase_line = -phase_line 
+                
                 delta, edelta = bpm_pair_data[1:]
                 amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
                 amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
@@ -142,7 +143,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 line_amplitudes_err.append(line_amp_e)
                 line_phases.append(line_phase)
                 line_phases_err.append(line_phase_e)
-
+    else:
+        print >> sys.stderr, "Could not find line for %s !\n\t" %rdt
     # init out file
     rdt_out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP"])
     rdt_out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le"])
