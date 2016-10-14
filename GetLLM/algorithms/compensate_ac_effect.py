@@ -425,14 +425,14 @@ def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane
     actions_sqrt = []
     actions_sqrt_err = []
 
-    for measurement in measurements:
+    for meas in measurements:
         if plane == 'H':
             amp = np.array(
-                [2 * measurement.AMPX[measurement.indx[bpm[1]]] for bpm in bpm_list]
+                [2 * meas.AMPX[meas.indx[bpm[1]]] for bpm in bpm_list]
             )
         if plane == 'V':
             amp = np.array(
-                [2 * measurement.AMPY[measurement.indx[bpm[1]]] for bpm in bpm_list]
+                [2 * meas.AMPY[meas.indx[bpm[1]]] for bpm in bpm_list]
             )
         actions_sqrt.append(np.average(amp / np.sqrt(betmdl)))
         actions_sqrt_err.append(np.std(amp / np.sqrt(betmdl)))
@@ -778,17 +778,23 @@ def getkickac(MADTwiss_ac,files,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
     dpp = []
 
+    all_bpms_x = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files[0]), MADTwiss_ac )
+    all_bpms_y = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files[1]), MADTwiss_ac )
+    all_bpms_x = [(b[0], str.upper(b[1])) for b in all_bpms_x]
+    all_bpms_y = [(b[0], str.upper(b[1])) for b in all_bpms_y]
+
+    good_bpms_for_kick_x = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_x) )
+    good_bpms_for_kick_y = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_y) )
+    Jx2sq, Jx2sq_std = get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_x, files[0], 'H')
+    Jy2sq, Jy2sq_std = get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_y, files[1], 'V')
+
     for j in range(len(files[0])):
 
         tw_x = files[0][j]
         tw_y = files[1][j]
-        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJx = ( get_free_beta_from_amp_eq(MADTwiss_ac,[tw_x],Qh,Qx,psih_ac2bpmac,'H',bd,op) )[3]
-        # Since beta,rmsbb,bpms(return_value[:3]) are not used, slice the return value([3]) (vimaier)
-        invariantJy = ( get_free_beta_from_amp_eq(MADTwiss_ac,[tw_y],Qv,Qy,psiv_ac2bpmac,'V',bd,op) )[3]
-        invarianceJx.append(invariantJx)
-        invarianceJy.append(invariantJy)
-
+        invarianceJx.append([Jx2sq[j], Jx2sq_std[j]])
+        invarianceJy.append([Jy2sq[j], Jy2sq_std[j]])
+        
         dpp.append(getattr(tw_x, "DPP", 0.0))
 
         tunex.append(getattr(tw_x, "Q1", 0.0))
