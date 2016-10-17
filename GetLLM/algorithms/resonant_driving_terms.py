@@ -27,7 +27,9 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
             'f4000H', 'f1300H', 'f2002H', 'f1120H',  #Normal Octupolar
             'f1102H', 'f2020H', 'f2020V', 'f2011V', 
             'f0220V', 'f0211V', 'f0040V', 'f0013V',
-            'f3001H', 'f1210H'                       #Skew Octupolar
+            'f3001H', 'f1201H', 'f0130V', 'f1012V'  #Skew Octupolar
+#             'f0220V', 'f2011V', 'f1210H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
+#             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
 
 
