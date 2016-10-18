@@ -3,7 +3,8 @@ import os
 import sys
 import json
 import argparse
-from matchers import matcher, phase_matcher, coupling_matcher, kmod_matcher, amp_matcher
+from matchers import (matcher,
+                      phase_matcher, coupling_matcher, kmod_matcher, amp_matcher)
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
 from madx import madx_templates_runner
@@ -15,7 +16,7 @@ MATCHER_TYPES = {
     "phase": phase_matcher.PhaseMatcher,
     "coupling": coupling_matcher.CouplingMatcher,
     "kmod": kmod_matcher.KmodMatcher,
-    "amp": amp_matcher.AmpMatcher
+    "amp": amp_matcher.AmpMatcher,
 }
 
 
@@ -23,7 +24,6 @@ def main(input_file_path):
 
     print "+++ Segment-by-segment general matcher +++"
 
-    print "Preparing MAD-X script..."
     input_data = InputData.init_from_json_file(input_file_path)
     run_full_madx_matching(input_data)
 
@@ -37,6 +37,7 @@ def _run_madx_matching(input_data, just_twiss=False):
     template_processor = TemplateProcessor(input_data.matchers,
                                            input_data.match_path,
                                            input_data.lhc_mode,
+                                           input_data.minimize,
                                            madx_templates)
     if not just_twiss:
         template_processor.run()
@@ -139,16 +140,19 @@ class InputData():
             instance._check_and_assign_attribute(input_data, "lhc_mode")
             instance._check_and_assign_attribute(input_data, "match_path")
             instance.matchers = []
+            if "minimize" in input_data:
+                instance.minimize = input_data["minimize"]
             if "matchers" in input_data:
                 instance._get_matchers_list(input_data)
         return instance
 
     @staticmethod
-    def init_from_matchers_list(lhc_mode, match_path, matchers_list):
+    def init_from_matchers_list(lhc_mode, match_path, minimize, matchers_list):
         instance = InputData()
         instance.lhc_mode = lhc_mode
         instance.match_path = match_path
         instance.matchers = matchers_list
+        instance.minimize = minimize
         return instance
 
     def _get_matchers_list(self, input_data):
