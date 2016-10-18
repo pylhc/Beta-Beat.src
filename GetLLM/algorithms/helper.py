@@ -87,6 +87,7 @@ def ComplexSecondaryLineSTD(delta, cw, cw1, pw, pw1, std, std1):
     
     return sigma
 
+
 def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     '''
      Input : - delta: phase advance between two BPMs
