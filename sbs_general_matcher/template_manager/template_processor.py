@@ -11,7 +11,7 @@ class TemplateProcessor(object):
 match, use_macro;
 """
     END_MATCH = """
-lmdif,    tolerance:=1e-24, calls:=120;
+lmdif, tolerance:=1e-24, calls:=12000;
 endmatch;
 """
     SAVE_CHANGEPARAMETERS = """
@@ -21,10 +21,12 @@ save, file="%(MATCH_PATH)s/changeparameters.madx";
 call, file="%(MATCH_PATH)s/changeparameters.madx";
 """
 
-    def __init__(self, matchers_list, match_path, lhc_mode, madx_templates_runner):
+    def __init__(self, matchers_list, match_path, lhc_mode, minimize,
+                 madx_templates_runner):
         self._matchers_list = matchers_list
         self._match_path = match_path
         self._lhc_mode = lhc_mode
+        self._minimize = minimize
         self._madx_templates_runner = madx_templates_runner
         self._set_up_collections()
 
@@ -150,7 +152,7 @@ exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_back.dat", %(B_END)s
         def_variables_string = ""
         for variable in self._variables:
             def_variables_string += '    vary, name=d' + variable
-            def_variables_string += ', step:=1e-4;\n'
+            def_variables_string += ', step := 1e-5;\n'
         self._define_variables_list.append(def_variables_string)
 
     MATCHING_MACRO_TEMPLATE = """
@@ -172,6 +174,9 @@ print, text = "=========== step for %(MACRO_NAME)s ===========";
     def _set_matching_macros(self, matcher):
         matching_macros = ""
         for beam in matcher.get_beams():
+            define_constr_str = matcher.define_constraints(beam)
+            if self._minimize:
+                define_constr_str += self._minimize_variables(matcher)
             matching_macros += TemplateProcessor.MATCHING_MACRO_TEMPLATE % {
                 "MODIFIERS_OPTICS": matcher.get_match_data(beam).get_modifiers(),
                 "MACRO_NAME": "macro_" + matcher.get_name() + "_b" + str(beam),
@@ -180,10 +185,20 @@ print, text = "=========== step for %(MACRO_NAME)s ===========";
                 "UPDATE_CONSTRAINTS": matcher.update_constraints_values(beam),
                 "UPDATE_VARIABLES": matcher.update_variables_definition(),
                 "B_INI_END": "b" + str(beam) + "_" + matcher.get_ini_end() + "_" + matcher.get_name(),
-                "DEFINE_CONSTRAINTS": matcher.define_constraints(beam)
+                "DEFINE_CONSTRAINTS": define_constr_str
             }
             matching_macros += "\n"
         self._set_matching_macros_list.append(matching_macros)
+
+    def _minimize_variables(self, matcher):
+        variables = matcher.get_all_variables()
+        minimize_vars_str = ""
+        minimize_vars_str += '    constraint, weight = 1.0, expr = sqrt('
+        for variable in variables:
+            minimize_vars_str += variable + "^2 +"
+        minimize_vars_str = minimize_vars_str[:-1]
+        minimize_vars_str += ') = 0.0; \n'
+        return minimize_vars_str
 
     def _generate_changeparameters(self, matcher):
         changeparameters_str = ""

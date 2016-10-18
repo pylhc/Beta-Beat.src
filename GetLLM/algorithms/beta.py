@@ -50,10 +50,13 @@ DEFAULT_WRONG_BETA  = 1000          #@IgnorePep8
 EPSILON             = 1.0E-16       #@IgnorePep8
 SEXT_FACT           = 2.0           #@IgnorePep8
 A_FACT              = -.5           #@IgnorePep8
+BETA_THRESHOLD      = 1e3           #@IgnorePep8
+
+ZERO_THRESHOLD      = 1e-6
 
 # Just for now:
 # TODO: decide for one of the two (hopefully not the two step matrix)
-USE_TWOSTEPMATRIX = True
+USE_TWOSTEPMATRIX = False
 
 
 #===================================================================================================
@@ -711,7 +714,7 @@ def ScanAllBPMS_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_fr
             
             try:
                 V_inv = np.linalg.pinv(V)
-            except LinAlgError:
+            except:
                 V_inv = np.diag(1.0, V.shape[0])
             if DEBUG:
                 debugfile.write("\n\nbegin BPM " + probed_bpm_name + " :\n")
@@ -1200,7 +1203,7 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
         sext_trans = []
         quad_missal = []
                
-        if index_n < index_nplus1:           
+        if index_n < index_nplus1:
             for i in range(index_n + 1, index_nplus1):
                 if errorfile.dK1[i] != 0:
                     quad_fields.append(i)
@@ -1227,8 +1230,7 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
                     quad_missal.append(i)
        
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
-
-    
+        
     if DEBUG:
         debugfile = open("debugfile" + plane, "w+")
         
@@ -1251,8 +1253,6 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
                                                                                                phase, plane, commonbpms, list_of_Ks, i,
                                                                                                range_of_bpms,
                                                                                                ABB_combo, BAB_combo, BBA_combo)
-        T_Alfa = np.matrix(T_rows_Alfa)
-        T_Beta = np.matrix(T_rows_Beta)
         
         if plane == 'H':
             betmdl1 = madTwiss.BETX[madTwiss.indx[probed_bpm_name]]
@@ -1260,17 +1260,36 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
             betmdl1 = madTwiss.BETY[madTwiss.indx[probed_bpm_name]]
         beti = DEFAULT_WRONG_BETA
         
+        all_betas = [x[0] for x in betadata]
+        
+        #median = np.median(all_betas)
+        
+        # check for abnormally high (or low) beta values. ATTENTION: this selection is highly biased and all the math books strongly disapprove
+        # but since the beam cannot survive with 1e16 percent betabeating, we know from the fact, that there is still a beam, 
+        # that those high values didn't occur.
+        used_betas = [x for x in range(len(all_betas)) if math.fabs(all_betas[x] / betmdl1) < BETA_THRESHOLD and math.fabs(all_betas[x]) > ZERO_THRESHOLD]
+        
+        betas = [betadata[x][0] for x in used_betas]
+        alfas = [alfadata[x][0] for x in used_betas]
+
+        
+#         random_array = [1,6,7,8,9,10,11,12,16,17,26,31,32,35,36,37,38,39,40,41,42,43]
+        t_rows_alfa_reduced = [T_rows_Alfa[x] for x in used_betas]
+        t_rows_beta_reduced = [T_rows_Beta[x] for x in used_betas]
+        
+        
+        T_Alfa = np.matrix(t_rows_alfa_reduced)
+        T_Beta = np.matrix(t_rows_beta_reduced)
+        
         #--- calculate V and its inverse
         V_Beta = T_Beta * M * np.transpose(T_Beta)
         V_Alfa = T_Alfa * M * np.transpose(T_Alfa)
                  
-        betas = []
-        betas = [x[0] for x in betadata]
-        
+      
         # TODO The LinalgError doesnt seem to be defined in 2.6 version of python, this should be checked.
         # TODO Should we really output a zero matrix if the pinv fails? Play with rcond in pinv.
         try:
-            V_Beta_inv = np.linalg.pinv(V_Beta)
+            V_Beta_inv = np.linalg.pinv(V_Beta, rcond=1.0e-13)
         except:
             V_Beta_inv = np.zeros(V_Beta.shape)
             np.fill_diagonal(V_Beta_inv, 1.0)
@@ -1304,7 +1323,7 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
             walfa[i] = VAlfa_inv_row_sum[i] / VAlfa_inv_sum
         
         beti = float(sum([w[i] * betas[i] for i in range(len_w)]))
-        alfi = float(sum([walfa[i] * alfadata[i][0] for i in range(len_w)]))
+        alfi = float(sum([walfa[i] * alfas[i] for i in range(len_w)]))
         
             #--- calculate errors
         for i in range(len_w):
@@ -1349,8 +1368,10 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
             printMatrix(debugfile, T_Alfa, "T_Alfa")
             printMatrix(debugfile, M, "M")
        
-            printMatrix(debugfile, V_Beta, "V")
-            printMatrix(debugfile, V_Alfa, "V_a")
+            printMatrix(debugfile, V_Beta, "Vb")
+            printMatrix(debugfile, V_Beta_inv, "Vb_inv")
+            printMatrix(debugfile, V_Alfa, "Va")
+            printMatrix(debugfile, V_Alfa_inv, "Va_inv")
                     
             Zero = V_Beta * V_Beta_inv * V_Beta - V_Beta
             sumnorm = Zero.sum(dtype='float') / (Zero.shape[0] * Zero.shape[1])

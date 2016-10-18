@@ -187,7 +187,7 @@ class Matcher(object):
             constr_string += 'expr =  ' + constr_name + ' > ' + lower_bound + ';\n'
         else:
             constr_string = '    constraint, weight = 1.0, '
-            constr_string += 'expr =  ' + constr_name + ' = ' + value + ';\n'
+            constr_string += 'expr =  ' + constr_name + ' = ' + str(value) + ';\n'
         return constr_string
 
     def _parse_exclude_string(self, exclude_string):
