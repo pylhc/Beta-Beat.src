@@ -27,8 +27,8 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
             'f4000H', 'f1300H', 'f2002H', 'f1120H',  #Normal Octupolar
             'f1102H', 'f2020H', 'f2020V', 'f2011V', 
             'f0220V', 'f0211V', 'f0040V', 'f0013V',
-            'f3001H', 'f1201H', 'f0130V', 'f1012V'  #Skew Octupolar
-#             'f0220V', 'f2011V', 'f1210H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
+            'f3001H', 'f1210H', 'f0130V', 'f1012V'  #Skew Octupolar
+#             'f0220V', 'f2011V', 'f1201H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
 #             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
 
@@ -66,13 +66,14 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
         out_file in files_dict is the out file to write the data to (must be added to GetLLM.py)
         line in (int, int) is the corresponding line to the driving term
     """
+    beam = getllm_d.beam_direction
 
     for rdt in RDT_LIST:
         line, plane = determine_lines(rdt)
-        _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], files_dict[rdt+'.out'], line), inv_x, inv_y, rdt)
+        _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], files_dict[rdt+'.out'], line), inv_x, inv_y, rdt, beam)
 
 
-def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, line), inv_x, inv_y, rdt):
+def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, line), inv_x, inv_y, rdt, beam):
     assert plane in ["H", "V"] # check user input plane
 
     # get plane corresponding phase and twiss data
@@ -85,6 +86,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
 
     dbpms = Utilities.bpm.intersect(list_zero_dpp)
     dbpms = Utilities.bpm.model_intersect(dbpms, mad_twiss)
+    bpm_positions, bpm_names = zip(*dbpms)
+
 
     # init out file
     out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP", "PHASE", "EPHASE"])
@@ -114,10 +117,11 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         for i in range(len(dbpms)-4):
             bpm1 = dbpms[i][1].upper()
             try:
-                bpm_pair_data = _get_best_fitting_bpm(phase_data, bpm1, plane)
+                bpm_pair_data = phase_data[bpm1][7], phase_data[bpm1][8], phase_data[bpm1][9]
             except KeyError:
                 print >> sys.stderr, "Could not find a BPM pair (%s, %s)!\n\t" % (plane, bpm1)
                 continue
+            
             bpm2 = bpm_pair_data[0]
             for j in range(0,len(list_zero_dpp)):
     
@@ -132,19 +136,36 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 elif use_opposite_line and not use_line:
                     amp_line, phase_line = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
                     phase_line = -phase_line 
+
+                if beam == 1:
+                    delta, edelta = bpm_pair_data[1:]
+                    amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
+                    amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
+                    phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
+                    phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
                 
-                delta, edelta = bpm_pair_data[1:]
-                amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
-                amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
-                phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
-                phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-                
-                line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2)
-                out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
-                line_amplitudes.append(line_amp)
-                line_amplitudes_err.append(line_amp_e)
-                line_phases.append(line_phase)
-                line_phases_err.append(line_phase_e)
+                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
+                    out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
+                    line_amplitudes.append(line_amp)
+                    line_amplitudes_err.append(line_amp_e)
+                    line_phases.append(line_phase)
+                    line_phases_err.append(line_phase_e)
+    
+                elif beam == -1:
+                    delta, edelta = bpm_pair_data[1:]
+                    amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
+                    amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
+                    phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
+                    phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
+                    bpm_position = bpm_positions[bpm_names.index(bpm2)]
+
+                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp2, amp1, phase2, phase1)
+                    out_file.add_table_row([bpm2, bpm_position, len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
+                    line_amplitudes.append(line_amp)
+                    line_amplitudes_err.append(line_amp_e)
+                    line_phases.append(line_phase)
+                    line_phases_err.append(line_phase_e)
+
     else:
         print >> sys.stderr, "Could not find line for %s !\n\t" %rdt
     # init out file
@@ -181,57 +202,6 @@ def do_fitting(bpm_rdt_data, kick_x, kick_y, rdt, plane):
     popt, pcov = curve_fit(func, kick_data, bpm_rdt_data)
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
-
-
-def _get_best_fitting_bpm(phase_d, bpm1, plane):
-    ''' 
-    @author: F Carlier
-    phase_d is a dictionary containing two different sets of keys. 
-    First there are the keys for the bpm pairs in the H & V planes, for example: 
-    HBPM.33R3.B1BPM.32R3.B1 for which the values are [phase difference measurement, error phase difference, phase difference model]
-
-    Second keys are the individual bpms ["BPM.33R3.B1","BPM.32R3.B1", etc..], with their values given by:
-    [phase diff X, std phase diff X, phase diff Y, std phase diff Y, phase diff Model X, phase diff model Y, NEXT BPM]   
-
-    Using the second key one iterates over the list of bpms to find the pair for which the phase difference is closest to 90 degrees (.25)
-    The phase advances between a pair of bpms is always compared to the advance of the previous set. As soon as the absolute difference to .25 
-    rises the last bpm is used for the pair. This iterations makes sure that the integer phase advance is taken into account. 
-    
-    plane_idx       : makes sure the right plane is used for the phase
-    ph_advance      : total phase advance between first bpm and target bpm
-    ph_advance_next : total phase advance between first bpm and next bpm
-    value           : absolute difference between phase advance and .25 of first bpm set
-    value_next      : absolute difference between phase advance and .25 of the next bpm set
-    
-    '''
-
-    if plane == 'H':
-        plane_idx = 0
-    elif plane == 'V':
-        plane_idx = 2
-    else: 
-        raise KeyError("No valid plane was found!")
-    
-    ph_advance = float(phase_d[bpm1][plane_idx])  
-    ph_adv_err = float(phase_d[bpm1][plane_idx+1])  
-    next_bpm = phase_d[bpm1][6]
-    target_bpm = next_bpm
-    ph_advance_next = ph_advance + float(phase_d[next_bpm][plane_idx])
-    ph_advance_next_err = float(phase_d[next_bpm][plane_idx+1])
-    value = abs(ph_advance - .25) 
-    value_next = abs(ph_advance_next - .25)
-
-    while value_next < value:
-        target_bpm = next_bpm
-        ph_adv_err = ph_advance**2*ph_adv_err + (ph_advance_next*ph_advance_next_err)**2 
-        ph_advance = ph_advance_next
-        next_bpm = phase_d[target_bpm][6]
-        ph_advance_next += float(phase_d[next_bpm][plane_idx])
-        ph_advance_next_err = float(phase_d[next_bpm][plane_idx+1])
-        value = value_next
-        value_next = abs(ph_advance_next - .25)
-        
-    return next_bpm , ph_advance, ph_adv_err
 
 
 def _line_to_amp_and_phase_attr(line, zero_dpp):
