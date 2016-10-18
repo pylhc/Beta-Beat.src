@@ -61,7 +61,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
 
     :Return: PhaseData, _TuneData
         an instance of PhaseData with the result of this function
-        the same instance as param tune_d to indicate changes in the instace.
+        the same instance as param tune_d to indicate changes in the instance.
     '''
     phase_d = PhaseData()
 
@@ -238,6 +238,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                 bns2 = phase_d.y_f2[bn1][4]
                 list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.y_f2[bn1][0], phase_d.y_f2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
+                
 
     return phase_d, tune_d
 # END calculate_phase ------------------------------------------------------------------------------
@@ -620,6 +621,8 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                     p_mdl[j] = _phi_last_and_last_but_one(p_mdl[j], madtune)
 
         small = 1e-7
+        phase_advances_all_bpms = np.zeros(len(p_i))
+        phase_advances_all_bpms_std = np.zeros(len(p_i))
         for bpm_pair in p_i:
             if abs(p_mdl[bpm_pair]) < small:
                 p_mdl[bpm_pair] = small
@@ -631,7 +634,16 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                 print "Beta from amplitude around this monitor will be slightly varied."
             phase["".join([plane,bpms[0],bpms[bpm_pair]])] = [p_i[bpm_pair], p_std[bpm_pair], p_mdl[bpm_pair]]
 
-        phase[bpms[0]] = [p_i[1], p_std[1], p_i[2], p_std[2], p_mdl[1], p_mdl[2], bpms[1]]
+        for i in range(len(p_i)):
+            phase_advances_all_bpms[i] = p_i[i+1]
+            phase_advances_all_bpms_std[i] = p_std[i+1]
+
+        best_bpm_idx = (np.abs(phase_advances_all_bpms-0.25)).argmin()
+        best_90degrees_bpm = bpms[best_bpm_idx + 1]
+        best_90degrees_phase = phase_advances_all_bpms[best_bpm_idx]
+        best_90degrees_phase_std = phase_advances_all_bpms_std[best_bpm_idx]
+ 
+        phase[bpms[0]] = [p_i[1], p_std[1], p_i[2], p_std[2], p_mdl[1], p_mdl[2], bpms[1], best_90degrees_bpm, best_90degrees_phase, best_90degrees_phase_std]
 
     return [phase, tune, mu, commonbpms]
 
