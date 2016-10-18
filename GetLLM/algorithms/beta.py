@@ -52,7 +52,7 @@ SEXT_FACT           = 2.0           #@IgnorePep8
 A_FACT              = -.5           #@IgnorePep8
 BETA_THRESHOLD      = 1e3           #@IgnorePep8
 
-INV_BETA_THRESHOLD = 1.0 / BETA_THRESHOLD
+ZERO_THRESHOLD      = 1e-6
 
 # Just for now:
 # TODO: decide for one of the two (hopefully not the two step matrix)
@@ -1254,12 +1254,20 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
                                                                                                range_of_bpms,
                                                                                                ABB_combo, BAB_combo, BBA_combo)
         
-        # check for abnormally high (or low) beta values. 
+        if plane == 'H':
+            betmdl1 = madTwiss.BETX[madTwiss.indx[probed_bpm_name]]
+        elif plane == 'V':
+            betmdl1 = madTwiss.BETY[madTwiss.indx[probed_bpm_name]]
+        beti = DEFAULT_WRONG_BETA
         
         all_betas = [x[0] for x in betadata]
-        median = np.median(all_betas)
         
-        used_betas = [x for x in range(len(all_betas)) if math.fabs(all_betas[x] / median) < BETA_THRESHOLD and math.fabs(all_betas[x] / median) > INV_BETA_THRESHOLD]
+        #median = np.median(all_betas)
+        
+        # check for abnormally high (or low) beta values. ATTENTION: this selection is highly biased and all the math books strongly disapprove
+        # but since the beam cannot survive with 1e16 percent betabeating, we know from the fact, that there is still a beam, 
+        # that those high values didn't occur.
+        used_betas = [x for x in range(len(all_betas)) if math.fabs(all_betas[x] / betmdl1) < BETA_THRESHOLD and math.fabs(all_betas[x]) > ZERO_THRESHOLD]
         
         betas = [betadata[x][0] for x in used_betas]
         alfas = [alfadata[x][0] for x in used_betas]
@@ -1272,12 +1280,6 @@ def ScanAllBPMs_withSystematicErrors(madTwiss, errorfile, phase, plane, range_of
         
         T_Alfa = np.matrix(t_rows_alfa_reduced)
         T_Beta = np.matrix(t_rows_beta_reduced)
-        
-        if plane == 'H':
-            betmdl1 = madTwiss.BETX[madTwiss.indx[probed_bpm_name]]
-        elif plane == 'V':
-            betmdl1 = madTwiss.BETY[madTwiss.indx[probed_bpm_name]]
-        beti = DEFAULT_WRONG_BETA
         
         #--- calculate V and its inverse
         V_Beta = T_Beta * M * np.transpose(T_Beta)

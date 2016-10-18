@@ -1,7 +1,7 @@
 '''
 Created on May 15, 2014
 
-@author: fcarlier
+@author: rwestenb
 
 @version: 0.0.1
 
@@ -13,23 +13,19 @@ import sys
 
 import Utilities.bpm
 import helper
-import numpy as np
-from scipy.optimize import curve_fit
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 
-RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
-            'f3000H', 'f1200H', 'f1020H', 'f1002H',  #Normal Sextupolar
-            'f0111V', 'f1020V', 'f0120V', 'f1011V', 
-            'f0030V', 'f0012V', 'f0210V', 'f2010V',  #Skew Sextupolar
-            'f1101H', 'f2010H', 'f1110H', 'f2001H', 
-            'f4000H', 'f1300H', 'f2002H', 'f1120H',  #Normal Octupolar
-            'f1102H', 'f2020H', 'f2020V', 'f2011V', 
-            'f0220V', 'f0211V', 'f0040V', 'f0013V',
-            'f3001H', 'f1201H', 'f0130V', 'f1012V'  #Skew Octupolar
-#             'f0220V', 'f2011V', 'f1210H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
-#             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
+RDT_LIST = ['f1001H', 'f3000H', 'f1002H', 
+            'f4000H', 'f2010H', 'f1220H', 
+            'f1020H', 'f1120H', 'f2003H', 
+            'f2020H', 'f3001H', 'f1101H', 
+            'f1200H', 
+            'f0110V', 'f1020V', 'f1011V', 
+            'f0111V', 'f2010V', 'f0120V', 
+            'f0030V', 'f0040V', 'f0211V', 
+            'f1012V', 'f1013V'
             ]
 
 
@@ -43,7 +39,7 @@ def determine_lines(rdt):
     return line, plane
 
 
-def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y):
+def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y):
     '''
     Calculates line RDT amplitudes and phases and fills the following TfsFiles:
         f3000_line.out ...
@@ -69,10 +65,10 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
 
     for rdt in RDT_LIST:
         line, plane = determine_lines(rdt)
-        _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], files_dict[rdt+'.out'], line), inv_x, inv_y, rdt)
+        _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], line))
 
 
-def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, line), inv_x, inv_y, rdt):
+def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, line)):
     assert plane in ["H", "V"] # check user input plane
 
     # get plane corresponding phase and twiss data
@@ -90,97 +86,23 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP", "PHASE", "EPHASE"])
     out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-    line_amplitudes = []
-    line_amplitudes_err = []
-    line_phases = []
-    line_phases_err = []
-
-    use_line = False
-    use_opposite_line = False   
-    
-    
-    try:
-        _, _ = _line_to_amp_and_phase_attr(line, list_zero_dpp[0])
-        use_line = True
-    except AttributeError:
-        print >> sys.stderr, "Line not found, trying opposite line.. (%s, %s)!\n\t" % line
-    try:
-        _, _ = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[0])
-        use_opposite_line = True
-    except AttributeError:
-        print >> sys.stderr, "Opposite line not found.. (%s, %s)!\n\t" % (-line[0],-line[1])
-
-    if use_line or use_opposite_line:  
-        for i in range(len(dbpms)-4):
-            bpm1 = dbpms[i][1].upper()
-            try:
-                bpm_pair_data = _get_best_fitting_bpm(phase_data, bpm1, plane)
-            except KeyError:
-                print >> sys.stderr, "Could not find a BPM pair (%s, %s)!\n\t" % (plane, bpm1)
-                continue
-            bpm2 = bpm_pair_data[0]
-            for j in range(0,len(list_zero_dpp)):
-    
-                if use_line and use_opposite_line:
-                    amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
-                    amp_line_opp, phase_line_opp = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
-                    phase_line_opp = -phase_line_opp 
-                    amp_line = (amp_line + amp_line_opp)/2.
-                    phase_line = (phase_line + phase_line_opp)/2.
-                elif use_line and not use_opposite_line:
-                    amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
-                elif use_opposite_line and not use_line:
-                    amp_line, phase_line = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
-                    phase_line = -phase_line 
-                
-                delta, edelta = bpm_pair_data[1:]
-                amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
-                amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
-                phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
-                phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-                
-                line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2)
-                out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
-                line_amplitudes.append(line_amp)
-                line_amplitudes_err.append(line_amp_e)
-                line_phases.append(line_phase)
-                line_phases_err.append(line_phase_e)
-    else:
-        print >> sys.stderr, "Could not find line for %s !\n\t" %rdt
-    # init out file
-    rdt_out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP"])
-    rdt_out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le"])
-
-    for k in range(len(line_amplitudes)/len(list_zero_dpp)):
-        num_meas = len(list_zero_dpp)
-        bpm_name = dbpms[k][1].upper()
-        bpm_rdt_data = line_amplitudes[k*num_meas:(k+1)*num_meas]
-        res, res_err = do_fitting(bpm_rdt_data, inv_x, inv_y, rdt, plane)
-        rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0]])
-
-
-def rdt_function_gen(rdt, plane):
-    '''
-    Note that the factor 2 in 2*j*f_jklm*.... is absent due to the normalization with the main line. 
-    The main line has an amplitude of sqrt(2J*beta)/2
-    '''
-    r = list(rdt)
-    j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
-    if plane == 'H':
-        def rdt_function(x, f):
-            return j * f * x[0]**((j+k-2)/2.) * x[1]**((l+m)/2.)
-    elif plane == 'V':
-        def rdt_function(x, f):
-            return l * f * x[0]**((j+k)/2.) * x[1]**((l+m-2)/2.)
-    return rdt_function
-
-
-def do_fitting(bpm_rdt_data, kick_x, kick_y, rdt, plane):
-    func = rdt_function_gen(rdt, plane)
-    kick_data = np.vstack((np.transpose(kick_x)[0]**2, np.transpose(kick_y)[0]**2))
-    popt, pcov = curve_fit(func, kick_data, bpm_rdt_data)
-    perr = np.sqrt(np.diag(pcov))
-    return popt, perr
+    for i in range(len(dbpms)-4):
+        bpm1 = dbpms[i][1].upper()
+        try:
+            bpm_pair_data = _get_best_fitting_bpm(phase_data, bpm1, plane)
+        except KeyError:
+            print >> sys.stderr, "Could not find a BPM pair (%s, %s)!\n\t" % (plane, bpm1)
+            continue
+        bpm2 = bpm_pair_data[0]
+        for j in range(0,len(list_zero_dpp)):
+            amp_line, phase_line = _line_to_amp_and_phase_attr(line, list_zero_dpp[j])
+            delta, edelta = bpm_pair_data[1:]
+            amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
+            amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
+            phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
+            phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
+            line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2)
+            out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
 
 
 def _get_best_fitting_bpm(phase_d, bpm1, plane):
