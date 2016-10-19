@@ -12,6 +12,11 @@ option, -echo, -warn;
 option, echo, warn;
 
 extract_segment_sequence(base_seq, front_seq, back_seq, start_from, end_at): macro = {
+    SEQEDIT, SEQUENCE=base_seq;
+    FLATTEN;               
+    CYCLE, START=start_from;
+    ENDEDIT;
+
     EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=front_seq;
     seqedit, sequence=front_seq;
     flatten;
