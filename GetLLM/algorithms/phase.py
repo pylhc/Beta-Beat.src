@@ -634,11 +634,13 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                 print "Beta from amplitude around this monitor will be slightly varied."
             phase["".join([plane,bpms[0],bpms[bpm_pair]])] = [p_i[bpm_pair], p_std[bpm_pair], p_mdl[bpm_pair]]
 
-        for i in range(333):
+        for i in range(len(p_i)):
             phase_advances_all_bpms[i] = p_i[i+1]
             phase_advances_all_bpms_std[i] = p_std[i+1]
 
         best_bpm_idx = (np.abs(phase_advances_all_bpms-0.25)).argmin()
+        if best_bpm_idx > 2:
+            best_bpm_idx = 0
         best_90degrees_bpm = bpms[best_bpm_idx + 1]
         best_90degrees_phase = phase_advances_all_bpms[best_bpm_idx]
         best_90degrees_phase_std = phase_advances_all_bpms_std[best_bpm_idx]
