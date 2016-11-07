@@ -29,10 +29,12 @@ from Python_Classes4MAD.BCORR import default
 import multiprocessing
 import time
 
-DEBUG = False #sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+PARALLEL = False
+DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 if DEBUG:
     from Utilities.progressbar import startProgress, progress, endProgress
+    PARALLEL = False
 else:
     def startProgress(name):
         print "START " + name
@@ -138,8 +140,10 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     if(use_only_three_bpms_for_beta_from_phase):
         print "WARNING: use_only_three_bpms_for_beta_from_phase = True"
     #---- H plane
+    _plane_char = "X"
     if DEBUG:
         debugfile = open(files_dict['getbetax.out'].s_output_path + "/getbetax.debug", "w+")
+        print "ATTENTION: DEBUD is set to true, calculation of beta functions will be done serially"
 
     if twiss_d.has_zero_dpp_x():
         [data, rmsbbx, bpms, error_method] = beta_from_phase(mad_ac_best_knowledge, mad_elem, mad_elem_centre,
@@ -152,7 +156,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         mad_ac_BET = mad_ac.BETX
         mad_ac_ALF = mad_ac.ALFX
         mad_ac_MU = mad_ac.MUX
-        _plane_char = "X"
+
         
         _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, mad_ac, number_of_bpms, range_of_bpms, beta_d.x_phase, 
                            data, rmsbbx, error_method, bpms,
@@ -213,13 +217,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 debugfile = open(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.debug", "w+")
 
             try:
-                [beta_d.y_phase_f, rmsbbyf, alfayf, bpmsf, error_method, corr] = beta_from_phase(mad_best_knowledge, mad_elem, mad_elem_centre,
+                [dataf, rembbyf, bpmsf, error_method] = beta_from_phase(mad_best_knowledge, mad_elem, mad_elem_centre,
                                                                                                  twiss_d.zero_dpp_y, phase_d.y_f, 'V',
                                                                                                  use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath, debugfile)
                 tfs_file = files_dict['getbetay_free.out']
                 
                 _write_getbeta_out(twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, mad_twiss, number_of_bpms, range_of_bpms, beta_d.y_phase_f, 
-                                   data, rmsbbx, error_method, bpmsf,
+                                   dataf, rmsbbx, error_method, bpmsf,
                                    tfs_file, mad_twiss.BETY, mad_twiss.ALFY, mad_twiss.MUY, _plane_char)
                 
                 
@@ -234,7 +238,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             rmsbbyf2 = 0
             
             _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, number_of_bpms, range_of_bpms, betayf2, 
-                               datayf2, rmsbbxf2, error_method, bpmsf2, 
+                               datayf2, rmsbbyf2, error_method, bpmsf2, 
                                tfs_file, mad_twiss.BETY, mad_twiss.ALFY, mad_twiss.MUY, _plane_char)
             
  
@@ -475,17 +479,16 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     :Return:
         'data':table
             columns:
-             0: probed_bpm_name
-             1: beti
-             2: betstat
-             3: betsys
-             4: beterr
-             5: alfi
-             6: alfstat
-             7: alfsys
-             8: alferr
-             9: corr
-            10: delbeta
+             0: beti
+             1: betstat
+             2: betsys
+             3: beterr
+             4: alfi
+             5: alfstat
+             6: alfsys
+             7: alferr
+             8: corr
+             9: delbeta
         'rmsbb':float
             rms beta-beating
         'commonbpms':list
@@ -633,7 +636,6 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 #=======================================================================================================================
 
 def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, commonbpms, debugfile):
-    systematic_errors_found = False
     systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
     systematic_errors = None
     
@@ -1242,22 +1244,23 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, range_
     result = {}
 
     startProgress("Calculating betas")
-    PARALLEL = True
     #--- commence loop over the BPMs
 
     def collect(row):
-        result[row[0]] = row[1:]
+        if row[11]:
+            result[row[0]] = row[1:]
         
         
     def collectblock(block):
         for row in block:
-            result[row[0]] = row[1:]
+            if row[11]:
+                result[row[0]] = row[1:]
             
     chunksize = 36
     
     time_elapsed = -1
 
-    if PARALLEL and not DEBUG:
+    if PARALLEL:
         pool = multiprocessing.Pool()
         
         print "\33[33;1m= = = = = = = = = = = = = = = = = = = = ="
@@ -1353,8 +1356,8 @@ def scan_one_BPM_withsystematicerrors(madTwiss, errorfile, phase, plane, range_o
     alfas = np.array(zip(*alfadata)[0])
     len_w = len(betas)
     if len_w < 3:
-        return probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr, rho_alfa_beta, delbeta
         print "WARNING using analytical method for bpm " + probed_bpm_name + " failed."
+        return [probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr, rho_alfa_beta, delbeta, False]
     else:
         T_Alfa = np.matrix(T_rows_Alfa)
         T_Beta = np.matrix(T_rows_Beta)
@@ -1370,6 +1373,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, errorfile, phase, plane, range_o
             np.fill_diagonal(V_Beta_inv, 1.0)
             np.fill_diagonal(V_Beta, 1000.0)
             print "WARN: LinAlgEror in V_Beta_inv for " + probed_bpm_name
+            return [probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr, rho_alfa_beta, delbeta, False]
         try:
             V_Alfa_inv = np.linalg.pinv(V_Alfa, rcond=1.0e-10)
         except:
@@ -1377,6 +1381,8 @@ def scan_one_BPM_withsystematicerrors(madTwiss, errorfile, phase, plane, range_o
             np.fill_diagonal(V_Alfa, 1000.0)
             np.fill_diagonal(V_Alfa_inv, 1.0)
             print "WARN: LinAlgEror in V_Alfa_inv for " + probed_bpm_name
+            return [probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr, rho_alfa_beta, delbeta, False]
+
         #--- calculate weights, weighted beta and beta_error
         # prepare calculating
         # w = np.zeros(len_w)
@@ -1398,8 +1404,9 @@ def scan_one_BPM_withsystematicerrors(madTwiss, errorfile, phase, plane, range_o
         alfi = float(np.dot(np.transpose(walfa), alfas)/ VAlfa_inv_sum)
         #         beti = float(sum([w[i] * betas[i] for i in range(len_w)]))
         #         alfi = float(sum([walfa[i] * alfas[i] for i in range(len_w)]))
-        beterr = np.transpose(w) * V_Beta * w / VBeta_inv_sum ** 2
-        alferr = np.transpose(walfa) * V_Alfa * walfa / VAlfa_inv_sum ** 2
+
+        beterr = np.transpose(w).dot(V_Beta.dot(w)) / VBeta_inv_sum ** 2
+        alferr = np.transpose(walfa).dot(V_Alfa.dot(walfa)) / VAlfa_inv_sum ** 2
         
 #         print "VBetainv =", V_Beta_inv
 #         print "betas =", betas
@@ -1481,7 +1488,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, errorfile, phase, plane, range_o
             debugfile.write("MUX: {0:.10e}\n".format(phase[probed_bpm_name][0]))
             debugfile.write("end\n") #         random_array = [1,6,7,8,9,10,11,12,16,17,26,31,32,35,36,37,38,39,40,41,42,43]
             
-        return [probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr, rho_alfa_beta, delbeta]
+        return [probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr, rho_alfa_beta, delbeta, True]
 
     #t_rows_alfa_reduced = [T_rows_Alfa[x] for x in used_betas]
     #t_rows_beta_reduced = [T_rows_Beta[x] for x in used_betas]
@@ -1730,8 +1737,8 @@ def beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi
     denom = (1.0 / tan(phmdl12) - 1.0 / tan(phmdl13) + EPSILON) / betmdl1
     numer = 1.0 / tan(ph2pi12) - 1.0 / tan(ph2pi13)
     
-    if denom > BETA_THRESHOLD or denom < ZERO_THRESHOLD or numer > BETA_THRESHOLD or numer < ZERO_THRESHOLD:
-        return 0, 0, 0, [], [], "", False
+#     if denom > BETA_THRESHOLD or denom < ZERO_THRESHOLD or numer > BETA_THRESHOLD or numer < ZERO_THRESHOLD:
+#         return 0, 0, 0, [], [], "", False
     
     bet = numer / denom
     
@@ -1924,9 +1931,9 @@ def beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi
     #--- Calculate beta
     denom = (1.0 / tan(phmdl21) - 1.0 / tan(phmdl23) + EPSILON) / betmdl2
     numer = 1.0 / tan(ph2pi21) - 1.0 / tan(ph2pi23)
-    
-    if denom > BETA_THRESHOLD or denom < ZERO_THRESHOLD or numer > BETA_THRESHOLD or numer < ZERO_THRESHOLD:
-        return 0, 0, 0, [], [], "", False
+#     
+#     if denom > BETA_THRESHOLD or denom < ZERO_THRESHOLD or numer > BETA_THRESHOLD or numer < ZERO_THRESHOLD:
+#         return 0, 0, 0, [], [], "", False
 
     bet = numer / denom
     
@@ -2120,8 +2127,8 @@ def beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, bi
     denom = (1.0 / tan(phmdl32) - 1.0 / tan(phmdl31) + EPSILON) / betmdl3
     numer = 1.0 / tan(ph2pi32) - 1.0 / tan(ph2pi31)
     
-    if denom > BETA_THRESHOLD or denom < ZERO_THRESHOLD or numer > BETA_THRESHOLD or numer < ZERO_THRESHOLD:
-        return 0, 0, 0, [], [], "", False
+#     if denom > BETA_THRESHOLD or denom < ZERO_THRESHOLD or numer > BETA_THRESHOLD or numer < ZERO_THRESHOLD:
+#         return 0, 0, 0, [], [], "", False
 
     bet = numer / denom
   
@@ -2364,8 +2371,6 @@ def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
     
     bpms = Utilities.bpm.model_intersect(bpms, modelfree)
     bpms = Utilities.bpm.model_intersect(bpms, modelac)
-    betan = {}
-    alfan = {}
     for bpma in bpms:
         bpm = bpma[1].upper()
         beta, betsys, betstat, beterr = data[bpm][0:4]
