@@ -93,8 +93,13 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
         tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
         tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
     tfs_file.add_string_descriptor("ErrorsFrom", error_method)
-    tfs_file.add_column_names(["NAME", "S", "COUNT", "BET" + _plane_char, "SYSBET" + _plane_char, "STATBET" + _plane_char, "ERRBET" + _plane_char, "CORR_ALFABETA", "ALF" + _plane_char, "SYSALF" + _plane_char, "STATALF" + _plane_char, "ERRALF" + _plane_char, "BET" + _plane_char + "MDL", "ALF" + _plane_char + "MDL", "MU" + _plane_char + "MDL"])
-    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    tfs_file.add_column_names(["NAME", "S", "COUNT", 
+                               "BET" + _plane_char, "SYSBET" + _plane_char, "STATBET" + _plane_char, "ERRBET" + _plane_char, 
+                               "CORR_ALFABETA", 
+                               "ALF" + _plane_char, "SYSALF" + _plane_char, "STATALF" + _plane_char, "ERRALF" + _plane_char, 
+                               "BET" + _plane_char + "MDL", "ALF" + _plane_char + "MDL", "MU" + _plane_char + "MDL",
+                               "NCOMBINATIONS"])
+    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     for bpm in bpms:
         name = bpm[1]
         row = data[name]
@@ -104,7 +109,8 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
             row[0], row[1], row[2], row[3], 
             row[8], 
             row[4], row[5], row[6], row[7], 
-            mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index]]
+            mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
+            row[10]]
         tfs_file.add_table_row(list_row_entries)
         
 
@@ -496,6 +502,7 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
              7: alferr
              8: corr
              9: delbeta
+            10: n_combinations
         'rmsbb':float
             rms beta-beating
         'commonbpms':list
@@ -655,6 +662,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_
         systematic_errors = np.load(systematics_error_path)
             
     data = {}
+    used_bpms = 0
     startProgress("Calculate betas")
     print "Errors from " + errors_method
     for i in range(0, len(commonbpms)):
@@ -730,6 +738,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_
                     beterr = DEFAULT_WRONG_BETA
                 else:
                     beterr = np.sqrt(float(beterr))
+                used_bpms = len(w)
                 if DEBUG:
                     debugfile.write("\ncombinations:\t")
                     for i in range(len(w)):
@@ -757,6 +766,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_
                 betstd = DEFAULT_WRONG_BETA
                 beterr = DEFAULT_WRONG_BETA
         else:
+            used_bpms = -1
             beti = sum([alfa_beta[i][1] for i in range(len(alfa_beta))]) / len(alfa_beta)
             betstd = math.sqrt(sum([alfa_beta[i][0] ** 2 for i in range(len(alfa_beta))])) / math.sqrt(len(alfa_beta))
             try:
@@ -767,7 +777,8 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_
         data[probed_bpm_name] = [ beti, betstd, beterr, math.sqrt(beterr ** 2 + betstd ** 2),
                      .0,
                     alfi, alfstd, alferr, math.sqrt(alferr ** 2 + alfstd ** 2),
-                    (beti - betmdl1) / betmdl1]
+                    (beti - betmdl1) / betmdl1,
+                    used_bpms]
        
         if DEBUG:
             debugfile.write("end\n")
@@ -1242,7 +1253,7 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
 
 
 def get_beta_from_phase_3bpm(madTwiss, phase, plane, range_of_bpms, commonbpms, debugfile, i, probed_bpm_name, beti, alfi):
-    alfa_beta, probed_bpm_name, M = get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, True, 3, range_of_bpms)
+    alfa_beta, probed_bpm_name, _ = get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, True, 3, range_of_bpms)
     beti = sum([alfa_beta[i][1] for i in range(len(alfa_beta))]) / len(alfa_beta)
     betstat = math.sqrt(sum([alfa_beta[i][0] ** 2 for i in range(len(alfa_beta))])) / math.sqrt(len(alfa_beta))
     try:
@@ -1280,10 +1291,7 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile, phase, plan
     alfsys =    .0
     alferr =    DEFAULT_WRONG_BETA
     corr =      .0
-    delbeta =   .0
-    
-    
-    
+    used_bpms = 0
     
     if len(betadata) <= 3:
         print "WARNING using analytical method for bpm " + probed_bpm_name + " failed."
@@ -1294,7 +1302,8 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile, phase, plan
         return [probed_bpm_name, 
                 beti, betstat, betsys, beterr, 
                 alfi, alfstat, alfsys, beterr, 
-                .0, (beti - betmdl1) / betmdl1]
+                .0, (beti - betmdl1) / betmdl1,
+                -1]
 
     betas = np.array(zip(*betadata)[0])
     alfas = np.array(zip(*alfadata)[0])
@@ -1313,11 +1322,11 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile, phase, plan
         VBeta_inv_sum = np.sum(w)
         beterr = float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2)
         beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
-        
+        used_bpms = len(w)
     except:
         probed_bpm_name, beti, betstat, betsys, beterr, _, _, _, _ = get_beta_from_phase_3bpm(madTwiss, phase, plane, range_of_bpms, commonbpms, debugfile, i, probed_bpm_name, beti, alfi)
 
-        
+        used_bpms = -1
         print "WARN: LinAlgEror in V_Beta_inv for " + probed_bpm_name
         
     try:
@@ -1371,8 +1380,6 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile, phase, plan
     #                 alfaterm -= walfa[k] * t_rows_alfa_reduced[k][i]
     #             rho_alfa_beta += betaterm * alfaterm * M[i][i]
     #         rho_alfa_beta /= (beterr * alferr)
-    if beterr > DEFAULT_WRONG_BETA and beterr > 100 * beti:
-        beterr = DEFAULT_WRONG_BETA
     # so far, beta_syst and beta_stat are not separated
     #--- DEBUG
     if DEBUG:
@@ -1419,7 +1426,8 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile, phase, plan
     return [probed_bpm_name, 
                 beti, betstat, betsys, beterr, 
                 alfi, alfstat, alfsys, alferr, 
-                corr, (beti - betmdl1) / betmdl1]
+                corr, (beti - betmdl1) / betmdl1,
+                used_bpms]
 
 
 def get_beta_from_phase_systematic_errors(madModel, madTwiss, errorfile, phase, plane, commonbpms,
