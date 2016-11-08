@@ -73,13 +73,14 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
         line in (int, int) is the corresponding line to the driving term
     """
     beam = getllm_d.beam_direction
-    
+
     if exist_curve_fit:
         for rdt in RDT_LIST:
             line, plane = determine_lines(rdt)
             _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], files_dict[rdt+'.out'], line), inv_x, inv_y, rdt, beam)
     else:
         print 'Curve fit not imported.. RDTs skipped'
+
 
 def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, line), inv_x, inv_y, rdt, beam):
     assert plane in ["H", "V"] # check user input plane

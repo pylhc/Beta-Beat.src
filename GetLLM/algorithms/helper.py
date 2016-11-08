@@ -102,7 +102,6 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
              - ephase: error on phase of the complex signal
     '''
 
-
     # functions
     tp=2.0*np.pi
     C=cos(delta*tp)

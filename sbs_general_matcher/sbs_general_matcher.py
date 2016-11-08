@@ -197,9 +197,10 @@ def _run_gui(lhc_mode=None, match_path=None, input_dir=None):
 
 def _run_gui_anaconda():
     from subprocess import call
-    if "win" in sys.platform:
-        print "There is not Windows version of Anaconda in OMC. Aborting."
-        return
+    if not sys.platform == "darwin":  # This is Mac
+        if "win" in sys.platform:
+            print "There is not Windows version of Anaconda in OMC. Aborting."
+            return
     interpreter = os.path.join("/afs", "cern.ch", "work", "o", "omc",
                                "anaconda", "bin", "python")
     command = sys.argv
