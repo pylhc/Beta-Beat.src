@@ -39,13 +39,10 @@ import time
 
 __version__ = "2016.11.p1"
 
-PARALLEL = True
-NPROCESSES = 13
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 if DEBUG:
     from Utilities.progressbar import startProgress, progress, endProgress
-    PARALLEL = False
 else:
     def startProgress(name):
         print "START " + name
@@ -145,8 +142,7 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                               mad_twiss, mad_ac, mad_elem, mad_elem_centre, mad_best_knowledge, mad_ac_best_knowledge,
-                              files_dict, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms,
-                              errordefspath):
+                              files_dict):
     '''
     
     Calculates beta and fills the following TfsFiles:
@@ -177,9 +173,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     if DEBUG:
         debugfile = open(files_dict['getbetax.out'].s_output_path + "/getbetax.debug", "w+")
         print "ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially"
-    if PARALLEL:
+    elif getllm_d.parallel:
         print_box("parallel : TRUE")
-        print_box("number of processes : {0:2d}".format(NPROCESSES))
+        print_box("number of processes : {0:2d}".format(getllm_d.nprocesses))
         print_box_edge()
     else:
         print_box("parallel : FALSE")
@@ -191,12 +187,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         print "Calculate beta from phase for plane", _plane_char
         [data, rmsbbx, bpms, error_method] = beta_from_phase(mad_twiss, mad_ac_best_knowledge, mad_elem, mad_elem_centre,
                                                              twiss_d.zero_dpp_x, phase_d.ph_x, 'H',
-                                                             use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath, debugfile)
+                                                             getllm_d, debugfile)
         beta_d.x_phase = {}
         beta_d.x_phase['DPP'] = 0
         tfs_file = files_dict['getbetax.out']
         
-        _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, mad_ac, number_of_bpms, range_of_bpms, beta_d.x_phase,
+        _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, mad_ac, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
                            data, rmsbbx, error_method, bpms,
                            tfs_file, mad_ac.BETX, mad_ac.ALFX, mad_ac.MUX, _plane_char)
 
@@ -210,10 +206,10 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
 
                 [data, rmsbbxf, bpmsf, error_method] = beta_from_phase(mad_twiss, mad_best_knowledge, mad_elem, mad_elem_centre,
                                                                        twiss_d.zero_dpp_x, phase_d.x_f, 'H',
-                                                                       use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath, debugfile)
+                                                                       getllm_d, debugfile)
                 tfs_file = files_dict['getbetax_free.out']
                 beta_d.x_phase_f = {}
-                _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, number_of_bpms, range_of_bpms, beta_d.x_phase_f,
+                _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
                                    data, rmsbbxf, error_method, bpmsf,
                                    tfs_file, mad_twiss.BETX, mad_twiss.ALFX, mad_twiss.MUX, _plane_char)
                 
@@ -227,7 +223,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             betaxf2 = {}
             rmsbbxf2 = 0
             
-            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, number_of_bpms, range_of_bpms, betaxf2,
+            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, getllm_d.number_of_bpms, getllm_d.range_of_bpms, betaxf2,
                                dataf2, rmsbbxf2, error_method, bpmsf2,
                                tfs_file, mad_twiss.BETX, mad_twiss.ALFX, mad_twiss.MUX, _plane_char)
             
@@ -242,12 +238,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
 
         [data, rmsbby, bpms, error_method] = beta_from_phase(mad_twiss, mad_ac_best_knowledge, mad_elem, mad_elem_centre,
                                                              twiss_d.zero_dpp_y, phase_d.ph_y, 'V',
-                                                             use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath, debugfile)
+                                                             getllm_d, debugfile)
         beta_d.y_phase = {}
         beta_d.y_phase['DPP'] = 0
         tfs_file = files_dict['getbetay.out']
         
-        _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, mad_ac, number_of_bpms, range_of_bpms, beta_d.y_phase,
+        _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, mad_ac, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
                            data, rmsbbx, error_method, bpms,
                            tfs_file, mad_ac.BETY, mad_ac.ALFY, mad_ac.MUY, _plane_char)
         
@@ -262,11 +258,11 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             try:
                 [dataf, rembbyf, bpmsf, error_method] = beta_from_phase(mad_twiss, mad_best_knowledge, mad_elem, mad_elem_centre,
                                                                         twiss_d.zero_dpp_y, phase_d.y_f, 'V',
-                                                                        use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath, debugfile)
+                                                                        getllm_d, debugfile)
                 
                 tfs_file = files_dict['getbetay_free.out']
                 beta_d.y_phase_f = {}
-                _write_getbeta_out(twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, mad_twiss, number_of_bpms, range_of_bpms, beta_d.y_phase_f,
+                _write_getbeta_out(twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, mad_twiss, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase_f,
                                    dataf, rmsbbx, error_method, bpmsf,
                                    tfs_file, mad_twiss.BETY, mad_twiss.ALFY, mad_twiss.MUY, _plane_char)
             except:
@@ -281,7 +277,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             betayf2 = {}
             rmsbbyf2 = 0
             
-            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, number_of_bpms, range_of_bpms, betayf2,
+            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, getllm_d.number_of_bpms, getllm_d.range_of_bpms, betayf2,
                                datayf2, rmsbbyf2, error_method, bpmsf2,
                                tfs_file, mad_twiss.BETY, mad_twiss.ALFY, mad_twiss.MUY, _plane_char)
             
@@ -525,7 +521,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 # END calculate_beta_from_amplitude ----------------------------------------------------------------
 
 
-def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFiles, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath, debugfile):
+def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFiles, phase, plane, getllm_d, debugfile):
     '''
     Calculate the beta function from phase advances
     If range of BPMs is sufficiently large use averaging with weighted mean. The weights are determinde using either the
@@ -578,8 +574,8 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
     commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
     
     errorfile = None
-    if not use_only_three_bpms_for_beta_from_phase:
-        errorfile = create_errorfile(errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane)
+    if not getllm_d.use_only_three_bpms_for_beta_from_phase:
+        errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane)
    
     if 3 > len(commonbpms):
         print "beta_from_phase: Less than three BPMs for plane", plane + ". Returning empty values."
@@ -593,13 +589,13 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
     
     #---- Error definitions given and we decided to not use the simulation => use analytical formulas to calculate the
     # systematic errors
-    if errorfile is not None and not use_only_three_bpms_for_beta_from_phase:
+    if errorfile is not None and not getllm_d.use_only_three_bpms_for_beta_from_phase:
         
-        rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, plane, range_of_bpms, commonbpms, debugfile)
+        rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, plane, getllm_d, commonbpms, debugfile)
         return data, rmsbb, commonbpms, errors_method
     #---- use the simulations
     else:
-        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, commonbpms, debugfile)
+        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile)
 
     return data, rmsbb, commonbpms, errors_method
 
@@ -685,14 +681,14 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 #---============== using the simulations to calculate the beta function and error bars =================================
 #=======================================================================================================================
 
-def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, commonbpms, debugfile):
+def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile):
     systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
     systematic_errors = None
     
     montecarlo = True
     errors_method = "Monte-Carlo Simulations"
     
-    if use_only_three_bpms_for_beta_from_phase:
+    if getllm_d.use_only_three_bpms_for_beta_from_phase:
         montecarlo = False
         errors_method = "Standard (3 BPM method)"
     elif not os.path.isfile(systematics_error_path):
@@ -710,7 +706,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, use_only_three_bpms_for_beta_
     for i in range(0, len(commonbpms)):
         if (i % 10) == 0 and DEBUG:
             progress(float(i) / len(commonbpms) * 100.0)
-        alfa_beta, probed_bpm_name, M = get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms)
+        alfa_beta, probed_bpm_name, M = get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, getllm_d.number_of_bpms, getllm_d.range_of_bpms)
         alfi = sum([alfa_beta[i][3] for i in range(len(alfa_beta))]) / len(alfa_beta)
         alfstd = math.sqrt(sum([alfa_beta[i][2] ** 2 for i in range(len(alfa_beta))])) / math.sqrt(len(alfa_beta))
         try:
@@ -1198,7 +1194,7 @@ def beta_from_phase_BPM_right(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3):
 
 
 
-def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, plane, range_of_bpms, commonbpms, debugfile):
+def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, plane, getllm_d, commonbpms, debugfile):
     '''
     If errorfile is given (!= "0") this function calculates the beta function for each BPM using the analytic expression
     for the estimation of the error matrix.
@@ -1247,7 +1243,7 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
     # k=1: transversal sextupole missalignments
     # k=2: longitudinal quadrupole missalignments
 
-    for n in range(len(commonbpms) + range_of_bpms + 1):
+    for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
         index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
         index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
               
@@ -1283,7 +1279,7 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
        
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
               
-    width = range_of_bpms / 2
+    width = getllm_d.range_of_bpms / 2
    
     left_bpm = range(-width, 0)
     right_bpm = range(0 + 1, width + 1)
@@ -1301,29 +1297,29 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
             if row[11]:
                 result[row[0]] = row[1:]
                 
-    chunksize = int(len(commonbpms) / NPROCESSES) + 1
+    chunksize = int(len(commonbpms) / getllm_d.nprocesses) + 1
 
     st = time.time()
-    if PARALLEL:
+    if getllm_d.parallel and not DEBUG:
         pool = multiprocessing.Pool()
         n = int(len(commonbpms) / chunksize)
         
         for i in range(n):
             pool.apply_async(scan_several_BPMs_withsystematicerrors,
                              (madModel, madTwiss, errorfile,
-                              phase, plane, range_of_bpms, commonbpms, debugfile, list_of_Ks,
+                              phase, plane, getllm_d.range_of_bpms, commonbpms, debugfile, list_of_Ks,
                               i * chunksize, (i + 1) * chunksize, BBA_combo, ABB_combo, BAB_combo),
                              callback=collectblock)
         pool.apply_async(scan_several_BPMs_withsystematicerrors,
                          (madModel, madTwiss, errorfile,
-                          phase, plane, range_of_bpms, commonbpms, debugfile, list_of_Ks,
+                          phase, plane, getllm_d.range_of_bpms, commonbpms, debugfile, list_of_Ks,
                           n * chunksize, len(commonbpms), BBA_combo, ABB_combo, BAB_combo),
                          callback=collectblock)
         pool.close()
         pool.join()
     else:
         for i in range(0, len(commonbpms)):
-            row = scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile, phase, plane, range_of_bpms, commonbpms,
+            row = scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile, phase, plane, getllm_d.range_of_bpms, commonbpms,
                                                     debugfile, list_of_Ks, i,
                                                     BBA_combo, ABB_combo, BAB_combo)
             collect(row)
