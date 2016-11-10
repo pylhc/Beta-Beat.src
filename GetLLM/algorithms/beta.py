@@ -41,6 +41,7 @@ __version__ = "2016.11.p1"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
+
 if DEBUG:
     from Utilities.progressbar import startProgress, progress, endProgress
 else:
@@ -75,6 +76,7 @@ BOXINDENT               =  4                        #@IgnorePep8
 #--- classes
 #=======================================================================================================================
 
+
 class MeasuredValues:
     def __init__(self, alfa, beta, string="", use_it=False):
         self.beta = beta
@@ -103,6 +105,7 @@ class BetaData(object):
 #===================================================================================================
 # main part
 #===================================================================================================
+
 
 def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_of_bpms, beta_d_col,
                        data, rmsbbx, error_method, bpms,
@@ -174,6 +177,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         debugfile = open(files_dict['getbetax.out'].s_output_path + "/getbetax.debug", "w+")
         print "ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially"
     elif getllm_d.parallel:
+        if getllm_d.nprocesses == -1:
+            getllm_d.nprocesses = multiprocessing.cpu_count()
         print_box("parallel : TRUE")
         print_box("number of processes : {0:2d}".format(getllm_d.nprocesses))
         print_box_edge()
@@ -289,6 +294,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     print_box("elapsed time: {0:3.3f}s".format(elapsed))
     print_box_edge()
     print "\n"
+    
     return beta_d
 # END calculate_beta_from_phase -------------------------------------------------------------------------------
 

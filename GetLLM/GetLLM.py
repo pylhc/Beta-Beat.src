@@ -174,7 +174,7 @@ def _parse_args():
                     metavar="PATH_TO_FILE", default=None, dest="errordefspath")
     parser.add_option("--parallel", action="store_true", dest="parallel",
                       metavar="PARALLEL", help="specifies that the code should run in parallel")
-    parser.add_option("--nprocesses", default=13, dest="nprocesses",
+    parser.add_option("--nprocesses", default=-1, dest="nprocesses",
                       metavar="NPROCESSES", help="sets the number of processes used")
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
@@ -268,7 +268,7 @@ def main(args):
         #-------- Phase, Beta and coupling for non-zero DPP
         _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, mad_elem, mad_elem_centre, files_dict, pseudo_list_x, pseudo_list_y, args.use_only_three_bpms_for_beta_from_phase, args.number_of_bpms, args.range_of_bpms, args.errordefspath)
 
-        if TBTana == "SUSSIX":
+        if args.TBTana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove
             files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
 
@@ -321,7 +321,13 @@ def _intial_setup(args):
     getllm_d.use_only_three_bpms_for_beta_from_phase = args.use_only_three_bpms_for_beta_from_phase
     getllm_d.errordefspath = args.errordefspath
     getllm_d.parallel = args.parallel
-    getllm_d.nprocesses = args.nprocesses
+    
+    if args.parallel:
+        print "\33[31;1mPARALLEL\33[0m"
+    else:
+        print "\33[32;1mNOT PARALLEL\33[0m"
+    print getllm_d.errordefspath
+    getllm_d.nprocesses = int(args.nprocesses)
     
     dict_file = args.dict
 
