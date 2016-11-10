@@ -175,7 +175,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     
     if DEBUG:
         debugfile = open(files_dict['getbetax.out'].s_output_path + "/getbetax.debug", "w+")
-        print "ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially"
+        print_box_edge()
+        print_("ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially")
     elif getllm_d.parallel:
         if getllm_d.nprocesses == -1:
             getllm_d.nprocesses = multiprocessing.cpu_count()
@@ -189,7 +190,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     starttime = time.time()
 
     if twiss_d.has_zero_dpp_x():
-        print "Calculate beta from phase for plane", _plane_char
+        print ""
+        print_("Calculate beta from phase for plane " + _plane_char, ">")
         [data, rmsbbx, bpms, error_method] = beta_from_phase(mad_twiss, mad_ac_best_knowledge, mad_elem, mad_elem_centre,
                                                              twiss_d.zero_dpp_x, phase_d.ph_x, 'H',
                                                              getllm_d, debugfile)
@@ -204,7 +206,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         #-- ac to free beta
         if getllm_d.with_ac_calc:
             #-- from eq
-            print "Calculate beta from phase for plane", _plane_char, " with AC dipole (_free.out)"
+            print ""
+            print_("Calculate beta from phase for plane " + _plane_char + " with AC dipole (_free.out)", ">")
             try:
                 if DEBUG:
                     debugfile = open(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.debug", "w+")
@@ -222,7 +225,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 traceback.print_exc()
 
             #-- from the model
-            print "Calculate beta from phase for plane", _plane_char, " with AC dipole (_free2.out)"
+            print ""
+            print_("Calculate beta from phase for plane " + _plane_char + " with AC dipole (_free2.out)", ">")
             [dataf2, bpmsf2] = _get_free_beta(mad_ac, mad_twiss, data, bpms, 'H')
             tfs_file = files_dict['getbetax_free2.out']
             betaxf2 = {}
@@ -236,7 +240,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     _plane_char = "Y"
     
     if twiss_d.has_zero_dpp_y():
-        print "Calculate beta from phase for plane", _plane_char
+        print_("Calculate beta from phase for plane " + _plane_char, ">")
 
         if DEBUG:
             debugfile = open(files_dict['getbetay.out'].s_output_path + "/getbetay.debug", "w+")
@@ -255,7 +259,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         #-- ac to free beta
         if getllm_d.with_ac_calc:
             #-- from eq
-            print "Calculate beta from phase for plane", _plane_char, " with AC dipole (_free.out)"
+            print ""
+            print_("Calculate beta from phase for plane " + _plane_char + " with AC dipole (_free.out)", ">")
 
             if DEBUG:
                 debugfile = open(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.debug", "w+")
@@ -274,7 +279,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 traceback.print_exc()
 
             #-- from the model
-            print "Calculate beta from phase for plane", _plane_char, " with AC dipole (_free2.out)"
+            print ""
+            print_("Calculate beta from phase for plane "+ _plane_char+ " with AC dipole (_free2.out)", ">")
 
             [datayf2, bpmsf2] = _get_free_beta(mad_ac, mad_twiss, data, bpms, 'V')
             tfs_file = files_dict['getbetay_free2.out']
@@ -584,11 +590,11 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
         errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane)
    
     if 3 > len(commonbpms):
-        print "beta_from_phase: Less than three BPMs for plane", plane + ". Returning empty values."
+        print_( "beta_from_phase: Less than three BPMs for plane " + plane + ". Returning empty values.")
         return ({}, 0.0, {}, [])
 
     if 7 > len(commonbpms) and errorfile is None:
-        print "beta_from_phase: Less than seven BPMs for plane", plane + ". Can not use optimised algorithm."
+        print_( "beta_from_phase: Less than seven BPMs for plane " + plane + ". Can not use optimised algorithm.")
 
     errors_method = "Covariance matrix"
     rmsbb = 0.0
@@ -694,7 +700,9 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     montecarlo = True
     errors_method = "Monte-Carlo Simulations"
     
-    if getllm_d.use_only_three_bpms_for_beta_from_phase:
+    use_only_three_bpms_for_beta_from_phase = getllm_d.use_only_three_bpms_for_beta_from_phase
+    
+    if use_only_three_bpms_for_beta_from_phase:
         montecarlo = False
         errors_method = "Standard (3 BPM method)"
     elif not os.path.isfile(systematics_error_path):
@@ -707,11 +715,8 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     data = {}
     used_bpms = 0
 
-    startProgress("Calculate betas")
-    print "Errors from " + errors_method
+    print_("Errors from " + errors_method)
     for i in range(0, len(commonbpms)):
-        if (i % 10) == 0 and DEBUG:
-            progress(float(i) / len(commonbpms) * 100.0)
         alfa_beta, probed_bpm_name, M = get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, getllm_d.number_of_bpms, getllm_d.range_of_bpms)
         alfi = sum([alfa_beta[i][3] for i in range(len(alfa_beta))]) / len(alfa_beta)
         alfstd = math.sqrt(sum([alfa_beta[i][2] ** 2 for i in range(len(alfa_beta))])) / math.sqrt(len(alfa_beta))
@@ -827,7 +832,6 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         if DEBUG:
             debugfile.write("end\n")
 
-    endProgress()
     if DEBUG:
         debugfile.close()
     return 0, errors_method, data
@@ -1236,11 +1240,11 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
              9: delbeta
     '''
     
-    print "INFO: errorfile given. Create list_of_Ks"
+    print_("INFO: errorfile given. Create list_of_Ks")
     list_of_Ks = []
     
     errors_method = "Analytical Formula"
-    print "Errors from " + errors_method
+    print_("Errors from " + errors_method)
    
     #---- create list of Ks, i.e. assign to each BPM a vector with all the errore lements that come after the bpm
     # and their respective errors
@@ -1332,7 +1336,7 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
             
     et = time.time()
     
-    print "time elapsed = {0:3.3f}".format(et - st)
+    print_("time elapsed = {0:3.3f}".format(et - st))
     if DEBUG:
         debugfile.close()
     rmsbb = -1
@@ -2350,7 +2354,7 @@ def _assign_quadlongmissal(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T
 
 def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
     if DEBUG:
-        print "Calculating free beta using model"
+        print_("Calculating free beta using model")
         print "\33[32;1m= = = = = = = = = = = = = = = = = = = = = = ="
         print "= = Calculating free beta = = = = = = = = = ="
         print "= = Please check implementation             ="
@@ -2435,7 +2439,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     for bpm in commonbpms:
         bpms.append(bpm[1])
     
-    print "Create errorfile"
+    print_("Create errorfile")
     
     # if something in loading / writing the files goes wrong, return None
     # which forces the script to fall back to 3bpm
@@ -2541,7 +2545,8 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
                                         ])
     errorfile.write_to_file(True)
 
-    print "DONE creating errofile."
+    print_("DONE creating errofile.")
+    print ""
 
     return Python_Classes4MAD.metaclass.twiss(filename)
 
@@ -2566,6 +2571,10 @@ def print_box(string):
     print "=" + " " * BOXINDENT + string + " " * (BOXLENGTH - 3 - BOXINDENT - len(string)) + "="
     
     
+def print_(string, prefix=" "):
+    print " " * (BOXINDENT + 1) + prefix + " " + string
+    
+    
 def print_box_edge():
-    print "= " * (BOXLENGTH/2)
+    print "= " * (BOXLENGTH / 2)
 
