@@ -264,7 +264,7 @@ def main(args):
         algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
 
         #-------- Phase, Beta and coupling for non-zero DPP
-        algorithms.beta.phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, mad_elem, mad_elem_centre, files_dict, pseudo_list_x, pseudo_list_y)
+        #algorithms.beta.phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, mad_elem, mad_elem_centre, files_dict, pseudo_list_x, pseudo_list_y)
 
         if args.TBTana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove
