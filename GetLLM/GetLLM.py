@@ -1,3 +1,4 @@
+import GetLLM
 r'''
 .. module: GetLLM.GetLLM
 
@@ -110,6 +111,27 @@ VERSION = 'V3.0.0 Dev'
 ####
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
+# default arguments:
+
+ACCEL       = "LHCB1"   #@IgnorePep8
+DICT        = "0"       #@IgnorePep8
+MODELTWISS  = "0"       #@IgnorePep8
+FILES       = "0"       #@IgnorePep8
+COCUT       = 4000      #@IgnorePep8
+OUTPATH     = "./"      #@IgnorePep8
+NBCPL       = 2         #@IgnorePep8
+TBTANA      = "SUSSIX"  #@IgnorePep8
+BPMUNIT     = "um"      #@IgnorePep8
+LHCPHASE    = "0"       #@IgnorePep8
+BBTHRESH    = "0.15"    #@IgnorePep8
+ERRTHRESH   = "0.15"    #@IgnorePep8
+NUMBER_OF_BPMS  = 10    #@IgnorePep8
+RANGE_OF_BPMS   = 11    #@IgnorePep8
+AVERAGE_TUNE    = 0     #@IgnorePep8
+CALIBRATION     = None  #@IgnorePep8
+ERRORDEFS       = None  #@IgnorePep8
+USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
+
 
 #===================================================================================================
 # _parse_args()-function
@@ -120,62 +142,62 @@ def _parse_args():
     parser = OptionParser()
     parser.add_option("-a", "--accel",
                     help="Which accelerator: LHCB1 LHCB2 LHCB4? SPS RHIC TEVATRON",
-                    metavar="ACCEL", default="LHCB1", dest="ACCEL")
+                    metavar="ACCEL", default=ACCEL, dest="ACCEL")
     parser.add_option("-d", "--dictionary",
                     help="File with the BPM dictionary",
-                    metavar="DICT", default="0", dest="dict")
+                    metavar="DICT", default=DICT, dest="dict")
     parser.add_option("-m", "--model",
                     help="Twiss free model file *.dat. For free oscillations, ONLY the file *.dat should be present in the path. For AC dipole, the path should also contain a file *_ac.dat (BOTH files a needed in this case).",
-                    metavar="TwissFile", default="0", dest="Twiss")
+                    metavar="MODELTWISS", default=MODELTWISS, dest="Twiss")
     parser.add_option("-f", "--files",
                     help="Files from analysis, separated by comma",
-                    metavar="TwissFile", default="0", dest="files")
+                    metavar="FILES", default=FILES, dest="files")
     parser.add_option("-o", "--output",
                     help="Output Path",
-                    metavar="OUT", default="./", dest="output")
+                    metavar="OUT", default=OUTPATH, dest="output")
     parser.add_option("-c", "--cocut",
                     help="Cut for closed orbit measurement [um]",
-                    metavar="COCUT", default=4000, dest="COcut")
+                    metavar="COCUT", default=COCUT, dest="COcut")
     parser.add_option("-n", "--nbcpl",
                     help="Analysis option for coupling, 1 bpm or 2 bpms",
-                    metavar="NBCPL", default=2, dest="NBcpl")
+                    metavar="NBCPL", default=NBCPL, dest="NBcpl")
     parser.add_option("-t", "--tbtana",
                     help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
-                    metavar="TBTANA", default="SUSSIX", dest="TBTana")
+                    metavar="TBTANA", default=TBTANA, dest="TBTana")
     parser.add_option("-b", "--bpmu",
                     help="BPMunit: um, mm, cm, m (default um)",
-                    metavar="BPMUNIT", default="um", dest="BPMUNIT")
+                    metavar="BPMUNIT", default=BPMUNIT, dest="BPMUNIT")
     parser.add_option("-p", "--lhcphase",
                     help="Compensate phase shifts by tunes for the LHC experiment data, off=0(default)/on=1",
-                    metavar="LHCPHASE", default="0", dest="lhcphase")
+                    metavar="LHCPHASE", default=LHCPHASE, dest="lhcphase")
     parser.add_option("-k", "--bbthreshold",
                     help="Set beta-beating threshold for action calculations, default = 0.15",
-                    metavar="BBTHRESH", default="0.15", dest="bbthreshold")
+                    metavar="BBTHRESH", default=BBTHRESH, dest="bbthreshold")
     parser.add_option("-e", "--errthreshold",
                     help="Set beta relative uncertainty threshold for action calculations, default = 0.1",
-                    metavar="ERRTHRESH", default="0.15", dest="errthreshold")
+                    metavar="ERRTHRESH", default=ERRTHRESH, dest="errthreshold")
     parser.add_option("-g", "--threebpm",
                     help="Forces to use the 3 BPM method, yes=1/no=0, default = 0",
-                    metavar="USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE", default="0", dest="use_only_three_bpms_for_beta_from_phase")
+                    metavar="USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE", type="int",
+                    default=USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE, dest="use_only_three_bpms_for_beta_from_phase")
     parser.add_option("-j", "--numbpm",
                     help="Number of different BPM combinations for beta-calculation, default = 10",
-                    metavar="NUMBER_OF_BPMS", default=10, dest="number_of_bpms")
+                    metavar="NUMBER_OF_BPMS", default=NUMBER_OF_BPMS, dest="number_of_bpms")
     parser.add_option("-i", "--range",
                     help="Range of BPM for beta-calculation (>=3 and odd), default = 11",
-                    metavar="RANGE_OF_BPMS", default=11, dest="range_of_bpms")
+                    metavar="RANGE_OF_BPMS", default=RANGE_OF_BPMS, dest="range_of_bpms")
     parser.add_option("-r", "--average_tune",
                     help="Set to 1 to use average tune for all BPMs instead of specific for each one.",
-                    metavar="AVERAGE_TUNE", type="int", default=0, dest="use_average")
+                    metavar="AVERAGE_TUNE", type="int", default=AVERAGE_TUNE, dest="use_average")
     parser.add_option("--calibration",
                     help="Path to the directory where the calibration files (calibration_x.out, calibration_y.out) are stored.",
-                    metavar="CALIBRATION", default=None, dest="calibration_dir_path")
+                    metavar="CALIBRATION", default=CALIBRATION, dest="calibration_dir_path")
     parser.add_option("--errordefs",
-                    help="Gives path to the error definition file. If specified, the analytical formula will be used to calculate weighted beta and alpha. Default = None",
-                    metavar="PATH_TO_FILE", default=None, dest="errordefspath")
+                      help="Gives path to the error definition file. If specified, the analytical formula will be used to calculate weighted beta and alpha. Default = None",
+                      metavar="PATH_TO_FILE", default=ERRORDEFS, dest="errordefspath")
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
     options, _ = parser.parse_args()
-    options.use_only_three_bpms_for_beta_from_phase = "1" == options.use_only_three_bpms_for_beta_from_phase
     
     return options
 
@@ -183,25 +205,24 @@ def _parse_args():
 #===================================================================================================
 # main()-function
 #===================================================================================================
-def main(
-         outputpath,
+def main(outputpath,
          files_to_analyse,
          model_filename,
-         dict_file="0",
-         accel="LHCB1",
-         lhcphase="0",
-         BPMU="um",
-         COcut=4000,
-         NBcpl=2,
-         TBTana="SUSSIX",
-         bbthreshold="0.15",
-         errthreshold="0.15",
-         use_only_three_bpms_for_beta_from_phase="False",
-         number_of_bpms=10,
-         range_of_bpms=11,
-         use_average=False,
-         calibration_dir_path=None,
-         errordefspath=None
+         dict_file=DICT,
+         accel=ACCEL,
+         lhcphase=LHCPHASE,
+         bpmu=BPMUNIT,
+         cocut=COCUT,
+         nbcpl=NBCPL,
+         tbtana=TBTANA,
+         bbthreshold=BBTHRESH,
+         errthreshold=ERRTHRESH,
+         use_only_three_bpms_for_beta_from_phase=USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE,
+         number_of_bpms=NUMBER_OF_BPMS,
+         range_of_bpms=RANGE_OF_BPMS,
+         use_average=AVERAGE_TUNE,
+         calibration_dir_path=CALIBRATION,
+         errordefspath=ERRORDEFS
          ):
     '''
     GetLLM main function.
@@ -220,32 +241,38 @@ def main(
     :param string TBTana: Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA
     :param string bbthreshold: Threshold for _calculate_kick for (beta_d-beta_m)/beta_m
     :param string errthreshold: Threshold for calculate_kick for sigma(beta_d)/beta_d
-    :param bool use_only_three_bpms_for_beta_from_phase:
+    :param int use_only_three_bpms_for_beta_from_phase:
     :param int number_of_bpms: Number of BPM-combos for beta from phase
     :param int range_of_bpms: Range of BPMs for beta from phase
-    :param bool use_average: Uses AVG_MUX and AVG_MUY in _analyse_src_files if True
+    :param int use_average: Uses AVG_MUX and AVG_MUY in _analyse_src_files if 1
     :returns: int  -- 0 if the function run successfully otherwise !=0.
     '''
     return_code = 0
     print "Starting GetLLM ", VERSION
-
+   
+    use_average = (use_average == 1)
+    use_only_three_bpms_for_beta_from_phase = (use_only_three_bpms_for_beta_from_phase == 1)
+    
     # The following objects stores multiple variables for GetLLM to avoid having many local
     # variables. Identifiers supposed to be as short as possible.
     # --vimaier
-    getllm_d = _GetllmData()
     twiss_d = _TwissData()
     tune_d = _TuneData()
+    getllm_d = _GetllmData()
+    getllm_d.set_outputpath(outputpath)
+    getllm_d.set_bpmu_and_cut_for_closed_orbit(cocut, bpmu)
+    getllm_d.lhc_phase = lhcphase
+    getllm_d.num_bpms_for_coupling = nbcpl
+    getllm_d.number_of_bpms = number_of_bpms
+    getllm_d.range_of_bpms = range_of_bpms
+    getllm_d.use_only_three_bpms_for_beta_from_phase = use_only_three_bpms_for_beta_from_phase
+    getllm_d.errordefspath = errordefspath
+    getllm_d.accel = accel
 
     # Setup
-    getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
-                                                                                                                     outputpath,
-                                                                                                                     model_filename,
-                                                                                                                     dict_file,
-                                                                                                                     accel,
-                                                                                                                     BPMU,
-                                                                                                                     COcut,
-                                                                                                                     lhcphase,
-                                                                                                                     NBcpl)
+    mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
+                                                                                                                            model_filename,
+                                                                                                                            dict_file)
     
     if sys.flags.debug:
         print "INFO: DEBUG ON"
@@ -255,7 +282,7 @@ def main(
 
     # Copy calibration files calibration_x/y.out from calibration_dir_path to outputpath
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
-    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, TBTana, files_dict, use_average, calibration_twiss)
+    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, tbtana, files_dict, use_average, calibration_twiss)
 
     # Load tunes from twiss instances, depending on with_ac_calc
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
@@ -283,7 +310,7 @@ def main(
         algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
 
         #-------- START Beta
-        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d_bk, mad_twiss, mad_ac, mad_elem, mad_elem_centre, mad_best_knowledge, mad_ac_best_knowledge, files_dict, use_only_three_bpms_for_beta_from_phase, int(number_of_bpms), int(range_of_bpms), errordefspath)
+        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d_bk, mad_twiss, mad_ac, mad_elem, mad_elem_centre, mad_best_knowledge, mad_ac_best_knowledge, files_dict)
 
         #------- START beta from amplitude
         beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
@@ -306,10 +333,7 @@ def main(
         #-------- START RDTs
         algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
 
-        #-------- Phase, Beta and coupling for non-zero DPP
-        _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, mad_elem, mad_elem_centre, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
-
-        if TBTana == "SUSSIX":
+        if tbtana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove
             files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
 
@@ -332,11 +356,7 @@ def main(
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_unit, cut_co, lhcphase, num_bpms_cpl):
-    getllm_d.set_outputpath(outputpath)
-    getllm_d.set_bpmu_and_cut_for_closed_orbit(cut_co, bpm_unit)
-    getllm_d.lhc_phase = lhcphase
-    getllm_d.num_bpms_for_coupling = num_bpms_cpl
+def _intial_setup(getllm_d, model_filename, dict_file):
 
     if dict_file == "0":
         bpm_dictionary = {}
@@ -346,10 +366,9 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
 
     # Beam direction
     getllm_d.beam_direction = 1
-    getllm_d.accel = accel
-    if accel == "LHCB2":
+    if getllm_d.accel == "LHCB2":
         getllm_d.beam_direction = -1  # THIS IS CORRECT, be careful with tune sign in SUSSIX and eigenmode order in SVD
-    elif accel == "LHCB4":
+    elif getllm_d.accel == "LHCB4":
         getllm_d.beam_direction = 1  # IS THIS CORRECT? I (rogelio) try for Simon...
         getllm_d.accel = "LHCB2"  # This is because elements later are named B2 anyway, not B4
 
@@ -392,8 +411,8 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
         mad_elem = mad_twiss
         mad_elem_centre = mad_elem
     if getllm_d.with_ac_calc:
-        if 'LHC' in accel:
-            if 'MKQA.6L4.' + accel[3:] in getattr(mad_twiss, "NAME", []):
+        if 'LHC' in getllm_d.accel:
+            if 'MKQA.6L4.' + getllm_d.accel[3:] in getattr(mad_twiss, "NAME", []):
                 print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
             else:
                 print "AC dipole found in the model. AC dipole effects calculated with analytic equations (get***_free.out)"
@@ -410,7 +429,7 @@ def _intial_setup(getllm_d, outputpath, model_filename, dict_file, accel, bpm_un
         mad_best_knowledge = mad_twiss
         print "Best knowledge model not found."
 
-    return getllm_d, mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre
+    return mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre
 # END _intial_setup ---------------------------------------------------------------------------------
 
     
@@ -1121,6 +1140,11 @@ class _GetllmData(object):
         self.bpm_unit = ""
         self.cut_for_closed_orbit = 0
         self.num_bpms_for_coupling = 0 
+        self.use_only_three_bpms_for_beta_from_phase = True
+        self.number_of_bpms = 0
+        self.range_of_bpms = 0
+        self.errordefspath = ""
+        self.accel = ""
 
         self.with_ac_calc = False
 
@@ -1236,16 +1260,16 @@ def _start():
          model_filename=options.Twiss,
          accel=options.ACCEL,
          lhcphase=options.lhcphase,
-         BPMU=options.BPMUNIT,
-         COcut=float(options.COcut),
-         NBcpl=int(options.NBcpl),
-         TBTana=options.TBTana,
+         bpmu=options.BPMUNIT,
+         cocut=float(options.COcut),
+         nbcpl=int(options.NBcpl),
+         tbtana=options.TBTana,
          bbthreshold=options.bbthreshold,
          errthreshold=options.errthreshold,
          use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase,
          number_of_bpms=options.number_of_bpms,
          range_of_bpms=options.range_of_bpms,
-         use_average=True if options.use_average == 1 else False,
+         use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath)
 if __name__ == "__main__":
