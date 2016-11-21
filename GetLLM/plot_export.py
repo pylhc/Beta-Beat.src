@@ -1,9 +1,7 @@
 #!/afs/cern.ch/work/o/omc/anaconda/bin/python
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 import optparse
 import os
-import SimplePlotting
+import sys
 
 
 analysis = ['Diff_Phase_PhMdl', 'Beta_beat', 'amp', 'real', 'imaginary', 'diff_Disp_DMdl', 'diff_NDisp_NDMdl', 'CO', 'ChromaticCouplingReal', 'ChromaticCouplingImaginary']
@@ -90,5 +88,25 @@ def main():
         mpdf.close()
 
 
+def _run_with_anaconda():
+    from subprocess import call
+    if not sys.platform == "darwin":  # This is Mac
+        if "win" in sys.platform:
+            print "There is not Windows version of Anaconda in OMC. Aborting."
+            return
+    interpreter = os.path.join("/afs", "cern.ch", "work", "o", "omc",
+                               "anaconda", "bin", "python")
+    command = sys.argv
+    command.insert(0, interpreter)
+    call(command)
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        import SimplePlotting
+        main()
+    except ImportError:
+        print "Cannot use this version of Python, trying OMC Anaconda..."
+        _run_with_anaconda()

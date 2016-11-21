@@ -18,7 +18,7 @@ def setParams(labelfontsize=8, legendfontsize=8):
           'legend.fontsize': 6,
           'xtick.labelsize': 6,
           'ytick.labelsize': 6,
-          'axes.title': 12,
+#          'axes.title': 12,
           'text.usetex': False,
           'axes.unicode_minus': True,
           'xtick.major.pad': 8,
