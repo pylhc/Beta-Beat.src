@@ -170,9 +170,9 @@ full_lhc_def(modifiers_path, beam_number): macro = {
     exec, define_lhc_links();
     exec, load_main_sequence();
 
+    exec, define_nominal_beams();
     call, file = modifiers_path;
     exec, cycle_sequences();
-    exec, define_nominal_beams();
     exec, set_default_crossing_scheme();
     use, period = LHCBbeam_number;
 };
