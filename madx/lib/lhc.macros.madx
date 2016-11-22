@@ -109,6 +109,39 @@ install_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number): ma
     use, period=LHCBbeam_number;
 }
 
+install_adt_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number): macro = {
+
+    if (beam_number == 1) {
+        betxac=table(twiss,ADTKH.C5L4.B1,betx);
+        betyac=table(twiss,ADTKV.C5R4.B1,bety);
+        hacmap21 = 2 * (cos(2 * pi * driven_qx) - cos(2 * pi * natural_qx)) / (betxac * sin(2 * pi * natural_qx));
+        vacmap43 = 2 * (cos(2 * pi * driven_qy) - cos(2 * pi * natural_qy)) / (betyac * sin(2 * pi * natural_qy));
+        hacmap: matrix, l=0, rm21=hacmap21;
+        vacmap: matrix, l=0, rm43=vacmap43;
+        seqedit, sequence=LHCBbeam_number;
+            flatten;
+            install, element=hacmap, at=0, from=ADTKH.C5L4.B1;
+            install, element=vacmap, at=0, from=ADTKV.C5R4.B1;
+        endedit;
+    }
+    else if (beam_number == 2) {
+        betxac=table(twiss,ADTKH.C5R4.B2,betx);
+        betyac=table(twiss,ADTKV.C5L4.B2,bety);
+        hacmap21 = 2 * (cos(2 * pi * driven_qx) - cos(2 * pi * natural_qx)) / (betxac * sin(2 * pi * natural_qx));
+        vacmap43 = 2 * (cos(2 * pi * driven_qy) - cos(2 * pi * natural_qy)) / (betyac * sin(2 * pi * natural_qy));
+        hacmap: matrix, l=0, rm21=hacmap21;
+        vacmap: matrix, l=0, rm43=vacmap43;
+        seqedit, sequence=LHCBbeam_number;
+            flatten;
+            install, element=hacmap, at=0, from=ADTKH.C5R4.B2;
+            install, element=vacmap, at=0, from=ADTKV.C5L4.B2;
+        endedit;
+    }
+     
+  
+    use, period=LHCBbeam_number;
+}
+                                 
 
 /*
 * Computes the twiss file affected by the AC dipole.
@@ -408,3 +441,4 @@ coupling_knob(beam_number): macro = {
     }
 }
 
+        hacmap21 = 2 * (cos(2 * pi * driven_qx) - cos(2 * pi * natural_qx)) / (betxac * sin(2 * pi * natural_qx));
