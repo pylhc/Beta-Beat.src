@@ -8,19 +8,7 @@ Created on 27 May 2013
 GetLLM.algorithms.beta.py stores helper functions for phase calculations for GetLLM.
 This module is not intended to be executed. It stores only functions.
 
-Change history:
- - 1.0.b, awegsche, 9. Nov. 2016:
-    start using version and change history to compare output.
-    added descriptor BETAVERSION in getbeta..out files to track back the version of the
-    beta algorithm used.
-    b stands for parallel.
-    Current status of
-    - beta: using numpy functions instead of loops
-    - alfa: using nup instead of loops, NOT CHECKED thouroughly
-    - correlation: deactivated
-    - parallel: using NPROCESSES processes, is currently being tested and setup
-- 2016.11.p1, awegsche, 9. Nov 2016:
-    added a few classes
+
 '''
 import sys
 import math
@@ -36,17 +24,13 @@ import os
 import re
 import multiprocessing
 import time
-import phase
-import helper
-import coupling
-import utils
 
 __version__ = "2016.11.p1"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
 
-if DEBUG:
+if False:
     from Utilities.progressbar import startProgress, progress, endProgress
 else:
     def startProgress(name):
@@ -56,7 +40,7 @@ else:
         return
     
     def endProgress():
-       return
+        return
 
 #--- Constants
 
@@ -200,8 +184,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         print ""
         print_("Calculate beta from phase for plane " + _plane_char, ">")
         data, rmsbbx, bpms, error_method = beta_from_phase(mad_twiss, mad_ac_best_knowledge, mad_elem, mad_elem_centre,
-                                                             twiss_d.zero_dpp_x, phase_d.ph_x, 'H',
-                                                             getllm_d, debugfile)
+                                                           twiss_d.zero_dpp_x, phase_d.ph_x, 'H',
+                                                           getllm_d, debugfile)
         beta_d.x_phase = {}
         beta_d.x_phase['DPP'] = 0
         tfs_file = files_dict['getbetax.out']
@@ -219,13 +203,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 if DEBUG:
                     debugfile = open(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.debug", "w+")
 
-                data, rmsbbxf, bpmsf, error_method = beta_from_phase(mad_twiss, mad_best_knowledge, mad_elem, mad_elem_centre,
-                                                                     twiss_d.zero_dpp_x, phase_d.x_f, 'H',
-                                                                     getllm_d, debugfile)
+                dataf, rmsbbxf, bpmsf, error_method = beta_from_phase(mad_twiss, mad_best_knowledge, mad_elem, mad_elem_centre,
+                                                                      twiss_d.zero_dpp_x, phase_d.x_f, 'H',
+                                                                      getllm_d, debugfile)
                 tfs_file = files_dict['getbetax_free.out']
                 beta_d.x_phase_f = {}
                 _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
-                                   data, rmsbbxf, error_method, bpmsf,
+                                   dataf, rmsbbxf, error_method, bpmsf,
                                    tfs_file, mad_twiss.BETX, mad_twiss.ALFX, mad_twiss.MUX, _plane_char)
                 
             except:
@@ -2373,12 +2357,12 @@ def _assign_quadlongmissal(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T
 
 
 def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
-    if DEBUG:
-        print_("Calculating free beta using model")
-        print "\33[32;1m= = = = = = = = = = = = = = = = = = = = = = ="
-        print "= = Calculating free beta = = = = = = = = = ="
-        print "= = Please check implementation             ="
-        print "= = = = = = = = = = = = = = = = = = = = = = =\33[0m\n\n"
+    
+    print_("Calculating free beta using model")
+    print "\33[32;1m= = = = = = = = = = = = = = = = = = = = = = ="
+    print "= = Calculating free beta = = = = = = = = = ="
+    print "= = Please check implementation             ="
+    print "= = = = = = = = = = = = = = = = = = = = = = =\33[0m\n\n"
     
     data2 = {}
     

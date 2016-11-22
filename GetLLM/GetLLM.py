@@ -5,7 +5,7 @@ Created on 11/09/09
 
 :author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
 
-:version: 4.00dev
+:version: 3.00dev
 
 
 GetLLM calculates a large collection of optics functions and parameters at the BPMs using the output from DRIVE.
@@ -102,7 +102,7 @@ from numpy import array
 ####
 #######
 #########
-VERSION = 'V3.1.0 Dev'
+VERSION = 'V3.0.0 Dev'
 #########
 #######
 ####
@@ -127,7 +127,7 @@ RANGE_OF_BPMS   = 11    #@IgnorePep8
 AVERAGE_TUNE    = 0     #@IgnorePep8
 CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
-NPROCESSES      = 13
+NPROCESSES      = 13    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
 #===================================================================================================
