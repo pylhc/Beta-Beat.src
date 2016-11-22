@@ -440,5 +440,3 @@ coupling_knob(beam_number): macro = {
         kqs.a34b2:=startVal_kqs.a34b2 + b2_im_ip7_knob *   0.01390953298 - b2_re_ip7_knob *  0.02452644363;
     }
 }
-
-        hacmap21 = 2 * (cos(2 * pi * driven_qx) - cos(2 * pi * natural_qx)) / (betxac * sin(2 * pi * natural_qx));
