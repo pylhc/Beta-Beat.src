@@ -80,8 +80,6 @@ import os
 import sys
 import traceback
 import math
-import re
-
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
@@ -130,8 +128,8 @@ RANGE_OF_BPMS   = 11    #@IgnorePep8
 AVERAGE_TUNE    = 0     #@IgnorePep8
 CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
+NPROCESSES      = 13    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
-
 
 #===================================================================================================
 # _parse_args()-function
@@ -195,6 +193,9 @@ def _parse_args():
     parser.add_option("--errordefs",
                       help="Gives path to the error definition file. If specified, the analytical formula will be used to calculate weighted beta and alpha. Default = None",
                       metavar="PATH_TO_FILE", default=ERRORDEFS, dest="errordefspath")
+    parser.add_option("--nprocesses", default=NPROCESSES, dest="nprocesses",
+                      metavar="NPROCESSES", type="int",
+                      help="Sets the number of processes used.\n-1: take the number of CPUs\n 0: run serially\n>1: take this number")
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
     options, _ = parser.parse_args()
@@ -222,8 +223,8 @@ def main(outputpath,
          range_of_bpms=RANGE_OF_BPMS,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
-         errordefspath=ERRORDEFS
-         ):
+         errordefspath=ERRORDEFS,
+         nprocesses=NPROCESSES):
     '''
     GetLLM main function.
 
@@ -249,10 +250,10 @@ def main(outputpath,
     '''
     return_code = 0
     print "Starting GetLLM ", VERSION
-   
+    
     use_average = (use_average == 1)
     use_only_three_bpms_for_beta_from_phase = (use_only_three_bpms_for_beta_from_phase == 1)
-    
+
     # The following objects stores multiple variables for GetLLM to avoid having many local
     # variables. Identifiers supposed to be as short as possible.
     # --vimaier
@@ -268,6 +269,7 @@ def main(outputpath,
     getllm_d.use_only_three_bpms_for_beta_from_phase = use_only_three_bpms_for_beta_from_phase
     getllm_d.errordefspath = errordefspath
     getllm_d.accel = accel
+    getllm_d.nprocesses = nprocesses
 
     # Setup
     mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
@@ -817,187 +819,6 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
 # END _calculate_orbit ------------------------------------------------------------------------------
 
 
-def _phase_and_beta_for_non_zero_dpp(getllm_d, twiss_d, tune_d, phase_d, bpm_dictionary, mad_twiss, mad_twiss_elements, mad_twiss_centre, files_dict, pseudo_list_x, pseudo_list_y, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath):
-    '''
-    Fills the following TfsFiles:
-     - getphasex_dpp_' + str(k + 1) + '.out
-     - getphasey_dpp_' + str(k + 1) + '.out
-     - getbetax_dpp_' + str(k + 1) + '.out
-     - getbetay_dpp_' + str(k + 1) + '.out
-
-    :param _GetllmData getllm_d: lhc_phase, accel, beam_direction and num_bpms_for_coupling are used (In-param, values will only be read)
-    :param _TwissData twiss_d: Holds twiss instances of the src files. (In-param, values will only be read)
-    :param _TuneData tune_d: Holds tunes and phase advances. q1 and q2 will be set if accel 'SPS' or 'RHIC' (In/Out-param, values will be read and set)
-
-    :returns: _TuneData -- the same instance as param tune_d to indicate that tunes will be set.
-    '''
-    print "Calculating phase and Beta for non-zero DPP"
-    if DEBUG:
-        print "lenght of hor-files(linx) with non zero dpp: " + str(len(twiss_d.non_zero_dpp_x))
-        print "lenght of ver-files(liny) with non zero dpp: " + str(len(twiss_d.non_zero_dpp_y))
-
-    if twiss_d.has_non_zero_dpp_x():
-        plane = 'H'
-        k = 0
-        phasexlist = []
-        for twiss_file in twiss_d.non_zero_dpp_x:
-            dpop = float(twiss_file.DPP)
-            list_with_single_twiss = []
-            list_with_single_twiss.append(twiss_file)
-            dpp_twiss = algorithms.helper.construct_off_momentum_model(mad_twiss, dpop, bpm_dictionary)
-            [phasex, q1_dpp, _, bpms] = algorithms.phase.get_phases(getllm_d, dpp_twiss, list_with_single_twiss, tune_d.q1, plane)
-            phasex['DPP'] = dpop
-            phasexlist.append(phasex)
-            # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
-            if DEBUG:
-                filename = 'getphasex_dpp_' + str(k + 1) + '.out'
-                files_dict[filename] = utils.tfs_file.GetllmTfsFile(filename)
-                tfs_file = files_dict[filename]
-                tfs_file.add_filename_to_getllm_header(twiss_file.filename)
-                tfs_file.add_float_descriptor("DPP", dpop)
-                tfs_file.add_float_descriptor("Q1", tune_d.q1)
-                tfs_file.add_float_descriptor("Q2", tune_d.q2)
-                tfs_file.add_float_descriptor("Q1DPP", q1_dpp)
-                tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASE", "STDPH", "PHXMDL", "MUXMDL"])
-                tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                length_bpms = len(bpms)
-                for i in range(0, length_bpms):
-                    bn1 = str.upper(bpms[i][1])
-                    bns1 = bpms[i][0]
-                    index = (i + 1) % length_bpms
-                    bn2 = str.upper(bpms[index][1])
-                    bns2 = bpms[index][0]
-                    try:
-                        phmdl = phase_d.ph_x[bn1][4]
-                    except KeyError:
-                        phmdl = 0.0
-                    #phmdl=mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]
-                    list_row_entries = ['"' + bn1 + '" ', '"' + bn2 + '"', bns1, bns2, 1, phasex[bn1][0], phasex[bn1][1], phmdl, mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-
-            betax = {}
-            alfax = {}
-            [betax, _, alfax, bpms, _, _] = algorithms.beta.beta_from_phase(mad_twiss, mad_twiss_elements, mad_twiss_centre, list_with_single_twiss, phasex, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
-            betax['DPP'] = dpop
-            #betaxa = {}
-            #[betaxa, rmsbbx, bpms, invJx] = algorithms.beta.beta_from_amplitude(mad_twiss, list_with_single_twiss, plane)
-            #betaxa['DPP'] = dpop
-            filename = 'getbetax_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.GetllmTfsFile(filename)
-            tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
-            tfs_file.add_float_descriptor("DPP", dpop)
-            tfs_file.add_float_descriptor("Q1", tune_d.q1)
-            tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for bpm in bpms:
-                bn1 = str.upper(bpm[1])
-                bns1 = bpm[0]
-                list_row_entries = ['"' + bn1 + '" ', bns1, len(twiss_d.zero_dpp_x), betax[bn1][0], betax[bn1][1], betax[bn1][2], alfax[bn1][0], alfax[bn1][1], alfax[bn1][2], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-
-            k += 1
-
-    if twiss_d.has_non_zero_dpp_y():
-        plane = 'V'
-        k = 0
-        phaseylist = []
-        for twiss_file in twiss_d.non_zero_dpp_y:
-            dpop = float(twiss_file.DPP)
-            list_with_single_twiss = []
-            list_with_single_twiss.append(twiss_file)
-            dpp_twiss = algorithms.helper.construct_off_momentum_model(mad_twiss, dpop, bpm_dictionary)
-            dpp_twiss_elements = algorithms.helper.construct_off_momentum_model(mad_twiss_elements, dpop, None)
-            dpp_twiss_centre = algorithms.helper.construct_off_momentum_model(mad_twiss_centre, dpop, None)
-            [phasey, q2_dpp, _, bpms] = algorithms.phase.get_phases(getllm_d, dpp_twiss, list_with_single_twiss, tune_d.q2, plane)
-            phasey['DPP'] = dpop
-            phaseylist.append(phasey)
-            # 'getphasex_dpp_'+str(k+1)+'.out' was inteded for debugging (vimaier)
-            if DEBUG:
-                filename = 'getphasey_dpp_' + str(k + 1) + '.out'
-                files_dict[filename] = utils.tfs_file.GetllmTfsFile(filename)
-                tfs_file = files_dict[filename]
-                tfs_file.add_filename_to_getllm_header(twiss_file.filename)
-                tfs_file.add_float_descriptor("Q1", tune_d.q1)
-                tfs_file.add_float_descriptor("Q2", tune_d.q2)
-                tfs_file.add_float_descriptor("Q2DPP", q2_dpp)
-                tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASE", "STDPH", "PHYMDL", "MUYMDL"])
-                tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                length_bpms = len(bpms)
-                for i in range(0, length_bpms):
-                    bn1 = str.upper(bpms[i][1])
-                    bns1 = bpms[i][0]
-                    index = (i + 1) % length_bpms
-                    bn2 = str.upper(bpms[index][1])
-                    bns2 = bpms[index][0]
-                    try:
-                        phmdl = phase_d.ph_y[bn1][4]
-                    except(KeyError, TypeError):
-                        phmdl = 0.0
-                    #phmdl=mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]
-                    list_row_entries = ['"' + bn1 + '" ', '"' + bn2 + '" ', bns1, bns2, 1, phasey[bn1][0], phasey[bn1][1], phmdl, mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                    tfs_file.add_table_row(list_row_entries)
-
-            betay = {}
-            alfay = {}
-            [betay, _, alfay, bpms, _, _] = algorithms.beta.beta_from_phase(dpp_twiss, dpp_twiss_elements, dpp_twiss_centre, list_with_single_twiss, phasey, plane, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms, errordefspath)
-            #betay['DPP'] = dpop
-            #betaya = {}
-            #[betaya, rmsbby, bpms, invJy] = algorithms.beta.beta_from_amplitude(dpp_twiss, list_with_single_twiss, plane)
-            #betaya['DPP'] = dpop
-            filename = 'getbetay_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.GetllmTfsFile(filename)
-            tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
-            tfs_file.add_float_descriptor("DPP", dpop)
-            tfs_file.add_float_descriptor("Q1", tune_d.q1)
-            tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            #TODO: check if it should be Y instead of X in the column names since it is getbetaY_dpp...out (vimaier)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "ERRBETX", "STDBETX", "ALFX", "ERRALFX", "STDALFX", "BETXMDL", "ALFXMDL", "MUXMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpms)):
-                bn1 = str.upper(bpms[i][1])
-                bns1 = bpms[i][0]
-                list_row_entries = ['"' + bn1 + '" ', bns1, len(twiss_d.zero_dpp_y), betay[bn1][0], betay[bn1][1], betay[bn1][2], alfay[bn1][0], alfay[bn1][1], alfay[bn1][2], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.ALFX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-
-            k += 1
-
-    # TODO: Branch useless except of Q1 and Q2 calculation? Results will neither be saved in a file nor returned(vimaier)
-    if twiss_d.has_non_zero_dpp_y() and twiss_d.has_non_zero_dpp_x():
-        if len(twiss_d.non_zero_dpp_x) != len(twiss_d.non_zero_dpp_y):
-            raise ValueError("list of dppx is not equal list of dppy")
-        for j in range(len(twiss_d.non_zero_dpp_x)):
-            dpop = float(twiss_d.non_zero_dpp_x[j].DPP)
-            list_with_single_twiss_x = []
-            list_with_single_twiss_y = []
-            list_with_single_twiss_x.append(twiss_d.non_zero_dpp_x[j])
-            list_with_single_twiss_y.append(twiss_d.non_zero_dpp_y[j])
-            ### coupling
-            try:
-                mad_twiss.Cmatrix()
-            except:
-                traceback.print_exc()
-
-            if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
-                plane = 'H'
-                [phasexp, tune_d.q1, _, _] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, None, plane)
-                plane = 'V'
-                [phaseyp, tune_d.q2, _, _] = algorithms.phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, None, plane)
-                [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1, tune_d.q2, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
-            elif getllm_d.num_bpms_for_coupling == 1:
-                [fwqw, bpms] = algorithms.coupling.GetCoupling1(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, getllm_d.outputpath)
-            elif getllm_d.num_bpms_for_coupling == 2:
-                [fwqw, bpms] = algorithms.coupling.GetCoupling2(mad_twiss, list_with_single_twiss_x, list_with_single_twiss_y, tune_d.q1, tune_d.q2, phasexlist[j], phaseylist[j], getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
-                if getllm_d.with_ac_calc:
-                    [fwqw, bpms] = algorithms.coupling.getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
-            else:
-                raise ValueError('Number of monitors for coupling analysis (option -n) should be 1 or 2.')
-            fwqw['DPP'] = dpop
-# END _phase_and_beta_for_non_zero_dpp --------------------------------------------------------------
-
-
 def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
     '''
     Fills the following TfsFiles:
@@ -1144,8 +965,8 @@ class _GetllmData(object):
         self.number_of_bpms = 0
         self.range_of_bpms = 0
         self.errordefspath = ""
-        self.accel = ""
-
+        self.parallel = False
+        self.nprocesses = 1
         self.with_ac_calc = False
 
     def set_outputpath(self, outputpath):
@@ -1253,7 +1074,7 @@ def _start():
     Before the following code was after 'if __name__=="__main__":'
     '''
     options = _parse_args()
-      
+    
     main(outputpath=options.output,
          dict_file=options.dict,
          files_to_analyse=options.files,
@@ -1271,6 +1092,9 @@ def _start():
          range_of_bpms=options.range_of_bpms,
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
-         errordefspath=options.errordefspath)
+         errordefspath=options.errordefspath,
+         nprocesses=options.nprocesses)
+     
+     
 if __name__ == "__main__":
     _start()
