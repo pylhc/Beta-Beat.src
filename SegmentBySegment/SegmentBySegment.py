@@ -198,25 +198,25 @@ def main(options):
 
         if str(options.madpass) == "0":
             _run4mad(save_path,
-                    start_bpm_horizontal_data,
-                    start_bpm_vertical_data,
-                    end_bpm_horizontal_data,
-                    end_bpm_vertical_data,
-                    start_bpm_dispersion,
-                    end_bpm_dispersion,
-                    start_bpm_name,
-                    end_bpm_name,
-                    element_name,
-                    f_ini,
-                    f_end,
-                    chrom_ini,
-                    chrom_end,
-                    options.path + "/",
-                    twiss_directory,
-                    input_data.couple_method,
-                    selected_accelerator,
-                    options.bb,
-                    options.mad)
+                     start_bpm_horizontal_data,
+                     start_bpm_vertical_data,
+                     end_bpm_horizontal_data,
+                     end_bpm_vertical_data,
+                     start_bpm_dispersion,
+                     end_bpm_dispersion,
+                     start_bpm_name,
+                     end_bpm_name,
+                     element_name,
+                     f_ini,
+                     f_end,
+                     chrom_ini,
+                     chrom_end,
+                     options.path + "/",
+                     twiss_directory,
+                     input_data.couple_method,
+                     selected_accelerator,
+                     options.bb,
+                     options.mad)
 
         else:
             print "Just rerunning mad"
@@ -453,7 +453,10 @@ def _get_calibrated_betas(plane):
             calibrated_betas.indx[bpm_name] = index_counter
             index_counter += 1
             getattr(calibrated_betas, "BET" + plane.upper()).append(amp_beta)
-            err_amp_beta = getattr(amplitude_beta, "STDBET" + plane.upper())[amp_index]
+            try:
+                err_amp_beta = getattr(amplitude_beta, "STDBET" + plane.upper())[amp_index]
+            except AttributeError:
+                err_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "STD")[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "STD").append(err_amp_beta)
             mdl_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "MDL")[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "MDL").append(mdl_amp_beta)
@@ -540,7 +543,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
 
     number_of_good_bpms = 0
 
-    #filtering
+    # filtering
     for current_element_name in elements_names_in_model:
 
         if "BPM" in current_element_name:
@@ -551,10 +554,10 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
                 beta_x = beta_x_twiss.BETX[beta_x_twiss.indx[current_element_name]]
                 err_beta_x = beta_x_twiss.ERRBETX[beta_x_twiss.indx[current_element_name]]
                 err_beta_y = beta_y_twiss.ERRBETY[beta_y_twiss.indx[current_element_name]]
-                
+
                 stdbetax_exists = True
                 try:
-                    check_stdbetax =  beta_x_twiss.STDBETX[beta_x_twiss.indx[current_element_name]] # @UnusedVariable
+                    check_stdbetax = beta_x_twiss.STDBETX[beta_x_twiss.indx[current_element_name]]  # @UnusedVariable
                 except AttributeError:
                     stdbetax_exists = False
                 if stdbetax_exists:
@@ -564,7 +567,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
                     total_err_x = err_beta_x
                 stdbetay_exists = True
                 try:
-                    check_stdbetay =  beta_y_twiss.STDBETY[beta_y_twiss.indx[current_element_name]] # @UnusedVariable
+                    check_stdbetay = beta_y_twiss.STDBETY[beta_y_twiss.indx[current_element_name]]  # @UnusedVariable
                 except AttributeError:
                     stdbetay_exists = False
                 if stdbetay_exists:
@@ -574,13 +577,13 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
                     total_err_y = err_beta_y
 
                 if (beta_x > 0 and
-                    beta_y > 0 and
-                    beta_x > total_err_x and
-                    beta_y > total_err_y and
-                    total_err_x > 0 and
-                    total_err_y > 0 and
-                    ((total_err_x / beta_x) * 100) < errorcut and
-                    ((total_err_y / beta_y) * 100) < errorcut):
+                        beta_y > 0 and
+                        beta_x > total_err_x and
+                        beta_y > total_err_y and
+                        total_err_x > 0 and
+                        total_err_y > 0 and
+                        ((total_err_x / beta_x) * 100) < errorcut and
+                        ((total_err_y / beta_y) * 100) < errorcut):
 
                     translate[current_element_s] = [True, current_element_name]
                     number_of_good_bpms = number_of_good_bpms + 1
@@ -1017,15 +1020,16 @@ def reversetable(save_path, element_name):
 
 
 def _try_to_load_twiss(file_path):
+    syserr = sys.stderr
     if not os.path.isfile(file_path):
         return None
     try:
-        syserr = sys.stderr
         sys.stderr = open(os.devnull, "w")
         twiss_data = twiss(file_path)
-        sys.stderr = syserr
     except ValueError:
         twiss_data = None
+    finally:
+        sys.stderr = syserr
     return twiss_data
 
 
