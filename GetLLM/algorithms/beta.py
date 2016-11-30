@@ -25,7 +25,7 @@ import re
 import multiprocessing
 import time
 
-__version__ = "2016.11.p1"
+__version__ = "2016.11.2"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -163,8 +163,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     _plane_char = "X"
     print "\n"
     print_box_edge()
-    print_box("CALCULATING BETA FROM PHASE")
-    print_box("VERSION: {0:5s}".format(__version__))
+    print_box("Calculating beta from phase")
+    print_box("Version: {0:5s}".format(__version__))
     
     if DEBUG:
         debugfile = open(files_dict['getbetax.out'].s_output_path + "/getbetax.debug", "w+")
@@ -585,7 +585,7 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
 
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
-    
+   
     errorfile = None
     if not getllm_d.use_only_three_bpms_for_beta_from_phase:
         errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane)
@@ -1253,10 +1253,18 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
     # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
     # k=1: transversal sextupole missalignments
     # k=2: longitudinal quadrupole missalignments
+    
+    print "commonbpms=",commonbpms
 
     for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
         index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
         index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
+        
+        print "++++++ bpm", commonbpms[n % len(commonbpms)][1], "indx:", index_n
+        print "++++++"
+        print " next BPM: ", commonbpms[(n+1) % len(commonbpms)][1], "indx:", index_nplus1
+        
+        print "------     -------\n\n\n"
               
         quad_fields = []
         sext_trans = []
@@ -1291,6 +1299,9 @@ def scan_all_BPMs_withsystematicerrors(madModel, madTwiss, errorfile, phase, pla
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
               
     width = getllm_d.range_of_bpms / 2
+    
+    
+    #print "list_of_Ks =", list_of_Ks
    
     left_bpm = range(-width, 0)
     right_bpm = range(0 + 1, width + 1)
@@ -1628,7 +1639,7 @@ def get_beta_from_phase_systematic_errors(madModel, madTwiss, errorfile, phase, 
                                                                                       madTwiss, madModel, errorfile, phase, plane,
                                                                                       list_of_Ks, sizeOfMatrix, RANGE)
                             
-        if measured.use_it:
+        if measured.use_it or (n0 == -2 and n1 == -1):
             beta_alfa.append(measured)
             matrix_rows_Beta.append(TrowBeta)
             matrix_rows_Alfa.append(TrowAlfa)
@@ -1641,10 +1652,10 @@ def get_beta_from_phase_systematic_errors(madModel, madTwiss, errorfile, phase, 
                                                                                       bpm_name[n0], bpm_name[probed_index], bpm_name[n1], n0, probed_index, n1,
                                                                                       madTwiss, madModel, errorfile, phase, plane,
                                                                                       list_of_Ks, sizeOfMatrix, RANGE)
-    if measured.use_it:
-            beta_alfa.append(measured)
-            matrix_rows_Alfa.append(TrowAlfa)
-            matrix_rows_Beta.append(TrowBeta)
+        if measured.use_it or (n0 == -1 and n1 == 1):
+                beta_alfa.append(measured)
+                matrix_rows_Alfa.append(TrowAlfa)
+                matrix_rows_Beta.append(TrowBeta)
              
     for n in ABB_combo:
         n0 = probed_index + n[0]
@@ -1654,7 +1665,7 @@ def get_beta_from_phase_systematic_errors(madModel, madTwiss, errorfile, phase, 
                                                                                       bpm_name[probed_index], bpm_name[n0], bpm_name[n1], probed_index, n0, n1,
                                                                                       madTwiss, madModel, errorfile, phase, plane,
                                                                                       list_of_Ks, sizeOfMatrix, RANGE)
-        if measured.use_it:
+        if measured.use_it or (n0 == 1 and n1 == 2):
             beta_alfa.append(measured)
             matrix_rows_Alfa.append(TrowAlfa)
             matrix_rows_Beta.append(TrowBeta)
@@ -2357,13 +2368,7 @@ def _assign_quadlongmissal(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T
 
 
 def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
-    
-    print_("Calculating free beta using model")
-    print "\33[32;1m= = = = = = = = = = = = = = = = = = = = = = ="
-    print "= = Calculating free beta = = = = = = = = = ="
-    print "= = Please check implementation             ="
-    print "= = = = = = = = = = = = = = = = = = = = = = =\33[0m\n\n"
-    
+
     data2 = {}
     
     bpms = Utilities.bpm.model_intersect(bpms, modelfree)
@@ -2376,19 +2381,19 @@ def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
         if plane == "H":
             betmf = modelfree.BETX[modelfree.indx[bpm]]
             betma = modelac.BETX[modelac.indx[bpm]]
-            bb = (betma - betmf) / betmf
+            bb = betma / betmf
             alfmf = modelfree.ALFX[modelfree.indx[bpm]]
             alfma = modelac.ALFX[modelac.indx[bpm]]
-            aa = (alfma - alfmf) / alfmf
+            aa = alfma / alfmf
         else:
             betmf = modelfree.BETY[modelfree.indx[bpm]]
             betma = modelac.BETY[modelac.indx[bpm]]
             alfmf = modelfree.ALFY[modelfree.indx[bpm]]
             alfma = modelac.ALFY[modelac.indx[bpm]]
-            bb = (betma - betmf) / betmf
-            aa = (alfma - alfmf) / alfmf
+            bb = betma / betmf
+            aa = alfma / alfmf
 
-        data2[bpm] = beta * (1 + bb), betsys, betstat, beterr, alfa * (1 + aa), alfsys, alfstat, alferr, data[bpm][8], data[bpm][9]
+        data2[bpm] = beta * bb, betsys, betstat, beterr, alfa * aa, alfsys, alfstat, alferr, data[bpm][8], data[bpm][9]
 
     return data, bpms
 

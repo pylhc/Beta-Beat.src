@@ -128,7 +128,7 @@ RANGE_OF_BPMS   = 11    #@IgnorePep8
 AVERAGE_TUNE    = 0     #@IgnorePep8
 CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
-NPROCESSES      = 13    #@IgnorePep8
+NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
 #===================================================================================================
@@ -195,7 +195,7 @@ def _parse_args():
                       metavar="PATH_TO_FILE", default=ERRORDEFS, dest="errordefspath")
     parser.add_option("--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type="int",
-                      help="Sets the number of processes used.\n-1: take the number of CPUs\n 0: run serially\n>1: take this number")
+                      help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
     options, _ = parser.parse_args()
