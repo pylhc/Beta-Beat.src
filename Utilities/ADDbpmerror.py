@@ -48,7 +48,7 @@ def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs', x_error=0
                     for i in xrange(len(x)):
                         x[i][bpm_name]=[]
                         y[i][bpm_name]=[]
-        elif 'BPM' in bpm_name:
+        elif 'BPM' in bpm_name or 'PICK' in bpm_name:  # PICK for ESRF
             pid=int(lsp[0])-1
             if bpm_name not in bpms:
                 bpms.append(bpm_name)
