@@ -72,13 +72,14 @@ def main():
     hmaxy = options.hmaxy
     hminy = options.hminy
     mainnode = options.mainnode
+    title = options.title
 
     SimplePlotting.setParams()
     mpdf = PdfPages(os.path.abspath(folder))
     if(plot in mdlAnalysis):
-        SimplePlotting.plotMdlAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy)
+        SimplePlotting.plotMdlAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title)
     elif(plot in analysis):
-        SimplePlotting.plotAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy)
+        SimplePlotting.plotAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title)
     else:
         print "Unknown subnode"
     plt.tight_layout

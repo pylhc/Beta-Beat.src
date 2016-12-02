@@ -247,7 +247,7 @@ def getChromaticCoup(path, plane, subnode):
     return s, f, fstd
 
 
-def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy):
+def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -289,8 +289,8 @@ def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, 
             ply.plot(sy[i], valuey[i], color=colors[i], linestyle='solid', linewidth=0.01, marker='.', markerfacecolor=colors[i], markersize=4, label=path.rsplit('/', 1)[-1])
             ply.errorbar(sy[i], valuey[i], yerr=yerr[i], linewidth=0.1, color=colors[i], marker='.', markersize=1, markeredgecolor=colors[i], label='_nolegend_')
             setYAxisLabel(subnode, 'y', ply)
-            showIRs(accel, float(maxy), [ply])
-    plt.suptitle(mainnode + ": " + subnode, fontweight='bold')
+    plt.suptitle(title)
+    plx.axes.get_xaxis().set_visible(False)
     setXAxisLabel(ply)
     showIRs(accel, float(maxx), [plx])
     plt.grid(False)
@@ -299,7 +299,7 @@ def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, 
     return gs
 
 
-def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy):
+def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -329,8 +329,8 @@ def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hmin
         ply.errorbar(sy, measy, yerr=erry, color='red', linewidth=0.1, marker='.', markersize=1, markeredgecolor='red', label='_nolegend_')
         #ply.tick_params(labelsize=6)
         setYAxisLabel(subnode, 'y', ply)
-        showIRs(accel, float(maxy), [ply])
-    plt.suptitle(mainnode + ": " + subnode, fontweight='bold')
+    plt.suptitle(title)
+    plx.axes.get_xaxis().set_visible(False)
     setXAxisLabel(ply)
     showIRs(accel, float(maxx), [plx])
     plt.grid(False)
