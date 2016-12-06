@@ -4,6 +4,27 @@ from string import split
 import sys, copy
 from IR_planes import IR_definitions
 
+
+
+IR_DEFINITIONS = {'ip1b1.X': ('def','foc'), 
+                  'ip1b1.Y': ('foc','def'), 
+                  'ip1b2.X': ('foc','def'), 
+                  'ip1b2.Y': ('def','foc'), 
+                  'ip2b1.X': ('foc','def'), 
+                  'ip2b1.Y': ('def','foc'), 
+                  'ip2b2.X': ('def','foc'), 
+                  'ip2b2.Y': ('foc','def'), 
+                  'ip5b1.X': ('def','foc'), 
+                  'ip5b1.Y': ('foc','def'), 
+                  'ip5b2.X': ('foc','def'), 
+                  'ip5b2.Y': ('def','foc'), 
+                  'ip8b1.X': ('foc','def'), 
+                  'ip8b1.Y': ('def','foc'), 
+                  'ip8b2.X': ('def','foc'), 
+                  'ip8b2.Y': ('foc','def') 
+                  }
+
+
 parser = OptionParser()
 #parser.add_option("-f", "--file",
 #    help="input file",
