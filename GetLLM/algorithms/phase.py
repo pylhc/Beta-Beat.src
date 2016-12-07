@@ -22,6 +22,8 @@ import numpy as np
 import Utilities.bpm
 import compensate_ac_effect
 
+from beta import JPARC_intersect
+
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -513,6 +515,7 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
     """
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
     length_commonbpms = len(commonbpms)
 
     if length_commonbpms < 3:
