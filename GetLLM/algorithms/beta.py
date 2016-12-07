@@ -1405,15 +1405,25 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile,
     corr        = .0                    #@IgnorePep8
     used_bpms   = 0                     #@IgnorePep8
     
-    if len(alfa_beta) <= 3:
-        print "WARNING using analytical method for bpm " + probed_bpm_name + " uses only {0:d} combinations.".format(len(alfa_beta))
+    if len(alfa_beta) == 0:
+        print "\33[35mWARNING For bpm " + probed_bpm_name + " are 0 combinations with good angle left, FALLBACK to 3BPM.\33[0m"
    
-#         probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr = get_beta_from_phase_3bpm(madTwiss, phase, plane, range_of_bpms, commonbpms, debugfile, Index, probed_bpm_name)
-#         return [probed_bpm_name,
-#                 beti, betstat, betsys, beterr,
-#                 alfi, alfstat, alfsys, beterr,
-#                 .0, (beti - betmdl1) / betmdl1,
-#                 -1]
+        if DEBUG:
+            debugfile.write("\n\nbegin BPM " + probed_bpm_name + " :\n")
+            debugfile.write("ERROR: <= 3 BPM combinations left. USING 3BPM")
+            
+            printMatrix(debugfile, T_Beta, "T_b")
+            printMatrix(debugfile, T_Alfa, "T_Alfa")
+            printMatrix(debugfile, M, "M")
+            debugfile.write("MUX: {0:.10e}\n".format(phase[probed_bpm_name][0]))
+            debugfile.write("end\n")
+            
+        probed_bpm_name, beti, betstat, betsys, beterr, alfi, alfstat, alfsys, alferr = get_beta_from_phase_3bpm(madTwiss, phase, plane, range_of_bpms, commonbpms, debugfile, Index, probed_bpm_name)
+        return [probed_bpm_name,
+                beti, betstat, betsys, beterr,
+                alfi, alfstat, alfsys, beterr,
+                .0, (beti - betmdl1) / betmdl1,
+                -1]
     try:
         betas = np.array([x.beta for x in alfa_beta])
         alfas = np.array([x.alfa for x in alfa_beta])
@@ -1432,6 +1442,7 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile,
             
             debugfile.write("\n\nbegin BPM " + probed_bpm_name + " :\n")
             debugfile.write("ERROR: SOMETHING WENT WRONG in building V_Beta and V_alfa")
+            
             printMatrix(debugfile, T_Beta, "T_b")
             printMatrix(debugfile, T_Alfa, "T_Alfa")
             printMatrix(debugfile, M, "M")
@@ -1674,7 +1685,7 @@ def get_beta_from_phase_systematic_errors(madModel, madTwiss, errorfile, phase, 
                                                                                       madTwiss, madModel, errorfile, phase, plane,
                                                                                       list_of_Ks, sizeOfMatrix, RANGE)
                             
-        if measured.use_it or (n[0] == -2 and n[1] == -1):
+        if measured.use_it:
             beta_alfa.append(measured)
             matrix_rows_Beta.append(TrowBeta)
             matrix_rows_Alfa.append(TrowAlfa)
@@ -1687,10 +1698,10 @@ def get_beta_from_phase_systematic_errors(madModel, madTwiss, errorfile, phase, 
                                                                                       bpm_name[n0], bpm_name[probed_index], bpm_name[n1], n0, probed_index, n1,
                                                                                       madTwiss, madModel, errorfile, phase, plane,
                                                                                       list_of_Ks, sizeOfMatrix, RANGE)
-        if measured.use_it or (n[0] == -1 and n[1] == 1):
-                beta_alfa.append(measured)
-                matrix_rows_Alfa.append(TrowAlfa)
-                matrix_rows_Beta.append(TrowBeta)
+        if measured.use_it:
+            beta_alfa.append(measured)
+            matrix_rows_Alfa.append(TrowAlfa)
+            matrix_rows_Beta.append(TrowBeta)
              
     for n in ABB_combo:
         n0 = probed_index + n[0]
@@ -1700,7 +1711,7 @@ def get_beta_from_phase_systematic_errors(madModel, madTwiss, errorfile, phase, 
                                                                                       bpm_name[probed_index], bpm_name[n0], bpm_name[n1], probed_index, n0, n1,
                                                                                       madTwiss, madModel, errorfile, phase, plane,
                                                                                       list_of_Ks, sizeOfMatrix, RANGE)
-        if measured.use_it or (n[0] == 1 and n[1] == 2):
+        if measured.use_it:
             beta_alfa.append(measured)
             matrix_rows_Alfa.append(TrowAlfa)
             matrix_rows_Beta.append(TrowBeta)
@@ -1781,7 +1792,7 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-    if bad_phase(phmodel12) or bad_phase(phmodel13) or bad_phase(phmodel12 - phmodel13):
+    if (bad_phase(phmodel12) or bad_phase(phmodel13) or bad_phase(phmodel12 - phmodel13)):
         return MeasuredValues(0, 0), [], []
 
     #--- Calculate beta
@@ -1908,7 +1919,7 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     patternstr[bi1] = "A"
     patternstr[bi2] = "B"
     patternstr[bi3] = "B"
-
+ 
     return MeasuredValues(alf, bet, "".join(patternstr), True), T, T_Alf
 
 
@@ -1980,7 +1991,7 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-    if bad_phase(phmodel21) or bad_phase(phmodel23) or bad_phase(phmodel23 - phmodel21):
+    if (bad_phase(phmodel21) or bad_phase(phmodel23) or bad_phase(phmodel23 - phmodel21)):
         return MeasuredValues(0, 0), [], []
 
     #--- Calculate beta
@@ -2099,7 +2110,7 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     patternstr[bi1] = "B"
     patternstr[bi2] = "A"
     patternstr[bi3] = "B"
-
+    
     return MeasuredValues(alf, bet, "".join(patternstr), True), T, T_Alf
 
 
@@ -2172,7 +2183,7 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-    if bad_phase(phmodel32) or bad_phase(phmodel31) or bad_phase(phmodel31 - phmodel32):
+    if (bad_phase(phmodel32) or bad_phase(phmodel31) or bad_phase(phmodel31 - phmodel32)):
         return MeasuredValues(0, 0), [], []
     cotphmdl32 = 1.0 / tan(phmdl32)
     cotphmdl31 = 1.0 / tan(phmdl31)
