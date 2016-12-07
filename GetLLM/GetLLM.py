@@ -410,6 +410,7 @@ def _intial_setup(getllm_d, model_filename, dict_file):
             mad_elem_centre = mad_elem
             print "WARN: No elements_centre found, use end points instead. This shouldn't change much but is not recommended"
     except IOError:
+        print >> sys.stderr, "ERROR: twiss_elements (filename {0:s}) not found. Systematic error calculation will fail.".format(model_filename.replace(".dat", "_elements.dat"))
         mad_elem = mad_twiss
         mad_elem_centre = mad_elem
     if getllm_d.with_ac_calc:
