@@ -153,6 +153,12 @@ class TfsFileWriter(object):
     def get_absolute_file_name_path(self):
         return os.path.join(self.__outputpath, self.__file_name)
 
+    def order_rows(self, column_name, reverse=False):
+        """
+        Orders the rows according to one of the column names.
+        """
+        self.__tfs_table.order_rows(column_name, reverse)
+
     def write_to_file(self, formatted = True):
         """ Writes the stored data to the file with the given filename. """
         if not self.__tfs_table.are_column_names_and_types_are_set():
@@ -444,3 +450,14 @@ class _TfsTable(object):
     def get_data_rows(self):
         return self.__list_of_table_rows
 
+    def order_rows(self, column_name, reverse=False):
+        """
+        Orders the rows according to one of the column names.
+        """
+        if not self.are_column_names_and_types_are_set():
+            raise ValueError("Column names and types have to be set to order the entries.")
+        column_index = self.__list_of_column_names.index(column_name)
+        self.__list_of_table_rows.sort(
+            key=lambda elem: float(elem[column_index]),
+            reverse=reverse
+        )
