@@ -25,7 +25,7 @@ import re
 import multiprocessing
 import time
 
-__version__ = "2016.12.1"
+__version__ = "2016.12.2"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -52,10 +52,11 @@ EPSILON                 = 0#1.0E-16                 #@IgnorePep8
 SEXT_FACT               = 2.0                       #@IgnorePep8
 A_FACT                  = -.5                       #@IgnorePep8
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
-ZERO_THRESHOLD          = 1e-4                      #@IgnorePep8
-PHASE_THRESHOLD         = 1e-2                      #@IgnorePep8
+ZERO_THRESHOLD          = 1e-22                      #@IgnorePep8
+PHASE_THRESHOLD         = 1e-22                      #@IgnorePep8
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
 MOD_POINTFIVE_UPPER     = (.5 - PHASE_THRESHOLD)    #@IgnorePep8
+RCOND                   = 1.0e-14                    #@IgnorePep8
 
 BOXLENGTH               = 50                        #@IgnorePep8
 BOXINDENT               =  4                        #@IgnorePep8
@@ -114,6 +115,7 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
         tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
     tfs_file.add_string_descriptor("ErrorsFrom", error_method)
     tfs_file.add_float_descriptor("PhaseTheshold", PHASE_THRESHOLD)
+    tfs_file.add_float_descriptor("RCond", RCOND)
     tfs_file.add_column_names(["NAME", "S", "COUNT",
                                "BET" + _plane_char, "SYSBET" + _plane_char, "STATBET" + _plane_char, "ERRBET" + _plane_char,
                                "CORR_ALFABETA",
@@ -610,6 +612,7 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
         return data, rmsbb, commonbpms, errors_method
     #---- use the simulations
     else:
+        
         rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile)
 
     return data, rmsbb, commonbpms, errors_method
@@ -1480,7 +1483,7 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile,
     # TODO The LinalgError doesnt seem to be defined in 2.6 version of python, this should be checked.
     # TODO Should we really output a zero matrix if the pinv fails? Play with rcond in pinv.
     try:
-        V_Beta_inv = np.linalg.pinv(V_Beta, rcond=1.0e-10)
+        V_Beta_inv = np.linalg.pinv(V_Beta, rcond=RCOND)
         w = np.sum(V_Beta_inv, axis=1)
         VBeta_inv_sum = np.sum(w)
         beterr = float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2)
@@ -1493,7 +1496,7 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile,
         print "WARN: LinAlgEror in V_Beta_inv for " + probed_bpm_name
         
     try:
-        V_Alfa_inv = np.linalg.pinv(V_Alfa, rcond=1.0e-10)
+        V_Alfa_inv = np.linalg.pinv(V_Alfa, rcond=RCOND)
         walfa = np.sum(V_Alfa_inv, axis=1)
         VAlfa_inv_sum = np.sum(walfa)
         
@@ -1792,7 +1795,7 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-    if (bad_phase(phmodel12) or bad_phase(phmodel13) or bad_phase(phmodel12 - phmodel13)):
+    if (bad_phase(phmodel12) or bad_phase(phmodel13) or bad_phase(phmodel12 - phmodel13)) or bad_phase(ph2pi12) or bad_phase(ph2pi13) or bad_phase(ph2pi12 - ph2pi13):
         return MeasuredValues(0, 0), [], []
 
     #--- Calculate beta
@@ -1991,7 +1994,7 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-    if (bad_phase(phmodel21) or bad_phase(phmodel23) or bad_phase(phmodel23 - phmodel21)):
+    if bad_phase(phmodel21) or bad_phase(phmodel23) or bad_phase(phmodel23 - phmodel21) or bad_phase(ph2pi21) or bad_phase(ph2pi23) or bad_phase(ph2pi21 - ph2pi23):
         return MeasuredValues(0, 0), [], []
 
     #--- Calculate beta
@@ -2183,7 +2186,7 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if betmdl3 < 0 or betmdl2 < 0 or betmdl1 < 0:
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
-    if (bad_phase(phmodel32) or bad_phase(phmodel31) or bad_phase(phmodel31 - phmodel32)):
+    if bad_phase(phmodel32) or bad_phase(phmodel31) or bad_phase(phmodel31 - phmodel32) or bad_phase(ph2pi31) or bad_phase(ph2pi32) or bad_phase(ph2pi31 - ph2pi32):
         return MeasuredValues(0, 0), [], []
     cotphmdl32 = 1.0 / tan(phmdl32)
     cotphmdl31 = 1.0 / tan(phmdl31)
@@ -2501,6 +2504,8 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
         filename = "error_elements_" + plane + ".dat"
         errorfile = Utilities.tfs_file_writer.TfsFileWriter(filename)
     except:
+        print >> sys.stderr, "loading errorfile didnt work"
+        print >> sys.stderr, "errordefspath = {0:s}".format(errordefspath)
         return None
      
     errorfile.add_column_names(     ["NAME",    "BET",  "BETEND",   "MU",   "MUEND",    "dK1",  "K1L",  "K1LEND",   "K2L",  "dX",   "dS", "DEBUG"])  #@IgnorePep8
@@ -2611,6 +2616,7 @@ def printMatrix(debugfile, M, name):
 
 
 def bad_phase(phi):
+    return False
     modphi = phi % .5
     return (modphi < MOD_POINTFIVE_LOWER or modphi > MOD_POINTFIVE_UPPER)
 
