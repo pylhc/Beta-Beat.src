@@ -2,7 +2,26 @@ from math import *
 from optparse import OptionParser
 from string import split
 import sys, copy
-from IR_planes import IR_definitions
+
+
+IR_DEFINITIONS = {'ip1b1.X': ('def','foc'), 
+                  'ip1b1.Y': ('foc','def'), 
+                  'ip1b2.X': ('foc','def'), 
+                  'ip1b2.Y': ('def','foc'), 
+                  'ip2b1.X': ('foc','def'), 
+                  'ip2b1.Y': ('def','foc'), 
+                  'ip2b2.X': ('def','foc'), 
+                  'ip2b2.Y': ('foc','def'), 
+                  'ip5b1.X': ('def','foc'), 
+                  'ip5b1.Y': ('foc','def'), 
+                  'ip5b2.X': ('foc','def'), 
+                  'ip5b2.Y': ('def','foc'), 
+                  'ip8b1.X': ('foc','def'), 
+                  'ip8b1.Y': ('def','foc'), 
+                  'ip8b2.X': ('def','foc'), 
+                  'ip8b2.Y': ('foc','def') 
+                  }
+
 
 parser = OptionParser()
 #parser.add_option("-f", "--file",
@@ -329,19 +348,19 @@ Q=float(options.Q)
 guess=[float(options.beta),-0.]
 incr=[0.01,0.001]
 
-if IR_definitions[ir][0] == 'foc':
+if IR_DEFINITIONS[ir][0] == 'foc':
     print 'Computing %s : Left is focussing...' %ir
-elif IR_definitions[ir][0] == 'def':
+elif IR_DEFINITIONS[ir][0] == 'def':
     print 'Computing %s : Left is defocussing...' %ir
 
 def betasfromtunes(Tdql,Tdqr,ir):
     global Q,dql,dqr,l,DK,maxdb,mindb
     dbl= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdql))+sin(2*pi*Tdql))/(l*DKL)
     dbr= 2*(1/tan(2*pi*Q)*(1-cos(2*pi*Tdqr))+sin(2*pi*Tdqr))/(l*DKR)
-    if IR_definitions[ir][0] == 'foc':
+    if IR_DEFINITIONS[ir][0] == 'foc':
         mindb = abs(dbl)
         maxdb = abs(dbr)
-    elif IR_definitions[ir][0] == 'def':
+    elif IR_DEFINITIONS[ir][0] == 'def':
         mindb = abs(dbr)
         maxdb = abs(dbl)
     return mindb, maxdb

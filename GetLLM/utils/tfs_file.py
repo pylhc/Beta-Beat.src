@@ -8,6 +8,7 @@ This module contains the class GetllmTfsFile which handles the output files of G
 .. moduleauthor:: Viktor Maier <viktor.maier@cern.ch>
 """
 
+import os
 import sys
 import datetime
 
@@ -19,6 +20,7 @@ class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
     It stores additionally to TfsFileWriter the following descriptors for :module:'GetLLM.py':
      - GetLLMVersion
      - Command
+     - Current working directory
      - Date
      - FILES
     '''
@@ -28,6 +30,7 @@ class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
     s_mad_filename = ""
     __s_current_date = datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S")#e.g.: 17. July 2013, 12:28:56
     __s_getllm_invocation_command = sys.executable+" '"+"' '".join([]+sys.argv)+"'"
+    __s_getllm_current_working_dir = os.getcwd()
 
     def __init__(self, file_name, column_width=Utilities.tfs_file_writer.TfsFileWriter.DEFAULT_COLUMN_WIDTH):
         """
@@ -42,6 +45,7 @@ class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
 
         self.add_string_descriptor("GetLLMVersion", GetllmTfsFile.s_getllm_version)
         self.add_string_descriptor("Command", GetllmTfsFile.__s_getllm_invocation_command)
+        self.add_string_descriptor("CWD", GetllmTfsFile.__s_getllm_current_working_dir)
         self.add_string_descriptor("Date", GetllmTfsFile.__s_current_date)
 
 
