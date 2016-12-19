@@ -52,6 +52,15 @@ def _parse_options():
     parser.add_option("-n", "--mainnode",
                      help="Main node",
                      metavar="NODE", default="", dest="mainnode")
+    parser.add_option("-w", "--legendx",
+                     help="X-position of legend",
+                     metavar="LEGENDX", default="", dest="legendx")
+    parser.add_option("-d", "--legendy",
+                     help="Y-Posotion of legend",
+                     metavar="LEGENDY", default="", dest="legendy")
+    parser.add_option("-l", "--legendh",
+                     help="Height of legend",
+                     metavar="LEGENDH", default="", dest="legendh")
     options, _ = parser.parse_args()
     return options
 
@@ -72,14 +81,17 @@ def main():
     hmaxy = options.hmaxy
     hminy = options.hminy
     mainnode = options.mainnode
+    legendx = options.legendx
+    legendy = options.legendy
+    legendh = options.legendh
     title = options.title
 
     SimplePlotting.setParams()
     mpdf = PdfPages(os.path.abspath(folder))
     if(plot in mdlAnalysis):
-        SimplePlotting.plotMdlAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title)
+        SimplePlotting.plotMdlAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh)
     elif(plot in analysis):
-        SimplePlotting.plotAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title)
+        SimplePlotting.plotAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh)
     else:
         print "Unknown subnode"
     plt.tight_layout

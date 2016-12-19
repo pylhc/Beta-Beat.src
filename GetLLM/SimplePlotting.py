@@ -247,7 +247,7 @@ def getChromaticCoup(path, plane, subnode):
     return s, f, fstd
 
 
-def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title):
+def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -295,11 +295,12 @@ def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, 
     showIRs(accel, float(maxx), [plx])
     plt.grid(False)
     setYAxisLabel(subnode, 'x', plx)
-    showLegend(ply)
+    if(int(float(legendh)) > 12):
+        showLegend(plx, int(float(legendx)), int(float(legendy)))
     return gs
 
 
-def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title):
+def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -335,7 +336,8 @@ def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hmin
     showIRs(accel, float(maxx), [plx])
     plt.grid(False)
     setYAxisLabel(subnode, 'x', plx)
-    showLegend(ply)
+    if(int(float(legendh)) > 12):
+        showLegend(plx, int(float("53.0")), int(float("7.0")))
     return gs
 
 
@@ -396,9 +398,19 @@ def setXAxisLabel(p1):
     p1.set_xlabel(r'Longitudinal location [m]')
 
 
-def showLegend(p, loc=3, frameon=True, numpoints=1, ncol=3):
+def showLegend(p, legendx, legendy, frameon=True, numpoints=1, ncol=3):
     handles, labels = p.get_legend_handles_labels()
-    p.legend(handles, labels, frameon=frameon, numpoints=numpoints, ncol=ncol, loc=loc, bbox_to_anchor=(0.0, -0.25), borderaxespad=0)
+    if(legendx < 1000 & legendy >= 200):
+        loc = 'lower left'
+    elif(legendx < 1000):
+        loc = 'upper left'
+    elif(legendx >= 1000 & legendy >= 200):
+        loc = 'lower right'
+    elif (legendx >= 1000 & legendy < 200):
+        loc = 'upper right'
+    else:
+        print "Unknown parameter"
+    p.legend(handles, labels, loc=loc, frameon=frameon, numpoints=numpoints, ncol=ncol)
 
 
 def showIRs(accel, limit, plots=[]):
