@@ -52,8 +52,8 @@ EPSILON                 = 0#1.0E-16                 #@IgnorePep8
 SEXT_FACT               = 2.0                       #@IgnorePep8
 A_FACT                  = -.5                       #@IgnorePep8
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
-ZERO_THRESHOLD          = 1e-22                      #@IgnorePep8
-PHASE_THRESHOLD         = 1e-22                      #@IgnorePep8
+ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
+PHASE_THRESHOLD         = 1e-2                      #@IgnorePep8
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
 MOD_POINTFIVE_UPPER     = (.5 - PHASE_THRESHOLD)    #@IgnorePep8
 RCOND                   = 1.0e-14                    #@IgnorePep8
@@ -1486,7 +1486,7 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile,
         V_Beta_inv = np.linalg.pinv(V_Beta, rcond=RCOND)
         w = np.sum(V_Beta_inv, axis=1)
         VBeta_inv_sum = np.sum(w)
-        beterr = float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2)
+        beterr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2))
         beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
         used_bpms = len(w)
     except:
@@ -1501,7 +1501,7 @@ def scan_one_BPM_withsystematicerrors(madModel, madTwiss, errorfile,
         VAlfa_inv_sum = np.sum(walfa)
         
         alfi = float(np.dot(np.transpose(walfa), alfas) / VAlfa_inv_sum)
-        alferr = float(np.dot(np.transpose(walfa), np.dot(V_Alfa, walfa)) / VAlfa_inv_sum ** 2)
+        alferr = math.sqrt(float(np.dot(np.transpose(walfa), np.dot(V_Alfa, walfa)) / VAlfa_inv_sum ** 2))
     except:
         _, _, _, _, _, alfi, alfstat, alfsys, alferr = get_beta_from_phase_3bpm(madTwiss, phase, plane, range_of_bpms, commonbpms, debugfile, Index, probed_bpm_name, beti, alfi)
 
@@ -2616,7 +2616,6 @@ def printMatrix(debugfile, M, name):
 
 
 def bad_phase(phi):
-    return False
     modphi = phi % .5
     return (modphi < MOD_POINTFIVE_LOWER or modphi > MOD_POINTFIVE_UPPER)
 
