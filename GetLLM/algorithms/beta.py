@@ -25,7 +25,7 @@ import re
 import multiprocessing
 import time
 
-__version__ = "2016.12.2"
+__version__ = "2017.1.1"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
