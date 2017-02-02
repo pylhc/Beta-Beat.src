@@ -25,7 +25,7 @@ import Utilities.bpm
 import phase
 from SegmentBySegment.SegmentBySegment import get_good_bpms
 from __builtin__ import raw_input
-
+from constants import PI, TWOPI, kEPSILON
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -82,17 +82,20 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         except:
             return [{},[]]
 
-    #-- Model phase advances
-    if plane=='H': psimdl=np.array([(MADTwiss.MUX[MADTwiss.indx[b[1]]]-MADTwiss.MUX[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
-    if plane=='V': psimdl=np.array([(MADTwiss.MUY[MADTwiss.indx[b[1]]]-MADTwiss.MUY[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
+    # -- Model phase advances
+    if plane == 'H':
+        psimdl = np.array([(MADTwiss.MUX[MADTwiss.indx[b[1]]]-MADTwiss.MUX[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
+    if plane == 'V':
+        psimdl=np.array([(MADTwiss.MUY[MADTwiss.indx[b[1]]]-MADTwiss.MUY[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
 
-    #-- Global parameters of the driven motion
-    r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
+    # -- Global parameters of the driven motion
+    r = sin(np.pi * (Qd - Q)) / sin(np.pi * (Qd + Q))
 
-    #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
-    psiall=np.zeros((len(bpm),len(Files)))
+    # -- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
+    psiall=np.zeros((len(bpm), len(Files)))
     for i in range(len(Files)):
-        if plane=='H': psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        if plane == 'H':
+            psid = bd * 2 * np.pi * np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         if plane=='V': psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
@@ -117,9 +120,12 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     return [result,bpm]
 
+def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
+    return get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl)
 
 def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
-
+    print "Qd =", Qd
+    print "Q =", Q
     #-- Select common BPMs
     bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
@@ -275,10 +281,27 @@ def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
     return [result,muave,bpm]
 
 
-def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
+def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl):
 
 
 
+    print "\33[38;2;255;200;0m"
+    print "         /\\                     "
+    print "        //\\\\                   "
+    print "       //  \\\\                  "
+    print "      // || \\\\                 "
+    print "     //  ||  \\\\                "
+    print "    //   ||   \\\\               "
+    print "   //    ||    \\\\              "
+    print "  //            \\\\           "
+    print " //      ()      \\\\           "
+    print "//________________\\\\            "
+    print "--------------------               "
+    print "                               "
+    print "INFO: using changed code for ac compensation\n DO NOT TRUST THIS CODE\33[0m"
+
+    print "Q = {0:f}".format(Q)
+    print "Qd = {0:f}".format(Qd)
     #-- Select common BPMs
     bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
@@ -313,31 +336,32 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 
     for which_psi in range(1,11):
         psiijmdl[which_psi-1] = (np.append(psimdl[which_psi:], psimdl[:which_psi] + Qmdl) - psimdl) % 1
-        psiijall.append(np.zeros((len(bpm),len(Files))))
+        psiijall.append(np.zeros((len(bpm), len(Files))))
 
     #-- Global parameters of the driven motion
-    r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
+    r=sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
 
     #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
     
     for i in range(len(Files)):
-        if plane=='H': 
-            psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
-        if plane=='V': 
-            psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        if plane == 'H':
+            psid = bd * TWOPI * np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        if plane == 'V':
+            psid = bd * TWOPI * np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
-                if bpm[k][0]>s_lastbpm: psid[k]+=2*np.pi*Qd  #-- To fix the phase shift by Q
+                if bpm[k][0] > s_lastbpm: psid[k] += TWOPI * Qd  #-- To fix the phase shift by Q
             except: pass
-        psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
-        Psid=psid+np.pi*Qd
-        Psid[k_bpmac:]=Psid[k_bpmac:]-2*np.pi*Qd
+        psid = psid - (psid[k_bpmac] - psid_ac2bpmac[bpmac])  # OK, untill here, it is Psi(s, s_ac)
+        Psid=psid + PI * Q
+        Psid[k_bpmac:]=Psid[k_bpmac:]-TWOPI * Q
         
         gamma = Psid*2
-        alpha = 1
+        alpha = psid + PI * Q
+        alpha[k_bpmac:] = alpha[k_bpmac:] + TWOPI * (Q - Qd) + kEPSILON
         
-        Psi = np.arctan((1 - r) / (1 + r) * np.tan(Psid)) % np.pi  # Ryioichi
-        Psi_A = np.arctan((1 + r * np.sin(alpha - gamma) / np.sin(alpha)) / 1 - r * np.cos(alpha - gamma)/np.cos(alpha))
+        Psi = np.arctan((1 - r) / (1 + r) * np.tan(Psid)) % np.pi  # Ryoichi
+        Psi_A = np.arctan((1 + r * np.sin(alpha - gamma) / np.sin(alpha)) / (1 + r * np.cos(alpha - gamma)/np.cos(alpha)))
         for k in range(len(bpm)):
             if Psid[k]%(2*np.pi)>np.pi: Psi[k]=Psi[k]+np.pi
         psi=Psi-Psi[0]
@@ -345,11 +369,11 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
         
         # <<<<<<<<<< ICH
         psiij = [None] * 10
-        for j in range(1,11):
-            psiij[j-1] = (np.append(psi[j:],psi[:j] +2*np.pi*Q)-psi)/(2*np.pi)
+        for j in range(1, 11):
+            psiij[j-1] = (np.append(psi[j:], psi[:j] + TWOPI * Q) - psi)/ TWOPI
         for k in range(len(bpm)):
             # <<<<<<<<<< ICH
-            for j in range(0,10):
+            for j in range(0, 10):
                 psiijall[j][k][i] = psiij[j][k]
             
     #-- Output

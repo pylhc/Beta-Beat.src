@@ -24,6 +24,7 @@ import os
 import re
 import multiprocessing
 import time
+from constants import PI, TWOPI
 
 __version__ = "2017.1.1"
 
@@ -44,18 +45,18 @@ else:
 
 #--- Constants
 
-PI      = 3.14159265358979323846    #@IgnorePep8
-TWOPI   = PI * 2.0                  #@IgnorePep8
+
 
 DEFAULT_WRONG_BETA      = 1000                      #@IgnorePep8
 EPSILON                 = 0#1.0E-16                 #@IgnorePep8
 SEXT_FACT               = 2.0                       #@IgnorePep8
 A_FACT                  = -.5                       #@IgnorePep8
+BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
 ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
 PHASE_THRESHOLD         = 1e-2                      #@IgnorePep8
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
-MOD_POINTFIVE_UPPER     = (.5 - PHASE_THRESHOLD)    #@IgnorePep8
+MOD_POINTFIVE_UPPER     = (BADPHASE - PHASE_THRESHOLD)    #@IgnorePep8
 RCOND                   = 1.0e-14                    #@IgnorePep8
 
 BOXLENGTH               = 50                        #@IgnorePep8
@@ -701,6 +702,7 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 
 def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile):
     systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
+    print "systematics_path = ",systematics_error_path
     systematic_errors = None
     
     montecarlo = True
@@ -2490,10 +2492,12 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     if errordefspath is None:
         return None
     
-    bpms = []
-    for bpm in commonbpms:
-        bpms.append(bpm[1])
-    
+    #bpms = []
+    #for bpm in commonbpms:
+    #    bpms.append(bpm[1])
+
+    bpmre = re.compile("^BPM")
+
     print_("Create errorfile")
     print_("")
     
@@ -2518,7 +2522,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
         regex_list.append(re.compile(pattern))
 
     # OLD:
-    for index_twissfull in range(len(twiss_full.NAME)):
+    for index_twissfull in range(len(twiss_full_centre.NAME)):
         BET = twiss_full_centre.BETX[index_twissfull]
         MU = twiss_full_centre.MUX[index_twissfull]
 
@@ -2586,7 +2590,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
                                             "OK"])
 
         if not found:  # if element doesn't have any error add it nevertheless if it is a BPM
-            if twiss_full.NAME[index_twissfull] in bpms:
+            if bpmre.match(twiss_full_centre.NAME[index_twissfull]):
                 index_model = model.indx[twiss_full.NAME[index_twissfull]]
                 errorfile.add_table_row([
                                         model.NAME[index_model],
@@ -2616,7 +2620,7 @@ def printMatrix(debugfile, M, name):
 
 
 def bad_phase(phi):
-    modphi = phi % .5
+    modphi = phi % BADPHASE
     return (modphi < MOD_POINTFIVE_LOWER or modphi > MOD_POINTFIVE_UPPER)
 
 
@@ -2625,10 +2629,9 @@ def JPARC_intersect(plane, getllm_d, commonbpms):
         bpm_regex = re.compile("^MOH")
         if plane == 'V':
             bpm_regex = re.compile("^MOV")
-        print "bpm[0] =", commonbpms[2][1]
+
         commonbpms = [bpm for bpm in commonbpms if bpm_regex.match(bpm[1])]
-        print "commonbpms", commonbpms
-        raw_input()
+
     return commonbpms
 
 

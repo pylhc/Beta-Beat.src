@@ -43,7 +43,7 @@ def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs', x_error=0
             continue
         lsp=l.split()
         if lsp[0]=='#segment':
-                bpm_name=lsp[-1]
+                bpm_name=lsp[-1].upper()
                 if bpm_name not in x[0]:
                     for i in xrange(len(x)):
                         x[i][bpm_name]=[]

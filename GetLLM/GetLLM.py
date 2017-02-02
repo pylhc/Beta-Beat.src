@@ -288,7 +288,7 @@ def main(outputpath,
 
     # Load tunes from twiss instances, depending on with_ac_calc
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
-    
+
     # Construct pseudo-double plane BPMs
     if (getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         [pseudo_list_x, pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
@@ -303,10 +303,25 @@ def main(outputpath,
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         temp_dict = copy.deepcopy(files_dict)
+
+        # print "======================================00"
+        # print "before\n:: phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)"
+        # print "the tunes are as following:"
+        # print "tuned_q1 = {0:f}\ntuned_q1f = {1:f}\ntuned_delta1 = {2:f}".format(tune_d.q1, tune_d.q1f, tune_d.delta1)
+
         phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
+        # print "======================================00"
+        # print "after\n:: phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)"
+        # print "the tunes are as following:"
+        # print "tuned_q1 = {0:f}\ntuned_q1f = {1:f}\ntuned_delta1 = {2:f}".format(tune_d.q1, tune_d.q1f, tune_d.delta1)
 
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
+        # print "======================================00"
+        # print "after\n:: phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)"
+        # print "the tunes are as following:"
+        # print "tuned_q1 = {0:f}\ntuned_q1f = {1:f}\ntuned_delta1 = {2:f}".format(tune_d.q1, tune_d.q1f, tune_d.delta1)
+
 
         #-------- START Total Phase
         algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
@@ -333,7 +348,7 @@ def main(outputpath,
         files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
 
         #-------- START RDTs
-        algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
+        #algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
 
         if tbtana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove

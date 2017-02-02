@@ -104,6 +104,21 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
     if getllm_d.with_ac_calc:
         if twiss_d.has_zero_dpp_x():
             tune_d.q1f = tune_d.q1 - tune_d.delta1 #-- Free H-tune
+            # print "\33[38;2;255;0;0m"
+            # print "         /\\                     "
+            # print "        //\\\\                   "
+            # print "       //  \\\\                  "
+            # print "      // || \\\\                 "
+            # print "     //  ||  \\\\                "
+            # print "    //   ||   \\\\               "
+            # print "   //    ||    \\\\              "
+            # print "  //            \\\\           "
+            # print " //      ()      \\\\           "
+            # print "//________________\\\\            "
+            # print "--------------------               "
+            # print "                               "
+            # print "WARNING: GetLLM/algorithms/phase.py line 106 \n" \
+            #       "removed line: \"tune_d.q1f = tune_d.q1 - tune_d.delta1\" \33[0m"
             try:
                 phase_d.acphasex_ac2bpmac = compensate_ac_effect.GetACPhase_AC2BPMAC(mad_elem, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel)
             except AttributeError:
