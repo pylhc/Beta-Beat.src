@@ -26,7 +26,7 @@ import multiprocessing
 import time
 from constants import PI, TWOPI
 
-__version__ = "2017.1.1"
+__version__ = "2017.2.1"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -2496,7 +2496,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     #for bpm in commonbpms:
     #    bpms.append(bpm[1])
 
-    bpmre = re.compile("^BPM")
+    bpmre = re.compile("^BPM.*B[12]$")
 
     print_("Create errorfile")
     print_("")
