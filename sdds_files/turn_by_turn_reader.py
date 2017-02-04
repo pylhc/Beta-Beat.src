@@ -1,5 +1,6 @@
 from __future__ import print_function
 import sys
+import os
 import sdds_reader
 from datetime import datetime
 import numpy as np
@@ -127,7 +128,14 @@ class TbtAsciiWriter(object):
                 self._write_tbt_data(tbt_file, output_file, model_data)
 
     def _load_model(self):
-        sys.path.append("/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/")
+        if "win" in sys.platform and not sys.platform == "darwin":
+            afs_root = "\\\\AFS"
+        else:
+            afs_root = "/afs"
+        sys.path.append(
+            os.path.join(afs_root, "cern.ch", "eng",
+                         "sl", "lintrack", "Beta-Beat.src")
+        )
         from Python_Classes4MAD import metaclass
         return metaclass.twiss(self._model_path)
 
