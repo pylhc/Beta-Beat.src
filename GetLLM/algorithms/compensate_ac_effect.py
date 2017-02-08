@@ -121,7 +121,7 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,bpm]
 
 def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
-    return get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl)
+    return get_free_phase_eq_new(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl)
 
 def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
     print "Qd =", Qd
@@ -183,7 +183,7 @@ def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
         if plane=='V': psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
-                if bpm[k][0]>s_lastbpm: psid[k]+=2*np.pi*Qd  #-- To fix the phase shift by Q
+                if bpm[k][0]>s_lastbpm: psid[k] -= 2*np.pi*Qd  #-- To fix the phase shift by Q
             except: pass
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
         Psid=psid+np.pi*Qd
@@ -278,7 +278,7 @@ def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
             result["".join(['V',bn1,bn9])] = [psi19ave,psi19std,psi19mdl[k]]
             result["".join(['V',bn1,bn10])] = [psi110ave,psi110std,psi110mdl[k]]
             result["".join(['V',bn1,bn11])] = [psi111ave,psi111std,psi111mdl[k]]
-    return [result,muave,bpm]
+    return [result,muave,bpm, r]
 
 
 def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl):
@@ -307,8 +307,11 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+    if 'BPMSW.1L2.B1' in MADTwiss.NAME:
+        if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+        if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+    elif 'MOH_3' in MADTwiss.NAME:
+        s_lastbpm = MADTwiss.S[MADTwiss.indx['MOH_3']]
 
     #-- Determine the position of the AC dipole BPM
     for b in psid_ac2bpmac.keys():
@@ -344,6 +347,7 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
     #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
     
     for i in range(len(Files)):
+        psid = []
         if plane == 'H':
             psid = bd * TWOPI * np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         if plane == 'V':
@@ -353,19 +357,19 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
                 if bpm[k][0] > s_lastbpm: psid[k] += TWOPI * Qd  #-- To fix the phase shift by Q
             except: pass
         psid = psid - (psid[k_bpmac] - psid_ac2bpmac[bpmac])  # OK, untill here, it is Psi(s, s_ac)
-        Psid=psid + PI * Q
-        Psid[k_bpmac:]=Psid[k_bpmac:]-TWOPI * Q
+        Psid=psid + PI * Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-TWOPI * Qd
         
         gamma = Psid*2
-        alpha = psid + PI * Q
+        alpha = psid + PI * Qd
         alpha[k_bpmac:] = alpha[k_bpmac:] + TWOPI * (Q - Qd) + kEPSILON
         
-        Psi = np.arctan((1 - r) / (1 + r) * np.tan(Psid)) % np.pi  # Ryoichi
-        Psi_A = np.arctan((1 + r * np.sin(alpha - gamma) / np.sin(alpha)) / (1 + r * np.cos(alpha - gamma)/np.cos(alpha)))
+        Psi = np.arctan((1 - r) / (1 + r) * np.tan(Psid)) % PI  # Ryoichi
+        Psi_a = np.arctan((1 + r * np.sin(alpha - gamma) / np.sin(alpha)) / (1 + r * np.cos(alpha - gamma)/np.cos(alpha)))
         for k in range(len(bpm)):
-            if Psid[k]%(2*np.pi)>np.pi: Psi[k]=Psi[k]+np.pi
-        psi=Psi-Psi[0]
-        psi[k_bpmac:]=psi[k_bpmac:]+2*np.pi*Q
+            if Psid[k] % TWOPI > PI: Psi[k] = Psi[k] + PI
+        psi = Psi - Psi[0]
+        psi[k_bpmac:] = psi[k_bpmac:] + TWOPI * Q
         
         # <<<<<<<<<< ICH
         psiij = [None] * 10
@@ -401,7 +405,7 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
         except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
         
 
-    return [result_,muave_,bpm]
+    return [result_,muave_,bpm, 1.0 - r * r]
 
 def get_free_phase_eq_intermediat(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 
