@@ -130,6 +130,7 @@ CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
+ACDIPOLE        = "ACD"
 
 #===================================================================================================
 # _parse_args()-function
@@ -196,6 +197,10 @@ def _parse_args():
     parser.add_option("--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type="int",
                       help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
+    parser.add_option("--acdipole", default=ACDIPOLE, dest="acdipole",
+                      metavar="ACDIPOLE", type="string",
+                      help="Specifies which AC dipole is used. ACD: AC-dipole, ADT: ADT AC-Dipole. Default = {0:s}".format(ACDIPOLE))
+
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
     options, _ = parser.parse_args()
@@ -224,7 +229,8 @@ def main(outputpath,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
          errordefspath=ERRORDEFS,
-         nprocesses=NPROCESSES):
+         nprocesses=NPROCESSES
+         acdipole=ACDIPOLE):
     '''
     GetLLM main function.
 
@@ -270,7 +276,7 @@ def main(outputpath,
     getllm_d.errordefspath = errordefspath
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
-
+    getllm_d.acdipole = acdipole
     # Setup
     mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
                                                                                                                             model_filename,
@@ -969,6 +975,7 @@ class _GetllmData(object):
         self.parallel = False
         self.nprocesses = 1
         self.with_ac_calc = False
+        self.acdipole = ""
 
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.
@@ -1094,7 +1101,8 @@ def _start():
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath,
-         nprocesses=options.nprocesses)
+         nprocesses=options.nprocesses
+         acdipole=options.acdipole)
      
      
 if __name__ == "__main__":
