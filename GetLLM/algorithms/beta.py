@@ -101,6 +101,8 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
                        data, rmsbbx, error_method, bpms,
                        tfs_file, mod_BET, mod_ALF, mod_MU, _plane_char,
                        dpp=0, dppq1=0):
+
+    print bpms
     
     tfs_file.add_float_descriptor("Q1", q1)
     tfs_file.add_float_descriptor("Q2", q2)
@@ -129,12 +131,18 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
         row = data[name]
         beta_d_col[name] = [row[0], row[1], row[2], row[3]]
         model_ac_index = mad_ac.indx[name]
-        list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
+        list_row_entries = ['"' + name + '"', bpm[0], len(twiss_d_zero_dpp),
                             row[0], row[1], row[2], row[3],
                             row[8],
                             row[4], row[5], row[6], row[7],
                             mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
                             row[10]]
+        # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
+        #                     row[0], row[1], row[2], row[3],
+        #                     row[8],
+        #                     row[4], row[5], row[6], row[7],
+        #                     mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
+        #                     row[10]]
         tfs_file.add_table_row(list_row_entries)
 
 
@@ -209,7 +217,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
 
                 dataf, rmsbbxf, bpmsf, error_method = beta_from_phase(mad_twiss, mad_best_knowledge, mad_elem, mad_elem_centre,
                                                                       twiss_d.zero_dpp_x, phase_d.x_f, 'H',
-                                                                      getllm_d, debugfile)
+                                                                      getllm_d, debugfile, phase_d.lambda_r)
                 tfs_file = files_dict['getbetax_free.out']
                 beta_d.x_phase_f = {}
                 _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
@@ -536,7 +544,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 # END calculate_beta_from_amplitude ----------------------------------------------------------------
 
 
-def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFiles, phase, plane, getllm_d, debugfile):
+def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFiles, phase, plane, getllm_d, debugfile, lambda_r = 1.0):
     '''
     Calculate the beta function from phase advances
     If range of BPMs is sufficiently large use averaging with weighted mean. The weights are determinde using either the
@@ -590,7 +598,8 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
-   
+
+    print commonbpms
     errorfile = None
     if not getllm_d.use_only_three_bpms_for_beta_from_phase:
         errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane)
@@ -614,7 +623,7 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
     #---- use the simulations
     else:
         
-        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile)
+        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile, lambda_r)
 
     return data, rmsbb, commonbpms, errors_method
 
@@ -700,7 +709,7 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 #---============== using the simulations to calculate the beta function and error bars =================================
 #=======================================================================================================================
 
-def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile):
+def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile, lambda_r):
     systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
     print "systematics_path = ",systematics_error_path
     systematic_errors = None
@@ -830,6 +839,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
                 beterr = math.sqrt(sum([alfa_beta[i][1] ** 2 for i in range(len(alfa_beta))]) / len(alfa_beta) - beti ** 2.)
             except ValueError:
                 beterr = 0
+
 
         data[probed_bpm_name] = [beti, betstd, beterr, math.sqrt(beterr ** 2 + betstd ** 2),
                                  .0,
@@ -2497,6 +2507,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     #    bpms.append(bpm[1])
 
     bpmre = re.compile("^BPM.*B[12]$")
+    bpmjparc = re.compile("^MO[HV]\\.")
 
     print_("Create errorfile")
     print_("")
@@ -2590,7 +2601,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
                                             "OK"])
 
         if not found:  # if element doesn't have any error add it nevertheless if it is a BPM
-            if bpmre.match(twiss_full_centre.NAME[index_twissfull]):
+            if bpmre.match(twiss_full_centre.NAME[index_twissfull]) or bpmjparc.match(twiss_full_centre.NAME[index_twissfull]):
                 index_model = model.indx[twiss_full.NAME[index_twissfull]]
                 errorfile.add_table_row([
                                         model.NAME[index_model],
@@ -2631,6 +2642,7 @@ def JPARC_intersect(plane, getllm_d, commonbpms):
             bpm_regex = re.compile("^MOV")
 
         commonbpms = [bpm for bpm in commonbpms if bpm_regex.match(bpm[1])]
+
 
     return commonbpms
 
