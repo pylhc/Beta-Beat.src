@@ -15,8 +15,8 @@ DRIVE_INP_TEMPL = """
 KICK=1
 CASE(1[H], 0[V])=1
 KPER(KICK PERCE.)=0.5
-TUNE X=0.%(TUNE_X)i
-TUNE Y=0.%(TUNE_Y)i
+TUNE X=%(TUNE_X)s
+TUNE Y=%(TUNE_Y)s
 PICKUP START=0
 PICKUP END=538
 ISTUN=0.01
@@ -28,8 +28,8 @@ WINDOWb2=0.45
 %(NAT_TUNE_TEXT)s
 """
 NAT_TUNE_TMPL = """
-NATURAL X=0.%(NAT_TUNE_X)i
-NATURAL Y=0.%(NAT_TUNE_Y)i
+NATURAL X=%(NAT_TUNE_X)s
+NATURAL Y=%(NAT_TUNE_Y)s
 """
 
 
@@ -58,12 +58,12 @@ def _generate_driving_terms(sdds_file_path, output_path, start_turn, end_turn):
 def _generate_drive_inp(output_path, tune_x, tune_y, nat_tune_x, nat_tune_y):
     drive_inp_path = os.path.join(output_path, DRIVE_INP_FILENAME)
     if nat_tune_x is not None and nat_tune_y is not None:
-        nat_tune_text = NAT_TUNE_TMPL % {"NAT_TUNE_X": nat_tune_x,
-                                         "NAT_TUNE_Y": nat_tune_y}
+        nat_tune_text = NAT_TUNE_TMPL % {"NAT_TUNE_X": str(nat_tune_x),
+                                         "NAT_TUNE_Y": str(nat_tune_y)}
     else:
         nat_tune_text = ""
-    drive_inp_text = DRIVE_INP_TEMPL % {"TUNE_X": tune_x,
-                                        "TUNE_Y": tune_y,
+    drive_inp_text = DRIVE_INP_TEMPL % {"TUNE_X": str(tune_x),
+                                        "TUNE_Y": str(tune_y),
                                         "NAT_TUNE_TEXT": nat_tune_text}
     print "Writing Drive.inp file into: ", drive_inp_path
     iotools.write_string_into_new_file(drive_inp_path, drive_inp_text)

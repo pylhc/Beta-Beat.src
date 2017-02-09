@@ -1116,7 +1116,7 @@ def _start():
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath,
-         nprocesses=options.nprocesses
+         nprocesses=options.nprocesses,
          acdipole=options.acdipole)
      
      
