@@ -120,10 +120,10 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     return [result,bpm]
 
-def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
-    return get_free_phase_eq_new(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl)
+def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl, acdipole):
+    return get_free_phase_eq_new(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl, acdipole)
 
-def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
+def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl, acdipole):
     print "Qd =", Qd
     print "Q =", Q
     #-- Select common BPMs
@@ -281,7 +281,7 @@ def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
     return [result,muave,bpm, r]
 
 
-def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl):
+def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl, acdipole):
 
 
 
@@ -315,8 +315,16 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
 
     #-- Determine the position of the AC dipole BPM
     for b in psid_ac2bpmac.keys():
-        if '5L4' in b: bpmac1=b
-        if '6L4' in b: bpmac2=b
+        if acdipole == "ACD":
+            if '5L4' in b: bpmac1=b
+            if '6L4' in b: bpmac2=b
+        elif acdipole == "ADT":
+            if plane == 'H':
+                if '-' in b: bpmac1=b
+                if 'B5R4' in b: bpmac2=b
+            elif plane == 'V':
+                if '-' in b: bpmac1=b
+                if 'B5L4' in b: bpmac2=b
     try:
         k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
         bpmac=bpmac1
