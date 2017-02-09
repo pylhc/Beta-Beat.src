@@ -628,17 +628,16 @@ class _SvdHandler(object):
         # normalise the matrix
         sqrt_number_of_turns = numpy.sqrt(A.shape[1])
         A_mean = numpy.mean(A)
-        A = (A - A_mean) / sqrt_number_of_turns
+        B = (A - A_mean) / sqrt_number_of_turns
 
         if PRINT_TIMES:
             print ">> Time for svdClean (before SVD call): {0}s".format(time.time() - time_start)
-        USV = self.get_singular_value_decomposition(A)
+        USV = self.get_singular_value_decomposition(B)
         if PRINT_TIMES:
             print ">> Time for svdClean (after SVD call): {0}s".format(time.time() - time_start)
 
         # remove bad BPM by SVD -tbach
         good_bpm_indices = self.remove_bad_bpms_and_get_good_bpm_indices(USV, plane)
-        USV = (USV[0][good_bpm_indices], USV[1], USV[2])
         number_of_bpms = len(good_bpm_indices)
         print ">> Values in GOOD BPMs: "
         print number_of_bpms
@@ -646,21 +645,19 @@ class _SvdHandler(object):
         #----SVD cut for noise floor
         if _InputData.singular_values_amount_to_keep < number_of_bpms:
             print "(plane {0}) amount of singular values to keep: {1}".format(plane, _InputData.singular_values_amount_to_keep)
-            USV[1][_InputData.singular_values_amount_to_keep:] = 0
+            dim = _InputData.singular_values_amount_to_keep
         else:
             print "requested more singular values than available(={0})".format(number_of_bpms)
-
-        A = matrixmultiply(USV[0], matrixmultiply(numpy.diag(USV[1]), USV[2]))
-        # A0 * (A1 * A2) should require less operations than (A0 * A1) * A2,
-        #  because of the different sizes
-        # A0 has (M, K), A1 has (K, K) and A2 has (K, N) with K=min(M,N)
-        # Most of the time, the number of turns is greater then
-        #  the number of BPM, so M > N
-        # --tbach
-        A = (A * sqrt_number_of_turns) + A_mean
-        bpmres = numpy.mean(numpy.std(A - self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data, axis=1))
+            dim=number_of_bpms
+        # making the matrix multiplication more efficient, by just multiplying
+        # the necessary amount rows/columns, the rest is removed by SVD noise cut 
+        # -lmalina
+        USV = (USV[0][good_bpm_indices,:dim], USV[1][:dim], USV[2][:dim,:])
+        B = matrixmultiply(USV[0], matrixmultiply(numpy.diag(USV[1]), USV[2]))
+        B = (B * sqrt_number_of_turns) + A_mean
+        bpmres = numpy.mean(numpy.std(B - A, axis=1))
         print "(plane {0}) Average BPM resolution: ".format(plane) + str(bpmres)
-        self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data = A
+        self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data = B
         if PRINT_TIMES:
             print ">> Time for do_svd_clean: {0}s".format(time.time() - time_start)
 
