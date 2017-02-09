@@ -229,7 +229,7 @@ def main(outputpath,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
          errordefspath=ERRORDEFS,
-         nprocesses=NPROCESSES
+         nprocesses=NPROCESSES,
          acdipole=ACDIPOLE):
     '''
     GetLLM main function.
@@ -1101,7 +1101,7 @@ def _start():
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath,
-         nprocesses=options.nprocesses
+         nprocesses=options.nprocesses,
          acdipole=options.acdipole)
      
      
