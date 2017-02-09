@@ -87,7 +87,7 @@ def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs',
                     fout.write(' '.join(['0',bpm,s]+x[pid][bpm])+'\n')
                 else:
                     fout.write('0 {0:s} {1:s} '.format(bpm, str(s)))
-                    for j in range(turnrange[0], turnrange[1]):
+                    for j in range(max(0, turnrange[0]), min(turnrange[1], len(x[pid][bpm]))):
                         fout.write(str(x[pid][bpm][j]) + " ")
                     fout.write("\n")
             if i+len(bpms) not in failing_bpms:
@@ -95,8 +95,8 @@ def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs',
                     fout.write(' '.join(['1',bpm,s]+x[pid][bpm])+'\n')
                 else:
                     fout.write('1 {0:s} {1:s} '.format(bpm, str(s)))
-                    for j in range(turnrange[0], turnrange[1]):
-                        fout.write(str(x[pid][bpm][j]) + " ")
+                    for j in range(max(0, turnrange[0]), min(turnrange[1], len(y[pid][bpm]))):
+                        fout.write(str(y[pid][bpm][j]) + " ")
                     fout.write("\n")
 
 

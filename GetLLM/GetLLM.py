@@ -255,6 +255,7 @@ def main(outputpath,
     :returns: int  -- 0 if the function run successfully otherwise !=0.
     '''
     return_code = 0
+    lhcphase = 0 ############################# REMOVEEEEEEEEEEEEEEEEEEEEEEEE
     print "Starting GetLLM ", VERSION
     
     use_average = (use_average == 1)
