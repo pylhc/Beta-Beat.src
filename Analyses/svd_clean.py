@@ -655,7 +655,7 @@ class _SvdHandler(object):
         USV = (USV[0][good_bpm_indices,:dim], USV[1][:dim], USV[2][:dim,:])
         B = matrixmultiply(USV[0], matrixmultiply(numpy.diag(USV[1]), USV[2]))
         B = (B * sqrt_number_of_turns) + A_mean
-        bpmres = numpy.mean(numpy.std(B - A, axis=1))
+        bpmres = numpy.mean(numpy.std(B - A[good_bpm_indices,:], axis=1))
         print "(plane {0}) Average BPM resolution: ".format(plane) + str(bpmres)
         self.sddsfile.dictionary_plane_to_bpms[plane].bpm_data = B
         if PRINT_TIMES:
