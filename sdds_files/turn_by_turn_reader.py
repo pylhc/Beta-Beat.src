@@ -24,19 +24,70 @@ PRINT_PRECISION = 7
 FORMAT_STRING = "{0:." + str(PRINT_PRECISION) + "f}"
 
 
+# Public ###################
+
 def read_tbt_file(file_path):
-    tbt_file = TbtReader(file_path).read_file()
-    return tbt_file
+    tbt_files = _TbtReader(file_path).read_file()
+    return tbt_files
 
 
 def transform_tbt_to_ascii(file_path, model_path, output_path):
-    tbt_files = TbtReader(file_path).read_file()
-    TbtAsciiWriter(tbt_files,
-                   model_path,
-                   output_path).transform_tbt_to_ascii()
+    tbt_files = _TbtReader(file_path).read_file()
+    _TbtAsciiWriter(tbt_files,
+                    model_path,
+                    output_path).transform_tbt_to_ascii()
 
 
-class TbtReader(object):
+class TbtFile(object):
+    def __init__(self, bpm_names, date,
+                 num_bunches, num_turns, num_monitors, bunch_id):
+        self.date = date
+        self.num_bunches = num_bunches
+        self.num_turns = num_turns
+        self.num_monitors = num_monitors
+        self.bunch_id = bunch_id
+        self.bpm_names = bpm_names
+        self._bpm_samples = {HOR: {}, VER: {}}
+        self._samples_matrix = {HOR: {}, VER: {}}
+
+    @property
+    def bpm_samples_x(self):
+        """
+        Returns horizontal samples dictionary:
+        bpm_name -> array_of_samples
+        """
+        return self._bpm_samples[HOR]
+
+    @property
+    def bpm_samples_y(self):
+        """
+        Returns vertical samples dictionary:
+        bpm_name -> array_of_samples
+        """
+        return self._bpm_samples[VER]
+
+    @property
+    def samples_matrix_x(self):
+        """
+        Returns the horizontal samples matrix, guaranteeing the
+        same monitor order than in self.bpm_names.
+        E.g.: a.samples_matrix_x[5][3] -> Sample 3 of monitor 5
+        """
+        return self._samples_matrix[HOR]
+
+    @property
+    def samples_matrix_y(self):
+        """
+        Returns the vertical samples matrix, guaranteeing the
+        same monitor order than in self.bpm_names.
+        E.g.: a.samples_matrix_x[5][3] -> Sample 3 of monitor 5
+        """
+        return self._samples_matrix[VER]
+
+
+# Private ###################
+
+class _TbtReader(object):
     def __init__(self, file_path):
         sdds_file = sdds_reader.read_sdds_file(file_path)
         parameters = sdds_file.get_parameters()
@@ -59,12 +110,17 @@ class TbtReader(object):
             HOR: arrays[HOR_FAILED_BUNCH_ID_NAME].values,
             VER: arrays[VER_FAILED_BUNCH_ID_NAME].values
         }
+        samples_matrix_shape = (self._num_monitors,
+                                self._num_bunches,
+                                self._num_turns)
+        self._all_samples[HOR].shape = samples_matrix_shape
+        self._all_samples[VER].shape = samples_matrix_shape
         self._tbt_files = []
         for index in range(self._num_bunches):
             self._tbt_files.append(
-                TbtFile(self._date, self._num_bunches,
+                TbtFile(self._bpm_names, self._date, self._num_bunches,
                         self._num_turns, self._num_monitors,
-                        self._bunch_id[HOR][index])  # TODO: does it matter HOR or VER?
+                        self._bunch_id[HOR][index])  # TODO: does plane matter?
             )
 
     def _timestamp_to_date(self):
@@ -79,38 +135,23 @@ class TbtReader(object):
 
     def _read_bpms(self, plane):
         bpm_names = self._bpm_names
-        num_turns = self._num_turns
         num_bunches = self._num_bunches
         all_samples = self._all_samples[plane]
         for bunch_index in range(num_bunches):
-            bpms_with_samples = self._tbt_files[bunch_index].bpm_samples[plane]
+            tbt_file = self._tbt_files[bunch_index]
+            bpms_with_samples = tbt_file._bpm_samples[plane]
             for bpm_index in range(len(bpm_names)):
                 bpm_name = bpm_names[bpm_index]
-                start_index = bpm_index * num_bunches * num_turns + bunch_index * num_turns
-                end_index = start_index + num_turns
-                bpms_with_samples[bpm_name] = all_samples[start_index:end_index]
+                bpms_with_samples[bpm_name] = all_samples[
+                    bpm_index, bunch_index, :
+                ]
+            tbt_file._samples_matrix[plane] = all_samples[
+                :, bunch_index, :
+            ]
         return bpms_with_samples
 
 
-class TbtFile(object):
-    def __init__(self, date, num_bunches, num_turns, num_monitors, bunch_id):
-        self.date = date
-        self.num_bunches = num_bunches
-        self.num_turns = num_turns
-        self.num_monitors = num_monitors
-        self.bunch_id = bunch_id
-        self.bpm_samples = {HOR: {}, VER: {}}
-
-    @property
-    def bpm_samples_x(self):
-        return self.bpm_samples[HOR]
-
-    @property
-    def bpm_samples_y(self):
-        return self.bpm_samples[VER]
-
-
-class TbtAsciiWriter(object):
+class _TbtAsciiWriter(object):
     def __init__(self, tbt_files, model_path, output_path):
         self._tbt_files = tbt_files
         self._model_path = model_path
@@ -128,16 +169,26 @@ class TbtAsciiWriter(object):
                 self._write_tbt_data(tbt_file, output_file, model_data)
 
     def _load_model(self):
-        if "win" in sys.platform and not sys.platform == "darwin":
-            afs_root = "\\\\AFS"
-        else:
-            afs_root = "/afs"
-        sys.path.append(
-            os.path.join(afs_root, "cern.ch", "eng",
-                         "sl", "lintrack", "Beta-Beat.src")
-        )
+        self._append_beta_beat_to_path()
         from Python_Classes4MAD import metaclass
         return metaclass.twiss(self._model_path)
+
+    def _append_beta_beat_to_path(self):
+        parent_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), "..")
+        )
+        if os.path.basename(parent_path) == "Beta-Beat.src":
+            sys.path.append(parent_path)
+        else:
+            print("Not in Beta-Beat.src, using lintrack metaclass")
+            if "win" in sys.platform and not sys.platform == "darwin":
+                afs_root = "\\\\AFS"
+            else:
+                afs_root = "/afs"
+            sys.path.append(
+                os.path.join(afs_root, "cern.ch", "eng",
+                             "sl", "lintrack", "Beta-Beat.src")
+            )
 
     def _write_header(self, tbt_file, output_file, model_data):
         output_file.write("#SDDSASCIIFORMAT v1\n")
