@@ -47,24 +47,19 @@ class TbtFile(object):
         self.num_monitors = num_monitors
         self.bunch_id = bunch_id
         self.bpm_names = bpm_names
-        self._bpm_samples = {HOR: {}, VER: {}}
         self._samples_matrix = {HOR: {}, VER: {}}
 
-    @property
-    def bpm_samples_x(self):
+    def get_x_samples(self, bpm_name):
         """
-        Returns horizontal samples dictionary:
-        bpm_name -> array_of_samples
+        Returns the horizontal samples captured by bpm_name.
         """
-        return self._bpm_samples[HOR]
+        return self._get(bpm_name, HOR)
 
-    @property
-    def bpm_samples_y(self):
+    def get_y_samples(self, bpm_name):
         """
-        Returns vertical samples dictionary:
-        bpm_name -> array_of_samples
+        Returns the vertical samples captured by bpm_name.
         """
-        return self._bpm_samples[VER]
+        return self._get(bpm_name, VER)
 
     @property
     def samples_matrix_x(self):
@@ -83,6 +78,13 @@ class TbtFile(object):
         E.g.: a.samples_matrix_x[5][3] -> Sample 3 of monitor 5
         """
         return self._samples_matrix[VER]
+
+    def _get(self, bpm_name, plane):
+        try:
+            index = self.bpm_names.index(bpm_name)
+            return self._samples_matrix[plane][index]
+        except ValueError:
+            raise KeyError(bpm_name)
 
 
 # Private ###################
@@ -134,21 +136,13 @@ class _TbtReader(object):
         return self._tbt_files
 
     def _read_bpms(self, plane):
-        bpm_names = self._bpm_names
         num_bunches = self._num_bunches
         all_samples = self._all_samples[plane]
         for bunch_index in range(num_bunches):
             tbt_file = self._tbt_files[bunch_index]
-            bpms_with_samples = tbt_file._bpm_samples[plane]
-            for bpm_index in range(len(bpm_names)):
-                bpm_name = bpm_names[bpm_index]
-                bpms_with_samples[bpm_name] = all_samples[
-                    bpm_index, bunch_index, :
-                ]
             tbt_file._samples_matrix[plane] = all_samples[
                 :, bunch_index, :
             ]
-        return bpms_with_samples
 
 
 class _TbtAsciiWriter(object):
@@ -212,8 +206,8 @@ class _TbtAsciiWriter(object):
             bpm_name = model_data.NAME[bpm_index]
             bpm_s = str(np.fromstring(model_data.S[bpm_index])[0])
             try:
-                bpm_samples_x = tbt_file.bpm_samples_x[bpm_name]
-                bpm_samples_y = tbt_file.bpm_samples_y[bpm_name]
+                bpm_samples_x = tbt_file.get_x_samples(bpm_name)
+                bpm_samples_y = tbt_file.get_y_samples(bpm_name)
             except KeyError:
                 print(bpm_name + " not found in measurement file",
                       file=sys.stderr)
