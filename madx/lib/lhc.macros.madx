@@ -53,9 +53,29 @@ define_nominal_beams_for(accel): macro = {
 * Sets the default crossing scheme
 */
 set_default_crossing_scheme(): macro = {
-    on_x1   := 0; on_x2   := 0; on_x5   := 0; on_x8   := 0;
-    on_sep1 := 0; on_sep2 := 0; on_sep5 := 0; on_sep8 := 0;
-    on_alice:= 0; on_lhcb := 0; on_a8 := 0; on_o8 := 0;
+    !*** IP orbit settings ***
+    on_x1  = 0;
+    on_sep1=0;
+    on_o1  = 0;
+    on_x2  =0;
+    on_sep2= 0;
+    on_o2  = 0;
+    on_oe2 =0;
+    on_a2  = 0;
+    on_x5  =0;
+    on_sep5=0;
+    on_o5  = 0;
+    on_x8  =0;
+    on_sep8=0;
+    on_o8  = 0;
+    on_a8  = 0;
+
+    !*** Experiment state ***
+    on_alice:=0;
+    on_lhcb:=0;
+    on_sol_atlas=0;
+    on_sol_alice=0;
+    on_sol_cms=0;
 };
 
 
@@ -108,6 +128,46 @@ install_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number): ma
 
     use, period=LHCBbeam_number;
 }
+
+
+/*
+* Installs the AC dipole as an element to use with MAD-X track 
+* into the LHC sequence.
+* @param n_qx: Fractional part of the natural horizontal tune.
+* @param n_qy: Fractional part of the natural vertical tune.
+* @param d_qx: Fractional part of the driven horizontal tune.
+* @param d_qy: Fractional part of the driven vertical tune.
+* @param beam_number: LHC beam number, either 1 or 2.
+*/
+install_acd_as_element(n_qx, n_qy, d_qx, d_qy, beam_number, r1, r2, r3, r4): macro = {
+    pbeam = beam%lhcbbeam_number->pc;
+    betxac=table(twiss, MKQA.6L4.Bbeam_number, BEAM, betx);
+    betyac=table(twiss, MKQA.6L4.Bbeam_number, BEAM, bety);
+
+    Qx = n_qx;
+    Qy = n_qy;
+
+    Qxd = d_qx;
+    Qyd = d_qy;
+
+    ampx = 1;    !-- unit: [mm]
+    ampy = 1;    !-- unit: [mm]
+    MKACH.6L4.Bbeam_number: hacdipole, l=0, freq=Qxd, lag=0,
+        volt=0.042*pbeam*abs(Qxd-Qx)/sqrt(180.0*betxac)*ampx,
+        ramp1=r1, ramp2=r2, ramp3=r3, ramp4=r4;
+    MKACV.6L4.Bbeam_number: vacdipole, l=0, freq=Qyd, lag=0,
+        volt=0.042*pbeam*abs(Qyd-Qy)/sqrt(177.0*betyac)*ampy,
+        ramp1=r1, ramp2=r2, ramp3=r3, ramp4=r4;
+
+    seqedit, sequence=LHCBbeam_number;
+        flatten;
+        install, element=MKACH.6L4.Bbeam_number, at=0.0, from=MKQA.6L4.Bbeam_number;
+        install, element=MKACV.6L4.Bbeam_number, at=0.0, from=MKQA.6L4.Bbeam_number;
+    endedit;
+
+    use, period=LHCBbeam_number;
+}
+
 
 install_adt_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number): macro = {
 

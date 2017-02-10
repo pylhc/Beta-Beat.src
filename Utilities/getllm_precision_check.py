@@ -12,9 +12,11 @@ from Python_Classes4MAD import metaclass
 import tempfile
 import iotools
 import ADDbpmerror
-from contextlib import contextmanager
+from Utilities.contexts import silence
+
 
 HOR, VER = 0, 1
+PLANE_SUFFIX = {HOR: "x", VER: "y"}
 
 MADX_SCRIPT = """
 title, "Tracking test for GetLLM";
@@ -23,12 +25,17 @@ title, "Tracking test for GetLLM";
 !@require tracking
 
 option, -echo;
-exec, full_lhc_def("%(MODIFIERS)s", %(BEAM)s);
+exec, full_lhc_def("%(MODIFIERS)s", %(BEAM)i);
+call, file="/afs/cern.ch/eng/lhc/optics/runII/2015/toolkit/slice.madx";
+use, sequence=LHCB%(BEAM)i;
 option, echo;
 
-! exec, high_beta_matcher();
+beam, sequence=LHCB1, particle=proton, energy=6500,
+    kbunch=1, npart=1.15E11, bv=1;
+beam, sequence=LHCB2, particle=proton, energy=6500,
+    kbunch=1, npart=1.15E11, bv=-1;
 
-exec, match_tunes(64.%(IQX)s, 59.%(IQY)s, %(BEAM)s);
+exec, match_tunes(64.%(IQX)s, 59.%(IQY)s, %(BEAM)i);
 
 exec, do_twiss_monitors(
     LHCB%(BEAM)i,
@@ -41,16 +48,31 @@ exec, do_twiss_elements(
     0.0
 );
 
-exec, do_track_single_particle(
-    %(KICK_X)s, %(KICK_Y)s,
+if(%(DO_ACD)s == 1){
+    exec, twiss_ac_dipole(
+        %(QX)s, %(QY)s,
+        %(DQX)s, %(DQY)s,
+        %(BEAM)i, "%(TWISS_AC)s", 0.0
+    );
+
+    ! Uninstall AC-dipole matrix...
+    seqedit, sequence=LHCB%(BEAM)i;
+        remove, element=hacmap;
+        remove, element=vacmap;
+    endedit;
+
+    ! ...and install as element for tracking
+    exec, install_acd_as_element(
+        %(QX)s, %(QY)s,
+        %(DQX)s, %(DQY)s,
+        %(BEAM)i,
+        %(RAMP1)s, %(RAMP2)s, %(RAMP3)s, %(RAMP4)s
+    );
+}
+
+exec, do_madx_track_single_particle(
+    %(KICK_X)s, %(KICK_Y)s, 0.0, 0.0,
     %(NUM_TURNS)s, "%(TRACK_PATH)s"
-);
-
-stop;
-
-exec, twiss_ac_dipole(
-    %(QX)s, %(QY)s, %(DQX)s, %(DQX)s,
-    %(BEAM)s, "%(TWISS_AC)s", 0.0
 );
 """
 
@@ -71,13 +93,22 @@ ERR_DEF_PATH = os.path.join(
 )
 
 BEAM = 1
-NUM_TURNS = 2200
 QX = 0.28
 QY = 0.31
 DQX = 0.27
 DQY = 0.32
-KICK_X = 0.00035
-KICK_Y = 0.0002
+TUNE_WINDOW = 0.001
+
+DO_ACD = 1
+KICK_X = 0.0
+KICK_Y = 0.0
+
+RAMP1 = 50  # Ramp up start turn
+RAMP2 = 2050  # Ramp up end start turn
+RAMP3 = 4250  # Ramp down start turn
+RAMP4 = 6250  # Ramp down start turn
+
+NUM_TURNS = RAMP3
 
 
 def print_getllm_precision():
@@ -87,14 +118,14 @@ def print_getllm_precision():
         _do_analysis(output_dir)
         _comprare_results(output_dir)
     finally:
-        pass
-        # _clean_up_files(output_dir)
+        _clean_up_files(output_dir)
 
 
 def _run_tracking_model(directory):
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory)
-    madx_wrapper.resolve_and_run_string(madx_script, log_file=os.devnull)
+    with silence():
+        madx_wrapper.resolve_and_run_string(madx_script)
     track_path = _get_track_path(directory, one=True)
     tbt_path = _get_tbt_path(directory)
     with silence():
@@ -121,8 +152,13 @@ def _get_madx_script(beam, directory):
         "TWISS_AC": twiss_ac_path,
         "NUM_TURNS": NUM_TURNS,
         "TRACK_PATH": track_path,
+        "DO_ACD": DO_ACD,
         "KICK_X": KICK_X,
         "KICK_Y": KICK_Y,
+        "RAMP1": RAMP1,
+        "RAMP2": RAMP2,
+        "RAMP3": RAMP3,
+        "RAMP4": RAMP4,
     }
     return madx_script
 
@@ -154,20 +190,26 @@ def _get_tbt_path(directory):
     return os.path.join(directory, "ALLBPMs")
 
 
+def _get_harmonic_path(directory, plane):
+    return os.path.join(directory, "ALLBPMs_lin" + PLANE_SUFFIX[plane])
+
+
 def _do_analysis(directory):
     print("Performing analysis...")
     tbt_path = _get_tbt_path(directory)
     print("    -> Running drive...")
     with silence():
-        drive_runner.run_drive(tbt_path, 0, NUM_TURNS,
+        drive_runner.run_drive(tbt_path, RAMP2, RAMP3,
                                DQX, DQY, QX, QY,
-                               stdout=open(os.devnull, "w"))
+                               stdout=open(os.devnull, "w"),
+                               tune_window=TUNE_WINDOW)
     twiss_path = os.path.join(directory, "twiss.dat")
-    err_def_path = _copy_error_def_file(directory)
+    # TODO: What should we do with error definition files?
+    # err_def_path = _copy_error_def_file(directory)
     print("    -> Running GetLLM...")
     with silence():
-        GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",
-                    errordefspath=err_def_path)
+        GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",)
+    # errordefspath=err_def_path)
 
 
 def _copy_error_def_file(directory):
@@ -184,30 +226,39 @@ def _get_modifiers_file(optics, directory):
 
 
 def _comprare_results(directory):
-    _print_free_results(directory)
+    _print_results(directory)
     if os.path.isfile(_get_twiss_ac_path(directory)):
-        _print_ac_results(directory)
+        _print_results(directory, free=False)
 
 
-def _print_free_results(directory):
-    print("+++++++ Results for free files +++++++\n")
-    model_data = metaclass.twiss(_get_twiss_path(directory))
-    betax_data = _get_beta_data(directory, HOR)
-    betay_data = _get_beta_data(directory, VER)
-    _compare_betas(model_data, betax_data, betay_data)
+def _print_results(directory, free=True):
+    if free:
+        print("+++++++ Results for free files +++++++\n")
+    else:
+        print("+++++++ Results for AC dipole files +++++++\n")
+    meas_tunex = _get_tune_data(directory, HOR, free=free)
+    meas_tuney = _get_tune_data(directory, VER, free=free)
+    model_qx, model_qy = QX, QY
+    if not free:
+        model_qx, model_qy = DQX, DQY
+    _compare_tunes(meas_tunex, meas_tuney, model_qx, model_qy)
+    betax_data = _get_beta_data(directory, HOR, free=free)
+    betay_data = _get_beta_data(directory, VER, free=free)
+    _compare_betas(betax_data, betay_data)
+    phasex_data = _get_phase_data(directory, HOR, free=free)
+    phasey_data = _get_phase_data(directory, VER, free=free)
+    _compare_phases(phasex_data, phasey_data)
     print("++++++++++++++++++++++++++++++++++++++\n")
 
 
-def _print_ac_results(directory):
-    print("+++++++ Results for AC free files +++++++\n")
-    model_data = metaclass.twiss(_get_twiss_ac_path(directory))
-    betax_data = _get_beta_data(directory, HOR, free=False)
-    betay_data = _get_beta_data(directory, VER, free=False)
-    _compare_betas(model_data, betax_data, betay_data)
-    print("++++++++++++++++++++++++++++++++++++++\n")
-
-
-PLANE_SUFFIX = {HOR: "x", VER: "y"}
+def _get_tune_data(directory, plane, free=True):
+    har_data = metaclass.twiss(_get_harmonic_path(directory, plane))
+    plane_index = {HOR: "1", VER: "2"}
+    if not free:
+        return (getattr(har_data, "Q" + plane_index[plane]),
+                getattr(har_data, "Q" + plane_index[plane] + "RMS"))
+    return (getattr(har_data, "NATQ" + plane_index[plane]),
+            getattr(har_data, "NATQ" + plane_index[plane] + "RMS"))
 
 
 def _get_beta_data(directory, plane, free=True):
@@ -219,6 +270,17 @@ def _get_beta_data(directory, plane, free=True):
     return _get_twiss_for_one_of(getbetafree, getbeta)
 
 
+def _get_phase_data(directory, plane, free=True):
+    suffix = PLANE_SUFFIX[plane]
+    getphase = os.path.join(directory,
+                            "getphasetot" + suffix + ".out")
+    getphasefree = os.path.join(directory,
+                                "getphasetot" + suffix + "_free.out")
+    if not free:
+        return metaclass.twiss(getphase)
+    return _get_twiss_for_one_of(getphasefree, getphase)
+
+
 def _get_twiss_for_one_of(*paths):
     for path in paths:
         if os.path.isfile(path):
@@ -226,32 +288,25 @@ def _get_twiss_for_one_of(*paths):
     raise IOError("None of the files exist:\n\t" + "\n\t".join(path))
 
 
-def _compare_betas(model, betax, betay):
+def _compare_tunes(meas_tunex, meas_tuney, model_qx, model_qy):
+    print("-> Tunes:")
+    value_tune_x, rms_tune_x = meas_tunex
+    value_tune_y, rms_tune_y = meas_tuney
+    print("    Horizontal:")
+    print("    -Measured tune:", value_tune_x, "+-", rms_tune_x)
+    print("    -Design tune:", model_qx)
+    print("    Vertical:")
+    print("    -Measured tune:", value_tune_y, "+-", rms_tune_y)
+    print("    -Design tune:", model_qy)
+    print("")
+
+
+def _compare_betas(betax, betay):
     print("-> Beta-beating:")
-    x_model_beta_values = []
-    y_model_beta_values = []
-    x_beta_values = []
-    y_beta_values = []
-    for bpm_name in model.NAME:
-        if bpm_name not in betax.indx or bpm_name not in betay.indx:
-            continue
-        x_indx = betax.indx[bpm_name]
-        x_beta_values.append((betax.BETX[x_indx], betax.ERRBETX[x_indx]))
-        y_indx = betay.indx[bpm_name]
-        y_beta_values.append((betay.BETY[y_indx], betay.ERRBETY[y_indx]))
-        mdl_indx = model.indx[bpm_name]
-        x_model_beta_values.append(model.BETX[mdl_indx])
-        y_model_beta_values.append(model.BETY[mdl_indx])
-    x_beta_values, x_beta_errs = zip(*x_beta_values)
-    y_beta_values, x_beta_errs = zip(*y_beta_values)
-    x_beta_values = np.array(x_beta_values)
-    y_beta_values = np.array(y_beta_values)
-    x_model_beta_values = np.array(x_model_beta_values)
-    y_model_beta_values = np.array(y_model_beta_values)
-    x_beta_beat = ((x_beta_values - x_model_beta_values) /
-                   x_model_beta_values)
-    y_beta_beat = ((y_beta_values - y_model_beta_values) /
-                   y_model_beta_values)
+    x_beta_beat = ((betax.BETX - betax.BETXMDL) /
+                   betax.BETXMDL)
+    y_beta_beat = ((betay.BETY - betay.BETYMDL) /
+                   betay.BETYMDL)
     print("    Horizontal:")
     print("    -RMS beating:", np.std(x_beta_beat))
     print("    -Peak beating:", x_beta_beat[np.argmax(np.abs(x_beta_beat))])
@@ -261,27 +316,21 @@ def _compare_betas(model, betax, betay):
     print("")
 
 
-def _beating(model, meas):
-    return (meas - model) / model
+def _compare_phases(phasex, phasey):
+    print("-> Phase:")
+    x_phase_err = phasex.PHASEX - phasex.PHXMDL
+    y_phase_err = phasey.PHASEY - phasey.PHYMDL
+    print("    Horizontal:")
+    print("    -RMS error:", np.std(x_phase_err))
+    print("    -Peak error:", x_phase_err[np.argmax(np.abs(x_phase_err))])
+    print("    Vertical:")
+    print("    -RMS error:", np.std(y_phase_err))
+    print("    -Peak error:", y_phase_err[np.argmax(np.abs(y_phase_err))])
+    print("")
 
 
 def _clean_up_files(ouput_dir):
     iotools.delete_item(ouput_dir)
-
-
-@contextmanager
-def silence():
-    stdout = sys.stdout
-    stderr = sys.stderr
-    devnull = open(os.devnull, "w")
-    sys.stdout = devnull
-    sys.stderr = devnull
-    try:
-        yield
-    finally:
-        sys.stdout = stdout
-        sys.stderr = stderr
-        devnull.close()
 
 
 if __name__ == "__main__":
