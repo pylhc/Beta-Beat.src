@@ -8,9 +8,9 @@ from Utilities import iotools
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 if "win" in sys.platform:
-    MADX_PATH = "\\\\AFS\\cern.ch\\project\\mad\\madx\\releases\\last-pro\\madx-win64.exe"
+    MADX_PATH = "\\\\AFS\\cern.ch\\project\\mad\\madx\\releases\\last-dev\\madx-win64-gnu.exe"
 else:
-    MADX_PATH = "/afs/cern.ch/user/m/mad/bin/madx"
+    MADX_PATH = "/afs/cern.ch/user/m/mad/bin/madx_dev"
 LIB = "lib"
 
 
@@ -84,6 +84,8 @@ def run(full_madx_script, log_file=None, madx_path=MADX_PATH):
         log_stream = sys.stdout
     else:
         log_stream = open(log_file, "w")
+    if madx_path is None:
+        madx_path = MADX_PATH
     return madxrunner.runForInputString(full_madx_script,
                                         stdout=log_stream,
                                         stderr=log_stream,
