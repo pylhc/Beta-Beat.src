@@ -29,27 +29,62 @@ from constants import PI, TWOPI, kEPSILON
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
+#===================================================================================================
+# constants
+#===================================================================================================
+
+
+
 
 #===================================================================================================
 # helper-functions
 #===================================================================================================
 #---------  The following is functions
-def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
-    if   oa=='LHCB1':
-        bpmac1='BPMYA.5L4.B1'
-        bpmac2='BPMYB.6L4.B1'
-    elif oa=='LHCB2':
-        bpmac1='BPMYB.5L4.B2'
-        bpmac2='BPMYA.6L4.B2'
-    else:
-        return {}
+def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
+
+    if acdipole == "ACD":
+        dipole_nameH = 'MKQA.6L4.'+oa[3:]
+        dipole_nameV= 'MKQA.6L4.' + oa[3:]
+        if   oa=='LHCB1':
+            bpmac1='BPMYA.5L4.B1'
+            bpmac2='BPMYB.6L4.B1'
+        elif oa=='LHCB2':
+            bpmac1='BPMYB.5L4.B2'
+            bpmac2='BPMYA.6L4.B2'
+        else:
+            return {}
+    elif acdipole == "ADT":
+        dipole_nameH = "ADTHM.B1"
+        dipole_nameV = "ADTVM.B1"
+
+        if   oa=='LHCB1':
+
+            #dipole_nameH = "ADTKH.C5L4.B1"
+            dipole_nameV = "ADTKV.B5R4.B1"
+            if plane=="H":
+                bpmac1='BPMWA.B5L4.B1'
+                bpmac2='BPMWA.A5L4.B1'
+            else:
+                bpmac1 = 'BPMWA.B5R4.B1'
+                bpmac2 = 'BPMWA.A5R4.B1'
+        elif oa=='LHCB2':
+            dipole_nameH = "ADTKV.C5L4.B2"
+            dipole_nameV = "ADTKH.B5R4.B2"
+            if plane == "H":
+                bpmac1 = 'BPMWA.B5R4.B2'
+                bpmac2 = 'BPMWA.A5R4.B2'
+            else:
+                bpmac1 = 'BPMWA.B5L4.B2'
+                bpmac2 = 'BPMWA.A5L4.B2'
+        else:
+            return {}
 
     if plane=='H':
-        psi_ac2bpmac1=MADTwiss.MUX[MADTwiss.indx[bpmac1]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
-        psi_ac2bpmac2=MADTwiss.MUX[MADTwiss.indx[bpmac2]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
+        psi_ac2bpmac1=MADTwiss.MUX[MADTwiss.indx[bpmac1]]-MADTwiss.MUX[MADTwiss.indx[dipole_nameH]]  #-- B1 direction for B2
+        psi_ac2bpmac2=MADTwiss.MUX[MADTwiss.indx[bpmac2]]-MADTwiss.MUX[MADTwiss.indx[dipole_nameH]]  #-- B1 direction for B2
     if plane=='V':
-        psi_ac2bpmac1=MADTwiss.MUY[MADTwiss.indx[bpmac1]]-MADTwiss.MUY[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
-        psi_ac2bpmac2=MADTwiss.MUY[MADTwiss.indx[bpmac2]]-MADTwiss.MUY[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
+        psi_ac2bpmac1=MADTwiss.MUY[MADTwiss.indx[bpmac1]]-MADTwiss.MUY[MADTwiss.indx[dipole_nameV]]  #-- B1 direction for B2
+        psi_ac2bpmac2=MADTwiss.MUY[MADTwiss.indx[bpmac2]]-MADTwiss.MUY[MADTwiss.indx[dipole_nameV]]  #-- B1 direction for B2
 
     r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
     psid_ac2bpmac1=np.arctan((1+r)/(1-r)*tan(2*np.pi*psi_ac2bpmac1-np.pi*Q))%np.pi-np.pi+np.pi*Qd
@@ -69,6 +104,7 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
+    print
     for b in psid_ac2bpmac.keys():
         if '5L4' in b: bpmac1=b
         if '6L4' in b: bpmac2=b
@@ -314,17 +350,9 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
         s_lastbpm = MADTwiss.S[MADTwiss.indx['MOH_3']]
 
     #-- Determine the position of the AC dipole BPM
-    for b in psid_ac2bpmac.keys():
-        if acdipole == "ACD":
-            if '5L4' in b: bpmac1=b
-            if '6L4' in b: bpmac2=b
-        elif acdipole == "ADT":
-            if plane == 'H':
-                if '-' in b: bpmac1=b
-                if 'B5R4' in b: bpmac2=b
-            elif plane == 'V':
-                if '-' in b: bpmac1=b
-                if 'B5L4' in b: bpmac2=b
+    bpmac1 = psid_ac2bpmac.keys()[0]
+    bpmac2 = psid_ac2bpmac.keys()[1]
+
     try:
         k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
         bpmac=bpmac1
@@ -413,7 +441,7 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
         except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
         
 
-    return [result_,muave_,bpm, 1.0 - r * r]
+    return [result_,muave_,bpm]
 
 def get_free_phase_eq_intermediat(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 

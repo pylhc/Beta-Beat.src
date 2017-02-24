@@ -102,8 +102,6 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
                        tfs_file, mod_BET, mod_ALF, mod_MU, _plane_char,
                        dpp=0, dppq1=0):
 
-    print bpms
-    
     tfs_file.add_float_descriptor("Q1", q1)
     tfs_file.add_float_descriptor("Q2", q2)
     tfs_file.add_float_descriptor("RMSbetabeat", rmsbbx)
@@ -217,7 +215,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
 
                 dataf, rmsbbxf, bpmsf, error_method = beta_from_phase(mad_twiss, mad_best_knowledge, mad_elem, mad_elem_centre,
                                                                       twiss_d.zero_dpp_x, phase_d.x_f, 'H',
-                                                                      getllm_d, debugfile, phase_d.lambda_r)
+                                                                      getllm_d, debugfile)
                 tfs_file = files_dict['getbetax_free.out']
                 beta_d.x_phase_f = {}
                 _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, mad_twiss, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
@@ -544,7 +542,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 # END calculate_beta_from_amplitude ----------------------------------------------------------------
 
 
-def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFiles, phase, plane, getllm_d, debugfile, lambda_r = 1.0):
+def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFiles, phase, plane, getllm_d, debugfile):
     '''
     Calculate the beta function from phase advances
     If range of BPMs is sufficiently large use averaging with weighted mean. The weights are determinde using either the
@@ -623,7 +621,7 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
     #---- use the simulations
     else:
         
-        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile, lambda_r)
+        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile)
 
     return data, rmsbb, commonbpms, errors_method
 
@@ -709,7 +707,7 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 #---============== using the simulations to calculate the beta function and error bars =================================
 #=======================================================================================================================
 
-def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile, lambda_r):
+def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile):
     systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
     print "systematics_path = ",systematics_error_path
     systematic_errors = None

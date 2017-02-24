@@ -225,8 +225,7 @@ def main(outputpath,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
          errordefspath=ERRORDEFS,
-         nprocesses=NPROCESSES,
-         acdipole=ACDIPOLE):
+         nprocesses=NPROCESSES):
     '''
     GetLLM main function.
 
@@ -273,12 +272,14 @@ def main(outputpath,
     getllm_d.errordefspath = errordefspath
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
-    getllm_d.acdipole = acdipole
     # Setup
     mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
                                                                                                                             model_filename,
                                                                                                                             dict_file)
-    
+
+    print "========= SUMMARY OF ARGUMENTS:"
+    print "ACDipole = ", getllm_d.acdipole
+
     if sys.flags.debug:
         print "INFO: DEBUG ON"
 
@@ -431,7 +432,7 @@ def _intial_setup(getllm_d, model_filename, dict_file):
         except IOError:
             mad_ac_best_knowledge = mad_ac
             print "Best knowledge model not found for ADT-AC-dipole."
-        getllm_d.acdipole = "ACD"
+        getllm_d.acdipole = "ADT"
     except IOError:
         mad_ac = mad_twiss
         mad_ac_best_knowledge = mad_twiss
@@ -1007,7 +1008,7 @@ class _GetllmData(object):
         self.parallel = False
         self.nprocesses = 1
         self.with_ac_calc = False
-        self.acdipole = ""
+        self.acdipole = "None"
 
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.
@@ -1133,8 +1134,7 @@ def _start():
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath,
-         nprocesses=options.nprocesses,
-         acdipole=options.acdipole)
+         nprocesses=options.nprocesses)
      
      
 if __name__ == "__main__":
