@@ -11,7 +11,7 @@ from __future__ import print_function
 from numpy.random import normal, randint
 
 def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs',
-                   x_error=0.0, y_error=0.0, n_faulty=0., turnrange=None, modeltwiss=None):
+                   x_error=0.0, y_error=0.0, n_faulty=0., turnrange=None):
     '''
     Similar to the old awk script ALLBPMs.
 
@@ -77,10 +77,8 @@ def convert_files( nparticles=1, infile='trackone', outfile='ALLBPMs',
         fout.write('# title\n')
         for i in xrange(len(bpms)):
             bpm=bpms[i]
-            if modeltwiss is not None:
-                s = modeltwiss.S[modeltwiss.indx[bpm]]
-            else:
-                s=bpm_loc[i]
+
+            s=bpm_loc[i]
 
             if i not in failing_bpms:
                 if turnrange is None:
