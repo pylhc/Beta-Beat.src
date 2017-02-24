@@ -24,31 +24,67 @@ from numpy import sin, cos, tan
 import Utilities.bpm
 import phase
 from SegmentBySegment.SegmentBySegment import get_good_bpms
-
+from __builtin__ import raw_input
+from constants import PI, TWOPI, kEPSILON
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+
+#===================================================================================================
+# constants
+#===================================================================================================
+
+
 
 
 #===================================================================================================
 # helper-functions
 #===================================================================================================
 #---------  The following is functions
-def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa):
-    if   oa=='LHCB1':
-        bpmac1='BPMYA.5L4.B1'
-        bpmac2='BPMYB.6L4.B1'
-    elif oa=='LHCB2':
-        bpmac1='BPMYB.5L4.B2'
-        bpmac2='BPMYA.6L4.B2'
-    else:
-        return {}
+def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
+
+    if acdipole == "ACD":
+        dipole_nameH = 'MKQA.6L4.'+oa[3:]
+        dipole_nameV= 'MKQA.6L4.' + oa[3:]
+        if   oa=='LHCB1':
+            bpmac1='BPMYA.5L4.B1'
+            bpmac2='BPMYB.6L4.B1'
+        elif oa=='LHCB2':
+            bpmac1='BPMYB.5L4.B2'
+            bpmac2='BPMYA.6L4.B2'
+        else:
+            return {}
+    elif acdipole == "ADT":
+        dipole_nameH = "ADTHM.B1"
+        dipole_nameV = "ADTVM.B1"
+
+        if   oa=='LHCB1':
+
+            #dipole_nameH = "ADTKH.C5L4.B1"
+            dipole_nameV = "ADTKV.B5R4.B1"
+            if plane=="H":
+                bpmac1='BPMWA.B5L4.B1'
+                bpmac2='BPMWA.A5L4.B1'
+            else:
+                bpmac1 = 'BPMWA.B5R4.B1'
+                bpmac2 = 'BPMWA.A5R4.B1'
+        elif oa=='LHCB2':
+            dipole_nameH = "ADTKV.C5L4.B2"
+            dipole_nameV = "ADTKH.B5R4.B2"
+            if plane == "H":
+                bpmac1 = 'BPMWA.B5R4.B2'
+                bpmac2 = 'BPMWA.A5R4.B2'
+            else:
+                bpmac1 = 'BPMWA.B5L4.B2'
+                bpmac2 = 'BPMWA.A5L4.B2'
+        else:
+            return {}
 
     if plane=='H':
-        psi_ac2bpmac1=MADTwiss.MUX[MADTwiss.indx[bpmac1]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
-        psi_ac2bpmac2=MADTwiss.MUX[MADTwiss.indx[bpmac2]]-MADTwiss.MUX[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
+        psi_ac2bpmac1=MADTwiss.MUX[MADTwiss.indx[bpmac1]]-MADTwiss.MUX[MADTwiss.indx[dipole_nameH]]  #-- B1 direction for B2
+        psi_ac2bpmac2=MADTwiss.MUX[MADTwiss.indx[bpmac2]]-MADTwiss.MUX[MADTwiss.indx[dipole_nameH]]  #-- B1 direction for B2
     if plane=='V':
-        psi_ac2bpmac1=MADTwiss.MUY[MADTwiss.indx[bpmac1]]-MADTwiss.MUY[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
-        psi_ac2bpmac2=MADTwiss.MUY[MADTwiss.indx[bpmac2]]-MADTwiss.MUY[MADTwiss.indx['MKQA.6L4.'+oa[3:]]]  #-- B1 direction for B2
+        psi_ac2bpmac1=MADTwiss.MUY[MADTwiss.indx[bpmac1]]-MADTwiss.MUY[MADTwiss.indx[dipole_nameV]]  #-- B1 direction for B2
+        psi_ac2bpmac2=MADTwiss.MUY[MADTwiss.indx[bpmac2]]-MADTwiss.MUY[MADTwiss.indx[dipole_nameV]]  #-- B1 direction for B2
 
     r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
     psid_ac2bpmac1=np.arctan((1+r)/(1-r)*tan(2*np.pi*psi_ac2bpmac1-np.pi*Q))%np.pi-np.pi+np.pi*Qd
@@ -68,6 +104,7 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
+    print
     for b in psid_ac2bpmac.keys():
         if '5L4' in b: bpmac1=b
         if '6L4' in b: bpmac2=b
@@ -81,17 +118,20 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         except:
             return [{},[]]
 
-    #-- Model phase advances
-    if plane=='H': psimdl=np.array([(MADTwiss.MUX[MADTwiss.indx[b[1]]]-MADTwiss.MUX[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
-    if plane=='V': psimdl=np.array([(MADTwiss.MUY[MADTwiss.indx[b[1]]]-MADTwiss.MUY[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
+    # -- Model phase advances
+    if plane == 'H':
+        psimdl = np.array([(MADTwiss.MUX[MADTwiss.indx[b[1]]]-MADTwiss.MUX[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
+    if plane == 'V':
+        psimdl=np.array([(MADTwiss.MUY[MADTwiss.indx[b[1]]]-MADTwiss.MUY[MADTwiss.indx[bpm[0][1]]])%1 for b in bpm])
 
-    #-- Global parameters of the driven motion
-    r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
+    # -- Global parameters of the driven motion
+    r = sin(np.pi * (Qd - Q)) / sin(np.pi * (Qd + Q))
 
-    #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
-    psiall=np.zeros((len(bpm),len(Files)))
+    # -- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
+    psiall=np.zeros((len(bpm), len(Files)))
     for i in range(len(Files)):
-        if plane=='H': psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        if plane == 'H':
+            psid = bd * 2 * np.pi * np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         if plane=='V': psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
@@ -116,9 +156,12 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     return [result,bpm]
 
+def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl, acdipole):
+    return get_free_phase_eq_new(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl, acdipole)
 
-def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
-
+def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl, acdipole):
+    print "Qd =", Qd
+    print "Q =", Q
     #-- Select common BPMs
     bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
@@ -145,6 +188,7 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
     #-- Model phase advances
     if plane=='H': psimdl=np.array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
     if plane=='V': psimdl=np.array([MADTwiss.MUY[MADTwiss.indx[b[1]]] for b in bpm])
+
     psi12mdl=(np.append(psimdl[1:],psimdl[0] +Qmdl)-psimdl)%1
     psi13mdl=(np.append(psimdl[2:],psimdl[:2]+Qmdl)-psimdl)%1
     psi14mdl=(np.append(psimdl[3:],psimdl[:3] +Qmdl)-psimdl)%1
@@ -175,7 +219,7 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
         if plane=='V': psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
-                if bpm[k][0]>s_lastbpm: psid[k]+=2*np.pi*Qd  #-- To fix the phase shift by Q
+                if bpm[k][0]>s_lastbpm: psid[k] -= 2*np.pi*Qd  #-- To fix the phase shift by Q
             except: pass
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
         Psid=psid+np.pi*Qd
@@ -270,7 +314,354 @@ def get_free_phase_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
             result["".join(['V',bn1,bn9])] = [psi19ave,psi19std,psi19mdl[k]]
             result["".join(['V',bn1,bn10])] = [psi110ave,psi110std,psi110mdl[k]]
             result["".join(['V',bn1,bn11])] = [psi111ave,psi111std,psi111mdl[k]]
-    return [result,muave,bpm]
+    return [result,muave,bpm, r]
+
+
+def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl, acdipole):
+
+
+
+    print "\33[38;2;255;200;0m"
+    print "         /\\                     "
+    print "        //\\\\                   "
+    print "       //  \\\\                  "
+    print "      // || \\\\                 "
+    print "     //  ||  \\\\                "
+    print "    //   ||   \\\\               "
+    print "   //    ||    \\\\              "
+    print "  //            \\\\           "
+    print " //      ()      \\\\           "
+    print "//________________\\\\            "
+    print "--------------------               "
+    print "                               "
+    print "INFO: using changed code for ac compensation\n DO NOT TRUST THIS CODE\33[0m"
+
+    print "Q = {0:f}".format(Q)
+    print "Qd = {0:f}".format(Qd)
+    #-- Select common BPMs
+    bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
+    bpm=[(b[0],str.upper(b[1])) for b in bpm]
+
+    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+    if 'BPMSW.1L2.B1' in MADTwiss.NAME:
+        if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+        if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+    elif 'MOH_3' in MADTwiss.NAME:
+        s_lastbpm = MADTwiss.S[MADTwiss.indx['MOH_3']]
+
+    #-- Determine the position of the AC dipole BPM
+    bpmac1 = psid_ac2bpmac.keys()[0]
+    bpmac2 = psid_ac2bpmac.keys()[1]
+
+    try:
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
+    except:
+        try:
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
+        except:
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
+            return [{}, 0.0, []]
+
+    #-- Model phase advances
+    if plane=='H': psimdl=np.array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
+    if plane=='V': psimdl=np.array([MADTwiss.MUY[MADTwiss.indx[b[1]]] for b in bpm])
+    
+    # <<<<<<<<<< ICH
+    psiijmdl = [None] * 10
+    psiijall = []
+
+
+    for which_psi in range(1,11):
+        psiijmdl[which_psi-1] = (np.append(psimdl[which_psi:], psimdl[:which_psi] + Qmdl) - psimdl) % 1
+        psiijall.append(np.zeros((len(bpm), len(Files))))
+
+    #-- Global parameters of the driven motion
+    r=sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
+
+    #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
+    
+    for i in range(len(Files)):
+        psid = []
+        if plane == 'H':
+            psid = bd * TWOPI * np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        if plane == 'V':
+            psid = bd * TWOPI * np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        for k in range(len(bpm)):
+            try:
+                if bpm[k][0] > s_lastbpm: psid[k] += TWOPI * Qd  #-- To fix the phase shift by Q
+            except: pass
+        psid = psid - (psid[k_bpmac] - psid_ac2bpmac[bpmac])  # OK, untill here, it is Psi(s, s_ac)
+        Psid=psid + PI * Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-TWOPI * Qd
+        
+        gamma = Psid*2
+        alpha = psid + PI * Qd
+        alpha[k_bpmac:] = alpha[k_bpmac:] + TWOPI * (Q - Qd) + kEPSILON
+        
+        Psi = np.arctan((1 - r) / (1 + r) * np.tan(Psid)) % PI  # Ryoichi
+        Psi_a = np.arctan((1 + r * np.sin(alpha - gamma) / np.sin(alpha)) / (1 + r * np.cos(alpha - gamma)/np.cos(alpha)))
+        for k in range(len(bpm)):
+            if Psid[k] % TWOPI > PI: Psi[k] = Psi[k] + PI
+        psi = Psi - Psi[0]
+        psi[k_bpmac:] = psi[k_bpmac:] + TWOPI * Q
+        
+        # <<<<<<<<<< ICH
+        psiij = [None] * 10
+        for j in range(1, 11):
+            psiij[j-1] = (np.append(psi[j:], psi[:j] + TWOPI * Q) - psi)/ TWOPI
+        for k in range(len(bpm)):
+            # <<<<<<<<<< ICH
+            for j in range(0, 10):
+                psiijall[j][k][i] = psiij[j][k]
+            
+    #-- Output
+   
+    result={}
+    result_={}
+    muave=0.0  #-- mu is the same as psi but w/o mod
+    muave_ = 0.0
+    for k in range(len(bpm)):
+        # <<<<<<<<<< ICH
+        psiijave = [None] * 10
+        psiijstd = [None] * 10
+        bnj = [None] * 11
+        
+        for j in range(0,11):
+            bnj[j] = str.upper(bpm[(k + j) % len(bpm)][1])
+        
+        for j in range(0,10):
+            psiijave[j] = phase.calc_phase_mean(psiijall[j][k],1)
+            psiijstd[j] = phase.calc_phase_std(psiijall[j][k],1)
+            result_["".join([plane, bnj[0], bnj[j + 1]])] = [psiijave[j],psiijstd[j],psiijmdl[j][k]]
+            
+        muave_ += psiijave[0]
+        try:    result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[k+1][1]]
+        except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
+        
+
+    return [result_,muave_,bpm]
+
+def get_free_phase_eq_intermediat(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
+
+    #-- Select common BPMs
+    bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
+    bpm=[(b[0],str.upper(b[1])) for b in bpm]
+
+    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+    if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+    if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+
+    #-- Determine the position of the AC dipole BPM
+    for b in psid_ac2bpmac.keys():
+        if '5L4' in b: bpmac1=b
+        if '6L4' in b: bpmac2=b
+    try:
+        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
+        bpmac=bpmac1
+    except:
+        try:
+            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
+            bpmac=bpmac2
+        except:
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
+            return [{}, 0.0, []]
+
+    #-- Model phase advances
+    if plane=='H': psimdl=np.array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
+    if plane=='V': psimdl=np.array([MADTwiss.MUY[MADTwiss.indx[b[1]]] for b in bpm])
+    
+    # <<<<<<<<<< ICH
+    psiijmdl = [None] * 10
+    psiijall = []
+    # ========== OLD
+    # >>>>>>>>>>
+    
+    
+    # <<<<<<<<<< ICH
+    for which_psi in range(1,11):
+        psiijmdl[which_psi-1] = (np.append(psimdl[which_psi:], psimdl[:which_psi] + Qmdl) - psimdl) % 1
+        psiijall.append(np.zeros((len(bpm),len(Files))))
+     # ========== OLD   
+    psi12mdl= (np.append(psimdl[1:], psimdl[0] + Qmdl)-psimdl)%1
+    psi13mdl=(np.append(psimdl[2:],psimdl[:2]+Qmdl)-psimdl)%1
+    psi14mdl=(np.append(psimdl[3:],psimdl[:3] +Qmdl)-psimdl)%1
+    psi15mdl=(np.append(psimdl[4:],psimdl[:4] +Qmdl)-psimdl)%1
+    psi16mdl=(np.append(psimdl[5:],psimdl[:5] +Qmdl)-psimdl)%1
+    psi17mdl=(np.append(psimdl[6:],psimdl[:6] +Qmdl)-psimdl)%1
+    psi18mdl=(np.append(psimdl[7:],psimdl[:7] +Qmdl)-psimdl)%1
+    psi19mdl=(np.append(psimdl[8:],psimdl[:8] +Qmdl)-psimdl)%1
+    psi110mdl=(np.append(psimdl[9:],psimdl[:9] +Qmdl)-psimdl)%1
+    psi111mdl=(np.append(psimdl[10:],psimdl[:10] +Qmdl)-psimdl)%1
+    # >>>>>>>>>>
+
+    #-- Global parameters of the driven motion
+    r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
+
+    #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
+    
+    # <<<<<<<<<< ICH
+    # ========== OLD    
+    psi12all=np.zeros((len(bpm),len(Files)))
+    psi13all=np.zeros((len(bpm),len(Files)))
+    psi14all=np.zeros((len(bpm),len(Files)))
+    psi15all=np.zeros((len(bpm),len(Files)))
+    psi16all=np.zeros((len(bpm),len(Files)))
+    psi17all=np.zeros((len(bpm),len(Files)))
+    psi18all=np.zeros((len(bpm),len(Files)))
+    psi19all=np.zeros((len(bpm),len(Files)))
+    psi110all=np.zeros((len(bpm),len(Files)))
+    psi111all=np.zeros((len(bpm),len(Files)))
+    # >>>>>>>>>>
+    
+    for i in range(len(Files)):
+        if plane=='H': psid=bd*2*np.pi*np.array([Files[i].MUX[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        if plane=='V': psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
+        for k in range(len(bpm)):
+            try:
+                if bpm[k][0]>s_lastbpm: psid[k]+=2*np.pi*Qd  #-- To fix the phase shift by Q
+            except: pass
+        psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
+        Psid=psid+np.pi*Qd
+        Psid[k_bpmac:]=Psid[k_bpmac:]-2*np.pi*Qd
+        Psi=np.arctan((1-r)/(1+r)*np.tan(Psid))%np.pi
+        for k in range(len(bpm)):
+            if Psid[k]%(2*np.pi)>np.pi: Psi[k]=Psi[k]+np.pi
+        psi=Psi-Psi[0]
+        psi[k_bpmac:]=psi[k_bpmac:]+2*np.pi*Q
+        
+        # <<<<<<<<<< ICH
+        psiij = [None] * 10
+        for j in range(1,11):
+            psiij[j-1] = (np.append(psi[j:],psi[:j] +2*np.pi*Q)-psi)/(2*np.pi)
+        # ========== OLD 
+        psi12=(np.append(psi[1:],psi[0] +2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        #psi12=(np.append(psi[1:],psi[0])-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi13=(np.append(psi[2:],psi[:2]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi14=(np.append(psi[3:],psi[:3]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi15=(np.append(psi[4:],psi[:4]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi16=(np.append(psi[5:],psi[:5]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi17=(np.append(psi[6:],psi[:6]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi18=(np.append(psi[7:],psi[:7]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi19=(np.append(psi[8:],psi[:8]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi110=(np.append(psi[9:],psi[:9]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        psi111=(np.append(psi[10:],psi[:10]+2*np.pi*Q)-psi)/(2*np.pi)  #-- phase range back to [0,1)
+        # >>>>>>>>>>
+        
+       
+        for k in range(len(bpm)):
+            # <<<<<<<<<< ICH
+            for j in range(0,10):
+                psiijall[j][k][i] = psiij[j][k]
+            
+            # ========== OLD     
+            psi12all[k][i]=psi12[k]
+            psi13all[k][i]=psi13[k]
+            psi14all[k][i]=psi14[k]
+            psi15all[k][i]=psi15[k]
+            psi16all[k][i]=psi16[k]
+            psi17all[k][i]=psi17[k]
+            psi18all[k][i]=psi18[k]
+            psi19all[k][i]=psi19[k]
+            psi110all[k][i]=psi110[k]
+            psi111all[k][i]=psi111[k]
+            
+            
+           
+         
+           # >>>>>>>>>>
+    #-- Output
+   
+    result={}
+    result_={}
+    muave=0.0  #-- mu is the same as psi but w/o mod
+    muave_ = 0.0
+    for k in range(len(bpm)):
+        # <<<<<<<<<< ICH
+        psiijave = [None] * 10
+        psiijstd = [None] * 10
+        bnj = [None] * 11
+        
+        for j in range(0,11):
+            bnj[j] = str.upper(bpm[(k + j) % len(bpm)][1])
+        
+        for j in range(0,10):
+            psiijave[j] = phase.calc_phase_mean(psiijall[j][k],1)
+            psiijstd[j] = phase.calc_phase_std(psiijall[j][k],1)
+            result_["".join([plane, bnj[0], bnj[j + 1]])] = [psiijave[j],psiijstd[j],psiijmdl[j][k]]
+            
+        muave_ += psiijave[0]
+        try:    result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[k+1][1]]
+        except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
+        
+        
+        # ========== OLD 
+        psi12ave = phase.calc_phase_mean(psi12all[k],1)
+        psi12std = phase.calc_phase_std(psi12all[k],1)
+        psi13ave = phase.calc_phase_mean(psi13all[k],1)
+        psi13std = phase.calc_phase_std(psi13all[k],1)
+        psi14ave = phase.calc_phase_mean(psi14all[k],1)
+        psi14std = phase.calc_phase_std(psi14all[k],1)
+        psi15ave = phase.calc_phase_mean(psi15all[k],1)
+        psi15std = phase.calc_phase_std(psi15all[k],1)
+        psi16ave = phase.calc_phase_mean(psi16all[k],1)
+        psi16std = phase.calc_phase_std(psi16all[k],1)
+        psi17ave = phase.calc_phase_mean(psi17all[k],1)
+        psi17std = phase.calc_phase_std(psi17all[k],1)
+        psi18ave = phase.calc_phase_mean(psi18all[k],1)
+        psi18std = phase.calc_phase_std(psi18all[k],1)
+        psi19ave = phase.calc_phase_mean(psi19all[k],1)
+        psi19std = phase.calc_phase_std(psi19all[k],1)
+        psi110ave = phase.calc_phase_mean(psi110all[k],1)
+        psi110std = phase.calc_phase_std(psi110all[k],1)
+        psi111ave = phase.calc_phase_mean(psi111all[k],1)
+        psi111std = phase.calc_phase_std(psi111all[k],1)
+        
+        
+        
+        
+        muave=muave+psi12ave
+        try:    result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[k+1][1]]
+        except: result[bpm[k][1]]=[psi12ave,psi12std,psi13ave,psi13std,psi12mdl[k],psi13mdl[k],bpm[0][1]]    #-- The last BPM
+
+        bn1 = str.upper(bpm[k%len(bpm)][1])
+        bn2 = str.upper(bpm[(k+1)%len(bpm)][1])
+        bn3 = str.upper(bpm[(k+2)%len(bpm)][1])
+        bn4 = str.upper(bpm[(k+3)%len(bpm)][1])
+        bn5 = str.upper(bpm[(k+4)%len(bpm)][1])
+        bn6 = str.upper(bpm[(k+5)%len(bpm)][1])
+        bn7 = str.upper(bpm[(k+6)%len(bpm)][1])
+        bn8 = str.upper(bpm[(k+7)%len(bpm)][1])
+        bn9 = str.upper(bpm[(k+8)%len(bpm)][1])
+        bn10 = str.upper(bpm[(k+9)%len(bpm)][1])
+        bn11 = str.upper(bpm[(k+10)%len(bpm)][1])
+
+        if plane=='H':
+            result["".join(['H',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]
+            result["".join(['H',bn1,bn3])] = [psi13ave,psi13std,psi13mdl[k]]
+            result["".join(['H',bn1,bn4])] = [psi14ave,psi14std,psi14mdl[k]]
+            result["".join(['H',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
+            result["".join(['H',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]]
+            result["".join(['H',bn1,bn7])] = [psi17ave,psi17std,psi17mdl[k]]
+            result["".join(['H',bn1,bn8])] = [psi18ave,psi18std,psi18mdl[k]]
+            result["".join(['H',bn1,bn9])] = [psi19ave,psi19std,psi19mdl[k]]
+            result["".join(['H',bn1,bn10])] = [psi110ave,psi110std,psi110mdl[k]]
+            result["".join(['H',bn1,bn11])] = [psi111ave,psi111std,psi111mdl[k]]
+        elif plane=='V':
+            result["".join(['V',bn1,bn2])] = [psi12ave,psi12std,psi12mdl[k]]
+            result["".join(['V',bn1,bn3])] = [psi13ave,psi13std,psi13mdl[k]]
+            result["".join(['V',bn1,bn4])] = [psi14ave,psi14std,psi14mdl[k]]
+            result["".join(['V',bn1,bn5])] = [psi15ave,psi15std,psi15mdl[k]]
+            result["".join(['V',bn1,bn6])] = [psi16ave,psi16std,psi16mdl[k]]
+            result["".join(['V',bn1,bn7])] = [psi17ave,psi17std,psi17mdl[k]]
+            result["".join(['V',bn1,bn8])] = [psi18ave,psi18std,psi18mdl[k]]
+            result["".join(['V',bn1,bn9])] = [psi19ave,psi19std,psi19mdl[k]]
+            result["".join(['V',bn1,bn10])] = [psi110ave,psi110std,psi110mdl[k]]
+            result["".join(['V',bn1,bn11])] = [psi111ave,psi111std,psi111mdl[k]]
+            
+             # >>>>>>>>>>
+    return [result_,muave_,bpm]
 
 
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):

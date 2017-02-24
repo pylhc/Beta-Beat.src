@@ -130,7 +130,6 @@ CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
-ACDIPOLE        = "ACD"
 
 #===================================================================================================
 # _parse_args()-function
@@ -197,9 +196,6 @@ def _parse_args():
     parser.add_option("--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type="int",
                       help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
-    parser.add_option("--acdipole", default=ACDIPOLE, dest="acdipole",
-                      metavar="ACDIPOLE", type="string",
-                      help="Specifies which AC dipole is used. ACD: AC-dipole, ADT: ADT AC-Dipole. Default = {0:s}".format(ACDIPOLE))
 
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
@@ -229,8 +225,7 @@ def main(outputpath,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
          errordefspath=ERRORDEFS,
-         nprocesses=NPROCESSES,
-         acdipole=ACDIPOLE):
+         nprocesses=NPROCESSES):
     '''
     GetLLM main function.
 
@@ -255,6 +250,7 @@ def main(outputpath,
     :returns: int  -- 0 if the function run successfully otherwise !=0.
     '''
     return_code = 0
+    lhcphase = 0 ############################# REMOVEEEEEEEEEEEEEEEEEEEEEEEE
     print "Starting GetLLM ", VERSION
     
     use_average = (use_average == 1)
@@ -276,12 +272,14 @@ def main(outputpath,
     getllm_d.errordefspath = errordefspath
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
-    getllm_d.acdipole = acdipole
     # Setup
     mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
                                                                                                                             model_filename,
                                                                                                                             dict_file)
-    
+
+    print "========= SUMMARY OF ARGUMENTS:"
+    print "ACDipole = ", getllm_d.acdipole
+
     if sys.flags.debug:
         print "INFO: DEBUG ON"
 
@@ -294,7 +292,7 @@ def main(outputpath,
 
     # Load tunes from twiss instances, depending on with_ac_calc
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
-    
+
     # Construct pseudo-double plane BPMs
     if (getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         [pseudo_list_x, pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
@@ -309,10 +307,25 @@ def main(outputpath,
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         temp_dict = copy.deepcopy(files_dict)
+
+        # print "======================================00"
+        # print "before\n:: phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)"
+        # print "the tunes are as following:"
+        # print "tuned_q1 = {0:f}\ntuned_q1f = {1:f}\ntuned_delta1 = {2:f}".format(tune_d.q1, tune_d.q1f, tune_d.delta1)
+
         phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
+        # print "======================================00"
+        # print "after\n:: phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)"
+        # print "the tunes are as following:"
+        # print "tuned_q1 = {0:f}\ntuned_q1f = {1:f}\ntuned_delta1 = {2:f}".format(tune_d.q1, tune_d.q1f, tune_d.delta1)
 
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
+        # print "======================================00"
+        # print "after\n:: phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)"
+        # print "the tunes are as following:"
+        # print "tuned_q1 = {0:f}\ntuned_q1f = {1:f}\ntuned_delta1 = {2:f}".format(tune_d.q1, tune_d.q1f, tune_d.delta1)
+
 
         #-------- START Total Phase
         algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
@@ -339,7 +352,7 @@ def main(outputpath,
         files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
 
         #-------- START RDTs
-        algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
+        #algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
 
         if tbtana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove
@@ -401,10 +414,30 @@ def _intial_setup(getllm_d, model_filename, dict_file):
         except IOError:
             mad_ac_best_knowledge = mad_ac
             print "Best knowledge model not found for AC diapole."
+        getllm_d.acdipole = "ACD"
     except IOError:
         mad_ac = mad_twiss
         mad_ac_best_knowledge = mad_twiss
         print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
+        getllm_d.acdipole = "None"
+
+    try:
+        mad_ac = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_adt.dat"))  # model with ac dipole : Twiss instance
+        getllm_d.with_ac_calc = True
+        print "Driven Twiss file found. ADT-AC-dipole effects calculated with the effective model (get***_free2.out)."
+        print "Note: Using normal AC Dipole will be omitted."
+        try:
+            mad_ac_best_knowledge = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_adt_best_knowledge.dat"))
+            print "Best knowledge model found for ADT-AC-dipole, it will be used for beta calculation."
+        except IOError:
+            mad_ac_best_knowledge = mad_ac
+            print "Best knowledge model not found for ADT-AC-dipole."
+        getllm_d.acdipole = "ADT"
+    except IOError:
+        mad_ac = mad_twiss
+        mad_ac_best_knowledge = mad_twiss
+        print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
+
 
     #-- Test if the AC dipole (MKQA) is in the model of LHC
     #TODO: This was crashing for dpp cases (WAnalysis or normal) I put this try to "fix" it, it should be check.
@@ -975,7 +1008,7 @@ class _GetllmData(object):
         self.parallel = False
         self.nprocesses = 1
         self.with_ac_calc = False
-        self.acdipole = ""
+        self.acdipole = "None"
 
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.
@@ -1101,8 +1134,7 @@ def _start():
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath,
-         nprocesses=options.nprocesses,
-         acdipole=options.acdipole)
+         nprocesses=options.nprocesses)
      
      
 if __name__ == "__main__":
