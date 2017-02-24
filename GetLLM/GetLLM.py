@@ -130,7 +130,6 @@ CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
-ACDIPOLE        = "ACD"
 
 #===================================================================================================
 # _parse_args()-function
@@ -197,9 +196,6 @@ def _parse_args():
     parser.add_option("--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type="int",
                       help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
-    parser.add_option("--acdipole", default=ACDIPOLE, dest="acdipole",
-                      metavar="ACDIPOLE", type="string",
-                      help="Specifies which AC dipole is used. ACD: AC-dipole, ADT: ADT AC-Dipole. Default = {0:s}".format(ACDIPOLE))
 
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
@@ -417,10 +413,30 @@ def _intial_setup(getllm_d, model_filename, dict_file):
         except IOError:
             mad_ac_best_knowledge = mad_ac
             print "Best knowledge model not found for AC diapole."
+        getllm_d.acdipole = "ACD"
     except IOError:
         mad_ac = mad_twiss
         mad_ac_best_knowledge = mad_twiss
         print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
+        getllm_d.acdipole = "None"
+
+    try:
+        mad_ac = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_adt.dat"))  # model with ac dipole : Twiss instance
+        getllm_d.with_ac_calc = True
+        print "Driven Twiss file found. ADT-AC-dipole effects calculated with the effective model (get***_free2.out)."
+        print "Note: Using normal AC Dipole will be omitted."
+        try:
+            mad_ac_best_knowledge = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_adt_best_knowledge.dat"))
+            print "Best knowledge model found for ADT-AC-dipole, it will be used for beta calculation."
+        except IOError:
+            mad_ac_best_knowledge = mad_ac
+            print "Best knowledge model not found for ADT-AC-dipole."
+        getllm_d.acdipole = "ACD"
+    except IOError:
+        mad_ac = mad_twiss
+        mad_ac_best_knowledge = mad_twiss
+        print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
+
 
     #-- Test if the AC dipole (MKQA) is in the model of LHC
     #TODO: This was crashing for dpp cases (WAnalysis or normal) I put this try to "fix" it, it should be check.
