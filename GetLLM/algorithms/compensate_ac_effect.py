@@ -219,7 +219,7 @@ def get_free_phase_eq_old(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl, ac
         if plane=='V': psid=bd*2*np.pi*np.array([Files[i].MUY[Files[i].indx[b[1]]] for b in bpm])  #-- bd flips B2 phase to B1 direction
         for k in range(len(bpm)):
             try:
-                if bpm[k][0]>s_lastbpm: psid[k] -= 2*np.pi*Qd  #-- To fix the phase shift by Q
+                if bpm[k][0]>s_lastbpm: psid[k] += 2*np.pi*Qd  #-- To fix the phase shift by Q
             except: pass
         psid=psid-(psid[k_bpmac]-psid_ac2bpmac[bpmac])
         Psid=psid+np.pi*Qd
