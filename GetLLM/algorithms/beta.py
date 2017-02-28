@@ -840,8 +840,8 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
 
 
         data[probed_bpm_name] = [beti, betstd, beterr, math.sqrt(beterr ** 2 + betstd ** 2),
-                                 .0,
                                  alfi, alfstd, alferr, math.sqrt(alferr ** 2 + alfstd ** 2),
+                                 0.0,
                                  (beti - betmdl1) / betmdl1,
                                  used_bpms]
        
