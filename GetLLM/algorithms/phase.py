@@ -468,11 +468,14 @@ def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, 
     #-- Last BPM on the same turn to fix the phase shift by tune for exp data of LHC
     s_lastbpm = None
     if lhc_phase == "1":
-        if accel == "LHCB1":
-            s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
-        elif accel == "LHCB2":
-            s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
-
+        if "MOH.3" in mad_twiss.NAME:
+            s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.3']]
+        elif "BPMSW.1L2.B1" in mad_twiss.NAME:
+            if accel == "LHCB1":
+                s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
+            elif accel == "LHCB2":
+                s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
+    
     bn1 = str.upper(commonbpms[0][1])
     phase_t = {}
     if DEBUG:
@@ -527,12 +530,31 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
         return [{}, 0, 0, []]
 
     #-- Last BPM on the same turn to fix the phase shift by tune_q for exp data of LHC
-    if getllm_d.lhc_phase == "1" and getllm_d.accel == "LHCB1":
-        s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
-    if getllm_d.lhc_phase == "1" and getllm_d.accel == "LHCB2":
-        s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
-    if getllm_d.accel == "JPARC":
-        s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.3']]
+    # this would be the elegant way:
+    
+#     if  getllm_d.lhc_phase == "1":
+#         if getllm_d.accel == "JPARC":
+#             s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.3']]
+#         elif getllm_d.accel == "LHCB1":
+#             s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
+#         elif getllm_d.accel == "LHCB2":
+#             s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
+
+    # this is the practical way:
+    
+    if getllm_d.lhc_phase == "1":
+        print "phase jump is compensated [get_phases]"
+        if "MOH.3" in mad_twiss.NAME:
+            print "--> for JPARC"
+            s_lastbpm = 0
+            #s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.5']]
+        elif "BPMSW.1L2.B1" in mad_twiss.NAME:
+            print "--> for LHC"
+            if getllm_d.accel == "LHCB1":
+                s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
+            elif getllm_d.accel == "LHCB2":
+                s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
+    
 
     mu = 0.
     tunem = []
