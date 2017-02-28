@@ -80,7 +80,7 @@ extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double
 #include <omp.h>
 #include <ctype.h>
 
-#define MAXPICK 1100
+#define MAXPICK 2200
 #define MAXTURNS 10000 /* Critical parameter in sussixfordiveNoO.f, same parameter name !*/
 #define MAXTURNS4 40000 /*Always four times  MAXTURNS*/
 #define MAXRUNS 100
