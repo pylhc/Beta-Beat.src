@@ -100,9 +100,11 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
-
+    if op == "1":
+        if bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+        if bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+    else:
+        print "LHC phase will not be corrected [total phase]"
     #-- Determine the BPM closest to the AC dipole and its position
     print
     for b in psid_ac2bpmac.keys():
@@ -343,11 +345,18 @@ def get_free_phase_eq_new(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, 
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if 'BPMSW.1L2.B1' in MADTwiss.NAME:
-        if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-        if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
-    elif 'MOH_3' in MADTwiss.NAME:
-        s_lastbpm = MADTwiss.S[MADTwiss.indx['MOH_3']]
+    
+    if op == "1":
+        print "correcting phase jump"
+        if 'MOH_3' in MADTwiss.NAME:
+            print "--> for JPARC"
+            s_lastbpm = MADTwiss.S[MADTwiss.indx['MOH_3']]
+        else:
+            print "--> for LHC"
+            if bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+            if bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+    else:
+        print "phase jump will not be corrected"
 
     #-- Determine the position of the AC dipole BPM
     bpmac1 = psid_ac2bpmac.keys()[0]
