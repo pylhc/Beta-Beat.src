@@ -1,7 +1,7 @@
 
 title, "Model creator for java";
 
-!@require lhc_run%RUN.macros.madx
+!@require %RUN.macros.madx
 
 option, -echo;
 exec, full_lhc_def("%PATH/modifiers.madx", %NUM_BEAM);
