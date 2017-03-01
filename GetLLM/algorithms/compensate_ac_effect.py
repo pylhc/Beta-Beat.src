@@ -57,19 +57,15 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
         dipole_nameH = "ADTHM.B1"
         dipole_nameV = "ADTVM.B1"
 
-        if   oa=='LHCB1':
-
-            #dipole_nameH = "ADTKH.C5L4.B1"
-            dipole_nameV = "ADTKV.B5R4.B1"
+        if oa == 'LHCB1':
             if plane=="H":
                 bpmac1='BPMWA.B5L4.B1'
                 bpmac2='BPMWA.A5L4.B1'
             else:
                 bpmac1 = 'BPMWA.B5R4.B1'
                 bpmac2 = 'BPMWA.A5R4.B1'
-        elif oa=='LHCB2':
-            dipole_nameH = "ADTKV.C5L4.B2"
-            dipole_nameV = "ADTKH.B5R4.B2"
+                
+        elif oa == 'LHCB2':
             if plane == "H":
                 bpmac1 = 'BPMWA.B5R4.B2'
                 bpmac2 = 'BPMWA.A5R4.B2'
