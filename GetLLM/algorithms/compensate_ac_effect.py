@@ -175,7 +175,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
 #     print "                               "
 #     print "INFO: using changed code for ac compensation\n DO NOT TRUST THIS CODE\33[0m"
 
-    print "Compensating AC effect for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane)
+    print "Compensating {3:s} effect for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane, acdipole)
 
     #-- Select common BPMs
     bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files), MADTwiss)
