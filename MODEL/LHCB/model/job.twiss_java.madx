@@ -14,6 +14,13 @@ exec, match_tunes(%QMX, %QMY, %NUM_BEAM);
 exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss.dat", %DPP);
 exec, do_twiss_elements(LHCB%NUM_BEAM, "%PATH/twiss_elements.dat", %DPP);
 
-%STOP
+if(%ACD == 1){
+   exec, twiss_ac_dipole(%QX, %QY, %QDX, %QDY, %NUM_BEAM, "%PATH/twiss_ac.dat", %DPP);
+}
 
-exec, twiss_ac_dipole(%QX, %QY, %QDX, %QDY, %NUM_BEAM, "%PATH/twiss_ac.dat", %DPP);
+elseif(%ADT == 1){
+  exec, twiss_adt(%QX, %QY, %QDX, %QDY, %NUM_BEAM, "%PATH/twiss_adt.dat", %DPP);
+}
+
+
+
