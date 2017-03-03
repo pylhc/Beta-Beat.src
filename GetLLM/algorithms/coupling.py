@@ -783,7 +783,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
 
 
     # diff f1001
-    factor_top_diff=math.sqrt(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny)))
+    factor_top_diff=math.sqrt(abs(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny))))
     factor_bottom_diff=np.sin(np.pi*(tunefreex-tunefreey))
 
     factor_diff=abs((factor_top_diff/factor_bottom_diff))
