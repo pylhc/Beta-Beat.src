@@ -118,6 +118,7 @@ FILES       = "0"       #@IgnorePep8
 COCUT       = 4000      #@IgnorePep8
 OUTPATH     = "./"      #@IgnorePep8
 NBCPL       = 2         #@IgnorePep8
+NONLINEAR   = False     #@IgnorePep8
 TBTANA      = "SUSSIX"  #@IgnorePep8
 BPMUNIT     = "um"      #@IgnorePep8
 LHCPHASE    = "0"       #@IgnorePep8
@@ -162,6 +163,9 @@ def _parse_args():
     parser.add_option("-t", "--tbtana",
                     help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
                     metavar="TBTANA", default=TBTANA, dest="TBTana")
+    parser.add_option("--nonlinear",
+                    help="Run the RDT analysis",
+                    metavar="NONLINEAR", default=NONLINEAR, dest="nonlinear")
     parser.add_option("-b", "--bpmu",
                     help="BPMunit: um, mm, cm, m (default um)",
                     metavar="BPMUNIT", default=BPMUNIT, dest="BPMUNIT")
@@ -216,6 +220,7 @@ def main(outputpath,
          bpmu=BPMUNIT,
          cocut=COCUT,
          nbcpl=NBCPL,
+         nonlinear=NONLINEAR,
          tbtana=TBTANA,
          bbthreshold=BBTHRESH,
          errthreshold=ERRTHRESH,
@@ -281,11 +286,11 @@ def main(outputpath,
         print "INFO: DEBUG ON"
 
     # Creates the output files dictionary
-    files_dict = _create_tfs_files(getllm_d, model_filename)
+    files_dict = _create_tfs_files(getllm_d, model_filename, nonlinear)
 
     # Copy calibration files calibration_x/y.out from calibration_dir_path to outputpath
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
-    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, tbtana, files_dict, use_average, calibration_twiss)
+    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, tbtana, files_dict, use_average, calibration_twiss)
 
     # Load tunes from twiss instances, depending on with_ac_calc
     
@@ -336,7 +341,8 @@ def main(outputpath,
         files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
 
         #-------- START RDTs
-        #algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
+        if nonlinear:
+            algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
 
         if tbtana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove
@@ -463,7 +469,7 @@ def _intial_setup(getllm_d, model_filename, dict_file):
 # END _intial_setup ---------------------------------------------------------------------------------
 
     
-def _create_tfs_files(getllm_d, model_filename):
+def _create_tfs_files(getllm_d, model_filename, nonlinear):
     '''
     Creates the most tfs files and stores it in an dictionary whereby the key represents the file
     and the value is the corresponding GetllmTfsFile.
@@ -511,9 +517,10 @@ def _create_tfs_files(getllm_d, model_filename):
     files_dict['getDx.out'] = utils.tfs_file.GetllmTfsFile('getDx.out')
     files_dict['getDy.out'] = utils.tfs_file.GetllmTfsFile('getDy.out')
     files_dict['getcouple.out'] = utils.tfs_file.GetllmTfsFile('getcouple.out')
-    for rdt in algorithms.resonant_driving_terms.RDT_LIST:
-        files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
-        files_dict[rdt+'.out'] = utils.tfs_file.GetllmTfsFile(rdt+'.out')
+    if nonlinear:
+        for rdt in algorithms.resonant_driving_terms.RDT_LIST:
+            files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
+            files_dict[rdt+'.out'] = utils.tfs_file.GetllmTfsFile(rdt+'.out')
     if getllm_d.with_ac_calc:
         files_dict['getcouple_free.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free.out')
         files_dict['getcouple_free2.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free2.out')
@@ -542,7 +549,7 @@ def _create_tfs_files(getllm_d, model_filename):
 # END _create_tfs_files -----------------------------------------------------------------------------
 
 
-def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, files_dict, use_average, calibration_twiss):
+def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_turn_algo, files_dict, use_average, calibration_twiss):
 
     if turn_by_turn_algo == "SUSSIX":
         suffix_x = '_linx'
@@ -600,9 +607,10 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, turn_by_turn_algo, f
                 files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
-                for rdt in algorithms.resonant_driving_terms.RDT_LIST:
-                    files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
-                    files_dict[rdt+'.out'].add_filename_to_getllm_header(file_in)
+                if nonlinear:
+                    for rdt in algorithms.resonant_driving_terms.RDT_LIST:
+                        files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
+                        files_dict[rdt+'.out'].add_filename_to_getllm_header(file_in)
                 if "LHC" in getllm_d.accel:
                     files_dict['getIPx.out'].add_filename_to_getllm_header(file_in)
                     files_dict['getIPy.out'].add_filename_to_getllm_header(file_in)
@@ -1112,6 +1120,7 @@ def _start():
          bpmu=options.BPMUNIT,
          cocut=float(options.COcut),
          nbcpl=int(options.NBcpl),
+         nonlinear=options.nonlinear,
          tbtana=options.TBTana,
          bbthreshold=options.bbthreshold,
          errthreshold=options.errthreshold,
