@@ -70,7 +70,7 @@ import Utilities.iotools
 import json
 from Python_Classes4MAD.metaclass import twiss
 from Utilities import bpm
-from madx import madx_templates_runner
+from madx import madx_templates_runner, madx_wrapper
 
 import numpy
 
@@ -221,7 +221,7 @@ def main(options):
         else:
             print "Just rerunning mad"
             mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
-            _runmad(mad_file_path, log_file_path, options.mad)
+            madx_wrapper.resolve_and_run_file(mad_file_path, log_file=log_file_path)            
 
         reversetable(save_path, element_name)
 
