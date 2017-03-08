@@ -103,10 +103,13 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     else:
         print "LHC phase will not be corrected [total phase]"
     #-- Determine the BPM closest to the AC dipole and its position
-    print
-    for b in psid_ac2bpmac.keys():
-        if '5L4' in b: bpmac1=b
-        if '6L4' in b: bpmac2=b
+    
+    # WHY does this code exist?
+#     for b in psid_ac2bpmac.keys():
+#         if '5L4' in b: bpmac1=b
+#         if '6L4' in b: bpmac2=b
+    bpmac1 = psid_ac2bpmac.keys()[0]
+    bpmac2 = psid_ac2bpmac.keys()[1]
     try:
         k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
         bpmac=bpmac1

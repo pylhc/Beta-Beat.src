@@ -469,7 +469,8 @@ def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, 
     s_lastbpm = None
     if lhc_phase == "1":
         if "MOH.3" in mad_twiss.NAME:
-            s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.3']]
+            print "no total phase jump correction with JPARC"
+            #s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.3']]
         elif "BPMSW.1L2.B1" in mad_twiss.NAME:
             if accel == "LHCB1":
                 s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
@@ -545,8 +546,10 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
     if getllm_d.lhc_phase == "1":
         print "phase jump is compensated [get_phases]"
         if "MOH.3" in mad_twiss.NAME:
-            print "--> for JPARC"
-            s_lastbpm = 0
+            getllm_d.beam_direction = 1.0
+            s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.5']]
+            tune_q = 0
+            print "--> for JPARC (at S = {0:f} tune_q = {1:f}, bd = {2:f})".format(s_lastbpm, tune_q, getllm_d.beam_direction)
             #s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.5']]
         elif "BPMSW.1L2.B1" in mad_twiss.NAME:
             print "--> for LHC"
