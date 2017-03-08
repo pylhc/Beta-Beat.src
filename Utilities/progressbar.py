@@ -7,8 +7,10 @@ Created on Aug 9, 2016
 import sys
 from time import time
 
-PROGRESSBAR_LENGTH = 40
+from numpy.random import random
 
+PROGRESSBAR_LENGTH = 40
+PROTON_PATHLENGTH = 17
 
 def startProgress(title):
     global progress_x
@@ -24,7 +26,7 @@ def startProgress_(title):
 
 def progress(x):
     pos = int(x * PROGRESSBAR_LENGTH)
-    sys.stdout.write(" [\33[32m" + "#" * pos + "\33[0m" + "#" * (PROGRESSBAR_LENGTH - pos) + "] " + "{0:5.1f} %".format(x) + chr(8) * (PROGRESSBAR_LENGTH + 11))
+    sys.stdout.write(" [\33[32m" + "#" * pos + "\33[0m" + "#" * (PROGRESSBAR_LENGTH - pos) + "] " + "{0:5.1f} %".format(x*10) + chr(8) * (PROGRESSBAR_LENGTH + 11))
     sys.stdout.flush()
     
 
@@ -120,4 +122,53 @@ def stopPrint():
 
     sys.stdout.write(" [" + "=" * PROGRESSBAR_LENGTH + "] " +
                      elapsed_str + "\n")
+    sys.stdout.flush()
+
+
+def setupProtons():
+    global  __step__
+    __step__ = 0
+
+
+def progressProtons():
+    print_protons()
+    sys.stdout.flush()
+
+
+def print_protons():
+    global __step__
+    position = __step__ % (PROTON_PATHLENGTH + 5)
+    if position < PROTON_PATHLENGTH:
+        sys.stdout.write("[" + " " * (position) + "\33[38;2;90;90;255mp+\33[0m" +
+                         " " * (2 * (PROTON_PATHLENGTH - position) + 1) + "\33[38;2;90;90;255mp+\33[0m" + " " * (
+                         position) + "] " +
+                         chr(8) * (2 * PROTON_PATHLENGTH + 8))
+    elif position % 2 == 1:
+        sys.stdout.write(
+            "[" + " " * (PROTON_PATHLENGTH + 2) + "\33[38;2;200;200;50mX\33[0m" + " " * (PROTON_PATHLENGTH + 2) + "]" +
+            chr(8) * (2 * PROTON_PATHLENGTH + 8))
+    else:
+        sys.stdout.write(
+            "[" + " " * (PROTON_PATHLENGTH + 2) + "\33[38;2;200;0;50mX\33[0m" + " " * (PROTON_PATHLENGTH + 2) + "]" +
+            chr(8) * (2 * PROTON_PATHLENGTH + 8))
+    __step__ = __step__ + 1
+
+
+def setupLumi(seed=None):
+    setupProtons()
+    global __iLumi__
+    __iLumi__ = random()*150+100
+
+def progressLumi(percent):
+    text = "[Integrated luminosity: {0:5.1f} / {1:5.1f}]                  \n".format(percent * __iLumi__, __iLumi__)
+    sys.stdout.write(text)
+    print_protons()
+    sys.stdout.write(chr(8) * len(text))
+    sys.stdout.flush()
+
+def endLumi():
+    text = "[Integrated luminosity: {0:5.1f} / {0:5.1f}]                  \n".format(__iLumi__)
+    sys.stdout.write(text)
+    print_protons()
+    sys.stdout.write(chr(8) * len(text))
     sys.stdout.flush()
