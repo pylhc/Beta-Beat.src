@@ -26,7 +26,7 @@ import multiprocessing
 import time
 from constants import PI, TWOPI
 
-__version__ = "2017.2.1"
+__version__ = "2017.3.1"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -600,7 +600,7 @@ def beta_from_phase(madModel, madTwiss, madElements, madElementsCentre, ListOfFi
     
     errorfile = None
     if not getllm_d.use_only_three_bpms_for_beta_from_phase:
-        errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane)
+        errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane, getllm_d.accel)
    
     if 3 > len(commonbpms):
         print_("beta_from_phase: Less than three BPMs for plane " + plane + ". Returning empty values.")
@@ -2486,7 +2486,7 @@ def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
 #=======================================================================================================================
 
 
-def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, commonbpms, plane):
+def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, commonbpms, plane, accel):
     '''
     Creates a file in Twiss format that contains the information about the expected errors for each element .
     
@@ -2503,9 +2503,13 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     #bpms = []
     #for bpm in commonbpms:
     #    bpms.append(bpm[1])
-
-    bpmre = re.compile("^BPM.*B[12]$")
-    bpmjparc = re.compile("^MO[HV]\\.")
+    if accel == "JPARC":
+        bpmre = re.compile("^MO[HV]\\.")
+    elif accel == "PETRA":
+        bpmre = re.compile("^BPM")
+    else:
+        bpmre = re.compile("^BPM.*B[12]$")
+    
 
     print_("Create errorfile")
     print_("")
@@ -2599,7 +2603,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
                                             "OK"])
 
         if not found:  # if element doesn't have any error add it nevertheless if it is a BPM
-            if bpmre.match(twiss_full_centre.NAME[index_twissfull]) or bpmjparc.match(twiss_full_centre.NAME[index_twissfull]):
+            if bpmre.match(twiss_full_centre.NAME[index_twissfull]):
                 index_model = model.indx[twiss_full.NAME[index_twissfull]]
                 errorfile.add_table_row([
                                         model.NAME[index_model],
