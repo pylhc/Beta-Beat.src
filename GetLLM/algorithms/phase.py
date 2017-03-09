@@ -467,14 +467,20 @@ def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, 
     commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
     #-- Last BPM on the same turn to fix the phase shift by tune for exp data of LHC
     s_lastbpm = None
-    if lhc_phase == "1":  
+    if lhc_phase == "1":
+        print "phase jump correction"
         if accel == "JPARC":
-            print "no total phase jump correction with JPARC"
+            print "-- no total phase jump correction with JPARC"
             #s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.3']]
         elif accel == "LHCB1":
             s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
+            print "-> for LHC"
         elif accel == "LHCB2":
             s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
+            print "-> for LHC"
+        elif accel == "PETRA":
+            s_lastbpm = mad_twiss.S[mad_twiss.indx['BPM_SOR_46']]
+            print "-> for PETRA {0:f}".format(tune)
     
     bn1 = str.upper(commonbpms[0][1])
     phase_t = {}
@@ -539,7 +545,9 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
         elif getllm_d.accel == "LHCB2":
             s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
-
+        elif getllm_d.accel == "PETRA":
+            s_lastbpm = mad_twiss.S[mad_twiss.indx['BPM_SOR_46']]
+ 
     # this is the practical way:
     
 #     if getllm_d.lhc_phase == "1":
