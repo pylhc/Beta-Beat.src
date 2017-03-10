@@ -1,10 +1,16 @@
+from __future__ import print_function
 import __init__  # @UnusedImport
 import os
 import sys
 import json
 import argparse
+import logging
+import log_handler
 from matchers import (matcher,
-                      phase_matcher, coupling_matcher, kmod_matcher, amp_matcher)
+                      phase_matcher,
+                      coupling_matcher,
+                      kmod_matcher,
+                      amp_matcher)
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
 from madx import madx_templates_runner
@@ -20,19 +26,24 @@ MATCHER_TYPES = {
 }
 
 
-def main(input_file_path):
+LOGGER = logging.getLogger(__name__)
 
-    print "+++ Segment-by-segment general matcher +++"
+
+def main(input_file_path):
+    LOGGER.info("+++ Segment-by-segment general matcher +++")
 
     input_data = InputData.init_from_json_file(input_file_path)
+    log_handler.add_file_handler(LOGGER, input_data.match_path)
     run_full_madx_matching(input_data)
 
 
 def _run_madx_matching(input_data, just_twiss=False):
     _try_to_delete_twiss_cors(input_data)
     madx_templates = madx_templates_runner.MadxTemplates(
-        log_file=os.path.join(input_data.match_path, "match_madx_log.out"),
-        output_file=os.path.join(input_data.match_path, "resolved_madx_match.madx")
+        log_file=os.path.join(input_data.match_path,
+                              "match_madx_log.out"),
+        output_file=os.path.join(input_data.match_path,
+                                 "resolved_madx_match.madx")
     )
     template_processor = TemplateProcessor(input_data.matchers,
                                            input_data.match_path,
@@ -59,19 +70,20 @@ def run_twiss_and_sbs(input_data):
 
 
 def _manipulate_twiss_cors(input_data, function):
-    for matcher in input_data.matchers:
-        for beam in matcher.get_beams():
-            matcher_path = matcher.get_match_data(beam).get_beam_match_path()
+    for this_matcher in input_data.matchers:
+        for beam in this_matcher.get_beams():
+            matcher_path = this_matcher.get_match_data(
+                beam).get_beam_match_path()
             matcher_path_sbs = os.path.join(matcher_path, "sbs")
             if os.path.isdir(matcher_path_sbs):
                 twiss_cor_path = os.path.join(
                     matcher_path_sbs,
-                    "twiss_IP" + str(matcher.get_ip()) + "_cor.dat"
+                    "twiss_IP" + str(this_matcher.get_ip()) + "_cor.dat"
                 )
                 function(twiss_cor_path)
                 twiss_cor_back_path = os.path.join(
                     matcher_path_sbs,
-                    "twiss_IP" + str(matcher.get_ip()) + "_cor_back.dat"
+                    "twiss_IP" + str(this_matcher.get_ip()) + "_cor_back.dat"
                 )
                 function(twiss_cor_back_path)
 
@@ -98,12 +110,14 @@ class TwissFailedError(Exception):
 
 
 def _write_sbs_data_for_matchers(input_data):
-    for matcher in input_data.matchers:
-        for beam in matcher.get_beams():
-            _write_sbs_data(beam, str(matcher.get_ip()),
-                            matcher.get_match_data(beam).get_beam_match_path(),
-                            matcher.get_match_data(beam).get_range_start_name(),
-                            )
+    for this_matcher in input_data.matchers:
+        for beam in this_matcher.get_beams():
+            _write_sbs_data(
+                beam,
+                str(this_matcher.get_ip()),
+                this_matcher.get_match_data(beam).get_beam_match_path(),
+                this_matcher.get_match_data(beam).get_range_start_name(),
+            )
 
 
 def _write_sbs_data(beam, ip, temporary_path, range_start_name):
@@ -158,24 +172,30 @@ class InputData():
     def _get_matchers_list(self, input_data):
         raw_matchers_list = input_data["matchers"]
         for matcher_name, matcher_data in raw_matchers_list.iteritems():
-            matcher.Matcher._check_attribute(matcher_name, matcher_data, "type")
+            matcher.Matcher._check_attribute(matcher_name,
+                                             matcher_data,
+                                             "type")
             matcher_type = matcher_data["type"]
             MatcherClass = MATCHER_TYPES.get(matcher_type, None)
             if MatcherClass is None:
-                print >> sys.stderr, 'Unknown matcher type: ' + matcher_type +\
-                                     ' must be in: ' + str(MATCHER_TYPES.keys())
-                sys.exit(-1)
-            self.matchers.append(MatcherClass(matcher_name, matcher_data, self.match_path))
+                raise ValueError('Unknown matcher type: ' + matcher_type +
+                                 ' must be in: ' + str(MATCHER_TYPES.keys()))
+            self.matchers.append(
+                MatcherClass(matcher_name, matcher_data, self.match_path)
+            )
 
     def _check_and_assign_attribute(self, input_data, attribute_name):
-        matcher.Matcher._check_attribute("input data", input_data, attribute_name)
+        matcher.Matcher._check_attribute("input data",
+                                         input_data,
+                                         attribute_name)
         setattr(self, attribute_name, input_data[attribute_name])
 
     # This transforms annoying unicode string into common byte string
     @staticmethod
     def _byteify(input_data):
         if isinstance(input_data, dict):
-            return dict([(InputData._byteify(key), InputData._byteify(value)) for key, value in input_data.iteritems()])
+            return dict([(InputData._byteify(key), InputData._byteify(value))
+                         for key, value in input_data.iteritems()])
         elif isinstance(input_data, list):
             return [InputData._byteify(element) for element in input_data]
         elif isinstance(input_data, unicode):
@@ -188,8 +208,9 @@ def _run_gui(lhc_mode=None, match_path=None, input_dir=None):
     try:
         from gui import gui
     except ImportError:
-        print "Cannot start GUI using the current Python installation."
-        print "Launching OMC Anaconda Python..."
+        LOGGER.debug("ImportError importing GUI", exc_info=1)
+        LOGGER.info("Cannot start GUI using the current Python installation.")
+        LOGGER.info("Launching OMC Anaconda Python...")
         _run_gui_anaconda()
         return
     gui.main(lhc_mode, match_path, input_dir)
@@ -199,7 +220,8 @@ def _run_gui_anaconda():
     from subprocess import call
     if not sys.platform == "darwin":  # This is Mac
         if "win" in sys.platform:
-            print "There is not Windows version of Anaconda in OMC. Aborting."
+            LOGGER.error("There is not Windows version of Anaconda in OMC.\
+                         Aborting.")
             return
     interpreter = os.path.join("/afs", "cern.ch", "work", "o", "omc",
                                "anaconda", "bin", "python")
@@ -212,7 +234,7 @@ def _parse_args():
     if len(sys.argv) >= 2:
         first_arg = sys.argv[1]
         if first_arg == "gui":
-            print "Running GUI..."
+            LOGGER.info("Running GUI...")
             parser = argparse.ArgumentParser()
             parser.add_argument(
                 "gui", help="Run GUI mode.",
@@ -233,12 +255,13 @@ def _parse_args():
             args = parser.parse_args()
             _run_gui(args.lhc_mode, args.match, args.input)
         elif os.path.isfile(first_arg):
-            print "Given input is a file, matching from JSON file..."
+            LOGGER.info("Given input is a file, matching from JSON file...")
             main(os.path.abspath(first_arg))
     elif len(sys.argv) == 1:
-        print "No given input, running GUI..."
+        LOGGER.info("No given input, running GUI...")
         _run_gui()
 
 
 if __name__ == "__main__":
+    log_handler.set_up_console_logger(logging.getLogger(""))
     _parse_args()

@@ -1,6 +1,7 @@
 import sys
 import os
 import subprocess
+import logging
 from PyQt4 import QtGui
 from PyQt4.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
 from contextlib import contextmanager
@@ -8,6 +9,9 @@ from sbs_gui_matcher_selection import SbSGuiMatcherSelection
 from widgets import InitialConfigPopup
 from sbs_gui_match_result_view import SbSGuiMatchResultController
 import sbs_general_matcher
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class SbSGuiMain(QtGui.QMainWindow):
@@ -234,6 +238,7 @@ class SbSGuiMainController(object):
         try:
             yield
         except Exception as e:
+            LOGGER.exception(str(e))
             self._view.show_error_dialog("Error", str(e))
         finally:
             self._view.hide_background_task_dialog()
@@ -298,7 +303,9 @@ class SbSGuiMainController(object):
             results_controller = self._matchers_tabs[index].results_controller
             figures = results_controller.get_figures()
             matcher_model.get_plotter(figures).plot()
-            results_controller.update_variables(matcher_model.get_match_results())
+            results_controller.update_variables(
+                matcher_model.get_match_results()
+            )
         self._current_thread = None
 
     def _on_match_exception(self, message):
@@ -309,7 +316,7 @@ class SbSGuiMainController(object):
             open(self._corrections_file, "a").close()  # Create empty file
         self._launch_text_editor(self._corrections_file)
         if (self._active_watcher is not None and
-            self._corrections_file in self._active_watcher.files()):
+                self._corrections_file in self._active_watcher.files()):
             return
         self._watch_dir(self._match_path)
 
@@ -353,6 +360,7 @@ class BackgroundThread(QThread):
         try:
             self._function()
         except Exception as e:
+            LOGGER.exception(str(e))
             self.on_exception.emit(str(e))
 
     def start(self):

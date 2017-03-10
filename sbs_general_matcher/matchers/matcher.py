@@ -1,4 +1,5 @@
 import os
+import logging
 import shutil
 from Python_Classes4MAD import metaclass
 from Utilities import iotools
@@ -44,6 +45,7 @@ exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", %(B_E
 """
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+LOGGER = logging.getLogger(__name__)
 
 
 class Matcher(object):
@@ -75,7 +77,7 @@ class Matcher(object):
         exclude_vars_string = ""
         if "exclude_variables" in matcher_dict:
             exclude_vars_string = matcher_dict["exclude_variables"]
-        print "Successfully read matcher " + matcher_name
+        LOGGER.info("Successfully read matcher ", matcher_name)
 
         self._match_data = {}
         for beam in beams_paths:
@@ -231,21 +233,21 @@ class MatchData():
         self._beam_match_path = os.path.join(match_path, "Beam" + str(beam) + "_" + name)
         self._beam_match_sbs_path = os.path.join(self._beam_match_path, "sbs")
 
-        print "Copying measurement files for beam", str(beam),\
-              "into match folder..."
+        LOGGER.info("Copying measurement files for beam", str(beam),
+                    "into match folder...")
         iotools.create_dirs(self._beam_match_sbs_path)
         self._copy_measurement_files(ip,
                                      measurement_data_path)
 
-        print "Getting matching range for beam" + str(beam) + "..."
+        LOGGER.info("Getting matching range for beam", str(beam), "...")
         ((self._range_start_s,
           self._range_start_name),
          (self._range_end_s,
           self._range_end_name)) = MatchData._get_match_bpm_range(
             os.path.join(self._beam_match_sbs_path, "sbsphasext_IP" + str(ip) + ".out")
         )
-        print "Matching range for Beam " + str(beam),\
-              self._range_start_name, self._range_end_name
+        LOGGER.info("Matching range for Beam ", str(beam),
+                    self._range_start_name, self._range_end_name)
 
         self._modifiers = os.path.join(self._beam_match_sbs_path, "modifiers.madx")
         assert os.path.isfile(self._modifiers)
