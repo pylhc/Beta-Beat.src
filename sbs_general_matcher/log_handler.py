@@ -10,7 +10,6 @@ def set_up_console_logger(logger):
 
     console_handler = StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(_get_formatter())
 
     logger.addHandler(console_handler)
     return logger
@@ -22,7 +21,8 @@ def add_file_handler(logger, log_dir):
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(_get_formatter())
     logger.addHandler(file_handler)
-    logger.debug("Set up file handler")
+    logger.info("Set up debug log file in: " +
+                os.path.abspath(log_file))
 
 
 def _get_formatter():

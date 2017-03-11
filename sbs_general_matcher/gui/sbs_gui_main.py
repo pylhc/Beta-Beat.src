@@ -2,8 +2,8 @@ import sys
 import os
 import subprocess
 import logging
-from PyQt4 import QtGui
-from PyQt4.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
 from contextlib import contextmanager
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
 from widgets import InitialConfigPopup
@@ -14,7 +14,7 @@ import sbs_general_matcher
 LOGGER = logging.getLogger(__name__)
 
 
-class SbSGuiMain(QtGui.QMainWindow):
+class SbSGuiMain(QtWidgets.QMainWindow):
 
     WINDOW_TITLE = "Segment-by-segment general matcher GUI"
 
@@ -28,7 +28,7 @@ class SbSGuiMain(QtGui.QMainWindow):
     def _build_gui(self):
 
         self.setWindowTitle(SbSGuiMain.WINDOW_TITLE)
-        screen_shape = QtGui.QDesktopWidget().screenGeometry()
+        screen_shape = QtWidgets.QDesktopWidget().screenGeometry()
         self.resize(2 * screen_shape.width() / 3,
                     2 * screen_shape.height() / 3)
 
@@ -64,11 +64,11 @@ class SbSGuiMain(QtGui.QMainWindow):
             self._active_background_dialog = None
 
     def show_error_dialog(self, title, message):
-        message_box = QtGui.QMessageBox(
-            QtGui.QMessageBox.Critical,
+        message_box = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Critical,
             title,
             message,
-            QtGui.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok,
             self
         )
         message_box.exec_()
@@ -77,21 +77,21 @@ class SbSGuiMain(QtGui.QMainWindow):
         return self._main_widget.is_minimize_selected()
 
     def _get_new_matcher_action(self):
-        new_matcher_action = QtGui.QAction("New matcher...", self)
+        new_matcher_action = QtWidgets.QAction("New matcher...", self)
         new_matcher_action.triggered.connect(self._controller.new_matcher)
         return new_matcher_action
 
     def _get_remove_matcher_action(self):
-        remove_matcher_action = QtGui.QAction("Remove matcher", self)
+        remove_matcher_action = QtWidgets.QAction("Remove matcher", self)
         remove_matcher_action.triggered.connect(self._controller.remove_matcher)
         return remove_matcher_action
 
     def _get_clone_matcher_action(self):
-        clone_matcher_action = QtGui.QAction("Clone matcher", self)
+        clone_matcher_action = QtWidgets.QAction("Clone matcher", self)
         clone_matcher_action.triggered.connect(self._controller.clone_matcher)
         return clone_matcher_action
 
-    class SbSMainWidget(QtGui.QWidget):
+    class SbSMainWidget(QtWidgets.QWidget):
         def __init__(self, controller, parent=None):
             super(SbSGuiMain.SbSMainWidget, self).__init__(parent)
             self._controller = controller
@@ -101,39 +101,39 @@ class SbSGuiMain(QtGui.QMainWindow):
             return self._minimize_checkbox.isChecked()
 
         def _build_gui(self):
-            main_layout = QtGui.QVBoxLayout()
+            main_layout = QtWidgets.QVBoxLayout()
             self.setLayout(main_layout)
 
-            self._matchers_tabs_widget = QtGui.QTabWidget()
+            self._matchers_tabs_widget = QtWidgets.QTabWidget()
             main_layout.addWidget(self._matchers_tabs_widget)
 
-            lower_panel_layout = QtGui.QHBoxLayout()
-            buttons_layout = QtGui.QVBoxLayout()
-            global_options_layout = QtGui.QVBoxLayout()
+            lower_panel_layout = QtWidgets.QHBoxLayout()
+            buttons_layout = QtWidgets.QVBoxLayout()
+            global_options_layout = QtWidgets.QVBoxLayout()
             lower_panel_layout.addLayout(buttons_layout, stretch=3)
             lower_panel_layout.addLayout(global_options_layout)
             main_layout.addLayout(lower_panel_layout)
 
-            self._minimize_checkbox = QtGui.QCheckBox("Minimize variables")
+            self._minimize_checkbox = QtWidgets.QCheckBox("Minimize variables")
             global_options_layout.addWidget(self._minimize_checkbox)
 
-            run_button = QtGui.QPushButton("Run matching")
+            run_button = QtWidgets.QPushButton("Run matching")
             run_button.clicked.connect(self._controller.run_matching)
             buttons_layout.addWidget(run_button)
 
-            edit_corr_button = QtGui.QPushButton("Edit corrections file")
+            edit_corr_button = QtWidgets.QPushButton("Edit corrections file")
             edit_corr_button.clicked.connect(self._controller.edit_corrections_file)
             buttons_layout.addWidget(edit_corr_button)
 
-    class BackgroundTaskDialog(QtGui.QMessageBox):
+    class BackgroundTaskDialog(QtWidgets.QMessageBox):
         def __init__(self, message, parent=None):
             super(SbSGuiMain.BackgroundTaskDialog, self).__init__(
-                QtGui.QMessageBox.NoIcon,
+                QtWidgets.QMessageBox.NoIcon,
                 "Please wait...",
                 message
             )
             self.setWindowFlags(Qt.CustomizeWindowHint)
-            self.setStandardButtons(QtGui.QMessageBox.NoButton)
+            self.setStandardButtons(QtWidgets.QMessageBox.NoButton)
             self.resize(420, 240)
 
 
@@ -153,7 +153,7 @@ class SbSGuiMainController(object):
         initial_config_popup = InitialConfigPopup(lhc_mode, match_path)
         initial_config_popup.setWindowTitle("Please choose an output path")
         result_code = initial_config_popup.exec_()
-        if result_code == QtGui.QDialog.Accepted:
+        if result_code == QtWidgets.QDialog.Accepted:
             return initial_config_popup.get_selected_lhc_mode(), initial_config_popup.get_selected_file()
         else:
             return None, None
@@ -218,7 +218,7 @@ class SbSGuiMainController(object):
             self, clone_matcher=matcher_to_clone
         )
         result_code = sbs_gui_matcher_selection_dialog.exec_()
-        if result_code == QtGui.QDialog.Accepted:
+        if result_code == QtWidgets.QDialog.Accepted:
             selected_matcher_model = sbs_gui_matcher_selection_dialog.get_selected_matcher()
             with self._heavy_task("Copying files..."):
                 selected_matcher_model.create_matcher(self._match_path)

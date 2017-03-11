@@ -1,11 +1,11 @@
 import sys
-from PyQt4 import QtGui
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+from PyQt5 import QtWidgets
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
 
 
-class SbSGuiMatchResultView(QtGui.QWidget):
+class SbSGuiMatchResultView(QtWidgets.QWidget):
 
     def __init__(self, controller, variables_for_beam, variables_common, parent=None):
         super(SbSGuiMatchResultView, self).__init__(parent)
@@ -19,9 +19,9 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         self._build_gui()
 
     def _build_gui(self):
-        main_layout = QtGui.QHBoxLayout()
+        main_layout = QtWidgets.QHBoxLayout()
 
-        beam1_layout = QtGui.QVBoxLayout()
+        beam1_layout = QtWidgets.QVBoxLayout()
         beam1_frame = _BorderedGroupBox("Beam 1")
         beam1_frame.setLayout(beam1_layout)
 
@@ -31,7 +31,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         beam1_layout.addLayout(self._get_new_canvas_layout(self._beam1_lower_figure, 1))
         main_layout.addWidget(beam1_frame)
 
-        beam2_layout = QtGui.QVBoxLayout()
+        beam2_layout = QtWidgets.QVBoxLayout()
         beam2_frame = _BorderedGroupBox("Beam 2")
         beam2_frame.setLayout(beam2_layout)
 
@@ -41,56 +41,56 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         beam2_layout.addLayout(self._get_new_canvas_layout(self._beam2_lower_figure, 2))
         main_layout.addWidget(beam2_frame)
 
-        variables_layout = QtGui.QVBoxLayout()
+        variables_layout = QtWidgets.QVBoxLayout()
         variables_frame = _BorderedGroupBox("Variables")
         variables_frame.setLayout(variables_layout)
 
-        self._beam1_vars_layout = QtGui.QVBoxLayout()
+        self._beam1_vars_layout = QtWidgets.QVBoxLayout()
         if not len(self._variables_for_beam[1]) == 0:
-            beam1_widget = QtGui.QWidget()
+            beam1_widget = QtWidgets.QWidget()
             beam1_widget.setLayout(self._beam1_vars_layout)
-            beam1_scroll = QtGui.QScrollArea()
+            beam1_scroll = QtWidgets.QScrollArea()
             beam1_scroll.setWidgetResizable(True)
             beam1_scroll.setWidget(beam1_widget)
             beam1_vars_frame = _BorderedGroupBox("Beam 1")
-            beam1_vars_frame_layout = QtGui.QHBoxLayout()
+            beam1_vars_frame_layout = QtWidgets.QHBoxLayout()
             beam1_vars_frame_layout.addWidget(beam1_scroll)
             beam1_vars_frame.setLayout(beam1_vars_frame_layout)
             variables_layout.addWidget(beam1_vars_frame)
             for variable in self._variables_for_beam[1]:
                 self._beam1_vars_layout.addWidget(SbSGuiMatchResultView.CustomCheckBox(variable))
 
-        self._beam2_vars_layout = QtGui.QVBoxLayout()
+        self._beam2_vars_layout = QtWidgets.QVBoxLayout()
         if not len(self._variables_for_beam[2]) == 0:
-            beam2_widget = QtGui.QWidget()
+            beam2_widget = QtWidgets.QWidget()
             beam2_widget.setLayout(self._beam2_vars_layout)
-            beam2_scroll = QtGui.QScrollArea()
+            beam2_scroll = QtWidgets.QScrollArea()
             beam2_scroll.setWidgetResizable(True)
             beam2_scroll.setWidget(beam2_widget)
             beam2_vars_frame = _BorderedGroupBox("Beam 2")
-            beam2_vars_frame_layout = QtGui.QHBoxLayout()
+            beam2_vars_frame_layout = QtWidgets.QHBoxLayout()
             beam2_vars_frame_layout.addWidget(beam2_scroll)
             beam2_vars_frame.setLayout(beam2_vars_frame_layout)
             variables_layout.addWidget(beam2_vars_frame)
             for variable in self._variables_for_beam[2]:
                 self._beam2_vars_layout.addWidget(SbSGuiMatchResultView.CustomCheckBox(variable))
 
-        self._common_vars_layout = QtGui.QVBoxLayout()
+        self._common_vars_layout = QtWidgets.QVBoxLayout()
         if not len(self._variables_common) == 0:
-            common_widget = QtGui.QWidget()
+            common_widget = QtWidgets.QWidget()
             common_widget.setLayout(self._common_vars_layout)
-            common_scroll = QtGui.QScrollArea()
+            common_scroll = QtWidgets.QScrollArea()
             common_scroll.setWidgetResizable(True)
             common_scroll.setWidget(common_widget)
             common_vars_frame = _BorderedGroupBox("Common")
-            common_vars_frame_layout = QtGui.QHBoxLayout()
+            common_vars_frame_layout = QtWidgets.QHBoxLayout()
             common_vars_frame_layout.addWidget(common_scroll)
             common_vars_frame.setLayout(common_vars_frame_layout)
             variables_layout.addWidget(common_vars_frame)
             for variable in self._variables_common:
                 self._common_vars_layout.addWidget(SbSGuiMatchResultView.CustomCheckBox(variable))
 
-        select_all_checkbox = QtGui.QCheckBox("Toggle select all")
+        select_all_checkbox = QtWidgets.QCheckBox("Toggle select all")
         select_all_checkbox.stateChanged.connect(self._toogle_select_all)
         variables_layout.addWidget(select_all_checkbox)
 
@@ -99,7 +99,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
         self.setLayout(main_layout)
 
     def _get_new_canvas_layout(self, figure, beam):
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         canvas = FigureCanvas(figure)
         canvas.mpl_connect(
             'motion_notify_event',
@@ -154,7 +154,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
                        self._common_vars_layout]:
             for index in range(layout.count()):
                 checkbox = layout.itemAt(index).widget()
-                if issubclass(checkbox.__class__, QtGui.QCheckBox):
+                if issubclass(checkbox.__class__, QtWidgets.QCheckBox):
                     function(checkbox)
 
     def _mouse_moved_on_figure(self, event, figure, beam):
@@ -238,9 +238,9 @@ class SbSGuiMatchResultView(QtGui.QWidget):
                     for point in points:
                         x, y = point
                         axes.text(x, y, "X",
-                        horizontalalignment='center',
-                        verticalalignment='center',
-                        fontsize=15, color='red')
+                                  horizontalalignment='center',
+                                  verticalalignment='center',
+                                  fontsize=15, color='red')
             if selected_axes is not None:
                 selected_axes.texts.append(self._latest_annotation)
             figure.canvas.draw()
@@ -294,7 +294,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
                     legend._set_loc(loc)
             self.draw()
 
-    class CustomCheckBox(QtGui.QCheckBox):
+    class CustomCheckBox(QtWidgets.QCheckBox):
         STRENGH_COLOR_LIMIT = 1e-3
         BACKGROUND_COLOR_TEMPLATE = "QCheckBox { background-color: %(COLOR)s;}"
         DISABLED_CSS_COLOR = "rgb(224, 224, 224)"
@@ -306,9 +306,9 @@ class SbSGuiMatchResultView(QtGui.QWidget):
 
         def mouseMoveEvent(self, event):
             super(SbSGuiMatchResultView.CustomCheckBox, self).mouseMoveEvent(event)
-            QtGui.QToolTip.showText(event.globalPos(),
-                                    self._tooltip_text,
-                                    widget=self)
+            QtWidgets.QToolTip.showText(event.globalPos(),
+                                        self._tooltip_text,
+                                        widget=self)
 
         def set_variable_value_from_dict(self, name_value_dict):
             StaticRef = SbSGuiMatchResultView.CustomCheckBox
@@ -339,7 +339,7 @@ class SbSGuiMatchResultView(QtGui.QWidget):
             return "rgb(" + str(red) + ", " + str(green) + ", " + str(blue) + ")"
 
 
-class _BorderedGroupBox(QtGui.QGroupBox):
+class _BorderedGroupBox(QtWidgets.QGroupBox):
 
     def __init__(self, label, parent=None):
         super(_BorderedGroupBox, self).__init__(label, parent)

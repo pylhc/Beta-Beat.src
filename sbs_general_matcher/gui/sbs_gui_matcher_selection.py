@@ -1,12 +1,12 @@
 import sys
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 from matchers_views.matcher_view_phase import MatcherControllerPhase
 from matchers_views.matcher_view_kmod import MatcherControllerKmod
 from matchers_views.matcher_view_amp import MatcherControllerAmp
 from matchers_views.matcher_view_coupling import MatcherControllerCoupling
 
 
-class SbSGuiMatcherSelection(QtGui.QDialog):
+class SbSGuiMatcherSelection(QtWidgets.QDialog):
 
     WINDOW_TITLE = "Select matcher to add"
     MATCHER_TYPES = {
@@ -27,24 +27,24 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
         self.setWindowTitle(SbSGuiMatcherSelection.WINDOW_TITLE)
         self.resize(320, 240)
 
-        dialog_layout = QtGui.QVBoxLayout(self)
-        buttons_layout = QtGui.QHBoxLayout()
+        dialog_layout = QtWidgets.QVBoxLayout(self)
+        buttons_layout = QtWidgets.QHBoxLayout()
 
         self._matchers_list_widget = SbSGuiMatcherSelection._get_matchers_list_widget()
         dialog_layout.addWidget(self._matchers_list_widget)
 
         if self._clone_matcher is None:
-            add_button = QtGui.QPushButton("Add", self)
+            add_button = QtWidgets.QPushButton("Add", self)
 
             add_button.clicked.connect(self._accept_action)
             buttons_layout.addWidget(add_button)
         else:
-            clone_button = QtGui.QPushButton("Clone", self)
+            clone_button = QtWidgets.QPushButton("Clone", self)
 
             clone_button.clicked.connect(self._clone_action)
             buttons_layout.addWidget(clone_button)
 
-        cancel_button = QtGui.QPushButton("Cancel", self)
+        cancel_button = QtWidgets.QPushButton("Cancel", self)
         cancel_button.clicked.connect(self.reject)
         buttons_layout.addWidget(cancel_button)
 
@@ -52,7 +52,7 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
 
     @staticmethod
     def _get_matchers_list_widget():
-        matchers_list_widget = QtGui.QListWidget()
+        matchers_list_widget = QtWidgets.QListWidget()
         for key in SbSGuiMatcherSelection.MATCHER_TYPES:
             matchers_list_widget.addItem(key)
         return matchers_list_widget
@@ -61,7 +61,7 @@ class SbSGuiMatcherSelection(QtGui.QDialog):
         self._selected_matcher = str(self._matchers_list_widget.currentItem().text())
         matcher_controller_instance = SbSGuiMatcherSelection.MATCHER_TYPES[self._selected_matcher](self._main_controller)
         result_code = matcher_controller_instance.show_view()
-        if result_code == QtGui.QDialog.Accepted:
+        if result_code == QtWidgets.QDialog.Accepted:
             self._selected_matcher = matcher_controller_instance.get_selected_matcher_model()
             self.accept()
 

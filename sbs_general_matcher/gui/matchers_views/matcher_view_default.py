@@ -1,11 +1,11 @@
 import sys
 import os
-from PyQt4 import QtGui
-from PyQt4.QtCore import Qt
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
 from ..widgets import FileSelectionComboWidget
 
 
-class MatcherViewDefault(QtGui.QDialog):
+class MatcherViewDefault(QtWidgets.QDialog):
 
     IPS = ["1", "2", "3", "4", "5", "6", "7", "8"]
 
@@ -17,32 +17,32 @@ class MatcherViewDefault(QtGui.QDialog):
 
     def _build_gui(self):
         self.resize(655, 184)
-        main_layout = QtGui.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(main_layout)
 
-        selectors_layout = QtGui.QVBoxLayout()
+        selectors_layout = QtWidgets.QVBoxLayout()
         self._beam1_file_selector = FileSelectionComboWidget(label_text="Beam 1 path:")
         selectors_layout.addWidget(self._beam1_file_selector)
         self._beam2_file_selector = FileSelectionComboWidget(label_text="Beam 2 path:")
         selectors_layout.addWidget(self._beam2_file_selector)
         main_layout.addLayout(selectors_layout)
 
-        other_controls_layout = QtGui.QHBoxLayout()
-        self._ip_combo_box = QtGui.QComboBox()
+        other_controls_layout = QtWidgets.QHBoxLayout()
+        self._ip_combo_box = QtWidgets.QComboBox()
         self._ip_combo_box.addItem("Select IP")
         self._ip_combo_box.addItems(MatcherViewDefault.IPS)
         other_controls_layout.addWidget(self._ip_combo_box)
-        self._use_errors_checkbox = QtGui.QCheckBox("Use errorbars")
+        self._use_errors_checkbox = QtWidgets.QCheckBox("Use errorbars")
         other_controls_layout.addWidget(self._use_errors_checkbox, Qt.AlignRight)
-        self._back_prop_checkbox = QtGui.QCheckBox("Back propagation")
+        self._back_prop_checkbox = QtWidgets.QCheckBox("Back propagation")
         other_controls_layout.addWidget(self._back_prop_checkbox, Qt.AlignRight)
         main_layout.addLayout(other_controls_layout)
 
-        buttons_layout = QtGui.QHBoxLayout()
-        add_button = QtGui.QPushButton("Add", self)
+        buttons_layout = QtWidgets.QHBoxLayout()
+        add_button = QtWidgets.QPushButton("Add", self)
         add_button.clicked.connect(self._controller._accept_action)
         buttons_layout.addWidget(add_button)
-        cancel_button = QtGui.QPushButton("Cancel", self)
+        cancel_button = QtWidgets.QPushButton("Cancel", self)
         cancel_button.clicked.connect(self._controller._cancel_action)
         buttons_layout.addWidget(cancel_button)
         main_layout.addLayout(buttons_layout)
@@ -78,11 +78,11 @@ class MatcherViewDefault(QtGui.QDialog):
         return self._back_prop_checkbox.isChecked()
 
     def show_error(self, text):
-        msg = QtGui.QMessageBox()
-        msg.setIcon(QtGui.QMessageBox.Critical)
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
         msg.setText(text)
         msg.setWindowTitle("Input error")
-        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec_()
 
     def plot(self, dto):

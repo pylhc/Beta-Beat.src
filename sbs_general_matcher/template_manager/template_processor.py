@@ -11,7 +11,7 @@ class TemplateProcessor(object):
 match, use_macro;
 """
     END_MATCH = """
-lmdif, tolerance:=1e-24, calls:=1200;
+lmdif, tolerance:=1e-24, calls:=12000;
 endmatch;
 """
     SAVE_CHANGEPARAMETERS = """
@@ -152,7 +152,7 @@ exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_back.dat", %(B_END)s
         def_variables_string = ""
         for variable in self._variables:
             def_variables_string += '    vary, name=d' + variable
-            def_variables_string += ', step := 1e-5;\n'
+            def_variables_string += ', step := 1e-6;\n'
         self._define_variables_list.append(def_variables_string)
 
     MATCHING_MACRO_TEMPLATE = """
@@ -193,11 +193,15 @@ print, text = "=========== step for %(MACRO_NAME)s ===========";
     def _minimize_variables(self, matcher):
         variables = matcher.get_all_variables()
         minimize_vars_str = ""
-        minimize_vars_str += '    constraint, weight = 1.0, expr = sqrt('
+        # minimize_vars_str += '    constraint, weight = 1.0, expr = sqrt('
+        # for variable in variables:
+        #     minimize_vars_str += variable + "^2 +"
+        # minimize_vars_str = minimize_vars_str[:-1]
+        # minimize_vars_str += ') = 0.0; \n'
         for variable in variables:
-            minimize_vars_str += variable + "^2 +"
-        minimize_vars_str = minimize_vars_str[:-1]
-        minimize_vars_str += ') = 0.0; \n'
+            if "x2a" in variable:
+                minimize_vars_str += '    constraint, weight = 100.0, expr = '
+                minimize_vars_str += 'd' + variable + ' = ' + 'd' + variable.replace('x2a', 'x2b') + ';\n'
         return minimize_vars_str
 
     def _generate_changeparameters(self, matcher):

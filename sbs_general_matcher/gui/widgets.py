@@ -1,17 +1,17 @@
 import sys
 import constants
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 
 
-class FileSelectionDialogWidget(QtGui.QWidget):
+class FileSelectionDialogWidget(QtWidgets.QWidget):
     def __init__(self, label_text="", parent=None):
         super(FileSelectionDialogWidget, self).__init__(parent)
-        layout = QtGui.QHBoxLayout(self)
-        label = QtGui.QLabel(label_text)
+        layout = QtWidgets.QHBoxLayout(self)
+        label = QtWidgets.QLabel(label_text)
         layout.addWidget(label)
-        self._text_area = QtGui.QLineEdit()
+        self._text_area = QtWidgets.QLineEdit()
         layout.addWidget(self._text_area)
-        self._select_button = QtGui.QPushButton("Choose...")
+        self._select_button = QtWidgets.QPushButton("Choose...")
         self._select_button.clicked.connect(self._select_file_action)
         layout.addWidget(self._select_button)
 
@@ -22,23 +22,23 @@ class FileSelectionDialogWidget(QtGui.QWidget):
         self._text_area.setText(text)
 
     def _select_file_action(self):
-        file_selection_dialog = QtGui.QFileDialog()
+        file_selection_dialog = QtWidgets.QFileDialog()
         self._text_area.setText(file_selection_dialog.getExistingDirectory())
 
 
-class FileSelectionComboWidget(QtGui.QWidget):
+class FileSelectionComboWidget(QtWidgets.QWidget):
 
     added_items = []
 
     def __init__(self, label_text="", initial_list=[], parent=None):
         super(FileSelectionComboWidget, self).__init__(parent)
-        layout = QtGui.QHBoxLayout(self)
-        label = QtGui.QLabel(label_text)
+        layout = QtWidgets.QHBoxLayout(self)
+        label = QtWidgets.QLabel(label_text)
         layout.addWidget(label)
-        self._items_combo = QtGui.QComboBox()
+        self._items_combo = QtWidgets.QComboBox()
         layout.addWidget(self._items_combo)
         self._items_combo.addItems(initial_list + self.added_items)
-        self._select_button = QtGui.QPushButton("Add...")
+        self._select_button = QtWidgets.QPushButton("Add...")
         self._select_button.clicked.connect(self._select_file_action)
         layout.addWidget(self._select_button)
 
@@ -58,18 +58,18 @@ class FileSelectionComboWidget(QtGui.QWidget):
         self._items_combo.setCurrentIndex(0)
 
     def _select_file_action(self):
-        file_selection_dialog = QtGui.QFileDialog()
+        file_selection_dialog = QtWidgets.QFileDialog()
         self.add_item(file_selection_dialog.getExistingDirectory())
 
 
-class InitialConfigPopup(QtGui.QDialog):
+class InitialConfigPopup(QtWidgets.QDialog):
 
     def __init__(self, lhc_mode, match_path, parent=None):
         super(InitialConfigPopup, self).__init__(parent)
         self.resize(655, 90)
-        main_layout = QtGui.QVBoxLayout(self)
+        main_layout = QtWidgets.QVBoxLayout(self)
 
-        self._lhc_mode_combo = QtGui.QComboBox()
+        self._lhc_mode_combo = QtWidgets.QComboBox()
         self._lhc_mode_combo.addItems(constants.LHC_MODES)
         if lhc_mode is not None:
             if lhc_mode not in constants.LHC_MODES:
@@ -84,11 +84,11 @@ class InitialConfigPopup(QtGui.QDialog):
         if match_path is not None:
             self._file_selector.set_selected_file(match_path)
 
-        buttons_layout = QtGui.QHBoxLayout()
-        accept_button = QtGui.QPushButton("Accept")
+        buttons_layout = QtWidgets.QHBoxLayout()
+        accept_button = QtWidgets.QPushButton("Accept")
         accept_button.clicked.connect(self.accept)
         buttons_layout.addWidget(accept_button)
-        cancel_button = QtGui.QPushButton("Cancel")
+        cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.clicked.connect(self.reject)
         buttons_layout.addWidget(cancel_button)
         main_layout.addLayout(buttons_layout)

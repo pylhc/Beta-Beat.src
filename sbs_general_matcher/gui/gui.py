@@ -3,7 +3,7 @@ import os
 import constants
 import logging
 from sbs_general_matcher import log_handler
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 from sbs_gui_main import SbSGuiMainController
 
 
@@ -12,8 +12,8 @@ LOGGER = logging.getLogger(__name__)
 
 def main(lhc_mode=None, match_path=None, input_dir=None):
     sys.path.append(os.path.abspath("../../"))
-    app = QtGui.QApplication(sys.argv)
-    app.setStyle("plastique")
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("fusion")
     main_controller = SbSGuiMainController()
     if match_path is None or lhc_mode is None:
         lhc_mode, match_path = main_controller.ask_for_initial_config(
