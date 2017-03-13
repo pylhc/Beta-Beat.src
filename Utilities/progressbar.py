@@ -26,7 +26,7 @@ def startProgress_(title):
 
 def progress(x):
     pos = int(x * PROGRESSBAR_LENGTH)
-    sys.stdout.write(" [\33[32m" + "#" * pos + "\33[0m" + "#" * (PROGRESSBAR_LENGTH - pos) + "] " + "{0:5.1f} %".format(x*10) + chr(8) * (PROGRESSBAR_LENGTH + 11))
+    sys.stdout.write(" [\33[32m" + "#" * pos + "\33[0m" + "#" * (PROGRESSBAR_LENGTH - pos) + "] " + "{0:5.1f} %".format(x*100) + chr(8) * (PROGRESSBAR_LENGTH + 11))
     sys.stdout.flush()
     
 
