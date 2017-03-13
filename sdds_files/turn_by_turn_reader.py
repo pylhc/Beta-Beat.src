@@ -75,6 +75,14 @@ class TbtFile(object):
         """
         return self._get(bpm_name, VER)
 
+    def write_to_ascii(self, model_path, output_path):
+        """
+        Writes this tbt file to output_path in ascii format.
+        """
+        _TbtAsciiWriter([self],
+                        model_path,
+                        output_path).transform_tbt_to_ascii()
+
     @property
     def samples_matrix_x(self):
         """
@@ -94,8 +102,9 @@ class TbtFile(object):
         return self._samples_matrix[VER]
 
     def _get(self, bpm_name, plane):
+        bpm_names = self.bpm_names_x if plane == HOR else self.bpm_names_y
         try:
-            index = self.bpm_names.index(bpm_name)
+            index = bpm_names.index(bpm_name)
             return self._samples_matrix[plane][index]
         except ValueError:
             raise KeyError(bpm_name)
