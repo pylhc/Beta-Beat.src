@@ -38,15 +38,29 @@ def transform_tbt_to_ascii(file_path, model_path, output_path):
                     output_path).transform_tbt_to_ascii()
 
 
+def write_ascii_file(model_path, output_path,
+                     bpm_names_x, matrix_x,
+                     bpm_names_y, matrix_y, date):
+    new_tbt_file = TbtFile.create_from_matrices(
+        bpm_names_x, matrix_x,
+        bpm_names_y, matrix_y, date
+    )
+    _TbtAsciiWriter([new_tbt_file],
+                    model_path,
+                    output_path).transform_tbt_to_ascii()
+
+
 class TbtFile(object):
-    def __init__(self, bpm_names, date,
-                 num_bunches, num_turns, num_monitors, bunch_id):
+    def __init__(self, bpm_names_x, bpm_names_y, date,
+                 num_bunches, num_turns, bunch_id):
         self.date = date
         self.num_bunches = num_bunches
         self.num_turns = num_turns
-        self.num_monitors = num_monitors
+        self.num_monitors_x = len(bpm_names_x)
+        self.num_monitors_y = len(bpm_names_y)
         self.bunch_id = bunch_id
-        self.bpm_names = bpm_names
+        self.bpm_names_x = bpm_names_x
+        self.bpm_names_y = bpm_names_y
         self._samples_matrix = {HOR: {}, VER: {}}
 
     def get_x_samples(self, bpm_name):
@@ -60,6 +74,14 @@ class TbtFile(object):
         Returns the vertical samples captured by bpm_name.
         """
         return self._get(bpm_name, VER)
+
+    def write_to_ascii(self, model_path, output_path):
+        """
+        Writes this tbt file to output_path in ascii format.
+        """
+        _TbtAsciiWriter([self],
+                        model_path,
+                        output_path).transform_tbt_to_ascii()
 
     @property
     def samples_matrix_x(self):
@@ -80,11 +102,21 @@ class TbtFile(object):
         return self._samples_matrix[VER]
 
     def _get(self, bpm_name, plane):
+        bpm_names = self.bpm_names_x if plane == HOR else self.bpm_names_y
         try:
-            index = self.bpm_names.index(bpm_name)
+            index = bpm_names.index(bpm_name)
             return self._samples_matrix[plane][index]
         except ValueError:
             raise KeyError(bpm_name)
+
+    @staticmethod
+    def create_from_matrices(bpm_names_x, matrix_x,
+                             bpm_names_y, matrix_y, date):
+        new_tbt_file = TbtFile(bpm_names_x, bpm_names_y,
+                               date, 1, len(matrix_x[0]), 0)
+        new_tbt_file._samples_matrix[HOR] = matrix_x
+        new_tbt_file._samples_matrix[VER] = matrix_y
+        return new_tbt_file
 
 
 # Private ###################
@@ -120,8 +152,8 @@ class _TbtReader(object):
         self._tbt_files = []
         for index in range(self._num_bunches):
             self._tbt_files.append(
-                TbtFile(self._bpm_names, self._date, self._num_bunches,
-                        self._num_turns, self._num_monitors,
+                TbtFile(self._bpm_names, self._bpm_names, self._date,
+                        self._num_bunches, self._num_turns,
                         self._bunch_id[HOR][index])  # TODO: does plane matter?
             )
 
@@ -195,8 +227,10 @@ class _TbtAsciiWriter(object):
         ) + "\n")
         output_file.write("#Number of turns: " +
                           str(tbt_file.num_turns) + "\n")
-        output_file.write("#Number of monitors: " +
-                          str(tbt_file.num_monitors) + "\n")
+        output_file.write("#Number of horizontal monitors: " +
+                          str(tbt_file.num_monitors_x) + "\n")
+        output_file.write("#Number of vertical monitors: " +
+                          str(tbt_file.num_monitors_y) + "\n")
         output_file.write("#Acquisition date: " + tbt_file.date.strftime(
             "%Y-%m-%d at %H:%M:%S"
         ) + "\n")
