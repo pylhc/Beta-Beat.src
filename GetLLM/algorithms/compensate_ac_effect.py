@@ -696,20 +696,22 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     #if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
-    for b in psih_ac2bpmac.keys():
-        if '5L4' in b: bpmac1=b
-        if '6L4' in b: bpmac2=b
+    bpmac1 = psih_ac2bpmac.keys()[0]
+    bpmac2 = psih_ac2bpmac.keys()[1]
+
     try:
-        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
-        bpmac=bpmac1
+        k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
+        bpmac = bpmac1
     except:
         try:
-            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
-            bpmac=bpmac2
+            k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
+            bpmac = bpmac2
         except:
             print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
             return [{},[]]
-
+    
+    print "WARN: GetFreeCoupling ---- maybe problem with different kicker positions for H and V kicks"
+    
     #-- Global parameters of the driven motion
     dh =Qh-Qx
     dv =Qv-Qy
