@@ -97,7 +97,7 @@ def _parse_args():
     parser.add_argument("-m", "--maxturns",
         help="""Maximum number of turns to be analysed. Default is a number that is lower than the maximum 
              which can be handled by drive: %(default)s""",
-        default="9500", dest="maxturns", type=int)
+        default="50000", dest="maxturns", type=int)
     parser.add_argument("-v", "--sing_val", "--singular_values_amount_to_keep",
         help="""Keep this amount of singular values in decreasing order, rest will be cut (set to 0). 
              Default is a large number: %(default)s""",
