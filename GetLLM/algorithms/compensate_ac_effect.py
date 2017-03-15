@@ -293,7 +293,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
         except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
         
 
-    return result_,muave_,bpm
+    return result_, muave_, bpm
 
 def get_free_phase_eq_intermediat(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 
