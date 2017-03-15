@@ -74,6 +74,7 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
                 bpmac1 = 'BPMWA.B5L4.B2'
                 bpmac2 = 'BPMWA.A5L4.B2'
         else:
+           
             return {}
 
     if plane=='H':
@@ -87,6 +88,8 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
     psid_ac2bpmac1=np.arctan((1+r)/(1-r)*tan(2*np.pi*psi_ac2bpmac1-np.pi*Q))%np.pi-np.pi+np.pi*Qd
     psid_ac2bpmac2=np.arctan((1+r)/(1-r)*tan(2*np.pi*psi_ac2bpmac2+np.pi*Q))%np.pi-np.pi*Qd
 
+    print ">>======== selected accel is", oa
+    
     return {bpmac1:psid_ac2bpmac1,bpmac2:psid_ac2bpmac2}
 
 
@@ -290,7 +293,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
         except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
         
 
-    return [result_,muave_,bpm]
+    return result_,muave_,bpm
 
 def get_free_phase_eq_intermediat(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 
@@ -510,7 +513,7 @@ def get_free_phase_eq_intermediat(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,
             result["".join(['V',bn1,bn11])] = [psi111ave,psi111std,psi111mdl[k]]
             
              # >>>>>>>>>>
-    return [result_,muave_,bpm]
+    return result_,muave_,bpm
 
 
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):
@@ -532,13 +535,9 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
-    bpm_ac1 = ""
-    bpm_ac2 = ""
-    for b in psid_ac2bpmac.keys():
-        if '5L4' in b:
-            bpm_ac1 = b
-        if '6L4' in b:
-            bpm_ac2 = b
+    bpm_ac1 = psid_ac2bpmac.keys()[0]
+    bpm_ac2 = psid_ac2bpmac.keys()[1]
+    
 
     bpm_names = list(zip(*all_bpms)[1])
     if bpm_ac1 in bpm_names:
@@ -549,7 +548,7 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         bpmac = bpm_ac2
     else:
         print >> sys.stderr, 'WARN: BPMs next to AC dipoles missing. Was looking for: bpm_ac1="{0}" and bpm_ac2="{1}"'.format(bpm_ac1, bpm_ac2)
-        return [{}, 0.0, [], [float('nan'), float('nan')]]
+        return {}, 0.0, []
 
     #-- Model beta and phase advance
     if plane == 'H':
@@ -613,7 +612,7 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         result[all_bpms[k][1]] = [betave, betstd, all_bpms[k][0]]
     bb = math.sqrt(np.mean(np.array(bb) ** 2))
 
-    return [result, bb, all_bpms]
+    return result, bb, all_bpms
 
 
 def intersect_bpm_list_with_arc_bpms(bpms_list):
@@ -709,8 +708,23 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         except:
             print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
             return [{},[]]
+        
+    bpmac1v = psiv_ac2bpmac.keys()[0]
+    bpmac2v = psiv_ac2bpmac.keys()[1]
+
+    try:
+        k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
+        bpmacv = bpmac1v
+    except:
+        try:
+            k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
+            bpmacv = bpmac2v
+        except:
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
+            return [{},[]]
     
     print "WARN: GetFreeCoupling ---- maybe problem with different kicker positions for H and V kicks"
+    print "      For now a hack is implemented to prevent GetLLM from crashing"
     
     #-- Global parameters of the driven motion
     dh =Qh-Qx
@@ -776,8 +790,8 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
         #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
         psih=psih-(psih[k_bpmac]-psih_ac2bpmac[bpmac])
-        psiv=psiv-(psiv[k_bpmac]-psiv_ac2bpmac[bpmac])
-
+        psiv=psiv-(psiv[k_bpmac]-psiv_ac2bpmac[bpmacv])
+ 
         Psih=psih-np.pi*Qh
         Psih[:k_bpmac]=Psih[:k_bpmac]+2*np.pi*Qh
         Psiv=psiv-np.pi*Qv
@@ -894,6 +908,8 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
 def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 
+    if psid_ac2bpmac is None:
+        return [{}, []]
     #-- Common BPMs
     bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
@@ -903,18 +919,19 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
     if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
-    for b in psid_ac2bpmac.keys():
-        if '5L4' in b: bpmac1=b
-        if '6L4' in b: bpmac2=b
+    bpmac1 = psid_ac2bpmac.keys()[0]
+    bpmac2 = psid_ac2bpmac.keys()[1]
+
     try:
-        k_bpmac=list(zip(*bpm)[1]).index(bpmac1)
-        bpmac=bpmac1
+        k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
+        bpmac = bpmac1
     except:
         try:
-            k_bpmac=list(zip(*bpm)[1]).index(bpmac2)
-            bpmac=bpmac2
+            k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
+            bpmac = bpmac2
         except:
-            return [{},[]]
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
+            return {}
 
     #-- Global parameters of the driven motion
     r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
