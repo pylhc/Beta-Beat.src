@@ -900,7 +900,7 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
     try:
         [meansqrt_2jx, meansqrt_2jy, _, _, tunes, dpp, bpmrejx, bpmrejy] = algorithms.helper.getkick(files, mad_twiss, beta_d, bbthreshold, errthreshold)
     except IndexError:  # occurs if either no x or no y files exist
-        return files_dict
+        return files_dict, [], []
 
     #mean_2j = mean{2J} and meansqrt_2j=mean{sqrt(2J)}
 

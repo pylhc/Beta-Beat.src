@@ -3,4 +3,4 @@
 	url = https://github.com/pylhc/Python_Classes4MAD.git
 [submodule "hole_in_one"]
 	path = hole_in_one
-	url = https://:@gitlab.cern.ch:8443/lmalina/hole_in_one.git
+	url = https://gitlab.cern.ch/lmalina/hole_in_one.git

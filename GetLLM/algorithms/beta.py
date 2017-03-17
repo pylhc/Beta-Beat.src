@@ -87,10 +87,10 @@ class BetaData(object):
         self.x_amp = None  # beta x from amplitude
         self.y_amp = None  # beta y from amplitude
 
-        self.x_ratio = None  # beta x ratio
-        self.x_ratio_f = None  # beta x ratio free
-        self.y_ratio = None  # beta x ratio
-        self.y_ratio_f = None  # beta x ratio free
+        self.x_ratio = 0  # beta x ratio
+        self.x_ratio_f = 0  # beta x ratio free
+        self.y_ratio = 0  # beta x ratio
+        self.y_ratio_f = 0  # beta x ratio free
 
 #===================================================================================================
 # main part
