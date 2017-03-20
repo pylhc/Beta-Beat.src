@@ -1,3 +1,6 @@
 [submodule "Python_Classes4MAD"]
 	path = Python_Classes4MAD
 	url = https://github.com/pylhc/Python_Classes4MAD.git
+[submodule "hole_in_one/harpy"]
+	path = hole_in_one/harpy
+	url = https://github.com/pylhc/harpy.git
