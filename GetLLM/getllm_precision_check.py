@@ -155,14 +155,14 @@ def print_getllm_precision():
         _comprare_results(output_dir)
     finally:
         _clean_up_files(output_dir)
-        print("Test finished");
+        print("Test finished")
 
 
 def _run_tracking_model(directory):
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory)
-    with silence():
-        madx_wrapper.resolve_and_run_string(madx_script, madx_path=MADX_PATH)
+    # with silence():
+    madx_wrapper.resolve_and_run_string(madx_script, madx_path=MADX_PATH)
     track_path = _get_track_path(directory, one=True)
     tbt_path = _get_tbt_path(directory)
     with silence():
