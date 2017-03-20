@@ -1,5 +1,4 @@
 language: python
-#python version
 python:
  - "2.7"
 script: python GetLLM/getllm_precision_check.py
