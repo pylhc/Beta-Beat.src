@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import os
+from os.path import dirname
 import numpy as np
 sys.path.append(os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../")
@@ -10,6 +11,7 @@ from drive import drive_runner
 from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
 import tempfile
+import time
 from Utilities import iotools, ADDbpmerror
 from Utilities.contexts import silence
 
@@ -135,8 +137,10 @@ NUM_TURNS = RAMP3
 
 def print_getllm_precision():
     #output_dir = tempfile.mkdtemp()
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-    output_dir = os.path.join(root_dir, "Utilities", "getllmTestOutput")
+    test_dir = dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(test_dir, "test_getllm" + time.strftime("%d_%m_%Y"))
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
     #output_dir =os.path.join("/afs", "cern.ch", "work", "e", "efol", "public", "getllmTestOutput")
     try:
         _run_tracking_model(output_dir)
