@@ -1,6 +1,3 @@
 [submodule "Python_Classes4MAD"]
 	path = Python_Classes4MAD
 	url = https://github.com/pylhc/Python_Classes4MAD.git
-[submodule "hole_in_one"]
-	path = hole_in_one
-	url = https://gitlab.cern.ch/lmalina/hole_in_one.git
