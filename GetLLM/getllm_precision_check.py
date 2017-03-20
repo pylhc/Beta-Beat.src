@@ -16,6 +16,13 @@ from Utilities import iotools, ADDbpmerror
 from Utilities.contexts import silence
 
 
+MADX_PATH = os.path.abspath(os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "binaries",
+    "madx_dev"
+))
+
 HOR, VER = 0, 1
 PLANE_SUFFIX = {HOR: "x", VER: "y"}
 
@@ -155,7 +162,7 @@ def _run_tracking_model(directory):
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory)
     with silence():
-        madx_wrapper.resolve_and_run_string(madx_script)
+        madx_wrapper.resolve_and_run_string(madx_script, madx_path=MADX_PATH)
     track_path = _get_track_path(directory, one=True)
     tbt_path = _get_tbt_path(directory)
     with silence():
