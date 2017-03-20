@@ -134,15 +134,17 @@ NUM_TURNS = RAMP3
 
 
 def print_getllm_precision():
-    output_dir = tempfile.mkdtemp()
-    #output_dir =os.path.join("/afs", "cern.ch", "work", "e", "efol", "public", "getLLMcheck_adt_ampbeta")
+    #output_dir = tempfile.mkdtemp()
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    output_dir = os.path.join(root_dir, "Utilities", "getllmTestOutput")
+    #output_dir =os.path.join("/afs", "cern.ch", "work", "e", "efol", "public", "getllmTestOutput")
     try:
         _run_tracking_model(output_dir)
         _do_analysis(output_dir)
         _comprare_results(output_dir)
     finally:
         _clean_up_files(output_dir)
-        #print("Test finished");
+        print("Test finished");
 
 
 def _run_tracking_model(directory):
