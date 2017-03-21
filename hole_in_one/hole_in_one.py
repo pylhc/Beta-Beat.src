@@ -3,13 +3,11 @@ import sys
 import os
 from datetime import datetime
 import argparse
-if "win" in sys.platform and not sys.platform == "darwin":
-    AFS_ROOT = "\\\\AFS"
-else:
-    AFS_ROOT = "/afs"
 
-#sys.path.append(os.path.join(AFS_ROOT, "cern.ch", "eng", "sl", "lintrack", "Beta-Beat.src"))
-sys.path.append(os.path.join(AFS_ROOT, "cern.ch", "work", "j", "jcoellod", "public", "Beta-Beat.src"))
+sys.path.append(os.path.abspath(os.path.join(
+    os.path.dirname(__file__),
+    ".."
+)))
 
 from sdds_files import turn_by_turn_reader
 from harpy import harpy
