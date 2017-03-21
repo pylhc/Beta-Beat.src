@@ -43,6 +43,8 @@ def read_tfs(tfs_path):
     with open(tfs_path, "r") as tfs_data:
         for line in tfs_data:
             parts = line.split()
+            if len(parts) == 0:
+                continue
             if parts[0] == HEADER:
                 headers[parts[1]] = _parse_header(
                     parts[2], " ".join(parts[3:]))
