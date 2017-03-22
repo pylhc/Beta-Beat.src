@@ -59,15 +59,8 @@ def read_tfs(tfs_path):
                     raise TfsFormatError("Column names have not been set.")
                 if column_types is None:
                     raise TfsFormatError("Column types have not been set.")
-                row_data = _parse_row(parts, column_types)
-                rows_list.append(row_data)
-    data_frame = pandas.DataFrame(data=np.array(rows_list),
-                                  columns=column_names)
-    names_to_types = dict(zip(column_names, column_types))
-    for name, type_f in names_to_types.iteritems():
-        data_frame[name] = data_frame[name].astype(type_f)
-    data_frame.headers = headers
-    return data_frame
+                rows_list.append(parts)
+    return _create_data_frame(column_names, column_types, rows_list, headers)
 
 
 def write_tfs(data_frame, headers_dict, tfs_path):
@@ -142,6 +135,20 @@ class TfsFormatError(Exception):
     pass
 
 
+def _create_data_frame(column_names, column_types, rows_list, headers):
+    data_frame = pandas.DataFrame(data=np.array(rows_list),
+                                  columns=column_names)
+    _assign_column_types(data_frame, column_names, column_types)
+    data_frame.headers = headers
+    return data_frame
+
+
+def _assign_column_types(data_frame, column_names, column_types):
+    names_to_types = dict(zip(column_names, column_types))
+    for name, type_f in names_to_types.iteritems():
+        data_frame[name] = data_frame[name].astype(type_f)
+
+
 def _compute_types(str_list):
     return [_id_to_type(string) for string in str_list]
 
@@ -164,11 +171,6 @@ def _type_to_id(type_f):
         return TYPE_TO_ID[type_f]
     except KeyError:
         return "%s"
-
-
-def _parse_row(str_list, column_types):
-    return np.array([type_f(string)
-                     for type_f, string in zip(column_types, str_list)])
 
 
 def _get_column_names(data_frame):
