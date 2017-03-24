@@ -1,0 +1,4 @@
+language: python
+python:
+ - "2.7"
+script: python GetLLM/getllm_precision_check.py
