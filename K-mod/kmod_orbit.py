@@ -1,8 +1,10 @@
+from __future__ import print_function
 import sys
 import os
 import numpy as np
 import time
 import datetime
+import argparse
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
     ".."
@@ -20,6 +22,60 @@ SIDE_STR = {LEFT: "L", RIGHT: "R"}
 
 CUTOFF = 0.15  # BPMs we ignor
 # CUTOFF = 1.5 * np.max(v[0,:])
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser(description="")  # TODO
+
+    parser.add_argument(
+        "--modelb1",
+        help="Model path for beam 1 (with drifts).",
+        required=True,
+        dest="model1_path"
+    )
+    parser.add_argument(
+        "--modelb2",
+        help="Model path for beam 2 (with drifts).",
+        required=True,
+        dest="model2_path"
+    )
+    parser.add_argument(
+        "--orbitleft",
+        help="Path to the directory containing left quad orbits",
+        required=True,
+        dest="orbit_path_left"
+    )
+    parser.add_argument(
+        "--orbitright",
+        help="Path to the directory containing right quad orbits",
+        required=True,
+        dest="orbit_path_right"
+    )
+    parser.add_argument(
+        "--kmodksleft",
+        help="Path to the kmod output file containt the left quad K samples",
+        required=True,
+        dest="kleft_path"
+    )
+    parser.add_argument(
+        "--kmodksright",
+        help="Path to the kmod output file containt the right quad K samples",
+        required=True,
+        dest="kright_path"
+    )
+    parser.add_argument(
+        "--ip",
+        help="Interaction point to use.",
+        required=True,
+        type=int,
+        dest="ip",
+    )
+    options = parser.parse_args()
+    input = (options.model1_path, options.model2_path,
+             options.orbit_path_left, options.orbit_path_right,
+             options.kleft_path, options.kright_path,
+             options.ip)
+    return input
 
 
 def compute_offset(model1_path, model2_path,
@@ -43,7 +99,6 @@ def compute_offset(model1_path, model2_path,
             ip, beam, side, plane, models, bpm_names, ks, orbits
         )
     )
-    print(results)
     return results
 
 
@@ -216,3 +271,20 @@ def _date_str_to_timestamp(str_date):
     ).timetuple())
     timestamp = timestamp * 1000
     return long(timestamp)
+
+
+def _terminal_start():
+    _input = _parse_args()
+    results = compute_offset(*_input)
+    _apply_to_beam_side_plane(
+        lambda beam, side, plane: print(
+            "Beam" + BEAM_STR[beam],
+            "Side " + SIDE_STR[side],
+            "Plane " + PLANE_STR[plane] + ":",
+            str(results[(beam, side, plane)])
+        )
+    )
+
+
+if __name__ == "__main__":
+    _terminal_start()
