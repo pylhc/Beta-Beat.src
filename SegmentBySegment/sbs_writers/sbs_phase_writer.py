@@ -21,11 +21,12 @@ def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_h
     model_cor = propagated_models.corrected
     model_back_cor = propagated_models.corrected_back_propagation
 
-    bpms_list = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_hor_phase, measured_ver_phase])
+    bpms_list_x = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_hor_phase])
+    bpms_list_y = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_ver_phase])
 
-    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list, measured_hor_phase, measured_hor_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list_x, measured_hor_phase, measured_hor_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
-    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list, measured_ver_phase, measured_ver_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list_y, measured_ver_phase, measured_ver_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
 
 def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, model_propagation, model_cor, model_back_propagation, model_back_cor):

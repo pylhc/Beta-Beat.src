@@ -21,20 +21,24 @@ def write_beta_beat(element_name,
     model_cor = propagated_models.corrected
     model_back_cor = propagated_models.corrected_back_propagation
 
-    phase_bpms_list = intersect([model_cor, model_propagation,
+    phase_bpms_list_x = intersect([model_cor, model_propagation,
                                  model_back_propagation, model_back_cor,
-                                 measured_hor_beta_phase, measured_ver_beta_phase])
+                                 measured_hor_beta_phase, measured_hor_beta_phase])
+
+    phase_bpms_list_y = intersect([model_cor, model_propagation,
+                                 model_back_propagation, model_back_cor,
+                                 measured_ver_beta_phase, measured_ver_beta_phase])
 
     initial_values = {}
-    initial_values["X"] = InitalValues(phase_bpms_list, measured_hor_beta_phase, "X")
-    initial_values["Y"] = InitalValues(phase_bpms_list, measured_ver_beta_phase, "Y")
+    initial_values["X"] = InitalValues(phase_bpms_list_x, measured_hor_beta_phase, "X")
+    initial_values["Y"] = InitalValues(phase_bpms_list_y, measured_ver_beta_phase, "Y")
 
     _write_beta_beat_from_phase_for_plane(
-        file_beta_phase_x, "X", phase_bpms_list, measured_hor_beta_phase,
+        file_beta_phase_x, "X", phase_bpms_list_x, measured_hor_beta_phase,
         model_propagation, model_cor, model_back_propagation, model_back_cor,
         initial_values["X"])
     _write_beta_beat_from_phase_for_plane(
-        file_beta_phase_y, "Y", phase_bpms_list, measured_ver_beta_phase,
+        file_beta_phase_y, "Y", phase_bpms_list_y, measured_ver_beta_phase,
         model_propagation, model_cor, model_back_propagation, model_back_cor,
         initial_values["Y"])
 

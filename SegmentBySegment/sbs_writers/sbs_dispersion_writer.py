@@ -17,19 +17,20 @@ def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_d
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_hor_disp, measured_ver_disp])
+        bpms_list_x = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_hor_disp])
+        bpms_list_y = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_ver_disp])
     else:
-        bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, input_model])
+        bpms_list_x, bpms_list_y = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, input_model])
 
-    summary_data_x = _write_dispersion_for_plane(file_disp_x, "X", element_name, bpms_list, measured_hor_disp,
+    summary_data_x = _write_dispersion_for_plane(file_disp_x, "X", element_name, bpms_list_x, measured_hor_disp,
                                                  input_model,
                                                  model_cor, model_propagation, model_back_propagation, model_back_cor, is_element)
 
-    summary_data_nx = _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list, measured_norm_disp,
+    summary_data_nx = _write_normalized_hor_dispersion(file_norm_disp_x, element_name, bpms_list_x, measured_norm_disp,
                                                        input_model,
                                                        model_cor, model_propagation, model_back_propagation, model_back_cor, is_element)
 
-    summary_data_y = _write_dispersion_for_plane(file_disp_y, "Y", element_name, bpms_list, measured_ver_disp,
+    summary_data_y = _write_dispersion_for_plane(file_disp_y, "Y", element_name, bpms_list_y, measured_ver_disp,
                                                  input_model,
                                                  model_cor, model_propagation, model_back_propagation, model_back_cor, is_element)
 

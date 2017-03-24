@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import math
 
-from math import sqrt
 from Utilities import tfs_file_writer
 
 
@@ -17,18 +16,19 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, i
     model_back_cor = propagated_models.corrected_back_propagation
 
     if not is_element:
-        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta, measured_ver_beta])
+        bpms_list_x = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta])
+        bpms_list_y = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_ver_beta])
     else:
-        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
+        bpms_list_x, bpms_list_y = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
 
     summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
-                                           element_name, bpms_list, measured_hor_beta,
+                                           element_name, bpms_list_x, measured_hor_beta,
                                            input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
 
     summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
-                                           element_name, bpms_list, measured_ver_beta,
+                                           element_name, bpms_list_y, measured_ver_beta,
                                            input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
@@ -218,14 +218,14 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
     alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
 
     if stdbet_exists:
-        err_beta_start = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
-        err_beta_end = sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)     
+        err_beta_start = math.sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
+        err_beta_end = math.sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)     
     else:
         err_beta_start = getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]]
         err_beta_end = getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]]
     if stdalf_exists:
-        err_alfa_start = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
-        err_alfa_end = sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
+        err_alfa_start = math.sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
+        err_alfa_end = math.sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
     else:
         err_alfa_start = getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] 
         err_alfa_end = getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]]
