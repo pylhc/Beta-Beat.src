@@ -1,0 +1,17 @@
+title, "Model creator for java";
+
+!@require %(RUN)s.macros.madx
+
+option, -echo;
+exec, full_lhc_def("%(OPTICS_PATH)s", %(NUM_BEAM)i);
+option, echo;
+
+exec, load_average_error_table(%(ENERGY)s, %(NUM_BEAM)i);
+
+exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
+
+call, file = "%(PATH)s/corrections.madx";
+call, file = "%(PATH)s/extracted_mqts.str";
+
+exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_best_knowledge.dat", %(DPP)s);
+exec, do_twiss_elements(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_elements_best_knowledge.dat", %(DPP)s);

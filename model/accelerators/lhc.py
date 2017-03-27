@@ -1,6 +1,5 @@
 from __future__ import print_function
 import sys
-import os
 
 
 class LhcExcitationMode(object):
@@ -19,6 +18,7 @@ class Lhc(object):
         self._excitation = None
         self.drv_tune_x = None
         self.drv_tune_y = None
+        self.energy = None
         self.dpp = 0.0
 
     def verify_object(self):  # TODO: Maybe more checks?

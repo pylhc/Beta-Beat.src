@@ -1,0 +1,20 @@
+title, "Model creator for java";
+
+!@require %(RUN)s.macros.madx
+
+option, -echo;
+exec, full_lhc_def("%(OPTICS_PATH)s", %(NUM_BEAM)i);
+option, echo;
+
+exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
+
+!!! for ATS MD
+! exec, full_response_ats();
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="BPM.*\.B%NUM_BEAM", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
+
+exec, coupling_knob(%NUM_BEAM);
+call, file="%PATH/iter.madx";
+
+stop;

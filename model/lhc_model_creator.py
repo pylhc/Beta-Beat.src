@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import sys
 import logging
 from accelerators.lhc import LhcExcitationMode
 from accelerators import lhc
@@ -10,11 +11,15 @@ ACCEL_DIR = os.path.join(model_creator.CURRENT_DIR, "accelerators")
 
 LOGGER = logging.getLogger(__name__)
 
+AFS_ROOT = "/afs"
+if "win" in sys.platform and sys.platform != "darwin":
+    AFS_ROOT = "\\AFS"
+
 
 class LhcModelCreator(model_creator.ModelCreator):
 
     LHC_DIR = os.path.join(ACCEL_DIR, "lhc")
-    NOMINAL_TEMPL = os.path.join(LHC_DIR, "lhc_nominal.madx")
+    NOMINAL_TEMPL = os.path.join(LHC_DIR, "nominal.madx")
     LHC_MODES = {
         "lhc_runI": lhc.LhcRunI,
         "lhc_runII": lhc.LhcRunII2015,
@@ -22,16 +27,24 @@ class LhcModelCreator(model_creator.ModelCreator):
         "lhc_runII_2016_ats": lhc.LhcRunII2016Ats,
         "hllhc": lhc.HlLhc,
     }
+    ERR_DEF_PATH = os.path.join(AFS_ROOT, "cern.ch", "work", "o", "omc",
+                                "Error_definition_files")
+    ERR_DEF_FILES = {
+        "4.5": "0450GeV", "1.0": "1000GeV",
+        "1.5": "1500GeV", "2.0": "2000GeV",
+        "2.5": "2500GeV", "3.0": "3000GeV",
+        "3.5": "3500GeV", "4.0": "4000GeV",
+        "4.5": "4500GeV", "5.0": "5000GeV",
+        "5.5": "5500GeV", "6.0": "6000GeV",
+        "6.5": "6500GeV",
+    }
 
-    @staticmethod
-    def get_madx_script(lhc_instance, output_path):
+    @classmethod
+    def get_madx_script(cls, lhc_instance, output_path):
         madx_template = None
-        with open(LhcModelCreator.NOMINAL_TEMPL) as textfile:
+        with open(cls.NOMINAL_TEMPL) as textfile:
             madx_template = textfile.read()
-        iqx, iqy = (lhc_instance.INT_TUNE_X +
-                    lhc_instance.nat_tune_x,
-                    lhc_instance.INT_TUNE_Y +
-                    lhc_instance.nat_tune_y)
+        iqx, iqy = cls._get_full_tunes(lhc_instance)
         use_acd = "1" if (lhc_instance.excitation ==
                           LhcExcitationMode.ACD) else "0"
         use_adt = "1" if (lhc_instance.excitation ==
@@ -57,11 +70,22 @@ class LhcModelCreator(model_creator.ModelCreator):
         madx_script = madx_template % replace_dict
         return madx_script
 
-    @staticmethod
-    def start_from_terminal():
-        options = LhcModelCreator._parse_args()
+    @classmethod
+    def prepare_run(cls, lhc_instance, output_path):
+        file_name = cls.ERR_DEF_FILES[str(lhc_instance.energy)]
+        file_path = os.path.join(cls.ERR_DEF_PATH, file_name)
+        # TODO: Windows?
+        link_path = os.path.join(output_path, "error_deff.txt")
+        if os.path.isfile(link_path):
+            os.unlink(link_path)
+        os.symlink(file_path, link_path)
+
+    @classmethod
+    def start_from_terminal(cls):
+        parser = cls._get_arg_parser()
+        options = parser.parse_args()
         lhc_mode = options.lhc_mode
-        instance = LhcModelCreator.LHC_MODES[lhc_mode]()
+        instance = cls.LHC_MODES[lhc_mode]()
         instance.beam = options.beam
         instance.nat_tune_x = options.nat_tune_x
         instance.nat_tune_y = options.nat_tune_y
@@ -78,24 +102,34 @@ class LhcModelCreator(model_creator.ModelCreator):
         if options.acd or options.adt:
             instance.drv_tune_x = options.drv_tune_x
             instance.drv_tune_y = options.drv_tune_y
+        instance.dpp = options.dpp
+        instance.energy = options.energy
         instance.optics_file = options.optics
-        LhcModelCreator.create_model(instance, options.output)
+        cls.create_model(instance, options.output)
 
-    @staticmethod
-    def _parse_args():
+    @classmethod
+    def _get_full_tunes(cls, lhc_instance):
+        iqx, iqy = (lhc_instance.INT_TUNE_X +
+                    lhc_instance.nat_tune_x,
+                    lhc_instance.INT_TUNE_Y +
+                    lhc_instance.nat_tune_y)
+        return iqx, iqy
+
+    @classmethod
+    def _get_arg_parser(cls):
         parser = argparse.ArgumentParser()
         parser.add_argument(
             "lhc",
             help=(
                 "This should always be the first" +
-                "argument in lhc model creator."
+                "argument in LHC model creator."
             ),
             type=str,
         )
         parser.add_argument(
             "--lhcmode",
             help=("LHC mode to use. Should be one of: " +
-                  str(LhcModelCreator.LHC_MODES.keys())),
+                  str(cls.LHC_MODES.keys())),
             required=True,
             dest="lhc_mode",
             type=str,
@@ -153,6 +187,12 @@ class LhcModelCreator(model_creator.ModelCreator):
             type=float,
         )
         parser.add_argument(
+            "--energy",
+            help="Energy in Tev.",
+            dest="energy",
+            type=float,
+        )
+        parser.add_argument(
             "--optics",
             help="Path to the optics file to use (modifiers file).",
             dest="optics",
@@ -164,5 +204,38 @@ class LhcModelCreator(model_creator.ModelCreator):
             dest="output",
             type=str,
         )
+        return parser
+
+
+class LhcBestKnowledgeCreator(LhcModelCreator):
+    BK_TEMPL = os.path.join(LhcModelCreator.LHC_DIR,
+                            "best_knowledge.madx")
+
+    @classmethod
+    def get_madx_script(cls, lhc_instance, output_path):
+        madx_template = None
+        with open(LhcBestKnowledgeCreator.BK_TEMPL) as textfile:
+            madx_template = textfile.read()
+        iqx, iqy = LhcBestKnowledgeCreator._get_full_tunes(lhc_instance)
+        replace_dict = {
+            "RUN": lhc_instance.MACROS_NAME,
+            "OPTICS_PATH": lhc_instance.optics_file,
+            "NUM_BEAM": lhc_instance.beam,
+            "PATH": output_path,
+            "DPP": lhc_instance.dpp,
+            "QMX": iqx,
+            "QMY": iqy,
+            "ENERGY": lhc_instance.energy,
+        }
+        madx_script = madx_template % replace_dict
+        return madx_script
+
+    @classmethod
+    def _get_arg_parser(cls):
+        parser = LhcModelCreator._get_arg_parser()
         options = parser.parse_args()
-        return options
+        if options.acd or options.adt:
+            raise model_creator.ModelCreationError(
+                "Don't set ACD or ADT for best knowledge model."
+            )
+        return parser

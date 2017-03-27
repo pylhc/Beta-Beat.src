@@ -32,6 +32,7 @@ class ModelCreator(object):
             instance,
             output_path
         )
+        creator.prepare_run(instance, output_path)
         creator.run_madx(madx_script)
 
     @staticmethod
