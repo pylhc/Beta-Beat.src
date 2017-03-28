@@ -1,5 +1,9 @@
 from __future__ import print_function
 import sys
+import os
+
+
+CURRENT_DIR = os.path.dirname(__file__)
 
 
 class LhcExcitationMode(object):
@@ -28,6 +32,15 @@ class Lhc(object):
                 self.excitation == LhcExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise LhcError("Driven tunes not set.")
+
+    def get_nominal_tmpl(self):
+        return self._get_file("nominal.madx")
+
+    def get_best_knowledge_tmpl(self):
+        return self._get_file("best_knowledge.madx")
+
+    def _get_file(self, filename):
+        return os.path.join(CURRENT_DIR, "lhc", filename)
 
     @property
     def beam(self):

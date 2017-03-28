@@ -7,19 +7,15 @@ from accelerators import lhc
 import argparse
 import model_creator
 
-ACCEL_DIR = os.path.join(model_creator.CURRENT_DIR, "accelerators")
-
-LOGGER = logging.getLogger(__name__)
-
 AFS_ROOT = "/afs"
 if "win" in sys.platform and sys.platform != "darwin":
     AFS_ROOT = "\\AFS"
 
+LOGGER = logging.getLogger(__name__)
+
 
 class LhcModelCreator(model_creator.ModelCreator):
 
-    LHC_DIR = os.path.join(ACCEL_DIR, "lhc")
-    NOMINAL_TEMPL = os.path.join(LHC_DIR, "nominal.madx")
     LHC_MODES = {
         "lhc_runI": lhc.LhcRunI,
         "lhc_runII": lhc.LhcRunII2015,
@@ -42,7 +38,7 @@ class LhcModelCreator(model_creator.ModelCreator):
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
         madx_template = None
-        with open(cls.NOMINAL_TEMPL) as textfile:
+        with open(lhc_instance.get_nominal_template()) as textfile:
             madx_template = textfile.read()
         iqx, iqy = cls._get_full_tunes(lhc_instance)
         use_acd = "1" if (lhc_instance.excitation ==
@@ -208,13 +204,11 @@ class LhcModelCreator(model_creator.ModelCreator):
 
 
 class LhcBestKnowledgeCreator(LhcModelCreator):
-    BK_TEMPL = os.path.join(LhcModelCreator.LHC_DIR,
-                            "best_knowledge.madx")
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
         madx_template = None
-        with open(LhcBestKnowledgeCreator.BK_TEMPL) as textfile:
+        with open(lhc_instance.get_best_knowledge_tmpl()) as textfile:
             madx_template = textfile.read()
         iqx, iqy = LhcBestKnowledgeCreator._get_full_tunes(lhc_instance)
         replace_dict = {
