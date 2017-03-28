@@ -12,9 +12,9 @@ exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
 ! exec, full_response_ats();
 
 select, flag=twiss, clear;
-select, flag=twiss, pattern="BPM.*\.B%NUM_BEAM", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
+select, flag=twiss, pattern="BPM.*\.B%(NUM_BEAM)i", column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
 
-exec, coupling_knob(%NUM_BEAM);
-call, file="%PATH/iter.madx";
+exec, coupling_knob(%(NUM_BEAM)i);
+call, file="%(PATH)s/iter.madx";
 
 stop;

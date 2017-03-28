@@ -37,8 +37,7 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
-        madx_template = None
-        with open(lhc_instance.get_nominal_template()) as textfile:
+        with open(lhc_instance.get_nominal_tmpl()) as textfile:
             madx_template = textfile.read()
         iqx, iqy = cls._get_full_tunes(lhc_instance)
         use_acd = "1" if (lhc_instance.excitation ==
@@ -68,6 +67,8 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def prepare_run(cls, lhc_instance, output_path):
+        if lhc_instance.fullresponse:
+            cls._prepare_fullresponse(lhc_instance, output_path)
         file_name = cls.ERR_DEF_FILES[str(lhc_instance.energy)]
         file_path = os.path.join(cls.ERR_DEF_PATH, file_name)
         # TODO: Windows?
@@ -75,6 +76,24 @@ class LhcModelCreator(model_creator.ModelCreator):
         if os.path.isfile(link_path):
             os.unlink(link_path)
         os.symlink(file_path, link_path)
+
+    @classmethod
+    def _prepare_fullresponse(cls, lhc_instance, output_path):
+        with open(lhc_instance.get_file("fullresponse.madx")) as textfile:
+            fullresponse_template = textfile.read()
+        iqx, iqy = cls._get_full_tunes(lhc_instance)
+        replace_dict = {
+            "RUN": lhc_instance.MACROS_NAME,
+            "OPTICS_PATH": lhc_instance.optics_file,
+            "NUM_BEAM": lhc_instance.beam,
+            "PATH": output_path,
+            "QMX": iqx,
+            "QMY": iqy,
+        }
+        fullresponse_script = fullresponse_template % replace_dict
+        with open(os.path.join(output_path,
+                               "job.iterate.madx"), "w") as textfile:
+            textfile.write(fullresponse_script)
 
     @classmethod
     def start_from_terminal(cls):
@@ -101,6 +120,7 @@ class LhcModelCreator(model_creator.ModelCreator):
         instance.dpp = options.dpp
         instance.energy = options.energy
         instance.optics_file = options.optics
+        instance.fullresponse = options.fullresponse
         cls.create_model(instance, options.output)
 
     @classmethod
@@ -195,6 +215,13 @@ class LhcModelCreator(model_creator.ModelCreator):
             type=str,
         )
         parser.add_argument(
+            "--fullresponse",
+            help=("If present, fullresponse template will" +
+                  "be filled and put in the output directory."),
+            dest="fullresponse",
+            action="store_true",
+        )
+        parser.add_argument(
             "--output",
             help="Output path for model, twiss files will be writen here.",
             dest="output",
@@ -207,10 +234,9 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
-        madx_template = None
         with open(lhc_instance.get_best_knowledge_tmpl()) as textfile:
             madx_template = textfile.read()
-        iqx, iqy = LhcBestKnowledgeCreator._get_full_tunes(lhc_instance)
+        iqx, iqy = cls._get_full_tunes(lhc_instance)
         replace_dict = {
             "RUN": lhc_instance.MACROS_NAME,
             "OPTICS_PATH": lhc_instance.optics_file,

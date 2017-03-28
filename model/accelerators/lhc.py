@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import os
+from model_creators import model_creator
 
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -34,13 +35,20 @@ class Lhc(object):
                 raise LhcError("Driven tunes not set.")
 
     def get_nominal_tmpl(self):
-        return self._get_file("nominal.madx")
+        return self.get_file("nominal.madx")
 
     def get_best_knowledge_tmpl(self):
-        return self._get_file("best_knowledge.madx")
+        return self.get_file("best_knowledge.madx")
 
-    def _get_file(self, filename):
-        return os.path.join(CURRENT_DIR, "lhc", filename)
+    def get_file(self, filename, beam=None):
+        if beam == None:
+            return os.path.join(CURRENT_DIR, "lhc", filename)
+        elif beam == 1:
+            return os.path.join(CURRENT_DIR, "lhc", "beam1", filename)
+        elif beam == 2:
+            return os.path.join(CURRENT_DIR, "lhc", "beam2", filename)
+        else:
+            raise model_creator.ModelCreationError("Beam should be 1 or 2.")
 
     @property
     def beam(self):
