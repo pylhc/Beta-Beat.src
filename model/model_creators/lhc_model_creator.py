@@ -69,13 +69,14 @@ class LhcModelCreator(model_creator.ModelCreator):
     def prepare_run(cls, lhc_instance, output_path):
         if lhc_instance.fullresponse:
             cls._prepare_fullresponse(lhc_instance, output_path)
-        file_name = cls.ERR_DEF_FILES[str(lhc_instance.energy)]
-        file_path = os.path.join(cls.ERR_DEF_PATH, file_name)
-        # TODO: Windows?
-        link_path = os.path.join(output_path, "error_deff.txt")
-        if os.path.isfile(link_path):
-            os.unlink(link_path)
-        os.symlink(file_path, link_path)
+        if lhc_instance.energy is not None:
+            file_name = cls.ERR_DEF_FILES[str(lhc_instance.energy)]
+            file_path = os.path.join(cls.ERR_DEF_PATH, file_name)
+            # TODO: Windows?
+            link_path = os.path.join(output_path, "error_deff.txt")
+            if os.path.isfile(link_path):
+                os.unlink(link_path)
+            os.symlink(file_path, link_path)
 
     @classmethod
     def _prepare_fullresponse(cls, lhc_instance, output_path):
@@ -212,6 +213,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "--optics",
             help="Path to the optics file to use (modifiers file).",
             dest="optics",
+            required=True,
             type=str,
         )
         parser.add_argument(
@@ -225,6 +227,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "--output",
             help="Output path for model, twiss files will be writen here.",
             dest="output",
+            required=True,
             type=str,
         )
         return parser
@@ -257,5 +260,9 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
         if options.acd or options.adt:
             raise model_creator.ModelCreationError(
                 "Don't set ACD or ADT for best knowledge model."
+            )
+        if options.energy is None:
+            raise model_creator.ModelCreationError(
+                "Best knowledge model requires energy."
             )
         return parser
