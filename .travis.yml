@@ -2,7 +2,7 @@ language: python
 python:
  - "2.7"
 env:
- - OPTIONS=--acd --optics=40cm
- - OPTIONS=--adt --optics=40cm 
- - OPTIONS=--optics=40cm
-script: python GetLLM/getllm_precision_check.py $OPTIONS
+ - EXCITATION=--acd
+ - EXCITATION=--adt 
+ - EXCITATION= 
+script: python GetLLM/getllm_precision_check.py $EXCITATION --optics=40cm
