@@ -25,6 +25,7 @@ import re
 import multiprocessing
 import time
 from constants import PI, TWOPI
+from numpy.linalg.linalg import LinAlgError
 
 __version__ = "2017.3.3"
 
@@ -1409,6 +1410,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
     print_("INFO: errorfile given. Create list_of_Ks")
     list_of_Ks = []
     
+    
     errors_method = "Analytical Formula"
     print_("Errors from " + errors_method)
    
@@ -1426,41 +1428,43 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         sext_trans = []
         quad_missal = []
         
-        try:
-            index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
-            index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
-            
-            if index_n < index_nplus1:
-                for i in range(index_n + 1, index_nplus1):
-                    if errorfile.elements[i].dk1 != 0:
-                        quad_fields.append(i)
-                    if errorfile.elements[i].dx != 0:
-                        sext_trans.append(i)
-                    if errorfile.elements[i].ds != 0:
-                        quad_missal.append(i)
-                        
-            else:
-                for i in range(index_n + 1, len(errorfile.elements)):
-                    if errorfile.elements[i].dk1 != 0:
-                        quad_fields.append(i)
-                    if errorfile.elements[i].dx != 0:
-                        sext_trans.append(i)
-                    if errorfile.elements[i].ds != 0:
-                        quad_missal.append(i)
-                        
-                for i in range(index_nplus1):  # ums Eck
-                    if errorfile.elements[i].dk1 != 0:
-                        quad_fields.append(i)
-                    if errorfile.elements[i].dx != 0:
-                        sext_trans.append(i)
-                    if errorfile.elements[i].ds != 0:
-                        quad_missal.append(i)
-        except KeyError as err:
-            print_("{}, why you not here?!!".format(err))
-       
+        index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
+        index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
+        
+        if index_n < index_nplus1:
+            for i in range(index_n + 1, index_nplus1):
+                el = errorfile.elements[i]
+                if el.dk1 != 0:
+                    quad_fields.append(i)
+                if el.dx != 0:
+                    sext_trans.append(i)
+                if el.ds != 0:
+                    quad_missal.append(i)
+                    
+        else:
+            for i in range(index_n + 1, len(errorfile.elements)):
+                el = errorfile.elements[i]
+                if el.dk1 != 0:
+                    quad_fields.append(i)
+                if el.dx != 0:
+                    sext_trans.append(i)
+                if el.ds != 0:
+                    quad_missal.append(i)
+                    
+            for i in range(index_nplus1):  # ums Eck
+                el = errorfile.elements[i]
+                if el.dk1 != 0:
+                    quad_fields.append(i)
+                if el.dx != 0:
+                    sext_trans.append(i)
+                if el.ds != 0:
+                    quad_missal.append(i)
+   
+   
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
         
-    print "done assigning errors"
+    print_("done creating list of Ks")
+    print list_of_Ks
               
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
