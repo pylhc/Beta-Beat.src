@@ -10,10 +10,10 @@ from madx import madx_wrapper
 from drive import drive_runner
 from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
-import tempfile
 import time
 from Utilities import iotools, ADDbpmerror
 from Utilities.contexts import silence
+import argparse
 
 
 HOR, VER = 0, 1
@@ -106,7 +106,30 @@ exec, do_madx_track_single_particle(
 );
 """
 
-OPTICS = "40cm"
+
+def _parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--acd",
+        help="Activate excitation with ACD.",
+        dest="acd",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--adt",
+        help="Activate excitation with ADT.",
+        dest="adt",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--optics",
+        help="Optics can be 'injection' or '40cm'",
+        dest="optics",
+        required=True,
+        type=str,
+    )
+    return parser.parse_args()
+
 
 MODIFIERS = {
     "injection": "call file=\"" + os.path.join(
@@ -125,7 +148,7 @@ ERR_DEF_FILES = {
 }
 ERR_DEF_PATH = os.path.join(
     "/afs", "cern.ch", "work", "o", "omc",
-    "Error_definition_files", ERR_DEF_FILES[OPTICS]
+    "Error_definition_files"
 )
 
 BEAM = 1
@@ -135,8 +158,6 @@ DQX = 0.27
 DQY = 0.32
 TUNE_WINDOW = 0.001
 
-DO_ACD = 1
-DO_ADT = 0
 KICK_X = 1e-6
 KICK_Y = 1e-6
 
@@ -148,24 +169,24 @@ RAMP4 = 6250  # Ramp down start turn
 NUM_TURNS = RAMP3
 
 
-def print_getllm_precision():
+def print_getllm_precision(options):
     test_dir = dirname(os.path.abspath(__file__))
     output_dir = os.path.join(test_dir,
                               "test_getllm" + time.strftime("%d_%m_%Y"))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     try:
-        _run_tracking_model(output_dir)
-        _do_analysis(output_dir)
+        _run_tracking_model(output_dir, options)
+        _do_analysis(output_dir, options)
         _comprare_results(output_dir)
     finally:
         _clean_up_files(output_dir)
         print("Test finished")
 
 
-def _run_tracking_model(directory):
+def _run_tracking_model(directory, options):
     print("Creating model and tracking...")
-    madx_script = _get_madx_script(BEAM, directory)
+    madx_script = _get_madx_script(BEAM, directory, options)
     with silence():
         madx_wrapper.resolve_and_run_string(
             madx_script,
@@ -177,19 +198,24 @@ def _run_tracking_model(directory):
         ADDbpmerror.convert_files(infile=track_path, outfile=tbt_path)
 
 
-def _get_madx_script(beam, directory):
-    modifiers_file_path = _get_modifiers_file(OPTICS, directory)
+def _get_madx_script(beam, directory, options):
+    modifiers_file_path = _get_modifiers_file(options.optics, directory)
     twiss_path = _get_twiss_path(directory)
     twiss_elem_path = _get_twiss_elem_path(directory)
     kick_x = 0
     kick_y = 0
-    if DO_ACD == 1:
-        twiss_ac_or_adt_path = _get_twiss_ac_path(directory)
-    elif DO_ADT == 1:
-        twiss_ac_or_adt_path = _get_twiss_adt_path(directory)
-    elif DO_ACD == 1 and DO_ADT == 1:
+    acd = 0
+    adt = 0
+    #for madx script DO_ACD and DO_ADT have to be 0 or 1
+    if options.acd and options.adt:
         raise IOError("ADT and AC-dipole are both set to 1. Please select only one")
-    elif DO_ACD == 0 and DO_ADT == 0:
+    elif options.acd:
+        twiss_ac_or_adt_path = _get_twiss_ac_path(directory)
+        acd = 1
+    elif options.adt:
+        twiss_ac_or_adt_path = _get_twiss_adt_path(directory)
+        adt = 1
+    if acd == 0 and adt == 0:
         twiss_ac_or_adt_path = _get_twiss_path(directory)
         kick_x = KICK_X
         kick_y = KICK_Y
@@ -209,8 +235,8 @@ def _get_madx_script(beam, directory):
         "TWISS_AC_OR_ADT": twiss_ac_or_adt_path,
         "NUM_TURNS": NUM_TURNS,
         "TRACK_PATH": track_path,
-        "DO_ACD": DO_ACD,
-        "DO_ADT": DO_ADT,
+        "DO_ACD": acd,
+        "DO_ADT": adt,
         "KICK_X": kick_x,
         "KICK_Y": kick_y,
         "RAMP1": RAMP1,
@@ -256,12 +282,12 @@ def _get_harmonic_path(directory, plane):
     return os.path.join(directory, "ALLBPMs_lin" + PLANE_SUFFIX[plane])
 
 
-def _do_analysis(directory):
+def _do_analysis(directory, options):
     print("Performing analysis...")
     tbt_path = _get_tbt_path(directory)
     print("    -> Running drive...")
     with silence():
-        if DO_ACD == 0 and DO_ADT == 0:
+        if not options.acd and not options.adt:
             drive_runner.run_drive(tbt_path, RAMP2, RAMP3,
                                    QX, QY, QX, QY,
                                    stdout=open(os.devnull, "w"),
@@ -273,16 +299,16 @@ def _do_analysis(directory):
                                    tune_window=TUNE_WINDOW)
     twiss_path = os.path.join(directory, "twiss.dat")
     # TODO: What should we do with error definition files?
-    err_def_path = _copy_error_def_file(directory)
+    err_def_path = _copy_error_def_file(directory, options)
     print("    -> Running GetLLM...")
     with silence():
         GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",
         errordefspath=err_def_path)
 
 
-def _copy_error_def_file(directory):
+def _copy_error_def_file(directory, options):
     new_err_def_path = os.path.join(directory, "error_deff.txt")
-    iotools.copy_item(ERR_DEF_PATH, new_err_def_path)
+    iotools.copy_item(os.path.join(ERR_DEF_PATH, ERR_DEF_FILES[options.optics]), new_err_def_path)
     return new_err_def_path
 
 
@@ -431,4 +457,5 @@ def _clean_up_files(ouput_dir):
 
 
 if __name__ == "__main__":
-    print_getllm_precision()
+    _options = _parse_args()
+    print_getllm_precision(_options)
