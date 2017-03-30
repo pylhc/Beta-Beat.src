@@ -1,4 +1,8 @@
 language: python
 python:
  - "2.7"
-script: python GetLLM/getllm_precision_check.py --acd --optics=40cm
+env:
+ - OPTIONS=--acd --optics=40cm
+ - OPTIONS=--adt --optics=40cm 
+ - OPTIONS=--optics=40cm
+script: python GetLLM/getllm_precision_check.py $OPTIONS
