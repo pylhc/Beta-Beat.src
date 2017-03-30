@@ -136,19 +136,17 @@ NUM_TURNS = RAMP3
 
 
 def print_getllm_precision():
-    #output_dir = tempfile.mkdtemp()
     test_dir = dirname(os.path.abspath(__file__))
     output_dir = os.path.join(test_dir, "test_getllm" + time.strftime("%d_%m_%Y"))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    #output_dir =os.path.join("/afs", "cern.ch", "work", "e", "efol", "public", "getllmTestOutput")
     try:
         _run_tracking_model(output_dir)
         _do_analysis(output_dir)
         _comprare_results(output_dir)
     finally:
         _clean_up_files(output_dir)
-        print("Test finished");
+        print("Test finished")
 
 
 def _run_tracking_model(directory):
@@ -257,11 +255,11 @@ def _do_analysis(directory):
                                    tune_window=TUNE_WINDOW)
     twiss_path = os.path.join(directory, "twiss.dat")
     # TODO: What should we do with error definition files?
-    # err_def_path = _copy_error_def_file(directory)
+    err_def_path = _copy_error_def_file(directory)
     print("    -> Running GetLLM...")
-    #with silence():
-    GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",)
-    # errordefspath=err_def_path)
+    with silence():
+        GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",
+        errordefspath=err_def_path)
 
 
 def _copy_error_def_file(directory):
