@@ -19,15 +19,22 @@ from Utilities.contexts import silence
 HOR, VER = 0, 1
 PLANE_SUFFIX = {HOR: "x", VER: "y"}
 
+FILES_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                          "getllm_precision_check"))
+
 MADX_SCRIPT = """
 title, "Tracking test for GetLLM";
 
 !@require lhc_runII_2016
 !@require tracking
 
+load_main_sequence(): macro = {
+    call, file = "%(FILES_PATH)s/lhc_as-built.seq";
+};
+
 option, -echo;
 exec, full_lhc_def("%(MODIFIERS)s", %(BEAM)i);
-call, file="/afs/cern.ch/eng/lhc/optics/runII/2015/toolkit/slice.madx";
+call, file="%(FILES_PATH)s/slice.madx";
 use, sequence=LHCB%(BEAM)i;
 option, echo;
 
@@ -102,8 +109,14 @@ exec, do_madx_track_single_particle(
 OPTICS = "40cm"
 
 MODIFIERS = {
-    "injection": "call file=\"runII_2016/opt_inj.madx\";",
-    "40cm": "call file=\"runII_2016/opt_400_10000_400_3000.madx\";",
+    "injection": "call file=\"" + os.path.join(
+        FILES_PATH,
+        "opt_inj.madx"
+    ) + "\";",
+    "40cm": "call file=\"" + os.path.join(
+        FILES_PATH,
+        "opt_400_10000_400_3000.madx"
+    ) + "\";",
 }
 
 ERR_DEF_FILES = {
@@ -137,7 +150,8 @@ NUM_TURNS = RAMP3
 
 def print_getllm_precision():
     test_dir = dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(test_dir, "test_getllm" + time.strftime("%d_%m_%Y"))
+    output_dir = os.path.join(test_dir,
+                              "test_getllm" + time.strftime("%d_%m_%Y"))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     try:
@@ -153,7 +167,10 @@ def _run_tracking_model(directory):
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory)
     with silence():
-        madx_wrapper.resolve_and_run_string(madx_script)
+        madx_wrapper.resolve_and_run_string(
+            madx_script,
+            madx_path=os.path.join(FILES_PATH, "madx_dev"),
+        )
     track_path = _get_track_path(directory, one=True)
     tbt_path = _get_tbt_path(directory)
     with silence():
@@ -178,6 +195,7 @@ def _get_madx_script(beam, directory):
         kick_y = KICK_Y
     track_path = _get_track_path(directory)
     madx_script = MADX_SCRIPT % {
+        "FILES_PATH": FILES_PATH,
         "MODIFIERS": modifiers_file_path,
         "BEAM": beam,
         "IQX": str(QX).replace("0.", ""),
@@ -343,6 +361,7 @@ def _get_phase_data(directory, plane, free=True):
     if not free:
         return metaclass.twiss(getphase)
     return _get_twiss_for_one_of(getphasefree, getphase)
+
 
 def _get_twiss_for_one_of(*paths):
     for path in paths:
