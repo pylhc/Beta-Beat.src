@@ -204,18 +204,17 @@ def _get_madx_script(beam, directory, options):
     twiss_elem_path = _get_twiss_elem_path(directory)
     kick_x = 0
     kick_y = 0
-    acd = 0
-    adt = 0
-    #for madx script DO_ACD and DO_ADT have to be 0 or 1
+    do_acd = 0
+    do_adt = 0
     if options.acd and options.adt:
         raise IOError("ADT and AC-dipole are both set to 1. Please select only one")
     elif options.acd:
         twiss_ac_or_adt_path = _get_twiss_ac_path(directory)
-        acd = 1
+        do_acd = 1
     elif options.adt:
         twiss_ac_or_adt_path = _get_twiss_adt_path(directory)
-        adt = 1
-    if acd == 0 and adt == 0:
+        do_adt = 1
+    if do_acd == 0 and do_adt == 0:
         twiss_ac_or_adt_path = _get_twiss_path(directory)
         kick_x = KICK_X
         kick_y = KICK_Y
@@ -235,8 +234,8 @@ def _get_madx_script(beam, directory, options):
         "TWISS_AC_OR_ADT": twiss_ac_or_adt_path,
         "NUM_TURNS": NUM_TURNS,
         "TRACK_PATH": track_path,
-        "DO_ACD": acd,
-        "DO_ADT": adt,
+        "DO_ACD": do_acd,
+        "DO_ADT": do_adt,
         "KICK_X": kick_x,
         "KICK_Y": kick_y,
         "RAMP1": RAMP1,
