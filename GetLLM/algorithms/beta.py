@@ -1464,7 +1464,6 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
         
     print_("done creating list of Ks")
-    print list_of_Ks
               
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
@@ -1964,6 +1963,8 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         sys.exit(1)
     if (bad_phase(phmdl12) or bad_phase(phmdl13) or bad_phase(phmdl12 - phmdl13)) or bad_phase(ph2pi12) or bad_phase(ph2pi13) or bad_phase(ph2pi12 - ph2pi13):
         return MeasuredValues(0, 0), [], []
+    
+    elements = errorfile.elements
    
     phmdl12 *= TWOPI
     phmdl13 *= TWOPI
@@ -2028,12 +2029,12 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
        
     #--- Quad Fielderrors
     _assign_quaderrors(I, bi1, bi2,
-                       errorfile, list_of_Ks,
+                       elements, list_of_Ks,
                        denomalf, s_i2, T, T_Alf, phi_2, -frac, K_offset,
                        .5, .5)
        
     K_offset = _assign_quaderrors(I, bi1, bi3,
-                                  errorfile, list_of_Ks,
+                                  elements, list_of_Ks,
                                   denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                   .5, .5)
             
@@ -2044,12 +2045,12 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][1])
         
     _assign_sext_errors(I, bi1, bi2,
-                        errorfile, list_of_Ks,
+                        elements, list_of_Ks,
                         denomalf, s_i2, T, T_Alf, phi_2, frac, K_offset,
                         -.5, .5)
     
     K_offset = _assign_sext_errors(I, bi1, bi3,
-                                   errorfile, list_of_Ks,
+                                   elements, list_of_Ks,
                                    denomalf, s_i3, T, T_Alf, phi_3, -frac, K_offset,
                                    -.5, .5)
 
@@ -2060,12 +2061,12 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][2])
 
     _assign_quadlongmissal(I, bi1, bi2,
-                           errorfile, list_of_Ks,
+                           elements, list_of_Ks,
                            denomalf, s_i2, T, T_Alf, phi_2, -frac, K_offset,
                            .5, .5)
        
     K_offset = _assign_quadlongmissal(I, bi1, bi3,
-                                      errorfile, list_of_Ks,
+                                      elements, list_of_Ks,
                                       denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                       .5, .5)
     
@@ -2078,15 +2079,15 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if errorfile.elements[errindx1].ds != 0:
+    if elements[errindx1].ds != 0:
         numerphi = -1.0 / (betmdl2 * sin(phmdl12) ** 2) + 1.0 / (betmdl3 * sin(phmdl13) ** 2)
         T[K_offset + bi1] = numerphi / denom
           
-    if errorfile.elements[errindx2].ds != 0:
+    if elements[errindx2].ds != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl12) ** 2)
         T[K_offset + bi2] = numerphi / denom
        
-    if errorfile.elements[errindx3].ds != 0:
+    if elements[errindx3].ds != 0:
         numerphi = -1.0 / (betmdl3 * sin(phmdl13) ** 2)
         T[K_offset + bi3] = numerphi / denom
          
@@ -2162,6 +2163,8 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if bad_phase(phmdl21) or bad_phase(phmdl23) or bad_phase(phmdl23 - phmdl21) or bad_phase(ph2pi21) or bad_phase(ph2pi23) or bad_phase(ph2pi21 - ph2pi23):
         return MeasuredValues(0, 0), [], []
     
+    elements = errorfile.elements
+    
     phmdl21 *= TWOPI
     phmdl23 *= TWOPI
     ph2pi21 *= TWOPI
@@ -2217,13 +2220,13 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         
     #--- Quad Fielderrors
     K_offset = _assign_quaderrors(I, bi1, bi2,
-                                  errorfile, list_of_Ks,
+                                  elements, list_of_Ks,
                                   denomalf, s_i1, T, T_Alf, phi_1, frac,
                                   K_offset,
                                   -.5, .5)
      
     K_offset = _assign_quaderrors(I, bi2, bi3,
-                                  errorfile, list_of_Ks,
+                                  elements, list_of_Ks,
                                   denomalf, s_i3, T, T_Alf, phi_3, frac,
                                   K_offset,
                                   .5, .5)
@@ -2235,12 +2238,12 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][1])
         
     K_offset = _assign_sext_errors(I, bi1, bi2,
-                                   errorfile, list_of_Ks,
+                                   elements, list_of_Ks,
                                    denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset,
                                    .5, .5)
                 
     K_offset = _assign_sext_errors(I, bi2, bi3,
-                                   errorfile, list_of_Ks,
+                                   elements, list_of_Ks,
                                    denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                    -.5, .5)
     #--- Quad Longitudinal Missalignments
@@ -2250,12 +2253,12 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][2])
 
     K_offset = _assign_quadlongmissal(I, bi1, bi2,
-                                      errorfile, list_of_Ks,
+                                      elements, list_of_Ks,
                                       denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset,
                                       -.5, .5)
     
     K_offset = _assign_quadlongmissal(I, bi2, bi3,
-                                      errorfile, list_of_Ks,
+                                      elements, list_of_Ks,
                                       denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                       .5, .5)
     #--- BPM Missalignments
@@ -2267,15 +2270,15 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if errorfile.elements[errindx2].ds != 0:
+    if elements[errindx2].ds != 0:
         numerphi = -1.0 / (betmdl1 * sin(phmdl21) ** 2) + 1.0 / (betmdl3 * sin(phmdl23) ** 2)
         T[K_offset + bi2] = numerphi / denom
           
-    if errorfile.elements[errindx1].ds != 0:
+    if elements[errindx1].ds != 0:
         numerphi = 1.0 / (betmdl1 * sin(phmdl21) ** 2)
         T[K_offset + bi1] = numerphi / denom
        
-    if errorfile.elements[errindx3].ds != 0:
+    if elements[errindx3].ds != 0:
         numerphi = -1.0 / (betmdl3 * sin(phmdl23) ** 2)
         T[K_offset + bi3] = numerphi / denom
      
@@ -2352,6 +2355,8 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if bad_phase(phmdl32) or bad_phase(phmdl31) or bad_phase(phmdl31 - phmdl32) or bad_phase(ph2pi31) or bad_phase(ph2pi32) or bad_phase(ph2pi31 - ph2pi32):
         return MeasuredValues(0, 0), [], []
     
+    elements = errorfile.elements
+    
     phmdl31 *= TWOPI
     phmdl32 *= TWOPI
     ph2pi31 *= TWOPI
@@ -2415,9 +2420,9 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         which_k = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[which_k][0])):
             idx_k = list_of_Ks[which_k][0][w]
-            err_beta = -frac * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = -frac * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += -.5 * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][0])
     
@@ -2433,9 +2438,9 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         
         for w in range(len(list_of_Ks[which_k][0])):
             idx_k = list_of_Ks[which_k][0][w]
-            err_beta = frac * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
+            err_beta = frac * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
+            T_Alf[K_offset + w] += -.5 * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
             T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][0])
     
@@ -2451,9 +2456,9 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         which_k = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[which_k][1])):
             idx_k = list_of_Ks[which_k][1][w]
-            err_beta = SEXT_FACT * frac * errorfile.elements[idx_k].k2l * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = SEXT_FACT * frac * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += .5 * SEXT_FACT * errorfile.elements[idx_k].k2l * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += .5 * SEXT_FACT * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][1])
         
@@ -2467,9 +2472,9 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         
         for w in range(len(list_of_Ks[which_k][1])):
             idx_k = list_of_Ks[which_k][1][w]
-            err_beta = -SEXT_FACT * frac * errorfile.elements[idx_k].k2l * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
+            err_beta = -SEXT_FACT * frac * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += .5 * SEXT_FACT * errorfile.elements[idx_k].k2l * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
+            T_Alf[K_offset + w] += .5 * SEXT_FACT * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
             T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][1])
     
@@ -2485,9 +2490,9 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         which_k = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[which_k][2])):
             idx_k = list_of_Ks[which_k][2][w]
-            err_beta = -frac * errorfile.elements[idx_k].k1lend * errorfile.elements[idx_k].betend * (sin(errorfile.elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = -frac * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.elements[idx_k].k1lend * errorfile.elements[idx_k].betend * (sin(errorfile.elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += -.5 * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][2])
         
@@ -2501,9 +2506,9 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         
         for w in range(len(list_of_Ks[which_k][2])):
             idx_k = list_of_Ks[which_k][2][w]
-            err_beta = frac * errorfile.elements[idx_k].k1lend * errorfile.elements[idx_k].betend * (sin(errorfile.elements[idx_k].muend * TWOPI - phi_2) ** 2 / s_i2)
+            err_beta = frac * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_2) ** 2 / s_i2)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.elements[idx_k].k1lend * errorfile.elements[idx_k].betend * (sin(errorfile.elements[idx_k].muend * TWOPI - phi_2) ** 2 / s_i2)
+            T_Alf[K_offset + w] += -.5 * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_2) ** 2 / s_i2)
             T_Alf[K_offset + w] += .5 * err_beta * denomalf
         K_offset += len(list_of_Ks[which_k][2])
         
@@ -2516,15 +2521,15 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if errorfile.elements[errindx3].ds != 0:
+    if elements[errindx3].ds != 0:
         numerphi = -1.0 / (betmdl2 * sin(phmdl32) ** 2) + 1.0 / (betmdl1 * sin(phmdl31) ** 2)
         T[K_offset + bi3] = numerphi / denom
           
-    if errorfile.elements[errindx2].ds != 0:
+    if elements[errindx2].ds != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl32) ** 2)
         T[K_offset + bi2] = numerphi / denom
        
-    if errorfile.elements[errindx1].ds != 0:
+    if elements[errindx1].ds != 0:
         numerphi = -1.0 / (betmdl1 * sin(phmdl31) ** 2)
         T[K_offset + bi1] = numerphi / denom
             
@@ -2536,14 +2541,14 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     return MeasuredValues(alf, bet, "".join(patternstr), True), T, T_Alf
 
 
-def _assign_quaderrors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, sinus_ij_squared, T_Bet, T_Alf, reference_phi, frac, K_offset, Alf_fact_1, Alf_fact_2):
+def _assign_quaderrors(I, bi1, bi2, elements, list_of_Ks, denomalf, sinus_ij_squared, T_Bet, T_Alf, reference_phi, frac, K_offset, Alf_fact_1, Alf_fact_2):
     for k in range(bi1, bi2):
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][0])):
             idx_k = list_of_Ks[whichK][0][w]
-            err_beta = frac * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
+            err_beta = frac * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
             T_Bet[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
+            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][0])
@@ -2551,14 +2556,14 @@ def _assign_quaderrors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, sinus_ij_sq
     return K_offset
 
 
-def _assign_sext_errors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
+def _assign_sext_errors(I, bi1, bi2, elements, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
     for k in range(bi1, bi2):
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][1])):
             idx_k = list_of_Ks[whichK][1][w]
-            err_beta = -SEXT_FACT * frac * errorfile.elements[idx_k].k2l * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = -SEXT_FACT * frac * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * SEXT_FACT * errorfile.elements[idx_k].k2l * errorfile.elements[idx_k].bet * (sin(errorfile.elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += Alf_fact_1 * SEXT_FACT * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][1])
@@ -2566,14 +2571,14 @@ def _assign_sext_errors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T, T
     return K_offset
 
 
-def _assign_quadlongmissal(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
+def _assign_quadlongmissal(I, bi1, bi2, elements, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
     for k in range(bi1, bi2):
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][2])):
             idx_k = list_of_Ks[whichK][2][w]
-            err_beta = frac * errorfile.elements[idx_k].k1lend * errorfile.elements[idx_k].betend * (sin(errorfile.elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = frac * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * errorfile.elements[idx_k].k1lend * errorfile.elements[idx_k].betend * (sin(errorfile.elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][2])
