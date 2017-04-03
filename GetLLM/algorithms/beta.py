@@ -27,7 +27,7 @@ import time
 from constants import PI, TWOPI
 from numpy.linalg.linalg import LinAlgError
 
-__version__ = "2017.3.3"
+__version__ = "2017.3.4(errordefs)"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -126,17 +126,38 @@ class UncertaintyInformation:
         self.dx = _dx
         self.ds = _ds
         self.debug = _debug
+        
+# ================ HELPING constants
+BET_INDEX       = 1
+BETEND_INDEX    = 2
+MU_INDEX        = 3
+MUEND_INDEX     = 4
+DK1_INDEX       = 5
+K1L_INDEX       = 6
+K1LEND_INDEX    = 7
+K2L_INDEX       = 8
+DX_INDEX        = 9
+DS_INDEX        = 10
 
 class ErrorFile:
     def __init__(self):
+        self.capacity = 1024
         self.indx= {}
-        self.elements = []
-        self.max_ind = 0
+        self.elements = np.ndarray(shape=(self.capacity,11), dtype="f8")
+        self.size = 0
         
     def add(self, uni):
-        self.elements.append(uni)
-        self.indx[uni.name] = self.max_ind
-        self.max_ind += 1
+        if self.size == self.capacity:
+            self.capacity += 1024
+            newdata = np.ndarray(shape=(self.capacity,11), dtype="f8")
+            newdata[:self.size] = self.elements
+            self.elements = newdata
+        
+        self.elements[self.size] = [0.0,
+                                    uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
+                                    ]
+        self.indx[uni.name] = self.size
+        self.size += 1
         
         
         
@@ -1433,31 +1454,31 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         
         if index_n < index_nplus1:
             for i in range(index_n + 1, index_nplus1):
-                el = errorfile.elements[i]
-                if el.dk1 != 0:
+                el = errorfile.elements
+                if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
-                if el.dx != 0:
+                if el[i, DX_INDEX] != 0:
                     sext_trans.append(i)
-                if el.ds != 0:
+                if el[i, DS_INDEX] != 0:
                     quad_missal.append(i)
                     
         else:
             for i in range(index_n + 1, len(errorfile.elements)):
-                el = errorfile.elements[i]
-                if el.dk1 != 0:
+                el = errorfile.elements
+                if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
-                if el.dx != 0:
+                if el[i, DX_INDEX] != 0:
                     sext_trans.append(i)
-                if el.ds != 0:
+                if el[i, DS_INDEX] != 0:
                     quad_missal.append(i)
                     
             for i in range(index_nplus1):  # ums Eck
-                el = errorfile.elements[i]
-                if el.dk1 != 0:
+                el = errorfile.elements
+                if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
-                if el.dx != 0:
+                if el[i, DX_INDEX] != 0:
                     sext_trans.append(i)
-                if el.ds != 0:
+                if el[i, DS_INDEX] != 0:
                     quad_missal.append(i)
    
    
@@ -1824,26 +1845,26 @@ def get_beta_from_phase_systematic_errors(madTwiss, errorfile, phase, plane, com
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][0])):
-            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][0][k]].dk1 ** 2
+            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][0][k], DK1_INDEX] ** 2
         position += len(list_of_Ks[index][0])
         
         #---- assign sextupole transversal missalignments
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][1])):
-            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][1][k]].dx ** 2
+            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][1][k], DX_INDEX] ** 2
         position += len(list_of_Ks[index][1])
         
         #---- assign longitudinal missalignments
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][2])):
-            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][2][k]].ds ** 2
+            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][2][k], DS_INDEX] ** 2
         position += len(list_of_Ks[index][2])
         
         #---- assign BPM missalignments
     for j in range(RANGE):
-        err_diagonal[j + position] = errorfile.elements[errorfile.indx[bpm_name[j]]].ds ** 2
+        err_diagonal[j + position] = errorfile.elements[errorfile.indx[bpm_name[j]], DS_INDEX] ** 2
         
     M = np.diag(err_diagonal)
                
@@ -2079,15 +2100,15 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if elements[errindx1].ds != 0:
+    if elements[errindx1, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl2 * sin(phmdl12) ** 2) + 1.0 / (betmdl3 * sin(phmdl13) ** 2)
         T[K_offset + bi1] = numerphi / denom
           
-    if elements[errindx2].ds != 0:
+    if elements[errindx2, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl12) ** 2)
         T[K_offset + bi2] = numerphi / denom
        
-    if elements[errindx3].ds != 0:
+    if elements[errindx3, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl3 * sin(phmdl13) ** 2)
         T[K_offset + bi3] = numerphi / denom
          
@@ -2270,15 +2291,15 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if elements[errindx2].ds != 0:
+    if elements[errindx2, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl1 * sin(phmdl21) ** 2) + 1.0 / (betmdl3 * sin(phmdl23) ** 2)
         T[K_offset + bi2] = numerphi / denom
           
-    if elements[errindx1].ds != 0:
+    if elements[errindx1, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl1 * sin(phmdl21) ** 2)
         T[K_offset + bi1] = numerphi / denom
        
-    if elements[errindx3].ds != 0:
+    if elements[errindx3, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl3 * sin(phmdl23) ** 2)
         T[K_offset + bi3] = numerphi / denom
      
@@ -2415,16 +2436,11 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     K_begin = K_offset
     #K_offset = RANGE
     
-    # assign T matrix elements for phase errors between BPM 1 and 3
-    for k in range(bi1, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        for w in range(len(list_of_Ks[which_k][0])):
-            idx_k = list_of_Ks[which_k][0][w]
-            err_beta = -frac * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][0])
+    K_offset = _assign_quaderrors(I, bi1, bi3,
+                                  elements, list_of_Ks,
+                                  denomalf, s_i1, T, T_Alf, phi_1, frac,
+                                  K_offset,
+                                  -.5, .5)
     
     # go back because the second h_ij begins at 2
     # so we have to find the position of BPM2 in the matrix
@@ -2432,17 +2448,12 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     for k in range(bi1, bi2):
         which_k = (k + I) % len(list_of_Ks)
         K_offset += len(list_of_Ks[which_k][0])
-    # and assign the T matrix alements between BPM 1 and 3
-    for k in range(bi2, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        
-        for w in range(len(list_of_Ks[which_k][0])):
-            idx_k = list_of_Ks[which_k][0][w]
-            err_beta = frac * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][0])
+     
+    K_offset = _assign_quaderrors(I, bi2, bi3,
+                                  elements, list_of_Ks,
+                                  denomalf, s_i2, T, T_Alf, phi_2, frac,
+                                  K_offset,
+                                  -.5, .5)
     
     #--- Sext Trasverse Missalignments
     # jump to the end of RANGE then to b1
@@ -2452,31 +2463,20 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][1])
     K_begin = K_offset
     
-    for k in range(bi1, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        for w in range(len(list_of_Ks[which_k][1])):
-            idx_k = list_of_Ks[which_k][1][w]
-            err_beta = SEXT_FACT * frac * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += .5 * SEXT_FACT * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][1])
-        
+    K_offset = _assign_sext_errors(I, bi1, bi3,
+                                   elements, list_of_Ks,
+                                   denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset,
+                                   .5, .5)
+    
     K_offset = K_begin
     for k in range(bi1, bi2):
         which_k = (k + I) % len(list_of_Ks)
         K_offset += len(list_of_Ks[which_k][1])
-    # and assign the T matrix alements between BPM 1 and 3
-    for k in range(bi2, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        
-        for w in range(len(list_of_Ks[which_k][1])):
-            idx_k = list_of_Ks[which_k][1][w]
-            err_beta = -SEXT_FACT * frac * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += .5 * SEXT_FACT * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_2) ** 2 / s_i2)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][1])
+                
+    K_offset = _assign_sext_errors(I, bi2, bi3,
+                                   elements, list_of_Ks,
+                                   denomalf, s_i2, T, T_Alf, phi_2, frac, K_offset,
+                                   .5, .5)
     
     #--- Quad Longitudinal Missalignments
     # jump to the end of RANGE then to b1
@@ -2485,33 +2485,23 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     for k in range(bi1):
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][2])
     K_begin = K_offset
-      
-    for k in range(bi1, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        for w in range(len(list_of_Ks[which_k][2])):
-            idx_k = list_of_Ks[which_k][2][w]
-            err_beta = -frac * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][2])
-        
+    
+    K_offset = _assign_quadlongmissal(I, bi1, bi3,
+                                      elements, list_of_Ks,
+                                      denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset,
+                                      -.5, .5)
+    
     K_offset = K_begin
     for k in range(bi1, bi2):
         which_k = (k + I) % len(list_of_Ks)
         K_offset += len(list_of_Ks[which_k][2])
-    # and assign the T matrix alements between BPM 1 and 3
-    for k in range(bi2, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        
-        for w in range(len(list_of_Ks[which_k][2])):
-            idx_k = list_of_Ks[which_k][2][w]
-            err_beta = frac * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_2) ** 2 / s_i2)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_2) ** 2 / s_i2)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][2])
-        
+    
+    K_offset = _assign_quadlongmissal(I, bi2, bi3,
+                                      elements, list_of_Ks,
+                                      denomalf, s_i2, T, T_Alf, phi_2, frac, K_offset,
+                                      -.5, .5)
+      
+   
     #--- BPM Missalignments
     # jump to end of RANGE
     for k in range(bi3, RANGE):
@@ -2521,15 +2511,15 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if elements[errindx3].ds != 0:
+    if elements[errindx3, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl2 * sin(phmdl32) ** 2) + 1.0 / (betmdl1 * sin(phmdl31) ** 2)
         T[K_offset + bi3] = numerphi / denom
           
-    if elements[errindx2].ds != 0:
+    if elements[errindx2, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl32) ** 2)
         T[K_offset + bi2] = numerphi / denom
        
-    if elements[errindx1].ds != 0:
+    if elements[errindx1, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl1 * sin(phmdl31) ** 2)
         T[K_offset + bi1] = numerphi / denom
             
@@ -2546,9 +2536,9 @@ def _assign_quaderrors(I, bi1, bi2, elements, list_of_Ks, denomalf, sinus_ij_squ
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][0])):
             idx_k = list_of_Ks[whichK][0][w]
-            err_beta = frac * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
+            err_beta = frac * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
             T_Bet[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
+            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][0])
@@ -2561,9 +2551,9 @@ def _assign_sext_errors(I, bi1, bi2, elements, list_of_Ks, denomalf, s_i1, T, T_
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][1])):
             idx_k = list_of_Ks[whichK][1][w]
-            err_beta = -SEXT_FACT * frac * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = -SEXT_FACT * frac * elements[idx_k, K2L_INDEX] * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * SEXT_FACT * elements[idx_k].k2l * elements[idx_k].bet * (sin(elements[idx_k].mu * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += Alf_fact_1 * SEXT_FACT * elements[idx_k, K2L_INDEX] * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][1])
@@ -2576,9 +2566,9 @@ def _assign_quadlongmissal(I, bi1, bi2, elements, list_of_Ks, denomalf, s_i1, T,
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][2])):
             idx_k = list_of_Ks[whichK][2][w]
-            err_beta = frac * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = frac * elements[idx_k, K1LEND_INDEX] * elements[idx_k, BETEND_INDEX] * (sin(elements[idx_k, MUEND_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k].k1lend * elements[idx_k].betend * (sin(elements[idx_k].muend * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k, K1LEND_INDEX] * elements[idx_k, BETEND_INDEX] * (sin(elements[idx_k, MUEND_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][2])
