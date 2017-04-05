@@ -25,10 +25,21 @@ from polygon_interacter import PolygonInteractor
 class IteratePlatteauPlots(object):
     '''
     Author: Felix Carlier
+    
     IteratePlatteau class to iterate through the crossing (xing) angle scans for nonlinear corrections.
     The main purpose here is to graphically represent the data and the guessed platteaus from the automatic 
     platteau detection module. The platteaus are plotted as green vertical spans (axvspan) and are animated through
     the PolygonInteractor class, allowing changes to be made to the platteau selection. 
+      
+      DataFrames:
+      - currents_df  : extracted currents from Timber of 
+      - orbit_df     : extraced orbit data from Timber. Only rms orbits are plotted for now, 
+                       though more available in dataframe
+      - platteaus_df : dataframe of initial guessed platteaus. (end knob trim, start platteau, end platteau)
+      
+      Axes:
+      - self.axes : contains all matplotlib axes in dictionary format with keys describing positions
+
     '''
     def __init__(self, filenames):
         self.currents_df  = load_csv(currents_filename, filetype='currents')
