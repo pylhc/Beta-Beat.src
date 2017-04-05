@@ -19,7 +19,8 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, i
         bpms_list_x = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta])
         bpms_list_y = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_ver_beta])
     else:
-        bpms_list_x, bpms_list_y = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
+        bpms_list_x = bpms_list_y = bpms_list
 
     summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
                                            element_name, bpms_list_x, measured_hor_beta,
