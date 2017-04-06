@@ -619,7 +619,9 @@ def intersect_bpm_list_with_arc_bpms(bpms_list):
     bpm_arcs = []
     # Selecting ARC BPMs
     for b in bpms_list:
-        if ((b[1][4]) == '1' and (b[1][5]) >= '4') or (b[1][4]) == '2':
+        if (((b[1][4]) == '1' and (b[1][5]) >= '4') or
+                (b[1][4]) == '2' or
+                (b[1][4]) == '3'):
             bpm_arcs.append(b)
     return bpm_arcs
 
