@@ -59,6 +59,7 @@ def read_tfs(tfs_path):
                     raise TfsFormatError("Column names have not been set.")
                 if column_types is None:
                     raise TfsFormatError("Column types have not been set.")
+                parts = [part.strip('"') for part in parts]
                 rows_list.append(parts)
     return _create_data_frame(column_names, column_types, rows_list, headers)
 
@@ -154,7 +155,7 @@ def _compute_types(str_list):
 
 
 def _parse_header(type_str, value_str):
-    return _id_to_type(type_str)(value_str)
+    return _id_to_type(type_str)(value_str.strip('"'))
 
 
 def _id_to_type(type_str):
