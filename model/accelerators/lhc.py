@@ -2,8 +2,9 @@ from __future__ import print_function
 import sys
 import os
 import argparse
+import re
 from model_creators import model_creator
-from accelerator import Accelerator
+from accelerator import Accelerator, AcceleratorDefinitionError
 
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -65,8 +66,13 @@ class Lhc(Accelerator):
         return instance, rest_args
 
     @classmethod
-    def get_class(cls, lhc_mode, beam):
-        return Lhc._get_beamed_class(get_lhc_modes()[lhc_mode], beam)
+    def get_class(cls, lhc_mode=None, beam=None):
+        new_class = Lhc
+        if lhc_mode is not None:
+            new_class = get_lhc_modes()[lhc_mode]
+        if beam is not None:
+            new_class = Lhc._get_beamed_class(new_class, beam)
+        return new_class
 
     @classmethod
     def get_class_from_args(cls, args):
@@ -75,14 +81,12 @@ class Lhc(Accelerator):
             "--lhcmode",
             help=("LHC mode to use. Should be one of: " +
                   str(get_lhc_modes().keys())),
-            required=True,
             dest="lhc_mode",
             type=str,
         )
         parser.add_argument(
             "--beam",
             help="Beam to use.",
-            required=True,
             dest="beam",
             type=int,
         )
@@ -98,6 +102,18 @@ class Lhc(Accelerator):
                             (new_class, beam_mixin),
                             {})
         return beamed_class
+
+    @classmethod
+    def get_arc_bpms(list_of_elements):
+        arc_bpm_list = []
+        pattern = re.compile("BPM.*\.([0-9]+)[RL].\..*")
+        for element in list_of_elements:
+            match = pattern.match(element, re.IGNORECASE)
+            if match:
+                # The arc bpms are from BPM.14... and up
+                if int(match.group(1)) > 14:
+                    arc_bpm_list.append(element)
+        return arc_bpm_list
 
     @classmethod
     def _get_arg_parser(cls):
@@ -170,12 +186,19 @@ class Lhc(Accelerator):
         return parser
 
     def verify_object(self):  # TODO: Maybe more checks?
+        try:
+            self.get_beam()
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, beam " +
+                "has to be specified (--beam option missing?)."
+            )
         if self.excitation is None:
-            raise LhcError("Excitation mode not set.")
+            raise AcceleratorDefinitionError("Excitation mode not set.")
         if (self.excitation == LhcExcitationMode.ACD or
                 self.excitation == LhcExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
-                raise LhcError("Driven tunes not set.")
+                raise AcceleratorDefinitionError("Driven tunes not set.")
 
     def get_nominal_tmpl(self):
         return self.get_file("nominal.madx")
@@ -241,13 +264,6 @@ class LhcRunII2016Ats(LhcAts):
 
 class HlLhc(LhcAts):
     MACROS_NAME = "hllhc"
-
-
-class LhcError(Exception):
-    """
-    Raised when an LHC creation error occurs.
-    """
-    pass
 
 
 if __name__ == "__main__":
