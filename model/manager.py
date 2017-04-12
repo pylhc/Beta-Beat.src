@@ -15,7 +15,7 @@ def get_accel_class(name, *args, **kwargs):
             "name should be one of: " +
             str(ACCELS.keys())
         )
-    accel_cls, rest_args = accel.get_class(*args, **kwargs)
+    accel_cls = accel.get_class(*args, **kwargs)
     return accel_cls
 
 

@@ -3,7 +3,7 @@ import sys
 import os
 import argparse
 import re
-from model_creators import model_creator
+import numpy as np
 from accelerator import Accelerator, AcceleratorDefinitionError
 
 
@@ -46,7 +46,7 @@ class Lhc(Accelerator):
         instance.nat_tune_x = options.nat_tune_x
         instance.nat_tune_y = options.nat_tune_y
         if options.acd and options.adt:
-            raise model_creator.ModelCreationError(
+            raise AcceleratorDefinitionError(
                 "Select only one excitation type."
             )
         if options.acd:
@@ -96,7 +96,7 @@ class Lhc(Accelerator):
         return Lhc.get_class(lhc_mode, beam), rest_args
 
     @classmethod
-    def _get_beamed_class(this_class, new_class, beam):
+    def _get_beamed_class(cls, new_class, beam):
         beam_mixin = _LhcB1Mixin if beam == 1 else _LhcB2Mixin
         beamed_class = type(new_class.__name__ + "B" + str(beam),
                             (new_class, beam_mixin),
@@ -104,16 +104,17 @@ class Lhc(Accelerator):
         return beamed_class
 
     @classmethod
-    def get_arc_bpms(list_of_elements):
-        arc_bpm_list = []
-        pattern = re.compile("BPM.*\.([0-9]+)[RL].\..*")
+    def get_arc_bpms_mask(cls, list_of_elements):
+        mask = []
+        pattern = re.compile("BPM.*\.([0-9]+)[RL].\..*", re.IGNORECASE)
         for element in list_of_elements:
-            match = pattern.match(element, re.IGNORECASE)
-            if match:
-                # The arc bpms are from BPM.14... and up
-                if int(match.group(1)) > 14:
-                    arc_bpm_list.append(element)
-        return arc_bpm_list
+            match = pattern.match(element)
+            # The arc bpms are from BPM.14... and up
+            if match and int(match.group(1)) > 14:
+                mask.append(True)
+            else:
+                mask.append(False)
+        return np.array(mask)
 
     @classmethod
     def _get_arg_parser(cls):
@@ -214,7 +215,7 @@ class Lhc(Accelerator):
         elif beam == 2:
             return os.path.join(CURRENT_DIR, "lhc", "beam2", filename)
         else:
-            raise model_creator.ModelCreationError("Beam should be 1 or 2.")
+            raise AcceleratorDefinitionError("Beam should be 1 or 2.")
 
     @property
     def excitation(self):

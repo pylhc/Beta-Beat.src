@@ -39,10 +39,10 @@ class Accelerator(object):
         Accelerator.__raise_definition_error()
 
     @classmethod
-    def get_arc_bpms(list_of_elements):
+    def get_arc_bpms_mask(list_of_elements):
         """
-        It will return a list with the elements of @list_of_elements that
-        are BPMs of the arcs.
+        It will return a mask to filter with the elements of @list_of_elements
+        so that only arc BPMs remains.
         """
         Accelerator.__raise_definition_error()
 

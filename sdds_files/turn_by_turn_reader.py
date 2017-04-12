@@ -40,14 +40,16 @@ def transform_tbt_to_ascii(file_path, model_path, output_path):
 
 def write_ascii_file(model_path, output_path,
                      bpm_names_x, matrix_x,
-                     bpm_names_y, matrix_y, date):
+                     bpm_names_y, matrix_y, date,
+                     headers_dict={}):
     new_tbt_file = TbtFile.create_from_matrices(
         bpm_names_x, matrix_x,
         bpm_names_y, matrix_y, date
     )
     _TbtAsciiWriter([new_tbt_file],
                     model_path,
-                    output_path).transform_tbt_to_ascii()
+                    output_path,
+                    headers_dict).transform_tbt_to_ascii()
 
 
 class TbtFile(object):
@@ -178,10 +180,11 @@ class _TbtReader(object):
 
 
 class _TbtAsciiWriter(object):
-    def __init__(self, tbt_files, model_path, output_path):
+    def __init__(self, tbt_files, model_path, output_path, headers_dict={}):
         self._tbt_files = tbt_files
         self._model_path = model_path
         self._output_path = output_path
+        self._headers_dict = headers_dict
 
     def transform_tbt_to_ascii(self):
         np.set_printoptions(precision=PRINT_PRECISION)
@@ -234,6 +237,8 @@ class _TbtAsciiWriter(object):
         output_file.write("#Acquisition date: " + tbt_file.date.strftime(
             "%Y-%m-%d at %H:%M:%S"
         ) + "\n")
+        for name, value in self._headers_dict.iteritems():
+            output_file.write("#" + name + ": " + str(value) + "\n")
 
     def _write_tbt_data(self, tbt_file, output_file, model_data):
         for bpm_index in range(len(model_data.NAME)):
