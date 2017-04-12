@@ -572,7 +572,7 @@ class _SvdHandler(object):
         print len(bpm_names), len(bpm_data_x.bpm_data)
         for bpm_name in model_twiss.NAME:
             if bpm_name in bpm_names:
-                if self._get_arc_bpm_test_function(bpm_name):
+                if self._get_arc_bpm_test_function()(bpm_name):
                     dispersion = model_twiss.DX[model_twiss.indx[bpm_name]] * 1e3  # We need it in mm
                     bpm_index = bpm_names.index(bpm_name)
                     closed_orbit = mean(bpm_data_x.bpm_data[bpm_index])
@@ -584,8 +584,8 @@ class _SvdHandler(object):
         self.sddsfile.dpp = dp_over_p
         return dp_over_p
 
-    def _get_arc_bpm_test_function(self, bpm_name):
-        dummy_function = lambda bpm_name: True
+    def _get_arc_bpm_test_function(self):
+        dummy_function = lambda x: True
         accel = self.accel
         if accel is None:
             return dummy_function
