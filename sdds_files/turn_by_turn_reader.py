@@ -1,10 +1,12 @@
 from __future__ import print_function
 import sys
 import os
+import logging
 import sdds_reader
 from datetime import datetime
 import numpy as np
 
+LOGGER = logging.getLogger(__name__)
 
 TIMESTAMP_NAME = "acqStamp"
 NUM_BUNCHES_NAME = "nbOfCapBunches"
@@ -200,7 +202,9 @@ class _TbtAsciiWriter(object):
     def _load_model(self):
         self._append_beta_beat_to_path()
         from Python_Classes4MAD import metaclass
-        return metaclass.twiss(self._model_path)
+        from Utilities import contexts
+        with contexts.silence():
+            return metaclass.twiss(self._model_path)
 
     def _append_beta_beat_to_path(self):
         parent_path = os.path.abspath(os.path.join(
@@ -209,7 +213,7 @@ class _TbtAsciiWriter(object):
         if os.path.basename(parent_path) == "Beta-Beat.src":
             sys.path.append(parent_path)
         else:
-            print("Not in Beta-Beat.src, using lintrack metaclass")
+            LOGGER.warn("Not in Beta-Beat.src, using lintrack metaclass")
             if "win" in sys.platform and not sys.platform == "darwin":
                 afs_root = "\\\\AFS"
             else:
@@ -248,8 +252,7 @@ class _TbtAsciiWriter(object):
                 bpm_samples_x = tbt_file.get_x_samples(bpm_name)
                 bpm_samples_y = tbt_file.get_y_samples(bpm_name)
             except KeyError:
-                print(bpm_name + " not found in measurement file",
-                      file=sys.stderr)
+                LOGGER.debug(bpm_name + " not found in measurement file")
                 continue
             output_str_x = " ".join((str(HOR), bpm_name, str(bpm_s), " ",
                                      " ".join(map(str, bpm_samples_x)), "\n"))
