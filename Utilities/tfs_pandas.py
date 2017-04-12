@@ -18,6 +18,7 @@ ID_TO_TYPE = {
     "%s": np.str,
     "%bpm_s": np.str,
     "%le": np.float64,
+    "%f": np.float64,
     "%hd": np.int,
     "%d": np.int,
 }
@@ -30,11 +31,38 @@ TYPE_TO_ID = {
 }
 
 
+class TfsDataFrame(pandas.DataFrame):
+    """
+    Class to hold the information of the built Pandas DataFrame,
+    together with a way of getting the headers of the TFS file.
+    To get a header value do: data_frame["header_name"].
+    """
+
+    _metadata = ["headers"]
+
+    def __init__(self, *args, **kwargs):
+        self.headers = kwargs.pop("headers", {})
+        super(TfsDataFrame, self).__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        try:
+            return super(TfsDataFrame, self).__getitem__(key)
+        except KeyError:
+            try:
+                return self.headers[key]
+            except KeyError:
+                raise KeyError(str(key) +
+                               " is not in the DataFrame or headers.")
+
+    @property
+    def _constructor(self):
+        return TfsDataFrame
+
+
 def read_tfs(tfs_path):
     """
-    Parses the TFS table present in tfs_path and returns a Pandas DataFrame,
-    adding a "headers" attribute:
-    data_frame.headers[header_name] = header_value
+    Parses the TFS table present in tfs_path and returns a custom Pandas
+    DataFrame (TfsDataFrame).
     """
     LOGGER.debug("Reading path: " + tfs_path)
     headers = OrderedDict()
@@ -137,10 +165,10 @@ class TfsFormatError(Exception):
 
 
 def _create_data_frame(column_names, column_types, rows_list, headers):
-    data_frame = pandas.DataFrame(data=np.array(rows_list),
-                                  columns=column_names)
+    data_frame = TfsDataFrame(data=np.array(rows_list),
+                              columns=column_names,
+                              headers=headers)
     _assign_column_types(data_frame, column_names, column_types)
-    data_frame.headers = headers
     return data_frame
 
 
