@@ -191,9 +191,9 @@ class _InputData(object):
             print "Warning: no outputfile given, output=input (*overwrite*)"
         print "outputfile: " + str(_InputData.outputfile)
         _InputData.startturn_human = startturn_human
-        _InputData.startturn = startturn_human - 1
+        _InputData.startturn = startturn_human
         _InputData.maxturns_human = maxturns_human
-        _InputData.maxturns = maxturns_human - 1
+        _InputData.maxturns = maxturns_human
         _InputData.singular_values_amount_to_keep = singular_values_amount_to_keep
         _InputData.min_peak_to_peak = min_peak_to_peak
         _InputData.max_peak_cut = max_peak_cut
