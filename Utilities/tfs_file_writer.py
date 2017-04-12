@@ -105,6 +105,10 @@ class TfsFileWriter(object):
         tfs_descriptor = _TfsDescriptor(name, str_value, _TfsDataType.get_new_string_instance())
         self.__tfs_header_lines.append(tfs_descriptor)
 
+    def add_header_line(self, str_value):
+        """ Adds the line to the tfs header. """
+        self.__tfs_header_lines.append(_TfsLine(str_value))
+
 
     def add_float_descriptor(self, name, float_value):
         """ Adds the string "@ <name> %le <data>" to the tfs header. """
@@ -153,11 +157,13 @@ class TfsFileWriter(object):
     def get_absolute_file_name_path(self):
         return os.path.join(self.__outputpath, self.__file_name)
 
+
     def order_rows(self, column_name, reverse=False):
         """
         Orders the rows according to one of the column names.
         """
         self.__tfs_table.order_rows(column_name, reverse)
+
 
     def write_to_file(self, formatted = True):
         """ Writes the stored data to the file with the given filename. """
@@ -229,7 +235,7 @@ class TfsFileWriter(object):
 class _TfsHeaderLine(object):
     """ Abstract class which represents a header line.
 
-        Subclasses: _TfsDescriptor, _TfsComment
+        Subclasses: _TfsDescriptor, _TfsComment, _TfsLine
     """
     def __init__(self):
         pass
@@ -307,6 +313,23 @@ class _TfsComment(_TfsHeaderLine):
 
     def get_line_as_string_with_newline(self):
         return "# " + self.__comment + "\n"
+
+
+class _TfsLine(_TfsHeaderLine):
+
+    def __init__(self, line):
+        super(_TfsLine, self).__init__()
+        self.__line = ""
+        self.__set_line(line)
+
+    def __set_line(self, line_as_string):
+        if isinstance(line_as_string, str):
+            self.__line = line_as_string
+        else:
+            raise ValueError(str(line_as_string) + " is not a string")
+
+    def get_line_as_string_with_newline(self):
+        return self.__line
 
 
 class _TfsDataType:
@@ -449,8 +472,7 @@ class _TfsTable(object):
 
     def get_data_rows(self):
         return self.__list_of_table_rows
-
-    def order_rows(self, column_name, reverse=False):
+    def order_rows(self, column_name, reverse=False):
         """
         Orders the rows according to one of the column names.
         """

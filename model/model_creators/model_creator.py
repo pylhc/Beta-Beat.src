@@ -23,4 +23,7 @@ class ModelCreator(object):
 
 
 class ModelCreationError(Exception):
+    """
+    Raised when an error happens during model creation.
+    """
     pass
