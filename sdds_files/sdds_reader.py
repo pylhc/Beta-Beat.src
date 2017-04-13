@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from collections import OrderedDict
 
-LOGGER = logging.getLogger("__name__")
+LOGGER = logging.getLogger(__name__)
 
 # Constants #
 NAME = "name"
