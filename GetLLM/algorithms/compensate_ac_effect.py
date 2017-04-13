@@ -680,11 +680,11 @@ def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane
 
     return actions_sqrt, actions_sqrt_err
 
-
-def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd):
+#factor_top_diff=math.sqrt(abs(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny)))
+def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,acdipole,oa):
 
     #-- Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
-
+    
     #-- Check linx/liny files, may be redundant
     if len(FilesX)!=len(FilesY): return [{},[]]
 
@@ -697,38 +697,41 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     #if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
     #-- Determine the BPM closest to the AC dipole and its position
-    bpmac1 = psih_ac2bpmac.keys()[0]
-    bpmac2 = psih_ac2bpmac.keys()[1]
+    #BPMYB.6L4.B1 BPMYA.5L4.B1
+    # BPMWA.B5L4.B1
 
+
+    bpmac1_h=psih_ac2bpmac.keys()[0]
+    bpmac2_h=psih_ac2bpmac.keys()[1]
+
+    bpmac1_v = psiv_ac2bpmac.keys()[0]
+    bpmac2_v = psiv_ac2bpmac.keys()[1]
+ 
     try:
-        k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
-        bpmac = bpmac1
+        k_bpmac_h=list(zip(*bpm)[1]).index(bpmac1_h)
+        bpmac_h=bpmac1_h
     except:
         try:
-            k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
-            bpmac = bpmac2
+            k_bpmac_h=list(zip(*bpm)[1]).index(bpmac2_h)
+            bpmac_h=bpmac2_h
         except:
-            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC or ADT dipole effects not calculated with analytic eqs for coupling'
             return [{},[]]
-        
-    bpmac1v = psiv_ac2bpmac.keys()[0]
-    bpmac2v = psiv_ac2bpmac.keys()[1]
-
+    #      if 'B5R4' in b: bpmac1=b
+    #if 'A5R4' in b: bpmac2=b
     try:
-        k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
-        bpmacv = bpmac1v
+        k_bpmac_v=list(zip(*bpm)[1]).index(bpmac1_v)
+        bpmac_v=bpmac1_v
     except:
         try:
-            k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
-            bpmacv = bpmac2v
+            k_bpmac_v=list(zip(*bpm)[1]).index(bpmac2_v)
+            bpmac_v=bpmac2_v
         except:
-            print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated with analytic eqs for coupling'
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC dipole or ADT effects not calculated with analytic eqs for coupling'
             return [{},[]]
-    
-    print "WARN: GetFreeCoupling ---- maybe problem with different kicker positions for H and V kicks"
-    print "      For now a hack is implemented to prevent GetLLM from crashing"
-    
-    #-- Global parameters of the driven motion
+    print k_bpmac_v, bpmac_v
+    print k_bpmac_h, bpmac_h
+   #-- Global parameters of the driven motion
     dh =Qh-Qx
     dv =Qv-Qy
     rh =sin(np.pi*(Qh-Qx))/sin(np.pi*(Qh+Qx))
@@ -791,13 +794,13 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 ##              f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
 
         #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
-        psih=psih-(psih[k_bpmac]-psih_ac2bpmac[bpmac])
-        psiv=psiv-(psiv[k_bpmac]-psiv_ac2bpmac[bpmacv])
- 
+        psih=psih-(psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h])
+        psiv=psiv-(psiv[k_bpmac_v]-psiv_ac2bpmac[bpmac_v])
+        print('the phase to the device', psih, psiv)
         Psih=psih-np.pi*Qh
-        Psih[:k_bpmac]=Psih[:k_bpmac]+2*np.pi*Qh
+        Psih[:k_bpmac_h]=Psih[:k_bpmac_h]+2*np.pi*Qh
         Psiv=psiv-np.pi*Qv
-        Psiv[:k_bpmac]=Psiv[:k_bpmac]+2*np.pi*Qv
+        Psiv[:k_bpmac_v]=Psiv[:k_bpmac_v]+2*np.pi*Qv
 
         Psix=np.arctan((1-rh)/(1+rh)*np.tan(Psih))%np.pi
         Psiy=np.arctan((1-rv)/(1+rv)*np.tan(Psiv))%np.pi
@@ -806,9 +809,9 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             if Psiv[k]%(2*np.pi)>np.pi: Psiy[k]=Psiy[k]+np.pi
 
         psix=Psix-np.pi*Qx
-        psix[k_bpmac:]=psix[k_bpmac:]+2*np.pi*Qx
+        psix[k_bpmac_h:]=psix[k_bpmac_h:]+2*np.pi*Qx
         psiy=Psiy-np.pi*Qy
-        psiy[k_bpmac:]=psiy[k_bpmac:]+2*np.pi*Qy
+        psiy[k_bpmac_v:]=psiy[k_bpmac_v:]+2*np.pi*Qy
 
         #-- Construct f1001h, f1001v, f1010h, f1010v (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
         f1001h=1/math.sqrt(1-rv**2)*(np.exp(-1j*(Psiv-Psiy))*f1001hv+rv*np.exp( 1j*(Psiv+Psiy))*f1010hv)
@@ -817,21 +820,21 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         f1010v=1/math.sqrt(1-rh**2)*(np.exp( 1j*(Psih-Psix))*f1010vh+rh*np.exp(-1j*(Psih+Psix))*np.conjugate(f1001vh))
 
         #-- Construct f1001 and f1010 from h and v BPMs (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
-        g1001h          =np.exp(-1j*((psih-psih[k_bpmac])-(psiy-psiy[k_bpmac])))*(ampv/amph*amph[k_bpmac]/ampv[k_bpmac])*f1001h[k_bpmac]
-        g1001h[:k_bpmac]=1/(np.exp(2*np.pi*1j*(Qh-Qy))-1)*(f1001h-g1001h)[:k_bpmac]
-        g1001h[k_bpmac:]=1/(1-np.exp(-2*np.pi*1j*(Qh-Qy)))*(f1001h-g1001h)[k_bpmac:]
+        g1001h          =np.exp(-1j*((psih-psih[k_bpmac_h])-(psiy-psiy[k_bpmac_v])))*(ampv/amph*amph[k_bpmac_h]/ampv[k_bpmac_v])*f1001h[k_bpmac_h]
+        g1001h[:k_bpmac_h]=1/(np.exp(2*np.pi*1j*(Qh-Qy))-1)*(f1001h-g1001h)[:k_bpmac_h]
+        g1001h[k_bpmac_h:]=1/(1-np.exp(-2*np.pi*1j*(Qh-Qy)))*(f1001h-g1001h)[k_bpmac_h:]
 
-        g1010h          =np.exp(-1j*((psih-psih[k_bpmac])+(psiy-psiy[k_bpmac])))*(ampv/amph*amph[k_bpmac]/ampv[k_bpmac])*f1010h[k_bpmac]
-        g1010h[:k_bpmac]=1/(np.exp(2*np.pi*1j*(Qh+Qy))-1)*(f1010h-g1010h)[:k_bpmac]
-        g1010h[k_bpmac:]=1/(1-np.exp(-2*np.pi*1j*(Qh+Qy)))*(f1010h-g1010h)[k_bpmac:]
+        g1010h          =np.exp(-1j*((psih-psih[k_bpmac_h])+(psiy-psiy[k_bpmac_v])))*(ampv/amph*amph[k_bpmac_h]/ampv[k_bpmac_v])*f1010h[k_bpmac_h]
+        g1010h[:k_bpmac_h]=1/(np.exp(2*np.pi*1j*(Qh+Qy))-1)*(f1010h-g1010h)[:k_bpmac_h]
+        g1010h[k_bpmac_h:]=1/(1-np.exp(-2*np.pi*1j*(Qh+Qy)))*(f1010h-g1010h)[k_bpmac_h:]
 
-        g1001v          =np.exp(-1j*((psix-psix[k_bpmac])-(psiv-psiv[k_bpmac])))*(amph/ampv*ampv[k_bpmac]/amph[k_bpmac])*f1001v[k_bpmac]
-        g1001v[:k_bpmac]=1/(np.exp(2*np.pi*1j*(Qx-Qv))-1)*(f1001v-g1001v)[:k_bpmac]
-        g1001v[k_bpmac:]=1/(1-np.exp(-2*np.pi*1j*(Qx-Qv)))*(f1001v-g1001v)[k_bpmac:]
+        g1001v          =np.exp(-1j*((psix-psix[k_bpmac_h])-(psiv-psiv[k_bpmac_v])))*(amph/ampv*ampv[k_bpmac_v]/amph[k_bpmac_h])*f1001v[k_bpmac_v]
+        g1001v[:k_bpmac_v]=1/(np.exp(2*np.pi*1j*(Qx-Qv))-1)*(f1001v-g1001v)[:k_bpmac_v]
+        g1001v[k_bpmac_v:]=1/(1-np.exp(-2*np.pi*1j*(Qx-Qv)))*(f1001v-g1001v)[k_bpmac_v:]
 
-        g1010v          =np.exp(-1j*((psix-psix[k_bpmac])+(psiv-psiv[k_bpmac])))*(amph/ampv*ampv[k_bpmac]/amph[k_bpmac])*f1010v[k_bpmac]
-        g1010v[:k_bpmac]=1/(np.exp(2*np.pi*1j*(Qx+Qv))-1)*(f1010v-g1010v)[:k_bpmac]
-        g1010v[k_bpmac:]=1/(1-np.exp(-2*np.pi*1j*(Qx+Qv)))*(f1010v-g1010v)[k_bpmac:]
+        g1010v          =np.exp(-1j*((psix-psix[k_bpmac_h])+(psiv-psiv[k_bpmac_v])))*(amph/ampv*ampv[k_bpmac_v]/amph[k_bpmac_h])*f1010v[k_bpmac_v]
+        g1010v[:k_bpmac_v]=1/(np.exp(2*np.pi*1j*(Qx+Qv))-1)*(f1010v-g1010v)[:k_bpmac_v]
+        g1010v[k_bpmac_v:]=1/(1-np.exp(-2*np.pi*1j*(Qx+Qv)))*(f1010v-g1010v)[k_bpmac_v:]
 
         f1001x=np.exp(1j*(psih-psix))*f1001h
         f1001x=f1001x-rh*np.exp(-1j*(psih+psix))/rch*np.conjugate(f1010h)
@@ -884,9 +887,10 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         f1001yArgAve = phase.calc_phase_mean(f1001yArg[k],2*np.pi)
         f1010xArgAve = phase.calc_phase_mean(f1010xArg[k],2*np.pi)
         f1010yArgAve = phase.calc_phase_mean(f1010yArg[k],2*np.pi)
+        #This seems to be to conservative or somethings...
         if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
         if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
-
+       
         #-- Output
         if badbpm==0:
             f1001AbsAve = np.mean(f1001Abs[k])
@@ -907,6 +911,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     fwqw['Global']=['"null"','"null"']
 
     return [fwqw,goodbpm]
+
 
 def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
 

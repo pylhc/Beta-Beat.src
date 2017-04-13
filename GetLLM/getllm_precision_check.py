@@ -43,6 +43,13 @@ beam, sequence=LHCB1, particle=proton, energy=6500,
 beam, sequence=LHCB2, particle=proton, energy=6500,
     kbunch=1, npart=1.15E11, bv=-1;
 
+if(1 == 1){
+exec, coupling_knob(1);
+b1_re_ip7_knob = b1_re_ip7_knob + 0.004;
+b1_im_ip7_knob = b1_im_ip7_knob - 0.003;
+};  
+
+
 exec, match_tunes(64.%(IQX)s, 59.%(IQY)s, %(BEAM)i);
 
 exec, do_twiss_monitors(
@@ -172,7 +179,7 @@ NUM_TURNS = RAMP3
 def print_getllm_precision(options):
     test_dir = dirname(os.path.abspath(__file__))
     output_dir = os.path.join(test_dir,
-                              "test_getllm" + time.strftime("%d_%m_%Y"))
+                              "test_getllm" + time.strftime("%d_%m_%Y_%h_%s"))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     try:
@@ -452,7 +459,8 @@ def _compare_phases(phasex, phasey):
 
 
 def _clean_up_files(ouput_dir):
-    iotools.delete_item(ouput_dir)
+    print('should clean up')
+  #  iotools.delete_item(ouput_dir)
 
 
 if __name__ == "__main__":
