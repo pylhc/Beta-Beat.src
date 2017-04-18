@@ -14,7 +14,7 @@ from matplotlib.mlab import dist_point_to_segment
 from matplotlib.axes import Axes
 from matplotlib.patches import Polygon
 import matplotlib.dates as mdates
-    
+import pandas as pd    
 from data_loader import load_csv 
 from datetime import datetime
 from datetime import timedelta 
@@ -41,15 +41,14 @@ class IteratePlatteauPlots(object):
       - self.axes : contains all matplotlib axes in dictionary format with keys describing positions
 
     '''
-    def __init__(self, filenames):
+    def __init__(self, filenames, output_file):
         self.currents_df  = load_csv(currents_filename, filetype='currents')
         self.orbit_df     = load_csv(orbit_filename, filetype='orbit')
         self.platteaus_df = load_csv(platteaus_filename, filetype='platteaus')
         self.currents_df = self._normalize_data(self.currents_df)
-        
-        self.accepted_platteaus_B1 = []
-        self.accepted_platteaus_B2 = []
-        self.idx = 1 
+
+        self.accepted_plat = pd.DataFrame(index=np.arange(len(self.platteaus_df['KNOB_PLAT_START'])), columns=['B1_min','B1_max','B2_min','B2_max',])
+        self.idx = 0 
 
         self.fig = plt.figure(figsize=(18,18))
         self.fig.patch.set_facecolor('white')
@@ -64,7 +63,7 @@ class IteratePlatteauPlots(object):
         self.axes = {'top_left': ax1, 'top_right':ax2, 'middle_left':ax3, 
                      'middle_right':ax4, 'bottom_left':ax5, 'bottom_right':ax6}
         
-        self._get_next_platteau()
+        self._get_plat_times()
         self._make_plot()
         self.all_poly = self._make_all_poly()
         self._update_span()
@@ -78,9 +77,19 @@ class IteratePlatteauPlots(object):
             all_poly[key] = PolygonInteractor(self.axes[key], span_temp)
         return all_poly
 
-    def _get_next_platteau(self):
+    def _get_previous_platteau_idx(self):
         ''' Iterate through the guessed platteau times to define new plotting xlimits and platteau limits. '''
-        self.idx += 1
+        self.idx += -1 
+        self._get_plat_times()
+        self.new_limits_B1 = [self.accepted_plat.loc[self.idx,'B1_min'], self.accepted_plat.loc[self.idx,'B1_max']]
+        self.new_limits_B2 = [self.accepted_plat.loc[self.idx,'B2_min'], self.accepted_plat.loc[self.idx,'B2_max']]
+
+    def _get_next_platteau_idx(self):
+        ''' Iterate through the guessed platteau times to define new plotting xlimits and platteau limits. '''
+        self.idx += 1 
+        self._get_plat_times()
+
+    def _get_plat_times(self):
         self.time_knob = self.platteaus_df['KNOB_PLAT_START'][self.idx]-timedelta(seconds=50)
         self.time_min_pl = self.platteaus_df['DATA_PLAT_START'][self.idx]
         self.time_max_pl = self.platteaus_df['DATA_PLAT_END'][self.idx]
@@ -95,10 +104,18 @@ class IteratePlatteauPlots(object):
         2) Try: Get next platteau times, update spans and clear plots, generate data plots
         '''
         if event.key == 'n':
-            self.accepted_platteaus_B1.append([min(self.new_limits_B1),max(self.new_limits_B1) ])
-            self.accepted_platteaus_B2.append([min(self.new_limits_B2),max(self.new_limits_B2) ])
+            self._get_span_limits()
+            self.accepted_plat.loc[self.idx] = self.new_limits_B1[0], self.new_limits_B1[1], self.new_limits_B2[0], self.new_limits_B2[1]
             try:
-                self._get_next_platteau()
+                self._get_next_platteau_idx()
+                self._clear_plots()
+                self._make_plot()
+            except KeyError:
+                print('Last platteau analysed, no more platteaus. Continue to data cleaning.') 
+                self.accepted_plat.to_csv(output_file)
+        elif event.key == 'p':
+            try:
+                self._get_previous_platteau_idx()
                 self._clear_plots()
                 self._make_plot()
             except KeyError:
@@ -125,6 +142,10 @@ class IteratePlatteauPlots(object):
             self.all_poly[key].poly.xy = zip(xlim_B1, ylim)
         for key in ['top_right', 'middle_right', 'bottom_right']:
             self.all_poly[key].poly.xy = zip(xlim_B2, ylim)
+
+    def _get_span_limits(self):
+        self.new_limits_B1 = [mdates.num2date(min(self.all_poly['top_left'].poly.xy[:,0])), mdates.num2date(max(self.all_poly['top_left'].poly.xy[:,0]))]
+        self.new_limits_B2 = [mdates.num2date(min(self.all_poly['top_right'].poly.xy[:,0])), mdates.num2date(max(self.all_poly['top_right'].poly.xy[:,0]))]
 
     def _make_plot(self):
         '''
@@ -158,6 +179,6 @@ if __name__ == '__main__':
     platteaus_filename = os.path.join(input_dir,'data.platteaus.LHCBEAM_IP5-XING-H-MURAD.csv')
     orbit_filename     = os.path.join(input_dir,'data.orbit.arc.xing.csv')
     filenames = [currents_filename, platteaus_filename, orbit_filename]
-    
-    IteratePlatteauPlots(filenames)
+    output_file = '../accepted_platteaus.dat'
+    IteratePlatteauPlots(filenames, output_file)
     
