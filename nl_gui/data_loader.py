@@ -43,9 +43,7 @@ def load_mcb_csv(file_path):
     data_frame = data_frame.replace(to_replace='ARMED', value=False)
     data_frame = data_frame.replace(to_replace='IDLE', value=False)
     data_frame = data_frame.set_index(['circuit', 'time'])
-    print (data_frame)
     data_frame = data_frame.stack().unstack(0)
-    print (data_frame)
     data_frame.index = data_frame.index.droplevel(level=1)
     data_frame = data_frame.any(axis=1)
     return data_frame
@@ -55,6 +53,10 @@ def load_tune_coupling_csv(file_path):
     data_frame = pd.read_csv(file_path, parse_dates=[0], infer_datetime_format=True)
     data_frame.set_index(['time'], inplace=True)
 
+    return data_frame
+
+def load_accepted_platteaus(file_path):
+    data_frame = pd.read_csv(file_path, parse_dates=[1,2,3,4] )
     return data_frame
 
 
@@ -67,6 +69,8 @@ def load_csv(file_path, filetype=None):
         return load_orbit_csv(file_path)
     elif filetype is 'platteaus':
         return load_platteaus_csv(file_path)
+    elif filetype is 'accepted_platteaus':
+        return load_accepted_platteaus(file_path)
     elif filetype is 'mcb':
         return load_mcb_csv(file_path)
     elif filetype is 'tune':
