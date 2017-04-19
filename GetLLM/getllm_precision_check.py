@@ -373,6 +373,8 @@ def _print_results(directory, free=True):
     ampbetax_data = _get_beta_amp_data(directory, HOR, free=free)
     ampbetay_data = _get_beta_amp_data(directory, VER, free=free)
     _compare_amp_betas(ampbetax_data, ampbetay_data)
+    
+    _compare_couplingTrackingToTwiss(directory, free=free)
     print("++++++++++++++++++++++++++++++++++++++\n")
 
 
@@ -403,7 +405,44 @@ def _get_beta_amp_data(directory, plane, free=True):
         return metaclass.twiss(getampbeta)
     return _get_twiss_for_one_of(getampbetafree, getampbeta)
 
+def _get_coupling_data(directory, free=True):
+    if free:
+        getcouplePath = os.path.join(directory, 'getcouple_free.out')
+    else:
+        getcouplePath =os.path.join(directory, 'getcouple.out')
+    return metaclass.twiss(getcouplePath)
 
+def _get_coupling_twiss(directory):
+    getcouplePathTwiss =os.path.join(directory, 'twiss.dat')
+    ctwiss = metaclass.twiss(getcouplePathTwiss)
+    return ctwiss
+
+def _compare_couplingTrackingToTwiss(directory, free=True):
+    diffBetweenRe = []
+    diffBetweenIm=[]
+    error = []
+    getcouplePathTwiss =os.path.join(directory, 'twiss.dat')
+    ctwiss = metaclass.twiss(getcouplePathTwiss)
+    cdata=_get_coupling_data(directory, free)
+   
+    print(ctwiss.Cmatrix())
+    for i in range(0, len(cdata.F1001R)):
+        for j in range(0, len(ctwiss.F1001R)):
+            if cdata.NAME[i] in ctwiss.NAME[j]:
+                diffBetweenRe.append((cdata.F1001R[i] - ctwiss.F1001R[j]))
+                diffBetweenIm.append((cdata.F1001I[i] - ctwiss.F1001I[j]))
+    
+    for i in range(0,len(diffBetweenRe)):                      
+        error.append(np.sqrt(diffBetweenRe[i]**2 + diffBetweenIm[i]**2))
+    print("    Average difference of f1001: ", np.mean(error))
+    
+        
+        
+    
+
+    
+        
+    
 def _get_phase_data(directory, plane, free=True):
     suffix = PLANE_SUFFIX[plane]
     getphase = os.path.join(directory,
@@ -485,4 +524,5 @@ def _clean_up_files(ouput_dir):
 
 if __name__ == "__main__":
     _options = _parse_args()
+    _compare_couplingTrackingToTwiss('/home/tobias/Beta-Beat.src/GetLLM/test_getllm19_04_2017_Apr_1492604410/', True)
     print_getllm_precision(_options)
