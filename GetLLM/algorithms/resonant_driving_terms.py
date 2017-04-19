@@ -33,7 +33,8 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
             'f4000H', 'f1300H', 'f2002H', 'f1120H',  #Normal Octupolar
             'f1102H', 'f2020H', 'f2020V', 'f2011V', 
             'f0220V', 'f0211V', 'f0040V', 'f0013V',
-            'f3001H', 'f1210H', 'f0130V', 'f1012V'  #Skew Octupolar
+            'f3001H', 'f1210H', 'f0130V', 'f1012V',  #Skew Octupolar
+            'f1220H', 'f3002H', 'f1130H', 'f2003H'
 #             'f0220V', 'f2011V', 'f1201H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
 #             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
@@ -49,7 +50,7 @@ def determine_lines(rdt):
     return line, plane
 
 
-def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y):
+def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, inv_x, inv_y):
     '''
     Calculates line RDT amplitudes and phases and fills the following TfsFiles:
         f3000_line.out ...
@@ -84,7 +85,7 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, ps
 
 def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, line), inv_x, inv_y, rdt, beam):
     assert plane in ["H", "V"] # check user input plane
-
+    
     # get plane corresponding phase and twiss data
     if plane == "H":
         phase_data = phase_d.ph_x
@@ -198,10 +199,10 @@ def rdt_function_gen(rdt, plane):
     j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
     if plane == 'H':
         def rdt_function(x, f):
-            return j * f * x[0]**((j+k-2)/2.) * x[1]**((l+m)/2.)
+            return 2 * j * f * x[0]**((j+k-2)/2.) * x[1]**((l+m)/2.)
     elif plane == 'V':
         def rdt_function(x, f):
-            return l * f * x[0]**((j+k)/2.) * x[1]**((l+m-2)/2.)
+            return 2 * l * f * x[0]**((j+k)/2.) * x[1]**((l+m-2)/2.)
     return rdt_function
 
 
