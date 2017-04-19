@@ -43,14 +43,15 @@ beam, sequence=LHCB1, particle=proton, energy=6500,
 beam, sequence=LHCB2, particle=proton, energy=6500,
     kbunch=1, npart=1.15E11, bv=-1;
 
-if(1 == 1){
+if(%(DO_COUPLING)s == 1){
 exec, coupling_knob(1);
-b1_re_ip7_knob = b1_re_ip7_knob + 0.004;
-b1_im_ip7_knob = b1_im_ip7_knob - 0.003;
+b1_re_ip7_knob = b1_re_ip7_knob - 0.01;
+b1_im_ip7_knob = b1_im_ip7_knob - 0.002;
 };  
 
 
 exec, match_tunes(64.%(IQX)s, 59.%(IQY)s, %(BEAM)i);
+
 
 exec, do_twiss_monitors(
     LHCB%(BEAM)i,
@@ -107,6 +108,12 @@ elseif(%(DO_ADT)s == 1){
     );
 }
 
+exec, do_twiss_elements(
+    LHCB%(BEAM)i,
+    "%(TWISS_ELEMENTS)s",
+    0.0
+);
+
 exec, do_madx_track_single_particle(
     %(KICK_X)s, %(KICK_Y)s, 0.0, 0.0,
     %(NUM_TURNS)s, "%(TRACK_PATH)s"
@@ -134,6 +141,12 @@ def _parse_args():
         dest="optics",
         required=True,
         type=str,
+    )
+    parser.add_argument(
+        "--coupling",
+        help="Include coupling in the simulation",
+        dest="coupling",
+        action="store_true",
     )
     return parser.parse_args()
 
@@ -194,6 +207,7 @@ def print_getllm_precision(options):
 def _run_tracking_model(directory, options):
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory, options)
+    #print(madx_script)
     with silence():
         madx_wrapper.resolve_and_run_string(
             madx_script,
@@ -225,6 +239,10 @@ def _get_madx_script(beam, directory, options):
         twiss_ac_or_adt_path = _get_twiss_path(directory)
         kick_x = KICK_X
         kick_y = KICK_Y
+    if options.coupling:
+        do_coupling =1
+    else:
+        do_coupling = 0
     track_path = _get_track_path(directory)
     madx_script = MADX_SCRIPT % {
         "FILES_PATH": FILES_PATH,
@@ -243,6 +261,7 @@ def _get_madx_script(beam, directory, options):
         "TRACK_PATH": track_path,
         "DO_ACD": do_acd,
         "DO_ADT": do_adt,
+        "DO_COUPLING": do_coupling,
         "KICK_X": kick_x,
         "KICK_Y": kick_y,
         "RAMP1": RAMP1,
@@ -250,6 +269,7 @@ def _get_madx_script(beam, directory, options):
         "RAMP3": RAMP3,
         "RAMP4": RAMP4,
     }
+    print(madx_script)
     return madx_script
 
 
@@ -460,7 +480,7 @@ def _compare_phases(phasex, phasey):
 
 def _clean_up_files(ouput_dir):
     print('should clean up')
-  #  iotools.delete_item(ouput_dir)
+    iotools.delete_item(ouput_dir)
 
 
 if __name__ == "__main__":
