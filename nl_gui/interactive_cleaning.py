@@ -57,6 +57,9 @@ class IterateCleaning(object):
         source = 'BBQ_HS'
         self.tune_df = load_csv(filenames[0], filetype='tune')
         self.platteaus_df = load_csv(filenames[1], filetype='accepted_platteaus')
+        
+        self.data_summary = pd.DataFrame(index=np.arange(len(self.platteaus_df['B1_min'])), columns=['Qx_ave', 'Qx_std', 'Qy_ave', 'Qy_std', 'Coupl_ave', 'Coupl_std'])
+        
         self.beam = beam
         if self.beam == 1:
             keys = KEYS_DICT_B1[source]
@@ -75,6 +78,7 @@ class IterateCleaning(object):
         self.fig = plt.figure(figsize=(18,18))
         self.fig.patch.set_facecolor('white')
         self.fig.canvas.mpl_connect('key_press_event', self._next_plat_key)
+        self.fig.canvas.mpl_connect('button_press_event', self._determine_poly)
 
         ax1 = self.fig.add_subplot(321)
         ax3 = self.fig.add_subplot(323)
@@ -91,7 +95,15 @@ class IterateCleaning(object):
         self._make_plot()
         self.all_poly = self._make_all_poly()
         plt.show()
-    
+   
+    def _determine_poly(self, event):
+        if event.inaxes is self.axes['top_left']:
+            self.all_poly['top_left'].button_press_callback(event)
+        if event.inaxes is self.axes['middle_left']:
+            self.all_poly['middle_left'].button_press_callback(event)
+        if event.inaxes is self.axes['bottom_left']:
+            self.all_poly['bottom_left'].button_press_callback(event)
+
     def _get_next_platteau(self):
         if self.beam == 1:
             self.B1_start = self.platteaus_df['B1_min'][self.idx]
@@ -102,7 +114,6 @@ class IterateCleaning(object):
         
     def _get_data_frames(self):
         for key in ['top_left', 'middle_left', 'bottom_left']:
-            self.cropped_data[key] = self.tune_df.loc[self.B1_start:self.B1_end].dropna(how='all')
             self.cropped_data[key] = self.tune_df[[self.data_keys[key]]].loc[self.B1_start:self.B1_end].dropna(how='all')
         self.cropped_data['top_right'] = self.tune_df[[self.data_keys['top_left'], self.data_keys['middle_left']]].loc[self.B1_start:self.B1_end].dropna(how='all')
         self.cropped_data['middle_right'] = self.tune_df[[self.data_keys['bottom_left']]].loc[self.B1_start:self.B1_end].dropna(how='all')
@@ -117,6 +128,21 @@ class IterateCleaning(object):
             
             self.hist_limits[key] = (dfmin, dfmax, dfmean, dfstd)            
             self.span_limits[key] = (dfmean-dfstd, dfmean+dfstd)
+    
+    def _get_clean_limits(self):
+        self.clean_lim_Qx = [min(self.all_poly['top_left'].poly.xy[:,0]), max(self.all_poly['top_left'].poly.xy[:,0])]
+        self.clean_lim_Qy = [min(self.all_poly['middle_left'].poly.xy[:,0]), max(self.all_poly['middle_left'].poly.xy[:,0])]
+        self.clean_lim_Coupl = [min(self.all_poly['bottom_left'].poly.xy[:,0]), max(self.all_poly['bottom_left'].poly.xy[:,0])]
+    
+    def _summarize_cleaned_data(self):
+        self._get_clean_limits()
+        qx_data = self.cropped_data['top_left'].clip(lower=self.clean_lim_Qx[0], upper=self.clean_lim_Qx[1])
+        qy_data = self.cropped_data['middle_left'].clip(lower=self.clean_lim_Qy[0], upper=self.clean_lim_Qy[1])
+        coupl_data = self.cropped_data['bottom_left'].clip(lower=self.clean_lim_Coupl[0], upper=self.clean_lim_Coupl[1])
+       
+        self.data_summary.loc[self.idx] = qx_data.mean()[0], qx_data.std()[0], qy_data.mean()[0], qy_data.std()[0], coupl_data.mean()[0], coupl_data.std()[0], 
+        print(self.data_summary) 
+
 
     def _make_plot(self):
         self.axes['top_left'].set_title('Beam 1')
@@ -138,6 +164,7 @@ class IterateCleaning(object):
 
     def _next_plat_key(self, event):
         if event.key == 'n':
+            self._summarize_cleaned_data()
             #try:
             self.idx += 1
             self._get_next_platteau()
