@@ -53,6 +53,7 @@ class IteratePlatteauPlots(object):
         self.fig = plt.figure(figsize=(18,18))
         self.fig.patch.set_facecolor('white')
         self.fig.canvas.mpl_connect('key_press_event', self._next_plat_key)
+        self.fig.canvas.mpl_connect('button_press_event', self._assign_click_to_poly)
 
         ax1 = self.fig.add_subplot(321)
         ax3 = self.fig.add_subplot(323, sharex=ax1)
@@ -76,7 +77,16 @@ class IteratePlatteauPlots(object):
             span_temp = self.axes[key].axvspan(0,0, facecolor='g', alpha=0.2, animated=True)
             all_poly[key] = PolygonInteractor(self.axes[key], span_temp)
         return all_poly
-
+    
+    def _assign_click_to_poly(self, event):
+        level_plots = ['top_', 'middle_', 'bottom_']
+        for side in ('left', 'right'):
+            keys = [key + side for key in level_plots]
+            axes = [self.axes[key] for key in keys]
+            if event.inaxes in axes:
+                for key in keys:
+                    self.all_poly[key].button_press_callback(event)
+            
     def _get_previous_platteau_idx(self):
         ''' Iterate through the guessed platteau times to define new plotting xlimits and platteau limits. '''
         self.idx += -1 
@@ -175,6 +185,7 @@ class IteratePlatteauPlots(object):
 
 if __name__ == '__main__':
     input_dir = '/afs/cern.ch/work/f/fcarlier/public/data/NL_test_data/'
+    input_dir = '~/data/NL_test_data/'
     currents_filename  = os.path.join(input_dir,'data.Imeas.LHCBEAM_IP5-XING-H-MURAD.csv')
     platteaus_filename = os.path.join(input_dir,'data.platteaus.LHCBEAM_IP5-XING-H-MURAD.csv')
     orbit_filename     = os.path.join(input_dir,'data.orbit.arc.xing.csv')
