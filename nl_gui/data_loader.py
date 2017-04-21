@@ -7,6 +7,7 @@ from pandas import ExcelWriter
 from datetime import datetime
 
 
+
 def write_excel(outpath, data):
     writer = ExcelWriter(outpath)
     data.to_excel(writer, 'Sheet1')

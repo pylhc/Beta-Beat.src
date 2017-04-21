@@ -58,8 +58,8 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
             dipole_nameH = "ADTKH.C5L4.B1"
             dipole_nameV = "ADTKV.B5R4.B1"
             if plane=="H":
-                bpmac1='BPMWA.B5L4.B1'
-                bpmac2='BPMWA.A5L4.B1'
+                bpmac1 = 'BPMWA.B5R4.B1'
+                bpmac2 = 'BPMWA.A5R4.B1'
             else:
                 bpmac1 = 'BPMWA.B5R4.B1'
                 bpmac2 = 'BPMWA.A5R4.B1'
@@ -794,9 +794,9 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 ##              f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
 
         #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
-        psih=psih-(psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h])
-        psiv=psiv-(psiv[k_bpmac_v]-psiv_ac2bpmac[bpmac_v])
-        print('the phase to the device', psih, psiv)
+        psih=psih-(psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]) 
+        psiv=psiv-(psiv[k_bpmac_v]-psiv_ac2bpmac[bpmac_v]) 
+        print('the phase to the device', k_bpmac_h, psih[k_bpmac_h], bpmac_h, (psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]))
         Psih=psih-np.pi*Qh
         Psih[:k_bpmac_h]=Psih[:k_bpmac_h]+2*np.pi*Qh
         Psiv=psiv-np.pi*Qv
@@ -890,7 +890,8 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         #This seems to be to conservative or somethings...
         if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
         if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
-       
+        
+        badbpm = 0
         #-- Output
         if badbpm==0:
             f1001AbsAve = np.mean(f1001Abs[k])

@@ -3,6 +3,7 @@
 from __future__ import print_function
 import sys, os
 import numpy as np
+import argparse
 import matplotlib.pyplot as plt
 
 import matplotlib
@@ -183,13 +184,27 @@ class IteratePlatteauPlots(object):
         return df
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--input_dir", help="Specify input directory.",
+        dest='input_dir',type=str,
+    )
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == '__main__':
-    input_dir = '/afs/cern.ch/work/f/fcarlier/public/data/NL_test_data/'
-    input_dir = '~/data/NL_test_data/'
+    args = parse_args()
+    input_dir = args.input_dir
+    
     currents_filename  = os.path.join(input_dir,'data.Imeas.LHCBEAM_IP5-XING-H-MURAD.csv')
     platteaus_filename = os.path.join(input_dir,'data.platteaus.LHCBEAM_IP5-XING-H-MURAD.csv')
     orbit_filename     = os.path.join(input_dir,'data.orbit.arc.xing.csv')
+    
     filenames = [currents_filename, platteaus_filename, orbit_filename]
-    output_file = '../accepted_platteaus.dat'
+    
+    output_file = os.path.join(input_dir,'accepted_platteaus.dat')
+    
     IteratePlatteauPlots(filenames, output_file)
     

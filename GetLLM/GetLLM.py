@@ -277,7 +277,6 @@ def main(outputpath,
     getllm_d.errordefspath = errordefspath
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
-
     # Setup
     mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
                                                                                                                             model_filename,
@@ -343,7 +342,7 @@ def main(outputpath,
 
         #-------- START RDTs
         if nonlinear:
-            algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, pseudo_list_x, pseudo_list_y, inv_x, inv_y)
+            algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, inv_x, inv_y)
 
         if tbtana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove
