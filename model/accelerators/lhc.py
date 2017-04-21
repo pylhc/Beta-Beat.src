@@ -16,6 +16,7 @@ def get_lhc_modes():
         "lhc_runII": LhcRunII2015,
         "lhc_runII_2016": LhcRunII2016,
         "lhc_runII_2016_ats": LhcRunII2016Ats,
+        "lhc_runII_2017": LhcRunII2017,
         "hllhc": HlLhc,
     }
 
@@ -261,6 +262,10 @@ class LhcRunII2016(Lhc):
 
 class LhcRunII2016Ats(LhcAts):
     MACROS_NAME = "lhc_runII_2016_ats"
+
+
+class LhcRunII2017(LhcAts):
+    MACROS_NAME = "lhc_runII_2017"
 
 
 class HlLhc(LhcAts):

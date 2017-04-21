@@ -126,7 +126,10 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
     tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     for bpm in bpms:
         name = bpm[1]
-        row = data[name]
+        try:  # TODO: An error was happening here, this is a fast fix, remove!!
+            row = data[name]
+        except KeyError:
+            continue
         beta_d_col[name] = [row[0], row[1], row[2], row[3]]
         model_ac_index = mad_ac.indx[name]
         list_row_entries = ['"' + name + '"', bpm[0], len(twiss_d_zero_dpp),
