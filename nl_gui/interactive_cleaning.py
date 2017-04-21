@@ -3,6 +3,7 @@
 from __future__ import print_function
 import sys, os
 import numpy as np
+import argparse
 import matplotlib.pyplot as plt
 
 import matplotlib
@@ -105,18 +106,18 @@ class IterateCleaning(object):
 
     def _get_next_platteau(self):
         if self.beam == 1:
-            self.B1_start = self.platteaus_df['B1_min'][self.idx]
-            self.B1_end = self.platteaus_df['B1_max'][self.idx]
+            self.start = self.platteaus_df['B1_min'][self.idx]
+            self.end = self.platteaus_df['B1_max'][self.idx]
         elif self.beam == 2:
-            self.B2_start = self.platteaus_df['B2_min'][self.idx]
-            self.B2_end = self.platteaus_df['B2_max'][self.idx]
+            self.start = self.platteaus_df['B2_min'][self.idx]
+            self.end = self.platteaus_df['B2_max'][self.idx]
         
     def _get_data_frames(self):
         for key in ['top_left', 'middle_left', 'bottom_left']:
-            self.cropped_data[key] = self.tune_df[[self.data_keys[key]]].loc[self.B1_start:self.B1_end].dropna(how='all')
-        self.cropped_data['top_right'] = self.tune_df[[self.data_keys['top_left'], self.data_keys['middle_left']]].loc[self.B1_start:self.B1_end].dropna(how='all')
-        self.cropped_data['middle_right'] = self.tune_df[[self.data_keys['bottom_left']]].loc[self.B1_start:self.B1_end].dropna(how='all')
-        self.cropped_data['bottom_right'] = self.tune_df[[self.data_keys['bottom_left']]].loc[self.B1_start:self.B1_end].dropna(how='all')
+            self.cropped_data[key] = self.tune_df[[self.data_keys[key]]].loc[self.start:self.end].dropna(how='all')
+        self.cropped_data['top_right'] = self.tune_df[[self.data_keys['top_left'], self.data_keys['middle_left']]].loc[self.start:self.end].dropna(how='all')
+        self.cropped_data['middle_right'] = self.tune_df[[self.data_keys['bottom_left']]].loc[self.start:self.end].dropna(how='all')
+        self.cropped_data['bottom_right'] = self.tune_df[[self.data_keys['bottom_left']]].loc[self.start:self.end].dropna(how='all')
 
     def _get_hist_limits(self):
         for key in self.axes:
@@ -188,14 +189,34 @@ class IterateCleaning(object):
             xlim = xmin_mask*self.span_limits[key][0] + xmax_mask*self.span_limits[key][1]
             self.all_poly[key].poly.xy = zip(xlim, ylim)
 
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--input_dir", help="Input directory.",
+        dest='input_dir',type=str,
+    )
+    parser.add_argument(
+        "--beam", help="Beam to be analysed.",
+        dest='beam',type=int,
+    )
+    parser.add_argument(
+            "--source", help="Source for tune and coupling measurements: BOFSU, BBQ, BBQ_HS",
+        dest='source',type=str,
+    )
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == '__main__':
-    input_dir = '/afs/cern.ch/work/f/fcarlier/public/data/NL_test_data/'
-    # input_dir = '~/data/NL_test_data/'
-    beam = 1
+    args = parse_args()
+    input_dir = args.input_dir
+    beam = args.beam
+    source = args.source
+
     tune_filename  = os.path.join(input_dir,'data.BBQ.csv')
     platteaus_filename = os.path.join(input_dir,'accepted_platteaus.dat')
+    
     filenames = [tune_filename, platteaus_filename]
-
-    source = 'BBQ_HS'
     output_file = os.path.join(input_dir, 'analysed_data_'+source+'.dat')
     IterateCleaning(filenames, output_file, beam, source)
