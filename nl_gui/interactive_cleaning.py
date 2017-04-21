@@ -53,13 +53,12 @@ class IterateCleaning(object):
     Author: Felix Carlier
     IterateCleaning
     '''
-    def __init__(self, filenames, beam):
-        source = 'BBQ_HS'
+    def __init__(self, filenames, output_file, beam, source):
         self.tune_df = load_csv(filenames[0], filetype='tune')
         self.platteaus_df = load_csv(filenames[1], filetype='accepted_platteaus')
         
         self.data_summary = pd.DataFrame(index=np.arange(len(self.platteaus_df['B1_min'])), columns=['Qx_ave', 'Qx_std', 'Qy_ave', 'Qy_std', 'Coupl_ave', 'Coupl_std'])
-        
+        self.output_file = output_file
         self.beam = beam
         if self.beam == 1:
             keys = KEYS_DICT_B1[source]
@@ -141,8 +140,6 @@ class IterateCleaning(object):
         coupl_data = self.cropped_data['bottom_left'].clip(lower=self.clean_lim_Coupl[0], upper=self.clean_lim_Coupl[1])
        
         self.data_summary.loc[self.idx] = qx_data.mean()[0], qx_data.std()[0], qy_data.mean()[0], qy_data.std()[0], coupl_data.mean()[0], coupl_data.std()[0], 
-        print(self.data_summary) 
-
 
     def _make_plot(self):
         self.axes['top_left'].set_title('Beam 1')
@@ -167,11 +164,13 @@ class IterateCleaning(object):
             self._summarize_cleaned_data()
             #try:
             self.idx += 1
-            self._get_next_platteau()
-            self._clear_plots()
-            self._make_plot()
-            #except KeyError:
-            #    wurstel
+            try:
+                self._get_next_platteau()
+                self._clear_plots()
+                self._make_plot()
+            except KeyError:
+                print('Last platteau analysed, no more platteaus. Continue to data cleaning.') 
+                self.data_summary.to_csv(self.output_file)
 
     def _clear_plots(self):
         self._get_data_frames()
@@ -190,10 +189,13 @@ class IterateCleaning(object):
             self.all_poly[key].poly.xy = zip(xlim, ylim)
 
 if __name__ == '__main__':
-    # input_dir = '/afs/cern.ch/work/f/fcarlier/public/data/NL_test_data/'
-    input_dir = '~/data/NL_test_data/'
+    input_dir = '/afs/cern.ch/work/f/fcarlier/public/data/NL_test_data/'
+    # input_dir = '~/data/NL_test_data/'
     beam = 1
     tune_filename  = os.path.join(input_dir,'data.BBQ.csv')
-    platteaus_filename = './accepted_platteaus.dat'
+    platteaus_filename = os.path.join(input_dir,'accepted_platteaus.dat')
     filenames = [tune_filename, platteaus_filename]
-    IterateCleaning(filenames, beam)
+
+    source = 'BBQ_HS'
+    output_file = os.path.join(input_dir, 'analysed_data_'+source+'.dat')
+    IterateCleaning(filenames, output_file, beam, source)

@@ -185,11 +185,11 @@ class IteratePlatteauPlots(object):
 
 if __name__ == '__main__':
     input_dir = '/afs/cern.ch/work/f/fcarlier/public/data/NL_test_data/'
-    input_dir = '~/data/NL_test_data/'
+    # input_dir = '~/data/NL_test_data/'
     currents_filename  = os.path.join(input_dir,'data.Imeas.LHCBEAM_IP5-XING-H-MURAD.csv')
     platteaus_filename = os.path.join(input_dir,'data.platteaus.LHCBEAM_IP5-XING-H-MURAD.csv')
     orbit_filename     = os.path.join(input_dir,'data.orbit.arc.xing.csv')
     filenames = [currents_filename, platteaus_filename, orbit_filename]
-    output_file = '../accepted_platteaus.dat'
+    output_file = os.path.join(input_dir,'accepted_platteaus.dat')
     IteratePlatteauPlots(filenames, output_file)
     
