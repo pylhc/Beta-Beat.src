@@ -410,11 +410,11 @@ def _get_beta_amp_data(directory, plane, free=True):
 
 
 def _get_coupling_data(directory, free=True):
-    if free:
-        getcouple_path = os.path.join(directory, 'getcouple_free.out')
-    else:
-        getcouple_path = os.path.join(directory, 'getcouple.out')
-    return metaclass.twiss(getcouple_path)
+    getcouple = os.path.join(directory, 'getcouple.out')
+    getcouplefree = os.path.join(directory, 'getcouple_free.out')
+    if not free:
+        return metaclass.twiss(getcouple)
+    return _get_twiss_for_one_of(getcouplefree, getcouple)
 
 
 def _get_coupling_twiss(directory):
