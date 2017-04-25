@@ -143,13 +143,13 @@ class IterateCleaning(object):
         self.data_summary.loc[self.idx] = qx_data.mean()[0], qx_data.std()[0], qy_data.mean()[0], qy_data.std()[0], coupl_data.mean()[0], coupl_data.std()[0], 
 
     def _make_plot(self):
-        self.axes['top_left'].set_title('Beam 1')
-        self.axes['top_right'].set_title('Beam 2')
+        self.axes['top_left'].set_title('Beam %s' %self.beam)
+        self.axes['top_right'].set_title('Beam %s' %self.beam)
         for key in ['top_left', 'middle_left', 'bottom_left']:
             self.cropped_data[key].plot.hist(xlim=[self.hist_limits[key][0],self.hist_limits[key][1]],
                                              bins=200, 
                                              ax=self.axes[key])
-        for key in ['top_right', 'middle_right', 'bottom_right']:
+        for key in ['top_right', 'middle_right']:
             self.cropped_data[key].plot(ax=self.axes[key])
         self.fig.canvas.draw()
 
@@ -163,15 +163,23 @@ class IterateCleaning(object):
     def _next_plat_key(self, event):
         if event.key == 'n':
             self._summarize_cleaned_data()
-            #try:
             self.idx += 1
             try:
                 self._get_next_platteau()
                 self._clear_plots()
                 self._make_plot()
             except KeyError:
-                print('Last platteau analysed, no more platteaus. Continue to data cleaning.') 
+                print('Last platteau analysed, no more platteaus. Writing cleaned data for Beam %s.' %self.beam) 
                 self.data_summary.to_csv(self.output_file)
+                plt.close()
+        if event.key == 'p':
+            self.idx += -1
+            if self.idx < 0:
+                print('Already at first platteau') 
+            else: 
+                self._get_next_platteau()
+                self._clear_plots()
+                self._make_plot()
 
     def _clear_plots(self):
         self._get_data_frames()
@@ -218,5 +226,5 @@ if __name__ == '__main__':
     platteaus_filename = os.path.join(input_dir,'accepted_platteaus.dat')
     
     filenames = [tune_filename, platteaus_filename]
-    output_file = os.path.join(input_dir, 'analysed_data_'+source+'.dat')
+    output_file = os.path.join(input_dir, 'analysed_data_B%s' %beam+'_'+source+'.dat')
     IterateCleaning(filenames, output_file, beam, source)
