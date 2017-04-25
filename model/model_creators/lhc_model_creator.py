@@ -35,7 +35,8 @@ class LhcModelCreator(model_creator.ModelCreator):
         use_adt = "1" if (lhc_instance.excitation ==
                           LhcExcitationMode.ADT) else "0"
         replace_dict = {
-            "RUN": lhc_instance.MACROS_NAME,
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
@@ -74,7 +75,8 @@ class LhcModelCreator(model_creator.ModelCreator):
             fullresponse_template = textfile.read()
         iqx, iqy = cls._get_full_tunes(lhc_instance)
         replace_dict = {
-            "RUN": lhc_instance.MACROS_NAME,
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
@@ -111,7 +113,8 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             madx_template = textfile.read()
         iqx, iqy = cls._get_full_tunes(lhc_instance)
         replace_dict = {
-            "RUN": lhc_instance.MACROS_NAME,
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,

@@ -7,7 +7,7 @@ from PyQt5.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
 from contextlib import contextmanager
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
 from widgets import InitialConfigPopup
-from sbs_gui_match_result_view import SbSGuiMatchResultController
+from sbs_gui_match_result_view import SbSGuiMatchResultView
 import sbs_general_matcher
 
 
@@ -83,7 +83,9 @@ class SbSGuiMain(QtWidgets.QMainWindow):
 
     def _get_remove_matcher_action(self):
         remove_matcher_action = QtWidgets.QAction("Remove matcher", self)
-        remove_matcher_action.triggered.connect(self._controller.remove_matcher)
+        remove_matcher_action.triggered.connect(
+            self._controller.remove_matcher
+        )
         return remove_matcher_action
 
     def _get_clone_matcher_action(self):
@@ -122,7 +124,9 @@ class SbSGuiMain(QtWidgets.QMainWindow):
             buttons_layout.addWidget(run_button)
 
             edit_corr_button = QtWidgets.QPushButton("Edit corrections file")
-            edit_corr_button.clicked.connect(self._controller.edit_corrections_file)
+            edit_corr_button.clicked.connect(
+                self._controller.edit_corrections_file
+            )
             buttons_layout.addWidget(edit_corr_button)
 
     class BackgroundTaskDialog(QtWidgets.QMessageBox):
@@ -154,7 +158,8 @@ class SbSGuiMainController(object):
         initial_config_popup.setWindowTitle("Please choose an output path")
         result_code = initial_config_popup.exec_()
         if result_code == QtWidgets.QDialog.Accepted:
-            return initial_config_popup.get_selected_lhc_mode(), initial_config_popup.get_selected_file()
+            return (initial_config_popup.get_selected_lhc_mode(),
+                    initial_config_popup.get_selected_file())
         else:
             return None, None
 
@@ -214,23 +219,28 @@ class SbSGuiMainController(object):
         self._new_matcher_from_chooser(self._matchers_tabs[index].model)
 
     def _new_matcher_from_chooser(self, matcher_to_clone=None):
-        sbs_gui_matcher_selection_dialog = SbSGuiMatcherSelection(
+        selection_dialog = SbSGuiMatcherSelection(
             self, clone_matcher=matcher_to_clone
         )
-        result_code = sbs_gui_matcher_selection_dialog.exec_()
+        result_code = selection_dialog.exec_()
         if result_code == QtWidgets.QDialog.Accepted:
-            selected_matcher_model = sbs_gui_matcher_selection_dialog.get_selected_matcher()
+            matcher_model = selection_dialog.get_selected_matcher()
             with self._heavy_task("Copying files..."):
-                selected_matcher_model.create_matcher(self._match_path)
-            variables_for_beam = selected_matcher_model.get_variables_for_beam()
-            variables_common = selected_matcher_model.get_common_variables()
-            tab_controller = SbSGuiMatchResultController(
+                matcher_model.create_matcher(self._match_path)
+            variables_for_beam = matcher_model.get_variables_for_beam()
+            variables_common = matcher_model.get_common_variables()
+            tab_view = SbSGuiMatchResultView(
                 variables_for_beam,
                 variables_common,
-                lambda beam: selected_matcher_model.get_elements_positions(beam)
             )
-            self._matchers_tabs.append(SbSGuiMainController.Tab(selected_matcher_model, tab_controller))
-            self._view.add_tab(selected_matcher_model.get_name(), tab_controller.get_view())
+            tab_view.toggle_var_action = (
+                lambda name, active, all: self._on_var_toggle(
+                    matcher_model, tab_view, name, active, all)
+            )
+            self._matchers_tabs.append(
+                SbSGuiMainController.Tab(matcher_model, tab_view)
+            )
+            self._view.add_tab(matcher_model.get_name(), tab_view)
 
     @contextmanager
     def _heavy_task(self, message):
@@ -262,12 +272,6 @@ class SbSGuiMainController(object):
     def run_matching(self, just_twiss=False):
         matchers_list = []
         for matcher_tab in self._matchers_tabs:
-            matcher_tab.model.set_ignore_vars_list(
-                matcher_tab.results_controller.get_unselected_variables()
-            )
-            matcher_tab.model.set_disabled_constraints(
-                matcher_tab.results_controller.get_disabled_constraints()
-            )
             matchers_list.append(matcher_tab.model.get_matcher())
         minimize = self._view.is_minimize_selected()
         input_data = sbs_general_matcher.InputData.init_from_matchers_list(
@@ -298,18 +302,26 @@ class SbSGuiMainController(object):
         self._current_thread.start()
 
     def _on_match_end(self):
-        for index in range(len(self._matchers_tabs)):
-            matcher_model = self._matchers_tabs[index].model
-            results_controller = self._matchers_tabs[index].results_controller
-            figures = results_controller.get_figures()
-            matcher_model.get_plotter(figures).plot()
-            results_controller.update_variables(
-                matcher_model.get_match_results()
-            )
+        for matcher_tab in self._matchers_tabs:
+            matcher_model = matcher_tab.model
+            view = matcher_tab.view
+            figure = view.get_figure()
+            model_plotter = matcher_model.get_plotter(figure)
+            model_plotter.update_vars()
+            model_plotter.plot()
         self._current_thread = None
 
     def _on_match_exception(self, message):
         self._current_thread = None
+
+    def _on_var_toggle(self, this_model, this_view, name, active, all):
+        if all:
+            for matcher_tab in self._matchers_tabs:
+                matcher_tab.model.set_var_active(name, active)
+                matcher_tab.view.set_var_active(name, active)
+        else:
+            this_model.set_var_active(name, active)
+            this_view.set_var_active(name, active)
 
     def edit_corrections_file(self):
         if not os.path.isfile(self._corrections_file):
@@ -338,9 +350,9 @@ class SbSGuiMainController(object):
                 self.run_matching(just_twiss=True)
 
     class Tab(object):
-        def __init__(self, matcher_model, matcher_results_controller):
+        def __init__(self, matcher_model, matcher_results_view):
             self.model = matcher_model
-            self.results_controller = matcher_results_controller
+            self.view = matcher_results_view
 
 
 class BackgroundThread(QThread):
@@ -377,8 +389,3 @@ class BackgroundThread(QThread):
         self._view.hide_background_task_dialog()
         self._view.show_error_dialog("Error", exception_message)
         self._on_exception_function(exception_message)
-
-
-if __name__ == "__main__":
-    print >> sys.stderr, "This module is meant to be imported."
-    sys.exit(-1)

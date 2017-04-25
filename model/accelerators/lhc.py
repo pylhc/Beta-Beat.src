@@ -1,5 +1,4 @@
 from __future__ import print_function
-import sys
 import os
 import argparse
 import re
@@ -8,6 +7,7 @@ from accelerator import Accelerator, AcceleratorDefinitionError
 
 
 CURRENT_DIR = os.path.dirname(__file__)
+LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
 
 
 def get_lhc_modes():
@@ -17,7 +17,8 @@ def get_lhc_modes():
         "lhc_runII_2016": LhcRunII2016,
         "lhc_runII_2016_ats": LhcRunII2016Ats,
         "lhc_runII_2017": LhcRunII2017,
-        "hllhc": HlLhc,
+        "hllhc10": HlLhc10,
+        "hllhc12": HlLhc12,
     }
 
 
@@ -28,6 +29,8 @@ class LhcExcitationMode(object):
 class Lhc(Accelerator):
     INT_TUNE_X = 64.
     INT_TUNE_Y = 59.
+
+    MACROS_NAME = "lhc"
 
     def __init__(self):
         self.optics_file = None
@@ -244,33 +247,85 @@ class _LhcB2Mixin(object):
 
 
 class LhcAts(Lhc):
+    MACROS_NAME = "lhc_runII_ats"
+
     INT_TUNE_X = 62.
     INT_TUNE_Y = 60.
 
 
+# Specific accelerator definitions ###########################################
+
 class LhcRunI(Lhc):
-    MACROS_NAME = "lhc_runI"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        load_main_seq = _get_call_main_for_year("2012")
+        load_main_seq += _get_madx_call_command(
+            os.path.join(LHC_DIR, "2012", "install_additional_elements.madx")
+        )
+        return load_main_seq
 
 
 class LhcRunII2015(Lhc):
-    MACROS_NAME = "lhc_runII"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        return _get_call_main_for_year("2015")
 
 
 class LhcRunII2016(Lhc):
-    MACROS_NAME = "lhc_runII_2016"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        return _get_call_main_for_year("2016")
 
 
-class LhcRunII2016Ats(LhcAts):
-    MACROS_NAME = "lhc_runII_2016_ats"
+class LhcRunII2016Ats(LhcAts, LhcRunII2016):
+    pass
 
 
 class LhcRunII2017(LhcAts):
-    MACROS_NAME = "lhc_runII_2017"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        return _get_call_main_for_year("2017")
 
 
-class HlLhc(LhcAts):
+class HlLhc10(LhcAts):
     MACROS_NAME = "hllhc"
 
+    @classmethod
+    def load_main_seq_madx(cls):
+        load_main_seq = _get_call_main_for_year("2015")
+        load_main_seq += _get_call_main_for_year("hllhc1.0")
+        return load_main_seq
 
-if __name__ == "__main__":
-    print("Import this module.", file=sys.stderr)
+
+class HlLhc12(LhcAts):
+    MACROS_NAME = "hllhc"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        load_main_seq = _get_call_main_for_year("2015")
+        load_main_seq += _get_call_main_for_year("hllhc1.2")
+        return load_main_seq
+
+##############################################################################
+
+
+# General functions ##########################################################
+
+def _get_madx_call_command(path_to_call):
+    command = "call, file = \""
+    command += path_to_call
+    command += "\";\n"
+    return command
+
+
+def _get_call_main_for_year(year):
+    call_main = _get_madx_call_command(
+        os.path.join(LHC_DIR, year, "main.seq")
+    )
+    return call_main
+
+##############################################################################
