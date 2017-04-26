@@ -10,30 +10,40 @@ from model_creators import model_creator  # noqa
 from model_creators.lhc_model_creator import (  # noqa
     LhcModelCreator,
     LhcBestKnowledgeCreator,
+    LhcSegmentCreator,
 )
 
 
 CREATORS = {
     "lhc": {"nominal": LhcModelCreator,
-            "best_knowledge": LhcBestKnowledgeCreator},
+            "best_knowledge": LhcBestKnowledgeCreator,
+            "segment": LhcSegmentCreator},
 }
 
 
-def create_model(accel_name, accel_inst, model_type, output_path):
-    CREATORS[accel_name][model_type].create_model(accel_inst, output_path)
+def create_model(accel_inst, model_type, output_path, **kwargs):
+    CREATORS[accel_inst.NAME][model_type].create_model(
+        accel_inst,
+        output_path,
+        **kwargs
+    )
 
 
 def _i_am_main():
     rest_args = sys.argv[1:]
 
-    accel_name, rest_args = manager.parse_accel_name(rest_args)
     accel_cls, rest_args = manager.get_accel_class_from_args(
-        accel_name,
         rest_args
     )
     accel_inst, rest_args = accel_cls.init_from_args(rest_args)
-    model_type, output_path = _parse_rest_args(rest_args)
-    create_model(accel_name, accel_inst, model_type, output_path)
+    options = _parse_rest_args(rest_args)
+    create_model(
+        accel_inst,
+        options.type,
+        options.output,
+        writeto=options.writeto,
+        logfile=options.logfile,
+    )
 
 
 def _parse_rest_args(args):
@@ -50,8 +60,21 @@ def _parse_rest_args(args):
         required=True,
         type=str,
     )
+    parser.add_argument(
+        "--writeto",
+        help="Path to the file where to write the resulting MAD-X script. ",
+        dest="writeto",
+        type=str,
+    )
+    parser.add_argument(
+        "--logfile",
+        help=("Path to the file where to write the MAD-X script output."
+              "If not provided it will be written to sys.stdout."),
+        dest="logfile",
+        type=str,
+    )
     options = parser.parse_args(args)
-    return options.type, options.output
+    return options
 
 
 if __name__ == "__main__":

@@ -1,37 +1,53 @@
 import argparse
-from accelerators import lhc
+from model.accelerators import lhc
 
 
 ACCELS = {
-    "lhc": lhc.Lhc,
+    lhc.Lhc.NAME: lhc.Lhc,
+}
+
+SEGMENTS = {
+    lhc.Lhc.NAME: lhc.LhcSegment,
 }
 
 
 def get_accel_class(name, *args, **kwargs):
-    try:
-        accel = ACCELS[name]
-    except KeyError:
-        raise ValueError(
-            "name should be one of: " +
-            str(ACCELS.keys())
-        )
+    accel = _try_to_get_class(name, ACCELS)
     accel_cls = accel.get_class(*args, **kwargs)
     return accel_cls
 
 
-def get_accel_class_from_args(name, args):
+def get_accel_class_from_args(args):
+    name, args = _parse_accel_name(args)
+    accel = _try_to_get_class(name, ACCELS)
+    accel_cls, rest_args = accel.get_class_from_args(args)
+    return accel_cls, rest_args
+
+
+def get_segment_accel_class(name, *args, **kwargs):
+    accel = _try_to_get_class(name, SEGMENTS)
+    accel_cls = accel.get_class(*args, **kwargs)
+    return accel_cls
+
+
+def get_segment_accel_class_from_args(args):
+    name, args = _parse_accel_name(args)
+    accel = _try_to_get_class(name, SEGMENTS)
+    accel_cls, rest_args = accel.get_class_from_args(args)
+    return accel_cls, rest_args
+
+
+def _try_to_get_class(name, cls_dict):
     try:
-        accel = ACCELS[name]
+        return cls_dict[name]
     except KeyError:
         raise ValueError(
             "name should be one of: " +
             str(ACCELS.keys())
         )
-    accel_cls, rest_args = accel.get_class_from_args(args)
-    return accel_cls, rest_args
 
 
-def parse_accel_name(args):
+def _parse_accel_name(args):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--accel",

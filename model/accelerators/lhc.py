@@ -27,6 +27,8 @@ class LhcExcitationMode(object):
 
 
 class Lhc(Accelerator):
+    NAME = "lhc"
+
     INT_TUNE_X = 64.
     INT_TUNE_Y = 59.
 
@@ -71,11 +73,11 @@ class Lhc(Accelerator):
 
     @classmethod
     def get_class(cls, lhc_mode=None, beam=None):
-        new_class = Lhc
+        new_class = cls
         if lhc_mode is not None:
             new_class = get_lhc_modes()[lhc_mode]
         if beam is not None:
-            new_class = Lhc._get_beamed_class(new_class, beam)
+            new_class = cls._get_beamed_class(new_class, beam)
         return new_class
 
     @classmethod
@@ -97,7 +99,7 @@ class Lhc(Accelerator):
         options, rest_args = parser.parse_known_args(args)
         lhc_mode = options.lhc_mode
         beam = options.beam
-        return Lhc.get_class(lhc_mode, beam), rest_args
+        return cls.get_class(lhc_mode, beam), rest_args
 
     @classmethod
     def _get_beamed_class(cls, new_class, beam):
@@ -198,6 +200,11 @@ class Lhc(Accelerator):
                 "The accelerator definition is incomplete, beam " +
                 "has to be specified (--beam option missing?)."
             )
+        if self.optics_file is None:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, optics "
+                "file has not been specified."
+            )
         if self.excitation is None:
             raise AcceleratorDefinitionError("Excitation mode not set.")
         if (self.excitation == LhcExcitationMode.ACD or
@@ -210,6 +217,9 @@ class Lhc(Accelerator):
 
     def get_best_knowledge_tmpl(self):
         return self.get_file("best_knowledge.madx")
+
+    def get_segment_tmpl(self):
+        return self.get_file("segment.madx")
 
     def get_file(self, filename, beam=None):
         if beam is None:
@@ -232,6 +242,57 @@ class Lhc(Accelerator):
                                    LhcExcitationMode.ADT):
             raise ValueError("Wrong excitation mode.")
         self._excitation = excitation_mode
+
+
+class LhcSegment(Lhc):
+
+    def __init__(self):
+        self.optics_file = None
+        self.label = None
+        self.start = None
+        self.end = None
+
+    @classmethod
+    def init_from_args(cls, args):
+        raise NotImplementedError(
+            "LHC segments can only be instantiated by class definition."
+        )
+
+    @classmethod
+    def get_class(cls, lhc_mode=None, beam=None):
+        new_class = cls
+        if lhc_mode is not None:
+            new_class = cls._get_specific_class(get_lhc_modes()[lhc_mode])
+        if beam is not None:
+            new_class = cls._get_beamed_class(new_class, beam)
+        return new_class
+
+    @classmethod
+    def _get_specific_class(cls, lhc_cls):
+        specific_cls = type(lhc_cls.__name__ + "Segment",
+                            (cls, lhc_cls),
+                            {})
+        return specific_cls
+
+    def verify_object(self):
+        try:
+            self.get_beam()
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, beam "
+                "has to be specified (--beam option missing?)."
+            )
+        if self.optics_file is None:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, optics "
+                "file has not been specified."
+            )
+        if self.label is None:
+            raise AcceleratorDefinitionError("Segment label not set.")
+        if self.start is None:
+            raise AcceleratorDefinitionError("Segment start not set.")
+        if self.end is None:
+            raise AcceleratorDefinitionError("Segment end not set.")
 
 
 class _LhcB1Mixin(object):
