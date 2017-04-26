@@ -2,77 +2,30 @@
 Created on 11/09/09
 
 @author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
-
-@version: 0.34
-
-TODO: Description
-
-Change history:
-#  !=> SegementBySegment_0.0.py : - Construction of the program (11/09/09)
-#  !=> SegementBySegment_0.1.py : - Adding the dispersion to the program (23/09/09)
-#                                 - Make distuinsh between BPMs and instuments (24/09/09)
-#                                 - Adding output tables (sbs...out) (21/10/09)
-#                                 - Adding coupling propogation (21/10/09)
-#                                 - changing output when segment is start and end (24/11/09)
-#  !=> SegementBySegment_0.22.py :- Fixing some small bugs
-#                                 - Added Instruments
-#
-#  !=> SegementBySegment_0.23.py :- Adding summary list for instruments
-#                                 - Applying better cuts for beta
-#  !=> SegementBySegment_0.24.py :- Including one/two beam matching (two beam for IP) (7/12/09)
-#
-#  !=> SegementBySegment_0.25.py :- Adding phase to the propagation (10/12/09)
-#
-#  !=> SegementBySegment_0.26.py :- General clean-up (19/01/10)
-#                                 - Adding  Total phase to the propagation (19/01/10)
-#                                 - Coupling propogation (20/01/10)
-#
-#  !=> SegementBySegment_0.27.py :- Fixing mistake of total phase (1/03/10)
-#                                 - Include real and imaginary part in the output of coupling (1/03/10)
-#
-#  !=> SegementBySegment_0.28.py : -Coupling initial conditions added to MADX segment  24 March 2010
-#                                  -New file getfterms.py required to convert MADX C matrix to observable f terms
-#        4 April 2010              -Introducing the modifiers.madx
-#                                   file, it should be in twisspath or an
-#                                   empty file will be created.
-#                                   The MAD mask file has also been
-#                                   updated
-#  !=> SegementBySegment_0.29.py : - Update for IP2  beam1 and IP8 beam 2... problem with S coordinate
-#  !=>  SegementBySegment_0.30.py : - New filtering...
-#  !=>  SegementBySegment_0.31.py : - New and easier filtering
-#  !=>  SegementBySegment_0.31.py : - Adjusting filtering
-#                                   - Adding C-matrix,angle,waist calculation,...
-#                                   - Adding IP calculation from getllm... if BPM is not found you take another.
-#   Added system save_path to the beginning to avoid having to define it in the shell
-#
-# 0.33 20120820 (tbach):
-# - changed savepath = options.SAVE to savepath = options.SAVE + "/"
-# - fixed errors and warnings from static code analysis (unused variables, not defined variables, variable names overriding bultin reserved key words, broken indentation)
-# - fixed mixed indentation (hint: if you want to a diff which ignores the changed indentation, use sdiff -W -s
-# - deleted code which is commented out
- - 0.34 vimaier 28th May 2013:
-    Restructured code into parse_args(),main(),helper-functions and main invocation
-    Adapted docstrings.
-    Removed unused parameters from getIPfrompara
-    Removed unused function getTwiss
-    Previous version can be found in git commit eca47b2d06ab7eab911c830f30dc222a8bcd91a0
-
 '''
 
 
+from __future__ import print_function
 import os
 import sys
-import optparse
+import argparse
 
 from math import sqrt
-import __init__  # @UnusedImport used for appending paths
-import Utilities.iotools
 import json
-from Python_Classes4MAD.metaclass import twiss
-from Utilities import bpm
-from madx import madx_templates_runner, madx_wrapper
-
 import numpy
+
+_bb_path = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..")
+)
+if _bb_path not in sys.path:
+    sys.path.append(_bb_path)
+
+import Utilities.iotools
+from model import manager, creator
+from model.accelerators.lhc import Lhc
+from Python_Classes4MAD.metaclass import twiss
+from madx import madx_wrapper
 
 import sbs_writers.sbs_beta_writer
 import sbs_writers.sbs_beta_beating_writer
@@ -86,60 +39,59 @@ import sbs_writers.sbs_special_element_writer
 #===================================================================================================
 # parse_args()-function
 #===================================================================================================
-def parse_args():
-    ''' Parses the arguments, checks for valid input and returns tupel '''
-    parser = optparse.OptionParser()
-    parser.add_option("-a", "--accel",
-                    help="Which accelerator: LHCB1 LHCB2 SPS RHIC SOLEIL",
-                    metavar="ACCEL", default="LHCB1", dest="accel")
-    parser.add_option("-f", "--path",  # assumes that output is same as input
-                    help="Path to measurement files",
-                    metavar="PATH", default="./", dest="path")
-    parser.add_option("-i", "--path2",  # assumes that output is same as input
-                    help="Path to second measurement files",
-                    metavar="PATH2", default="./", dest="path2")
-    parser.add_option("-s", "--start",
-                    help="give start,endbpm,name (multiple allowed) eg: start1,end1,name1,start2,end2,name2,...",
-                    metavar="SEGF", default="./", dest="segf")
-    parser.add_option("-t", "--twiss",
-                    help="basic twiss file, the modifiers.madx is assumed to be in the same direcory",
-                    metavar="TWISS", default="./", dest="twiss")
-    parser.add_option("-r", "--response",
-                    help="switch calculate corrections 0 no, 1 yes",
-                    metavar="COR", default="0", dest="cor")
-    parser.add_option("-g", "--graphic",
-                    help="choice between graphic or table output 0=graphic and 1=table output",
-                    metavar="GRA", default="1", dest="gra")
-    parser.add_option("-p", "--save",
-                    help="Output path",
-                    metavar="SAVE", default="./", dest="save")
-    parser.add_option("-m", "--mad",  # assumes that output is same as input
-                    help="mad link",
-              metavar="mad", default="", dest="mad")
-    parser.add_option("-b", "--bbsource",  # assumes that output is same as input
-                    help="beta beat source",
-                    metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
-    parser.add_option("-x", "--take",  # take or create mad input, default should be 0 for creating
-                    help="take or create madx 0/1",
-                    metavar="mad", default="0", dest="madpass")
-    parser.add_option("-c", "--cuts",
-                    help="cut on error of beta in percentage",
-                    metavar="cuts", default="10", dest="cuts")
-    parser.add_option("-w", "--w",  # Path to Chromaticity functions
+def _parse_args():
+    '''
+    Parses the arguments, checks for valid input and returns tupel
+    It needs also the input needed to define the accelerator:
+    --accel=<accel_name>
+    and all the rest of the parameters needed to define given accelerator.
+    e.g. for LHC runII 2017 beam 1
+    --accel lhc --lhcmode lhc_runII_2017 --beam 1
+    '''
+    accel_cls, rest_args = manager.get_segment_accel_class_from_args(
+        sys.argv[1:]
+    )
+    print("Using accelerator class: " + accel_cls.__name__)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--path",  # assumes that output is same as input
+                        help="Path to measurement files",
+                        default="./", dest="path")
+    parser.add_argument("-s", "--start",
+                        help="give start,endbpm,name (multiple allowed) eg: start1,end1,name1,start2,end2,name2,...",
+                        metavar="SEGF", default="./", dest="segf")
+    parser.add_argument("-t", "--twiss",
+                        help="basic twiss file, the modifiers.madx is assumed to be in the same directory",
+                        metavar="TWISS", default="./", dest="twiss")
+    parser.add_argument("-p", "--save",
+                        help="Output path",
+                        metavar="SAVE", default="./", dest="save")
+    parser.add_argument("-m", "--mad",  # assumes that output is same as input
+                        help="mad link",
+                        default="", dest="mad")
+    parser.add_argument("-b", "--bbsource",  # assumes that output is same as input
+                        help="beta beat source",
+                        metavar="bb", default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/", dest="bb")
+    parser.add_argument("-x", "--take",
+                        help="If present, it will run MADX on previously "
+                             "created scripts, without remaking them.",
+                        dest="madpass", action="store_true")
+    parser.add_argument("-c", "--cuts",
+                        help="cut on error of beta in percentage",
+                        metavar="cuts", default="10", dest="cuts")
+    parser.add_argument("-w", "--w",  # Path to Chromaticity functions
                         help="Path to  chromaticity functions, by default this is skiped",
                         metavar="wpath", default="0", dest="wpath")
+    options = parser.parse_args(rest_args)
 
-    (options, args) = parser.parse_args()
-
-    return options, args
+    return accel_cls, options
 
 
-#===================================================================================================
+#==============================================================================
 # main()-function
-#===================================================================================================
+#==============================================================================
 
 
-def main(options):
+def main(accel_cls, options):
     '''
     :Parameters:
         'options': Values
@@ -148,7 +100,7 @@ def main(options):
         0 if execution was successful otherwise !=0
     '''
 
-    print "+++ Starting Segment by Segment +++"
+    print("+++ Starting Segment by Segment +++")
     measurement_path = options.path
     w_path = options.wpath
     if w_path == "0":
@@ -160,20 +112,14 @@ def main(options):
 
     elements_data = options.segf.split(',')
     error_cut = float(options.cuts)
-    selected_accelerator = options.accel
-    selected_accelerator_no_suffix = options.accel.replace("_II", "II")
 
     twiss_file = options.twiss
-    if twiss_file == "./":
-        twiss_file = os.path.join(options.bb, "MODEL", selected_accelerator_no_suffix, "nominal.opt", "twiss_elements.dat")
-
-    print "Input model twiss file", twiss_file
+    print("Input model twiss file", twiss_file)
     input_model = _try_to_load_twiss(twiss_file)
     if input_model is None:
-        print >> sys.stderr, "Cannot read input model, aborting."
-        sys.exit(-1)
+        raise IOError("Cannot read input model, aborting.")
 
-    twiss_directory = os.path.dirname(twiss_file) + os.path.sep
+    twiss_directory = os.path.dirname(twiss_file)
 
     elements_names, start_bpms, end_bpms = structure_elements_info(elements_data)
 
@@ -181,7 +127,7 @@ def main(options):
 
     for element_name in elements_names:
 
-        print "Started processing", element_name
+        print("Started processing", element_name)
 
         start_bpm_name, end_bpm_name, is_element = get_good_bpms(input_data, error_cut, input_model, start_bpms, end_bpms, element_name)
 
@@ -196,34 +142,38 @@ def main(options):
 
         element_has_chrom, chrom_ini, chrom_end = _get_chrom_parameters(input_data, start_bpm_name, end_bpm_name)
 
-        if str(options.madpass) == "0":
+        accel_instance = accel_cls()
+        accel_instance.start = start_bpm_name
+        accel_instance.end = end_bpm_name
+        accel_instance.label = element_name
+        accel_instance.optics_file = os.path.join(twiss_directory,
+                                                  "modifiers.madx")
+
+        if not options.madpass:
             _run4mad(save_path,
+                     accel_instance,
                      start_bpm_horizontal_data,
                      start_bpm_vertical_data,
                      end_bpm_horizontal_data,
                      end_bpm_vertical_data,
                      start_bpm_dispersion,
                      end_bpm_dispersion,
-                     start_bpm_name,
-                     end_bpm_name,
-                     element_name,
                      f_ini,
                      f_end,
                      chrom_ini,
                      chrom_end,
-                     options.path + "/",
+                     options.path,
                      twiss_directory,
                      input_data.couple_method,
-                     selected_accelerator,
                      options.bb,
                      options.mad)
 
         else:
-            print "Just rerunning mad"
-            mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
-            madx_wrapper.resolve_and_run_file(mad_file_path, log_file=log_file_path)            
-
-        reversetable(save_path, element_name)
+            print("Just rerunning mad")
+            mad_file_path, log_file_path = _get_files_for_mad(save_path,
+                                                              element_name)
+            madx_wrapper.resolve_and_run_file(mad_file_path,
+                                              log_file=log_file_path)
 
         propagated_models = _PropagatedModels(save_path, element_name)
 
@@ -238,23 +188,15 @@ def main(options):
                         element_has_dispersion,
                         element_has_coupling,
                         element_has_chrom,
-                        selected_accelerator_no_suffix,
+                        accel_instance,
                         summaries,
                         kmod_data_file_x,
                         kmod_data_file_y)
-
-        # TODO: This has to be fixed
-        if not is_element:
-            beta4plot = start_bpm_horizontal_data[0]
-            startpos = input_model.S[input_model.indx[start_bpm_name]]
-            endpos = input_model.S[input_model.indx[end_bpm_name]]
-            run4plot(save_path, startpos, endpos, beta4plot, options.bb, measurement_path, element_name, input_data.QXX, input_data.QYY, options.accel, input_data.couple_method)
-        print "Everything done for", element_name, "\n"
+        print("Everything done for", element_name, "\n")
 
     summaries.write_summaries_to_files()
 
-    print "+++  Ended Segment by Segment   +++"
-    return 0
+    print("+++  Ended Segment by Segment   +++")
 
 # END main() ---------------------------------------------------------------------------------------
 
@@ -290,15 +232,16 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
         is_element = False
         segment = [start_bpms[element_name], end_bpms[element_name]]
         start_bpm_name, end_bpm_name = _filter_and_find(input_data.beta_x,
-                                                     input_data.beta_y,
-                                                     "null", segment,
-                                                     twiss_data, errorcut)
+                                                        input_data.beta_y,
+                                                        "null", segment,
+                                                        twiss_data, errorcut)
     elif element_name in start_bpms or element_name in end_bpms:
-        print >> sys.stderr, "Something strange ....Did you properly define the input ?"
-        print >> sys.stderr, "Like: BPM1,BPM2,ARC12,IP1"
-        print >> sys.stderr, "Structure must be for Segment => BPML,BPMR,NAME"
-        print >> sys.stderr, "For Instrument just name"
-        sys.exit()
+        raise SegmentBySegmentError(
+            "Something strange ....Did you properly define the input ?\n"
+            "Like: BPM1,BPM2,ARC12,IP1\n"
+            "Structure must be for Segment => BPML,BPMR,NAME\n"
+            "For Instrument just name\n"
+        )
     else:
         is_element = True
         start_bpm_name, end_bpm_name = _filter_and_find(input_data.beta_x,
@@ -328,13 +271,13 @@ def _get_dispersion_parameters(input_data, startbpm, endbpm):
     element_has_dispersion = False
     if input_data.has_dispersion:
         if startbpm not in input_data.dispersion_x.indx:
-            print "Start BPM ", startbpm, " not found in horizontal dispersion measurement, will not compute dispersion."
+            print("Start BPM ", startbpm, " not found in horizontal dispersion measurement, will not compute dispersion.")
         elif startbpm not in input_data.dispersion_y.indx:
-            print "Start BPM ", startbpm, " not found in vertical dispersion measurement, will not compute dispersion."
+            print("Start BPM ", startbpm, " not found in vertical dispersion measurement, will not compute dispersion.")
         elif endbpm not in input_data.dispersion_x.indx:
-            print "End BPM ", endbpm, " not found in horizontal dispersion measurement, will not compute dispersion."
+            print("End BPM ", endbpm, " not found in horizontal dispersion measurement, will not compute dispersion.")
         elif endbpm not in input_data.dispersion_y.indx:
-            print "End BPM ", endbpm, " not found in vertical dispersion measurement, will not compute dispersion."
+            print("End BPM ", endbpm, " not found in vertical dispersion measurement, will not compute dispersion.")
         else:
             dxx_start = input_data.dispersion_x.DX[input_data.dispersion_x.indx[startbpm]]
             dxp_start = input_data.dispersion_x.DPX[input_data.dispersion_x.indx[startbpm]]
@@ -348,7 +291,7 @@ def _get_dispersion_parameters(input_data, startbpm, endbpm):
             dyp_end = input_data.dispersion_y.DPY[input_data.dispersion_y.indx[endbpm]]
             end_bpm_dispersion = [dxx_end, dxp_end, dyy_end, dyp_end]
             element_has_dispersion = True
-            print "Start and end BPMs found in dispersion measurement."
+            print("Start and end BPMs found in dispersion measurement.")
     return element_has_dispersion, start_bpm_dispersion, end_bpm_dispersion
 
 
@@ -369,10 +312,10 @@ def _get_coupling_parameters(input_data, startbpm, endbpm):
     f_end["f1010std"] = 0.
     element_has_coupling = False
     if input_data.has_coupling:
-        if not startbpm in input_data.couple.indx:
-            print "Start BPM ", startbpm, " not found in coupling measurement, will not compute coupling."
+        if startbpm not in input_data.couple.indx:
+            print("Start BPM ", startbpm, " not found in coupling measurement, will not compute coupling.")
         elif not endbpm in input_data.couple.indx:
-            print "End BPM ", endbpm, " not found in coupling measurement, will not compute coupling."
+            print("End BPM ", endbpm, " not found in coupling measurement, will not compute coupling.")
         else:
             f_ini["f1001r"] = input_data.couple.F1001R[input_data.couple.indx[startbpm]]
             f_ini["f1001i"] = input_data.couple.F1001I[input_data.couple.indx[startbpm]]
@@ -387,9 +330,9 @@ def _get_coupling_parameters(input_data, startbpm, endbpm):
             f_end["f1001std"] = input_data.couple.FWSTD1[input_data.couple.indx[endbpm]]
             f_end["f1010std"] = input_data.couple.FWSTD2[input_data.couple.indx[endbpm]]
             element_has_coupling = True
-            print "Start and end BPMs found in coupling measurement."
+            print("Start and end BPMs found in coupling measurement.")
     else:
-        print "No coupling measurement"
+        print("No coupling measurement")
     return element_has_coupling, f_ini, f_end
 
 
@@ -407,9 +350,9 @@ def _get_chrom_parameters(input_data, startbpm, endbpm):
     element_has_chrom = False
     if input_data.has_chromatic:
         if not startbpm in input_data.wx.indx:
-            print "Start BPM ", startbpm, " not found in chromatic measurement, will not compute chromatic."
+            print("Start BPM ", startbpm, " not found in chromatic measurement, will not compute chromatic.")
         elif not endbpm in input_data.wy.indx:
-            print "End BPM ", endbpm, " not found in chromatic measurement, will not compute chromatic."
+            print("End BPM ", endbpm, " not found in chromatic measurement, will not compute chromatic.")
         else:
             chrom_ini["wx"] = input_data.wx.WX[input_data.wx.indx[startbpm]]
             chrom_ini["wy"] = input_data.wy.WY[input_data.wy.indx[startbpm]]
@@ -420,7 +363,7 @@ def _get_chrom_parameters(input_data, startbpm, endbpm):
             chrom_end["phi_x"] = input_data.wx.PHIX[input_data.wx.indx[endbpm]]
             chrom_end["phi_y"] = input_data.wy.PHIY[input_data.wy.indx[endbpm]]
             element_has_chrom = True
-            print "Start and end BPMs found in chromatic measurement."
+            print("Start and end BPMs found in chromatic measurement.")
     return element_has_chrom, chrom_ini, chrom_end
 
 
@@ -509,11 +452,10 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
         if element_name in model.indx:
             element_s = model.S[model.indx[element_name]]
         else:
-            print >> sys.stderr, element_name, " Not found in model=> System exit"
-            sys.exit()
+            raise SegmentBySegmentError(element_name + " not found in model.")
         locations_list.append(element_s)
         translate[element_s] = [True, element_name]
-        print "You selected an element"
+        print("You selected an element")
     else:
         is_segment = True
         left_bpm_name = segment_bpms_names[0]
@@ -522,8 +464,9 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
             left_bpm_s = model.S[model.indx[left_bpm_name]]
             right_bpm_s = model.S[model.indx[right_bpm_name]]
         else:
-            print >> sys.stderr, left_bpm_name, right_bpm_name, " Not found in model=> System exit"
-            sys.exit()
+            raise SegmentBySegmentError(
+                left_bpm_name + " " + right_bpm_name + " not found in model."
+            )
         locations_list.append(left_bpm_s)
         locations_list.append(right_bpm_s)
 
@@ -537,7 +480,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
             translate[left_bpm_s] = [False, left_bpm_name]
             translate[right_bpm_s] = [False, right_bpm_name]
 
-        print "You selected a segment"
+        print("You selected a segment")
 
     elements_names_in_model = model.NAME
 
@@ -557,7 +500,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
 
                 stdbetax_exists = True
                 try:
-                    check_stdbetax = beta_x_twiss.STDBETX[beta_x_twiss.indx[current_element_name]]  # @UnusedVariable
+                    beta_x_twiss.STDBETX[beta_x_twiss.indx[current_element_name]]
                 except AttributeError:
                     stdbetax_exists = False
                 if stdbetax_exists:
@@ -567,7 +510,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
                     total_err_x = err_beta_x
                 stdbetay_exists = True
                 try:
-                    check_stdbetay = beta_y_twiss.STDBETY[beta_y_twiss.indx[current_element_name]]  # @UnusedVariable
+                    beta_y_twiss.STDBETY[beta_y_twiss.indx[current_element_name]]
                 except AttributeError:
                     stdbetay_exists = False
                 if stdbetay_exists:
@@ -594,8 +537,9 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
 
     locations_list.sort()
     if number_of_good_bpms < 3:
-        print >> sys.stderr, "Not enough BPMs! System exit"
-        sys.exit()
+        raise SegmentBySegmentError(
+            "Not enough BPMs! Less than 3 BPMs remaining after filtering!"
+        )
 
     # finding the BPMs
     if not is_segment:
@@ -614,7 +558,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     else:
         left_bpm_is_good = translate[left_bpm_s][0]
         right_bpm_is_good = translate[right_bpm_s][0]
-        print left_bpm_is_good, right_bpm_is_good
+        print(left_bpm_is_good, right_bpm_is_good)
 
         if left_bpm_is_good:
             selected_left_bpm = translate[left_bpm_s][1]
@@ -634,7 +578,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
             else:
                 selected_right_bpm = translate[locations_list[element_location_index + 1]][1]
 
-    print selected_left_bpm, selected_right_bpm, "Will be used for the propagation"
+    print(selected_left_bpm, selected_right_bpm, "Will be used for the propagation")
 
     return [selected_left_bpm, selected_right_bpm]
 
@@ -655,7 +599,7 @@ def getAndWriteData(
         nothing => writing to file in this function (new/appending)
     '''
 
-    print "Start writing files for", element_name
+    print("Start writing files for", element_name)
 
     if hasattr(summaries, 'beta'):
         beta_summary = summaries.beta
@@ -715,15 +659,13 @@ def getAndWriteData(
 
 
 def _run4mad(save_path,
+             accel_instance,
              start_bpm_horizontal_data,
              start_bpm_vertical_data,
              end_bpm_horizontal_data,
              end_bpm_vertical_data,
              start_bpm_dispersion,
              end_bpm_dispersion,
-             start_bpm_name,
-             end_bpm_name,
-             element_name,
              f_ini,
              f_end,
              chrom_ini,
@@ -731,26 +673,10 @@ def _run4mad(save_path,
              exppath,
              twiss_directory,
              coupling_method,
-             accelerator,
              bb_path,
              madx_exe_path):
-
-    lhc_mode = "lhc_runI"
-    if accelerator.endswith("_II"):
-        lhc_mode = "lhc_runII"
-        accelerator = accelerator.upper().replace("_II", "")
-    if accelerator.endswith("_II_2016"):
-        lhc_mode = "lhc_runII_2016"
-        accelerator = accelerator.upper().replace("_II_2016", "")
-    elif accelerator.endswith("_HL"):
-        lhc_mode = "hllhc"
-        accelerator = accelerator.upper().replace("_HL", "")
-    _copy_modifiers_and_corrections_locally(save_path, twiss_directory, element_name, accelerator)
-
-    if accelerator == "LHCB2":
-        beam = 2
-    elif accelerator == "LHCB1":
-        beam = 1
+    _copy_modifiers_and_corrections_locally(save_path, twiss_directory,
+                                            accel_instance)
 
     betx_ini = start_bpm_horizontal_data[0]
     bety_ini = start_bpm_vertical_data[0]
@@ -758,70 +684,75 @@ def _run4mad(save_path,
     bety_end = end_bpm_vertical_data[0]
 
     if betx_ini < 0. or bety_ini < 0.:
-        print >> sys.stderr, "Negative betas in initial BPM of segment!"
-        print >> sys.stderr, "Aborting..."
-        sys.exit(1)
+        raise SegmentBySegmentError(
+            "Negative betas in initial BPM of segment!"
+        )
     if betx_end < 0. or bety_end < 0.:
-        print >> sys.stderr, "Negative betas in last BPM of segment!"
-        print >> sys.stderr, "Aborting..."
-        sys.exit(1)
+        raise SegmentBySegmentError("Negative betas in last BPM of segment!")
 
     alfx_ini = start_bpm_horizontal_data[1]
     alfy_ini = start_bpm_vertical_data[1]
     alfx_end = -end_bpm_horizontal_data[1]
     alfy_end = -end_bpm_vertical_data[1]
 
-    ini_r11, ini_r12, ini_r21, ini_r22 = _get_R_terms(betx_ini, bety_ini, alfx_ini, alfy_ini, f_ini["f1001r"], f_ini["f1001i"], f_ini["f1010r"], f_ini["f1010i"])
-    end_r11, end_r12, end_r21, end_r22 = _get_R_terms(betx_end, bety_end, alfx_end, alfy_end, f_end["f1001r"], f_end["f1001i"], f_end["f1010r"], f_end["f1010i"])
-
-    mad_file_path, log_file_path = _get_files_for_mad(save_path, element_name)
-
-    start_bpm_name = start_bpm_name.replace("-", "_")
-    end_bpm_name = end_bpm_name.replace("-", "_")
-
-    measurement_dict = dict(
-            betx_ini=betx_ini,
-            bety_ini=bety_ini,
-            alfx_ini=alfx_ini,
-            alfy_ini=alfy_ini,
-            dx_ini=start_bpm_dispersion[0],
-            dy_ini=start_bpm_dispersion[2],
-            dpx_ini=start_bpm_dispersion[1],
-            dpy_ini=start_bpm_dispersion[3],
-            wx_ini=chrom_ini["wx"],
-            phix_ini=chrom_ini["phi_x"],
-            wy_ini=chrom_ini["wy"],
-            phiy_ini=chrom_ini["phi_y"],
-            wx_end=chrom_end["wx"],
-            phix_end=chrom_end["phi_x"],
-            wy_end=chrom_end["wy"],
-            phiy_end=chrom_end["phi_y"],
-            ini_r11=ini_r11,
-            ini_r12=ini_r12,
-            ini_r21=ini_r21,
-            ini_r22=ini_r22,
-            end_r11=end_r11,
-            end_r12=end_r12,
-            end_r21=end_r21,
-            end_r22=end_r22,
-            betx_end=betx_end,
-            bety_end=bety_end,
-            alfx_end=alfx_end,
-            alfy_end=alfy_end,
-            dx_end=end_bpm_dispersion[0],
-            dy_end=end_bpm_dispersion[2],
-            dpx_end=-end_bpm_dispersion[1],
-            dpy_end=-end_bpm_dispersion[3],
+    ini_r11, ini_r12, ini_r21, ini_r22 = _get_R_terms(
+        betx_ini, bety_ini, alfx_ini, alfy_ini,
+        f_ini["f1001r"], f_ini["f1001i"],
+        f_ini["f1010r"], f_ini["f1010i"]
+    )
+    end_r11, end_r12, end_r21, end_r22 = _get_R_terms(
+        betx_end, bety_end, alfx_end, alfy_end,
+        f_end["f1001r"], f_end["f1001i"],
+        f_end["f1010r"], f_end["f1010i"]
     )
 
-    with open(os.path.join(save_path, "measurement_" + element_name + ".madx"), "w") as measurement_file:
+    mad_file_path, log_file_path = _get_files_for_mad(
+        save_path, accel_instance.label
+    )
+
+    accel_instance.start = accel_instance.start.replace("-", "_")
+    accel_instance.end = accel_instance.end.replace("-", "_")
+
+    measurement_dict = dict(
+        betx_ini=betx_ini,
+        bety_ini=bety_ini,
+        alfx_ini=alfx_ini,
+        alfy_ini=alfy_ini,
+        dx_ini=start_bpm_dispersion[0],
+        dy_ini=start_bpm_dispersion[2],
+        dpx_ini=start_bpm_dispersion[1],
+        dpy_ini=start_bpm_dispersion[3],
+        wx_ini=chrom_ini["wx"],
+        phix_ini=chrom_ini["phi_x"],
+        wy_ini=chrom_ini["wy"],
+        phiy_ini=chrom_ini["phi_y"],
+        wx_end=chrom_end["wx"],
+        phix_end=chrom_end["phi_x"],
+        wy_end=chrom_end["wy"],
+        phiy_end=chrom_end["phi_y"],
+        ini_r11=ini_r11,
+        ini_r12=ini_r12,
+        ini_r21=ini_r21,
+        ini_r22=ini_r22,
+        end_r11=end_r11,
+        end_r12=end_r12,
+        end_r21=end_r21,
+        end_r22=end_r22,
+        betx_end=betx_end,
+        bety_end=bety_end,
+        alfx_end=alfx_end,
+        alfy_end=alfy_end,
+        dx_end=end_bpm_dispersion[0],
+        dy_end=end_bpm_dispersion[2],
+        dpx_end=-end_bpm_dispersion[1],
+        dpy_end=-end_bpm_dispersion[3],
+    )
+
+    with open(os.path.join(save_path, "measurement_" + accel_instance.label + ".madx"), "w") as measurement_file:
         for name, value in measurement_dict.iteritems():
-            print >> measurement_file, name, "=", value, ";"
+            measurement_file.write(name + " = " + str(value) + ";\n")
 
-    _runmad(lhc_mode, save_path, beam, start_bpm_name, end_bpm_name, element_name,
-            mad_file_path, log_file_path)
-
-    _prepare_watchdog_file_command(save_path, element_name)
+    _runmad(accel_instance, save_path, mad_file_path, log_file_path)
 
 
 def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
@@ -848,7 +779,8 @@ def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
     c22 = (f1001i - f1010i)
     c12 = -(f1010r - f1001r)
     c21 = -(f1010r + f1001r)
-    Cbar = numpy.reshape(2 * numpy.sqrt(gamma2) * numpy.array([c11, c12, c21, c22]), (2, 2))
+    Cbar = numpy.reshape(2 * numpy.sqrt(gamma2) *
+                         numpy.array([c11, c12, c21, c22]), (2, 2))
 
     C = numpy.dot(numpy.linalg.inv(Ga), numpy.dot(Cbar, Gb))
     jCj = numpy.dot(J, numpy.dot(C, -J))
@@ -866,38 +798,39 @@ def _get_files_for_mad(save_path, element_name):
     return mad_file_path, log_file_path
 
 
-def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, element_name, accelerator):
+def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, accel_instance):
     modifiers_file_path = os.path.join(twiss_directory, 'modifiers.madx')
     if os.path.isfile(modifiers_file_path):
         Utilities.iotools.copy_item(modifiers_file_path, save_path)
     else:
-        print "Cannot find modifiers.madx file, will create an empty file."
+        print("Cannot find modifiers.madx file, will create an empty file.")
         open(os.path.join(save_path, 'modifiers.madx'), "a").close()
 
     correction_file_comments = ""
-    if element_name.lower().startswith("ip") and accelerator.upper().startswith("LHCB"):
-        correction_file_comments = _get_corrections_file_comments_for_ip(element_name, accelerator)
+    if (accel_instance.label.lower().startswith("ip") and
+            issubclass(type(accel_instance), Lhc)):
+        correction_file_comments = _get_corrections_file_comments_for_ip(accel_instance)
 
-    output_corrections_file_path = os.path.join(save_path, "corrections_" + element_name + ".madx")
+    output_corrections_file_path = os.path.join(save_path, "corrections_" + accel_instance.label + ".madx")
     if not os.path.isfile(output_corrections_file_path):
-        corrections_file_path = os.path.join(twiss_directory, "corrections_" + element_name + ".madx")
+        corrections_file_path = os.path.join(twiss_directory, "corrections_" + accel_instance.label + ".madx")
         if os.path.isfile(corrections_file_path):
             Utilities.iotools.copy_item(corrections_file_path, save_path)
         else:
-            print "Cannot find corrections file, will create an empty file."
-            with open(os.path.join(save_path, "corrections_" + element_name + ".madx"), "a") as corrections_file:
+            print("Cannot find corrections file, will create an empty file.")
+            with open(os.path.join(save_path, "corrections_" + accel_instance.label + ".madx"), "a") as corrections_file:
                 corrections_file.write(correction_file_comments)
     else:
-        print "corrections file found in output path."
+        print("corrections file found in output path.")
 
 
-def _get_corrections_file_comments_for_ip(element_name, accelerator):
+def _get_corrections_file_comments_for_ip(accel_instance):
     this_file_path = os.path.abspath(os.path.dirname(__file__))
     try:
-        ip = element_name.lower().replace("ip", "")
-        beam = int(accelerator.lower().replace("lhcb", ""))
+        ip = accel_instance.label.lower().replace("ip", "")
     except:
         return ""
+    beam = accel_instance.get_beam()
     if beam == 1:
         all_list = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB1", "AllLists.json")))
         all_list_couple = json.load(open(os.path.join(this_file_path, "..", "MODEL", "LHCB", "fullresponse", "LHCB1", "AllLists_couple.json")))
@@ -919,104 +852,10 @@ def _get_corrections_file_comments_for_ip(element_name, accelerator):
     return comments_string
 
 
-def _prepare_watchdog_file_command(save_path, element_name):
-#     corrections_file_name = "corrections_" + element_name + ".madx"
-#     sbs_command = "\"" + " ".join(sys.argv) + "\""  # Gets the full command to run in the watchfile
-#     watch_file_name = os.path.join(save_path, "watch_" + str(element_name))
-#     watch_file = open(watch_file_name, "w")
-#     print >> watch_file, "python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/SegmentBySegment/watch.py " +\
-#                           corrections_file_name + " " +\
-#                           save_path + "/gplot_" + str(element_name) + " " +\
-#                           sbs_command
-#     watch_file.close()
-#     os.chmod(watch_file_name, 0777)
-    pass
-
-
-def _runmad(lhc_mode, path, beam, startfrom, endat, label,
-            madx_file_path, log_file_path):
-    templates = madx_templates_runner.MadxTemplates(output_file=madx_file_path,
-                                                    log_file=log_file_path)
-    # def lhc_segment_by_segment_madx(self, LHC_MODE, PATH, NUM_BEAM, STARTFROM, ENDAT, LABEL)
-    return_code = templates.lhc_segment_by_segment_madx(lhc_mode, path, beam,
-                                                        startfrom, endat, label)
-    if return_code != 0:
-        print >> sys.stderr, "MAD execution failed, see log:", log_file_path
-        print >> sys.stderr, "Aborting..."
-        sys.exit(return_code)
-    print "MAD done, log file:", log_file_path
-
-
-def run4plot(save_path, start_point, end_point, beta4plot, beta_beat_path, measurements_path, element_name, qx, qy, accelerator, method):
-    if method == "driven":
-        method = ""   # patch to make it work at inj. rogelio
-
-    dict_for_replacing = dict(PATH=save_path,
-                              EndPoint=end_point,
-                              StartPoint=start_point,
-                              LABEL=element_name,
-                              ACCEL=accelerator,
-                              BETA=beta4plot,
-                              QX=qx,
-                              QY=qy,
-                              METHOD=method,
-                              MEA=measurements_path
-                              )
-
-    if "RHIC" in accelerator:
-        maskfile = 'gplot_RHIC.mask'
-    else:
-        maskfile = 'gplot.mask'
-    maskfile = os.path.join(beta_beat_path, 'SegmentBySegment', maskfile)
-
-    plotscript = os.path.join(save_path, 'gplot_' + element_name)
-
-    # read mask file, replace all keys and write to plot script:
-    Utilities.iotools.replace_keywords_in_textfile(maskfile, dict_for_replacing, plotscript)
-
-    os.system("gnuplot " + plotscript)
-
-
-#delete  TODO delete?? can this be removed??
-def reversetable(save_path, element_name):
-    reverse_file = open(os.path.join(save_path, "twiss_" + element_name + "_back_rev.dat"), 'w')
-    original_file = _try_to_load_twiss(os.path.join(save_path, "twiss_" + element_name + "_back.dat"))
-
-    reverse_file.write("* NAME                                S               BETX               ALFX               BETY               ALFY    DX       DPX     DY     DPY   MUX   MUY\n")
-    reverse_file.write("$ %s                                %le                %le                %le                %le                %le      %le                %le      %le   %le            %le                %le \n")
-
-    bpms = original_file.NAME
-    s = original_file.S
-    endpos = original_file.S[original_file.indx[bpms[len(bpms) - 1]]]
-    betx = original_file.BETX
-    bety = original_file.BETY
-    alfx = original_file.ALFX
-    alfy = original_file.ALFY
-    dx = original_file.DX
-    dpx = original_file.DPX
-    dy = original_file.DY
-    dpy = original_file.DPY
-    mux = original_file.MUX
-    muy = original_file.MUY
-
-    for i in range(len(bpms)):
-        index = len(bpms) - 1 - i
-        bpm = bpms[index]
-        bex = betx[index]
-        bey = bety[index]
-        alx = alfx[index]
-        aly = alfy[index]
-        dex = dx[index]
-        depx = dpx[index]
-        dey = dy[index]
-        depy = dpy[index]
-        ss = s[index]
-        muxx = mux[index]
-        muyy = muy[index]
-
-        reverse_file.write(str(bpm) + ' ' + str(endpos - ss) + ' ' + str(bex) + ' ' + str(alx) + ' ' + str(bey) + ' ' + str(aly) + '  ' + str(dex) + ' ' + str(depx) + ' ' + str(dey) + ' ' + str(depy) + ' ' + str(muxx) + ' ' + str(muyy) + '\n')
-
-    reverse_file.close()
+def _runmad(accel_instance, path, madx_file_path, log_file_path):
+    creator.create_model(accel_instance, "segment", path,
+                         logfile=log_file_path, writeto=madx_file_path)
+    print("MAD done, log file:", log_file_path)
 
 
 def _try_to_load_twiss(file_path):
@@ -1087,8 +926,9 @@ class _PropagatedModels(object):
     def __get_twiss_for_file(self, file_name):
         twiss_file = _try_to_load_twiss(os.path.join(self.__save_path, file_name))
         if twiss_file is None:
-            print >> sys.stderr, "Cannot load", file_name, ". See mad log. Aborting"
-            sys.exit(-1)
+            raise SegmentBySegmentError(
+                "Cannot load " + file_name + ". See mad log."
+            )
         return twiss_file
 
 
@@ -1137,10 +977,10 @@ class _InputData(object):
         ### check if dispersion exist
         if self.__try_to_load_dispersion_files():
             self.has_dispersion = True
-            print "Dispersion files OK", self.dispersion_x.DX[0], self.dispersion_x.NAME[0]
+            print("Dispersion files OK", self.dispersion_x.DX[0], self.dispersion_x.NAME[0])
         else:
             self.has_dispersion = False
-            print "No dispersion files... will continue without taking into account dispersion"
+            print("No dispersion files... will continue without taking into account dispersion")
 
         ### check if coupling exist
         if self.__try_to_load_coupling_files():
@@ -1153,9 +993,9 @@ class _InputData(object):
             self.couple = twiss(_join_output_with("getcouple_free.out"))
             self.couple_method = "_free"
             self.has_coupling = True
-            print "Free coupling found"
+            print("Free coupling found")
         if not self.has_coupling:
-            print "No coupling file... will continue without taking into account coupling"
+            print("No coupling file... will continue without taking into account coupling")
 
         ### check if chromatic exists
         if w_path is None:
@@ -1186,7 +1026,7 @@ class _InputData(object):
         wx_twiss = _try_to_load_twiss(os.path.join(w_path, "chrombetax.out"))
         wy_twiss = _try_to_load_twiss(os.path.join(w_path, "chrombetay.out"))
         if wx_twiss is None or wy_twiss is None:
-            print "No chromatic files... will continue without taking into account chromatic"
+            print("No chromatic files... will continue without taking into account chromatic")
             return False
         else:
             self.wx = wx_twiss
@@ -1197,17 +1037,19 @@ class _InputData(object):
         try:
             twiss_data = twiss(_join_output_with(file_name))
         except ValueError:
-            print >> sys.stderr, "Imposible to read twiss file ", file_name
+            print("Imposible to read twiss file ", file_name, file=sys.stderr)
             return None
         return twiss_data
+
+
+class SegmentBySegmentError(Exception):
+    pass
 
 
 #===================================================================================================
 # main invocation
 #===================================================================================================
 if __name__ == "__main__":
-    (_options, _args) = parse_args()
+    (_accel_cls, _options) = _parse_args()
 
-    return_value = main(_options)
-
-    sys.exit(return_value)
+    return_value = main(_accel_cls, _options)
