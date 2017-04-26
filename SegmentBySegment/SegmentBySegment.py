@@ -587,7 +587,7 @@ def getAndWriteData(
     element_name, input_data, input_model, propagated_models,
     save_path, is_element,
     element_has_dispersion, element_has_coupling, element_has_chrom,
-    selected_accelerator, summaries,
+    accel_instance, summaries,
     kmod_data_x, kmod_data_y
 ):
     '''
@@ -649,13 +649,13 @@ def getAndWriteData(
                                                         beta_x, err_beta_x, alfa_x, err_alfa_x,
                                                         beta_y, err_beta_y, alfa_y, err_alfa_y,
                                                         input_model, input_data.phase_x, input_data.phase_y, element_name,
-                                                        selected_accelerator, save_path)
+                                                        accel_instance, save_path)
     # TODO: This need to be fixed before using (find BPMs)
     elif False and "ADT" in element_name and is_element:  # if False to avoid going inside
         sbs_writers.sbs_special_element_writer.write_transverse_damper(propagated_models, element_name, input_model,
                                                                        save_path, input_data.phase_x, input_data.phase_y,
                                                                        input_data.beta_x, input_data.beta_y,
-                                                                       selected_accelerator)
+                                                                       accel_instance)
 
 
 def _run4mad(save_path,
