@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(
     ".."
 )))
 
+print(sys.path)
 from Utilities import tfs_pandas
 from model import manager
 from sdds_files import turn_by_turn_reader
@@ -52,11 +53,11 @@ def run_all(main_input, clean_input, harpy_input):
                             "Will not produce output.")
             dict_to_write_clean_sdds = {}
             computed_dpp = None
+            clean_input.noresync = (clean_input.noresync and
+                                    not resync_from_date(tbt_file.date))
             for plane in ["x", "y"]:
                 bpm_names = np.array(getattr(tbt_file, "bpm_names_" + plane))
                 bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
-                clean_input.noresync = (not clean_input.noresync and
-                                        resync_from_date(tbt_file.date))
                 bpm_names, bpm_data, bad_bpms = clean.clean(
                     bpm_names, bpm_data,
                     clean_input,
