@@ -1,8 +1,12 @@
 from __future__ import print_function
 import sys
 import re
+import logging
 import numpy as np
 from collections import OrderedDict
+
+LOGGER = logging.getLogger(__name__)
+
 # Constants #
 NAME = "name"
 TYPE = "type"
@@ -156,9 +160,8 @@ class SddsReader(object):
             sdds_element_descriptor.format_string,
             sdds_element_descriptor.description,
         )
-        if DEBUG:
-            print("Read parameter", sdds_element_descriptor.name,
-                  "type", sdds_element_descriptor.type_name)
+        LOGGER.debug(" ".join(["Read parameter", sdds_element_descriptor.name,
+                               "type", sdds_element_descriptor.type_name]))
 
     def _parse_array_definition(self, line):
         sdds_element_descriptor = self._parse_element_definition(line)
@@ -174,9 +177,8 @@ class SddsReader(object):
             sdds_element_descriptor.description,
             sdds_element_descriptor.group,
         )
-        if DEBUG:
-            print("Read array", sdds_element_descriptor.name,
-                  "type", sdds_element_descriptor.type_name)
+        LOGGER.debug(" ".join(["Read array", sdds_element_descriptor.name,
+                               "type", sdds_element_descriptor.type_name]))
 
     def _parse_column_definition(self, line):
         sdds_element_descriptor = self._parse_element_definition(line)
@@ -190,9 +192,8 @@ class SddsReader(object):
             sdds_element_descriptor.format_string,
             sdds_element_descriptor.description,
         )
-        if DEBUG:
-            print("Read column", sdds_element_descriptor.name,
-                  "type", sdds_element_descriptor.type_name)
+        LOGGER.debug(" ".join(["Read column", sdds_element_descriptor.name,
+                               "type", sdds_element_descriptor.type_name]))
 
     def _parse_data_definition(self, line):
         tokens_iter = iter(self._tokenize(line))
@@ -287,8 +288,8 @@ class SddsReader(object):
     def _read_binary_parameter_value(self, parameter):
         read_function = self._binary_read_functions()[parameter.type]
         parameter.value = read_function()[0]
-        if DEBUG:
-            print("Value for parameter", parameter.name, parameter.value)
+        LOGGER.debug(" ".join(["Value for parameter",
+                               parameter.name, str(parameter.value)]))
 
     # TODO: > or < depending on the endianess in the header
     # > Big-endian
@@ -341,8 +342,9 @@ class SddsReader(object):
             bytes = array_size * SddsTypes.TYPES_SIZES[array.type]
             values = self._binary_read_functions()[array.type](bytes=bytes)
             array.values = values
-        if DEBUG:
-            print("Values for array", array.name, "length", len(array.values), array.values)
+        LOGGER.debug(" ".join(["Values for array", array.name,
+                               "length", str(len(array.values)),
+                               str(array.values)]))
 
     def _read_ascii_data(self):
         raise NotImplementedError("ASCII file reading has not been implemented...")

@@ -4,9 +4,9 @@ import os
 import numpy as np
 import time
 import logging
+from datetime import datetime
 import clean
 from input_handler import parse_args
-from datetime import datetime
 from harpy import harpy
 
 sys.path.append(os.path.abspath(os.path.join(
@@ -14,6 +14,9 @@ sys.path.append(os.path.abspath(os.path.join(
     ".."
 )))
 
+print(sys.path)
+from Utilities import tfs_pandas
+from model import manager
 from sdds_files import turn_by_turn_reader
 
 RAW_SUFFIX = ".raw"
@@ -49,11 +52,12 @@ def run_all(main_input, clean_input, harpy_input):
                 LOGGER.warn("Clean but set to run and not write_clean." +
                             "Will not produce output.")
             dict_to_write_clean_sdds = {}
+            computed_dpp = None
+            clean_input.noresync = (clean_input.noresync and
+                                    not resync_from_date(tbt_file.date))
             for plane in ["x", "y"]:
                 bpm_names = np.array(getattr(tbt_file, "bpm_names_" + plane))
                 bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
-                clean_input.noresync = (not clean_input.noresync and
-                                        resync_from_date(tbt_file.date))
                 bpm_names, bpm_data, bad_bpms = clean.clean(
                     bpm_names, bpm_data,
                     clean_input,
@@ -64,6 +68,8 @@ def run_all(main_input, clean_input, harpy_input):
                 )
 
                 if clean_input.write_clean:
+                    if plane == "x":
+                        computed_dpp = calc_dp_over_p(main_input, bpm_names, bpm_data)
                     dict_to_write_clean_sdds["BPMs_" + plane] = bpm_names
                     dict_to_write_clean_sdds["SAMPLES_" + plane] = bpm_data
                     LOGGER.debug("Writing clean sdds")
@@ -84,6 +90,9 @@ def run_all(main_input, clean_input, harpy_input):
                     main_input.outputdir, plane
                 )
             if clean_input.write_clean:
+                headers_dict = {}
+                if computed_dpp is not None:
+                    headers_dict["dpp"] = computed_dpp
                 turn_by_turn_reader.write_ascii_file(
                     main_input.model,
                     get_outpath_with_suffix(main_input.file,
@@ -93,7 +102,8 @@ def run_all(main_input, clean_input, harpy_input):
                     dict_to_write_clean_sdds["SAMPLES_x"],
                     list(dict_to_write_clean_sdds["BPMs_y"]),
                     dict_to_write_clean_sdds["SAMPLES_y"],
-                    tbt_file.date
+                    tbt_file.date,
+                    headers_dict,
                 )
 
     LOGGER.debug(">> Total time for file: {0}s".format(
@@ -131,6 +141,24 @@ def harmonic_analysis(bpm_names, bpm_data, bpm_res,
         time.time() - time_start)
     )
     return bad_bpms_fft
+
+
+def calc_dp_over_p(main_input, bpm_names, bpm_data):
+    model_twiss = tfs_pandas.read_tfs(main_input.model)
+    model_twiss.set_index("NAME", inplace=True)
+    sequence = model_twiss.headers["SEQUENCE"].lower().replace("b1", "").replace("b2", "")
+    AccelClass = manager.get_accel_class(sequence)
+    arc_bpms_mask = AccelClass.get_arc_bpms_mask(bpm_names)
+    arc_bpm_data = bpm_data[arc_bpms_mask]
+    arc_bpm_names = bpm_names[arc_bpms_mask]
+    dispersions = model_twiss.loc[arc_bpm_names, "DX"] * 1e3  # We need it in mm
+    closed_orbits = np.mean(arc_bpm_data, axis=1)
+    numer = np.sum(dispersions * closed_orbits)
+    denom = np.sum(dispersions ** 2)
+    if denom == 0.:
+        raise ValueError("Cannot compute dpp probably no arc BPMs.")
+    dp_over_p = numer / denom
+    return dp_over_p
 
 
 def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):

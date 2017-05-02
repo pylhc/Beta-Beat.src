@@ -2,9 +2,7 @@ from __future__ import print_function
 import os
 import sys
 import logging
-from accelerators.lhc import LhcExcitationMode
-from accelerators import lhc
-import argparse
+from model.accelerators.lhc import LhcExcitationMode
 import model_creator
 
 AFS_ROOT = "/afs"
@@ -15,14 +13,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LhcModelCreator(model_creator.ModelCreator):
-
-    LHC_MODES = {
-        "lhc_runI": lhc.LhcRunI,
-        "lhc_runII": lhc.LhcRunII2015,
-        "lhc_runII_2016": lhc.LhcRunII2016,
-        "lhc_runII_2016_ats": lhc.LhcRunII2016Ats,
-        "hllhc": lhc.HlLhc,
-    }
     ERR_DEF_PATH = os.path.join(AFS_ROOT, "cern.ch", "work", "o", "omc",
                                 "Error_definition_files")
     ERR_DEF_FILES = {
@@ -45,9 +35,10 @@ class LhcModelCreator(model_creator.ModelCreator):
         use_adt = "1" if (lhc_instance.excitation ==
                           LhcExcitationMode.ADT) else "0"
         replace_dict = {
-            "RUN": lhc_instance.MACROS_NAME,
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
-            "NUM_BEAM": lhc_instance.beam,
+            "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
             "DPP": lhc_instance.dpp,
             "QMX": iqx,
@@ -84,9 +75,10 @@ class LhcModelCreator(model_creator.ModelCreator):
             fullresponse_template = textfile.read()
         iqx, iqy = cls._get_full_tunes(lhc_instance)
         replace_dict = {
-            "RUN": lhc_instance.MACROS_NAME,
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
-            "NUM_BEAM": lhc_instance.beam,
+            "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
             "QMX": iqx,
             "QMY": iqy,
@@ -97,34 +89,6 @@ class LhcModelCreator(model_creator.ModelCreator):
             textfile.write(fullresponse_script)
 
     @classmethod
-    def start_from_terminal(cls):
-        parser = cls._get_arg_parser()
-        options = parser.parse_args()
-        lhc_mode = options.lhc_mode
-        instance = cls.LHC_MODES[lhc_mode]()
-        instance.beam = options.beam
-        instance.nat_tune_x = options.nat_tune_x
-        instance.nat_tune_y = options.nat_tune_y
-        if options.acd and options.adt:
-            raise model_creator.ModelCreationError(
-                "Select only one excitation type."
-            )
-        if options.acd:
-            instance.excitation = LhcExcitationMode.ACD
-        elif options.adt:
-            instance.excitation = LhcExcitationMode.ADT
-        else:
-            instance.excitation = LhcExcitationMode.FREE
-        if options.acd or options.adt:
-            instance.drv_tune_x = options.drv_tune_x
-            instance.drv_tune_y = options.drv_tune_y
-        instance.dpp = options.dpp
-        instance.energy = options.energy
-        instance.optics_file = options.optics
-        instance.fullresponse = options.fullresponse
-        cls.create_model(instance, options.output)
-
-    @classmethod
     def _get_full_tunes(cls, lhc_instance):
         iqx, iqy = (lhc_instance.INT_TUNE_X +
                     lhc_instance.nat_tune_x,
@@ -132,118 +96,27 @@ class LhcModelCreator(model_creator.ModelCreator):
                     lhc_instance.nat_tune_y)
         return iqx, iqy
 
-    @classmethod
-    def _get_arg_parser(cls):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "lhc",
-            help=(
-                "This should always be the first" +
-                "argument in LHC model creator."
-            ),
-            type=str,
-        )
-        parser.add_argument(
-            "--lhcmode",
-            help=("LHC mode to use. Should be one of: " +
-                  str(cls.LHC_MODES.keys())),
-            required=True,
-            dest="lhc_mode",
-            type=str,
-        )
-        parser.add_argument(
-            "--beam",
-            help="Beam to use.",
-            required=True,
-            dest="beam",
-            type=int,
-        )
-        parser.add_argument(
-            "--nattunex",
-            help="Natural tune X without integer part.",
-            required=True,
-            dest="nat_tune_x",
-            type=float,
-        )
-        parser.add_argument(
-            "--nattuney",
-            help="Natural tune Y without integer part.",
-            required=True,
-            dest="nat_tune_y",
-            type=float,
-        )
-        parser.add_argument(
-            "--acd",
-            help="Activate excitation with ACD.",
-            dest="acd",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--adt",
-            help="Activate excitation with ADT.",
-            dest="adt",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--drvtunex",
-            help="Driven tune X without integer part.",
-            dest="drv_tune_x",
-            type=float,
-        )
-        parser.add_argument(
-            "--drvtuney",
-            help="Driven tune Y without integer part.",
-            dest="drv_tune_y",
-            type=float,
-        )
-        parser.add_argument(
-            "--dpp",
-            help="Delta p/p to use.",
-            dest="dpp",
-            default=0.0,
-            type=float,
-        )
-        parser.add_argument(
-            "--energy",
-            help="Energy in Tev.",
-            dest="energy",
-            type=float,
-        )
-        parser.add_argument(
-            "--optics",
-            help="Path to the optics file to use (modifiers file).",
-            dest="optics",
-            required=True,
-            type=str,
-        )
-        parser.add_argument(
-            "--fullresponse",
-            help=("If present, fullresponse template will" +
-                  "be filled and put in the output directory."),
-            dest="fullresponse",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--output",
-            help="Output path for model, twiss files will be writen here.",
-            dest="output",
-            required=True,
-            type=str,
-        )
-        return parser
-
 
 class LhcBestKnowledgeCreator(LhcModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
+        if lhc_instance.excitation is not LhcExcitationMode.FREE:
+            raise model_creator.ModelCreationError(
+                "Don't set ACD or ADT for best knowledge model."
+            )
+        if lhc_instance.energy is None:
+            raise model_creator.ModelCreationError(
+                "Best knowledge model requires energy."
+            )
         with open(lhc_instance.get_best_knowledge_tmpl()) as textfile:
             madx_template = textfile.read()
         iqx, iqy = cls._get_full_tunes(lhc_instance)
         replace_dict = {
-            "RUN": lhc_instance.MACROS_NAME,
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
-            "NUM_BEAM": lhc_instance.beam,
+            "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
             "DPP": lhc_instance.dpp,
             "QMX": iqx,
@@ -253,16 +126,21 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
         madx_script = madx_template % replace_dict
         return madx_script
 
+
+class LhcSegmentCreator(model_creator.ModelCreator):
     @classmethod
-    def _get_arg_parser(cls):
-        parser = LhcModelCreator._get_arg_parser()
-        options = parser.parse_args()
-        if options.acd or options.adt:
-            raise model_creator.ModelCreationError(
-                "Don't set ACD or ADT for best knowledge model."
-            )
-        if options.energy is None:
-            raise model_creator.ModelCreationError(
-                "Best knowledge model requires energy."
-            )
-        return parser
+    def get_madx_script(cls, lhc_instance, output_path):
+        with open(lhc_instance.get_segment_tmpl()) as textfile:
+            madx_template = textfile.read()
+        replace_dict = {
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
+            "OPTICS_PATH": lhc_instance.optics_file,
+            "NUM_BEAM": lhc_instance.get_beam(),
+            "PATH": output_path,
+            "LABEL": lhc_instance.label,
+            "STARTFROM": lhc_instance.start,
+            "ENDAT": lhc_instance.end,
+        }
+        madx_script = madx_template % replace_dict
+        return madx_script

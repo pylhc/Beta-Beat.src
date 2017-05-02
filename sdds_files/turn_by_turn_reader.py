@@ -1,10 +1,12 @@
 from __future__ import print_function
 import sys
 import os
+import logging
 import sdds_reader
 from datetime import datetime
 import numpy as np
 
+LOGGER = logging.getLogger(__name__)
 
 TIMESTAMP_NAME = "acqStamp"
 NUM_BUNCHES_NAME = "nbOfCapBunches"
@@ -40,14 +42,16 @@ def transform_tbt_to_ascii(file_path, model_path, output_path):
 
 def write_ascii_file(model_path, output_path,
                      bpm_names_x, matrix_x,
-                     bpm_names_y, matrix_y, date):
+                     bpm_names_y, matrix_y, date,
+                     headers_dict={}):
     new_tbt_file = TbtFile.create_from_matrices(
         bpm_names_x, matrix_x,
         bpm_names_y, matrix_y, date
     )
     _TbtAsciiWriter([new_tbt_file],
                     model_path,
-                    output_path).transform_tbt_to_ascii()
+                    output_path,
+                    headers_dict).transform_tbt_to_ascii()
 
 
 class TbtFile(object):
@@ -178,10 +182,11 @@ class _TbtReader(object):
 
 
 class _TbtAsciiWriter(object):
-    def __init__(self, tbt_files, model_path, output_path):
+    def __init__(self, tbt_files, model_path, output_path, headers_dict={}):
         self._tbt_files = tbt_files
         self._model_path = model_path
         self._output_path = output_path
+        self._headers_dict = headers_dict
 
     def transform_tbt_to_ascii(self):
         np.set_printoptions(precision=PRINT_PRECISION)
@@ -197,7 +202,9 @@ class _TbtAsciiWriter(object):
     def _load_model(self):
         self._append_beta_beat_to_path()
         from Python_Classes4MAD import metaclass
-        return metaclass.twiss(self._model_path)
+        from Utilities import contexts
+        with contexts.silence():
+            return metaclass.twiss(self._model_path)
 
     def _append_beta_beat_to_path(self):
         parent_path = os.path.abspath(os.path.join(
@@ -206,7 +213,7 @@ class _TbtAsciiWriter(object):
         if os.path.basename(parent_path) == "Beta-Beat.src":
             sys.path.append(parent_path)
         else:
-            print("Not in Beta-Beat.src, using lintrack metaclass")
+            LOGGER.warn("Not in Beta-Beat.src, using lintrack metaclass")
             if "win" in sys.platform and not sys.platform == "darwin":
                 afs_root = "\\\\AFS"
             else:
@@ -234,6 +241,8 @@ class _TbtAsciiWriter(object):
         output_file.write("#Acquisition date: " + tbt_file.date.strftime(
             "%Y-%m-%d at %H:%M:%S"
         ) + "\n")
+        for name, value in self._headers_dict.iteritems():
+            output_file.write("#" + name + ": " + str(value) + "\n")
 
     def _write_tbt_data(self, tbt_file, output_file, model_data):
         for bpm_index in range(len(model_data.NAME)):
@@ -243,8 +252,7 @@ class _TbtAsciiWriter(object):
                 bpm_samples_x = tbt_file.get_x_samples(bpm_name)
                 bpm_samples_y = tbt_file.get_y_samples(bpm_name)
             except KeyError:
-                print(bpm_name + " not found in measurement file",
-                      file=sys.stderr)
+                LOGGER.debug(bpm_name + " not found in measurement file")
                 continue
             output_str_x = " ".join((str(HOR), bpm_name, str(bpm_s), " ",
                                      " ".join(map(str, bpm_samples_x)), "\n"))

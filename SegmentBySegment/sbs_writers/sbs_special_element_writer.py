@@ -28,7 +28,8 @@ def _get_ip_tfs_files(save_path):
 def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
              beta_x_ip, err_beta_x_ip, alfa_x_ip, err_alfa_x_ip,
              beta_y_ip, err_beta_y_ip, alfa_y_ip, err_alfa_y_ip,
-             input_model, measured_hor_phase, measured_ver_phase, element_name, accel, save_path):
+             input_model, measured_hor_phase, measured_ver_phase, element_name,
+             accel_inst, save_path):
     '''
     Function calculating the optics parameters at the IP
 
@@ -60,10 +61,7 @@ def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
     file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y = _get_ip_tfs_files(save_path)
 
     ## constructor
-    if "B1" in accel:
-        accel_beam = "B1"
-    else:
-        accel_beam = "B2"
+    accel_beam = "B" + str(accel_inst.get_beam())
 
     ## beta from parabola calculation
     # Map bpm's

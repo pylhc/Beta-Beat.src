@@ -1,9 +1,16 @@
 title, "Model creator for java";
 
-!@require %(RUN)s.macros.madx
+!@require %(LIB)s.macros.madx
 
 option, -echo;
-exec, full_lhc_def("%(OPTICS_PATH)s", %(NUM_BEAM)i);
+
+%(MAIN_SEQ)s
+exec, define_nominal_beams();
+call, file = "%(OPTICS_PATH)s";
+exec, cycle_sequences();
+exec, set_default_crossing_scheme();
+use, period = LHCB%(NUM_BEAM)i;
+
 option, echo;
 
 exec, load_average_error_table(%(ENERGY)s, %(NUM_BEAM)i);
