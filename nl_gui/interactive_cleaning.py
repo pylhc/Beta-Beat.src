@@ -54,12 +54,12 @@ class IterateCleaning(object):
     Author: Felix Carlier
     IterateCleaning
     '''
-    def __init__(self, filenames, output_file, beam, source):
+    def __init__(self, filenames, output_cleaning_file, beam, source):
         self.tune_df = load_csv(filenames[0], filetype='tune')
         self.platteaus_df = load_csv(filenames[1], filetype='accepted_platteaus')
         
         self.data_summary = pd.DataFrame(index=np.arange(len(self.platteaus_df['B1_min'])), columns=['Qx_ave', 'Qx_std', 'Qy_ave', 'Qy_std', 'Coupl_ave', 'Coupl_std'])
-        self.output_file = output_file
+        self.output_cleaning_file = output_cleaning_file
         self.beam = beam
         if self.beam == 1:
             keys = KEYS_DICT_B1[source]
@@ -170,8 +170,10 @@ class IterateCleaning(object):
                 self._clear_plots()
                 self._make_plot()
             except KeyError:
-                print('Last platteau analysed, no more platteaus. Continue to data cleaning.') 
-                self.data_summary.to_csv(self.output_file)
+                print('Last platteau cleaned, no more platteaus.') 
+                self.data_summary.to_csv(self.output_cleaning_file)
+                print('Cleaned data summary written to: ', self.output_cleaning_file)
+                plt.close()
 
     def _clear_plots(self):
         self._get_data_frames()
@@ -218,5 +220,5 @@ if __name__ == '__main__':
     platteaus_filename = os.path.join(input_dir,'accepted_platteaus.dat')
     
     filenames = [tune_filename, platteaus_filename]
-    output_file = os.path.join(input_dir, 'analysed_data_'+source+'.dat')
-    IterateCleaning(filenames, output_file, beam, source)
+    output_cleaning_file = os.path.join(input_dir, 'analysed_data_'+source+'.dat')
+    IterateCleaning(filenames, output_cleaning_file, beam, source)
