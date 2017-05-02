@@ -54,14 +54,14 @@ KEY_ADTNV = "adt_nameV"
 #===================================================================================================
 #---------  The following is functions
 def default_acdc_defs(accel):
-    print "trying to return defulart"
+    print "trying to return default"
     print accel
     if accel == "LHCB1":
         return {
             KEY_ACD_H_BPM1 : "BPMYA.5L4.B1",
-            KEY_ACD_H_BPM2 : "BPMYA.6L4.B1",
+            KEY_ACD_H_BPM2 : "BPMYB.6L4.B1",
             KEY_ACD_V_BPM1 : "BPMYA.5L4.B1",
-            KEY_ACD_V_BPM2 : "BPMYA.6L4.B1",
+            KEY_ACD_V_BPM2 : "BPMYB.6L4.B1",
             KEY_DNH : 'MKQA.6L4.B1',
             KEY_DNV : 'MKQA.6L4.B1',
             KEY_ADT_H_BPM1 : "BPMWA.B5L4.B1",
@@ -74,9 +74,9 @@ def default_acdc_defs(accel):
     elif accel == "LHCB2":
         return {
             KEY_ACD_H_BPM1 : "BPMYA.5L4.B2",
-            KEY_ACD_H_BPM2 : "BPMYA.6L4.B2",
+            KEY_ACD_H_BPM2 : "BPMYB.6L4.B2",
             KEY_ACD_V_BPM1 : "BPMYA.5L4.B2",
-            KEY_ACD_V_BPM2 : "BPMYA.6L4.B2",
+            KEY_ACD_V_BPM2 : "BPMYB.6L4.B2",
             KEY_DNH : 'MKQA.6L4.B2',
             KEY_DNV : 'MKQA.6L4.B2',
             KEY_ADT_H_BPM1 : "BPMWA.B5R4.B2",
@@ -333,7 +333,6 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
         try:    result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[k+1][1]]
         except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
         
-
     return result_, muave_, bpm
 
 
