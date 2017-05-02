@@ -9,7 +9,7 @@ if new_path not in sys.path:
 import numpy as np
 import matplotlib
 
-matplotlib.use('qt4agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
+matplotlib.use('qt5agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
 
 import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass

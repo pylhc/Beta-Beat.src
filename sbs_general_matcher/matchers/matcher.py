@@ -177,9 +177,11 @@ class Matcher(object):
     @staticmethod
     def _check_attribute(base_dict_name, base_dict, attribute_name):
         if attribute_name not in base_dict:
-            raise InputError('Cannot find ' + attribute_name + ' attribute in ' + base_dict_name + '. Aborting.')
+            raise InputError('Cannot find ' + attribute_name +
+                             ' attribute in ' + base_dict_name + '. Aborting.')
 
-    def _get_constraint_instruction(self, constr_name, value, error, sigmas=1.):
+    def _get_constraint_instruction(self, constr_name,
+                                    value, error, sigmas=1.):
         if self._use_errors:
             upper_bound = str(value + error * sigmas)
             lower_bound = str(value - error * sigmas)

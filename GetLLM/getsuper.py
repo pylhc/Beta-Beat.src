@@ -448,7 +448,7 @@ def _rungetllm(twiss_filename, files, dpp):
             files_to_analyse=','.join(files),
             model_filename=twiss_filename,
             accel=_InputData.accel,
-            TBTana=_InputData.technique,
+            tbtana=_InputData.technique,
             lhcphase=lhcphase)
     print "GetLLM finished"
 

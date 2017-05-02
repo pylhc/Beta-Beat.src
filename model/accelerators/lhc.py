@@ -1,5 +1,4 @@
 from __future__ import print_function
-import sys
 import os
 import argparse
 import re
@@ -8,6 +7,7 @@ from accelerator import Accelerator, AcceleratorDefinitionError
 
 
 CURRENT_DIR = os.path.dirname(__file__)
+LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
 
 
 def get_lhc_modes():
@@ -17,7 +17,8 @@ def get_lhc_modes():
         "lhc_runII_2016": LhcRunII2016,
         "lhc_runII_2016_ats": LhcRunII2016Ats,
         "lhc_runII_2017": LhcRunII2017,
-        "hllhc": HlLhc,
+        "hllhc10": HlLhc10,
+        "hllhc12": HlLhc12,
     }
 
 
@@ -26,8 +27,12 @@ class LhcExcitationMode(object):
 
 
 class Lhc(Accelerator):
+    NAME = "lhc"
+
     INT_TUNE_X = 64.
     INT_TUNE_Y = 59.
+
+    MACROS_NAME = "lhc"
 
     def __init__(self):
         self.optics_file = None
@@ -68,11 +73,11 @@ class Lhc(Accelerator):
 
     @classmethod
     def get_class(cls, lhc_mode=None, beam=None):
-        new_class = Lhc
+        new_class = cls
         if lhc_mode is not None:
             new_class = get_lhc_modes()[lhc_mode]
         if beam is not None:
-            new_class = Lhc._get_beamed_class(new_class, beam)
+            new_class = cls._get_beamed_class(new_class, beam)
         return new_class
 
     @classmethod
@@ -94,7 +99,7 @@ class Lhc(Accelerator):
         options, rest_args = parser.parse_known_args(args)
         lhc_mode = options.lhc_mode
         beam = options.beam
-        return Lhc.get_class(lhc_mode, beam), rest_args
+        return cls.get_class(lhc_mode, beam), rest_args
 
     @classmethod
     def _get_beamed_class(cls, new_class, beam):
@@ -195,6 +200,11 @@ class Lhc(Accelerator):
                 "The accelerator definition is incomplete, beam " +
                 "has to be specified (--beam option missing?)."
             )
+        if self.optics_file is None:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, optics "
+                "file has not been specified."
+            )
         if self.excitation is None:
             raise AcceleratorDefinitionError("Excitation mode not set.")
         if (self.excitation == LhcExcitationMode.ACD or
@@ -207,6 +217,9 @@ class Lhc(Accelerator):
 
     def get_best_knowledge_tmpl(self):
         return self.get_file("best_knowledge.madx")
+
+    def get_segment_tmpl(self):
+        return self.get_file("segment.madx")
 
     def get_file(self, filename, beam=None):
         if beam is None:
@@ -231,6 +244,57 @@ class Lhc(Accelerator):
         self._excitation = excitation_mode
 
 
+class LhcSegment(Lhc):
+
+    def __init__(self):
+        self.optics_file = None
+        self.label = None
+        self.start = None
+        self.end = None
+
+    @classmethod
+    def init_from_args(cls, args):
+        raise NotImplementedError(
+            "LHC segments can only be instantiated by class definition."
+        )
+
+    @classmethod
+    def get_class(cls, lhc_mode=None, beam=None):
+        new_class = cls
+        if lhc_mode is not None:
+            new_class = cls._get_specific_class(get_lhc_modes()[lhc_mode])
+        if beam is not None:
+            new_class = cls._get_beamed_class(new_class, beam)
+        return new_class
+
+    @classmethod
+    def _get_specific_class(cls, lhc_cls):
+        specific_cls = type(lhc_cls.__name__ + "Segment",
+                            (cls, lhc_cls),
+                            {})
+        return specific_cls
+
+    def verify_object(self):
+        try:
+            self.get_beam()
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, beam "
+                "has to be specified (--beam option missing?)."
+            )
+        if self.optics_file is None:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, optics "
+                "file has not been specified."
+            )
+        if self.label is None:
+            raise AcceleratorDefinitionError("Segment label not set.")
+        if self.start is None:
+            raise AcceleratorDefinitionError("Segment start not set.")
+        if self.end is None:
+            raise AcceleratorDefinitionError("Segment end not set.")
+
+
 class _LhcB1Mixin(object):
     @classmethod
     def get_beam(cls):
@@ -244,33 +308,85 @@ class _LhcB2Mixin(object):
 
 
 class LhcAts(Lhc):
+    MACROS_NAME = "lhc_runII_ats"
+
     INT_TUNE_X = 62.
     INT_TUNE_Y = 60.
 
 
+# Specific accelerator definitions ###########################################
+
 class LhcRunI(Lhc):
-    MACROS_NAME = "lhc_runI"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        load_main_seq = _get_call_main_for_year("2012")
+        load_main_seq += _get_madx_call_command(
+            os.path.join(LHC_DIR, "2012", "install_additional_elements.madx")
+        )
+        return load_main_seq
 
 
 class LhcRunII2015(Lhc):
-    MACROS_NAME = "lhc_runII"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        return _get_call_main_for_year("2015")
 
 
 class LhcRunII2016(Lhc):
-    MACROS_NAME = "lhc_runII_2016"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        return _get_call_main_for_year("2016")
 
 
-class LhcRunII2016Ats(LhcAts):
-    MACROS_NAME = "lhc_runII_2016_ats"
+class LhcRunII2016Ats(LhcAts, LhcRunII2016):
+    pass
 
 
 class LhcRunII2017(LhcAts):
-    MACROS_NAME = "lhc_runII_2017"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        return _get_call_main_for_year("2017")
 
 
-class HlLhc(LhcAts):
+class HlLhc10(LhcAts):
     MACROS_NAME = "hllhc"
 
+    @classmethod
+    def load_main_seq_madx(cls):
+        load_main_seq = _get_call_main_for_year("2015")
+        load_main_seq += _get_call_main_for_year("hllhc1.0")
+        return load_main_seq
 
-if __name__ == "__main__":
-    print("Import this module.", file=sys.stderr)
+
+class HlLhc12(LhcAts):
+    MACROS_NAME = "hllhc"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        load_main_seq = _get_call_main_for_year("2015")
+        load_main_seq += _get_call_main_for_year("hllhc1.2")
+        return load_main_seq
+
+##############################################################################
+
+
+# General functions ##########################################################
+
+def _get_madx_call_command(path_to_call):
+    command = "call, file = \""
+    command += path_to_call
+    command += "\";\n"
+    return command
+
+
+def _get_call_main_for_year(year):
+    call_main = _get_madx_call_command(
+        os.path.join(LHC_DIR, year, "main.seq")
+    )
+    return call_main
+
+##############################################################################

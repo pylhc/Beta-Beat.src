@@ -1,0 +1,14 @@
+title, "Model creator for java";
+
+!@require %(RUN)s.macros.madx
+
+option, -echo;
+exec, full_lhc_def("%(OPTICS_PATH)s", %(NUM_BEAM)i);
+option, echo;
+
+exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
+
+!!!!! nominal
+exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_no.dat", %(DPP)s);
+call, file="%(PATH)s/%(COR)s";
+exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_corr.dat", %(DPP)s);

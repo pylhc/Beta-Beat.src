@@ -1,8 +1,8 @@
-import sys
 import os
 from matcher_model_default import MatcherModelDefault
+from matcher_model_default import MatcherPlotterDefault
 from matchers.amp_matcher import AmpMatcher
-from Python_Classes4MAD import metaclass
+from Utilities import tfs_pandas
 
 
 class MatcherModelAmp(MatcherModelDefault):
@@ -19,43 +19,45 @@ class MatcherModelAmp(MatcherModelDefault):
         return MatcherPlotterAmp(figures, self)
 
 
-class MatcherPlotterAmp(object):
-
-    def __init__(self, figures, matcher_model):
-        assert type(matcher_model) is MatcherModelAmp
-        self._figures = figures
-        self._matcher_model = matcher_model
+class MatcherPlotterAmp(MatcherPlotterDefault):
 
     def plot(self):
+        self._figure.clear()
+        num_beams = len(self._matcher_model._matcher.get_beams())
         if 1 in self._matcher_model._matcher.get_beams():
-            figure_b1_x = self._figures[0][0]
-            figure_b1_x.clear()
+            axes_b1_x = self._figure.add_subplot(2, num_beams, 1)
+            axes_b1_x.set_title("Beam 1")
             amp_bb_beam1_horizontal = self._get_amp_beta_beat_file(1, "X")
             bb_beam1_horizontal = self._get_beta_beat_file(1, "X")
-            self._plot_match(figure_b1_x, amp_bb_beam1_horizontal, bb_beam1_horizontal, "X")
+            self._axes_to_data[axes_b1_x] = bb_beam1_horizontal
+            self._plot_match(axes_b1_x, amp_bb_beam1_horizontal, bb_beam1_horizontal, "X")
 
-            figure_b1_y = self._figures[0][1]
-            figure_b1_y.clear()
+            axes_b1_y = self._figure.add_subplot(2, num_beams, 2 if num_beams == 1 else 3)
             amp_bb_beam1_vertical = self._get_amp_beta_beat_file(1, "Y")
             bb_beam1_vertical = self._get_beta_beat_file(1, "Y")
-            self._plot_match(figure_b1_y, amp_bb_beam1_vertical, bb_beam1_vertical, "Y")
+            self._axes_to_data[axes_b1_y] = bb_beam1_vertical
+            self._plot_match(axes_b1_y, amp_bb_beam1_vertical, bb_beam1_vertical, "Y")
 
         if 2 in self._matcher_model._matcher.get_beams():
-            figure_b2_x = self._figures[1][0]
-            figure_b2_x.clear()
+            axes_b2_x = self._figure.add_subplot(2, num_beams, 1 if num_beams == 1 else 2)
+            axes_b2_x.set_title("Beam 2")
             amp_bb_beam2_horizontal = self._get_amp_beta_beat_file(2, "X")
             bb_beam2_horizontal = self._get_beta_beat_file(2, "X")
-            self._plot_match(figure_b2_x, amp_bb_beam2_horizontal, bb_beam2_horizontal, "X")
+            self._axes_to_data[axes_b2_x] = bb_beam2_horizontal
+            self._plot_match(axes_b2_x, amp_bb_beam2_horizontal, bb_beam2_horizontal, "X")
 
-            figure_b2_y = self._figures[1][1]
-            figure_b2_y.clear()
+            axes_b2_y = self._figure.add_subplot(2, num_beams, 2 if num_beams == 1 else 4)
             amp_bb_beam2_vertical = self._get_amp_beta_beat_file(2, "Y")
             bb_beam2_vertical = self._get_beta_beat_file(2, "Y")
-            self._plot_match(figure_b2_y, amp_bb_beam2_vertical, bb_beam2_vertical, "Y")
+            self._axes_to_data[axes_b2_y] = bb_beam2_vertical
+            self._plot_match(axes_b2_y, amp_bb_beam2_vertical, bb_beam2_vertical, "Y")
+        self._figure.tight_layout()
+        self._figure.patch.set_visible(False)
+        self._figure.canvas.draw()
 
     def _get_amp_beta_beat_file(self, beam, plane):
         amp_bb_path = getattr(self._matcher_model, "get_beam" + str(beam) + "_output_path")()
-        file_data = metaclass.twiss(os.path.join(
+        file_data = tfs_pandas.read_tfs(os.path.join(
             amp_bb_path, "sbs",
             "sbsampbetabeat" + plane.lower() + "_IP" + str(self._matcher_model.get_ip()) + ".out")
         )
@@ -63,25 +65,21 @@ class MatcherPlotterAmp(object):
 
     def _get_beta_beat_file(self, beam, plane):
         bb_path = getattr(self._matcher_model, "get_beam" + str(beam) + "_output_path")()
-        file_data = metaclass.twiss(os.path.join(
+        file_data = tfs_pandas.read_tfs(os.path.join(
             bb_path, "sbs",
             "sbsbetabeat" + plane.lower() + "_IP" + str(self._matcher_model.get_ip()) + ".out")
         )
         return file_data
 
-    def _plot_match(self, figure, amp_bb_data, bb_data, plane):
-        ax = figure.add_subplot(1, 1, 1)
-
+    def _plot_match(self, axes, amp_bb_data, bb_data, plane):
         if self._matcher_model.get_propagation() == "front":
-            MatcherPlotterAmp._plot_front(ax, amp_bb_data, bb_data, plane)
+            MatcherPlotterAmp._plot_front(axes, amp_bb_data, bb_data, plane)
         elif self._matcher_model.get_propagation() == "back":
-            MatcherPlotterAmp._plot_back(ax, amp_bb_data, bb_data, plane)
+            MatcherPlotterAmp._plot_back(axes, amp_bb_data, bb_data, plane)
 
-        ax.legend(loc="upper left", prop={'size': 16})
-        ax.set_ylabel(r"$\Delta\beta_{" + plane.lower() + r"} / {\beta_{model}}$")
-        ax.set_xlabel("S along the segment [m]")
-        figure.patch.set_visible(False)
-        figure.canvas.draw()
+        axes.legend(loc="upper left", prop={'size': 16})
+        axes.set_ylabel(r"$\Delta\beta_{" + plane.lower() + r"} / {\beta_{model}}$")
+        axes.set_xlabel("S along the segment [m]")
 
     @staticmethod
     def _plot_front(axes, amp_bb_data, bb_data, plane):
@@ -111,8 +109,3 @@ class MatcherPlotterAmp(object):
                       fmt='o', markersize=8.,
                       label=r"$\Delta\beta / \{beta_{model}}$ amplitude",
                       color="blue")
-
-
-if __name__ == "__main__":
-    print >> sys.stderr, "This module is meant to be imported."
-    sys.exit(-1)
