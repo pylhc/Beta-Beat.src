@@ -48,7 +48,7 @@ class IteratePlatteauPlots(object):
         self.orbit_df     = load_csv(filenames[1], filetype='orbit')
         self.platteaus_df = load_csv(filenames[2], filetype='platteaus')
         self.currents_df = self._normalize_data(self.currents_df)
-
+        print('Data imported.')
         self.accepted_plat = pd.DataFrame(index=np.arange(len(self.platteaus_df['KNOB_PLAT_START'])), columns=['B1_min','B1_max','B2_min','B2_max',])
         self.idx = 0 
 
@@ -199,13 +199,12 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     input_dir = args.input_dir
-    
-    currents_filename  = os.path.join(input_dir,'data.Imeas.LHCBEAM_IP5-XING-H-MURAD.csv')
-    platteaus_filename = os.path.join(input_dir,'data.platteaus.LHCBEAM_IP5-XING-H-MURAD.csv')
+    print('Call interactive class.')    
+    currents_filename  = os.path.join(input_dir,'data.Imeas.csv')
+    platteaus_filename = os.path.join(input_dir,'data.platteaus.csv')
     orbit_filename     = os.path.join(input_dir,'data.orbit.arc.xing.csv')
-    
     filenames = [currents_filename, orbit_filename, platteaus_filename]
-    
+    print(filenames)
     output_platteau_file = os.path.join(input_dir,'accepted_platteaus.dat')
     
     IteratePlatteauPlots(filenames, output_platteau_file)
