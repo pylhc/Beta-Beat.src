@@ -1,7 +1,6 @@
+from model.accelerators import lhc
 
-LHC_MODES = ["lhc_runII_2016", "lhc_runII_2016_ats", "lhc_runII",
-             "lhc_runI",
-             "hllhc"]
+LHC_MODES = lhc.get_lhc_modes().keys()
 
 
 if __name__ == "__main__":

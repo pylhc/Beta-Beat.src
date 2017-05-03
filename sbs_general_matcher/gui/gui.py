@@ -22,7 +22,7 @@ def main(lhc_mode=None, match_path=None, input_dir=None):
         )
         if match_path is None or lhc_mode is None:
             return
-    log_handler.add_file_handler(LOGGER, match_path)
+    log_handler.add_file_handler(match_path)
     if lhc_mode not in constants.LHC_MODES:
         raise ValueError("Invalid lhc mode, must be one of " +
                          str(constants.LHC_MODES))

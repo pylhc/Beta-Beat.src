@@ -1,4 +1,8 @@
 import os
+import logging
+from model import manager
+
+LOGGER = logging.getLogger(__name__)
 
 
 class TemplateProcessor(object):
@@ -25,7 +29,7 @@ call, file="%(MATCH_PATH)s/changeparameters.madx";
                  madx_templates_runner):
         self._matchers_list = matchers_list
         self._match_path = match_path
-        self._lhc_mode = lhc_mode
+        self._accel_cls = manager.get_accel_class("lhc", lhc_mode=lhc_mode)
         self._minimize = minimize
         self._madx_templates_runner = madx_templates_runner
         self._set_up_collections()
@@ -43,7 +47,8 @@ call, file="%(MATCH_PATH)s/changeparameters.madx";
     def run(self):
         self._process_matchers()
         self._madx_templates_runner.lhc_super_matcher_madx(
-            self._lhc_mode,
+            self._accel_cls.MACROS_NAME,
+            self._accel_cls.load_main_seq_madx(),
             "\n".join(self._extract_sequences_list),
             "\n".join(self._set_initial_values_list),
             "\n".join(self._aux_var_definition_list),
@@ -63,7 +68,8 @@ call, file="%(MATCH_PATH)s/changeparameters.madx";
             self._define_aux_vars(matcher)
             self._run_corrected_twiss(matcher)
         self._madx_templates_runner.lhc_super_matcher_madx(
-            self._lhc_mode,
+            self._accel_cls.MACROS_NAME,
+            self._accel_cls.load_main_seq_madx(),
             "\n".join(self._extract_sequences_list),
             "\n".join(self._set_initial_values_list),
             "\n".join(self._aux_var_definition_list),
@@ -78,6 +84,11 @@ call, file="%(MATCH_PATH)s/changeparameters.madx";
 
     def _process_matchers(self):
         for matcher in self._matchers_list:
+            LOGGER.info("Processing matcher: " + matcher.get_name())
+            LOGGER.info(" - Using variables: " +
+                        str(matcher.get_all_variables()))
+            LOGGER.info(" - Ignoring constraints: " +
+                        str(matcher._excluded_constraints_list))
             self._extract_sequences(matcher)
             self._set_initial_values(matcher)
             self._define_aux_vars(matcher)

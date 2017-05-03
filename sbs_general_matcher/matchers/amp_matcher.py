@@ -10,7 +10,7 @@ class AmpMatcher(KmodMatcher):
 
     @Matcher.override(KmodMatcher)
     def __init__(self, matcher_name, matcher_dict, match_path):
-        super(AmpMatcher, self).__init__(matcher_name, matcher_dict, match_path)
+        Matcher.__init__(self, matcher_name, matcher_dict, match_path)
         self._sbs_amp_data = {}
         for beam in self.get_beams():
             self._sbs_amp_data[beam] = {}

@@ -9,6 +9,11 @@
 * @param extracted_name: Extracted sequence name.
 */
 extract_front_back_sequences(base_sequence, startfrom, endat): macro = {
+    SEQEDIT, SEQUENCE=base_sequence;
+    FLATTEN;               
+    CYCLE, START=startfrom;
+    ENDEDIT;
+
     EXTRACT, SEQUENCE=base_sequence, FROM=startfrom, TO=endat, NEWNAME=front_base_sequence;
     seqedit, sequence=front_base_sequence;
     flatten;

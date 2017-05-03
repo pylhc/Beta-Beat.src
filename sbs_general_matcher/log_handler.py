@@ -1,8 +1,7 @@
 import sys
 import os
 import logging
-from logging import StreamHandler
-from logging.handlers import RotatingFileHandler
+from logging import StreamHandler, FileHandler
 
 
 def set_up_console_logger(logger):
@@ -15,9 +14,10 @@ def set_up_console_logger(logger):
     return logger
 
 
-def add_file_handler(logger, log_dir):
+def add_file_handler(log_dir):
+    logger = logging.getLogger("")
     log_file = os.path.join(log_dir, "log.txt")
-    file_handler = RotatingFileHandler(log_file)
+    file_handler = FileHandler(log_file, mode="w")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(_get_formatter())
     logger.addHandler(file_handler)
@@ -26,7 +26,11 @@ def add_file_handler(logger, log_dir):
 
 
 def _get_formatter():
-    return logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(name)s %(asctime)s %(levelname)s %(message)s"
+    )
+    formatter.datefmt = '%d/%m/%Y %H:%M:%S'
+    return formatter
 
 
 if __name__ == "__main__":
