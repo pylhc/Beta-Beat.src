@@ -16,7 +16,7 @@ class LhcModelCreator(model_creator.ModelCreator):
     ERR_DEF_PATH = os.path.join(AFS_ROOT, "cern.ch", "work", "o", "omc",
                                 "Error_definition_files")
     ERR_DEF_FILES = {
-        "4.5": "0450GeV", "1.0": "1000GeV",
+        "0.45": "0450GeV", "1.0": "1000GeV",
         "1.5": "1500GeV", "2.0": "2000GeV",
         "2.5": "2500GeV", "3.0": "3000GeV",
         "3.5": "3500GeV", "4.0": "4000GeV",
