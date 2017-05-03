@@ -17,6 +17,7 @@ def get_lhc_modes():
         "lhc_runII_2016": LhcRunII2016,
         "lhc_runII_2016_ats": LhcRunII2016Ats,
         "lhc_runII_2017": LhcRunII2017,
+        "lhc_runII_ballistic": LhcRunIIBallistic,
         "hllhc10": HlLhc10,
         "hllhc12": HlLhc12,
     }
@@ -343,6 +344,11 @@ class LhcRunII2016(Lhc):
 
 class LhcRunII2016Ats(LhcAts, LhcRunII2016):
     pass
+
+
+class LhcRunIIBallistic(LhcRunII2016):
+    INT_TUNE_X = 63.
+    INT_TUNE_Y = 58.
 
 
 class LhcRunII2017(LhcAts):
