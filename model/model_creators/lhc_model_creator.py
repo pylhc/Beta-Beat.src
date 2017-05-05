@@ -29,7 +29,6 @@ class LhcModelCreator(model_creator.ModelCreator):
     def get_madx_script(cls, lhc_instance, output_path):
         with open(lhc_instance.get_nominal_tmpl()) as textfile:
             madx_template = textfile.read()
-        iqx, iqy = cls._get_full_tunes(lhc_instance)
         use_acd = "1" if (lhc_instance.excitation ==
                           LhcExcitationMode.ACD) else "0"
         use_adt = "1" if (lhc_instance.excitation ==
@@ -41,8 +40,8 @@ class LhcModelCreator(model_creator.ModelCreator):
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
             "DPP": lhc_instance.dpp,
-            "QMX": iqx,
-            "QMY": iqy,
+            "QMX": lhc_instance.nat_tune_x,
+            "QMY": lhc_instance.nat_tune_y,
             "USE_ACD": use_acd,
             "USE_ADT": use_adt,
             "QX": "", "QY": "", "QDX": "", "QDY": "",
@@ -73,28 +72,19 @@ class LhcModelCreator(model_creator.ModelCreator):
     def _prepare_fullresponse(cls, lhc_instance, output_path):
         with open(lhc_instance.get_file("fullresponse.madx")) as textfile:
             fullresponse_template = textfile.read()
-        iqx, iqy = cls._get_full_tunes(lhc_instance)
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
-            "QMX": iqx,
-            "QMY": iqy,
+            "QMX": lhc_instance.nat_tune_x,
+            "QMY": lhc_instance.nat_tune_y,
         }
         fullresponse_script = fullresponse_template % replace_dict
         with open(os.path.join(output_path,
                                "job.iterate.madx"), "w") as textfile:
             textfile.write(fullresponse_script)
-
-    @classmethod
-    def _get_full_tunes(cls, lhc_instance):
-        iqx, iqy = (lhc_instance.INT_TUNE_X +
-                    lhc_instance.nat_tune_x,
-                    lhc_instance.INT_TUNE_Y +
-                    lhc_instance.nat_tune_y)
-        return iqx, iqy
 
 
 class LhcBestKnowledgeCreator(LhcModelCreator):
@@ -111,7 +101,6 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             )
         with open(lhc_instance.get_best_knowledge_tmpl()) as textfile:
             madx_template = textfile.read()
-        iqx, iqy = cls._get_full_tunes(lhc_instance)
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
@@ -119,8 +108,8 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
             "DPP": lhc_instance.dpp,
-            "QMX": iqx,
-            "QMY": iqy,
+            "QMX": lhc_instance.nat_tune_x,
+            "QMY": lhc_instance.nat_tune_y,
             "ENERGY": lhc_instance.energy,
         }
         madx_script = madx_template % replace_dict
