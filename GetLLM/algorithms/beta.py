@@ -62,7 +62,7 @@ RCOND                   = 1.0e-14                    #@IgnorePep8
 BOXLENGTH               = 50                        #@IgnorePep8
 BOXINDENT               =  4                        #@IgnorePep8
 CALCULATE_BETA_HOR = True
-CALCULATE_BETA_VER = False
+CALCULATE_BETA_VER = True
 
 #=======================================================================================================================
 #--- classes
