@@ -62,7 +62,7 @@ RCOND                   = 1.0e-14                    #@IgnorePep8
 BOXLENGTH               = 50                        #@IgnorePep8
 BOXINDENT               =  4                        #@IgnorePep8
 CALCULATE_BETA_HOR = True
-CALCULATE_BETA_VER = True
+CALCULATE_BETA_VER = False
 
 #=======================================================================================================================
 #--- classes
@@ -394,7 +394,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         if getllm_d.with_ac_calc:
             #-- from eq
             try:
-                betaxf, rmsbbxf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
+                betaxf, rmsbbxf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d)
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
@@ -604,8 +604,6 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
-
-    print commonbpms
     
     errorfile = None
     if not getllm_d.use_only_three_bpms_for_beta_from_phase:

@@ -45,7 +45,7 @@ KEY_ADT_V_BPM1 = "ADT_V_BPM1"
 KEY_ADT_V_BPM2 = "ADT_V_BPM2" 
 KEY_ADTNH = "adt_nameH"
 KEY_ADTNV = "adt_nameV"
-
+KEY_FIRSTBPM = "first_BPM"
 
 
 
@@ -70,6 +70,7 @@ def default_acdc_defs(accel):
             KEY_ADT_V_BPM2 : "BPMWA.A5R4.B1" ,
             KEY_ADTNH : "ADTKH.C5L4.B1",
             KEY_ADTNV : "ADTKV.B5R4.B1",
+            KEY_FIRSTBPM : "BPMSW.1L2.B1"
             }
     elif accel == "LHCB2":
         return {
@@ -85,6 +86,7 @@ def default_acdc_defs(accel):
             KEY_ADT_V_BPM2 : "BPMWA.A5L4.B2" ,
             KEY_ADTNH : "ADTKH.B5R4.B2",
             KEY_ADTNV : "ADTKV.C5L4.B2",
+            KEY_FIRSTBPM : "BPMSW.1L8.B2"
             }
     return {}
 
@@ -134,18 +136,19 @@ def GetACPhase_AC2BPMAC(MADTwiss, Qd, Q, plane, getllm_d):
     return {bpmac1:psid_ac2bpmac1,bpmac2:psid_ac2bpmac2}
 
 
-def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
+def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,getllm_d):
 
     #-- Select common BPMs
     bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op == "1":
-        if bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-        if bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+    if getllm_d.lhc_phase == "1":
+        ACDC_defs = getllm_d.ACDC_defs
+        print "correcting phase jump"
+        s_lastbpm = MADTwiss.S[MADTwiss.indx[ACDC_defs[KEY_FIRSTBPM]]]
     else:
-        print "LHC phase will not be corrected [total phase]"
+        print "phase jump will not be corrected"
     #-- Determine the BPM closest to the AC dipole and its position
     
     # WHY does this code exist?
@@ -203,7 +206,7 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
     return [result,bpm]
 
 
-def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl, acdipole):
+def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, Qmdl, getllm_d):
 
 
 # 
@@ -222,7 +225,8 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
 #     print "                               "
 #     print "INFO: using changed code for ac compensation\n DO NOT TRUST THIS CODE\33[0m"
 
-    print "Compensating {3:s} effect for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane, acdipole)
+    print "Compensating {3:s} effect for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane, getllm_d.acdipole)
+    ACDC_defs = getllm_d.ACDC_defs
 
     #-- Select common BPMs
     bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files), MADTwiss)
@@ -230,15 +234,9 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     
-    if op == "1":
+    if getllm_d.lhc_phase == "1":
         print "correcting phase jump"
-        if 'MOH_3' in MADTwiss.NAME:
-            print "--> for JPARC"
-            s_lastbpm = MADTwiss.S[MADTwiss.indx['MOH_3']]
-        else:
-            print "--> for LHC"
-            if bd == 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-            if bd == -1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
+        s_lastbpm = MADTwiss.S[MADTwiss.indx[ACDC_defs[KEY_FIRSTBPM]]]
     else:
         print "phase jump will not be corrected"
 
@@ -336,8 +334,10 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
     return result_, muave_, bpm
 
 
-def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):
+def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, getllm_d):
     #-- Select common BPMs
+    ACDC_defs = getllm_d.ACDC_defs
+    
     all_bpms = Utilities.bpm.model_intersect(
         Utilities.bpm.intersect(Files),
         MADTwiss_ac,
@@ -349,10 +349,9 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
     )
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op == "1" and bd == 1:
-        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
-    if op == "1" and bd == -1:
-        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
+    if getllm_d.lhc_phase == "1":
+        print "correcting phase jump"
+        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx[ACDC_defs[KEY_FIRSTBPM]]]
 
     #-- Determine the BPM closest to the AC dipole and its position
     bpm_ac1 = psid_ac2bpmac.keys()[0]
