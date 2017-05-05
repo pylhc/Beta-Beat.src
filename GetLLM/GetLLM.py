@@ -415,7 +415,11 @@ def _intial_setup(getllm_d, model_filename, dict_file):
                 mad_ac_best_knowledge = mad_ac
                 print "Best knowledge model not found for AC diapole."
             getllm_d.acdipole = "ACD"
-        elif os.path.exists(adt_filename):
+        if os.path.exists(adt_filename):
+            if getllm_d.acdipole == "ACD":
+                print >> sys.stderr, "ERROR: ADT as well as ACD models provided. What do you want?"
+                print >> sys.stderr, "       Please come back to me once you have made up your mind. GoodBye"
+                sys.exit(1)
     
             mad_ac = Python_Classes4MAD.metaclass.twiss(adt_filename)  # model with ac dipole : Twiss instance
             getllm_d.with_ac_calc = True
@@ -429,7 +433,7 @@ def _intial_setup(getllm_d, model_filename, dict_file):
                 print "Best knowledge model not found for ADT-AC-dipole."
             getllm_d.acdipole = "ADT"
         else:
-            print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
+            print "WARN: AC dipole effects not calculated. Driven twiss file does not exist !"
             mad_ac = mad_twiss
             mad_ac_best_knowledge = mad_twiss
     except IOError:
