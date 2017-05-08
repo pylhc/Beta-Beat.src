@@ -277,7 +277,7 @@ def getChromaticCoup(path, plane, subnode):
     return s, f, fstd
 
 
-def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh):
+def plotAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -309,13 +309,17 @@ def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, 
         valuex.append(getvaluex)
         xerr.append(getxerr)
         setLimits(accel, minx, maxx, hminx, hmaxx, plx)
-        plx.errorbar(sx[i], valuex[i], yerr=xerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=paths[i].rsplit('/', 1)[-1])
+        if label == 'None':
+            labels = paths
+        else:
+            labels = label.split(',')
+        plx.errorbar(sx[i], valuex[i], yerr=xerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=labels[i].rsplit('/', 1)[-1])
         if(mainnode != "Normalized_Dispersion"):
             sy.append(getsy)
             valuey.append(getvaluey)
             yerr.append(getyerr)
             setLimits(accel, miny, maxy, hminy, hmaxy, ply)
-            ply.errorbar(sy[i], valuey[i], yerr=yerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=paths[i].rsplit('/', 1)[-1])
+            ply.errorbar(sy[i], valuey[i], yerr=yerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=labels[i].rsplit('/', 1)[-1])
             setYAxisLabel(subnode, 'y', ply)
     plx.axes.get_xaxis().set_visible(False)
     setXAxisLabel(ply)
@@ -327,7 +331,7 @@ def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, 
     return gs
 
 
-def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy,legendx, legendy, legendh):
+def plotMdlAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy,legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -347,8 +351,12 @@ def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hmin
         sy, measy, mdly, erry = getChromaticAmp(path, "y")
     if(subnode == "NDisp_NDMdl"):
         sx, measx, mdlx, errx = getNormDispMdl(path)
-    plx.errorbar(sx, mdlx, yerr=errx, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label="mo_" + path.rsplit('/', 1)[-1])
-    plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label="me_" + path.rsplit('/', 1)[-1])
+    if label == 'None':
+        labels = ["mo_" + path.rsplit('/', 1)[-1], "me_" + path.rsplit('/', 1)[-1] ]
+    else:
+        labels = label.split(',')
+    plx.errorbar(sx, mdlx, yerr=errx, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
+    plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
     #plx.tick_params(labelsize=6)
     if("NDisp" not in subnode):
         ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label="mo_" + path.rsplit('/', 1)[-1])
