@@ -132,7 +132,7 @@ class MatcherControllerDefault(object):
             propagation = "back"
 
         self._matcher_model = self._get_matcher_model(
-            self._main_controller, name,
+            self._main_controller.get_match_path(), name,
             beam1_path, beam2_path, ip, use_errors, propagation
         )
         self._view.accept()

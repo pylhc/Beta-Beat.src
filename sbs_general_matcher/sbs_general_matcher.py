@@ -207,9 +207,10 @@ class InputData():
 def _run_gui(lhc_mode=None, match_path=None, input_dir=None):
     try:
         from gui import gui
-    except ImportError:
+    except ImportError as e:
         LOGGER.debug("ImportError importing GUI", exc_info=1)
-        LOGGER.info("Cannot start GUI using the current Python installation.")
+        LOGGER.info("Cannot start GUI using the current Python installation:")
+        LOGGER.info(str(e))
         LOGGER.info("Launching OMC Anaconda Python...")
         _run_gui_anaconda()
         return

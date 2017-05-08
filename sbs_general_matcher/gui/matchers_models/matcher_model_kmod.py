@@ -16,14 +16,17 @@ class MatcherModelKmod(MatcherModelDefault):
     def create_matcher(self, match_path):
         self._matcher = KmodMatcher(self._name, self.get_matcher_dict(), match_path)
 
-    def get_plotter(self, figures):
-        return MatcherPlotterKmod(figures, self)
+    def get_plotter(self, figure):
+        if self._plotter is None:
+            self._plotter = MatcherPlotterKmod(figure, self)
+        return self._plotter
 
 
 class MatcherPlotterKmod(MatcherPlotterDefault):
 
     def plot(self):
         self._figure.clear()
+        self._axes_to_data = {}
         num_beams = len(self._matcher_model._matcher.get_beams())
         if 1 in self._matcher_model._matcher.get_beams():
             axes_b1_x = self._figure.add_subplot(2, num_beams, 1)
@@ -84,28 +87,28 @@ class MatcherPlotterKmod(MatcherPlotterDefault):
 
     @staticmethod
     def _plot_front(axes, kmod_bb_data, bb_data, plane):
-        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCOR" + plane),
+        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCOR" + plane).values,
                   label=r"$\Delta\beta / {\beta_{model}}$ model", color="green")
-        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCOR" + plane),
+        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCOR" + plane).values,
                   marker="o", markersize=7., color="green")
 
         axes.errorbar(kmod_bb_data.S,
-                      getattr(kmod_bb_data, "BETABEAT" + plane),
-                      getattr(kmod_bb_data, "ERRBETABEAT" + plane),
+                      getattr(kmod_bb_data, "BETABEAT" + plane).values,
+                      getattr(kmod_bb_data, "ERRBETABEAT" + plane).values,
                       fmt='o', markersize=8.,
                       label=r"$\Delta\beta / {\beta_{model}}$ k-mod",
                       color="blue")
 
     @staticmethod
     def _plot_back(axes, kmod_bb_data, bb_data, plane):
-        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCORBACK" + plane),
+        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCORBACK" + plane).values,
                   label=r"$\Delta\beta / {\beta_{model}}$ model", color="green")
-        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCORBACK" + plane),
+        axes.plot(bb_data.S, getattr(bb_data, "BETABEATCORBACK" + plane).values,
                   marker="o", markersize=7., color="green")
 
         axes.errorbar(kmod_bb_data.S,
-                      getattr(kmod_bb_data, "BETABEATBACK" + plane),
-                      getattr(kmod_bb_data, "ERRBETABEATBACK" + plane),
+                      getattr(kmod_bb_data, "BETABEATBACK" + plane).values,
+                      getattr(kmod_bb_data, "ERRBETABEATBACK" + plane).values,
                       fmt='o', markersize=8.,
                       label=r"$\Delta\beta / {\beta_{model}}$ k-mod",
                       color="blue")

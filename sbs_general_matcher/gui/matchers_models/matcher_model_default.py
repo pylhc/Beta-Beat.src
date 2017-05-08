@@ -8,9 +8,9 @@ LOGGER = logging.getLogger(__name__)
 
 class MatcherModelDefault(object):
 
-    def __init__(self, controller, name, beam1_path, beam2_path,
+    def __init__(self, match_path, name, beam1_path, beam2_path,
                  ip, use_errors, propagation):
-        self._controller = controller
+        self._match_path = match_path
         self._name = name
         self._beam1_path = beam1_path
         self._beam2_path = beam2_path
@@ -21,6 +21,7 @@ class MatcherModelDefault(object):
         self._elements_positions = None
         self.ignored_vars = []
         self.disabled_constr = {1: [], 2: []}
+        self._plotter = None
 
     def get_name(self):
         return self._name
@@ -32,11 +33,11 @@ class MatcherModelDefault(object):
         return self._beam2_path
 
     def get_beam1_output_path(self):
-        return os.path.join(self._controller.get_match_path(),
+        return os.path.join(self._match_path,
                             "Beam1_" + self._name)
 
     def get_beam2_output_path(self):
-        return os.path.join(self._controller.get_match_path(),
+        return os.path.join(self._match_path,
                             "Beam2_" + self._name)
 
     def get_ip(self):
@@ -56,10 +57,19 @@ class MatcherModelDefault(object):
             raise ValueError(
                 "Cannot set excluded variables of not created matcher"
             )
-        if active and var_name not in self._matcher._excluded_variables_list:
-            self._matcher._excluded_variables_list.append(var_name)
-        elif not active and var_name in self._matcher._excluded_variables_list:
+        if active and var_name in self._matcher._excluded_variables_list:
             self._matcher._excluded_variables_list.remove(var_name)
+            LOGGER.info(self._name + " -> Activated var: " + var_name)
+        elif (not active and var_name not in
+                self._matcher._excluded_variables_list):
+            self._matcher._excluded_variables_list.append(var_name)
+            LOGGER.info(self._name + " -> Disabled var: " + var_name)
+
+    def disable_all_vars(self):
+        all_vars = (self.get_variables_for_beam()[1] +
+                    self.get_variables_for_beam()[2] +
+                    self.get_common_variables())
+        self._matcher._excluded_variables_list = all_vars
 
     def toggle_constr(self, constr_name):
         if self._matcher is None:

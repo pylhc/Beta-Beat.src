@@ -24,15 +24,16 @@ coupling_knob(beam_number): macro = {
 
 /*
 * Performs the matching of the LHC tunes, adapted to ATS optics.
-* @param qx: The horizontal tune to match to (with integer part).
-* @param qy: The vertical tune to match to (with integer part).
+* @param qx: The horizontal tune to match to.
+* @param qy: The vertical tune to match to.
 * @param beam_number: The beam to use either 1 or 2.
 */
 match_tunes(nqx, nqy, beam_number): macro = {
+    exec, find_complete_tunes(nqx, nqy, beam_number);
     if (ARC_SQUEEZE == 1.0){
-        exec, match_tunes_arc_squeeze(nqx, nqy, beam_number);
+        exec, match_tunes_arc_squeeze(total_qx, total_qy, beam_number);
     } else {
-        exec, match_tunes_no_arc_squeeze(nqx, nqy, beam_number);
+        exec, match_tunes_no_arc_squeeze(total_qx, total_qy, beam_number);
     }
 };
 

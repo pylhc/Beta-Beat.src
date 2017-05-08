@@ -1,6 +1,7 @@
-import sys
 import constants
+import logging
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import pyqtSignal, Qt
 
 
 class FileSelectionDialogWidget(QtWidgets.QWidget):
@@ -76,7 +77,9 @@ class InitialConfigPopup(QtWidgets.QDialog):
                 raise ValueError("Invalid lhc mode, must be one of " +
                                  str(constants.LHC_MODES))
             else:
-                self._lhc_mode_combo.setCurrentIndex(constants.LHC_MODES.index(lhc_mode))
+                self._lhc_mode_combo.setCurrentIndex(
+                    constants.LHC_MODES.index(lhc_mode)
+                )
         main_layout.addWidget(self._lhc_mode_combo)
 
         self._file_selector = FileSelectionDialogWidget()
@@ -100,6 +103,33 @@ class InitialConfigPopup(QtWidgets.QDialog):
         return str(self._lhc_mode_combo.currentText())
 
 
-if __name__ == "__main__":
-    print >> sys.stderr, "This module is meant to be imported."
-    sys.exit(-1)
+class LogDialog(QtWidgets.QDialog, logging.Handler):
+
+    _update_signal = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        QtWidgets.QDialog.__init__(self, parent=parent)
+        logging.Handler.__init__(self)
+
+        self.resize(855, 655)
+        layout = QtWidgets.QVBoxLayout()
+        self._log_text = QtWidgets.QPlainTextEdit(parent)
+        self._log_text.setReadOnly(True)
+        layout.addWidget(self._log_text)
+        self.setLayout(layout)
+
+        formatter = logging.Formatter(
+            "%(asctime)s %(levelname)s %(message)s"
+        )
+        formatter.datefmt = '%d/%m/%Y %H:%M:%S'
+        self.setFormatter(formatter)
+        self.setLevel(logging.DEBUG)
+
+        self._update_signal.connect(self._update_log, Qt.QueuedConnection)
+
+    def _update_log(self, msg):
+        self._log_text.appendPlainText(msg)
+
+    def emit(self, record):
+        msg = self.format(record)
+        self._update_signal.emit(msg)

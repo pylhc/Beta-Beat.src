@@ -17,6 +17,7 @@ def get_lhc_modes():
         "lhc_runII_2016": LhcRunII2016,
         "lhc_runII_2016_ats": LhcRunII2016Ats,
         "lhc_runII_2017": LhcRunII2017,
+        "lhc_runII_ballistic": LhcRunIIBallistic,
         "hllhc10": HlLhc10,
         "hllhc12": HlLhc12,
     }
@@ -28,10 +29,6 @@ class LhcExcitationMode(object):
 
 class Lhc(Accelerator):
     NAME = "lhc"
-
-    INT_TUNE_X = 64.
-    INT_TUNE_Y = 59.
-
     MACROS_NAME = "lhc"
 
     def __init__(self):
@@ -310,9 +307,6 @@ class _LhcB2Mixin(object):
 class LhcAts(Lhc):
     MACROS_NAME = "lhc_runII_ats"
 
-    INT_TUNE_X = 62.
-    INT_TUNE_Y = 60.
-
 
 # Specific accelerator definitions ###########################################
 
@@ -342,6 +336,11 @@ class LhcRunII2016(Lhc):
 
 
 class LhcRunII2016Ats(LhcAts, LhcRunII2016):
+    pass
+
+
+# TODO: Remove, with new tune macthing this is just LhcRunII2016.
+class LhcRunIIBallistic(LhcRunII2016):
     pass
 
 
