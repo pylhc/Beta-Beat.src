@@ -407,9 +407,9 @@ def setYAxisLabel(subnode, axis, p1):
     if (subnode == 'diff_Disp_DMdl'):
         p1.set_ylabel(r'$\DeltaD' + axis + ' [m]$')
     if (subnode == 'NDisp_NDMdl'):
-        p1.set_ylabel(r'$ND' + axis + ' [sqrt(m)]$')
+        p1.set_ylabel(r'$ND' + axis + ' [\sqrt(m)]$')
     if (subnode == 'diff_NDisp_NDMdl'):
-        p1.set_ylabel(r'$\DeltaD' + axis + ' [m]$')
+        p1.set_ylabel(r'$\Delta D' + axis + ' [m]$')
     if (subnode == 'CO'):
         p1.set_ylabel(r'$\Delta' + axis + ' [m]$')
     if (subnode == 'ChromaticAmplitude'):
