@@ -284,7 +284,7 @@ def getChromaticCoup(path, plane, subnode):
 def plotAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
-    ply = plt.subplot(gs[1])
+    
     paths = splitFiles(path)
     sx, valuex, xerr = [], [], []
     sy, valuey, yerr = [], [], []
@@ -319,15 +319,19 @@ def plotAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, 
             labels = label.split(',')
         plx.errorbar(sx[i], valuex[i], yerr=xerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=labels[i].rsplit('/', 1)[-1])
         if(mainnode != "Normalized_Dispersion"):
+            plx.axes.get_xaxis().set_visible(False)
+            ply = plt.subplot(gs[1])
             sy.append(getsy)
             valuey.append(getvaluey)
             yerr.append(getyerr)
             setLimits(accel, miny, maxy, hminy, hmaxy, ply)
             ply.errorbar(sy[i], valuey[i], yerr=yerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=labels[i].rsplit('/', 1)[-1])
             setYAxisLabel(subnode, 'y', ply)
-    plx.axes.get_xaxis().set_visible(False)
-    setXAxisLabel(ply)
-    showIRs(accel, float(maxy), [ply])
+            showIRs(accel, float(maxy), [ply])
+            setXAxisLabel(ply)
+        elif(mainnode == "Normalized_Dispersion"):
+            plx.axes.get_xaxis().set_visible(True)
+            plx.axes.get_xaxis().set_visible(True)
     plt.grid(False)
     setYAxisLabel(subnode, 'x', plx)
     if(int(float(legendh)) > 12):
@@ -338,9 +342,7 @@ def plotAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, 
 def plotMdlAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy,legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
-    ply = plt.subplot(gs[1])
     setLimits(accel, minx, maxx, hminx, hmaxx, plx)
-    setLimits(accel, miny, maxy, hminy, hmaxy, ply)
     if(subnode == "Beta_BMdl"):
         sx, measx, mdlx, errx = getbetamdl(path, "x", mainnode)
         sy, measy, mdly, erry = getbetamdl(path, "y", mainnode)
@@ -363,13 +365,18 @@ def plotMdlAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, max
     plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
     #plx.tick_params(labelsize=6)
     if("NDisp" not in subnode):
-        ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label="mo_" + path.rsplit('/', 1)[-1])
-        ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label="me_" + path.rsplit('/', 1)[-1])
+        plx.axes.get_xaxis().set_visible(False)
+        ply = plt.subplot(gs[1])
+        setLimits(accel, miny, maxy, hminy, hmaxy, ply)
+        ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
+        ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
         #ply.tick_params(labelsize=6)
         setYAxisLabel(subnode, 'y', ply)
-    plx.axes.get_xaxis().set_visible(False)
-    setXAxisLabel(ply)
-    showIRs(accel, float(maxy), [ply])
+        setXAxisLabel(ply)
+        showIRs(accel, float(maxy), [ply])
+    else:
+        setXAxisLabel(plx)
+        plx.axes.get_xaxis().set_visible(True)
     plt.grid(False)
     setYAxisLabel(subnode, 'x', plx)
     if(int(float(legendh)) > 12):
@@ -411,7 +418,7 @@ def setYAxisLabel(subnode, axis, p1):
     if (subnode == 'diff_Disp_DMdl'):
         p1.set_ylabel(r'$\Delta D / \beta [m]$')
     if (subnode == 'NDisp_NDMdl'):
-        p1.set_ylabel(r'$ND' + axis + ' [\sqrt(m)]$')
+        p1.set_ylabel(r'$ND' + axis + ' [sqrt(m)]$')
     if (subnode == 'diff_NDisp_NDMdl'):
         p1.set_ylabel(r'$\frac{\Delta D_x}{\beta_vx}  [m]$')
     if (subnode == 'CO'):
@@ -444,7 +451,7 @@ def showIRs(accel, maxy, plots=[]):
     IRposition = maxy * 1.25   
     if accel[0:4] == "LHCB":
         for i in plots:
-        theSizeofFont = 14
+            theSizeofFont = 14
             if accel == "LHCB1":
                 i.text(22800, IRposition, 'IP1', fontsize=theSizeofFont)
                 i.text(0, IRposition, 'IP2', fontsize=theSizeofFont)
