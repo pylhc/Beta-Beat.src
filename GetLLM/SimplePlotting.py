@@ -36,25 +36,25 @@ Aluminium5 = '#555753'
 Aluminium6 = '#2E3436'
 
 #colors = ['red', 'blue', 'green', 'yellow']
-colors = [SkyBlue1,Butter1, ScarletRed1, Aluminium1]
-markeredgecolors = [SkyBlue3, Butter3, ScarletRed3, Aluminium3]
+colors = [SkyBlue1,ScarletRed1, Butter1 , Aluminium1]
+markeredgecolors = [SkyBlue3,ScarletRed3, Butter3,  Aluminium3]
 
 
-def setParams(labelfontsize=8, legendfontsize=8):
+def setParams(labelfontsize=15, legendfontsize=15):
     rc('font', **{'family': 'sans-serif', 'serif': ['Computer Modern']})
     params = {'backend': 'pdf',
           'axes.labelsize': labelfontsize,
           'font.size': labelfontsize,
-          'legend.fontsize': 6,
-          'xtick.labelsize': 10,
-          'ytick.labelsize': 10,
+          'legend.fontsize': 18,
+          'xtick.labelsize': 15,
+          'ytick.labelsize': 15,
 #          'axes.title': 12,
           'text.usetex': False,
           'axes.unicode_minus': True,
-          'xtick.major.pad': 8,
-          'ytick.major.pad': 8,
-          'xtick.minor.pad': 8,
-          'ytick.minor.pad': 8,
+          'xtick.major.pad': 15,
+          'ytick.major.pad': 15,
+          'xtick.minor.pad': 15,
+          'ytick.minor.pad': 15,
     }
     plt.rcParams.update(params)
 
@@ -274,6 +274,10 @@ def getChromaticCoup(path, plane, subnode):
         if(plane == "y"):
             f = t.Cf1010i
             fstd = t.Cf1010iERR
+    elif (subnode =='ChromaticCouplingAmp'):
+        amp = []
+        #for i in range(0,len(t.Cf1001i))
+            
     return s, f, fstd
 
 
@@ -405,25 +409,25 @@ def setYAxisLabel(subnode, axis, p1):
     if (subnode == 'Disp_DMdl'):
         p1.set_ylabel(r'D' + axis + ' [m]')
     if (subnode == 'diff_Disp_DMdl'):
-        p1.set_ylabel(r'$\DeltaD' + axis + ' [m]$')
+        p1.set_ylabel(r'$\Delta D / \beta [m]$')
     if (subnode == 'NDisp_NDMdl'):
         p1.set_ylabel(r'$ND' + axis + ' [\sqrt(m)]$')
     if (subnode == 'diff_NDisp_NDMdl'):
-        p1.set_ylabel(r'$\Delta D' + axis + ' [m]$')
+        p1.set_ylabel(r'$\frac{\Delta D_x}{\beta_vx}  [m]$')
     if (subnode == 'CO'):
         p1.set_ylabel(r'$\Delta' + axis + ' [m]$')
     if (subnode == 'ChromaticAmplitude'):
         p1.set_ylabel(r'W' + axis)
     if (subnode == 'ChromaticCouplingReal'):
         if(axis == 'x'):
-            p1.set_ylabel(r'$\Delta' + 'Re(f1001)/' + '\Delta' + '\delta$')
+            p1.set_ylabel(r'$\Delta ' + 'Real(f1001)/' + '\Delta' + '\delta$')
         if(axis == 'y'):
-            p1.set_ylabel(r'$\Delta' + 'Re(f1010)/' + '\Delta' + '\delta$')
+            p1.set_ylabel(r'$\Delta ' + 'Real(f1010)/' + '\Delta' + '\delta$')
     if (subnode == 'ChromaticCouplingImaginary'):
         if(axis == 'x'):
-            p1.set_ylabel(r'$\Delta' + 'Im(f1001)/' + '\Delta' + '\delta$')
+            p1.set_ylabel(r'$\Delta ' + 'Imaginary(f1001)/' + '\Delta' + '\delta$')
         if(axis == 'y'):
-            p1.set_ylabel(r'$\Delta' + 'Im(f1010)/' + '\Delta' + '\delta$')
+            p1.set_ylabel(r'$\Delta ' + 'Imaginary(f1010)/' + '\Delta' + '\delta$')
 
 
 def setXAxisLabel(p1):
@@ -432,31 +436,33 @@ def setXAxisLabel(p1):
 
 def showLegend(p, legendx, legendy, frameon=False, numpoints=1, ncol=1):
     handles, labels = p.get_legend_handles_labels()
-    p.legend(handles, labels, loc='upper left', bbox_to_anchor=(-0.02, 1.25), frameon=frameon, numpoints=numpoints, ncol=ncol)
-
+    #p.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.02, 1.35), frameon=frameon, numpoints=numpoints, ncol=ncol)
+    p.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
+          fancybox=True, shadow=True, ncol=3)
 
 def showIRs(accel, maxy, plots=[]):
-    IRposition = maxy * 1.15   
+    IRposition = maxy * 1.25   
     if accel[0:4] == "LHCB":
         for i in plots:
+        theSizeofFont = 14
             if accel == "LHCB1":
-                i.text(22800, IRposition, 'IP1', fontsize=8)
-                i.text(0, IRposition, 'IP2', fontsize=8)
-                i.text(3000, IRposition, 'IP3', fontsize=8)
-                i.text(6000, IRposition, 'IP4', fontsize=8)
-                i.text(9100, IRposition, 'IP5', fontsize=8)
-                i.text(12500, IRposition, 'IP6', fontsize=8)
-                i.text(15800, IRposition, 'IP7', fontsize=8)
-                i.text(19600, IRposition, 'IP8', fontsize=8)
+                i.text(22800, IRposition, 'IP1', fontsize=theSizeofFont)
+                i.text(0, IRposition, 'IP2', fontsize=theSizeofFont)
+                i.text(3000, IRposition, 'IP3', fontsize=theSizeofFont)
+                i.text(6000, IRposition, 'IP4', fontsize=theSizeofFont)
+                i.text(9100, IRposition, 'IP5', fontsize=theSizeofFont)
+                i.text(12500, IRposition, 'IP6', fontsize=theSizeofFont)
+                i.text(15800, IRposition, 'IP7', fontsize=theSizeofFont)
+                i.text(19600, IRposition, 'IP8', fontsize=theSizeofFont)
             else:
-                i.text(2700, IRposition, 'IP1', fontsize=8)
-                i.text(6000, IRposition, 'IP2', fontsize=8)
-                i.text(9300, IRposition, 'IP3', fontsize=8)
-                i.text(12700, IRposition, 'IP4', fontsize=8)
-                i.text(16000, IRposition, 'IP5', fontsize=8)
-                i.text(19300, IRposition, 'IP6', fontsize=8)
-                i.text(22700, IRposition, 'IP7', fontsize=8)
-                i.text(26000, IRposition, 'IP8', fontsize=8)
+                i.text(2700, IRposition, 'IP1', fontsize=theSizeofFont)
+                i.text(6000, IRposition, 'IP2', fontsize=theSizeofFont)
+                i.text(9300, IRposition, 'IP3', fontsize=theSizeofFont)
+                i.text(12700, IRposition, 'IP4', fontsize=theSizeofFont)
+                i.text(16000, IRposition, 'IP5', fontsize=theSizeofFont)
+                i.text(19300, IRposition, 'IP6', fontsize=theSizeofFont)
+                i.text(22700, IRposition, 'IP7', fontsize=theSizeofFont)
+                i.text(26000, IRposition, 'IP8', fontsize=theSizeofFont)
 
 
 def setTicksNoLabels(plots=[]):

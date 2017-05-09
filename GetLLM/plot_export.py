@@ -95,9 +95,11 @@ def main():
         SimplePlotting.plotAnalysis(paths, label, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh)
     else:
         print "Unknown subnode"
-    plt.tight_layout
+
+    plt.tight_layout()
+
     try:
-        mpdf.savefig()
+        mpdf.savefig(bbox_inches='tight')
     finally:
         mpdf.close()
 
