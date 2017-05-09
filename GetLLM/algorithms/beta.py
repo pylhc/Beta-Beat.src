@@ -197,7 +197,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     
     #--- =========== HORIZONTAL
     if CALCULATE_BETA_HOR:
-        print "skagfhuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
         if twiss_d.has_zero_dpp_x():
             print ""
             print_("Calculate beta from phase for plane " + _plane_char, ">")
