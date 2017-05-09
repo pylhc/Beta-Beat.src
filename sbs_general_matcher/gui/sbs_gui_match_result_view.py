@@ -84,9 +84,9 @@ class SbSGuiMatchResultView(QtWidgets.QWidget):
                     _CustomCheckBox(variable, self)
                 )
 
-        select_all_checkbox = QtWidgets.QCheckBox("Toggle select all")
-        select_all_checkbox.stateChanged.connect(self._toogle_select_all)
-        variables_layout.addWidget(select_all_checkbox)
+        self._select_all_checkbox = QtWidgets.QCheckBox("Toggle select all")
+        self._select_all_checkbox.mousePressEvent = self._toogle_select_all
+        variables_layout.addWidget(self._select_all_checkbox)
 
         main_splitter.addWidget(variables_frame)
         self.setLayout(main_layout)
@@ -106,11 +106,13 @@ class SbSGuiMatchResultView(QtWidgets.QWidget):
     def get_figure(self):
         return self._figure
 
-    def _toogle_select_all(self, state):
-        checked = bool(state)
+    def _toogle_select_all(self, event):
+        self._select_all_checkbox.setChecked(
+            not self._select_all_checkbox.isChecked()
+        )
 
         def toggle_checkbox(checkbox):
-            checkbox.setChecked(checked)
+            checkbox.set_state(event, self._select_all_checkbox.isChecked())
 
         self._loop_through_checkboxes(toggle_checkbox)
 
@@ -182,13 +184,16 @@ class _CustomCheckBox(QtWidgets.QCheckBox):
         self._view = view
 
     def mousePressEvent(self, event):
+        self.set_state(event, not self.isChecked())
+
+    def set_state(self, event, checked):
         all = True
         if event.button() == QtCore.Qt.RightButton:
             all = False
-        self.setChecked(not self.isChecked())
+        self.setChecked(checked)
         self._view.toggle_var_action(
             str(self.text()),
-            self.isChecked(),
+            checked,
             all,
         )
 

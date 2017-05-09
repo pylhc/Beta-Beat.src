@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import __init__  # @UnusedImport
 from matplotlib import rc
 import numpy as np
@@ -6,7 +7,37 @@ import matplotlib.gridspec as gridspec
 import os
 from  Python_Classes4MAD import metaclass
 
-colors = ['red', 'blue', 'green', 'yellow']
+Butter1 = '#FCE94F'
+Butter2 = '#EDD400'
+Butter3 = '#C4A000'
+Orange1 = '#FCAF3E'
+Orange2 = '#F57900'
+Orange3 = '#CE5C00'
+Chocolate1 = '#E9B96E'
+Chocolate2 = '#C17D11'
+Chocolate3 = '#8F5902'
+Chameleon1 = '#8AE234'
+Chameleon2 = '#73D216'
+Chameleon3 = '#4E9A06'
+SkyBlue1 = '#729FCF'
+SkyBlue2 = '#3465A4'
+SkyBlue3 = '#204A87'
+Plum1 = '#AD7FA8'
+Plum2 = '#75507B'
+Plum3 = '#5C3566'
+ScarletRed1 = '#EF2929'
+ScarletRed2 = '#CC0000'
+ScarletRed3 = '#A40000'
+Aluminium1 = '#EEEEEC'
+Aluminium2 = '#D3D7CF'
+Aluminium3 = '#BABDB6'
+Aluminium4 = '#888A85'
+Aluminium5 = '#555753'
+Aluminium6 = '#2E3436'
+
+#colors = ['red', 'blue', 'green', 'yellow']
+colors = [SkyBlue1,Butter1, ScarletRed1, Aluminium1]
+markeredgecolors = [SkyBlue3, Butter3, ScarletRed3, Aluminium3]
 
 
 def setParams(labelfontsize=8, legendfontsize=8):
@@ -14,7 +45,6 @@ def setParams(labelfontsize=8, legendfontsize=8):
     params = {'backend': 'pdf',
           'axes.labelsize': labelfontsize,
           'font.size': labelfontsize,
-          'axes.titlesize': labelfontsize,
           'legend.fontsize': 6,
           'xtick.labelsize': 10,
           'ytick.labelsize': 10,
@@ -247,7 +277,7 @@ def getChromaticCoup(path, plane, subnode):
     return s, f, fstd
 
 
-def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh):
+def plotAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -279,20 +309,21 @@ def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, 
         valuex.append(getvaluex)
         xerr.append(getxerr)
         setLimits(accel, minx, maxx, hminx, hmaxx, plx)
-        plx.plot(sx[i], valuex[i], color=colors[i], linestyle='solid', linewidth=0.01, marker='.', markerfacecolor=colors[i], markersize=4, label=paths[i].rsplit('/', 1)[-1])
-        plx.errorbar(sx[i], valuex[i], yerr=xerr[i], linewidth=0.1, color=colors[i], marker='.', markersize=1, markeredgecolor=colors[i], label='_nolegend_')
+        if label == 'None':
+            labels = paths
+        else:
+            labels = label.split(',')
+        plx.errorbar(sx[i], valuex[i], yerr=xerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=labels[i].rsplit('/', 1)[-1])
         if(mainnode != "Normalized_Dispersion"):
             sy.append(getsy)
             valuey.append(getvaluey)
             yerr.append(getyerr)
             setLimits(accel, miny, maxy, hminy, hmaxy, ply)
-            ply.plot(sy[i], valuey[i], color=colors[i], linestyle='solid', linewidth=0.01, marker='.', markerfacecolor=colors[i], markersize=4, label=paths[i].rsplit('/', 1)[-1])
-            ply.errorbar(sy[i], valuey[i], yerr=yerr[i], linewidth=0.1, color=colors[i], marker='.', markersize=1, markeredgecolor=colors[i], label='_nolegend_')
+            ply.errorbar(sy[i], valuey[i], yerr=yerr[i], fmt='o', color=colors[i],  markersize=4, markeredgecolor=markeredgecolors[i], label=labels[i].rsplit('/', 1)[-1])
             setYAxisLabel(subnode, 'y', ply)
-    plt.suptitle(title)
     plx.axes.get_xaxis().set_visible(False)
     setXAxisLabel(ply)
-    showIRs(accel, float(maxx), [plx])
+    showIRs(accel, float(maxy), [ply])
     plt.grid(False)
     setYAxisLabel(subnode, 'x', plx)
     if(int(float(legendh)) > 12):
@@ -300,7 +331,7 @@ def plotAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, 
     return gs
 
 
-def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh):
+def plotMdlAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy,legendx, legendy, legendh):
     gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
     plx = plt.subplot(gs[0])
     ply = plt.subplot(gs[1])
@@ -320,20 +351,21 @@ def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hmin
         sy, measy, mdly, erry = getChromaticAmp(path, "y")
     if(subnode == "NDisp_NDMdl"):
         sx, measx, mdlx, errx = getNormDispMdl(path)
-    plx.plot(sx, measx, color='red', linestyle='solid', linewidth=0.1, marker='.', markerfacecolor='red', markersize=4)
-    plx.plot(sx, mdlx, color='blue', linestyle='solid', linewidth=0.1, marker='.', markerfacecolor='blue', markersize=4)
-    plx.errorbar(sx, measx, yerr=errx, fmt='', color='red', linewidth=0.1, marker='.', markersize=1, markeredgecolor='red', label='_nolegend_')
+    if label == 'None':
+        labels = ["mo_" + path.rsplit('/', 1)[-1], "me_" + path.rsplit('/', 1)[-1] ]
+    else:
+        labels = label.split(',')
+    plx.errorbar(sx, mdlx, yerr=errx, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
+    plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
     #plx.tick_params(labelsize=6)
     if("NDisp" not in subnode):
-        ply.plot(sy, measy, color='red', linestyle='solid', linewidth=0.1, marker='.', markerfacecolor='red', markersize=4, label="me_" + path.rsplit('/', 1)[-1])
-        ply.plot(sy, mdly, color='blue', linestyle='solid', linewidth=0.1, marker='.', markerfacecolor='blue', markersize=4, label="mo_" + path.rsplit('/', 1)[-1])
-        ply.errorbar(sy, measy, yerr=erry, color='red', linewidth=0.1, marker='.', markersize=1, markeredgecolor='red', label='_nolegend_')
+        ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label="mo_" + path.rsplit('/', 1)[-1])
+        ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label="me_" + path.rsplit('/', 1)[-1])
         #ply.tick_params(labelsize=6)
         setYAxisLabel(subnode, 'y', ply)
-    plt.suptitle(title)
     plx.axes.get_xaxis().set_visible(False)
     setXAxisLabel(ply)
-    showIRs(accel, float(maxx), [plx])
+    showIRs(accel, float(maxy), [ply])
     plt.grid(False)
     setYAxisLabel(subnode, 'x', plx)
     if(int(float(legendh)) > 12):
@@ -348,13 +380,13 @@ def plotMdlAnalysis(path, accel, subnode, mainnode, minx, maxx, miny, maxy, hmin
 
 def setYAxisLabel(subnode, axis, p1):
     if (subnode == 'Phase_PhMdl'):
-        p1.set_ylabel(u'\u03c6' + axis + '[2*' + u'\u03c0' + ']')
+        p1.set_ylabel(r'$\phi_' + axis + '[2*' + r'\pi' + ']$')
     if (subnode == 'Diff_Phase_PhMdl'):
-        p1.set_ylabel(u'\u0394' + u'\u03c6' + axis + '[2**' + u'\u03c0]')
+        p1.set_ylabel(r'$\Delta \phi_' + axis + '[2**' + r'\pi]$')
     if (subnode == 'Beta_beat'):
-        p1.set_ylabel('(' + u'\u0394' + u'\u03b2' + axis + ')\\' + u'\u03b2' + axis)
+        p1.set_ylabel(r'$\Delta \beta_' + axis + r'/ \beta_' + axis +'$')
     if (subnode == 'Beta_BMdl'):
-        p1.set_ylabel(u'\u03b2' + axis + '  [m]')
+        p1.set_ylabel(r'$\beta_' + axis + '  [m]$')
     if (subnode == 'amp'):
         if(axis == 'x'):
             p1.set_ylabel(r'abs(F1001)')
@@ -373,67 +405,58 @@ def setYAxisLabel(subnode, axis, p1):
     if (subnode == 'Disp_DMdl'):
         p1.set_ylabel(r'D' + axis + ' [m]')
     if (subnode == 'diff_Disp_DMdl'):
-        p1.set_ylabel(u'\u0394D' + axis + ' [m]')
+        p1.set_ylabel(r'$\DeltaD' + axis + ' [m]$')
     if (subnode == 'NDisp_NDMdl'):
-        p1.set_ylabel(r'ND' + axis + ' [sqrt(m)]')
+        p1.set_ylabel(r'$ND' + axis + ' [\sqrt(m)]$')
     if (subnode == 'diff_NDisp_NDMdl'):
-        p1.set_ylabel(u'\u0394D' + axis + ' [m]')
+        p1.set_ylabel(r'$\Delta D' + axis + ' [m]$')
     if (subnode == 'CO'):
-        p1.set_ylabel(u'\u0394' + axis + ' [m]')
+        p1.set_ylabel(r'$\Delta' + axis + ' [m]$')
     if (subnode == 'ChromaticAmplitude'):
         p1.set_ylabel(r'W' + axis)
     if (subnode == 'ChromaticCouplingReal'):
         if(axis == 'x'):
-            p1.set_ylabel(u'\u0394' + 'Re(f1001)/' + u'\u0394' + u'\u03b4')
+            p1.set_ylabel(r'$\Delta' + 'Re(f1001)/' + '\Delta' + '\delta$')
         if(axis == 'y'):
-            p1.set_ylabel(u'\u0394' + 'Re(f1010)/' + u'\u0394' + u'\u03b4')
+            p1.set_ylabel(r'$\Delta' + 'Re(f1010)/' + '\Delta' + '\delta$')
     if (subnode == 'ChromaticCouplingImaginary'):
         if(axis == 'x'):
-            p1.set_ylabel(u'\u0394' + 'Im(f1001)/' + u'\u0394' + u'\u03b4')
+            p1.set_ylabel(r'$\Delta' + 'Im(f1001)/' + '\Delta' + '\delta$')
         if(axis == 'y'):
-            p1.set_ylabel(u'\u0394' + 'Im(f1010)/' + u'\u0394' + u'\u03b4')
+            p1.set_ylabel(r'$\Delta' + 'Im(f1010)/' + '\Delta' + '\delta$')
 
 
 def setXAxisLabel(p1):
     p1.set_xlabel(r'Longitudinal location [m]')
 
 
-def showLegend(p, legendx, legendy, frameon=True, numpoints=1, ncol=3):
+def showLegend(p, legendx, legendy, frameon=False, numpoints=1, ncol=1):
     handles, labels = p.get_legend_handles_labels()
-    if(legendx < 1000 & legendy >= 200):
-        loc = 'lower left'
-    elif(legendx < 1000):
-        loc = 'upper left'
-    elif(legendx >= 1000 & legendy >= 200):
-        loc = 'lower right'
-    elif (legendx >= 1000 & legendy < 200):
-        loc = 'upper right'
-    else:
-        print "Unknown parameter"
-    p.legend(handles, labels, loc=loc, frameon=frameon, numpoints=numpoints, ncol=ncol)
+    p.legend(handles, labels, loc='upper left', bbox_to_anchor=(-0.02, 1.25), frameon=frameon, numpoints=numpoints, ncol=ncol)
 
 
-def showIRs(accel, limit, plots=[]):
+def showIRs(accel, maxy, plots=[]):
+    IRposition = maxy * 1.15   
     if accel[0:4] == "LHCB":
         for i in plots:
             if accel == "LHCB1":
-                i.text(22800, limit * 1.05, 'IP1', fontsize=8)
-                i.text(0, limit * 1.05, 'IP2', fontsize=8)
-                i.text(3000, limit * 1.05, 'IP3', fontsize=8)
-                i.text(6000, limit * 1.05, 'IP4', fontsize=8)
-                i.text(9100, limit * 1.05, 'IP5', fontsize=8)
-                i.text(12500, limit * 1.05, 'IP6', fontsize=8)
-                i.text(15800, limit * 1.05, 'IP7', fontsize=8)
-                i.text(19600, limit * 1.05, 'IP8', fontsize=8)
+                i.text(22800, IRposition, 'IP1', fontsize=8)
+                i.text(0, IRposition, 'IP2', fontsize=8)
+                i.text(3000, IRposition, 'IP3', fontsize=8)
+                i.text(6000, IRposition, 'IP4', fontsize=8)
+                i.text(9100, IRposition, 'IP5', fontsize=8)
+                i.text(12500, IRposition, 'IP6', fontsize=8)
+                i.text(15800, IRposition, 'IP7', fontsize=8)
+                i.text(19600, IRposition, 'IP8', fontsize=8)
             else:
-                i.text(2700, limit * 1.05, 'IP1', fontsize=8)
-                i.text(6000, limit * 1.05, 'IP2', fontsize=8)
-                i.text(9300, limit * 1.05, 'IP3', fontsize=8)
-                i.text(12700, limit * 1.05, 'IP4', fontsize=8)
-                i.text(16000, limit * 1.05, 'IP5', fontsize=8)
-                i.text(19300, limit * 1.05, 'IP6', fontsize=8)
-                i.text(22700, limit * 1.05, 'IP7', fontsize=8)
-                i.text(26000, limit * 1.05, 'IP8', fontsize=8)
+                i.text(2700, IRposition, 'IP1', fontsize=8)
+                i.text(6000, IRposition, 'IP2', fontsize=8)
+                i.text(9300, IRposition, 'IP3', fontsize=8)
+                i.text(12700, IRposition, 'IP4', fontsize=8)
+                i.text(16000, IRposition, 'IP5', fontsize=8)
+                i.text(19300, IRposition, 'IP6', fontsize=8)
+                i.text(22700, IRposition, 'IP7', fontsize=8)
+                i.text(26000, IRposition, 'IP8', fontsize=8)
 
 
 def setTicksNoLabels(plots=[]):

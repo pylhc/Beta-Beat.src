@@ -42,12 +42,13 @@ class IteratePlatteauPlots(object):
       - self.axes : contains all matplotlib axes in dictionary format with keys describing positions
 
     '''
-    def __init__(self, filenames, output_file):
-        self.currents_df  = load_csv(currents_filename, filetype='currents')
-        self.orbit_df     = load_csv(orbit_filename, filetype='orbit')
-        self.platteaus_df = load_csv(platteaus_filename, filetype='platteaus')
+    def __init__(self, filenames, output_platteau_file):
+        self.output_platteau_file = output_platteau_file 
+        self.currents_df  = load_csv(filenames[0], filetype='currents')
+        self.orbit_df     = load_csv(filenames[1], filetype='orbit')
+        self.platteaus_df = load_csv(filenames[2], filetype='platteaus')
         self.currents_df = self._normalize_data(self.currents_df)
-
+        print('Data imported.')
         self.accepted_plat = pd.DataFrame(index=np.arange(len(self.platteaus_df['KNOB_PLAT_START'])), columns=['B1_min','B1_max','B2_min','B2_max',])
         self.idx = 0 
 
@@ -123,7 +124,8 @@ class IteratePlatteauPlots(object):
                 self._make_plot()
             except KeyError:
                 print('Last platteau analysed, no more platteaus. Continue to data cleaning.') 
-                self.accepted_plat.to_csv(output_file)
+                self.accepted_plat.to_csv(self.output_platteau_file)
+                plt.close()
         elif event.key == 'p':
             try:
                 self._get_previous_platteau_idx()
@@ -197,14 +199,12 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     input_dir = args.input_dir
-    
-    currents_filename  = os.path.join(input_dir,'data.Imeas.LHCBEAM_IP5-XING-H-MURAD.csv')
-    platteaus_filename = os.path.join(input_dir,'data.platteaus.LHCBEAM_IP5-XING-H-MURAD.csv')
+    print('Call interactive class.')    
+    currents_filename  = os.path.join(input_dir,'data.Imeas.csv')
+    platteaus_filename = os.path.join(input_dir,'data.platteaus.csv')
     orbit_filename     = os.path.join(input_dir,'data.orbit.arc.xing.csv')
+    filenames = [currents_filename, orbit_filename, platteaus_filename]
+    output_platteau_file = os.path.join(input_dir,'accepted_platteaus.dat')
     
-    filenames = [currents_filename, platteaus_filename, orbit_filename]
-    
-    output_file = os.path.join(input_dir,'accepted_platteaus.dat')
-    
-    IteratePlatteauPlots(filenames, output_file)
+    IteratePlatteauPlots(filenames, output_platteau_file)
     

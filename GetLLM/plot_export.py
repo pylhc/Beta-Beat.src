@@ -19,9 +19,6 @@ def _parse_options():
     parser.add_option("-f", "--folder",
                      help="Folder for pdf file",
                      metavar="FOLDER", default="./", dest="folder")
-    parser.add_option("-t", "--title",
-                     help="Title",
-                     metavar="TITLE", default="", dest="title")
     parser.add_option("-x", "--maxx",
                      help="Upper limit x-plane chart",
                      metavar="MAXX", default="", dest="maxx")
@@ -61,6 +58,10 @@ def _parse_options():
     parser.add_option("-l", "--legendh",
                      help="Height of legend",
                      metavar="LEGENDH", default="", dest="legendh")
+    parser.add_option("-t", "--labels",
+                     help="Label",
+                     metavar="LABEL", default="None", dest="label")
+    
     options, _ = parser.parse_args()
     return options
 
@@ -84,14 +85,14 @@ def main():
     legendx = options.legendx
     legendy = options.legendy
     legendh = options.legendh
-    title = options.title
+    label  = options.label
 
     SimplePlotting.setParams()
     mpdf = PdfPages(os.path.abspath(folder))
     if(plot in mdlAnalysis):
-        SimplePlotting.plotMdlAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh)
+        SimplePlotting.plotMdlAnalysis(paths, label, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh)
     elif(plot in analysis):
-        SimplePlotting.plotAnalysis(paths, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, title, legendx, legendy, legendh)
+        SimplePlotting.plotAnalysis(paths, label, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh)
     else:
         print "Unknown subnode"
     plt.tight_layout
