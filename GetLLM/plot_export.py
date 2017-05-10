@@ -4,7 +4,7 @@ import os
 import sys
 
 
-analysis = ['Diff_Phase_PhMdl', 'Beta_beat', 'amp', 'real', 'imaginary', 'diff_Disp_DMdl', 'diff_NDisp_NDMdl', 'CO', 'ChromaticCouplingReal', 'ChromaticCouplingImaginary']
+analysis = ['Diff_Phase_PhMdl', 'Beta_beat', 'amp', 'real', 'imaginary', 'diff_Disp_DMdl', 'diff_NDisp_NDMdl', 'CO', 'ChromaticCouplingReal', 'ChromaticCouplingImaginary', 'ChromaticCouplingAmp']
 mdlAnalysis = ['Phase_PhMdl', 'Beta_BMdl', 'Disp_DMdl', 'NDisp_NDMdl', 'ChromaticAmplitude']
 
 

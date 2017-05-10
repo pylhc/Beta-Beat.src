@@ -275,7 +275,18 @@ def getChromaticCoup(path, plane, subnode):
             f = t.Cf1010i
             fstd = t.Cf1010iERR
     elif (subnode =='ChromaticCouplingAmp'):
-        amp = []
+        if(plane == "x"):
+            f =[]
+            fstd = t.Cf1001iERR
+            for i in range(len(t.Cf1001r)):
+                f.append(np.sqrt(t.Cf1001i[i]**2 +t.Cf1001r[i]**2))
+        
+        if(plane == "y"):
+            f =[]
+            fstd = t.Cf1010iERR
+            for i in range(len(t.Cf1010r)):
+                f.append(np.sqrt(t.Cf1010i[i]**2 +t.Cf1010r[i]**2))
+        
         #for i in range(0,len(t.Cf1001i))
             
     return s, f, fstd
@@ -435,6 +446,16 @@ def setYAxisLabel(subnode, axis, p1):
             p1.set_ylabel(r'$\Delta ' + 'Imaginary(f1001)/' + '\Delta' + '\delta$')
         if(axis == 'y'):
             p1.set_ylabel(r'$\Delta ' + 'Imaginary(f1010)/' + '\Delta' + '\delta$')
+    if (subnode == 'ChromaticCouplingImaginary'):
+        if(axis == 'x'):
+            p1.set_ylabel(r'$\Delta ' + 'Imaginary(f1001)/' + '\Delta' + '\delta$')
+        if(axis == 'y'):
+            p1.set_ylabel(r'$\Delta ' + 'Imaginary(f1010)/' + '\Delta' + '\delta$')
+    if (subnode == 'ChromaticCouplingAmp'):
+        if(axis == 'x'):
+            p1.set_ylabel(r'$\Delta ' + '(f1001)/' + '\Delta' + '\delta$')
+        if(axis == 'y'):
+            p1.set_ylabel(r'$\Delta ' + '(f1010)/' + '\Delta' + '\delta$')
 
 
 def setXAxisLabel(p1):
