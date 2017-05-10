@@ -54,7 +54,7 @@ A_FACT                  = -.5                       #@IgnorePep8
 BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
 ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
-PHASE_THRESHOLD         = 1e-2                      #@IgnorePep8
+PHASE_THRESHOLD         = 0.2e-2                      #@IgnorePep8
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
 MOD_POINTFIVE_UPPER     = (BADPHASE - PHASE_THRESHOLD)    #@IgnorePep8
 RCOND                   = 1.0e-14                    #@IgnorePep8
@@ -941,43 +941,43 @@ def get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i
  
     for n in left_combo:
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_right(bpm_name[n[0]], bpm_name[n[1]], bpm_name[probed_index], madTwiss, phase, plane, phase_err[n[0]], phase_err[n[1]], phase_err[probed_index])
-        if use_it:
-            t_matrix_row = [0] * (RANGE-1)
-            t_matrix_row[RANGE-2 - n[0]] = t1
-            t_matrix_row[RANGE-2 - n[1]] = t2
-            patternstr = ["x"] * RANGE
-            patternstr[n[0]] = "B"
-            patternstr[n[1]] = "B"
-            patternstr[probed_index] = "A"
-            candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
+        
+        t_matrix_row = [0] * (RANGE-1)
+        t_matrix_row[RANGE-2 - n[0]] = t1
+        t_matrix_row[RANGE-2 - n[1]] = t2
+        patternstr = ["x"] * RANGE
+        patternstr[n[0]] = "B"
+        patternstr[n[1]] = "B"
+        patternstr[probed_index] = "A"
+        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
     for n in mid_combo:
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_mid(bpm_name[n[0]], bpm_name[probed_index], bpm_name[n[1]], madTwiss, phase, plane, phase_err[n[0]], phase_err[probed_index], phase_err[n[1]])
-        if use_it:
-            t_matrix_row = [0] * (RANGE - 1)
-            t_matrix_row[RANGE - 2 - n[0]] = t1
-            t_matrix_row[n[1] - 1 - probed_index] = t2
-            patternstr = ["x"] * RANGE
-            patternstr[n[0]] = "B"
-            patternstr[n[1]] = "B"
-            patternstr[probed_index] = "A"
-            candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
+   
+        t_matrix_row = [0] * (RANGE - 1)
+        t_matrix_row[RANGE - 2 - n[0]] = t1
+        t_matrix_row[n[1] - 1 - probed_index] = t2
+        patternstr = ["x"] * RANGE
+        patternstr[n[0]] = "B"
+        patternstr[n[1]] = "B"
+        patternstr[probed_index] = "A"
+        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
     for n in right_combo:
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_left(bpm_name[probed_index], bpm_name[n[0]], bpm_name[n[1]], madTwiss, phase, plane, phase_err[probed_index], phase_err[n[0]], phase_err[n[1]])
-        if use_it:
-            t_matrix_row = [0] * (RANGE-1)
-            t_matrix_row[n[0] - 1 - probed_index] = t1
-            t_matrix_row[n[1] - 1 - probed_index] = t2
-            patternstr = ["x"] * RANGE
-            patternstr[n[0]] = "B"
-            patternstr[n[1]] = "B"
-            patternstr[probed_index] = "A"
-            candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
+      
+        t_matrix_row = [0] * (RANGE-1)
+        t_matrix_row[n[0] - 1 - probed_index] = t1
+        t_matrix_row[n[1] - 1 - probed_index] = t2
+        patternstr = ["x"] * RANGE
+        patternstr[n[0]] = "B"
+        patternstr[n[1]] = "B"
+        patternstr[probed_index] = "A"
+        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
-    #sort_cand = sorted(candidates, key=lambda x: x[4])
-    #return [sort_cand[i] for i in range(NUM_BPM_COMBOS)], bpm_name[probed_index], M
-    return candidates, bpm_name[probed_index], M
+    sort_cand = sorted(candidates, key=lambda x: x[4])
+    return [sort_cand[i] for i in range(number_of_bpms)], bpm_name[probed_index], M
+#     return candidates, bpm_name[probed_index], M
 
 
 def _beta_from_phase_BPM_left(bn1, bn2, bn3, madTwiss, phase, plane, p1, p2, p3, is3BPM=False):
@@ -1027,10 +1027,6 @@ def _beta_from_phase_BPM_left(bn1, bn2, bn3, madTwiss, phase, plane, p1, p2, p3,
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
         
-    if not is3BPM and (
-        bad_phase(phmdl12) or bad_phase(phmdl13) or bad_phase(phmdl12 - phmdl13) or bad_phase(ph2pi12) or bad_phase(ph2pi13) or bad_phase(ph2pi12 - ph2pi13)):
-        return 0, 0, 0, 0, 0, 0, 0, False
-
     # Find beta1 and alpha1 from phases assuming model transfer matrix
     # Matrix M: BPM1-> BPM2
     # Matrix N: BPM1-> BPM3
@@ -1111,11 +1107,6 @@ def _beta_from_phase_BPM_mid(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM=F
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
         
-    if not is3BPM and (
-        bad_phase(phmdl12) or bad_phase(phmdl23) or bad_phase(phmdl23 - phmdl12) or 
-        bad_phase(ph2pi12) or bad_phase(ph2pi23) or bad_phase(ph2pi12 - ph2pi23)):
-        return 0, 0, 0, 0, 0, 0, 0, False
-
 
     # Find beta2 and alpha2 from phases assuming model transfer matrix
     # Matrix M: BPM1-> BPM2
@@ -1198,10 +1189,6 @@ def _beta_from_phase_BPM_right(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
 
-    if not is3BPM and (
-        bad_phase(phmdl23) or bad_phase(phmdl13) or bad_phase(phmdl13 - phmdl23) or
-        bad_phase(ph2pi13) or bad_phase(ph2pi23) or bad_phase(ph2pi13 - ph2pi23)):
-        return 0, 0, 0, 0, 0, 0, 0, False
     # Find beta3 and alpha3 from phases assuming model transfer matrix
     # Matrix M: BPM2-> BPM3
     # Matrix N: BPM1-> BPM3
