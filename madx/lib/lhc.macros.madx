@@ -59,7 +59,6 @@ set_default_crossing_scheme(): macro = {
     on_o1    := 0;
     on_oh1   := 0;
     on_ov1   := 0;
-    phi_IR1  := 0;
     on_ssep1 := on_sep1;
     on_xx1   := on_x1 ;
 
@@ -68,14 +67,12 @@ set_default_crossing_scheme(): macro = {
     on_o2   := 0;
     on_oe2  := 0;
     on_a2   := 0;
-    phi_IR2 := 0;
 
     on_x5  := 0;
     on_sep5:= 0;
     on_o5  := 0;
     on_oh5 := 0;
     on_ov5 := 0;
-    phi_IR5:= 0;
     on_ssep5 := on_sep5;
     on_xx5  := on_x5;
 
@@ -83,7 +80,6 @@ set_default_crossing_scheme(): macro = {
     on_sep8 := 0;
     on_o8   := 0;
     on_a8   := 0;
-    phi_IR8 := 0;
 
     !*** Experiment state ***
     on_alice:=0;
