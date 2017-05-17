@@ -38,17 +38,21 @@ def _recompute_tune_stats(file_df):
     file_df.headers[tune_avg_name] = np.mean(file_df[tune_col])
     file_df.headers[tune_std_name] = np.std(file_df[tune_col])
 
+    nat_tune_col = _choose_name(file_df, "NATTUNEX", "NATTUNEY")
+    nat_tune_avg_name = _choose_name(file_df, "NATQ1", "NATQ2")
+    nat_tune_std_name = _choose_name(file_df, "NATQ1RMS", "NATQ2RMS")
+    file_df.headers[nat_tune_avg_name] = np.mean(file_df[nat_tune_col])
+    file_df.headers[nat_tune_std_name] = np.std(file_df[nat_tune_col])
+
 
 def _choose_name(file_df, *names):
-    result = None
     for name in names:
         try:
-            result = file_df[name]
-            break
-        except IndexError:
+            file_df[name]
+            return name
+        except KeyError:
             continue
-    if result is None:
-        raise ValueError("None of " + " ".join(names) + " in the file.")
+    raise ValueError("None of " + " ".join(names) + " in the file.")
     return result
 
 
