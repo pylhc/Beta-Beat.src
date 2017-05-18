@@ -4,7 +4,7 @@ import os
 import sys
 
 
-analysis = ['Diff_Phase_PhMdl', 'Beta_beat', 'amp', 'real', 'imaginary', 'diff_Disp_DMdl', 'diff_NDisp_NDMdl', 'CO', 'ChromaticCouplingReal', 'ChromaticCouplingImaginary']
+analysis = ['Diff_Phase_PhMdl', 'Beta_beat', 'amp', 'real', 'imaginary', 'diff_Disp_DMdl', 'diff_NDisp_NDMdl', 'CO', 'ChromaticCouplingReal', 'ChromaticCouplingImaginary', 'ChromaticCouplingAmp']
 mdlAnalysis = ['Phase_PhMdl', 'Beta_BMdl', 'Disp_DMdl', 'NDisp_NDMdl', 'ChromaticAmplitude']
 
 
@@ -95,9 +95,11 @@ def main():
         SimplePlotting.plotAnalysis(paths, label, accel, plot, mainnode, minx, maxx, miny, maxy, hminx, hmaxx, hminy, hmaxy, legendx, legendy, legendh)
     else:
         print "Unknown subnode"
-    plt.tight_layout
+
+    plt.tight_layout()
+
     try:
-        mpdf.savefig()
+        mpdf.savefig(bbox_inches='tight')
     finally:
         mpdf.close()
 
