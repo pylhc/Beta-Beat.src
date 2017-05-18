@@ -26,7 +26,7 @@ import multiprocessing
 import time
 from constants import PI, TWOPI
 
-__version__ = "2017.3.2"
+__version__ = "2017.5.1"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
