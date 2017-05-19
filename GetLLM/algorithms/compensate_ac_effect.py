@@ -26,6 +26,7 @@ import phase
 from SegmentBySegment.SegmentBySegment import get_good_bpms
 from __builtin__ import raw_input
 from constants import PI, TWOPI, kEPSILON
+from SegmentBySegment.sbs_writers.sbs_phase_writer import FIRST_BPM_B1
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -204,15 +205,15 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
     #-- Determine the position of the AC dipole BPM
     bpmac1 = psid_ac2bpmac.keys()[0]
     bpmac2 = psid_ac2bpmac.keys()[1]
-
+    
     try:
         k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
         bpmac = bpmac1
-    except:
+    except IndexError:
         try:
             k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
             bpmac = bpmac2
-        except:
+        except IndexError:
             print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
             return [{}, 0.0, []]
 
@@ -233,6 +234,22 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
     r=sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
 
     #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
+    
+    psi_important = []       
+    for first_bpm in phase.IMPORTANT_PAIRS:
+        first_i = -1
+        for i_ in range(len(bpm)):
+            if bpm[i_][1] == first_bpm:
+                first_i = i_
+        if first_i != -1:
+            
+            for second_bpm in phase.IMPORTANT_PAIRS[first_bpm]:
+                
+                second_i = -1
+                for i_ in range(len(bpm)):
+                    if bpm[i_][1] == second_bpm:
+                        second_i = i_
+                psi_important.append([first_bpm, first_i, second_bpm, second_i, []])
     
     for i in range(len(Files)):
         psid = []
@@ -267,13 +284,16 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
             # <<<<<<<<<< ICH
             for j in range(0, 10):
                 psiijall[j][k][i] = psiij[j][k]
+                
+        for fbpm, fi, sbpm, si, _list in psi_important:
+            _list.append(psi[si] - psi[fi])
+                    
+                
             
     #-- Output
    
     result={}
-    result_={}
     muave=0.0  #-- mu is the same as psi but w/o mod
-    muave_ = 0.0
     for k in range(len(bpm)):
         # <<<<<<<<<< ICH
         psiijave = [None] * 10
@@ -286,14 +306,23 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
         for j in range(0,10):
             psiijave[j] = phase.calc_phase_mean(psiijall[j][k],1)
             psiijstd[j] = phase.calc_phase_std(psiijall[j][k],1)
-            result_["".join([plane, bnj[0], bnj[j + 1]])] = [psiijave[j],psiijstd[j],psiijmdl[j][k]]
+            result["".join([plane, bnj[0], bnj[j + 1]])] = [psiijave[j],psiijstd[j],psiijmdl[j][k]]
             
-        muave_ += psiijave[0]
-        try:    result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[k+1][1]]
-        except: result_[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
+            
+   
+            
+        muave += psiijave[0]
+        try:    result[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[k+1][1]]
+        except: result[bpm[k][1]]=[psiijave[0],psiijstd[0],psiijave[1],psiijstd[1],psiijmdl[0][k],psiijmdl[1][k],bpm[0][1]]    #-- The last BPM
         
-
-    return result_, muave_, bpm
+    
+    for fbpm, fi, sbpm, si, _list in psi_important:
+        result["".join([plane, fbpm, sbpm])] = [
+            phase.calc_phase_mean(_list,1),
+            phase.calc_phase_std(_list,1),
+            0]
+        
+    return result, muave, bpm
 
 def get_free_phase_eq_intermediat(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op,Qmdl):
 
