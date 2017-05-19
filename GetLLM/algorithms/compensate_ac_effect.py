@@ -209,11 +209,11 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
     try:
         k_bpmac = list(zip(*bpm)[1]).index(bpmac1)
         bpmac = bpmac1
-    except IndexError:
+    except:
         try:
             k_bpmac = list(zip(*bpm)[1]).index(bpmac2)
             bpmac = bpmac2
-        except IndexError:
+        except:
             print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
             return [{}, 0.0, []]
 
