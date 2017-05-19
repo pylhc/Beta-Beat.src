@@ -286,7 +286,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
                 psiijall[j][k][i] = psiij[j][k]
                 
         for fbpm, fi, sbpm, si, _list in psi_important:
-            _list.append(psi[si] - psi[fi])
+            _list.append((psi[si] - psi[fi])/TWOPI)
                     
                 
             
