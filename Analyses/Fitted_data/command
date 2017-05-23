@@ -1,1 +1,0 @@
-python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Analyses/Fitted_data/getelements_0.1.py -a LHCB1 -o ./ -i ./ -b /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Analysis/
