@@ -33,6 +33,10 @@ class LhcModelCreator(model_creator.ModelCreator):
                           LhcExcitationMode.ACD) else "0"
         use_adt = "1" if (lhc_instance.excitation ==
                           LhcExcitationMode.ADT) else "0"
+        if(lhc_instance.xing):
+            crossingIsON = "1"
+        else:
+            crossingIsON = "0"
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
@@ -44,6 +48,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "QMY": lhc_instance.nat_tune_y,
             "USE_ACD": use_acd,
             "USE_ADT": use_adt,
+            "CROSSING_ON": crossingIsON,
             "QX": "", "QY": "", "QDX": "", "QDY": "",
         }
         if (lhc_instance.excitation in
@@ -52,6 +57,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             replace_dict["QY"] = lhc_instance.nat_tune_y
             replace_dict["QDX"] = lhc_instance.drv_tune_x
             replace_dict["QDY"] = lhc_instance.drv_tune_y
+        print(replace_dict)
         madx_script = madx_template % replace_dict
         return madx_script
 
@@ -72,6 +78,10 @@ class LhcModelCreator(model_creator.ModelCreator):
     def _prepare_fullresponse(cls, lhc_instance, output_path):
         with open(lhc_instance.get_file("fullresponse.madx")) as textfile:
             fullresponse_template = textfile.read()
+        if(lhc_instance.xing):
+            crossingIsON = "1"
+        else:
+            crossingIsON = "0"
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
@@ -80,7 +90,9 @@ class LhcModelCreator(model_creator.ModelCreator):
             "PATH": output_path,
             "QMX": lhc_instance.nat_tune_x,
             "QMY": lhc_instance.nat_tune_y,
+            "CROSSING_ON": crossingIsON,
         }
+        
         fullresponse_script = fullresponse_template % replace_dict
         with open(os.path.join(output_path,
                                "job.iterate.madx"), "w") as textfile:
@@ -101,6 +113,10 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             )
         with open(lhc_instance.get_best_knowledge_tmpl()) as textfile:
             madx_template = textfile.read()
+        if(lhc_instance.xing):
+            crossingIsON = "1"
+        else:
+            crossingIsON = "0"
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
@@ -111,6 +127,7 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             "QMX": lhc_instance.nat_tune_x,
             "QMY": lhc_instance.nat_tune_y,
             "ENERGY": lhc_instance.energy,
+            "CROSSING_ON": crossingIsON,
         }
         madx_script = madx_template % replace_dict
         return madx_script

@@ -65,6 +65,7 @@ class Lhc(Accelerator):
         instance.energy = options.energy
         instance.optics_file = options.optics
         instance.fullresponse = options.fullresponse
+        instance.xing =options.xing
         instance.verify_object()
         return instance, rest_args
 
@@ -185,6 +186,12 @@ class Lhc(Accelerator):
             help=("If present, fullresponse template will" +
                   "be filled and put in the output directory."),
             dest="fullresponse",
+            action="store_true",
+        )
+        parser.add_argument(
+            "--xing",
+            help=("If present, x-ing  angles will be applied to model"),
+            dest="xing",
             action="store_true",
         )
         return parser
