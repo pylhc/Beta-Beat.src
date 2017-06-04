@@ -249,8 +249,8 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
                 for i_ in range(len(bpm)):
                     if bpm[i_][1] == second_bpm:
                         second_i = i_
-                psi_important.append([first_bpm, first_i, second_bpm, second_i, []])
-    
+                if second_i != -1:
+                    psi_important.append([first_bpm, first_i, second_bpm, second_i, []])
     for i in range(len(Files)):
         psid = []
         if plane == 'H':

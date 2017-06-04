@@ -157,12 +157,13 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
         for bn1 in getllm_d.important_pairs:
             if bn1 in phase_d.ph_x:
                 for bn2 in getllm_d.important_pairs[bn1]:
-                    
-                    phmdl = phase_d.ph_x[bn1][4]
-                    
-                    imp_phase = phase_d.ph_x["H" + bn1 + bn2]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
-                    important_x.add_table_row(list_row_entries)
+                    key = "H" + bn1 + bn2
+                    if key in phase_d.ph_x:
+                        phmdl = phase_d.ph_x[bn1][4]
+                        
+                        imp_phase = phase_d.ph_x[key]
+                        list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
+                        important_x.add_table_row(list_row_entries)
         important_x.write_to_file()
         #-- ac to free phase
         if getllm_d.with_ac_calc:
@@ -192,12 +193,14 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                 for bn1 in getllm_d.important_pairs:
                     if bn1 in phase_d.x_f:
                         for bn2 in getllm_d.important_pairs[bn1]:
-                            bns1 = 0
-                            phmdlf = phase_d.x_f[bn1][4]
-                            bns2 = 0
-                            imp_phase = phase_d.x_f["H" + bn1 + bn2]
-                            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                            important_x.add_table_row(list_row_entries)
+                                key = "H" + bn1 + bn2
+                                if key in phase_d.x_f:
+                                    bns1 = 0
+                                    phmdlf = phase_d.x_f[bn1][4]
+                                    bns2 = 0
+                                    imp_phase = phase_d.x_f[key]
+                                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
+                                    important_x.add_table_row(list_row_entries)
                 important_x.write_to_file()
             except Exception:
                 traceback.print_exc()
@@ -255,12 +258,14 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
         for bn1 in getllm_d.important_pairs:
             if bn1 in phase_d.ph_y:
                 for bn2 in getllm_d.important_pairs[bn1]:
-                    bns1 = 0
-                    phmdl = phase_d.ph_y[bn1][4]
-                    bns2 = 0
-                    imp_phase = phase_d.x_f["H" + bn1 + bn2]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
-            important_x.add_table_row(list_row_entries)
+                    key = "V" + bn1 + bn2
+                    if key in phase_d.ph_y:
+                        bns1 = 0
+                        phmdl = phase_d.ph_y[bn1][4]
+                        bns2 = 0
+                        imp_phase = phase_d.ph_y[key]
+                        list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+                        important_x.add_table_row(list_row_entries)
         important_x.write_to_file()
 
         #-- ac to free phase
@@ -295,11 +300,13 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                 for bn1 in getllm_d.important_pairs:
                     if bn1 in phase_d.y_f:
                         for bn2 in getllm_d.important_pairs[bn1]:
-                            phmdl = phase_d.y_f[bn1][4]
-                            bns2 = 0
-                            imp_phase = phase_d.y_f["V" + bn1 + bn2]
-                            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
-                            important_x.add_table_row(list_row_entries)
+                            key = "V" + bn1 + bn2
+                            if key in phase_d.y_f:
+                                phmdl = phase_d.y_f[bn1][4]
+                                bns2 = 0
+                                imp_phase = phase_d.y_f[key]
+                                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+                                important_x.add_table_row(list_row_entries)
                 important_x.write_to_file()
 
 
