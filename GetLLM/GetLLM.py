@@ -464,8 +464,25 @@ def _intial_setup(getllm_d, model_filename, dict_file):
     except IOError:
         mad_best_knowledge = mad_twiss
         print "Best knowledge model not found."
+        
+    # look for file with important BPM pairs
+    pairsfilename = model_filename.replace("twiss.dat", "important_pairs")
+    if os.path.exists(pairsfilename):
+        getllm_d.important_pairs = {}
+        pair_file = open(pairsfilename)
+        for line in pair_file:
+            key_value = line.split(":")
+            key = key_value[0].strip()
+            value = key_value[1].strip()
+            if key in getllm_d.important_pairs:
+                getllm_d.important_pairs[key].append(value)
+            else:
+                getllm_d.important_pairs[key] = [value]
 
     return mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre
+
+
+
 # END _intial_setup ---------------------------------------------------------------------------------
 
     
@@ -1005,6 +1022,7 @@ class _GetllmData(object):
         self.nprocesses = 1
         self.with_ac_calc = False
         self.acdipole = "None"
+        self.important_pairs = None
 
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.
