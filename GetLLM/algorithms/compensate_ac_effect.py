@@ -235,22 +235,23 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
 
     #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
     
-    psi_important = []       
-    for first_bpm in important_pairs:
-        first_i = -1
-        for i_ in range(len(bpm)):
-            if bpm[i_][1] == first_bpm:
-                first_i = i_
-        if first_i != -1:
-            
-            for second_bpm in important_pairs[first_bpm]:
+    psi_important = []  
+    if important_pairs is not None:     
+        for first_bpm in important_pairs:
+            first_i = -1
+            for i_ in range(len(bpm)):
+                if bpm[i_][1] == first_bpm:
+                    first_i = i_
+            if first_i != -1:
                 
-                second_i = -1
-                for i_ in range(len(bpm)):
-                    if bpm[i_][1] == second_bpm:
-                        second_i = i_
-                if second_i != -1:
-                    psi_important.append([first_bpm, first_i, second_bpm, second_i, []])
+                for second_bpm in important_pairs[first_bpm]:
+                    
+                    second_i = -1
+                    for i_ in range(len(bpm)):
+                        if bpm[i_][1] == second_bpm:
+                            second_i = i_
+                    if second_i != -1:
+                        psi_important.append([first_bpm, first_i, second_bpm, second_i, []])
     for i in range(len(Files)):
         psid = []
         if plane == 'H':

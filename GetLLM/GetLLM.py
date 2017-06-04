@@ -1022,7 +1022,7 @@ class _GetllmData(object):
         self.nprocesses = 1
         self.with_ac_calc = False
         self.acdipole = "None"
-        self.important_pairs = None
+        self.important_pairs = {}
 
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.
