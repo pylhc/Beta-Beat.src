@@ -31,6 +31,14 @@ class Accelerator(object):
         Accelerator.__raise_definition_error()
 
     @classmethod
+    def get_variables(cls, frm=None, to=None, classes=None):
+        """
+        Gets the variables with elements in the given range and the given
+        classes. None means everything.
+        """
+        Accelerator.__raise_definition_error()
+
+    @classmethod
     def get_bpms_around_acd(available_bpm_list, model_twiss, exciter="acd"):
         """
         It will return the two best BMPs to use for exciter specified
@@ -43,6 +51,14 @@ class Accelerator(object):
         """
         It will return a mask to filter with the elements of @list_of_elements
         so that only arc BPMs remains.
+        """
+        Accelerator.__raise_definition_error()
+
+    @classmethod
+    def get_correctors_variables(cls, frm=None, to=None, classes=None):
+        """
+        Returns the set of corrector variables between frm and to, with classes
+        in classes. None means select all.
         """
         Accelerator.__raise_definition_error()
 
@@ -63,6 +79,30 @@ class Accelerator(object):
         )
 
     ###########################################################
+
+
+class Variable(object):
+    """
+    Generic corrector variable class that holds name, position (s) and
+    physical elements it affectes. This variables should be logical variables
+    that should have and effect in the model if modified.
+    """
+    def __init__(self, name, elements, classes):
+        self.name = name
+        self.elements = elements
+        self.classes = classes
+
+
+class Element(object):
+    """
+    Generic corrector element class that holds name, position (s) and classes
+    of the corrector. This element should represent a physical variable of the
+    accelerator.
+    """
+    def __init__(self, name, s, classes):
+        self.name = name
+        self.s = s
+        self.classes = classes
 
 
 class AcceleratorDefinitionError(Exception):
