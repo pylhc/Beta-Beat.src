@@ -17,7 +17,6 @@ def get_lhc_modes():
         "lhc_runII_2016": LhcRunII2016,
         "lhc_runII_2016_ats": LhcRunII2016Ats,
         "lhc_runII_2017": LhcRunII2017,
-        "lhc_runII_ballistic": LhcRunIIBallistic,
         "hllhc10": HlLhc10,
         "hllhc12": HlLhc12,
     }
@@ -40,6 +39,7 @@ class Lhc(Accelerator):
         self.drv_tune_y = None
         self.energy = None
         self.dpp = 0.0
+        self.xing = None
 
     @classmethod
     def init_from_args(cls, args):
@@ -65,7 +65,7 @@ class Lhc(Accelerator):
         instance.energy = options.energy
         instance.optics_file = options.optics
         instance.fullresponse = options.fullresponse
-        instance.xing =options.xing
+        instance.xing = options.xing
         instance.verify_object()
         return instance, rest_args
 
@@ -211,21 +211,27 @@ class Lhc(Accelerator):
             )
         if self.excitation is None:
             raise AcceleratorDefinitionError("Excitation mode not set.")
+        if self.xing is None:
+            raise AcceleratorDefinitionError("Crossing on or off not set.")
         if (self.excitation == LhcExcitationMode.ACD or
                 self.excitation == LhcExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise AcceleratorDefinitionError("Driven tunes not set.")
 
-    def get_nominal_tmpl(self):
-        return self.get_file("nominal.madx")
+    @classmethod
+    def get_nominal_tmpl(cls):
+        return cls.get_file("nominal.madx")
 
-    def get_best_knowledge_tmpl(self):
-        return self.get_file("best_knowledge.madx")
+    @classmethod
+    def get_best_knowledge_tmpl(cls):
+        return cls.get_file("best_knowledge.madx")
 
-    def get_segment_tmpl(self):
-        return self.get_file("segment.madx")
+    @classmethod
+    def get_segment_tmpl(cls):
+        return cls.get_file("segment.madx")
 
-    def get_file(self, filename, beam=None):
+    @classmethod
+    def get_file(cls, filename, beam=None):
         if beam is None:
             return os.path.join(CURRENT_DIR, "lhc", filename)
         elif beam == 1:
@@ -255,6 +261,7 @@ class LhcSegment(Lhc):
         self.label = None
         self.start = None
         self.end = None
+        self.xing = None
 
     @classmethod
     def init_from_args(cls, args):
@@ -291,6 +298,8 @@ class LhcSegment(Lhc):
                 "The accelerator definition is incomplete, optics "
                 "file has not been specified."
             )
+        if self.xing is None:
+            raise AcceleratorDefinitionError("Crossing on or off not set.")
         if self.label is None:
             raise AcceleratorDefinitionError("Segment label not set.")
         if self.start is None:
@@ -343,11 +352,6 @@ class LhcRunII2016(Lhc):
 
 
 class LhcRunII2016Ats(LhcAts, LhcRunII2016):
-    pass
-
-
-# TODO: Remove, with new tune macthing this is just LhcRunII2016.
-class LhcRunIIBallistic(LhcRunII2016):
     pass
 
 
