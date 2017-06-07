@@ -466,7 +466,7 @@ def _intial_setup(getllm_d, model_filename, dict_file):
         print "Best knowledge model not found."
         
     # look for file with important BPM pairs
-    pairsfilename = model_filename.replace("twiss.dat", "important_pairs")
+    pairsfilename = os.path.dirname(model_filename) + "/important_pairs"
     if os.path.exists(pairsfilename):
         getllm_d.important_pairs = {}
         pair_file = open(pairsfilename)
