@@ -1,4 +1,7 @@
 language: python
+notifications:
+  email:
+    - OMC-team@cern.ch
 python:
  - "2.7"
 env:
