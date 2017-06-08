@@ -28,7 +28,7 @@ from constants import PI, TWOPI
 from numpy.linalg.linalg import LinAlgError
 
 
-__version__ = "2017.3.4(errordefs)"
+__version__ = "2017.6.1(errordefs)"
 
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -95,7 +95,21 @@ class BetaData(object):
         self.y_ratio = 0  # beta x ratio
         self.y_ratio_f = 0  # beta x ratio free
 
-        
+
+IDQUAD = 1
+IDSEXT = 2
+IDBPM = 3
+IDDIPL = 4
+
+def gettype(_type):
+    if _type == "QUAD":
+        return IDQUAD
+    elif _type == "SEXT":
+        return IDSEXT
+    elif _type == "BPM":
+        return IDBPM
+    elif _type == "DIPL":
+        return IDDIPL
 
 class UncertaintyDefinition:
     def __init__(self, _pattern, _dk1=0, _ds=0, _dx=0, _type="QUAD"):
@@ -103,8 +117,11 @@ class UncertaintyDefinition:
         self.dX = _dx
         self.dS = _ds
         self.dK1 = _dk1
-        self.type = _type
+        self.type = gettype(_type)
         
+        def settype(self, _type):
+         self.type = gettype(_type)
+           
    
 class UncertaintyDefinitionRE:
     def __init__(self, _pattern, _dk1=0, _ds=0, _dx=0, _type="QUAD"):
@@ -112,8 +129,14 @@ class UncertaintyDefinitionRE:
         self.dX = _dx
         self.dS = _ds
         self.dK1 = _dk1
-        self.type = _type
+        self.type = gettype(_type)
         
+    def settype(self, _type):
+        self.type = gettype(_type)
+        
+    def match(self, string):
+        return self.pattern.match(string)
+             
         
 class UncertaintyInformation:
     def __init__(self, _name, _bet, _betend, _mu, _muend, _dk1, _k1l, _k1lend, _k2l, _dx, _ds, _debug):
@@ -142,10 +165,11 @@ K2L_INDEX       = 8
 DX_INDEX        = 9
 DS_INDEX        = 10
 
+
 class ErrorFile:
     def __init__(self):
         self.capacity = 1024
-        self.indx= {}
+        self.indx = {}
         self.elements = np.ndarray(shape=(self.capacity,11), dtype="f8")
         self.size = 0
         
@@ -202,9 +226,9 @@ class Uncertainties:  # error definition file
                             elif kv[0] == "dS":
                                 ud.dS = float(kv[1])
                             elif kv[0] == "dX":
-                                ud.dX == float(kv[1])
+                                ud.dX = float(kv[1])
                             elif kv[0] == "Type":
-                                ud.type == kv[1]
+                                ud.settype(kv[1])
                         self.regex.append(ud)
                     else:
                         ud = UncertaintyDefinition(words[0])
@@ -216,9 +240,9 @@ class Uncertainties:  # error definition file
                             elif kv[0] == "dS":
                                 ud.dS = float(kv[1])
                             elif kv[0] == "dX":
-                                ud.dX == float(kv[1])
+                                ud.dX = float(kv[1])
                             elif kv[0] == "Type":
-                                ud.type == kv[1]
+                                ud.settype(kv[1])
                         self.keys.append(ud)
             F.close()
             
@@ -234,19 +258,114 @@ class Uncertainties:  # error definition file
                 print >> sys.stderr, "errordefspath = {0:s}".format(filename)
                 return False
             
+            print_("error definitions file version 1")
             self.properties["RELATIVE"] = definitions.RELATIVE
             self.properties["RADIUS"] = definitions.RADIUS
              
             for index in range(len(definitions.PATTERN)):
                 pattern = definitions.PATTERN[index]
                 self.regex.append(UncertaintyDefinitionRE(
-                    pattern, 
+                    pattern,
                     definitions.dK1[index],
                     definitions.dS[index],
                     definitions.dX[index],
                     definitions.MAINFIELD[index]))
             return True
+        
+        
+    def create_errorfile(self, twiss_full, twiss_full_centre, plane, accel):
+        if accel == "JPARC":
+            bpmre = re.compile("^MO[HV]\\.")
+        elif accel == "PETRA":
+            bpmre = re.compile("^BPM")
+        else:
+            bpmre = re.compile("^BPM.*B[12]$")
 
+        errorfile = ErrorFile()
+        mainfield = (self.properties["RELATIVE"] == "MAINFIELD")
+        
+        for index_twissfull in range(len(twiss_full_centre.NAME)):
+            BET = twiss_full_centre.BETX[index_twissfull]
+            MU = twiss_full_centre.MUX[index_twissfull]
+    
+            if plane == 'V':
+                BET = twiss_full_centre.BETY[index_twissfull]
+                MU = twiss_full_centre.MUY[index_twissfull]
+                
+            BET_end = twiss_full.BETX[index_twissfull]
+            MU_end = twiss_full.MUX[index_twissfull]
+            BETminus1_end = twiss_full.BETX[index_twissfull - 1]
+            MUminus1_end = twiss_full.MUX[index_twissfull - 1]
+    
+            if plane == 'V':
+                BET_end = twiss_full.BETY[index_twissfull]
+                MU_end = twiss_full.MUY[index_twissfull]
+                BETminus1_end = twiss_full.BETY[index_twissfull - 1]
+                MUminus1_end = twiss_full.MUY[index_twissfull - 1]
+    
+            found = False
+            for unire in self.regex:
+               
+                if unire.match(twiss_full.NAME[index_twissfull]):
+    
+                    found = True
+                    MF = 1000
+                    if mainfield:
+                        if unire.type == IDQUAD:
+                            MF = twiss_full_centre.K1L[index_twissfull]
+                        elif unire.type == IDSEXT:
+                            MF = twiss_full_centre.K2L[index_twissfull]
+                        elif unire.type == IDDIPL:
+                            MF = twiss_full_centre.K0L[index_twissfull]
+                    else:
+                        MF = twiss_full.K1L[index_twissfull]
+                   
+                    errorfile.add(UncertaintyInformation(twiss_full.NAME[index_twissfull], 
+                                                         BET, BET_end, MU, MU_end, 
+                                                         unire.dK1, 
+                                                         twiss_full_centre.K1L[index_twissfull],
+                                                         twiss_full.K1L[index_twissfull],
+                                                         twiss_full_centre.K2L[index_twissfull],
+                                                         unire.dX,
+                                                         unire.dS,
+                                                         "OK"))
+                   
+                    if unire.dS != 0 and unire.type == IDQUAD:
+                        errorfile.add(UncertaintyInformation(
+                                                twiss_full.NAME[index_twissfull - 1],
+                                                0,     # BET
+                                                BETminus1_end,
+                                                0,     # MU
+                                                MUminus1_end,
+                                                0,     # dK1,
+                                                0,     # K1L,
+                                                - twiss_full.K1L[index_twissfull],  # same index
+                                                0,     # K2L
+                                                0,     # dX
+                                                unire.dS,  # here no -1 because the same dS applies
+                                                "OK")
+                                      )
+    
+            if not found:  # if element doesn't have any error add it nevertheless if it is a BPM
+                if bpmre.match(twiss_full_centre.NAME[index_twissfull]):
+                   
+                    errorfile.add(UncertaintyInformation(
+                                            twiss_full.NAME[index_twissfull],
+                                            BET,
+                                            0,  # BETEND
+                                            MU,
+                                            0,  # MUEND
+                                            0,  # dK1
+                                            0,  # K1L
+                                            0,  # K1LEND
+                                            0,  # K2L
+                                            0,  # dX
+                                            0,  # dS
+                                            "NOT_FOUND")
+                                  )
+
+        print_("DONE creating errofile.")
+        return errorfile
 
 #===================================================================================================
 # main part
@@ -756,11 +875,12 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
 
-    
     errorfile = None
     if not getllm_d.use_only_three_bpms_for_beta_from_phase:
-        errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane, getllm_d.accel)
-   
+        unc = Uncertainties()
+        unc.open(getllm_d.errordefspath)
+        errorfile = unc.create_errorfile(madElements, madElementsCentre, plane, getllm_d.accel)
+        
     if 3 > len(commonbpms):
         print_("beta_from_phase: Less than three BPMs for plane " + plane + ". Returning empty values.")
         return ({}, 0.0, {}, errors_method)
@@ -2676,6 +2796,8 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     
     # if something in loading / writing the files goes wrong, return None
     # which forces the script to fall back to 3bpm
+    
+       
     try:
         definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
         filename = "error_elements_" + plane + ".dat"
