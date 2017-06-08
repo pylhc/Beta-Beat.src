@@ -1,5 +1,8 @@
 language: python
 notifications:
+  slack:
+    on_success: always
+    on_failure: always
   email:
     - OMC-team@cern.ch
 python:
