@@ -1,30 +1,80 @@
 import sys
 import os
+import argparse
 
 CURRENT_DIR = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(CURRENT_DIR, "..")))
 
-from model_creators import model_creator
-from model_creators.lhc_model_creator import (LhcModelCreator,
-                                              LhcBestKnowledgeCreator)
+import manager  # noqa
+from model_creators import model_creator  # noqa
+from model_creators.lhc_model_creator import (  # noqa
+    LhcModelCreator,
+    LhcBestKnowledgeCreator,
+    LhcSegmentCreator,
+)
 
 
 CREATORS = {
-    "lhc": LhcModelCreator,
-    "lhc_best_knowledge": LhcBestKnowledgeCreator,
+    "lhc": {"nominal": LhcModelCreator,
+            "best_knowledge": LhcBestKnowledgeCreator,
+            "segment": LhcSegmentCreator},
 }
 
 
+def create_model(accel_inst, model_type, output_path, **kwargs):
+    CREATORS[accel_inst.NAME][model_type].create_model(
+        accel_inst,
+        output_path,
+        **kwargs
+    )
+
+
 def _i_am_main():
-    accel = sys.argv[1].lower()
-    try:
-        creator = CREATORS[accel]
-    except KeyError:
-        raise model_creator.ModelCreationError(
-            "First argument should be one of: " +
-            str(CREATORS.keys())
-        )
-    creator.start_from_terminal()
+    rest_args = sys.argv[1:]
+
+    accel_cls, rest_args = manager.get_accel_class_from_args(
+        rest_args
+    )
+    accel_inst, rest_args = accel_cls.init_from_args(rest_args)
+    options = _parse_rest_args(rest_args)
+    create_model(
+        accel_inst,
+        options.type,
+        options.output,
+        writeto=options.writeto,
+        logfile=options.logfile,
+    )
+
+
+def _parse_rest_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "type",
+        help="Type of model to create, either nominal or best_knowledge",
+        choices=("nominal", "best_knowledge"),
+    )
+    parser.add_argument(
+        "--output",
+        help="Output path for model, twiss files will be writen here.",
+        dest="output",
+        required=True,
+        type=str,
+    )
+    parser.add_argument(
+        "--writeto",
+        help="Path to the file where to write the resulting MAD-X script. ",
+        dest="writeto",
+        type=str,
+    )
+    parser.add_argument(
+        "--logfile",
+        help=("Path to the file where to write the MAD-X script output."
+              "If not provided it will be written to sys.stdout."),
+        dest="logfile",
+        type=str,
+    )
+    options = parser.parse_args(args)
+    return options
 
 
 if __name__ == "__main__":

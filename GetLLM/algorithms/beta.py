@@ -27,7 +27,9 @@ import time
 from constants import PI, TWOPI
 from numpy.linalg.linalg import LinAlgError
 
+
 __version__ = "2017.3.4(errordefs)"
+
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -92,6 +94,7 @@ class BetaData(object):
         self.x_ratio_f = 0  # beta x ratio free
         self.y_ratio = 0  # beta x ratio
         self.y_ratio_f = 0  # beta x ratio free
+
         
 
 class UncertaintyDefinition:
@@ -243,7 +246,7 @@ class Uncertainties:  # error definition file
                     definitions.dX[index],
                     definitions.MAINFIELD[index]))
             return True
-                    
+
 
 #===================================================================================================
 # main part
@@ -278,26 +281,26 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
                                "NCOMBINATIONS"])
     tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     for bpm in bpms:
-        try:
-            name = bpm[1]
+        name = bpm[1]
+        try:  # TODO: An error was happening here, this is a fast fix, remove!!
             row = data[name]
-            beta_d_col[name] = [row[0], row[1], row[2], row[3]]
-            model_ac_index = mad_ac.indx[name]
-            list_row_entries = ['"' + name + '"', bpm[0], len(twiss_d_zero_dpp),
-                                row[0], row[1], row[2], row[3],
-                                row[8],
-                                row[4], row[5], row[6], row[7],
-                                mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
-                                row[10]]
-            # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
-            #                     row[0], row[1], row[2], row[3],
-            #                     row[8],
-            #                     row[4], row[5], row[6], row[7],
-            #                     mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
-            #                     row[10]]
-            tfs_file.add_table_row(list_row_entries)
-        except KeyError as err:
-            print_("{}, why you not here?!!".format(err))
+        except KeyError:
+            continue
+        beta_d_col[name] = [row[0], row[1], row[2], row[3]]
+        model_ac_index = mad_ac.indx[name]
+        list_row_entries = ['"' + name + '"', bpm[0], len(twiss_d_zero_dpp),
+                            row[0], row[1], row[2], row[3],
+                            row[8],
+                            row[4], row[5], row[6], row[7],
+                            mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
+                            row[10]]
+        # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
+        #                     row[0], row[1], row[2], row[3],
+        #                     row[8],
+        #                     row[4], row[5], row[6], row[7],
+        #                     mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
+        #                     row[10]]
+        tfs_file.add_table_row(list_row_entries)
 
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
@@ -1441,13 +1444,14 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
     # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
     # k=1: transversal sextupole missalignments
     # k=2: longitudinal quadrupole missalignments
-    
-    #raw_input("stopping")
     for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
+        index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
+        index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
               
         quad_fields = []
         sext_trans = []
         quad_missal = []
+
         
         index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
         index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
@@ -1485,7 +1489,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
         
     print_("done creating list of Ks")
-              
+
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
     right_bpm = range(0 + 1, width + 1)
@@ -1502,7 +1506,6 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         for row in block:
             if row[11]:
                 result[row[0]] = row[1:]
-                
                 
     st = time.time()
     if getllm_d.parallel and not DEBUG:
@@ -1540,8 +1543,6 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
     if DEBUG:
         debugfile.close()
     rmsbb = -1
-    print "len(result = ", len(result)
-    print "..................................................................."
     return rmsbb, errors_method, result
 
 
@@ -1553,7 +1554,6 @@ def scan_several_BPMs_withsystematicerrors(madTwiss, errorfile,
         block.append(scan_one_BPM_withsystematicerrors(madTwiss, errorfile, phase, plane, range_of_bpms, commonbpms,
                                                        debugfile, list_of_Ks, i,
                                                        BBA_combo, ABB_combo, BAB_combo))
-        
     return block
     
 
@@ -1753,7 +1753,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, errorfile,
         debugfile.write("\n")
         debugfile.write("MUX: {0:.10e}\n".format(phase[probed_bpm_name][0]))
         debugfile.write("end\n")
-           
+        
     return [probed_bpm_name,
             beti, betstat, betsys, beterr,
             alfi, alfstat, alfsys, alferr,
@@ -1845,21 +1845,27 @@ def get_beta_from_phase_systematic_errors(madTwiss, errorfile, phase, plane, com
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][0])):
+
             err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][0][k], DK1_INDEX] ** 2
+
         position += len(list_of_Ks[index][0])
         
         #---- assign sextupole transversal missalignments
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][1])):
+
             err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][1][k], DX_INDEX] ** 2
+
         position += len(list_of_Ks[index][1])
         
         #---- assign longitudinal missalignments
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][2])):
+
             err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][2][k], DS_INDEX] ** 2
+
         position += len(list_of_Ks[index][2])
         
         #---- assign BPM missalignments
@@ -2665,21 +2671,29 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
         bpmre = re.compile("^BPM.*B[12]$")
     
 
-    print_("Building uncertainties")
+    print_("Create errorfile")
     print_("")
     
     # if something in loading / writing the files goes wrong, return None
     # which forces the script to fall back to 3bpm
-    unc = Uncertainties()
-    
-    success = unc.open(errordefspath)
-    if not success:
-        print_("loading uncertainties was not successfull")
+    try:
+        definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
+        filename = "error_elements_" + plane + ".dat"
+        errorfile = Utilities.tfs_file_writer.TfsFileWriter(filename)
+    except:
+        print >> sys.stderr, "loading errorfile didnt work"
+        print >> sys.stderr, "errordefspath = {0:s}".format(errordefspath)
         return None
+     
+    errorfile.add_column_names(     ["NAME",    "BET",  "BETEND",   "MU",   "MUEND",    "dK1",  "K1L",  "K1LEND",   "K2L",  "dX",   "dS", "DEBUG"])  #@IgnorePep8
+    errorfile.add_column_datatypes( ["%s",      "%le",  "%le",      "%le",  "%le",      "%le",  "%le",  "%le",      "%le",  "%le",  "%le", "%s"])  #@IgnorePep8
     
-    error_file = ErrorFile()
-    mainfield = unc.properties["RELATIVE"] == "MAINFIELD"
-   
+    mainfield = definitions.RELATIVE == "MAINFIELD"
+    
+    regex_list = []
+    for pattern in definitions.PATTERN:
+        regex_list.append(re.compile(pattern))
+
     # OLD:
     for index_twissfull in range(len(twiss_full_centre.NAME)):
         BET = twiss_full_centre.BETX[index_twissfull]
@@ -2701,40 +2715,40 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
             MUminus1_end = twiss_full.MUY[index_twissfull - 1]
 
         found = False
-        for und in unc.regex:
-            #und = unc.regex[index_defs]
-            if und.pattern.match(twiss_full.NAME[index_twissfull]):
+        for index_defs in range(len(definitions.PATTERN)):
+            regex = regex_list[index_defs]
+            if regex.match(twiss_full.NAME[index_twissfull]):
 
                 found = True
                 isQuad = False
                 MF = 1000
                 if mainfield:
-                    if und.type == "QUAD":
+                    if definitions.MAINFIELD[index_defs] == "QUAD":
                         MF = twiss_full_centre.K1L[index_twissfull]
                         isQuad = True
-                    elif und.type == "SEXT":
+                    elif definitions.MAINFIELD[index_defs] == "SEXT":
                         MF = twiss_full_centre.K2L[index_twissfull]
-                    elif und.type == "DIPL":
+                    elif definitions.MAINFIELD[index_defs] == "DIPL":
                         MF = twiss_full_centre.K0L[index_twissfull]
                 else:
                     MF = twiss_full.K1L[index_twissfull]
                
-                error_file.add(UncertaintyInformation(
+                errorfile.add_table_row([
                                         twiss_full.NAME[index_twissfull],
                                         BET,
                                         BET_end,
                                         MU,
                                         MU_end,
-                                        und.dK1 * MF,
+                                        definitions.dK1[index_defs] * MF,
                                         twiss_full_centre.K1L[index_twissfull],
                                         twiss_full.K1L[index_twissfull],
                                         twiss_full_centre.K2L[index_twissfull],
-                                        und.dX,
-                                        und.dS,
+                                        definitions.dX[index_defs],
+                                        definitions.dS[index_defs],
                                         "OK"
-                                        ))
-                if und.dS != 0 and isQuad:
-                    error_file.add(UncertaintyInformation(
+                                        ])
+                if definitions.dS[index_defs] != 0 and isQuad:
+                    errorfile.add_table_row([
                                             twiss_full.NAME[index_twissfull - 1],
                                             0,     # BET
                                             BETminus1_end,
@@ -2745,13 +2759,13 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
                                             - twiss_full.K1L[index_twissfull],  # same index
                                             0,     # K2L
                                             0,     # dX
-                                            und.dS,  # here no -1 because the same dS applies
-                                            "OK"))
+                                            definitions.dS[index_defs],  # here no -1 because the same dS applies
+                                            "OK"])
 
         if not found:  # if element doesn't have any error add it nevertheless if it is a BPM
             if bpmre.match(twiss_full_centre.NAME[index_twissfull]):
                 index_model = model.indx[twiss_full.NAME[index_twissfull]]
-                error_file.add(UncertaintyInformation(
+                errorfile.add_table_row([
                                         model.NAME[index_model],
                                         BET,
                                         0,  # BETEND
@@ -2763,11 +2777,12 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
                                         0,  # K2L
                                         0,  # dX
                                         0,  # dS
-                                        "NOT_FOUND"))
-    
-    print_("DONE building uncertainties.")
+                                        "NOT_FOUND"])
+    errorfile.write_to_file(True)
 
-    return error_file
+    print_("DONE creating errofile.")
+
+    return Python_Classes4MAD.metaclass.twiss(filename)
 
 
 def printMatrix(debugfile, M, name):

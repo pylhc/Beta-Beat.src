@@ -20,7 +20,8 @@ def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_d
         bpms_list_x = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_hor_disp])
         bpms_list_y = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, measured_ver_disp])
     else:
-        bpms_list_x, bpms_list_y = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, input_model])
+        bpms_list = intersect([model_propagation, model_back_propagation, model_cor, model_back_cor, input_model])
+        bpms_list_x = bpms_list_y = bpms_list
 
     summary_data_x = _write_dispersion_for_plane(file_disp_x, "X", element_name, bpms_list_x, measured_hor_disp,
                                                  input_model,

@@ -1,4 +1,8 @@
 language: python
 python:
  - "2.7"
-script: python GetLLM/getllm_precision_check.py --acd --optics=40cm
+env:
+ - EXCITATION=--acd
+ - EXCITATION=--adt 
+ - EXCITATION= 
+script: python GetLLM/getllm_precision_check.py $EXCITATION --optics=40cm

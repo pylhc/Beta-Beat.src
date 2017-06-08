@@ -19,7 +19,8 @@ def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, i
         bpms_list_x = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_hor_beta])
         bpms_list_y = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, measured_ver_beta])
     else:
-        bpms_list_x, bpms_list_y = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
+        bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
+        bpms_list_x = bpms_list_y = bpms_list
 
     summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
                                            element_name, bpms_list_x, measured_hor_beta,
@@ -248,17 +249,21 @@ def _propagate_error_alfa(errb0, erra0, dphi, alfs, bet0, alf0):
 def intersect(list_of_files):
     '''Pure intersection of all bpm names in all files '''
     if len(list_of_files) == 0:
-        print "Nothing to intersect!!!!"
-        sys.exit()
+        raise ValueError("Nothing to intersect!")
     z = list_of_files[0].NAME
     for b in list_of_files:
         z = filter(lambda x: x in z, b.NAME)
-    #SORT by S
+    # SORT by S
     result = []
     x0 = list_of_files[0]
     for bpm in z:
         result.append((x0.S[x0.indx[bpm]], bpm))
     result.sort()
+    if len(result) == 0:
+        raise ValueError(
+            "The intersection was empty for the files: " +
+            str(list_of_files)
+        )
     return result
 
 

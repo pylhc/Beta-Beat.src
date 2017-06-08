@@ -1,13 +1,16 @@
 import sys
 import os
 import shutil
-from Python_Classes4MAD import metaclass
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 class MatcherModelDefault(object):
 
-    def __init__(self, controller, name, beam1_path, beam2_path, ip, use_errors, propagation):
-        self._controller = controller
+    def __init__(self, match_path, name, beam1_path, beam2_path,
+                 ip, use_errors, propagation):
+        self._match_path = match_path
         self._name = name
         self._beam1_path = beam1_path
         self._beam2_path = beam2_path
@@ -16,6 +19,9 @@ class MatcherModelDefault(object):
         self._propagation = propagation
         self._matcher = None
         self._elements_positions = None
+        self.ignored_vars = []
+        self.disabled_constr = {1: [], 2: []}
+        self._plotter = None
 
     def get_name(self):
         return self._name
@@ -27,10 +33,12 @@ class MatcherModelDefault(object):
         return self._beam2_path
 
     def get_beam1_output_path(self):
-        return os.path.join(self._controller.get_match_path(), "Beam1_" + self._name)
+        return os.path.join(self._match_path,
+                            "Beam1_" + self._name)
 
     def get_beam2_output_path(self):
-        return os.path.join(self._controller.get_match_path(), "Beam2_" + self._name)
+        return os.path.join(self._match_path,
+                            "Beam2_" + self._name)
 
     def get_ip(self):
         return self._ip
@@ -44,17 +52,34 @@ class MatcherModelDefault(object):
     def get_ignore_vars_list(self):
         return self._ignore_vars_list
 
-    def set_ignore_vars_list(self, ignore_vars_list):
-        if self._matcher is not None:
-            self._matcher.set_exclude_variables(ignore_vars_list)
-        else:
-            raise ValueError("Cannot set excluded variables of not created matcher")
+    def set_var_active(self, var_name, active):
+        if self._matcher is None:
+            raise ValueError(
+                "Cannot set excluded variables of not created matcher"
+            )
+        if active and var_name in self._matcher._excluded_variables_list:
+            self._matcher._excluded_variables_list.remove(var_name)
+            LOGGER.info(self._name + " -> Activated var: " + var_name)
+        elif (not active and var_name not in
+                self._matcher._excluded_variables_list):
+            self._matcher._excluded_variables_list.append(var_name)
+            LOGGER.info(self._name + " -> Disabled var: " + var_name)
 
-    def set_disabled_constraints(self, disabled_constraints):
-        if self._matcher is not None:
-            self._matcher.set_disabled_constraints(disabled_constraints)
-        else:
-            raise ValueError("Cannot set diabled constraints of not created matcher")
+    def disable_all_vars(self):
+        all_vars = (self.get_variables_for_beam()[1] +
+                    self.get_variables_for_beam()[2] +
+                    self.get_common_variables())
+        self._matcher._excluded_variables_list = all_vars
+
+    def toggle_constr(self, constr_name):
+        if self._matcher is None:
+            raise ValueError(
+                "Cannot set excluded variables of not created matcher"
+            )
+        if (constr_name in self._matcher._excluded_constraints_list):
+            self._matcher._excluded_constraints_list.remove(constr_name)
+        elif (constr_name not in self._matcher._excluded_constraints_list):
+            self._matcher._excluded_constraints_list.append(constr_name)
 
     def get_variables_for_beam(self):
         return {1: self._matcher.get_variables_for_beam(1),
@@ -83,43 +108,150 @@ class MatcherModelDefault(object):
         if self._beam2_path is not None:
             shutil.rmtree(self.get_beam2_output_path())
 
-    def get_plotter(self, figures):
+    def get_plotter(self, figure):
         raise NotImplementedError
 
     def get_matcher(self):
         return self._matcher
 
-    def get_elements_positions(self, beam):
-        if self._elements_positions is None:
-            self._read_elements_positions()
-        return self._elements_positions[beam]
-
-    def _read_elements_positions(self):
-        self._elements_positions = {}
-        for beam in self._matcher.get_beams():
-            self._elements_positions[beam] = {}
-            segment_model = metaclass.twiss(
-                os.path.join(getattr(self, "get_beam" + str(beam) + "_output_path")(),
-                             "sbs", "twiss_IP" + str(self.get_ip()) + ".dat")
-            )
-            for index in range(len(segment_model.NAME)):
-                self._elements_positions[beam][segment_model.S[index]] = segment_model.NAME[index]
-
     def get_match_results(self):
         match_results = {}
         if self._matcher is not None:
+            corr_file = os.path.join(
+                self._matcher.get_match_path(),
+                "changeparameters.madx"
+            )
             try:
-                with open(os.path.join(
-                          self._matcher.get_match_path(),
-                          "changeparameters.madx")) as changeparameters:
+                with open(corr_file, "r") as changeparameters:
                     for line in changeparameters:
                         parts = line.split("=")
                         variable_name = parts[0].replace("d", "", 1).strip()
-                        variable_value = float(parts[1].replace(";", "").strip())
+                        variable_value = float(
+                            parts[1].replace(";", "").strip()
+                        )
                         match_results[variable_name] = variable_value
             except IOError:
-                pass
+                LOGGER.exception("Cannot parse corrections file: %s",
+                                 corr_file)
         return match_results
+
+
+class MatcherPlotterDefault(object):
+
+    DISTANCE_THRESHOLD2 = 10 ** 2
+    BOX_STYLE = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+
+    def __init__(self, figure, matcher_model):
+        self._figure = figure
+        self._matcher_model = matcher_model
+        self._axes_to_data = {}
+        self._latest_annotation = None
+        self.update_vars_funct = lambda color_dict: None
+        figure.canvas.mpl_connect(
+            'motion_notify_event',
+            lambda event: self.on_move_event(event),
+        )
+        figure.canvas.mpl_connect(
+            'button_press_event',
+            lambda event: self.on_click_event(event),
+        )
+
+    def update_vars(self):
+        results_dict = self._matcher_model.get_match_results()
+        self.update_vars_funct(results_dict)
+
+    def on_move_event(self, event):
+        for axes in self._figure.axes:
+            del axes.texts[:]
+        annotation_was_none = True
+        if self._latest_annotation is not None:
+            self._latest_annotation = None
+            annotation_was_none = False
+        element_name, element_position = self.get_element_within_range(event)
+        if element_name is not None and element_position is not None:
+            x, y = element_position
+            new_text = (element_name + "\n" +
+                        "S = " + str(x))
+            self._latest_annotation = event.inaxes.text(
+                x, y,
+                new_text,
+                bbox=MatcherPlotterDefault.BOX_STYLE
+            )
+        # TODO: Only redraw on element transition (no repeat same element)
+        have_to_redraw = (
+            (self._latest_annotation is not None) or
+            (self._latest_annotation is None and not annotation_was_none)
+        )
+        if have_to_redraw:
+            self._redraw_figure(event)
+
+    def on_click_event(self, event):
+        selected_point = self._get_point_within_range(event)
+        if selected_point is not None:
+            x, _ = selected_point
+            elements_data = self._axes_to_data[event.inaxes].set_index("S")
+            element_name = str(elements_data.loc[x, "NAME"])
+            self._matcher_model.toggle_constr(element_name)
+        self._redraw_figure(event)
+
+    def get_element_within_range(self, event):
+        selected_point = self._get_point_within_range(event)
+        if selected_point is not None:
+            elements_data = self._axes_to_data[event.inaxes].set_index("S")
+            x, y = selected_point
+            element_name = elements_data.loc[x, "NAME"]
+            element_position = (x, y)
+            return element_name, element_position
+        return None, None
+
+    def _get_points_for_element(self, element_name, axes):
+        points = []
+        try:
+            element_x = self._axes_to_data[axes].set_index("NAME").loc[
+                element_name, "S"
+            ]
+        except KeyError:
+            return points
+        for line in axes.get_lines():
+            xydata_in_plot = line.get_xydata()
+            for data_point in xydata_in_plot:
+                x, _ = data_point
+                if x == element_x:
+                    points.append(data_point)
+        return points
+
+    def _redraw_figure(self, event):
+        for axes in self._figure.axes:
+            del axes.texts[:]
+            for element_name in self._matcher_model._matcher._excluded_constraints_list:
+                points = self._get_points_for_element(element_name, axes)
+                for point in points:
+                    x, y = point
+                    axes.text(x, y, "X",
+                              horizontalalignment='center',
+                              verticalalignment='center',
+                              fontsize=15, color='red')
+        if event.inaxes is not None and self._latest_annotation is not None:
+            event.inaxes.texts.append(self._latest_annotation)
+        self._figure.canvas.draw()
+
+    def _get_point_within_range(self, event):
+        axes = event.inaxes
+        if axes is not None:
+            x_fig, y_fig = event.x, event.y
+            for line in axes.get_lines():
+                xydata_in_plot = line.get_xydata()
+                min_distance2 = sys.float_info.max
+                selected_point_plot = None
+                for data_point in xydata_in_plot:
+                    fig_point_x, fig_point_y = axes.transData.transform(data_point)
+                    distance2 = (fig_point_x - x_fig) ** 2 + (fig_point_y - y_fig) ** 2
+                    if distance2 < min_distance2:
+                        min_distance2 = distance2
+                        selected_point_plot = data_point
+                if min_distance2 < MatcherPlotterDefault.DISTANCE_THRESHOLD2:
+                    return selected_point_plot
+        return None
 
 
 if __name__ == "__main__":

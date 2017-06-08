@@ -8,8 +8,9 @@ if new_path not in sys.path:
     sys.path.append(new_path)
 import numpy as np
 import matplotlib
+from Utilities import outliers
 
-matplotlib.use('qt4agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
+matplotlib.use('qt5agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
 
 import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass
@@ -167,6 +168,12 @@ def start_cleaning_data(k,tune_data,tune_data_err):
     return cc.return_clean_data()
 
 
+def automatic_cleaning_data(k,tune_data,tune_data_err, limit=1e-5):
+    data = np.dstack((k,tune_data,tune_data_err))
+    mask = outliers.get_filter_mask(tune_data, x_data=k, limit=limit)
+    return data[0,mask,:]
+
+
 def run_analysis_simplex(path, beam, ip, bs, working_directory):
     fitx_L, fitx_R, fity_L, fity_R, errx_r, erry_r, errx_l, erry_l, K, dK, Q1, Q2 = lin_fit_data(path)
     
@@ -206,10 +213,10 @@ def lin_fit_data(path):
     right_data = metaclass.twiss(file_path_R)
     left_data  = metaclass.twiss(file_path_L)
 
-    cleaned_xR = start_cleaning_data(right_data.K, right_data.TUNEX,right_data.TUNEX_ERR)
-    cleaned_yR = start_cleaning_data(right_data.K, right_data.TUNEY,right_data.TUNEY_ERR)
-    cleaned_xL = start_cleaning_data(left_data.K, left_data.TUNEX,left_data.TUNEX_ERR)
-    cleaned_yL = start_cleaning_data(left_data.K, left_data.TUNEY,left_data.TUNEY_ERR)
+    cleaned_xR = automatic_cleaning_data(right_data.K, right_data.TUNEX,right_data.TUNEX_ERR)
+    cleaned_yR = automatic_cleaning_data(right_data.K, right_data.TUNEY,right_data.TUNEY_ERR)
+    cleaned_xL = automatic_cleaning_data(left_data.K, left_data.TUNEX,left_data.TUNEX_ERR)
+    cleaned_yL = automatic_cleaning_data(left_data.K, left_data.TUNEY,left_data.TUNEY_ERR)
 
     fitx_R, covx_r = np.polyfit(cleaned_xR[:,0], cleaned_xR[:,1], 1, cov=True, w = 1/cleaned_xR[:,2]**2)
     fity_R, covy_r = np.polyfit(cleaned_yR[:,0], cleaned_yR[:,1], 1, cov=True, w = 1/cleaned_yR[:,2]**2)

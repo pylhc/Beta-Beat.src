@@ -239,9 +239,9 @@ def _handle_data_for_accel(accel):
         delta = getattr(b, "DELTA", [])
         for i in range(len(names)):
             if cmp(delta[i], 0) == 1:
-                mad_script.write(names[i] + " = " + names[i] + " + " + str(delta[i]) + ";\n")
+                mad_script.write(names[i] + " = " + names[i] + " " + str(-delta[i]) + ";\n")
             else:
-                mad_script.write(names[i] + " = " + names[i] + " " + str(delta[i]) + ";\n")
+                mad_script.write(names[i] + " = " + names[i] + " + " + str(-delta[i]) + ";\n")                
 
         mad_script.write("return;")
         mad_script.close()

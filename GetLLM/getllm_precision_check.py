@@ -1,26 +1,30 @@
 from __future__ import print_function
 import sys
 import os
-from os.path import dirname
 import numpy as np
+import argparse
+import time
+
 sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../")
+    os.path.join(os.path.dirname(__file__), "..")
 ))
+
 from madx import madx_wrapper
 from drive import drive_runner
 from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
-import time
 from Utilities import iotools, ADDbpmerror
 from Utilities.contexts import silence
-import argparse
 
 
 HOR, VER = 0, 1
 PLANE_SUFFIX = {HOR: "x", VER: "y"}
 
-FILES_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__),
+THIS_DIR = os.path.dirname(__file__)
+FILES_PATH = os.path.abspath(os.path.join(THIS_DIR,
                                           "getllm_precision_check"))
+MADX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..",
+                                         "binaries", "madx_dev"))
 
 MADX_SCRIPT = """
 title, "Tracking test for GetLLM";
@@ -43,7 +47,15 @@ beam, sequence=LHCB1, particle=proton, energy=6500,
 beam, sequence=LHCB2, particle=proton, energy=6500,
     kbunch=1, npart=1.15E11, bv=-1;
 
+if(%(DO_COUPLING)s == 1){
+    exec, coupling_knob(1);
+    b1_re_ip7_knob = b1_re_ip7_knob - 0.01;
+    b1_im_ip7_knob = b1_im_ip7_knob - 0.002;
+};
+
+
 exec, match_tunes(64.%(IQX)s, 59.%(IQY)s, %(BEAM)i);
+
 
 exec, do_twiss_monitors(
     LHCB%(BEAM)i,
@@ -100,6 +112,12 @@ elseif(%(DO_ADT)s == 1){
     );
 }
 
+exec, do_twiss_elements(
+    LHCB%(BEAM)i,
+    "%(TWISS_ELEMENTS)s",
+    0.0
+);
+
 exec, do_madx_track_single_particle(
     %(KICK_X)s, %(KICK_Y)s, 0.0, 0.0,
     %(NUM_TURNS)s, "%(TRACK_PATH)s"
@@ -127,6 +145,12 @@ def _parse_args():
         dest="optics",
         required=True,
         type=str,
+    )
+    parser.add_argument(
+        "--coupling",
+        help="Include coupling in the simulation",
+        dest="coupling",
+        action="store_true",
     )
     return parser.parse_args()
 
@@ -170,9 +194,8 @@ NUM_TURNS = RAMP3
 
 
 def print_getllm_precision(options):
-    test_dir = dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(test_dir,
-                              "test_getllm" + time.strftime("%d_%m_%Y"))
+    output_dir = os.path.join(THIS_DIR,
+                              "test_getllm" + time.strftime("%d_%m_%Y_%h_%s"))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     try:
@@ -190,7 +213,7 @@ def _run_tracking_model(directory, options):
     with silence():
         madx_wrapper.resolve_and_run_string(
             madx_script,
-            madx_path=os.path.join(FILES_PATH, "madx_dev"),
+            madx_path=MADX_PATH,
         )
     track_path = _get_track_path(directory, one=True)
     tbt_path = _get_tbt_path(directory)
@@ -207,7 +230,9 @@ def _get_madx_script(beam, directory, options):
     do_acd = 0
     do_adt = 0
     if options.acd and options.adt:
-        raise IOError("ADT and AC-dipole are both set to 1. Please select only one")
+        raise IOError(
+            "ADT and AC-dipole are both set to 1. Please select only one"
+        )
     elif options.acd:
         twiss_ac_or_adt_path = _get_twiss_ac_path(directory)
         do_acd = 1
@@ -218,6 +243,9 @@ def _get_madx_script(beam, directory, options):
         twiss_ac_or_adt_path = _get_twiss_path(directory)
         kick_x = KICK_X
         kick_y = KICK_Y
+    do_coupling = 0
+    if options.coupling:
+        do_coupling = 1
     track_path = _get_track_path(directory)
     madx_script = MADX_SCRIPT % {
         "FILES_PATH": FILES_PATH,
@@ -236,6 +264,7 @@ def _get_madx_script(beam, directory, options):
         "TRACK_PATH": track_path,
         "DO_ACD": do_acd,
         "DO_ADT": do_adt,
+        "DO_COUPLING": do_coupling,
         "KICK_X": kick_x,
         "KICK_Y": kick_y,
         "RAMP1": RAMP1,
@@ -297,17 +326,18 @@ def _do_analysis(directory, options):
                                    stdout=open(os.devnull, "w"),
                                    tune_window=TUNE_WINDOW)
     twiss_path = os.path.join(directory, "twiss.dat")
-    # TODO: What should we do with error definition files?
     err_def_path = _copy_error_def_file(directory, options)
     print("    -> Running GetLLM...")
     with silence():
         GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",
-        errordefspath=err_def_path)
+                    errordefspath=err_def_path)
 
 
 def _copy_error_def_file(directory, options):
     new_err_def_path = os.path.join(directory, "error_deff.txt")
-    iotools.copy_item(os.path.join(ERR_DEF_PATH, ERR_DEF_FILES[options.optics]), new_err_def_path)
+    iotools.copy_item(os.path.join(
+        ERR_DEF_PATH, ERR_DEF_FILES[options.optics]
+    ), new_err_def_path)
     return new_err_def_path
 
 
@@ -346,6 +376,8 @@ def _print_results(directory, free=True):
     ampbetax_data = _get_beta_amp_data(directory, HOR, free=free)
     ampbetay_data = _get_beta_amp_data(directory, VER, free=free)
     _compare_amp_betas(ampbetax_data, ampbetay_data)
+
+    _compare_coupling(directory, free=free)
     print("++++++++++++++++++++++++++++++++++++++\n")
 
 
@@ -375,6 +407,39 @@ def _get_beta_amp_data(directory, plane, free=True):
     if not free:
         return metaclass.twiss(getampbeta)
     return _get_twiss_for_one_of(getampbetafree, getampbeta)
+
+
+def _get_coupling_data(directory, free=True):
+    getcouple = os.path.join(directory, 'getcouple.out')
+    getcouplefree = os.path.join(directory, 'getcouple_free.out')
+    if not free:
+        return metaclass.twiss(getcouple)
+    return _get_twiss_for_one_of(getcouplefree, getcouple)
+
+
+def _get_coupling_twiss(directory):
+    getcouplePathTwiss = os.path.join(directory, 'twiss.dat')
+    ctwiss = metaclass.twiss(getcouplePathTwiss)
+    return ctwiss
+
+
+def _compare_coupling(directory, free=True):
+    diff_between_re = []
+    diff_between_im = []
+    error = []
+    ctwiss = metaclass.twiss(_get_twiss_path(directory))
+    ctwiss.Cmatrix()
+    cdata = _get_coupling_data(directory, free)
+
+    for i in range(0, len(cdata.F1001R)):
+        for j in range(0, len(ctwiss.F1001R)):
+            if cdata.NAME[i] in ctwiss.NAME[j]:
+                diff_between_re.append((cdata.F1001R[i] - ctwiss.F1001R[j]))
+                diff_between_im.append((cdata.F1001I[i] - ctwiss.F1001I[j]))
+
+    for i in range(0, len(diff_between_re)):
+        error.append(np.sqrt(diff_between_re[i]**2 + diff_between_im[i]**2))
+    print("    Average difference of f1001: ", np.mean(error))
 
 
 def _get_phase_data(directory, plane, free=True):
@@ -452,6 +517,7 @@ def _compare_phases(phasex, phasey):
 
 
 def _clean_up_files(ouput_dir):
+    print('Cleaning up...')
     iotools.delete_item(ouput_dir)
 
 

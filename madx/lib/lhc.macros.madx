@@ -54,42 +54,131 @@ define_nominal_beams_for(accel): macro = {
 */
 set_default_crossing_scheme(): macro = {
     !*** IP orbit settings ***
-    on_x1  = 0;
-    on_sep1=0;
-    on_o1  = 0;
-    on_x2  =0;
-    on_sep2= 0;
-    on_o2  = 0;
-    on_oe2 =0;
-    on_a2  = 0;
-    on_x5  =0;
-    on_sep5=0;
-    on_o5  = 0;
-    on_x8  =0;
-    on_sep8=0;
-    on_o8  = 0;
-    on_a8  = 0;
+    on_x1    := 0;
+    on_sep1  := 0;
+    on_o1    := 0;
+    on_oh1   := 0;
+    on_ov1   := 0;
+    on_ssep1 := on_sep1;
+    on_xx1   := on_x1 ;
+
+    on_x2   := 0;
+    on_sep2 := 0;
+    on_o2   := 0;
+    on_a2   := 0;
+    on_oe2  := 0;
+    on_oh2  := 0;
+    on_ov2  := 0;
+
+    on_x5  := 0;
+    on_sep5:= 0;
+    on_o5  := 0;
+    on_oh5 := 0;
+    on_ov5 := 0;
+
+    on_ssep5 := on_sep5;
+    on_xx5  := on_x5;
+
+    on_x8   := 0;
+    on_sep8 := 0;
+    on_o8   := 0;
+    on_a8   := 0;
+    on_oh8  := 0;
+    on_ov8  := 0;
 
     !*** Experiment state ***
     on_alice:=0;
     on_lhcb:=0;
-    on_sol_atlas=0;
-    on_sol_alice=0;
-    on_sol_cms=0;
+    on_sol_atlas:=0;
+    on_sol_alice:=0;
+    on_sol_cms:=0;
+};
+
+/*
+* Sets the Crossing Scheme ON
+*/
+set_crossing_scheme_ON(): macro = {
+    !*** IP orbit settings ***
+    on_x1    := 170;
+    on_sep1  := 0;
+    on_o1    := 0;
+    on_oh1   := 0;
+    on_ov1   := 0;
+    on_ssep1 := on_sep1;
+    on_xx1   := on_x1 ;
+
+    on_x2   := 0;
+    on_sep2 := 0;
+    on_o2   := 0;
+    on_oe2  := 0;
+    on_a2   := 0;
+
+    on_x5  := 170;
+    on_sep5:= 0;
+    on_o5  := 0;
+    on_oh5 := 0;
+    on_ov5 := 0;
+
+    on_ssep5 := on_sep5;
+    on_xx5  := on_x5;
+
+    on_x8   := 0;
+    on_sep8 := 0;
+    on_o8   := 0;
+    on_a8   := 0;
+
+    !*** Experiment state ***
+    on_alice:=0;
+    on_lhcb:=0;
+    on_sol_atlas:=0;
+    on_sol_alice:=0;
+    on_sol_cms:=0;
+};
+
+
+
+/*
+* Searches for the tunes with integer part and writes them to 
+* total_qx and total_qy.
+* If the integer part is already given then: total_qz = qz.
+* If qxb1, qyb1, qxb2 and qyb2 are defined it will use their integer part.
+* In the last case it will launch a twiss command and get the integer
+* part of the tunes from the summary tables.
+* @param nqx: The horizontal tune to use.
+* @param nqy: The vertical tune to use.
+* @param beam_number: The beam to use either 1 or 2.
+*/
+find_complete_tunes(nqx, nqy, beam_number): macro = {
+    int_qx = floor(nqx);
+    int_qy = floor(nqy);
+    if(int_qx == 0 || int_qx == 0){
+        if(qxbbeam_number <> 0 && qybbeam_number <> 0 ){
+            int_qx = floor(qxbbeam_number);
+            int_qy = floor(qybbeam_number);
+        }else{
+            use, sequence=LHCBbeam_number;
+            twiss;
+            int_qx = floor(table(summ, q1));
+            int_qy = floor(table(summ, q2));
+        }
+    }
+    total_qx = int_qx + frac(nqx);
+    total_qy = int_qy + frac(nqy);
 };
 
 
 /*
 * Performs the matching of the LHC tunes.
-* @param qx: The horizontal tune to match to (with integer part).
-* @param qy: The vertical tune to match to (with integer part).
+* @param nqx: The horizontal tune to match to.
+* @param nqy: The vertical tune to match to.
 * @param beam_number: The beam to use either 1 or 2.
 */
-match_tunes(qx, qy, beam_number): macro = {
+match_tunes(nqx, nqy, beam_number): macro = {
+    exec, find_complete_tunes(nqx, nqy, beam_number);
     match;
     vary, name=KQTD.Bbeam_number;
     vary, name=KQTF.Bbeam_number;
-    constraint, range=#E, mux=qx, muy=qy;
+    constraint, range=#E, mux=total_qx, muy=total_qy;
     lmdif;
     endmatch;
 };

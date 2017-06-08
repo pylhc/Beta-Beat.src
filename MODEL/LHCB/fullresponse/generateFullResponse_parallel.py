@@ -86,8 +86,8 @@ def _parse_args():
     parser.add_option("-l", "--deltakl",
                       help="delta kl to be applied to quads for sensitivity matrix",
                       default="0.0", dest="kl")
-    parser.add_option("-f", action="store_false", dest="fullresponse")
-    parser.add_option("-t", action="store_true", dest="fullresponse")
+    parser.add_option("-f", "--f", action="store_false", dest="fullresponse")
+    parser.add_option("-t","--t", action="store_true", dest="fullresponse")
 
     options, _ = parser.parse_args()
 

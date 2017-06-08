@@ -103,7 +103,7 @@ class CleanInput(object):
         "startturn": 0,
         "endturn": 50000,
         "sing_val": 12,
-        "peak_to_peak": 0.0000001,
+        "peak_to_peak": 0.00001,
         "max_peak": 20.,
         "single_svd_bpm_threshold": 0.925,
         "noresync": False,
