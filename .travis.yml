@@ -5,6 +5,7 @@ notifications:
     on_failure: always
   email:
     - OMC-team@cern.ch
+    - efol@cern.ch
 python:
  - "2.7"
 env:
