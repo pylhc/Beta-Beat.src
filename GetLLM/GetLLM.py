@@ -80,6 +80,7 @@ import os
 import sys
 import traceback
 import math
+import re
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
@@ -391,6 +392,10 @@ def _intial_setup(getllm_d, model_filename, dict_file):
         print >> sys.stderr, "Twiss file loading failed for:\n\t", model_filename
         print >> sys.stderr, "Provide a valid model file."
         sys.exit(1)
+        
+    accel, getllm_d.ACDC_defs = setup_ACCEL_def(model_filename.replace("twiss.dat", "accel_def"), getllm_d.accel)
+    if getllm_d.accel == "MISC":
+        getllm_d.accel = accel
 
     #-- finding the ac dipole model
     getllm_d.with_ac_calc = False
@@ -410,7 +415,11 @@ def _intial_setup(getllm_d, model_filename, dict_file):
                 mad_ac_best_knowledge = mad_ac
                 print "Best knowledge model not found for AC diapole."
             getllm_d.acdipole = "ACD"
-        elif os.path.exists(adt_filename):
+        if os.path.exists(adt_filename):
+            if getllm_d.acdipole == "ACD":
+                print >> sys.stderr, "ERROR: ADT as well as ACD models provided. What do you want?"
+                print >> sys.stderr, "       Please come back to me once you have made up your mind. GoodBye"
+                sys.exit(1)
     
             mad_ac = Python_Classes4MAD.metaclass.twiss(adt_filename)  # model with ac dipole : Twiss instance
             getllm_d.with_ac_calc = True
@@ -424,13 +433,14 @@ def _intial_setup(getllm_d, model_filename, dict_file):
                 print "Best knowledge model not found for ADT-AC-dipole."
             getllm_d.acdipole = "ADT"
         else:
-            print "WARN: AC dipole effects not calculated. Driven twiss file does not exsist !"
+            print "WARN: AC dipole effects not calculated. Driven twiss file does not exist !"
             mad_ac = mad_twiss
             mad_ac_best_knowledge = mad_twiss
     except IOError:
         mad_ac = mad_twiss
         mad_ac_best_knowledge = mad_twiss
         print "WARN: IOError in loading ac/adt file."
+
 
 
     #-- Test if the AC dipole (MKQA) is in the model of LHC
@@ -484,6 +494,33 @@ def _intial_setup(getllm_d, model_filename, dict_file):
 
 
 # END _intial_setup ---------------------------------------------------------------------------------
+
+
+def setup_ACCEL_def(filename, accel):
+    
+    acdc_defs = {}
+    
+    try:
+        f = open(filename, "r")
+        spl = re.compile("=")
+        ws = re.compile("\\w+")
+        print "-------- loading accelerator definition file \"{}\"".format(filename)
+        for line in f:
+            line=line.strip()
+            if line.startswith("#"):
+                words = ws.split(line)
+                if words[1] == "ACCEL":
+                    accel = words[2]
+                continue
+            print line
+            words = spl.split(line)
+            print len(words)
+            print words
+            if len(words) > 1:
+                acdc_defs[words[0].strip()] = words[1].strip()
+        return accel, acdc_defs
+    except:
+        return accel, algorithms.compensate_ac_effect.default_acdc_defs(accel)
 
     
 def _create_tfs_files(getllm_d, model_filename, nonlinear):
@@ -1000,6 +1037,8 @@ def _copy_calibration_files(output_path, calibration_dir_path):
 #===================================================================================================
 # helper classes for data structures
 #===================================================================================================
+
+        
 class _GetllmData(object):
     ''' Holds some data from parameters of main function. '''
 
@@ -1023,6 +1062,7 @@ class _GetllmData(object):
         self.with_ac_calc = False
         self.acdipole = "None"
         self.important_pairs = {}
+        self.ACDC_defs = {}
 
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.

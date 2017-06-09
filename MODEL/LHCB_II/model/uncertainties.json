@@ -83,39 +83,39 @@
         "B2_errors":{
             "MQ":{
                 "select": "PATTERN=\"^MQ\\.\"",
-                "uncertainty": 0.18
+                "uncertainty": 18
             },
             "MQM":{
                 "select": "PATTERN=\"^MQM\"",
-                "uncertainty": 0.12
+                "uncertainty": 12
             },
             "MQY":{
                 "select": "PATTERN=\"^MQY\"",
-                "uncertainty": 0.08
+                "uncertainty": 8
             },
             "MQX":{
                 "select": "PATTERN=\"^MQX\"",
-                "uncertainty": 0.02
+                "uncertainty": 4 
             },
             "MQW":{
                 "select": "PATTERN=\"^MQW\"",
-                "uncertainty": 0.15
+                "uncertainty": 15
             },
             "MQT":{
                 "select": "PATTERN=\"^MQT\"",
-                "uncertainty": 0.75
+                "uncertainty": 75
             }
         },
         "Alignment_longitudinal":{
             "quadrupole":{
                 "select": "CLASS=quadrupole",
-                "uncertainty": 0.0001
+                "uncertainty": 0.001
             }
         },
         "Alignment_transverse":{
             "sextupole":{
                 "select": "CLASS=sextupole",
-                "uncertainty": 0.0001
+                "uncertainty": 0.001
             }
         }
     }
