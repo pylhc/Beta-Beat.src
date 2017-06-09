@@ -96,6 +96,7 @@ class BetaData(object):
         self.y_ratio_f = 0  # beta x ratio free
 
 
+ID_INVALID = 0
 IDQUAD = 1
 IDSEXT = 2
 IDBPM = 3
@@ -110,6 +111,8 @@ def gettype(_type):
         return IDBPM
     elif _type == "DIPL":
         return IDDIPL
+    print "-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<- INVALID"
+    return ID_INVALID
 
 class UncertaintyDefinition:
     def __init__(self, _pattern, _dk1=0, _ds=0, _dx=0, _type="QUAD"):
@@ -168,17 +171,23 @@ DS_INDEX        = 10
 
 class ErrorFile:
     def __init__(self):
-        self.capacity = 1024
+        self.capacity = 512
         self.indx = {}
         self.elements = np.ndarray(shape=(self.capacity,11), dtype="f8")
         self.size = 0
         
     def add(self, uni):
         if self.size == self.capacity:
-            self.capacity += 1024
+            self.capacity += 512
+            print "------------------------- resizing: {}".format(self.capacity)
+
             newdata = np.ndarray(shape=(self.capacity,11), dtype="f8")
             newdata[:self.size] = self.elements
             self.elements = newdata
+            
+        print  "adding", uni.name, ", at index", self.size, "\n", [
+                                    uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
+                                    ], "\n"
         
         self.elements[self.size] = [0.0,
                                     uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
@@ -272,7 +281,6 @@ class Uncertainties:  # error definition file
                     definitions.MAINFIELD[index]))
             return True
         
-        
     def create_errorfile(self, twiss_full, twiss_full_centre, plane, accel):
         if accel == "JPARC":
             bpmre = re.compile("^MO[HV]\\.")
@@ -280,11 +288,13 @@ class Uncertainties:  # error definition file
             bpmre = re.compile("^BPM")
         else:
             bpmre = re.compile("^BPM.*B[12]$")
+            
+        
 
         errorfile = ErrorFile()
         mainfield = (self.properties["RELATIVE"] == "MAINFIELD")
         
-        for index_twissfull in range(len(twiss_full_centre.NAME)):
+        for index_twissfull in range(len(twiss_full.NAME)):
             BET = twiss_full_centre.BETX[index_twissfull]
             MU = twiss_full_centre.MUX[index_twissfull]
     
@@ -309,7 +319,7 @@ class Uncertainties:  # error definition file
                 if unire.match(twiss_full.NAME[index_twissfull]):
     
                     found = True
-                    MF = 1000
+                    MF = 0
                     if mainfield:
                         if unire.type == IDQUAD:
                             MF = twiss_full_centre.K1L[index_twissfull]
@@ -317,12 +327,13 @@ class Uncertainties:  # error definition file
                             MF = twiss_full_centre.K2L[index_twissfull]
                         elif unire.type == IDDIPL:
                             MF = twiss_full_centre.K0L[index_twissfull]
+                        
                     else:
                         MF = twiss_full.K1L[index_twissfull]
                    
                     errorfile.add(UncertaintyInformation(twiss_full.NAME[index_twissfull], 
                                                          BET, BET_end, MU, MU_end, 
-                                                         unire.dK1, 
+                                                         unire.dK1 * MF, 
                                                          twiss_full_centre.K1L[index_twissfull],
                                                          twiss_full.K1L[index_twissfull],
                                                          twiss_full_centre.K2L[index_twissfull],
@@ -1572,13 +1583,12 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         sext_trans = []
         quad_missal = []
 
-        
         index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
         index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
-        
+        el = errorfile.elements
         if index_n < index_nplus1:
             for i in range(index_n + 1, index_nplus1):
-                el = errorfile.elements
+                
                 if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
                 if el[i, DX_INDEX] != 0:
@@ -1588,7 +1598,6 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
                     
         else:
             for i in range(index_n + 1, len(errorfile.elements)):
-                el = errorfile.elements
                 if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
                 if el[i, DX_INDEX] != 0:
@@ -1597,14 +1606,12 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
                     quad_missal.append(i)
                     
             for i in range(index_nplus1):  # ums Eck
-                el = errorfile.elements
                 if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
                 if el[i, DX_INDEX] != 0:
                     sext_trans.append(i)
                 if el[i, DS_INDEX] != 0:
                     quad_missal.append(i)
-   
    
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
         
