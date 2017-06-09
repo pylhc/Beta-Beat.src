@@ -185,9 +185,9 @@ class ErrorFile:
             newdata[:self.size] = self.elements
             self.elements = newdata
             
-        print  "adding", uni.name, ", at index", self.size, "\n", [
-                                    uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
-                                    ], "\n"
+#         print  "adding", uni.name, ", at index", self.size, "\n", [
+#                                     uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
+#                                     ], "\n"
         
         self.elements[self.size] = [0.0,
                                     uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
@@ -1575,6 +1575,8 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
     # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
     # k=1: transversal sextupole missalignments
     # k=2: longitudinal quadrupole missalignments
+    el = errorfile.elements
+    
     for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
         index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
         index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
@@ -1585,7 +1587,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
 
         index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
         index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
-        el = errorfile.elements
+        
         if index_n < index_nplus1:
             for i in range(index_n + 1, index_nplus1):
                 
@@ -1597,7 +1599,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
                     quad_missal.append(i)
                     
         else:
-            for i in range(index_n + 1, len(errorfile.elements)):
+            for i in range(index_n + 1, len(el)):
                 if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
                 if el[i, DX_INDEX] != 0:
@@ -1616,6 +1618,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
         
     print_("done creating list of Ks")
+    #print list_of_Ks
 
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
