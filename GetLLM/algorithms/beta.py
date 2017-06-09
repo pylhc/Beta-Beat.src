@@ -885,9 +885,7 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
 
     errorfile = None
-    errorfile_old = None
     if not getllm_d.use_only_three_bpms_for_beta_from_phase:
-        errorfile_old = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane, getllm_d.accel)
         unc = Uncertainties()
         unc.open(getllm_d.errordefspath)
         errorfile = unc.create_errorfile(madElements, madElementsCentre, plane, getllm_d.accel)
@@ -906,7 +904,7 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     # systematic errors
     if errorfile is not None and not getllm_d.use_only_three_bpms_for_beta_from_phase:
         
-        rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, errorfile_old, phase, plane, getllm_d, commonbpms, debugfile)
+        rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm_d, commonbpms, debugfile)
         return data, rmsbb, commonbpms, errors_method
     #---- use the simulations
     else:
@@ -1526,7 +1524,7 @@ def _beta_from_phase_BPM_right(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM
 
 
 
-def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, errorfile_old, phase, plane, getllm_d, commonbpms, debugfile):
+def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm_d, commonbpms, debugfile):
     '''
     If errorfile is given (!= "0") this function calculates the beta function for each BPM using the analytic expression
     for the estimation of the error matrix.
@@ -1585,9 +1583,6 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, errorfile_old, phase
         sext_trans = []
         quad_missal = []
 
-        index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
-        index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
-                
         if index_n < index_nplus1:
             for i in range(index_n + 1, index_nplus1):
                 
