@@ -171,15 +171,14 @@ DS_INDEX        = 10
 
 class ErrorFile:
     def __init__(self):
-        self.capacity = 512
+        self.capacity = 128
         self.indx = {}
         self.elements = np.ndarray(shape=(self.capacity,11), dtype="f8")
         self.size = 0
         
     def add(self, uni):
         if self.size == self.capacity:
-            self.capacity += 512
-            print "------------------------- resizing: {}".format(self.capacity)
+            self.capacity += 128
 
             newdata = np.ndarray(shape=(self.capacity,11), dtype="f8")
             newdata[:self.size] = self.elements
