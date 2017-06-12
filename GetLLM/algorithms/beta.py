@@ -888,7 +888,7 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
     errorfile = None
-    if not getllm_d.use_only_three_bpms_for_beta_from_phase:
+    if not getllm_d.use_only_three_bpms_for_beta_from_phase and getllm_d.errordefspath is not None:
         unc = Uncertainties()
         unc.open(getllm_d.errordefspath)
         errorfile = unc.create_errorfile(madElements, madElementsCentre, plane, getllm_d.accel)

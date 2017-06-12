@@ -56,7 +56,6 @@ KEY_FIRSTBPM = "first_BPM"
 #---------  The following is functions
 def default_acdc_defs(accel):
     print "trying to return default"
-    print accel
     if accel == "LHCB1":
         return {
             KEY_ACD_H_BPM1 : "BPMYA.5L4.B1",
@@ -96,9 +95,6 @@ def GetACPhase_AC2BPMAC(MADTwiss, Qd, Q, plane, getllm_d):
 
     ACDC_defs = getllm_d.ACDC_defs
     
-    print ACDC_defs
-    print getllm_d.acdipole
-
     if getllm_d.acdipole == "ACD":
         dipole_nameH = ACDC_defs[KEY_DNH]
         dipole_nameV = ACDC_defs[KEY_DNV]
@@ -240,7 +236,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, Qmdl, getllm
         except:
             print >> sys.stderr,'WARN: BPMs next to AC dipoles missing. AC dipole effects not calculated for '+plane+' with eqs !'
             return [{}, 0.0, []]
-
+   
     #-- Model phase advances
     if plane=='H': psimdl=np.array([MADTwiss.MUX[MADTwiss.indx[b[1]]] for b in bpm])
     if plane=='V': psimdl=np.array([MADTwiss.MUY[MADTwiss.indx[b[1]]] for b in bpm])
