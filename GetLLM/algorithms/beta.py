@@ -27,7 +27,7 @@ import time
 from constants import PI, TWOPI
 from numpy.linalg.linalg import LinAlgError
 
-__version__ = "2017.6.2"
+__version__ = "2017.6.3"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -55,7 +55,7 @@ A_FACT                  = -.5                       #@IgnorePep8
 BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
 ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
-PHASE_THRESHOLD         = 0.2e-2                      #@IgnorePep8
+PHASE_THRESHOLD         = 1.0e-2                      #@IgnorePep8
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
 MOD_POINTFIVE_UPPER     = (BADPHASE - PHASE_THRESHOLD)    #@IgnorePep8
 RCOND                   = 1.0e-14                    #@IgnorePep8
@@ -64,6 +64,31 @@ BOXLENGTH               = 50                        #@IgnorePep8
 BOXINDENT               =  4                        #@IgnorePep8
 CALCULATE_BETA_HOR = True
 CALCULATE_BETA_VER = True
+
+# ================ Errorfile indices:
+BET_INDEX       = 1
+BETEND_INDEX    = 2
+MU_INDEX        = 3
+MUEND_INDEX     = 4
+DK1_INDEX       = 5
+K1L_INDEX       = 6
+K1LEND_INDEX    = 7
+K2L_INDEX       = 8
+DX_INDEX        = 9
+DS_INDEX        = 10
+
+# ================ Multiprocessing indices:
+BETI_MP     = 0
+BETSTAT_MP  = 1
+BETSYST_MP  = 2
+BETERR_MP   = 3
+ALFI_MP     = 4
+ALFSTAT_MP  = 5
+ALFSYS_MP   = 6
+ALFERR_MP   = 7
+CORR_MP     = 8
+DELBETA_MP  = 9
+NCOMB_MP    = 10
 
 #=======================================================================================================================
 #--- classes
@@ -155,38 +180,26 @@ class UncertaintyInformation:
         self.dx = _dx
         self.ds = _ds
         self.debug = _debug
-        
-# ================ HELPING constants
-BET_INDEX       = 1
-BETEND_INDEX    = 2
-MU_INDEX        = 3
-MUEND_INDEX     = 4
-DK1_INDEX       = 5
-K1L_INDEX       = 6
-K1LEND_INDEX    = 7
-K2L_INDEX       = 8
-DX_INDEX        = 9
-DS_INDEX        = 10
 
 
 class ErrorFile:
     def __init__(self):
-        self.capacity = 128
+        self.capacity = 2048
         self.indx = {}
         self.elements = np.ndarray(shape=(self.capacity,11), dtype="f8")
         self.size = 0
         
     def add(self, uni):
         if self.size == self.capacity:
-            self.capacity += 128
+            self.capacity += 2048
 
             newdata = np.ndarray(shape=(self.capacity,11), dtype="f8")
             newdata[:self.size] = self.elements
             self.elements = newdata
             
-#         print  "adding", uni.name, ", at index", self.size, "\n", [
-#                                     uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
-#                                     ], "\n"
+#         print "{:12s}, at index {:d} {:6.1f} {:6.1f} {:5.1f} {:5.1f} {:12.3e} {:12.3e} {:9.4f} {:9.4f} {:9.4f} {:9.4f}".format(
+#             uni.name, self.size, uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds
+#                                     )
         
         self.elements[self.size] = [0.0,
                                     uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
@@ -418,11 +431,11 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
         beta_d_col[name] = [row[0], row[1], row[2], row[3]]
         model_ac_index = mad_ac.indx[name]
         list_row_entries = ['"' + name + '"', bpm[0], len(twiss_d_zero_dpp),
-                            row[0], row[1], row[2], row[3],
-                            row[8],
-                            row[4], row[5], row[6], row[7],
+                            row[BETI_MP], row[BETSYST_MP], row[BETSTAT_MP], row[BETERR_MP],
+                            row[CORR_MP],
+                            row[ALFI_MP], row[ALFSYS_MP], row[ALFSTAT_MP], row[ALFERR_MP],
                             mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
-                            row[10]]
+                            row[NCOMB_MP]]
         # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
         #                     row[0], row[1], row[2], row[3],
         #                     row[8],
@@ -465,7 +478,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     print_box("Version: {0:5s}".format(__version__))
     
     if DEBUG:
-        debugfile = open(files_dict['getbetax.out'].s_output_path + "/getbetax.debug", "w+")
+        debugfilename = files_dict['getbetax.out'].s_output_path + "/getbetax.debug"
+        print debugfilename
+        debugfile = open(debugfilename, "w+")
         print_box_edge()
         print_("ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially")
     elif getllm_d.parallel:
@@ -1583,7 +1598,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
                     quad_missal.append(i)
                     
         else:
-            for i in range(index_n + 1, len(el)):
+            for i in range(index_n + 1, errorfile.size):
                 if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
                 if el[i, DX_INDEX] != 0:
@@ -1602,7 +1617,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
         
     print_("done creating list of Ks")
-    #print list_of_Ks
+#     print list_of_Ks
 
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
@@ -2221,8 +2236,8 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx3 = errorfile.indx[bn3]
       
     if elements[errindx1, DS_INDEX] != 0:
-        numerphi = -1.0 / (betmdl2 * sin(phmdl12) ** 2) + 1.0 / (betmdl3 * sin(phmdl13) ** 2)
-        T[K_offset + bi1] = numerphi / denom
+        numerphi = -1.0 / (betmdl1 * sin(phmdl12) ** 2) + 1.0 / (betmdl1 * sin(phmdl13) ** 2)
+        T[K_offset + bi1] = numerphi / denom - 2 * alfmdl1
           
     if elements[errindx2, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl12) ** 2)
@@ -2412,8 +2427,8 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx3 = errorfile.indx[bn3]
       
     if elements[errindx2, DS_INDEX] != 0:
-        numerphi = -1.0 / (betmdl1 * sin(phmdl21) ** 2) + 1.0 / (betmdl3 * sin(phmdl23) ** 2)
-        T[K_offset + bi2] = numerphi / denom
+        numerphi = -1.0 / (betmdl2 * sin(phmdl21) ** 2) + 1.0 / (betmdl2 * sin(phmdl23) ** 2)
+        T[K_offset + bi2] = numerphi / denom - 2.0 * alpmdl2
           
     if elements[errindx1, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl1 * sin(phmdl21) ** 2)
@@ -2632,8 +2647,8 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx3 = errorfile.indx[bn3]
       
     if elements[errindx3, DS_INDEX] != 0:
-        numerphi = -1.0 / (betmdl2 * sin(phmdl32) ** 2) + 1.0 / (betmdl1 * sin(phmdl31) ** 2)
-        T[K_offset + bi3] = numerphi / denom
+        numerphi = -1.0 / (betmdl3 * sin(phmdl32) ** 2) + 1.0 / (betmdl3 * sin(phmdl31) ** 2)
+        T[K_offset + bi3] = numerphi / denom - 2.0 * alpmdl3
           
     if elements[errindx2, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl32) ** 2)
