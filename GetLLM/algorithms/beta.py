@@ -1564,59 +1564,14 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
              9: delbeta
     '''
     
-    print_("INFO: errorfile given. Create list_of_Ks")
-    list_of_Ks = []
-    
-    
     errors_method = "Analytical Formula"
     print_("Errors from " + errors_method)
-   
-    #---- create list of Ks, i.e. assign to each BPM a vector with all the errore lements that come after the bpm
-    # and their respective errors
-    # and model phases so that list_of_Ks[n] yields the error elements between BPM[n] and BPM[n+1]
-    # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
-    # k=1: transversal sextupole missalignments
-    # k=2: longitudinal quadrupole missalignments
-    el = errorfile.elements
     
-    for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
-        index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
-        index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
-              
-        quad_fields = []
-        sext_trans = []
-        quad_missal = []
-
-        if index_n < index_nplus1:
-            for i in range(index_n + 1, index_nplus1):
-                
-                if el[i, DK1_INDEX] != 0:
-                    quad_fields.append(i)
-                if el[i, DX_INDEX] != 0:
-                    sext_trans.append(i)
-                if el[i, DS_INDEX] != 0:
-                    quad_missal.append(i)
-                    
-        else:
-            for i in range(index_n + 1, errorfile.size):
-                if el[i, DK1_INDEX] != 0:
-                    quad_fields.append(i)
-                if el[i, DX_INDEX] != 0:
-                    sext_trans.append(i)
-                if el[i, DS_INDEX] != 0:
-                    quad_missal.append(i)
-                    
-            for i in range(index_nplus1):  # ums Eck
-                if el[i, DK1_INDEX] != 0:
-                    quad_fields.append(i)
-                if el[i, DX_INDEX] != 0:
-                    sext_trans.append(i)
-                if el[i, DS_INDEX] != 0:
-                    quad_missal.append(i)
-                    
-        list_of_Ks.append([quad_fields, sext_trans, quad_missal])
-        
-    print_("done creating list of Ks")
+    
+    el = errorfile.elements
+    list_of_Ks = create_listofKs(commonbpms, errorfile, el, getllm_d)
+    
+    print_("INFO: errorfile given. Create list_of_Ks")
 #     print list_of_Ks
 
     width = getllm_d.range_of_bpms / 2
@@ -2773,6 +2728,56 @@ def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
 #=======================================================================================================================
 #--- Helper / Debug Functions
 #=======================================================================================================================
+
+def create_listofKs(commonbpms, errorfile, el, getllm_d):
+    list_of_Ks = []
+    
+    #---- create list of Ks, i.e. assign to each BPM a vector with all the errore lements that come after the bpm
+    # and their respective errors
+    # and model phases so that list_of_Ks[n] yields the error elements between BPM[n] and BPM[n+1]
+    # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
+    # k=1: transversal sextupole missalignments
+    # k=2: longitudinal quadrupole missalignments
+   
+    for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
+        index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
+        index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
+              
+        quad_fields = []
+        sext_trans = []
+        quad_missal = []
+
+        if index_n < index_nplus1:
+            for i in range(index_n + 1, index_nplus1):
+                
+                if el[i, DK1_INDEX] != 0:
+                    quad_fields.append(i)
+                if el[i, DX_INDEX] != 0:
+                    sext_trans.append(i)
+                if el[i, DS_INDEX] != 0:
+                    quad_missal.append(i)
+                    
+        else:
+            for i in range(index_n + 1, errorfile.size):
+                if el[i, DK1_INDEX] != 0:
+                    quad_fields.append(i)
+                if el[i, DX_INDEX] != 0:
+                    sext_trans.append(i)
+                if el[i, DS_INDEX] != 0:
+                    quad_missal.append(i)
+                    
+            for i in range(index_nplus1):  # ums Eck
+                if el[i, DK1_INDEX] != 0:
+                    quad_fields.append(i)
+                if el[i, DX_INDEX] != 0:
+                    sext_trans.append(i)
+                if el[i, DS_INDEX] != 0:
+                    quad_missal.append(i)
+                    
+        list_of_Ks.append([quad_fields, sext_trans, quad_missal])
+        
+    print_("done creating list of Ks")
+    return list_of_Ks
 
 
 def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, commonbpms, plane, accel):
