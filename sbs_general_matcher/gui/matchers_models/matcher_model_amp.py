@@ -12,8 +12,14 @@ class MatcherModelAmp(MatcherModelDefault):
         matcher_dict["type"] = "amp"
         return matcher_dict
 
-    def create_matcher(self, match_path):
-        self._matcher = AmpMatcher(self._name, self.get_matcher_dict(), match_path)
+    def create_matcher(self, lhc_mode, match_path):
+        self._matcher = AmpMatcher(
+            lhc_mode,
+            self._beam,
+            self._name,
+            self.get_matcher_dict(),
+            match_path
+        )
 
     def get_plotter(self, figure):
         if self._plotter is None:
@@ -26,51 +32,37 @@ class MatcherPlotterAmp(MatcherPlotterDefault):
     def plot(self):
         self._figure.clear()
         self._axes_to_data = {}
-        num_beams = len(self._matcher_model._matcher.get_beams())
-        if 1 in self._matcher_model._matcher.get_beams():
-            axes_b1_x = self._figure.add_subplot(2, num_beams, 1)
-            axes_b1_x.set_title("Beam 1")
-            amp_bb_beam1_horizontal = self._get_amp_beta_beat_file(1, "X")
-            bb_beam1_horizontal = self._get_beta_beat_file(1, "X")
-            self._axes_to_data[axes_b1_x] = bb_beam1_horizontal
-            self._plot_match(axes_b1_x, amp_bb_beam1_horizontal, bb_beam1_horizontal, "X")
+        label = self._matcher_model.get_label()
 
-            axes_b1_y = self._figure.add_subplot(2, num_beams, 2 if num_beams == 1 else 3)
-            amp_bb_beam1_vertical = self._get_amp_beta_beat_file(1, "Y")
-            bb_beam1_vertical = self._get_beta_beat_file(1, "Y")
-            self._axes_to_data[axes_b1_y] = bb_beam1_vertical
-            self._plot_match(axes_b1_y, amp_bb_beam1_vertical, bb_beam1_vertical, "Y")
+        axes_x = self._figure.add_subplot(2, 1, 1)
+        amp_bb_horizontal = self._get_amp_beta_beat_file(label, "X")
+        bb_horizontal = self._get_beta_beat_file(label, "X")
+        self._axes_to_data[axes_x] = bb_horizontal
+        self._plot_match(axes_x, amp_bb_horizontal, bb_horizontal, "X")
 
-        if 2 in self._matcher_model._matcher.get_beams():
-            axes_b2_x = self._figure.add_subplot(2, num_beams, 1 if num_beams == 1 else 2)
-            axes_b2_x.set_title("Beam 2")
-            amp_bb_beam2_horizontal = self._get_amp_beta_beat_file(2, "X")
-            bb_beam2_horizontal = self._get_beta_beat_file(2, "X")
-            self._axes_to_data[axes_b2_x] = bb_beam2_horizontal
-            self._plot_match(axes_b2_x, amp_bb_beam2_horizontal, bb_beam2_horizontal, "X")
+        axes_y = self._figure.add_subplot(2, 1, 2)
+        amp_bb_vertical = self._get_amp_beta_beat_file(label, "Y")
+        bb_vertical = self._get_beta_beat_file(label, "Y")
+        self._axes_to_data[axes_y] = bb_vertical
+        self._plot_match(axes_y, amp_bb_vertical, bb_vertical, "Y")
 
-            axes_b2_y = self._figure.add_subplot(2, num_beams, 2 if num_beams == 1 else 4)
-            amp_bb_beam2_vertical = self._get_amp_beta_beat_file(2, "Y")
-            bb_beam2_vertical = self._get_beta_beat_file(2, "Y")
-            self._axes_to_data[axes_b2_y] = bb_beam2_vertical
-            self._plot_match(axes_b2_y, amp_bb_beam2_vertical, bb_beam2_vertical, "Y")
         self._figure.tight_layout()
         self._figure.patch.set_visible(False)
         self._figure.canvas.draw()
 
-    def _get_amp_beta_beat_file(self, beam, plane):
-        amp_bb_path = getattr(self._matcher_model, "get_beam" + str(beam) + "_output_path")()
+    def _get_amp_beta_beat_file(self, label, plane):
+        outpath = self._matcher_model.get_output_path()
         file_data = tfs_pandas.read_tfs(os.path.join(
-            amp_bb_path, "sbs",
-            "sbsampbetabeat" + plane.lower() + "_IP" + str(self._matcher_model.get_ip()) + ".out")
+            outpath, "sbs",
+            "sbsampbetabeat" + plane.lower() + "_" + label + ".out")
         )
         return file_data
 
-    def _get_beta_beat_file(self, beam, plane):
-        bb_path = getattr(self._matcher_model, "get_beam" + str(beam) + "_output_path")()
+    def _get_beta_beat_file(self, label, plane):
+        outpath = self._matcher_model.get_output_path()
         file_data = tfs_pandas.read_tfs(os.path.join(
-            bb_path, "sbs",
-            "sbsbetabeat" + plane.lower() + "_IP" + str(self._matcher_model.get_ip()) + ".out")
+            outpath, "sbs",
+            "sbsbetabeat" + plane.lower() + "_" + label + ".out")
         )
         return file_data
 
