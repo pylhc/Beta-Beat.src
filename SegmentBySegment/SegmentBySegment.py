@@ -48,7 +48,7 @@ def _parse_args():
     e.g. for LHC runII 2017 beam 1
     --accel lhc --lhcmode lhc_runII_2017 --beam 1
     '''
-    accel_cls, rest_args = manager.get_segment_accel_class_from_args(
+    accel_cls, rest_args = manager.get_accel_class_from_args(
         sys.argv[1:]
     )
     print("Using accelerator class: " + accel_cls.__name__)
@@ -142,12 +142,12 @@ def main(accel_cls, options):
 
         element_has_chrom, chrom_ini, chrom_end = _get_chrom_parameters(input_data, start_bpm_name, end_bpm_name)
 
-        accel_instance = accel_cls()
-        accel_instance.start = start_bpm_name
-        accel_instance.end = end_bpm_name
-        accel_instance.label = element_name
-        accel_instance.optics_file = os.path.join(twiss_directory,
-                                                  "modifiers.madx")
+        accel_instance = accel_cls.get_segment(
+            element_name,
+            start_bpm_name,
+            end_bpm_name,
+            os.path.join(twiss_directory, "modifiers.madx")
+        )
 
         if not options.madpass:
             _run4mad(save_path,
@@ -245,11 +245,11 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
     else:
         is_element = True
         start_bpm_name, end_bpm_name = _filter_and_find(input_data.beta_x,
-                                                     input_data.beta_y,
-                                                     element_name,
-                                                     [],
-                                                     twiss_data,
-                                                     errorcut)
+                                                        input_data.beta_y,
+                                                        element_name,
+                                                        [],
+                                                        twiss_data,
+                                                        errorcut)
     return start_bpm_name, end_bpm_name, is_element
 
 
@@ -558,7 +558,6 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     else:
         left_bpm_is_good = translate[left_bpm_s][0]
         right_bpm_is_good = translate[right_bpm_s][0]
-        print(left_bpm_is_good, right_bpm_is_good)
 
         if left_bpm_is_good:
             selected_left_bpm = translate[left_bpm_s][1]
@@ -710,8 +709,8 @@ def _run4mad(save_path,
         save_path, accel_instance.label
     )
 
-    accel_instance.start = accel_instance.start.replace("-", "_")
-    accel_instance.end = accel_instance.end.replace("-", "_")
+    accel_instance.start = accel_instance.start.name.replace("-", "_")
+    accel_instance.end = accel_instance.end.name.replace("-", "_")
 
     measurement_dict = dict(
         betx_ini=betx_ini,
