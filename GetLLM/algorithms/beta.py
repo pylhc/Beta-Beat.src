@@ -25,8 +25,9 @@ import re
 import multiprocessing
 import time
 from constants import PI, TWOPI
+from numpy.linalg.linalg import LinAlgError
 
-__version__ = "2017.3.2"
+__version__ = "2017.6.3"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -54,7 +55,7 @@ A_FACT                  = -.5                       #@IgnorePep8
 BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
 ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
-PHASE_THRESHOLD         = 1e-2                      #@IgnorePep8
+PHASE_THRESHOLD         = 1.0e-2                      #@IgnorePep8
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
 MOD_POINTFIVE_UPPER     = (BADPHASE - PHASE_THRESHOLD)    #@IgnorePep8
 RCOND                   = 1.0e-14                    #@IgnorePep8
@@ -62,7 +63,32 @@ RCOND                   = 1.0e-14                    #@IgnorePep8
 BOXLENGTH               = 50                        #@IgnorePep8
 BOXINDENT               =  4                        #@IgnorePep8
 CALCULATE_BETA_HOR = True
-CALCULATE_BETA_VER = False
+CALCULATE_BETA_VER = True
+
+# ================ Errorfile indices:
+BET_INDEX       = 1
+BETEND_INDEX    = 2
+MU_INDEX        = 3
+MUEND_INDEX     = 4
+DK1_INDEX       = 5
+K1L_INDEX       = 6
+K1LEND_INDEX    = 7
+K2L_INDEX       = 8
+DX_INDEX        = 9
+DS_INDEX        = 10
+
+# ================ Multiprocessing indices:
+BETI_MP     = 0
+BETSTAT_MP  = 1
+BETSYST_MP  = 2
+BETERR_MP   = 3
+ALFI_MP     = 4
+ALFSTAT_MP  = 5
+ALFSYS_MP   = 6
+ALFERR_MP   = 7
+CORR_MP     = 8
+DELBETA_MP  = 9
+NCOMB_MP    = 10
 
 #=======================================================================================================================
 #--- classes
@@ -93,6 +119,276 @@ class BetaData(object):
         self.x_ratio_f = 0  # beta x ratio free
         self.y_ratio = 0  # beta x ratio
         self.y_ratio_f = 0  # beta x ratio free
+
+
+ID_INVALID = 0
+IDQUAD = 1
+IDSEXT = 2
+IDBPM = 3
+IDDIPL = 4
+
+def gettype(_type):
+    if _type == "QUAD":
+        return IDQUAD
+    elif _type == "SEXT":
+        return IDSEXT
+    elif _type == "BPM":
+        return IDBPM
+    elif _type == "DIPL":
+        return IDDIPL
+    print "-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<-<- INVALID"
+    return ID_INVALID
+
+class UncertaintyDefinition:
+    def __init__(self, _pattern, _dk1=0, _ds=0, _dx=0, _type="QUAD"):
+        self.pattern = _pattern
+        self.dX = _dx
+        self.dS = _ds
+        self.dK1 = _dk1
+        self.type = gettype(_type)
+        
+        def settype(self, _type):
+         self.type = gettype(_type)
+           
+   
+class UncertaintyDefinitionRE:
+    def __init__(self, _pattern, _dk1=0, _ds=0, _dx=0, _type="QUAD"):
+        self.pattern = re.compile(_pattern)
+        self.dX = _dx
+        self.dS = _ds
+        self.dK1 = _dk1
+        self.type = gettype(_type)
+        
+    def settype(self, _type):
+        self.type = gettype(_type)
+        
+    def match(self, string):
+        return self.pattern.match(string)
+             
+        
+class UncertaintyInformation:
+    def __init__(self, _name, _bet, _betend, _mu, _muend, _dk1, _k1l, _k1lend, _k2l, _dx, _ds, _debug):
+        self.name = _name
+        self.bet = _bet
+        self.betend = _betend
+        self.mu = _mu
+        self.muend = _muend
+        self.dk1 = _dk1
+        self.k1l = _k1l
+        self.k1lend = _k1lend
+        self.k2l = _k2l
+        self.dx = _dx
+        self.ds = _ds
+        self.debug = _debug
+
+
+class ErrorFile:
+    def __init__(self):
+        self.capacity = 2048
+        self.indx = {}
+        self.elements = np.ndarray(shape=(self.capacity,11), dtype="f8")
+        self.size = 0
+        
+    def add(self, uni):
+        if self.size == self.capacity:
+            self.capacity += 2048
+
+            newdata = np.ndarray(shape=(self.capacity,11), dtype="f8")
+            newdata[:self.size] = self.elements
+            self.elements = newdata
+            
+#         print "{:12s}, at index {:d} {:6.1f} {:6.1f} {:5.1f} {:5.1f} {:12.3e} {:12.3e} {:9.4f} {:9.4f} {:9.4f} {:9.4f}".format(
+#             uni.name, self.size, uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds
+#                                     )
+        
+        self.elements[self.size] = [0.0,
+                                    uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
+                                    ]
+        self.indx[uni.name] = self.size
+        self.size += 1
+        
+        
+        
+class Uncertainties:  # error definition file
+    
+    def __init__(self):
+        self.version = "1"
+        self.keys = []
+        self.regex = []
+        self.properties = {}
+        
+    
+    def open(self, filename):
+        F = open(filename, "r")
+        
+        line = F.readline()
+        
+        if line.strip() == "version 2":
+            line = F.readline()
+            for line in F:
+                
+                line = re.split("//", line)[0].strip()  # separating code from comments
+                if len(line) == 0:
+                    continue
+                match = re.search(r'prop (\w+)\s+=\s(\w[\w\s]*)', line)
+                if match is not None:
+                    print "adding {} = {} to properties".format(match.group(1), match.group(2))
+                    self.properties[match.group(1)] = match.group(2).strip()
+                else:
+                    words = re.split('\s', line)
+                    
+                    if words[0].startswith("re:"):
+                        ud = UncertaintyDefinitionRE(words[0].split(":")[1])
+                        
+                        for word in words:
+                            kv = word.split("=")
+                            if kv[0] == "dK1":
+                                ud.dK1 = float(kv[1])
+                            elif kv[0] == "dS":
+                                ud.dS = float(kv[1])
+                            elif kv[0] == "dX":
+                                ud.dX = float(kv[1])
+                            elif kv[0] == "Type":
+                                ud.settype(kv[1])
+                        self.regex.append(ud)
+                    else:
+                        ud = UncertaintyDefinition(words[0])
+                        
+                        for word in words:
+                            kv = word.split("=")
+                            if kv[0] == "dK1":
+                                ud.dK1 = float(kv[1])
+                            elif kv[0] == "dS":
+                                ud.dS = float(kv[1])
+                            elif kv[0] == "dX":
+                                ud.dX = float(kv[1])
+                            elif kv[0] == "Type":
+                                ud.settype(kv[1])
+                        self.keys.append(ud)
+            F.close()
+            
+            return True
+        else:
+            F.close()
+            
+            try:
+                definitions = Python_Classes4MAD.metaclass.twiss(filename)
+                
+            except:
+                print >> sys.stderr, "loading errorfile didn't work"
+                print >> sys.stderr, "errordefspath = {0:s}".format(filename)
+                return False
+            
+            print_("error definitions file version 1")
+            self.properties["RELATIVE"] = definitions.RELATIVE
+            self.properties["RADIUS"] = definitions.RADIUS
+             
+            for index in range(len(definitions.PATTERN)):
+                pattern = definitions.PATTERN[index]
+                self.regex.append(UncertaintyDefinitionRE(
+                    pattern,
+                    definitions.dK1[index],
+                    definitions.dS[index],
+                    definitions.dX[index],
+                    definitions.MAINFIELD[index]))
+            return True
+        
+    def create_errorfile(self, twiss_full, twiss_full_centre, plane, accel):
+        if accel == "JPARC":
+            bpmre = re.compile("^MO[HV]\\.")
+        elif accel == "PETRA":
+            bpmre = re.compile("^BPM")
+        else:
+            bpmre = re.compile("^BPM.*B[12]$")
+            
+        
+
+        errorfile = ErrorFile()
+        mainfield = (self.properties["RELATIVE"] == "MAINFIELD")
+        
+        for index_twissfull in range(len(twiss_full.NAME)):
+            BET = twiss_full_centre.BETX[index_twissfull]
+            MU = twiss_full_centre.MUX[index_twissfull]
+    
+            if plane == 'V':
+                BET = twiss_full_centre.BETY[index_twissfull]
+                MU = twiss_full_centre.MUY[index_twissfull]
+                
+            BET_end = twiss_full.BETX[index_twissfull]
+            MU_end = twiss_full.MUX[index_twissfull]
+            BETminus1_end = twiss_full.BETX[index_twissfull - 1]
+            MUminus1_end = twiss_full.MUX[index_twissfull - 1]
+    
+            if plane == 'V':
+                BET_end = twiss_full.BETY[index_twissfull]
+                MU_end = twiss_full.MUY[index_twissfull]
+                BETminus1_end = twiss_full.BETY[index_twissfull - 1]
+                MUminus1_end = twiss_full.MUY[index_twissfull - 1]
+    
+            found = False
+            for unire in self.regex:
+               
+                if unire.match(twiss_full.NAME[index_twissfull]):
+    
+                    found = True
+                    MF = 0
+                    if mainfield:
+                        if unire.type == IDQUAD:
+                            MF = twiss_full_centre.K1L[index_twissfull]
+                        elif unire.type == IDSEXT:
+                            MF = twiss_full_centre.K2L[index_twissfull]
+                        elif unire.type == IDDIPL:
+                            MF = twiss_full_centre.K0L[index_twissfull]
+                        
+                    else:
+                        MF = twiss_full.K1L[index_twissfull]
+                   
+                    errorfile.add(UncertaintyInformation(twiss_full.NAME[index_twissfull], 
+                                                         BET, BET_end, MU, MU_end, 
+                                                         unire.dK1 * MF, 
+                                                         twiss_full_centre.K1L[index_twissfull],
+                                                         twiss_full.K1L[index_twissfull],
+                                                         twiss_full_centre.K2L[index_twissfull],
+                                                         unire.dX,
+                                                         unire.dS,
+                                                         "OK"))
+                   
+                    if unire.dS != 0 and unire.type == IDQUAD:
+                        errorfile.add(UncertaintyInformation(
+                                                twiss_full.NAME[index_twissfull - 1],
+                                                0,     # BET
+                                                BETminus1_end,
+                                                0,     # MU
+                                                MUminus1_end,
+                                                0,     # dK1,
+                                                0,     # K1L,
+                                                - twiss_full.K1L[index_twissfull],  # same index
+                                                0,     # K2L
+                                                0,     # dX
+                                                unire.dS,  # here no -1 because the same dS applies
+                                                "OK")
+                                      )
+    
+            if not found:  # if element doesn't have any error add it nevertheless if it is a BPM
+                if bpmre.match(twiss_full_centre.NAME[index_twissfull]):
+                   
+                    errorfile.add(UncertaintyInformation(
+                                            twiss_full.NAME[index_twissfull],
+                                            BET,
+                                            0,  # BETEND
+                                            MU,
+                                            0,  # MUEND
+                                            0,  # dK1
+                                            0,  # K1L
+                                            0,  # K1LEND
+                                            0,  # K2L
+                                            0,  # dX
+                                            0,  # dS
+                                            "NOT_FOUND")
+                                  )
+
+        print_("DONE creating errofile.")
+        return errorfile
 
 #===================================================================================================
 # main part
@@ -135,11 +431,11 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
         beta_d_col[name] = [row[0], row[1], row[2], row[3]]
         model_ac_index = mad_ac.indx[name]
         list_row_entries = ['"' + name + '"', bpm[0], len(twiss_d_zero_dpp),
-                            row[0], row[1], row[2], row[3],
-                            row[8],
-                            row[4], row[5], row[6], row[7],
+                            row[BETI_MP], row[BETSYST_MP], row[BETSTAT_MP], row[BETERR_MP],
+                            row[CORR_MP],
+                            row[ALFI_MP], row[ALFSYS_MP], row[ALFSTAT_MP], row[ALFERR_MP],
                             mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
-                            row[10]]
+                            row[NCOMB_MP]]
         # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
         #                     row[0], row[1], row[2], row[3],
         #                     row[8],
@@ -182,7 +478,9 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     print_box("Version: {0:5s}".format(__version__))
     
     if DEBUG:
-        debugfile = open(files_dict['getbetax.out'].s_output_path + "/getbetax.debug", "w+")
+        debugfilename = files_dict['getbetax.out'].s_output_path + "/getbetax.debug"
+        print debugfilename
+        debugfile = open(debugfilename, "w+")
         print_box_edge()
         print_("ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially")
     elif getllm_d.parallel:
@@ -197,7 +495,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     
     #--- =========== HORIZONTAL
     if CALCULATE_BETA_HOR:
-        print "skagfhuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
         if twiss_d.has_zero_dpp_x():
             print ""
             print_("Calculate beta from phase for plane " + _plane_char, ">")
@@ -491,7 +788,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 
         if getllm_d.with_ac_calc:  # from eq
             try:
-                betayf, rmsbbyf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)  # Rescaling
+                betayf, rmsbbyf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d)  # Rescaling
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
                 arcbpms = Utilities.bpm.filterbpm(bpmsf)
@@ -604,11 +901,12 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     commonbpms = Utilities.bpm.intersect(ListOfFiles)
     commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
-    
     errorfile = None
-    if not getllm_d.use_only_three_bpms_for_beta_from_phase:
-        errorfile = create_errorfile(getllm_d.errordefspath, madTwiss, madElements, madElementsCentre, commonbpms, plane, getllm_d.accel)
-   
+    if not getllm_d.use_only_three_bpms_for_beta_from_phase and getllm_d.errordefspath is not None:
+        unc = Uncertainties()
+        unc.open(getllm_d.errordefspath)
+        errorfile = unc.create_errorfile(madElements, madElementsCentre, plane, getllm_d.accel)
+        
     if 3 > len(commonbpms):
         print_("beta_from_phase: Less than three BPMs for plane " + plane + ". Returning empty values.")
         return ({}, 0.0, {}, errors_method)
@@ -942,43 +1240,43 @@ def get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i
  
     for n in left_combo:
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_right(bpm_name[n[0]], bpm_name[n[1]], bpm_name[probed_index], madTwiss, phase, plane, phase_err[n[0]], phase_err[n[1]], phase_err[probed_index])
-        if use_it:
-            t_matrix_row = [0] * (RANGE-1)
-            t_matrix_row[RANGE-2 - n[0]] = t1
-            t_matrix_row[RANGE-2 - n[1]] = t2
-            patternstr = ["x"] * RANGE
-            patternstr[n[0]] = "B"
-            patternstr[n[1]] = "B"
-            patternstr[probed_index] = "A"
-            candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
+        
+        t_matrix_row = [0] * (RANGE-1)
+        t_matrix_row[RANGE-2 - n[0]] = t1
+        t_matrix_row[RANGE-2 - n[1]] = t2
+        patternstr = ["x"] * RANGE
+        patternstr[n[0]] = "B"
+        patternstr[n[1]] = "B"
+        patternstr[probed_index] = "A"
+        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
     for n in mid_combo:
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_mid(bpm_name[n[0]], bpm_name[probed_index], bpm_name[n[1]], madTwiss, phase, plane, phase_err[n[0]], phase_err[probed_index], phase_err[n[1]])
-        if use_it:
-            t_matrix_row = [0] * (RANGE - 1)
-            t_matrix_row[RANGE - 2 - n[0]] = t1
-            t_matrix_row[n[1] - 1 - probed_index] = t2
-            patternstr = ["x"] * RANGE
-            patternstr[n[0]] = "B"
-            patternstr[n[1]] = "B"
-            patternstr[probed_index] = "A"
-            candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
+   
+        t_matrix_row = [0] * (RANGE - 1)
+        t_matrix_row[RANGE - 2 - n[0]] = t1
+        t_matrix_row[n[1] - 1 - probed_index] = t2
+        patternstr = ["x"] * RANGE
+        patternstr[n[0]] = "B"
+        patternstr[n[1]] = "B"
+        patternstr[probed_index] = "A"
+        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
     for n in right_combo:
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_left(bpm_name[probed_index], bpm_name[n[0]], bpm_name[n[1]], madTwiss, phase, plane, phase_err[probed_index], phase_err[n[0]], phase_err[n[1]])
-        if use_it:
-            t_matrix_row = [0] * (RANGE-1)
-            t_matrix_row[n[0] - 1 - probed_index] = t1
-            t_matrix_row[n[1] - 1 - probed_index] = t2
-            patternstr = ["x"] * RANGE
-            patternstr[n[0]] = "B"
-            patternstr[n[1]] = "B"
-            patternstr[probed_index] = "A"
-            candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
+      
+        t_matrix_row = [0] * (RANGE-1)
+        t_matrix_row[n[0] - 1 - probed_index] = t1
+        t_matrix_row[n[1] - 1 - probed_index] = t2
+        patternstr = ["x"] * RANGE
+        patternstr[n[0]] = "B"
+        patternstr[n[1]] = "B"
+        patternstr[probed_index] = "A"
+        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
 
-    #sort_cand = sorted(candidates, key=lambda x: x[4])
-    #return [sort_cand[i] for i in range(NUM_BPM_COMBOS)], bpm_name[probed_index], M
-    return candidates, bpm_name[probed_index], M
+    sort_cand = sorted(candidates, key=lambda x: x[4])
+    return [sort_cand[i] for i in range(number_of_bpms)], bpm_name[probed_index], M
+#     return candidates, bpm_name[probed_index], M
 
 
 def _beta_from_phase_BPM_left(bn1, bn2, bn3, madTwiss, phase, plane, p1, p2, p3, is3BPM=False):
@@ -1028,10 +1326,6 @@ def _beta_from_phase_BPM_left(bn1, bn2, bn3, madTwiss, phase, plane, p1, p2, p3,
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
         
-    if not is3BPM and (
-        bad_phase(phmdl12) or bad_phase(phmdl13) or bad_phase(phmdl12 - phmdl13) or bad_phase(ph2pi12) or bad_phase(ph2pi13) or bad_phase(ph2pi12 - ph2pi13)):
-        return 0, 0, 0, 0, 0, 0, 0, False
-
     # Find beta1 and alpha1 from phases assuming model transfer matrix
     # Matrix M: BPM1-> BPM2
     # Matrix N: BPM1-> BPM3
@@ -1112,11 +1406,6 @@ def _beta_from_phase_BPM_mid(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM=F
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
         
-    if not is3BPM and (
-        bad_phase(phmdl12) or bad_phase(phmdl23) or bad_phase(phmdl23 - phmdl12) or 
-        bad_phase(ph2pi12) or bad_phase(ph2pi23) or bad_phase(ph2pi12 - ph2pi23)):
-        return 0, 0, 0, 0, 0, 0, 0, False
-
 
     # Find beta2 and alpha2 from phases assuming model transfer matrix
     # Matrix M: BPM1-> BPM2
@@ -1199,10 +1488,6 @@ def _beta_from_phase_BPM_right(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM
         print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
         sys.exit(1)
 
-    if not is3BPM and (
-        bad_phase(phmdl23) or bad_phase(phmdl13) or bad_phase(phmdl13 - phmdl23) or
-        bad_phase(ph2pi13) or bad_phase(ph2pi23) or bad_phase(ph2pi13 - ph2pi23)):
-        return 0, 0, 0, 0, 0, 0, 0, False
     # Find beta3 and alpha3 from phases assuming model transfer matrix
     # Matrix M: BPM2-> BPM3
     # Matrix N: BPM1-> BPM3
@@ -1282,6 +1567,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
     print_("INFO: errorfile given. Create list_of_Ks")
     list_of_Ks = []
     
+    
     errors_method = "Analytical Formula"
     print_("Errors from " + errors_method)
    
@@ -1291,6 +1577,8 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
     # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
     # k=1: transversal sextupole missalignments
     # k=2: longitudinal quadrupole missalignments
+    el = errorfile.elements
+    
     for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
         index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
         index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
@@ -1298,35 +1586,39 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
         quad_fields = []
         sext_trans = []
         quad_missal = []
-               
+
         if index_n < index_nplus1:
             for i in range(index_n + 1, index_nplus1):
-                if errorfile.dK1[i] != 0:
+                
+                if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
-                if errorfile.dX[i] != 0:
+                if el[i, DX_INDEX] != 0:
                     sext_trans.append(i)
-                if errorfile.dS[i] != 0:
+                if el[i, DS_INDEX] != 0:
                     quad_missal.append(i)
                     
         else:
-            for i in range(index_n + 1, len(errorfile.NAME)):
-                if errorfile.dK1[i] != 0:
+            for i in range(index_n + 1, errorfile.size):
+                if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
-                if errorfile.dX[i] != 0:
+                if el[i, DX_INDEX] != 0:
                     sext_trans.append(i)
-                if errorfile.dS[i] != 0:
+                if el[i, DS_INDEX] != 0:
                     quad_missal.append(i)
                     
             for i in range(index_nplus1):  # ums Eck
-                if errorfile.dK1[i] != 0:
+                if el[i, DK1_INDEX] != 0:
                     quad_fields.append(i)
-                if errorfile.dX[i] != 0:
+                if el[i, DX_INDEX] != 0:
                     sext_trans.append(i)
-                if errorfile.dS[i] != 0:
+                if el[i, DS_INDEX] != 0:
                     quad_missal.append(i)
-       
+                    
         list_of_Ks.append([quad_fields, sext_trans, quad_missal])
-              
+        
+    print_("done creating list of Ks")
+#     print list_of_Ks
+
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
     right_bpm = range(0 + 1, width + 1)
@@ -1682,26 +1974,32 @@ def get_beta_from_phase_systematic_errors(madTwiss, errorfile, phase, plane, com
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][0])):
-            err_diagonal[k + position] = errorfile.dK1[list_of_Ks[index][0][k]] ** 2
+
+            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][0][k], DK1_INDEX] ** 2
+
         position += len(list_of_Ks[index][0])
         
         #---- assign sextupole transversal missalignments
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][1])):
-            err_diagonal[k + position] = errorfile.dX[list_of_Ks[index][1][k]] ** 2
+
+            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][1][k], DX_INDEX] ** 2
+
         position += len(list_of_Ks[index][1])
         
         #---- assign longitudinal missalignments
     for j in range(RANGE):
         index = (CurrentIndex + j) % len(list_of_Ks)
         for k in range(len(list_of_Ks[index][2])):
-            err_diagonal[k + position] = errorfile.dS[list_of_Ks[index][2][k]] ** 2
+
+            err_diagonal[k + position] = errorfile.elements[list_of_Ks[index][2][k], DS_INDEX] ** 2
+
         position += len(list_of_Ks[index][2])
         
         #---- assign BPM missalignments
     for j in range(RANGE):
-        err_diagonal[j + position] = errorfile.dS[errorfile.indx[bpm_name[j]]] ** 2
+        err_diagonal[j + position] = errorfile.elements[errorfile.indx[bpm_name[j]], DS_INDEX] ** 2
         
     M = np.diag(err_diagonal)
                
@@ -1821,6 +2119,8 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         sys.exit(1)
     if (bad_phase(phmdl12) or bad_phase(phmdl13) or bad_phase(phmdl12 - phmdl13)) or bad_phase(ph2pi12) or bad_phase(ph2pi13) or bad_phase(ph2pi12 - ph2pi13):
         return MeasuredValues(0, 0), [], []
+    
+    elements = errorfile.elements
    
     phmdl12 *= TWOPI
     phmdl13 *= TWOPI
@@ -1885,12 +2185,12 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
        
     #--- Quad Fielderrors
     _assign_quaderrors(I, bi1, bi2,
-                       errorfile, list_of_Ks,
+                       elements, list_of_Ks,
                        denomalf, s_i2, T, T_Alf, phi_2, -frac, K_offset,
                        .5, .5)
        
     K_offset = _assign_quaderrors(I, bi1, bi3,
-                                  errorfile, list_of_Ks,
+                                  elements, list_of_Ks,
                                   denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                   .5, .5)
             
@@ -1901,12 +2201,12 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][1])
         
     _assign_sext_errors(I, bi1, bi2,
-                        errorfile, list_of_Ks,
+                        elements, list_of_Ks,
                         denomalf, s_i2, T, T_Alf, phi_2, frac, K_offset,
                         -.5, .5)
     
     K_offset = _assign_sext_errors(I, bi1, bi3,
-                                   errorfile, list_of_Ks,
+                                   elements, list_of_Ks,
                                    denomalf, s_i3, T, T_Alf, phi_3, -frac, K_offset,
                                    -.5, .5)
 
@@ -1917,12 +2217,12 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][2])
 
     _assign_quadlongmissal(I, bi1, bi2,
-                           errorfile, list_of_Ks,
+                           elements, list_of_Ks,
                            denomalf, s_i2, T, T_Alf, phi_2, -frac, K_offset,
                            .5, .5)
        
     K_offset = _assign_quadlongmissal(I, bi1, bi3,
-                                      errorfile, list_of_Ks,
+                                      elements, list_of_Ks,
                                       denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                       .5, .5)
     
@@ -1935,15 +2235,15 @@ def _beta_from_phase_BPM_ABB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if errorfile.dS[errindx1] != 0:
-        numerphi = -1.0 / (betmdl2 * sin(phmdl12) ** 2) + 1.0 / (betmdl3 * sin(phmdl13) ** 2)
-        T[K_offset + bi1] = numerphi / denom
+    if elements[errindx1, DS_INDEX] != 0:
+        numerphi = -1.0 / (betmdl1 * sin(phmdl12) ** 2) + 1.0 / (betmdl1 * sin(phmdl13) ** 2)
+        T[K_offset + bi1] = numerphi / denom - 2 * alfmdl1
           
-    if errorfile.dS[errindx2] != 0:
+    if elements[errindx2, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl12) ** 2)
         T[K_offset + bi2] = numerphi / denom
        
-    if errorfile.dS[errindx3] != 0:
+    if elements[errindx3, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl3 * sin(phmdl13) ** 2)
         T[K_offset + bi3] = numerphi / denom
          
@@ -2019,6 +2319,8 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if bad_phase(phmdl21) or bad_phase(phmdl23) or bad_phase(phmdl23 - phmdl21) or bad_phase(ph2pi21) or bad_phase(ph2pi23) or bad_phase(ph2pi21 - ph2pi23):
         return MeasuredValues(0, 0), [], []
     
+    elements = errorfile.elements
+    
     phmdl21 *= TWOPI
     phmdl23 *= TWOPI
     ph2pi21 *= TWOPI
@@ -2074,13 +2376,13 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         
     #--- Quad Fielderrors
     K_offset = _assign_quaderrors(I, bi1, bi2,
-                                  errorfile, list_of_Ks,
+                                  elements, list_of_Ks,
                                   denomalf, s_i1, T, T_Alf, phi_1, frac,
                                   K_offset,
                                   -.5, .5)
      
     K_offset = _assign_quaderrors(I, bi2, bi3,
-                                  errorfile, list_of_Ks,
+                                  elements, list_of_Ks,
                                   denomalf, s_i3, T, T_Alf, phi_3, frac,
                                   K_offset,
                                   .5, .5)
@@ -2092,12 +2394,12 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][1])
         
     K_offset = _assign_sext_errors(I, bi1, bi2,
-                                   errorfile, list_of_Ks,
+                                   elements, list_of_Ks,
                                    denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset,
                                    .5, .5)
                 
     K_offset = _assign_sext_errors(I, bi2, bi3,
-                                   errorfile, list_of_Ks,
+                                   elements, list_of_Ks,
                                    denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                    -.5, .5)
     #--- Quad Longitudinal Missalignments
@@ -2107,12 +2409,12 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][2])
 
     K_offset = _assign_quadlongmissal(I, bi1, bi2,
-                                      errorfile, list_of_Ks,
+                                      elements, list_of_Ks,
                                       denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset,
                                       -.5, .5)
     
     K_offset = _assign_quadlongmissal(I, bi2, bi3,
-                                      errorfile, list_of_Ks,
+                                      elements, list_of_Ks,
                                       denomalf, s_i3, T, T_Alf, phi_3, frac, K_offset,
                                       .5, .5)
     #--- BPM Missalignments
@@ -2124,15 +2426,15 @@ def _beta_from_phase_BPM_BAB_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if errorfile.dS[errindx2] != 0:
-        numerphi = -1.0 / (betmdl1 * sin(phmdl21) ** 2) + 1.0 / (betmdl3 * sin(phmdl23) ** 2)
-        T[K_offset + bi2] = numerphi / denom
+    if elements[errindx2, DS_INDEX] != 0:
+        numerphi = -1.0 / (betmdl2 * sin(phmdl21) ** 2) + 1.0 / (betmdl2 * sin(phmdl23) ** 2)
+        T[K_offset + bi2] = numerphi / denom - 2.0 * alpmdl2
           
-    if errorfile.dS[errindx1] != 0:
+    if elements[errindx1, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl1 * sin(phmdl21) ** 2)
         T[K_offset + bi1] = numerphi / denom
        
-    if errorfile.dS[errindx3] != 0:
+    if elements[errindx3, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl3 * sin(phmdl23) ** 2)
         T[K_offset + bi3] = numerphi / denom
      
@@ -2209,6 +2511,8 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     if bad_phase(phmdl32) or bad_phase(phmdl31) or bad_phase(phmdl31 - phmdl32) or bad_phase(ph2pi31) or bad_phase(ph2pi32) or bad_phase(ph2pi31 - ph2pi32):
         return MeasuredValues(0, 0), [], []
     
+    elements = errorfile.elements
+    
     phmdl31 *= TWOPI
     phmdl32 *= TWOPI
     ph2pi31 *= TWOPI
@@ -2267,16 +2571,11 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     K_begin = K_offset
     #K_offset = RANGE
     
-    # assign T matrix elements for phase errors between BPM 1 and 3
-    for k in range(bi1, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        for w in range(len(list_of_Ks[which_k][0])):
-            idx_k = list_of_Ks[which_k][0][w]
-            err_beta = -frac * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][0])
+    K_offset = _assign_quaderrors(I, bi1, bi3,
+                                  elements, list_of_Ks,
+                                  denomalf, s_i1, T, T_Alf, phi_1, -frac,
+                                  K_offset,
+                                  -.5, .5)
     
     # go back because the second h_ij begins at 2
     # so we have to find the position of BPM2 in the matrix
@@ -2284,17 +2583,12 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     for k in range(bi1, bi2):
         which_k = (k + I) % len(list_of_Ks)
         K_offset += len(list_of_Ks[which_k][0])
-    # and assign the T matrix alements between BPM 1 and 3
-    for k in range(bi2, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        
-        for w in range(len(list_of_Ks[which_k][0])):
-            idx_k = list_of_Ks[which_k][0][w]
-            err_beta = frac * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][0])
+     
+    K_offset = _assign_quaderrors(I, bi2, bi3,
+                                  elements, list_of_Ks,
+                                  denomalf, s_i2, T, T_Alf, phi_2, frac,
+                                  K_offset,
+                                  -.5, .5)
     
     #--- Sext Trasverse Missalignments
     # jump to the end of RANGE then to b1
@@ -2304,31 +2598,20 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][1])
     K_begin = K_offset
     
-    for k in range(bi1, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        for w in range(len(list_of_Ks[which_k][1])):
-            idx_k = list_of_Ks[which_k][1][w]
-            err_beta = SEXT_FACT * frac * errorfile.K2L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += .5 * SEXT_FACT * errorfile.K2L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][1])
-        
+    K_offset = _assign_sext_errors(I, bi1, bi3,
+                                   elements, list_of_Ks,
+                                   denomalf, s_i1, T, T_Alf, phi_1, -frac, K_offset,
+                                   .5, .5)
+    
     K_offset = K_begin
     for k in range(bi1, bi2):
         which_k = (k + I) % len(list_of_Ks)
         K_offset += len(list_of_Ks[which_k][1])
-    # and assign the T matrix alements between BPM 1 and 3
-    for k in range(bi2, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        
-        for w in range(len(list_of_Ks[which_k][1])):
-            idx_k = list_of_Ks[which_k][1][w]
-            err_beta = -SEXT_FACT * frac * errorfile.K2L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += .5 * SEXT_FACT * errorfile.K2L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][1])
+                
+    K_offset = _assign_sext_errors(I, bi2, bi3,
+                                   elements, list_of_Ks,
+                                   denomalf, s_i2, T, T_Alf, phi_2, frac, K_offset,
+                                   .5, .5)
     
     #--- Quad Longitudinal Missalignments
     # jump to the end of RANGE then to b1
@@ -2337,33 +2620,23 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     for k in range(bi1):
         K_offset += len(list_of_Ks[(k + I) % len(list_of_Ks)][2])
     K_begin = K_offset
-      
-    for k in range(bi1, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        for w in range(len(list_of_Ks[which_k][2])):
-            idx_k = list_of_Ks[which_k][2][w]
-            err_beta = -frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][2])
-        
+    
+    K_offset = _assign_quadlongmissal(I, bi1, bi3,
+                                      elements, list_of_Ks,
+                                      denomalf, s_i1, T, T_Alf, phi_1, -frac, K_offset,
+                                      -.5, .5)
+    
     K_offset = K_begin
     for k in range(bi1, bi2):
         which_k = (k + I) % len(list_of_Ks)
         K_offset += len(list_of_Ks[which_k][2])
-    # and assign the T matrix alements between BPM 1 and 3
-    for k in range(bi2, bi3):
-        which_k = (k + I) % len(list_of_Ks)
-        
-        for w in range(len(list_of_Ks[which_k][2])):
-            idx_k = list_of_Ks[which_k][2][w]
-            err_beta = frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
-            T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += -.5 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_2) ** 2 / s_i2)
-            T_Alf[K_offset + w] += .5 * err_beta * denomalf
-        K_offset += len(list_of_Ks[which_k][2])
-        
+    
+    K_offset = _assign_quadlongmissal(I, bi2, bi3,
+                                      elements, list_of_Ks,
+                                      denomalf, s_i2, T, T_Alf, phi_2, frac, K_offset,
+                                      -.5, .5)
+      
+   
     #--- BPM Missalignments
     # jump to end of RANGE
     for k in range(bi3, RANGE):
@@ -2373,15 +2646,15 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     errindx2 = errorfile.indx[bn2]
     errindx3 = errorfile.indx[bn3]
       
-    if errorfile.dS[errindx3] != 0:
-        numerphi = -1.0 / (betmdl2 * sin(phmdl32) ** 2) + 1.0 / (betmdl1 * sin(phmdl31) ** 2)
-        T[K_offset + bi3] = numerphi / denom
+    if elements[errindx3, DS_INDEX] != 0:
+        numerphi = -1.0 / (betmdl3 * sin(phmdl32) ** 2) + 1.0 / (betmdl3 * sin(phmdl31) ** 2)
+        T[K_offset + bi3] = numerphi / denom - 2.0 * alpmdl3
           
-    if errorfile.dS[errindx2] != 0:
+    if elements[errindx2, DS_INDEX] != 0:
         numerphi = 1.0 / (betmdl2 * sin(phmdl32) ** 2)
         T[K_offset + bi2] = numerphi / denom
        
-    if errorfile.dS[errindx1] != 0:
+    if elements[errindx1, DS_INDEX] != 0:
         numerphi = -1.0 / (betmdl1 * sin(phmdl31) ** 2)
         T[K_offset + bi1] = numerphi / denom
             
@@ -2393,14 +2666,14 @@ def _beta_from_phase_BPM_BBA_with_systematicerrors(I, bn1, bn2, bn3, bi1, bi2, b
     return MeasuredValues(alf, bet, "".join(patternstr), True), T, T_Alf
 
 
-def _assign_quaderrors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, sinus_ij_squared, T_Bet, T_Alf, reference_phi, frac, K_offset, Alf_fact_1, Alf_fact_2):
+def _assign_quaderrors(I, bi1, bi2, elements, list_of_Ks, denomalf, sinus_ij_squared, T_Bet, T_Alf, reference_phi, frac, K_offset, Alf_fact_1, Alf_fact_2):
     for k in range(bi1, bi2):
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][0])):
             idx_k = list_of_Ks[whichK][0][w]
-            err_beta = frac * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
+            err_beta = frac * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
             T_Bet[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
+            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - reference_phi) ** 2 / sinus_ij_squared)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][0])
@@ -2408,14 +2681,14 @@ def _assign_quaderrors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, sinus_ij_sq
     return K_offset
 
 
-def _assign_sext_errors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
+def _assign_sext_errors(I, bi1, bi2, elements, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
     for k in range(bi1, bi2):
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][1])):
             idx_k = list_of_Ks[whichK][1][w]
-            err_beta = -SEXT_FACT * frac * errorfile.K2L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = -SEXT_FACT * frac * elements[idx_k, K2L_INDEX] * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * SEXT_FACT * errorfile.K2L[idx_k] * errorfile.BET[idx_k] * (sin(errorfile.MU[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += Alf_fact_1 * SEXT_FACT * elements[idx_k, K2L_INDEX] * elements[idx_k, BET_INDEX] * (sin(elements[idx_k, MU_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][1])
@@ -2423,14 +2696,14 @@ def _assign_sext_errors(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T, T
     return K_offset
 
 
-def _assign_quadlongmissal(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
+def _assign_quadlongmissal(I, bi1, bi2, elements, list_of_Ks, denomalf, s_i1, T, T_Alf, phi_1, frac, K_offset, Alf_fact_1, Alf_fact_2):
     for k in range(bi1, bi2):
         whichK = (k + I) % len(list_of_Ks)
         for w in range(len(list_of_Ks[whichK][2])):
             idx_k = list_of_Ks[whichK][2][w]
-            err_beta = frac * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
+            err_beta = frac * elements[idx_k, K1LEND_INDEX] * elements[idx_k, BETEND_INDEX] * (sin(elements[idx_k, MUEND_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T[K_offset + w] += err_beta
-            T_Alf[K_offset + w] += Alf_fact_1 * errorfile.K1LEND[idx_k] * errorfile.BETEND[idx_k] * (sin(errorfile.MUEND[idx_k] * TWOPI - phi_1) ** 2 / s_i1)
+            T_Alf[K_offset + w] += Alf_fact_1 * elements[idx_k, K1LEND_INDEX] * elements[idx_k, BETEND_INDEX] * (sin(elements[idx_k, MUEND_INDEX] * TWOPI - phi_1) ** 2 / s_i1)
             T_Alf[K_offset + w] += Alf_fact_2 * err_beta * denomalf
         
         K_offset += len(list_of_Ks[whichK][2])
@@ -2532,6 +2805,8 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     
     # if something in loading / writing the files goes wrong, return None
     # which forces the script to fall back to 3bpm
+    
+       
     try:
         definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
         filename = "error_elements_" + plane + ".dat"

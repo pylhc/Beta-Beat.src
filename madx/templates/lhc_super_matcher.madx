@@ -1,11 +1,9 @@
-
-!@require %(LHC_MODE)s
+!@require %(LIB)s
 !@require segments
 
 !!! Sequences definition
 option, -echo, -warn;
-    exec, define_lhc_links();
-    exec, load_main_sequence();
+    %(MAIN_SEQ)s
     exec, cycle_sequences();
     exec, define_nominal_beams();
     exec, set_default_crossing_scheme();

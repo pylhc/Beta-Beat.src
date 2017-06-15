@@ -393,6 +393,7 @@ def _intial_setup(getllm_d, model_filename, dict_file):
         print >> sys.stderr, "Provide a valid model file."
         sys.exit(1)
         
+    print "INFO: setting up accelerator definition. Should be replaced by accelerator class interface ..."
     accel, getllm_d.ACDC_defs = setup_ACCEL_def(model_filename.replace("twiss.dat", "accel_def"), getllm_d.accel)
     if getllm_d.accel == "MISC":
         getllm_d.accel = accel
@@ -407,13 +408,13 @@ def _intial_setup(getllm_d, model_filename, dict_file):
             
             mad_ac = Python_Classes4MAD.metaclass.twiss(ac_filename)  # model with ac dipole : Twiss instance
             getllm_d.with_ac_calc = True
-            print "Driven Twiss file found.\nAC dipole effects calculated with the effective model (get***_free2.out). INFO: ADT will be omitted"
+            print "[ACD compensation] Driven Twiss file found. - - AC dipole effects calculated with the effective model (get***_free2.out)."
             try:
                 mad_ac_best_knowledge = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_ac_best_knowledge.dat"))
-                print "Best knowledge model found for AC diapole, it will be used for beta calculation."
+                print "[ACD compensation] Best knowledge model found for AC dipole, it will be used for beta calculation."
             except IOError:
                 mad_ac_best_knowledge = mad_ac
-                print "Best knowledge model not found for AC diapole."
+                print "[ACD compensation] Best knowledge model not found for AC dipole."
             getllm_d.acdipole = "ACD"
         if os.path.exists(adt_filename):
             if getllm_d.acdipole == "ACD":
@@ -423,23 +424,23 @@ def _intial_setup(getllm_d, model_filename, dict_file):
     
             mad_ac = Python_Classes4MAD.metaclass.twiss(adt_filename)  # model with ac dipole : Twiss instance
             getllm_d.with_ac_calc = True
-            print "Driven Twiss file found. ADT-AC-dipole effects calculated with the effective model (get***_free2.out)."
-            print "Note: Using normal AC Dipole will be omitted."
+            print "[ADT compensation] Driven Twiss file found. ADT-AC-dipole effects calculated with the effective model (get***_free2.out)."
             try:
                 mad_ac_best_knowledge = Python_Classes4MAD.metaclass.twiss(model_filename.replace(".dat", "_adt_best_knowledge.dat"))
-                print "Best knowledge model found for ADT-AC-dipole, it will be used for beta calculation."
+                print "[ADT compensation] Best knowledge model found for ADT-AC-dipole, it will be used for beta calculation."
             except IOError:
                 mad_ac_best_knowledge = mad_ac
-                print "Best knowledge model not found for ADT-AC-dipole."
+                print "[ADT compensation] Best knowledge model not found for ADT-AC-dipole."
             getllm_d.acdipole = "ADT"
-        else:
-            print "WARN: AC dipole effects not calculated. Driven twiss file does not exist !"
+        if getllm_d.acdipole != "ACD" and getllm_d.acdipole != "ADT":
+            print "[AC Dipole compensation] <<<< No AC Dipole compensation >>>>"
             mad_ac = mad_twiss
             mad_ac_best_knowledge = mad_twiss
     except IOError:
         mad_ac = mad_twiss
         mad_ac_best_knowledge = mad_twiss
-        print "WARN: IOError in loading ac/adt file."
+        print "[AC Dipole compensation] WARN: IOError in loading ac/adt file."
+
 
 
     #-- Test if the AC dipole (MKQA) is in the model of LHC
@@ -473,8 +474,25 @@ def _intial_setup(getllm_d, model_filename, dict_file):
     except IOError:
         mad_best_knowledge = mad_twiss
         print "Best knowledge model not found."
+        
+    # look for file with important BPM pairs
+    pairsfilename = os.path.dirname(model_filename) + "/important_pairs"
+    if os.path.exists(pairsfilename):
+        getllm_d.important_pairs = {}
+        pair_file = open(pairsfilename)
+        for line in pair_file:
+            key_value = line.split(":")
+            key = key_value[0].strip()
+            value = key_value[1].strip()
+            if key in getllm_d.important_pairs:
+                getllm_d.important_pairs[key].append(value)
+            else:
+                getllm_d.important_pairs[key] = [value]
 
     return mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre
+
+
+
 # END _intial_setup ---------------------------------------------------------------------------------
 
 
@@ -1043,6 +1061,7 @@ class _GetllmData(object):
         self.nprocesses = 1
         self.with_ac_calc = False
         self.acdipole = "None"
+        self.important_pairs = {}
         self.ACDC_defs = {}
 
     def set_outputpath(self, outputpath):

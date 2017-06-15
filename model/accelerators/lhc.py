@@ -28,10 +28,6 @@ class LhcExcitationMode(object):
 
 class Lhc(Accelerator):
     NAME = "lhc"
-
-    INT_TUNE_X = 64.
-    INT_TUNE_Y = 59.
-
     MACROS_NAME = "lhc"
 
     def __init__(self):
@@ -43,6 +39,7 @@ class Lhc(Accelerator):
         self.drv_tune_y = None
         self.energy = None
         self.dpp = 0.0
+        self.xing = None
 
     @classmethod
     def init_from_args(cls, args):
@@ -68,6 +65,7 @@ class Lhc(Accelerator):
         instance.energy = options.energy
         instance.optics_file = options.optics
         instance.fullresponse = options.fullresponse
+        instance.xing = options.xing
         instance.verify_object()
         return instance, rest_args
 
@@ -190,6 +188,12 @@ class Lhc(Accelerator):
             dest="fullresponse",
             action="store_true",
         )
+        parser.add_argument(
+            "--xing",
+            help=("If present, x-ing  angles will be applied to model"),
+            dest="xing",
+            action="store_true",
+        )
         return parser
 
     def verify_object(self):  # TODO: Maybe more checks?
@@ -207,21 +211,27 @@ class Lhc(Accelerator):
             )
         if self.excitation is None:
             raise AcceleratorDefinitionError("Excitation mode not set.")
+        if self.xing is None:
+            raise AcceleratorDefinitionError("Crossing on or off not set.")
         if (self.excitation == LhcExcitationMode.ACD or
                 self.excitation == LhcExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise AcceleratorDefinitionError("Driven tunes not set.")
 
-    def get_nominal_tmpl(self):
-        return self.get_file("nominal.madx")
+    @classmethod
+    def get_nominal_tmpl(cls):
+        return cls.get_file("nominal.madx")
 
-    def get_best_knowledge_tmpl(self):
-        return self.get_file("best_knowledge.madx")
+    @classmethod
+    def get_best_knowledge_tmpl(cls):
+        return cls.get_file("best_knowledge.madx")
 
-    def get_segment_tmpl(self):
-        return self.get_file("segment.madx")
+    @classmethod
+    def get_segment_tmpl(cls):
+        return cls.get_file("segment.madx")
 
-    def get_file(self, filename, beam=None):
+    @classmethod
+    def get_file(cls, filename, beam=None):
         if beam is None:
             return os.path.join(CURRENT_DIR, "lhc", filename)
         elif beam == 1:
@@ -251,6 +261,7 @@ class LhcSegment(Lhc):
         self.label = None
         self.start = None
         self.end = None
+        self.xing = None
 
     @classmethod
     def init_from_args(cls, args):
@@ -287,6 +298,8 @@ class LhcSegment(Lhc):
                 "The accelerator definition is incomplete, optics "
                 "file has not been specified."
             )
+        if self.xing is None:
+            raise AcceleratorDefinitionError("Crossing on or off not set.")
         if self.label is None:
             raise AcceleratorDefinitionError("Segment label not set.")
         if self.start is None:
@@ -309,9 +322,6 @@ class _LhcB2Mixin(object):
 
 class LhcAts(Lhc):
     MACROS_NAME = "lhc_runII_ats"
-
-    INT_TUNE_X = 62.
-    INT_TUNE_Y = 60.
 
 
 # Specific accelerator definitions ###########################################

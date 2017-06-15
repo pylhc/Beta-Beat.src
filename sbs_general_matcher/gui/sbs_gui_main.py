@@ -6,7 +6,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
 from contextlib import contextmanager
 from sbs_gui_matcher_selection import SbSGuiMatcherSelection
-from widgets import InitialConfigPopup
+from widgets import InitialConfigPopup, LogDialog
 from sbs_gui_match_result_view import SbSGuiMatchResultView
 import sbs_general_matcher
 
@@ -23,6 +23,8 @@ class SbSGuiMain(QtWidgets.QMainWindow):
 
         self._controller = controller
         self._active_background_dialog = None
+        self._log_dialog = LogDialog(parent=self)
+        logging.getLogger("").addHandler(self._log_dialog)
         self._build_gui()
 
     def _build_gui(self):
@@ -41,6 +43,7 @@ class SbSGuiMain(QtWidgets.QMainWindow):
         matchers_menu.addAction(self._get_new_matcher_action())
         matchers_menu.addAction(self._get_clone_matcher_action())
         matchers_menu.addAction(self._get_remove_matcher_action())
+        main_menu.addAction(self._get_show_log_action())
 
     def add_tab(self, name, widget):
         self._main_widget._matchers_tabs_widget.addTab(widget, name)
@@ -55,7 +58,6 @@ class SbSGuiMain(QtWidgets.QMainWindow):
         self._active_background_dialog = SbSGuiMain.BackgroundTaskDialog(
             message, parent=self
         )
-        self._active_background_dialog.setModal(True)
         self._active_background_dialog.setVisible(True)
 
     def hide_background_task_dialog(self):
@@ -88,10 +90,20 @@ class SbSGuiMain(QtWidgets.QMainWindow):
         )
         return remove_matcher_action
 
+    def _get_show_log_action(self):
+        show_log_action = QtWidgets.QAction("Show log", self)
+        show_log_action.triggered.connect(
+            self._show_log
+        )
+        return show_log_action
+
     def _get_clone_matcher_action(self):
         clone_matcher_action = QtWidgets.QAction("Clone matcher", self)
         clone_matcher_action.triggered.connect(self._controller.clone_matcher)
         return clone_matcher_action
+
+    def _show_log(self):
+        self._log_dialog.show()
 
     class SbSMainWidget(QtWidgets.QWidget):
         def __init__(self, controller, parent=None):
@@ -138,7 +150,8 @@ class SbSGuiMain(QtWidgets.QMainWindow):
             )
             self.setWindowFlags(Qt.CustomizeWindowHint)
             self.setStandardButtons(QtWidgets.QMessageBox.NoButton)
-            self.resize(420, 240)
+            self.resize(520, 340)
+            self.setModal(True)
 
 
 class SbSGuiMainController(object):
@@ -226,9 +239,18 @@ class SbSGuiMainController(object):
         if result_code == QtWidgets.QDialog.Accepted:
             matcher_model = selection_dialog.get_selected_matcher()
             with self._heavy_task("Copying files..."):
-                matcher_model.create_matcher(self._match_path)
+                try:
+                    matcher_model.create_matcher(self._match_path)
+                except IOError as err:
+                    self._view.show_error_dialog(
+                        "Exception happened copying the files.",
+                        str(err),
+                    )
+                    LOGGER.exception("Exception happened copying the files.")
+                    return
             variables_for_beam = matcher_model.get_variables_for_beam()
             variables_common = matcher_model.get_common_variables()
+            matcher_model.disable_all_vars()
             tab_view = SbSGuiMatchResultView(
                 variables_for_beam,
                 variables_common,
@@ -247,9 +269,6 @@ class SbSGuiMainController(object):
         self._view.show_background_task_dialog(message)
         try:
             yield
-        except Exception as e:
-            LOGGER.exception(str(e))
-            self._view.show_error_dialog("Error", str(e))
         finally:
             self._view.hide_background_task_dialog()
 
@@ -307,8 +326,9 @@ class SbSGuiMainController(object):
             view = matcher_tab.view
             figure = view.get_figure()
             model_plotter = matcher_model.get_plotter(figure)
-            model_plotter.update_vars()
             model_plotter.plot()
+            model_plotter.update_vars_funct = view.update_variables
+            model_plotter.update_vars()
         self._current_thread = None
 
     def _on_match_exception(self, message):

@@ -23,7 +23,7 @@ import Utilities.bpm
 import compensate_ac_effect
 
 from beta import JPARC_intersect
-from beta import CALCULATE_BETA_HOR, CALCULATE_BETA_VER
+from Utilities import tfs_file_writer
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -106,6 +106,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
     if getllm_d.with_ac_calc:
         if twiss_d.has_zero_dpp_x():
             tune_d.q1f = tune_d.q1 - tune_d.delta1 #-- Free H-tune
+            print "::::::: ", tune_d.delta1
 
             #try:
             phase_d.acphasex_ac2bpmac = compensate_ac_effect.GetACPhase_AC2BPMAC(mad_elem, tune_d.q1, tune_d.q1f, 'H', getllm_d)
@@ -113,7 +114,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             #except AttributeError:
             #    phase_d.acphasex_ac2bpmac = compensate_ac_effect.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q1, tune_d.q1f, 'H', getllm_d.accel, getllm_d.acdipole)
             [phase_d.x_f, tune_d.muxf, bpmsxf] = compensate_ac_effect.get_free_phase_eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H',
-                                                                                                          getllm_d.beam_direction, mad_twiss.Q1%1, getllm_d)
+                                                                                        mad_twiss.Q1%1, getllm_d)
             [phase_d.x_f2, tune_d.muxf2, bpmsxf2] = _get_free_phase(phase_d.ph_x, tune_d.q1, tune_d.q1f, bpmsx, mad_ac, mad_twiss, "H")
         if twiss_d.has_zero_dpp_y():
             tune_d.q2f = tune_d.q2 - tune_d.delta2 #-- Free V-tune
@@ -122,7 +123,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             #except AttributeError:
             #    phase_d.acphasey_ac2bpmac = compensate_ac_effect.GetACPhase_AC2BPMAC(mad_twiss, tune_d.q2, tune_d.q2f, 'V', getllm_d.accel, getllm_d.acdipole)
             [phase_d.y_f, tune_d.muyf, bpmsyf] = compensate_ac_effect.get_free_phase_eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V',
-                                                                                                          getllm_d.beam_direction, mad_twiss.Q2%1, getllm_d)
+                                                                                        mad_twiss.Q2%1, getllm_d)
             [phase_d.y_f2, tune_d.muyf2, bpmsyf2] = _get_free_phase(phase_d.ph_y, tune_d.q2, tune_d.q2f, bpmsy, mad_ac, mad_twiss, "V")
 
     #---- H plane result
@@ -148,7 +149,23 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             bns2 = bpmsx[(i+1)%len(bpmsx)][0]
             list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.ph_x[bn1][0], phase_d.ph_x[bn1][1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
+        
+        important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
+        
+        important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+        important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
 
+        for bn1 in getllm_d.important_pairs:
+            if bn1 in phase_d.ph_x:
+                for bn2 in getllm_d.important_pairs[bn1]:
+                    key = "H" + bn1 + bn2
+                    if key in phase_d.ph_x:
+                        phmdl = phase_d.ph_x[bn1][4]
+                        
+                        imp_phase = phase_d.ph_x[key]
+                        list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
+                        important_x.add_table_row(list_row_entries)
+        important_x.write_to_file()
         #-- ac to free phase
         if getllm_d.with_ac_calc:
             #-- from eq
@@ -164,11 +181,32 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                     bn1 = str.upper(bpmsxf[i][1])
                     bns1 = bpmsxf[i][0]
                     phmdlf = phase_d.x_f[bn1][4]
-                    bn2 = str.upper(bpmsxf[(i+1)%len(bpmsxf)][1])
-                    bns2 = bpmsxf[(i+1)%len(bpmsxf)][0]
+                    if i == len(bpmsxf) - 1:
+                        bn2 = str.upper(bpmsxf[0][1])
+                        bns2 = bpmsxf[0][0]
+                    else:
+                        bn2 = str.upper(bpmsxf[i + 1][1])
+                        bns2 = bpmsxf[i + 1][0]
                     list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.x_f[bn1][0], phase_d.x_f[bn1][1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
-
+               
+                important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
+                
+                important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+                important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
+        
+                for bn1 in getllm_d.important_pairs:
+                    if bn1 in phase_d.x_f:
+                        for bn2 in getllm_d.important_pairs[bn1]:
+                                key = "H" + bn1 + bn2
+                                if key in phase_d.x_f:
+                                    bns1 = 0
+                                    phmdlf = phase_d.x_f[bn1][4]
+                                    bns2 = 0
+                                    imp_phase = phase_d.x_f[key]
+                                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
+                                    important_x.add_table_row(list_row_entries)
+                important_x.write_to_file()
             except Exception:
                 traceback.print_exc()
 
@@ -188,71 +226,124 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                 bns2 = phase_d.x_f2[bn1][4]
                 list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.x_f2[bn1][0], phase_d.x_f2[bn1][1], phmdlf2, mad_twiss.MUX[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
+#             for bn1 in IMPORTANT_PAIRS:
+#                 if bn1 in phase_d.x_f2:
+#                     for bn2 in IMPORTANT_PAIRS[bn1]:
+#                         bns1 = 0
+#                         phmdl = phase_d.x_f2[bn1][4]
+#                         bns2 = 0
+#                         imp_phase = phase_d.x_f2["H" + bn1 + bn2]
+#                         list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), imp_phase[0], imp_phase[1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
+#                         tfs_file.add_table_row(list_row_entries)
 
-    if CALCULATE_BETA_VER:
-        #---- V plane result
-        if twiss_d.has_zero_dpp_y():
-            phase_d.ph_y['DPP'] = 0.0
-            tfs_file = files_dict['getphasey.out']
-            tfs_file.add_float_descriptor("Q1", tune_d.q1)
-            tfs_file.add_float_descriptor("MUX", tune_d.mux)
-            tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            tfs_file.add_float_descriptor("MUY", tune_d.muy)
-            tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(len(bpmsy)):
-                bn1 = str.upper(bpmsy[i][1])
-                bns1 = bpmsy[i][0]
-                phmdl = phase_d.ph_y[bn1][4]
-                bn2 = str.upper(bpmsy[(i+1)%len(bpmsy)][1])
-                bns2 = bpmsy[(i+1)%len(bpmsy)][0]
-                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.ph_y[bn1][0], phase_d.ph_y[bn1][1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
-                tfs_file.add_table_row(list_row_entries)
-    
-            #-- ac to free phase
-            if getllm_d.with_ac_calc:
-                #-- from eq
-                try:
-                    tfs_file = files_dict['getphasey_free.out']
-                    tfs_file.add_float_descriptor("Q1", tune_d.q1f)
-                    tfs_file.add_float_descriptor("MUX", tune_d.muxf)
-                    tfs_file.add_float_descriptor("Q2", tune_d.q2f)
-                    tfs_file.add_float_descriptor("MUY", tune_d.muyf)
-                    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
-                    tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                    for i in range(len(bpmsyf)):
-                        bn1 = str.upper(bpmsyf[i][1])
-                        bns1 = bpmsyf[i][0]
-                        phmdlf = phase_d.y_f[bn1][4]
-                        if i == len(bpmsyf) - 1:
-                            bn2 = str.upper(bpmsyf[0][1])
-                            bns2 = bpmsyf[0][0]
-                        else:
-                            bn2 = str.upper(bpmsyf[i + 1][1])
-                            bns2 = bpmsyf[i + 1][0]
-                        list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.y_f[bn1][0], phase_d.y_f[bn1][1], phmdlf, mad_twiss.MUY[mad_twiss.indx[bn1]]]
-                        tfs_file.add_table_row(list_row_entries)
-    
-                except Exception:
-                    traceback.print_exc()
-    
-                #-- from the model
-                tfs_file = files_dict['getphasey_free2.out']
+    #---- V plane result
+    if twiss_d.has_zero_dpp_y():
+        phase_d.ph_y['DPP'] = 0.0
+        tfs_file = files_dict['getphasey.out']
+        tfs_file.add_float_descriptor("Q1", tune_d.q1)
+        tfs_file.add_float_descriptor("MUX", tune_d.mux)
+        tfs_file.add_float_descriptor("Q2", tune_d.q2)
+        tfs_file.add_float_descriptor("MUY", tune_d.muy)
+        tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
+        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        for i in range(len(bpmsy)):
+            bn1 = str.upper(bpmsy[i][1])
+            bns1 = bpmsy[i][0]
+            phmdl = phase_d.ph_y[bn1][4]
+            bn2 = str.upper(bpmsy[(i+1)%len(bpmsy)][1])
+            bns2 = bpmsy[(i+1)%len(bpmsy)][0]
+            list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.ph_y[bn1][0], phase_d.ph_y[bn1][1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+            tfs_file.add_table_row(list_row_entries)
+       
+        important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
+                
+        important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+        important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
+
+        for bn1 in getllm_d.important_pairs:
+            if bn1 in phase_d.ph_y:
+                for bn2 in getllm_d.important_pairs[bn1]:
+                    key = "V" + bn1 + bn2
+                    if key in phase_d.ph_y:
+                        bns1 = 0
+                        phmdl = phase_d.ph_y[bn1][4]
+                        bns2 = 0
+                        imp_phase = phase_d.ph_y[key]
+                        list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+                        important_x.add_table_row(list_row_entries)
+        important_x.write_to_file()
+
+        #-- ac to free phase
+        if getllm_d.with_ac_calc:
+            #-- from eq
+            try:
+                tfs_file = files_dict['getphasey_free.out']
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
-                tfs_file.add_float_descriptor("MUX", tune_d.muxf2)
+                tfs_file.add_float_descriptor("MUX", tune_d.muxf)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
-                tfs_file.add_float_descriptor("MUY", tune_d.muyf2)
+                tfs_file.add_float_descriptor("MUY", tune_d.muyf)
                 tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
                 tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpmsyf2)):
-                    bn1 = str.upper(bpmsyf2[i][1])
-                    bns1 = bpmsyf2[i][0]
-                    phmdlf2 = phase_d.y_f2[bn1][2]
-                    bn2 = phase_d.y_f2[bn1][3]
-                    bns2 = phase_d.y_f2[bn1][4]
-                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.y_f2[bn1][0], phase_d.y_f2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
+                for i in range(len(bpmsyf)):
+                    bn1 = str.upper(bpmsyf[i][1])
+                    bns1 = bpmsyf[i][0]
+                    phmdlf = phase_d.y_f[bn1][4]
+                    if i == len(bpmsyf) - 1:
+                        bn2 = str.upper(bpmsyf[0][1])
+                        bns2 = bpmsyf[0][0]
+                    else:
+                        bn2 = str.upper(bpmsyf[i + 1][1])
+                        bns2 = bpmsyf[i + 1][0]
+                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.y_f[bn1][0], phase_d.y_f[bn1][1], phmdlf, mad_twiss.MUY[mad_twiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
-                    
+               
+                important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
+                
+                important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+                important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
+        
+                for bn1 in getllm_d.important_pairs:
+                    if bn1 in phase_d.y_f:
+                        for bn2 in getllm_d.important_pairs[bn1]:
+                            key = "V" + bn1 + bn2
+                            if key in phase_d.y_f:
+                                phmdl = phase_d.y_f[bn1][4]
+                                bns2 = 0
+                                imp_phase = phase_d.y_f[key]
+                                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+                                important_x.add_table_row(list_row_entries)
+                important_x.write_to_file()
+
+
+            except Exception:
+                traceback.print_exc()
+
+            #-- from the model
+            tfs_file = files_dict['getphasey_free2.out']
+            tfs_file.add_float_descriptor("Q1", tune_d.q1f)
+            tfs_file.add_float_descriptor("MUX", tune_d.muxf2)
+            tfs_file.add_float_descriptor("Q2", tune_d.q2f)
+            tfs_file.add_float_descriptor("MUY", tune_d.muyf2)
+            tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "COUNT", "PHASEY", "STDPHY", "PHYMDL", "MUYMDL"])
+            tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+            for i in range(0, len(bpmsyf2)):
+                bn1 = str.upper(bpmsyf2[i][1])
+                bns1 = bpmsyf2[i][0]
+                phmdlf2 = phase_d.y_f2[bn1][2]
+                bn2 = phase_d.y_f2[bn1][3]
+                bns2 = phase_d.y_f2[bn1][4]
+                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.y_f2[bn1][0], phase_d.y_f2[bn1][1], phmdlf2, mad_twiss.MUY[mad_twiss.indx[bn1]]]
+                tfs_file.add_table_row(list_row_entries)
+#             for bn1 in IMPORTANT_PAIRS:
+#                 if bn1 in phase_d.y_f2:
+#                     for bn2 in IMPORTANT_PAIRS[bn1]:
+#                         bns1 = 0
+#                         phmdl = phase_d.y_f2[bn1][4]
+#                         bns2 = 0
+#                         imp_phase = phase_d.y_f2["V" + bn1 + bn2]
+#                         list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+#                         tfs_file.add_table_row(list_row_entries)
+                
 
     return phase_d, tune_d
 # END calculate_phase ------------------------------------------------------------------------------
@@ -295,7 +386,7 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac,
         if getllm_d.with_ac_calc:
             #-- from eq
             try:
-                [phase_x_tot_f, bpms_x_tot_f] = compensate_ac_effect.get_free_phase_total_eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d)
+                [phase_x_tot_f, bpms_x_tot_f] = compensate_ac_effect.get_free_phase_total_eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d)
                 tfs_file = files_dict['getphasetotx_free.out']
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("MUX", tune_d.muxf)
@@ -332,9 +423,8 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac,
                 list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_x_tot_f2[bn1][0], phase_x_tot_f2[bn1][1], phmdlf2, mad_twiss.MUX[mad_twiss.indx[bn1]]]
                 tfs_file.add_table_row(list_row_entries)
 
-    if CALCULATE_BETA_VER:
-        #---- V plane result
-        if twiss_d.has_zero_dpp_y():
+    #---- V plane result
+    if twiss_d.has_zero_dpp_y():
             [phase_y_tot, bpms_y_tot] = _get_phases_total(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
             tfs_file = files_dict['getphasetoty.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1)
@@ -356,7 +446,7 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac,
             if getllm_d.with_ac_calc:
                 #-- from eq
                 try:
-                    [phase_y_tot_f, bpms_y_tot_f] = compensate_ac_effect.get_free_phase_total_eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.lhc_phase)
+                    [phase_y_tot_f, bpms_y_tot_f] = compensate_ac_effect.get_free_phase_total_eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d)
                     tfs_file = files_dict['getphasetoty_free.out']
                     tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                     tfs_file.add_float_descriptor("MUX", tune_d.muxf)
@@ -529,6 +619,10 @@ def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, 
 
     return [phase_t, commonbpms]
 
+
+#IMPORTANT_PAIRS = {"BPMYA.5R6.B2": ["BPMWB.4R5.B2", "BPMWB.4R1.B2"]}
+
+
 def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
     """
     Calculates phase.
@@ -603,7 +697,16 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
     for i in range(length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
         bpms = [str.upper(commonbpms[j % length_commonbpms][1]) for j in range(i, i+11)] # seven consecutive monitors
         p_i = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[]} # dict for the six bpm pairs i.e. p_i[1] is for pair bpm[0], bpm[1]
-
+        
+        
+        
+        if bpms[0] in getllm_d.important_pairs:
+            number = 1
+            for second_bpm in getllm_d.important_pairs[bpms[0]]:
+                p_i[10 + number] = []
+                bpms.append(second_bpm)
+                number += 1
+                   
         for src_twiss in ListOfFiles:
             # Phase is in units of 2pi
             p_m = {}
@@ -612,8 +715,11 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             elif plane == 'V':
                 twiss_column = src_twiss.MUY
             for bpm_pair in p_i:
-                p_m[bpm_pair] = twiss_column[src_twiss.indx[bpms[bpm_pair]]] - twiss_column[src_twiss.indx[bpms[0]]]
-
+                try:
+                    p_m[bpm_pair] = twiss_column[src_twiss.indx[bpms[bpm_pair]]] - twiss_column[src_twiss.indx[bpms[0]]]
+                except:
+                    p_m[bpm_pair] = 10000000000
+                    
             #-- To fix the phase shift by tune_q in LHC
             if tune_q is not None:
                 try:
