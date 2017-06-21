@@ -20,7 +20,7 @@ class KmodMatcher(PhaseMatcher):
                 beatings_str += "table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ");\n"
 
         variables_s_str = ""
-        for variable in self.get_all_variables():
+        for variable in self.get_variables():
             variables_s_str += self.get_name() + '.' + variable + '_0' + ' = ' + variable + ';\n'
 
         return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
@@ -35,7 +35,7 @@ class KmodMatcher(PhaseMatcher):
         }
 
     @Matcher.override(PhaseMatcher)
-    def define_constraints(self, beam):
+    def define_constraints(self):
         constr_string = ""
         for plane in ["x", "y"]:
             this_kmod_data = self._get_kmod_data(plane)
