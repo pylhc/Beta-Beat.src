@@ -95,14 +95,13 @@ class Variable(object):
 
 class Element(object):
     """
-    Generic corrector element class that holds name, position (s) and classes
-    of the corrector. This element should represent a physical variable of the
+    Generic corrector element class that holds name and position (s)
+    of the corrector. This element should represent a physical element of the
     accelerator.
     """
-    def __init__(self, name, s, classes):
+    def __init__(self, name, s):
         self.name = name
         self.s = s
-        self.classes = classes
 
 
 class AcceleratorDefinitionError(Exception):

@@ -9,14 +9,13 @@ import matplotlib.pyplot as plt
 
 class SbSGuiMatchResultView(QtWidgets.QWidget):
 
-    def __init__(self, variables_for_beam, variables_common, parent=None):
+    def __init__(self, variables, parent=None):
         super(SbSGuiMatchResultView, self).__init__(parent)
 
         # Sent triggers
         self.toggle_var_action = lambda name, active, all: None
 
-        self._variables_for_beam = variables_for_beam
-        self._variables_common = variables_common
+        self._variables = variables
         self._build_gui()
 
     def _build_gui(self):
@@ -33,54 +32,20 @@ class SbSGuiMatchResultView(QtWidgets.QWidget):
         variables_frame = _BorderedGroupBox("Variables")
         variables_frame.setLayout(variables_layout)
 
-        self._beam1_vars_layout = QtWidgets.QVBoxLayout()
-        if not len(self._variables_for_beam[1]) == 0:
-            beam1_widget = QtWidgets.QWidget()
-            beam1_widget.setLayout(self._beam1_vars_layout)
-            beam1_scroll = QtWidgets.QScrollArea()
-            beam1_scroll.setWidgetResizable(True)
-            beam1_scroll.setWidget(beam1_widget)
-            beam1_vars_frame = _BorderedGroupBox("Beam 1")
-            beam1_vars_frame_layout = QtWidgets.QHBoxLayout()
-            beam1_vars_frame_layout.addWidget(beam1_scroll)
-            beam1_vars_frame.setLayout(beam1_vars_frame_layout)
-            variables_layout.addWidget(beam1_vars_frame)
-            for variable in self._variables_for_beam[1]:
-                self._beam1_vars_layout.addWidget(
-                    _CustomCheckBox(variable, self)
-                )
-
-        self._beam2_vars_layout = QtWidgets.QVBoxLayout()
-        if not len(self._variables_for_beam[2]) == 0:
-            beam2_widget = QtWidgets.QWidget()
-            beam2_widget.setLayout(self._beam2_vars_layout)
-            beam2_scroll = QtWidgets.QScrollArea()
-            beam2_scroll.setWidgetResizable(True)
-            beam2_scroll.setWidget(beam2_widget)
-            beam2_vars_frame = _BorderedGroupBox("Beam 2")
-            beam2_vars_frame_layout = QtWidgets.QHBoxLayout()
-            beam2_vars_frame_layout.addWidget(beam2_scroll)
-            beam2_vars_frame.setLayout(beam2_vars_frame_layout)
-            variables_layout.addWidget(beam2_vars_frame)
-            for variable in self._variables_for_beam[2]:
-                self._beam2_vars_layout.addWidget(
-                    _CustomCheckBox(variable, self)
-                )
-
-        self._common_vars_layout = QtWidgets.QVBoxLayout()
-        if not len(self._variables_common) == 0:
-            common_widget = QtWidgets.QWidget()
-            common_widget.setLayout(self._common_vars_layout)
-            common_scroll = QtWidgets.QScrollArea()
-            common_scroll.setWidgetResizable(True)
-            common_scroll.setWidget(common_widget)
-            common_vars_frame = _BorderedGroupBox("Common")
-            common_vars_frame_layout = QtWidgets.QHBoxLayout()
-            common_vars_frame_layout.addWidget(common_scroll)
-            common_vars_frame.setLayout(common_vars_frame_layout)
-            variables_layout.addWidget(common_vars_frame)
-            for variable in self._variables_common:
-                self._common_vars_layout.addWidget(
+        self._vars_layout = QtWidgets.QVBoxLayout()
+        if not len(self._variables) == 0:
+            widget = QtWidgets.QWidget()
+            widget.setLayout(self._vars_layout)
+            scroll = QtWidgets.QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(widget)
+            vars_frame = _BorderedGroupBox("")
+            vars_frame_layout = QtWidgets.QHBoxLayout()
+            vars_frame_layout.addWidget(scroll)
+            vars_frame.setLayout(vars_frame_layout)
+            variables_layout.addWidget(vars_frame)
+            for variable in self._variables:
+                self._vars_layout.addWidget(
                     _CustomCheckBox(variable, self)
                 )
 
@@ -130,13 +95,10 @@ class SbSGuiMatchResultView(QtWidgets.QWidget):
         self._loop_through_checkboxes(toggle)
 
     def _loop_through_checkboxes(self, function):
-        for layout in [self._beam1_vars_layout,
-                       self._beam2_vars_layout,
-                       self._common_vars_layout]:
-            for index in range(layout.count()):
-                checkbox = layout.itemAt(index).widget()
-                if issubclass(checkbox.__class__, QtWidgets.QCheckBox):
-                    function(checkbox)
+        for index in range(self._vars_layout.count()):
+            checkbox = self._vars_layout.itemAt(index).widget()
+            if issubclass(checkbox.__class__, QtWidgets.QCheckBox):
+                function(checkbox)
 
 
 class _CustomNavigationBar(NavigationToolbar):

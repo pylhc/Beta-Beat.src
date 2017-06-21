@@ -38,9 +38,15 @@ class FileSelectionComboWidget(QtWidgets.QWidget):
         layout.addWidget(label)
         self._items_combo = QtWidgets.QComboBox()
         layout.addWidget(self._items_combo)
+        self._items_combo.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToContents
+        )
         self._items_combo.addItems(initial_list + self.added_items)
+        self._items_combo.currentTextChanged.connect(self._item_change_action)
         self._select_button = QtWidgets.QPushButton("Add...")
         self._select_button.clicked.connect(self._select_file_action)
+        # To be replaced by some action:
+        self.on_item_change = lambda selected_text: None
         layout.addWidget(self._select_button)
 
     def get_selected_file(self):
@@ -57,6 +63,10 @@ class FileSelectionComboWidget(QtWidgets.QWidget):
         for text in text_list:
             self._items_combo.addItem(text)
         self._items_combo.setCurrentIndex(0)
+
+    def _item_change_action(self, selected_text):
+        if not selected_text.strip() == "":
+            self.on_item_change(selected_text)
 
     def _select_file_action(self):
         file_selection_dialog = QtWidgets.QFileDialog()
@@ -133,3 +143,12 @@ class LogDialog(QtWidgets.QDialog, logging.Handler):
     def emit(self, record):
         msg = self.format(record)
         self._update_signal.emit(msg)
+
+
+class MinimalButton(QtWidgets.QPushButton):
+    def __init__(self, text, parent=None):
+        super(MinimalButton, self).__init__(text, parent=parent)
+        double = text.count('&&')
+        text = text.replace('&', '') + ('&' * double)
+        width = self.fontMetrics().boundingRect(text).width() + 7
+        self.setMaximumWidth(width)
