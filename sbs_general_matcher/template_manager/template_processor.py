@@ -199,7 +199,7 @@ print, text = "=========== step for %(MACRO_NAME)s ===========";
         self._set_matching_macros_list.append(matching_macros)
 
     def _minimize_variables(self, matcher):
-        variables = matcher.get_all_variables()
+        variables = self._variables
         minimize_vars_str = ""
         # minimize_vars_str += '    constraint, weight = 1.0, expr = sqrt('
         # for variable in variables:
