@@ -184,29 +184,26 @@ class UncertaintyInformation:
 
 class ErrorFile:
     def __init__(self):
-        self.capacity = 2048
+       
         self.indx = {}
-        self.elements = np.ndarray(shape=(self.capacity,11), dtype="f8")
+        self.elements = None
         self.size = 0
+        self.names = []
         
     def add(self, uni):
-        if self.size == self.capacity:
-            self.capacity += 2048
-
-            newdata = np.ndarray(shape=(self.capacity,11), dtype="f8")
-            newdata[:self.size] = self.elements
-            self.elements = newdata
-            
+        if self.elements is None:
+            self.elements =  [0.0, uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds],
+        else:
+            self.elements = np.concatenate(
+                (self.elements,
+                 ([0.0, uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds],))
+                                           )
+        self.size = len(self.elements)
+        self.indx[uni.name] = self.size - 1
+        self.names.append(uni.name)
 #         print "{:12s}, at index {:d} {:6.1f} {:6.1f} {:5.1f} {:5.1f} {:12.3e} {:12.3e} {:9.4f} {:9.4f} {:9.4f} {:9.4f}".format(
 #             uni.name, self.size, uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds
 #                                     )
-        
-        self.elements[self.size] = [0.0,
-                                    uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds, 
-                                    ]
-        self.indx[uni.name] = self.size
-        self.size += 1
-        
         
         
 class Uncertainties:  # error definition file
@@ -316,14 +313,10 @@ class Uncertainties:  # error definition file
                 
             BET_end = twiss_full.BETX[index_twissfull]
             MU_end = twiss_full.MUX[index_twissfull]
-            BETminus1_end = twiss_full.BETX[index_twissfull - 1]
-            MUminus1_end = twiss_full.MUX[index_twissfull - 1]
-    
+ 
             if plane == 'V':
                 BET_end = twiss_full.BETY[index_twissfull]
                 MU_end = twiss_full.MUY[index_twissfull]
-                BETminus1_end = twiss_full.BETY[index_twissfull - 1]
-                MUminus1_end = twiss_full.MUY[index_twissfull - 1]
     
             found = False
             for unire in self.regex:
@@ -343,9 +336,9 @@ class Uncertainties:  # error definition file
                     else:
                         MF = twiss_full.K1L[index_twissfull]
                    
-                    errorfile.add(UncertaintyInformation(twiss_full.NAME[index_twissfull], 
-                                                         BET, BET_end, MU, MU_end, 
-                                                         unire.dK1 * MF, 
+                    errorfile.add(UncertaintyInformation(twiss_full.NAME[index_twissfull],
+                                                         BET, BET_end, MU, MU_end,
+                                                         unire.dK1 * MF,
                                                          twiss_full_centre.K1L[index_twissfull],
                                                          twiss_full.K1L[index_twissfull],
                                                          twiss_full_centre.K2L[index_twissfull],
@@ -354,6 +347,14 @@ class Uncertainties:  # error definition file
                                                          "OK"))
                    
                     if unire.dS != 0 and unire.type == IDQUAD:
+                        
+                        BETminus1_end = twiss_full.BETX[index_twissfull - 1]
+                        MUminus1_end = twiss_full.MUX[index_twissfull - 1]
+                        if plane == "V":
+                            BETminus1_end = twiss_full.BETY[index_twissfull - 1]
+                            MUminus1_end = twiss_full.MUY[index_twissfull - 1]
+
+    
                         errorfile.add(UncertaintyInformation(
                                                 twiss_full.NAME[index_twissfull - 1],
                                                 0,     # BET
