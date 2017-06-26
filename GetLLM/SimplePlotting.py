@@ -372,15 +372,23 @@ def plotMdlAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, max
         labels = ["mo_" + path.rsplit('/', 1)[-1], "me_" + path.rsplit('/', 1)[-1] ]
     else:
         labels = label.split(',')
-    plx.errorbar(sx, mdlx, yerr=errx, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
-    plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
+    if("ChromaticAmplitude" in subnode):
+    	plx.plot(sx, mdlx,color=colors[1], markersize=6, markeredgecolor= markeredgecolors[1], linewidth=2, label=labels[0])
+    	plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
+    else:
+	plx.errorbar(sx, mdlx, yerr=errx, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
+    	plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
     #plx.tick_params(labelsize=6)
     if("NDisp" not in subnode):
         plx.axes.get_xaxis().set_visible(False)
         ply = plt.subplot(gs[1])
         setLimits(accel, miny, maxy, hminy, hmaxy, ply)
-        ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
-        ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
+        if("ChromaticAmplitude" in subnode):
+           ply.plot(sy, mdly, color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0], linewidth=2,)
+           ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
+	else:
+	   ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
+           ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
         #ply.tick_params(labelsize=6)
         setYAxisLabel(subnode, 'y', ply)
         setXAxisLabel(ply)
@@ -411,9 +419,9 @@ def setYAxisLabel(subnode, axis, p1):
         p1.set_ylabel(r'$\beta_' + axis + '  [m]$')
     if (subnode == 'amp'):
         if(axis == 'x'):
-            p1.set_ylabel(r'abs(F1001)')
+            p1.set_ylabel(r'$|f_{1001}|$')
         if(axis == 'y'):
-            p1.set_ylabel(r'F1010W')
+            p1.set_ylabel(r'$|f_{1010}|$')
     if (subnode == 'real'):
         if(axis == 'x'):
             p1.set_ylabel(r're(F1001R)')
@@ -423,7 +431,7 @@ def setYAxisLabel(subnode, axis, p1):
         if(axis == 'x'):
             p1.set_ylabel(r'im(F1001)')
         if(axis == 'y'):
-            p1.set_ylabel(r'F1010I')
+            p1.set_ylabel(r'f1010I')
     if (subnode == 'Disp_DMdl'):
         p1.set_ylabel(r'D' + axis + ' [m]')
     if (subnode == 'diff_Disp_DMdl'):
@@ -469,7 +477,7 @@ def showLegend(p, legendx, legendy, frameon=False, numpoints=1, ncol=1):
           fancybox=True, shadow=True, ncol=3)
 
 def showIRs(accel, maxy, plots=[]):
-    IRposition = maxy * 1.25   
+    IRposition = maxy * 1.05   
     if accel[0:4] == "LHCB":
         for i in plots:
             theSizeofFont = 14
