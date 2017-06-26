@@ -1,19 +1,24 @@
 from __future__ import print_function
-import __init__  # @UnusedImport
 import os
 import sys
 import json
 import argparse
 import logging
 import log_handler
+
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+)
+
 from matchers import (matcher,
                       phase_matcher,
                       coupling_matcher,
                       kmod_matcher,
                       amp_matcher)
 from template_manager.template_processor import TemplateProcessor
-from SegmentBySegment import SegmentBySegment
-from madx import madx_templates_runner
+
+from SegmentBySegment import SegmentBySegment  # noqa
+from madx import madx_templates_runner  # noqa
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -71,21 +76,21 @@ def run_twiss_and_sbs(input_data):
 
 def _manipulate_twiss_cors(input_data, function):
     for this_matcher in input_data.matchers:
-        for beam in this_matcher.get_beams():
-            matcher_path = this_matcher.get_match_data(
-                beam).get_beam_match_path()
-            matcher_path_sbs = os.path.join(matcher_path, "sbs")
-            if os.path.isdir(matcher_path_sbs):
-                twiss_cor_path = os.path.join(
-                    matcher_path_sbs,
-                    "twiss_IP" + str(this_matcher.get_ip()) + "_cor.dat"
-                )
-                function(twiss_cor_path)
-                twiss_cor_back_path = os.path.join(
-                    matcher_path_sbs,
-                    "twiss_IP" + str(this_matcher.get_ip()) + "_cor_back.dat"
-                )
-                function(twiss_cor_back_path)
+        matcher_path = this_matcher.get_matcher_path()
+        matcher_path_sbs = os.path.join(matcher_path, "sbs")
+        if os.path.isdir(matcher_path_sbs):
+            twiss_cor_path = os.path.join(
+                matcher_path_sbs,
+                "twiss_" + str(this_matcher.get_segment().label) +
+                "_cor.dat"
+            )
+            function(twiss_cor_path)
+            twiss_cor_back_path = os.path.join(
+                matcher_path_sbs,
+                "twiss_" + str(this_matcher.get_segment().label) +
+                "_cor_back.dat"
+            )
+            function(twiss_cor_back_path)
 
 
 def _try_to_delete_twiss_cors(input_data):
@@ -111,20 +116,25 @@ class TwissFailedError(Exception):
 
 def _write_sbs_data_for_matchers(input_data):
     for this_matcher in input_data.matchers:
-        for beam in this_matcher.get_beams():
-            _write_sbs_data(
-                beam,
-                str(this_matcher.get_ip()),
-                this_matcher.get_match_data(beam).get_beam_match_path(),
-                this_matcher.get_match_data(beam).get_range_start_name(),
-            )
+        _write_sbs_data(
+            this_matcher.get_segment(),
+            this_matcher.get_matcher_path(),
+        )
 
 
-def _write_sbs_data(beam, ip, temporary_path, range_start_name):
+def _write_sbs_data(segment_inst, temporary_path):
     save_path = os.path.join(temporary_path, "sbs")
     input_data = SegmentBySegment._InputData(temporary_path)
-    prop_models = SegmentBySegment._PropagatedModels(save_path, "IP" + str(ip))
-    SegmentBySegment.getAndWriteData("IP" + ip, input_data, None, prop_models, save_path, False, False, True, False, "LHCB" + str(beam), None, None, None)
+    prop_models = SegmentBySegment._PropagatedModels(
+        save_path,
+        segment_inst.label
+    )
+    SegmentBySegment.getAndWriteData(
+        segment_inst.label, input_data, None, prop_models, save_path,
+        False, False, True, False,
+        segment_inst,
+        None, None, None
+    )
 
 
 def _build_changeparameters_file(input_data):
@@ -172,16 +182,15 @@ class InputData():
     def _get_matchers_list(self, input_data):
         raw_matchers_list = input_data["matchers"]
         for matcher_name, matcher_data in raw_matchers_list.iteritems():
-            matcher.Matcher._check_attribute(matcher_name,
-                                             matcher_data,
-                                             "type")
             matcher_type = matcher_data["type"]
+            matcher_beam = matcher_data["beam"]
             MatcherClass = MATCHER_TYPES.get(matcher_type, None)
             if MatcherClass is None:
                 raise ValueError('Unknown matcher type: ' + matcher_type +
                                  ' must be in: ' + str(MATCHER_TYPES.keys()))
             self.matchers.append(
-                MatcherClass(matcher_name, matcher_data, self.match_path)
+                MatcherClass(self.lhc_mode, matcher_beam,
+                             matcher_name, matcher_data, self.match_path)
             )
 
     def _check_and_assign_attribute(self, input_data, attribute_name):

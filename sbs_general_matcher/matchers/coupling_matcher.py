@@ -1,5 +1,4 @@
 import os
-import json
 from .matcher import Matcher
 from Python_Classes4MAD import metaclass
 
@@ -19,37 +18,34 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 class CouplingMatcher(Matcher):
 
-    ALL_LISTS = os.path.join(CURRENT_PATH, '..', '..', 'MODEL', 'LHCB', 'fullresponse')
+    COUP_CORR_CLASSES = ["Qs"]
 
     @Matcher.override(Matcher)
-    def __init__(self, matcher_name, matcher_dict, match_path):
-        super(CouplingMatcher, self).__init__(matcher_name, matcher_dict, match_path)
-        self._f_terms_strings = {}
-        for beam in self.get_beams():
-            self._f_terms_strings[beam] = self._get_f_terms_strings(beam)
-        if "all_lists" in matcher_dict:
-            all_lists = matcher_dict["all_lists"]
-        else:
-            all_lists = CouplingMatcher.ALL_LISTS
-        all_list_file = json.load(
-            file(os.path.join(all_lists, "LHCB1", "AllLists_couple.json"), 'r')
+    def get_variables(self, exclude=True):
+        variables = self._segment.get_segment_vars(
+            classes=CouplingMatcher.COUP_CORR_CLASSES,
         )
-        self._variables_common = all_list_file['getListsByIR'][str(self.get_ip())]
+        if exclude:
+            variables = [
+                var for var in variables
+                if var not in self._excluded_variables_list
+            ]
+        return variables
 
     @Matcher.override(Matcher)
     def define_aux_vars(self):
         variables_s_str = ""
         variables_d_str = ""
 
-        for variable in self.get_all_variables():
+        for variable in self.get_variables():
             variables_s_str += self.get_name() + '.' + variable + '_0' + ' = ' + variable + ';\n'
             variables_d_str += variable + ' := ' + self.get_name() + "." + variable + '_0' + ' + d' + variable + ';\n'
 
         return DEF_CONSTR_AUX_VALUES_TEMPLATE % {
             "SEQ_B1": "lhcb1_" + self.get_front_or_back() + "_" + self.get_name(),
             "SEQ_B2": "lhcb2_" + self.get_front_or_back() + "_" + self.get_name(),
-            "INIT_VALS_B1": "b1_" + self.get_ini_end() + "_" + self.get_name(),
-            "INIT_VALS_B2": "b2_" + self.get_ini_end() + "_" + self.get_name(),
+            "INIT_VALS_B1": "b1_" + self._ini_end + "_" + self.get_name(),
+            "INIT_VALS_B2": "b2_" + self._ini_end + "_" + self.get_name(),
             "B1_TABLE_NAME": self._get_nominal_table_name(1),
             "B2_TABLE_NAME": self._get_nominal_table_name(2),
             "S_VARIABLES": variables_s_str,
@@ -60,23 +56,11 @@ class CouplingMatcher(Matcher):
         return self.get_name() + ".twiss.b" + str(beam)
 
     @Matcher.override(Matcher)
-    def get_all_variables(self):
-        variable_list = []
-        for variable in self.get_common_variables():
-            if variable not in self._excluded_variables_list:
-                variable_list.append(variable)
-        return variable_list
-
-    @Matcher.override(Matcher)
-    def get_common_variables(self):
-        return self._variables_common
-
-    @Matcher.override(Matcher)
-    def define_constraints(self, beam):
+    def define_constraints(self):
         constr_string = ""
         sbs_data = metaclass.twiss(
-            os.path.join(self.get_match_data(beam).get_beam_match_sbs_path(),
-                         'sbscouple_IP' + str(self.get_ip()) + '.out')
+            os.path.join(os.path.join(self.get_matcher_path(), "sbs"),
+                         'sbscouple_' + self._segment.label + '.out')
         )
 
         for index in range(0, len(sbs_data.NAME)):
@@ -97,39 +81,37 @@ class CouplingMatcher(Matcher):
         return constr_string
 
     @Matcher.override(Matcher)
-    def update_constraints_values(self, beam):
+    def update_constraints_values(self):
         update_constraints_str = ""
-        update_constraints_str += self._f_terms_strings[beam]
+        update_constraints_str += self._get_f_terms_strings()
         return update_constraints_str
 
     @Matcher.override(Matcher)
     def update_variables_definition(self):
         update_vars_str = ""
-        for variable in self.get_all_variables():
+        for variable in self.get_variables():
             update_vars_str += "        " + variable + ' := ' + self.get_name() + "." + variable + '_0 + d' + variable + ';\n'
         return update_vars_str
 
     @Matcher.override(Matcher)
     def generate_changeparameters(self):
         changeparameters_str = ""
-        for variable in self.variables_common[str(self.ip)]:
-            if variable not in self.excluded_variables_list:
-                changeparameters_str += 'select,flag=save,pattern=\"d' + variable + '\";\n'
+        for variable in self.get_variables():
+            changeparameters_str += 'select,flag=save,pattern=\"d' + variable + '\";\n'
         return changeparameters_str
 
     @Matcher.override(Matcher)
     def apply_correction(self):
         apply_correction_str = ""
-        for variable in self.variables_common[str(self.ip)]:
-            if variable not in self.excluded_variables_list:
-                apply_correction_str += variable + ' = ' + self.name + "." + variable + '_0 + d' + variable + ';\n'
+        for variable in self.get_variables():
+            apply_correction_str += variable + ' = ' + self.name + "." + variable + '_0 + d' + variable + ';\n'
         return apply_correction_str
 
-    def _get_f_terms_strings(self, beam):
+    def _get_f_terms_strings(self):
         f_terms_string = ""
         sbs_data = metaclass.twiss(
-            os.path.join(self.get_match_data(beam).get_beam_match_sbs_path(),
-                         'sbscouple_IP' + str(self.get_ip()) + '.out')
+            os.path.join(os.path.join(self.get_matcher_path(), "sbs"),
+                         'sbscouple_' + self._segment.label + '.out')
         )
         for bpm_name in sbs_data.NAME:
             f_terms_string += "exec, get_f_terms_for(twiss, " + bpm_name + ");\n"

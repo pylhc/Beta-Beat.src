@@ -1,4 +1,10 @@
 language: python
+email:
+    recipients:
+      - OMC-team@cern.ch
+      - efol@cern.ch
+    on_success: always
+    on_failure: always
 python:
  - "2.7"
 env:
