@@ -103,7 +103,7 @@ class Lhc(Accelerator):
     @classmethod
     def get_segment(cls, label, first_elem, last_elem, optics_file):
         segment_cls = type(cls.__name__ + "Segment",
-                           (cls, LhcSegment),
+                           (_LhcSegmentMixin, cls),
                            {})
         segment_inst = segment_cls()
         beam = cls.get_beam()
@@ -293,12 +293,9 @@ class Lhc(Accelerator):
         self._excitation = excitation_mode
 
 
-class LhcSegment(Lhc):
+class _LhcSegmentMixin(object):
 
     def __init__(self):
-        self.optics_file = None
-        self.label = None
-        self.xing = None
         self._start = None
         self._end = None
 
