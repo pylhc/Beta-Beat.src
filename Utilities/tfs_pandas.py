@@ -43,7 +43,7 @@ class TfsDataFrame(pandas.DataFrame):
 
     def __init__(self, *args, **kwargs):
         self.headers = kwargs.pop("headers", {})
-        self.indx = TfsDataFrame._Indx(self)
+        self.indx = _Indx(self)
         super(TfsDataFrame, self).__init__(*args, **kwargs)
 
     def __getitem__(self, key):
@@ -70,17 +70,18 @@ class TfsDataFrame(pandas.DataFrame):
     def _constructor(self):
         return TfsDataFrame
 
-    class _Indx(object):
-        """
-        Helper class to mock the metaclass twiss.indx["element_name"]
-        behaviour.
-        """
-        def __init__(self, tfs_data_frame):
-            self._tfs_data_frame = tfs_data_frame
 
-        def __getitem__(self, key):
-            name_series = self._tfs_data_frame.NAME
-            return name_series[name_series == key].index[0]
+class _Indx(object):
+    """
+    Helper class to mock the metaclass twiss.indx["element_name"]
+    behaviour.
+    """
+    def __init__(self, tfs_data_frame):
+        self._tfs_data_frame = tfs_data_frame
+
+    def __getitem__(self, key):
+        name_series = self._tfs_data_frame.NAME
+        return name_series[name_series == key].index[0]
 
 
 def read_tfs(tfs_path):
