@@ -20,11 +20,10 @@ import json
 from collections import OrderedDict
 import numpy
 import pandas
-sys.path.append("/afs/cern.ch/work/l/lmalina/Beta-Beat.src/")
-import __init__  # @UnusedImport init will include paths
+sys.path.append("/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/")
 #import metaclass
 from Utilities import tfs_pandas 
-import madx_wrapper
+from madx import madx_wrapper
 
 #===================================================================================================
 # _parse_args()-function
@@ -87,7 +86,7 @@ def response(accel, output_path, path_to_core_files_without_accel, delta_k):
 
 def _generate_fullresponse_for_beta():
     print "_generate_fullresponse_for_beta"
-    path_all_lists_json_file = os.path.join(_InputData.core_path_without_accel, "qs1.json") #"vqs.json" or Alllists.json
+    path_all_lists_json_file = os.path.join(_InputData.core_path_without_accel, "AllLists.json") #"vqs.json" or AllLists.json
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
     var_key = ""
@@ -133,10 +132,13 @@ def _generate_fullresponse_for_beta():
     
     resp=pandas.Panel.from_dict(FullResponse)
     resp=resp.transpose(2,0,1)
+    # After transpose e.g: resp[NDX, kqt3, bpm12l1.b1]
+    # The magnet called "0" is no change (nominal model)
     resp['NDX'] = resp.xs('DX',axis=0) / numpy.sqrt(resp.xs('BETX',axis=0))
     resp['BBX'] = resp.xs('BETX',axis=0) / resp.loc['BETX','0',:]
     resp['BBY'] = resp.xs('BETY',axis=0) / resp.loc['BETY','0',:]
     resp = resp.subtract(resp.xs('0'),axis=1)
+    # Remove beta-beating of nominal model with itself (bunch of zeros)
     resp.drop('0',axis=1,inplace=True)
     resp = resp.div(resp.loc['incr',:,:])
     full = {'MUX': resp.xs('MUX',axis=0),
@@ -220,7 +222,7 @@ def _loadtwiss_beta(varandpath):
     x = 0
     try:
         x = tfs_pandas.read_tfs(path + "/twiss." + var)
-        x.set_index('NAME', inplace=True)
+        x = x.set_index('NAME').drop_duplicates()
         x['Q1']=x.headers['Q1']
         x['Q2']=x.headers['Q2']
         os.remove(path + "/twiss." + var)
