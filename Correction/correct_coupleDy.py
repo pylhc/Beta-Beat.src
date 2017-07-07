@@ -292,14 +292,14 @@ def _handle_data_for_lhc():
     for i in range(len(names)):
         if "bumps" in _InputData.variables_list:
             if cmp(delta[i], 0) == 1:
-                mad_script.write(names[i] + "->KICK:=" + str(delta[i]) + ";\n")
+                mad_script.write(names[i] + "->KICK:=" + str(-delta[i]) + ";\n")
             else:
-                mad_script.write(names[i] + "->KICK:=" + str(delta[i]) + ";\n")
+                mad_script.write(names[i] + "->KICK:=" + str(-delta[i]) + ";\n")
         else:
             if cmp(delta[i], 0) == 1:
-                mad_script.write(names[i] + " = " + names[i] + " + " + str(delta[i]) + ";\n")
+                mad_script.write(names[i] + " = " + names[i] + " " + str(-delta[i]) + ";\n")
             else:
-                mad_script.write(names[i] + " = " + names[i] + " " + str(delta[i]) + ";\n")
+                mad_script.write(names[i] + " = " + names[i] + " + " + str(-delta[i]) + ";\n")
 
     mad_script.write("return;")
     mad_script.close()
