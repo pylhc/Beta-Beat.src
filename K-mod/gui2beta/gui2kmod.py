@@ -21,6 +21,7 @@ from make_fit_plots import plot_fitting
 from scipy.spatial import Delaunay
 import argparse
 from Utilities import tfs_file_writer
+from Utilities import outliers
 from read_Timber_output import merge_data
 
 import KModUtilities
@@ -170,6 +171,12 @@ def start_cleaning_data(k, tune_data, tune_data_err):
     cc = clicker_class(ax, data)
     plt.show()
     return cc.return_clean_data()
+
+
+def automatic_cleaning_data(k,tune_data, tune_data_err, limit=1e-5):  
+    data = np.dstack((k, tune_data, tune_data_err))  
+    mask = outliers.get_filter_mask(tune_data, x_data=k, limit=limit)  
+    return data[0,mask,:]  
 
 
 def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, ek, misalign,
@@ -391,10 +398,10 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile):
     right_data = metaclass.twiss(file_path_1)
     left_data = metaclass.twiss(file_path_2)
 
-    cleaned_x1 = start_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
-    cleaned_y1 = start_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
-    cleaned_x2 = start_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
-    cleaned_y2 = start_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
+    cleaned_x1 = automatic_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
+    cleaned_y1 = automatic_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
+    cleaned_x2 = automatic_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
+    cleaned_y2 = automatic_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
 
     fitx_1, covx_1 = np.polyfit(cleaned_x1[:, 0], cleaned_x1[:, 1], 1, cov=True, w=1 / cleaned_x1[:, 2] ** 2)
     fity_1, covy_1 = np.polyfit(cleaned_y1[:, 0], cleaned_y1[:, 1], 1, cov=True, w=1 / cleaned_y1[:, 2] ** 2)
