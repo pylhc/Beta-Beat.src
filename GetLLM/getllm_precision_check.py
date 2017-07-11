@@ -328,8 +328,7 @@ def _do_analysis(directory, options):
     twiss_path = os.path.join(directory, "twiss.dat")
     err_def_path = _copy_error_def_file(directory, options)
     print("    -> Running GetLLM...")
-    with silence():
-        GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",
+    GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",
                     errordefspath=err_def_path)
 
 
