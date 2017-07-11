@@ -3,26 +3,31 @@
 # import __init__
 import sys
 import os
+
 new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
 if new_path not in sys.path:
     sys.path.append(new_path)
 import numpy as np
 import matplotlib
-from Utilities import outliers
+import Magnet_definitions
+import math
 
-matplotlib.use('qt5agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
+# matplotlib.use('Qt4Agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
 
 import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass
-from scipy import stats
+
 from make_fit_plots import plot_fitting
 from scipy.spatial import Delaunay
-from optparse import OptionParser
+import argparse
 from Utilities import tfs_file_writer
+from Utilities import outliers
 from read_Timber_output import merge_data
-from IR_planes import IR_definitions
+
+import KModUtilities
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+
 
 class clicker_class(object):
     def __init__(self, ax, data, pix_err=1):
@@ -100,8 +105,8 @@ class clicker_class(object):
 
     def start_clean(self):
         self.cleaned_data = clean(self.data, self.pt_lst)
-        self.cl_plot.set_xdata(self.cleaned_data[:,0])
-        self.cl_plot.set_ydata(self.cleaned_data[:,1])
+        self.cl_plot.set_xdata(self.cleaned_data[:, 0])
+        self.cl_plot.set_ydata(self.cleaned_data[:, 1])
 
         pt_list = self.pt_lst
         pt_list.append(pt_list[0])
@@ -143,217 +148,400 @@ def in_hull(p, hull):
     coordinates of `M` points in `K`dimensions for which Delaunay triangulation
     will be computed
     """
-    if not isinstance(hull,Delaunay):
+    if not isinstance(hull, Delaunay):
         hull = Delaunay(hull)
 
-    return hull.find_simplex(p)>=0
+    return hull.find_simplex(p) >= 0
 
 
 def clean(data, trapezium):
-    mask =  in_hull([data[0,:,0:2]],trapezium)
+    mask = in_hull([data[0, :, 0:2]], trapezium)
     cleaned_data = data[mask]
     return cleaned_data
 
 
-def start_cleaning_data(k,tune_data,tune_data_err):
-    data = np.dstack((k,tune_data,tune_data_err))
-    plt.figure(figsize=(15,15))
+def start_cleaning_data(k, tune_data, tune_data_err):
+    data = np.dstack((k, tune_data, tune_data_err))
+    plt.figure(figsize=(15, 15))
     plt.xlabel('K')
     plt.ylabel('Tune')
     plt.title('Left click: Select corners,  Right click: Cancel selection,  c: Skip')
-    plt.errorbar(k,tune_data, yerr=tune_data_err, fmt='o')
+    plt.errorbar(k, tune_data, yerr=tune_data_err, fmt='o')
     ax = plt.gca()
     cc = clicker_class(ax, data)
     plt.show()
     return cc.return_clean_data()
 
 
-def automatic_cleaning_data(k,tune_data,tune_data_err, limit=1e-5):
-    data = np.dstack((k,tune_data,tune_data_err))
-    mask = outliers.get_filter_mask(tune_data, x_data=k, limit=limit)
-    return data[0,mask,:]
+def automatic_cleaning_data(k,tune_data, tune_data_err, limit=1e-5):  
+    data = np.dstack((k, tune_data, tune_data_err))  
+    mask = outliers.get_filter_mask(tune_data, x_data=k, limit=limit)  
+    return data[0,mask,:]  
 
 
-def run_analysis_simplex(path, beam, ip, bs, working_directory):
-    fitx_L, fitx_R, fity_L, fity_R, errx_r, erry_r, errx_l, erry_l, K, dK, Q1, Q2 = lin_fit_data(path)
-    
-    fitx_L = fitx_L*dK
-    fitx_R = fitx_R*dK
-    fity_L = fity_L*dK
-    fity_R = fity_R*dK
-    
-    pathx = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.28 -L 22.965 -l 6.37 -K %s -D ' %str(abs(K))
-    commandx = pathx + str(dK) +','+ str(dK)+ ' -d ' + str(abs(fitx_L))+','+str(abs(fitx_R)) + ' -e ' + str(abs(errx_l))+','+str(abs(errx_r)) + ' -b ' + bs + ' -t ' + (ip+beam)+'.X' 
-    pathy = 'python '+ os.path.join(CURRENT_PATH,'..','GetBetaStarFromKmod.py') + ' -Q 0.31 -L 22.965 -l 6.37 -K %s -D ' %str(abs(K))
-    commandy = pathy + str(dK) +','+ str(dK)+ ' -d ' + str(abs(fity_L))+','+str(abs(fity_R)) + ' -e ' + str(abs(erry_l))+','+str(abs(erry_r)) + ' -b ' + bs + ' -t ' + (ip+beam)+'.Y' 
+def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, ek, misalign,
+                         cminus, log, logfile):
+    fitx_2, fitx_1, fity_2, fity_1, errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy = lin_fit_data(path, beam,
+                                                                                                      working_directory,
+                                                                                                      magnet1, magnet2, log, logfile)
 
-    os.system(commandx)
-    os.system(commandy)
+    fitx_2 = fitx_2 * dK
+    fitx_1 = fitx_1 * dK
+    fity_2 = fity_2 * dK
+    fity_1 = fity_1 * dK
 
-    
-    with open(os.path.join(working_directory,'command.run'), 'a') as commands_write:
-        commands_write.write(commandx +' \n')
-        commands_write.write(commandy +' \n')
+    if Magnet_definitions.MagnetPolarity(magnet1, beam) == 1. and Magnet_definitions.MagnetPolarity(magnet2,
+                                                                                                    beam) == -1.:
 
-    with open('BetaStarResults.dat', 'r') as results_read:
-        content = results_read.read()
-    
-    with open(os.path.join(path,'%s.results' %(ip+beam)), 'w') as results_write:
-        results_write.write('* LABEL   BETASTAR   BETASTAR_ERR   WAIST       WAIST_ERR   BETAWAIST   BETAWAIST_ERR   BBEAT_FOC   BBEAT_FOC_ERR   BBEAT_DEF   BBEAT_DEF_ERR \n')
-        results_write.write('$ %s      %le        %le            %le         %le         %le         %le             %le         %le             %le         %le \n')
-        results_write.write(content)
-
-    os.remove('BetaStarResults.dat')
-    calc_BPM_beta(path, ip, beam)
+        if log == True:
+            logfile.write('Focussing magnet: %s  \n' % (magnet1))
+            logfile.write('\n')
 
 
-def lin_fit_data(path):
-    file_path_R = path+'R.dat'
-    file_path_L = path+'L.dat'
-    right_data = metaclass.twiss(file_path_R)
-    left_data  = metaclass.twiss(file_path_L)
+        fitx_foc = fitx_1
+        fitx_def = fitx_2
 
-    cleaned_xR = automatic_cleaning_data(right_data.K, right_data.TUNEX,right_data.TUNEX_ERR)
-    cleaned_yR = automatic_cleaning_data(right_data.K, right_data.TUNEY,right_data.TUNEY_ERR)
-    cleaned_xL = automatic_cleaning_data(left_data.K, left_data.TUNEX,left_data.TUNEX_ERR)
-    cleaned_yL = automatic_cleaning_data(left_data.K, left_data.TUNEY,left_data.TUNEY_ERR)
+        fity_foc = fity_2
+        fity_def = fity_1
 
-    fitx_R, covx_r = np.polyfit(cleaned_xR[:,0], cleaned_xR[:,1], 1, cov=True, w = 1/cleaned_xR[:,2]**2)
-    fity_R, covy_r = np.polyfit(cleaned_yR[:,0], cleaned_yR[:,1], 1, cov=True, w = 1/cleaned_yR[:,2]**2)
-    fitx_L, covx_l = np.polyfit(cleaned_xL[:,0], cleaned_xL[:,1], 1, cov=True, w = 1/cleaned_xL[:,2]**2)
-    fity_L, covy_l = np.polyfit(cleaned_yL[:,0], cleaned_yL[:,1], 1, cov=True, w = 1/cleaned_yL[:,2]**2)
+        errx_foc = errx_1
+        errx_def = errx_2
 
-    plot_fitting(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path)
+        erry_foc = erry_2
+        erry_def = erry_1
 
-    dK = 1.0e-5
-    K = np.average(left_data.K)
-    Q1 = np.average(right_data.TUNEX)
-    Q2 = np.average(right_data.TUNEY)
+        K_foc = K1
+        K_def = K2
 
-    errx_r = np.sqrt(np.diag(covx_r)[0]) * dK
-    erry_r = np.sqrt(np.diag(covy_r)[0]) * dK
-    errx_l = np.sqrt(np.diag(covx_l)[0]) * dK
-    erry_l = np.sqrt(np.diag(covy_l)[0]) * dK
+        l_foc = Magnet_definitions.MagnetLength(magnet1, beam)
+        l_def = Magnet_definitions.MagnetLength(magnet2, beam)
 
-    return fitx_L[0], fitx_R[0], fity_L[0], fity_R[0], errx_r, erry_r, errx_l, erry_l, K, dK, Q1, Q2 #kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
+    elif Magnet_definitions.MagnetPolarity(magnet1, beam) == -1. and Magnet_definitions.MagnetPolarity(magnet2,
+                                                                                                       beam) == 1.:
+        if log == True:
+            logfile.write('Focussing magnet: %s  \n' % (magnet2))
+            logfile.write('\n')
+
+        fitx_foc = fitx_2
+        fitx_def = fitx_1
+
+        fity_foc = fity_1
+        fity_def = fity_2
+
+        errx_foc = errx_2
+        errx_def = errx_1
+
+        erry_foc = erry_1
+        erry_def = erry_2
+
+        K_foc = K2
+        K_def = K1
+
+        l_foc = Magnet_definitions.MagnetLength(magnet2, beam)
+        l_def = Magnet_definitions.MagnetLength(magnet1, beam)
+
+    L_star = Magnet_definitions.Lstar(magnet1, magnet2, beam)
+
+    resultsx = KModUtilities.analysis(Qx, Qy, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fitx_foc, errx_foc,
+                                      fitx_def, errx_def, ek, ek, cminus, bstar, waist,
+                                      (magnet1 + '-' + magnet2 + '.' + beam) + '.X', log, logfile)
+    resultsy = KModUtilities.analysis(Qy, Qx, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fity_foc, erry_foc,
+                                      fity_def, erry_def, ek, ek, cminus, bstar, waist,
+                                      (magnet1 + '-' + magnet2 + '.' + beam) + '.Y', log, logfile)
+
+    results = tfs_file_writer.TfsFileWriter.open(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
+    results.set_column_width(15)
+    results.add_column_names(
+        ['LABEL', 'BETAWAIST', 'BETAWAIST_ERR', 'WAIST', 'WAIST_ERR', 'BETA_AV_FOC', 'BETA_AV_FOC_ERR', 'BETA_AV_DEF',
+         'BETA_AV_DEF_ERR'])
+    results.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
+
+    results.add_table_row(resultsx)
+    results.add_table_row(resultsy)
+
+    results.write_to_file()
+
+    calc_beta_star(path, magnet1, magnet2, beam)
+
+    for instr in instruments:
+        calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile)
 
 
-def which_bpms(ips):
-    bpm_dict = {'ip1b1': ['"BPMSW.1L1.B1"', '"BPMSW.1R1.B1"'],
-                'ip2b1': ['"BPMSW.1L2.B1"', '"BPMSW.1R2.B1"'],
-                'ip5b1': ['"BPMSW.1L5.B1"', '"BPMSW.1R5.B1"'],
-                'ip8b1': ['"BPMSW.1L8.B1"', '"BPMSW.1R8.B1"'],
-                'ip1b2': ['"BPMSW.1L1.B2"', '"BPMSW.1R1.B2"'],
-                'ip2b2': ['"BPMSW.1L2.B2"', '"BPMSW.1R2.B2"'],
-                'ip5b2': ['"BPMSW.1L5.B2"', '"BPMSW.1R5.B2"'],
-                'ip8b2': ['"BPMSW.1L8.B2"', '"BPMSW.1R8.B2"'],
-                }
-    return bpm_dict[ips]
+def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile):
+    if instr == 'MONITOR':
+        name = 'BPM'
+    else:
+        name = instr
 
+    if Magnet_definitions.FindKeywordBetweenMagnets(magnet1, magnet2, instr, beam):
 
-def calc_BPM_beta(path, ip, beam):
-    if ip == 'ip1' or ip == 'ip5':
-        L_ip2bpm = 21.564  # Length between IP and first BPM:  BPMSW.1L1.B1, BPMSW.1R1.B1, BPMSW.1L5.B1, BPMSW.1R5.B1
-    elif ip == 'ip8' or ip == 'ip2':
-        L_ip2bpm = 21.595    
-    ip_data = metaclass.twiss(os.path.join(path,'%s.results' %(ip+beam)))
-    bw     = ip_data.BETAWAIST
-    bw_err = ip_data.BETAWAIST_ERR
-    w      = ip_data.WAIST
-    w_err  = ip_data.WAIST_ERR
-    label  = ip_data.LABEL
-    
-    IR = ip + beam 
+        if log == True:
+            logfile.write('%s found, calculating Betas\n' % (name))
 
-    if IR_definitions[IR+'.X'][0] == 'foc':
-        w[0] = -w[0] 
-    elif IR_definitions[IR+'.Y'][0] == 'foc':
-        w[1] = -w[1]
+        names, positions = Magnet_definitions.ReturnDataofBPMinBetweenMagnets(magnet1, magnet2, instr, beam)
 
+        L_star_position = Magnet_definitions.LstarPosition(magnet1, magnet2, beam)
 
-    b_bpmR = bw + (L_ip2bpm - w)**2/bw
-    b_bpmL = bw + (L_ip2bpm + w)**2/bw
+        result_waist = metaclass.twiss(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
+        beta_waist = result_waist.BETAWAIST
+        beta_waist_err = result_waist.BETAWAIST_ERR
+        waist = result_waist.WAIST
+        waist_err = result_waist.WAIST_ERR
 
-    b_bpmR_err = []
-    b_bpmL_err = []
-    count = 0
+        waist = waist * (1, -1)
 
-    for l in range(len(label)):
-        count += 1
-        rerr = []
-        lerr = []
-        we  = np.linspace(-w_err[l] , w_err[l] ,2) + w[l]
-        bwe = np.linspace(-bw_err[l], bw_err[l],2) + bw[l]
+        Magnet1Pos = Magnet_definitions.MagnetPosition(magnet1, beam)
+        Magnet2Pos = Magnet_definitions.MagnetPosition(magnet2, beam)
+
+        if Magnet1Pos > Magnet2Pos and Magnet_definitions.MagnetPolarity(magnet1, beam) == -1:
+            waist = - waist
+
+        elif Magnet2Pos > Magnet1Pos and Magnet_definitions.MagnetPolarity(magnet2, beam) == -1:
+            waist = - waist
+
+        Waist_pos = L_star_position + waist
+
+        beta_bpm_x = beta_waist[0] + abs(Waist_pos[0] - positions) ** 2 / beta_waist[0]
+
+        beta_waist_err_x = np.linspace(-beta_waist_err[0], beta_waist_err[0], 2) + beta_waist[0]
+        waist_err_x = np.linspace(-waist_err[0], waist_err[0], 2) + waist[0]
+        Waist_pos_err_x = L_star_position + waist_err_x
+
+        beta_err_x = np.zeros((4, len(positions)))
+        n = 0
         for i in range(2):
             for j in range(2):
-                rerr.append(bwe[i] + (L_ip2bpm - we[j])**2/bwe[i])
-                lerr.append(bwe[i] + (L_ip2bpm + we[j])**2/bwe[i])
-        b_bpmR_err.append((max(rerr)-min(rerr))/2.)
-        b_bpmL_err.append((max(lerr)-min(lerr))/2.)
+                beta_err_x[n] = beta_waist_err_x[i] + abs(Waist_pos_err_x[j] - positions) ** 2 / beta_waist_err_x[i]
+                n += 1
 
-    beta_bpm = np.transpose(np.vstack((b_bpmL,b_bpmR)))
-    beta_bpm_err = np.transpose(np.vstack((b_bpmL_err,b_bpmR_err)))
-    bpms = which_bpms(ip+beam)
+        err_x = (abs(np.nanmax(beta_err_x, axis=0) - np.nanmin(beta_err_x, axis=0))) / 2.
 
-    xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax_%s.out' %ip))
-    xdata.set_column_width(20)
-    xdata.add_column_names(['NAME', 'S'  , 'COUNT',   'BETX',    'BETXSTD',       'BETXMDL'    ,        'MUXMDL'     ,      'BETXRES'    ,    'BETXSTDRES' ])
-    xdata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
+        beta_bpm_y = beta_waist[1] + abs(Waist_pos[1] - positions) ** 2 / beta_waist[1]
 
-    ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay_%s.out' %ip))
-    ydata.set_column_width(20)
-    ydata.add_column_names(['NAME', 'S'  , 'COUNT',    'BETY',    'BETYSTD',   'BETYMDL'      ,      'MUYMDL'    ,       'BETYRES'    ,    'BETYSTDRES'])
-    ydata.add_column_datatypes(['%s', '%le','%le','%le', '%le', '%le', '%le', '%le', '%le'])
+        beta_waist_err_y = np.linspace(-beta_waist_err[1], beta_waist_err[1], 2) + beta_waist[1]
+        waist_err_y = np.linspace(-waist_err[1], waist_err[1], 2) + waist[1]
+        Waist_pos_err_y = L_star_position + waist_err_y
 
-    for i in range(len(bpms)):
-        xdata.add_table_row([bpms[i], 0, 0, beta_bpm[0][i], beta_bpm_err[0][i], 0, 0, 0, 0 ])
-        ydata.add_table_row([bpms[i], 0, 0, beta_bpm[1][i], beta_bpm_err[1][i], 0, 0, 0, 0 ])
-    xdata.write_to_file()  
-    ydata.write_to_file()  
+        beta_err_y = np.zeros((4, len(positions)))
+        n = 0
+        for i in range(2):
+            for j in range(2):
+                beta_err_y[n] = beta_waist_err_y[i] + abs(Waist_pos_err_y[j] - positions) ** 2 / beta_waist_err_y[i]
+                n += 1
+
+        err_y = (abs(np.nanmax(beta_err_y, axis=0) - np.nanmin(beta_err_y, axis=0))) / 2.
+
+        xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_X.out' % name))
+        xdata.set_column_width(20)
+        xdata.add_column_names(['NAME', 'S', 'COUNT', 'BETX', 'BETXSTD', 'BETXMDL', 'MUXMDL', 'BETXRES', 'BETXSTDRES'])
+        xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
+
+        ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_Y.out' % name))
+        ydata.set_column_width(20)
+        ydata.add_column_names(['NAME', 'S', 'COUNT', 'BETY', 'BETYSTD', 'BETYMDL', 'MUYMDL', 'BETYRES', 'BETYSTDRES'])
+        ydata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
+
+        for i in range(len(names)):
+            xdata.add_table_row([names[i], 0, 0, beta_bpm_x[i], err_x[i], 0, 0, 0, 0])
+            ydata.add_table_row([names[i], 0, 0, beta_bpm_y[i], err_y[i], 0, 0, 0, 0])
+        xdata.write_to_file()
+        ydata.write_to_file()
+
+    else:
+        if log == True:
+            logfile.write('No %s found in between magnets\n' % (name))
 
 
-def check_files(path):
-    IR_files = [path+'L.dat', path+'R.dat']
-    IR_check = True
-    if os.path.exists(IR_files[0])==False or os.path.exists(IR_files[1])==False :
-        IR_check = False
-        print 'File missing for %s. Ommitting IR in analysis..' %path
-    return IR_check
+
+def calc_beta_star(path, magnet1, magnet2, beam):
+    if Magnet_definitions.FindParentBetweenMagnets(magnet1, magnet2, 'OMK', beam):
+
+        results_write = tfs_file_writer.TfsFileWriter.open(
+            os.path.join(path, '%s.beta*.results' % (magnet1 + magnet2 + beam)))
+        results_write.set_column_width(20)
+        results_write.add_column_names(
+            ['LABEL', 'BETASTAR', 'BETASTAR_ERR', 'WAIST', 'WAIST_ERR', 'BETAWAIST', 'BETAWAIST_ERR'])
+        results_write.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le'])
+
+        results = metaclass.twiss(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
+        beta_w = results.BETAWAIST
+
+        for i, b_w in enumerate(beta_w):
+            label = results.LABEL[i]
+
+            waist = results.WAIST[i]
+
+            beta_w_err = results.BETAWAIST_ERR[i]
+            waist_err = results.WAIST_ERR[i]
+
+            beta_star = b_w + waist ** 2 / b_w
+
+            beta_star_err = np.zeros(4)
+
+            beta_star_err[0] = b_w + beta_w_err + waist ** 2 / (b_w + beta_w_err)
+            beta_star_err[1] = b_w - beta_w_err + waist ** 2 / (b_w - beta_w_err)
+            beta_star_err[2] = b_w + (waist + waist_err) ** 2 / b_w
+            beta_star_err[3] = b_w + (waist - waist_err) ** 2 / b_w
+
+            std = math.sqrt(max(abs(beta_star_err[0] - beta_star), abs(beta_star_err[1] - beta_star)) ** 2 +
+                            max(abs(beta_star_err[2] - beta_star), abs(beta_star_err[3] - beta_star)) ** 2)
+
+            results_write.add_table_row([label, beta_star, std, waist, waist_err, b_w, beta_w_err])
+
+        results_write.write_to_file()
+
+
+def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile):
+    file_path_1 = working_directory + '/' + magnet1 + '.' + beam + '.dat'
+    file_path_2 = working_directory + '/' + magnet2 + '.' + beam + '.dat'
+
+    right_data = metaclass.twiss(file_path_1)
+    left_data = metaclass.twiss(file_path_2)
+
+    cleaned_x1 = automatic_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
+    cleaned_y1 = automatic_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
+    cleaned_x2 = automatic_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
+    cleaned_y2 = automatic_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
+
+    fitx_1, covx_1 = np.polyfit(cleaned_x1[:, 0], cleaned_x1[:, 1], 1, cov=True, w=1 / cleaned_x1[:, 2] ** 2)
+    fity_1, covy_1 = np.polyfit(cleaned_y1[:, 0], cleaned_y1[:, 1], 1, cov=True, w=1 / cleaned_y1[:, 2] ** 2)
+    fitx_2, covx_2 = np.polyfit(cleaned_x2[:, 0], cleaned_x2[:, 1], 1, cov=True, w=1 / cleaned_x2[:, 2] ** 2)
+    fity_2, covy_2 = np.polyfit(cleaned_y2[:, 0], cleaned_y2[:, 1], 1, cov=True, w=1 / cleaned_y2[:, 2] ** 2)
+
+    plot_fitting(fitx_2, fitx_1, fity_2, fity_1, left_data, right_data, path)
+
+    dK = 1.0e-5
+    K2 = np.average(left_data.K)
+    K1 = np.average(right_data.K)
+    Qx = np.average(right_data.TUNEX)
+    Qy = np.average(right_data.TUNEY)
+
+    # if log == True:
+    #     logfile.write('Qx: %s, Qy: %s , K_left: %s , K_right: %s, dK: %s \n' %(Qx, Qy, K2, K1, dK))
+
+    errx_1 = np.sqrt(np.diag(covx_1)[0]) * dK
+    erry_1 = np.sqrt(np.diag(covy_1)[0]) * dK
+    errx_2 = np.sqrt(np.diag(covx_2)[0]) * dK
+    erry_2 = np.sqrt(np.diag(covy_2)[0]) * dK
+
+    # if log == True:
+    #     logfile.write('dQx_left: %s , Error dQx_left: %s , dQx_right: %s , Error dQx_right: %s  \n' % (fitx_1[0]*dK, errx_1, fitx_2[0]*dK, errx_2))
+    #     logfile.write('dQy_left: %s , Error dQy_left: %s , dQy_right: %s , Error dQy_right: %s  \n' % (fity_1[0]*dK, erry_1, fity_2[0]*dK, erry_2))
+
+    return fitx_2[0], fitx_1[0], fity_2[0], fity_1[
+        0], errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy  # kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
 
 
 def parse_args():
-    usage = 'Usage: %prog -w WORKING_DIR -o OUT_FILE_PATH [options]'
-    parser = OptionParser(usage=usage)
-    parser.add_option('-b', '--betastar', 
-                            help='Estimated beta star of measurements', 
-                            action='store', type='string', dest='betastar')
-    parser.add_option('-w', '--working_directory', 
-                            help='path to working directory with stored KMOD measurement files', 
-                            action='store', type='string', dest='work_dir')
-    parser.add_option('-i', '--interaction_point', 
-                            help='define interaction point: ip1 or ip5', 
-                            action='store', type='string', dest='ip')
-    parser.add_option('-e', '--beam', 
-                            help='define beam used: b1 or b2', 
-                            action='store', type='string', dest='beam')
-    (options, _) = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-b', '--BetastarAndWaist',
+                        help='Estimated beta star of measurements and waist shift',
+                        action='store', type=str, dest='betastar')
+    parser.add_argument('-w', '--working_directory',
+                        help='path to working directory with stored KMOD measurement files',
+                        action='store', type=str, dest='work_dir')
+    parser.add_argument('-c', '--cminus',
+                        help='C Minus',
+                        action='store', type=float, dest='cminus', default=0)
+    parser.add_argument('-M', '--misalignment',
+                        help='misalignment of the modulated quadrupoles in m',
+                        action='store', type=float, dest='misalign', default=0)
+    parser.add_argument('-K', '--errorK',
+                        help='error in K of the modulated quadrupoles, unit m^-2',
+                        action='store', type=float, dest='ek', default=0)
+    parser.add_argument('-T', '--Tuneuncertainty',
+                        help='tune measurement uncertainty',
+                        action='store', type=float, dest='tunemeasuncertainty', default=2.5e-5)
+    parser.add_argument('-e', '--beam',
+                        help='define beam used: b1 or b2',
+                        action='store', type=str, dest='beam', choices=['b1', 'b2', 'B1', 'B2'], required=True)
+    parser.add_argument('-I', '--instruments',
+                        help='define instruments (use keywords from twiss) at which beta should be calculated , separated by comma, e.g. MONITOR,RBEND,INSTRUMENT,TKICKER',
+                        action='store', type=str, dest='instruments', default='')
+    parser.add_argument('-l', '-log',
+                        help='flag for creating a log file',
+                        action='store_true', dest='log')
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-m', '--circuit',
+                       help='circuit names of the modulated quadrupoles',
+                       action='store', type=str, dest='magnets')
+    group.add_argument('-i', '-interaction_point',
+                       help='define interaction point',
+                       action='store', type=str, dest='ip', choices=['ip1', 'ip5', 'ip8', 'IP1', 'IP5', 'IP8'])
+
+    options = parser.parse_args()
+
     return options
+
+def returnmagnetname(circuit, beam):
+    circuit = circuit.split('.')
+
+    number = circuit[0][-1]
+    side = circuit[1][0]
+    ip = circuit[1][1]
+
+    searchstring = '.'+str(number)+str(side)+str(ip)
+
+    magnet = Magnet_definitions.findQuadrupoleType(searchstring, beam)
+    return magnet
+
+def returncircuitname(magnet, beam):
+    magnet = magnet.split('.')
+    number = magnet[1][0]
+    side = magnet[1][1]
+    ip = magnet[1][2]
+    name = 'RQ' + str(number) + '.' + str(side) + str(ip)
+    if magnet[0] != 'MQXA':
+        name += beam.upper()
+
+    return name
 
 
 if __name__ == '__main__':
     options = parse_args()
+
     working_directory = options.work_dir
-    beam = options.beam
-    ip = options.ip
+    beam = options.beam.upper()
+
+    instruments = options.instruments.split(',')
+    instruments = [x.upper() for x in instruments]
+
     bs = options.betastar
+    bstar, waist = bs.split(",")
 
-    IR = ip + beam
+    command = open(working_directory + '/command.run', 'a')
+    command.write(str(' '.join(sys.argv)))
+    command.write('\n')
+    command.close()
 
-    merge_data(working_directory, ip ,beam)
+    ip = options.ip
+    if options.ip is not None:
+        if options.ip == 'ip1' or options.ip == 'IP1':
+            magnet1, magnet2 = 'MQXA.1L1', 'MQXA.1R1'
+        elif options.ip == 'ip5' or options.ip == 'IP5':
+            magnet1, magnet2 = 'MQXA.1L5', 'MQXA.1R5'
+        elif options.ip == 'ip8' or options.ip == 'IP8':
+            magnet1, magnet2 = 'MQXA.1L8', 'MQXA.1R8'
 
-    path = os.path.join(working_directory, IR)
-    if check_files(path) == True:
-        if not os.path.exists(path):
-            os.makedirs(path)
-            print '%s folder created..' % IR
-        run_analysis_simplex(path, beam, ip, bs,working_directory)
+    else:
+        circuits = options.magnets
+        circuits = circuits.split(",")
+        circuit1, circuit2 = circuits
+        magnet1 = returnmagnetname(circuit1, beam)
+        magnet2 = returnmagnetname(circuit2, beam)
+
+    path = os.path.join(working_directory, magnet1 + '.' + magnet2 + '.' + beam)
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    if options.log == True:
+        logdata = open(path + '/data.log','w')
+
+    merge_data(working_directory, magnet1, returncircuitname(magnet1, beam), magnet2, returncircuitname(magnet2, beam),
+               beam, options.ip, options.tunemeasuncertainty)
+
+    run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, options.ek,
+                         options.misalign, options.cminus, options.log, logdata)
+
+    logdata.close()

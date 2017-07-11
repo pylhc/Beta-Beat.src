@@ -373,11 +373,11 @@ def plotMdlAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, max
     else:
         labels = label.split(',')
     if("ChromaticAmplitude" in subnode):
-        plx.plot(sx, mdlx,color=colors[1], markersize=6, markeredgecolor= markeredgecolors[1], linewidth=2, label=labels[0])
-        plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
+    	plx.plot(sx, mdlx,color=colors[1], markersize=6, markeredgecolor= markeredgecolors[1], linewidth=2, label=labels[0])
+    	plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
     else:
-        plx.errorbar(sx, mdlx, yerr=errx, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
-        plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
+	plx.errorbar(sx, mdlx, yerr=errx, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
+    	plx.errorbar(sx, measx, yerr=errx, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
     #plx.tick_params(labelsize=6)
     if("NDisp" not in subnode):
         plx.axes.get_xaxis().set_visible(False)
@@ -386,9 +386,9 @@ def plotMdlAnalysis(path, label, accel, subnode, mainnode, minx, maxx, miny, max
         if("ChromaticAmplitude" in subnode):
            ply.plot(sy, mdly, color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0], linewidth=2,)
            ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
-        else:
-            ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
-            ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
+	else:
+	   ply.errorbar(sy, mdly, yerr=erry, fmt='o',color=colors[1], markersize=4, markeredgecolor= markeredgecolors[1], label=labels[0])
+           ply.errorbar(sy, measy, yerr=erry, fmt='o',color=colors[0], markersize=4, markeredgecolor= markeredgecolors[0], label=labels[1])
         #ply.tick_params(labelsize=6)
         setYAxisLabel(subnode, 'y', ply)
         setXAxisLabel(ply)

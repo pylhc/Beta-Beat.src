@@ -8,13 +8,13 @@ LOGGER = logging.getLogger(__name__)
 
 class MatcherModelDefault(object):
 
-    def __init__(self, match_path, name, beam1_path, beam2_path,
-                 ip, use_errors, propagation):
+    def __init__(self, match_path, name, beam, meas_path,
+                 label, use_errors, propagation):
         self._match_path = match_path
         self._name = name
-        self._beam1_path = beam1_path
-        self._beam2_path = beam2_path
-        self._ip = ip
+        self._beam = beam
+        self._meas_path = meas_path
+        self._label = label
         self._use_errors = use_errors
         self._propagation = propagation
         self._matcher = None
@@ -26,22 +26,18 @@ class MatcherModelDefault(object):
     def get_name(self):
         return self._name
 
-    def get_beam1_path(self):
-        return self._beam1_path
+    def get_beam(self):
+        return self._beam
 
-    def get_beam2_path(self):
-        return self._beam2_path
+    def get_meas_path(self):
+        return self._meas_path
 
-    def get_beam1_output_path(self):
+    def get_output_path(self):
         return os.path.join(self._match_path,
-                            "Beam1_" + self._name)
+                            self._name)
 
-    def get_beam2_output_path(self):
-        return os.path.join(self._match_path,
-                            "Beam2_" + self._name)
-
-    def get_ip(self):
-        return self._ip
+    def get_label(self):
+        return self._label
 
     def get_use_errors(self):
         return self._use_errors
@@ -66,10 +62,8 @@ class MatcherModelDefault(object):
             LOGGER.info(self._name + " -> Disabled var: " + var_name)
 
     def disable_all_vars(self):
-        all_vars = (self.get_variables_for_beam()[1] +
-                    self.get_variables_for_beam()[2] +
-                    self.get_common_variables())
-        self._matcher._excluded_variables_list = all_vars
+        self._matcher._excluded_variables_list =\
+            self.get_matcher().get_variables(exclude=False)
 
     def toggle_constr(self, constr_name):
         if self._matcher is None:
@@ -78,23 +72,15 @@ class MatcherModelDefault(object):
             )
         if (constr_name in self._matcher._excluded_constraints_list):
             self._matcher._excluded_constraints_list.remove(constr_name)
+            LOGGER.info(self._name + " -> Activated constr: " + constr_name)
         elif (constr_name not in self._matcher._excluded_constraints_list):
             self._matcher._excluded_constraints_list.append(constr_name)
-
-    def get_variables_for_beam(self):
-        return {1: self._matcher.get_variables_for_beam(1),
-                2: self._matcher.get_variables_for_beam(2)}
-
-    def get_common_variables(self):
-        return self._matcher.get_common_variables()
+            LOGGER.info(self._name + " -> Disabled constr: " + constr_name)
 
     def get_matcher_dict(self):
         matcher_dict = {}
-        matcher_dict["ip"] = self._ip
-        if self._beam1_path is not None:
-            matcher_dict["beam1_path"] = self._beam1_path
-        if self._beam2_path is not None:
-            matcher_dict["beam2_path"] = self._beam2_path
+        matcher_dict["label"] = self._label
+        matcher_dict["path"] = self._meas_path
         matcher_dict["use_errors"] = self._use_errors
         matcher_dict["propagation"] = self._propagation
         return matcher_dict
@@ -103,10 +89,7 @@ class MatcherModelDefault(object):
         raise NotImplementedError
 
     def delete_matcher(self):
-        if self._beam1_path is not None:
-            shutil.rmtree(self.get_beam1_output_path())
-        if self._beam2_path is not None:
-            shutil.rmtree(self.get_beam2_output_path())
+        shutil.rmtree(self.get_output_path())
 
     def get_plotter(self, figure):
         raise NotImplementedError
@@ -118,7 +101,7 @@ class MatcherModelDefault(object):
         match_results = {}
         if self._matcher is not None:
             corr_file = os.path.join(
-                self._matcher.get_match_path(),
+                self._matcher.get_main_match_path(),
                 "changeparameters.madx"
             )
             try:

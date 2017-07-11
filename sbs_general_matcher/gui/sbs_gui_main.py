@@ -5,7 +5,7 @@ import logging
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
 from contextlib import contextmanager
-from sbs_gui_matcher_selection import SbSGuiMatcherSelection
+from sbs_gui_matcher_selection import SbSGuiMatcherTypeSelection
 from widgets import InitialConfigPopup, LogDialog
 from sbs_gui_match_result_view import SbSGuiMatchResultView
 import sbs_general_matcher
@@ -44,15 +44,30 @@ class SbSGuiMain(QtWidgets.QMainWindow):
         matchers_menu.addAction(self._get_clone_matcher_action())
         matchers_menu.addAction(self._get_remove_matcher_action())
         main_menu.addAction(self._get_show_log_action())
+        view_menu = main_menu.addMenu("View")
+        view_menu.addAction(self._get_tile_windows_action())
+        view_menu.addAction(self._get_cascade_windows_action())
 
-    def add_tab(self, name, widget):
-        self._main_widget._matchers_tabs_widget.addTab(widget, name)
+    def add_subwindow(self, matcher_model, matcher_resuts_view):
+        subwindow = MatcherSubwindow(
+            matcher_model,
+            matcher_resuts_view,
+            self._controller.remove_matcher,
+        )
+        self._main_widget.mdi_area.addSubWindow(subwindow)
+        subwindow.setWindowTitle(matcher_model.get_name())
+        subwindow.showMaximized()
+        if len(self.get_subwindows_list()) > 1:
+            self._main_widget.mdi_area.tileSubWindows()
 
-    def remove_tab(self, index):
-        self._main_widget._matchers_tabs_widget.removeTab(index)
+    def remove_subwindow(self, subwindow):
+        self._main_widget.mdi_area.removeSubWindow(subwindow)
 
-    def get_selected_matcher_index(self):
-        return self._main_widget._matchers_tabs_widget.currentIndex()
+    def get_selected_subwindow(self):
+        return self._main_widget.mdi_area.activeSubWindow()
+
+    def get_subwindows_list(self):
+        return self._main_widget.mdi_area.subWindowList()
 
     def show_background_task_dialog(self, message):
         self._active_background_dialog = SbSGuiMain.BackgroundTaskDialog(
@@ -74,6 +89,19 @@ class SbSGuiMain(QtWidgets.QMainWindow):
             self
         )
         message_box.exec_()
+
+    def show_confirm_dialog(self, title, message):
+        message_box = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Question,
+            title,
+            message,
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            self
+        )
+        ret = message_box.exec_()
+        if ret == QtWidgets.QMessageBox.Yes:
+            return True
+        return False
 
     def is_minimize_selected(self):
         return self._main_widget.is_minimize_selected()
@@ -97,6 +125,20 @@ class SbSGuiMain(QtWidgets.QMainWindow):
         )
         return show_log_action
 
+    def _get_tile_windows_action(self):
+        tile_windows_action = QtWidgets.QAction("Tile windows", self)
+        tile_windows_action.triggered.connect(
+            self._main_widget.mdi_area.tileSubWindows
+        )
+        return tile_windows_action
+
+    def _get_cascade_windows_action(self):
+        tile_windows_action = QtWidgets.QAction("Cascade windows", self)
+        tile_windows_action.triggered.connect(
+            self._main_widget.mdi_area.cascadeSubWindows
+        )
+        return tile_windows_action
+
     def _get_clone_matcher_action(self):
         clone_matcher_action = QtWidgets.QAction("Clone matcher", self)
         clone_matcher_action.triggered.connect(self._controller.clone_matcher)
@@ -118,8 +160,10 @@ class SbSGuiMain(QtWidgets.QMainWindow):
             main_layout = QtWidgets.QVBoxLayout()
             self.setLayout(main_layout)
 
-            self._matchers_tabs_widget = QtWidgets.QTabWidget()
-            main_layout.addWidget(self._matchers_tabs_widget)
+            self.mdi_area = QtWidgets.QMdiArea()
+            self.mdi_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            self.mdi_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            main_layout.addWidget(self.mdi_area)
 
             lower_panel_layout = QtWidgets.QHBoxLayout()
             buttons_layout = QtWidgets.QVBoxLayout()
@@ -161,7 +205,6 @@ class SbSGuiMainController(object):
         self._match_path = None
         self._possible_measurements = {1: [], 2: []}
         self._input_dir = None
-        self._matchers_tabs = []
         self._current_thread = None
         self._active_watcher = None
 
@@ -226,13 +269,12 @@ class SbSGuiMainController(object):
         self._new_matcher_from_chooser()
 
     def clone_matcher(self):
-        if len(self._matchers_tabs) == 0:
-            return
-        index = self._view.get_selected_matcher_index()
-        self._new_matcher_from_chooser(self._matchers_tabs[index].model)
+        self._new_matcher_from_chooser(
+            self._view.get_selected_subwindow().model
+        )
 
     def _new_matcher_from_chooser(self, matcher_to_clone=None):
-        selection_dialog = SbSGuiMatcherSelection(
+        selection_dialog = SbSGuiMatcherTypeSelection(
             self, clone_matcher=matcher_to_clone
         )
         result_code = selection_dialog.exec_()
@@ -240,7 +282,8 @@ class SbSGuiMainController(object):
             matcher_model = selection_dialog.get_selected_matcher()
             with self._heavy_task("Copying files..."):
                 try:
-                    matcher_model.create_matcher(self._match_path)
+                    matcher_model.create_matcher(self._lhc_mode,
+                                                 self._match_path)
                 except IOError as err:
                     self._view.show_error_dialog(
                         "Exception happened copying the files.",
@@ -248,21 +291,14 @@ class SbSGuiMainController(object):
                     )
                     LOGGER.exception("Exception happened copying the files.")
                     return
-            variables_for_beam = matcher_model.get_variables_for_beam()
-            variables_common = matcher_model.get_common_variables()
+            vars = matcher_model.get_matcher().get_variables(exclude=False)
             matcher_model.disable_all_vars()
-            tab_view = SbSGuiMatchResultView(
-                variables_for_beam,
-                variables_common,
-            )
-            tab_view.toggle_var_action = (
+            matcher_view = SbSGuiMatchResultView(vars)
+            matcher_view.toggle_var_action = (
                 lambda name, active, all: self._on_var_toggle(
-                    matcher_model, tab_view, name, active, all)
+                    matcher_model, matcher_view, name, active, all)
             )
-            self._matchers_tabs.append(
-                SbSGuiMainController.Tab(matcher_model, tab_view)
-            )
-            self._view.add_tab(matcher_model.get_name(), tab_view)
+            self._view.add_subwindow(matcher_model, matcher_view)
 
     @contextmanager
     def _heavy_task(self, message):
@@ -273,25 +309,32 @@ class SbSGuiMainController(object):
             self._view.hide_background_task_dialog()
 
     def is_this_matcher_name_ok(self, matcher_name):
-        for matcher_tab in self._matchers_tabs:
-            model_name = matcher_tab.model.get_name()
+        for matcher_subw in self._view.get_subwindows_list():
+            model_name = matcher_subw.model.get_name()
             if matcher_name == model_name:
                 return False
         return True
 
     def remove_matcher(self):
-        if len(self._matchers_tabs) == 0:
+        matcher_subw = self._view.get_selected_subwindow()
+        if matcher_subw is None:
             return
-        index = self._view.get_selected_matcher_index()
-        with self._heavy_task("Deleting matcher..."):
-            self._matchers_tabs[index].model.delete_matcher()
-            del(self._matchers_tabs[index])
-            self._view.remove_tab(index)
+        do_remove = self._view.show_confirm_dialog(
+            "Removing matcher",
+            "Will remove matcher " +
+            matcher_subw.model.get_name() +
+            ". Are you sure?"
+        )
+        if do_remove:
+            with self._heavy_task("Deleting matcher..."):
+                matcher_subw.model.delete_matcher()
+                self._view.remove_subwindow(matcher_subw)
+        return do_remove
 
     def run_matching(self, just_twiss=False):
         matchers_list = []
-        for matcher_tab in self._matchers_tabs:
-            matchers_list.append(matcher_tab.model.get_matcher())
+        for matcher_subw in self._view.get_subwindows_list():
+            matchers_list.append(matcher_subw.model.get_matcher())
         minimize = self._view.is_minimize_selected()
         input_data = sbs_general_matcher.InputData.init_from_matchers_list(
             self._lhc_mode, self._match_path, minimize, matchers_list
@@ -321,9 +364,9 @@ class SbSGuiMainController(object):
         self._current_thread.start()
 
     def _on_match_end(self):
-        for matcher_tab in self._matchers_tabs:
-            matcher_model = matcher_tab.model
-            view = matcher_tab.view
+        for matcher_subw in self._view.get_subwindows_list():
+            matcher_model = matcher_subw.model
+            view = matcher_subw.widget()
             figure = view.get_figure()
             model_plotter = matcher_model.get_plotter(figure)
             model_plotter.plot()
@@ -336,9 +379,9 @@ class SbSGuiMainController(object):
 
     def _on_var_toggle(self, this_model, this_view, name, active, all):
         if all:
-            for matcher_tab in self._matchers_tabs:
-                matcher_tab.model.set_var_active(name, active)
-                matcher_tab.view.set_var_active(name, active)
+            for matcher_subw in self._view.get_subwindows_list():
+                matcher_subw.model.set_var_active(name, active)
+                matcher_subw.widget().set_var_active(name, active)
         else:
             this_model.set_var_active(name, active)
             this_view.set_var_active(name, active)
@@ -369,10 +412,19 @@ class SbSGuiMainController(object):
             if self._current_thread is None:
                 self.run_matching(just_twiss=True)
 
-    class Tab(object):
-        def __init__(self, matcher_model, matcher_results_view):
-            self.model = matcher_model
-            self.view = matcher_results_view
+
+class MatcherSubwindow(QtWidgets.QMdiSubWindow):
+    def __init__(self, matcher_model, matcher_results_view, onclose_function):
+        super(MatcherSubwindow, self).__init__()
+        self.setWidget(matcher_results_view)
+        self.model = matcher_model
+        self._onclose = onclose_function
+
+    def closeEvent(self, event):
+        if self._onclose():
+            event.accept()
+        else:
+            event.ignore()
 
 
 class BackgroundThread(QThread):

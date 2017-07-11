@@ -35,13 +35,15 @@ class TfsDataFrame(pandas.DataFrame):
     """
     Class to hold the information of the built Pandas DataFrame,
     together with a way of getting the headers of the TFS file.
-    To get a header value do: data_frame["header_name"].
+    To get a header value do: data_frame["header_name"] or
+    data_frame.header_name.
     """
 
-    _metadata = ["headers"]
+    _metadata = ["headers", "indx"]
 
     def __init__(self, *args, **kwargs):
         self.headers = kwargs.pop("headers", {})
+        self.indx = _Indx(self)
         super(TfsDataFrame, self).__init__(*args, **kwargs)
 
     def __getitem__(self, key):
@@ -54,9 +56,32 @@ class TfsDataFrame(pandas.DataFrame):
                 raise KeyError(str(key) +
                                " is not in the DataFrame or headers.")
 
+    def __getattr__(self, name):
+        try:
+            return super(TfsDataFrame, self).__getattr__(name)
+        except AttributeError:
+            try:
+                return self.headers[name]
+            except KeyError:
+                raise KeyError(str(name) +
+                               " is not in the DataFrame or headers.")
+
     @property
     def _constructor(self):
         return TfsDataFrame
+
+
+class _Indx(object):
+    """
+    Helper class to mock the metaclass twiss.indx["element_name"]
+    behaviour.
+    """
+    def __init__(self, tfs_data_frame):
+        self._tfs_data_frame = tfs_data_frame
+
+    def __getitem__(self, key):
+        name_series = self._tfs_data_frame.NAME
+        return name_series[name_series == key].index[0]
 
 
 def read_tfs(tfs_path):

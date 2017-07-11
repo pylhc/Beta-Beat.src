@@ -3,6 +3,7 @@ import logging
 import shutil
 from Python_Classes4MAD import metaclass
 from Utilities import iotools
+from model import manager
 
 EXTRACT_SEQUENCES_TEMPLATE = """
 exec, extract_segment_sequence(LHCB%(BEAM_NUM)s, %(FRONT_SEQ)s, %(BACK_SEQ)s, %(START_FROM)s, %(END_AT)s);
@@ -50,89 +51,89 @@ LOGGER = logging.getLogger(__name__)
 
 class Matcher(object):
 
-    def __init__(self, matcher_name, matcher_dict, match_path):
-        for attribute_name in ["ip", "use_errors", "propagation"]:
-            Matcher._check_attribute(matcher_name, matcher_dict, attribute_name)
-
+    def __init__(self, lhc_mode, beam, matcher_name, matcher_dict, match_path):
         self._name = matcher_name
-        self._match_path = match_path
-        self._ip = matcher_dict["ip"]
+        self._main_match_path = match_path
+        self._label = matcher_dict["label"]
         self._use_errors = matcher_dict["use_errors"]
         self._front_or_back = matcher_dict["propagation"].lower()
+        self._matcher_path = os.path.join(
+            match_path,
+            self._name
+        )
+        measurement_path = matcher_dict["path"]
+        match_path = os.path.join(
+            match_path,
+            self._name
+        )
+        Matcher._copy_measurement_files(
+            self._label, measurement_path, match_path
+        )
+        self._segment = Matcher._get_segment(
+            lhc_mode, beam, self._matcher_path, self._label
+        )
 
-        beams_paths = {}
-        for beam in [1, 2]:
-            try:
-                Matcher._check_attribute(matcher_name, matcher_dict,
-                                         "beam" + str(beam) + "_path")
-                beams_paths[beam] = str(matcher_dict["beam" + str(beam) + "_path"])
-            except InputError:
-                pass
-        if len(beams_paths) == 0:
-            raise InputError("No beam1_path or beam2_path defined for matcher " + matcher_name)
-
-        exclude_constr_string = ""
+        self._excluded_constraints_list = []
+        self._excluded_variables_list = []
         if "exclude_constraints" in matcher_dict:
-            exclude_constr_string = matcher_dict["exclude_constraints"]
-        exclude_vars_string = ""
+            self._excluded_constraints_list = (
+                matcher_dict["exclude_constraints"].strip('"').split(",")
+            )
         if "exclude_variables" in matcher_dict:
-            exclude_vars_string = matcher_dict["exclude_variables"]
-        LOGGER.info("Successfully read matcher " + matcher_name)
-
-        self._match_data = {}
-        for beam in beams_paths:
-            self._match_data[beam] = MatchData(matcher_name, self._ip,
-                                               beams_paths[beam],
-                                               match_path, beam)
-
-        self._excluded_constraints_list = self._parse_exclude_string(
-            exclude_constr_string
-        )
-        self._excluded_variables_list = self._parse_exclude_string(
-            exclude_vars_string
-        )
+            self._excluded_variables_list = (
+                matcher_dict["exclude_variables"].strip('"').split(",")
+            )
 
         assert self._front_or_back in ["front", "back", "f", "b"]
         self._front_or_back = self._front_or_back[0]
         self._ini_end = "ini" if self._front_or_back == "f" else "end"
+
+        LOGGER.info("Successfully read matcher " + matcher_name)
+
+    def get_name(self):
+        return self._name
+
+    def get_main_match_path(self):
+        return self._main_match_path
+
+    def get_matcher_path(self):
+        return self._matcher_path
+
+    def get_segment(self):
+        return self._segment
+
+    def get_front_or_back(self):
+        return self._front_or_back
+
+    def get_variables(self, exclude=True):
+        """
+        Returns the variables names to use to match. If exclude is true,
+        it will not return the variables in the excluded variables list.
+        """
+        raise NotImplementedError
+
+    def set_exclude_variables(self, excluded_variables_list):
+        self._excluded_variables_list = excluded_variables_list
+
+    def set_disabled_constraints(self, disbled_constraints):
+        self._excluded_constraints_list = disbled_constraints
 
     def define_aux_vars(self):
         """Returns the MAD-X string to define the auxiliary values to use
         during the matching"""
         raise NotImplementedError
 
-    def get_all_variables(self):
-        """Returns either a list of variable names or a MAD-X string defining
-        the variables. If a list is given, this function can be used by other
-        matchers to read the variable names and the variables won't be duplicated
-        in the resulting MAD-X script."""
-        return []
-
-    def get_common_variables(self):
-        """Returns either a list of variable names or a MAD-X string defining
-        the variables. If a list is given, this function can be used by other
-        matchers to read the variable names and the variables won't be duplicated
-        in the resulting MAD-X script."""
-        return []
-
-    def get_variables_for_beam(self, beam):
-        """Returns either a list of variable names or a MAD-X string defining
-        the variables. If a list is given, this function can be used by other
-        matchers to read the variable names and the variables won't be duplicated
-        in the resulting MAD-X script."""
-        return []
-
-    def define_constraints(self, beam):
+    def define_constraints(self):
         """Returns two MAD-X strings to define the matching constraints for this
-        matcher for beam 1 and 2"""
+        matcher."""
         raise NotImplementedError
 
-    def update_constraints_values(self, beam):
+    def update_constraints_values(self):
         """Returns the MAD-X string that updates the value of the constraints to
         let MAD-X reevaluate in every iteration."""
         raise NotImplementedError
 
-    def update_variables_definition(self, beam):
+    def update_variables_definition(self):
         """Returns the MAD-X string that updates the definition of the variables
         that may have been override by the modifiers file."""
         raise NotImplementedError
@@ -146,39 +147,6 @@ class Matcher(object):
         """Returns the MAD-X string that applies the final correction to the
         variables, in order to get the corrected twiss files"""
         raise NotImplementedError
-
-    def get_name(self):
-        return self._name
-
-    def get_match_path(self):
-        return self._match_path
-
-    def get_ip(self):
-        return self._ip
-
-    def get_beams(self):
-        return self._match_data.keys()
-
-    def get_match_data(self, beam):
-        return self._match_data[beam]
-
-    def get_front_or_back(self):
-        return self._front_or_back
-
-    def get_ini_end(self):
-        return self._ini_end
-
-    def set_exclude_variables(self, excluded_variables_list):
-        self._excluded_variables_list = excluded_variables_list
-
-    def set_disabled_constraints(self, disbled_constraints):
-        self._excluded_constraints_list = disbled_constraints
-
-    @staticmethod
-    def _check_attribute(base_dict_name, base_dict, attribute_name):
-        if attribute_name not in base_dict:
-            raise InputError('Cannot find ' + attribute_name +
-                             ' attribute in ' + base_dict_name + '. Aborting.')
 
     def _get_constraint_instruction(self, constr_name,
                                     value, error, sigmas=1.):
@@ -194,18 +162,11 @@ class Matcher(object):
             constr_string += 'expr =  ' + constr_name + ' = ' + str(value) + ';\n'
         return constr_string
 
-    def _parse_exclude_string(self, exclude_string):
-        if not exclude_string == "":
-            exclude_list = [var_name.strip()
-                            for var_name in exclude_string.strip('"').split(",")]
-        else:
-            exclude_list = []
-        return exclude_list
-
     @staticmethod
     def override(parent_cls):
         """
-        Decorator that checks if the decorated method overrides some method in the given parent class.
+        Decorator that checks if the decorated method overrides some method
+        in the given parent class.
         Similar to java @override annotation.
         To use it:
         @Matcher.override(Superclass)
@@ -216,9 +177,50 @@ class Matcher(object):
             if not (method.__name__ in dir(parent_cls)):
                 raise TypeError(method.__name__ + " must override a method from class " + parent_cls.__name__ + ".")
             else:
-                method._doc__ = getattr(parent_cls, method.__name__).__doc__
+                method.__doc__ = getattr(parent_cls, method.__name__).__doc__
             return method
         return override_decorator
+
+    @staticmethod
+    def _get_segment(lhc_mode, beam, match_path, label):
+        LOGGER.info("Getting matching range for beam " + str(beam) + "...")
+        (_, range_start), (_, range_end) = _get_match_bpm_range(
+            os.path.join(os.path.join(match_path, "sbs"),
+                         "sbsphasext_" + label + ".out")
+        )
+        LOGGER.info("Matching range for Beam " + str(beam) + ": " +
+                    range_start + " " + range_end)
+        accel_cls = manager.get_accel_class(
+            "lhc", lhc_mode=lhc_mode, beam=beam
+        )()
+        optics_file = os.path.join(
+            os.path.join(match_path, "sbs"), "modifiers.madx"
+        )
+        segment = accel_cls.get_segment(label,
+                                        range_start,
+                                        range_end,
+                                        optics_file)
+        return segment
+
+    @staticmethod
+    def _copy_measurement_files(label, measurement_path, match_math):
+        iotools.create_dirs(match_math)
+        iotools.create_dirs(os.path.join(match_math, "sbs"))
+        # GetLLM output files:
+        _copy_files_with_extension(measurement_path,
+                                   match_math, ".out")
+        # SbS output files for the given label:
+        _copy_files_which_contains(
+            os.path.join(measurement_path, "sbs"),
+            os.path.join(match_math, "sbs"),
+            label
+        )
+        # SbS MAD-X files (not necessary but useful):
+        _copy_files_with_extension(
+            os.path.join(measurement_path, "sbs"),
+            os.path.join(match_math, "sbs"),
+            ".madx"
+        )
 
 
 class InputError(Exception):
@@ -229,94 +231,39 @@ class InputError(Exception):
         return repr(self.value)
 
 
-class MatchData():
+def _copy_files_with_extension(src, dest, ext):
+    _copy_files_with_filter(
+        src, dest,
+        lambda file_name: file_name.endswith(ext)
+    )
 
-    def __init__(self, name, ip, measurement_data_path, match_path, beam):
-        self._beam_match_path = os.path.join(match_path, "Beam" + str(beam) + "_" + name)
-        self._beam_match_sbs_path = os.path.join(self._beam_match_path, "sbs")
 
-        LOGGER.info("Copying measurement files for beam " + str(beam) +
-                    " into match folder...")
-        iotools.create_dirs(self._beam_match_sbs_path)
-        self._copy_measurement_files(ip,
-                                     measurement_data_path)
+def _copy_files_which_contains(src, dest, substring):
+    _copy_files_with_filter(
+        src, dest,
+        lambda file_name: substring in file_name
+    )
 
-        LOGGER.info("Getting matching range for beam " + str(beam) + "...")
-        ((self._range_start_s,
-          self._range_start_name),
-         (self._range_end_s,
-          self._range_end_name)) = MatchData._get_match_bpm_range(
-            os.path.join(self._beam_match_sbs_path, "sbsphasext_IP" + str(ip) + ".out")
-        )
-        LOGGER.info("Matching range for Beam " + str(beam) + ": " +
-                    self._range_start_name + " " + self._range_end_name)
 
-        self._modifiers = os.path.join(self._beam_match_sbs_path, "modifiers.madx")
-        assert os.path.isfile(self._modifiers)
+def _copy_files_with_filter(src, dest, filter_function):
+    src_files = _get_filtered_file_list(src, filter_function)
+    for file_name in src_files:
+        full_file_name = os.path.join(src, file_name)
+        shutil.copy(full_file_name, dest)
 
-    def get_beam_match_path(self):
-        return self._beam_match_path
 
-    def get_beam_match_sbs_path(self):
-        return self._beam_match_sbs_path
+def _get_filtered_file_list(src, filter_function):
+    filtered_file_list = []
+    original_file_list = os.listdir(src)
+    for file_name in original_file_list:
+        if (os.path.isfile(os.path.join(src, file_name)) and
+                filter_function(file_name)):
+            filtered_file_list.append(file_name)
+    return filtered_file_list
 
-    def get_range_start_name(self):
-        return self._range_start_name
 
-    def get_range_start_s(self):
-        return self._range_start_s
-
-    def get_range_end_name(self):
-        return self._range_end_name
-
-    def get_range_end_s(self):
-        return self._range_end_s
-
-    def get_modifiers(self):
-        return self._modifiers
-
-    def _copy_measurement_files(self, ip, measurement_path):
-        # GetLLM output files:
-        MatchData._copy_files_with_extension(measurement_path,
-                                             self._beam_match_path, ".out")
-        # SbS output files for the given IP:
-        MatchData._copy_files_which_contains(os.path.join(measurement_path, "sbs"),
-                                             self._beam_match_sbs_path,
-                                             "IP" + str(ip))
-        # SbS MAD-X files (not necessary but useful):
-        MatchData._copy_files_with_extension(os.path.join(measurement_path, "sbs"),
-                                             self._beam_match_sbs_path,
-                                             ".madx")
-
-    @staticmethod
-    def _copy_files_with_extension(src, dest, ext):
-        MatchData._copy_files_with_filter(src, dest,
-                                          lambda file_name: file_name.endswith(ext))
-
-    @staticmethod
-    def _copy_files_which_contains(src, dest, substring):
-        MatchData._copy_files_with_filter(src, dest,
-                                          lambda file_name: substring in file_name)
-
-    @staticmethod
-    def _copy_files_with_filter(src, dest, filter_function):
-        src_files = MatchData._get_filtered_file_list(src, filter_function)
-        for file_name in src_files:
-            full_file_name = os.path.join(src, file_name)
-            shutil.copy(full_file_name, dest)
-
-    @staticmethod
-    def _get_filtered_file_list(src, filter_function):
-        filtered_file_list = []
-        original_file_list = os.listdir(src)
-        for file_name in original_file_list:
-            if os.path.isfile(os.path.join(src, file_name)) and filter_function(file_name):
-                filtered_file_list.append(file_name)
-        return filtered_file_list
-
-    @staticmethod
-    def _get_match_bpm_range(file_path):
-        twiss_data = metaclass.twiss(file_path)
-        bpms_with_distances_list = zip(twiss_data.S, twiss_data.NAME)
-        bpms_with_distances_list.sort()
-        return bpms_with_distances_list[0], bpms_with_distances_list[-1]
+def _get_match_bpm_range(file_path):
+    twiss_data = metaclass.twiss(file_path)
+    bpms_with_distances_list = zip(twiss_data.S, twiss_data.NAME)
+    bpms_with_distances_list.sort()
+    return bpms_with_distances_list[0], bpms_with_distances_list[-1]

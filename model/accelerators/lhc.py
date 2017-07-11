@@ -3,7 +3,8 @@ import os
 import argparse
 import re
 import numpy as np
-from accelerator import Accelerator, AcceleratorDefinitionError
+from Utilities import tfs_pandas
+from accelerator import Accelerator, AcceleratorDefinitionError, Element
 
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -98,6 +99,26 @@ class Lhc(Accelerator):
         lhc_mode = options.lhc_mode
         beam = options.beam
         return cls.get_class(lhc_mode, beam), rest_args
+
+    @classmethod
+    def get_segment(cls, label, first_elem, last_elem, optics_file):
+        segment_cls = type(cls.__name__ + "Segment",
+                           (_LhcSegmentMixin, cls),
+                           {})
+        segment_inst = segment_cls()
+        beam = cls.get_beam()
+        bpms_file_name = "beam1bpms.tfs" if beam == 1 else "beam2bpms.tfs"
+        bpms_file = _get_file_for_year(cls.YEAR, bpms_file_name)
+        bpms_file_data = tfs_pandas.read_tfs(bpms_file).set_index("NAME")
+        first_elem_s = bpms_file_data.loc[first_elem, "S"]
+        last_elem_s = bpms_file_data.loc[last_elem, "S"]
+        segment_inst.label = label
+        segment_inst.start = Element(first_elem, first_elem_s)
+        segment_inst.end = Element(last_elem, last_elem_s)
+        segment_inst.optics_file = optics_file
+        segment_inst.xing = False
+        segment_inst.verify_object()
+        return segment_inst
 
     @classmethod
     def _get_beamed_class(cls, new_class, beam):
@@ -231,15 +252,33 @@ class Lhc(Accelerator):
         return cls.get_file("segment.madx")
 
     @classmethod
-    def get_file(cls, filename, beam=None):
-        if beam is None:
-            return os.path.join(CURRENT_DIR, "lhc", filename)
-        elif beam == 1:
-            return os.path.join(CURRENT_DIR, "lhc", "beam1", filename)
-        elif beam == 2:
-            return os.path.join(CURRENT_DIR, "lhc", "beam2", filename)
-        else:
-            raise AcceleratorDefinitionError("Beam should be 1 or 2.")
+    def get_file(cls, filename):
+        return os.path.join(CURRENT_DIR, "lhc", filename)
+
+    @classmethod
+    def get_variables(cls, frm=None, to=None, classes=None):
+        corr_data = tfs_pandas.read_tfs(cls._get_correctors_file())
+        corr_data = corr_data.set_index("S").loc[frm:to, :]
+        if classes is not None:
+            corr_data = corr_data[corr_data.apply(
+                lambda row: bool(set(classes) &
+                                 set(row["CLASSES"].split(","))),
+                axis=1,
+            )]
+        variables = []
+        for var_str in corr_data["VARS"]:
+            this_vars = var_str.split(",")
+            for this_var in this_vars:
+                if this_var not in variables:
+                    variables.append(this_var)
+        return variables
+
+    @classmethod
+    def _get_correctors_file(cls):
+        beam = cls.get_beam()
+        corrs_filename = ("correctors_b1.tfs" if beam == 1
+                          else "correctors_b2.tfs")
+        return _get_file_for_year("2012", corrs_filename)
 
     @property
     def excitation(self):
@@ -254,36 +293,16 @@ class Lhc(Accelerator):
         self._excitation = excitation_mode
 
 
-class LhcSegment(Lhc):
+class _LhcSegmentMixin(object):
 
     def __init__(self):
-        self.optics_file = None
-        self.label = None
-        self.start = None
-        self.end = None
-        self.xing = None
+        self._start = None
+        self._end = None
 
-    @classmethod
-    def init_from_args(cls, args):
-        raise NotImplementedError(
-            "LHC segments can only be instantiated by class definition."
-        )
-
-    @classmethod
-    def get_class(cls, lhc_mode=None, beam=None):
-        new_class = cls
-        if lhc_mode is not None:
-            new_class = cls._get_specific_class(get_lhc_modes()[lhc_mode])
-        if beam is not None:
-            new_class = cls._get_beamed_class(new_class, beam)
-        return new_class
-
-    @classmethod
-    def _get_specific_class(cls, lhc_cls):
-        specific_cls = type(lhc_cls.__name__ + "Segment",
-                            (cls, lhc_cls),
-                            {})
-        return specific_cls
+    def get_segment_vars(self, classes=None):
+        return self.get_variables(frm=self.start.s,
+                                  to=self.end.s,
+                                  classes=classes)
 
     def verify_object(self):
         try:
@@ -327,6 +346,7 @@ class LhcAts(Lhc):
 # Specific accelerator definitions ###########################################
 
 class LhcRunI(Lhc):
+    YEAR = "2012"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -338,6 +358,7 @@ class LhcRunI(Lhc):
 
 
 class LhcRunII2015(Lhc):
+    YEAR = "2015"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -345,6 +366,7 @@ class LhcRunII2015(Lhc):
 
 
 class LhcRunII2016(Lhc):
+    YEAR = "2016"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -356,6 +378,7 @@ class LhcRunII2016Ats(LhcAts, LhcRunII2016):
 
 
 class LhcRunII2017(LhcAts):
+    YEAR = "2017"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -364,6 +387,7 @@ class LhcRunII2017(LhcAts):
 
 class HlLhc10(LhcAts):
     MACROS_NAME = "hllhc"
+    YEAR = "hllhc10"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -371,9 +395,17 @@ class HlLhc10(LhcAts):
         load_main_seq += _get_call_main_for_year("hllhc1.0")
         return load_main_seq
 
+    @classmethod
+    def _get_correctors_file(cls):
+        beam = cls.get_beam()
+        corrs_filename = ("correctors_b1.tfs" if beam == 1
+                          else "correctors_b2.tfs")
+        return _get_file_for_year("hllhc10", corrs_filename)
+
 
 class HlLhc12(LhcAts):
     MACROS_NAME = "hllhc"
+    YEAR = "hllhc12"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -381,10 +413,24 @@ class HlLhc12(LhcAts):
         load_main_seq += _get_call_main_for_year("hllhc1.2")
         return load_main_seq
 
+    @classmethod
+    def _get_correctors_file(cls):
+        beam = cls.get_beam()
+        corrs_filename = ("correctors_b1.tfs" if beam == 1
+                          else "correctors_b2.tfs")
+        return _get_file_for_year("hllhc12", corrs_filename)
+
 ##############################################################################
 
 
 # General functions ##########################################################
+
+def _get_call_main_for_year(year):
+    call_main = _get_madx_call_command(
+        _get_file_for_year(year, "main.seq")
+    )
+    return call_main
+
 
 def _get_madx_call_command(path_to_call):
     command = "call, file = \""
@@ -393,10 +439,8 @@ def _get_madx_call_command(path_to_call):
     return command
 
 
-def _get_call_main_for_year(year):
-    call_main = _get_madx_call_command(
-        os.path.join(LHC_DIR, year, "main.seq")
-    )
-    return call_main
+def _get_file_for_year(year, filename):
+    return os.path.join(LHC_DIR, year, filename)
+
 
 ##############################################################################
