@@ -19,14 +19,6 @@ LIST_OF_KNOWN_BAD_BPMS = ["BPM.17L8.B1", "BPM.16L8.B1", "BPM.8R8.B1", "BPM.9R8.B
                           "BPM.21R7.B1","BPM.22R7.B1","BPM.20R8.B1","BPM.21R8.B1","BPM.19L2.B1","BPM.18L2.B1",  # H B1 (small ones)
                           "BPMR.7L5.B1","BPM.6L5.B1","BPM.8L1.B1","BPM.6L1.B1",
                           "BPM.22R3.B2", "BPM.23R3.B2", "BPMR.6L7.B2", "BPMWC.6L7.B2"] # New from ATS MD 27-07-2016
-LIST_OF_OUT_OF_SYNC_BPMS_B1 = ["BPM.33L2.B1", "BPM.32L2.B1", "BPM.31L2.B1", "BPM.30L2.B1",
-                               "BPM.29L2.B1", "BPM.28L2.B1", "BPM.27L2.B1", "BPM.26L2.B1", "BPM.25L2.B1", "BPM.24L2.B1", "BPM.23L2.B1", "BPM.22L2.B1", "BPM.21L2.B1", "BPM.20L2.B1",
-                               "BPM.19L2.B1", "BPM.18L2.B1", "BPM.17L2.B1", "BPM.16L2.B1", "BPM.15L2.B1", "BPM.14L2.B1", "BPM.13L2.B1", "BPM.12L2.B1", "BPM.11L2.B1", "BPM.10L2.B1",
-                               "BPM.9L2.B1", "BPM.8L2.B1", "BPM.7L2.B1", "BPMR.6L2.B1", "BPMYB.5L2.B1", "BPMYB.4L2.B1", "BPMWI.4L2.B1", "BPMS.2L2.B1", "BPMSW.1L2.B1"]
-LIST_OF_OUT_OF_SYNC_BPMS_B2 = ["BPM.34R8.B2", "BPM.33R8.B2", "BPM.32R8.B2", "BPM.31R8.B2", "BPM.30R8.B2",
-                               "BPM.29R8.B2", "BPM.28R8.B2", "BPM.27R8.B2", "BPM.26R8.B2", "BPM.25R8.B2", "BPM.24R8.B2", "BPM.23R8.B2", "BPM.22R8.B2", "BPM.21R8.B2", "BPM.20R8.B2",
-                               "BPM.19R8.B2", "BPM.18R8.B2", "BPM.17R8.B2", "BPM.16R8.B2", "BPM.15R8.B2", "BPM.14R8.B2", "BPM.13R8.B2", "BPM.12R8.B2", "BPM.11R8.B2", "BPM.10R8.B2",
-                               "BPM.9R8.B2", "BPM.8R8.B2", "BPM_A.7R8.B2", "BPMR.6R8.B2", "BPMYB.5R8.B2", "BPMYB.4R8.B2", "BPMWI.4R8.B2", "BPMS.2R8.B2", "BPMSW.1R8.B2"]
 LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = []
 
 ########################
@@ -50,8 +42,8 @@ def clean(bpm_names, bpm_data, clean_input):
             bpm_data[i, :] = -1. * bpm_data[i, :]
         # Resynchronizes BPMs between the injection point and start of the lattice
         if not clean_input.noresync:
-            if (bpm_names[i] in LIST_OF_OUT_OF_SYNC_BPMS_B1 or
-                    bpm_names[i] in LIST_OF_OUT_OF_SYNC_BPMS_B2):
+            if (bpm_names[i][-5:].upper() == "L2.B1" or
+                    bpm_names[i][-5:].upper() == "R8.B2"):
                 bpm_data[i, :] = np.roll(bpm_data[i, :], -1)
     maxima = _get_max_bpm_readings(bpm_data)
     minima = _get_min_bpm_readings(bpm_data)
