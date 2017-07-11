@@ -216,79 +216,77 @@ class Uncertainties:  # error definition file
         
     
     def open(self, filename):
-        F = open(filename, "r")
+        with open(filename, "r") as F:
         
-        line = F.readline()
-        
-        if line.strip() == "version 2":
             line = F.readline()
-            for line in F:
-                
-                line = re.split("//", line)[0].strip()  # separating code from comments
-                if len(line) == 0:
-                    continue
-                match = re.search(r'prop (\w+)\s+=\s(\w[\w\s]*)', line)
-                if match is not None:
-                    print "adding {} = {} to properties".format(match.group(1), match.group(2))
-                    self.properties[match.group(1)] = match.group(2).strip()
-                else:
-                    words = re.split('\s', line)
+            
+            if line.strip() == "version 2":
+                line = F.readline()
+                for line in F:
                     
-                    if words[0].startswith("re:"):
-                        ud = UncertaintyDefinitionRE(words[0].split(":")[1])
-                        
-                        for word in words:
-                            kv = word.split("=")
-                            if kv[0] == "dK1":
-                                ud.dK1 = float(kv[1])
-                            elif kv[0] == "dS":
-                                ud.dS = float(kv[1])
-                            elif kv[0] == "dX":
-                                ud.dX = float(kv[1])
-                            elif kv[0] == "Type":
-                                ud.settype(kv[1])
-                        self.regex.append(ud)
+                    line = re.split("//", line)[0].strip()  # separating code from comments
+                    if len(line) == 0:
+                        continue
+                    match = re.search(r'prop (\w+)\s+=\s(\w[\w\s]*)', line)
+                    if match is not None:
+                        print "adding {} = {} to properties".format(match.group(1), match.group(2))
+                        self.properties[match.group(1)] = match.group(2).strip()
                     else:
-                        ud = UncertaintyDefinition(words[0])
+                        words = re.split('\s', line)
                         
-                        for word in words:
-                            kv = word.split("=")
-                            if kv[0] == "dK1":
-                                ud.dK1 = float(kv[1])
-                            elif kv[0] == "dS":
-                                ud.dS = float(kv[1])
-                            elif kv[0] == "dX":
-                                ud.dX = float(kv[1])
-                            elif kv[0] == "Type":
-                                ud.settype(kv[1])
-                        self.keys.append(ud)
-            F.close()
+                        if words[0].startswith("re:"):
+                            ud = UncertaintyDefinitionRE(words[0].split(":")[1])
+                            
+                            for word in words:
+                                kv = word.split("=")
+                                if kv[0] == "dK1":
+                                    ud.dK1 = float(kv[1])
+                                elif kv[0] == "dS":
+                                    ud.dS = float(kv[1])
+                                elif kv[0] == "dX":
+                                    ud.dX = float(kv[1])
+                                elif kv[0] == "Type":
+                                    ud.settype(kv[1])
+                            self.regex.append(ud)
+                        else:
+                            ud = UncertaintyDefinition(words[0])
+                            
+                            for word in words:
+                                kv = word.split("=")
+                                if kv[0] == "dK1":
+                                    ud.dK1 = float(kv[1])
+                                elif kv[0] == "dS":
+                                    ud.dS = float(kv[1])
+                                elif kv[0] == "dX":
+                                    ud.dX = float(kv[1])
+                                elif kv[0] == "Type":
+                                    ud.settype(kv[1])
+                            self.keys.append(ud)
             
-            return True
-        else:
-            F.close()
-            
-            try:
-                definitions = Python_Classes4MAD.metaclass.twiss(filename)
+                return True
+            else:
                 
-            except:
-                print >> sys.stderr, "loading errorfile didn't work"
-                print >> sys.stderr, "errordefspath = {0:s}".format(filename)
-                return False
-            
-            print_("error definitions file version 1")
-            self.properties["RELATIVE"] = definitions.RELATIVE
-            self.properties["RADIUS"] = definitions.RADIUS
-             
-            for index in range(len(definitions.PATTERN)):
-                pattern = definitions.PATTERN[index]
-                self.regex.append(UncertaintyDefinitionRE(
-                    pattern,
-                    definitions.dK1[index],
-                    definitions.dS[index],
-                    definitions.dX[index],
-                    definitions.MAINFIELD[index]))
-            return True
+                try:
+                    definitions = Python_Classes4MAD.metaclass.twiss(filename)
+                    
+                except:
+                    print >> sys.stderr, "loading errorfile didn't work"
+                    print >> sys.stderr, "errordefspath = {0:s}".format(filename)
+                    return False
+                
+                print_("error definitions file version 1")
+                self.properties["RELATIVE"] = definitions.RELATIVE
+                self.properties["RADIUS"] = definitions.RADIUS
+                 
+                for index in range(len(definitions.PATTERN)):
+                    pattern = definitions.PATTERN[index]
+                    self.regex.append(UncertaintyDefinitionRE(
+                        pattern,
+                        definitions.dK1[index],
+                        definitions.dS[index],
+                        definitions.dX[index],
+                        definitions.MAINFIELD[index]))
+                return True
         
     def create_errorfile(self, twiss_full, twiss_full_centre, plane, accel):
         if accel == "JPARC":
