@@ -1,11 +1,11 @@
 from __future__ import print_function
 import sys
 import os
-import numpy as np
 import time
 import logging
-from datetime import datetime
 import clean
+import numpy as np
+from datetime import datetime
 from input_handler import parse_args
 from harpy import harpy
 from scipy.fftpack import fft as scipy_fft
@@ -15,7 +15,6 @@ sys.path.append(os.path.abspath(os.path.join(
     ".."
 )))
 
-print(sys.path)
 from Utilities import tfs_pandas
 from model import manager
 from sdds_files import turn_by_turn_reader
@@ -63,11 +62,10 @@ def run_all(main_input, clean_input, harpy_input):
                     bpm_names, bpm_data,
                     clean_input,
                 )
-                bpm_names, bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean_fft(
+                bpm_names, bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(
                     bpm_names, bpm_data,
                     clean_input,
                 )
-                #print(bpm_coefs)
                 if clean_input.write_clean:
                     if plane == "x":
                         computed_dpp = calc_dp_over_p(main_input, bpm_names, bpm_data)
@@ -77,10 +75,6 @@ def run_all(main_input, clean_input, harpy_input):
                 bad_bpms_fft = []
 
                 if harpy_input is not None:
-                    allowed = _get_allowed_length(
-                        rang=[0, bpm_data.shape[1]]
-                    )[-1]
-                    bpm_data = bpm_data[:, :allowed]
                     bad_bpms_fft = harmonic_analysis(
                         bpm_names, bpm_data, usv, bpm_res,#usv here instead of bpm_data
                         plane, main_input, harpy_input,
@@ -120,10 +114,15 @@ def harmonic_analysis(bpm_names, bpm_data, usv, bpm_res,
         nattunes = None
     else:
         nattunes = harpy_input.nattunex, harpy_input.nattuney
+    allowed = _get_allowed_length(
+        rang=[0, bpm_data.shape[1]]
+    )[-1]
+    bpm_data = bpm_data[:, :allowed]
+    usv = (usv[0], usv[1], usv[2][:, :allowed])
     output_file = get_outpath_with_suffix(main_input.file,
                                           main_input.outputdir,
                                           ".lin" + plane)
-    drivemat = harpy.init_from_svd(#here svd instead of matrix
+    drivemat = harpy.init_from_svd(
         bpm_names, bpm_data, usv, tunes, plane.upper(),
         output_file, main_input.model, nattunes=nattunes,
         tolerance=harpy_input.tolerance,

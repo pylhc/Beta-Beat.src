@@ -19,7 +19,7 @@ def parse_args():
                 "Too many arguments: " + str([next_option] + rest)
             )
         subparser = subparse_funct()
-        del(subparsers[next_option])
+        del subparsers[next_option]
         suboption, rest = subparser.parse_known_args(rest)
         suboptions[next_option] = suboption
 
