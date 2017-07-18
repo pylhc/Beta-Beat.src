@@ -120,13 +120,14 @@ def svd_clean(bpm_names, bpm_data, clean_input):
 
     # Reconstruct the SVD-cleaned data
     A = (np.dot(USV[0][good_bpms],
-         np.dot(np.diag(USV[1]), USV[2])) * sqrt_number_of_turns) + bpm_data_mean
+         np.dot(np.diag(USV[1]), USV[2]))) * sqrt_number_of_turns + bpm_data_mean
        
     bpm_res = np.std(A - bpm_data[good_bpms, :], axis=1)
     LOGGER.debug("Average BPM resolution: " + str(np.mean(bpm_res)))
     LOGGER.debug(">> Time for svd_clean: {0}s"
                  .format(time.time() - time_start))
-    return bpm_names[good_bpms], A, bpm_res, bad_bpms_with_reasons, (USV[0][good_bpms], USV[1], USV[2])
+    return (bpm_names[good_bpms], A, bpm_res, bad_bpms_with_reasons,
+            (USV[0][good_bpms], USV[1] * sqrt_number_of_turns, USV[2]))
 
 
 # HELPER FUNCTIONS #########################
