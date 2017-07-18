@@ -1,7 +1,7 @@
 import time
 import numpy as np
 import logging
-
+from scipy.fftpack import fft as scipy_fft
 SPARSE_AVAILABLE = True
 try:
     from scipy.sparse.linalg.eigen.arpack.arpack import svds
@@ -9,7 +9,7 @@ except ImportError:
     SPARSE_AVAILABLE = False
 
 
-
+PI2I = 2 * np.pi * complex(0, 1)
 LOGGER = logging.getLogger(__name__)
 
 # piotr: for data 20160408 01:45+ (40cm) B1
@@ -121,13 +121,12 @@ def svd_clean(bpm_names, bpm_data, clean_input):
     # Reconstruct the SVD-cleaned data
     A = (np.dot(USV[0][good_bpms],
          np.dot(np.diag(USV[1]), USV[2])) * sqrt_number_of_turns) + bpm_data_mean
-
+       
     bpm_res = np.std(A - bpm_data[good_bpms, :], axis=1)
     LOGGER.debug("Average BPM resolution: " + str(np.mean(bpm_res)))
     LOGGER.debug(">> Time for svd_clean: {0}s"
                  .format(time.time() - time_start))
-
-    return bpm_names[good_bpms], A, bpm_res, bad_bpms_with_reasons
+    return bpm_names[good_bpms], A, bpm_res, bad_bpms_with_reasons, (USV[0][good_bpms], USV[1], USV[2])
 
 
 # HELPER FUNCTIONS #########################
@@ -228,3 +227,84 @@ def svd_for_fft(bpm_names, bpm_data, singular_values_amount_to_keep=12,
     )
     LOGGER.debug(">> Time for SVD: {0}s".format(time.time() - time_start))
     return USV, sqrt_number_of_turns, bpm_data_mean
+
+
+###############################################################
+
+def laskar_method(num_harmonics, sample):
+    samples = sample  # Copy the samples array.
+    n = len(samples)
+    ints = np.arange(n)
+    coefficients = []
+    frequencies = []
+    for _ in range(num_harmonics):
+        # Compute this harmonic frequency and coefficient.
+        dft_data = scipy_fft(samples)
+        frequency = jacobsen(dft_data)
+        coefficient = compute_coef_simple(samples, frequency * n) / n
+
+        # Store frequency and amplitude
+        coefficients.append(coefficient)
+        frequencies.append(frequency)
+
+        # Subtract the found pure tune from the signal
+        new_signal = coefficient * np.exp(PI2I * frequency * ints)
+        samples = samples - new_signal
+
+    coefficients, frequencies = zip(*sorted(zip(coefficients, frequencies),
+                                                key=lambda tuple: np.abs(tuple[0]),
+                                                reverse=True))
+    return frequencies, coefficients
+
+
+def laskar_method_modes_freqs(samples, freqs):
+    n = samples.shape[1]
+    ints = np.arange(n)
+    frequencies = np.empty([len(freqs)])
+    coefficients = np.empty([samples.shape[0],len(freqs)], dtype=complex)
+    i = 0
+    for i, frequency in enumerate(freqs):
+        frequencies[i] = frequency
+        coefficients[:,i] = np.sum(np.exp(-PI2I * frequency * ints) * samples, axis=1)/ n
+        
+    #coefficients, frequencies = zip(*sorted(zip(coefficients, frequencies), key=lambda tuple: np.abs(tuple[0]), reverse=True))
+    return frequencies, coefficients
+
+
+
+def jacobsen(dft_values):
+    """
+    This method interpolates the real frequency of the
+    signal using the three highest peaks in the FFT.
+    """
+    k = np.argmax(np.abs(dft_values))
+    n = len(dft_values)
+    r = dft_values
+    delta = np.tan(np.pi / n) / (np.pi / n)
+    kp = (k + 1) % n
+    km = (k - 1) % n
+    delta = delta * np.real((r[km] - r[kp]) / (2 * r[k] - r[km] - r[kp]))
+    return (k + delta) / n
+
+
+def compute_coef_simple(samples, kprime):
+    """
+    Computes the coefficient of the Discrete Time Fourier
+    Transform corresponding to the given frequency (kprime).
+    """
+    n = len(samples)
+    freq = kprime / n
+    exponents = np.exp(-PI2I * freq * np.arange(n))
+    coef = np.sum(exponents * samples)
+    return coef
+
+def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):
+    ind = np.indices((p2max, p3max, p5max))
+    nums = (np.power(2, ind[0]) *
+            np.power(3, ind[1]) *
+            np.power(5, ind[2])).reshape(p2max * p3max * p5max)
+    nums = nums[(nums > rang[0]) & (nums <= rang[1])]
+    return np.sort(nums)
+ 
+
+###########################################################

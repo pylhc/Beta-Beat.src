@@ -1,20 +1,20 @@
 from __future__ import print_function
 import sys
 import os
-import numpy as np
 import time
 import logging
-from datetime import datetime
 import clean
+import numpy as np
+from datetime import datetime
 from input_handler import parse_args
 from harpy import harpy
+from scipy.fftpack import fft as scipy_fft
 
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
     ".."
 )))
 
-print(sys.path)
 from Utilities import tfs_pandas
 from model import manager
 from sdds_files import turn_by_turn_reader
@@ -62,11 +62,10 @@ def run_all(main_input, clean_input, harpy_input):
                     bpm_names, bpm_data,
                     clean_input,
                 )
-                bpm_names, bpm_data, bpm_res, bad_bpms_svd = clean.svd_clean(
+                bpm_names, bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(
                     bpm_names, bpm_data,
                     clean_input,
                 )
-
                 if clean_input.write_clean:
                     if plane == "x":
                         computed_dpp = calc_dp_over_p(main_input, bpm_names, bpm_data)
@@ -76,12 +75,8 @@ def run_all(main_input, clean_input, harpy_input):
                 bad_bpms_fft = []
 
                 if harpy_input is not None:
-                    allowed = _get_allowed_length(
-                        rang=[0, bpm_data.shape[1]]
-                    )[-1]
-                    bpm_data = bpm_data[:, :allowed]
                     bad_bpms_fft = harmonic_analysis(
-                        bpm_names, bpm_data, bpm_res,
+                        bpm_names, bpm_data, usv, bpm_res,#usv here instead of bpm_data
                         plane, main_input, harpy_input,
                     )
                 write_bad_bpms_into_file(
@@ -106,12 +101,12 @@ def run_all(main_input, clean_input, harpy_input):
                     headers_dict,
                 )
 
-    LOGGER.debug(">> Total time for file: {0}s".format(
+    LOGGER.info(">> Total time for file: {0}s".format(
         time.time() - start_time
     ))
 
 
-def harmonic_analysis(bpm_names, bpm_data, bpm_res,
+def harmonic_analysis(bpm_names, bpm_data, usv, bpm_res,
                       plane, main_input, harpy_input):
     time_start = time.time()
     tunes = harpy_input.tunex, harpy_input.tuney, harpy_input.tunez
@@ -119,15 +114,28 @@ def harmonic_analysis(bpm_names, bpm_data, bpm_res,
         nattunes = None
     else:
         nattunes = harpy_input.nattunex, harpy_input.nattuney
+    allowed = _get_allowed_length(
+        rang=[0, bpm_data.shape[1]]
+    )[-1]
+    bpm_data = bpm_data[:, :allowed]
+    usv = (usv[0], usv[1], usv[2][:, :allowed])
     output_file = get_outpath_with_suffix(main_input.file,
                                           main_input.outputdir,
                                           ".lin" + plane)
-    drivemat = harpy.init_from_matrix(
-        bpm_names, bpm_data, tunes, plane.upper(),
-        output_file, main_input.model, nattunes=nattunes,
-        tolerance=harpy_input.tolerance,
-        start_turn=0, end_turn=None, sequential=harpy_input.sequential,
-    )
+    if harpy_input.harpy_mode == "bpm":
+        drivemat = harpy.init_from_matrix(
+            bpm_names, bpm_data, tunes, plane.upper(),
+            output_file, main_input.model, nattunes=nattunes,
+            tolerance=harpy_input.tolerance,
+            start_turn=0, end_turn=None, sequential=harpy_input.sequential,
+        )
+    elif harpy_input.harpy_mode == "svd":
+        drivemat = harpy.init_from_svd(
+            bpm_names, bpm_data, usv, tunes, plane.upper(),
+            output_file, main_input.model, nattunes=nattunes,
+            tolerance=harpy_input.tolerance,
+            start_turn=0, end_turn=None, sequential=harpy_input.sequential,
+        )
     bpms_after_fft = []
     for i in range(len(drivemat.bpm_results)):
         drivemat.bpm_results[i].bpm_resolution = bpm_res[np.where(bpm_names == drivemat.bpm_results[i].name)[0]][0]
@@ -137,9 +145,7 @@ def harmonic_analysis(bpm_names, bpm_data, bpm_res,
         if bpm_name not in bpms_after_fft:
             bad_bpms_fft.append(bpm_name + " Could not find the main resonance")
     drivemat.write_full_results()
-    LOGGER.debug(">> Time for harmonic_analysis: {0}s".format(
-        time.time() - time_start)
-    )
+    LOGGER.debug(">> Time for harmonic_analysis: {0}s".format(time.time() - time_start))
     return bad_bpms_fft
 
 

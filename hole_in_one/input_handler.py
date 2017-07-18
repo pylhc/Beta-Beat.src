@@ -19,7 +19,7 @@ def parse_args():
                 "Too many arguments: " + str([next_option] + rest)
             )
         subparser = subparse_funct()
-        del(subparsers[next_option])
+        del subparsers[next_option]
         suboption, rest = subparser.parse_known_args(rest)
         suboptions[next_option] = suboption
 
@@ -215,6 +215,7 @@ class HarpyInput(object):
         "tunez": 0.0,
         "nattunez": 0.0,
         "tolerance": 0.01,
+        "harpy_mode": "bpm",
         "sequential": False,
     }
 
@@ -226,6 +227,7 @@ class HarpyInput(object):
         self.tunez = HarpyInput.DEFAULTS["tunez"]
         self.nattunez = HarpyInput.DEFAULTS["nattunez"]
         self.tolerance = HarpyInput.DEFAULTS["tolerance"]
+        self.harpy_mode = HarpyInput.DEFAULTS["harpy_mode"]
         self.sequential = HarpyInput.DEFAULTS["sequential"]
 
     @staticmethod
@@ -238,6 +240,7 @@ class HarpyInput(object):
         self.tunez = options.tunez
         self.nattunez = options.nattunez
         self.tolerance = options.tolerance
+        self.harpy_mode = options.harpy_mode
         self.sequential = options.sequential
         return self
 
@@ -267,18 +270,24 @@ def _get_harpy_parser():
     )
     parser.add_argument(
         "--tunez", help="Guess for the main synchrotron tune.",
-        default=0.0,
+        default=HarpyInput.DEFAULTS["tunez"],
         dest="tunez", type=float,
     )
     parser.add_argument(
         "--nattunez", help="Guess for the natural synchrotron tune.",
-        default=0.0,
+        default=HarpyInput.DEFAULTS["nattunez"],
         dest="nattunez", type=float,
     )
     parser.add_argument(
         "--tolerance", help="Tolerance on the guess for the tunes.",
-        default=0.01,
+        default=HarpyInput.DEFAULTS["tolerance"],
         dest="tolerance", type=float,
+    )
+    parser.add_argument(
+        "--harpy_mode", help="Harpy resonance computation mode.",
+        dest="harpy_mode", type=str,
+        choices=("bpm", "svd"),
+        default=HarpyInput.DEFAULTS["harpy_mode"],
     )
     parser.add_argument(
         "--sequential", help="If set, it will run in only one process.",
