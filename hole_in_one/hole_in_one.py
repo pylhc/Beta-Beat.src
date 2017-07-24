@@ -9,6 +9,7 @@ from datetime import datetime
 from input_handler import parse_args
 from harpy import harpy
 from scipy.fftpack import fft as scipy_fft
+from Utilities.twiss_to_tbt import generate
 
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
@@ -58,6 +59,8 @@ def run_all(main_input, clean_input, harpy_input):
             for plane in ["x", "y"]:
                 bpm_names = np.array(getattr(tbt_file, "bpm_names_" + plane))
                 bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
+                # clean_input.noresync=True #for generation
+                # bpm_names, bpm_data = generate(main_input.model, nturns=6600, plane =plane.upper(), deltaQ = -0.01, sigmaQ = 0.00001, bpm_noise=0.0000) #generation
                 bpm_names, bpm_data, bad_bpms = clean.clean(
                     bpm_names, bpm_data,
                     clean_input,
@@ -129,12 +132,15 @@ def harmonic_analysis(bpm_names, bpm_data, usv, bpm_res,
             tolerance=harpy_input.tolerance,
             start_turn=0, end_turn=None, sequential=harpy_input.sequential,
         )
-    elif harpy_input.harpy_mode == "svd":
+    elif harpy_input.harpy_mode == "svd" or harpy_input.harpy_mode == "fast":
+        fast = False
+        if harpy_input.harpy_mode == "fast":
+            fast = True
         drivemat = harpy.init_from_svd(
             bpm_names, bpm_data, usv, tunes, plane.upper(),
             output_file, main_input.model, nattunes=nattunes,
             tolerance=harpy_input.tolerance,
-            start_turn=0, end_turn=None, sequential=harpy_input.sequential,
+            start_turn=0, end_turn=None, sequential=harpy_input.sequential, fast=fast
         )
     bpms_after_fft = []
     for i in range(len(drivemat.bpm_results)):

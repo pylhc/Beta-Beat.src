@@ -286,7 +286,7 @@ def _get_harpy_parser():
     parser.add_argument(
         "--harpy_mode", help="Harpy resonance computation mode.",
         dest="harpy_mode", type=str,
-        choices=("bpm", "svd"),
+        choices=("bpm", "svd", "fast"),
         default=HarpyInput.DEFAULTS["harpy_mode"],
     )
     parser.add_argument(
