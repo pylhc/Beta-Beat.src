@@ -19,7 +19,7 @@ class PhaseMatcher(Matcher):
     %(S_VARIABLES)s
     """
 
-    BETA_CORR_CLASSES = ["MQT", "MQL", "MQM", "MQY", "MQX"]
+    BETA_CORR_CLASSES = ["MQT", "MQM", "MQY", "MQX", "MQXT"]
 
     @Matcher.override(Matcher)
     def get_variables(self, exclude=True):

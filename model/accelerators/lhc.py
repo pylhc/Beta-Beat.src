@@ -2,7 +2,10 @@ from __future__ import print_function
 import os
 import argparse
 import re
+import json
+from collections import OrderedDict
 import numpy as np
+import pandas as pd
 from Utilities import tfs_pandas
 from accelerator import Accelerator, AcceleratorDefinitionError, Element
 
@@ -257,28 +260,26 @@ class Lhc(Accelerator):
 
     @classmethod
     def get_variables(cls, frm=None, to=None, classes=None):
-        corr_data = tfs_pandas.read_tfs(cls._get_correctors_file())
-        corr_data = corr_data.set_index("S").loc[frm:to, :]
-        if classes is not None:
-            corr_data = corr_data[corr_data.apply(
-                lambda row: bool(set(classes) &
-                                 set(row["CLASSES"].split(","))),
-                axis=1,
-            )]
-        variables = []
-        for var_str in corr_data["VARS"]:
-            this_vars = var_str.split(",")
-            for this_var in this_vars:
-                if this_var not in variables:
-                    variables.append(this_var)
-        return variables
-
-    @classmethod
-    def _get_correctors_file(cls):
-        beam = cls.get_beam()
-        corrs_filename = ("correctors_b1.tfs" if beam == 1
-                          else "correctors_b2.tfs")
-        return _get_file_for_year("2012", corrs_filename)
+        correctors_dir = os.path.join(LHC_DIR, "2012", "correctors")
+        all_corrs = _merge_jsons(
+            os.path.join(correctors_dir, "correctors_b" + str(cls.get_beam()),
+                         "beta_correctors.json"),
+            os.path.join(correctors_dir, "correctors_b" + str(cls.get_beam()),
+                         "coupling_correctors.json"),
+            os.path.join(correctors_dir, "triplet_correctors.json"),
+        )
+        my_classes = classes
+        if my_classes is None:
+            my_classes = all_corrs.keys()
+        vars_by_class = set(_flatten_list([all_corrs[corr_cls] for corr_cls in my_classes]))
+        elems_matrix = _merge_tfs(
+            os.path.join(correctors_dir, "corrector_elems_b" + str(cls.get_beam()) + ".tfs"),
+            os.path.join(correctors_dir, "corrector_elems_triplet.tfs"),
+        ).sort_values("S").set_index("S").loc[frm:to, :]
+        vars_by_position = _remove_dups_keep_order(_flatten_list(
+            [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
+        ))
+        return _list_intersect_keep_order(vars_by_position, vars_by_class)
 
     @property
     def excitation(self):
@@ -420,6 +421,11 @@ class HlLhc12(LhcAts):
                           else "correctors_b2.tfs")
         return _get_file_for_year("hllhc12", corrs_filename)
 
+
+class HlLhc12NoQ2Trim(HlLhc12):
+    MACROS_NAME = "hllhc"
+    YEAR = "hllhc12"
+
 ##############################################################################
 
 
@@ -441,6 +447,35 @@ def _get_madx_call_command(path_to_call):
 
 def _get_file_for_year(year, filename):
     return os.path.join(LHC_DIR, year, filename)
+
+
+def _merge_jsons(*files):
+    full_dict = {}
+    for json_file in files:
+        with open(json_file, "r") as json_data:
+            json_dict = json.load(json_data)
+            for key, value in json_dict.iteritems():
+                full_dict[key] = value
+    return full_dict
+
+
+def _merge_tfs(*files):
+    tfs_files = []
+    for tfs_file in files:
+        tfs_files.append(tfs_pandas.read_tfs(tfs_file))
+    return pd.concat(tfs_files)
+
+
+def _flatten_list(my_list):
+    return [item for sublist in my_list for item in sublist]
+
+
+def _remove_dups_keep_order(my_list):
+    return list(OrderedDict.fromkeys(my_list))
+
+
+def _list_intersect_keep_order(primary_list, secondary_list):
+    return [elem for elem in primary_list if elem in secondary_list]
 
 
 ##############################################################################
