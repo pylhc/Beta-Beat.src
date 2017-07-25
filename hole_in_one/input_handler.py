@@ -213,7 +213,6 @@ def _get_clean_parser():
 class HarpyInput(object):
     DEFAULTS = {
         "tunez": 0.0,
-        "nattunez": 0.0,
         "tolerance": 0.01,
         "harpy_mode": "bpm",
         "sequential": False,
@@ -222,10 +221,10 @@ class HarpyInput(object):
     def __init__(self):
         self.tunex = None
         self.tuney = None
+        self.tunez = HarpyInput.DEFAULTS["tunez"]
         self.nattunex = None
         self.nattuney = None
-        self.tunez = HarpyInput.DEFAULTS["tunez"]
-        self.nattunez = HarpyInput.DEFAULTS["nattunez"]
+        self.nattunez = None
         self.tolerance = HarpyInput.DEFAULTS["tolerance"]
         self.harpy_mode = HarpyInput.DEFAULTS["harpy_mode"]
         self.sequential = HarpyInput.DEFAULTS["sequential"]
@@ -275,7 +274,7 @@ def _get_harpy_parser():
     )
     parser.add_argument(
         "--nattunez", help="Guess for the natural synchrotron tune.",
-        default=HarpyInput.DEFAULTS["nattunez"],
+        default=None,
         dest="nattunez", type=float,
     )
     parser.add_argument(

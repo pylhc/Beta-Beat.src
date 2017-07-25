@@ -116,7 +116,7 @@ def harmonic_analysis(bpm_names, bpm_data, usv, bpm_res,
     if harpy_input.nattunex is None or harpy_input.nattuney is None:
         nattunes = None
     else:
-        nattunes = harpy_input.nattunex, harpy_input.nattuney
+        nattunes = harpy_input.nattunex, harpy_input.nattuney, harpy_input.nattunez
     allowed = _get_allowed_length(
         rang=[0, bpm_data.shape[1]]
     )[-1]
