@@ -1,7 +1,8 @@
-import __init__
+
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import metaclass
+from Python_Classes4MAD import metaclass
 import os.path
 from pylab import *
 import matplotlib
