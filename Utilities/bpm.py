@@ -68,15 +68,16 @@ def intersect(list_of_twiss_files):
         print >> sys.stderr, "Nothing to intersect!!!!"
         return []
 
-    names_list = list_of_twiss_files[0].NAME
+    names_list = list_of_twiss_files[0]["NAME"]
     if len(names_list) == 0:
         print >> sys.stderr, "No exp BPMs..."
         sys.exit(1)
     for twiss_file in list_of_twiss_files:
         #TODO: have to use a set probably, does not detect duplicates! (vimaier)
-        names_list = [b for b in twiss_file.NAME if b in names_list]
+        names_list = [b for b in twiss_file["NAME"] if b in names_list]
 
     result = [] # list of tupels (S, bpm_name)
+    print names_list
     twiss_0 = list_of_twiss_files[0]
     for bpm in names_list:
         result.append((twiss_0.S[twiss_0.indx[bpm]], bpm))

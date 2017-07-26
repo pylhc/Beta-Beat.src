@@ -2,10 +2,11 @@ from __future__ import print_function
 import os
 import argparse
 import re
+import sys
 import numpy as np
 from Utilities import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element
-
+from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
+from time import time
 
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
@@ -23,10 +24,6 @@ def get_lhc_modes():
     }
 
 
-class LhcExcitationMode(object):
-    FREE, ACD, ADT = range(3)
-
-
 class Lhc(Accelerator):
     NAME = "lhc"
     MACROS_NAME = "lhc"
@@ -41,6 +38,13 @@ class Lhc(Accelerator):
         self.energy = None
         self.dpp = 0.0
         self.xing = None
+        
+        # for GetLLM
+        self.model = None
+        self.model_driven = None
+        self.model_best_knowledge = None
+        self.elements = None
+        self.elements_centre = None
 
     @classmethod
     def init_from_args(cls, args):
@@ -54,11 +58,11 @@ class Lhc(Accelerator):
                 "Select only one excitation type."
             )
         if options.acd:
-            instance.excitation = LhcExcitationMode.ACD
+            instance.excitation = AccExcitationMode.ACD
         elif options.adt:
-            instance.excitation = LhcExcitationMode.ADT
+            instance.excitation = AccExcitationMode.ADT
         else:
-            instance.excitation = LhcExcitationMode.FREE
+            instance.excitation = AccExcitationMode.FREE
         if options.acd or options.adt:
             instance.drv_tune_x = options.drv_tune_x
             instance.drv_tune_y = options.drv_tune_y
@@ -68,7 +72,66 @@ class Lhc(Accelerator):
         instance.fullresponse = options.fullresponse
         instance.xing = options.xing
         instance.verify_object()
+        
         return instance, rest_args
+        
+    @classmethod
+    def init_from_model_dir(cls, model_dir):  # prints only for debugging
+        
+        print("Creating accelerator instance from model dir")
+        starttime = time()
+        instance = cls()
+        elapsed = time() - starttime
+        print("\tcreating instance took {:.3f} s".format(elapsed))
+        
+        instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"))
+            
+        instance._excitation = AccExcitationMode.FREE
+        ac_filename = os.path.join(model_dir, "twiss_ac.dat")
+        adt_filename = os.path.join(model_dir, "twiss_adt.dat")
+        
+        if os.path.isfile(ac_filename):
+            tfs_time = time()
+            instance.model_driven = tfs_pandas.read_tfs(ac_filename)
+            print("\tloading driven model took {:.3f} s".format(time() - tfs_time))
+            instance.excitation = AccExcitationMode.ACD
+            driven_filename = ac_filename
+            
+        if os.path.isfile(adt_filename):
+            if instance.excitation == AccExcitationMode.ACD:
+                raise AcceleratorDefinitionError("ADT as well as ACD models provided. What do you want? Please come back to me once you have made up your mind.")
+
+            tfs_time = time()
+            instance.model_driven = tfs_pandas.read_tfs(adt_filename)
+            print("\tloading driven model took {.3f} s".format(time() - tfs_time))
+            instance.excitation = AccExcitationMode.ADT
+            driven_filename = adt_filename
+        
+        try:
+            model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
+            if os.path.isfile(model_best_knowledge_path):
+                instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path)
+        except IOError:
+            instance.model_best_knowledge = None
+            
+        elements_path = os.path.join(model_dir, "twiss_elements.dat")
+        if os.path.isfile(elements_path):
+            instance.elements = tfs_pandas.read_tfs(elements_path)
+        else:
+            raise AcceleratorDefinitionError("Elements twiss not found")
+        elements_path = os.path.join(model_dir, "twiss_elements_centre.dat")
+        if os.path.isfile(elements_path):
+            instance.elements_centre = tfs_pandas.read_tfs(elements_path)
+        else:
+            instance.elements_centre = instance.elements
+        print("creating instance from model dir took {:.3f}".format(time() - starttime))
+        
+        instance.drv_tune_x = float(instance.get_driven_tfs().headers["Q1"])
+        instance.drv_tune_y = float(instance.get_driven_tfs().headers["Q2"])
+        instance.nat_tune_x = float(instance.model_tfs.headers["Q1"])
+        instance.nat_tune_y = float(instance.model_tfs.headers["Q2"])
+        
+        return instance
 
     @classmethod
     def get_class(cls, lhc_mode=None, beam=None):
@@ -124,7 +187,7 @@ class Lhc(Accelerator):
     def _get_beamed_class(cls, new_class, beam):
         beam_mixin = _LhcB1Mixin if beam == 1 else _LhcB2Mixin
         beamed_class = type(new_class.__name__ + "B" + str(beam),
-                            (new_class, beam_mixin),
+                            (beam_mixin, new_class),
                             {})
         return beamed_class
 
@@ -215,6 +278,7 @@ class Lhc(Accelerator):
             dest="xing",
             action="store_true",
         )
+       
         return parser
 
     def verify_object(self):  # TODO: Maybe more checks?
@@ -234,8 +298,8 @@ class Lhc(Accelerator):
             raise AcceleratorDefinitionError("Excitation mode not set.")
         if self.xing is None:
             raise AcceleratorDefinitionError("Crossing on or off not set.")
-        if (self.excitation == LhcExcitationMode.ACD or
-                self.excitation == LhcExcitationMode.ADT):
+        if (self.excitation == AccExcitationMode.ACD or
+                self.excitation == AccExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise AcceleratorDefinitionError("Driven tunes not set.")
 
@@ -286,12 +350,84 @@ class Lhc(Accelerator):
 
     @excitation.setter
     def excitation(self, excitation_mode):
-        if excitation_mode not in (LhcExcitationMode.FREE,
-                                   LhcExcitationMode.ACD,
-                                   LhcExcitationMode.ADT):
+        if excitation_mode not in (AccExcitationMode.FREE,
+                                   AccExcitationMode.ACD,
+                                   AccExcitationMode.ADT):
             raise ValueError("Wrong excitation mode.")
         self._excitation = excitation_mode
+        
+        
+    # For GetLLM --------------------------------------------------------------
+     
+    def get_exciter_bpm(self, plane, commonbpms):
+        
+        if self.get_beam() == 1:
+            if self.excitation == AccExcitationMode.ACD:
+                return get_commonbpm("BPMYA.5L4.B1", "BPMYB.6L4.B1", commonbpms)
+               
+            elif self.excitation == AccExcitationMode.ADT:
+                if plane == "H":
+                    return get_commonbpm("BPMWA.B5L4.B1", "BPMWA.A5L4.B1", commonbpms)
+                elif plane == "V":
+                    return get_commonbpm("BPMWA.B5R4.B1", "BPMWA.A5R4.B1", commonbpms)
+        elif self.get_beam() == 2:
+            if self.excitation == AccExcitationMode.ACD:
+                return get_commonbpm("BPMYB.5L4.B2", "BPMYA.6L4.B2", commonbpms)
+            elif self.excitation == AccExcitationMode.ADT:
+                if plane == "H":
+                    return get_commonbpm("BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms)
+                elif plane == "V":
+                    return get_commonbpm("BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms)
+        return None
+    
+    def get_exciter_name(self, plane):
+        if self.beam() == 1:
+            if self.excitation == AccExcitationMode.ACD:
+                if plane == "H":
+                    return 'MKQA.6L4.B1'
+                elif plane == "V":
+                    return 'MKQA.6L4.B1'
+            elif self.excitation == AccExcitationMode.ADT:
+                if plane == "H":
+                    return "ADTKH.C5L4.B1"
+                elif plane == "V":
+                    return "ADTKV.B5R4.B1"
+        elif self.beam() == 2:
+            if self.excitation == AccExcitationMode.ACD:
+                if plane == "H":
+                    return 'MKQA.6L4.B2'
+                elif plane == "V":
+                    return 'MKQA.6L4.B2'
+            elif self.excitation == AccExcitationMode.ADT:
+                if plane == "H":
+                    return "ADTKH.B5R4.B2"
+                elif plane == "V":
+                    return "ADTKV.C5L4.B2"
+        return None
+    
+    def get_s_first_BPM(self):
+        if self.get_beam() == 1:
+            return self.model_tfs["S"][self.model_tfs.indx["BPMSW.1L2.B1"]]
+        elif self.get_beam() == 2:
+            return self.model_tfs["S"][self.model_tfs.indx["BPMSW.1L8.B2"]]
+        return None
+        
+    def get_model_tfs(self):
+        return self.model_tfs
+        
+    def get_driven_tfs(self):
+        return self.model_driven
 
+    def get_best_knowledge_model_tfs(self):
+        if self.model_best_knowledge is None:
+            return self.model_tfs
+        return self.model_best_knowledge
+    
+    def get_elements_tfs(self):
+        return self.elements
+
+    def get_elements_centre_tfs(self):
+        return self.elements_centre
 
 class _LhcSegmentMixin(object):
 
@@ -331,13 +467,20 @@ class _LhcB1Mixin(object):
     @classmethod
     def get_beam(cls):
         return 1
+    
+    @classmethod
+    def get_beam_direction(cls):
+        return 1
 
 
 class _LhcB2Mixin(object):
     @classmethod
     def get_beam(cls):
         return 2
-
+    
+    @classmethod
+    def get_beam_direction(cls):
+        return -1
 
 class LhcAts(Lhc):
     MACROS_NAME = "lhc_runII_ats"

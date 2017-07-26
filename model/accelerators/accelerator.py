@@ -1,3 +1,7 @@
+class AccExcitationMode(object):
+    FREE, ACD, ADT = range(3)
+
+
 class Accelerator(object):
     """
     Abstract class to serve as an interface to implement the
@@ -77,6 +81,55 @@ class Accelerator(object):
             """A function that should have been overwritten
             has been called, check stack trace."""
         )
+        
+    # For GetLLM -------------------------------------------
+    
+    @classmethod
+    def get_beam_direction(self):
+        Accelerator.__raise_definition_error()
+    
+    def get_exciter_bpm(self, plane, distance):
+        """
+        Returns the BPM next to the exciter.
+        The accelerator instance knows already which excitation method is used.
+        distance: 1=nearest bpm 2=next to nearest bpm
+        """
+        Accelerator.__raise_definition_error()
+    
+    def get_exciter_name(self, plane):
+        """
+        Returns the name of the exciter.
+        """
+        Accelerator.__raise_definition_error()
+
+    def get_model_tfs(self):  # instance method because it has to access the instance's model
+        """
+        Returns the model tfs file.
+        """
+        Accelerator.__raise_definition_error()
+
+    def get_driven_tfs(self):
+        """
+        Returns the driven model tfs file.
+        """
+        Accelerator.__raise_definition_error()
+
+    def get_best_knowledge_model_tfs(self):
+        """
+        Returns the best knowledge model tfs file.
+        """
+        Accelerator.__raise_definition_error()
+
+    def get_elements_tfs(self):
+        """
+        Returns theelements tfs file.
+        """
+        Accelerator.__raise_definition_error()
+        
+    def get_s_first_BPM(self):
+        """
+        Returns the position of the first BPM in turn by turn acquisition.
+        """
 
     ###########################################################
 
@@ -110,3 +163,16 @@ class AcceleratorDefinitionError(Exception):
     example by calling a method that should have been overwritten.
     """
     pass
+
+    ###########################################################
+
+def get_commonbpm(key1, key2, commonbpms):
+    i2 = -1
+    for i, bpm in enumerate(commonbpms["NAME"]):
+        if bpm == key1:
+            return i, bpm
+        if bpm == key2:
+            i2 = i
+    if i2 == -1:
+        return -1, None
+    return i2, commonbpms["NAME"][i2]
