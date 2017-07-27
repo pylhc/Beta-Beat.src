@@ -142,8 +142,12 @@ USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
 
 # DEBUGGING
-def print_time(t):
+def print_time(index, t):
     print "\33[38;2;255;220;50m---------------------------------------------{:.3f}\33[0m".format(t)
+    
+    f = open("/afs/cern.ch/work/a/awegsche/public/44_acc_cls_perf/stats_acc_cls.txt", "a")
+    f.write("{} {:.7f}\n".format(index, t))
+    f.close()
 
 
 
@@ -305,7 +309,7 @@ def main(accelerator,
 
     # Copy calibration files calibration_x/y.out from calibration_dir_path to outputpath
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
-    print_time(time() - __getllm_starttime)
+    print_time("BEFORE_ANALYSE_SRC", time() - __getllm_starttime)
     twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, tbtana, files_dict, use_average, calibration_twiss, accelerator.get_model_tfs())
 
     # Construct pseudo-double plane BPMs
@@ -315,7 +319,8 @@ def main(accelerator,
 #        # Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
 #        pseudo_list_x = None
 #        pseudo_list_y = None
-    print_time(time() - __getllm_starttime)
+    
+    print_time("BEFORE_PHASE", time() - __getllm_starttime)
 
     print "start the actual work"
     try:
@@ -327,7 +332,7 @@ def main(accelerator,
                                                          accelerator.get_driven_tfs(),
                                                          accelerator.get_elements_tfs(),
                                                          temp_dict)
-        print_time(time() - __getllm_starttime)
+        print_time("AFTER_PHASE_BK", time() - __getllm_starttime)
        
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
@@ -335,7 +340,7 @@ def main(accelerator,
                                                            accelerator.get_driven_tfs(),
                                                            accelerator.get_elements_tfs(),
                                                            files_dict)
-        print_time(time() - __getllm_starttime)
+        print_time("AFTER_PHASE", time() - __getllm_starttime)
 
 
         #-------- START Beta
@@ -348,6 +353,7 @@ def main(accelerator,
                                                            mad_best_knowledge,
                                                            mad_ac_best_knowledge,
                                                            files_dict)
+        print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
 
         #------- START beta from amplitude
         beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
@@ -1062,6 +1068,9 @@ def _start():
     '''
     global __getllm_starttime
     __getllm_starttime = time()
+    f = open("/afs/cern.ch/work/a/awegsche/public/44_acc_cls_perf/stats_acc_cls.txt", "a")
+    f.write("Start\n")
+    f.close()
     
     options, acc_cls = _parse_args()
     
