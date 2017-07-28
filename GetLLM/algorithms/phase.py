@@ -429,8 +429,6 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     number_commonbpms = bpm.shape[0]
     muave= 0  # TODO: find out what this is and who needs it
     
-    starttime = time()
-    
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
         print "correcting phase jump"
@@ -457,7 +455,6 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         
     phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1
     phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
-    print "elapsed: {:.3f} s".format(time() - starttime)
     
 #    for i in range(100 - 1):
 #        bpm_name0 = bpm["NAME"][i+1]

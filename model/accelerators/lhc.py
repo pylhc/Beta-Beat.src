@@ -79,10 +79,7 @@ class Lhc(Accelerator):
     def init_from_model_dir(cls, model_dir):  # prints only for debugging
         
         print("Creating accelerator instance from model dir")
-        starttime = time()
         instance = cls()
-        elapsed = time() - starttime
-        print("\tcreating instance took {:.3f} s".format(elapsed))
         
         instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"))
             
@@ -91,9 +88,7 @@ class Lhc(Accelerator):
         adt_filename = os.path.join(model_dir, "twiss_adt.dat")
         
         if os.path.isfile(ac_filename):
-            tfs_time = time()
             instance.model_driven = tfs_pandas.read_tfs(ac_filename)
-            print("\tloading driven model took {:.3f} s".format(time() - tfs_time))
             instance.excitation = AccExcitationMode.ACD
             driven_filename = ac_filename
             
@@ -101,9 +96,7 @@ class Lhc(Accelerator):
             if instance.excitation == AccExcitationMode.ACD:
                 raise AcceleratorDefinitionError("ADT as well as ACD models provided. What do you want? Please come back to me once you have made up your mind.")
 
-            tfs_time = time()
             instance.model_driven = tfs_pandas.read_tfs(adt_filename)
-            print("\tloading driven model took {.3f} s".format(time() - tfs_time))
             instance.excitation = AccExcitationMode.ADT
             driven_filename = adt_filename
         
@@ -124,7 +117,6 @@ class Lhc(Accelerator):
             instance.elements_centre = tfs_pandas.read_tfs(elements_path)
         else:
             instance.elements_centre = instance.elements
-        print("creating instance from model dir took {:.3f}".format(time() - starttime))
         
         instance.drv_tune_x = float(instance.get_driven_tfs().headers["Q1"])
         instance.drv_tune_y = float(instance.get_driven_tfs().headers["Q2"])

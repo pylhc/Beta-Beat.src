@@ -346,12 +346,10 @@ def main(accelerator,
         #-------- START Beta
         beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d,
                                                            phase_d_bk,
-                                                           mad_twiss,
-                                                           mad_ac,
-                                                           mad_elem,
-                                                           mad_elem_centre,
-                                                           mad_best_knowledge,
-                                                           mad_ac_best_knowledge,
+                                                           accelerator.get_model_tfs(),
+                                                           accelerator.get_driven_tfs(),
+                                                           accelerator.get_elements_tfs(),
+                                                           accelerator.get_best_knowledge_model_tfs(),
                                                            files_dict)
         print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
 
@@ -538,12 +536,13 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             if use_average:
                 twiss_file_x = twiss_file_x.rename(columns={"AVG_MUX": "MUX"})
             if calibration_twiss is not None:
-                twiss_file_x.AMPX, twiss_file_x["ERRAMPX"] = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
+                twiss_file_x["AMPX"], twiss_file_x["ERRAMPX"] = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
             try:
                 dppi = float(twiss_file_x.headers["DPP"])
             except AttributeError:
                 dppi = 0.0
             if type(dppi) != float:
+                print type(dppi)
                 print >> sys.stderr, 'Warning: DPP may not be given as a number in ', file_x, '...trying to forcibly cast it as a number'
                 try:
                     dppi = float(dppi)
@@ -613,7 +612,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             if calibration_twiss is not None:
                 twiss_file_y.AMPY, twiss_file_y["ERRAMPY"] = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
             try:
-                dppi = twiss_file_y.headers["DPP"]
+                dppi = float(twiss_file_y.headers["DPP"])
             except AttributeError:
                 dppi = 0.0
             if type(dppi) != float:
@@ -936,7 +935,6 @@ def _copy_calibration_files(output_path, calibration_dir_path):
 
 def _get_commonbpms(ListOfFiles, model):
     starttime = time()
-    print ListOfFiles[0].columns
     commonbpms = pd.merge(model[["S", "NAME"]], ListOfFiles[0][["NAME","SLABEL"]], on="NAME", how="inner")   
     for i in range(1, len(ListOfFiles)):
         commonbpms = pd.merge(commonbpms, ListOfFiles[i][["NAME","SLABEL"]], on="NAME", how="inner") 

@@ -505,7 +505,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 debugfile = open(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.debug", "w+")
 
             dataf, rmsbbxf, bpmsf, error_method = beta_from_phase(model, elements, elements_centre,
-                                                                  twiss_d.zero_dpp_x, commonbpms_x, phase_d.x_f, 'H',
+                                                                  twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x, 'H',
                                                                   getllm_d, debugfile)
             tfs_file = files_dict['getbetax_free.out']
             beta_d.x_phase_f = {}
@@ -518,7 +518,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 print ""
                 print_("Calculate beta from phase for plane " + _plane_char, ">")
                 data, rmsbbx, bpms, error_method = beta_from_phase(model_driven, elements, elements_centre,
-                                                                   twiss_d.zero_dpp_x, commonbpms_x, phase_d.ph_x, 'H',
+                                                                   twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_x, 'H',
                                                                    getllm_d, debugfile)
                 beta_d.x_phase = {}
                 beta_d.x_phase['DPP'] = 0
@@ -883,8 +883,6 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, commo
     '''
     
     errors_method = "NOT DEFINED"
-    if phase == {}:
-        return [{}, 0.0, {}, errors_method]
 
     errorfile = None
     if not getllm_d.use_only_three_bpms_for_beta_from_phase and getllm_d.errordefspath is not None:
@@ -998,7 +996,7 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 #=======================================================================================================================
 
 def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile):
-    systematics_error_path = os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
+    systematics_error_path = None #os.path.join(os.path.dirname(os.path.abspath(madTwiss.filename)), "bet_deviations.npy")
     systematic_errors = None
     
     montecarlo = True
