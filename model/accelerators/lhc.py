@@ -81,14 +81,14 @@ class Lhc(Accelerator):
         print("Creating accelerator instance from model dir")
         instance = cls()
         
-        instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"))
+        instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
             
         instance._excitation = AccExcitationMode.FREE
         ac_filename = os.path.join(model_dir, "twiss_ac.dat")
         adt_filename = os.path.join(model_dir, "twiss_adt.dat")
         
         if os.path.isfile(ac_filename):
-            instance.model_driven = tfs_pandas.read_tfs(ac_filename)
+            instance.model_driven = tfs_pandas.read_tfs(ac_filename).set_index("NAME")
             instance.excitation = AccExcitationMode.ACD
             driven_filename = ac_filename
             
@@ -96,25 +96,25 @@ class Lhc(Accelerator):
             if instance.excitation == AccExcitationMode.ACD:
                 raise AcceleratorDefinitionError("ADT as well as ACD models provided. What do you want? Please come back to me once you have made up your mind.")
 
-            instance.model_driven = tfs_pandas.read_tfs(adt_filename)
+            instance.model_driven = tfs_pandas.read_tfs(adt_filename).set_index("NAME")
             instance.excitation = AccExcitationMode.ADT
             driven_filename = adt_filename
         
         try:
             model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
             if os.path.isfile(model_best_knowledge_path):
-                instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path)
+                instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
         except IOError:
             instance.model_best_knowledge = None
             
         elements_path = os.path.join(model_dir, "twiss_elements.dat")
         if os.path.isfile(elements_path):
-            instance.elements = tfs_pandas.read_tfs(elements_path)
+            instance.elements = tfs_pandas.read_tfs(elements_path).set_index("NAME")
         else:
             raise AcceleratorDefinitionError("Elements twiss not found")
         elements_path = os.path.join(model_dir, "twiss_elements_centre.dat")
         if os.path.isfile(elements_path):
-            instance.elements_centre = tfs_pandas.read_tfs(elements_path)
+            instance.elements_centre = tfs_pandas.read_tfs(elements_path).set_index("NAME")
         else:
             instance.elements_centre = instance.elements
         

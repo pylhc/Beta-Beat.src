@@ -168,11 +168,11 @@ class AcceleratorDefinitionError(Exception):
 
 def get_commonbpm(key1, key2, commonbpms):
     i2 = -1
-    for i, bpm in enumerate(commonbpms["NAME"]):
+    for i, bpm in enumerate(commonbpms.index):
         if bpm == key1:
             return i, bpm
         if bpm == key2:
             i2 = i
     if i2 == -1:
         return -1, None
-    return i2, commonbpms["NAME"][i2]
+    return i2, commonbpms.index[i2]

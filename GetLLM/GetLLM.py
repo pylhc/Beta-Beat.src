@@ -351,7 +351,10 @@ def main(accelerator,
                                                            accelerator.get_elements_tfs(),
                                                            accelerator.get_best_knowledge_model_tfs(),
                                                            files_dict)
-        print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
+        if use_only_three_bpms_for_beta_from_phase:
+            print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
+        else:
+            print_time("AFTER_A_NBPM", time() - __getllm_starttime)
 
         #------- START beta from amplitude
         beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
@@ -523,7 +526,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
 
         twiss_file_x = None
         try:
-            twiss_file_x = tfs_pandas.read_tfs(file_x)
+            twiss_file_x = tfs_pandas.read_tfs(file_x).set_index("NAME")
 #            if twiss_file_x.has_no_bpm_data():
 #                print >> sys.stderr, "Ignoring empty file:", twiss_file_x.filename
 #                twiss_file_x = None
@@ -597,7 +600,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
 
         twiss_file_y = None
         try:
-            twiss_file_y = tfs_pandas.read_tfs(file_y)
+            twiss_file_y = tfs_pandas.read_tfs(file_y).set_index("NAME")
 #            if twiss_file_y.has_no_bpm_data():
 #                print >> sys.stderr, "Ignoring empty file:", twiss_file_y.filename
 #                twiss_file_y = None
@@ -934,19 +937,11 @@ def _copy_calibration_files(output_path, calibration_dir_path):
 
 
 def _get_commonbpms(ListOfFiles, model):
-    starttime = time()
-    commonbpms = pd.merge(model[["S", "NAME"]], ListOfFiles[0][["NAME","SLABEL"]], on="NAME", how="inner")   
-    for i in range(1, len(ListOfFiles)):
-        commonbpms = pd.merge(commonbpms, ListOfFiles[i][["NAME","SLABEL"]], on="NAME", how="inner") 
-
-
-#    common_names = set(model["NAME"]) & set(ListOfFiles[0]["NAME"])
-#    model_tfs = model.set_index("NAME")
-#    for i in range(1, len(ListOfFiles)):
-#        common_names = common_names & set(ListOfFiles[i]["NAME"])
-#    commonbpms = [[b, model_tfs.loc[b,"S"]] for b in common_names]
-    print "intersectiing bpms took {:.3f} s".format(time() - starttime)
-    return commonbpms[["S", "NAME"]]
+    common_index = model.index   
+    for i in range(len(ListOfFiles)):
+        common_index = common_index.intersection(ListOfFiles[i].index)
+    
+    return model.loc[common_index, "S"]
 
 
 #===================================================================================================

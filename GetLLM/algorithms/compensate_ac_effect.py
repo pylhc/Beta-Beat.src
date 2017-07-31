@@ -36,9 +36,8 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 # helper-functions
 #===================================================================================================
 
-def GetACPhase_AC2BPMAC(MADTwiss, commonbpms, Qd, Q, plane, getllm_d):
+def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
     acc = getllm_d.accelerator
-    model = MADTwiss.set_index("NAME")
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
     plane_mu = "MUX" if plane == "H" else "MUY"
     k, bpmac1 = acc.get_exciter_bpm(plane, commonbpms)
@@ -95,11 +94,10 @@ def get_free_phase_total_eq(MADTwiss, Files, commonbpms, Qd, Q, ac2bpmac, plane,
     return result
 
 
-def get_free_phase_eq(MADTwiss, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d):
+def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d):
 
     print "Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane)
     acc = getllm_d.accelerator
-    model = MADTwiss.set_index("NAME")
     psid_ac2bpmac = ac2bpmac[1]
     k_bpmac = ac2bpmac[2]
     plane_mu = "MUX" if plane == "H" else "MUY"
@@ -117,9 +115,9 @@ def get_free_phase_eq(MADTwiss, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm
     triq = np.tril(np.full((number_commonbpms, number_commonbpms), Qd), -1)
     
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
-    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm["NAME"], minor_axis=bpm["NAME"])
+    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
 
-    phases_mdl = np.array(model.loc[bpm["NAME"], plane_mu])
+    phases_mdl = np.array(model.loc[bpm.index, plane_mu])
     phase_advances["MODEL"] = phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis] #+ triq
 
     #-- Global parameters of the driven motion
@@ -128,8 +126,8 @@ def get_free_phase_eq(MADTwiss, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm
     #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
     phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
     for i in range(len(Files)):
-        file_tfs = Files[i].set_index("NAME")
-        phases_meas = bd * np.array(file_tfs.loc[bpm["NAME"], plane_mu]) #-- bd flips B2 phase to B1 direction        for k in range(len(bpm)):
+        file_tfs = Files[i]
+        phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction        for k in range(len(bpm)):
            
         psid = phases_meas - (phases_meas[k_bpmac] - psid_ac2bpmac) + Qd # OK, untill here, it is Psi(s, s_ac)
         psid[k_bpmac:] -= Qd

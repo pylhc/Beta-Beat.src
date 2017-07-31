@@ -127,19 +127,19 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     #---- H plane result
     if twiss_d.has_zero_dpp_x():
 #        phase_d.ph_x['DPP'] = 0.0  # WHY ??????
-        files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model.set_index("NAME"), tune_d.q1f, tune_d.q2f)
+        files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model, tune_d.q1f, tune_d.q2f)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
-            files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x, model.set_index("NAME"), tune_d.q1, tune_d.q2)
+            files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x, model, tune_d.q1, tune_d.q2)
 
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
-        files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V", phase_d.phase_advances_free_y, model.set_index("NAME"), tune_d.q1f, tune_d.q2f)
+        files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V", phase_d.phase_advances_free_y, model, tune_d.q1f, tune_d.q2f)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
-            files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y, model.set_index("NAME"), tune_d.q1, tune_d.q2)
+            files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y, model, tune_d.q1, tune_d.q2)
 
     return phase_d, tune_d
 # END calculate_phase ------------------------------------------------------------------------------
@@ -423,7 +423,6 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     tune_q will be used to fix the phase shift in LHC.
     """
     acc = getllm_d.accelerator
-    model = mad_twiss.set_index("NAME")
     plane_mu = "MUX" if plane == "H" else "MUY"
     bd = acc.get_beam_direction()
     number_commonbpms = bpm.shape[0]
@@ -440,16 +439,16 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     triq = np.tril(np.full((number_commonbpms, number_commonbpms), tune_q), -1)
     
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
-    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm["NAME"], minor_axis=bpm["NAME"])
+    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
 
-    phases_mdl = np.array(model.loc[bpm["NAME"], plane_mu])
+    phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
     phase_advances["MODEL"] = phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis] + triq
 
     # loop over the measurement files
     phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
     for i in range(len(Files)):
-        file_tfs = Files[i].set_index("NAME")
-        phases_meas = bd * np.array(file_tfs.loc[bpm["NAME"], plane_mu]) #-- bd flips B2 phase to B1 direction
+        file_tfs = Files[i]
+        phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
         meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
         phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0) + triq
         
@@ -465,6 +464,7 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
 #               phase_advances["MEAS"][bpm_name0][bpm_name1] - phase_advances["MODEL"][bpm_name0][bpm_name1])
 #
 #    raw_input()
+    
     return phase_advances, muave
 
 #===================================================================================================
