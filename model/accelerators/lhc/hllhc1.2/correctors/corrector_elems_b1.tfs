@@ -176,10 +176,12 @@ $             %le               %le                %s                %s
       4494.886118              0.32       MQT.21R3.B1       kqtf.a34b1
       4498.284118               3.1        MQ.21R3.B1          kqf.a34
       4551.732634               3.1        MQ.22R3.B1          kqd.a34
+       4601.78315              0.32       MQS.23R3.B1         kqs.r3b1
        4605.18115               3.1        MQ.23R3.B1          kqf.a34
       4658.629666               3.1        MQ.24R3.B1          kqd.a34
       4712.078181               3.1        MQ.25R3.B1          kqf.a34
       4765.526697               3.1        MQ.26R3.B1          kqd.a34
+      4815.577213              0.32       MQS.27R3.B1         kqs.r3b1
       4818.975213               3.1        MQ.27R3.B1          kqf.a34
       4872.423729               3.1        MQ.28R3.B1          kqd.a34
       4925.872245               3.1        MQ.29R3.B1          kqf.a34
@@ -318,20 +320,24 @@ $             %le               %le                %s                %s
       9925.491649               3.4       MQM.B7L5.B1         kq7.l5b1
       9929.258649               3.4       MQM.A7L5.B1         kq7.l5b1
       9963.785649               4.8       MQML.6L5.B1         kq6.l5b1
-      9995.685649               4.8       MQML.5L5.B1         kq5.l5b1
-      10021.92265               3.4        MQY.4L5.B1         kq4.l5b1
-      10142.81065              6.37          MQXA.3L5           kqx.l5
-      10143.27915             0.223          MQSX.3L5         kqsx3.l5
-      10151.22565               5.5         MQXB.B2L5  kqx.l5,ktqx2.l5
-      10157.72565               5.5         MQXB.A2L5  kqx.l5,ktqx2.l5
-      10166.81065              6.37          MQXA.1L5  kqx.l5,ktqx1.l5
-      10219.11065              6.37          MQXA.1R5  kqx.r5,ktqx1.r5
-      10227.32565               5.5         MQXB.A2R5  kqx.r5,ktqx2.r5
-      10233.82565               5.5         MQXB.B2R5  kqx.r5,ktqx2.r5
-      10236.49515             0.223          MQSX.3R5         kqsx3.r5
-      10243.11065              6.37          MQXA.3R5           kqx.r5
-      10361.02865               3.4        MQY.4R5.B1         kq4.r5b1
-      10388.66565               4.8       MQML.5R5.B1         kq5.r5b1
+      9983.985649               3.4        MQY.5L5.B1         kq5.l5b1
+      10014.09065              3.83       MQYY.4L5.B1         kq4.l5b1
+      10119.77665             0.807         MQSXF.3L5         kqsx3.l5
+      10129.21965               4.2        MQXFA.B3L5          kqx3.l5,kpc.l5,ktrim3.l5
+      10134.06565               4.2        MQXFA.A3L5          kqx3.l5,kpc.l5,ktrim3.l5
+      10144.84365              7.15        MQXFB.B2L5         kqx2b.l5,kpc.l5
+      10154.10165              7.15        MQXFB.A2L5         kqx2a.l5,kpc.l5
+      10161.92965               4.2        MQXFA.B1L5          kqx1.l5,kpc.l5,ktrim1.l5
+      10166.77565               4.2        MQXFA.A1L5          kqx1.l5,kpc.l5,ktrim1.l5
+      10216.97565               4.2        MQXFA.A1R5          kqx1.r5,kpc.r5,ktrim3.r5
+      10221.82165               4.2        MQXFA.B1R5          kqx1.r5,kpc.r5,ktrim3.r5
+      10232.59965              7.15        MQXFB.A2R5         kqx2a.r5,kpc.r5
+      10241.85765              7.15        MQXFB.B2R5         kqx2b.r5,kpc.r5
+      10249.68565               4.2        MQXFA.A3R5          kqx3.r5,kpc.r5,ktrim1.r5
+      10254.53165               4.2        MQXFA.B3R5          kqx3.r5,kpc.r5,ktrim1.r5
+      10260.58165             0.807         MQSXF.3R5         kqsx3.r5
+      10369.29065              3.83       MQYY.4R5.B1         kq4.r5b1
+      10398.96565               3.4        MQY.5R5.B1         kq5.r5b1
       10420.56565               4.8       MQML.6R5.B1         kq6.r5b1
       10453.17965               3.4       MQM.A7R5.B1         kq7.r5b1
       10456.94665               3.4       MQM.B7R5.B1         kq7.r5b1
@@ -416,10 +422,12 @@ $             %le               %le                %s                %s
       13176.91525               2.4       MQMC.9L6.B1         kq9.l6b1
       13180.68125               3.4        MQM.9L6.B1         kq9.l6b1
       13219.74924               4.8       MQML.8L6.B1         kq8.l6b1
+      13311.93123               3.4       MQY.B5L6.B1         kq5.l6b1
       13315.71223               3.4        MQY.5L6.B1         kq5.l6b1
       13352.11223               3.4        MQY.4L6.B1         kq4.l6b1
       13695.71223               3.4        MQY.4R6.B1         kq4.r6b1
       13732.11223               3.4        MQY.5R6.B1         kq5.r6b1
+      13735.89323               3.4       MQY.B5R6.B1         kq5.r6b1
       13828.96622               4.8       MQML.8R6.B1         kq8.r6b1
       13865.66421               2.4       MQMC.9R6.B1         kq9.r6b1
       13869.43021               3.4        MQM.9R6.B1         kq9.r6b1
@@ -711,19 +719,15 @@ $             %le               %le                %s                %s
        22495.9442               3.1        MQ.22L1.B1          kqf.a81
       22545.99471              0.32       MQT.21L1.B1       kqtd.a81b1
       22549.39271               3.1        MQ.21L1.B1          kqd.a81
-      22599.44323              0.32       MQT.20L1.B1       kqtf.a81b1
       22602.84123               3.1        MQ.20L1.B1          kqf.a81
       22652.89175              0.32       MQT.19L1.B1       kqtd.a81b1
       22656.28975               3.1        MQ.19L1.B1          kqd.a81
-      22706.34026              0.32       MQT.18L1.B1       kqtf.a81b1
       22709.73826               3.1        MQ.18L1.B1          kqf.a81
       22759.78878              0.32       MQT.17L1.B1       kqtd.a81b1
       22763.18678               3.1        MQ.17L1.B1          kqd.a81
-      22813.23729              0.32       MQT.16L1.B1       kqtf.a81b1
       22816.63529               3.1        MQ.16L1.B1          kqf.a81
       22866.68581              0.32       MQT.15L1.B1       kqtd.a81b1
       22870.08381               3.1        MQ.15L1.B1          kqd.a81
-      22920.13433              0.32       MQT.14L1.B1       kqtf.a81b1
       22923.53233               3.1        MQ.14L1.B1          kqf.a81
       22973.58284              0.32       MQT.13L1.B1       kqt13.l1b1
       22976.98084               3.1        MQ.13L1.B1          kqd.a81
@@ -738,20 +742,24 @@ $             %le               %le                %s                %s
       23255.08562               3.4       MQM.B7L1.B1         kq7.l1b1
       23258.85262               3.4       MQM.A7L1.B1         kq7.l1b1
       23293.37962               4.8       MQML.6L1.B1         kq6.l1b1
-      23325.27962               4.8       MQML.5L1.B1         kq5.l1b1
-      23351.51662               3.4        MQY.4L1.B1         kq4.l1b1
-      23472.40462              6.37          MQXA.3L1           kqx.l1
-      23472.87312             0.223          MQSX.3L1         kqsx3.l1
-      23480.81962               5.5         MQXB.B2L1  kqx.l1,ktqx2.l1
-      23487.31962               5.5         MQXB.A2L1  kqx.l1,ktqx2.l1
-      23496.40462              6.37          MQXA.1L1  kqx.l1,ktqx1.l1
-      23548.70462              6.37          MQXA.1R1  kqx.r1,ktqx1.r1
-      23556.91962               5.5         MQXB.A2R1  kqx.r1,ktqx2.r1
-      23563.41962               5.5         MQXB.B2R1  kqx.r1,ktqx2.r1
-      23566.08912             0.223          MQSX.3R1         kqsx3.r1
-      23572.70462              6.37          MQXA.3R1           kqx.r1
-      23690.62262               3.4        MQY.4R1.B1         kq4.r1b1
-      23718.25962               4.8       MQML.5R1.B1         kq5.r1b1
+      23313.57962               3.4        MQY.5L1.B1         kq5.l1b1
+      23343.68462              3.83       MQYY.4L1.B1         kq4.l1b1
+      23449.37062             0.807         MQSXF.3L1         kqsx3.l1
+      23458.81362               4.2        MQXFA.B3L1          kqx3.l1,kpc.l1,ktrim3.l1
+      23463.65962               4.2        MQXFA.A3L1          kqx3.l1,kpc.l1,ktrim3.l1
+      23474.43762              7.15        MQXFB.B2L1         kqx2b.l1,kpc.l1
+      23483.69562              7.15        MQXFB.A2L1         kqx2a.l1,kpc.l1
+      23491.52362               4.2        MQXFA.B1L1          kqx1.l1,kpc.l1,ktrim1.l1
+      23496.36962               4.2        MQXFA.A1L1          kqx1.l1,kpc.l1,ktrim1.l1
+      23546.56962               4.2        MQXFA.A1R1          kqx1.r1,kpc.r1,ktrim3.r1
+      23551.41562               4.2        MQXFA.B1R1          kqx1.r1,kpc.r1,ktrim3.r1
+      23562.19362              7.15        MQXFB.A2R1         kqx2a.r1,kpc.r1
+      23571.45162              7.15        MQXFB.B2R1         kqx2b.r1,kpc.r1
+      23579.27962               4.2        MQXFA.A3R1          kqx3.r1,kpc.r1,ktrim1.r1
+      23584.12562               4.2        MQXFA.B3R1          kqx3.r1,kpc.r1,ktrim1.r1
+      23590.17562             0.807         MQSXF.3R1         kqsx3.r1
+      23698.88462              3.83       MQYY.4R1.B1         kq4.r1b1
+      23728.55962               3.4        MQY.5R1.B1         kq5.r1b1
       23750.15962               4.8       MQML.6R1.B1         kq6.r1b1
       23782.77362               3.4       MQM.A7R1.B1         kq7.r1b1
       23786.54062               3.4       MQM.B7R1.B1         kq7.r1b1

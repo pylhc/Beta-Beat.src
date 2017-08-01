@@ -266,20 +266,32 @@ class Lhc(Accelerator):
                          "beta_correctors.json"),
             os.path.join(correctors_dir, "correctors_b" + str(cls.get_beam()),
                          "coupling_correctors.json"),
-            os.path.join(correctors_dir, "triplet_correctors.json"),
+            cls._get_triplet_correctors_file(),
         )
         my_classes = classes
         if my_classes is None:
             my_classes = all_corrs.keys()
-        vars_by_class = set(_flatten_list([all_corrs[corr_cls] for corr_cls in my_classes]))
-        elems_matrix = _merge_tfs(
-            os.path.join(correctors_dir, "corrector_elems_b" + str(cls.get_beam()) + ".tfs"),
-            os.path.join(correctors_dir, "corrector_elems_triplet.tfs"),
+        vars_by_class = set(_flatten_list(
+            [all_corrs[corr_cls] for corr_cls in my_classes if corr_cls in all_corrs])
+        )
+        elems_matrix = tfs_pandas.read_tfs(
+            cls._get_corrector_elems()
         ).sort_values("S").set_index("S").loc[frm:to, :]
         vars_by_position = _remove_dups_keep_order(_flatten_list(
             [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
         ))
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
+
+    @classmethod
+    def _get_triplet_correctors_file(cls):
+        correctors_dir = os.path.join(LHC_DIR, "2012", "correctors")
+        return os.path.join(correctors_dir, "triplet_correctors.json")
+
+    @classmethod
+    def _get_corrector_elems(cls):
+        correctors_dir = os.path.join(LHC_DIR, "2012", "correctors")
+        return os.path.join(correctors_dir,
+                            "corrector_elems_b" + str(cls.get_beam()) + ".tfs")
 
     @property
     def excitation(self):
@@ -388,7 +400,7 @@ class LhcRunII2017(LhcAts):
 
 class HlLhc10(LhcAts):
     MACROS_NAME = "hllhc"
-    YEAR = "hllhc10"
+    YEAR = "hllhc1.0"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -396,17 +408,10 @@ class HlLhc10(LhcAts):
         load_main_seq += _get_call_main_for_year("hllhc1.0")
         return load_main_seq
 
-    @classmethod
-    def _get_correctors_file(cls):
-        beam = cls.get_beam()
-        corrs_filename = ("correctors_b1.tfs" if beam == 1
-                          else "correctors_b2.tfs")
-        return _get_file_for_year("hllhc10", corrs_filename)
-
 
 class HlLhc12(LhcAts):
     MACROS_NAME = "hllhc"
-    YEAR = "hllhc12"
+    YEAR = "hllhc1.2"
 
     @classmethod
     def load_main_seq_madx(cls):
@@ -415,12 +420,22 @@ class HlLhc12(LhcAts):
         return load_main_seq
 
     @classmethod
-    def _get_correctors_file(cls):
-        beam = cls.get_beam()
-        corrs_filename = ("correctors_b1.tfs" if beam == 1
-                          else "correctors_b2.tfs")
-        return _get_file_for_year("hllhc12", corrs_filename)
+    def _get_triplet_correctors_file(cls):
+        correctors_dir = os.path.join(LHC_DIR, "hllhc1.2", "correctors")
+        return os.path.join(correctors_dir, "triplet_correctors.json")
 
+    @classmethod
+    def _get_corrector_elems(cls):
+        correctors_dir = os.path.join(LHC_DIR, "hllhc1.2", "correctors")
+        return os.path.join(correctors_dir,
+                            "corrector_elems_b" + str(cls.get_beam()) + ".tfs")
+
+
+class HlLhc12NewCircuit(LhcAts):
+    MACROS_NAME = "hllhc"
+    YEAR = "hllhc12"
+
+    
 
 class HlLhc12NoQ2Trim(HlLhc12):
     MACROS_NAME = "hllhc"
@@ -457,13 +472,6 @@ def _merge_jsons(*files):
             for key, value in json_dict.iteritems():
                 full_dict[key] = value
     return full_dict
-
-
-def _merge_tfs(*files):
-    tfs_files = []
-    for tfs_file in files:
-        tfs_files.append(tfs_pandas.read_tfs(tfs_file))
-    return pd.concat(tfs_files)
 
 
 def _flatten_list(my_list):
