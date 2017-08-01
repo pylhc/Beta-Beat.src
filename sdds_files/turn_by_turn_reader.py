@@ -3,6 +3,7 @@ import sys
 import os
 import logging
 import sdds_reader
+import ascii_reader
 from datetime import datetime
 import numpy as np
 
@@ -29,6 +30,10 @@ FORMAT_STRING = "{0:." + str(PRINT_PRECISION) + "f}"
 # Public ###################
 
 def read_tbt_file(file_path):
+    if ascii_reader.is_ascii_file(file_path):
+        return [TbtFile.create_from_matrices(
+            *ascii_reader.read_ascii_file(file_path)
+        )]  # If ASCII return only one TbtFile
     tbt_files = _TbtReader(file_path).read_file()
     return tbt_files
 
