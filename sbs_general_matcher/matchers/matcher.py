@@ -51,12 +51,14 @@ LOGGER = logging.getLogger(__name__)
 
 class Matcher(object):
 
-    def __init__(self, lhc_mode, beam, matcher_name, matcher_dict, match_path):
+    def __init__(self, lhc_mode, beam, matcher_name, matcher_dict,
+                 matcher_variables, match_path):
         self._name = matcher_name
         self._main_match_path = match_path
         self._label = matcher_dict["label"]
         self._use_errors = matcher_dict["use_errors"]
         self._front_or_back = matcher_dict["propagation"].lower()
+        self._variables_cls = matcher_variables
         self._matcher_path = os.path.join(
             match_path,
             self._name

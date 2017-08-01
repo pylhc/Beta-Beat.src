@@ -24,12 +24,9 @@ class KmodMatcher(PhaseMatcher):
             variables_s_str += self.get_name() + '.' + variable + '_0' + ' = ' + variable + ';\n'
 
         return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
-            "SEQ_B1": "lhcb1_" + self.get_front_or_back() + "_" + self.get_name(),
-            "SEQ_B2": "lhcb2_" + self.get_front_or_back() + "_" + self.get_name(),
-            "INIT_VALS_B1": "b1_" + self._ini_end + "_" + self.get_name(),
-            "INIT_VALS_B2": "b2_" + self._ini_end + "_" + self.get_name(),
-            "B1_TABLE_NAME": self._get_nominal_table_name(1),
-            "B2_TABLE_NAME": self._get_nominal_table_name(2),
+            "SEQ": "lhcb" + str(beam) + "_" + self._front_or_back + "_" + self._name,
+            "INIT_VALS": "b" + str(beam) + "_" + self._ini_end + "_" + self._name,
+            "TABLE_NAME": self._get_nominal_table_name(),
             "PHASES": beatings_str,
             "S_VARIABLES": variables_s_str,
         }
