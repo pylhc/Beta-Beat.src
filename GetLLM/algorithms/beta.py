@@ -16,7 +16,9 @@ import traceback
 
 import numpy as np
 from numpy import sin, cos, tan
+import pandas as pd
 
+from scipy.linalg import circulant
 import Python_Classes4MAD.metaclass
 import Utilities.bpm
 import compensate_ac_effect
@@ -27,7 +29,7 @@ import time
 from constants import PI, TWOPI
 from numpy.linalg.linalg import LinAlgError
 from model.accelerators.accelerator import AccExcitationMode
-__version__ = "2017.6.3"
+__version__ = "2017.8.1"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -427,7 +429,7 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
         except KeyError:
             continue
         beta_d_col[name] = [row[0], row[1], row[2], row[3]]
-        list_row_entries = ['"' + name + '"', 0, len(twiss_d_zero_dpp),
+        list_row_entries = ['"' + name + '"', bpms[name], len(twiss_d_zero_dpp),
                             row[BETI_MP], row[BETSYST_MP], row[BETSTAT_MP], row[BETERR_MP],
                             row[CORR_MP],
                             row[ALFI_MP], row[ALFSYS_MP], row[ALFSTAT_MP], row[ALFERR_MP],
@@ -552,7 +554,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                                                getllm_d, debugfile)
             beta_d.y_phase = {}
             beta_d.y_phase['DPP'] = 0
-            tfs_file = files_dict['getbetay_free.out']
+            tfs_file = files_dict['getbetay.out']
             
             _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, model, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
                                data, rmsbby, error_method, bpms,
@@ -1000,6 +1002,9 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     montecarlo = True
     errors_method = "Monte-Carlo Simulations"
     plane_bet = "BETX" if plane == "H" else "BETY"
+    plane_alf = "ALFX" if plane == "H" else "ALFY"
+    
+    print plane_bet
     
     use_only_three_bpms_for_beta_from_phase = getllm_d.use_only_three_bpms_for_beta_from_phase
     
@@ -1013,39 +1018,61 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     else:
         systematic_errors = np.load(systematics_error_path)
         
-    data = {}
-    used_bpms = 0
     
-#    if use_only_three_bpms_for_beta_from_phase:
-#        
-#        for i in range(number_commonbpms):
-#            probed_bpm = commonbpms.index[i]                                 #-2-1 0 1 2
-#            five_bpms = [commonbpms.index[i%number_commonbpms] for i in range(i-2,i+3)]
-#            
-#            cotangens_measured_shift1 = phase.loc["MEAS", probed_bpm, five_bpms] - phase.loc["MEAS", probed_bpm, np.roll(five_bpms, 1)]
-#            cotangens_model_shift1 = phase.loc["MODEL", probed_bpm, five_bpms] - phase.loc["MODEL", probed_bpm, np.roll(five_bpms, 1)]
-#            
-#            beti = cotangens_measured_shift1[0] / cotangens_model_shift1[0]
-#            beti += cotangens_measured_shift1[3] / cotangens_model_shift1[3]
-##            beti += cotangens_measured_shift2[probed_bpm][mid_comb_bpm] / cotangens_model_shift2[probed_bpm][mid_comb_bpm]
-#            
-#            betmdl1 = madTwiss.loc[probed_bpm, plane_bet]
-#            
-#            beti *= betmdl1 / 3
-#            
-#            betstd = 0
-#            beterr = 0
-#            alfi = 0
-#            alfstd = 0
-#            alferr = 0
-#            
-#            
-#            data[probed_bpm] = [beti, betstd, beterr, math.sqrt(beterr ** 2 + betstd ** 2),
-#                                 alfi, alfstd, alferr, math.sqrt(alferr ** 2 + alfstd ** 2),
-#                                 0.0,
-#                                 (beti - betmdl1) / betmdl1,
-#                                 used_bpms]
-#        return 0, errors_method, data
+    used_bpms = 0
+    np.set_printoptions(edgeitems=7, precision=3, linewidth=150)
+    
+    if use_only_three_bpms_for_beta_from_phase:
+        
+        starttime = time.time()
+        
+        # setup the used variables
+        # tilt phase advances in order to have the phase advances in a neighbourhood
+        tilted_meas = tilt_slice_matrix(phase["MEAS"].as_matrix(), 2, 5)
+        tilted_model = tilt_slice_matrix(phase["MODEL"].as_matrix(), 2, 5)
+        betmdl = madTwiss.loc[commonbpms.index, plane_bet]
+        alfmdl = madTwiss.loc[commonbpms.index, plane_alf]
+
+        
+        # calculate cotangens of all the phase advances in the neighbourhood
+        cot_phase_meas = 1.0 / tan(tilted_meas * TWOPI)
+        cot_phase_model = 1.0 / tan(tilted_model * TWOPI)
+       
+        # calculate enumerators and denominators for far more cases than needed
+        # shift1 are the cases BBA, ABB, AxBB, AxxBB etc. (the used BPMs are adjacent)
+        # shift2 are the cases where the used BPMs are separated by one. only BAB is used for  3-BPM
+        cot_phase_meas_shift1 = cot_phase_meas - np.roll(cot_phase_meas, -1, axis=0)
+        cot_phase_model_shift1 = cot_phase_model - np.roll(cot_phase_model, -1, axis=0) + 1.0e-16
+        cot_phase_meas_shift2 = cot_phase_meas - np.roll(cot_phase_meas, -2, axis=0)
+        cot_phase_model_shift2 = cot_phase_model - np.roll(cot_phase_model, -2, axis=0)+ 1.0e-16
+        
+        # calculate the sum of the fractions
+        bet_frac = cot_phase_meas_shift1[0]/cot_phase_model_shift1[0] + cot_phase_meas_shift1[3]/cot_phase_model_shift1[3] + cot_phase_meas_shift2[1]/cot_phase_model_shift2[1]
+        
+        # multiply the fractions by betmdl and calculate the arithmetic mean
+        beti = bet_frac * betmdl / 3.0
+        
+        
+        alfi=np.zeros(number_commonbpms)
+        betstd=np.zeros(number_commonbpms)
+        beterr=np.zeros(number_commonbpms)
+        alfstd=np.zeros(number_commonbpms)
+        alferr=np.zeros(number_commonbpms)
+
+        
+        print "===================================", time.time() - starttime
+        starttime = time.time()
+        
+        
+        data_ = pd.DataFrame(columns=commonbpms.index, index=["BET", "BETSTD", "BETSYS", "BETERR", "ALF", "ALFSTD", "ALFSYS", "ALFERR", "CORR","BBEAT", "NUM"],
+                            data=[beti, betstd, beterr, np.sqrt(beterr ** 2 + betstd ** 2),
+                             alfi, alfstd, alferr, np.sqrt(alferr ** 2 + alfstd ** 2),
+                             alfi,
+                             (beti - betmdl) / betmdl,
+                             alfi])
+        print "===================================", time.time() - starttime
+
+        return 0, errors_method, data_
 
     print_("Errors from " + errors_method)
     for i in range(0, len(commonbpms)):
@@ -2940,6 +2967,12 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     print_("DONE creating errofile.")
 
     return Python_Classes4MAD.metaclass.twiss(filename)
+
+def tilt_slice_matrix(matrix, slice_shift, slice_width):
+    invrange = matrix.shape[0] - 1 - np.arange(matrix.shape[0])
+    return np.roll(matrix[np.arange(matrix.shape[0]), circulant(invrange)[invrange]],
+                          slice_shift, axis=0)[:slice_width]
+
 
 
 def printMatrix(debugfile, M, name):

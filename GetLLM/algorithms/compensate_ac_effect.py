@@ -42,7 +42,7 @@ def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
     plane_mu = "MUX" if plane == "H" else "MUY"
     k, bpmac1 = acc.get_exciter_bpm(plane, commonbpms)
     
-    return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1][plane_mu] - PI * Q)) % PI - PI + PI * Qd, k
+    return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] - PI * Q)) % PI - PI + PI * Qd, k
 
 
 def get_free_phase_total_eq(MADTwiss, Files, commonbpms, Qd, Q, ac2bpmac, plane, getllm_d):

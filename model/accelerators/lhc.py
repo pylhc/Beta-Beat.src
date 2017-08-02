@@ -82,6 +82,7 @@ class Lhc(Accelerator):
         instance = cls()
         
         instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
+        print("model path =", os.path.join(model_dir, "twiss.dat"))
             
         instance._excitation = AccExcitationMode.FREE
         ac_filename = os.path.join(model_dir, "twiss_ac.dat")
@@ -408,6 +409,8 @@ class Lhc(Accelerator):
         return self.model_tfs
         
     def get_driven_tfs(self):
+        if self.model_driven == None:
+            return self.model_tfs
         return self.model_driven
 
     def get_best_knowledge_model_tfs(self):

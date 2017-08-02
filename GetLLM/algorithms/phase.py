@@ -109,15 +109,17 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         if twiss_d.has_zero_dpp_x():
             tune_d.q1f = tune_d.q1 - getllm_d.accelerator.drv_tune_x + getllm_d.accelerator.nat_tune_x#-- Free H-tune
             phase_d.phase_advances_x = phase_d.phase_advances_free_x
-            phase_d.ac2bpmac_x = compensate_ac_effect.GetACPhase_AC2BPMAC(elements, bpmsx, tune_d.q1, tune_d.q1f, 'H', getllm_d)
-            [phase_d.phase_advances_free_x, tune_d.muxf] = compensate_ac_effect.get_free_phase_eq(model, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', model.Q1%1, getllm_d)
+            phase_d.ac2bpmac_x = compensate_ac_effect.GetACPhase_AC2BPMAC(model_driven, bpmsx, tune_d.q1, tune_d.q1f, 'H', getllm_d)
+            [phase_d.phase_advances_free_x, tune_d.muxf] = compensate_ac_effect.get_free_phase_eq(model, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x,
+                                                                                                    tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', model.Q1 % 1.0, getllm_d)
 #            [phase_d.phase_advances_free2_x, tune_d.muxf2] = _get_free_phase(phase_d.phase_advances_free_x, tune_d.q1, tune_d.q1f, bpmsx, model_driven, model, "H")
         if twiss_d.has_zero_dpp_y():
             phase_d.phase_advances_y = phase_d.phase_advances_free_y
             tune_d.q2f =  tune_d.q2 - getllm_d.accelerator.drv_tune_y + getllm_d.accelerator.nat_tune_y #-- Free V-tune
             phase_d.ac2bpmac_y = compensate_ac_effect.GetACPhase_AC2BPMAC(elements, bpmsy, tune_d.q2, tune_d.q2f, 'V', getllm_d)
-            [phase_d.phase_advances_free_y, tune_d.muyf] = compensate_ac_effect.get_free_phase_eq(model, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y, 'V',
-                                                                                        model.Q2%1, getllm_d)
+            [phase_d.phase_advances_free_y, tune_d.muyf] = compensate_ac_effect.get_free_phase_eq(model, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y,
+                                                                                                    tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y, 'V',
+                                                                                                    model.Q2%1, getllm_d)
 #            [phase_d.phase_advances_free2_y, tune_d.muyf2] = _get_free_phase(phase_d.phase_advances_free_y, tune_d.q2, tune_d.q2f, bpmsy, model_driven, model, "V")
 
     #---- H plane result
@@ -436,13 +438,13 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         print "phase jump will not be corrected"
 
     # lower triangular matrix that stores the tune for phase advances that span over to the next turn
-    triq = np.tril(np.full((number_commonbpms, number_commonbpms), tune_q), -1)
+#    triq = np.tril(np.full((number_commonbpms, number_commonbpms), tune_q), -1)
     
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
     phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis] + triq
+    phase_advances["MODEL"] = (phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis]) % 1.0 #+ triq
 
     # loop over the measurement files
     phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
@@ -450,9 +452,9 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         file_tfs = Files[i]
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
         meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
-        phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0) + triq
+        phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0) #+ triq
         
-    phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1
+    phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1.0
     phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
     
 #    for i in range(100 - 1):

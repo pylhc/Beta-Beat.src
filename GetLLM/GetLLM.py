@@ -478,9 +478,9 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
         for rdt in algorithms.resonant_driving_terms.RDT_LIST:
             files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
             files_dict[rdt+'.out'] = utils.tfs_file.GetllmTfsFile(rdt+'.out')
-    if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
-        files_dict['getcouple_free.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free.out')
-        files_dict['getcouple_free2.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free2.out')
+#    if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
+    files_dict['getcouple_free.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free.out')
+    files_dict['getcouple_free2.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free2.out')
     files_dict['getcoupleterms.out'] = utils.tfs_file.GetllmTfsFile('getcoupleterms.out')
     #if "LHC" in getllm_d.accelerator.__name__:
     files_dict['getIP.out'] = utils.tfs_file.GetllmTfsFile('getIP.out')
