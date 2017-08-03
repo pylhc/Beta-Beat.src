@@ -176,60 +176,49 @@ class TfsFileWriter(object):
             return
 
         path = self.get_absolute_file_name_path()
-        tfs_file = open(path,'w')
+        lines = []
 
         # Header
-        tfs_file.writelines(x.get_line_as_string_with_newline() for x in self.__tfs_header_lines)
+        lines.extend(x.get_line_as_string() for x in self.__tfs_header_lines)
 
         # Table
         if formatted:
-            self.__write_formatted_table(tfs_file)
+            self.__write_formatted_table(lines)
         else:
-            self.__write_unformatted_table(tfs_file)
+            self.__write_unformatted_table(lines)
+
+        with open(path,'w') as tfs_file:
+            tfs_file.write("\n".join(lines))
 
 
-        tfs_file.close()
-
-
-    def __write_formatted_table(self, tfs_file):
+    @profile
+    def __write_formatted_table(self, lines):
         """ Writes the table of this object formatted to file. """
-        format_for_string = "{0:>"+str(self.__column_width)+"s}"
+        line_len = len(self.__tfs_table.get_column_names())
+        format_for_data = "".join("{" + str(i) + ":>" + str(self.__column_width) + "}"
+                                  for i in range(line_len))
 
         # Write column names
         list_column_names = self.__tfs_table.get_column_names()
-        first_element = list_column_names[0]
-        tfs_file.write( ("* {0:>"+str(self.__column_width-2)+"} ").format(first_element))
-        remain = list_column_names[1:]
-        tfs_file.write(" ".join(format_for_string.format(entry) for entry in remain))
-        tfs_file.write("\n")
+        str_column_names = "* " + format_for_data.format(*list_column_names)[2:]
+        lines.append(str_column_names)
 
         # Write column types
         list_column_types = self.__tfs_table.get_column_data_types()
-        first_element = list_column_types[0]
-        tfs_file.write( ("$ {0:>"+str(self.__column_width-2)+"} ").format(first_element))
-        remain = list_column_types[1:]
-        tfs_file.write(" ".join(format_for_string.format(entry) for entry in remain))
-        tfs_file.write("\n")
+        str_column_types = "$ " + format_for_data.format(*list_column_types)[2:]
+        lines.append(str_column_types)
 
         # Write table lines
         for table_line in self.__tfs_table.get_data_rows():
-            tfs_file.write(" ".join(format_for_string.format(str(entry)) for entry in table_line))
-            tfs_file.write("\n")
+            formatted_line = format_for_data.format(*table_line)
+            lines.append(formatted_line)
 
 
-    def __write_unformatted_table(self, tfs_file):
-        tfs_file.write("* ")
-        tfs_file.write(" ".join(self.__tfs_table.get_column_names()))
-
-        tfs_file.write("\n$ ")
-
-        tfs_file.write(" ".join(self.__tfs_table.get_column_data_types()))
-
-        tfs_file.write("\n")
-
+    def __write_unformatted_table(self, lines):
+        lines.append("* " + " ".join(self.__tfs_table.get_column_names()))
+        lines.append("$ " + " ".join(self.__tfs_table.get_column_data_types()))
         for row in self.__tfs_table.get_data_rows():
-            tfs_file.write(" ".join(str(entry) for entry in row))
-            tfs_file.write("\n")
+            lines.append(" ".join(str(entry) for entry in row))
 
 
 class _TfsHeaderLine(object):
@@ -239,7 +228,7 @@ class _TfsHeaderLine(object):
     """
     def __init__(self):
         pass
-    def get_line_as_string_with_newline(self):
+    def get_line_as_string(self):
         raise NotImplementedError()
 
 
@@ -292,10 +281,10 @@ class _TfsDescriptor(_TfsHeaderLine):
     def get_value(self):
         return self.__value
 
-    def get_line_as_string_with_newline(self):
-        return '@ {0} {1} {2}\n'.format(self.get_name(),
-                                          self.get_tfs_data_type_as_string(),
-                                          self.get_value())
+    def get_line_as_string(self):
+        return '@ {0} {1} {2}'.format(self.get_name(),
+                                      self.get_tfs_data_type_as_string(),
+                                      self.get_value())
 
 
 class _TfsComment(_TfsHeaderLine):
@@ -311,8 +300,8 @@ class _TfsComment(_TfsHeaderLine):
         else:
             raise ValueError(str(comment_as_string) + " is not a string")
 
-    def get_line_as_string_with_newline(self):
-        return "# " + self.__comment + "\n"
+    def get_line_as_string(self):
+        return "# " + self.__comment
 
 
 class _TfsLine(_TfsHeaderLine):
@@ -328,7 +317,7 @@ class _TfsLine(_TfsHeaderLine):
         else:
             raise ValueError(str(line_as_string) + " is not a string")
 
-    def get_line_as_string_with_newline(self):
+    def get_line_as_string(self):
         return self.__line
 
 
@@ -472,7 +461,7 @@ class _TfsTable(object):
 
     def get_data_rows(self):
         return self.__list_of_table_rows
-    def order_rows(self, column_name, reverse=False):
+    def order_rows(self, column_name, reverse=False):
         """
         Orders the rows according to one of the column names.
         """
