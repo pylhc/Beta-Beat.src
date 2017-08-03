@@ -145,7 +145,7 @@ def get_tfs_writer(data_frame, headers_dict, tfs_path):
             tfs_writer.add_float_descriptor(head_name, head_value)
     tfs_writer.add_column_names(column_names)
     tfs_writer.add_column_datatypes(column_types)
-    for _, row in data_frame.itertupels(index=False):
+    for row in data_frame.itertuples(index=False):
         tfs_writer.add_table_row(row)
     return tfs_writer
 
@@ -165,7 +165,7 @@ def update_tfs_writer(data_frame, headers_dict, tfs_writer):
             tfs_writer.add_float_descriptor(head_name, head_value)
     tfs_writer.add_column_names(column_names)
     tfs_writer.add_column_datatypes(column_types)
-    for _, row in data_frame.iterrows():
+    for row in data_frame.itertuples(index=False):
         tfs_writer.add_table_row(row)
     return tfs_writer
 
