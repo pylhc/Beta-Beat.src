@@ -28,6 +28,7 @@ TYPE_TO_ID = {
     np.float64: "%le",
     float: "%le",
     np.int: "%d",
+    np.int64: "%d",
 }
 
 
@@ -117,29 +118,59 @@ def read_tfs(tfs_path):
     return _create_data_frame(column_names, column_types, rows_list, headers)
 
 
-def write_tfs(data_frame, headers_dict, tfs_path):
+def make_body(data_frame, format_string):
+     return "".join(format_string.format(*row) for row in data_frame.itertuples(index=False))
+     
+@profile
+def write_tfs(data_frame, headers_dict, tfs_path, formats=None):
     """
     Writes the Pandas DataFrame data_frame into tfs_path with the headers_dict
     as headers dictionary. If you want to keep the order of the headers, use
     collections.OrderedDict.
     """
-    tfs_name = os.path.basename(tfs_path)
-    tfs_dir = os.path.dirname(tfs_path)
-    LOGGER.debug("Attempting to write file: " + tfs_name + " in " + tfs_dir)
-    tfs_writer = tfs_file_writer.TfsFileWriter(tfs_name, outputpath=tfs_dir)
-    column_names = _get_column_names(data_frame)
-    column_types = _get_column_types(data_frame)
-    for head_name, head_value in headers_dict.iteritems():
-        if type(head_value) is str:
-            tfs_writer.add_string_descriptor(head_name, head_value)
-        else:
-            tfs_writer.add_float_descriptor(head_name, head_value)
-    tfs_writer.add_column_names(column_names)
-    tfs_writer.add_column_datatypes(column_types)
-    for _, row in data_frame.iterrows():
-        tfs_writer.add_table_row(row)
-    tfs_writer.write_to_file()
+    FORMATS = {"%s":"12s", "%le":"24.8f", "%d":"12d"}
+    if formats is not None:
+        for key, value in formats.iteritems():
+            FORMATS[key] = value
+    
+    LOGGER.debug("Attempting to write file: " + tfs_path)
+#    with open(tfs_path, "w", 128000) as tfs_file:
+#        column_names = _get_column_names(data_frame)
+#        column_types = _get_column_types(data_frame)
+#        format_string = " ".join(["{{:{:s}}}".format(FORMATS[f]) for f in column_types]) + "\n"
+#        
+#        for head_name, head_value in headers_dict.iteritems():
+#            if type(head_value) is str:
+#                tfs_file.write("@ {:24s} %s {:s}\n".format(head_name, head_value))
+#            else:
+#                tfs_file.write("@ {:24s} %le {:f}\n".format(head_name, head_value))
+#                
+#        tfs_file.write("* " + " ".join(column_names) + "\n")
+#        tfs_file.write("* " + " ".join(column_types) + "\n")
+#        
+#        for row in data_frame.itertuples(index=False):
+#            tfs_file.write(format_string.format(*row))
+##            for value in row:
+##                tfs_file.write(str(value) + " ")
+##            tfs_file.write("\n")
 
+    with open(tfs_path, "w", 128000) as tfs_file:
+        column_names = _get_column_names(data_frame)
+        column_types = _get_column_types(data_frame)
+        format_string = " ".join(["{{:{:s}}}".format(FORMATS[f]) for f in column_types]) + "\n"
+        
+        for head_name, head_value in headers_dict.iteritems():
+            if type(head_value) is str:
+                tfs_file.write("@ {:24s} %s {:s}\n".format(head_name, head_value))
+            else:
+                tfs_file.write("@ {:24s} %le {:f}\n".format(head_name, head_value))
+                
+        tfs_file.write("* " + " ".join(column_names) + "\n")
+        tfs_file.write("* " + " ".join(column_types) + "\n")
+        
+        body = make_body(data_frame, format_string)
+        
+        tfs_file.write(body)
 
 def add_coupling(data_frame):
     """
