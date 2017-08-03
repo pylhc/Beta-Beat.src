@@ -123,6 +123,15 @@ def write_tfs(data_frame, headers_dict, tfs_path):
     as headers dictionary. If you want to keep the order of the headers, use
     collections.OrderedDict.
     """
+    get_tfs_writer(data_frame, headers_dict, tfs_path).write_to_file()
+    
+    
+def get_tfs_writer(data_frame, headers_dict, tfs_path):
+    """
+    Converts the Pandas DataFrame data_frame into a metadata twiss with the 
+    headers_dict as headers dictionary. If you want to keep the order of the
+    headers, use collections.OrderedDict.
+    """
     tfs_name = os.path.basename(tfs_path)
     tfs_dir = os.path.dirname(tfs_path)
     LOGGER.debug("Attempting to write file: " + tfs_name + " in " + tfs_dir)
@@ -136,9 +145,29 @@ def write_tfs(data_frame, headers_dict, tfs_path):
             tfs_writer.add_float_descriptor(head_name, head_value)
     tfs_writer.add_column_names(column_names)
     tfs_writer.add_column_datatypes(column_types)
+    for _, row in data_frame.itertupels(index=False):
+        tfs_writer.add_table_row(row)
+    return tfs_writer
+
+
+def update_tfs_writer(data_frame, headers_dict, tfs_writer):
+    """
+    Converts the Pandas DataFrame data_frame into a metadata twiss with the 
+    headers_dict as headers dictionary. If you want to keep the order of the
+    headers, use collections.OrderedDict.
+    """
+    column_names = _get_column_names(data_frame)
+    column_types = _get_column_types(data_frame)
+    for head_name, head_value in headers_dict.iteritems():
+        if type(head_value) is str:
+            tfs_writer.add_string_descriptor(head_name, head_value)
+        else:
+            tfs_writer.add_float_descriptor(head_name, head_value)
+    tfs_writer.add_column_names(column_names)
+    tfs_writer.add_column_datatypes(column_types)
     for _, row in data_frame.iterrows():
         tfs_writer.add_table_row(row)
-    tfs_writer.write_to_file()
+    return tfs_writer
 
 
 def add_coupling(data_frame):
