@@ -191,7 +191,6 @@ class TfsFileWriter(object):
             tfs_file.write("\n".join(lines))
 
 
-    @profile
     def __write_formatted_table(self, lines):
         """ Writes the table of this object formatted to file. """
         line_len = len(self.__tfs_table.get_column_names())
