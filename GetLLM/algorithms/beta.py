@@ -417,33 +417,37 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
     tfs_file.add_string_descriptor("ErrorsFrom", error_method)
     tfs_file.add_float_descriptor("PhaseTheshold", PHASE_THRESHOLD)
     tfs_file.add_float_descriptor("RCond", RCOND)
-    tfs_file.add_column_names(["NAME", "S", "COUNT",
-                               "BET" + _plane_char, "SYSBET" + _plane_char, "STATBET" + _plane_char, "ERRBET" + _plane_char,
-                               "CORR_ALFABETA",
-                               "ALF" + _plane_char, "SYSALF" + _plane_char, "STATALF" + _plane_char, "ERRALF" + _plane_char,
-                               "BET" + _plane_char + "MDL", "ALF" + _plane_char + "MDL", "MU" + _plane_char + "MDL",
-                               "NCOMBINATIONS"])
-    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-    for name in bpms.index:
-        try:  # TODO: An error was happening here, this is a fast fix, remove!!
-            row = data[name]
-        except KeyError:
-            continue
-        beta_d_col[name] = [row[0], row[1], row[2], row[3]]
-        list_row_entries = ['"' + name + '"', bpms[name], len(twiss_d_zero_dpp),
-                            row[BETI_MP], row[BETSYST_MP], row[BETSTAT_MP], row[BETERR_MP],
-                            row[CORR_MP],
-                            row[ALFI_MP], row[ALFSYS_MP], row[ALFSTAT_MP], row[ALFERR_MP],
-                            mod_BET[name], mod_ALF[name], mod_MU[name],
-                            row[NCOMB_MP]]
-        # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
-        #                     row[0], row[1], row[2], row[3],
-        #                     row[8],
-        #                     row[4], row[5], row[6], row[7],
-        #                     mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
-        #                     row[10]]
-        tfs_file.add_table_row(list_row_entries)
-        
+    
+    
+    
+    tfs_pandas.update_tfs_writer(data, {}, tfs_file )
+#    tfs_file.add_column_names(["NAME", "S", "COUNT",
+#                               "BET" + _plane_char, "SYSBET" + _plane_char, "STATBET" + _plane_char, "ERRBET" + _plane_char,
+#                               "CORR_ALFABETA",
+#                               "ALF" + _plane_char, "SYSALF" + _plane_char, "STATALF" + _plane_char, "ERRALF" + _plane_char,
+#                               "BET" + _plane_char + "MDL", "ALF" + _plane_char + "MDL", "MU" + _plane_char + "MDL",
+#                               "NCOMBINATIONS"])
+#    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+#    for name in bpms.index:
+#        try:  # TODO: An error was happening here, this is a fast fix, remove!!
+#            row = data[name]
+#        except KeyError:
+#            continue
+#        beta_d_col[name] = [row[0], row[1], row[2], row[3]]
+#        list_row_entries = ['"' + name + '"', bpms[name], len(twiss_d_zero_dpp),
+#                            row[BETI_MP], row[BETSYST_MP], row[BETSTAT_MP], row[BETERR_MP],
+#                            row[CORR_MP],
+#                            row[ALFI_MP], row[ALFSYS_MP], row[ALFSTAT_MP], row[ALFERR_MP],
+#                            mod_BET[name], mod_ALF[name], mod_MU[name],
+#                            row[NCOMB_MP]]
+#        # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
+#        #                     row[0], row[1], row[2], row[3],
+#        #                     row[8],
+#        #                     row[4], row[5], row[6], row[7],
+#        #                     mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
+#        #                     row[10]]
+#        tfs_file.add_table_row(list_row_entries)
+#        
     
 
 
@@ -516,12 +520,11 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             dataf, rmsbbxf, bpmsf, error_method = beta_from_phase(model, elements, elements_centre,
                                                                   twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x, 'H',
                                                                   getllm_d, debugfile)
-#            tfs_file = files_dict['getbetax_free.out']
-#            beta_d.x_phase_f = {}
-#            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, model, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
-#                               dataf, rmsbbxf, error_method, bpmsf,
-#                               tfs_file, model.BETX, model.ALFX, model.MUX, _plane_char)
-            tfs_pandas.write_tfs(dataf, headers, os.path.join( getllm_d.outputpath, "NEWgetbetax_free.out"))
+            beta_d.x_phase_f = {}
+            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, model, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
+                               dataf, rmsbbxf, error_method, bpmsf,
+                               files_dict['getbetax_free.out'], model.BETX, model.ALFX, model.MUX, _plane_char)
+            
             
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: 
                 print ""
@@ -531,12 +534,11 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                                                    getllm_d, debugfile)
                 beta_d.x_phase = {}
                 beta_d.x_phase['DPP'] = 0
-#                tfs_file = files_dict['getbetax.out']
+                tfs_file = files_dict['getbetax.out']
                 
-                tfs_pandas.write_tfs(dataf, headers, os.path.join( getllm_d.outputpath, "NEWgetbetax.out"))
-#                _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, model_driven, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
-#                                   data, rmsbbx, error_method, bpms,
-#                                   tfs_file, model_driven.BETX, model_driven.ALFX, model_driven.MUX, _plane_char)
+                _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, model_driven, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
+                                   data, rmsbbx, error_method, bpms,
+                                   tfs_file, model_driven.BETX, model_driven.ALFX, model_driven.MUX, _plane_char)
 
 #                print ""
 #                print_("Calculate beta from phase for plane " + _plane_char + " with AC dipole (_free2.out)", ">")
@@ -563,14 +565,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             dataf, rmsbby, bpms, error_method = beta_from_phase(model, elements, elements_centre,
                                                                twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_free_y, 'V',
                                                                getllm_d, debugfile)
-            tfs_pandas.write_tfs(dataf, headers, os.path.join( getllm_d.outputpath, "NEWgetbetay_free.out"))
-#            beta_d.y_phase = {}
-#            beta_d.y_phase['DPP'] = 0
-#            tfs_file = files_dict['getbetay.out']
-#            
-#            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, model, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
-#                               data, rmsbby, error_method, bpms,
-#                               tfs_file, model.BETY, model.ALFY, model.MUY, _plane_char)
+            beta_d.y_phase = {}
+            beta_d.y_phase['DPP'] = 0
+            tfs_file = files_dict['getbetay.out']
+            
+            _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1, tune_d.q2, model, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
+                               data, rmsbby, error_method, bpms,
+                               tfs_file, model.BETY, model.ALFY, model.MUY, _plane_char)
             
             #-- ac to free beta
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
@@ -582,13 +583,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                                                       twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_y, 'V',
                                                                       getllm_d, debugfile)
    
-                tfs_pandas.write_tfs(data, headers, os.path.join( getllm_d.outputpath, "NEWgetbetay.out"))
              
-#                tfs_file = files_dict['getbetay_free.out']
-#                beta_d.y_phase_f = {}
-#                _write_getbeta_out(twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, model_driven, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase_f,
-#                                   dataf, rmsbbyf, error_method, bpmsf,
-#                                   tfs_file, model_driven.BETY, model_driven.ALFY, model_driven.MUY, _plane_char)
+                tfs_file = files_dict['getbetay_free.out']
+                beta_d.y_phase_f = {}
+                _write_getbeta_out(twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, model_driven, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase_f,
+                                   dataf, rmsbbyf, error_method, bpmsf,
+                                   tfs_file, model_driven.BETY, model_driven.ALFY, model_driven.MUY, _plane_char)
 
 #                #-- from the model
 #                print ""
