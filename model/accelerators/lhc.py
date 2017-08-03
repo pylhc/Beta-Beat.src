@@ -409,7 +409,7 @@ class Lhc(Accelerator):
         return self.model_tfs
         
     def get_driven_tfs(self):
-        if self.model_driven == None:
+        if self.model_driven is None:
             return self.model_tfs
         return self.model_driven
 
