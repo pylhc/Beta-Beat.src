@@ -9,38 +9,14 @@ option, -echo, -warn;
     exec, set_default_crossing_scheme();
 option, echo, warn;
 
-extract_segment_sequence(base_seq, front_seq, back_seq, start_from, end_at): macro = {
-    SEQEDIT, SEQUENCE=base_seq;
-    FLATTEN;               
-    CYCLE, START=start_from;
-    ENDEDIT;
-
-    EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=front_seq;
-    seqedit, sequence=front_seq;
-    flatten;
-    endedit;
-
-    EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=back_seq;
-    seqedit, sequence=back_seq;
-    flatten;
-    reflect; ! reverse command
-    endedit;
-};
-
-twiss_segment(sequence, filename, init_vals): macro = {
-    use, period = sequence;
-    exec, select_elements();
-    twiss, beta0 = init_vals, chrom, file = filename;
-};
-
 !!! Extract segments sequences
 %(EXTRACT_SEQUENCES)s
-
 
 !!! Initial values gathering
 %(SET_INITIAL_VALUES)s
 
 %(DEFINE_CONSTRAINTS_AUX_VALS)s
+
 
 !!!!!! Matching !!!!!!
 
@@ -53,7 +29,6 @@ option, -warn;
 option, warn;
 
 %(END_MATCH)s
-
 
 !!! Generating final changeparameters file
 select, flag=save, clear;

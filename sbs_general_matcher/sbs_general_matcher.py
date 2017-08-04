@@ -38,7 +38,7 @@ def main(input_file_path):
     LOGGER.info("+++ Segment-by-segment general matcher +++")
 
     input_data = InputData.init_from_json_file(input_file_path)
-    log_handler.add_file_handler(LOGGER, input_data.match_path)
+    log_handler.add_file_handler(input_data.match_path)
     run_full_madx_matching(input_data)
 
 
@@ -184,19 +184,18 @@ class InputData():
         for matcher_name, matcher_data in raw_matchers_list.iteritems():
             matcher_type = matcher_data["type"]
             matcher_beam = matcher_data["beam"]
+            matcher_variables = matcher_data["variables"]
             MatcherClass = MATCHER_TYPES.get(matcher_type, None)
             if MatcherClass is None:
                 raise ValueError('Unknown matcher type: ' + matcher_type +
                                  ' must be in: ' + str(MATCHER_TYPES.keys()))
             self.matchers.append(
                 MatcherClass(self.lhc_mode, matcher_beam,
-                             matcher_name, matcher_data, self.match_path)
+                             matcher_name, matcher_data, matcher_variables,
+                             self.match_path)
             )
 
     def _check_and_assign_attribute(self, input_data, attribute_name):
-        matcher.Matcher._check_attribute("input data",
-                                         input_data,
-                                         attribute_name)
         setattr(self, attribute_name, input_data[attribute_name])
 
     # This transforms annoying unicode string into common byte string

@@ -8,6 +8,9 @@ LOGGER = logging.getLogger(__name__)
 
 class MatcherModelDefault(object):
 
+    BETA_CORR_CLASSES = ("MQX", "MQXT", "MQXNEW", "MQT", "MQM", "MQTL")
+    COUP_CORR_CLASSES = ("MQSX")
+
     def __init__(self, match_path, name, beam, meas_path,
                  label, use_errors, propagation):
         self._match_path = match_path

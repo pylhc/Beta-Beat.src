@@ -18,7 +18,8 @@ class MatcherModelPhase(MatcherModelDefault):
             self._beam,
             self._name,
             self.get_matcher_dict(),
-            match_path
+            MatcherModelDefault.BETA_CORR_CLASSES,
+            match_path,
         )
 
     def get_plotter(self, figure):

@@ -8,23 +8,18 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 class PhaseMatcher(Matcher):
 
     DEF_CONSTR_AUX_VALUES_TEMPLATE = """
-    use, period=%(SEQ_B1)s;
-    twiss, beta0=%(INIT_VALS_B1)s, chrom, table=%(B1_TABLE_NAME)s;
-
-    use, period=%(SEQ_B2)s;
-    twiss, beta0=%(INIT_VALS_B2)s, chrom, table=%(B2_TABLE_NAME)s;
+    use, period=%(SEQ)s;
+    twiss, beta0=%(INIT_VALS)s, chrom, table=%(TABLE_NAME)s;
 
     %(PHASES)s
 
     %(S_VARIABLES)s
     """
 
-    BETA_CORR_CLASSES = ["MQT", "MQM", "MQY", "MQX", "MQXT"]
-
     @Matcher.override(Matcher)
     def get_variables(self, exclude=True):
         variables = self._segment.get_segment_vars(
-            classes=PhaseMatcher.BETA_CORR_CLASSES,
+            classes=self._variables_cls,
         )
         if exclude:
             variables = [
@@ -54,14 +49,11 @@ class PhaseMatcher(Matcher):
 
         for variable in self.get_variables():
             variables_s_str += self._name + '.' + variable + '_0' + ' = ' + variable + ';\n'
-
+        beam = str(self.get_segment().get_beam())
         return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
-            "SEQ_B1": "lhcb1_" + self._front_or_back + "_" + self._name,
-            "SEQ_B2": "lhcb2_" + self._front_or_back + "_" + self._name,
-            "INIT_VALS_B1": "b1_" + self._ini_end + "_" + self._name,
-            "INIT_VALS_B2": "b2_" + self._ini_end + "_" + self._name,
-            "B1_TABLE_NAME": self._get_nominal_table_name(1),
-            "B2_TABLE_NAME": self._get_nominal_table_name(2),
+            "SEQ": "lhcb" + beam + "_" + self._front_or_back + "_" + self._name,
+            "INIT_VALS": "b" + beam + "_" + self._ini_end + "_" + self._name,
+            "TABLE_NAME": self._get_nominal_table_name(),
             "PHASES": phases_str,
             "S_VARIABLES": variables_s_str,
         }

@@ -18,6 +18,7 @@ class MatcherModelAmp(MatcherModelDefault):
             self._beam,
             self._name,
             self.get_matcher_dict(),
+            MatcherModelDefault.BETA_CORR_CLASSES,
             match_path
         )
 

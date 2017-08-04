@@ -15,7 +15,7 @@ class TemplateProcessor(object):
 match, use_macro;
 """
     END_MATCH = """
-lmdif, tolerance:=1e-24, calls:=12000;
+lmdif, tolerance:=1e-24, calls:=120;
 endmatch;
 """
     SAVE_CHANGEPARAMETERS = """

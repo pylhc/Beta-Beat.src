@@ -3,31 +3,27 @@
 * Extracts the front and back propagation sequences from "base_sequences". The new
 * sequences will have the prefix "front_" and "back_".
 * The macro beam_"base_sequence"() has to be defined.
-* @param base_sequence: Sequence from which the subsequence should be extracted.
+* @param base_seq: Sequence from which the subsequence should be extracted.
 * @param startfrom: Initial element in the subsequence.
 * @param endat: Final element in the subsequence.
 * @param extracted_name: Extracted sequence name.
 */
-extract_front_back_sequences(base_sequence, startfrom, endat): macro = {
-    SEQEDIT, SEQUENCE=base_sequence;
+extract_segment_sequence(base_seq, front_seq, back_seq, start_from, end_at): macro = {
+    SEQEDIT, SEQUENCE=base_seq;
     FLATTEN;               
-    CYCLE, START=startfrom;
+    CYCLE, START=start_from;
     ENDEDIT;
 
-    EXTRACT, SEQUENCE=base_sequence, FROM=startfrom, TO=endat, NEWNAME=front_base_sequence;
-    seqedit, sequence=front_base_sequence;
+    EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=front_seq;
+    seqedit, sequence=front_seq;
     flatten;
     endedit;
 
-    EXTRACT, SEQUENCE=base_sequence, FROM=startfrom, TO=endat, NEWNAME=back_base_sequence;
-    seqedit, sequence=back_base_sequence;
+    EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=back_seq;
+    seqedit, sequence=back_seq;
     flatten;
     reflect; ! reverse command
     endedit;
-    
-    exec, beam_base_sequence(front_base_sequence);
-    exec, beam_base_sequence(back_base_sequence);
-
 };
 
 
@@ -72,11 +68,17 @@ save_initial_and_final_values(accel, startfrom, endat, values_file, bininame, be
 
     use, period=accel, range=startfrom/startfrom;
     savebeta,label=bininame, place=startfrom;
-    twiss ,chrom, betx=betx_ini, alfx=alfx_ini, bety=bety_ini, alfy=alfy_ini, dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini, wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini, r11=ini_r11 ,r12=ini_r12, r21=ini_r21, r22=ini_r22;
+    twiss, chrom, betx=betx_ini, alfx=alfx_ini, bety=bety_ini, alfy=alfy_ini,
+                  dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini,
+                  wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini,
+                  r11=ini_r11 ,r12=ini_r12, r21=ini_r21, r22=ini_r22;
 
     use, period=accel, range=endat/endat;
     savebeta,label=bendname, place=endat;
-    twiss ,chrom, betx=betx_end, alfx=alfx_end, bety=bety_end, alfy=alfy_end, dx=dx_end, dy=dy_end, dpx=dpx_end, dpy=dpy_end, wx=wx_end, phix=phix_end, wy=wy_end, phiy=phiy_end, r11=end_r11 ,r12=end_r12, r21=end_r21, r22=end_r22;
+    twiss, chrom, betx=betx_end, alfx=alfx_end, bety=bety_end, alfy=alfy_end,
+                  dx=dx_end, dy=dy_end, dpx=dpx_end, dpy=dpy_end,
+                  wx=wx_end, phix=phix_end, wy=wy_end, phiy=phiy_end,
+                  r11=end_r11 ,r12=end_r12, r21=end_r21, r22=end_r22;
 }
 
 
@@ -89,30 +91,9 @@ save_initial_and_final_values(accel, startfrom, endat, values_file, bininame, be
 * @param bininame: Name of the initial conditions variable for front propagation.
 * @param bendname: Name of the initial conditions variable for back propagation.
 */
-twiss_front_back(accel, front_filename, back_filename, bininame, bendname): macro = {
-    use, period = front_accel;
-    select, flag=twiss, clear;
-    select, flag=twiss, class=quadrupole;
-    select, flag=twiss, class=monitor;
-    select, flag=twiss, class=rcollimator;
-    select, flag=twiss, class=collimator;
-    select, flag=twiss, class=marker;
-    select, flag=twiss, class=rbend;
-    select, flag=twiss, class=tkicker;
-    select, flag=twiss,pattern="XRP";
-    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,K1SL,K2l,K3l,wx,phix,wy,phiy;
-    twiss, beta0 = bininame, chrom, file = front_filename;
-
-    use, period = back_accel;
-    select, flag=twiss, clear;
-    select, flag=twiss, class=quadrupole;
-    select, flag=twiss, class=monitor;
-    select, flag=twiss, class=rcollimator;
-    select, flag=twiss, class=collimator;
-    select, flag=twiss, class=marker;
-    select, flag=twiss, class=rbend;
-    select, flag=twiss, class=tkicker;
-    select, flag=twiss,pattern="XRP";
-    select, flag=twiss, class=instrument,column=name,s,betx,alfx,bety,alfy,mux,muy, dx, r11,r12, r22,r21, x,y,dx,dy,dpx,dpy, L,K1l,K1SL,K2l,K3l,wx,phix,wy,phiy;
-    twiss, beta0 = bendname, chrom, file = back_filename;
+twiss_segment(sequence, filename, init_vals): macro = {
+    use, period = sequence;
+    exec, select_elements();
+    twiss, beta0 = init_vals, chrom, file = filename;
 };
+
