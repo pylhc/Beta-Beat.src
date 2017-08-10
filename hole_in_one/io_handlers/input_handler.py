@@ -59,6 +59,9 @@ class MainInput(object):
         self.model = options.model
         self.outputdir = options.outputdir
         self.write_raw = options.write_raw
+        if self.outputdir is None:
+            outdir = os.path.dirname(self.file)
+            self.outputdir = outdir
         return self
 
 
@@ -251,10 +254,12 @@ def _get_harpy_parser():
     parser.add_argument(
         "--tunex", help="Guess for the main horizontal tune.",
         dest="tunex", type=float,
+        required=True,
     )
     parser.add_argument(
         "--tuney", help="Guess for the main vertical tune.",
         dest="tuney", type=float,
+        required=True,
     )
     ################################
 

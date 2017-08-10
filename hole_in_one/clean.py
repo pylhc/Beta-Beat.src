@@ -1,7 +1,8 @@
-import time
-import numpy as np
 import logging
+from datetime import datetime
+import numpy as np
 from scipy.fftpack import fft as scipy_fft
+
 SPARSE_AVAILABLE = True
 try:
     from scipy.sparse.linalg.eigen.arpack.arpack import svds
@@ -29,8 +30,7 @@ LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = []
 #===================================================================================================
 
 
-def clean(bpm_names, bpm_data, clean_input):
-    time_start = time.time()
+def clean(bpm_names, bpm_data, clean_input, file_date):
     # Loops through BPM names
     known_bad_bpms = np.zeros([len(bpm_names)], dtype=bool)
     for i in range(len(bpm_names)):
@@ -41,7 +41,8 @@ def clean(bpm_names, bpm_data, clean_input):
         if bpm_names[i] in LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES:
             bpm_data[i, :] = -1. * bpm_data[i, :]
         # Resynchronizes BPMs between the injection point and start of the lattice
-        if not clean_input.noresync:
+        if (not clean_input.noresync) and _resync_from_date(file_date):
+            LOGGER.debug("Will resynchronize BPMs")
             if (bpm_names[i][-5:].upper() == "L2.B1" or
                     bpm_names[i][-5:].upper() == "R8.B2"):
                 bpm_data[i, :] = np.roll(bpm_data[i, :], -1)
@@ -65,24 +66,11 @@ def clean(bpm_names, bpm_data, clean_input):
         bad_bpms_with_reasons.append(bpm_names[i] + " " + reason_for_bad_bpm)
     good_bpms = np.logical_not(bad_bpms)
 
-    if np.any(exact_zeros):
-        LOGGER.debug("Exact zeros detected. BPMs removed: " +
-                     str(np.sum(exact_zeros)))
-    if np.any(known_bad_bpms):
-        LOGGER.debug("Known bad BPMs removed: " +
-                     str(np.sum(known_bad_bpms)))
-    if np.any(bpm_flatness):
-        LOGGER.debug("Flat BPMS detected (diff min/max <= {0}. BPMs removed: {1}"
-                     .format(clean_input.peak_to_peak, np.sum(bpm_flatness)))
-    if np.any(bpm_spikes):
-        LOGGER.debug("Spikes > {0}mm detected. BPMs removed: {1}"
-                     .format(clean_input.max_peak, np.sum(bpm_spikes)))
     LOGGER.debug(
         "(Statistics for file reading) Total BPMs: {0}, Good BPMs: {1} ({2:2.2f}%), bad BPMs: {3} ({4:2.2f}%)"
         .format(len(good_bpms), np.sum(good_bpms), 100.0 * np.mean(good_bpms),
                 len(bad_bpm_indices), 100.0 * (1 - np.mean(good_bpms))))
     LOGGER.info("Filtering done")
-    LOGGER.debug(">>Time for filtering: {0}s".format(time.time() - time_start))
 
     if not clean_input.noresync:
         new_bpm_data = bpm_data[good_bpms, :-1]
@@ -91,50 +79,74 @@ def clean(bpm_names, bpm_data, clean_input):
     return bpm_names[good_bpms], new_bpm_data, bad_bpms_with_reasons
 
 
-def svd_clean(bpm_names, bpm_data, clean_input):
+def svd_decomposition(clean_input, bpm_data):
     # Parameters for matrix normalisation
     sqrt_number_of_turns = np.sqrt(bpm_data.shape[1])
     bpm_data_mean = np.mean(bpm_data)
     normalized_data = (bpm_data - bpm_data_mean) / sqrt_number_of_turns
-    sv_to_keep = clean_input.sing_val
+    if clean_input is None:
+        sv_to_keep = clean_input.sing_val
+    else:
+        # If not clean keep all sing. values.
+        sv_to_keep = bpm_data.shape[0]
     svd_functs = {
         "NUM": _get_singular_value_decomposition,
         "SPA": _get_singular_value_decomposition_sparse,
         "RAN": _get_singular_value_decomposition_random,
     }
-
-    time_start = time.time()
     USV = svd_functs[clean_input.svd_mode.upper()[:3]](
         normalized_data,
         sv_to_keep
     )
-    LOGGER.debug(">> Time for SVD: {0}s".format(time.time() - time_start))
+    num = len(np.where(USV[1] > 0.))
+    USV = USV[0][:, :num], USV[1][:num], USV[2][:num, :]
+    if num < USV[1].shape[0]:
+        LOGGER.warn("Zero singular values detected.")
+    return USV, bpm_data_mean, sqrt_number_of_turns
 
-    bpm_dominance, bad_bpms_with_reasons = _detect_dominant_bpms_with_reasons(
-        bpm_names,
-        USV[0],
-        clean_input.single_svd_bpm_threshold
-    )
-    good_bpms = np.logical_not(bpm_dominance)
-    LOGGER.debug(">> Values in GOOD BPMs:  {0}".format(np.sum(good_bpms)))
 
-    # Reconstruct the SVD-cleaned data
-    A = (np.dot(USV[0][good_bpms],
-         np.dot(np.diag(USV[1]), USV[2]))) * sqrt_number_of_turns + bpm_data_mean
-       
-    bpm_res = np.std(A - bpm_data[good_bpms, :], axis=1)
-    LOGGER.debug("Average BPM resolution: " + str(np.mean(bpm_res)))
-    LOGGER.debug(">> Time for svd_clean: {0}s"
-                 .format(time.time() - time_start))
-    return (bpm_names[good_bpms], A, bpm_res, bad_bpms_with_reasons,
-            (USV[0][good_bpms], USV[1] * sqrt_number_of_turns, USV[2]))
+def svd_clean(bpm_names, bpm_data, clean_input):
+    USV, bpm_data_mean, sqrt_number_of_turns = svd_decomposition(clean_input, bpm_data)
+
+    if clean_input is not None:
+        bpm_dominance, bad_bpms_with_reasons = _detect_dominant_bpms_with_reasons(
+            bpm_names,
+            USV[0],
+            clean_input.single_svd_bpm_threshold
+        )
+        good_bpms = np.logical_not(bpm_dominance)
+        LOGGER.debug(">> Values in GOOD BPMs:  %s", np.sum(good_bpms))
+
+        # Reconstruct the SVD-cleaned data
+        A = (np.dot(USV[0][good_bpms],
+                    np.dot(np.diag(USV[1]), USV[2]))) * sqrt_number_of_turns + bpm_data_mean
+
+        bpm_res = np.std(A - bpm_data[good_bpms, :], axis=1)
+        LOGGER.debug("Average BPM resolution: %s", str(np.mean(bpm_res)))
+        good_bpm_names = bpm_names[good_bpms]
+        good_bpm_data = A
+        usv2 = (USV[2].T - np.mean(USV[2], axis=1)).T
+        usv = (USV[0][good_bpms], USV[1] * sqrt_number_of_turns, usv2)
+    else:
+        usv2 = (USV[2].T - np.mean(USV[2], axis=1)).T
+        usv = (USV[0], USV[1] * sqrt_number_of_turns, usv2)
+        bad_bpms_with_reasons = []
+        bpm_res = np.zeros_like(bpm_names)
+        good_bpm_names = bpm_names
+        good_bpm_data = bpm_data
+    return good_bpm_names, good_bpm_data, bpm_res, bad_bpms_with_reasons, usv
+
 
 
 # HELPER FUNCTIONS #########################
 
 # Detects BPMs with exact zeros due to OP workaround
 def _detect_bpms_with_exact_zeros(bpm_data):
-    return np.logical_not(np.all(bpm_data, axis=1))
+    exact_zeros = np.logical_not(np.all(bpm_data, axis=1))
+    if np.any(exact_zeros):
+        LOGGER.debug("Exact zeros detected. BPMs removed: " +
+                     str(np.sum(exact_zeros)))
+    return exact_zeros
 
 
 def _get_max_bpm_readings(bpm_data):
@@ -147,7 +159,12 @@ def _get_min_bpm_readings(bpm_data):
 
 # Detects BPMs with the same values for all turns
 def _detect_flat_bpms(maxima, minima, min_peak_to_peak):
-    return np.abs(maxima - minima) <= min_peak_to_peak
+    bpm_flatness = np.abs(maxima - minima) <= min_peak_to_peak
+    if np.any(bpm_flatness):
+        LOGGER.debug("Flat BPMS detected (diff min/max <= %s. BPMs removed: %s",
+                     min_peak_to_peak,
+                     np.sum(bpm_flatness))
+    return bpm_flatness
 
 
 # Detects BPMs with spikes > max_peak_cut
@@ -155,7 +172,12 @@ def _detect_bpms_with_spikes(maxima, minima, max_peak_cut):
     m3 = np.empty([len(maxima), 2])
     m3[:, 0] = np.abs(maxima)
     m3[:, 1] = np.abs(minima)
-    return np.max(m3, axis=1) > max_peak_cut
+    bpm_spikes = np.max(m3, axis=1) > max_peak_cut
+    if np.any(bpm_spikes):
+        LOGGER.debug("Spikes > %s detected. BPMs removed: %s",
+                     max_peak_cut,
+                     np.sum(bpm_spikes))
+    return bpm_spikes
 
 
 # Removes noise floor: having MxN matrix
@@ -213,12 +235,14 @@ def _detect_dominant_bpms_with_reasons(bpm_names, U, single_svd_bpm_threshold):
         return np.zeros(U.shape[0], dtype=bool), []
 
 
+def _resync_from_date(acqdate):
+    return acqdate > datetime(2016, 4, 1)
+
 # For one bunch, one plane, all BPMs after previous filtering(optional)
 # returns the decomposition to USV matrices and parameters needed for later
 # recomposition, only noise cleaning is done here
 def svd_for_fft(bpm_names, bpm_data, singular_values_amount_to_keep=12,
                 single_svd_bpm_threshold=0.925):
-    time_start = time.time()
     # SVD of normalised matrix
     sqrt_number_of_turns = np.sqrt(bpm_data.shape[1])
     bpm_data_mean = np.mean(bpm_data)
@@ -226,7 +250,6 @@ def svd_for_fft(bpm_names, bpm_data, singular_values_amount_to_keep=12,
         (bpm_data - bpm_data_mean) /
         sqrt_number_of_turns, singular_values_amount_to_keep
     )
-    LOGGER.debug(">> Time for SVD: {0}s".format(time.time() - time_start))
     return USV, sqrt_number_of_turns, bpm_data_mean
 
 
