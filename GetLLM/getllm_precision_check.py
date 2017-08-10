@@ -229,6 +229,8 @@ def _run_tracking_model(directory, options):
         madx_wrapper.resolve_and_run_string(
             madx_script,
             madx_path=MADX_PATH,
+            output_file=os.path.join(directory, 'job.test.madx'),
+            log_file=os.path.join(directory, 'madx_log.txt')
         )
     track_path = _get_track_path(directory, one=True)
     tbt_path = _get_tbt_path(directory)
