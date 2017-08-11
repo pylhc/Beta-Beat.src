@@ -55,7 +55,7 @@ class MainInput(object):
     @staticmethod
     def init_from_options(options):
         self = MainInput()
-        self.file = options.file
+        self.file = options.file#[file_name.strip() for file_name in options.file.strip("\"").split(",")]
         self.model = options.model
         self.outputdir = options.outputdir
         self.write_raw = options.write_raw
@@ -71,7 +71,7 @@ def _get_main_parser():
     # Obligatory arguments ###########
     parser.add_argument(
         "--file",
-        help="Binary File to clean",
+        help="Comma separated binary files to clean",
         required=True,
         dest="file"
     )
@@ -109,6 +109,8 @@ class CleanInput(object):
         "peak_to_peak": 0.00001,
         "max_peak": 20.,
         "single_svd_bpm_threshold": 0.925,
+        "bad_bpms": "",
+        "wrong_polarity_bpms": "",
         "noresync": False,
         "write_clean": False,
     }
@@ -123,6 +125,8 @@ class CleanInput(object):
         self.single_svd_bpm_threshold = CleanInput.DEFAULTS[
             "single_svd_bpm_threshold"
         ]
+        self.bad_bpms = CleanInput.DEFAULTS["bad_bpms"]
+        self.wrong_polarity_bpms = CleanInput.DEFAULTS["wrong_polarity_bpms"]
         self.noresync = CleanInput.DEFAULTS["noresync"]
         self.write_clean = CleanInput.DEFAULTS["write_clean"]
 
@@ -136,6 +140,8 @@ class CleanInput(object):
         self.peak_to_peak = options.peak_to_peak
         self.max_peak = options.max_peak
         self.single_svd_bpm_threshold = options.single_svd_bpm_threshold
+        self.bad_bpms = [bad_bpm.strip() for bad_bpm in options.bad_bpms.strip("\"").split(",")]
+        self.wrong_polarity_bpms = [wrong_polarity_bpm.strip() for wrong_polarity_bpm in options.wrong_polarity_bpms.strip("\"").split(",")]
         self.noresync = options.noresync
         self.write_clean = options.write_clean
         return self
@@ -198,6 +204,16 @@ def _get_clean_parser():
                 Should be > 0.9 for LHC. Default: %(default)s""",
         default=CleanInput.DEFAULTS["single_svd_bpm_threshold"],
         dest="single_svd_bpm_threshold", type=float)
+    parser.add_argument(
+        "--bad_bpms",
+        help=""""Comma separated bad BPMs to clean. Default: %(default)s""",
+        default=CleanInput.DEFAULTS["bad_bpms"],
+        dest="bad_bpms", type=str)
+    parser.add_argument(
+        "--wrong_polarity_bpms",
+        help=""""Comma separated BPMs with swapped polarity in both planes. Default: %(default)s""",
+        default=CleanInput.DEFAULTS["wrong_polarity_bpms"],
+        dest="wrong_polarity_bpms", type=str)
     parser.add_argument(
         "--noresync",
         help="""Ignore the synchronization error of the BPMs.""",

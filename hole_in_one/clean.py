@@ -24,21 +24,16 @@ LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = []
 
 ########################
 # Somewhere we should dump the parameters used for the analysis to a file - main, or some inputdata class?
-# FFT of SVD decomposed data is much faster, but imprecise, we would need to do some super-clever integration of recomposed spectral lines
-# TO DO in main: cut the turns if requested start:end
-# Other method for BPM swapping and yet another one for dpoverp
-#===================================================================================================
-
 
 def clean(bpm_names, bpm_data, clean_input, file_date):
     # Loops through BPM names
     known_bad_bpms = np.zeros([len(bpm_names)], dtype=bool)
     for i in range(len(bpm_names)):
         # Searches for known bad BPMs
-        if bpm_names[i] in LIST_OF_KNOWN_BAD_BPMS:
+        if bpm_names[i] in (LIST_OF_KNOWN_BAD_BPMS + clean_input.bad_bpms):
             known_bad_bpms[i] = True
         # Fixes wrong polarity
-        if bpm_names[i] in LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES:
+        if bpm_names[i] in (LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES + clean_input.wrong_polarity_bpms):
             bpm_data[i, :] = -1. * bpm_data[i, :]
         # Resynchronizes BPMs between the injection point and start of the lattice
         if (not clean_input.noresync) and _resync_from_date(file_date):
@@ -84,7 +79,7 @@ def svd_decomposition(clean_input, bpm_data):
     sqrt_number_of_turns = np.sqrt(bpm_data.shape[1])
     bpm_data_mean = np.mean(bpm_data)
     normalized_data = (bpm_data - bpm_data_mean) / sqrt_number_of_turns
-    if clean_input is None:
+    if clean_input is not None:
         sv_to_keep = clean_input.sing_val
     else:
         # If not clean keep all sing. values.
@@ -98,7 +93,7 @@ def svd_decomposition(clean_input, bpm_data):
         normalized_data,
         sv_to_keep
     )
-    num = len(np.where(USV[1] > 0.))
+    num = np.sum(USV[1] > 0.)
     USV = USV[0][:, :num], USV[1][:num], USV[2][:num, :]
     if num < USV[1].shape[0]:
         LOGGER.warn("Zero singular values detected.")
@@ -118,9 +113,7 @@ def svd_clean(bpm_names, bpm_data, clean_input):
         LOGGER.debug(">> Values in GOOD BPMs:  %s", np.sum(good_bpms))
 
         # Reconstruct the SVD-cleaned data
-        A = (np.dot(USV[0][good_bpms],
-                    np.dot(np.diag(USV[1]), USV[2]))) * sqrt_number_of_turns + bpm_data_mean
-
+        A = np.dot(USV[0][good_bpms],np.dot(np.diag(USV[1]), USV[2])) * sqrt_number_of_turns + bpm_data_mean
         bpm_res = np.std(A - bpm_data[good_bpms, :], axis=1)
         LOGGER.debug("Average BPM resolution: %s", str(np.mean(bpm_res)))
         good_bpm_names = bpm_names[good_bpms]
@@ -237,98 +230,3 @@ def _detect_dominant_bpms_with_reasons(bpm_names, U, single_svd_bpm_threshold):
 
 def _resync_from_date(acqdate):
     return acqdate > datetime(2016, 4, 1)
-
-# For one bunch, one plane, all BPMs after previous filtering(optional)
-# returns the decomposition to USV matrices and parameters needed for later
-# recomposition, only noise cleaning is done here
-def svd_for_fft(bpm_names, bpm_data, singular_values_amount_to_keep=12,
-                single_svd_bpm_threshold=0.925):
-    # SVD of normalised matrix
-    sqrt_number_of_turns = np.sqrt(bpm_data.shape[1])
-    bpm_data_mean = np.mean(bpm_data)
-    USV = get_singular_value_decomposition_section(
-        (bpm_data - bpm_data_mean) /
-        sqrt_number_of_turns, singular_values_amount_to_keep
-    )
-    return USV, sqrt_number_of_turns, bpm_data_mean
-
-
-###############################################################
-
-def laskar_method(num_harmonics, sample):
-    samples = sample  # Copy the samples array.
-    n = len(samples)
-    ints = np.arange(n)
-    coefficients = []
-    frequencies = []
-    for _ in range(num_harmonics):
-        # Compute this harmonic frequency and coefficient.
-        dft_data = scipy_fft(samples)
-        frequency = jacobsen(dft_data)
-        coefficient = compute_coef_simple(samples, frequency * n) / n
-
-        # Store frequency and amplitude
-        coefficients.append(coefficient)
-        frequencies.append(frequency)
-
-        # Subtract the found pure tune from the signal
-        new_signal = coefficient * np.exp(PI2I * frequency * ints)
-        samples = samples - new_signal
-
-    coefficients, frequencies = zip(*sorted(zip(coefficients, frequencies),
-                                                key=lambda tuple: np.abs(tuple[0]),
-                                                reverse=True))
-    return frequencies, coefficients
-
-
-def laskar_method_modes_freqs(samples, freqs):
-    n = samples.shape[1]
-    ints = np.arange(n)
-    frequencies = np.empty([len(freqs)])
-    coefficients = np.empty([samples.shape[0],len(freqs)], dtype=complex)
-    i = 0
-    for i, frequency in enumerate(freqs):
-        frequencies[i] = frequency
-        coefficients[:,i] = np.sum(np.exp(-PI2I * frequency * ints) * samples, axis=1)/ n
-        
-    #coefficients, frequencies = zip(*sorted(zip(coefficients, frequencies), key=lambda tuple: np.abs(tuple[0]), reverse=True))
-    return frequencies, coefficients
-
-
-
-def jacobsen(dft_values):
-    """
-    This method interpolates the real frequency of the
-    signal using the three highest peaks in the FFT.
-    """
-    k = np.argmax(np.abs(dft_values))
-    n = len(dft_values)
-    r = dft_values
-    delta = np.tan(np.pi / n) / (np.pi / n)
-    kp = (k + 1) % n
-    km = (k - 1) % n
-    delta = delta * np.real((r[km] - r[kp]) / (2 * r[k] - r[km] - r[kp]))
-    return (k + delta) / n
-
-
-def compute_coef_simple(samples, kprime):
-    """
-    Computes the coefficient of the Discrete Time Fourier
-    Transform corresponding to the given frequency (kprime).
-    """
-    n = len(samples)
-    freq = kprime / n
-    exponents = np.exp(-PI2I * freq * np.arange(n))
-    coef = np.sum(exponents * samples)
-    return coef
-
-def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):
-    ind = np.indices((p2max, p3max, p5max))
-    nums = (np.power(2, ind[0]) *
-            np.power(3, ind[1]) *
-            np.power(5, ind[2])).reshape(p2max * p3max * p5max)
-    nums = nums[(nums > rang[0]) & (nums <= rang[1])]
-    return np.sort(nums)
- 
-
-###########################################################

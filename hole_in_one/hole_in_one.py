@@ -6,7 +6,7 @@ import logging
 
 import numpy as np
 from scipy.fftpack import fft as scipy_fft
-
+import pandas as pd
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
     ".."
@@ -46,7 +46,6 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
         for plane in ("x", "y"):
             bpm_names = np.array(getattr(tbt_file, "bpm_names_" + plane))
             bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
-
             all_bad_bpms = []
             usv = None
             if clean_input is not None:
@@ -76,6 +75,7 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                     #TODO: Writing of harpy should be done in output_handler
                     drive_results.write_full_results()
 
+            lin_frame = get_orbit_data(bpm_names, bpm_data, bpm_res)
             output_handler.write_bad_bpms(
                 main_input.file,
                 all_bad_bpms,
@@ -86,6 +86,16 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
             clean_writer.dpp = computed_dpp
             clean_writer.write()
 
+
+def get_orbit_data(bpm_names, bpm_data, bpm_res):
+    di={'NAME': bpm_names, 
+        'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
+        'CO': np.mean(bpm_data,axis=1),
+        'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
+        'BPM_RES': bpm_res
+        }
+    return pd.DataFrame.from_dict(di)
+   
 
 def harmonic_analysis(bpm_names, bpm_data, usv,
                       plane, main_input, harpy_input):
