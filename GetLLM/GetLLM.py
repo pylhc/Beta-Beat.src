@@ -297,6 +297,9 @@ def main(accelerator,
     getllm_d.errordefspath = errordefspath
     getllm_d.accelerator = accelerator
     getllm_d.nprocesses = nprocesses
+    
+    tune_d.q1mdl = accelerator.get_model_tfs().headers["Q1"]
+    tune_d.q2mdl = accelerator.get_model_tfs().headers["Q2"]
     # Setup
     
     bpm_dictionary= _intial_setup(getllm_d, dict_file, model_dir)
@@ -1041,6 +1044,9 @@ class _TuneData(object):
         self.q2f = 0.0  # Free vertical tune
         self.muxf = 0.0  # Free horizontal phase advance
         self.muyf = 0.0  # Free vertical phase advance
+        
+        self.q1mdl = 0.0
+        self.q2mdl = 0.0
 
         # Free2 is using the effective model
         self.muxf2 = 0.0  # Free2 horizontal phase advance
