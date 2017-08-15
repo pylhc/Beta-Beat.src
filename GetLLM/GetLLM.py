@@ -203,10 +203,10 @@ def _parse_args():
                     default=USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE, dest="use_only_three_bpms_for_beta_from_phase")
     parser.add_argument("-j", "--numbpm",
                     help="Number of different BPM combinations for beta-calculation, default = 10",
-                    metavar="NUMBER_OF_BPMS", default=NUMBER_OF_BPMS, dest="number_of_bpms")
+                    metavar="NUMBER_OF_BPMS", type=int, default=NUMBER_OF_BPMS, dest="number_of_bpms")
     parser.add_argument("-i", "--range",
                     help="Range of BPM for beta-calculation (>=3 and odd), default = 11",
-                    metavar="RANGE_OF_BPMS", default=RANGE_OF_BPMS, dest="range_of_bpms")
+                    metavar="RANGE_OF_BPMS", type=int,  default=RANGE_OF_BPMS, dest="range_of_bpms")
     parser.add_argument("-r", "--average_tune",
                     help="Set to 1 to use average tune for all BPMs instead of specific for each one.",
                     metavar="AVERAGE_TUNE", type=int, default=AVERAGE_TUNE, dest="use_average")
