@@ -36,16 +36,31 @@ load_main_sequence(): macro = {
     call, file = "%(FILES_PATH)s/lhc_as-built.seq";
 };
 
+load_beam4_and_slice(): macro = {
+    if (%(BEAM)i == 2){
+        call, file = "%(FILES_PATH)s/lhcb4_as-built.seq";
+    }
+    call, file="%(FILES_PATH)s/slice.madx";
+}
+
+
 option, -echo;
-exec, full_lhc_def("%(MODIFIERS)s", %(BEAM)i);
-call, file="%(FILES_PATH)s/slice.madx";
-use, sequence=LHCB%(BEAM)i;
-option, echo;
+
+exec, define_lhc_links();
+exec, load_main_sequence();
 
 beam, sequence=LHCB1, particle=proton, energy=6500,
     kbunch=1, npart=1.15E11, bv=1;
 beam, sequence=LHCB2, particle=proton, energy=6500,
     kbunch=1, npart=1.15E11, bv=-1;
+
+call, file = "%(MODIFIERS)s";
+exec, cycle_sequences();
+exec, set_default_crossing_scheme();
+
+
+use, sequence=LHCB%(BEAM)i;
+option, echo;
 
 if(%(DO_COUPLING)s == 1){
     exec, coupling_knob(1);
@@ -81,6 +96,8 @@ if(%(DO_ACD)s == 1){
         remove, element=vacmap;
     endedit;
 
+     exec, load_beam4_and_slice();
+
     ! ...and install as element for tracking
     exec, install_acd_as_element(
         %(QX)s, %(QY)s,
@@ -88,9 +105,7 @@ if(%(DO_ACD)s == 1){
         %(BEAM)i,
         %(RAMP1)s, %(RAMP2)s, %(RAMP3)s, %(RAMP4)s
     );
-}
-
-elseif(%(DO_ADT)s == 1){
+}elseif(%(DO_ADT)s == 1){
     exec, twiss_adt(
         %(QX)s, %(QY)s,
         %(DQX)s, %(DQY)s,
@@ -103,6 +118,8 @@ elseif(%(DO_ADT)s == 1){
         remove, element=vacmap;
     endedit;
 
+     exec, load_beam4_and_slice();
+
     ! ...and install as element for tracking
     exec, install_adt_as_element(
         %(QX)s, %(QY)s,
@@ -110,13 +127,10 @@ elseif(%(DO_ADT)s == 1){
         %(BEAM)i,
         %(RAMP1)s, %(RAMP2)s, %(RAMP3)s, %(RAMP4)s
     );
+}else {
+    exec, load_beam4_and_slice();
 }
 
-exec, do_twiss_elements(
-    LHCB%(BEAM)i,
-    "%(TWISS_ELEMENTS)s",
-    0.0
-);
 
 exec, do_madx_track_single_particle(
     %(KICK_X)s, %(KICK_Y)s, 0.0, 0.0,
@@ -180,7 +194,7 @@ QX = 0.28
 QY = 0.31
 DQX = 0.27
 DQY = 0.32
-TUNE_WINDOW = 0.001
+TUNE_WINDOW = 0.005
 
 KICK_X = 1e-6
 KICK_Y = 1e-6
@@ -205,6 +219,7 @@ def print_getllm_precision(options):
     finally:
         _clean_up_files(output_dir)
         print("Test finished")
+        print("Output directory:", os.path.abspath(output_dir))
 
 
 def _run_tracking_model(directory, options):
@@ -214,11 +229,26 @@ def _run_tracking_model(directory, options):
         madx_wrapper.resolve_and_run_string(
             madx_script,
             madx_path=MADX_PATH,
+            output_file=os.path.join(directory, 'job.test.madx'),
+            log_file=os.path.join(directory, 'madx_log.txt')
         )
     track_path = _get_track_path(directory, one=True)
     tbt_path = _get_tbt_path(directory)
     with silence():
         ADDbpmerror.convert_files(infile=track_path, outfile=tbt_path)
+        headers = []
+        lines = []
+        with open(tbt_path, "r") as tbt_data:
+            for line in tbt_data:
+                if line.startswith("#"):
+                    headers.append(line)
+                else:
+                    lines.append(line)
+        with open(tbt_path, "w") as tbt_data:
+            for header in headers:
+                tbt_data.write(header)
+            for line in reversed(lines):
+                tbt_data.write(line)
 
 
 def _get_madx_script(beam, directory, options):
@@ -328,7 +358,9 @@ def _do_analysis(directory, options):
     twiss_path = os.path.join(directory, "twiss.dat")
     err_def_path = _copy_error_def_file(directory, options)
     print("    -> Running GetLLM...")
-    GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm",
+    with silence():
+        accel = "LHCB" + str(BEAM)
+        GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm", accel=accel,
                     errordefspath=err_def_path)
 
 

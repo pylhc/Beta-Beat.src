@@ -189,9 +189,9 @@ def _create_changeparameters_madx_script_for_lhc():
 
     for i in range(len(name_list)):
         if cmp(delta_list[i],0)==1:
-            mad_script.write("{0} = {0} + {1};\n".format(name_list[i], delta_list[i]))
+            mad_script.write("{0} = {0} {1};\n".format(name_list[i], -delta_list[i]))
         else:
-            mad_script.write("{0} = {0} {1};\n".format(name_list[i], delta_list[i]))
+            mad_script.write("{0} = {0} + {1};\n".format(name_list[i], -delta_list[i]))
 
     mad_script.write("return;")
     mad_script.close()

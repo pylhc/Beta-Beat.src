@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 from contextlib import contextmanager
 
 
@@ -24,3 +25,13 @@ def silence():
             yield
         finally:
             devnull.close()
+
+
+@contextmanager
+def timeit(function):
+    start_time = time.time()
+    try:
+        yield
+    finally:
+        time_used = time.time() - start_time
+        function(time_used)

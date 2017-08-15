@@ -258,27 +258,34 @@ install_acd_as_element(n_qx, n_qy, d_qx, d_qy, beam_number, r1, r2, r3, r4): mac
 }
 
 install_adt_as_element(n_qx, n_qy, d_qx, d_qy, beam_number, r_1, r_2, r_3, r_4): MACRO = {
+	if(beam_number == 1){
+		exec, install_adt_as_element_b1(n_qx, n_qy, d_qx, d_qy, r_1, r_2, r_3, r_4);
+	}else if(beam_number == 2){
+		exec, install_adt_as_element_b2(n_qx, n_qy, d_qx, d_qy, r_1, r_2, r_3, r_4);
+	}
+}
 
-     USE, sequence=LHCBbeam_number;
-     s_of_ADTH = (table(twiss,ADTKH.B5L4.Bbeam_number,s) - table(twiss,ADTKH.C5L4.Bbeam_number,s))/2;
-     s_of_ADTV = (table(twiss,ADTKV.B5R4.Bbeam_number,s) - table(twiss,ADTKV.C5R4.Bbeam_number,s))/2;
-     ADTHm.Bbeam_number: MARKER;
-     ADTVm.Bbeam_number: MARKER;
+install_adt_as_element_b1(n_qx, n_qy, d_qx, d_qy, r_1, r_2, r_3, r_4): MACRO = {
+	USE, sequence=LHCB1;
+     s_of_ADTH = (table(twiss,ADTKH.B5L4.B1,s) - table(twiss,ADTKH.C5L4.B1,s))/2;
+     s_of_ADTV = (table(twiss,ADTKV.B5R4.B1,s) - table(twiss,ADTKV.C5R4.B1,s))/2;
+     ADTHm.B1: MARKER;
+     ADTVm.B1: MARKER;
 
 
-     SEQEDIT, sequence=LHCBbeam_number;
+     SEQEDIT, sequence=LHCB1;
          FLATTEN;
-         INSTALL, element=ADTHm.Bbeam_number, at=s_of_ADTH, from=ADTKH.C5L4.Bbeam_number;
-         INSTALL, element=ADTVm.Bbeam_number, at=s_of_ADTV, from=ADTKV.C5R4.Bbeam_number;
+         INSTALL, element=ADTHm.B1, at=s_of_ADTH, from=ADTKH.C5L4.B1;
+         INSTALL, element=ADTVm.B1, at=s_of_ADTV, from=ADTKV.C5R4.B1;
      ENDEDIT;
      
-     USE, sequence=lhcBbeam_number;
+     USE, sequence=lhcB1;
 
      TWISS;
 
-     pbeam = beam%lhcbbeam_number->pc;
-     betxac=table(twiss,ADTHm.Bbeam_number,betx);
-     betyac=table(twiss,ADTVm.Bbeam_number,bety);
+     pbeam = beam%lhcb1->pc;
+     betxac=table(twiss,ADTHm.B1,betx);
+     betyac=table(twiss,ADTVm.B1,bety);
 
 
 
@@ -290,19 +297,63 @@ install_adt_as_element(n_qx, n_qy, d_qx, d_qy, beam_number, r_1, r_2, r_3, r_4):
 
      ampx=1;    !-- unit: [mm]
      ampy=1;    !-- unit: [mm]
-     ADTHor.C5L4.Bbeam_number: hacdipole, l=0, freq=Qxd, lag=0, volt=0.042*pbeam*abs(Qxd-Qx)/sqrt(180.0*betxac)*ampx,
+     ADTHor.C5L4.B1: hacdipole, l=0, freq=Qxd, lag=0, volt=0.042*pbeam*abs(Qxd-Qx)/sqrt(180.0*betxac)*ampx,
          ramp1=r_1, ramp2=r_2, ramp3=r_3, ramp4=r_4;
-     ADTVert.C5R4.Bbeam_number: vacdipole, l=0, freq=Qyd, lag=0, volt=0.042*pbeam*abs(Qyd-Qy)/sqrt(177.0*betyac)*ampy,
+     ADTVert.C5R4.B1: vacdipole, l=0, freq=Qyd, lag=0, volt=0.042*pbeam*abs(Qyd-Qy)/sqrt(177.0*betyac)*ampy,
          ramp1=r_1, ramp2=r_2, ramp3=r_3, ramp4=r_4;
 
-     SEQEDIT, sequence=lhcBbeam_number; FLATTEN;
-       INSTALL, element=ADTHor.C5L4.Bbeam_number, at=0.0, from=ADTHm.Bbeam_number;
-       INSTALL, element=ADTVert.C5R4.Bbeam_number, at=0.0, from=ADTVm.Bbeam_number;
+     SEQEDIT, sequence=lhcB1; FLATTEN;
+       INSTALL, element=ADTHor.C5L4.B1, at=0.0, from=ADTHm.B1;
+       INSTALL, element=ADTVert.C5R4.B1, at=0.0, from=ADTVm.B1;
      ENDEDIT;
 
-     USE, sequence=lhcBbeam_number;
+     USE, sequence=lhcB1;
 }
 
+install_adt_as_element_b2(n_qx, n_qy, d_qx, d_qy, r_1, r_2, r_3, r_4): MACRO = {
+	USE, sequence=LHCB2;
+     s_of_ADTH = (table(twiss,ADTKH.B5R4.B2,s) - table(twiss,ADTKH.C5R4.B2,s))/2;
+     s_of_ADTV = (table(twiss,ADTKV.B5L4.B2,s) - table(twiss,ADTKV.C5L4.B2,s))/2;
+     ADTHm.B2: MARKER;
+     ADTVm.B2: MARKER;
+
+
+     SEQEDIT, sequence=LHCB2;
+         FLATTEN;
+         INSTALL, element=ADTHm.B2, at=s_of_ADTH, from=ADTKH.C5R4.B2;
+         INSTALL, element=ADTVm.B2, at=s_of_ADTV, from=ADTKV.C5L4.B2;
+     ENDEDIT;
+     
+     USE, sequence=lhcB2;
+
+     TWISS;
+
+     pbeam = beam%lhcb2->pc;
+     betxac=table(twiss,ADTHm.B2,betx);
+     betyac=table(twiss,ADTVm.B2,bety);
+
+
+
+     Qx = n_qx;
+     Qy = n_qy;
+
+     Qxd = d_qx;
+     Qyd = d_qy;
+
+     ampx=1;    !-- unit: [mm]
+     ampy=1;    !-- unit: [mm]
+     ADTHor.C5R4.B2: hacdipole, l=0, freq=Qxd, lag=0, volt=0.042*pbeam*abs(Qxd-Qx)/sqrt(180.0*betxac)*ampx,
+         ramp1=r_1, ramp2=r_2, ramp3=r_3, ramp4=r_4;
+     ADTVert.C5L4.B2: vacdipole, l=0, freq=Qyd, lag=0, volt=0.042*pbeam*abs(Qyd-Qy)/sqrt(177.0*betyac)*ampy,
+         ramp1=r_1, ramp2=r_2, ramp3=r_3, ramp4=r_4;
+
+     SEQEDIT, sequence=lhcB2; FLATTEN;
+       INSTALL, element=ADTHor.C5R4.B2, at=0.0, from=ADTHm.B2;
+       INSTALL, element=ADTVert.C5L4.B2, at=0.0, from=ADTVm.B2;
+     ENDEDIT;
+
+     USE, sequence=lhcB2;
+}
 
 install_adt_ac_dipole(natural_qx, natural_qy, driven_qx, driven_qy, beam_number): macro = {
 
