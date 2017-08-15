@@ -305,7 +305,6 @@ class Uncertainties:  # error definition file
                         definitions.dX[index],
                         definitions.MAINFIELD[index]))
                 return True
-            
     def create_errorfile(self, twiss_full, twiss_full_centre):
         starttime = time.time()
         twiss_full.loc[:]["MUX_END"] = np.roll(twiss_full.loc[:]["MUX"], 1)
@@ -313,14 +312,18 @@ class Uncertainties:  # error definition file
         twiss_full.loc[:]["BETX_END"] = np.roll(twiss_full.loc[:]["BETX"], 1)
         twiss_full.loc[:]["BETY_END"] = np.roll(twiss_full.loc[:]["BETY"], 1)
         twiss_full.loc[:]["UNC"] = False
+        twiss_full.loc[:]["dK1"] = 0
+        twiss_full.loc[:]["dS"] = 0
+        twiss_full.loc[:]["dX"] = 0
+        twiss_full.loc[:]["BPMdS"] = 0
         for reg in self.regex:
             reg_mask = twiss_full.index.str.match(reg.pattern)
-            twiss_full.loc[reg_mask, "dK1"] = reg.dK1 * twiss_full.loc[reg_mask, "K1L"]  # TODO change K1L --> mainfield if necessary
-            twiss_full.loc[reg_mask, "dX"] = reg.dX
+            twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, "K1L"]) **2 # TODO change K1L --> mainfield if necessary
+            twiss_full.loc[reg_mask, "dX"] = reg.dX**2
             if reg.type == IDBPM:
-                twiss_full.loc[reg_mask, "BPMdS"] = reg.dS
+                twiss_full.loc[reg_mask, "BPMdS"] = reg.dS**2
             else:
-                twiss_full.loc[reg_mask, "dS"] = reg.dS
+                twiss_full.loc[reg_mask, "dS"] = reg.dS**2
             twiss_full.loc[reg_mask, "UNC"] = True
         twiss_full.loc[:]["dS"] -= np.roll(twiss_full.loc[:]["dS"], 1)
         twiss_full.loc[:]["dK1_END"] = -np.roll(twiss_full.loc[:]["dK1"], 1)
@@ -441,6 +444,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     # if yes, uncertainty estimates will be distributed to the elements
     # do this only once for both planes
     error_method = METH_IND
+    unc_elements = None
 
     if getllm_d.use_only_three_bpms_for_beta_from_phase:
         error_method = METH_3BPM
@@ -449,7 +453,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         unc.open(getllm_d.errordefspath)
         unc_elements = unc.create_errorfile(elements, elements_centre)
         error_method = METH_A_NBPM
-        print unc_elements
     else:
         error_method = METH_3BPM  # fall back to three BPM method. MC is not supported in this version
     
@@ -1404,7 +1407,7 @@ def _beta_from_phase_BPM_right(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM
 #=======================================================================================================================
 
 
-@profile
+
 def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                        phase, plane, getllm_d, commonbpms, debugfile, errors_method,
                                        tune, mdltune):
@@ -1448,37 +1451,49 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
-    right_bpm = range(0 + 1, width + 1)
+    right_bpm = range(0 + 1, width)
     BBA_combo = [[x, y] for x in left_bpm for y in left_bpm if x < y]
     ABB_combo = [[x, y] for x in right_bpm for y in right_bpm if x < y]
     BAB_combo = [[x, y] for x in left_bpm for y in right_bpm]
-    result = {}
     
     # get the model values only for used elements, so that commonbps[i] = masTwiss[i]
     madTwiss_intersected = madTwiss.loc[commonbpms.index]
     mu = "MUX" if plane == "H" else "MUY"
     mu_elements = madElements.loc[:][mu].values
 #    print mu_elements
-    elements_phases = (madTwiss_intersected.loc[:][mu].values[:, np.newaxis] - 
-                       mu_elements[np.newaxis, :]) * TWOPI
-    print elements_phases.shape
+#    elements_phases = (madTwiss_intersected.loc[:][mu].values[:, np.newaxis] - 
+#                       mu_elements[np.newaxis, :]) * TWOPI
+#    print elements_phases.shape
     
 #    cot_meas = 1.0 / tan(phase["MEAS"] * TWOPI)
 #    cot_model = 1.0 / tan(phase["MODEL"] * TWOPI)
     phases_meas = phase["MEAS"] * TWOPI
     phases_model = phase["MODEL"] * TWOPI
-    
+    phases_err = phase["ERRMEAS"] * TWOPI
 #    cot_meas = 1.0 / tan(tilt_slice_matrix(phase["MEAS"], 20, 40, tune) * TWOPI)
 #    cot_model = 1.0 / tan(tilt_slice_matrix(phase["MODEL"], 20, 40, mdltune) * TWOPI)
 #
+#    mdltune = mdltune % 1.0
+
+    result = np.array(np.empty(madTwiss_intersected.shape[0]), 
+                      dtype = "S24, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4")
+#                      dtype=[("NAME", str), ("S", np.float64),
+#                             ("BET", np.float64),("BETSTAT", np.float64),("BETSYS", np.float64),("BETERR", np.float64),
+#                             ("ALF", np.float64),("ALFSTAT", np.float64),("ALFSYS", np.float64),("ALFERR", np.float64),
+#                             ("CORR", np.float64),("BETMDL", np.float64),("BB", np.float64),("NCOMB", int)])
+#    
+    
+    print "skuhfrghrjghj------------------------------"
+
+
     def collect(row):
-        if row[11]:
-            result[row[0]] = row[1:]
+#        if row[11]:
+            result[row[0]]= row[1:]
         
     def collectblock(block):
         for row in block:
-            if row[11]:
-                result[row[0]] = row[1:]
+#            if row[11]:
+            result[row[0]] = row[1:]
                 
     st = time.time()
     if getllm_d.parallel and not DEBUG:
@@ -1490,7 +1505,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
         for i in range(n):
             pool.apply_async(scan_several_BPMs_withsystematicerrors,
                              (madTwiss_intersected, madElements,
-                              phases_meas, phases_model, elements_phases,
+                              phases_meas, phases_err,
                               plane, getllm_d.range_of_bpms, commonbpms, debugfile,
                               i * chunksize, (i + 1) * chunksize, BBA_combo, ABB_combo, BAB_combo,
                               tune, mdltune),
@@ -1510,7 +1525,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
             if (i % 20 == 0):
                 progress(float(i) * 100.0 / len(commonbpms))
             row = scan_one_BPM_withsystematicerrors(madTwiss_intersected, madElements,
-                                                    phases_meas, phases_model, elements_phases,
+                                                    phases_meas, phases_err,
                                                     plane, getllm_d.range_of_bpms, commonbpms,
                                                     debugfile, i,
                                                     BBA_combo, ABB_combo, BAB_combo,
@@ -1520,6 +1535,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     et = time.time()
     
     print_("time elapsed = {0:3.3f}".format(et - st))
+    
     if DEBUG:
         debugfile.close()
     rmsbb = -1
@@ -1527,14 +1543,14 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
 
 
 def scan_several_BPMs_withsystematicerrors(madTwiss, madElements,
-                                           cot_meas, cot_model, sin_squared_elements,
+                                           cot_meas, phases_err,
                                            plane, range_of_bpms, commonbpms, debugfile,
                                            begin, end, BBA_combo, ABB_combo, BAB_combo,
                                            tune, mdltune):
     block = []
     for i in range(begin, end):
         block.append(scan_one_BPM_withsystematicerrors(madTwiss, madElements,
-                                                       cot_meas, cot_model, sin_squared_elements,
+                                                       cot_meas, phases_err,
                                                        plane, range_of_bpms, commonbpms,
                                                        debugfile, i,
                                                        BBA_combo, ABB_combo, BAB_combo,
@@ -1564,9 +1580,9 @@ def get_beta_from_phase_3bpm(madTwiss, phase, plane, range_of_bpms, commonbpms, 
         print "\33[31m ------------------------------------ PROBLEM ------------------\33[0m"
     return probed_bpm_name, beti, betstat, betsys, math.sqrt(betstat ** 2 + betsys ** 2), alfi, alfstat, alfsys, math.sqrt(alfstat ** 2 + alfsys ** 2)
 
-@profile
+
 def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
-                                      phases_meas, phases_model, phases_elements,
+                                      phases_meas, phases_err,
                                       plane, range_of_bpms, commonbpms, debugfile,
                                       Index, BBA_combo, ABB_combo, BAB_combo,
                                       tune, mdltune):
@@ -1706,12 +1722,18 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         
         
     '''
+    probed_bpm_name = madTwiss.index[Index]
+    s = madTwiss.get_value(probed_bpm_name, "S")
+
+
     if plane == 'H':
-        betmdl1 = madTwiss.iloc[Index]["BETX"]
+        betmdl1 = madTwiss.get_value(probed_bpm_name, "BETX")
         mu_column = "MUX"
+        bet_column = "BETX"
     elif plane == 'V':
-        betmdl1 = madTwiss.iloc[Index]["BETY"]
+        betmdl1 = madTwiss.get_value(probed_bpm_name, "BETX")
         mu_column = "MUY"
+        bet_column = "BETY"
     
     beti        = DEFAULT_WRONG_BETA    #@IgnorePep8
     betstat     = .0                    #@IgnorePep8
@@ -1724,100 +1746,189 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     corr        = .0                    #@IgnorePep8
     used_bpms   = 0                     #@IgnorePep8
     
-    indx_first = Index - range_of_bpms / 2
-    indx_last = Index + range_of_bpms / 2
+    m = range_of_bpms / 2
+    indx_first = Index - m
+    indx_last = Index + m
     name_first = madTwiss.index[indx_first]
-    name_last = madTwiss.index[indx_last]
+    name_last = madTwiss.index[indx_last% len(madTwiss.index)]
     probed_bpm_name = madTwiss.index[Index]
     len_bpms_total = phases_meas.shape[0]
     
     indx_el_first = madElements.index.get_loc(name_first)
-    indx_el_last= madElements.index.get_loc(name_last)
-    len_elements_total = phases_elements.shape[0]
+    indx_el_last= madElements.index.get_loc(name_last )
+    
     
     if indx_first < 0:
-        outerMeasPhaseAdv = np.concatenate((
-                phases_meas.iloc[indx_first % len_bpms_total:, Index] + tune * TWOPI,
-                phases_meas.iloc[:indx_last, Index]))
+        outerMeasPhaseAdv = pd.concat((
+                phases_meas.iloc[Index, indx_first % len_bpms_total:] - tune * TWOPI,
+                phases_meas.iloc[Index, :indx_last + 1]))
+        outerMeasErr = pd.concat((
+                phases_err.iloc[Index, indx_first % len_bpms_total:],
+                phases_err.iloc[Index, :indx_last + 1]))
         outerMdlPh = np.concatenate((
-                madTwiss.iloc[indx_first % len_bpms_total:, Index] + mdltune,
-                madTwiss.iloc[:indx_last, Index]))
+                madTwiss.iloc[indx_first % len_bpms_total:][mu_column] - mdltune,
+                madTwiss.iloc[:indx_last + 1][mu_column]))
         outerElmts = pd.concat((
-                madElements.iloc[indx_el_first % len_elements_total:],
+                madElements.iloc[indx_el_first:],
+                madElements.iloc[:indx_el_last + 1]))
+        outerElmtsPh = np.concatenate((
+                madElements.iloc[indx_el_first:][mu_column] + mdltune,
+                madElements.iloc[:indx_el_last + 1][mu_column]))
+    elif indx_last >= len_bpms_total:
+        outerMeasPhaseAdv = pd.concat((
+                phases_meas.iloc[Index, indx_first:] - tune * TWOPI,
+                phases_meas.iloc[Index, :indx_last % len_bpms_total]))
+        outerMeasErr = pd.concat((
+                phases_err.iloc[Index, indx_first:],
+                phases_err.iloc[Index, :indx_last % len_bpms_total]))
+        outerMdlPh = np.concatenate((
+                madTwiss.iloc[indx_first:][mu_column] - mdltune,
+                madTwiss.iloc[:indx_last % len_bpms_total][mu_column]))
+        outerElmts = pd.concat((
+                madElements.iloc[indx_el_first:],
                 madElements.iloc[:indx_el_last]))
         outerElmtsPh = np.concatenate((
-                madElements.iloc[indx_el_first % len_elements_total:][mu_column] + mdltune,
-                madElements.iloc[:indx_el_last][mu_column]))
-    elif indx_last > len_bpms_total:
-        pass
+                madElements.iloc[indx_el_first:][mu_column] + mdltune,
+                madElements.iloc[:indx_el_last + 1][mu_column]))
+        
     else:
-        outerMeasPhaseAdv = phases_meas.iloc[indx_first : indx_last, Index]
-        outerMdlPh = madTwiss.iloc[indx_first:indx_last, Index]
+        outerMeasPhaseAdv = phases_meas.iloc[Index, indx_first : indx_last]
+        outerMeasErr = phases_err.iloc[Index, indx_first : indx_last]
+        outerMdlPh = madTwiss.iloc[indx_first:indx_last][mu_column].as_matrix() * TWOPI
         outerElmts = madElements.iloc[indx_el_first:indx_el_last]
         outerElmtsPh = madElements.iloc[indx_el_first:indx_el_last][mu_column]
     outerElPhAdv = (outerElmtsPh[:, np.newaxis] - outerMdlPh[np.newaxis, :]) * TWOPI
+    indx_el_probed = outerElmts.index.get_loc(probed_bpm_name)
+    outerElmtsBet = outerElmts.loc[:][bet_column].as_matrix()
         
-    cot_meas = 1.0 / tan(outerMeasPhaseAdv)
-    cot_model = 1.0 / tan(outerMdlPh - outerMdlPh[Index])
-    
+    cot_meas = 1.0 / tan(outerMeasPhaseAdv.as_matrix())
+    cot_model = 1.0 / tan((outerMdlPh - outerMdlPh[m]) * TWOPI) 
     outerElPhAdv = sin(outerElPhAdv)
     sin_squared_elements = np.multiply(outerElPhAdv, outerElPhAdv)
+    
+#    print (outerMeasPhaseAdv/TWOPI)%1.0
+#    print (outerMdlPh - outerMdlPh[m])%1.0
         
 #    print interval_all
-    betas = np.empty(len(BBA_combo))
+    betas = np.empty(len(BBA_combo) + len(BAB_combo) + len(ABB_combo))
+#    print betmdl1
+#    M = np.zeros((len(sin_squared_elements) * 3,
+#                  len(sin_squared_elements) * 3))
     
-    T_Beta = np.zeros((len(BBA_combo),
-                       len(outerMeasPhaseAdv) * 3))
-    
-    M = np.zeros((len(sin_squared_elements) * 3,
-                  len(sin_squared_elements) * 3))
-    
-    diag = np.concat((outerElmts[:]["dK1"],outerElmts[:]["dS"],outerElmts[:]["dX"]))
-    
-    
-    M[range(len(sin_squared_elements)), range(len(sin_squared_elements))] = outerElmts[:]["dK1"]
-    
-    for i, combo in enumerate(BBA_combo):
-        ix = combo[0] + Index
-        iy = combo[1] + Index
-#        print combo, ix, iy
-#        intervalx = madElements.loc[madTwiss.index[ix%madTwiss.shape[0]]:probed_bpm_name]
-#        intervaly = madElements.loc[madTwiss.index[iy%]:probed_bpm_name]
-        denom = cot_model.iloc[ix] - cot_model.iloc[iy]
-        betas[i] = (cot_meas.iloc[ix] - cot_meas.iloc[iy]) / denom
-        
-        xloc = interval_all.index.get_loc(madTwiss.index[ix % madTwiss.shape[0]])
-        yloc = interval_all.index.get_loc(madTwiss.index[ix % madTwiss.shape[0]])
-        
-        
-        intervalx = interval_all.iloc[xloc:last_elements_index]
-        intervaly = interval_all.iloc[yloc:last_elements_index]
-        interval_sinx = np.take(sin_squared_all[ix], range(xloc,last_elements_index), axis=1)
-        interval_siny = np.take(sin_squared_all[iy], range(yloc,last_elements_index), axis=1)
-        denom_sinx = sin_squared_all[ix, ]
-        
-        print xloc, last_elements_index
-        print sin_squared_all.shape
-        print interval_sinx.shape
-        
-        element_ix = interval_all.index.get_loc(madTwiss.index[ix % madTwiss.shape[0]])
-        element_iy = interval_all.index.get_loc(madTwiss.index[iy % madTwiss.shape[0]])
-        element_probed = interval_all.index.get_loc(probed_bpm_name)
-        intervalx = interval_all.iloc[element_ix:element_probed]
-        intervaly = interval_all.iloc[element_iy:element_probed]
-        
-        print interval_sinx
-        
-        
-        T_Beta[i][element_ix:element_probed] = interval_sinx
-        T_Beta[i][element_iy:element_probed] = intervaly
+#    diag = np.concatenate((outerElmts.loc[:]["dK1"],outerElmts.loc[:]["dS"],outerElmts.loc[:]["dX"]))
+    diag = np.concatenate((outerMeasErr.as_matrix(), outerElmts.loc[:]["dK1"]))
+    mask = diag != 0
+    T_Beta = np.zeros((len(betas),
+                   len(diag) ))
 
-                
+    M = np.diag(diag[mask])
+    
+#    print cot_model[m]
+#    print cot_model
+    for i, combo in enumerate(BBA_combo):
+        ix = combo[0] + m
+        iy = combo[1] + m
+        denom = (cot_model[ix] - cot_model[iy]) / betmdl1
+        betas[i] = (cot_meas[ix] - cot_meas[iy]) / denom
         
-    sys.exit(0)
+        xloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[ix])
+        yloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[iy])
+        
+        # phase uncertainties
+        
+        
+        elementPh_XA = sin_squared_elements[xloc:indx_el_probed, ix]
+        elementPh_YA = sin_squared_elements[yloc:indx_el_probed, iy]
+        elementBet_XA = outerElmtsBet[xloc:indx_el_probed]
+        elementBet_YA = outerElmtsBet[yloc:indx_el_probed]
+        denom_sinx = sin_squared_elements[xloc, m]
+        denom_siny = sin_squared_elements[yloc, m]
+        
+        T_Beta[i][ix] = -1.0 / (denom_sinx * denom)
+        T_Beta[i][iy] = 1.0 / (denom_siny * denom)
+
+        
+        T_Beta[i][xloc+range_of_bpms:indx_el_probed+range_of_bpms] += elementPh_XA * elementBet_XA / (denom_sinx * denom)
+        T_Beta[i][yloc+range_of_bpms:indx_el_probed+range_of_bpms] -= elementPh_YA * elementBet_YA / (denom_siny * denom)
+    offset_i = len(BBA_combo)
+        
+    for i, combo in enumerate(BAB_combo):
+        ix = combo[0] + m
+        iy = combo[1] + m
+        
+        denom = (cot_model[ix] - cot_model[iy]) / betmdl1
+        betas[i + offset_i] = (cot_meas[ix] - cot_meas[iy]) / denom
+        
+        xloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[ix])
+        yloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[iy])
+        
+        elementPh_XA = sin_squared_elements[xloc:indx_el_probed, ix]
+        elementPh_YA = sin_squared_elements[indx_el_probed:yloc, iy]
+        elementBet_XA = outerElmtsBet[xloc:indx_el_probed]
+        elementBet_YA = outerElmtsBet[indx_el_probed:yloc]
+        denom_sinx = sin_squared_elements[xloc, m]
+        denom_siny = sin_squared_elements[yloc, m]
+        
+        T_Beta[i + offset_i][ix] = -1.0 / (denom_sinx * denom)
+        T_Beta[i + offset_i][iy] = 1.0 / (denom_siny * denom)
+
+        
+        T_Beta[i + offset_i, xloc+range_of_bpms:indx_el_probed+range_of_bpms] -= elementPh_XA * elementBet_XA / (denom_sinx * denom)
+        T_Beta[i + offset_i, indx_el_probed+range_of_bpms:yloc+range_of_bpms] -= elementPh_YA * elementBet_YA / (denom_siny * denom)
+    offset_i += len(BAB_combo)
+        
+    for i, combo in enumerate(ABB_combo):
+        ix = combo[0] + range_of_bpms / 2
+        iy = combo[1] + range_of_bpms / 2
+        
+        denom = (cot_model[ix] - cot_model[iy]) / betmdl1
+        betas[i + offset_i] = (cot_meas[ix] - cot_meas[iy]) / denom
+        
+        xloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[ix])
+        yloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[iy])
+        
+        elementPh_XA = sin_squared_elements[indx_el_probed:xloc, ix]
+        elementPh_YA = sin_squared_elements[indx_el_probed:yloc, iy]
+        elementBet_XA = outerElmtsBet[indx_el_probed:xloc]
+        elementBet_YA = outerElmtsBet[indx_el_probed:yloc]
+        denom_sinx = sin_squared_elements[xloc, m]
+        denom_siny = sin_squared_elements[yloc, m]
+        
+        T_Beta[i + offset_i][ix] = -1.0 / (denom_sinx * denom)
+        T_Beta[i + offset_i][iy] = 1.0 / (denom_siny * denom)
+        
+#        print elementPh_XA * elementBet_XA / (denom_sinx * denom)
+
+        
+        T_Beta[i + offset_i][indx_el_probed+range_of_bpms:xloc+range_of_bpms] += elementPh_XA * elementBet_XA / (denom_sinx * denom)
+        T_Beta[i + offset_i][indx_el_probed+range_of_bpms:yloc+range_of_bpms] -= elementPh_YA * elementBet_YA / (denom_siny * denom)
+
+    T_Beta = T_Beta[:, mask]
     
+    np.savetxt("T_Beta", T_Beta)
+    np.savetxt("M", M)
+    print probed_bpm_name
+    print betas
+#    raw_input()
     
+    V_Beta = np.dot(T_Beta, np.dot(M,np.transpose(T_Beta)))
+    try:
+        V_Beta_inv = np.linalg.pinv(V_Beta, rcond=RCOND)
+        w = np.sum(V_Beta_inv, axis=1)
+        print w
+        raw_input()
+        VBeta_inv_sum = np.sum(w)
+#    beterr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2))
+        beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
+        used_bpms = len(w)
+    except ValueError:
+        print "ValueError"
     
+    return (Index, probed_bpm_name, s,
+                beti, betstat, betsys, beterr,
+                alfi, alfstat, alfsys, beterr,
+                .0, betmdl1, (beti - betmdl1) / betmdl1,
+                -1)
     
     
     if len(alfa_beta) == 0:
@@ -1886,11 +1997,11 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
             debugfile.write("MUX: {0:.10e}\n".format(phase[probed_bpm_name][0]))
             debugfile.write("end\n")
         
-        return [probed_bpm_name,
+        return (probed_bpm_name,
                 beti, betstat, betsys, beterr,
                 alfi, alfstat, alfsys, beterr,
                 .0, (beti - betmdl1) / betmdl1,
-                -1]
+                -1)
 
     # TODO The LinalgError doesnt seem to be defined in 2.6 version of python, this should be checked.
     # TODO Should we really output a zero matrix if the pinv fails? Play with rcond in pinv.
