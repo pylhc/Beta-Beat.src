@@ -413,9 +413,9 @@ class Lhc(Accelerator):
     
     def get_s_first_BPM(self):
         if self.get_beam() == 1:
-            return self.model_tfs["S"][self.model_tfs.indx["BPMSW.1L2.B1"]]
+            return self.model_tfs.loc["BPMSW.1L2.B1", "S"]
         elif self.get_beam() == 2:
-            return self.model_tfs["S"][self.model_tfs.indx["BPMSW.1L8.B2"]]
+            return self.model_tfs.loc["BPMSW.1L8.B2", "S"]
         return None
         
     def get_model_tfs(self):

@@ -86,7 +86,7 @@ class Accelerator(object):
     
     @classmethod
     def get_beam_direction(self):
-        Accelerator.__raise_definition_error()
+        return 1.0
     
     def get_exciter_bpm(self, plane, distance):
         """
