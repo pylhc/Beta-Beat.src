@@ -1,9 +1,10 @@
 import argparse
-from model.accelerators import lhc
+from model.accelerators import lhc, ps
 
 
 ACCELS = {
     lhc.Lhc.NAME: lhc.Lhc,
+    ps.Cps.NAME: ps.Cps
 }
 
 
