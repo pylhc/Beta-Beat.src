@@ -71,6 +71,12 @@ def clean(bpm_names, bpm_data, clean_input, file_date):
         new_bpm_data = bpm_data[good_bpms, :-1]
     else:
         new_bpm_data = bpm_data[good_bpms, :]
+    # TODO check if this is the best way to cut turns, some checks?
+    if clean_input.startturn > 0 or clean_input.endturn < new_bpm_data.shape[1]:
+        start=max(0,clean_input.startturn)
+        end=min(clean_input.endturn, new_bpm_data.shape[1])
+        new_bpm_data = new_bpm_data[:,start:end]
+        
     return bpm_names[good_bpms], new_bpm_data, bad_bpms_with_reasons
 
 
