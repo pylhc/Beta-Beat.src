@@ -39,7 +39,7 @@ def run_all(main_input, clean_input, harpy_input):
 
 def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
     if main_input.write_raw:
-        _write_raw_file(tbt_file, main_input)
+        output_handler.write_raw_file(tbt_file, main_input)
 
     if clean_input is not None or harpy_input is not None:
         clean_writer = output_handler.CleanedAsciiWritter(main_input, tbt_file.date)
