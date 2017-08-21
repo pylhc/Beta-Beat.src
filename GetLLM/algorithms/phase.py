@@ -79,7 +79,10 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         q1_inv_Var = np.zeros(len(twiss_d.zero_dpp_x))
         for i, twiss_file in enumerate(twiss_d.zero_dpp_x):
             q1_files[i] = twiss_file.headers["Q1"]
-            q1_inv_Var[i] = 1.0 / float(twiss_file.headers["Q1RMS"]) ** 2
+            q1rms = twiss_file.headers["Q1RMS"]
+            if q1rms == 0:
+                q1rms = 1000
+            q1_inv_Var[i] = 1.0 / float(q1rms) ** 2
         q1 = np.sum(q1_files * q1_inv_Var) / np.sum(q1_inv_Var)
         tune_d.q1 = q1
         tune_d.q1f = q1
@@ -95,7 +98,10 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         q2_inv_Var = np.zeros(len(twiss_d.zero_dpp_y))
         for i, twiss_file in enumerate(twiss_d.zero_dpp_y):
             q2_files[i] = twiss_file.headers["Q2"]
-            q2_inv_Var[i] = 1.0 / float(twiss_file.headers["Q2RMS"]) ** 2
+            q2rms = twiss_file.headers["Q2RMS"]
+            if q2rms == 0:
+                q2rms = 1000
+            q2_inv_Var[i] = 1.0 / float(q2rms) ** 2
         q2 = np.sum(q2_files * q2_inv_Var) / np.sum(q2_inv_Var)
         tune_d.q2 = q2
         tune_d.q2f = q2
