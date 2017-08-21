@@ -133,7 +133,7 @@ def get_tfs_writer(data_frame, headers_dict, tfs_path):
     headers, use collections.OrderedDict.
     """
     tfs_name = os.path.basename(tfs_path)
-    tfs_dir = os.path.dirname(tfs_path)
+    tfs_dir = os.path.abspath(os.path.dirname(tfs_path))
     LOGGER.debug("Attempting to write file: " + tfs_name + " in " + tfs_dir)
     tfs_writer = tfs_file_writer.TfsFileWriter(tfs_name, outputpath=tfs_dir)
     column_names = _get_column_names(data_frame)
