@@ -68,7 +68,7 @@ def clean(bpm_names, bpm_data, clean_input, file_date):
     LOGGER.info("Filtering done")
     
     if np.mean(good_bpms)<0.5:
-        raise ValueError("More than half of BPMs are bad.")
+        raise ValueError("More than half of BPMs are bad. -> This could be cause a bunch not present in the machine has been selected or because a problem with the phasing of the BPMs.")
 
     if not clean_input.noresync:
         new_bpm_data = bpm_data[good_bpms, :-1]
@@ -129,8 +129,10 @@ def svd_clean(bpm_names, bpm_data, clean_input):
         good_bpm_data = A
         usv2 = (USV[2].T - np.mean(USV[2], axis=1)).T
         usv = (USV[0][good_bpms], USV[1] * sqrt_number_of_turns, usv2)
-        if np.mean(bpm_res) > np.mean(np.std(A, axis=1)):
-            raise ValueError("The data is too noisy.")
+        print("np.mean(bpm_res)", np.mean(bpm_res), "np.mean(np.std(A, axis=1)", np.mean(np.std(A, axis=1)))
+        if np.mean(bpm_res) > 8*np.mean(np.std(A, axis=1)): #This is factor 8 here is somewhat arbitrary. 
+           print("Might be too noisy") #raise ValueError("The data is too noisy.")
+           print("np.mean(bpm_res)", np.mean(bpm_res), "np.mean(np.std(A, axis=1)", np.mean(np.std(A, axis=1))) #raise ValueError("The data is too noisy.")
     else:
         usv2 = (USV[2].T - np.mean(USV[2], axis=1)).T
         usv = (USV[0], USV[1] * sqrt_number_of_turns, usv2)
