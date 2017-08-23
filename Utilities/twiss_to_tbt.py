@@ -4,7 +4,6 @@ import numpy as np
 import __init__
 import tfs_pandas as tfs
 import pandas as pd
-import matplotlib.pyplot as plt
 
 C = 299792458.0 
 PI2 = np.pi * 2
@@ -49,6 +48,7 @@ def generate(infile, nturns=6600, plane ='X',       #single plane with no coupli
     return signal
 
 def plot_bpm_tbt(path, signal, num):
+    import matplotlib.pyplot as plt
     f,ax = plt.subplots()
     ax.plot(signal[num])
     f.savefig(os.path.join(path, str(num) +'.png'))
