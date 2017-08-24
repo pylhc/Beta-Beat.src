@@ -246,7 +246,7 @@ def write_coupling_diff_file(path, twiss_cor):
     cut =float(str.split(coup_madx.read(32), '=')[1])
 
     file_couple = open(os.path.join(path, "couple.out"), "w")
-    print >> file_couple, "* NAME S F1001re F1001im F1001e F1001re_m F1001im_m, F1001W, F1001W_prediction, in_use"
+    print >> file_couple, "* NAME S F1001re F1001im F1001e F1001re_m F1001im_m F1001W F1001W_prediction in_use"
     print >> file_couple, "$ %s %le %le %le %le %le %le, %le %le %le"
     if os.path.exists(os.path.join(path, 'getcouple_free.out')):
         twiss_getcouple = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getcouple_free.out'))
