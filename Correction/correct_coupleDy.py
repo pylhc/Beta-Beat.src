@@ -286,6 +286,7 @@ def _handle_data_for_lhc():
 
     v = metaclass.twiss(os.path.join(_InputData.output_path, "changeparameters_couple.tfs"))
     mad_script = open(os.path.join(_InputData.output_path, "changeparameters_couple.madx"), "w")
+    mad_script.write("! The applied model cut=" +str(_InputData.model_cut_c)  +  "\n")
     names = getattr(v, "NAME", [])
     delta = getattr(v, "DELTA", [])
 
