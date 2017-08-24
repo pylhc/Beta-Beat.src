@@ -16,9 +16,9 @@ option, echo;
 
 exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
 
-
+call, file="%(PATH)s/twiss_no.dat";
 exec, coupling_knob(%(NUM_BEAM)i);
-call, file="%(PATH)s/changeparameters_couple.madx";
+call, file="%(PATH)s/twiss_cor.dat";
 
 exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/predict_coupling_correct.twiss");
 
