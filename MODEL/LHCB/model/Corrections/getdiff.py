@@ -242,8 +242,9 @@ def write_dispersion_diff_files(path, twiss_cor, twiss_no):
 
 
 def write_coupling_diff_file(path, twiss_cor):
+    cut = 1 
     file_couple = open(os.path.join(path, "couple.out"), "w")
-    print >> file_couple, "* NAME S F1001re F1001im F1001e F1001re_m F1001im_m"
+    print >> file_couple, "* NAME S F1001re F1001im F1001e F1001re_m F1001im_m, F1001W, F1001W_prediction, in_use"
     print >> file_couple, "$ %s %le %le %le %le %le %le"
     if os.path.exists(os.path.join(path, 'getcouple_free.out')):
         twiss_getcouple = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getcouple_free.out'))
@@ -260,8 +261,14 @@ def write_coupling_diff_file(path, twiss_cor):
             print "No ", bpm_name
             bpm_included = False
         if bpm_included:
+            if(twiss_getcouple.F1001R[i] < cut):
+                in_use = 0
+            else:
+                in_use = 1
+            
             j = twiss_cor.indx[bpm_name]
-            print >> file_couple, bpm_name, twiss_getcouple.S[i], twiss_getcouple.F1001R[i], twiss_getcouple.F1001I[i], twiss_getcouple.FWSTD1[i], twiss_cor.f1001[j].real, twiss_cor.f1001[j].imag
+            f1001_predict = sqrt((twiss_getcouple.F1001R[i]-twiss_cor.f1001[j].real)**2+ (twiss_getcouple.F1001R[i]-twiss_cor.f1001[j].imag))
+            print >> file_couple, bpm_name, twiss_getcouple.S[i], twiss_getcouple.F1001R[i], twiss_getcouple.F1001I[i], twiss_getcouple.FWSTD1[i], twiss_cor.f1001[j].real, twiss_cor.f1001[j].imag, twiss_getcouple.F1001W[i], f1001_predict, in_use
 
     file_couple.close()
 
