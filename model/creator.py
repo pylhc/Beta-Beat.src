@@ -11,13 +11,15 @@ from model_creators.lhc_model_creator import (  # noqa
     LhcModelCreator,
     LhcBestKnowledgeCreator,
     LhcSegmentCreator,
+    LhcCouplingCreator,
 )
 
 
 CREATORS = {
     "lhc": {"nominal": LhcModelCreator,
             "best_knowledge": LhcBestKnowledgeCreator,
-            "segment": LhcSegmentCreator},
+            "segment": LhcSegmentCreator,
+            "coupling_correction": LhcCouplingCreator},
 }
 
 
@@ -51,7 +53,7 @@ def _parse_rest_args(args):
     parser.add_argument(
         "type",
         help="Type of model to create, either nominal or best_knowledge",
-        choices=("nominal", "best_knowledge"),
+        choices=("nominal", "best_knowledge", "coupling_correction"),
     )
     parser.add_argument(
         "--output",

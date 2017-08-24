@@ -245,6 +245,10 @@ class Lhc(Accelerator):
     @classmethod
     def get_nominal_tmpl(cls):
         return cls.get_file("nominal.madx")
+    
+    @classmethod
+    def get_coupling_tmpl(cls):
+        return cls.get_file("coupling_correct.madx")
 
     @classmethod
     def get_best_knowledge_tmpl(cls):
