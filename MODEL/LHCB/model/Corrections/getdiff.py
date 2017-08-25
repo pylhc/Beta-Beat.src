@@ -51,6 +51,7 @@ from numpy.ma.core import sqrt
 
 def parse_args():
     ''' Parses the sys.argv[1], checks for valid input and returns the path to src files  '''
+    compall = True
     if len(sys.argv) == 2:
         path_to_src_files = sys.argv[1]
         if not os.path.isdir(path_to_src_files):
@@ -58,6 +59,14 @@ def parse_args():
             sys.exit(1)
         corrected_model_path = os.path.join(path_to_src_files, 'twiss_cor.dat')
         uncorrected_model_path = os.path.join(path_to_src_files, 'twiss_no.dat')
+    elif len(sys.argv) == 3:
+         path_to_src_files = sys.argv[1]
+         compall = False
+         if not os.path.isdir(path_to_src_files):
+            print >> sys.stderr, "No valid directory:", path_to_src_files
+            sys.exit(1)
+         corrected_model_path = os.path.join(path_to_src_files, 'twiss_cor.dat')
+         uncorrected_model_path = os.path.join(path_to_src_files, 'twiss_no.dat')
     elif len(sys.argv) == 4:
         path_to_src_files = sys.argv[1]
         if not os.path.isdir(path_to_src_files):
@@ -70,14 +79,14 @@ def parse_args():
                              "uncorrected models."
         sys.exit(1)
 
-    return path_to_src_files, corrected_model_path, uncorrected_model_path
+    return path_to_src_files, corrected_model_path, uncorrected_model_path ,compall
 
 #===================================================================================================
 # main()-function
 #===================================================================================================
 
 
-def main(path, corrected_model_path, uncorrected_model_path):
+def main(path, corrected_model_path, uncorrected_model_path, compall):
     '''
     :Parameters:
         'path': string
@@ -92,7 +101,7 @@ def main(path, corrected_model_path, uncorrected_model_path):
 
     write_beta_diff_files(path, twiss_cor, twiss_no)
 
-    write_coupling_diff_file(path, twiss_cor)
+    write_coupling_diff_file(path, twiss_cor, compall)
 
     write_dispersion_diff_files(path, twiss_cor, twiss_no)
 
@@ -241,13 +250,13 @@ def write_dispersion_diff_files(path, twiss_cor, twiss_no):
         print "Empty table in getNDx.out?! NO normalized dispersion"
 
 
-def write_coupling_diff_file(path, twiss_cor):
-    coup_madx = open(os.path.join(path, "changeparameters_couple.madx"), "r")
-    cut =float(str.split(coup_madx.read(32), '=')[1])
-
+def write_coupling_diff_file(path, twiss_cor, compall):
+    
+    file = open('changeparameters_couple.madx', 'r') 
+    cut = float(str.split(file.read(36),'=')[1])
     file_couple = open(os.path.join(path, "couple.out"), "w")
     print >> file_couple, "* NAME S F1001re F1001im F1001e F1001re_m F1001im_m F1001W F1001W_prediction in_use"
-    print >> file_couple, "$ %s %le %le %le %le %le %le, %le %le %le"
+    print >> file_couple, "$ %s %le %le %le %le %le %le %le %le %le"
     if os.path.exists(os.path.join(path, 'getcouple_free.out')):
         twiss_getcouple = Python_Classes4MAD.metaclass.twiss(os.path.join(path, 'getcouple_free.out'))
     elif os.path.exists(os.path.join(path, 'getcouple_free2.out')):
@@ -267,10 +276,13 @@ def write_coupling_diff_file(path, twiss_cor):
                 in_use = 1
             else:
                 in_use = 0
-            
-            j = twiss_cor.indx[bpm_name]
-            f1001_predict =sqrt((twiss_getcouple.F1001R[i]-twiss_cor.f1001[j].real)**2+ (twiss_getcouple.F1001I[i]-twiss_cor.f1001[j].imag)**2)
-            print >> file_couple, bpm_name, twiss_getcouple.S[i], twiss_getcouple.F1001R[i], twiss_getcouple.F1001I[i], twiss_getcouple.FWSTD1[i], twiss_cor.f1001[j].real, twiss_cor.f1001[j].imag, twiss_getcouple.F1001W[i], f1001_predict, in_use
+            isBPMs = 'L1' in bpm_name or 'R1' in bpm_name or 'R5' in bpm_name or 'L5' in bpm_name 
+            if(compall is False and isBPMs):
+                print("Removed close to IP ", cut)
+            else:
+                j = twiss_cor.indx[bpm_name]
+                f1001_predict = sqrt((twiss_getcouple.F1001R[i]-twiss_cor.f1001[j].real)**2+ (twiss_getcouple.F1001I[i]-twiss_cor.f1001[j].imag)**2)
+                print >> file_couple, bpm_name, twiss_getcouple.S[i], twiss_getcouple.F1001R[i], twiss_getcouple.F1001I[i], twiss_getcouple.FWSTD1[i], twiss_cor.f1001[j].real, twiss_cor.f1001[j].imag, twiss_getcouple.F1001W[i], f1001_predict, in_use
 
     file_couple.close()
 
@@ -432,13 +444,14 @@ def _get_bpms_in_experiment_and_model(experimental_twiss, model_twiss):
 
 
 def _start():
-    path_to_src_files, corrected_model_path, uncorrected_model_path = parse_args()
+    path_to_src_files, corrected_model_path, uncorrected_model_path, compall = parse_args()
 
     print "Start getdiff.main..."
-    return_value = main(path_to_src_files, corrected_model_path, uncorrected_model_path)
+    return_value = main(path_to_src_files, corrected_model_path, uncorrected_model_path, compall)
     print "getdiff.main finished with", return_value
 
     sys.exit(return_value)
 
 if __name__ == "__main__":
     _start()
+
