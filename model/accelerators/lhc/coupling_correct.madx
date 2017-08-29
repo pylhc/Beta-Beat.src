@@ -16,11 +16,11 @@ option, echo;
 
 exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
 
-exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/GetLLM/twiss_no.dat");
+exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_no.dat");
 
 exec, coupling_knob(%(NUM_BEAM)i);
-call, file = "%(PATH)s/GetLLM/changeparameters_couple.madx";
-exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/GetLLM/twiss_cor.dat");
+call, file = "%(PATH)s/changeparameters_couple.madx";
+exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_cor.dat");
 
 
 
