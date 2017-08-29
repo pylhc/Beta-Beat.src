@@ -252,7 +252,7 @@ def write_dispersion_diff_files(path, twiss_cor, twiss_no):
 
 def write_coupling_diff_file(path, twiss_cor, compall):
     
-    file = open('changeparameters_couple.madx', 'r') 
+    file = open(path +'/changeparameters_couple.madx', 'r') 
     cut = float(str.split(file.read(36),'=')[1])
     file_couple = open(os.path.join(path, "couple.out"), "w")
     print >> file_couple, "* NAME S F1001re F1001im F1001e F1001re_m F1001im_m F1001W F1001W_prediction in_use"
