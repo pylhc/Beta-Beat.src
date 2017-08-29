@@ -1,1 +1,1 @@
-call, file="/afs/cern.ch/eng/lhc/optics/runII/2017/opticsfile.19_ctpps2";
+call, file="tests/standalone_test/models/40cmACdipole/opticsfile.19_ctpps2";
