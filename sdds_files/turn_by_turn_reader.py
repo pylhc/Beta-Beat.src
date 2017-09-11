@@ -246,6 +246,7 @@ class _TbtAsciiWriter(object):
         output_file.write("#Acquisition date: " + tbt_file.date.strftime(
             "%Y-%m-%d at %H:%M:%S"
         ) + "\n")
+        output_file.write("#Excitation: AC-dipole" + "\n")
         for name, value in self._headers_dict.iteritems():
             output_file.write("#" + name + ": " + str(value) + "\n")
 
