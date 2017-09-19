@@ -1,28 +1,25 @@
 from __future__ import print_function
 import sys
 import os
-import time
 import logging
+import cPickle
 
 import numpy as np
 import pandas as pd
+import clean
+import harpy
+import svd_harpy
+from io_handlers import input_handler, output_handler
+
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
     ".."
 )))
 
-import clean
-from io_handlers import input_handler, output_handler
-#from harpy import harpy
-import harpy #.drive
-#from harpy import Harpy #.drive import Drive
-import svd_harpy
-#from Utilities.twiss_to_tbt import generate
 from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit 
 from model import manager
 from sdds_files import turn_by_turn_reader
-import cPickle
 
 
 LOGGER = logging.getLogger(__name__)
@@ -30,7 +27,7 @@ LOG_SUFFIX = ".log"
 
 
 def run_all(main_input, clean_input, harpy_input):
-    with timeit(lambda time: LOGGER.info("Total time for file: %s", time)):
+    with timeit(lambda spanned: LOGGER.info("Total time for file: %s", spanned)):
         if (not main_input.write_raw and
                 clean_input is None and harpy_input is None):
             LOGGER.error("No file has been choosen to be writen!")
@@ -55,11 +52,11 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
             all_bad_bpms = []
             usv = None
             if clean_input is not None:
-                with timeit(lambda time: LOGGER.debug("Time for filtering: %s", time)):
+                with timeit(lambda spanned: LOGGER.debug("Time for filtering: %s", spanned)):
                     bpm_names, bpm_data, bad_bpms_clean = clean.clean(
                         bpm_names, bpm_data, clean_input, tbt_file.date,
                     )
-                with timeit(lambda time: LOGGER.debug("Time for SVD clean: %s", time)):
+                with timeit(lambda spanned: LOGGER.debug("Time for SVD clean: %s", spanned)):
                     bpm_names, bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(
                         bpm_names, bpm_data, clean_input,
                     )
@@ -73,12 +70,12 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                 computed_dpp = calc_dp_over_p(main_input, bpm_names, bpm_data)
 
             if harpy_input is not None:
-                with timeit(lambda time: LOGGER.debug("Time for orbit_analysis: %s", time)):
-                    lin_frame = get_orbit_data(bpm_names, bpm_data, bpm_res,model_tfs)
-                with timeit(lambda time: LOGGER.debug("Time for harmonic_analysis: %s", time)):
+                with timeit(lambda spanned: LOGGER.debug("Time for orbit_analysis: %s", spanned)):
+                    lin_frame = get_orbit_data(bpm_names, bpm_data, bpm_res, model_tfs)
+                with timeit(lambda spanned: LOGGER.debug("Time for harmonic_analysis: %s", spanned)):
                     lin_result, spectrum, bad_bpms_fft = harmonic_analysis(
                         bpm_names, bpm_data, usv,
-                        plane, harpy_input,lin_frame
+                        plane, harpy_input, lin_frame
                     )
                     all_bad_bpms.extend(bad_bpms_fft)
                     #TODO: Writing of harpy should be done in output_handler
@@ -88,9 +85,8 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                     tfs.write_tfs(lin_result,{},output_file)
                     _dump(output_handler.get_outpath_with_suffix(
                         main_input.file, main_input.outputdir, ".spec" + plane), spectrum)
-                    # TODO write spectrum - it is a dictionary of DataFrames 
+                    # TODO write spectrum - it is a dictionary of DataFrames
 
-            
             output_handler.write_bad_bpms(
                 main_input.file,
                 all_bad_bpms,
@@ -121,21 +117,20 @@ def get_orbit_data(bpm_names, bpm_data, bpm_res, model):
         'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
         'BPM_RES': bpm_res
         }
-    return pd.merge(model,pd.DataFrame.from_dict(di),on='NAME', how='inner')
-   
+    return pd.merge(model, pd.DataFrame.from_dict(di), on='NAME', how='inner')
+
 
 def harmonic_analysis(bpm_names, bpm_data, usv, plane, harpy_input, panda):
     if usv is None:
-        if harpy_input.harpy_mode == "svd" or harpy_input.harpy_mode == "fast":    
+        if harpy_input.harpy_mode == "svd" or harpy_input.harpy_mode == "fast":
             raise ValueError("Running harpy SVD mode but not svd clean was run."
                              " Set 'clean' flag to use SVD mode.")
     else:
         allowed = _get_allowed_length(rang=[0, bpm_data.shape[1]])[-1]
         bpm_data = bpm_data[:, :allowed]
         usv = (usv[0], usv[1], usv[2][:, :allowed])
-    if harpy_input.harpy_mode == "svd" or harpy_input.harpy_mode == "fast":
-        lin_result, spectrum, bad_bpms_fft = svd_harpy.svd_harpy(
-            bpm_names, bpm_data, usv, plane.upper(), harpy_input,panda) # TODO lin_file header?
+    lin_result, spectrum, bad_bpms_fft = svd_harpy.svd_harpy(
+        bpm_names, bpm_data, usv, plane.upper(), harpy_input, panda) # TODO lin_file header?
     return lin_result, spectrum, bad_bpms_fft
 
 
@@ -143,7 +138,6 @@ def _dump(pathToDump, content):
     dumpFile = open(pathToDump, 'wb')
     cPickle.Pickler(dumpFile, -1).dump(content)
     dumpFile.close()
-
 
 
 def calc_dp_over_p(main_input, bpm_names, bpm_data):
