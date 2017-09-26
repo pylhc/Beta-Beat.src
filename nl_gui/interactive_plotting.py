@@ -49,7 +49,7 @@ class IteratePlatteauPlots(object):
         self.platteaus_df = load_csv(filenames[2], filetype='platteaus')
         self.currents_df = self._normalize_data(self.currents_df)
         print('Data imported.')
-        self.accepted_plat = pd.DataFrame(index=np.arange(len(self.platteaus_df['KNOB_PLAT_START'])), columns=['B1_min','B1_max','B2_min','B2_max',])
+        self.accepted_plat = pd.DataFrame(index=np.arange(len(self.platteaus_df['knob_plat'])), columns=['B1_min','B1_max','B2_min','B2_max',])
         self.idx = 0 
 
         self.fig = plt.figure(figsize=(18,18))
@@ -102,9 +102,9 @@ class IteratePlatteauPlots(object):
         self._get_plat_times()
 
     def _get_plat_times(self):
-        self.time_knob = self.platteaus_df['KNOB_PLAT_START'][self.idx]-timedelta(seconds=50)
-        self.time_min_pl = self.platteaus_df['DATA_PLAT_START'][self.idx]
-        self.time_max_pl = self.platteaus_df['DATA_PLAT_END'][self.idx]
+        self.time_knob = self.platteaus_df['knob_plat'][self.idx]-timedelta(seconds=50)
+        self.time_min_pl = self.platteaus_df['data_plat_start'][self.idx]
+        self.time_max_pl = self.platteaus_df['data_plat_end'][self.idx]
         self.time_max = self.time_max_pl+timedelta(seconds=50)
         self.new_limits_B1 = [self.time_min_pl, self.time_max_pl]
         self.new_limits_B2 = [self.time_min_pl, self.time_max_pl]

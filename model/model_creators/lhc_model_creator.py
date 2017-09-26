@@ -128,7 +128,7 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
 class LhcSegmentCreator(model_creator.ModelCreator):
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
-        with open(lhc_instance.get_coupling_tmpl()) as textfile:
+        with open(lhc_instance.get_segment_tmpl()) as textfile:
             madx_template = textfile.read()
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
@@ -142,6 +142,7 @@ class LhcSegmentCreator(model_creator.ModelCreator):
         }
         madx_script = madx_template % replace_dict
         return madx_script
+
 
 class LhcCouplingCreator(model_creator.ModelCreator):
     @classmethod
