@@ -10,7 +10,6 @@ it uses the model with AC-Dipole element in.
 '''
 import sys
 import os
-sys.path.append("/afs/cern.ch/work/l/lmalina/Beta-Beat.src/")
 from optparse import OptionParser
 import time
 import numpy as np
