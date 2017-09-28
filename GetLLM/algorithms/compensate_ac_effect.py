@@ -727,8 +727,9 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
             if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
             
-            badbpm = 0
+            
             #-- Output
+	    badbpm=0
             if badbpm==0:
                 f1001AbsAve = np.mean(f1001Abs[k])
                 f1010AbsAve = np.mean(f1010Abs[k])
@@ -748,7 +749,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         
         fqwList.append(fwqw)
         
-    fwqw['Global']=['"null"','"null"']
+    
     fwqw = copy.deepcopy(fqwList[0])
     for key in fwqw:
         for a in range(1, len(fqwList)):
@@ -757,9 +758,9 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             fwqw[key][0][1] = fwqw[key][0][1] + tmp[key][0][1]
             fwqw[key][0][2] = fwqw[key][0][2] + tmp[key][0][2]
             fwqw[key][0][3] = fwqw[key][0][3] + tmp[key][0][3]
-            if(key is 'BPMWB.4R5.B1'):
-                print fwqw[key][1]
-        fwqw[key][0][0]=fwqw[key][0][0]/len(fqwList)       
+        fwqw[key][0][0]=fwqw[key][0][0]/len(fqwList)
+        fwqw[key][0][2]=fwqw[key][0][2]/len(fqwList)
+    fwqw['Global']=['"null"','"null"']        
     return [fwqw,goodbpm]
 
 
