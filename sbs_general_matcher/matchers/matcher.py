@@ -12,6 +12,16 @@ LOGGER = logging.getLogger(__name__)
 
 
 class MatcherFactory(object):
+    """
+    Use this class to create matchers.
+    The factory instance will have a set_{parameter} function for each of the
+    items in the PARAMETERS constant. All parameters specified should be set
+    or an MatcherFactoryError will be throws. The method create() will give
+    the matcher instance.
+
+    Args:
+        matcher_like: A subclass of the Matcher class to instantiate.
+    """
     PARAMETERS = (
         "lhc_mode", "beam", "name",
         "var_classes", "match_path", "label",
@@ -34,6 +44,13 @@ class MatcherFactory(object):
         return self
 
     def create(self):
+        """
+        Checks that all the parameters have been set and creates the instance
+        of the requested matcher.
+
+        Returns:
+            An instace of the required Matcher.
+        """
         for parameter in MatcherFactory.PARAMETERS:
             if not getattr(self, "_is_{}_set".format(parameter)):
                 raise MatcherFactoryError(
@@ -47,6 +64,9 @@ class MatcherFactory(object):
 
 
 class MatcherFactoryError(Exception):
+    """
+    Thrown when the creation of a matcher using the MatcherFactory fails.
+    """
     pass
 
 
@@ -188,14 +208,6 @@ class Matcher(object):
             os.path.join(match_math, "sbs"),
             ".madx"
         )
-
-
-class InputError(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
 
 
 def _copy_files_with_extension(src, dest, ext):
