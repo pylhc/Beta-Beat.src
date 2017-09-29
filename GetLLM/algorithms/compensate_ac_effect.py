@@ -758,8 +758,12 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             fwqw[key][0][1] = fwqw[key][0][1] + tmp[key][0][1]
             fwqw[key][0][2] = fwqw[key][0][2] + tmp[key][0][2]
             fwqw[key][0][3] = fwqw[key][0][3] + tmp[key][0][3]
+            if(key is 'BPMWB.4R5.B1'):
+                print fwqw[key][1]
         fwqw[key][0][0]=fwqw[key][0][0]/len(fqwList)
+        fwqw[key][0][1]=fwqw[key][0][1]/len(fqwList)
         fwqw[key][0][2]=fwqw[key][0][2]/len(fqwList)
+        fwqw[key][0][3]=fwqw[key][0][3]/len(fqwList)
     fwqw['Global']=['"null"','"null"']        
     return [fwqw,goodbpm]
 
