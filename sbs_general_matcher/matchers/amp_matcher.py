@@ -18,7 +18,7 @@ class AmpMatcher(KmodMatcher):
                 beta_beating = getattr(this_amp_data, "BETABEATAMP" + plane.upper())[index]
                 err_beta_beating = getattr(this_amp_data, "ERRBETABEATAMP" + plane.upper())[index]
                 constr_string += self._get_constraint_instruction(
-                    self._name + self._get_suffix() + plane + name,
+                    self.name + self._get_suffix() + plane + name,
                     beta_beating, err_beta_beating)
 
         return constr_string
@@ -29,7 +29,7 @@ class AmpMatcher(KmodMatcher):
 
     def _get_amp_data(self, plane):
         sbs_amp_data_path = os.path.join(
-            os.path.join(self._matcher_path, "sbs"),
-            'sbsampbetabeat' + plane + '_' + self._segment.label + '.out'
+            os.path.join(self.matcher_path, "sbs"),
+            'sbsampbetabeat' + plane + '_' + self.segment.label + '.out'
         )
         return metaclass.twiss(sbs_amp_data_path)

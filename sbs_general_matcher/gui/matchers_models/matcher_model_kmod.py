@@ -1,26 +1,29 @@
 import os
 from matcher_model_default import MatcherModelDefault
 from matcher_model_default import MatcherPlotterDefault
+from matchers.matcher import MatcherFactory
 from matchers.kmod_matcher import KmodMatcher
 from Utilities import tfs_pandas
 
 
 class MatcherModelKmod(MatcherModelDefault):
 
-    def get_matcher_dict(self):
-        matcher_dict = super(MatcherModelKmod, self).get_matcher_dict()
-        matcher_dict["type"] = "kmod"
-        return matcher_dict
-
     def create_matcher(self, lhc_mode, match_path):
-        self._matcher = KmodMatcher(
-            lhc_mode,
-            self._beam,
-            self._name,
-            self.get_matcher_dict(),
-            MatcherModelDefault.BETA_CORR_CLASSES,
-            match_path
-        )
+        factory = MatcherFactory(KmodMatcher)
+        self._matcher = (
+            factory
+            .set_lhc_mode(lhc_mode)
+            .set_beam(self._beam)
+            .set_name(self._name)
+            .set_var_classes(MatcherModelDefault.BETA_CORR_CLASSES)
+            .set_match_path(match_path)
+            .set_label(self._label)
+            .set_use_errors(self._use_errors)
+            .set_propagation(self._propagation)
+            .set_measurement_path(self._meas_path)
+            .set_excluded_constraints([])
+            .set_excluded_variables([])
+        ).create()
 
     def get_plotter(self, figure):
         if self._plotter is None:
