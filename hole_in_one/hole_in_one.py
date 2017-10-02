@@ -44,7 +44,7 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
 
     if clean_input is not None or harpy_input is not None:
         clean_writer = output_handler.CleanedAsciiWritter(main_input, tbt_file.date)
-        model_tfs=tfs.read_tfs(main_input.model).loc[:,['NAME','S','DX']] # dispersion in meters
+        model_tfs = tfs.read_tfs(main_input.model).loc[:, ['NAME', 'S', 'DX']] # dispersion in meters
         for plane in ("x", "y"):
             bpm_names = np.array(getattr(tbt_file, "bpm_names_" + plane))
             bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
@@ -75,7 +75,7 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                 with timeit(lambda spanned: LOGGER.debug("Time for harmonic_analysis: %s", spanned)):
                     lin_result, spectrum, bad_bpms_fft = harmonic_analysis(
                         bpm_names, bpm_data, usv,
-                        plane, harpy_input, lin_frame
+                        plane, harpy_input, lin_frame, model_tfs,
                     )
                     all_bad_bpms.extend(bad_bpms_fft)
                     #TODO: Writing of harpy should be done in output_handler
@@ -111,12 +111,12 @@ def get_only_model_bpms(bpm_names, bpm_data, model):
 
 
 def get_orbit_data(bpm_names, bpm_data, bpm_res, model):
-    di={'NAME': bpm_names, 
-        'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
-        'CO': np.mean(bpm_data,axis=1),
-        'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
-        'BPM_RES': bpm_res
-        }
+    di = {'NAME': bpm_names, 
+          'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
+          'CO': np.mean(bpm_data,axis=1),
+          'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
+          'BPM_RES': bpm_res
+         }
     return pd.merge(model, pd.DataFrame.from_dict(di), on='NAME', how='inner')
 
 

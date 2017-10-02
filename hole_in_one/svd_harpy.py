@@ -24,7 +24,9 @@ from harpy.harmonic_analysis import HarmonicAnalysis
 
 from harpy import _python_path_manager
 _python_path_manager.append_betabeat()
-from Utilities import outliers  # noqa
+from Utilities import outliers
+from model import manager
+
 LOGGER = logging.getLogger(__name__)
 
 PI2I = 2 * np.pi * complex(0, 1)
@@ -53,7 +55,8 @@ NUM_HARMS_SVD = 100
 PROCESSES = multiprocessing.cpu_count()
 
 
-def svd_harpy(bpm_names, bpm_matrix, usv, plane, harpy_input, panda):
+def svd_harpy(bpm_names, bpm_matrix, usv, plane,
+              harpy_input, panda, model_tfs):
     """Searches for the strongest resonances in each row of the bpm_matrix.
 
     TODO: More elaborate description here.
@@ -66,6 +69,7 @@ def svd_harpy(bpm_names, bpm_matrix, usv, plane, harpy_input, panda):
         plane: A string containing either X or Y.
         harpy_input: HarpyInput instance containing user provided info.
         panda: A pandas DataFrame where the resonance results will be put.
+        model_tfs: A pandas DataFrame to get the model dispersion.
 
     Returns:
         A tuple containing the resulting DataFrame object filled with the
@@ -97,7 +101,7 @@ def svd_harpy(bpm_names, bpm_matrix, usv, plane, harpy_input, panda):
             harpy_input, frequencies, bpm_coefficients,
             "Z", Z_TOLERANCE, panda
         )
-    panda, bad_bpms, bad_bpms_mask = _clean_by_tune(plane, panda)
+    panda, bad_bpms, bad_bpms_mask = _clean_by_tune(harpy_input, plane, panda)
     panda = _amp_and_mu_from_avg(bpm_matrix, bad_bpms_mask, plane, panda)
     panda = _get_noise(bpm_matrix, panda)
     panda = _get_natural_tunes(frequencies, bpm_coefficients,
@@ -106,13 +110,17 @@ def svd_harpy(bpm_names, bpm_matrix, usv, plane, harpy_input, panda):
     resonances_freqs = _compute_resonances_freqs(plane, harpy_input)
     if harpy_input.tunez > 0.0:
         resonances_freqs.update(_compute_resonances_freqs("Z", harpy_input))
+        if plane == "X":
+            dpoverp_amp, pos, neg = get_dpoverp_amp(
+                model_tfs, panda, bpm_names, bpm_matrix,
+            )
     panda = _resonance_search(frequencies, bpm_coefficients,
                               harpy_input.tolerance, resonances_freqs, panda)
 
     panda['BINDEX'] = 0
     panda['SLABEL'] = 0
     return (panda.loc[bad_bpms_mask, :],
-            all_bpms_spectr,  # TODO: Also mask this?
+            all_bpms_spectr,
             bad_bpms)
 
 
@@ -209,11 +217,11 @@ def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
     return max_coefs, max_freqs
 
 
-def _clean_by_tune(plane, panda):
+def _clean_by_tune(harpy_input, plane, panda):
     bad_bpms = []
     bad_bpms_mask = outliers.get_filter_mask(
-        panda.loc[:, 'TUNE'+plane],
-        limit=1e-5,  # TODO: Make a constant
+        panda.loc[:, 'TUNE' + plane],
+        limit=harpy_input.tune_clean_limit,
     )
     for i in np.arange(len(bad_bpms_mask)):
         if not bad_bpms_mask[i]:
@@ -249,16 +257,16 @@ def _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda):
 
 def _get_noise(bpm_matrix, panda):
     result = panda
-    # TODO: Do something with these numbers
-    leng = 512
-    pos = 8
-    ns = np.empty([bpm_matrix.shape[0],
-                   int(np.floor(bpm_matrix.shape[1]/leng))])
-    for i in range(bpm_matrix.shape[1]/leng):
-        ns[:, i] = np.partition(
+    leng = 2 ** (int(np.log2(bpm_matrix.shape[1])) - 2)
+    leng = 512 if leng > 512 else leng
+    pos = int(leng / 64)
+    noise = np.empty([bpm_matrix.shape[0],
+                      int(np.floor(bpm_matrix.shape[1] / leng))])
+    for i in range(bpm_matrix.shape[1] / leng):
+        noise[:, i] = np.partition(
             np.abs(np.fft.fft(bpm_matrix[:, :leng])), pos, axis=1
         )[:, pos] / leng
-    result['NOISE'] = np.mean(ns, axis=1)
+    result['NOISE'] = np.mean(noise, axis=1)
     return result
 
 
@@ -272,54 +280,71 @@ def _resonance_search(frequencies, coefficients, tolerance,
             resonance_freq, tolerance, frequencies, coefficients
         )
         resstr = _get_resonance_suffix(resonance)
-        results['AMP'+resstr] = np.abs(max_coefs)
-        results['PHASE'+resstr] = np.angle(max_coefs) / (2 * np.pi)
-        results['FREQ'+resstr] = max_freqs
+        results['AMP' + resstr] = np.abs(max_coefs)
+        results['PHASE' + resstr] = np.angle(max_coefs) / (2 * np.pi)
+        results['FREQ' + resstr] = max_freqs
     return results
 
 
 # # full period is one, phase is of the arc bpms in horizontal plane
-# def get_dpoverp_amp(tunez, tunez_phase, bpm_samples):
-#     # assumes non-zero tunez
-#     # interval is around integer phases for positive dpoverp
-#     # and around halfes for the negative dpoverp
-#     turns = bpm_samples.shape[1]
-#     pos = _get_positive_dpoverp_intervals(tunez, tunez_phase, turns)
-#     neg = _get_negative_dpoverp_intervals(tunez, tunez_phase, turns)
-#     co = np.zeros_like(arc_bpm_names)
-#     length = 0
-#     for bin in pos:
-#         mini, maxi = bin
-#         co = co + np.sum(bpm_samples[:, mini:maxi], axis=1)
-#         length = length + maxi - mini
-#     for bin in neg:
-#         mini, maxi = bin
-#         co = co - np.sum(bpm_samples[:, mini:maxi], axis=1)
-#         length = length + maxi - mini
-#     codx = co * dx / length #dispersion at the same BPMs TODO check units
-#     dx2 = dx * dx
-#     return np.sum(codx) / np.sum(dx2), pos, neg
+def get_dpoverp_amp(model_tfs, panda, bpm_names, bpm_samples):
+    # Interval is around integer phases for positive dpoverp
+    # and around halfes for the negative dpoverp
+    arc_bpm_names, arc_bpm_samples = _get_lhc_arc_bpms(bpm_names, bpm_samples)
+    tunez = np.mean(panda.set_index("NAME").loc[arc_bpm_names, "TUNEZ"])
+    tunez_phase = _phase_mean(panda.set_index("NAME").loc[arc_bpm_names, "MUZ"])
+    turns = bpm_samples.shape[1]
+    pos = _get_positive_dpoverp_intervals(tunez, tunez_phase, turns)
+    neg = _get_negative_dpoverp_intervals(tunez, tunez_phase, turns)
+    # We assume 3D kicks only happen in LHC for now.
+    co = np.zeros_like(arc_bpm_names)
+    model_dx = model_tfs.set_index("NAME").loc[arc_bpm_names, "DX"]
+    length = 0
+    for bin in pos:
+        mini, maxi = bin
+        co = co + np.sum(arc_bpm_samples[:, mini:maxi], axis=1)
+        length = length + maxi - mini
+    for bin in neg:
+        mini, maxi = bin
+        co = co - np.sum(arc_bpm_samples[:, mini:maxi], axis=1)
+        length = length + maxi - mini
+    co = co / 1e3  # Going from mm to m.
+    codx = co * model_dx / length
+    dx2 = model_dx ** 2
+    return np.sum(codx) / np.sum(dx2), pos, neg
 
 
-# def get_chroma(tunez, tunez_phase, harpy_input, plane, bpm_samlpes, panda):
-#     dpoverp_amp, pos, neg = get_dpoverp_amp(tunez, tunez_phase, bpm_samples)
-#     for bin in pos:
-#         mini, maxi = bin
-#         bpm_int = bpm_samples[:, mini:maxi]
-#         # or subtract the synchrotron line? should be about the same
-#         bpm_int = (bpm_int.T-np.mean(bpm_int, axis=1)).T
-#         main_coefs = _compute_coefs_for_freqs(bpm_int,
-#                                              panda.loc[:, 'TUNE'+plane])
-#         bpm_int = bpm_int - (main_coefs * np.exp(
-#             PI2I * np.outer(np.arange(n), panda.loc[:, 'TUNE'+plane]))
-#         )
-#         # We subtracted the main line
-#         # now we have signals to look for natural tunes
-#         length = length + maxi - mini
-#     for bin in neg:
-#         mini, maxi = bin
-#         co = co - np.sum(bpm_samples[:, mini:maxi], axis=1)
-#         length = length + maxi - mini
+def _get_lhc_arc_bpms(bpm_names, bpm_samples):
+    accel_cls = manager.get_accel_class("lhc")
+    arc_bpms_mask = accel_cls.get_arc_bpms_mask(bpm_names)
+    arc_bpm_samples = bpm_samples[arc_bpms_mask]
+    arc_bpm_names = bpm_names[arc_bpms_mask]
+    return arc_bpm_names, arc_bpm_samples
+
+
+def _phase_mean(phases):
+    return np.angle(np.sum(np.exp(PI2I * phases))) / (2 * np.pi)
+
+
+def get_chroma(harpy_input, plane, bpm_names, bpm_samples, panda):
+    arc_bpm_names, arc_bpm_samples = _get_lhc_arc_bpms(bpm_names, bpm_samples)
+    tunez = np.mean(panda.set_index("NAME").loc[arc_bpm_names, "TUNEZ"])
+    tunez_phase = _phase_mean(panda.set_index("NAME").loc[arc_bpm_names, "MUZ"])
+    dpoverp_amp, pos, neg = get_dpoverp_amp(tunez, tunez_phase, bpm_samples)
+    for bin in pos:
+        mini, maxi = bin
+        coefficients = panda[:, "AMP" + plane] * np.exp(PI2I * panda[:, "MU" + plane])
+        frequencies = panda[:, "TUNE" + plane]
+        new_signal = coefficients * np.exp(PI2I * np.outer(frequencies, np.arange(bpm_samples.shape[1])))
+        # Remove synchro-betatron line?
+        bpm_int = (bpm_samples - new_signal)[:, mini:maxi]
+        # or subtract the synchrotron line? should be about the same
+        bpm_int = (bpm_int.T-np.mean(bpm_int, axis=1)).T
+        length = length + maxi - mini
+    for bin in neg:
+        mini, maxi = bin
+        co = co - np.sum(bpm_samples[:, mini:maxi], axis=1)
+        length = length + maxi - mini
 
 
 def _get_positive_dpoverp_intervals(tunez, tunez_phase, turns):
@@ -327,7 +352,7 @@ def _get_positive_dpoverp_intervals(tunez, tunez_phase, turns):
     intervals = []
     start = (-halfwidth - tunez_phase) / tunez
     end = (halfwidth - tunez_phase) / tunez
-    for i in range(int(turns*tunez)+1):
+    for i in range(int(turns * tunez) + 1):
         start_i = start + float(i) / tunez
         end_i = end + float(i) / tunez
         if start_i > 0 and end_i < turns:
