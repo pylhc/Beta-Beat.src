@@ -95,6 +95,9 @@ class Accelerator(object):
         distance: 1=nearest bpm 2=next to nearest bpm
         """
         Accelerator.__raise_definition_error()
+        
+    def get_important_phase_advances(self):
+        return []
     
     def get_exciter_name(self, plane):
         """

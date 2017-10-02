@@ -135,19 +135,23 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     #---- H plane result
     if twiss_d.has_zero_dpp_x():
 #        phase_d.ph_x['DPP'] = 0.0  # WHY ??????
-        files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model, tune_d.q1f, tune_d.q2f)
+        files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
+        files_dict["getphasetotx_free.out"] = write_phasetot_file(files_dict["getphasetotx_free.out"], "H", phase_d.phase_advances_free_x, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
-            files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x, model, tune_d.q1, tune_d.q2)
+            files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
+            files_dict["getphasetotx.out"] = write_phasetot_file(files_dict["getphasetotx.out"], "H", phase_d.phase_advances_x, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
 
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
-        files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V", phase_d.phase_advances_free_y, model, tune_d.q1f, tune_d.q2f)
+        files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V", phase_d.phase_advances_free_y, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
+        files_dict["getphasetoty_free.out"] = write_phasetot_file(files_dict["getphasetoty_free.out"], "V", phase_d.phase_advances_free_y, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
-            files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y, model, tune_d.q1, tune_d.q2)
+            files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
+            files_dict["getphasetoty.out"] = write_phasetot_file(files_dict["getphasetoty.out"], "V", phase_d.phase_advances_y, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
 
     return phase_d, tune_d
 # END calculate_phase ------------------------------------------------------------------------------
@@ -439,9 +443,11 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
         print "correcting phase jump"
-        s_lastbpm = acc.get_s_first_BPM()
+        k_lastbpm = acc.get_k_first_BPM(bpm.index)
     else:
         print "phase jump will not be corrected"
+        k_lastbpm = len(bpm.index)
+
 
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
     phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
@@ -454,6 +460,7 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     for i in range(len(Files)):
         file_tfs = Files[i]
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
+        phases_meas[k_lastbpm:] += tune_q  * bd
         meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
         phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
         
@@ -562,15 +569,61 @@ def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
 # ac-dipole stuff
 #===================================================================================================
 
-def write_phase_file(tfs_file, plane, phase_advances, model, tune_x, tune_y):
+def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel):
     tfs_file.add_float_descriptor("Q1", tune_x)
     tfs_file.add_float_descriptor("Q2", tune_y)
     tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
     tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le"])
+    
     plane_mu = "MUX" if plane == "H" else "MUY"
+    plane_tune = tune_x if plane == "H" else tune_y
+    print plane_tune
     meas = phase_advances["MEAS"]
     mod = phase_advances["MODEL"]
     err = phase_advances["ERRMEAS"]
+    bd = accel.get_beam_direction()
+    
+    intersected_model = model.loc[meas.index]
+
+    for elem1, elem2 in accel.get_important_phase_advances():
+
+        mus1 = elements.loc[elem1, plane_mu] - intersected_model.loc[:, plane_mu]
+        minmu1 = abs(mus1).idxmin()
+        
+        mus2 = intersected_model.loc[:, plane_mu] - elements.loc[elem2, plane_mu]
+        minmu2 = abs(mus2).idxmin()
+        
+        print minmu1, elem1
+        print mus1[minmu1],"\n"
+        print minmu2, elem2
+        print mus2[minmu2],"\n"
+        
+        try:
+            bpm_phase_advance = meas.loc[minmu1, minmu2]
+            model_value = elements.loc[elem2, plane_mu] - elements.loc[elem1, plane_mu]
+
+            if (elements.loc[elem2, "S"] - elements.loc[elem1, "S"]) * bd < 0.0:
+                bpm_phase_advance += plane_tune
+                model_value += plane_tune
+            bpm_err = err.loc[minmu1, minmu2]
+            phase_to_first = -mus1.loc[minmu1]
+            phase_to_second = -mus2.loc[minmu2]
+            
+            ph_result = ((bpm_phase_advance + phase_to_first + phase_to_second) * bd)% 1.0
+            
+            model_value = (model_value * bd) % 1.0
+            
+            tfs_file.add_string_descriptor(elem1 + " -> " + elem2 + " MODL", 
+                                          "{:8.4f}     {:6s} = {:6.2f} deg".format(model_value, "", (model_value) * 360))
+            tfs_file.add_string_descriptor(elem1 + " -> " + elem2 + " MEAS", 
+                                          "{:8.4f}  +- {:6.4f} = {:6.2f} +- {:3.2f} deg ({:8.4f} + {:8.4f} [{}, {}])".format(
+                                                  ph_result, bpm_err, ph_result * 360, bpm_err * 360,
+                                                  bpm_phase_advance,
+                                                  phase_to_first + phase_to_second,
+                                                  minmu1, minmu2) )
+        except KeyError as e:
+            print "Couldn't calculate the phase advance because", e
+    
     for i in range(len(meas.index)-1):
         tfs_file.add_table_row([
                  meas.index[i],
@@ -580,6 +633,34 @@ def write_phase_file(tfs_file, plane, phase_advances, model, tune_x, tune_y):
                  meas[meas.index[i+1]][meas.index[i]],
                  err[meas.index[i+1]][meas.index[i]],
                  mod[meas.index[i+1]][meas.index[i]],
+                 model.loc[meas.index[i], plane_mu]
+                ])
+    return tfs_file
+
+def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel):
+    tfs_file.add_float_descriptor("Q1", tune_x)
+    tfs_file.add_float_descriptor("Q2", tune_y)
+    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+    tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le"])
+    
+    plane_mu = "MUX" if plane == "H" else "MUY"
+    plane_tune = tune_x if plane == "H" else tune_y
+    print plane_tune
+    meas = phase_advances["MEAS"]
+    mod = phase_advances["MODEL"]
+    err = phase_advances["ERRMEAS"]
+    
+    
+    
+    for i in range(len(meas.index)-1):
+        tfs_file.add_table_row([
+                 meas.index[i+1],
+                 meas.index[0],
+                 model.loc[meas.index[i+1], "S"],
+                 model.loc[meas.index[0], "S"],
+                 meas.loc[meas.index[i+1]][meas.index[0]],
+                 err.loc[meas.index[i+1]][meas.index[0]],
+                 mod.loc[meas.index[i+1]][meas.index[0]],
                  model.loc[meas.index[i], plane_mu]
                 ])
     return tfs_file

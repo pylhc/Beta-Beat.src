@@ -161,8 +161,10 @@ class Cps(Accelerator):
     
     
     def get_s_first_BPM(self):
-        
         return 0
+    
+    def get_k_first_BPM(self, list_of_bpms):
+        return len(list_of_bpms)
         
     def get_model_tfs(self):
         return self.model_tfs

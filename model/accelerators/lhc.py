@@ -386,6 +386,15 @@ class Lhc(Accelerator):
                     return get_commonbpm("BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms)
         return None
     
+    def get_important_phase_advances(self):
+        if self.get_beam() == 2:
+            return[["MKD.O5R6.B2", "TCTPH.4R1.B2"],
+                   ["MKD.O5R6.B2", "TCTPH.4R5.B2"]]
+        if self.get_beam() == 1:
+            return [["MKD.O5L6.B1", "TCTPH.4L1.B1"],
+                    ["MKD.O5L6.B1", "TCTPH.4L5.B1"]]
+
+    
     def get_exciter_name(self, plane):
         if self.beam() == 1:
             if self.excitation == AccExcitationMode.ACD:
@@ -416,6 +425,13 @@ class Lhc(Accelerator):
             return self.model_tfs.loc["BPMSW.1L2.B1", "S"]
         elif self.get_beam() == 2:
             return self.model_tfs.loc["BPMSW.1L8.B2", "S"]
+        return None
+    
+    def get_k_first_BPM(self, index):
+        if self.get_beam() == 1:
+            return index.get_loc("BPMSW.1L2.B1")
+        elif self.get_beam() == 2:
+            return index.get_loc("BPMSW.1L8.B2")
         return None
         
     def get_model_tfs(self):
