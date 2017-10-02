@@ -5,6 +5,8 @@ Created on Fri Aug  4 11:25:51 2017
 
 @author: awegsche
 """
+
+import __init__
     
 class GetLLMError(Exception):
     """

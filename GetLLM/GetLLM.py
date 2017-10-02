@@ -545,7 +545,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
                 twiss_file_x["AMPX"], twiss_file_x["ERRAMPX"] = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
             try:
                 dppi = float(twiss_file_x.headers["DPP"])
-            except AttributeError:
+            except KeyError:
                 dppi = 0.0
             if type(dppi) != float:
                 print type(dppi)
@@ -619,7 +619,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
                 twiss_file_y.AMPY, twiss_file_y["ERRAMPY"] = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
             try:
                 dppi = float(twiss_file_y.headers["DPP"])
-            except AttributeError:
+            except KeyError:
                 dppi = 0.0
             if type(dppi) != float:
                 print >> sys.stderr, 'Warning: DPP may not be given as a number in ', file_y, '...trying to forcibly cast it as a number'
