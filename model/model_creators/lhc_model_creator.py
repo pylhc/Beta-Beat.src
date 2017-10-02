@@ -66,8 +66,10 @@ class LhcModelCreator(model_creator.ModelCreator):
             file_path = os.path.join(cls.ERR_DEF_PATH, file_name)
             # TODO: Windows?
             link_path = os.path.join(output_path, "error_deff.txt")
-            if os.path.isfile(link_path):
+            try:
                 os.unlink(link_path)
+            except OSError:
+                pass
             os.symlink(file_path, link_path)
 
     @classmethod
@@ -137,6 +139,28 @@ class LhcSegmentCreator(model_creator.ModelCreator):
             "LABEL": lhc_instance.label,
             "STARTFROM": lhc_instance.start,
             "ENDAT": lhc_instance.end,
+        }
+        madx_script = madx_template % replace_dict
+        return madx_script
+
+
+class LhcCouplingCreator(model_creator.ModelCreator):
+    @classmethod
+    def get_madx_script(cls, lhc_instance, output_path):
+        with open(lhc_instance.get_coupling_tmpl()) as textfile:
+            madx_template = textfile.read()
+            print(madx_template)
+        crossing_on = "1" if lhc_instance.xing else "0"
+        replace_dict = {
+            "LIB": lhc_instance.MACROS_NAME,
+            "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
+            "OPTICS_PATH": lhc_instance.optics_file,
+            "NUM_BEAM": lhc_instance.get_beam(),
+            "PATH": output_path,
+            "QMX": lhc_instance.nat_tune_x,
+            "QMY": lhc_instance.nat_tune_y,
+            "CROSSING_ON": crossing_on,
+
         }
         madx_script = madx_template % replace_dict
         return madx_script

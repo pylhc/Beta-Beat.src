@@ -1,0 +1,39 @@
+option, -echo;
+call, file = "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/madx/lib/beta_beat.macros.madx";
+call, file = "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/madx/lib/lhc.macros.madx";
+call, file = "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/madx/lib/lhc_runII.macros.madx";
+call, file = "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/madx/lib/lhc_runII_ats.macros.madx";
+option, echo;
+
+title, "Model creator for java";
+
+!@require lhc_runII_ats.macros.madx
+
+option, -echo;
+
+call, file = "/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/model/accelerators/lhc/2017/main.seq";
+
+exec, define_nominal_beams();
+call, file = "/user/tpersson/BetaBeat/2017-08-24/models/LHCB1/40cm_Ac/modifiers.madx";
+exec, cycle_sequences();
+
+if(0==1){
+exec, set_crossing_scheme_ON();
+}else{
+exec, set_default_crossing_scheme();
+}
+
+use, period = LHCB1;
+
+option, echo;
+
+exec, match_tunes(0.31, 0.318, 1);
+
+exec, do_twiss_monitors(LHCB1, "/user/tpersson/BetaBeat/2017-08-24/models/LHCB1/40cm_Ac/twiss.dat", 0.0);
+exec, do_twiss_elements(LHCB1, "/user/tpersson/BetaBeat/2017-08-24/models/LHCB1/40cm_Ac/twiss_elements.dat", 0.0);
+
+if(1 == 1){
+    exec, twiss_ac_dipole(0.31, 0.318, 0.298, 0.32799998, 1, "/user/tpersson/BetaBeat/2017-08-24/models/LHCB1/40cm_Ac/twiss_ac.dat", 0.0);
+}else if(0 == 1){
+    exec, twiss_adt(0.31, 0.318, 0.298, 0.32799998, 1, "/user/tpersson/BetaBeat/2017-08-24/models/LHCB1/40cm_Ac/twiss_adt.dat", 0.0);
+}

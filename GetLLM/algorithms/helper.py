@@ -107,7 +107,6 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     C=cos(delta*tp)
     S=sin(delta*tp)
     T=tan(delta*tp)
-    SC=sin(delta*tp)/((cos(delta*tp*2)+1)/2)
     S2_1 = 1/S**2
     # signal
     cs1=cos(tp*phase1)

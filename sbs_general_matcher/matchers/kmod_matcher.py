@@ -8,28 +8,40 @@ class KmodMatcher(PhaseMatcher):
 
     BETA_BEATING_CONSTR_WEIGHT = 1.
 
+    BETA_BEATING_TMPL = (
+        "{varname} := ((table(twiss, {bpm_name}, bet{plane}) - table({nominal_table_name}, {bpm_name}, bet{plane})) / "
+        "table({nominal_table_name}, {bpm_name}, bet{plane})) / {error};"
+    )
+
     @Matcher.override(PhaseMatcher)
     def define_aux_vars(self):
         beatings_str = ""
-        beam = self.get_segment().get_beam()
+        beam = self.segment.get_beam()
         for plane in ["x", "y"]:
+            this_kmod_data = self._get_kmod_data(plane)
             for name in self._get_kmod_data(plane).NAME:
-                beatings_str += self._name + self._get_suffix() + plane + name + ' := '
-                beatings_str += "(table(twiss, " + name + ", bet" + plane + ")"
-                beatings_str += " - table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ")) /\n"
-                beatings_str += "table(" + self._get_nominal_table_name(beam) + ", " + name + ", bet" + plane + ");\n"
-
+                index = this_kmod_data.indx[name]
+                err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
+                beatings_str += KmodMatcher.BETA_BEATING_TMPL.format(
+                    varname=self.name + self._get_suffix() + plane + name,
+                    bpm_name = name,
+                    nominal_table_name=self._get_nominal_table_name(),
+                    plane=plane,
+                    error=err_beta_beating,
+                ) + "\n"
         variables_s_str = ""
         for variable in self.get_variables():
-            variables_s_str += self.get_name() + '.' + variable + '_0' + ' = ' + variable + ';\n'
+            variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
+        beam = str(self.segment.get_beam())
 
-        return PhaseMatcher.DEF_CONSTR_AUX_VALUES_TEMPLATE % {
-            "SEQ": "lhcb" + str(beam) + "_" + self._front_or_back + "_" + self._name,
-            "INIT_VALS": "b" + str(beam) + "_" + self._ini_end + "_" + self._name,
-            "TABLE_NAME": self._get_nominal_table_name(),
-            "PHASES": beatings_str,
-            "S_VARIABLES": variables_s_str,
-        }
+        aux_vars_str = PhaseMatcher.SEGMENT_TWISS_TMPL.format(
+            seq="lhcb" + beam + "_" + self.propagation + "_" + self.name,
+            init_vals="b" + beam + "_" + self.ini_end + "_" + self.name,
+            table_name=self._get_nominal_table_name(),
+        )
+        aux_vars_str += beatings_str
+        aux_vars_str += variables_s_str
+        return aux_vars_str
 
     @Matcher.override(PhaseMatcher)
     def define_constraints(self):
@@ -41,7 +53,7 @@ class KmodMatcher(PhaseMatcher):
                 beta_beating = getattr(this_kmod_data, "BETABEAT" + plane.upper())[index]
                 err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
                 constr_string += self._get_constraint_instruction(
-                    self._name + self._get_suffix() + plane + name,
+                    self.name + self._get_suffix() + plane + name,
                     beta_beating, err_beta_beating)
 
         return constr_string
@@ -51,7 +63,7 @@ class KmodMatcher(PhaseMatcher):
 
     def _get_kmod_data(self, plane):
         sbs_kmod_data_path = os.path.join(
-            os.path.join(self._matcher_path, "sbs"),
-            'sbskmodbetabeat' + plane + '_' + self._segment.label + '.out'
+            os.path.join(self.matcher_path, "sbs"),
+            'sbskmodbetabeat' + plane + '_' + self.segment.label + '.out'
         )
         return metaclass.twiss(sbs_kmod_data_path)

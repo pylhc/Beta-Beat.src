@@ -63,8 +63,8 @@ class TfsDataFrame(pandas.DataFrame):
             try:
                 return self.headers[name]
             except KeyError:
-                raise KeyError(str(name) +
-                               " is not in the DataFrame or headers.")
+                raise AttributeError(str(name) +
+                                     " is not in the DataFrame or headers.")
 
     @property
     def _constructor(self):

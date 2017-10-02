@@ -56,16 +56,16 @@ class MatcherModelDefault(object):
             raise ValueError(
                 "Cannot set excluded variables of not created matcher"
             )
-        if active and var_name in self._matcher._excluded_variables_list:
-            self._matcher._excluded_variables_list.remove(var_name)
+        if active and var_name in self._matcher.excluded_variables:
+            self._matcher.excluded_variables.remove(var_name)
             LOGGER.info(self._name + " -> Activated var: " + var_name)
         elif (not active and var_name not in
-                self._matcher._excluded_variables_list):
-            self._matcher._excluded_variables_list.append(var_name)
+                self._matcher.excluded_variables):
+            self._matcher.excluded_variables.append(var_name)
             LOGGER.info(self._name + " -> Disabled var: " + var_name)
 
     def disable_all_vars(self):
-        self._matcher._excluded_variables_list =\
+        self._matcher.excluded_variables =\
             self.get_matcher().get_variables(exclude=False)
 
     def toggle_constr(self, constr_name):
@@ -73,20 +73,12 @@ class MatcherModelDefault(object):
             raise ValueError(
                 "Cannot set excluded variables of not created matcher"
             )
-        if (constr_name in self._matcher._excluded_constraints_list):
-            self._matcher._excluded_constraints_list.remove(constr_name)
+        if (constr_name in self._matcher.excluded_constraints):
+            self._matcher.excluded_constraints.remove(constr_name)
             LOGGER.info(self._name + " -> Activated constr: " + constr_name)
-        elif (constr_name not in self._matcher._excluded_constraints_list):
-            self._matcher._excluded_constraints_list.append(constr_name)
+        elif (constr_name not in self._matcher.excluded_constraints):
+            self._matcher.excluded_constraints.append(constr_name)
             LOGGER.info(self._name + " -> Disabled constr: " + constr_name)
-
-    def get_matcher_dict(self):
-        matcher_dict = {}
-        matcher_dict["label"] = self._label
-        matcher_dict["path"] = self._meas_path
-        matcher_dict["use_errors"] = self._use_errors
-        matcher_dict["propagation"] = self._propagation
-        return matcher_dict
 
     def create_matcher(self, match_path):
         raise NotImplementedError
@@ -104,7 +96,7 @@ class MatcherModelDefault(object):
         match_results = {}
         if self._matcher is not None:
             corr_file = os.path.join(
-                self._matcher.get_main_match_path(),
+                self._matcher.match_path,
                 "changeparameters.madx"
             )
             try:
@@ -209,7 +201,7 @@ class MatcherPlotterDefault(object):
     def _redraw_figure(self, event):
         for axes in self._figure.axes:
             del axes.texts[:]
-            for element_name in self._matcher_model._matcher._excluded_constraints_list:
+            for element_name in self._matcher_model._matcher.excluded_constraints:
                 points = self._get_points_for_element(element_name, axes)
                 for point in points:
                     x, y = point

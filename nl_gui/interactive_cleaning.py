@@ -69,6 +69,7 @@ class IterateCleaning(object):
         self.data_keys = {  'top_left':     keys[0],
                             'middle_left':  keys[1], 
                             'bottom_left':  keys[2]}
+        
         self.cropped_data = {}
         self.hist_limits = {}
         self.span_limits = {}
@@ -115,9 +116,13 @@ class IterateCleaning(object):
     def _get_data_frames(self):
         for key in ['top_left', 'middle_left', 'bottom_left']:
             self.cropped_data[key] = self.tune_df[[self.data_keys[key]]].loc[self.start:self.end].dropna(how='all')
-        self.cropped_data['top_right'] = self.tune_df[[self.data_keys['top_left'], self.data_keys['middle_left']]].loc[self.start:self.end].dropna(how='all')
-        self.cropped_data['middle_right'] = self.tune_df[[self.data_keys['bottom_left']]].loc[self.start:self.end].dropna(how='all')
-        self.cropped_data['bottom_right'] = self.tune_df[[self.data_keys['bottom_left']]].loc[self.start:self.end].dropna(how='all')
+        
+        self.cropped_data['top_left'] =  self.cropped_data['top_left'][(self.cropped_data['top_left'][self.data_keys['top_left']] < 0.278) & (self.cropped_data['top_left'][self.data_keys['top_left']] > 0.262)]
+        self.cropped_data['middle_left'] =  self.cropped_data['middle_left'][(self.cropped_data['middle_left'][self.data_keys['middle_left']] < 0.303) & (self.cropped_data['middle_left'][self.data_keys['middle_left']] > 0.287)]
+
+        self.cropped_data['top_right']    = self.cropped_data['top_left']    
+        self.cropped_data['middle_right'] = self.cropped_data['middle_left'] 
+        self.cropped_data['bottom_right'] = self.cropped_data['bottom_left'] 
 
     def _get_hist_limits(self):
         for key in self.axes:
@@ -127,7 +132,7 @@ class IterateCleaning(object):
             dfstd = self.cropped_data[key].std()[0]
             
             self.hist_limits[key] = (dfmin, dfmax, dfmean, dfstd)            
-            self.span_limits[key] = (dfmean-dfstd, dfmean+dfstd)
+            self.span_limits[key] = (dfmean-2.5*dfstd, dfmean+2.5*dfstd)
     
     def _get_clean_limits(self):
         self.clean_lim_Qx = [min(self.all_poly['top_left'].poly.xy[:,0]), max(self.all_poly['top_left'].poly.xy[:,0])]
@@ -136,9 +141,13 @@ class IterateCleaning(object):
     
     def _summarize_cleaned_data(self):
         self._get_clean_limits()
-        qx_data = self.cropped_data['top_left'].clip(lower=self.clean_lim_Qx[0], upper=self.clean_lim_Qx[1])
-        qy_data = self.cropped_data['middle_left'].clip(lower=self.clean_lim_Qy[0], upper=self.clean_lim_Qy[1])
-        coupl_data = self.cropped_data['bottom_left'].clip(lower=self.clean_lim_Coupl[0], upper=self.clean_lim_Coupl[1])
+        qx_data = self.cropped_data['top_left'][(self.cropped_data['top_left'][self.data_keys['top_left']] > self.clean_lim_Qx[0]) & (self.cropped_data['top_left'][self.data_keys['top_left']] < self.clean_lim_Qx[1])]
+        qy_data = self.cropped_data['middle_left'][(self.cropped_data['middle_left'][self.data_keys['middle_left']] > self.clean_lim_Qy[0]) & (self.cropped_data['middle_left'][self.data_keys['middle_left']] < self.clean_lim_Qy[1])]
+        coupl_data = self.cropped_data['bottom_left'][(self.cropped_data['bottom_left'][self.data_keys['bottom_left']] > self.clean_lim_Coupl[0]) & (self.cropped_data['bottom_left'][self.data_keys['bottom_left']] < self.clean_lim_Coupl[1])]
+        
+        # qx_data = self.cropped_data['top_left'].clip(lower=self.clean_lim_Qx[0], upper=self.clean_lim_Qx[1])
+        # qy_data = self.cropped_data['middle_left'].clip(lower=self.clean_lim_Qy[0], upper=self.clean_lim_Qy[1])
+        # coupl_data = self.cropped_data['bottom_left'].clip(lower=self.clean_lim_Coupl[0], upper=self.clean_lim_Coupl[1])
        
         self.data_summary.loc[self.idx] = qx_data.mean()[0], qx_data.std()[0], qy_data.mean()[0], qy_data.std()[0], coupl_data.mean()[0], coupl_data.std()[0], 
 
@@ -147,9 +156,9 @@ class IterateCleaning(object):
         self.axes['top_right'].set_title('Beam %s' %self.beam)
         for key in ['top_left', 'middle_left', 'bottom_left']:
             self.cropped_data[key].plot.hist(xlim=[self.hist_limits[key][0],self.hist_limits[key][1]],
-                                             bins=200, 
+                                             bins=300, 
                                              ax=self.axes[key])
-        for key in ['top_right', 'middle_right']:
+        for key in ['top_right', 'middle_right', 'bottom_right']:
             self.cropped_data[key].plot(ax=self.axes[key])
         self.fig.canvas.draw()
 

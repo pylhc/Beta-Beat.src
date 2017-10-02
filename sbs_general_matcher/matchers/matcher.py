@@ -1,111 +1,101 @@
+# pylint: disable=E1101
 import os
 import logging
 import shutil
+from functools import partial
 from Python_Classes4MAD import metaclass
 from Utilities import iotools
 from model import manager
-
-EXTRACT_SEQUENCES_TEMPLATE = """
-exec, extract_segment_sequence(LHCB%(BEAM_NUM)s, %(FRONT_SEQ)s, %(BACK_SEQ)s, %(START_FROM)s, %(END_AT)s);
-exec, beam_LHCB%(BEAM_NUM)s(%(FRONT_SEQ)s);
-exec, beam_LHCB%(BEAM_NUM)s(%(BACK_SEQ)s);
-"""
-
-SET_INITIAL_VALUES_TEMPLATE = """
-option, -echo, -info;
-call, file = "%(MODIFIERS_OPTICS)s";
-option, echo, info;
-exec, save_initial_and_final_values(LHCB%(BEAM_NUM)s, %(START_FROM)s, %(END_AT)s, "%(PATH)s/measurement_%(LABEL)s.madx", %(B_INI)s, %(B_END)s);
-exec, twiss_segment(%(FRONT_SEQ)s, "%(PATH)s/twiss_%(LABEL)s.dat", %(B_INI)s);
-exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_back.dat", %(B_END)s);
-"""
-
-MATCHING_MACRO_TEMPLATE = """
-    %(MACRO_NAME)s: macro = {
-        use, period=%(SEQ)s;
-
-        option, -echo, -info;
-        call, file = "%(MODIFIERS_OPTICS)s";
-%(UPDATE_VARIABLES)s
-
-        twiss, beta0=%(B_INI_END)s, chrom;
-%(UPDATE_CONSTRAINTS)s
-        option, echo, info;
-        print, text = "=========== step for %(MACRO_NAME)s ===========";
-    };
-%(DEFINE_CONSTRAINTS)s
-"""
-
-RUN_CORRECTED_TWISS_TEMPLATE = """
-option, -echo, -info;
-call, file = "%(MODIFIERS_OPTICS)s";
-%(APPLY_CORRECTIONS)s
-option, echo, info;
-exec, twiss_segment(%(FRONT_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor.dat", %(B_INI)s);
-exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", %(B_END)s);
-"""
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 LOGGER = logging.getLogger(__name__)
 
 
+class MatcherFactory(object):
+    """
+    Use this class to create matchers.
+    The factory instance will have a set_{parameter} function for each of the
+    items in the PARAMETERS constant. All parameters specified should be set
+    or an MatcherFactoryError will be throws. The method create() will give
+    the matcher instance.
+
+    Args:
+        matcher_like: A subclass of the Matcher class to instantiate.
+    """
+    PARAMETERS = (
+        "lhc_mode", "beam", "name",
+        "var_classes", "match_path", "label",
+        "use_errors", "propagation", "measurement_path",
+        "excluded_constraints", "excluded_variables",
+    )
+
+    def __init__(self, matcher_like):
+        self._matcher_like = matcher_like.__new__(matcher_like)
+        for parameter in MatcherFactory.PARAMETERS:
+            setattr(
+                self,
+                "set_" + parameter,
+                partial(self._set_function_tmpl, parameter),
+            )
+
+    def _set_function_tmpl(self, parameter, value):
+        setattr(self, "_is_{}_set".format(parameter), True)
+        setattr(self, "_{}".format(parameter), value)
+        return self
+
+    def create(self):
+        """
+        Checks that all the parameters have been set and creates the instance
+        of the requested matcher.
+
+        Returns:
+            An instace of the required Matcher.
+        """
+        for parameter in MatcherFactory.PARAMETERS:
+            if not getattr(self, "_is_{}_set".format(parameter)):
+                raise MatcherFactoryError(
+                    "Parameter {} not defined.".format(parameter)
+                )
+            setattr(self._matcher_like,
+                    parameter,
+                    getattr(self, "_{}".format(parameter)))
+        self._matcher_like._create()
+        return self._matcher_like
+
+
+class MatcherFactoryError(Exception):
+    """
+    Thrown when the creation of a matcher using the MatcherFactory fails.
+    """
+    pass
+
+
 class Matcher(object):
 
-    def __init__(self, lhc_mode, beam, matcher_name, matcher_dict,
-                 matcher_variables, match_path):
-        self._name = matcher_name
-        self._main_match_path = match_path
-        self._label = matcher_dict["label"]
-        self._use_errors = matcher_dict["use_errors"]
-        self._front_or_back = matcher_dict["propagation"].lower()
-        self._variables_cls = matcher_variables
-        self._matcher_path = os.path.join(
-            match_path,
-            self._name
+    def __init__(self):
+        raise NotImplementedError(
+            "Use the MatcherFactory to implement matcher classes."
         )
-        measurement_path = matcher_dict["path"]
-        match_path = os.path.join(
-            match_path,
-            self._name
+
+    def _create(self):
+        assert self.propagation in ("front", "back", "f", "b")
+        self.matcher_path = os.path.join(
+            self.match_path,
+            self.name,
         )
         Matcher._copy_measurement_files(
-            self._label, measurement_path, match_path
+            self.label,
+            self.measurement_path,
+            self.matcher_path,
         )
-        self._segment = Matcher._get_segment(
-            lhc_mode, beam, self._matcher_path, self._label
+        self.segment = Matcher._get_segment(
+            self.lhc_mode,
+            self.beam,
+            self.matcher_path,
+            self.label,
         )
-
-        self._excluded_constraints_list = []
-        self._excluded_variables_list = []
-        if "exclude_constraints" in matcher_dict:
-            self._excluded_constraints_list = (
-                matcher_dict["exclude_constraints"].strip('"').split(",")
-            )
-        if "exclude_variables" in matcher_dict:
-            self._excluded_variables_list = (
-                matcher_dict["exclude_variables"].strip('"').split(",")
-            )
-
-        assert self._front_or_back in ["front", "back", "f", "b"]
-        self._front_or_back = self._front_or_back[0]
-        self._ini_end = "ini" if self._front_or_back == "f" else "end"
-
-        LOGGER.info("Successfully read matcher " + matcher_name)
-
-    def get_name(self):
-        return self._name
-
-    def get_main_match_path(self):
-        return self._main_match_path
-
-    def get_matcher_path(self):
-        return self._matcher_path
-
-    def get_segment(self):
-        return self._segment
-
-    def get_front_or_back(self):
-        return self._front_or_back
+        self.propagation = self.propagation[0]
+        self.ini_end = "ini" if self.propagation == "f" else "end"
 
     def get_variables(self, exclude=True):
         """
@@ -113,12 +103,6 @@ class Matcher(object):
         it will not return the variables in the excluded variables list.
         """
         raise NotImplementedError
-
-    def set_exclude_variables(self, excluded_variables_list):
-        self._excluded_variables_list = excluded_variables_list
-
-    def set_disabled_constraints(self, disbled_constraints):
-        self._excluded_constraints_list = disbled_constraints
 
     def define_aux_vars(self):
         """Returns the MAD-X string to define the auxiliary values to use
@@ -152,17 +136,18 @@ class Matcher(object):
 
     def _get_constraint_instruction(self, constr_name,
                                     value, error, sigmas=1.):
-        if self._use_errors:
-            upper_bound = str(value + error * sigmas)
-            lower_bound = str(value - error * sigmas)
+        if self.use_errors:
             constr_string = '    constraint, weight = 1.0, '
-            constr_string += 'expr =  ' + constr_name + ' < ' + upper_bound + ';\n'
-            constr_string += '    constraint, weight = 1.0, '
-            constr_string += 'expr =  ' + constr_name + ' > ' + lower_bound + ';\n'
+            constr_string += 'expr =  ' + constr_name + ' = ' + str(value / error) + ';\n'
         else:
             constr_string = '    constraint, weight = 1.0, '
             constr_string += 'expr =  ' + constr_name + ' = ' + str(value) + ';\n'
         return constr_string
+
+    def _get_nominal_table_name(self, beam=None):
+        if beam is None:
+            beam = self.segment.get_beam()
+        return self.name + ".twiss.b" + str(beam)
 
     @staticmethod
     def override(parent_cls):
@@ -223,14 +208,6 @@ class Matcher(object):
             os.path.join(match_math, "sbs"),
             ".madx"
         )
-
-
-class InputError(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
 
 
 def _copy_files_with_extension(src, dest, ext):

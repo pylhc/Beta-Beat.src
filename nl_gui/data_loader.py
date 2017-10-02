@@ -33,8 +33,7 @@ def load_orbit_csv(file_path):
 
 def load_platteaus_csv(file_path):
     data_frame = pd.read_csv(file_path, parse_dates=[0,1,2], infer_datetime_format=True)
-    data_frame.columns = map(str.upper, data_frame.columns)
-    data_frame.sort_values(by='KNOB_PLAT_START', ascending=True, inplace=True)
+    data_frame.sort_values(by='knob_plat', ascending=True, inplace=True)
     return data_frame
 
 
@@ -56,8 +55,14 @@ def load_tune_coupling_csv(file_path):
 
     return data_frame
 
+
 def load_accepted_platteaus(file_path):
     data_frame = pd.read_csv(file_path, parse_dates=[1,2,3,4] )
+    return data_frame
+
+
+def load_knob_settings(file_path):
+    data_frame = pd.read_csv(file_path)
     return data_frame
 
 
@@ -76,6 +81,8 @@ def load_csv(file_path, filetype=None):
         return load_mcb_csv(file_path)
     elif filetype is 'tune':
         return load_tune_coupling_csv(file_path)
+    elif filetype is 'knob_settings':
+        return load_knob_settings(file_path)
 
 
 if __name__ == "__main__":

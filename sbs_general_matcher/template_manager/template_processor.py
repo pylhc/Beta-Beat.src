@@ -11,19 +11,11 @@ class TemplateProcessor(object):
         "..", "..", "madx", "templates", "lhc_super_matcher.madx"
     )
 
-    START_MATCH = """
-match, use_macro;
-"""
-    END_MATCH = """
-lmdif, tolerance:=1e-24, calls:=120;
-endmatch;
-"""
-    SAVE_CHANGEPARAMETERS = """
-save, file="%(MATCH_PATH)s/changeparameters.madx";
-"""
-    CALL_CHANGEPARAMETERS = """
-call, file="%(MATCH_PATH)s/changeparameters.madx";
-"""
+    START_MATCH = "match, use_macro;"
+    END_MATCH = ("lmdif, tolerance:=1e-24, calls:=120;\n"
+                 "endmatch;")
+    SAVE_CHANGEPARAMETERS = 'save, file="%(MATCH_PATH)s/changeparameters.madx";'
+    CALL_CHANGEPARAMETERS = 'call, file="%(MATCH_PATH)s/changeparameters.madx";'
 
     def __init__(self, matchers_list, match_path, lhc_mode, minimize,
                  madx_templates_runner):
@@ -84,11 +76,11 @@ call, file="%(MATCH_PATH)s/changeparameters.madx";
 
     def _process_matchers(self):
         for matcher in self._matchers_list:
-            LOGGER.info("Processing matcher: " + matcher.get_name())
+            LOGGER.info("Processing matcher: " + matcher.name)
             LOGGER.info(" - Ignoring variables: " +
-                        str(matcher._excluded_variables_list))
+                        str(matcher.excluded_variables))
             LOGGER.info(" - Ignoring constraints: " +
-                        str(matcher._excluded_constraints_list))
+                        str(matcher.excluded_constraints))
             self._collect_variables(matcher)
             self._extract_sequences(matcher)
             self._set_initial_values(matcher)
@@ -106,13 +98,13 @@ exec, beam_LHCB%(BEAM_NUM)s(%(BACK_SEQ)s);
 
     def _extract_sequences(self, matcher):
         extract_sequences_str = ""
-        beam = matcher.get_segment().get_beam()
+        beam = matcher.segment.get_beam()
         extract_sequences_str += TemplateProcessor.EXTRACT_SEQUENCES_TEMPLATE % {
             "BEAM_NUM": str(beam),
-            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.get_name(),
-            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.get_name(),
-            "START_FROM": matcher.get_segment().start.name,
-            "END_AT": matcher.get_segment().end.name,
+            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.name,
+            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.name,
+            "START_FROM": matcher.segment.start.name,
+            "END_AT": matcher.segment.end.name,
         }
         self._extract_sequences_list.append(extract_sequences_str)
 
@@ -134,18 +126,18 @@ exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_back.dat", %(B_END)s
 
     def _set_initial_values(self, matcher):
         set_initial_values_str = ""
-        beam = matcher.get_segment().get_beam()
+        beam = matcher.segment.get_beam()
         set_initial_values_str += TemplateProcessor.SET_INITIAL_VALUES_TEMPLATE % {
-            "MODIFIERS_OPTICS": matcher.get_segment().optics_file,
+            "MODIFIERS_OPTICS": matcher.segment.optics_file,
             "BEAM_NUM": str(beam),
-            "PATH": os.path.join(matcher.get_matcher_path(), "sbs"),
-            "LABEL": matcher.get_segment().label,
-            "START_FROM": matcher.get_segment().start.name,
-            "END_AT": matcher.get_segment().end.name,
-            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.get_name(),
-            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.get_name(),
-            "B_INI": "b" + str(beam) + "_ini_" + matcher.get_name(),
-            "B_END": "b" + str(beam) + "_end_" + matcher.get_name()
+            "PATH": os.path.join(matcher.matcher_path, "sbs"),
+            "LABEL": matcher.segment.label,
+            "START_FROM": matcher.segment.start.name,
+            "END_AT": matcher.segment.end.name,
+            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.name,
+            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.name,
+            "B_INI": "b" + str(beam) + "_ini_" + matcher.name,
+            "B_END": "b" + str(beam) + "_end_" + matcher.name
         }
         self._set_initial_values_list.append(set_initial_values_str)
 
@@ -181,18 +173,18 @@ print, text = "=========== step for %(MACRO_NAME)s ===========";
 
     def _set_matching_macros(self, matcher):
         matching_macros = ""
-        beam = matcher.get_segment().get_beam()
+        beam = matcher.segment.get_beam()
         define_constr_str = matcher.define_constraints()
         if self._minimize:
             define_constr_str += self._minimize_variables(matcher)
         matching_macros += TemplateProcessor.MATCHING_MACRO_TEMPLATE % {
-            "MODIFIERS_OPTICS": matcher.get_segment().optics_file,
-            "MACRO_NAME": "macro_" + matcher.get_name() + "_b" + str(beam),
+            "MODIFIERS_OPTICS": matcher.segment.optics_file,
+            "MACRO_NAME": "macro_" + matcher.name + "_b" + str(beam),
             "BEAM_NUM": str(beam),
-            "SEQ": "lhcb" + str(beam) + "_" + matcher.get_front_or_back() + "_" + matcher.get_name(),
+            "SEQ": "lhcb" + str(beam) + "_" + matcher.propagation + "_" + matcher.name,
             "UPDATE_CONSTRAINTS": matcher.update_constraints_values(),
             "UPDATE_VARIABLES": matcher.update_variables_definition(),
-            "B_INI_END": "b" + str(beam) + "_" + matcher._ini_end + "_" + matcher.get_name(),
+            "B_INI_END": "b" + str(beam) + "_" + matcher.ini_end + "_" + matcher.name,
             "DEFINE_CONSTRAINTS": define_constr_str
         }
         matching_macros += "\n"
@@ -232,18 +224,18 @@ exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", %(B_E
 
         apply_correction_str = ""
         for variable in self._variables:
-            apply_correction_str += variable + ' = ' + matcher.get_name() + "." + variable + '_0 + d' + variable + ';\n'
+            apply_correction_str += variable + ' = ' + matcher.name + "." + variable + '_0 + d' + variable + ';\n'
 
-        beam = matcher.get_segment().get_beam()
+        beam = matcher.segment.get_beam()
         run_corrected_twiss_str += TemplateProcessor.RUN_CORRECTED_TWISS_TEMPLATE % {
-            "MODIFIERS_OPTICS": matcher.get_segment().optics_file,
+            "MODIFIERS_OPTICS": matcher.segment.optics_file,
             "APPLY_CORRECTIONS": apply_correction_str,
             "BEAM_NUM": str(beam),
-            "PATH": os.path.join(matcher.get_matcher_path(), "sbs"),
-            "LABEL": matcher.get_segment().label,
-            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.get_name(),
-            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.get_name(),
-            "B_INI": "b" + str(beam) + "_ini_" + matcher.get_name(),
-            "B_END": "b" + str(beam) + "_end_" + matcher.get_name()
+            "PATH": os.path.join(matcher.matcher_path, "sbs"),
+            "LABEL": matcher.segment.label,
+            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.name,
+            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.name,
+            "B_INI": "b" + str(beam) + "_ini_" + matcher.name,
+            "B_END": "b" + str(beam) + "_end_" + matcher.name
         }
         self._run_corrected_twiss_list.append(run_corrected_twiss_str)
