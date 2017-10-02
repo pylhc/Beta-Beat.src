@@ -97,6 +97,8 @@ def get_free_phase_total_eq(MADTwiss, Files, commonbpms, Qd, Q, ac2bpmac, plane,
 def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d):
 
     print "Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane)
+    
+#    Files = [Files[0]]
     acc = getllm_d.accelerator
     psid_ac2bpmac = ac2bpmac[1]
     k_bpmac = ac2bpmac[2]
@@ -107,18 +109,16 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
         print "correcting phase jump"
-        s_lastbpm = acc.get_s_first_BPM()
+        k_lastbpm = acc.get_k_first_BPM(bpm.index)
     else:
+        k_lastbpm = len(bpm)
         print "phase jump will not be corrected"
 
-    # lower triangular matrix that stores the tune for phase advances that span over to the next turn
-    triq = np.tril(np.full((number_commonbpms, number_commonbpms), Qd), -1)
-    
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
     phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(model.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis] #+ triq
+    phase_advances["MODEL"] = ((phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis])) % 1.0 
 
     #-- Global parameters of the driven motion
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
@@ -128,18 +128,23 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     for i in range(len(Files)):
         file_tfs = Files[i]
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction        for k in range(len(bpm)):
-           
-        psid = phases_meas - (phases_meas[k_bpmac] - psid_ac2bpmac) + Qd # OK, untill here, it is Psi(s, s_ac)
+        phases_meas[k_lastbpm:] += Qd
+        psid = phases_meas - (phases_meas[k_bpmac] - psid_ac2bpmac) # OK, untill here, it is Psi(s, s_ac)
+        psid += .5 * Qd * bd
         psid[k_bpmac:] -= Qd
         
         Psi = np.arctan((1 - r) / (1 + r) * np.tan(TWOPI * psid)) / TWOPI
+        Psi = np.where(psid % 1.0 > .25, Psi + .5, Psi)
+        Psi = np.where(psid % 1.0 > .75, Psi - .5, Psi)
         Psi -= Psi[0]
-        Psi[k_bpmac:] += Q
+#        Psi -= .5 * Q
+        Psi[k_bpmac:] += Q 
+#        Psi *= bd
         
         meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis]) 
-        phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0) + triq
+        phase_matr_meas[i] = meas_matr
    
-    phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1
+    phase_advances["MEAS"] = np.mean(phase_matr_meas , axis=0) % 1.0
     phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * phase.t_value_correction(len(Files)) / np.sqrt(len(Files))
     
 #    for i in range(100):
