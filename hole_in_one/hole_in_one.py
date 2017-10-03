@@ -72,11 +72,13 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
             if harpy_input is not None:
                 with timeit(lambda spanned: LOGGER.debug("Time for orbit_analysis: %s", spanned)):
                     lin_frame = get_orbit_data(bpm_names, bpm_data, bpm_res, model_tfs)
+                    bpm_data = (bpm_data.T - np.mean(bpm_data, axis=1)).T
                 with timeit(lambda spanned: LOGGER.debug("Time for harmonic_analysis: %s", spanned)):
                     lin_result, spectrum, bad_bpms_fft = harmonic_analysis(
                         bpm_names, bpm_data, usv,
                         plane, harpy_input, lin_frame, model_tfs,
                     )
+                    rescale_amps_to_main_line(lin_result, plane)
                     all_bad_bpms.extend(bad_bpms_fft)
                     #TODO: Writing of harpy should be done in output_handler
                     output_file = output_handler.get_outpath_with_suffix(
@@ -132,6 +134,12 @@ def harmonic_analysis(bpm_names, bpm_data, usv, plane, harpy_input, panda):
     lin_result, spectrum, bad_bpms_fft = svd_harpy.svd_harpy(
         bpm_names, bpm_data, usv, plane.upper(), harpy_input, panda) # TODO lin_file header?
     return lin_result, spectrum, bad_bpms_fft
+
+
+def rescale_amps_to_main_line(panda,plane):
+    cols = [col for col in panda.columns.values if col.startswith('AMP')]
+    cols.pop('AMP'+ plane.upper())
+    panda.loc[:,cols]=panda.loc[:,cols].div(panda.loc[:,'AMP'+plane.upper()])
 
 
 def _dump(pathToDump, content):
