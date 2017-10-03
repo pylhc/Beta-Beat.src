@@ -18,6 +18,7 @@ TODOs:
 from __future__ import print_function
 import multiprocessing
 import logging
+from functools import partial
 import numpy as np
 import pandas as pd
 from harpy.harmonic_analysis import HarmonicAnalysis
@@ -147,21 +148,23 @@ def _harmonic_analysis(harpy_input, bpm_matrix, usv):
 
 
 def _parallel_laskar(samples, sequential, num_harms):
-    freqs = []
-    coefs = []
+    freqs = np.zeros((samples.shape[0], num_harms), dtype=np.float)
+    coefs = np.zeros((samples.shape[0], num_harms), dtype=np.complex128)
 
-    def _collect_results(freq, coef):
-        freqs.append(freq)
-        coefs.append(coef)
+    def _collect_results(index, freq_and_coef):
+        freq, coef = freq_and_coef
+        freqs[index] = freq
+        coefs[index] = coef
 
     pool = multiprocessing.Pool(np.min([PROCESSES, samples.shape[0]]))
     for i in range(samples.shape[0]):
         args = (samples[i, :], num_harms)
+        callback = partial(_collect_results, i)
         if sequential:
-            _collect_results(*_laskar_per_mode(*args))
+            callback(_laskar_per_mode(*args))
         else:
             pool.apply_async(_laskar_per_mode, args,
-                             callback=lambda res: _collect_results(*res))
+                             callback=callback)
     pool.close()
     pool.join()
     return np.array(freqs), np.array(coefs)
