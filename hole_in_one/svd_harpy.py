@@ -207,11 +207,14 @@ def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
     min = freq - tolerance
     max = freq + tolerance
     on_window_mask = (frequencies >= min) & (frequencies <= max)
-    filtered_coefs = np.where(on_window_mask,
+    filtered_amps = np.where(on_window_mask,
                               np.abs(coefficients),
                               np.zeros_like(coefficients))
-    max_indices = np.argmax(filtered_coefs, axis=1)
-    max_coefs = coefficients[np.arange(coefficients.shape[0]), max_indices]
+    filtered_coefs = np.where(on_window_mask,
+                              coefficients,
+                              np.zeros_like(coefficients))
+    max_indices = np.argmax(filtered_amps, axis=1)
+    max_coefs = filtered_coefs[np.arange(coefficients.shape[0]), max_indices]
     max_freqs = frequencies[np.arange(frequencies.shape[0]), max_indices]
     max_freqs = (max_coefs != 0) * max_freqs  # Zero bad freqs
     return max_coefs, max_freqs
