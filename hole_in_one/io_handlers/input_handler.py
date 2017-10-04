@@ -262,6 +262,7 @@ class HarpyInput(object):
         self.tolerance = options.tolerance
         self.harpy_mode = options.harpy_mode
         self.sequential = options.sequential
+        self.tune_clean_limit = options.tune_clean_limit
         return self
 
 
