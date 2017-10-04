@@ -304,6 +304,25 @@ def _handle_data_for_lhc():
     mad_script.write("return;")
     mad_script.close()
 
+    mad_corr = open(os.path.join(_InputData.output_path, "changeparameters_couple_correct.madx"), "w")
+    names = getattr(v, "NAME", [])
+    delta = getattr(v, "DELTA", [])
+
+    for i in range(len(names)):
+        if "bumps" in _InputData.variables_list:
+            if cmp(delta[i], 0) == 1:
+                mad_corr.write(names[i] + "->KICK:=" + str(delta[i]) + ";\n")
+            else:
+                mad_corr.write(names[i] + "->KICK:=" + str(delta[i]) + ";\n")
+        else:
+            if cmp(delta[i], 0) == 1:
+                mad_corr.write(names[i] + " = " + names[i] + " + " + str(delta[i]) + ";\n")
+            else:
+                mad_corr.write(names[i] + " = " + names[i] + " " + str(delta[i]) + ";\n")
+
+    mad_corr.write("return;")
+    mad_corr.close()
+
 
 #=======================================================================================================================
 # helper class for script arguments
