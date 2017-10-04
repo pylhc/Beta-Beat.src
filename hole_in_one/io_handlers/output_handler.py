@@ -1,5 +1,7 @@
 import os
 import logging
+import cPickle
+from Utilities import tfs_pandas
 from sdds_files import turn_by_turn_reader
 
 
@@ -57,66 +59,28 @@ class CleanedAsciiWritter(object):
 
 
 def write_bad_bpms(bin_path, bad_bpms_with_reasons, output_dir, plane):
-    bad_bpms_file = get_outpath_with_suffix(bin_path, output_dir, ".bad_bpms_" + plane)
+    bad_bpms_file = get_outpath_with_suffix(
+        bin_path,
+        output_dir,
+        ".bad_bpms_" + plane
+    )
     with open(bad_bpms_file, 'w') as bad_bpms_writer:
         for line in bad_bpms_with_reasons:
             bad_bpms_writer.write(line + '\n')
 
 
-def write_harpy_output(harpy_data_frame):
-    pass
-
-
-def _create_lin_files(self):
-    file_name = self._get_outfile_name(self._plane)
-    lin_outfile = tfs_file_writer.TfsFileWriter(
-        os.path.join(self._output_dir, file_name)
+def write_harpy_output(main_input, harpy_data_frame, headers, spectrum, plane):
+    output_file = get_outpath_with_suffix(
+        main_input.file, main_input.outputdir, ".lin" + plane
     )
-    headers = HEADERS[self._plane]
-    for resonance in RESONANCE_LISTS[self._plane]:
-        if resonance == MAIN_LINES[self._plane]:
-            continue
-        x, y, z = resonance
-        if z == 0:
-            resstr = (str(x) + str(y)).replace("-", "_")
-        else:
-            resstr = (str(x) + str(y) + str(z)).replace("-", "_")
-        headers.extend(["AMP" + resstr, "PHASE" + resstr])
-    headers.extend(["NATTUNE" + self._plane,
-                    "NATAMP" + self._plane])
-    lin_outfile.add_column_names(headers)
-    lin_outfile.add_column_datatypes(
-        ["%s"] + ["%le"] * (len(headers) - 1))
-    self._lin_outfile = lin_outfile
+    tfs_pandas.write_tfs(harpy_data_frame, headers, output_file)
+    _dump(get_outpath_with_suffix(
+          main_input.file, main_input.outputdir, ".spec" + plane), spectrum)
 
 
-def _write_single_bpm_results(self, lin_outfile, bpm_results):
-    row = [bpm_results.name, bpm_results.position, 0, 0, bpm_results.tune,
-           0, bpm_results.peak_to_peak, bpm_results.closed_orbit,
-           bpm_results.closed_orbit_rms, bpm_results.amplitude,
-           bpm_results.phase, bpm_results.amp_from_avg,
-           bpm_results.phase_from_avg, bpm_results.bpm_resolution]
-    resonance_list = RESONANCE_LISTS[self._plane]
-    main_resonance = MAIN_LINES[self._plane]
-    for resonance in resonance_list:
-        if resonance != main_resonance:
-            if resonance in bpm_results.resonances:
-                _, coefficient = bpm_results.resonances[resonance]
-                row.append(np.abs(coefficient) / bpm_results.amplitude)
-                row.append(np.angle(coefficient) / (2 * np.pi))
-            else:
-                row.append(0.0)
-                row.append(0.0)
-
-    col_name = "NAT" + self._plane.upper()
-    try:
-        natural_freq, natural_coef = bpm_results.resonances[col_name]
-        row.append(natural_freq)
-        row.append(np.abs(natural_coef) / bpm_results.amplitude)
-    except KeyError:
-        row.append(0.0)
-        row.append(0.0)
-    lin_outfile.add_table_row(row)
+def _dump(output_file, content):
+    with open(output_file, 'wb') as output_data:
+        cPickle.Pickler(output_data, -1).dump(content)
 
 
 def get_outpath_with_suffix(path, output_dir, suffix):

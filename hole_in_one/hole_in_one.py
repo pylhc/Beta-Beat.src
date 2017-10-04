@@ -2,12 +2,11 @@ from __future__ import print_function
 import sys
 import os
 import logging
-import cPickle
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
 import clean
-import harpy
 import svd_harpy
 from io_handlers import input_handler, output_handler
 
@@ -80,14 +79,14 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                     )
                     lin_result = _rescale_amps_to_main_line(lin_result, plane)
                     all_bad_bpms.extend(bad_bpms_fft)
-                    #TODO: Writing of harpy should be done in output_handler
-                    output_file = output_handler.get_outpath_with_suffix(
-                        main_input.file, main_input.outputdir, ".lin" + plane
+                    headers = _compute_headers(lin_result, plane)
+                    output_handler.write_harpy_output(
+                        main_input,
+                        lin_result,
+                        headers,
+                        spectrum,
+                        plane
                     )
-                    tfs.write_tfs(lin_result,{},output_file)
-                    _dump(output_handler.get_outpath_with_suffix(
-                        main_input.file, main_input.outputdir, ".spec" + plane), spectrum)
-                    # TODO write spectrum - it is a dictionary of DataFrames
 
             output_handler.write_bad_bpms(
                 main_input.file,
@@ -146,12 +145,6 @@ def _rescale_amps_to_main_line(panda, plane):
     return panda
 
 
-def _dump(pathToDump, content):
-    dumpFile = open(pathToDump, 'wb')
-    cPickle.Pickler(dumpFile, -1).dump(content)
-    dumpFile.close()
-
-
 def calc_dp_over_p(main_input, bpm_names, bpm_data):
     model_twiss = tfs.read_tfs(main_input.model)
     model_twiss.set_index("NAME", inplace=True)
@@ -177,6 +170,28 @@ def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):
             np.power(5, ind[2])).reshape(p2max * p3max * p5max)
     nums = nums[(nums > rang[0]) & (nums <= rang[1])]
     return np.sort(nums)
+
+
+def _compute_headers(panda, plane):
+    plane_number = {"x": "1", "y": "2"}[plane]
+    headers = OrderedDict()
+    tunes = panda.loc[:, "TUNE" + plane.upper()]
+    headers["Q" + plane_number] = np.mean(tunes)
+    headers["Q" + plane_number + "RMS"] = np.std(tunes)
+    try:
+        nattunes = panda.loc[:, "NATTUNE" + plane.upper()]
+        headers["NATQ" + plane_number] = np.mean(nattunes)
+        headers["NATQ" + plane_number + "RMS"] = np.std(nattunes)
+    except KeyError:
+        pass  # No natural tunes
+    try:
+        ztunes = panda.loc[:, "TUNEZ" + plane.upper()]
+        headers["Q3"] = np.mean(ztunes)
+        headers["Q3RMS"] = np.std(ztunes)
+    except KeyError:
+        pass  # No tune z
+    # TODO: DPPAMP
+    return headers
 
 
 def _setup_file_log_handler(main_input):
