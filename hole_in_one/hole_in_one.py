@@ -1,32 +1,32 @@
 from __future__ import print_function
 import sys
 import os
-import time
 import logging
+from collections import OrderedDict
 
 import numpy as np
-from scipy.fftpack import fft as scipy_fft
 import pandas as pd
+import clean
+import svd_harpy
+from io_handlers import input_handler, output_handler
+
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
     ".."
 )))
 
-import clean
-from io_handlers import input_handler, output_handler
-from harpy import harpy
-from Utilities.twiss_to_tbt import generate
-from Utilities import tfs_pandas
+from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit 
 from model import manager
 from sdds_files import turn_by_turn_reader
+
 
 LOGGER = logging.getLogger(__name__)
 LOG_SUFFIX = ".log"
 
 
 def run_all(main_input, clean_input, harpy_input):
-    with timeit(lambda time: LOGGER.info("Total time for file: %s", time)):
+    with timeit(lambda spanned: LOGGER.info("Total time for file: %s", spanned)):
         if (not main_input.write_raw and
                 clean_input is None and harpy_input is None):
             LOGGER.error("No file has been choosen to be writen!")
@@ -43,20 +43,23 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
 
     if clean_input is not None or harpy_input is not None:
         clean_writer = output_handler.CleanedAsciiWritter(main_input, tbt_file.date)
+        model_tfs = tfs.read_tfs(main_input.model).loc[:, ['NAME', 'S', 'DX']] # dispersion in meters
         for plane in ("x", "y"):
             bpm_names = np.array(getattr(tbt_file, "bpm_names_" + plane))
             bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
+            bpm_names, bpm_data, bpms_not_in_model = get_only_model_bpms(bpm_names, bpm_data, model_tfs)
             all_bad_bpms = []
             usv = None
             if clean_input is not None:
-                with timeit(lambda time: LOGGER.debug("Time for filtering: %s", time)):
+                with timeit(lambda spanned: LOGGER.debug("Time for filtering: %s", spanned)):
                     bpm_names, bpm_data, bad_bpms_clean = clean.clean(
                         bpm_names, bpm_data, clean_input, tbt_file.date,
                     )
-                with timeit(lambda time: LOGGER.debug("Time for SVD clean: %s", time)):
+                with timeit(lambda spanned: LOGGER.debug("Time for SVD clean: %s", spanned)):
                     bpm_names, bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(
                         bpm_names, bpm_data, clean_input,
                     )
+                all_bad_bpms.extend(bpms_not_in_model)
                 all_bad_bpms.extend(bad_bpms_clean)
                 all_bad_bpms.extend(bad_bpms_svd)
                 setattr(clean_writer, "bpm_names_" + plane, bpm_names)
@@ -66,16 +69,25 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                 computed_dpp = calc_dp_over_p(main_input, bpm_names, bpm_data)
 
             if harpy_input is not None:
-                with timeit(lambda time: LOGGER.debug("Time for harmonic_analysis: %s", time)):
-                    drive_results, bad_bpms_fft = harmonic_analysis(
+                with timeit(lambda spanned: LOGGER.debug("Time for orbit_analysis: %s", spanned)):
+                    lin_frame = get_orbit_data(bpm_names, bpm_data, bpm_res, model_tfs)
+                    bpm_data = (bpm_data.T - np.mean(bpm_data, axis=1)).T
+                with timeit(lambda spanned: LOGGER.debug("Time for harmonic_analysis: %s", spanned)):
+                    lin_result, spectrum, bad_bpms_fft = harmonic_analysis(
                         bpm_names, bpm_data, usv,
-                        plane, main_input, harpy_input,
+                        plane, harpy_input, lin_frame, model_tfs,
                     )
+                    lin_result = _rescale_amps_to_main_line(lin_result, plane)
                     all_bad_bpms.extend(bad_bpms_fft)
-                    #TODO: Writing of harpy should be done in output_handler
-                    drive_results.write_full_results()
+                    headers = _compute_headers(lin_result, plane)
+                    output_handler.write_harpy_output(
+                        main_input,
+                        lin_result,
+                        headers,
+                        spectrum,
+                        plane
+                    )
 
-            lin_frame = get_orbit_data(bpm_names, bpm_data, bpm_res)
             output_handler.write_bad_bpms(
                 main_input.file,
                 all_bad_bpms,
@@ -87,62 +99,54 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
             clean_writer.write()
 
 
-def get_orbit_data(bpm_names, bpm_data, bpm_res):
-    di={'NAME': bpm_names, 
-        'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
-        'CO': np.mean(bpm_data,axis=1),
-        'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
-        'BPM_RES': bpm_res
-        }
-    return pd.DataFrame.from_dict(di)
-   
+def get_only_model_bpms(bpm_names, bpm_data, model):
+    bpms = np.ones([len(bpm_names)], dtype=bool)
+    no_model=set(bpm_names) - set(model.loc[:,'NAME'].values)
+    bpms_not_in_model=[]
+    for bpm in no_model:
+        bpms_not_in_model.append(bpm + "Not found in model")
+    for i in range(len(bpm_names)):
+        if bpm_names[i] in no_model:
+            bpms[i] = False
+    return bpm_names[bpms], bpm_data[bpms,:], bpms_not_in_model
 
-def harmonic_analysis(bpm_names, bpm_data, usv,
-                      plane, main_input, harpy_input):
-    tunes = harpy_input.tunex, harpy_input.tuney, harpy_input.tunez
-    if harpy_input.nattunex is None or harpy_input.nattuney is None:
-        nattunes = None
-    else:
-        nattunes = harpy_input.nattunex, harpy_input.nattuney, harpy_input.nattunez
-    allowed = _get_allowed_length(
-        rang=[0, bpm_data.shape[1]]
-    )[-1]
-    bpm_data = bpm_data[:, :allowed]
-    output_file = output_handler.get_outpath_with_suffix(
-        main_input.file, main_input.outputdir, ".lin" + plane
-    )
-    if harpy_input.harpy_mode == "bpm":
-        drivemat = harpy.init_from_matrix(
-            bpm_names, bpm_data, tunes, plane.upper(),
-            output_file, main_input.model, nattunes=nattunes,
-            tolerance=harpy_input.tolerance,
-            start_turn=0, end_turn=None, sequential=harpy_input.sequential,
-        )
-    elif harpy_input.harpy_mode == "svd" or harpy_input.harpy_mode == "fast":
-        if usv is None:
+
+def get_orbit_data(bpm_names, bpm_data, bpm_res, model):
+    di = {'NAME': bpm_names, 
+          'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
+          'CO': np.mean(bpm_data,axis=1),
+          'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
+          'BPM_RES': bpm_res
+         }
+    return pd.merge(model, pd.DataFrame.from_dict(di), on='NAME', how='inner')
+
+
+def harmonic_analysis(bpm_names, bpm_data, usv, plane, harpy_input, panda, model_tfs):
+    if usv is None:
+        if harpy_input.harpy_mode == "svd" or harpy_input.harpy_mode == "fast":
             raise ValueError("Running harpy SVD mode but not svd clean was run."
                              " Set 'clean' flag to use SVD mode.")
+    else:
+        allowed = _get_allowed_length(rang=[0, bpm_data.shape[1]])[-1]
+        bpm_data = bpm_data[:, :allowed]
         usv = (usv[0], usv[1], usv[2][:, :allowed])
-        fast = harpy_input.harpy_mode == "fast"
-        drivemat = harpy.init_from_svd(
-            bpm_names, bpm_data, usv, tunes, plane.upper(),
-            output_file, main_input.model, nattunes=nattunes,
-            tolerance=harpy_input.tolerance,
-            start_turn=0, end_turn=None, sequential=harpy_input.sequential, fast=fast
-        )
-    bpms_after_fft = []
-    for i in range(len(drivemat.bpm_results)):
-        bpms_after_fft.append(drivemat.bpm_results[i].name)
-    bad_bpms_fft = []
-    for bpm_name in bpm_names:
-        if bpm_name not in bpms_after_fft:
-            bad_bpms_fft.append(bpm_name + " Could not find the main resonance")
-    
-    return drivemat, bad_bpms_fft
+    lin_result, spectrum, bad_bpms_fft = svd_harpy.svd_harpy(
+        bpm_names, bpm_data, usv, plane.upper(), harpy_input, panda, model_tfs) # TODO lin_file header?
+    return lin_result, spectrum, bad_bpms_fft
+
+
+def _rescale_amps_to_main_line(panda, plane):
+    cols = [col for col in panda.columns.values if col.startswith('AMP')]
+    cols.remove('AMP' + plane.upper())
+    panda.loc[:, cols] = panda.loc[:, cols].div(
+        panda.loc[:, 'AMP' + plane.upper()],
+        axis="index"
+    )
+    return panda
 
 
 def calc_dp_over_p(main_input, bpm_names, bpm_data):
-    model_twiss = tfs_pandas.read_tfs(main_input.model)
+    model_twiss = tfs.read_tfs(main_input.model)
     model_twiss.set_index("NAME", inplace=True)
     sequence = model_twiss.headers["SEQUENCE"].lower().replace("b1", "").replace("b2", "")
     accel_cls = manager.get_accel_class(sequence)
@@ -166,6 +170,28 @@ def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):
             np.power(5, ind[2])).reshape(p2max * p3max * p5max)
     nums = nums[(nums > rang[0]) & (nums <= rang[1])]
     return np.sort(nums)
+
+
+def _compute_headers(panda, plane):
+    plane_number = {"x": "1", "y": "2"}[plane]
+    headers = OrderedDict()
+    tunes = panda.loc[:, "TUNE" + plane.upper()]
+    headers["Q" + plane_number] = np.mean(tunes)
+    headers["Q" + plane_number + "RMS"] = np.std(tunes)
+    try:
+        nattunes = panda.loc[:, "NATTUNE" + plane.upper()]
+        headers["NATQ" + plane_number] = np.mean(nattunes)
+        headers["NATQ" + plane_number + "RMS"] = np.std(nattunes)
+    except KeyError:
+        pass  # No natural tunes
+    try:
+        ztunes = panda.loc[:, "TUNEZ" + plane.upper()]
+        headers["Q3"] = np.mean(ztunes)
+        headers["Q3RMS"] = np.std(ztunes)
+    except KeyError:
+        pass  # No tune z
+    # TODO: DPPAMP
+    return headers
 
 
 def _setup_file_log_handler(main_input):

@@ -195,6 +195,19 @@ def _create_changeparameters_madx_script_for_lhc():
 
     mad_script.write("return;")
     mad_script.close()
+    
+    mad_corr = open(os.path.join(_InputData.output_path, "changeparameters_chromcouple_correct.madx"), "w")
+    name_list = getattr(changeparams_twiss, "NAME", [])
+    delta_list = getattr(changeparams_twiss, "DELTA", [])
+
+    for i in range(len(name_list)):
+        if cmp(delta_list[i],0)==1:
+            mad_corr.write("{0} = {0} + {1};\n".format(name_list[i], delta_list[i]))
+        else:
+            mad_corr.write("{0} = {0} {1};\n".format(name_list[i], delta_list[i]))
+
+    mad_corr.write("return;")
+    mad_corr.close()
 
 
 def _twiss_in_output_one_of(*file_names):

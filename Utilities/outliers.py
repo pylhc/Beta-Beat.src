@@ -13,7 +13,7 @@ from scipy.stats import t
 
 
 # nsig: Limit for not being cleaned
-def get_filter_mask(data, x_data=None, limit=0.0, niter=20, nsig=None):
+def get_filter_mask(data, x_data=None, limit=0.0, niter=20, nsig=None, mask = None):
     """
     It filters the array of values which are meant to be constant
     or a linear function of the other array if that is provided
@@ -25,7 +25,11 @@ def get_filter_mask(data, x_data=None, limit=0.0, niter=20, nsig=None):
     if nsig is None:
         nsig = _get_significance_cut_from_length(len(data))
     # To fulfill the condition for the first iteration:
-    mask = np.ones_like(data, dtype=bool)
+    if mask is not None:
+        if not len(data) == len(mask):
+            raise ValueError("Mask is not equally long as dataset.")
+    else:
+        mask = np.ones_like(data, dtype=bool)
     prevlen = np.sum(mask) + 1
     for _ in range(niter):
         if not ((np.sum(mask) < prevlen) and
