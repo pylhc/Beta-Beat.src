@@ -22,14 +22,16 @@ def get_filter_mask(data, x_data=None, limit=0.0, niter=20, nsig=None, mask = No
     if x_data is not None:
         if not len(data) == len(x_data):
             raise ValueError("Datasets are not equally long.")
-    if nsig is None:
-        nsig = _get_significance_cut_from_length(len(data))
+    
     # To fulfill the condition for the first iteration:
     if mask is not None:
         if not len(data) == len(mask):
             raise ValueError("Mask is not equally long as dataset.")
     else:
         mask = np.ones_like(data, dtype=bool)
+    if nsig is None:
+        nsig = _get_significance_cut_from_length(np.sum(mask))
+
     prevlen = np.sum(mask) + 1
     for _ in range(niter):
         if not ((np.sum(mask) < prevlen) and

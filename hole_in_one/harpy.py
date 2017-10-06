@@ -80,16 +80,17 @@ def harpy(bpm_names, bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
     all_bpms_freqs = pd.DataFrame(data=frequencies, index=bpm_names)
     all_bpms_spectr = {"COEFS": all_bpms_coefs, "FREQS": all_bpms_freqs}
 
-    panda, bad_bpms_mask = _get_main_resonances(
+    panda, bad_bpms, bad_bpms_mask = _get_main_resonances(
         harpy_input, frequencies, bpm_coefficients,
         plane, harpy_input.tolerance, panda
     )
     if harpy_input.tunez > 0.0:
-        panda, bad_bpms_mask = _get_main_resonances(
+        panda, _ = _get_main_resonances(
             harpy_input, frequencies, bpm_coefficients,
             "Z", Z_TOLERANCE, panda
         )
-    panda, bad_bpms, bad_bpms_mask = _clean_by_tune(harpy_input, plane, panda)
+    panda, bad_bpms2, bad_bpms_mask = _clean_by_tune(harpy_input, plane, panda, bad_bpms_mask)
+    bad_bpms.extend(bad_bpms2)
     panda = _amp_and_mu_from_avg(bpm_matrix, bad_bpms_mask, plane, panda)
     panda = _get_noise(bpm_matrix, panda)
     panda = _get_natural_tunes(frequencies, bpm_coefficients, harpy_input, plane, panda)
@@ -182,10 +183,15 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
             "try to increase the tolerance or adjust the tunes"
         )
     bad_bpms_mask = max_coefs != 0.
+    bad_bpms = []
+    for i in np.arange(len(bad_bpms_mask)):
+        if not bad_bpms_mask[i]:
+            bad_bpms.append(panda.at[i, 'NAME'] +
+                            " The main resonance has not been found.")
     panda['TUNE'+plane] = max_freqs
     panda['AMP'+plane] = np.abs(max_coefs)
     panda['MU'+plane] = np.angle(max_coefs) / (2 * np.pi)
-    return panda, bad_bpms_mask
+    return panda, bad_bpms, bad_bpms_mask
 
 
 def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
@@ -205,14 +211,15 @@ def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
     return max_coefs, max_freqs
 
 
-def _clean_by_tune(harpy_input, plane, panda):
+def _clean_by_tune(harpy_input, plane, panda, bpms_mask):
     bad_bpms = []
     bad_bpms_mask = outliers.get_filter_mask(
         panda.loc[:, 'TUNE' + plane],
         limit=harpy_input.tune_clean_limit,
+        mask = bpms_mask
     )
     for i in np.arange(len(bad_bpms_mask)):
-        if not bad_bpms_mask[i]:
+        if not bad_bpms_mask[i] and bpms_mask[i]:
             bad_bpms.append(panda.at[i, 'NAME'] +
                             " tune is too far from average")
     return panda, bad_bpms, bad_bpms_mask
