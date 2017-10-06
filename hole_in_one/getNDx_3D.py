@@ -56,7 +56,7 @@ def getNDX(files,model,output):
     model_panda['NDXMDL'] = (model_panda.loc[:, 'DX'].values / np.sqrt(model_panda.loc[:, 'BETX'].values))
     columns=['NAME','S', 'NDXMDL']
     for c in model_panda.columns.values:
-        if c.startswith('AMP001') or c.startswith('PHASE001'):
+        if c.startswith('AMPZ') or c.startswith('MUZ'):
             columns.append(c)
     results = model_panda.loc[:,columns]
     results.set_index("NAME", inplace=True)
@@ -64,8 +64,8 @@ def getNDX(files,model,output):
     cols=[]
     # scaling to the model, and getting the synchrotron phase in the arcs
     for c in results.columns.values:
-        if c.startswith('PHASE001'):
-            results['sc'+c.replace('PHASE','AMP')]=results.loc[:,c.replace('PHASE','AMP')].values * np.sum(results.loc[arc_bpms,'NDXMDL']) / np.sum(results.loc[arc_bpms,c.replace('PHASE','AMP')])
+        if c.startswith('MUZ'):
+            results['sc'+c.replace('MU','AMP')]=results.loc[:,c.replace('MU','AMP')].values * np.sum(results.loc[arc_bpms,'NDXMDL']) / np.sum(results.loc[arc_bpms,c.replace('MU','AMP')])
             results['s'+c]=np.angle(np.exp(PI2I*results.loc[:,c].values))/(2*np.pi)
             field = results.loc[:,'s'+c].values- np.angle(np.sum(np.exp(PI2I * results.loc[arc_bpms,'s'+c])))/(2*np.pi)
             results['sc'+c]=np.abs(np.where(np.abs(field)>0.5,field-np.sign(field),field))
@@ -73,8 +73,8 @@ def getNDX(files,model,output):
             cols.append(d)
     #resolving the sign of dispersion
     for c in cols:
-        results[c.replace('scPHASE001','fNDX')]=results.loc[:,c.replace('PHASE','AMP')] * np.sign(0.25 - np.mean(results.loc[:,cols],axis=1)) 
-        columns.append(c.replace('scPHASE001','fNDX'))
+        results[c.replace('scMUZ','fNDX')]=results.loc[:,c.replace('MU','AMP')] * np.sign(0.25 - np.mean(results.loc[:,cols],axis=1)) 
+        columns.append(c.replace('scMUZ','fNDX'))
     forfile=results.loc[:,columns]
     f=[]
     #averaging over files and error calculation

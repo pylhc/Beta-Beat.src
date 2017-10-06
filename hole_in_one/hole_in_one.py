@@ -110,13 +110,14 @@ def get_only_model_bpms(bpm_names, bpm_data, model):
 
 
 def get_orbit_data(bpm_names, bpm_data, bpm_res, model):
-    di = {'NAME': bpm_names, 
-          'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
+    di = {'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
           'CO': np.mean(bpm_data,axis=1),
           'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
           'BPM_RES': bpm_res
          }
-    return pd.merge(model, pd.DataFrame.from_dict(di), on='NAME', how='inner')
+    frame = pd.DataFrame.from_dict(di, dtype=float)
+    frame['NAME'] = bpm_names
+    return pd.merge(model, frame, on='NAME', how='inner')
 
 
 def harmonic_analysis(bpm_names, bpm_data, usv, plane, harpy_input, panda, model_tfs):
