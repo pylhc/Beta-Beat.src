@@ -6,14 +6,11 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-import clean
-import svd_harpy
-from io_handlers import input_handler, output_handler
 
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__),
-    ".."
-)))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import clean
+import harpy
+from io_handlers import input_handler, output_handler
 
 from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit 
@@ -25,13 +22,14 @@ LOGGER = logging.getLogger(__name__)
 LOG_SUFFIX = ".log"
 
 
-def run_all(main_input, clean_input, harpy_input):
+def run_all(main_input, clean_input, harpy_input, to_log):
     with timeit(lambda spanned: LOGGER.info("Total time for file: %s", spanned)):
         if (not main_input.write_raw and
                 clean_input is None and harpy_input is None):
             LOGGER.error("No file has been choosen to be writen!")
             return
         _setup_file_log_handler(main_input)
+        LOGGER.debug(to_log)
         tbt_files = turn_by_turn_reader.read_tbt_file(main_input.file)
         for tbt_file in tbt_files:
             run_all_for_file(tbt_file, main_input, clean_input, harpy_input)
@@ -79,7 +77,7 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                     )
                     lin_result = _rescale_amps_to_main_line(lin_result, plane)
                     all_bad_bpms.extend(bad_bpms_fft)
-                    headers = _compute_headers(lin_result, plane)
+                    headers = _compute_headers(lin_result, plane, computed_dpp)
                     output_handler.write_harpy_output(
                         main_input,
                         lin_result,
@@ -130,8 +128,8 @@ def harmonic_analysis(bpm_names, bpm_data, usv, plane, harpy_input, panda, model
         allowed = _get_allowed_length(rang=[0, bpm_data.shape[1]])[-1]
         bpm_data = bpm_data[:, :allowed]
         usv = (usv[0], usv[1], usv[2][:, :allowed])
-    lin_result, spectrum, bad_bpms_fft = svd_harpy.svd_harpy(
-        bpm_names, bpm_data, usv, plane.upper(), harpy_input, panda, model_tfs) # TODO lin_file header?
+    lin_result, spectrum, bad_bpms_fft = harpy.harpy(
+        bpm_names, bpm_data, usv, plane.upper(), harpy_input, panda, model_tfs) 
     return lin_result, spectrum, bad_bpms_fft
 
 
@@ -172,12 +170,13 @@ def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):
     return np.sort(nums)
 
 
-def _compute_headers(panda, plane):
+def _compute_headers(panda, plane, computed_dpp):
     plane_number = {"x": "1", "y": "2"}[plane]
     headers = OrderedDict()
     tunes = panda.loc[:, "TUNE" + plane.upper()]
     headers["Q" + plane_number] = np.mean(tunes)
     headers["Q" + plane_number + "RMS"] = np.std(tunes)
+    headers["DPP"] = computed_dpp
     try:
         nattunes = panda.loc[:, "NATTUNE" + plane.upper()]
         headers["NATQ" + plane_number] = np.mean(nattunes)

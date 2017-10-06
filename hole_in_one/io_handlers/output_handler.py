@@ -4,20 +4,10 @@ import cPickle
 from Utilities import tfs_pandas
 from sdds_files import turn_by_turn_reader
 
-
 LOGGER = logging.getLogger("__name__")
 
 RAW_SUFFIX = ".raw"
 CLEAN_SUFFIX = ".clean"
-
-HEADERS = {"X": ["NAME", "S", "BINDEX", "SLABEL", "TUNEX", #"TUNEZ"
-                 "NOISE", "PK2PK", "CO", "CORMS", "AMPX",
-                 "MUX", "AVG_AMPX", "AVG_MUX", "BPM_RES"],
-           "Y": ["NAME", "S", "BINDEX", "SLABEL", "TUNEY", #"TUNEZ"
-                 "NOISE", "PK2PK", "CO", "CORMS",
-                 "AMPY", "MUY", "AVG_AMPY", "AVG_MUY", "BPM_RES"]}
-
-SPECTR_COLUMN_NAMES = ["FREQ", "AMP"]
 
 
 def write_raw_file(tbt_file, main_input):

@@ -1,5 +1,5 @@
 import argparse
-
+import sys
 
 def parse_args():
     main_parser = _get_main_parser()
@@ -34,7 +34,8 @@ def parse_args():
         harpy_input = HarpyInput.init_from_options(suboptions["harpy"])
     except KeyError:
         pass
-    return main_input, clean_input, harpy_input
+    python_path = "/afs/cern.ch/work/o/omc/anaconda/bin/python "
+    return main_input, clean_input, harpy_input, (python_path + " ".join(sys.argv))
 
 
 class ArgumentError(Exception):

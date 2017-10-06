@@ -1,14 +1,12 @@
 import logging
 from datetime import datetime
 import numpy as np
-from scipy.fftpack import fft as scipy_fft
 
 SPARSE_AVAILABLE = True
 try:
     from scipy.sparse.linalg.eigen.arpack.arpack import svds
 except ImportError:
     SPARSE_AVAILABLE = False
-
 
 PI2I = 2 * np.pi * complex(0, 1)
 LOGGER = logging.getLogger(__name__)
@@ -22,8 +20,6 @@ LIST_OF_KNOWN_BAD_BPMS = ["BPM.17L8.B1", "BPM.16L8.B1", "BPM.8R8.B1", "BPM.9R8.B
                           "BPM.22R3.B2", "BPM.23R3.B2", "BPMR.6L7.B2", "BPMWC.6L7.B2"] # New from ATS MD 27-07-2016
 LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = []
 
-########################
-# Somewhere we should dump the parameters used for the analysis to a file - main, or some inputdata class?
 
 def clean(bpm_names, bpm_data, clean_input, file_date):
     # Loops through BPM names
@@ -140,7 +136,6 @@ def svd_clean(bpm_names, bpm_data, clean_input):
         good_bpm_names = bpm_names
         good_bpm_data = bpm_data
     return good_bpm_names, good_bpm_data, bpm_res, bad_bpms_with_reasons, usv
-
 
 
 # HELPER FUNCTIONS #########################

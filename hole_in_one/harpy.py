@@ -3,15 +3,11 @@ This module is the actual implementation of the resonance search for
 turn-by-turn data.
 It uses a combination of the laskar method with SVD decomposition to speed up
 the search of resonances.
-The only public function and entry point is svd_harpy(...).
+The only public function and entry point is harpy(...).
 
 TODOs:
 - Mising nattunez - not needed yet
 - Improve search of higher order resonances smaller tolerance
-- If non-zero tunez try chroma_calculation
-- The amplitudes are not rescaled by ampx/y
-- Add header info, tunes, nattunes, dpp
-- Separate resonance for non-zero tunez computed if tunez > 0
 - Other option of noise estimate is to take average of to take average
    amplitude of fft of few last taken or first not taken modes
 """
@@ -21,18 +17,23 @@ import logging
 from functools import partial
 import numpy as np
 import pandas as pd
-from harpy.harmonic_analysis import HarmonicAnalysis
-
-from harpy import _python_path_manager
-_python_path_manager.append_betabeat()
 from Utilities import outliers
-from model import manager
+
+try:
+    from scipy.fftpack import fft as _fft
+except ImportError:
+    from numpy.fft import fft as _fft
+    
+NUMBA_AVAILABLE = True
+try:
+    from numba import jit
+except ImportError:
+    NUMBA_AVAILABLE = False
+
 
 LOGGER = logging.getLogger(__name__)
 
 PI2I = 2 * np.pi * complex(0, 1)
-
-SPECTR_COLUMN_NAMES = ["FREQ", "AMP"]
 
 RESONANCE_LISTS = {
     "X": ((0, 1, 0), (-2, 0, 0), (0, 2, 0), (-3, 0, 0), (-1, -1, 0),
@@ -43,21 +44,15 @@ RESONANCE_LISTS = {
     "Z": ((1, 0, 1), (0, 1, 1))
 }
 
-MAIN_LINES = {"X": (1, 0, 0),
-              "Y": (0, 1, 0),
-              "Z": (0, 0, 1)}
+MAIN_LINES = {"X": (1, 0, 0), "Y": (0, 1, 0), "Z": (0, 0, 1)}
 Z_TOLERANCE = 0.0001
-
-DEFAULT_DFT_METHOD = "laskar"
-
 NUM_HARMS = 300
 NUM_HARMS_SVD = 100
 
 PROCESSES = multiprocessing.cpu_count()
 
 
-def svd_harpy(bpm_names, bpm_matrix, usv, plane,
-              harpy_input, panda, model_tfs):
+def harpy(bpm_names, bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
     """Searches for the strongest resonances in each row of the bpm_matrix.
 
     TODO: More elaborate description here.
@@ -78,19 +73,11 @@ def svd_harpy(bpm_names, bpm_matrix, usv, plane,
             a dictionary of DataFrames with form: bpm_name -> bpm_spectrum and
             a list of string descibing which BPMs are marked as bad.
     """
-    frequencies, bpm_coefficients = _harmonic_analysis(
-        harpy_input, bpm_matrix, usv
-    )
+    frequencies, bpm_coefficients = _harmonic_analysis(harpy_input, bpm_matrix, usv)
     if frequencies.ndim < 2:
         frequencies = np.outer(np.ones(bpm_coefficients.shape[0]), frequencies)
-    all_bpms_coefs = pd.DataFrame(
-        data=bpm_coefficients,
-        index=bpm_names
-    )
-    all_bpms_freqs = pd.DataFrame(
-        data=frequencies,
-        index=bpm_names
-    )
+    all_bpms_coefs = pd.DataFrame(data=bpm_coefficients, index=bpm_names)
+    all_bpms_freqs = pd.DataFrame(data=frequencies, index=bpm_names)
     all_bpms_spectr = {"COEFS": all_bpms_coefs, "FREQS": all_bpms_freqs}
 
     panda, bad_bpms_mask = _get_main_resonances(
@@ -105,16 +92,12 @@ def svd_harpy(bpm_names, bpm_matrix, usv, plane,
     panda, bad_bpms, bad_bpms_mask = _clean_by_tune(harpy_input, plane, panda)
     panda = _amp_and_mu_from_avg(bpm_matrix, bad_bpms_mask, plane, panda)
     panda = _get_noise(bpm_matrix, panda)
-    panda = _get_natural_tunes(frequencies, bpm_coefficients,
-                               harpy_input, plane, panda)
+    panda = _get_natural_tunes(frequencies, bpm_coefficients, harpy_input, plane, panda)
 
     resonances_freqs = _compute_resonances_freqs(plane, harpy_input)
     if harpy_input.tunez > 0.0:
         resonances_freqs.update(_compute_resonances_freqs("Z", harpy_input))
-        if plane == "X":
-            dpoverp_amp, pos, neg = get_dpoverp_amp(
-                model_tfs, panda, bpm_names, bpm_matrix,
-            )
+        
     panda = _resonance_search(frequencies, bpm_coefficients,
                               harpy_input.tolerance, resonances_freqs, panda)
 
@@ -171,8 +154,7 @@ def _parallel_laskar(samples, sequential, num_harms):
 
 
 def _laskar_per_mode(samples, number_of_harmonics):
-    har_analysis = HarmonicAnalysis(samples)
-    freqs, coefs = har_analysis.laskar_method(number_of_harmonics)
+    freqs, coefs = laskar_method(samples, number_of_harmonics)
     return np.array(freqs), np.array(coefs)
 
 
@@ -276,7 +258,6 @@ def _get_noise(bpm_matrix, panda):
     return result
 
 
-# TODO: The amplitudes are not rescaled by ampx/y
 # Vectorized - coefficiens are matrix:
 def _resonance_search(frequencies, coefficients, tolerance,
                       resonances_freqs, panda):
@@ -290,84 +271,6 @@ def _resonance_search(frequencies, coefficients, tolerance,
         results['PHASE' + resstr] = np.angle(max_coefs) / (2 * np.pi)
         results['FREQ' + resstr] = max_freqs
     return results
-
-
-# # full period is one, phase is of the arc bpms in horizontal plane
-def get_dpoverp_amp(model_tfs, panda, bpm_names, bpm_samples):
-    # Interval is around integer phases for positive dpoverp
-    # and around halfes for the negative dpoverp
-    arc_bpm_names, arc_bpm_samples = _get_lhc_arc_bpms(bpm_names, bpm_samples)
-    tunez = np.mean(panda.set_index("NAME").loc[arc_bpm_names, "TUNEZ"])
-    tunez_phase = _phase_mean(panda.set_index("NAME").loc[arc_bpm_names, "MUZ"])
-    turns = bpm_samples.shape[1]
-    pos = _get_positive_dpoverp_intervals(tunez, tunez_phase, turns)
-    neg = _get_negative_dpoverp_intervals(tunez, tunez_phase, turns)
-    # We assume 3D kicks only happen in LHC for now.
-    co = np.zeros_like(arc_bpm_names)
-    model_dx = model_tfs.set_index("NAME").loc[arc_bpm_names, "DX"]
-    length = 0
-    for bin in pos:
-        mini, maxi = bin
-        co = co + np.sum(arc_bpm_samples[:, mini:maxi], axis=1)
-        length = length + maxi - mini
-    for bin in neg:
-        mini, maxi = bin
-        co = co - np.sum(arc_bpm_samples[:, mini:maxi], axis=1)
-        length = length + maxi - mini
-    co = co / 1e3  # Going from mm to m.
-    codx = co * model_dx / length
-    dx2 = model_dx ** 2
-    return np.sum(codx) / np.sum(dx2), pos, neg
-
-
-def _get_lhc_arc_bpms(bpm_names, bpm_samples):
-    accel_cls = manager.get_accel_class("lhc")
-    arc_bpms_mask = accel_cls.get_arc_bpms_mask(bpm_names)
-    arc_bpm_samples = bpm_samples[arc_bpms_mask]
-    arc_bpm_names = bpm_names[arc_bpms_mask]
-    return arc_bpm_names, arc_bpm_samples
-
-
-def _phase_mean(phases):
-    return np.angle(np.sum(np.exp(PI2I * phases))) / (2 * np.pi)
-
-
-def get_chroma(harpy_input, plane, bpm_names, bpm_samples, panda):
-    arc_bpm_names, arc_bpm_samples = _get_lhc_arc_bpms(bpm_names, bpm_samples)
-    tunez = np.mean(panda.set_index("NAME").loc[arc_bpm_names, "TUNEZ"])
-    tunez_phase = _phase_mean(panda.set_index("NAME").loc[arc_bpm_names, "MUZ"])
-    dpoverp_amp, pos, neg = get_dpoverp_amp(tunez, tunez_phase, bpm_samples)
-    for bin in pos:
-        mini, maxi = bin
-        coefficients = panda[:, "AMP" + plane] * np.exp(PI2I * panda[:, "MU" + plane])
-        frequencies = panda[:, "TUNE" + plane]
-        new_signal = coefficients * np.exp(PI2I * np.outer(frequencies, np.arange(bpm_samples.shape[1])))
-        # Remove synchro-betatron line?
-        bpm_int = (bpm_samples - new_signal)[:, mini:maxi]
-        # or subtract the synchrotron line? should be about the same
-        bpm_int = (bpm_int.T-np.mean(bpm_int, axis=1)).T
-        length = length + maxi - mini
-    for bin in neg:
-        mini, maxi = bin
-        co = co - np.sum(bpm_samples[:, mini:maxi], axis=1)
-        length = length + maxi - mini
-
-
-def _get_positive_dpoverp_intervals(tunez, tunez_phase, turns):
-    halfwidth = 0.1  # at 90 % of the maximum
-    intervals = []
-    start = (-halfwidth - tunez_phase) / tunez
-    end = (halfwidth - tunez_phase) / tunez
-    for i in range(int(turns * tunez) + 1):
-        start_i = start + float(i) / tunez
-        end_i = end + float(i) / tunez
-        if start_i > 0 and end_i < turns:
-            intervals.append((int(start_i), int(end_i)))
-    return intervals
-
-
-def _get_negative_dpoverp_intervals(tunez, tunez_phase, turns):
-    return _get_positive_dpoverp_intervals(tunez, tunez_phase + 0.5, turns)
 
 
 def _get_resonance_suffix(resonance):
@@ -389,10 +292,104 @@ def _compute_resonances_freqs(plane, harpy_input):
     freqs = [(resonance_h * harpy_input.tunex) +
              (resonance_v * harpy_input.tuney) +
              (resonance_l * harpy_input.tunez)
-             for (resonance_h,
-                  resonance_v,
-                  resonance_l) in RESONANCE_LISTS[plane]]
+             for (resonance_h, resonance_v, resonance_l) in RESONANCE_LISTS[plane]]
     # Move to [0, 1] domain.
     freqs = [freq + 1. if freq < 0. else freq for freq in freqs]
     resonances_freqs = dict(zip(RESONANCE_LISTS[plane], freqs))
     return resonances_freqs
+
+
+def laskar_method(tbt, num_harmonics):
+    samples = tbt[:]  # Copy the samples array.
+    n = len(samples)
+    int_range = np.arange(n)
+    coefficients = []
+    frequencies = []
+    for _ in range(num_harmonics):
+        # Compute this harmonic frequency and coefficient.
+        dft_data = _fft(samples)
+        frequency = _jacobsen(dft_data,n)
+        coefficient = _compute_coef(samples, frequency * n) / n
+
+        # Store frequency and amplitude
+        coefficients.append(coefficient)
+        frequencies.append(frequency)
+
+        # Subtract the found pure tune from the signal
+        new_signal = coefficient * np.exp(PI2I * frequency * int_range)
+        samples = samples - new_signal
+
+    coefficients, frequencies = zip(*sorted(zip(coefficients, frequencies),
+                                            key=lambda tuple: np.abs(tuple[0]),
+                                            reverse=True))
+    return frequencies, coefficients
+
+
+def fft_method(tbt, num_harmonics):
+    samples = tbt[:]  # Copy the samples array.
+    n = float(len(samples))
+    dft_data = _fft(samples)
+    indices = np.argsort(np.abs(dft_data))[::-1][:num_harmonics]
+    frequencies = indices / n
+    coefficients = dft_data[indices] / n
+    return frequencies, coefficients
+
+
+def _jacobsen(dft_values,n):
+    """
+    This method interpolates the real frequency of the
+    signal using the three highest peaks in the FFT.
+    """
+    k = np.argmax(np.abs(dft_values))
+    r = dft_values
+    delta = np.tan(np.pi / n) / (np.pi / n)
+    kp = (k + 1) % n
+    km = (k - 1) % n
+    delta = delta * np.real((r[km] - r[kp]) / (2 * r[k] - r[km] - r[kp]))
+    return (k + delta) / n
+ 
+
+def _compute_coef_simple(samples, kprime):
+    """
+    Computes the coefficient of the Discrete Time Fourier
+    Transform corresponding to the given frequency (kprime).
+    """
+    n = len(samples)
+    freq = kprime / n
+    exponents = np.exp(-PI2I * freq * np.arange(n))
+    coef = np.sum(exponents * samples)
+    return coef
+
+
+def _compute_coef_goertzel(samples, kprime):
+    """
+    Computes the coefficient of the Discrete Time Fourier
+    Transform corresponding to the given frequency (kprime).
+    This function is faster than the previous one if compiled
+    with Numba.
+    """
+    n = len(samples)
+    a = 2 * np.pi * (kprime / n)
+    b = 2 * np.cos(a)
+    c = np.exp(-complex(0, 1) * a)
+    d = np.exp(-complex(0, 1) * ((2 * np.pi * kprime) / n) * (n - 1))
+    s0 = 0.
+    s1 = 0.
+    s2 = 0.
+    for i in range(n - 1):
+        s0 = samples[i] + b * s1 - s2
+        s2 = s1
+        s1 = s0
+    s0 = samples[n - 1] + b * s1 - s2
+    y = s0 - s1 * c
+    return y * d
+
+
+def _which_compute_coef():
+    if not NUMBA_AVAILABLE:
+        LOGGER.warn("Cannot import numba, using numpy functions.")
+        return _compute_coef_simple
+    LOGGER.debug("Using compiled Numba functions.")
+    return jit(_compute_coef_goertzel, nopython=True, nogil=True)
+
+_compute_coef = _which_compute_coef()
