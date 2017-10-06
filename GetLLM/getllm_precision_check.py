@@ -129,6 +129,7 @@ if(%(DO_ACD)s == 1){
     );
 }else {
     exec, load_beam4_and_slice();
+    use, sequence=lhcb%(BEAM)i;
 }
 
 
