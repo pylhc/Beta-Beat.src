@@ -241,7 +241,7 @@ def _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda):
     if plane == "X":
         freq = harpy_input.nattunex
     if plane == "Y":
-        freq = harpy_input.nattunex
+        freq = harpy_input.nattuney
     max_coefs, max_freqs = _search_highest_coefs(
         freq, harpy_input.tolerance, frequencies, coefficients
     )
