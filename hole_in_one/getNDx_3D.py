@@ -74,7 +74,7 @@ def getNDX(files,model,output):
             cols.append(d)
     #resolving the sign of dispersion
     for c in cols:
-        results[c.replace('scMUZ','fNDX')]=results.loc[:,c.replace('MU','AMP')] * np.sign(0.25 - np.abs(np.angle(np.sum(np.exp(PI2I * results.loc[:,cols]),axis=1)))/(2*np.pi))#np.mean(results.loc[:,cols],axis=1)) 
+        results[c.replace('scMUZ','fNDX')]=results.loc[:,c.replace('MU','AMP')] * np.sign(0.25 - np.abs(np.angle(np.sum(np.exp(PI2I * results.loc[:,cols]),axis=1)))/(2*np.pi))
         columns.append(c.replace('scMUZ','fNDX'))
     forfile=results.loc[:,columns]
     f=[]
