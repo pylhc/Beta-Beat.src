@@ -77,6 +77,7 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                     )
                     lin_result = _rescale_amps_to_main_line(lin_result, plane)
                     all_bad_bpms.extend(bad_bpms_fft)
+                    lin_result.sort_values('S', axis=0, ascending=True, inplace=True, kind='mergesort')
                     headers = _compute_headers(lin_result, plane, computed_dpp)
                     output_handler.write_harpy_output(
                         main_input,
@@ -117,7 +118,7 @@ def get_orbit_data(bpm_names, bpm_data, bpm_res, model):
          }
     frame = pd.DataFrame.from_dict(di, dtype=float)
     frame['NAME'] = bpm_names
-    return pd.merge(model, frame, on='NAME', how='inner')
+    return pd.merge(frame, model, on='NAME', how='inner')
 
 
 def harmonic_analysis(bpm_names, bpm_data, usv, plane, harpy_input, panda, model_tfs):

@@ -85,7 +85,7 @@ def harpy(bpm_names, bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
         plane, harpy_input.tolerance, panda
     )
     if harpy_input.tunez > 0.0:
-        panda, _ = _get_main_resonances(
+        panda, _, _ = _get_main_resonances(
             harpy_input, frequencies, bpm_coefficients,
             "Z", Z_TOLERANCE, panda
         )
