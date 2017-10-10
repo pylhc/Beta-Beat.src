@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import os
+import shutil
 import numpy as np
 import argparse
 import time
@@ -16,6 +17,8 @@ from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
 from Utilities import iotools, ADDbpmerror
 from Utilities.contexts import silence
+from hole_in_one import hole_in_one
+from hole_in_one.io_handlers import input_handler as hio_input_handler
 
 
 HOR, VER = 0, 1
@@ -176,6 +179,13 @@ def _parse_args():
         dest="coupling",
         action="store_true",
     )
+    parser.add_argument(
+        "--usemodel",
+        help="Path to previously created model",
+        dest="usemodel",
+        default=None,
+        type=str
+    )
     return parser.parse_args()
 
 
@@ -211,77 +221,44 @@ KICK_Y = 1e-6
 
 RAMP1 = 0  # Ramp up start turn
 RAMP2 = 2001  # Ramp up end turn
-RAMP3 = 2187  # Ramp down start turn
-RAMP4 = 6300  # Ramp down end turn
+RAMP3 = 8561  # Ramp down start turn
+RAMP4 = 10500  # Ramp down end turn
 
 NUM_TURNS = RAMP3
 
 
 def print_getllm_precision(options):
-#    output_dir = os.path.join(THIS_DIR,
-#                              "test_getllm" + time.strftime("%d_%m_%Y_%h_%s") + "_" + options.analyse)
-    output_dir = os.path.join(THIS_DIR,
-                              "test_getllm_" + options.analyse)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
+    if options.usemodel:
+        output_dir = os.path.abspath(options.usemodel)
+    else:
+        output_dir = os.path.join(THIS_DIR, "test_getllm_" + time.strftime("%Y_%m_%d_%H_%M_%S"))
+    
+    _create_folders(output_dir, options)
     
     if options.acd and options.adt:
         raise IOError(
             "ADT and AC-dipole are both set to 1. Please select only one"
         )
 
-    try:
-        # _run_tracking_model(output_dir, options)
-        _do_analysis(output_dir, options)
-        _comprare_results(output_dir, options)
-    finally:
-        #_clean_up_files(output_dir)
-        print("Test finished")
-        print("Output directory:", os.path.abspath(output_dir))
-
-def _run_harpy(directory, options):
-    # ugly hack to use the hio-input-parser
-    hio_path = os.path.abspath(os.path.join(THIS_DIR, "..",
-                                         "hole_in_one", "hole_in_one.py"))
-    file_path = _get_tbt_path(directory)
-    if options.acd:
-        twiss_path = _get_twiss_ac_path(directory)
-    elif options.adt:
-        twiss_path = _get_twiss_adt_path(directory)
-    else:
-        twiss_path = _get_twiss_path(directory)
-    
-    command_str = [#"/afs/cern.ch/work/o/omc/anaconda/bin/python",  
-                   "python",
-                   # main parameters
-                   hio_path,  # hole_in_one.py
-                   "--file " + file_path,  
-                   "--model " + twiss_path,  
-                   "--outputdir " + directory,
-                   # clean parameters
-                   "clean",  # uses default (see harpy.py)
-                   "--noresync",
-                   # harpy parameters
-                   "harpy",
-                   "--startturn " + str(RAMP2),
-                   "--endturn " + str(RAMP3),
-                   "--tunex " + 
-                        str(DQX) if any([options.acd, options.adt]) else str(QX),
-                   "--tuney " + 
-                        str(DQY) if any([options.acd, options.adt]) else str(QY),
-                   "--nattunex " + str(QX),
-                   "--nattuney " + str(QY),
-                   "--tolerance " + str(TUNE_WINDOW),
-                   "--harpy_mode " + options.analyse[-3:],
-                   ]
-
-    subprocess.check_call(" ".join(command_str), shell=True, stdout=open(os.devnull, "w"))
-    subprocess.check_call('cp ' + file_path + '.linx ' + file_path + '_linx', shell=True)
-    subprocess.check_call('cp ' + file_path + '.liny ' + file_path + '_liny', shell=True)
+    _run_tracking_model(output_dir, options)
+    _do_analysis(output_dir, options)
+    _comprare_results(output_dir, options)
+    _clean_up_files(output_dir, options)
+    print("Test finished")
+    print("Output folder:", output_dir)
 
 
 def _run_tracking_model(directory, options):
-    print("Creating model and tracking...")
+    tbt_path = _get_tbt_path(directory)
+
+    if options.usemodel:
+        if not os.path.exists(tbt_path):
+            raise IOError("Model '" + options.usemodel + "' not found!")
+
+        print("Using previously created model and tracking: " + options.usemodel)
+        return
+    
+    print("Creating model and tracking...")    
     madx_script = _get_madx_script(BEAM, directory, options)
     with silence():
         madx_wrapper.resolve_and_run_string(
@@ -290,24 +267,21 @@ def _run_tracking_model(directory, options):
             output_file=os.path.join(directory, 'job.test.madx'),
             log_file=os.path.join(directory, 'madx_log.txt')
         )
-    track_path = _get_track_path(directory, one=True)
-    tbt_path = _get_tbt_path(directory)
+    track_path = _get_track_path(directory, one=True)    
     with silence():
         ADDbpmerror.convert_files(infile=track_path, outfile=tbt_path)
         headers = [
-           "\n".join(["#SDDSASCIIFORMAT v1", 
-                      "#Beam: LHCB" + str(BEAM), 
-                      "#Created: " + 
-                            time.strftime("%Y-%m-%d at %H:%M:%S") + 
-                            " By: ADDbpmerror",
-                      "#Number of turns: " + str(NUM_TURNS),
-                      "#Number of horizontal monitors: 522",
-                      "#Number of vertical monitors: 522",
-                      "#Acquisition date: " + 
-                            time.strftime("%Y-%m-%d at %H:%M:%S"),
-                      "#dpp: 0.0",
-                     ])
-            ]
+            "\n".join(["#SDDSASCIIFORMAT v1",
+                       "#Beam: LHCB" + str(BEAM),
+                       "#Created: " +
+                           time.strftime("%Y-%m-%d at %H:%M:%S") + " By: ADDbpmerror",
+                       "#Number of turns: " + str(NUM_TURNS),
+                       "#Number of horizontal monitors: 522",
+                       "#Number of vertical monitors: 522",
+                       "#Acquisition date: " + time.strftime("%Y-%m-%d at %H:%M:%S"),
+                       "#dpp: 0.0",
+                       ])
+        ]
         lines = []
         with open(tbt_path, "r") as tbt_data:
             for line in tbt_data:
@@ -336,7 +310,7 @@ def _get_madx_script(beam, directory, options):
     elif options.adt:
         twiss_ac_or_adt_path = _get_twiss_adt_path(directory)
         do_adt = 1
-    if do_acd == 0 and do_adt == 0:
+    else:
         twiss_ac_or_adt_path = _get_twiss_path(directory)
         kick_x = KICK_X
         kick_y = KICK_Y
@@ -370,6 +344,71 @@ def _get_madx_script(beam, directory, options):
         "RAMP4": RAMP4,
     }
     return madx_script
+
+
+def _do_analysis(directory, options):
+    print("Performing analysis...")
+
+    if options.analyse == 'sussix':
+        print("    -> Running drive...")
+        with silence():
+            _run_drive(directory, options)
+    else:
+        print("    -> Running hole_in_one...")
+        with silence():
+            _run_harpy(directory, options)
+
+    tbt_path = _get_tbt_path(directory)
+    twiss_path = _get_twiss_path(directory)
+    err_def_path = _copy_error_def_file(directory, options)
+
+    print("    -> Running GetLLM...")
+    # with silence():
+    accel = "LHCB" + str(BEAM)
+    GetLLM.main(directory, tbt_path, twiss_path,
+                bpmu="mm", accel=accel, errordefspath=err_def_path)
+    print("")
+
+
+def _run_drive(directory, options):
+    tbt_path = _get_tbt_path(directory)
+
+    if not options.acd and not options.adt:
+        drive_runner.run_drive(tbt_path, RAMP2, RAMP3,
+                               QX, QY, QX, QY,
+                               stdout=open(os.devnull, "w"),
+                               tune_window=TUNE_WINDOW)
+    else:
+        drive_runner.run_drive(tbt_path, RAMP2, RAMP3,
+                               DQX, DQY, QX, QY,
+                               stdout=open(os.devnull, "w"),
+                               tune_window=TUNE_WINDOW)
+
+
+def _run_harpy(directory, options):
+    file_path = _get_tbt_path(directory)
+    twiss_path = _get_twiss_path(directory)
+
+    hio_args = [
+        "--file", file_path,
+        "--model", twiss_path,
+        "--outputdir", directory,
+        "clean",
+        "--noresync",
+        "harpy",
+        "--startturn", str(RAMP2),
+        "--endturn", str(RAMP3),
+        "--tunex", str(DQX) if any([options.acd, options.adt]) else str(QX),
+        "--tuney", str(DQY) if any([options.acd, options.adt]) else str(QY),
+        "--nattunex", str(QX),
+        "--nattuney", str(QY),
+        "--tolerance", str(TUNE_WINDOW),
+        "--harpy_mode", options.analyse[-3:],
+    ]
+    hole_in_one.run_all(*hio_input_handler.parse_args(hio_args))
+
+    shutil.move(file_path + '.linx', file_path + '_linx')
+    shutil.move(file_path + '.liny', file_path + '_liny')
 
 
 def _get_twiss_path(directory):
@@ -407,33 +446,18 @@ def _get_harmonic_path(directory, plane):
     return os.path.join(directory, "ALLBPMs_lin" + PLANE_SUFFIX[plane])
 
 
-def _do_analysis(directory, options):
-    print("Performing analysis...")
-    tbt_path = _get_tbt_path(directory)
-    if options.analyse == 'sussix':
-        print("    -> Running drive...")
-        with silence():
-            if not options.acd and not options.adt:
-                drive_runner.run_drive(tbt_path, RAMP2, RAMP3,
-                                       QX, QY, QX, QY,
-                                       stdout=open(os.devnull, "w"),
-                                       tune_window=TUNE_WINDOW)
-            else:
-                drive_runner.run_drive(tbt_path, RAMP2, RAMP3,
-                                       DQX, DQY, QX, QY,
-                                       stdout=open(os.devnull, "w"),
-                                       tune_window=TUNE_WINDOW)
-    else:
-        print("    -> Running hole_in_one...")
-        with silence():
-            _run_harpy(directory, options)
-    twiss_path = os.path.join(directory, "twiss.dat")
-    err_def_path = _copy_error_def_file(directory, options)
-    print("    -> Running GetLLM...")
-    with silence():
-        accel = "LHCB" + str(BEAM)
-        GetLLM.main(directory, tbt_path, twiss_path, bpmu="mm", accel=accel,
-                    errordefspath=err_def_path)
+def _get_method_path(directory, options):
+    return os.path.join(directory, "method_" + options.analyse)
+
+
+def _move_nonmadx_files(directory, options):
+    dest_dir = _get_method_path(directory, options)
+    shutil.rmtree(os.path.join(dest_dir, 'BPM'), ignore_errors=True)
+    for f in os.listdir(directory):
+        if "ALLBPMs_" in f or "ALLBPMs." in f \
+                or all([madx_str not in f for madx_str in ["method_", "madx", "twiss",
+                                                           "track", "ALLBPMs", "error_deff.txt"]]):
+            shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f))
 
 
 def _copy_error_def_file(directory, options):
@@ -444,6 +468,15 @@ def _copy_error_def_file(directory, options):
     return new_err_def_path
 
 
+def _create_folders(directory, options):
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+
+    output_method = _get_method_path(directory, options)
+    if not os.path.exists(output_method):
+        os.mkdir(output_method)
+
+
 def _get_modifiers_file(optics, directory):
     modifiers_file_path = os.path.join(directory, "modifiers.madx")
     with open(modifiers_file_path, "w") as modifiers_file:
@@ -451,9 +484,16 @@ def _get_modifiers_file(optics, directory):
     return modifiers_file_path
 
 
-def _comprare_results(directory, options):
-    _print_results(directory, 
-                   free=not any([options.acd, options.adt]))
+def _comprare_results(directory, options):    
+    _print_results(directory, free=not any([options.acd, options.adt]))
+    
+    output_method = _get_method_path(directory, options)
+    orig_stdout = sys.stdout
+    with open(os.path.join(output_method, 'results.txt'), "w+") as f:
+        sys.stdout = f
+        _print_results(directory, free=not any([options.acd, options.adt]))
+    
+    sys.stdout = orig_stdout
 
 
 def _print_results(directory, free=True):
@@ -462,7 +502,7 @@ def _print_results(directory, free=True):
     else:
         print("+++++++ Results for excited files +++++++\n")
     meas_tunex = _get_tune_data(directory, HOR, free=free)
-    meas_tuney = _get_tune_data(directory, VER, free=free)    
+    meas_tuney = _get_tune_data(directory, VER, free=free)
     if free:
         _compare_tunes(meas_tunex, meas_tuney, QX, QY)
     else:
@@ -521,8 +561,7 @@ def _get_coupling_data(directory, free=True):
 
 
 def _get_coupling_twiss(directory):
-    getcouplePathTwiss = os.path.join(directory, 'twiss.dat')
-    ctwiss = metaclass.twiss(getcouplePathTwiss)
+    ctwiss = metaclass.twiss(os.path.join(directory, 'twiss.dat'))
     return ctwiss
 
 
@@ -560,7 +599,7 @@ def _get_twiss_for_one_of(*paths):
     for path in paths:
         if os.path.isfile(path):
             return metaclass.twiss(path)
-    raise IOError("None of the files exist:\n\t" + "\n\t".join(path))
+    raise IOError("None of the files exist:\n\t" + "\n\t".join(paths))
 
 
 def _compare_tunes(meas_tunex, meas_tuney, model_qx, model_qy):
@@ -574,6 +613,7 @@ def _compare_tunes(meas_tunex, meas_tuney, model_qx, model_qy):
     print("    -Measured tune:", value_tune_y, "+-", rms_tune_y)
     print("    -Design tune:", model_qy)
     print("")
+
 
 def _compare_nat_tunes(meas_tunex, meas_tuney, model_qx, model_qy):
     print("-> Natural Tunes:")
@@ -631,9 +671,10 @@ def _compare_phases(phasex, phasey):
     print("")
 
 
-def _clean_up_files(ouput_dir):
+def _clean_up_files(directory, options):
     print('Cleaning up...')
-    iotools.delete_item(ouput_dir)
+    _move_nonmadx_files(directory, options)
+    # iotools.delete_item(directory)
 
 
 if __name__ == "__main__":
