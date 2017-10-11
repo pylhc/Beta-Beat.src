@@ -180,11 +180,17 @@ def _parse_args():
         action="store_true",
     )
     parser.add_argument(
-        "--usemodel",
-        help="Path to previously created model",
-        dest="usemodel",
+        "--usetracking",
+        help="Path to previously created tracking model",
+        dest="usetracking",
         default=None,
         type=str
+    )
+    parser.add_argument(
+        "--nodelete",
+        help="Delete output folder",
+        dest="nodelete",
+        action="store_true",
     )
     return parser.parse_args()
 
@@ -228,10 +234,10 @@ NUM_TURNS = RAMP3
 
 
 def print_getllm_precision(options):
-    if options.usemodel:
-        output_dir = os.path.abspath(options.usemodel)
+    if options.usetracking:
+        output_dir = os.path.abspath(options.usetracking)
     else:
-        output_dir = os.path.join(THIS_DIR, "test_getllm_" + time.strftime("%Y_%m_%d_%H_%M_%S"))
+        output_dir = os.path.join(THIS_DIR, "test_getllm_" + time.strftime("%Y_%m_%d_%Hh_%Mm_%Ss"))
     
     _create_folders(output_dir, options)
     
@@ -245,17 +251,16 @@ def print_getllm_precision(options):
     _comprare_results(output_dir, options)
     _clean_up_files(output_dir, options)
     print("Test finished")
-    print("Output folder:", output_dir)
 
 
 def _run_tracking_model(directory, options):
     tbt_path = _get_tbt_path(directory)
 
-    if options.usemodel:
+    if options.usetracking:
         if not os.path.exists(tbt_path):
-            raise IOError("Model '" + options.usemodel + "' not found!")
+            raise IOError("Tracking data '" + options.usetracking + "' not found!")
 
-        print("Using previously created model and tracking: " + options.usemodel)
+        print("Using previously created model and tracking: " + options.usetracking)
         return
     
     print("Creating model and tracking...")    
@@ -454,9 +459,14 @@ def _move_nonmadx_files(directory, options):
     dest_dir = _get_method_path(directory, options)
     shutil.rmtree(os.path.join(dest_dir, 'BPM'), ignore_errors=True)
     for f in os.listdir(directory):
-        if "ALLBPMs_" in f or "ALLBPMs." in f \
-                or all([madx_str not in f for madx_str in ["method_", "madx", "twiss",
-                                                           "track", "ALLBPMs", "error_deff.txt"]]):
+        if os.path.isdir(os.path.join(directory, f)):
+            move_f = f == 'BPM'
+        else:
+            move_f =  "ALLBPMs_" in f or "ALLBPMs." in f or\
+                      all([madx_str not in f for madx_str in ["madx", "twiss", "track", 
+                                                   "ALLBPMs", "error_deff.txt"]])
+
+        if move_f:
             shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f))
 
 
@@ -673,8 +683,11 @@ def _compare_phases(phasex, phasey):
 
 def _clean_up_files(directory, options):
     print('Cleaning up...')
-    _move_nonmadx_files(directory, options)
-    # iotools.delete_item(directory)
+    if options.nodelete:
+        _move_nonmadx_files(directory, options)
+        print("Output folder:", directory)
+    else:
+        iotools.delete_item(directory)
 
 
 if __name__ == "__main__":
