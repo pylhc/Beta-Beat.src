@@ -167,10 +167,10 @@ def _parse_args():
     )
     parser.add_argument(
         "--analyse",
-        help="Analyse method can be 'sussix', 'harpy_bpm' or 'harpy_svd'",
+        help="Analyse method can be 'sussix', 'harpy_bpm', 'harpy_svd' or 'harpy_fast'",
         dest="analyse",
         required=True,
-        choices=("sussix", "harpy_bpm", "harpy_svd"),
+        choices=("sussix", "harpy_bpm", "harpy_svd", "harpy_fast"),
         type=str,
     )
     parser.add_argument(
@@ -190,6 +190,12 @@ def _parse_args():
         "--nodelete",
         help="Delete output folder",
         dest="nodelete",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--addnoise",
+        help="Add noise",
+        dest="addnoise",
         action="store_true",
     )
     return parser.parse_args()
@@ -274,7 +280,11 @@ def _run_tracking_model(directory, options):
         )
     track_path = _get_track_path(directory, one=True)    
     with silence():
-        ADDbpmerror.convert_files(infile=track_path, outfile=tbt_path)
+        if options.addnoise:
+            ADDbpmerror.convert_files(infile=track_path, outfile=tbt_path, 
+                                      x_error=1e-4, y_error=1e-4)
+        else:
+            ADDbpmerror.convert_files(infile=track_path, outfile=tbt_path)
         headers = [
             "\n".join(["#SDDSASCIIFORMAT v1",
                        "#Beam: LHCB" + str(BEAM),
@@ -408,7 +418,7 @@ def _run_harpy(directory, options):
         "--nattunex", str(QX),
         "--nattuney", str(QY),
         "--tolerance", str(TUNE_WINDOW),
-        "--harpy_mode", options.analyse[-3:],
+        "--harpy_mode", options.analyse.replace("harpy_", ""),
     ]
     hole_in_one.run_all(*hio_input_handler.parse_args(hio_args))
 
@@ -452,22 +462,35 @@ def _get_harmonic_path(directory, plane):
 
 
 def _get_method_path(directory, options):
-    return os.path.join(directory, "method_" + options.analyse)
+    return os.path.join(directory, "results_" + options.analyse)
 
+def _get_llm_results_path(directory, options):
+    return os.path.join(_get_method_path(directory, options), "getllm_" + options.analyse)
 
 def _move_nonmadx_files(directory, options):
     dest_dir = _get_method_path(directory, options)
+    getllm_dir = _get_llm_results_path(directory, options)
+    
+    
+    # cleanup results folder in case there is one already
     shutil.rmtree(os.path.join(dest_dir, 'BPM'), ignore_errors=True)
+    
+    # move getLLM output to subfolder
     for f in os.listdir(directory):
-        if os.path.isdir(os.path.join(directory, f)):
-            move_f = f == 'BPM'
-        else:
-            move_f =  "ALLBPMs_" in f or "ALLBPMs." in f or\
-                      all([madx_str not in f for madx_str in ["madx", "twiss", "track", 
-                                                   "ALLBPMs", "error_deff.txt"]])
-
-        if move_f:
-            shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f))
+        if (not os.path.isdir(os.path.join(directory, f)))\
+            and f.startswith('get') and f.endswith('.out'):
+                shutil.move(os.path.join(directory, f), os.path.join(getllm_dir, f))
+    
+    # move all except for madx files into results folder
+    if options.analyse == "sussix":
+        for f in os.listdir(directory):
+            if any([f.startswith(prefix) for prefix in ["BPM", "ALLBPMs_", "Driv",
+                                                       "results.txt", "sussix"]]):
+                shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f)) 
+    else:
+         for f in os.listdir(directory):
+            if any([f.startswith(prefix) for prefix in ["ALLBPMs.", "ALLBPMs_", "results.txt"]]):
+                shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f)) 
 
 
 def _copy_error_def_file(directory, options):
@@ -485,7 +508,10 @@ def _create_folders(directory, options):
     output_method = _get_method_path(directory, options)
     if not os.path.exists(output_method):
         os.mkdir(output_method)
-
+    
+    output_getllm = _get_llm_results_path(directory, options)
+    if not os.path.exists(output_getllm):
+        os.mkdir(output_getllm)
 
 def _get_modifiers_file(optics, directory):
     modifiers_file_path = os.path.join(directory, "modifiers.madx")
