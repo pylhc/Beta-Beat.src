@@ -1,7 +1,8 @@
 import os
 import logging
+import cPickle
+from Utilities import tfs_pandas
 from sdds_files import turn_by_turn_reader
-
 
 LOGGER = logging.getLogger("__name__")
 
@@ -48,10 +49,28 @@ class CleanedAsciiWritter(object):
 
 
 def write_bad_bpms(bin_path, bad_bpms_with_reasons, output_dir, plane):
-    bad_bpms_file = get_outpath_with_suffix(bin_path, output_dir, ".bad_bpms_" + plane)
+    bad_bpms_file = get_outpath_with_suffix(
+        bin_path,
+        output_dir,
+        ".bad_bpms_" + plane
+    )
     with open(bad_bpms_file, 'w') as bad_bpms_writer:
         for line in bad_bpms_with_reasons:
             bad_bpms_writer.write(line + '\n')
+
+
+def write_harpy_output(main_input, harpy_data_frame, headers, spectrum, plane):
+    output_file = get_outpath_with_suffix(
+        main_input.file, main_input.outputdir, ".lin" + plane
+    )
+    tfs_pandas.write_tfs(harpy_data_frame, headers, output_file)
+    _dump(get_outpath_with_suffix(
+          main_input.file, main_input.outputdir, ".spec" + plane), spectrum)
+
+
+def _dump(output_file, content):
+    with open(output_file, 'wb') as output_data:
+        cPickle.Pickler(output_data, -1).dump(content)
 
 
 def get_outpath_with_suffix(path, output_dir, suffix):

@@ -1,14 +1,12 @@
 import logging
 from datetime import datetime
 import numpy as np
-from scipy.fftpack import fft as scipy_fft
 
 SPARSE_AVAILABLE = True
 try:
     from scipy.sparse.linalg.eigen.arpack.arpack import svds
 except ImportError:
     SPARSE_AVAILABLE = False
-
 
 PI2I = 2 * np.pi * complex(0, 1)
 LOGGER = logging.getLogger(__name__)
@@ -22,8 +20,9 @@ LIST_OF_KNOWN_BAD_BPMS = ["BPM.17L8.B1", "BPM.16L8.B1", "BPM.8R8.B1", "BPM.9R8.B
                           "BPM.22R3.B2", "BPM.23R3.B2", "BPMR.6L7.B2", "BPMWC.6L7.B2"] # New from ATS MD 27-07-2016
 LIST_OF_WRONG_POLARITY_BPMS_BOTH_PLANES = []
 
-########################
-# Somewhere we should dump the parameters used for the analysis to a file - main, or some inputdata class?
+# Noise to signal limit
+NTS_LIMIT = 8.
+
 
 def clean(bpm_names, bpm_data, clean_input, file_date):
     # Loops through BPM names
@@ -65,7 +64,7 @@ def clean(bpm_names, bpm_data, clean_input, file_date):
         "(Statistics for file reading) Total BPMs: {0}, Good BPMs: {1} ({2:2.2f}%), bad BPMs: {3} ({4:2.2f}%)"
         .format(len(good_bpms), np.sum(good_bpms), 100.0 * np.mean(good_bpms),
                 len(bad_bpm_indices), 100.0 * (1 - np.mean(good_bpms))))
-    LOGGER.info("Filtering done")
+    LOGGER.debug("Filtering done")
     
     if np.mean(good_bpms)<0.5:
         raise ValueError("Message to user: More than half of BPMs are bad. -> This could be cause a bunch not present in the machine has been selected or because a problem with the phasing of the BPMs.")
@@ -122,16 +121,18 @@ def svd_clean(bpm_names, bpm_data, clean_input):
         LOGGER.debug(">> Values in GOOD BPMs:  %s", np.sum(good_bpms))
 
         # Reconstruct the SVD-cleaned data
-        A = np.dot(USV[0][good_bpms],np.dot(np.diag(USV[1]), USV[2])) * sqrt_number_of_turns + bpm_data_mean
+        A = np.dot(USV[0][good_bpms], np.dot(np.diag(USV[1]), USV[2])) * sqrt_number_of_turns + bpm_data_mean
         bpm_res = np.std(A - bpm_data[good_bpms, :], axis=1)
-        LOGGER.debug("Average BPM resolution: %s", str(np.mean(bpm_res)))
         good_bpm_names = bpm_names[good_bpms]
         good_bpm_data = A
         usv2 = (USV[2].T - np.mean(USV[2], axis=1)).T
         usv = (USV[0][good_bpms], USV[1] * sqrt_number_of_turns, usv2)
-        print("np.mean(bpm_res)", np.mean(bpm_res), "np.mean(np.std(A, axis=1)", np.mean(np.std(A, axis=1)))
-        if np.mean(bpm_res) > 8*np.mean(np.std(A, axis=1)): #This is factor 8 here is somewhat arbitrary.
-           raise ValueError("Message to user: The data is too noisy. The most explanation is that the excitation was No excitation very low or that there ")
+        LOGGER.debug("Average BPM resolution: %s", str(np.mean(bpm_res)))
+        LOGGER.debug("np.mean(np.std(A, axis=1): %s", np.mean(np.std(A, axis=1)))
+        if np.mean(bpm_res) > NTS_LIMIT * np.mean(np.std(A, axis=1)):
+            raise ValueError(
+                "The data is too noisy. The most probable explanation"
+                " is that there was no excitation or it was very low.")
     else:
         usv2 = (USV[2].T - np.mean(USV[2], axis=1)).T
         usv = (USV[0], USV[1] * sqrt_number_of_turns, usv2)
@@ -140,7 +141,6 @@ def svd_clean(bpm_names, bpm_data, clean_input):
         good_bpm_names = bpm_names
         good_bpm_data = bpm_data
     return good_bpm_names, good_bpm_data, bpm_res, bad_bpms_with_reasons, usv
-
 
 
 # HELPER FUNCTIONS #########################

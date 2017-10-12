@@ -1,9 +1,12 @@
 import argparse
+import sys
 
-
-def parse_args():
+def parse_args(args=None):
     main_parser = _get_main_parser()
-    main_options, rest = main_parser.parse_known_args()
+    if args:
+        main_options, rest = main_parser.parse_known_args(args)
+    else:
+        main_options, rest = main_parser.parse_known_args()
 
     subparsers = {
         "clean": _get_clean_parser,
@@ -34,7 +37,8 @@ def parse_args():
         harpy_input = HarpyInput.init_from_options(suboptions["harpy"])
     except KeyError:
         pass
-    return main_input, clean_input, harpy_input
+    python_path = "/afs/cern.ch/work/o/omc/anaconda/bin/python "
+    return main_input, clean_input, harpy_input, (python_path + " ".join(sys.argv))
 
 
 class ArgumentError(Exception):
@@ -235,6 +239,7 @@ class HarpyInput(object):
         "tolerance": 0.01,
         "harpy_mode": "bpm",
         "sequential": False,
+        "tune_clean_limit": 1e-5,
     }
 
     def __init__(self):
@@ -247,6 +252,7 @@ class HarpyInput(object):
         self.tolerance = HarpyInput.DEFAULTS["tolerance"]
         self.harpy_mode = HarpyInput.DEFAULTS["harpy_mode"]
         self.sequential = HarpyInput.DEFAULTS["sequential"]
+        self.tune_clean_limit = HarpyInput.DEFAULTS["tune_clean_limit"]
 
     @staticmethod
     def init_from_options(options):
@@ -260,6 +266,7 @@ class HarpyInput(object):
         self.tolerance = options.tolerance
         self.harpy_mode = options.harpy_mode
         self.sequential = options.sequential
+        self.tune_clean_limit = options.tune_clean_limit
         return self
 
 
@@ -312,6 +319,12 @@ def _get_harpy_parser():
     parser.add_argument(
         "--sequential", help="If set, it will run in only one process.",
         dest="sequential", action="store_true",
+    )
+    parser.add_argument(
+        "--tune_clean_limit",
+        help="The autoclean wont remove tune deviation lower than this limit.",
+        dest="tune_clean_limit", type=float,
+        default=HarpyInput.DEFAULTS["tune_clean_limit"]
     )
     ################################
     return parser
