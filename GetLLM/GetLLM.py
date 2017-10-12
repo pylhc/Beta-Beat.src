@@ -360,19 +360,22 @@ def main(accelerator,
             print_time("AFTER_A_NBPM", time() - __getllm_starttime)
 
         #------- START beta from amplitude
-        beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
+        #beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
 
         #-------- START IP
-        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
+#        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d,
+#                                                  accelerator.get_model_tfs(),
+#                                                  accelerator.get_driven_tfs(),
+#                                                  files_dict)
 
         #-------- START Orbit
-        list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
+        #list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
 
         #-------- START Dispersion
-        algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
+        #algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
         
         #------ Start get Q,JX,delta
-        files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
+        #files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
 
         #-------- START coupling.
         tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, pseudo_list_x, pseudo_list_y)

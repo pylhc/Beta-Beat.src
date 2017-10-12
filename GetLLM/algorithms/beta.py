@@ -60,7 +60,7 @@ BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
 ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
 PHASE_THRESHOLD         = 1.0e-2                      #@IgnorePep8
-COT_THRESHOLD           = 16.0
+COT_THRESHOLD           = 1.0e6
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
 MOD_POINTFIVE_UPPER     = (BADPHASE - PHASE_THRESHOLD)    #@IgnorePep8
 RCOND                   = 1.0e-10                    #@IgnorePep8
@@ -362,6 +362,7 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
     tfs_file.add_float_descriptor("PhaseTheshold", PHASE_THRESHOLD)
     tfs_file.add_float_descriptor("RCond", RCOND)
     
+    
     tfs_file.add_column_names(["NAME", "S",
                                "BET" + _plane_char,
                                "STATBET" + _plane_char,
@@ -389,8 +390,10 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
                                "%le",
                                "%le"])
     for row in data:
-        
-        tfs_file.add_table_row(row)
+        if not np.isnan(row[2]):
+            beta_d_col[row[0]] = [row[1], row[2], row[3], row[4]]
+
+            tfs_file.add_table_row(row)
 
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
@@ -610,9 +613,9 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         skipped_bpmx = []
         arcbpms= mad_twiss.index[getllm_d.accelerator.get_arc_bpms_mask(mad_twiss.index)]
         for bpm in arcbpms:
-            name = str.upper(bpm[1])  # second entry is the name
+            name = str.upper(bpm)  # second entry is the name
         #Skip BPM with strange data
-            if abs(beta_d.x_phase[name][0] / beta_d.x_amp[name][0]) > 100:
+            if abs(beta_d.x_phase_f[name][0] / beta_d.x_amp[name][0]) > 100:
                 skipped_bpmx.append(name)
             elif (beta_d.x_amp[name][0] < 0 or beta_d.x_phase[name][0] < 0):
                 skipped_bpmx.append(name)
@@ -1807,12 +1810,13 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     outerMeasErr = np.multiply(outerMeasErr, outerMeasErr)
 
     outerElPhAdv = (outerElmtsPh[:, np.newaxis] - outerMdlPh[np.newaxis, :])
-    outerElK2 = outerElmts.loc[:, "K2L"]
+    outerElK2 = outerElmts.loc[:, "K2L"].as_matrix()
     indx_el_probed = outerElmts.index.get_loc(probed_bpm_name)
     outerElmtsBet = outerElmts.loc[:][bet_column].as_matrix()
-        
-    cot_meas = 1.0 / tan(outerMeasPhaseAdv.as_matrix())
-    cot_model = 1.0 / tan((outerMdlPh - outerMdlPh[m])) 
+      
+    with np.errstate(divide='ignore'):
+        cot_meas = 1.0 / tan(outerMeasPhaseAdv.as_matrix())
+        cot_model = 1.0 / tan((outerMdlPh - outerMdlPh[m])) 
     outerElPhAdv = sin(outerElPhAdv)
     sin_squared_elements = np.multiply(outerElPhAdv, outerElPhAdv)
     
@@ -1850,8 +1854,8 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
             abs(cot_meas[ix]) > COT_THRESHOLD or
-            abs(cot_meas[iy]) > COT_THRESHOLD or
-            (cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
+            abs(cot_meas[iy]) > COT_THRESHOLD ):
+            #or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
             beta_mask[i] = False
             continue
         beta_mask[i] = True
@@ -1879,15 +1883,18 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         T_Beta[i][iy] = 1.0 / (denom_siny * denom)
 
         # apply quadrupolar field uncertainty (quadrupole longitudinal misalignment already included)
-        T_Beta[i][xloc+range_of_bpms:indx_el_probed+range_of_bpms] += elementPh_XA * elementBet_XA / (denom_sinx * denom)
-        T_Beta[i][yloc+range_of_bpms:indx_el_probed+range_of_bpms] -= elementPh_YA * elementBet_YA / (denom_siny * denom)
+        
+        bet_sin_ix = elementPh_XA * elementBet_XA / (denom_sinx * denom)
+        bet_sin_iy = elementPh_YA * elementBet_YA / (denom_siny * denom)
+        
+        T_Beta[i][xloc+range_of_bpms:indx_el_probed+range_of_bpms] += bet_sin_ix
+        T_Beta[i][yloc+range_of_bpms:indx_el_probed+range_of_bpms] -= bet_sin_iy
         
         y_offset = range_of_bpms + len(outerElmts)
         
         # apply sextupole transverse misalignment
-        T_Beta[i][xloc + y_offset : indx_el_probed + y_offset] += elementPh_XA * elementBet_XA * elementK2_XA / (denom_sinx * denom)
-        T_Beta[i][yloc + y_offset : indx_el_probed + y_offset] -= elementPh_YA * elementBet_YA * elementK2_YA / (denom_siny * denom)
-        
+        T_Beta[i][xloc + y_offset : indx_el_probed + y_offset] += elementK2_XA * bet_sin_ix
+        T_Beta[i][yloc + y_offset : indx_el_probed + y_offset] -= elementK2_YA * bet_sin_iy
         
     offset_i = len(BBA_combo)
         
@@ -1898,8 +1905,8 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
             abs(cot_meas[ix]) > COT_THRESHOLD or
-            abs(cot_meas[iy]) > COT_THRESHOLD or
-            (cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
+            abs(cot_meas[iy]) > COT_THRESHOLD ):
+            #or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
             beta_mask[i + offset_i] = False
             continue
         beta_mask[i + offset_i] = True
@@ -1943,8 +1950,8 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
             abs(cot_meas[ix]) > COT_THRESHOLD or
-            abs(cot_meas[iy]) > COT_THRESHOLD or
-            (cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
+            abs(cot_meas[iy]) > COT_THRESHOLD ):
+            #or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
             beta_mask[i + offset_i] = False
             continue
         beta_mask[i + offset_i] = True
@@ -1974,8 +1981,8 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         y_offset = range_of_bpms + len(outerElmts)
         
         # apply sextupole transverse misalignment
-        T_Beta[i + offset_i][indx_el_probed + y_offset : xloc + y_offset] += elementPh_XA * elementBet_XA * elementK2_XA / (denom_sinx * denom)
-        T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] -= elementPh_YA * elementBet_YA * elementK2_YA / (denom_siny * denom)
+        T_Beta[i + offset_i][indx_el_probed + y_offset : xloc + y_offset] += 2.0 *elementPh_XA * elementBet_XA * elementK2_XA / (denom_sinx * denom)
+        T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] -= 2.0 *elementPh_YA * elementBet_YA * elementK2_YA / (denom_siny * denom)
     
     
     T_Beta = T_Beta[:, mask]
@@ -1987,10 +1994,13 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     V_Beta = np.dot(T_Beta, np.dot(M,np.transpose(T_Beta)))
     try:
         V_Beta_inv = np.linalg.pinv(V_Beta, rcond=RCOND)
+        
         w = np.sum(V_Beta_inv, axis=1)
 #        print w
 #        raw_input()
         VBeta_inv_sum = np.sum(w)
+        if VBeta_inv_sum == 0:
+            raise ValueError
         beterr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2))
         beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
         used_bpms = len(w)
