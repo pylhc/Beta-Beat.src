@@ -20,6 +20,7 @@ import math
 import copy
 import numpy as np
 from numpy import sin, cos, tan
+from collections import OrderedDict
 
 import Utilities.bpm
 import phase
@@ -100,8 +101,12 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
     psid_ac2bpmac3=np.arctan((1+r)/(1-r)*tan(2*np.pi*psi_ac2bpmac3+np.pi*Q))%np.pi-np.pi*Qd
 
     print ">>======== selected accel is", oa
-    
-    return {bpmac1:psid_ac2bpmac1,bpmac2:psid_ac2bpmac2,bpmac3:psid_ac2bpmac3}
+
+    ac_dict = OrderedDict()    
+    ac_dict[bpmac1] = psid_ac2bpmac1
+    ac_dict[bpmac2] = psid_ac2bpmac2
+    ac_dict[bpmac3] = psid_ac2bpmac3
+    return ac_dict
 
 
 def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):

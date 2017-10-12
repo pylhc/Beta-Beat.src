@@ -75,7 +75,7 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                         bpm_names, bpm_data, usv,
                         plane, harpy_input, lin_frame, model_tfs,
                     )
-                    lin_result = _rescale_amps_to_main_line(lin_result, plane)
+                    lin_result = _rescale_amps_to_main_line(lin_result.copy(), plane)
                     all_bad_bpms.extend(bad_bpms_fft)
                     lin_result.sort_values('S', axis=0, ascending=True, inplace=True, kind='mergesort')
                     headers = _compute_headers(lin_result, plane, computed_dpp)
