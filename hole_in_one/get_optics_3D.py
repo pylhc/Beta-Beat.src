@@ -1,17 +1,17 @@
-r'''
+'''
 .. module: get_optics_3D
 
 Created on 31/07/17
 
 :author: Lukas Malina  
 
-It computes horizontal normalised dispersion from 3D kicks, 
-it uses the model with AC-Dipole element in.
+It computes horizontal normalised dispersion from 3D kicks, together with the phase advance 
+it uses the model with AC-Dipole element in, i. e. there is no compensation for AC-Dipole.
 '''
+
 import sys
 import os
 from optparse import OptionParser
-import time
 import numpy as np
 import pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -100,7 +100,6 @@ def getNDX(files,model,output):
         forfile['STDNDX']=0.0
     forfile['NDX']=np.mean(forfile.loc[:,f],axis=1)
     forfile['DNDX']=forfile.loc[:,'NDX']-forfile.loc[:,'NDXMDL']
-    print np.mean(forfile.loc[:,'STDNDX'])
     tfs.write_tfs(forfile,{},os.path.join(output + "getNDx.out"))
     return 
 
@@ -148,7 +147,6 @@ def get_phases(files, model, output):
         results['PHASE'+plane]= np.angle(np.sum(np.exp(PI2I * results.loc[:,cols]),axis=1))/(2*np.pi)
         f =[]
         for c in cols:
-            print c
             field = results.loc[:,c] - results.loc[:,'PHASE'+plane]
             results['d'+ c] = np.where(np.abs(field)>0.5,field-np.sign(field),field)
             f.append('d'+ c)
@@ -156,7 +154,6 @@ def get_phases(files, model, output):
             results['STDPH' + plane]=np.std(results.loc[:,f],axis=1)*t_value_correction(len(f))
         else:
             results['STDPH' + plane]=0.0
-        print np.mean(results.loc[:,'STDPH' + plane])
         if plane =="X":
             header = {'Q1': tune}
         else:
@@ -198,9 +195,7 @@ def t_value_correction(num):
 def intersect(a, b):
     return list(set(a) & set(b))
 
+
 if __name__ == "__main__":
-    timeStartGlobal = time.time()
     _files, _model, _output, _phase, _ndx = _parse_args()
     get_optics(_files, _model, _output, _phase, _ndx )
-    timeGlobal = time.time() - timeStartGlobal
-    print "Duration:", timeGlobal, "s"
