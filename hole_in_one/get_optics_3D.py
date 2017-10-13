@@ -1,5 +1,5 @@
 r'''
-.. module: getNDx_3D
+.. module: get_optics_3D
 
 Created on 31/07/17
 
@@ -31,12 +31,24 @@ def _parse_args():
     parser.add_option("--output",
                     help="Output folder",
                     metavar="OUTPUT", default="", dest="output")
+    parser.add_option("--phase",
+                    help="""If present, it calculates the phase advances.""",
+                    dest="phase", action="store_true")
+    parser.add_option("--ndx",
+                    help="""If present, it calculates the normalized dispersion.""",
+                    dest="ndx", action="store_true")
     options, _ = parser.parse_args()
 
-    return options.files, options.model, options.output
+    return options.files, options.model, options.output, options.phase, options.ndx
 
 
-# Important this assumes the spectral line amplitudes scaled by the main line amplitude  
+def get_optics(files,model,output,phase,ndx):
+    if phase:
+        get_phases(files,model,output)
+    if ndx:
+        getNDX(files,model,output)
+
+
 def getNDX(files,model,output):
     #getting the list of BPMs and arcBPMs
     file_list = [(file_name.strip() + ".linx") for file_name in files.strip("\"").split(",")]
@@ -92,10 +104,71 @@ def getNDX(files,model,output):
     tfs.write_tfs(forfile,{},os.path.join(output + "getNDx.out"))
     return 
 
+
+def get_phases(files, model, output):
+    for plane in ["X","Y"]:
+        file_list = [(file_name.strip() + ".lin" + plane.lower()) for file_name in files.strip("\"").split(",")]
+        #merging the Dataframes
+        model_panda = load_panda(model)
+        tune=0.0
+        for i,file_name in enumerate(file_list):
+            file_panda = tfs.read_tfs(file_name)
+            if plane =="X":
+                tune = tune + file_panda.headers['Q1']
+            else:
+                tune = tune + file_panda.headers['Q2']
+            file_panda = pd.DataFrame(file_panda)
+            model_panda = pd.merge(model_panda, file_panda, how='inner', on='NAME', suffixes=('', str(i+1)))
+        tune = tune / len(file_list)
+        model_panda.rename(columns={'MU'+plane:'MU'+plane+'MDL'}, inplace=True)
+        columns=['NAME','S']
+        for c in model_panda.columns.values:
+            if c.startswith('MU'+plane):
+                columns.append(c)
+
+        all_data = model_panda.loc[:,columns]
+        all_data.set_index("NAME", inplace=True, drop=False)
+        #Here is what we need from the model and all the measured phases for the intersected BPMs
+        bpms = all_data.loc[:,'NAME'].values
+        columns = ['NAME', 'S', 'MU' + plane + 'MDL']
+        results = all_data.loc[bpms[:-1], columns]
+        results['NAME2'] = bpms[1:]
+        results['S2'] = all_data.loc[bpms[1:],'S'].values
+        cols=[]
+        
+        for c in all_data.columns.values:
+            if c.startswith('MU'):
+                field = all_data.loc[bpms[1:],c].values - all_data.loc[bpms[:-1],c].values
+                results[c.replace('MU','PHASE')] = np.where(np.abs(field)>0.5,field-np.sign(field),field)
+                d = c.replace('MU','PHASE')
+                cols.append(d)
+        cols.remove('PHASE' + plane + 'MDL')
+        results.rename(columns={'PHASE' + plane + 'MDL':'PH' + plane + 'MDL'}, inplace=True)
+        
+        results['PHASE'+plane]= np.angle(np.sum(np.exp(PI2I * results.loc[:,cols]),axis=1))/(2*np.pi)
+        f =[]
+        for c in cols:
+            print c
+            field = results.loc[:,c] - results.loc[:,'PHASE'+plane]
+            results['d'+ c] = np.where(np.abs(field)>0.5,field-np.sign(field),field)
+            f.append('d'+ c)
+        if len(f)>1:
+            results['STDPH' + plane]=np.std(results.loc[:,f],axis=1)*t_value_correction(len(f))
+        else:
+            results['STDPH' + plane]=0.0
+        print np.mean(results.loc[:,'STDPH' + plane])
+        if plane =="X":
+            header = {'Q1': tune}
+        else:
+            header = {'Q2': tune}
+        heads= ['NAME', 'NAME2', 'S', 'S2', 'PHASE'+plane, 'STDPH' + plane, 'PH' + plane+'MDL', 'MU' + plane+'MDL']
+        tfs.write_tfs(results.loc[:,heads],header,os.path.join(output + "getphase" + plane.lower() + ".out"))
+    return 
+
+
 def load_panda(model):
     return pd.DataFrame(tfs.read_tfs(model))
     
-
 
 def get_arc_bpms(model_twiss, bpm_names):  # twiss_ac, intersected BPM names 
     model_twiss.set_index("NAME", inplace=True)
@@ -127,7 +200,7 @@ def intersect(a, b):
 
 if __name__ == "__main__":
     timeStartGlobal = time.time()
-    _files, _model, _output = _parse_args()
-    getNDX(_files, _model, _output)
+    _files, _model, _output, _phase, _ndx = _parse_args()
+    get_optics(_files, _model, _output, _phase, _ndx )
     timeGlobal = time.time() - timeStartGlobal
     print "Duration:", timeGlobal, "s"
