@@ -584,6 +584,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             file_x = file_in.replace(".gz", suffix_x + ".gz")
         else:
             file_x = file_in + suffix_x
+            if not os.path.exists(file_x):
+                file_x = file_in + '.linx'
 
         twiss_file_x = None
         try:
@@ -660,6 +662,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             file_y = file_in.replace(".gz", suffix_y + ".gz")
         else:
             file_y = file_in + suffix_y
+            if not os.path.exists(file_y):
+                file_y = file_in + '.liny'
 
         twiss_file_y = None
         try:
