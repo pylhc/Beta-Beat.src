@@ -16,12 +16,13 @@ class KmodMatcher(PhaseMatcher):
     @Matcher.override(PhaseMatcher)
     def define_aux_vars(self):
         beatings_str = ""
-        beam = self.segment.get_beam()
         for plane in ["x", "y"]:
             this_kmod_data = self._get_kmod_data(plane)
             for name in self._get_kmod_data(plane).NAME:
                 index = this_kmod_data.indx[name]
-                err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
+                err_beta_beating = 1.
+                if self.use_errors:
+                    err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
                 beatings_str += KmodMatcher.BETA_BEATING_TMPL.format(
                     varname=self.name + self._get_suffix() + plane + name,
                     bpm_name = name,
@@ -32,11 +33,10 @@ class KmodMatcher(PhaseMatcher):
         variables_s_str = ""
         for variable in self.get_variables():
             variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
-        beam = str(self.segment.get_beam())
 
         aux_vars_str = PhaseMatcher.SEGMENT_TWISS_TMPL.format(
-            seq="lhcb" + beam + "_" + self.propagation + "_" + self.name,
-            init_vals="b" + beam + "_" + self.ini_end + "_" + self.name,
+            seq=self.get_sequence_name(),
+            init_vals=self.get_initvals_name(),
             table_name=self._get_nominal_table_name(),
         )
         aux_vars_str += beatings_str

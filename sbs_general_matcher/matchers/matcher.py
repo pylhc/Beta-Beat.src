@@ -104,6 +104,25 @@ class Matcher(object):
         """
         raise NotImplementedError
 
+    def get_sequence_name(self):
+        """
+        Returns the name of the sequence this matcher will generate.
+        """
+        return "seq_" + self.name
+
+    def get_initvals_name(self):
+        """
+        Returns the name of the initial values variable this matcher will
+        generate and use in: twiss, beta0=...;
+        """
+        return "bini_" + self.name
+
+    def get_macro_name(self):
+        """
+        Returns the name of the macro this matcher will use to match.
+        """
+        return "match_" + self.name
+
     def define_aux_vars(self):
         """Returns the MAD-X string to define the auxiliary values to use
         during the matching"""

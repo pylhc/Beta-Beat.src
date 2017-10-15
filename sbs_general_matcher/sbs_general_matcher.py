@@ -9,14 +9,13 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 )
 
-from matchers import (matcher,
-                      phase_matcher,
+from matchers import (phase_matcher,
                       coupling_matcher,
                       kmod_matcher,
                       amp_matcher)
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
-from madx import madx_templates_runner
+from madx import madx_templates_runner 
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -34,7 +33,7 @@ LOGGER = logging.getLogger(__name__)
 
 def start_matching(lhc_mode, match_path, minimize, matchers_list):
     LOGGER.info("+++ Segment-by-segment general matcher +++")
-    input_data = InputData.init_from_matchers_list(
+    input_data = InputData(
         lhc_mode,
         match_path,
         minimize,
@@ -45,7 +44,6 @@ def start_matching(lhc_mode, match_path, minimize, matchers_list):
 
 
 def _run_madx_matching(input_data, just_twiss=False):
-    _try_to_delete_twiss_cors(input_data)
     madx_templates = madx_templates_runner.MadxTemplates(
         log_file=os.path.join(input_data.match_path,
                               "match_madx_log.out"),
@@ -61,7 +59,6 @@ def _run_madx_matching(input_data, just_twiss=False):
         template_processor.run()
     else:
         template_processor.run_just_twiss()
-    _check_twiss_cors(input_data)
 
 
 def run_full_madx_matching(input_data):
@@ -74,46 +71,6 @@ def run_twiss_and_sbs(input_data):
     _run_madx_matching(input_data, just_twiss=True)
     _write_sbs_data_for_matchers(input_data)
     _build_changeparameters_file(input_data)
-
-
-def _manipulate_twiss_cors(input_data, function):
-    for this_matcher in input_data.matchers:
-        matcher_path = this_matcher.matcher_path
-        matcher_path_sbs = os.path.join(matcher_path, "sbs")
-        if os.path.isdir(matcher_path_sbs):
-            twiss_cor_path = os.path.join(
-                matcher_path_sbs,
-                "twiss_" + str(this_matcher.segment.label) +
-                "_cor.dat"
-            )
-            function(twiss_cor_path)
-            twiss_cor_back_path = os.path.join(
-                matcher_path_sbs,
-                "twiss_" + str(this_matcher.segment.label) +
-                "_cor_back.dat"
-            )
-            function(twiss_cor_back_path)
-
-
-def _try_to_delete_twiss_cors(input_data):
-    def function(twiss_cor_path):
-        if os.path.isfile(twiss_cor_path):
-            os.remove(twiss_cor_path)
-    _manipulate_twiss_cors(input_data, function)
-
-
-def _check_twiss_cors(input_data):
-    def function(twiss_cor_path):
-        if not os.path.isfile(twiss_cor_path):
-            raise TwissFailedError(twiss_cor_path)
-    _manipulate_twiss_cors(input_data, function)
-
-
-class TwissFailedError(Exception):
-    def __init__(self, twiss_path):
-        super(TwissFailedError, self).__init__(
-            "Twiss failed for twiss file: " + twiss_path
-        )
 
 
 def _write_sbs_data_for_matchers(input_data):
@@ -158,14 +115,11 @@ def _build_changeparameters_file(input_data):
 
 class InputData():
 
-    @staticmethod
-    def init_from_matchers_list(lhc_mode, match_path, minimize, matchers_list):
-        instance = InputData()
-        instance.lhc_mode = lhc_mode
-        instance.match_path = match_path
-        instance.matchers = matchers_list
-        instance.minimize = minimize
-        return instance
+    def __init__(self, lhc_mode, match_path, minimize, matchers_list):
+        self.lhc_mode = lhc_mode
+        self.match_path = match_path
+        self.matchers = matchers_list
+        self.minimize = minimize
 
     def _get_matchers_list(self, input_data):
         raw_matchers_list = input_data["matchers"]
