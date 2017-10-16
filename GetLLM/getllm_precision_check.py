@@ -217,7 +217,7 @@ ERR_DEF_FILES = {
     "40cm": "6500GeV",
 }
 ERR_DEF_PATH = os.path.join(
-    "/afs", "cern.ch", "work", "o", "omc",
+    FILES_PATH,
     "Error_definition_files"
 )
 
@@ -267,13 +267,12 @@ def _run_tracking_model(directory, options):
         return
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory, options)
-    with silence():
-        madx_wrapper.resolve_and_run_string(
-            madx_script,
-            madx_path=MADX_PATH,
-            output_file=os.path.join(directory, 'job.test.madx'),
-            log_file=os.path.join(directory, 'madx_log.txt')
-        )
+    madx_wrapper.resolve_and_run_string(
+        madx_script,
+        madx_path=MADX_PATH,
+        output_file=os.path.join(directory, 'job.test.madx'),
+        log_file=os.path.join(directory, 'madx_log.txt')
+    )
     track_path = _get_track_path(directory, one=True)
     with silence():
         if options.addnoise:
@@ -481,7 +480,7 @@ def _move_nonmadx_files(directory, options):
     if options.analyse == "sussix":
         for f in os.listdir(directory):
             if any([f.startswith(prefix) for prefix in ["BPM", "ALLBPMs_", "Driv",
-                                                       "results.txt", "sussix"]]):
+                                                        "results.txt", "sussix"]]):
                 shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f)) 
     else:
         for f in os.listdir(directory):
