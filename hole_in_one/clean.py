@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging
 from datetime import datetime
 import numpy as np
@@ -26,72 +27,102 @@ NTS_LIMIT = 8.
 
 
 def clean(bpm_data, clean_input, file_date):
-    # Searches for known bad BPMs
-    known_bad_bpms_names = (LIST_OF_KNOWN_BAD_BPMS +
-                            clean_input.bad_bpms)
-    known_bad_bpms = bpm_data.loc[known_bad_bpms_names].index
-    clean_bpm_data = bpm_data.loc[bpm_data.index.difference(known_bad_bpms)]
+    known_bad_bpm_names = clean_input.bad_bpms + LIST_OF_KNOWN_BAD_BPMS
+    known_bad_bpms = detect_known_bad_bpms(bpm_data, known_bad_bpm_names)
+    bpm_flatness = detect_flat_bpms(bpm_data, clean_input.peak_to_peak)
+    bpm_spikes = detect_bpms_with_spikes(bpm_data, clean_input.max_peak)
+    exact_zeros = detect_bpms_with_exact_zeros(bpm_data)
 
-    # Fixes wrong polarity
-    wrong_plrty_names = (LIST_OF_WRONG_POLARITY_BPMS +
-                         clean_input.wrong_polarity_bpms)
-    clean_bpm_data.loc[wrong_plrty_names] *= -1
-
-    # Resynchronizes BPMs between the injection point and start of the lattice
-    if (not clean_input.noresync) and _resync_from_date(file_date):
-        LOGGER.debug("Will resynchronize BPMs")
-        clean_bpm_data.loc[clean_bpm_data.index.str.endswith("L2.B1")] =\
-            np.roll(clean_bpm_data.loc[clean_bpm_data.index.str.endswith("L2.B1")], -1, axis=1)
-        clean_bpm_data.loc[clean_bpm_data.index.str.endswith("R8.B2")] =\
-            np.roll(clean_bpm_data.loc[clean_bpm_data.index.str.endswith("R8.B2")], -1, axis=1)
-
-    maxima = _get_max_bpm_readings(clean_bpm_data)
-    minima = _get_min_bpm_readings(clean_bpm_data)
-
-    bpm_flatness = _detect_flat_bpms(clean_bpm_data, maxima, minima, clean_input.peak_to_peak)
-    bpm_spikes = _detect_bpms_with_spikes(clean_bpm_data, maxima, minima, clean_input.max_peak)
-    exact_zeros = _detect_bpms_with_exact_zeros(clean_bpm_data)
-
-    clean_bpm_data = clean_bpm_data.loc[clean_bpm_data.index.difference(bpm_flatness)]
-    clean_bpm_data = clean_bpm_data.loc[clean_bpm_data.index.difference(bpm_spikes)]
-    clean_bpm_data = clean_bpm_data.loc[clean_bpm_data.index.difference(exact_zeros)]
+    original_bpms = bpm_data.index
+    all_bad_bpms = _index_union(known_bad_bpms, bpm_flatness,
+                                bpm_spikes, exact_zeros)
+    bpm_data = bpm_data.loc[bpm_data.index.difference(all_bad_bpms)]
 
     bad_bpms_with_reasons = _get_bad_bpms_summary(
         clean_input, known_bad_bpms, bpm_flatness, bpm_spikes, exact_zeros
     )
-    LOGGER.debug("Filtering done:")
-    n_total_bpms = bpm_data.index.size
-    n_good_bpms = clean_bpm_data.index.size
-    n_bad_bpms = bpm_data.index.size - n_good_bpms
-    LOGGER.debug(
-        "(Statistics for file reading) Total BPMs: {0}, "
-        "Good BPMs: {1} ({2:2.2f}%), bad BPMs: {3} ({4:2.2f}%)"
-        .format(n_total_bpms,
-                n_good_bpms, 100.0 * (n_good_bpms / n_total_bpms),
-                n_bad_bpms, 100.0 * (n_bad_bpms / n_total_bpms)))
+    _report_clean_stats(bpm_data, original_bpms)
 
-    if (n_good_bpms / float(n_total_bpms)) < 0.5:
-        raise ValueError(
-            "More than half of BPMs are bad. "
-            "This could be cause a bunch not present in the machine has been "
-            "selected or because a problem with the phasing of the BPMs."
-        )
+    wrong_plrty_names = (LIST_OF_WRONG_POLARITY_BPMS +
+                         clean_input.wrong_polarity_bpms)
+    bpm_data = fix_polarity(wrong_plrty_names, bpm_data)
 
     if not clean_input.noresync:
-        clean_bpm_data = clean_bpm_data.iloc[:, :-1]
+        bpm_data = resync_bpms(bpm_data, file_date)
 
-    # TODO check if this is the best way to cut turns, some checks?
-    if (clean_input.startturn > 0 or
-            clean_input.endturn < clean_bpm_data.shape[1]):
-        start = max(0, clean_input.startturn)
-        end = min(clean_input.endturn, new_bpm_data.shape[1])
-        clean_bpm_data = clean_bpm_data[:, start:end]
-
-    return clean_bpm_data, bad_bpms_with_reasons
+    return bpm_data, bad_bpms_with_reasons
 
 
-def _resync_from_date(acqdate):
-    return acqdate > datetime(2016, 4, 1)
+def fix_polarity(wrong_polarity_names, bpm_data):
+    """
+    Fixes wrong polarity
+    """
+    bpm_data.loc[wrong_polarity_names] *= -1
+    return bpm_data
+
+
+def resync_bpms(bpm_data, file_date):
+    """
+    Resynchronizes BPMs between the injection point and start of the lattice if
+    the acquisition date is after 2016-04-01.
+    """
+    if file_date > datetime(2016, 4, 1):
+        LOGGER.debug("Will resynchronize BPMs")
+        bpm_data.loc[bpm_data.index.str.endswith("L2.B1")] =\
+            np.roll(bpm_data.loc[bpm_data.index.str.endswith("L2.B1")], -1, axis=1)
+        bpm_data.loc[bpm_data.index.str.endswith("R8.B2")] =\
+            np.roll(bpm_data.loc[bpm_data.index.str.endswith("R8.B2")], -1, axis=1)
+        bpm_data = bpm_data.iloc[:, :-1]
+    return bpm_data
+
+
+def detect_known_bad_bpms(bpm_data, list_of_bad_bpms):
+    """
+    Searches for known bad BPMs
+    """
+    known_bad_bpms = bpm_data.loc[list_of_bad_bpms].index
+    return known_bad_bpms
+
+
+def detect_flat_bpms(bpm_data, min_peak_to_peak):
+    """
+    Detects BPMs with the same values for all turns
+    """
+    cond = ((bpm_data.max(axis=1) - bpm_data.min(axis=1)).abs() <
+            min_peak_to_peak)
+    bpm_flatness = bpm_data[cond].index
+    if bpm_flatness.size:
+        LOGGER.debug(
+            "Flat BPMS detected (diff min/max <= %s. BPMs removed: %s",
+            min_peak_to_peak,
+            bpm_flatness.size,
+        )
+    return bpm_flatness
+
+
+def detect_bpms_with_spikes(bpm_data, max_peak_cut):
+    """
+    Detects BPMs with spikes > max_peak_cut
+    """
+    too_high = bpm_data[bpm_data.max(axis=1) > max_peak_cut].index
+    too_low = bpm_data[bpm_data.min(axis=1) < -max_peak_cut].index
+    bpm_spikes = too_high.union(too_low)
+    if bpm_spikes.size:
+        LOGGER.debug("Spikes > %s detected. BPMs removed: %s",
+                     max_peak_cut,
+                     bpm_spikes.size)
+    return bpm_spikes
+
+
+def detect_bpms_with_exact_zeros(bpm_data):
+    """
+    Detects BPMs with exact zeros due to OP workaround
+    """
+    exact_zeros = bpm_data[~np.all(bpm_data, axis=1)].index
+    if exact_zeros.size:
+        LOGGER.debug("Exact zeros detected. BPMs removed: %s",
+                     exact_zeros.size)
+    return exact_zeros
 
 
 def svd_decomposition(clean_input, bpm_data):
@@ -159,47 +190,6 @@ def svd_clean(bpm_data, clean_input):
 
 
 # HELPER FUNCTIONS #########################
-def _get_max_bpm_readings(bpm_data):
-    return np.max(bpm_data, axis=1)
-
-
-def _get_min_bpm_readings(bpm_data):
-    return np.min(bpm_data, axis=1)
-
-
-# Detects BPMs with the same values for all turns
-def _detect_flat_bpms(bpm_data, maxima, minima, min_peak_to_peak):
-    bpm_flatness = bpm_data[(
-        (maxima - minima).abs() <= min_peak_to_peak
-    )].index
-    if bpm_flatness.size:
-        LOGGER.debug(
-            "Flat BPMS detected (diff min/max <= %s. BPMs removed: %s",
-            min_peak_to_peak,
-            bpm_flatness.size,
-        )
-    return bpm_flatness
-
-
-# Detects BPMs with spikes > max_peak_cut
-def _detect_bpms_with_spikes(bpm_data, maxima, minima, max_peak_cut):
-    too_high = bpm_data[maxima > max_peak_cut].index
-    too_low = bpm_data[minima < -max_peak_cut].index
-    bpm_spikes = too_high.union(too_low)
-    if bpm_spikes.size:
-        LOGGER.debug("Spikes > %s detected. BPMs removed: %s",
-                     max_peak_cut,
-                     bpm_spikes.size)
-    return bpm_spikes
-
-
-# Detects BPMs with exact zeros due to OP workaround
-def _detect_bpms_with_exact_zeros(bpm_data):
-    exact_zeros = bpm_data[~np.all(bpm_data, axis=1)].index
-    if exact_zeros.size:
-        LOGGER.debug("Exact zeros detected. BPMs removed: %s",
-                     exact_zeros.size)
-    return exact_zeros
 
 
 def _get_bad_bpms_summary(clean_input, known_bad_bpms,
@@ -224,6 +214,33 @@ def _get_bad_bpms_summary(clean_input, known_bad_bpms,
             .format(bpm_name)
         )
     return bad_bpms_summary
+
+
+def _report_clean_stats(bpm_data, original_bpms):
+    LOGGER.debug("Filtering done:")
+    n_total_bpms = original_bpms.size
+    n_good_bpms = bpm_data.index.size
+    n_bad_bpms = bpm_data.index.size - n_good_bpms
+    LOGGER.debug(
+        "(Statistics for file reading) Total BPMs: {0}, "
+        "Good BPMs: {1} ({2:2.2f}%), bad BPMs: {3} ({4:2.2f}%)"
+        .format(n_total_bpms,
+                n_good_bpms, 100.0 * (n_good_bpms / n_total_bpms),
+                n_bad_bpms, 100.0 * (n_bad_bpms / n_total_bpms)))
+
+    if (n_good_bpms / float(n_total_bpms)) < 0.5:
+        raise ValueError(
+            "More than half of BPMs are bad. "
+            "This could be cause a bunch not present in the machine has been "
+            "selected or because a problem with the phasing of the BPMs."
+        )
+
+
+def _index_union(*indices):
+    new_index = pd.Index([])
+    for index in indices:
+        new_index = new_index.union(index)
+    return new_index
 
 
 # Removes noise floor: having MxN matrix
