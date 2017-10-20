@@ -141,8 +141,9 @@ def harmonic_analysis(bpm_data, usv, plane, harpy_input, panda, model_tfs):
             )
     else:
         allowed = _get_allowed_length(rang=[0, bpm_data.shape[1]])[-1]
-        bpm_data = bpm_data.loc[:, :allowed]
-        usv = (usv[0], usv[1], usv[2][:, :allowed])
+        # .loc uses also the last index
+        bpm_data = bpm_data.loc[:, :allowed - 1]
+        usv = (usv[0], usv[1], usv[2][:, :allowed - 1])
     lin_result, spectrum, bad_bpms_fft = harpy.harpy(
         bpm_data, usv, plane.upper(), harpy_input, panda, model_tfs)
     return lin_result, spectrum, bad_bpms_fft
