@@ -74,15 +74,13 @@ def harpy(bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
             a list of string descibing which BPMs are marked as bad.
     """
     frequencies, bpm_coefficients = _harmonic_analysis(harpy_input, bpm_matrix, usv)
-    if frequencies.ndim < 2:
-        frequencies = np.outer(np.ones(bpm_coefficients.shape[0]), frequencies)
     all_bpms_coefs = pd.DataFrame(data=bpm_coefficients,
                                   index=bpm_matrix.index)
     all_bpms_freqs = pd.DataFrame(data=frequencies,
                                   index=bpm_matrix.index)
     all_bpms_spectr = {"COEFS": all_bpms_coefs, "FREQS": all_bpms_freqs}
 
-    panda, bad_bpms_by_tune = _get_main_resonances(
+    panda, not_tune_bpms = _get_main_resonances(
         harpy_input, frequencies, bpm_coefficients,
         plane, harpy_input.tolerance, panda
     )
@@ -91,10 +89,17 @@ def harpy(bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
             harpy_input, frequencies, bpm_coefficients,
             "Z", Z_TOLERANCE, panda
         )
-    panda, bad_bpms_by_clean = _clean_by_tune(harpy_input, plane, panda)
-    bad_bpms.extend(bad_bpms2)
-    panda = _amp_and_mu_from_avg(bpm_matrix, bad_bpms_mask, plane, panda)
-    panda = _get_noise(bpm_matrix, panda)
+
+    cleaned_by_tune_bpms = clean_by_tune(panda.loc[:, 'TUNE' + plane],
+                                         harpy_input.tune_clean_limit)
+    panda = panda.loc[panda.index.difference(cleaned_by_tune_bpms)]
+    bpm_matrix = bpm_matrix.loc[panda.index]
+    bpm_coefficients = bpm_coefficients.loc[panda.index]
+    frequencies = frequencies.loc[panda.index]
+
+    bad_bpms_summary = _get_bad_bpms_summary(not_tune_bpms, cleaned_by_tune_bpms)
+    panda = _amp_and_mu_from_avg(bpm_matrix, plane, panda)
+    # TODO: I removed the old noise!
     panda = _get_natural_tunes(frequencies, bpm_coefficients, harpy_input, plane, panda)
 
     resonances_freqs = _compute_resonances_freqs(plane, harpy_input)
@@ -106,13 +111,37 @@ def harpy(bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
 
     panda['BINDEX'] = 0
     panda['SLABEL'] = 0
-    return (panda.loc[bad_bpms_mask, :],
+    return (panda,
             all_bpms_spectr,
-            bad_bpms)
+            bad_bpms_summary)
+
+
+def clean_by_tune(tunes, tune_clean_limit):
+    bad_bpms_mask = outliers.get_filter_mask(
+        tunes,
+        limit=tune_clean_limit,
+    )
+    bad_bpms_names = tunes[~bad_bpms_mask].index
+    return bad_bpms_names
+
+
+def _get_bad_bpms_summary(not_tune_bpms, cleaned_by_tune_bpms):
+    bad_bpms_summary = []
+    for bpm_name in not_tune_bpms:
+        bad_bpms_summary.append(bpm_name +
+                                " The main resonance has not been found.")
+    for bpm_name in cleaned_by_tune_bpms:
+        bad_bpms_summary.append(
+            "{} tune is too far from average"
+            .format(bpm_name)
+        )
+    return bad_bpms_summary
 
 
 def _harmonic_analysis(harpy_input, bpm_matrix, usv):
     sv = np.dot(np.diag(usv[1]), usv[2])
+    fake_bpms = ["MODE{}".format(i) for i in range(sv.shape[0])]
+    sv = pd.DataFrame(index=fake_bpms, data=sv)
     if harpy_input.harpy_mode == "bpm":
         frequencies, bpm_coefficients = _parallel_laskar(
             bpm_matrix, harpy_input.sequential, NUM_HARMS,
@@ -120,16 +149,21 @@ def _harmonic_analysis(harpy_input, bpm_matrix, usv):
     elif harpy_input.harpy_mode == "fast":
         frequencies, _ = _laskar_per_mode(np.mean(sv, axis=0), NUM_HARMS)
         svd_coefficients = _compute_coefs_for_freqs(sv, frequencies)
-        bpm_coefficients = np.dot(usv[0], svd_coefficients)
+        bpm_coefficients = usv[0].dot(svd_coefficients.values)
     elif harpy_input.harpy_mode == "svd":
         frequencies, _ = _parallel_laskar(
             sv, harpy_input.sequential, NUM_HARMS_SVD
         )
         frequencies = np.ravel(frequencies)
         svd_coefficients = _compute_coefs_for_freqs(sv, frequencies)
-        bpm_coefficients = np.dot(usv[0], svd_coefficients)
+        bpm_coefficients = usv[0].dot(svd_coefficients.values)
     else:
         raise ValueError("Wrong harpy mode: " + harpy_input.harpy_mode)
+    if frequencies.ndim < 2:
+        frequencies = pd.DataFrame(
+            index=bpm_coefficients.index,
+            data=np.outer(np.ones(bpm_coefficients.shape[0]), frequencies)
+        )
     return frequencies, bpm_coefficients
 
 
@@ -159,18 +193,17 @@ def _parallel_laskar(samples, sequential, num_harms):
                              callback=callback)
     pool.close()
     pool.join()
-    return np.array(freqs), np.array(coefs)
+    return freqs, coefs
 
 
 def _laskar_per_mode(samples, number_of_harmonics):
-    freqs, coefs = laskar_method(samples, number_of_harmonics)
+    freqs, coefs = laskar_method(samples.values, number_of_harmonics)
     return np.array(freqs), np.array(coefs)
 
 
 def _compute_coefs_for_freqs(samples, freqs):  # Samples is a matrix
     n = samples.shape[1]
-    coefficients = np.dot(
-        samples,
+    coefficients = samples.dot(
         np.exp(-PI2I * np.outer(np.arange(n), freqs))
     ) / n
     return coefficients
@@ -182,7 +215,6 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
     freq = ((h * harpy_input.tunex) +
             (v * harpy_input.tuney) +
             (l * harpy_input.tunez))
-    print(coefficients)
     max_coefs, max_freqs = _search_highest_coefs(
         freq, tolerance, frequencies, coefficients
     )
@@ -191,56 +223,32 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
             "No main " + plane + " resonances found, "
             "try to increase the tolerance or adjust the tunes"
         )
-    bad_bpms_mask = max_coefs != 0.
-    bad_bpms = []
-    for i in np.arange(len(bad_bpms_mask)):
-        if not bad_bpms_mask[i]:
-            bad_bpms.append(panda.at[i, 'NAME'] +
-                            " The main resonance has not been found.")
-    panda.loc[panda.index.difference(bad_bpms_by_tune)]
+    bad_bpms_by_tune = coefficients.loc[max_coefs == 0.].index
+    panda = panda.loc[panda.index.difference(bad_bpms_by_tune)]
     panda['TUNE'+plane] = max_freqs
     panda['AMP'+plane] = np.abs(max_coefs)
     panda['MU'+plane] = np.angle(max_coefs) / (2 * np.pi)
-    return panda, bad_bpms, bad_bpms_mask
+    return panda, bad_bpms_by_tune
 
 
 def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
     min = freq - tolerance
     max = freq + tolerance
-    on_window_mask = (frequencies >= min) & (frequencies <= max)
-    filtered_amps = np.where(on_window_mask,
-                             np.abs(coefficients),
-                             np.zeros_like(coefficients))
-    filtered_coefs = np.where(on_window_mask,
-                              coefficients,
-                              np.zeros_like(coefficients))
-    max_indices = np.argmax(filtered_amps, axis=1)
-    max_coefs = filtered_coefs[np.arange(coefficients.shape[0]), max_indices]
-    max_freqs = frequencies[np.arange(frequencies.shape[0]), max_indices]
+    on_window_mask = (frequencies.values >= min) & (frequencies.values <= max)
+    filtered_amps = coefficients.abs().where(on_window_mask, other=0.)
+    max_indices = filtered_amps.idxmax(axis=1)
+    max_coefs = coefficients.lookup(max_indices.index, max_indices.values)
+    # TODO: Better solution?:
+    max_coefs = pd.Series(index=coefficients.index, data=max_coefs)
+    max_freqs = frequencies.lookup(max_indices.index, max_indices.values)
     max_freqs = (max_coefs != 0) * max_freqs  # Zero bad freqs
     return max_coefs, max_freqs
 
 
-def _clean_by_tune(harpy_input, plane, panda):
-    bad_bpms_summary = []
-    bad_bpms_mask = outliers.get_filter_mask(
-        panda.loc[:, 'TUNE' + plane],
-        limit=harpy_input.tune_clean_limit,
-    )
-    bad_bpms = panda.iloc[bad_bpms_mask]
-    for bpm_name in bad_bpms:
-        bad_bpms_summary.append(
-            "{} tune is too far from average"
-            .format(bpm_name)
-        )
-    panda.loc[panda.index.difference(bad_bpms)]
-    return panda, bad_bpms_summary
-
-
-def _amp_and_mu_from_avg(bpm_matrix, bad_bpm_mask, plane, panda):
+def _amp_and_mu_from_avg(bpm_matrix, plane, panda):
     avg_coefs = _compute_coefs_for_freqs(
         bpm_matrix,
-        np.mean(panda.loc[bad_bpm_mask, 'TUNE' + plane])
+        np.mean(panda.loc[:, 'TUNE' + plane])
     )
     panda['AVG_AMP'+plane] = np.abs(avg_coefs)
     panda['AVG_MU'+plane] = np.angle(avg_coefs) / (2 * np.pi)
@@ -260,21 +268,6 @@ def _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda):
     panda['NATTUNE'+plane] = max_freqs
     panda['NATAMP'+plane] = np.abs(max_coefs)
     return panda
-
-
-def _get_noise(bpm_matrix, panda):
-    result = panda
-    leng = 2 ** (int(np.log2(bpm_matrix.shape[1])) - 2)
-    leng = 512 if leng > 512 else leng
-    pos = int(leng / 64)
-    noise = np.empty([bpm_matrix.shape[0],
-                      int(np.floor(bpm_matrix.shape[1] / leng))])
-    for i in range(bpm_matrix.shape[1] / leng):
-        noise[:, i] = np.partition(
-            np.abs(np.fft.fft(bpm_matrix[:, :leng])), pos, axis=1
-        )[:, pos] / leng
-    result['NOISE'] = np.mean(noise, axis=1)
-    return result
 
 
 # Vectorized - coefficiens are matrix:

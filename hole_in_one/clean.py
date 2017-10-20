@@ -146,7 +146,7 @@ def svd_decomposition(clean_input, bpm_data):
     )
     num = np.sum(S > 0.)
     U = pd.DataFrame(index=bpm_data.index, data=U)
-    USV = U.iloc[:, :num], S[:num], V[:num, :]
+    USV = U.loc[:, :num], S[:num], V[:num, :]
     if num < USV[1].shape[0]:
         LOGGER.warn("Zero singular values detected.")
     return USV, bpm_data_mean, sqrt_number_of_turns
@@ -163,11 +163,11 @@ def svd_clean(bpm_data, clean_input):
 
         # Reconstruct the SVD-cleaned data
         USV = clean_U, USV[1], USV[2]
-        A = np.dot(USV[0], np.dot(np.diag(USV[1]), USV[2]))
+        A = USV[0].dot(np.dot(np.diag(USV[1]), USV[2]))
         A = A * sqrt_number_of_turns + bpm_data_mean.values
 
         # BPM resolution computation
-        bpm_res = np.std(A - bpm_data.loc[clean_U.index], axis=1)
+        bpm_res = (A - bpm_data.loc[clean_U.index]).std(axis=1)
         LOGGER.debug("Average BPM resolution: %s", str(np.mean(bpm_res)))
         LOGGER.debug("np.mean(np.std(A, axis=1): %s", np.mean(np.std(A, axis=1)))
         if np.mean(bpm_res) > NTS_LIMIT * np.mean(np.std(A, axis=1)):
@@ -179,7 +179,7 @@ def svd_clean(bpm_data, clean_input):
         V = (USV[2].T - np.mean(USV[2], axis=1)).T
         USV = (USV[0], USV[1] * sqrt_number_of_turns, V)
 
-        good_bpm_data = pd.DataFrame(index=clean_U.index, data=A)
+        good_bpm_data = A
     else:
         V = (USV[2].T - np.mean(USV[2], axis=1)).T
         USV = (USV[0], USV[1] * sqrt_number_of_turns, V)

@@ -36,6 +36,7 @@ def run_all(main_input, clean_input, harpy_input, to_log):
 
 
 def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
+
     if main_input.write_raw:
         output_handler.write_raw_file(tbt_file, main_input)
 
@@ -44,6 +45,11 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
         model_tfs = tfs.read_tfs(main_input.model).loc[:, ('NAME', 'S', 'DX')] # dispersion in meters
         for plane in ("x", "y"):
             bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
+            if (clean_input.startturn > 0 or
+                    clean_input.endturn < bpm_data.shape[1]):
+                start = max(0, clean_input.startturn)
+                end = min(clean_input.endturn, new_bpm_data.shape[1])
+                bpm_data = bpm_data[:, start:end]
             bpm_data, bpms_not_in_model = _get_only_model_bpms(bpm_data, model_tfs)
             all_bad_bpms = []
             usv = None
@@ -67,11 +73,14 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
             if harpy_input is not None:
                 lin_frame = pd.DataFrame(index=bpm_data.index,
                                          data={"NAME": bpm_data.index})
+                bpm_positions = model_tfs.set_index("NAME").loc[bpm_data.index, "S"]
+                lin_frame["S"] = bpm_positions
                 with timeit(lambda spanned: LOGGER.debug("Time for orbit_analysis: %s", spanned)):
                     lin_frame = _get_orbit_data(lin_frame, bpm_data, bpm_res, model_tfs)
 
-                bad_bpms_fft = _do_harpy(harpy_input, bpm_data, model_tfs, usv,
-                                         lin_frame, plane, computed_dpp)
+                bad_bpms_fft = _do_harpy(main_input, harpy_input, bpm_data,
+                                         model_tfs, usv, lin_frame, plane,
+                                         computed_dpp)
                 all_bad_bpms.extend(bad_bpms_fft)
 
             output_handler.write_bad_bpms(
@@ -103,7 +112,7 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res, model):
     return lin_frame
 
 
-def _do_harpy(harpy_input, bpm_data, model_tfs, usv, lin_frame, plane, computed_dpp):
+def _do_harpy(main_input, harpy_input, bpm_data, model_tfs, usv, lin_frame, plane, computed_dpp):
     with timeit(lambda spanned: LOGGER.debug("Time for harmonic_analysis: %s", spanned)):
         bpm_data = (bpm_data.T - np.mean(bpm_data, axis=1)).T
         lin_result, spectrum, bad_bpms_fft = harmonic_analysis(
