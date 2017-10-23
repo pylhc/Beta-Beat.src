@@ -1,4 +1,5 @@
 '''
+.. module: phase
 Created on 27 May 2013
 
 @author: ?, vimaier
@@ -50,8 +51,8 @@ class PhaseData(object):
 def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, files_dict):
     '''
     Calculates phase and fills the following TfsFiles:
-        getphasex.out        getphasex_free.out        getphasex_free2.out
-        getphasey.out        getphasey_free.out        getphasey_free2.out
+        ``getphasex.out        getphasex_free.out        getphasex_free2.out``
+        ``getphasey.out        getphasey_free.out        getphasey_free2.out``
 
     :Parameters:
         'getllm_d': GetllmData (In-param, values will only be read)
@@ -64,6 +65,26 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     :Return: PhaseData, _TuneData
         an instance of PhaseData with the result of this function
         the same instance as param tune_d to indicate changes in the instance.
+        
+        The phase data will be a pandas.Panel with 3 dataframes ``MEAS``, ``MODEL``, ``ERRMEAS``
+        
+        ``phase_d.phase_advances_free_x[MEAS]``:
+            
+        +------++--------+--------+--------+--------+
+        |      ||  BPM1  |  BPM2  |  BPM3  |  BPM4  | 
+        +======++========+========+========+========+
+        | BPM1 ||   0    | phi_21 | phi_31 | phi_41 | 
+        +------++--------+--------+--------+--------+
+        | BPM2 || phi_12 |    0   | phi_32 | phi_42 | 
+        +------++--------+--------+--------+--------+
+        | BPM3 || phi_13 | phi_23 |   0    | phi_43 | 
+        +------++--------+--------+--------+--------+
+        
+        The phase advance between BPM_i and BPM_j can be obtained via::
+            
+            phi_ij = phase_advances.loc["MEAS", "BPM_i", "BPM_j"]
+            
+        Normal text
     '''
     phase_d = PhaseData()
     bpmsx = twiss_d.zero_dpp_commonbpms_x

@@ -1,4 +1,5 @@
 '''
+.. module: beta
 Created on 27 May 2013
 
 @author: awegsche, vimaier
@@ -110,6 +111,9 @@ ID_TO_METHOD = {
 
 
 class MeasuredValues:
+    '''
+    class that stores information about the calculated alpha and beta values
+    '''
     def __init__(self, alfa, beta, string="", use_it=False):
         self.beta = beta
         self.alfa = alfa
@@ -345,6 +349,36 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
                        data, rmsbbx, error_method, bpms,
                        tfs_file, mod_BET, mod_ALF, mod_MU, _plane_char,
                        dpp=0, dppq1=0):
+    '''
+    Writes the file ``getbeta<x/y>.out``. 
+    
+    :Parameters:
+        twiss_d_zero_dpp
+            not used
+        q1, q2
+            tunes
+        mad_ac
+            not used
+        number_of_bpms
+            number of bpm combinations to keep for Monte Carlo N-BPM method
+        range_of_bpms
+            range of BPMs from which the combinations are taken
+        beta_d_col
+            no idea
+        data 
+            the result of the method
+        rmsbbx
+            RMS beta beating
+        error_method
+            the ID of the used error method
+        bpms
+            not used
+        tfs_file
+            the tfs file to which the results will be written
+        mod_BET
+            not used
+            
+    '''
 
     tfs_file.add_float_descriptor("Q1", q1)
     tfs_file.add_float_descriptor("Q2", q2)
@@ -401,9 +435,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                               files_dict):
     '''
     
-    Calculates beta and fills the following TfsFiles:
-        getbetax.out        getbetax_free.out        getbetax_free2.out
-        getbetay.out        getbetay_free.out        getbetay_free2.out
+    Calculates beta from phase using either the 3-BPM or N-BPM method.
+    Fills the following TfsFiles:
+        ``getbetax.out        getbetax_free.out        getbetax_free2.out``
+        ``getbetay.out        getbetay_free.out        getbetay_free2.out``
+        
+    
 
     :Parameters:
         'getllm_d': _GetllmData (In-param, values will only be read)
@@ -851,7 +888,7 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, commo
         'number_of_bpms':int
             use the number_of_bpm betas with the lowest phase advance (only used when monte carlo simulations are used)
         'range_of_bpms':int
-            length of range of bpms used to calculate the beta function. Has to be an odd number 1 < r < 21
+            length of range of bpms used to calculate the beta function. Has to be an odd number > 7
         'errordefspath':String
             the paths to the error definition file. If not specified, Monte Carlo simulation is used
     '''
@@ -952,31 +989,79 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
     return [beta, rmsbb, commonbpms, invariant_j]
 
 
-#=======================================================================================================================
-#---============== using the simulations to calculate the beta function and error bars =================================
-#=======================================================================================================================
+#======================================================================================================================
+#---============== calculate beta and alpha using the old 3 BPM method ================================================
+#======================================================================================================================
 def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile, errors_method, tune, mdltune):
+    '''
+    Calculates beta from phase using the old 3-BPM method
+    Fast 'vectorized' pandas / numpy code
+    
+    ``phase["MEAS"]``, ``phase["MODEL"]``, ``phase["ERRMEAS"]`` (from ``get_phases``) are of the form:
+    
+    +----------+----------+----------+----------+----------+
+    |          |   BPM1   |   BPM2   |   BPM3   |   BPM4   | 
+    +----------+----------+----------+----------+----------+
+    |   BPM1   |    0     |  phi_21  |  phi_31  |  phi_41  | 
+    +----------+----------+----------+----------+----------+
+    |   BPM2   |  phi_12  |     0    |  phi_32  |  phi_42  | 
+    +----------+----------+----------+----------+----------+
+    |   BPM3   |  phi_13  |  phi_23  |    0     |  phi_43  | 
+    +----------+----------+----------+----------+----------+
+    
+    aa ``tilt_slice_matrix(matrix, shift, slice, tune)`` brings it into the form:
+    
+    +-----------+--------+--------+--------+--------+
+    |           |  BPM1  |  BPM2  |  BPM3  |  BPM4  |                    
+    +-----------+--------+--------+--------+--------+    
+    | BPM_(i-1) | phi_1n | phi_21 | phi_32 | phi_43 |
+    +-----------+--------+--------+--------+--------+
+    | BPM_i     |    0   |    0   |    0   |    0   |
+    +-----------+--------+--------+--------+--------+     
+    | BPM_(i+1) | phi_12 | phi_23 | phi_34 | phi_45 |      
+    +-----------+--------+--------+--------+--------+
+        
+    ``cot_phase_*_shift1``:
+    
+    +-----------------------------+-----------------------------+-----------------------------+
+    | cot(phi_1n) - cot(phi_1n-1) |  cot(phi_21) - cot(phi_2n)  |   cot(phi_32) - cot(phi_31) | 
+    +-----------------------------+-----------------------------+-----------------------------+
+    |         NaN                 |         NaN                 |         NaN                 |
+    +-----------------------------+-----------------------------+-----------------------------+
+    |         NaN                 |         NaN                 |         NaN                 |
+    +-----------------------------+-----------------------------+-----------------------------+
+    |  cot(phi_13) - cot(phi_12)  |  cot(phi_24) - cot(phi_23)  |   cot(phi_35) - cot(phi_34) | 
+    +-----------------------------+-----------------------------+-----------------------------+
+    
+    for the combination xxxABBx: first row
+    for the combinstion xBBAxxx: fourth row and
+    for the combination xxBABxx: second row of ``cot_phase_*_shift2``
+    
+    
+      
+        
+    '''
     number_commonbpms = commonbpms.shape[0]
     plane_bet = "BETX" if plane == "H" else "BETY"
     plane_alf = "ALFX" if plane == "H" else "ALFY"
-#    np.set_printoptions(edgeitems=7, precision=3, linewidth=150)
-    print ID_TO_METHOD[errors_method]
     if errors_method == METH_3BPM:
         madTwiss_intersected = madTwiss.loc[commonbpms.index]
         starttime = time.time()
         
-        # setup the used variables
+        # ====== setup the used variables =============================================================================
         # tilt phase advances in order to have the phase advances in a neighbourhood
-        tilted_meas = tilt_slice_matrix(phase["MEAS"].as_matrix(), 2, 5, tune)
-        tilted_model = tilt_slice_matrix(phase["MODEL"].as_matrix(), 2, 5, mdltune)
-        print tilted_meas
-        betmdl = madTwiss_intersected.loc[:][plane_bet]
-        alfmdl = madTwiss_intersected.loc[:][plane_alf]
+        tilted_meas = tilt_slice_matrix(phase["MEAS"].as_matrix(), 2, 5, tune) * TWOPI
+        tilted_model = tilt_slice_matrix(phase["MODEL"].as_matrix(), 2, 5, mdltune) * TWOPI
+        tilted_errmeas = tilt_slice_matrix(phase["ERRMEAS"].as_matrix(), 2, 5, mdltune) * TWOPI
+        
+        betmdl = madTwiss_intersected.loc[:][plane_bet].as_matrix()
+        alfmdl = madTwiss_intersected.loc[:][plane_alf].as_matrix()
 
+        # ======= main part, calculate the beta and alpha function ====================================================
         
         # calculate cotangens of all the phase advances in the neighbourhood
-        cot_phase_meas = 1.0 / tan(tilted_meas * TWOPI)
-        cot_phase_model = 1.0 / tan(tilted_model * TWOPI)
+        cot_phase_meas = 1.0 / tan(tilted_meas)
+        cot_phase_model = 1.0 / tan(tilted_model)
        
         # calculate enumerators and denominators for far more cases than needed
         # shift1 are the cases BBA, ABB, AxBB, AxxBB etc. (the used BPMs are adjacent)
@@ -994,422 +1079,47 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         # multiply the fractions by betmdl and calculate the arithmetic mean
         beti = bet_frac * betmdl
         
+        # alpha
         alfi = (bet_frac * ( cot_phase_model[1] + cot_phase_model[3] + 2.0 * alfmdl)
                         - ( cot_phase_meas[1] + cot_phase_meas[3])) / 2.0
+        
+        # ======= error propagation ===================================================================================
+        
+        # error = sqrt( errphi_ij^2 * (d beta / dphi_ij)^2 )
+        # calculate sin(phimdl_ij)
+        sin_model = sin(tilted_model) 
+        # calculate errphi_ij^2 / sin^2 phimdl_ij * beta
+        sin_squared_model = tilted_errmeas / np.multiply(sin_model, sin_model) * betmdl
+        # square it again beacause it's used in a vector length
+        sin_squared_model = np.multiply(sin_squared_model, sin_squared_model)
+        
+        sin_squ_model_shift1 = sin_squared_model + np.roll(sin_squared_model, -1, axis=0) / np.multiply(cot_phase_model_shift1, cot_phase_model_shift1)
+        sin_squ_model_shift2 = sin_squared_model + np.roll(sin_squared_model, -2, axis=0) / np.multiply(cot_phase_model_shift2, cot_phase_model_shift2)
+        beterr = np.sqrt(sin_squ_model_shift1[0] + sin_squ_model_shift1[3] + sin_squ_model_shift2[1]) / 3.0
+        
         betstd=np.zeros(number_commonbpms)
-        beterr=np.zeros(number_commonbpms)
         alfstd=np.zeros(number_commonbpms)
         alferr=np.zeros(number_commonbpms)
-
         
+        # ======= print error method and return the data rows for getbetax/y.out ======================================
+
         print "===================================", time.time() - starttime
         starttime = time.time()
-        
-        
-#        data_ = pd.DataFrame(columns=commonbpms.index,
-#                             index=["NAME", "S", plane_bet, "BETSTD", "BETSYS", "BETERR", plane_alf, "ALFSTD", "ALFSYS", "ALFERR", "CORR", plane_bet + "MDL", "BBEAT", "NUM"],
-#                             data=[
-#                                     commonbpms.index, madTwiss_intersected.loc[:]["S"], beti, betstd, beterr, np.sqrt(beterr ** 2 + betstd ** 2),
-#                                     alfi, alfstd, alferr, np.sqrt(alferr ** 2 + alfstd ** 2),
-#                                     alfi,
-#                                     betmdl,
-#                                     bet_frac - 1.0,
-#                                     alfi]
-#                             )
         
         print "===================================", time.time() - starttime
         print_("Errors from " + ID_TO_METHOD[errors_method])
 
-
         return 0, errors_method, np.transpose([
                                      commonbpms.index, madTwiss_intersected.loc[:]["S"],
-                                     beti, betstd, beterr, np.sqrt(beterr ** 2 + betstd ** 2),
-                                     alfi, alfstd, alferr, np.sqrt(alferr ** 2 + alfstd ** 2),
+                                     beti, betstd, betstd, beterr,
+                                     alfi, alfstd, alfstd, alfstd,
                                      alfi,
                                      betmdl,
                                      bet_frac - 1.0,
                                      alfi])
 
-    raise GetLLMError("Monte Carlo N-BPM is not implemented. Please contact awegsche")
+    raise GetLLMError("Monte Carlo N-BPM is not implemented.")
     
-
-def get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i, use_only_three_bpms_for_beta_from_phase, number_of_bpms, range_of_bpms):
-    '''
-    Sorts BPM sets for the beta calculation based on their phase advance.
-    If less than 7 BPMs are available it will fall back to using only next neighbours.
-    :Parameters:
-        'madTwiss':twiss
-            model twiss file
-        'phase':dict
-            measured phase advances
-        'plane':string
-            'H' or 'V'
-        'commonbpms':list
-            intersection of common BPMs in measurement files and model
-        'i': integer
-            current iterator in the loop of all BPMs
-    :Return: tupel(candidate1, candidate2, candidate3, bn4)
-        'candidate1-3':list
-            contains calculated beta and alfa
-        'bn4':string
-            name of the probed BPM
-    '''
-
-    RANGE = int(range_of_bpms)
-    probed_index = int((RANGE - 1) / 2.)
- 
-    if 7 > len(commonbpms) or use_only_three_bpms_for_beta_from_phase:
-        bn1 = str.upper(commonbpms.index[(probed_index + i - 2) % len(commonbpms)])
-        bn2 = str.upper(commonbpms.index[(probed_index + i - 1) % len(commonbpms)])
-        bn3 = str.upper(commonbpms.index[(probed_index + i) % len(commonbpms)])
-        bn4 = str.upper(commonbpms.index[(probed_index + i + 1) % len(commonbpms)])
-        bn5 = str.upper(commonbpms.index[(probed_index + i + 2) % len(commonbpms)])
-        candidates = []
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, _ = _beta_from_phase_BPM_right(bn1, bn2, bn3, madTwiss, phase, plane, 0, 0, 0, True)
-        candidates.append([tbetstd, tbet, talfstd, talf])
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, _ = _beta_from_phase_BPM_mid(bn2, bn3, bn4, madTwiss, phase, plane, 0, 0, 0, True)
-        candidates.append([tbetstd, tbet, talfstd, talf])
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, _ = _beta_from_phase_BPM_left(bn3, bn4, bn5, madTwiss, phase, plane, 0, 0, 0, True)
-        candidates.append([tbetstd, tbet, talfstd, talf])
-        return candidates, bn3, []
-    
-    # TODO remove the code hereafter or implement Monte Cralo N-BPM for accelerator classes
-
-    bpm_name = {}
-    for n in range(RANGE):
-        bpm_name[n] = str.upper(commonbpms[(i + n) % len(commonbpms)][1])
-        phase_err = {}
-    if plane == 'H':
-        for i in range(RANGE):
-            if i < probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[i]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]])
-            elif i > probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[i]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]])
-        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETX[madTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + madTwiss.BETX[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETX[madTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
-    if plane == 'V':
-        for i in range(RANGE):
-            if i < probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[i]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]])
-            if i > probed_index:
-                phase_err[i] = phase["".join([plane, bpm_name[probed_index], bpm_name[i]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[i]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]])
-        phase_err[probed_index] = min([phase["".join([plane, bpm_name[i], bpm_name[probed_index]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETY[madTwiss.indx[bpm_name[i]]]) for i in range(probed_index)] + [phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + 1 + i]])][1] / np.sqrt(1 + madTwiss.BETY[madTwiss.indx[bpm_name[probed_index]]] / madTwiss.BETY[madTwiss.indx[bpm_name[probed_index + 1 + i]]]) for i in range(probed_index)])
-   
-    M = np.zeros([RANGE - 1, RANGE - 1])
-    for k in range(RANGE - 1):
-        for l in range(RANGE - 1):
-            if k == l and k < probed_index:
-                M[k][l] = (2*np.pi)**2 * phase["".join([plane, bpm_name[probed_index], bpm_name[probed_index + k + 1]])][1]**2
-            elif k == l and k >= probed_index:
-                M[k][l] = (2*np.pi)**2 * phase["".join([plane, bpm_name[RANGE - 2 - k], bpm_name[probed_index]])][1]**2
-            elif (k < probed_index and l >= probed_index) or (k >= probed_index and l < probed_index):
-                M[k][l] = -(2*np.pi)**2 * phase_err[probed_index]**2
-            else:
-                M[k][l] = (2*np.pi)**2 * phase_err[probed_index]**2
-    candidates = []
-    left_bpm = range(probed_index)
-    right_bpm = range(probed_index + 1, RANGE)
-    left_combo = [[x, y] for x in left_bpm for y in left_bpm if x < y]
-    right_combo = [[x, y] for x in right_bpm for y in right_bpm if x < y]
-    mid_combo = [[x, y] for x in left_bpm for y in right_bpm]
-    
-    #right_combo = []    #ABB
-    #mid_combo = []      # BAB
-    #left_combo = []     # BBA
- 
-    for n in left_combo:
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_right(bpm_name[n[0]], bpm_name[n[1]], bpm_name[probed_index], madTwiss, phase, plane, phase_err[n[0]], phase_err[n[1]], phase_err[probed_index])
-        
-        t_matrix_row = [0] * (RANGE-1)
-        t_matrix_row[RANGE-2 - n[0]] = t1
-        t_matrix_row[RANGE-2 - n[1]] = t2
-        patternstr = ["x"] * RANGE
-        patternstr[n[0]] = "B"
-        patternstr[n[1]] = "B"
-        patternstr[probed_index] = "A"
-        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
-
-    for n in mid_combo:
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_mid(bpm_name[n[0]], bpm_name[probed_index], bpm_name[n[1]], madTwiss, phase, plane, phase_err[n[0]], phase_err[probed_index], phase_err[n[1]])
-   
-        t_matrix_row = [0] * (RANGE - 1)
-        t_matrix_row[RANGE - 2 - n[0]] = t1
-        t_matrix_row[n[1] - 1 - probed_index] = t2
-        patternstr = ["x"] * RANGE
-        patternstr[n[0]] = "B"
-        patternstr[n[1]] = "B"
-        patternstr[probed_index] = "A"
-        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
-
-    for n in right_combo:
-        tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, use_it = _beta_from_phase_BPM_left(bpm_name[probed_index], bpm_name[n[0]], bpm_name[n[1]], madTwiss, phase, plane, phase_err[probed_index], phase_err[n[0]], phase_err[n[1]])
-      
-        t_matrix_row = [0] * (RANGE-1)
-        t_matrix_row[n[0] - 1 - probed_index] = t1
-        t_matrix_row[n[1] - 1 - probed_index] = t2
-        patternstr = ["x"] * RANGE
-        patternstr[n[0]] = "B"
-        patternstr[n[1]] = "B"
-        patternstr[probed_index] = "A"
-        candidates.append([tbetstd, tbet, talfstd, talf, mdlerr, bpm_name[n[0]], bpm_name[n[1]], t_matrix_row, "".join(patternstr)])
-
-    sort_cand = sorted(candidates, key=lambda x: x[4])
-    return [sort_cand[i] for i in range(number_of_bpms)], bpm_name[probed_index], M
-#     return candidates, bpm_name[probed_index], M
-
-
-def _beta_from_phase_BPM_left(bn1, bn2, bn3, madTwiss, phase, plane, p1, p2, p3, is3BPM=False):
-    '''
-    Calculates the beta/alfa function and their errors using the
-    phase advance between three BPMs for the case that the probed BPM is left of the other two BPMs (ABB)
-    :Parameters:
-        'bn1':string
-            Name of probed BPM
-        'bn2':string
-            Name of first BPM right of the probed BPM
-        'bn3':string
-            Name of second BPM right of the probed BPM
-        'madTwiss':twiss
-            model twiss file
-        'phase':dict
-            measured phase advances
-        'plane':string
-            'H' or 'V'
-    :Return:tupel (bet,betstd,alf,alfstd)
-        'bet':float
-            calculated beta function at probed BPM
-        'betstd':float
-            calculated error on beta function at probed BPM
-        'alf':float
-            calculated alfa function at probed BPM
-        'alfstd':float
-            calculated error on alfa function at probed BPM
-    '''
-    ph2pi12=phase.loc["MEAS", bn1, bn2]
-    ph2pi13=phase.loc["MEAS", bn1, bn3]
-    betstd = 0
-    alfstd = 0
-
-    # Find the model transfer matrices for beta1
-    phmdl12 = phase.loc["MODEL", bn1, bn2]
-    phmdl13= phase.loc["MODEL", bn1, bn3]
-    if plane=='H':
-        betmdl1=madTwiss.loc[bn1, "BETX"]
-        betmdl2=madTwiss.loc[bn2, "BETX"]
-        betmdl3=madTwiss.loc[bn3, "BETX"]
-        alpmdl1=madTwiss.loc[bn1, "ALFX"]
-    elif plane=='V':
-        betmdl1=madTwiss.loc[bn1, "BETY"]
-        betmdl2=madTwiss.loc[bn2, "BETY"]
-        betmdl3=madTwiss.loc[bn3, "BETY"]
-        alpmdl1=madTwiss.loc[bn1, "ALFY"]
-    if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
-        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
-        sys.exit(1)
-        
-    # Find beta1 and alpha1 from phases assuming model transfer matrix
-    # Matrix M: BPM1-> BPM2
-    # Matrix N: BPM1-> BPM3
-    M11=math.sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
-    M12=math.sqrt(betmdl1*betmdl2)*sin(phmdl12)
-    N11=math.sqrt(betmdl3/betmdl1)*(cos(phmdl13)+alpmdl1*sin(phmdl13))
-    N12=math.sqrt(betmdl1*betmdl3)*sin(phmdl13)
-
-    denom=M11/M12-N11/N12+1e-16
-    numer=1/tan(ph2pi12)-1/tan(ph2pi13)
-    bet=numer/denom
-
-#    betstd=        (2*np.pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-#    betstd=betstd+(2*np.pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-#    betstd=math.sqrt(betstd)/abs(denom)
-
-    mdlerr=        (2*np.pi*0.001/sin(phmdl12)**2)**2
-    mdlerr=mdlerr+(2*np.pi*0.001/sin(phmdl13)**2)**2
-    mdlerr=math.sqrt(mdlerr)/abs(denom)    
-
-    term1 = 1/sin(phmdl12)**2/denom
-    term2 = -1/sin(phmdl13)**2/denom
-
-    denom=M12/M11-N12/N11+1e-16
-    numer=-M12/M11/tan(ph2pi12)+N12/N11/tan(ph2pi13)
-    alf=numer/denom
-
-#    alfstd=        (M12/M11*2*np.pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-#    alfstd=alfstd+(N12/N11*2*np.pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-#    alfstd=math.sqrt(alfstd)/denom
-
-    return bet, betstd, alf, alfstd, mdlerr, term1, term2, True
-
-def _beta_from_phase_BPM_mid(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM=False):
-    '''
-    Calculates the beta/alfa function and their errors using the
-    phase advance between three BPMs for the case that the probed BPM is between the other two BPMs
-    :Parameters:
-        'bn1':string
-            Name of BPM left of the probed BPM
-        'bn2':string
-            Name of probed BPM
-        'bn3':string
-            Name of BPM right of the probed BPM
-        'madTwiss':twiss
-            model twiss file
-        'phase':dict
-            measured phase advances
-        'plane':string
-            'H' or 'V'
-    :Return:tupel (bet,betstd,alf,alfstd)
-        'bet':float
-            calculated beta function at probed BPM
-        'betstd':float
-            calculated error on beta function at probed BPM
-        'alf':float
-            calculated alfa function at probed BPM
-        'alfstd':float
-            calculated error on alfa function at probed BPM
-    '''
-    ph2pi12=phase.loc["MEAS", bn1, bn2]
-    ph2pi23=phase.loc["MEAS", bn2, bn3]
-    
-    betstd = 0
-    alfstd = 0
-
-    # Find the model transfer matrices for beta1
-    phmdl12=phase.loc["MODEL", bn1, bn2]
-    phmdl23=phase.loc["MODEL", bn2, bn3]
-    if plane=='H':
-        betmdl1=madTwiss.loc[bn1, "BETX"]
-        betmdl2=madTwiss.loc[bn2, "BETX"]
-        betmdl3=madTwiss.loc[bn3, "BETX"]
-        alpmdl2=madTwiss.loc[bn2, "ALFX"]
-    elif plane=='V':
-        betmdl1=madTwiss.loc[bn1, "BETY"]
-        betmdl2=madTwiss.loc[bn2, "BETY"]
-        betmdl3=madTwiss.loc[bn3, "BETY"]
-        alpmdl2=madTwiss.loc[bn2, "ALFY"]
-    if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
-        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
-        sys.exit(1)
-        
-
-    # Find beta2 and alpha2 from phases assuming model transfer matrix
-    # Matrix M: BPM1-> BPM2
-    # Matrix N: BPM2-> BPM3
-    M22=math.sqrt(betmdl1/betmdl2)*(cos(phmdl12)-alpmdl2*sin(phmdl12))
-    M12=math.sqrt(betmdl1*betmdl2)*sin(phmdl12)
-    N11=math.sqrt(betmdl3/betmdl2)*(cos(phmdl23)+alpmdl2*sin(phmdl23))
-    N12=math.sqrt(betmdl2*betmdl3)*sin(phmdl23)
-
-    denom=M22/M12+N11/N12+EPSILON
-    #denom = (1.0/tan(phmdl12) + 1.0/tan(phmdl23) +EPSILON)/betmdl2
-    numer=1/tan(ph2pi12)+1/tan(ph2pi23)
-    bet=numer/denom
-
-#    betstd=        (2*np.pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-#    betstd=betstd+(2*np.pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-#    betstd=math.sqrt(betstd)/abs(denom)
-
-    mdlerr=        (2*np.pi*0.001/sin(phmdl12)**2)**2
-    mdlerr=mdlerr+(2*np.pi*0.001/sin(phmdl23)**2)**2
-    mdlerr=math.sqrt(mdlerr)/abs(denom)
-
-    term2 = 1/sin(phmdl23)**2/denom  #sign
-    term1 = -1/sin(phmdl12)**2/denom  #sign
-
-    denom=M12/M22+N12/N11+1e-16
-    numer=M12/M22/tan(ph2pi12)-N12/N11/tan(ph2pi23)
-    alf=numer/denom
-
-#    alfstd=        (M12/M22*2*np.pi*phase["".join([plane,bn1,bn2])][1]/sin(ph2pi12)**2)**2
-#    alfstd=alfstd+(N12/N11*2*np.pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-#    alfstd=math.sqrt(alfstd)/abs(denom)
-
-    return bet, betstd, alf, alfstd, mdlerr, term1, term2, True
-
-def _beta_from_phase_BPM_right(bn1,bn2,bn3,madTwiss,phase,plane,p1,p2,p3, is3BPM=False):
-    '''
-    Calculates the beta/alfa function and their errors using the
-    phase advance between three BPMs for the case that the probed BPM is right the other two BPMs
-    :Parameters:
-        'bn1':string
-            Name of second BPM left of the probed BPM
-        'bn2':string
-            Name of first BPM left of the probed BPM
-        'bn3':string
-            Name of probed BPM
-        'madTwiss':twiss
-            model twiss file
-        'phase':dict
-            measured phase advances
-        'plane':string
-            'H' or 'V'
-    :Return:tupel (bet,betstd,alf,alfstd)
-        'bet':float
-            calculated beta function at probed BPM
-        'betstd':float
-            calculated error on beta function at probed BPM
-        'alf':float
-            calculated alfa function at probed BPM
-        'alfstd':float
-            calculated error on alfa function at probed BPM
-    '''
-    ph2pi23=phase.loc["MEAS", bn2, bn3]
-    ph2pi13=phase.loc["MEAS", bn1, bn3]
-
-    err23=phase.loc["ERRMEAS", bn2, bn3]
-    err13=phase.loc["ERRMEAS", bn1, bn3]
-    
-    mdlerr = 0
-    alfstd = 0
-
-    # Find the model transfer matrices for beta1
-    phmdl23=phase.loc["MODEL", bn2, bn3]
-    phmdl13=phase.loc["MODEL", bn2, bn3]
-    if plane=='H':
-        betmdl1=madTwiss.loc[bn1, "BETX"]
-        betmdl2=madTwiss.loc[bn2, "BETX"]
-        betmdl3=madTwiss.loc[bn3, "BETX"]
-        alpmdl3=madTwiss.loc[bn3, "ALFX"]
-    elif plane=='V':
-        betmdl1=madTwiss.loc[bn1, "BETY"]
-        betmdl2=madTwiss.loc[bn2, "BETY"]
-        betmdl3=madTwiss.loc[bn3, "BETY"]
-        alpmdl3=madTwiss.loc[bn3, "ALFY"]
-    if betmdl3 < 0 or betmdl2<0 or betmdl1<0:
-        print >> sys.stderr, "Some of the off-momentum betas are negative, change the dpp unit"
-        sys.exit(1)
-
-    # Find beta3 and alpha3 from phases assuming model transfer matrix
-    # Matrix M: BPM2-> BPM3
-    # Matrix N: BPM1-> BPM3
-    M22=math.sqrt(betmdl2/betmdl3)*(cos(phmdl23)-alpmdl3*sin(phmdl23))
-    M12=math.sqrt(betmdl2*betmdl3)*sin(phmdl23)
-    N22=math.sqrt(betmdl1/betmdl3)*(cos(phmdl13)-alpmdl3*sin(phmdl13))
-    N12=math.sqrt(betmdl1*betmdl3)*sin(phmdl13)
-
-    denom=M22/M12-N22/N12+1e-16
-    numer=1/tan(ph2pi23)-1/tan(ph2pi13)
-    bet=numer/denom
-
-    betstd =          (err23 / sin(ph2pi23)**2)**2
-    betstd = betstd + (err13 / sin(ph2pi13)**2)**2
-    betstd = math.sqrt(betstd) / abs(denom)
-
-#    mdlerr=        (2*np.pi*0.001/sin(phmdl23)**2)**2
-#    mdlerr=mdlerr+(2*np.pi*0.001/sin(phmdl13)**2)**2
-#    mdlerr=math.sqrt(mdlerr)/abs(denom)
-
-    term2 = -1/sin(phmdl23)**2/denom  #sign
-    term1 = 1/sin(phmdl13)**2/denom  #sign
-
-    denom=M12/M22-N12/N22+1e-16
-    numer=M12/M22/tan(ph2pi23)-N12/N22/tan(ph2pi13)
-    alf=numer/denom
-
-#    alfstd=        (M12/M22*2*np.pi*phase["".join([plane,bn2,bn3])][1]/sin(ph2pi23)**2)**2
-#    alfstd=alfstd+(N12/N22*2*np.pi*phase["".join([plane,bn1,bn3])][1]/sin(ph2pi13)**2)**2
-#    alfstd=math.sqrt(alfstd)/abs(denom)
-
-
-    return bet, betstd, alf, alfstd, mdlerr, term1, term2, True
 
 #=======================================================================================================================
 #---============== using analytical formula ============================================================================
