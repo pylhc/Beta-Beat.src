@@ -217,7 +217,7 @@ ERR_DEF_FILES = {
     "40cm": "6500GeV",
 }
 ERR_DEF_PATH = os.path.join(
-    "/afs", "cern.ch", "work", "o", "omc",
+    FILES_PATH,
     "Error_definition_files"
 )
 
@@ -244,9 +244,7 @@ def print_getllm_precision(options):
         output_dir = os.path.abspath(options.usetracking)
     else:
         output_dir = os.path.join(THIS_DIR, "test_getllm_" + time.strftime("%Y_%m_%d_%Hh_%Mm_%Ss"))
-    
     _create_folders(output_dir, options)
-    
     if options.acd and options.adt:
         raise IOError(
             "ADT and AC-dipole are both set to 1. Please select only one"
@@ -265,20 +263,17 @@ def _run_tracking_model(directory, options):
     if options.usetracking:
         if not os.path.exists(tbt_path):
             raise IOError("Tracking data '" + options.usetracking + "' not found!")
-
         print("Using previously created model and tracking: " + options.usetracking)
         return
-    
-    print("Creating model and tracking...")    
+    print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory, options)
-    with silence():
-        madx_wrapper.resolve_and_run_string(
-            madx_script,
-            madx_path=MADX_PATH,
-            output_file=os.path.join(directory, 'job.test.madx'),
-            log_file=os.path.join(directory, 'madx_log.txt')
-        )
-    track_path = _get_track_path(directory, one=True)    
+    madx_wrapper.resolve_and_run_string(
+        madx_script,
+        madx_path=MADX_PATH,
+        output_file=os.path.join(directory, 'job.test.madx'),
+        log_file=os.path.join(directory, 'madx_log.txt')
+    )
+    track_path = _get_track_path(directory, one=True)
     with silence():
         if options.addnoise:
             ADDbpmerror.convert_files(infile=track_path, outfile=tbt_path, 
@@ -464,33 +459,33 @@ def _get_harmonic_path(directory, plane):
 def _get_method_path(directory, options):
     return os.path.join(directory, "results_" + options.analyse)
 
+
 def _get_llm_results_path(directory, options):
     return os.path.join(_get_method_path(directory, options), "getllm_" + options.analyse)
+
 
 def _move_nonmadx_files(directory, options):
     dest_dir = _get_method_path(directory, options)
     getllm_dir = _get_llm_results_path(directory, options)
-    
-    
+
     # cleanup results folder in case there is one already
     shutil.rmtree(os.path.join(dest_dir, 'BPM'), ignore_errors=True)
-    
+
     # move getLLM output to subfolder
     for f in os.listdir(directory):
-        if (not os.path.isdir(os.path.join(directory, f)))\
-            and f.startswith('get') and f.endswith('.out'):
-                shutil.move(os.path.join(directory, f), os.path.join(getllm_dir, f))
-    
+        if (not os.path.isdir(os.path.join(directory, f))) and f.startswith('get') and f.endswith('.out'):
+            shutil.move(os.path.join(directory, f), os.path.join(getllm_dir, f))
+
     # move all except for madx files into results folder
     if options.analyse == "sussix":
         for f in os.listdir(directory):
             if any([f.startswith(prefix) for prefix in ["BPM", "ALLBPMs_", "Driv",
-                                                       "results.txt", "sussix"]]):
+                                                        "results.txt", "sussix"]]):
                 shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f)) 
     else:
-         for f in os.listdir(directory):
+        for f in os.listdir(directory):
             if any([f.startswith(prefix) for prefix in ["ALLBPMs.", "ALLBPMs_", "results.txt"]]):
-                shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f)) 
+                shutil.move(os.path.join(directory, f), os.path.join(dest_dir, f))
 
 
 def _copy_error_def_file(directory, options):
@@ -508,10 +503,11 @@ def _create_folders(directory, options):
     output_method = _get_method_path(directory, options)
     if not os.path.exists(output_method):
         os.mkdir(output_method)
-    
+
     output_getllm = _get_llm_results_path(directory, options)
     if not os.path.exists(output_getllm):
         os.mkdir(output_getllm)
+
 
 def _get_modifiers_file(optics, directory):
     modifiers_file_path = os.path.join(directory, "modifiers.madx")
@@ -520,15 +516,13 @@ def _get_modifiers_file(optics, directory):
     return modifiers_file_path
 
 
-def _comprare_results(directory, options):    
+def _comprare_results(directory, options):
     _print_results(directory, free=not any([options.acd, options.adt]))
-    
     output_method = _get_method_path(directory, options)
     orig_stdout = sys.stdout
     with open(os.path.join(output_method, 'results.txt'), "w+") as f:
         sys.stdout = f
         _print_results(directory, free=not any([options.acd, options.adt]))
-    
     sys.stdout = orig_stdout
 
 

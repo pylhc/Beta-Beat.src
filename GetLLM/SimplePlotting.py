@@ -441,7 +441,7 @@ def setYAxisLabel(subnode, axis, p1):
     if (subnode == 'diff_NDisp_NDMdl'):
         p1.set_ylabel(r'$\frac{\Delta D_x}{\beta_vx}  [m]$')
     if (subnode == 'CO'):
-        p1.set_ylabel(r'$\Delta' + axis + ' [m]$')
+        p1.set_ylabel(r'$\Delta ' + axis + ' [m]$')
     if (subnode == 'ChromaticAmplitude'):
         p1.set_ylabel(r'W' + axis)
     if (subnode == 'ChromaticCouplingReal'):

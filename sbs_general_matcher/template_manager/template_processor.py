@@ -4,18 +4,114 @@ from model import manager
 
 LOGGER = logging.getLogger(__name__)
 
+DEFAULT_TEMPLATE_PATH = os.path.join(
+    "..", "..", "madx", "templates", "lhc_super_matcher.madx"
+)
+
+EXTRACT_SEQUENCES_TEMPLATE = """
+!!!! Extract sequence for matcher {matcher_name} !!!!
+SEQEDIT, SEQUENCE={base_seq};
+FLATTEN;
+CYCLE, START={start_from};
+ENDEDIT;
+
+EXTRACT, SEQUENCE={base_seq},
+         FROM={start_from}, TO={end_at},
+         NEWNAME={new_seq};
+
+SEQEDIT, SEQUENCE={new_seq};
+FLATTEN;
+IF ({is_back} == 1) {{
+    REFLECT; ! reverse command
+}}
+ENDEDIT;
+
+EXEC, BEAM_{base_seq}({new_seq});
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+"""
+
+SET_INITIAL_VALUES_TEMPLATE = """
+
+!!!!!! Matcher {matcher_name} initial values !!!!!!
+OPTION, -ECHO, -INFO;
+CALL, FILE = "{modifiers_optics}";
+OPTION, ECHO, INFO;
+
+CALL, FILE = "{values_file}";
+
+IF({is_back} == 0){{
+    USE, PERIOD={segment_seq}, RANGE={startfrom}/{startfrom};
+    SAVEBETA, LABEL={bininame}, PLACE={startfrom};
+    TWISS, CHROM, betx=betx_ini, alfx=alfx_ini, bety=bety_ini, alfy=alfy_ini,
+                  dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini,
+                  wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini,
+                  r11=ini_r11 ,r12=ini_r12, r21=ini_r21, r22=ini_r22;
+}}ELSE{{
+    USE, PERIOD={segment_seq}, RANGE={endat}/{endat};
+    SAVEBETA, LABEL={bininame}, PLACE={endat};
+    TWISS, CHROM, betx=betx_end, alfx=alfx_end, bety=bety_end, alfy=alfy_end,
+                  dx=dx_end, dy=dy_end, dpx=dpx_end, dpy=dpy_end,
+                  wx=wx_end, phix=phix_end, wy=wy_end, phiy=phiy_end,
+                  r11=end_r11 ,r12=end_r12, r21=end_r21, r22=end_r22;
+}}
+
+EXEC, TWISS_SEGMENT({segment_seq},
+                    "{matcher_path}/twiss_{label}.dat",
+                    {bininame});
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+"""
+
+START_MATCH = "match, use_macro;"
+MATCHING_MACRO_TEMPLATE = """
+
+!!!!!! Matcher {matcher_name} macro !!!!!!
+{macro_name}: MACRO = {{
+USE, PERIOD={segment_seq};
+
+OPTION, -ECHO, -INFO;
+CALL, FILE = "{modifiers_optics}";
+
+{update_variables}
+
+TWISS, BETA0={bininame}, CHROM;
+
+{update_constraints}
+
+value, dkpc.l5, dktrim3.l5, dktrim1.l5,
+       dkpc.r5, dktrim1.r5, dktrim3.r5;
+
+OPTION, ECHO, INFO;
+PRINT, TEXT = "=========== step for {macro_name} ===========";
+}};
+{define_constraints}
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+"""
+END_MATCH = ("lmdif, tolerance:=1e-24, calls:=120;\n"
+             "endmatch;")
+
+RUN_CORRECTED_TWISS_TEMPLATE = """
+OPTION, -ECHO, -INFO;
+CALL, FILE = "{modifiers_optics}";
+{apply_corrections}
+OPTION, ECHO, INFO;
+if ({is_back} == 0) {{
+    EXEC, TWISS_SEGMENT({segment_seq},
+                        "{matcher_path}/twiss_{label}_cor.dat",
+                        {bininame});
+}}else{{
+    EXEC, TWISS_SEGMENT({segment_seq},
+                        "{matcher_path}/twiss_{label}_cor_back.dat",
+                        {bininame});
+}}
+"""
+
+
+SAVE_CHANGEPARAMETERS = 'SAVE, FILE="{match_path}/changeparameters.madx";'
+CALL_CHANGEPARAMETERS = 'CALL, FILE="{match_path}/changeparameters.madx";'
+
 
 class TemplateProcessor(object):
-
-    DEFAULT_TEMPLATE_PATH = os.path.join(
-        "..", "..", "madx", "templates", "lhc_super_matcher.madx"
-    )
-
-    START_MATCH = "match, use_macro;"
-    END_MATCH = ("lmdif, tolerance:=1e-24, calls:=120;\n"
-                 "endmatch;")
-    SAVE_CHANGEPARAMETERS = 'save, file="%(MATCH_PATH)s/changeparameters.madx";'
-    CALL_CHANGEPARAMETERS = 'call, file="%(MATCH_PATH)s/changeparameters.madx";'
 
     def __init__(self, matchers_list, match_path, lhc_mode, minimize,
                  madx_templates_runner):
@@ -44,12 +140,12 @@ class TemplateProcessor(object):
             "\n".join(self._extract_sequences_list),
             "\n".join(self._set_initial_values_list),
             "\n".join(self._aux_var_definition_list),
-            TemplateProcessor.START_MATCH,
+            START_MATCH,
             "\n".join(self._define_variables_list),
             "\n".join(self._set_matching_macros_list),
-            TemplateProcessor.END_MATCH,
+            END_MATCH,
             "\n".join(self._gen_changeparameters_list),
-            TemplateProcessor.SAVE_CHANGEPARAMETERS % {"MATCH_PATH": self._match_path},
+            SAVE_CHANGEPARAMETERS.format(match_path=self._match_path),
             "\n".join(self._run_corrected_twiss_list),
         )
 
@@ -70,7 +166,7 @@ class TemplateProcessor(object):
             "\n".join(self._set_matching_macros_list),
             "",
             "\n".join(self._gen_changeparameters_list),
-            TemplateProcessor.CALL_CHANGEPARAMETERS % {"MATCH_PATH": self._match_path},
+            CALL_CHANGEPARAMETERS.format(match_path=self._match_path),
             "\n".join(self._run_corrected_twiss_list),
         )
 
@@ -86,59 +182,42 @@ class TemplateProcessor(object):
             self._set_initial_values(matcher)
             self._define_aux_vars(matcher)
             self._set_matching_macros(matcher)
-            self._generate_changeparameters(matcher)
+            self._generate_changeparameters()
             self._run_corrected_twiss(matcher)
         self._define_variables()
-
-    EXTRACT_SEQUENCES_TEMPLATE = """
-exec, extract_segment_sequence(LHCB%(BEAM_NUM)s, %(FRONT_SEQ)s, %(BACK_SEQ)s, %(START_FROM)s, %(END_AT)s);
-exec, beam_LHCB%(BEAM_NUM)s(%(FRONT_SEQ)s);
-exec, beam_LHCB%(BEAM_NUM)s(%(BACK_SEQ)s);
-"""
 
     def _extract_sequences(self, matcher):
         extract_sequences_str = ""
         beam = matcher.segment.get_beam()
-        extract_sequences_str += TemplateProcessor.EXTRACT_SEQUENCES_TEMPLATE % {
-            "BEAM_NUM": str(beam),
-            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.name,
-            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.name,
-            "START_FROM": matcher.segment.start.name,
-            "END_AT": matcher.segment.end.name,
-        }
+        extract_sequences_str += EXTRACT_SEQUENCES_TEMPLATE.format(
+            matcher_name=matcher.name,
+            base_seq="lhcb{}".format(beam),
+            new_seq=matcher.get_sequence_name(),
+            is_back=0 if matcher.propagation == "f" else "1",
+            start_from=matcher.segment.start.name,
+            end_at=matcher.segment.end.name,
+        )
         self._extract_sequences_list.append(extract_sequences_str)
-
-    SET_INITIAL_VALUES_TEMPLATE = """
-option, -echo, -info;
-call, file = "%(MODIFIERS_OPTICS)s";
-option, echo, info;
-exec, save_initial_and_final_values(
-    LHCB%(BEAM_NUM)s,
-    %(START_FROM)s,
-    %(END_AT)s,
-    "%(PATH)s/measurement_%(LABEL)s.madx",
-    %(B_INI)s,
-    %(B_END)s
-);
-exec, twiss_segment(%(FRONT_SEQ)s, "%(PATH)s/twiss_%(LABEL)s.dat", %(B_INI)s);
-exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_back.dat", %(B_END)s);
-"""
 
     def _set_initial_values(self, matcher):
         set_initial_values_str = ""
         beam = matcher.segment.get_beam()
-        set_initial_values_str += TemplateProcessor.SET_INITIAL_VALUES_TEMPLATE % {
-            "MODIFIERS_OPTICS": matcher.segment.optics_file,
-            "BEAM_NUM": str(beam),
-            "PATH": os.path.join(matcher.matcher_path, "sbs"),
-            "LABEL": matcher.segment.label,
-            "START_FROM": matcher.segment.start.name,
-            "END_AT": matcher.segment.end.name,
-            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.name,
-            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.name,
-            "B_INI": "b" + str(beam) + "_ini_" + matcher.name,
-            "B_END": "b" + str(beam) + "_end_" + matcher.name
-        }
+        matcher_path = os.path.join(matcher.matcher_path, "sbs")
+        set_initial_values_str += SET_INITIAL_VALUES_TEMPLATE.format(
+            matcher_name=matcher.name,
+            values_file=os.path.join(
+                matcher_path,
+                "measurement_{}.madx".format(matcher.label)
+            ),
+            modifiers_optics=matcher.segment.optics_file,
+            segment_seq="lhcb{}".format(beam),
+            matcher_path=matcher_path,
+            label=matcher.segment.label,
+            is_back=0 if matcher.propagation == "f" else "1",
+            startfrom=matcher.segment.start.name,
+            endat=matcher.segment.end.name,
+            bininame=matcher.get_initvals_name(),
+        )
         self._set_initial_values_list.append(set_initial_values_str)
 
     def _define_aux_vars(self, matcher):
@@ -155,87 +234,57 @@ exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_back.dat", %(B_END)s
             def_variables_string += ', step := 1e-6;\n'
         self._define_variables_list.append(def_variables_string)
 
-    MATCHING_MACRO_TEMPLATE = """
-%(MACRO_NAME)s: macro = {
-use, period=%(SEQ)s;
-
-option, -echo, -info;
-call, file = "%(MODIFIERS_OPTICS)s";
-%(UPDATE_VARIABLES)s
-
-twiss, beta0=%(B_INI_END)s, chrom;
-%(UPDATE_CONSTRAINTS)s
-option, echo, info;
-print, text = "=========== step for %(MACRO_NAME)s ===========";
-};
-%(DEFINE_CONSTRAINTS)s
-"""
-
     def _set_matching_macros(self, matcher):
         matching_macros = ""
-        beam = matcher.segment.get_beam()
         define_constr_str = matcher.define_constraints()
         if self._minimize:
-            define_constr_str += self._minimize_variables(matcher)
-        matching_macros += TemplateProcessor.MATCHING_MACRO_TEMPLATE % {
-            "MODIFIERS_OPTICS": matcher.segment.optics_file,
-            "MACRO_NAME": "macro_" + matcher.name + "_b" + str(beam),
-            "BEAM_NUM": str(beam),
-            "SEQ": "lhcb" + str(beam) + "_" + matcher.propagation + "_" + matcher.name,
-            "UPDATE_CONSTRAINTS": matcher.update_constraints_values(),
-            "UPDATE_VARIABLES": matcher.update_variables_definition(),
-            "B_INI_END": "b" + str(beam) + "_" + matcher.ini_end + "_" + matcher.name,
-            "DEFINE_CONSTRAINTS": define_constr_str
-        }
+            define_constr_str += self._minimize_variables()
+        matching_macros += MATCHING_MACRO_TEMPLATE.format(
+            matcher_name=matcher.name,
+            modifiers_optics=matcher.segment.optics_file,
+            macro_name=matcher.get_macro_name(),
+            segment_seq=matcher.get_sequence_name(),
+            update_constraints=matcher.update_constraints_values(),
+            update_variables=matcher.update_variables_definition(),
+            bininame=matcher.get_initvals_name(),
+            define_constraints=define_constr_str,
+        )
         matching_macros += "\n"
         self._set_matching_macros_list.append(matching_macros)
 
-    def _minimize_variables(self, matcher):
+    def _minimize_variables(self):
         variables = self._variables
         minimize_vars_str = ""
-        # minimize_vars_str += '    constraint, weight = 1.0, expr = sqrt('
-        # for variable in variables:
-        #     minimize_vars_str += variable + "^2 +"
-        # minimize_vars_str = minimize_vars_str[:-1]
-        # minimize_vars_str += ') = 0.0; \n'
+        minimize_vars_str += '    constraint, weight = 1.0, expr = sqrt('
         for variable in variables:
-            if "x2a" in variable:
-                minimize_vars_str += '    constraint, weight = 100.0, expr = '
-                minimize_vars_str += 'd' + variable + ' = ' + 'd' + variable.replace('x2a', 'x2b') + ';\n'
+            minimize_vars_str += variable + "^2 +"
+        minimize_vars_str = minimize_vars_str[:-1]
+        minimize_vars_str += ') = 0.0; \n'
         return minimize_vars_str
 
-    def _generate_changeparameters(self, matcher):
+    def _generate_changeparameters(self):
         changeparameters_str = ""
         for variable in self._variables:
-            changeparameters_str += 'select,flag=save,pattern=\"d' + variable + '\";\n'
+            changeparameters_str += ('select, flag=save, '
+                                     'pattern=\"d{}\";\n'.format(variable))
         self._gen_changeparameters_list.append(changeparameters_str)
-
-    RUN_CORRECTED_TWISS_TEMPLATE = """
-option, -echo, -info;
-call, file = "%(MODIFIERS_OPTICS)s";
-%(APPLY_CORRECTIONS)s
-option, echo, info;
-exec, twiss_segment(%(FRONT_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor.dat", %(B_INI)s);
-exec, twiss_segment(%(BACK_SEQ)s, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", %(B_END)s);
-"""
 
     def _run_corrected_twiss(self, matcher):
         run_corrected_twiss_str = ""
 
         apply_correction_str = ""
         for variable in self._variables:
-            apply_correction_str += variable + ' = ' + matcher.name + "." + variable + '_0 + d' + variable + ';\n'
+            apply_correction_str += (
+                '{variable} = {matcher_name}.{variable}_0 + d{variable};\n'
+            ).format(matcher_name=matcher.name, variable=variable)
 
-        beam = matcher.segment.get_beam()
-        run_corrected_twiss_str += TemplateProcessor.RUN_CORRECTED_TWISS_TEMPLATE % {
-            "MODIFIERS_OPTICS": matcher.segment.optics_file,
-            "APPLY_CORRECTIONS": apply_correction_str,
-            "BEAM_NUM": str(beam),
-            "PATH": os.path.join(matcher.matcher_path, "sbs"),
-            "LABEL": matcher.segment.label,
-            "FRONT_SEQ": "lhcb" + str(beam) + "_f_" + matcher.name,
-            "BACK_SEQ": "lhcb" + str(beam) + "_b_" + matcher.name,
-            "B_INI": "b" + str(beam) + "_ini_" + matcher.name,
-            "B_END": "b" + str(beam) + "_end_" + matcher.name
-        }
+        run_corrected_twiss_str += RUN_CORRECTED_TWISS_TEMPLATE.format(
+            modifiers_optics=matcher.segment.optics_file,
+            apply_corrections=apply_correction_str,
+            matcher_path=os.path.join(matcher.matcher_path, "sbs"),
+            label=matcher.segment.label,
+            is_back=0 if matcher.propagation == "f" else "1",
+            segment_seq=matcher.get_sequence_name(),
+            bininame=matcher.get_initvals_name(),
+        )
         self._run_corrected_twiss_list.append(run_corrected_twiss_str)

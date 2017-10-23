@@ -33,7 +33,7 @@ class PhaseMatcher(Matcher):
     @Matcher.override(Matcher)
     def define_aux_vars(self):
         phases_str = ""
-        sign = "" if "b" in self.propagation else "-"
+        sign = "" if "f" in self.propagation else "-"
         for plane in ["x", "y"]:
             sbs_data_path = os.path.join(
                 os.path.join(self.matcher_path, "sbs"),
@@ -55,11 +55,10 @@ class PhaseMatcher(Matcher):
         variables_s_str = ""
         for variable in self.get_variables():
             variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
-        beam = str(self.segment.get_beam())
 
         aux_vars_str = PhaseMatcher.SEGMENT_TWISS_TMPL.format(
-            seq="lhcb" + beam + "_" + self.propagation + "_" + self.name,
-            init_vals="b" + beam + "_" + self.ini_end + "_" + self.name,
+            seq=self.get_sequence_name(),
+            init_vals=self.get_initvals_name(),
             table_name=self._get_nominal_table_name(),
         )
         aux_vars_str += phases_str

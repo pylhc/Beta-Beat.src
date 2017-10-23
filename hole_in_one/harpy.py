@@ -177,7 +177,7 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
     max_coefs, max_freqs = _search_highest_coefs(
         freq, tolerance, frequencies, coefficients
     )
-    if not np.any(max_coefs):
+    if not np.any(max_coefs) and plane != "Z":
         raise ValueError(
             "No main " + plane + " resonances found, "
             "try to increase the tolerance or adjust the tunes"

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# if /mcr/bin/jws is executable, use that, otherwise use jws from path..
+[ -x /mcr/bin/jws ] && JWS=/mcr/bin/jws || JWS=jws
+
+# Check that we found jws, otherwise print helpful message and exit
+which $JWS > /dev/null 2>&1 || echo "jws not found. To install jws go to https://wikis.cern.ch/display/DVTLS/jws+-+a+replacement+for+javaws"
+which $JWS > /dev/null 2>&1 ||  exit 1
+
+$JWS https://bewww.cern.ch/ap/deployments/applications/cern/lhc/lhc-app-beta-beating/PRO/BetaBeating-Control-3t.jnlp
+

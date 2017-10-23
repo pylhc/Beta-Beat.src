@@ -114,7 +114,8 @@ def get_orbit_data(bpm_names, bpm_data, bpm_res, model):
     di = {'PK2PK': np.max(bpm_data,axis=1)-np.min(bpm_data,axis=1),
           'CO': np.mean(bpm_data,axis=1),
           'CORMS': np.std(bpm_data,axis=1) / np.sqrt(bpm_data.shape[1]),
-          'BPM_RES': bpm_res
+          'BPM_RES': bpm_res,
+          'AVG_NOISE': bpm_res / np.sqrt(bpm_data.shape[1]) / 10.0
          }
     frame = pd.DataFrame.from_dict(di, dtype=float)
     frame['NAME'] = bpm_names
@@ -149,6 +150,8 @@ def calc_dp_over_p(main_input, bpm_names, bpm_data):
     model_twiss = tfs.read_tfs(main_input.model)
     model_twiss.set_index("NAME", inplace=True)
     sequence = model_twiss.headers["SEQUENCE"].lower().replace("b1", "").replace("b2", "")
+    if sequence != "lhc":
+        return 0.0  # TODO: What do we do with other accels.
     accel_cls = manager.get_accel_class(sequence)
     arc_bpms_mask = accel_cls.get_arc_bpms_mask(bpm_names)
     arc_bpm_data = bpm_data[arc_bpms_mask]

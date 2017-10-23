@@ -13,6 +13,7 @@ LOGGER.addHandler(logging.NullHandler())
 HEADER = "@"
 NAMES = "*"
 TYPES = "$"
+COMMENTS = "#"
 
 ID_TO_TYPE = {
     "%s": np.str,
@@ -107,6 +108,8 @@ def read_tfs(tfs_path):
             elif parts[0] == TYPES:
                 LOGGER.debug("Setting column types.")
                 column_types = _compute_types(parts[1:])
+            elif parts[0] == COMMENTS:
+                continue
             else:
                 if column_names is None:
                     raise TfsFormatError("Column names have not been set.")
