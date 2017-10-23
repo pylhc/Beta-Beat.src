@@ -38,8 +38,6 @@ def read_ascii_file(file_path):
                 matrix_y.append(bpm_samples)
             else:
                 raise ValueError("Wrong plane found in: " + file_path)
-    if date is None:
-        raise ValueError("Date parameter not found in file: " + file_path)
     matrix_x = pd.DataFrame(index=bpm_names_x, data=np.array(matrix_x))
     matrix_y = pd.DataFrame(index=bpm_names_y, data=np.array(matrix_y))
     return (bpm_names_x, matrix_x,
@@ -54,7 +52,7 @@ def is_ascii_file(file_path):
         for line in file_data:
             if line.strip() == "":
                 continue
-            return line.startswith("#SDDSASCIIFORMAT v1")
+            return line.startswith("#")
     return False
 
 

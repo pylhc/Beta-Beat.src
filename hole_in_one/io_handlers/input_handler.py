@@ -1,9 +1,12 @@
 import argparse
 import sys
 
-def parse_args():
+def parse_args(args=None):
     main_parser = _get_main_parser()
-    main_options, rest = main_parser.parse_known_args()
+    if args:
+        main_options, rest = main_parser.parse_known_args(args)
+    else:
+        main_options, rest = main_parser.parse_known_args()
 
     subparsers = {
         "clean": _get_clean_parser,

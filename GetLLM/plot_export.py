@@ -85,7 +85,7 @@ def main():
     legendx = options.legendx
     legendy = options.legendy
     legendh = options.legendh
-    label  = options.label
+    label = options.label
 
     SimplePlotting.setParams()
     mpdf = PdfPages(os.path.abspath(folder))

@@ -163,6 +163,8 @@ def calc_dp_over_p(main_input, bpm_data):
     model_twiss = tfs.read_tfs(main_input.model)
     model_twiss.set_index("NAME", inplace=True)
     sequence = model_twiss.headers["SEQUENCE"].lower().replace("b1", "").replace("b2", "")
+    if sequence != "lhc":
+        return 0.0  # TODO: What do we do with other accels.
     accel_cls = manager.get_accel_class(sequence)
     arc_bpms_mask = accel_cls.get_arc_bpms_mask(bpm_data.index)
     arc_bpm_data = bpm_data[arc_bpms_mask]

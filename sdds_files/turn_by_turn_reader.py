@@ -73,6 +73,8 @@ class TbtFile(object):
     @staticmethod
     def create_from_matrices(bpm_names_x, matrix_x,
                              bpm_names_y, matrix_y, date):
+        if date is None:
+            date = datetime.now()
         new_tbt_file = TbtFile(bpm_names_x, bpm_names_y,
                                date, 1, len(matrix_x[0]), 0)
         new_tbt_file._samples_matrix[HOR] = pd.DataFrame(
