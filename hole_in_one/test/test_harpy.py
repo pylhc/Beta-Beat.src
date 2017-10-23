@@ -2,6 +2,7 @@ import sys
 import os
 import pandas as pd
 import numpy as np
+import pytest
 from hypothesis import given
 from hypothesis.strategies import integers
 sys.path.append(os.path.abspath(".."))
@@ -67,6 +68,16 @@ def test_search_highest_coefs():
 
     assert max_coefs.loc["BPM1"] == -6.
     assert max_freqs.loc["BPM1"] == 6.
+
+
+def test_harmonic_analysis_raises_on_wrong_mode():
+    with pytest.raises(ValueError):
+        harpy.harmonic_analysis(None, usv=None, mode="sdv")
+
+
+def test_harmonic_analysis_raises_on_svd_with_none_usv():
+    with pytest.raises(ValueError):
+        harpy.harmonic_analysis(None, usv=None, mode="svd")
 
 
 def _get_fake_df(n_bpms, n_samples):

@@ -3,7 +3,6 @@ This module is the actual implementation of the resonance search for
 turn-by-turn data.
 It uses a combination of the laskar method with SVD decomposition to speed up
 the search of resonances.
-The only public function and entry point is harpy(...).
 
 TODOs:
 - Mising nattunez - not needed yet
@@ -23,7 +22,7 @@ try:
     from scipy.fftpack import fft as _fft
 except ImportError:
     from numpy.fft import fft as _fft
-    
+
 NUMBA_AVAILABLE = True
 try:
     from numba import jit
@@ -73,7 +72,13 @@ def harpy(bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
             a dictionary of DataFrames with form: bpm_name -> bpm_spectrum and
             a list of string descibing which BPMs are marked as bad.
     """
-    frequencies, bpm_coefficients = _harmonic_analysis(harpy_input, bpm_matrix, usv)
+    frequencies, bpm_coefficients = harmonic_analysis(
+        bpm_matrix,
+        usv=usv,
+        mode=harpy_input.harpy_mode,
+        sequential=harpy_input.sequential,
+    )
+
     all_bpms_coefs = pd.DataFrame(data=bpm_coefficients,
                                   index=bpm_matrix.index)
     all_bpms_freqs = pd.DataFrame(data=frequencies,
@@ -105,7 +110,7 @@ def harpy(bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
     resonances_freqs = _compute_resonances_freqs(plane, harpy_input)
     if harpy_input.tunez > 0.0:
         resonances_freqs.update(_compute_resonances_freqs("Z", harpy_input))
-        
+ 
     panda = _resonance_search(frequencies, bpm_coefficients,
                               harpy_input.tolerance, resonances_freqs, panda)
 
@@ -116,7 +121,129 @@ def harpy(bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
             bad_bpms_summary)
 
 
+def harmonic_analysis(bpm_matrix=None, usv=None, mode="bpm", sequential=False):
+    """
+    Performs the laskar method on every of the BPMs signals contained in each
+    row of the bpm_matrix pandas DataFame.
+
+    Args:
+        bpm_matrix: Pandas DataFrame containing the signals of each bpm in
+            each row. In bpm mode this parameter is obligatory.
+        usv: Truncated SVD decomposition of the bpm matrix. It must contain a
+            tuple (U, S, V), where U must be a DataFrame with the bpm names
+            as index.
+        mode: one of 'bpm', 'svd', or 'fast'. Check 'harmonic_analysis_bpm'
+            documentation for 'bpm' mode and 'harmonic_analysis_svd" for 'svd'
+            and 'fast'.
+        sequential: If true, it will run all the computations in a single
+            core.
+    Returns:
+        frequencies: A numpy array with the frequencies found per BPM.
+        bpm_coefficients: A numpy array containing the complex coefficients
+            found per BPM.
+    """
+    if mode == "bpm":
+        if bpm_matrix is None:
+            raise ValueError("bpm_matrix has to be provided "
+                             "for the bpm mode")
+        frequencies, bpm_coefficients = harmonic_analysis_bpm(
+            bpm_matrix,
+            sequential=sequential,
+            num_harms=NUM_HARMS,
+        )
+    elif mode in ("svd", "fast"):
+        if usv is None:
+            raise ValueError("SVD decomposition has to be provided "
+                             "for fast or svd modes")
+        num_harms = NUM_HARMS if mode == "svd" else NUM_HARMS_SVD
+        frequencies, bpm_coefficients = harmonic_analysis_svd(
+            usv,
+            fast=mode == "fast",
+            sequential=sequential,
+            num_harms=num_harms,
+        )
+    else:
+        raise ValueError("Invalid harpy mode: {}".format(mode))
+    return frequencies, bpm_coefficients
+
+
+def harmonic_analysis_bpm(bpm_matrix,
+                          sequential=False, num_harms=NUM_HARMS):
+    """
+    Performs the laskar method on every of the BPMs signals contained in each
+    row of the bpm_matrix pandas DataFame. This method will run the full
+    laskar analysis in each BPM in parallel (slow).
+
+    Args:
+        bpm_matrix: Pandas DataFrame containing the signals of each bpm in
+            each row. In bpm mode this parameter is obligatory.
+        sequential: If true, it will run all the computations in a single
+            core.
+        num_harms: Number of harmonics to compute per BPM.
+    Returns:
+        frequencies: A numpy array with the frequencies found per BPM.
+        bpm_coefficients: A numpy array containing the complex coefficients
+            found per BPM.
+    """
+    frequencies, bpm_coefficients = _parallel_laskar(
+        bpm_matrix, sequential, num_harms,
+    )
+    return frequencies, bpm_coefficients
+
+
+def harmonic_analysis_svd(usv, fast=False,
+                          sequential=False, num_harms=NUM_HARMS):
+    """
+    Performs the laskar method on every of the BPMs signals contained in each
+    row of the bpm_matrix pandas DataFame. It takes advantage of the
+    truncation of the V matrix in the SVD decomposition to speed up the
+    calculations. Mode 'svd' is slower but more precise, 'bpm' mode is the
+    fastest but makes more assumptions.
+
+    Args:
+        usv: Truncated SVD decomposition of the bpm matrix. It must contain a
+            tuple (U, S, V), where U must be a DataFrame with the bpm names
+            as index.
+        fast: If true, it will use the 'fast' calculation mode ('svd'
+            otherwise)
+        sequential: If true, it will run all the computations in a single
+            core.
+        num_harms: Number of harmonics to compute per BPM.
+    Returns:
+        frequencies: A numpy array with the frequencies found per BPM.
+        bpm_coefficients: A numpy array containing the complex coefficients
+            found per BPM.
+    """
+    sv = np.dot(np.diag(usv[1]), usv[2])
+    fake_bpms = ["MODE{}".format(i) for i in range(sv.shape[0])]
+    sv = pd.DataFrame(index=fake_bpms, data=sv)
+    if fast:
+        frequencies, _ = _laskar_per_mode(np.mean(sv, axis=0), num_harms)
+    else:
+        frequencies, _ = _parallel_laskar(
+            sv, sequential, num_harms,
+        )
+        frequencies = np.ravel(frequencies)
+    svd_coefficients = _compute_coefs_for_freqs(sv, frequencies)
+    bpm_coefficients = usv[0].dot(svd_coefficients.values)
+    frequencies = pd.DataFrame(
+        index=bpm_coefficients.index,
+        data=np.outer(np.ones(bpm_coefficients.shape[0]), frequencies)
+    )
+    return frequencies, bpm_coefficients
+
+
 def clean_by_tune(tunes, tune_clean_limit):
+    """
+    This function looks for outliers in the tunes pandas Series and returns
+    their indices.
+
+    Args:
+        tunes: Pandas series with the tunes per BPM and the BPM names as
+            index.
+        tune_clean_limit: No BPM will find as oulier if its distance to the
+            average is lower than this limit.
+    """
     bad_bpms_mask = outliers.get_filter_mask(
         tunes,
         limit=tune_clean_limit,
@@ -136,35 +263,6 @@ def _get_bad_bpms_summary(not_tune_bpms, cleaned_by_tune_bpms):
             .format(bpm_name)
         )
     return bad_bpms_summary
-
-
-def _harmonic_analysis(harpy_input, bpm_matrix, usv):
-    sv = np.dot(np.diag(usv[1]), usv[2])
-    fake_bpms = ["MODE{}".format(i) for i in range(sv.shape[0])]
-    sv = pd.DataFrame(index=fake_bpms, data=sv)
-    if harpy_input.harpy_mode == "bpm":
-        frequencies, bpm_coefficients = _parallel_laskar(
-            bpm_matrix, harpy_input.sequential, NUM_HARMS,
-        )
-    elif harpy_input.harpy_mode == "fast":
-        frequencies, _ = _laskar_per_mode(np.mean(sv, axis=0), NUM_HARMS)
-        svd_coefficients = _compute_coefs_for_freqs(sv, frequencies)
-        bpm_coefficients = usv[0].dot(svd_coefficients.values)
-    elif harpy_input.harpy_mode == "svd":
-        frequencies, _ = _parallel_laskar(
-            sv, harpy_input.sequential, NUM_HARMS_SVD
-        )
-        frequencies = np.ravel(frequencies)
-        svd_coefficients = _compute_coefs_for_freqs(sv, frequencies)
-        bpm_coefficients = usv[0].dot(svd_coefficients.values)
-    else:
-        raise ValueError("Wrong harpy mode: " + harpy_input.harpy_mode)
-    if frequencies.ndim < 2:
-        frequencies = pd.DataFrame(
-            index=bpm_coefficients.index,
-            data=np.outer(np.ones(bpm_coefficients.shape[0]), frequencies)
-        )
-    return frequencies, bpm_coefficients
 
 
 def _parallel_laskar(samples, sequential, num_harms):
