@@ -155,7 +155,7 @@ def harmonic_analysis(bpm_matrix=None, usv=None, mode="bpm", sequential=False):
         if usv is None:
             raise ValueError("SVD decomposition has to be provided "
                              "for fast or svd modes")
-        num_harms = NUM_HARMS if mode == "svd" else NUM_HARMS_SVD
+        num_harms = NUM_HARMS if mode == "fast" else NUM_HARMS_SVD
         frequencies, bpm_coefficients = harmonic_analysis_svd(
             usv,
             fast=mode == "fast",
@@ -295,7 +295,7 @@ def _parallel_laskar(samples, sequential, num_harms):
 
 
 def _laskar_per_mode(samples, number_of_harmonics):
-    freqs, coefs = laskar_method(samples.values, number_of_harmonics)
+    freqs, coefs = _laskar_method(samples.values, number_of_harmonics)
     return np.array(freqs), np.array(coefs)
 
 
@@ -409,7 +409,7 @@ def _compute_resonances_freqs(plane, harpy_input):
     return resonances_freqs
 
 
-def laskar_method(tbt, num_harmonics):
+def _laskar_method(tbt, num_harmonics):
     samples = tbt[:]  # Copy the samples array.
     n = len(samples)
     int_range = np.arange(n)
@@ -435,16 +435,6 @@ def laskar_method(tbt, num_harmonics):
     return frequencies, coefficients
 
 
-def fft_method(tbt, num_harmonics):
-    samples = tbt[:]  # Copy the samples array.
-    n = float(len(samples))
-    dft_data = _fft(samples)
-    indices = np.argsort(np.abs(dft_data))[::-1][:num_harmonics]
-    frequencies = indices / n
-    coefficients = dft_data[indices] / n
-    return frequencies, coefficients
-
-
 def _jacobsen(dft_values,n):
     """
     This method interpolates the real frequency of the
@@ -457,6 +447,16 @@ def _jacobsen(dft_values,n):
     km = (k - 1) % n
     delta = delta * np.real((r[km] - r[kp]) / (2 * r[k] - r[km] - r[kp]))
     return (k + delta) / n
+
+
+def _fft_method(tbt, num_harmonics):
+    samples = tbt[:]  # Copy the samples array.
+    n = float(len(samples))
+    dft_data = _fft(samples)
+    indices = np.argsort(np.abs(dft_data))[::-1][:num_harmonics]
+    frequencies = indices / n
+    coefficients = dft_data[indices] / n
+    return frequencies, coefficients
  
 
 def _compute_coef_simple(samples, kprime):
