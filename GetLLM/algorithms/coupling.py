@@ -35,6 +35,7 @@ import phase
 import helper
 import compensate_ac_effect
 
+from Utilities.tfs_pandas import add_coupling
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -42,7 +43,7 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 # main part
 #===================================================================================================
 
-def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y,):
+def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict):
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
@@ -64,7 +65,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
     if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         #-- Coupling in the model
         try:
-            mad_twiss.Cmatrix()
+            add_coupling(mad_twiss)
         except:
             traceback.print_exc()
         #-- Main part
@@ -96,14 +97,15 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
         # 2-BPM method
         elif getllm_d.num_bpms_for_coupling == 2:
             # Use pseudo-lists to analyse for SPS and RHIC
-            if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
-                [phasexp, tune_d.q1, tune_d.mux, bpmsx] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, None, 'H')
-                [phaseyp, tune_d.q2, tune_d.muy, bpmsy] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, None, 'V')
-                [fwqw, bpms] = GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1f, tune_d.q2f, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
+            # TODO: MOVE, THIS IS ACC DEPENDENT CODE
+#            if getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel:
+#                [phasexp, tune_d.q1, tune_d.mux, bpmsx] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_x, None, 'H')
+#                [phaseyp, tune_d.q2, tune_d.muy, bpmsy] = phase.get_phases(getllm_d, mad_twiss, pseudo_list_y, None, 'V')
+#                [fwqw, bpms] = GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1f, tune_d.q2f, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
             # Call 2-BPM method coupling function, analogous to GetCoupling1, but contains more results
-            else:
-                print('has to be removed')
-                [fwqw, bpms] = GetCoupling2(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, phase_d.ph_x, phase_d.ph_y, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
+#            else:
+            print('has to be removed')
+            [fwqw, bpms] = GetCoupling2(mad_twiss, twiss_d, tune_d.q1f, tune_d.q2f, phase_d.phase_advances_free_x, phase_d.phase_advances_free_y, getllm_d.accelerator, getllm_d.outputpath)
         else:
             raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
 
@@ -406,7 +408,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
 
 ### END of GetCoupling1 ###
 
-def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel, outputpath):
+def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outputpath):
     """Calculate coupling and phase with 2-BPM method for all BPMs and overall
     INPUT
      MADTwiss        - twiss instance of model from MAD 
@@ -428,15 +430,14 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
-    if len(list_zero_dpp_x) != len(list_zero_dpp_y):
+    if len(twiss_d.zero_dpp_x) != len(twiss_d.zero_dpp_y):
         print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
         dum0 = {"Global": [0.0, 0.0]}
         dum1 = []
         return [dum0, dum1]
     # Determine intersection of BPM-lists between measurement and model, create list dbpms
-    XplusY = list_zero_dpp_x + list_zero_dpp_y
-    dbpms = Utilities.bpm.intersect(XplusY)
-    dbpms = Utilities.bpm.model_intersect(dbpms, MADTwiss)
+    index = twiss_d.zero_dpp_commonbpms_x.index.intersection(twiss_d.zero_dpp_commonbpms_y.index)
+    dbpms = twiss_d.zero_dpp_commonbpms_x[index]
 
     ### Calculate fw and qw, exclude BPMs having wrong phases ###
 
@@ -451,10 +452,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
     # Loop through BPM-pairs
     for i in range(Numbpmpairs):
         # Get BPM names
-        bn1 = str.upper(dbpms[i][1])
-        bn2 = str.upper(dbpms[i + 1][1])
-        delx = phasex[bn1][0] - 0.25  # Missprint in the coupling note
-        dely = phasey[bn1][0] - 0.25
+        bn1 = str.upper(dbpms.index[i])
+        bn2 = str.upper(dbpms.index[i + 1])
+        delx = phasex.loc["MODEL", bn1].iloc[0] - 0.25  # Missprint in the coupling note
+        dely = phasey.loc["MODEL", bn1].iloc[0] - 0.25
 
         # Initialize result-lists (coupling, error on coupling and phases)
         f1001ij = []
@@ -468,10 +469,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         # Initialize as not bad BPM
         badbpm = 0
         # Loop through files to analyze
-        for j in range(0, len(list_zero_dpp_x)):
+        for j in range(0, len(twiss_d.zero_dpp_x)):
             # Get twiss instance for current BPM and file
-            tw_x = list_zero_dpp_x[j]
-            tw_y = list_zero_dpp_y[j]
+            tw_x = twiss_d.zero_dpp_x[j]
+            tw_y = twiss_d.zero_dpp_y[j]
             # Get main amplitude
             [ampx_1, ampy_1] = [tw_x.AMPX[tw_x.indx[bn1]], tw_y.AMPY[tw_y.indx[bn1]]]
             [ampx_2, ampy_2] = [tw_x.AMPX[tw_x.indx[bn2]], tw_y.AMPY[tw_y.indx[bn2]]]
@@ -500,28 +501,28 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
             # Call routine in helper.py to get secondary lines for 2-BPM method
             [SA0p1ij,phi0p1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
-                    tw_x.PHASE01[tw_x.indx[bn1]], tw_x.PHASE01[tw_x.indx[bn2]])
+                    tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"])
             [SA0m1ij,phi0m1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
-                    -tw_x.PHASE01[tw_x.indx[bn1]], -tw_x.PHASE01[tw_x.indx[bn2]])
+                    -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"])
             [TBp10ij,phip10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2,
-                    tw_y.PHASE10[tw_y.indx[bn1]], tw_y.PHASE10[tw_y.indx[bn2]])
+                    tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"])
             [TBm10ij,phim10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2,
-                    -tw_y.PHASE10[tw_y.indx[bn1]], -tw_y.PHASE10[tw_y.indx[bn2]])
+                    -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"])
 
             # Get noise standard deviation and propagate to coupled amplitude ratio
-            std_amp01_1 = tw_x.NOISE[tw_x.indx[bn1]]/ampx_1*math.sqrt(1+amp01_1**2)
-            std_amp10_1 = tw_y.NOISE[tw_y.indx[bn1]]/ampy_1*math.sqrt(1+amp10_1**2)
-            std_amp01_2 = tw_x.NOISE[tw_x.indx[bn2]]/ampx_2*math.sqrt(1+amp01_2**2)
-            std_amp10_2 = tw_y.NOISE[tw_y.indx[bn2]]/ampy_2*math.sqrt(1+amp10_2**2)
+            std_amp01_1 = tw_x.loc[bn1, "NOISE"] / ampx_1 * math.sqrt(1 + amp01_1 ** 2)
+            std_amp10_1 = tw_y.loc[bn1, "NOISE"] / ampy_1 * math.sqrt(1 + amp10_1 ** 2)
+            std_amp01_2 = tw_x.loc[bn2, "NOISE"] / ampx_2 * math.sqrt(1 + amp01_2 ** 2)
+            std_amp10_2 = tw_y.loc[bn2, "NOISE"] / ampy_2 * math.sqrt(1 + amp10_2 ** 2)
             # Propagate to 2-BPM coupled amplitude ratio using a separate routine in helper.py
             std_SA0p1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
-                    tw_x.PHASE01[tw_x.indx[bn1]], tw_x.PHASE01[tw_x.indx[bn2]], std_amp01_1, std_amp01_2)
+                    tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
             std_SA0m1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
-                    -tw_x.PHASE01[tw_x.indx[bn1]], -tw_x.PHASE01[tw_x.indx[bn2]], std_amp01_1, std_amp01_2)
+                    -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
             std_TBp10ij = helper.ComplexSecondaryLineSTD(dely, amp10_1, amp10_2,
-                    tw_y.PHASE10[tw_y.indx[bn1]], tw_y.PHASE10[tw_y.indx[bn2]], std_amp10_1, std_amp10_2)
+                    tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
             std_TBm10ij = helper.ComplexSecondaryLineSTD(dely, amp10_1, amp10_2,
-                    -tw_y.PHASE10[tw_y.indx[bn1]], -tw_y.PHASE10[tw_y.indx[bn2]], std_amp10_1, std_amp10_2)
+                    -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
 
             # Append results for the coupling parameters
             f1001ij.append(0.5*math.sqrt(TBp10ij*SA0p1ij/2.0/2.0)) # division by 2 for each ratio as the scale of the #
@@ -536,10 +537,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             else:
                 std_f1010ij.append(0.25*math.sqrt(4.0/TBm10ij/SA0m1ij)*math.sqrt((std_TBm10ij*SA0m1ij/4)**2+(TBm10ij*std_SA0m1ij/4)**2))
 
-            if beam_direction == 1:
+            if accel.get_beam_direction() == 1:
                 q1jd.append((phi0p1ij-tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
                 q2jd.append((-phip10ij+tw_x.MUX[tw_x.indx[bn1]]-0.25)%1.0)
-            elif beam_direction == -1:
+            elif accel.get_beam_direction() == -1:
                 q1jd.append((phi0p1ij-tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
                 q2jd.append(-(-phip10ij+tw_x.MUX[tw_x.indx[bn1]]-0.25)%1.0)
 
@@ -547,10 +548,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             q1jd[j] = (0.5-q1jd[j])%1.0 
             q2jd[j] = (0.5-q2jd[j])%1.0
 
-            if beam_direction==1:
+            if accel.get_beam_direction() == 1:
                 q1js.append((phi0m1ij+tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
                 q2js.append((phim10ij+tw_x.MUX[tw_x.indx[bn1]]+0.25)%1.0)
-            if beam_direction==-1:
+            if accel.get_beam_direction() == -1:
                 q1js.append((phi0m1ij+tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
                 q2js.append(-(phim10ij+tw_x.MUX[tw_x.indx[bn1]]+0.25)%1.0)
             # This sign change in the real part is to comply with MAD output
