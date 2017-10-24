@@ -1,7 +1,5 @@
 import GetLLM
 r'''
-.. module: GetLLM.GetLLM
-
 Created on 11/09/09
 
 :author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
@@ -160,7 +158,7 @@ def _parse_args():
     accel_cls, rest_args = manager.get_accel_class_from_args(
         sys.argv[1:]
     )
-    print("Using accelerator class: " + accel_cls.__name__)
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", metavar="PATH_TO_DIR", dest="model_dir",
                     help="Path to the model directory")
@@ -277,6 +275,9 @@ def main(accelerator,
     return_code = 0
     
     print "Starting GetLLM ", VERSION
+    global __getllm_starttime
+    __getllm_starttime = time()
+
     
     use_average = (use_average == 1)
     use_only_three_bpms_for_beta_from_phase = (use_only_three_bpms_for_beta_from_phase == 1)
@@ -316,6 +317,7 @@ def main(accelerator,
     twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, tbtana, files_dict, use_average, calibration_twiss, accelerator.get_model_tfs())
 
     # Construct pseudo-double plane BPMs
+    # TODO This should be in accelerator class
 #    if (accelerator.__name__ == "SPS" or "RHIC" in accelerator.__name__) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
 #        [pseudo_list_x, pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(accelerator.get_model_tfs(), twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
 #    else:
@@ -330,19 +332,19 @@ def main(accelerator,
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         temp_dict = copy.deepcopy(files_dict)
        
-        phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
+        phase_d_bk, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
                                                          accelerator.get_best_knowledge_model_tfs(),
                                                          accelerator.get_driven_tfs(),
                                                          accelerator.get_elements_tfs(),
                                                          temp_dict)
         print_time("AFTER_PHASE_BK", time() - __getllm_starttime)
        
-        #-------- START Phase
-        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
-                                                           accelerator.get_model_tfs(),
-                                                           accelerator.get_driven_tfs(),
-                                                           accelerator.get_elements_tfs(),
-                                                           files_dict)
+#        #-------- START Phase
+#        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
+#                                                           accelerator.get_model_tfs(),
+#                                                           accelerator.get_driven_tfs(),
+#                                                           accelerator.get_elements_tfs(),
+#                                                           files_dict)
         print_time("AFTER_PHASE", time() - __getllm_starttime)
 
 
@@ -378,15 +380,15 @@ def main(accelerator,
         #files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
 
         #-------- START coupling.
-        tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, pseudo_list_x, pseudo_list_y)
+        tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
 
         #-------- START RDTs
         if nonlinear:
-            algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d, tune_d, files_dict, inv_x, inv_y)
+            algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y)
 
         if tbtana == "SUSSIX":
             #------ Start getsextupoles @ Glenn Vanbavinckhove
-            files_dict = _calculate_getsextupoles(twiss_d, phase_d, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
+            files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
 
             #------ Start getchiterms @ Glenn Vanbavinckhove
             files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
@@ -400,6 +402,7 @@ def main(accelerator,
         for tfsfile in files_dict.itervalues():
             tfsfile.write_to_file(formatted=True)
 
+    print_time("FINISH", time() - __getllm_starttime)
     return return_code
 # END main() ---------------------------------------------------------------------------------------
 
@@ -1068,8 +1071,6 @@ def _start():
     Starter function to avoid polluting global namespace with variables options,args.
     Before the following code was after 'if __name__=="__main__":'
     '''
-    global __getllm_starttime
-    __getllm_starttime = time()
     f = open("/afs/cern.ch/work/a/awegsche/public/44_acc_cls_perf/stats_acc_cls.txt", "a")
     f.write("Start\n")
     f.close()
@@ -1077,8 +1078,6 @@ def _start():
     options, acc_cls = _parse_args()
     
     accelerator = acc_cls.init_from_model_dir(options.model_dir)
-    
-    print accelerator
     
     main(accelerator,
          options.model_dir,
