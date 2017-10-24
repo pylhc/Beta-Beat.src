@@ -179,3 +179,6 @@ def get_commonbpm(key1, key2, commonbpms):
     if i2 == -1:
         return -1, None
     return i2, commonbpms.index[i2]
+
+def print_property(prop, value):
+    print("  {:20s} [{:>10s}]".format(prop, value))

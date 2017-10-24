@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from Utilities import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
+from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode, print_property
 from time import time
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -81,11 +81,15 @@ class Lhc(Accelerator):
     @classmethod
     def init_from_model_dir(cls, model_dir):  # prints only for debugging
         
-        print("Creating accelerator instance from model dir")
+        print("=== ACCELERATOR CLASS FOR GETLLM ============")
+        
+        print("\n  class: {}\n  Creating accelerator instance from model dir".format(cls.__name__))
         instance = cls()
+       
         
         instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
-        print("model path =", os.path.join(model_dir, "twiss.dat"))
+        print("  model path =", os.path.join(model_dir, "twiss.dat"))
+        print("")
             
         instance._excitation = AccExcitationMode.FREE
         ac_filename = os.path.join(model_dir, "twiss_ac.dat")
@@ -104,12 +108,14 @@ class Lhc(Accelerator):
             instance.excitation = AccExcitationMode.ADT
             driven_filename = adt_filename
         
-        try:
-            model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
-            if os.path.isfile(model_best_knowledge_path):
-                instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
-        except IOError:
+        
+        model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
+        if os.path.isfile(model_best_knowledge_path):
+            instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
+            print_property("Best Knowledge Model", "OK")
+        else:
             instance.model_best_knowledge = None
+            print_property("Best Knowledge Model", "NO")
             
         elements_path = os.path.join(model_dir, "twiss_elements.dat")
         if os.path.isfile(elements_path):
@@ -127,6 +133,22 @@ class Lhc(Accelerator):
         instance.nat_tune_x = float(instance.model_tfs.headers["Q1"])
         instance.nat_tune_y = float(instance.model_tfs.headers["Q2"])
         
+        
+        print_property("Natural Tune X", "{:7.3f}".format(instance.nat_tune_x))
+        print_property("Natural Tune Y", "{:7.3f}".format(instance.nat_tune_y))
+    
+        if instance._excitation == AccExcitationMode.FREE:
+            print_property("Excitation", "NO")
+        else:
+            if instance._excitation == AccExcitationMode.ACD:
+                print_property("Excitation", "ACD")
+            elif instance._excitation == AccExcitationMode.ADT:
+                print_property("Excitation", "ADT")
+            print_property("> Driven Tune X", "{:7.3f}".format(instance.drv_tune_x))
+            print_property("> Driven Tune Y", "{:7.3f}".format(instance.drv_tune_y))
+          
+        
+        print("\n===\n")
         return instance
 
     @classmethod
