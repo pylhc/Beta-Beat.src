@@ -36,62 +36,126 @@ def run_all(main_input, clean_input, harpy_input, to_log):
 
 
 def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
+    tbt_file = _cut_tbt_file(tbt_file,
+                             main_input.startturn,
+                             main_input.endturn)
+    file_date = tbt_file.date
+    bpm_datas = {"x": tbt_file.samples_matrix_x,
+                 "y": tbt_file.samples_matrix_y}
 
     if main_input.write_raw:
         output_handler.write_raw_file(tbt_file, main_input)
 
-    if clean_input is not None or harpy_input is not None:
-        clean_writer = output_handler.CleanedAsciiWritter(main_input, tbt_file.date)
-        model_tfs = tfs.read_tfs(main_input.model).loc[:, ('NAME', 'S', 'DX')] # dispersion in meters
-        for plane in ("x", "y"):
-            bpm_data = getattr(tbt_file, "samples_matrix_" + plane)
-            if (clean_input.startturn > 0 or
-                    clean_input.endturn < bpm_data.shape[1]):
-                start = max(0, clean_input.startturn)
-                end = min(clean_input.endturn, new_bpm_data.shape[1])
-                bpm_data = bpm_data[:, start:end]
-            bpm_data, bpms_not_in_model = _get_only_model_bpms(bpm_data, model_tfs)
-            all_bad_bpms = []
-            usv = None
-            if clean_input is not None:
-                with timeit(lambda spanned: LOGGER.debug("Time for filtering: %s", spanned)):
-                    bpm_data, bad_bpms_clean = clean.clean(
-                        bpm_data, clean_input, tbt_file.date,
-                    )
-                with timeit(lambda spanned: LOGGER.debug("Time for SVD clean: %s", spanned)):
-                    bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(
-                        bpm_data, clean_input,
-                    )
-                all_bad_bpms.extend(bpms_not_in_model)
-                all_bad_bpms.extend(bad_bpms_clean)
-                all_bad_bpms.extend(bad_bpms_svd)
-                setattr(clean_writer, "samples_matrix_" + plane, bpm_data)
+    usvs = {}
+    all_bad_bpms = {}
 
-            if plane == "x":
-                computed_dpp = calc_dp_over_p(main_input, bpm_data)
+    model_tfs = tfs.read_tfs(main_input.model).loc[:, ('NAME', 'S', 'DX')]
 
-            if harpy_input is not None:
-                lin_frame = pd.DataFrame(index=bpm_data.index,
-                                         data={"NAME": bpm_data.index})
-                bpm_positions = model_tfs.set_index("NAME").loc[bpm_data.index, "S"]
-                lin_frame["S"] = bpm_positions
-                with timeit(lambda spanned: LOGGER.debug("Time for orbit_analysis: %s", spanned)):
-                    lin_frame = _get_orbit_data(lin_frame, bpm_data, bpm_res, model_tfs)
+    if clean_input is not None:
+        usvs, all_bad_bpms, bpm_res, dpp = _do_clean(
+            main_input, clean_input,
+            bpm_datas, file_date, model_tfs
+        )
 
-                bad_bpms_fft = _do_harpy(main_input, harpy_input, bpm_data,
-                                         model_tfs, usv, lin_frame, plane,
-                                         computed_dpp)
-                all_bad_bpms.extend(bad_bpms_fft)
+    if harpy_input is not None:
+        _do_harpy(main_input, harpy_input, bpm_datas, usvs,
+                  model_tfs, bpm_res, dpp, all_bad_bpms)
 
-            output_handler.write_bad_bpms(
-                main_input.file,
-                all_bad_bpms,
-                main_input.outputdir, plane
-            )
 
-        if clean_input.write_clean:
-            clean_writer.dpp = computed_dpp
-            clean_writer.write()
+def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
+    usvs, all_bad_bpms = {}, {}
+    clean_writer = output_handler.CleanedAsciiWritter(main_input, file_date)
+    for plane in ("x", "y"):
+        bpm_data = bpm_datas[plane]
+        bpm_data, bpms_not_in_model = _get_only_model_bpms(bpm_data, model_tfs)
+        bad_bpms = []
+        usv = None
+        if clean_input is not None:
+            with timeit(lambda spanned: LOGGER.debug("Time for filtering: %s", spanned)):
+                bpm_data, bad_bpms_clean = clean.clean(
+                    bpm_data, clean_input, file_date,
+                )
+            with timeit(lambda spanned: LOGGER.debug("Time for SVD clean: %s", spanned)):
+                bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(
+                    bpm_data, clean_input,
+                )
+            bad_bpms.extend(bpms_not_in_model)
+            bad_bpms.extend(bad_bpms_clean)
+            bad_bpms.extend(bad_bpms_svd)
+            all_bad_bpms[plane] = bad_bpms
+            setattr(clean_writer, "samples_matrix_" + plane, bpm_data)
+
+        if plane == "x":
+            dpp = calc_dp_over_p(main_input, bpm_data)
+        bpm_datas[plane] = bpm_data
+        usvs[plane] = usv
+
+    if clean_input.write_clean:
+        clean_writer.dpp = dpp
+        clean_writer.write()
+    return usvs, all_bad_bpms, bpm_res, dpp
+
+
+def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_res, dpp, all_bad_bpms):
+    lin_frames = {}
+    for plane in ("x", "y"):
+        bpm_data, usv = bpm_datas[plane], usvs[plane]
+        lin_frames[plane] = pd.DataFrame(
+            index=bpm_data.index,
+            data={"NAME": bpm_data.index,
+                  "S": model_tfs.set_index("NAME").loc[bpm_data.index, "S"]}
+        )
+        with timeit(lambda spanned: LOGGER.debug("Time for orbit_analysis: %s", spanned)):
+            lin_frames[plane] = _get_orbit_data(lin_frames[plane], bpm_data, bpm_res, model_tfs)
+        bpm_datas[plane], usvs[plane] = _prepare_data_for_harpy(bpm_data, usv)
+
+    with timeit(lambda spanned: LOGGER.debug("Time for harmonic_analysis: %s", spanned)):
+        harpy_iterator = harpy.harpy(
+            harpy_input,
+            bpm_datas["x"], usvs["x"],
+            bpm_datas["y"], usvs["y"],
+        )
+
+    for plane in ("x", "y"):
+        harpy_results, spectr, bad_bpms_summaries = harpy_iterator.next()
+        lin_frame = lin_frames[plane]
+        lin_frame = harpy_results.join(lin_frame, how="inner")
+        lin_frame = _rescale_amps_to_main_line(lin_frame, plane)
+        lin_frame = lin_frame.sort_values('S', axis=0, ascending=True)
+        headers = _compute_headers(lin_frame, plane, dpp)
+        output_handler.write_harpy_output(
+            main_input,
+            lin_frame,
+            headers,
+            spectr,
+            plane
+        )
+        all_bad_bpms[plane].extend(bad_bpms_summaries)
+        output_handler.write_bad_bpms(
+            main_input.file,
+            all_bad_bpms[plane],
+            main_input.outputdir,
+            plane
+        )
+
+
+def _prepare_data_for_harpy(bpm_data, usv):
+    bpm_data = (bpm_data.T - np.mean(bpm_data, axis=1)).T
+    allowed = _get_allowed_length(rang=[0, bpm_data.shape[1]])[-1]
+    bpm_data = bpm_data.loc[:, :allowed - 1]
+    usv = (usv[0], usv[1], usv[2][:, :allowed - 1])
+    return bpm_data, usv
+
+
+def _cut_tbt_file(tbt_file, start_turn, end_turn):
+    bpm_data_x = tbt_file.samples_matrix_x
+    bpm_data_y = tbt_file.samples_matrix_y
+    start = max(0, start_turn)
+    end_x = min(end_turn, bpm_data_x.shape[1])
+    end_y = min(end_turn, bpm_data_y.shape[1])
+    tbt_file.samples_matrix_x = bpm_data_x.loc[:, start:end_x - 1]
+    tbt_file.samples_matrix_y = bpm_data_y.loc[:, start:end_y - 1]
+    return tbt_file
 
 
 def _get_only_model_bpms(bpm_data, model):
@@ -110,43 +174,6 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res, model):
     lin_frame['CORMS'] = np.std(bpm_data, axis=1) / np.sqrt(bpm_data.shape[1])
     lin_frame['BPM_RES'] = bpm_res
     return lin_frame
-
-
-def _do_harpy(main_input, harpy_input, bpm_data, model_tfs, usv, lin_frame, plane, computed_dpp):
-    with timeit(lambda spanned: LOGGER.debug("Time for harmonic_analysis: %s", spanned)):
-        bpm_data = (bpm_data.T - np.mean(bpm_data, axis=1)).T
-        lin_result, spectrum, bad_bpms_fft = harmonic_analysis(
-            bpm_data, usv,
-            plane, harpy_input, lin_frame, model_tfs,
-        )
-        lin_result = _rescale_amps_to_main_line(lin_result, plane)
-        lin_result.sort_values('S', axis=0, ascending=True, inplace=True, kind='mergesort')
-        headers = _compute_headers(lin_result, plane, computed_dpp)
-        output_handler.write_harpy_output(
-            main_input,
-            lin_result,
-            headers,
-            spectrum,
-            plane
-        )
-    return bad_bpms_fft
-
-
-def harmonic_analysis(bpm_data, usv, plane, harpy_input, panda, model_tfs):
-    if usv is None:
-        if harpy_input.harpy_mode == "svd" or harpy_input.harpy_mode == "fast":
-            raise ValueError(
-                "Running harpy SVD mode but not svd clean was run."
-                " Set 'clean' flag to use SVD mode."
-            )
-    else:
-        allowed = _get_allowed_length(rang=[0, bpm_data.shape[1]])[-1]
-        # .loc uses also the last index
-        bpm_data = bpm_data.loc[:, :allowed - 1]
-        usv = (usv[0], usv[1], usv[2][:, :allowed - 1])
-    lin_result, spectrum, bad_bpms_fft = harpy.harpy(
-        bpm_data, usv, plane.upper(), harpy_input, panda, model_tfs)
-    return lin_result, spectrum, bad_bpms_fft
 
 
 def _rescale_amps_to_main_line(panda, plane):

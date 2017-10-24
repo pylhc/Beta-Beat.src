@@ -51,74 +51,83 @@ NUM_HARMS_SVD = 100
 PROCESSES = multiprocessing.cpu_count()
 
 
-def harpy(bpm_matrix, usv, plane, harpy_input, panda, model_tfs):
-    """Searches for the strongest resonances in each row of the bpm_matrix.
-
-    TODO: More elaborate description here.
-
-    Args:
-        bpm_matrix: Pandas DataFrame that containing the samples with shape
-            (n_bpms, n_turns) and the BPM names as row index.
-        usv: SVD decomposition of bpm_matrix, shoud be an iterable such that
-            u, s, v = usv is possible.
-        plane: A string containing either X or Y.
-        harpy_input: HarpyInput instance containing user provided info.
-        panda: A pandas DataFrame where the resonance results will be put.
-        model_tfs: A pandas DataFrame to get the model dispersion.
-
-    Returns:
-        A tuple containing the resulting DataFrame object filled with the
-            resonance information (Representing the _linx or _liny files),
-            a dictionary of DataFrames with form: bpm_name -> bpm_spectrum and
-            a list of string descibing which BPMs are marked as bad.
+def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
     """
-    frequencies, bpm_coefficients = harmonic_analysis(
-        bpm_matrix,
-        usv=usv,
-        mode=harpy_input.harpy_mode,
-        sequential=harpy_input.sequential,
-    )
+    """
+    all_frequencies = {}
+    all_coefficients = {}
+    spectr = {}
+    bad_bpms_summaries = {}
+    pandas_dfs = {}
 
-    all_bpms_coefs = pd.DataFrame(data=bpm_coefficients,
+    cases = (("X", bpm_matrix_x, usv_x),
+             ("Y", bpm_matrix_y, usv_y))
+    for plane, bpm_matrix, usv in cases:
+        panda = pd.DataFrame(index=bpm_matrix.index)
+        frequencies, coefficients = harmonic_analysis(
+            bpm_matrix,
+            usv=usv,
+            mode=harpy_input.harpy_mode,
+            sequential=harpy_input.sequential,
+        )
+        spectr[plane] = _get_bpms_spectr(bpm_matrix,
+                                         coefficients,
+                                         frequencies)
+        panda, not_tune_bpms = _get_main_resonances(
+            harpy_input, frequencies, coefficients,
+            plane, harpy_input.tolerance, panda
+        )
+        cleaned_by_tune_bpms = clean_by_tune(panda.loc[:, 'TUNE' + plane],
+                                             harpy_input.tune_clean_limit)
+        panda = panda.loc[panda.index.difference(cleaned_by_tune_bpms)]
+        bpm_matrix = bpm_matrix.loc[panda.index]
+        coefficients = coefficients.loc[panda.index]
+        frequencies = frequencies.loc[panda.index]
+
+        bad_bpms_summaries[plane] = _get_bad_bpms_summary(
+            not_tune_bpms,
+            cleaned_by_tune_bpms
+        )
+        panda = _amp_and_mu_from_avg(bpm_matrix, plane, panda)
+        # TODO: I removed the old noise!
+        panda = _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda)
+
+        if harpy_input.tunez > 0.0:
+            panda, _ = _get_main_resonances(
+                harpy_input, frequencies, coefficients,
+                "Z", Z_TOLERANCE, panda
+            )
+
+        pandas_dfs[plane] = panda
+        all_frequencies[plane] = frequencies
+        all_coefficients[plane] = coefficients
+
+    tunez = 0.0
+    if harpy_input.tunez > 0.0:
+        tunez = pandas_dfs["X"]["TUNEZ"].mean()
+    tunes = (pandas_dfs["X"]["TUNEX"].mean(),
+             pandas_dfs["Y"]["TUNEY"].mean(),
+             tunez)
+
+    for plane in ("X", "Y"):
+        resonances_freqs = _compute_resonances_freqs(plane, harpy_input, tunes)
+        if harpy_input.tunez > 0.0:
+            resonances_freqs.update(_compute_resonances_freqs("Z", harpy_input, tunes))
+        pandas_dfs[plane] = _resonance_search(all_frequencies[plane],
+                                              all_coefficients[plane],
+                                              harpy_input.tolerance,
+                                              resonances_freqs,
+                                              pandas_dfs[plane])
+        yield pandas_dfs[plane], spectr[plane], bad_bpms_summaries[plane]
+
+
+def _get_bpms_spectr(bpm_matrix, coefficients, frequencies):
+    all_bpms_coefs = pd.DataFrame(data=coefficients,
                                   index=bpm_matrix.index)
     all_bpms_freqs = pd.DataFrame(data=frequencies,
                                   index=bpm_matrix.index)
     all_bpms_spectr = {"COEFS": all_bpms_coefs, "FREQS": all_bpms_freqs}
-
-    panda, not_tune_bpms = _get_main_resonances(
-        harpy_input, frequencies, bpm_coefficients,
-        plane, harpy_input.tolerance, panda
-    )
-    if harpy_input.tunez > 0.0:
-        panda, _, _ = _get_main_resonances(
-            harpy_input, frequencies, bpm_coefficients,
-            "Z", Z_TOLERANCE, panda
-        )
-
-    cleaned_by_tune_bpms = clean_by_tune(panda.loc[:, 'TUNE' + plane],
-                                         harpy_input.tune_clean_limit)
-    panda = panda.loc[panda.index.difference(cleaned_by_tune_bpms)]
-    bpm_matrix = bpm_matrix.loc[panda.index]
-    bpm_coefficients = bpm_coefficients.loc[panda.index]
-    frequencies = frequencies.loc[panda.index]
-
-    bad_bpms_summary = _get_bad_bpms_summary(not_tune_bpms, cleaned_by_tune_bpms)
-    panda = _amp_and_mu_from_avg(bpm_matrix, plane, panda)
-    # TODO: I removed the old noise!
-    panda = _get_natural_tunes(frequencies, bpm_coefficients, harpy_input, plane, panda)
-
-    resonances_freqs = _compute_resonances_freqs(plane, harpy_input)
-    if harpy_input.tunez > 0.0:
-        resonances_freqs.update(_compute_resonances_freqs("Z", harpy_input))
- 
-    panda = _resonance_search(frequencies, bpm_coefficients,
-                              harpy_input.tolerance, resonances_freqs, panda)
-
-    panda['BINDEX'] = 0
-    panda['SLABEL'] = 0
-    return (panda,
-            all_bpms_spectr,
-            bad_bpms_summary)
+    return all_bpms_spectr
 
 
 def harmonic_analysis(bpm_matrix=None, usv=None, mode="bpm", sequential=False):
@@ -330,15 +339,21 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
 
 
 def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
-    min = freq - tolerance
-    max = freq + tolerance
-    on_window_mask = (frequencies.values >= min) & (frequencies.values <= max)
-    filtered_amps = coefficients.abs().where(on_window_mask, other=0.)
-    max_indices = filtered_amps.idxmax(axis=1)
-    max_coefs = coefficients.lookup(max_indices.index, max_indices.values)
-    # TODO: Better solution?:
+    min_val = freq - tolerance
+    max_val = freq + tolerance
+    freq_vals = frequencies.values
+    coefs_vals = coefficients.values
+    on_window_mask = (freq_vals >= min_val) & (freq_vals <= max_val)
+    filtered_amps = np.where(on_window_mask,
+                             np.abs(coefs_vals),
+                             np.zeros_like(coefs_vals))
+    filtered_coefs = np.where(on_window_mask,
+                              coefs_vals,
+                              np.zeros_like(coefs_vals))
+    max_indices = np.argmax(filtered_amps, axis=1)
+    max_coefs = filtered_coefs[np.arange(coefs_vals.shape[0]), max_indices]
     max_coefs = pd.Series(index=coefficients.index, data=max_coefs)
-    max_freqs = frequencies.lookup(max_indices.index, max_indices.values)
+    max_freqs = freq_vals[np.arange(freq_vals.shape[0]), max_indices]
     max_freqs = (max_coefs != 0) * max_freqs  # Zero bad freqs
     return max_coefs, max_freqs
 
@@ -392,7 +407,7 @@ def _get_resonance_suffix(resonance):
     return resstr
 
 
-def _compute_resonances_freqs(plane, harpy_input):
+def _compute_resonances_freqs(plane, harpy_input, tunes):
     """
     Computes the frequencies for all the resonances listed in the
     constante RESONANCE_LISTS, together with the natural tunes
@@ -418,7 +433,7 @@ def _laskar_method(tbt, num_harmonics):
     for _ in range(num_harmonics):
         # Compute this harmonic frequency and coefficient.
         dft_data = _fft(samples)
-        frequency = _jacobsen(dft_data,n)
+        frequency = _jacobsen(dft_data, n)
         coefficient = _compute_coef(samples, frequency * n) / n
 
         # Store frequency and amplitude
@@ -493,6 +508,11 @@ def _compute_coef_goertzel(samples, kprime):
     s0 = samples[n - 1] + b * s1 - s2
     y = s0 - s1 * c
     return y * d
+
+
+def _get_resonance_tolerance(resonance, tolerance):
+    x, y, z = resonance
+    return (abs(x) + abs(y) + abs(z)) * tolerance
 
 
 def _which_compute_coef():

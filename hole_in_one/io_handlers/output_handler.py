@@ -26,9 +26,7 @@ class CleanedAsciiWritter(object):
         self._main_input = main_input
         self._date = date
 
-        self.bpm_names_x = None
         self.samples_matrix_x = None
-        self.bpm_names_y = None
         self.samples_matrix_y = None
         self.dpp = None
 
@@ -42,8 +40,8 @@ class CleanedAsciiWritter(object):
             get_outpath_with_suffix(self._main_input.file,
                                     self._main_input.outputdir,
                                     CLEAN_SUFFIX),
-            list(self.bpm_names_x), self.samples_matrix_x,
-            list(self.bpm_names_y), self.samples_matrix_y,
+            self.samples_matrix_x.index, self.samples_matrix_x,
+            self.samples_matrix_y.index, self.samples_matrix_y,
             self._date, headers_dict,
         )
 

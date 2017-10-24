@@ -75,8 +75,7 @@ class TbtFile(object):
                              bpm_names_y, matrix_y, date):
         if date is None:
             date = datetime.now()
-        new_tbt_file = TbtFile(bpm_names_x, bpm_names_y,
-                               date, 1, len(matrix_x[0]), 0)
+        new_tbt_file = TbtFile(date, 1, len(matrix_x[0]), 0)
         new_tbt_file._samples_matrix[HOR] = pd.DataFrame(
             index=bpm_names_x,
             data=matrix_x,
@@ -118,6 +117,10 @@ class TbtFile(object):
         """
         return self._samples_matrix[HOR]
 
+    @samples_matrix_x.setter
+    def samples_matrix_x(self, value):
+        self._samples_matrix[HOR] = value
+
     @property
     def samples_matrix_y(self):
         """
@@ -126,6 +129,10 @@ class TbtFile(object):
         E.g.: a.samples_matrix_x.loc["BPM12", 3] -> Sample 3 of monitor BPM12.
         """
         return self._samples_matrix[VER]
+
+    @samples_matrix_y.setter
+    def samples_matrix_y(self, value):
+        self._samples_matrix[VER] = value
 
     def _get(self, bpm_name, plane):
         return self._samples_matrix[plane].loc[bpm_name]
@@ -227,9 +234,9 @@ class _TbtAsciiWriter(object):
         output_file.write("#Number of turns: " +
                           str(tbt_file.num_turns) + "\n")
         output_file.write("#Number of horizontal monitors: " +
-                          str(tbt_file.num_monitors_x) + "\n")
+                          str(tbt_file.samples_matrix_x.index.size) + "\n")
         output_file.write("#Number of vertical monitors: " +
-                          str(tbt_file.num_monitors_y) + "\n")
+                          str(tbt_file.samples_matrix_y.index.size) + "\n")
         output_file.write("#Acquisition date: " + tbt_file.date.strftime(
             "%Y-%m-%d at %H:%M:%S"
         ) + "\n")
@@ -254,7 +261,7 @@ class _TbtAsciiWriter(object):
             output_file.write(output_str_y)
 
 
-def _append_beta_beat_to_path(self):
+def _append_beta_beat_to_path():
     parent_path = os.path.abspath(os.path.join(
         os.path.dirname(__file__), ".."
     ))
