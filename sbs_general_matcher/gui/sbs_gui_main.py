@@ -336,7 +336,7 @@ class SbSGuiMainController(object):
         for matcher_subw in self._view.get_subwindows_list():
             matchers_list.append(matcher_subw.model.get_matcher())
         minimize = self._view.is_minimize_selected()
-        input_data = sbs_general_matcher.InputData.init_from_matchers_list(
+        input_data = sbs_general_matcher.InputData(
             self._lhc_mode, self._match_path, minimize, matchers_list
         )
 
