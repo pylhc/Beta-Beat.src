@@ -7,11 +7,11 @@ from collections import namedtuple
 import numpy as np
 import pandas as pd
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import clean
 import harpy
 from io_handlers import input_handler, output_handler
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit
