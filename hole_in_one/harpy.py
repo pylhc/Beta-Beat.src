@@ -14,6 +14,7 @@ from __future__ import print_function
 import multiprocessing
 import logging
 from functools import partial
+from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from Utilities import outliers
@@ -63,7 +64,7 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
     cases = (("X", bpm_matrix_x, usv_x),
              ("Y", bpm_matrix_y, usv_y))
     for plane, bpm_matrix, usv in cases:
-        panda = pd.DataFrame(index=bpm_matrix.index)
+        panda = pd.DataFrame(index=bpm_matrix.index, columns=OrderedDict())
         frequencies, coefficients = harmonic_analysis(
             bpm_matrix,
             usv=usv,
@@ -90,6 +91,7 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
         )
         panda = _amp_and_mu_from_avg(bpm_matrix, plane, panda)
         # TODO: I removed the old noise!
+        panda.NOISE = 0.0
         panda = _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda)
 
         if harpy_input.tunez > 0.0:
@@ -331,10 +333,10 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
             "try to increase the tolerance or adjust the tunes"
         )
     bad_bpms_by_tune = coefficients.loc[max_coefs == 0.].index
-    panda = panda.loc[panda.index.difference(bad_bpms_by_tune)]
     panda['TUNE'+plane] = max_freqs
-    panda['AMP'+plane] = np.abs(max_coefs)
+    panda['AMP'+plane] = max_coefs.abs()
     panda['MU'+plane] = np.angle(max_coefs) / (2 * np.pi)
+    panda = panda.loc[panda.index.difference(bad_bpms_by_tune)]
     return panda, bad_bpms_by_tune
 
 
