@@ -111,15 +111,16 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
              pandas_dfs["Y"]["TUNEY"].mean(),
              tunez)
 
+    n_turns = bpm_matrix_x.shape[1]
     for plane in ("X", "Y"):
         resonances_freqs = _compute_resonances_freqs(plane, harpy_input, tunes)
         if harpy_input.tunez > 0.0:
             resonances_freqs.update(_compute_resonances_freqs("Z", harpy_input, tunes))
         pandas_dfs[plane] = _resonance_search(all_frequencies[plane],
                                               all_coefficients[plane],
-                                              harpy_input.tolerance,
                                               resonances_freqs,
-                                              pandas_dfs[plane])
+                                              pandas_dfs[plane],
+                                              n_turns)
         yield pandas_dfs[plane], spectr[plane], bad_bpms_summaries[plane]
 
 
@@ -386,10 +387,11 @@ def _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda):
 
 
 # Vectorized - coefficiens are matrix:
-def _resonance_search(frequencies, coefficients, tolerance,
-                      resonances_freqs, panda):
+def _resonance_search(frequencies, coefficients,
+                      resonances_freqs, panda, n_turns):
     results = panda
     for resonance, resonance_freq in resonances_freqs.iteritems():
+        tolerance = _get_resonance_tolerance(resonance, n_turns)
         max_coefs, max_freqs = _search_highest_coefs(
             resonance_freq, tolerance, frequencies, coefficients
         )
@@ -512,9 +514,12 @@ def _compute_coef_goertzel(samples, kprime):
     return y * d
 
 
-def _get_resonance_tolerance(resonance, tolerance):
+def _get_resonance_tolerance(resonance, n_turns):
+    tolerance = max(1e-4, 1 / n_turns)
     x, y, z = resonance
-    return (abs(x) + abs(y) + abs(z)) * tolerance
+    if z == 0:
+        return (abs(x) + abs(y)) * tolerance
+    return (abs(x) + abs(y) + abs(z) - 1) * tolerance
 
 
 def _which_compute_coef():
