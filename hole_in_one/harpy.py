@@ -418,9 +418,10 @@ def _compute_resonances_freqs(plane, harpy_input, tunes):
     frequencies if given.
     """
     resonances_freqs = {}
-    freqs = [(resonance_h * harpy_input.tunex) +
-             (resonance_v * harpy_input.tuney) +
-             (resonance_l * harpy_input.tunez)
+    tunex, tuney, tunez = tunes
+    freqs = [(resonance_h * tunex) +
+             (resonance_v * tuney) +
+             (resonance_l * tunez)
              for (resonance_h, resonance_v, resonance_l) in RESONANCE_LISTS[plane]]
     # Move to [0, 1] domain.
     freqs = [freq + 1. if freq < 0. else freq for freq in freqs]
