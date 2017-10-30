@@ -1,6 +1,7 @@
 import os
 import logging
 import cPickle
+import pandas as pd
 from Utilities import tfs_pandas
 from sdds_files import turn_by_turn_reader
 
@@ -62,13 +63,27 @@ def write_harpy_output(main_input, harpy_data_frame, headers, spectrum, plane):
         main_input.file, main_input.outputdir, ".lin" + plane
     )
     tfs_pandas.write_tfs(harpy_data_frame, headers, output_file)
+    # spectr_outdir = os.path.join(main_input.outputdir, "BPM")
+    # _write_full_spectrum(spectrum, spectr_outdir, plane)
     _dump(get_outpath_with_suffix(
-          main_input.file, main_input.outputdir, ".spec" + plane), spectrum)
+        main_input.file, main_input.outputdir, ".spec" + plane), spectrum)
 
 
 def _dump(output_file, content):
     with open(output_file, 'wb') as output_data:
         cPickle.Pickler(output_data, -1).dump(content)
+
+
+def _write_full_spectrum(spectrum, outputdir, plane):
+    all_amps = spectrum["COEFS"].abs()
+    all_freqs = spectrum["FREQS"]
+    for bpm_name in all_amps.index:
+        new_df = pd.DataFrame(
+            data={"FREQ": all_freqs.loc[bpm_name],
+                  "AMP": all_amps.loc[bpm_name]}
+        )
+        out_file = os.path.join(outputdir, bpm_name + "." + plane)
+        tfs_pandas.write_tfs(new_df, {}, out_file)
 
 
 def get_outpath_with_suffix(path, output_dir, suffix):

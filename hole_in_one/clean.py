@@ -41,7 +41,7 @@ def clean(bpm_data, clean_input, file_date):
     bad_bpms_with_reasons = _get_bad_bpms_summary(
         clean_input, known_bad_bpms, bpm_flatness, bpm_spikes, exact_zeros
     )
-    _report_clean_stats(bpm_data, original_bpms)
+    _report_clean_stats(original_bpms.size, bpm_data.index.size)
 
     wrong_plrty_names = (LIST_OF_WRONG_POLARITY_BPMS +
                          clean_input.wrong_polarity_bpms)
@@ -154,38 +154,30 @@ def svd_decomposition(clean_input, bpm_data):
 
 def svd_clean(bpm_data, clean_input):
     USV, bpm_data_mean, sqrt_number_of_turns = svd_decomposition(clean_input, bpm_data)
+    clean_U, dominance_summary = _clean_dominant_bpms(
+        USV[0],
+        clean_input.single_svd_bpm_threshold
+    )
 
-    if clean_input is not None:
-        clean_U, dominance_summary = _clean_dominant_bpms(
-            USV[0],
-            clean_input.single_svd_bpm_threshold
-        )
+    # Reconstruct the SVD-cleaned data
+    USV = clean_U, USV[1], USV[2]
+    A = USV[0].dot(np.dot(np.diag(USV[1]), USV[2]))
+    A = A * sqrt_number_of_turns + bpm_data_mean.values
 
-        # Reconstruct the SVD-cleaned data
-        USV = clean_U, USV[1], USV[2]
-        A = USV[0].dot(np.dot(np.diag(USV[1]), USV[2]))
-        A = A * sqrt_number_of_turns + bpm_data_mean.values
+    # BPM resolution computation
+    bpm_res = (A - bpm_data.loc[clean_U.index]).std(axis=1)
+    LOGGER.debug("Average BPM resolution: %s", str(np.mean(bpm_res)))
+    LOGGER.debug("np.mean(np.std(A, axis=1): %s", np.mean(np.std(A, axis=1)))
+    if np.mean(bpm_res) > NTS_LIMIT * np.mean(np.std(A, axis=1)):
+        raise ValueError(
+            "The data is too noisy. The most probable explanation"
+            " is that there was no excitation or it was very low.")
 
-        # BPM resolution computation
-        bpm_res = (A - bpm_data.loc[clean_U.index]).std(axis=1)
-        LOGGER.debug("Average BPM resolution: %s", str(np.mean(bpm_res)))
-        LOGGER.debug("np.mean(np.std(A, axis=1): %s", np.mean(np.std(A, axis=1)))
-        if np.mean(bpm_res) > NTS_LIMIT * np.mean(np.std(A, axis=1)):
-            raise ValueError(
-                "The data is too noisy. The most probable explanation"
-                " is that there was no excitation or it was very low.")
+    # Denormalize the data
+    V = (USV[2].T - np.mean(USV[2], axis=1)).T
+    USV = (USV[0], USV[1] * sqrt_number_of_turns, V)
 
-        # Denormalize the data
-        V = (USV[2].T - np.mean(USV[2], axis=1)).T
-        USV = (USV[0], USV[1] * sqrt_number_of_turns, V)
-
-        good_bpm_data = A
-    else:
-        V = (USV[2].T - np.mean(USV[2], axis=1)).T
-        USV = (USV[0], USV[1] * sqrt_number_of_turns, V)
-        dominance_summary = []
-        bpm_res = np.zeros_like(bpm_names)
-        good_bpm_data = bpm_data
+    good_bpm_data = A
     return good_bpm_data, bpm_res, dominance_summary, USV
 
 
@@ -216,17 +208,15 @@ def _get_bad_bpms_summary(clean_input, known_bad_bpms,
     return bad_bpms_summary
 
 
-def _report_clean_stats(bpm_data, original_bpms):
+def _report_clean_stats(n_total_bpms, n_good_bpms):
     LOGGER.debug("Filtering done:")
-    n_total_bpms = original_bpms.size
-    n_good_bpms = bpm_data.index.size
-    n_bad_bpms = bpm_data.index.size - n_good_bpms
+    n_bad_bpms = n_total_bpms - n_good_bpms
     LOGGER.debug(
         "(Statistics for file reading) Total BPMs: {0}, "
         "Good BPMs: {1} ({2:2.2f}%), bad BPMs: {3} ({4:2.2f}%)"
         .format(n_total_bpms,
-                n_good_bpms, 100.0 * (n_good_bpms / n_total_bpms),
-                n_bad_bpms, 100.0 * (n_bad_bpms / n_total_bpms)))
+                n_good_bpms, 100.0 * (n_good_bpms / float(n_total_bpms)),
+                n_bad_bpms, 100.0 * (n_bad_bpms / float(n_total_bpms))))
 
     if (n_good_bpms / float(n_total_bpms)) < 0.5:
         raise ValueError(

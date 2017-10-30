@@ -3,7 +3,6 @@ import sys
 import os
 import logging
 from collections import OrderedDict
-from collections import namedtuple
 import numpy as np
 import pandas as pd
 
@@ -148,7 +147,7 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
 
 
 def _prepare_data_for_harpy(bpm_data, usv):
-    bpm_data = (bpm_data.T - np.mean(bpm_data, axis=1)).T
+    bpm_data = bpm_data.subtract(bpm_data.mean(axis=1), axis=0)
     allowed = _get_allowed_length(rang=[0, bpm_data.shape[1]])[-1]
     bpm_data = bpm_data.loc[:, :allowed - 1]
     if usv is not None:
