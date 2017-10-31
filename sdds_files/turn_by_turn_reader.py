@@ -82,7 +82,7 @@ class TbtFile(object):
                              bpm_names_y, matrix_y, date):
         if date is None:
             date = datetime.now()
-        new_tbt_file = TbtFile(date, 1, len(matrix_x[0]), 0)
+        new_tbt_file = TbtFile(date, 1, matrix_x.shape[1], 0)
         new_tbt_file._samples_matrix[HOR] = pd.DataFrame(
             index=bpm_names_x,
             data=matrix_x,
