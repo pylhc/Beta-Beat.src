@@ -180,7 +180,8 @@ def automatic_cleaning_data(k,tune_data, tune_data_err, limit=1e-5):
 
 
 def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, ek, misalign,
-                         cminus, log, logfile):
+                         cminus, twiss, log, logfile):
+
     fitx_2, fitx_1, fity_2, fity_1, errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy = lin_fit_data(path, beam,
                                                                                                       working_directory,
                                                                                                       magnet1, magnet2, log, logfile)
@@ -190,8 +191,8 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_dir
     fity_2 = fity_2 * dK
     fity_1 = fity_1 * dK
 
-    if Magnet_definitions.MagnetPolarity(magnet1, beam) == 1. and Magnet_definitions.MagnetPolarity(magnet2,
-                                                                                                    beam) == -1.:
+    if (Magnet_definitions.MagnetPolarity(magnet1, beam, twiss) == 1. and
+        Magnet_definitions.MagnetPolarity(magnet2, beam, twiss) == -1.):
 
         if log == True:
             logfile.write('Focussing magnet: %s  \n' % (magnet1))
@@ -213,11 +214,11 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_dir
         K_foc = K1
         K_def = K2
 
-        l_foc = Magnet_definitions.MagnetLength(magnet1, beam)
-        l_def = Magnet_definitions.MagnetLength(magnet2, beam)
+        l_foc = Magnet_definitions.MagnetLength(magnet1, beam, twiss)
+        l_def = Magnet_definitions.MagnetLength(magnet2, beam, twiss)
 
-    elif Magnet_definitions.MagnetPolarity(magnet1, beam) == -1. and Magnet_definitions.MagnetPolarity(magnet2,
-                                                                                                       beam) == 1.:
+    elif (Magnet_definitions.MagnetPolarity(magnet1, beam, twiss) == -1. and
+          Magnet_definitions.MagnetPolarity(magnet2, beam, twiss) == 1.):
         if log == True:
             logfile.write('Focussing magnet: %s  \n' % (magnet2))
             logfile.write('\n')
@@ -237,10 +238,10 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_dir
         K_foc = K2
         K_def = K1
 
-        l_foc = Magnet_definitions.MagnetLength(magnet2, beam)
-        l_def = Magnet_definitions.MagnetLength(magnet1, beam)
+        l_foc = Magnet_definitions.MagnetLength(magnet2, beam, twiss)
+        l_def = Magnet_definitions.MagnetLength(magnet1, beam, twiss)
 
-    L_star = Magnet_definitions.Lstar(magnet1, magnet2, beam)
+    L_star = Magnet_definitions.Lstar(magnet1, magnet2, beam, twiss)
 
     resultsx = KModUtilities.analysis(Qx, Qy, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fitx_foc, errx_foc,
                                       fitx_def, errx_def, ek, ek, cminus, bstar, waist,
@@ -261,26 +262,27 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_dir
 
     results.write_to_file()
 
-    calc_beta_star(path, magnet1, magnet2, beam)
+
+    calc_beta_star(path, magnet1, magnet2, beam, twiss)
 
     for instr in instruments:
-        calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile)
+        calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss)
 
 
-def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile):
+def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
     if instr == 'MONITOR':
         name = 'BPM'
     else:
         name = instr
 
-    if Magnet_definitions.FindKeywordBetweenMagnets(magnet1, magnet2, instr, beam):
+    if Magnet_definitions.FindKeywordBetweenMagnets(magnet1, magnet2, instr, beam, twiss):
 
         if log == True:
             logfile.write('%s found, calculating Betas\n' % (name))
 
-        names, positions = Magnet_definitions.ReturnDataofBPMinBetweenMagnets(magnet1, magnet2, instr, beam)
+        names, positions = Magnet_definitions.ReturnDataofBPMinBetweenMagnets(magnet1, magnet2, instr, beam, twiss)
 
-        L_star_position = Magnet_definitions.LstarPosition(magnet1, magnet2, beam)
+        L_star_position = Magnet_definitions.LstarPosition(magnet1, magnet2, beam, twiss)
 
         result_waist = metaclass.twiss(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
         beta_waist = result_waist.BETAWAIST
@@ -290,13 +292,13 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile):
 
         waist = waist * (1, -1)
 
-        Magnet1Pos = Magnet_definitions.MagnetPosition(magnet1, beam)
-        Magnet2Pos = Magnet_definitions.MagnetPosition(magnet2, beam)
+        Magnet1Pos = Magnet_definitions.MagnetPosition(magnet1, beam, twiss)
+        Magnet2Pos = Magnet_definitions.MagnetPosition(magnet2, beam, twiss)
 
-        if Magnet1Pos > Magnet2Pos and Magnet_definitions.MagnetPolarity(magnet1, beam) == -1:
+        if Magnet1Pos > Magnet2Pos and Magnet_definitions.MagnetPolarity(magnet1, beam, twiss) == -1:
             waist = - waist
 
-        elif Magnet2Pos > Magnet1Pos and Magnet_definitions.MagnetPolarity(magnet2, beam) == -1:
+        elif Magnet2Pos > Magnet1Pos and Magnet_definitions.MagnetPolarity(magnet2, beam, twiss) == -1:
             waist = - waist
 
         Waist_pos = L_star_position + waist
@@ -330,13 +332,19 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile):
                 n += 1
 
         err_y = (abs(np.nanmax(beta_err_y, axis=0) - np.nanmin(beta_err_y, axis=0))) / 2.
-
-        xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_X.out' % name))
+        
+        if name=='BPM':
+            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax.out' ))
+        else:
+            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_X.out' % name))
         xdata.set_column_width(20)
         xdata.add_column_names(['NAME', 'S', 'COUNT', 'BETX', 'BETXSTD', 'BETXMDL', 'MUXMDL', 'BETXRES', 'BETXSTDRES'])
         xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
-
-        ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_Y.out' % name))
+        
+        if name=='BPM':
+            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay.out' ))
+        else:
+            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_Y.out' % name))
         ydata.set_column_width(20)
         ydata.add_column_names(['NAME', 'S', 'COUNT', 'BETY', 'BETYSTD', 'BETYMDL', 'MUYMDL', 'BETYRES', 'BETYSTDRES'])
         ydata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
@@ -353,11 +361,11 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile):
 
 
 
-def calc_beta_star(path, magnet1, magnet2, beam):
-    if Magnet_definitions.FindParentBetweenMagnets(magnet1, magnet2, 'OMK', beam):
+def calc_beta_star(path, magnet1, magnet2, beam, twiss):
+    if Magnet_definitions.FindParentBetweenMagnets(magnet1, magnet2, 'OMK', beam, twiss):
 
         results_write = tfs_file_writer.TfsFileWriter.open(
-            os.path.join(path, '%s.beta*.results' % (magnet1 + magnet2 + beam)))
+            os.path.join(path, '%s.beta_star.results' % (magnet1 + magnet2 + beam)))
         results_write.set_column_width(20)
         results_write.add_column_names(
             ['LABEL', 'BETASTAR', 'BETASTAR_ERR', 'WAIST', 'WAIST_ERR', 'BETAWAIST', 'BETAWAIST_ERR'])
@@ -483,7 +491,7 @@ def parse_args():
 
     return options
 
-def returnmagnetname(circuit, beam):
+def returnmagnetname(circuit, beam, twiss):
     circuit = circuit.split('.')
 
     number = circuit[0][-1]
@@ -492,7 +500,7 @@ def returnmagnetname(circuit, beam):
 
     searchstring = '.'+str(number)+str(side)+str(ip)
 
-    magnet = Magnet_definitions.findQuadrupoleType(searchstring, beam)
+    magnet = Magnet_definitions.findQuadrupoleType(searchstring, beam, twiss)
     return magnet
 
 def returncircuitname(magnet, beam):
@@ -524,8 +532,19 @@ if __name__ == '__main__':
     command.write(str(' '.join(sys.argv)))
     command.write('\n')
     command.close()
+    
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    
+    twissfilenameb1 = dir_path+'/twiss_lhcb1.tfs'
+    twissfilenameb2 = dir_path+'/twiss_lhcb2.tfs'
 
+    if beam == 'B1':
+        twissfile = twissfilenameb1
+    else:
+        twissfile = twissfilenameb2
+    twiss = metaclass.twiss(twissfile)
     ip = options.ip
+    
     if options.ip is not None:
         if options.ip == 'ip1' or options.ip == 'IP1':
             magnet1, magnet2 = 'MQXA.1L1', 'MQXA.1R1'
@@ -538,8 +557,8 @@ if __name__ == '__main__':
         circuits = options.magnets
         circuits = circuits.split(",")
         circuit1, circuit2 = circuits
-        magnet1 = returnmagnetname(circuit1, beam)
-        magnet2 = returnmagnetname(circuit2, beam)
+        magnet1 = returnmagnetname(circuit1, beam, twiss)
+        magnet2 = returnmagnetname(circuit2, beam, twiss)
 
     path = os.path.join(working_directory, magnet1 + '.' + magnet2 + '.' + beam)
     
@@ -552,6 +571,6 @@ if __name__ == '__main__':
                beam, options.ip, options.tunemeasuncertainty)
 
     run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, options.ek,
-                         options.misalign, options.cminus, options.log, logdata)
+                         options.misalign, options.cminus, twiss, options.log, logdata)
 
     logdata.close()
