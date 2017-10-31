@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 import sdds_reader
 import ascii_reader
+import sps_sdds_reader
 import numpy as np
 import pandas as pd
 
@@ -31,6 +32,12 @@ FORMAT_STRING = " {:." + str(PRINT_PRECISION) + "f}"
 # Public ###################
 
 def read_tbt_file(file_path):
+    try:
+        return [TbtFile.create_from_matrices(
+            *sps_sdds_reader.read_file(file_path)
+        )]
+    except:
+        pass
     if ascii_reader.is_ascii_file(file_path):
         return [TbtFile.create_from_matrices(
             *ascii_reader.read_ascii_file(file_path)
@@ -40,7 +47,7 @@ def read_tbt_file(file_path):
 
 
 def transform_tbt_to_ascii(file_path, model_path, output_path):
-    tbt_files = _TbtReader(file_path).read_file()
+    tbt_files = read_tbt_file(file_path)
     _TbtAsciiWriter(tbt_files,
                     model_path,
                     output_path).transform_tbt_to_ascii()
@@ -135,7 +142,11 @@ class TbtFile(object):
         self._samples_matrix[VER] = value
 
     def _get(self, bpm_name, plane):
-        return self._samples_matrix[plane].loc[bpm_name]
+        try:
+            samples = self._samples_matrix[plane].loc[bpm_name]
+        except KeyError:
+            return None
+        return samples
 
 
 # Private ###################
@@ -243,20 +254,20 @@ class _TbtAsciiWriter(object):
             output_file.write("#" + name + ": " + str(value) + "\n")
 
     def _write_tbt_data(self, tbt_file, output_file, model_data):
-        row_format = "{} {} {} " + FORMAT_STRING * tbt_file.num_turns + "\n"
+        row_format = "{} {} {}  " + FORMAT_STRING * tbt_file.num_turns + "\n"
         for bpm_index in range(len(model_data.NAME)):
             bpm_name = model_data.NAME[bpm_index]
             bpm_s = str(np.fromstring(model_data.S[bpm_index])[0])
-            try:
-                bpm_samples_x = tbt_file.get_x_samples(bpm_name)
-                bpm_samples_y = tbt_file.get_y_samples(bpm_name)
-            except KeyError:
-                LOGGER.debug(bpm_name + " not found in measurement file")
-                continue
-            output_str_x = row_format.format(str(HOR), bpm_name, bpm_s, *bpm_samples_x)
-            output_str_y = row_format.format(str(VER), bpm_name, bpm_s, *bpm_samples_y)
-            output_file.write(output_str_x)
-            output_file.write(output_str_y)
+            bpm_samples_x = tbt_file.get_x_samples(bpm_name)
+            bpm_samples_y = tbt_file.get_y_samples(bpm_name)
+            if bpm_samples_x is not None:
+                output_str_x = row_format.format(str(HOR), bpm_name, bpm_s,
+                                                 *bpm_samples_x)
+                output_file.write(output_str_x)
+            if bpm_samples_y is not None:
+                output_str_y = row_format.format(str(VER), bpm_name, bpm_s,
+                                                 *bpm_samples_y)
+                output_file.write(output_str_y)
 
 
 def _append_beta_beat_to_path():
