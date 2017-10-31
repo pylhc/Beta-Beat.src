@@ -128,13 +128,8 @@ def detect_bpms_with_exact_zeros(bpm_data):
 def svd_decomposition(clean_input, bpm_data):
     # Parameters for matrix normalisation
     sqrt_number_of_turns = np.sqrt(bpm_data.shape[1])
-    bpm_data_mean = np.mean(bpm_data)
+    bpm_data_mean = bpm_data.values.mean()
     normalized_data = (bpm_data - bpm_data_mean) / sqrt_number_of_turns
-    if clean_input is not None:
-        sv_to_keep = clean_input.sing_val
-    else:
-        # If not clean keep all sing. values.
-        sv_to_keep = bpm_data.shape[0]
     svd_functs = {
         "NUM": _get_singular_value_decomposition,
         "SPA": _get_singular_value_decomposition_sparse,
@@ -142,7 +137,7 @@ def svd_decomposition(clean_input, bpm_data):
     }
     U, S, V = svd_functs[clean_input.svd_mode.upper()[:3]](
         normalized_data,
-        sv_to_keep
+        clean_input.sing_val
     )
     num = np.sum(S > 0.)
     U = pd.DataFrame(index=bpm_data.index, data=U)
@@ -162,7 +157,7 @@ def svd_clean(bpm_data, clean_input):
     # Reconstruct the SVD-cleaned data
     USV = clean_U, USV[1], USV[2]
     A = USV[0].dot(np.dot(np.diag(USV[1]), USV[2]))
-    A = A * sqrt_number_of_turns + bpm_data_mean.values
+    A = A * sqrt_number_of_turns + bpm_data_mean
 
     # BPM resolution computation
     bpm_res = (A - bpm_data.loc[clean_U.index]).std(axis=1)
