@@ -24,8 +24,8 @@ VER_FAILED_BUNCH_ID_NAME = "verBunchIdFailsInTurn"
 HOR, VER = 0, 1
 
 # Number of decimal digits to print in the ASCII file
-PRINT_PRECISION = 7
-FORMAT_STRING = "{0:." + str(PRINT_PRECISION) + "f}"
+PRINT_PRECISION = 6
+FORMAT_STRING = " {:." + str(PRINT_PRECISION) + "f}"
 
 
 # Public ###################
@@ -207,7 +207,6 @@ class _TbtAsciiWriter(object):
         self._headers_dict = headers_dict
 
     def transform_tbt_to_ascii(self):
-        np.set_printoptions(precision=PRINT_PRECISION)
         model_data = self._load_model()
         for tbt_file in self._tbt_files:
             suffix = ""
@@ -244,6 +243,7 @@ class _TbtAsciiWriter(object):
             output_file.write("#" + name + ": " + str(value) + "\n")
 
     def _write_tbt_data(self, tbt_file, output_file, model_data):
+        row_format = "{} {} {} " + FORMAT_STRING * tbt_file.num_turns + "\n"
         for bpm_index in range(len(model_data.NAME)):
             bpm_name = model_data.NAME[bpm_index]
             bpm_s = str(np.fromstring(model_data.S[bpm_index])[0])
@@ -253,10 +253,8 @@ class _TbtAsciiWriter(object):
             except KeyError:
                 LOGGER.debug(bpm_name + " not found in measurement file")
                 continue
-            output_str_x = " ".join((str(HOR), bpm_name, str(bpm_s), " ",
-                                     " ".join(map(str, bpm_samples_x)), "\n"))
-            output_str_y = " ".join((str(VER), bpm_name, str(bpm_s), " ",
-                                     " ".join(map(str, bpm_samples_y)), "\n"))
+            output_str_x = row_format.format(str(HOR), bpm_name, bpm_s, *bpm_samples_x)
+            output_str_y = row_format.format(str(VER), bpm_name, bpm_s, *bpm_samples_y)
             output_file.write(output_str_x)
             output_file.write(output_str_y)
 
