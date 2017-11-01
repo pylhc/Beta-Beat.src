@@ -11,67 +11,57 @@ import numpy as np
 from Python_Classes4MAD import metaclass
 from optparse import OptionParser
 from Utilities import tfs_file_writer
+import re
 
 
-def write_global_files(beam, kmod_dir, res_dir, mod_path):
-    bpms = np.array([])
-    betx = np.array([])
-    bety = np.array([])
-    betx_std = np.array([])
-    bety_std = np.array([])
-
-    IPs = ['ip1', 'ip5', 'ip8']
-    for ip in IPs:
-        pathx, pathy = get_paths(kmod_dir, beam, ip)
-        try:
-            datax = metaclass.twiss(pathx)
-            datay = metaclass.twiss(pathy)
-        except IOError:
-            print "Cannot find " + ip + " kmod data, won't copy those files."
-            continue
-        bpms = np.concatenate((bpms, datax.NAME))
-        betx     = np.concatenate((betx, datax.BETX))
-        bety     = np.concatenate((bety, datay.BETY))
-        betx_std = np.concatenate((betx_std, datax.BETXSTD))
-        bety_std = np.concatenate((bety_std, datay.BETYSTD))
-
-    betx_mod, bety_mod = get_model_beta(bpms, mod_path)
-
-    xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(res_dir, 'getkmodbetax.out'))
-    xdata.set_column_width(20)
-    xdata.add_column_names(['NAME', 'S', 'COUNT', 'BETX', 'STDBETX', 'BETXMDL', 'ERRBETX', 'BETXRES', 'BETXSTDRES'])
-    xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
-
-    ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(res_dir, 'getkmodbetay.out'))
-    ydata.set_column_width(20)
-    ydata.add_column_names(['NAME', 'S', 'COUNT', 'BETY', 'STDBETY', 'BETYMDL', 'ERRBETY', 'BETYRES', 'BETYSTDRES'])
-    ydata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
-
-    for i in range(len(bpms)):
-        xdata.add_table_row([bpms[i], 0, 0, betx[i], betx_std[i], betx_mod[i], 0, 0, 0 ])
-        ydata.add_table_row([bpms[i], 0, 0, bety[i], bety_std[i], bety_mod[i], 0, 0, 0 ])
-    xdata.write_to_file()
-    ydata.write_to_file()
-
-
-def get_model_beta(bpms, mod_path):
+def write_global_files(beam, kmod_dir, res_dir, mod_path):    
+    pattern = re.compile(".*R[0-9]\." + beam.upper())
     model_twiss = metaclass.twiss(mod_path)
-    names = np.array(model_twiss.NAME)
-    betx =  model_twiss.BETX
-    bety =  model_twiss.BETY
-    betasx = []
-    betasy = []
-    for bpm in bpms:
-        index = np.where(names==bpm)[0][0]
-        betasx.append(betx[index])
-        betasy.append(bety[index])
-    return np.array(betasx), np.array(betasy)
+    
+    ip_dir_names = []
+    for path,dirnames,files in os.walk(kmod_dir):
+        for dirname in dirnames:
+            if pattern.match(dirname):
+                ip_dir_names.append(dirname)
+
+    for plane in ("x", "y"):
+        uplane = plane.upper()
+        results_writer = tfs_file_writer.TfsFileWriter.open(os.path.join(res_dir, 'getkmodbeta' + plane + '.out'))
+        write_headers(results_writer, uplane)
+        bpm_names, bpm_s, betas, betas_std, betas_mdl = [], [], [], [], []
+        for ip_dir_name in ip_dir_names:
+            path = os.path.join(kmod_dir, ip_dir_name, 'getkmodbeta' + plane + '.out')
+            try:
+                data = metaclass.twiss(path)
+            except IOError:
+                print "Cannot find kmod data in " + path + ", won't copy those files."
+                continue
+            print("Kmod data found in: {}".format(path))
+            for bpm_name in data.NAME:
+                if bpm_name in model_twiss.NAME:
+                    index = data.indx[bpm_name]
+                    bpm_names.append(bpm_name)
+                    betas.append(getattr(data, "BET" + uplane)[index])
+                    betas_std.append(getattr(data, "BET" + uplane + "STD")[index])
+                    model_index = model_twiss.indx[bpm_name]
+                    betas_mdl.append(getattr(model_twiss, "BET" + uplane)[model_index])
+                    bpm_s.append(getattr(model_twiss, "S")[model_index])
+
+        for i in range(len(bpm_names)):
+            results_writer.add_table_row([bpm_names[i], bpm_s[i], 0, betas[i],
+                                          betas_std[i], betas_mdl[i], 0, 0, 0 ])
+        results_writer.write_to_file()
 
 
-def get_paths(path, beam, ip):
-    pathx = os.path.join(path, ip+beam, 'getkmodbetax_%s.out' %ip)
-    pathy = os.path.join(path, ip+beam, 'getkmodbetay_%s.out' %ip)
-    return pathx, pathy
+def write_headers(resuts_writers, uplane):
+    resuts_writers.set_column_width(20)
+    resuts_writers.add_column_names(
+        ['NAME', 'S', 'COUNT', 'BET' + uplane, 'STDBET' + uplane,
+         'BET' + uplane + 'MDL', 'ERRBET' + uplane, 'BET' + uplane + 'RES',
+         'BET' + uplane + 'STDRES']
+    )
+    resuts_writers.add_column_datatypes(['%s', '%le', '%le', '%le', '%le',
+                                         '%le', '%le', '%le', '%le'])
 
 
 def parse_args():
