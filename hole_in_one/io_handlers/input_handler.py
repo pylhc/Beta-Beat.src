@@ -237,7 +237,7 @@ class HarpyInput(object):
     DEFAULTS = {
         "tunez": 0.0,
         "tolerance": 0.01,
-        "harpy_mode": "bpm",
+        "harpy_mode": "svd",
         "sequential": False,
         "tune_clean_limit": 1e-5,
     }
