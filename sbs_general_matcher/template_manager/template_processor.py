@@ -46,6 +46,9 @@ IF({is_back} == 0){{
                   dx=dx_ini, dy=dy_ini, dpx=dpx_ini, dpy=dpy_ini,
                   wx=wx_ini, phix=phix_ini, wy=wy_ini, phiy=phiy_ini,
                   r11=ini_r11 ,r12=ini_r12, r21=ini_r21, r22=ini_r22;
+    EXEC, TWISS_SEGMENT({segment_seq},
+                        "{matcher_path}/twiss_{label}.dat",
+                        {bininame});
 }}ELSE{{
     USE, PERIOD={segment_seq}, RANGE={endat}/{endat};
     SAVEBETA, LABEL={bininame}, PLACE={endat};
@@ -53,11 +56,10 @@ IF({is_back} == 0){{
                   dx=dx_end, dy=dy_end, dpx=dpx_end, dpy=dpy_end,
                   wx=wx_end, phix=phix_end, wy=wy_end, phiy=phiy_end,
                   r11=end_r11 ,r12=end_r12, r21=end_r21, r22=end_r22;
+    EXEC, TWISS_SEGMENT({segment_seq},
+                        "{matcher_path}/twiss_{label}_back.dat",
+                        {bininame});
 }}
-
-EXEC, TWISS_SEGMENT({segment_seq},
-                    "{matcher_path}/twiss_{label}.dat",
-                    {bininame});
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """
 
@@ -201,7 +203,6 @@ class TemplateProcessor(object):
 
     def _set_initial_values(self, matcher):
         set_initial_values_str = ""
-        beam = matcher.segment.get_beam()
         matcher_path = os.path.join(matcher.matcher_path, "sbs")
         set_initial_values_str += SET_INITIAL_VALUES_TEMPLATE.format(
             matcher_name=matcher.name,
@@ -210,7 +211,7 @@ class TemplateProcessor(object):
                 "measurement_{}.madx".format(matcher.label)
             ),
             modifiers_optics=matcher.segment.optics_file,
-            segment_seq="lhcb{}".format(beam),
+            segment_seq=matcher.get_sequence_name(),
             matcher_path=matcher_path,
             label=matcher.segment.label,
             is_back=0 if matcher.propagation == "f" else "1",

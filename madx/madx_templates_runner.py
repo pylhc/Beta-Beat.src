@@ -29,7 +29,8 @@ class MadxTemplates():
             if os.path.isdir(template_dir):
                 for template_name in os.listdir(template_dir):
                     template_path = os.path.join(template_dir, template_name)
-                    if os.path.isfile(template_path):
+                    if (os.path.isfile(template_path) and
+                            not template_name.startswith(".")):
                         placeholder_list = self.__parse_template(template_path)
                         if len(placeholder_list) != 0:
                             self.__assing_new_method(template_name, template_path, placeholder_list)
