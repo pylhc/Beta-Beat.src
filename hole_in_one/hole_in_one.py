@@ -182,7 +182,8 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res):
     lin_frame['CORMS'] = np.std(bpm_data, axis=1) / np.sqrt(bpm_data.shape[1])
     if bpm_res is not None:
         lin_frame['BPM_RES'] = bpm_res.loc[lin_frame.index]
-    # TODO: Proper noise calculation
+        # TODO: Magic number 10?:
+        lin_frame['AVG_NOISE'] = bpm_res / np.sqrt(bpm_data.shape[1]) / 10.0
     lin_frame['NOISE'] = 0.0
     return lin_frame
 
