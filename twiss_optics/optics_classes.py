@@ -20,10 +20,10 @@ class TwissOptics(object):
         self._phase_advances_x = self._get_phase_advances()
         self.plane = 'V'
         self._phase_advances_y = self._get_phase_advances()
-        self._calc_terms_from_sources('f4000')
-        self.f4000 = self.mad_twiss['f4000']
+        self._calc_terms_from_sources('f2002')
+        self.f2002 = self.mad_twiss['f2002']
         
-        self.f4000.abs().plot()
+        self.f2002.abs().plot()
         plt.show()
 
     def _get_phase_advances(self):
@@ -39,29 +39,29 @@ class TwissOptics(object):
     @property
     def betas(self):
         ## BETAS FUNCTION
-        return self.new_df.betas 
+        return self._results_df.betas 
 
     @betas.setter
     def betas(self, new):
-        self.new_df.betas = new 
+        self._results_df.betas = new 
 
     @property
     def dispersion(self):
         ## DISPERSION FUNCTION
-        return self.new_df.dispersion
+        return self._results_df.dispersion
 
     @dispersion.setter
     def dispersion(self, new):
-        self.new_df.dispersion = new 
+        self._results_df.dispersion = new 
 
     @property
     def coupling(self):
         ## COUPLING FUNCTION
-        return self.new_df.coupling
+        return self._results_df.coupling
     
     @coupling.setter
     def coupling(self, new):
-        self.new_df.coupling = new 
+        self._results_df.coupling = new 
 
     def _calc_terms_from_sources(self, order):
         ## ADD PARSING OF ELEMENTS FOR SPECIFIC SOURCE AT START FOR tw = ....
