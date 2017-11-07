@@ -19,7 +19,7 @@ from Utilities import iotools, ADDbpmerror
 from Utilities.contexts import silence
 from hole_in_one import hole_in_one
 from hole_in_one.io_handlers import input_handler as hio_input_handler
-
+from model import manager
 
 HOR, VER = 0, 1
 PLANE_SUFFIX = {HOR: "x", VER: "y"}
@@ -369,14 +369,13 @@ def _do_analysis(directory, options):
             _run_harpy(directory, options)
 
     tbt_path = _get_tbt_path(directory)
-    twiss_path = _get_twiss_path(directory)
     err_def_path = _copy_error_def_file(directory, options)
 
     print("    -> Running GetLLM...")
     # with silence():
-    accel = "LHCB" + str(BEAM)
-    GetLLM.main(directory, tbt_path, twiss_path,
-                bpmu="mm", accel=accel, errordefspath=err_def_path)
+    accel = manager.get_accel_class("lhc", lhc_mode="lhc_runII_2016", beam=BEAM).init_from_model_dir(directory)
+    GetLLM.main(accel, directory, directory, tbt_path,
+                bpmu="mm", errordefspath=err_def_path)
     print("")
 
 
