@@ -113,9 +113,9 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
 
     n_turns = bpm_matrix_x.shape[1]
     for plane in ("X", "Y"):
-        resonances_freqs = _compute_resonances_freqs(plane, harpy_input, tunes)
+        resonances_freqs = _compute_resonances_freqs(plane, tunes)
         if harpy_input.tunez > 0.0:
-            resonances_freqs.update(_compute_resonances_freqs("Z", harpy_input, tunes))
+            resonances_freqs.update(_compute_resonances_freqs("Z", tunes))
         pandas_dfs[plane] = _resonance_search(all_frequencies[plane],
                                               all_coefficients[plane],
                                               resonances_freqs,
@@ -411,7 +411,7 @@ def _get_resonance_suffix(resonance):
     return resstr
 
 
-def _compute_resonances_freqs(plane, harpy_input, tunes):
+def _compute_resonances_freqs(plane, tunes):
     """
     Computes the frequencies for all the resonances listed in the
     constante RESONANCE_LISTS, together with the natural tunes
@@ -503,7 +503,6 @@ def _compute_coef_goertzel(samples, kprime):
     b = 2 * np.cos(a)
     c = np.exp(-complex(0, 1) * a)
     d = np.exp(-complex(0, 1) * ((2 * np.pi * kprime) / n) * (n - 1))
-    s0 = 0.
     s1 = 0.
     s2 = 0.
     for i in range(n - 1):

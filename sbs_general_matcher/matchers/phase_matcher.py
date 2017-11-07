@@ -22,7 +22,7 @@ class PhaseMatcher(Matcher):
     PH_ERR_TMPL = (
         "{matcher_name}.dmu{plane}{name} := "
         "{sign}((table(twiss, {name}, mu{plane}) - "
-        "table({nominal_table_name}, {name}, mu{plane}))) / {error};\n"
+        "table({nominal_table_name}, {name}, mu{plane})));\n"
     )
 
     SEGMENT_TWISS_TMPL = (
@@ -41,15 +41,9 @@ class PhaseMatcher(Matcher):
             )
             sbs_data = metaclass.twiss(sbs_data_path)
             for name in sbs_data.NAME:
-                index = sbs_data.indx[name]
-                error = 1.
-                if self.use_errors:
-                    error = (sbs_data.ERRPROPPHASEX[index] if plane == "x"
-                             else sbs_data.ERRPROPPHASEY[index])
                 phases_str += PhaseMatcher.PH_ERR_TMPL.format(
                     matcher_name=self.name, sign=sign, name=name, plane=plane,
                     nominal_table_name=self._get_nominal_table_name(),
-                    error=error
                 )
 
         variables_s_str = ""

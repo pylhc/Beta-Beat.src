@@ -10,25 +10,19 @@ class KmodMatcher(PhaseMatcher):
 
     BETA_BEATING_TMPL = (
         "{varname} := ((table(twiss, {bpm_name}, bet{plane}) - table({nominal_table_name}, {bpm_name}, bet{plane})) / "
-        "table({nominal_table_name}, {bpm_name}, bet{plane})) / {error};"
+        "table({nominal_table_name}, {bpm_name}, bet{plane}));"
     )
 
     @Matcher.override(PhaseMatcher)
     def define_aux_vars(self):
         beatings_str = ""
         for plane in ["x", "y"]:
-            this_kmod_data = self._get_kmod_data(plane)
             for name in self._get_kmod_data(plane).NAME:
-                index = this_kmod_data.indx[name]
-                err_beta_beating = 1.
-                if self.use_errors:
-                    err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
                 beatings_str += KmodMatcher.BETA_BEATING_TMPL.format(
                     varname=self.name + self._get_suffix() + plane + name,
-                    bpm_name = name,
+                    bpm_name=name,
                     nominal_table_name=self._get_nominal_table_name(),
                     plane=plane,
-                    error=err_beta_beating,
                 ) + "\n"
         variables_s_str = ""
         for variable in self.get_variables():
