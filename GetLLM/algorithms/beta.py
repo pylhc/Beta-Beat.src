@@ -17,6 +17,7 @@ import traceback
 
 import numpy as np
 from numpy import sin, cos, tan
+from math import sqrt
 import pandas as pd
 
 from scipy.linalg import circulant
@@ -32,7 +33,7 @@ from constants import PI, TWOPI
 from numpy.linalg.linalg import LinAlgError
 from model.accelerators.accelerator import AccExcitationMode
 from Utilities import tfs_pandas
-__version__ = "2017.8.1"
+__version__ = "2017.10.a"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
@@ -71,30 +72,23 @@ BOXINDENT               =  4                        #@IgnorePep8
 CALCULATE_BETA_HOR = True
 CALCULATE_BETA_VER = True
 
-# ================ Errorfile indices:
-BET_INDEX       = 1
-BETEND_INDEX    = 2
-MU_INDEX        = 3
-MUEND_INDEX     = 4
-DK1_INDEX       = 5
-K1L_INDEX       = 6
-K1LEND_INDEX    = 7
-K2L_INDEX       = 8
-DX_INDEX        = 9
-DS_INDEX        = 10
+# ================ Column Indices :
 
-# ================ Multiprocessing indices:
-BETI_MP     = 0
-BETSTAT_MP  = 1
-BETSYST_MP  = 2
-BETERR_MP   = 3
-ALFI_MP     = 4
-ALFSTAT_MP  = 5
-ALFSYS_MP   = 6
-ALFERR_MP   = 7
-CORR_MP     = 8
-DELBETA_MP  = 9
-NCOMB_MP    = 10
+INDX_NAME   = 0
+INDX_S      = 1
+INDX_BET    = 2
+INDX_BETSTAT= 3
+INDX_BETSYS = 4
+INDX_BETERR = 5
+INDX_ALF    = 6
+INDX_ALFSTAT= 7
+INDX_ALFSYS = 8
+INDX_ALFERR = 9
+INDX_CORR   = 10
+INDX_BETMDL = 11
+INDX_BETBEAT= 12
+INDX_NCOMB  = 13
+
 # ================ Errors method
 METH_IND        = -1
 METH_3BPM       = 0            
@@ -359,7 +353,7 @@ class Uncertainties:  # error definition file
 #===================================================================================================
 
 
-def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_col,
+def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase,
                        data, rmsbbx, error_method, tfs_file, _plane_char,
                        dpp=0, dppq1=0):
     '''
@@ -430,7 +424,7 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_col,
                                "%le"])
     for row in data:
         if not np.isnan(row[2]):
-            beta_d_col[row[0]] = [row[1], row[2], row[3], row[4]]
+            beta_d_phase[row[0]] = [row[1], row[2], row[3], row[4]]
 
             tfs_file.add_table_row(row)
 
@@ -513,27 +507,33 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             if DEBUG:
                 debugfile = open(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.debug", "w+")
 
-            dataf, rmsbbxf, bpmsf, error_method_x = beta_from_phase(model, unc_elements, elements_centre,
+            dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(model, unc_elements, elements_centre,
                                                                   twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x, 'H',
                                                                   getllm_d, debugfile, error_method, tune_d.q1f, tune_d.q1mdl)
-            beta_d.x_phase_f = {}
-            _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
-                               dataf, rmsbbxf, error_method_x, 
+        
+            beta_d.x_phase = {}  # this is no typo, beta from amplitude still has the old convention that the free file is called not free
+            beta_d.x_phase['DPP'] = 0
+            
+            print_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+            
+            _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
+                               dataf, rms_bb, error_method_x, 
                                files_dict['getbetax_free.out'], _plane_char)
             
             
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: 
                 print ""
                 print_("Calculate beta from phase for plane " + _plane_char, ">")
-                data, rmsbbx, bpms, error_method_x = beta_from_phase(model_driven, unc_elements, elements_centre,
+                data, rms_bb, bpms, error_method_x = beta_from_phase(model_driven, unc_elements, elements_centre,
                                                                    twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_x, 'H',
                                                                    getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl)
-                beta_d.x_phase = {}
-                beta_d.x_phase['DPP'] = 0
+                beta_d.x_phase_f = {}
+                beta_d.x_phase_f['DPP'] = 0
+                print_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
                 tfs_file = files_dict['getbetax.out']
                 
-                _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
-                                   data, rmsbbx, error_method_x,
+                _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
+                                   data, rms_bb, error_method_x,
                                    tfs_file, model_driven.BETX, _plane_char)
 
                 print_("Skip free2 calculation")
@@ -558,15 +558,16 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 debugfile = open(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.debug", "w+")
     
 
-            dataf, rmsbby, bpms, error_method_y = beta_from_phase(model, unc_elements, elements_centre,
+            dataf, rms_bb, bpms, error_method_y = beta_from_phase(model, unc_elements, elements_centre,
                                                                twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_free_y, 'V',
                                                                getllm_d, debugfile, error_method, tune_d.q2f, tune_d.q2mdl)
             beta_d.y_phase = {}
             beta_d.y_phase['DPP'] = 0
+            print_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
             tfs_file = files_dict['getbetay_free.out']
             
             _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
-                               dataf, rmsbby, error_method_y, 
+                               dataf, rms_bb, error_method_y, 
                                tfs_file, _plane_char)
             
             #-- ac to free beta
@@ -575,15 +576,18 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 print ""
                 print_("Calculate beta from phase for plane " + _plane_char, ">")
     
-                data, rmsbbyf, bpmsf, error_method_y = beta_from_phase(model_driven, unc_elements, elements_centre,
+                data, rms_bb, bpmsf, error_method_y = beta_from_phase(model_driven, unc_elements, elements_centre,
                                                                       twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_y, 'V',
                                                                       getllm_d, debugfile, error_method, tune_d.q2, tune_d.q2mdl)
    
              
                 tfs_file = files_dict['getbetay.out']
+                print_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
                 beta_d.y_phase_f = {}
+                beta_d.y_phase_f['DPP'] = 0
+
                 _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase_f,
-                                   dataf, rmsbbyf, error_method_y, 
+                                   dataf, rms_bb, error_method_y, 
                                    tfs_file, _plane_char)
 
 #                #-- from the model
@@ -647,16 +651,23 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 
     #---- H plane
     if twiss_d.has_zero_dpp_x():
-        [beta_d.x_amp, rmsbbx, bpms, inv_jx] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_x, 'H', commonbpms_x)
+        # here was bpms instead of _ which makes the following code confusing because it looks like it is a modified
+        # commonbpms
+        [beta_d.x_amp, rmsbbx, _, inv_jx] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_x, 'H', commonbpms_x)
         beta_d.x_amp['DPP'] = 0
         #-- Rescaling
         beta_d.x_ratio = 0
         skipped_bpmx = []
-        arcbpms= mad_twiss.index[getllm_d.accelerator.get_arc_bpms_mask(mad_twiss.index)]
+        
+        # I tried to make sense of the original line and understood it as follows: 
+        # out of the used BPMs we take the ones that lie in the arcs.
+        arcbpms = commonbpms_x.index[getllm_d.accelerator.get_arc_bpms_mask(commonbpms_x.index)]
+        
+        
         for bpm in arcbpms:
             name = str.upper(bpm)  # second entry is the name
         #Skip BPM with strange data
-            if abs(beta_d.x_phase_f[name][0] / beta_d.x_amp[name][0]) > 100:
+            if abs(beta_d.x_phase[name][0] / beta_d.x_amp[name][0]) > 100:
                 skipped_bpmx.append(name)
             elif (beta_d.x_amp[name][0] < 0 or beta_d.x_phase[name][0] < 0):
                 skipped_bpmx.append(name)
@@ -673,8 +684,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 
         betax_rescale = {}
 
-        for bpm in bpms:
-            name = str.upper(bpm[1])
+        for bpm in commonbpms_x.index:
+            name = str.upper(bpm)
             betax_rescale[name] = [beta_d.x_ratio * beta_d.x_amp[name][0], beta_d.x_ratio * beta_d.x_amp[name][1], beta_d.x_amp[name][2]]
 
         tfs_file = files_dict['getampbetax.out']
@@ -684,14 +695,14 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
+        for name in commonbpms_x.index:
+            bn1 = str.upper(name)
+            bns1 = commonbpms_x.loc[name]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_amp[bn1][0], beta_d.x_amp[bn1][1], mad_ac.BETX[mad_ac.indx[bn1]], mad_ac.MUX[mad_ac.indx[bn1]], betax_rescale[bn1][0], betax_rescale[bn1][1]]
             tfs_file.add_table_row(list_row_entries)
 
         #-- ac to free amp beta
-        if getllm_d.with_ac_calc:
+        if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
             #-- from eq
             try:
                 betaxf, rmsbbxf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d)
@@ -749,14 +760,14 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 tfs_file.add_table_row(list_row_entries)  # V plane
 
     if twiss_d.has_zero_dpp_y():
-        [beta_d.y_amp, rmsbby, bpms, inv_jy] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_y, 'V', commonbpms_y)
+        [beta_d.y_amp, rmsbby, _, inv_jy] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_y, 'V', commonbpms_y)
         beta_d.y_amp['DPP'] = 0
         #-- Rescaling
         beta_d.y_ratio = 0
         skipped_bpmy = []
-        arcbpms = Utilities.bpm.filterbpm(bpms)
+        arcbpms = commonbpms_y.index[getllm_d.accelerator.get_arc_bpms_mask(commonbpms_y.index)]
         for bpm in arcbpms:
-            name = str.upper(bpm[1])  # second entry is the name
+            name = str.upper(bpm)  # second entry is the name
             #Skip BPM with strange data
             if name in beta_d.y_phase:
                 if abs(beta_d.y_phase[name][0] / beta_d.y_amp[name][0]) > 100:
@@ -772,8 +783,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             beta_d.y_ratio = 1
         betay_rescale = {}
 
-        for bpm in bpms:
-            name = str.upper(bpm[1])
+        for bpm in commonbpms_y.index:
+            name = str.upper(bpm)
             betay_rescale[name] = [beta_d.y_ratio * beta_d.y_amp[name][0], beta_d.y_ratio * beta_d.y_amp[name][1], beta_d.y_amp[name][2]]
 
         tfs_file = files_dict['getampbetay.out']
@@ -783,15 +794,18 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
+        
+        for name in commonbpms_y.index:
+            bn1 = str.upper(name)
+            bns1 = commonbpms_y.loc[name]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_amp[bn1][0], beta_d.y_amp[bn1][1], mad_ac.BETY[mad_ac.indx[bn1]], mad_ac.MUY[mad_ac.indx[bn1]], betay_rescale[bn1][0], betay_rescale[bn1][1]]
             tfs_file.add_table_row(list_row_entries)  # ac to free amp beta
 
-        if getllm_d.with_ac_calc:  # from eq
+        if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: # from eq
             try:
                 betayf, rmsbbyf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d)  # Rescaling
+                # OK, bpmsf output of get_free_beta_from_amp_eq is probably similar to the old commonbpms and should be replaced
+                
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
                 arcbpms = Utilities.bpm.filterbpm(bpmsf)
@@ -1106,13 +1120,16 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         # ======= print error method and return the data rows for getbetax/y.out ======================================
 
         print_("Errors from " + ID_TO_METHOD[errors_method])
-        return 0, errors_method, np.transpose([
+        
+        bb = (bet_frac - 1.0) * 100.0
+        
+        return sqrt(np.mean(np.multiply(bb,bb))), errors_method, np.transpose([
                                      commonbpms.index, madTwiss_intersected.loc[:]["S"],
                                      beti, betstd, betstd, beterr,
                                      alfi, alfstd, alfstd, alfstd,
                                      alfi,
                                      betmdl,
-                                     bet_frac - 1.0,
+                                     bb,
                                      alfi])
     raise GetLLMError("Monte Carlo N-BPM is not implemented.")
     
@@ -1184,7 +1201,11 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
 
     # setup the results matrix
     result = np.array(np.empty(madTwiss_intersected.shape[0]), 
-                      dtype = "S24, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4")
+                      dtype = [("NAME","S24"), ("S", "f8"),
+                               ("BET", "f8"), ("BETSTAT", "f8"), ("BETSYS", "f8"), ("BETERR", "f8"),
+                               ("ALF", "f8"), ("ALFSTAT", "f8"), ("ALFSYS", "f8"), ("ALFERR", "f8"),
+                               ("CORR", "f8"), ("BETMDL", "f8"), ("BETBEAT", "f8"), ("NCOMB", "i4")])
+#                      dtype = "S24, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4")
 
     # ==========
     # define functions in a function -- python witchcraft, burn it!!!!! 
@@ -1245,7 +1266,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     
     print_("time elapsed = {0:3.3f}".format(et - st))
     
-    rmsbb = -1  # TODO: calculate the RMS betabeating here
+    rmsbb = sqrt(np.mean(np.multiply(result["BETBEAT"], result["BETBEAT"])))
     return rmsbb, errors_method, result
 
 
@@ -1699,7 +1720,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     return (Index, probed_bpm_name, s,
                 beti, betstat, betsys, beterr,
                 alfi, alfstat, alfsys, alferr,
-                .0, betmdl1, (beti - betmdl1) / betmdl1,
+                .0, betmdl1, (beti - betmdl1) / betmdl1 * 100.0,
                 len(betas))
     
  
@@ -1787,56 +1808,56 @@ def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
 #=======================================================================================================================
 #--- Helper / Debug Functions
 #=======================================================================================================================
-
-def create_listofKs(commonbpms, errorfile, el, getllm_d):
-    list_of_Ks = []
-    
-    #---- create list of Ks, i.e. assign to each BPM a vector with all the errore lements that come after the bpm
-    # and their respective errors
-    # and model phases so that list_of_Ks[n] yields the error elements between BPM[n] and BPM[n+1]
-    # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
-    # k=1: transversal sextupole missalignments
-    # k=2: longitudinal quadrupole missalignments
-   
-    for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
-        index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
-        index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
-              
-        quad_fields = []
-        sext_trans = []
-        quad_missal = []
-
-        if index_n < index_nplus1:
-            for i in range(index_n + 1, index_nplus1):
-                
-                if el[i, DK1_INDEX] != 0:
-                    quad_fields.append(i)
-                if el[i, DX_INDEX] != 0:
-                    sext_trans.append(i)
-                if el[i, DS_INDEX] != 0:
-                    quad_missal.append(i)
-                    
-        else:
-            for i in range(index_n + 1, errorfile.size):
-                if el[i, DK1_INDEX] != 0:
-                    quad_fields.append(i)
-                if el[i, DX_INDEX] != 0:
-                    sext_trans.append(i)
-                if el[i, DS_INDEX] != 0:
-                    quad_missal.append(i)
-                    
-            for i in range(index_nplus1):  # ums Eck
-                if el[i, DK1_INDEX] != 0:
-                    quad_fields.append(i)
-                if el[i, DX_INDEX] != 0:
-                    sext_trans.append(i)
-                if el[i, DS_INDEX] != 0:
-                    quad_missal.append(i)
-                    
-        list_of_Ks.append([quad_fields, sext_trans, quad_missal])
-        
-    print_("done creating list of Ks")
-    return list_of_Ks
+#
+#def create_listofKs(commonbpms, errorfile, el, getllm_d):
+#    list_of_Ks = []
+#    
+#    #---- create list of Ks, i.e. assign to each BPM a vector with all the errore lements that come after the bpm
+#    # and their respective errors
+#    # and model phases so that list_of_Ks[n] yields the error elements between BPM[n] and BPM[n+1]
+#    # update 2016-07-28: list_of_Ks[n][k], n: BPM number, k=0: quadrupole field errors,
+#    # k=1: transversal sextupole missalignments
+#    # k=2: longitudinal quadrupole missalignments
+#   
+#    for n in range(len(commonbpms) + getllm_d.range_of_bpms + 1):
+#        index_n = errorfile.indx[commonbpms[n % len(commonbpms)][1]]
+#        index_nplus1 = errorfile.indx[commonbpms[(n + 1) % len(commonbpms)][1]]
+#              
+#        quad_fields = []
+#        sext_trans = []
+#        quad_missal = []
+#
+#        if index_n < index_nplus1:
+#            for i in range(index_n + 1, index_nplus1):
+#                
+#                if el[i, DK1_INDEX] != 0:
+#                    quad_fields.append(i)
+#                if el[i, DX_INDEX] != 0:
+#                    sext_trans.append(i)
+#                if el[i, DS_INDEX] != 0:
+#                    quad_missal.append(i)
+#                    
+#        else:
+#            for i in range(index_n + 1, errorfile.size):
+#                if el[i, DK1_INDEX] != 0:
+#                    quad_fields.append(i)
+#                if el[i, DX_INDEX] != 0:
+#                    sext_trans.append(i)
+#                if el[i, DS_INDEX] != 0:
+#                    quad_missal.append(i)
+#                    
+#            for i in range(index_nplus1):  # ums Eck
+#                if el[i, DK1_INDEX] != 0:
+#                    quad_fields.append(i)
+#                if el[i, DX_INDEX] != 0:
+#                    sext_trans.append(i)
+#                if el[i, DS_INDEX] != 0:
+#                    quad_missal.append(i)
+#                    
+#        list_of_Ks.append([quad_fields, sext_trans, quad_missal])
+#        
+#    print_("done creating list of Ks")
+#    return list_of_Ks
 
 
 def tilt_slice_matrix(matrix, slice_shift, slice_width, tune=0):
