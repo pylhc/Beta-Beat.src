@@ -195,19 +195,15 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
 
 
 def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
-    min = freq - tolerance
-    max = freq + tolerance
-    on_window_mask = (frequencies >= min) & (frequencies <= max)
-    filtered_amps = np.where(on_window_mask,
-                              np.abs(coefficients),
-                              np.zeros_like(coefficients))
-    filtered_coefs = np.where(on_window_mask,
-                              coefficients,
-                              np.zeros_like(coefficients))
+    freq_min = freq - tolerance
+    freq_max = freq + tolerance
+    on_window_mask = (frequencies >= freq_min) & (frequencies <= freq_max)
+    filtered_coefs = np.where(on_window_mask, coefficients, 0)
+    filtered_amps = np.abs(filtered_coefs)
     max_indices = np.argmax(filtered_amps, axis=1)
     max_coefs = filtered_coefs[np.arange(coefficients.shape[0]), max_indices]
     max_freqs = frequencies[np.arange(frequencies.shape[0]), max_indices]
-    max_freqs = (max_coefs != 0) * max_freqs  # Zero bad freqs
+    max_freqs = np.where(max_coefs != 0, max_freqs, 0)
     return max_coefs, max_freqs
 
 
@@ -216,7 +212,7 @@ def _clean_by_tune(harpy_input, plane, panda, bpms_mask):
     bad_bpms_mask = outliers.get_filter_mask(
         panda.loc[:, 'TUNE' + plane],
         limit=harpy_input.tune_clean_limit,
-        mask = bpms_mask
+        mask=bpms_mask
     )
     for i in np.arange(len(bad_bpms_mask)):
         if not bad_bpms_mask[i] and bpms_mask[i]:
@@ -295,7 +291,6 @@ def _compute_resonances_freqs(plane, harpy_input):
     constante RESONANCE_LISTS, together with the natural tunes
     frequencies if given.
     """
-    resonances_freqs = {}
     freqs = [(resonance_h * harpy_input.tunex) +
              (resonance_v * harpy_input.tuney) +
              (resonance_l * harpy_input.tunez)
@@ -315,7 +310,7 @@ def laskar_method(tbt, num_harmonics):
     for _ in range(num_harmonics):
         # Compute this harmonic frequency and coefficient.
         dft_data = _fft(samples)
-        frequency = _jacobsen(dft_data,n)
+        frequency = _jacobsen(dft_data, n)
         coefficient = _compute_coef(samples, frequency * n) / n
 
         # Store frequency and amplitude
@@ -380,7 +375,6 @@ def _compute_coef_goertzel(samples, kprime):
     b = 2 * np.cos(a)
     c = np.exp(-complex(0, 1) * a)
     d = np.exp(-complex(0, 1) * ((2 * np.pi * kprime) / n) * (n - 1))
-    s0 = 0.
     s1 = 0.
     s2 = 0.
     for i in range(n - 1):

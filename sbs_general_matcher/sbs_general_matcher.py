@@ -15,7 +15,8 @@ from matchers import (phase_matcher,
                       amp_matcher)
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
-from madx import madx_templates_runner 
+from madx import madx_templates_runner
+from Utilities.contexts import silence
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -74,11 +75,12 @@ def run_twiss_and_sbs(input_data):
 
 
 def _write_sbs_data_for_matchers(input_data):
-    for this_matcher in input_data.matchers:
-        _write_sbs_data(
-            this_matcher.segment,
-            this_matcher.matcher_path,
-        )
+    with silence():
+        for this_matcher in input_data.matchers:
+            _write_sbs_data(
+                this_matcher.segment,
+                this_matcher.matcher_path,
+            )
 
 
 def _write_sbs_data(segment_inst, temporary_path):
