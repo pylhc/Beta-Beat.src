@@ -1,6 +1,7 @@
 from __future__ import print_function
 import datetime
 import numpy as np
+import pandas as pd
 
 
 _ACQ_DATE_PREFIX = "#Acquisition date: "
@@ -27,7 +28,7 @@ def read_ascii_file(file_path):
             parts = line.split()
             bpm_plane = parts.pop(0)
             bpm_name = parts.pop(0)
-            _ = parts.pop(0)
+            parts.pop(0)
             bpm_samples = _get_samples_array(parts)
             if bpm_plane == "0":
                 bpm_names_x.append(bpm_name)
@@ -37,8 +38,8 @@ def read_ascii_file(file_path):
                 matrix_y.append(bpm_samples)
             else:
                 raise ValueError("Wrong plane found in: " + file_path)
-    matrix_x = np.array(matrix_x)
-    matrix_y = np.array(matrix_y)
+    matrix_x = pd.DataFrame(index=bpm_names_x, data=np.array(matrix_x))
+    matrix_y = pd.DataFrame(index=bpm_names_y, data=np.array(matrix_y))
     return (bpm_names_x, matrix_x,
             bpm_names_y, matrix_y, date)
 

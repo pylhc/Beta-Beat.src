@@ -2,11 +2,12 @@ from __future__ import print_function
 import sys
 import os
 import logging
+from datetime import datetime
 import sdds_reader
 import ascii_reader
 import sps_sdds_reader
-from datetime import datetime
 import numpy as np
+import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,8 +25,8 @@ VER_FAILED_BUNCH_ID_NAME = "verBunchIdFailsInTurn"
 HOR, VER = 0, 1
 
 # Number of decimal digits to print in the ASCII file
-PRINT_PRECISION = 7
-FORMAT_STRING = "{0:." + str(PRINT_PRECISION) + "f}"
+PRINT_PRECISION = 6
+FORMAT_STRING = " {:." + str(PRINT_PRECISION) + "f}"
 
 
 # Public ###################
@@ -55,7 +56,9 @@ def transform_tbt_to_ascii(file_path, model_path, output_path):
 def write_ascii_file(model_path, output_path,
                      bpm_names_x, matrix_x,
                      bpm_names_y, matrix_y, date,
-                     headers_dict={}):
+                     headers_dict=None):
+    if headers_dict is None:
+        headers_dict = {}
     new_tbt_file = TbtFile.create_from_matrices(
         bpm_names_x, matrix_x,
         bpm_names_y, matrix_y, date
@@ -67,17 +70,30 @@ def write_ascii_file(model_path, output_path,
 
 
 class TbtFile(object):
-    def __init__(self, bpm_names_x, bpm_names_y, date,
-                 num_bunches, num_turns, bunch_id):
+    def __init__(self, date, num_bunches, num_turns, bunch_id):
         self.date = date
         self.num_bunches = num_bunches
         self.num_turns = num_turns
-        self.num_monitors_x = len(bpm_names_x)
-        self.num_monitors_y = len(bpm_names_y)
         self.bunch_id = bunch_id
-        self.bpm_names_x = bpm_names_x
-        self.bpm_names_y = bpm_names_y
         self._samples_matrix = {HOR: {}, VER: {}}
+
+    @staticmethod
+    def create_from_matrices(bpm_names_x, matrix_x,
+                             bpm_names_y, matrix_y, date):
+        if date is None:
+            date = datetime.now()
+        new_tbt_file = TbtFile(date, 1, matrix_x.shape[1], 0)
+        new_tbt_file._samples_matrix[HOR] = pd.DataFrame(
+            index=bpm_names_x,
+            data=matrix_x,
+            dtype=float,
+        )
+        new_tbt_file._samples_matrix[VER] = pd.DataFrame(
+            index=bpm_names_y,
+            data=matrix_y,
+            dtype=float,
+        )
+        return new_tbt_file
 
     def get_x_samples(self, bpm_name):
         """
@@ -102,39 +118,35 @@ class TbtFile(object):
     @property
     def samples_matrix_x(self):
         """
-        Returns the horizontal samples matrix, guaranteeing the
-        same monitor order than in self.bpm_names.
-        E.g.: a.samples_matrix_x[5][3] -> Sample 3 of monitor 5
+        Returns the vertical samples matrix, a Pandas DataFrame that uses BPM
+        names as index.
+        E.g.: a.samples_matrix_y.loc["BPM12", 3] -> Sample 3 of monitor BPM12.
         """
         return self._samples_matrix[HOR]
+
+    @samples_matrix_x.setter
+    def samples_matrix_x(self, value):
+        self._samples_matrix[HOR] = value
 
     @property
     def samples_matrix_y(self):
         """
-        Returns the vertical samples matrix, guaranteeing the
-        same monitor order than in self.bpm_names.
-        E.g.: a.samples_matrix_x[5][3] -> Sample 3 of monitor 5
+        Returns the vertical samples matrix, a Pandas DataFrame that uses BPM
+        names as index.
+        E.g.: a.samples_matrix_x.loc["BPM12", 3] -> Sample 3 of monitor BPM12.
         """
         return self._samples_matrix[VER]
 
-    def _get(self, bpm_name, plane):
-        bpm_names = self.bpm_names_x if plane == HOR else self.bpm_names_y
-        try:
-            index = bpm_names.index(bpm_name)
-        except ValueError:
-            return None
-        return self._samples_matrix[plane][index]
+    @samples_matrix_y.setter
+    def samples_matrix_y(self, value):
+        self._samples_matrix[VER] = value
 
-    @staticmethod
-    def create_from_matrices(bpm_names_x, matrix_x,
-                             bpm_names_y, matrix_y, date):
-        if date is None:
-            date = datetime.now()
-        new_tbt_file = TbtFile(bpm_names_x, bpm_names_y,
-                               date, 1, len(matrix_x[0]), 0)
-        new_tbt_file._samples_matrix[HOR] = matrix_x
-        new_tbt_file._samples_matrix[VER] = matrix_y
-        return new_tbt_file
+    def _get(self, bpm_name, plane):
+        try:
+            samples = self._samples_matrix[plane].loc[bpm_name]
+        except KeyError:
+            return None
+        return samples
 
 
 # Private ###################
@@ -170,8 +182,7 @@ class _TbtReader(object):
         self._tbt_files = []
         for index in range(self._num_bunches):
             self._tbt_files.append(
-                TbtFile(self._bpm_names, self._bpm_names, self._date,
-                        self._num_bunches, self._num_turns,
+                TbtFile(self._date, self._num_bunches, self._num_turns,
                         self._bunch_id[HOR][index])  # TODO: does plane matter?
             )
 
@@ -190,20 +201,23 @@ class _TbtReader(object):
         all_samples = self._all_samples[plane]
         for bunch_index in range(num_bunches):
             tbt_file = self._tbt_files[bunch_index]
-            tbt_file._samples_matrix[plane] = all_samples[
-                :, bunch_index, :
-            ]
+            tbt_file._samples_matrix[plane] = pd.DataFrame(
+                index=self._bpm_names,
+                data=all_samples[:, bunch_index, :],
+                dtype=float,
+            )
 
 
 class _TbtAsciiWriter(object):
-    def __init__(self, tbt_files, model_path, output_path, headers_dict={}):
+    def __init__(self, tbt_files, model_path, output_path, headers_dict=None):
+        if headers_dict is None:
+            headers_dict = {}
         self._tbt_files = tbt_files
         self._model_path = model_path
         self._output_path = output_path
         self._headers_dict = headers_dict
 
     def transform_tbt_to_ascii(self):
-        np.set_printoptions(precision=PRINT_PRECISION)
         model_data = self._load_model()
         for tbt_file in self._tbt_files:
             suffix = ""
@@ -214,28 +228,9 @@ class _TbtAsciiWriter(object):
                 self._write_tbt_data(tbt_file, output_file, model_data)
 
     def _load_model(self):
-        self._append_beta_beat_to_path()
-        from Python_Classes4MAD import metaclass
-        from Utilities import contexts
-        with contexts.silence():
-            return metaclass.twiss(self._model_path)
-
-    def _append_beta_beat_to_path(self):
-        parent_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "..")
-        )
-        if os.path.basename(parent_path) == "Beta-Beat.src":
-            sys.path.append(parent_path)
-        else:
-            LOGGER.warn("Not in Beta-Beat.src, using lintrack metaclass")
-            if "win" in sys.platform and not sys.platform == "darwin":
-                afs_root = "\\\\AFS"
-            else:
-                afs_root = "/afs"
-            sys.path.append(
-                os.path.join(afs_root, "cern.ch", "eng",
-                             "sl", "lintrack", "Beta-Beat.src")
-            )
+        _append_beta_beat_to_path()
+        from Utilities import tfs_pandas
+        return tfs_pandas.read_tfs(self._model_path)
 
     def _write_header(self, tbt_file, output_file, model_data):
         output_file.write("#SDDSASCIIFORMAT v1\n")
@@ -249,9 +244,9 @@ class _TbtAsciiWriter(object):
         output_file.write("#Number of turns: " +
                           str(tbt_file.num_turns) + "\n")
         output_file.write("#Number of horizontal monitors: " +
-                          str(tbt_file.num_monitors_x) + "\n")
+                          str(tbt_file.samples_matrix_x.index.size) + "\n")
         output_file.write("#Number of vertical monitors: " +
-                          str(tbt_file.num_monitors_y) + "\n")
+                          str(tbt_file.samples_matrix_y.index.size) + "\n")
         output_file.write("#Acquisition date: " + tbt_file.date.strftime(
             "%Y-%m-%d at %H:%M:%S"
         ) + "\n")
@@ -259,19 +254,38 @@ class _TbtAsciiWriter(object):
             output_file.write("#" + name + ": " + str(value) + "\n")
 
     def _write_tbt_data(self, tbt_file, output_file, model_data):
+        row_format = "{} {} {}  " + FORMAT_STRING * tbt_file.num_turns + "\n"
         for bpm_index in range(len(model_data.NAME)):
             bpm_name = model_data.NAME[bpm_index]
             bpm_s = str(np.fromstring(model_data.S[bpm_index])[0])
             bpm_samples_x = tbt_file.get_x_samples(bpm_name)
             bpm_samples_y = tbt_file.get_y_samples(bpm_name)
             if bpm_samples_x is not None:
-                output_str_x = " ".join((str(HOR), bpm_name, str(bpm_s), " ",
-                                         " ".join(map(str, bpm_samples_x)), "\n"))
+                output_str_x = row_format.format(str(HOR), bpm_name, bpm_s,
+                                                 *bpm_samples_x)
                 output_file.write(output_str_x)
             if bpm_samples_y is not None:
-                output_str_y = " ".join((str(VER), bpm_name, str(bpm_s), " ",
-                                         " ".join(map(str, bpm_samples_y)), "\n"))
+                output_str_y = row_format.format(str(VER), bpm_name, bpm_s,
+                                                 *bpm_samples_y)
                 output_file.write(output_str_y)
+
+
+def _append_beta_beat_to_path():
+    parent_path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), ".."
+    ))
+    if os.path.basename(parent_path) == "Beta-Beat.src":
+        sys.path.append(parent_path)
+    else:
+        LOGGER.warn("Not in Beta-Beat.src, using lintrack metaclass")
+        if "win" in sys.platform and sys.platform != "darwin":
+            afs_root = "\\\\AFS"
+        else:
+            afs_root = "/afs"
+        sys.path.append(
+            os.path.join(afs_root, "cern.ch", "eng",
+                         "sl", "lintrack", "Beta-Beat.src")
+        )
 
 
 if __name__ == "__main__":
