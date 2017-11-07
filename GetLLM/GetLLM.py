@@ -137,6 +137,8 @@ ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
+DPP_THRESHOLD = 1.0e-10  # smaller dp/p is considered zero
+
 
 
 # DEBUGGING
@@ -330,13 +332,13 @@ def main(accelerator,
     print "start the actual work"
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
-        temp_dict = copy.deepcopy(files_dict)
+        #temp_dict = copy.deepcopy(files_dict)
        
         phase_d_bk, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
                                                          accelerator.get_best_knowledge_model_tfs(),
                                                          accelerator.get_driven_tfs(),
                                                          accelerator.get_elements_tfs(),
-                                                         temp_dict)
+                                                         files_dict)
         print_time("AFTER_PHASE_BK", time() - __getllm_starttime)
        
 #        #-------- START Phase
@@ -362,7 +364,7 @@ def main(accelerator,
             print_time("AFTER_A_NBPM", time() - __getllm_starttime)
 
         #------- START beta from amplitude
-        #beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
+        beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
 
         #-------- START IP
 #        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d,
@@ -563,7 +565,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
                     print >> sys.stderr, 'but failing. DPP in ', file_x, ' is something wrong. String? --- leaving GetLLM'
                     print >> sys.stderr, traceback.format_exc()
                     sys.exit(1)
-            if dppi == 0.0:
+            if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
                 twiss_d.zero_dpp_x.append(twiss_file_x)
                 files_dict['getphasex.out'].add_filename_to_getllm_header(file_x)
                 files_dict['getphasetotx.out'].add_filename_to_getllm_header(file_x)
@@ -636,7 +638,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
                     print >> sys.stderr, 'but failing. DPP in ', file_y, ' is something wrong. String? --- leaving GetLLM'
                     print >> sys.stderr, traceback.format_exc()
                     sys.exit(1)
-            if dppi == 0.0:
+            if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
                 twiss_d.zero_dpp_y.append(twiss_file_y)
                 files_dict['getphasey.out'].add_filename_to_getllm_header(file_y)
                 files_dict['getphasetoty.out'].add_filename_to_getllm_header(file_y)
