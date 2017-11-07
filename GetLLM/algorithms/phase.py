@@ -155,7 +155,9 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     # ============= Write the phases to file ==========================================================================
 
     #---- H plane result
+    print "output files"
     if twiss_d.has_zero_dpp_x():
+        print "x ouptut"
         files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         files_dict["getphasetotx_free.out"] = write_phasetot_file(files_dict["getphasetotx_free.out"], "H", phase_d.phase_advances_free_x, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         #-- ac to free phase
@@ -457,13 +459,17 @@ def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
 #===================================================================================================
 
 def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel):
+    
+    plane_char = "X" if plane == "H" else "Y"
+    plane_mu = "MU" + plane_char
+    plane_tune = tune_x if plane == "H" else tune_y
+    
     tfs_file.add_float_descriptor("Q1", tune_x)
     tfs_file.add_float_descriptor("Q2", tune_y)
-    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASE" + plane_char, "STDPH" + plane_char, "PH{}MDL".format(plane_char), "MU{}MDL".format(plane_char)])
     tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-    
-    plane_mu = "MUX" if plane == "H" else "MUY"
-    plane_tune = tune_x if plane == "H" else tune_y
+
+
     meas = phase_advances["MEAS"]
     mod = phase_advances["MODEL"]
     err = phase_advances["ERRMEAS"]
@@ -504,6 +510,8 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
                                                   minmu1, minmu2) )
         except KeyError as e:
             print "Couldn't calculate the phase advance because", e
+            
+    print len(meas.index)
     
     for i in range(len(meas.index)-1):
         tfs_file.add_table_row([
@@ -519,18 +527,19 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
     return tfs_file
 
 def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel):
-    tfs_file.add_float_descriptor("Q1", tune_x)
-    tfs_file.add_float_descriptor("Q2", tune_y)
-    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-    tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le"])
     
-    plane_mu = "MUX" if plane == "H" else "MUY"
+    plane_char = "X" if plane == "H" else "Y"
+    plane_mu = "MU" + plane_char
     plane_tune = tune_x if plane == "H" else tune_y
     meas = phase_advances["MEAS"]
     mod = phase_advances["MODEL"]
     err = phase_advances["ERRMEAS"]
     
-    
+    tfs_file.add_float_descriptor("Q1", tune_x)
+    tfs_file.add_float_descriptor("Q2", tune_y)
+    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASE" + plane_char, "STDPH" + plane_char, "PH{}MDL".format(plane_char), "MU{}MDL".format(plane_char)])
+    tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le"])
+
     
     for i in range(len(meas.index)-1):
         tfs_file.add_table_row([
