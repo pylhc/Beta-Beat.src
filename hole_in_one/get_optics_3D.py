@@ -72,7 +72,7 @@ def getNDX(files,model,output):
         if c.startswith('AMPZ') or c.startswith('MUZ'):
             columns.append(c)
     results = model_panda.loc[:,columns]
-    results.set_index("NAME", inplace=True)
+    results.set_index("NAME", inplace=True, drop=False)
     columns=['S', 'NDXMDL']
     cols=[]
     # scaling to the model, and getting the synchrotron phase in the arcs
@@ -100,7 +100,7 @@ def getNDX(files,model,output):
         forfile['STDNDX']=0.0
     forfile['NDX']=np.mean(forfile.loc[:,f],axis=1)
     forfile['DNDX']=forfile.loc[:,'NDX']-forfile.loc[:,'NDXMDL']
-    tfs.write_tfs(forfile,{},os.path.join(output + "getNDx.out"))
+    tfs.write_tfs(forfile,{},os.path.join(output, "getNDx.out"))
     return 
 
 
@@ -159,7 +159,7 @@ def get_phases(files, model, output):
         else:
             header = {'Q2': tune}
         heads= ['NAME', 'NAME2', 'S', 'S2', 'PHASE'+plane, 'STDPH' + plane, 'PH' + plane+'MDL', 'MU' + plane+'MDL']
-        tfs.write_tfs(results.loc[:,heads],header,os.path.join(output + "getphase" + plane.lower() + ".out"))
+        tfs.write_tfs(results.loc[:,heads],header,os.path.join(output, "getphase" + plane.lower() + ".out"))
     return 
 
 
