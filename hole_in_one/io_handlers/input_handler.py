@@ -48,6 +48,8 @@ class ArgumentError(Exception):
 class MainInput(object):
     DEFAULTS = {
         "write_raw": False,
+        "startturn": 0,
+        "endturn": 50000,
     }
 
     def __init__(self):
@@ -55,6 +57,8 @@ class MainInput(object):
         self.model = None
         self.outputdir = None
         self.write_raw = MainInput.DEFAULTS["write_raw"]
+        self.startturn = MainInput.DEFAULTS["startturn"]
+        self.endturn = MainInput.DEFAULTS["endturn"]
 
     @staticmethod
     def init_from_options(options):
@@ -66,6 +70,8 @@ class MainInput(object):
         if self.outputdir is None:
             outdir = os.path.dirname(self.file)
             self.outputdir = outdir
+        self.startturn = options.startturn
+        self.endturn = options.endturn
         return self
 
 
@@ -100,6 +106,20 @@ def _get_main_parser():
               "ASCII file in the --outputdir."),
         action="store_true",
     )
+    parser.add_argument(
+        "--startturn",
+        help="Turn index to start. Default is first turn: %(default)s",
+        default=MainInput.DEFAULTS["startturn"],
+        dest="startturn", type=int
+    )
+    parser.add_argument(
+        "--endturn",
+        help="""First turn index to be ignored.
+                Default is a number that is lower than the maximum which
+                can be handled by drive: %(default)s""",
+        default=MainInput.DEFAULTS["endturn"],
+        dest="endturn", type=int
+    )
     return parser
     ################################
 
@@ -107,8 +127,6 @@ def _get_main_parser():
 class CleanInput(object):
     DEFAULTS = {
         "svd_mode": "numpy",
-        "startturn": 0,
-        "endturn": 50000,
         "sing_val": 12,
         "peak_to_peak": 0.00001,
         "max_peak": 20.,
@@ -121,8 +139,6 @@ class CleanInput(object):
 
     def __init__(self):
         self.svd_mode = CleanInput.DEFAULTS["svd_mode"]
-        self.startturn = CleanInput.DEFAULTS["startturn"]
-        self.endturn = CleanInput.DEFAULTS["endturn"]
         self.sing_val = CleanInput.DEFAULTS["sing_val"]
         self.peak_to_peak = CleanInput.DEFAULTS["peak_to_peak"]
         self.max_peak = CleanInput.DEFAULTS["max_peak"]
@@ -138,14 +154,18 @@ class CleanInput(object):
     def init_from_options(options):
         self = CleanInput()
         self.svd_mode = options.svd_mode
-        self.startturn = options.startturn
-        self.endturn = options.endturn
         self.sing_val = options.sing_val
         self.peak_to_peak = options.peak_to_peak
         self.max_peak = options.max_peak
         self.single_svd_bpm_threshold = options.single_svd_bpm_threshold
-        self.bad_bpms = [bad_bpm.strip() for bad_bpm in options.bad_bpms.strip("\"").split(",")]
-        self.wrong_polarity_bpms = [wrong_polarity_bpm.strip() for wrong_polarity_bpm in options.wrong_polarity_bpms.strip("\"").split(",")]
+        if self.bad_bpms == "":
+            self.bad_bpms = []
+        else:
+            self.bad_bpms = [bad_bpm.strip() for bad_bpm in options.bad_bpms.strip("\"").split(",")]
+        if self.wrong_polarity_bpms == "":
+            self.wrong_polarity_bpms = []
+        else:
+            self.wrong_polarity_bpms = [wrong_polarity_bpm.strip() for wrong_polarity_bpm in options.wrong_polarity_bpms.strip("\"").split(",")]
         self.noresync = options.noresync
         self.write_clean = options.write_clean
         return self
@@ -165,20 +185,6 @@ def _get_clean_parser():
         default=CleanInput.DEFAULTS["svd_mode"],
         dest="svd_mode", type=str,
         choices=("numpy", "sparse", "random"),
-    )
-    parser.add_argument(
-        "--startturn",
-        help="Turn index to start. Default is first turn: %(default)s",
-        default=CleanInput.DEFAULTS["startturn"],
-        dest="startturn", type=int
-    )
-    parser.add_argument(
-        "--endturn",
-        help="""First turn index to be ignored.
-                Default is a number that is lower than the maximum which
-                can be handled by drive: %(default)s""",
-        default=CleanInput.DEFAULTS["endturn"],
-        dest="endturn", type=int
     )
     parser.add_argument(
         "--sing_val",
