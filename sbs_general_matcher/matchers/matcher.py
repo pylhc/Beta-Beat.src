@@ -153,14 +153,19 @@ class Matcher(object):
         variables, in order to get the corrected twiss files"""
         raise NotImplementedError
 
-    def _get_constraint_instruction(self, constr_name,
-                                    value, error, sigmas=1.):
+    def _get_constraint_instruction(self, constr_name, value, error):
+        weight = 1.0
         if self.use_errors:
-            constr_string = '    constraint, weight = 1.0, '
-            constr_string += 'expr =  ' + constr_name + ' = ' + str(value / error) + ';\n'
-        else:
-            constr_string = '    constraint, weight = 1.0, '
-            constr_string += 'expr =  ' + constr_name + ' = ' + str(value) + ';\n'
+            if error == 0.0:
+                return("    ! Ignored constraint {}\n".format(constr_name))
+            weight = 1 / error
+        constr_string = '    constraint, weight = {weight}, '
+        constr_string += 'expr = {constr_name} = {value};\n'
+        constr_string = constr_string.format(
+            constr_name=constr_name,
+            value=value,
+            weight=weight
+        )
         return constr_string
 
     def _get_nominal_table_name(self, beam=None):
