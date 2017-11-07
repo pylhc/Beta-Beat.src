@@ -80,7 +80,7 @@ def detect_known_bad_bpms(bpm_data, list_of_bad_bpms):
     """
     Searches for known bad BPMs
     """
-    known_bad_bpms = bpm_data.loc[list_of_bad_bpms].index
+    known_bad_bpms = bpm_data.index.intersection(list_of_bad_bpms)
     return known_bad_bpms
 
 
