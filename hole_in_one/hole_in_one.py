@@ -159,10 +159,17 @@ def _cut_tbt_file(tbt_file, start_turn, end_turn):
     bpm_data_x = tbt_file.samples_matrix_x
     bpm_data_y = tbt_file.samples_matrix_y
     start = max(0, start_turn)
-    end_x = min(end_turn, bpm_data_x.shape[1])
-    end_y = min(end_turn, bpm_data_y.shape[1])
-    tbt_file.samples_matrix_x = bpm_data_x.loc[:, start:end_x - 1]
-    tbt_file.samples_matrix_y = bpm_data_y.loc[:, start:end_y - 1]
+    end = min(end_turn, bpm_data_x.shape[1])
+    num_turns = end - start
+    tbt_file.samples_matrix_x = pd.DataFrame(
+        index=bpm_data_x.index,
+        data=bpm_data_x.iloc[:, start:end].values
+    )
+    tbt_file.samples_matrix_y = pd.DataFrame(
+        index=bpm_data_y.index,
+        data=bpm_data_y.iloc[:, start:end].values
+    )
+    tbt_file.num_turns = num_turns
     return tbt_file
 
 
