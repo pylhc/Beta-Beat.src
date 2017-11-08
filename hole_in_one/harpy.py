@@ -32,6 +32,7 @@ except ImportError:
 
 
 LOGGER = logging.getLogger(__name__)
+LOGGER.addHandler(logging.NullHandler())  # avoid 'no handler' warn from _which_compute_coef() on import
 
 PI2I = 2 * np.pi * complex(0, 1)
 
