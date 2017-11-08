@@ -22,10 +22,12 @@ import compensate_ac_effect
 from Utilities import tfs_file_writer
 from model.accelerators.accelerator import AccExcitationMode
 from constants import PI, TWOPI, kEPSILON
+
 import pandas as pd
 from time import time
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+UNION = True
 
 #===================================================================================================
 # main part
@@ -347,6 +349,14 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         print "phase jump will not be corrected"
         k_lastbpm = len(bpm.index)
 
+    if UNION:
+        phase_advances = _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
+    else:
+        phase_advances = _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
+    
+    return phase_advances, muave
+
+def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm): 
 
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
     phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
@@ -365,8 +375,32 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         
     phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1.0
     phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
-    
-    return phase_advances, muave
+
+    return phase_advances
+
+def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm):
+
+    # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
+    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS", "NFILES"], major_axis=bpm.index, minor_axis=bpm.index)
+
+    phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
+    phase_advances["MODEL"] = (phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis]) % 1.0
+
+    # loop over the measurement files
+    phase_matr_meas = ((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
+    for i in range(len(Files)):
+        file_tfs = Files[i]
+        phases_meas.loc[bpm.index] = bd * np.array(file_tfs.loc[:, plane_mu]) #-- bd flips B2 phase to B1 direction
+        phases_meas[k_lastbpm:] += tune_q  * bd
+        meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
+        phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
+        
+    phase_advances["MEAS"] = np.nanmean(phase_matr_meas, axis=0) % 1.0
+    nfiles = np.nansum(phase_matr_meas, axis=0) 
+    phase_advances["NFILES"] = nfiles
+    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) #  * t_value_correction(nfiles)
+
+    return phase_advances
 
 #===================================================================================================
 # ac-dipole stuff

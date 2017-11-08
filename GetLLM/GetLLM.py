@@ -137,7 +137,6 @@ ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
-DPP_THRESHOLD = 1.0e-10  # smaller dp/p is considered zero
 
 
 
@@ -519,8 +518,8 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
 def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_turn_algo, files_dict, use_average, calibration_twiss, model):
 
     if turn_by_turn_algo == "SUSSIX":
-        suffix_x = '_linx'
-        suffix_y = '_liny'
+        suffix_x = '.linx'
+        suffix_y = '.liny'
     elif turn_by_turn_algo == 'SVD':
         suffix_x = '_svdx'
         suffix_y = '_svdy'
@@ -948,10 +947,20 @@ def _copy_calibration_files(output_path, calibration_dir_path):
 
 
 def _get_commonbpms(ListOfFiles, model):
+    
+    if algorithms.phase.UNION:
+        common = pd.DataFrame(model.loc[:, "S"])
+        common["NFILES"] = 0
+        for i in range(len(ListOfFiles)):
+            common.loc[ListOfFiles[i].index, "NFILES"] += 1
+        common = common.drop(common[common.loc[:,"NFILES"] > 0].index)
+        return common 
+    
     common_index = model.index   
     for i in range(len(ListOfFiles)):
         common_index = common_index.intersection(ListOfFiles[i].index)
-    
+
+
     return model.loc[common_index, "S"]
 
 
