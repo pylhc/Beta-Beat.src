@@ -8,7 +8,7 @@ def get_logger(name, filename=None, level_main=logging.DEBUG, level_console=logg
     """
     Sets up logger if name is __main__, otherwise just returns the logger like logging.getLogger()
     :param name: __name__ of caller
-    :param filename: __file__ of caller
+    :param filename: log output file ('__file__.log' of caller if 'None')
     :param level_main: main logging level, default DEBUG
     :param level_console: console logging level, default INFO
     :return:
@@ -31,8 +31,13 @@ def get_logger(name, filename=None, level_main=logging.DEBUG, level_console=logg
         root_logger.addHandler(console_handler)
 
         # set up log file
-        file_cropped = os.path.basename(filename)[:-3]
-        logfile = os.path.join(os.path.dirname(filename), file_cropped + '.log')
+        if filename.endswith('.py'):
+            file_cropped = os.path.basename(filename)[:-3]
+            logfile = os.path.join(os.path.dirname(filename), file_cropped + '.log')
+        else:
+            file_cropped = os.path.basename(filename)
+            logfile = filename
+
         file_handler = logging.FileHandler(logfile, mode="w", )
         file_formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(file_formatter)
@@ -42,6 +47,15 @@ def get_logger(name, filename=None, level_main=logging.DEBUG, level_console=logg
     else:
         # logger for the current file
         return logging.getLogger(name)
+
+
+def file_handler(logfile, level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s"):
+    """ Convenience function so the caller does not have to import logging """
+    handler = logging.FileHandler(logfile, mode='w', )
+    handler.setLevel(level)
+    formatter = logging.Formatter(format)
+    handler.setFormatter(formatter)
+    return handler
 
 
 def getLogger(name):
