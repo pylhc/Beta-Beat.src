@@ -338,7 +338,8 @@ def _get_main_resonances(harpy_input, frequencies, coefficients,
     panda['TUNE'+plane] = max_freqs
     panda['AMP'+plane] = max_coefs.abs()
     panda['MU'+plane] = np.angle(max_coefs) / (2 * np.pi)
-    panda = panda.loc[panda.index.difference(bad_bpms_by_tune)]
+    if plane != "Z":
+        panda = panda.loc[panda.index.difference(bad_bpms_by_tune)]
     return panda, bad_bpms_by_tune
 
 
