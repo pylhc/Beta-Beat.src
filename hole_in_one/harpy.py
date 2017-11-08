@@ -32,6 +32,7 @@ except ImportError:
 
 
 LOGGER = logging.getLogger(__name__)
+LOGGER.addHandler(logging.NullHandler())  # avoid 'no handler' warn from _which_compute_coef() on import
 
 PI2I = 2 * np.pi * complex(0, 1)
 
@@ -348,17 +349,13 @@ def _search_highest_coefs(freq, tolerance, frequencies, coefficients):
     freq_vals = frequencies.values
     coefs_vals = coefficients.values
     on_window_mask = (freq_vals >= min_val) & (freq_vals <= max_val)
-    filtered_amps = np.where(on_window_mask,
-                             np.abs(coefs_vals),
-                             np.zeros_like(coefs_vals))
-    filtered_coefs = np.where(on_window_mask,
-                              coefs_vals,
-                              np.zeros_like(coefs_vals))
+    filtered_coefs = np.where(on_window_mask, coefs_vals, 0)
+    filtered_amps = np.abs(filtered_coefs)
     max_indices = np.argmax(filtered_amps, axis=1)
     max_coefs = filtered_coefs[np.arange(coefs_vals.shape[0]), max_indices]
     max_coefs = pd.Series(index=coefficients.index, data=max_coefs)
     max_freqs = freq_vals[np.arange(freq_vals.shape[0]), max_indices]
-    max_freqs = (max_coefs != 0) * max_freqs  # Zero bad freqs
+    max_freqs = pd.Series(index=coefficients.index, data=np.where(max_coefs != 0, max_freqs, 0))
     return max_coefs, max_freqs
 
 
@@ -418,7 +415,6 @@ def _compute_resonances_freqs(plane, tunes):
     constante RESONANCE_LISTS, together with the natural tunes
     frequencies if given.
     """
-    resonances_freqs = {}
     tunex, tuney, tunez = tunes
     freqs = [(resonance_h * tunex) +
              (resonance_v * tuney) +
@@ -456,7 +452,7 @@ def _laskar_method(tbt, num_harmonics):
     return frequencies, coefficients
 
 
-def _jacobsen(dft_values,n):
+def _jacobsen(dft_values, n):
     """
     This method interpolates the real frequency of the
     signal using the three highest peaks in the FFT.
