@@ -6,8 +6,8 @@ import os
 
 def get_logger(name, logfile=None, level_main=logging.DEBUG, level_console=logging.INFO):
     """
-    Sets up logger if name is __main__, and returns logger based on module name)
-    :param name: __name__ of caller
+    Sets up logger if name is __main__. Returns logger based on module name)
+    :param name: only used to check if __name__ is __main__
     :param logfile: log output file ('__file__.log' of caller if 'None')
     :param level_main: main logging level, default DEBUG
     :param level_console: console logging level, default INFO
@@ -20,9 +20,7 @@ def get_logger(name, logfile=None, level_main=logging.DEBUG, level_console=loggi
 
     if name == "__main__":
         if not logfile:
-            logfile = caller_file
-        else:
-            logfile, _ = os.path.splitext(logfile)
+            logfile = caller_file + '.log'
 
         # set up root logger
         root_logger = logging.getLogger("")
@@ -36,7 +34,7 @@ def get_logger(name, logfile=None, level_main=logging.DEBUG, level_console=loggi
         root_logger.addHandler(console_handler)
 
         # set up log file
-        file_handler = logging.FileHandler(logfile + '.log', mode="w", )
+        file_handler = logging.FileHandler(logfile, mode="w", )
         file_formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(file_formatter)
         root_logger.addHandler(file_handler)
