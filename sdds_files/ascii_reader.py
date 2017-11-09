@@ -61,7 +61,7 @@ def _parse_date(line):
     try:
         return datetime.datetime.strptime(date_str, "%Y-%m-%d at %H:%M:%S")
     except:
-        return datetime.date.today()
+        return datetime.datetime.today()
 
 
 def _get_samples_array(samples_strings):
