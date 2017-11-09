@@ -58,7 +58,10 @@ def is_ascii_file(file_path):
 
 def _parse_date(line):
     date_str = line.replace(_ACQ_DATE_PREFIX, "")
-    return datetime.datetime.strptime(date_str, "%Y-%m-%d at %H:%M:%S")
+    try:
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d at %H:%M:%S")
+    except:
+        return datetime.date.today()
 
 
 def _get_samples_array(samples_strings):
