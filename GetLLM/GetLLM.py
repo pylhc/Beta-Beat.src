@@ -304,7 +304,7 @@ def main(accelerator,
     tune_d.q1mdl = accelerator.get_model_tfs().headers["Q1"]
     tune_d.q2mdl = accelerator.get_model_tfs().headers["Q2"]
     
-    
+    LOGGER.addHandler(logging_tools.file_handler(os.path.join(outputpath, "getllm.log")))
     
     # Setup
     

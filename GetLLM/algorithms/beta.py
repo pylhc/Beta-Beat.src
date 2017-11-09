@@ -33,10 +33,13 @@ from constants import PI, TWOPI
 from numpy.linalg.linalg import LinAlgError
 from model.accelerators.accelerator import AccExcitationMode
 from Utilities import tfs_pandas
+from Utilities import logging_tools
+
 __version__ = "2017.10.a"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 PRINTTIMES = False
+LOGGER = logging_tools.get_logger(__name__)
 
 if False:
     from Utilities.progressbar import startProgress, progress, endProgress
@@ -163,6 +166,7 @@ class UncertaintyDefinition:
         self.dS = _ds
         self.dK1 = _dk1
         self.type = gettype(_type)
+    
         
         def settype(self, _type):
          self.type = gettype(_type)
@@ -175,12 +179,17 @@ class UncertaintyDefinitionRE:
         self.dS = _ds
         self.dK1 = _dk1
         self.type = gettype(_type)
+        self.tas = _type
         
     def settype(self, _type):
         self.type = gettype(_type)
         
     def match(self, string):
         return self.pattern.match(string)
+
+    def to_string(self):
+        return "/{:s}/ dK1={:8g} dS={:8g} dX={:8g} {:6s}".format(self.pattern.pattern, self.dK1, self.dS, self.dX,
+                                                                 self.tas)
              
         
 class UncertaintyInformation:
@@ -315,6 +324,8 @@ class Uncertainties:  # error definition file
             BPMdS:  BPM longitudinal misalignments 
         '''
         
+        LOGGER.info("Start creating uncertainty information")
+
         # create new columns, fill MUX/Y_END and BETX/Y_END
         twiss_full.loc[:]["MUX_END"] = np.roll(twiss_full.loc[:]["MUX"], 1)
         twiss_full.loc[:]["MUY_END"] = np.roll(twiss_full.loc[:]["MUY"], 1)
@@ -328,6 +339,7 @@ class Uncertainties:  # error definition file
         
         # loop over uncertainty definitions, fill the respective columns, set UNC to true
         for reg in self.regex:
+            LOGGER.debug("creating uncertainty information for RegEx {:s}".format(reg.to_string()))
             reg_mask = twiss_full.index.str.match(reg.pattern)
             twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, "K1L"]) **2 # TODO change K1L --> mainfield if necessary
             twiss_full.loc[reg_mask, "dX"] = reg.dX**2
@@ -345,6 +357,8 @@ class Uncertainties:  # error definition file
         
         # dump the modified twiss_full and return it to the beta calculation
         print_("DONE creating errofile.")
+        LOGGER.info("DONE creating uncertainty information")
+        LOGGER.debug("dumping new twiss_full.dat")
         tfs_pandas.write_tfs(twiss_full, {}, "dump_twiss_full")
         return twiss_full[twiss_full["UNC"] == True]
 

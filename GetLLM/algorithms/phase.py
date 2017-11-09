@@ -22,12 +22,14 @@ import compensate_ac_effect
 from Utilities import tfs_file_writer
 from model.accelerators.accelerator import AccExcitationMode
 from constants import PI, TWOPI, kEPSILON
+from Utilities import logging_tools
 
 import pandas as pd
 from time import time
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 UNION = True
+LOGGER = logging_tools.get_logger(__name__)
 
 #===================================================================================================
 # main part
@@ -380,6 +382,8 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
 
 def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm):
 
+    LOGGER.debug("calculating phases with union of measurement files")
+    LOGGER.debug("maximum {:d} measurements per BPM".format(len(Files)))
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
     phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS", "NFILES"], major_axis=bpm.index, minor_axis=bpm.index)
 
