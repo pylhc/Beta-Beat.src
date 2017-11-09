@@ -305,7 +305,7 @@ def main(accelerator,
     tune_d.q2mdl = accelerator.get_model_tfs().headers["Q2"]
     
     LOGGER.addHandler(logging_tools.file_handler(os.path.join(outputpath, "getllm.log")))
-    
+    LOGGER.info("hallo")
     # Setup
     
     bpm_dictionary= _intial_setup(getllm_d, dict_file, model_dir)
@@ -690,8 +690,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
         print >> sys.stderr, "No parsed input files"
         sys.exit(1)
     
-    twiss_d.zero_dpp_commonbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model)    
-    twiss_d.zero_dpp_commonbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model)    
+    twiss_d.zero_dpp_commonbpms_x, twiss_d.zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model)    
+    twiss_d.zero_dpp_commonbpms_y, twiss_d.zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model)    
     
 
     return twiss_d, files_dict
@@ -957,15 +957,16 @@ def _get_commonbpms(ListOfFiles, model):
         common["NFILES"] = 0
         for i in range(len(ListOfFiles)):
             common.loc[ListOfFiles[i].index, "NFILES"] += 1
-        common = common.drop(common[common.loc[:,"NFILES"] < 2].index)
-    return common 
+        union = common.drop(common[common.loc[:,"NFILES"] < 2].index)
+        inters = common.drop(common[common.loc[:,"NFILES"] < len(ListOfFiles)].index)
+    return inters, union
     
-    common_index = model.index   
+    common_index = model.index
     for i in range(len(ListOfFiles)):
         common_index = common_index.intersection(ListOfFiles[i].index)
 
 
-    return model.loc[common_index, "S"]
+    return model.loc[common_index, "S"], None
 
 
 #===================================================================================================
@@ -1031,6 +1032,8 @@ class _TwissData(object):
         self.non_zero_dpp_y = []  # List of src files which have dpp!=0.0    
         self.zero_dpp_commonbpms_x = []
         self.zero_dpp_commonbpms_y = []
+        self.zero_dpp_unionbpms_x = None
+        self.zero_dpp_unionbpms_y = None
 
     def has_zero_dpp_x(self):
         ''' Returns True if _linx file(s) exist(s) with dpp==0 '''

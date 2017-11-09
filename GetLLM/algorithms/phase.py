@@ -90,8 +90,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     '''
     # get common bpms
     phase_d = PhaseData()
-    bpmsx = twiss_d.zero_dpp_commonbpms_x
-    bpmsy = twiss_d.zero_dpp_commonbpms_y
+    bpmsx = twiss_d.zero_dpp_unionbpms_x
+    bpmsy = twiss_d.zero_dpp_unionbpms_y
 
 
     print 'Calculating phase'

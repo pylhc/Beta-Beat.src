@@ -968,13 +968,13 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
             if i == 0:
                 kick2.append(0)
             if plane == 'H':
-                amp_i += tw_file.AMPX[tw_file.indx[bn1]]
-                amp_j2.append(tw_file.AMPX[tw_file.indx[bn1]] ** 2)
-                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]] / 2.
+                amp_i += tw_file.loc[bn1, "AMPX"]
+                amp_j2.append(tw_file.loc[bn1, "AMPX"] ** 2)
+                root2j_i += tw_file.loc[bn1, "PK2PK"] / 2.
             elif plane == 'V':
-                amp_i += tw_file.AMPY[tw_file.indx[bn1]]
-                amp_j2.append(tw_file.AMPY[tw_file.indx[bn1]] ** 2)
-                root2j_i += tw_file.PK2PK[tw_file.indx[bn1]] / 2.
+                amp_i += tw_file.loc[bn1, "AMPY"]
+                amp_j2.append(tw_file.loc[bn1, "AMPY"] ** 2)
+                root2j_i += tw_file.loc[bn1, "PK2PK"] / 2.
 
             kick2[counter] += amp_j2[counter] / tembeta
             counter += 1
