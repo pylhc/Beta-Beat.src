@@ -97,6 +97,7 @@ import Utilities.iotools
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
 from Utilities import tfs_pandas
+from Utilities import logging_tools
 import pandas as pd
 from time import time
 
@@ -113,7 +114,7 @@ VERSION = 'V3.0.0 Dev'
 #######
 ####
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
-
+LOGGER = logging_tools.get_logger(__name__)
 # default arguments:
 
 ACCEL       = "LHCB1"   #@IgnorePep8
@@ -302,6 +303,9 @@ def main(accelerator,
     
     tune_d.q1mdl = accelerator.get_model_tfs().headers["Q1"]
     tune_d.q2mdl = accelerator.get_model_tfs().headers["Q2"]
+    
+    
+    
     # Setup
     
     bpm_dictionary= _intial_setup(getllm_d, dict_file, model_dir)
@@ -953,8 +957,8 @@ def _get_commonbpms(ListOfFiles, model):
         common["NFILES"] = 0
         for i in range(len(ListOfFiles)):
             common.loc[ListOfFiles[i].index, "NFILES"] += 1
-        common = common.drop(common[common.loc[:,"NFILES"] > 0].index)
-        return common 
+        common = common.drop(common[common.loc[:,"NFILES"] < 2].index)
+    return common 
     
     common_index = model.index   
     for i in range(len(ListOfFiles)):

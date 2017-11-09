@@ -387,18 +387,20 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
     phase_advances["MODEL"] = (phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis]) % 1.0
 
     # loop over the measurement files
-    phase_matr_meas = ((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
+    phase_matr_meas = pd.Panel(items=range(len(Files)), major_axis=bpm.index, minor_axis=bpm.index)  # temporary 3D matrix that stores the phase advances
     for i in range(len(Files)):
         file_tfs = Files[i]
-        phases_meas.loc[bpm.index] = bd * np.array(file_tfs.loc[:, plane_mu]) #-- bd flips B2 phase to B1 direction
-        phases_meas[k_lastbpm:] += tune_q  * bd
+        phases_meas = bd * np.array(file_tfs.loc[:, plane_mu]) #-- bd flips B2 phase to B1 direction
+        #phases_meas[k_lastbpm:] += tune_q  * bd
         meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
-        phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
+        phase_matr_meas.loc[i] = pd.DataFrame(data=np.where(meas_matr > 0, meas_matr, meas_matr + 1.0),
+                                              index=file_tfs.index, columns=file_tfs.index)
         
+    phase_matr_meas = phase_matr_meas.values
     phase_advances["MEAS"] = np.nanmean(phase_matr_meas, axis=0) % 1.0
     nfiles = np.nansum(phase_matr_meas, axis=0) 
     phase_advances["NFILES"] = nfiles
-    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) #  * t_value_correction(nfiles)
+    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) #/ np.sqrt(nfiles) #  * t_value_correction(nfiles)
 
     return phase_advances
 
