@@ -115,6 +115,8 @@ VERSION = 'V3.0.0 Dev'
 ####
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
+BREAK = False
+
 # default arguments:
 
 ACCEL       = "LHCB1"   #@IgnorePep8
@@ -143,7 +145,7 @@ USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
 # DEBUGGING
 def print_time(index, t):
-    print "\33[38;2;255;220;50m---------------------------------------------{:.3f}\33[0m".format(t)
+    LOGGER.info("\33[38;2;255;220;50m---------------------------------------------{:.3f}\33[0m".format(t))
     
     f = open("/afs/cern.ch/work/a/awegsche/public/44_acc_cls_perf/stats_acc_cls.txt", "a")
     f.write("{} {:.7f}\n".format(index, t))
@@ -304,7 +306,8 @@ def main(accelerator,
     tune_d.q1mdl = accelerator.get_model_tfs().headers["Q1"]
     tune_d.q2mdl = accelerator.get_model_tfs().headers["Q2"]
     
-    LOGGER.addHandler(logging_tools.file_handler(os.path.join(outputpath, "getllm.log")))
+    logging_tools.add_module_handler(logging_tools.file_handler(os.path.join(outputpath, "getllm.log")))
+    
     LOGGER.info("hallo")
     # Setup
     
@@ -369,34 +372,46 @@ def main(accelerator,
         #------- START beta from amplitude
         beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
 
-        #-------- START IP
-#        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d,
-#                                                  accelerator.get_model_tfs(),
-#                                                  accelerator.get_driven_tfs(),
-#                                                  files_dict)
+        # STEP out of getllm
 
-        #-------- START Orbit
-        #list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
+        if BREAK:
+            LOGGER.info("=============================================")
+            LOGGER.info("=    EXITING GETLLM before its time has come")
+            LOGGER.info("=")
+            LOGGER.info("=   SKIPPING  coupling, dispersion, ")
+            LOGGER.info("=   get_kick, orbit, RDTs and sextupoles")
+            LOGGER.info("=============================================")
 
-        #-------- START Dispersion
-        #algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
-        
-        #------ Start get Q,JX,delta
-        #files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
+        else:
 
-        #-------- START coupling.
-        tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
+            #-------- START IP
+    #        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d,
+    #                                                  accelerator.get_model_tfs(),
+    #                                                  accelerator.get_driven_tfs(),
+    #                                                  files_dict)
 
-        #-------- START RDTs
-        if nonlinear:
-            algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y)
+            #-------- START Orbit
+            #list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
 
-        if tbtana == "SUSSIX":
-            #------ Start getsextupoles @ Glenn Vanbavinckhove
-            files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
+            #-------- START Dispersion
+            #algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
+            
+            #------ Start get Q,JX,delta
+            #files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
 
-            #------ Start getchiterms @ Glenn Vanbavinckhove
-            files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
+            #-------- START coupling.
+            tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
+
+            #-------- START RDTs
+            if nonlinear:
+                algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y)
+
+            if tbtana == "SUSSIX":
+                #------ Start getsextupoles @ Glenn Vanbavinckhove
+                files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
+
+                #------ Start getchiterms @ Glenn Vanbavinckhove
+                files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
 
     except:
         traceback.print_exc()
