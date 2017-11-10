@@ -4,12 +4,11 @@ import sys
 import os
 
 
-def get_logger(name, logfile=None, level_main=logging.DEBUG, level_console=logging.INFO):
+def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
     """
     Sets up logger if name is __main__. Returns logger based on module name)
     :param name: only used to check if __name__ is __main__
-    :param logfile: log output file ('__file__.log' of caller if 'None')
-    :param level_main: main logging level, default DEBUG
+    :param level_root: main logging level, default DEBUG
     :param level_console: console logging level, default INFO
     :return:
     """
@@ -18,12 +17,9 @@ def get_logger(name, logfile=None, level_main=logging.DEBUG, level_console=loggi
     current_module = _get_current_module(caller_file)
 
     if name == "__main__":
-        if not logfile:
-            logfile = caller_file + '.log'
-
         # set up root logger
         root_logger = logging.getLogger("")
-        root_logger.setLevel(level_main)
+        root_logger.setLevel(level_root)
 
         # print logs to the console
         console_handler = logging.StreamHandler(sys.stdout)
@@ -31,12 +27,6 @@ def get_logger(name, logfile=None, level_main=logging.DEBUG, level_console=loggi
         console_formatter = logging.Formatter("%(name)s: %(message)s")
         console_handler.setFormatter(console_formatter)
         root_logger.addHandler(console_handler)
-
-        # print logs to file
-        file_handler = logging.FileHandler(logfile, mode="w", )
-        file_formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
-        file_handler.setFormatter(file_formatter)
-        root_logger.addHandler(file_handler)
 
     # logger for the current file
     return logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
@@ -54,9 +44,12 @@ def file_handler(logfile, level=logging.DEBUG, format="%(name)s - %(levelname)s 
 def add_module_handler(handler):
     """ Add handler at current module level """
     current_module = _get_current_module()
-    logger = logging.getLogger(current_module)
-    logger.addHandler(handler)
-    # logger.disabled = True
+    logging.getLogger(current_module).addHandler(handler)
+
+
+def add_root_handler(handler):
+    """ Add handler at root level """
+    logging.getLogger("").addHandler(handler)
 
 
 def getLogger(name):
@@ -83,3 +76,5 @@ def _get_current_module(current_file=None):
     path_parts = current_file.split(os.path.sep)
     current_module = '.'.join(path_parts[(path_parts.index('Beta-Beat.src') + 1):-1])
     return current_module
+
+# TODO: Change how to find root_directory!
