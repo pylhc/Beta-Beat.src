@@ -112,7 +112,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         tune_d.q1 = q1
         tune_d.q1f = q1
         
-        phase_d.phase_advances_free_x, tune_d.mux = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x, q1, 'H')
+        phase_d.phase_advances_free_x, tune_d.mux = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_x, bpmsx, q1, 'H')
         if not twiss_d.has_zero_dpp_y():
             print 'liny missing and output x only ...'
 
@@ -131,7 +131,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         tune_d.q2 = q2
         tune_d.q2f = q2
 
-        phase_d.phase_advances_free_y, tune_d.muy = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y, q2, 'V')
+        phase_d.phase_advances_free_y, tune_d.muy = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_y, bpmsy, q2, 'V')
         if not twiss_d.has_zero_dpp_x():
             print 'linx missing and output y only ...'
 
@@ -404,7 +404,7 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
     phase_advances["MEAS"] = np.nanmean(phase_matr_meas, axis=0) % 1.0
     nfiles = np.nansum(phase_matr_meas, axis=0) 
     phase_advances["NFILES"] = nfiles
-    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) #/ np.sqrt(nfiles) #  * t_value_correction(nfiles)
+    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) #  * t_value_correction(nfiles)
 
     return phase_advances
 
