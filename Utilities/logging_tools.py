@@ -4,6 +4,14 @@ import sys
 import os
 
 
+class MaxFilter(object):
+    def __init__(self, level):
+        self.__level = level
+
+    def filter(self, log_record):
+        return log_record.levelno <= self.__level
+
+
 def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
     """
     Sets up logger if name is __main__. Returns logger based on module name)
@@ -26,7 +34,15 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         console_handler.setLevel(level_console)
         console_formatter = logging.Formatter("%(name)s: %(message)s")
         console_handler.setFormatter(console_formatter)
+        console_handler.addFilter(MaxFilter(logging.WARNING))
         root_logger.addHandler(console_handler)
+
+        # print errors to error-stream
+        error_handler = logging.StreamHandler(sys.stderr)
+        error_handler.setLevel(logging.ERROR)
+        error_formatter = logging.Formatter("%(name)s: %(message)s")
+        error_handler.setFormatter(error_formatter)
+        root_logger.addHandler(error_handler)
 
     # logger for the current file
     return logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
