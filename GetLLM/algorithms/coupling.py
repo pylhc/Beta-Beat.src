@@ -35,10 +35,12 @@ import phase
 import helper
 import compensate_ac_effect
 from model.accelerators.accelerator import AccExcitationMode
+from Utilities import logging_tools
 
 from Utilities.tfs_pandas import add_coupling
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+LOGGER = logging_tools.get_logger(__name__)
 
 #===================================================================================================
 # main part
@@ -124,8 +126,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         # Write columns with results from GetCoupling1/2 and the model to getcouple.out for BPMs with correct phase
         for i in range(len(bpms)):
-            # Get BPM name and position
-            bn1 = str.upper(bpms[i][1])
+            bn1 = bpms[i][1]
             bns1 = bpms[i][0]
             # Set next row for getcouple.out
             # 1-BPM method results
@@ -439,7 +440,10 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         return [dum0, dum1]
     # Determine intersection of BPM-lists between measurement and model, create list dbpms
     index = twiss_d.zero_dpp_commonbpms_x.index.intersection(twiss_d.zero_dpp_commonbpms_y.index)
-    dbpms = twiss_d.zero_dpp_commonbpms_x[index]
+    LOGGER.debug("index:" + str(index))
+    LOGGER.debug("commonbpms_x = " + str(twiss_d.zero_dpp_commonbpms_x.index))
+
+    dbpms = twiss_d.zero_dpp_commonbpms_x.loc[index]
 
     ### Calculate fw and qw, exclude BPMs having wrong phases ###
 
@@ -615,7 +619,7 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
             f1001i = f1001i*complex(np.cos(2.0*np.pi*q1001i),np.sin(2.0*np.pi*q1001i))
             f1010i = f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))
             # Add BPM to list of BPMs with correct phase
-            dbpmt.append([dbpms.iloc[i],dbpms.index[i]])
+            dbpmt.append([dbpms.iloc[i].loc["S"], dbpms.index[i]])
 
             # Save results to BPM-results dictionary, sorted depending on beam_direction
             if accel.get_beam_direction() ==1:
