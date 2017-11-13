@@ -1,10 +1,7 @@
 from __future__ import print_function
 import os
 import logging
-import cPickle
-import numpy as np
 from Utilities import tfs_pandas
-from Utilities.contexts import timeit
 from sdds_files import turn_by_turn_reader
 
 LOGGER = logging.getLogger("__name__")
@@ -69,25 +66,24 @@ def write_harpy_output(main_input, harpy_data_frame, headers, spectrum, plane):
 
 
 def _write_full_spectrum(main_input, spectrum, plane):
-    with timeit(print):
-        spectr_amps_files = get_outpath_with_suffix(
-            main_input.file, main_input.outputdir, ".amps" + plane
-        )
-        amps_df = spectrum["COEFS"].abs()
-        amps_df["NAME"] = amps_df.index
-        # Make the NAME column the first:
-        amps_df = amps_df[amps_df.columns.tolist()[-1:] +
-                          amps_df.columns.tolist()[:-1]]
-        tfs_pandas.write_tfs(amps_df, {}, spectr_amps_files)
-        spectr_freqs_files = get_outpath_with_suffix(
-            main_input.file, main_input.outputdir, ".freqs" + plane
-        )
-        freqs_df = spectrum["FREQS"]
-        freqs_df["NAME"] = freqs_df.index
-        # Make the NAME column the first:
-        freqs_df = freqs_df[freqs_df.columns.tolist()[-1:] +
-                            freqs_df.columns.tolist()[:-1]]
-        tfs_pandas.write_tfs(freqs_df, {}, spectr_freqs_files)
+    spectr_amps_files = get_outpath_with_suffix(
+        main_input.file, main_input.outputdir, ".amps" + plane
+    )
+    amps_df = spectrum["COEFS"].abs()
+    amps_df["NAME"] = amps_df.index
+    # Make the NAME column the first:
+    amps_df = amps_df[amps_df.columns.tolist()[-1:] +
+                      amps_df.columns.tolist()[:-1]]
+    tfs_pandas.write_tfs(amps_df, {}, spectr_amps_files)
+    spectr_freqs_files = get_outpath_with_suffix(
+        main_input.file, main_input.outputdir, ".freqs" + plane
+    )
+    freqs_df = spectrum["FREQS"]
+    freqs_df["NAME"] = freqs_df.index
+    # Make the NAME column the first:
+    freqs_df = freqs_df[freqs_df.columns.tolist()[-1:] +
+                        freqs_df.columns.tolist()[:-1]]
+    tfs_pandas.write_tfs(freqs_df, {}, spectr_freqs_files)
 
 
 def get_outpath_with_suffix(path, output_dir, suffix):

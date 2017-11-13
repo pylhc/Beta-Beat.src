@@ -63,8 +63,17 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
         )
 
     if harpy_input is not None:
-        _do_harpy(main_input, harpy_input, bpm_datas, usvs,
-                  model_tfs, bpm_ress, dpp, all_bad_bpms)
+        all_bad_bpms = _do_harpy(main_input, harpy_input, bpm_datas, usvs,
+                                 model_tfs, bpm_ress, dpp, all_bad_bpms)
+
+    for plane in ("x", "y"):
+        if all_bad_bpms[plane]:
+            output_handler.write_bad_bpms(
+                main_input.file,
+                all_bad_bpms[plane],
+                main_input.outputdir,
+                plane
+            )
 
 
 def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
@@ -138,12 +147,7 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
             plane
         )
         all_bad_bpms[plane].extend(bad_bpms_summaries)
-        output_handler.write_bad_bpms(
-            main_input.file,
-            all_bad_bpms[plane],
-            main_input.outputdir,
-            plane
-        )
+    return all_bad_bpms
 
 
 def _prepare_data_for_harpy(bpm_data, usv):
