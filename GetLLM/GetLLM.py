@@ -536,6 +536,8 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
 
 def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_turn_algo, files_dict, use_average, calibration_twiss, model):
 
+    LOGGER.debug("Start analysing source files")
+
     if turn_by_turn_algo == "SUSSIX":
         suffix_x = '.linx'
         suffix_y = '.liny'
@@ -547,6 +549,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
         suffix_y = '_hay'
 
     for file_in in files_to_analyse.split(','):
+        LOGGER.debug("> file: '{:s}'".format(file_in))
         # x file
         if file_in.endswith(".gz"):
             file_x = file_in.replace(".gz", suffix_x + ".gz")
@@ -560,7 +563,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
 #                print >> sys.stderr, "Ignoring empty file:", twiss_file_x.filename
 #                twiss_file_x = None
         except IOError:
-            print >> sys.stderr, "Cannot load file:", file_x
+            LOGGER.warning("Cannot load file: " + file_x)
         except ValueError:
             pass  # Information printed by metaclass already
 
@@ -578,7 +581,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
                 print >> sys.stderr, 'Warning: DPP may not be given as a number in ', file_x, '...trying to forcibly cast it as a number'
                 try:
                     dppi = float(dppi)
-                    print 'dppi= ', dppi
+                    LOGGER.info('dppi = ' + dppi)
                 except ValueError:
                     print >> sys.stderr, 'but failing. DPP in ', file_x, ' is something wrong. String? --- leaving GetLLM'
                     print >> sys.stderr, traceback.format_exc()
@@ -634,7 +637,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
 #                print >> sys.stderr, "Ignoring empty file:", twiss_file_y.filename
 #                twiss_file_y = None
         except IOError:
-            print 'Warning: There seems no ' + str(file_y) + ' file in the specified directory.'
+            LOGGER.warning( 'Warning: There seems no ' + str(file_y) + ' file in the specified directory.')
         except ValueError:
             pass  # Information printed by metaclass already
 
