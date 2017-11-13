@@ -439,12 +439,11 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         dum1 = []
         return [dum0, dum1]
     # Determine intersection of BPM-lists between measurement and model, create list dbpms
-    index = twiss_d.zero_dpp_commonbpms_x.index.intersection(twiss_d.zero_dpp_commonbpms_y.index)
-    LOGGER.debug("index:" + str(index))
-    LOGGER.debug("commonbpms_x = " + str(twiss_d.zero_dpp_commonbpms_x.index))
+    index = twiss_d.zero_dpp_unionbpms_x.index.intersection(twiss_d.zero_dpp_unionbpms_y.index)
 
-    dbpms = twiss_d.zero_dpp_commonbpms_x.loc[index]
+    dbpms = twiss_d.zero_dpp_unionbpms_x.loc[index]
 
+    LOGGER.debug(str(dbpms))
     ### Calculate fw and qw, exclude BPMs having wrong phases ###
 
     # Initialize dictionary of BPMs with results
@@ -475,10 +474,16 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         # Initialize as not bad BPM
         badbpm = 0
         # Loop through files to analyze
-        for j in range(0, len(twiss_d.zero_dpp_x)):
+        j = -1
+        for jj in range(0, len(twiss_d.zero_dpp_x)):
             # Get twiss instance for current BPM and file
-            tw_x = twiss_d.zero_dpp_x[j]
-            tw_y = twiss_d.zero_dpp_y[j]
+            tw_x = twiss_d.zero_dpp_x[jj]
+            tw_y = twiss_d.zero_dpp_y[jj]
+
+            if not (bn1 in tw_x.index and bn2 in tw_x.index and bn1 in tw_y.index and bn2 in tw_y.index):
+                continue
+            j += 1
+
             # Get main amplitude
             [ampx_1, ampy_1] = [tw_x.loc[bn1, "AMPX"], tw_y.loc[bn1, "AMPY"]]
             [ampx_2, ampy_2] = [tw_x.loc[bn2, "AMPX"], tw_y.loc[bn2, "AMPY"]]
@@ -517,10 +522,10 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
                     -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"])
             
             # Get noise standard deviation and propagate to coupled amplitude ratio
-            std_amp01_1 = tw_x.loc[bn1, "NOISE"] / ampx_1 * math.sqrt(1 + amp01_1 ** 2)
-            std_amp10_1 = tw_y.loc[bn1, "NOISE"] / ampy_1 * math.sqrt(1 + amp10_1 ** 2)
-            std_amp01_2 = tw_x.loc[bn2, "NOISE"] / ampx_2 * math.sqrt(1 + amp01_2 ** 2)
-            std_amp10_2 = tw_y.loc[bn2, "NOISE"] / ampy_2 * math.sqrt(1 + amp10_2 ** 2)
+            std_amp01_1 = tw_x.loc[bn1, "AVG_NOISE"] / ampx_1 * math.sqrt(1 + amp01_1 ** 2)
+            std_amp10_1 = tw_y.loc[bn1, "AVG_NOISE"] / ampy_1 * math.sqrt(1 + amp10_1 ** 2)
+            std_amp01_2 = tw_x.loc[bn2, "AVG_NOISE"] / ampx_2 * math.sqrt(1 + amp01_2 ** 2)
+            std_amp10_2 = tw_y.loc[bn2, "AVG_NOISE"] / ampy_2 * math.sqrt(1 + amp10_2 ** 2)
             # Propagate to 2-BPM coupled amplitude ratio using a separate routine in helper.py
             std_SA0p1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
                     tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
@@ -535,9 +540,6 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
             f1001ij.append(0.5*math.sqrt(TBp10ij*SA0p1ij/2.0/2.0)) # division by 2 for each ratio as the scale of the #
             f1010ij.append(0.5*math.sqrt(TBm10ij*SA0m1ij/2.0/2.0)) # main lines is 2 (also see appendix of the note)  #
             
-            if i < 2:
-                print "[{}, {}] = helper.ComplexSecondaryLine({},{},{},{},{})".format(TBp10ij,phip10ij,dely, amp10_1, amp10_2,
-                    tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"])
             
             # Propagate error to f1001 and f1010 if possible (no division by 0)
             if TBp10ij==0 or SA0p1ij==0:
@@ -570,6 +572,9 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
             q1js[j] = (0.5-q1js[j])%1.0
             q2js[j] = (0.5-q2js[j])%1.0
 
+        if j == -1:
+            LOGGER.debug("j == -1")
+        
         q1jd = np.array(q1jd)
         q2jd = np.array(q2jd)
         q1d = phase.calc_phase_mean(q1jd,1.0)
@@ -647,6 +652,7 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         f_new += fwqw[bn2][0][0]*np.exp(complex(0,1)*2*np.pi*(mux-muy))/fwqw[bn2][0][1]**2 # Variance-weighted average for BPMs
         denom += 1/fwqw[bn2][0][1]**2 # denominator for weighted average
 
+    LOGGER.debug("fwqw=" + str(fwqw))
     N = len(dbpms)
     f_new_std = np.sqrt(1/denom)
     CG_new_abs = 4*abs(tune_x-tune_y)*abs(f_new)/denom
@@ -663,10 +669,18 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
     for i in range(0,len(dbpms)-1):
         bn1 = str.upper(dbpms[i][1])
         CG += abs(f_old_out[bn1])
-        # For more than one file, this goes wrong, loops are mixed up for the phase calculation!
-        tw_x = twiss_d.zero_dpp_x[0]
-        tw_y = twiss_d.zero_dpp_y[0]
-        QG += fwqw[bn1][1][0]-(tw_x.MUX[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]])
+        # For more than one file, this goes wrong, loops are mixed up for the phase calculation!, so why is this
+        # here? Looks like a bug(awegsche)
+
+        #tw_x = twiss_d.zero_dpp_x[0]
+        #tw_y = twiss_d.zero_dpp_y[0]
+        
+        #QG += fwqw[bn1][1][0]-(tw_x.loc[bn1, "MUX"]-tw_y.loc[bn1, "MUY"])
+        
+        # Better use this one
+        QG += fwqw[bn1][1][0] - (MADTwiss.loc[bn1, "MUX"]-MADTwiss.loc[bn1, "MUY"])
+
+
 
     if len(dbpms)==0:
         print >> sys.stderr, 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
