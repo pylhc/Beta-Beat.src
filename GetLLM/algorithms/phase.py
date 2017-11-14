@@ -195,7 +195,7 @@ def _phi_last_and_last_but_one(phi, ftune):
         phi -= 1
     return phi
 
-def t_value_correction(num):
+def t_value_correction(_num):
     ''' Calculations are based on Hill, G. W. (1970)
     Algorithm 396: Student's t-quantiles. Communications of the ACM, 
     13(10), 619-620.
@@ -206,6 +206,7 @@ def t_value_correction(num):
     cannot be accessed from our servers in their current python installation (Jan-2015).
     (http://en.wikipedia.org/wiki/Error_function#Inverse_function)
     '''
+    num = int(_num)
     correction_dict = {2:1.8394733927562799, 3:1.3224035682262103, 4:1.1978046912864673, 
                        5:1.1424650980932523, 6:1.1112993008590089, 7:1.0913332519214189, 
                        8:1.0774580800762166, 9:1.0672589736833817, 10:1.0594474783177483,
@@ -218,6 +219,8 @@ def t_value_correction(num):
     else:
         t_factor = 1
     return t_factor
+
+vec_t_value_correction = np.vectorize(t_value_correction, otypes=[int])
 
 def calc_phase_mean(phase0, norm):
     ''' phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi '''
@@ -389,22 +392,29 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
 
     phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
     phase_advances["MODEL"] = (phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis]) % 1.0
-
+    
     # loop over the measurement files
     phase_matr_meas = pd.Panel(items=range(len(Files)), major_axis=bpm.index, minor_axis=bpm.index)  # temporary 3D matrix that stores the phase advances
+    #phase_matr_count = pd.Panel(items=range(len(Files)), major_axis=bpm.index, minor_axis=bpm.index)
     for i in range(len(Files)):
         file_tfs = Files[i]
         phases_meas = bd * np.array(file_tfs.loc[:, plane_mu]) #-- bd flips B2 phase to B1 direction
         #phases_meas[k_lastbpm:] += tune_q  * bd
+        
         meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
         phase_matr_meas.loc[i] = pd.DataFrame(data=np.where(meas_matr > 0, meas_matr, meas_matr + 1.0),
                                               index=file_tfs.index, columns=file_tfs.index)
         
     phase_matr_meas = phase_matr_meas.values
-    phase_advances["MEAS"] = np.nanmean(phase_matr_meas, axis=0) % 1.0
-    nfiles = np.nansum(phase_matr_meas, axis=0) 
+    mean = np.nanmean(phase_matr_meas, axis=0) % 1.0
+    phase_advances["MEAS"] = mean
+    nfiles = np.sum(~np.isnan(phase_matr_meas), axis=0)
+    
     phase_advances["NFILES"] = nfiles
-    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) #  * t_value_correction(nfiles)
+    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) * vec_t_value_correction(nfiles)
+
+    LOGGER.debug("t_value correction......[YES]")
+    LOGGER.debug("optimistic errorbars....[YES]")
 
     return phase_advances
 
@@ -506,13 +516,20 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
     
     tfs_file.add_float_descriptor("Q1", tune_x)
     tfs_file.add_float_descriptor("Q2", tune_y)
-    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASE" + plane_char, "STDPH" + plane_char, "PH{}MDL".format(plane_char), "MU{}MDL".format(plane_char)])
-    tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le"])
+    tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASE" + plane_char, "STDPH" + plane_char,
+                               "PH{}MDL".format(plane_char), "MU{}MDL".format(plane_char), "NFILES"])
+    if UNION:
+        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    else:
+        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%s"])
 
 
     meas = phase_advances["MEAS"]
     mod = phase_advances["MODEL"]
     err = phase_advances["ERRMEAS"]
+
+    if UNION:
+        nfiles = phase_advances["NFILES"]
     bd = accel.get_beam_direction()
     
     intersected_model = model.loc[meas.index]
@@ -549,11 +566,15 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
                                                   phase_to_first + phase_to_second,
                                                   minmu1, minmu2) )
         except KeyError as e:
-            print "Couldn't calculate the phase advance because", e
+            LOGGER.error("Couldn't calculate the phase advance because " + e)
             
-    print len(meas.index)
-    
     for i in range(len(meas.index)-1):
+        
+        if UNION:
+            nf = nfiles[meas.index[i+1]][meas.index[i]]
+        else:
+            nf = "ALL"
+        
         tfs_file.add_table_row([
                  meas.index[i],
                  meas.index[i+1],
@@ -562,7 +583,8 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
                  meas[meas.index[i+1]][meas.index[i]],
                  err[meas.index[i+1]][meas.index[i]],
                  mod[meas.index[i+1]][meas.index[i]],
-                 model.loc[meas.index[i], plane_mu]
+                 model.loc[meas.index[i], plane_mu],
+                 nf
                 ])
     return tfs_file
 
