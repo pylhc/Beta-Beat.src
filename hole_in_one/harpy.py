@@ -91,8 +91,6 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
             cleaned_by_tune_bpms
         )
         panda = _amp_and_mu_from_avg(bpm_matrix, plane, panda)
-        # TODO: I removed the old noise!
-        panda.NOISE = 0.0
         panda = _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda)
 
         if harpy_input.tunez > 0.0:
