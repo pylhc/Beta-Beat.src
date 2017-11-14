@@ -944,6 +944,8 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, commo
         rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                                                         phase, plane, getllm_d, commonbpms, debugfile, errors_method,
                                                                         tune, mdltune)
+        
+        
         return data, rmsbb, commonbpms, errors_method
     #---- use the simulations
     else:
@@ -1290,6 +1292,8 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     _debug_("time elapsed = {0:3.3f}".format(et - st))
     
     rmsbb = sqrt(np.mean(np.multiply(result["BETBEAT"], result["BETBEAT"])))
+    
+    #result["BETERR"] *= np.sqrt(commonbpms.loc[:, "NFILES"])
     return rmsbb, errors_method, result
 
 
@@ -1517,12 +1521,16 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
                 madElements.iloc[:indx_el_last + 1][mu_column])) * TWOPI
                 
     elif indx_last >= len_bpms_total:
+        if Index == len_bpms_total - 1:
+            __index = 0
+        else:
+            __index = Index
         outerMeasPhaseAdv = pd.concat((
-                phases_meas.iloc[Index, indx_first:],
-                phases_meas.iloc[Index, :indx_last % len_bpms_total] + tune * TWOPI))
+                phases_meas.iloc[__index, indx_first:],
+                phases_meas.iloc[__index, :indx_last % len_bpms_total] + tune * TWOPI))
         outerMeasErr = pd.concat((
-                phases_err.iloc[Index, indx_first:],
-                phases_err.iloc[Index, :indx_last % len_bpms_total]))
+                phases_err.iloc[__index, indx_first:],
+                phases_err.iloc[__index, :indx_last % len_bpms_total]))
         outerMdlPh = np.concatenate((
                 madTwiss.iloc[indx_first:][mu_column],
                 madTwiss.iloc[:indx_last % len_bpms_total][mu_column]  + mdltune)) * TWOPI
