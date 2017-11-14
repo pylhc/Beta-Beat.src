@@ -222,8 +222,6 @@ def _parse_args():
                       metavar="NPROCESSES", type=int,
                       help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
 
-    # awegsche June 2016, option to include an errorfile
-    # update August 2016, looking by default for this file, raising error if unable to find it
     options = parser.parse_args(args=rest_args)
     
     return options, accel_cls
@@ -278,7 +276,7 @@ def main(accelerator,
     '''
     return_code = 0
     
-    print "Starting GetLLM ", VERSION
+    LOGGER.info("Starting GetLLM " + VERSION)
     global __getllm_starttime
     __getllm_starttime = time()
 
@@ -308,13 +306,12 @@ def main(accelerator,
     
     logging_tools.add_module_handler(logging_tools.file_handler(os.path.join(outputpath, "getllm.log")))
     
-    LOGGER.info("hallo")
     # Setup
     
     bpm_dictionary= _intial_setup(getllm_d, dict_file, model_dir)
 
     if sys.flags.debug:
-        print "INFO: DEBUG ON"
+        LOGGER.info("     DEBUG ON")
 
     # Creates the output files dictionary
     files_dict = _create_tfs_files(getllm_d, os.path.join(model_dir, "twiss.dat"), nonlinear)
@@ -335,7 +332,6 @@ def main(accelerator,
     
     print_time("BEFORE_PHASE", time() - __getllm_starttime)
 
-    print "start the actual work"
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         #temp_dict = copy.deepcopy(files_dict)
@@ -418,7 +414,7 @@ def main(accelerator,
         return_code = 1
     finally:
         # Write results to files in files_dict
-        print "Writing files"
+        LOGGER.info("Writing files")
         for tfsfile in files_dict.itervalues():
             tfsfile.write_to_file(formatted=True)
 
