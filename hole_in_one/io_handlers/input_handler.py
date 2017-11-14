@@ -245,6 +245,7 @@ class HarpyInput(object):
         "tolerance": 0.01,
         "harpy_mode": "svd",
         "sequential": False,
+        "no_tune_clean": False,
         "tune_clean_limit": 1e-5,
     }
 
@@ -258,6 +259,7 @@ class HarpyInput(object):
         self.tolerance = HarpyInput.DEFAULTS["tolerance"]
         self.harpy_mode = HarpyInput.DEFAULTS["harpy_mode"]
         self.sequential = HarpyInput.DEFAULTS["sequential"]
+        self.no_tune_clean = HarpyInput.DEFAULTS["no_tune_clean"]
         self.tune_clean_limit = HarpyInput.DEFAULTS["tune_clean_limit"]
 
     @staticmethod
@@ -272,6 +274,7 @@ class HarpyInput(object):
         self.tolerance = options.tolerance
         self.harpy_mode = options.harpy_mode
         self.sequential = options.sequential
+        self.no_tune_clean = options.no_tune_clean
         self.tune_clean_limit = options.tune_clean_limit
         return self
 
@@ -325,6 +328,11 @@ def _get_harpy_parser():
     parser.add_argument(
         "--sequential", help="If set, it will run in only one process.",
         dest="sequential", action="store_true",
+    )
+    parser.add_argument(
+        "--no_tune_clean",
+        help="If present, the automatic tune cleaning will be deactivated.",
+        dest="no_tune_clean", action="store_true",
     )
     parser.add_argument(
         "--tune_clean_limit",
