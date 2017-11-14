@@ -4,7 +4,7 @@ from model.accelerators import lhc, ps, esrf
 
 ACCELS = {
     lhc.Lhc.NAME: lhc.Lhc,
-    ps.Cps.NAME: ps.Cps
+    ps.Cps.NAME: ps.Cps,
     esrf.Esrf.NAME: esrf.Esrf,
 }
 
