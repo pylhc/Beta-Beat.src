@@ -1,4 +1,4 @@
-'''
+"""
 .. module: Utilities.iotools
 
 Created on 1 Jul 2013
@@ -8,25 +8,20 @@ be executed.
 
 Feel free to use and extend this module.
 
-
-
-
 .. moduleauthor:: vimaier
 
-'''
+"""
 
 import os
 import sys
 import shutil
 
 
-
-
 def delete_content_of_dir(path_to_dir):
-    '''
+    """
     Deletes all folders, files and symbolic links in given directory.
     :param string path_to_dir:
-    '''
+    """
     if not os.path.isdir(path_to_dir):
         return
 
@@ -36,9 +31,9 @@ def delete_content_of_dir(path_to_dir):
 
 
 def delete_item(path_to_item):
-    ''' Deletes the item given by path_to_item. It distinguishes between a file, a directory and a
+    """ Deletes the item given by path_to_item. It distinguishes between a file, a directory and a
     symbolic link.
-    '''
+    """
     try:
         if os.path.isfile(path_to_item):
             os.unlink(path_to_item)
@@ -53,7 +48,7 @@ def delete_item(path_to_item):
 
 
 def copy_content_of_dir(src_dir, dst_dir):
-    ''' Copies all files and directories from src_dir to dst_dir. '''
+    """ Copies all files and directories from src_dir to dst_dir. """
     if not os.path.isdir(src_dir):
         return
 
@@ -66,14 +61,14 @@ def copy_content_of_dir(src_dir, dst_dir):
 
 
 def create_dirs(path_to_dir):
-    ''' Creates all dirs to path_to_dir if not exists. '''
+    """ Creates all dirs to path_to_dir if not exists. """
     if not os.path.exists(path_to_dir):
         os.makedirs(path_to_dir)
 
 
 def copy_item(src_item, dest):
-    ''' Copies a file or a directory to dest. dest may be a directory.
-    If src_item is a directory then all containing files and dirs will be copied into dest. '''
+    """ Copies a file or a directory to dest. dest may be a directory.
+    If src_item is a directory then all containing files and dirs will be copied into dest. """
     try:
         if os.path.isfile(src_item):
             shutil.copy2(src_item, dest)
@@ -100,25 +95,31 @@ def deleteFilesWithoutGitignore(pathToDirectory):
 
     return True
 
+
 def exists_directory(path_to_dir):
     return os.path.isdir(path_to_dir)
 
+
 def not_exists_directory(path_to_dir):
     return not exists_directory(path_to_dir)
+
 
 def get_absolute_path_to_betabeat_root():
     return os.path.abspath(
                     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
                     )
 
+
 def no_dirs_exist(*dirs):
     return not dirs_exist(*dirs)
+
 
 def dirs_exist(*dirs):
     for d in dirs:
         if not os.path.isdir(d):
             return False
     return True
+
 
 def get_all_filenames_in_dir_and_subdirs(path_to_dir):
     """ Looks for files(not dirs) in dir and subdirs and returns them as a list.  """
@@ -128,6 +129,7 @@ def get_all_filenames_in_dir_and_subdirs(path_to_dir):
     for root, sub_folders, files in os.walk(path_to_dir):  # @UnusedVariable
         result += files
     return result
+
 
 def get_all_absolute_filenames_in_dir_and_subdirs(path_to_dir):
     """ Looks for files(not dirs) in dir and subdirs and returns them as a list.  """
@@ -152,6 +154,7 @@ def get_all_filenames_in_dir(path_to_dir):
             result.append(item)
     return result
 
+
 def get_all_dir_names_in_dir(path_to_dir):
     """ Looks for directories in dir and returns them as a list """
     if not os.path.isdir(path_to_dir):
@@ -163,8 +166,10 @@ def get_all_dir_names_in_dir(path_to_dir):
             result.append(item)
     return result
 
+
 def is_empty_dir(directory):
     return 0 == os.listdir(directory)
+
 
 def is_not_empty_dir(directory):
     return not is_empty_dir(directory)
