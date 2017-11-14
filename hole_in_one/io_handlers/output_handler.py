@@ -69,20 +69,12 @@ def _write_full_spectrum(main_input, spectrum, plane):
     spectr_amps_files = get_outpath_with_suffix(
         main_input.file, main_input.outputdir, ".amps" + plane
     )
-    amps_df = spectrum["COEFS"].abs()
-    amps_df["NAME"] = amps_df.index
-    # Make the NAME column the first:
-    amps_df = amps_df[amps_df.columns.tolist()[-1:] +
-                      amps_df.columns.tolist()[:-1]]
+    amps_df = spectrum["COEFS"].abs().T
     tfs_pandas.write_tfs(amps_df, {}, spectr_amps_files)
     spectr_freqs_files = get_outpath_with_suffix(
         main_input.file, main_input.outputdir, ".freqs" + plane
     )
-    freqs_df = spectrum["FREQS"]
-    freqs_df["NAME"] = freqs_df.index
-    # Make the NAME column the first:
-    freqs_df = freqs_df[freqs_df.columns.tolist()[-1:] +
-                        freqs_df.columns.tolist()[:-1]]
+    freqs_df = spectrum["FREQS"].T
     tfs_pandas.write_tfs(freqs_df, {}, spectr_freqs_files)
 
 
