@@ -79,8 +79,10 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
             harpy_input, frequencies, coefficients,
             plane, harpy_input.tolerance, panda
         )
-        cleaned_by_tune_bpms = clean_by_tune(panda.loc[:, 'TUNE' + plane],
-                                             harpy_input.tune_clean_limit)
+        cleaned_by_tune_bpms = []
+        if not harpy_input.no_tune_clean:
+            cleaned_by_tune_bpms = clean_by_tune(panda.loc[:, 'TUNE' + plane],
+                                                 harpy_input.tune_clean_limit)
         panda = panda.loc[panda.index.difference(cleaned_by_tune_bpms)]
         bpm_matrix = bpm_matrix.loc[panda.index]
         coefficients = coefficients.loc[panda.index]
