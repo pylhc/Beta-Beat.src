@@ -38,6 +38,7 @@ from model.accelerators.accelerator import AccExcitationMode
 from Utilities import logging_tools
 
 from Utilities.tfs_pandas import add_coupling
+from phase import UNION
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
@@ -439,9 +440,12 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         dum1 = []
         return [dum0, dum1]
     # Determine intersection of BPM-lists between measurement and model, create list dbpms
-    index = twiss_d.zero_dpp_unionbpms_x.index.intersection(twiss_d.zero_dpp_unionbpms_y.index)
-
-    dbpms = twiss_d.zero_dpp_unionbpms_x.loc[index]
+    if UNION:
+        index = twiss_d.zero_dpp_unionbpms_x.index.intersection(twiss_d.zero_dpp_unionbpms_y.index)
+        dbpms = twiss_d.zero_dpp_unionbpms_x.loc[index]
+    else:
+        index = twiss_d.zero_dpp_commonbpms_x.index.intersection(twiss_d.zero_dpp_commonbpms_y.index)
+        dbpms = twiss_d.zero_dpp_commonbpms_x.loc[index]
 
     LOGGER.debug(str(dbpms))
     ### Calculate fw and qw, exclude BPMs having wrong phases ###
@@ -459,8 +463,8 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         # Get BPM names
         bn1 = str.upper(dbpms.index[i])
         bn2 = str.upper(dbpms.index[i + 1])
-        delx = phasex.loc["MODEL", bn1, bn2] - 0.25  # Missprint in the coupling note
-        dely = phasey.loc["MODEL", bn1, bn2] - 0.25
+        delx = phasex.loc["MEAS", bn1, bn2] - 0.25  # Missprint in the coupling note
+        dely = phasey.loc["MEAS", bn1, bn2] - 0.25
 
         # Initialize result-lists (coupling, error on coupling and phases)
         f1001ij = []
@@ -624,7 +628,11 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
             f1001i = f1001i*complex(np.cos(2.0*np.pi*q1001i),np.sin(2.0*np.pi*q1001i))
             f1010i = f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))
             # Add BPM to list of BPMs with correct phase
-            dbpmt.append([dbpms.iloc[i].loc["S"], dbpms.index[i]])
+            if UNION:
+                dbpmt.append([dbpms.iloc[i].loc["S"], dbpms.index[i]])
+            else:
+                dbpmt.append([dbpms.iloc[i], dbpms.index[i]])
+
 
             # Save results to BPM-results dictionary, sorted depending on beam_direction
             if accel.get_beam_direction() ==1:
