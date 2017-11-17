@@ -33,6 +33,7 @@ from constants import PI, TWOPI
 from model.accelerators.accelerator import AccExcitationMode
 from Utilities import tfs_pandas
 from Utilities import logging_tools
+from phase import UNION
 
 __version__ = "2017.10.b"
 
@@ -443,7 +444,10 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase,
         if not np.isnan(row[2]):
             beta_d_phase[row[0]] = [row[1], row[2], row[3], row[4]]
 
-            tfs_file.add_table_row(list(row) + [int(bpms.iloc[i].loc["NFILES"])])
+            if UNION:
+                tfs_file.add_table_row(list(row) + [int(bpms.iloc[i].loc["NFILES"])])
+            else:
+                tfs_file.add_table_row(list(row) + [-1])
 
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
@@ -469,8 +473,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     '''
     beta_d = BetaData()
     
-    commonbpms_x = twiss_d.zero_dpp_unionbpms_x
-    commonbpms_y = twiss_d.zero_dpp_unionbpms_y
+    if UNION:
+        commonbpms_x = twiss_d.zero_dpp_unionbpms_x
+        commonbpms_y = twiss_d.zero_dpp_unionbpms_y
+    else:
+        commonbpms_x = twiss_d.zero_dpp_commonbpms_x
+        commonbpms_y = twiss_d.zero_dpp_commonbpms_y
     
     debugfile = None
     if getllm_d.nprocesses == -1:
@@ -644,7 +652,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     return beta_d
 # END calculate_beta_from_phase -------------------------------------------------------------------------------
 
-
+@profile
 def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict):
     '''
     Calculates beta and fills the following TfsFiles:
@@ -720,8 +728,12 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for name in commonbpms_x.index:
             bn1 = str.upper(name)
-            bns1 = commonbpms_x.loc[name, "S"]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_amp[bn1][0], beta_d.x_amp[bn1][1], mad_ac.BETX[mad_ac.indx[bn1]], mad_ac.MUX[mad_ac.indx[bn1]], betax_rescale[bn1][0], betax_rescale[bn1][1]]
+            if UNION:
+                bns1 = commonbpms_x.loc[name, "S"]
+            else:
+                bns1 = commonbpms_x.loc[name]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_amp[bn1][0],
+                                beta_d.x_amp[bn1][1], mad_ac.loc[bn1, "BETX"], mad_ac.loc[bn1, "MUX"], betax_rescale[bn1][0], betax_rescale[bn1][1]]
             tfs_file.add_table_row(list_row_entries)
 
         #-- ac to free amp beta
@@ -760,7 +772,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 for i in range(0, len(bpmsf)):
                     bn1 = str.upper(bpmsf[i][1])
                     bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf[bn1][0], betaxf[bn1][1], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], beta_d.x_ratio_f * betaxf[bn1][0], beta_d.x_ratio_f * betaxf[bn1][1]]
+                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf[bn1][0], betaxf[bn1][1],
+                                        mad_twiss.loc[bn1, "BETX"], mad_twiss.loc[bn1, "MUX"], beta_d.x_ratio_f * betaxf[bn1][0], beta_d.x_ratio_f * betaxf[bn1][1]]
                     tfs_file.add_table_row(list_row_entries)
 
             except:
@@ -779,7 +792,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             for i in range(0, len(bpmsf2)):
                 bn1 = str.upper(bpmsf2[i][1])
                 bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], betaxf2_rescale[bn1][0], betaxf2_rescale[bn1][1]]
+                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1],
+                                    mad_twiss.loc[bn1, "BETX"], mad_twiss.loc[bn1, "MUX"], betaxf2_rescale[bn1][0], betaxf2_rescale[bn1][1]]
                 tfs_file.add_table_row(list_row_entries)  # V plane
 
     if twiss_d.has_zero_dpp_y():
@@ -820,8 +834,12 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         
         for name in commonbpms_y.index:
             bn1 = str.upper(name)
-            bns1 = commonbpms_y.loc[name, "S"]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_amp[bn1][0], beta_d.y_amp[bn1][1], mad_ac.BETY[mad_ac.indx[bn1]], mad_ac.MUY[mad_ac.indx[bn1]], betay_rescale[bn1][0], betay_rescale[bn1][1]]
+            if UNION:
+                bns1 = commonbpms_y.loc[name, "S"]
+            else:
+                bns1 = commonbpms_y.loc[name]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_amp[bn1][0],
+                                beta_d.y_amp[bn1][1], mad_ac.loc[bn1, "BETY"], mad_ac.loc[bn1, "MUY"], betay_rescale[bn1][0], betay_rescale[bn1][1]]
             tfs_file.add_table_row(list_row_entries)  # ac to free amp beta
 
         if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: # from eq
@@ -968,9 +986,9 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
     for i in range(0, len(commonbpms)):  # this loop have become complicated after modifications... anybody simplify?
         bn1 = str.upper(commonbpms.index[i])
         if plane == 'H':
-            tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]
+            tembeta = mad_twiss.loc[bn1, "BETX"]
         elif plane == 'V':
-            tembeta = mad_twiss.BETY[mad_twiss.indx[bn1]]
+            tembeta = mad_twiss.loc[bn1, "BETY"]
         amp_i = 0.0
         amp_j2 = []
         root2j_i = 0.0
@@ -1009,7 +1027,7 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
     delbeta = []
     for i in range(0, len(commonbpms)):
         bn1 = str.upper(commonbpms.index[i])
-        location = commonbpms.iloc[i]
+        location = commonbpms.loc[bn1, "S"]
         for j in range(0, len(list_of_files)):
             amp2[i][j] = amp2[i][j] / kick2[j]
         #print np.average(amp2[i]*amp2[i]),np.average(amp2[i])**2
@@ -1020,9 +1038,9 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
 
         beta[bn1] = [amp[i] ** 2 / kick, betstd, location]
         if plane == 'H':
-            betmdl = mad_twiss.BETX[mad_twiss.indx[bn1]]
+            betmdl = mad_twiss.loc[bn1, "BETX"]
         elif plane == 'V':
-            betmdl = mad_twiss.BETY[mad_twiss.indx[bn1]]
+            betmdl = mad_twiss.loc[bn1, "BETY"]
         delbeta.append((beta[bn1][0] - betmdl) / betmdl)
 
     invariant_j = [root2j_ave, root2j_rms]
@@ -1476,7 +1494,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         mu_column = "MUX"
         bet_column = "BETX"
     elif plane == 'V':
-        betmdl1 = madTwiss.get_value(probed_bpm_name, "BETX")
+        betmdl1 = madTwiss.get_value(probed_bpm_name, "BETY")
         mu_column = "MUY"
         bet_column = "BETY"
     
@@ -1521,22 +1539,18 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
                 madElements.iloc[:indx_el_last + 1][mu_column])) * TWOPI
                 
     elif indx_last >= len_bpms_total:
-        if Index == len_bpms_total - 1:
-            __index = 0
-        else:
-            __index = Index
         outerMeasPhaseAdv = pd.concat((
-                phases_meas.iloc[__index, indx_first:],
-                phases_meas.iloc[__index, :indx_last % len_bpms_total] + tune * TWOPI))
+                phases_meas.iloc[Index, indx_first:],
+                phases_meas.iloc[Index, :(indx_last+1) % len_bpms_total] + tune * TWOPI))
         outerMeasErr = pd.concat((
-                phases_err.iloc[__index, indx_first:],
-                phases_err.iloc[__index, :indx_last % len_bpms_total]))
+                phases_err.iloc[Index, indx_first:],
+                phases_err.iloc[Index, :(indx_last+1) % len_bpms_total]))
         outerMdlPh = np.concatenate((
                 madTwiss.iloc[indx_first:][mu_column],
                 madTwiss.iloc[:indx_last % len_bpms_total][mu_column]  + mdltune)) * TWOPI
         outerElmts = pd.concat((
                 madElements.iloc[indx_el_first:],
-                madElements.iloc[:indx_el_last]))
+                madElements.iloc[:indx_el_last+1]))
         outerElmtsPh = np.concatenate((
                 madElements.iloc[indx_el_first:][mu_column],
                 madElements.iloc[:indx_el_last + 1][mu_column] + mdltune)) * TWOPI
@@ -1590,6 +1604,8 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     for i, combo in enumerate(BBA_combo):
         ix = combo[0] + m
         iy = combo[1] + m
+        if combo[0] + Index < 0:
+            continue
         
         # remove bad combination
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
@@ -1642,6 +1658,9 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     for i, combo in enumerate(BAB_combo):
         ix = combo[0] + m
         iy = combo[1] + m
+
+        if combo[0] + Index < 0 or combo[1] + Index >= len_bpms_total:
+            continue
         
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
@@ -1687,6 +1706,9 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     for i, combo in enumerate(ABB_combo):
         ix = combo[0] + m 
         iy = combo[1] + range_of_bpms / 2
+
+        if combo[1] + Index >= len_bpms_total:
+            continue
         
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
