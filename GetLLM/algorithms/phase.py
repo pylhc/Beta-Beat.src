@@ -90,8 +90,13 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     '''
     # get common bpms
     phase_d = PhaseData()
-    bpmsx = twiss_d.zero_dpp_unionbpms_x
-    bpmsy = twiss_d.zero_dpp_unionbpms_y
+    if UNION:
+        bpmsx = twiss_d.zero_dpp_unionbpms_x
+        bpmsy = twiss_d.zero_dpp_unionbpms_y
+    else:
+        bpmsx = twiss_d.zero_dpp_commonbpms_x
+        bpmsy = twiss_d.zero_dpp_commonbpms_y
+
 
 
     print 'Calculating phase'
@@ -374,7 +379,7 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
     for i in range(len(Files)):
         file_tfs = Files[i]
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
-        phases_meas[k_lastbpm:] += tune_q  * bd
+        #phases_meas[k_lastbpm:] += tune_q  * bd
         meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
         phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
         
@@ -413,8 +418,8 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
     phase_advances["NFILES"] = nfiles
     phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) * vec_t_value_correction(nfiles)
 
-    LOGGER.debug("t_value correction......[YES]")
-    LOGGER.debug("optimistic errorbars....[YES]")
+    LOGGER.debug("t_value correction.................[YES]")
+    LOGGER.debug("optimistic errorbars...............[YES]")
 
     return phase_advances
 
