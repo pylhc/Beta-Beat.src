@@ -973,7 +973,7 @@ def _get_commonbpms(ListOfFiles, model):
             common.loc[ListOfFiles[i].index, "NFILES"] += 1
         union = common.drop(common[common.loc[:,"NFILES"] < 2].index)
         inters = common.drop(common[common.loc[:,"NFILES"] < len(ListOfFiles)].index)
-    return inters, union
+        return inters, union
     
     common_index = model.index
     for i in range(len(ListOfFiles)):
