@@ -652,7 +652,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     return beta_d
 # END calculate_beta_from_phase -------------------------------------------------------------------------------
 
-@profile
 def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict):
     '''
     Calculates beta and fills the following TfsFiles:

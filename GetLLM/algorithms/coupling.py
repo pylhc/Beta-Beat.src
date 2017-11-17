@@ -46,7 +46,6 @@ LOGGER = logging_tools.get_logger(__name__)
 #===================================================================================================
 # main part
 #===================================================================================================
-
 def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict):
     '''
     Calculates coupling and fills the following TfsFiles:
@@ -144,7 +143,12 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             elif getllm_d.num_bpms_for_coupling == 2:
                 # Try to include model parameters
                 try:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, abs(fwqw[bn1][0][2]), fwqw[bn1][0][3], fwqw[bn1][0][2].real, fwqw[bn1][0][2].imag, fwqw[bn1][1][0], fwqw[bn1][1][1], fwqw[bn1][1][2], fwqw[bn1][1][3], mad_ac.f1001[mad_ac.indx[bn1]].real, mad_ac.f1001[mad_ac.indx[bn1]].imag, mad_ac.f1010[mad_ac.indx[bn1]].real, mad_ac.f1010[mad_ac.indx[bn1]].imag]
+                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]),
+                                        fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag,
+                                        abs(fwqw[bn1][0][2]), fwqw[bn1][0][3], fwqw[bn1][0][2].real,
+                                        fwqw[bn1][0][2].imag, fwqw[bn1][1][0], fwqw[bn1][1][1], fwqw[bn1][1][2],
+                                        fwqw[bn1][1][3], mad_ac.loc[bn1, "f1001"].real, mad_ac.loc[bn1, "f1001"].imag,
+                                        mad_ac.loc[bn1, "f1010"].real, mad_ac.loc[bn1, "f1010"].imag]
                 # Leave model parameters to 0.0 if not contained in model
                 except AttributeError:
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, abs(fwqw[bn1][0][2]), fwqw[bn1][0][3], fwqw[bn1][0][2].real, fwqw[bn1][0][2].imag, fwqw[bn1][1][0], fwqw[bn1][1][1], fwqw[bn1][1][2], fwqw[bn1][1][3], 0.0, 0.0, 0.0, 0.0]
@@ -556,22 +560,22 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
                 std_f1010ij.append(0.25*math.sqrt(4.0/TBm10ij/SA0m1ij)*math.sqrt((std_TBm10ij*SA0m1ij/4)**2+(TBm10ij*std_SA0m1ij/4)**2))
 
             if accel.get_beam_direction() == 1:
-                q1jd.append((phi0p1ij-tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2jd.append((-phip10ij+tw_x.MUX[tw_x.indx[bn1]]-0.25)%1.0)
+                q1jd.append((phi0p1ij-tw_y.loc[bn1, "MUY"]+0.25)%1.0) # note that phases are in units of 2pi
+                q2jd.append((-phip10ij+tw_x.loc[bn1, "MUX"]-0.25)%1.0)
             elif accel.get_beam_direction() == -1:
-                q1jd.append((phi0p1ij-tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2jd.append(-(-phip10ij+tw_x.MUX[tw_x.indx[bn1]]-0.25)%1.0)
+                q1jd.append((phi0p1ij-tw_y.loc[bn1, "MUY"]+0.25)%1.0) # note that phases are in units of 2pi
+                q2jd.append(-(-phip10ij+tw_x.loc[bn1, "MUX"]-0.25)%1.0)
 
             # This sign change in the real part is to comply with MAD output
             q1jd[j] = (0.5-q1jd[j])%1.0 
             q2jd[j] = (0.5-q2jd[j])%1.0
 
             if accel.get_beam_direction() == 1:
-                q1js.append((phi0m1ij+tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2js.append((phim10ij+tw_x.MUX[tw_x.indx[bn1]]+0.25)%1.0)
+                q1js.append((phi0m1ij+tw_y.loc[bn1, "MUY"]+0.25)%1.0) # note that phases are in units of 2pi
+                q2js.append((phim10ij+tw_x.loc[bn1, "MUX"]+0.25)%1.0)
             if accel.get_beam_direction() == -1:
-                q1js.append((phi0m1ij+tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
-                q2js.append(-(phim10ij+tw_x.MUX[tw_x.indx[bn1]]+0.25)%1.0)
+                q1js.append((phi0m1ij+tw_y.loc[bn1, "MUY"]+0.25)%1.0) # note that phases are in units of 2pi
+                q2js.append(-(phim10ij+tw_x.loc[bn1, "MUX"]+0.25)%1.0)
             # This sign change in the real part is to comply with MAD output
             q1js[j] = (0.5-q1js[j])%1.0
             q2js[j] = (0.5-q2js[j])%1.0
@@ -629,9 +633,9 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
             f1010i = f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))
             # Add BPM to list of BPMs with correct phase
             if UNION:
-                dbpmt.append([dbpms.iloc[i].loc["S"], dbpms.index[i]])
+                dbpmt.append([dbpms.loc[bn1, "S"], dbpms.index[i]])
             else:
-                dbpmt.append([dbpms.iloc[i], dbpms.index[i]])
+                dbpmt.append([dbpms.loc[bn1], dbpms.index[i]])
 
 
             # Save results to BPM-results dictionary, sorted depending on beam_direction
