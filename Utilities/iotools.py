@@ -182,10 +182,12 @@ def read_all_lines_in_textfile(path_to_textfile):
     with open(path_to_textfile) as textfile:
         return textfile.read()
 
+
 def append_string_to_textfile(path_to_textfile, str_to_append):
     """ If file does not exist, a new file will be created. """
     with open(path_to_textfile, "a") as file_to_append:
         file_to_append.write(str_to_append)
+
 
 def write_string_into_new_file(path_to_textfile, str_to_insert):
     """ An existing file will be truncated. """
