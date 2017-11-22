@@ -247,6 +247,7 @@ class HarpyInput(object):
         "sequential": False,
         "no_tune_clean": False,
         "tune_clean_limit": 1e-5,
+        "is_free_kick": False,
     }
 
     def __init__(self):
@@ -261,6 +262,7 @@ class HarpyInput(object):
         self.sequential = HarpyInput.DEFAULTS["sequential"]
         self.no_tune_clean = HarpyInput.DEFAULTS["no_tune_clean"]
         self.tune_clean_limit = HarpyInput.DEFAULTS["tune_clean_limit"]
+        self.is_free_kick = HarpyInput.DEFAULTS["is_free_kick"]
 
     @staticmethod
     def init_from_options(options):
@@ -276,6 +278,7 @@ class HarpyInput(object):
         self.sequential = options.sequential
         self.no_tune_clean = options.no_tune_clean
         self.tune_clean_limit = options.tune_clean_limit
+        self.is_free_kick = options.is_free_kick
         return self
 
 
@@ -339,6 +342,11 @@ def _get_harpy_parser():
         help="The autoclean wont remove tune deviation lower than this limit.",
         dest="tune_clean_limit", type=float,
         default=HarpyInput.DEFAULTS["tune_clean_limit"]
+    )
+    parser.add_argument(
+        "--free_kick",
+        help="If present, it will perform the free kick phase correction",
+        dest="is_free_kick", action="store_true",
     )
     ################################
     return parser
