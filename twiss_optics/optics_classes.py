@@ -2,10 +2,15 @@
     Provides Classes to calculate optics from twiss parameters.
     The calculation is based on formulas in [1,2].
 
-    Resonance Driving Terms: Eq.A8 in [2]
-    Linear Dispersion: Eq. 24 in [2]
+    Only works properly for on-orbit twiss files.
 
-    [1]
+    Resonance Driving Terms: Eq. A8 in [2]
+    Linear Dispersion: Eq. 24 in [2]
+    Linear Chromaticity: Eq. 31 in [2]
+    Chromatic Beating: Eq. 36 in [2]
+
+
+    [1]  A. Franchi et al.,
          First simultaneous measurement of sextupolar and octupolar resonance driving terms in a
          circular accelerator from turn-by-turn beam position monitor data,
          Phys. Rev. ST Accel. Beams 17, 074001 (2014).
@@ -22,25 +27,23 @@
 from __future__ import print_function
 import __init__
 import os, sys
+import re
 import numpy as np
 import pandas as pd
 import itertools
 from math import factorial
-from Utilities import tfs_pandas as tfs
-from Utilities.contexts import timeit
 import matplotlib.pyplot as plt
 from Utilities.plotting import plot_style as pstyle
 from Utilities import logging_tools as logtool
+from Utilities import tfs_pandas as tfs
+from Utilities.contexts import timeit
 
-import re
-
-
-LOG = logtool.get_logger(__name__, level_console=0)
-
+LOG = logtool.get_logger(__name__)
 
 ################################
-#           CLASSES
+#        TwissOptics
 ################################
+
 
 class TwissOptics(object):
 
@@ -56,6 +59,7 @@ class TwissOptics(object):
         self._add_result_dataframe()  # self._results_df
         self._add_element_types()  # self._elements, self._elements_mapped
         self._add_phase_advances()  # self._phase_advances
+        self._define_plot_style()
 
     def _add_ip_pos(self):
         tw = self.mad_twiss
@@ -71,10 +75,8 @@ class TwissOptics(object):
 
     def _add_result_dataframe(self):
         LOG.debug("Adding results dataframe.")
-        self._results_df = tfs.TfsDataFrame(
-            data=self.mad_twiss['S'],
-            index=self.mad_twiss.index,
-        )
+        self._results_df = tfs.TfsDataFrame(index=self.mad_twiss.index)
+        self._results_df["S"] = self.mad_twiss["S"]
 
     def _add_element_types(self):
         LOG.debug("Sorting Elements into types:")
@@ -117,19 +119,25 @@ class TwissOptics(object):
         :return: Matrices similar to DPhi(i,j) = Phi(j) - Phi(i)
         """
         LOG.debug("Adding Phase Advances:")
-        self._phase_advances = dict.fromkeys(['X', 'Y'])
+        self._phase_advance = dict.fromkeys(['X', 'Y'])
         with timeit(lambda t:
                     LOG.debug("  Phase Advances calculated in {:f}s".format(t))):
             for plane in ['X', 'Y']:
                 colmn_phase = "MU" + plane
 
                 phases_mdl = self.mad_twiss.loc[self.mad_twiss.index, colmn_phase]
-                phase_advances = pd.DataFrame((phases_mdl[:, None] - phases_mdl[None, :]))
-                phase_advances.set_index(self.mad_twiss.index, inplace=True)
-                phase_advances.columns = self.mad_twiss.index
+                phase_advances = pd.DataFrame((phases_mdl[:, None] - phases_mdl[None, :]),
+                                              index=self.mad_twiss.index,
+                                              columns=self.mad_twiss.index)
                 # Do not calculate dphi and tau here.
                 # only slices of phase_advances as otherwise super slow
-                self._phase_advances[plane] = phase_advances
+                self._phase_advance[plane] = phase_advances
+
+    def _define_plot_style(self):
+        self._plot_style = 'standard'
+        self._plot_manual = {u'lines.linestyle': '-',
+                             u'lines.marker': '',
+                             }
 
     ################################
     #         Properties
@@ -138,49 +146,75 @@ class TwissOptics(object):
     @property
     def betas(self):
         """ Betas Function """
-        return self._results_df.betas
+        return self._results_df.loc[:, ['S', 'BETX', 'BETY']]
 
     @betas.setter
     def betas(self, new):
-        self._results_df.betas = new
+        self._results_df.loc[:, ['BETX', 'BETY']] = new
 
     @property
     def dispersion(self):
         """ Dispersion Function """
-        return self._results_df.dispersion
+        return self._results_df.loc[:, ['S', 'DX', 'DY']]
 
     @dispersion.setter
     def dispersion(self, new):
-        self._results_df.dispersion = new
+        self._results_df.loc[:, ['DX', 'DY']] = new
 
     @property
     def coupling(self):
         """ Coupling Function """
-        return self._results_df.coupling
+        return self._results_df.loc[:, ['S', 'F1001', 'F1010']]
 
     @coupling.setter
     def coupling(self, new):
-        self._results_df.coupling = new
+        self._results_df.loc[:, ['F1001', 'F1010']] = new
+
+    @property
+    def linear_chromaticity(self):
+        """ Chromaticity Function """
+        return self._results_df.DQ1, self._results_df.DQ2
+
+    @linear_chromaticity.setter
+    def linear_chromaticity(self, new):
+        self._results_df.DQ1 = new[0]
+        self._results_df.DQ2 = new[1]
+
+    def get_K(self, order):
+        return self._results_df.loc[:, 'K{0}L'.format(order)]
+
+    def set_K(self, order, value):
+        self._results_df.loc[:, 'K{0}L'.format(order)] = value
+
+    def get_J(self, order):
+        return self._results_df.loc[:, 'K{0}SL'.format(order)]
+
+    def set_J(self, order, value):
+        self._results_df.loc[:, 'K{0}SL'.format(order)] = value
+
+    ################################
+    #       Response Matrix
+    ################################
 
     ################################
     #   Resonance Driving Terms
     ################################
 
     def calc_rdts(self, order):
-        """ Calculate RDTs """
+        """ Eq. A8 in [2] """
         if isinstance(order, int):
             order = get_all_rdts(order)
         elif not isinstance(order, list):
             order = [order]
 
-        LOG.debug("Calculating RDTs: {:s}.".format(str(order)[1:-1]))
+        LOG.info("Calculating RDTs: {:s}.".format(str(order)[1:-1]))
         with timeit(lambda t:
                     LOG.debug("  RDTs calculated in {:f}s".format(t))):
 
             i2pi = 2j * np.pi
             tw = self.mad_twiss
-            phs_adv = self._phase_advances
-            res_df = self._results_df
+            phs_adv = self._phase_advance
+            res = self._results_df
 
             for rdt in order:
                 assertion(len(rdt) == 5 and rdt[0].upper() == 'F',
@@ -189,7 +223,7 @@ class TwissOptics(object):
                 conj_rdt = ''.join(['F', rdt[2], rdt[1], rdt[4], rdt[3]])
 
                 if conj_rdt in self._results_df:
-                    res_df[rdt.upper()] = np.conjugate(self._results_df[conj_rdt])
+                    res[rdt.upper()] = np.conjugate(self._results_df[conj_rdt])
                 else:
                     j, k, l, m = int(rdt[1]), int(rdt[2]), int(rdt[3]), int(rdt[4])
                     n = j + k + l + m
@@ -222,14 +256,14 @@ class TwissOptics(object):
                                     tw.loc[k_mask, 'BETX'] ** ((j+k) / 2.) * \
                                     tw.loc[k_mask, 'BETY'] ** ((l+m) / 2.)
 
-                        res_df.loc[el_mask, rdt.upper()] = sign * phase_term.multiply(
+                        res.loc[el_mask, rdt.upper()] = sign * phase_term.multiply(
                             beta_term, axis="index").sum(axis=0).transpose() * denom
 
                         LOG.debug("  Average RDT amplitude |{:s}|: {:g}".format(rdt, np.mean(
-                            np.abs(res_df.loc[el_mask, rdt.upper()]))))
+                            np.abs(res.loc[el_mask, rdt.upper()]))))
                     else:
                         LOG.debug("  All {:s} == 0. RDT '{:s}' will be zero.".format(src, rdt))
-                        res_df.loc[el_mask, rdt.upper()] = 0
+                        res.loc[el_mask, rdt.upper()] = 0
 
     def get_rdts(self, rdt_names=None):
         """ Return dataframe with rdts """
@@ -241,22 +275,26 @@ class TwissOptics(object):
             return self._results_df.loc[:, regex_in('\A(S|F\d{4})$', self._results_df.columns)]
 
     def plot_rdts(self, rdt_names=None, apply_fun=np.abs, combined=True):
+        LOG.info("Plotting Resonance Driving Terms")
         rdts = self.get_rdts(rdt_names)
         is_s = regex_in('\AS$', rdts.columns)
         rdts = rdts.dropna()
         rdts.loc[:, ~is_s] = rdts.loc[:, ~is_s].applymap(apply_fun)
-        pstyle.set_style('standard',
-                         {u'lines.linestyle': '-',
-                          u'lines.marker': ''})
+        pstyle.set_style(self._plot_style, self._plot_manual)
+
         if combined:
             ax = rdts.plot(x='S')
             ax.set_title('Resonance Driving Terms')
+            pstyle.small_title(ax)
+            pstyle.set_name('Resonance Driving Terms', ax)
             pstyle.set_yaxis_label(apply_fun.__name__, 'F_{{jklm}}', ax)
             self._nice_axes(ax)
         else:
             for rdt in rdts.loc[:, ~is_s]:
                 ax = rdts.plot(x='S', y=rdt)
                 ax.set_title('Resonance Driving Term ' + rdt)
+                pstyle.small_title(ax)
+                pstyle.set_name('Resonance Driving Term ' + rdt, ax)
                 pstyle.set_yaxis_label(apply_fun.__name__, rdt, ax)
                 self._nice_axes(ax)
 
@@ -264,41 +302,37 @@ class TwissOptics(object):
     #      Linear Dispersion
     ################################
 
-    def calc_lin_dispersion(self):
-        # helper functions
-        def coeff_fun(beta, q):
-            return np.sqrt(beta) / (2 * np.sin(np.pi * q))
-
-        def sum_fun(k, j, d, beta, tau):
-            # k, j, d , beta = columns -> convert to Series -> broadcasted
-            # tau = Matrix as Frame
-            calc_column = (k + j * d) * np.sqrt(beta)
-            if isinstance(calc_column, pd.DataFrame):
-                calc_column = calc_column.squeeze()
-            return np.cos(2*np.pi * tau).mul(calc_column, axis='index').sum(axis='index')
-
+    def calc_linear_dispersion(self, bpms_only=False):
+        """ Eq. 24 in [2] """
         tw = self.mad_twiss
-        phs_adv = self._phase_advances
-        res_df = self._results_df
+        phs_adv = self._phase_advance
+        res = self._results_df
         tau = self._tau
+        coeff_fun = self._linear_dispersion_coeff
+        sum_fun = self._linear_dispersion_sum
 
         # Calculate
-        LOG.debug("Calculate Linear Dispersion")
+        LOG.info("Calculate Linear Dispersion")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             # sources
             k0_mask = tw['K0L'] != 0
             k0s_mask = tw['K0SL'] != 0
             k1s_mask = tw['K1SL'] != 0
 
-            # results
             mx_mask = k0_mask | k1s_mask  # magnets contributing to Dx,j (-> Dy,m)
             my_mask = k0s_mask | k1s_mask  # magnets contributing to Dy,j (-> Dx,m)
 
             if not any(mx_mask | my_mask):
-                LOG.warning("  No linear dispersion contributions found. Values will be zero.")
-                res_df['DX'] = 0
-                res_df['DY'] = 0
+                LOG.warning("  No linear dispersion contributions found. Values will be NaN.")
+                res['DX'] = np.nan
+                res['DY'] = np.nan
                 return
+
+            # results
+            if bpms_only:
+                res_mask = self._elements["BPM"]
+            else:
+                res_mask = np.ones(res.shape[0], dtype=bool)
 
             # create temporary DataFrame for magnets with coefficients already in place
             df = tfs.TfsDataFrame(index=tw.index).join(
@@ -323,169 +357,326 @@ class TwissOptics(object):
                                             ).transpose()
 
             LOG.debug("  Calculate full linear dispersion values")
-            res_df.loc[:, 'DX'] = df.loc[:, 'COEFFX'] * \
+            res.loc[res_mask, 'DX'] = df.loc[res_mask, 'COEFFX'] * \
                                 sum_fun(tw.loc[mx_mask, 'K0L'],
                                         tw.loc[mx_mask, 'K1SL'],
                                         df.loc[mx_mask, 'DY'],
                                         tw.loc[mx_mask, 'BETX'],
-                                        tau(phs_adv['X'].loc[mx_mask, :], tw.Q1)
+                                        tau(phs_adv['X'].loc[mx_mask, res_mask], tw.Q1)
                                         ).transpose()
-            res_df.loc[:, 'DY'] = df.loc[:, 'COEFFY'] * \
+            res.loc[res_mask, 'DY'] = df.loc[res_mask, 'COEFFY'] * \
                                 sum_fun(-tw.loc[my_mask, 'K0SL'],  # MINUS!
                                         tw.loc[my_mask, 'K1SL'],
                                         df.loc[my_mask, 'DX'],
                                         tw.loc[my_mask, 'BETY'],
-                                        tau(phs_adv['Y'].loc[my_mask, :], tw.Q2)
+                                        tau(phs_adv['Y'].loc[my_mask, res_mask], tw.Q2)
                                         ).transpose()
 
         LOG.debug("  Average linear dispersion Dx: {:g}".format(
-                                                    np.mean(res_df.loc[:, 'DX'])))
+                                                    np.mean(res['DX'])))
         LOG.debug("  Average linear dispersion Dy: {:g}".format(
-                                                    np.mean(res_df.loc[:, 'DY'])))
+                                                    np.mean(res['DY'])))
 
-    def get_lin_dispersion(self):
-        """ Return dataframe with rdts """
+    def get_linear_dispersion(self):
+        """ Return dataframe with linear dispersion """
         return self._results_df.loc[:, ["S", "DX", "DY"]]
 
-    def plot_lin_dispersion(self, combined=True, madx=False, error=False):
+    def plot_linear_dispersion(self, combined=True):
+        LOG.info("Plotting Linear Dispersion")
         tw = self.mad_twiss
-        lin_disp = self.get_lin_dispersion().dropna()
-        pstyle.set_style('standard',
-                         {u'lines.linestyle': '-',
-                          u'lines.marker': ''})
+        lin_disp = self.get_linear_dispersion().dropna()
+        title = 'Linear Dispersion'
+        pstyle.set_style(self._plot_style, self._plot_manual)
 
         if combined:
             ax_dx = lin_disp.plot(x='S')
-            ax_dx.set_title('Linear Dispersion')
+            ax_dx.set_title(title)
             pstyle.set_yaxis_label('dispersion', 'x,y', ax_dx)
             ax_dy = ax_dx
         else:
             ax_dx = lin_disp.plot(x='S', y='DX')
-            ax_dx.set_title('Linear Dispersion')
+            ax_dx.set_title(title)
             pstyle.set_yaxis_label('dispersion', 'x', ax_dx)
 
             ax_dy = lin_disp.plot(x='S', y='DY')
-            ax_dy.set_title('Linear Dispersion')
+            ax_dy.set_title(title)
             pstyle.set_yaxis_label('dispersion', 'y', ax_dy)
-
-        if madx:
-            ax_dx.plot(tw['S'], tw['DX'], label='DX MADX', linestyle='--')
-            ax_dy.plot(tw['S'], tw['DY'], label='DY MADX', linestyle='--')
 
         for ax in (ax_dx, ax_dy):
             self._nice_axes(ax)
             ax.legend()
 
-        if error:
-            _, ax_errx = plt.subplots()
-            ax_errx.set_title('Dispersion Estimation Error -  Analytical to MADX')
-            if combined:
-                ax_erry = ax_errx
-                pstyle.set_yaxis_label('dispersion', 'x,y', ax_errx, delta=True)
-            else:
-                _, ax_erry = plt.subplots()
-                pstyle.set_yaxis_label('dispersion', 'x', ax_errx, delta=True)
-                pstyle.set_yaxis_label('dispersion', 'y', ax_erry, delta=True)
-                ax_erry.set_title('Dispersion Estimation Error -  Analytical to MADX')
+    # helpers
+    @staticmethod
+    def _linear_dispersion_coeff(beta, q):
+        return np.sqrt(beta) / (2 * np.sin(np.pi * q))
 
-            ax_errx.plot(lin_disp['S'], (tw.loc[lin_disp.index, 'DX'] - lin_disp['DX']),
-                         label='Error DX')
-            ax_erry.plot(lin_disp['S'], (tw.loc[lin_disp.index, 'DY'] - lin_disp['DY']),
-                         label='Error DY')
-
-            for ax in (ax_errx, ax_erry):
-                self._nice_axes(ax)
-                ax.legend()
+    @staticmethod
+    def _linear_dispersion_sum(k, j, d, beta, tau):
+        # k, j, d , beta = columns -> convert to Series -> broadcasted
+        # tau = Matrix as Frame
+        calc_column = (k + j * d) * np.sqrt(beta)
+        if isinstance(calc_column, pd.DataFrame):
+            calc_column = calc_column.squeeze()
+        return np.cos(2 * np.pi * tau).mul(calc_column, axis='index').sum(axis='index')
 
     ################################
     #      Phase Adv Shifts
     ################################
 
-    def calc_shift_phase(self):
-        pass
+    def calc_phase_advance(self, bpms_only=True):
+        raise NotImplementedError('Second Order Dispersion is not Implemented yet.')
+        tw = self.mad_twiss
+        phs_adv = self._phase_advance
+        res = self._results_df
+        tau = self._tau
+        dphs_adv = self._dphase_advance
 
-    def get_shift_phase(self):
-        pass
+        LOG.info("Calculate Linear Dispersion")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+            dk1 = res['K1L'] - tw['K1L']
+            dk1_mask = dk1 != 0
+            if not any(dk1_mask):
+                LOG.warning("  No K1L value differences found. All phase-shifts will be zero.")
+                return
 
-    def plot_shift_phase(self):
-        pass
+            # results
+            if bpms_only:
+                res_mask = self._elements["BPM"]
+            else:
+                res_mask = np.ones([res.shape[0], 1], dtype=bool)
+
+            #    _ _ _ _
+            # j /      /|  m = contributing magnets dk1_mask
+            #  /_ _ _ / |  j = res_mask
+            #  |  w   | |  w = res_mask
+            # m|      | /
+            #  |_ _ _ |/
+            #
+
+            s = tw['S']
+            PI = np.array(s[:, None] < s[None, :])  # pi(i,j) = s(i) < s(j)
+            pi_cube = (PI[dk1_mask, None, res_mask] -
+                       PI[dk1_mask, res_mask, None] +
+                       PI[None, res_mask, res_mask])
+            # pi_cube = pi_cube[dk1_mask, :, :]
+            taux = tau(phs_adv['X'][dk1_mask, res_mask], tw.Q1)
+            tauy = tau(phs_adv['Y'][dk1_mask, res_mask], tw.Q2)
+
+            dphs_adv['X'] = (1/4 * dk1[dk1_mask] * tw.loc[dk1_mask, 'BETX'] * (
+                2 * pi_cube + ((np.sin(4 * np.pi * taux[:, None, :]) -
+                                np.sin(4 * np.pi * taux[:, :, None])) * 1/np.sin(2*np.pi*tw.Q1)))
+                             ).sum(axis=0) * (1 / (2 * np.pi))
+
+            dphs_adv['Y'] = (1/4 * dk1[dk1_mask] * tw.loc[dk1_mask, 'BETY'] * (
+                2 * pi_cube + ((np.sin(4 * np.pi * tauy[:, None, :]) -
+                                np.sin(4 * np.pi * tauy[:, :, None])) * 1/np.sin(2*np.pi*tw.Q2)))
+                             ).sum(axis=0) * (1 / (2 * np.pi))
+
+    def get_phase_advance(self):
+        return self._dphase_advance
+
+    def plot_phase_advance(self, combined=True):
+        """ Plots the phase advance, but only between two consecutive elements """
+        LOG.info("Plotting Phase Advance")
+        tw = self.mad_twiss
+        pa = self._phase_advance
+        dpa = self._dphase_advance
+        phase_advx = np.append(pa['X'].iloc[0, -1] + tw.Q1, pa['X'].values.diagonal(offset=-1))
+        dphase_advx = np.append(dpa['X'].iloc[0, -1], dpa['X'].values.diagonal(offset=-1))
+        phase_advy = np.append(pa['Y'].iloc[0, -1] + tw.Q2, pa['Y'].values.diagonal(offset=-1))
+        dphase_advy = np.append(dpa['Y'].iloc[0, -1], dpa['Y'].values.diagonal(offset=-1))
+        phase_adv = tw[["S"]].copy()
+        phase_adv['MUX'] = np.cumsum(phase_advx + dphase_advx) % 1 -.5
+        phase_adv['MUY'] = np.cumsum(phase_advy + dphase_advy) % 1 -.5
+
+        title = 'Phase'
+        pstyle.set_style(self._plot_style, self._plot_manual)
+
+        if combined:
+            ax_dx = phase_adv.plot(x='S')
+            ax_dx.set_title(title)
+            pstyle.small_title(ax_dx)
+            pstyle.set_name(title, ax_dx)
+            pstyle.set_yaxis_label('phase', 'x,y', ax_dx, delta=False)
+            ax_dy = ax_dx
+        else:
+            ax_dx = phase_adv.plot(x='S', y='MUX')
+            ax_dx.set_title(title)
+            pstyle.small_title(ax_dx)
+            pstyle.set_name(title, ax_dx)
+            pstyle.set_yaxis_label('phase', 'x', ax_dx, delta=False)
+
+            ax_dy = phase_adv.plot(x='S', y='MUY')
+            ax_dy.set_title(title)
+            pstyle.small_title(ax_dy)
+            pstyle.set_name(title, ax_dy)
+            pstyle.set_yaxis_label('phase', 'y', ax_dy, delta=False)
+
+        for ax in (ax_dx, ax_dy):
+            self._nice_axes(ax)
+            ax.legend()
 
     ################################
     #     Linear Chromaticity
     ################################
 
-    def calc_lin_chromaticity(self):
-        pass
+    def calc_linear_chromaticity(self):
+        """ Eq. 31 in [2] """
+        res = self._results_df
 
-    def get_lin_chromaticity(self):
-        pass
+        if 'CHROMX' not in res:
+            self._calc_chromatic_term()
 
-    def plot_lin_chromaticity(self):
-        pass
+        LOG.info("Calculating Linear Chromaticity")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+            DQ1 = - 1/(4 * np.pi) * res['CHROMX'].dropna().sum(axis="index")
+            DQ2 = 1/(4 * np.pi) * res['CHROMY'].dropna().sum(axis="index")
+
+        self._results_df.DQ1 = DQ1
+        self._results_df.DQ2 = DQ2
+        LOG.debug("  Q'x: {:f}".format(DQ1))
+        LOG.debug("  Q'y: {:f}".format(DQ2))
 
     ################################
     #     Chromatic Beating
     ################################
 
-    def calc_chrom_beat(self):
-        pass
+    def calc_chromatic_beating(self):
+        """ Eq. 36 in [2] """
+        tw = self.mad_twiss
+        res = self._results_df
+        phs_adv = self._phase_advance
+        tau = self._tau
 
-    def get_chrom_beat(self):
-        pass
+        if 'CHROMX' not in res:
+            self._calc_chromatic_term()
 
-    def plot_chrom_beat(self):
-        pass
+        LOG.info("Calculating Chromatic Beating")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+            chromx = res['CHROMX'].dropna()
+            chromy = res['CHROMY'].dropna()
+            res['DBEATX'] = self._chromatic_beating(
+                chromx,
+                tau(phs_adv['X'].loc[chromx.index, :], tw.Q1),
+                tw.Q1).transpose() - 1
+            res['DBEATY'] = - self._chromatic_beating(
+                chromy,
+                tau(phs_adv['Y'].loc[chromy.index, :], tw.Q2),
+                tw.Q2).transpose() - 1
+
+        LOG.debug("  Pk2Pk chromatic beating DBEATX: {:g}".format(
+            res['DBEATX'].max() - res['DBEATX'].min()))
+        LOG.debug("  Pk2Pk chromatic beating DBEATY: {:g}".format(
+            res['DBEATY'].max() - res['DBEATY'].min()))
+
+    def get_chromatic_beating(self):
+        return self._results_df.loc[:, ["S", "DBEATX", "DBEATY"]]
+
+    def plot_chromatic_beating(self, combined=True):
+        LOG.info("Plotting Chromatic Beating")
+        chrom_beat = self.get_chromatic_beating().dropna()
+        title = 'Chromatic Beating'
+        pstyle.set_style(self._plot_style, self._plot_manual)
+
+        if combined:
+            ax_dx = chrom_beat.plot(x='S')
+            ax_dx.set_title(title)
+            pstyle.small_title(ax_dx)
+            pstyle.set_name(title, ax_dx)
+            pstyle.set_yaxis_label('dbetabeat', 'x,y', ax_dx)
+            ax_dy = ax_dx
+        else:
+            ax_dx = chrom_beat.plot(x='S', y='DBEATX')
+            ax_dx.set_title(title)
+            pstyle.small_title(ax_dx)
+            pstyle.set_name(title, ax_dx)
+            pstyle.set_yaxis_label('dbetabeat', 'x', ax_dx)
+
+            ax_dy = chrom_beat.plot(x='S', y='DBEATY')
+            ax_dy.set_title(title)
+            pstyle.small_title(ax_dy)
+            pstyle.set_name(title, ax_dy)
+            pstyle.set_yaxis_label('dbetabeat', 'y', ax_dy)
+
+        for ax in (ax_dx, ax_dy):
+            self._nice_axes(ax)
+            ax.legend()
+
+    @staticmethod
+    def _chromatic_beating(chrom_term, tau, q):
+        return 1 / (2 * np.sin(2 * np.pi * q)) * \
+               np.cos(4 * np.pi * tau).mul(chrom_term, axis='index').sum(axis='index')
 
     ################################
-    #  Chromatic Phase Adv Shifts
+    #  Chromatic Phase Adv Shifts (NA)
     ################################
 
-    def calc_chrom_shift_phase(self):
-        pass
+    def calc_chromatic_phase_adv_shift(self):
+        raise NotImplementedError('Chramatic Phase Advance Shift is not Implemented yet.')
 
-    def get_chrom_shift_phase(self):
-        pass
+    def get_chromatic_phase_adv_shift(self):
+        raise NotImplementedError('Chramatic Phase Advance Shift is not Implemented yet.')
 
-    def plot_chrom_shift_phase(self):
-        pass
-
-    ################################
-    #  Second Order Dispersion
-    ################################
-
-    def calc_sec_dispersion(self):
-        pass
-
-    def get_sec_dispersion(self):
-        pass
-
-    def plot_sec_dispersion(self):
-        pass
+    def plot_chromatic_phase_adv_shift(self):
+        raise NotImplementedError('Chramatic Phase Advance Shift is not Implemented yet.')
 
     ################################
-    #  Chromatic Coupling
+    #  Second Order Dispersion (NA)
     ################################
 
-    def calc_chrom_coupling(self):
-        pass
+    def calc_second_order_dispersion(self):
+        """ Eq. 11, 41 - 43 in [2] """
+        raise NotImplementedError('Second Order Dispersion is not Implemented yet.')
 
-    def get_chrom_coupling(self):
-        pass
+    def get_second_order_dispersion(self):
+        raise NotImplementedError('Second Order Dispersion is not Implemented yet.')
 
-    def plot_chrom_coupling(self):
-        pass
+    def plot_second_order_dispersion(self):
+        raise NotImplementedError('Second Order Dispersion is not Implemented yet.')
+
+    ################################
+    #  Chromatic Coupling (NA)
+    ################################
+
+    def calc_chromatic_coupling(self):
+        """ Eq. 47, 48, B77 in [2] """
+        raise NotImplementedError('Chromatic Coupling is not Implemented yet.')
+
+    def get_chromatic_coupling(self):
+        raise NotImplementedError('Chromatic Coupling is not Implemented yet.')
+
+    def plot_chromatic_coupling(self):
+        raise NotImplementedError('Chromatic Coupling is not Implemented yet.')
 
     ################################
     #       Class Helpers
     ################################
 
+    def _calc_chromatic_term(self):
+        LOG.info("Calculating Chromatic Term.")
+        res = self._results_df
+        tw = self.mad_twiss
+
+        #TODO: Decide weather DX, DY from Model or from calc
+
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+            mask = (tw['K1L'] != 0) | (tw['K2L'] != 0) | (tw['K2SL'] != 0)
+            sum_term = tw.loc[mask, 'K1L'] - \
+                       (tw.loc[mask, 'K2L'] * tw.loc[mask, 'DX']) + \
+                       (tw.loc[mask, 'K2SL'] * tw.loc[mask, 'DY'])
+            res['CHROMX'] = sum_term * tw.loc[mask, 'BETX']
+            res['CHROMY'] = sum_term * tw.loc[mask, 'BETY']
+
+        LOG.debug("Chromatic Term Calculated.")
+
     @staticmethod
     def _dphi(data, q):
-        return data + np.where(data < 0, q, 0)
+        return data + np.where(data <= 0, q, 0)  # '<=' seems to be what MAD-X does
 
     @staticmethod
     def _tau(data, q):
-        return data + np.where(data < 0, q / 2, -q / 2)
+        return data + np.where(data <= 0, q / 2, -q / 2)  # '<=' seems to be what MAD-X does
 
     def _nice_axes(self, ax):
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 3))
@@ -529,13 +720,40 @@ def get_all_rdts(n):
 def do_main():
     ''' Main function launcher '''
     model_2oct = os.path.abspath('tests/twiss_2oct_elements.dat')
-    model_test = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissBlubb"
+    model_test = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissKick"
     test_optics = TwissOptics(model_test)
     # test_optics.calc_rdts(['f1001', 'f1010'])
-    test_optics.calc_lin_dispersion()
-    test_optics.plot_lin_dispersion(combined=False, madx=True, error=True)
+    # test_optics.calc_linear_dispersion()
+    # test_optics.plot_linear_dispersion(combined=False)
+    test_optics.calc_chromatic_beating()
+    test_optics.plot_chromatic_beating()
+    # test_optics.plot_phase_advance()
+
     plt.draw_all()
     plt.show()
+    return
+
+    nodk = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissNoDK"
+    dk = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissDK"
+
+    nodk_opt = TwissOptics(nodk)
+    dk_opt = TwissOptics(dk)
+
+    # nodk_opt.set_K(1, dk_opt.get_K(1))
+    # nodk_opt.calc_phase_advance_shift()
+    # nodk_opt.plot_phase_advance()
+    # test_optics.calc_phase_advance_shift()
+
+
+    dk_opt.calc_rdts(['f1001', 'f1010'])
+    dk_opt.plot_rdts(['f1001', 'f1010'])
+
+
+
+
+    plt.draw_all()
+    plt.show()
+
 
 
 if __name__ == '__main__':

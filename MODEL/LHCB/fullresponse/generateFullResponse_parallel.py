@@ -248,7 +248,7 @@ def _generate_fullresponse_for_beta():
     path_all_lists_json_file = os.path.join(_InputData.core_path_with_accel, "AllLists.json")
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
-    variables = knobsdict["MQM"]+knobsdict["MQT"]+knobsdict["MQTL"]+knobsdict["MQY"]
+    variables = knobsdict["MQM"]+knobsdict["MQT"]+knobsdict["MQTL"]+knobsdict["MQY"]+knobsdict["MCBH"]
     delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
     #incr=ones(len(variables))*0.00005    #increment of variables    #### when squeeze low twiss fails because of to big delta
     incr = numpy.ones(len(variables)) * _InputData.delta_k
