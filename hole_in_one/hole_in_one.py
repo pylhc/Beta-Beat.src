@@ -152,9 +152,6 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
             plane
         )
         all_bad_bpms[plane].extend(bad_bpms_summaries)
-        if plane == "x":
-            with timeit(print):
-                print(chroma.get_chroma(bpm_datas["x"], lin_frame, model_tfs, plane))
     return all_bad_bpms
 
 
