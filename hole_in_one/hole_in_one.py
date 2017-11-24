@@ -242,7 +242,7 @@ def _get_damping(bpm_data):
     coefs = np.polyfit(np.arange(bpm_data.shape[1]),
                        np.maximum.accumulate(np.log(np.abs(bpm_data[::-1]))).T,
                        1)
-    return -np.mean(coefs[0, :]), np.std(coefs[0, :])
+    return np.mean(coefs[0, :]), np.std(coefs[0, :])
 
 
 def _rescale_amps_to_main_line(panda, plane):
