@@ -166,7 +166,7 @@ def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", metavar="PATH_TO_DIR", dest="model_dir",
                     help="Path to the model directory")
-    parser.add_argument("-d", "--dictionary",
+    parser.add_argument("-d", "--dictionary", # remove?
                     help="File with the BPM dictionary",
                     metavar="DICT", default=DICT, dest="dict")
     parser.add_argument("-f", "--files",
@@ -181,7 +181,7 @@ def _parse_args():
     parser.add_argument("-n", "--nbcpl",
                     help="Analysis option for coupling, 1 bpm or 2 bpms",
                     metavar="NBCPL", default=NBCPL, dest="NBcpl")
-    parser.add_argument("-t", "--tbtana",
+    parser.add_argument("-t", "--tbtana", # remove !
                     help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
                     metavar="TBTANA", default=TBTANA, dest="TBTana")
     parser.add_argument("--nonlinear",
@@ -215,10 +215,11 @@ def _parse_args():
     parser.add_argument("--calibration",
                     help="Path to the directory where the calibration files (calibration_x.out, calibration_y.out) are stored.",
                     metavar="CALIBRATION", default=CALIBRATION, dest="calibration_dir_path")
-    parser.add_argument("--errordefs",
-                      help="Gives path to the error definition file. If specified, the analytical formula will be used to calculate weighted beta and alpha. Default = None",
+    parser.add_argument("-u", "--errordefs",
+                      help="Gives path to the error definition file. If given, the analytical formula will be used to
+                        calculate weighted beta and alpha. Default = None",
                       metavar="PATH_TO_FILE", default=ERRORDEFS, dest="errordefspath")
-    parser.add_argument("--nprocesses", default=NPROCESSES, dest="nprocesses",
+    parser.add_argument("-q", "--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type=int,
                       help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
 
