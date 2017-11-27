@@ -79,9 +79,6 @@ TWISS, BETA0={bininame}, CHROM;
 
 {update_constraints}
 
-value, dkpc.l5, dktrim3.l5, dktrim1.l5,
-       dkpc.r5, dktrim1.r5, dktrim3.r5;
-
 OPTION, ECHO, INFO;
 PRINT, TEXT = "=========== step for {macro_name} ===========";
 }};

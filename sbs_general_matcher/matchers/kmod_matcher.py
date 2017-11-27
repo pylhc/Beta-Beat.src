@@ -40,12 +40,17 @@ class KmodMatcher(PhaseMatcher):
     @Matcher.override(PhaseMatcher)
     def define_constraints(self):
         constr_string = ""
+        is_back = "b" in self.propagation
         for plane in ["x", "y"]:
             this_kmod_data = self._get_kmod_data(plane)
             for name in this_kmod_data.NAME:
                 index = this_kmod_data.indx[name]
-                beta_beating = getattr(this_kmod_data, "BETABEAT" + plane.upper())[index]
-                err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
+                if is_back is not True:
+                    beta_beating = getattr(this_kmod_data, "BETABEAT" + plane.upper())[index]
+                    err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
+                else:
+                    beta_beating = getattr(this_kmod_data, "BETABEATBACK" + plane.upper())[index]
+                    err_beta_beating = getattr(this_kmod_data, "ERRBETABEATBACK" + plane.upper())[index]
                 constr_string += self._get_constraint_instruction(
                     self.name + self._get_suffix() + plane + name,
                     beta_beating, err_beta_beating)
