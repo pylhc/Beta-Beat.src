@@ -535,7 +535,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         unc = Uncertainties()
         _info_("")
         _info_("Accelerator Error Definition", ">")
-        if not unc.open(getllm_d.errordefspath):
+        if not unc.open(getllm_d.accelerator.get_errordefspath()):
             _error_("Error definition file couldn't be found")
             raise IOError()
 
