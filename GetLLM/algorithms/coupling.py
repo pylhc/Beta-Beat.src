@@ -246,7 +246,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement.
     if len(list_zero_dpp_x)!=len(list_zero_dpp_y):
-        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+        LOGGER.error('Leaving GetCoupling as linx and liny files seem not correctly paired...')
         dum0 = {"Global":[0.0,0.0]}
         dum1 = []
         return [dum0,dum1]
