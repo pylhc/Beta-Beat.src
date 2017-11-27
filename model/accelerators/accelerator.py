@@ -133,6 +133,10 @@ class Accelerator(object):
         """
         Returns the position of the first BPM in turn by turn acquisition.
         """
+        Accelerator.__raise_definition_error()
+
+    def get_errordefspath(self):
+        Accelerator.__raise_definition_error()
 
     ###########################################################
 

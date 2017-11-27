@@ -243,77 +243,82 @@ class Uncertainties:  # error definition file
     
     def open(self, filename):
         _debug_("opening error definition file '{:s}'".format(filename))
-        with open(filename, "r") as F:
+        try:
+            with open(filename, "r") as F:
         
-            line = F.readline()
-            
-            if line.strip() == "version 2":
                 line = F.readline()
-                for line in F:
-                    
-                    line = re.split("//", line)[0].strip()  # separating code from comments
-                    if len(line) == 0:
-                        continue
-                    match = re.search(r'prop (\w+)\s+=\s(\w[\w\s]*)', line)
-                    if match is not None:
-                        _debug_("adding {} = {} to properties".format(match.group(1), match.group(2)))
-                        self.properties[match.group(1)] = match.group(2).strip()
-                    else:
-                        words = re.split('\s', line)
+                
+                if line.strip() == "version 2":
+                    line = F.readline()
+                    for line in F:
                         
-                        if words[0].startswith("re:"):
-                            ud = UncertaintyDefinitionRE(words[0].split(":")[1])
-                            
-                            for word in words:
-                                kv = word.split("=")
-                                if kv[0] == "dK1":
-                                    ud.dK1 = float(kv[1])
-                                elif kv[0] == "dS":
-                                    ud.dS = float(kv[1])
-                                elif kv[0] == "dX":
-                                    ud.dX = float(kv[1])
-                                elif kv[0] == "Type":
-                                    ud.settype(kv[1])
-                            self.regex.append(ud)
+                        line = re.split("//", line)[0].strip()  # separating code from comments
+                        if len(line) == 0:
+                            continue
+                        match = re.search(r'prop (\w+)\s+=\s(\w[\w\s]*)', line)
+                        if match is not None:
+                            _debug_("adding {} = {} to properties".format(match.group(1), match.group(2)))
+                            self.properties[match.group(1)] = match.group(2).strip()
                         else:
-                            ud = UncertaintyDefinition(words[0])
+                            words = re.split('\s', line)
                             
-                            for word in words:
-                                kv = word.split("=")
-                                if kv[0] == "dK1":
-                                    ud.dK1 = float(kv[1])
-                                elif kv[0] == "dS":
-                                    ud.dS = float(kv[1])
-                                elif kv[0] == "dX":
-                                    ud.dX = float(kv[1])
-                                elif kv[0] == "Type":
-                                    ud.settype(kv[1])
-                            self.keys.append(ud)
-            
-                return True
-            else:
+                            if words[0].startswith("re:"):
+                                ud = UncertaintyDefinitionRE(words[0].split(":")[1])
+                                
+                                for word in words:
+                                    kv = word.split("=")
+                                    if kv[0] == "dK1":
+                                        ud.dK1 = float(kv[1])
+                                    elif kv[0] == "dS":
+                                        ud.dS = float(kv[1])
+                                    elif kv[0] == "dX":
+                                        ud.dX = float(kv[1])
+                                    elif kv[0] == "Type":
+                                        ud.settype(kv[1])
+                                self.regex.append(ud)
+                            else:
+                                ud = UncertaintyDefinition(words[0])
+                                
+                                for word in words:
+                                    kv = word.split("=")
+                                    if kv[0] == "dK1":
+                                        ud.dK1 = float(kv[1])
+                                    elif kv[0] == "dS":
+                                        ud.dS = float(kv[1])
+                                    elif kv[0] == "dX":
+                                        ud.dX = float(kv[1])
+                                    elif kv[0] == "Type":
+                                        ud.settype(kv[1])
+                                self.keys.append(ud)
                 
-                try:
-                    definitions = Python_Classes4MAD.metaclass.twiss(filename)
+                    return True
+                else:
                     
-                except:
-                    _error_("loading errorfile didn't work")
-                    _error_("errordefspath = {0:s}".format(filename))
-                    return False
-                
-                _debug_("error definitions file version 1")
-                self.properties["RELATIVE"] = definitions.RELATIVE
-                self.properties["RADIUS"] = definitions.RADIUS
-                 
-                for index in range(len(definitions.PATTERN)):
-                    pattern = definitions.PATTERN[index]
-                    self.regex.append(UncertaintyDefinitionRE(
-                        pattern,
-                        definitions.dK1[index],
-                        definitions.dS[index],
-                        definitions.dX[index],
-                        definitions.MAINFIELD[index]))
-                return True
+                    try:
+                        definitions = Python_Classes4MAD.metaclass.twiss(filename)
+                        
+                    except:
+                        _error_("loading errorfile didn't work")
+                        _error_("errordefspath = {0:s}".format(filename))
+                        return False
+                    
+                    _debug_("error definitions file version 1")
+                    self.properties["RELATIVE"] = definitions.RELATIVE
+                    self.properties["RADIUS"] = definitions.RADIUS
+                     
+                    for index in range(len(definitions.PATTERN)):
+                        pattern = definitions.PATTERN[index]
+                        self.regex.append(UncertaintyDefinitionRE(
+                            pattern,
+                            definitions.dK1[index],
+                            definitions.dS[index],
+                            definitions.dX[index],
+                            definitions.MAINFIELD[index]))
+                    return True
+        except IOError:
+            return False
+
+
     def create_errorfile(self, twiss_full, twiss_full_centre):
         '''
         Adds uncertainty information to twiss_full.
@@ -520,18 +525,23 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     error_method = METH_IND
     unc_elements = None
 
+    # TODO: this will change somehow in the future
+    # the idea is to have as few options for getllm as possible
+    # therefore --errordefs will vanish and the existance of the file in the model directory will decide if the
+    # analytical method will be used or the 3BPM method
     if getllm_d.use_only_three_bpms_for_beta_from_phase:
         error_method = METH_3BPM
-    elif getllm_d.errordefspath is not None:
+    else:
         unc = Uncertainties()
         _info_("")
         _info_("Accelerator Error Definition", ">")
-        unc.open(getllm_d.errordefspath)
+        if not unc.open(getllm_d.errordefspath):
+            _error_("Error definition file couldn't be found")
+            raise IOError()
+
         unc_elements = unc.create_errorfile(elements, elements_centre)
         error_method = METH_A_NBPM
         _info_("")
-    else:
-        error_method = METH_3BPM  # fall back to three BPM method. MC is not supported in this version
     
     #--- =========== HORIZONTAL
     if CALCULATE_BETA_HOR:

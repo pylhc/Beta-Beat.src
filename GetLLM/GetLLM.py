@@ -215,10 +215,6 @@ def _parse_args():
     parser.add_argument("--calibration",
                     help="Path to the directory where the calibration files (calibration_x.out, calibration_y.out) are stored.",
                     metavar="CALIBRATION", default=CALIBRATION, dest="calibration_dir_path")
-    parser.add_argument("-u", "--errordefs",
-                      help="Gives path to the error definition file. If given, the analytical formula will be used to
-                        calculate weighted beta and alpha. Default = None",
-                      metavar="PATH_TO_FILE", default=ERRORDEFS, dest="errordefspath")
     parser.add_argument("-q", "--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type=int,
                       help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
@@ -249,7 +245,6 @@ def main(accelerator,
          range_of_bpms=RANGE_OF_BPMS,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
-         errordefspath=ERRORDEFS,
          nprocesses=NPROCESSES):
     '''
     GetLLM main function.
@@ -298,7 +293,6 @@ def main(accelerator,
     getllm_d.number_of_bpms = number_of_bpms
     getllm_d.range_of_bpms = range_of_bpms
     getllm_d.use_only_three_bpms_for_beta_from_phase = use_only_three_bpms_for_beta_from_phase
-    getllm_d.errordefspath = errordefspath
     getllm_d.accelerator = accelerator
     getllm_d.nprocesses = nprocesses
     
@@ -1130,7 +1124,6 @@ def _start():
          range_of_bpms=options.range_of_bpms,
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
-         errordefspath=options.errordefspath,
          nprocesses=options.nprocesses)
      
      

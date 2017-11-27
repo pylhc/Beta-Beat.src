@@ -48,6 +48,7 @@ class Lhc(Accelerator):
         self.model_best_knowledge = None
         self.elements = None
         self.elements_centre = None
+        self.modelpath = None
 
     @classmethod
     def init_from_args(cls, args):
@@ -86,6 +87,7 @@ class Lhc(Accelerator):
         print("\n  class: {}\n  Creating accelerator instance from model dir".format(cls.__name__))
         instance = cls()
        
+        instance.modelpath = model_dir
         
         instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
         print("  model path =", os.path.join(model_dir, "twiss.dat"))
@@ -452,6 +454,10 @@ class Lhc(Accelerator):
         elif self.get_beam() == 2:
             return self.model_tfs.loc["BPMSW.1L8.B2", "S"]
         return None
+
+    def get_errordefspath(self):
+        # LHC errordefs in the (orthographically incorrect) link "error_deffs.txt"
+        return os.path.join(self.modelpath, "error_deffs.txt")
     
     def get_k_first_BPM(self, index):
         if self.get_beam() == 1:

@@ -35,6 +35,7 @@ class Cps(Accelerator):
         self.elements = None
         self.elements_centre = None
         self.excitation = AccExcitationMode.FREE
+        self.modelpath = None
 
     @classmethod
     def init_from_args(cls, args):
@@ -59,6 +60,8 @@ class Cps(Accelerator):
         print("Creating accelerator instance from model dir")
         instance = cls()
         
+        instance.modelpath = model_dir
+
         if os.path.isfile(model_dir):
             model_dir = os.path.dirname(model_dir)
         instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
@@ -162,6 +165,9 @@ class Cps(Accelerator):
     
     def get_s_first_BPM(self):
         return 0
+
+    def get_errordefspath(self):
+        return os.path.join(self.modelpath, "errordefs")
     
     def get_k_first_BPM(self, list_of_bpms):
         return len(list_of_bpms)
