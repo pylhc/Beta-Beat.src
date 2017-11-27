@@ -28,7 +28,7 @@ _PRESENTATION_PARAMS = {
     u'axes.labelsize': u'x-large',
     u'axes.labelweight': u'bold',
     u'axes.linewidth': 1.8,
-    u'axes.titlepad': 6.0,
+    u'axes.titlepad': 16.0,
     u'axes.titlesize': u'xx-large',
     u'axes.titleweight': u'bold',
     u'figure.edgecolor': u'w',
@@ -291,6 +291,28 @@ def sync2d(axs, ax_str='xy', ax_lim=()):
         raise TypeError(__file__[:-3] + '.sync2d input is of unknown type (' + type(axs) + ')')
 
 
+def set_xLimits(accel, ax=None):
+    """
+    Sets the x-limits to the regularly used ones
+
+    :param accel: Name of the Accelerator
+    :param ax:  Axes to put the label on (default: gca())
+    :return:
+    """
+    if not ax:
+        ax = plt.gca()
+
+    if accel.startswith("LHCB"):
+        ax.set_xlim(-200, 27000)
+        ax.xaxis.set_minor_locator(mtick.MultipleLocator(base=1000.0))
+        ax.xaxis.set_major_locator(mtick.MultipleLocator(base=5000.0))
+    elif accel.startswith("ESRF"):
+        ax.set_xlim(-5, 850)
+        ax.xaxis.set_minor_locator(mtick.MultipleLocator(base=50.0))
+        ax.xaxis.set_major_locator(mtick.MultipleLocator(base=100.0))
+    else:
+        raise ArgumentError("Accelerator '" + accel + "' unknown.")
+
 """
 =============================   Labels   =============================
 """
@@ -300,6 +322,8 @@ _ylabels = {
     "beta":               r'$\beta_{{{0}}} [m]$',
     "betabeat":           r'$\Delta \beta_{{{0}}} / \beta_{{{0}}}$',
     "betabeat_permile":   r'$\Delta \beta_{{{0}}} / \beta_{{{0}}} [$'u'\u2030'r'$]$',
+    "dbeta":              r"$\beta'_{{{0}}} [m]$",
+    "dbetabeat":          r'$1/\beta_{{{0}}} \cdot \partial\beta_{{{0}}} / \partial\delta_{{{0}}}$',
     "norm_dispersion":    r'$ND_{{{0}}} [m^{{1/2}}]$',
     "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu m^{{1/2}}]$',
     "phase":              r'$\phi_{{{0}}} [2\pi]$',
@@ -383,24 +407,66 @@ def show_ir(ip_dict, ax=None):
     ax.set_ylim(ylim)
 
 
-def set_xLimits(accel, ax=None):
-    """
-    Sets the x-limits to the regularly used ones
+def set_name(name, fig_or_ax=None):
+    """ Sets the name of the figure or axes """
+    if not fig_or_ax:
+        fig_or_ax = plt.gcf()
+    try:
+        fig_or_ax.figure.canvas.set_window_title(name)
+    except AttributeError:
+        fig_or_ax.canvas.set_window_title(name)
 
-    :param accel: Name of the Accelerator
-    :param ax:  Axes to put the label on (default: gca())
-    :return:
-    """
+
+def get_name(fig_or_ax=None):
+    """ Returns the name of the figure or axes """
+    if not fig_or_ax:
+        fig_or_ax = plt.gcf()
+    try:
+        return fig_or_ax.figure.canvas.get_window_title()
+    except AttributeError:
+        return fig_or_ax.canvas.get_window_title()
+
+
+def set_annotation(text, ax=None):
+    """ Writes an annotation on the top right of the axes """
     if not ax:
         ax = plt.gca()
 
-    if accel[0:4] == "LHCB":
-        ax.set_xlim(-200, 27000)
-        ax.xaxis.set_minor_locator(mtick.MultipleLocator(base=1000.0))
-        ax.xaxis.set_major_locator(mtick.MultipleLocator(base=5000.0))
-    elif accel[0:4] == "ESRF":
-        ax.set_xlim(-5, 850)
-        ax.xaxis.set_minor_locator(mtick.MultipleLocator(base=50.0))
-        ax.xaxis.set_major_locator(mtick.MultipleLocator(base=100.0))
+    annotation = get_annotation(ax, by_reference=True)
+
+    if annotation is None:
+        ax.text(1.0, 1.0, text,
+                verticalalignment='bottom',
+                horizontalalignment='right',
+                transform=ax.transAxes,
+                label='plot_style_annotation')
     else:
-        raise ArgumentError("Accelerator '" + accel + "' unknown.")
+        annotation.set_text(text)
+
+
+def get_annotation(ax=None, by_reference=False):
+    if not ax:
+        ax = plt.gca()
+
+    for c in ax.get_children():
+        if c.get_label() == 'plot_style_annotation':
+            if by_reference:
+                return c
+            else:
+                return c.get_text()
+    return None
+
+
+def small_title(ax=None):
+    """ Alternative to annotation, which lets you use the title-functions """
+    if not ax:
+        ax = plt.gca()
+
+    # could not get set_title() to work properly, so one parameter at a time
+    ax.title.set_position([1.0, 1.02])
+    ax.title.set_transform(ax.transAxes)
+    ax.title.set_fontsize(matplotlib.rcParams['font.size'])
+    ax.title.set_fontweight(matplotlib.rcParams['font.weight'])
+    ax.title.set_verticalalignment('bottom')
+    ax.title.set_horizontalalignment('right')
+

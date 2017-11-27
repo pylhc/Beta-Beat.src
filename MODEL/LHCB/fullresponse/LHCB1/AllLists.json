@@ -16,6 +16,12 @@
     "kqd.a78", 
     "kqd.a81", 
     "kqf.a81"
+  ],
+  "MCBH": [
+    "h_orbit_12",
+    "h_orbit_45",
+    "h_orbit_56",
+    "h_orbit_81"
   ], 
   "MQM": [
     "kq5.r1b1", 
@@ -439,7 +445,11 @@
     "ktqx2.r8", 
     "kqx.l1", 
     "ktqx2.l1", 
-    "ktqx1.l1"    
+    "ktqx1.l1",
+    "h_orbit_12",
+    "h_orbit_45",
+    "h_orbit_56",
+    "h_orbit_81"    
   ], 
   "LQ": [
     "lkq10.l1b1",

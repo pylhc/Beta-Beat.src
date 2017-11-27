@@ -100,6 +100,7 @@ def getNDX(files,model,output):
         forfile['STDNDX']=0.0
     forfile['NDX']=np.mean(forfile.loc[:,f],axis=1)
     forfile['DNDX']=forfile.loc[:,'NDX']-forfile.loc[:,'NDXMDL']
+    forfile['NAME']=results.index
     tfs.write_tfs(forfile,{},os.path.join(output, "getNDx.out"))
     return 
 

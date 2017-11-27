@@ -379,8 +379,9 @@ def _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda):
     max_coefs, max_freqs = _search_highest_coefs(
         freq, harpy_input.tolerance, frequencies, coefficients
     )
-    panda['NATTUNE'+plane] = max_freqs
-    panda['NATAMP'+plane] = np.abs(max_coefs)
+    panda['NATTUNE' + plane] = max_freqs
+    panda['NATMU' + plane] = np.angle(max_coefs) / (2 * np.pi)
+    panda['NATAMP' + plane] = np.abs(max_coefs)
     return panda
 
 
