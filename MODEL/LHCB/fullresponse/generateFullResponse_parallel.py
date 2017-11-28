@@ -65,6 +65,10 @@ import Utilities.math
 
 from madx import madx_wrapper
 
+
+UNWANTED_CATEGORIES = ["LQ", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
+
+
 #===================================================================================================
 # _parse_args()-function
 #===================================================================================================
@@ -248,7 +252,11 @@ def _generate_fullresponse_for_beta():
     path_all_lists_json_file = os.path.join(_InputData.core_path_with_accel, "AllLists.json")
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
-    variables = knobsdict["MQM"]+knobsdict["MQT"]+knobsdict["MQTL"]+knobsdict["MQY"]+knobsdict["MCBH"]
+    variables = []
+    for category in knobsdict.keys():
+        if category not in UNWANTED_CATEGORIES:
+            variables += knobsdict[category]
+    variables = list(set(variables))
     delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
     #incr=ones(len(variables))*0.00005    #increment of variables    #### when squeeze low twiss fails because of to big delta
     incr = numpy.ones(len(variables)) * _InputData.delta_k
