@@ -558,7 +558,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             beta_d.x_phase = {}  # this is no typo, beta from amplitude still has the old convention that the free file is called not free
             beta_d.x_phase['DPP'] = 0
             
-            _info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+            #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
             
             _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
                                dataf, rms_bb, error_method_x, commonbpms_x,
@@ -572,7 +573,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                                                    getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl)
                 beta_d.x_phase_f = {}
                 beta_d.x_phase_f['DPP'] = 0
-                _info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
                 tfs_file = files_dict['getbetax.out']
                 
                 _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
@@ -605,7 +606,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                                                getllm_d, debugfile, error_method, tune_d.q2f, tune_d.q2mdl)
             beta_d.y_phase = {}
             beta_d.y_phase['DPP'] = 0
-            _info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+            #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
             tfs_file = files_dict['getbetay_free.out']
             
             _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
@@ -624,7 +626,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
              
                 tfs_file = files_dict['getbetay.out']
                 
-                _info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+                #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
+                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
                 beta_d.y_phase_f = {}
                 beta_d.y_phase_f['DPP'] = 0
 
