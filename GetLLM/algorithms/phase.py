@@ -620,3 +620,10 @@ def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x
                  model.loc[meas.index[i], plane_mu]
                 ])
     return tfs_file
+
+
+def set_union(u):
+    UNION = u
+
+def get_union():
+    return UNION

@@ -166,9 +166,6 @@ def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", metavar="PATH_TO_DIR", dest="model_dir",
                     help="Path to the model directory")
-    parser.add_argument("-d", "--dictionary", # remove?
-                    help="File with the BPM dictionary",
-                    metavar="DICT", default=DICT, dest="dict")
     parser.add_argument("-f", "--files",
                     help="Files from analysis, separated by comma",
                     metavar="FILES", default=FILES, dest="files")
@@ -181,9 +178,6 @@ def _parse_args():
     parser.add_argument("-n", "--nbcpl",
                     help="Analysis option for coupling, 1 bpm or 2 bpms",
                     metavar="NBCPL", default=NBCPL, dest="NBcpl")
-    parser.add_argument("-t", "--tbtana", # remove !
-                    help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
-                    metavar="TBTANA", default=TBTANA, dest="TBTana")
     parser.add_argument("--nonlinear",
                     help="Run the RDT analysis",
                     metavar="NONLINEAR", default=NONLINEAR, dest="nonlinear")
@@ -217,8 +211,22 @@ def _parse_args():
                     metavar="CALIBRATION", default=CALIBRATION, dest="calibration_dir_path")
     parser.add_argument("-q", "--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type=int,
-                      help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
+                      help="""Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the
+                        specified number. default = {0:d}""".format(NPROCESSES))
+    parser.add_argument("-u", "--union", action="store_true", dest="union",
+                      help="""If given, the phase per BPM is calculated for each BPM with at least 3 valid measurements.
+                        Otherwise (default) calculates the phase only for the intersection of all measurements.""")
 
+
+    # Arguments to delete (?)
+#   parser.add_argument("-d", "--dictionary", # remove?
+#                   help="File with the BPM dictionary",
+#                   metavar="DICT", default=DICT, dest="dict")
+#   
+#   parser.add_argument("-t", "--tbtana", # remove !
+#                   help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
+#                   metavar="TBTANA", default=TBTANA, dest="TBTana")
+#   
     options = parser.parse_args(args=rest_args)
     
     return options, accel_cls
@@ -231,13 +239,11 @@ def main(accelerator,
          model_dir,
          outputpath,
          files_to_analyse,
-         dict_file=DICT,
          lhcphase=LHCPHASE,
          bpmu=BPMUNIT,
          cocut=COCUT,
          nbcpl=NBCPL,
          nonlinear=NONLINEAR,
-         tbtana=TBTANA,
          bbthreshold=BBTHRESH,
          errthreshold=ERRTHRESH,
          use_only_three_bpms_for_beta_from_phase=USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE,
@@ -245,7 +251,8 @@ def main(accelerator,
          range_of_bpms=RANGE_OF_BPMS,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
-         nprocesses=NPROCESSES):
+         nprocesses=NPROCESSES,
+        union=False):
     '''
     GetLLM main function.
 
@@ -276,7 +283,8 @@ def main(accelerator,
     global __getllm_starttime
     __getllm_starttime = time()
 
-    
+    algorithms.phase.set_union(union)
+
     use_average = (use_average == 1)
     use_only_three_bpms_for_beta_from_phase = (use_only_three_bpms_for_beta_from_phase == 1)
 
@@ -302,8 +310,6 @@ def main(accelerator,
     logging_tools.add_module_handler(logging_tools.file_handler(os.path.join(outputpath, "getllm.log")))
     
     # Setup
-    
-    bpm_dictionary= _intial_setup(getllm_d, dict_file, model_dir)
 
     if sys.flags.debug:
         LOGGER.info("     DEBUG ON")
@@ -314,7 +320,7 @@ def main(accelerator,
     # Copy calibration files calibration_x/y.out from calibration_dir_path to outputpath
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
     print_time("BEFORE_ANALYSE_SRC", time() - __getllm_starttime)
-    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, tbtana, files_dict, use_average, calibration_twiss, accelerator.get_model_tfs())
+    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dict, use_average, calibration_twiss, accelerator.get_model_tfs())
 
     # Construct pseudo-double plane BPMs
     # TODO This should be in accelerator class
@@ -382,13 +388,13 @@ def main(accelerator,
     #                                                  files_dict)
 
             #-------- START Orbit
-            #list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
+            list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
 
             #-------- START Dispersion
-            #algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
+            algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
             
             #------ Start get Q,JX,delta
-            #files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
+            files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
 
             #-------- START coupling.
             tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
@@ -397,12 +403,13 @@ def main(accelerator,
             if nonlinear:
                 algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y)
 
-            if tbtana == "SUSSIX":
-                #------ Start getsextupoles @ Glenn Vanbavinckhove
-                files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
-
-                #------ Start getchiterms @ Glenn Vanbavinckhove
-                files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
+# TODO: sussic isn't a thing any more, right? (awegsche)
+#           if tbtana == "SUSSIX":
+#               #------ Start getsextupoles @ Glenn Vanbavinckhove
+#               files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
+#
+#               #------ Start getchiterms @ Glenn Vanbavinckhove
+#               files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
 
     except:
         traceback.print_exc()
@@ -421,33 +428,7 @@ def main(accelerator,
 #===================================================================================================
 # helper-functions
 #===================================================================================================
-def _intial_setup(getllm_d, dict_file, model_dir):
 
-    if dict_file == "0":
-        bpm_dictionary = {}
-    else:
-        execfile(dict_file)
-        bpm_dictionary = dictionary  # temporarily since presently name is not bpm_dictionary
-
-    # look for file with important BPM pairs
-    pairsfilename = os.path.join(model_dir, "important_pairs")
-    if os.path.exists(pairsfilename):
-        getllm_d.important_pairs = {}
-        pair_file = open(pairsfilename)
-        for line in pair_file:
-            key_value = line.split(":")
-            key = key_value[0].strip()
-            value = key_value[1].strip()
-            if key in getllm_d.important_pairs:
-                getllm_d.important_pairs[key].append(value)
-            else:
-                getllm_d.important_pairs[key] = [value]
-
-    return bpm_dictionary
-
-
-
-# END _intial_setup ---------------------------------------------------------------------------------
     
 def _create_tfs_files(getllm_d, model_filename, nonlinear):
     '''
@@ -525,28 +506,24 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
 # END _create_tfs_files -----------------------------------------------------------------------------
 
 
-def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_turn_algo, files_dict, use_average, calibration_twiss, model):
+def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dict, use_average, calibration_twiss, model):
 
     LOGGER.debug("Start analysing source files")
-
-    if turn_by_turn_algo == "SUSSIX":
-        suffix_x = '.linx'
-        suffix_y = '.liny'
-    elif turn_by_turn_algo == 'SVD':
-        suffix_x = '_svdx'
-        suffix_y = '_svdy'
-    elif turn_by_turn_algo == 'HA':
-        suffix_x = '_hax'
-        suffix_y = '_hay'
 
     for file_in in files_to_analyse.split(','):
         LOGGER.debug("> file: '{:s}'".format(file_in))
         # x file
-        if file_in.endswith(".gz"):
-            file_x = file_in.replace(".gz", suffix_x + ".gz")
-        else:
-            file_x = file_in + suffix_x
 
+        if os.path.isfile(file_in + ".linx"):
+            file_x = file_in + ".linx"
+        elif os.path.isfile(file_in + "_linx"):
+            file_x = file_in + "_linx"
+
+        if os.path.isfile(file_in + ".liny"):
+            file_y = file_in + ".liny"
+        elif os.path.isfile(file_in + "_liny"):
+            file_y = file_in + "_liny"
+    
         twiss_file_x = None
         try:
             twiss_file_x = tfs_pandas.read_tfs(file_x).set_index("NAME")
@@ -616,10 +593,6 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
                 files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
 
         # y file
-        if file_in.endswith(".gz"):
-            file_y = file_in.replace(".gz", suffix_y + ".gz")
-        else:
-            file_y = file_in + suffix_y
 
         twiss_file_y = None
         try:
@@ -744,12 +717,12 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
     print 'Calculating orbit'
     list_of_co_x = []
     if twiss_d.has_zero_dpp_x():
-        [cox, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_x)
+        [cox, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x)
         # The output file can be directly used for orbit correction with MADX
         tfs_file = files_dict['getCOx.out']
         tfs_file.add_string_descriptor("TABLE", 'ORBIT')
         tfs_file.add_string_descriptor("TYPE", 'ORBIT')
-        tfs_file.add_string_descriptor("SEQUENCE", getllm_d.accel)
+        # TODO: tfs_file.add_string_descriptor("SEQUENCE", getllm_d.accel)
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "X", "STDX", "XMDL", "MUXMDL"])
@@ -763,12 +736,12 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
         list_of_co_x.append(cox)
     list_of_co_y = []
     if twiss_d.has_zero_dpp_y():
-        [coy, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_y)
+        [coy, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y)
         # The output file can be directly used for orbit correction with MADX
         tfs_file = files_dict['getCOy.out']
         tfs_file.add_string_descriptor("TABLE", 'ORBIT')
         tfs_file.add_string_descriptor("TYPE", 'ORBIT')
-        tfs_file.add_string_descriptor("SEQUENCE", getllm_d.accel)
+        #TODO: tfs_file.add_string_descriptor("SEQUENCE", getllm_d.accel)
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "Y", "STDY", "YMDL", "MUYMDL"])
@@ -961,7 +934,7 @@ def _copy_calibration_files(output_path, calibration_dir_path):
 
 def _get_commonbpms(ListOfFiles, model):
     
-    if algorithms.phase.UNION:
+    if algorithms.phase.get_union():
         common = pd.DataFrame(model.loc[:, "S"])
         common["NFILES"] = 0
         for i in range(len(ListOfFiles)):
@@ -1109,14 +1082,12 @@ def _start():
     main(accelerator,
          options.model_dir,
          outputpath=options.output,
-         dict_file=options.dict,
          files_to_analyse=options.files,
          lhcphase=options.lhcphase,
          bpmu=options.BPMUNIT,
          cocut=float(options.COcut),
          nbcpl=int(options.NBcpl),
          nonlinear=options.nonlinear,
-         tbtana=options.TBTana,
          bbthreshold=options.bbthreshold,
          errthreshold=options.errthreshold,
          use_only_three_bpms_for_beta_from_phase=options.use_only_three_bpms_for_beta_from_phase,
@@ -1124,7 +1095,8 @@ def _start():
          range_of_bpms=options.range_of_bpms,
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
-         nprocesses=options.nprocesses)
+         nprocesses=options.nprocesses,
+        union=options.union)
      
      
 if __name__ == "__main__":

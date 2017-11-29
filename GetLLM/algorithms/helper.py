@@ -40,19 +40,16 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 
 #-------------------------
 
-def calculate_orbit(mad_twiss, list_of_files):
+def calculate_orbit(mad_twiss, list_of_files, commonbpms):
 
-    commonbpms=Utilities.bpm.intersect(list_of_files)
-    commonbpms=Utilities.bpm.model_intersect(commonbpms, mad_twiss)
     co={} # Disctionary for output
-    for i in range(0,len(commonbpms)):
-        bpm_name=str.upper(commonbpms[i][1])
+    for bpm_name in commonbpms.index:
         coi=0.0
         coi2=0.0
 
         for tw_file in list_of_files:
-            coi=coi + tw_file.CO[tw_file.indx[bpm_name]]
-            coi2=coi2 + tw_file.CO[tw_file.indx[bpm_name]]**2
+            coi=coi + tw_file.loc[bpm_name, "CO"]
+            coi2=coi2 + tw_file.loc[bpm_name, "CO"]**2
 
         coi = coi/len(list_of_files)
         corms = math.sqrt(coi2/len(list_of_files)-coi**2+2.2e-16)
