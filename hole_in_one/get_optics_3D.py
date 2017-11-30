@@ -101,7 +101,7 @@ def getNDX(files,model,output):
     forfile['NDX']=np.mean(forfile.loc[:,f],axis=1)
     forfile['DNDX']=forfile.loc[:,'NDX']-forfile.loc[:,'NDXMDL']
     forfile['NAME']=results.index
-    tfs.write_tfs(forfile,{},os.path.join(output, "getNDx.out"))
+    tfs.write_tfs(os.path.join(output, "getNDx.out"), forfile)
     return 
 
 
@@ -159,8 +159,8 @@ def get_phases(files, model, output):
             header = {'Q1': tune}
         else:
             header = {'Q2': tune}
-        heads= ['NAME', 'NAME2', 'S', 'S2', 'PHASE'+plane, 'STDPH' + plane, 'PH' + plane+'MDL', 'MU' + plane+'MDL']
-        tfs.write_tfs(results.loc[:,heads],header,os.path.join(output, "getphase" + plane.lower() + ".out"))
+        heads = ['NAME', 'NAME2', 'S', 'S2', 'PHASE'+plane, 'STDPH' + plane, 'PH' + plane+'MDL', 'MU' + plane+'MDL']
+        tfs.write_tfs(os.path.join(output, "getphase" + plane.lower() + ".out"), results.loc[:, heads], header)
     return 
 
 

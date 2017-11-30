@@ -61,7 +61,7 @@ def write_harpy_output(main_input, harpy_data_frame, headers, spectrum, plane):
     output_file = get_outpath_with_suffix(
         main_input.file, main_input.outputdir, ".lin" + plane
     )
-    tfs_pandas.write_tfs(harpy_data_frame, headers, output_file)
+    tfs_pandas.write_tfs(output_file, harpy_data_frame, headers)
     _write_full_spectrum(main_input, spectrum, plane)
 
 
@@ -70,12 +70,12 @@ def _write_full_spectrum(main_input, spectrum, plane):
         main_input.file, main_input.outputdir, ".amps" + plane
     )
     amps_df = spectrum["COEFS"].abs().T
-    tfs_pandas.write_tfs(amps_df, {}, spectr_amps_files)
+    tfs_pandas.write_tfs(spectr_amps_files, amps_df)
     spectr_freqs_files = get_outpath_with_suffix(
         main_input.file, main_input.outputdir, ".freqs" + plane
     )
     freqs_df = spectrum["FREQS"].T
-    tfs_pandas.write_tfs(freqs_df, {}, spectr_freqs_files)
+    tfs_pandas.write_tfs(spectr_freqs_files, freqs_df)
 
 
 def get_outpath_with_suffix(path, output_dir, suffix):
