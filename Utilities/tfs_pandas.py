@@ -272,11 +272,6 @@ def _raise_unknown_type(name):
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.DEBUG)
-    # LOGGER.debug(read_tfs(sys.argv[1]))
+    logging.basicConfig(level=logging.DEBUG)
+    LOGGER.debug(read_tfs(sys.argv[1]))
 
-    df = TfsDataFrame([[1,2],[3,4]])
-    df.index = ['a', 'b']
-    df.columns = ['1', '2']
-
-    tdf = read_tfs('../tfs_out.dat')
