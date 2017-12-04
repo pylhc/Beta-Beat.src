@@ -28,7 +28,6 @@ import pandas as pd
 from time import time
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
-UNION = True
 LOGGER = logging_tools.get_logger(__name__)
 
 #===================================================================================================
@@ -90,7 +89,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     '''
     # get common bpms
     phase_d = PhaseData()
-    if UNION:
+    if getllm_d.union:
         bpmsx = twiss_d.zero_dpp_unionbpms_x
         bpmsy = twiss_d.zero_dpp_unionbpms_y
     else:
@@ -99,8 +98,14 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
 
 
 
-    print 'Calculating phase'
+    LOGGER.info('Calculating phase')
     
+    # Info:
+    LOGGER.info("t_value correction.................[YES]")
+    LOGGER.info("optimistic errorbars...............[YES]")
+    union_text = "YES" if getllm_d.union else "NO"
+    LOGGER.info("using all phase information........[{:3s}]".format(union_text))
+
     # ============= Calculate tunes ===================================================================================
 
     if twiss_d.has_zero_dpp_x():
@@ -167,22 +172,30 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     print "output files"
     if twiss_d.has_zero_dpp_x():
         print "x ouptut"
-        files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
+        files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H",
+                                                            phase_d.phase_advances_free_x, model, elements, tune_d.q1f,
+                                                            tune_d.q2f, getllm_d.accelerator, getllm_d.union)
         files_dict["getphasetotx_free.out"] = write_phasetot_file(files_dict["getphasetotx_free.out"], "H", phase_d.phase_advances_free_x, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
-            files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
+            files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x,
+                                                           model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
+                                                           getllm_d.union)
             files_dict["getphasetotx.out"] = write_phasetot_file(files_dict["getphasetotx.out"], "H", phase_d.phase_advances_x, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
 
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
-        files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V", phase_d.phase_advances_free_y, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
+        files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V",
+                                                            phase_d.phase_advances_free_y, model, elements, tune_d.q1f,
+                                                            tune_d.q2f, getllm_d.accelerator, getllm_d.union)
         files_dict["getphasetoty_free.out"] = write_phasetot_file(files_dict["getphasetoty_free.out"], "V", phase_d.phase_advances_free_y, model, elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
-            files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
+            files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y,
+                                                           model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
+                                                          getllm_d.union)
             files_dict["getphasetoty.out"] = write_phasetot_file(files_dict["getphasetoty.out"], "V", phase_d.phase_advances_y, model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator)
 
     return phase_d, tune_d
@@ -359,7 +372,7 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         print "phase jump will not be corrected"
         k_lastbpm = len(bpm.index)
 
-    if UNION:
+    if getllm_d.union:
         phase_advances = _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
     else:
         phase_advances = _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
@@ -418,8 +431,6 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
     phase_advances["NFILES"] = nfiles
     phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) * vec_t_value_correction(nfiles)
 
-    LOGGER.debug("t_value correction.................[YES]")
-    LOGGER.debug("optimistic errorbars...............[YES]")
 
     return phase_advances
 
@@ -513,7 +524,7 @@ def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
 # ac-dipole stuff
 #===================================================================================================
 
-def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel):
+def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel, union):
     
     plane_char = "X" if plane == "H" else "Y"
     plane_mu = "MU" + plane_char
@@ -523,7 +534,7 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
     tfs_file.add_float_descriptor("Q2", tune_y)
     tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASE" + plane_char, "STDPH" + plane_char,
                                "PH{}MDL".format(plane_char), "MU{}MDL".format(plane_char), "NFILES"])
-    if UNION:
+    if union:
         tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     else:
         tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%s"])
@@ -533,7 +544,7 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
     mod = phase_advances["MODEL"]
     err = phase_advances["ERRMEAS"]
 
-    if UNION:
+    if union:
         nfiles = phase_advances["NFILES"]
     bd = accel.get_beam_direction()
     
@@ -575,7 +586,7 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
             
     for i in range(len(meas.index)-1):
         
-        if UNION:
+        if union:
             nf = nfiles[meas.index[i+1]][meas.index[i]]
         else:
             nf = "ALL"
@@ -621,9 +632,3 @@ def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x
                 ])
     return tfs_file
 
-
-def set_union(u):
-    UNION = u
-
-def get_union():
-    return UNION
