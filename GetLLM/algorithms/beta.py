@@ -33,7 +33,6 @@ from constants import PI, TWOPI
 from model.accelerators.accelerator import AccExcitationMode
 from Utilities import tfs_pandas
 from Utilities import logging_tools
-from phase import UNION
 
 __version__ = "2017.10.b"
 
@@ -367,17 +366,16 @@ class Uncertainties:  # error definition file
         tfs_pandas.write_tfs(twiss_full, {}, "dump_twiss_full")
         return twiss_full[twiss_full["UNC"] == True]
 
-#===================================================================================================
+#======================================================================================================================
 # main part
-#===================================================================================================
+#======================================================================================================================
 
 
-def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase,
-                       data, rmsbbx, error_method, bpms, tfs_file, _plane_char,
-                       dpp=0, dppq1=0):
+def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data, rmsbbx, error_method, bpms, tfs_file,
+                       _plane_char, union, dpp=0, dppq1=0):
     '''
     Writes the file ``getbeta<x/y>.out``. 
-    
+
     :Parameters:
         q1, q2
             tunes
@@ -395,7 +393,6 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase,
             the ID of the used error method
         tfs_file
             the tfs file to which the results will be written
-            
     '''
 
     LOGGER.debug("Writing beta from phase results")
@@ -404,7 +401,7 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase,
     tfs_file.add_float_descriptor("Q2", q2)
     tfs_file.add_float_descriptor("RMSbetabeat", rmsbbx)
     tfs_file.add_float_descriptor("DPP", dpp)
-        
+
     tfs_file.add_string_descriptor("BetaAlgorithmVersion", __version__)
     if error_method == METH_3BPM:
         tfs_file.add_float_descriptor("NumberOfBPMs", 3)
@@ -415,8 +412,8 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase,
     tfs_file.add_string_descriptor("ErrorsFrom", ID_TO_METHOD[error_method])
     tfs_file.add_float_descriptor("PhaseTheshold", PHASE_THRESHOLD)
     tfs_file.add_float_descriptor("RCond", RCOND)
-    
-    
+
+
     tfs_file.add_column_names(["NAME", "S",
                                "BET" + _plane_char,
                                "STATBET" + _plane_char,
@@ -449,7 +446,7 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase,
         if not np.isnan(row[2]):
             beta_d_phase[row[0]] = [row[1], row[2], row[3], row[4]]
 
-            if UNION:
+            if union:
                 tfs_file.add_table_row(list(row) + [int(bpms.iloc[i].loc["NFILES"])])
             else:
                 tfs_file.add_table_row(list(row) + [-1])
@@ -478,7 +475,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     '''
     beta_d = BetaData()
     
-    if UNION:
+    if getllm_d.union:
         commonbpms_x = twiss_d.zero_dpp_unionbpms_x
         commonbpms_y = twiss_d.zero_dpp_unionbpms_y
     else:
@@ -537,7 +534,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         _info_("Accelerator Error Definition", ">")
         if not unc.open(getllm_d.accelerator.get_errordefspath()):
             _error_("Error definition file couldn't be found")
-            raise IOError()
+            raise IOError("Error definition file '{}' could not be found".format(getllm_d.accelerator.get_errordefspath()))
 
         unc_elements = unc.create_errorfile(elements, elements_centre)
         error_method = METH_A_NBPM
@@ -559,11 +556,11 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             beta_d.x_phase['DPP'] = 0
             
             #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
-            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
+            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb ), ">")
             
             _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
                                dataf, rms_bb, error_method_x, commonbpms_x,
-                               files_dict['getbetax_free.out'], _plane_char)
+                               files_dict['getbetax_free.out'], _plane_char, getllm_d.union)
             
             
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: 
@@ -573,12 +570,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                                                    getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl)
                 beta_d.x_phase_f = {}
                 beta_d.x_phase_f['DPP'] = 0
-                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
+                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
                 tfs_file = files_dict['getbetax.out']
                 
                 _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
                                    data, rms_bb, error_method_x, commonbpms_x,
-                                   tfs_file, model_driven.BETX, _plane_char)
+                                   tfs_file, _plane_char, getllm_d.union)
 
                 _debug_("Skip free2 calculation")
 #                print_("Calculate beta from phase for plane " + _plane_char + " with AC dipole (_free2.out)", ">")
@@ -607,12 +604,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             beta_d.y_phase = {}
             beta_d.y_phase['DPP'] = 0
             #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
-            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
+            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
             tfs_file = files_dict['getbetay_free.out']
             
             _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
                                dataf, rms_bb, error_method_y, commonbpms_y,
-                               tfs_file, _plane_char)
+                               tfs_file, _plane_char, getllm_d.union)
             
             #-- ac to free beta
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
@@ -627,13 +624,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 tfs_file = files_dict['getbetay.out']
                 
                 #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
-                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb * 100.0), ">")
+                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
                 beta_d.y_phase_f = {}
                 beta_d.y_phase_f['DPP'] = 0
 
                 _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase_f,
                                    dataf, rms_bb, error_method_y, commonbpms_y,
-                                   tfs_file, _plane_char)
+                                   tfs_file, _plane_char, getllm_d.union)
 
 #                #-- from the model
                 _info_("Skip free2 calculation")
@@ -740,7 +737,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for name in commonbpms_x.index:
             bn1 = str.upper(name)
-            if UNION:
+            if getllm_d.union:
                 bns1 = commonbpms_x.loc[name, "S"]
             else:
                 bns1 = commonbpms_x.loc[name]
@@ -792,7 +789,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 traceback.print_exc()
             #-- from the model
             # Since invJxf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betaxf2, rmsbbxf2, bpmsf2] = _get_free_amp_beta(beta_d.x_amp, rmsbbx, bpms, inv_jx, mad_ac, mad_twiss, 'H')[:3]
+            [betaxf2, rmsbbxf2, bpmsf2] = _get_free_amp_beta(beta_d.x_amp, rmsbbx, commonbpms_x, inv_jx, mad_ac, mad_twiss, 'H')[:3]
             betaxf2_rescale = _get_free_amp_beta(betax_rescale, rmsbbx, bpms, inv_jx, mad_ac, mad_twiss, 'H')[0]
             tfs_file = files_dict['getampbetax_free2.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
@@ -846,7 +843,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         
         for name in commonbpms_y.index:
             bn1 = str.upper(name)
-            if UNION:
+            if getllm_d.union:
                 bns1 = commonbpms_y.loc[name, "S"]
             else:
                 bns1 = commonbpms_y.loc[name]
@@ -898,7 +895,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 #-- from the model
                 traceback.print_exc()
             # Since invJyf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betayf2, rmsbbyf2, bpmsf2] = _get_free_amp_beta(beta_d.y_amp, rmsbby, bpms, inv_jy, mad_ac, mad_twiss, 'V')[:3]
+            [betayf2, rmsbbyf2, bpmsf2] = _get_free_amp_beta(beta_d.y_amp, rmsbby, commonbpms_y, inv_jy, mad_ac, mad_twiss, 'V')[:3]
             betayf2_rescale = _get_free_amp_beta(betay_rescale, rmsbby, bpms, inv_jy, mad_ac, mad_twiss, 'V')[0]
             tfs_file = files_dict['getampbetay_free2.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
