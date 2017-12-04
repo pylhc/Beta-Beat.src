@@ -29,6 +29,9 @@ from __builtin__ import raw_input
 from constants import PI, TWOPI, kEPSILON
 from SegmentBySegment.sbs_writers.sbs_phase_writer import FIRST_BPM_B1
 import pandas as pd
+from Utilities import logging_tools
+
+LOGGER = logging_tools.get_logger(__name__)
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -42,6 +45,9 @@ def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
     plane_mu = "MUX" if plane == "H" else "MUY"
     k, bpmac1 = acc.get_exciter_bpm(plane, commonbpms)
+    LOGGER.info(commonbpms.index)
+    LOGGER.info(commonbpms.loc["BPMWA.A5R4.B1"])
+    LOGGER.info(bpmac1)
     
     return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] - PI * Q)) % PI - PI + PI * Qd, k
 
@@ -97,7 +103,7 @@ def get_free_phase_total_eq(MADTwiss, Files, commonbpms, Qd, Q, ac2bpmac, plane,
 
 def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d):
 
-    print "Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane)
+    LOGGER.info("Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane))
     
 #    Files = [Files[0]]
     acc = getllm_d.accelerator
@@ -109,11 +115,11 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
-        print "correcting phase jump"
+        LOGGER.info("correcting phase jump")
         k_lastbpm = acc.get_k_first_BPM(bpm.index)
     else:
         k_lastbpm = len(bpm)
-        print "phase jump will not be corrected"
+        LOGGER.info("phase jump will not be corrected")
 
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
     phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
