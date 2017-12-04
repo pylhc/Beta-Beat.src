@@ -14,6 +14,7 @@ HEADER = "@"
 NAMES = "*"
 TYPES = "$"
 COMMENTS = "#"
+INDEX = "INDEX&&&"
 
 ID_TO_TYPE = {
     "%s": np.str,
@@ -117,30 +118,54 @@ def read_tfs(tfs_path):
                     raise TfsFormatError("Column types have not been set.")
                 parts = [part.strip('"') for part in parts]
                 rows_list.append(parts)
-    return _create_data_frame(column_names, column_types, rows_list, headers)
+    data_frame = _create_data_frame(column_names, column_types, rows_list, headers)
+
+    index_column = [c for c in data_frame.columns if c.startswith(INDEX)]
+    if len(index_column) > 0:
+        data_frame = data_frame.set_index(index_column)
+        idx_name = index_column[0].replace(INDEX, "")
+        if idx_name == "":
+            idx_name = None  # to remove it completely
+        data_frame = data_frame.rename_axis(idx_name)
+    return data_frame
 
 
-def write_tfs(data_frame, headers_dict, tfs_path):
+def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     """
     Writes the Pandas DataFrame data_frame into tfs_path with the headers_dict
     as headers dictionary. If you want to keep the order of the headers, use
     collections.OrderedDict.
     """
-    get_tfs_writer(data_frame, headers_dict, tfs_path).write_to_file()
+    get_tfs_writer(data_frame, headers_dict, tfs_path, save_index).write_to_file()
     
     
-def get_tfs_writer(data_frame, headers_dict, tfs_path):
+def get_tfs_writer(data_frame, headers_dict, tfs_path, save_index):
     """
     Converts the Pandas DataFrame data_frame into a metadata twiss with the 
     headers_dict as headers dictionary. If you want to keep the order of the
     headers, use collections.OrderedDict.
     """
+    if save_index:
+        data_frame = data_frame.copy()
+        try:
+            full_name = INDEX + data_frame.index.name
+        except TypeError:
+            full_name = INDEX
+        data_frame[full_name] = data_frame.index
+
     tfs_name = os.path.basename(tfs_path)
     tfs_dir = os.path.abspath(os.path.dirname(tfs_path))
     LOGGER.debug("Attempting to write file: " + tfs_name + " in " + tfs_dir)
     tfs_writer = tfs_file_writer.TfsFileWriter(tfs_name, outputpath=tfs_dir)
     column_names = _get_column_names(data_frame)
     column_types = _get_column_types(data_frame)
+
+    if len(headers_dict) == 0:
+        try:
+            headers_dict = data_frame.headers
+        except AttributeError:
+            pass
+
     for head_name, head_value in headers_dict.iteritems():
         if type(head_value) is str:
             tfs_writer.add_string_descriptor(head_name, head_value)
@@ -278,3 +303,4 @@ def _raise_unknown_type(name):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     LOGGER.debug(read_tfs(sys.argv[1]))
+

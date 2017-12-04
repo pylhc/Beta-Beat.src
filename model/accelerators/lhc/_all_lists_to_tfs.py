@@ -31,7 +31,7 @@ def main(elems_file, sequences, output):
         data=all_data,
         columns=all_data.keys(),
     ).sort_values(by="S")
-    tfs_pandas.write_tfs(data_frame, {}, output)
+    tfs_pandas.write_tfs(output, data_frame)
 
 
 def get_elem_to_vars(elems, sequences):

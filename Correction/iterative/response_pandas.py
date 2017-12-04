@@ -1,254 +1,262 @@
 """
-This Python script produces the responses of the beta, phase and horizontal dispersion on the quadrupole strengths or
-on other variables as horizontal orbit bumps at sextupoles.
-
-The response matrix is stored in the following 'pickled' file:
- - FullResponse
-The files are saved in option -p(output_path).
+This Python script produces the responses of the beta, phase and horizontal dispersion
+on the magnet strength provided by a json file.
+The response matrix is stored in a 'pickled' file.
 
 These response matrices are used to calculate the corrections by the correction scripts.
 """
 
 import os
-import sys
 import math
-import time
 import cPickle
-import optparse
+import argparse
 import multiprocessing
 import json
-from collections import OrderedDict
 import numpy
 import pandas
-sys.path.append("/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/")
-#import metaclass
-from Utilities import tfs_pandas 
+
+from Utilities import tfs_pandas
 from madx import madx_wrapper
+from Utilities import logging_tools
+from Utilities.contexts import timeit
+from Utilities.iotools import create_dirs
 
-#===================================================================================================
-# _parse_args()-function
-#===================================================================================================
-def _parse_args():
-    ''' Parses the arguments, checks for valid input and returns tupel '''
-    parser = optparse.OptionParser()
-    parser.add_option("-a", "--accel",
-                      help="Which accelerator: LHCB1 LHCB2",
-                      default="LHCB1", dest="accel")
-    parser.add_option("-p", "--path",
-                      help="path to save",
-                      default="./", dest="path")
-    parser.add_option("-c", "--core",
-                      help="core files",
-                      default="/afs/cern.ch/work/l/lmalina/online_model/", dest="core")
-    parser.add_option("-k", "--deltak",
-                      help="delta K1L to be applied to quads for sensitivity matrix",
-                      default="0.00002", dest="k")
+EXCLUDE_CATEGORIES_DEFAULT = ["LQ", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
 
-    options, _ = parser.parse_args()
+LOG = logging_tools.get_logger(__name__)
+
+"""
+================================= Parse Arguments ===========================================
+"""
+
+
+def _parse_args(args=None):
+    """ Parses the arguments, checks for valid input and returns options """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-o", "--outfile",
+                        help="Name of fullresponse file.",
+                        dest="outfile_path",
+                        required=True,
+                        type=str)
+    parser.add_argument("-t", "--tempdir",
+                        help=("Directory to store the temporary MAD-X files, "
+                              "it will default to the directory containing 'outfile'."),
+                        dest="temp_dir",
+                        default=None,
+                        type=str)
+    parser.add_argument("-v", "--variables",
+                        help="Path to file containing variable lists",
+                        dest="varfile_path",
+                        required=True,
+                        type=str)
+    parser.add_argument("-j", "--jobfile",
+                        help="Name of the original MAD-X job file defining the sequence file.",
+                        dest="original_jobfile_path",
+                        required=True,
+                        type=str)
+    parser.add_argument("-p", "--pattern",
+                        help=("Pattern to be replaced in the MAD-X job file "
+                              "by the iterative script calls."),
+                        default="%CALL_ITER_FILE%",
+                        dest="pattern",
+                        type=str)
+    parser.add_argument("-k", "--deltak",
+                        help="delta K1L to be applied to quads for sensitivity matrix",
+                        default=0.00002,
+                        dest="delta_k",
+                        type=float)
+    parser.add_argument("-n", "--num_proc",
+                        help="Number of processes to use in parallel.",
+                        default=multiprocessing.cpu_count(),
+                        dest="num_proc",
+                        type=int)
+    parser.add_argument("-e", "--exclude",
+                        help="Categories to be excluded in variables json-file",
+                        default=EXCLUDE_CATEGORIES_DEFAULT,
+                        dest="exclude_categories",
+                        type=str,
+                        nargs='+')
+
+    options = parser.parse_args(args)
+
+    if not options.temp_dir:
+        options.temp_dir = os.path.dirname(options.outfile)
+    create_dirs(options.temp_dir)
 
     return options
 
 
-class _InputData(object):
-    """ Static class to access user input parameter and num_of_cpus and process pool"""
-    output_path = ""
-    delta_k = 0.0
-    core_path_with_accel = ""
-    core_path_without_accel = ""
-    accel = ""
-
-    number_of_cpus = 0
-    process_pool = None
-
-    @staticmethod
-    def static_init(accel, output_path, path_to_core_files_without_accel, delta_k):
-        if accel not in ("LHCB1", "LHCB2"):
-            raise ValueError("Unknown accelerator: " + accel)
-        _InputData.output_path = output_path
-        _InputData.delta_k = float(delta_k)
-        _InputData.accel = accel
-        _InputData.core_path_with_accel = os.path.join(path_to_core_files_without_accel, accel)
-        _InputData.core_path_without_accel = path_to_core_files_without_accel
-        _InputData.number_of_cpus = multiprocessing.cpu_count()
-        _InputData.process_pool = multiprocessing.Pool(processes=_InputData.number_of_cpus)
-
-    def __init__(self):
-        raise NotImplementedError("static class _InputData cannot be instantiated")
+"""
+================================= FullResponse ===========================================
+"""
 
 
-#=======================================================================================================================
-# response()-function
-#=======================================================================================================================
-def response(accel, output_path, path_to_core_files_without_accel, delta_k):
+def _generate_fullresponse(options):
+    """ Generate a dictionary containing response matrices for
+        Mu, BetaBeating, Dispersion and Tune and saves it to a file.
+    """
+    LOG.debug("Generating Fullresponse.")
+    variables = _get_variables_from_file(options.varfile_path, options.exclude_categories)
 
-    _InputData.static_init(accel, output_path, path_to_core_files_without_accel, delta_k)
-    _generate_fullresponse_for_beta()
+    process_pool = multiprocessing.Pool(processes=options.num_proc)
 
-def _generate_fullresponse_for_beta():
-    print "_generate_fullresponse_for_beta"
-    path_all_lists_json_file = os.path.join(_InputData.core_path_without_accel, "AllLists.json") #"vqs.json" or AllLists.json
-    knobsdict = json.load(file(path_all_lists_json_file, 'r'))
-    print "Loaded json file: " + path_all_lists_json_file
-    var_key = ""
-    if _InputData.accel == "LHCB1":
-        var_key = "VQ1"
-    if _InputData.accel == "LHCB2":
-        var_key = "VQ2"
-    var_key="Q" #TODO
-    
-    variables = knobsdict[var_key] 
-    delta1 = numpy.zeros(len(variables)) * 1.0   # Zero^th of the variables
-    incr = numpy.ones(len(variables)) * _InputData.delta_k
-    incr_dict = {}
-    
-    ######## loop over normal variables
-    f = open(_join_with_output("iter.madx"), "w")
-    for i in range(0, len(delta1)):  # Loop over variables
-        delta = numpy.array(delta1)
-        delta[i] = delta[i] + incr[i]
-        var = variables[i]
-        incr_dict[var] = incr[i]
-        print >> f, var, "=", var, "+(", delta[i], ");"
-        print >> f, "twiss, file=\"" + _join_with_output("twiss." + var) + "\";"
-        print >> f, var, "=", var, "-(", delta[i], ");"
-    incr_dict['0'] = 0.0
-    print >> f, "twiss,file=\"" + _join_with_output("twiss.0") + "\";"
-    f.close()
+    incr_dict = _generate_madx_jobs(variables, options)
+    _call_madx(process_pool, options.temp_dir, options.num_proc)
+    _clean_up(options.temp_dir, options.num_proc, options.outfile_path)
 
-    print "Running MADX"
-    _parallel_command(period=3, number_of_cases=len(delta1) + 1)
-    print "Finished MADX"
+    var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, options.temp_dir)
+    fullresponse = _create_fullresponse_from_dict(var_to_twiss)
+    _save_fullresponse(options.outfile_path, fullresponse)
 
-    #Loading the twiss files into fullresp in parallel
-    varsforloop = variables + ['0']
-    newvarsforloop = []
-    for value in varsforloop:
-        newvarsforloop.append([value, _InputData.output_path])
-    a = _InputData.process_pool.map(_loadtwiss_beta, newvarsforloop)
-    FullResponse = {}
-    for key, value in a:
-        value['incr']=incr_dict[key]
-        FullResponse[key] = value
-    
-    resp=pandas.Panel.from_dict(FullResponse)
-    resp=resp.transpose(2,0,1)
+
+def _get_variables_from_file(varfile_path, exclude_categories):
+    """ Load variables list from json file """
+    LOG.debug("Loading variables from file {:s}".format(varfile_path))
+
+    with open(varfile_path, 'r') as varfile:
+        var_dict = json.load(varfile)
+
+    variables = []
+    for category in var_dict.keys():
+        if category not in exclude_categories:
+            variables += var_dict[category]
+    return list(set(variables))
+
+
+def _generate_madx_jobs(variables, options):
+    """ Generates madx job-files """
+    LOG.debug("Generating MADX jobfiles.")
+    incr_dict = {'0': 0.0}
+    vars_per_proc = int(math.ceil(float(len(variables)) / options.num_proc))
+
+    for proc_idx in range(options.num_proc):
+        jobfile_path, iterfile_path = _get_jobfiles(options.temp_dir, proc_idx)
+        _write_jobfile(options.original_jobfile_path, jobfile_path, iterfile_path, options.pattern)
+        with open(iterfile_path, "w") as iter_file:
+            for i in range(vars_per_proc):
+                var_idx = proc_idx * vars_per_proc + i
+                if var_idx >= len(variables):
+                    break
+                var = variables[var_idx]
+                incr_dict[var] = options.delta_k
+                iter_file.write(
+                    "{var:s}={var:s}+({delta:f});\n".format(var=var, delta=options.delta_k))
+                iter_file.write(
+                    "twiss, file='{:s}';\n".format(os.path.join(options.temp_dir, "twiss." + var)))
+                iter_file.write(
+                    "{var:s}={var:s}-({delta:f});\n".format(var=var, delta=options.delta_k))
+
+            if proc_idx == options.num_proc - 1:
+                iter_file.write(
+                    "twiss, file='{:s}';\n".format(os.path.join(options.temp_dir, "twiss.0")))
+
+    return incr_dict
+
+
+def _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, pattern):
+    """ Replaces the pattern in the original jobfile with call to the appropriate iterfile
+        and saves as new numbered jobfile
+    """
+    with open(original_jobfile_path, "r") as original_file:
+        original_str = original_file.read()
+    with open(jobfile_path, "w") as job_file:
+        job_file.write(original_str.replace(
+            pattern, "call, file='{:s}';".format(iterfile_path),
+        ))
+
+
+def _call_madx(process_pool, temp_dir, num_proc):
+    """ Call madx in parallel """
+    LOG.debug("Starting {:d} MAD-X jobs...".format(num_proc))
+    madx_jobs = [_get_jobfiles(temp_dir, index)[0] for index in range(num_proc)]
+    process_pool.map(_launch_single_job, madx_jobs)
+    LOG.debug("MAD-X jobs done.")
+
+
+def _clean_up(temp_dir, num_proc, outfile):
+    """ Merge Logfiles and clean temporary outputfiles """
+    LOG.debug("Cleaning output and building log...")
+    full_log = ""
+    for index in range(num_proc):
+        job_path, iter_path = _get_jobfiles(temp_dir, index)
+        log_path = job_path + ".log"
+        with open(log_path, "r") as log_file:
+            full_log += log_file.read()
+        os.remove(log_path)
+        os.remove(job_path)
+        os.remove(iter_path)
+    with open(outfile + ".log", "w") as full_log_file:
+        full_log_file.write(full_log)
+
+
+def _load_madx_results(variables, process_pool, incr_dict, temp_dir):
+    """ Load the madx results in parallel and return var-tfs dictionary """
+    LOG.debug("Loading Madx Results.")
+    vars_and_paths = []
+    for value in variables + ['0']:
+        vars_and_paths.append((value, temp_dir))
+    var_to_twiss = {}
+    for var, tfs_data in process_pool.map(_load_and_remove_twiss, vars_and_paths):
+        tfs_data['incr'] = incr_dict[var]
+        var_to_twiss[var] = tfs_data
+    return var_to_twiss
+
+
+def _create_fullresponse_from_dict(var_to_twiss):
+    """ Convert var-tfs dictionary to fullresponse dictionary """
+    resp = pandas.Panel.from_dict(var_to_twiss)
+    resp = resp.transpose(2, 0, 1)
     # After transpose e.g: resp[NDX, kqt3, bpm12l1.b1]
     # The magnet called "0" is no change (nominal model)
-    resp['NDX'] = resp.xs('DX',axis=0) / numpy.sqrt(resp.xs('BETX',axis=0))
-    resp['BBX'] = resp.xs('BETX',axis=0) / resp.loc['BETX','0',:]
-    resp['BBY'] = resp.xs('BETY',axis=0) / resp.loc['BETY','0',:]
-    resp = resp.subtract(resp.xs('0'),axis=1)
+    resp['NDX'] = resp.xs('DX', axis=0) / numpy.sqrt(resp.xs('BETX', axis=0))
+    resp['BBX'] = resp.xs('BETX', axis=0) / resp.loc['BETX', '0', :]
+    resp['BBY'] = resp.xs('BETY', axis=0) / resp.loc['BETY', '0', :]
+    resp = resp.subtract(resp.xs('0'), axis=1)
     # Remove beta-beating of nominal model with itself (bunch of zeros)
-    resp.drop('0',axis=1,inplace=True)
-    resp = resp.div(resp.loc['incr',:,:])
-    full = {'MUX': resp.xs('MUX',axis=0),
-            'MUY': resp.xs('MUY',axis=0),
-            'BBX': resp.xs('BBX',axis=0),
-            'BBY': resp.xs('BBY',axis=0),
-            'NDX': resp.xs('NDX',axis=0),
-            'Q' : resp.loc[['Q1','Q2'],:,resp.minor_axis[0]]
-            }
-    _dump(_join_with_output("FullResponse"), full)
+    resp.drop('0', axis=1, inplace=True)
+    resp = resp.div(resp.loc['incr', :, :])
+    return {'MUX': resp.xs('MUX', axis=0),
+            'MUY': resp.xs('MUY', axis=0),
+            'BBX': resp.xs('BBX', axis=0),
+            'BBY': resp.xs('BBY', axis=0),
+            'NDX': resp.xs('NDX', axis=0),
+            'Q': resp.loc[['Q1', 'Q2'], :, resp.minor_axis[0]]
+           }
 
 
-#=======================================================================================================================
-# helper functions
-#=======================================================================================================================
-
-def _join_with_output(*path_tokens):
-    return os.path.join(_InputData.output_path, *path_tokens)
-
-#def _add_type_and_set_index(x,ind):
-#     x['TYPE']=ind
-#     x.set_index('TYPE', inplace=True)
- #    return x
-
-DEV_NULL = os.devnull
+def _save_fullresponse(outputfile_path, fullresponse):
+    """ Dumping the FullResponse file """
+    LOG.debug("Saving Fullresponse into file '{:s}'".format(outputfile_path))
+    with open(outputfile_path, 'wb') as dump_file:
+        cPickle.Pickler(dump_file, -1).dump(fullresponse)
 
 
-def _callMadx(pathToInputFile):
-    return madx_wrapper.resolve_and_run_file(pathToInputFile, log_file=DEV_NULL)
-    
-
-def _dump(pathToDump, content):
-    dumpFile = open(pathToDump, 'wb')
-    cPickle.Pickler(dumpFile, -1).dump(content)
-    dumpFile.close()
+def _get_jobfiles(temp_dir, index):
+    """ Return names for jobfile and iterfile according to index """
+    jobfile_path = os.path.join(temp_dir, "job.iterate.{:d}.madx".format(index))
+    iterfile_path = os.path.join(temp_dir, "iter.{:d}.madx".format(index))
+    return jobfile_path, iterfile_path
 
 
-def _parallel_command(period, number_of_cases):
-    iterfile = open(_join_with_output("iter.madx"), 'r')
-    lines = iterfile.readlines()
-    iterfile.close()
-    casesperprocess = int(math.ceil(number_of_cases*1.0 / _InputData.number_of_cpus))
-    linesperprocess = casesperprocess * period
-
-    iterFilePaths = []
-    for i in range(len(lines)):   # split the iter.madx using in final number of processes
-        if (i % linesperprocess == 0):
-            proid = i / linesperprocess + 1
-            iterFilePath = _join_with_output("iter." + str(proid) + ".madx")
-            iterFile = open(iterFilePath, 'w')
-            iterFilePaths.append(iterFilePath)
-        iterFile.write(lines[i])
-        if i == len(lines) - 1 or (i % linesperprocess == linesperprocess - 1):
-            iterFile.close()
-
-    # Prepare copies of the job.iterate.madx and all the shell commands
-    madxFilePaths = []
-    for i in range(1, proid + 1):
-        cmd = 'sed \'s/iter.madx/iter.'+str(i)+'.madx/g\' '+_InputData.output_path+'/job.iterate.madx > '+_InputData.output_path+'/job.iterate.'+str(i)+'.madx'
-        _shell_command(cmd)
-        madxFilePaths.append(_InputData.output_path + '/job.iterate.' + str(i) + '.madx')
-
-#    print "send jobs to madx in parallel, number of jobs:", len(madxFilePaths)
-    _InputData.process_pool.map(_callMadx, madxFilePaths)
-
-    # clean up again (tbach)
-    for madxFilePathsItem in madxFilePaths:
-        os.remove(madxFilePathsItem)
-    for iterFilePathsItem in iterFilePaths:
-        os.remove(iterFilePathsItem)
+def _launch_single_job(inputfile_path):
+    """ Function for pool to start a single madx job """
+    log_file = inputfile_path + ".log"
+    return madx_wrapper.resolve_and_run_file(inputfile_path, log_file=log_file)
 
 
-def _shell_command(cmd):
-    ret = os.system(cmd)
-    if ret is not 0:
-        raise ValueError("COMMAND: %s finished with exit value %i" % (cmd, ret))
+def _load_and_remove_twiss(var_and_path):
+    """ Function for pool to retrieve results """
+    (var, path) = var_and_path
+    twissfile = os.path.join(path, "twiss." + var)
+    tfs_data = tfs_pandas.read_tfs(twissfile)
+    tfs_data = tfs_data.set_index('NAME').drop_duplicates()
+    tfs_data['Q1'] = tfs_data.Q1
+    tfs_data['Q2'] = tfs_data.Q2
+    os.remove(twissfile)
+    return var, tfs_data
 
-
-def _loadtwiss_beta(varandpath):
-    (var, path) = varandpath
-    x = 0
-    try:
-        x = tfs_pandas.read_tfs(path + "/twiss." + var)
-        x = x.set_index('NAME').drop_duplicates()
-        x['Q1']=x.headers['Q1']
-        x['Q2']=x.headers['Q2']
-        os.remove(path + "/twiss." + var)
-        print x.headers['Q2']
-    except IOError as e:
-        print e
-        return []
-    return var, x
-
-
-#=======================================================================================================================
-# main invocation
-#=======================================================================================================================
-def _start():
-    timeStartGlobal = time.time()
-    options = _parse_args()
-
-    response(
-         accel=options.accel,
-         output_path=options.path,
-         path_to_core_files_without_accel=options.core,
-         delta_k=options.k
-         )
-
-    timeGlobal = time.time() - timeStartGlobal
-    print "Duration:", timeGlobal, "s"
 
 if __name__ == '__main__':
-    _start()
+    with timeit(lambda t:
+                LOG.debug("  Generated FullResponse in {:f}s".format(t))):
+        _generate_fullresponse(_parse_args())

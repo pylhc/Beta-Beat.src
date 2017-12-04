@@ -1,6 +1,7 @@
 import os
 from .matcher import Matcher
 from Python_Classes4MAD import metaclass
+import math
 
 DEF_CONSTR_AUX_VALUES_TEMPLATE = """
 use, period=%(SEQ)s;
@@ -11,6 +12,8 @@ twiss, beta0=%(INIT_VALS)s, chrom, table=%(TABLE_NAME)s;
 """
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+USE_ABS = True
+USE_F1010 = False
 
 
 class CouplingMatcher(Matcher):
@@ -38,10 +41,9 @@ class CouplingMatcher(Matcher):
             variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
             variables_d_str += variable + ' := ' + self.name + "." + variable + '_0' + ' + d' + variable + ';\n'
 
-        beam = str(self.segment.get_beam())
         return DEF_CONSTR_AUX_VALUES_TEMPLATE % {
-            "SEQ": "lhcb" + beam + "_" + self.propagation + "_" + self.name,
-            "INIT_VALS": "b" + beam + "_" + self.ini_end + "_" + self.name,
+            "SEQ": self.get_sequence_name(),
+            "INIT_VALS": self.get_initvals_name(),
             "TABLE_NAME": self._get_nominal_table_name(),
             "S_VARIABLES": variables_s_str,
             "D_VARIABLES": variables_d_str,
@@ -63,11 +65,28 @@ class CouplingMatcher(Matcher):
 
                 f1001r = sbs_data.F1001REMEAS[index]
                 f1001i = sbs_data.F1001IMMEAS[index]
+                f1001abs = math.sqrt(f1001r ** 2 + f1001i ** 2)
+                f1010r = sbs_data.F1010REMEAS[index]
+                f1010i = sbs_data.F1010IMMEAS[index]
+                f1010abs = math.sqrt(f1010r ** 2 + f1010i ** 2)
 
-                constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                constr_string += 'expr = ' + self.name + "." + name + '_f1001r = ' + str(f1001r) + '; \n'
-                constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                constr_string += 'expr = ' + self.name + "." + name + '_f1001i = ' + str(f1001i) + '; \n'
+                if (USE_ABS):
+                    constr_string += '   constraint, weight = ' + str(1.0) + ' , '
+                    constr_string += 'expr = ' + self.name + "." + name + '_f1001abs = ' + str(f1001abs) + '; \n'
+                    if USE_F1010:
+                        constr_string += '   constraint, weight = ' + str(1.0) + ' , '
+                        constr_string += 'expr = ' + self.name + "." + name + '_f1010abs = ' + str(f1010abs) + '; \n'
+                else:
+                    constr_string += '   constraint, weight = ' + str(1.0) + ' , '
+                    constr_string += 'expr = ' + self.name + "." + name + '_f1001r = ' + str(f1001r) + '; \n'
+                    constr_string += '   constraint, weight = ' + str(1.0) + ' , '
+                    constr_string += 'expr = ' + self.name + "." + name + '_f1001i = ' + str(f1001i) + '; \n'
+                    if USE_F1010:
+                        constr_string += '   constraint, weight = ' + str(1.0) + ' , '
+                        constr_string += 'expr = ' + self.name + "." + name + '_f1010r = ' + str(f1010r) + '; \n'
+                        constr_string += '   constraint, weight = ' + str(1.0) + ' , '
+                        constr_string += 'expr = ' + self.name + "." + name + '_f1010i = ' + str(f1010i) + '; \n'
+
                 constr_string += '!   S = ' + str(s)
                 constr_string += ';\n'
         return constr_string
@@ -107,8 +126,12 @@ class CouplingMatcher(Matcher):
         )
         for bpm_name in sbs_data.NAME:
             f_terms_string += "exec, get_f_terms_for(twiss, " + bpm_name + ");\n"
-            f_terms_string += self.name + "." + bpm_name + "_f1001r = " + bpm_name + "_f1001r;\n"
-            f_terms_string += self.name + "." + bpm_name + "_f1001i = " + bpm_name + "_f1001i;\n"
-            f_terms_string += self.name + "." + bpm_name + "_f1010r = " + bpm_name + "_f1010r;\n"
-            f_terms_string += self.name + "." + bpm_name + "_f1010i = " + bpm_name + "_f1010i;\n"
+            if (USE_ABS):
+                f_terms_string += self.name + "." + bpm_name + "_f1001abs = " + bpm_name + "_f1001abs;\n"
+                f_terms_string += self.name + "." + bpm_name + "_f1010abs = " + bpm_name + "_f1010abs;\n"
+            else:
+                f_terms_string += self.name + "." + bpm_name + "_f1001r = " + bpm_name + "_f1001r;\n"
+                f_terms_string += self.name + "." + bpm_name + "_f1001i = " + bpm_name + "_f1001i;\n"
+                f_terms_string += self.name + "." + bpm_name + "_f1010r = " + bpm_name + "_f1010r;\n"
+                f_terms_string += self.name + "." + bpm_name + "_f1010i = " + bpm_name + "_f1010i;\n"
         return f_terms_string

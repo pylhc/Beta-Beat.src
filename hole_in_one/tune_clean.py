@@ -19,7 +19,7 @@ def clean_tunes(files, limit=DEF_LIMIT):
         mask = _get_mask(file_df, limit)
         file_df = file_df.loc[mask, :]
         _recompute_tune_stats(file_df)
-        tfs_pandas.write_tfs(file_df, file_df.headers, file)
+        tfs_pandas.write_tfs(file, file_df)
 
 
 def _get_mask(file_df, limit):
