@@ -283,7 +283,6 @@ def main(accelerator,
     global __getllm_starttime
     __getllm_starttime = time()
 
-    algorithms.phase.set_union(union)
 
     use_average = (use_average == 1)
     use_only_three_bpms_for_beta_from_phase = (use_only_three_bpms_for_beta_from_phase == 1)
@@ -303,6 +302,7 @@ def main(accelerator,
     getllm_d.use_only_three_bpms_for_beta_from_phase = use_only_three_bpms_for_beta_from_phase
     getllm_d.accelerator = accelerator
     getllm_d.nprocesses = nprocesses
+    getllm_d.union = union
     
     tune_d.q1mdl = accelerator.get_model_tfs().headers["Q1"]
     tune_d.q2mdl = accelerator.get_model_tfs().headers["Q2"]
@@ -371,39 +371,29 @@ def main(accelerator,
 
         # STEP out of getllm
 
-        if BREAK:
-            LOGGER.info("=============================================")
-            LOGGER.info("=    EXITING GETLLM before its time has come")
-            LOGGER.info("=")
-            LOGGER.info("=   SKIPPING  coupling, dispersion, ")
-            LOGGER.info("=   get_kick, orbit, RDTs and sextupoles")
-            LOGGER.info("=============================================")
+        #-------- START IP
+        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d_bk, beta_d,
+                                                  accelerator.get_model_tfs(),
+                                                  accelerator.get_driven_tfs(),
+                                                  files_dict)
 
-        else:
+        #-------- START Orbit
+        list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
 
-            #-------- START IP
-    #        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d,
-    #                                                  accelerator.get_model_tfs(),
-    #                                                  accelerator.get_driven_tfs(),
-    #                                                  files_dict)
+        #-------- START Dispersion
+        algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
+        
+        #------ Start get Q,JX,delta
+        files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
 
-            #-------- START Orbit
-            list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
+        #-------- START coupling.
+        tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
 
-            #-------- START Dispersion
-            algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
-            
-            #------ Start get Q,JX,delta
-            files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
+        #-------- START RDTs
+        if nonlinear:
+            algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y)
 
-            #-------- START coupling.
-            tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
-
-            #-------- START RDTs
-            if nonlinear:
-                algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y)
-
-# TODO: sussic isn't a thing any more, right? (awegsche)
+# TODO: what does this?
 #           if tbtana == "SUSSIX":
 #               #------ Start getsextupoles @ Glenn Vanbavinckhove
 #               files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
@@ -509,6 +499,7 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
 def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dict, use_average, calibration_twiss, model):
 
     LOGGER.debug("Start analysing source files")
+    union = getllm_d.union
 
     for file_in in files_to_analyse.split(','):
         LOGGER.debug("> file: '{:s}'".format(file_in))
@@ -672,8 +663,12 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
         print >> sys.stderr, "No parsed input files"
         sys.exit(1)
     
-    twiss_d.zero_dpp_commonbpms_x, twiss_d.zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model)    
-    twiss_d.zero_dpp_commonbpms_y, twiss_d.zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model)    
+    twiss_d.zero_dpp_commonbpms_x, twiss_d.zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model, union)
+    twiss_d.zero_dpp_commonbpms_y, twiss_d.zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model, union)
+    twiss_d.non_zero_dpp_commonbpms_x, twiss_d.non_zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.non_zero_dpp_x, model,
+                                                                                         union)
+    twiss_d.non_zero_dpp_commonbpms_y, twiss_d.non_zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.non_zero_dpp_y, model,
+                                                                                         union)
     
 
     return twiss_d, files_dict
@@ -717,7 +712,7 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
     print 'Calculating orbit'
     list_of_co_x = []
     if twiss_d.has_zero_dpp_x():
-        [cox, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x)
+        cox = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x)
         # The output file can be directly used for orbit correction with MADX
         tfs_file = files_dict['getCOx.out']
         tfs_file.add_string_descriptor("TABLE", 'ORBIT')
@@ -727,16 +722,16 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "X", "STDX", "XMDL", "MUXMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), cox[bn1][0], cox[bn1][1], mad_twiss.X[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
+        for bn1 in twiss_d.zero_dpp_commonbpms_x.index:
+            bns1 = twiss_d.zero_dpp_commonbpms_x.loc[bn1, "S"]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), cox[bn1][0], cox[bn1][1],
+                                mad_twiss.loc[bn1, "X"], mad_twiss.loc[bn1, "MUX"]]
             tfs_file.add_table_row(list_row_entries)
 
         list_of_co_x.append(cox)
     list_of_co_y = []
     if twiss_d.has_zero_dpp_y():
-        [coy, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y)
+        coy = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y)
         # The output file can be directly used for orbit correction with MADX
         tfs_file = files_dict['getCOy.out']
         tfs_file.add_string_descriptor("TABLE", 'ORBIT')
@@ -746,10 +741,10 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "Y", "STDY", "YMDL", "MUYMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), coy[bn1][0], coy[bn1][1], mad_twiss.Y[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
+        for bn1 in twiss_d.zero_dpp_commonbpms_y.index:
+            bns1 = twiss_d.zero_dpp_commonbpms_y.loc[bn1, "S"]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), coy[bn1][0], coy[bn1][1],
+                                mad_twiss.loc[bn1, "Y"], mad_twiss.loc[bn1, "MUY"]]
             tfs_file.add_table_row(list_row_entries)
 
         list_of_co_y.append(coy)
@@ -766,13 +761,13 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
             tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
             tfs_file.add_float_descriptor("Q1", tune_d.q1)
             tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            [codpp, bpms] = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss)
+            codpp = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss, twiss_d.non_zero_dpp_commonbpms_x)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "X", "STDX", "XMDL", "MUXMDL"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpms)):
-                bn1 = str.upper(bpms[i][1])
-                bns1 = bpms[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), codpp[bn1][0], codpp[bn1][1], mad_twiss.X[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
+            for bn1 in twiss_d.non_zero_dpp_commonbpms_x.index:
+                bns1 = twiss_d.non_zero_dpp_commonbpms_x.loc[bn1, "S"]
+                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), codpp[bn1][0], codpp[bn1][1],
+                                    mad_twiss.loc[bn1, "X"], mad_twiss.loc[bn1, "MUX"]]
                 tfs_file.add_table_row(list_row_entries)
 
             list_of_co_x.append(codpp)
@@ -790,14 +785,13 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
             tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
             tfs_file.add_float_descriptor("Q1", tune_d.q1)
             tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            [codpp, bpms] = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss)
+            codpp = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss, twiss_d.non_zero_dpp_commonbpms_y)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "Y", "STDY", "YMDL", "MUYMDL"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpms)):
-                bn1 = str.upper(bpms[i][1])
-                bns1 = bpms[i][0]
-                #TODO: why twiss_d.zero_dpp_y.. above used twiss_d.non_zero_dpp_y(vimaier)
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), codpp[bn1][0], codpp[bn1][1], mad_twiss.Y[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
+            for bn1 in twiss_d.non_zero_dpp_commonbpms_y.index:
+                bns1 = twiss_d.non_zero_dpp_commonbpms_y.loc[bn1, "S"]
+                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), codpp[bn1][0], codpp[bn1][1],
+                                    mad_twiss.loc[bn1, "Y"], mad_twiss.loc[bn1, "MUY"]]
                 tfs_file.add_table_row(list_row_entries)
 
             list_of_co_y.append(codpp)
@@ -932,9 +926,9 @@ def _copy_calibration_files(output_path, calibration_dir_path):
 # END _copy_calibration_files --------------------------------------------------------------------
 
 
-def _get_commonbpms(ListOfFiles, model):
+def _get_commonbpms(ListOfFiles, model, union):
     
-    if algorithms.phase.get_union():
+    if union:
         common = pd.DataFrame(model.loc[:, "S"])
         common["NFILES"] = 0
         for i in range(len(ListOfFiles)):
@@ -942,13 +936,14 @@ def _get_commonbpms(ListOfFiles, model):
         union = common.drop(common[common.loc[:,"NFILES"] < 2].index)
         inters = common.drop(common[common.loc[:,"NFILES"] < len(ListOfFiles)].index)
         return inters, union
-    
+
     common_index = model.index
     for i in range(len(ListOfFiles)):
         common_index = common_index.intersection(ListOfFiles[i].index)
 
-
-    return model.loc[common_index, "S"], None
+    commbpms = pd.DataFrame(model.loc[common_index, "S"])
+    commbpms["NFILES"] = len(ListOfFiles)
+    return commbpms, None
 
 
 #===================================================================================================
@@ -976,6 +971,7 @@ class _GetllmData(object):
         self.parallel = False
         self.nprocesses = 1
         self.important_pairs = {}
+        self.union = False
 
     def set_outputpath(self, outputpath):
         ''' Sets the outputpath and creates directories if they not exist.
