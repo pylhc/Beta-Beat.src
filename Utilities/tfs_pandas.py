@@ -130,7 +130,7 @@ def read_tfs(tfs_path):
     return data_frame
 
 
-def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
+def write_tfs(data_frame, headers_dict, tfs_path, save_index=False):
     """
     Writes the Pandas DataFrame data_frame into tfs_path with the headers_dict
     as headers dictionary. If you want to keep the order of the headers, use
