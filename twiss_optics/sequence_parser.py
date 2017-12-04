@@ -17,10 +17,11 @@ def parse_sequence_file(sequence_file):
     Create Mapping from variables to magnets based on sequence_file.
      assumptions:
      - Sequence is saved in a way, that magnets definitions contain 'knl:={}' or 'K#:='
-     - we don't care about the N in KNL
+     - we don't care about the N in KNL (could be found quickly, though)
      - linearity: variables do not multiply with each other (will result in zeros)
      - the variable-name is final (i.e. it is not reassigned by ':=' somewhere else)
      - the variable-name does not start with "l." (reserved for length multiplier)
+     - the length multiplier is given by l.<magnettype>
      - apart from the length, there are no other named multipliers (numbers are fine)
 
     :param sequence_file: Saved Sequence file
@@ -42,7 +43,7 @@ def parse_sequence_file(sequence_file):
 
 
 def _read_file(sequence_file):
-    """ Read the file and return """
+    """ Read the file and return the magnet definitions and magnet lengths """
     length_constants = {}
     magnet_strings = {}
     with open(sequence_file, 'r') as f_seq:
@@ -69,21 +70,24 @@ def _find_length(line):
 
 
 def _find_strength(line):
-    """ Search for magnet strengths in line """
+    """ Search for magnet strengths in line
+        [If one ever needs n exchange '\d' for '(?P<N>\d) and use enumerate(knls)]
+    """
     match = re.search(r",\s*k(nl:=\{(?P<knl>[^\}]+)\}|\d:=(?P<k>[^,]+))", line)
     if match is not None:
-        magnet = re.match(r"([\w]|\.)*", line).group(0)
+        magnet = re.match(r"[\w.]*", line).group(0)
 
         if match.group("knl") is not None:
             knls = match.group('knl').split(',')
-            for n, knl in enumerate(knls):
+            for knl in knls:
                 try:
                     float(knl)  # check could also be "len(knl) > 1"
                 except ValueError:
-                    # if one ever needs it: n is available as well!
                     return magnet, knl.replace(" ", "")
         else:
-            return magnet, match.group("k").replace(" ", "")
+            length = "l." + re.search(r":(?!=)\s*([^,]+)", line).group(1)
+            knl = "({kn:s}) * {l:s}".format(kn=match.group("k"), l=length)
+            return magnet, knl.replace(" ", "")
     else:
         return None
 
@@ -131,5 +135,5 @@ def _eval_strength(k_string, length_constants):
 
 if __name__ == '__main__':
     import os
-    df = parse_sequence_file(os.path.join("tests", "lhcb1.seq"))
-    print df.loc['mq.26r5.b1..1', df.loc['mq.26r5.b1..1', :] != 0]
+    df = parse_sequence_file(os.path.join("tests", "lhcb1_tmp.seq"))
+    print df.loc['mq.26r5.b1', df.loc['mq.26r5.b1', :] != 0]
