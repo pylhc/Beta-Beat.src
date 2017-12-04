@@ -38,7 +38,6 @@ from model.accelerators.accelerator import AccExcitationMode
 from Utilities import logging_tools
 
 from Utilities.tfs_pandas import add_coupling
-from phase import UNION
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
@@ -108,7 +107,9 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             # Call 2-BPM method coupling function, analogous to GetCoupling1, but contains more results
 #            else:
             print('has to be removed')
-            [fwqw, bpms] = GetCoupling2(mad_twiss, twiss_d, tune_d.q1f, tune_d.q2f, phase_d.phase_advances_free_x, phase_d.phase_advances_free_y, getllm_d.accelerator, getllm_d.outputpath)
+            [fwqw, bpms] = GetCoupling2(mad_twiss, twiss_d, tune_d.q1f, tune_d.q2f, phase_d.phase_advances_free_x,
+                                        phase_d.phase_advances_free_y, getllm_d.accelerator, getllm_d.outputpath,
+                                        getllm_d.union)
         else:
             raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
 
@@ -415,7 +416,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
 
 ### END of GetCoupling1 ###
 
-def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outputpath):
+def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outputpath, union):
     """Calculate coupling and phase with 2-BPM method for all BPMs and overall
     INPUT
      MADTwiss        - twiss instance of model from MAD 
@@ -444,7 +445,7 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         dum1 = []
         return [dum0, dum1]
     # Determine intersection of BPM-lists between measurement and model, create list dbpms
-    if UNION:
+    if union:
         index = twiss_d.zero_dpp_unionbpms_x.index.intersection(twiss_d.zero_dpp_unionbpms_y.index)
         dbpms = twiss_d.zero_dpp_unionbpms_x.loc[index]
     else:
@@ -632,7 +633,7 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
             f1001i = f1001i*complex(np.cos(2.0*np.pi*q1001i),np.sin(2.0*np.pi*q1001i))
             f1010i = f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))
             # Add BPM to list of BPMs with correct phase
-            if UNION:
+            if union:
                 dbpmt.append([dbpms.loc[bn1, "S"], dbpms.index[i]])
             else:
                 dbpmt.append([dbpms.loc[bn1], dbpms.index[i]])
