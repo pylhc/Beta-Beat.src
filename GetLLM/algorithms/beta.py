@@ -363,7 +363,7 @@ class Uncertainties:  # error definition file
         # dump the modified twiss_full and return it to the beta calculation
         _info_("DONE creating uncertainty information")
         _debug_("dumping new twiss_full.dat")
-        tfs_pandas.write_tfs(twiss_full, {}, "dump_twiss_full")
+        tfs_pandas.write_tfs("dump_twiss_full", twiss_full, {})
         return twiss_full[twiss_full["UNC"] == True]
 
 #======================================================================================================================
