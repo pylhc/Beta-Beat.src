@@ -2,7 +2,6 @@
 
 import os
 import json
-import cPickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -60,15 +59,21 @@ class TwissResponse(object):
         variables = self._read_variables(varfile_path, exclude_categories)
         mapping = sequence_parser.load_or_calc_variable_mapping(seqfile_path, "dictionary")
 
+        for order in ("K0L", "K0SL", "K1L", "K0SL"):
+            if order not in mapping:
+                mapping[order] = {}
+
         # check if all variables can be found
-        check_var = [var for var in variables if var not in mapping]
-        if len(check_var):
+        check_var = [var for var in variables
+                     if all(var not in mapping[order] for order in mapping)]
+        if len(check_var) > 0:
             raise ValueError("Variables '{:s}' cannot be found in sequence!".format(
                 ", ".join(check_var)
             ))
 
         # drop mapping for unused variables
-        [mapping.pop(key) for key in mapping.keys() if key not in variables]
+        [mapping[order].pop(var) for order in mapping for var in mapping[order].keys()
+         if var not in variables]
 
         return mapping
 
@@ -90,10 +95,16 @@ class TwissResponse(object):
         """ Return variable names of input elements.
             Get variable mapping first!
         """
-        input_elements = []
-        for var in self._var_to_el:
-            input_elements += [el.upper() for el in self._var_to_el[var].index]
-        return self._twiss.loc[list(set(input_elements)), "S"].sort_values().index.tolist()
+        v2e = self._var_to_el
+        tw = self._twiss
+
+        el_in = dict.fromkeys(v2e.keys())
+        for order in el_in:
+            el_order = []
+            for var in v2e[order]:
+                el_order += upper(v2e[order][var].index)
+                el_in[order] = tw.loc[list(set(el_order)), "S"].sort_values().index.tolist()
+        return el_in
 
     def _get_output_elements(self, at_elements):
         """ Return name-array of elements to use for output
@@ -115,8 +126,10 @@ class TwissResponse(object):
 
         if at_elements == "bpms+":
             # bpms and the used magnets
+            el_in = self._elements_in
             return [idx for idx in tw_idx
-                    if (idx.upper().startswith('B') or (idx in self._elements_in))]
+                    if (idx.upper().startswith('B')
+                        or any(idx in el_in[order] for order in el_in))]
 
         if at_elements == "all":
             # all, obviously
@@ -127,12 +140,33 @@ class TwissResponse(object):
     ################################
 
     def _calc_beta_response(self):
-        """ Response Matrix for delta betas
-             Eq. A35 -> Eq. B45 in [2]
+        """ Response Matrix for delta betabeats
+            Eq. A35 -> Eq. B45 in [2]
         """
         LOG.info("Calculate Beta Beating Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
-            pass
+            k_order = "K1L"
+            tw = self._twiss
+            adv = self._phase_advances
+            el_in = self._elements_in[k_order]
+            el_out = self._elements_out
+            var2el = self._var_to_el[k_order]
+            dbetabeat = dict.fromkeys(["X", "Y"])
+
+            dphix = dphi(adv["X"].loc[el_in, el_out], tw.Q1)
+            dphiy = dphi(adv["Y"].loc[el_in, el_out], tw.Q2)
+
+            dbetabeat["X"] = tfs.TfsDataFrame(
+                -(1/(2*np.sin(2*np.pi*tw.Q1))) *
+                  np.cos(2*np.pi*(2*dphix - tw.Q1)) *
+                  tw.loc[el_in, "BETX"], index=el_in, columns=el_out).transpose()
+
+            dbetabeat["Y"] = tfs.TfsDataFrame(
+                (1 / (2 * np.sin(2 * np.pi * tw.Q2))) *
+                np.cos(2 * np.pi * (2 * dphiy - tw.Q2)) *
+                tw.loc[el_in, "BETY"], index=el_in, columns=el_out).transpose()
+
+        return self._map_to_variables(dbetabeat, var2el)
 
     def _calc_dispersion_response(self):
         """ Response Matrix for delta dispersion
@@ -152,9 +186,11 @@ class TwissResponse(object):
         """
         LOG.info("Calculate Phase Advance Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+            k_order = "K1L"
             tw = self._twiss
             adv = self._phase_advances
-            el_in = self._elements_in
+            el_in = self._elements_in[k_order]
+            var2el = self._var_to_el[k_order]
 
             el_out_all = [tw.index[0]] + self._elements_out
             el_out = el_out_all[1:]  # in these we are actually interested
@@ -199,26 +235,31 @@ class TwissResponse(object):
                 "Y": dadv['Y'].transpose().apply(np.cumsum),
             }
 
-        return self._map_to_variables(dmu)
+        return self._map_to_variables(dmu, var2el)
 
     def _calc_tune_response(self):
         LOG.info("Calculate Tune Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             pass
 
-    def _map_to_variables(self, d):
+    @staticmethod
+    def _map_to_variables(df_dict, mapping):
         """ Maps from magnets to variables using self._var_to_el.
             Could actually be done by matrix multiplication
             A * var_to_el, yet, as var_to_el is very sparse,
             looping is easier.
+
+            :param df_dict: Dictionary (for planes) of dataframes to map
+            :param mapping: mapping to be applied (e.g. var_to_el[order])
+            :return: Dictionary (for planes) of mapped dataframes
         """
-        mapping = self._var_to_el
-        mapped = dict.fromkeys(["X", "Y"])
-        for plane in ["X", "Y"]:
-            df_map = tfs.TfsDataFrame(index=d[plane].index, columns=mapping.keys())
-            for var, magnets in mapping:
-                df_map[var] = d[plane].loc[:, magnets.index].mul(magnets.values,
+        mapped = dict.fromkeys(df_dict.keys())
+        for plane in mapped:
+            df_map = tfs.TfsDataFrame(index=df_dict[plane].index, columns=mapping.keys())
+            for var, magnets in mapping.iteritems():
+                df_map[var] = df_dict[plane].loc[:, upper(magnets.index)].mul(magnets.values,
                                                                  axis="columns").sum(axis="columns")
+            mapped[plane] = df_map
         return mapped
 
     ################################
@@ -257,6 +298,18 @@ class TwissResponse(object):
             "NDY": nd["Y"],
             "Q": tfs.TfsDataFrame(np.concatenate((q["X"],q["Y"]), axis=0), columns=["Q1", "Q2"])
         }
+
+
+################################
+#          Other
+################################
+
+def upper(list_of_strings):
+    return [item.upper() for item in list_of_strings]
+
+
+def lower(list_of_strings):
+    return [item.lower() for item in list_of_strings]
 
 
 if __name__ == '__main__':
