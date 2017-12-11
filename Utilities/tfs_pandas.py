@@ -86,7 +86,7 @@ class _Indx(object):
         return name_series[name_series == key].index[0]
 
 
-def read_tfs(tfs_path):
+def read_tfs(tfs_path, index=None):
     """
     Parses the TFS table present in tfs_path and returns a custom Pandas
     DataFrame (TfsDataFrame).
@@ -120,13 +120,20 @@ def read_tfs(tfs_path):
                 rows_list.append(parts)
     data_frame = _create_data_frame(column_names, column_types, rows_list, headers)
 
-    index_column = [c for c in data_frame.columns if c.startswith(INDEX)]
-    if len(index_column) > 0:
-        data_frame = data_frame.set_index(index_column)
-        idx_name = index_column[0].replace(INDEX, "")
-        if idx_name == "":
-            idx_name = None  # to remove it completely
-        data_frame = data_frame.rename_axis(idx_name)
+    if index is not None:
+        # Use given column as index
+        data_frame = data_frame.set_index(index)
+    else:
+        # Try to find Index automatically
+        index_column = [c for c in data_frame.columns if c.startswith(INDEX)]
+        if len(index_column) > 0:
+            data_frame = data_frame.set_index(index_column)
+            idx_name = index_column[0].replace(INDEX, "")
+            if idx_name == "":
+                idx_name = None  # to remove it completely (Pandas makes a difference)
+            data_frame = data_frame.rename_axis(idx_name)
+
+    _validate(data_frame)
     return data_frame
 
 
@@ -136,7 +143,14 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     as headers dictionary. If you want to keep the order of the headers, use
     collections.OrderedDict.
     """
-    if save_index:
+    _validate(data_frame)
+
+    if isinstance(save_index, basestring):
+        # saves index into column by name given
+        data_frame = data_frame.copy()
+        data_frame[save_index] = data_frame.index
+    elif save_index:
+        # saves index into column, which can be found by INDEX identifier
         data_frame = data_frame.copy()
         try:
             full_name = INDEX + data_frame.index.name
@@ -269,6 +283,26 @@ def _get_column_types(data_frame):
 
 def _raise_unknown_type(name):
     raise TfsFormatError("Unknown data type: " + name)
+
+
+def _validate(data_frame):
+    """ Check if Dataframe contains finite values only """
+    def isnotfinite(x):
+        try:
+            return ~np.isfinite(x)
+        except TypeError:
+            # most likely string
+            try:
+                return np.zeros(x.shape, dtype=bool)
+            except AttributeError:
+                # single entry
+                return np.zeros(1, dtype=bool)
+
+    bool_df = data_frame.apply(isnotfinite)
+    if bool_df.values.any():
+        LOGGER.error("DataFrame contains non-physical values at Index: {:s}".format(
+            str(bool_df.index[bool_df.any(axis='columns')].tolist())
+        ))
 
 
 if __name__ == "__main__":
