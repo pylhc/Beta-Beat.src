@@ -14,7 +14,7 @@ HEADER = "@"
 NAMES = "*"
 TYPES = "$"
 COMMENTS = "#"
-INDEX = "INDEX&&&"
+INDEX_ID = "INDEX&&&"
 
 ID_TO_TYPE = {
     "%s": np.str,
@@ -90,6 +90,9 @@ def read_tfs(tfs_path, index=None):
     """
     Parses the TFS table present in tfs_path and returns a custom Pandas
     DataFrame (TfsDataFrame).
+    :param tfs_path: Input filepath
+    :param index: Name of the column to set as index. If not given looks for INDEX_ID-column
+    :return: TFS_DataFrame object
     """
     LOGGER.debug("Reading path: " + tfs_path)
     headers = OrderedDict()
@@ -125,10 +128,10 @@ def read_tfs(tfs_path, index=None):
         data_frame = data_frame.set_index(index)
     else:
         # Try to find Index automatically
-        index_column = [c for c in data_frame.columns if c.startswith(INDEX)]
+        index_column = [c for c in data_frame.columns if c.startswith(INDEX_ID)]
         if len(index_column) > 0:
             data_frame = data_frame.set_index(index_column)
-            idx_name = index_column[0].replace(INDEX, "")
+            idx_name = index_column[0].replace(INDEX_ID, "")
             if idx_name == "":
                 idx_name = None  # to remove it completely (Pandas makes a difference)
             data_frame = data_frame.rename_axis(idx_name)
@@ -142,6 +145,12 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     Writes the Pandas DataFrame data_frame into tfs_path with the headers_dict
     as headers dictionary. If you want to keep the order of the headers, use
     collections.OrderedDict.
+    :param tfs_path: Output filepath
+    :param data_frame: Data Frame to save
+    :param headers_dict: Headers of the dataframe, if empty tries to use data_frame.headers
+    :param save_index: bool or string. If True, saves the index of the data_frame to a column
+    identifiable by INDEX_ID (will be loaded automatically by read_tfs). If string, it saves
+    the index of the data_frame to a column named like the string given. Default: False
     """
     _validate(data_frame)
 
@@ -153,9 +162,9 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
         # saves index into column, which can be found by INDEX identifier
         data_frame = data_frame.copy()
         try:
-            full_name = INDEX + data_frame.index.name
+            full_name = INDEX_ID + data_frame.index.name
         except TypeError:
-            full_name = INDEX
+            full_name = INDEX_ID
         data_frame[full_name] = data_frame.index
 
     tfs_name = os.path.basename(tfs_path)
