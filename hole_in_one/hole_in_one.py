@@ -206,8 +206,9 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res):
     return lin_frame
 
 
-def _kick_phase_correction(bpm_data, lin_frame, plane):
+def _kick_phase_correction(bpm_data_orig, lin_frame, plane):
     uplane = plane.upper()
+    bpm_data = bpm_data_orig.loc[lin_frame.index,:]
     damp, dstd = _get_damping(bpm_data)
     LOGGER.debug("Damping factor X: {0:2.2e} +- {1:2.2e}".format(damp, dstd))
     int_range = np.arange(0.0, bpm_data.shape[1])
