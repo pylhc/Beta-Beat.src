@@ -1,1 +1,0 @@
-python ConvertYASPtoDrive.py -m /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/ -f ./InjTurns_LHCRING_10-09-08_21-36-46_F830.data.zip -d ./

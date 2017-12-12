@@ -1,7 +1,0 @@
-
-python ConvertJorg.py -a LHCB2 -p 830/ -oOUT/ -x0.31 -y0.24 -m ~/lintrack/Beta-Beat.src/MODEL/LHCB2/twiss.correctors.dat
-
-
-To run SAD alone:
-../../SAD/BetaAnalysis.ro.sad -o beta.dat -m ~/lintrack/Beta-Beat.src/MODEL/LHCB2/twiss.correctors.dat OUT/*lin[xy]
-
