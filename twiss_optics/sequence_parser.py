@@ -16,20 +16,21 @@
 
     HINT: 'magnet := #.### + var' WILL NOT RESULT IN A VALID MAPPING !!!
     (e.g. '1 + var' is indistinguishable from '2 * var', which is not what you want!)
-
-
 """
 
 import os
 import re
+import json
 from Utilities import logging_tools as logtool
 from Utilities.contexts import timeit
 from Utilities import tfs_pandas as tfs
 import cPickle as pickle
 import pandas as pd
+from collections import OrderedDict
 
 LOG = logtool.get_logger(__name__)
 
+EXT = "varmap"  # Extension Standard
 
 """
 =============================   Main   =============================
@@ -40,91 +41,169 @@ DEFAULT = {
 }
 
 
-def get_variable_mapping(sequence_file, ret=DEFAULT['return']):
+def parse_variable_mapping(seqfile_path, ret=DEFAULT['return']):
+    """ Main Function for creating the variable mapping
+
+    Args:
+        seqfile_path: Saved Sequence file
+        ret: return format, either "tfs" or "dictionary"
+
+    Returns:
+        Dictionary of orders containing either a
+        DataFrame of magnets(index) vs. variables(columns)
+        containing the variable-coefficients
+        or a
+        Dictionary of all variables containing magnet-coefficient Series
     """
-    Main Function for creating the variable mapping
-    :param sequence_file: Saved Sequence file
-    :param ret: return format, either "tfs" or "dictionary"
-    :return: Dictionary of orders conatining either a
-             Dataframe of magnets(index) vs. variables(columns)
-             containing the variable-coefficients
-             or a
-             Dictionary of all variables containing magnet-coefficient Series
-    """
-    LOG.info("Parsing file '{:s}'".format(sequence_file))
+    LOG.info("Parsing file '{:s}'".format(seqfile_path))
 
     _check_ret(ret)
 
     with timeit(lambda t:
                 LOG.debug("  File parsed in {:f}s".format(t))):
-        magnet_strings, length_constants = _read_file_for_magnets(sequence_file)
+        magnet_strings, length_constants = _read_file_for_magnets(seqfile_path)
         if ret.lower() == "dataframe":
             return _build_variable_mapping_df(magnet_strings, length_constants)
+
         elif ret.lower() == "dictionary":
             return _build_variable_mapping_dict(magnet_strings, length_constants)
 
 
-def load_or_calc_variable_mapping(seqfile_path, ret=DEFAULT['return']):
-    """
-    Convenience function for loading variable mapping from a file or calculating and saving
-    it if not found
-    :param seqfile_path: Saved Sequence file
-    :return: Dictionary of orders conatining either a
-             Dataframe of magnets(index) vs. variables(columns)
-             containing the variable-coefficients
-             or a
-             Dictionary of all variables containing magnet-coefficient Series
+def load_variable_mapping(seqfile_path, ret=DEFAULT['return']):
+    """ Load mapping from file(s).
+
+    Args:
+        seqfile_path: Saved Sequence file
+        ret: return format, either "tfs" or "dictionary"
+
+    Returns:
+        Dictionary of orders containing either a
+        DataFrame of magnets(index) vs. variables(columns)
+        containing the variable-coefficients
+        or a
+        Dictionary of all variables containing magnet-coefficient Series
     """
     _check_ret(ret)
-    ext = "varmap"
-    varmapfile_path = seqfile_path.replace(".seq", "").replace("." + ext, "")
+    varmapfile_path = seqfile_path.replace(".seq", "").replace("." + EXT, "")
+    if ret == "dictionary":
+        full_file_path = "{f:s}.{e:s}".format(f=varmapfile_path, e=EXT)
+        with open(full_file_path, "rb") as varmapfile:
+            mapping = pickle.load(varmapfile)
+        LOG.debug("Loaded mapping from varmap file '{:s}'.".format(full_file_path))
 
-    try:
-        if ret == "dictionary":
-            full_file_path = "{f:s}.{e:s}".format(f=varmapfile_path, e=ext)
-            with open(full_file_path, "rb") as varmapfile:
-                mapping = pickle.load(varmapfile)
-            LOG.debug("Using mapping from varmap file '{:s}'.".format(full_file_path))
+    elif ret == "dataframe":
+        varmapfile_name = os.path.basename(varmapfile_path)
+        order = []
+        for f in os.listdir(os.path.dirname(varmapfile_path)):
+            if f.startswith(varmapfile_name) and f.endswith(EXT):
+                order += [f.replace(varmapfile_name + ".", "").replace("." + EXT, "")]
 
-        elif ret == "dataframe":
-            varmapfile_name = os.path.basename(varmapfile_path)
-            order = []
-            for f in os.listdir(os.path.dirname(varmapfile_path)):
-                if f.startswith(varmapfile_name) and f.endswith(ext):
-                    order += [f.replace(varmapfile_name + ".", "").replace("." + ext, "")]
+        if len(order) == 0:
+            raise IOError("Could not find varmap files of scheme: '{f:s}.{o:s}.{e:s}'".format(
+                f=varmapfile_path, o="(order)", e=EXT))
 
-            if len(order) == 0:
-                raise IOError
-
-            mapping = dict.fromkeys(order)
-            for o in order:
-                full_file_path = "{f:s}.{o:s}.{e:s}".format(f=varmapfile_path, o=o, e=ext)
-                mapping[o] = tfs.read_tfs(full_file_path)
-                LOG.debug("Using mapping from varmap file '{:s}'.".format(full_file_path))
-
-    except IOError:
-        mapping = get_variable_mapping(seqfile_path, ret=ret)
-
-        try:
-            if ret == "dictionary":
-                full_file_path = "{f:s}.{e:s}".format(f=varmapfile_path, e=ext)
-                with open(full_file_path, "wb") as varmapfile:
-                    pickle.dump(mapping, varmapfile, -1)
-                LOG.debug("Saved Variable mapping into file '{:s}'".format(full_file_path))
-
-            elif ret == "dataframe":
-                for order in mapping:
-                    full_file_path = "{f:s}.{o:s}.{e:s}".format(f=varmapfile_path, o=order, e=ext)
-                    tfs.write_tfs(full_file_path,
-                                  mapping[order],
-                                  save_index=True)
-                    LOG.debug("Saved Variable mapping into file '{:s}'".format(full_file_path))
-
-        except IOError as e:
-            LOG.debug("Could not save mapping to '{:s}',".format(full_file_path))
-            LOG.debug("  IOError: {:s}.".format(e.message))
-
+        mapping = dict.fromkeys(order)
+        for o in order:
+            full_file_path = "{f:s}.{o:s}.{e:s}".format(f=varmapfile_path, o=o, e=EXT)
+            mapping[o] = tfs.read_tfs(full_file_path)
+            LOG.debug("Loaded mapping from varmap file '{:s}'.".format(full_file_path))
     return mapping
+
+
+def save_variable_mapping(mapping, outfile_path, format=DEFAULT['return']):
+    """ Save mapping to file(s).
+
+    Args:
+        mapping: The mapping to save
+        outfile_path: Output File, either extension "",".seq",".varmap" will be changed to ".varmap"
+        format: mapping format, either "tfs" or "dictionary"
+    """
+    _check_ret(format)
+    varmapfile_path = outfile_path.replace(".seq", "").replace("." + EXT, "")
+
+    if format == "dictionary":
+        full_file_path = "{f:s}.{e:s}".format(f=varmapfile_path, e=EXT)
+        with open(full_file_path, "wb") as varmapfile:
+            pickle.dump(mapping, varmapfile, -1)
+        LOG.debug("Saved Variable mapping into file '{:s}'".format(full_file_path))
+
+    elif format == "dataframe":
+        for order in mapping:
+            full_file_path = "{f:s}.{o:s}.{e:s}".format(f=varmapfile_path, o=order, e=EXT)
+            tfs.write_tfs(full_file_path,
+                          mapping[order],
+                          save_index=True)
+            LOG.debug("Saved Variable mapping into file '{:s}'".format(full_file_path))
+
+
+def load_or_parse_variable_mapping(seqfile_path, ret=DEFAULT['return']):
+    """ Load mapping, or parse if not found. Convenience wrapper for parse and load functions.
+
+    Loads variable mapping from a file. If not found it will do the parsing instead and saves
+    the results for later use.
+
+    Args:
+        seqfile_path: Saved Sequence file
+        ret: return format, either "tfs" or "dictionary"
+
+    Returns:
+        Dictionary of orders containing either a
+        DataFrame of magnets(index) vs. variables(columns)
+        containing the variable-coefficients
+        or a
+        Dictionary of all variables containing magnet-coefficient Series
+
+    """
+    _check_ret(ret)
+    try:
+        mapping = load_variable_mapping(seqfile_path, ret=ret)
+    except IOError:
+        mapping = parse_variable_mapping(seqfile_path, ret=ret)
+        try:
+            save_variable_mapping(mapping, seqfile_path, format=ret)
+        except IOError as e:
+            LOG.warn("  IOError: {:s}.".format(e.message))
+    return mapping
+
+
+def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['return']):
+    """ Saves all variable names from mapping to json file.
+
+        The variables will be saved by their order in the file.
+
+        Args:
+            varmap_or_file: varmap or saved varmap-file (sequence file is okay as well)
+            format: varmap format, either "tfs" or "dictionary"
+    """
+    _check_ret(format)
+
+    if isinstance(varmap_or_file, basestring):
+        mapping = load_variable_mapping(varmap_or_file, ret=format)
+        if outfile is None:
+            outfile = varmap_or_file.replace(".seq", "").replace("." + EXT, "") + "_all_list.json"
+    else:
+        mapping = varmap_or_file
+        if outfile is None:
+            IOError("Outputfile not given!")
+
+    json_dict = OrderedDict.fromkeys(sorted(mapping.keys()))
+    for order in mapping:
+        if format == "dictionary":
+            json_dict[order] = sorted(mapping[order].keys())
+        elif format == "dataframe":
+            json_dict[order] = sorted(mapping[order].columns.tolist())
+
+    json_dict["all"] = sorted(list(set([var for order in json_dict for var in json_dict[order]])))
+
+    # This is how you write a beautiful json file:
+    json_string = json.dumps(json_dict).replace(", ", ",\n    "
+                                      ).replace("[", "[\n    "
+                                      ).replace("],\n    ", "],\n\n"
+                                      ).replace("{", "{\n"
+                                      ).replace("}", "\n}")
+    with open(outfile, "w") as json_file:
+        json_file.write(json_string)
+
 
 
 """
@@ -268,6 +347,7 @@ def _eval_magnet_strength(k_string, length_constants):
 
 
 def _check_ret(ret):
+    """ Checks if the given 'ret' value is valid """
     if ret not in DEFAULT["ret_choices"]:
             ValueError("Return format '{ret:s}' unknown, choices: {choices:s}".format(
                 ret=ret, choices=", ".join(DEFAULT["ret_choices"])
@@ -275,8 +355,7 @@ def _check_ret(ret):
 
 
 if __name__ == '__main__':
-    pass
-
+    raise EnvironmentError("{:s} is not meant to be run as main.".format(__file__))
     # # Testing:
     # import os
     # df = get_variable_mapping(os.path.join("tests", "lhcb1_tmp.seq"))
