@@ -1,18 +1,35 @@
-import os
+""" Common Functions not attached to any class in this module.
+
+    References:
+        [1]  A. Franchi et al.,
+             Analytic formulas for the rapid evaluation of the orbit response matrix and chromatic
+             functions from lattice parameters in circular accelerators
+             NOT YET PUBLISHED
+"""
+
+
 import re
-import json
 import numpy as np
 import pandas as pd
 import itertools
-from math import factorial
-import matplotlib.pyplot as plt
-from Utilities.plotting import plot_style as pstyle
 from Utilities import logging_tools as logtool
-from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit
-from twiss_optics import sequence_parser
 
 LOG = logtool.get_logger(__name__)
+
+"""
+=============================   General Helpers   =============================
+"""
+
+
+def upper(list_of_strings):
+    """ Set all items of list to uppercase """
+    return [item.upper() for item in list_of_strings]
+
+
+def lower(list_of_strings):
+    """ Set all items of list to lowercase """
+    return [item.lower() for item in list_of_strings]
 
 
 def assertion(condition, exception):
@@ -26,6 +43,11 @@ def regex_in(regex, lst):
     return np.array([re.search(regex, element) is not None for element in lst])
 
 
+"""
+=============================   Twiss Helpers   =============================
+"""
+
+
 def get_all_rdts(n):
     """ Returns list of all valid RDTs of order 2 to n """
     assertion(n > 1, ValueError("'n' must be greater 1 for resonance driving terms."))
@@ -34,9 +56,10 @@ def get_all_rdts(n):
     return ['f{:d}{:d}{:d}{:d}'.format(j, k, l, m) for j, k, l, m in sorted(permut, key=sum)]
 
 
-################################
-#   Phase Advance Functions
-################################
+"""
+=============================   Phase Advance Functions   =============================
+"""
+
 
 def get_phase_advances(twiss_df):
     """
@@ -51,7 +74,8 @@ def get_phase_advances(twiss_df):
             colmn_phase = "MU" + plane
 
             phases_mdl = twiss_df.loc[twiss_df.index, colmn_phase]
-            phase_advances = pd.DataFrame((phases_mdl[:, None] - phases_mdl[None, :]),
+            # Same convention as in [1]: DAdv(i,j) = Phi(j) - Phi(i)
+            phase_advances = pd.DataFrame((phases_mdl[None, :] - phases_mdl[:, None]),
                                           index=twiss_df.index,
                                           columns=twiss_df.index)
             # Do not calculate dphi and tau here.
@@ -61,10 +85,10 @@ def get_phase_advances(twiss_df):
 
 
 def dphi(data, q):
-    """ Return dphi from phase advances in data """
+    """ Return dphi from phase advances in data, see Eq. 8 in [1] """
     return data + np.where(data <= 0, q, 0)  # '<=' seems to be what MAD-X does
 
 
 def tau(data, q):
-    """ Return tau from phase advances in data """
+    """ Return tau from phase advances in data, see Eq. 16 in [1]  """
     return data + np.where(data <= 0, q / 2, -q / 2)  # '<=' seems to be what MAD-X does
