@@ -20,7 +20,7 @@ import numpy as np
 from numpy import sin, cos, tan
 
 import Utilities.bpm
-import compensate_ac_effect
+import compensate_excitation
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -64,8 +64,8 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             pass
     
     #-- Parameters at IP1, IP2, IP5, and IP8
-    ip_x = _get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-    ip_y = _get_ip_2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+    ip_x = _get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.accelerator, twiss_d.zero_dpp_commonbpms_x, getllm_d.lhc_phase)
+    ip_y = _get_ip_2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.accelerator, twiss_d.zero_dpp_commonbpms_y, getllm_d.lhc_phase)
 
     fill_ip_tfs_file(tfs_file=files_dict['getIPx.out'],
                      column_names=["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JX)", "rt(2JX)STD"],
@@ -79,8 +79,8 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
     #-- ac to free parameters at IP1, IP2, IP5, and IP8
     if getllm_d.with_ac_calc:
         #-- From Eq
-        ip_x_f = compensate_ac_effect.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        ip_y_f = compensate_ac_effect.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+        ip_x_f = compensate_excitation.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+        ip_y_f = compensate_excitation.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
         
         col_names_x = ["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"]
         col_datatypes_x = ["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"]
@@ -220,32 +220,33 @@ def _bpm_is_not_in_measured_data(bpm_name, measured):
     return bpm_name not in measured[0] or 0 >= len([bpm_name][0])
 
 
-def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
+def _get_ip_2(mad_twiss, files, Q, plane, accel, bpms, lhc_phase):
     #-- Common BPMs
-    bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files), mad_twiss)
-    bpm = [(b[0], str.upper(b[1])) for b in bpm]
+    beam_direction = accel.get_beam_direction()
     
-    bpm_names = [ b[1] for b in bpm]
-
     #-- Loop for IPs
     result = {}
     for ip in ('1', '2', '5', '8'):
 
-        bpml = 'BPMSW.1L'+ip+'.'+accel[3:]
-        bpmr = 'BPMSW.1R'+ip+'.'+accel[3:]
+        # TODO: the following, maybe this whole function, has to be moved to the accelerator class since it is
+        # accelerator dependent calculations
 
-        if (bpml in bpm_names) and (bpmr in bpm_names):
+        bpml = 'BPMSW.1L'+ip+'.'+ accel.__class__.__name__[-2:]
+        bpmr = 'BPMSW.1R'+ip+'.'+accel.__class__.__name__[-2:]
+        print bpml
+
+        if (bpml in bpms.index) and (bpmr in bpms.index):
 
             #-- Model values
-            L = 0.5*(mad_twiss.S[mad_twiss.indx[bpmr]] - mad_twiss.S[mad_twiss.indx[bpml]])
+            L = 0.5*(mad_twiss.loc[bpmr, "S"] - mad_twiss.loc[bpml, "S"])
             if L < 0: 
                 L += 0.5*mad_twiss.LENGTH  #-- For sim starting in the middle of an IP
             if plane == 'H':
-                betlmdl = mad_twiss.BETX[mad_twiss.indx[bpml]]
-                alflmdl = mad_twiss.ALFX[mad_twiss.indx[bpml]]
+                betlmdl = mad_twiss.loc[bpml, "BETX"]
+                alflmdl = mad_twiss.loc[bpml, "ALFX"]
             if plane == 'V':
-                betlmdl = mad_twiss.BETY[mad_twiss.indx[bpml]]
-                alflmdl = mad_twiss.ALFY[mad_twiss.indx[bpml]]
+                betlmdl = mad_twiss.loc[bpml, "BETY"]
+                alflmdl = mad_twiss.loc[bpml, "ALFY"]
             betsmdl = betlmdl/(1+alflmdl**2)
             betmdl = betlmdl-2*alflmdl*L+L**2/betsmdl
             alfmdl = alflmdl-L/betsmdl
@@ -259,18 +260,18 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
             rt2j_all = []
             for t_f in files: # t_f := twiss_file
                 try:
-                    if bpm_names.index(bpmr) > bpm_names.index(bpml):
+                    if bpms.index.get_loc(bpmr) > bpms.index.get_loc(bpml):
                         tune = 0
                     else:
                         tune = Q
                     if plane == 'H':
-                        amp_l = t_f.AMPX[t_f.indx[bpml]]
-                        amp_r = t_f.AMPX[t_f.indx[bpmr]]
-                        dpsi = 2*np.pi*(tune+beam_direction*(t_f.MUX[t_f.indx[bpmr]]-t_f.MUX[t_f.indx[bpml]]))
+                        amp_l = t_f.loc[bpml, "AMPX"]
+                        amp_r = t_f.loc[bpmr, "AMPX"]
+                        dpsi = 2*np.pi*(tune+beam_direction*(t_f.loc[bpmr, "MUX"]-t_f.loc[bpml, "MUX"]))
                     elif plane == 'V':
-                        amp_l = t_f.AMPY[t_f.indx[bpml]]
-                        amp_r = t_f.AMPY[t_f.indx[bpmr]]
-                        dpsi = 2*np.pi*(tune+beam_direction*(t_f.MUY[t_f.indx[bpmr]]-t_f.MUY[t_f.indx[bpml]]))
+                        amp_l = t_f.loc[bpml, "AMPY"]
+                        amp_r = t_f.loc[bpmr, "AMPY"]
+                        dpsi = 2*np.pi*(tune+beam_direction*(t_f.loc[bpmr, "MUY"]-t_f.loc[bpml, "MUY"]))
                     else:
                         raise ValueError("plane is neither 'H' nor 'V'.")
 

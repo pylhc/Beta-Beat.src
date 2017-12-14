@@ -24,7 +24,7 @@ from scipy.linalg import circulant
 import Python_Classes4MAD.metaclass
 import Utilities.bpm
 #from GetLLM.GetLLMError import GetLLMError
-import compensate_ac_effect
+import compensate_excitation
 import os
 import re
 import multiprocessing
@@ -662,6 +662,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     return beta_d
 # END calculate_beta_from_phase -------------------------------------------------------------------------------
 
+@profile
 def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict):
     '''
     Calculates beta and fills the following TfsFiles:
@@ -749,7 +750,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
             #-- from eq
             try:
-                betaxf, rmsbbxf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d)
+                betaxf, rmsbbxf, bpmsf = compensate_excitation.get_free_beta_from_amp_eq(
+                    mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', getllm_d, commonbpms_y)
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
@@ -790,7 +792,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             #-- from the model
             # Since invJxf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
             [betaxf2, rmsbbxf2, bpmsf2] = _get_free_amp_beta(beta_d.x_amp, rmsbbx, commonbpms_x, inv_jx, mad_ac, mad_twiss, 'H')[:3]
-            betaxf2_rescale = _get_free_amp_beta(betax_rescale, rmsbbx, bpms, inv_jx, mad_ac, mad_twiss, 'H')[0]
+            betaxf2_rescale = _get_free_amp_beta(betax_rescale, rmsbbx, commonbpms_x, inv_jx, mad_ac, mad_twiss, 'H')[0]
             tfs_file = files_dict['getampbetax_free2.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
             tfs_file.add_float_descriptor("Q2", tune_d.q2f)
@@ -798,9 +800,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsf2)):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
+            for bn1 in bpmsf2.index:
+                bns1 = bpmsf2.loc[bn1, "S"]
                 list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1],
                                     mad_twiss.loc[bn1, "BETX"], mad_twiss.loc[bn1, "MUX"], betaxf2_rescale[bn1][0], betaxf2_rescale[bn1][1]]
                 tfs_file.add_table_row(list_row_entries)  # V plane
@@ -853,7 +854,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 
         if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: # from eq
             try:
-                betayf, rmsbbyf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d)  # Rescaling
+                betayf, rmsbbyf, bpmsf = compensate_excitation.get_free_beta_from_amp_eq(
+                    mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y, 'V', getllm_d, commonbpms_y)  # Rescaling
                 # OK, bpmsf output of get_free_beta_from_amp_eq is probably similar to the old commonbpms and should be replaced
                 
                 beta_d.y_ratio_f = 0
@@ -885,7 +887,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 for i in range(0, len(bpmsf)):
                     bn1 = str.upper(bpmsf[i][1])
                     bns1 = bpmsf[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf[bn1][0], betayf[bn1][1], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]], (beta_d.y_ratio_f * betayf[bn1][0]), (beta_d.y_ratio_f * betayf[bn1][1])]
+                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf[bn1][0], betayf[bn1][1],
+                                        mad_twiss.loc[bn1, "BETY"], mad_twiss.loc[bn1, "MUY"], (beta_d.y_ratio_f *
+                                                                                              betayf[bn1][0]),
+                                        (beta_d.y_ratio_f * betayf[bn1][1])]
                     tfs_file.add_table_row(list_row_entries)  # 'except ALL' catched a SystemExit from filterbpm().(vimaier)
 
             except SystemExit:
@@ -896,7 +901,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 traceback.print_exc()
             # Since invJyf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
             [betayf2, rmsbbyf2, bpmsf2] = _get_free_amp_beta(beta_d.y_amp, rmsbby, commonbpms_y, inv_jy, mad_ac, mad_twiss, 'V')[:3]
-            betayf2_rescale = _get_free_amp_beta(betay_rescale, rmsbby, bpms, inv_jy, mad_ac, mad_twiss, 'V')[0]
+            betayf2_rescale = _get_free_amp_beta(betay_rescale, rmsbby, commonbpms_y, inv_jy, mad_ac, mad_twiss, 'V')[0]
             tfs_file = files_dict['getampbetay_free2.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
             tfs_file.add_float_descriptor("Q2", tune_d.q2f)
@@ -904,10 +909,11 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpmsf2)):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf2[bn1][0], betayf2[bn1][1], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]], betayf2_rescale[bn1][0], betayf2_rescale[bn1][1]]
+            for bn1 in bpmsf2.index:
+                bns1 = bpmsf2.loc[bn1, "S"]
+                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf2[bn1][0], betayf2[bn1][1],
+                                    mad_twiss.loc[bn1, "BETY"], mad_twiss.loc[bn1, "MUY"], betayf2_rescale[bn1][0],
+                                                  betayf2_rescale[bn1][1]]
                 tfs_file.add_table_row(list_row_entries)
 
     return beta_d
@@ -1838,7 +1844,6 @@ def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
 #        data2[bpm] = beta / bb, betsys, betstat, beterr, alfa * aa, alfsys, alfstat, alferr, data[bpm][8], data[bpm][9], data[bpm][10]
     return data2, bpms
 
-
 def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
     #
     # Why difference in betabeta calculation ??
@@ -1848,17 +1853,16 @@ def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
 
     _debug_("Calculating free beta from amplitude using model")
 
-    for bpm in bpms:
-        bpmm = bpm[1].upper()
+    for bpmm in bpms.index:
         beta = betai[bpmm][0]
 
         if plane == "H":
-            betmf = mad_twiss.BETX[mad_twiss.indx[bpmm]]
-            betma = mad_ac.BETX[mad_ac.indx[bpmm]]
+            betmf = mad_twiss.loc[bpmm, "BETX"]
+            betma = mad_ac.loc[bpmm, "BETX"]
             bb = (betmf - betma) / betma
         else:
-            betmf = mad_twiss.BETY[mad_twiss.indx[bpmm]]
-            betma = mad_ac.BETY[mad_ac.indx[bpmm]]
+            betmf = mad_twiss.loc[bpmm, "BETY"]
+            betma = mad_ac.loc[bpmm, "BETY"]
             bb = (betmf - betma) / betma
 
         betas[bpmm] = [beta * (1.0 + bb), betai[bpmm][1], betai[bpmm][2]]

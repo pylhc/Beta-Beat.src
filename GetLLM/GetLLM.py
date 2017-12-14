@@ -87,7 +87,7 @@ import utils.tfs_file
 import algorithms.helper
 import algorithms.phase
 import algorithms.beta
-import algorithms.compensate_ac_effect
+import algorithms.compensate_excitation
 import algorithms.dispersion
 import algorithms.coupling
 import algorithms.resonant_driving_terms
@@ -145,12 +145,7 @@ USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
 # DEBUGGING
 def print_time(index, t):
-    LOGGER.info("\33[38;2;255;220;50m---------------------------------------------{:.3f}\33[0m".format(t))
-    
-    f = open("/afs/cern.ch/work/a/awegsche/public/44_acc_cls_perf/stats_acc_cls.txt", "a")
-    f.write("{} {:.7f}\n".format(index, t))
-    f.close()
-
+    LOGGER.debug(":::  GetLLM time  >>>>>>>>>> {:8.3f} s".format(t))
 
 
 #===================================================================================================

@@ -8,12 +8,14 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from Utilities import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode, print_property
+from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
 from time import time
+from Utilities import logging_tools
 
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
 
+LOGGER = logging_tools.get_logger(__name__)
 
 def get_lhc_modes():
     return {
@@ -82,16 +84,15 @@ class Lhc(Accelerator):
     @classmethod
     def init_from_model_dir(cls, model_dir):  # prints only for debugging
         
-        print("=== ACCELERATOR CLASS FOR GETLLM ============")
+        LOGGER.info("=== ACCELERATOR CLASS FOR GETLLM ============")
         
-        print("\n  class: {}\n  Creating accelerator instance from model dir".format(cls.__name__))
+        LOGGER.info("\n  class: {}\n  Creating accelerator instance from model dir".format(cls.__name__))
         instance = cls()
        
         instance.modelpath = model_dir
         
         instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
-        print("  model path =", os.path.join(model_dir, "twiss.dat"))
-        print("")
+        LOGGER.info("  model path = " + os.path.join(model_dir, "twiss.dat"))
             
         instance._excitation = AccExcitationMode.FREE
         ac_filename = os.path.join(model_dir, "twiss_ac.dat")
@@ -114,10 +115,10 @@ class Lhc(Accelerator):
         model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
         if os.path.isfile(model_best_knowledge_path):
             instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
-            print_property("Best Knowledge Model", "OK")
+            LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "OK"))
         else:
             instance.model_best_knowledge = None
-            print_property("Best Knowledge Model", "NO")
+            LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "NO"))
             
         elements_path = os.path.join(model_dir, "twiss_elements.dat")
         if os.path.isfile(elements_path):
@@ -136,21 +137,21 @@ class Lhc(Accelerator):
         instance.nat_tune_y = float(instance.model_tfs.headers["Q2"])
         
         
-        print_property("Natural Tune X", "{:7.3f}".format(instance.nat_tune_x))
-        print_property("Natural Tune Y", "{:7.3f}".format(instance.nat_tune_y))
+        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune X", "{:7.3f}".format(instance.nat_tune_x)))
+        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune Y", "{:7.3f}".format(instance.nat_tune_y)))
     
         if instance._excitation == AccExcitationMode.FREE:
-            print_property("Excitation", "NO")
+            LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "NO"))
         else:
             if instance._excitation == AccExcitationMode.ACD:
-                print_property("Excitation", "ACD")
+                LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ACD"))
             elif instance._excitation == AccExcitationMode.ADT:
-                print_property("Excitation", "ADT")
-            print_property("> Driven Tune X", "{:7.3f}".format(instance.drv_tune_x))
-            print_property("> Driven Tune Y", "{:7.3f}".format(instance.drv_tune_y))
+                LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ADT"))
+            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune X", "{:7.3f}".format(instance.drv_tune_x)))
+            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune Y", "{:7.3f}".format(instance.drv_tune_y)))
           
         
-        print("\n===\n")
+        LOGGER.info("===")
         return instance
 
     @classmethod
@@ -397,21 +398,21 @@ class Lhc(Accelerator):
         
         if self.get_beam() == 1:
             if self.excitation == AccExcitationMode.ACD:
-                return get_commonbpm("BPMYA.5L4.B1", "BPMYB.6L4.B1", commonbpms)
+                return get_commonbpm("BPMYA.5L4.B1", "BPMYB.6L4.B1", commonbpms), "MKQA.6L4.B1"
                
             elif self.excitation == AccExcitationMode.ADT:
                 if plane == "H":
-                    return get_commonbpm("BPMWA.B5L4.B1", "BPMWA.A5L4.B1", commonbpms)
+                    return get_commonbpm("BPMWA.B5L4.B1", "BPMWA.A5L4.B1", commonbpms), "ADTKH.C5L4.B1"
                 elif plane == "V":
-                    return get_commonbpm("BPMWA.B5R4.B1", "BPMWA.A5R4.B1", commonbpms)
+                    return get_commonbpm("BPMWA.B5R4.B1", "BPMWA.A5R4.B1", commonbpms), "ADTKV.B5R4.B1"
         elif self.get_beam() == 2:
             if self.excitation == AccExcitationMode.ACD:
-                return get_commonbpm("BPMYB.5L4.B2", "BPMYA.6L4.B2", commonbpms)
+                return get_commonbpm("BPMYB.5L4.B2", "BPMYA.6L4.B2", commonbpms), "MKQA.6L4.B2"
             elif self.excitation == AccExcitationMode.ADT:
                 if plane == "H":
-                    return get_commonbpm("BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms)
+                    return get_commonbpm("BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms), "ADTKH.C5R4.B2"
                 elif plane == "V":
-                    return get_commonbpm("BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms)
+                    return get_commonbpm("BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5R4.B2"
         return None
     
     def get_important_phase_advances(self):

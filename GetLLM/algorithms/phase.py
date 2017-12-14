@@ -18,7 +18,7 @@ import sys
 import traceback
 import math
 import numpy as np
-import compensate_ac_effect
+import compensate_excitation
 from Utilities import tfs_file_writer
 from model.accelerators.accelerator import AccExcitationMode
 from constants import PI, TWOPI, kEPSILON
@@ -124,7 +124,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         
         phase_d.phase_advances_free_x, tune_d.mux = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_x, bpmsx, q1, 'H')
         if not twiss_d.has_zero_dpp_y():
-            print 'liny missing and output x only ...'
+            LOGGER.warning('liny missing and output x only ...')
 
     
     if twiss_d.has_zero_dpp_y():
@@ -143,7 +143,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
 
         phase_d.phase_advances_free_y, tune_d.muy = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_y, bpmsy, q2, 'V')
         if not twiss_d.has_zero_dpp_x():
-            print 'linx missing and output y only ...'
+            LOGGER.warning('linx missing and output y only ...')
 
     # ============= Calculate the phases ==============================================================================
 
@@ -152,26 +152,27 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         if twiss_d.has_zero_dpp_x():
             tune_d.q1f = tune_d.q1 - getllm_d.accelerator.drv_tune_x + getllm_d.accelerator.nat_tune_x#-- Free H-tune
             phase_d.phase_advances_x = phase_d.phase_advances_free_x
-            phase_d.ac2bpmac_x = compensate_ac_effect.GetACPhase_AC2BPMAC(model_driven, bpmsx, tune_d.q1, tune_d.q1f, 'H', getllm_d)
-            [phase_d.phase_advances_free_x, tune_d.muxf] = compensate_ac_effect.get_free_phase_eq(model, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x,
-                                                                                                    tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', model.Q1 % 1.0, getllm_d)
+            phase_d.ac2bpmac_x = compensate_excitation.GetACPhase_AC2BPMAC(model_driven, bpmsx, tune_d.q1, tune_d.q1f, 'H', getllm_d)
+            [phase_d.phase_advances_free_x, tune_d.muxf] = compensate_excitation.get_free_phase_eq(
+                model, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x,
+                'H', model.Q1 % 1.0, getllm_d)
 #            [phase_d.phase_advances_free2_x, tune_d.muxf2] = _get_free_phase(phase_d.phase_advances_free_x, tune_d.q1, tune_d.q1f, bpmsx, model_driven, model, "H")
         if twiss_d.has_zero_dpp_y():
             phase_d.phase_advances_y = phase_d.phase_advances_free_y
             tune_d.q2f =  tune_d.q2 - getllm_d.accelerator.drv_tune_y + getllm_d.accelerator.nat_tune_y #-- Free V-tune
-            phase_d.ac2bpmac_y = compensate_ac_effect.GetACPhase_AC2BPMAC(elements, bpmsy, tune_d.q2, tune_d.q2f, 'V', getllm_d)
-            [phase_d.phase_advances_free_y, tune_d.muyf] = compensate_ac_effect.get_free_phase_eq(model, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y,
-                                                                                                    tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y, 'V',
-                                                                                                    model.Q2%1, getllm_d)
+            phase_d.ac2bpmac_y = compensate_excitation.GetACPhase_AC2BPMAC(elements, bpmsy, tune_d.q2, tune_d.q2f, 'V', getllm_d)
+            [phase_d.phase_advances_free_y, tune_d.muyf] = compensate_excitation.get_free_phase_eq(
+                model, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y,
+                'V', model.Q2%1, getllm_d)
 #            [phase_d.phase_advances_free2_y, tune_d.muyf2] = _get_free_phase(phase_d.phase_advances_free_y, tune_d.q2, tune_d.q2f, bpmsy, model_driven, model, "V")
 
 
     # ============= Write the phases to file ==========================================================================
 
     #---- H plane result
-    print "output files"
+    LOGGER.debug("phase calculation finished. Output files.")
     if twiss_d.has_zero_dpp_x():
-        print "x ouptut"
+        LOGGER.debug("x ouptut")
         files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H",
                                                             phase_d.phase_advances_free_x, model, elements, tune_d.q1f,
                                                             tune_d.q2f, getllm_d.accelerator, getllm_d.union)
@@ -186,6 +187,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
 
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
+        LOGGER.debug("y output")
         files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V",
                                                             phase_d.phase_advances_free_y, model, elements, tune_d.q1f,
                                                             tune_d.q2f, getllm_d.accelerator, getllm_d.union)
@@ -281,65 +283,6 @@ def calc_phase_std(phase0, norm):
     else:
         phase_std = 0
     return phase_std
-
-def _get_phases_total(mad_twiss, src_files, commonbpms, tune, plane, beam_direction, accel, lhc_phase):
-    #-- Last BPM on the same turn to fix the phase shift by tune for exp data of LHC
-    s_lastbpm = None
-    if lhc_phase == "1":
-        print "phase jump correction"
-        if accel == "JPARC":
-            print "-- no total phase jump correction with JPARC"
-            #s_lastbpm = mad_twiss.S[mad_twiss.indx['MOH.3']]
-        elif accel == "LHCB1":
-            s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L2.B1']]
-            print "-> for LHC"
-        elif accel == "LHCB2":
-            s_lastbpm = mad_twiss.S[mad_twiss.indx['BPMSW.1L8.B2']]
-            print "-> for LHC"
-        elif accel == "PETRA":
-            s_lastbpm = mad_twiss.S[mad_twiss.indx['BPM_SOR_46']]
-            print "-> for PETRA {0:f}".format(tune)
-    
-    bn1 = str.upper(commonbpms[0][1])
-    phase_t = {}
-    if DEBUG:
-        print "Reference BPM:", bn1, "Plane:", plane
-    for i in range(0, len(commonbpms)):
-        bn2 = str.upper(commonbpms[i][1])
-        if plane == 'H':
-            phmdl12 = (mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]]) % 1
-        if plane == 'V':
-            phmdl12 = (mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]]) % 1
-
-        phi12 = []
-        for twiss_file in src_files:
-            # Phase is in units of 2pi
-            if plane == 'H':
-                phm12 = (twiss_file.MUX[twiss_file.indx[bn2]]-twiss_file.MUX[twiss_file.indx[bn1]]) % 1
-            if plane == 'V':
-                phm12 = (twiss_file.MUY[twiss_file.indx[bn2]]-twiss_file.MUY[twiss_file.indx[bn1]]) % 1
-            #-- To fix the phase shift by tune in LHC
-            try:
-                if s_lastbpm is not None and commonbpms[i][0] > s_lastbpm:
-                    phm12 += beam_direction*tune
-            except:
-                traceback.print_exc()
-            phi12.append(phm12)
-        phi12 = np.array(phi12)
-        # for the beam circulating reversely to the model
-        if beam_direction == -1:
-            phi12 = 1 - phi12
-
-        #phstd12=math.sqrt(np.average(phi12*phi12)-(np.average(phi12))**2.0+2.2e-15)
-        #phi12=np.average(phi12)
-        phstd12 = calc_phase_std(phi12, 1.)
-        phi12   = calc_phase_mean(phi12, 1.)
-        phase_t[bn2] = [phi12, phstd12, phmdl12, bn1]
-
-    return phase_t
-
-
-#IMPORTANT_PAIRS = {"BPMYA.5R6.B2": ["BPMWB.4R5.B2", "BPMWB.4R1.B2"]}
 
 
 def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):

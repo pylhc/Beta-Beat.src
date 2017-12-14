@@ -33,7 +33,7 @@ import numpy as np
 import Utilities.bpm
 import phase
 import helper
-import compensate_ac_effect
+import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
 from Utilities import logging_tools
 
@@ -161,7 +161,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             if getllm_d.num_bpms_for_coupling == 2:
                 #-- analytic eqs
                 try:
-                    [fwqwf, bpmsf] = compensate_ac_effect.GetFreeCoupling_Eq(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.acdipole, getllm_d.accel)
+                    [fwqwf, bpmsf] = compensate_excitation.GetFreeCoupling_Eq(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.acdipole, getllm_d.accel)
                     print('I actually get here')
                     tfs_file = files_dict['getcouple_free.out']
                     tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
