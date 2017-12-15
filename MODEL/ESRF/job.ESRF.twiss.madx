@@ -41,7 +41,11 @@ K1.QD6   :=-0.819121621;
 K1.QF7   := 0.681750980; 
 
 
-call,  file = '%ESRF_MODEL/storage_2012_sext_multibunch.strx';
+call,  file = '%ESRF_MODEL/storage_2012_sext_A4.strx';
+
+! CALL THE FOLLOWING FILE TO USE THE ORM INFERRED MODEL
+
+!call,  file = '%ESRF_MODEL/storage_mdt_160319_resp11_model.modx';
 
 option,  echo,  info,  warn;
 use, period=STORAGE04_SS23_7m;
