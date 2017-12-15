@@ -21,6 +21,7 @@ from numpy import sin, cos, tan
 
 import Utilities.bpm
 import compensate_excitation
+from model.accelerators.accelerator import AccExcitationMode
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -77,10 +78,14 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
                      results=ip_y)
 
     #-- ac to free parameters at IP1, IP2, IP5, and IP8
-    if getllm_d.with_ac_calc:
+    if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
         #-- From Eq
-        ip_x_f = compensate_excitation.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        ip_y_f = compensate_excitation.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+        ip_x_f = compensate_excitation.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f,
+                                                     phase_d.ac2bpmac_x, 'H', getllm_d.accelerator,
+                                                     twiss_d.zero_dpp_commonbpms_x, getllm_d.lhc_phase)
+        ip_y_f = compensate_excitation.GetFreeIP2_Eq(mad_twiss, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f,
+                                                     phase_d.ac2bpmac_y, 'V', getllm_d.accelerator,
+                                                     twiss_d.zero_dpp_commonbpms_y, getllm_d.lhc_phase)
         
         col_names_x = ["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JXD)", "rt(2JXD)STD"]
         col_datatypes_x = ["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"]
@@ -92,34 +97,37 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
         
         
         #-- From model
-        ip_x_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_x, 'H', getllm_d.accel)
-        ip_y_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_y, 'V', getllm_d.accel)
+        ip_x_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_x, 'H', getllm_d.accelerator)
+        ip_y_f_2 = _get_free_ip_2(mad_twiss, mad_ac, ip_y, 'V', getllm_d.accelerator)
         
         fill_ip_tfs_file(files_dict['getIPx_free2.out'], col_names_x,col_datatypes_x, results=ip_x_f_2)
         fill_ip_tfs_file(files_dict['getIPy_free2.out'], col_names_y, col_datatypes_y, results=ip_y_f_2)
 
     #-- IP beta* and phase from phase only
-    if not phase_d.ph_x is None and not phase_d.ph_y is None: # Designed to run with both 
+    if not phase_d.phase_advances_free_x is None and not phase_d.phase_advances_free_y is None: # Designed to run with both 
         try:
-            ip_from_phase = _get_ip_from_phase(mad_ac, phase_d.ph_x, phase_d.ph_y, getllm_d.accel)
+            ip_from_phase = _get_ip_from_phase(mad_twiss, phase_d.phase_advances_free_x, phase_d.phase_advances_free_y,
+                                               getllm_d.accelerator)
+            col_names = ["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"]
+            col_datatypes = ["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"]
+            fill_ip_tfs_file(files_dict['getIPfromphase_free.out'], col_names, col_datatypes, ip_from_phase)
         except:
             traceback.print_exc()
             print 'No output from IP from phase. H or V file missing?'
-        col_names = ["NAME", "2L", "BETX*", "BETX*STD", "BETX*MDL", "BETY*", "BETY*STD", "BETY*MDL", "PHX", "PHXSTD", "PHXMDL", "PHY", "PHYSTD", "PHYMDL"]
-        col_datatypes = ["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"]
-        fill_ip_tfs_file(files_dict['getIPfromphase.out'], col_names, col_datatypes, ip_from_phase)
 
     #-- ac to free beta*
-    if getllm_d.with_ac_calc:
+    if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
         #-- from eqs
         try:
-            ip_from_phase_f =_get_ip_from_phase(mad_twiss, phase_d.x_f, phase_d.y_f, getllm_d.accel)
-            fill_ip_tfs_file(files_dict['getIPfromphase_free.out'], col_names, col_datatypes, ip_from_phase_f)
+            ip_from_phase_f =_get_ip_from_phase(mad_ac, phase_d.phase_advances_x, phase_d.phase_advances_y,
+                                                getllm_d.accelerator)
+            fill_ip_tfs_file(files_dict['getIPfromphase.out'], col_names, col_datatypes, ip_from_phase_f)
         except:
             traceback.print_exc()
 
         try:
-            ip_from_phase_f2 = _get_ip_from_phase(mad_twiss, phase_d.x_f2, phase_d.y_f2, getllm_d.accel)
+            ip_from_phase_f2 = _get_ip_from_phase(mad_twiss, phase_d.phase_advances_free2_x,
+                                                  phase_d.phase_advances_free2_y, getllm_d.accelerator)
             fill_ip_tfs_file(files_dict['getIPfromphase_free2.out'], col_names, col_datatypes, ip_from_phase_f2)
         except:
             traceback.print_exc()
@@ -231,8 +239,8 @@ def _get_ip_2(mad_twiss, files, Q, plane, accel, bpms, lhc_phase):
         # TODO: the following, maybe this whole function, has to be moved to the accelerator class since it is
         # accelerator dependent calculations
 
-        bpml = 'BPMSW.1L'+ip+'.'+ accel.__class__.__name__[-2:]
-        bpmr = 'BPMSW.1R'+ip+'.'+accel.__class__.__name__[-2:]
+        bpml = 'BPMSW.1L' + ip + '.' + accel.__class__.__name__[-2:]
+        bpmr = 'BPMSW.1R' + ip + '.' + accel.__class__.__name__[-2:]
         print bpml
 
         if (bpml in bpms.index) and (bpmr in bpms.index):
@@ -327,21 +335,22 @@ def _get_ip_2(mad_twiss, files, Q, plane, accel, bpms, lhc_phase):
     return result
 
 
-def _get_ip_from_phase(MADTwiss,psix,psiy,oa):
+def _get_ip_from_phase(MADTwiss, psix, psiy, accelerator):
 
+    raise NotImplementedError("")
     IP=('1','2','5','8')
     result={}
     for i in IP:
-        bpml='BPMSW.1L'+i+'.'+oa[3:]
-        bpmr=bpml.replace('L','R')
+        bpml = 'BPMSW.1L' + ip + '.' + accelerator.__class__.__name__[-2:]
+        bpmr = 'BPMSW.1R' + ip + '.' + accelerator.__class__.__name__[-2:]
         try:
             if psix[bpml][-1]==bpmr:
                 #-- Model
-                L       =0.5*(MADTwiss.S[MADTwiss.indx[bpmr]]-MADTwiss.S[MADTwiss.indx[bpml]])
-                dpsixmdl=MADTwiss.MUX[MADTwiss.indx[bpmr]]-MADTwiss.MUX[MADTwiss.indx[bpml]]
-                dpsiymdl=MADTwiss.MUY[MADTwiss.indx[bpmr]]-MADTwiss.MUY[MADTwiss.indx[bpml]]
-                betxmdl =MADTwiss.BETX[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFX[MADTwiss.indx[bpml]]**2)
-                betymdl =MADTwiss.BETY[MADTwiss.indx[bpml]]/(1+MADTwiss.ALFY[MADTwiss.indx[bpml]]**2)
+                L       =0.5*(MADTwiss.loc[bpmr, "S"] - MADTwiss.loc[bpml, "S"])
+                dpsixmdl = MADTwiss.loc[bpmr, "MUX"] - MADTwiss.loc[bpml, "MUX"]
+                dpsiymdl = MADTwiss.loc[bpmr, "MUY"] - MADTwiss.loc[bpml, "MUY"]
+                betxmdl =MADTwiss.loc[bpml, "BETX"] / (1 + MADTwiss.loc[bpml, "ALFX"] ** 2)
+                betymdl =MADTwiss.loc[bpml, "BETY"] / (1 + MADTwiss.loc[bpml, "ALFY"] ** 2)
                 #-- For sim starting in the middle of an IP
                 if L < 0:
                     L += 0.5 * MADTwiss.LENGTH
@@ -401,8 +410,8 @@ def _get_ip_from_phase(MADTwiss,psix,psiy,oa):
 def _get_free_ip_2(mad_twiss, mad_ac, ip, plane, accel):
 
     for i in ('1', '2', '5', '8'):
-        bpml = 'BPMSW.1L'+i+'.'+accel[3:]
-        bpmr = 'BPMSW.1R'+i+'.'+accel[3:]
+        bpml = 'BPMSW.1L' + i + '.' + accel.__class__.__name__[-2:]
+        bpmr = 'BPMSW.1R' + i + '.' + accel.__class__.__name__[-2:]
         if 'IP'+i in ip:
 
             L = 0.5*(mad_twiss.S[mad_twiss.indx[bpmr]]-mad_twiss.S[mad_twiss.indx[bpml]])
