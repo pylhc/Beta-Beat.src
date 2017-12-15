@@ -662,7 +662,7 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
 
 #---- finding kick
-def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
+def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold, bpms_x, bpms_y):
 
     #One source for each beta-function source
     Sources = ['model','amp','phase']
@@ -706,8 +706,12 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
         #Loop uses gen_kick_calc to get action for each beta function source in each plane
         #Note that the result for source='amp' is not currently being used
         for source in Sources:
-            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([tw_x], mad_twiss, beta_d, source, 'H', bbthreshold, errthreshold)
-            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([tw_y], mad_twiss, beta_d, source, 'V', bbthreshold, errthreshold)
+            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([tw_x], mad_twiss, beta_d, source,
+                                                                                  'H', bbthreshold, errthreshold,
+                                                                                  bpms_x)
+            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([tw_y], mad_twiss, beta_d, source,
+                                                                                  'V', bbthreshold, errthreshold,
+                                                                                  bpms_y)
             meansqrt_2jx[source].append(meansqrt_2jx_temp)
             meansqrt_2jy[source].append(meansqrt_2jy_temp)
             mean_2jx[source].append(mean_2jx_temp)
@@ -732,7 +736,7 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
     return [meansqrt_2jx, meansqrt_2jy, mean_2jx, mean_2jy, tune_values_list, dpp, bpmrejx, bpmrejy]
 
 
-def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errthreshold, commonbpms):
+def gen_kick_calc(list_of_files, mad_twiss, beta_d, source, plane, bbthreshold, errthreshold, commonbpms):
     '''
     Gets action for a given beta function source and plane
      :Parameters:
