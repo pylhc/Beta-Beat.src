@@ -39,20 +39,38 @@ K1.QF5:= 0.73458675;
 K1.QD6   :=-0.819121621;
 K1.QF7   := 0.681750980; 
 
+call,  file = '%(ESRF_MODEL)s/storage_2012_sext_A4.strx';
+
+! CALL THE FOLLOWING FILE TO USE ORM INFERRED MODEL
+!call,  file = '%(ESRF_MODEL)s/storage_mdt_160319resp11_model.modx';
+
 option,  echo,  info,  warn;
+
+select,flag=save,pattern="^BPM";
+save,file='selection.dat';
+
+
+! FOLLOWING ERRORS ARE THE ONES IN PRAB PAPER NOMINAL ARE LARGER THAN ORM
+BPMMISS=0.0002;  !0.0002;
+QUADSTR=0.00025;  !0.0001;           
+SEXTMISS=0.00003; !0.00001;
+QUADMISS=0.0006;  !0.0002; 
+
+GCUTR = 3;
 
 movebpm(ii,j): macro = {
     seqedit, sequence=STORAGE04_SS23_7m;
-    move, element=BPM.ii.j, by=0.0005*TGAUSS(GCUTR);
+    if (ii < 10) { move, element=BPM.0ii.j, by=BPMMISS*TGAUSS(GCUTR);}
+    else { move, element=BPM.ii.j, by=BPMMISS*TGAUSS(GCUTR); }
     endedit;
 };
-GCUTR = 3;
+
 eoption, seed= %(SEED5)s;
 n = 1;
-while (n<=32.5)
+while (n<=32)
 {
     m = 1;
-    while (m<=7.5)
+    while (m<=7)
     {
         exec, movebpm($n,$m);
         m = m+1;
@@ -65,18 +83,38 @@ use, period=STORAGE04_SS23_7m;
 select, flag=error, clear;
 select,FLAG=ERROR,CLASS=quadrupole;
 eoption, seed= %(SEED2)s;
-EFCOMP, ORDER:=1,RADIUS:=1, DKNR:= {0,0.001*GAUSS(GCUTR)};
+EFCOMP, ORDER:=1,RADIUS:=1, DKNR:= {0,QUADSTR*TGAUSS(GCUTR)};  
 
-!!Alignment
-select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=sextupole;
+match;
+       vary, name=K1.QD6, STEP=1.0E-6;
+       vary, name=K1.QF7, STEP=1.0E-6;
+       global, q1=36.440,q2=13.390;  ! nominal 
+       lmdif, calls = 10000, tolerance = 1.0E-8;
+ENDMATCH;
+
+!Alignment
+select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=multipole, PATTERN=^SEXT;
 eoption, seed= %(SEED3)s;
-EALIGN, DX:=0.00015*TGAUSS(GCUTR), DY:=0.00015*TGAUSS(GCUTR);
+EALIGN, DX:=SEXTMISS*TGAUSS(GCUTR), DY:=SEXTMISS*TGAUSS(GCUTR);  
+
+match;
+       vary, name=K1.QD6, STEP=1.0E-6;
+       vary, name=K1.QF7, STEP=1.0E-6;
+       global, q1=36.440,q2=13.390;  ! nominal 
+       lmdif, calls = 10000, tolerance = 1.0E-8;
+ENDMATCH;
 
 !Alignment
 select, flag=error, clear; SELECT,FLAG=ERROR, CLASS=quadrupole;
 eoption, seed= %(SEED4)s;
-EALIGN, DS:=0.0003*TGAUSS(GCUTR);
+EALIGN, DS:=QUADMISS*TGAUSS(GCUTR);    
 
+match;
+       vary, name=K1.QD6, STEP=1.0E-6;
+       vary, name=K1.QF7, STEP=1.0E-6;
+       global, q1=36.440,q2=13.390;  ! nominal 
+       lmdif, calls = 10000, tolerance = 1.0E-8;
+ENDMATCH;
 
 
 !esave, file=errors.tfs;
