@@ -9,17 +9,17 @@
     Linear Chromaticity: Eq. 31 in [2]
     Chromatic Beating: Eq. 36 in [2]
 
+    References:
+        [1]  A. Franchi et al.,
+             First simultaneous measurement of sextupolar and octupolar resonance driving
+             terms in a circular accelerator from turn-by-turn beam position monitor data,
+             Phys. Rev. ST Accel. Beams 17, 074001 (2014).
+             https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001
 
-    [1]  A. Franchi et al.,
-         First simultaneous measurement of sextupolar and octupolar resonance driving terms in a
-         circular accelerator from turn-by-turn beam position monitor data,
-         Phys. Rev. ST Accel. Beams 17, 074001 (2014).
-         https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001
-
-    [2]  A. Franchi et al.,
-         Analytic formulas for the rapid evaluation of the orbit response matrix and chromatic
-         functions from lattice parameters in circular accelerators
-         NOT YET PUBLISHED
+        [2]  A. Franchi et al.,
+             Analytic formulas for the rapid evaluation of the orbit response matrix
+             and chromatic functions from lattice parameters in circular accelerators
+             NOT YET PUBLISHED
 
 """
 
@@ -32,10 +32,19 @@ from Utilities.plotting import plot_style as pstyle
 from Utilities import logging_tools as logtool
 from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit
+from Utilities.dict_tools import DotDict
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from twiss_optics.twiss_functions import assertion, regex_in, get_all_rdts
 
 LOG = logtool.get_logger(__name__)
+
+PLOT_DEFAULTS = {
+        "style": 'standard',
+        "manual": {u'lines.linestyle': '-',
+                   u'lines.marker': '',
+                   }
+}
+
 
 ################################
 #        TwissOptics
@@ -43,6 +52,11 @@ LOG = logtool.get_logger(__name__)
 
 
 class TwissOptics(object):
+    """ Class for calculating optics parameters from twiss-model.
+
+    Args:
+        model_path: Path to twissfile of model.
+    """
 
     ################################
     #       init Functions
@@ -50,40 +64,54 @@ class TwissOptics(object):
 
     def __init__(self, model_path):
         LOG.debug("Creating TwissOptics from '{:s}'".format(model_path))
-        self.mad_twiss = tfs.read_tfs(model_path).set_index('NAME')
-        self._add_ip_pos()  # self._ip_pos
-        self._remove_nonnecessaries()
+        self.mad_twiss = tfs.read_tfs(model_path, index="NAME")
+        self._ip_pos = self._find_ip_positions()
+        self.mad_twiss = self._remove_nonnecessaries()
 
-        self._add_result_dataframes()  # self._results_df
-        self._add_element_types()  # self._elements, self._elements_mapped
-
+        self._results_df = self._make_results_dataframe()
+        self._elements = self._sort_element_types()
+        self._elements_mapped = self._map_element_types()
         self._phase_advance = get_phase_advances(self.mad_twiss)
-        self._define_plot_style()
 
-    def _add_ip_pos(self):
+        self._plot_options = DotDict(PLOT_DEFAULTS)
+
+    def _find_ip_positions(self):
+        """ Returns IP positions from Dataframe
+
+        Load model into mad_twiss first!
+        """
         tw = self.mad_twiss
-        self._ip_pos = tw.loc[regex_in(r"\AIP\d$", tw.index), 'S']
+        return tw.loc[regex_in(r"\AIP\d$", tw.index), 'S']
 
     def _remove_nonnecessaries(self):
-        LOG.debug("Removing non-necessaries:")
+        """ Removies unnecessary entries from model
+
+        Load model into mad_twiss first!
+        """
+        LOG.debug("Removing unnecessary entries:")
         LOG.debug("  Entries total: {:d}".format(self.mad_twiss.shape[0]))
         with timeit(lambda t:
                     LOG.debug("  Removed in {:f}s".format(t))):
-            self.mad_twiss = self.mad_twiss.loc[regex_in(r"\A[MB]", self.mad_twiss.index), :]
-        LOG.debug("  Entries left: {:d}".format(self.mad_twiss.shape[0]))
+            cleaned = self.mad_twiss.loc[regex_in(r"\A(M|BPM)", self.mad_twiss.index), :]
+        LOG.debug("  Entries left: {:d}".format(cleaned.shape[0]))
+        return cleaned
 
-    def _add_result_dataframes(self):
-        LOG.debug("Adding results dataframes.")
-        self._results_df = tfs.TfsDataFrame(index=self.mad_twiss.index)
-        self._results_df["S"] = self.mad_twiss["S"]
+    def _make_results_dataframe(self):
+        LOG.debug("Creating Results Dataframes.")
+        results_df = tfs.TfsDataFrame(index=self.mad_twiss.index)
+        results_df["S"] = self.mad_twiss["S"]
+        return results_df
 
-    def _add_element_types(self):
+    def _sort_element_types(self):
+        """ Sorts Elements by types
+
+        Load model into mad_twiss first!
+        """
         LOG.debug("Sorting Elements into types:")
-
         tw = self.mad_twiss
         with timeit(lambda t:
                     LOG.debug("  Sorted in {:f}s".format(t))):
-            self._elements = {
+            return {
                 'BPM': regex_in(r'\ABPM', tw.index),
                 'MB': regex_in(r'\AMB[^S]', tw.index),
                 'MBS': regex_in(r'\AMBS', tw.index),
@@ -100,52 +128,92 @@ class TwissOptics(object):
                 'MCD': regex_in(r'\AMCD', tw.index),
             }
 
-            el = self._elements
-            self._elements_mapped = {
-                'K0L': el['BPM'] | el['MB'],
-                'K0SL': el['BPM'] | el['MBS'],
-                'K1L': el['BPM'] | el['MQ'],
-                'K1SL': el['BPM'] | el['MQS'],
-                'K2L': el['BPM'] | el['MS'],
-                'K2SL': el['BPM'] | el['MSS'],
-                'K3L': el['BPM'] | el['MO'],
-                'K3SL': el['BPM'] | el['MOS'],
-            }
+    def _map_element_types(self):
+        """ Map Element Types to K-Orders
 
-    def _define_plot_style(self):
-        self._plot_style = 'standard'
-        self._plot_manual = {u'lines.linestyle': '-',
-                             u'lines.marker': '',
-                             }
+        Define _elements first!
+        """
+        el = self._elements
+        return {
+            'K0L': el['BPM'] | el['MB'],
+            'K0SL': el['BPM'] | el['MBS'],
+            'K1L': el['BPM'] | el['MQ'],
+            'K1SL': el['BPM'] | el['MQS'],
+            'K2L': el['BPM'] | el['MS'],
+            'K2SL': el['BPM'] | el['MSS'],
+            'K3L': el['BPM'] | el['MO'],
+            'K3SL': el['BPM'] | el['MOS'],
+        }
+
+    def define_plot_style(self, **kwargs):
+        """ Edit your desired plot style here """
+        if not kwargs:
+            options = DotDict(PLOT_DEFAULTS)
+        else:
+            options = DotDict(kwargs)
+            if "style" not in options:
+                options.style = PLOT_DEFAULTS["style"]
+            if "manual" not in options:
+                options.manual = PLOT_DEFAULTS["manual"]
+        self._plot_options = options
 
     ################################
     #         Properties
     ################################
 
     def get_coupling(self, method='rdt'):
+        """ Returns the coupling term.
+
+        Args:
+            method: 'rdt' - Returns the values calculated by calc_rdts()
+                    'cmatrix' - Returns the values calculated by calc_cmatrix()
+        """
         if method == 'rdt':
-            # available after calc_rdts
+            # Available after calc_rdts
             return self._results_df[['S', 'F1001', 'F1010']]
         elif method == 'cmatrix':
-            # available after calc_cmatrix
+            # Available after calc_cmatrix
             return self._results_df[['S', 'F1001_C', 'F1010_C']].rename(
                 columns=lambda x: x.replace("_C", ""))
         else:
             raise ValueError("method '{:s}' not recognized.".format(method))
 
     def get_K(self, order):
+        """ Returns the K-Values of 'order'.
+
+        Args:
+            order: Order of the K values to return
+        """
         return self._results_df[['S', 'K{0}L'.format(order)]]
 
     def set_K(self, order, value):
+        """ Sets the K-Values of 'order' to 'value'.
+
+                Args:
+                    order: Order of the K values to return
+                    value: Value(s) to set the Ks to
+        """
         self._results_df[['S', 'K{0}L'.format(order)]] = value
 
     def get_J(self, order):
+        """ Returns the J-Values (==KSL) of 'order'.
+
+                Args:
+                    order: Order of the J values to return
+                """
         return self._results_df[['S', 'K{0}SL'.format(order)]]
 
     def set_J(self, order, value):
+        """ Sets the J-Values (==KSL) of 'order' to 'value'.
+
+                        Args:
+                            order: Order of the J values to return
+                            value: Value(s) to set the Js to
+                """
         self._results_df[['S', 'K{0}SL'.format(order)]] = value
 
     def get_S(self):
+        """ Return the positions of all elements """
         return self._results_df[["S"]]
 
     ################################
@@ -153,10 +221,7 @@ class TwissOptics(object):
     ################################
 
     def calc_cmatrix(self):
-        """
-        Calculates C matrix and Coupling and Gamma from it
-        :return:
-        """
+        """ Calculates C matrix and Coupling and Gamma from it. """
         tw = self.mad_twiss
         res = self._results_df
 
@@ -212,11 +277,17 @@ class TwissOptics(object):
         self._log_added('GAMMA_C', 'F1001_C', 'F1010_C', 'C11', 'C12', 'C21', 'C22')
 
     def get_gamma(self):
-        """ available after calc_cmatrix """
+        """ Return Gamma values.
+
+        Available after calc_cmatrix
+        """
         return self._results_df[['S', 'GAMMA_C']].rename(columns=lambda x: x.replace("_C", ""))
 
     def get_cmatrix(self):
-        """ available after calc_cmatrix """
+        """ Return the C-Matrix
+
+        Available after calc_cmatrix
+        """
         return self._results_df[['S', 'C11', 'C12', 'C21', 'C22']]
 
     ################################
@@ -224,7 +295,15 @@ class TwissOptics(object):
     ################################
 
     def calc_rdts(self, order):
-        """ Eq. A8 in [2] """
+        """ Calculates the Resonance Driving Terms.
+        
+        Eq. A8 in [2] 
+        Args:
+            order: int, string or list of strings
+                If an int is given all Resonance Driving Terms up to this order
+                will be calculated.
+                The strings are assumed to be the desired driving term names, e.g. "F1001"
+        """
         if isinstance(order, int):
             order = get_all_rdts(order)
         elif not isinstance(order, list):
@@ -291,7 +370,10 @@ class TwissOptics(object):
         self._log_added(*order)
 
     def get_rdts(self, rdt_names=None):
-        """ available after calc_rdts """
+        """ Return Resonance Driving Terms.
+
+        Available after calc_rdts
+        """
         if rdt_names:
             if not isinstance(rdt_names, list):
                 rdt_names = [rdt_names]
@@ -300,13 +382,16 @@ class TwissOptics(object):
             return self._results_df.loc[:, regex_in(r'\A(S|F\d{4})$', self._results_df.columns)]
 
     def plot_rdts(self, rdt_names=None, apply_fun=np.abs, combined=True):
-        """ available after calc_rdts """
+        """ Plot Resonance Driving Terms
+
+        Available after calc_rdts
+        """
         LOG.info("Plotting Resonance Driving Terms")
         rdts = self.get_rdts(rdt_names)
         is_s = regex_in(r'\AS$', rdts.columns)
         rdts = rdts.dropna()
         rdts.loc[:, ~is_s] = rdts.loc[:, ~is_s].applymap(apply_fun)
-        pstyle.set_style(self._plot_style, self._plot_manual)
+        pstyle.set_style(self._plot_options.style, self._plot_options.manual)
 
         if combined:
             ax = rdts.plot(x='S')
@@ -329,7 +414,10 @@ class TwissOptics(object):
     ################################
 
     def calc_linear_dispersion(self, bpms_only=False):
-        """ Eq. 24 in [2] """
+        """ Calculate the Linear Disperion.
+
+        Eq. 24 in [2]
+        """
         tw = self.mad_twiss
         phs_adv = self._phase_advance
         res = self._results_df
@@ -404,15 +492,24 @@ class TwissOptics(object):
         self._log_added('DX', 'DY')
 
     def get_linear_dispersion(self):
-        """ available after calc_linear_dispersion """
+        """ Return the Linear Dispersion.
+
+        Available after calc_linear_dispersion!
+        """
         return self._results_df.loc[:, ["S", "DX", "DY"]]
 
     def plot_linear_dispersion(self, combined=True):
-        """ available after calc_linear_dispersion """
+        """ Plot the Linear Dispersion.
+
+        Available after calc_linear_dispersion!
+
+        Args:
+            combined (bool): If 'True' plots x and y into the same axes.
+        """
         LOG.info("Plotting Linear Dispersion")
         lin_disp = self.get_linear_dispersion().dropna()
         title = 'Linear Dispersion'
-        pstyle.set_style(self._plot_style, self._plot_manual)
+        pstyle.set_style(self._plot_options.style, self._plot_options.manual)
 
         if combined:
             ax_dx = lin_disp.plot(x='S')
@@ -435,10 +532,12 @@ class TwissOptics(object):
     # helpers
     @staticmethod
     def _linear_dispersion_coeff(beta, q):
+        """ Helper to calculate the coefficient """
         return np.sqrt(beta) / (2 * np.sin(np.pi * q))
 
     @staticmethod
     def _linear_dispersion_sum(k, j, d, beta, tau):
+        """ Helper to calculate the sum """
         # k, j, d , beta = columns -> convert to Series -> broadcasted
         # tau = Matrix as Frame
         calc_column = (k + j * d) * np.sqrt(beta)
@@ -451,7 +550,11 @@ class TwissOptics(object):
     ################################
 
     def plot_phase_advance(self, combined=True):
-        """ Plots the phase advance, but only between two consecutive elements """
+        """ Plots the phase advances between two consecutive elements
+
+        Args:
+            combined (bool): If 'True' plots x and y into the same axes.
+        """
         LOG.info("Plotting Phase Advance")
         tw = self.mad_twiss
         pa = self._phase_advance
@@ -465,7 +568,7 @@ class TwissOptics(object):
         phase_adv['MUY'] = np.cumsum(phase_advy + dphase_advy) % 1 - .5
 
         title = 'Phase'
-        pstyle.set_style(self._plot_style, self._plot_manual)
+        pstyle.set_style(self._plot_options.style, self._plot_options.manual)
 
         if combined:
             ax_dx = phase_adv.plot(x='S')
@@ -496,7 +599,10 @@ class TwissOptics(object):
     ################################
 
     def calc_linear_chromaticity(self):
-        """ Eq. 31 in [2] """
+        """ Calculate the Linear Chromaticity
+
+        Eq. 31 in [2]
+        """
         res = self._results_df
 
         if 'CHROMX' not in res:
@@ -515,7 +621,10 @@ class TwissOptics(object):
         self._log_added('DQ1', 'DQ2')
 
     def get_linear_chromaticity(self):
-        """ available after calc_linear_chromaticity """
+        """ Return the Linear Chromaticity
+
+        Available after calc_linear_chromaticity
+        """
         return self._results_df.DQ1, self._results_df.DQ2
 
     ################################
@@ -523,7 +632,10 @@ class TwissOptics(object):
     ################################
 
     def calc_chromatic_beating(self):
-        """ Eq. 36 in [2] """
+        """ Calculate the Chromatic Beating
+
+        Eq. 36 in [2]
+        """
         tw = self.mad_twiss
         res = self._results_df
         phs_adv = self._phase_advance
@@ -551,15 +663,24 @@ class TwissOptics(object):
         self._log_added('DBEATX', 'DBEATY')
 
     def get_chromatic_beating(self):
-        """ available after calc_chromatic_beating """
+        """ Return the Chromatic Beating
+
+         Available after calc_chromatic_beating
+         """
         return self._results_df.loc[:, ["S", "DBEATX", "DBEATY"]]
 
     def plot_chromatic_beating(self, combined=True):
-        """ available after calc_chromatic_beating """
+        """ Plot the Chromatic Beating
+
+        Available after calc_chromatic_beating
+
+        Args:
+            combined (bool): If 'True' plots x and y into the same axes.
+        """
         LOG.info("Plotting Chromatic Beating")
         chrom_beat = self.get_chromatic_beating().dropna()
         title = 'Chromatic Beating'
-        pstyle.set_style(self._plot_style, self._plot_manual)
+        pstyle.set_style(self._plot_options.style, self._plot_options.manual)
 
         if combined:
             ax_dx = chrom_beat.plot(x='S')
@@ -631,17 +752,17 @@ class TwissOptics(object):
     def plot_chromatic_coupling(self):
         raise NotImplementedError('Chromatic Coupling is not Implemented yet.')
 
-
     ################################
     #       Class Helpers
     ################################
 
     def _calc_chromatic_term(self):
+        """ Calculates the chromatic term which is common to all chromatic equations """
         LOG.info("Calculating Chromatic Term.")
         res = self._results_df
         tw = self.mad_twiss
 
-        #TODO: Decide weather DX, DY from Model or from calc
+        #TODO: Decide wether DX, DY from Model or from calc
 
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             mask = (tw['K1L'] != 0) | (tw['K2L'] != 0) | (tw['K2SL'] != 0)
@@ -653,15 +774,8 @@ class TwissOptics(object):
 
         LOG.debug("Chromatic Term Calculated.")
 
-    @staticmethod
-    def _dphi(data, q):
-        return data + np.where(data <= 0, q, 0)  # '<=' seems to be what MAD-X does
-
-    @staticmethod
-    def _tau(data, q):
-        return data + np.where(data <= 0, q / 2, -q / 2)  # '<=' seems to be what MAD-X does
-
     def _nice_axes(self, ax):
+        """ Makes the axes look nicer """
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 3))
         pstyle.set_xaxis_label(ax)
         try:
@@ -673,11 +787,10 @@ class TwissOptics(object):
 
     @staticmethod
     def _log_added(*args):
+        """ Logging Helper to log which fields were added """
         if len(args) > 0:
             fields = "'" + "', '".join(args) + "'"
             LOG.debug("  Added fields to results: " + fields)
-
-
 
 
 ################################

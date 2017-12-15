@@ -209,9 +209,9 @@ _STANDARD_PARAMS = {
 def set_style(style='standard', manual=None):
     """Sets the style for all following plots.
 
-    :param style: Choose Style, either 'standard' or 'presentation'
-    :param manual: Dict of manual parameters to update. Convention: "REMOVE_ENTRY" removes entry
-    :return:
+    Args:
+        style: Choose Style, either 'standard' or 'presentation'
+        manual: Dict of manual parameters to update. Convention: "REMOVE_ENTRY" removes entry
     """
     if style == 'standard':
         params = _STANDARD_PARAMS.copy()
@@ -237,12 +237,12 @@ def set_style(style='standard', manual=None):
 
 def sync2d(axs, ax_str='xy', ax_lim=()):
     """
-    Syncronizes the limits for the given axes
+    Synchronizes the limits for the given axes
 
-    :param axs: list of axes or figures, or figure with multiple axes
-    :param ax_lim: predefined limits (list or list of lists)
-    :param ax_str: string 'x','y' or 'xy' defining the axes to sync
-    :return:
+    Args:
+        axs: list of axes or figures, or figure with multiple axes
+        ax_lim: predefined limits (list or list of lists)
+        ax_str: string 'x','y' or 'xy' defining the axes to sync
     """
     if isinstance(axs, list):
         if isinstance(axs[0], matplotlib.figure.Figure):
@@ -295,9 +295,9 @@ def set_xLimits(accel, ax=None):
     """
     Sets the x-limits to the regularly used ones
 
-    :param accel: Name of the Accelerator
-    :param ax:  Axes to put the label on (default: gca())
-    :return:
+    Args:
+        accel: Name of the Accelerator
+        ax:  Axes to put the label on (default: gca())
     """
     if not ax:
         ax = plt.gca()
@@ -341,14 +341,13 @@ _ylabels = {
 
 
 def set_yaxis_label(param, plane, ax=None, delta=False):  # plot x and plot y
-    """
-    Set y-axis labels.
+    """ Set y-axis labels.
 
-    :param param: One of the ylabels above
-    :param plane: Usually x or y, but can be any string actually to be placed into the label ({0})
-    :param ax: Axes to put the label on (default: gca())
-    :param delta: If True adds a Delta before the label (default: False)
-    :return:
+    Args:
+        param: One of the ylabels above
+        plane: Usually x or y, but can be any string actually to be placed into the label ({0})
+        ax: Axes to put the label on (default: gca())
+        delta: If True adds a Delta before the label (default: False)
     """
     if not ax:
         ax = plt.gca()
@@ -363,11 +362,10 @@ def set_yaxis_label(param, plane, ax=None, delta=False):  # plot x and plot y
 
 
 def set_xaxis_label(ax=None):
-    """
-    Sets the standard x-axis label
+    """ Sets the standard x-axis label
 
-    :param ax: Axes to put the label on (default: gca())
-    :return:
+    Args:
+        ax: Axes to put the label on (default: gca())
     """
     if not ax:
         ax = plt.gca()
@@ -375,12 +373,11 @@ def set_xaxis_label(ax=None):
 
 
 def show_ir(ip_dict, ax=None):
-    """
-    Plots the interaction regions into the background of the plot.
+    """ Plots the interaction regions into the background of the plot.
 
-    :param ip_dict: dict, dataframe or series containing "IPLABEL" : IP_POSITION
-    :param ax:  Axes to put the irs on (default: gca())
-    :return:
+    Args:
+        ip_dict: dict, dataframe or series containing "IPLABEL" : IP_POSITION
+        ax:  Axes to put the irs on (default: gca())
     """
     if not ax:
         ax = plt.gca()
@@ -408,7 +405,13 @@ def show_ir(ip_dict, ax=None):
 
 
 def set_name(name, fig_or_ax=None):
-    """ Sets the name of the figure or axes """
+    """ Sets the name of the figure or axes
+
+    Args:
+        name (str): Sting to set as name.
+        fig_or_ax: Figure or Axes to to use.
+            If 'None' takes current figure. (Default: None)
+    """
     if not fig_or_ax:
         fig_or_ax = plt.gcf()
     try:
@@ -418,7 +421,12 @@ def set_name(name, fig_or_ax=None):
 
 
 def get_name(fig_or_ax=None):
-    """ Returns the name of the figure or axes """
+    """ Returns the name of the figure or axes
+
+    Args:
+        fig_or_ax: Figure or Axes to to use.
+            If 'None' takes current figure. (Default: None)
+    """
     if not fig_or_ax:
         fig_or_ax = plt.gcf()
     try:
@@ -428,7 +436,12 @@ def get_name(fig_or_ax=None):
 
 
 def set_annotation(text, ax=None):
-    """ Writes an annotation on the top right of the axes """
+    """ Writes an annotation on the top right of the axes
+
+    Args:
+        text: The annotation
+        ax: Axes to set annotation on. If 'None' takes current Axes. (Default: None)
+    """
     if not ax:
         ax = plt.gca()
 
@@ -445,6 +458,13 @@ def set_annotation(text, ax=None):
 
 
 def get_annotation(ax=None, by_reference=False):
+    """ Returns the annotation set by set_annotation()
+
+    Args:
+        ax: Axes to get annotation from. If 'None' takes current Axes. (Default: None)
+        by_reference (bool): If true returns the reference to the annotation,
+            otherwise the text as string. (Default: False)
+    """
     if not ax:
         ax = plt.gca()
 
@@ -458,7 +478,11 @@ def get_annotation(ax=None, by_reference=False):
 
 
 def small_title(ax=None):
-    """ Alternative to annotation, which lets you use the title-functions """
+    """ Alternative to annotation, which lets you use the title-functions
+
+    Args:
+        ax: Axes to use. If 'None' takes current Axes. (Default: None)
+    """
     if not ax:
         ax = plt.gca()
 

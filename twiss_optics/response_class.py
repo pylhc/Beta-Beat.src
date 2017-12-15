@@ -1,23 +1,23 @@
-"""
-    Provides Class to get response matrces from Twiss parameters.
+""" Provides Class to get response matrices from Twiss parameters.
     The calculation is based on formulas in [1,2].
 
     Only works properly for on-orbit twiss files.
 
     Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [1]
-    Dispersion Response*:    Eq. 26-27 in [1]
+    Dispersion Response*:   Eq. 25-27 in [1]
     Phase Advance Response: Eq. 28 in [1]
     Tune Response:          Eq. 7 in [2]
 
-    [1]  A. Franchi et al.,
-         Analytic formulas for the rapid evaluation of the orbit response matrix and chromatic
-         functions from lattice parameters in circular accelerators
-         NOT YET PUBLISHED
+    References:
+        [1]  A. Franchi et al.,
+             Analytic formulas for the rapid evaluation of the orbit response matrix and chromatic
+             functions from lattice parameters in circular accelerators
+             NOT YET PUBLISHED
 
-    [2]  R. Tomas, et al.,
-         Review of linear optics measurement and correction for charged particle accelerators.
-         Physical Review Accelerators and Beams, 20(5), 54801. (2017)
-         https://doi.org/10.1103/PhysRevAccelBeams.20.054801
+        [2]  R. Tomas, et al.,
+             Review of linear optics measurement and correction for charged particle accelerators.
+             Physical Review Accelerators and Beams, 20(5), 54801. (2017)
+             https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 
     * Because the dispersion is normalized here, the change comes not only from the change of the
     dispersion itself, but also from the change in the beta function.
@@ -27,6 +27,7 @@
 import os
 import json
 import numpy as np
+import pandas as pd
 from Utilities import logging_tools as logtool
 from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit
@@ -34,40 +35,67 @@ from Utilities import iotools
 from twiss_optics import sequence_parser
 
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
-from twiss_optics.twiss_functions import assertion, regex_in
+from twiss_optics.twiss_functions import regex_in, upper
 
-
-LOG = logtool.get_logger(__name__, level_console=0)
+LOG = logtool.get_logger(__name__)
 
 EXCLUDE_CATEGORIES_DEFAULT = ["LQ", "MCBH", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
+DUMMY_ID = "DUMMY_PLACEHOLDER"
+
+"""
+=============================   Twiss Response Class   =============================
+"""
 
 class TwissResponse(object):
+    """ Provides Response Matrices calculated from sequence, model and given variables.
+
+    Args:
+        seqfile_path: Path to sequence file. If there is a pre-parsed .varmap file in the same
+            folder, it will use this one. (Hence, can also be the path to this file)
+        modelfile_path: Path to twiss-model file
+        varfile_path: Path to json file containing the variable-names
+        exclude_categories: Names of the categories to exclude in varfile.
+            Defaults to hardcoded list if not given or 'None'. To allow all use empty list!
+        at_elements (str): Get response matrix for these elements. Can be:
+            'bpms': All BPMS (Default)
+            'bpms+': BPMS+ used magnets (== magnets defined by variables in varfile)
+            'all': All BPMS and Magnets given in the model (Markers are removed)
+    """
 
     ################################
     #            INIT
     ################################
 
     def __init__(self, seqfile_path, modelfile_path, varfile_path,
-                 exclude_categories=EXCLUDE_CATEGORIES_DEFAULT,
+                 exclude_categories=None,
                  at_elements='bpms'):
 
-        self._twiss = self._get_model_twiss(modelfile_path)
-        self._variables = self._read_variables(varfile_path, exclude_categories)
-        self._var_to_el = self._get_variable_mapping(seqfile_path)
-        self._elements_in = self._get_input_elements()
-        self._elements_out = self._get_output_elements(at_elements)
+        if exclude_categories is None:
+            exclude_categories = EXCLUDE_CATEGORIES_DEFAULT
 
-        self._phase_advances = get_phase_advances(self._twiss)
+        LOG.info("Calculating TwissResponse.")
+        with timeit(lambda t: LOG.debug("  Total time TwissResponse: {:f}s".format(t))):
+            # Get input
+            self._twiss = self._get_model_twiss(modelfile_path)
+            self._variables = self._read_variables(varfile_path, exclude_categories)
+            self._var_to_el = self._get_variable_mapping(seqfile_path)
+            self._elements_in = self._get_input_elements()
+            self._elements_out = self._get_output_elements(at_elements)
 
-        self._beta = self._calc_beta_response()
-        self._dispersion = self._calc_dispersion_response()
-        self._phase = self._calc_phase_advance_response()
-        self._tune = self._calc_tune_response()
+            # calculate all phase advances
+            self._phase_advances = get_phase_advances(self._twiss)
 
-        self._beta_mapped = self._map_to_variables(self._beta, self._var_to_el["K1L"])
-        self._dispersion_mapped = self._map_dispersion()
-        self._phase_mapped = self._map_to_variables(self._phase, self._var_to_el["K1L"])
-        self._tune_mapped = self._map_to_variables(self._tune, self._var_to_el["K1L"])
+            # get response matrices
+            self._beta = self._calc_beta_response()
+            self._dispersion = self._calc_dispersion_response()
+            self._phase = self._calc_phase_advance_response()
+            self._tune = self._calc_tune_response()
+
+            # map response matrices to variabels
+            self._beta_mapped = self._map_to_variables(self._beta, self._var_to_el["K1L"])
+            self._dispersion_mapped = self._map_dispersion_response()
+            self._phase_mapped = self._map_to_variables(self._phase, self._var_to_el["K1L"])
+            self._tune_mapped = self._map_to_variables(self._tune, self._var_to_el["K1L"])
 
 
     @staticmethod
@@ -75,10 +103,15 @@ class TwissResponse(object):
         """ Load model, but keep only BPMs and Magnets """
         LOG.debug("Loading Model from file '{:s}'".format(modelfile_path))
         model = tfs.read_tfs(modelfile_path).set_index('NAME')
+
+        # Remove not needed Stuff
         LOG.debug("Removing non-necessary entries:")
         LOG.debug("  Entries total: {:d}".format(model.shape[0]))
-        model = model.loc[regex_in(r"\A([MB]|" + model.SEQUENCE + r"\$START$)", model.index), :]
+        model = model.loc[regex_in(r"\A(M|BPM)", model.index), :]
         LOG.debug("  Entries left: {:d}".format(model.shape[0]))
+
+        # Add Dummy for Phase Calculations
+        model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
         return model
 
     @staticmethod
@@ -97,11 +130,12 @@ class TwissResponse(object):
 
     def _get_variable_mapping(self, seqfile_path):
         """ Get variable mapping as dictionary
-            Call _read_variables before to set self._variables
+
+        Define _variables first!
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
-        mapping = sequence_parser.load_or_calc_variable_mapping(seqfile_path, "dictionary")
+        mapping = sequence_parser.load_or_parse_variable_mapping(seqfile_path, "dictionary")
 
         for order in ("K0L", "K0SL", "K1L", "K1SL"):
             if order not in mapping:
@@ -123,7 +157,8 @@ class TwissResponse(object):
 
     def _get_input_elements(self):
         """ Return variable names of input elements.
-            Get variable mapping first!
+
+        Define _var_to_el and _twiss first!
         """
         v2e = self._var_to_el
         tw = self._twiss
@@ -137,8 +172,9 @@ class TwissResponse(object):
         return el_in
 
     def _get_output_elements(self, at_elements):
-        """ Return name-array of elements to use for output
-            Define input elements first!
+        """ Return name-array of elements to use for output.
+
+        Define _elements_in first!
         """
         tw_idx = self._twiss.index
 
@@ -163,163 +199,127 @@ class TwissResponse(object):
 
         if at_elements == "all":
             # all, obviously
-            return tw_idx
+            return [idx for idx in tw_idx if idx != DUMMY_ID]
 
     ################################
     #       Response Matrix
     ################################
 
     def _calc_beta_response(self):
-        """ Response Matrix for delta betabeats
-            Eq. A35 -> Eq. B45 in [1]
+        """ Response Matrix for delta beta.
+
+        Eq. A35 -> Eq. B45 in [1]
         """
-        LOG.info("Calculate Beta Beating Response Matrix")
-        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+        LOG.debug("Calculate Beta Response Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
             tw = self._twiss
             adv = self._phase_advances
             el_out = self._elements_out
             k1_el = self._elements_in["K1L"]
-            var2el = self._var_to_el["K1L"]
-            dbetabeat = dict.fromkeys(["X", "Y"])
+            dbeta = dict.fromkeys(["X", "Y"])
 
-            dphix = dphi(adv["X"].loc[k1_el, el_out], tw.Q1)
-            dphiy = dphi(adv["Y"].loc[k1_el, el_out], tw.Q2)
+            for plane in ["X", "Y"]:
+                col_beta = "BET" + plane
+                q = tw.Q1 if plane == "X" else tw.Q2
+                coeff_sign = -1 if plane == "X" else 1
 
-            dbetabeat["X"] = tfs.TfsDataFrame(
-                -(1/(2*np.sin(2*np.pi*tw.Q1))) *
-                  np.cos(2*np.pi*(2*dphix.values - tw.Q1)) *
-                  tw.loc[k1_el, ["BETX"]].values, index=k1_el, columns=el_out).transpose()
+                pi2tau = 2 * np.pi * tau(adv[plane].loc[k1_el, el_out], q)
 
-            dbetabeat["Y"] = tfs.TfsDataFrame(
-                (1 / (2 * np.sin(2 * np.pi * tw.Q2))) *
-                np.cos(2 * np.pi * (2 * dphiy.values - tw.Q2)) *
-                tw.loc[k1_el, ["BETY"]].values, index=k1_el, columns=el_out).transpose()
+                dbeta[plane] = tfs.TfsDataFrame(
+                    tw.loc[el_out, col_beta].values[None, :] *
+                    tw.loc[k1_el, col_beta].values[:, None] * np.cos(2 * pi2tau.values) *
+                    (coeff_sign / (2 * np.sin(2 * np.pi * q))),
+                    index=k1_el, columns=el_out).transpose()
 
-        return dbetabeat
+        return dbeta
 
     def _calc_dispersion_response(self):
-        """ Response Matrix for delta normalized dispersion
-            Eq. 26-27 in [1]
+        """ Response Matrix for delta dispersion
+
+            Eq. 25-27 in [1]
             Call after beta-beat calculation!
         """
-        LOG.info("Calculate Normalized Dispersion Response Matrix")
+        LOG.debug("Calculate Dispersion Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             tw = self._twiss
             adv = self._phase_advances
             el_out = self._elements_out
-            k0_el = self._elements_in["K0L"]
-            k1_el = self._elements_in["K1L"]
-            j0_el = self._elements_in["K0SL"]
-            j1_el = self._elements_in["K1SL"]
-            bbeat = self._beta
+            els_in = self._elements_in
 
-            disp_resp = dict.fromkeys(["X", "Y_J0", "Y_J1", "X_BB", "Y_BB"])
+            disp_resp = dict.fromkeys(["X_K0L", "X_K1SL", "Y_K0SL", "Y_K1SL"])
 
-            # Matrix N in Eq. 26 (normalized)
-            if len(k0_el) > 0:
-                taux = tau(adv["X"].loc[k0_el, el_out], tw.Q1)
-                n = 1/(2*np.sin(np.pi * tw.Q1)) * \
-                    np.sqrt(tw.loc[k0_el, ["BETX"]].values) * np.cos(2 * np.pi * taux)
-                disp_resp["X"] = n.transpose()
-            else:
-                LOG.debug("  No 'K0L' variables found. Dispersion Response 'X' will be empty.")
-                disp_resp["X"] = tfs.TfsDataFrame(None, index=el_out)
+            for plane in ["X", "Y"]:
+                q = tw.Q1 if plane == "X" else tw.Q2
+                type_plane = ("K0L" if plane == "X" else "K0SL", "K1SL")
+                el_in_plane = (els_in[type_plane[0]], els_in[type_plane[1]])
+                col_beta = "BET" + plane
+                col_disp = "DY" if plane == "X" else "DX"
 
-            # Matrix S(J0) in Eq. 26 (normalized)
-            if len(j0_el) > 0:
-                tauy_j0 = tau(adv["Y"].loc[j0_el, el_out], tw.Q2)
-                sj0 = -1 / (2 * np.sin(np.pi * tw.Q2)) * \
-                  np.sqrt(tw.loc[j0_el, ["BETY"]].values) * np.cos(2 * np.pi * tauy_j0)
-                disp_resp["Y_J0"] = sj0.transpose()
-            else:
-                LOG.debug("  No 'K0SL' variables found. Dispersion Response 'Y_J0' will be empty.")
-                disp_resp["Y_J0"] = tfs.TfsDataFrame(None, index=el_out)
+                if any((len(el_in_plane[0]), len(el_in_plane[1]))):
+                    coeff = np.sqrt(tw.loc[el_out, col_beta].values) / (2 * np.sin(np.pi * q))
 
-            # Matrix S(J1) in Eq. 26 (normalized)
-            if len(j1_el) > 0:
-                tauy_j1 = tau(adv["Y"].loc[j1_el, el_out], tw.Q2)
-                sj1 = -1 / (2 * np.sin(np.pi * tw.Q2)) * tw.loc[j1_el, ["DX"]].values * \
-                  np.sqrt(tw.loc[j1_el, ["BETY"]].values) * np.cos(2 * np.pi * tauy_j1)
-                disp_resp["Y_J1"] = sj1.transpose()
-            else:
-                LOG.debug("  No 'K1SL' variables found. Dispersion Response 'Y_J1' will be empty.")
-                disp_resp["Y_J1"] = tfs.TfsDataFrame(None, index=el_out)
+                for el_in, el_type in zip(el_in_plane, type_plane):
+                    coeff_sign = -1 if el_type == "K0SL" else 1
+                    out_str = "{p:s}_{t:s}".format(p=plane, t=el_type)
 
-            # Correction Terms rising from delta beta in normalization
-            if len(k1_el) > 0:
-                for plane in ["X", "Y"]:
-                    disp_resp[plane+"_BB"] = tfs.TfsDataFrame(
-                        -.5 * bbeat[plane].values * (tw.loc[k1_el, ["D"+plane]].values /
-                                                     np.sqrt(tw.loc[k1_el, ["BET"+plane]].values)
-                                                     ).transpose(),
-                        index=el_out, columns=k1_el
-                    )
-            else:
-                LOG.debug("  No 'K1L' variables found."
-                          "Dispersion Responses 'X_BB' and 'Y_BB' will be empty.")
-                disp_resp["X_BB"] = tfs.TfsDataFrame(None, index=el_out)
-                disp_resp["Y_BB"] = tfs.TfsDataFrame(None, index=el_out)
-
+                    if len(el_in):
+                        pi2tau = 2 * np.pi * tau(adv[plane].loc[el_in, el_out], q)
+                        bet_term = np.sqrt(tw.loc[el_in, col_beta].values)
+                        if el_type == "K1SL":
+                            bet_term *= tw.loc[el_in, col_disp].values
+                        m = coeff_sign * coeff[None, :] * bet_term[:, None] * np.cos(pi2tau)
+                        disp_resp[out_str] = m.transpose()
+                    else:
+                        LOG.debug(
+                            "  No '{:s}' variables found. ".format(el_type) +
+                            "Dispersion Response '{:s}' will be empty.".format(out_str))
+                        disp_resp[out_str] = tfs.TfsDataFrame(None, index=el_out)
         return disp_resp
 
     def _calc_phase_advance_response(self):
-        """ Response Matrix for delta DPhi
-            Eq. 28 in [1]
-            Reduced to only phase advances between consecutive elements,
-            as the 3D-Matrix of all elements exceeds memory space
-            (~11000^3 = 1331 Giga Elements)
-            --> w = j-1:  DPhi(z,j) = DPhi(x, (j-1)->j)
+        """ Response Matrix for delta DPhi.
+
+        Eq. 28 in [1]
+        Reduced to only phase advances between consecutive elements,
+        as the 3D-Matrix of all elements exceeds memory space
+        (~11000^3 = 1331 Giga Elements)
+        --> w = j-1:  DPhi(z,j) = DPhi(x, (j-1)->j)
         """
-        LOG.info("Calculate Phase Advance Response Matrix")
-        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+        LOG.debug("Calculate Phase Advance Response Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
             tw = self._twiss
             adv = self._phase_advances
             k1_el = self._elements_in["K1L"]
 
-            el_out_all = [tw.index[0]] + self._elements_out
+            el_out_all = [DUMMY_ID] + self._elements_out  # Add MU[XY] = 0.0 to the start
             el_out = el_out_all[1:]  # in these we are actually interested
-            el_out_mm = el_out_all[0:-1]  # first element is Sequence Start (MU = 0)
+            el_out_mm = el_out_all[0:-1]  # elements--
 
             if len(k1_el) > 0:
-                dadv = dict.fromkeys(["X", "Y"])
+                dmu = dict.fromkeys(["X", "Y"])
 
-                # sticking to the dimension order as in paper
-                # so at the end there is a need to transpose the result for matrix multiplications
                 pi = tfs.TfsDataFrame(tw['S'][:, None] < tw['S'][None, :],  # pi(i,j) = s(i) < s(j)
                                       index=tw.index, columns=tw.index, dtype=int)
 
-                pi_term = pi.loc[k1_el, el_out].values - \
-                          pi.loc[k1_el, el_out_mm].values + \
-                          np.diag(pi.loc[el_out, el_out_mm].values)
+                pi_term = (pi.loc[k1_el, el_out].values -
+                           pi.loc[k1_el, el_out_mm].values +
+                           np.diag(pi.loc[el_out, el_out_mm].values)[None, :])
 
-                taux = tau(adv['X'].loc[k1_el, el_out_all], tw.Q1)
-                tauy = tau(adv['Y'].loc[k1_el, el_out_all], tw.Q2)
+                for plane in ["X", "Y"]:
+                    col_beta = "BET" + plane
+                    q = tw.Q1 if plane == "X" else tw.Q2
+                    coeff_sign = 1 if plane == "X" else -1
 
-                brackets_x = (2 * pi_term +
-                             ((np.sin(4 * np.pi * taux.loc[:, el_out].values) -
-                               np.sin(4 * np.pi * taux.loc[:, el_out_mm].values))
-                              * 1 / np.sin(2 * np.pi * tw.Q1)))
-
-                # hint: np can only broadcast ndarrays, which is values of a DF but not of a Series
-                dadv['X'] = tfs.TfsDataFrame(
-                            brackets_x * tw.loc[k1_el, ['BETX']].values * (1 / (8 * np.pi)),
-                            index=k1_el, columns=el_out)
-
-                brackets_y = (2 * pi_term +
-                              ((np.sin(4 * np.pi * tauy.loc[:, el_out].values) -
-                                np.sin(4 * np.pi * tauy.loc[:, el_out_mm].values))
-                               * 1 / np.sin(2 * np.pi * tw.Q2)))
-
-                # hint: np can only broadcast ndarrays, which is values of a DF but not of a Series
-                dadv['Y'] = tfs.TfsDataFrame(
-                            brackets_y * tw.loc[k1_el, ['BETY']].values * (1 / (8 * np.pi)),
-                            index=k1_el, columns=el_out)
-
-                # switching to total phase and proper axis orientation
-                dmu = {
-                    "X": dadv['X'].transpose().apply(np.cumsum),
-                    "Y": dadv['Y'].transpose().apply(np.cumsum),
-                }
+                    pi2tau = 2 * np.pi * tau(adv[plane].loc[k1_el, el_out_all], q)
+                    brackets = (2 * pi_term +
+                                ((np.sin(2 * pi2tau.loc[:, el_out].values) -
+                                  np.sin(2 * pi2tau.loc[:, el_out_mm].values))
+                                 / np.sin(2 * np.pi * q)
+                                 ))
+                    dmu[plane] = tfs.TfsDataFrame(
+                        tw.loc[k1_el, col_beta].values[:, None] * brackets
+                        * (coeff_sign / (8 * np.pi)),
+                        index=k1_el, columns=el_out).transpose().apply(np.cumsum)
             else:
                 LOG.debug("  No 'K1L' variables found. Phase Response will be empty.")
                 dmu = {"X": tfs.TfsDataFrame(None, index=el_out),
@@ -328,11 +328,12 @@ class TwissResponse(object):
         return dmu
 
     def _calc_tune_response(self):
-        """ Response vectors for Tune
-            Eq. 7 in [2]
+        """ Response vectors for Tune.
+
+        Eq. 7 in [2]
         """
-        LOG.info("Calculate Tune Response Matrix")
-        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+        LOG.debug("Calculate Tune Response Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
             tw = self._twiss
             k1_el = self._elements_in["K1L"]
 
@@ -351,40 +352,40 @@ class TwissResponse(object):
 
         return dtune
 
-    def _map_dispersion(self):
+    def _map_dispersion_response(self):
         """ Maps all dispersion matrices """
         var2k0 = self._var_to_el["K0L"]
         var2j0 = self._var_to_el["K0SL"]
-        var2k1 = self._var_to_el["K1L"]
         var2j1 = self._var_to_el["K1SL"]
         m2v = self._map_to_variables
         disp = self._dispersion
 
         return {
-            "X": m2v(disp["X"], var2k0),
-            "X_BB": m2v(disp["X_BB"], var2k1),
-            "Y_J0": m2v(disp["Y_J0"], var2j0),
-            "Y_J1": m2v(disp["Y_J1"], var2j1),
-            "Y_BB": m2v(disp["Y_BB"], var2k1),
+            "X_K0L": m2v(disp["X_K0L"], var2k0),
+            "X_K1SL": m2v(disp["X_K1SL"], var2j1),
+            "Y_K0SL": m2v(disp["Y_K0SL"], var2j0),
+            "Y_K1SL": m2v(disp["Y_K1SL"], var2j1),
         }
 
     @staticmethod
     def _map_to_variables(df, mapping):
         """ Maps from magnets to variables using self._var_to_el.
-            Could actually be done by matrix multiplication
-            A * var_to_el, yet, as var_to_el is very sparse,
-            looping is easier.
+            Could actually be done by matrix multiplication :math:'A \cdot var_to_el',
+             yet, as var_to_el is very sparsely populated, looping is easier.
 
-            :param df: DataFrame or dictionary of dataframes to map
-            :param mapping: mapping to be applied (e.g. var_to_el[order])
-            :return: DataFrame or dictionary of mapped dataframes
+            Args:
+                df: DataFrame or dictionary of DataFrames to map
+                mapping: mapping to be applied (e.g. var_to_el[order])
+            Returns:
+                DataFrame or dictionary of mapped DataFrames
         """
         def map_fun(df, mapping):
-            """ Actual mapping """
+            """ Actual mapping function """
             df_map = tfs.TfsDataFrame(index=df.index, columns=mapping.keys())
             for var, magnets in mapping.iteritems():
-                df_map[var] = df.loc[:, upper(magnets.index)].mul(magnets.values,
-                                                                axis="columns").sum(axis="columns")
+                df_map[var] = df.loc[:, upper(magnets.index)].mul(
+                    magnets.values, axis="columns"
+                ).sum(axis="columns")
             return df_map
 
         # convenience wrapper for dicts
@@ -401,7 +402,7 @@ class TwissResponse(object):
     ################################
 
     def get_beta_beat(self, mapped=True):
-        """ Returns Response Matrix for Beta Beat """
+        """ Returns Response Matrix for Beta Beating """
         if mapped:
             return self._beta_mapped
         else:
@@ -422,7 +423,7 @@ class TwissResponse(object):
             return self._phase
 
     def get_tune(self, mapped=True):
-        """ Returns Response Matrix for the tunes """
+        """ Returns Response Matrix for the Tunes """
         if mapped:
             return self._tune_mapped
         else:
@@ -439,12 +440,12 @@ class TwissResponse(object):
         q_df.index = ["Q1", "Q2"]
 
         return {
-            "BBX": beta["X"],
-            "BBY": beta["Y"],
+            "BETX": beta["X"],
+            "BETY": beta["Y"],
             "MUX": phse["X"],
             "MUY": phse["Y"],
-            "NDX": disp["X"].join(disp["X_BB"]),
-            "NDY": disp["Y_J0"].join(disp["Y_J1"]).join(disp["Y_BB"]),
+            "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
+            "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
             "Q": q_df,
         }
 
@@ -457,17 +458,64 @@ class TwissResponse(object):
         else:
             return self._var_to_el[order]
 
-################################
-#          Other
-################################
+
+"""
+=============================   Attached Functions   =============================
+"""
 
 
-def upper(list_of_strings):
-    return [item.upper() for item in list_of_strings]
+def get_delta(fullresp_or_tr, delta_k):
+    """ Returns the deltas of :math:'response_matrix \cdot delta_k'.
+
+    Args:
+        fullresp_or_tr: Either the fullresponse dictionary or the TwissResponse Object
+        delta_k: Pandas Series of variables and their delta-value
+
+    Returns:
+        TFS_DataFrame with elements as indices and the calculated deltas in the columns
+    """
+    if isinstance(fullresp_or_tr, TwissResponse):
+        resp_twiss = fullresp_or_tr.get_fullresponse()
+    else:
+        resp_twiss = fullresp_or_tr
+
+    columns = resp_twiss.keys()
+    index = resp_twiss["BETX"].index
+
+    delta_df = tfs.TfsDataFrame(None, index=index)
+    for col in columns:
+        # equivalent to .dot() but more efficient as delta_k is "sparse"
+        if col == "Q":
+            try:
+                delta_q = (resp_twiss[col].loc[:, delta_k.index] * delta_k
+                           ).dropna(axis="columns").sum(axis="columns")
+            except KeyError:
+                # none of the delta_k are in DataFrame
+                delta_q = pd.Series([0., 0.], index=["Q1", "Q2"])
+            delta_df.headers["QX"] = delta_q["Q1"]
+            delta_df.headers["QY"] = delta_q["Q2"]
+        else:
+            try:
+                delta_df.loc[:, col] = (resp_twiss[col].loc[:, delta_k.index] * delta_k
+                                        ).dropna(axis="columns").sum(axis="columns")
+            except KeyError:
+                # none of the delta_k are in DataFrame
+                delta_df.loc[:, col] = 0.
+    return delta_df
 
 
-def lower(list_of_strings):
-    return [item.lower() for item in list_of_strings]
+def response_add(*args):
+    """ Merges two or more Response Matrix DataFrames """
+    base_df = args[0]
+    for df in args[1:]:
+        base_df = base_df.add(df, fill_value=0.)
+    return base_df
+
+
+
+"""
+=============================   Main   =============================
+"""
 
 
 if __name__ == '__main__':
