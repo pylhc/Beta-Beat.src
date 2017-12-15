@@ -366,9 +366,9 @@ class Uncertainties:  # error definition file
         tfs_pandas.write_tfs("./dump_twiss_full", twiss_full, {})
         return twiss_full[twiss_full["UNC"] == True]
 
-#======================================================================================================================
+# =====================================================================================================================
 # main part
-#======================================================================================================================
+# =====================================================================================================================
 
 
 def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data, rmsbbx, error_method, bpms, tfs_file,
@@ -662,7 +662,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     return beta_d
 # END calculate_beta_from_phase -------------------------------------------------------------------------------
 
-@profile
 def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict):
     '''
     Calculates beta and fills the following TfsFiles:
@@ -756,8 +755,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
                 arcbpms = Utilities.bpm.filterbpm(bpmsf)
-                for bpm in arcbpms:
-                    name = str.upper(bpm[1])  # second entry is the name
+                for name in arcbpms.index:
                 #Skip BPM with strange data
                     if abs(beta_d.x_phase_f[name][0] / betaxf[name][0]) > 10:
                         skipped_bpmxf.append(name)
@@ -780,9 +778,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio_f)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpmsf)):
-                    bn1 = str.upper(bpmsf[i][1])
-                    bns1 = bpmsf[i][0]
+                for bn1 in bpmsf.index:
+                    bns1 = bpmsf.loc[bn1, "S"]
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf[bn1][0], betaxf[bn1][1],
                                         mad_twiss.loc[bn1, "BETX"], mad_twiss.loc[bn1, "MUX"], beta_d.x_ratio_f * betaxf[bn1][0], beta_d.x_ratio_f * betaxf[bn1][1]]
                     tfs_file.add_table_row(list_row_entries)
@@ -861,8 +858,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
                 arcbpms = Utilities.bpm.filterbpm(bpmsf)
-                for bpm in arcbpms:
-                    name = str.upper(bpm[1])  # second entry is the name
+                for name in arcbpms.index:
                     #Skip BPM with strange data
                     if abs(beta_d.y_phase_f[name][0] / betayf[name][0]) > 10:
                         skipped_bpmyf.append(name)
@@ -884,9 +880,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio_f)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYRES", "BETYSTDRES"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(bpmsf)):
-                    bn1 = str.upper(bpmsf[i][1])
-                    bns1 = bpmsf[i][0]
+                for bn1 in bpmsf.index:
+                    bns1 = bpmsf.loc[bn1, "S"]
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf[bn1][0], betayf[bn1][1],
                                         mad_twiss.loc[bn1, "BETY"], mad_twiss.loc[bn1, "MUY"], (beta_d.y_ratio_f *
                                                                                               betayf[bn1][0]),

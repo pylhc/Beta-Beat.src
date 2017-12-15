@@ -435,7 +435,6 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
     """
 
     ### Prepare BPM lists ###
-    print "$$$$$ GetCoupling2"
 
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
@@ -452,7 +451,6 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         index = twiss_d.zero_dpp_commonbpms_x.index.intersection(twiss_d.zero_dpp_commonbpms_y.index)
         dbpms = twiss_d.zero_dpp_commonbpms_x.loc[index]
 
-    LOGGER.debug(str(dbpms))
     ### Calculate fw and qw, exclude BPMs having wrong phases ###
 
     # Initialize dictionary of BPMs with results
@@ -581,9 +579,6 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
             q1js[j] = (0.5-q1js[j])%1.0
             q2js[j] = (0.5-q2js[j])%1.0
 
-        if j == -1:
-            LOGGER.debug("j == -1")
-        
         q1jd = np.array(q1jd)
         q2jd = np.array(q2jd)
         q1d = phase.calc_phase_mean(q1jd,1.0)
@@ -665,7 +660,6 @@ def GetCoupling2(MADTwiss, twiss_d, tune_x, tune_y, phasex, phasey, accel, outpu
         f_new += fwqw[bn2][0][0]*np.exp(complex(0,1)*2*np.pi*(mux-muy))/fwqw[bn2][0][1]**2 # Variance-weighted average for BPMs
         denom += 1/fwqw[bn2][0][1]**2 # denominator for weighted average
 
-    LOGGER.debug("fwqw=" + str(fwqw))
     N = len(dbpms)
     f_new_std = np.sqrt(1/denom)
     CG_new_abs = 4*abs(tune_x-tune_y)*abs(f_new)/denom
