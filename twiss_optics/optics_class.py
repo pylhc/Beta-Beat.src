@@ -55,16 +55,15 @@ class TwissOptics(object):
     """ Class for calculating optics parameters from twiss-model.
 
     Args:
-        model_path: Path to twissfile of model.
+        model_path_or_df: Path to twissfile of model or DataFrame of model.
     """
 
     ################################
     #       init Functions
     ################################
 
-    def __init__(self, model_path):
-        LOG.debug("Creating TwissOptics from '{:s}'".format(model_path))
-        self.mad_twiss = tfs.read_tfs(model_path, index="NAME")
+    def __init__(self, model_path_or_df):
+        self.mad_twiss = self._get_model_df(model_path_or_df)
         self._ip_pos = self._find_ip_positions()
         self.mad_twiss = self._remove_nonnecessaries()
 
@@ -74,6 +73,16 @@ class TwissOptics(object):
         self._phase_advance = get_phase_advances(self.mad_twiss)
 
         self._plot_options = DotDict(PLOT_DEFAULTS)
+
+    @staticmethod
+    def _get_model_df(model_path_or_tfs):
+        """ Check if DataFrame given, if not load model from file  """
+        if isinstance(model_path_or_tfs, basestring):
+            LOG.debug("Creating TwissOptics from '{:s}'".format(model_path_or_tfs))
+            return tfs.read_tfs(model_path_or_tfs, index="NAME")
+        else:
+            LOG.debug("Creating TwissOptics from input DataFrame")
+            return model_path_or_tfs
 
     def _find_ip_positions(self):
         """ Returns IP positions from Dataframe
