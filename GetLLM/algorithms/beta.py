@@ -737,10 +737,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         for name in commonbpms_x.index:
             bn1 = str.upper(name)
-            if getllm_d.union:
-                bns1 = commonbpms_x.loc[name, "S"]
-            else:
-                bns1 = commonbpms_x.loc[name]
+            bns1 = commonbpms_x.loc[name, "S"]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_amp[bn1][0],
                                 beta_d.x_amp[bn1][1], mad_ac.loc[bn1, "BETX"], mad_ac.loc[bn1, "MUX"], betax_rescale[bn1][0], betax_rescale[bn1][1]]
             tfs_file.add_table_row(list_row_entries)
@@ -841,10 +838,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         
         for name in commonbpms_y.index:
             bn1 = str.upper(name)
-            if getllm_d.union:
-                bns1 = commonbpms_y.loc[name, "S"]
-            else:
-                bns1 = commonbpms_y.loc[name]
+            bns1 = commonbpms_y.loc[name, "S"]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_amp[bn1][0],
                                 beta_d.y_amp[bn1][1], mad_ac.loc[bn1, "BETY"], mad_ac.loc[bn1, "MUY"], betay_rescale[bn1][0], betay_rescale[bn1][1]]
             tfs_file.add_table_row(list_row_entries)  # ac to free amp beta
