@@ -296,7 +296,7 @@ def calc_phase_std(phase0, norm):
         phase_std = phase_std * t_value_correction(len(phase0)-1)
     else:
         phase_std = 0
-        return phase_std
+    return phase_std
 
 def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     """
@@ -531,7 +531,7 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
             bpm_phase_advance = meas.loc[minmu1, minmu2]
             model_value = elements.loc[elem2, plane_mu] - elements.loc[elem1, plane_mu]
 
-            if (elements.loc[elem2, "S"] - elements.loc[elem1, "S"]) * bd < 0.0:
+            if (elements.loc[elem1, "S"] - elements.loc[elem2, "S"]) * bd < 0.0:
                 bpm_phase_advance += plane_tune
                 model_value += plane_tune
             bpm_err = err.loc[minmu1, minmu2]
@@ -599,9 +599,9 @@ def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x
                  meas.index[0],
                  model.loc[meas.index[i+1], "S"],
                  model.loc[meas.index[0], "S"],
-                 meas.loc[meas.index[i+1]][meas.index[0]],
-                 err.loc[meas.index[i+1]][meas.index[0]],
-                 mod.loc[meas.index[i+1]][meas.index[0]],
+                 meas.loc[meas.index[0]][meas.index[i+1]],
+                 err.loc[meas.index[0]][meas.index[i+1]],
+                 mod.loc[meas.index[0]][meas.index[i+1]],
                  model.loc[meas.index[i], plane_mu]
                 ])
     return tfs_file
