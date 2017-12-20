@@ -208,7 +208,7 @@ def _parse_args():
                       metavar="NPROCESSES", type=int,
                       help="""Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the
                         specified number. default = {0:d}""".format(NPROCESSES))
-    parser.add_argument("-u", "--union", action="store_true", dest="union",
+    parser.add_argument("-u", "--union", action="store_false", dest="union",
                       help="""If given, the phase per BPM is calculated for each BPM with at least 3 valid measurements.
                         Otherwise (default) calculates the phase only for the intersection of all measurements.""")
 
@@ -218,11 +218,18 @@ def _parse_args():
 #                   help="File with the BPM dictionary",
 #                   metavar="DICT", default=DICT, dest="dict")
 #   
-#   parser.add_argument("-t", "--tbtana", # remove !
-#                   help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
-#                   metavar="TBTANA", default=TBTANA, dest="TBTana")
-#   
+    # The following is just for backwards compatitibility and should vanish once the GUI knows the new arguments
+    parser.add_argument("-t", "--tbtana", # remove !
+                    help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
+                    metavar="TBTANA", default=TBTANA, dest="TBTana")
+    parser.add_argument("--errordefs", # remove !
+                    help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
+                    metavar="TBTANA", default=TBTANA, dest="errordefspath")
     options = parser.parse_args(args=rest_args)
+
+    if os.path.isfile(options.model_dir):
+        options.model_dir = os.path.dirname(options.model_dir)
+    
     
     return options, accel_cls
 
