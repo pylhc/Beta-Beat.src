@@ -283,17 +283,25 @@ def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane
 
     return actions_sqrt, actions_sqrt_err
 
-#factor_top_diff=math.sqrt(abs(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny)))
-def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,acdipole,oa):
 
-    #-- Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
+def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_h, ac2bpmac_v, accelerator):
+    """Calculates coupling using Ryoichi's formula for AC dipole compensation.
+       Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
+
+    Args:
+        MADTwiss: model twiss file
+        FilesX: horizontal measurement files.
+        FilesY: vertical measurement files.
+        bpms: list of commonbpms
+        Qh, Qv: natural tunes
+        Qx, Qy: driven tunes
+        psih_ac2bpmac, psiv_ac2bpmac: result of GetACPhase_AC2BPMAC()
+        accelerator: accelerator class instance.
+
+    """
     
     #-- Check linx/liny files, may be redundant
     if len(FilesX)!=len(FilesY): return [{},[]]
-
-    #-- Select common BPMs
-    bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(FilesX+FilesY),MADTwiss)
-    bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     #if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -310,46 +318,52 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
 
     #bpmac1_v = psiv_ac2bpmac.keys()[0]
     #bpmac2_v = psiv_ac2bpmac.keys()[1]
-    for key in psih_ac2bpmac:
-        if(key in list(zip(*bpm)[1])): 
-            horBPMsCopensation.append(key)
-            verBPMsCopensation.append(key)    
-            print horBPMsCopensation, "works"
-        else:
-            print "Is not here"
-    fqwList = []
-    for g in range(0, len(horBPMsCopensation)):
-        k_bpmac_h =list(zip(*bpm)[1]).index(horBPMsCopensation[g])
-        bpmac_h=horBPMsCopensation[g]
-        
-        k_bpmac_v=list(zip(*bpm)[1]).index(verBPMsCopensation[g])
-        bpmac_v=verBPMsCopensation[g] 
-        '''
+#    for key in psih_ac2bpmac:
+#        if(key in list(zip(*bpm)[1])): 
+#            horBPMsCopensation.append(key)
+#            verBPMsCopensation.append(key)    
+#            print horBPMsCopensation, "works"
+#        else:
+#            print "Is not here"
+#    fqwList = []
+#    for g in range(0, len(horBPMsCopensation)):
+#        k_bpmac_h =list(zip(*bpm)[1]).index(horBPMsCopensation[g])
+#        bpmac_h=horBPMsCopensation[g]
+#        
+#        k_bpmac_v=list(zip(*bpm)[1]).index(verBPMsCopensation[g])
+#        bpmac_v=verBPMsCopensation[g] 
+    bpmac_h = ac2bpmac_h[0]
+    k_bpmac_h = ac2bpmac_h[2]
+    bpmac_v = ac2bpmac_v[0]
+    k_bpmac_v = ac2bpmac_v[2]
+
+    '''
+    try:
+        k_bpmac_h=list(zip(*bpm)[1]).index(bpmac1_h)
+        bpmac_h=bpmac1_h
+    except:
         try:
-            k_bpmac_h=list(zip(*bpm)[1]).index(bpmac1_h)
-            bpmac_h=bpmac1_h
+            k_bpmac_h=list(zip(*bpm)[1]).index(bpmac2_h)
+            bpmac_h=bpmac2_h
         except:
-            try:
-                k_bpmac_h=list(zip(*bpm)[1]).index(bpmac2_h)
-                bpmac_h=bpmac2_h
-            except:
-                print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC or ADT dipole effects not calculated with analytic eqs for coupling'
-                return [{},[]]
-        #      if 'B5R4' in b: bpmac1=b
-        #if 'A5R4' in b: bpmac2=b
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC or ADT dipole effects not calculated with analytic eqs for coupling'
+            return [{},[]]
+    #      if 'B5R4' in b: bpmac1=b
+    #if 'A5R4' in b: bpmac2=b
+    try:
+        k_bpmac_v=list(zip(*bpm)[1]).index(bpmac1_v)
+        bpmac_v=bpmac1_v
+    except:
         try:
-            k_bpmac_v=list(zip(*bpm)[1]).index(bpmac1_v)
-            bpmac_v=bpmac1_v
+            k_bpmac_v=list(zip(*bpm)[1]).index(bpmac2_v)
+            bpmac_v=bpmac2_v
         except:
-            try:
-                k_bpmac_v=list(zip(*bpm)[1]).index(bpmac2_v)
-                bpmac_v=bpmac2_v
-            except:
-                print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC dipole or ADT effects not calculated with analytic eqs for coupling'
-                return [{},[]]
-        print k_bpmac_v, bpmac_v
-        print k_bpmac_h, bpmac_h
-        '''
+            print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC dipole or ADT effects not calculated with analytic eqs for coupling'
+            return [{},[]]
+    print k_bpmac_v, bpmac_v
+    print k_bpmac_h, bpmac_h
+    '''
+    if True:
        #-- Global parameters of the driven motion
         dh =Qh-Qx
         dv =Qv-Qy
