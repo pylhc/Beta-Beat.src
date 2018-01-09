@@ -457,9 +457,19 @@ class Lhc(Accelerator):
         return None
 
     def get_errordefspath(self):
-        # LHC errordefs in the (orthographically incorrect) link "error_deffs.txt"
-        return os.path.join(self.modelpath, "error_deffs.txt")
-    
+        """Returns the path to the uncertainty definitions file (formerly called error definitions file.
+
+        LHC errordefs in the (orthographically incorrect) link "error_deffs.txt"
+        """
+
+        if self.errordefspath is None:
+            return os.path.join(self.modelpath, "error_deffs.txt")
+        else:
+            return self.errordefspath
+
+    def set_errordefspath(self, path):
+        self.errordefspath = path
+
     def get_k_first_BPM(self, index):
         if self.get_beam() == 1:
             return index.get_loc("BPMSW.1L2.B1")
