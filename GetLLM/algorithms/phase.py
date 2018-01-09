@@ -30,6 +30,8 @@ from time import time
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
 
+OPTIMISTIC = False
+
 #======================================================================================================================
 # main part
 #======================================================================================================================
@@ -110,7 +112,10 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     
     # Info:
     LOGGER.info("t_value correction.................[YES]")
-    LOGGER.info("optimistic errorbars...............[YES]")
+    if OPTIMISTIC:
+        LOGGER.info("optimistic errorbars...............[YES]")
+    else:
+        LOGGER.info("optimistic errorbars...............[NO ]")
     union_text = "YES" if getllm_d.union else "NO"
     LOGGER.info("using all phase information........[{:3s}]".format(union_text))
 
@@ -341,7 +346,7 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
     """
 
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
-    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
+    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS", "NFILES"], major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
     phase_advances["MODEL"] = (phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis]) % 1.0
@@ -355,8 +360,12 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
         meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
         phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
         
+    phase_advances["NFILES"] = len(Files)
     phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1.0
-    phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
+    if OPTIMISTIC:
+        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
+    else:
+        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files))
 
     return phase_advances
 

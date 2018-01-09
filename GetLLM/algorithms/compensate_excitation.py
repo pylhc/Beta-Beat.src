@@ -130,9 +130,11 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
         psid += .5 * Qd * bd
         psid[k_bpmac:] -= Qd
         
-        Psi = np.arctan((1 - r) / (1 + r) * np.tan(TWOPI * psid)) / TWOPI
-        Psi = np.where(psid % 1.0 > .25, Psi + .5, Psi)
-        Psi = np.where(psid % 1.0 > .75, Psi - .5, Psi)
+        Psi = (np.arctan((1 - r) / (1 + r) * np.tan(TWOPI * psid)) / TWOPI) % 0.5
+        Psi = np.where(psid % 1.0 > 0.5, Psi + .5, Psi)
+        #Psi = np.where(psid > .25, Psi + .5, Psi)
+        #Psi = np.where(psid < -.25, Psi - .5, Psi)
+        #Psi = np.where(psid < -.75, Psi - .5, Psi)
         Psi -= Psi[0]
 #        Psi -= .5 * Q
         Psi[k_bpmac:] += Q 
@@ -141,8 +143,21 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
         meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis]) 
         phase_matr_meas[i] = meas_matr
    
-    phase_advances["MEAS"] = np.mean(phase_matr_meas , axis=0) % 1.0
-    phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * phase.t_value_correction(len(Files)) / np.sqrt(len(Files))
+    phase_matr_meas1 = (phase_matr_meas + .5) % 1.0 - .5
+
+    phase_mean0 = np.mean(phase_matr_meas, axis=0) % 1.0
+    phase_mean1 = np.mean(phase_matr_meas1, axis=0) % 1.0
+    phase_std0 = np.std(phase_matr_meas, axis=0)
+    phase_std1 = np.std(phase_matr_meas1, axis=0)
+
+    phase_advances["NFILES"] = len(Files)
+    phase_advances["MEAS"] = np.where(phase_std0 < phase_std1, phase_mean0, phase_mean1)
+    if phase.OPTIMISTIC:
+        phase_advances["ERRMEAS"] = np.where(phase_std0 < phase_std1, phase_std0, phase_std1) * \
+            phase.t_value_correction(len(Files)) / np.sqrt(len(Files))
+    else:
+        phase_advances["ERRMEAS"] = np.where(phase_std0 < phase_std1, phase_std0, phase_std1) * \
+            phase.t_value_correction(len(Files))
     
 #    for i in range(100):
 #        bpm_name0 = bpm["NAME"][i+1]
