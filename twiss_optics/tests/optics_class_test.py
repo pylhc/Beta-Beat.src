@@ -221,9 +221,6 @@ def _test_chromatic_beating(twissfile, ptcfile=None):
                        twop.mad_twiss.SEQUENCE)
 
 
-
-
-
 """
 ====================== Main ======================
 """
