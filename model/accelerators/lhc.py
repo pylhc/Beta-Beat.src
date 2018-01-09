@@ -51,6 +51,7 @@ class Lhc(Accelerator):
         self.elements = None
         self.elements_centre = None
         self.modelpath = None
+        self.errordefspath = None
 
     @classmethod
     def init_from_args(cls, args):
