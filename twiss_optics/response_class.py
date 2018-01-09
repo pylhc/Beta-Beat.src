@@ -4,7 +4,7 @@
     Only works properly for on-orbit twiss files.
 
     Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [1]
-    Dispersion Response*:   Eq. 25-27 in [1]
+    Dispersion Response:    Eq. 25-27 in [1]
     Phase Advance Response: Eq. 28 in [1]
     Tune Response:          Eq. 7 in [2]
 
@@ -18,23 +18,20 @@
              Review of linear optics measurement and correction for charged particle accelerators.
              Physical Review Accelerators and Beams, 20(5), 54801. (2017)
              https://doi.org/10.1103/PhysRevAccelBeams.20.054801
-
-    * Because the dispersion is normalized here, the change comes not only from the change of the
-    dispersion itself, but also from the change in the beta function.
-    The response is linearised, see ./doc/normalized_dispersion_linearisation.pdf
 """
 
-import os
 import json
+import os
+
 import numpy as np
 import pandas as pd
+
+from Utilities import iotools
 from Utilities import logging_tools as logtool
 from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit
-from Utilities import iotools
 from twiss_optics import sequence_parser
-
-from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
+from twiss_optics.twiss_functions import get_phase_advances, tau
 from twiss_optics.twiss_functions import regex_in, upper
 
 LOG = logtool.get_logger(__name__)
@@ -475,19 +472,19 @@ def get_delta(fullresp_or_tr, delta_k):
         TFS_DataFrame with elements as indices and the calculated deltas in the columns
     """
     if isinstance(fullresp_or_tr, TwissResponse):
-        resp_twiss = fullresp_or_tr.get_fullresponse()
+        response = fullresp_or_tr.get_fullresponse()
     else:
-        resp_twiss = fullresp_or_tr
+        response = fullresp_or_tr
 
-    columns = resp_twiss.keys()
-    index = resp_twiss["BETX"].index
+    columns = response.keys()
+    index = response["BETX"].index
 
     delta_df = tfs.TfsDataFrame(None, index=index)
     for col in columns:
         # equivalent to .dot() but more efficient as delta_k is "sparse"
         if col == "Q":
             try:
-                delta_q = (resp_twiss[col].loc[:, delta_k.index] * delta_k
+                delta_q = (response[col].loc[:, delta_k.index] * delta_k
                            ).dropna(axis="columns").sum(axis="columns")
             except KeyError:
                 # none of the delta_k are in DataFrame
@@ -496,7 +493,7 @@ def get_delta(fullresp_or_tr, delta_k):
             delta_df.headers["QY"] = delta_q["Q2"]
         else:
             try:
-                delta_df.loc[:, col] = (resp_twiss[col].loc[:, delta_k.index] * delta_k
+                delta_df.loc[:, col] = (response[col].loc[:, delta_k.index] * delta_k
                                         ).dropna(axis="columns").sum(axis="columns")
             except KeyError:
                 # none of the delta_k are in DataFrame
@@ -510,7 +507,6 @@ def response_add(*args):
     for df in args[1:]:
         base_df = base_df.add(df, fill_value=0.)
     return base_df
-
 
 
 """
