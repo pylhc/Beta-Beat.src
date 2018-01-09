@@ -154,9 +154,32 @@ def print_time(index, t):
 def _parse_args():
     ''' Parses command line arguments. '''
     
-    accel_cls, rest_args = manager.get_accel_class_from_args(
-        sys.argv[1:]
-    )
+    try:  # for transition 
+        accel_cls, rest_args = manager.get_accel_class_from_args(
+            sys.argv[1:]
+        )
+    except:
+        accParser = argparse.ArgumentParser()
+        accParser.add_argument("-a", "--accel", dest="accel")
+
+        accargs, rest_args = accParser.parse_known_args(sys.argv[1:])
+        if accargs.accel == "LHCB1":
+            accel_cls, _ = manager.get_accel_class_from_args([
+                "--accel", "lhc",
+                "--beam", "1",
+                "--lhcmode", "lhc_runII_2017"]
+            )
+        elif accargs.accel == "LHCB2":
+            accel_cls, _ = manager.get_accel_class_from_args([
+                "--accel", "lhc",
+                "--beam", "2",
+                "--lhcmode", "lhc_runII_2017"]
+            )
+        else:
+            LOGGER.error("Cannot understand accelerator arguments")
+            LOGGER.error("Given are:")
+            LOGGER.error(sys.argv)
+            raise SyntaxError("Could not parse arguments")
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", metavar="PATH_TO_DIR", dest="model_dir",
@@ -208,7 +231,7 @@ def _parse_args():
                       metavar="NPROCESSES", type=int,
                       help="""Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the
                         specified number. default = {0:d}""".format(NPROCESSES))
-    parser.add_argument("-u", "--union", action="store_false", dest="union",
+    parser.add_argument("-u", "--union", action="store_true", dest="union",
                       help="""If given, the phase per BPM is calculated for each BPM with at least 3 valid measurements.
                         Otherwise (default) calculates the phase only for the intersection of all measurements.""")
 
@@ -224,10 +247,12 @@ def _parse_args():
                     metavar="TBTANA", default=TBTANA, dest="TBTana")
     parser.add_argument("--errordefs", # remove !
                     help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
-                    metavar="TBTANA", default=TBTANA, dest="errordefspath")
+                    metavar="TBTANA", default=None, dest="errordefspath")
     options = parser.parse_args(args=rest_args)
 
     if os.path.isfile(options.model_dir):
+        LOGGER.info("model file given => will take containing folder as modelfolder.")
+        LOGGER.info("Did you use the old command line options?")
         options.model_dir = os.path.dirname(options.model_dir)
     
     
@@ -1079,6 +1104,8 @@ def _start():
     options, acc_cls = _parse_args()
     
     accelerator = acc_cls.init_from_model_dir(options.model_dir)
+    if options.errordefspath is not None:
+        accelerator.set_errordefspath(options.errordefspath)
     
     main(accelerator,
          options.model_dir,
