@@ -62,7 +62,7 @@ SEXT_FACT               = 2.0                       #@IgnorePep8
 A_FACT                  = -.5                       #@IgnorePep8
 BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
-ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
+ZERO_THRESHOLD          = 2e-2                      #@IgnorePep8
 PHASE_THRESHOLD         = 1.0e-2                      #@IgnorePep8
 COT_THRESHOLD           = 1.0e6
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
@@ -362,8 +362,8 @@ class Uncertainties:  # error definition file
         
         # dump the modified twiss_full and return it to the beta calculation
         _info_("DONE creating uncertainty information")
-        _debug_("dumping new twiss_full.dat")
-        tfs_pandas.write_tfs("./dump_twiss_full", twiss_full, {})
+        #_debug_("dumping new twiss_full.dat")
+        #tfs_pandas.write_tfs(os.path.join("/dump_twiss_full"), twiss_full, {})
         return twiss_full[twiss_full["UNC"] == True]
 
 # =====================================================================================================================
@@ -1269,7 +1269,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
            
     st = time.time()
     if getllm_d.parallel:
-        
+
         # setup thread pool and data chunks
         chunksize = int(len(commonbpms) / getllm_d.nprocesses) + 1
         pool = multiprocessing.Pool()
@@ -1287,7 +1287,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
         # calculate the last, incomplete chunk
         pool.apply_async(scan_several_BPMs_withsystematicerrors,
                          (madTwiss_intersected, madElements,
-                          phases_meas, phases_model,
+                          phases_meas, phases_err,
                           plane, getllm_d.range_of_bpms, commonbpms, debugfile,
                           n * chunksize, len(commonbpms), BBA_combo, ABB_combo, BAB_combo,
                           tune, mdltune),
@@ -1524,40 +1524,39 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     indx_el_first = madElements.index.get_loc(name_first)
     indx_el_last= madElements.index.get_loc(name_last )
     
-    
     if indx_first < 0:
         outerMeasPhaseAdv = pd.concat((
                 phases_meas.iloc[Index, indx_first % len_bpms_total:] - tune * TWOPI,
-                phases_meas.iloc[Index, :indx_last + 1]))
+                phases_meas.iloc[Index, :indx_last]))
         outerMeasErr = pd.concat((
                 phases_err.iloc[Index, indx_first % len_bpms_total:],
-                phases_err.iloc[Index, :indx_last + 1]))
+                phases_err.iloc[Index, :indx_last]))
         outerMdlPh = np.concatenate((
                 madTwiss.iloc[indx_first % len_bpms_total:][mu_column] - mdltune,
-                madTwiss.iloc[:indx_last + 1][mu_column])) * TWOPI
+                madTwiss.iloc[:indx_last][mu_column])) * TWOPI
         outerElmts = pd.concat((
                 madElements.iloc[indx_el_first:],
-                madElements.iloc[:indx_el_last + 1]))
+                madElements.iloc[:indx_el_last]))
         outerElmtsPh = np.concatenate((
                 madElements.iloc[indx_el_first:][mu_column] - mdltune,
-                madElements.iloc[:indx_el_last + 1][mu_column])) * TWOPI
+                madElements.iloc[:indx_el_last][mu_column])) * TWOPI
                 
     elif indx_last >= len_bpms_total:
         outerMeasPhaseAdv = pd.concat((
                 phases_meas.iloc[Index, indx_first:],
-                phases_meas.iloc[Index, :(indx_last+1) % len_bpms_total] + tune * TWOPI))
+                phases_meas.iloc[Index, :(indx_last) % len_bpms_total] + tune * TWOPI))
         outerMeasErr = pd.concat((
                 phases_err.iloc[Index, indx_first:],
-                phases_err.iloc[Index, :(indx_last+1) % len_bpms_total]))
+                phases_err.iloc[Index, :(indx_last) % len_bpms_total]))
         outerMdlPh = np.concatenate((
                 madTwiss.iloc[indx_first:][mu_column],
                 madTwiss.iloc[:indx_last % len_bpms_total][mu_column]  + mdltune)) * TWOPI
         outerElmts = pd.concat((
                 madElements.iloc[indx_el_first:],
-                madElements.iloc[:indx_el_last+1]))
+                madElements.iloc[:indx_el_last]))
         outerElmtsPh = np.concatenate((
                 madElements.iloc[indx_el_first:][mu_column],
-                madElements.iloc[:indx_el_last + 1][mu_column] + mdltune)) * TWOPI
+                madElements.iloc[:indx_el_last][mu_column] + mdltune)) * TWOPI
         
     else:
         outerMeasPhaseAdv = phases_meas.iloc[Index, indx_first : indx_last]
@@ -1608,15 +1607,15 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     for i, combo in enumerate(BBA_combo):
         ix = combo[0] + m
         iy = combo[1] + m
-        if combo[0] + Index < 0:
-            continue
+        #if combo[0] + Index < 0:
+        #    continue
         
         # remove bad combination
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
             abs(cot_meas[ix]) > COT_THRESHOLD or
-            abs(cot_meas[iy]) > COT_THRESHOLD ):
-            #or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
+            abs(cot_meas[iy]) > COT_THRESHOLD 
+            or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
             beta_mask[i] = False
             continue
         beta_mask[i] = True
@@ -1663,14 +1662,14 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         ix = combo[0] + m
         iy = combo[1] + m
 
-        if combo[0] + Index < 0 or combo[1] + Index >= len_bpms_total:
-            continue
+        #if combo[0] + Index < 0 or combo[1] + Index >= len_bpms_total:
+        #    continue
         
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
             abs(cot_meas[ix]) > COT_THRESHOLD or
-            abs(cot_meas[iy]) > COT_THRESHOLD ):
-            #or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
+            abs(cot_meas[iy]) > COT_THRESHOLD
+            or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
             beta_mask[i + offset_i] = False
             continue
         beta_mask[i + offset_i] = True
@@ -1709,16 +1708,16 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         
     for i, combo in enumerate(ABB_combo):
         ix = combo[0] + m 
-        iy = combo[1] + range_of_bpms / 2
+        iy = combo[1] + m
 
-        if combo[1] + Index >= len_bpms_total:
-            continue
+        #if combo[1] + Index >= len_bpms_total:
+        #    continue
         
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
             abs(cot_meas[ix]) > COT_THRESHOLD or
-            abs(cot_meas[iy]) > COT_THRESHOLD ):
-            #or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
+            abs(cot_meas[iy]) > COT_THRESHOLD 
+            or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
             beta_mask[i + offset_i] = False
             continue
         beta_mask[i + offset_i] = True
