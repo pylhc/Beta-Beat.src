@@ -398,7 +398,7 @@ class TwissResponse(object):
     #          Getters
     ################################
 
-    def get_beta_beat(self, mapped=True):
+    def get_beta(self, mapped=True):
         """ Returns Response Matrix for Beta Beating """
         if mapped:
             return self._beta_mapped
@@ -426,12 +426,18 @@ class TwissResponse(object):
         else:
             return self._tune
 
-    def get_fullresponse(self):
+    def get_fullresponse(self, mapped=True):
         """ Returns all mapped Response Matrices """
-        tune = self._tune_mapped
-        beta = self._beta_mapped
-        disp = self._dispersion_mapped
-        phse = self._phase_mapped
+        if mapped:
+            tune = self._tune_mapped
+            beta = self._beta_mapped
+            disp = self._dispersion_mapped
+            phse = self._phase_mapped
+        else:
+            tune = self._tune
+            beta = self._beta
+            disp = self._dispersion
+            phse = self._phase
 
         q_df = tune["X"].append(tune["Y"])
         q_df.index = ["Q1", "Q2"]

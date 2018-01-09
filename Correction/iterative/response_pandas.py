@@ -96,16 +96,17 @@ def _generate_fullresponse(options):
         Mu, BetaBeating, Dispersion and Tune and saves it to a file.
     """
     LOG.debug("Generating Fullresponse.")
-    variables = _get_variables_from_file(options.varfile_path, options.exclude_categories)
+    with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
+        variables = _get_variables_from_file(options.varfile_path, options.exclude_categories)
 
-    process_pool = multiprocessing.Pool(processes=options.num_proc)
+        process_pool = multiprocessing.Pool(processes=options.num_proc)
 
-    incr_dict = _generate_madx_jobs(variables, options)
-    _call_madx(process_pool, options.temp_dir, options.num_proc)
-    _clean_up(options.temp_dir, options.num_proc, options.outfile_path)
+        incr_dict = _generate_madx_jobs(variables, options)
+        _call_madx(process_pool, options.temp_dir, options.num_proc)
+        _clean_up(options.temp_dir, options.num_proc, options.outfile_path)
 
-    var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, options.temp_dir)
-    fullresponse = _create_fullresponse_from_dict(var_to_twiss)
+        var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, options.temp_dir)
+        fullresponse = _create_fullresponse_from_dict(var_to_twiss)
     _save_fullresponse(options.outfile_path, fullresponse)
 
 
