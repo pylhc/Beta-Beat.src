@@ -138,6 +138,11 @@ class Accelerator(object):
     def get_errordefspath(self):
         Accelerator.__raise_definition_error()
 
+        
+    def set_errordefspath(self, path):
+        # TODO: Jaime, are there virtual members for python base classes?
+        Accelerator.__raise_definition_error()
+
     ###########################################################
 
 
