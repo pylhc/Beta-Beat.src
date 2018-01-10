@@ -1,2 +1,0 @@
-
-python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/GetLLM/GetLLM.py --accel=LHCB2 --model=twiss_elements.dat --files="ALLBPMs"  --output="./" --tbtana=SUSSIX --bpmu=m --lhcphase=1
