@@ -1,11 +1,10 @@
-from __future__ import print_function
 from collections import OrderedDict
 import sys
 import os
 import logging
 import pandas
 import numpy as np
-import tfs_file_writer
+from Utilities import tfs_file_writer
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())

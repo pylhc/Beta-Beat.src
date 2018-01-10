@@ -34,17 +34,18 @@ Usage2::
 """
 
 import os
+from Utilities import iotools
+from Utilities import logging_tools
+from Utilities import math
 
-import Utilities.iotools
-import Utilities.math
-
+LOG = logging_tools.get_logger(__name__)
 
 
 class TfsFileWriter(object):
-    '''
+    """
     This class represents a TFS file. It stores all header lines and the table and write
     all the content formatted at once by calling the write function.
-    '''
+    """
 
     DEFAULT_COLUMN_WIDTH = 17
     # Indicates width of columns in output file.
@@ -63,8 +64,10 @@ class TfsFileWriter(object):
         """
         Constructor
 
-        :param string file_name: The file name without path where the file will be written (outputpath can be set via set_outputpath).
-        :param int column_width: Indicates the width of each column in the file.
+        Args:
+            file_name (str): The file name without path where the file will be written
+            outputpath (str): Folder to write the file into. Default: None == current folder)
+            column_width (int): Indicates the width of each column in the file. Default: 17
         """
 
         self.__file_name = ""
@@ -77,17 +80,16 @@ class TfsFileWriter(object):
         self.set_outputpath(outputpath)
         self.set_column_width(column_width)
 
-
     def set_file_name(self, file_name):
         if not isinstance(file_name, str) or 0 == len(file_name):
-            raise ValueError("File name is not valid: "+ file_name)
+            raise ValueError("File name is not valid: " + file_name)
         self.__file_name = file_name
 
     def set_outputpath(self, outputpath):
         if outputpath is None or not isinstance(outputpath, str):
             outputpath = os.path.abspath("./")
-        if Utilities.iotools.not_exists_directory(outputpath):
-            Utilities.iotools.create_dirs(outputpath)
+        if iotools.not_exists_directory(outputpath):
+            iotools.create_dirs(outputpath)
         self.__outputpath = outputpath
 
     def set_column_width(self, column_width):
@@ -95,10 +97,8 @@ class TfsFileWriter(object):
             column_width = TfsFileWriter.DEFAULT_COLUMN_WIDTH
         self.__column_width = column_width
 
-
     def get_file_name(self):
         return self.__file_name
-
 
     def add_string_descriptor(self, name, str_value):
         """ Adds the string "@ <name> %s <data>" to the tfs header. """
@@ -109,12 +109,10 @@ class TfsFileWriter(object):
         """ Adds the line to the tfs header. """
         self.__tfs_header_lines.append(_TfsLine(str_value))
 
-
     def add_float_descriptor(self, name, float_value):
         """ Adds the string "@ <name> %le <data>" to the tfs header. """
         tfs_descriptor = _TfsDescriptor(name, float_value, _TfsDataType.get_new_float_instance())
         self.__tfs_header_lines.append(tfs_descriptor)
-
 
     def add_comment(self, comment):
         """
@@ -122,17 +120,16 @@ class TfsFileWriter(object):
         """
         self.__tfs_header_lines.append(_TfsComment(comment))
 
-
     def add_column_names(self, list_names):
         """
         Adds the list of column names to the table header.
         If the number of columns is determined already(e.g. by adding column data types) and the
         length of list_names does not match the number of columns a TypeError will be raised.
 
-        :param list list_names: Containing the names of the columns. Without prefix '*'
+        Args:
+            list_names (list): Containing the names of the columns. Without prefix '*'
         """
         self.__tfs_table.add_column_names(list_names)
-
 
     def add_column_datatypes(self, list_datatypes):
         """
@@ -140,23 +137,24 @@ class TfsFileWriter(object):
         If the number of columns is determined already(e.g. by adding column names) and the
         length of list_datatypes does not match the number of columns a TypeError will be raised.
 
-        :param list list_datatypes: Containing the data type(%s, %le) of the columns. Without prefix '$'
+        Args:
+            list_datatypes (list): Containing the data type(%s, %le) of the columns.
+                                   Without prefix '$'
         """
         self.__tfs_table.add_column_datatypes(list_datatypes)
-
 
     def add_table_row(self, list_row_entries):
         """
         Adds the entries of one row to the table data.
-        :param list list_row_entries: Values of one row. Datatypes will not be checked. Only length
-                                    will be checked with the length of column names.
+
+        Args:
+            list_row_entries (list): Values of one row. Datatypes will not be checked. Only length
+                                     will be checked with the length of column names.
         """
         self.__tfs_table.add_table_row(list_row_entries)
 
-
     def get_absolute_file_name_path(self):
         return os.path.join(self.__outputpath, self.__file_name)
-
 
     def order_rows(self, column_name, reverse=False):
         """
@@ -164,15 +162,16 @@ class TfsFileWriter(object):
         """
         self.__tfs_table.order_rows(column_name, reverse)
 
-
     def write_to_file(self, formatted = True):
         """ Writes the stored data to the file with the given filename. """
         if not self.__tfs_table.are_column_names_and_types_are_set():
-            print self.__file_name+":", "Abort writing file. Cannot write file until column names and types are set."
+            LOG.error(self.__file_name + ": " +
+                      "Abort writing file. Cannot write file until column names and types are set.")
             return
 
         if self.__tfs_table.is_empty():
-            print self.__file_name+":", "Abort writing file. No rows in table."
+            LOG.error(self.__file_name + ": " +
+                      "Abort writing file. No rows in table.")
             return
 
         path = self.get_absolute_file_name_path()
@@ -189,7 +188,6 @@ class TfsFileWriter(object):
 
         with open(path,'w') as tfs_file:
             tfs_file.write("\n".join(lines))
-
 
     def __write_formatted_table(self, lines):
         """ Writes the table of this object formatted to file. """
@@ -212,7 +210,6 @@ class TfsFileWriter(object):
             formatted_line = format_for_data.format(*table_line)
             lines.append(formatted_line)
 
-
     def __write_unformatted_table(self, lines):
         lines.append("* " + " ".join(self.__tfs_table.get_column_names()))
         lines.append("$ " + " ".join(self.__tfs_table.get_column_data_types()))
@@ -227,6 +224,7 @@ class _TfsHeaderLine(object):
     """
     def __init__(self):
         pass
+
     def get_line_as_string(self):
         raise NotImplementedError()
 
@@ -259,7 +257,7 @@ class _TfsDescriptor(_TfsHeaderLine):
                 value_of_descriptor = '"'+value_of_descriptor+'"'
             self.__value = str(value_of_descriptor)
         else:
-            raise ValueError(str(value_of_descriptor) + " does not correspond to tfs_data_type: "+
+            raise ValueError(str(value_of_descriptor) + " does not correspond to tfs_data_type: " +
                              self.get_tfs_data_type_as_string())
 
     def set_tfs_data_type(self, tfs_data_type):
@@ -371,9 +369,9 @@ class _TfsDataType:
         if _TfsDataType.TYPE_STRING == self.__type:
             return isinstance(value, str)
         elif _TfsDataType.TYPE_FLOAT == self.__type:
-            return Utilities.math.can_str_be_parsed_to_number(value)
+            return math.can_str_be_parsed_to_number(value)
         else:
-            raise TypeError("Type of _TfsDataType is unknown: "+ str(self.__type))
+            raise TypeError("Type of _TfsDataType is unknown: " + str(self.__type))
 
     def __str__(self):
         return self.__type
@@ -394,12 +392,15 @@ class _TfsTable(object):
 
     def add_column_names(self, list_names):
         """
-        :param list list_names: List of strings representing the names of the TFS columns. Without '*'.
+        Args:
+            list_names (list): List of strings representing the names of the TFS columns.
+                               Without '*'.
         """
         if self.__column_data_types_are_set():
             if self.__length_is_not_equal_to_already_set_length(list_names):
-                raise AttributeError("Column number is set already but the length of the given list"+
-                                        " does not match.("+self.__tfs_file_writer.get_file_name()+")")
+                raise AttributeError("Column number is set already but the length of the given list"
+                                     + " does not match.(" + self.__tfs_file_writer.get_file_name()
+                                     + ")")
         else:
             self.__num_of_columns = len(list_names)
 
@@ -423,12 +424,15 @@ class _TfsTable(object):
         If the number of columns is determined already(e.g. by adding column names) and the
         length of list_datatypes does not match the number of columns a TypeError will be raised.
 
-        :param list list_datatypes: Containing the data type(%s, %le) of the columns. Without prefix '$'
+        Args:
+            list_datatypes (list): Containing the data type(%s, %le) of the columns.
+                                   Without prefix '$'
         """
         if self.__column_names_are_set():
             if self.__length_is_not_equal_to_already_set_length(list_datatypes):
-                raise AttributeError("Column number is set already but the length of the given list"+
-                                        " does not match.("+self.__tfs_file_writer.get_file_name()+")")
+                raise AttributeError("Column number is set already but the length of the given list"
+                                     + " does not match.(" +
+                                     self.__tfs_file_writer.get_file_name() + ")")
         else:
             self.__num_of_columns = len(list_datatypes)
 
@@ -437,18 +441,17 @@ class _TfsTable(object):
     def __column_names_are_set(self):
         return 0 != len(self.__list_of_column_names)
 
-
     def add_table_row(self, list_row_entries):
         """
         Adds the entries of one row to the table data.
         """
         if not (self.__column_names_are_set() and self.__column_data_types_are_set()):
-            raise TypeError("Before filling the table, set the names and datatypes("+
-                                self.__tfs_file_writer.get_file_name()+").")
+            raise TypeError("Before filling the table, set the names and datatypes(" +
+                            self.__tfs_file_writer.get_file_name() + ").")
         else:
             if self.__num_of_columns != len(list_row_entries):
-                raise TypeError("Number of entries does not match the column number of the table.("+
-                                self.__tfs_file_writer.get_file_name()+")")
+                raise TypeError("Number of entries does not match the column number of the table.("
+                                + self.__tfs_file_writer.get_file_name() + ")")
 
         self.__list_of_table_rows.append(list_row_entries)
 
@@ -460,6 +463,7 @@ class _TfsTable(object):
 
     def get_data_rows(self):
         return self.__list_of_table_rows
+
     def order_rows(self, column_name, reverse=False):
         """
         Orders the rows according to one of the column names.
