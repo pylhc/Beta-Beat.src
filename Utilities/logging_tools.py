@@ -4,8 +4,16 @@ import sys
 import os
 from Utilities import iotools
 
+STANDARD_FORMAT = '%(levelname)6s | %(message)s | %(name)s'
+COLOR_LEVEL = '\33[38;2;150;150;255m'
+COLOR_MESSAGE = '\33[38;2;255;255;0m'
+COLOR_NAME = '\33[38;2;150;150;150m'
+COLOR_RESET = '\33[0m'
+BORDER_FORMAT = COLOR_NAME + "|"
+
 
 class MaxFilter(object):
+    """ To get messages only up to a certain level """
     def __init__(self, level):
         self.__level = level
 
@@ -33,7 +41,14 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         # print logs to the console
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level_console)
-        console_formatter = logging.Formatter("%(name)s: %(message)s")
+
+        if sys.stdout.isatty():
+            # You're running in a real terminal
+            console_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT))
+        else:
+            # You're being piped or redirected
+            console_formatter = logging.Formatter(STANDARD_FORMAT)
+
         console_handler.setFormatter(console_formatter)
         console_handler.addFilter(MaxFilter(logging.WARNING))
         root_logger.addHandler(console_handler)
@@ -41,7 +56,7 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         # print errors to error-stream
         error_handler = logging.StreamHandler(sys.stderr)
         error_handler.setLevel(logging.ERROR)
-        error_formatter = logging.Formatter("%(name)s: %(message)s")
+        error_formatter = logging.Formatter(STANDARD_FORMAT)
         error_handler.setFormatter(error_formatter)
         root_logger.addHandler(error_handler)
 
@@ -49,7 +64,7 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
     return logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
 
 
-def file_handler(logfile, level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s"):
+def file_handler(logfile, level=logging.DEBUG, format=STANDARD_FORMAT):
     """ Convenience function so the caller does not have to import logging """
     handler = logging.FileHandler(logfile, mode='w', )
     handler.setLevel(level)
@@ -96,3 +111,14 @@ def _get_current_module(current_file=None):
     return current_module
 
 
+def _bring_color(format_string):
+    level = "%(levelname)"
+    message = "%(message)"
+    name = "%(name)"
+    format_string = format_string.replace(level, COLOR_LEVEL + level)
+    format_string = format_string.replace(message, COLOR_MESSAGE + message)
+    format_string = format_string.replace(name, COLOR_NAME + name)
+    format_string = format_string.replace('|', BORDER_FORMAT)
+    format_string = format_string + COLOR_RESET
+
+    return format_string
