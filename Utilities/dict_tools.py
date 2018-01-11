@@ -98,8 +98,8 @@ class Argument(object):
 
 
 class DictParser(object):
-    """
-    Provides functions to parse a dictionary.
+    """ Provides functions to parse a dictionary.
+
     First build a dictionary structure with Arguments as leafs via add_argument or on init.
     A similar structured option dictionary with the values as leafs can then be parsed.
     """
@@ -107,7 +107,9 @@ class DictParser(object):
     def __init__(self, dictionary=None):
         """
         Initialize Class either empty or with preconfigured dictionary
-        :param dictionary: Preconfigured Dictionary for parsing
+
+        Args:
+            dictionary: Preconfigured Dictionary for parsing
         """
         if dictionary:
             DictParser._validate_arguments(dictionary)
@@ -121,10 +123,10 @@ class DictParser(object):
 
     @staticmethod
     def _validate_arguments(dictionary):
-        """
-        Validates an input dictionary that can be used as arguments.
-        :param dictionary: Dictionary to validate
-        :return: Nothing
+        """ Validates an input dictionary that can be used as arguments.
+
+        Args:
+            dictionary: Dictionary to validate
         """
         for key in dictionary:
             arg = dictionary[key]
@@ -143,12 +145,15 @@ class DictParser(object):
 
     @staticmethod
     def _check_value(key, opt_dict, arg_dict):
-        """
-        Checks if in opt_dict[key] satisfies arg_dict[key]
-        :param key: key to check
-        :param opt_dict: Options-structure. Can be None or empty.
-        :param arg_dict: Argument-structure. Needs to contain 'key'
-        :return: The approriate value for opt_dict[key]
+        """ Checks if in opt_dict[key] satisfies arg_dict[key]
+
+        Args:
+            key: key to check
+            opt_dict: Options-structure. Can be None or empty.
+            arg_dict: Argument-structure. Needs to contain 'key'
+
+        Returns:
+            The appropriate value for opt_dict[key]
         """
         arg = arg_dict[key]
         if not opt_dict or key not in opt_dict:
@@ -172,11 +177,14 @@ class DictParser(object):
 
     @staticmethod
     def _parse_options(opt_dict, arg_dict):
-        """
-        Helper Function for parsing options. Does all the work. Called recursively.
-        :param opt_dict: Dictionary with the options
-        :param arg_dict: Dictionary with the arguments to check the options against
-        :return: Dictionary with parsed options
+        """ Helper Function for parsing options. Does all the work. Called recursively.
+
+        Args:
+            opt_dict: Dictionary with the options
+            arg_dict: Dictionary with the arguments to check the options against
+
+        Returns:
+            Dictionary with parsed options
         """
         checked_dict = {}
         for key in arg_dict:
@@ -209,35 +217,59 @@ class DictParser(object):
     #########################
 
     def parse_options(self, options):
-        """
-        Parse a given option dictionary. Returns parsed options.
-        :param options: Options to parse
-        :return: Parsed options
+        """ Parse a given option dictionary and return parsed options.
+
+        Args:
+            options: Options to parse
+
+        Return:
+            Parsed options
         """
         return DictParser._parse_options(options.copy(), self.dictionary)
 
+
+    def parse_config_items(self, items):
+        """ Parse a list of (name, value) items, where the values are all strings.
+
+        Args:
+            items: list of (name, value) items. Can be packed into a dictionary of sections.
+
+        Returns:
+            Parsed options
+        """
+        #TODO!!
+        pass
+
     def add_argument(self, arg, **kwargs):
+        """ Adds an argument to the parser.
+
+        If you want it to be an argument of a sub-dictionary add
+        the 'loc=subdict.subdict' keyword to the input.
+
+        Args:
+            arg: Argument to add (either of object of class argument or string defining the name)
+            kwargs: Any of the argument-fields (apart from 'name') and/or 'loc'
+
+        Returns:
+            This object
         """
-        Adds an argument to the parser. If you want it to be an argument of a sub-dictionary add
-        the 'dest=subdict.subdict' keyword to the input.
-        :param arg: Argument to add (either of object of class argument or string defining the name)
-        :param kwargs: Any of the argument-fields (apart from 'name') and/or 'dest'
-        :return: This object
-        """
-        dest = kwargs.pop('dest', None)
+        loc = kwargs.pop('loc', None)
         if not isinstance(arg, Argument):
             arg = Argument(arg, **kwargs)
-        self._add_arg_to_dict(arg, dest)
+        self._add_arg_to_dict(arg, loc)
         return self
 
-    def add_argument_dict(self, dictionary, dest):
+    def add_argument_dict(self, dictionary, loc):
+        """ Appends a complete subdictionary to existing argument structure at node 'loc'.
+
+        Args:
+            loc: locination of the node to append the sub-dictionary
+            dictionary: The dictionary to append
+
+        Returns:
+            This object
         """
-        Appends a complete subdictionary to existing argument structure at node 'dest'.
-        :param dest: Destination of the node to append the sub-dictionary
-        :param dictionary: The dictionary to append
-        :return: This object
-        """
-        fields = dest.split('.')
+        fields = loc.split('.')
         name = fields[-1]
         sub_dict = self._traverse_dict('.'.join(fields[:-1]))
 
@@ -292,30 +324,38 @@ class DictParser(object):
     # Private Methods
     #########################
 
-    def _add_arg_to_dict(self, arg, dest=None):
-        """
-        Adds and argument to the argument dictionary.
+    def _add_arg_to_dict(self, arg, loc=None):
+        """ Adds and argument to the argument dictionary.
+
         These will be used to parse an incoming option structure.
-        :param arg: Argument to add
-        :param dest: Path to sub-dictionary as string (e.g. subdict.subdict.dest[.arg])
-        :return: This object
+
+        Args:
+            arg: Argument to add
+            loc: Path to sub-dictionary as string (e.g. subdict.subdict.loc[.arg])
+
+        Returns:
+            This object
         """
-        sub_dict = self._traverse_dict(dest)
+        sub_dict = self._traverse_dict(loc)
         if arg.name in sub_dict:
             raise ArgumentError("'{:s}' already exists in parser!".format(arg.name))
         sub_dict[arg.name] = arg
         return self
 
-    def _traverse_dict(self, dest=None):
-        """
-        Traverses the dictionary to the subdict defined by dest.
+    def _traverse_dict(self, loc=None):
+        """ Traverses the dictionary to the subdict defined by loc.
+
         Adds non-existing substructures automatically.
-        :param dest: Path to sub-dictionary as string (e.g. argument.subargument.destination)
-        :return: sub-dictionary
+
+        Args:
+            loc: Path to sub-dictionary as string (e.g. argument.subargument.locination)
+
+        Returns:
+            Sub-dictionary
         """
         d = self.dictionary
-        if dest:
-            traverse = dest.split('.')
+        if loc:
+            traverse = loc.split('.')
             for i, t in enumerate(traverse):
                 try:
                     d = d[t]
