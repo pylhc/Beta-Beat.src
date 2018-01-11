@@ -4,12 +4,13 @@ import sys
 import os
 from Utilities import iotools
 
-STANDARD_FORMAT = '%(levelname)6s | %(message)s | %(name)s'
+DIVIDER = "|"
+STANDARD_FORMAT = '%(levelname)6s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
 COLOR_LEVEL = '\33[38;2;150;150;255m'
 COLOR_MESSAGE = '\33[38;2;255;255;0m'
 COLOR_NAME = '\33[38;2;150;150;150m'
+COLOR_DIVIDER = '\33[38;2;150;150;150m'
 COLOR_RESET = '\33[0m'
-BORDER_FORMAT = COLOR_NAME + "|"
 
 
 class MaxFilter(object):
@@ -118,7 +119,7 @@ def _bring_color(format_string):
     format_string = format_string.replace(level, COLOR_LEVEL + level)
     format_string = format_string.replace(message, COLOR_MESSAGE + message)
     format_string = format_string.replace(name, COLOR_NAME + name)
-    format_string = format_string.replace('|', BORDER_FORMAT)
+    format_string = format_string.replace(DIVIDER, COLOR_DIVIDER + DIVIDER)
     format_string = format_string + COLOR_RESET
 
     return format_string
