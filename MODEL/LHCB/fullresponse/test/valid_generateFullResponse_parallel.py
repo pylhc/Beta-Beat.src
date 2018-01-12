@@ -34,7 +34,7 @@ import numpy
 
 import __init__ # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
-import Python_Classes4MAD.madxrunner as madxrunner
+import madx.madxrunner as madxrunner
 
 def shell_command(cmd):
 #    print 'process id:', os.getpid()

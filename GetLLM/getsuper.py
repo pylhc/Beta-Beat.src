@@ -61,7 +61,7 @@ import re
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
-import Python_Classes4MAD.linreg as linreg
+import GetLLM.linreg as linreg
 import Utilities.bpm
 import Utilities.iotools
 import superutils

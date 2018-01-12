@@ -4,7 +4,7 @@ from optparse import OptionParser
 import sys
 import multiprocessing
 import time
-from Python_Classes4MAD import madxrunner
+from madx import madxrunner
 from Utilities import iotools
 
 
