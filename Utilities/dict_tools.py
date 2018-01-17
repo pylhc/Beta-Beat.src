@@ -92,6 +92,13 @@ class Argument(object):
             raise ArgumentError("Argument '{:s}': ".format(self.name) +
                                 "Default value not found in choices.")
 
+        if self.choices and self.type:
+            for choice in self.choices:
+                if not isinstance(choice, self.type):
+                    raise ArgumentError("Choice '{:s}'".format(choice) +
+                                        "of Argument '{:s}': ".format(self.name) +
+                                        "is not of type '{:s}'.".format(self.type))
+
         if self.required and self.default is not None:
             Warning("Argument '{:s}': ".format(self.name) +
                     "Value is required but default value is given. The latter will be ignored.")
@@ -226,7 +233,6 @@ class DictParser(object):
             Parsed options
         """
         return DictParser._parse_options(options.copy(), self.dictionary)
-
 
     def parse_config_items(self, items):
         """ Parse a list of (name, value) items, where the values are all strings.
