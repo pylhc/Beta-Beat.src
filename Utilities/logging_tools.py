@@ -5,9 +5,11 @@ import os
 from Utilities import iotools
 
 DIVIDER = "|"
-STANDARD_FORMAT = '%(levelname)6s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
+STANDARD_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
 COLOR_LEVEL = '\33[38;2;150;150;255m'
-COLOR_MESSAGE = '\33[38;2;255;255;0m'
+COLOR_MESSAGE = '\33[38;2;255;255;180m'
+COLOR_WARN = '\33[38;2;255;161;53m'
+COLOR_ERROR = '\33[38;2;216;31;42m'
 COLOR_NAME = '\33[38;2;150;150;150m'
 COLOR_DIVIDER = '\33[38;2;150;150;150m'
 COLOR_RESET = '\33[0m'
@@ -25,10 +27,14 @@ class MaxFilter(object):
 def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
     """
     Sets up logger if name is __main__. Returns logger based on module name)
-    :param name: only used to check if __name__ is __main__
-    :param level_root: main logging level, default DEBUG
-    :param level_console: console logging level, default INFO
-    :return:
+
+    Args:
+        name: only used to check if __name__ is __main__
+        level_root: main logging level, default DEBUG
+        level_console: console logging level, default INFO
+
+    Returns:
+        Logger instance.
     """
     # get current module
     caller_file = _get_caller()
@@ -51,13 +57,33 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
             console_formatter = logging.Formatter(STANDARD_FORMAT)
 
         console_handler.setFormatter(console_formatter)
-        console_handler.addFilter(MaxFilter(logging.WARNING))
+        console_handler.addFilter(MaxFilter(logging.INFO))
         root_logger.addHandler(console_handler)
+
+        # print console warnings
+        console_warn_handler = logging.StreamHandler(sys.stdout)
+        console_warn_handler.setLevel(max(logging.WARNING, level_console))
+
+        if sys.stdout.isatty():
+            # You're running in a real terminal
+            console_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT, logging.WARNING))
+        else:
+            # You're being piped or redirected
+            console_formatter = logging.Formatter(STANDARD_FORMAT)
+
+        console_warn_handler.setFormatter(console_formatter)
+        console_warn_handler.addFilter(MaxFilter(logging.WARNING))
+        root_logger.addHandler(console_warn_handler)
 
         # print errors to error-stream
         error_handler = logging.StreamHandler(sys.stderr)
         error_handler.setLevel(logging.ERROR)
-        error_formatter = logging.Formatter(STANDARD_FORMAT)
+        if sys.stdout.isatty():
+            # You're running in a real terminal
+            error_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT, logging.ERROR))
+        else:
+            # You're being piped or redirected
+            error_formatter = logging.Formatter(STANDARD_FORMAT)
         error_handler.setFormatter(error_formatter)
         root_logger.addHandler(error_handler)
 
@@ -112,12 +138,20 @@ def _get_current_module(current_file=None):
     return current_module
 
 
-def _bring_color(format_string):
+def _bring_color(format_string, colorlevel=logging.INFO):
+    """ Adds color to the logs (can only be used in a terminal) """
     level = "%(levelname)"
     message = "%(message)"
     name = "%(name)"
     format_string = format_string.replace(level, COLOR_LEVEL + level)
-    format_string = format_string.replace(message, COLOR_MESSAGE + message)
+    
+    if colorlevel <= logging.INFO:
+        format_string = format_string.replace(message, COLOR_MESSAGE + message)
+    elif colorlevel <= logging.WARNING:
+        format_string = format_string.replace(message, COLOR_WARN + message)
+    else:
+        format_string = format_string.replace(message, COLOR_ERROR + message)
+
     format_string = format_string.replace(name, COLOR_NAME + name)
     format_string = format_string.replace(DIVIDER, COLOR_DIVIDER + DIVIDER)
     format_string = format_string + COLOR_RESET
