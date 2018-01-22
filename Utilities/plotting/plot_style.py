@@ -324,23 +324,24 @@ _ylabels = {
     "betabeat_permile":   r'$\Delta \beta_{{{0}}} / \beta_{{{0}}} [$'u'\u2030'r'$]$',
     "dbeta":              r"$\beta'_{{{0}}} [m]$",
     "dbetabeat":          r'$1/\beta_{{{0}}} \cdot \partial\beta_{{{0}}} / \partial\delta_{{{0}}}$',
-    "norm_dispersion":    r'$ND_{{{0}}} [m^{{1/2}}]$',
+    "norm_dispersion":    r'$\frac{\Delta D_{{0}}}{\beta_{{0}}} [m]$',
     "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu m^{{1/2}}]$',
     "phase":              r'$\phi_{{{0}}} [2\pi]$',
     "phasetot":           r'$\phi_{{{0}}} [2\pi]$',
     "phase_milli":        r'$\phi_{{{0}}} [2\pi\cdot10^{{-3}}]$',
     "dispersion":         r'$D_{{{0}}} [m]$',
     "dispersion_mm":      r'$D_{{{0}}} [mm]$',
-    "co":                 r'{{{0}}} [mm]',
+    "co":                 r'{0} [mm]',
     "tune":               r'$Q_{{{0}}} [Hz]$',
     "nattune":            r'$Nat Q_{{{0}}} [Hz]$',
+    "chromamp":           r'W_{{{0}}}$',
     "real":               r'$re({0})$',
     "imag":               r'$im({0})$',
     "absolute":           r'$|{0}|$',
 }
 
 
-def set_yaxis_label(param, plane, ax=None, delta=False):  # plot x and plot y
+def set_yaxis_label(param, plane, ax=None, delta=False, chromcoup=False):  # plot x and plot y
     """ Set y-axis labels.
 
     Args:
@@ -358,6 +359,10 @@ def set_yaxis_label(param, plane, ax=None, delta=False):  # plot x and plot y
 
     if delta:
         label = r'$\Delta ' + label[1:]
+
+    if chromcoup:
+        label = label[:-1] + r'/\Delta\delta$'
+
     ax.set_ylabel(label)
 
 
