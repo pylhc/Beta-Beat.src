@@ -40,6 +40,9 @@ DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py..."
 PRINTTIMES = False
 LOGGER = logging_tools.get_logger(__name__)
 
+if DEBUG:
+    from debug_algorithms import create_debugfile, close_file, start_write_bpm, end_bpm, write_bpm_combination, \
+    write_matrix
 #if False:
 #    from Utilities.progressbar import startProgress, progress, endProgress
 #else:
@@ -374,7 +377,7 @@ class Uncertainties:  # error definition file
 def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data, rmsbbx, error_method, bpms, tfs_file,
                        _plane_char, union, dpp=0, dppq1=0):
     '''
-    Writes the file ``getbeta<x/y>.out``. 
+    Writes the file ``getbeta<x/y>.out``.
 
     :Parameters:
         q1, q2
@@ -385,7 +388,7 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data
             range of BPMs from which the combinations are taken
         beta_d_col
             no idea
-        data 
+        data
             the result of the method
         rmsbbx
             RMS beta beating
@@ -546,12 +549,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             
             _info_("Calculate free beta from phase for plane " + _plane_char + " (_free.out)", ">")
             if DEBUG:
-                debugfile = open(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.debug", "w+")
+                debugfile = create_debugfile(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.bdebug", "w+")
 
             dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(model, unc_elements, elements_centre,
                                                                   twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x, 'H',
                                                                   getllm_d, debugfile, error_method, tune_d.q1f, tune_d.q1mdl)
-        
+            if DEBUG:
+                close_file()
             beta_d.x_phase = {}  # this is no typo, beta from amplitude still has the old convention that the free file is called not free
             beta_d.x_phase['DPP'] = 0
             
@@ -563,11 +567,15 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                files_dict['getbetax_free.out'], _plane_char, getllm_d.union)
             
             
-            if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: 
+            if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
                 _info_("Calculate beta from phase for plane " + _plane_char, ">")
+                if DEBUG:
+                    debugfile = create_debugfile(files_dict['getbetax.out'].s_output_path + "/getbetax.bdebug", "w+")
                 data, rms_bb, bpms, error_method_x = beta_from_phase(model_driven, unc_elements, elements_centre,
                                                                    twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_x, 'H',
                                                                    getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl)
+                if DEBUG:
+                    close_file()
                 beta_d.x_phase_f = {}
                 beta_d.x_phase_f['DPP'] = 0
                 _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
@@ -593,14 +601,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         _plane_char = "Y"
         if twiss_d.has_zero_dpp_y():
             _info_("Calculate free beta from phase for plane " + _plane_char + " (_free.out)", ">")
-    
             if DEBUG:
-                debugfile = open(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.debug", "w+")
-    
-
+                debugfile = create_debugfile(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.bdebug", "w+")
             dataf, rms_bb, bpms, error_method_y = beta_from_phase(model, unc_elements, elements_centre,
                                                                twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_free_y, 'V',
                                                                getllm_d, debugfile, error_method, tune_d.q2f, tune_d.q2mdl)
+            if DEBUG:
+                close_file()
             beta_d.y_phase = {}
             beta_d.y_phase['DPP'] = 0
             #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
@@ -615,12 +622,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
                 #-- from eq
                 _info_("Calculate beta from phase for plane " + _plane_char, ">")
-    
+                if DEBUG:
+                    debugfile = create_debugfile(files_dict['getbetay.out'].s_output_path + "/getbetay.bdebug", "w+")
                 data, rms_bb, bpmsf, error_method_y = beta_from_phase(model_driven, unc_elements, elements_centre,
                                                                       twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_y, 'V',
                                                                       getllm_d, debugfile, error_method, tune_d.q2, tune_d.q2mdl)
-   
-             
+                if DEBUG:
+                    close_file()
                 tfs_file = files_dict['getbetay.out']
                 
                 #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
@@ -1772,7 +1780,14 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         used_bpms = len(w)
     except ValueError:
         _error_("ValueError")
-    
+
+    #------------------------------------------------------------------------------------------------------------------
+    # writing debug output
+    #------------------------------------------------------------------------------------------------------------------
+    if DEBUG:
+        start_write_bpm(probed_bpm_name, s, beti, alfi, 0)
+        write_matrix(T_Beta, "T_Beta")
+        end_bpm()
     return (Index, probed_bpm_name, s,
                 beti, betstat, betsys, beterr,
                 alfi, alfstat, alfsys, alferr,
