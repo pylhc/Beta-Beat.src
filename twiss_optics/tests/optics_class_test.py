@@ -221,16 +221,12 @@ def _test_chromatic_beating(twissfile, ptcfile=None):
                        twop.mad_twiss.SEQUENCE)
 
 
-
-
-
 """
 ====================== Main ======================
 """
 
 
 if __name__ == '__main__':
-    LOG.info("Using Error Function: {:s}".format(opt.error_fun.__name__))
     test_rdt_two_octu()
     test_rdt_two_sextu()
     test_linear_dispersion()

@@ -20,7 +20,7 @@ from test_helpers import error_meanabs as error_fun
 from twiss_optics.response_class import TwissResponse
 from twiss_optics.response_class import get_delta
 
-LOG = logtool.get_logger(__name__)
+LOG = logtool.get_logger(__name__, level_console=0)
 
 EXPONENT_RANGE = np.arange(-6, 0, .5)
 N_RUNS_SINGLE = 25
@@ -56,9 +56,7 @@ def test_k1_change():
         "kq9.r1b1": -1e-4,
     })
 
-
     dk1 = dk1_start * 1e-1
-
 
     # Calculation
     twiss_delta, madx_delta = _get_deltas(madxfile_path,
@@ -396,23 +394,44 @@ def test_ALL_multi():
 """
 
 
-def _get_stats(exponents, k_list, n_vars, n_runs_per_var, n_stats, resultsfile_path, madxfile_path,
-               seqfile_path, seq_name, variables_path):
-    """ Gathers results over variables, strengths and statistic-runs and saves them to a file """
+def _get_stats(exponents, var_list, n_vars_per_run, n_var_runs, n_stats, resultsfile_path,
+               madxfile_path, seqfile_path, seq_name, variables_path):
+    """ Gathers results over variables, strengths and statistic-runs and saves them to a file
+
+    Args:
+        exponents: list of exponents to the power of ten to use
+        var_list: available variables
+        n_vars_per_run: number of variables to change at once
+        n_var_runs: number of different variable sets to use
+        n_stats: number of runs for one variable set at one strength
+        resultsfile_path: load or save results to this path
+        madxfile_path: madxfile to be created (for madx-calculations)
+        seqfile_path: file containing the sequence to use
+        seq_name: name of the sequence
+        variables_path: json file with all variables (create response matrix for all)
+
+    Returns:
+        the gathered result dictionary,
+            fields: "madx_mean", "madx_rms", "madx_resp_mean", "madx_resp_rms".
+        Each containing a dataframe with exponents as index and the averaged (over n_var_runs)
+        results (either rms- or mean-error of n_stats) as well as the
+        min and max (rms- or mean-) of these results for each physical parameter
+        ("BETX", "BETY", "MUX", "MUY", "DX", "DY", "QX", "QY")
+    """
     if os.path.exists(resultsfile_path):
         with open(resultsfile_path, "rb") as f:
             results = pickle.load(f)
     else:
         results = {}
-        variables = [None] * n_runs_per_var
+        variables = [None] * n_var_runs
         # optimized to keep only the errors in memory and free space for next set of variables
-        for idx_runs in range(n_runs_per_var):
+        for idx_runs in range(n_var_runs):
             # use the same variables for every strength
-            variables[idx_runs] = take_at_random(k_list, n_vars)
+            variables[idx_runs] = take_at_random(var_list, n_vars_per_run)
 
         for idx_exp, exp in enumerate(exponents):
             results_temp = {}
-            for idx_runs in range(n_runs_per_var):
+            for idx_runs in range(n_var_runs):
                 results_temp[idx_runs] = {}
                 for idx_stat in range(n_stats):
                     dk_list = pd.Series()
@@ -421,7 +440,7 @@ def _get_stats(exponents, k_list, n_vars, n_runs_per_var, n_stats, resultsfile_p
 
                     LOG.info("Strength-Scale {:d} of {:d}".format(idx_exp + 1, len(exponents)))
                     LOG.info("  {:d} variable(s):  {:d} of {:d}".format(
-                        n_vars, idx_runs + 1, n_runs_per_var))
+                        n_vars_per_run, idx_runs + 1, n_var_runs))
                     LOG.info(
                         "    Stats {:d} of {:d}".format(idx_stat+1, n_stats))
                     LOG.info("    Current dk \n {:}".format(dk_list))
@@ -636,7 +655,6 @@ def madx_to_twiss_resp(madx_resp, model_path):
         "MUY": madx_resp["MUY"].transpose(),
         "DX": madx_resp["NDX"].mul(np.sqrt(twiss["BETX"]), axis="columns").transpose(),
         "DY": madx_resp["NDY"].mul(np.sqrt(twiss["BETY"]), axis="columns").transpose(),
-        # "DY": tfs.TfsDataFrame(None, index=twiss["BETX"].index),
         "Q":  madx_resp["Q"].transpose(),
     }
 
@@ -652,6 +670,8 @@ def _get_random_strength(exp):
      "gaussian" means that mu=10**exp and sigma=.2*10**exp,
       but the tails are cut of at 3 sigma.
     """
+    # return 10 ** exp # for testing purposes
+
     mu = 10 ** exp
     sigma = .2 * mu
     s_min = mu - 3 * sigma
@@ -725,6 +745,6 @@ if __name__ == "__main__":
     test_K1S_single()
     test_K1S_multi()
     test_ALL_multi()
-    # test_dispersion()
-    # test_k1_change()
+    test_dispersion()
+    test_k1_change()
     # plt.show()

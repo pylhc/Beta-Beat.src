@@ -52,6 +52,7 @@ class Lhc(Accelerator):
         self.elements_centre = None
         self.modelpath = None
         self.errordefspath = None
+        self.fullresponse = False
 
     @classmethod
     def init_from_args(cls, args):
@@ -328,6 +329,10 @@ class Lhc(Accelerator):
     @classmethod
     def get_nominal_tmpl(cls):
         return cls.get_file("nominal.madx")
+
+    @classmethod
+    def get_nominal_multidpp_tmpl(cls):
+        return cls.get_file("nominal_multidpp.madx")
     
     @classmethod
     def get_coupling_tmpl(cls):

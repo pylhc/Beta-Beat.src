@@ -27,20 +27,19 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
-        with open(lhc_instance.get_nominal_tmpl()) as textfile:
-            madx_template = textfile.read()
         use_acd = "1" if (lhc_instance.excitation ==
                           AccExcitationMode.ACD) else "0"
         use_adt = "1" if (lhc_instance.excitation ==
                           AccExcitationMode.ADT) else "0"
         crossing_on = "1" if lhc_instance.xing else "0"
+        beam = lhc_instance.get_beam()
+
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
             "OPTICS_PATH": lhc_instance.optics_file,
-            "NUM_BEAM": lhc_instance.get_beam(),
+            "NUM_BEAM": beam,
             "PATH": output_path,
-            "DPP": lhc_instance.dpp,
             "QMX": lhc_instance.nat_tune_x,
             "QMY": lhc_instance.nat_tune_y,
             "USE_ACD": use_acd,
@@ -54,6 +53,41 @@ class LhcModelCreator(model_creator.ModelCreator):
             replace_dict["QY"] = lhc_instance.nat_tune_y
             replace_dict["QDX"] = lhc_instance.drv_tune_x
             replace_dict["QDY"] = lhc_instance.drv_tune_y
+
+        try:
+            iter(lhc_instance.dpp)
+        except TypeError:
+            with open(lhc_instance.get_nominal_tmpl()) as textfile:
+                madx_template = textfile.read()
+            replace_dict["DPP"] = lhc_instance.dpp
+        else:
+            with open(lhc_instance.get_nominal_multidpp_tmpl()) as textfile:
+                madx_template = textfile.read()
+            twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
+            (replace_dict["DPP"], replace_dict["DPP_ELEMS"],
+             replace_dict["DPP_AC"], replace_dict["DPP_ADT"]) = "", "", "", ""
+            for dpp in lhc_instance.dpp:
+                replace_dict["DPP"] += twisses_tmpl.format(
+                    beam=beam,
+                    dpp=dpp,
+                    twiss=os.path.join(output_path, "twiss_{:f}.dat".format(dpp))
+                )
+                replace_dict["DPP_ELEMS"] += twisses_tmpl.format(
+                    beam=beam,
+                    dpp=dpp,
+                    twiss=os.path.join(output_path, "twiss_{:f}_elements.dat".format(dpp))
+                )
+                replace_dict["DPP_AC"] += twisses_tmpl.format(
+                    beam=beam,
+                    dpp=dpp,
+                    twiss=os.path.join(output_path, "twiss_{:f}_ac.dat".format(dpp))
+                )
+                replace_dict["DPP_ADT"] += twisses_tmpl.format(
+                    beam=beam,
+                    dpp=dpp,
+                    twiss=os.path.join(output_path, "twiss_{:f}_adt.dat".format(dpp))
+                )
+
         madx_script = madx_template % replace_dict
         return madx_script
 
