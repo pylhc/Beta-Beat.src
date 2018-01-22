@@ -140,7 +140,9 @@ ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
-
+BAD_BPMS_hor = ["BPM.23L6.B1", "BPM.22R8.B1", "BPMYB.4L2.B1", "BPMSX.4L2.B1", "BPMYB.4L2.B1", "BPM.14L4.B1", "BPM23L6.B1",
+                "BPM.16R3.B1", "BPM20L2.B2", "BPM6L1.B2", "BPM24R2.B2", "BPM.16L5.B2", "BPM.12R4.B1"]
+BAD_BPMS_ver = ["BPMSX.4L2.B1", "BPM.22R8.B1", "BPM.23L6.B1", "BPMSX.4L2.B1", "BPM.31R2.B2", "BPM20L2.B2", "BPM.12R4.B1"]
 
 
 # DEBUGGING
@@ -159,6 +161,9 @@ def _parse_args():
             sys.argv[1:]
         )
     except:
+        LOGGER.debug("Loading accelerator class failed.")
+        LOGGER.debug("Suppose that the old command line arguments were used")
+        LOGGER.debug("and guess what the right accelerator might be")
         accParser = argparse.ArgumentParser()
         accParser.add_argument("-a", "--accel", dest="accel")
 
@@ -690,12 +695,12 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
         print >> sys.stderr, "No parsed input files"
         sys.exit(1)
     
-    twiss_d.zero_dpp_commonbpms_x, twiss_d.zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model, union)
-    twiss_d.zero_dpp_commonbpms_y, twiss_d.zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model, union)
+    twiss_d.zero_dpp_commonbpms_x, twiss_d.zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model, union, "H")
+    twiss_d.zero_dpp_commonbpms_y, twiss_d.zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model, union, "V")
     twiss_d.non_zero_dpp_commonbpms_x, twiss_d.non_zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.non_zero_dpp_x, model,
-                                                                                         union)
+                                                                                         union, "H")
     twiss_d.non_zero_dpp_commonbpms_y, twiss_d.non_zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.non_zero_dpp_y, model,
-                                                                                         union)
+                                                                                         union, "V")
     
 
     return twiss_d, files_dict
@@ -956,10 +961,19 @@ def _copy_calibration_files(output_path, calibration_dir_path):
 # END _copy_calibration_files --------------------------------------------------------------------
 
 
-def _get_commonbpms(ListOfFiles, model, union):
-    
+def _get_commonbpms(ListOfFiles, model, union, plane):
+    """Returns a DataFrame with the list of common BPMs. 
+
+    Hack for now: known bad BPMs are excluded at this point.
+    """
+
+    if plane == "H":
+        good_bpms_index = model.index.drop(BAD_BPMS_hor, errors='ignore')
+    else:
+        good_bpms_index = model.index.drop(BAD_BPMS_ver, errors='ignore')
+
     if union:
-        common = pd.DataFrame(model.loc[:, "S"])
+        common = pd.DataFrame(model.loc[good_bpms_index, "S"])
         common["NFILES"] = 0
         for i in range(len(ListOfFiles)):
             common.loc[ListOfFiles[i].index, "NFILES"] += 1
@@ -967,7 +981,7 @@ def _get_commonbpms(ListOfFiles, model, union):
         inters = common.drop(common[common.loc[:,"NFILES"] < len(ListOfFiles)].index)
         return inters, union
 
-    common_index = model.index
+    common_index = good_bpms_index
     for i in range(len(ListOfFiles)):
         common_index = common_index.intersection(ListOfFiles[i].index)
 
