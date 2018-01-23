@@ -57,6 +57,7 @@ import sys
 import shutil
 import math
 import re
+import numpy as np
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
@@ -80,7 +81,7 @@ ALGO_CHOICES = ["SUSSIX", "SVD", "HA"]
 def _parse_args(args=None):
     """ Parses arguments from command line. """
     parser = argparse.ArgumentParser()
->>>>>>> .merge_file_V3iUxZ
+
     # general
     parser.add_argument("-f", "--files",
             help="Files from analysis, separated by comma",
@@ -255,6 +256,7 @@ def main(**kwargs):
             betxf = metaclass.twiss(betaxf_path)
             LOG.debug("Loaded betax free data from '{:s}".format(betaxf_path))
 
+
             betayf_path = _join_with_output_path(options.output_path, 'getbetay_free{ext:s}'.format(ext=_ext(dpp)))
             betyf = metaclass.twiss(betayf_path)
             LOG.debug("Loaded betay free data from '{:s}".format(betayf_path))
@@ -387,6 +389,7 @@ def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
     accel_inst.drv_tune_y = exp_qy
     accel_inst.dpp = dpps
     accel_inst.xing = False
+
 
     accel_inst.excitation = LhcExcitationMode.FREE
     if os.path.exists(twissfile.replace(".dat", "_ac.dat")):
@@ -583,7 +586,9 @@ def _get_f(couplelist, dpplist, bpm_name, value):
         x.append(dpp)
         couplefile = couplelist[dpp]
         lst.append(getattr(couplefile, value)[couplefile.indx[bpm_name]])
+
     lreg = linreg(x, lst)
+
     return lreg[0], lreg[3]
 
 
