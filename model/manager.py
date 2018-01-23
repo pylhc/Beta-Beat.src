@@ -14,7 +14,7 @@ def get_accel_class(name, *args, **kwargs):
     return accel_cls
 
 
-def get_accel_class_from_args(args):
+def get_accel_class_from_args(args=None):
     name, args = _parse_accel_name(args)
     accel = _try_to_get_class(name, ACCELS)
     accel_cls, rest_args = accel.get_class_from_args(args)

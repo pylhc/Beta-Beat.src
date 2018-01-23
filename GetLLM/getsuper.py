@@ -1,4 +1,4 @@
-'''
+"""
 Created sometime 2009-2011
 
 :maintainer: Yngve Inntjore Levinsen
@@ -29,7 +29,6 @@ Usage cmd line::
       -h, --help            show this help message and exit
       -f TwissFile, --files=TwissFile
                             Files from analysis, separated by comma
-      --madxbin=<path>      Path to mad-x binary
       --twissfile=/path/to/twiss.dat
                             Twiss file to use
       -o <path>, --output=<path>
@@ -50,9 +49,9 @@ Usage in another Python module::
     ...
     GetLLM.getsuper.main(my_src_files_list, path_to_twiss_file)
 
-'''
+"""
 
-import optparse
+import argparse
 import os
 import sys
 import shutil
@@ -61,129 +60,158 @@ import re
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
-import GetLLM.linreg as linreg
-import Utilities.bpm
-import Utilities.iotools
-import superutils
-from madx import madx_wrapper
+from Utilities import bpm as bpm_util
+from Utilities import logging_tools as logtools
+from Utilities.dict_tools import DotDict
+from Utilities import tfs_remove_nan
+from model import manager, creator
+from model.accelerators.lhc import LhcExcitationMode
 
-CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
-LHC_RUNI_BASE_SEQ = \
-              'call, file = "db5/as-built/V6.5.seq";\n' \
-            + 'call, file = "db5/install_additional_elements.madx";'
-
-BB_PATH = os.path.abspath(os.path.join(CURRENT_PATH, "..", ))
-LHC_RUNII_BASE_SEQ = \
-              'call, file = "' + os.path.join(BB_PATH, "MODEL", "LHCB_II", "model", "base_sequence.madx") + '";'
+LOG = logtools.get_logger(__name__)
 
 
-#===================================================================================================
-# _parse_args()-function
-#===================================================================================================
-def _parse_args():
-    ''' Parses arguments from command line. '''
-    usage = "usage: %prog [options] sdds-file1 [sdds-file2 ...]"
-    parser = optparse.OptionParser(usage)
+# ==================================================================================================
+# Argument Handling
+# ==================================================================================================
+
+ALGO_CHOICES = ["SUSSIX", "SVD", "HA"]
+
+
+def _parse_args(args=None):
+    """ Parses arguments from command line. """
+    parser = argparse.ArgumentParser()
+>>>>>>> .merge_file_V3iUxZ
     # general
-    parser.add_option("-f", "--files",
-        help="Files from analysis, separated by comma",
-        metavar="TwissFile", default="", dest="files")
-    parser.add_option("--madxbin",
-            help="Path to mad-x binary",
-            metavar="<path>", default="madx", dest="madx")
-    parser.add_option("--twissfile",
+    parser.add_argument("-f", "--files",
+            help="Files from analysis, separated by comma",
+            metavar="TwissFile", dest="files", required=True)
+    parser.add_argument("--twissfile",
             help="Twiss file to use",
-            metavar="/path/to/twiss.dat", default="", dest="twissfile")
-    parser.add_option("-o", "--output",
+            metavar="/path/to/twiss.dat", dest="twissfile", required=True)
+    parser.add_argument("-o", "--output",
             help="Output path, where to store the results",
-            metavar="<path>", default="./", dest="output")
-    # By default we take the path from where getsuper.py is ran from..
-    parser.add_option("-b", "--beta",
-            help="Path to Beat-Beat.src folder",
-            metavar="<path>", dest="brc",
-            default=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) )
-    parser.add_option("-t", "--algorithm",
-            help="Which algorithm to use (SUSSIX/SVD)",
-            metavar="ALGORITHM", default="SUSSIX", dest="technique")
-    parser.add_option("-a", "--accel",
-            help="Which accelerator: LHCB1 LHCB2 SPS RHIC",
-            metavar="ACCEL", default="LHCB1",dest="accel")
-
-    parser.add_option("-d", "--deltapScalingFactor",
+            metavar="<path>", default="./", dest="output_path")
+    parser.add_argument("-t", "--algorithm",
+            help="Which algorithm to use {:s}".format(ALGO_CHOICES),
+            metavar="ALGORITHM", default=ALGO_CHOICES[0], dest="algorithm",
+                        choices=ALGO_CHOICES)
+    parser.add_argument("-d", "--deltapScalingFactor",
             help="Scaling factor for deltap, remember final value must be in MAD units",
-            metavar="<deltapScalingFactor>", default=1.0, type=float,dest="deltap_scaling_factor")
+            metavar="<deltapScalingFactor>", default=1.0, type=float, dest="deltap_scaling_factor")
 
-    return parser.parse_args()
+    # parse arguments
+    accel_cls, remain_args = manager.get_accel_class_from_args(args)
+    options = parser.parse_args(remain_args)
+    source_files = [f.strip() for f in options.files.split(',')]
+
+    # put all arguments into one dict
+    options_dict = {
+        "accel_cls": accel_cls,
+        "source_files": source_files,
+    }
+    options_dict.update(options.__dict__)
+
+    options_dict.pop("files")  # is "source_files" now
+
+    return options_dict
 
 
-#===================================================================================================
+def check_input(opt):
+    """ Approves the input and sets default """
+
+    # files
+    if "source_files" not in opt or len(opt.source_files) < 2:
+        raise ValueError("Provide at least two source files!")
+    for f_name in opt.source_files:
+        if not os.path.isfile(f_name) and not os.path.isfile(f_name + '.gz'):
+            raise ValueError(f_name + ' does not exist')
+
+    if "twissfile" not in opt:
+        raise ValueError("Twissfile needed for execution.")
+
+    if not os.path.isfile(opt.twissfile):
+        raise ValueError("Twissfile does not exist: " + opt.twissfile)
+
+    # set defaults
+    opt.deltap_scaling_factor = opt.get("deltap_scaling_factor", 1.0)
+
+    opt.output_path = opt.get("output_path", "./")
+    if not os.path.isdir(opt.output_path):
+        os.makedirs(opt.output_path)
+
+    opt.algorithm = opt.get("algorithm", ALGO_CHOICES[0])
+    if opt.algorithm not in ALGO_CHOICES:
+        raise ValueError("Algorithm needs to be either one of  '" + ALGO_CHOICES + "'")
+
+    return opt
+
+
+# ==================================================================================================
 # main()-function
-#===================================================================================================
-def main(
-        source_files,
-        twissfile,
-        path_to_madx = "madx",
-        output_path = "./",
-        path_to_beta_beat = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
-        technique = "SUSSIX",
-        accel = "LHCB1",
-        deltap_scaling_factor = 1.0
-        ):
-    """ getsuper main function 
-    
-    :param list source_files: list of strings with file_paths to TFS files
-    :param string twissfile: path to TFS model file
-    :param string path_to_madx: path to madx binary
-    :param string output_path: Path to store created files
-    :param string path_to_beta_beat: root of Beta-Beat.src
-    :param string technique: Used Turn-by-turn data analysis algorithm: 'SUSSIX' or 'SVD'
-    :param string accel: Accelerator(LHCB1 LHCB2 SPS or RHIC)
-    :param float deltap_scaling_factor: Scaling factor for deltap, remember final value must be in MAD units
+# ==================================================================================================
+
+def main(**kwargs):
+    """ getsuper main function
+
+    Keyword Args:
+        source_files (list): list of strings with file_paths to TFS files
+        twissfile (str): path to TFS model file
+        output_path (str): Path to store created files
+        algorithm (str): Used Turn-by-turn data analysis algorithm: 'SUSSIX', 'SVD' or 'HA'
+        accel_cls (accelerator): Accelerator class object
+        deltap_scaling_factor (float): Scaling factor for deltap,
+                                       remember final value must be in MAD units
     """
-    _InputData.static_init(
-            source_files, path_to_madx, twissfile, output_path, path_to_beta_beat, technique, accel, deltap_scaling_factor
-    )
 
+    options = check_input(DotDict(kwargs))
 
-    files_dict = {} # dpp --> files with corresponding dpp
+    files_dict = {}  # dpp --> files with corresponding dpp
 
-    for f_name in _InputData.source_files:
+    for f_name in options.source_files:
 
-        if f_name.endswith('.gz'):
-            datax = metaclass.twiss(f_name.replace(".gz", "_linx.gz"))
-            datay = metaclass.twiss(f_name.replace(".gz", "_liny.gz"))
-        else:
-            datax = metaclass.twiss(f_name+"_linx")
-            datay = metaclass.twiss(f_name+"_liny")
+        datax, datay = _load_from_file(f_name)
 
-        dppx = datax.DPP * _InputData.deltap_scaling_factor      # Quick hack to be able to use old files with bad dpp input
-        dppy = datay.DPP * _InputData.deltap_scaling_factor
+        dppx = datax.DPP * options.deltap_scaling_factor  # scaling factor hack for old files
+        dppy = datay.DPP * options.deltap_scaling_factor
 
         if dppx != dppy:
-            raise ValueError("Discrepancy between horizontal and vertical => "+str(dppx)+" "+str(dppy))
+            raise ValueError("Discrepancy between horizontal"
+                             "{:f} and vertical {:f} dpp".format(dppx, dppy))
         else:
-            dpp = dppx/1.0
+            dpp = float(dppx)
 
         if dpp not in files_dict:
-            print "Adding dpp", dpp
+            LOG.debug("Adding dpp {:f}".format(dpp))
             files_dict[dpp] = [f_name]
         else:
             files_dict[dpp].append(f_name)
 
-    if 0 not in files_dict:
-        raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0.\n"+
-                         "In GUI you can change DPP in the table at the top of the analyses panel."+
-                         "Click in the column 'delta p /p' on a value to change it.")
+    if len(files_dict.keys()) < 2:
+        raise ValueError("Less than two DPP-Values found. Cannot do W-Analysis.")
 
-    _madcreator(files_dict.keys(), files_dict)
-    print "All models are created"
+    if 0 not in files_dict:
+        raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0.")
+
+    accel_inst = _create_accel_instance(options.accel_cls, files_dict.keys(),
+                                        files_dict, options.output_path, options.twissfile)
+    LOG.debug("All models are created")
+
     for dpp in files_dict:
         files = files_dict[dpp]
-        _rungetllm(_join_with_output_path("twiss_"+str(dpp)+".dat"), files, dpp)
-    # The GUI wants the default files to have the names without _0.0
-    _copy_default_outfiles()
+        twiss_dpp_path = _join_with_output_path(options.output_path, "twiss_{:f}.dat".format(dpp))
+        _rungetllm(twiss_dpp_path, files, dpp,
+                   options.output_path, accel_inst, options.algorithm)
 
-    ##adding data
+    # The GUI wants the default files to have the names without _0.0
+    _copy_default_outfiles(options.output_path)
+
+    #TODO: HOPE THAT GETLLM DOES A BETTER JOB
+    LOG.warn("Cleaning files of NAN! This should not be necessary!")
+    all_files = os.listdir(options.output_path)
+    tfs_remove_nan.clean_files(
+        [os.path.join(options.output_path, f) for f in all_files], replace=True)
+
+    # adding data
     betalistx = {}
     betalisty = {}
     couplelist = {}
@@ -198,24 +226,21 @@ def main(
     listc = []
     listcf = []
 
-    try:
-        metaclass.twiss(_join_with_output_path('getbetax_free_'+str(dpp)+'.out'))
-        freeswitch = 1
-    except IOError:
-        print "WARNING: Could not open", _join_with_output_path('getbetax_free_'+str(dpp)+'.out')
-        freeswitch = 0
-
     for dpp in files_dict.keys():
-        print "Loading driven data for ", dpp
-        betx = metaclass.twiss(_join_with_output_path('getbetax_'+str(dpp)+'.out'))
-        bety = metaclass.twiss(_join_with_output_path('getbetay_'+str(dpp)+'.out'))
-        couple = metaclass.twiss(_join_with_output_path('getcouple_'+str(dpp)+'.out'))
-        #couple=twiss(options.output+'/getbetay_'+str(dpp)+'.out')
+        LOG.debug("Loading driven data for dpp {:f}".format(dpp))
+        betx_path = _join_with_output_path(options.output_path, 'getbetax{ext:s}'.format(ext=_ext(dpp)))
+        bety_path = _join_with_output_path(options.output_path, 'getbetay{ext:s}'.format(ext=_ext(dpp)))
+        couple_path = _join_with_output_path(options.output_path, 'getcouple{ext:s}'.format(ext=_ext(dpp)))
+
+        betx = metaclass.twiss(betx_path)
+        bety = metaclass.twiss(bety_path)
+        couple = metaclass.twiss(couple_path)
+
         betalistx[dpp] = betx
         betalisty[dpp] = bety
         couplelist[dpp] = couple
 
-        if float(dpp)==0.0:
+        if float(dpp) == 0.0:
             zerobx = betx
             zeroby = bety
 
@@ -223,263 +248,234 @@ def main(
         listy.append(bety)
         listc.append(couple)
 
-        modeld = metaclass.twiss(_InputData.twissfile)
+        modeld = metaclass.twiss(options.twissfile)
 
-        #try:
-        if freeswitch == 1:
-            print "Loading free data"
-            print 'getbetax_free_'+str(dpp)+'.out'
-            betxf = metaclass.twiss(_join_with_output_path('getbetax_free_'+str(dpp)+'.out'))
-            betyf = metaclass.twiss(_join_with_output_path('getbetay_free_'+str(dpp)+'.out'))
-            couplef = metaclass.twiss(_join_with_output_path('getcouple_free_'+str(dpp)+'.out'))
+        try:
+            betaxf_path = _join_with_output_path(options.output_path, 'getbetax_free{ext:s}'.format(ext=_ext(dpp)))
+            betxf = metaclass.twiss(betaxf_path)
+            LOG.debug("Loaded betax free data from '{:s}".format(betaxf_path))
+
+            betayf_path = _join_with_output_path(options.output_path, 'getbetay_free{ext:s}'.format(ext=_ext(dpp)))
+            betyf = metaclass.twiss(betayf_path)
+            LOG.debug("Loaded betay free data from '{:s}".format(betayf_path))
+
+            couplef_path = _join_with_output_path(options.output_path, 'getcouple_free{ext:s}'.format(ext=_ext(dpp)))
+            couplef = metaclass.twiss(couplef_path)
+            LOG.debug("Loaded coupling free data from '{:s}".format(couplef_path))
+        except IOError:
+            use_free = False
+            LOG.warn("WARNING: Could not open all of the free data files.")
+        else:
+            use_free = True
             betalistxf[dpp] = betxf
             betalistyf[dpp] = betyf
             couplelistf[dpp] = couplef
+
             listxf.append(betxf)
             listyf.append(betyf)
             listcf.append(couplef)
+
             modelf = modeld
-            path_ac_file = _InputData.twissfile.replace(".dat","_ac.dat")
+
+            path_ac_file = options.twissfile.replace(".dat", "_ac.dat")
             if not os.path.isfile(path_ac_file):
-                print >> sys.stderr, "Ac file does not exist:", path_ac_file,"\nIn GUI check 'Ac dipole' box to create a model with ac dipole."
+                LOG.error("Ac file '{:s}' does not exist.".format(path_ac_file))
+                LOG.error("  -> In GUI check 'Ac dipole' box to create a model with ac dipole.")
                 sys.exit(1)
             modeld = metaclass.twiss(path_ac_file)
-            if float(dpp)==0.0:
+            if float(dpp) == 0.0:
                 zerobxf = betalistxf[dpp]
                 zerobyf = betalistyf[dpp]
 
-        #except:
-        #       print "No free data"
-
-    #
-    # driven beta
-    #
-
-    print "Driven beta"
-
-    #H
-    fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetax.out"), 'H')
-
-    bpms = Utilities.bpm.intersect(listx)
-    bpms = Utilities.bpm.model_intersect(bpms, modeld)
+    LOG.debug("Getting Driven beta")
+    # H
+    fileobj = _chromFileWriter('beta', _join_with_output_path(options.output_path, "chrombetax" + _ext()), 'H')
+    bpms = bpm_util.intersect(listx)
+    bpms = bpm_util.model_intersect(bpms, modeld)
     _do_lin_reg_bet(fileobj, files_dict.keys(), betalistx, bpms, "H", zerobx, modeld)
     del fileobj
 
-    #V
-    fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetay.out"), 'V')
-
-    bpms = Utilities.bpm.intersect(listy)
-    bpms = Utilities.bpm.model_intersect(bpms, modeld)
+    # V
+    fileobj = _chromFileWriter('beta', _join_with_output_path(options.output_path, "chrombetay" + _ext()), 'V')
+    bpms = bpm_util.intersect(listy)
+    bpms = bpm_util.model_intersect(bpms, modeld)
     _do_lin_reg_bet(fileobj, files_dict.keys(), betalisty, bpms, "V", zeroby, modeld)
     del fileobj
+    LOG.debug("Driven beta finished")
 
-    print "Driven beta finished"
 
-    #
-    # driven coupling
-    #
-    print "Driven coupling"
-
-    fileobj = _chromFileWriter('coupling', _join_with_output_path("chromcoupling.out"), '')
-
-    bpms = Utilities.bpm.intersect(listc)
-    bpms = Utilities.bpm.model_intersect(bpms, modeld)
-
+    LOG.debug("Getting Driven coupling")
+    fileobj = _chromFileWriter('coupling', _join_with_output_path(options.output_path, "chromcoupling" + _ext()), '')
+    bpms = bpm_util.intersect(listc)
+    bpms = bpm_util.model_intersect(bpms, modeld)
     _do_linreg_coupling(couplelist, bpms, files_dict.keys(), fileobj)
     del fileobj
+    LOG.debug("Driven coupling finished")
 
-    print "Driven coupling finished"
-
-    if freeswitch == 1:
+    if use_free:
         #
         # free beta
         #
-        print "Free beta"
-        #H
-        fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetax_free.out"), 'H')
-
-        bpms = Utilities.bpm.intersect(listxf)
-        bpms = Utilities.bpm.model_intersect(bpms, modelf)
+        LOG.debug("Getting Free beta")
+        # H
+        fileobj = _chromFileWriter('beta',
+                                   _join_with_output_path(options.output_path, "chrombetax_free" + _ext()), 'H')
+        bpms = bpm_util.intersect(listxf)
+        bpms = bpm_util.model_intersect(bpms, modelf)
         _do_lin_reg_bet(fileobj, files_dict.keys(), betalistxf, bpms, "H", zerobxf, modelf)
 
-        #V
-        fileobj = _chromFileWriter('beta', _join_with_output_path("chrombetay_free.out"), 'V')
-
-        bpms = Utilities.bpm.intersect(listyf)
-        bpms = Utilities.bpm.model_intersect(bpms, modelf)
+        # V
+        fileobj = _chromFileWriter('beta',
+                                   _join_with_output_path(options.output_path, "chrombetay_free" + _ext()), 'V')
+        bpms = bpm_util.intersect(listyf)
+        bpms = bpm_util.model_intersect(bpms, modelf)
         _do_lin_reg_bet(fileobj, files_dict.keys(), betalistyf, bpms, "V", zerobyf, modelf)
+        LOG.debug("Free beta finished")
 
-        print "Free beta finished"
 
-        #
-        # free coupling
-        #
-        print "Free coupling"
-
-        fileobj = _chromFileWriter('coupling', _join_with_output_path("chromcoupling_free.out"), '')
-
-        bpms = Utilities.bpm.intersect(listcf)
-        bpms = Utilities.bpm.model_intersect(bpms, modelf)
-
+        LOG.debug("GettingFree coupling")
+        fileobj = _chromFileWriter('coupling',
+                                   _join_with_output_path(options.output_path, "chromcoupling_free" + _ext()), '')
+        bpms = bpm_util.intersect(listcf)
+        bpms = bpm_util.model_intersect(bpms, modelf)
         _do_linreg_coupling(couplelistf, bpms, files_dict.keys(), fileobj)
+        LOG.debug("Free coupling finished")
 
-        print "Free coupling finished"
-
-
-#===================================================================================================
+# ===================================================================================================
 # helper-functions
-#===================================================================================================
-def _madcreator(dpps, files_dict):
-    '''
-    :param dpps: list of dp/p to create model for
-    :param dict files_dict: dpp_value --> corresponding_filenames
-    '''
+# ===================================================================================================
 
-    # creating the DPP
-    dppstring = ''
-    dppstring_ac = ''
-    for dpp in dpps:
-        if _InputData.accel == "ESRF":
-            _InputData.accel = "STORAGE04_SS23_7m"
-        path_to_twiss_dpp = _join_with_output_path("twiss_"+str(dpp)+".dat")
-        if not os.path.exists(path_to_twiss_dpp):
-            dppstring = dppstring+'twiss, chrom,sequence='+_InputData.accel+', deltap='+str(dpp)+', file="'+path_to_twiss_dpp+'";\n'
-            # if the model has twiss_ac.dat:
-            if os.path.exists(_InputData.twissfile.replace(".dat","_ac.dat")): # this is only correct as long as the filenames are <filename>_ac.dat and <filename>.dat!
-                path_to_twiss_ac_dpp = _join_with_output_path("twiss_"+str(dpp)+"_ac.dat")
-                dppstring_ac = dppstring_ac+'twiss, chrom,sequence='+_InputData.accel+', deltap='+str(dpp)+', file="'+path_to_twiss_ac_dpp+'";\n'
-            else: # do not create ac file if we don't have ac in our original model..
-                dppstring_ac = ''
 
-    if not dppstring:
-        print "No need to run madx"
-        return 0
+def _load_from_file(filepath):
+    if filepath.endswith('.gz'):
+        try:
+            datax = metaclass.twiss(filepath.replace(".gz", ".linx.gz"))
+            datay = metaclass.twiss(filepath.replace(".gz", ".liny.gz"))
+        except IOError:
+            datax = metaclass.twiss(filepath.replace(".gz", "_linx.gz"))
+            datay = metaclass.twiss(filepath.replace(".gz", "_liny.gz"))
+    else:
+        try:
+            datax = metaclass.twiss(filepath + ".linx")
+            datay = metaclass.twiss(filepath + ".liny")
+        except IOError:
+            datax = metaclass.twiss(filepath + "_linx")
+            datay = metaclass.twiss(filepath + "_liny")
+    return datax, datay
 
-    dict_for_replacing = {}
-    dict_for_replacing["DPP"] = dppstring
-    (qx, qy, qdx, qdy, qmx, qmy) = _get_tunes(files_dict)
-    if _InputData.accel.upper().startswith("LHCB"):
-        dict_for_replacing["DP_AC_P"] = dppstring_ac
-        if _InputData.lhc_run == "RUNI":
-            dict_for_replacing["RUN"] = "I"
-        elif _InputData.lhc_run == "RUNII":
-            dict_for_replacing["RUN"] = "II"
-        elif _InputData.lhc_run == "RUNII_2016":
-            dict_for_replacing["RUN"] = "II_2016"
-        if _InputData.accel == 'LHCB1':
-            dict_for_replacing["NUM_BEAM"] = "1"
-        elif _InputData.accel == 'LHCB2':
-            dict_for_replacing["NUM_BEAM"] = "2"
-        else:
-            print "WARNING: Could not decide what BEAM should be"
 
-        dict_for_replacing["QMX"] = int(qx * 1000000)
-        dict_for_replacing["QMY"] = int(qy * 1000000)
-        dict_for_replacing["QX"] = qx
-        dict_for_replacing["QY"] = qy
-        dict_for_replacing["QDX"] = qdx
-        dict_for_replacing["QDY"] = qdy
-        dict_for_replacing["STOP"] = "!"
-        path_to_job_chrom_template = os.path.join(_InputData.path_to_beta_beat, "MODEL", "LHCB", "model", "job.twiss_chrom.madx.macro")
-    elif _InputData.accel == "STORAGE04_SS23_7m":
-        dict_for_replacing["QMX"] = qmx
-        dict_for_replacing["QMY"] = qmy
-        dict_for_replacing["ESRF_MODEL"] = os.path.join(_InputData.path_to_beta_beat, "MODEL", "ESRF")
-        path_to_job_chrom_template = os.path.join(_InputData.path_to_beta_beat, "MODEL", "ESRF", "job.ESRF.twiss_chrom.madx")
+def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
+    """
+    Args:
+        dpps: list of dp/p to create model for
+        dict files_dict: dpp_value --> corresponding_filenames
+    """
 
-    for testpath in [_InputData.output_path, os.path.dirname(_InputData.twissfile)]:
-        _tmpmod = os.path.join(testpath, 'modifiers.madx')
-        if os.path.isfile(_tmpmod):
-            print "INFO: Using", _tmpmod
-            dict_for_replacing["MODIFIERS"] = _tmpmod
+    (exp_qx, exp_qy, mdl_qx, mdl_qy) = _get_tunes(twissfile, files_dict)
+
+    for testpath in [output_path, os.path.dirname(twissfile)]:
+        modifiers = os.path.join(testpath, 'modifiers.madx')
+        if os.path.isfile(modifiers):
+            LOG.debug("Using file '{:s}'".format(modifiers))
             break
 
-    print "Creating madx"
-    path_to_job_chrom_madx = _join_with_output_path("job.chrom.madx")
-    path_to_job_chrom_madx_log = _join_with_output_path("log.job.chrom.madx")
-    Utilities.iotools.replace_keywords_in_textfile(
-                                                   path_to_job_chrom_template,
-                                                   dict_for_replacing,
-                                                   path_to_job_chrom_madx
-                                                   )
+    accel_inst = accel_cls()
+    accel_inst.optics_file = modifiers
+    accel_inst.nat_tune_x = mdl_qx
+    accel_inst.nat_tune_y = mdl_qy
+    accel_inst.drv_tune_x = exp_qx
+    accel_inst.drv_tune_y = exp_qy
+    accel_inst.dpp = dpps
+    accel_inst.xing = False
 
-    print "Running madx"
-    errcode = madx_wrapper.resolve_and_run_file(path_to_job_chrom_madx, log_file=path_to_job_chrom_madx_log)
+    accel_inst.excitation = LhcExcitationMode.FREE
+    if os.path.exists(twissfile.replace(".dat", "_ac.dat")):
+        accel_inst.excitation = LhcExcitationMode.ACD
+    elif os.path.exists(twissfile.replace(".dat", "_adt.dat")):
+        accel_inst.excitation = LhcExcitationMode.ADT
 
-    if 0 != errcode:
-        print >> sys.stderr, "Mad-X failed. Check log file: " + str(path_to_job_chrom_madx_log)
-        raise ValueError("Mad-X failed")
+    creator.create_model(accel_inst, "nominal", output_path)
+
+    return accel_inst
 
 
-def _get_filenames_in_output_with_dpp(dpp=''):
-    '''
+def _get_output_filenames(output_path, dpp=None):
+    """
     Returns list of available file names
     for the given dpp.
 
-    Example: _get_filenames_in_output_with_dpp('0.0')
+    Example: _get_output_filenames(0.)
 
-    :param dpp: [str] dpp appendix to list of files
-    '''
+    Args:
+        dpp: dpp appendix to list of files
+    """
     ret = []
-    for fname in os.listdir(_InputData.output_path):
-        if dpp:
-            extra = '_'+dpp
-        else:
-            extra = ''
-        # thank you for making this easy..
-        if re.search("get[A-Za-z]*[0-9]*[xy]*(_free[2]*)*"+extra+".out", fname):
+    for fname in os.listdir(output_path):
+        ext = _ext(dpp)
+        if re.match(r"get[^_]+[_free\d?]?" + ext, fname):
             ret.append(fname)
     return ret
 
 
-def _rungetllm(twiss_filename, files, dpp):
-    '''
+def _rungetllm(twiss_filename, files, dpp, output_path, accel_inst, algorithm):
+    """
     Running GetLLM...
-    '''
+    """
     import GetLLM
 
-    print "Will run getllm for ", dpp
+    LOG.debug("Will run getllm for dpp {:f}".format(dpp))
 
-    if "LHC" in _InputData.accel.upper():
+    if "lhc" == accel_inst.NAME:
         lhcphase = "1"
+        accel_name = "LHCB" + str(accel_inst.get_beam())
     else:
         lhcphase = "0"
-    GetLLM.main(outputpath=_InputData.output_path,
+        accel_name = accel_inst.NAME.upper()  #TODO: TEST that! Should work for ESRF at least.
+
+    GetLLM.main(outputpath=output_path,
             files_to_analyse=','.join(files),
             model_filename=twiss_filename,
-            accel=_InputData.accel,
-            tbtana=_InputData.technique,
+            accel=accel_name,
+            tbtana=algorithm,
             lhcphase=lhcphase)
-    print "GetLLM finished"
+    LOG.debug("GetLLM finished")
 
-    for fname in _get_filenames_in_output_with_dpp():
-        src_path = _join_with_output_path(fname)
-        dst_path = _join_with_output_path(fname.replace(".out", "_"+str(dpp)+".out"))
+    for fname in _get_output_filenames(output_path):
+        src_path = _join_with_output_path(output_path, fname)
+        dst_path = _join_with_output_path(output_path, fname.replace(_ext(), _ext(dpp)))
         shutil.move(src_path, dst_path)
 
 
-def _copy_default_outfiles():
-    for fname in _get_filenames_in_output_with_dpp('0.0'):
-        src_path = _join_with_output_path(fname)
-        dst_path = _join_with_output_path(fname.replace("_0.0.out", ".out"))
+def _copy_default_outfiles(output_path):
+    for fname in _get_output_filenames(output_path, dpp=0.):
+        src_path = _join_with_output_path(output_path, fname)
+        dst_path = _join_with_output_path(output_path, fname.replace(_ext(0.), _ext()))
         shutil.copy(src_path, dst_path)
 
 
-##### for chromatic
+def _ext(dpp=None):
+    if dpp is None:
+        return '.out'
+    else:
+        return "_{:f}.out".format(dpp)
+
+
+# for chromatic
 
 def _do_lin_reg_bet(fileobj, listx, listy, bpms, plane, zero, twiss):
-    '''
+    """
     Calculates stuff and writes to the file in a table
     Closes the file afterwards
 
-    :param fileobj: _chromFileWriter for output table
-    :param listx: List of variables...
-    :param listy: List of variables...
-    :param bpms: List of BPMs
-    :param plane: Which plane (H/V)
-    :param zero: Twiss for dp/p = 0
-    :param twiss: Twiss
-    '''
+    Args:
+        fileobj: _chromFileWriter for output table
+        listx: List of variables...
+        listy: List of variables...
+        bpms: List of BPMs
+        plane: Which plane (H/V)
+        zero: Twiss for dp/p = 0
+        twiss: Twiss
+    """
     for bpm in bpms:
         name = bpm[1]
         sloc = bpm[0]
@@ -533,11 +529,11 @@ def _do_lin_reg_bet(fileobj, listx, listy, bpms, plane, zero, twiss):
                 bm.append(_file.BETYMDL[_file.indx[name]])
                 am.append(_file.ALFYMDL[_file.indx[name]])
 
-        bfit = linreg.linreg(listx, b)
-        afit = linreg.linreg(listx, a)
+        bfit = linreg(listx, b)
+        afit = linreg(listx, a)
 
-        bfitm = linreg.linreg(listx, bm)
-        afitm = linreg.linreg(listx, am)
+        bfitm = linreg(listx, bm)
+        afitm = linreg(listx, am)
 
         # measurement
         dbb = bfit[0]/beta0
@@ -570,93 +566,132 @@ def _do_lin_reg_bet(fileobj, listx, listy, bpms, plane, zero, twiss):
         fileobj.writeLine(locals().copy())
 
 
-def _get_f( couplelist, dpplist, bpm_name, value):
-    '''
+def _get_f(couplelist, dpplist, bpm_name, value):
+    """
     calculates the linear regression of 'value' for each
     dpp in dpplist
 
-    :param couplelist: list of getcouple files (for each dpp)
-    :param dpplist: list of all dpp values available
-    :param bpm_name: name of bpm
-    :param value: name of column (e.g. F1001R)
-    '''
+    Args:
+        couplelist: list of getcouple files (for each dpp)
+        dpplist: list of all dpp values available
+        bpm_name: name of bpm
+        value: name of column (e.g. F1001R)
+    """
     lst = []
     x = []
     for dpp in dpplist:
         x.append(dpp)
         couplefile = couplelist[dpp]
-        lst.append( getattr(couplefile, value)[ couplefile.indx[ bpm_name]])
-    lreg = linreg.linreg(x, lst)
+        lst.append(getattr(couplefile, value)[couplefile.indx[bpm_name]])
+    lreg = linreg(x, lst)
     return lreg[0], lreg[3]
 
 
 def _do_linreg_coupling(couplelist, bpms, dpplist, fileobj):
-    '''
+    """
     linreg for chromatic coupling
 
     Writes to fileobj the chromatic coupling.
     f1001, f1010 derivatives wrt dp/p, and errors.
-    '''
+    """
     for bpm in bpms:
         name = bpm[1]
         sloc = bpm[0]
 
-        chr_f1001r, chr_err_f1001r = _get_f( couplelist, dpplist, name, 'F1001R')
-        chr_f1001i, chr_err_f1001i = _get_f( couplelist, dpplist, name, 'F1001I')
-        chr_f1010r, chr_err_f1010r = _get_f( couplelist, dpplist, name, 'F1010R')
-        chr_f1010i, chr_err_f1010i = _get_f( couplelist, dpplist, name, 'F1010I')
+        chr_f1001r, chr_err_f1001r = _get_f(couplelist, dpplist, name, 'F1001R')
+        chr_f1001i, chr_err_f1001i = _get_f(couplelist, dpplist, name, 'F1001I')
+        chr_f1010r, chr_err_f1010r = _get_f(couplelist, dpplist, name, 'F1010R')
+        chr_f1010i, chr_err_f1010i = _get_f(couplelist, dpplist, name, 'F1010I')
 
-        mdl_chr_f1001r, mdl_chr_err_f1001r = _get_f( couplelist, dpplist, name, 'MDLF1001R')
-        mdl_chr_f1001i, mdl_chr_err_f1001i = _get_f( couplelist, dpplist, name, 'MDLF1001I')
-        mdl_chr_f1010r, mdl_chr_err_f1010r = _get_f( couplelist, dpplist, name, 'MDLF1010R')
-        mdl_chr_f1010i, mdl_chr_err_f1010i = _get_f( couplelist, dpplist, name, 'MDLF1010I')
+        mdl_chr_f1001r, mdl_chr_err_f1001r = _get_f(couplelist, dpplist, name, 'MDLF1001R')
+        mdl_chr_f1001i, mdl_chr_err_f1001i = _get_f(couplelist, dpplist, name, 'MDLF1001I')
+        mdl_chr_f1010r, mdl_chr_err_f1010r = _get_f(couplelist, dpplist, name, 'MDLF1010R')
+        mdl_chr_f1010i, mdl_chr_err_f1010i = _get_f(couplelist, dpplist, name, 'MDLF1010I')
 
         fileobj.writeLine(locals().copy())
 
 
-def _get_tunes(fileslist):
-    '''
+def _get_tunes(model_file, fileslist):
+    """
     Reads in the driven tunes from the
     file with dpp=0
     Reads in the model tunes from the
     twiss model (twiss.dat)
 
-    :param fileslist: dictionary of files, dpp used as key
-    :returns: (
-    :raise ValueError: If fileslist[0] does not exist
-    '''
-    if fileslist[0][0].endswith(".gz"):
-        fname = fileslist[0][0].replace(".gz", "")
-        end = '.gz'
+    Args:
+        fileslist: dictionary of files, dpp used as key
+
+    Returns:
+        (qx, qy, qdx, qdy, qmx, qmy)
+
+    Raises:
+        ValueError: If fileslist[0] does not exist
+    """
+    tw_x, tw_y = _load_from_file(fileslist[0][0])
+    tw = metaclass.twiss(model_file)
+
+    exp_qx = tw_x.Q1
+    exp_qy = tw_y.Q2
+    mdl_qx = tw.Q1
+    mdl_qy = tw.Q2
+
+    return (exp_qx, exp_qy, mdl_qx, mdl_qy)
+
+
+def linreg(X, Y):
+    """
+    Summary
+        Linear regression of y = ax + b
+    Usage
+        real, real, real = linreg(list, list)
+    Returns coefficients to the regression line "y=ax+b" from x[] and y[], and R^2 Value
+    """
+    if len(X) != len(Y):  raise ValueError, 'unequal length'
+    N = len(X)
+    Sx = Sy = Sxx = Syy = Sxy = 0.0
+    for x, y in map(None, X, Y):
+        Sx = Sx + x
+        Sy = Sy + y
+        Sxx = Sxx + x*x
+        Syy = Syy + y*y
+        Sxy = Sxy + x*y
+    det = Sxx * N - Sx * Sx
+    a, b = (Sxy * N - Sy * Sx)/det, (Sxx * Sy - Sx * Sxy)/det
+    meanerror = residual = 0.0
+    for x, y in map(None, X, Y):
+        meanerror = meanerror + (y - Sy/N)**2
+        residual = residual + (y - a * x - b)**2
+    if residual == 0 and meanerror == 0:
+        RR = 1.0
     else:
-        fname = fileslist[0][0]
-        end = ''
-    tw_x = metaclass.twiss(fname+'_linx'+end)
-    tw_y = metaclass.twiss(fname+'_liny'+end)
-    tw = metaclass.twiss(_InputData.twissfile)
+        RR = 1 - residual/meanerror
+    if N>2:
+        ss = residual / (N-2)
+    else:
+        ss = 0
+    Var_a, Var_b = ss * N / det, ss * Sxx / det
+    #print "y=ax+b"
+    #print "N= %d" % N
+    #print "a= %g \pm t_{%d;\alpha/2} %g" % (a, N-2, sqrt(Var_a))
+    #print "b= %g \pm t_{%d;\alpha/2} %g" % (b, N-2, sqrt(Var_b))
+    #print "R^2= %g" % RR
+    #print "s^2= %g" % ss
+    return a, b, RR, np.sqrt(Var_a), np.sqrt(Var_b)
 
-    qdx = tw_x.TUNEX[0]
-    qdy = tw_y.TUNEY[0]
-    qx = tw.Q1 % 1
-    qy = tw.Q2 % 1
-    qmx = tw.Q1
-    qmy = tw.Q2
 
-    return (qx, qy, qdx, qdy, qmx, qmy)
-
-
-def _join_with_output_path(*path_tokens):
-    return os.path.join(_InputData.output_path, *path_tokens)
+def _join_with_output_path(output_path, *path_tokens):
+    return os.path.join(output_path, *path_tokens)
 
 
 class _chromFileWriter:
     def __init__(self, ftype, fname, plane, overwrite=True):
-        '''
-        :param ftype: string, 'beta' or 'coupling'
-        :param fname: string, name of file
-        :param plane: "H" or "V"
-        :param overwrite: Overwrite file if it already exist
-        '''
+        """
+        Args:
+            ftype: string, 'beta' or 'coupling'
+            fname: string, name of file
+            plane: "H" or "V"
+            overwrite: Overwrite file if it already exist
+        """
         self.fstream = file(fname,'w')
         self._clen = 19 # column length..
 
@@ -680,60 +715,60 @@ class _chromFileWriter:
           ]
 
         headnames = {
-            'name':'NAME',
-            'sloc':'S',
-            'dbb':'dbb',
-            'dbberr':'dbberr',
-            'da':'dalfa',
-            'daerr':'daerr',
-            'w':'W%(plane)s',
-            'werr':'W%(plane)sERR',
-            'wmo':'WMO',
-            'phi':'PHI%(plane)s',
-            'phierr':'PHI%(plane)sERR',
-            'phim':'PHI%(plane)sM',
-            'phierrm':'PHI%(plane)sERRM',
-            'pmo':'PHIZERO',
-            'dbbm':'dbbM',
-            'dbberrm':'dbberrM',
-            'dam':'dalfaM',
-            'daerrm':'daerrM',
-            'wm':'W%(plane)sM',
-            'werrm':'W%(plane)sERRM',
-            'A':'CHROM_A%(plane)s',
-            'Aerr':'CHROM_Aerr%(plane)s',
-            'Am':'CHROM_AM%(plane)s',
-            'Aerrm':'CHROM_AERRM%(plane)s',
-            'B':'CHROM_B%(plane)s',
-            'Berr':'CHROM_Berr%(plane)s',
-            'Bm':'CHROM_BM%(plane)s',
-            'Berrm':'CHROM_BERRM%(plane)s',
-            'chr_f1001r':'Cf1001r',
-            'chr_err_f1001r':'Cf1001rERR',
-            'chr_f1001i':'Cf1001i',
-            'chr_err_f1001i':'Cf1001iERR',
-            'chr_f1010r':'Cf1010r',
-            'chr_err_f1010r':'Cf1010rERR',
-            'chr_f1010i':'Cf1010i',
-            'chr_err_f1010i':'Cf1010iERR',
-            'mdl_chr_f1001r':'Cf1001r_MDL',
-            'mdl_chr_err_f1001r':'Cf1001rERR_MDL',
-            'mdl_chr_f1001i':'Cf1001i_MDL',
-            'mdl_chr_err_f1001i':'Cf1001iERR_MDL',
-            'mdl_chr_f1010r':'Cf1010r_MDL',
-            'mdl_chr_err_f1010r':'Cf1010rERR_MDL',
-            'mdl_chr_f1010i':'Cf1010i_MDL',
-            'mdl_chr_err_f1010i':'Cf1010iERR_MDL'}
-        headtypes = {'name':'%s'}
+            'name': 'NAME',
+            'sloc': 'S',
+            'dbb': 'dbb',
+            'dbberr': 'dbberr',
+            'da': 'dalfa',
+            'daerr': 'daerr',
+            'w': 'W%(plane)s',
+            'werr': 'W%(plane)sERR',
+            'wmo': 'WMO',
+            'phi': 'PHI%(plane)s',
+            'phierr': 'PHI%(plane)sERR',
+            'phim': 'PHI%(plane)sM',
+            'phierrm': 'PHI%(plane)sERRM',
+            'pmo': 'PHIZERO',
+            'dbbm': 'dbbM',
+            'dbberrm': 'dbberrM',
+            'dam': 'dalfaM',
+            'daerrm': 'daerrM',
+            'wm': 'W%(plane)sM',
+            'werrm': 'W%(plane)sERRM',
+            'A': 'CHROM_A%(plane)s',
+            'Aerr': 'CHROM_Aerr%(plane)s',
+            'Am': 'CHROM_AM%(plane)s',
+            'Aerrm': 'CHROM_AERRM%(plane)s',
+            'B': 'CHROM_B%(plane)s',
+            'Berr': 'CHROM_Berr%(plane)s',
+            'Bm': 'CHROM_BM%(plane)s',
+            'Berrm': 'CHROM_BERRM%(plane)s',
+            'chr_f1001r': 'Cf1001r',
+            'chr_err_f1001r': 'Cf1001rERR',
+            'chr_f1001i': 'Cf1001i',
+            'chr_err_f1001i': 'Cf1001iERR',
+            'chr_f1010r': 'Cf1010r',
+            'chr_err_f1010r': 'Cf1010rERR',
+            'chr_f1010i': 'Cf1010i',
+            'chr_err_f1010i': 'Cf1010iERR',
+            'mdl_chr_f1001r': 'Cf1001r_MDL',
+            'mdl_chr_err_f1001r': 'Cf1001rERR_MDL',
+            'mdl_chr_f1001i': 'Cf1001i_MDL',
+            'mdl_chr_err_f1001i': 'Cf1001iERR_MDL',
+            'mdl_chr_f1010r': 'Cf1010r_MDL',
+            'mdl_chr_err_f1010r': 'Cf1010rERR_MDL',
+            'mdl_chr_f1010i': 'Cf1010i_MDL',
+            'mdl_chr_err_f1010i': 'Cf1010iERR_MDL'}
+        headtypes = {'name': '%s'}
         for key in headnames:
             # for all others we use '%le'...
             if key not in headtypes:
                 headtypes[key] = '%le'
 
-        if ftype.lower().strip()=='beta':
+        if ftype.lower().strip() == 'beta':
             self.ftype = 'beta'
             self.columns = betacolumns
-        elif ftype.lower().strip()=='coupling':
+        elif ftype.lower().strip() == 'coupling':
             self.ftype = 'coupling'
             self.columns = couplecolumns
         else:
@@ -753,10 +788,12 @@ class _chromFileWriter:
         self._write_list(self.types)
 
     def writeLine(self, data):
-        '''
+        """
         Write one line.
-        :param data: Dictionary of data columns to write
-        '''
+
+        Args:
+            data: Dictionary of data columns to write
+        """
         tmp_line = [data[c] for c in self.columns]
         self._write_list(tmp_line)
 
@@ -767,75 +804,14 @@ class _chromFileWriter:
         self.fstream.write(line[:-1]+'\n')
 
 
-class _InputData(object):
-    """This static class holds all input variables for getsuper """
-    source_files = ""
-    path_to_madx = ""
-    twissfile = ""
-    output_path = ""
-    path_to_beta_beat = ""
-    technique = ""
-    accel = ""
-    deltap_scaling_factor = 0.0
-
-    @staticmethod
-    def static_init(source_files, path_to_madx, twissfile, output_path, path_to_beta_beat, technique, accel, deltap_scaling_factor):
-        _InputData.source_files = source_files
-        _InputData.__check_src_files()
-        _InputData.path_to_madx = path_to_madx
-        _InputData.twissfile = superutils.get_twissfile(twissfile)
-        if not os.path.isfile(_InputData.twissfile):
-            raise ValueError("Twissfile does not exist: "+_InputData.twissfile)
-        _InputData.output_path = output_path
-        if not os.path.isdir(output_path):
-            os.makedirs(output_path)
-        _InputData.path_to_beta_beat = path_to_beta_beat
-        _InputData.technique = technique
-        if technique not in ("SUSSIX", "SVD"):
-            raise ValueError("Chosen  technique is unknown: "+technique)
-        _InputData.accel = accel.upper()
-        if "LHCB" in _InputData.accel:
-            if _InputData.accel.endswith("RUNII_2016"):
-                _InputData.accel = _InputData.accel.replace("RUNII_2016", "")
-                _InputData.lhc_run = "RUNII_2016"
-            elif _InputData.accel.endswith("RUNII"):
-                _InputData.accel = _InputData.accel.replace("RUNII", "")
-                _InputData.lhc_run = "RUNII"
-            else:
-                _InputData.lhc_run = "RUNI"
-        if _InputData.accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "ESRF"):
-            raise ValueError("Provided accelerator is not valid: "+_InputData.accel)
-        _InputData.deltap_scaling_factor = deltap_scaling_factor
-
-
-    @staticmethod
-    def __check_src_files():
-        if 2 > len(_InputData.source_files):
-            raise ValueError("Provide at least two files. Files: "+str(_InputData.source_files))
-        for f_name in _InputData.source_files:
-            if not os.path.isfile(f_name) and not os.path.isfile(f_name+'.gz'):
-                raise ValueError(f_name+' does not exist')
-
-    def __init__(self):
-        raise NotImplementedError("static class _InputData cannot be instantiated")
-
-
-#===================================================================================================
+# ==================================================================================================
 # main invocation
-#===================================================================================================
-def _start():
+# ==================================================================================================
+
+def _start(args=None):
     """ Starter function to not pollute the global space with variables options and args """
-    options,args = _parse_args()
-    main(
-        source_files=superutils.get_filelist(options, args),
-        path_to_madx=options.madx,
-        twissfile=options.twissfile,
-        output_path=options.output,
-        path_to_beta_beat=options.brc,
-        technique=options.technique,
-        accel=options.accel,
-        deltap_scaling_factor=options.deltap_scaling_factor
-        )
+    options = _parse_args(args)
+    main(**options)
 
 if __name__ == "__main__":
     _start()

@@ -2,9 +2,9 @@
     Functions to create mapping from variables to magnets based on sequence_file.
      Assumptions:
 
+     - magnets named "mb.***" are defined by their bending radius and are hence immutable!
      - Sequence is saved in a way, that magnets definitions contain 'knl:={}', 'ksl:={}' or 'K#:='
      - There is only one value in each knl/ksl array.
-     - Dipole strengths (if not given as knl/ksl) are defined by their angle instead of k0
      - zero-offset, i.e. no fixed number summation (see hint below)
      - linearity, i.e. variables do not multiply with each other (will result in zeros)
      - the variable-name is final (i.e. it is not reassigned by ':=' somewhere else)
@@ -12,7 +12,7 @@
      - the length multiplier is given by l.<magnettype>
      - apart from the length, there are no other named multipliers (numbers are fine)
 
-    If a magnet is redefined later on, last definition is used.
+     If a magnet is redefined, the last definition is used. (not really an assumption)
 
     HINT: 'magnet := #.### + var' WILL NOT RESULT IN A VALID MAPPING !!!
     (e.g. '1 + var' is indistinguishable from '2 * var', which is not what you want!)
@@ -178,7 +178,7 @@ def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['retur
     _check_ret(format)
 
     if isinstance(varmap_or_file, basestring):
-        mapping = load_variable_mapping(varmap_or_file, ret=format)
+        mapping = load_or_parse_variable_mapping(varmap_or_file, ret=format)
         if outfile is None:
             outfile = varmap_or_file.replace(".seq", "").replace("." + EXT, "") + "_all_list.json"
     else:
@@ -203,7 +203,6 @@ def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['retur
                                       ).replace("}", "\n}")
     with open(outfile, "w") as json_file:
         json_file.write(json_string)
-
 
 
 """
@@ -246,6 +245,9 @@ def _find_magnet_strength(line):
 
     if len(matches) > 0:
         magnet = re.match(r"[\w.]*", line).group(0)
+        if magnet.lower().startswith("mb."):
+            return None  # HACK AS "MB." IS ASSUMED TO BE DEFINED BY BENDING RADIUS
+
         knl_dict = {}
         for match in matches:
             if match.group("knl") is not None:

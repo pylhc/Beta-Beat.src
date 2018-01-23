@@ -96,16 +96,17 @@ def _generate_fullresponse(options):
         Mu, BetaBeating, Dispersion and Tune and saves it to a file.
     """
     LOG.debug("Generating Fullresponse.")
-    variables = _get_variables_from_file(options.varfile_path, options.exclude_categories)
+    with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
+        variables = _get_variables_from_file(options.varfile_path, options.exclude_categories)
 
-    process_pool = multiprocessing.Pool(processes=options.num_proc)
+        process_pool = multiprocessing.Pool(processes=options.num_proc)
 
-    incr_dict = _generate_madx_jobs(variables, options)
-    _call_madx(process_pool, options.temp_dir, options.num_proc)
-    _clean_up(options.temp_dir, options.num_proc, options.outfile_path)
+        incr_dict = _generate_madx_jobs(variables, options)
+        _call_madx(process_pool, options.temp_dir, options.num_proc)
+        _clean_up(options.temp_dir, options.num_proc, options.outfile_path)
 
-    var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, options.temp_dir)
-    fullresponse = _create_fullresponse_from_dict(var_to_twiss)
+        var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, options.temp_dir)
+        fullresponse = _create_fullresponse_from_dict(var_to_twiss)
     _save_fullresponse(options.outfile_path, fullresponse)
 
 
@@ -209,6 +210,7 @@ def _create_fullresponse_from_dict(var_to_twiss):
     # After transpose e.g: resp[NDX, kqt3, bpm12l1.b1]
     # The magnet called "0" is no change (nominal model)
     resp['NDX'] = resp.xs('DX', axis=0) / numpy.sqrt(resp.xs('BETX', axis=0))
+    resp['NDY'] = resp.xs('DY', axis=0) / numpy.sqrt(resp.xs('BETY', axis=0))
     resp['BBX'] = resp.xs('BETX', axis=0) / resp.loc['BETX', '0', :]
     resp['BBY'] = resp.xs('BETY', axis=0) / resp.loc['BETY', '0', :]
     resp = resp.subtract(resp.xs('0'), axis=1)
@@ -220,8 +222,9 @@ def _create_fullresponse_from_dict(var_to_twiss):
             'BBX': resp.xs('BBX', axis=0),
             'BBY': resp.xs('BBY', axis=0),
             'NDX': resp.xs('NDX', axis=0),
+            'NDY': resp.xs('NDY', axis=0),
             'Q': resp.loc[['Q1', 'Q2'], :, resp.minor_axis[0]]
-           }
+            }
 
 
 def _save_fullresponse(outputfile_path, fullresponse):
@@ -249,7 +252,7 @@ def _load_and_remove_twiss(var_and_path):
     (var, path) = var_and_path
     twissfile = os.path.join(path, "twiss." + var)
     tfs_data = tfs_pandas.read_tfs(twissfile)
-    tfs_data = tfs_data.set_index('NAME').drop_duplicates()
+    tfs_data = tfs_data.set_index('NAME')
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
     os.remove(twissfile)
