@@ -57,10 +57,10 @@ import sys
 import shutil
 import math
 import re
+import numpy as np
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
-import Python_Classes4MAD.linreg as linreg
 from Utilities import bpm as bpm_util
 from Utilities import logging_tools as logtools
 from Utilities.dict_tools import DotDict
@@ -81,6 +81,7 @@ ALGO_CHOICES = ["SUSSIX", "SVD", "HA"]
 def _parse_args(args=None):
     """ Parses arguments from command line. """
     parser = argparse.ArgumentParser()
+
     # general
     parser.add_argument("-f", "--files",
             help="Files from analysis, separated by comma",
@@ -255,6 +256,7 @@ def main(**kwargs):
             betxf = metaclass.twiss(betaxf_path)
             LOG.debug("Loaded betax free data from '{:s}".format(betaxf_path))
 
+
             betayf_path = _join_with_output_path(options.output_path, 'getbetay_free{ext:s}'.format(ext=_ext(dpp)))
             betyf = metaclass.twiss(betayf_path)
             LOG.debug("Loaded betay free data from '{:s}".format(betayf_path))
@@ -387,6 +389,7 @@ def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
     accel_inst.drv_tune_y = exp_qy
     accel_inst.dpp = dpps
     accel_inst.xing = False
+
 
     accel_inst.excitation = LhcExcitationMode.FREE
     if os.path.exists(twissfile.replace(".dat", "_ac.dat")):
@@ -529,11 +532,11 @@ def _do_lin_reg_bet(fileobj, listx, listy, bpms, plane, zero, twiss):
                 bm.append(_file.BETYMDL[_file.indx[name]])
                 am.append(_file.ALFYMDL[_file.indx[name]])
 
-        bfit = linreg.linreg(listx, b)
-        afit = linreg.linreg(listx, a)
+        bfit = linreg(listx, b)
+        afit = linreg(listx, a)
 
-        bfitm = linreg.linreg(listx, bm)
-        afitm = linreg.linreg(listx, am)
+        bfitm = linreg(listx, bm)
+        afitm = linreg(listx, am)
 
         # measurement
         dbb = bfit[0]/beta0
@@ -583,7 +586,9 @@ def _get_f(couplelist, dpplist, bpm_name, value):
         x.append(dpp)
         couplefile = couplelist[dpp]
         lst.append(getattr(couplefile, value)[couplefile.indx[bpm_name]])
-    lreg = linreg.linreg(x, lst)
+
+    lreg = linreg(x, lst)
+
     return lreg[0], lreg[3]
 
 
@@ -636,6 +641,47 @@ def _get_tunes(model_file, fileslist):
     mdl_qy = tw.Q2
 
     return (exp_qx, exp_qy, mdl_qx, mdl_qy)
+
+
+def linreg(X, Y):
+    """
+    Summary
+        Linear regression of y = ax + b
+    Usage
+        real, real, real = linreg(list, list)
+    Returns coefficients to the regression line "y=ax+b" from x[] and y[], and R^2 Value
+    """
+    if len(X) != len(Y):  raise ValueError, 'unequal length'
+    N = len(X)
+    Sx = Sy = Sxx = Syy = Sxy = 0.0
+    for x, y in map(None, X, Y):
+        Sx = Sx + x
+        Sy = Sy + y
+        Sxx = Sxx + x*x
+        Syy = Syy + y*y
+        Sxy = Sxy + x*y
+    det = Sxx * N - Sx * Sx
+    a, b = (Sxy * N - Sy * Sx)/det, (Sxx * Sy - Sx * Sxy)/det
+    meanerror = residual = 0.0
+    for x, y in map(None, X, Y):
+        meanerror = meanerror + (y - Sy/N)**2
+        residual = residual + (y - a * x - b)**2
+    if residual == 0 and meanerror == 0:
+        RR = 1.0
+    else:
+        RR = 1 - residual/meanerror
+    if N>2:
+        ss = residual / (N-2)
+    else:
+        ss = 0
+    Var_a, Var_b = ss * N / det, ss * Sxx / det
+    #print "y=ax+b"
+    #print "N= %d" % N
+    #print "a= %g \pm t_{%d;\alpha/2} %g" % (a, N-2, sqrt(Var_a))
+    #print "b= %g \pm t_{%d;\alpha/2} %g" % (b, N-2, sqrt(Var_b))
+    #print "R^2= %g" % RR
+    #print "s^2= %g" % ss
+    return a, b, RR, np.sqrt(Var_a), np.sqrt(Var_b)
 
 
 def _join_with_output_path(output_path, *path_tokens):
