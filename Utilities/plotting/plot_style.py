@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+from Utilities import tfs_pandas as tfs
 
 
 class ArgumentError(Exception):
@@ -37,9 +38,11 @@ _PRESENTATION_PARAMS = {
     u'figure.frameon': True,
     u'figure.titlesize': u'xx-large',
     u'figure.titleweight': u'bold',
-    u'font.size': 14.0,
+    u'font.size': 15.0,
     u'font.stretch': u'normal',
     u'font.weight': u'bold',
+    u'font.family': 'sans-serif',
+    u'font.serif': ['Computer Modern'],
     u'grid.alpha': 1.0,
     u'grid.color': u'#b0b0b0',
     u'grid.linestyle': u'-',
@@ -130,9 +133,11 @@ _STANDARD_PARAMS = {
     u'figure.frameon': True,
     u'figure.titlesize': u'large',
     u'figure.titleweight': u'normal',
-    u'font.size': 12.0,
+    u'font.size': 15.0,
     u'font.stretch': u'normal',
     u'font.weight': u'bold',
+    u'font.family': 'sans-serif',
+    u'font.serif': ['Computer Modern'],
     u'grid.alpha': 1.0,
     u'grid.color': u'#b0b0b0',
     u'grid.linestyle': u'-',
@@ -313,6 +318,7 @@ def set_xLimits(accel, ax=None):
     else:
         raise ArgumentError("Accelerator '" + accel + "' unknown.")
 
+
 """
 =============================   Labels   =============================
 """
@@ -331,10 +337,10 @@ _ylabels = {
     "phase_milli":        r'$\phi_{{{0}}} [2\pi\cdot10^{{-3}}]$',
     "dispersion":         r'$D_{{{0}}} [m]$',
     "dispersion_mm":      r'$D_{{{0}}} [mm]$',
-    "co":                 r'{0} [mm]',
+    "co":                 r'${0} [mm]$',
     "tune":               r'$Q_{{{0}}} [Hz]$',
     "nattune":            r'$Nat Q_{{{0}}} [Hz]$',
-    "chromamp":           r'W_{{{0}}}$',
+    "chromamp":           r'$W_{{{0}}}$',
     "real":               r'$re({0})$',
     "imag":               r'$im({0})$',
     "absolute":           r'$|{0}|$',
@@ -377,18 +383,23 @@ def set_xaxis_label(ax=None):
     ax.set_xlabel(r'Longitudinal location [m]')
 
 
-def show_ir(ip_dict, ax=None):
+def show_ir(ip_dict, ax=None, mode='inside'):
     """ Plots the interaction regions into the background of the plot.
 
     Args:
         ip_dict: dict, dataframe or series containing "IPLABEL" : IP_POSITION
         ax:  Axes to put the irs on (default: gca())
+        mode: 'inside', 'outside' + 'nolines' or just 'lines'
     """
     if not ax:
         ax = plt.gca()
 
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
+
+    lines = 'nolines' not in mode
+    inside = 'inside' in mode
+    lines_only = 'inside' not in mode and 'outside' not in mode and 'lines' in mode
 
     if isinstance(ip_dict, (pd.DataFrame, pd.Series)):
         if isinstance(ip_dict, pd.DataFrame):
@@ -401,12 +412,31 @@ def show_ir(ip_dict, ax=None):
     for ip in ip_dict.keys():
         if xlim[0] <= ip_dict[ip] <= xlim[1]:
             xpos = ip_dict[ip]
-            ypos = ylim[0] + (ylim[1] - ylim[0]) * 0.01
-            ax.text(xpos, ypos, ip, color='grey', ha='center')
-            ax.axvline(xpos, linestyle=':', color='grey', marker='', zorder=0)
+
+            if lines:
+                ax.axvline(xpos, linestyle=':', color='grey', marker='', zorder=0)
+
+            if not lines_only:
+                if inside:
+                    ypos = ylim[0] + (ylim[1] - ylim[0]) * 0.01
+                    ax.text(xpos, ypos, ip, color='grey', ha='center')
+                else:
+                    ax.text(xpos, ylim[1] * 1.03, ip, ha='center')
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+
+
+def get_ip_positions(path):
+    """ Returns a dict of IP positions from tfs-file of path.
+
+    Args:
+        path (str): Path to the tfs-file containing IP-positions
+    """
+    df = tfs.read_tfs(path).set_index('NAME')
+    ip_names = ["IP" + str(i) for i in range(1, 9)]
+    ip_pos = df.loc[ip_names, 'S'].values
+    return dict(zip(ip_names, ip_pos))
 
 
 def set_name(name, fig_or_ax=None):
