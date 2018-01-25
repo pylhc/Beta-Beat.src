@@ -6,7 +6,7 @@ kwargs and dictionaries as input and will parse this input according to the para
 given to the EntryPoint-Decorator.
 
 
-Parameters need to be a list or a dictionary with the following keywords:
+Parameters need to be a list or a dictionary of dictionaries with the following keys:
         name (required): Name of the variable (e.g. later use options.NAME).
                          If 'params' is a dictionary, the key will be used as name.
         flags (required): Commandline flag, e.g. "--file"
@@ -19,11 +19,6 @@ Parameters need to be a list or a dictionary with the following keywords:
 
 The 'strict' option changes the behaviour for unknown parameters:
     strict=True raises exceptions, strict=False loggs warnings.
-
-FAR FROM FINISHED!!!!
-DO NOT USE YET!!!
-I WILL REMOVE THIS DISCLAIMER ONCE IT IS FINISHED, I JUST WANTED TO BACKUP MY PROGRESS HERE!!
-cheers, Joschua
 """
 
 import ConfigParser
@@ -32,16 +27,14 @@ from argparse import ArgumentParser
 from Utilities import logging_tools as logtools
 from Utilities.dict_tools import DictParser
 from Utilities.dict_tools import DotDict
-from Utilities.dict_tools import Argument
-from Utilities.dict_tools import ArgumentError
 
 LOG = logtools.get_logger(__name__)
 
 
 ID_CONFIG = "entry_cfg"
-ID_CONFIG_SECTION = "section"
 ID_DICT = "entry_dict"
 ID_JSON = "entry_json"
+ID_SECTION = "section"
 
 ARGPARSE_ONLY = ["nargs", "flags"]
 
@@ -62,7 +55,7 @@ class EntryError(Exception):
 class EntryPoint(object):
     def __init__(self, param, strict=True):
         """ Initialize decoration: Handle the desired input parameters. """
-        self.param = param
+        self.param = self._param_d2l(param)
         self.strict = strict
 
         # create parsers
@@ -101,11 +94,13 @@ class EntryPoint(object):
     def _create_argument_parser(self):
         """ Creates the ArgumentParser from params. """
         parser = ArgumentParser()
-        param = self.param.copy()
-        for key in param:
-            arg = param[key]
+        param = self.param
+        for item in param:
+            arg = item.copy()
             arg["dest"] = arg.pop("name")
             flags = arg.pop("flags")
+            if isinstance(flags, basestring):
+                flags = [flags]
             parser.add_argument(*flags, **arg)
 
         return parser
@@ -113,15 +108,15 @@ class EntryPoint(object):
     def _create_dict_parser(self):
         """ Creates the DictParser from params. """
         parser = DictParser(strict=self.strict)
-        param = self.param.copy()
-        for key in param:
-            arg = param[key]
-            if "nargs" in arg:
+        param = self.param
+        for item in param:
+            arg = item.copy()
+            if "nargs" in arg and arg["nargs"] != "?":
                 arg["subtype"] = arg.get("type", None)
                 arg["type"] = list
 
             for label in ARGPARSE_ONLY:
-                arg.pop(label, None)  # Default value avoids KeyError
+                arg.pop(label, None)
 
             name = arg.pop("name")
             parser.add_argument(name, **arg)
@@ -144,6 +139,7 @@ class EntryPoint(object):
                 raise EntryError("Unkown Options: {:s}".format(unknown_args))
             else:
                 LOG.warn("Ignored Options: {:s}".format(unknown_args))
+        return DotDict(vars(options))
 
     def _handle_args(self, args):
         """ *args has been input """
@@ -161,12 +157,12 @@ class EntryPoint(object):
     def _handle_kwargs(self, kwargs):
         """ **kwargs been input """
         if ID_CONFIG in kwargs:
-            if len(kwargs) > 2 or (len(kwargs) == 2 and ID_CONFIG_SECTION not in kwargs):
+            if len(kwargs) > 2 or (len(kwargs) == 2 and ID_SECTION not in kwargs):
                 raise EntryError(
-                    "Only '{:s}' and '{:s}'".format(ID_CONFIG, ID_CONFIG_SECTION) +
+                    "Only '{:s}' and '{:s}'".format(ID_CONFIG, ID_SECTION) +
                     " arguments are allowed, when using a config file.")
             options = self._read_config(kwargs[ID_CONFIG],
-                                        kwargs.get(ID_CONFIG_SECTION, None))
+                                        kwargs.get(ID_SECTION, None))
             options = self.dictparse.parse_config_items(options)
 
         elif ID_DICT in kwargs:
@@ -175,10 +171,16 @@ class EntryPoint(object):
             options = self.dictparse.parse_options(kwargs[ID_DICT])
 
         elif ID_JSON in kwargs:
-            if len(kwargs) > 1:
-                raise EntryError("Only one argument allowed when using a json-file")
+            if len(kwargs) > 2 or (len(kwargs) == 2 and ID_SECTION not in kwargs):
+                raise EntryError(
+                    "Only '{:s}' and '{:s}'".format(ID_JSON, ID_SECTION) +
+                    " arguments are allowed, when using a json file.")
             with open(kwargs[ID_JSON], 'r') as json_file:
                 json_dict = json.load(json_file)
+
+            if ID_SECTION in kwargs:
+                json_dict = json_dict[kwargs[ID_SECTION]]
+
             options = self.dictparse.parse_options(json_dict)
 
         else:
@@ -204,9 +206,20 @@ class EntryPoint(object):
         elif not section:
             raise EntryError("'{:s}' contains multiple sections. Please specify one!")
 
-        return dictparse.parse_config_items(cfgparse.items(section))
+        return cfgparse.items(section)
 
-
+    @staticmethod
+    def _param_d2l(param):
+        """ Convert dictionary to list and add name by key """
+        if isinstance(param, dict):
+            out = []
+            for key in param:
+                item = param[key]
+                item["name"] = key
+                out.append(item)
+            return out
+        else:
+            return param
 """
 ======================== EntryPoint Arguments ========================
 """
@@ -218,7 +231,7 @@ class EntryPointArguments(DotDict):
     You really don't need that, but old habits die hard."""
     def add_argument(self, **kwargs):
         """ Add arguments """
-        name = kwargs["name"]
+        name = kwargs.pop("name")
         if name in self:
             raise ValueError("'{:s}' is already an argument.".format(name))
         else:
@@ -226,19 +239,11 @@ class EntryPointArguments(DotDict):
 
 
 """
-======================== Example Usage ========================
+======================== Script Mode ========================
 """
 
 
-def _param_definitions():
-    return {"x": 7}
+if __name__ == '__main__':
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
 
 
-@EntryPoint(_param_definitions())
-def some_function(options):
-    # options can be handled like an object
-    return options.x * 8
-
-
-if __name__ == "__main__":
-    print some_function(x=6)

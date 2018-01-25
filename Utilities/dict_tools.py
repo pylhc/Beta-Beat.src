@@ -88,7 +88,7 @@ class Argument(object):
             raise ArgumentError("Argument '{:s}': ".format(str(self.name)) +
                                 "Name is not a valid string.")
 
-        if self.type and not isinstance(self.default, self.type):
+        if self.default and self.type and not isinstance(self.default, self.type):
             raise ArgumentError("Argument '{:s}': ".format(self.name) +
                                 "Default value not of specified type.")
 
@@ -180,7 +180,7 @@ class DictParser(object):
         arg = arg_dict[key]
         if not opt_dict or key not in opt_dict:
             if arg.required:
-                raise OptionError("'{:s}' required in options.\n{:s}".format(
+                raise OptionError("'{:s}' required in options.\nHelp: {:s}".format(
                     key, arg.help)
                 )
             else:
@@ -188,11 +188,11 @@ class DictParser(object):
 
         opt = opt_dict[key]
         if arg.type and not isinstance(opt, arg.type):
-            raise OptionError("'{:s}' is not of type {:s}.\n{:s}".format(
+            raise OptionError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
                 key, arg.type.__name__, arg.help)
             )
         if arg.choices and opt not in arg.choices:
-            raise OptionError("'{:s}' needs to be one of {:s}.\n{:s}".format(
+            raise OptionError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
                 key, arg.choices, arg.help)
             )
         return opt
@@ -213,7 +213,7 @@ class DictParser(object):
         Returns:
             Dictionary with parsed options
         """
-        checked_dict = {}
+        checked_dict = DotDict()
         for key in arg_dict:
             if isinstance(arg_dict[key], Argument):
                 checked_dict[key] = DictParser._check_value(key, opt_dict, arg_dict)
@@ -399,11 +399,12 @@ class DictParser(object):
 
     def _convert_config_items(self, items):
         """ Converts items list to a dictionary with types already in place """
-        def evaluate(item):
+        def evaluate(name, item):
             try:
-                return eval(value)  # sorry for using that
+                return eval(item)  # sorry for using that
             except NameError:
-                return value  # might be a string in the first place.
+                raise OptionError(
+                    "Could not evaluate option '{:s}', unknown '{:s}'".format(name, item))
 
         out = {}
         for name, value in items:
@@ -412,20 +413,23 @@ class DictParser(object):
                 if arg.type == list:
                     if not value.startswith("["):
                         value = "[" + value + "]"
-                    value = evaluate(value)
+                    value = evaluate(name, value)
                     if arg.subtype:
                         for idx, entry in enumerate(value):
-                            value[idx] = arg.subtype(value)
+                            value[idx] = arg.subtype(entry)
+                elif arg.type:
+                    value = arg.type(value)
+                else:
+                    value = evaluate(name, value)
                 out[name] = value
             else:
                 # could check self.strict here, but result is passed to get checked anyway
-                out[name] = evaluate(value)
+                out[name] = evaluate(name, value)
         return out
 
 
-
 """
-======================== Script Testing Mode ========================
+======================== Script Mode ========================
 """
 
 if __name__ == '__main__':
