@@ -478,9 +478,19 @@ class Lhc(Accelerator):
 
     def get_k_first_BPM(self, index):
         if self.get_beam() == 1:
-            return index.get_loc("BPMSW.1L2.B1")
+            model_k =  self.model_tfs.index.get_loc("BPMSW.1L2.B1")
+            while model_k < len(self.model_tfs.index):
+                kname = self.model_tfs.index[model_k]
+                if kname in index:
+                    return index.get_loc(kname)
+                model_k = model_k + 1
         elif self.get_beam() == 2:
-            return index.get_loc("BPMSW.1L8.B2")
+            model_k =  self.model_tfs.index.get_loc("BPMSW.1L8.B2")
+            while model_k < len(self.model_tfs.index):
+                kname = self.model_tfs.index[model_k]
+                if kname in index:
+                    return index.get_loc(kname)
+                model_k = model_k + 1
         return None
         
     def get_model_tfs(self):
