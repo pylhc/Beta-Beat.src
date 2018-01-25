@@ -141,8 +141,10 @@ NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
 BAD_BPMS_hor = ["BPM.23L6.B1", "BPM.22R8.B1", "BPMYB.4L2.B1", "BPMSX.4L2.B1", "BPMYB.4L2.B1", "BPM.14L4.B1", "BPM23L6.B1",
-                "BPM.16R3.B1", "BPM20L2.B2", "BPM6L1.B2", "BPM24R2.B2", "BPM.16L5.B2", "BPM.12R4.B1"]
-BAD_BPMS_ver = ["BPMSX.4L2.B1", "BPM.22R8.B1", "BPM.23L6.B1", "BPMSX.4L2.B1", "BPM.31R2.B2", "BPM20L2.B2", "BPM.12R4.B1"]
+                "BPM.16R3.B1", "BPM20L2.B2", "BPM6L1.B2", "BPM24R2.B2", "BPM.16L5.B2", "BPM.12R4.B1", "BPMSW.1L2.B1",
+                "BPM.25L5.B1"]
+BAD_BPMS_ver = ["BPMSX.4L2.B1", "BPM.22R8.B1", "BPM.23L6.B1", "BPMSX.4L2.B1", "BPM.31R2.B2", "BPM20L2.B2",
+                "BPM.12R4.B1"]
 
 
 # DEBUGGING
@@ -153,21 +155,21 @@ def print_time(index, t):
 #===================================================================================================
 # _parse_args()-function
 #===================================================================================================
-def _parse_args():
+def _parse_args(start_args=sys.argv):
     ''' Parses command line arguments. '''
     
     try:  # for transition 
         accel_cls, rest_args = manager.get_accel_class_from_args(
-            sys.argv[1:]
+            start_args[1:]
         )
     except:
-        LOGGER.debug("Loading accelerator class failed.")
-        LOGGER.debug("Suppose that the old command line arguments were used")
-        LOGGER.debug("and guess what the right accelerator might be")
+        LOGGER.warning("Loading accelerator class failed.")
+        LOGGER.warning("Suppose that the old command line arguments were used")
+        LOGGER.warning("and guess what the right accelerator might be")
         accParser = argparse.ArgumentParser()
         accParser.add_argument("-a", "--accel", dest="accel")
 
-        accargs, rest_args = accParser.parse_known_args(sys.argv[1:])
+        accargs, rest_args = accParser.parse_known_args(start_args)
         if accargs.accel == "LHCB1":
             accel_cls, _ = manager.get_accel_class_from_args([
                 "--accel", "lhc",
@@ -434,7 +436,8 @@ def main(accelerator,
 #               files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
 
     except:
-        traceback.print_exc()
+        #traceback.print_exc()
+        LOGGER.error(traceback.format_exc())
         return_code = 1
     finally:
         # Write results to files in files_dict
@@ -967,6 +970,7 @@ def _get_commonbpms(ListOfFiles, model, union, plane):
     Hack for now: known bad BPMs are excluded at this point.
     """
 
+    LOGGER.debug("Ignoring Bad BPMs")
     if plane == "H":
         good_bpms_index = model.index.drop(BAD_BPMS_hor, errors='ignore')
     else:
