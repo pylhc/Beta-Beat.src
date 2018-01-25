@@ -176,7 +176,7 @@ def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['retur
             format: varmap format, either "tfs" or "dictionary"
     """
     _check_ret(format)
-
+    LOG.debug("Converting varmap to json-file.")
     if isinstance(varmap_or_file, basestring):
         mapping = load_or_parse_variable_mapping(varmap_or_file, ret=format)
         if outfile is None:
@@ -203,6 +203,7 @@ def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['retur
                                       ).replace("}", "\n}")
     with open(outfile, "w") as json_file:
         json_file.write(json_string)
+        LOG.debug("Variables saved to '{:s}'.".format(outfile))
 
 
 """
@@ -240,18 +241,23 @@ def _find_element_length(line):
 def _find_magnet_strength(line):
     """ Search for magnet strengths in line
     """
+    line = line.lower()
     matches = list(re.finditer(
         r",\s*k((?P<s>[ns])l:=\{(?P<knl>[^\}]+)\}|(?P<n>\d+s?):=(?P<k>[^,]+))", line))
 
     if len(matches) > 0:
         magnet = re.match(r"[\w.]*", line).group(0)
-        if magnet.lower().startswith("mb."):
-            return None  # HACK AS "MB." IS ASSUMED TO BE DEFINED BY BENDING RADIUS
 
         knl_dict = {}
         for match in matches:
+            ########## HACK TO AVOID DIPOLES AS THEY ARE DEFINED BY LRAD!
+            #TODO: Find a way to change dipoles in MADX!?
+            if magnet.startswith("mb"):
+                return None
+            ##############################################################
+
             if match.group("knl") is not None:
-                skew = "S" if match.group('s').upper() == "S" else ""
+                skew = "S" if match.group('s') == "s" else ""
                 knls = match.group('knl').split(',')
                 for n, knl in enumerate(knls):
                     try:
@@ -260,7 +266,7 @@ def _find_magnet_strength(line):
                         order = "K{n:d}{skew:s}L".format(n=n, skew=skew)
                         knl_dict[order] = knl.replace(" ", "")
             else:
-                if match.group("n").upper() in ['0', "0S"]:
+                if match.group("n") in ['0', '0s']:
                     # dipole strength are defined by their angles
                     knl = re.search(r"angle\s*:=\s*([^,]+)", line).group(1)
                 else:
@@ -357,8 +363,10 @@ def _check_ret(ret):
 
 
 if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not meant to be run as main.".format(__file__))
     # # Testing:
     # import os
-    # df = get_variable_mapping(os.path.join("tests", "lhcb1_tmp.seq"))
-    # print df.loc['mq.26r5.b1', df.loc['mq.26r5.b1', :] != 0]
+    # seq_name = "lhcb1_tmp.seq"
+    # df = load_or_parse_variable_mapping(os.path.join("tests", seq_name))
+    # varmap_variables_to_json(df, seq_name)
+    raise EnvironmentError("{:s} is not meant to be run as main.".format(__file__))
+
