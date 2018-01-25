@@ -182,7 +182,7 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, ac2bpmac, plane, getllm
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
         LOGGER.info("correcting phase jump")
-        s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx[ACDC_defs[KEY_FIRSTBPM]]]
+        s_lastbpm = getllm_d.accelerator.get_s_first_BPM()
 
     #-- Determine the BPM closest to the AC dipole and its position
     k_bpmac = ac2bpmac[2]
