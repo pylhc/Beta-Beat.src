@@ -41,8 +41,7 @@ PRINTTIMES = False
 LOGGER = logging_tools.get_logger(__name__)
 
 if DEBUG:
-    from debug_algorithms import create_debugfile, close_file, start_write_bpm, end_bpm, write_bpm_combination, \
-    write_matrix
+    import debug_algorithms as DBG
 #if False:
 #    from Utilities.progressbar import startProgress, progress, endProgress
 #else:
@@ -65,9 +64,9 @@ SEXT_FACT               = 2.0                       #@IgnorePep8
 A_FACT                  = -.5                       #@IgnorePep8
 BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
-ZERO_THRESHOLD          = 2e-2                      #@IgnorePep8
+ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
 PHASE_THRESHOLD         = 1.0e-2                      #@IgnorePep8
-COT_THRESHOLD           = 1.0e6
+COT_THRESHOLD           = 15.9 #1.0e6
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
 MOD_POINTFIVE_UPPER     = (BADPHASE - PHASE_THRESHOLD)    #@IgnorePep8
 RCOND                   = 1.0e-10                    #@IgnorePep8
@@ -245,80 +244,77 @@ class Uncertainties:  # error definition file
     
     def open(self, filename):
         _debug_("opening error definition file '{:s}'".format(filename))
-        try:
-            with open(filename, "r") as F:
-        
+        with open(filename, "r") as F:
+    
+            line = F.readline()
+            
+            if line.strip() == "version 2":
                 line = F.readline()
-                
-                if line.strip() == "version 2":
-                    line = F.readline()
-                    for line in F:
+                for line in F:
+                    
+                    line = re.split("//", line)[0].strip()  # separating code from comments
+                    if len(line) == 0:
+                        continue
+                    match = re.search(r'prop (\w+)\s+=\s(\w[\w\s]*)', line)
+                    if match is not None:
+                        _debug_("adding {} = {} to properties".format(match.group(1), match.group(2)))
+                        self.properties[match.group(1)] = match.group(2).strip()
+                    else:
+                        words = re.split('\s', line)
                         
-                        line = re.split("//", line)[0].strip()  # separating code from comments
-                        if len(line) == 0:
-                            continue
-                        match = re.search(r'prop (\w+)\s+=\s(\w[\w\s]*)', line)
-                        if match is not None:
-                            _debug_("adding {} = {} to properties".format(match.group(1), match.group(2)))
-                            self.properties[match.group(1)] = match.group(2).strip()
-                        else:
-                            words = re.split('\s', line)
+                        if words[0].startswith("re:"):
+                            ud = UncertaintyDefinitionRE(words[0].split(":")[1])
                             
-                            if words[0].startswith("re:"):
-                                ud = UncertaintyDefinitionRE(words[0].split(":")[1])
-                                
-                                for word in words:
-                                    kv = word.split("=")
-                                    if kv[0] == "dK1":
-                                        ud.dK1 = float(kv[1])
-                                    elif kv[0] == "dS":
-                                        ud.dS = float(kv[1])
-                                    elif kv[0] == "dX":
-                                        ud.dX = float(kv[1])
-                                    elif kv[0] == "Type":
-                                        ud.settype(kv[1])
-                                self.regex.append(ud)
-                            else:
-                                ud = UncertaintyDefinition(words[0])
-                                
-                                for word in words:
-                                    kv = word.split("=")
-                                    if kv[0] == "dK1":
-                                        ud.dK1 = float(kv[1])
-                                    elif kv[0] == "dS":
-                                        ud.dS = float(kv[1])
-                                    elif kv[0] == "dX":
-                                        ud.dX = float(kv[1])
-                                    elif kv[0] == "Type":
-                                        ud.settype(kv[1])
-                                self.keys.append(ud)
+                            for word in words:
+                                kv = word.split("=")
+                                if kv[0] == "dK1":
+                                    ud.dK1 = float(kv[1])
+                                elif kv[0] == "dS":
+                                    ud.dS = float(kv[1])
+                                elif kv[0] == "dX":
+                                    ud.dX = float(kv[1])
+                                elif kv[0] == "Type":
+                                    ud.settype(kv[1])
+                            self.regex.append(ud)
+                        else:
+                            ud = UncertaintyDefinition(words[0])
+                            
+                            for word in words:
+                                kv = word.split("=")
+                                if kv[0] == "dK1":
+                                    ud.dK1 = float(kv[1])
+                                elif kv[0] == "dS":
+                                    ud.dS = float(kv[1])
+                                elif kv[0] == "dX":
+                                    ud.dX = float(kv[1])
+                                elif kv[0] == "Type":
+                                    ud.settype(kv[1])
+                            self.keys.append(ud)
+            
+                return True
+            else:
                 
-                    return True
-                else:
+                try:
+                    definitions = Python_Classes4MAD.metaclass.twiss(filename)
                     
-                    try:
-                        definitions = Python_Classes4MAD.metaclass.twiss(filename)
-                        
-                    except:
-                        _error_("loading errorfile didn't work")
-                        _error_("errordefspath = {0:s}".format(filename))
-                        return False
-                    
-                    _debug_("error definitions file version 1")
-                    self.properties["RELATIVE"] = definitions.RELATIVE
-                    self.properties["RADIUS"] = definitions.RADIUS
-                     
-                    for index in range(len(definitions.PATTERN)):
-                        pattern = definitions.PATTERN[index]
-                        self.regex.append(UncertaintyDefinitionRE(
-                            pattern,
-                            definitions.dK1[index],
-                            definitions.dS[index],
-                            definitions.dX[index],
-                            definitions.MAINFIELD[index]))
-                    return True
-        except IOError:
-            return False
+                except:
+                    _error_("loading errorfile didn't work")
+                    _error_("errordefspath = {0:s}".format(filename))
+                    return False
+                
+                _debug_("error definitions file version 1")
+                self.properties["RELATIVE"] = definitions.RELATIVE
+                self.properties["RADIUS"] = definitions.RADIUS
+                 
+                for index in range(len(definitions.PATTERN)):
+                    pattern = definitions.PATTERN[index]
+                    self.regex.append(UncertaintyDefinitionRE(
+                        pattern,
+                        definitions.dK1[index],
+                        definitions.dS[index],
+                        definitions.dX[index],
+                        definitions.MAINFIELD[index]))
+                return True
 
 
     def create_errorfile(self, twiss_full, twiss_full_centre):
@@ -432,18 +428,18 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data
                                "NCOMBINATIONS",
                               "NFILES"])
     tfs_file.add_column_datatypes(["%s", "%le",
-                               "%le" ,
-                               "%le" ,
-                               "%le" ,
-                               "%le" ,
-                               "%le" ,
-                               "%le",
-                               "%le",
-                               "%le",
-                               "%le",
-                               "%le",
-                               "%le",
-                               "%le",
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
                                   "%le"])
     for i, row in enumerate(data):
         if not np.isnan(row[2]):
@@ -499,9 +495,8 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     _debug_value_box_("cot of phase threshold", "{:g}".format(COT_THRESHOLD))
     
     if DEBUG:
-        debugfilename = files_dict['getbetax.out'].s_output_path + "/getbetax.debug"
-        debugfile = open(debugfilename, "w+")
         _info_("ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially")
+        getllm_d.parallel = False
     elif getllm_d.parallel:
         _info_value_box_("parallel", "TRUE")
         _info_value_box_("number of processes", "{0:2d}".format(getllm_d.nprocesses))
@@ -549,13 +544,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             
             _info_("Calculate free beta from phase for plane " + _plane_char + " (_free.out)", ">")
             if DEBUG:
-                debugfile = create_debugfile(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.bdebug", "w+")
+                debugfile = DBG.create_debugfile(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.bdebug")
 
             dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(model, unc_elements, elements_centre,
                                                                   twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x, 'H',
                                                                   getllm_d, debugfile, error_method, tune_d.q1f, tune_d.q1mdl)
             if DEBUG:
-                close_file()
+                DBG.close_file()
             beta_d.x_phase = {}  # this is no typo, beta from amplitude still has the old convention that the free file is called not free
             beta_d.x_phase['DPP'] = 0
             
@@ -570,12 +565,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
                 _info_("Calculate beta from phase for plane " + _plane_char, ">")
                 if DEBUG:
-                    debugfile = create_debugfile(files_dict['getbetax.out'].s_output_path + "/getbetax.bdebug", "w+")
+                    debugfile = DBG.create_debugfile(files_dict['getbetax.out'].s_output_path + "/getbetax.bdebug")
                 data, rms_bb, bpms, error_method_x = beta_from_phase(model_driven, unc_elements, elements_centre,
                                                                    twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_x, 'H',
                                                                    getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl)
                 if DEBUG:
-                    close_file()
+                    DBG.close_file()
                 beta_d.x_phase_f = {}
                 beta_d.x_phase_f['DPP'] = 0
                 _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
@@ -602,12 +597,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         if twiss_d.has_zero_dpp_y():
             _info_("Calculate free beta from phase for plane " + _plane_char + " (_free.out)", ">")
             if DEBUG:
-                debugfile = create_debugfile(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.bdebug", "w+")
+                debugfile = DBG.create_debugfile(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.bdebug")
             dataf, rms_bb, bpms, error_method_y = beta_from_phase(model, unc_elements, elements_centre,
                                                                twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_free_y, 'V',
                                                                getllm_d, debugfile, error_method, tune_d.q2f, tune_d.q2mdl)
             if DEBUG:
-                close_file()
+                DBG.close_file()
             beta_d.y_phase = {}
             beta_d.y_phase['DPP'] = 0
             #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
@@ -623,12 +618,12 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 #-- from eq
                 _info_("Calculate beta from phase for plane " + _plane_char, ">")
                 if DEBUG:
-                    debugfile = create_debugfile(files_dict['getbetay.out'].s_output_path + "/getbetay.bdebug", "w+")
+                    debugfile = DBG.create_debugfile(files_dict['getbetay.out'].s_output_path + "/getbetay.bdebug")
                 data, rms_bb, bpmsf, error_method_y = beta_from_phase(model_driven, unc_elements, elements_centre,
                                                                       twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_y, 'V',
                                                                       getllm_d, debugfile, error_method, tune_d.q2, tune_d.q2mdl)
                 if DEBUG:
-                    close_file()
+                    DBG.close_file()
                 tfs_file = files_dict['getbetay.out']
                 
                 #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
@@ -1255,7 +1250,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     phases_err = phase["ERRMEAS"] * TWOPI
 
     # setup the results matrix
-    result = np.array(np.empty(madTwiss_intersected.shape[0]), 
+    result = np.array(np.empty(madTwiss_intersected.shape[0]),
                       dtype = [("NAME","S24"), ("S", "f8"),
                                ("BET", "f8"), ("BETSTAT", "f8"), ("BETSYS", "f8"), ("BETERR", "f8"),
                                ("ALF", "f8"), ("ALFSTAT", "f8"), ("ALFSYS", "f8"), ("ALFERR", "f8"),
@@ -1265,12 +1260,10 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     # ==========
     # define functions in a function -- python witchcraft, burn it!!!!! 
     def collect(row):
-#        if row[11]:
             result[row[0]]= row[1:]
         
     def collectblock(block):
         for row in block:
-#            if row[11]:
             result[row[0]] = row[1:]
             
      # =============== calculate the betas ============================================================================
@@ -1305,10 +1298,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
         pool.close()
         pool.join()
     else:  # not parallel
-        startProgress("Scan all BPMs")
         for i in range(0, len(commonbpms)):
-            if (i % 20 == 0):
-                progress(float(i) * 100.0 / len(commonbpms))
             row = scan_one_BPM_withsystematicerrors(madTwiss_intersected, madElements,
                                                     phases_meas, phases_err,
                                                     plane, getllm_d.range_of_bpms, commonbpms,
@@ -1316,7 +1306,6 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                                     BBA_combo, ABB_combo, BAB_combo,
                                                     tune, mdltune)
             collect(row)
-        endProgress()
     et = time.time()
     
     _debug_("time elapsed = {0:3.3f}".format(et - st))
@@ -1505,10 +1494,12 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         betmdl1 = madTwiss.get_value(probed_bpm_name, "BETX")
         mu_column = "MUX"
         bet_column = "BETX"
+        plane_char = "X"
     elif plane == 'V':
         betmdl1 = madTwiss.get_value(probed_bpm_name, "BETY")
         mu_column = "MUY"
         bet_column = "BETY"
+        plane_char = "Y"
     
     beti        = DEFAULT_WRONG_BETA    #@IgnorePep8
     betstat     = .0                    #@IgnorePep8
@@ -1785,15 +1776,23 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     # writing debug output
     #------------------------------------------------------------------------------------------------------------------
     if DEBUG:
-        start_write_bpm(probed_bpm_name, s, beti, alfi, 0)
-        write_matrix(T_Beta, "T_Beta")
-        end_bpm()
+        DBG.start_write_bpm(probed_bpm_name, s, beti, alfi, 0)
+        
+        DBG.write_matrix(T_Beta, "T_Beta")
+        DBG.start_write_combinations(len(betas))
+        combs = np.r_[BBA_combo, BAB_combo, ABB_combo] # Stackexchange
+        combs = combs[beta_mask]
+        for n, beta_of_comb in enumerate(betas):
+            DBG.write_bpm_combination(combs[n][0], combs[n][1], beta_of_comb, w[n] / VBeta_inv_sum)
+        DBG.write_double("PHI{}MDL".format(plane_char), outerMdlPh[m])
+
+        DBG.write_end()
+
     return (Index, probed_bpm_name, s,
                 beti, betstat, betsys, beterr,
                 alfi, alfstat, alfsys, alferr,
                 .0, betmdl1, (beti - betmdl1) / betmdl1 * 100.0,
                 len(betas))
-    
  
 #===================================================================================================
 #--- ac-dipole stuff
@@ -1965,7 +1964,7 @@ def _info_box_(string):
     LOGGER.info(" " + logger_box_format.format(string))
 
 def _info_value_box_(key, value):
-    LOGGER.info(" " + logger_box_value_format.format(key, value))
+    LOGGER.info(logger_box_value_format.format(key, value))
 
 def _debug_value_box_(key, value):
     LOGGER.debug(logger_box_value_format.format(key, value))
