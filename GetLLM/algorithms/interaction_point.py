@@ -337,7 +337,7 @@ def _get_ip_2(mad_twiss, files, Q, plane, accel, bpms, lhc_phase):
 
 def _get_ip_from_phase(MADTwiss, psix, psiy, accelerator):
 
-    raise NotImplementedError("")
+    raise NotImplementedError("this function hasn't been upgraded to accelerator class")
     IP=('1','2','5','8')
     result={}
     for i in IP:
