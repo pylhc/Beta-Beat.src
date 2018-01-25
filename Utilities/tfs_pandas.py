@@ -135,6 +135,9 @@ def read_tfs(tfs_path, index=None):
                 idx_name = None  # to remove it completely (Pandas makes a difference)
             data_frame = data_frame.rename_axis(idx_name)
 
+    # not sure if this is needed in general but some of GetLLM's funstions try to access this
+    headers["filename"] = tfs_path
+
     _validate(data_frame)
     return data_frame
 
