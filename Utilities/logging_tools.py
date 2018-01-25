@@ -132,7 +132,7 @@ def _get_current_module(current_file=None):
     """ Find the name of the current module """
     if not current_file:
         current_file = _get_caller()
-    path_parts = current_file.split(os.path.sep)
+    path_parts = os.path.abspath(current_file).split(os.path.sep)
     repo_parts = iotools.get_absolute_path_to_betabeat_root().split(os.path.sep)
     current_module = '.'.join(path_parts[len(repo_parts):-1])
     return current_module

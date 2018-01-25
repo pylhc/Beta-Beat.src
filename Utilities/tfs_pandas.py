@@ -179,11 +179,11 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
         except AttributeError:
             pass
 
-    for head_name, head_value in headers_dict.iteritems():
-        if type(head_value) is str:
-            tfs_writer.add_string_descriptor(head_name, head_value)
+    for head_name in headers_dict:
+        if type(headers_dict[head_name]) is str:
+            tfs_writer.add_string_descriptor(head_name, headers_dict[head_name])
         else:
-            tfs_writer.add_float_descriptor(head_name, head_value)
+            tfs_writer.add_float_descriptor(head_name, headers_dict[head_name])
     tfs_writer.add_column_names(column_names)
     tfs_writer.add_column_datatypes(column_types)
     for _, row in data_frame.iterrows():
@@ -249,8 +249,8 @@ def _create_data_frame(column_names, column_types, rows_list, headers):
 
 def _assign_column_types(data_frame, column_names, column_types):
     names_to_types = dict(zip(column_names, column_types))
-    for name, type_f in names_to_types.iteritems():
-        data_frame[name] = data_frame[name].astype(type_f)
+    for name in names_to_types:
+        data_frame[name] = data_frame[name].astype(names_to_types[name])
 
 
 def _compute_types(str_list):
