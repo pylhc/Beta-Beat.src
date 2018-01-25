@@ -263,6 +263,7 @@ vec_t_value_correction = np.vectorize(t_value_correction, otypes=[int])
 
 def calc_phase_mean(phase0, norm):
     ''' phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi '''
+    # look at hole_in_one/get_optics_3D.py !!!!!!!!!!
     phase0 = np.array(phase0)%norm
     phase1 = (phase0 + .5*norm) % norm - .5*norm
     phase0ave = np.mean(phase0)
@@ -615,7 +616,7 @@ def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x
                  meas.loc[meas.index[0]][meas.index[i+1]],
                  err.loc[meas.index[0]][meas.index[i+1]],
                  mod.loc[meas.index[0]][meas.index[i+1]],
-                 model.loc[meas.index[i], plane_mu]
+                 model.loc[meas.index[i+1], plane_mu]
                 ])
     return tfs_file
 
