@@ -1024,11 +1024,14 @@ def _get_commonbpms(ListOfFiles, model, union, plane):
 
 
 def _tb_():
-    err_exc = re.sub(r"line\s([0-9]+)", "\33[1mline \33[38;2;80;160;255m\\1\33[0m\33[21m", traceback.format_exc())
-    err_exc = re.sub("File\\s\"([^\"]+)\"", "File \33[38;2;0;255;100m\\1\33[0m", err_exc)
-    err_excs = err_exc.split("\n")
-    for line in err_excs:
-        LOGGER.error(line)
+    if sys.stdout.isatty():
+        err_exc = re.sub(r"line\s([0-9]+)", "\33[1mline \33[38;2;80;160;255m\\1\33[0m\33[21m", traceback.format_exc())
+        err_exc = re.sub("File\\s\"([^\"]+)\"", "File \33[38;2;0;255;100m\\1\33[0m", err_exc)
+        err_excs = err_exc.split("\n")
+        for line in err_excs:
+            LOGGER.error(line)
+    else:
+        LOGGER.error(traceback.format_exc)
 
 
 #===================================================================================================
