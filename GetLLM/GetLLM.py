@@ -364,68 +364,102 @@ def main(accelerator,
 #        # Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
 #        pseudo_list_x = None
 #        pseudo_list_y = None
-    
     print_time("BEFORE_PHASE", time() - __getllm_starttime)
 
+    #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
+    #temp_dict = copy.deepcopy(files_dict)
     try:
-        #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
-        #temp_dict = copy.deepcopy(files_dict)
-       
-        phase_d_bk, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
-                                                         accelerator.get_best_knowledge_model_tfs(),
-                                                         accelerator.get_driven_tfs(),
-                                                         accelerator.get_elements_tfs(),
-                                                         files_dict)
-        print_time("AFTER_PHASE_BK", time() - __getllm_starttime)
-       
+        phase_d_bk, tune_d = algorithms.phase.calculate_phase(
+            getllm_d, twiss_d, tune_d, accelerator.get_best_knowledge_model_tfs(), accelerator.get_driven_tfs(),
+            accelerator.get_elements_tfs(), files_dict
+        )
+    except:
+        _tb_()
+    print_time("AFTER_PHASE_BK", time() - __getllm_starttime)
+   
 #        #-------- START Phase
 #        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
 #                                                           accelerator.get_model_tfs(),
 #                                                           accelerator.get_driven_tfs(),
 #                                                           accelerator.get_elements_tfs(),
 #                                                           files_dict)
-        print_time("AFTER_PHASE", time() - __getllm_starttime)
+    print_time("AFTER_PHASE", time() - __getllm_starttime)
 
 
-        #-------- START Beta
-        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d,
-                                                           phase_d_bk,
-                                                           accelerator.get_model_tfs(),
-                                                           accelerator.get_driven_tfs(),
-                                                           accelerator.get_elements_tfs(),
-                                                           accelerator.get_best_knowledge_model_tfs(),
-                                                           files_dict)
-        if use_only_three_bpms_for_beta_from_phase:
-            print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
-        else:
-            print_time("AFTER_A_NBPM", time() - __getllm_starttime)
+    #-------- START Beta
+    try:
+        beta_d = algorithms.beta.calculate_beta_from_phase(
+            getllm_d, twiss_d, tune_d, phase_d_bk, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
+            accelerator.get_elements_tfs(), accelerator.get_best_knowledge_model_tfs(), files_dict
+        )
+    except:
+        _tb_()
+    if use_only_three_bpms_for_beta_from_phase:
+        print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
+    else:
+        print_time("AFTER_A_NBPM", time() - __getllm_starttime)
 
-        #------- START beta from amplitude
-        beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
+    #------- START beta from amplitude
+    try:
+        beta_d = algorithms.beta.calculate_beta_from_amplitude(
+            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
+            files_dict
+        )
+    except:
+        _tb_()
 
-        # STEP out of getllm
+    # STEP out of getllm
 
-        #-------- START IP
-        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d_bk, beta_d,
-                                                  accelerator.get_model_tfs(),
-                                                  accelerator.get_driven_tfs(),
-                                                  files_dict)
+    #-------- START IP
+    try:
+        algorithms.interaction_point.calculate_ip(
+            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
+            files_dict
+        )
+    except:
+        _tb_()
 
-        #-------- START Orbit
-        list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict)
+    #-------- START Orbit
+    try:
+        list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(
+            getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict
+        )
+    except:
+        _tb_()
 
-        #-------- START Dispersion
-        algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
-        
-        #------ Start get Q,JX,delta
-        files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict, bbthreshold, errthreshold)
+    #-------- START Dispersion
+    try:
+        algorithms.dispersion.calculate_dispersion(
+            getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y
+        )
+    except:
+        _tb_()
+    
+    #------ Start get Q,JX,delta
+    try:
+        files_dict, inv_x, inv_y = _calculate_kick(
+            getllm_d, twiss_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict,
+            bbthreshold, errthreshold
+        )
+    except:
+        _tb_()
 
-        #-------- START coupling.
-        tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict)
+    #-------- START coupling.
+    try:
+        tune_d = algorithms.coupling.calculate_coupling(
+            getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict
+        )
+    except:
+        _tb_()
 
-        #-------- START RDTs
-        if nonlinear:
-            algorithms.resonant_driving_terms.calculate_RDTs(accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y)
+    #-------- START RDTs
+    if nonlinear:
+        try:
+            algorithms.resonant_driving_terms.calculate_RDTs(
+                accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y
+            )
+        except:
+            _tb_()
 
 # TODO: what does this?
 #           if tbtana == "SUSSIX":
@@ -435,15 +469,10 @@ def main(accelerator,
 #               #------ Start getchiterms @ Glenn Vanbavinckhove
 #               files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
 
-    except:
-        #traceback.print_exc()
-        LOGGER.error(traceback.format_exc())
-        return_code = 1
-    finally:
         # Write results to files in files_dict
-        LOGGER.info("Writing files")
-        for tfsfile in files_dict.itervalues():
-            tfsfile.write_to_file(formatted=True)
+    LOGGER.info("Writing files")
+    for tfsfile in files_dict.itervalues():
+        tfsfile.write_to_file(formatted=True)
 
     print_time("FINISH", time() - __getllm_starttime)
     return return_code
@@ -992,6 +1021,14 @@ def _get_commonbpms(ListOfFiles, model, union, plane):
     commbpms = pd.DataFrame(model.loc[common_index, "S"])
     commbpms["NFILES"] = len(ListOfFiles)
     return commbpms, None
+
+
+def _tb_():
+    err_exc = re.sub(r"line\s([0-9]+)", "\33[1mline \33[38;2;80;160;255m\\1\33[0m\33[21m", traceback.format_exc())
+    err_exc = re.sub("File\\s\"([^\"]+)\"", "File \33[38;2;0;255;100m\\1\33[0m", err_exc)
+    err_excs = err_exc.split("\n")
+    for line in err_excs:
+        LOGGER.error(line)
 
 
 #===================================================================================================
