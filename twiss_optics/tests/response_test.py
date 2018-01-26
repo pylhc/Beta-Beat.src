@@ -63,7 +63,7 @@ def test_k1_change():
     dk1 = dk1_start * 1e-1
 
     # Calculation
-    twiss_delta, madx_delta = _get_deltas(madxfile_path,
+    twiss_delta, madx_delta, _ = _get_deltas(madxfile_path,
                                           seqfile_path, seq_name,
                                           variables_path, dk1)
 
@@ -218,7 +218,7 @@ def test_dispersion():
     dk = dk_start * 1e-1
 
     # Calculation
-    twiss_delta, madx_delta = _get_deltas(madxfile_path,
+    twiss_delta, madx_delta, _ = _get_deltas(madxfile_path,
                                           seqfile_path, seq_name,
                                           variables_path, dk, [])
 
@@ -234,7 +234,7 @@ def test_dispersion():
 
 def test_real_single():
     LOG.info("Running Realistic Single test.")
-    random.seed(2012)
+    random.seed(2001)
 
     # File Definitions
     resultsfile_path = os.path.join(DATA_RESULT, 'results_test_real_single.dat')
@@ -244,6 +244,7 @@ def test_real_single():
     seq_name = "lhcb1"
 
     k_list = _exclude_cat(_load_varnames(variables_path))
+
     exponents = EXPONENT_RANGE
     n_magnets = 1
     n_magnet_runs = N_RUNS_SINGLE
@@ -258,7 +259,7 @@ def test_real_single():
 
 def test_real_multi():
     LOG.info("Running Realistic Multi test.")
-    random.seed(2013)
+    random.seed(2002)
 
     # File Definitions
     resultsfile_path = os.path.join(DATA_RESULT, 'results_test_real_multi.dat')
@@ -774,17 +775,8 @@ def _calc_error_averages(results):
                     for stat in results[run]:
                         res_resp = results[run][stat][resp][param]
                         res_mad_x = results[run][stat][mad_x][param]
-                        if any(np.isnan(res_resp)):
-                            LOG.error("NAN values encountered! In :")
-                            LOG.error("  {run:g}_{stat:g}_{r:s}_{p:s}".format(
-                                run=run, stat=stat, r=resp, p=param,
-                            ))
-                        elif any(np.isnan(res_mad_x)):
-                            LOG.error("NAN values encountered! In :")
-                            LOG.error("  {run:g}_{stat:g}_{r:s}_{p:s}".format(
-                                run=run, stat=stat, r=mad_x, p=param,
-                            ))
-                        else:
+                        if (_not_nan_check(res_resp, run=run, stat=stat, m=resp, par=param) and
+                            _not_nan_check(res_mad_x, run=run, stat=stat, m=mad_x, par=param)):
                             error_values = error_fun(res_resp, res_mad_x)
                             rms_values.append(rms(error_values))
                             mean_values.append(np.mean(error_values))
@@ -809,6 +801,24 @@ def _exclude_cat(d_in):
     for key in [k for k in d_in if k not in EXCLUDE_CATEGORIES_DEFAULT]:
         vars += d_in[key]
     return vars
+
+
+def _not_nan_check(val, **kwargs):
+    """ Checks for NANs in val and logs error message if found. """
+    try:
+        isnan = any(np.isnan(val))
+    except TypeError:
+        isnan = np.isnan(val)
+
+    if isnan:
+        arg_str = "  "
+        for k in kwargs:
+            arg_str += k + ": " + str(kwargs[k]) + ", "
+        LOG.error("NAN values encountered! In :")
+        LOG.error(arg_str)
+
+    return not isnan
+
 
 
 """
