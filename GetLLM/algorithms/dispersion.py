@@ -43,7 +43,10 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
     '''
     print 'Calculating dispersion'
     if twiss_d.has_zero_dpp_x() and twiss_d.has_non_zero_dpp_x():
-        [nda, d_x, dpx, bpms] = _norm_disp_x(mad_twiss, twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, beta_x_from_amp, getllm_d.cut_for_closed_orbit)
+        [nda, d_x, dpx, bpms] = _norm_disp_x(mad_twiss, twiss_d.zero_dpp_commonbpms_x,
+                                             twiss_d.non_zero_dpp_commonbpms_x, twiss_d.zero_dpp_x,
+                                             twiss_d.non_zero_dpp_x, list_of_co_x, beta_x_from_amp,
+                                             getllm_d.cut_for_closed_orbit)
         tfs_file = files_dict['getNDx.out']
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
@@ -52,11 +55,15 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
         for i in range(len(bpms)):
             bn1 = str.upper(bpms[i][1])
             bns1 = bpms[i][0]
-            ndmdl = mad_twiss.DX[mad_twiss.indx[bn1]] / math.sqrt(mad_twiss.BETX[mad_twiss.indx[bn1]])
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), nda[bn1][0], nda[bn1][1], d_x[bn1][0], dpx[bn1], ndmdl, mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
+            ndmdl = mad_twiss.DX[mad_twiss.indx[bn1]] / math.sqrt(mad_twiss.loc[bn1, "BETX"])
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), nda[bn1][0], nda[bn1][1],
+                                d_x[bn1][0], dpx[bn1], ndmdl, mad_twiss.loc[bn1, "DX"], mad_twiss.loc[bn1, "DPX"],
+                                mad_twiss.loc[bn1, "MUX"]]
             tfs_file.add_table_row(list_row_entries)
 
-        [dxo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
+        [dxo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_commonbpms_x,
+                                             twiss_d.non_zero_dpp_commonbpms_x, list_of_co_x,
+                                             getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
         dpx = _get_dpx(mad_twiss, dxo, bpms)
         tfs_file = files_dict['getDx.out']
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
@@ -66,11 +73,14 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
         for i in range(len(bpms)):
             bn1 = str.upper(bpms[i][1])
             bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), dxo[bn1][0], dxo[bn1][1], dpx[bn1], mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), dxo[bn1][0], dxo[bn1][1], dpx[bn1],
+                                mad_twiss.loc[bn1, "DX"], mad_twiss.loc[bn1, "DPX"], mad_twiss.loc[bn1, "MUX"]]
             tfs_file.add_table_row(list_row_entries)
 
     if twiss_d.has_zero_dpp_y() and twiss_d.has_non_zero_dpp_y():
-        [dyo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_y, twiss_d.non_zero_dpp_y, list_of_co_y, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
+        [dyo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_y, twiss_d.non_zero_dpp_y, twiss_d.zero_dpp_commonbpms_x,
+                                             twiss_d.non_zero_dpp_commonbpms_x, list_of_co_y,
+                                             getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
         dpy = _get_dpy(mad_twiss, dyo, bpms)
         tfs_file = files_dict['getDy.out']
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
@@ -80,7 +90,8 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
         for i in range(len(bpms)):
             bn1 = str.upper(bpms[i][1])
             bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_y), dyo[bn1][0], dyo[bn1][1], dpy[bn1], mad_twiss.DY[mad_twiss.indx[bn1]], mad_twiss.DPY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
+            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_y), dyo[bn1][0], dyo[bn1][1], dpy[bn1],
+                                mad_twiss.loc[bn1, "DY"], mad_twiss.loc[bn1, "DPY"], mad_twiss.loc[bn1, "MUY"]]
             tfs_file.add_table_row(list_row_entries)
 # END calculate_dispersion -------------------------------------------------------------------------
 
@@ -89,7 +100,7 @@ def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_
 # helper-functions
 #===================================================================================================
 
-def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, betax, cut_co):
+def _norm_disp_x(mad_twiss, bpms_zerodpp, bpms_nonzerodpp, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, betax, cut_co):
 
     nzdpp=len(list_non_zero_dpp_x) # How many non zero dpp
     zdpp=len(list_zero_dpp_x)  # How many zero dpp
@@ -111,9 +122,8 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
 
     nda={} # Dictionary for the output containing [average Disp, rms error]
 
-    ALL=list_zero_dpp_x+list_non_zero_dpp_x
-    commonbpmsALL=Utilities.bpm.intersect(ALL)
-    commonbpmsALL=Utilities.bpm.model_intersect(commonbpmsALL, mad_twiss)
+    common_index = bpms_zerodpp.index.intersection(bpms_nonzerodpp.index)
+    common_bpms = bpms_zerodpp.loc[common_index]
 
     mydp=[]
     gf=[]
@@ -128,10 +138,10 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
     nd=[]
     ndmdl=[]
     badco=0
-    for i in range(0,len(commonbpmsALL)):
-        bn1=str.upper(commonbpmsALL[i][1])
-        bns1=commonbpmsALL[i][0]
-        ndmdli=mad_twiss.DX[mad_twiss.indx[bn1]]/math.sqrt(mad_twiss.BETX[mad_twiss.indx[bn1]])
+    for bn1 in common_bpms.index:
+
+        bns1 = common_bpms.loc[bn1, "S"]
+        ndmdli=mad_twiss.loc[bn1, "DX"]/math.sqrt(mad_twiss.loc[bn1, "BETX"])
         ndmdl.append(ndmdli)
 
         try:
@@ -139,7 +149,7 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
 
             ampi=0.0
             for j in list_zero_dpp_x:
-                ampi+=j.AMPX[j.indx[bn1]]
+                ampi += j.loc[bn1, "AMPX"]
             ampi=ampi/zdpp
 
             ndi=[]
@@ -158,7 +168,7 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
     avemdl=np.average(ndmdl)
 
     gf=np.array(gf)
-    gf=gf/avemdl/(len(commonbpmsALL)-badco)
+    gf=gf/avemdl/(len(common_bpms)-badco)
 
 
     # Find normalized dispersion and Dx construction
@@ -167,10 +177,9 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
     dummy=0.0 # dummy for DXSTD
     bpms=[]
     badco=0
-    for i in range(0,len(commonbpmsALL)):
+    for bn1 in common_bpms.index:
         ndi=[]
-        bn1=str.upper(commonbpmsALL[i][1])
-        bns1=commonbpmsALL[i][0]
+        bns1=common_bpms.loc[bn1, "S"]
         try:
             coac[bn1]
             for j in range(0,nzdpp): # the range(0,nzdpp) instead of list_zero_dpp_x is used because the index j is used in the loop
@@ -187,7 +196,6 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
 
     return [nda,Dx,dpx,bpms]
 
-
 def _get_dpx(mad_twiss, d_x, commonbpms):
 
     dpx = {}
@@ -196,17 +204,17 @@ def _get_dpx(mad_twiss, d_x, commonbpms):
         if i == len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
             bn2 = str.upper(commonbpms[0][1])
             # phase model between BPM1 and BPM2
-            p_mdl_12 = 2.*np.pi*(mad_twiss.Q1+mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]])
+            p_mdl_12 = 2.*np.pi*(mad_twiss.Q1+mad_twiss.loc[bn2, "MUX"]-mad_twiss.loc[bn1, "MUX"])
         else:
             bn2 = str.upper(commonbpms[i+1][1])
             # phase model between BPM1 and BPM2
-            p_mdl_12 = 2.*np.pi*(mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]])
-        betmdl1 = mad_twiss.BETX[mad_twiss.indx[bn1]]
-        betmdl2 = mad_twiss.BETX[mad_twiss.indx[bn2]]
-        alpmdl1 = mad_twiss.ALFX[mad_twiss.indx[bn1]]
-        dxmdl1 = mad_twiss.DX[mad_twiss.indx[bn1]]
-        dpxmdl1 = mad_twiss.DPX[mad_twiss.indx[bn1]]
-        dxmdl2 = mad_twiss.DX[mad_twiss.indx[bn2]]
+            p_mdl_12 = 2.*np.pi*(mad_twiss.loc[bn2, "MUX"] - mad_twiss.loc[bn1, "MUX"])
+        betmdl1 = mad_twiss.loc[bn1, "BETX"]
+        betmdl2 = mad_twiss.loc[bn2, "BETX"]
+        alpmdl1 = mad_twiss.loc[bn1, "ALFX"]
+        dxmdl1 = mad_twiss.loc[bn1, "DX"]
+        dpxmdl1 = mad_twiss.loc[bn1, "DPX"]
+        dxmdl2 = mad_twiss.loc[bn2, "DX"]
 
         M11 = math.sqrt(betmdl2/betmdl1)*(cos(p_mdl_12)+alpmdl1*sin(p_mdl_12))
         M12 = math.sqrt(betmdl1*betmdl2)*sin(p_mdl_12)
@@ -224,16 +232,16 @@ def _get_dpy(mad_twiss, d_y, commonbpms):
         if i == len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
             bn2 = str.upper(commonbpms[0][1])
             # phase model between BPM1 and BPM2
-            phmdl12 = 2.*np.pi*(mad_twiss.Q2+mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]])
+            phmdl12 = 2. * np.pi * (mad_twiss.Q2 + mad_twiss.loc[bn2, "MUY"] - mad_twiss.loc[bn1, "MUY"])
         else:
             bn2 = str.upper(commonbpms[i+1][1])
-            phmdl12 = 2.*np.pi*(mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]])
-        betmdl1 = mad_twiss.BETY[mad_twiss.indx[bn1]]
-        betmdl2 = mad_twiss.BETY[mad_twiss.indx[bn2]]
-        alpmdl1 = mad_twiss.ALFY[mad_twiss.indx[bn1]]
-        dymdl1 = mad_twiss.DY[mad_twiss.indx[bn1]]
-        dpymdl1 = mad_twiss.DPY[mad_twiss.indx[bn1]]
-        dymdl2 = mad_twiss.DY[mad_twiss.indx[bn2]]
+            phmdl12 = 2. * np.pi * (mad_twiss.loc[bn2, "MUY"] - mad_twiss.loc[bn1, "MUY"])
+        betmdl1 = mad_twiss.loc[bn1, "BETY"]
+        betmdl2 = mad_twiss.loc[bn2, "BETY"]
+        alpmdl1 = mad_twiss.loc[bn1, "ALFY"]
+        dymdl1 = mad_twiss.loc[bn1, "DY"]
+        dpymdl1 = mad_twiss.loc[bn1, "DPY"]
+        dymdl2 = mad_twiss.loc[bn2, "DY"]
 
         M11 = math.sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
         M12 = math.sqrt(betmdl1*betmdl2)*sin(phmdl12)
@@ -246,7 +254,7 @@ def _get_dpy(mad_twiss, d_y, commonbpms):
     return dpy
 
 
-def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
+def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP, bpms_zerodpp, bpms_nonzerodpp,ListOfCO,COcut,BPMU):
 
     if BPMU=='um': scalef=1.0e-6
     elif BPMU=='mm': scalef=1.0e-3
@@ -262,8 +270,8 @@ def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
 
     coac=coact # COY dictionary after cut bad BPMs
 
-    ALL=ListOfZeroDPP+ListOfNonZeroDPP
-    commonbpmsALL=Utilities.bpm.intersect(ALL)
+    common_index = bpms_zerodpp.index.intersection(bpms_nonzerodpp.index)
+    common_bpms = bpms_zerodpp.loc[common_index]
 
 
 
@@ -276,15 +284,14 @@ def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
 
     dco={} # Dictionary for the output containing [(averaged)Disp, rms error]
     bpms=[]
-    for i in range(0,len(commonbpmsALL)):
-        bn1=str.upper(commonbpmsALL[i][1])
-        bns1=commonbpmsALL[i][0]
+    for bn1 in common_bpms.index:
+        bns1=common_bpms.loc[bn1, "S"]
 
         try:
             coi=coac[bn1]
             dcoi=[]
             for j in ListOfNonZeroDPP:
-                dcoi.append((j.CO[j.indx[bn1]]-coi[0])*scalef/float(j.DPP))
+                dcoi.append((j.loc[bn1, "CO"]-coi[0])*scalef/float(j.DPP))
             dcoi=np.array(dcoi)
             dcostd=math.sqrt(np.average(dcoi*dcoi)-(np.average(dcoi))**2.0+2.2e-16)
             dcos=np.average(wf*dcoi)
