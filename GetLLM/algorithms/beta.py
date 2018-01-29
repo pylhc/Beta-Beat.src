@@ -370,6 +370,84 @@ class Uncertainties:  # error definition file
 # =====================================================================================================================
 
 
+def _future_write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, data, rmsbbx, error_method, bpms, tfs_file,
+                       _plane_char, union, dpp=0, dppq1=0):
+    '''
+    Writes the file ``getbeta<x/y>.out``.
+
+    :Parameters:
+        q1, q2
+            tunes
+        number_of_bpms
+            number of bpm combinations to keep for Monte Carlo N-BPM method
+        range_of_bpms
+            range of BPMs from which the combinations are taken
+        beta_d_col
+            no idea
+        data
+            the result of the method
+        rmsbbx
+            RMS beta beating
+        error_method
+            the ID of the used error method
+        tfs_file
+            the tfs file to which the results will be written
+    '''
+
+    LOGGER.debug("Writing beta from phase results")
+
+    headers = {
+        "Q1": q1,
+        "Q2": q2,
+        "RMSbetabeat": rmsbbx,
+        "DPP": dpp,
+
+        "BetaAlgorithmVersion": __version__,
+        "ErrorsFrom": ID_TO_METHOD[error_method],
+        "PhaseTheshold": PHASE_THRESHOLD,
+        "RCond": RCOND
+    }
+    if error_method == METH_3BPM:
+        tfs_file.add_float_descriptor("NumberOfBPMs", 3)
+        tfs_file.add_float_descriptor("RangeOfBPMs", 5)
+    else:
+        tfs_file.add_float_descriptor("NumberOfBPMs", number_of_bpms)
+        tfs_file.add_float_descriptor("RangeOfBPMs", range_of_bpms)
+
+
+    tfs_file.add_column_names(["NAME", "S",
+                               "BET" + _plane_char,
+                               "STATBET" + _plane_char,
+                               "SYSBET" + _plane_char,
+                               "ERRBET" + _plane_char,
+                               "ALF" + _plane_char,
+                               "STATALF" + _plane_char,
+                               "SYSALF" + _plane_char,
+                               "ERRALF" + _plane_char,
+                               "CORR",
+                               "BET" + _plane_char + "MDL",
+                               "BBEAT",
+                               "NCOMBINATIONS",
+                              "NFILES"])
+    tfs_file.add_column_datatypes(["%s", "%le",
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le" ,
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                   "%le",
+                                  "%le"])
+    beta_df = pd.DataFrame(data=data)
+    beta_df.loc["NFILES"] = bpms.loc[:, "NFILES"]
+    return beta_df.loc[["BET", "STATBET", "SYSBET", "ERRBET"]]
+
+
 def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data, rmsbbx, error_method, bpms, tfs_file,
                        _plane_char, union, dpp=0, dppq1=0):
     '''
@@ -443,7 +521,7 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data
                                   "%le"])
     for i, row in enumerate(data):
         if not np.isnan(row[2]):
-            beta_d_phase[row[0]] = [row[1], row[2], row[3], row[4]]
+            beta_d_phase[row[0]] = [row[2], row[3], row[4], row[5]]
 
             if union:
                 tfs_file.add_table_row(list(row) + [int(bpms.iloc[i].loc["NFILES"])])
@@ -546,29 +624,36 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             if DEBUG:
                 debugfile = DBG.create_debugfile(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.bdebug")
 
-            dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(model, unc_elements, elements_centre,
-                                                                  twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x, 'H',
-                                                                  getllm_d, debugfile, error_method, tune_d.q1f, tune_d.q1mdl)
+            dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(
+                model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x,
+                'H', getllm_d, debugfile, error_method, tune_d.q1f, tune_d.q1mdl
+            )
+
             if DEBUG:
                 DBG.close_file()
-            beta_d.x_phase = {}  # this is no typo, beta from amplitude still has the old convention that the free file is called not free
+            # the following is no typo, beta from amplitude still has the old convention that the free file is sometimes
+            # not called "*_free"
+            beta_d.x_phase = {}
             beta_d.x_phase['DPP'] = 0
             
             #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
             _info_("RMS Betabeat: {:6.2f} %".format(rms_bb ), ">")
             
-            _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase,
-                               dataf, rms_bb, error_method_x, commonbpms_x,
-                               files_dict['getbetax_free.out'], _plane_char, getllm_d.union)
-            
-            
+            _write_getbeta_out(
+                tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase, dataf, rms_bb,
+                error_method_x, commonbpms_x, files_dict['getbetax_free.out'], _plane_char, getllm_d.union
+            )
+
             if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
                 _info_("Calculate beta from phase for plane " + _plane_char, ">")
                 if DEBUG:
                     debugfile = DBG.create_debugfile(files_dict['getbetax.out'].s_output_path + "/getbetax.bdebug")
-                data, rms_bb, bpms, error_method_x = beta_from_phase(model_driven, unc_elements, elements_centre,
-                                                                   twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_x, 'H',
-                                                                   getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl)
+
+                data, rms_bb, bpms, error_method_x = beta_from_phase(
+                    model_driven, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x,
+                    phase_d.phase_advances_x, 'H', getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl
+                )
+
                 if DEBUG:
                     DBG.close_file()
                 beta_d.x_phase_f = {}
