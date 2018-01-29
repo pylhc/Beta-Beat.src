@@ -149,17 +149,22 @@ def plot_df_comparison(df_one, df_two, title, planes, ylabel,
 
 def plot_single_magnet(results, title):
     pstyle.set_style(opt.plot.style, opt.plot.manual)
-    _stat_plot(results["madx_mean"], title + " - TwR vs MADX MEAN")
-    _stat_plot(results["madx_rms"], title + " - TwR vs MADX RMS", log=True)
-    _stat_plot(results["madx_resp_mean"], title + " - TwR vs MaR MEAN")
-    _stat_plot(results["madx_resp_rms"], title + " - TwR vs MaR RMS", log=True)
+    _, res_names = build_result_names()
+    for rname in res_names:
+        parts = rname.split("_")
+        t_end = " - {r:s} vs {c:s} {m:s}".format(r=_title_replace_chain(parts[0]),
+                                                 c=_title_replace_chain(parts[1]),
+                                                 m=parts[2].upper()
+                                                 )
+        log = parts[2] == "rms"
+        _stat_plot(results[rname], title + t_end, log=log)
 
 
 def _stat_plot(df, title, log=False):
     """ Plot over statistics with exponents """
     fig, ax = plt.subplots()
     if log:
-        ax.set_yscale("log", nonposx='clip')
+        ax.set_yscale("log", nonposy='clip')
 
     ax.set_title(title)
     pstyle.set_name(title, ax)
@@ -219,5 +224,26 @@ def save_fig(fig, formats=('svg', 'pdf')):
 """
 
 
+def _title_replace_chain(s):
+    """ Makes a nice title """
+    return s.replace("madx", "MADX").replace("t", "T").replace("m", "M").replace("r", "R")
+
+
+def build_result_names():
+    """ Return result names as list and dict to loop through """
+    l = []
+    d = {}
+    for resp in ["twre", "madre"]:
+        comp_list = [c for c in ["madre", "madx"] if resp != c]
+        d[resp] = {}
+        for comp in comp_list:
+            d[resp][comp] = ["mean", "rms"]
+            for m in d[resp][comp]:
+                l.append("{resp:s}_{comp:s}_{meas:s}".format(resp=resp, comp=comp, meas=m))
+
+    return d, l
+
+
 def rms(x):
+    """ Calculates the rms """
     return np.sqrt(np.mean(np.square(x)))

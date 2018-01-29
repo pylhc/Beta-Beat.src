@@ -15,7 +15,7 @@ from Utilities import logging_tools
 from Utilities import tfs_pandas as tfs
 from Utilities.plotting import plot_style as ps
 
-LOG = logging_tools.get_logger(__name__, level_console=0)
+LOG = logging_tools.get_logger(__name__)
 
 """
 =============================   Constants, Style and Arguments   =============================
@@ -586,7 +586,10 @@ def get_color(idx, marker=False):
 def get_irpos(data, accel):
     # try to load from model_elements in data
     try:
-        model_path = re.search(r"(?<=--model=)[^']+", data.Command).group()
+        model_path = re.search(r"(?<=--model=)[^']+", data.Command)  # DoNormal
+        if not model_path:
+            model_path = re.search(r"(?<=--twissfile=)[^']+", data.Command)  # DoWAnalysis
+        model_path = model_path.group()
     except (KeyError, AttributeError):
         pass
     else:
