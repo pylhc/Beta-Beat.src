@@ -1,3 +1,4 @@
+import __init__
 import cPickle as pickle
 import json
 import multiprocessing
@@ -13,14 +14,17 @@ from Utilities import logging_tools as logtool, iotools
 from Utilities import tfs_pandas as tfs
 from Utilities.dict_tools import DotDict
 from madx import madx_wrapper as madx
+from test_helpers import build_result_names
 from test_helpers import plot_df_comparison
 from test_helpers import plot_single_magnet
 from test_helpers import rms
 from test_helpers import error_meanabs as error_fun
 from twiss_optics.response_class import TwissResponse
 from twiss_optics.response_class import get_delta
+from twiss_optics.response_class import EXCLUDE_CATEGORIES_DEFAULT
+from twiss_optics import sequence_parser as seqparse
 
-LOG = logtool.get_logger(__name__, level_console=0)
+LOG = logtool.get_logger(__name__)
 
 EXPONENT_RANGE = np.arange(-6, 0, .5)
 N_RUNS_SINGLE = 25
@@ -28,7 +32,7 @@ N_RUNS_MULTI = 25
 N_STATS = 5
 N_MAGNETS = 10
 
-DATA_DIR = os.path.abspath('test_data')
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 DATA_RESP = os.path.join(DATA_DIR, "response")
 DATA_RESULT = os.path.join(DATA_DIR, "results")
 
@@ -59,7 +63,7 @@ def test_k1_change():
     dk1 = dk1_start * 1e-1
 
     # Calculation
-    twiss_delta, madx_delta = _get_deltas(madxfile_path,
+    twiss_delta, madx_delta, _ = _get_deltas(madxfile_path,
                                           seqfile_path, seq_name,
                                           variables_path, dk1)
 
@@ -214,7 +218,7 @@ def test_dispersion():
     dk = dk_start * 1e-1
 
     # Calculation
-    twiss_delta, madx_delta = _get_deltas(madxfile_path,
+    twiss_delta, madx_delta, _ = _get_deltas(madxfile_path,
                                           seqfile_path, seq_name,
                                           variables_path, dk, [])
 
@@ -226,6 +230,55 @@ def test_dispersion():
                        data_labels=["TwissResponse", "MAD-X"])
 
     LOG.info("  Mean absolute K1L change: {:g}".format(np.mean(np.abs(dk))))
+
+
+def test_real_single():
+    LOG.info("Running Realistic Single test.")
+    random.seed(2001)
+
+    # File Definitions
+    resultsfile_path = os.path.join(DATA_RESULT, 'results_test_real_single.dat')
+    madxfile_path = os.path.join(DATA_RESP, 'test_real_single.madx')  # tbc
+    variables_path = os.path.join(DATA_DIR, 'lhcb1_k1_list.json')  # exists
+    seqfile_path = os.path.join(DATA_DIR, 'lhcb1.seq')  # exists
+    seq_name = "lhcb1"
+
+    k_list = _exclude_cat(_load_varnames(variables_path))
+
+    exponents = EXPONENT_RANGE
+    n_magnets = 1
+    n_magnet_runs = N_RUNS_SINGLE
+    n_stats = N_STATS
+
+    results = _get_stats(exponents, k_list, n_magnets, n_magnet_runs, n_stats,
+                         resultsfile_path, madxfile_path, seqfile_path, seq_name, variables_path,
+                         EXCLUDE_CATEGORIES_DEFAULT)
+
+    plot_single_magnet(results, "$\delta$ K1L Real Single")
+
+
+def test_real_multi():
+    LOG.info("Running Realistic Multi test.")
+    random.seed(2002)
+
+    # File Definitions
+    resultsfile_path = os.path.join(DATA_RESULT, 'results_test_real_multi.dat')
+    madxfile_path = os.path.join(DATA_RESP, 'test_real_multi.madx')  # tbc
+    variables_path = os.path.join(DATA_DIR, 'lhcb1_k1_list.json')  # exists
+    seqfile_path = os.path.join(DATA_DIR, 'lhcb1.seq')  # exists
+    seq_name = "lhcb1"
+
+    k_list = _exclude_cat(_load_varnames(variables_path))
+    exponents = EXPONENT_RANGE
+    n_magnets = N_MAGNETS
+    n_magnet_runs = N_RUNS_MULTI
+    n_stats = N_STATS
+
+    results = _get_stats(exponents, k_list, n_magnets, n_magnet_runs, n_stats,
+                         resultsfile_path, madxfile_path, seqfile_path, seq_name, variables_path,
+                         EXCLUDE_CATEGORIES_DEFAULT)
+
+    plot_single_magnet(results, "$\delta$ K1L Real Multi")
 
 
 def test_K0_single():
@@ -395,7 +448,7 @@ def test_ALL_multi():
 
 
 def _get_stats(exponents, var_list, n_vars_per_run, n_var_runs, n_stats, resultsfile_path,
-               madxfile_path, seqfile_path, seq_name, variables_path):
+               madxfile_path, seqfile_path, seq_name, variables_path, exclude_cat=None):
     """ Gathers results over variables, strengths and statistic-runs and saves them to a file
 
     Args:
@@ -443,22 +496,26 @@ def _get_stats(exponents, var_list, n_vars_per_run, n_var_runs, n_stats, results
                         n_vars_per_run, idx_runs + 1, n_var_runs))
                     LOG.info(
                         "    Stats {:d} of {:d}".format(idx_stat+1, n_stats))
-                    LOG.info("    Current dk \n {:}".format(dk_list))
+                    LOG.info("    Current dk:".format(dk_list))
+                    for dk in dk_list.index:
+                        LOG.info("      {:s}: {:g}".format(dk, dk_list[dk]))
 
                     # Calculation
                     twiss_delta, madx_delta, madx_resp_delta = _get_deltas(madxfile_path,
                                                                            seqfile_path, seq_name,
-                                                                           variables_path, dk_list)
+                                                                           variables_path, dk_list,
+                                                                           exclude_cat)
 
                     results_temp[idx_runs][idx_stat] = {
-                        "twiss": twiss_delta,
+                        "twre": twiss_delta,
                         "madx": madx_delta,
-                        "madx_resp": madx_resp_delta,
+                        "madre": madx_resp_delta,
                     }
-            error_av = calc_error_averages(results_temp)
+            error_av = _calc_error_averages(results_temp)
 
             # regroup
-            for mad_x in ["madx_mean", "madx_rms", "madx_resp_mean", "madx_resp_rms"]:
+            _, res_names = build_result_names()
+            for mad_x in res_names:
                 if mad_x not in results:
                     results[mad_x] = tfs.TfsDataFrame(None, columns=error_av.columns)
                 results[mad_x].loc[exp, :] = error_av.loc[mad_x, :]
@@ -702,34 +759,66 @@ def take_at_random(items, n):
     return items[:n]
 
 
-def calc_error_averages(results):
+def _calc_error_averages(results):
     """ Create DataFrame for MADX and MADX_response vs TwissResponse errors """
     parameters = ["BETX", "BETY", "MUX", "MUY", "DX", "DY", "QX", "QY"]
-    df = tfs.TfsDataFrame(None, index=["madx_mean", "madx_rms",
-                                       "madx_resp_mean", "madx_resp_rms"])
+    res_dict, res_names = build_result_names()
 
-    for mad_x in ["madx", "madx_resp"]:
-        for param in parameters:
-            rms_values = []
-            mean_values = []
-            for run in results:
-                for stat in results[run]:
-                    error_values = error_fun(
-                        results[run][stat]["twiss"][param],
-                        results[run][stat][mad_x][param]
-                    )
-                    rms_values.append(rms(error_values))
-                    mean_values.append(np.mean(error_values))
+    df = tfs.TfsDataFrame(None, index=res_names)
 
-            df.loc[mad_x + "_mean", param] = np.mean(mean_values)
-            df.loc[mad_x + "_mean", param + '_min'] = np.min(mean_values)
-            df.loc[mad_x + "_mean", param + '_max'] = np.max(mean_values)
+    for resp in res_dict:
+        for mad_x in res_dict[resp]:
+            for param in parameters:
+                rms_values = []
+                mean_values = []
+                for run in results:
+                    for stat in results[run]:
+                        res_resp = results[run][stat][resp][param]
+                        res_mad_x = results[run][stat][mad_x][param]
+                        if (_not_nan_check(res_resp, run=run, stat=stat, m=resp, par=param) and
+                            _not_nan_check(res_mad_x, run=run, stat=stat, m=mad_x, par=param)):
+                            error_values = error_fun(res_resp, res_mad_x)
+                            rms_values.append(rms(error_values))
+                            mean_values.append(np.mean(error_values))
 
-            df.loc[mad_x + "_rms", param] = np.mean(rms_values)
-            df.loc[mad_x + "_rms", param + '_min'] = np.min(rms_values)
-            df.loc[mad_x + "_rms", param + '_max'] = np.max(rms_values)
+                idx_mean = "{resp:s}_{comp:s}_{meas:s}".format(
+                             resp=resp, comp=mad_x, meas=res_dict[resp][mad_x][0])
+                df.loc[idx_mean, param] = np.mean(mean_values)
+                df.loc[idx_mean, param + '_min'] = np.min(mean_values)
+                df.loc[idx_mean, param + '_max'] = np.max(mean_values)
 
+                idx_rms = "{resp:s}_{comp:s}_{meas:s}".format(
+                            resp=resp, comp=mad_x, meas=res_dict[resp][mad_x][1])
+                df.loc[idx_rms, param] = np.mean(rms_values)
+                df.loc[idx_rms, param + '_min'] = np.min(rms_values)
+                df.loc[idx_rms, param + '_max'] = np.max(rms_values)
     return df
+
+
+def _exclude_cat(d_in):
+    """ Excludes Categories like in response class """
+    vars = []
+    for key in [k for k in d_in if k not in EXCLUDE_CATEGORIES_DEFAULT]:
+        vars += d_in[key]
+    return vars
+
+
+def _not_nan_check(val, **kwargs):
+    """ Checks for NANs in val and logs error message if found. """
+    try:
+        isnan = any(np.isnan(val))
+    except TypeError:
+        isnan = np.isnan(val)
+
+    if isnan:
+        arg_str = "  "
+        for k in kwargs:
+            arg_str += k + ": " + str(kwargs[k]) + ", "
+        LOG.error("NAN values encountered! In :")
+        LOG.error(arg_str)
+
+    return not isnan
+
 
 
 """
@@ -738,8 +827,16 @@ def calc_error_averages(results):
 
 
 if __name__ == "__main__":
-    test_K0_single()
-    test_K0_multi()
+    logtool.add_root_handler(logtool.file_handler(os.path.join(DATA_DIR, "response_test.log")))
+    # # Quick variables creation
+    # seqfile_path = os.path.join(DATA_DIR, 'lhcb1.seq')
+    # df = seqparse.load_or_parse_variable_mapping(seqfile_path)
+    # seqparse.varmap_variables_to_json(seqfile_path.replace(".seq", ".varmap"))
+    # exit()
+    # test_K0_single()
+    # test_K0_multi()
+    test_real_single()
+    test_real_multi()
     test_K1_single()
     test_K1_multi()
     test_K1S_single()
