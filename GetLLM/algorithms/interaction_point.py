@@ -22,6 +22,9 @@ from numpy import sin, cos, tan
 import Utilities.bpm
 import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
+from Utilities import logging_tools
+
+LOGGER = logging_tools.get_logger(__name__)
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -50,7 +53,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
         'beta_d': _BetaData (In-param, values will only be read)
             Holds results from get_beta. Beta from amp and ratios will be set.
     '''
-    print 'Calculating IP'
+    LOGGER.info('Calculating IP')
     tfs_file = files_dict['getIP.out']
     tfs_file.add_column_names(["NAME", "BETASTARH", "BETASTARHMDL", "H", "PHIH", "PHIXH", "PHIHMDL", "BETASTARV", "BETASTARVMDL", "V", "PHIV", "PHIYV", "PHIVMDL"])
     tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
