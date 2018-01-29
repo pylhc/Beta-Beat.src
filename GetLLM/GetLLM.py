@@ -899,8 +899,12 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
 
     :returns: dict string --> GetllmTfsFile -- The same instace of files_dict to indicate that the dict was extended
     '''
-    print "Calculating kick"
+    LOGGER.info( "Calculating kick")
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
+    common_index = twiss_d.zero_dpp_unionbpms_x.index.intersection(
+        twiss_d.zero_dpp_commonbpms_y.index.intersection(
+            twiss_d.non_zero_dpp_commonbpms_x.index.intersection(
+                twiss_d.non_zero_dpp_commonbpms_y.index)))
 
     meansqrt_2jx = {}
     meansqrt_2jy = {}
@@ -909,8 +913,7 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
 
     try:
         [meansqrt_2jx, meansqrt_2jy, _, _, tunes, dpp, bpmrejx, bpmrejy] = algorithms.helper.getkick(
-            files, mad_twiss, beta_d, bbthreshold, errthreshold, twiss_d.zero_dpp_commonbpms_x,
-            twiss_d.zero_dpp_commonbpms_y)
+            files, mad_twiss, beta_d, bbthreshold, errthreshold, twiss_d.zero_dpp_commonbpms_x.loc[common_index])
     except IndexError:  # occurs if either no x or no y files exist
         return files_dict, [], []
 
@@ -924,7 +927,12 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
     tfs_file_model.add_column_datatypes(column_types_list)
 
     for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i],
+                            tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1],
+                            meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2),
+                            (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]),
+                            (meansqrt_2jy['model'][i][0]**2),
+                            (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_model.add_table_row(list_row_entries)
         actions_x, actions_y = meansqrt_2jx['phase'], meansqrt_2jy['phase']
 
@@ -936,7 +944,12 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
     tfs_file_phase.add_column_names(column_names_list)
     tfs_file_phase.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i],
+                            tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1],
+                            meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2),
+                            (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]),
+                            (meansqrt_2jy['model'][i][0]**2),
+                            (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_phase.add_table_row(list_row_entries)
 
     if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
@@ -1020,7 +1033,7 @@ def _get_commonbpms(ListOfFiles, model, union, plane):
 
     commbpms = pd.DataFrame(model.loc[common_index, "S"])
     commbpms["NFILES"] = len(ListOfFiles)
-    return commbpms, None
+    return commbpms, commbpms
 
 
 def _tb_():
