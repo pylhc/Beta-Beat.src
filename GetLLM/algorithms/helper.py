@@ -25,11 +25,12 @@ import numpy as np
 import phase
 import beta
 import Utilities.bpm
+from Utilities import logging_tools
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
-
+LOGGER = logging_tools.get_logger(__name__)
 
 
 #===================================================================================================
@@ -662,7 +663,7 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
 
 #---- finding kick
-def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold, bpms_x, bpms_y):
+def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold, commonbpms):
 
     #One source for each beta-function source
     Sources = ['model','amp','phase']
@@ -708,10 +709,10 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold, bpms_x, bpms_y):
         for source in Sources:
             meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([tw_x], mad_twiss, beta_d, source,
                                                                                   'H', bbthreshold, errthreshold,
-                                                                                  bpms_x)
+                                                                                  commonbpms)
             meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([tw_y], mad_twiss, beta_d, source,
                                                                                   'V', bbthreshold, errthreshold,
-                                                                                  bpms_y)
+                                                                                  commonbpms)
             meansqrt_2jx[source].append(meansqrt_2jx_temp)
             meansqrt_2jy[source].append(meansqrt_2jy_temp)
             mean_2jx[source].append(mean_2jx_temp)
@@ -837,7 +838,8 @@ def gen_kick_calc(list_of_files, mad_twiss, beta_d, source, plane, bbthreshold, 
         mean2j.append(mean2j_i / tembeta)
 
     if len(commonbpms) == rejbpmcount:
-        print "Beta function calculated from", source, "in plane", plane, "is no good, no kick or action will be calculated from it."
+        LOGGER.warning(("Beta function calculated from {} in plane {} is no good, no kick or action will be calculated "
+                       "from it.").format(source, plane))
         j_old, mean_2j = [0, 0], [0, 0]
         return j_old, mean_2j, rejbpmcount
 
