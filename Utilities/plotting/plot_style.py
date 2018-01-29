@@ -8,15 +8,16 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+from Utilities import tfs_pandas as tfs
 
 
 class ArgumentError(Exception):
     pass
 
 
+# commented values are part of matplotlib 2.1 but not 1.5
 _PRESENTATION_PARAMS = {
-    u'axes.autolimit_mode': u'data',
-    u'axes.axisbelow': u'line',
+    # u'axes.autolimit_mode': u'data',
     u'backend': u'pdf',
     u'axes.edgecolor': u'k',
     u'axes.facecolor': u'w',
@@ -24,11 +25,11 @@ _PRESENTATION_PARAMS = {
     u'axes.grid.axis': u'both',
     u'axes.grid.which': u'major',
     u'axes.labelcolor': u'k',
-    u'axes.labelpad': 4.0,
+    # u'axes.labelpad': 4.0,
     u'axes.labelsize': u'x-large',
     u'axes.labelweight': u'bold',
     u'axes.linewidth': 1.8,
-    u'axes.titlepad': 16.0,
+    # u'axes.titlepad': 16.0,
     u'axes.titlesize': u'xx-large',
     u'axes.titleweight': u'bold',
     u'figure.edgecolor': u'w',
@@ -37,9 +38,11 @@ _PRESENTATION_PARAMS = {
     u'figure.frameon': True,
     u'figure.titlesize': u'xx-large',
     u'figure.titleweight': u'bold',
-    u'font.size': 14.0,
+    u'font.size': 15.0,
     u'font.stretch': u'normal',
     u'font.weight': u'bold',
+    u'font.family': 'sans-serif',
+    u'font.serif': ['Computer Modern'],
     u'grid.alpha': 1.0,
     u'grid.color': u'#b0b0b0',
     u'grid.linestyle': u'-',
@@ -60,7 +63,7 @@ _PRESENTATION_PARAMS = {
     u'legend.scatterpoints': 1,
     u'legend.shadow': False,
     u'lines.antialiased': True,
-    u'lines.color': u'C0',
+    # u'lines.color': u'C0',
     u'lines.linestyle': u'-',
     u'lines.linewidth': 1,
     u'lines.marker': u'.',
@@ -71,57 +74,56 @@ _PRESENTATION_PARAMS = {
     u'markers.fillstyle': u'full',
     u'text.antialiased': True,
     u'text.color': u'k',
-    u'xtick.alignment': u'center',
-    u'xtick.bottom': True,
-    u'xtick.color': u'k',
-    u'xtick.direction': u'out',
-    u'xtick.labelsize': u'medium',
-    u'xtick.major.bottom': True,
-    u'xtick.major.pad': 3.5,
-    u'xtick.major.size': 3.5,
-    u'xtick.major.top': True,
-    u'xtick.major.width': 1.2,
-    u'xtick.minor.bottom': True,
-    u'xtick.minor.pad': 3.4,
-    u'xtick.minor.size': 2.0,
-    u'xtick.minor.top': True,
-    u'xtick.minor.visible': False,
-    u'xtick.minor.width': 1,
-    u'xtick.top': False,
-    u'ytick.alignment': u'center_baseline',
-    u'ytick.color': u'k',
-    u'ytick.direction': u'out',
-    u'ytick.labelsize': u'medium',
-    u'ytick.left': True,
-    u'ytick.major.left': True,
-    u'ytick.major.pad': 3.5,
-    u'ytick.major.right': True,
-    u'ytick.major.size': 3.5,
-    u'ytick.major.width': 1.2,
-    u'ytick.minor.left': True,
-    u'ytick.minor.pad': 3.4,
-    u'ytick.minor.right': True,
-    u'ytick.minor.size': 2.0,
-    u'ytick.minor.visible': False,
-    u'ytick.minor.width': 1,
-    u'ytick.right': False
+    # u'xtick.alignment': u'center',
+    # u'xtick.bottom': True,
+    # u'xtick.color': u'k',
+    # u'xtick.direction': u'out',
+    # u'xtick.labelsize': u'medium',
+    # u'xtick.major.bottom': True,
+    # u'xtick.major.pad': 3.5,
+    # u'xtick.major.size': 3.5,
+    # u'xtick.major.top': True,
+    # u'xtick.major.width': 1.2,
+    # u'xtick.minor.bottom': True,
+    # u'xtick.minor.pad': 3.4,
+    # u'xtick.minor.size': 2.0,
+    # u'xtick.minor.top': True,
+    # u'xtick.minor.visible': False,
+    # u'xtick.minor.width': 1,
+    # u'xtick.top': False,
+    # u'ytick.alignment': u'center_baseline',
+    # u'ytick.color': u'k',
+    # u'ytick.direction': u'out',
+    # u'ytick.labelsize': u'medium',
+    # u'ytick.left': True,
+    # u'ytick.major.left': True,
+    # u'ytick.major.pad': 3.5,
+    # u'ytick.major.right': True,
+    # u'ytick.major.size': 3.5,
+    # u'ytick.major.width': 1.2,
+    # u'ytick.minor.left': True,
+    # u'ytick.minor.pad': 3.4,
+    # u'ytick.minor.right': True,
+    # u'ytick.minor.size': 2.0,
+    # u'ytick.minor.visible': False,
+    # u'ytick.minor.width': 1,
+    # # u'ytick.right': False
 }
 
 
 _STANDARD_PARAMS = {
-    u'axes.autolimit_mode': u'data',
-    u'axes.axisbelow': u'line',
+    # u'axes.autolimit_mode': u'data',
     u'axes.edgecolor': u'k',
     u'axes.facecolor': u'w',
     u'axes.grid': True,
     u'axes.grid.axis': u'both',
     u'axes.grid.which': u'major',
     u'axes.labelcolor': u'k',
-    u'axes.labelpad': 4.0,
+    # u'axes.labelpad': 4.0,
     u'axes.labelsize': u'medium',
     u'axes.labelweight': u'bold',
     u'axes.linewidth': 1.5,
-    u'axes.titlepad': 6.0,
+    # u'axes.titlepad': 6.0,
     u'axes.titlesize': u'x-large',
     u'axes.titleweight': u'bold',
     u'figure.edgecolor': u'w',
@@ -130,9 +132,11 @@ _STANDARD_PARAMS = {
     u'figure.frameon': True,
     u'figure.titlesize': u'large',
     u'figure.titleweight': u'normal',
-    u'font.size': 12.0,
+    u'font.size': 15.0,
     u'font.stretch': u'normal',
     u'font.weight': u'bold',
+    u'font.family': 'sans-serif',
+    u'font.serif': ['Computer Modern'],
     u'grid.alpha': 1.0,
     u'grid.color': u'#b0b0b0',
     u'grid.linestyle': u'-',
@@ -153,7 +157,7 @@ _STANDARD_PARAMS = {
     u'legend.scatterpoints': 1,
     u'legend.shadow': False,
     u'lines.antialiased': True,
-    u'lines.color': u'C0',
+    # u'lines.color': u'C0',
     u'lines.linestyle': u'-',
     u'lines.linewidth': 1.5,
     u'lines.marker': u'o',
@@ -164,40 +168,40 @@ _STANDARD_PARAMS = {
     u'markers.fillstyle': u'none',
     u'text.antialiased': True,
     u'text.color': u'k',
-    u'xtick.alignment': u'center',
-    u'xtick.bottom': True,
-    u'xtick.color': u'k',
-    u'xtick.direction': u'out',
-    u'xtick.labelsize': u'medium',
-    u'xtick.major.bottom': True,
-    u'xtick.major.pad': 3.5,
-    u'xtick.major.size': 3.5,
-    u'xtick.major.top': True,
-    u'xtick.major.width': 0.8,
-    u'xtick.minor.bottom': True,
-    u'xtick.minor.pad': 3.4,
-    u'xtick.minor.size': 2.0,
-    u'xtick.minor.top': True,
-    u'xtick.minor.visible': False,
-    u'xtick.minor.width': 0.6,
-    u'xtick.top': False,
-    u'ytick.alignment': u'center_baseline',
-    u'ytick.color': u'k',
-    u'ytick.direction': u'out',
-    u'ytick.labelsize': u'medium',
-    u'ytick.left': True,
-    u'ytick.major.left': True,
-    u'ytick.major.pad': 3.5,
-    u'ytick.major.right': True,
-    u'ytick.major.size': 3.5,
-    u'ytick.major.width': 0.8,
-    u'ytick.minor.left': True,
-    u'ytick.minor.pad': 3.4,
-    u'ytick.minor.right': True,
-    u'ytick.minor.size': 2.0,
-    u'ytick.minor.visible': False,
-    u'ytick.minor.width': 0.6,
-    u'ytick.right': False
+    # u'xtick.alignment': u'center',
+    # u'xtick.bottom': True,
+    # u'xtick.color': u'k',
+    # u'xtick.direction': u'out',
+    # u'xtick.labelsize': u'medium',
+    # u'xtick.major.bottom': True,
+    # u'xtick.major.pad': 3.5,
+    # u'xtick.major.size': 3.5,
+    # u'xtick.major.top': True,
+    # u'xtick.major.width': 0.8,
+    # u'xtick.minor.bottom': True,
+    # u'xtick.minor.pad': 3.4,
+    # u'xtick.minor.size': 2.0,
+    # u'xtick.minor.top': True,
+    # u'xtick.minor.visible': False,
+    # u'xtick.minor.width': 0.6,
+    # u'xtick.top': False,
+    # u'ytick.alignment': u'center_baseline',
+    # u'ytick.color': u'k',
+    # u'ytick.direction': u'out',
+    # u'ytick.labelsize': u'medium',
+    # u'ytick.left': True,
+    # u'ytick.major.left': True,
+    # u'ytick.major.pad': 3.5,
+    # u'ytick.major.right': True,
+    # u'ytick.major.size': 3.5,
+    # u'ytick.major.width': 0.8,
+    # u'ytick.minor.left': True,
+    # u'ytick.minor.pad': 3.4,
+    # u'ytick.minor.right': True,
+    # u'ytick.minor.size': 2.0,
+    # u'ytick.minor.visible': False,
+    # u'ytick.minor.width': 0.6,
+    # u'ytick.right': False
 }
 
 
@@ -313,6 +317,7 @@ def set_xLimits(accel, ax=None):
     else:
         raise ArgumentError("Accelerator '" + accel + "' unknown.")
 
+
 """
 =============================   Labels   =============================
 """
@@ -324,23 +329,24 @@ _ylabels = {
     "betabeat_permile":   r'$\Delta \beta_{{{0}}} / \beta_{{{0}}} [$'u'\u2030'r'$]$',
     "dbeta":              r"$\beta'_{{{0}}} [m]$",
     "dbetabeat":          r'$1/\beta_{{{0}}} \cdot \partial\beta_{{{0}}} / \partial\delta_{{{0}}}$',
-    "norm_dispersion":    r'$ND_{{{0}}} [m^{{1/2}}]$',
+    "norm_dispersion":    r'$\frac{\Delta D_{{0}}}{\beta_{{0}}} [m]$',
     "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu m^{{1/2}}]$',
     "phase":              r'$\phi_{{{0}}} [2\pi]$',
     "phasetot":           r'$\phi_{{{0}}} [2\pi]$',
     "phase_milli":        r'$\phi_{{{0}}} [2\pi\cdot10^{{-3}}]$',
     "dispersion":         r'$D_{{{0}}} [m]$',
     "dispersion_mm":      r'$D_{{{0}}} [mm]$',
-    "co":                 r'{{{0}}} [mm]',
+    "co":                 r'${0} [mm]$',
     "tune":               r'$Q_{{{0}}} [Hz]$',
     "nattune":            r'$Nat Q_{{{0}}} [Hz]$',
+    "chromamp":           r'$W_{{{0}}}$',
     "real":               r'$re({0})$',
     "imag":               r'$im({0})$',
     "absolute":           r'$|{0}|$',
 }
 
 
-def set_yaxis_label(param, plane, ax=None, delta=False):  # plot x and plot y
+def set_yaxis_label(param, plane, ax=None, delta=False, chromcoup=False):  # plot x and plot y
     """ Set y-axis labels.
 
     Args:
@@ -358,6 +364,10 @@ def set_yaxis_label(param, plane, ax=None, delta=False):  # plot x and plot y
 
     if delta:
         label = r'$\Delta ' + label[1:]
+
+    if chromcoup:
+        label = label[:-1] + r'/\Delta\delta$'
+
     ax.set_ylabel(label)
 
 
@@ -372,18 +382,23 @@ def set_xaxis_label(ax=None):
     ax.set_xlabel(r'Longitudinal location [m]')
 
 
-def show_ir(ip_dict, ax=None):
+def show_ir(ip_dict, ax=None, mode='inside'):
     """ Plots the interaction regions into the background of the plot.
 
     Args:
         ip_dict: dict, dataframe or series containing "IPLABEL" : IP_POSITION
         ax:  Axes to put the irs on (default: gca())
+        mode: 'inside', 'outside' + 'nolines' or just 'lines'
     """
     if not ax:
         ax = plt.gca()
 
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
+
+    lines = 'nolines' not in mode
+    inside = 'inside' in mode
+    lines_only = 'inside' not in mode and 'outside' not in mode and 'lines' in mode
 
     if isinstance(ip_dict, (pd.DataFrame, pd.Series)):
         if isinstance(ip_dict, pd.DataFrame):
@@ -396,12 +411,31 @@ def show_ir(ip_dict, ax=None):
     for ip in ip_dict.keys():
         if xlim[0] <= ip_dict[ip] <= xlim[1]:
             xpos = ip_dict[ip]
-            ypos = ylim[0] + (ylim[1] - ylim[0]) * 0.01
-            ax.text(xpos, ypos, ip, color='grey', ha='center')
-            ax.axvline(xpos, linestyle=':', color='grey', marker='', zorder=0)
+
+            if lines:
+                ax.axvline(xpos, linestyle=':', color='grey', marker='', zorder=0)
+
+            if not lines_only:
+                if inside:
+                    ypos = ylim[0] + (ylim[1] - ylim[0]) * 0.01
+                    ax.text(xpos, ypos, ip, color='grey', ha='center')
+                else:
+                    ax.text(xpos, ylim[1] * 1.03, ip, ha='center')
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+
+
+def get_ip_positions(path):
+    """ Returns a dict of IP positions from tfs-file of path.
+
+    Args:
+        path (str): Path to the tfs-file containing IP-positions
+    """
+    df = tfs.read_tfs(path).set_index('NAME')
+    ip_names = ["IP" + str(i) for i in range(1, 9)]
+    ip_pos = df.loc[ip_names, 'S'].values
+    return dict(zip(ip_names, ip_pos))
 
 
 def set_name(name, fig_or_ax=None):

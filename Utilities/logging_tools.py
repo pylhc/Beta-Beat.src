@@ -48,14 +48,7 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         # print logs to the console
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level_console)
-
-        if sys.stdout.isatty():
-            # You're running in a real terminal
-            console_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT))
-        else:
-            # You're being piped or redirected
-            console_formatter = logging.Formatter(STANDARD_FORMAT)
-
+        console_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT))
         console_handler.setFormatter(console_formatter)
         console_handler.addFilter(MaxFilter(logging.INFO))
         root_logger.addHandler(console_handler)
@@ -63,14 +56,7 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         # print console warnings
         console_warn_handler = logging.StreamHandler(sys.stdout)
         console_warn_handler.setLevel(max(logging.WARNING, level_console))
-
-        if sys.stdout.isatty():
-            # You're running in a real terminal
-            console_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT, logging.WARNING))
-        else:
-            # You're being piped or redirected
-            console_formatter = logging.Formatter(STANDARD_FORMAT)
-
+        logging.Formatter(_bring_color(STANDARD_FORMAT, logging.WARNING))
         console_warn_handler.setFormatter(console_formatter)
         console_warn_handler.addFilter(MaxFilter(logging.WARNING))
         root_logger.addHandler(console_warn_handler)
@@ -78,12 +64,7 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         # print errors to error-stream
         error_handler = logging.StreamHandler(sys.stderr)
         error_handler.setLevel(logging.ERROR)
-        if sys.stdout.isatty():
-            # You're running in a real terminal
-            error_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT, logging.ERROR))
-        else:
-            # You're being piped or redirected
-            error_formatter = logging.Formatter(STANDARD_FORMAT)
+        error_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT, logging.ERROR))
         error_handler.setFormatter(error_formatter)
         root_logger.addHandler(error_handler)
 
@@ -132,7 +113,7 @@ def _get_current_module(current_file=None):
     """ Find the name of the current module """
     if not current_file:
         current_file = _get_caller()
-    path_parts = current_file.split(os.path.sep)
+    path_parts = os.path.abspath(current_file).split(os.path.sep)
     repo_parts = iotools.get_absolute_path_to_betabeat_root().split(os.path.sep)
     current_module = '.'.join(path_parts[len(repo_parts):-1])
     return current_module
@@ -140,6 +121,10 @@ def _get_current_module(current_file=None):
 
 def _bring_color(format_string, colorlevel=logging.INFO):
     """ Adds color to the logs (can only be used in a terminal) """
+    if not sys.stdout.isatty():
+        # Not a tty. You're being piped or redirected
+        return format_string
+
     level = "%(levelname)"
     message = "%(message)"
     name = "%(name)"
