@@ -519,9 +519,9 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
         tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%s"])
 
     if OPTIMISTIC:
-        tfs_file.add_string_descriptor("Optimistic error bars", "True")
+        tfs_file.add_string_descriptor("OptimisticErrorBars", "True")
     else:
-        tfs_file.add_string_descriptor("Optimistic error bars", "False")
+        tfs_file.add_string_descriptor("OptimisticErrorBars", "False")
 
     meas = phase_advances["MEAS"]
     mod = phase_advances["MODEL"]
