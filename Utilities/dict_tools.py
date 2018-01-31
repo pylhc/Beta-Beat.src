@@ -13,8 +13,6 @@ _TC = {  # Tree Characters
     'S': u'\u251C',  # Split
 }
 
-REMAINDER = "REMAINDER_FLAG"  # needs to be something different form argparse.REMAINDER
-
 """
 ======================== Additional Dictionary Classes and Functions ========================
 """
@@ -61,15 +59,15 @@ def print_dict_tree(dictionary, name='Dictionary'):
 """
 
 
+class ParameterError(Exception):
+    pass
+
+
 class ArgumentError(Exception):
     pass
 
 
-class OptionError(Exception):
-    pass
-
-
-class Argument(object):
+class Parameter(object):
     """ Helper Class for DictParser """
     def __init__(self, name, **kwargs):
         self.name = name
@@ -81,40 +79,40 @@ class Argument(object):
         self.choices = kwargs.pop('choices', None)
 
         if len(kwargs) > 0:
-            ArgumentError("'{:s}' are not valid parameters for Argument.".format(kwargs.keys()))
+            ParameterError("'{:s}' are not valid parameters for Argument.".format(kwargs.keys()))
 
         self._validate()
 
     def _validate(self):
         if not isinstance(self.name, basestring):
-            raise ArgumentError("Argument '{:s}': ".format(str(self.name)) +
+            raise ParameterError("Parameter '{:s}': ".format(str(self.name)) +
                                 "Name is not a valid string.")
 
         if self.default and self.type and not isinstance(self.default, self.type):
-            raise ArgumentError("Argument '{:s}': ".format(self.name) +
+            raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                 "Default value not of specified type.")
 
         if self.choices and not isinstance(self.choices, list):
-                raise ArgumentError("Argument '{:s}': ".format(self.name) +
+                raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                     "Choices need to be a list.")
 
         if self.choices and self.default not in self.choices:
-            raise ArgumentError("Argument '{:s}': ".format(self.name) +
+            raise ParameterError("Argument '{:s}': ".format(self.name) +
                                 "Default value not found in choices.")
 
         if self.choices and self.type:
             for choice in self.choices:
                 if not isinstance(choice, self.type):
-                    raise ArgumentError("Choice '{:s}'".format(choice) +
-                                        "of Argument '{:s}': ".format(self.name) +
+                    raise ParameterError("Choice '{:s}'".format(choice) +
+                                        "of parameter '{:s}': ".format(self.name) +
                                         "is not of type '{:s}'.".format(self.type))
 
         if self.subtype and not (self.type or self.type == list):
-            raise ArgumentError("Argument '{:s}': ".format(self.name) +
-                                "Parameter 'subtype' is only accepted if 'type' is list.")
+            raise ParameterError("Parameter '{:s}': ".format(self.name) +
+                                "field 'subtype' is only accepted if 'type' is list.")
 
         if self.required and self.default is not None:
-            LOG.warn("Argument '{:s}': ".format(self.name) +
+            LOG.warn("Parameter '{:s}': ".format(self.name) +
                      "Value is required but default value is given. The latter will be ignored.")
 
 
@@ -125,18 +123,18 @@ class DictParser(object):
     A similar structured option dictionary with the values as leafs can then be parsed.
     """
 
-    def __init__(self, dictionary=None, strict=True):
+    def __init__(self, dictionary=None, strict=False):
         """
         Initialize Class either empty or with preconfigured dictionary
 
         Args:
             dictionary: Preconfigured Dictionary for parsing
-            strict: Strict Parsers don't accept unknown options. If False, it just prints warnings.
+            strict: Strict Parsers don't accept unknown options. If False, it just logs the names.
         """
         self.strict = strict
 
         if dictionary:
-            self._validate_arguments(dictionary)
+            self._validate_parameters(dictionary)
             self.dictionary = dictionary
         else:
             self.dictionary = {}
@@ -146,91 +144,85 @@ class DictParser(object):
     #########################
 
     @staticmethod
-    def _validate_arguments(dictionary):
-        """ Validates an input dictionary that can be used as arguments.
+    def _validate_parameters(dictionary):
+        """ Validates an input dictionary that can be used as parameters.
 
         Args:
             dictionary: Dictionary to validate
         """
         for key in dictionary:
-            arg = dictionary[key]
-            if isinstance(arg, dict):
+            param = dictionary[key]
+            if isinstance(param, dict):
                 try:
-                    DictParser._validate_arguments(arg)
-                except ArgumentError as e:
+                    DictParser._validate_parameters(param)
+                except ParameterError as e:
                     e.message = "'{:s}.{:s}".format(key, e.message[1:])
                     e.args = (e.message,)
                     raise
-            elif not isinstance(arg, Argument):
-                raise ArgumentError("'{:s}' is not a valid entry.".format(key))
+            elif not isinstance(param, Parameter):
+                raise ParameterError("'{:s}' is not a valid entry.".format(key))
             else:
-                if key != arg.name:
-                    raise ArgumentError("'{:s}': Key and name need to be the same.".format(key))
+                if key != param.name:
+                    raise ParameterError("'{:s}': Key and name need to be the same.".format(key))
 
     @staticmethod
-    def _check_value(key, opt_dict, arg_dict):
-        """ Checks if in opt_dict[key] satisfies arg_dict[key]
+    def _check_value(key, arg_dict, param_dict):
+        """ Checks if in arg_dict[key] satisfies param_dict[key]
 
         Args:
             key: key to check
-            opt_dict: Options-structure. Can be None or empty.
-            arg_dict: Argument-structure. Needs to contain 'key'
+            arg_dict: Arguments-structure. Can be None or empty.
+            param_dict: Parameter-structure. Needs to contain 'key'
 
         Returns:
-            The appropriate value for opt_dict[key]
+            The appropriate value for arg_dict[key]
         """
-        arg = arg_dict[key]
-        if not opt_dict or key not in opt_dict:
-            if arg.required:
-                raise OptionError("'{:s}' required in options.\nHelp: {:s}".format(
-                    key, arg.help)
+        param = param_dict[key]
+        if not arg_dict or key not in arg_dict:
+            if param.required:
+                raise ArgumentError("'{:s}' required in options.\nHelp: {:s}".format(
+                    key, param.help)
                 )
             else:
-                return arg.default
+                return param.default
 
-        opt = opt_dict[key]
-        if arg.type and not isinstance(opt, arg.type):
-            raise OptionError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
-                key, arg.type.__name__, arg.help)
+        opt = arg_dict[key]
+        if param.type and not isinstance(opt, param.type):
+            raise ArgumentError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
+                key, param.type.__name__, param.help)
             )
-        if arg.choices and opt not in arg.choices:
-            raise OptionError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
-                key, arg.choices, arg.help)
+        if param.choices and opt not in param.choices:
+            raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
+                key, param.choices, param.help)
             )
         return opt
 
-    def _parse_options(self, opt_dict, arg_dict):
+    def _parse_options(self, arg_dict, param_dict):
         """ Use parse_options()!
 
         This is a helper Function for parsing options. It does all the work. Called recursively.
 
         Args:
-            opt_dict: Dictionary with the options
-            arg_dict: Dictionary with the arguments to check the options against
+            arg_dict: Dictionary with the input parameter
+            param_dict: Dictionary with the parameters to check the parameter against
         Returns:
             Dictionary with parsed options
         """
         checked_dict = DotDict()
-        remainder = None
-        for key in arg_dict:
-            if isinstance(arg_dict[key], Argument):
-                if arg_dict[key].type == REMAINDER:
-                    if remainder is not None:
-                        raise ArgumentError("More than one remainder option found!")
-                    remainder = key
-                else:
-                    checked_item = DictParser._check_value(key, opt_dict, arg_dict)
-                    if key in opt_dict or checked_item is not None:
-                        checked_dict[key] = checked_item
-            elif isinstance(arg_dict[key], dict):
+        for key in param_dict:
+            if isinstance(param_dict[key], Parameter):
+                checked_item = DictParser._check_value(key, arg_dict, param_dict)
+                if key in arg_dict or checked_item is not None:
+                    checked_dict[key] = checked_item
+            elif isinstance(param_dict[key], dict):
                 try:
-                    if not opt_dict or not (key in opt_dict):
+                    if not arg_dict or not (key in arg_dict):
                         checked_dict[key] = DictParser._parse_options(None,
-                                                                      arg_dict[key])
+                                                                      param_dict[key])
                     else:
-                        checked_dict[key] = DictParser._parse_options(opt_dict[key],
-                                                                      arg_dict[key])
-                except OptionError as e:
+                        checked_dict[key] = DictParser._parse_options(arg_dict[key],
+                                                                      param_dict[key])
+                except ArgumentError as e:
                     old_msg = e.message[1:]
                     if old_msg.startswith("'"):
                         e.message = "'{:s}.{:s}".format(key, e.message[1:])
@@ -239,35 +231,33 @@ class DictParser(object):
                     e.args = (e.message,)
                     raise
 
-            opt_dict.pop(key, None)  # Default value avoids KeyError
+            arg_dict.pop(key, None)  # Default value avoids KeyError
 
-        if remainder is not None:
-            checked_dict[remainder] = opt_dict
-
-        elif len(opt_dict) > 0:
-            error_message = "Unknown Options: '{:s}'.".format(opt_dict.keys())
+        if len(arg_dict) > 0:
+            error_message = "Unknown Options: '{:s}'.".format(arg_dict.keys())
             if self.strict:
-                raise OptionError(error_message)
-
+                raise ArgumentError(error_message)
             LOG.debug(error_message)
-            checked_dict.update(opt_dict)
 
-        return checked_dict
+        if self.strict:
+            return checked_dict
+        else:
+            return checked_dict, arg_dict
 
     #########################
     # Public Methods
     #########################
 
-    def parse_options(self, options):
+    def parse_arguments(self, arguments):
         """ Parse a given option dictionary and return parsed options.
 
         Args:
-            options: Options to parse
+            arguments: Arguments to parse
 
         Return:
             Parsed options
         """
-        return self._parse_options(copy.deepcopy(options), self.dictionary)
+        return self._parse_options(copy.deepcopy(arguments), self.dictionary)
 
     def parse_config_items(self, items):
         """ Parse a list of (name, value) items, where the values are all strings.
@@ -281,23 +271,23 @@ class DictParser(object):
         options = self._convert_config_items(items)
         return self._parse_options(options, self.dictionary)
 
-    def add_argument(self, arg, **kwargs):
-        """ Adds an argument to the parser.
+    def add_parameter(self, param, **kwargs):
+        """ Adds an parameter to the parser.
 
-        If you want it to be an argument of a sub-dictionary add
+        If you want it to be an parameter of a sub-dictionary add
         the 'loc=subdict.subdict' keyword to the input.
 
         Args:
-            arg: Argument to add (either of object of class argument or string defining the name)
+            param: Argument to add (either of object of class argument or string defining the name)
             kwargs: Any of the argument-fields (apart from 'name') and/or 'loc'
 
         Returns:
             This object
         """
         loc = kwargs.pop('loc', None)
-        if not isinstance(arg, Argument):
-            arg = Argument(arg, **kwargs)
-        self._add_arg_to_dict(arg, loc)
+        if not isinstance(param, Parameter):
+            param = Parameter(param, **kwargs)
+        self._add_param_to_dict(param, loc)
         return self
 
     def add_argument_dict(self, dictionary, loc):
@@ -315,9 +305,9 @@ class DictParser(object):
         sub_dict = self._traverse_dict('.'.join(fields[:-1]))
 
         if name in sub_dict:
-            raise ArgumentError("'{:s}' already exists in parser!".format(name))
+            raise ParameterError("'{:s}' already exists in parser!".format(name))
 
-        self._validate_arguments(dictionary)
+        self._validate_parameters(dictionary)
         sub_dict[name] = dictionary
         return self
 
@@ -326,7 +316,7 @@ class DictParser(object):
         pass
 
     def tree(self):
-        """ Prints the current Argument Tree (I made dis :) ) """
+        """ Prints the current Parameter-Tree (I made dis :) ) """
         def print_tree(tree, level_char):
             for i, key in enumerate(sorted(tree.keys())):
                 if i == len(tree) - 1:
@@ -358,29 +348,29 @@ class DictParser(object):
                              level_char_pp, _TC['L'] + _TC['-'],
                              'Help', leaf.help))
 
-        LOG.info('Argument Dictionary')
+        LOG.info('Parameter Dictionary')
         print_tree(self.dictionary, '')
 
     #########################
     # Private Methods
     #########################
 
-    def _add_arg_to_dict(self, arg, loc=None):
-        """ Adds and argument to the argument dictionary.
+    def _add_param_to_dict(self, param, loc=None):
+        """ Adds and parameter to the parameter dictionary.
 
         These will be used to parse an incoming option structure.
 
         Args:
-            arg: Argument to add
+            param: Argument to add
             loc: Path to sub-dictionary as string (e.g. subdict.subdict.loc[.arg])
 
         Returns:
             This object
         """
         sub_dict = self._traverse_dict(loc)
-        if arg.name in sub_dict:
-            raise ArgumentError("'{:s}' already exists in parser!".format(arg.name))
-        sub_dict[arg.name] = arg
+        if param.name in sub_dict:
+            raise ParameterError("'{:s}' already exists in parser!".format(param.name))
+        sub_dict[param.name] = param
         return self
 
     def _traverse_dict(self, loc=None):
@@ -389,7 +379,7 @@ class DictParser(object):
         Adds non-existing substructures automatically.
 
         Args:
-            loc: Path to sub-dictionary as string (e.g. argument.subargument.locination)
+            loc: Path to sub-dictionary as string (e.g. argument.subparam.locination)
 
         Returns:
             Sub-dictionary
@@ -403,8 +393,8 @@ class DictParser(object):
                 except KeyError:
                     d[t] = {}
                     d = d[t]
-                if isinstance(d, Argument):
-                    raise ArgumentError(
+                if isinstance(d, Parameter):
+                    raise ParameterError(
                         "'{:s}' is already an argument and hence cannot be a subdict.".format(
                             '.'.join(traverse[:i] + [t])))
         return d
@@ -415,8 +405,8 @@ class DictParser(object):
             try:
                 return eval(item)  # sorry for using that
             except NameError:
-                raise OptionError(
-                    "Could not evaluate option '{:s}', unknown '{:s}'".format(name, item))
+                raise ArgumentError(
+                    "Could not evaluate argument '{:s}', unknown '{:s}'".format(name, item))
 
         out = {}
         for name, value in items:
