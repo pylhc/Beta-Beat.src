@@ -1,7 +1,7 @@
 """
 
 """
-import json
+import copy
 from Utilities import logging_tools
 LOG = logging_tools.get_logger(__name__)
 
@@ -12,6 +12,8 @@ _TC = {  # Tree Characters
     'L': u'\u2514',  # L-Shape
     'S': u'\u251C',  # Split
 }
+
+REMAINDER = "REMAINDER_FLAG"  # needs to be something different form argparse.REMAINDER
 
 """
 ======================== Additional Dictionary Classes and Functions ========================
@@ -197,49 +199,59 @@ class DictParser(object):
             )
         return opt
 
-    @staticmethod
-    def _parse_options(opt_dict, arg_dict, strict):
+    def _parse_options(self, opt_dict, arg_dict):
         """ Use parse_options()!
 
         This is a helper Function for parsing options. It does all the work. Called recursively.
-        Needs to be static, because of the recursion! Sorry about that.
 
         Args:
             opt_dict: Dictionary with the options
             arg_dict: Dictionary with the arguments to check the options against
-            strict: True: raises error on unknown options
-                    False: Just adds them to default dict (prints warning)
-
         Returns:
             Dictionary with parsed options
         """
         checked_dict = DotDict()
+        remainder = None
         for key in arg_dict:
             if isinstance(arg_dict[key], Argument):
-                checked_dict[key] = DictParser._check_value(key, opt_dict, arg_dict)
-                if checked_dict[key] is None and key not in opt_dict:
-                    checked_dict.pop(key)  # CAREFUL HERE
+                if arg_dict[key].type == REMAINDER:
+                    if remainder is not None:
+                        raise ArgumentError("More than one remainder option found!")
+                    remainder = key
+                else:
+                    checked_item = DictParser._check_value(key, opt_dict, arg_dict)
+                    if key in opt_dict or checked_item is not None:
+                        checked_dict[key] = checked_item
             elif isinstance(arg_dict[key], dict):
                 try:
                     if not opt_dict or not (key in opt_dict):
                         checked_dict[key] = DictParser._parse_options(None,
-                                                                      arg_dict[key], strict)
+                                                                      arg_dict[key])
                     else:
                         checked_dict[key] = DictParser._parse_options(opt_dict[key],
-                                                                      arg_dict[key], strict)
+                                                                      arg_dict[key])
                 except OptionError as e:
-                    e.message = "'{:s}.{:s}".format(key, e.message[1:])
+                    old_msg = e.message[1:]
+                    if old_msg.startswith("'"):
+                        e.message = "'{:s}.{:s}".format(key, e.message[1:])
+                    else:
+                        e.message = "'{:s}' has {:s}".format(key, e.message)
                     e.args = (e.message,)
                     raise
 
             opt_dict.pop(key, None)  # Default value avoids KeyError
 
-        if len(opt_dict) > 0 and strict:
-            raise OptionError("Unknown Options: '{:s}'.".format(opt_dict.keys()))
+        if remainder is not None:
+            checked_dict[remainder] = opt_dict
 
-        for key in opt_dict:
-            LOG.warn("Unknown Option: '{:s}'.".format(key))
-            checked_dict[key] = opt_dict[key]
+        elif len(opt_dict) > 0:
+            error_message = "Unknown Options: '{:s}'.".format(opt_dict.keys())
+            if self.strict:
+                raise OptionError(error_message)
+
+            LOG.debug(error_message)
+            checked_dict.update(opt_dict)
+
         return checked_dict
 
     #########################
@@ -255,7 +267,7 @@ class DictParser(object):
         Return:
             Parsed options
         """
-        return self._parse_options(options.copy(), self.dictionary, self.strict)
+        return self._parse_options(copy.deepcopy(options), self.dictionary)
 
     def parse_config_items(self, items):
         """ Parse a list of (name, value) items, where the values are all strings.
@@ -267,7 +279,7 @@ class DictParser(object):
             Parsed options
         """
         options = self._convert_config_items(items)
-        return self._parse_options(options, self.dictionary, self.strict)
+        return self._parse_options(options, self.dictionary)
 
     def add_argument(self, arg, **kwargs):
         """ Adds an argument to the parser.

@@ -1,10 +1,11 @@
+from __future__ import print_function
 import __init__
 import os
 from Utilities.entrypoint import EntryPoint
 from Utilities.entrypoint import EntryPointArguments
 from Utilities.dict_tools import print_dict_tree
 from Utilities import logging_tools
-LOG = logging_tools.get_logger(__name__, level_console=0)
+LOG = logging_tools.get_logger(__name__, level_console=0, fmt="%(message)s")
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 
 """
@@ -146,19 +147,16 @@ def some_function_test():
     some_function(**kw_dict)
     some_other_function(**kw_dict)
     some_function_list_param(**kw_dict)
-    LOG.info("\n\n")
 
     LOG.info("KW-Arguments, entry_dict")
     some_function(entry_dict=kw_dict)
-    LOG.info("\n\n")
 
     LOG.info("Positional argument, dict")
     some_function(kw_dict)
-    LOG.info("\n\n")
 
     LOG.info("Positional argument, configfile")
     some_function(os.path.join(THISDIR, "entrypoint_config_test.cfg"))
-    LOG.info("\n\n")
+
 
 if __name__ == "__main__":
     some_function_test()

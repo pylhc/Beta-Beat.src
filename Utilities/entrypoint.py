@@ -18,15 +18,18 @@ Parameters need to be a list or a dictionary of dictionaries with the following 
         nargs (optional): number of arguments to consume (commandline only)
 
 The 'strict' option changes the behaviour for unknown parameters:
-    strict=True raises exceptions, strict=False loggs warnings.
+    strict=True raises exceptions, strict=False loggs debug messages.
 """
 
 import ConfigParser
+import copy
 import json
+import argparse
 from argparse import ArgumentParser
 from Utilities import logging_tools as logtools
 from Utilities.dict_tools import DictParser
 from Utilities.dict_tools import DotDict
+from Utilities.dict_tools import REMAINDER
 
 LOG = logtools.get_logger(__name__)
 
@@ -53,12 +56,16 @@ class EntryError(Exception):
 
 
 class EntryPoint(object):
-    def __init__(self, param, strict=True):
+    def __init__(self, arguments, strict=True):
         """ Initialize decoration: Handle the desired input parameters. """
-        self.param = self._param_d2l(param)
         self.strict = strict
 
-        # create parsers
+        # add argument dictionary to EntryPoint
+        self.remainder = None
+        self.arguments = EntryPoint._dict2list_args(arguments)
+        self._check_arguments()
+
+        # create parsers from arguments
         self.argparse = self._create_argument_parser()
         self.dictparse = self._create_dict_parser()
         self.configparse = self._create_config_parser()
@@ -69,61 +76,43 @@ class EntryPoint(object):
         Whenever the decorated function is called, actually this wrapper is called
         """
         def wrapper(*args, **kwargs):
-            """ Parse the arguments to the decorated function accordingly """
-            if len(args) > 0 and len(kwargs) > 0:
-                raise EntryError("Cannot combine positional arguments with keyword arguments.")
-
-            if len(args) > 1:
-                raise EntryError("Only one positional argument allowed (dict or config file)")
-
-            if args:
-                options = self._handle_args(args)
-            elif len(kwargs) == 0:
-                # assume commandline arguments
-                options = self._handle_commandline()
-            else:
-                options = self._handle_kwargs(kwargs)
-
-            return func(options)
+            return func(self.parse(*args, **kwargs))
         return wrapper
+
+    def parse(self, *args, **kwargs):
+        """ Parse whatever input arguments come """
+        if len(args) > 0 and len(kwargs) > 0:
+            raise EntryError("Cannot combine positional arguments with keyword arguments.")
+
+        if len(args) > 1:
+            raise EntryError("Only one positional argument allowed (dict or config file).")
+
+        if args:
+            options = self._handle_arg(args[0])
+        elif len(kwargs) > 0:
+            options = self._handle_kwargs(kwargs)
+        else:
+            options = self._handle_commandline()
+        return options
 
     #########################
     # Create Parsers
     #########################
 
     def _create_argument_parser(self):
-        """ Creates the ArgumentParser from params. """
+        """ Creates the ArgumentParser from arguments. """
         parser = ArgumentParser()
-        param = self.param
-        for item in param:
-            arg = item.copy()
-            arg["dest"] = arg.pop("name")
-            flags = arg.pop("flags")
-            if isinstance(flags, basestring):
-                flags = [flags]
-            parser.add_argument(*flags, **arg)
-
+        parser = add_arguments_to_generic(parser, self.arguments)
         return parser
 
     def _create_dict_parser(self):
-        """ Creates the DictParser from params. """
+        """ Creates the DictParser from arguments. """
         parser = DictParser(strict=self.strict)
-        param = self.param
-        for item in param:
-            arg = item.copy()
-            if "nargs" in arg and arg["nargs"] != "?":
-                arg["subtype"] = arg.get("type", None)
-                arg["type"] = list
-
-            for label in ARGPARSE_ONLY:
-                arg.pop(label, None)
-
-            name = arg.pop("name")
-            parser.add_argument(name, **arg)
+        parser = add_arguments_to_generic(parser, self.arguments)
         return parser
 
     def _create_config_parser(self):
-        """ Creates the config parser. Maybe more to do here later with params. """
+        """ Creates the config parser. Maybe more to do here later with arguments. """
         parser = ConfigParser.ConfigParser()
         return parser
 
@@ -131,24 +120,30 @@ class EntryPoint(object):
     # Handlers
     #########################
 
-    def _handle_commandline(self):
-        """ No input """
-        options, unknown_args = self.argparse.parse_known_args()
+    def _handle_commandline(self, args=None):
+        """ No input to function """
+        options, unknown_args = self.argparse.parse_known_args(args)
+        options = DotDict(vars(options))
         if unknown_args:
-            if self.strict:
-                raise EntryError("Unkown Options: {:s}".format(unknown_args))
+            if self.remainder:
+                options[self.remainder] = unknown_args
+            elif self.strict:
+                raise EntryError("Unknown arguments: {:s}".format(unknown_args))
             else:
-                LOG.warn("Ignored Options: {:s}".format(unknown_args))
-        return DotDict(vars(options))
+                LOG.debug("Unknown arguments skipped: {:s}".format(unknown_args))
+        return options
 
-    def _handle_args(self, args):
+    def _handle_arg(self, arg):
         """ *args has been input """
-        if isinstance(args[0], basestring):
+        if isinstance(arg, basestring):
             # assume config file
-            options = self.dictparse.parse_config_items(self._read_config(args[0]))
-        elif isinstance(args[0], dict):
+            options = self.dictparse.parse_config_items(self._read_config(arg))
+        elif isinstance(arg, dict):
             # dictionary
-            options = self.dictparse.parse_options(args[0])
+            options = self.dictparse.parse_options(arg)
+        elif isinstance(arg, list):
+            # list of commandline arguments
+            options = self._handle_commandline(arg)
         else:
             raise EntryError("Only dictionary or configfiles"
                              "are allowed as positional arguments")
@@ -192,10 +187,36 @@ class EntryPoint(object):
     # Helpers
     #########################
 
+    def _check_arguments(self):
+        """ EntryPoint specific checks for arguments """
+        for arg in self.arguments:
+            arg_name = arg.get("name", None)
+            if arg_name is None:
+                raise AttributeError("An Argument needs a Name!")
+
+            if arg.get("nargs", None) == argparse.REMAINDER:
+                raise AttributeError("Argument '{:s}' is set as remainder.".format(arg_name) +
+                                     "This method is really buggy," +
+                                     "use 'type=entrypoint.REMAINDER' instead.")
+
+            if arg.get("type", None) == REMAINDER:
+                if self.remainder is not None:
+                    raise AttributeError("More than one remainder argument found!")
+                self.remainder = arg_name
+
+                if arg.get("flags", None) is not None:
+                    raise AttributeError("Argument '{:s}'".format(arg_name) +
+                                         "is set to collect remaining arguments." +
+                                         "It is not supposed to have flags.")
+
+            elif arg.get("flags", None) is None:
+                raise AttributeError("Argument '{:s}'".format(arg_name) +
+                                     "does not have flags. " +
+                                     "Only remainder arguments are allowed that privilege")
+
     def _read_config(self, cfgfile_path, section=None):
         """ Get content from config file"""
         cfgparse = self.configparse
-        dictparse = self.dictparse
 
         with open(cfgfile_path) as config_file:
             cfgparse.readfp(config_file)
@@ -209,7 +230,7 @@ class EntryPoint(object):
         return cfgparse.items(section)
 
     @staticmethod
-    def _param_d2l(param):
+    def _dict2list_args(param):
         """ Convert dictionary to list and add name by key """
         if isinstance(param, dict):
             out = []
@@ -220,6 +241,8 @@ class EntryPoint(object):
             return out
         else:
             return param
+
+
 """
 ======================== EntryPoint Arguments ========================
 """
@@ -237,6 +260,46 @@ class EntryPointArguments(DotDict):
         else:
             self[name] = kwargs
 
+
+"""
+======================== Public Helpers ========================
+"""
+
+
+def add_arguments_to_generic(parser, args):
+    """ Adds entry-point style arguments to either
+    ArgumentParser, DictParser or EntryPointArguments
+    """
+    args = copy.deepcopy(args)
+    if isinstance(parser, EntryPointArguments):
+        for arg in args:
+            parser.add_argument(arg)
+
+    elif isinstance(parser, ArgumentParser):
+        for arg in args:
+            arg["dest"] = arg.pop("name", None)
+            flags = arg.pop("flags", None)
+            if flags is None:
+                parser.add_argument(**arg)
+            else:
+                if isinstance(flags, basestring):
+                    flags = [flags]
+                parser.add_argument(*flags, **arg)
+
+    elif isinstance(parser, DictParser):
+        for arg in args:
+            if "nargs" in arg and arg["nargs"] != "?":
+                arg["subtype"] = arg.get("type", None)
+                arg["type"] = list
+
+            for label in ARGPARSE_ONLY:
+                arg.pop(label, None)
+
+            name = arg.pop("name")
+            parser.add_argument(name, **arg)
+    else:
+        raise TypeError("Parser not recognised.")
+    return parser
 
 """
 ======================== Script Mode ========================
