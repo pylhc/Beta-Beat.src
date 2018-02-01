@@ -57,12 +57,21 @@ def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
         d (string): name of the exciter element.
     """
     acc = getllm_d.accelerator
+    bd = acc.get_beam_direction()
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
     plane_mu = "MUX" if plane == "H" else "MUY"
     [k, bpmac1], exciter = acc.get_exciter_bpm(plane, commonbpms)
+    model_driven = acc.get_driven_tfs()
     
     ##return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] + PI * Q)) % PI - PI * Qd, k
-    #psi = np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] - PI * Q)) % PI - PI + PI * Qd
+    try:
+        psi = (
+            np.arctan((1 + r) / (1 - r) *
+                      tan(TWOPI * (model_driven.loc[bpmac1, plane_mu] - model_driven.loc[exciter, plane_mu]) )
+                     ) / TWOPI
+        ) % .5 - .5
+    except:
+        pass
     psi = acc.get_elements_tfs().loc[bpmac1, plane_mu] - acc.get_elements_tfs().loc[exciter, plane_mu]
     return bpmac1, psi, k, exciter
 
@@ -137,10 +146,10 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
         #Psi = np.where(psid < -.75, Psi - .5, Psi)
         Psi -= Psi[0]
 #        Psi -= .5 * Q
-        Psi[k_bpmac:] += Q 
+        Psi[k_bpmac:] += Q
 #        Psi *= bd
         
-        meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis]) 
+        meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis])
         phase_matr_meas[i] = meas_matr
    
     phase_matr_meas1 = (phase_matr_meas + .5) % 1.0 - .5
