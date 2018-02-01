@@ -1345,12 +1345,12 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     # ==========
     # define functions in a function -- python witchcraft, burn it!!!!! 
     def collect(row):
+        if row[-1] != -2:
             result[row[0]]= row[1:]
         
     def collectblock(block):
         for row in block:
-            result[row[0]] = row[1:]
-            
+           collect(row) 
      # =============== calculate the betas ============================================================================
            
     st = time.time()
@@ -1857,6 +1857,13 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     except ValueError:
         _error_("ValueError")
 
+        return (
+            Index, probed_bpm_name, s,
+            beti, betstat, betsys, beterr,
+            alfi, alfstat, alfsys, alferr,
+            .0, betmdl1, (beti - betmdl1) / betmdl1 * 100.0,
+            -2
+        )
     #------------------------------------------------------------------------------------------------------------------
     # writing debug output
     #------------------------------------------------------------------------------------------------------------------
@@ -1873,11 +1880,13 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
 
         DBG.write_end()
 
-    return (Index, probed_bpm_name, s,
-                beti, betstat, betsys, beterr,
-                alfi, alfstat, alfsys, alferr,
-                .0, betmdl1, (beti - betmdl1) / betmdl1 * 100.0,
-                len(betas))
+    return (
+        Index, probed_bpm_name, s,
+        beti, betstat, betsys, beterr,
+        alfi, alfstat, alfsys, alferr,
+        .0, betmdl1, (beti - betmdl1) / betmdl1 * 100.0,
+        len(betas)
+    )
  
 #===================================================================================================
 #--- ac-dipole stuff
