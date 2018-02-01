@@ -752,20 +752,6 @@ def gen_kick_calc(list_of_files, mad_twiss, beta_d, source, plane, bbthreshold, 
         returns:  list, list, int
             The value and uncertainty for sqrt(2J) and 2J resp., along #BPM rej
     '''
-    # TODO: recover the following intersection with the new commonbpms
-
-#   if source == 'model':
-#       commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
-#   elif source == 'amp':
-#       if plane == 'H':
-#           commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_amp.keys())
-#       elif plane == 'V':
-#           commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_amp.keys())
-#   elif source == 'phase':
-#       if plane == 'H':
-#           commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_phase.keys())
-#       elif plane == 'V':
-#           commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_phase.keys())
 
     meansqrt2j = []
     mean2j = []

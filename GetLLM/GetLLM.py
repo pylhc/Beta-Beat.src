@@ -901,10 +901,9 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
     '''
     LOGGER.info( "Calculating kick")
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
-    common_index = twiss_d.zero_dpp_unionbpms_x.index.intersection(
-        twiss_d.zero_dpp_commonbpms_y.index.intersection(
-            twiss_d.non_zero_dpp_commonbpms_x.index.intersection(
-                twiss_d.non_zero_dpp_commonbpms_y.index)))
+    common_index = twiss_d.non_zero_dpp_commonbpms_x.index.intersection(
+        twiss_d.non_zero_dpp_commonbpms_y.index.intersection(
+            beta_d.x_phase.keys())).intersection(beta_d.y_phase.keys())
 
     meansqrt_2jx = {}
     meansqrt_2jy = {}
