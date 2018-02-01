@@ -134,6 +134,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         q1 = np.sum(q1_files * q1_inv_Var) / np.sum(q1_inv_Var)
         tune_d.q1 = q1
         tune_d.q1f = q1
+        LOGGER.debug("horizontal tune of measurement files = {}".format(q1))
         
         phase_d.phase_advances_free_x, tune_d.mux = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_x, bpmsx, q1,
                                                                'H')
@@ -154,6 +155,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         q2 = np.sum(q2_files * q2_inv_Var) / np.sum(q2_inv_Var)
         tune_d.q2 = q2
         tune_d.q2f = q2
+        LOGGER.debug("vertical tune of measurement files = {}".format(q2))
 
         phase_d.phase_advances_free_y, tune_d.muy = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_y, bpmsy, q2,
                                                                'V')
@@ -188,7 +190,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     # ============= Write the phases to file ==========================================================================
 
     #---- H plane result
-    LOGGER.debug("phase calculation finished. Output files.")
+    LOGGER.debug("phase calculation finished. Write files.")
     if twiss_d.has_zero_dpp_x():
         LOGGER.debug("x ouptut")
         files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H",
@@ -585,6 +587,24 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
                  model.loc[meas.index[i], plane_mu],
                  nf
                 ])
+    # last row = last - first
+    last = len(meas.index)-1
+    if union:
+        nf = nfiles[meas.index[0]][meas.index[last]]
+    else:
+        nf = "ALL"
+    
+    tfs_file.add_table_row([
+             meas.index[last],
+             meas.index[0],
+             model.loc[meas.index[last], "S"],
+             model.loc[meas.index[0], "S"],
+             (meas[meas.index[0]][meas.index[last]] + plane_tune) % 1.0,
+             err[meas.index[0]][meas.index[last]],
+             (mod[meas.index[0]][meas.index[last]] + plane_tune) % 1.0,
+             model.loc[meas.index[last], plane_mu],
+             nf
+            ])
     return tfs_file
 
 
