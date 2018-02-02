@@ -75,6 +75,7 @@ class Parameter(object):
         self.default = kwargs.pop('default', None)
         self.help = kwargs.pop('help', '')
         self.type = kwargs.pop('type', None)
+        self.nargs = kwargs.pop('nargs', None)
         self.subtype = kwargs.pop('subtype', None)
         self.choices = kwargs.pop('choices', None)
 
@@ -86,30 +87,39 @@ class Parameter(object):
     def _validate(self):
         if not isinstance(self.name, basestring):
             raise ParameterError("Parameter '{:s}': ".format(str(self.name)) +
-                                "Name is not a valid string.")
+                                 "Name is not a valid string.")
 
         if self.default and self.type and not isinstance(self.default, self.type):
             raise ParameterError("Parameter '{:s}': ".format(self.name) +
-                                "Default value not of specified type.")
+                                 "Default value not of specified type.")
 
         if self.choices and not isinstance(self.choices, list):
                 raise ParameterError("Parameter '{:s}': ".format(self.name) +
-                                    "Choices need to be a list.")
+                                     "Choices need to be a list.")
 
         if self.choices and self.default not in self.choices:
-            raise ParameterError("Argument '{:s}': ".format(self.name) +
-                                "Default value not found in choices.")
+            raise ParameterError("Parameter '{:s}': ".format(self.name) +
+                                 "Default value not found in choices.")
 
         if self.choices and self.type:
             for choice in self.choices:
                 if not isinstance(choice, self.type):
                     raise ParameterError("Choice '{:s}'".format(choice) +
-                                        "of parameter '{:s}': ".format(self.name) +
-                                        "is not of type '{:s}'.".format(self.type))
+                                         "of parameter '{:s}': ".format(self.name) +
+                                         "is not of type '{:s}'.".format(self.type))
+
+        if self.nargs:
+            if not isinstance(self.nargs, int):
+                raise ParameterError("Parameter '{:s}': ".format(self.name) +
+                                     "nargs needs to be an integer.")
+
+            if not (self.type or self.type == list):
+                raise ParameterError("Parameter '{:s}': ".format(self.name) +
+                                     "'type' needs to be 'list' if 'nargs' is given.")
 
         if self.subtype and not (self.type or self.type == list):
             raise ParameterError("Parameter '{:s}': ".format(self.name) +
-                                "field 'subtype' is only accepted if 'type' is list.")
+                                 "field 'subtype' is only accepted if 'type' is list.")
 
         if self.required and self.default is not None:
             LOG.warn("Parameter '{:s}': ".format(self.name) +
@@ -191,6 +201,19 @@ class DictParser(object):
             raise ArgumentError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
                 key, param.type.__name__, param.help)
             )
+        if param.type == list:
+            if param.nargs and not param.nargs == len(opt):
+                raise ArgumentError(
+                    "'{:s}' should be list of length {:d},".format(key, param.nargs) +
+                    " instead it was of length {:d}.\nHelp: {:s}".format(len(opt), param.help))
+            if param.subtype:
+                for idx, item in enumerate(opt):
+                    if not isinstance(item, param.subtype):
+                        raise ArgumentError(
+                            "Item {:d} of '{:s}' is not of type '{:s}' ".format(
+                                idx, key, param.subtype.__name__) +
+                            ".\nHelp: {:s}".format(param.help))
+
         if param.choices and opt not in param.choices:
             raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
                 key, param.choices, param.help)

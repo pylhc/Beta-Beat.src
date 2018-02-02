@@ -37,7 +37,6 @@ The 'strict' option changes the behaviour for unknown parameters:
     Hence a wrapped function with strict=True must accept one input, with strict=False two.
     Default: False
 
-
 """
 
 import ConfigParser
@@ -58,8 +57,6 @@ ID_CONFIG = "entry_cfg"
 ID_DICT = "entry_dict"
 ID_JSON = "entry_json"
 ID_SECTION = "section"
-
-ARGPARSE_ONLY = ["nargs", "flags"]
 
 
 """
@@ -311,12 +308,15 @@ def add_params_to_generic(parser, params):
 
     elif isinstance(parser, DictParser):
         for param in params:
-            if "nargs" in param and param["nargs"] != "?":
-                param["subtype"] = param.get("type", None)
-                param["type"] = list
+            if "nargs" in param:
+                if param["nargs"] != "?":
+                    param["subtype"] = param.get("type", None)
+                    param["type"] = list
 
-            for label in ARGPARSE_ONLY:
-                param.pop(label, None)
+                if isinstance(param["nargs"], str):
+                    param.pop("nargs")
+
+            param.pop("flags", None)
 
             name = param.pop("name")
             parser.add_parameter(name, **param)

@@ -46,6 +46,12 @@ def _get_params_arguments():
                        nargs="+",
                        required=True,
                        )
+    args.add_parameter(name="anotherlist",
+                       flags=["-k", "--alint"],
+                       help="list.",
+                       type=str,
+                       nargs=3,
+                       ),
     return args
 
 
@@ -74,12 +80,19 @@ def _get_params_dict():
             type=int,
             required=True,
         ),
-        "alist": dict(flags=["-l", "--lint"],
-                      help="Just a number.",
-                      type=int,
-                      nargs="+",
-                      required=True,
-                      ),
+        "alist": dict(
+            flags=["-l", "--lint"],
+            help="Just a number.",
+            type=int,
+            nargs="+",
+            required=True,
+        ),
+        "anotherlist": dict(
+            flags=["-k", "--alint"],
+            help="list.",
+            type=str,
+            nargs=3,
+        ),
     }
     return args
 
@@ -115,6 +128,12 @@ def _get_params_list():
              type=int,
              nargs="+",
              required=True,
+             ),
+        dict(name="anotherlist",
+             flags=["-k", "--alint"],
+             help="list.",
+             type=str,
+             nargs=3,
              ),
     ]
 
@@ -152,9 +171,10 @@ def some_function_list_param(options, unknown_options):
 
 
 def some_function_test():
-    arg_list = "-a LHCB5 -n 5.6 -i 10 -l 1 2 3"
+    arg_list = "-a LHCB5 -n 5.6 -i 10 -l 1 2 3 -k hubba dubba subba"
     arg_list_unknowns = arg_list + " --xx was -j ist das"
-    kw_dict = dict(accel="LHCB5", anumber=5.6, anint=10, alist=[1,2,3])
+    kw_dict = dict(accel="LHCB5", anumber=5.6, anint=10,
+                   alist=[1, 2, 3], anotherlist=["hubba", "dubba", "subba"])
     kw_w_unknowns = kw_dict.copy()
     kw_w_unknowns.update(un="what", known="is that?")
 
