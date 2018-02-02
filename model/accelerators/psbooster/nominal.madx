@@ -1,0 +1,84 @@
+/******************************************************************************************
+*
+* MAD-X File for PS Booster optics calculations
+*
+*
+* PSB Extraction working point:
+* New working point: QX = 4.172 and QY = 4.23.  21 Dec 2006 O.Berrig
+*
+*
+* This file is for protons at 0.348 GeV/c at time c = 301
+*
+*
+* Execute with:  >madx < psb_orbit.madx
+*
+******************************************************************************************/
+
+ title, 'BOOSTER lattice';
+
+ option, echo;
+ option, RBARC=FALSE;
+
+/******************************************************************************************
+ * BOOSTER
+ ******************************************************************************************/
+ call, file = '%(FILES_DIR)s/psb.ele';
+ call, file = '%(FILES_DIR)s/psb.seq';
+ call, file = '%(FILES_DIR)s/psb.dbx';
+ call, file = '%(FILES_DIR)s/psb_orbit.str';
+
+
+/******************************************************************************************
+ * beam, use
+ ******************************************************************************************/
+ call, file = '%(FILES_DIR)s/psb_orbit.beamx';
+ use, sequence=psb%(RING)s;
+
+/******************************************************************************************
+ * Match for new working point
+ ******************************************************************************************/
+
+ Qx = %(NAT_TUNE_X)s;
+ Qy = %(NAT_TUNE_Y)s;
+ Qxd = %(DRV_TUNE_X)s;
+ Qyd = %(DRV_TUNE_Y)s;
+
+ MATCH,sequence=psb%(RING)s;
+  vary, NAME=kKF, step = 0.0001;
+  vary, NAME=kKD, step = 0.0001;
+  constraint, range=#E, MUX=Qx, MUY=Qy;
+  lmdif, calls = 10000, tolerance = 1.0E-21;
+ ENDMATCH;
+
+
+/******************************************************************************************
+ * TWISS
+ ******************************************************************************************/
+
+ PSHIFT=0;
+
+/************************************************************
+ * MAD uses pt as the 5th variable NOT delta-p.
+ * The result is that all derivatives are with repect to pt.
+ * This is the reason for the non-standard dispersion values
+ * for non-relativistic machines, like the PSB
+ ************************************************************/
+ select, flag=twiss, clear;
+ select, flag=twiss, pattern="^BR.*BPM",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
+ twiss, centre, DELTAP = 0, sequence=psb%(RING)s, file="%(OUTPUT)s/twiss.dat";
+
+ select, flag=twiss, clear;
+ select, flag=twiss,column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
+ twiss, centre, DELTAP = 0, sequence=psb%(RING)s, file="%(OUTPUT)s/twiss_elements.dat";
+
+ ac_s = %(USE_ACD)s;
+ if (ac_s == 1) {
+      select, flag=twiss, clear;
+      twiss;
+      betxac = table(twiss, hacmap, betx);
+      betyac = table(twiss, vacmap, bety);
+
+      select, flag=twiss, clear;
+      select, flag=twiss, pattern="^BR.*BPM",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
+      twiss, centre, DELTAP = 0, sequence=psb%(RING)s, file="%(OUTPUT)s/twiss_ac.dat";
+ }
