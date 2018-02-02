@@ -1,10 +1,12 @@
+from __future__ import print_function
 import __init__
 import os
 from Utilities.entrypoint import EntryPoint
-from Utilities.entrypoint import EntryPointArguments
+from Utilities.entrypoint import EntryPointParameters
+from Utilities.entrypoint import ArgumentError, ParameterError
 from Utilities.dict_tools import print_dict_tree
 from Utilities import logging_tools
-LOG = logging_tools.get_logger(__name__, level_console=0)
+LOG = logging_tools.get_logger(__name__, level_console=0, fmt="%(levelname)7s | %(message)s")
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 
 """
@@ -14,36 +16,42 @@ THISDIR = os.path.dirname(os.path.abspath(__file__))
 
 def _get_params_arguments():
     """ Parameters defined with EntryPointArguments (which is a dict *cough*) """
-    args = EntryPointArguments()
-    args.add_argument(name="accel",
-                      flags=["-a", "--accel"],
-                      help="Which accelerator: LHCB1 LHCB2 LHCB4? SPS RHIC TEVATRON",
-                      choices=["LHCB1","LHCB2","LHCB5"],
-                      default="LHCB1")
-    args.add_argument(name="dict",
-                      flags=["-d", "--dictionary"],
-                      help="File with the BPM dictionary",
-                      default="/test.notafile",
-                      type=str)
-    args.add_argument(name="anumber",
-                      flags=["-num", "--anum"],
-                      help="Just a number.",
-                      type=float,
-                      default=19.,
-                      )
-    args.add_argument(name="anint",
-                      flags=["-i", "--int"],
-                      help="Just a number.",
-                      type=int,
-                      required=True,
-                      )
-    args.add_argument(name="alist",
-                      flags=["-l", "--lint"],
-                      help="Just a number.",
-                      type=int,
-                      nargs="+",
-                      required=True,
-                      )
+    args = EntryPointParameters()
+    args.add_parameter(name="accel",
+                       flags=["-a", "--accel"],
+                       help="Which accelerator: LHCB1 LHCB2 LHCB4? SPS RHIC TEVATRON",
+                       choices=["LHCB1","LHCB2","LHCB5"],
+                       default="LHCB1")
+    args.add_parameter(name="dict",
+                       flags=["-d", "--dictionary"],
+                       help="File with the BPM dictionary",
+                       default="/test.notafile",
+                       type=str)
+    args.add_parameter(name="anumber",
+                       flags=["-num", "--anum"],
+                       help="Just a number.",
+                       type=float,
+                       default=19.,
+                       )
+    args.add_parameter(name="anint",
+                       flags=["-i", "--int"],
+                       help="Just a number.",
+                       type=int,
+                       required=True,
+                       )
+    args.add_parameter(name="alist",
+                       flags=["-l", "--lint"],
+                       help="Just a number.",
+                       type=int,
+                       nargs="+",
+                       required=True,
+                       )
+    args.add_parameter(name="anotherlist",
+                       flags=["-k", "--alint"],
+                       help="list.",
+                       type=str,
+                       nargs=3,
+                       ),
     return args
 
 
@@ -72,12 +80,19 @@ def _get_params_dict():
             type=int,
             required=True,
         ),
-        "alist": dict(flags=["-l", "--lint"],
-                      help="Just a number.",
-                      type=int,
-                      nargs="+",
-                      required=True,
-                      ),
+        "alist": dict(
+            flags=["-l", "--lint"],
+            help="Just a number.",
+            type=int,
+            nargs="+",
+            required=True,
+        ),
+        "anotherlist": dict(
+            flags=["-k", "--alint"],
+            help="list.",
+            type=str,
+            nargs=3,
+        ),
     }
     return args
 
@@ -96,7 +111,7 @@ def _get_params_list():
              default="/test.notafile",
              type=str),
         dict(name="anumber",
-             flags=["-num", "--anum"],
+             flags=["-n", "--anum"],
              help="Just a number.",
              type=float,
              default=19.,
@@ -114,52 +129,139 @@ def _get_params_list():
              nargs="+",
              required=True,
              ),
+        dict(name="anotherlist",
+             flags=["-k", "--alint"],
+             help="list.",
+             type=str,
+             nargs=3,
+             ),
     ]
 
 
 
 @EntryPoint(_get_params_arguments())
-def some_function(options):
+def some_function(options, unknown_options):
     LOG.info("Some Function")
     print_dict_tree(options)
-    LOG.info("\n\n")
+    LOG.info("Unknown Options: \n {:s}".format(unknown_options))
+    LOG.info("\n")
+
+
+@EntryPoint(_get_params_arguments(), strict=True)
+def strict_function(options):
+    LOG.info("Strict Function")
+    print_dict_tree(options)
+    LOG.info("\n")
 
 
 @EntryPoint(_get_params_dict())
-def some_other_function(options):
+def some_other_function(options, unknown_options):
     LOG.info("Some Other Function")
     print_dict_tree(options)
-    LOG.info("\n\n")
+    LOG.info("Unknown Options: \n {:s}".format(unknown_options))
+    LOG.info("\n")
 
 
 @EntryPoint(_get_params_list())
-def some_function_list_param(options):
+def some_function_list_param(options, unknown_options):
     LOG.info("Some Function with list params")
     print_dict_tree(options)
-    LOG.info("\n\n")
+    LOG.info("Unknown Options: \n {:s}".format(unknown_options))
+    LOG.info("\n")
 
 
 def some_function_test():
-    kw_dict = dict(accel="LHCB5", anumber=5.6, anint=10, alist=[1,2,3])
+    arg_list = "-a LHCB5 -n 5.6 -i 10 -l 1 2 3 -k hubba dubba subba"
+    arg_list_unknowns = arg_list + " --xx was -j ist das"
+    kw_dict = dict(accel="LHCB5", anumber=5.6, anint=10,
+                   alist=[1, 2, 3], anotherlist=["hubba", "dubba", "subba"])
+    kw_w_unknowns = kw_dict.copy()
+    kw_w_unknowns.update(un="what", known="is that?")
 
+    LOG.info("# KW-Args ########################")
     LOG.info("KW-Arguments")
     some_function(**kw_dict)
     some_other_function(**kw_dict)
     some_function_list_param(**kw_dict)
     LOG.info("\n\n")
 
+    LOG.info("KW-Arguments, with unknowns")
+    some_function(**kw_w_unknowns)
+    some_other_function(**kw_w_unknowns)
+    some_function_list_param(**kw_w_unknowns)
+    LOG.info("\n\n")
+
+    LOG.info("# KW-Args entry dict ########################")
     LOG.info("KW-Arguments, entry_dict")
     some_function(entry_dict=kw_dict)
+    LOG.info("KW-Arguments, entry_dict w/ unknowns")
+    some_function(entry_dict=kw_w_unknowns)
     LOG.info("\n\n")
 
+    LOG.info("# Positional Dict ########################")
     LOG.info("Positional argument, dict")
     some_function(kw_dict)
+    LOG.info("Positional argument, dict w/ unknowns")
+    some_function(kw_w_unknowns)
     LOG.info("\n\n")
 
+    LOG.info("# Positional CFG ########################")
     LOG.info("Positional argument, configfile")
     some_function(os.path.join(THISDIR, "entrypoint_config_test.cfg"))
     LOG.info("\n\n")
 
+    LOG.info("# Positional List ########################")
+    LOG.info("Positional argument, list")
+    some_function(arg_list.split(" "))
+    LOG.info("Positional argument, list w/ unknowns")
+    some_function(arg_list_unknowns.split(" "))
+    LOG.info("\n\n")
+
+    LOG.info("# Strict Function ########################")
+    LOG.info("KW-Arguments")
+    strict_function(**kw_dict)
+    LOG.info("KW-Arguments, entry_dict")
+    strict_function(entry_dict=kw_dict)
+    LOG.info("Positional argument, dict")
+    strict_function(kw_dict)
+    LOG.info("Positional argument, list")
+    strict_function(arg_list.split(" "))
+    LOG.info("\n\n")
+
+    LOG.info("# Strict Functions Unknowns ########################")
+    LOG.info("KW-Arguments")
+    try:
+        strict_function(**kw_w_unknowns)
+    except ArgumentError as e:
+        LOG.error(e.message)
+        LOG.error("\n")
+    LOG.info("KW-Arguments, entry_dict")
+    try:
+        strict_function(entry_dict=kw_w_unknowns)
+    except ArgumentError as e:
+        LOG.error(e.message)
+        LOG.error("\n")
+    LOG.info("Positional argument, dict")
+    try:
+        strict_function(kw_w_unknowns)
+    except ArgumentError as e:
+        LOG.error(e.message)
+        LOG.error("\n")
+    LOG.info("Positional argument, list")
+    try:
+        strict_function(arg_list_unknowns.split(" "))
+    except ArgumentError as e:
+        LOG.error(e.message)
+        LOG.error("\n")
+    LOG.info("\n\n")
+
+def as_parser_test():
+    kw_dict = dict(accel="LHCB5", anumber=5.6, anint=10, alist=[1, 2, 3])
+    p = EntryPoint(_get_params_list())
+    opt, uopt = p.parse(**kw_dict)
+    print_dict_tree(opt)
+
 if __name__ == "__main__":
+    # as_parser_test()
     some_function_test()
 

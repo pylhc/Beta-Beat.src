@@ -63,5 +63,5 @@ def plot_fitting(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path):
 
 
 if __name__=='__main__':
-	''' insert data '''
-	make_fit_plots(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path)
+    # insert data
+    make_fit_plots(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path)

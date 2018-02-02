@@ -18,15 +18,17 @@
     (e.g. '1 + var' is indistinguishable from '2 * var', which is not what you want!)
 """
 
+import cPickle as pickle
 import os
 import re
-import json
-from Utilities import logging_tools as logtool
-from Utilities.contexts import timeit
-from Utilities import tfs_pandas as tfs
-import cPickle as pickle
-import pandas as pd
 from collections import OrderedDict
+
+import pandas as pd
+
+from Utilities import logging_tools as logtool
+from Utilities import tfs_pandas as tfs
+from Utilities.contexts import timeit
+from Utilities.iotools import json_dumps_readable
 
 LOG = logtool.get_logger(__name__)
 
@@ -166,7 +168,7 @@ def load_or_parse_variable_mapping(seqfile_path, ret=DEFAULT['return']):
     return mapping
 
 
-def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['return']):
+def varmap_variables_to_json(varmap_or_file, outfile_path=None, format=DEFAULT['return']):
     """ Saves all variable names from mapping to json file.
 
         The variables will be saved by their order in the file.
@@ -179,11 +181,11 @@ def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['retur
     LOG.debug("Converting varmap to json-file.")
     if isinstance(varmap_or_file, basestring):
         mapping = load_or_parse_variable_mapping(varmap_or_file, ret=format)
-        if outfile is None:
-            outfile = varmap_or_file.replace(".seq", "").replace("." + EXT, "") + "_all_list.json"
+        if outfile_path is None:
+            outfile_path = varmap_or_file.replace(".seq", "").replace("." + EXT, "") + "_all_list.json"
     else:
         mapping = varmap_or_file
-        if outfile is None:
+        if outfile_path is None:
             IOError("Outputfile not given!")
 
     json_dict = OrderedDict.fromkeys(sorted(mapping.keys()))
@@ -195,15 +197,8 @@ def varmap_variables_to_json(varmap_or_file, outfile=None, format=DEFAULT['retur
 
     json_dict["all"] = sorted(list(set([var for order in json_dict for var in json_dict[order]])))
 
-    # This is how you write a beautiful json file:
-    json_string = json.dumps(json_dict).replace(", ", ",\n    "
-                                      ).replace("[", "[\n    "
-                                      ).replace("],\n    ", "],\n\n"
-                                      ).replace("{", "{\n"
-                                      ).replace("}", "\n}")
-    with open(outfile, "w") as json_file:
-        json_file.write(json_string)
-        LOG.debug("Variables saved to '{:s}'.".format(outfile))
+    json_dumps_readable(outfile_path, json_dict)
+    LOG.debug("Variables saved to '{:s}'.".format(outfile_path))
 
 
 """
@@ -250,12 +245,6 @@ def _find_magnet_strength(line):
 
         knl_dict = {}
         for match in matches:
-            ########## HACK TO AVOID DIPOLES AS THEY ARE DEFINED BY LRAD!
-            #TODO: Find a way to change dipoles in MADX!?
-            if magnet.startswith("mb"):
-                return None
-            ##############################################################
-
             if match.group("knl") is not None:
                 skew = "S" if match.group('s') == "s" else ""
                 knls = match.group('knl').split(',')
@@ -263,6 +252,11 @@ def _find_magnet_strength(line):
                     try:
                         float(knl)  # check could also be "len(knl) > 1"
                     except ValueError:
+                        ########## HACK TO AVOID DIPOLES AS THEY ARE DEFINED BY LRAD!
+                        # TODO: Find a way to change dipoles in MADX!?
+                        if n == 0 and not re.search(r":\s*multipole\s*,", line):
+                            return None
+                        ##############################################################
                         order = "K{n:d}{skew:s}L".format(n=n, skew=skew)
                         knl_dict[order] = knl.replace(" ", "")
             else:

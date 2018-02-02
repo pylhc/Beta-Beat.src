@@ -12,9 +12,10 @@ Feel free to use and extend this module.
 
 """
 
+import json
 import os
-import sys
 import shutil
+import sys
 
 
 def delete_content_of_dir(path_to_dir):
@@ -201,7 +202,8 @@ def replace_keywords_in_textfile(path_to_textfile, dict_for_replacing, new_outpu
     E.g.: A textfile with the content "%(This)s will be replaced!" and the dict {"This":"xyz"} results
     to the change "xyz will be replaced!" in the textfile.
 
-    :param string new_output_path: If new_output_path is None, then the source file will be replaced.
+    Args:
+        new_output_path: If new_output_path is None, then the source file will be replaced.
     """
     if new_output_path is None:
         destination_file = path_to_textfile
@@ -212,3 +214,18 @@ def replace_keywords_in_textfile(path_to_textfile, dict_for_replacing, new_outpu
     lines_with_replaced_keys = all_lines % dict_for_replacing
     write_string_into_new_file(destination_file, lines_with_replaced_keys)
 
+
+def json_dumps_readable(json_outfile, object):
+    """ This is how you write a beautiful json file
+    
+    Args:
+        json_outfile: File to write
+        object: object to dump
+    """
+    object = json.dumps(object).replace(", ", ",\n    "
+                              ).replace("[", "[\n    "
+                              ).replace("],\n    ", "],\n\n"
+                              ).replace("{", "{\n"
+                              ).replace("}", "\n}")
+    with open(json_outfile, "w") as json_file:
+        json_file.write(object)
