@@ -68,7 +68,6 @@ import re
 
 import __init__  # @UnusedImport init will include paths
 import Correction.GenMatrix
-import Correction.BCORR
 import Python_Classes4MAD.metaclass
 import Utilities.iotools
 import Utilities.math
@@ -203,9 +202,6 @@ def _generate_changeparameters():
         if PRINT_DEBUG:
             print deltas
 
-    if _InputData.algorithm == "MICADO":
-        Correction.BCORR.bNCorrNumeric(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, ncorr=_InputData.num_of_correctors, app=0, path=_InputData.output_path, beta_x=beta_x, beta_y=beta_y)
-
 
 def _handle_data_for_accel(accel):
     if accel == "SPS":
@@ -320,35 +316,6 @@ def _add_int_part_of_tunes_to_exp_data(full_response, phase_x, phase_y):
     print "Experiment tunes: ", getattr(phase_x, "Q1"), getattr(phase_y, "Q2")
 
 
-def  make_beta_list(x, m, modelcut=40, errorcut=20):   # Errors are in meters
-    t = []
-    cou = 0
-    keys = x.__dict__.keys()
-    if "BETY" in keys:
-        bmdl = "BETYMDL"
-        STD = x.STDBETY
-        BET = x.BETY
-    else:
-        bmdl = "BETXMDL"
-        STD = x.STDBETX
-        BET = x.BETX
-    print "Number of x BPMs", len(x.NAME)
-    for i in range(len(x.NAME)):
-        bm = x.__dict__[bmdl][i]
-        if (STD[i] < errorcut and abs(BET[i] - bm) < modelcut):
-            try:
-                m.indx[x.NAME[i].upper()]
-            except KeyError:
-                print "Not in Response:", x.NAME[i].upper()
-                cou += 1
-            else:
-                t.append(x.NAME[i])
-        else:
-            cou += 1
-    if cou > 0:
-        print "Warning in make_beta_list: ", cou, "BPM  removed from data for not beeing in the model or having too large error deviations: ", bmdl, modelcut, "STDPH", errorcut, "LEN", len(t)
-    return t
-
 
 #=======================================================================================================================
 # helper class for script arguments
@@ -409,7 +376,7 @@ class _InputData(object):
         if not Utilities.math.can_str_be_parsed_to_number(num_of_correctors):
             raise ValueError("Given number of correctors is not a number: " + num_of_correctors)
         _InputData.num_of_correctors = int(num_of_correctors)
-        if "SVD" != algorithm and "MICADO" != algorithm:
+        if "SVD" != algorithm:
             raise ValueError("Wrong algorithm given: " + algorithm)
         _InputData.algorithm = algorithm
 
