@@ -8,9 +8,6 @@ from Python_Classes4MAD import metaclass
 from Utilities import tfs_file_writer
 
 
-
-
-
 def merge_data(working_directory, magnet1, circuit1, magnet2, circuit2, beam, ip, tunemeasprecision):
 
     if ip in ['ip1', 'ip5', 'ip8', 'IP1', 'IP5', 'IP8']:
@@ -44,8 +41,8 @@ def write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, magnet, beam):
     for i in range(len(K)):
         result.add_table_row([K[i], Qx[i], Qxrms[i], Qy[i], Qyrms[i] ])
     result.write_to_file()  
-    
-        
+
+
 def pair(tdatax,tdatay,kdata, tunemeasprecision):
     Qx    = []
     Qxrms = []
