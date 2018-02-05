@@ -59,7 +59,7 @@ import json
 
 import __init__ # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
-import Correction.GenMatrix_chromcouple
+import correction.GenMatrix_chromcouple
 import Utilities.iotools
 import Utilities.math
 
@@ -159,18 +159,18 @@ def _generate_changeparameters_couple_file():
     mad_twiss = full_response['0']
     mad_twiss.Cmatrix()
     mode = 'C'
-    couple_list = Correction.GenMatrix_chromcouple.make_list(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
+    couple_list = correction.GenMatrix_chromcouple.make_list(couple_twiss, mad_twiss, _InputData.model_cut_c, _InputData.error_cut_c, mode)
     if 0 == len(couple_list):
         print >> sys.stderr, "No valid BPM measurements, maybe your model-/errorcuts are too strict?"
         sys.exit(1)
 
     print "entering chromcouple input", len(couple_list)
-    chromcouple_inp = Correction.GenMatrix_chromcouple.ChromCoupleInput(varslist, couple_list, _InputData.weights_list)
+    chromcouple_inp = correction.GenMatrix_chromcouple.ChromCoupleInput(varslist, couple_list, _InputData.weights_list)
     print "computing the sensitivity matrix"
     sensitivity_matrix = chromcouple_inp.computeSensitivityMatrix(full_response) # @UnusedVariable sensivity_matrix will be saved in couple_inp(vimaier)
 
     print "computing correct coupling "
-    [deltas, varslist ] = Correction.GenMatrix_chromcouple.correctcouple(
+    [deltas, varslist ] = correction.GenMatrix_chromcouple.correctcouple(
                                     couple_twiss, chromcouple_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path
                                     )
     print "deltas:", deltas

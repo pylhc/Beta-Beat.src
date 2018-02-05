@@ -67,7 +67,7 @@ import re
 
 
 import __init__  # @UnusedImport init will include paths
-import Correction.GenMatrix
+import correction.GenMatrix
 import Python_Classes4MAD.metaclass
 import Utilities.iotools
 import Utilities.math
@@ -170,18 +170,18 @@ def main(
 def _generate_changeparameters():
     full_response, phase_x, phase_y, beta_x, beta_y, dx, varslist = _load_input_files()
 
-    phasexlist = Correction.GenMatrix.MakePairs(phase_x, full_response['0'], modelcut=_InputData.model_cut_phase, errorcut=_InputData.error_cut_phase)
-    phaseylist = Correction.GenMatrix.MakePairs(phase_y, full_response['0'], modelcut=_InputData.model_cut_phase, errorcut=_InputData.error_cut_phase)
-    betaxlist = Correction.GenMatrix.MakeBetaList(beta_x, full_response['0'], modelcut=_InputData.model_cut_beta, errorcut=_InputData.error_cut_beta)
-    betaylist = Correction.GenMatrix.MakeBetaList(beta_y, full_response['0'], modelcut=_InputData.model_cut_beta, errorcut=_InputData.error_cut_beta)
-    displist = Correction.GenMatrix.MakeDispList(dx, full_response['0'], modelcut=_InputData.model_cut_dx, errorcut=_InputData.error_cut_dx)
+    phasexlist = correction.GenMatrix.MakePairs(phase_x, full_response['0'], modelcut=_InputData.model_cut_phase, errorcut=_InputData.error_cut_phase)
+    phaseylist = correction.GenMatrix.MakePairs(phase_y, full_response['0'], modelcut=_InputData.model_cut_phase, errorcut=_InputData.error_cut_phase)
+    betaxlist = correction.GenMatrix.MakeBetaList(beta_x, full_response['0'], modelcut=_InputData.model_cut_beta, errorcut=_InputData.error_cut_beta)
+    betaylist = correction.GenMatrix.MakeBetaList(beta_y, full_response['0'], modelcut=_InputData.model_cut_beta, errorcut=_InputData.error_cut_beta)
+    displist = correction.GenMatrix.MakeDispList(dx, full_response['0'], modelcut=_InputData.model_cut_dx, errorcut=_InputData.error_cut_dx)
     print "Input ready"
 
-    beat_inp = Correction.GenMatrix.beat_input(varslist, _InputData.accel_path, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list, _InputData.error_weights)
+    beat_inp = correction.GenMatrix.beat_input(varslist, _InputData.accel_path, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list, _InputData.error_weights)
     sensitivity_matrix = beat_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensitivity_matrix will be stored in beat_inp
 
     if _InputData.algorithm == "SVD":
-        [deltas, varslist] = Correction.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
+        [deltas, varslist] = correction.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
         iteration = 0  # Let's remove too low useless correctors
         while len([x for x in deltas if abs(x) < _InputData.min_strength]) > 0:
             iteration += 1
@@ -195,9 +195,9 @@ def _generate_changeparameters():
             if len(varslist) == 0:
                 print >> sys.stderr, "You want to correct with too high cut on the corrector strength"
                 sys.exit(1)
-            beat_inp = Correction.GenMatrix.beat_input(varslist, _InputData.accel_path, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list, _InputData.error_weights)
+            beat_inp = correction.GenMatrix.beat_input(varslist, _InputData.accel_path, phasexlist, phaseylist, betaxlist, betaylist, displist, _InputData.weights_list, _InputData.error_weights)
             sensitivity_matrix = beat_inp.computeSensitivityMatrix(full_response)  # @UnusedVariable sensitivity_matrix will be stored in beat_inp
-            [deltas, varslist] = Correction.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
+            [deltas, varslist] = correction.GenMatrix.correctbeatEXP(phase_x, phase_y, dx, beat_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path, xbet=beta_x, ybet=beta_y)
             print "Initial correctors:", il, ". Current: ", len(varslist), ". Removed for being lower than:", _InputData.min_strength, "Iteration:", iteration
         if PRINT_DEBUG:
             print deltas

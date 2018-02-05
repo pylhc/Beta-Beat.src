@@ -62,7 +62,7 @@ import __init__ # @UnusedImport init will include paths
 import Utilities.iotools
 import Utilities.tfs_file_writer
 import Utilities.math
-import Correction.GenMatrix_coupleDy as GenMatrix_coupleDy
+import correction.GenMatrix_coupleDy as GenMatrix_coupleDy
 import Python_Classes4MAD.metaclass as metaclass
 
 

@@ -16,9 +16,9 @@ import Utilities.test.tfs_file_writer_test
 import Utilities.test.iotools_test
 import Analyses.test.svd_clean_test
 #import MODEL.LHCB.fullresponse.test.test_fullresponse_parallel
-import Correction.test.couple_dy.test_correct_coupleDy
-import Correction.test.chrom_coup.test_correct_chrom_coup
-import Correction.test.correct.test_correct
+import correction.test.couple_dy.test_correct_coupleDy
+import correction.test.chrom_coup.test_correct_chrom_coup
+import correction.test.correct.test_correct
 
 def suite():
     """
@@ -35,9 +35,9 @@ def suite():
              Utilities.test.iotools_test.TestGetFilenamesInDir,
              #MODEL.LHCB.fullresponse.test.test_fullresponse_parallel.TestGenFullRespParallel, # Commented out because this test has his own test on CDash
              Analyses.test.svd_clean_test.TestSvdClean,
-             Correction.test.couple_dy.test_correct_coupleDy.TestCorrectCoupleDy,
-             Correction.test.chrom_coup.test_correct_chrom_coup.TestCorrectChromCoup,
-             Correction.test.correct.test_correct.TestCorrect
+             correction.test.couple_dy.test_correct_coupleDy.TestCorrectCoupleDy,
+             correction.test.chrom_coup.test_correct_chrom_coup.TestCorrectChromCoup,
+             correction.test.correct.test_correct.TestCorrect
              ]
 
     for t in tests:

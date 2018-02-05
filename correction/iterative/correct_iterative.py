@@ -15,7 +15,8 @@ treated as zeros
 - Missing a part that treats the output from LSA
 """
 
-# from __future__ import print_function
+# noinspection PyUnresolvedReferences
+import __init__
 import sys
 import os
 import shutil
@@ -28,10 +29,6 @@ import numpy as np
 import pandas as pd
 import argparse
 
-CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-)
 
 from madx import madx_wrapper  # noqa
 from Utilities import tfs_pandas as tfs  # noqa
