@@ -8,6 +8,22 @@
     Phase Advance Response: Eq. 28 in [1]
     Tune Response:          Eq. 7 in [2]
 
+    For people reading the code:
+    The response matrices are first calculated like:
+
+    |  Elements of interest (j) --> ... |
+    |Magnets (m)                        |
+    |  |                                |
+    |  v                                |
+    |  .                                |
+    |  .                                |
+    |  .                                |
+    |                                   |
+
+    As this was avoided transposing all vectors in the beginning.
+    At the end (of the calculation) the matrix is then transposed
+    to fit the :math:'M \cdot \delta K' orientation.
+
     References:
         [1]  A. Franchi et al.,
              Analytic formulas for the rapid evaluation of the orbit response matrix and chromatic
@@ -21,17 +37,15 @@
 """
 
 import json
-import os
 
 import numpy as np
 import pandas as pd
 
-from Utilities import iotools
 from Utilities import logging_tools as logtool
 from Utilities import tfs_pandas as tfs
 from Utilities.contexts import timeit
 from twiss_optics import sequence_parser
-from twiss_optics.twiss_functions import get_phase_advances, tau
+from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from twiss_optics.twiss_functions import regex_in, upper
 
 LOG = logtool.get_logger(__name__)
@@ -42,6 +56,7 @@ DUMMY_ID = "DUMMY_PLACEHOLDER"
 """
 =============================   Twiss Response Class   =============================
 """
+
 
 class TwissResponse(object):
     """ Provides Response Matrices calculated from sequence, model and given variables.
@@ -87,8 +102,10 @@ class TwissResponse(object):
             self._dispersion = self._calc_dispersion_response()
             self._phase = self._calc_phase_advance_response()
             self._tune = self._calc_tune_response()
+            self._coupling = self._calc_coupling_response()
 
             # map response matrices to variabels
+            self._coupling_mapped = self._map_to_variables(self._coupling, self._var_to_el["K1SL"])
             self._beta_mapped = self._map_to_variables(self._beta, self._var_to_el["K1L"])
             self._dispersion_mapped = self._map_dispersion_response()
             self._phase_mapped = self._map_to_variables(self._phase, self._var_to_el["K1L"])
@@ -201,6 +218,32 @@ class TwissResponse(object):
     ################################
     #       Response Matrix
     ################################
+
+    def _calc_coupling_response(self):
+        """ Response Matrix for coupling.
+
+        Eq. 10 in [1]
+        """
+        LOG.debug("Calculate Coupling Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
+            tw = self._twiss
+            adv = self._phase_advances
+            el_out = self._elements_out
+            k1s_el = self._elements_in["K1SL"]
+            dcoupl = dict.fromkeys(["1001", "1010"])
+
+            i2pi = 2j * np.pi
+            phx = dphi(adv['X'].loc[k1s_el, el_out], tw.Q1).values
+            phy = dphi(adv['Y'].loc[k1s_el, el_out], tw.Q2).values
+            bet_term = np.sqrt(tw.loc[k1s_el, "BETX"].values * tw.loc[k1s_el, "BETY"].values)
+
+            for plane in ["1001", "1010"]:
+                phs_sign = -1 if plane == "1001" else 1
+                dcoupl[plane] = tfs.TfsDataFrame(
+                    bet_term[:, None] * np.exp(i2pi * (phx + phs_sign * phy)) /
+                    (4 * (1 - np.exp(i2pi * (tw.Q1 + phs_sign * tw.Q2)))),
+                    index=k1s_el, columns=el_out).transpose()
+        return dcoupl
 
     def _calc_beta_response(self):
         """ Response Matrix for delta beta.
@@ -349,6 +392,10 @@ class TwissResponse(object):
 
         return dtune
 
+    ################################
+    #       Mapping
+    ################################
+
     def _map_dispersion_response(self):
         """ Maps all dispersion matrices """
         var2k0 = self._var_to_el["K0L"]
@@ -426,6 +473,13 @@ class TwissResponse(object):
         else:
             return self._tune
 
+    def get_coupling(self, mapped=True):
+        """ Returns Response Matrix for the Tunes """
+        if mapped:
+            return self._coupling_mapped
+        else:
+            return self._coupling
+
     def get_fullresponse(self, mapped=True):
         """ Returns all mapped Response Matrices """
         if mapped:
@@ -433,11 +487,13 @@ class TwissResponse(object):
             beta = self._beta_mapped
             disp = self._dispersion_mapped
             phse = self._phase_mapped
+            cpln = self._coupling_mapped
         else:
             tune = self._tune
             beta = self._beta
             disp = self._dispersion
             phse = self._phase
+            cpln = self._coupling
 
         q_df = tune["X"].append(tune["Y"])
         q_df.index = ["Q1", "Q2"]
@@ -449,6 +505,10 @@ class TwissResponse(object):
             "MUY": phse["Y"],
             "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
+            "1001R": cpln["1001"].apply(np.real),
+            "1001I": cpln["1001"].apply(np.imag),
+            "1010R": cpln["1010"].apply(np.real),
+            "1010I": cpln["1010"].apply(np.imag),
             "Q": q_df,
         }
 
@@ -521,9 +581,4 @@ def response_add(*args):
 
 
 if __name__ == '__main__':
-    root = iotools.get_absolute_path_to_betabeat_root()
-    seq = os.path.join(root, 'twiss_optics', 'tests', 'lhcb1.seq')
-    mod = os.path.join(root, 'twiss_optics', 'tests', 'twiss_dispersion.dat')
-    var = os.path.join(root, 'MODEL', 'LHCB', 'fullresponse', 'LHCB1', 'AllLists.json')
-    tr = TwissResponse(seq, mod, var)
-    tr.get_fullresponse()
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

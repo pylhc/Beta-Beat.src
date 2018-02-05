@@ -846,7 +846,7 @@ if __name__ == "__main__":
     logtool.add_root_handler(logtool.file_handler(os.path.join(DATA_DIR, "response_test.log")))
     # renew_json_and_varmap(os.path.join(DATA_DIR, 'lhcb1.seq'))
     test_K0_single()
-    test_K0_multi()
+    # test_K0_multi()
     # test_real_single()
     # test_real_multi()
     # test_K1_single()
