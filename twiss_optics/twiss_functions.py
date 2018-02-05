@@ -92,3 +92,12 @@ def dphi(data, q):
 def tau(data, q):
     """ Return tau from phase advances in data, see Eq. 16 in [1]  """
     return data + np.where(data <= 0, q / 2, -q / 2)  # '<=' seems to be what MAD-X does
+
+
+"""
+======================== Script Mode ========================
+"""
+
+
+if __name__ == '__main__':
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

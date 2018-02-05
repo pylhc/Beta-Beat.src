@@ -802,12 +802,12 @@ class TwissOptics(object):
             LOG.debug("  Added fields to results: " + fields)
 
 
-################################
-#           MAIN
-################################
+"""
+======================== Script Mode ========================
+"""
 
 def do_main():
-    """ Main function launcher """
+    """ Quick tests """
     model_2oct = os.path.abspath('tests/twiss_2oct_elements.dat')
     model_test = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissKick"
     test_optics = TwissOptics(model_test)
@@ -842,6 +842,6 @@ def do_main():
     plt.show()
 
 
-
 if __name__ == '__main__':
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
     do_main()
