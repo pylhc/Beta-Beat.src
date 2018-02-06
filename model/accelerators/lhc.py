@@ -418,7 +418,7 @@ class Lhc(Accelerator):
                 if plane == "H":
                     return get_commonbpm("BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms), "ADTKH.C5R4.B2"
                 elif plane == "V":
-                    return get_commonbpm("BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5R4.B2"
+                    return get_commonbpm("BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5L4.B2"
         return None
     
     def get_important_phase_advances(self):
