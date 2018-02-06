@@ -217,12 +217,14 @@ def test_measurement_empty_dir():
     with pytest.raises(IOError):
         meas.beta_x
     with pytest.raises(IOError):
+        meas.beta["x"]
+    with pytest.raises(IOError):
         meas.coupling
 
 
 def test_measurement_load_free():
     meas = GetLlmMeasurement(os.path.join(CURRENT_DIR, "meas_dir"))
-    meas.beta_x.BETX
+    meas.beta["x"].BETX
     meas.beta_y.BETY
 
 
@@ -248,8 +250,23 @@ def test_measurement_load_norm_dips():
     meas.norm_disp.NDX
 
 
-def _raise_error(message):
-    raise Exception(message)
+def test_measurement_writes_double_plane(_test_df_just_names, _test_dir):
+    meas = GetLlmMeasurement(_test_dir)
+    meas.allow_write = True
+    meas.beta_x = (_test_df_just_names, "_free")
+    meas.beta["y"] = (_test_df_just_names, "")
+    assert os.path.isfile(
+        os.path.join(CURRENT_DIR, "_test", "getbetax_free.out"))
+    assert os.path.isfile(
+        os.path.join(CURRENT_DIR, "_test", "getbetay.out"))
+
+
+def test_measurement_doesnt_write_if_not_allowed(_test_df_just_names, _test_dir):
+    meas = GetLlmMeasurement(_test_dir)
+    meas.allow_write = False
+    meas.beta_x = (_test_df_just_names, "_free")
+    assert not os.path.isfile(
+        os.path.join(CURRENT_DIR, "_test", "getbetax_free.out"))
 
 
 # SegmentModels ##############################################################
@@ -273,6 +290,7 @@ def test_segment_models_returns_properly():
 
 def test_segment_beatings_writes_double_plane(_test_df_just_names, _test_dir):
     seg_beatings = SegmentBeatings(_test_dir, "test_seg")
+    seg_beatings.allow_write = True
     seg_beatings.beta_phase_x = _test_df_just_names
     seg_beatings.beta_phase_y = _test_df_just_names
     assert os.path.isfile(
