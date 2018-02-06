@@ -71,8 +71,7 @@ def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
                      ) / TWOPI
         ) % .5 - .5
     except:
-        pass
-    psi = acc.get_elements_tfs().loc[bpmac1, plane_mu] - acc.get_elements_tfs().loc[exciter, plane_mu]
+        psi = acc.get_elements_tfs().loc[bpmac1, plane_mu] - acc.get_elements_tfs().loc[exciter, plane_mu]
     return bpmac1, psi, k, exciter
 
 
