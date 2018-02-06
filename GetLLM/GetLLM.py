@@ -1167,9 +1167,6 @@ def _start():
     Starter function to avoid polluting global namespace with variables options,args.
     Before the following code was after 'if __name__=="__main__":'
     '''
-    f = open("/afs/cern.ch/work/a/awegsche/public/44_acc_cls_perf/stats_acc_cls.txt", "a")
-    f.write("Start\n")
-    f.close()
     
     options, acc_cls = _parse_args()
     
