@@ -820,6 +820,22 @@ def _not_nan_check(val, **kwargs):
     return not isnan
 
 
+def renew_json_and_varmap(seqfile_path):
+    """ Quick helper to renew mapping """
+    json_path = seqfile_path.replace(".seq", "_all_list.json")
+    varmap_path = seqfile_path.replace(".seq", ".varmap")
+    try:
+        os.remove(json_path)
+    except OSError:
+        pass
+    try:
+        os.remove(varmap_path)
+    except OSError:
+        pass
+    mapping = seqparse.parse_variable_mapping(seqfile_path)
+    seqparse.save_variable_mapping(mapping, outfile_path=varmap_path)
+    seqparse.varmap_variables_to_json(varmap_path, outfile_path=json_path)
+
 
 """
 =============================   Main   =============================
@@ -828,20 +844,16 @@ def _not_nan_check(val, **kwargs):
 
 if __name__ == "__main__":
     logtool.add_root_handler(logtool.file_handler(os.path.join(DATA_DIR, "response_test.log")))
-    # # Quick variables creation
-    # seqfile_path = os.path.join(DATA_DIR, 'lhcb1.seq')
-    # df = seqparse.load_or_parse_variable_mapping(seqfile_path)
-    # seqparse.varmap_variables_to_json(seqfile_path.replace(".seq", ".varmap"))
-    # exit()
-    # test_K0_single()
+    # renew_json_and_varmap(os.path.join(DATA_DIR, 'lhcb1.seq'))
+    test_K0_single()
     # test_K0_multi()
-    test_real_single()
-    test_real_multi()
-    test_K1_single()
-    test_K1_multi()
-    test_K1S_single()
-    test_K1S_multi()
-    test_ALL_multi()
-    test_dispersion()
-    test_k1_change()
+    # test_real_single()
+    # test_real_multi()
+    # test_K1_single()
+    # test_K1_multi()
+    # test_K1S_single()
+    # test_K1S_multi()
+    # test_ALL_multi()
+    # test_dispersion()
+    # test_k1_change()
     # plt.show()

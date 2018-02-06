@@ -252,7 +252,7 @@ def intersect(list_of_files):
         raise ValueError("Nothing to intersect!")
     z = list_of_files[0].NAME
     for b in list_of_files:
-        z = filter(lambda x: x in z, b.NAME)
+        z = filter(lambda x: x in z and "DRIFT" not in x, b.NAME)
     # SORT by S
     result = []
     x0 = list_of_files[0]

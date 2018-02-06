@@ -5,7 +5,7 @@ import os
 from Utilities import iotools
 
 DIVIDER = "|"
-STANDARD_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
+BASIC_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
 COLOR_LEVEL = '\33[38;2;150;150;255m'
 COLOR_MESSAGE = '\33[38;2;255;255;180m'
 COLOR_WARN = '\33[38;2;255;161;53m'
@@ -13,6 +13,16 @@ COLOR_ERROR = '\33[38;2;216;31;42m'
 COLOR_NAME = '\33[38;2;150;150;150m'
 COLOR_DIVIDER = '\33[38;2;150;150;150m'
 COLOR_RESET = '\33[0m'
+
+
+NOTSET = logging.NOTSET
+DEBUG = logging.DEBUG
+INFO = logging.INFO
+WARN = logging.WARN
+WARNING = logging.WARNING
+ERROR = logging.ERROR
+CRITICAL = logging.CRITICAL
+FATAL = logging.FATAL
 
 
 class MaxFilter(object):
@@ -24,7 +34,7 @@ class MaxFilter(object):
         return log_record.levelno <= self.__level
 
 
-def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
+def get_logger(name, level_root=DEBUG, level_console=INFO, fmt=BASIC_FORMAT):
     """
     Sets up logger if name is __main__. Returns logger based on module name)
 
@@ -32,6 +42,7 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         name: only used to check if __name__ is __main__
         level_root: main logging level, default DEBUG
         level_console: console logging level, default INFO
+        fmt: Format of the logging. For default see BASIC_FORMAT
 
     Returns:
         Logger instance.
@@ -48,23 +59,23 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
         # print logs to the console
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level_console)
-        console_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT))
+        console_formatter = logging.Formatter(_bring_color(fmt))
         console_handler.setFormatter(console_formatter)
-        console_handler.addFilter(MaxFilter(logging.INFO))
+        console_handler.addFilter(MaxFilter(INFO))
         root_logger.addHandler(console_handler)
 
         # print console warnings
         console_warn_handler = logging.StreamHandler(sys.stdout)
-        console_warn_handler.setLevel(max(logging.WARNING, level_console))
-        logging.Formatter(_bring_color(STANDARD_FORMAT, logging.WARNING))
+        console_warn_handler.setLevel(max(WARNING, level_console))
+        logging.Formatter(_bring_color(fmt, WARNING))
         console_warn_handler.setFormatter(console_formatter)
-        console_warn_handler.addFilter(MaxFilter(logging.WARNING))
+        console_warn_handler.addFilter(MaxFilter(WARNING))
         root_logger.addHandler(console_warn_handler)
 
         # print errors to error-stream
         error_handler = logging.StreamHandler(sys.stderr)
-        error_handler.setLevel(logging.ERROR)
-        error_formatter = logging.Formatter(_bring_color(STANDARD_FORMAT, logging.ERROR))
+        error_handler.setLevel(ERROR)
+        error_formatter = logging.Formatter(_bring_color(fmt, ERROR))
         error_handler.setFormatter(error_formatter)
         root_logger.addHandler(error_handler)
 
@@ -72,7 +83,7 @@ def get_logger(name, level_root=logging.DEBUG, level_console=logging.INFO):
     return logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
 
 
-def file_handler(logfile, level=logging.DEBUG, format=STANDARD_FORMAT):
+def file_handler(logfile, level=DEBUG, format=BASIC_FORMAT):
     """ Convenience function so the caller does not have to import logging """
     handler = logging.FileHandler(logfile, mode='w', )
     handler.setLevel(level)
@@ -119,7 +130,7 @@ def _get_current_module(current_file=None):
     return current_module
 
 
-def _bring_color(format_string, colorlevel=logging.INFO):
+def _bring_color(format_string, colorlevel=INFO):
     """ Adds color to the logs (can only be used in a terminal) """
     if not sys.stdout.isatty():
         # Not a tty. You're being piped or redirected
@@ -130,9 +141,9 @@ def _bring_color(format_string, colorlevel=logging.INFO):
     name = "%(name)"
     format_string = format_string.replace(level, COLOR_LEVEL + level)
     
-    if colorlevel <= logging.INFO:
+    if colorlevel <= INFO:
         format_string = format_string.replace(message, COLOR_MESSAGE + message)
-    elif colorlevel <= logging.WARNING:
+    elif colorlevel <= WARNING:
         format_string = format_string.replace(message, COLOR_WARN + message)
     else:
         format_string = format_string.replace(message, COLOR_ERROR + message)
