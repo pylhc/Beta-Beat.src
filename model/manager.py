@@ -1,6 +1,5 @@
-import argparse
+from Utilities.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
 from model.accelerators import lhc, esrf, psbooster
-from Utilities.entrypoint import entrypoint, EntryPoint, EntryPointParameters
 
 ACCELS = {
     lhc.Lhc.NAME: lhc.Lhc,
@@ -45,7 +44,9 @@ def get_accel_class_from_args(args=None):
     name, args = parser.parse(args)
 
     accel = _get_parent_class(name)
-    accel_cls, rest_args = accel.get_class_from_args(args)
+
+    accel_args, rest_args = split_arguments(args, accel.get_class_params())
+    accel_cls, rest_args = accel.get_class(accel_args)
     return accel_cls, rest_args
 
 
