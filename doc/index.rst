@@ -13,6 +13,7 @@ Contents:
 
    correction/index
    GetLLM/index
+   model/index
    twiss_optics/index
    Utilities/index
 
