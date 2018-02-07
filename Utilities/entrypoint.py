@@ -346,7 +346,11 @@ class EntryPointParameters(DotDict):
 
     def help(self):
         """ Prints current help. Usable to paste into docstrings. """
+        optional_param = ""
+        required_param = ""
+
         for name in sorted(self.keys()):
+            item_str = ""
             item = self[name]
             try:
                 name_type = "{n:s} ({t:s})".format(n=name, t=item["type"].__name__)
@@ -354,33 +358,39 @@ class EntryPointParameters(DotDict):
                 name_type = "{n:s}".format(n=name)
 
             try:
-                LOG.info("{n:s}: {h:s}".format(n=name_type, h=item["help"]))
+                item_str += "{n:s}: {h:s}".format(n=name_type, h=item["help"])
             except KeyError:
-                LOG.info("{n:s}: -Help not available- ".format(n=name_type))
+                item_str += "{n:s}: -Help not available- ".format(n=name_type)
 
             space = " " * (len(name_type) + 2)
 
+            try:
+                item_str += "\n{s:s}**Flags**: {f:s}".format(s=space, f=item["flags"])
+            except KeyError:
+                pass
+
+            try:
+                item_str += "\n{s:s}**Choices**: {c:s}".format(s=space, c=item["choices"])
+            except KeyError:
+                pass
+
+            try:
+                item_str += "\n{s:s}**Default**: ``{d:s}``".format(s=space, d=str(item["default"]))
+            except KeyError:
+                pass
+
             if item.get("required", False):
-                LOG.info("{s:s}[Required]".format(s=space))
+                required_param += item_str + "\n"
             else:
-                LOG.info("{s:s}[Optional]".format(s=space))
+                optional_param += item_str + "\n"
 
-            try:
-                LOG.info("{s:s}Flags: {f:s}".format(s=space, f=item["flags"]))
-            except KeyError:
-                pass
+        if required_param:
+            LOG.info("Required")
+            LOG.info(required_param)
 
-            try:
-                LOG.info("{s:s}Choices: {c:s}".format(s=space, c=item["choices"]))
-            except KeyError:
-                pass
-
-            try:
-                LOG.info("{s:s}Default: {d:s}".format(s=space, d=str(item["default"])))
-            except KeyError:
-                pass
-
-
+        if optional_param:
+            LOG.info("Optional")
+            LOG.info(optional_param)
 
 
 # Public Helpers ###############################################################
