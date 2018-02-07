@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from Utilities import tfs_pandas
 from accelerator import Accelerator, AcceleratorDefinitionError, Element
-
+from Utilities.entrypoint import EntryPoint, EntryPointParameters
 
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
@@ -31,6 +31,7 @@ class LhcExcitationMode(object):
 
 
 class Lhc(Accelerator):
+    """ Parent Class for all LHC-types. """
     NAME = "lhc"
     MACROS_NAME = "lhc"
 
@@ -46,63 +47,202 @@ class Lhc(Accelerator):
         self.xing = None
         self.fullresponse = False
 
+    @staticmethod
+    def get_class_params():
+        params = EntryPointParameters()
+        params.add_parameter(
+            flags=["--lhcmode"],
+            help=("LHC mode to use. Should be one of: " +
+                  str(get_lhc_modes().keys())),
+            name="lhc_mode",
+            type=str,
+            choices=get_lhc_modes().keys()
+        )
+        params.add_parameter(
+            flags=["--beam"],
+            help="Beam to use.",
+            name="beam",
+            type=int,
+        )
+        return params
+
+    @staticmethod
+    def get_instance_params():
+        params = EntryPointParameters()
+        params.add_parameter(
+            flags=["--nattunex"],
+            help="Natural tune X without integer part.",
+            required=True,
+            name="nat_tune_x",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--nattuney"],
+            help="Natural tune Y without integer part.",
+            required=True,
+            name="nat_tune_y",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--acd"],
+            help="Activate excitation with ACD.",
+            name="acd",
+            type=bool,
+            default=False,
+        )
+        params.add_parameter(
+            flags=["--adt"],
+            help="Activate excitation with ADT.",
+            name="adt",
+            type=bool,
+            default=False,
+        )
+        params.add_parameter(
+            flags=["--drvtunex"],
+            help="Driven tune X without integer part.",
+            name="drv_tune_x",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--drvtuney"],
+            help="Driven tune Y without integer part.",
+            name="drv_tune_y",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--dpp"],
+            help="Delta p/p to use.",
+            name="dpp",
+            default=0.0,
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--energy"],
+            help="Energy in Tev.",
+            name="energy",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--optics"],
+            help="Path to the optics file to use (modifiers file).",
+            name="optics",
+            required=True,
+            type=str,
+        )
+        params.add_parameter(
+            flags=["--fullresponse"],
+            help=("If True, fullresponse template will "
+                  "be filled and put in the output directory."),
+            name="fullresponse",
+            type=bool,
+            default=False,
+        )
+        params.add_parameter(
+            flags=["--xing"],
+            help=("If True, x-ing  angles will be applied to model"),
+            name="xing",
+            type=bool,
+            default=False,
+        )
+        return params
+
     @classmethod
-    def init_from_args(cls, args):
-        parser = cls._get_arg_parser()
-        options, rest_args = parser.parse_known_args(args)
+    def initialize(cls, *args, **kwargs):
+        """ Initialize the current class.
+
+        Keyword Args:
+            Required
+            nat_tune_x (float): Natural tune X without integer part.
+                                **Flags**: ['--nattunex']
+            nat_tune_y (float): Natural tune Y without integer part.
+                                **Flags**: ['--nattuney']
+            optics (str): Path to the optics file to use (modifiers file).
+                          **Flags**: ['--optics']
+
+            Optional
+            acd (bool): Activate excitation with ACD.
+                        **Flags**: ['--acd']
+                        **Default**: ``False``
+            adt (bool): Activate excitation with ADT.
+                        **Flags**: ['--adt']
+                        **Default**: ``False``
+            dpp (float): Delta p/p to use.
+                         **Flags**: ['--dpp']
+                         **Default**: ``0.0``
+            drv_tune_x (float): Driven tune X without integer part.
+                                **Flags**: ['--drvtunex']
+            drv_tune_y (float): Driven tune Y without integer part.
+                                **Flags**: ['--drvtuney']
+            energy (float): Energy in Tev.
+                            **Flags**: ['--energy']
+            fullresponse (bool): If True, fullresponse template will be filled
+            and put in the output directory.
+                                 **Flags**: ['--fullresponse']
+                                 **Default**: ``False``
+            xing (bool): If True, x-ing  angles will be applied to model
+                         **Flags**: ['--xing']
+                         **Default**: ``False``
+        """
+        # for reasons of import-order and class creation, decoration was not possible
+        parser = EntryPoint(cls.get_instance_params(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+
         instance = cls()
-        instance.nat_tune_x = options.nat_tune_x
-        instance.nat_tune_y = options.nat_tune_y
-        if options.acd and options.adt:
+        instance.nat_tune_x = opt.nat_tune_x
+        instance.nat_tune_y = opt.nat_tune_y
+        if opt.acd and opt.adt:
             raise AcceleratorDefinitionError(
                 "Select only one excitation type."
             )
-        if options.acd:
+        if opt.acd:
             instance.excitation = LhcExcitationMode.ACD
-        elif options.adt:
+        elif opt.adt:
             instance.excitation = LhcExcitationMode.ADT
         else:
             instance.excitation = LhcExcitationMode.FREE
-        if options.acd or options.adt:
-            instance.drv_tune_x = options.drv_tune_x
-            instance.drv_tune_y = options.drv_tune_y
-        instance.dpp = options.dpp
-        instance.energy = options.energy
-        instance.optics_file = options.optics
-        instance.fullresponse = options.fullresponse
-        instance.xing = options.xing
+        if opt.acd or opt.adt:
+            instance.drv_tune_x = opt.drv_tune_x
+            instance.drv_tune_y = opt.drv_tune_y
+        instance.dpp = opt.dpp
+        instance.energy = opt.energy
+        instance.optics_file = opt.optics
+        instance.fullresponse = opt.fullresponse
+        instance.xing = opt.xing
         instance.verify_object()
+        return instance
+
+    @classmethod
+    def init_from_args(cls, args=None):
+        """ LEGACY-FUCNTION - SHOULD BE REPLACED BY USING initialize() """
+        parser = EntryPoint(cls.get_instance_params(), strict=False)
+        opt, rest_args = parser.parse(args)
+        instance = cls.initialize(opt)
         return instance, rest_args
 
-    @classmethod
-    def get_class(cls, lhc_mode=None, beam=None):
-        new_class = cls
-        if lhc_mode is not None:
-            new_class = get_lhc_modes()[lhc_mode]
-        if beam is not None:
-            new_class = cls._get_beamed_class(new_class, beam)
-        return new_class
 
     @classmethod
-    def get_class_from_args(cls, args):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--lhcmode",
-            help=("LHC mode to use. Should be one of: " +
-                  str(get_lhc_modes().keys())),
-            dest="lhc_mode",
-            type=str,
-        )
-        parser.add_argument(
-            "--beam",
-            help="Beam to use.",
-            dest="beam",
-            type=int,
-        )
-        options, rest_args = parser.parse_known_args(args)
-        lhc_mode = options.lhc_mode
-        beam = options.beam
-        return cls.get_class(lhc_mode, beam), rest_args
+    def get_class(cls, *args, **kwargs):
+        """ Returns LHC subclass .
+
+        Keyword Args:
+            Optional
+            beam (int): Beam to use.
+                        **Flags**: ['--beam']
+            lhc_mode (str): LHC mode to use.
+                            **Flags**: ['--lhcmode']
+                            **Choices**: ['lhc_runII_2016_ats', 'hllhc12', 'hllhc10', 'lhc_runI',
+                            'lhc_runII', 'lhc_runII_2016', 'lhc_runII_2017']
+        """
+        # for reasons of import-order and class creation, decoration was not possible
+        parser = EntryPoint(cls.get_class_params(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+
+        new_class = cls
+        if opt.lhc_mode is not None:
+            new_class = get_lhc_modes()[opt.lhc_mode]
+        if opt.beam is not None:
+            new_class = cls._get_beamed_class(new_class, opt.beam)
+        return new_class
 
     @classmethod
     def get_segment(cls, label, first_elem, last_elem, optics_file):
@@ -144,82 +284,6 @@ class Lhc(Accelerator):
             else:
                 mask.append(False)
         return np.array(mask)
-
-    @classmethod
-    def _get_arg_parser(cls):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--nattunex",
-            help="Natural tune X without integer part.",
-            required=True,
-            dest="nat_tune_x",
-            type=float,
-        )
-        parser.add_argument(
-            "--nattuney",
-            help="Natural tune Y without integer part.",
-            required=True,
-            dest="nat_tune_y",
-            type=float,
-        )
-        parser.add_argument(
-            "--acd",
-            help="Activate excitation with ACD.",
-            dest="acd",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--adt",
-            help="Activate excitation with ADT.",
-            dest="adt",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--drvtunex",
-            help="Driven tune X without integer part.",
-            dest="drv_tune_x",
-            type=float,
-        )
-        parser.add_argument(
-            "--drvtuney",
-            help="Driven tune Y without integer part.",
-            dest="drv_tune_y",
-            type=float,
-        )
-        parser.add_argument(
-            "--dpp",
-            help="Delta p/p to use.",
-            dest="dpp",
-            default=0.0,
-            type=float,
-        )
-        parser.add_argument(
-            "--energy",
-            help="Energy in Tev.",
-            dest="energy",
-            type=float,
-        )
-        parser.add_argument(
-            "--optics",
-            help="Path to the optics file to use (modifiers file).",
-            dest="optics",
-            required=True,
-            type=str,
-        )
-        parser.add_argument(
-            "--fullresponse",
-            help=("If present, fullresponse template will" +
-                  "be filled and put in the output directory."),
-            dest="fullresponse",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--xing",
-            help=("If present, x-ing  angles will be applied to model"),
-            dest="xing",
-            action="store_true",
-        )
-        return parser
 
     def verify_object(self):  # TODO: Maybe more checks?
         try:
@@ -367,6 +431,7 @@ class LhcAts(Lhc):
 
 # Specific accelerator definitions ###########################################
 
+
 class LhcRunI(Lhc):
     YEAR = "2012"
 
@@ -444,16 +509,14 @@ class HlLhc12NewCircuit(LhcAts):
     MACROS_NAME = "hllhc"
     YEAR = "hllhc12"
 
-    
 
 class HlLhc12NoQ2Trim(HlLhc12):
     MACROS_NAME = "hllhc"
     YEAR = "hllhc12"
 
-##############################################################################
-
 
 # General functions ##########################################################
+
 
 def _get_call_main_for_year(year):
     call_main = _get_madx_call_command(
@@ -495,4 +558,8 @@ def _list_intersect_keep_order(primary_list, secondary_list):
     return [elem for elem in primary_list if elem in secondary_list]
 
 
-##############################################################################
+# Script Mode ##################################################################
+
+
+if __name__ == '__main__':
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

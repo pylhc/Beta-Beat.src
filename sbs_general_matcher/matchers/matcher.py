@@ -202,7 +202,7 @@ class Matcher(object):
         LOGGER.info("Matching range for Beam " + str(beam) + ": " +
                     range_start + " " + range_end)
         accel_cls = manager.get_accel_class(
-            "lhc", lhc_mode=lhc_mode, beam=beam
+            accel="lhc", lhc_mode=lhc_mode, beam=beam
         )()
         optics_file = os.path.join(
             os.path.join(match_path, "sbs"), "modifiers.madx"
