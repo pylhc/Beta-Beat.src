@@ -232,9 +232,7 @@ class DictParser(object):
         checked_dict = DotDict()
         for key in param_dict:
             if isinstance(param_dict[key], Parameter):
-                checked_item = DictParser._check_value(key, arg_dict, param_dict)
-                if key in arg_dict or checked_item is not None:
-                    checked_dict[key] = checked_item
+                checked_dict[key] = DictParser._check_value(key, arg_dict, param_dict)
             elif isinstance(param_dict[key], dict):
                 try:
                     if not arg_dict or not (key in arg_dict):
