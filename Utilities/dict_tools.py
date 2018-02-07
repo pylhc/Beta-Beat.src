@@ -13,9 +13,8 @@ _TC = {  # Tree Characters
     'S': u'\u251C',  # Split
 }
 
-"""
-======================== Additional Dictionary Classes and Functions ========================
-"""
+
+# Additional Dictionary Classes and Functions ##################################
 
 
 class DotDict(dict):
@@ -54,9 +53,7 @@ def print_dict_tree(dictionary, name='Dictionary'):
     print_tree(dictionary, '')
 
 
-"""
-======================== Dict Parser ========================
-"""
+# Dict Parser ##################################################################
 
 
 class ParameterError(Exception):
@@ -93,20 +90,21 @@ class Parameter(object):
             raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                  "Default value not of specified type.")
 
-        if self.choices and not isinstance(self.choices, list):
+        if self.choices:
+            if not isinstance(self.choices, list):
                 raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                      "Choices need to be a list.")
 
-        if self.choices and self.default not in self.choices:
-            raise ParameterError("Parameter '{:s}': ".format(self.name) +
-                                 "Default value not found in choices.")
+            if self.default and self.default not in self.choices:
+                raise ParameterError("Parameter '{:s}': ".format(self.name) +
+                                     "Default value not found in choices.")
 
-        if self.choices and self.type:
-            for choice in self.choices:
-                if not isinstance(choice, self.type):
-                    raise ParameterError("Choice '{:s}'".format(choice) +
-                                         "of parameter '{:s}': ".format(self.name) +
-                                         "is not of type '{:s}'.".format(self.type))
+            if self.type:
+                for choice in self.choices:
+                    if not isinstance(choice, self.type):
+                        raise ParameterError("Choice '{:s}'".format(choice) +
+                                             "of parameter '{:s}': ".format(self.name) +
+                                             "is not of type '{:s}'.".format(self.type))
 
         if self.nargs:
             if not isinstance(self.nargs, int):
@@ -453,9 +451,8 @@ class DictParser(object):
         return out
 
 
-"""
-======================== Script Mode ========================
-"""
+# Script Mode ##################################################################
+
 
 if __name__ == '__main__':
     raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

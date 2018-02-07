@@ -346,27 +346,41 @@ class EntryPointParameters(DotDict):
 
     def help(self):
         """ Prints current help. Usable to paste into docstrings. """
-        for name in self:
+        for name in sorted(self.keys()):
             item = self[name]
             try:
-                name_type = "{n:s} ({t:s})".format(name, item["help"].__name__)
+                name_type = "{n:s} ({t:s})".format(n=name, t=item["type"].__name__)
             except KeyError:
-                name_type = "{n:s}".format(name)
+                name_type = "{n:s}".format(n=name)
 
             try:
                 LOG.info("{n:s}: {h:s}".format(n=name_type, h=item["help"]))
             except KeyError:
-                LOG.info("{n:s}: -Help not available- ".format(n=name))
+                LOG.info("{n:s}: -Help not available- ".format(n=name_type))
+
+            space = " " * (len(name_type) + 2)
+
+            if item.get("required", False):
+                LOG.info("{s:s}[Required]".format(s=space))
+            else:
+                LOG.info("{s:s}[Optional]".format(s=space))
 
             try:
-                LOG.info("\t Choices: {c:s}".format(c=item["choices"]))
+                LOG.info("{s:s}Flags: {f:s}".format(s=space, f=item["flags"]))
             except KeyError:
                 pass
 
             try:
-                LOG.info("\t Default: {d:s}".format(d=item["default"]))
+                LOG.info("{s:s}Choices: {c:s}".format(s=space, c=item["choices"]))
             except KeyError:
                 pass
+
+            try:
+                LOG.info("{s:s}Default: {d:s}".format(s=space, d=str(item["default"])))
+            except KeyError:
+                pass
+
+
 
 
 # Public Helpers ###############################################################
