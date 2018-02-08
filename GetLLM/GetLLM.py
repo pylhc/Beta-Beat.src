@@ -155,12 +155,12 @@ def print_time(index, t):
 #===================================================================================================
 # _parse_args()-function
 #===================================================================================================
-def _parse_args(start_args=sys.argv):
+def _parse_args(start_args=sys.argv[1:]):
     ''' Parses command line arguments. '''
-    
-    try:  # for transition 
+
+    try:  # for transition
         accel_cls, rest_args = manager.get_accel_class_from_args(
-            start_args[1:]
+            start_args
         )
     except:
         LOGGER.warning("Loading accelerator class failed.")
@@ -187,7 +187,7 @@ def _parse_args(start_args=sys.argv):
             LOGGER.error("Given are:")
             LOGGER.error(sys.argv)
             raise SyntaxError("Could not parse arguments")
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--modeldir", metavar="PATH_TO_DIR", dest="model_dir",
                     help="Path to the model directory")
