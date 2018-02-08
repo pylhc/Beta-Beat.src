@@ -24,6 +24,7 @@ if _bb_path not in sys.path:
 import Utilities.iotools
 from model import manager, creator
 from model.accelerators.lhc import Lhc
+from model.accelerators.accelerator import Element
 from Python_Classes4MAD.metaclass import twiss
 from madx import madx_wrapper
 
@@ -709,8 +710,10 @@ def _run4mad(save_path,
         save_path, accel_instance.label
     )
 
-    accel_instance.start = accel_instance.start.name.replace("-", "_")
-    accel_instance.end = accel_instance.end.name.replace("-", "_")
+    accel_instance.start = Element(accel_instance.start.name.replace("-", "_"),
+                                   accel_instance.start.s)
+    accel_instance.end = Element(accel_instance.end.name.replace("-", "_"),
+                                 accel_instance.end.s)
 
     measurement_dict = dict(
         betx_ini=betx_ini,

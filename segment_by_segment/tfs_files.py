@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import os
 
@@ -9,8 +10,14 @@ from Utilities import tfs_pandas
 
 
 class _MetaTfsCollection(type):
+    """
+    Metaclass for TfsCollection. It takes the class attributes declared as
+    Tfs(...) and replaces it for a property getter and setter. Check
+    TfsCollection docs.
+    """
     def __new__(mcs, cls_name, bases, dct):
         new_dict = dict(dct)
+        new_dict["_two_plane_names"] = []
         for name in dct:
             value = dct[name]
             try:
@@ -22,6 +29,7 @@ class _MetaTfsCollection(type):
             try:
                 prop_x, prop_y = new_props
                 new_dict.pop(name)
+                new_dict["_two_plane_names"].append(name)
                 new_dict[name + "_x"] = prop_x
                 new_dict[name + "_y"] = prop_y
             except TypeError:
@@ -30,45 +38,127 @@ class _MetaTfsCollection(type):
 
 
 class TfsCollection(object):
-    """
-    TODO
+    """ Abstract class to lazily load and write TFS files.
+
+    The classes that inherit from this abstract class will be able to define
+    TFS files as readable or writable and read or write them just as attribute
+    access or assignments. All attributes will be read and write as Pandas
+    DataFrames.
+
+    Example:
+        If "./example" is a directory that contains two TFS file "getbetax.out"
+        and "getbetax.out" with BETX and BETY columns respectively:
+
+        >>> class ExampleCollection(TfsCollection)
+        >>>
+        >>>    # All TFS attributes must be marked with the Tfs(...) class:
+        >>>    beta = Tfs("getbeta{}.out")
+        >>>    # This is a traditional attribute.
+        >>>    other_value = 7
+        >>>
+        >>>    def get_filename(template, plane):
+        >>>       return template.format(plane)
+        >>>
+        >>> example = ExampleCollection("./example")
+        >>> # Get the BETX column from "getbetax.out":
+        >>> beta_x_column = example.beta_x.BETX
+        >>> # Get the BETY column from "getbetay.out":
+        >>> beta_y_column = example.beta_y.BETY
+        >>> # The planes can also be accessed as items:
+        >>> beta_y_column = example.beta["y"].BETY
+        >>> # This will write an empty DataFrame to "getbetay.out":
+        >>> example.allow_write = True
+        >>> example.beta["y"] = DataFrame()
+
+    If the file to be loaded is not defined for two planes it can be declared
+    as: coupling = Tfs("getcouple.out", two_planes=False) and then accessed as
+    f1001w_column = example.coupling.F1001W.
+    No file will be loaded until the corresponding attribute is accessed and
+    the loaded DataFrame will be buffered, thus the user should expect an
+    IOError if the requested file is not in the provided directory (only the
+    first time but is better to always take it into account!).
+    When a DataFrame is assigned to one attribute it will be set as the buffer
+    value. If the self.allow_write attribute is set to true, an assignment on
+    one of the attributes will trigger the corresponding file write.
     """
     __metaclass__ = _MetaTfsCollection
 
-    def __init__(self, directory):
+    def __init__(self, directory, allow_write=False):
         self.directory = directory
+        self.allow_write = allow_write
         self._buffer = {}
 
-    def get_filename(*args, **kwargs):
+    def get_filename(self, *args, **kwargs):
+        """Returns the filename to be loaded or written.
+
+        This function will get as parameters any parameter given to the
+        Tfs(...) attributes. It must return the filename to be written
+        according to those parameters. If "two_planes=False" is not present in
+        the Tfs(...) definition, it will also be given the keyword argument
+        plane="x" or "y".
         """
-        TODO
+        raise NotImplementedError(
+            "This is an abstract method, it should be implemented in subclasses."
+        )
+
+    def write_to(self, *args, **kwargs):
+        """Returns the filename and DataFrame to be written on assignments.
+
+        If this function is overwrote, it will replace get_filename(...) in
+        file writes to find out the filename of the file to be written. It also
+        gets the value assigned as first parameter.
+        It must return a tuple (filename, data_frame).
         """
         raise NotImplementedError(
             "This is an abstract method, it should be implemented in subclasses."
         )
 
     def clear(self):
-        """
-        TODO
+        """Clear the file buffer.
+
+        Any subsequent attribute access will try to load the corresponding file
+        again.
         """
         self._buffer = {}
+
+    def __getattr__(self, attr):
+        if attr in self._two_plane_names:
+            return TfsCollection._TwoPlanes(self, attr)
+        raise AttributeError("{} object has no attribute {}"
+                             .format(self.__class__.__name__, attr))
+
+    class _TwoPlanes(object):
+        def __init__(self, parent, attr):
+            self.parent = parent
+            self.attr = attr
+        def __getitem__(self, plane):
+            return getattr(self.parent, self.attr + "_" + plane)
+        def __setitem__(self, plane, value):
+            setattr(self.parent, self.attr + "_" + plane, value)
+
 
     def _load_tfs(self, filename):
         try:
             return self._buffer[filename]
         except KeyError:
-            self._buffer[filename] =\
-                tfs_pandas.read_tfs(os.path.join(self.directory, filename))
+            tfs_data = tfs_pandas.read_tfs(os.path.join(self.directory, filename))
+            if "NAME" in tfs_data:
+                tfs_data = tfs_data.set_index("NAME", drop=False)
+            self._buffer[filename] = tfs_data
             return self._buffer[filename]
 
     def _write_tfs(self, filename, data_frame):
-        tfs_pandas.write_tfs(os.path.join(self.directory, filename), data_frame)
+        if self.allow_write:
+            tfs_pandas.write_tfs(os.path.join(self.directory, filename), data_frame)
         self._buffer[filename] = data_frame
 
 
 class Tfs(object):
-    """
-    TODO
+    """ Class to mark attributes as Tfs attributes.
+
+    Any parameter given to this class will be passed to the "get_filename()"
+    and "write_to()" methods, together with the plane if "two_planes=False" is
+    not present.
     """
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -79,8 +169,7 @@ class Tfs(object):
 
 def _define_property(dct, args, kwargs):
     if "two_planes" not in kwargs:
-        prop_x, prop_y = _define_property_two_planes(dct, args, kwargs)
-        return prop_x, prop_y
+        return _define_property_two_planes(dct, args, kwargs)
     elif kwargs["two_planes"]:
         kwargs.pop("two_planes")
         return _define_property_two_planes(dct, args, kwargs)
@@ -116,7 +205,10 @@ def _getter(self, *args, **kwargs):
     return self._load_tfs(filename)
 
 
-def _setter(self, data_frame, *args, **kwargs):
-    # TODO: Get filename for writing.
-    filename = self.get_filename(*args, **kwargs)
-    self._write_tfs(filename, data_frame)
+def _setter(self, value, *args, **kwargs):
+    try:
+        filename, data_frame = self.write_to(value, *args, **kwargs)
+        self._write_tfs(filename, data_frame)
+    except NotImplementedError:
+        filename = self.get_filename(*args, **kwargs)
+        self._write_tfs(filename, value)

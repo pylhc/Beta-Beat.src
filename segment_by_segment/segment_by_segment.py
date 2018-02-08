@@ -3,7 +3,6 @@ import os
 import argparse
 from shutil import copyfile
 from collections import OrderedDict
-import numpy as np
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -12,11 +11,14 @@ sys.path.append(
 from model import manager, creator
 from Utilities import tfs_pandas, logging_tools
 from tfs_files import TfsCollection, Tfs
+from sbs_measurables import MEASURABLES
 
-LOGGER = logging_tools.get_logger(__name__)
+# TODO: Remove debug and set up log file
+import logging
+DEBUG = logging.DEBUG
+LOGGER = logging_tools.get_logger(__name__, level_console=DEBUG)
 
-X, Y = "x", "y"
-PLANES = (X, Y)
+PLANES = ("x", "y")
 
 
 def _parse_args():
@@ -72,13 +74,13 @@ def segment_by_segment(accel_cls, options):
         raise SbsDefinitionError("No segments or elements provided in the input.")
     if _there_are_duplicated_names(segments, elements):
         raise SbsDefinitionError("Duplicated names in segments and elements.")
-    model = tfs_pandas.read_tfs(options.model)
+    model = tfs_pandas.read_tfs(options.model).set_index("NAME", drop=False)
     meas = GetLlmMeasurement(options.measurement)
     elem_segments = [Segment.init_from_element(name) for name in elements]
     for segment in elem_segments + segments:
-        seg_beatings = run_for_segment(accel_cls, segment, model, meas,
-                                       options.optics, options.output)
-        write_beatings(seg_beatings)
+        seg_beatings_dict = run_for_segment(accel_cls, segment, model, meas,
+                                            options.optics, options.output)
+        write_beatings(segment, seg_beatings_dict, options.output)
 
 
 def run_for_segment(accel_cls, segment, model, meas, optics, output):
@@ -87,17 +89,18 @@ def run_for_segment(accel_cls, segment, model, meas, optics, output):
     """
     bpm_eval_funct = _bpm_is_in_beta_meas
     new_segment = improve_segment(segment, model, meas, bpm_eval_funct)
-    LOGGER.info("Evaluating segment {} ({}, {}). Was input as {} ({}, {})."
-                .format(new_segment.name, new_segment.start, new_segment.end,
-                        segment.name, segment.start, segment.end))
-    _prepare_for_madx(new_segment, meas, optics, output)
-    segment_mdl = accel_cls.get_segment(
+    measurables = [measbl(new_segment, meas) for measbl in MEASURABLES]
+    segment_inst = accel_cls.get_segment(
         new_segment.name, new_segment.start, new_segment.end,
         optics,
     )
-    _run_madx(segment, segment_mdl, output)
-    seg_models = SegmentModels(output, segment)
-    return compute_beatings(seg_models, meas)
+    LOGGER.info("Evaluating segment {} ({}, {}). Was input as {} ({}, {})."
+                .format(new_segment.name, new_segment.start, new_segment.end,
+                        segment.name, segment.start, segment.end))
+    _prepare_for_madx(new_segment, meas, measurables, optics, output)
+    _run_madx(new_segment, segment_inst, output)
+    seg_models = SegmentModels(output, new_segment)
+    return compute_beatings(new_segment, seg_models, meas, model)
 
 
 def improve_segment(segment, model, meas, eval_funct):
@@ -108,7 +111,7 @@ def improve_segment(segment, model, meas, eval_funct):
     it, returning a new segment with the new start and end elements.
 
     Arguments:
-        segment: The segment to be processed.
+        segment: The segment to be processed (see Segment class).
         model: The model where to take all the element names from. Both the
             start and end of the segment have to be present in this model
             NAME attribute.
@@ -140,24 +143,16 @@ def improve_segment(segment, model, meas, eval_funct):
     return new_segment
 
 
-def compute_beatings(seg_models, meas):
+def write_beatings(segment, seg_beatings_dict, output_dir):
     """
     TODO
     """
-    # TODO: beta-beating
-    # TODO: phase-beating
-    # TODO: coupling
-    # TODO: dispersion
-    # TODO: chromatic?
-    # TODO: special elements?
-    pass
-
-
-def write_beatings(seg_beatings):
-    """
-    TODO
-    """
-    pass
+    seg_beatings = SegmentBeatings(output_dir, segment.name)
+    seg_beatings.allow_write = True
+    for plane in PLANES:
+        seg_beatings.beta_phase[plane] = seg_beatings_dict["beta_phase"][plane]
+        seg_beatings.beta_amp[plane] = seg_beatings_dict["beta_amp"][plane]
+        seg_beatings.beta_kmod[plane] = seg_beatings_dict["beta_kmod"][plane]
 
 
 def _parse_segments(segments_str):
@@ -221,13 +216,13 @@ def _select_closest(name, all_names, eval_cond, back=False):
 
 def _bpm_is_in_beta_meas(bpm_name, meas):
     # 'elem in pandasSeries' doesnt seem to work...
-    return (bpm_name in list(meas.beta[X].NAME) and
-            bpm_name in list(meas.beta[Y].NAME))
+    return (bpm_name in list(meas.beta_x.NAME) and
+            bpm_name in list(meas.beta_y.NAME))
 
 
-def _prepare_for_madx(segment, meas, optics, output):
+def _prepare_for_madx(segment, meas, measurables, optics, output):
     copyfile(optics, os.path.join(output, "modifiers.madx"))
-    meas_file_content = _prepare_meas_file(segment, meas)
+    meas_file_content = _prepare_meas_file(measurables)
     meas_file_path = os.path.join(
         output,
         "measurement_{}.madx".format(segment.name)
@@ -242,112 +237,35 @@ def _prepare_for_madx(segment, meas, optics, output):
     open(corr_file_path, "w").close()
 
 
-def _prepare_meas_file(segment, meas):
-    # TODO: Better solution for all this, extremelly ugly
+def _prepare_meas_file(measurables):
     meas_dict = OrderedDict()
-
-    for plane in PLANES:
-        for suffix, name in (("_ini", segment.start), ("_end", segment.end)):
-            meas_dict["bet{}{}".format(plane, suffix)] =\
-                getattr(meas.beta[plane], "BET{}".format(plane.upper()))[name]
-            meas_dict["alf{}{}".format(plane, suffix)] =\
-                getattr(meas.beta[plane], "ALF{}".format(plane.upper()))[name]
-        meas_dict["alf{}_end".format(plane)] = -meas_dict["alf{}_end".format(plane)]
-
-    try:
-        for plane in PLANES:
-            for suffix, name in (("_ini", segment.start), ("_end", segment.end)):
-                meas_dict["d{}{}".format(plane, suffix)] =\
-                    getattr(meas.disp[plane], "D{}".format(plane.upper()))[name]
-                meas_dict["dp{}{}".format(plane, suffix)] =\
-                    getattr(meas.disp[plane], "DP{}".format(plane.upper()))[name]
-        meas_dict["dp{}_end".format(plane)] = -meas_dict["dp{}_end".format(plane)]
-    except IOError:
-        LOGGER.debug("No dispersion files in the input directory.")
-    except KeyError:
-        LOGGER.debug("Start or end BPMs not in dispersion files.")
-
-    # TODO: W function and phi
-
-    try:
-        for prefix, name in (("ini_", segment.start), ("end_", segment.end)):
-            (meas_dict["{}r11".format(prefix)],
-             meas_dict["{}r12".format(prefix)],
-             meas_dict["{}r21".format(prefix)],
-             meas_dict["{}r22".format(prefix)]) = _get_r_terms(name, meas)
-    except IOError:
-        LOGGER.debug("No coupling files in the input directory.")
-    except KeyError:
-        LOGGER.debug("Start or end BPMs not in coupling files.")
-
+    for measurable in measurables:
+        if measurable.is_available:
+            meas_dict.update(measurable.get_init_conds_dict())
     meas_file_content = ""
     for key in meas_dict:
         meas_file_content += "{} = {};\n".format(key, meas_dict[key])
     return meas_file_content
 
 
-def _get_r_terms(name, meas):
-    betx = meas.beta[X].BETX[name]
-    bety = meas.beta[Y].BETY[name]
-    alfx = meas.beta[X].ALFX[name]
-    alfy = meas.beta[Y].ALFY[name]
-    f1001r = meas.coupling.F1001R[name]
-    f1001i = meas.coupling.F1001I[name]
-    f1010r = meas.coupling.F1010R[name]
-    f1010i = meas.coupling.F1010I[name]
-    if (f1001r, f1001i, f1010r, f1010i) == (0., 0., 0., 0.):
-        return 0., 0., 0., 0.,
-
-    ga11 = 1 / np.sqrt(betx)
-    ga12 = 0
-    ga21 = alfx / np.sqrt(betx)
-    ga22 = np.sqrt(betx)
-    Ga = np.reshape(np.array([ga11, ga12, ga21, ga22]), (2, 2))
-
-    gb11 = 1 / np.sqrt(bety)
-    gb12 = 0
-    gb21 = alfy / np.sqrt(bety)
-    gb22 = np.sqrt(bety)
-    Gb = np.reshape(np.array([gb11, gb12, gb21, gb22]), (2, 2))
-
-    J = np.reshape(np.array([0, 1, -1, 0]), (2, 2))
-
-    absf1001 = np.sqrt(f1001r ** 2 + f1001i ** 2)
-    absf1010 = np.sqrt(f1010r ** 2 + f1010i ** 2)
-
-    gamma2 = 1. / (1. + 4. * (absf1001 ** 2 - absf1010 ** 2))
-    c11 = (f1001i + f1010i)
-    c22 = (f1001i - f1010i)
-    c12 = -(f1010r - f1001r)
-    c21 = -(f1010r + f1001r)
-    Cbar = np.reshape(2 * np.sqrt(gamma2) *
-                         np.array([c11, c12, c21, c22]), (2, 2))
-
-    C = np.dot(np.linalg.inv(Ga), np.dot(Cbar, Gb))
-    jCj = np.dot(J, np.dot(C, -J))
-    c = np.linalg.det(C)
-    r = -c / (c - 1)
-    R = np.transpose(np.sqrt(1 + r) * jCj)
-    r11, r12, r21, r22 = np.ravel(R)
-    return r11, r12, r21, r22
-
-
-def _run_madx(segment, segment_mdl, output):
+def _run_madx(segment, segment_inst, output):
     mad_file_name = 't_' + str(segment.name) + '.madx'
     log_file_name = segment.name + "_mad.log"
     madx_file_path = os.path.join(output, mad_file_name)
     log_file_path = os.path.join(output, log_file_name)
-    creator.create_model(segment_mdl, "segment", output,
+    creator.create_model(segment_inst, "segment", output,
                          logfile=log_file_path, writeto=madx_file_path)
     LOGGER.info("MAD-X done, log file: {}".format(log_file_path))
 
 
 class Segment(object):
+
     def __init__(self, name, start, end):
         self.name = name
         self.start = start
         self.end = end
         self.element = None
+        self.ini_conds = None
 
     @staticmethod
     def init_from_element(element_name):
@@ -375,9 +293,7 @@ class GetLlmMeasurement(TfsCollection):
     coupling = Tfs("getcouple", two_planes=False)
     norm_disp = Tfs("getNDx", two_planes=False)
 
-    def get_filename(self, prefix, plane=None):
-        if plane is None:
-            plane = ""
+    def get_filename(self, prefix, plane=""):
         templ = prefix + "{}{}.out"
         for filename in (templ.format(plane, "_free"),
                          templ.format(plane, "_free2"),
@@ -386,6 +302,13 @@ class GetLlmMeasurement(TfsCollection):
                 return filename
         raise IOError("No file name found for prefix {} in {}."
                       .format(prefix, self.directory))
+
+    def write_to(self, value, prefix, plane=""):
+        data_frame, suffix = value
+        templ = prefix + "{}{}.out"
+        filename = templ.format(plane, suffix)
+        return filename, data_frame
+
 
 
 class SegmentModels(TfsCollection):
