@@ -1,24 +1,43 @@
 """ Entry Point Decorator
 
-Allows a function to be decorated as entry point.
+Allows a function to be decorated as entrypoint.
 This function will then automatically accept console arguments, config files, json files,
 kwargs and dictionaries as input and will parse it according to the parameters
-given to the EntryPoint-Decorator.
+given to the entrypoint-Decorator.
 
 Terminology:
-    Parameter - Items containing info on how to parse Arguments
-    Arguments - The input to the wrapped-function
-    Options - The parsed arguments and hence the options of the function
+++++++++++++++++++++++++
 
-Hence, an ArgumentError will be raised in case of something going wrong during parsing,
-while ParameterErrors will be raised if something goes wrong when adding parameters to the list.
+    * **Parameter** - Items containing info on how to parse Arguments
+    * **Arguments** - The input to the wrapped-function
+    * **Options** - The parsed arguments and hence the options of the function
 
-It is also possible to use the EntryPoint Class similar to a normal parser:
+Hence, an :class:`ArgumentError` will be raised in case of something going wrong during parsing,
+while :class:`ParameterErrors` will be raised if something goes wrong when
+adding parameters to the list.
+
+Usage:
+++++++++++++++++++++++++
+
+To be used as a decorator::
+    @entrypoint(parameters)
+    def some_function(options, unknown_options)
+
+Using **strict** mode (see below)::
+    @entrypoint(parameters, strict=True)
+    def some_function(options)
+
+It is also possible to use the EntryPoint Class similar to a normal parser::
     ep_parser = EntryPoint(parameters)
-    options, unknown = ep_parser.parse(arguments)
+    options, unknown_options = ep_parser.parse(arguments)
 
-    NOT TO DO: "ep_parser(arguments)"
-    This invokes the wrapping behaviour
+Using **strict** mode (see below)::
+    ep_parser = EntryPoint(parameters, strict=True)
+    options = ep_parser.parse(arguments)
+
+
+Parameters:
+++++++++++++++++++++++++
 
 Parameters need to be a list or a dictionary of dictionaries with the following keys:
         name (required): Name of the variable (e.g. later use options.NAME).
@@ -32,10 +51,10 @@ Parameters need to be a list or a dictionary of dictionaries with the following 
         nargs (optional): number of arguments to consume (commandline only, do not use REMAINDER!)
 
 
-The 'strict' option changes the behaviour for unknown parameters:
-    strict=True raises exceptions, strict=False loggs debug messages and returns the options
-    Hence a wrapped function with strict=True must accept one input, with strict=False two.
-    Default: False
+The **strict** option changes the behaviour for unknown parameters:
+``strict=True`` raises exceptions, ``strict=False`` loggs debug messages and returns the options.
+Hence a wrapped function with ``strict=True`` must accept one input, with ``strict=False`` two.
+Default: ``False``
 
 """
 
@@ -49,6 +68,14 @@ from Utilities.dict_tools import DictParser
 from Utilities.dict_tools import DotDict
 from Utilities.dict_tools import ArgumentError
 from Utilities.dict_tools import ParameterError
+from functools import wraps
+
+try:
+    # Python 2
+    from inspect import getargspec as getfullargspec
+except ImportError:
+    # Python 3
+    from inspect import getfullargspec
 
 LOG = logtools.get_logger(__name__)
 
@@ -59,9 +86,7 @@ ID_JSON = "entry_json"
 ID_SECTION = "section"
 
 
-"""
-======================== EntryPoint Wrapper ========================
-"""
+# EntryPoint Class #############################################################
 
 
 class EntryPoint(object):
@@ -78,20 +103,6 @@ class EntryPoint(object):
         self.argparse = self._create_argument_parser()
         self.dictparse = self._create_dict_parser()
         self.configparse = self._create_config_parser()
-
-    def __call__(self, func):
-        """ Builds wrapper around the function 'func' (called on decoration)
-
-        Whenever the decorated function is called, actually this wrapper is called
-        """
-        if self.strict:
-            def wrapper(*args, **kwargs):
-                return func(self.parse(*args, **kwargs))
-        else:
-            def wrapper(*args, **kwargs):
-                options, unknown_options = self.parse(*args, **kwargs)
-                return func(options, unknown_options)
-        return wrapper
 
     def parse(self, *args, **kwargs):
         """ Parse whatever input parameter come.
@@ -263,9 +274,62 @@ class EntryPoint(object):
             return param
 
 
-"""
-======================== EntryPoint Arguments ========================
-"""
+# entrypoint Decorator #########################################################
+
+
+class entrypoint(EntryPoint):
+    """ Decorator extension of EntryPoint.
+
+    Implements the __call__ method needed for decorating.
+    Lowercase looks nicer if used as decorator """
+
+    def __call__(self, func):
+        """ Builds wrapper around the function 'func' (called on decoration)
+
+        Whenever the decorated function is called, actually this wrapper is called.
+        The Number of arguments is checked for compliance with instance- and class- methods,
+
+        Meaning: if there is one more argument as there should be, we pass it on as it is
+        (should be) either ``self`` or ``cls``.
+        One could check that there are no varargs and keywords, but let's assume the user
+        is doing the right things.
+        """
+        nargs = len(getfullargspec(func).args)
+
+        if self.strict:
+            if nargs == 1:
+                @wraps(func)
+                def wrapper(*args, **kwargs):
+                    return func(self.parse(*args, **kwargs))
+            elif nargs == 2:
+                @wraps(func)
+                def wrapper(other, *args, **kwargs):
+                    return func(other, self.parse(*args, **kwargs))
+            else:
+                ArgumentError("In strict mode, only one option-structure will be passed."
+                              " The entrypoint needs to have the following structure: "
+                              " ([self/cls,] options)."
+                              " Found: {:s}".format(getfullargspec(func).args))
+        else:
+            if nargs == 2:
+                @wraps(func)
+                def wrapper(*args, **kwargs):
+                    options, unknown_options = self.parse(*args, **kwargs)
+                    return func(options, unknown_options)
+            elif nargs == 3:
+                @wraps(func)
+                def wrapper(other, *args, **kwargs):
+                    options, unknown_options = self.parse(*args, **kwargs)
+                    return func(other, options, unknown_options)
+            else:
+                ArgumentError("Two option-structures will be passed."
+                              " The entrypoint needs to have the following structure: "
+                              " ([self/cls,] options, unknown_options)."
+                              " Found: {:s}".format(getfullargspec(func).args))
+        return wrapper
+
+
+# EntryPoint Arguments #########################################################
 
 
 class EntryPointParameters(DotDict):
@@ -280,10 +344,56 @@ class EntryPointParameters(DotDict):
         else:
             self[name] = kwargs
 
+    def help(self):
+        """ Prints current help. Usable to paste into docstrings. """
+        optional_param = ""
+        required_param = ""
 
-"""
-======================== Public Helpers ========================
-"""
+        for name in sorted(self.keys()):
+            item_str = ""
+            item = self[name]
+            try:
+                name_type = "{n:s} ({t:s})".format(n=name, t=item["type"].__name__)
+            except KeyError:
+                name_type = "{n:s}".format(n=name)
+
+            try:
+                item_str += "{n:s}: {h:s}".format(n=name_type, h=item["help"])
+            except KeyError:
+                item_str += "{n:s}: -Help not available- ".format(n=name_type)
+
+            space = " " * (len(name_type) + 2)
+
+            try:
+                item_str += "\n{s:s}**Flags**: {f:s}".format(s=space, f=item["flags"])
+            except KeyError:
+                pass
+
+            try:
+                item_str += "\n{s:s}**Choices**: {c:s}".format(s=space, c=item["choices"])
+            except KeyError:
+                pass
+
+            try:
+                item_str += "\n{s:s}**Default**: ``{d:s}``".format(s=space, d=str(item["default"]))
+            except KeyError:
+                pass
+
+            if item.get("required", False):
+                required_param += item_str + "\n"
+            else:
+                optional_param += item_str + "\n"
+
+        if required_param:
+            LOG.info("Required")
+            LOG.info(required_param)
+
+        if optional_param:
+            LOG.info("Optional")
+            LOG.info(optional_param)
+
+
+# Public Helpers ###############################################################
 
 
 def add_params_to_generic(parser, params):
@@ -291,6 +401,10 @@ def add_params_to_generic(parser, params):
     ArgumentParser, DictParser or EntryPointArguments
     """
     params = copy.deepcopy(params)
+
+    if isinstance(params, dict):
+        params = EntryPoint._dict2list_param(params)
+
     if isinstance(parser, EntryPointParameters):
         for param in params:
             parser.add_parameter(param)
@@ -324,9 +438,54 @@ def add_params_to_generic(parser, params):
         raise TypeError("Parser not recognised.")
     return parser
 
-"""
-======================== Script Mode ========================
-"""
+
+def split_arguments(args, *param_list):
+    """ Divide remaining arguments into a list of argument-dicts,
+        fitting to the params in param_list.
+
+        Args:
+            args: Input arguments, either as list of strings or dict
+            param_list: list of sets of entry-point parameters (either dict, or list)
+
+        Returns:
+            A list of dictionaries containing the arguments for each set of parameters,
+            plus one more entry for unknown parameters.
+            If the input was a list of argument-strings, the parameters will already be parsed.
+
+        .. warning:: Unless you know what you are doing, run this function only on
+                     remaining-arguments from entry point parsing, not on the actual arguments
+
+        .. warning:: Adds each argument only once, to the set of params who claim it first!
+    """
+    split_args = []
+    if isinstance(args, list):
+        # strings of commandline parameters, has to be parsed twice
+        # (as I don't know how to handle flags properly)
+        for params in param_list:
+            parser = argparse.ArgumentParser()
+            parser = add_params_to_generic(parser, params)
+            this_args, args = parser.parse_known_args(args)
+            split_args.append(DotDict(this_args.__dict__))
+        split_args.append(args)
+    else:
+        # should be a dictionary of params, so do it the manual way
+        for params in param_list:
+            params = param_names(params)
+            split_args.append(DotDict([(key, args.pop(key)) for key in args if key in params]))
+        split_args.append(DotDict(args))
+    return split_args
+
+
+def param_names(params):
+    """ Get the names of the parameters, no matter if they are a dict or list of dicts """
+    try:
+        names = params.keys()
+    except AttributeError:
+        names = [p["name"] for p in params]
+    return names
+
+
+# Script Mode ##################################################################
 
 
 if __name__ == '__main__':

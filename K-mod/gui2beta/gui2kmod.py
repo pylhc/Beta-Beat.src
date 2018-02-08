@@ -1,18 +1,15 @@
 #!/afs/cern.ch/work/o/omc/anaconda/bin/python
 
-# import __init__
 import sys
 import os
 
-new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
+new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 if new_path not in sys.path:
     sys.path.append(new_path)
+
 import numpy as np
-import matplotlib
 import Magnet_definitions
 import math
-
-# matplotlib.use('Qt4Agg')  # THIS BACKEND IS NEEDED FOR THE CLEANING !
 
 import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass
@@ -27,6 +24,62 @@ from read_Timber_output import merge_data
 import KModUtilities
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+
+
+# TODO: (Long term) Think about the accelerator class here for positions and Ks
+# TODO: Short term kind of: Use a logger for logging
+# TODO: Short term kind of: Use tfs_pandas instead of metaclass
+# TODO: Think about removing short parameters (-b, -w, ...)
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-b', '--BetastarAndWaist',
+                        help='Estimated beta star of measurements and waist shift',
+                        action='store', type=str, dest='betastar')
+    parser.add_argument('-w', '--working_directory',
+                        help='path to working directory with stored KMOD measurement files',
+                        action='store', type=str, dest='work_dir')
+    parser.add_argument('-c', '--cminus',
+                        help='C Minus',
+                        action='store', type=float, dest='cminus', default=0)
+    parser.add_argument('-M', '--misalignment',
+                        help='misalignment of the modulated quadrupoles in m',
+                        action='store', type=float, dest='misalign', default=0)
+    parser.add_argument('-K', '--errorK',
+                        help='error in K of the modulated quadrupoles, unit m^-2',
+                        action='store', type=float, dest='ek', default=0)
+    parser.add_argument('-T', '--Tuneuncertainty',
+                        help='tune measurement uncertainty',
+                        action='store', type=float, dest='tunemeasuncertainty', default=2.5e-5)
+    parser.add_argument('-e', '--beam',
+                        help='define beam used: b1 or b2',
+                        action='store', type=str, dest='beam', choices=['b1', 'b2', 'B1', 'B2'], required=True)
+    parser.add_argument('-I', '--instruments',
+                        help='define instruments (use keywords from twiss) at which beta should be calculated , separated by comma, e.g. MONITOR,RBEND,INSTRUMENT,TKICKER',
+                        action='store', type=str, dest='instruments')
+    parser.add_argument('-l', '--log',
+                        help='flag for creating a log file',
+                        action='store_true', dest='log')
+    parser.add_argument('-n', '--noautoclean',
+                        help='flag for manually cleaning data',
+                        action='store_true', dest='a_clean')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-m', '--circuit',
+                       help='circuit names of the modulated quadrupoles',
+                       action='store', type=str, dest='magnets')
+    group.add_argument('-i', '--interaction_point',
+                       help='define interaction point',
+                       action='store', type=str, dest='ip', choices=['ip1', 'ip5', 'ip8', 'IP1', 'IP5', 'IP8'])
+
+    options = parser.parse_args()
+
+    # TODO:
+    """
+    try:
+        intrs = options.instruments
+    except AttributeError:
+        instr = eve
+    """
+    return options
 
 
 class clicker_class(object):
@@ -405,7 +458,7 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile):
 
     right_data = metaclass.twiss(file_path_1)
     left_data = metaclass.twiss(file_path_2)
-		
+
     if auto_clean == True:
         cleaned_x1 = start_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
         cleaned_y1 = start_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
@@ -445,52 +498,6 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile):
     return fitx_2[0], fitx_1[0], fity_2[0], fity_1[
         0], errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy  # kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
 
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--BetastarAndWaist',
-                        help='Estimated beta star of measurements and waist shift',
-                        action='store', type=str, dest='betastar')
-    parser.add_argument('-w', '--working_directory',
-                        help='path to working directory with stored KMOD measurement files',
-                        action='store', type=str, dest='work_dir')
-    parser.add_argument('-c', '--cminus',
-                        help='C Minus',
-                        action='store', type=float, dest='cminus', default=0)
-    parser.add_argument('-M', '--misalignment',
-                        help='misalignment of the modulated quadrupoles in m',
-                        action='store', type=float, dest='misalign', default=0)
-    parser.add_argument('-K', '--errorK',
-                        help='error in K of the modulated quadrupoles, unit m^-2',
-                        action='store', type=float, dest='ek', default=0)
-    parser.add_argument('-T', '--Tuneuncertainty',
-                        help='tune measurement uncertainty',
-                        action='store', type=float, dest='tunemeasuncertainty', default=2.5e-5)
-    parser.add_argument('-e', '--beam',
-                        help='define beam used: b1 or b2',
-                        action='store', type=str, dest='beam', choices=['b1', 'b2', 'B1', 'B2'], required=True)
-    parser.add_argument('-I', '--instruments',
-                        help='define instruments (use keywords from twiss) at which beta should be calculated , separated by comma, e.g. MONITOR,RBEND,INSTRUMENT,TKICKER',
-                        action='store', type=str, dest='instruments', default='')
-    parser.add_argument('-l', '-log',
-                        help='flag for creating a log file',
-                        action='store_true', dest='log')
-    parser.add_argument('-n', '-noautoclean',
-                        help='flag for manually cleaning data',
-                        action='store_true', dest='a_clean')
-
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-m', '--circuit',
-                       help='circuit names of the modulated quadrupoles',
-                       action='store', type=str, dest='magnets')
-    group.add_argument('-i', '-interaction_point',
-                       help='define interaction point',
-                       action='store', type=str, dest='ip', choices=['ip1', 'ip5', 'ip8', 'IP1', 'IP5', 'IP8'])
-
-    options = parser.parse_args()
-
-    return options
-
 def returnmagnetname(circuit, beam, twiss):
     circuit = circuit.split('.')
 
@@ -514,8 +521,7 @@ def returncircuitname(magnet, beam):
 
     return name
 
-
-if __name__ == '__main__':
+def _i_am_main():
     options = parse_args()
 
     working_directory = options.work_dir
@@ -526,7 +532,8 @@ if __name__ == '__main__':
 
     bs = options.betastar
     bstar, waist = bs.split(",")
-	
+
+    # TODO: Pass it to functions
     auto_clean=options.a_clean
     command = open(working_directory + '/command.run', 'a')
     command.write(str(' '.join(sys.argv)))
@@ -534,16 +541,12 @@ if __name__ == '__main__':
     command.close()
     
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    
-    twissfilenameb1 = dir_path+'/twiss_lhcb1.tfs'
-    twissfilenameb2 = dir_path+'/twiss_lhcb2.tfs'
 
     if beam == 'B1':
-        twissfile = twissfilenameb1
+        twissfile = os.path.join(CURRENT_PATH, "sequences", "twiss_lhcb1.tfs")
     else:
-        twissfile = twissfilenameb2
+        twissfile = os.path.join(CURRENT_PATH, "sequences", "twiss_lhcb2.tfs")
     twiss = metaclass.twiss(twissfile)
-    ip = options.ip
     
     if options.ip is not None:
         if options.ip == 'ip1' or options.ip == 'IP1':
@@ -574,3 +577,7 @@ if __name__ == '__main__':
                          options.misalign, options.cminus, twiss, options.log, logdata)
 
     logdata.close()
+
+
+if __name__ == '__main__':
+    _i_am_main()

@@ -11,12 +11,10 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   Analyses/index
-   Correction/index
-   drive/index
-   getllm/index
-   SegmentBySegment/index
-   fullresponse/index
+   correction/index
+   GetLLM/index
+   model/index
+   twiss_optics/index
    Utilities/index
 
 

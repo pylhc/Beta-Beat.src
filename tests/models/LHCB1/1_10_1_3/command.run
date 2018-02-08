@@ -1,4 +1,0 @@
-Command => /user/slops/data/LHC_DATA/OP_DATA/Betabeat/11-1-2012/models/LHCB1//beam1_dry_run_1_10_1_3_try2/command
-
-Command => /usr/bin/python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//MODEL/LHCB/fullresponse//generateFullResponse.py -a LHCB1 -p /user/slops/data/LHC_DATA/OP_DATA/Betabeat/11-1-2012/models/LHCB1//beam1_dry_run_1_10_1_3_try2/ -c /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//MODEL/LHCB/fullresponse/
-

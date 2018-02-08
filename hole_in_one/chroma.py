@@ -76,7 +76,7 @@ def get_dpoverp_amp(model_tfs, panda, bpm_names, bpm_samples):
 
 
 def _get_lhc_arc_bpms(bpm_names, bpm_samples):
-    accel_cls = manager.get_accel_class("lhc")
+    accel_cls = manager.get_accel_class(accel="lhc")
     arc_bpms_mask = accel_cls.get_arc_bpms_mask(bpm_names)
     arc_bpm_samples = bpm_samples[arc_bpms_mask]
     arc_bpm_names = bpm_names[arc_bpms_mask]

@@ -116,7 +116,7 @@ class TemplateProcessor(object):
                  madx_templates_runner):
         self._matchers_list = matchers_list
         self._match_path = match_path
-        self._accel_cls = manager.get_accel_class("lhc", lhc_mode=lhc_mode)
+        self._accel_cls = manager.get_accel_class(accel="lhc", lhc_mode=lhc_mode)
         self._minimize = minimize
         self._madx_templates_runner = madx_templates_runner
         self._set_up_collections()

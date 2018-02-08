@@ -11,7 +11,8 @@ import time
 import numpy as np
 from optparse import OptionParser
 from Utilities import iotools
-from Python_Classes4MAD import madxrunner, metaclass
+from Python_Classes4MAD import metaclass
+from madx import madxrunner
 import math
 import sys
 import json

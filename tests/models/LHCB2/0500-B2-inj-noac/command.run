@@ -1,4 +1,0 @@
-Command => /user/slops/data/LHC_DATA/OP_DATA/Betabeat/15-3-2012/models/LHCB2//0500-B2-inj-noac/command
-
-Command => /usr/bin/python /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//MODEL/LHCB/fullresponse//generateFullResponse.py -a LHCB2 -p /user/slops/data/LHC_DATA/OP_DATA/Betabeat/15-3-2012/models/LHCB2//0500-B2-inj-noac/ -c /afs/cern.ch/eng/sl/lintrack/Beta-Beat.src//MODEL/LHCB/fullresponse/ -k 0.00002
-

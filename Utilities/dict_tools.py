@@ -13,9 +13,8 @@ _TC = {  # Tree Characters
     'S': u'\u251C',  # Split
 }
 
-"""
-======================== Additional Dictionary Classes and Functions ========================
-"""
+
+# Additional Dictionary Classes and Functions ##################################
 
 
 class DotDict(dict):
@@ -26,9 +25,16 @@ class DotDict(dict):
             if isinstance(self[key], dict):
                 self[key] = DotDict(self[key])
 
-    __getattr__ = dict.__getitem__
+    # __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+    def __getattr__(self, key):
+        """ Needed to raise the correct exceptions """
+        try:
+            return super(DotDict, self).__getitem__(key)
+        except KeyError as e:
+            raise AttributeError(e)
 
 
 def print_dict_tree(dictionary, name='Dictionary'):
@@ -54,9 +60,7 @@ def print_dict_tree(dictionary, name='Dictionary'):
     print_tree(dictionary, '')
 
 
-"""
-======================== Dict Parser ========================
-"""
+# Dict Parser ##################################################################
 
 
 class ParameterError(Exception):
@@ -93,20 +97,21 @@ class Parameter(object):
             raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                  "Default value not of specified type.")
 
-        if self.choices and not isinstance(self.choices, list):
+        if self.choices:
+            if not isinstance(self.choices, list):
                 raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                      "Choices need to be a list.")
 
-        if self.choices and self.default not in self.choices:
-            raise ParameterError("Parameter '{:s}': ".format(self.name) +
-                                 "Default value not found in choices.")
+            if self.default and self.default not in self.choices:
+                raise ParameterError("Parameter '{:s}': ".format(self.name) +
+                                     "Default value not found in choices.")
 
-        if self.choices and self.type:
-            for choice in self.choices:
-                if not isinstance(choice, self.type):
-                    raise ParameterError("Choice '{:s}'".format(choice) +
-                                         "of parameter '{:s}': ".format(self.name) +
-                                         "is not of type '{:s}'.".format(self.type))
+            if self.type:
+                for choice in self.choices:
+                    if not isinstance(choice, self.type):
+                        raise ParameterError("Choice '{:s}'".format(choice) +
+                                             "of parameter '{:s}': ".format(self.name) +
+                                             "is not of type '{:s}'.".format(self.type))
 
         if self.nargs:
             if not isinstance(self.nargs, int):
@@ -197,27 +202,33 @@ class DictParser(object):
                 return param.default
 
         opt = arg_dict[key]
-        if param.type and not isinstance(opt, param.type):
-            raise ArgumentError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
-                key, param.type.__name__, param.help)
-            )
-        if param.type == list:
-            if param.nargs and not param.nargs == len(opt):
-                raise ArgumentError(
-                    "'{:s}' should be list of length {:d},".format(key, param.nargs) +
-                    " instead it was of length {:d}.\nHelp: {:s}".format(len(opt), param.help))
-            if param.subtype:
-                for idx, item in enumerate(opt):
-                    if not isinstance(item, param.subtype):
-                        raise ArgumentError(
-                            "Item {:d} of '{:s}' is not of type '{:s}' ".format(
-                                idx, key, param.subtype.__name__) +
-                            ".\nHelp: {:s}".format(param.help))
+        if opt is None:
+            if param.required:
+                raise ArgumentError("'{:s}' required in options.\nHelp: {:s}".format(
+                    key, param.help)
+                )
+        else:
+            if param.type and not isinstance(opt, param.type):
+                raise ArgumentError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
+                    key, param.type.__name__, param.help)
+                )
+            if param.type == list:
+                if param.nargs and not param.nargs == len(opt):
+                    raise ArgumentError(
+                        "'{:s}' should be list of length {:d},".format(key, param.nargs) +
+                        " instead it was of length {:d}.\nHelp: {:s}".format(len(opt), param.help))
+                if param.subtype:
+                    for idx, item in enumerate(opt):
+                        if not isinstance(item, param.subtype):
+                            raise ArgumentError(
+                                "Item {:d} of '{:s}' is not of type '{:s}' ".format(
+                                    idx, key, param.subtype.__name__) +
+                                ".\nHelp: {:s}".format(param.help))
 
-        if param.choices and opt not in param.choices:
-            raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
-                key, param.choices, param.help)
-            )
+            if param.choices and opt not in param.choices:
+                raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
+                    key, param.choices, param.help)
+                )
         return opt
 
     def _parse_options(self, arg_dict, param_dict):
@@ -234,9 +245,7 @@ class DictParser(object):
         checked_dict = DotDict()
         for key in param_dict:
             if isinstance(param_dict[key], Parameter):
-                checked_item = DictParser._check_value(key, arg_dict, param_dict)
-                if key in arg_dict or checked_item is not None:
-                    checked_dict[key] = checked_item
+                checked_dict[key] = DictParser._check_value(key, arg_dict, param_dict)
             elif isinstance(param_dict[key], dict):
                 try:
                     if not arg_dict or not (key in arg_dict):
@@ -453,9 +462,8 @@ class DictParser(object):
         return out
 
 
-"""
-======================== Script Mode ========================
-"""
+# Script Mode ##################################################################
+
 
 if __name__ == '__main__':
     raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

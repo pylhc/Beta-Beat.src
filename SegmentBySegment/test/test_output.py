@@ -19,7 +19,7 @@ import __init__  # @UnusedImport init will include paths
 import Utilities.iotools
 import Utilities.ndiff
 import Utilities.tfs_comparator
-from Python_Classes4MAD import madxrunner
+from madx import madxrunner
 from Python_Classes4MAD import metaclass
 
 _SHORT_RUN = False  # If True, SBS will only run on first dir

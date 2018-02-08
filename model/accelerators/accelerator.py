@@ -10,27 +10,19 @@ class Accelerator(object):
 
     # Class methods ###########################################
 
+    @staticmethod
+    def get_class_parameters():
+        """
+        This method should return the parameter list of arguments needed
+        to create the class.
+        """
+        Accelerator.__raise_definition_error()
+
     @classmethod
     def get_class(cls, *args, **kwargs):
         """
         This method should return the accelerator class defined
         in the arguments.
-        """
-        Accelerator.__raise_definition_error()
-
-    @classmethod
-    def get_class_from_args(cls, args):
-        """
-        This method should return the accelerator class defined
-        by in the passed command line like arguments.
-        """
-        Accelerator.__raise_definition_error()
-
-    @classmethod
-    def init_from_args(cls, args):
-        """
-        Instances an accelerator filling the attributes using the
-        command line like arguments passed in args.
         """
         Accelerator.__raise_definition_error()
 

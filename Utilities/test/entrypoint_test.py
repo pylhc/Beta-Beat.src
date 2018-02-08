@@ -1,17 +1,28 @@
+""" Tester for EntryPoint
+
+Tests some very basic stuff, including errors, so some ERROR-LOGs are expected.
+"""
 from __future__ import print_function
-import __init__
+
 import os
+
+# noinspection PyUnresolvedReferences
+import __init__
+from Utilities import logging_tools
+from Utilities.dict_tools import print_dict_tree
+from Utilities.entrypoint import ArgumentError
 from Utilities.entrypoint import EntryPoint
 from Utilities.entrypoint import EntryPointParameters
-from Utilities.entrypoint import ArgumentError, ParameterError
-from Utilities.dict_tools import print_dict_tree
-from Utilities import logging_tools
+from Utilities.entrypoint import entrypoint
+
+from model import manager
+manager._get_params()
+
 LOG = logging_tools.get_logger(__name__, level_console=0, fmt="%(levelname)7s | %(message)s")
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 
-"""
-======================== Example Parameter Definitions ========================
-"""
+
+# Example Parameter Definitions ################################################
 
 
 def _get_params_arguments():
@@ -138,8 +149,10 @@ def _get_params_list():
     ]
 
 
+# Example Wrapped Functions ####################################################
 
-@EntryPoint(_get_params_arguments())
+
+@entrypoint(_get_params_arguments())
 def some_function(options, unknown_options):
     LOG.info("Some Function")
     print_dict_tree(options)
@@ -147,14 +160,14 @@ def some_function(options, unknown_options):
     LOG.info("\n")
 
 
-@EntryPoint(_get_params_arguments(), strict=True)
+@entrypoint(_get_params_arguments(), strict=True)
 def strict_function(options):
     LOG.info("Strict Function")
     print_dict_tree(options)
     LOG.info("\n")
 
 
-@EntryPoint(_get_params_dict())
+@entrypoint(_get_params_dict())
 def some_other_function(options, unknown_options):
     LOG.info("Some Other Function")
     print_dict_tree(options)
@@ -162,12 +175,40 @@ def some_other_function(options, unknown_options):
     LOG.info("\n")
 
 
-@EntryPoint(_get_params_list())
+@entrypoint(_get_params_list())
 def some_function_list_param(options, unknown_options):
     LOG.info("Some Function with list params")
     print_dict_tree(options)
     LOG.info("Unknown Options: \n {:s}".format(unknown_options))
     LOG.info("\n")
+
+
+class TestClass(object):
+    @entrypoint(_get_params_dict())
+    def instance_function(self, options, unknowns):
+        LOG.info("Class Function with dict params")
+        print_dict_tree(options)
+        LOG.info("Unknown Options: \n {:s}".format(unknowns))
+        LOG.info("\n")
+
+    @classmethod
+    @entrypoint(_get_params_dict())
+    def class_function(cls, options, unknowns):
+        LOG.info("Class Function with dict params")
+        print_dict_tree(options)
+        LOG.info("Unknown Options: \n {:s}".format(unknowns))
+        LOG.info("\n")
+
+
+    @classmethod
+    @entrypoint(_get_params_dict(), strict=True)
+    def class_function_strict(cls, options):
+        LOG.info("Class Function with dict params")
+        print_dict_tree(options)
+        LOG.info("\n")
+
+
+# Tests ########################################################################
 
 
 def some_function_test():
@@ -255,13 +296,37 @@ def some_function_test():
         LOG.error("\n")
     LOG.info("\n\n")
 
+
+def class_function_test():
+    kw_dict = dict(accel="LHCB5", anumber=5.6, anint=10,
+                   alist=[1, 2, 3], anotherlist=["hubba", "dubba", "subba"])
+    kw_w_unknowns = kw_dict.copy()
+    kw_w_unknowns.update(un="what", known="is that?")
+
+    LOG.info("# Class Functions ########################")
+
+    LOG.info("# KW-Args ########################")
+    LOG.info("KW-Arguments")
+    c = TestClass()
+    c.instance_function(**kw_w_unknowns)
+    TestClass.class_function(**kw_w_unknowns)
+    TestClass.class_function_strict(**kw_dict)
+    LOG.info("\n\n")
+
+
 def as_parser_test():
     kw_dict = dict(accel="LHCB5", anumber=5.6, anint=10, alist=[1, 2, 3])
     p = EntryPoint(_get_params_list())
     opt, uopt = p.parse(**kw_dict)
     print_dict_tree(opt)
 
+
+# Script Mode ##################################################################
+
+
 if __name__ == "__main__":
     # as_parser_test()
-    some_function_test()
+    # some_function_test()
+    class_function_test()
+
 

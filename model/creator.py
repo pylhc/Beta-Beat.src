@@ -1,9 +1,8 @@
+import __init__
 import sys
 import os
 import argparse
-
-CURRENT_DIR = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(CURRENT_DIR, "..")))
+from Utilities.entrypoint import split_arguments
 
 import manager  # noqa
 from model_creators import model_creator  # noqa
@@ -39,7 +38,8 @@ def _i_am_main():
     accel_cls, rest_args = manager.get_accel_class_from_args(
         rest_args
     )
-    accel_inst, rest_args = accel_cls.init_from_args(rest_args)
+    inst_args, rest_args = split_arguments(rest_args, accel_cls.get_instance_parameters())
+    accel_inst = accel_cls(inst_args)
     options = _parse_rest_args(rest_args)
     create_model(
         accel_inst,
