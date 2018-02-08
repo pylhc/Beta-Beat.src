@@ -1,5 +1,5 @@
 r"""
-.. module: MODEL.LHCB.fullresponse.generateFullResponse_parallel
+.. module: correction.fullresponse.generateFullResponse_parallel
 
 Created on ??
 
@@ -83,7 +83,7 @@ def _parse_args():
                       default="./", dest="path")
     parser.add_option("-c", "--core",
                       help="core files",
-                      default="/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/MODEL/LHCB/fullresponse/", dest="core")
+                      default="../correction/fullresponse/", dest="core")
     parser.add_option("-k", "--deltak",
                       help="delta k to be applied to quads for sensitivity matrix",
                       default="0.00002", dest="k")
