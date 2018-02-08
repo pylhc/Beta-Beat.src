@@ -25,9 +25,16 @@ class DotDict(dict):
             if isinstance(self[key], dict):
                 self[key] = DotDict(self[key])
 
-    __getattr__ = dict.__getitem__
+    # __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+    def __getattr__(self, key):
+        """ Needed to raise the correct exceptions """
+        try:
+            return super(DotDict, self).__getitem__(key)
+        except KeyError as e:
+            raise AttributeError(e)
 
 
 def print_dict_tree(dictionary, name='Dictionary'):
@@ -195,27 +202,33 @@ class DictParser(object):
                 return param.default
 
         opt = arg_dict[key]
-        if param.type and not isinstance(opt, param.type):
-            raise ArgumentError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
-                key, param.type.__name__, param.help)
-            )
-        if param.type == list:
-            if param.nargs and not param.nargs == len(opt):
-                raise ArgumentError(
-                    "'{:s}' should be list of length {:d},".format(key, param.nargs) +
-                    " instead it was of length {:d}.\nHelp: {:s}".format(len(opt), param.help))
-            if param.subtype:
-                for idx, item in enumerate(opt):
-                    if not isinstance(item, param.subtype):
-                        raise ArgumentError(
-                            "Item {:d} of '{:s}' is not of type '{:s}' ".format(
-                                idx, key, param.subtype.__name__) +
-                            ".\nHelp: {:s}".format(param.help))
+        if opt is None:
+            if param.required:
+                raise ArgumentError("'{:s}' required in options.\nHelp: {:s}".format(
+                    key, param.help)
+                )
+        else:
+            if param.type and not isinstance(opt, param.type):
+                raise ArgumentError("'{:s}' is not of type {:s}.\nHelp: {:s}".format(
+                    key, param.type.__name__, param.help)
+                )
+            if param.type == list:
+                if param.nargs and not param.nargs == len(opt):
+                    raise ArgumentError(
+                        "'{:s}' should be list of length {:d},".format(key, param.nargs) +
+                        " instead it was of length {:d}.\nHelp: {:s}".format(len(opt), param.help))
+                if param.subtype:
+                    for idx, item in enumerate(opt):
+                        if not isinstance(item, param.subtype):
+                            raise ArgumentError(
+                                "Item {:d} of '{:s}' is not of type '{:s}' ".format(
+                                    idx, key, param.subtype.__name__) +
+                                ".\nHelp: {:s}".format(param.help))
 
-        if param.choices and opt not in param.choices:
-            raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
-                key, param.choices, param.help)
-            )
+            if param.choices and opt not in param.choices:
+                raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
+                    key, param.choices, param.help)
+                )
         return opt
 
     def _parse_options(self, arg_dict, param_dict):

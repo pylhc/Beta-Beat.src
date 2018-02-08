@@ -401,6 +401,10 @@ def add_params_to_generic(parser, params):
     ArgumentParser, DictParser or EntryPointArguments
     """
     params = copy.deepcopy(params)
+
+    if isinstance(params, dict):
+        params = EntryPoint._dict2list_param(params)
+
     if isinstance(parser, EntryPointParameters):
         for param in params:
             parser.add_parameter(param)
@@ -458,12 +462,11 @@ def split_arguments(args, *param_list):
         # strings of commandline parameters, has to be parsed twice
         # (as I don't know how to handle flags properly)
         for params in param_list:
-            params = param_names(params)
             parser = argparse.ArgumentParser()
             parser = add_params_to_generic(parser, params)
-            this_args, args = parser.parse_args(args)
+            this_args, args = parser.parse_known_args(args)
             split_args.append(DotDict(this_args.__dict__))
-        split_args.append(DotDict(args.__dict__))
+        split_args.append(args)
     else:
         # should be a dictionary of params, so do it the manual way
         for params in param_list:
