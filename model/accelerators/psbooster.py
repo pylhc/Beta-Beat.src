@@ -87,8 +87,7 @@ class Psbooster(Accelerator):
             flags=["--acd"],
             help="Activate excitation with ACD.",
             name="acd",
-            type=bool,
-            default=False,
+            action="store_true",
         )
         params.add_parameter(
             flags=["--drvtunex"],
@@ -113,8 +112,7 @@ class Psbooster(Accelerator):
             help=("If present, fullresponse template will" +
                   "be filled and put in the output directory."),
             name="fullresponse",
-            type=bool,
-            default=False,
+            action="store_true",
         )
         return params
 
