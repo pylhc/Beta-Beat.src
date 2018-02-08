@@ -398,11 +398,7 @@ class _InputData(object):
             print >> sys.stderr, "Will take current Beta-Beat.src: "+beta_beat_root
         if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
             raise ValueError("Unknown/not supported accelerator: "+accel)
-        if "LHC" in accel:
-            accel_name = "LHCB"
-        else:
-            accel_name = "SPS"
-        accel_path = os.path.join(beta_beat_root, "MODEL", accel_name, "fullresponse", accel)
+        accel_path = os.path.join(beta_beat_root, "correction", "fullresponse", accel)
         if not Utilities.iotools.dirs_exist(accel_path):
             raise ValueError("Acclelerator path does not exist: "+accel_path)
         _InputData.accel_path = accel_path
