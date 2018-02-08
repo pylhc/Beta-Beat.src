@@ -1,4 +1,10 @@
 """
+Iterative Correction Scheme
+
+
+
+
+
 Possible problems and notes:
 - do we need error cut, when we use error-based weights? probably not anymore
 - error-based weights default? likely - but be carefull with low tune errors vs
@@ -33,9 +39,11 @@ import argparse
 from madx import madx_wrapper  # noqa
 from utils import tfs_pandas as tfs  # noqa
 from utils import iotools  # noqa
+from utils import logging_tools
+from utils.entrypoint import entrypoint, EntryPointParameters
 from model import manager  # noqa
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging_tools.get_logger(__name__)
 
 DEV_NULL = os.devnull
 
@@ -50,136 +58,142 @@ _DEFAULTS = {
     "variables": "MQM,MQT,MQTL,MQY",
     "beta_file_name": "getbeta",
     "virt_flag": False,
-    "num_reiteration": 3
+    "num_reiteration": 3,
+    "keys": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
 }
 
-_ALL_KEYS = ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q']
 
-
-def _parse_args():
-    accel_cls, rest_args = manager.get_accel_class_from_args(sys.argv[1:])
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--meas",
+def _get_params():
+    params = EntryPointParameters()
+    params.add_parameter(
+        flags="--meas",
         help="Path to the directory containing the measurement files.",
-        dest="meas_dir_path",
+        name="meas_dir_path",
         required=True,
     )
-    parser.add_argument(
-        "--model",
+    params.add_parameter(
+        flags="--model",
         help="Path to the model to use.",
-        dest="model_twiss_path",
+        name="model_twiss_path",
         required=True,
     )
-    parser.add_argument(
-        "--fullresponse",
+    params.add_parameter(
+        flags="--fullresponse",
         help="Path to the fullresponse binary file.",
-        dest="fullresponse_path",
+        name="fullresponse_path",
         required=True,
     )
-    parser.add_argument(
-        "--optics_file",
+    params.add_parameter(
+        flags="--optics_file",
         help=("Path to the optics file to use, usually modifiers.madx. If "
               "not present will default to model_path/modifiers.madx"),
-        dest="optics_file",
+        name="optics_file",
         default=_DEFAULTS["optics_file"],
     )
-    parser.add_argument(
-        "--output",
+    params.add_parameter(
+        flags="--output",
         help=("Path to the directory where to write the ouput files, will "
               "default to the --meas input path."),
-        dest="output_path",
+        name="output_path",
         default=_DEFAULTS["output_path"],
     )
-    parser.add_argument(
-        "--svd_cut",
+    params.add_parameter(
+        flags="--svd_cut",
         help="",  # TODO
-        dest="singular_value_cut",
+        name="singular_value_cut",
         default=_DEFAULTS["singular_value_cut"],
     )
-    parser.add_argument(
-        "--model_cut",
+    params.add_parameter(
+        flags="--model_cut",
         help=("Reject BPMs whose deviation to the model is higher than the "
               "correspoding input. Input should be: Phase,Betabeat,NDx"),
-        dest="modelcut",
+        name="modelcut",
         default=_DEFAULTS["modelcut"],
     )
-    parser.add_argument(
-        "--error_cut",
+    params.add_parameter(
+        flags="--error_cut",
         help=("Reject BPMs whose error bar is higher than the "
               "correspoding input. Input should be: Phase,Betabeat,NDx"),
-        dest="errorcut",
+        name="errorcut",
         default=_DEFAULTS["errorcut"],
     )
-    parser.add_argument(
-        "--weights",
+    params.add_parameter(
+        flags="--weights",
         help=("Weight to apply to each measured quatity. Input shoud be: "
               "PhaseX,PhaseY,BetaX,BetaY,NDx,Q"),
-        dest="weights_on_quantities",
+        name="weights_on_quantities",
         default=_DEFAULTS["weights_on_quantities"],
     )
-    parser.add_argument(
-        "--use_errorbars",
-        help=("If present, it will take into account the measured errorbars "
+    params.add_parameter(
+        flags="--use_errorbars",
+        help=("If True, it will take into account the measured errorbars "
               "in the correction."),
-        dest="use_errorbars",
+        name="use_errorbars",
+        type=bool,
         action="store_" + str(not _DEFAULTS["use_errorbars"]).lower(),
     )
-    parser.add_argument(
-        "--variables",
+    params.add_parameter(
+        flags="--variables",
         help="Comma separated names of the variables classes to use.",
-        dest="variables",
+        name="variables",
         default=_DEFAULTS["variables"],
     )
-    parser.add_argument(
-        "--beta_file_name",
+    params.add_parameter(
+        flags="--beta_file_name",
         help="Prefix of the beta file to use. E.g.: getkmodbeta",
-        dest="beta_file_name",
+        name="beta_file_name",
         default=_DEFAULTS["beta_file_name"],
     )
-    parser.add_argument(
-        "--virt_flag",
-        help="If present, it will use virtual correctors.",
-        dest="virt_flag",
+    params.add_parameter(
+        flags="--virt_flag",
+        help="If true, it will use virtual correctors.",
+        name="virt_flag",
+        type=bool,
         action="store_" + str(not _DEFAULTS["virt_flag"]).lower(),
     )
-    parser.add_argument(
-        "--num_reiteration",
+    params.add_parameter(
+        flags="--num_reiteration",
         help="Number of correction iterations to perform.",
-        dest="num_reiteration",
+        name="num_reiteration",
         type=int,
         default=_DEFAULTS["num_reiteration"],
     )
-    parser.add_argument(
-        "--debug",
+    params.add_parameter(
+        flags="--debug",
         help="Print debug information.",
-        dest="debug",
+        name="debug",
         action="store_true",
-    )
-    options = parser.parse_args(args=rest_args)
-    return accel_cls, options
+    return params
 
 
-def global_correction(
-    accel_cls,
-    meas_dir_path,
-    model_twiss_path,
-    fullresponse_path,
-    optics_file=_DEFAULTS["optics_file"],
-    output_path=_DEFAULTS["output_path"],
-    singular_value_cut=_DEFAULTS["singular_value_cut"],
-    modelcut=_DEFAULTS["modelcut"],
-    errorcut=_DEFAULTS["errorcut"],
-    weights_on_quantities=_DEFAULTS["weights_on_quantities"],
-    use_errorbars=_DEFAULTS["use_errorbars"],
-    variables=_DEFAULTS["variables"],
-    beta_file_name=_DEFAULTS["beta_file_name"],
-    virt_flag=_DEFAULTS["virt_flag"],
-    num_reiteration=_DEFAULTS["num_reiteration"],
-):
+@entrypoint(_get_params())
+def global_correction(opt, accel_opt):
+    """ Do the global correction.
+
+    Keyword Args:
+        variables: Comma separated names of the variables classes to use.
+        errorcut: Reject BPMs whose error bar is higher than the correspoding input.
+                  Input should be: Phase,Betabeat,NDx
+        optics_file: Path to the optics file to use, usually modifiers.madx.
+                     If not present will default to model_path/modifiers.madx
+        model_twiss_path: Path to the model to use.
+        num_reiteration: Number of correction iterations to perform.
+        weights_on_quantities: Weight to apply to each measured quatity.
+                               Input shoud be: PhaseX,PhaseY,BetaX,BetaY,NDx,Q
+        beta_file_name: Prefix of the beta file to use. E.g.: getkmodbeta
+        use_errorbars: If present, it will take into account the measured errorbars in the correction.
+        modelcut: Reject BPMs whose deviation to the model is higher than the correspoding input. Input should be: Phase,Betabeat,NDx
+        output_path: Path to the directory where to write the ouput files, will default to the --meas input path.
+        virt_flag: If present, it will use virtual correctors.
+        debug: Print debug information.
+        meas_dir_path: Path to the directory containing the measurement files.
+        singular_value_cut:
+        fullresponse_path: Path to the fullresponse binary file.
     """
-    #TODO: Documentation!
-    """
+
+
+    accel_cls = manager.get_accel_class_from_args(accel_opt)
+
     if optics_file is None:
         optics_file = os.path.join(os.path.dirname(model_twiss_path),
                                    "modifiers.madx")

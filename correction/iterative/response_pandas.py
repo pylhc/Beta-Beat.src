@@ -251,8 +251,7 @@ def _load_and_remove_twiss(var_and_path):
     """ Function for pool to retrieve results """
     (var, path) = var_and_path
     twissfile = os.path.join(path, "twiss." + var)
-    tfs_data = tfs_pandas.read_tfs(twissfile)
-    tfs_data = tfs_data.set_index('NAME')
+    tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
     os.remove(twissfile)
