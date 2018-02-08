@@ -1,5 +1,5 @@
 '''
-.. module: Utilities.bpm
+.. module: utils.bpm
 
 Created on 3 Jun 2013
 

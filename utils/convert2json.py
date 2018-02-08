@@ -1,5 +1,5 @@
 r"""
-.. module: Utilities.convert2json
+.. module: utils.convert2json
 
 Created on ??
 

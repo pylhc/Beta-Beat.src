@@ -1,5 +1,5 @@
 """
-.. module: Utilities.tfs_file
+.. module: utils.tfs_file
 
 Created on 20 Aug 2013
 

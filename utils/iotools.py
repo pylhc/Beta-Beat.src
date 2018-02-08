@@ -1,9 +1,9 @@
 """
-.. module: Utilities.iotools
+.. module: utils.iotools
 
 Created on 1 Jul 2013
 
-Utilities.iotools.py holds helper functions for input/output issues. This module is not intended to
+utils.iotools.py holds helper functions for input/output issues. This module is not intended to
 be executed.
 
 Feel free to use and extend this module.

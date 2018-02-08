@@ -1,5 +1,5 @@
 r'''
-..module: Utilities.outliers
+..module: utils.outliers
 
 Created on 08/05/17
 

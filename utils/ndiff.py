@@ -1,18 +1,18 @@
 '''
-.. module: Utilities.ndiff
+.. module: utils.ndiff
 
 Created on 15 Aug 2013
 
-Utilities.ndiff.py is a wrapper for the program ndiff which is written in c.
+utils.ndiff.py is a wrapper for the program ndiff which is written in c.
 This script provides basically the convenience to run ndiff via python methods.
 
 The binaries of ndiff are stored in Beta-Beat.src/binaries/ndiff .
 
 Usage::
 
-    import Utilities.ndiff
+    import utils.ndiff
 
-    if Utilities.ndiff.compare_files_and_ignore_whitespace("file_a.out", "file_b.out"):
+    if utils.ndiff.compare_files_and_ignore_whitespace("file_a.out", "file_b.out"):
         print "Files are equal"
     else:
         print "Files are not equal"

@@ -1,5 +1,5 @@
 '''
-.. module: Utilities.math
+.. module: utils.math
 
 Created on 20 Aug 2013
 
@@ -10,14 +10,14 @@ Use this functions to make you code more readable.
 Usage::
 
     import Python_Classes4MAD.metaclass
-    import Utilities.math
+    import utils.math
 
     twiss_file = Python_Classes4MAD.metaclass.twiss("twiss.C.dat")
     column = getattr(twiss_file, "BETX", None)
     if not column is None:
-        print Utilities.math.arithmetic_mean(column)
-        print Utilities.math.root_mean_square(column)
-        print Utilities.math.standard_deviation(column)
+        print utils.math.arithmetic_mean(column)
+        print utils.math.root_mean_square(column)
+        print utils.math.standard_deviation(column)
 
 
 .. moduleauthor:: vimaier
