@@ -1,14 +1,12 @@
 from __future__ import print_function
 import os
-import argparse
 import re
 import json
 from collections import OrderedDict
 import numpy as np
-import pandas as pd
 from Utilities import tfs_pandas
 from accelerator import Accelerator, AcceleratorDefinitionError, Element
-from Utilities.entrypoint import EntryPoint, EntryPointParameters
+from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
@@ -31,24 +29,81 @@ class LhcExcitationMode(object):
 
 
 class Lhc(Accelerator):
-    """ Parent Class for all LHC-types. """
+    """ Parent Class for Lhc-Types.
+
+    Keyword Args:
+        Required
+        nat_tune_x (float): Natural tune X without integer part.
+                            **Flags**: ['--nattunex']
+        nat_tune_y (float): Natural tune Y without integer part.
+                            **Flags**: ['--nattuney']
+        optics (str): Path to the optics file to use (modifiers file).
+                      **Flags**: ['--optics']
+
+        Optional
+        acd (bool): Activate excitation with ACD.
+                    **Flags**: ['--acd']
+                    **Default**: ``False``
+        adt (bool): Activate excitation with ADT.
+                    **Flags**: ['--adt']
+                    **Default**: ``False``
+        dpp (float): Delta p/p to use.
+                     **Flags**: ['--dpp']
+                     **Default**: ``0.0``
+        drv_tune_x (float): Driven tune X without integer part.
+                            **Flags**: ['--drvtunex']
+        drv_tune_y (float): Driven tune Y without integer part.
+                            **Flags**: ['--drvtuney']
+        energy (float): Energy in Tev.
+                        **Flags**: ['--energy']
+        fullresponse (bool): If True, fullresponse template will be filled
+        and put in the output directory.
+                             **Flags**: ['--fullresponse']
+                             **Default**: ``False``
+        xing (bool): If True, x-ing  angles will be applied to model
+                     **Flags**: ['--xing']
+                     **Default**: ``False``
+    """
     NAME = "lhc"
     MACROS_NAME = "lhc"
 
-    def __init__(self):
-        self.optics_file = None
-        self.nat_tune_x = None
-        self.nat_tune_y = None
-        self._excitation = None
-        self.drv_tune_x = None
-        self.drv_tune_y = None
-        self.energy = None
-        self.dpp = 0.0
-        self.xing = None
-        self.fullresponse = False
+    def __init__(self, *args, **kwargs):
+        # for reasons of import-order and class creation, decoration was not possible
+        parser = EntryPoint(self.get_instance_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+
+        self.nat_tune_x = opt.nat_tune_x
+        self.nat_tune_y = opt.nat_tune_y
+        if opt.acd and opt.adt:
+            raise AcceleratorDefinitionError(
+                "Select only one excitation type."
+            )
+        if opt.acd:
+            self.excitation = LhcExcitationMode.ACD
+        elif opt.adt:
+            self.excitation = LhcExcitationMode.ADT
+        else:
+            self.excitation = LhcExcitationMode.FREE
+
+        if opt.acd or opt.adt:
+            # "required"
+            self.drv_tune_x = opt.drv_tune_x
+            self.drv_tune_y = opt.drv_tune_y
+
+        # required
+        self.optics_file = opt.optics
+
+        # optional with default
+        self.dpp = opt.dpp
+        self.fullresponse = opt.fullresponse
+
+        # optional no default
+        self.energy = opt.get("energy", None)
+        self.xing = opt.get("xing", None)
+        self.verify_object()
 
     @staticmethod
-    def get_class_params():
+    def get_class_parameters():
         params = EntryPointParameters()
         params.add_parameter(
             flags=["--lhcmode"],
@@ -67,7 +122,7 @@ class Lhc(Accelerator):
         return params
 
     @staticmethod
-    def get_instance_params():
+    def get_instance_parameters():
         params = EntryPointParameters()
         params.add_parameter(
             flags=["--nattunex"],
@@ -147,78 +202,10 @@ class Lhc(Accelerator):
         return params
 
     @classmethod
-    def initialize(cls, *args, **kwargs):
-        """ Initialize the current class.
-
-        Keyword Args:
-            Required
-            nat_tune_x (float): Natural tune X without integer part.
-                                **Flags**: ['--nattunex']
-            nat_tune_y (float): Natural tune Y without integer part.
-                                **Flags**: ['--nattuney']
-            optics (str): Path to the optics file to use (modifiers file).
-                          **Flags**: ['--optics']
-
-            Optional
-            acd (bool): Activate excitation with ACD.
-                        **Flags**: ['--acd']
-                        **Default**: ``False``
-            adt (bool): Activate excitation with ADT.
-                        **Flags**: ['--adt']
-                        **Default**: ``False``
-            dpp (float): Delta p/p to use.
-                         **Flags**: ['--dpp']
-                         **Default**: ``0.0``
-            drv_tune_x (float): Driven tune X without integer part.
-                                **Flags**: ['--drvtunex']
-            drv_tune_y (float): Driven tune Y without integer part.
-                                **Flags**: ['--drvtuney']
-            energy (float): Energy in Tev.
-                            **Flags**: ['--energy']
-            fullresponse (bool): If True, fullresponse template will be filled
-            and put in the output directory.
-                                 **Flags**: ['--fullresponse']
-                                 **Default**: ``False``
-            xing (bool): If True, x-ing  angles will be applied to model
-                         **Flags**: ['--xing']
-                         **Default**: ``False``
-        """
-        # for reasons of import-order and class creation, decoration was not possible
-        parser = EntryPoint(cls.get_instance_params(), strict=True)
-        opt = parser.parse(*args, **kwargs)
-
-        instance = cls()
-        instance.nat_tune_x = opt.nat_tune_x
-        instance.nat_tune_y = opt.nat_tune_y
-        if opt.acd and opt.adt:
-            raise AcceleratorDefinitionError(
-                "Select only one excitation type."
-            )
-        if opt.acd:
-            instance.excitation = LhcExcitationMode.ACD
-        elif opt.adt:
-            instance.excitation = LhcExcitationMode.ADT
-        else:
-            instance.excitation = LhcExcitationMode.FREE
-        if opt.acd or opt.adt:
-            instance.drv_tune_x = opt.drv_tune_x
-            instance.drv_tune_y = opt.drv_tune_y
-        instance.dpp = opt.dpp
-        instance.energy = opt.energy
-        instance.optics_file = opt.optics
-        instance.fullresponse = opt.fullresponse
-        instance.xing = opt.xing
-        instance.verify_object()
-        return instance
-
-    @classmethod
     def init_from_args(cls, args=None):
-        """ LEGACY-FUCNTION - SHOULD BE REPLACED BY USING initialize() """
-        parser = EntryPoint(cls.get_instance_params(), strict=False)
-        opt, rest_args = parser.parse(args)
-        instance = cls.initialize(opt)
-        return instance, rest_args
-
+        """ LEGACY-FUNCTION - SHOULD BE REPLACED BY USING Lhc(args) """
+        opt, rest_args = split_arguments(args, cls.get_instance_parameters())
+        return cls(opt), rest_args
 
     @classmethod
     def get_class(cls, *args, **kwargs):
@@ -232,9 +219,12 @@ class Lhc(Accelerator):
                             **Flags**: ['--lhcmode']
                             **Choices**: ['lhc_runII_2016_ats', 'hllhc12', 'hllhc10', 'lhc_runI',
                             'lhc_runII', 'lhc_runII_2016', 'lhc_runII_2017']
+
+        Returns:
+            Lhc subclass.
         """
         # for reasons of import-order and class creation, decoration was not possible
-        parser = EntryPoint(cls.get_class_params(), strict=True)
+        parser = EntryPoint(cls.get_class_parameters(), strict=True)
         opt = parser.parse(*args, **kwargs)
 
         new_class = cls

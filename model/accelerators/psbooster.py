@@ -1,105 +1,125 @@
 import os
-import argparse
 from accelerator import Accelerator
-
+from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
 PSB_DIR = os.path.join(CURRENT_DIR, "psbooster")
 
 
 class Psbooster(Accelerator):
-    
+    """ Parent Class for Psbooster-Types.
+
+    Keyword Args:
+        Required
+        nat_tune_x (float): Natural tune X without integer part.
+                            **Flags**: ['--nattunex']
+        nat_tune_y (float): Natural tune Y without integer part.
+                            **Flags**: ['--nattuney']
+
+        Optional
+        acd (bool): Activate excitation with ACD.
+                    **Flags**: ['--acd']
+                    **Default**: ``False``
+        drv_tune_x (float): Driven tune X without integer part.
+                            **Flags**: ['--drvtunex']
+        drv_tune_y (float): Driven tune Y without integer part.
+                            **Flags**: ['--drvtuney']
+        energy (float): Energy in Tev.
+                        **Flags**: ['--energy']
+        fullresponse (bool): If present, fullresponse template willbe filled and put
+                             in the output directory.
+                             **Flags**: ['--fullresponse']
+                             **Default**: ``False``
+
+    """
     NAME = "psbooster"
 
-    def __init__(self):
-        self.nat_tune_x = None
-        self.nat_tune_y = None
-        self.acd = None
-        self.drv_tune_x = None
-        self.drv_tune_y = None
-        self.energy = None
-        self.fullresponse = False
+    def __init__(self, *args, **kwargs):
+        # for reasons of import-order and class creation, decoration was not possible
+        parser = EntryPoint(self.get_instance_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
 
-    @classmethod
-    def get_class_from_args(cls, args):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--ring",
+        # required
+        self.nat_tune_x = opt.nat_tune_x
+        self.nat_tune_y = opt.nat_tune_y
+        self.acd = opt.acd
+        if self.acd:
+            self.drv_tune_x = opt.drv_tune_x
+            self.drv_tune_y = opt.drv_tune_y
+
+        # optional with default
+        self.fullresponse = opt.fullresponse
+
+        # optional w/o default
+        self.energy = opt.get("energy", None)
+
+
+    @staticmethod
+    def get_class_parameters():
+        params = EntryPointParameters()
+        params.add_parameter(
+            flags=["--ring"],
             help="Ring to use.",
-            dest="ring",
+            name="ring",
             type=int,
+            choices=[1, 2, 3, 4]
         )
-        options, rest_args = parser.parse_known_args(args)
-        ring = options.ring
-        return cls.get_class(ring), rest_args
+        return params
 
-    @classmethod
-    def _get_arg_parser(cls):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--nattunex",
+    @staticmethod
+    def get_instance_parameters():
+        params = EntryPointParameters()
+        params.add_parameter(
+            flags=["--nattunex"],
             help="Natural tune X without integer part.",
             required=True,
-            dest="nat_tune_x",
+            name="nat_tune_x",
             type=float,
         )
-        parser.add_argument(
-            "--nattuney",
+        params.add_parameter(
+            flags=["--nattuney"],
             help="Natural tune Y without integer part.",
             required=True,
-            dest="nat_tune_y",
+            name="nat_tune_y",
             type=float,
         )
-        parser.add_argument(
-            "--acd",
+        params.add_parameter(
+            flags=["--acd"],
             help="Activate excitation with ACD.",
-            dest="acd",
-            action="store_true",
+            name="acd",
+            type=bool,
+            default=False,
         )
-        parser.add_argument(
-            "--drvtunex",
+        params.add_parameter(
+            flags=["--drvtunex"],
             help="Driven tune X without integer part.",
-            dest="drv_tune_x",
+            name="drv_tune_x",
             type=float,
         )
-        parser.add_argument(
-            "--drvtuney",
+        params.add_parameter(
+            flags=["--drvtuney"],
             help="Driven tune Y without integer part.",
-            dest="drv_tune_y",
+            name="drv_tune_y",
             type=float,
         )
-        parser.add_argument(
-            "--energy",
+        params.add_parameter(
+            flags=["--energy"],
             help="Energy in Tev.",
-            dest="energy",
+            name="energy",
             type=float,
         )
-        parser.add_argument(
-            "--fullresponse",
+        params.add_parameter(
+            flags=["--fullresponse"],
             help=("If present, fullresponse template will" +
                   "be filled and put in the output directory."),
-            dest="fullresponse",
-            action="store_true",
+            name="fullresponse",
+            type=bool,
+            default=False,
         )
-        return parser
-
-    @classmethod
-    def init_from_args(cls, args):
-        parser = cls._get_arg_parser()
-        options, rest_args = parser.parse_known_args(args)
-        instance = cls()
-        instance.nat_tune_x = options.nat_tune_x
-        instance.nat_tune_y = options.nat_tune_y
-        instance.acd = options.acd
-        if options.acd:
-            instance.drv_tune_x = options.drv_tune_x
-            instance.drv_tune_y = options.drv_tune_y
-        instance.energy = options.energy
-        instance.fullresponse = options.fullresponse
-        return instance, rest_args
+        return params
 
     def verify_object(self):
-	pass
+        pass
 
     @classmethod
     def get_nominal_tmpl(cls):
@@ -115,14 +135,26 @@ class Psbooster(Accelerator):
         pass
 
     @classmethod
-    def get_class(cls, ring=None):
+    def get_class(cls, *args, **kwargs):
+        """ Returns Psbooster class.
+
+        Keyword Args:
+            Optional
+            ring (int): Ring to use.
+                        **Flags**: ['--ring']
+                        **Choices**: [1, 2, 3, 4]
+
+        Returns:
+            Psbooster class.
+        """
+        parser = EntryPoint(cls.get_class_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+
         new_class = cls
-        if ring not in (1, 2, 3, 4):
-            raise ValueError("Ring must be 1, 2, 3 or 4.")
-        if ring is not None:
+        if opt.ring is not None:
             new_class = type(
-                new_class.__name__ + "Ring{}".format(ring),
+                new_class.__name__ + "Ring{}".format(opt.ring),
                 (new_class, ),
-                {"get_ring": classmethod(lambda cls: ring)}
+                {"get_ring": classmethod(lambda cls: opt.ring)}
             )
         return new_class

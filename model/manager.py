@@ -41,12 +41,12 @@ def get_accel_class(opt, cls_opt):
 def get_accel_class_from_args(args=None):
     """ LEGACY-FUNCTION SHOULD BE REPLACED BY USING get_accel_class """
     parser = EntryPoint(_get_params())
-    name, args = parser.parse(args)
+    opt, class_args = parser.parse(args)
 
-    accel = _get_parent_class(name)
+    accel = _get_parent_class(opt.accel)
 
-    accel_args, rest_args = split_arguments(args, accel.get_class_params())
-    accel_cls, rest_args = accel.get_class(accel_args)
+    accel_args, rest_args = split_arguments(class_args, accel.get_class_parameters())
+    accel_cls = accel.get_class(accel_args)
     return accel_cls, rest_args
 
 
