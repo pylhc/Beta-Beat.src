@@ -163,6 +163,7 @@ def _get_params():
         help="Print debug information.",
         name="debug",
         action="store_true",
+    )
     return params
 
 
