@@ -18,7 +18,7 @@ import numpy as np
 from numpy import sin, cos, tan
 
 import Python_Classes4MAD.metaclass
-import Utilities.bpm
+import utils.bpm
 import compensate_ac_effect
 import os
 import re
@@ -32,7 +32,7 @@ DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py..."
 PRINTTIMES = False
 
 if False:
-    from Utilities.progressbar import startProgress, progress, endProgress
+    from utils.progressbar import startProgress, progress, endProgress
 else:
     def startProgress(name):
         print_("START " + name)
@@ -347,7 +347,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         #-- Rescaling
         beta_d.x_ratio = 0
         skipped_bpmx = []
-        arcbpms = Utilities.bpm.filterbpm(bpms)
+        arcbpms = utils.bpm.filterbpm(bpms)
         for bpm in arcbpms:
             name = str.upper(bpm[1])  # second entry is the name
         #Skip BPM with strange data
@@ -393,7 +393,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
+                arcbpms = utils.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
                     name = str.upper(bpm[1])  # second entry is the name
                 #Skip BPM with strange data
@@ -449,7 +449,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         #-- Rescaling
         beta_d.y_ratio = 0
         skipped_bpmy = []
-        arcbpms = Utilities.bpm.filterbpm(bpms)
+        arcbpms = utils.bpm.filterbpm(bpms)
         for bpm in arcbpms:
             name = str.upper(bpm[1])  # second entry is the name
             #Skip BPM with strange data
@@ -489,7 +489,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 betayf, rmsbbyf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)  # Rescaling
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
+                arcbpms = utils.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
                     name = str.upper(bpm[1])  # second entry is the name
                     #Skip BPM with strange data
@@ -596,8 +596,8 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, phase
     if phase == {}:
         return [{}, 0.0, {}, errors_method]
 
-    commonbpms = Utilities.bpm.intersect(ListOfFiles)
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, madTwiss)
+    commonbpms = utils.bpm.intersect(ListOfFiles)
+    commonbpms = utils.bpm.model_intersect(commonbpms, madTwiss)
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
 
     
@@ -633,8 +633,8 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 
     beta = {}
     root2j = []
-    commonbpms = Utilities.bpm.intersect(list_of_files)
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms = utils.bpm.intersect(list_of_files)
+    commonbpms = utils.bpm.model_intersect(commonbpms, mad_twiss)
     sum_a = 0.0
     amp = []
     amp2 = []
@@ -2441,8 +2441,8 @@ def _assign_quadlongmissal(I, bi1, bi2, errorfile, list_of_Ks, denomalf, s_i1, T
 def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
     data2 = {}
     
-    bpms = Utilities.bpm.model_intersect(bpms, modelfree)
-    bpms = Utilities.bpm.model_intersect(bpms, modelac)
+    bpms = utils.bpm.model_intersect(bpms, modelfree)
+    bpms = utils.bpm.model_intersect(bpms, modelac)
     for bpma in bpms:
         bpm = bpma[1].upper()
         beta, betsys, betstat, beterr = data[bpm][0:4]
@@ -2531,7 +2531,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     try:
         definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
         filename = "error_elements_" + plane + ".dat"
-        errorfile = Utilities.tfs_file_writer.TfsFileWriter(filename)
+        errorfile = utils.tfs_file_writer.TfsFileWriter(filename)
     except:
         print >> sys.stderr, "loading errorfile didnt work"
         print >> sys.stderr, "errordefspath = {0:s}".format(errordefspath)

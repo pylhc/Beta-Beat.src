@@ -222,7 +222,7 @@ class _TbtAsciiWriter(object):
 
     def _load_model(self):
         _append_beta_beat_to_path()
-        from Utilities import tfs_pandas
+        from utils import tfs_pandas
         return tfs_pandas.read_tfs(self._model_path)
 
     def _write_header(self, tbt_file, output_file, model_data):

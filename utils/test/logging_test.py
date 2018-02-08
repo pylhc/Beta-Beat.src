@@ -1,5 +1,5 @@
 import __init__
-from Utilities import logging_tools
+from utils import logging_tools
 
 
 def _write_messages(log):

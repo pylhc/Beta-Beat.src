@@ -8,12 +8,12 @@ import os
 
 # noinspection PyUnresolvedReferences
 import __init__
-from Utilities import logging_tools
-from Utilities.dict_tools import print_dict_tree
-from Utilities.entrypoint import ArgumentError
-from Utilities.entrypoint import EntryPoint
-from Utilities.entrypoint import EntryPointParameters
-from Utilities.entrypoint import entrypoint
+from utils import logging_tools
+from utils.dict_tools import print_dict_tree
+from utils.entrypoint import ArgumentError
+from utils.entrypoint import EntryPoint
+from utils.entrypoint import EntryPointParameters
+from utils.entrypoint import entrypoint
 
 from model import manager
 manager._get_params()

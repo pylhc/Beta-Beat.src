@@ -63,11 +63,11 @@ import copy
 import json
 import argparse
 from argparse import ArgumentParser
-from Utilities import logging_tools as logtools
-from Utilities.dict_tools import DictParser
-from Utilities.dict_tools import DotDict
-from Utilities.dict_tools import ArgumentError
-from Utilities.dict_tools import ParameterError
+from utils import logging_tools as logtools
+from utils.dict_tools import DictParser
+from utils.dict_tools import DotDict
+from utils.dict_tools import ArgumentError
+from utils.dict_tools import ParameterError
 from functools import wraps
 
 try:

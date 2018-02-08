@@ -5,9 +5,9 @@ Created on 9 Oct 2013
 '''
 import unittest
 
-import Utilities.iotools
-import Utilities.tfs_file_writer
-import Utilities.ndiff
+import utils.iotools
+import utils.tfs_file_writer
+import utils.ndiff
 
 
 class TestTfsFileWriter(unittest.TestCase):
@@ -21,12 +21,12 @@ class TestTfsFileWriter(unittest.TestCase):
     def tearDown(self):
         # Delete all created files
         for created_file in self.__created_files:
-            Utilities.iotools.delete_item(created_file)
+            utils.iotools.delete_item(created_file)
 
 
     def testTfsFileWriter(self):
         file_from_tfs_writer = "test.out"
-        tfs_file_writer = Utilities.tfs_file_writer.TfsFileWriter.open(file_from_tfs_writer)
+        tfs_file_writer = utils.tfs_file_writer.TfsFileWriter.open(file_from_tfs_writer)
         tfs_file_writer.add_string_descriptor("NAME", "TWISS")
         tfs_file_writer.add_float_descriptor("MASS", 0.938272013)
         tfs_file_writer.add_comment("I am a comment")
@@ -48,8 +48,8 @@ class TestTfsFileWriter(unittest.TestCase):
         self.__created_files.append(file_assumed)
 
         self.assertTrue(
-                    Utilities.ndiff.compare_files_and_ignore_whitespace(tfs_file_writer.get_absolute_file_name_path(),
-                                                                            file_assumed),
+                    utils.ndiff.compare_files_and_ignore_whitespace(tfs_file_writer.get_absolute_file_name_path(),
+                                                                    file_assumed),
                         "Created tfs file is not equal to assumed file"
                         )
 

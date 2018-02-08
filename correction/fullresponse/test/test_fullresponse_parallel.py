@@ -16,7 +16,7 @@ import shutil
 
 
 import __init__ # @UnusedImport init will include paths
-import Utilities.iotools
+import utils.iotools
 
 CURRENT_PATH = os.path.dirname(__file__)
 # Path 'x/Beta-Beat.src/MODEL/LHCB/fullresponse/test'
@@ -34,13 +34,13 @@ class TestGenFullRespParallel(unittest.TestCase):
     path_to_to_check = os.path.join(CURRENT_PATH, "data", "output", "to_check")
     path_to_input = os.path.join(CURRENT_PATH, "data", "input")
 
-    betabeat_root = Utilities.iotools.get_absolute_path_to_betabeat_root()
+    betabeat_root = utils.iotools.get_absolute_path_to_betabeat_root()
 
     successful = False
     __have_to_run_valid_file = False
 
     def setUp(self):
-        self._run_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestGenFullRespParallel.path_to_input)
+        self._run_dirs = utils.iotools.get_all_dir_names_in_dir(TestGenFullRespParallel.path_to_input)
         self._check_if_valid_output_exist_and_set_attribute()
         self._delete_modified_output()
         self._replace_keyword_in_masks()
@@ -77,7 +77,7 @@ class TestGenFullRespParallel(unittest.TestCase):
         """
         return not self._valid_output_exists()
     def _valid_output_exists(self):
-        all_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestGenFullRespParallel.path_to_valid)
+        all_dirs = utils.iotools.get_all_dir_names_in_dir(TestGenFullRespParallel.path_to_valid)
         if 0 == len(all_dirs) or len(self._run_dirs) != len(all_dirs):
             return False
         is_valid = False
@@ -98,12 +98,12 @@ class TestGenFullRespParallel(unittest.TestCase):
 
     def _delete_output(self):
         if _DELETE_VALID_OUTPUT:
-            Utilities.iotools.delete_content_of_dir(TestGenFullRespParallel.path_to_valid)
+            utils.iotools.delete_content_of_dir(TestGenFullRespParallel.path_to_valid)
         self._delete_modified_output()
 
     def _delete_modified_output(self):
         ''' Deletes content in path_to_valid and path_to_to_check. '''
-        Utilities.iotools.delete_content_of_dir(TestGenFullRespParallel.path_to_to_check)
+        utils.iotools.delete_content_of_dir(TestGenFullRespParallel.path_to_to_check)
 
     def _replace_keyword_in_masks(self):
         """
@@ -112,9 +112,9 @@ class TestGenFullRespParallel(unittest.TestCase):
         for run_dirname in self._run_dirs:
             mask_file_path = os.path.join(TestGenFullRespParallel.path_to_input, run_dirname, "job.iterate.madx")
             replace_dict = {"BB_SRC" : TestGenFullRespParallel.betabeat_root}
-            Utilities.iotools.replace_keywords_in_textfile(mask_file_path, replace_dict)
+            utils.iotools.replace_keywords_in_textfile(mask_file_path, replace_dict)
             mask_file_path = os.path.join(TestGenFullRespParallel.path_to_input, run_dirname, "modifiers.madx")
-            Utilities.iotools.replace_keywords_in_textfile(mask_file_path, replace_dict)
+            utils.iotools.replace_keywords_in_textfile(mask_file_path, replace_dict)
     def _place_keywords_and_thus_produce_masks(self):
         """ Reverses changes of _replace_keyword_in_maks() """
         for run_dirname in self._run_dirs:
@@ -183,9 +183,9 @@ class TestGenFullRespParallel(unittest.TestCase):
         self.assertEqual(0, errcode, "Execution failed")
 
     def _move_produced_files(self, src_path, dst_path):
-        Utilities.iotools.create_dirs(dst_path)
-        Utilities.iotools.delete_content_of_dir(dst_path) # Otherwise shutil.move() would raise an error
-        for abs_filename in Utilities.iotools.get_all_absolute_filenames_in_dir_and_subdirs(src_path):
+        utils.iotools.create_dirs(dst_path)
+        utils.iotools.delete_content_of_dir(dst_path) # Otherwise shutil.move() would raise an error
+        for abs_filename in utils.iotools.get_all_absolute_filenames_in_dir_and_subdirs(src_path):
             if self._is_produced_output_file(abs_filename):
                 shutil.move(abs_filename, dst_path)
     def _is_produced_output_file(self, file_path):
@@ -240,7 +240,7 @@ class TestGenFullRespParallel(unittest.TestCase):
         self.assertEqual(0, len(dir_compare.right_only), "Files existing in only one dir")
 
     def _compare_binaries_in_dir_directly(self, valid_dir_path, to_check_dir_path):
-        for file_name in Utilities.iotools.get_all_filenames_in_dir_and_subdirs(valid_dir_path):
+        for file_name in utils.iotools.get_all_filenames_in_dir_and_subdirs(valid_dir_path):
             valid_file_path = os.path.join(valid_dir_path, file_name)
             to_check_file_path = os.path.join(to_check_dir_path, file_name)
             self._compare_binary_files(valid_file_path, to_check_file_path)

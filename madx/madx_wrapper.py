@@ -4,7 +4,7 @@ import sys
 import re
 import optparse
 from madx import madxrunner
-from Utilities import iotools
+from utils import iotools
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 if "win" in sys.platform:

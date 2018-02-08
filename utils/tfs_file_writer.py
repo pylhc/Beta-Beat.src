@@ -34,9 +34,9 @@ Usage2::
 """
 
 import os
-from Utilities import iotools
-from Utilities import logging_tools
-from Utilities import math
+from utils import iotools
+from utils import logging_tools
+from utils import math
 
 LOG = logging_tools.get_logger(__name__)
 

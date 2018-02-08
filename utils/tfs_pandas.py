@@ -4,7 +4,7 @@ import os
 import logging
 import pandas
 import numpy as np
-from Utilities import tfs_file_writer
+from utils import tfs_file_writer
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())

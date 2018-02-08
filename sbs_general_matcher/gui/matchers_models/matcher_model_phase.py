@@ -3,7 +3,7 @@ from matcher_model_default import MatcherModelDefault
 from matcher_model_default import MatcherPlotterDefault
 from matchers.matcher import MatcherFactory
 from matchers.phase_matcher import PhaseMatcher
-from Utilities import tfs_pandas
+from utils import tfs_pandas
 
 
 class MatcherModelPhase(MatcherModelDefault):

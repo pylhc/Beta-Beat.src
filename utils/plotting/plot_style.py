@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-from Utilities import tfs_pandas as tfs
+from utils import tfs_pandas as tfs
 
 
 class ArgumentError(Exception):

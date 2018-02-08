@@ -2,7 +2,7 @@ import __init__
 import sys
 import os
 import argparse
-from Utilities.entrypoint import split_arguments
+from utils.entrypoint import split_arguments
 
 import manager  # noqa
 from model_creators import model_creator  # noqa

@@ -10,9 +10,9 @@ This module contains some functions for TfsFiles
 
 import numpy
 import Python_Classes4MAD.metaclass
-from Utilities import math
-from Utilities import compare
-from Utilities import logging_tools
+from utils import math
+from utils import compare
+from utils import logging_tools
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -60,7 +60,7 @@ def _compute_values(tw, column, tune_str):
     computed_tune = math.arithmetic_mean(column)
     # The values with 'RMS' are actually the standard deviation of the column and not the root
     # square mean
-#     computed_tune_rms = Utilities.math.root_mean_square(column)
+#     computed_tune_rms = utils.math.root_mean_square(column)
     computed_tune_rms = math.standard_deviation(column)
     _compare_and_print(stored_tune, computed_tune, tune_str)
     _compare_and_print(stored_tune_rms, computed_tune_rms, tune_str+"RMS")

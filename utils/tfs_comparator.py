@@ -1,7 +1,7 @@
 import __init__  # @UnusedImport
 import sys
 from Python_Classes4MAD.metaclass import twiss
-from Utilities import logging_tools
+from utils import logging_tools
 
 LOG = logging_tools.get_logger(__name__)
 

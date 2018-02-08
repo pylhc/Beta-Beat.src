@@ -7,8 +7,8 @@ sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
     ".."
 )))
-from Utilities import outliers  # noqa
-from Utilities import tfs_pandas  # noqa
+from utils import outliers  # noqa
+from utils import tfs_pandas  # noqa
 
 DEF_LIMIT = 1e-5
 

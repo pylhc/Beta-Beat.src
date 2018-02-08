@@ -12,10 +12,10 @@ import os
 import sys
 import datetime
 
-import Utilities.tfs_file_writer
+import utils.tfs_file_writer
 
 
-class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
+class GetllmTfsFile(utils.tfs_file_writer.TfsFileWriter):
     '''
     It stores additionally to TfsFileWriter the following descriptors for :module:'GetLLM.py':
      - GetLLMVersion
@@ -32,7 +32,7 @@ class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
     __s_getllm_invocation_command = sys.executable+" '"+"' '".join([]+sys.argv)+"'"
     __s_getllm_current_working_dir = os.getcwd()
 
-    def __init__(self, file_name, column_width=Utilities.tfs_file_writer.TfsFileWriter.DEFAULT_COLUMN_WIDTH):
+    def __init__(self, file_name, column_width=utils.tfs_file_writer.TfsFileWriter.DEFAULT_COLUMN_WIDTH):
         """
         Constructor
 
@@ -56,7 +56,7 @@ class GetllmTfsFile(Utilities.tfs_file_writer.TfsFileWriter):
 
     def write_to_file(self, formatted=True):
         self.add_string_descriptor("FILES", ",".join(self.__getllm_srcfiles))
-        Utilities.tfs_file_writer.TfsFileWriter.write_to_file(self, formatted=formatted)
+        utils.tfs_file_writer.TfsFileWriter.write_to_file(self, formatted=formatted)
 
 
 

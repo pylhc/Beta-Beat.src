@@ -5,8 +5,8 @@ import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-import Utilities.tfs_file_writer as tfs_writer
-import Utilities.bpm
+import utils.tfs_file_writer as tfs_writer
+import utils.bpm
 
 from Python_Classes4MAD import metaclass
 from scipy.optimize import curve_fit
@@ -72,7 +72,7 @@ def _parse_args():
 
 
 def main(input_path, input_path_model, output_path) :
-    Utilities.iotools.create_dirs(output_path)
+    utils.iotools.create_dirs(output_path)
     (beta_from_phase_x, beta_from_amp_x) = _get_twiss_for_one_of(input_path, "getbetax_free.out", "getbetax.out")
     (beta_from_phase_y, beta_from_amp_y) = _get_twiss_for_one_of(input_path, "getbetay_free.out", "getbetay.out")
     nominal_model = metaclass.twiss(input_path_model)
@@ -157,7 +157,7 @@ def _compute_calibration_for_ip_and_plane(
     IP_position = (IR_maximum - IR_minimum) / 2
 
     # just in case a BPM is missing in one file but not in the other ( BPM from ampl but not from phase )
-    commonbpms = Utilities.bpm.intersect([file_amplitude, file_phase])
+    commonbpms = utils.bpm.intersect([file_amplitude, file_phase])
 
     for i in range(0, len(commonbpms)):
         common_names_amplitude_phase = str.upper(commonbpms[i][1])

@@ -70,8 +70,8 @@ import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.GenMatrix
 import Python_Classes4MAD.BCORR
 import Python_Classes4MAD.metaclass
-import Utilities.iotools
-import Utilities.math
+import utils.iotools
+import utils.math
 
 PRINT_DEBUG = False or sys.flags.debug  # Change to 'True or...' or invoke python with -d option to activate further prints
 
@@ -140,7 +140,7 @@ def main(
          singular_value_cut=0.1,
          errorcut="0.013,0.2",
          modelcut="0.02,0.2",
-         beta_beat_root=Utilities.iotools.get_absolute_path_to_betabeat_root(),
+         beta_beat_root=utils.iotools.get_absolute_path_to_betabeat_root(),
          min_strength=0.000001,
          weights_on_corrections="1,1,0,0,1,10",
          error_weights=1,
@@ -227,7 +227,7 @@ def _handle_data_for_accel(accel):
     if "LHC" in accel:  # .knob should always exist to be sent to LSA!
         src = os.path.join(os.path.join(_InputData.output_path, "changeparameters.tfs"))
         dst = os.path.join(os.path.join(_InputData.output_path, "changeparameters.knob"))
-        Utilities.iotools.copy_item(src, dst)  # madx table
+        utils.iotools.copy_item(src, dst)  # madx table
         b = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "changeparameters.tfs"))
         mad_script = open(os.path.join(_InputData.output_path, "changeparameters.madx"), "w")
         names = getattr(b, "NAME", [])
@@ -360,35 +360,35 @@ class _InputData(object):
     def static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength,
                     weights_on_corrections, error_weights, path_to_optics_files_dir, variables, index_of_num_of_beams_in_gui,
                     num_of_correctors, algorithm):
-        if not Utilities.iotools.dirs_exist(output_path):
+        if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain getcouple[_free].out and getDy.out(when last flag in weights is 1.")
         _InputData.output_path = output_path
 
         _InputData._check_and_set_cuts(singular_value_cut, errorcut, modelcut)
         _InputData._check_and_set_accel_path(beta_beat_root, accel)
 
-        if not Utilities.math.can_str_be_parsed_to_number(min_strength):
+        if not utils.math.can_str_be_parsed_to_number(min_strength):
             raise ValueError("Given min strength is not a number: " + min_strength)
         if "SPS" != accel:
             _InputData.min_strength = float(min_strength)
 
-        if not Utilities.math.can_str_be_parsed_to_number(error_weights):
+        if not utils.math.can_str_be_parsed_to_number(error_weights):
             raise ValueError("Given error based weight is not a number: " + error_weights)
         _InputData.error_weights = int(error_weights)
         
         weights = weights_on_corrections.split(',')
         for i in range(len(weights)):
-            if not Utilities.math.can_str_be_parsed_to_number(weights[i]):
+            if not utils.math.can_str_be_parsed_to_number(weights[i]):
                 raise ValueError("Wrong syntax of weigths: " + weights_on_corrections)
         _InputData.weights_list = [float(weights[0]), float(weights[1]), float(weights[2]), float(weights[3]), float(weights[4]), float(weights[5])]
 
-        if not Utilities.iotools.dirs_exist(path_to_optics_files_dir):
+        if not utils.iotools.dirs_exist(path_to_optics_files_dir):
             raise ValueError("Given path to optics files does not exist: " + path_to_optics_files_dir)
         _InputData.path_to_optics_files_dir = path_to_optics_files_dir
         _InputData.variables_list = variables.split(",")
 
         _InputData.use_two_beams = 1 == index_of_num_of_beams_in_gui  # 0 index for 'One Beam'; 1 index for 'Two Beams'(vimaier)
-        if not Utilities.math.can_str_be_parsed_to_number(num_of_correctors):
+        if not utils.math.can_str_be_parsed_to_number(num_of_correctors):
             raise ValueError("Given number of correctors is not a number: " + num_of_correctors)
         _InputData.num_of_correctors = int(num_of_correctors)
         if "SVD" != algorithm and "MICADO" != algorithm:
@@ -400,17 +400,17 @@ class _InputData(object):
 
     @staticmethod
     def _check_and_set_cuts(singular_value_cut, errorcut, modelcut):
-        if not Utilities.math.can_str_be_parsed_to_number(singular_value_cut):
+        if not utils.math.can_str_be_parsed_to_number(singular_value_cut):
             raise ValueError("Given cut is not a number: " + singular_value_cut)
         modelcuts = modelcut.split(",")
-        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[0]):
+        if not utils.math.can_str_be_parsed_to_number(modelcuts[0]):
             raise ValueError("Given model cut is not a number: " + modelcuts[0] + " from " + modelcuts)
-        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[1]):
+        if not utils.math.can_str_be_parsed_to_number(modelcuts[1]):
             raise ValueError("Given model cut is not a number: " + modelcuts[1] + " from " + modelcuts)
         errorcuts = errorcut.split(",")
-        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[0]):
+        if not utils.math.can_str_be_parsed_to_number(errorcuts[0]):
             raise ValueError("Given error cut is not a number: " + errorcuts[0] + " from " + errorcuts)
-        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[1]):
+        if not utils.math.can_str_be_parsed_to_number(errorcuts[1]):
             raise ValueError("Given error cut is not a number: " + errorcuts[1] + " from " + errorcuts)
         _InputData.singular_value_cut = float(singular_value_cut)
         _InputData.error_cut = float(errorcuts[0])
@@ -420,14 +420,14 @@ class _InputData(object):
 
     @staticmethod
     def _check_and_set_accel_path(beta_beat_root, accel):
-        if not Utilities.iotools.dirs_exist(beta_beat_root):
+        if not utils.iotools.dirs_exist(beta_beat_root):
             print >> sys.stderr, "Given Beta-Beat.src path does not exist: " + beta_beat_root
-            beta_beat_root = Utilities.iotools.get_absolute_path_to_betabeat_root()
+            beta_beat_root = utils.iotools.get_absolute_path_to_betabeat_root()
             print >> sys.stderr, "Will take current Beta-Beat.src: " + beta_beat_root
         if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
             raise ValueError("Unknown/not supported accelerator: " + accel)
         accel_path = os.path.join(beta_beat_root, "correction", "fullresponse", accel)
-        if not Utilities.iotools.dirs_exist(accel_path):
+        if not utils.iotools.dirs_exist(accel_path):
             raise ValueError("Acclelerator path does not exist: " + accel_path)
         _InputData.accel_path = accel_path
 

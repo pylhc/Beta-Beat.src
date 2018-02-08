@@ -1,8 +1,8 @@
 import __init__
-from Utilities.dict_tools import DotDict
-from Utilities.dict_tools import DictParser
-from Utilities.dict_tools import Argument
-from Utilities.dict_tools import print_dict_tree
+from utils.dict_tools import DotDict
+from utils.dict_tools import DictParser
+from utils.dict_tools import Argument
+from utils.dict_tools import print_dict_tree
 
 
 def simple_dictparse_test():

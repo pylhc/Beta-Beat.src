@@ -24,7 +24,7 @@ import os
 import subprocess
 import re
 
-import Utilities.iotools
+import utils.iotools
 
 DEFAULT_CFG = "default.cfg"
 IGNORE_TFS_HEADER_CFG = "ignore_tfs_header.cfg"
@@ -51,7 +51,7 @@ def compare_dirs_with_files_matching_regex_list(dir1, dir2, regex_list=None, fil
 
     :returns: bool -- True if dirs are equal, otherwise false
     """
-    if Utilities.iotools.no_dirs_exist(dir1, dir2):
+    if utils.iotools.no_dirs_exist(dir1, dir2):
         print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."
         return False
     if regex_list is None:
@@ -191,7 +191,7 @@ def get_os_dependent_path_to_ndiff():
 
 
 def get_path_to_root_of_ndiff():
-    return os.path.join(Utilities.iotools.get_absolute_path_to_betabeat_root(),
+    return os.path.join(utils.iotools.get_absolute_path_to_betabeat_root(),
                                       "binaries", "ndiff")
 
 

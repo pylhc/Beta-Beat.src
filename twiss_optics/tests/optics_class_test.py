@@ -6,9 +6,9 @@ Look in test_helpers.py to change plotting options.
 import os
 import numpy as np
 from twiss_optics.optics_class import TwissOptics
-from Utilities.contexts import timeit
-from Utilities import logging_tools
-from Utilities import tfs_pandas as tfs
+from utils.contexts import timeit
+from utils import logging_tools
+from utils import tfs_pandas as tfs
 from test_helpers import plot_df_comparison
 
 LOG = logging_tools.get_logger(__name__)

@@ -60,8 +60,8 @@ import numpy
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
-import Utilities.iotools
-import Utilities.math
+import utils.iotools
+import utils.math
 
 from madx import madx_wrapper
 
@@ -113,13 +113,13 @@ class _InputData(object):
     def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse):
         if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL"):
             raise ValueError("Unknown accelerator: " + accel)
-        if not Utilities.iotools.dirs_exist(output_path):
+        if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")
-        if not Utilities.math.can_str_be_parsed_to_number(delta_k):
+        if not utils.math.can_str_be_parsed_to_number(delta_k):
             raise ValueError("Delta k is not a number: " + delta_k)
-        if not Utilities.math.can_str_be_parsed_to_number(delta_kl):
+        if not utils.math.can_str_be_parsed_to_number(delta_kl):
             raise ValueError("Delta kl is not a number: " + delta_kl)
-        if not Utilities.iotools.dirs_exist(os.path.join(path_to_core_files_without_accel, accel)):
+        if not utils.iotools.dirs_exist(os.path.join(path_to_core_files_without_accel, accel)):
             raise ValueError("Core path does not exist: " + _InputData.core_path_with_accel)
 
         _InputData.output_path = output_path
@@ -193,7 +193,7 @@ def _generate_fullresponse_for_chromatic_coupling():
 
     _dump(_join_with_output('FullResponse_chromcouple'), FullResponse)
 
-    Utilities.iotools.copy_item(_join_with_output("iter.madx"), _join_with_output("chromcouple_iter.madx"))
+    utils.iotools.copy_item(_join_with_output("iter.madx"), _join_with_output("chromcouple_iter.madx"))
 
 
 def _generate_fullresponse_for_coupling(fullresponse):
@@ -244,7 +244,7 @@ def _generate_fullresponse_for_coupling(fullresponse):
         FullResponse[key] = value
 
     _dump(_join_with_output("FullResponse_couple"), FullResponse)
-    Utilities.iotools.copy_item(_join_with_output("iter.madx"), _join_with_output("couple_iter.madx"))
+    utils.iotools.copy_item(_join_with_output("iter.madx"), _join_with_output("couple_iter.madx"))
 
 
 def _generate_fullresponse_for_beta():

@@ -2,7 +2,7 @@ import logging
 import inspect
 import sys
 import os
-from Utilities import iotools
+from utils import iotools
 
 DIVIDER = "|"
 BASIC_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)

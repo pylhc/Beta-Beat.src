@@ -22,7 +22,7 @@ import numpy as np
 from numpy import sin, cos, tan
 from collections import OrderedDict
 
-import Utilities.bpm
+import utils.bpm
 import phase
 from SegmentBySegment.SegmentBySegment import get_good_bpms
 from __builtin__ import raw_input
@@ -112,7 +112,7 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
 def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
-    bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
+    bpm=utils.bpm.model_intersect(utils.bpm.intersect(Files), MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -200,7 +200,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
     print "Compensating {3:s} effect for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane, acdipole)
 
     #-- Select common BPMs
-    bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files), MADTwiss)
+    bpm = utils.bpm.model_intersect(utils.bpm.intersect(Files), MADTwiss)
     bpm = [(b[0], str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -343,8 +343,8 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
 
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):
     #-- Select common BPMs
-    all_bpms = Utilities.bpm.model_intersect(
-        Utilities.bpm.intersect(Files),
+    all_bpms = utils.bpm.model_intersect(
+        utils.bpm.intersect(Files),
         MADTwiss_ac,
     )
     all_bpms = [(b[0], str.upper(b[1])) for b in all_bpms]
@@ -514,7 +514,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     if len(FilesX)!=len(FilesY): return [{},[]]
 
     #-- Select common BPMs
-    bpm=Utilities.bpm.model_intersect(Utilities.bpm.intersect(FilesX+FilesY),MADTwiss)
+    bpm=utils.bpm.model_intersect(utils.bpm.intersect(FilesX + FilesY), MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -778,7 +778,7 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
     if psid_ac2bpmac is None:
         return [{}, []]
     #-- Common BPMs
-    bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(Files),MADTwiss)
+    bpm = utils.bpm.model_intersect(utils.bpm.intersect(Files), MADTwiss)
     bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
@@ -904,8 +904,8 @@ def getkickac(MADTwiss_ac,files,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
     dpp = []
 
-    all_bpms_x = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files[0]), MADTwiss_ac )
-    all_bpms_y = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files[1]), MADTwiss_ac )
+    all_bpms_x = utils.bpm.model_intersect(utils.bpm.intersect(files[0]), MADTwiss_ac)
+    all_bpms_y = utils.bpm.model_intersect(utils.bpm.intersect(files[1]), MADTwiss_ac)
     all_bpms_x = [(b[0], str.upper(b[1])) for b in all_bpms_x]
     all_bpms_y = [(b[0], str.upper(b[1])) for b in all_bpms_y]
 

@@ -15,8 +15,8 @@ from madx import madx_wrapper
 from drive import drive_runner
 from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
-from Utilities import iotools, ADDbpmerror
-from Utilities.contexts import silence
+from utils import iotools, ADDbpmerror
+from utils.contexts import silence
 from hole_in_one import hole_in_one
 from hole_in_one.io_handlers import input_handler as hio_input_handler
 

@@ -11,7 +11,7 @@ Hold tools for comparing.
 import sys
 import os
 
-import Utilities
+import utils
 
 def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=None):
     """
@@ -19,7 +19,7 @@ def equal_dirs_with_double_epsilon_comparing(dir1, dir2, except_files=None):
     double and comparing double with epsilon value.
     In case of a subdir recursion will be used.
     """
-    if Utilities.iotools.no_dirs_exist(dir1, dir2):
+    if utils.iotools.no_dirs_exist(dir1, dir2):
         print >> sys.stderr, dir1, "or(and)", dir2, "do(es) not exist."
         return False
     if except_files is None:

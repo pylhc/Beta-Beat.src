@@ -10,7 +10,7 @@ import json
 
 import numpy
 import __init__ # @UnusedImport init will include paths
-import Utilities.iotools
+import utils.iotools
 import Python_Classes4MAD.GenMatrix_coupleDy as GenMatrix_coupleDy
 import Python_Classes4MAD.metaclass as metaclass
 
@@ -198,13 +198,13 @@ if options.ACCEL == "SPS":
 if "LHC" in options.ACCEL:   #.knob should always exist to be sent to LSA!
     src = os.path.join(options.path, "changeparameters_couple.tfs")
     dst = os.path.join(options.path, "changeparameters_couple.knob")
-    Utilities.iotools.copy_item(src, dst)
+    utils.iotools.copy_item(src, dst)
 
     ##### for bumps
     if "bumps" in listvar:
         print "passing trough bumps loop"
         v = metaclass.twiss(options.path + "/changeparameters_couple.tfs")
-        Utilities.iotools.delete_item(os.path.join(options.path, "changeparameters_couple.tfs"))
+        utils.iotools.delete_item(os.path.join(options.path, "changeparameters_couple.tfs"))
         execfile(options.opt + '//Bumps.py')
         execfile(options.opt + '//mydictionary.py')
         filefile = open(options.path + "/changeparameters_couple.tfs", "w")

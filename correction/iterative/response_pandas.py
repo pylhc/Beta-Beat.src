@@ -15,11 +15,11 @@ import json
 import numpy
 import pandas
 
-from Utilities import tfs_pandas
+from utils import tfs_pandas
 from madx import madx_wrapper
-from Utilities import logging_tools
-from Utilities.contexts import timeit
-from Utilities.iotools import create_dirs
+from utils import logging_tools
+from utils.contexts import timeit
+from utils.iotools import create_dirs
 
 EXCLUDE_CATEGORIES_DEFAULT = ["LQ", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
 
