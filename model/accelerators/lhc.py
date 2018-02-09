@@ -199,10 +199,15 @@ class Lhc(Accelerator):
 
     @classmethod
     def get_class_from_args(cls, args):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--lhcmode",
-=======
+        parser = EntryPoint(self.get_instance_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+
+        self.nat_tune_x = opt.nat_tune_x
+        self.nat_tune_y = opt.nat_tune_y
+        if opt.acd and opt.adt:
+            raise AcceleratorDefinitionError(
+                "Select only one excitation type."
+            )
         if opt.acd:
             self.excitation = LhcExcitationMode.ACD
         elif opt.adt:
@@ -232,7 +237,6 @@ class Lhc(Accelerator):
         params = EntryPointParameters()
         params.add_parameter(
             flags=["--lhcmode"],
->>>>>>> master
             help=("LHC mode to use. Should be one of: " +
                   str(get_lhc_modes().keys())),
             name="lhc_mode",
