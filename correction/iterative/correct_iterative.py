@@ -23,18 +23,14 @@ treated as zeros
 
 # noinspection PyUnresolvedReferences
 import __init__
-import sys
 import os
 import shutil
 import time
 import datetime
-import logging
 import pickle
 import cPickle
 import numpy as np
 import pandas as pd
-import argparse
-
 
 from madx import madx_wrapper  # noqa
 from utils import tfs_pandas as tfs  # noqa
@@ -43,24 +39,55 @@ from utils import logging_tools
 from utils.entrypoint import entrypoint, EntryPointParameters
 from model import manager  # noqa
 
-LOGGER = logging_tools.get_logger(__name__)
+LOG = logging_tools.get_logger(__name__)
 
 DEV_NULL = os.devnull
+
+
+# Configuration ##################################################################
+
 
 _DEFAULTS = {
     "optics_file": None,
     "output_path": None,
     "singular_value_cut": 0.01,
-    "modelcut": "0.2,0.2,0.2",
-    "errorcut": "0.2,0.2,0.2",
-    "weights_on_quantities": "1,1,0,0,0,10",
+    "optics_params": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
+    "modelcut": [0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
+    "errorcut": [0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
+    "weights_on_quantities": [1., 1., 0., 0., 0., 10.],
     "use_errorbars": False,
-    "variables": "MQM,MQT,MQTL,MQY",
+    "variables": ["MQM", "MQT", "MQTL", "MQY"],
     "beta_file_name": "getbeta",
     "virt_flag": False,
-    "num_reiteration": 3,
-    "keys": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
+    "method": "newton",
+    "max_iter": 3,
+    "eps": None,
 }
+
+
+# Define functions here, to new optics params
+def _get_measurement_filters():
+    return {
+        'MUX': _get_filtered_phases, 'MUY': _get_filtered_phases,
+        'BBX': _get_filtered_betas, 'BBY': _get_filtered_betas,
+        'NDX': _get_filtered_disp, 'Q': _get_tunes
+        }
+
+
+def _get_response_filters():
+    return {
+        'MUX': _get_phase_response, 'MUY': _get_phase_response,
+        'BBX': _get_betabeat_response, 'BBY': _get_betabeat_response,
+        'NDX': _get_disp_response, 'Q': _get_tune_response
+        }
+
+
+def _get_model_appenders():
+    return {
+        'MUX': _get_model_phases, 'MUY': _get_model_phases,
+        'BBX': _get_model_betas, 'BBY': _get_model_betas,
+        'NDX': _get_model_disp, 'Q': _get_model_tunes
+        }
 
 
 def _get_params():
@@ -84,6 +111,14 @@ def _get_params():
         required=True,
     )
     params.add_parameter(
+        flags="--optics_params",
+        help="List of parameters to correct upon (e.g. [BETX, BETY])",
+        name="optics_params",
+        type=str,
+        nargs="*",
+        default=_DEFAULTS["optics_params"],
+    )
+    params.add_parameter(
         flags="--optics_file",
         help=("Path to the optics file to use, usually modifiers.madx. If "
               "not present will default to model_path/modifiers.madx"),
@@ -101,6 +136,7 @@ def _get_params():
         flags="--svd_cut",
         help="",  # TODO
         name="singular_value_cut",
+        type=float,
         default=_DEFAULTS["singular_value_cut"],
     )
     params.add_parameter(
@@ -115,6 +151,8 @@ def _get_params():
         help=("Reject BPMs whose error bar is higher than the "
               "correspoding input. Input should be: Phase,Betabeat,NDx"),
         name="errorcut",
+        nargs="*",
+        type=float,
         default=_DEFAULTS["errorcut"],
     )
     params.add_parameter(
@@ -122,6 +160,8 @@ def _get_params():
         help=("Weight to apply to each measured quatity. Input shoud be: "
               "PhaseX,PhaseY,BetaX,BetaY,NDx,Q"),
         name="weights_on_quantities",
+        nargs="*",
+        type=float,
         default=_DEFAULTS["weights_on_quantities"],
     )
     params.add_parameter(
@@ -129,7 +169,6 @@ def _get_params():
         help=("If True, it will take into account the measured errorbars "
               "in the correction."),
         name="use_errorbars",
-        type=bool,
         action="store_" + str(not _DEFAULTS["use_errorbars"]).lower(),
     )
     params.add_parameter(
@@ -148,15 +187,29 @@ def _get_params():
         flags="--virt_flag",
         help="If true, it will use virtual correctors.",
         name="virt_flag",
-        type=bool,
         action="store_" + str(not _DEFAULTS["virt_flag"]).lower(),
     )
     params.add_parameter(
-        flags="--num_reiteration",
-        help="Number of correction iterations to perform.",
-        name="num_reiteration",
+        flags="--method",
+        help="Optimization method to use.",
+        name="method",
+        type=str,
+        default=_DEFAULTS["method"],
+        choices=["newton"]
+    )
+    params.add_parameter(
+        flags="--max_iter",
+        help="Maximum number of correction iterations to perform.",
+        name="max_iter",
         type=int,
         default=_DEFAULTS["num_reiteration"],
+    )
+    params.add_parameter(
+        flags="--eps",
+        help="Convergence criterion. If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.",
+        name="max_iter",
+        type=float,
+        default=_DEFAULTS["eps"],
     )
     params.add_parameter(
         flags="--debug",
@@ -165,6 +218,9 @@ def _get_params():
         action="store_true",
     )
     return params
+
+
+# Entry Point ##################################################################
 
 
 @entrypoint(_get_params())
@@ -192,70 +248,81 @@ def global_correction(opt, accel_opt):
         fullresponse_path: Path to the fullresponse binary file.
     """
 
+    if opt.debug:
+        _setup_debug()
 
-    accel_cls = manager.get_accel_class_from_args(accel_opt)
+    with timeit(lambda t: LOG.debug("  Total time for Global Correction: {:f}s".format(t))):
+        # get unset paths from other paths
+        if opt.optics_file is None:
+            opt.optics_file = os.path.join(os.path.dirname(opt.model_twiss_path),
+                                       "modifiers.madx")
+        if opt.output_path is None:
+            opt.output_path = opt.meas_dir_path
 
-    if optics_file is None:
-        optics_file = os.path.join(os.path.dirname(model_twiss_path),
-                                   "modifiers.madx")
+        template_file_path = os.path.join(os.path.dirname(__file__) , "job.twiss_python.madx")
 
-    if output_path is None:
-        output_path = meas_dir_path
+        # get accelerator class
+        accel_cls = manager.get_accel_class(accel_opt)
 
-    w_dict = _get_weights_dictionary(weights_on_quantities)
-    m_dict = _get_cut_str_to_dict(modelcut)
-    e_dict = _get_cut_str_to_dict(errorcut)
+        # convert numbers to dictionaries
+        w_dict = dict(zip(opt.optics_params, opt.weights_on_quantities))
+        m_dict = dict(zip(opt.optics_params, opt.modelcut))
+        e_dict = dict(zip(opt.optics_params, opt.errorcut))
 
-    nominal_model = tfs.read_tfs(model_twiss_path)
-    full_response = _load_fullresponse(fullresponse_path)
-    varslist = _get_varlist(accel_cls, variables, virt_flag)
+        # read data from files
+        nominal_model = tfs.read_tfs(opt.model_twiss_path)
+        full_response = _load_fullresponse(opt.fullresponse_path)
+        varslist = _get_varlist(accel_cls, opt.variables, opt.virt_flag)
 
-    keys, meas_dict = _scan_meas_dir(
-        _ALL_KEYS, w_dict,
-        meas_dir_path, beta_file_name
-    )
-    keys, meas_dict = _filter_measurement(
-        meas_dict, nominal_model, keys, w_dict,
-        use_errorbars, e_dict, m_dict
-    )
-    full_response = _filter_response_columns(full_response, meas_dict, keys)
-
-    meas_dict = _append_model_to_measurement(nominal_model, meas_dict, keys)
-    _print_rms(meas_dict, keys)
-    _dump(os.path.join(output_path, "measurement_dict.bin"), meas_dict)
-    deltas = _calculate_deltas(full_response, meas_dict, keys, varslist,
-                               cut=singular_value_cut)
-    writeparams(deltas, varslist, output_path)
-
-    for i in range(num_reiteration):
-        LOGGER.debug("Running MADX:" + str(i + 1))
-
-        template_file_path = os.path.join(CURRENT_DIR, "job.twiss_python.madx")
-        madx_script = _create_madx_script(accel_cls, nominal_model, optics_file,
-                                          template_file_path, output_path)
-        _callMadx(madx_script)  # TODO
-        new_model_path = os.path.join(output_path, "twiss_" + str(i) + ".dat")
-        shutil.copy2(os.path.join(output_path, "twiss_corr.dat"),
-                     new_model_path)
-        new_model = tfs.read_tfs(new_model_path)
-        meas_dict = _append_model_to_measurement(new_model, meas_dict, keys)
-        _print_rms(meas_dict, keys)
-        ideltas = _calculate_deltas(
-            full_response, meas_dict, keys, varslist,
-            cut=singular_value_cut,
+        # apply filters to data
+        optics_params, meas_dict = _scan_meas_dir(
+            opt.optics_params,
+            opt.meas_dir_path, opt.beta_file_name,
+            w_dict,
         )
-        writeparams(ideltas, varslist, output_path, append=True)
-        deltas = deltas + ideltas
-        LOGGER.debug("Cumulative deltas:" + str(np.sum(np.abs(deltas))))
-    write_knob(deltas, varslist)
+        optics_params, meas_dict = _filter_measurement(
+            optics_params, meas_dict, opt.nominal_model,
+            opt.use_errorbars, w_dict, e_dict, m_dict
+        )
+        full_response = _filter_response_columns(full_response, meas_dict, optics_params)
+        meas_dict = _append_model_to_measurement(nominal_model, meas_dict, optics_params)
+
+        if opt.debug:
+            _print_rms(meas_dict, optics_params)
+
+        _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
+        deltas = _calculate_deltas(full_response, meas_dict, optics_params, varslist,
+                                   cut=opt.singular_value_cut)
+        writeparams(deltas, varslist, opt.output_path)
+
+        for i in range(opt.max_iter):
+            LOG.debug("Running MADX, iteration {:d} of {:d}".format(i + 1, opt.max_iter))
+
+            madx_script = _create_madx_script(accel_cls, nominal_model, opt.optics_file,
+                                              template_file_path, opt.output_path)
+            _callMadx(madx_script)  # TODO
+            new_model_path = os.path.join(opt.output_path, "twiss_" + str(i) + ".dat")
+            shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"),
+                         new_model_path)
+            new_model = tfs.read_tfs(new_model_path)
+            meas_dict = _append_model_to_measurement(new_model, meas_dict, optics_params)
+            if opt.debug:
+                _print_rms(meas_dict, optics_params)
+            ideltas = _calculate_deltas(
+                full_response, meas_dict, optics_params, varslist,
+                cut=opt.singular_value_cut,
+            )
+            writeparams(ideltas, varslist, opt.output_path, append=True)
+            deltas = deltas + ideltas
+            LOG.debug("Cumulative deltas:" + str(np.sum(np.abs(deltas))))
+        write_knob(deltas, varslist)
 
 
-#  =======================================================================================================================
-#  Helper functions
-#  =======================================================================================================================
+# Helper functions #############################################################
 
 
 def _print_rms(meas, keys):
+    """ Prints current RMS status """
     for key in keys:
         message = key + " RMS: " + str(np.std(meas[key].loc[:, 'DIFF'].values))
         message += "\n"
@@ -263,21 +330,7 @@ def _print_rms(meas, keys):
             np.average(np.square(meas[key].loc[:, 'DIFF'].values),
                        weights=np.square(meas[key].loc[:, 'WEIGHT'].values))
         ))
-        LOGGER.debug(message)
-
-
-def _get_weights_dictionary(weights_on_quantities):
-    w = weights_on_quantities.split(',')
-    return {'MUX': float(w[0]), 'MUY': float(w[1]),
-            'BBX': float(w[2]), 'BBY': float(w[3]),
-            'NDX': float(w[4]), 'Q': float(w[5])}
-
-
-def _get_cut_str_to_dict(cut_str):
-    w = cut_str.split(',')
-    return {'MUX': float(w[0]), 'MUY': float(w[0]),
-            'BBX': float(w[1]), 'BBY': float(w[1]),
-            'NDX': float(w[2]), 'Q': float(w[0])}
+        LOG.debug(message)
 
 
 def _load_fullresponse(full_response_path):
@@ -285,14 +338,14 @@ def _load_fullresponse(full_response_path):
     Full response is dictionary of MUX/Y, BBX/Y, NDX and Q gradients upon
     a change of a single quadrupole strength
     """
-    LOGGER.debug("Starting loading Full Response optics")
+    LOG.debug("Starting loading Full Response optics")
     with open(full_response_path, "r") as full_response_file:
         full_response_data = pickle.load(full_response_file)
-    LOGGER.debug("Loading ended")
+    LOG.debug("Loading ended")
     return full_response_data
 
 
-def _scan_meas_dir(keys, w_dict, meas_dir_path, beta_file_name):
+def _scan_meas_dir(keys, meas_dir_path, beta_file_name, w_dict):
     measurement = {}
     filtered_keys = keys[:]  # Clone original keys list
     if w_dict['MUX'] or w_dict['MUY'] or w_dict['Q']:
@@ -334,8 +387,8 @@ def _scan_meas_dir(keys, w_dict, meas_dir_path, beta_file_name):
         try:
             measurement['NDX'] = _read_tfs(meas_dir_path, "getNDx.out")
         except IOError:
-            LOGGER.warning("No good dispersion or inexistent file getNDx")
-            LOGGER.warning("Correction will not take into account NDx")
+            LOG.warning("No good dispersion or inexistent file getNDx")
+            LOG.warning("Correction will not take into account NDx")
             filtered_keys.remove('NDX')
     else:
         filtered_keys.remove('NDX')
@@ -354,12 +407,13 @@ def _read_tfs(path, file_name):
 # Parameter filtering ########################################################
 
 # TODO: Add error and model cuts:
-def _filter_measurement(measurement, model, keys, w_dict, w, e_dict, m_dict):
+def _filter_measurement(keys, measurement, model, w, w_dict,  e_dict, m_dict):
+    filters = _get_measurement_filters()
     meas = {}
     new_keys = []
     for key in keys:
         if w_dict[key] > 0.0:
-            meas[key] = MEASUREMENT_FILTERS[key](
+            meas[key] = filters[key](
                 measurement[key], model, w_dict[key], w,
                 modelcut=m_dict[key], errorcut=e_dict[key]
             )
@@ -391,8 +445,8 @@ def _get_filtered_phases(meas, model, weight, erwg,
     if erwg:
         new['WEIGHT'] = (new.loc[:, 'WEIGHT'].values /
                          new.loc[:, 'ERROR'].values)
-    LOGGER.debug("Number of BPM pairs in plane " +
-                 plane + ": " + str(np.sum(good_bpms)))
+    LOG.debug("Number of BPM pairs in plane " +
+              plane + ": " + str(np.sum(good_bpms)))
     return new.loc[good_bpms, ['NAME', 'NAME2', 'VALUE', 'ERROR', 'WEIGHT']]
 
 
@@ -426,8 +480,8 @@ def _get_filtered_betas(meas, model, weight, erwg,
             new.loc[:, 'WEIGHT'].values * new.loc[:, 'BETAMOD'].values /
             new.loc[:, 'ERROR'].values
         )
-    LOGGER.debug("Number of BPMs with beta in plane" +
-                 plane + ": " + str(np.sum(good_bpms)))
+    LOG.debug("Number of BPMs with beta in plane" +
+              plane + ": " + str(np.sum(good_bpms)))
     return new.loc[good_bpms, ['NAME', 'VALUE', 'ERROR', 'WEIGHT']]
 
 
@@ -444,7 +498,7 @@ def _get_filtered_disp(meas, model, weight, erwg, modelcut=0.2, errorcut=0.02):
     if erwg:
         new['WEIGHT'] = (new.loc[:, 'WEIGHT'].values /
                          new.loc[:, 'ERROR'].values)
-    LOGGER.debug("Number of BPMs with NDx : " + str(np.sum(good_bpms)))
+    LOG.debug("Number of BPMs with NDx : " + str(np.sum(good_bpms)))
     return new.loc[good_bpms, ['NAME', 'VALUE', 'ERROR', 'WEIGHT']]
 
 
@@ -453,25 +507,18 @@ def _get_tunes(meas, mod, weight, erwg, modelcut=0.1, errorcut=0.027):
     if erwg:
         meas['WEIGHT'] = (meas.loc[:, 'WEIGHT'].values /
                           meas.loc[:, 'ERROR'].values)
-    LOGGER.debug("Number of tune measurements: " + str(len(meas.index.values)))
+    LOG.debug("Number of tune measurements: " + str(len(meas.index.values)))
     return meas
-
-
-MEASUREMENT_FILTERS = {
-    'MUX': _get_filtered_phases, 'MUY': _get_filtered_phases,
-    'BBX': _get_filtered_betas, 'BBY': _get_filtered_betas,
-    'NDX': _get_filtered_disp, 'Q': _get_tunes
-}
-
-###############################################################################
 
 
 # Response filtering ##########################################################
 
+
 def _filter_response_columns(response, measurement, keys):
+    filters = _get_response_filters()
     new_resp = {}
     for key in keys:
-        new_resp[key] = RESPONSE_FILTERS[key](response[key], measurement[key])
+        new_resp[key] = filters[key](response[key], measurement[key])
     return new_resp
 
 
@@ -493,21 +540,14 @@ def _get_tune_response(resp, meas):
     return resp
 
 
-RESPONSE_FILTERS = {
-    'MUX': _get_phase_response, 'MUY': _get_phase_response,
-    'BBX': _get_betabeat_response, 'BBY': _get_betabeat_response,
-    'NDX': _get_disp_response, 'Q': _get_tune_response
-}
-
-###############################################################################
-
-
 # Model appending #############################################################
 
+
 def _append_model_to_measurement(model, measurement, keys):
+    appenders = _get_model_appenders()
     meas = {}
     for key in keys:
-        meas[key] = MODEL_APPENDERS[key](model, measurement[key], key)
+        meas[key] = appenders[key](model, measurement[key], key)
     return meas
 
 
@@ -549,13 +589,7 @@ def _get_model_tunes(model, meas, key):
     return meas
 
 
-MODEL_APPENDERS = {
-    'MUX': _get_model_phases, 'MUY': _get_model_phases,
-    'BBX': _get_model_betas, 'BBY': _get_model_betas,
-    'NDX': _get_model_disp, 'Q': _get_model_tunes
-}
-
-###############################################################################
+# Small Helpers ################################################################
 
 
 def _dump(path_to_dump, content):
@@ -573,10 +607,10 @@ def _calculate_deltas(resp, meas, keys, varslist, cut=0.01, append=False):
         np.linalg.pinv(np.transpose(response_matrix * weight_vector), cut),
         diff_vector * weight_vector
     )
-    LOGGER.debug("Delta calculation: ")
-    LOGGER.debug(np.std(np.abs(diff_vector * weight_vector)))
-    LOGGER.debug(np.std(np.abs((diff_vector * weight_vector) -
-                 np.dot(delta, response_matrix * weight_vector))))
+    LOG.debug("Delta calculation: ")
+    LOG.debug(np.std(np.abs(diff_vector * weight_vector)))
+    LOG.debug(np.std(np.abs((diff_vector * weight_vector) -
+                            np.dot(delta, response_matrix * weight_vector))))
     return delta
 
 
@@ -600,10 +634,10 @@ def _load_model(path_to_optics_files_dir, iteration):
 
 
 # TODO Print MAD-X output and log to files
-def _callMadx(madx_script):
+def _callMadx(madx_script, log_file):
     return madx_wrapper.resolve_and_run_string(
         madx_script,
-        log_file=DEV_NULL,  # TODO: Redirect to logger
+        log_file=log_file,
     )
 
 
@@ -655,43 +689,23 @@ def writeparams(deltas, variables, path, append=False):
     mad_script.close()
 
 
-def _setup_logger(debug):
-    console_handler = logging.StreamHandler(sys.stdout)
-    log_level = logging.DEBUG if debug else logging.INFO
-    console_handler.setLevel(log_level)
-    LOGGER.addHandler(console_handler)
-    LOGGER.setLevel(log_level)
+def _setup_debug():
+    """ Setup Logger for debugging mode """
+    import datetime
+    LOG.setLevel(logging_tools.DEBUG)
+    LOG.debug("Running in Debug-Mode.")
+
+    now = str(datetime.datetime.now().isoformat())
+    log_file = now + os.path.abspath(__file__).replace(".pyc", "").replace(".py", "") + ".log"
+
+    LOG.debug("Writing log to file '{:s}'.".format(log_file))
+    file_handler = logging_tools.file_handler(log_file)
+    logging_tools.add_root_handler(file_handler)
 
 
 # Main invocation ############################################################
 
-def _i_am_main():
-    time_start_global = time.time()
-    accel_cls, options = _parse_args()
-    _setup_logger(options.debug)
-    LOGGER.debug("Logger set up.")
-    global_correction(
-        accel_cls,
-        options.meas_dir_path,
-        options.model_twiss_path,
-        options.fullresponse_path,
-        optics_file=options.optics_file,
-        output_path=options.output_path,
-        singular_value_cut=options.singular_value_cut,
-        modelcut=options.modelcut,
-        errorcut=options.errorcut,
-        weights_on_quantities=options.weights_on_quantities,
-        use_errorbars=options.use_errorbars,
-        variables=options.variables,
-        beta_file_name=options.beta_file_name,
-        virt_flag=options.virt_flag,
-        num_reiteration=options.num_reiteration,
-    )
-    time_global = time.time() - time_start_global
-    LOGGER.debug("Duration:" + str(time_global) + "s")
-
-
 if __name__ == "__main__":
-    _i_am_main()
+    global_correction()
 
-##############################################################################
+
