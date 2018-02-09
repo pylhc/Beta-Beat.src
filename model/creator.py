@@ -33,14 +33,9 @@ def create_model(accel_inst, model_type, output_path, **kwargs):
 
 
 def _i_am_main():
-    rest_args = sys.argv[1:]
-
-    accel_cls, rest_args = manager.get_accel_class_from_args(
-        rest_args
-    )
-    inst_args, rest_args = split_arguments(rest_args, accel_cls.get_instance_parameters())
-    accel_inst = accel_cls(inst_args)
-    options = _parse_rest_args(rest_args)
+    args = sys.argv[1:]
+    options, accel_args = _parse_creator_args(args)
+    accel_inst = manager.get_accel_instance(accel_args)
     create_model(
         accel_inst,
         options.type,
@@ -50,7 +45,7 @@ def _i_am_main():
     )
 
 
-def _parse_rest_args(args):
+def _parse_creator_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "type",
@@ -77,8 +72,8 @@ def _parse_rest_args(args):
         dest="logfile",
         type=str,
     )
-    options = parser.parse_args(args)
-    return options
+    options, unknown_args = parser.parse_known_args(args)
+    return options, unknown_args
 
 
 if __name__ == "__main__":
