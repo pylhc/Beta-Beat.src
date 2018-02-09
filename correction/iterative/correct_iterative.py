@@ -633,12 +633,19 @@ def _load_model(path_to_optics_files_dir, iteration):
                      "twiss_" + str(iteration) + ".dat")
 
 
-# TODO Print MAD-X output and log to files
-def _callMadx(madx_script, log_file):
-    return madx_wrapper.resolve_and_run_string(
-        madx_script,
-        log_file=log_file,
-    )
+def _callMadx(madx_script, debug):
+    """ Call MADX and log into file """
+    if debug:
+        with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
+            madx_wrapper.resolve_and_run_string(
+                madx_script,
+                log_file=log_file.path,
+            )
+    else:
+        madx_wrapper.resolve_and_run_string(
+            madx_script,
+            log_file=os.devnull,
+        )
 
 
 def _create_madx_script(accel_cls, nominal_model, optics_file,
