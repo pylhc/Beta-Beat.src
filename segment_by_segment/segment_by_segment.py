@@ -21,7 +21,7 @@ LOGGER = logging_tools.get_logger(__name__, level_console=DEBUG)
 PLANES = ("x", "y")
 
 
-def _parse_args():
+def _parse_args(args=None):
     '''
     Parses the arguments, checks for valid input and returns tuple
     It needs also the input needed to define the accelerator:
@@ -30,9 +30,6 @@ def _parse_args():
     e.g. for LHC runII 2017 beam 1
     --accel lhc --lhcmode lhc_runII_2017 --beam 1
     '''
-    accel_cls, rest_args = manager.get_accel_class_from_args(
-        sys.argv[1:]
-    )
     parser = argparse.ArgumentParser()
     parser.add_argument("--measurement",
                         help=("Path to measurement files, "
@@ -60,7 +57,8 @@ def _parse_args():
     parser.add_argument("--output",
                         help=("Directory where to put the output files."),
                         dest="output", required=True)
-    options = parser.parse_args(rest_args)
+    options, accel_args = parser.parse_known_args(args)
+    accel_cls = manager.get_accel_class(accel_args)
     return accel_cls, options
 
 
