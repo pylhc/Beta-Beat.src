@@ -171,8 +171,8 @@ class LhcSegmentCreator(model_creator.ModelCreator):
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
             "LABEL": lhc_instance.label,
-            "STARTFROM": lhc_instance.start,
-            "ENDAT": lhc_instance.end,
+            "STARTFROM": lhc_instance.start.name,
+            "ENDAT": lhc_instance.end.name,
         }
         madx_script = madx_template % replace_dict
         return madx_script
