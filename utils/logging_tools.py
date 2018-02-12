@@ -25,6 +25,9 @@ CRITICAL = logging.CRITICAL
 FATAL = logging.FATAL
 
 
+# Classes and Contexts #########################################################
+
+
 class MaxFilter(object):
     """ To get messages only up to a certain level """
     def __init__(self, level):
@@ -32,6 +35,37 @@ class MaxFilter(object):
 
     def filter(self, log_record):
         return log_record.levelno <= self.__level
+
+
+class TempFile(object):
+    """ Context Manager.
+    Lets another function write into a temporary file and logs its contents.
+
+    It won't open the file though, so only the files path is returned.
+
+    Args:
+        file_path (str): Place to write the tempfile to.
+        log_func (func): The function with which the content should be logged (e.g. LOG.info)
+    """
+    def __init__(self, file_path, log_func):
+        self.path = file_path
+        self.log_func = log_func
+
+    def __enter__(self):
+        return self.path
+
+    def __exit__(self, type, value, traceback):
+        try:
+            with open(self.path, "r") as f:
+                content = f.read()
+            self.log_func("{:s}:\n".format(self.path) + content)
+        except IOError:
+            self.log_func("{:s}: -file does not exist-".format(self.path))
+        else:
+            os.remove(self.path)
+
+
+# Public Methods ###############################################################
 
 
 def get_logger(name, level_root=DEBUG, level_console=INFO, fmt=BASIC_FORMAT):
@@ -106,6 +140,9 @@ def add_root_handler(handler):
 def getLogger(name):
     """ Convenience function so the caller does not have to import logging """
     return logging.getLogger(name)
+
+
+# Private Methods ##############################################################
 
 
 def _get_caller():

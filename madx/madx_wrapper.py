@@ -81,16 +81,21 @@ def run(full_madx_script, log_file=None, madx_path=MADX_PATH):
     Runs MADX with the given, already resolved, MADX script.
     If log_file is given the MADX log will be written there.
     """
-    if log_file is None:
-        log_stream = sys.stdout
-    else:
-        log_stream = open(log_file, "w")
     if madx_path is None:
         madx_path = MADX_PATH
-    return madxrunner.runForInputString(full_madx_script,
-                                        stdout=log_stream,
-                                        stderr=log_stream,
-                                        madxPath=madx_path)
+
+    if log_file is None:
+        ret_value = madxrunner.runForInputString(full_madx_script,
+                                                 stdout=sys.stdout,
+                                                 stderr=sys.stdout,
+                                                 madxPath=madx_path)
+    else:
+        with open(log_file, "w") as filestream:
+            ret_value = madxrunner.runForInputString(full_madx_script,
+                                                     stdout=filestream,
+                                                     stderr=filestream,
+                                                     madxPath=madx_path)
+    return ret_value
 
 
 def _resolve_required_macros(file_content):

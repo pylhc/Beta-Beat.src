@@ -40,7 +40,7 @@ import sbs_writers.sbs_special_element_writer
 #===================================================================================================
 # parse_args()-function
 #===================================================================================================
-def _parse_args():
+def _parse_args(args=None):
     '''
     Parses the arguments, checks for valid input and returns tupel
     It needs also the input needed to define the accelerator:
@@ -49,9 +49,6 @@ def _parse_args():
     e.g. for LHC runII 2017 beam 1
     --accel lhc --lhcmode lhc_runII_2017 --beam 1
     '''
-    accel_cls, rest_args = manager.get_accel_class_from_args(
-        sys.argv[1:]
-    )
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--path",  # assumes that output is same as input
                         help="Path to measurement files",
@@ -81,7 +78,9 @@ def _parse_args():
     parser.add_argument("-w", "--w",  # Path to Chromaticity functions
                         help="Path to  chromaticity functions, by default this is skiped",
                         metavar="wpath", default="0", dest="wpath")
-    options = parser.parse_args(rest_args)
+    options, accel_args = parser.parse_known_args(args)
+
+    accel_cls = manager.get_accel_class(accel_args)
 
     return accel_cls, options
 

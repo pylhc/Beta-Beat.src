@@ -325,8 +325,8 @@ def as_parser_test():
 
 
 if __name__ == "__main__":
-    # as_parser_test()
-    # some_function_test()
+    as_parser_test()
+    some_function_test()
     class_function_test()
 
 
