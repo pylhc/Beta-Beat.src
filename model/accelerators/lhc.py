@@ -232,7 +232,6 @@ class Lhc(Accelerator):
         opt = parser.parse(*args, **kwargs)
         return cls._get_class(opt)
 
-
     @classmethod
     def get_class_and_unknown(cls, *args, **kwargs):
         """ Returns LHC subclass and unkown args .
@@ -240,7 +239,7 @@ class Lhc(Accelerator):
         For the desired philosophy of returning parameters all the time,
         try to avoid this function, e.g. parse outside parameters first.
         """
-        parser = EntryPoint(cls.get_class_parameters(), strict=True)
+        parser = EntryPoint(cls.get_class_parameters(), strict=False)
         opt, unknown_opt = parser.parse(*args, **kwargs)
         return cls._get_class(opt), unknown_opt
 
@@ -253,6 +252,8 @@ class Lhc(Accelerator):
         if opt.beam is not None:
             new_class = cls._get_beamed_class(new_class, opt.beam)
         return new_class
+
+    # Public Methods ##########################################################
 
     @classmethod
     def get_segment(cls, label, first_elem, last_elem, optics_file):
@@ -364,6 +365,8 @@ class Lhc(Accelerator):
             [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
         ))
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
+
+    # Private Methods ##########################################################
 
     @classmethod
     def _get_triplet_correctors_file(cls):

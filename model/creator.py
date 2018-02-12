@@ -20,26 +20,26 @@ CREATORS = {
 
 def _get_params():
     params = EntryPointParameters()
-    params.add_argument(
+    params.add_parameter(
         flags=["--type"],
         name="type",
         help="Type of model to create, either nominal or best_knowledge",
         choices=("nominal", "best_knowledge", "coupling_correction"),
     )
-    params.add_argument(
+    params.add_parameter(
         flags=["--output"],
         help="Output path for model, twiss files will be writen here.",
         name="output",
         required=True,
         type=str,
     )
-    params.add_argument(
+    params.add_parameter(
         flags=["--writeto"],
         help="Path to the file where to write the resulting MAD-X script. ",
         name="writeto",
         type=str,
     )
-    params.add_argument(
+    params.add_parameter(
         flags=["--logfile"],
         help=("Path to the file where to write the MAD-X script output."
               "If not provided it will be written to sys.stdout."),
