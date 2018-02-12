@@ -1,20 +1,16 @@
 from __future__ import print_function
 import os
 import re
-import sys
 import json
 from collections import OrderedDict
 import numpy as np
 from Utilities import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
-from time import time
-from Utilities import logging_tools
+from accelerator import Accelerator, AcceleratorDefinitionError, Element
 from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
 
-LOGGER = logging_tools.get_logger(__name__)
 
 def get_lhc_modes():
     return {
@@ -26,6 +22,10 @@ def get_lhc_modes():
         "hllhc10": HlLhc10,
         "hllhc12": HlLhc12,
     }
+
+
+class LhcExcitationMode(object):
+    FREE, ACD, ADT = range(3)
 
 
 class Lhc(Accelerator):
@@ -67,170 +67,143 @@ class Lhc(Accelerator):
     NAME = "lhc"
     MACROS_NAME = "lhc"
 
-    def __init__(self):
-        self.optics_file = None
-        self.nat_tune_x = None
-        self.nat_tune_y = None
-        self._excitation = None
-        self.drv_tune_x = None
-        self.drv_tune_y = None
-        self.energy = None
-        self.dpp = 0.0
-        self.xing = None
-        
-        # for GetLLM
-        self.model = None
-        self.model_driven = None
-        self.model_best_knowledge = None
-        self.elements = None
-        self.elements_centre = None
-        self.modelpath = None
-        self.errordefspath = None
-        self.fullresponse = False
+    def __init__(self, *args, **kwargs):
         # for reasons of import-order and class creation, decoration was not possible
         parser = EntryPoint(self.get_instance_parameters(), strict=True)
         opt = parser.parse(*args, **kwargs)
 
-        self.nat_tune_x = opt.nat_tune_x
-        self.nat_tune_y = opt.nat_tune_y
-        if opt.acd and opt.adt:
-            raise AcceleratorDefinitionError(
-                "Select only one excitation type."
-            )
-        if options.acd:
-            instance.excitation = AccExcitationMode.ACD
-        elif options.adt:
-            instance.excitation = AccExcitationMode.ADT
+        if opt.model_dir:
+            self.init_from_model_dir(opt.model_dir)
+            self.optics_file = None
+            self.energy = None
+            self.dpp = 0.0
+            self.xing = None
+            if opt.nat_tune_x is not None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_x' not allowed when loading from model directory.")
+            if opt.nat_tune_y is not None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_y' not allowed when loading from model directory.")
+            if opt.drv_tune_x is not None:
+                raise AcceleratorDefinitionError("Argument 'drv_tune_x' not allowed when loading from model directory.")
+            if opt.drv_tune_y is not None:
+                raise AcceleratorDefinitionError("Argument 'drv_tune_y' not allowed when loading from model directory.")
+            self.optics_file = opt.get("optics", os.path.join(os.path.dirname(opt.model_dir), "modifiers.madx"))
         else:
-            instance.excitation = AccExcitationMode.FREE
-        if options.acd or options.adt:
-            instance.drv_tune_x = options.drv_tune_x
-            instance.drv_tune_y = options.drv_tune_y
-        instance.dpp = options.dpp
-        instance.energy = options.energy
-        instance.optics_file = options.optics
-        instance.fullresponse = options.fullresponse
-        instance.xing = options.xing
-        instance.verify_object()
-        
-        return instance, rest_args
-        
-    @classmethod
-    def init_from_model_dir(cls, model_dir):  # prints only for debugging
+            if opt.nat_tune_x is None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_x' is required.")
+            if opt.nat_tune_y is None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_y' is required.")
+            if opt.drv_tune_x is None:
+                raise AcceleratorDefinitionError("Argument 'drv_tune_x' is required.")
+            if opt.drv_tune_y is None:
+                raise AcceleratorDefinitionError("Argument 'drv_tune_x' is required.")
+
+            self.nat_tune_x = opt.nat_tune_x
+            self.nat_tune_y = opt.nat_tune_y
+            if opt.acd and opt.adt:
+                raise AcceleratorDefinitionError(
+                    "Select only one excitation type."
+                )
+            if opt.acd:
+                self.excitation = LhcExcitationMode.ACD
+            elif opt.adt:
+                self.excitation = LhcExcitationMode.ADT
+            else:
+                self.excitation = LhcExcitationMode.FREE
+
+            if opt.acd or opt.adt:
+                # "required"
+                self.drv_tune_x = opt.drv_tune_x
+                self.drv_tune_y = opt.drv_tune_y
+            # optional with default
+            self.dpp = opt.dpp
+            self.fullresponse = opt.fullresponse
+
+            # optional no default
+            self.energy = opt.get("energy", None)
+            self.xing = opt.get("xing", None)
+            self.optics_file = opt.get("optics", None)
+
+            # for GetLLM
+            self.model = None
+            self.model_driven = None
+            self.model_best_knowledge = None
+            self.elements = None
+            self.elements_centre = None
+            self.modelpath = None
+            self.errordefspath = None
+
+        self.verify_object()
+
+    def init_from_model_dir(self, model_dir):  # prints only for debugging
         
         LOGGER.info("=== ACCELERATOR CLASS FOR GETLLM ============")
         
-        LOGGER.info("\n  class: {}\n  Creating accelerator instance from model dir".format(cls.__name__))
-        instance = cls()
+        LOGGER.info("class: {}".format(cls.__name__))
+        LOGGER.info("Creating accelerator instance from model dir")
        
-        instance.modelpath = model_dir
+        self.model_dir = model_dir
         
-        instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
+        self.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
         LOGGER.info("  model path = " + os.path.join(model_dir, "twiss.dat"))
             
-        instance._excitation = AccExcitationMode.FREE
+        self._excitation = AccExcitationMode.FREE
         ac_filename = os.path.join(model_dir, "twiss_ac.dat")
         adt_filename = os.path.join(model_dir, "twiss_adt.dat")
         
         if os.path.isfile(ac_filename):
-            instance.model_driven = tfs_pandas.read_tfs(ac_filename).set_index("NAME")
-            instance.excitation = AccExcitationMode.ACD
+            self.model_driven = tfs_pandas.read_tfs(ac_filename).set_index("NAME")
+            self.excitation = AccExcitationMode.ACD
             driven_filename = ac_filename
             
         if os.path.isfile(adt_filename):
-            if instance.excitation == AccExcitationMode.ACD:
+            if self.excitation == AccExcitationMode.ACD:
                 raise AcceleratorDefinitionError("ADT as well as ACD models provided. What do you want? Please come back to me once you have made up your mind.")
 
-            instance.model_driven = tfs_pandas.read_tfs(adt_filename).set_index("NAME")
-            instance.excitation = AccExcitationMode.ADT
+            self.model_driven = tfs_pandas.read_tfs(adt_filename).set_index("NAME")
+            self.excitation = AccExcitationMode.ADT
             driven_filename = adt_filename
         
         
         model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
         if os.path.isfile(model_best_knowledge_path):
-            instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
+            self.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
             LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "OK"))
         else:
-            instance.model_best_knowledge = None
+            self.model_best_knowledge = None
             LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "NO"))
             
         elements_path = os.path.join(model_dir, "twiss_elements.dat")
         if os.path.isfile(elements_path):
-            instance.elements = tfs_pandas.read_tfs(elements_path).set_index("NAME")
+            self.elements = tfs_pandas.read_tfs(elements_path).set_index("NAME")
         else:
             raise AcceleratorDefinitionError("Elements twiss not found")
         elements_path = os.path.join(model_dir, "twiss_elements_centre.dat")
         if os.path.isfile(elements_path):
-            instance.elements_centre = tfs_pandas.read_tfs(elements_path).set_index("NAME")
+            self.elements_centre = tfs_pandas.read_tfs(elements_path).set_index("NAME")
         else:
-            instance.elements_centre = instance.elements
+            self.elements_centre = self.elements
         
-        instance.drv_tune_x = float(instance.get_driven_tfs().headers["Q1"])
-        instance.drv_tune_y = float(instance.get_driven_tfs().headers["Q2"])
-        instance.nat_tune_x = float(instance.model_tfs.headers["Q1"])
-        instance.nat_tune_y = float(instance.model_tfs.headers["Q2"])
+        self.drv_tune_x = float(self.get_driven_tfs().headers["Q1"])
+        self.drv_tune_y = float(self.get_driven_tfs().headers["Q2"])
+        self.nat_tune_x = float(self.model_tfs.headers["Q1"])
+        self.nat_tune_y = float(self.model_tfs.headers["Q2"])
         
         
-        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune X", "{:7.3f}".format(instance.nat_tune_x)))
-        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune Y", "{:7.3f}".format(instance.nat_tune_y)))
+        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune X", "{:7.3f}".format(self.nat_tune_x)))
+        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune Y", "{:7.3f}".format(self.nat_tune_y)))
     
-        if instance._excitation == AccExcitationMode.FREE:
+        if self._excitation == AccExcitationMode.FREE:
             LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "NO"))
         else:
-            if instance._excitation == AccExcitationMode.ACD:
+            if self._excitation == AccExcitationMode.ACD:
                 LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ACD"))
-            elif instance._excitation == AccExcitationMode.ADT:
+            elif self._excitation == AccExcitationMode.ADT:
                 LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ADT"))
-            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune X", "{:7.3f}".format(instance.drv_tune_x)))
-            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune Y", "{:7.3f}".format(instance.drv_tune_y)))
+            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune X", "{:7.3f}".format(self.drv_tune_x)))
+            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune Y", "{:7.3f}".format(self.drv_tune_y)))
           
         
         LOGGER.info("===")
-        return instance
-
-    @classmethod
-    def get_class(cls, lhc_mode=None, beam=None):
-        new_class = cls
-        if lhc_mode is not None:
-            new_class = get_lhc_modes()[lhc_mode]
-        if beam is not None:
-            new_class = cls._get_beamed_class(new_class, beam)
-        return new_class
-
-    @classmethod
-    def get_class_from_args(cls, args):
-        parser = EntryPoint(self.get_instance_parameters(), strict=True)
-        opt = parser.parse(*args, **kwargs)
-
-        self.nat_tune_x = opt.nat_tune_x
-        self.nat_tune_y = opt.nat_tune_y
-        if opt.acd and opt.adt:
-            raise AcceleratorDefinitionError(
-                "Select only one excitation type."
-            )
-        if opt.acd:
-            self.excitation = LhcExcitationMode.ACD
-        elif opt.adt:
-            self.excitation = LhcExcitationMode.ADT
-        else:
-            self.excitation = LhcExcitationMode.FREE
-
-        if opt.acd or opt.adt:
-            # "required"
-            self.drv_tune_x = opt.drv_tune_x
-            self.drv_tune_y = opt.drv_tune_y
-
-        # required
-        self.optics_file = opt.optics
-
-        # optional with default
-        self.dpp = opt.dpp
-        self.fullresponse = opt.fullresponse
-
-        # optional no default
-        self.energy = opt.get("energy", None)
-        self.xing = opt.get("xing", None)
-        self.verify_object()
 
     @staticmethod
     def get_class_parameters():
@@ -255,16 +228,20 @@ class Lhc(Accelerator):
     def get_instance_parameters():
         params = EntryPointParameters()
         params.add_parameter(
+            flags=["--model_dir"],
+            help="Path to model directory (loads tunes and excitation from model!).",
+            name="model_dir",
+            type=str,
+        )
+        params.add_parameter(
             flags=["--nattunex"],
             help="Natural tune X without integer part.",
-            required=True,
             name="nat_tune_x",
             type=float,
         )
         params.add_parameter(
             flags=["--nattuney"],
             help="Natural tune Y without integer part.",
-            required=True,
             name="nat_tune_y",
             type=float,
         )
@@ -311,7 +288,6 @@ class Lhc(Accelerator):
             flags=["--optics"],
             help="Path to the optics file to use (modifiers file).",
             name="optics",
-            required=True,
             type=str,
         )
         params.add_parameter(
@@ -388,7 +364,7 @@ class Lhc(Accelerator):
     def _get_beamed_class(cls, new_class, beam):
         beam_mixin = _LhcB1Mixin if beam == 1 else _LhcB2Mixin
         beamed_class = type(new_class.__name__ + "B" + str(beam),
-                            (beam_mixin, new_class),
+                            (new_class, beam_mixin),
                             {})
         return beamed_class
 
@@ -404,83 +380,6 @@ class Lhc(Accelerator):
             else:
                 mask.append(False)
         return np.array(mask)
-
-    @classmethod
-    def _get_arg_parser(cls):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--nattunex",
-            help="Natural tune X without integer part.",
-            required=True,
-            dest="nat_tune_x",
-            type=float,
-        )
-        parser.add_argument(
-            "--nattuney",
-            help="Natural tune Y without integer part.",
-            required=True,
-            dest="nat_tune_y",
-            type=float,
-        )
-        parser.add_argument(
-            "--acd",
-            help="Activate excitation with ACD.",
-            dest="acd",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--adt",
-            help="Activate excitation with ADT.",
-            dest="adt",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--drvtunex",
-            help="Driven tune X without integer part.",
-            dest="drv_tune_x",
-            type=float,
-        )
-        parser.add_argument(
-            "--drvtuney",
-            help="Driven tune Y without integer part.",
-            dest="drv_tune_y",
-            type=float,
-        )
-        parser.add_argument(
-            "--dpp",
-            help="Delta p/p to use.",
-            dest="dpp",
-            default=0.0,
-            type=float,
-        )
-        parser.add_argument(
-            "--energy",
-            help="Energy in Tev.",
-            dest="energy",
-            type=float,
-        )
-        parser.add_argument(
-            "--optics",
-            help="Path to the optics file to use (modifiers file).",
-            dest="optics",
-            required=True,
-            type=str,
-        )
-        parser.add_argument(
-            "--fullresponse",
-            help=("If present, fullresponse template will" +
-                  "be filled and put in the output directory."),
-            dest="fullresponse",
-            action="store_true",
-        )
-        parser.add_argument(
-            "--xing",
-            help=("If present, x-ing  angles will be applied to model"),
-            dest="xing",
-            action="store_true",
-        )
-       
-        return parser
 
     def verify_object(self):  # TODO: Maybe more checks?
         try:
@@ -499,8 +398,8 @@ class Lhc(Accelerator):
             raise AcceleratorDefinitionError("Excitation mode not set.")
         if self.xing is None:
             raise AcceleratorDefinitionError("Crossing on or off not set.")
-        if (self.excitation == AccExcitationMode.ACD or
-                self.excitation == AccExcitationMode.ADT):
+        if (self.excitation == LhcExcitationMode.ACD or
+                self.excitation == LhcExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise AcceleratorDefinitionError("Driven tunes not set.")
 
@@ -569,13 +468,12 @@ class Lhc(Accelerator):
 
     @excitation.setter
     def excitation(self, excitation_mode):
-        if excitation_mode not in (AccExcitationMode.FREE,
-                                   AccExcitationMode.ACD,
-                                   AccExcitationMode.ADT):
+        if excitation_mode not in (LhcExcitationMode.FREE,
+                                   LhcExcitationMode.ACD,
+                                   LhcExcitationMode.ADT):
             raise ValueError("Wrong excitation mode.")
         self._excitation = excitation_mode
-        
-        
+
     # For GetLLM --------------------------------------------------------------
      
     def get_exciter_bpm(self, plane, commonbpms):
@@ -690,6 +588,7 @@ class Lhc(Accelerator):
     def get_elements_centre_tfs(self):
         return self.elements_centre
 
+
 class _LhcSegmentMixin(object):
 
     def __init__(self):
@@ -728,17 +627,17 @@ class _LhcB1Mixin(object):
     @classmethod
     def get_beam(cls):
         return 1
-    
+
     @classmethod
     def get_beam_direction(cls):
         return 1
-
 
 class _LhcB2Mixin(object):
     @classmethod
     def get_beam(cls):
         return 2
-    
+
+
     @classmethod
     def get_beam_direction(cls):
         return -1
