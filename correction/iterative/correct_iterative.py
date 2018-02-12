@@ -31,8 +31,8 @@ import argparse
 
 
 from madx import madx_wrapper  # noqa
-from Utilities import tfs_pandas as tfs  # noqa
-from Utilities import iotools  # noqa
+from utils import tfs_pandas as tfs  # noqa
+from utils import iotools  # noqa
 from model import manager  # noqa
 
 LOGGER = logging.getLogger(__name__)

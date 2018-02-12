@@ -25,10 +25,10 @@ from collections import OrderedDict
 
 import pandas as pd
 
-from Utilities import logging_tools as logtool
-from Utilities import tfs_pandas as tfs
-from Utilities.contexts import timeit
-from Utilities.iotools import json_dumps_readable
+from utils import logging_tools as logtool
+from utils import tfs_pandas as tfs
+from utils.contexts import timeit
+from utils.iotools import json_dumps_readable
 
 LOG = logtool.get_logger(__name__)
 

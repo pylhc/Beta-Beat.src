@@ -19,7 +19,7 @@ import math
 import numpy as np
 from numpy import sin, cos
 
-import Utilities.bpm
+import utils.bpm
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -112,8 +112,8 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
     nda={} # Dictionary for the output containing [average Disp, rms error]
 
     ALL=list_zero_dpp_x+list_non_zero_dpp_x
-    commonbpmsALL=Utilities.bpm.intersect(ALL)
-    commonbpmsALL=Utilities.bpm.model_intersect(commonbpmsALL, mad_twiss)
+    commonbpmsALL=utils.bpm.intersect(ALL)
+    commonbpmsALL=utils.bpm.model_intersect(commonbpmsALL, mad_twiss)
 
     mydp=[]
     gf=[]
@@ -263,7 +263,7 @@ def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
     coac=coact # COY dictionary after cut bad BPMs
 
     ALL=ListOfZeroDPP+ListOfNonZeroDPP
-    commonbpmsALL=Utilities.bpm.intersect(ALL)
+    commonbpmsALL=utils.bpm.intersect(ALL)
 
 
 

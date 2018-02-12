@@ -24,7 +24,7 @@ import numpy as np
 
 import phase
 import beta
-import Utilities.bpm
+import utils.bpm
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
@@ -42,8 +42,8 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 
 def calculate_orbit(mad_twiss, list_of_files):
 
-    commonbpms=Utilities.bpm.intersect(list_of_files)
-    commonbpms=Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms=utils.bpm.intersect(list_of_files)
+    commonbpms=utils.bpm.model_intersect(commonbpms, mad_twiss)
     co={} # Disctionary for output
     for i in range(0,len(commonbpms)):
         bpm_name=str.upper(commonbpms[i][1])
@@ -133,10 +133,10 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
         dum1=[]
         return [dum0,dum1]
 
-    bpmh=Utilities.bpm.intersect(list_of_zero_dpp_x)
-    bpmv=Utilities.bpm.intersect(list_of_zero_dpp_y)
-    bpmh=Utilities.bpm.model_intersect(bpmh, mad_twiss)
-    bpmv=Utilities.bpm.model_intersect(bpmv, mad_twiss)
+    bpmh=utils.bpm.intersect(list_of_zero_dpp_x)
+    bpmv=utils.bpm.intersect(list_of_zero_dpp_y)
+    bpmh=utils.bpm.model_intersect(bpmh, mad_twiss)
+    bpmv=utils.bpm.model_intersect(bpmv, mad_twiss)
 
 
     fbpmx=[]
@@ -335,8 +335,8 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     '''
     # constructing complex amplitude and phase using two BPM method
 
-    bpms=Utilities.bpm.intersect(amp20list)
-    bpms=Utilities.bpm.model_intersect(bpms,MADTwiss)
+    bpms=utils.bpm.intersect(amp20list)
+    bpms=utils.bpm.model_intersect(bpms, MADTwiss)
 
     # Since beta,rmsbb(return_value[0:2]) are not used, slice return value([2:4])(vimaier)
     [bpms,invariantJx] = ( beta.beta_from_amplitude(MADTwiss,amp20list,'H') )[2:4]
@@ -443,8 +443,8 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
     '''
     # intersects BPMs
-    dbpms=Utilities.bpm.intersect(twiss_files[0])
-    dbpms=Utilities.bpm.model_intersect(dbpms,MADTwiss)
+    dbpms=utils.bpm.intersect(twiss_files[0])
+    dbpms=utils.bpm.model_intersect(dbpms, MADTwiss)
 
     # value definition
     hMODELT=[]
@@ -608,7 +608,7 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
 def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
     twi = mad_twiss # abbreviation
-    bpms = Utilities.bpm.intersect([mad_twiss])
+    bpms = utils.bpm.intersect([mad_twiss])
 
     q_x = twi.Q1+dpp*twi.DQ1
     q_y = twi.Q2+dpp*twi.DQ2
@@ -738,19 +738,19 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
         returns:  list, list, int
             The value and uncertainty for sqrt(2J) and 2J resp., along #BPM rej
     '''
-    commonbpms = Utilities.bpm.intersect(list_of_files)
+    commonbpms = utils.bpm.intersect(list_of_files)
     if source == 'model':
-        commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+        commonbpms = utils.bpm.model_intersect(commonbpms, mad_twiss)
     elif source == 'amp':
         if plane == 'H':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_amp.keys())
+            commonbpms = utils.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_amp.keys())
         elif plane == 'V':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_amp.keys())
+            commonbpms = utils.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_amp.keys())
     elif source == 'phase':
         if plane == 'H':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_phase.keys())
+            commonbpms = utils.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_phase.keys())
         elif plane == 'V':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_phase.keys())
+            commonbpms = utils.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_phase.keys())
 
     meansqrt2j = []
     mean2j = []

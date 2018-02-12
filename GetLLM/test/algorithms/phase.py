@@ -19,7 +19,7 @@ import math
 
 import numpy as np
 
-import Utilities.bpm
+import utils.bpm
 import compensate_ac_effect
 
 
@@ -456,8 +456,8 @@ def calc_phase_std(phase0, norm):
     return phase_std
 
 def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, lhc_phase):
-    commonbpms = Utilities.bpm.intersect(src_files)
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms = utils.bpm.intersect(src_files)
+    commonbpms = utils.bpm.model_intersect(commonbpms, mad_twiss)
     #-- Last BPM on the same turn to fix the phase shift by tune for exp data of LHC
     s_lastbpm = None
     if lhc_phase == "1":
@@ -510,8 +510,8 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
     tune_q will be used to fix the phase shift in LHC.
     For other accelerators use 'None'.
     """
-    commonbpms = Utilities.bpm.intersect(ListOfFiles)
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms = utils.bpm.intersect(ListOfFiles)
+    commonbpms = utils.bpm.model_intersect(commonbpms, mad_twiss)
     length_commonbpms = len(commonbpms)
 
     if length_commonbpms < 3:

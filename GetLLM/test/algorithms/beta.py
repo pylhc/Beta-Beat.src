@@ -20,7 +20,7 @@ import traceback
 import numpy as np
 from numpy import sin, cos, tan
 
-import Utilities.bpm
+import utils.bpm
 import compensate_ac_effect
 import os
 
@@ -230,7 +230,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         #-- Rescaling
         beta_d.x_ratio = 0
         skipped_bpmx = []
-        arcbpms = Utilities.bpm.filterbpm(bpms)
+        arcbpms = utils.bpm.filterbpm(bpms)
         for bpm in arcbpms:
             name = str.upper(bpm[1])  # second entry is the name
         #Skip BPM with strange data
@@ -276,7 +276,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
+                arcbpms = utils.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
                     name = str.upper(bpm[1])  # second entry is the name
                 #Skip BPM with strange data
@@ -332,7 +332,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         #-- Rescaling
         beta_d.y_ratio = 0
         skipped_bpmy = []
-        arcbpms = Utilities.bpm.filterbpm(bpms)
+        arcbpms = utils.bpm.filterbpm(bpms)
         for bpm in arcbpms:
             name = str.upper(bpm[1])  # second entry is the name
             #Skip BPM with strange data
@@ -372,7 +372,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 betayf, rmsbbyf, bpmsf, _ = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)  # Rescaling
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
+                arcbpms = utils.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
                     name = str.upper(bpm[1])  # second entry is the name
                     #Skip BPM with strange data
@@ -566,8 +566,8 @@ def beta_from_phase(MADTwiss, ListOfFiles, phase, plane, use_only_three_bpms_for
     alfa = {}
     beta = {}
 
-    commonbpms = Utilities.bpm.intersect(ListOfFiles)
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, MADTwiss)
+    commonbpms = utils.bpm.intersect(ListOfFiles)
+    commonbpms = utils.bpm.model_intersect(commonbpms, MADTwiss)
 
     if 3 > len(commonbpms):
         print "beta_from_phase: Less than three BPMs for plane", plane + ". Returning empty values."
@@ -681,8 +681,8 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 
     beta = {}
     root2j = []
-    commonbpms = Utilities.bpm.intersect(list_of_files)
-    commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms = utils.bpm.intersect(list_of_files)
+    commonbpms = utils.bpm.model_intersect(commonbpms, mad_twiss)
     sum_a = 0.0
     amp = []
     amp2 = []
@@ -760,8 +760,8 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane):
 def _get_free_beta(modelfree, modelac, betal, rmsbb, alfal, bpms, plane):  # to check "+"
     if DEBUG:
         print "Calculating free beta using model"
-    bpms = Utilities.bpm.model_intersect(bpms, modelfree)
-    bpms = Utilities.bpm.model_intersect(bpms, modelac)
+    bpms = utils.bpm.model_intersect(bpms, modelfree)
+    bpms = utils.bpm.model_intersect(bpms, modelac)
     betan = {}
     alfan = {}
     for bpma in bpms:

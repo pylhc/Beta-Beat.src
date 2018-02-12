@@ -16,7 +16,7 @@ from matchers import (phase_matcher,
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
 from madx import madx_templates_runner
-from Utilities.contexts import silence
+from utils.contexts import silence
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))

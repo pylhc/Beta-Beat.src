@@ -4,9 +4,9 @@ import re
 import json
 from collections import OrderedDict
 import numpy as np
-from Utilities import tfs_pandas
+from utils import tfs_pandas
 from accelerator import Accelerator, AcceleratorDefinitionError, Element
-from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
+from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")

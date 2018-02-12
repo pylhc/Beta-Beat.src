@@ -4,7 +4,7 @@ import sys
 
 import sbs_beta_writer
 from math import sqrt
-from Utilities import tfs_file_writer
+from utils import tfs_file_writer
 
 
 def write_beta_beat(element_name,

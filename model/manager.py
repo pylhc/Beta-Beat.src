@@ -1,4 +1,4 @@
-from Utilities.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
+from utils.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
 from model.accelerators import lhc, esrf, psbooster
 
 ACCELS = {

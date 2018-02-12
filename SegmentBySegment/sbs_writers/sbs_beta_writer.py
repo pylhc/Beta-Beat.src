@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import math
 
-from Utilities import tfs_file_writer
+from utils import tfs_file_writer
 
 
 def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, beta_summary_file):

@@ -13,8 +13,8 @@ import harpy
 import chroma
 from io_handlers import input_handler, output_handler
 
-from Utilities import tfs_pandas as tfs
-from Utilities.contexts import timeit
+from utils import tfs_pandas as tfs
+from utils.contexts import timeit
 from model import manager
 from sdds_files import turn_by_turn_reader
 

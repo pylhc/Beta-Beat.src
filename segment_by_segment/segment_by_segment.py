@@ -9,7 +9,7 @@ sys.path.append(
 )
 
 from model import manager, creator
-from Utilities import tfs_pandas, logging_tools
+from utils import tfs_pandas, logging_tools
 from tfs_files import TfsCollection, Tfs
 from sbs_measurables import MEASURABLES
 

@@ -57,7 +57,7 @@ import algorithms.coupling
 import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
-import Utilities.iotools
+import utils.iotools
 import copy
 
 from numpy import array
@@ -1027,8 +1027,8 @@ def _copy_calibration_files(output_path, calibration_dir_path):
         original_cal_file_path_y = os.path.join(calibration_dir_path, "calibration_y.out")
         cal_file_path_x = os.path.join(output_path, "calibration_x.out")
         cal_file_path_y = os.path.join(output_path, "calibration_y.out")
-        Utilities.iotools.copy_item(original_cal_file_path_x, cal_file_path_x)
-        Utilities.iotools.copy_item(original_cal_file_path_y, cal_file_path_y)
+        utils.iotools.copy_item(original_cal_file_path_x, cal_file_path_x)
+        utils.iotools.copy_item(original_cal_file_path_y, cal_file_path_y)
 
         calibration_twiss["X"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_x)
         calibration_twiss["Y"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_y)
@@ -1063,7 +1063,7 @@ class _GetllmData(object):
 
         :param string outputpath: Path to output dir. If dir(s) to output do(es) not exist, it/they will be created.
         '''
-        Utilities.iotools.create_dirs(outputpath)
+        utils.iotools.create_dirs(outputpath)
         self.outputpath = outputpath
 
     def set_bpmu_and_cut_for_closed_orbit(self, cut_co, bpm_unit):
