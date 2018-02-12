@@ -67,6 +67,106 @@ class Lhc(Accelerator):
     NAME = "lhc"
     MACROS_NAME = "lhc"
 
+    @staticmethod
+    def get_class_parameters():
+        params = EntryPointParameters()
+        params.add_parameter(
+            flags=["--lhcmode"],
+            help=("LHC mode to use. Should be one of: " +
+                  str(get_lhc_modes().keys())),
+            name="lhc_mode",
+            type=str,
+            choices=get_lhc_modes().keys()
+        )
+        params.add_parameter(
+            flags=["--beam"],
+            help="Beam to use.",
+            name="beam",
+            type=int,
+        )
+        return params
+
+    @staticmethod
+    def get_instance_parameters():
+        params = EntryPointParameters()
+        params.add_parameter(
+            flags=["--model_dir"],
+            help="Path to model directory (loads tunes and excitation from model!).",
+            name="model_dir",
+            type=str,
+        )
+        params.add_parameter(
+            flags=["--nattunex"],
+            help="Natural tune X without integer part.",
+            name="nat_tune_x",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--nattuney"],
+            help="Natural tune Y without integer part.",
+            name="nat_tune_y",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--acd"],
+            help="Activate excitation with ACD.",
+            name="acd",
+            action="store_true"
+        )
+        params.add_parameter(
+            flags=["--adt"],
+            help="Activate excitation with ADT.",
+            name="adt",
+            action="store_true",
+        )
+        params.add_parameter(
+            flags=["--drvtunex"],
+            help="Driven tune X without integer part.",
+            name="drv_tune_x",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--drvtuney"],
+            help="Driven tune Y without integer part.",
+            name="drv_tune_y",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--dpp"],
+            help="Delta p/p to use.",
+            name="dpp",
+            default=0.0,
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--energy"],
+            help="Energy in Tev.",
+            name="energy",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--optics"],
+            help="Path to the optics file to use (modifiers file).",
+            name="optics",
+            type=str,
+        )
+        params.add_parameter(
+            flags=["--fullresponse"],
+            help=("If True, fullresponse template will "
+                  "be filled and put in the output directory."),
+            name="fullresponse",
+            action="store_true",
+        )
+        params.add_parameter(
+            flags=["--xing"],
+            help=("If True, x-ing  angles will be applied to model"),
+            name="xing",
+            action="store_true",
+        )
+        return params
+
+    # Entry-Point Wrappers #####################################################
+
     def __init__(self, *args, **kwargs):
         # for reasons of import-order and class creation, decoration was not possible
         parser = EntryPoint(self.get_instance_parameters(), strict=True)
@@ -205,111 +305,13 @@ class Lhc(Accelerator):
         
         LOGGER.info("===")
 
-    @staticmethod
-    def get_class_parameters():
-        params = EntryPointParameters()
-        params.add_parameter(
-            flags=["--lhcmode"],
-            help=("LHC mode to use. Should be one of: " +
-                  str(get_lhc_modes().keys())),
-            name="lhc_mode",
-            type=str,
-            choices=get_lhc_modes().keys()
-        )
-        params.add_parameter(
-            flags=["--beam"],
-            help="Beam to use.",
-            name="beam",
-            type=int,
-        )
-        return params
-
-    @staticmethod
-    def get_instance_parameters():
-        params = EntryPointParameters()
-        params.add_parameter(
-            flags=["--model_dir"],
-            help="Path to model directory (loads tunes and excitation from model!).",
-            name="model_dir",
-            type=str,
-        )
-        params.add_parameter(
-            flags=["--nattunex"],
-            help="Natural tune X without integer part.",
-            name="nat_tune_x",
-            type=float,
-        )
-        params.add_parameter(
-            flags=["--nattuney"],
-            help="Natural tune Y without integer part.",
-            name="nat_tune_y",
-            type=float,
-        )
-        params.add_parameter(
-            flags=["--acd"],
-            help="Activate excitation with ACD.",
-            name="acd",
-            type=bool,
-            default=False,
-        )
-        params.add_parameter(
-            flags=["--adt"],
-            help="Activate excitation with ADT.",
-            name="adt",
-            type=bool,
-            default=False,
-        )
-        params.add_parameter(
-            flags=["--drvtunex"],
-            help="Driven tune X without integer part.",
-            name="drv_tune_x",
-            type=float,
-        )
-        params.add_parameter(
-            flags=["--drvtuney"],
-            help="Driven tune Y without integer part.",
-            name="drv_tune_y",
-            type=float,
-        )
-        params.add_parameter(
-            flags=["--dpp"],
-            help="Delta p/p to use.",
-            name="dpp",
-            default=0.0,
-            type=float,
-        )
-        params.add_parameter(
-            flags=["--energy"],
-            help="Energy in Tev.",
-            name="energy",
-            type=float,
-        )
-        params.add_parameter(
-            flags=["--optics"],
-            help="Path to the optics file to use (modifiers file).",
-            name="optics",
-            type=str,
-        )
-        params.add_parameter(
-            flags=["--fullresponse"],
-            help=("If True, fullresponse template will "
-                  "be filled and put in the output directory."),
-            name="fullresponse",
-            type=bool,
-            default=False,
-        )
-        params.add_parameter(
-            flags=["--xing"],
-            help=("If True, x-ing  angles will be applied to model"),
-            name="xing",
-            type=bool,
-            default=False,
-        )
-        return params
-
     @classmethod
-    def init_from_args(cls, args=None):
-        """ LEGACY-FUNCTION - SHOULD BE REPLACED BY USING Lhc(args) """
+    def init_and_get_unknowns(cls, args=None):
+        """ Initializes but also returns unknowns.
+
+         For the desired philosophy of returning parameters all the time,
+         try to avoid this function, e.g. parse outside parameters first.
+         """
         opt, rest_args = split_arguments(args, cls.get_instance_parameters())
         return cls(opt), rest_args
 
@@ -329,16 +331,32 @@ class Lhc(Accelerator):
         Returns:
             Lhc subclass.
         """
-        # for reasons of import-order and class creation, decoration was not possible
         parser = EntryPoint(cls.get_class_parameters(), strict=True)
         opt = parser.parse(*args, **kwargs)
+        return cls._get_class(opt)
 
+    @classmethod
+    def get_class_and_unknown(cls, *args, **kwargs):
+        """ Returns LHC subclass and unkown args .
+
+        For the desired philosophy of returning parameters all the time,
+        try to avoid this function, e.g. parse outside parameters first.
+        """
+        parser = EntryPoint(cls.get_class_parameters(), strict=False)
+        opt, unknown_opt = parser.parse(*args, **kwargs)
+        return cls._get_class(opt), unknown_opt
+
+    @classmethod
+    def _get_class(cls, opt):
+        """ Actual get_class function """
         new_class = cls
         if opt.lhc_mode is not None:
             new_class = get_lhc_modes()[opt.lhc_mode]
         if opt.beam is not None:
             new_class = cls._get_beamed_class(new_class, opt.beam)
         return new_class
+
+    # Public Methods ##########################################################
 
     @classmethod
     def get_segment(cls, label, first_elem, last_elem, optics_file):
@@ -450,6 +468,8 @@ class Lhc(Accelerator):
             [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
         ))
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
+
+    # Private Methods ##########################################################
 
     @classmethod
     def _get_triplet_correctors_file(cls):

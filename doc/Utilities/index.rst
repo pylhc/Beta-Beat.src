@@ -8,13 +8,13 @@ Module Utilities.bpm
     :members:
 
 Module Utilities.dict_tools
---------------------
+----------------------------
 
 .. automodule:: Utilities.dict_tools
     :members:
 
 Module Utilities.entrypoint
---------------------
+----------------------------
 
 .. automodule:: Utilities.entrypoint
     :members:
