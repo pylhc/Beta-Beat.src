@@ -15,12 +15,8 @@ class ModelCreator(object):
             output_path
         )
         creator.prepare_run(instance, output_path)
-        writeto = None
-        if "writeto" in kwargs:
-            writeto = kwargs["writeto"]
-        logfile = None
-        if "logfile" in kwargs:
-            logfile = kwargs["logfile"]
+        writeto = kwargs.get("writeto", None)
+        logfile = kwargs.get("logfile", None)
         creator.run_madx(madx_script, logfile, writeto)
 
     @classmethod
