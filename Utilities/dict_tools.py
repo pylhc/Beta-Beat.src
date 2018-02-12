@@ -98,20 +98,20 @@ class Parameter(object):
                                  "Default value not of specified type.")
 
         if self.choices:
-            if not isinstance(self.choices, list):
-                raise ParameterError("Parameter '{:s}': ".format(self.name) +
-                                     "Choices need to be a list.")
+            try:
+                if self.default and self.default not in self.choices:
+                    raise ParameterError("Parameter '{:s}': ".format(self.name) +
+                                         "Default value not found in choices.")
 
-            if self.default and self.default not in self.choices:
+                if self.type:
+                    for choice in self.choices:
+                        if not isinstance(choice, self.type):
+                            raise ParameterError("Choice '{:s}'".format(choice) +
+                                                 "of parameter '{:s}': ".format(self.name) +
+                                                 "is not of type '{:s}'.".format(self.type))
+            except TypeError:
                 raise ParameterError("Parameter '{:s}': ".format(self.name) +
-                                     "Default value not found in choices.")
-
-            if self.type:
-                for choice in self.choices:
-                    if not isinstance(choice, self.type):
-                        raise ParameterError("Choice '{:s}'".format(choice) +
-                                             "of parameter '{:s}': ".format(self.name) +
-                                             "is not of type '{:s}'.".format(self.type))
+                                     "Choices seem to be not iterable.")
 
         if self.nargs:
             if not isinstance(self.nargs, int):
