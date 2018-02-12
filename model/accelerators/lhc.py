@@ -107,15 +107,13 @@ class Lhc(Accelerator):
             flags=["--acd"],
             help="Activate excitation with ACD.",
             name="acd",
-            type=bool,
-            default=False,
+            action="store_true"
         )
         params.add_parameter(
             flags=["--adt"],
             help="Activate excitation with ADT.",
             name="adt",
-            type=bool,
-            default=False,
+            action="store_true",
         )
         params.add_parameter(
             flags=["--drvtunex"],
@@ -154,15 +152,13 @@ class Lhc(Accelerator):
             help=("If True, fullresponse template will "
                   "be filled and put in the output directory."),
             name="fullresponse",
-            type=bool,
-            default=False,
+            action="store_true",
         )
         params.add_parameter(
             flags=["--xing"],
             help=("If True, x-ing  angles will be applied to model"),
             name="xing",
-            type=bool,
-            default=False,
+            action="store_true",
         )
         return params
 
