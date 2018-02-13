@@ -18,8 +18,8 @@ from Python_Classes4MAD import metaclass
 from make_fit_plots import plot_fitting
 from scipy.spatial import Delaunay
 import argparse
-from Utilities import tfs_file_writer
-from Utilities import outliers
+from utils import tfs_file_writer
+from utils import outliers
 
 from read_Timber_output import merge_data
 
