@@ -22,6 +22,7 @@ class TestCase(namedtuple(
     """Data class to hold information about the test to run.
 
     Attributes:
+        name: A string to identify the test case.
         script: Path, relative to the root of the repository, of the script to
             run.
         arguments: Command line arguments to pass to the script.
@@ -93,7 +94,8 @@ def run_test_case(test_case, valid_path, test_path):
     """Launch single test_case and compare the results.
 
     Runs the given test, comparing the repositories at valid_path against
-    test_path.
+    test_path. After the test is run the output directories will be
+    deleted.
 
     Arguments:
         test_case: The test case to run.
@@ -104,11 +106,16 @@ def run_test_case(test_case, valid_path, test_path):
     """
     valid_script = os.path.join(valid_path, test_case.script)
     test_script = os.path.join(test_path, test_case.script)
-    _launch_command(valid_script, test_case.arguments)
-    _launch_command(test_script, test_case.arguments)
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
-    return test_case.test_function(valid_outpath, test_outpath)
+    try:
+        _launch_command(valid_script, test_case.arguments)
+        _launch_command(test_script, test_case.arguments)
+        result = test_case.test_function(valid_outpath, test_outpath)
+    finally:
+        _remove_if_exists(valid_outpath)
+        _remove_if_exists(test_outpath)
+    return result
 
 
 def clone_revision(source, revision, to_path):
@@ -197,6 +204,10 @@ def _launch_command(script, args):
     with _temporary_args(args.split(" ")):
         execfile(script)
 
+def _remove_if_exists(dir_path):
+    if os.path.isdir(dir_path):
+        shutil.rmtree(dir_path)
+
 
 @contextlib.contextmanager
 def _temporary_dir():
@@ -205,7 +216,6 @@ def _temporary_dir():
         yield dir_path
     finally:
         shutil.rmtree(dir_path)
-
 
 @contextlib.contextmanager
 def _temporary_args(args):
