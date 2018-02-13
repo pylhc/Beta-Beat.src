@@ -17,10 +17,10 @@ LOG = logging_tools.get_logger(__name__)
 def get_params():
     params = EntryPointParameters()
     params.add_parameter(
-        flags="--mode",
-        name="mode",
+        flags="--creator",
+        name="creator",
         type=str,
-        choices=("madx", "analytical"),
+        choices=("madx", "twiss"),
         default="madx",
     )
     params.add_parameter(
@@ -30,9 +30,11 @@ def get_params():
         default=DEFAULTS["variables"],
     )
     params.add_parameter(
-        flags=["--model_dir"],
+        flags=["-m", "--model_dir"],
         help="Path to the model directory.",
         name="model_dir",
+        required=True,
+        type=str
     )
     params.add_parameter(
         flags=["-o", "--outfile"],
@@ -45,29 +47,37 @@ def get_params():
 
 @entrypoint(get_params())
 def create_response(opt, other_opt):
+    """ Entry point for creating pandas-based response matrices.
+
+    The response matrices can be either created by response_madx or TwissResponse.
+    """
     LOG.info("Creating response.")
     accel_cls, other_opt = manager.get_accel_class_and_unkown(other_opt)
     variables = accel_cls.get_variables(classes=opt.variable_categrories)
 
-    if opt.mode == "madx":
+    if opt.creator == "madx":
+        # add some more arguments to the given ones
+        jobfile_path = os.path.join(opt.model_dir, "job.iterpandas.madx")
         try:
             other_opt += ["--variables", str(variables)]
+            other_opt += ["--jobfile", jobfile_path]
             other_opt += ["--outfile", opt.outfile_path]
         except TypeError:
             other_opt.variables = variables
+            other_opt.original_jobfile_path = jobfile_path
             other_opt.outfile_path = opt.outfile_path
+
+        # generate the response (saved into file)
         response_madx.generate_fullresponse(other_opt)
 
-    elif opt.mode == "analytical":
-        if not opt.model_dir:
-            raise ValueError("Please provide a path to the model directory.")
-
+    elif opt.creator == "twiss":
         accel_inst = accel_cls(model_dir=opt.model_dir)
 
-        file_name = accel_inst.name.lower() + "b" + str(accel_inst.get_beam())
-        varmap_path = os.path.join(opt.model_dir, file_name + "." + VARMAP_EXT)
+        # handle the varmap/sequence file
+        varmapfile_name = accel_inst.name.lower() + "b" + str(accel_inst.get_beam())
+        varmap_path = os.path.join(opt.model_dir, varmapfile_name + "." + VARMAP_EXT)
         if not os.path.isfile(varmap_path):
-            with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
+            with logging_tools.TempFile("save_sequence_madxout.tmp", LOG.debug) as log_file:
                 madx.resolve_and_run_string(
                     os.path.join(opt.model_dir, "job.save_sequence.madx"),
                     log_file=log_file.path,

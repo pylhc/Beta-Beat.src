@@ -77,7 +77,7 @@ def generate_fullresponse(opt):
     """ Generate a dictionary containing response matrices for
         Mu, BetaBeating, Dispersion and Tune and saves it to a file.
     """
-    LOG.debug("Generating Fullresponse.")
+    LOG.debug("Generating Fullresponse via Mad-X.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
         if not opt.temp_dir:
             opt.temp_dir = os.path.dirname(opt.outfile)
