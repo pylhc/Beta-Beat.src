@@ -326,67 +326,17 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
     #-- Check linx/liny files, may be redundant
     if len(FilesX)!=len(FilesY): return [{},[]]
 
-    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    #if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
-    #if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
-
-    #-- Determine the BPM closest to the AC dipole and its position
-    #BPMYB.6L4.B1 BPMYA.5L4.B1
-    # BPMWA.B5L4.B1
-
     horBPMsCopensation =[]
     verBPMsCopensation = []
-    #bpmac1_h=psih_ac2bpmac.keys()[0]
-    #bpmac2_h=psih_ac2bpmac.keys()[1]
-
-    #bpmac1_v = psiv_ac2bpmac.keys()[0]
-    #bpmac2_v = psiv_ac2bpmac.keys()[1]
-#    for key in psih_ac2bpmac:
-#        if(key in list(zip(*bpm)[1])): 
-#            horBPMsCopensation.append(key)
-#            verBPMsCopensation.append(key)    
-#            print horBPMsCopensation, "works"
-#        else:
-#            print "Is not here"
-#    fqwList = []
-#    for g in range(0, len(horBPMsCopensation)):
-#        k_bpmac_h =list(zip(*bpm)[1]).index(horBPMsCopensation[g])
-#        bpmac_h=horBPMsCopensation[g]
-#        
-#        k_bpmac_v=list(zip(*bpm)[1]).index(verBPMsCopensation[g])
-#        bpmac_v=verBPMsCopensation[g] 
-    bpmac_h = ac2bpmac_h[0]
+    psid_ac2bpmac_h = ac2bpmac_h[1]
     k_bpmac_h = ac2bpmac_h[2]
-    bpmac_v = ac2bpmac_v[0]
+    psid_ac2bpmac_v = ac2bpmac_v[1]
     k_bpmac_v = ac2bpmac_v[2]
 
-    '''
-    try:
-        k_bpmac_h=list(zip(*bpm)[1]).index(bpmac1_h)
-        bpmac_h=bpmac1_h
-    except:
-        try:
-            k_bpmac_h=list(zip(*bpm)[1]).index(bpmac2_h)
-            bpmac_h=bpmac2_h
-        except:
-            print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC or ADT dipole effects not calculated with analytic eqs for coupling'
-            return [{},[]]
-    #      if 'B5R4' in b: bpmac1=b
-    #if 'A5R4' in b: bpmac2=b
-    try:
-        k_bpmac_v=list(zip(*bpm)[1]).index(bpmac1_v)
-        bpmac_v=bpmac1_v
-    except:
-        try:
-            k_bpmac_v=list(zip(*bpm)[1]).index(bpmac2_v)
-            bpmac_v=bpmac2_v
-        except:
-            print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC dipole or ADT effects not calculated with analytic eqs for coupling'
-            return [{},[]]
-    print k_bpmac_v, bpmac_v
-    print k_bpmac_h, bpmac_h
-    '''
+    bd = accelerator.get_beam_direction()
+    fqwList = []
     if True:
+        
        #-- Global parameters of the driven motion
         dh =Qh-Qx
         dv =Qv-Qy
@@ -396,23 +346,23 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
         rcv=sin(np.pi*(Qx-Qv))/sin(np.pi*(Qx+Qv))
     
         #-- Loop for files
-        f1001Abs =np.zeros((len(bpm),len(FilesX)))
-        f1010Abs =np.zeros((len(bpm),len(FilesX)))
-        f1001xArg=np.zeros((len(bpm),len(FilesX)))
-        f1001yArg=np.zeros((len(bpm),len(FilesX)))
-        f1010xArg=np.zeros((len(bpm),len(FilesX)))
-        f1010yArg=np.zeros((len(bpm),len(FilesX)))
+        f1001Abs =np.zeros((len(bpms),len(FilesX)))
+        f1010Abs =np.zeros((len(bpms),len(FilesX)))
+        f1001xArg=np.zeros((len(bpms),len(FilesX)))
+        f1001yArg=np.zeros((len(bpms),len(FilesX)))
+        f1010xArg=np.zeros((len(bpms),len(FilesX)))
+        f1010yArg=np.zeros((len(bpms),len(FilesX)))
         for i in range(len(FilesX)):
     
             #-- Read amplitudes and phases
-            amph  =     np.array([FilesX[i].AMPX[FilesX[i].indx[b[1]]]    for b in bpm])
-            ampv  =     np.array([FilesY[i].AMPY[FilesY[i].indx[b[1]]]    for b in bpm])
-            amph01=     np.array([FilesX[i].AMP01[FilesX[i].indx[b[1]]]   for b in bpm])
-            ampv10=     np.array([FilesY[i].AMP10[FilesY[i].indx[b[1]]]   for b in bpm])
-            psih  =2*np.pi*np.array([FilesX[i].MUX[FilesX[i].indx[b[1]]]     for b in bpm])
-            psiv  =2*np.pi*np.array([FilesY[i].MUY[FilesY[i].indx[b[1]]]     for b in bpm])
-            psih01=2*np.pi*np.array([FilesX[i].PHASE01[FilesX[i].indx[b[1]]] for b in bpm])
-            psiv10=2*np.pi*np.array([FilesY[i].PHASE10[FilesY[i].indx[b[1]]] for b in bpm])
+            amph  =     np.array([FilesX[i].loc[b, "AMPX"]    for b in bpms.index])
+            ampv  =     np.array([FilesY[i].loc[b, "AMPY"]    for b in bpms.index])
+            amph01=     np.array([FilesX[i].loc[b, "AMP01"]   for b in bpms.index])
+            ampv10=     np.array([FilesY[i].loc[b, "AMP10"]   for b in bpms.index])
+            psih  =2*np.pi*np.array([FilesX[i].loc[b, "MUX"]     for b in bpms.index])
+            psiv  =2*np.pi*np.array([FilesY[i].loc[b, "MUY"]     for b in bpms.index])
+            psih01=2*np.pi*np.array([FilesX[i].loc[b, "PHASE01"] for b in bpms.index])
+            psiv10=2*np.pi*np.array([FilesY[i].loc[b, "PHASE10"] for b in bpms.index])
             #-- I'm not sure this is correct for the coupling so I comment out this part for now (by RM 9/30/11).
             #for k in range(len(bpm)):
             #       try:
@@ -450,9 +400,9 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
     ##              f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
     
             #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
-            psih=psih-(psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]) 
-            psiv=psiv-(psiv[k_bpmac_v]-psiv_ac2bpmac[bpmac_v]) 
-            print('the phase to the device', k_bpmac_h, psih[k_bpmac_h], bpmac_h, (psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]))
+            psih = psih - (psih[k_bpmac_h] - psid_ac2bpmac_h) # OK, untill here, it is Psi(s, s_ac)
+            psiv = psiv - (psiv[k_bpmac_v] - psid_ac2bpmac_v) # OK, untill here, it is Psi(s, s_ac)
+
             Psih=psih-np.pi*Qh
             Psih[:k_bpmac_h]=Psih[:k_bpmac_h]+2*np.pi*Qh
             Psiv=psiv-np.pi*Qv
@@ -460,7 +410,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
     
             Psix=np.arctan((1-rh)/(1+rh)*np.tan(Psih))%np.pi
             Psiy=np.arctan((1-rv)/(1+rv)*np.tan(Psiv))%np.pi
-            for k in range(len(bpm)):
+            for k in range(len(bpms)):
                 if Psih[k]%(2*np.pi)>np.pi: Psix[k]=Psix[k]+np.pi
                 if Psiv[k]%(2*np.pi)>np.pi: Psiy[k]=Psiy[k]+np.pi
     
@@ -524,7 +474,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
                 f1010y=-np.conjugate(f1010y)
     
             #-- Separate to amplitudes and phases, amplitudes averaged to cancel math.sqrt(betv/beth) and math.sqrt(beth/betv)
-            for k in range(len(bpm)):
+            for k in range(len(bpms)):
                 f1001Abs[k][i] =math.sqrt(abs(f1001x[k]*f1001y[k]))
                 f1010Abs[k][i] =math.sqrt(abs(f1010x[k]*f1010y[k]))
                 f1001xArg[k][i]=np.angle(f1001x[k])%(2*np.pi)
@@ -535,8 +485,8 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
         #-- Output
         fwqw={}
         goodbpm=[]
-        for k in range(len(bpm)):
-    
+        for k in range(len(bpms)):
+            bname = bpms.index[k]
             #-- Bad BPM flag based on phase
             badbpm=0
             f1001xArgAve = phase.calc_phase_mean(f1001xArg[k],2*np.pi)
@@ -546,8 +496,6 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
             #This seems to be to conservative or somethings...
             if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
             if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
-            
-            
             #-- Output
 	    badbpm=0
             if badbpm==0:
@@ -561,9 +509,9 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
                 f1010AbsStd = math.sqrt(np.mean((f1010Abs[k]-f1010AbsAve)**2))
                 f1001ArgStd = phase.calc_phase_std(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
                 f1010ArgStd = phase.calc_phase_std(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
-                fwqw[bpm[k][1]] = [[f1001Ave          ,f1001AbsStd       ,f1010Ave          ,f1010AbsStd       ],
+                fwqw[bname] = [[f1001Ave          ,f1001AbsStd       ,f1010Ave          ,f1010AbsStd       ],
                                  [f1001ArgAve/(2*np.pi),f1001ArgStd/(2*np.pi),f1010ArgAve/(2*np.pi),f1010ArgStd/(2*np.pi)]]  #-- Phases renormalized to [0,1)
-                goodbpm.append(bpm[k])
+                goodbpm.append(bname)
                 
     #-- Global parameters not implemented yet
         
@@ -585,7 +533,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
         fwqw[key][0][2]=fwqw[key][0][2]/len(fqwList)
         fwqw[key][0][3]=fwqw[key][0][3]/len(fqwList)
     fwqw['Global']=['"null"','"null"']        
-    return [fwqw,goodbpm]
+    return [fwqw,bpms.loc[goodbpm]]
 
 def GetFreeIP2_Eq(MADTwiss, Files, Qd, Q, ac2bpmac, plane, accelerator, bpms, op):
 
