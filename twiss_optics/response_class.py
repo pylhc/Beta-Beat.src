@@ -36,9 +36,6 @@
                  Physical Review Accelerators and Beams, 20(5), 54801. (2017)
                  https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 """
-
-import json
-
 import numpy as np
 import pandas as pd
 
@@ -78,8 +75,8 @@ class TwissResponse(object):
     def __init__(self, varmap_or_seq_path, model_or_path, variables,
                  at_elements='bpms'):
 
-        LOG.info("Calculating TwissResponse.")
-        with timeit(lambda t: LOG.debug("  Total time TwissResponse: {:f}s".format(t))):
+        LOG.info("Initializing TwissResponse.")
+        with timeit(lambda t: LOG.debug("  Time initializing TwissResponse: {:f}s".format(t))):
             # Get input
             self._twiss = self._get_model_twiss(model_or_path)
             self._var_to_el = self._get_variable_mapping(varmap_or_seq_path)
@@ -540,14 +537,16 @@ class TwissResponse(object):
 
     def get_fullresponse(self, mapped=True):
         """ Returns all Response Matrices in a similar way as ``response_madx.py`` """
-        # get all optical parametets
-        tune = self.get_tune(mapped=mapped)
-        beta = self.get_beta(mapped=mapped, normalized=False)
-        disp = self.get_dispersion(mapped=mapped, normalized=False)
-        phase = self.get_phase(mapped=mapped)
-        couple = self.get_coupling(mapped=mapped)
-        bbeat = self.get_beta(mapped=mapped, normalized=True)
-        ndisp = self.get_dispersion(mapped=mapped, normalized=True)
+        LOG.debug("Calculating (if not present) parameters and returning fullresponse.")
+        with timeit(lambda t: LOG.debug("  Total time getting parameters: {:f}s".format(t))):
+            # get all optical parametets
+            tune = self.get_tune(mapped=mapped)
+            beta = self.get_beta(mapped=mapped, normalized=False)
+            disp = self.get_dispersion(mapped=mapped, normalized=False)
+            phase = self.get_phase(mapped=mapped)
+            couple = self.get_coupling(mapped=mapped)
+            bbeat = self.get_beta(mapped=mapped, normalized=True)
+            ndisp = self.get_dispersion(mapped=mapped, normalized=True)
 
         # merge tune to one
         q_df = tune["X"].append(tune["Y"])
