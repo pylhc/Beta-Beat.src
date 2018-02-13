@@ -112,7 +112,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             iterate_template = textfile.read()
         with open(lhc_instance.get_file("template.iterpandas.madx")) as textfile:
             iterpandas_template = textfile.read()
-        with open(lhc_instance.get_file("template.sequence.madx")) as textfile:
+        with open(lhc_instance.get_file("template.save_sequence.madx")) as textfile:
             sequence_template = textfile.read()
 
         crossing_on = "1" if lhc_instance.xing else "0"
@@ -136,7 +136,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             textfile.write(iterpandas_template % replace_dict)
 
         with open(os.path.join(output_path,
-                               "job.sequence.madx"), "w") as textfile:
+                               "job.save_sequence.madx"), "w") as textfile:
             textfile.write(sequence_template % replace_dict)
 
 

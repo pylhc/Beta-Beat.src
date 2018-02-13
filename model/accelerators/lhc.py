@@ -4,10 +4,10 @@ import re
 import json
 from collections import OrderedDict
 import numpy as np
-from Utilities import tfs_pandas
+from utils import tfs_pandas
 from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, get_commonbpm
-from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
-from Utilities import logging_tools
+from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
+from utils import logging_tools
 
 LOGGER = logging_tools.get_logger(__name__)
 CURRENT_DIR = os.path.dirname(__file__)
@@ -206,11 +206,11 @@ class Lhc(Accelerator):
                     "Select only one excitation type."
                 )
             if opt.acd:
-                self.excitation = LhcExcitationMode.ACD
+                self._excitation = LhcExcitationMode.ACD
             elif opt.adt:
-                self.excitation = LhcExcitationMode.ADT
+                self._excitation = LhcExcitationMode.ADT
             else:
-                self.excitation = LhcExcitationMode.FREE
+                self._excitation = LhcExcitationMode.FREE
 
             if opt.acd or opt.adt:
                 # "required"
@@ -226,64 +226,59 @@ class Lhc(Accelerator):
             self.optics_file = opt.get("optics", None)
 
             # for GetLLM
-            self.model = None
+            self.model_dir = None
+            self.model_tfs = None
             self.model_driven = None
             self.model_best_knowledge = None
             self.elements = None
             self.elements_centre = None
-            self.model_dir = None
             self.errordefspath = None
 
         self.verify_object()
 
-    def init_from_model_dir(self, model_dir):  # prints only for debugging
-        
-        LOGGER.info("=== ACCELERATOR CLASS FOR GETLLM ============")
-        
-        #LOGGER.info("class: {}".format(self.__name__))
-        LOGGER.info("Creating accelerator instance from model dir")
-
-
+    def init_from_model_dir(self, model_dir):
+        LOGGER.debug("Creating accelerator instance from model dir")
        
         self.model_dir = model_dir
         
-        self.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
-        LOGGER.info("  model path = " + os.path.join(model_dir, "twiss.dat"))
+        self.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"), index="NAME")
+        LOGGER.debug("  model path = " + os.path.join(model_dir, "twiss.dat"))
             
-        self._excitation = AccExcitationMode.FREE
         ac_filename = os.path.join(model_dir, "twiss_ac.dat")
         adt_filename = os.path.join(model_dir, "twiss_adt.dat")
-        
+
+        self._excitation = AccExcitationMode.FREE
         if os.path.isfile(ac_filename):
-            self.model_driven = tfs_pandas.read_tfs(ac_filename).set_index("NAME")
-            self.excitation = AccExcitationMode.ACD
+            self.model_driven = tfs_pandas.read_tfs(ac_filename, index="NAME")
+            self._excitation = AccExcitationMode.ACD
             driven_filename = ac_filename
             
         if os.path.isfile(adt_filename):
-            if self.excitation == AccExcitationMode.ACD:
-                raise AcceleratorDefinitionError("ADT as well as ACD models provided. What do you want? Please come back to me once you have made up your mind.")
+            if self._excitation == AccExcitationMode.ACD:
+                raise AcceleratorDefinitionError("ADT as well as ACD models provided."
+                                                 "Please choose only one.")
 
-            self.model_driven = tfs_pandas.read_tfs(adt_filename).set_index("NAME")
-            self.excitation = AccExcitationMode.ADT
+            self.model_driven = tfs_pandas.read_tfs(adt_filename, index="NAME")
+            self._excitation = AccExcitationMode.ADT
             driven_filename = adt_filename
         
-        
-        model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
-        if os.path.isfile(model_best_knowledge_path):
-            self.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
-            LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "OK"))
+        best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
+        if os.path.isfile(best_knowledge_path):
+            self.model_best_knowledge = tfs_pandas.read_tfs(best_knowledge_path, index="NAME")
+            LOGGER.debug("{:20s} [{:>10s}]".format("Best Knowledge Model", "OK"))
         else:
             self.model_best_knowledge = None
-            LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "NO"))
+            LOGGER.debug("{:20s} [{:>10s}]".format("Best Knowledge Model", "NO"))
             
         elements_path = os.path.join(model_dir, "twiss_elements.dat")
         if os.path.isfile(elements_path):
-            self.elements = tfs_pandas.read_tfs(elements_path).set_index("NAME")
+            self.elements = tfs_pandas.read_tfs(elements_path, index="NAME")
         else:
             raise AcceleratorDefinitionError("Elements twiss not found")
-        elements_path = os.path.join(model_dir, "twiss_elements_centre.dat")
-        if os.path.isfile(elements_path):
-            self.elements_centre = tfs_pandas.read_tfs(elements_path).set_index("NAME")
+
+        center_path = os.path.join(model_dir, "twiss_elements_centre.dat")
+        if os.path.isfile(center_path):
+            self.elements_centre = tfs_pandas.read_tfs(center_path, index="NAME")
         else:
             self.elements_centre = self.elements
         
@@ -292,22 +287,18 @@ class Lhc(Accelerator):
         self.nat_tune_x = float(self.model_tfs.headers["Q1"])
         self.nat_tune_y = float(self.model_tfs.headers["Q2"])
         
-        
-        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune X", "{:7.3f}".format(self.nat_tune_x)))
-        LOGGER.info("{:20s} [{:>10s}]".format("Natural Tune Y", "{:7.3f}".format(self.nat_tune_y)))
+        LOGGER.debug("{:20s} [{:10.3f}]".format("Natural Tune X", self.nat_tune_x))
+        LOGGER.debug("{:20s} [{:10.3f}]".format("Natural Tune Y", self.nat_tune_y))
     
         if self._excitation == AccExcitationMode.FREE:
-            LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "NO"))
+            LOGGER.debug("{:20s} [{:>10s}]".format("Excitation", "NO"))
         else:
             if self._excitation == AccExcitationMode.ACD:
-                LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ACD"))
+                LOGGER.debug("{:20s} [{:>10s}]".format("Excitation", "ACD"))
             elif self._excitation == AccExcitationMode.ADT:
-                LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ADT"))
-            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune X", "{:7.3f}".format(self.drv_tune_x)))
-            LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune Y", "{:7.3f}".format(self.drv_tune_y)))
-          
-        
-        LOGGER.info("===")
+                LOGGER.debug("{:20s} [{:>10s}]".format("Excitation", "ADT"))
+            LOGGER.debug("{:20s} [{:10.3f}]".format("> Driven Tune X", self.drv_tune_x))
+            LOGGER.debug("{:20s} [{:10.3f}]".format("> Driven Tune Y", self.drv_tune_y))
 
     @classmethod
     def init_and_get_unknowns(cls, args=None):
