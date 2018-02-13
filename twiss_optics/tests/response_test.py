@@ -5,7 +5,7 @@ import multiprocessing
 import os
 import random
 from collections import OrderedDict
-from correction.iterative.response_pandas import generate_fullresponse as generate_madx_resp
+from correction.iterative.response_madx import generate_fullresponse as generate_madx_resp
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,6 @@ from test_helpers import rms
 from test_helpers import error_meanabs as error_fun
 from twiss_optics.response_class import TwissResponse
 from twiss_optics.response_class import get_delta
-from twiss_optics.response_class import EXCLUDE_CATEGORIES_DEFAULT
 from twiss_optics import sequence_parser as seqparse
 
 LOG = logtool.get_logger(__name__)
@@ -35,6 +34,8 @@ N_MAGNETS = 10
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 DATA_RESP = os.path.join(DATA_DIR, "response")
 DATA_RESULT = os.path.join(DATA_DIR, "results")
+
+EXCLUDE_CATEGORIES_DEFAULT = ["LQ", "MCBH", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
 
 """
 =============================   Tests   =============================
@@ -570,8 +571,9 @@ def _get_twiss_delta(model_path, seqfile_path, variables_path, delta_k, exclude)
         LOG.info("Loaded TwissResponse '{:s}'".format(tr_path))
 
     else:
-        tr = TwissResponse(seqfile_path, model_path, variables_path,
-                           exclude_categories=exclude, at_elements="all").get_fullresponse()
+        variables = _read_variables(variables_path, exclude)
+        tr = TwissResponse(seqfile_path, model_path, variables,
+                           at_elements="all").get_fullresponse()
 
         iotools.create_dirs(os.path.dirname(tr_path))
         with open(tr_path, "wb") as tr_file:
@@ -818,6 +820,20 @@ def _not_nan_check(val, **kwargs):
         LOG.error(arg_str)
 
     return not isnan
+
+
+def _read_variables(varfile_path, exclude_categories):
+    """ Load variables list from json file """
+    LOG.debug("Loading variables from file {:s}".format(varfile_path))
+
+    with open(varfile_path, 'r') as varfile:
+        var_dict = json.load(varfile)
+
+    variables = []
+    for category in var_dict.keys():
+        if category not in exclude_categories:
+            variables += var_dict[category]
+    return list(set(variables))
 
 
 def renew_json_and_varmap(seqfile_path):
