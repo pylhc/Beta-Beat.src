@@ -10,7 +10,7 @@ import os
 import math
 import cPickle
 import multiprocessing
-import numpy
+import numpy as np
 import pandas
 
 from utils import tfs_pandas
@@ -19,6 +19,7 @@ from utils import logging_tools
 from utils.contexts import timeit
 from utils.iotools import create_dirs
 from utils.entrypoint import EntryPointParameters, entrypoint
+from twiss_optics.optics_class import TwissOptics
 
 
 LOG = logging_tools.get_logger(__name__)
@@ -175,12 +176,13 @@ def _load_madx_results(variables, process_pool, incr_dict, temp_dir):
 
 def _create_fullresponse_from_dict(var_to_twiss):
     """ Convert var-tfs dictionary to fullresponse dictionary """
+    var_to_twiss = _add_coupling(var_to_twiss)
     resp = pandas.Panel.from_dict(var_to_twiss)
     resp = resp.transpose(2, 0, 1)
     # After transpose e.g: resp[NDX, kqt3, bpm12l1.b1]
     # The magnet called "0" is no change (nominal model)
-    resp['NDX'] = resp.xs('DX', axis=0) / numpy.sqrt(resp.xs('BETX', axis=0))
-    resp['NDY'] = resp.xs('DY', axis=0) / numpy.sqrt(resp.xs('BETY', axis=0))
+    resp['NDX'] = resp.xs('DX', axis=0) / np.sqrt(resp.xs('BETX', axis=0))
+    resp['NDY'] = resp.xs('DY', axis=0) / np.sqrt(resp.xs('BETY', axis=0))
     resp['BBX'] = resp.xs('BETX', axis=0) / resp.loc['BETX', '0', :]
     resp['BBY'] = resp.xs('BETY', axis=0) / resp.loc['BETY', '0', :]
     resp = resp.subtract(resp.xs('0'), axis=1)
@@ -189,10 +191,18 @@ def _create_fullresponse_from_dict(var_to_twiss):
     resp = resp.div(resp.loc['incr', :, :])
     return {'MUX': resp.xs('MUX', axis=0),
             'MUY': resp.xs('MUY', axis=0),
+            'BETX': resp.xs('BETX', axis=0),
+            'BETY': resp.xs('BETY', axis=0),
             'BBX': resp.xs('BBX', axis=0),
             'BBY': resp.xs('BBY', axis=0),
+            'DX': resp.xs('DX', axis=0),
+            'DY': resp.xs('DY', axis=0),
             'NDX': resp.xs('NDX', axis=0),
             'NDY': resp.xs('NDY', axis=0),
+            "1001R": resp.xs('1001', axis=0).apply(np.real),
+            "1001I": resp.xs('1001', axis=0).apply(np.imag),
+            "1010R": resp.xs('1010', axis=0).apply(np.real),
+            "1010I": resp.xs('1010', axis=0).apply(np.imag),
             'Q': resp.loc[['Q1', 'Q2'], :, resp.minor_axis[0]]
             }
 
@@ -227,6 +237,16 @@ def _load_and_remove_twiss(var_and_path):
     os.remove(twissfile)
     return var, tfs_data
 
+
+def _add_coupling(dict_of_tfs):
+    """ Adds coupling to the tfs. QUICK FIX VIA LOOP!"""
+    with timeit(lambda t: LOG.debug("  Time adding coupling: {:f}s".format(t))):
+        for var in dict_of_tfs:
+            twopt = TwissOptics(dict_of_tfs[var], quick_init=True, keep_all_elem=True)
+            cpl = twopt.get_coupling("cmatrix")
+            dict_of_tfs[var]["1001"] = cpl["F1001"]
+            dict_of_tfs[var]["1010"] = cpl["F1010"]
+        return dict_of_tfs
 
 # Script Mode ##################################################################
 

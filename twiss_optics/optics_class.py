@@ -56,21 +56,27 @@ class TwissOptics(object):
 
     Args:
         model_path_or_df: Path to twissfile of model or DataFrame of model.
+        quick_init: Initializes without calculating phase advances. Default: False
     """
 
     ################################
     #       init Functions
     ################################
 
-    def __init__(self, model_path_or_df):
+    def __init__(self, model_path_or_df, quick_init=False, keep_all_elem=False):
         self.mad_twiss = self._get_model_df(model_path_or_df)
         self._ip_pos = self._find_ip_positions()
-        self.mad_twiss = self._remove_nonnecessaries()
+
+        if not keep_all_elem:
+            self.mad_twiss = self._remove_nonnecessaries()
 
         self._results_df = self._make_results_dataframe()
         self._elements = self._sort_element_types()
         self._elements_mapped = self._map_element_types()
-        self._phase_advance = get_phase_advances(self.mad_twiss)
+
+        self._phase_advance = None
+        if not quick_init:
+            self._phase_advance = self.get_phase_adv()
 
         self._plot_options = DotDict(PLOT_DEFAULTS)
 
@@ -170,6 +176,11 @@ class TwissOptics(object):
     #         Properties
     ################################
 
+    def get_phase_adv(self):
+        if self._phase_advance is None:
+            self._phase_advance = get_phase_advances(self.mad_twiss)
+        return self._phase_advance
+
     def get_coupling(self, method='rdt'):
         """ Returns the coupling term.
 
@@ -178,12 +189,18 @@ class TwissOptics(object):
                     'cmatrix' - Returns the values calculated by calc_cmatrix()
         """
         if method == 'rdt':
-            # Available after calc_rdts
-            return self._results_df[['S', 'F1001', 'F1010']]
+            try:
+                return self._results_df[['S', 'F1001', 'F1010']]
+            except KeyError:
+                self.calc_rdts(['F1001', 'F1010'])
+                return self._results_df[['S', 'F1001', 'F1010']]
         elif method == 'cmatrix':
-            # Available after calc_cmatrix
-            return self._results_df[['S', 'F1001_C', 'F1010_C']].rename(
-                columns=lambda x: x.replace("_C", ""))
+            try:
+                res_df = self._results_df[['S', 'F1001_C', 'F1010_C']]
+            except KeyError:
+                self.calc_cmatrix()
+                res_df = self._results_df[['S', 'F1001_C', 'F1010_C']]
+            return res_df.rename(columns=lambda x: x.replace("_C", ""))
         else:
             raise ValueError("method '{:s}' not recognized.".format(method))
 
@@ -290,14 +307,24 @@ class TwissOptics(object):
 
         Available after calc_cmatrix
         """
-        return self._results_df[['S', 'GAMMA_C']].rename(columns=lambda x: x.replace("_C", ""))
+        try:
+            return self._results_df[['S', 'GAMMA_C']].rename(columns=lambda x: x.replace("_C", ""))
+        except KeyError:
+            self.calc_cmatrix()
+            return self._results_df[['S', 'GAMMA_C']].rename(columns=lambda x: x.replace("_C", ""))
+
 
     def get_cmatrix(self):
         """ Return the C-Matrix
 
         Available after calc_cmatrix
         """
-        return self._results_df[['S', 'C11', 'C12', 'C21', 'C22']]
+        try:
+            return self._results_df[['S', 'C11', 'C12', 'C21', 'C22']]
+        except KeyError:
+            self.calc_cmatrix()
+            return self._results_df[['S', 'C11', 'C12', 'C21', 'C22']]
+
 
     ################################
     #   Resonance Driving Terms
@@ -324,7 +351,7 @@ class TwissOptics(object):
 
             i2pi = 2j * np.pi
             tw = self.mad_twiss
-            phs_adv = self._phase_advance
+            phs_adv = self.get_phase_adv()
             res = self._results_df
 
             for rdt in order:
@@ -386,7 +413,13 @@ class TwissOptics(object):
         if rdt_names:
             if not isinstance(rdt_names, list):
                 rdt_names = [rdt_names]
-            return self._results_df[["S"] + [rdt.upper() for rdt in rdt_names]]
+            rdt_names = [rdt.upper() for rdt in rdt_names]
+            try:
+                return self._results_df.loc[:, ["S"] + rdt_names]
+            except KeyError:
+                self.calc_rdts(rdt_names)
+                return self._results_df.loc[:, ["S"] + rdt_names]
+
         else:
             return self._results_df.loc[:, regex_in(r'\A(S|F\d{4})$', self._results_df.columns)]
 
@@ -428,7 +461,7 @@ class TwissOptics(object):
         Eq. 24 in [2]
         """
         tw = self.mad_twiss
-        phs_adv = self._phase_advance
+        phs_adv = self.get_phase_adv()
         res = self._results_df
         coeff_fun = self._linear_dispersion_coeff
         sum_fun = self._linear_dispersion_sum
@@ -505,7 +538,12 @@ class TwissOptics(object):
 
         Available after calc_linear_dispersion!
         """
-        return self._results_df.loc[:, ["S", "DX", "DY"]]
+        try:
+            return self._results_df.loc[:, ["S", "DX", "DY"]]
+        except KeyError:
+            self.calc_linear_dispersion()
+            return self._results_df.loc[:, ["S", "DX", "DY"]]
+
 
     def plot_linear_dispersion(self, combined=True):
         """ Plot the Linear Dispersion.
@@ -634,7 +672,12 @@ class TwissOptics(object):
 
         Available after calc_linear_chromaticity
         """
-        return self._results_df.DQ1, self._results_df.DQ2
+        try:
+            return self._results_df.DQ1, self._results_df.DQ2
+        except AttributeError:
+            self.calc_linear_chromaticity()
+            return self._results_df.DQ1, self._results_df.DQ2
+
 
     ################################
     #     Chromatic Beating
@@ -647,7 +690,7 @@ class TwissOptics(object):
         """
         tw = self.mad_twiss
         res = self._results_df
-        phs_adv = self._phase_advance
+        phs_adv = self.get_phase_adv()
 
         if 'CHROMX' not in res:
             self._calc_chromatic_term()
@@ -676,7 +719,11 @@ class TwissOptics(object):
 
          Available after calc_chromatic_beating
          """
-        return self._results_df.loc[:, ["S", "DBEATX", "DBEATY"]]
+        try:
+            return self._results_df.loc[:, ["S", "DBEATX", "DBEATY"]]
+        except KeyError:
+            self.calc_chromatic_beating()
+            return self._results_df.loc[:, ["S", "DBEATX", "DBEATY"]]
 
     def plot_chromatic_beating(self, combined=True):
         """ Plot the Chromatic Beating
