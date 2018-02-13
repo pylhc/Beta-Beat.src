@@ -108,8 +108,13 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def _prepare_fullresponse(cls, lhc_instance, output_path):
-        with open(lhc_instance.get_file("fullresponse.madx")) as textfile:
-            fullresponse_template = textfile.read()
+        with open(lhc_instance.get_file("template.iterate.madx")) as textfile:
+            iterate_template = textfile.read()
+        with open(lhc_instance.get_file("template.iterpandas.madx")) as textfile:
+            iterpandas_template = textfile.read()
+        with open(lhc_instance.get_file("template.sequence.madx")) as textfile:
+            sequence_template = textfile.read()
+
         crossing_on = "1" if lhc_instance.xing else "0"
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
@@ -122,10 +127,17 @@ class LhcModelCreator(model_creator.ModelCreator):
             "CROSSING_ON": crossing_on,
         }
 
-        fullresponse_script = fullresponse_template % replace_dict
         with open(os.path.join(output_path,
                                "job.iterate.madx"), "w") as textfile:
-            textfile.write(fullresponse_script)
+            textfile.write(iterate_template % replace_dict)
+
+        with open(os.path.join(output_path,
+                               "job.iterpandas.madx"), "w") as textfile:
+            textfile.write(iterpandas_template % replace_dict)
+
+        with open(os.path.join(output_path,
+                               "job.sequence.madx"), "w") as textfile:
+            textfile.write(sequence_template % replace_dict)
 
 
 class LhcBestKnowledgeCreator(LhcModelCreator):

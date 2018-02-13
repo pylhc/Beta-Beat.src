@@ -9,9 +9,7 @@ These response matrices are used to calculate the corrections by the correction 
 import os
 import math
 import cPickle
-import argparse
 import multiprocessing
-import json
 import numpy
 import pandas
 
@@ -20,108 +18,80 @@ from madx import madx_wrapper
 from utils import logging_tools
 from utils.contexts import timeit
 from utils.iotools import create_dirs
+from utils.entrypoint import EntryPointParameters, entrypoint
 
-EXCLUDE_CATEGORIES_DEFAULT = ["LQ", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
 
 LOG = logging_tools.get_logger(__name__)
 
-"""
-================================= Parse Arguments ===========================================
-"""
+
+# Parameters ###################################################################
+
+def get_params():
+    """ Used Arguments """
+    params = EntryPointParameters()
+    params.add_parameter(flags=["-o", "--outfile"],
+                         help="Name of fullresponse file.",
+                         name="outfile_path",
+                         required=True,
+                         type=str)
+    params.add_parameter(flags=["-t", "--tempdir"],
+                         help=("Directory to store the temporary MAD-X files, "
+                               "it will default to the directory containing 'outfile'."),
+                         name="temp_dir",
+                         default=None,
+                         type=str)
+    params.add_parameter(flags=["-v", "--variables"],
+                         help="List of variables to use",
+                         name="variables",
+                         required=True,
+                         type=str)
+    params.add_parameter(flags=["-j", "--jobfile"],
+                         help="Name of the original MAD-X job file defining the sequence file.",
+                         name="original_jobfile_path",
+                         required=True,
+                         type=str)
+    params.add_parameter(flags=["-p", "--pattern"],
+                         help=("Pattern to be replaced in the MAD-X job file "
+                               "by the iterative script calls."),
+                         default="%CALL_ITER_FILE%",
+                         name="pattern",
+                         type=str)
+    params.add_parameter(flags=["-k", "--deltak"],
+                         help="delta K1L to be applied to quads for sensitivity matrix",
+                         default=0.00002,
+                         name="delta_k",
+                         type=float)
+    params.add_parameter(flags=["-n", "--num_proc"],
+                         help="Number of processes to use in parallel.",
+                         default=multiprocessing.cpu_count(),
+                         name="num_proc",
+                         type=int)
+    return params
 
 
-def _parse_args(args=None):
-    """ Parses the arguments, checks for valid input and returns options """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--outfile",
-                        help="Name of fullresponse file.",
-                        dest="outfile_path",
-                        required=True,
-                        type=str)
-    parser.add_argument("-t", "--tempdir",
-                        help=("Directory to store the temporary MAD-X files, "
-                              "it will default to the directory containing 'outfile'."),
-                        dest="temp_dir",
-                        default=None,
-                        type=str)
-    parser.add_argument("-v", "--variables",
-                        help="Path to file containing variable lists",
-                        dest="varfile_path",
-                        required=True,
-                        type=str)
-    parser.add_argument("-j", "--jobfile",
-                        help="Name of the original MAD-X job file defining the sequence file.",
-                        dest="original_jobfile_path",
-                        required=True,
-                        type=str)
-    parser.add_argument("-p", "--pattern",
-                        help=("Pattern to be replaced in the MAD-X job file "
-                              "by the iterative script calls."),
-                        default="%CALL_ITER_FILE%",
-                        dest="pattern",
-                        type=str)
-    parser.add_argument("-k", "--deltak",
-                        help="delta K1L to be applied to quads for sensitivity matrix",
-                        default=0.00002,
-                        dest="delta_k",
-                        type=float)
-    parser.add_argument("-n", "--num_proc",
-                        help="Number of processes to use in parallel.",
-                        default=multiprocessing.cpu_count(),
-                        dest="num_proc",
-                        type=int)
-    parser.add_argument("-e", "--exclude",
-                        help="Categories to be excluded in variables json-file",
-                        default=EXCLUDE_CATEGORIES_DEFAULT,
-                        dest="exclude_categories",
-                        type=str,
-                        nargs='+')
-
-    options = parser.parse_args(args)
-
-    if not options.temp_dir:
-        options.temp_dir = os.path.dirname(options.outfile)
-    create_dirs(options.temp_dir)
-
-    return options
+# Full Response Mad-X ##########################################################
 
 
-"""
-================================= FullResponse ===========================================
-"""
-
-
-def _generate_fullresponse(options):
+@entrypoint(get_params(), strict=True)
+def generate_fullresponse(opt):
     """ Generate a dictionary containing response matrices for
         Mu, BetaBeating, Dispersion and Tune and saves it to a file.
     """
     LOG.debug("Generating Fullresponse.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
-        variables = _get_variables_from_file(options.varfile_path, options.exclude_categories)
+        if not opt.temp_dir:
+            opt.temp_dir = os.path.dirname(opt.outfile)
+        create_dirs(opt.temp_dir)
 
-        process_pool = multiprocessing.Pool(processes=options.num_proc)
+        process_pool = multiprocessing.Pool(processes=opt.num_proc)
 
-        incr_dict = _generate_madx_jobs(variables, options)
-        _call_madx(process_pool, options.temp_dir, options.num_proc)
-        _clean_up(options.temp_dir, options.num_proc, options.outfile_path)
+        incr_dict = _generate_madx_jobs(opt.variables, opt)
+        _call_madx(process_pool, opt.temp_dir, opt.num_proc)
+        _clean_up(opt.temp_dir, opt.num_proc, opt.outfile_path)
 
-        var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, options.temp_dir)
+        var_to_twiss = _load_madx_results(opt.variables, process_pool, incr_dict, opt.temp_dir)
         fullresponse = _create_fullresponse_from_dict(var_to_twiss)
-    _save_fullresponse(options.outfile_path, fullresponse)
-
-
-def _get_variables_from_file(varfile_path, exclude_categories):
-    """ Load variables list from json file """
-    LOG.debug("Loading variables from file {:s}".format(varfile_path))
-
-    with open(varfile_path, 'r') as varfile:
-        var_dict = json.load(varfile)
-
-    variables = []
-    for category in var_dict.keys():
-        if category not in exclude_categories:
-            variables += var_dict[category]
-    return list(set(variables))
+    _save_fullresponse(opt.outfile_path, fullresponse)
 
 
 def _generate_madx_jobs(variables, options):
@@ -258,7 +228,10 @@ def _load_and_remove_twiss(var_and_path):
     return var, tfs_data
 
 
+# Script Mode ##################################################################
+
+
 if __name__ == '__main__':
     with timeit(lambda t:
                 LOG.debug("  Generated FullResponse in {:f}s".format(t))):
-        _generate_fullresponse(_parse_args())
+        generate_fullresponse(get_params())
