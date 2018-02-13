@@ -262,6 +262,8 @@ def _add_resonances_noise(lin_frame, plane, bpm_res):
     cols.remove('AMP' + uplane)
     noise_scaled = lin_frame.loc[:, 'NOISE'] / lin_frame.loc[:, 'AMP' + uplane]
     lin_frame.loc[:, "NOISE_SCALED"] = noise_scaled
+    if np.max(noise_scaled) == 0.0:  # Do not calculated errors when no noise was calculated (all zeros)
+        return lin_frame
     lin_frame.loc[:, "ERR_AMP" + uplane] = lin_frame.loc[:, 'NOISE']
     lin_frame.loc[:, "ERR_MU" + uplane] = _get_spectral_phase_error(
         lin_frame.loc[:, "AMP" + uplane],
@@ -291,7 +293,7 @@ def _get_spectral_phase_error(amplitude, noise):
     distributed phases. This is an approximation that should keep the error
     of the error below 20%.
     """
-    error = noise / (amplitude * 2 * np.pi)
+    error = noise / (np.where(amplitude > 0.0, amplitude, 1e-15) * 2 * np.pi)
     return np.where(error > 0.25, 0.3, error)
 
 
