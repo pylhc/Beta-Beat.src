@@ -67,35 +67,38 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         ``getphasex.out        getphasex_free.out        getphasex_free2.out``
         ``getphasey.out        getphasey_free.out        getphasey_free2.out``
 
-    :Parameters:
-        'getllm_d': GetllmData (In-param, values will only be read)
-            lhc_phase, accel and beam_direction are used.
-        'twiss_d': TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': TuneData (In/Out-param, values will be read and set)
-            Holds tunes and phase advances
+    Parameters:
+        getllm_d: the GetLLM_Data object including the accelerator class and the GetLLM options.
+        twiss_d: includes measurement files and tunes (natural and driven if applicable, both measrued values)
+        model: the model DataFrame representing the twiss parameters of the BPMs
+        model_driven: the driven model
+        elements: the model twiss with all the relevant elements
+        files_dict: the files dict object which holds the GetLLM output file objects
 
-    :Return: PhaseData, _TuneData
-        an instance of PhaseData with the result of this function
-        the same instance as param tune_d to indicate changes in the instance.
-        
+    Returns:
+        an instance of PhaseData filled with the results of this function.
+        phase_d.phase_advances_x/y: pands.Panel filled with measured phase advances their errors and the model phase
+        advances
+        tune_d: tune_d.qa / tune_d.qaf for a in [1,2] are the vertical and horizontal natural and driven tunes
+
+    Notes:
         The phase data will be a pandas.Panel with 3 dataframes ``MEAS``, ``MODEL``, ``ERRMEAS``
-        
+
         ``phase_d.phase_advances_free_x[MEAS]``:
-            
+
         +------++--------+--------+--------+--------+
         |      ||  BPM1  |  BPM2  |  BPM3  |  BPM4  | 
         +======++========+========+========+========+
-        | BPM1 ||   0    | phi_21 | phi_31 | phi_41 | 
+        | BPM1 ||   0    | phi_12 | phi_13 | phi_14 | 
         +------++--------+--------+--------+--------+
-        | BPM2 || phi_12 |    0   | phi_32 | phi_42 | 
+        | BPM2 || phi_21 |    0   | phi_23 | phi_24 | 
         +------++--------+--------+--------+--------+
-        | BPM3 || phi_13 | phi_23 |   0    | phi_43 | 
+        | BPM3 || phi_31 | phi_32 |   0    | phi_34 | 
         +------++--------+--------+--------+--------+
         
         The phase advance between BPM_i and BPM_j can be obtained via::
             
-            phi_ij = phase_advances.loc["MEAS", "BPM_i", "BPM_j"]
+            phi_ij = phi_j - phi_i = phase_advances.loc["MEAS", "BPM_j", "BPM_i"]
     '''
     # get common bpms
     phase_d = PhaseData()
@@ -413,93 +416,6 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
     return phase_advances
 
 #===================================================================================================
-# ac-dipole stuff
-#===================================================================================================
-
-def _get_free_phase(phase, tune_ac, tune, bpms, model_driven, model, plane):
-    '''
-    :Parameters:
-        'phase': dict
-            (bpm_name:string) --> (phase_list:[phi12,phstd12,phi13,phstd13,phmdl12,phmdl13,bn2])
-            phi13, phstd13, phmdl12 and phmdl13 are note used.
-    '''
-    if DEBUG:
-        print "Calculating free phase using model"
-    raise NotImplementedError("new phase table algortihm not yet implemented")
-    phasef = {}
-    phi = []
-
-    for bpm in bpms["NAME"]:
-        bn1 = bpm.upper()
-
-        phase_list = phase[bn1]
-        phi12 = phase_list[0]
-        phstd12 = phase_list[1]
-        bn2 = phase_list[6]
-        bn2s = model.S[model.indx[bn2]]
-        #model ac
-        if plane == "H":
-            ph_ac_m = model_driven.MUX[model_driven.indx[bn2]]-model_driven.MUX[model_driven.indx[bn1]]
-            ph_m = model.MUX[model.indx[bn2]]-model.MUX[model.indx[bn1]]
-        else:
-            ph_ac_m = model_driven.MUY[model_driven.indx[bn2]]-model_driven.MUY[mad_ac.indx[bn1]]
-            ph_m = model.MUY[model.indx[bn2]]-model.MUY[model.indx[bn1]]
-
-        # take care the last BPM
-        if bn1 == bpms[-1][1].upper():
-            ph_ac_m += tune_ac
-            ph_ac_m = ph_ac_m % 1
-            ph_m += tune
-            ph_m = ph_m % 1
-
-        phi12f = phi12-(ph_ac_m-ph_m)
-        phi.append(phi12f)
-        phstd12f = phstd12
-        phmdl12f = ph_m
-
-        phasef[bn1] = phi12f, phstd12f, phmdl12f, bn2, bn2s
-
-    mu = sum(phi)
-
-    return phasef, mu
-
-
-def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
-    '''
-    :Parameters:
-        'phase': dict
-            (bpm_name:string) --> (phase_list:[phi12,phstd12,phmdl12,bn1])
-            phmdl12 and bn1 are note used.
-    '''
-    if DEBUG:
-        print "Calculating free total phase using model"
-
-    first = bpms[0][1]
-
-    phasef = {}
-
-    for bpm in bpms:
-        bn2 = bpm[1].upper()
-
-        if plane == "H":
-            ph_ac_m = (mad_ac.MUX[mad_ac.indx[bn2]] - mad_ac.MUX[mad_ac.indx[first]]) % 1
-            ph_m = (mad_twiss.MUX[mad_twiss.indx[bn2]] - mad_twiss.MUX[mad_twiss.indx[first]]) % 1
-        else:
-            ph_ac_m = (mad_ac.MUY[mad_ac.indx[bn2]] - mad_ac.MUY[mad_ac.indx[first]]) % 1
-            ph_m = (mad_twiss.MUY[mad_twiss.indx[bn2]] - mad_twiss.MUY[mad_twiss.indx[first]]) % 1
-
-        phase_list = phase[bn2]
-        phi12 = phase_list[0]
-        phstd12 = phase_list[1]
-
-        phi12 = phi12-(ph_ac_m-ph_m)
-        phstd12 = phstd12
-
-        phasef[bn2] = phi12, phstd12, ph_m
-
-    return phasef
-
-#===================================================================================================
 # output
 #===================================================================================================
 
@@ -610,7 +526,7 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
 
 def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel):
     """Writes the phase advances to the first element into a file (get_phasetot_x/y.out). This replaces the calculation
-    of the total phase which was done before. Now all the phase advances between all the phases are calculated at once
+    of the total phase which was done before. Now all the phase advances between all the BPMs are calculated at once
     which reduces the get_totalphase step to just reading out the correct phase advances.
     """
     
