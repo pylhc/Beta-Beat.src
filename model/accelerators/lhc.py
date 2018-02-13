@@ -5,9 +5,11 @@ import json
 from collections import OrderedDict
 import numpy as np
 from Utilities import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element
+from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, get_commonbpm
 from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
+from Utilities import logging_tools
 
+LOGGER = logging_tools.get_logger(__name__)
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
 
@@ -90,7 +92,7 @@ class Lhc(Accelerator):
     def get_instance_parameters():
         params = EntryPointParameters()
         params.add_parameter(
-            flags=["--model_dir"],
+            flags=["--model_dir", "-m"],
             help="Path to model directory (loads tunes and excitation from model!).",
             name="model_dir",
             type=str,
@@ -229,7 +231,7 @@ class Lhc(Accelerator):
             self.model_best_knowledge = None
             self.elements = None
             self.elements_centre = None
-            self.modelpath = None
+            self.model_dir = None
             self.errordefspath = None
 
         self.verify_object()
@@ -238,8 +240,10 @@ class Lhc(Accelerator):
         
         LOGGER.info("=== ACCELERATOR CLASS FOR GETLLM ============")
         
-        LOGGER.info("class: {}".format(cls.__name__))
+        #LOGGER.info("class: {}".format(self.__name__))
         LOGGER.info("Creating accelerator instance from model dir")
+
+
        
         self.model_dir = model_dir
         
@@ -407,15 +411,17 @@ class Lhc(Accelerator):
                 "The accelerator definition is incomplete, beam " +
                 "has to be specified (--beam option missing?)."
             )
-        if self.optics_file is None:
-            raise AcceleratorDefinitionError(
-                "The accelerator definition is incomplete, optics "
-                "file has not been specified."
-            )
+        if self.model_dir is None:  # is the class is used to create full response?
+            if self.optics_file is None:
+                raise AcceleratorDefinitionError(
+                    "The accelerator definition is incomplete, optics "
+                    "file or model directory has not been specified."
+                )
+            if self.xing is None:
+                raise AcceleratorDefinitionError("Crossing on or off not set.")
+
         if self.excitation is None:
             raise AcceleratorDefinitionError("Excitation mode not set.")
-        if self.xing is None:
-            raise AcceleratorDefinitionError("Crossing on or off not set.")
         if (self.excitation == LhcExcitationMode.ACD or
                 self.excitation == LhcExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:

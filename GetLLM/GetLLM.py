@@ -98,6 +98,7 @@ from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
 from Utilities import tfs_pandas
 from Utilities import logging_tools
+from Utilities.entrypoint import ArgumentError
 import pandas as pd
 from time import time
 
@@ -158,8 +159,6 @@ def print_time(index, t):
 def _parse_args(start_args=sys.argv[1:]):
     ''' Parses command line arguments. '''
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--modeldir", metavar="PATH_TO_DIR", dest="model_dir",
-                    help="Path to the model directory")
     parser.add_argument("-f", "--files",
                     help="Files from analysis, separated by comma",
                     metavar="FILES", default=FILES, dest="files")
@@ -226,44 +225,44 @@ def _parse_args(start_args=sys.argv[1:]):
                     metavar="TBTANA", default=None, dest="errordefspath")
     options, acc_args = parser.parse_known_args(args=start_args)
 
-    if os.path.isfile(options.model_dir):
-        LOGGER.info("model file given => will take containing folder as modelfolder.")
-        LOGGER.info("Did you use the old command line options?")
-        options.model_dir = os.path.dirname(options.model_dir)
 
     try:  # for transition
-        accel_cls = manager.get_accel_class(
+        accelerator = manager.get_accel_instance(
             acc_args
         )
-    except:
+    except SystemExit:
         LOGGER.warning("Loading accelerator class failed.")
         LOGGER.warning("Suppose that the old command line arguments were used")
         LOGGER.warning("and guess what the right accelerator might be")
         accParser = argparse.ArgumentParser()
         accParser.add_argument("-a", "--accel", dest="accel")
+        accParser.add_argument("-m", "--model", dest="modelpath")
 
-        accargs, rest_args = accParser.parse_known_args(start_args)
-        if accargs.accel == "LHCB1":
-            accel_cls = manager.get_accel_class([
-                "--accel", "lhc",
-                "--beam", "1",
-                "--lhcmode", "lhc_runII_2017"]
+        acc_opts, rest_args = accParser.parse_known_args(acc_args)
+        model_dir = os.path.dirname(acc_opts.modelpath)
+
+        if acc_opts.accel == "LHCB1":
+            accelerator = manager.get_accel_instance(
+                accel="lhc",
+                beam=1,
+                lhc_mode="lhc_runII_2017",
+                model_dir=model_dir
             )
-        elif accargs.accel == "LHCB2":
-            accel_cls = manager.get_accel_class([
-                "--accel", "lhc",
-                "--beam", "2",
-                "--lhcmode", "lhc_runII_2017"]
+        elif acc_opts.accel == "LHCB2":
+            accelerator = manager.get_accel_instance(
+                accel="lhc",
+                beam=2,
+                lhc_mode="lhc_runII_2017",
+                model_dir=model_dir
             )
         else:
             LOGGER.error("Cannot understand accelerator arguments")
             LOGGER.error("Given are:")
             LOGGER.error(sys.argv)
             raise SyntaxError("Could not parse arguments")
+    LOGGER.info(acc_args)
 
-    accelerator = accel_cls()
-    
-    return options, accel_cls
+    return options, accelerator
 
 
 #===================================================================================================
