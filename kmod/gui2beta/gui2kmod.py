@@ -7,6 +7,7 @@ new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__
 if new_path not in sys.path:
     sys.path.append(new_path)
 
+import __init__
 import numpy as np
 import Magnet_definitions
 import math
@@ -17,68 +18,63 @@ from Python_Classes4MAD import metaclass
 from make_fit_plots import plot_fitting
 from scipy.spatial import Delaunay
 import argparse
-from utils import tfs_file_writer
-from utils import outliers
+from Utilities import tfs_file_writer
+from Utilities import outliers
+
 from read_Timber_output import merge_data
 
 import KModUtilities
+
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 # TODO: (Long term) Think about the accelerator class here for positions and Ks
-# TODO: Short term kind of: Use a logger for logging
-# TODO: Short term kind of: Use tfs_pandas instead of metaclass
-# TODO: Think about removing short parameters (-b, -w, ...)
+# TODO: Short term: Use a logger for logging
+# TODO: Short term: Use tfs_pandas instead of metaclass
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--BetastarAndWaist',
+    parser.add_argument('--BetastarAndWaist',
                         help='Estimated beta star of measurements and waist shift',
                         action='store', type=str, dest='betastar')
-    parser.add_argument('-w', '--working_directory',
+    parser.add_argument('--working_directory',
                         help='path to working directory with stored KMOD measurement files',
                         action='store', type=str, dest='work_dir')
-    parser.add_argument('-c', '--cminus',
+    parser.add_argument('--cminus',
                         help='C Minus',
-                        action='store', type=float, dest='cminus', default=0)
-    parser.add_argument('-M', '--misalignment',
+                        action='store', type=float, dest='cminus', default=argparse.SUPPRESS)
+    parser.add_argument('--misalignment',
                         help='misalignment of the modulated quadrupoles in m',
-                        action='store', type=float, dest='misalign', default=0)
-    parser.add_argument('-K', '--errorK',
+                        action='store', type=float, dest='misalign', default=argparse.SUPPRESS)
+    parser.add_argument('--errorK',
                         help='error in K of the modulated quadrupoles, unit m^-2',
-                        action='store', type=float, dest='ek', default=0)
-    parser.add_argument('-T', '--Tuneuncertainty',
+                        action='store', type=float, dest='ek', default=argparse.SUPPRESS)
+    parser.add_argument('--Tuneuncertainty',
                         help='tune measurement uncertainty',
                         action='store', type=float, dest='tunemeasuncertainty', default=2.5e-5)
-    parser.add_argument('-e', '--beam',
+    parser.add_argument('--beam',
                         help='define beam used: b1 or b2',
                         action='store', type=str, dest='beam', choices=['b1', 'b2', 'B1', 'B2'], required=True)
-    parser.add_argument('-I', '--instruments',
+    parser.add_argument('--instruments',
                         help='define instruments (use keywords from twiss) at which beta should be calculated , separated by comma, e.g. MONITOR,RBEND,INSTRUMENT,TKICKER',
-                        action='store', type=str, dest='instruments')
-    parser.add_argument('-l', '--log',
+                        action='store', type=str, dest='instruments', default='MONITOR,SBEND,TKICKER,INSTRUMENT')
+    parser.add_argument('--log',
                         help='flag for creating a log file',
                         action='store_true', dest='log')
-    parser.add_argument('-n', '--noautoclean',
+    parser.add_argument('--noautoclean',
                         help='flag for manually cleaning data',
                         action='store_true', dest='a_clean')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-m', '--circuit',
+    group.add_argument( '--circuit',
                        help='circuit names of the modulated quadrupoles',
                        action='store', type=str, dest='magnets')
-    group.add_argument('-i', '--interaction_point',
+    group.add_argument( '--interaction_point',
                        help='define interaction point',
                        action='store', type=str, dest='ip', choices=['ip1', 'ip5', 'ip8', 'IP1', 'IP5', 'IP8'])
 
     options = parser.parse_args()
 
-    # TODO:
-    """
-    try:
-        intrs = options.instruments
-    except AttributeError:
-        instr = eve
-    """
     return options
 
 
@@ -226,18 +222,18 @@ def start_cleaning_data(k, tune_data, tune_data_err):
     return cc.return_clean_data()
 
 
-def automatic_cleaning_data(k,tune_data, tune_data_err, limit=1e-5):  
-    data = np.dstack((k, tune_data, tune_data_err))  
-    mask = outliers.get_filter_mask(tune_data, x_data=k, limit=limit)  
-    return data[0,mask,:]  
+def automatic_cleaning_data(k,tune_data, tune_data_err, limit=1e-5):
+    data = np.dstack((k, tune_data, tune_data_err))
+    mask = outliers.get_filter_mask(tune_data, x_data=k, limit=limit)
+    return data[0, mask, :]
 
 
 def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, ek, misalign,
-                         cminus, twiss, log, logfile):
+                         cminus, twiss, log, logfile, auto_clean):
 
     fitx_2, fitx_1, fity_2, fity_1, errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy = lin_fit_data(path, beam,
                                                                                                       working_directory,
-                                                                                                      magnet1, magnet2, log, logfile)
+                                                                                                      magnet1, magnet2, log, logfile, auto_clean)
 
     fitx_2 = fitx_2 * dK
     fitx_1 = fitx_1 * dK
@@ -250,7 +246,6 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_dir
         if log == True:
             logfile.write('Focussing magnet: %s  \n' % (magnet1))
             logfile.write('\n')
-
 
         fitx_foc = fitx_1
         fitx_def = fitx_2
@@ -315,7 +310,6 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_dir
 
     results.write_to_file()
 
-
     calc_beta_star(path, magnet1, magnet2, beam, twiss)
 
     for instr in instruments:
@@ -330,7 +324,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
 
     if Magnet_definitions.FindKeywordBetweenMagnets(magnet1, magnet2, instr, beam, twiss):
 
-        if log == True:
+        if log:
             logfile.write('%s found, calculating Betas\n' % (name))
 
         names, positions = Magnet_definitions.ReturnDataofBPMinBetweenMagnets(magnet1, magnet2, instr, beam, twiss)
@@ -385,16 +379,16 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
                 n += 1
 
         err_y = (abs(np.nanmax(beta_err_y, axis=0) - np.nanmin(beta_err_y, axis=0))) / 2.
-        
-        if name=='BPM':
+
+        if name == 'BPM':
             xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax.out' ))
         else:
             xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_X.out' % name))
         xdata.set_column_width(20)
         xdata.add_column_names(['NAME', 'S', 'COUNT', 'BETX', 'BETXSTD', 'BETXMDL', 'MUXMDL', 'BETXRES', 'BETXSTDRES'])
         xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
-        
-        if name=='BPM':
+
+        if name == 'BPM':
             ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay.out' ))
         else:
             ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_Y.out' % name))
@@ -409,9 +403,8 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
         ydata.write_to_file()
 
     else:
-        if log == True:
+        if log:
             logfile.write('No %s found in between magnets\n' % (name))
-
 
 
 def calc_beta_star(path, magnet1, magnet2, beam, twiss):
@@ -452,7 +445,7 @@ def calc_beta_star(path, magnet1, magnet2, beam, twiss):
         results_write.write_to_file()
 
 
-def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile):
+def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile, auto_clean):
     file_path_1 = working_directory + '/' + magnet1 + '.' + beam + '.dat'
     file_path_2 = working_directory + '/' + magnet2 + '.' + beam + '.dat'
 
@@ -469,7 +462,7 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile):
         cleaned_y1 = automatic_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
         cleaned_x2 = automatic_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
         cleaned_y2 = automatic_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
-    
+
     fitx_1, covx_1 = np.polyfit(cleaned_x1[:, 0], cleaned_x1[:, 1], 1, cov=True, w=1 / cleaned_x1[:, 2] ** 2)
     fity_1, covy_1 = np.polyfit(cleaned_y1[:, 0], cleaned_y1[:, 1], 1, cov=True, w=1 / cleaned_y1[:, 2] ** 2)
     fitx_2, covx_2 = np.polyfit(cleaned_x2[:, 0], cleaned_x2[:, 1], 1, cov=True, w=1 / cleaned_x2[:, 2] ** 2)
@@ -498,6 +491,7 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile):
     return fitx_2[0], fitx_1[0], fity_2[0], fity_1[
         0], errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy  # kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
 
+
 def returnmagnetname(circuit, beam, twiss):
     circuit = circuit.split('.')
 
@@ -510,6 +504,7 @@ def returnmagnetname(circuit, beam, twiss):
     magnet = Magnet_definitions.findQuadrupoleType(searchstring, beam, twiss)
     return magnet
 
+
 def returncircuitname(magnet, beam):
     magnet = magnet.split('.')
     number = magnet[1][0]
@@ -521,8 +516,36 @@ def returncircuitname(magnet, beam):
 
     return name
 
-def _i_am_main():
+
+def _main():
     options = parse_args()
+
+    IP_default_err = {'cminus': 0.0, 'misalign': 0.0, 'ek': 0.0}
+    Circuit_default_err = {'cminus': 0.0, 'misalign': 0.0, 'ek': 0.0}
+
+    if "cminus" not in options:
+        if options.ip is not None:
+            cminus = IP_default_err['cminus']
+        else:
+            cminus = Circuit_default_err['cminus']
+    else:
+        cminus = options.cminus
+
+    if "ek" not in options:
+        if options.ip is not None:
+            ek = IP_default_err['ek']
+        else:
+            ek = Circuit_default_err['ek']
+    else:
+        ek = options.ek
+
+    if "misalign" not in options:
+        if options.ip is not None:
+            misalign = IP_default_err['misalign']
+        else:
+            misalign = Circuit_default_err['misalign']
+    else:
+        misalign = options.misalign
 
     working_directory = options.work_dir
     beam = options.beam.upper()
@@ -533,21 +556,18 @@ def _i_am_main():
     bs = options.betastar
     bstar, waist = bs.split(",")
 
-    # TODO: Pass it to functions
-    auto_clean=options.a_clean
+    auto_clean = options.a_clean
     command = open(working_directory + '/command.run', 'a')
     command.write(str(' '.join(sys.argv)))
     command.write('\n')
     command.close()
-    
-    dir_path = os.path.dirname(os.path.realpath(__file__))
 
     if beam == 'B1':
-        twissfile = os.path.join(CURRENT_PATH, "sequences", "twiss_lhcb1.tfs")
+        twissfile = os.path.join(CURRENT_PATH, "sequences", "twiss_lhcb1.dat")
     else:
-        twissfile = os.path.join(CURRENT_PATH, "sequences", "twiss_lhcb2.tfs")
+        twissfile = os.path.join(CURRENT_PATH, "sequences", "twiss_lhcb2.dat")
     twiss = metaclass.twiss(twissfile)
-    
+
     if options.ip is not None:
         if options.ip == 'ip1' or options.ip == 'IP1':
             magnet1, magnet2 = 'MQXA.1L1', 'MQXA.1R1'
@@ -564,20 +584,21 @@ def _i_am_main():
         magnet2 = returnmagnetname(circuit2, beam, twiss)
 
     path = os.path.join(working_directory, magnet1 + '.' + magnet2 + '.' + beam)
-    
+
     if not os.path.exists(path):
         os.makedirs(path)
     if options.log == True:
-        logdata = open(path + '/data.log','w')
+        logdata = open(path + '/data.log', 'w')
 
     merge_data(working_directory, magnet1, returncircuitname(magnet1, beam), magnet2, returncircuitname(magnet2, beam),
                beam, options.ip, options.tunemeasuncertainty)
 
-    run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, options.ek,
-                         options.misalign, options.cminus, twiss, options.log, logdata)
+    run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, ek,
+                         misalign, cminus, twiss, options.log, logdata, auto_clean)
 
     logdata.close()
 
 
 if __name__ == '__main__':
-    _i_am_main()
+    _main()
+

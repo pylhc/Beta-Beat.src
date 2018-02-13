@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import scipy.optimize
+import argparse
 
 
 def equations(x, cminus, q1, q2):
@@ -23,14 +24,13 @@ def tune_error_from_coupling(cminus, Q1, Q2, dQ):
     q2 += dQ    
     
     if q1 < q2:
-	qtemp=q2        
-    	q2=q1
-    	q1=qtemp
+        qtemp = q2
+        q2 = q1
+        q1 = qtemp
 
     initial_conditions = np.array((q1, q2))
     qx1, qy1 = scipy.optimize.fsolve(lambda x: equations(x, cminus, q1, q2), initial_conditions)
-    
-   
+
     return ((abs(q1-q2) - abs(qx1 - qy1))/(abs(qx1-qy1)))
 
 
@@ -105,7 +105,6 @@ def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_f
         logfile.write('Betastar guess: %s, Waistshift guess: %s \n' %(beta_star_guess, waist_guess))
         logfile.write('\n')
 
-
     DQs = np.zeros([17, 6])
 
     DQs[0] = dq_foc, dq_def, k_foc, k_def, L_star, L_star
@@ -124,12 +123,11 @@ def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_f
     DQs[11] = dq_foc, dq_def, k_foc, k_def, L_star, L_star + m
     DQs[12] = dq_foc, dq_def, k_foc, k_def, L_star, L_star - m
 
-    DQs[13] = dq_foc + dq_foc * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star , L_star
-    DQs[14] = dq_foc - dq_foc * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star , L_star
+    DQs[13] = dq_foc + dq_foc * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star, L_star
+    DQs[14] = dq_foc - dq_foc * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star, L_star
     DQs[15] = dq_foc, dq_def + dq_def * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_def)), k_foc, k_def, L_star, L_star 
     DQs[16] = dq_foc, dq_def - dq_def * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_def)), k_foc, k_def, L_star, L_star 
-      
-    
+
     resb = np.zeros(17)
     resw = np.zeros(17)
 
@@ -177,3 +175,72 @@ def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_f
                         max(abs(resbavd[15] - resbavd[0]), abs(resbavd[16] - resbavd[0])) ** 2 )
 
     return label, resb[0], stdb, resw[0], stdw, resbavf[0], stdbavf, resbavd[0], stdbavd
+
+
+def parse_args():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--Tunes',
+                        help='Tune QX QY, separated by comma, default 0.31,0.32',
+                        action='store', type=str, dest='tune', default='0.31,0.32')
+    parser.add_argument('--Lstar',
+                        help='L star in m, default= 22.965',
+                        action='store', type=str, dest='lstar', default=22.965)
+    parser.add_argument('--misalignment',
+                        help='misalignment of the modulated quadrupoles in m',
+                        action='store', type=float, dest='misalign', default=0)
+    parser.add_argument('--K1',
+                        help='K of the quadrupole, separated by comma',
+                        action='store', type=str, dest='k1', default='0,0')
+    parser.add_argument('--DeltaK',
+                        help='DeltaK used during modulation, separated by comma',
+                        action='store', type=str, dest='dk', default='0,0')
+    parser.add_argument('--errorK',
+                        help='error in K of the modulated quadrupoles, unit m^-2',
+                        action='store', type=float, dest='ek', default=0)
+    parser.add_argument('--quadlength',
+                        help='length of the quadrupoles, separated by comma',
+                        action='store', type=str, dest='l', default='0,0')
+
+    parser.add_argument('--tuneshift',
+                        help='tuneshifts from focussing and defocusing quadrupole, separated by comma',
+                        action='store', type=str, dest='dq', default='0,0')
+
+    parser.add_argument('--tuneuncertainty',
+                        help='tune measurement uncertainty',
+                        action='store', type=float, dest='edq', default=2.5e-5)
+
+    parser.add_argument('--cminus',
+                        help='Coupling C-',
+                        action='store', type=float, dest='cmin', default=0)
+
+    parser.add_argument('--betastar',
+                        help='Guess for beta star',
+                        action='store', type=float, dest='bstar', default=0)
+
+    parser.add_argument('--waist',
+                        help='waistshift',
+                        action='store', type=float, dest='waist', default=0)
+
+    parser.add_argument('--label',
+                        help='measurement label',
+                        action='store', type=float, dest='label', default='')
+
+    options = parser.parse_args()
+
+    return options
+
+
+if __name__ == '__main__':
+    options = parse_args()
+
+    Q1, Q2 = options.tune.split(",")
+    k_foc, k_def = options.k1.split(",")
+    dk_foc, dk_def = options.dk.split(",")
+    ek_foc, ek_def = options.ek.split(",")
+
+    l_foc, l_def = options.l.split(",")
+    dq_foc, dq_def = options.dq.split(",")
+    edq_foc, edq_def = options.edq.split(",")
+
+    print(analysis(Q1, Q2, options.lstar, options.misalign, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_foc, edq_foc, dq_def, edq_def, ek_foc, ek_def, options.cmin, options.bstar, options.waist, options.label, False, None))

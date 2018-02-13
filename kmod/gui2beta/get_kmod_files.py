@@ -10,7 +10,7 @@ if new_path not in sys.path:
 import numpy as np
 from Python_Classes4MAD import metaclass
 from optparse import OptionParser
-from utils import tfs_file_writer
+from Utilities import tfs_file_writer
 import re
 
 
