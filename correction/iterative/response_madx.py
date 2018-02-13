@@ -232,6 +232,4 @@ def _load_and_remove_twiss(var_and_path):
 
 
 if __name__ == '__main__':
-    with timeit(lambda t:
-                LOG.debug("  Generated FullResponse in {:f}s".format(t))):
         generate_fullresponse(get_params())

@@ -51,7 +51,6 @@ from twiss_optics.twiss_functions import regex_in, upper
 
 LOG = logtool.get_logger(__name__)
 
-EXCLUDE_CATEGORIES_DEFAULT = ["LQ", "MCBH", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
 DUMMY_ID = "DUMMY_PLACEHOLDER"
 
 
@@ -78,21 +77,17 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, seqfile_path, modelfile_path, varfile_path,
-                 exclude_categories=None,
+    def __init__(self, seqfile_path, modelfile_path, variables,
                  at_elements='bpms'):
-
-        if exclude_categories is None:
-            exclude_categories = EXCLUDE_CATEGORIES_DEFAULT
 
         LOG.info("Calculating TwissResponse.")
         with timeit(lambda t: LOG.debug("  Total time TwissResponse: {:f}s".format(t))):
             # Get input
             self._twiss = self._get_model_twiss(modelfile_path)
-            self._variables = self._read_variables(varfile_path, exclude_categories)
             self._var_to_el = self._get_variable_mapping(seqfile_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
+            self._variables = variables
 
             # calculate all phase advances
             self._phase_advances = get_phase_advances(self._twiss)
@@ -136,20 +131,6 @@ class TwissResponse(object):
         # Add Dummy for Phase Calculations
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
         return model
-
-    @staticmethod
-    def _read_variables(varfile_path, exclude_categories):
-        """ Load variables list from json file """
-        LOG.debug("Loading variables from file {:s}".format(varfile_path))
-
-        with open(varfile_path, 'r') as varfile:
-            var_dict = json.load(varfile)
-
-        variables = []
-        for category in var_dict.keys():
-            if category not in exclude_categories:
-                variables += var_dict[category]
-        return list(set(variables))
 
     def _get_variable_mapping(self, seqfile_path):
         """ Get variable mapping as dictionary
@@ -555,7 +536,7 @@ class TwissResponse(object):
             return self._coupling
 
     def get_fullresponse(self, mapped=True):
-        """ Returns all Response Matrices in a similar way as ``response_pandas.py`` """
+        """ Returns all Response Matrices in a similar way as ``response_madx.py`` """
         # get all optical parametets
         tune = self.get_tune(mapped=mapped)
         beta = self.get_beta(mapped=mapped, normalized=False)

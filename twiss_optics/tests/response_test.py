@@ -5,7 +5,7 @@ import multiprocessing
 import os
 import random
 from collections import OrderedDict
-from correction.iterative.response_pandas import _generate_fullresponse as generate_madx_resp
+from correction.iterative.response_pandas import generate_fullresponse as generate_madx_resp
 
 import numpy as np
 import pandas as pd

@@ -34,7 +34,7 @@ import pandas as pd
 
 from madx import madx_wrapper  # noqa
 from utils import tfs_pandas as tfs  # noqa
-from utils import iotools  # noqa
+from utils.contexts import timeit
 from utils import logging_tools
 from utils.entrypoint import entrypoint, EntryPointParameters
 from model import manager  # noqa
@@ -47,7 +47,7 @@ DEV_NULL = os.devnull
 # Configuration ##################################################################
 
 
-_DEFAULTS = {
+DEFAULTS = {
     "optics_file": None,
     "output_path": None,
     "singular_value_cut": 0.01,
@@ -116,35 +116,35 @@ def _get_params():
         name="optics_params",
         type=str,
         nargs="*",
-        default=_DEFAULTS["optics_params"],
+        default=DEFAULTS["optics_params"],
     )
     params.add_parameter(
         flags="--optics_file",
         help=("Path to the optics file to use, usually modifiers.madx. If "
               "not present will default to model_path/modifiers.madx"),
         name="optics_file",
-        default=_DEFAULTS["optics_file"],
+        default=DEFAULTS["optics_file"],
     )
     params.add_parameter(
         flags="--output",
         help=("Path to the directory where to write the ouput files, will "
               "default to the --meas input path."),
         name="output_path",
-        default=_DEFAULTS["output_path"],
+        default=DEFAULTS["output_path"],
     )
     params.add_parameter(
         flags="--svd_cut",
         help="",  # TODO
         name="singular_value_cut",
         type=float,
-        default=_DEFAULTS["singular_value_cut"],
+        default=DEFAULTS["singular_value_cut"],
     )
     params.add_parameter(
         flags="--model_cut",
         help=("Reject BPMs whose deviation to the model is higher than the "
               "correspoding input. Input should be: Phase,Betabeat,NDx"),
         name="modelcut",
-        default=_DEFAULTS["modelcut"],
+        default=DEFAULTS["modelcut"],
     )
     params.add_parameter(
         flags="--error_cut",
@@ -153,7 +153,7 @@ def _get_params():
         name="errorcut",
         nargs="*",
         type=float,
-        default=_DEFAULTS["errorcut"],
+        default=DEFAULTS["errorcut"],
     )
     params.add_parameter(
         flags="--weights",
@@ -162,39 +162,39 @@ def _get_params():
         name="weights_on_quantities",
         nargs="*",
         type=float,
-        default=_DEFAULTS["weights_on_quantities"],
+        default=DEFAULTS["weights_on_quantities"],
     )
     params.add_parameter(
         flags="--use_errorbars",
         help=("If True, it will take into account the measured errorbars "
               "in the correction."),
         name="use_errorbars",
-        action="store_" + str(not _DEFAULTS["use_errorbars"]).lower(),
+        action="store_" + str(not DEFAULTS["use_errorbars"]).lower(),
     )
     params.add_parameter(
         flags="--variables",
         help="Comma separated names of the variables classes to use.",
-        name="variables",
-        default=_DEFAULTS["variables"],
+        name="variable_categories",
+        default=DEFAULTS["variables"],
     )
     params.add_parameter(
         flags="--beta_file_name",
         help="Prefix of the beta file to use. E.g.: getkmodbeta",
         name="beta_file_name",
-        default=_DEFAULTS["beta_file_name"],
+        default=DEFAULTS["beta_file_name"],
     )
     params.add_parameter(
         flags="--virt_flag",
         help="If true, it will use virtual correctors.",
         name="virt_flag",
-        action="store_" + str(not _DEFAULTS["virt_flag"]).lower(),
+        action="store_" + str(not DEFAULTS["virt_flag"]).lower(),
     )
     params.add_parameter(
         flags="--method",
         help="Optimization method to use.",
         name="method",
         type=str,
-        default=_DEFAULTS["method"],
+        default=DEFAULTS["method"],
         choices=["newton"]
     )
     params.add_parameter(
@@ -202,14 +202,14 @@ def _get_params():
         help="Maximum number of correction iterations to perform.",
         name="max_iter",
         type=int,
-        default=_DEFAULTS["num_reiteration"],
+        default=DEFAULTS["num_reiteration"],
     )
     params.add_parameter(
         flags="--eps",
         help="Convergence criterion. If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.",
         name="max_iter",
         type=float,
-        default=_DEFAULTS["eps"],
+        default=DEFAULTS["eps"],
     )
     params.add_parameter(
         flags="--debug",
@@ -228,7 +228,7 @@ def global_correction(opt, accel_opt):
     """ Do the global correction.
 
     Keyword Args:
-        variables: Comma separated names of the variables classes to use.
+        variable_categories: Comma separated names of the variables classes to use.
         errorcut: Reject BPMs whose error bar is higher than the correspoding input.
                   Input should be: Phase,Betabeat,NDx
         optics_file: Path to the optics file to use, usually modifiers.madx.
@@ -272,7 +272,7 @@ def global_correction(opt, accel_opt):
         # read data from files
         nominal_model = tfs.read_tfs(opt.model_twiss_path)
         full_response = _load_fullresponse(opt.fullresponse_path)
-        varslist = _get_varlist(accel_cls, opt.variables, opt.virt_flag)
+        varslist = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
 
         # apply filters to data
         optics_params, meas_dict = _scan_meas_dir(
@@ -295,13 +295,13 @@ def global_correction(opt, accel_opt):
                                    cut=opt.singular_value_cut)
         writeparams(deltas, varslist, opt.output_path)
 
-        for i in range(opt.max_iter):
-            LOG.debug("Running MADX, iteration {:d} of {:d}".format(i + 1, opt.max_iter))
+        for idx in range(opt.max_iter):
+            LOG.debug("Running MADX, iteration {:d} of {:d}".format(idx + 1, opt.max_iter))
 
             madx_script = _create_madx_script(accel_cls, nominal_model, opt.optics_file,
                                               template_file_path, opt.output_path)
             _callMadx(madx_script)  # TODO
-            new_model_path = os.path.join(opt.output_path, "twiss_" + str(i) + ".dat")
+            new_model_path = os.path.join(opt.output_path, "twiss_" + str(idx) + ".dat")
             shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"),
                          new_model_path)
             new_model = tfs.read_tfs(new_model_path)
