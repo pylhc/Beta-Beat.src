@@ -77,14 +77,14 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, seqfile_path, modelfile_path, variables,
+    def __init__(self, varmap_or_seq_path, model_or_path, variables,
                  at_elements='bpms'):
 
         LOG.info("Calculating TwissResponse.")
         with timeit(lambda t: LOG.debug("  Total time TwissResponse: {:f}s".format(t))):
             # Get input
-            self._twiss = self._get_model_twiss(modelfile_path)
-            self._var_to_el = self._get_variable_mapping(seqfile_path)
+            self._twiss = self._get_model_twiss(model_or_path)
+            self._var_to_el = self._get_variable_mapping(varmap_or_seq_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
             self._variables = variables
@@ -117,10 +117,15 @@ class TwissResponse(object):
             self._dispersion_mapped_norm = None
 
     @staticmethod
-    def _get_model_twiss(modelfile_path):
+    def _get_model_twiss(model_or_path):
         """ Load model, but keep only BPMs and Magnets """
-        LOG.debug("Loading Model from file '{:s}'".format(modelfile_path))
-        model = tfs.read_tfs(modelfile_path).set_index('NAME')
+        try:
+            model = tfs.read_tfs(model_or_path, index="NAME")
+        except TypeError:
+            LOG.debug("Received model as DataFrame")
+            model = model_or_path
+        else:
+            LOG.debug("Loaded Model from file '{:s}'".format(model_or_path))
 
         # Remove not needed Stuff
         LOG.debug("Removing non-necessary entries:")
@@ -132,14 +137,14 @@ class TwissResponse(object):
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
         return model
 
-    def _get_variable_mapping(self, seqfile_path):
+    def _get_variable_mapping(self, varmap_or_seq_path):
         """ Get variable mapping as dictionary
 
         Define _variables first!
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
-        mapping = sequence_parser.load_or_parse_variable_mapping(seqfile_path, "dictionary")
+        mapping = sequence_parser.load_or_parse_variable_mapping(varmap_or_seq_path, "dictionary")
 
         for order in ("K0L", "K0SL", "K1L", "K1SL"):
             if order not in mapping:
