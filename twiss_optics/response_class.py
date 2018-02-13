@@ -61,12 +61,10 @@ class TwissResponse(object):
     """ Provides Response Matrices calculated from sequence, model and given variables.
 
     Args:
-        seqfile_path: Path to sequence file. If there is a pre-parsed .varmap file in the same
+        varmap_or_seq_path: Path to sequence file. If there is a pre-parsed .varmap file in the same
             folder, it will use this one. (Hence, can also be the path to this file)
-        modelfile_path: Path to twiss-model file
-        varfile_path: Path to json file containing the variable-names
-        exclude_categories: Names of the categories to exclude in varfile.
-            Defaults to hardcoded list if not given or 'None'. To allow all use empty list!
+        model_or_path: Path to twiss-model file, or model
+        variables: List of variable-names
         at_elements (str): Get response matrix for these elements. Can be:
             'bpms': All BPMS (Default)
             'bpms+': BPMS+ used magnets (== magnets defined by variables in varfile)
