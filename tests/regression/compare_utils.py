@@ -77,8 +77,3 @@ class _MyDircmp(filecmp.dircmp):
 
 class _DifferFound(Exception):
     pass
-
-
-if __name__ == "__main__":
-    import sys
-    compare_dirs_with(None, sys.argv[1], sys.argv[2])

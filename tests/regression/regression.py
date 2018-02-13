@@ -6,13 +6,15 @@ import traceback
 import contextlib
 import tempfile
 import shutil
+from cStringIO import StringIO
 from collections import namedtuple
 import re
 import git
 
 
 _THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-_TEST_REGEXP = "^before.*$"
+_TEST_REGEXP = "^test_.*$"
+_PYTHON = sys.executable
 
 
 class TestCase(namedtuple(
@@ -45,8 +47,8 @@ def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
     with _temporary_dir() as new_repo_path:
         print("Cloning repository into {}".format(new_repo_path))
         clone_revision(repo_path, test_tag.commit.hexsha, new_repo_path)
-        print("\n################# Start test cases #################")
-        find_regressions(test_cases, new_repo_path, repo_path)
+        result = find_regressions(test_cases, new_repo_path, repo_path)
+    sys.exit(result)
 
 
 def find_regressions(test_cases, valid_path, test_path):
@@ -63,31 +65,17 @@ def find_regressions(test_cases, valid_path, test_path):
         test_path: Path to the directory to be tested for regressions.
     """
     results = []
+    print("Testing...: ", end="")
     for test_case in test_cases:
-        try:
-            result = TestResult(
-                result=run_test_case(test_case, valid_path, test_path),
-                is_error=False
-            )
-        # Sorry pylint, but I have to capture every exception:
-        except:  # pylint: disable=W0702
-            result = TestResult(
-                result=traceback.format_exc(),
-                is_error=True,
-            )
+        result = run_test_case(test_case, valid_path, test_path)
         results.append(result)
-        print(result.get_char(), end="")
+        print(result.get_microsummary(), end="")
     print("\n\n################### Test results ###################")
     report = ""
-    for result, test_case in zip(results, test_cases):
-        report += "Test {}: ".format(test_case.name)
-        if result.is_error:
-            report += "errored ->\n"
-            report += "{}".format(result.result)
-        else:
-            report += "succeeded" if result else "failed"
-        report += "\n\n"
+    for result in results:
+        report += result.get_full_summary()
     print(report)
+    return all(results)
 
 
 def run_test_case(test_case, valid_path, test_path):
@@ -102,16 +90,17 @@ def run_test_case(test_case, valid_path, test_path):
         valid_path: The reference directory to compare against.
         test_path: The test directory to check for regressions.
     Returns:
-        Whatever 'test_case.test_function' returns, usually a boolean.
+        TODO
     """
     valid_script = os.path.join(valid_path, test_case.script)
     test_script = os.path.join(test_path, test_case.script)
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
     try:
-        _launch_command(valid_script, test_case.arguments)
-        _launch_command(test_script, test_case.arguments)
-        result = test_case.test_function(valid_outpath, test_outpath)
+        valid_result = _launch_command(valid_script, test_case.arguments)
+        test_result = _launch_command(test_script, test_case.arguments)
+        result = TestResult(test_case, valid_result, test_result,
+                            valid_outpath, test_outpath)
     finally:
         _remove_if_exists(valid_outpath)
         _remove_if_exists(test_outpath)
@@ -174,23 +163,81 @@ class TestError(Exception):
 
 
 class TestResult(object):
-    """Hold the results of the tests.
-
-    Attributes:
-        result: The result of the test, either a boolean for success or fail,
-            or an string containing the stack trace of an Exception.
-        is_error: True only if the test errored.
     """
-    __slots__ = ("result", "is_error", "get_char")
+    TODO
+    """
 
-    def __init__(self, result, is_error):
-        self.result = result
-        self.is_error = is_error
+    RunResult = namedtuple("RunResult", ("stdout", "stderr", "raised"))
 
-    def get_char(self):
-        if self.is_error:
+    def __init__(self, test_case,
+                 valid_result, test_result, valid_output, test_output):
+        self.test_case = test_case
+        self.valid_result = valid_result
+        self.test_result = test_result
+        self.valid_output = valid_output
+        self.test_output = test_output
+        self._compare_stdout = None
+        self._compare_stderr = None
+        self._compare_error = None
+        self.is_exception = self.valid_result.raised or self.test_result.raised
+        self.is_regression = self._check_regression()
+        self.is_success = not self.is_exception and not self.is_regression
+
+    def get_microsummary(self):
+        """Returns a small summary: . -> success, F -> failed, E -> error.
+        """
+        if self.is_exception:
             return "E"
-        return "." if self.result else "F"
+        return "." if not self.is_regression else "F"
+
+    def get_full_summary(self):
+        """Returns a full summary of this tests result.
+        """
+        report = "-> Test {}: ".format(self.test_case.name)
+        if self.is_exception:
+            report += "errored\n"
+            if self._compare_error:
+                report += self._compare_error
+            else:
+                for name, run_res in (("Valid", self.valid_result),
+                                      ("Test", self.test_result)):
+                    if run_res.raised:
+                        report += "{} case execution failed.\n".format(name)
+                        if run_res.stdout != "":
+                            report += "Standard output:\n{}\n".format(run_res.stdout)
+                        if run_res.stderr != "":
+                            report += "Error output:\n{}\n".format(run_res.stderr)
+                        break
+        elif self.is_regression:
+            report += "failed, differences found.\n"
+            if self._compare_stdout != "":
+                report += "Standard output:\n{}\n".format(self._compare_stdout)
+            if self._compare_stderr != "":
+                report += "Error output:\n{}\n".format(self._compare_stderr)
+        else:
+            report += "succeeded\n"
+        report += "\n"
+        return report
+
+    def _check_regression(self):
+        if self.is_exception:
+            return True
+        try:
+            with _capture_output() as (stdout, stderr):
+                compare_res = not self.test_case.test_function(
+                    self.valid_output,
+                    self.test_output,
+                )
+                self._compare_stdout = stdout[:]
+                self._compare_stderr = stderr[:]
+            return compare_res
+        except:
+            self._compare_error = (
+                "An exception happened while comparing the directories:\n" +
+                traceback.format_exc()
+            )
+            self.is_exception = True
+            return True
 
 
 def _force_repo(repo):
@@ -200,9 +247,14 @@ def _force_repo(repo):
 
 
 def _launch_command(script, args):
-    # TODO: Not sure about this... but easiest way of capturing exceptions.
-    with _temporary_args(args.split(" ")):
-        execfile(script)
+    if isinstance(args, str):
+        args = args.split(" ")
+    comm = subprocess.Popen([_PYTHON] + [script] + args,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = comm.communicate()
+    raised = comm.returncode != 0
+    return TestResult.RunResult(stdout=stdout, stderr=stderr, raised=raised)
+
 
 def _remove_if_exists(dir_path):
     if os.path.isdir(dir_path):
@@ -217,11 +269,15 @@ def _temporary_dir():
     finally:
         shutil.rmtree(dir_path)
 
+
 @contextlib.contextmanager
-def _temporary_args(args):
-    old_args = sys.argv
+def _capture_output():
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
     try:
-        sys.argv = args
-        yield
+        sys.stdout = mystdout = StringIO()
+        sys.stderr = mystderr = StringIO()
+        yield mystdout.getvalue(), mystderr.getvalue()
     finally:
-        sys.argv = old_args
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
