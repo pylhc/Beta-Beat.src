@@ -402,12 +402,20 @@ class TwissResponse(object):
         el_out = self._elements_out
         tw = self._twiss
         disp = self._dispersion
+        beta = self.get_beta(mapped=False)
 
         self._dispersion_norm = dict.fromkeys(disp.keys())
         for plane in disp:
-            col = "BET" + plane[0]
-            self._dispersion_norm[plane] = disp[plane].div(
-                np.sqrt(tw.loc[el_out, col]), axis='index')
+            col_bet = "BET" + plane[0]
+            col_disp = "D" + plane[0]
+
+            nd_model = tw.loc[el_out, col_disp].div(
+                np.sqrt(tw.loc[el_out, col_bet]), axis='index')
+            nd_step = tw.loc[el_out, col_disp].add(disp[plane], axis='index').div(
+                tw.loc[el_out, col_bet].add(beta[plane[0]], axis='index')
+            )
+
+            self._dispersion_norm[plane] = nd_step - nd_model
 
     ################################
     #       Mapping
