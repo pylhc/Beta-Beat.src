@@ -77,7 +77,7 @@ def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
 
 def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d):
     """
-       Calculates phase free from excitation effect. 
+       Calculates phase free from excitation effect.
 
        Args:
            model (pandas.DataFrame): the model twiss file. Must have the names as index.
@@ -95,6 +95,7 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
                 MODEL: model phase advances between each element
                 MEAS: measured phase advances
                 ERRMEAS: the standard deviation of the measured values.
+
     """
     LOGGER.info("Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane))
     
