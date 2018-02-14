@@ -38,7 +38,7 @@ def _fake_test(args):
     _, output = args
     output = os.path.join(os.path.dirname(__file__), output)
     if not os.path.isdir(output):
-        os.mkdir(output)
+        os.makedirs(output)
     with open(os.path.join(output, "test_file.txt"), "w") as test_file:
         test_file.write("This is a file!")
 
