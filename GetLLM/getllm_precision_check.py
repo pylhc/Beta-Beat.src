@@ -15,11 +15,13 @@ from madx import madx_wrapper
 from drive import drive_runner
 from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
-from utils import iotools, ADDbpmerror
+from utils import iotools, ADDbpmerror, logging_tools
 from utils.contexts import silence
 from hole_in_one import hole_in_one
 from hole_in_one.io_handlers import input_handler as hio_input_handler
+from model import manager
 
+LOGGER = logging_tools.get_logger(__name__)
 
 HOR, VER = 0, 1
 PLANE_SUFFIX = {HOR: "x", VER: "y"}
@@ -29,6 +31,11 @@ FILES_PATH = os.path.abspath(os.path.join(THIS_DIR,
                                           "getllm_precision_check"))
 MADX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..",
                                          "binaries", "madx_dev"))
+
+FREE_BB_MAX = 0.25e-2  #  maximal bete beating error for free kick 0.25 %
+FREE_BB_PEAK_MAX = 0.5e-2  #  maximal bete beating peak error for free kick 0.5 %
+OK_FORMAT = "\33[38;2;0;255;0m"
+NOTOK_FORMAT = "\33[38;2;255;0;0m"
 
 MADX_SCRIPT = """
 title, "Tracking test for GetLLM";
@@ -198,6 +205,12 @@ def _parse_args():
         dest="addnoise",
         action="store_true",
     )
+    parser.add_argument(
+        "--nosilent",
+        help="Don't suppress output",
+        dest="nosilent",
+        action="store_true",
+    )
     return parser.parse_args()
 
 
@@ -245,6 +258,7 @@ def print_getllm_precision(options):
     else:
         output_dir = os.path.join(THIS_DIR, "test_getllm_" + time.strftime("%Y_%m_%d_%Hh_%Mm_%Ss"))
     _create_folders(output_dir, options)
+    
     if options.acd and options.adt:
         raise IOError(
             "ADT and AC-dipole are both set to 1. Please select only one"
@@ -254,7 +268,7 @@ def print_getllm_precision(options):
     _do_analysis(output_dir, options)
     _comprare_results(output_dir, options)
     _clean_up_files(output_dir, options)
-    print("Test finished")
+    LOGGER.info("Test finished")
 
 
 def _run_tracking_model(directory, options):
@@ -263,7 +277,7 @@ def _run_tracking_model(directory, options):
     if options.usetracking:
         if not os.path.exists(tbt_path):
             raise IOError("Tracking data '" + options.usetracking + "' not found!")
-        print("Using previously created model and tracking: " + options.usetracking)
+        LOGGER.info("Using previously created model and tracking: " + options.usetracking)
         return
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory, options)
@@ -357,27 +371,27 @@ def _get_madx_script(beam, directory, options):
 
 
 def _do_analysis(directory, options):
-    print("Performing analysis...")
+    LOGGER.info("Performing analysis...")
 
     if options.analyse == 'sussix':
-        print("    -> Running drive...")
+        LOGGER.info("    -> Running drive...")
         with silence():
             _run_drive(directory, options)
     else:
-        print("    -> Running hole_in_one...")
+        LOGGER.info("    -> Running hole_in_one...")
         with silence():
             _run_harpy(directory, options)
 
     tbt_path = _get_tbt_path(directory)
-    twiss_path = _get_twiss_path(directory)
     err_def_path = _copy_error_def_file(directory, options)
+    #shutil.copy(err_def_path)
 
-    print("    -> Running GetLLM...")
+    LOGGER.info("    -> Running GetLLM...")
     # with silence():
-    accel = "LHCB" + str(BEAM)
-    GetLLM.main(directory, tbt_path, twiss_path,
-                bpmu="mm", accel=accel, errordefspath=err_def_path)
-    print("")
+    accel = manager.get_accel_instance(accel="lhc", lhc_mode="lhc_runII_2016", beam=BEAM, model_dir=directory)
+    GetLLM.main(accel, directory, directory, tbt_path,
+                bpmu="mm")
+    LOGGER.info("")
 
 
 def _run_drive(directory, options):
@@ -475,6 +489,7 @@ def _move_nonmadx_files(directory, options):
     for f in os.listdir(directory):
         if (not os.path.isdir(os.path.join(directory, f))) and f.startswith('get') and f.endswith('.out'):
             shutil.move(os.path.join(directory, f), os.path.join(getllm_dir, f))
+            LOGGER.warning("move {} to {}".format(os.path.join(directory, f), os.path.join(getllm_dir, f)))
 
     # move all except for madx files into results folder
     if options.analyse == "sussix":
@@ -489,7 +504,8 @@ def _move_nonmadx_files(directory, options):
 
 
 def _copy_error_def_file(directory, options):
-    new_err_def_path = os.path.join(directory, "error_deff.txt")
+    new_err_def_path = os.path.join(directory, "error_deffs.txt")
+    LOGGER.warning("copying errordefs file to '{}'".format(new_err_def_path))
     iotools.copy_item(os.path.join(
         ERR_DEF_PATH, ERR_DEF_FILES[options.optics]
     ), new_err_def_path)
@@ -528,9 +544,9 @@ def _comprare_results(directory, options):
 
 def _print_results(directory, free=True):
     if free:
-        print("+++++++ Results for free files +++++++\n")
+        LOGGER.info("+++++++ Results for free files +++++++\n")
     else:
-        print("+++++++ Results for excited files +++++++\n")
+        LOGGER.info("+++++++ Results for excited files +++++++\n")
     meas_tunex = _get_tune_data(directory, HOR, free=free)
     meas_tuney = _get_tune_data(directory, VER, free=free)
     if free:
@@ -551,7 +567,7 @@ def _print_results(directory, free=True):
     _compare_amp_betas(ampbetax_data, ampbetay_data)
 
     _compare_coupling(directory, free=free)
-    print("++++++++++++++++++++++++++++++++++++++\n")
+    LOGGER.info("++++++++++++++++++++++++++++++++++++++\n")
 
 
 def _get_tune_data(directory, plane, free=True):
@@ -611,7 +627,7 @@ def _compare_coupling(directory, free=True):
 
     for i in range(0, len(diff_between_re)):
         error.append(np.sqrt(diff_between_re[i]**2 + diff_between_im[i]**2))
-    print("    Average difference of f1001: ", np.mean(error))
+    LOGGER.info("    Average difference of f1001: " + str(np.mean(error)))
 
 
 def _get_phase_data(directory, plane, free=True):
@@ -633,79 +649,94 @@ def _get_twiss_for_one_of(*paths):
 
 
 def _compare_tunes(meas_tunex, meas_tuney, model_qx, model_qy):
-    print("-> Tunes:")
+    LOGGER.info("-> Tunes:")
     value_tune_x, rms_tune_x = meas_tunex
     value_tune_y, rms_tune_y = meas_tuney
-    print("    Horizontal:")
-    print("    -Measured tune:", value_tune_x, "+-", rms_tune_x)
-    print("    -Design tune:", model_qx)
-    print("    Vertical:")
-    print("    -Measured tune:", value_tune_y, "+-", rms_tune_y)
-    print("    -Design tune:", model_qy)
-    print("")
+    LOGGER.info("    Horizontal:")
+    LOGGER.info("    -Measured tune:" + str(value_tune_x) +  "+-" + str(rms_tune_x))
+    LOGGER.info("    -Design tune:" + str(model_qx))
+    LOGGER.info("    Vertical:")
+    LOGGER.info("    -Measured tune:" + str(value_tune_y) + "+-" + str(rms_tune_y))
+    LOGGER.info("    -Design tune:" + str(model_qy))
+    LOGGER.info("")
 
 
 def _compare_nat_tunes(meas_tunex, meas_tuney, model_qx, model_qy):
-    print("-> Natural Tunes:")
+    LOGGER.info("-> Natural Tunes:")
     value_tune_x, rms_tune_x = meas_tunex
     value_tune_y, rms_tune_y = meas_tuney
-    print("    Horizontal:")
-    print("    -Measured natural tune:", value_tune_x, "+-", rms_tune_x)
-    print("    -Design natural tune:", model_qx)
-    print("    Vertical:")
-    print("    -Measured natural tune:", value_tune_y, "+-", rms_tune_y)
-    print("    -Design natural tune:", model_qy)
-    print("")
+    LOGGER.info("    Horizontal:")
+    LOGGER.info("    -Measured natural tune:" + str(value_tune_x) + "+-" + str(rms_tune_x))
+    LOGGER.info("    -Design natural tune:" + str(model_qx))
+    LOGGER.info("    Vertical:")
+    LOGGER.info("    -Measured natural tune:" + str(value_tune_y) + "+-" + str(rms_tune_y))
+    LOGGER.info("    -Design natural tune:" + str( model_qy))
+    LOGGER.info("")
 
+def _print_bb(rms_x_bb, peak_x_bb):
+    if rms_x_bb > FREE_BB_MAX:
+        form = NOTOK_FORMAT
+    else:
+        form = OK_FORMAT
+    LOGGER.info("    - RMS beating: {}{:.7f}\33[0m".format(form, rms_x_bb))
+    if abs(peak_x_bb) > FREE_BB_PEAK_MAX:
+        form = NOTOK_FORMAT
+    else:
+        form = OK_FORMAT
+    LOGGER.info("    -Peak beating: {}{:.7f}\33[0m".format(form, peak_x_bb))
 
 def _compare_betas(betax, betay):
-    print("-> Beta from phase:")
+    LOGGER.info("-> Beta from phase:")
     x_beta_beat = ((betax.BETX - betax.BETXMDL) /
                    betax.BETXMDL)
     y_beta_beat = ((betay.BETY - betay.BETYMDL) /
                    betay.BETYMDL)
-    print("    Horizontal:")
-    print("    -RMS beating:", np.std(x_beta_beat))
-    print("    -Peak beating:", x_beta_beat[np.argmax(np.abs(x_beta_beat))])
-    print("    Vertical:")
-    print("    -RMS beating:", np.std(y_beta_beat))
-    print("    -Peak beating:", y_beta_beat[np.argmax(np.abs(y_beta_beat))])
-    print("")
+
+    rms_x_bb = np.std(x_beta_beat)
+    peak_x_bb = x_beta_beat[np.argmax(np.abs(x_beta_beat))]
+    rms_y_bb = np.std(y_beta_beat)
+    peak_y_bb = y_beta_beat[np.argmax(np.abs(y_beta_beat))]
+
+    LOGGER.info("    Horizontal:")
+    _print_bb(rms_x_bb, peak_x_bb)
+    LOGGER.info("    Vertical:")
+    _print_bb(rms_y_bb, peak_y_bb)
+    LOGGER.info("")
 
 
 def _compare_amp_betas(ampbetax, ampbetay):
-    print("-> Beta from amplitude:")
+    LOGGER.info("-> Beta from amplitude:")
     x_beta_beat = ((ampbetax.BETX - ampbetax.BETXMDL) /
                    ampbetax.BETXMDL)
     y_beta_beat = ((ampbetay.BETY - ampbetay.BETYMDL) /
                    ampbetay.BETYMDL)
-    print("    Horizontal:")
-    print("    -RMS beating:", np.std(x_beta_beat))
-    print("    -Peak beating:", x_beta_beat[np.argmax(np.abs(x_beta_beat))])
-    print("    Vertical:")
-    print("    -RMS beating:", np.std(y_beta_beat))
-    print("    -Peak beating:", y_beta_beat[np.argmax(np.abs(y_beta_beat))])
-    print("")
+    LOGGER.info("    Horizontal:")
+    LOGGER.info("    -RMS beating:" + str(np.std(x_beta_beat)))
+    LOGGER.info("    -Peak beating:" + str(x_beta_beat[np.argmax(np.abs(x_beta_beat))]))
+    LOGGER.info("    Vertical:")
+    LOGGER.info("    -RMS beating:" + str(np.std(y_beta_beat)))
+    LOGGER.info("    -Peak beating:" + str(y_beta_beat[np.argmax(np.abs(y_beta_beat))]))
+    LOGGER.info("")
 
 
 def _compare_phases(phasex, phasey):
-    print("-> Phase:")
+    LOGGER.info("-> Phase:")
     x_phase_err = phasex.PHASEX - phasex.PHXMDL
     y_phase_err = phasey.PHASEY - phasey.PHYMDL
-    print("    Horizontal:")
-    print("    -RMS error:", np.std(x_phase_err))
-    print("    -Peak error:", x_phase_err[np.argmax(np.abs(x_phase_err))])
-    print("    Vertical:")
-    print("    -RMS error:", np.std(y_phase_err))
-    print("    -Peak error:", y_phase_err[np.argmax(np.abs(y_phase_err))])
-    print("")
+    LOGGER.info("    Horizontal:")
+    LOGGER.info("    -RMS error:" + str(np.std(x_phase_err)))
+    LOGGER.info("    -Peak error:" + str(x_phase_err[np.argmax(np.abs(x_phase_err))]))
+    LOGGER.info("    Vertical:")
+    LOGGER.info("    -RMS error:" + str(np.std(y_phase_err)))
+    LOGGER.info("    -Peak error:" + str(y_phase_err[np.argmax(np.abs(y_phase_err))]))
+    LOGGER.info("")
 
 
 def _clean_up_files(directory, options):
-    print('Cleaning up...')
+    LOGGER.info('Cleaning up...')
     if options.nodelete:
         _move_nonmadx_files(directory, options)
-        print("Output folder:", directory)
+        LOGGER.info("Output folder:" + directory)
     else:
         iotools.delete_item(directory)
 

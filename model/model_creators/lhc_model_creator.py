@@ -2,7 +2,7 @@ from __future__ import print_function
 import os
 import sys
 import logging
-from model.accelerators.lhc import LhcExcitationMode
+from model.accelerators.accelerator import AccExcitationMode
 import model_creator
 
 AFS_ROOT = "/afs"
@@ -28,9 +28,9 @@ class LhcModelCreator(model_creator.ModelCreator):
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
         use_acd = "1" if (lhc_instance.excitation ==
-                          LhcExcitationMode.ACD) else "0"
+                          AccExcitationMode.ACD) else "0"
         use_adt = "1" if (lhc_instance.excitation ==
-                          LhcExcitationMode.ADT) else "0"
+                          AccExcitationMode.ADT) else "0"
         crossing_on = "1" if lhc_instance.xing else "0"
         beam = lhc_instance.get_beam()
 
@@ -48,7 +48,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "QX": "", "QY": "", "QDX": "", "QDY": "",
         }
         if (lhc_instance.excitation in
-                (LhcExcitationMode.ACD, LhcExcitationMode.ADT)):
+                (AccExcitationMode.ACD, AccExcitationMode.ADT)):
             replace_dict["QX"] = lhc_instance.nat_tune_x
             replace_dict["QY"] = lhc_instance.nat_tune_y
             replace_dict["QDX"] = lhc_instance.drv_tune_x
@@ -144,7 +144,7 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
-        if lhc_instance.excitation is not LhcExcitationMode.FREE:
+        if lhc_instance.excitation is not AccExcitationMode.FREE:
             raise model_creator.ModelCreationError(
                 "Don't set ACD or ADT for best knowledge model."
             )

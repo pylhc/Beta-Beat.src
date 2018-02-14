@@ -2,8 +2,7 @@
 import os
 import numpy as np
 
-import sys
-from TIMBER import *
+
 from Python_Classes4MAD import metaclass
 from utils import tfs_file_writer
 
@@ -29,7 +28,7 @@ def merge_data(working_directory, magnet1, circuit1, magnet2, circuit2, beam, ip
             kdata = metaclass.twiss(os.path.join(working_directory, circuit + '_k.tfs'))
             K, Qx, Qxrms, Qy, Qyrms = pair(tdatax, tdatay, kdata, tunemeasprecision)
 
-            write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, magnet,beam)
+            write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, magnet, beam)
 
 
 def write_tfs_files(K, Qx, Qxrms, Qy, Qyrms, working_directory, magnet, beam):
