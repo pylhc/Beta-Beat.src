@@ -160,7 +160,7 @@ class Lhc(Accelerator):
         )
         params.add_parameter(
             flags=["--xing"],
-            help=("If True, x-ing  angles will be applied to model"),
+            help="If True, x-ing  angles will be applied to model",
             name="xing",
             action="store_true",
         )
@@ -193,28 +193,32 @@ class Lhc(Accelerator):
                 raise AcceleratorDefinitionError("Argument 'nat_tune_x' is required.")
             if opt.nat_tune_y is None:
                 raise AcceleratorDefinitionError("Argument 'nat_tune_y' is required.")
-            if opt.drv_tune_x is None:
-                raise AcceleratorDefinitionError("Argument 'drv_tune_x' is required.")
-            if opt.drv_tune_y is None:
-                raise AcceleratorDefinitionError("Argument 'drv_tune_x' is required.")
 
             self.nat_tune_x = opt.nat_tune_x
             self.nat_tune_y = opt.nat_tune_y
-            if opt.acd and opt.adt:
-                raise AcceleratorDefinitionError(
-                    "Select only one excitation type."
-                )
-            if opt.acd:
-                self._excitation = LhcExcitationMode.ACD
-            elif opt.adt:
-                self._excitation = LhcExcitationMode.ADT
-            else:
-                self._excitation = LhcExcitationMode.FREE
+
+            self.drv_tune_x = None
+            self.drv_tune_y = None
+            self._excitation = LhcExcitationMode.FREE
 
             if opt.acd or opt.adt:
-                # "required"
+                if opt.acd and opt.adt:
+                    raise AcceleratorDefinitionError(
+                        "Select only one excitation type."
+                    )
+
+                if opt.drv_tune_x is None:
+                    raise AcceleratorDefinitionError("Argument 'drv_tune_x' is required.")
+                if opt.drv_tune_y is None:
+                    raise AcceleratorDefinitionError("Argument 'drv_tune_x' is required.")
                 self.drv_tune_x = opt.drv_tune_x
                 self.drv_tune_y = opt.drv_tune_y
+
+                if opt.acd:
+                    self._excitation = LhcExcitationMode.ACD
+                elif opt.adt:
+                    self._excitation = LhcExcitationMode.ADT
+
             # optional with default
             self.dpp = opt.dpp
             self.fullresponse = opt.fullresponse
