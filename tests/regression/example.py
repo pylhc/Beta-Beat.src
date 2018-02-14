@@ -3,6 +3,7 @@ import os
 import regression
 import compare_utils
 
+ABS_ROOT = os.path.abspath(os.path.join("..", "..", os.path.dirname(__file__)))
 
 MYSELF = os.path.join("tests", "regression", "example.py")
 CURRENT_DIR = os.path.dirname(MYSELF)
@@ -27,16 +28,13 @@ TEST_CASES = (
 
 
 def launch_examples():
-    regression.launch_test_set(
-        TEST_CASES,
-        os.path.abspath(os.path.join("..", "..", os.path.dirname(__file__)))
-    )
+    regression.launch_test_set(TEST_CASES, ABS_ROOT)
 
 
 def _fake_test(args):
     # This should raise if len(args) > 2
     _, output = args
-    output = os.path.join(os.path.dirname(__file__), output)
+    output = os.path.join(ABS_ROOT, output)
     if not os.path.isdir(output):
         os.makedirs(output)
     with open(os.path.join(output, "test_file.txt"), "w") as test_file:
