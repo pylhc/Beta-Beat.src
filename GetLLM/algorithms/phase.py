@@ -19,10 +19,10 @@ import traceback
 import math
 import numpy as np
 import compensate_excitation
-from Utilities import tfs_file_writer
+from utils import tfs_file_writer
 from model.accelerators.accelerator import AccExcitationMode
 from constants import PI, TWOPI, kEPSILON
-from Utilities import logging_tools
+from utils import logging_tools
 
 import pandas as pd
 from time import time
@@ -555,4 +555,3 @@ def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x
                  model.loc[meas.index[i+1], plane_mu]
                 ])
     return tfs_file
-

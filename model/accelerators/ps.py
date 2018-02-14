@@ -7,7 +7,7 @@ import json
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from Utilities import tfs_pandas
+from utils import tfs_pandas
 from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
 from time import time
 

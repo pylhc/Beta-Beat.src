@@ -6,7 +6,7 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
 
-from Utilities import tfs_pandas
+from utils import tfs_pandas
 
 
 class _MetaTfsCollection(type):

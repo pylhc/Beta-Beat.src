@@ -12,8 +12,8 @@ import re
 import numpy as np
 import pandas as pd
 import itertools
-from Utilities import logging_tools as logtool
-from Utilities.contexts import timeit
+from utils import logging_tools as logtool
+from utils.contexts import timeit
 
 LOG = logtool.get_logger(__name__)
 

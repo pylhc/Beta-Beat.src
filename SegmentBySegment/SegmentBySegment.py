@@ -21,7 +21,7 @@ _bb_path = os.path.abspath(os.path.join(
 if _bb_path not in sys.path:
     sys.path.append(_bb_path)
 
-import Utilities.iotools
+import utils.iotools
 from model import manager, creator
 from model.accelerators.lhc import Lhc
 from model.accelerators.accelerator import Element
@@ -108,7 +108,7 @@ def main(accel_cls, options):
     input_data = _InputData(measurement_path, w_path)
 
     save_path = options.save + os.path.sep
-    Utilities.iotools.create_dirs(save_path)
+    utils.iotools.create_dirs(save_path)
 
     elements_data = options.segf.split(',')
     error_cut = float(options.cuts)
@@ -802,7 +802,7 @@ def _get_files_for_mad(save_path, element_name):
 def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, accel_instance):
     modifiers_file_path = os.path.join(twiss_directory, 'modifiers.madx')
     if os.path.isfile(modifiers_file_path):
-        Utilities.iotools.copy_item(modifiers_file_path, save_path)
+        utils.iotools.copy_item(modifiers_file_path, save_path)
     else:
         print("Cannot find modifiers.madx file, will create an empty file.")
         open(os.path.join(save_path, 'modifiers.madx'), "a").close()
@@ -816,7 +816,7 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, accel_in
     if not os.path.isfile(output_corrections_file_path):
         corrections_file_path = os.path.join(twiss_directory, "corrections_" + accel_instance.label + ".madx")
         if os.path.isfile(corrections_file_path):
-            Utilities.iotools.copy_item(corrections_file_path, save_path)
+            utils.iotools.copy_item(corrections_file_path, save_path)
         else:
             print("Cannot find corrections file, will create an empty file.")
             with open(os.path.join(save_path, "corrections_" + accel_instance.label + ".madx"), "a") as corrections_file:

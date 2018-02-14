@@ -15,8 +15,8 @@ from madx import madx_wrapper
 from drive import drive_runner
 from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
-from Utilities import iotools, ADDbpmerror, logging_tools
-from Utilities.contexts import silence
+from utils import iotools, ADDbpmerror, logging_tools
+from utils.contexts import silence
 from hole_in_one import hole_in_one
 from hole_in_one.io_handlers import input_handler as hio_input_handler
 from model import manager
@@ -388,7 +388,7 @@ def _do_analysis(directory, options):
 
     LOGGER.info("    -> Running GetLLM...")
     # with silence():
-    accel = manager.get_accel_class("lhc", lhc_mode="lhc_runII_2016", beam=BEAM).init_from_model_dir(directory)
+    accel = manager.get_accel_instance(accel="lhc", lhc_mode="lhc_runII_2016", beam=BEAM, model_dir=directory)
     GetLLM.main(accel, directory, directory, tbt_path,
                 bpmu="mm")
     LOGGER.info("")

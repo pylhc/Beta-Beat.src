@@ -22,14 +22,14 @@ import numpy as np
 from numpy import sin, cos, tan
 import re
 
-import Utilities.bpm
+import utils.bpm
 import phase
 from SegmentBySegment.SegmentBySegment import get_good_bpms
 from __builtin__ import raw_input
 from constants import PI, TWOPI, kEPSILON
 from SegmentBySegment.sbs_writers.sbs_phase_writer import FIRST_BPM_B1
 import pandas as pd
-from Utilities import logging_tools
+from utils import logging_tools
 
 LOGGER = logging_tools.get_logger(__name__)
 
@@ -660,8 +660,8 @@ def getkickac(MADTwiss_ac,files,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 
     dpp = []
 
-    all_bpms_x = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files[0]), MADTwiss_ac )
-    all_bpms_y = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files[1]), MADTwiss_ac )
+    all_bpms_x = utils.bpm.model_intersect(utils.bpm.intersect(files[0]), MADTwiss_ac )
+    all_bpms_y = utils.bpm.model_intersect(utils.bpm.intersect(files[1]), MADTwiss_ac )
 
     good_bpms_for_kick_x = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_x) )
     good_bpms_for_kick_y = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_y) )

@@ -17,7 +17,7 @@ from functools import partial
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from Utilities import outliers
+from utils import outliers
 
 try:
     from scipy.fftpack import fft as _fft

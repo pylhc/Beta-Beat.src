@@ -22,7 +22,7 @@ import pandas as pd
 
 from scipy.linalg import circulant
 import Python_Classes4MAD.metaclass
-import Utilities.bpm
+import utils.bpm
 #from GetLLM.GetLLMError import GetLLMError
 import compensate_excitation
 import os
@@ -31,8 +31,8 @@ import multiprocessing
 import time
 from constants import PI, TWOPI
 from model.accelerators.accelerator import AccExcitationMode
-from Utilities import tfs_pandas
-from Utilities import logging_tools
+from utils import tfs_pandas
+from utils import logging_tools
 
 __version__ = "2017.10.b"
 
@@ -43,7 +43,7 @@ LOGGER = logging_tools.get_logger(__name__)
 if DEBUG:
     import debug_algorithms as DBG
 #if False:
-#    from Utilities.progressbar import startProgress, progress, endProgress
+#    from utils.progressbar import startProgress, progress, endProgress
 #else:
 def startProgress(name):
     _info_("START " + name)
@@ -839,7 +839,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
+                arcbpms = utils.bpm.filterbpm(bpmsf)
                 for name in arcbpms.index:
                 #Skip BPM with strange data
                     if abs(beta_d.x_phase_f[name][0] / betaxf[name][0]) > 10:
@@ -939,7 +939,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
-                arcbpms = Utilities.bpm.filterbpm(bpmsf)
+                arcbpms = utils.bpm.filterbpm(bpmsf)
                 for name in arcbpms.index:
                     #Skip BPM with strange data
                     if abs(beta_d.y_phase_f[name][0] / betayf[name][0]) > 10:

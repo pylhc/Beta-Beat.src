@@ -19,8 +19,6 @@ import math
 import numpy as np
 from numpy import sin, cos
 
-import Utilities.bpm
-
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -300,4 +298,3 @@ def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP, bpms_zerodpp, bpms_no
         except:
             coi=0
     return [dco,bpms]
-

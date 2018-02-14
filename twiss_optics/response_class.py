@@ -41,9 +41,9 @@ import json
 import numpy as np
 import pandas as pd
 
-from Utilities import logging_tools as logtool
-from Utilities import tfs_pandas as tfs
-from Utilities.contexts import timeit
+from utils import logging_tools as logtool
+from utils import tfs_pandas as tfs
+from utils.contexts import timeit
 from twiss_optics import sequence_parser
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from twiss_optics.twiss_functions import regex_in, upper

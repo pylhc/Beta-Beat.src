@@ -1,6 +1,6 @@
 import os
 from accelerator import Accelerator
-from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
+from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
 PSB_DIR = os.path.join(CURRENT_DIR, "psbooster")

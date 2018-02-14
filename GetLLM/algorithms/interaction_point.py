@@ -18,11 +18,11 @@ import math
 
 import numpy as np
 from numpy import sin, cos, tan
-
-import Utilities.bpm
-import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
-from Utilities import logging_tools
+import utils.bpm
+from utils import logging_tools
+import compensate_excitation
+
 
 LOGGER = logging_tools.get_logger(__name__)
 
@@ -234,7 +234,7 @@ def _bpm_is_not_in_measured_data(bpm_name, measured):
 def _get_ip_2(mad_twiss, files, Q, plane, accel, bpms, lhc_phase):
     #-- Common BPMs
     beam_direction = accel.get_beam_direction()
-    
+
     #-- Loop for IPs
     result = {}
     for ip in ('1', '2', '5', '8'):

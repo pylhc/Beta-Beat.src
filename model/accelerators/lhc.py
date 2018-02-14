@@ -4,10 +4,9 @@ import re
 import json
 from collections import OrderedDict
 import numpy as np
-from Utilities import tfs_pandas
+from utils import logging_tools, tfs_pandas
 from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, get_commonbpm
-from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
-from Utilities import logging_tools
+from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 LOGGER = logging_tools.get_logger(__name__)
 CURRENT_DIR = os.path.dirname(__file__)
@@ -305,7 +304,11 @@ class Lhc(Accelerator):
                 LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ADT"))
             LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune X", "{:7.3f}".format(self.drv_tune_x)))
             LOGGER.info("{:20s} [{:>10s}]".format("> Driven Tune Y", "{:7.3f}".format(self.drv_tune_y)))
-          
+
+        self.errordefspath = None
+        errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
+        if os.path.exists(errordefspath):
+            self.errordefspath = errordefspath
         
         LOGGER.info("===")
 
@@ -571,7 +574,7 @@ class Lhc(Accelerator):
         """
 
         if self.errordefspath is None:
-            return os.path.join(self.modelpath, "error_deffs.txt")
+            return os.path.join(self.model_dir, "error_deffs.txt")
         else:
             return self.errordefspath
 

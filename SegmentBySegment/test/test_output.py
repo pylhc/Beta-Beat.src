@@ -16,9 +16,9 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 # Path 'x/Beta-Beat.src/SegmentBySegment/test'
 
 import __init__  # @UnusedImport init will include paths
-import Utilities.iotools
-import Utilities.ndiff
-import Utilities.tfs_comparator
+import utils.iotools
+import utils.ndiff
+import utils.tfs_comparator
 from madx import madxrunner
 from Python_Classes4MAD import metaclass
 
@@ -51,7 +51,7 @@ class TestOutput(unittest.TestCase):
 
     def testOutput(self):
         print "Start TestOutput of SBS"
-        run_dir_names = Utilities.iotools.get_all_dir_names_in_dir(TestOutput.path_to_input)
+        run_dir_names = utils.iotools.get_all_dir_names_in_dir(TestOutput.path_to_input)
         print run_dir_names
         for dir_name in run_dir_names:
             self._run_modified_file(dir_name)
@@ -78,20 +78,20 @@ class TestOutput(unittest.TestCase):
     def _valid_output_exists(self):
         """ True, if valid output available.
             Assuming that every subdir of path_to_valid is not empty."""
-        if Utilities.iotools.not_exists_directory(TestOutput.path_to_valid):
+        if utils.iotools.not_exists_directory(TestOutput.path_to_valid):
             return False
         is_valid = False
         for item in os.listdir(TestOutput.path_to_valid):
             abs_item = os.path.join(TestOutput.path_to_valid, item)
             if os.path.isdir(abs_item):
-                is_valid = Utilities.iotools.is_not_empty_dir(abs_item)
+                is_valid = utils.iotools.is_not_empty_dir(abs_item)
                 if not is_valid:
                     return False
         return True
 
     def _delete_modified_and_if_desired_valid_output(self):
         ''' Deletes content in path_to_valid and path_to_to_check. '''
-        Utilities.iotools.delete_content_of_dir(TestOutput.path_to_to_check)
+        utils.iotools.delete_content_of_dir(TestOutput.path_to_to_check)
 
     def _run_dir(self, path_to_out_run_dir_root, path_to_sbs, dir_name):
         arguments_list = self._prepare_and_get_arguments_list(path_to_out_run_dir_root, dir_name)
@@ -101,11 +101,11 @@ class TestOutput(unittest.TestCase):
     def _prepare_and_get_arguments_list(self, path_to_out_run_dir_root, dir_name):
         path_to_run_input = os.path.join(TestOutput.path_to_input, dir_name)
         path_to_run_output = os.path.join(path_to_out_run_dir_root, dir_name)
-        Utilities.iotools.create_dirs(path_to_run_output)
+        utils.iotools.create_dirs(path_to_run_output)
 
         args_dict = {}
         args_dict["--mad"] = madxrunner.get_sys_dependent_path_to_mad_x()
-        args_dict["--bbsource"] = Utilities.iotools.get_absolute_path_to_betabeat_root()
+        args_dict["--bbsource"] = utils.iotools.get_absolute_path_to_betabeat_root()
         args_dict["--path"] = path_to_run_input
         args_dict["--save"] = path_to_run_output
         args_dict["--twiss"] = os.path.join(path_to_run_input, "model", "twiss_elements.dat")
@@ -177,8 +177,8 @@ class TestOutput(unittest.TestCase):
                     valid_twiss = metaclass.twiss(valid_item)
                     to_check_twiss = metaclass.twiss(to_check_item)
                     sys.stderr = syserr
-                    self.assertTrue(Utilities.tfs_comparator.compare_tfs(valid_twiss, to_check_twiss, _MAX_RELATIVE_ERROR,
-                                                                         ignore_names=ignore_names),
+                    self.assertTrue(utils.tfs_comparator.compare_tfs(valid_twiss, to_check_twiss, _MAX_RELATIVE_ERROR,
+                                                                     ignore_names=ignore_names),
                                     "Difference found in file: " + to_check_item)
                 except:
                     raise
@@ -189,11 +189,11 @@ class TestOutput(unittest.TestCase):
         # sbsalfax_IP2.out has additional columns and need therefore a special config file
         files_to_config_files = {"sbsalfax_IP2.out": self._get_special_cfg_file()}
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir,
-                                                                                    file_to_config_file_dict=files_to_config_files),
+                        utils.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir,
+                                                                                file_to_config_file_dict=files_to_config_files),
                         "Directories not equal: " + valid_dir + " and " + to_check_dir
                         )
-        Utilities.iotools.delete_item(files_to_config_files["sbsalfax_IP2.out"])
+        utils.iotools.delete_item(files_to_config_files["sbsalfax_IP2.out"])
 
     def _get_special_cfg_file(self):
         cfg_str = "2-$ 0-8 any abs=1e-9 rel=1e-9 "

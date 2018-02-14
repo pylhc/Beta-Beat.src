@@ -1,7 +1,7 @@
 import sys
 import os
 from struct import pack
-from Utilities import logging_tools
+from utils import logging_tools
 
 LOGGER = logging_tools.get_logger(__name__)
 

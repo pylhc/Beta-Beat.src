@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import math
-from Utilities import tfs_file_writer
+from utils import tfs_file_writer
 from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 
 

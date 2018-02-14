@@ -11,9 +11,9 @@ import numpy as np
 from matplotlib import rcParams
 from matplotlib.backends.backend_pdf import PdfPages
 
-from Utilities import logging_tools
-from Utilities import tfs_pandas as tfs
-from Utilities.plotting import plot_style as ps
+from utils import logging_tools
+from utils import tfs_pandas as tfs
+from utils.plotting import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
 

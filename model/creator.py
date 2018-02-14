@@ -1,6 +1,6 @@
 import __init__
 import manager  # noqa
-from Utilities.entrypoint import EntryPointParameters, entrypoint
+from utils.entrypoint import EntryPointParameters, entrypoint
 from model_creators.lhc_model_creator import (  # noqa
     LhcModelCreator,
     LhcBestKnowledgeCreator,

@@ -1,6 +1,6 @@
-import argparse
+from utils.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
 from model.accelerators import lhc, ps, esrf, psbooster
-from Utilities.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
+
 
 ACCELS = {
     lhc.Lhc.NAME: lhc.Lhc,

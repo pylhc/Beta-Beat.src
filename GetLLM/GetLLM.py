@@ -83,7 +83,7 @@ import argparse
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
-import utils.tfs_file
+from tfs_utils_getllm import GetllmTfsFile
 import algorithms.helper
 import algorithms.phase
 import algorithms.beta
@@ -93,12 +93,12 @@ import algorithms.coupling
 import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
-import Utilities.iotools
+import utils.iotools
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
-from Utilities import tfs_pandas
-from Utilities import logging_tools
-from Utilities.entrypoint import ArgumentError
+from utils import tfs_pandas
+from utils import logging_tools
+from utils.entrypoint import ArgumentError
 import pandas as pd
 from time import time
 
@@ -493,67 +493,67 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
             GetllmTfsFile objects.
     '''
     # Static variable of GetllmTfsFile to save the outputfile, GetLLM version and model filename
-    utils.tfs_file.GetllmTfsFile.s_output_path = getllm_d.outputpath
-    utils.tfs_file.GetllmTfsFile.s_getllm_version = VERSION
-    utils.tfs_file.GetllmTfsFile.s_mad_filename = model_filename
+    GetllmTfsFile.s_output_path = getllm_d.outputpath
+    GetllmTfsFile.s_getllm_version = VERSION
+    GetllmTfsFile.s_mad_filename = model_filename
 
     files_dict = {}
-    files_dict['getphasex.out'] = utils.tfs_file.GetllmTfsFile('getphasex.out')
-    files_dict['getphasey.out'] = utils.tfs_file.GetllmTfsFile('getphasey.out')
-    files_dict['getphasetotx.out'] = utils.tfs_file.GetllmTfsFile('getphasetotx.out')
-    files_dict['getphasetoty.out'] = utils.tfs_file.GetllmTfsFile('getphasetoty.out')
-    files_dict['getphasex_free.out'] = utils.tfs_file.GetllmTfsFile('getphasex_free.out')
-    files_dict['getphasey_free.out'] = utils.tfs_file.GetllmTfsFile('getphasey_free.out')
-    files_dict['getphasex_free2.out'] = utils.tfs_file.GetllmTfsFile('getphasex_free2.out')
-    files_dict['getphasey_free2.out'] = utils.tfs_file.GetllmTfsFile('getphasey_free2.out')
-    files_dict['getphasetotx_free.out'] = utils.tfs_file.GetllmTfsFile('getphasetotx_free.out')
-    files_dict['getphasetoty_free.out'] = utils.tfs_file.GetllmTfsFile('getphasetoty_free.out')
-    files_dict['getphasetotx_free2.out'] = utils.tfs_file.GetllmTfsFile('getphasetotx_free2.out')
-    files_dict['getphasetoty_free2.out'] = utils.tfs_file.GetllmTfsFile('getphasetoty_free2.out')
-    files_dict['getbetax.out'] = utils.tfs_file.GetllmTfsFile('getbetax.out')
-    files_dict['getbetay.out'] = utils.tfs_file.GetllmTfsFile('getbetay.out')
-    files_dict['getbetax_free.out'] = utils.tfs_file.GetllmTfsFile('getbetax_free.out')
-    files_dict['getbetay_free.out'] = utils.tfs_file.GetllmTfsFile('getbetay_free.out')
-    files_dict['getbetax_free2.out'] = utils.tfs_file.GetllmTfsFile('getbetax_free2.out')
-    files_dict['getbetay_free2.out'] = utils.tfs_file.GetllmTfsFile('getbetay_free2.out')
-    files_dict['getampbetax.out'] = utils.tfs_file.GetllmTfsFile('getampbetax.out')
-    files_dict['getampbetay.out'] = utils.tfs_file.GetllmTfsFile('getampbetay.out')
-    files_dict['getampbetax_free.out'] = utils.tfs_file.GetllmTfsFile('getampbetax_free.out')
-    files_dict['getampbetay_free.out'] = utils.tfs_file.GetllmTfsFile('getampbetay_free.out')
-    files_dict['getampbetax_free2.out'] = utils.tfs_file.GetllmTfsFile('getampbetax_free2.out')
-    files_dict['getampbetay_free2.out'] = utils.tfs_file.GetllmTfsFile('getampbetay_free2.out')
-    files_dict['getCOx.out'] = utils.tfs_file.GetllmTfsFile('getCOx.out')
-    files_dict['getCOy.out'] = utils.tfs_file.GetllmTfsFile('getCOy.out')
-    files_dict['getNDx.out'] = utils.tfs_file.GetllmTfsFile('getNDx.out')
-    files_dict['getDx.out'] = utils.tfs_file.GetllmTfsFile('getDx.out')
-    files_dict['getDy.out'] = utils.tfs_file.GetllmTfsFile('getDy.out')
-    files_dict['getcouple.out'] = utils.tfs_file.GetllmTfsFile('getcouple.out')
+    files_dict['getphasex.out'] = GetllmTfsFile('getphasex.out')
+    files_dict['getphasey.out'] = GetllmTfsFile('getphasey.out')
+    files_dict['getphasetotx.out'] = GetllmTfsFile('getphasetotx.out')
+    files_dict['getphasetoty.out'] = GetllmTfsFile('getphasetoty.out')
+    files_dict['getphasex_free.out'] = GetllmTfsFile('getphasex_free.out')
+    files_dict['getphasey_free.out'] = GetllmTfsFile('getphasey_free.out')
+    files_dict['getphasex_free2.out'] = GetllmTfsFile('getphasex_free2.out')
+    files_dict['getphasey_free2.out'] = GetllmTfsFile('getphasey_free2.out')
+    files_dict['getphasetotx_free.out'] = GetllmTfsFile('getphasetotx_free.out')
+    files_dict['getphasetoty_free.out'] = GetllmTfsFile('getphasetoty_free.out')
+    files_dict['getphasetotx_free2.out'] = GetllmTfsFile('getphasetotx_free2.out')
+    files_dict['getphasetoty_free2.out'] = GetllmTfsFile('getphasetoty_free2.out')
+    files_dict['getbetax.out'] = GetllmTfsFile('getbetax.out')
+    files_dict['getbetay.out'] = GetllmTfsFile('getbetay.out')
+    files_dict['getbetax_free.out'] = GetllmTfsFile('getbetax_free.out')
+    files_dict['getbetay_free.out'] = GetllmTfsFile('getbetay_free.out')
+    files_dict['getbetax_free2.out'] = GetllmTfsFile('getbetax_free2.out')
+    files_dict['getbetay_free2.out'] = GetllmTfsFile('getbetay_free2.out')
+    files_dict['getampbetax.out'] = GetllmTfsFile('getampbetax.out')
+    files_dict['getampbetay.out'] = GetllmTfsFile('getampbetay.out')
+    files_dict['getampbetax_free.out'] = GetllmTfsFile('getampbetax_free.out')
+    files_dict['getampbetay_free.out'] = GetllmTfsFile('getampbetay_free.out')
+    files_dict['getampbetax_free2.out'] = GetllmTfsFile('getampbetax_free2.out')
+    files_dict['getampbetay_free2.out'] = GetllmTfsFile('getampbetay_free2.out')
+    files_dict['getCOx.out'] = GetllmTfsFile('getCOx.out')
+    files_dict['getCOy.out'] = GetllmTfsFile('getCOy.out')
+    files_dict['getNDx.out'] = GetllmTfsFile('getNDx.out')
+    files_dict['getDx.out'] = GetllmTfsFile('getDx.out')
+    files_dict['getDy.out'] = GetllmTfsFile('getDy.out')
+    files_dict['getcouple.out'] = GetllmTfsFile('getcouple.out')
     if nonlinear:
         for rdt in algorithms.resonant_driving_terms.RDT_LIST:
-            files_dict[rdt+'_line.out'] = utils.tfs_file.GetllmTfsFile(rdt+'_line.out')
-            files_dict[rdt+'.out'] = utils.tfs_file.GetllmTfsFile(rdt+'.out')
+            files_dict[rdt+'_line.out'] = GetllmTfsFile(rdt+'_line.out')
+            files_dict[rdt+'.out'] = GetllmTfsFile(rdt+'.out')
 #    if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
-    files_dict['getcouple_free.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free.out')
-    files_dict['getcouple_free2.out'] = utils.tfs_file.GetllmTfsFile('getcouple_free2.out')
-    files_dict['getcoupleterms.out'] = utils.tfs_file.GetllmTfsFile('getcoupleterms.out')
+    files_dict['getcouple_free.out'] = GetllmTfsFile('getcouple_free.out')
+    files_dict['getcouple_free2.out'] = GetllmTfsFile('getcouple_free2.out')
+    files_dict['getcoupleterms.out'] = GetllmTfsFile('getcoupleterms.out')
     #if "LHC" in getllm_d.accelerator.__name__:
-    files_dict['getIP.out'] = utils.tfs_file.GetllmTfsFile('getIP.out')
-    files_dict['getIPx.out'] = utils.tfs_file.GetllmTfsFile('getIPx.out')
-    files_dict['getIPy.out'] = utils.tfs_file.GetllmTfsFile('getIPy.out')
-    files_dict['getIPfromphase.out'] = utils.tfs_file.GetllmTfsFile('getIPfromphase.out')
-    files_dict['getIPx_free.out'] = utils.tfs_file.GetllmTfsFile('getIPx_free.out')
-    files_dict['getIPy_free.out'] = utils.tfs_file.GetllmTfsFile('getIPy_free.out')
-    files_dict['getIPx_free2.out'] = utils.tfs_file.GetllmTfsFile('getIPx_free2.out')
-    files_dict['getIPy_free2.out'] = utils.tfs_file.GetllmTfsFile('getIPy_free2.out')
-    files_dict['getIPfromphase_free.out'] = utils.tfs_file.GetllmTfsFile('getIPfromphase_free.out')
-    files_dict['getIPfromphase_free2.out'] = utils.tfs_file.GetllmTfsFile('getIPfromphase_free2.out')
+    files_dict['getIP.out'] = GetllmTfsFile('getIP.out')
+    files_dict['getIPx.out'] = GetllmTfsFile('getIPx.out')
+    files_dict['getIPy.out'] = GetllmTfsFile('getIPy.out')
+    files_dict['getIPfromphase.out'] = GetllmTfsFile('getIPfromphase.out')
+    files_dict['getIPx_free.out'] = GetllmTfsFile('getIPx_free.out')
+    files_dict['getIPy_free.out'] = GetllmTfsFile('getIPy_free.out')
+    files_dict['getIPx_free2.out'] = GetllmTfsFile('getIPx_free2.out')
+    files_dict['getIPy_free2.out'] = GetllmTfsFile('getIPy_free2.out')
+    files_dict['getIPfromphase_free.out'] = GetllmTfsFile('getIPfromphase_free.out')
+    files_dict['getIPfromphase_free2.out'] = GetllmTfsFile('getIPfromphase_free2.out')
 
-    files_dict["getsex3000.out"] = utils.tfs_file.GetllmTfsFile("getsex3000.out")
-    files_dict['getchi3000.out'] = utils.tfs_file.GetllmTfsFile('getchi3000.out')
-    files_dict['getchi1010.out'] = utils.tfs_file.GetllmTfsFile('getchi1010.out')
-    files_dict['getkick.out'] = utils.tfs_file.GetllmTfsFile('getkick.out')
-    files_dict['getkickphase.out'] = utils.tfs_file.GetllmTfsFile('getkickphase.out')
-    files_dict['getkickac.out'] = utils.tfs_file.GetllmTfsFile('getkickac.out')
+    files_dict["getsex3000.out"] = GetllmTfsFile("getsex3000.out")
+    files_dict['getchi3000.out'] = GetllmTfsFile('getchi3000.out')
+    files_dict['getchi1010.out'] = GetllmTfsFile('getchi1010.out')
+    files_dict['getkick.out'] = GetllmTfsFile('getkick.out')
+    files_dict['getkickphase.out'] = GetllmTfsFile('getkickphase.out')
+    files_dict['getkickac.out'] = GetllmTfsFile('getkickac.out')
 
     return files_dict
 # END _create_tfs_files -----------------------------------------------------------------------------
@@ -884,7 +884,7 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
             filename = 'getCOx_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.GetllmTfsFile(filename)
+            files_dict[filename] = GetllmTfsFile(filename)
             tfs_file = files_dict[filename]
             tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
@@ -908,7 +908,7 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
             list_with_single_twiss = []
             list_with_single_twiss.append(twiss_file)
             filename = 'getCOy_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = utils.tfs_file.GetllmTfsFile(filename)
+            files_dict[filename] = GetllmTfsFile(filename)
             tfs_file = files_dict[filename]
             tfs_file.add_filename_to_getllm_header(twiss_file.filename)
             tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
@@ -1059,8 +1059,8 @@ def _copy_calibration_files(output_path, calibration_dir_path):
         original_cal_file_path_y = os.path.join(calibration_dir_path, "calibration_y.out")
         cal_file_path_x = os.path.join(output_path, "calibration_x.out")
         cal_file_path_y = os.path.join(output_path, "calibration_y.out")
-        Utilities.iotools.copy_item(original_cal_file_path_x, cal_file_path_x)
-        Utilities.iotools.copy_item(original_cal_file_path_y, cal_file_path_y)
+        utils.iotools.copy_item(original_cal_file_path_x, cal_file_path_x)
+        utils.iotools.copy_item(original_cal_file_path_y, cal_file_path_y)
 
         calibration_twiss["X"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_x)
         calibration_twiss["Y"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_y)
@@ -1143,7 +1143,7 @@ class _GetllmData(object):
 
         :param string outputpath: Path to output dir. If dir(s) to output do(es) not exist, it/they will be created.
         '''
-        Utilities.iotools.create_dirs(outputpath)
+        utils.iotools.create_dirs(outputpath)
         self.outputpath = outputpath
 
     def set_bpmu_and_cut_for_closed_orbit(self, cut_co, bpm_unit):

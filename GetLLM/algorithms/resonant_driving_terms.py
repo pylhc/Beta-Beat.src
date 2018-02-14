@@ -11,7 +11,7 @@ This module is not intended to be executed. It stores only functions.
 
 import sys
 
-import Utilities.bpm
+import utils.bpm
 import helper
 import numpy as np
 
@@ -94,8 +94,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         phase_data = phase_d.ph_y
         list_zero_dpp = twiss_d.zero_dpp_y
 
-    dbpms = Utilities.bpm.intersect(list_zero_dpp)
-    dbpms = Utilities.bpm.model_intersect(dbpms, mad_twiss)
+    dbpms = utils.bpm.intersect(list_zero_dpp)
+    dbpms = utils.bpm.model_intersect(dbpms, mad_twiss)
     bpm_positions, bpm_names = zip(*dbpms)
 
 

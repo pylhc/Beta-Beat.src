@@ -2,7 +2,7 @@ import __init__  # @UnusedImport
 import sys
 import os
 import re
-from Utilities import iotools
+from utils import iotools
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -76,7 +76,7 @@ class MadxTemplates():
         new_function_code = new_function_code[:-2] + "):\n"
         if self._verbose:
             print new_function_code[:-2]
-        new_function_code += "    from Utilities import iotools\n"
+        new_function_code += "    from utils import iotools\n"
         new_function_code += "    from madx import madx_wrapper\n"
         new_function_code += "    template_content = iotools.read_all_lines_in_textfile(r\"" + template_path + "\")" + "\n"
         new_function_code += "    resolved_template = template_content % " + placeholder_replacement_dict + "\n"
