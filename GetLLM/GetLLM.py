@@ -1238,7 +1238,7 @@ def _start():
         accelerator.set_errordefspath(options.errordefspath)
     
     main(accelerator,
-         options.model_dir,
+         accelerator.model_dir,
          outputpath=options.output,
          files_to_analyse=options.files,
          lhcphase=options.lhcphase,

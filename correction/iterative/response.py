@@ -43,6 +43,7 @@ def get_params():
         required=True,
         type=str
     )
+    return params
 
 
 @entrypoint(get_params())
@@ -53,13 +54,13 @@ def create_response(opt, other_opt):
     """
     LOG.info("Creating response.")
     accel_cls, other_opt = manager.get_accel_class_and_unkown(other_opt)
-    variables = accel_cls.get_variables(classes=opt.variable_categrories)
+    variables = accel_cls.get_variables(classes=opt.variable_categories)
 
     if opt.creator == "madx":
         # add some more arguments to the given ones
         jobfile_path = os.path.join(opt.model_dir, "job.iterpandas.madx")
         try:
-            other_opt += ["--variables", str(variables)]
+            other_opt += ["--variables"] + variables
             other_opt += ["--jobfile", jobfile_path]
             other_opt += ["--outfile", opt.outfile_path]
         except TypeError:

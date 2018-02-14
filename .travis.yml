@@ -11,4 +11,4 @@ env:
  - EXCITATION=--acd
  - EXCITATION=--adt 
  - EXCITATION= 
-script: ./runTests.sh
+script: python GetLLM/getllm_precision_check.py $EXCITATION --optics=40cm

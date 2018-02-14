@@ -24,6 +24,10 @@ from twiss_optics.optics_class import TwissOptics
 
 LOG = logging_tools.get_logger(__name__)
 
+DEFAULT = {
+    "pattern": "%CALL_ITER_FILE%",  # used in lhc_model_creator
+}
+
 
 # Parameters ###################################################################
 
@@ -34,39 +38,47 @@ def get_params():
                          help="Name of fullresponse file.",
                          name="outfile_path",
                          required=True,
-                         type=str)
+                         type=str,
+                         )
     params.add_parameter(flags=["-t", "--tempdir"],
                          help=("Directory to store the temporary MAD-X files, "
                                "it will default to the directory containing 'outfile'."),
                          name="temp_dir",
                          default=None,
-                         type=str)
+                         type=str,
+                         )
     params.add_parameter(flags=["-v", "--variables"],
                          help="List of variables to use",
                          name="variables",
                          required=True,
-                         type=str)
+                         type=str,
+                         nargs="*",
+                         )
     params.add_parameter(flags=["-j", "--jobfile"],
                          help="Name of the original MAD-X job file defining the sequence file.",
                          name="original_jobfile_path",
                          required=True,
-                         type=str)
+                         type=str
+                         )
     params.add_parameter(flags=["-p", "--pattern"],
                          help=("Pattern to be replaced in the MAD-X job file "
                                "by the iterative script calls."),
-                         default="%CALL_ITER_FILE%",
+                         default=DEFAULT["pattern"],
                          name="pattern",
-                         type=str)
+                         type=str
+                         )
     params.add_parameter(flags=["-k", "--deltak"],
                          help="delta K1L to be applied to quads for sensitivity matrix",
                          default=0.00002,
                          name="delta_k",
-                         type=float)
+                         type=float
+                         )
     params.add_parameter(flags=["-n", "--num_proc"],
                          help="Number of processes to use in parallel.",
                          default=multiprocessing.cpu_count(),
                          name="num_proc",
-                         type=int)
+                         type=int
+                         )
     return params
 
 
@@ -81,7 +93,7 @@ def generate_fullresponse(opt):
     LOG.debug("Generating Fullresponse via Mad-X.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
         if not opt.temp_dir:
-            opt.temp_dir = os.path.dirname(opt.outfile)
+            opt.temp_dir = os.path.dirname(opt.outfile_path)
         create_dirs(opt.temp_dir)
 
         process_pool = multiprocessing.Pool(processes=opt.num_proc)
@@ -247,6 +259,7 @@ def _add_coupling(dict_of_tfs):
             dict_of_tfs[var]["1001"] = cpl["F1001"]
             dict_of_tfs[var]["1010"] = cpl["F1010"]
         return dict_of_tfs
+
 
 # Script Mode ##################################################################
 

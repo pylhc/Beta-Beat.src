@@ -27,6 +27,6 @@ select, flag=twiss, pattern="BPM.*\.B%(NUM_BEAM)i", column=NAME,S,BETX,ALFX,BETY
 
 exec, coupling_knob(%(NUM_BEAM)i);
 
-%CALL_ITER_FILE%
+%(CALL_ITER_FILE)s
 
 stop;

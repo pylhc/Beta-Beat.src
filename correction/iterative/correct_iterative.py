@@ -202,12 +202,12 @@ def _get_params():
         help="Maximum number of correction iterations to perform.",
         name="max_iter",
         type=int,
-        default=DEFAULTS["num_reiteration"],
+        default=DEFAULTS["max_iter"],
     )
     params.add_parameter(
         flags="--eps",
         help="Convergence criterion. If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.",
-        name="max_iter",
+        name="eps",
         type=float,
         default=DEFAULTS["eps"],
     )

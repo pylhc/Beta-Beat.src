@@ -4,6 +4,7 @@ import sys
 import logging
 from model.accelerators.accelerator import AccExcitationMode
 import model_creator
+from correction.iterative.response_madx import DEFAULT as RESP_DEFAULT
 
 AFS_ROOT = "/afs"
 if "win" in sys.platform and sys.platform != "darwin":
@@ -131,6 +132,7 @@ class LhcModelCreator(model_creator.ModelCreator):
                                "job.iterate.madx"), "w") as textfile:
             textfile.write(iterate_template % replace_dict)
 
+        replace_dict["CALL_ITER_FILE"] = RESP_DEFAULT["pattern"]
         with open(os.path.join(output_path,
                                "job.iterpandas.madx"), "w") as textfile:
             textfile.write(iterpandas_template % replace_dict)
