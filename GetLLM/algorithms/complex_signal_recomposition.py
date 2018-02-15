@@ -20,18 +20,32 @@ RDT_LIST = {'H':['f1001H', 'f1010H',
             ]}
 
 
-def get_bpm_pairs(phase_d):
-    model_phase_advances = phase_d['MODEL']
+def initiate_df_with_bpm_pairs(phase_advances):
+    '''
+    Find best BPM for momentum reconstruction and create pandas DataFrame.
+                BPM2              DELTA
+    BPM1 ||  2nd BPM NAME  ||  Phase Delta  ||
+    BPM2 ||  2nd BPM NAME  ||  Phase Delta  ||
+    BPM3 ||  2nd BPM NAME  ||  Phase Delta  ||
+    '''
+    model_phase_advances = phase_advances['MODEL']
     df_idx = model_phase_advances.index()
+    complex_signal_df = pd.DataFrame()
     for bpm in df_idx:
-        last_bpm_of_range = df_idx[df_idx.get_loc(bpm)+4] 
+        last_bpm_of_range = df_idx[df_idx.get_loc(bpm)+3] 
         three_bpm_array = model_phase_advances.loc[bpm:last_bpm_of_range]
-        bpm2 = (np.abs(three_bpm_array-0.25)).idxmin()
-        phase_d['MEAS'].loc[bpm, 'BPM2'] = bpm2 
-    return phase_d
+        bpm2 = (np.abs(np.abs(three_bpm_array)-0.25)).idxmin()
+        complex_signal_df.loc[bpm, 'BPM2'] = bpm2 
+        complex_signal_df.loc[bpm, 'DELTA'] = phase_advances['MEAS'].loc[bpm, bpm2]
+    return complex_signal_df
 
 
 def get_line_label(rdt):
+    '''
+    Transforms given RDT to spectral line depending on plane.
+    H(k-j+1, m-l)
+    V(k-j, m-l+1)
+    '''
     _, j, k, l, m, plane = list(rdt)
     if plane == 'H':
         p, q = k-j+1, m-l
@@ -43,6 +57,12 @@ def get_line_label(rdt):
 
 
 def get_lines(rdts):
+    '''
+    Cycles through list of RDTs to obtain list of corresponding spectral lines.
+    label - pq in string format with (-) sign replaced by underscore, as foundin _linx/y files  
+    p, q  - V/H(p,q)
+    rdt   - f{jklm}{H/V}
+    '''
     lines_info = []
     for rdt in rdts:
         label = get_line_label(rdt)
@@ -50,34 +70,52 @@ def get_lines(rdts):
     return lines_info
 
 
-def get_signal_df(spectral_df, phase_d, lines):
+def get_signal_df(spectral_df, complex_signal_df, lines):
+    '''
+    Populate complex_signal_df with reconstructed complex signals.
+    Results written to CSIG+label columns, i.e.: CSIG20, CSIG_13, ...
+    '''
     tp = 2.0*np.pi
     for line in lines:
         label = line[0] 
-        spectral_df['SIG'+label] =  spectral_df['AMP'+label]*complex(np.cos(tp*spectral_df['PHASE'+label]), 
+        spectral_signal_series = spectral_df['AMP'+label]*complex(np.cos(tp*spectral_df['PHASE'+label]), 
                                                                     np.sin(tp*spectral_df['PHASE'+label]))
-    signals_df = get_complex_signal(spectral_df, phase_d, lines)
-    return signals_df
-
-
-def get_complex_signal(spectral_df, phase_d, lines):
-    signals_df = phase_d['BPM2']
-
-    for line in lines:
-        label = line[0]
-        sig_bpm1 = spectral_df.loc[:, 'SIG'+label]*complex(1,  1/np.tan(tp*spectral_df['delta']))
-        sig_bpm2 = spectral_df.loc[df.loc[:, 'BPM2'], 'SIG'+label]*complex(0, -1/np.sin(tp*spectral_df['delta'])) 
-        signals_df['CSIG'+label] = sig_bpm1 + sig_bpm2
-    return signals_df
+        
+        signal_bpm1 = spectral_signal_series*complex(1,  1/np.tan(tp*complex_signal_df['DELTA']))
+        signal_bpm2 = spectral_signal_series.loc[complex_signal_df['BPM2']]*complex(0, -1/np.sin(tp*complex_signal_df['DELTA'])) 
+        complex_signal_df['CSIG'+label] = signal_bpm1 + signal_bpm2
+    return complex_signal_df
 
 
 def concatenate_dataframes_to_multiIndex(dfs):
+    '''
+    Concatenate dataframes from multiple measurements to single pandas MultiIndex
+    idx2 is the idx of measurement.
+    idx1  idx2 || ... 
+    BPM1  0    || ... 
+    BPM2  0    || ... 
+    BPM3  0    || ... 
+     :    :    :   :
+    BPM1  1    || ... 
+    BPM2  1    || ... 
+    BPM3  1    || ...
+     :    :    :   :
+    BPM1  2    || ... 
+    BPM2  2    || ... 
+    BPM3  2    || ...
+     :    :    :   :
+    '''
     keys_dfs = np.arange(len(dfs))
     data_set = pd.concat(dfs, keys=keys_dfs).swaplevel(i=-2, j=-1, axis=0)
     return data_set
 
 
 def rdt_function_factory(rdt):
+    '''
+    Function Factory to create RDT fitting function.
+    The line amplitudes are already normalized by main line.
+    Therefore: j+k-2 and l+m-2 used instead of j+k-1 and l+m-1
+    '''
     _, j, k, l, m, plane = list(rdt)
     j, k, l, m = int(j), int(k), int(l), int(m)
     if plane == 'H':
@@ -114,30 +152,31 @@ def fit_rdt_vs_actions(func, actions, line_data):
     return popt, perr
 
 
-def process_measurements(twiss_d_zero_dpp, phase_d, lines):
+def process_measurements(twiss_d_zero_dpp, complex_signal_df, lines):
     dfs = []
     for spectral_df in twiss_d_zero_dpp:
-        complex_signals = get_signal_df(spectral_df, phase_d, lines)    
+        complex_signals = get_signal_df(spectral_df, complex_signal_df, lines)    
         dfs.append(complex_signals)
     data_set = concatenate_dataframes_to_multiIndex(dfs)
     return data_set
 
 
-def do_main(phase_d, twiss_d):
+def calculate_RDTs(phase_d, twiss_d, kick_x, kick_y):
     actions = np.vstack((np.transpose(kick_x)[0]**2, np.transpose(kick_y)[0]**2))
-    phase_d = get_bpm_pairs(phase_d)
     
     for plane in ['H', 'V']:
         lines_info = get_lines(RDT_LIST[plane])
         if plane == 'H':
+            complex_signal_df = initiate_df_with_bpm_pairs(phase_d.phase_advances_x)
             twiss_d_zero_dpp = twiss_d.zero_dpp_x
         elif plane == 'V':
+            complex_signal_df = initiate_df_with_bpm_pairs(phase_d.phase_advances_y)
             twiss_d_zero_dpp = twiss_d.zero_dpp_y
-        data_set = process_measurements(twiss_d_zero_dpp, phase_d, lines_info)
+        data_set = process_measurements(twiss_d_zero_dpp, complex_signal_df, lines_info)
         get_resonance_driving_terms(data_set, actions, lines_info)
 
 
 if __name__ == '__main__':
-    do_main()
+    calculate_RDTs()
 
  
