@@ -36,6 +36,7 @@ import helper
 import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
 from utils import logging_tools
+from GetLLMError import GetLLMError
 
 from twiss_optics.optics_class import TwissOptics
 
@@ -72,8 +73,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             optics_twiss.calc_cmatrix()
             optics_coupling = optics_twiss.get_coupling(method="cmatrix")
         except:
-            LOGGER.warning("Could not calculate coupling metadata for model twiss")
-            traceback.print_exc()
+            raise GetLLMError("Could not calculate coupling metadata for model twiss")
         #-- Main part
         # 1-BPM method
         if getllm_d.num_bpms_for_coupling == 1:
@@ -158,34 +158,30 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
         if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
             if getllm_d.num_bpms_for_coupling == 2:
                 #-- analytic eqs
-                try:
-                    [fwqwf, bpmsf] = compensate_excitation.GetFreeCoupling_Eq(
-                        mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpms, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f,
-                        phase_d.ac2bpmac_x, phase_d.ac2bpmac_y, getllm_d.accelerator)
-                    print('I actually get here')
-                    tfs_file = files_dict['getcouple_free.out']
-                    tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
-                    tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
-                    tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "Q1001", "Q1001STD", "Q1010", "Q1010STD", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
-                    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                    for bn1 in bpmsf.index:
-                        bns1 = bpmsf.loc[bn1, "S"]
-                        try:
-                            list_row_entries = [
-                                '"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf[bn1][0][0]), fwqwf[bn1][0][1],
-                                fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, abs(fwqwf[bn1][0][2]), fwqwf[bn1][0][3],
-                                fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, fwqwf[bn1][1][0], fwqwf[bn1][1][1],
-                                fwqwf[bn1][1][2], fwqwf[bn1][1][3], optics_coupling.loc[bn1, "F1001"].real,
-                                optics_coupling.loc[bn1, "F1001"].imag, optics_coupling.loc[bn1, "F1010"].real,
-                                optics_coupling.loc[bn1, "F1010"].imag
-                            ]
-                        except:
-                            traceback.print_exc()
-                            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf[bn1][0][0]), fwqwf[bn1][0][1], fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, abs(fwqwf[bn1][0][2]), fwqwf[bn1][0][3], fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, fwqwf[bn1][1][0], fwqwf[bn1][1][1], fwqwf[bn1][1][2], fwqwf[bn1][1][3], 0.0, 0.0, 0.0, 0.0]  # -- Output zero if the model does not have coupling parameters
-                        tfs_file.add_table_row(list_row_entries)
-    
-                except:
-                    traceback.print_exc()
+                [fwqwf, bpmsf] = compensate_excitation.GetFreeCoupling_Eq(
+                    mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpms, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f,
+                    phase_d.ac2bpmac_x, phase_d.ac2bpmac_y, getllm_d.accelerator)
+                print('I actually get here')
+                tfs_file = files_dict['getcouple_free.out']
+                tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
+                tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
+                tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "Q1001", "Q1001STD", "Q1010", "Q1010STD", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
+                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+                for bn1 in bpmsf.index:
+                    bns1 = bpmsf.loc[bn1, "S"]
+                    try:
+                        list_row_entries = [
+                            '"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf[bn1][0][0]), fwqwf[bn1][0][1],
+                            fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, abs(fwqwf[bn1][0][2]), fwqwf[bn1][0][3],
+                            fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, fwqwf[bn1][1][0], fwqwf[bn1][1][1],
+                            fwqwf[bn1][1][2], fwqwf[bn1][1][3], optics_coupling.loc[bn1, "F1001"].real,
+                            optics_coupling.loc[bn1, "F1001"].imag, optics_coupling.loc[bn1, "F1010"].real,
+                            optics_coupling.loc[bn1, "F1010"].imag
+                        ]
+                    except:
+                        traceback.print_exc()
+                        list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf[bn1][0][0]), fwqwf[bn1][0][1], fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, abs(fwqwf[bn1][0][2]), fwqwf[bn1][0][3], fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, fwqwf[bn1][1][0], fwqwf[bn1][1][1], fwqwf[bn1][1][2], fwqwf[bn1][1][3], 0.0, 0.0, 0.0, 0.0]  # -- Output zero if the model does not have coupling parameters
+                    tfs_file.add_table_row(list_row_entries)
 
             #-- global factor
             # no _free2 output
