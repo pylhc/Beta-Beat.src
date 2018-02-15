@@ -25,10 +25,6 @@ def get_lhc_modes():
     }
 
 
-class LhcExcitationMode(object):
-    FREE, ACD, ADT = range(3)
-
-
 class Lhc(Accelerator):
     """ Parent Class for Lhc-Types.
 
@@ -199,7 +195,7 @@ class Lhc(Accelerator):
 
             self.drv_tune_x = None
             self.drv_tune_y = None
-            self._excitation = LhcExcitationMode.FREE
+            self._excitation = AccExcitationMode.FREE
 
             if opt.acd or opt.adt:
                 if opt.acd and opt.adt:
@@ -215,9 +211,9 @@ class Lhc(Accelerator):
                 self.drv_tune_y = opt.drv_tune_y
 
                 if opt.acd:
-                    self._excitation = LhcExcitationMode.ACD
+                    self._excitation = AccExcitationMode.ACD
                 elif opt.adt:
-                    self._excitation = LhcExcitationMode.ADT
+                    self._excitation = AccExcitationMode.ADT
 
             # optional with default
             self.dpp = opt.dpp
@@ -230,29 +226,35 @@ class Lhc(Accelerator):
 
             # for GetLLM
             self.model_dir = None
-            self.model_tfs = None
-            self.model_driven = None
-            self.model_best_knowledge = None
-            self.elements = None
-            self.elements_centre = None
-            self.errordefspath = None
+            self._model = None
+            self._model_driven = None
+            self._model_best_knowledge = None
+            self._elements = None
+            self._elements_centre = None
+            self._errordefspath = None
 
         self.verify_object()
 
     def init_from_model_dir(self, model_dir):
         LOGGER.debug("Creating accelerator instance from model dir")
-
         self.model_dir = model_dir
 
-        self.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"), index="NAME")
         LOGGER.debug("  model path = " + os.path.join(model_dir, "twiss.dat"))
+        self._model = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"), index="NAME")
+        self.nat_tune_x = float(self._model.headers["Q1"])
+        self.nat_tune_y = float(self._model.headers["Q2"])
+
+        # Excitations #####################################
+        self._model_driven = None
+        self.drv_tune_x = None
+        self.drv_tune_y = None
+        self._excitation = AccExcitationMode.FREE
 
         ac_filename = os.path.join(model_dir, "twiss_ac.dat")
         adt_filename = os.path.join(model_dir, "twiss_adt.dat")
 
-        self._excitation = AccExcitationMode.FREE
         if os.path.isfile(ac_filename):
-            self.model_driven = tfs_pandas.read_tfs(ac_filename, index="NAME")
+            self._model_driven = tfs_pandas.read_tfs(ac_filename, index="NAME")
             self._excitation = AccExcitationMode.ACD
             driven_filename = ac_filename
 
@@ -261,52 +263,38 @@ class Lhc(Accelerator):
                 raise AcceleratorDefinitionError("ADT as well as ACD models provided."
                                                  "Please choose only one.")
 
-            self.model_driven = tfs_pandas.read_tfs(adt_filename, index="NAME")
+            self._model_driven = tfs_pandas.read_tfs(adt_filename, index="NAME")
             self._excitation = AccExcitationMode.ADT
             driven_filename = adt_filename
 
+        if not self._excitation == AccExcitationMode.FREE:
+            self.drv_tune_x = float(self.get_driven_tfs().headers["Q1"])
+            self.drv_tune_y = float(self.get_driven_tfs().headers["Q2"])
+
+        # Best Knowledge #####################################
+        self._model_best_knowledge = None
         best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
         if os.path.isfile(best_knowledge_path):
-            self.model_best_knowledge = tfs_pandas.read_tfs(best_knowledge_path, index="NAME")
-            LOGGER.debug("{:20s} [{:>10s}]".format("Best Knowledge Model", "OK"))
-        else:
-            self.model_best_knowledge = None
-            LOGGER.debug("{:20s} [{:>10s}]".format("Best Knowledge Model", "NO"))
+            self._model_best_knowledge = tfs_pandas.read_tfs(best_knowledge_path, index="NAME")
 
+        # Elements #####################################
         elements_path = os.path.join(model_dir, "twiss_elements.dat")
         if os.path.isfile(elements_path):
-            self.elements = tfs_pandas.read_tfs(elements_path, index="NAME")
+            self._elements = tfs_pandas.read_tfs(elements_path, index="NAME")
         else:
             raise AcceleratorDefinitionError("Elements twiss not found")
 
         center_path = os.path.join(model_dir, "twiss_elements_centre.dat")
         if os.path.isfile(center_path):
-            self.elements_centre = tfs_pandas.read_tfs(center_path, index="NAME")
+            self._elements_centre = tfs_pandas.read_tfs(center_path, index="NAME")
         else:
-            self.elements_centre = self.elements
+            self._elements_centre = self._elements
 
-        self.drv_tune_x = float(self.get_driven_tfs().headers["Q1"])
-        self.drv_tune_y = float(self.get_driven_tfs().headers["Q2"])
-        self.nat_tune_x = float(self.model_tfs.headers["Q1"])
-        self.nat_tune_y = float(self.model_tfs.headers["Q2"])
-
-        LOGGER.debug("{:20s} [{:10.3f}]".format("Natural Tune X", self.nat_tune_x))
-        LOGGER.debug("{:20s} [{:10.3f}]".format("Natural Tune Y", self.nat_tune_y))
-
-        if self._excitation == AccExcitationMode.FREE:
-            LOGGER.debug("{:20s} [{:>10s}]".format("Excitation", "NO"))
-        else:
-            if self._excitation == AccExcitationMode.ACD:
-                LOGGER.debug("{:20s} [{:>10s}]".format("Excitation", "ACD"))
-            elif self._excitation == AccExcitationMode.ADT:
-                LOGGER.debug("{:20s} [{:>10s}]".format("Excitation", "ADT"))
-            LOGGER.debug("{:20s} [{:10.3f}]".format("> Driven Tune X", self.drv_tune_x))
-            LOGGER.debug("{:20s} [{:10.3f}]".format("> Driven Tune Y", self.drv_tune_y))
-
-        self.errordefspath = None
+        # Error Def #####################################
+        self._errordefspath = None
         errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
         if os.path.exists(errordefspath):
-            self.errordefspath = errordefspath
+            self._errordefspath = errordefspath
 
     @classmethod
     def init_and_get_unknowns(cls, args=None):
@@ -421,8 +409,8 @@ class Lhc(Accelerator):
 
         if self.excitation is None:
             raise AcceleratorDefinitionError("Excitation mode not set.")
-        if (self.excitation == LhcExcitationMode.ACD or
-                self.excitation == LhcExcitationMode.ADT):
+        if (self.excitation == AccExcitationMode.ACD or
+                self.excitation == AccExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise AcceleratorDefinitionError("Driven tunes not set.")
 
@@ -474,6 +462,26 @@ class Lhc(Accelerator):
         ))
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
 
+    def log_status(self):
+        LOGGER.info("  model dir = " + self.model_dir)
+        LOGGER.info("{:20s} [{:10.3f}]".format("Natural Tune X", self.nat_tune_x))
+        LOGGER.info("{:20s} [{:10.3f}]".format("Natural Tune Y", self.nat_tune_y))
+
+        if self._model_best_knowledge is None:
+            LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "NO"))
+        else:
+            LOGGER.info("{:20s} [{:>10s}]".format("Best Knowledge Model", "OK"))
+
+        if self._excitation == AccExcitationMode.FREE:
+            LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "NO"))
+        else:
+            if self._excitation == AccExcitationMode.ACD:
+                LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ACD"))
+            elif self._excitation == AccExcitationMode.ADT:
+                LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ADT"))
+            LOGGER.info("{:20s} [{:10.3f}]".format("> Driven Tune X", self.drv_tune_x))
+            LOGGER.info("{:20s} [{:10.3f}]".format("> Driven Tune Y", self.drv_tune_y))
+
     # Private Methods ##########################################################
 
     @classmethod
@@ -493,9 +501,9 @@ class Lhc(Accelerator):
 
     @excitation.setter
     def excitation(self, excitation_mode):
-        if excitation_mode not in (LhcExcitationMode.FREE,
-                                   LhcExcitationMode.ACD,
-                                   LhcExcitationMode.ADT):
+        if excitation_mode not in (AccExcitationMode.FREE,
+                                   AccExcitationMode.ACD,
+                                   AccExcitationMode.ADT):
             raise ValueError("Wrong excitation mode.")
         self._excitation = excitation_mode
 
@@ -557,54 +565,56 @@ class Lhc(Accelerator):
 
     def get_s_first_BPM(self):
         if self.get_beam() == 1:
-            return self.model_tfs.loc["BPMSW.1L2.B1", "S"]
+            return self._model.loc["BPMSW.1L2.B1", "S"]
         elif self.get_beam() == 2:
-            return self.model_tfs.loc["BPMSW.1L8.B2", "S"]
+            return self._model.loc["BPMSW.1L8.B2", "S"]
         return None
 
     def get_errordefspath(self):
         """Returns the path to the uncertainty definitions file (formerly called error definitions file.
         """
-        return self.errordefspath
+        if self._errordefspath is None:
+            raise AttributeError("No error definitions file given in this accelerator instance.")
+        return self._errordefspath
 
     def set_errordefspath(self, path):
-        self.errordefspath = path
+        self._errordefspath = path
 
     def get_k_first_BPM(self, index):
         if self.get_beam() == 1:
-            model_k =  self.model_tfs.index.get_loc("BPMSW.1L2.B1")
-            while model_k < len(self.model_tfs.index):
-                kname = self.model_tfs.index[model_k]
+            model_k =  self._model.index.get_loc("BPMSW.1L2.B1")
+            while model_k < len(self._model.index):
+                kname = self._model.index[model_k]
                 if kname in index:
                     return index.get_loc(kname)
                 model_k = model_k + 1
         elif self.get_beam() == 2:
-            model_k =  self.model_tfs.index.get_loc("BPMSW.1L8.B2")
-            while model_k < len(self.model_tfs.index):
-                kname = self.model_tfs.index[model_k]
+            model_k =  self._model.index.get_loc("BPMSW.1L8.B2")
+            while model_k < len(self._model.index):
+                kname = self._model.index[model_k]
                 if kname in index:
                     return index.get_loc(kname)
                 model_k = model_k + 1
         return None
 
     def get_model_tfs(self):
-        return self.model_tfs
+        return self._model
 
     def get_driven_tfs(self):
-        if self.model_driven is None:
-            return self.model_tfs
-        return self.model_driven
+        if self._model_driven is None:
+            raise AttributeError("No driven model given in this accelerator instance.")
+        return self._model_driven
 
     def get_best_knowledge_model_tfs(self):
-        if self.model_best_knowledge is None:
-            return self.model_tfs
-        return self.model_best_knowledge
+        if self._model_best_knowledge is None:
+            raise AttributeError("No best knowledge model given in this accelerator instance.")
+        return self._model_best_knowledge
 
     def get_elements_tfs(self):
-        return self.elements
+        return self._elements
 
     def get_elements_centre_tfs(self):
-        return self.elements_centre
+        return self._elements_centre
 
 
 class _LhcSegmentMixin(object):

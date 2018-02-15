@@ -1,8 +1,8 @@
 option, -echo;
-call, file = "/afs/cern.ch/work/j/jcoellod/public/minimal/Beta-Beat.src/madx/lib/beta_beat.macros.madx";
-call, file = "/afs/cern.ch/work/j/jcoellod/public/minimal/Beta-Beat.src/madx/lib/lhc.macros.madx";
-call, file = "/afs/cern.ch/work/j/jcoellod/public/minimal/Beta-Beat.src/madx/lib/lhc_runII.macros.madx";
-call, file = "/afs/cern.ch/work/j/jcoellod/public/minimal/Beta-Beat.src/madx/lib/lhc_runII_ats.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/beta_beat.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc_runII.macros.madx";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc_runII_ats.macros.madx";
 option, echo;
 
 title, "Model creator for java";
@@ -11,7 +11,7 @@ title, "Model creator for java";
 
 option, -echo;
 
-call, file = "/afs/cern.ch/work/j/jcoellod/public/minimal/Beta-Beat.src/model/accelerators/lhc/2017/main.seq";
+call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/model/accelerators/lhc/2017/main.seq";
 
 exec, define_nominal_beams();
 call, file = "/afs/cern.ch/eng/lhc/optics/runII/2017/opticsfile.19";
@@ -23,7 +23,7 @@ exec, set_crossing_scheme_ON();
 exec, set_default_crossing_scheme();
 }
 
-use, period = LHCB2;
+use, period = LHCB1;
 
 option, echo;
 
