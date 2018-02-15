@@ -84,6 +84,7 @@ import argparse
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
 from tfs_utils_getllm import GetllmTfsFile
+from GetLLMError import GetLLMError, CriticalGetLLMError
 import algorithms.helper
 import algorithms.phase
 import algorithms.beta
@@ -374,6 +375,10 @@ def main(accelerator,
         )
     except:
         _tb_()
+        # if phase crashed, none of the subsequent algorithms can run. Thus
+        raise CriticalGetLLMError(
+            "get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!"
+        )
     print_time("AFTER_PHASE_BK", time() - __getllm_starttime)
    
 #        #-------- START Phase
@@ -402,7 +407,7 @@ def main(accelerator,
     try:
         beta_d = algorithms.beta.calculate_beta_from_amplitude(
             getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
-            files_dict
+            files_dict, accelerator
         )
     except:
         _tb_()
