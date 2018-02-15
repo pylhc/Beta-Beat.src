@@ -186,7 +186,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
             # the calculation from before was actually wrong. But we keep the wrong values as phase_advances (why?)
             phase_d.phase_advances_x = phase_d.phase_advances_free_x 
             phase_d.ac2bpmac_x = compensate_excitation.GetACPhase_AC2BPMAC(
-                actual_model, bpmsx, tune_d.q1, tune_d.q1f, 'H', getllm_d
+                actual_model, bpmsx, tune_d.q1, tune_d.q1f, 'H', getllm_d.accelerator
             )
             [phase_d.phase_advances_free_x, tune_d.muxf] = compensate_excitation.get_free_phase_eq(
                 model_free, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x,
@@ -198,7 +198,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
             phase_d.phase_advances_y = phase_d.phase_advances_free_y
             tune_d.q2f =  tune_d.q2 - getllm_d.accelerator.drv_tune_y + getllm_d.accelerator.nat_tune_y #-- Free V-tune
             phase_d.ac2bpmac_y = compensate_excitation.GetACPhase_AC2BPMAC(actual_model, bpmsy, tune_d.q2, tune_d.q2f,
-                                                                           'V', getllm_d)
+                                                                           'V', getllm_d.accelerator)
             [phase_d.phase_advances_free_y, tune_d.muyf] = compensate_excitation.get_free_phase_eq(
                 model_free, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y,
                 'V', model_free.Q2%1, getllm_d)
