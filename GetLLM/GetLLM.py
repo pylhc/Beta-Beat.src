@@ -594,8 +594,8 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
         except ValueError:
             pass  # Information printed by metaclass already
 
-    tfs_files_x = _arrange_dpp(tfs_files_x)
-    tfs_files_y = _arrange_dpp(tfs_files_y)
+    # tfs_files_x = _arrange_dpp(tfs_files_x)
+    # tfs_files_y = _arrange_dpp(tfs_files_y)
 
     for twiss_file_x, twiss_file_y in zip(tfs_files_x, tfs_files_y):
         if use_average:
