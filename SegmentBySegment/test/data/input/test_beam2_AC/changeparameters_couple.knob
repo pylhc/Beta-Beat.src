@@ -1,7 +1,0 @@
-@ APP %le 0
-@ PATH %s /afs/cern.ch/work/j/jcoellod/public/betabeatGui/temp/2014-11-25/LHCB2/Results/17-34-42_NORMALANALYSIS_SUSSIX_1
-@ DATE %s Tue Nov 25 17:34:54 2014
-* NAME DELTA
-$ %s %le
-b2_re_ip7_knob   -0.00247749318553
-b2_im_ip7_knob   0.000254533139221
