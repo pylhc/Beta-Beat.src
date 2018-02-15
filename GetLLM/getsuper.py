@@ -66,7 +66,7 @@ from utils import logging_tools as logtools
 from utils.dict_tools import DotDict
 from utils import tfs_remove_nan
 from model import manager, creator
-from model.accelerators.lhc import LhcExcitationMode
+from model.accelerators.accelerator import AccExcitationMode
 
 LOG = logtools.get_logger(__name__)
 
@@ -391,11 +391,11 @@ def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
     accel_inst.xing = False
 
 
-    accel_inst.excitation = LhcExcitationMode.FREE
+    accel_inst.excitation = AccExcitationMode.FREE
     if os.path.exists(twissfile.replace(".dat", "_ac.dat")):
-        accel_inst.excitation = LhcExcitationMode.ACD
+        accel_inst.excitation = AccExcitationMode.ACD
     elif os.path.exists(twissfile.replace(".dat", "_adt.dat")):
-        accel_inst.excitation = LhcExcitationMode.ADT
+        accel_inst.excitation = AccExcitationMode.ADT
 
     creator.create_model(accel_inst, "nominal", output_path)
 
