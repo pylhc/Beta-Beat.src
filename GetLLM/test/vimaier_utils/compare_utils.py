@@ -7,7 +7,7 @@ GetLLM.test.vimaier_utils.compare_utils holds functions for comparing TfsFiles.
 
 '''
 import Python_Classes4MAD.metaclass as metaclass
-import Utilities.ndiff
+import utils.ndiff
 
 
 #===================================================================================================
@@ -23,7 +23,7 @@ def compare_tfs_files(name_valid, name_to_check):
     if __file_not_valid(name_valid):
         return True
 
-    return Utilities.ndiff.compare_tfs_files_and_ignore_header(name_valid, name_to_check)
+    return utils.ndiff.compare_tfs_files_and_ignore_header(name_valid, name_to_check)
 
 
 def __file_not_valid(name_twiss):

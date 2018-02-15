@@ -24,12 +24,13 @@ import numpy as np
 
 import phase
 import beta
-import Utilities.bpm
+import utils.bpm
+from utils import logging_tools
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
-
+LOGGER = logging_tools.get_logger(__name__)
 
 
 #===================================================================================================
@@ -40,25 +41,22 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 
 #-------------------------
 
-def calculate_orbit(mad_twiss, list_of_files):
+def calculate_orbit(mad_twiss, list_of_files, commonbpms):
 
-    commonbpms=Utilities.bpm.intersect(list_of_files)
-    commonbpms=Utilities.bpm.model_intersect(commonbpms, mad_twiss)
     co={} # Disctionary for output
-    for i in range(0,len(commonbpms)):
-        bpm_name=str.upper(commonbpms[i][1])
+    for bpm_name in commonbpms.index:
         coi=0.0
         coi2=0.0
 
         for tw_file in list_of_files:
-            coi=coi + tw_file.CO[tw_file.indx[bpm_name]]
-            coi2=coi2 + tw_file.CO[tw_file.indx[bpm_name]]**2
+            coi=coi + tw_file.loc[bpm_name, "CO"]
+            coi2=coi2 + tw_file.loc[bpm_name, "CO"]**2
 
         coi = coi/len(list_of_files)
         corms = math.sqrt(coi2/len(list_of_files)-coi**2+2.2e-16)
         co[bpm_name] = [coi,corms]
 
-    return [co, commonbpms]
+    return co
 
 
 
@@ -143,10 +141,10 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
         dum1=[]
         return [dum0,dum1]
 
-    bpmh=Utilities.bpm.intersect(list_of_zero_dpp_x)
-    bpmv=Utilities.bpm.intersect(list_of_zero_dpp_y)
-    bpmh=Utilities.bpm.model_intersect(bpmh, mad_twiss)
-    bpmv=Utilities.bpm.model_intersect(bpmv, mad_twiss)
+    bpmh=utils.bpm.intersect(list_of_zero_dpp_x)
+    bpmv=utils.bpm.intersect(list_of_zero_dpp_y)
+    bpmh=utils.bpm.model_intersect(bpmh, mad_twiss)
+    bpmv=utils.bpm.model_intersect(bpmv, mad_twiss)
 
 
     fbpmx=[]
@@ -345,8 +343,8 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     '''
     # constructing complex amplitude and phase using two BPM method
 
-    bpms=Utilities.bpm.intersect(amp20list)
-    bpms=Utilities.bpm.model_intersect(bpms,MADTwiss)
+    bpms=utils.bpm.intersect(amp20list)
+    bpms=utils.bpm.model_intersect(bpms,MADTwiss)
 
     # Since beta,rmsbb(return_value[0:2]) are not used, slice return value([2:4])(vimaier)
     [bpms,invariantJx] = ( beta.beta_from_amplitude(MADTwiss,amp20list,'H') )[2:4]
@@ -453,8 +451,8 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
     for finding secondary lines of the octuple (@ Glenn Vanbavinckhove)
     '''
     # intersects BPMs
-    dbpms=Utilities.bpm.intersect(twiss_files[0])
-    dbpms=Utilities.bpm.model_intersect(dbpms,MADTwiss)
+    dbpms=utils.bpm.intersect(twiss_files[0])
+    dbpms=utils.bpm.model_intersect(dbpms,MADTwiss)
 
     # value definition
     hMODELT=[]
@@ -618,7 +616,7 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
 def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
     twi = mad_twiss # abbreviation
-    bpms = Utilities.bpm.intersect([mad_twiss])
+    bpms = utils.bpm.intersect([mad_twiss])
 
     q_x = twi.Q1+dpp*twi.DQ1
     q_y = twi.Q2+dpp*twi.DQ2
@@ -665,7 +663,7 @@ def construct_off_momentum_model(mad_twiss, dpp, dictionary):
 
 
 #---- finding kick
-def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
+def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold, commonbpms):
 
     #One source for each beta-function source
     Sources = ['model','amp','phase']
@@ -709,8 +707,12 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
         #Loop uses gen_kick_calc to get action for each beta function source in each plane
         #Note that the result for source='amp' is not currently being used
         for source in Sources:
-            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([tw_x], mad_twiss, beta_d, source, 'H', bbthreshold, errthreshold)
-            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([tw_y], mad_twiss, beta_d, source, 'V', bbthreshold, errthreshold)
+            meansqrt_2jx_temp, mean_2jx_temp, rejected_bpm_countx = gen_kick_calc([tw_x], mad_twiss, beta_d, source,
+                                                                                  'H', bbthreshold, errthreshold,
+                                                                                  commonbpms)
+            meansqrt_2jy_temp, mean_2jy_temp, rejected_bpm_county = gen_kick_calc([tw_y], mad_twiss, beta_d, source,
+                                                                                  'V', bbthreshold, errthreshold,
+                                                                                  commonbpms)
             meansqrt_2jx[source].append(meansqrt_2jx_temp)
             meansqrt_2jy[source].append(meansqrt_2jy_temp)
             mean_2jx[source].append(mean_2jx_temp)
@@ -735,7 +737,7 @@ def getkick(files,mad_twiss,beta_d,bbthreshold,errthreshold):
     return [meansqrt_2jx, meansqrt_2jy, mean_2jx, mean_2jy, tune_values_list, dpp, bpmrejx, bpmrejy]
 
 
-def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errthreshold):
+def gen_kick_calc(list_of_files, mad_twiss, beta_d, source, plane, bbthreshold, errthreshold, commonbpms):
     '''
     Gets action for a given beta function source and plane
      :Parameters:
@@ -750,36 +752,22 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
         returns:  list, list, int
             The value and uncertainty for sqrt(2J) and 2J resp., along #BPM rej
     '''
-    commonbpms = Utilities.bpm.intersect(list_of_files)
-    if source == 'model':
-        commonbpms = Utilities.bpm.model_intersect(commonbpms, mad_twiss)
-    elif source == 'amp':
-        if plane == 'H':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_amp.keys())
-        elif plane == 'V':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_amp.keys())
-    elif source == 'phase':
-        if plane == 'H':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_phase.keys())
-        elif plane == 'V':
-            commonbpms = Utilities.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_phase.keys())
 
     meansqrt2j = []
     mean2j = []
     rejbpmcount = 0
 
     #Two different action calcs follow, one is by finding mean(sqrt(2j))-->meansqrt2j and the other is by finding mean(2j)-->mean2j
-    for i in range(0, len(commonbpms)):
-        bn1 = str.upper(commonbpms[i][1])
+    for bn1 in commonbpms.index:
         #Gets beta function for use in action calculation- performs checks on its quality, rejects if above threshold
         if plane == 'H':
             if source == 'model':
-                tembeta = mad_twiss.BETX[mad_twiss.indx[bn1]]
+                tembeta = mad_twiss.loc[bn1, "BETX"]
             elif source == 'amp':
                 if beta_d.x_amp[bn1][0] <= 0:
                     rejbpmcount += 1
                     continue
-                elif abs((beta_d.x_amp[bn1][0] - mad_twiss.BETX[mad_twiss.indx[bn1]])/mad_twiss.BETX[mad_twiss.indx[bn1]]) > bbthreshold:
+                elif abs(beta_d.x_amp[bn1][0] / mad_twiss.loc[bn1, "BETX"] - 1.0) > bbthreshold:
                     rejbpmcount += 1
                     continue
                 elif (beta_d.x_amp[bn1][1]/beta_d.x_amp[bn1][0]) > errthreshold:
@@ -790,7 +778,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
                 if     beta_d.x_phase[bn1][0] <= 0:
                     rejbpmcount += 1
                     continue
-                elif abs((beta_d.x_phase[bn1][0] - mad_twiss.BETX[mad_twiss.indx[bn1]])/mad_twiss.BETX[mad_twiss.indx[bn1]]) > bbthreshold:
+                elif abs(beta_d.x_phase[bn1][0] / mad_twiss.loc[bn1, "BETX"] - 1.0) > bbthreshold:
                     rejbpmcount += 1
                     continue
                 elif (beta_d.x_phase[bn1][1]/beta_d.x_phase[bn1][0]) > errthreshold:
@@ -804,7 +792,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
                 if     beta_d.y_amp[bn1][0] <= 0:
                     rejbpmcount += 1
                     continue
-                elif abs((beta_d.y_amp[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]]) > bbthreshold:
+                elif abs(beta_d.y_amp[bn1][0] / mad_twiss.loc[bn1, "BETY"] - 1.0) > bbthreshold:
                     rejbpmcount += 1
                     continue
                 elif (beta_d.y_amp[bn1][1]/beta_d.y_amp[bn1][0]) > errthreshold:
@@ -815,7 +803,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
                 if     beta_d.y_phase[bn1][0] <= 0:
                     rejbpmcount += 1
                     continue
-                elif (abs(beta_d.y_phase[bn1][0] - mad_twiss.BETY[mad_twiss.indx[bn1]])/mad_twiss.BETY[mad_twiss.indx[bn1]])> bbthreshold:
+                elif abs(beta_d.y_phase[bn1][0] / mad_twiss.loc[bn1, "BETY"] - 1.0) > bbthreshold:
                     rejbpmcount += 1
                     continue
                 elif (beta_d.y_phase[bn1][1]/beta_d.y_phase[bn1][0]) > errthreshold:
@@ -827,8 +815,8 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
         mean2j_i = 0.0
 
         for tw_file in list_of_files:
-            meansqrt2j_i += tw_file.PK2PK[tw_file.indx[bn1]] / 2.
-            mean2j_i = (tw_file.PK2PK[tw_file.indx[bn1]] / 2)**2
+            meansqrt2j_i += tw_file.loc[bn1, "PK2PK"] / 2.
+            mean2j_i = (tw_file.loc[bn1, "PK2PK"] / 2)**2
 
         meansqrt2j_i = meansqrt2j_i / len(list_of_files)
         meansqrt2j.append(meansqrt2j_i / math.sqrt(tembeta))
@@ -836,7 +824,8 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
         mean2j.append(mean2j_i / tembeta)
 
     if len(commonbpms) == rejbpmcount:
-        print "Beta function calculated from", source, "in plane", plane, "is no good, no kick or action will be calculated from it."
+        LOGGER.warning(("Beta function calculated from {} in plane {} is no good, no kick or action will be calculated "
+                       "from it.").format(source, plane))
         j_old, mean_2j = [0, 0], [0, 0]
         return j_old, mean_2j, rejbpmcount
 

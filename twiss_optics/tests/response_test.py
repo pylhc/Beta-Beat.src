@@ -10,9 +10,9 @@ from correction.iterative.response_pandas import _generate_fullresponse as gener
 import numpy as np
 import pandas as pd
 
-from Utilities import logging_tools as logtool, iotools
-from Utilities import tfs_pandas as tfs
-from Utilities.dict_tools import DotDict
+from utils import logging_tools as logtool, iotools
+from utils import tfs_pandas as tfs
+from utils.dict_tools import DotDict
 from madx import madx_wrapper as madx
 from test_helpers import build_result_names
 from test_helpers import plot_df_comparison

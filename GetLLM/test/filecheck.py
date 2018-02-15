@@ -42,7 +42,7 @@ import shutil
 import __init__  # @UnusedImport init will include paths
 
 import vimaier_utils.scriptrunner
-import Utilities.iotools
+import utils.iotools
 import vimaier_utils.compare_utils
 import runvalidator
 
@@ -94,16 +94,16 @@ except ValueError:
     CREATE_VALID_OUTPUT = True
 # Path to original/valid GetLLM.py script
 GETLLM_SCRIPT_VALID = options.GETLLM_SCRIPT_VALID
-if Utilities.iotools.not_exists_directory(GETLLM_SCRIPT_VALID):
+if utils.iotools.not_exists_directory(GETLLM_SCRIPT_VALID):
     GETLLM_SCRIPT_VALID = os.path.join(
-                                     Utilities.iotools.get_absolute_path_to_betabeat_root(),
+                                     utils.iotools.get_absolute_path_to_betabeat_root(),
                                      "GetLLM", "test", "./GetLLM_valid.py"
                                      )
 # Path to GetLLM.py script
 GETLLM_SCRIPT = options.GETLLM_SCRIPT
-if Utilities.iotools.not_exists_directory(GETLLM_SCRIPT):
+if utils.iotools.not_exists_directory(GETLLM_SCRIPT):
     GETLLM_SCRIPT = os.path.join(
-                                     Utilities.iotools.get_absolute_path_to_betabeat_root(),
+                                     utils.iotools.get_absolute_path_to_betabeat_root(),
                                      "GetLLM", "GetLLM.py"
                                      )
 # Path to special output
@@ -114,9 +114,9 @@ if "" != SPECIAL_OUTPUT:
         print "special_output is not a directory: ", SPECIAL_OUTPUT
         SPECIAL_OUTPUT = ""
 PATH_TO_TEST_DATA = options.PATH_TO_TEST_DATA
-if Utilities.iotools.not_exists_directory(PATH_TO_TEST_DATA):
+if utils.iotools.not_exists_directory(PATH_TO_TEST_DATA):
     PATH_TO_TEST_DATA = os.path.join(
-                                     Utilities.iotools.get_absolute_path_to_betabeat_root(),
+                                     utils.iotools.get_absolute_path_to_betabeat_root(),
                                      "GetLLM", "test", "data"
                                      )
 
@@ -217,7 +217,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
         if CREATE_VALID_OUTPUT or run_validator.has__no_valid_output_files():
             # Run original/valid script
             print "Deleting old output in " + valid_output_path
-            if not Utilities.iotools.deleteFilesWithoutGitignore(valid_output_path):
+            if not utils.iotools.deleteFilesWithoutGitignore(valid_output_path):
                 print >> sys.stderr, "Could not delete old output files. Will run anyway..."
             valid_script_runner = vimaier_utils.scriptrunner.ScriptRunner(
                                                 GETLLM_SCRIPT_VALID, dict_args)
@@ -232,7 +232,7 @@ class TestFileOutputGetLLM(unittest.TestCase):
 
         script_runner = vimaier_utils.scriptrunner.ScriptRunner(GETLLM_SCRIPT, dict_args)
         print "Deleting old output in " + to_check_output_path
-        if not Utilities.iotools.deleteFilesWithoutGitignore(to_check_output_path):
+        if not utils.iotools.deleteFilesWithoutGitignore(to_check_output_path):
             print >> sys.stderr, "Could not delete old output files. Will run anyway..."
         print "Starting GetLLM.py(" + run_validator.get_run_path() + ")..."
         errorcode = script_runner.run_script()

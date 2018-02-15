@@ -1,4 +1,4 @@
-from Utilities import tfs_pandas as tfs
+from utils import tfs_pandas as tfs
 import numpy as np
 import matplotlib.pyplot as plt
 

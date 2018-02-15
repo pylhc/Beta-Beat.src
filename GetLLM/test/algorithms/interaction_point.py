@@ -19,7 +19,7 @@ import math
 import numpy as np
 from numpy import sin, cos, tan
 
-import Utilities.bpm
+import utils.bpm
 import compensate_ac_effect
 
 
@@ -223,7 +223,7 @@ def _bpm_is_not_in_measured_data(bpm_name, measured):
 
 def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
     #-- Common BPMs
-    bpm = Utilities.bpm.model_intersect(Utilities.bpm.intersect(files), mad_twiss)
+    bpm = utils.bpm.model_intersect(utils.bpm.intersect(files), mad_twiss)
     bpm = [(b[0], str.upper(b[1])) for b in bpm]
     
     bpm_names = [ b[1] for b in bpm]

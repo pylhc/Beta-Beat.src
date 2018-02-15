@@ -19,7 +19,7 @@ import math
 import numpy as np
 from numpy import cos, tan
 
-import Utilities.bpm
+import utils.bpm
 import phase
 import beta
 
@@ -132,8 +132,8 @@ def get_chi_terms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
     # bmps
     files = filesF[0]
 
-    dbpms = Utilities.bpm.intersect(files)
-    dbpms = Utilities.bpm.model_intersect(dbpms, MADTwiss)
+    dbpms = utils.bpm.intersect(files)
+    dbpms = utils.bpm.model_intersect(dbpms, MADTwiss)
 
 
     # initiliasing variables
@@ -315,11 +315,11 @@ def getchi1010(MADTwiss, plane, name, files_zero_dpp_x, files_zero_dpp_y):
         print "Different length of x, y files. Leaving getchi1010 with empty values."
         return [[], []]
     
-    dbpms=Utilities.bpm.intersect(files_zero_dpp_x+files_zero_dpp_y)
-    dbpms=Utilities.bpm.model_intersect(dbpms, MADTwiss)
+    dbpms=utils.bpm.intersect(files_zero_dpp_x + files_zero_dpp_y)
+    dbpms=utils.bpm.model_intersect(dbpms, MADTwiss)
 
-    dbpmsy=Utilities.bpm.intersect(files_zero_dpp_y+files_zero_dpp_x)
-    dbpmsy=Utilities.bpm.model_intersect(dbpmsy, MADTwiss)
+    dbpmsy=utils.bpm.intersect(files_zero_dpp_y + files_zero_dpp_x)
+    dbpmsy=utils.bpm.model_intersect(dbpmsy, MADTwiss)
 
 
     # initiliasing variables

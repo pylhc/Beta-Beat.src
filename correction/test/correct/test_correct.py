@@ -15,8 +15,8 @@ import shutil
 
 
 import __init__ # @UnusedImport init will include paths
-import Utilities.iotools
-import Utilities.ndiff
+import utils.iotools
+import utils.ndiff
 
 CURRENT_PATH = os.path.dirname(__file__)
 # Path 'x/Beta-Beat.src/Correction/test/correct'
@@ -34,13 +34,13 @@ class TestCorrect(unittest.TestCase):
     PATH_TO_TO_CHECK = os.path.join(CURRENT_PATH, "data", "output", "to_check")
     PATH_TO_INPUT = os.path.join(CURRENT_PATH, "data", "input")
 
-    BETABEAT_ROOT = Utilities.iotools.get_absolute_path_to_betabeat_root()
+    BETABEAT_ROOT = utils.iotools.get_absolute_path_to_betabeat_root()
 
     __successful = False
     __have_to_run_valid_file = False
 
     def setUp(self):
-        self._run_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestCorrect.PATH_TO_INPUT)
+        self._run_dirs = utils.iotools.get_all_dir_names_in_dir(TestCorrect.PATH_TO_INPUT)
         self._check_if_valid_output_exist_and_set_attribute()
         self._delete_modified_output()
 
@@ -74,7 +74,7 @@ class TestCorrect(unittest.TestCase):
         """
         return not self._valid_output_exists()
     def _valid_output_exists(self):
-        all_dirs = Utilities.iotools.get_all_dir_names_in_dir(TestCorrect.PATH_TO_VALID)
+        all_dirs = utils.iotools.get_all_dir_names_in_dir(TestCorrect.PATH_TO_VALID)
         if 0 == len(all_dirs) or len(self._run_dirs) != len(all_dirs):
             return False
         is_valid = False
@@ -96,12 +96,12 @@ class TestCorrect(unittest.TestCase):
 
     def _delete_output(self):
         if _DELETE_VALID_OUTPUT:
-            Utilities.iotools.delete_content_of_dir(TestCorrect.PATH_TO_VALID)
+            utils.iotools.delete_content_of_dir(TestCorrect.PATH_TO_VALID)
         self._delete_modified_output()
 
     def _delete_modified_output(self):
         ''' Deletes content in PATH_TO_TO_CHECK. '''
-        Utilities.iotools.delete_content_of_dir(TestCorrect.PATH_TO_TO_CHECK)
+        utils.iotools.delete_content_of_dir(TestCorrect.PATH_TO_TO_CHECK)
 
     def _run_valid_file_if_necesaary(self, run_dir):
         ''' Runs valid script for given dir '''
@@ -154,9 +154,9 @@ class TestCorrect(unittest.TestCase):
 
 
     def _move_produced_files(self, src_path, dst_path):
-        Utilities.iotools.create_dirs(dst_path)
-        Utilities.iotools.delete_content_of_dir(dst_path) # Otherwise shutil.move() would raise an error
-        for abs_filename in Utilities.iotools.get_all_absolute_filenames_in_dir_and_subdirs(src_path):
+        utils.iotools.create_dirs(dst_path)
+        utils.iotools.delete_content_of_dir(dst_path) # Otherwise shutil.move() would raise an error
+        for abs_filename in utils.iotools.get_all_absolute_filenames_in_dir_and_subdirs(src_path):
             if self._is_produced_output_file(abs_filename):
                 shutil.move(abs_filename, dst_path)
     def _is_produced_output_file(self, file_path):
@@ -223,10 +223,10 @@ class TestCorrect(unittest.TestCase):
                                     }
         ignore_whitespace_dict = {"--blank":""}
         self.assertTrue(
-                        Utilities.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir,
-                                                                                    file_to_config_file_dict=dict_file_to_config_file,
-                                                                                    options_dict=ignore_whitespace_dict
-                                                                                    ),
+                        utils.ndiff.compare_dirs_with_files_matching_regex_list(valid_dir, to_check_dir,
+                                                                                file_to_config_file_dict=dict_file_to_config_file,
+                                                                                options_dict=ignore_whitespace_dict
+                                                                                ),
                         "Output files are not equal"
                         )
 

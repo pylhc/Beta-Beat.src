@@ -4,7 +4,7 @@ import sbs_beta_writer
 import numpy as np
 import math
 
-from Utilities import tfs_file_writer
+from utils import tfs_file_writer
 from sbs_beta_writer import intersect
 
 FIRST_BPM_B1 = "BPMSW.1L2.B1"

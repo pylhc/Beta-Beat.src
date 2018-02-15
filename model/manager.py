@@ -1,8 +1,10 @@
-from Utilities.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
-from model.accelerators import lhc, esrf, psbooster
+from utils.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
+from model.accelerators import lhc, ps, esrf, psbooster
+
 
 ACCELS = {
     lhc.Lhc.NAME: lhc.Lhc,
+    ps.Cps.NAME: ps.Cps,
     esrf.Esrf.NAME: esrf.Esrf,
     psbooster.Psbooster.NAME: psbooster.Psbooster,
 }
@@ -13,7 +15,7 @@ def _get_params():
     params.add_parameter(
         flags=["--accel"],
         help=("Choose the accelerator to use."
-              "Can be the class already, which is then returned."
+              "Can be the class already."
               ),
         name="accel",
         required=True,
@@ -36,6 +38,33 @@ def get_accel_class(opt, cls_opt):
     accel = _get_parent_class(opt.accel)
     accel_cls = accel.get_class(cls_opt)
     return accel_cls
+
+
+@entrypoint(_get_params())
+def get_accel_instance(opt, other_opt):
+    """Returns accelerator instance."""
+    if not isinstance(opt.accel, str):
+        accel_cls = opt.accel
+    else:
+        accel = _get_parent_class(opt.accel)
+        accel_cls, other_opt = accel.get_class_and_unknown(other_opt)
+    return accel_cls(other_opt)
+
+
+@entrypoint(_get_params())
+def get_accel_class_and_unkown(opt, cls_opt):
+    """Returns accelerator class
+
+    Keyword Args:
+        accel: Choose the accelerator to use. Can be the class already, which is then returned.
+    """
+    if not isinstance(opt.accel, str):
+        # assume it's the class
+        return opt.accel
+
+    accel = _get_parent_class(opt.accel)
+    accel_cls, unknown_opt = accel.get_class_and_unknown(cls_opt)
+    return accel_cls, unknown_opt
 
 
 def get_accel_class_from_args(args=None):

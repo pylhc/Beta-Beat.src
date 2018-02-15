@@ -21,7 +21,7 @@ _bb_path = os.path.abspath(os.path.join(
 if _bb_path not in sys.path:
     sys.path.append(_bb_path)
 
-import Utilities.iotools
+import utils.iotools
 from model import manager, creator
 from model.accelerators.lhc import Lhc
 from model.accelerators.accelerator import Element
@@ -40,7 +40,7 @@ import sbs_writers.sbs_special_element_writer
 #===================================================================================================
 # parse_args()-function
 #===================================================================================================
-def _parse_args():
+def _parse_args(args=None):
     '''
     Parses the arguments, checks for valid input and returns tupel
     It needs also the input needed to define the accelerator:
@@ -49,9 +49,6 @@ def _parse_args():
     e.g. for LHC runII 2017 beam 1
     --accel lhc --lhcmode lhc_runII_2017 --beam 1
     '''
-    accel_cls, rest_args = manager.get_accel_class_from_args(
-        sys.argv[1:]
-    )
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--path",  # assumes that output is same as input
                         help="Path to measurement files",
@@ -81,7 +78,9 @@ def _parse_args():
     parser.add_argument("-w", "--w",  # Path to Chromaticity functions
                         help="Path to  chromaticity functions, by default this is skiped",
                         metavar="wpath", default="0", dest="wpath")
-    options = parser.parse_args(rest_args)
+    options, accel_args = parser.parse_known_args(args)
+
+    accel_cls = manager.get_accel_class(accel_args)
 
     return accel_cls, options
 
@@ -109,7 +108,7 @@ def main(accel_cls, options):
     input_data = _InputData(measurement_path, w_path)
 
     save_path = options.save + os.path.sep
-    Utilities.iotools.create_dirs(save_path)
+    utils.iotools.create_dirs(save_path)
 
     elements_data = options.segf.split(',')
     error_cut = float(options.cuts)
@@ -803,7 +802,7 @@ def _get_files_for_mad(save_path, element_name):
 def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, accel_instance):
     modifiers_file_path = os.path.join(twiss_directory, 'modifiers.madx')
     if os.path.isfile(modifiers_file_path):
-        Utilities.iotools.copy_item(modifiers_file_path, save_path)
+        utils.iotools.copy_item(modifiers_file_path, save_path)
     else:
         print("Cannot find modifiers.madx file, will create an empty file.")
         open(os.path.join(save_path, 'modifiers.madx'), "a").close()
@@ -817,7 +816,7 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, accel_in
     if not os.path.isfile(output_corrections_file_path):
         corrections_file_path = os.path.join(twiss_directory, "corrections_" + accel_instance.label + ".madx")
         if os.path.isfile(corrections_file_path):
-            Utilities.iotools.copy_item(corrections_file_path, save_path)
+            utils.iotools.copy_item(corrections_file_path, save_path)
         else:
             print("Cannot find corrections file, will create an empty file.")
             with open(os.path.join(save_path, "corrections_" + accel_instance.label + ".madx"), "a") as corrections_file:

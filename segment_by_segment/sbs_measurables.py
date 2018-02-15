@@ -9,7 +9,7 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
 
-from Utilities import tfs_pandas, logging_tools
+from utils import tfs_pandas, logging_tools
 
 LOGGER = logging_tools.get_logger(__name__)
 

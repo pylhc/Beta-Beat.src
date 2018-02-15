@@ -60,8 +60,8 @@ import json
 import __init__ # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
 import correction.GenMatrix_chromcouple
-import Utilities.iotools
-import Utilities.math
+import utils.iotools
+import utils.math
 
 
 # internal options
@@ -119,7 +119,7 @@ def main(
          singular_value_cut=0.1,
          errorcut="0.1,0.1",
          modelcut="0.1,0.1",
-         beta_beat_root=Utilities.iotools.get_absolute_path_to_betabeat_root(),
+         beta_beat_root=utils.iotools.get_absolute_path_to_betabeat_root(),
          min_strength=0.000001,
          weights_on_corrections="1,1,0,0,0",
          path_to_optics_files_dir="nominal.opt",
@@ -180,7 +180,7 @@ def _create_changeparameters_madx_script_for_lhc():
     #.knob should always exist to be sent to LSA!
     src = os.path.join(os.path.join(_InputData.output_path, "changeparameters_chromcouple.tfs"))
     dst = os.path.join(os.path.join(_InputData.output_path, "changeparameters_chromcouple.knob"))
-    Utilities.iotools.copy_item(src, dst)
+    utils.iotools.copy_item(src, dst)
 
     changeparams_twiss = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "changeparameters_chromcouple.tfs"))
     mad_script = open(os.path.join(_InputData.output_path, "changeparameters_chromcouple.madx"), "w")
@@ -237,14 +237,14 @@ class _InputData(object):
 
     @staticmethod
     def static_init(output_path, accel, singular_value_cut, errorcut, modelcut, beta_beat_root, min_strength, weights_on_corrections, path_to_optics_files_dir, variables):
-        if not Utilities.iotools.dirs_exist(output_path):
+        if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain getcouple[_free].out and getDy.out(when last flag in weights is 1.")
         _InputData.output_path = output_path
 
         _InputData._check_and_set_cuts(singular_value_cut, errorcut, modelcut)
         _InputData._check_and_set_accel_path(beta_beat_root, accel)
 
-        if not Utilities.math.can_str_be_parsed_to_number(min_strength):
+        if not utils.math.can_str_be_parsed_to_number(min_strength):
             raise ValueError("Given min strength is not a number: "+min_strength)
         _InputData.min_strength = float(min_strength)
 
@@ -253,7 +253,7 @@ class _InputData(object):
         weights = weights_on_corrections.split(',')
         _InputData.weights_list = [int(weights[0]), int(weights[1]), int(weights[2]), int(weights[3]), int(weights[4])]
 
-        if not Utilities.iotools.dirs_exist(path_to_optics_files_dir):
+        if not utils.iotools.dirs_exist(path_to_optics_files_dir):
             raise ValueError("Given path to optics files does not exist: "+path_to_optics_files_dir)
         _InputData.path_to_optics_files_dir = path_to_optics_files_dir
         _InputData.variables_list = variables.split(",")
@@ -264,17 +264,17 @@ class _InputData(object):
 
     @staticmethod
     def _check_and_set_cuts(singular_value_cut, errorcut, modelcut):
-        if not Utilities.math.can_str_be_parsed_to_number(singular_value_cut):
+        if not utils.math.can_str_be_parsed_to_number(singular_value_cut):
             raise ValueError("Given cut is not a number: "+singular_value_cut)
         modelcuts = modelcut.split(",")
-        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[0]):
+        if not utils.math.can_str_be_parsed_to_number(modelcuts[0]):
             raise ValueError("Given model cut is not a number: "+modelcuts[0]+" from "+modelcuts)
-        if not Utilities.math.can_str_be_parsed_to_number(modelcuts[1]):
+        if not utils.math.can_str_be_parsed_to_number(modelcuts[1]):
             raise ValueError("Given model cut is not a number: "+modelcuts[1]+" from "+modelcuts)
         errorcuts = errorcut.split(",")
-        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[0]):
+        if not utils.math.can_str_be_parsed_to_number(errorcuts[0]):
             raise ValueError("Given error cut is not a number: "+errorcuts[0]+" from "+errorcuts)
-        if not Utilities.math.can_str_be_parsed_to_number(errorcuts[1]):
+        if not utils.math.can_str_be_parsed_to_number(errorcuts[1]):
             raise ValueError("Given error cut is not a number: "+errorcuts[1]+" from "+errorcuts)
         _InputData.singular_value_cut = float(singular_value_cut)
         _InputData.error_cut_c = float(errorcuts[0])
@@ -284,18 +284,14 @@ class _InputData(object):
 
     @staticmethod
     def _check_and_set_accel_path(beta_beat_root, accel):
-        if not Utilities.iotools.dirs_exist(beta_beat_root):
+        if not utils.iotools.dirs_exist(beta_beat_root):
             print >> sys.stderr, "Given Beta-Beat.src path does not exist: "+beta_beat_root
-            beta_beat_root = Utilities.iotools.get_absolute_path_to_betabeat_root()
+            beta_beat_root = utils.iotools.get_absolute_path_to_betabeat_root()
             print >> sys.stderr, "Will take current Beta-Beat.src: "+beta_beat_root
         if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
             raise ValueError("Unknown/not supported accelerator: "+accel)
-        if "LHC" in accel:
-            accel_name = "LHCB"
-        else:
-            accel_name = "SPS"
-        accel_path = os.path.join(beta_beat_root, "MODEL", accel_name, "fullresponse", accel)
-        if not Utilities.iotools.dirs_exist(accel_path):
+        accel_path = os.path.join(beta_beat_root, "correction", "fullresponse", accel)
+        if not utils.iotools.dirs_exist(accel_path):
             raise ValueError("Acclelerator path does not exist: "+accel_path)
         _InputData.accel_path = accel_path
 

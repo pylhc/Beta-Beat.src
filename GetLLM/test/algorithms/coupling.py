@@ -19,7 +19,7 @@ import math
 
 import numpy as np
 
-import Utilities.bpm
+import utils.bpm
 import phase
 import helper
 import compensate_ac_effect
@@ -182,8 +182,8 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
 
 
     XplusY = list_zero_dpp_x+list_zero_dpp_y
-    dbpms = Utilities.bpm.intersect(XplusY)
-    dbpms = Utilities.bpm.model_intersect(dbpms, MADTwiss)
+    dbpms = utils.bpm.intersect(XplusY)
+    dbpms = utils.bpm.model_intersect(dbpms, MADTwiss)
 
 
     # caculate fw and qw, exclude bpms having wrong phases
@@ -273,8 +273,8 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         return [dum0,dum1]
 
     XplusY=list_zero_dpp_x+list_zero_dpp_y
-    dbpms=Utilities.bpm.intersect(XplusY)
-    dbpms=Utilities.bpm.model_intersect(dbpms, MADTwiss)
+    dbpms=utils.bpm.intersect(XplusY)
+    dbpms=utils.bpm.model_intersect(dbpms, MADTwiss)
 
     # caculate fw and qw, exclude bpms having wrong phases
     fwqw={}

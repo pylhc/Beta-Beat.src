@@ -1,6 +1,6 @@
 import os
 from accelerator import Accelerator
-from Utilities.entrypoint import EntryPoint, EntryPointParameters, split_arguments
+from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
 PSB_DIR = os.path.join(CURRENT_DIR, "psbooster")
@@ -33,26 +33,6 @@ class Psbooster(Accelerator):
 
     """
     NAME = "psbooster"
-
-    def __init__(self, *args, **kwargs):
-        # for reasons of import-order and class creation, decoration was not possible
-        parser = EntryPoint(self.get_instance_parameters(), strict=True)
-        opt = parser.parse(*args, **kwargs)
-
-        # required
-        self.nat_tune_x = opt.nat_tune_x
-        self.nat_tune_y = opt.nat_tune_y
-        self.acd = opt.acd
-        if self.acd:
-            self.drv_tune_x = opt.drv_tune_x
-            self.drv_tune_y = opt.drv_tune_y
-
-        # optional with default
-        self.fullresponse = opt.fullresponse
-
-        # optional w/o default
-        self.energy = opt.get("energy", None)
-
 
     @staticmethod
     def get_class_parameters():
@@ -87,8 +67,7 @@ class Psbooster(Accelerator):
             flags=["--acd"],
             help="Activate excitation with ACD.",
             name="acd",
-            type=bool,
-            default=False,
+            action="store_true",
         )
         params.add_parameter(
             flags=["--drvtunex"],
@@ -113,10 +92,81 @@ class Psbooster(Accelerator):
             help=("If present, fullresponse template will" +
                   "be filled and put in the output directory."),
             name="fullresponse",
-            type=bool,
-            default=False,
+            action="store_true",
         )
         return params
+
+    # Entry-Point Wrappers #####################################################
+
+    def __init__(self, *args, **kwargs):
+        # for reasons of import-order and class creation, decoration was not possible
+        parser = EntryPoint(self.get_instance_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+
+        # required
+        self.nat_tune_x = opt.nat_tune_x
+        self.nat_tune_y = opt.nat_tune_y
+        self.acd = opt.acd
+        if self.acd:
+            self.drv_tune_x = opt.drv_tune_x
+            self.drv_tune_y = opt.drv_tune_y
+
+        # optional with default
+        self.fullresponse = opt.fullresponse
+
+        # optional w/o default
+        self.energy = opt.get("energy", None)
+
+    @classmethod
+    def init_and_get_unknowns(cls, args=None):
+        """ Initializes but also returns unknowns.
+
+         For the desired philosophy of returning parameters all the time,
+         try to avoid this function, e.g. parse outside parameters first.
+         """
+        opt, rest_args = split_arguments(args, cls.get_instance_parameters())
+        return cls(opt), rest_args
+
+    @classmethod
+    def get_class(cls, *args, **kwargs):
+        """ Returns Psbooster class.
+
+        Keyword Args:
+            Optional
+            ring (int): Ring to use.
+                        **Flags**: ['--ring']
+                        **Choices**: [1, 2, 3, 4]
+
+        Returns:
+            Psbooster class.
+        """
+        parser = EntryPoint(cls.get_class_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+        return cls._get_class(opt)
+
+    @classmethod
+    def get_class_and_unknown(cls, *args, **kwargs):
+        """ Returns Psbooster subclass and unkown args .
+
+        For the desired philosophy of returning parameters all the time,
+        try to avoid this function, e.g. parse outside parameters first.
+        """
+        parser = EntryPoint(cls.get_class_parameters(), strict=False)
+        opt, unknown_opt = parser.parse(*args, **kwargs)
+        return cls._get_class(opt), unknown_opt
+
+    @classmethod
+    def _get_class(cls, opt):
+        new_class = cls
+        if opt.ring is not None:
+            new_class = type(
+                new_class.__name__ + "Ring{}".format(opt.ring),
+                (new_class,),
+                {"get_ring": classmethod(lambda cls: opt.ring)}
+            )
+        return new_class
+
+    # Public Methods ##########################################################
 
     def verify_object(self):
         pass
@@ -134,27 +184,11 @@ class Psbooster(Accelerator):
         # TODO: Anaaaaaa
         pass
 
-    @classmethod
-    def get_class(cls, *args, **kwargs):
-        """ Returns Psbooster class.
+    # Private Methods ##########################################################
 
-        Keyword Args:
-            Optional
-            ring (int): Ring to use.
-                        **Flags**: ['--ring']
-                        **Choices**: [1, 2, 3, 4]
 
-        Returns:
-            Psbooster class.
-        """
-        parser = EntryPoint(cls.get_class_parameters(), strict=True)
-        opt = parser.parse(*args, **kwargs)
+# Script Mode ##################################################################
 
-        new_class = cls
-        if opt.ring is not None:
-            new_class = type(
-                new_class.__name__ + "Ring{}".format(opt.ring),
-                (new_class, ),
-                {"get_ring": classmethod(lambda cls: opt.ring)}
-            )
-        return new_class
+
+if __name__ == '__main__':
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import logging
-from Utilities import tfs_pandas
+from utils import tfs_pandas
 from sdds_files import turn_by_turn_reader
 
 LOGGER = logging.getLogger("__name__")

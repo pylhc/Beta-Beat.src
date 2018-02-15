@@ -61,10 +61,10 @@ import numpy as np
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
-from Utilities import bpm as bpm_util
-from Utilities import logging_tools as logtools
-from Utilities.dict_tools import DotDict
-from Utilities import tfs_remove_nan
+from utils import bpm as bpm_util
+from utils import logging_tools as logtools
+from utils.dict_tools import DotDict
+from utils import tfs_remove_nan
 from model import manager, creator
 from model.accelerators.lhc import LhcExcitationMode
 

@@ -4,7 +4,7 @@ import logging
 import shutil
 from functools import partial
 from Python_Classes4MAD import metaclass
-from Utilities import iotools
+from utils import iotools
 from model import manager
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))

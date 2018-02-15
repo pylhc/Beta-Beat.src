@@ -1,10 +1,10 @@
 import os
 import numpy as np
-from Utilities import logging_tools
-from Utilities import iotools
-from Utilities import tfs_pandas as tfs
-from Utilities.dict_tools import DotDict
-from Utilities.plotting import plot_style as pstyle
+from utils import logging_tools
+from utils import iotools
+from utils import tfs_pandas as tfs
+from utils.dict_tools import DotDict
+from utils.plotting import plot_style as pstyle
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 
