@@ -323,13 +323,13 @@ def global_correction(opt, accel_opt):
         full_response = _load_fullresponse(opt.fullresponse_path)
         varslist = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
 
-        # apply filters to data
-        optics_params, meas_dict = _scan_meas_dir(
+        optics_params, meas_dict = _get_measurment_data(
             opt.optics_params,
             opt.meas_dir_path, opt.beta_file_name,
             w_dict,
         )
 
+        # apply filters to data
         meas_dict = _filter_measurement(
             optics_params, meas_dict, opt.nominal_model,
             opt.use_errorbars, w_dict, e_dict, m_dict
@@ -395,7 +395,7 @@ def _load_fullresponse(full_response_path):
     return full_response_data
 
 
-def _scan_meas_dir(keys, meas_dir_path, beta_file_name, w_dict):
+def _get_measurment_data(keys, meas_dir_path, beta_file_name, w_dict):
     measurement = {}
     filtered_keys = [k for k in keys if w_dict[k] != 0]
     getllm_data = GetLlmMeasurement(meas_dir_path)
@@ -682,11 +682,6 @@ def _join_diffs(meas, keys):
 
 def _join_weights(meas, keys):
     return np.concatenate([meas[key].loc[:, 'WEIGHT'].values for key in keys])
-
-
-def _load_model(path_to_optics_files_dir, iteration):
-    return _read_tfs(path_to_optics_files_dir,
-                     "twiss_" + str(iteration) + ".dat")
 
 
 def _callMadx(madx_script, debug):
