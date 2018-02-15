@@ -575,10 +575,10 @@ class TwissResponse(object):
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
             "NDX": response_add(ndisp["X_K0L"], ndisp["X_K1SL"]),
             "NDY": response_add(ndisp["Y_K0SL"], ndisp["Y_K1SL"]),
-            "1001R": couple["1001"].apply(np.real),
-            "1001I": couple["1001"].apply(np.imag),
-            "1010R": couple["1010"].apply(np.real),
-            "1010I": couple["1010"].apply(np.imag),
+            "F1001R": couple["1001"].apply(np.real),
+            "F1001I": couple["1001"].apply(np.imag),
+            "F1010R": couple["1010"].apply(np.real),
+            "F1010I": couple["1010"].apply(np.imag),
             "Q": q_df,
         }
 

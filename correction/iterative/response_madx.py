@@ -211,10 +211,10 @@ def _create_fullresponse_from_dict(var_to_twiss):
             'DY': resp.xs('DY', axis=0),
             'NDX': resp.xs('NDX', axis=0),
             'NDY': resp.xs('NDY', axis=0),
-            "1001R": resp.xs('1001', axis=0).apply(np.real),
-            "1001I": resp.xs('1001', axis=0).apply(np.imag),
-            "1010R": resp.xs('1010', axis=0).apply(np.real),
-            "1010I": resp.xs('1010', axis=0).apply(np.imag),
+            "F1001R": resp.xs('1001', axis=0).apply(np.real),
+            "F1001I": resp.xs('1001', axis=0).apply(np.imag),
+            "F1010R": resp.xs('1010', axis=0).apply(np.real),
+            "F1010I": resp.xs('1010', axis=0).apply(np.imag),
             'Q': resp.loc[['Q1', 'Q2'], :, resp.minor_axis[0]]
             }
 
