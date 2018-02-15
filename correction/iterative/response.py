@@ -75,19 +75,20 @@ def create_response(opt, other_opt):
         accel_inst = accel_cls(model_dir=opt.model_dir)
 
         # handle the varmap/sequence file
-        varmapfile_name = accel_inst.name.lower() + "b" + str(accel_inst.get_beam())
+        varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
         varmap_path = os.path.join(opt.model_dir, varmapfile_name + "." + VARMAP_EXT)
         if not os.path.isfile(varmap_path):
             with logging_tools.TempFile("save_sequence_madxout.tmp", LOG.debug) as log_file:
-                madx.resolve_and_run_string(
+                madx.resolve_and_run_file(
                     os.path.join(opt.model_dir, "job.save_sequence.madx"),
-                    log_file=log_file.path,
+                    log_file=log_file,
                 )
             varmap_path = varmap_path.replace("." + VARMAP_EXT, ".seq")
 
         LOG.debug("Creating Fullresponse via TwissResponse")
         with timeit(lambda t: LOG.debug("  Total time getting TwissResponse: {:f}s".format(t))):
-            tr = TwissResponse(varmap_path, accel_inst.model, variables)
+            model = accel_inst.get_elements_tfs()
+            tr = TwissResponse(varmap_path, model, variables)
             fullresponse = tr.get_fullresponse()
 
         LOG.debug("Saving Response into file '{:s}'".format(opt.outfile_path))

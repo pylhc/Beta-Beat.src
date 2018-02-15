@@ -79,10 +79,10 @@ class TwissResponse(object):
         with timeit(lambda t: LOG.debug("  Time initializing TwissResponse: {:f}s".format(t))):
             # Get input
             self._twiss = self._get_model_twiss(model_or_path)
+            self._variables = variables
             self._var_to_el = self._get_variable_mapping(varmap_or_seq_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
-            self._variables = variables
 
             # calculate all phase advances
             self._phase_advances = get_phase_advances(self._twiss)
@@ -122,11 +122,14 @@ class TwissResponse(object):
         else:
             LOG.debug("Loaded Model from file '{:s}'".format(model_or_path))
 
-        # Remove not needed Stuff
+        # Remove not needed entries
         LOG.debug("Removing non-necessary entries:")
         LOG.debug("  Entries total: {:d}".format(model.shape[0]))
         model = model.loc[regex_in(r"\A(M|BPM)", model.index), :]
         LOG.debug("  Entries left: {:d}".format(model.shape[0]))
+
+        # make a copy to suppress "SettingWithCopyWarning"
+        model = model.copy()
 
         # Add Dummy for Phase Calculations
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
@@ -385,7 +388,7 @@ class TwissResponse(object):
     #       Normalizing
     ################################
 
-    def _normalize_beta(self):
+    def _normalize_beta_response(self):
         """ Convert to Beta Beating """
         el_out = self._elements_out
         tw = self._twiss
@@ -397,7 +400,7 @@ class TwissResponse(object):
             self._beta_norm[plane] = beta[plane].div(
                 tw.loc[el_out, col], axis='index')
 
-    def _normalize_dispersion(self):
+    def _normalize_dispersion_response(self):
         """ Convert to Normalized Dispersion """
         el_out = self._elements_out
         tw = self._twiss
@@ -411,11 +414,11 @@ class TwissResponse(object):
 
             nd_model = tw.loc[el_out, col_disp].div(
                 np.sqrt(tw.loc[el_out, col_bet]), axis='index')
-            nd_step = tw.loc[el_out, col_disp].add(disp[plane], axis='index').div(
-                tw.loc[el_out, col_bet].add(beta[plane[0]], axis='index')
+            nd_step = disp[plane].add(tw.loc[el_out, col_disp], axis='index').div(
+                beta[plane[0]].add(tw.loc[el_out, col_bet], axis='index')
             )
 
-            self._dispersion_norm[plane] = nd_step - nd_model
+            self._dispersion_norm[plane] = nd_step.sub(nd_model, axis='index')
 
     ################################
     #       Mapping
@@ -480,7 +483,7 @@ class TwissResponse(object):
                                                        self._var_to_el["K1L"])
 
         if normalized and not self._beta_norm:
-            self._normalize_beta()
+            self._normalize_beta_response()
             if mapped and not self._beta_mapped_norm:
                 self._beta_mapped_norm = self._map_to_variables(self._beta_norm,
                                                                 self._var_to_el["K1L"])
@@ -500,7 +503,7 @@ class TwissResponse(object):
             self._dispersion_mapped = self._map_dispersion_response(normalized=False)
 
         if normalized and not self._dispersion_norm:
-            self._dispersion_norm = self._normalize_dispersion_response()
+            self._normalize_dispersion_response()
             if mapped and not self._dispersion_mapped_norm:
                 self._dispersion_mapped_norm = self._map_dispersion_response(normalized=True)
 

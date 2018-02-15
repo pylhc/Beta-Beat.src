@@ -639,7 +639,7 @@ def _callMadx(madx_script, debug):
         with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
             madx_wrapper.resolve_and_run_string(
                 madx_script,
-                log_file=log_file.path,
+                log_file=log_file,
             )
     else:
         madx_wrapper.resolve_and_run_string(
