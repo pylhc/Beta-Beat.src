@@ -763,13 +763,16 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         the same instance as param beta_d to indicate that x_amp,y_amp and ratios were set.
     '''
     _info_('Calculating beta from amplitude')
-    
+
     commonbpms_x = twiss_d.zero_dpp_commonbpms_x
     commonbpms_y = twiss_d.zero_dpp_commonbpms_y
 
     # exclude BPMs for which beta from phase din't work
     commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase)]
     commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase)]
+
+    commonbpms_x = commonbpms_x.sort_values(by='S', axis='index')
+    commonbpms_y = commonbpms_y.sort_values(by='S', axis='index')
 
     #---- H plane
     if twiss_d.has_zero_dpp_x():
@@ -859,6 +862,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio_f)
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+                bpmsf = bpmsf.sort_values(by='S', axis='index')
                 for bn1 in bpmsf.index:
                     bns1 = bpmsf.loc[bn1, "S"]
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf[bn1][0], betaxf[bn1][1],
@@ -878,6 +882,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXRES", "BETXSTDRES"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+            bpmsf2 = bpmsf2.sort_values(by='S', axis='index')
             for bn1 in bpmsf2.index:
                 bns1 = bpmsf2.loc[bn1, "S"]
                 list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[bn1][0], betaxf2[bn1][1],
