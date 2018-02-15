@@ -617,7 +617,7 @@ class Lhc(Accelerator):
         return self._elements_centre
 
     def get_amp_bpms(self, common_bpms):
-        return common_bpms.loc[common_bpms.index.str.match("BPM[_,A-Z]*\\.([0-9]+)[R,L].*")]
+        return common_bpms.loc[common_bpms.index.str.match("BPM[_,A-Z]*\\.([0-9]+)[R,L].*", as_indexer=True)]
 
 class _LhcSegmentMixin(object):
 
