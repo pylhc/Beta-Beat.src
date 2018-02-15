@@ -602,6 +602,8 @@ class Lhc(Accelerator):
     def get_elements_centre_tfs(self):
         return self.elements_centre
 
+    def get_amp_bpms(self, common_bpms):
+        return common_bpms.loc[common_bpms.index.str.match("BPM[_,A-Z]*\\.([0-9]+)[R,L].*")]
 
 class _LhcSegmentMixin(object):
 

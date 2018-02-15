@@ -750,7 +750,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     return beta_d
 # END calculate_beta_from_phase -------------------------------------------------------------------------------
 
-def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict):
+def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, accelerator):
     '''
     Calculates beta and fills the following TfsFiles:
         getampbetax.out        getampbetax_free.out        getampbetax_free2.out
@@ -789,11 +789,13 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         
         # I tried to make sense of the original line and understood it as follows: 
         # out of the used BPMs we take the ones that lie in the arcs.
-        arcbpms = commonbpms_x.index[getllm_d.accelerator.get_arc_bpms_mask(commonbpms_x.index)]
+        # the idea of the new accelerator.get_amp_bpms(list_of_bpms) is that each accelerator (lhc, ps, esrf) decides
+        # which BPMs are good for beta from amplitude. In the case of LHC these are the arc BPMs.
+        arcbpms = accelerator.get_amp_bpms(commonbpms_x)
         
         
-        for bpm in arcbpms:
-            name = str.upper(bpm)  # second entry is the name
+        for bpm in arcbpms.index:
+            name = str.upper(bpm)
         #Skip BPM with strange data
             if abs(beta_d.x_phase[name][0] / beta_d.x_amp[name][0]) > 100:
                 skipped_bpmx.append(name)
@@ -835,12 +837,12 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             #-- from eq
             try:
                 betaxf, rmsbbxf, bpmsf = compensate_excitation.get_free_beta_from_amp_eq(
-                    mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', getllm_d, commonbpms_y)
+                    mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', getllm_d, arcbpms)
+                arcbpms = bpmsf
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
-                arcbpms = utils.bpm.filterbpm(bpmsf)
-                for name in arcbpms.index:
+                for name in bpmsf.index:
                 #Skip BPM with strange data
                     if abs(beta_d.x_phase_f[name][0] / betaxf[name][0]) > 10:
                         skipped_bpmxf.append(name)
@@ -888,13 +890,15 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                                     mad_twiss.loc[bn1, "BETX"], mad_twiss.loc[bn1, "MUX"], betaxf2_rescale[bn1][0], betaxf2_rescale[bn1][1]]
                 tfs_file.add_table_row(list_row_entries)  # V plane
 
+#-----------------------------------------------------------------------------------------------------------------------
+
     if twiss_d.has_zero_dpp_y():
         [beta_d.y_amp, rmsbby, _, inv_jy] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_y, 'V', commonbpms_y)
         beta_d.y_amp['DPP'] = 0
         #-- Rescaling
         beta_d.y_ratio = 0
         skipped_bpmy = []
-        arcbpms = commonbpms_y.index[getllm_d.accelerator.get_arc_bpms_mask(commonbpms_y.index)]
+        arcbpms = accelerator.get_amp_bpms(commonbpms_y)
         for bpm in arcbpms:
             name = str.upper(bpm)  # second entry is the name
             #Skip BPM with strange data
@@ -934,12 +938,11 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         if getllm_d.accelerator.excitation is not AccExcitationMode.FREE: # from eq
             try:
                 betayf, rmsbbyf, bpmsf = compensate_excitation.get_free_beta_from_amp_eq(
-                    mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y, 'V', getllm_d, commonbpms_y)  # Rescaling
+                    mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y, 'V', getllm_d, arcbpms)  # Rescaling
                 # OK, bpmsf output of get_free_beta_from_amp_eq is probably similar to the old commonbpms and should be replaced
-                
+                arcbpms = bpmsf
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
-                arcbpms = utils.bpm.filterbpm(bpmsf)
                 for name in arcbpms.index:
                     #Skip BPM with strange data
                     if abs(beta_d.y_phase_f[name][0] / betayf[name][0]) > 10:
