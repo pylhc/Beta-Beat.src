@@ -186,6 +186,6 @@ def get_commonbpm(key1, key2, commonbpms):
         if bpm == key2:
             i2 = i
     if i2 == -1:
-        return -1, None
+        raise KeyError("Giving up looking for the closest exciter BPM")
     return i2, commonbpms.index[i2]
 
