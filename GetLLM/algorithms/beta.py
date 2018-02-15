@@ -767,6 +767,9 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
     commonbpms_x = twiss_d.zero_dpp_commonbpms_x
     commonbpms_y = twiss_d.zero_dpp_commonbpms_y
 
+    # exclude BPMs for which beta from phase din't work
+    commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase)]
+    commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase)]
 
     #---- H plane
     if twiss_d.has_zero_dpp_x():
