@@ -38,6 +38,7 @@ from utils.contexts import timeit
 from utils import logging_tools
 from utils.entrypoint import entrypoint, EntryPointParameters
 from model import manager  # noqa
+from segment_by_segment.segment_by_segment import GetLlmMeasurement
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -46,15 +47,46 @@ DEV_NULL = os.devnull
 
 # Configuration ##################################################################
 
+_defaults = {
+    'optics_params': ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
+    'modelcut': {
+        'MUX': 0.05, 'MUY': 0.05,
+        'BBX': 0.2, 'BBY': 0.2,
+        'BETX': 0.2, 'BETY': 0.2,
+        'DX': 0.2, 'DY': 0.2,
+        'NDX': 0.2, 'Q': 0.1,
+        'F1001R': 0.2, 'F1001I': 0.2,
+        'F1010R': 0.2, 'F1010I': 0.2,
+    },
+    'errorcut': {
+        'MUX': 0.035, 'MUY': 0.035,
+        'BBX': 0.02, 'BBY': 0.02,
+        'BETX': 0.02, 'BETY': 0.02,
+        'DX': 0.02, 'DY': 0.02,
+        'NDX': 0.02, 'Q': 0.027,
+        'F1001R': 0.02, 'F1001I': 0.02,
+        'F1010R': 0.02, 'F1010I': 0.02,
+    },
+    'weights': {
+        'MUX': 1, 'MUY': 1,
+        'BBX': 0, 'BBY': 0,
+        'BETX': 0, 'BETY': 0,
+        'DX': 0, 'DY': 0,
+        'NDX': 0, 'Q': 10,
+        'F1001R': 0, 'F1001I': 0,
+        'F1010R': 0, 'F1010I': 0,
+    },
+}
 
-DEFAULTS = {
+
+DEFAULT_ARGS = {
     "optics_file": None,
     "output_path": None,
     "singular_value_cut": 0.01,
-    "optics_params": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
-    "modelcut": [0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-    "errorcut": [0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-    "weights_on_quantities": [1., 1., 0., 0., 0., 10.],
+    "optics_params": _defaults['optics_params'],
+    "modelcut": [_defaults["modelcut"][p] for p in _defaults['optics_params']],
+    "errorcut": [_defaults["errorcut"][p] for p in _defaults['optics_params']],
+    "weights_on_quantities": [_defaults["weights"][p] for p in _defaults['optics_params']],
     "use_errorbars": False,
     "variables": ["MQM", "MQT", "MQTL", "MQY"],
     "beta_file_name": "getbeta",
@@ -68,25 +100,37 @@ DEFAULTS = {
 # Define functions here, to new optics params
 def _get_measurement_filters():
     return {
-        'MUX': _get_filtered_phases, 'MUY': _get_filtered_phases,
-        'BBX': _get_filtered_betas, 'BBY': _get_filtered_betas,
-        'NDX': _get_filtered_disp, 'Q': _get_tunes
+        'MUX': _get_filtered_generic, 'MUY': _get_filtered_generic,
+        'BBX': _get_filtered_betabeat, 'BBY': _get_filtered_betabeat,
+        'BETX': _get_filtered_generic, 'BETY': _get_filtered_generic,
+        'DX': _get_filtered_generic, 'DY': _get_filtered_generic,
+        'NDX': _get_filtered_generic, 'Q': _get_tunes,
+        'F1001R': _get_filtered_generic, 'F1001I': _get_filtered_generic,
+        'F1010R': _get_filtered_generic, 'F1010I': _get_filtered_generic,
         }
 
 
 def _get_response_filters():
     return {
         'MUX': _get_phase_response, 'MUY': _get_phase_response,
-        'BBX': _get_betabeat_response, 'BBY': _get_betabeat_response,
-        'NDX': _get_disp_response, 'Q': _get_tune_response
+        'BBX': _get_generic_response, 'BBY': _get_generic_response,
+        'BETX': _get_generic_response, 'BETY': _get_generic_response,
+        'DX': _get_generic_response, 'DY': _get_generic_response,
+        'NDX': _get_generic_response, 'Q': _get_tune_response,
+        'F1001R': _get_generic_response, 'F1001I': _get_generic_response,
+        'F1010R': _get_generic_response, 'F1010I': _get_generic_response,
         }
 
 
 def _get_model_appenders():
     return {
         'MUX': _get_model_phases, 'MUY': _get_model_phases,
-        'BBX': _get_model_betas, 'BBY': _get_model_betas,
-        'NDX': _get_model_disp, 'Q': _get_model_tunes
+        'BBX': _get_model_betabeat, 'BBY': _get_model_betabeat,
+        'BETX': _get_model_generic, 'BETY': _get_model_generic,
+        'DX': _get_model_generic, 'DY': _get_model_generic,
+        'NDX': _get_model_norm_disp, 'Q': _get_model_tunes,
+        'F1001R': _get_model_generic, 'F1001I': _get_model_generic,
+        'F1010R': _get_model_generic, 'F1010I': _get_model_generic,
         }
 
 
@@ -116,35 +160,35 @@ def _get_params():
         name="optics_params",
         type=str,
         nargs="*",
-        default=DEFAULTS["optics_params"],
+        default=DEFAULT_ARGS["optics_params"],
     )
     params.add_parameter(
         flags="--optics_file",
         help=("Path to the optics file to use, usually modifiers.madx. If "
               "not present will default to model_path/modifiers.madx"),
         name="optics_file",
-        default=DEFAULTS["optics_file"],
+        default=DEFAULT_ARGS["optics_file"],
     )
     params.add_parameter(
         flags="--output",
         help=("Path to the directory where to write the ouput files, will "
               "default to the --meas input path."),
         name="output_path",
-        default=DEFAULTS["output_path"],
+        default=DEFAULT_ARGS["output_path"],
     )
     params.add_parameter(
         flags="--svd_cut",
         help="",  # TODO
         name="singular_value_cut",
         type=float,
-        default=DEFAULTS["singular_value_cut"],
+        default=DEFAULT_ARGS["singular_value_cut"],
     )
     params.add_parameter(
         flags="--model_cut",
         help=("Reject BPMs whose deviation to the model is higher than the "
               "correspoding input. Input should be: Phase,Betabeat,NDx"),
         name="modelcut",
-        default=DEFAULTS["modelcut"],
+        default=DEFAULT_ARGS["modelcut"],
     )
     params.add_parameter(
         flags="--error_cut",
@@ -153,7 +197,7 @@ def _get_params():
         name="errorcut",
         nargs="*",
         type=float,
-        default=DEFAULTS["errorcut"],
+        default=DEFAULT_ARGS["errorcut"],
     )
     params.add_parameter(
         flags="--weights",
@@ -162,39 +206,39 @@ def _get_params():
         name="weights_on_quantities",
         nargs="*",
         type=float,
-        default=DEFAULTS["weights_on_quantities"],
+        default=DEFAULT_ARGS["weights_on_quantities"],
     )
     params.add_parameter(
         flags="--use_errorbars",
         help=("If True, it will take into account the measured errorbars "
               "in the correction."),
         name="use_errorbars",
-        action="store_" + str(not DEFAULTS["use_errorbars"]).lower(),
+        action="store_" + str(not DEFAULT_ARGS["use_errorbars"]).lower(),
     )
     params.add_parameter(
         flags="--variables",
         help="Comma separated names of the variables classes to use.",
         name="variable_categories",
-        default=DEFAULTS["variables"],
+        default=DEFAULT_ARGS["variables"],
     )
     params.add_parameter(
         flags="--beta_file_name",
         help="Prefix of the beta file to use. E.g.: getkmodbeta",
         name="beta_file_name",
-        default=DEFAULTS["beta_file_name"],
+        default=DEFAULT_ARGS["beta_file_name"],
     )
     params.add_parameter(
         flags="--virt_flag",
         help="If true, it will use virtual correctors.",
         name="virt_flag",
-        action="store_" + str(not DEFAULTS["virt_flag"]).lower(),
+        action="store_" + str(not DEFAULT_ARGS["virt_flag"]).lower(),
     )
     params.add_parameter(
         flags="--method",
         help="Optimization method to use.",
         name="method",
         type=str,
-        default=DEFAULTS["method"],
+        default=DEFAULT_ARGS["method"],
         choices=["newton"]
     )
     params.add_parameter(
@@ -202,14 +246,14 @@ def _get_params():
         help="Maximum number of correction iterations to perform.",
         name="max_iter",
         type=int,
-        default=DEFAULTS["max_iter"],
+        default=DEFAULT_ARGS["max_iter"],
     )
     params.add_parameter(
         flags="--eps",
         help="Convergence criterion. If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.",
         name="eps",
         type=float,
-        default=DEFAULTS["eps"],
+        default=DEFAULT_ARGS["eps"],
     )
     params.add_parameter(
         flags="--debug",
@@ -251,6 +295,11 @@ def global_correction(opt, accel_opt):
     if opt.debug:
         _setup_debug()
 
+    not_implemented_params = [k for k in opt.optics_params if k not in _get_measurement_filters()]
+    if any(not_implemented_params):
+        raise NotImplementedError("Correct iterative is not equipped for parameters:"
+                                  "'{:s}'".format(not_implemented_params))
+
     with timeit(lambda t: LOG.debug("  Total time for Global Correction: {:f}s".format(t))):
         # get unset paths from other paths
         if opt.optics_file is None:
@@ -259,7 +308,7 @@ def global_correction(opt, accel_opt):
         if opt.output_path is None:
             opt.output_path = opt.meas_dir_path
 
-        template_file_path = os.path.join(os.path.dirname(__file__) , "job.twiss_python.madx")
+        template_file_path = os.path.join(os.path.dirname(__file__), "job.twiss_python.madx")
 
         # get accelerator class
         accel_cls = manager.get_accel_class(accel_opt)
@@ -270,7 +319,7 @@ def global_correction(opt, accel_opt):
         e_dict = dict(zip(opt.optics_params, opt.errorcut))
 
         # read data from files
-        nominal_model = tfs.read_tfs(opt.model_twiss_path)
+        nominal_model = tfs.read_tfs(opt.model_twiss_path).set_index("NAME", drop=False)
         full_response = _load_fullresponse(opt.fullresponse_path)
         varslist = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
 
@@ -280,12 +329,13 @@ def global_correction(opt, accel_opt):
             opt.meas_dir_path, opt.beta_file_name,
             w_dict,
         )
-        optics_params, meas_dict = _filter_measurement(
+
+        meas_dict = _filter_measurement(
             optics_params, meas_dict, opt.nominal_model,
             opt.use_errorbars, w_dict, e_dict, m_dict
         )
-        full_response = _filter_response_columns(full_response, meas_dict, optics_params)
         meas_dict = _append_model_to_measurement(nominal_model, meas_dict, optics_params)
+        full_response = _filter_response_columns(full_response, meas_dict, optics_params)
 
         if opt.debug:
             _print_rms(meas_dict, optics_params)
@@ -300,7 +350,7 @@ def global_correction(opt, accel_opt):
 
             madx_script = _create_madx_script(accel_cls, nominal_model, opt.optics_file,
                                               template_file_path, opt.output_path)
-            _callMadx(madx_script)  # TODO
+            _callMadx(madx_script)
             new_model_path = os.path.join(opt.output_path, "twiss_" + str(idx) + ".dat")
             shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"),
                          new_model_path)
@@ -347,14 +397,14 @@ def _load_fullresponse(full_response_path):
 
 def _scan_meas_dir(keys, meas_dir_path, beta_file_name, w_dict):
     measurement = {}
-    filtered_keys = keys[:]  # Clone original keys list
-    if w_dict['MUX'] or w_dict['MUY'] or w_dict['Q']:
-        try:
-            measurement['MUX'] = _read_tfs(meas_dir_path, "getphasex_free.out")
-            measurement['MUY'] = _read_tfs(meas_dir_path, "getphasey_free.out")
-        except IOError:
-            measurement['MUX'] = _read_tfs(meas_dir_path, "getphasex.out")
-            measurement['MUY'] = _read_tfs(meas_dir_path, "getphasey.out")
+    filtered_keys = [k for k in keys if w_dict[k] != 0]
+    getllm_data = GetLlmMeasurement(meas_dir_path)
+
+    if any(k in filtered_keys for k in ["MUX", "MUY", "Q"]):
+        measurement['MUX'] = getllm_data.phase_x
+        measurement['MUY'] = getllm_data.phase_y
+
+        # tune
         measurement['Q'] = pd.DataFrame({
             'NAME': pd.Categorical(['Q1', 'Q2']),
             # Just fractional tunes:
@@ -363,35 +413,45 @@ def _scan_meas_dir(keys, meas_dir_path, beta_file_name, w_dict):
             # TODO measured errors not in the file
             'ERROR': np.array([0.001, 0.001])
         })
-    else:
-        filtered_keys.remove('MUX')
-        filtered_keys.remove('MUY')
-        filtered_keys.remove('Q')
 
-    if w_dict['BBX'] or w_dict['BBY']:
-        try:
-            measurement['BBX'] = _read_tfs(meas_dir_path,
-                                           beta_file_name + "x_free.out")
-            measurement['BBY'] = _read_tfs(meas_dir_path,
-                                           beta_file_name + "y_free.out")
-        except IOError:
-            measurement['MUX'] = _read_tfs(meas_dir_path,
-                                           beta_file_name + "x.out")
-            measurement['MUY'] = _read_tfs(meas_dir_path,
-                                           beta_file_name + "y.out")
-    else:
-        filtered_keys.remove('BBX')
-        filtered_keys.remove('BBY')
+    if any(k in filtered_keys for k in ["BBX", "BBY"]):
+        # it's the same data as BETX, BETY but after filtering it will be different
+        if beta_file_name == "getgetbeta":
+            measurement['BBX'] = getllm_data.beta_x
+            measurement['BBY'] = getllm_data.beta_y
+        elif beta_file_name == 'getampbeta':
+            measurement['BBX'] = getllm_data.amp_beta_x
+            measurement['BBY'] = getllm_data.amp_beta_y
+        elif beta_file_name == "getkmodbeta":
+            measurement['BBX'] = getllm_data.kmod_beta_x
+            measurement['BBY'] = getllm_data.kmod_beta_y
+        else:
+            raise ValueError("Beta filename '{:s}' not recognized".format(beta_file_name))
 
-    if w_dict['NDX']:
+    if any(k in filtered_keys for k in ["BETX", "BETY"]):
+        if beta_file_name == "getgetbeta":
+            measurement['BETX'] = getllm_data.beta_x
+            measurement['BETY'] = getllm_data.beta_y
+        elif beta_file_name == 'getampbeta':
+            measurement['BETX'] = getllm_data.amp_beta_x
+            measurement['BETY'] = getllm_data.amp_beta_y
+        elif beta_file_name == "getkmodbeta":
+            measurement['BETX'] = getllm_data.kmod_beta_x
+            measurement['BETY'] = getllm_data.kmod_beta_y
+        else:
+            raise ValueError("Beta filename '{:s}' not recognized".format(beta_file_name))
+
+    if any(k in filtered_keys for k in ["DX", "DY"]):
+        measurement['DX'] = getllm_data.disp_x
+        measurement['DY'] = getllm_data.disp_y
+
+    if "NDX" in filtered_keys:
         try:
-            measurement['NDX'] = _read_tfs(meas_dir_path, "getNDx.out")
+            measurement['NDX'] = getllm_data.norm_disp
         except IOError:
             LOG.warning("No good dispersion or inexistent file getNDx")
             LOG.warning("Correction will not take into account NDx")
             filtered_keys.remove('NDX')
-    else:
-        filtered_keys.remove('NDX')
 
     return filtered_keys, measurement
 
@@ -406,53 +466,67 @@ def _read_tfs(path, file_name):
 
 # Parameter filtering ########################################################
 
-# TODO: Add error and model cuts:
-def _filter_measurement(keys, measurement, model, w, w_dict,  e_dict, m_dict):
+
+def _filter_measurement(keys, measurement, model, errorbar, w_dict, e_dict, m_dict):
+    """ Filteres measurements and renames columns to VALUE, ERROR, WEIGHT"""
+    # TODO: Add error and model cuts (jd: ???)
     filters = _get_measurement_filters()
-    meas = {}
-    new_keys = []
+    meas = dict.fromkeys(keys)
     for key in keys:
-        if w_dict[key] > 0.0:
-            meas[key] = filters[key](
-                measurement[key], model, w_dict[key], w,
-                modelcut=m_dict[key], errorcut=e_dict[key]
-            )
-            new_keys.append(key)
-    return new_keys, meas
+        meas[key] = filters[key](key, meas[key], model, errorbar,
+                                 w_dict[key],
+                                 modelcut=m_dict[key], errorcut=e_dict[key]
+                                 )
+    return meas
 
 
-def _get_filtered_phases(meas, model, weight, erwg,
-                         modelcut=0.05, errorcut=0.035):
-    new = pd.merge(meas, model, how='inner', on='NAME', suffixes=('', 'm'))
-    second_bpm_in = np.in1d(new.loc[:, 'NAME2'].values,
-                            new.loc[:, 'NAME'].values)
-    if 'PHYMDL' in new.columns.values:
-        plane = 'Y'
+def _get_filtered_generic(key, meas, model, erwg, weight, modelcut, errorcut):
+    common_bpms = meas.index.intersection(model.index)
+
+    # name and value
+    new = meas.loc[common_bpms, ['NAME', key]]
+    new.columns = ['NAME', 'VALUE']
+
+    # errors
+    if ("ERR" + key) in meas.columns.values:  # usually beta
+        if ('STD' + key) in meas.columns.values:  # Old files or k-mod
+            new['ERROR'] = np.sqrt(np.square(new.loc[common_bpms, 'ERR' + key].values) +
+                                   np.square(new.loc[common_bpms, 'STD' + key].values))
+        else:
+            new['ERROR'] = meas.loc[common_bpms, 'ERR' + key]
+
     else:
-        plane = 'X'
-    new['PHMOD'] = new.loc[:, 'PH' + plane + 'MDL'].values
-    new['VALUE'] = new.loc[:, 'PHASE' + plane].values
-    new['ERROR'] = new.loc[:, 'STDPH' + plane].values
-    good_phase = (
-        (new.loc[:, 'ERROR'].values < errorcut) &
-        (np.abs(new.loc[:, 'VALUE'].values - new.loc[:, 'PHMOD'].values) <
-            modelcut)
-    )
-    good_bpms = good_phase & second_bpm_in
-    # Removing the last pair as it goes beyond the end of lattice
-    good_bpms[-1] = False
+        key2num = {'1001': '1', '1010': '2'}
+        if key[1:-1] in key2num:  # coupling
+            new['ERROR'] = meas.loc[common_bpms, 'FWSTD' + key2num[key[1:-1]]]
+        else:
+            new['ERROR'] = meas.loc[common_bpms, 'STD'+key]
+
+    # weights
     new['WEIGHT'] = weight
     if erwg:
-        new['WEIGHT'] = (new.loc[:, 'WEIGHT'].values /
-                         new.loc[:, 'ERROR'].values)
-    LOG.debug("Number of BPM pairs in plane " +
-              plane + ": " + str(np.sum(good_bpms)))
-    return new.loc[good_bpms, ['NAME', 'NAME2', 'VALUE', 'ERROR', 'WEIGHT']]
+        new['WEIGHT'] = new.loc[:, 'WEIGHT'].values / new.loc[:, 'ERROR'].values
+
+    # filter cuts
+    error_filter = new.loc[:, 'ERROR'].values < errorcut
+    model_filter = np.abs(new.loc[:, 'VALUE'].values -
+                          meas.loc[common_bpms, key + 'MDL'].values) < modelcut
+
+    if 'NAME2' in meas.columns.values:  # only phases
+        new['NAME2'] = meas.loc[common_bpms, 'NAME2']
+        second_bpm_in = np.in1d(new.loc[:, 'NAME2'].values,
+                                new.loc[:, 'NAME'].values)
+        good_bpms = error_filter & model_filter & second_bpm_in
+        good_bpms[-1] = False
+    else:
+        good_bpms = error_filter & model_filter
+    LOG.debug("Number of BPMs with {:s}: {:d}".format(key, np.sum(good_bpms)))
+    return new.loc[good_bpms, :]
 
 
-def _get_filtered_betas(meas, model, weight, erwg,
-                        modelcut=0.2, errorcut=0.02):
+def _get_filtered_betabeat(key, meas, model, erwg, weight, modelcut, errorcut):
     # Beta-beating and its error RELATIVE as shown in GUI
+    # TODO: Rewrite with intersections instead of merge (like generic)
     new = pd.merge(meas, model, how='inner', on='NAME', suffixes=('', 'm'))
     if 'BETYMDL' in new.columns.values:
         plane = 'Y'
@@ -485,24 +559,7 @@ def _get_filtered_betas(meas, model, weight, erwg,
     return new.loc[good_bpms, ['NAME', 'VALUE', 'ERROR', 'WEIGHT']]
 
 
-def _get_filtered_disp(meas, model, weight, erwg, modelcut=0.2, errorcut=0.02):
-    new = pd.merge(meas, model, how='inner', on='NAME', suffixes=('', 'm'))
-    new['VALUE'] = new.loc[:, 'NDX'].values
-    new['ERROR'] = new.loc[:, 'STDNDX'].values
-    good_bpms = (
-        (new.loc[:, 'ERROR'].values < errorcut) &
-        (np.abs(new.loc[:, 'VALUE'].values -
-                new.loc[:, 'NDXMDL'].values) < modelcut)
-    )
-    new['WEIGHT'] = weight
-    if erwg:
-        new['WEIGHT'] = (new.loc[:, 'WEIGHT'].values /
-                         new.loc[:, 'ERROR'].values)
-    LOG.debug("Number of BPMs with NDx : " + str(np.sum(good_bpms)))
-    return new.loc[good_bpms, ['NAME', 'VALUE', 'ERROR', 'WEIGHT']]
-
-
-def _get_tunes(meas, mod, weight, erwg, modelcut=0.1, errorcut=0.027):
+def _get_tunes(key, meas, model, erwg, weight, modelcut=0.1, errorcut=0.027):
     meas['WEIGHT'] = weight
     if erwg:
         meas['WEIGHT'] = (meas.loc[:, 'WEIGHT'].values /
@@ -522,18 +579,14 @@ def _filter_response_columns(response, measurement, keys):
     return new_resp
 
 
+def _get_generic_response(resp, meas):
+    return resp.loc[:, meas.index.values]
+
+
 def _get_phase_response(resp, meas):
-    new = resp.loc[:, meas.loc[:, 'NAME'].values]
+    new = resp.loc[:, meas.index.values]
     new.sub(resp.as_matrix(columns=meas.loc[:, 'NAME2'].values), axis=0)
     return -new  # As we did subtraction name-name2
-
-
-def _get_betabeat_response(resp, meas):
-    return resp.loc[:, meas.loc[:, 'NAME'].values]
-
-
-def _get_disp_response(resp, meas):
-    return resp.loc[:, meas.loc[:, 'NAME'].values]
 
 
 def _get_tune_response(resp, meas):
@@ -551,20 +604,22 @@ def _append_model_to_measurement(model, measurement, keys):
     return meas
 
 
-def _get_model_phases(model, meas, key):
-    new = model.set_index('NAME')
-    meas['MODEL'] = (new.loc[meas.loc[:, 'NAME2'].values, key].values -
-                     new.loc[meas.loc[:, 'NAME'].values, key].values)
+def _get_model_generic(model, meas, key):
+    meas['MODEL'] = model.loc[meas.loc[:, 'NAME'].values, key].values
     meas['DIFF'] = meas.loc[:, 'VALUE'].values - meas.loc[:, 'MODEL'].values
     return meas
 
 
-def _get_model_betas(model, meas, key):
-    new = model.set_index('NAME')
-    if key == 'BBX':
-        meas['MODEL'] = new.loc[meas.loc[:, 'NAME'].values, 'BETX'].values
-    else:
-        meas['MODEL'] = new.loc[meas.loc[:, 'NAME'].values, 'BETY'].values
+def _get_model_phases(model, meas, key):
+    meas['MODEL'] = (model.loc[meas.loc[:, 'NAME2'].values, key].values -
+                     model.loc[meas.loc[:, 'NAME'].values, key].values)
+    meas['DIFF'] = meas.loc[:, 'VALUE'].values - meas.loc[:, 'MODEL'].values
+    return meas
+
+
+def _get_model_betabeat(model, meas, key):
+    col = "BETX" if key == "BBX" else "BETY"
+    meas['MODEL'] = model.loc[meas.loc[:, 'NAME'].values, col].values
     meas['DIFF'] = (
         (meas.loc[:, 'VALUE'].values - meas.loc[:, 'MODEL'].values) /
         meas.loc[:, 'MODEL'].values
@@ -572,11 +627,12 @@ def _get_model_betas(model, meas, key):
     return meas
 
 
-def _get_model_disp(model, meas, key):
-    new = model.set_index('NAME')
+def _get_model_norm_disp(model, meas, key):
+    col = key[1:]
+    beta = "BET" + key[-1]
     meas['MODEL'] = (
-        new.loc[meas.loc[:, 'NAME'].values, 'DX'].values /
-        np.sqrt(new.loc[meas.loc[:, 'NAME'].values, 'BETX'].values)
+        model.loc[meas.loc[:, 'NAME'].values, col].values /
+        np.sqrt(model.loc[meas.loc[:, 'NAME'].values, beta].values)
     )
     meas['DIFF'] = meas.loc[:, 'VALUE'].values - meas.loc[:, 'MODEL'].values
     return meas
@@ -597,7 +653,7 @@ def _dump(path_to_dump, content):
         cPickle.Pickler(dump_file, -1).dump(content)
 
 
-def _calculate_deltas(resp, meas, keys, varslist, cut=0.01, append=False):
+def _calculate_deltas(resp, meas, keys, varslist, cut, append=False):
     # TODO: think about output form
     # Return NumPy array: each row for magnet, columns for measurements
     response_matrix = _filter_response_rows_and_join(resp, keys, varslist)

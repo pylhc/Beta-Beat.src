@@ -2,7 +2,7 @@ import cPickle as pickle
 import os
 
 from correction.iterative import response_madx
-from correction.iterative.correct_iterative import DEFAULTS
+from correction.iterative.correct_iterative import DEFAULT_ARGS
 from madx import madx_wrapper as madx
 from model import manager
 from twiss_optics.response_class import TwissResponse
@@ -27,7 +27,7 @@ def get_params():
         flags="--variables",
         help="Comma separated names of the variables classes to use.",
         name="variable_categories",
-        default=DEFAULTS["variables"],
+        default=DEFAULT_ARGS["variables"],
     )
     params.add_parameter(
         flags=["-m", "--model_dir"],
