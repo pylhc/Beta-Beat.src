@@ -61,7 +61,7 @@ class PhaseData(object):
         self.phase_advances_free2_y = None
 
 
-def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, files_dict):
+def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
     '''
     Calculates phase and fills the following TfsFiles:
         ``getphasex.out        getphasex_free.out        getphasex_free2.out``
@@ -100,6 +100,18 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
             
             phi_ij = phi_j - phi_i = phase_advances.loc["MEAS", "BPM_j", "BPM_i"]
     '''
+    # get accelerator and its model from getllm_d
+
+    accelerator = getllm_d.accelerator
+    model_free = accelerator.get_model_tfs()
+
+    if accelerator.excitation == AccExcitationMode.FREE:
+        actual_model = accelerator.get_model_tfs()
+        model_elements = accelerator.get_elements_tfs()
+    else:  # driven
+        actual_model = accelerator.get_driven_tfs()
+        model_elements = accelerator.get_elements_tfs()  # should this be get_driven_elements()?
+
     # get common bpms
     phase_d = PhaseData()
     if getllm_d.union:
@@ -139,7 +151,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         tune_d.q1f = q1
         LOGGER.debug("horizontal tune of measurement files = {}".format(q1))
         
-        phase_d.phase_advances_free_x, tune_d.mux = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_x, bpmsx, q1,
+        phase_d.phase_advances_free_x, tune_d.mux = get_phases(getllm_d, actual_model, twiss_d.zero_dpp_x, bpmsx, q1,
                                                                'H')
         if not twiss_d.has_zero_dpp_y():
             LOGGER.warning('liny missing and output x only ...')
@@ -160,7 +172,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
         tune_d.q2f = q2
         LOGGER.debug("vertical tune of measurement files = {}".format(q2))
 
-        phase_d.phase_advances_free_y, tune_d.muy = get_phases(getllm_d, model_driven, twiss_d.zero_dpp_y, bpmsy, q2,
+        phase_d.phase_advances_free_y, tune_d.muy = get_phases(getllm_d, actual_model, twiss_d.zero_dpp_y, bpmsy, q2,
                                                                'V')
         if not twiss_d.has_zero_dpp_x():
             LOGGER.warning('linx missing and output y only ...')
@@ -170,23 +182,26 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     #---- ac to free phase from eq and the model
     if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
         if twiss_d.has_zero_dpp_x():
-            tune_d.q1f = tune_d.q1 - getllm_d.accelerator.drv_tune_x + getllm_d.accelerator.nat_tune_x#-- Free H-tune
-            phase_d.phase_advances_x = phase_d.phase_advances_free_x
-            phase_d.ac2bpmac_x = compensate_excitation.GetACPhase_AC2BPMAC(model_driven, bpmsx, tune_d.q1, tune_d.q1f,
-                                                                           'H', getllm_d)
+            tune_d.q1f = tune_d.q1 - getllm_d.accelerator.drv_tune_x + getllm_d.accelerator.nat_tune_x  # -- Free H-tune
+            # the calculation from before was actually wrong. But we keep the wrong values as phase_advances (why?)
+            phase_d.phase_advances_x = phase_d.phase_advances_free_x 
+            phase_d.ac2bpmac_x = compensate_excitation.GetACPhase_AC2BPMAC(
+                actual_model, bpmsx, tune_d.q1, tune_d.q1f, 'H', getllm_d
+            )
             [phase_d.phase_advances_free_x, tune_d.muxf] = compensate_excitation.get_free_phase_eq(
-                model, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x,
-                'H', model.Q1 % 1.0, getllm_d)
+                model_free, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x,
+                'H', model_free.Q1 % 1.0, getllm_d
+            )
 #            [phase_d.phase_advances_free2_x, tune_d.muxf2] = _get_free_phase(phase_d.phase_advances_free_x, tune_d.q1,
 #            tune_d.q1f, bpmsx, model_driven, model, "H")
         if twiss_d.has_zero_dpp_y():
             phase_d.phase_advances_y = phase_d.phase_advances_free_y
             tune_d.q2f =  tune_d.q2 - getllm_d.accelerator.drv_tune_y + getllm_d.accelerator.nat_tune_y #-- Free V-tune
-            phase_d.ac2bpmac_y = compensate_excitation.GetACPhase_AC2BPMAC(model_driven, bpmsy, tune_d.q2, tune_d.q2f,
+            phase_d.ac2bpmac_y = compensate_excitation.GetACPhase_AC2BPMAC(actual_model, bpmsy, tune_d.q2, tune_d.q2f,
                                                                            'V', getllm_d)
             [phase_d.phase_advances_free_y, tune_d.muyf] = compensate_excitation.get_free_phase_eq(
-                model, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y,
-                'V', model.Q2%1, getllm_d)
+                model_free, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y, tune_d.q2, tune_d.q2f, phase_d.ac2bpmac_y,
+                'V', model_free.Q2%1, getllm_d)
 #            [phase_d.phase_advances_free2_y, tune_d.muyf2] = _get_free_phase(phase_d.phase_advances_free_y, tune_d.q2, tune_d.q2f, bpmsy, model_driven, model, "V")
 
 
@@ -197,38 +212,38 @@ def calculate_phase(getllm_d, twiss_d, tune_d, model, model_driven, elements, fi
     if twiss_d.has_zero_dpp_x():
         LOGGER.debug("x ouptut")
         files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H",
-                                                            phase_d.phase_advances_free_x, model, elements, tune_d.q1f,
+                                                            phase_d.phase_advances_free_x, model_free, model_elements, tune_d.q1f,
                                                             tune_d.q2f, getllm_d.accelerator, getllm_d.union)
         files_dict["getphasetotx_free.out"] = write_phasetot_file(files_dict["getphasetotx_free.out"], "H",
-                                                                  phase_d.phase_advances_free_x, model, elements,
+                                                                  phase_d.phase_advances_free_x, model_free, model_elements,
                                                                   tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
             files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x,
-                                                           model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
+                                                           model_free, model_elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
                                                            getllm_d.union)
             files_dict["getphasetotx.out"] = write_phasetot_file(files_dict["getphasetotx.out"], "H",
-                                                                 phase_d.phase_advances_x, model, elements, tune_d.q1,
+                                                                 phase_d.phase_advances_x, model_free, model_elements, tune_d.q1,
                                                                  tune_d.q2, getllm_d.accelerator)
 
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
         LOGGER.debug("y output")
         files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V",
-                                                            phase_d.phase_advances_free_y, model, elements, tune_d.q1f,
+                                                            phase_d.phase_advances_free_y, model_free, model_elements, tune_d.q1f,
                                                             tune_d.q2f, getllm_d.accelerator, getllm_d.union)
         files_dict["getphasetoty_free.out"] = write_phasetot_file(files_dict["getphasetoty_free.out"], "V",
-                                                                  phase_d.phase_advances_free_y, model, elements,
+                                                                  phase_d.phase_advances_free_y, model_free, model_elements,
                                                                   tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
             files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y,
-                                                           model, elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
+                                                           model_free, model_elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
                                                           getllm_d.union)
             files_dict["getphasetoty.out"] = write_phasetot_file(files_dict["getphasetoty.out"], "V",
-                                                                 phase_d.phase_advances_y, model, elements, tune_d.q1,
+                                                                 phase_d.phase_advances_y, model_free, model_elements, tune_d.q1,
                                                                  tune_d.q2, getllm_d.accelerator)
 
     return phase_d, tune_d

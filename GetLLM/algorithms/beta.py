@@ -530,7 +530,6 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data
 
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
-                              model, model_driven, elements, elements_centre,
                               files_dict):
     '''
     Calculates beta from phase using either the 3-BPM or N-BPM method.
@@ -551,6 +550,19 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             Holds results from get_phases
     '''
     beta_d = BetaData()
+    accelerator = getllm_d.accelerator
+
+    if accelerator.excitation == AccExcitationMode.FREE:
+        try:
+            free_model = accelerator.get_best_knowledge_model_tfs()
+        except AttributeError:  # if bk model couldn't be found, silently take the base model
+            free_model = accelerator.get_model_tfs()
+        elements = accelerator.get_elements_tfs()
+    else:  # driven motion
+        actual_model = accelerator.get_driven_tfs()
+        free_model = accelerator.get_driven_tfs()
+        elements = accelerator.get_elements_tfs()
+    elements_centre = elements
     
     if getllm_d.union:
         commonbpms_x = twiss_d.zero_dpp_unionbpms_x
@@ -607,7 +619,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     else:
         unc = Uncertainties()
         _info_("")
-        _info_("Accelerator Error Definition", ">")
+        _debug_("Accelerator Error Definition")
         error_defs_path = getllm_d.accelerator.get_errordefspath()
         if error_defs_path is None or not unc.open(error_defs_path):
             _error_("Error definition file couldn't be found")
@@ -626,7 +638,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 debugfile = DBG.create_debugfile(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.bdebug")
 
             dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(
-                model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x,
+                free_model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x,
                 'H', getllm_d, debugfile, error_method, tune_d.q1f, tune_d.q1mdl
             )
 
@@ -651,7 +663,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                     debugfile = DBG.create_debugfile(files_dict['getbetax.out'].s_output_path + "/getbetax.bdebug")
 
                 data, rms_bb, bpms, error_method_x = beta_from_phase(
-                    model_driven, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x,
+                    actual_model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x,
                     phase_d.phase_advances_x, 'H', getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl
                 )
 
@@ -667,16 +679,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                                    tfs_file, _plane_char, getllm_d.union)
 
                 _debug_("Skip free2 calculation")
-#                print_("Calculate beta from phase for plane " + _plane_char + " with AC dipole (_free2.out)", ">")
-#                dataf2, bpmsf2 = _get_free_beta(model, model_driven, data, bpms, 'H')
-##                tfs_file = files_dict['getbetax_free2.out']
-#                betaxf2 = {}
-#                rmsbbxf2 = 0
-#                tfs_pandas.write_tfs(dataf2, headers, os.path.join( getllm_d.outputpath, "NEWgetbetax_free2.out"))
-##                _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, model, getllm_d.number_of_bpms, getllm_d.range_of_bpms, betaxf2,
-##                                   dataf2, rmsbbxf2, error_method, bpmsf2,
-##                                   tfs_file, model.BETX, model.ALFX, model.MUX, _plane_char)
-                
     #--- =========== VERTICAL
     if CALCULATE_BETA_VER:
         _plane_char = "Y"
@@ -684,14 +686,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             _info_("Calculate free beta from phase for plane " + _plane_char + " (_free.out)", ">")
             if DEBUG:
                 debugfile = DBG.create_debugfile(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.bdebug")
-            dataf, rms_bb, bpms, error_method_y = beta_from_phase(model, unc_elements, elements_centre,
+            dataf, rms_bb, bpms, error_method_y = beta_from_phase(free_model, unc_elements, elements_centre,
                                                                twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_free_y, 'V',
                                                                getllm_d, debugfile, error_method, tune_d.q2f, tune_d.q2mdl)
             if DEBUG:
                 DBG.close_file()
             beta_d.y_phase = {}
             beta_d.y_phase['DPP'] = 0
-            #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
             _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
             tfs_file = files_dict['getbetay_free.out']
             
@@ -705,14 +706,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
                 _info_("Calculate beta from phase for plane " + _plane_char, ">")
                 if DEBUG:
                     debugfile = DBG.create_debugfile(files_dict['getbetay.out'].s_output_path + "/getbetay.bdebug")
-                data, rms_bb, bpmsf, error_method_y = beta_from_phase(model_driven, unc_elements, elements_centre,
+                data, rms_bb, bpmsf, error_method_y = beta_from_phase(actual_model, unc_elements, elements_centre,
                                                                       twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_y, 'V',
                                                                       getllm_d, debugfile, error_method, tune_d.q2, tune_d.q2mdl)
                 if DEBUG:
                     DBG.close_file()
                 tfs_file = files_dict['getbetay.out']
                 
-                #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
                 _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
                 beta_d.y_phase_f = {}
                 beta_d.y_phase_f['DPP'] = 0
@@ -723,16 +723,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
 
 #                #-- from the model
                 _info_("Skip free2 calculation")
-#                print_("Calculate beta from phase for plane " + _plane_char + " with AC dipole (_free2.out)", ">")
-#                [datayf2, bpmsf2] = _get_free_beta(model, model_driven, data, bpms, 'V')
-##                tfs_file = files_dict['getbetay_free2.out']
-#                betayf2 = {}
-#                rmsbbyf2 = 0
-#                tfs_pandas.write_tfs(datayf2, headers, os.path.join( getllm_d.outputpath, "NEWgetbetay_free2.out"))
-##                _write_getbeta_out(twiss_d.zero_dpp_x, tune_d.q1f, tune_d.q2f, model, getllm_d.number_of_bpms, getllm_d.range_of_bpms, betayf2,
-##                                   datayf2, rmsbbyf2, error_method, bpmsf2,
-##                                   tfs_file, model.BETY, model.ALFY, model.MUY, _plane_char)
-#                
         elapsed = time.time() - starttime
         
         _box_edge_()
