@@ -180,6 +180,9 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     return phase_advances, 0
 
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, ac2bpmac, plane, getllm_d, commonbpms):
+    # TODO: check if this function excludes additional BPMs, right now commonbpms is return unchanged but maybe this has
+    # to be different
+
     #-- Select common BPMs
     bd = getllm_d.accelerator.get_beam_direction()
     
