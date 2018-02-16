@@ -3,6 +3,7 @@ import inspect
 import sys
 import os
 from utils import iotools
+import datetime
 
 DIVIDER = "|"
 BASIC_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
@@ -140,6 +141,24 @@ def add_root_handler(handler):
 def getLogger(name):
     """ Convenience function so the caller does not have to import logging """
     return logging.getLogger(name)
+
+
+def start_debug_mode():
+        """ Setup Logger for debugging mode """
+        # get current module
+        caller_file = _get_caller()
+        current_module = _get_current_module(caller_file)
+
+        logger = logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
+
+        logger.setLevel(DEBUG)
+        logger.debug("Running in Debug-Mode.")
+
+        now = str(datetime.datetime.now().isoformat())
+        log_file = os.path.abspath(caller_file).replace(".pyc", "").replace(".py", "") + ".log"
+        log_file = os.path.join(os.path.dirname(log_file), now + os.path.basename(log_file))
+        logger.debug("Writing log to file '{:s}'.".format(log_file))
+        logging.getLogger(current_module).addHandler(file_handler(log_file))
 
 
 # Private Methods ##############################################################

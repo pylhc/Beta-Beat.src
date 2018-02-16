@@ -1,12 +1,12 @@
 """ Provides Class to get response matrices from Twiss parameters.
-    The calculation is based on formulas in [1,2].
+    The calculation is based on formulas in [#fran], [#toma].
 
     Only works properly for on-orbit twiss files.
 
-    Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [1]
-    Dispersion Response:    Eq. 25-27 in [1]
-    Phase Advance Response: Eq. 28 in [1]
-    Tune Response:          Eq. 7 in [2]
+    Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#fran]
+    Dispersion Response:    Eq. 25-27 in [#fran]
+    Phase Advance Response: Eq. 28 in [#fran]
+    Tune Response:          Eq. 7 in [#toma]
 
     For people reading the code:
     The response matrices are first calculated like:
@@ -25,19 +25,17 @@
     to fit the :math:'M \cdot \delta K' orientation.
 
     References:
-        [1]  A. Franchi et al.,
-             Analytic formulas for the rapid evaluation of the orbit response matrix and chromatic
-             functions from lattice parameters in circular accelerators
-             NOT YET PUBLISHED
+        [#fran]  A. Franchi et al.,
+                 'Analytic formulas for the rapid evaluation of the orbit response matrix
+                 and chromatic functions from lattice parameters in circular accelerators'
+                 NOT YET PUBLISHED
 
-        [2]  R. Tomas, et al.,
-             Review of linear optics measurement and correction for charged particle accelerators.
-             Physical Review Accelerators and Beams, 20(5), 54801. (2017)
-             https://doi.org/10.1103/PhysRevAccelBeams.20.054801
+        [#toma]  R. Tomas, et al.,
+                 'Review of linear optics measurement and correction for charged particle
+                 accelerators.'
+                 Physical Review Accelerators and Beams, 20(5), 54801. (2017)
+                 https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 """
-
-import json
-
 import numpy as np
 import pandas as pd
 
@@ -50,24 +48,20 @@ from twiss_optics.twiss_functions import regex_in, upper
 
 LOG = logtool.get_logger(__name__)
 
-EXCLUDE_CATEGORIES_DEFAULT = ["LQ", "MCBH", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]
 DUMMY_ID = "DUMMY_PLACEHOLDER"
 
-"""
-=============================   Twiss Response Class   =============================
-"""
+
+# Twiss Response Class ########################################################
 
 
 class TwissResponse(object):
     """ Provides Response Matrices calculated from sequence, model and given variables.
 
     Args:
-        seqfile_path: Path to sequence file. If there is a pre-parsed .varmap file in the same
+        varmap_or_seq_path: Path to sequence file. If there is a pre-parsed .varmap file in the same
             folder, it will use this one. (Hence, can also be the path to this file)
-        modelfile_path: Path to twiss-model file
-        varfile_path: Path to json file containing the variable-names
-        exclude_categories: Names of the categories to exclude in varfile.
-            Defaults to hardcoded list if not given or 'None'. To allow all use empty list!
+        model_or_path: Path to twiss-model file, or model
+        variables: List of variable-names
         at_elements (str): Get response matrix for these elements. Can be:
             'bpms': All BPMS (Default)
             'bpms+': BPMS+ used magnets (== magnets defined by variables in varfile)
@@ -78,78 +72,79 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, seqfile_path, modelfile_path, varfile_path,
-                 exclude_categories=None,
+    def __init__(self, varmap_or_seq_path, model_or_path, variables,
                  at_elements='bpms'):
 
-        if exclude_categories is None:
-            exclude_categories = EXCLUDE_CATEGORIES_DEFAULT
-
-        LOG.info("Calculating TwissResponse.")
-        with timeit(lambda t: LOG.debug("  Total time TwissResponse: {:f}s".format(t))):
+        LOG.info("Initializing TwissResponse.")
+        with timeit(lambda t: LOG.debug("  Time initializing TwissResponse: {:f}s".format(t))):
             # Get input
-            self._twiss = self._get_model_twiss(modelfile_path)
-            self._variables = self._read_variables(varfile_path, exclude_categories)
-            self._var_to_el = self._get_variable_mapping(seqfile_path)
+            self._twiss = self._get_model_twiss(model_or_path)
+            self._variables = variables
+            self._var_to_el = self._get_variable_mapping(varmap_or_seq_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
 
             # calculate all phase advances
             self._phase_advances = get_phase_advances(self._twiss)
 
-            # get response matrices
-            self._beta = self._calc_beta_response()
-            self._dispersion = self._calc_dispersion_response()
-            self._phase = self._calc_phase_advance_response()
-            self._tune = self._calc_tune_response()
-            self._coupling = self._calc_coupling_response()
+            # All responses are calcluated as needed, see getters below!
 
-            # map response matrices to variabels
-            self._coupling_mapped = self._map_to_variables(self._coupling, self._var_to_el["K1SL"])
-            self._beta_mapped = self._map_to_variables(self._beta, self._var_to_el["K1L"])
-            self._dispersion_mapped = self._map_dispersion_response()
-            self._phase_mapped = self._map_to_variables(self._phase, self._var_to_el["K1L"])
-            self._tune_mapped = self._map_to_variables(self._tune, self._var_to_el["K1L"])
+            # slots for response matrices
+            self._beta = None
+            self._dispersion = None
+            self._phase = None
+            self._phase_adv = None
+            self._tune = None
+            self._coupling = None
 
+            # slots for normalized response matrices
+            self._beta_norm = None  # i.e. beta-beating
+            self._dispersion_norm = None
+
+            # slots for mapped response matrices
+            self._coupling_mapped = None
+            self._beta_mapped = None
+            self._dispersion_mapped = None
+            self._phase_mapped = None
+            self._phase_adv_mapped = None
+            self._tune_mapped = None
+
+            # slots for normalized mapped response matrices
+            self._beta_mapped_norm = None  # i.e. beta-beating
+            self._dispersion_mapped_norm = None
 
     @staticmethod
-    def _get_model_twiss(modelfile_path):
+    def _get_model_twiss(model_or_path):
         """ Load model, but keep only BPMs and Magnets """
-        LOG.debug("Loading Model from file '{:s}'".format(modelfile_path))
-        model = tfs.read_tfs(modelfile_path).set_index('NAME')
+        try:
+            model = tfs.read_tfs(model_or_path, index="NAME")
+        except TypeError:
+            LOG.debug("Received model as DataFrame")
+            model = model_or_path
+        else:
+            LOG.debug("Loaded Model from file '{:s}'".format(model_or_path))
 
-        # Remove not needed Stuff
+        # Remove not needed entries
         LOG.debug("Removing non-necessary entries:")
         LOG.debug("  Entries total: {:d}".format(model.shape[0]))
         model = model.loc[regex_in(r"\A(M|BPM)", model.index), :]
         LOG.debug("  Entries left: {:d}".format(model.shape[0]))
 
+        # make a copy to suppress "SettingWithCopyWarning"
+        model = model.copy()
+
         # Add Dummy for Phase Calculations
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
         return model
 
-    @staticmethod
-    def _read_variables(varfile_path, exclude_categories):
-        """ Load variables list from json file """
-        LOG.debug("Loading variables from file {:s}".format(varfile_path))
-
-        with open(varfile_path, 'r') as varfile:
-            var_dict = json.load(varfile)
-
-        variables = []
-        for category in var_dict.keys():
-            if category not in exclude_categories:
-                variables += var_dict[category]
-        return list(set(variables))
-
-    def _get_variable_mapping(self, seqfile_path):
+    def _get_variable_mapping(self, varmap_or_seq_path):
         """ Get variable mapping as dictionary
 
         Define _variables first!
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
-        mapping = sequence_parser.load_or_parse_variable_mapping(seqfile_path, "dictionary")
+        mapping = sequence_parser.load_or_parse_variable_mapping(varmap_or_seq_path, "dictionary")
 
         for order in ("K0L", "K0SL", "K1L", "K1SL"):
             if order not in mapping:
@@ -222,7 +217,7 @@ class TwissResponse(object):
     def _calc_coupling_response(self):
         """ Response Matrix for coupling.
 
-        Eq. 10 in [1]
+        Eq. 10 in [#fran]
         """
         LOG.debug("Calculate Coupling Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -248,7 +243,7 @@ class TwissResponse(object):
     def _calc_beta_response(self):
         """ Response Matrix for delta beta.
 
-        Eq. A35 -> Eq. B45 in [1]
+        Eq. A35 -> Eq. B45 in [#fran]
         """
         LOG.debug("Calculate Beta Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -276,8 +271,7 @@ class TwissResponse(object):
     def _calc_dispersion_response(self):
         """ Response Matrix for delta dispersion
 
-            Eq. 25-27 in [1]
-            Call after beta-beat calculation!
+            Eq. 25-27 in [#fran]
         """
         LOG.debug("Calculate Dispersion Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
@@ -319,7 +313,7 @@ class TwissResponse(object):
     def _calc_phase_advance_response(self):
         """ Response Matrix for delta DPhi.
 
-        Eq. 28 in [1]
+        Eq. 28 in [#fran]
         Reduced to only phase advances between consecutive elements,
         as the 3D-Matrix of all elements exceeds memory space
         (~11000^3 = 1331 Giga Elements)
@@ -359,7 +353,54 @@ class TwissResponse(object):
                     dmu[plane] = tfs.TfsDataFrame(
                         tw.loc[k1_el, col_beta].values[:, None] * brackets
                         * (coeff_sign / (8 * np.pi)),
-                        index=k1_el, columns=el_out).transpose().apply(np.cumsum)
+                        index=k1_el, columns=el_out).transpose()
+            else:
+                LOG.debug("  No 'K1L' variables found. Phase Response will be empty.")
+                dmu = {"X": tfs.TfsDataFrame(None, index=el_out),
+                       "Y": tfs.TfsDataFrame(None, index=el_out)}
+
+        return dmu
+
+    def _calc_phase_response(self):
+        """ Response Matrix for delta DPhi.
+
+        Eq. 28 in [#fran]
+        Reduced to only delta phase.
+        --> w = 0:  DPhi(z,j) = DPhi(x, 0->j)
+
+        This calculation could also be achieved by applying np.cumsum to the DataFrames of
+        _calc_phase_adv_response() (tested!), but _calc_phase_response() is about 4x faster.
+        """
+        LOG.debug("Calculate Phase Response Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
+            tw = self._twiss
+            adv = self._phase_advances
+            k1_el = self._elements_in["K1L"]
+            el_out = self._elements_out
+
+            if len(k1_el) > 0:
+                dmu = dict.fromkeys(["X", "Y"])
+
+                pi = tfs.TfsDataFrame(tw['S'][:, None] < tw['S'][None, :],  # pi(i,j) = s(i) < s(j)
+                                      index=tw.index, columns=tw.index, dtype=int)
+
+                pi_term = pi.loc[k1_el, el_out].values
+
+                for plane in ["X", "Y"]:
+                    col_beta = "BET" + plane
+                    q = tw.Q1 if plane == "X" else tw.Q2
+                    coeff_sign = 1 if plane == "X" else -1
+
+                    pi2tau = 2 * np.pi * tau(adv[plane].loc[k1_el, [DUMMY_ID] + el_out], q)
+                    brackets = (2 * pi_term +
+                                ((np.sin(2 * pi2tau.loc[:, el_out].values) -
+                                  np.sin(2 * pi2tau.loc[:, DUMMY_ID].values[:, None]))
+                                 / np.sin(2 * np.pi * q)
+                                 ))
+                    dmu[plane] = tfs.TfsDataFrame(
+                        tw.loc[k1_el, col_beta].values[:, None] * brackets
+                        * (coeff_sign / (8 * np.pi)),
+                        index=k1_el, columns=el_out).transpose()
             else:
                 LOG.debug("  No 'K1L' variables found. Phase Response will be empty.")
                 dmu = {"X": tfs.TfsDataFrame(None, index=el_out),
@@ -370,7 +411,7 @@ class TwissResponse(object):
     def _calc_tune_response(self):
         """ Response vectors for Tune.
 
-        Eq. 7 in [2]
+        Eq. 7 in [#toma]
         """
         LOG.debug("Calculate Tune Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -393,16 +434,52 @@ class TwissResponse(object):
         return dtune
 
     ################################
+    #       Normalizing
+    ################################
+
+    def _normalize_beta_response(self):
+        """ Convert to Beta Beating """
+        el_out = self._elements_out
+        tw = self._twiss
+        beta = self._beta
+
+        self._beta_norm = dict.fromkeys(beta.keys())
+        for plane in beta:
+            col = "BET" + plane
+            self._beta_norm[plane] = beta[plane].div(
+                tw.loc[el_out, col], axis='index')
+
+    def _normalize_dispersion_response(self):
+        """ Convert to Normalized Dispersion """
+        el_out = self._elements_out
+        tw = self._twiss
+        disp = self._dispersion
+        beta = self.get_beta(mapped=False)
+
+        self._dispersion_norm = dict.fromkeys(disp.keys())
+        for plane in disp:
+            col_bet = "BET" + plane[0]
+            col_disp = "D" + plane[0]
+
+            nd_model = tw.loc[el_out, col_disp].div(
+                np.sqrt(tw.loc[el_out, col_bet]), axis='index')
+            nd_step = disp[plane].add(tw.loc[el_out, col_disp], axis='index').div(
+                beta[plane[0]].add(tw.loc[el_out, col_bet], axis='index')
+            )
+
+            self._dispersion_norm[plane] = nd_step.sub(nd_model, axis='index')
+
+    ################################
     #       Mapping
     ################################
 
-    def _map_dispersion_response(self):
+    def _map_dispersion_response(self, normalized=False):
         """ Maps all dispersion matrices """
         var2k0 = self._var_to_el["K0L"]
         var2j0 = self._var_to_el["K0SL"]
         var2j1 = self._var_to_el["K1SL"]
         m2v = self._map_to_variables
-        disp = self._dispersion
+        disp = self._dispersion_norm if normalized else self._dispersion
 
         return {
             "X_K0L": m2v(disp["X_K0L"], var2k0),
@@ -445,29 +522,74 @@ class TwissResponse(object):
     #          Getters
     ################################
 
-    def get_beta(self, mapped=True):
+    def get_beta(self, mapped=True, normalized=True):
         """ Returns Response Matrix for Beta Beating """
-        if mapped:
-            return self._beta_mapped
-        else:
-            return self._beta
+        if not self._beta:
+            self._beta = self._calc_beta_response()
 
-    def get_dispersion(self, mapped=True):
-        """ Returns Response Matrix for Normalized Dispersion """
+        if mapped and not self._beta_mapped:
+            self._beta_mapped = self._map_to_variables(self._beta,
+                                                       self._var_to_el["K1L"])
+
+        if normalized and not self._beta_norm:
+            self._normalize_beta_response()
+            if mapped and not self._beta_mapped_norm:
+                self._beta_mapped_norm = self._map_to_variables(self._beta_norm,
+                                                                self._var_to_el["K1L"])
+
         if mapped:
-            return self._dispersion_mapped
+            return self._beta_mapped_norm if normalized else self._beta_mapped
         else:
-            return self._dispersion
+            return self._beta_norm if normalized else self._beta
+
+    def get_dispersion(self, mapped=True, normalized=True):
+        """ Returns Response Matrix for Normalized Dispersion """
+        # prepare what is needed:
+        if not self._dispersion:
+            self._dispersion = self._calc_dispersion_response()
+
+        if mapped and not self._dispersion_mapped:
+            self._dispersion_mapped = self._map_dispersion_response(normalized=False)
+
+        if normalized and not self._dispersion_norm:
+            self._normalize_dispersion_response()
+            if mapped and not self._dispersion_mapped_norm:
+                self._dispersion_mapped_norm = self._map_dispersion_response(normalized=True)
+
+        # return what is needed
+        if mapped:
+            return self._dispersion_mapped_norm if normalized else self._dispersion_mapped
+        else:
+            return self._dispersion_norm if normalized else self._dispersion
 
     def get_phase(self, mapped=True):
         """ Returns Response Matrix for Total Phase """
+        if not self._phase:
+            self._phase = self._calc_phase_response()
+            self._phase_mapped = self._map_to_variables(self._phase, self._var_to_el["K1L"])
+
         if mapped:
             return self._phase_mapped
         else:
             return self._phase
 
+    def get_phase_adv(self, mapped=True):
+        """ Returns Response Matrix for Phase Advance """
+        if not self._phase_adv:
+            self._phase_adv = self._calc_phase_advance_response()
+            self._phase_adv_mapped = self._map_to_variables(self._phase_adv, self._var_to_el["K1L"])
+
+        if mapped:
+            return self._phase_adv_mapped
+        else:
+            return self._phase_adv
+
     def get_tune(self, mapped=True):
         """ Returns Response Matrix for the Tunes """
+        if not self._tune:
+            self._tune = self._calc_tune_response()
+            self._tune_mapped = self._map_to_variables(self._tune, self._var_to_el["K1L"])
+
         if mapped:
             return self._tune_mapped
         else:
@@ -475,40 +597,48 @@ class TwissResponse(object):
 
     def get_coupling(self, mapped=True):
         """ Returns Response Matrix for the Tunes """
+        if not self._coupling:
+            self._coupling = self._calc_coupling_response()
+            self._coupling_mapped = self._map_to_variables(self._coupling, self._var_to_el["K1SL"])
+
         if mapped:
             return self._coupling_mapped
         else:
             return self._coupling
 
     def get_fullresponse(self, mapped=True):
-        """ Returns all mapped Response Matrices """
-        if mapped:
-            tune = self._tune_mapped
-            beta = self._beta_mapped
-            disp = self._dispersion_mapped
-            phse = self._phase_mapped
-            cpln = self._coupling_mapped
-        else:
-            tune = self._tune
-            beta = self._beta
-            disp = self._dispersion
-            phse = self._phase
-            cpln = self._coupling
+        """ Returns all Response Matrices in a similar way as ``response_madx.py`` """
+        LOG.debug("Calculating (if not present) parameters and returning fullresponse.")
+        with timeit(lambda t: LOG.debug("  Total time getting parameters: {:f}s".format(t))):
+            # get all optical parametets
+            tune = self.get_tune(mapped=mapped)
+            beta = self.get_beta(mapped=mapped, normalized=False)
+            disp = self.get_dispersion(mapped=mapped, normalized=False)
+            phase = self.get_phase(mapped=mapped)
+            couple = self.get_coupling(mapped=mapped)
+            bbeat = self.get_beta(mapped=mapped, normalized=True)
+            ndisp = self.get_dispersion(mapped=mapped, normalized=True)
 
+        # merge tune to one
         q_df = tune["X"].append(tune["Y"])
         q_df.index = ["Q1", "Q2"]
 
+        # return a big dictionary of things
         return {
             "BETX": beta["X"],
             "BETY": beta["Y"],
-            "MUX": phse["X"],
-            "MUY": phse["Y"],
+            "BBX": bbeat["X"],
+            "BBY": bbeat["Y"],
+            "MUX": phase["X"],
+            "MUY": phase["Y"],
             "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
-            "1001R": cpln["1001"].apply(np.real),
-            "1001I": cpln["1001"].apply(np.imag),
-            "1010R": cpln["1010"].apply(np.real),
-            "1010I": cpln["1010"].apply(np.imag),
+            "NDX": response_add(ndisp["X_K0L"], ndisp["X_K1SL"]),
+            "NDY": response_add(ndisp["Y_K0SL"], ndisp["Y_K1SL"]),
+            "F1001R": couple["1001"].apply(np.real).astype(np.float64),
+            "F1001I": couple["1001"].apply(np.imag).astype(np.float64),
+            "F1010R": couple["1010"].apply(np.real).astype(np.float64),
+            "F1010I": couple["1010"].apply(np.imag).astype(np.float64),
             "Q": q_df,
         }
 
@@ -522,9 +652,7 @@ class TwissResponse(object):
             return self._var_to_el[order]
 
 
-"""
-=============================   Attached Functions   =============================
-"""
+# Associated Functions #########################################################
 
 
 def get_delta(fullresp_or_tr, delta_k):
@@ -575,9 +703,7 @@ def response_add(*args):
     return base_df
 
 
-"""
-=============================   Main   =============================
-"""
+# Script Mode ##################################################################
 
 
 if __name__ == '__main__':

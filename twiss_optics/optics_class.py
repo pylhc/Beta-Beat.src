@@ -56,21 +56,27 @@ class TwissOptics(object):
 
     Args:
         model_path_or_df: Path to twissfile of model or DataFrame of model.
+        quick_init: Initializes without calculating phase advances. Default: False
     """
 
     ################################
     #       init Functions
     ################################
 
-    def __init__(self, model_path_or_df):
+    def __init__(self, model_path_or_df, quick_init=False, keep_all_elem=False):
         self.mad_twiss = self._get_model_df(model_path_or_df)
         self._ip_pos = self._find_ip_positions()
-        self.mad_twiss = self._remove_nonnecessaries()
+
+        if not keep_all_elem:
+            self.mad_twiss = self._remove_nonnecessaries()
 
         self._results_df = self._make_results_dataframe()
         self._elements = self._sort_element_types()
         self._elements_mapped = self._map_element_types()
-        self._phase_advance = get_phase_advances(self.mad_twiss)
+
+        self._phase_advance = None
+        if not quick_init:
+            self._phase_advance = self.get_phase_adv()
 
         self._plot_options = DotDict(PLOT_DEFAULTS)
 
@@ -170,6 +176,11 @@ class TwissOptics(object):
     #         Properties
     ################################
 
+    def get_phase_adv(self):
+        if self._phase_advance is None:
+            self._phase_advance = get_phase_advances(self.mad_twiss)
+        return self._phase_advance
+
     def get_coupling(self, method='rdt'):
         """ Returns the coupling term.
 
@@ -178,12 +189,14 @@ class TwissOptics(object):
                     'cmatrix' - Returns the values calculated by calc_cmatrix()
         """
         if method == 'rdt':
-            # Available after calc_rdts
-            return self._results_df[['S', 'F1001', 'F1010']]
+            if "F1001" not in self._results_df or "F1010" not in self._results_df:
+                self.calc_rdts(['F1001', 'F1010'])
+            return self._results_df.loc[:, ['S', 'F1001', 'F1010']]
         elif method == 'cmatrix':
-            # Available after calc_cmatrix
-            return self._results_df[['S', 'F1001_C', 'F1010_C']].rename(
-                columns=lambda x: x.replace("_C", ""))
+            if "F1001_C" not in self._results_df:
+                self.calc_cmatrix()
+            res_df = self._results_df.loc[:, ['S', 'F1001_C', 'F1010_C']]
+            return res_df.rename(columns=lambda x: x.replace("_C", ""))
         else:
             raise ValueError("method '{:s}' not recognized.".format(method))
 
@@ -234,7 +247,7 @@ class TwissOptics(object):
         tw = self.mad_twiss
         res = self._results_df
 
-        LOG.info("Calculating CMatrix.")
+        LOG.debug("Calculating CMatrix.")
         with timeit(lambda t:
                     LOG.debug("  CMatrix calculated in {:f}s".format(t))):
 
@@ -290,14 +303,19 @@ class TwissOptics(object):
 
         Available after calc_cmatrix
         """
-        return self._results_df[['S', 'GAMMA_C']].rename(columns=lambda x: x.replace("_C", ""))
+        if 'GAMMA_C' not in self._results_df:
+            self.calc_cmatrix()
+        res_df = self._results_df.loc[:, ['S', 'GAMMA_C']]
+        return res_df.rename(columns=lambda x: x.replace("_C", ""))
 
     def get_cmatrix(self):
         """ Return the C-Matrix
 
         Available after calc_cmatrix
         """
-        return self._results_df[['S', 'C11', 'C12', 'C21', 'C22']]
+        if 'C11' not in self._results_df:
+            self.calc_cmatrix()
+        return self._results_df.loc[:, ['S', 'C11', 'C12', 'C21', 'C22']]
 
     ################################
     #   Resonance Driving Terms
@@ -318,13 +336,13 @@ class TwissOptics(object):
         elif not isinstance(order, list):
             order = [order]
 
-        LOG.info("Calculating RDTs: {:s}.".format(str(order)[1:-1]))
+        LOG.debug("Calculating RDTs: {:s}.".format(str(order)[1:-1]))
         with timeit(lambda t:
                     LOG.debug("  RDTs calculated in {:f}s".format(t))):
 
             i2pi = 2j * np.pi
             tw = self.mad_twiss
-            phs_adv = self._phase_advance
+            phs_adv = self.get_phase_adv()
             res = self._results_df
 
             for rdt in order:
@@ -386,7 +404,10 @@ class TwissOptics(object):
         if rdt_names:
             if not isinstance(rdt_names, list):
                 rdt_names = [rdt_names]
-            return self._results_df[["S"] + [rdt.upper() for rdt in rdt_names]]
+            rdt_names = [rdt.upper() for rdt in rdt_names]
+            if any([rdt not in self._results_df for rdt in rdt_names]):
+                self.calc_rdts(rdt_names)
+            return self._results_df.loc[:, ["S"] + rdt_names]
         else:
             return self._results_df.loc[:, regex_in(r'\A(S|F\d{4})$', self._results_df.columns)]
 
@@ -395,7 +416,7 @@ class TwissOptics(object):
 
         Available after calc_rdts
         """
-        LOG.info("Plotting Resonance Driving Terms")
+        LOG.debug("Plotting Resonance Driving Terms")
         rdts = self.get_rdts(rdt_names)
         is_s = regex_in(r'\AS$', rdts.columns)
         rdts = rdts.dropna()
@@ -428,13 +449,13 @@ class TwissOptics(object):
         Eq. 24 in [2]
         """
         tw = self.mad_twiss
-        phs_adv = self._phase_advance
+        phs_adv = self.get_phase_adv()
         res = self._results_df
         coeff_fun = self._linear_dispersion_coeff
         sum_fun = self._linear_dispersion_sum
 
         # Calculate
-        LOG.info("Calculate Linear Dispersion")
+        LOG.debug("Calculate Linear Dispersion")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             # sources
             k0_mask = tw['K0L'] != 0
@@ -505,6 +526,8 @@ class TwissOptics(object):
 
         Available after calc_linear_dispersion!
         """
+        if "DX" not in self._results_df or "DY" not in self._results_df:
+            self.calc_linear_dispersion()
         return self._results_df.loc[:, ["S", "DX", "DY"]]
 
     def plot_linear_dispersion(self, combined=True):
@@ -515,7 +538,7 @@ class TwissOptics(object):
         Args:
             combined (bool): If 'True' plots x and y into the same axes.
         """
-        LOG.info("Plotting Linear Dispersion")
+        LOG.debug("Plotting Linear Dispersion")
         lin_disp = self.get_linear_dispersion().dropna()
         title = 'Linear Dispersion'
         pstyle.set_style(self._plot_options.style, self._plot_options.manual)
@@ -564,7 +587,9 @@ class TwissOptics(object):
         Args:
             combined (bool): If 'True' plots x and y into the same axes.
         """
-        LOG.info("Plotting Phase Advance")
+        raise NotImplementedError('Chramatic Phase Advance Shift is not Implemented yet.')
+        #TODO: reimplement the phase-advance shift calculations (if needed??)
+        LOG.debug("Plotting Phase Advance")
         tw = self.mad_twiss
         pa = self._phase_advance
         dpa = self._dphase_advance
@@ -617,7 +642,7 @@ class TwissOptics(object):
         if 'CHROMX' not in res:
             self._calc_chromatic_term()
 
-        LOG.info("Calculating Linear Chromaticity")
+        LOG.debug("Calculating Linear Chromaticity")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             DQ1 = - 1/(4 * np.pi) * res['CHROMX'].dropna().sum(axis="index")
             DQ2 = 1/(4 * np.pi) * res['CHROMY'].dropna().sum(axis="index")
@@ -634,7 +659,11 @@ class TwissOptics(object):
 
         Available after calc_linear_chromaticity
         """
-        return self._results_df.DQ1, self._results_df.DQ2
+        try:
+            return self._results_df.DQ1, self._results_df.DQ2
+        except AttributeError:
+            self.calc_linear_chromaticity()
+            return self._results_df.DQ1, self._results_df.DQ2
 
     ################################
     #     Chromatic Beating
@@ -647,12 +676,12 @@ class TwissOptics(object):
         """
         tw = self.mad_twiss
         res = self._results_df
-        phs_adv = self._phase_advance
+        phs_adv = self.get_phase_adv()
 
         if 'CHROMX' not in res:
             self._calc_chromatic_term()
 
-        LOG.info("Calculating Chromatic Beating")
+        LOG.debug("Calculating Chromatic Beating")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             chromx = res['CHROMX'].dropna()
             chromy = res['CHROMY'].dropna()
@@ -676,6 +705,8 @@ class TwissOptics(object):
 
          Available after calc_chromatic_beating
          """
+        if "DBEATX" not in self._results_df or "DBEATY" not in self._results_df:
+            self.calc_chromatic_beating()
         return self._results_df.loc[:, ["S", "DBEATX", "DBEATY"]]
 
     def plot_chromatic_beating(self, combined=True):
@@ -686,7 +717,7 @@ class TwissOptics(object):
         Args:
             combined (bool): If 'True' plots x and y into the same axes.
         """
-        LOG.info("Plotting Chromatic Beating")
+        LOG.debug("Plotting Chromatic Beating")
         chrom_beat = self.get_chromatic_beating().dropna()
         title = 'Chromatic Beating'
         pstyle.set_style(self._plot_options.style, self._plot_options.manual)
@@ -767,7 +798,7 @@ class TwissOptics(object):
 
     def _calc_chromatic_term(self):
         """ Calculates the chromatic term which is common to all chromatic equations """
-        LOG.info("Calculating Chromatic Term.")
+        LOG.debug("Calculating Chromatic Term.")
         res = self._results_df
         tw = self.mad_twiss
 
@@ -802,46 +833,9 @@ class TwissOptics(object):
             LOG.debug("  Added fields to results: " + fields)
 
 
-"""
-======================== Script Mode ========================
-"""
-
-def do_main():
-    """ Quick tests """
-    model_2oct = os.path.abspath('tests/twiss_2oct_elements.dat')
-    model_test = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissKick"
-    test_optics = TwissOptics(model_test)
-    # test_optics.calc_rdts(['f1001', 'f1010'])
-    # test_optics.calc_linear_dispersion()
-    # test_optics.plot_linear_dispersion(combined=False)
-    test_optics.calc_chromatic_beating()
-    test_optics.plot_chromatic_beating()
-    # test_optics.plot_phase_advance()
-
-    plt.draw_all()
-    plt.show()
-    return
-
-    nodk = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissNoDK"
-    dk = "/media/jdilly/Storage/Projects/2017_11_Analytical_Apporox_of_Beamparam/30_madx_tests/b1.twissDK"
-
-    nodk_opt = TwissOptics(nodk)
-    dk_opt = TwissOptics(dk)
-
-    # nodk_opt.set_K(1, dk_opt.get_K(1))
-    # nodk_opt.calc_phase_advance_shift()
-    # nodk_opt.plot_phase_advance()
-    # test_optics.calc_phase_advance_shift()
-
-
-    dk_opt.calc_rdts(['f1001', 'f1010'])
-    dk_opt.plot_rdts(['f1001', 'f1010'])
-
-
-    plt.draw_all()
-    plt.show()
+# Script Mode ##################################################################
 
 
 if __name__ == '__main__':
     raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
-    do_main()
+
