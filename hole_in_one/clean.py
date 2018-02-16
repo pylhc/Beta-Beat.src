@@ -31,7 +31,7 @@ def clean(bpm_data, clean_input, file_date):
     known_bad_bpms = detect_known_bad_bpms(bpm_data, known_bad_bpm_names)
     bpm_flatness = detect_flat_bpms(bpm_data, clean_input.peak_to_peak)
     bpm_spikes = detect_bpms_with_spikes(bpm_data, clean_input.max_peak)
-    exact_zeros = [] #detect_bpms_with_exact_zeros(bpm_data)
+    exact_zeros = detect_bpms_with_exact_zeros(bpm_data)
 
     original_bpms = bpm_data.index
     all_bad_bpms = _index_union(known_bad_bpms, bpm_flatness,
