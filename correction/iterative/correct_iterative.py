@@ -47,50 +47,13 @@ DEV_NULL = os.devnull
 
 # Configuration ##################################################################
 
-_defaults = {
-    'optics_params': ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
-    'modelcut': {
-        'MUX': 0.05, 'MUY': 0.05,
-        'BBX': 0.2, 'BBY': 0.2,
-        'BETX': 0.2, 'BETY': 0.2,
-        'DX': 0.2, 'DY': 0.2,
-        'NDX': 0.2, 'Q': 0.1,
-        'F1001R': 0.2, 'F1001I': 0.2,
-        'F1010R': 0.2, 'F1010I': 0.2,
-    },
-    'errorcut': {
-        'MUX': 0.035, 'MUY': 0.035,
-        'BBX': 0.02, 'BBY': 0.02,
-        'BETX': 0.02, 'BETY': 0.02,
-        'DX': 0.02, 'DY': 0.02,
-        'NDX': 0.02, 'Q': 0.027,
-        'F1001R': 0.02, 'F1001I': 0.02,
-        'F1010R': 0.02, 'F1010I': 0.02,
-    },
-    'weights': {
-        'MUX': 1, 'MUY': 1,
-        'BBX': 0, 'BBY': 0,
-        'BETX': 0, 'BETY': 0,
-        'DX': 0, 'DY': 0,
-        'NDX': 0, 'Q': 10,
-        'F1001R': 0, 'F1001I': 0,
-        'F1010R': 0, 'F1010I': 0,
-    },
-}
-
-
 DEFAULT_ARGS = {
     "optics_file": None,
     "output_path": None,
     "singular_value_cut": 0.01,
-    "optics_params": _defaults['optics_params'],
-    "modelcut": [_defaults["modelcut"][p] for p in _defaults['optics_params']],
-    "errorcut": [_defaults["errorcut"][p] for p in _defaults['optics_params']],
-    "weights_on_quantities": [_defaults["weights"][p] for p in _defaults['optics_params']],
-    "use_errorbars": False,
+    "optics_params": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
     "variables": ["MQM", "MQT", "MQTL", "MQY"],
     "beta_file_name": "getbeta",
-    "virt_flag": False,
     "method": "newton",
     "max_iter": 3,
     "eps": None,
@@ -98,9 +61,41 @@ DEFAULT_ARGS = {
 
 
 # Define functions here, to new optics params
+def _get_default_values():
+    return {
+        'modelcut': {
+            'MUX': 0.05, 'MUY': 0.05,
+            'BBX': 0.2, 'BBY': 0.2,
+            'BETX': 0.2, 'BETY': 0.2,
+            'DX': 0.2, 'DY': 0.2,
+            'NDX': 0.2, 'Q': 0.1,
+            'F1001R': 0.2, 'F1001I': 0.2,
+            'F1010R': 0.2, 'F1010I': 0.2,
+        },
+        'errorcut': {
+            'MUX': 0.035, 'MUY': 0.035,
+            'BBX': 0.02, 'BBY': 0.02,
+            'BETX': 0.02, 'BETY': 0.02,
+            'DX': 0.02, 'DY': 0.02,
+            'NDX': 0.02, 'Q': 0.027,
+            'F1001R': 0.02, 'F1001I': 0.02,
+            'F1010R': 0.02, 'F1010I': 0.02,
+        },
+        'weights': {
+            'MUX': 1, 'MUY': 1,
+            'BBX': 0, 'BBY': 0,
+            'BETX': 0, 'BETY': 0,
+            'DX': 0, 'DY': 0,
+            'NDX': 0, 'Q': 10,
+            'F1001R': 0, 'F1001I': 0,
+            'F1010R': 0, 'F1010I': 0,
+        },
+    }
+
+
 def _get_measurement_filters():
     return {
-        'MUX': _get_filtered_generic, 'MUY': _get_filtered_generic,
+        'MUX': _get_filtered_phases, 'MUY': _get_filtered_phases,
         'BBX': _get_filtered_betabeat, 'BBY': _get_filtered_betabeat,
         'BETX': _get_filtered_generic, 'BETY': _get_filtered_generic,
         'DX': _get_filtered_generic, 'DY': _get_filtered_generic,
@@ -156,7 +151,7 @@ def _get_params():
     )
     params.add_parameter(
         flags="--optics_params",
-        help="List of parameters to correct upon (e.g. [BETX, BETY])",
+        help="List of parameters to correct upon (e.g. BBX BBY)",
         name="optics_params",
         type=str,
         nargs="*",
@@ -167,7 +162,6 @@ def _get_params():
         help=("Path to the optics file to use, usually modifiers.madx. If "
               "not present will default to model_path/modifiers.madx"),
         name="optics_file",
-        default=DEFAULT_ARGS["optics_file"],
     )
     params.add_parameter(
         flags="--output",
@@ -178,7 +172,8 @@ def _get_params():
     )
     params.add_parameter(
         flags="--svd_cut",
-        help="",  # TODO
+        help=("Cutoff for small singular values of the pseudo inverse."
+              "Singular values smaller than `rcond`*largest_singular_value are set to zero"),
         name="singular_value_cut",
         type=float,
         default=DEFAULT_ARGS["singular_value_cut"],
@@ -186,34 +181,31 @@ def _get_params():
     params.add_parameter(
         flags="--model_cut",
         help=("Reject BPMs whose deviation to the model is higher than the "
-              "correspoding input. Input should be: Phase,Betabeat,NDx"),
+              "correspoding input. Input in order of optics_params."),
         name="modelcut",
-        default=DEFAULT_ARGS["modelcut"],
     )
     params.add_parameter(
         flags="--error_cut",
         help=("Reject BPMs whose error bar is higher than the "
-              "correspoding input. Input should be: Phase,Betabeat,NDx"),
+              "correspoding input. Input in order of optics_params."),
         name="errorcut",
         nargs="*",
         type=float,
-        default=DEFAULT_ARGS["errorcut"],
     )
     params.add_parameter(
         flags="--weights",
-        help=("Weight to apply to each measured quatity. Input shoud be: "
-              "PhaseX,PhaseY,BetaX,BetaY,NDx,Q"),
+        help=("Weight to apply to each measured quatity. "
+              "Input in order of optics_params."),
         name="weights_on_quantities",
         nargs="*",
         type=float,
-        default=DEFAULT_ARGS["weights_on_quantities"],
     )
     params.add_parameter(
         flags="--use_errorbars",
         help=("If True, it will take into account the measured errorbars "
               "in the correction."),
         name="use_errorbars",
-        action="store_" + str(not DEFAULT_ARGS["use_errorbars"]).lower(),
+        action="store_true",
     )
     params.add_parameter(
         flags="--variables",
@@ -231,11 +223,11 @@ def _get_params():
         flags="--virt_flag",
         help="If true, it will use virtual correctors.",
         name="virt_flag",
-        action="store_" + str(not DEFAULT_ARGS["virt_flag"]).lower(),
+        action="store_true",
     )
     params.add_parameter(
         flags="--method",
-        help="Optimization method to use.",
+        help="Optimization method to use. (Not implemented yet)",
         name="method",
         type=str,
         default=DEFAULT_ARGS["method"],
@@ -250,7 +242,8 @@ def _get_params():
     )
     params.add_parameter(
         flags="--eps",
-        help="Convergence criterion. If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.",
+        help=("Convergence criterion." 
+              "If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.(Not implemented yet)"),
         name="eps",
         type=float,
         default=DEFAULT_ARGS["eps"],
@@ -265,7 +258,6 @@ def _get_params():
 
 
 # Entry Point ##################################################################
-
 
 @entrypoint(_get_params())
 def global_correction(opt, accel_opt):
@@ -293,7 +285,7 @@ def global_correction(opt, accel_opt):
     """
 
     if opt.debug:
-        _setup_debug()
+        logging_tools.start_debug_mode()
 
     not_implemented_params = [k for k in opt.optics_params if k not in _get_measurement_filters()]
     if any(not_implemented_params):
@@ -301,14 +293,8 @@ def global_correction(opt, accel_opt):
                                   "'{:s}'".format(not_implemented_params))
 
     with timeit(lambda t: LOG.debug("  Total time for Global Correction: {:f}s".format(t))):
-        # get unset paths from other paths
-        if opt.optics_file is None:
-            opt.optics_file = os.path.join(os.path.dirname(opt.model_twiss_path),
-                                       "modifiers.madx")
-        if opt.output_path is None:
-            opt.output_path = opt.meas_dir_path
-
-        template_file_path = os.path.join(os.path.dirname(__file__), "job.twiss_python.madx")
+        # check on opt
+        opt = _check_opt(opt)
 
         # get accelerator class
         accel_cls = manager.get_accel_class(accel_opt)
@@ -331,11 +317,11 @@ def global_correction(opt, accel_opt):
 
         # apply filters to data
         meas_dict = _filter_measurement(
-            optics_params, meas_dict, opt.nominal_model,
+            optics_params, meas_dict, nominal_model,
             opt.use_errorbars, w_dict, e_dict, m_dict
         )
         meas_dict = _append_model_to_measurement(nominal_model, meas_dict, optics_params)
-        full_response = _filter_response_columns(full_response, meas_dict, optics_params)
+        full_response = _filter_response_index(full_response, meas_dict, optics_params)
 
         if opt.debug:
             _print_rms(meas_dict, optics_params)
@@ -349,7 +335,7 @@ def global_correction(opt, accel_opt):
             LOG.debug("Running MADX, iteration {:d} of {:d}".format(idx + 1, opt.max_iter))
 
             madx_script = _create_madx_script(accel_cls, nominal_model, opt.optics_file,
-                                              template_file_path, opt.output_path)
+                                              opt.template_file_path, opt.output_path)
             _callMadx(madx_script)
             new_model_path = os.path.join(opt.output_path, "twiss_" + str(idx) + ".dat")
             shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"),
@@ -371,6 +357,30 @@ def global_correction(opt, accel_opt):
 # Helper functions #############################################################
 
 
+def _check_opt(opt):
+    """ Check on options and put in missing values """
+    # get unset paths from other paths
+    if opt.optics_file is None:
+        opt.optics_file = os.path.join(os.path.dirname(opt.model_twiss_path),
+                                       "modifiers.madx")
+    if opt.output_path is None:
+        opt.output_path = opt.meas_dir_path
+
+    opt.template_file_path = os.path.join(os.path.dirname(__file__), "job.twiss_python.madx")
+
+    # check cuts and weights:
+    def_dict = _get_default_values()
+    if opt.modelcut is None:
+        opt.modelcut = [def_dict["modelcut"][p] for p in opt.optics_params]
+
+    if opt.errorcut is None:
+        opt.errorcut = [def_dict["errorcut"][p] for p in opt.optics_params]
+
+    if opt.weights_on_quantities is None:
+        opt.weights_on_quantities = [def_dict["weights"][p] for p in opt.optics_params]
+    return opt
+
+
 def _print_rms(meas, keys):
     """ Prints current RMS status """
     for key in keys:
@@ -383,7 +393,7 @@ def _print_rms(meas, keys):
         LOG.debug(message)
 
 
-def _load_fullresponse(full_response_path):
+def _load_fullresponse(full_response_path, variables):
     """
     Full response is dictionary of MUX/Y, BBX/Y, NDX and Q gradients upon
     a change of a single quadrupole strength
@@ -391,6 +401,14 @@ def _load_fullresponse(full_response_path):
     LOG.debug("Starting loading Full Response optics")
     with open(full_response_path, "r") as full_response_file:
         full_response_data = pickle.load(full_response_file)
+
+    for param in full_response_data:
+        df = full_response_data[param]
+        # fill with zeros
+        df.loc[:, [var for var in variables if var not in df.columns.values]] = 0.0
+        # order
+        full_response_data[param] = df.loc[:, variables]
+
     LOG.debug("Loading ended")
     return full_response_data
 
@@ -467,17 +485,15 @@ def _read_tfs(path, file_name):
 # Parameter filtering ########################################################
 
 
-def _filter_measurement(keys, measurement, model, errorbar, w_dict, e_dict, m_dict):
+def _filter_measurement(keys, meas, model, errorbar, w_dict, e_dict, m_dict):
     """ Filteres measurements and renames columns to VALUE, ERROR, WEIGHT"""
     # TODO: Add error and model cuts (jd: ???)
     filters = _get_measurement_filters()
-    meas = dict.fromkeys(keys)
+    new = dict.fromkeys(keys)
     for key in keys:
-        meas[key] = filters[key](key, meas[key], model, errorbar,
-                                 w_dict[key],
-                                 modelcut=m_dict[key], errorcut=e_dict[key]
-                                 )
-    return meas
+        new[key] = filters[key](key, meas[key], model, errorbar, w_dict[key],
+                                 modelcut=m_dict[key], errorcut=e_dict[key])
+    return new
 
 
 def _get_filtered_generic(key, meas, model, erwg, weight, modelcut, errorcut):
@@ -512,14 +528,41 @@ def _get_filtered_generic(key, meas, model, erwg, weight, modelcut, errorcut):
     model_filter = np.abs(new.loc[:, 'VALUE'].values -
                           meas.loc[common_bpms, key + 'MDL'].values) < modelcut
 
-    if 'NAME2' in meas.columns.values:  # only phases
-        new['NAME2'] = meas.loc[common_bpms, 'NAME2']
-        second_bpm_in = np.in1d(new.loc[:, 'NAME2'].values,
-                                new.loc[:, 'NAME'].values)
-        good_bpms = error_filter & model_filter & second_bpm_in
-        good_bpms[-1] = False
-    else:
-        good_bpms = error_filter & model_filter
+    good_bpms = error_filter & model_filter
+    LOG.debug("Number of BPMs with {:s}: {:d}".format(key, np.sum(good_bpms)))
+    return new.loc[good_bpms, :]
+
+
+def _get_filtered_phases(key, meas, model, erwg, weight, modelcut, errorcut):
+    common_bpms = meas.index.intersection(model.index)
+
+    col_val = "PHASE" + key[-1]
+    col_err = "STDPH" + key[-1]
+    col_mdl = "PH" + key[-1] + "MDL"
+
+    # name and value
+    new = meas.loc[common_bpms, ['NAME', col_val]]
+    new.columns = ['NAME', 'VALUE']
+
+    # errors
+    new['ERROR'] = meas.loc[common_bpms, col_err]
+
+    # weights
+    new['WEIGHT'] = weight
+    if erwg:
+        new['WEIGHT'] = new.loc[:, 'WEIGHT'].values / new.loc[:, 'ERROR'].values
+
+    # filter cuts
+    error_filter = new.loc[:, 'ERROR'].values < errorcut
+    model_filter = np.abs(new.loc[:, 'VALUE'].values -
+                          meas.loc[common_bpms, col_mdl].values) < modelcut
+
+    new['NAME2'] = meas.loc[common_bpms, 'NAME2']
+    second_bpm_in = np.in1d(new.loc[:, 'NAME2'].values,
+                            new.loc[:, 'NAME'].values)
+    good_bpms = error_filter & model_filter & second_bpm_in
+    good_bpms[-1] = False
+
     LOG.debug("Number of BPMs with {:s}: {:d}".format(key, np.sum(good_bpms)))
     return new.loc[good_bpms, :]
 
@@ -571,7 +614,7 @@ def _get_tunes(key, meas, model, erwg, weight, modelcut=0.1, errorcut=0.027):
 # Response filtering ##########################################################
 
 
-def _filter_response_columns(response, measurement, keys):
+def _filter_response_index(response, measurement, keys):
     filters = _get_response_filters()
     new_resp = {}
     for key in keys:
@@ -580,11 +623,11 @@ def _filter_response_columns(response, measurement, keys):
 
 
 def _get_generic_response(resp, meas):
-    return resp.loc[:, meas.index.values]
+    return resp.loc[meas.index.values, :]
 
 
 def _get_phase_response(resp, meas):
-    new = resp.loc[:, meas.index.values]
+    new = resp.loc[meas.index.values, :]
     new.sub(resp.as_matrix(columns=meas.loc[:, 'NAME2'].values), axis=0)
     return -new  # As we did subtraction name-name2
 
@@ -660,7 +703,7 @@ def _calculate_deltas(resp, meas, keys, varslist, cut, append=False):
     weight_vector = _join_weights(meas, keys)
     diff_vector = _join_diffs(meas, keys)
     delta = np.dot(
-        np.linalg.pinv(np.transpose(response_matrix * weight_vector), cut),
+        np.linalg.pinv(response_matrix.mul(weight_vector, axis="index"), cut),
         diff_vector * weight_vector
     )
     LOG.debug("Delta calculation: ")
@@ -745,20 +788,6 @@ def writeparams(deltas, variables, path, append=False):
             mad_script.write(var + " = " + var + " " +
                              str(deltas[i]) + ";\n")
     mad_script.close()
-
-
-def _setup_debug():
-    """ Setup Logger for debugging mode """
-    import datetime
-    LOG.setLevel(logging_tools.DEBUG)
-    LOG.debug("Running in Debug-Mode.")
-
-    now = str(datetime.datetime.now().isoformat())
-    log_file = now + os.path.abspath(__file__).replace(".pyc", "").replace(".py", "") + ".log"
-
-    LOG.debug("Writing log to file '{:s}'.".format(log_file))
-    file_handler = logging_tools.file_handler(log_file)
-    logging_tools.add_root_handler(file_handler)
 
 
 # Main invocation ############################################################
