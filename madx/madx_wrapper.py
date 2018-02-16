@@ -8,7 +8,7 @@ from utils import iotools
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 if "win" in sys.platform:
-    MADX_PATH = "\\\\AFS\\cern.ch\\project\\mad\\madx\\releases\\last-dev\\madx-win64-gnu.exe"
+    MADX_PATH = "\\\\AFS\\cern.ch\\project\\mad\\madx\\releases\\last-rel\\madx-win64-gnu.exe"
 else:
     MADX_PATH = os.path.abspath(os.path.join(CURRENT_PATH, "..",
                                              "binaries", "madx_dev"))
