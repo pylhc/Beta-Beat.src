@@ -190,32 +190,32 @@ def _create_fullresponse_from_dict(var_to_twiss):
     """ Convert var-tfs dictionary to fullresponse dictionary """
     var_to_twiss = _add_coupling(var_to_twiss)
     resp = pandas.Panel.from_dict(var_to_twiss)
-    resp = resp.transpose(2, 0, 1)
-    # After transpose e.g: resp[NDX, kqt3, bpm12l1.b1]
+    resp = resp.transpose(2, 1, 0)
+    # After transpose e.g: resp[NDX, bpm12l1.b1, kqt3]
     # The magnet called "0" is no change (nominal model)
-    resp['NDX'] = resp.xs('DX', axis=0) / np.sqrt(resp.xs('BETX', axis=0))
-    resp['NDY'] = resp.xs('DY', axis=0) / np.sqrt(resp.xs('BETY', axis=0))
-    resp['BBX'] = resp.xs('BETX', axis=0) / resp.loc['BETX', '0', :]
-    resp['BBY'] = resp.xs('BETY', axis=0) / resp.loc['BETY', '0', :]
-    resp = resp.subtract(resp.xs('0'), axis=1)
-    # Remove beta-beating of nominal model with itself (bunch of zeros)
-    resp.drop('0', axis=1, inplace=True)
+    resp['NDX'] = resp.xs('DX', axis=0).div(np.sqrt(resp.xs('BETX', axis=0)), axis="index")
+    resp['NDY'] = resp.xs('DY', axis=0).div(np.sqrt(resp.xs('BETY', axis=0)), axis="index")
+    resp['BBX'] = resp.xs('BETX', axis=0).div(resp.loc['BETX', :, '0'], axis="index")
+    resp['BBY'] = resp.xs('BETY', axis=0).div(resp.loc['BETY', :, '0'], axis="index")
+    resp = resp.subtract(resp.xs('0', axis=2), axis=2)
+    # Remove difference of nominal model with itself (bunch of zeros)
+    resp.drop('0', axis=2, inplace=True)
     resp = resp.div(resp.loc['incr', :, :])
-    return {'MUX': resp.xs('MUX', axis=0),
-            'MUY': resp.xs('MUY', axis=0),
-            'BETX': resp.xs('BETX', axis=0),
-            'BETY': resp.xs('BETY', axis=0),
-            'BBX': resp.xs('BBX', axis=0),
-            'BBY': resp.xs('BBY', axis=0),
-            'DX': resp.xs('DX', axis=0),
-            'DY': resp.xs('DY', axis=0),
-            'NDX': resp.xs('NDX', axis=0),
-            'NDY': resp.xs('NDY', axis=0),
-            "F1001R": resp.xs('1001', axis=0).apply(np.real),
-            "F1001I": resp.xs('1001', axis=0).apply(np.imag),
-            "F1010R": resp.xs('1010', axis=0).apply(np.real),
-            "F1010I": resp.xs('1010', axis=0).apply(np.imag),
-            'Q': resp.loc[['Q1', 'Q2'], :, resp.minor_axis[0]]
+    return {'MUX': resp.xs('MUX', axis=0).astype(np.float64),
+            'MUY': resp.xs('MUY', axis=0).astype(np.float64),
+            'BETX': resp.xs('BETX', axis=0).astype(np.float64),
+            'BETY': resp.xs('BETY', axis=0).astype(np.float64),
+            'BBX': resp.xs('BBX', axis=0).astype(np.float64),
+            'BBY': resp.xs('BBY', axis=0).astype(np.float64),
+            'DX': resp.xs('DX', axis=0).astype(np.float64),
+            'DY': resp.xs('DY', axis=0).astype(np.float64),
+            'NDX': resp.xs('NDX', axis=0).astype(np.float64),
+            'NDY': resp.xs('NDY', axis=0).astype(np.float64),
+            "F1001R": resp.xs('1001', axis=0).apply(np.real).astype(np.float64),
+            "F1001I": resp.xs('1001', axis=0).apply(np.imag).astype(np.float64),
+            "F1010R": resp.xs('1010', axis=0).apply(np.real).astype(np.float64),
+            "F1010I": resp.xs('1010', axis=0).apply(np.imag).astype(np.float64),
+            'Q': resp.loc[['Q1', 'Q2'], resp.major_axis[0], :].transpose().astype(np.float64),
             }
 
 
