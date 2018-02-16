@@ -14,3 +14,10 @@ class GetLLMError(Exception):
     missing input files.
     """
     pass
+
+class CriticalGetLLMError(GetLLMError):
+    """
+    Raised when an error in GetLLM or one of its algorithms occur that prevents the following algorithms from being
+    executed normaly.
+    """
+    pass

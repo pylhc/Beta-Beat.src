@@ -135,6 +135,14 @@ class Accelerator(object):
         # TODO: Jaime, are there virtual members for python base classes?
         Accelerator.__raise_definition_error()
 
+
+    def get_amp_bpms(self, common_bpms):
+        """
+        Returns all BPMs that should be used for beta_from_amplitude and are in common_bpms.
+        """
+        Accelerator.__raise_definition_error()
+
+
     ###########################################################
 
 
@@ -178,6 +186,6 @@ def get_commonbpm(key1, key2, commonbpms):
         if bpm == key2:
             i2 = i
     if i2 == -1:
-        return -1, None
+        raise KeyError("Giving up looking for the closest exciter BPM")
     return i2, commonbpms.index[i2]
 

@@ -93,6 +93,7 @@ class TwissResponse(object):
             self._beta = None
             self._dispersion = None
             self._phase = None
+            self._phase_adv = None
             self._tune = None
             self._coupling = None
 
@@ -105,6 +106,7 @@ class TwissResponse(object):
             self._beta_mapped = None
             self._dispersion_mapped = None
             self._phase_mapped = None
+            self._phase_adv_mapped = None
             self._tune_mapped = None
 
             # slots for normalized mapped response matrices
@@ -351,7 +353,54 @@ class TwissResponse(object):
                     dmu[plane] = tfs.TfsDataFrame(
                         tw.loc[k1_el, col_beta].values[:, None] * brackets
                         * (coeff_sign / (8 * np.pi)),
-                        index=k1_el, columns=el_out).transpose().apply(np.cumsum)
+                        index=k1_el, columns=el_out).transpose()
+            else:
+                LOG.debug("  No 'K1L' variables found. Phase Response will be empty.")
+                dmu = {"X": tfs.TfsDataFrame(None, index=el_out),
+                       "Y": tfs.TfsDataFrame(None, index=el_out)}
+
+        return dmu
+
+    def _calc_phase_response(self):
+        """ Response Matrix for delta DPhi.
+
+        Eq. 28 in [#fran]
+        Reduced to only delta phase.
+        --> w = 0:  DPhi(z,j) = DPhi(x, 0->j)
+
+        This calculation could also be achieved by applying np.cumsum to the DataFrames of
+        _calc_phase_adv_response() (tested!), but _calc_phase_response() is about 4x faster.
+        """
+        LOG.debug("Calculate Phase Response Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
+            tw = self._twiss
+            adv = self._phase_advances
+            k1_el = self._elements_in["K1L"]
+            el_out = self._elements_out
+
+            if len(k1_el) > 0:
+                dmu = dict.fromkeys(["X", "Y"])
+
+                pi = tfs.TfsDataFrame(tw['S'][:, None] < tw['S'][None, :],  # pi(i,j) = s(i) < s(j)
+                                      index=tw.index, columns=tw.index, dtype=int)
+
+                pi_term = pi.loc[k1_el, el_out].values
+
+                for plane in ["X", "Y"]:
+                    col_beta = "BET" + plane
+                    q = tw.Q1 if plane == "X" else tw.Q2
+                    coeff_sign = 1 if plane == "X" else -1
+
+                    pi2tau = 2 * np.pi * tau(adv[plane].loc[k1_el, [DUMMY_ID] + el_out], q)
+                    brackets = (2 * pi_term +
+                                ((np.sin(2 * pi2tau.loc[:, el_out].values) -
+                                  np.sin(2 * pi2tau.loc[:, DUMMY_ID].values[:, None]))
+                                 / np.sin(2 * np.pi * q)
+                                 ))
+                    dmu[plane] = tfs.TfsDataFrame(
+                        tw.loc[k1_el, col_beta].values[:, None] * brackets
+                        * (coeff_sign / (8 * np.pi)),
+                        index=k1_el, columns=el_out).transpose()
             else:
                 LOG.debug("  No 'K1L' variables found. Phase Response will be empty.")
                 dmu = {"X": tfs.TfsDataFrame(None, index=el_out),
@@ -516,13 +565,24 @@ class TwissResponse(object):
     def get_phase(self, mapped=True):
         """ Returns Response Matrix for Total Phase """
         if not self._phase:
-            self._phase = self._calc_phase_advance_response()
+            self._phase = self._calc_phase_response()
             self._phase_mapped = self._map_to_variables(self._phase, self._var_to_el["K1L"])
 
         if mapped:
             return self._phase_mapped
         else:
             return self._phase
+
+    def get_phase_adv(self, mapped=True):
+        """ Returns Response Matrix for Phase Advance """
+        if not self._phase_adv:
+            self._phase_adv = self._calc_phase_advance_response()
+            self._phase_adv_mapped = self._map_to_variables(self._phase_adv, self._var_to_el["K1L"])
+
+        if mapped:
+            return self._phase_adv_mapped
+        else:
+            return self._phase_adv
 
     def get_tune(self, mapped=True):
         """ Returns Response Matrix for the Tunes """
@@ -568,17 +628,17 @@ class TwissResponse(object):
             "BETX": beta["X"],
             "BETY": beta["Y"],
             "BBX": bbeat["X"],
-            "BBY": bbeat["X"],
-            "MUX": phase["Y"],
+            "BBY": bbeat["Y"],
+            "MUX": phase["X"],
             "MUY": phase["Y"],
             "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
             "NDX": response_add(ndisp["X_K0L"], ndisp["X_K1SL"]),
             "NDY": response_add(ndisp["Y_K0SL"], ndisp["Y_K1SL"]),
-            "F1001R": couple["1001"].apply(np.real),
-            "F1001I": couple["1001"].apply(np.imag),
-            "F1010R": couple["1010"].apply(np.real),
-            "F1010I": couple["1010"].apply(np.imag),
+            "F1001R": couple["1001"].apply(np.real).astype(np.float64),
+            "F1001I": couple["1001"].apply(np.imag).astype(np.float64),
+            "F1010R": couple["1010"].apply(np.real).astype(np.float64),
+            "F1010I": couple["1010"].apply(np.imag).astype(np.float64),
             "Q": q_df,
         }
 

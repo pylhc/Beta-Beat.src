@@ -84,6 +84,7 @@ import argparse
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
 from tfs_utils_getllm import GetllmTfsFile
+from GetLLMError import GetLLMError, CriticalGetLLMError
 import algorithms.helper
 import algorithms.phase
 import algorithms.beta
@@ -209,13 +210,6 @@ def _parse_args(start_args=sys.argv[1:]):
     parser.add_argument("-u", "--union", action="store_true", dest="union",
                       help="""If given, the phase per BPM is calculated for each BPM with at least 3 valid measurements.
                         Otherwise (default) calculates the phase only for the intersection of all measurements.""")
-
-
-    # Arguments to delete (?)
-#   parser.add_argument("-d", "--dictionary", # remove?
-#                   help="File with the BPM dictionary",
-#                   metavar="DICT", default=DICT, dest="dict")
-#   
     # The following is just for backwards compatitibility and should vanish once the GUI knows the new arguments
     parser.add_argument("-t", "--tbtana", # remove !
                     help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
@@ -369,27 +363,20 @@ def main(accelerator,
     #temp_dict = copy.deepcopy(files_dict)
     try:
         phase_d_bk, tune_d = algorithms.phase.calculate_phase(
-            getllm_d, twiss_d, tune_d, accelerator.get_best_knowledge_model_tfs(), accelerator.get_driven_tfs(),
-            accelerator.get_elements_tfs(), files_dict
+            getllm_d, twiss_d, tune_d, files_dict
         )
     except:
         _tb_()
-    print_time("AFTER_PHASE_BK", time() - __getllm_starttime)
-   
-#        #-------- START Phase
-#        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d,
-#                                                           accelerator.get_model_tfs(),
-#                                                           accelerator.get_driven_tfs(),
-#                                                           accelerator.get_elements_tfs(),
-#                                                           files_dict)
+        # if phase crashed, none of the subsequent algorithms can run. Thus
+        raise CriticalGetLLMError(
+            "get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!"
+        )
     print_time("AFTER_PHASE", time() - __getllm_starttime)
-
 
     #-------- START Beta
     try:
         beta_d = algorithms.beta.calculate_beta_from_phase(
-            getllm_d, twiss_d, tune_d, phase_d_bk, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
-            accelerator.get_elements_tfs(), accelerator.get_best_knowledge_model_tfs(), files_dict
+            getllm_d, twiss_d, tune_d, phase_d_bk, files_dict
         )
     except:
         _tb_()
@@ -402,7 +389,7 @@ def main(accelerator,
     try:
         beta_d = algorithms.beta.calculate_beta_from_amplitude(
             getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
-            files_dict
+            files_dict, accelerator
         )
     except:
         _tb_()
@@ -437,7 +424,7 @@ def main(accelerator,
     #------ Start get Q,JX,delta
     try:
         files_dict, inv_x, inv_y = _calculate_kick(
-            getllm_d, twiss_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict,
+            getllm_d, twiss_d, phase_d_bk, beta_d, files_dict,
             bbthreshold, errthreshold
         )
     except:
@@ -735,6 +722,9 @@ def _arrange_dpp(list_of_tfs):
     Grouping of dpp-values in the given linx,liny-files and computing new values
     '''
     list_of_tfs_arranged = []
+    for tfs_file in list_of_tfs:
+        if "DPP" not in tfs_file.headers:
+            tfs_file.header["DPP"] = 0.0
     if len(list_of_tfs) == 1:
         only_dpp = list_of_tfs[0].headers["DPP"]
         if np.abs(only_dpp) > DPP_TOLERANCE:
@@ -956,7 +946,7 @@ def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
 # END _calculate_getsextupoles ----------------------------------------------------------------------
 
 
-def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
+def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, files_dict, bbthreshold, errthreshold):
     '''
     Fills the following TfsFiles:
      - getkick.out
@@ -964,6 +954,12 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
 
     :returns: dict string --> GetllmTfsFile -- The same instace of files_dict to indicate that the dict was extended
     '''
+    accelerator = getllm_d.accelerator
+
+    mad_twiss = accelerator.get_model_tfs()
+    if accelerator.excitation != AccExcitationMode.FREE:
+        mad_ac = accelerator.get_driven_tfs()
+
     LOGGER.info( "Calculating kick")
     files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
     common_index = twiss_d.non_zero_dpp_commonbpms_x.index.intersection(

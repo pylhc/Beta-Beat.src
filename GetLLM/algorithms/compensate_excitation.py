@@ -40,7 +40,7 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 #===================================================================================================
 #---------  The following is functions
 
-def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
+def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, acc):
     """Returns the necessary values for the exciter compensation.
 
     Args:
@@ -48,7 +48,7 @@ def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
         commonbpms (pandas.DataFrame): commonbpms (see GetLLM._get_commonbpms)
         Qd, Q (float): Driven and natural fractional tunes.
         plane (char): H, V
-        getllm_d: GetLLM data. Actually only the accelerator class instance is used.
+        accelerator: accelerator class instance.
 
     Returns tupel(a,b,c,d):
         a (string): name of the nearest BPM.
@@ -56,13 +56,11 @@ def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, getllm_d):
         c (int): k of the nearest BPM.
         d (string): name of the exciter element.
     """
-    acc = getllm_d.accelerator
     bd = acc.get_beam_direction()
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
     plane_mu = "MUX" if plane == "H" else "MUY"
     [k, bpmac1], exciter = acc.get_exciter_bpm(plane, commonbpms)
     model_driven = acc.get_driven_tfs()
-    
     ##return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] + PI * Q)) % PI - PI * Qd, k
     try:
         psi = (
@@ -180,6 +178,9 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     return phase_advances, 0
 
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, ac2bpmac, plane, getllm_d, commonbpms):
+    # TODO: check if this function excludes additional BPMs, right now commonbpms is return unchanged but maybe this has
+    # to be different
+
     #-- Select common BPMs
     bd = getllm_d.accelerator.get_beam_direction()
     
@@ -326,6 +327,9 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
     
     #-- Check linx/liny files, may be redundant
     if len(FilesX)!=len(FilesY): return [{},[]]
+
+    ac2bpmac_h = GetACPhase_AC2BPMAC(MADTwiss, bpms, Qx, Qh, "H", accelerator)
+    ac2bpmac_v = GetACPhase_AC2BPMAC(MADTwiss, bpms, Qy, Qv, "V", accelerator)
 
     horBPMsCopensation =[]
     verBPMsCopensation = []

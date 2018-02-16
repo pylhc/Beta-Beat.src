@@ -247,7 +247,7 @@ class TwissOptics(object):
         tw = self.mad_twiss
         res = self._results_df
 
-        LOG.info("Calculating CMatrix.")
+        LOG.debug("Calculating CMatrix.")
         with timeit(lambda t:
                     LOG.debug("  CMatrix calculated in {:f}s".format(t))):
 
@@ -336,7 +336,7 @@ class TwissOptics(object):
         elif not isinstance(order, list):
             order = [order]
 
-        LOG.info("Calculating RDTs: {:s}.".format(str(order)[1:-1]))
+        LOG.debug("Calculating RDTs: {:s}.".format(str(order)[1:-1]))
         with timeit(lambda t:
                     LOG.debug("  RDTs calculated in {:f}s".format(t))):
 
@@ -416,7 +416,7 @@ class TwissOptics(object):
 
         Available after calc_rdts
         """
-        LOG.info("Plotting Resonance Driving Terms")
+        LOG.debug("Plotting Resonance Driving Terms")
         rdts = self.get_rdts(rdt_names)
         is_s = regex_in(r'\AS$', rdts.columns)
         rdts = rdts.dropna()
@@ -455,7 +455,7 @@ class TwissOptics(object):
         sum_fun = self._linear_dispersion_sum
 
         # Calculate
-        LOG.info("Calculate Linear Dispersion")
+        LOG.debug("Calculate Linear Dispersion")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             # sources
             k0_mask = tw['K0L'] != 0
@@ -538,7 +538,7 @@ class TwissOptics(object):
         Args:
             combined (bool): If 'True' plots x and y into the same axes.
         """
-        LOG.info("Plotting Linear Dispersion")
+        LOG.debug("Plotting Linear Dispersion")
         lin_disp = self.get_linear_dispersion().dropna()
         title = 'Linear Dispersion'
         pstyle.set_style(self._plot_options.style, self._plot_options.manual)
@@ -589,7 +589,7 @@ class TwissOptics(object):
         """
         raise NotImplementedError('Chramatic Phase Advance Shift is not Implemented yet.')
         #TODO: reimplement the phase-advance shift calculations (if needed??)
-        LOG.info("Plotting Phase Advance")
+        LOG.debug("Plotting Phase Advance")
         tw = self.mad_twiss
         pa = self._phase_advance
         dpa = self._dphase_advance
@@ -642,7 +642,7 @@ class TwissOptics(object):
         if 'CHROMX' not in res:
             self._calc_chromatic_term()
 
-        LOG.info("Calculating Linear Chromaticity")
+        LOG.debug("Calculating Linear Chromaticity")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             DQ1 = - 1/(4 * np.pi) * res['CHROMX'].dropna().sum(axis="index")
             DQ2 = 1/(4 * np.pi) * res['CHROMY'].dropna().sum(axis="index")
@@ -681,7 +681,7 @@ class TwissOptics(object):
         if 'CHROMX' not in res:
             self._calc_chromatic_term()
 
-        LOG.info("Calculating Chromatic Beating")
+        LOG.debug("Calculating Chromatic Beating")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             chromx = res['CHROMX'].dropna()
             chromy = res['CHROMY'].dropna()
@@ -717,7 +717,7 @@ class TwissOptics(object):
         Args:
             combined (bool): If 'True' plots x and y into the same axes.
         """
-        LOG.info("Plotting Chromatic Beating")
+        LOG.debug("Plotting Chromatic Beating")
         chrom_beat = self.get_chromatic_beating().dropna()
         title = 'Chromatic Beating'
         pstyle.set_style(self._plot_options.style, self._plot_options.manual)
@@ -798,7 +798,7 @@ class TwissOptics(object):
 
     def _calc_chromatic_term(self):
         """ Calculates the chromatic term which is common to all chromatic equations """
-        LOG.info("Calculating Chromatic Term.")
+        LOG.debug("Calculating Chromatic Term.")
         res = self._results_df
         tw = self.mad_twiss
 
