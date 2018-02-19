@@ -306,8 +306,8 @@ def global_correction(opt, accel_opt):
 
         # read data from files
         nominal_model = tfs.read_tfs(opt.model_twiss_path).set_index("NAME", drop=False)
-        full_response = _load_fullresponse(opt.fullresponse_path)
         varslist = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
+        full_response = _load_fullresponse(opt.fullresponse_path, varslist)
 
         optics_params, meas_dict = _get_measurment_data(
             opt.optics_params,
@@ -405,8 +405,12 @@ def _load_fullresponse(full_response_path, variables):
     for param in full_response_data:
         df = full_response_data[param]
         # fill with zeros
-        df.loc[:, [var for var in variables if var not in df.columns.values]] = 0.0
-        # order
+        not_found_vars = [var for var in variables if var not in df.columns.values]
+        if len(not_found_vars) > 0:
+            LOG.debug(("Variables not in fullresponse {:s} " +
+                       "(To be filled with zeros): {:s}").format(param, not_found_vars))
+            df.loc[:, not_found_vars] = 0.0
+        # order variables
         full_response_data[param] = df.loc[:, variables]
 
     LOG.debug("Loading ended")
