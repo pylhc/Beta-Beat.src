@@ -1,9 +1,8 @@
-import sys
-import os
 import numpy as np
-import __init__
-import tfs_pandas as tfs
 import pandas as pd
+import __init__
+from utils.tfs_pandas import read_tfs
+
 
 C = 299792458.0 
 PI2 = np.pi * 2
@@ -18,7 +17,7 @@ def generate(infile, nturns=6600, plane ='X',       #single plane with no coupli
             damp_time=1500.0,                        # damping time of kicker induced betatron oscillations 
             bpm_noise=0.1                           #BPM noise in mm
             ):  
-    twiss = tfs.read_tfs(infile)
+    twiss = read_tfs(infile)
     if plane == 'X':
         Q = np.remainder(twiss.headers['Q1'],1)
     else: 
