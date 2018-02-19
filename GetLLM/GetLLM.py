@@ -233,7 +233,11 @@ def _parse_args(start_args=sys.argv[1:]):
         accParser.add_argument("-m", "--model", dest="modelpath")
 
         acc_opts, rest_args = accParser.parse_known_args(acc_args)
-        model_dir = os.path.dirname(acc_opts.modelpath)
+        if os.path.isdir(acc_opts.modelpath):
+            model_dir = acc_opts.modelpath
+        else:
+            model_dir = os.path.dirname(acc_opts.modelpath)
+
 
         if acc_opts.accel == "LHCB1":
             accelerator = manager.get_accel_instance(
@@ -393,8 +397,6 @@ def main(accelerator,
         )
     except:
         _tb_()
-
-    # STEP out of getllm
 
     #-------- START IP
     try:
