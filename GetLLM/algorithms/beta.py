@@ -520,7 +520,7 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data
                                    "%le",
                                   "%le"])
     for i, row in enumerate(data):
-        if row["NCOMB"] > -2:
+        if row[-1] > -2:
             beta_d_phase[row[0]] = [row[2], row[3], row[4], row[5]]
 
             if union:
