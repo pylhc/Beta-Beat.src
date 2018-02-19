@@ -292,9 +292,14 @@ class Lhc(Accelerator):
 
         # Error Def #####################################
         self._errordefspath = None
-        errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
+        errordefspath = os.path.join(self.model_dir, "error_deff.txt")
         if os.path.exists(errordefspath):
             self._errordefspath = errordefspath
+        else:  # until we have a proper file name convention
+            errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
+            if os.path.exists(errordefspath):
+                self._errordefspath = errordefspath
+
 
     @classmethod
     def init_and_get_unknowns(cls, args=None):
