@@ -229,22 +229,28 @@ class TestResult(object):
     def _check_regression(self):
         if self.is_exception:
             return True
+        old_stdout, old_stderr = sys.stdout, sys.stderr
         try:
-            with _capture_output() as (stdout, stderr):
-                compare_res = not self.test_case.test_function(
-                    self.valid_output,
-                    self.test_output,
-                )
-                self._compare_stdout = stdout[:]
-                self._compare_stderr = stderr[:]
-            return compare_res
-        except:
+            sys.stdout = mystdout = StringIO()
+            sys.stderr = mystderr = StringIO()
+            compare_res = not self.test_case.test_function(
+                self.valid_output,
+                self.test_output,
+            )
+            self._compare_stdout = mystdout.getvalue()
+            self._compare_stderr = mystderr.getvalue()
+        # User provided function, I can't know what will raise...
+        except:  # pylint: disable=W0702
             self._compare_error = (
                 "An exception happened while comparing the directories:\n" +
                 traceback.format_exc()
             )
             self.is_exception = True
             return True
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+        return compare_res
 
 
 def _force_repo(repo):
@@ -276,16 +282,3 @@ def _temporary_dir():
         yield dir_path
     finally:
         shutil.rmtree(dir_path)
-
-
-@contextlib.contextmanager
-def _capture_output():
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    try:
-        sys.stdout = mystdout = StringIO()
-        sys.stderr = mystderr = StringIO()
-        yield mystdout.getvalue(), mystderr.getvalue()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
