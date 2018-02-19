@@ -19,11 +19,11 @@ from utils.tfs_pandas import write_tfs, read_tfs
 
 
 def get_llm_test_files(infile, outpath):
-    generate_lin_files(infile, outfile=outpath + 'onmom1/onmom1', dpp=0.0)
-    generate_lin_files(infile, outfile=outpath + 'onmom2/onmom2', dpp=0.0)
-    generate_lin_files(infile, outfile=outpath + 'onmom3/onmom3', dpp=0.0)
-    generate_lin_files(infile, outfile=outpath + 'offmom1/offmom1', dpp=-4e-4)
-    generate_lin_files(infile, outfile=outpath + 'offmom2/offmom2', dpp=4e-4)
+    generate_lin_files(infile, outfile=outpath + 'onmom1', dpp=0.0)
+    generate_lin_files(infile, outfile=outpath + 'onmom2', dpp=0.0)
+    generate_lin_files(infile, outfile=outpath + 'onmom3', dpp=0.0)
+    generate_lin_files(infile, outfile=outpath + 'offmom1', dpp=-4e-4)
+    generate_lin_files(infile, outfile=outpath + 'offmom2', dpp=4e-4)
 
 
 def generate_lin_files(infile, outfile='test', dpp=0.0):
@@ -81,4 +81,4 @@ def generate_lin_files(infile, outfile='test', dpp=0.0):
 
 
 if __name__ == '__main__':
-    get_llm_test_files('twiss','/afs/cern.ch/work/l/lmalina/2018-02-18/LHCB1/Measurements/')
+    get_llm_test_files('twiss','./')
