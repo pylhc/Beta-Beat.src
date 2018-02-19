@@ -269,7 +269,6 @@ def _launch_command(repo_root, script, args):
                             cwd=repo_root)
     stdout, stderr = comm.communicate()
     raised = comm.returncode != 0
-    import pdb; pdb.set_trace()
     return TestResult.RunResult(stdout=stdout, stderr=stderr, raised=raised)
 
 
