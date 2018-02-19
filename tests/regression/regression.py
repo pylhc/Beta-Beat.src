@@ -19,7 +19,7 @@ _PYTHON = sys.executable
 
 class TestCase(namedtuple(
         "TestCase",
-        ("name", "script", "arguments", "output", "test_function")
+        ("name", "script", "arguments", "output", "test_function", "pre_hook")
 )):
     """Data class to hold information about the test to run.
 
@@ -32,7 +32,11 @@ class TestCase(namedtuple(
             the output of the script.
         test_function: Function of signature (path, path) -> bool to compare
             the results. It must return true only if the test passed without
-            issues.
+            issues. The script will be called with the repository root as
+            working directory, so all path must take this into account.
+        pre_hook: If not None, this function will be called receiving the root
+            of each repository as parameter. Useful to perform pre-test
+            operations, like creating the output dirs.
     """
     __slots__ = ()  # This makes the class lightweight and immutable.
 
@@ -97,8 +101,11 @@ def run_test_case(test_case, valid_path, test_path):
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
     try:
-        valid_result = _launch_command(valid_script, test_case.arguments)
-        test_result = _launch_command(test_script, test_case.arguments)
+        if test_case.pre_hook:
+            test_case.pre_hook(valid_path)
+            test_case.pre_hook(test_path)
+        valid_result = _launch_command(valid_path, valid_script, test_case.arguments)
+        test_result = _launch_command(test_path, test_script, test_case.arguments)
         result = TestResult(test_case, valid_result, test_result,
                             valid_outpath, test_outpath)
     finally:
@@ -246,11 +253,12 @@ def _force_repo(repo):
     return git.Repo(repo)
 
 
-def _launch_command(script, args):
+def _launch_command(repo_root, script, args):
     if isinstance(args, str):
         args = args.split(" ")
     comm = subprocess.Popen([_PYTHON] + [script] + args,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            cwd=repo_root)
     stdout, stderr = comm.communicate()
     raised = comm.returncode != 0
     return TestResult.RunResult(stdout=stdout, stderr=stderr, raised=raised)
