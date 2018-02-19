@@ -70,10 +70,12 @@ def find_regressions(test_cases, valid_path, test_path):
     """
     results = []
     print("Testing...: ", end="")
+    sys.stdout.flush()
     for test_case in test_cases:
         result = run_test_case(test_case, valid_path, test_path)
         results.append(result)
         print(result.get_microsummary(), end="")
+        sys.stdout.flush()
     print("\n\n################### Test results ###################")
     report = ""
     for result in results:
@@ -267,6 +269,7 @@ def _launch_command(repo_root, script, args):
                             cwd=repo_root)
     stdout, stderr = comm.communicate()
     raised = comm.returncode != 0
+    import pdb; pdb.set_trace()
     return TestResult.RunResult(stdout=stdout, stderr=stderr, raised=raised)
 
 
