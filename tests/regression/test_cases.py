@@ -21,7 +21,7 @@ TEST_CASES_HOLE_IN_ONE = (
                        model=join(MODELS, "flat_beam1", "twiss.dat"),
                        output=join(REGR_DIR, "_out_hole_in_one_test_flat_3dkick"))),
         output=join(REGR_DIR, "_out_hole_in_one_test_flat_3dkick"),
-        test_function=compare_utils.compare_dirs_with,
+        test_function=lambda d1, d2: compare_utils.compare_dirs(d1, d2, ignore=[r".*\.log"]),
         pre_hook=lambda dir: os.makedirs(join(dir, REGR_DIR, "_out_hole_in_one_test_flat_3dkick")),
     ),
 )
