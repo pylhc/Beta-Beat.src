@@ -52,7 +52,7 @@ def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
         print("Cloning repository into {}".format(new_repo_path))
         clone_revision(repo_path, test_tag.commit.hexsha, new_repo_path)
         result = find_regressions(test_cases, new_repo_path, repo_path)
-    sys.exit(result)
+    return result
 
 
 def find_regressions(test_cases, valid_path, test_path):

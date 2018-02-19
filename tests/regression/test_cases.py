@@ -1,3 +1,4 @@
+import sys
 import os
 from os.path import join, abspath, dirname
 import compare_utils
@@ -28,7 +29,10 @@ TEST_CASES_HOLE_IN_ONE = (
 
 
 def run_tests():
-    regression.launch_test_set(TEST_CASES_HOLE_IN_ONE, ABS_ROOT)
+    result = regression.launch_test_set(TEST_CASES_HOLE_IN_ONE, ABS_ROOT)
+    if not result:
+        # Test failed
+        sys.exit(-1)
 
 
 if __name__ == "__main__":
