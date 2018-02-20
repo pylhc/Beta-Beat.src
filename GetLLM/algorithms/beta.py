@@ -560,7 +560,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         elements = accelerator.get_elements_tfs()
     else:  # driven motion
         actual_model = accelerator.get_driven_tfs()
-        free_model = accelerator.get_driven_tfs()
+        free_model = accelerator.get_model_tfs()
         elements = accelerator.get_elements_tfs()
     elements_centre = elements
     
