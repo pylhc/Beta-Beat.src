@@ -322,6 +322,7 @@ def global_correction(opt, accel_opt):
         )
         meas_dict = _append_model_to_measurement(nominal_model, meas_dict, optics_params)
         full_response = _filter_response_index(full_response, meas_dict, optics_params)
+        # Todo: as long as resonse is not recalculated: do response concatinaton here!!
 
         if opt.debug:
             _print_rms(meas_dict, optics_params)
