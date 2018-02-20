@@ -726,7 +726,7 @@ def _arrange_dpp(list_of_tfs):
     list_of_tfs_arranged = []
     for tfs_file in list_of_tfs:
         if "DPP" not in tfs_file.headers:
-            tfs_file.header["DPP"] = 0.0
+            tfs_file.headers["DPP"] = 0.0
     if len(list_of_tfs) == 1:
         only_dpp = list_of_tfs[0].headers["DPP"]
         if np.abs(only_dpp) > DPP_TOLERANCE:
