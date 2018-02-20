@@ -54,7 +54,7 @@ DEFAULT_ARGS = {
     "optics_params": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
     "variables": ["MQM", "MQT", "MQTL", "MQY"],
     "beta_file_name": "getbeta",
-    "method": "newton",
+    "method": "pinv",
     "max_iter": 3,
     "eps": None,
 }
@@ -231,7 +231,7 @@ def _get_params():
         name="method",
         type=str,
         default=DEFAULT_ARGS["method"],
-        choices=["newton"]
+        choices=["pinv"]
     )
     params.add_parameter(
         flags="--max_iter",
@@ -700,12 +700,13 @@ def _dump(path_to_dump, content):
         cPickle.Pickler(dump_file, -1).dump(content)
 
 
-def _calculate_deltas(resp, meas, keys, varslist, cut, append=False):
+def _calculate_deltas(resp, meas, keys, varslist, cut):
     # TODO: think about output form
     # Return NumPy array: each row for magnet, columns for measurements
-    response_matrix = _filter_response_rows_and_join(resp, keys, varslist)
-    weight_vector = _join_weights(meas, keys)
-    diff_vector = _join_diffs(meas, keys)
+    response_matrix = _filter_and_join_response(resp, keys, varslist)
+    weight_vector = _join_columns('WEIGHT', meas, keys)
+    diff_vector = _join_columns('DIFF', meas, keys)
+    # delta will be of form BPMs x Parameters
     delta = np.dot(
         np.linalg.pinv(response_matrix.mul(weight_vector, axis="index"), cut),
         diff_vector * weight_vector
@@ -717,18 +718,17 @@ def _calculate_deltas(resp, meas, keys, varslist, cut, append=False):
     return delta
 
 
-def _filter_response_rows_and_join(resp, keys, varslist):
-    return pd.concat([resp[key] for key in keys],
-                     axis=1,
-                     join_axes=[pd.Index(varslist)])
+def _filter_and_join_response(resp, keys, varslist):
+    """ Returns matrix """
+    return pd.concat([resp[k] for k in keys],  # dataframes
+                     axis="index",  # axis to join along
+                     join_axes=pd.Index([varslist])  # other axes to use (pd Index obj required)
+                     )
 
 
-def _join_diffs(meas, keys):
-    return np.concatenate([meas[key].loc[:, 'DIFF'].values for key in keys])
-
-
-def _join_weights(meas, keys):
-    return np.concatenate([meas[key].loc[:, 'WEIGHT'].values for key in keys])
+def _join_columns(col, meas, keys):
+    """ Retuns matrix BPMs x Parameters (BBX, MUX etc.) """
+    return np.concatenate([meas[key].loc[:, col].values for key in keys])
 
 
 def _callMadx(madx_script, debug):
