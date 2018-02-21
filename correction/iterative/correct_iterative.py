@@ -332,32 +332,32 @@ def global_correction(opt, accel_opt):
             _print_rms(meas_dict, optics_params)
 
         _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
-        deltas = _calculate_deltas(resp_matrix, meas_dict, optics_params, vars_list, opt.method,
-                                   meth_opt)
-        writeparams(deltas, vars_list, opt.output_path)
+        delta = _calculate_delta(resp_matrix, meas_dict, optics_params, vars_list, opt.method,
+                                 meth_opt)
+        writeparams(delta, vars_list, opt.output_path)
 
-        for idx in range(opt.max_iter):
-            LOG.debug("Running MADX, iteration {:d} of {:d}".format(idx + 1, opt.max_iter))
+        for _iter in range(opt.max_iter):
+            LOG.debug("Running MADX, iteration {:d} of {:d}".format(_iter + 1, opt.max_iter))
 
+            # update model
             madx_script = _create_madx_script(accel_cls, nominal_model, opt.optics_file,
                                               opt.template_file_path, opt.output_path)
             _callMadx(madx_script)
-            new_model_path = os.path.join(opt.output_path, "twiss_" + str(idx) + ".dat")
-            shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"),
-                         new_model_path)
+            new_model_path = os.path.join(opt.output_path, "twiss_" + str(_iter) + ".dat")
+            shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"), new_model_path)
             new_model = tfs.read_tfs(new_model_path)
             meas_dict = _append_model_to_measurement(new_model, meas_dict, optics_params)
 
             if opt.debug:
                 _print_rms(meas_dict, optics_params)
 
-            ideltas = _calculate_deltas(
+            # get new deltas
+            delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
-            writeparams(ideltas, vars_list, opt.output_path, append=True)
-            deltas = deltas + ideltas
-            LOG.debug("Cumulative deltas:" + str(np.sum(np.abs(deltas))))
-        write_knob(deltas, vars_list)
+            writeparams(delta, vars_list, opt.output_path, append=True)
+            LOG.debug("Cumulative delta:" + str(np.sum(np.abs(delta))))
+        write_knob(delta, opt.output_path)
 
 
 # Main function helpers #######################################################
@@ -506,7 +506,6 @@ def _read_tfs(path, file_name):
 
 def _filter_measurement(keys, meas, model, errorbar, w_dict, e_dict, m_dict):
     """ Filteres measurements and renames columns to VALUE, ERROR, WEIGHT"""
-    # TODO: Add error and model cuts (jd: ???)
     filters = _get_measurement_filters()
     new = dict.fromkeys(keys)
     for key in keys:
@@ -710,12 +709,13 @@ def _get_model_tunes(model, meas, key):
 # Main Calculation ################################################################
 
 
-def _calculate_deltas(resp_matrix, meas_dict, keys, varslist, method, meth_opt):
-    # TODO: think about output form
-    # Return NumPy array: each row for magnet, columns for measurements
+def _calculate_delta(resp_matrix, meas_dict, keys, vars_list, method, meth_opt):
+    """ Get the deltas for the variables.
+
+    Output is Dataframe with one column 'DELTA' and vars_list index. """
     weight_vector = _join_columns('WEIGHT', meas_dict, keys)
     diff_vector = _join_columns('DIFF', meas_dict, keys)
-    # delta will be of form BPMs x Parameters
+
     delta = _get_method_fun(method)(resp_matrix.mul(weight_vector, axis="index"),
                                     diff_vector * weight_vector,
                                     meth_opt)
@@ -724,6 +724,7 @@ def _calculate_deltas(resp_matrix, meas_dict, keys, varslist, method, meth_opt):
     LOG.debug(np.std(np.abs(diff_vector * weight_vector)))
     LOG.debug(np.std(np.abs((diff_vector * weight_vector) -
                             np.dot(delta, resp_matrix * weight_vector))))
+    delta = tfs.TfsDataFrame(delta, index=vars_list, columns=["DELTA"])
     return delta
 
 
@@ -796,30 +797,24 @@ def _create_madx_script(accel_cls, nominal_model, optics_file,
     return madx_script
 
 
-def write_knob(deltas, varslist, path="./"):
-    # TODO: Use tfs_file_writer
+def write_knob(deltas, path):
     a = datetime.datetime.fromtimestamp(time.time())
     changeparameters_path = os.path.join(path, 'changeparameters.knob')
-    with open(changeparameters_path, "w") as changeparameters:
-        changeparameters.write("@ PATH %s" + path + "\n")
-        changeparameters.write("@ DATE %s" + str(a.ctime()) + "\n")
-        changeparameters.write("* NAME DELTA\n")
-        changeparameters.write("$ %s %le\n")
-        for i, var in enumerate(varslist):
-            changeparameters.write(var + '   ' + str(-deltas[i]) + '\n')
+    deltas.headers["PATH"] = path
+    deltas.headers["DATE"] = str(a.ctime())
+    deltas.loc[:, "DELTA"] = - deltas.loc[:, "DELTA"]
+    tfs.write_tfs(changeparameters_path, deltas, save_index="NAME")
 
 
-def writeparams(deltas, variables, path, append=False):
+def writeparams(delta, path, append=False):
     mode = 'a' if append else 'w'
-    mad_script = open(os.path.join(path, "changeparameters.madx"), mode)
-    for i, var in enumerate(variables):
-        if deltas[i] > 0:
-            mad_script.write(var + " = " + var + " + " +
-                             str(deltas[i]) + ";\n")
-        else:
-            mad_script.write(var + " = " + var + " " +
-                             str(deltas[i]) + ";\n")
-    mad_script.close()
+    with open(os.path.join(path, "changeparameters.madx"), mode) as madx_script:
+        for var in delta.index.values:
+            value = delta.loc[var, "DELTA"]
+            madx_script.write(var + " = " + var
+                              + (" + " if value > 0 else " ")
+                              + str(value) + ";\n"
+                              )
 
 
 # Main invocation ############################################################
