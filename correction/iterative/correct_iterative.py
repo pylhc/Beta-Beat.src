@@ -334,7 +334,7 @@ def global_correction(opt, accel_opt):
         _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
         delta = _calculate_delta(resp_matrix, meas_dict, optics_params, vars_list, opt.method,
                                  meth_opt)
-        writeparams(delta, vars_list, opt.output_path)
+        writeparams(opt.output_path, delta)
 
         for _iter in range(opt.max_iter):
             LOG.debug("Running MADX, iteration {:d} of {:d}".format(_iter + 1, opt.max_iter))
@@ -355,9 +355,9 @@ def global_correction(opt, accel_opt):
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
-            writeparams(delta, vars_list, opt.output_path, append=True)
+            writeparams(opt.output_path, delta, append=True)
             LOG.debug("Cumulative delta:" + str(np.sum(np.abs(delta))))
-        write_knob(delta, opt.output_path)
+        write_knob(opt.output_path, delta)
 
 
 # Main function helpers #######################################################
@@ -797,7 +797,7 @@ def _create_madx_script(accel_cls, nominal_model, optics_file,
     return madx_script
 
 
-def write_knob(deltas, path):
+def write_knob(path, deltas):
     a = datetime.datetime.fromtimestamp(time.time())
     changeparameters_path = os.path.join(path, 'changeparameters.knob')
     deltas.headers["PATH"] = path
@@ -806,7 +806,7 @@ def write_knob(deltas, path):
     tfs.write_tfs(changeparameters_path, deltas, save_index="NAME")
 
 
-def writeparams(delta, path, append=False):
+def writeparams(path, delta, append=False):
     mode = 'a' if append else 'w'
     with open(os.path.join(path, "changeparameters.madx"), mode) as madx_script:
         for var in delta.index.values:
