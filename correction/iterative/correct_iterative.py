@@ -36,6 +36,7 @@ from madx import madx_wrapper  # noqa
 from utils import tfs_pandas as tfs  # noqa
 from utils.contexts import timeit
 from utils import logging_tools
+from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
 from model import manager  # noqa
 from segment_by_segment.segment_by_segment import GetLlmMeasurement
@@ -50,7 +51,7 @@ DEV_NULL = os.devnull
 DEFAULT_ARGS = {
     "optics_file": None,
     "output_path": None,
-    "singular_value_cut": 0.01,
+    "svd_cut": 0.01,
     "optics_params": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
     "variables": ["MQM", "MQT", "MQTL", "MQY"],
     "beta_file_name": "getbeta",
@@ -172,11 +173,11 @@ def _get_params():
     )
     params.add_parameter(
         flags="--svd_cut",
-        help=("Cutoff for small singular values of the pseudo inverse."
+        help=("Cutoff for small singular values of the pseudo inverse. (Method: 'pinv')"
               "Singular values smaller than `rcond`*largest_singular_value are set to zero"),
-        name="singular_value_cut",
+        name="svd_cut",
         type=float,
-        default=DEFAULT_ARGS["singular_value_cut"],
+        default=DEFAULT_ARGS["svd_cut"],
     )
     params.add_parameter(
         flags="--model_cut",
@@ -295,6 +296,7 @@ def global_correction(opt, accel_opt):
     with timeit(lambda t: LOG.debug("  Total time for Global Correction: {:f}s".format(t))):
         # check on opt
         opt = _check_opt(opt)
+        meth_opt = _get_method_opt(opt)
 
         # get accelerator class
         accel_cls = manager.get_accel_class(accel_opt)
@@ -328,8 +330,8 @@ def global_correction(opt, accel_opt):
             _print_rms(meas_dict, optics_params)
 
         _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
-        deltas = _calculate_deltas(full_response, meas_dict, optics_params, varslist,
-                                   cut=opt.singular_value_cut)
+        deltas = _calculate_deltas(full_response, meas_dict, optics_params, varslist, opt.method,
+                                   meth_opt)
         writeparams(deltas, varslist, opt.output_path)
 
         for idx in range(opt.max_iter):
@@ -343,19 +345,20 @@ def global_correction(opt, accel_opt):
                          new_model_path)
             new_model = tfs.read_tfs(new_model_path)
             meas_dict = _append_model_to_measurement(new_model, meas_dict, optics_params)
+
             if opt.debug:
                 _print_rms(meas_dict, optics_params)
+
             ideltas = _calculate_deltas(
-                full_response, meas_dict, optics_params, varslist,
-                cut=opt.singular_value_cut,
-            )
+                full_response, meas_dict, optics_params, varslist, opt.method, meth_opt)
+
             writeparams(ideltas, varslist, opt.output_path, append=True)
             deltas = deltas + ideltas
             LOG.debug("Cumulative deltas:" + str(np.sum(np.abs(deltas))))
         write_knob(deltas, varslist)
 
 
-# Helper functions #############################################################
+# Main function helpers #######################################################
 
 
 def _check_opt(opt):
@@ -380,6 +383,15 @@ def _check_opt(opt):
     if opt.weights_on_quantities is None:
         opt.weights_on_quantities = [def_dict["weights"][p] for p in opt.optics_params]
     return opt
+
+
+def _get_method_opt(opt):
+    """ Slightly unnecessary function to separate method-options
+    for easier debugging and readability """
+    meth_opt = DotDict(
+        svd_cut=opt.svd_cut,
+    )
+    return meth_opt
 
 
 def _print_rms(meas, keys):
@@ -693,6 +705,38 @@ def _get_model_tunes(model, meas, key):
     return meas
 
 
+# Main Calculation ################################################################
+
+
+def _calculate_deltas(resp, meas, keys, varslist, method, meth_opt):
+    # TODO: think about output form
+    # Return NumPy array: each row for magnet, columns for measurements
+    response_matrix = _filter_and_join_response(resp, keys, varslist)
+    weight_vector = _join_columns('WEIGHT', meas, keys)
+    diff_vector = _join_columns('DIFF', meas, keys)
+    # delta will be of form BPMs x Parameters
+    delta = _get_method_fun(method)(response_matrix.mul(weight_vector, axis="index"),
+                                    diff_vector * weight_vector,
+                                    meth_opt)
+
+    LOG.debug("Delta calculation: ")
+    LOG.debug(np.std(np.abs(diff_vector * weight_vector)))
+    LOG.debug(np.std(np.abs((diff_vector * weight_vector) -
+                            np.dot(delta, response_matrix * weight_vector))))
+    return delta
+
+
+def _get_method_fun(method):
+    funcs = {
+        "pinv": _pseudo_inverse
+    }
+    return funcs[method]
+
+
+def _pseudo_inverse(response_mat, diff_vec, opt):
+    """ Calculates the pseudo-inverse of the response via svd. (numpy) """
+    return np.dot(np.linalg.pinv(response_mat, opt.svd_cut), diff_vec)
+
 # Small Helpers ################################################################
 
 
@@ -701,26 +745,8 @@ def _dump(path_to_dump, content):
         cPickle.Pickler(dump_file, -1).dump(content)
 
 
-def _calculate_deltas(resp, meas, keys, varslist, cut):
-    # TODO: think about output form
-    # Return NumPy array: each row for magnet, columns for measurements
-    response_matrix = _filter_and_join_response(resp, keys, varslist)
-    weight_vector = _join_columns('WEIGHT', meas, keys)
-    diff_vector = _join_columns('DIFF', meas, keys)
-    # delta will be of form BPMs x Parameters
-    delta = np.dot(
-        np.linalg.pinv(response_matrix.mul(weight_vector, axis="index"), cut),
-        diff_vector * weight_vector
-    )
-    LOG.debug("Delta calculation: ")
-    LOG.debug(np.std(np.abs(diff_vector * weight_vector)))
-    LOG.debug(np.std(np.abs((diff_vector * weight_vector) -
-                            np.dot(delta, response_matrix * weight_vector))))
-    return delta
-
-
 def _filter_and_join_response(resp, keys, varslist):
-    """ Returns matrix """
+    """ Returns matrix #BPMs * #Parameters x #variables """
     return pd.concat([resp[k] for k in keys],  # dataframes
                      axis="index",  # axis to join along
                      join_axes=pd.Index([varslist])  # other axes to use (pd Index obj required)
@@ -728,8 +754,8 @@ def _filter_and_join_response(resp, keys, varslist):
 
 
 def _join_columns(col, meas, keys):
-    """ Retuns matrix BPMs x Parameters (BBX, MUX etc.) """
-    return np.concatenate([meas[key].loc[:, col].values for key in keys])
+    """ Retuns vector: N= #BPMs * #Parameters (BBX, MUX etc.) """
+    return np.concatenate([meas[key].loc[:, col].values for key in keys], axis=0)
 
 
 def _callMadx(madx_script, debug):
