@@ -342,7 +342,7 @@ def global_correction(opt, accel_opt):
             # update model
             madx_script = _create_madx_script(accel_cls, nominal_model, opt.optics_file,
                                               opt.template_file_path, opt.output_path)
-            _callMadx(madx_script)
+            _call_madx(madx_script, opt.debug)
             new_model_path = os.path.join(opt.output_path, "twiss_" + str(_iter) + ".dat")
             shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"), new_model_path)
             new_model = tfs.read_tfs(new_model_path)
@@ -760,7 +760,7 @@ def _join_columns(col, meas, keys):
     return np.concatenate([meas[key].loc[:, col].values for key in keys], axis=0)
 
 
-def _callMadx(madx_script, debug):
+def _call_madx(madx_script, debug):
     """ Call MADX and log into file """
     if debug:
         with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
@@ -785,7 +785,7 @@ def _create_madx_script(accel_cls, nominal_model, optics_file,
             "LIB": accel_cls.MACROS_NAME,
             "MAIN_SEQ": accel_cls.load_main_seq_madx(),
             "OPTICS_PATH": optics_file,
-            "CROSSING_ON": 0,  # TODO
+            "CROSSING_ON": 0,  # TODO: Crossing
             "NUM_BEAM": beam,
             "PATH": output_path,
             "DPP": 0.0,
@@ -797,13 +797,13 @@ def _create_madx_script(accel_cls, nominal_model, optics_file,
     return madx_script
 
 
-def write_knob(path, deltas):
+def write_knob(path, delta):
     a = datetime.datetime.fromtimestamp(time.time())
     changeparameters_path = os.path.join(path, 'changeparameters.knob')
-    deltas.headers["PATH"] = path
-    deltas.headers["DATE"] = str(a.ctime())
-    deltas.loc[:, "DELTA"] = - deltas.loc[:, "DELTA"]
-    tfs.write_tfs(changeparameters_path, deltas, save_index="NAME")
+    delta_out = - delta.loc[:, ["DELTA"]]
+    delta_out.headers["PATH"] = path
+    delta_out.headers["DATE"] = str(a.ctime())
+    tfs.write_tfs(changeparameters_path, delta_out, save_index="NAME")
 
 
 def writeparams(path, delta, append=False):
