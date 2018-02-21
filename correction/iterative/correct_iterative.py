@@ -424,7 +424,7 @@ def _load_fullresponse(full_response_path, variables):
         if len(not_found_vars) > 0:
             LOG.debug(("Variables not in fullresponse {:s} " +
                        "(To be filled with zeros): {:s}").format(param, not_found_vars))
-            df.loc[:, not_found_vars] = 0.0
+            df.assign(dict.fromkeys(not_found_vars, 0.0))  # one-liner to add zero-columns
         # order variables
         full_response_data[param] = df.loc[:, variables]
 
@@ -646,7 +646,7 @@ def _get_generic_response(resp, meas):
 
 def _get_phase_response(resp, meas):
     new = resp.loc[meas.index.values, :]
-    new.sub(resp.as_matrix(columns=meas.loc[:, 'NAME2'].values), axis=0)
+    new.sub(resp.as_matrix(index=meas.loc[:, 'NAME2'].values), axis=1)  # TODO: transposed correctly?
     return -new  # As we did subtraction name-name2
 
 
