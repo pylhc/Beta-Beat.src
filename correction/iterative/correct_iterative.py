@@ -308,8 +308,8 @@ def global_correction(opt, accel_opt):
 
         # read data from files
         nominal_model = tfs.read_tfs(opt.model_twiss_path).set_index("NAME", drop=False)
-        varslist = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
-        full_response = _load_fullresponse(opt.fullresponse_path, varslist)
+        vars_list = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
+        resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
 
         optics_params, meas_dict = _get_measurment_data(
             opt.optics_params,
@@ -323,16 +323,18 @@ def global_correction(opt, accel_opt):
             opt.use_errorbars, w_dict, e_dict, m_dict
         )
         meas_dict = _append_model_to_measurement(nominal_model, meas_dict, optics_params)
-        full_response = _filter_response_index(full_response, meas_dict, optics_params)
-        # Todo: as long as resonse is not recalculated: do response concatinaton here!!
+        resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
+
+        # as long as response is not recalculated leave outside loop:
+        resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 
         if opt.debug:
             _print_rms(meas_dict, optics_params)
 
         _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
-        deltas = _calculate_deltas(full_response, meas_dict, optics_params, varslist, opt.method,
+        deltas = _calculate_deltas(resp_matrix, meas_dict, optics_params, vars_list, opt.method,
                                    meth_opt)
-        writeparams(deltas, varslist, opt.output_path)
+        writeparams(deltas, vars_list, opt.output_path)
 
         for idx in range(opt.max_iter):
             LOG.debug("Running MADX, iteration {:d} of {:d}".format(idx + 1, opt.max_iter))
@@ -350,12 +352,12 @@ def global_correction(opt, accel_opt):
                 _print_rms(meas_dict, optics_params)
 
             ideltas = _calculate_deltas(
-                full_response, meas_dict, optics_params, varslist, opt.method, meth_opt)
+                resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
-            writeparams(ideltas, varslist, opt.output_path, append=True)
+            writeparams(ideltas, vars_list, opt.output_path, append=True)
             deltas = deltas + ideltas
             LOG.debug("Cumulative deltas:" + str(np.sum(np.abs(deltas))))
-        write_knob(deltas, varslist)
+        write_knob(deltas, vars_list)
 
 
 # Main function helpers #######################################################
@@ -708,21 +710,20 @@ def _get_model_tunes(model, meas, key):
 # Main Calculation ################################################################
 
 
-def _calculate_deltas(resp, meas, keys, varslist, method, meth_opt):
+def _calculate_deltas(resp_matrix, meas_dict, keys, varslist, method, meth_opt):
     # TODO: think about output form
     # Return NumPy array: each row for magnet, columns for measurements
-    response_matrix = _filter_and_join_response(resp, keys, varslist)
-    weight_vector = _join_columns('WEIGHT', meas, keys)
-    diff_vector = _join_columns('DIFF', meas, keys)
+    weight_vector = _join_columns('WEIGHT', meas_dict, keys)
+    diff_vector = _join_columns('DIFF', meas_dict, keys)
     # delta will be of form BPMs x Parameters
-    delta = _get_method_fun(method)(response_matrix.mul(weight_vector, axis="index"),
+    delta = _get_method_fun(method)(resp_matrix.mul(weight_vector, axis="index"),
                                     diff_vector * weight_vector,
                                     meth_opt)
 
     LOG.debug("Delta calculation: ")
     LOG.debug(np.std(np.abs(diff_vector * weight_vector)))
     LOG.debug(np.std(np.abs((diff_vector * weight_vector) -
-                            np.dot(delta, response_matrix * weight_vector))))
+                            np.dot(delta, resp_matrix * weight_vector))))
     return delta
 
 
@@ -745,7 +746,7 @@ def _dump(path_to_dump, content):
         cPickle.Pickler(dump_file, -1).dump(content)
 
 
-def _filter_and_join_response(resp, keys, varslist):
+def _join_responses(resp, keys, varslist):
     """ Returns matrix #BPMs * #Parameters x #variables """
     return pd.concat([resp[k] for k in keys],  # dataframes
                      axis="index",  # axis to join along
