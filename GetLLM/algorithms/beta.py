@@ -772,8 +772,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
     commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase)]
     commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase)]
 
-    #commonbpms_x = commonbpms_x.sort_values(by='S', axis='index')
-    #commonbpms_y = commonbpms_y.sort_values(by='S', axis='index')
+    commonbpms_x = commonbpms_x.sort_values(by='S', axis='index')
+    commonbpms_y = commonbpms_y.sort_values(by='S', axis='index')
 
     LOGGER.info("commonbpms after sorting: {}".format(commonbpms_x))
     #---- H plane
@@ -1318,7 +1318,11 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     '''
     
     _info_("Errors from " + ID_TO_METHOD[errors_method])
-    
+    # --------------- alphas from 3BPM -------------------------------------------------
+    _, _, data3bpm = scan_all_BPMs_sim_3bpm(madTwiss,
+                                            phase, plane, getllm_d, commonbpms, debugfile, METH_3BPM,
+                                            tune, mdltune)
+
     # =============== setup ===========================================================================================
     # setup combinations
     width = getllm_d.range_of_bpms / 2
@@ -1344,7 +1348,6 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                ("BET", "f8"), ("BETSTAT", "f8"), ("BETSYS", "f8"), ("BETERR", "f8"),
                                ("ALF", "f8"), ("ALFSTAT", "f8"), ("ALFSYS", "f8"), ("ALFERR", "f8"),
                                ("CORR", "f8"), ("BETMDL", "f8"), ("BETBEAT", "f8"), ("NCOMB", "i4")])
-#                      dtype = "S24, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4")
 
     # ==========
     # define functions in a function -- python witchcraft, burn it!!!!! 
@@ -1399,7 +1402,11 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     _debug_("time elapsed = {0:3.3f}".format(et - st))
     
     rmsbb = sqrt(np.mean(np.multiply(result["BETBEAT"], result["BETBEAT"])))
-    
+
+    result["ALF"] = data3bpm[:,6]
+    result["ALFSTAT"] = data3bpm[:,7]
+    result["ALFSYS"] = data3bpm[:,8]
+    result["ALFERR"] = data3bpm[:,9]
     #result["BETERR"] *= np.sqrt(commonbpms.loc[:, "NFILES"])
     return rmsbb, errors_method, result
 
