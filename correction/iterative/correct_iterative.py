@@ -645,9 +645,9 @@ def _get_generic_response(resp, meas):
 
 
 def _get_phase_response(resp, meas):
-    new = resp.loc[meas.index.values, :]
-    new.sub(resp.as_matrix(index=meas.loc[:, 'NAME2'].values), axis=1)  # TODO: transposed correctly?
-    return -new  # As we did subtraction name-name2
+    phase1 = resp.loc[meas.index.values, :]
+    phase2 = resp.loc[meas.loc[:, 'NAME2'].values, :]
+    return -phase1.sub(phase2.values)  # phs2-phs1 but with idx of phs1
 
 
 def _get_tune_response(resp, meas):
