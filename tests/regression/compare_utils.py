@@ -1,79 +1,86 @@
 from __future__ import print_function
 import os
-import filecmp
+import re
 
 
-_IGNORE_DIRS = (".git", )
+# Directories comparators #####################################################
 
+def compare_dirs(dir1, dir2, ignore=None, function=None):
+    """Test if directories are equal.
 
-def compare_dirs_with(valid_dir, test_dir, function=None):
+        Arguments:
+            dir1: First directory to check.
+            dir2: Second directory to check.
+            ignore: If not None, it must be a list of regular expressions.
+                Whatever file or directory in dir1 or dir2 that matches one of
+                the patterns will be ignored.
+            function: Function to use to compare individual files. If None it
+                defaults to compare_text_files_exact. It must take two paths as
+                input and return True only if the files are equal.
+    """
+    if function is None:
+        function = compare_text_files_exact
     try:
-        _rec_compare_dirs_with(function, valid_dir, test_dir)
-    except _DifferFound as diff:
-        print(diff.message)
+        childs1 = os.listdir(dir1)
+    except os.error:
+        print("Cannot read dir {}".format(dir1))
         return False
-    return True
-
-
-def compare_tfs_files(valid_file, test_file, margin_dict=None):
-    pass
-
-
-def _report_on_failure(dircpm_inst, valid_dir, test_dir):
-    if dircpm_inst.left_only or dircpm_inst.right_only:
-        raise _DifferFound(
-            "Found non-common files:\n" +
-            "-Only in {}: {}\n".format(valid_dir, dircpm_inst.left_only) +
-            "-Only in {}: {}\n".format(test_dir, dircpm_inst.right_only)
+    try:
+        childs2 = os.listdir(dir2)
+    except os.error:
+        print("Cannot read dir {}".format(dir1))
+        return False
+    if ignore:
+        childs1 = _regexs_filter(childs1, ignore)
+        childs2 = _regexs_filter(childs2, ignore)
+    in_1_not_in_2 = [name for name in childs1 if name not in childs2]
+    in_2_not_in_1 = [name for name in childs2 if name not in childs1]
+    if in_1_not_in_2 or in_2_not_in_1:
+        print(
+            ("Non-common elements found: In {dir1}: {in_1_not_in_2}, "
+             "in {dir2}: {in_2_not_in_1}").format(
+                 dir1=dir1, dir2=dir2,
+                 in_1_not_in_2=in_1_not_in_2, in_2_not_in_1=in_2_not_in_1)
         )
-    if dircpm_inst.funny_files:
-        raise _DifferFound(
-            "Couldn't read files {} from {} and {}"
-            .format(dircpm_inst.funny_files, valid_dir, test_dir)
-        )
-    if dircpm_inst.diff_files:
-        raise _DifferFound(
-            "Files differ: {} from {} and {}"
-            .format(dircpm_inst.diff_files, valid_dir, test_dir)
-        )
+        return False
+    result = True
+    common_names = childs1
+    for name in common_names:
+        full_path1 = os.path.join(dir1, name)
+        full_path2 = os.path.join(dir2, name)
+        if os.path.isfile(full_path1) and os.path.isfile(full_path2):
+            result &= function(full_path1, full_path2)
+        elif os.path.isfile(full_path1) and os.path.isfile(full_path2):
+            result &= compare_dirs(full_path1, full_path2)
+        else:
+            print("{fp1} and {fp2} are of different type!"
+                  .format(fp1=full_path1, fp2=full_path2))
+            result = False
+    return result
 
 
-def _rec_compare_dirs_with(function, valid_dir, test_dir):
-    my_dircmp = _MyDircmp(valid_dir, test_dir, cmp_funct=function)
-    _report_on_failure(my_dircmp, valid_dir, test_dir)
-    for subdir in my_dircmp.common_dirs:
-        new_difcmp = _rec_compare_dirs_with(function,
-                                            os.path.join(valid_dir, subdir),
-                                            os.path.join(test_dir, subdir))
-        _report_on_failure(new_difcmp, valid_dir, test_dir)
-    return my_dircmp
+# Single file comparators #####################################################
 
-
-class _MyDircmp(filecmp.dircmp):
+def compare_text_files_exact(file1, file2):
+    """Reads the two files and returns True if they are exactly equal.
     """
-    """
-
-    def __init__(self, a, b, ignore=None, hide=None,
-                 cmp_funct=filecmp.cmpfiles):
-        filecmp.dircmp.__init__(self, a, b, ignore, hide)
-        self.cmp_funct = cmp_funct
-
-    def phase3(self):
-        # Find out differences between common files
-        xx = self.cmp_funct(self.left, self.right, self.common_files)
-        self.same_files, self.diff_files, self.funny_files = xx
-
-    def phase4(self):
-        # Find out differences between common subdirectories
-        # A new dircmp object is created for each common subdirectory,
-        # these are stored in a dictionary indexed by filename.
-        # The hide and ignore properties are inherited from the parent
-        self.subdirs = {}
-        for x in self.common_dirs:
-            a_x = os.path.join(self.left, x)
-            b_x = os.path.join(self.right, x)
-            self.subdirs[x] = _MyDircmp(a_x, b_x, self.ignore, self.hide)
+    with open(file1, "r") as f1_data, open(file2, "r") as f2_data:
+        str1, str2 = f1_data.read(), f2_data.read()
+        if str1 != str2:
+            print(
+                "Files {f1} and {f2} differ."
+                .format(f1=file1, f2=file2)
+            )
+            return False
+        return True
 
 
-class _DifferFound(Exception):
-    pass
+# Helpers #####################################################################
+
+def _regexs_filter(names, regexs):
+    new_names = []
+    matchers = [re.compile(regex) for regex in regexs]
+    for name in names:
+        if not any([matcher.findall(name) for matcher in matchers]):
+            new_names.append(name)
+    return new_names

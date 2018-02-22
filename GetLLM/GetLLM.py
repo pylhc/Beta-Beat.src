@@ -233,7 +233,11 @@ def _parse_args(start_args=sys.argv[1:]):
         accParser.add_argument("-m", "--model", dest="modelpath")
 
         acc_opts, rest_args = accParser.parse_known_args(acc_args)
-        model_dir = os.path.dirname(acc_opts.modelpath)
+        if os.path.isdir(acc_opts.modelpath):
+            model_dir = acc_opts.modelpath
+        else:
+            model_dir = os.path.dirname(acc_opts.modelpath)
+
 
         if acc_opts.accel == "LHCB1":
             accelerator = manager.get_accel_instance(
@@ -393,8 +397,6 @@ def main(accelerator,
         )
     except:
         _tb_()
-
-    # STEP out of getllm
 
     #-------- START IP
     try:
@@ -724,7 +726,7 @@ def _arrange_dpp(list_of_tfs):
     list_of_tfs_arranged = []
     for tfs_file in list_of_tfs:
         if "DPP" not in tfs_file.headers:
-            tfs_file.header["DPP"] = 0.0
+            tfs_file.headers["DPP"] = 0.0
     if len(list_of_tfs) == 1:
         only_dpp = list_of_tfs[0].headers["DPP"]
         if np.abs(only_dpp) > DPP_TOLERANCE:

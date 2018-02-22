@@ -520,7 +520,7 @@ def _write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, beta_d_phase, data
                                    "%le",
                                   "%le"])
     for i, row in enumerate(data):
-        if not np.isnan(row[2]):
+        if row[-1] > -2:
             beta_d_phase[row[0]] = [row[2], row[3], row[4], row[5]]
 
             if union:
@@ -560,7 +560,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         elements = accelerator.get_elements_tfs()
     else:  # driven motion
         actual_model = accelerator.get_driven_tfs()
-        free_model = accelerator.get_driven_tfs()
+        free_model = accelerator.get_model_tfs()
         elements = accelerator.get_elements_tfs()
     elements_centre = elements
     
@@ -767,6 +767,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
     commonbpms_x = twiss_d.zero_dpp_commonbpms_x
     commonbpms_y = twiss_d.zero_dpp_commonbpms_y
 
+    LOGGER.info("commonbpms before sorting: {}".format(commonbpms_x))
     # exclude BPMs for which beta from phase din't work
     commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase)]
     commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase)]
@@ -774,6 +775,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
     commonbpms_x = commonbpms_x.sort_values(by='S', axis='index')
     commonbpms_y = commonbpms_y.sort_values(by='S', axis='index')
 
+    LOGGER.info("commonbpms after sorting: {}".format(commonbpms_x))
     #---- H plane
     if twiss_d.has_zero_dpp_x():
         # here was bpms instead of _ which makes the following code confusing because it looks like it is a modified
@@ -1316,7 +1318,11 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     '''
     
     _info_("Errors from " + ID_TO_METHOD[errors_method])
-    
+    # --------------- alphas from 3BPM -------------------------------------------------
+    _, _, data3bpm = scan_all_BPMs_sim_3bpm(madTwiss,
+                                            phase, plane, getllm_d, commonbpms, debugfile, METH_3BPM,
+                                            tune, mdltune)
+
     # =============== setup ===========================================================================================
     # setup combinations
     width = getllm_d.range_of_bpms / 2
@@ -1342,13 +1348,11 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                ("BET", "f8"), ("BETSTAT", "f8"), ("BETSYS", "f8"), ("BETERR", "f8"),
                                ("ALF", "f8"), ("ALFSTAT", "f8"), ("ALFSYS", "f8"), ("ALFERR", "f8"),
                                ("CORR", "f8"), ("BETMDL", "f8"), ("BETBEAT", "f8"), ("NCOMB", "i4")])
-#                      dtype = "S24, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, f8, i4")
 
     # ==========
     # define functions in a function -- python witchcraft, burn it!!!!! 
     def collect(row):
-        if row[-1] != -2:
-            result[row[0]]= row[1:]
+        result[row[0]]= row[1:]
         
     def collectblock(block):
         for row in block:
@@ -1398,7 +1402,11 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     _debug_("time elapsed = {0:3.3f}".format(et - st))
     
     rmsbb = sqrt(np.mean(np.multiply(result["BETBEAT"], result["BETBEAT"])))
-    
+
+    result["ALF"] = data3bpm[:,6]
+    result["ALFSTAT"] = data3bpm[:,7]
+    result["ALFSYS"] = data3bpm[:,8]
+    result["ALFERR"] = data3bpm[:,9]
     #result["BETERR"] *= np.sqrt(commonbpms.loc[:, "NFILES"])
     return rmsbb, errors_method, result
 
@@ -1857,7 +1865,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
         used_bpms = len(w)
     except ValueError:
-        _error_("ValueError")
+        _error_("ValueError at {}".format(probed_bpm_name))
 
         return (
             Index, probed_bpm_name, s,
