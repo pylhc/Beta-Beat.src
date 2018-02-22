@@ -331,11 +331,6 @@ class Uncertainties:  # error definition file
         _debug_("Start creating uncertainty information")
 
         quad_mainfield = "K1L"
-        try:
-            if self.properties["ISTHIN"] == "TRUE":
-                quad_mainfield = "K1"
-        except:  # KeyError I think
-             pass
 
         # create new columns, fill MUX/Y_END and BETX/Y_END
         twiss_full.loc[:]["MUX_END"] = np.roll(twiss_full.loc[:]["MUX"], 1)
