@@ -64,7 +64,7 @@ SEXT_FACT               = 2.0                       #@IgnorePep8
 A_FACT                  = -.5                       #@IgnorePep8
 BADPHASE                = .5
 BETA_THRESHOLD          = 1e3                       #@IgnorePep8
-ZERO_THRESHOLD          = 1e-2                      #@IgnorePep8
+ZERO_THRESHOLD          = 1e-6                      #@IgnorePep8
 PHASE_THRESHOLD         = 1.0e-2                      #@IgnorePep8
 COT_THRESHOLD           = 15.9 #1.0e6
 MOD_POINTFIVE_LOWER     = PHASE_THRESHOLD           #@IgnorePep8
@@ -330,6 +330,13 @@ class Uncertainties:  # error definition file
         
         _debug_("Start creating uncertainty information")
 
+        quad_mainfield = "K1L"
+        try:
+            if self.properties["ISTHIN"] == "TRUE":
+                quad_mainfield = "K1"
+        except:  # KeyError I think
+             pass
+
         # create new columns, fill MUX/Y_END and BETX/Y_END
         twiss_full.loc[:]["MUX_END"] = np.roll(twiss_full.loc[:]["MUX"], 1)
         twiss_full.loc[:]["MUY_END"] = np.roll(twiss_full.loc[:]["MUY"], 1)
@@ -345,7 +352,7 @@ class Uncertainties:  # error definition file
         for reg in self.regex:
             _debug_("creating uncertainty information for RegEx {:s}".format(reg.to_string()))
             reg_mask = twiss_full.index.str.match(reg.pattern)
-            twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, "K1L"]) **2 # TODO change K1L --> mainfield if necessary
+            twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, quad_mainfield]) **2 # TODO change K1L --> mainfield if necessary
             twiss_full.loc[reg_mask, "dX"] = reg.dX**2
             if reg.type == IDBPM:
                 twiss_full.loc[reg_mask, "BPMdS"] = reg.dS**2
@@ -558,6 +565,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         except AttributeError:  # if bk model couldn't be found, silently take the base model
             free_model = accelerator.get_model_tfs()
         elements = accelerator.get_elements_tfs()
+        actual_model = free_model
     else:  # driven motion
         actual_model = accelerator.get_driven_tfs()
         free_model = accelerator.get_model_tfs()
@@ -1658,6 +1666,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         outerMdlPh = madTwiss.iloc[indx_first:indx_last][mu_column].as_matrix() * TWOPI
         outerElmts = madElements.iloc[indx_el_first:indx_el_last]
         outerElmtsPh = madElements.iloc[indx_el_first:indx_el_last][mu_column] * TWOPI
+
         
     outerMeasErr = np.multiply(outerMeasErr, outerMeasErr)
 
@@ -1689,7 +1698,6 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
 #    diag = np.concatenate((outerElmts.loc[:]["dK1"],outerElmts.loc[:]["dS"],outerElmts.loc[:]["dX"]))
     diag = np.concatenate((outerMeasErr.as_matrix(), outerElmts.loc[:]["dK1"], outerElmts.loc[:]["dX"]))
     mask = diag != 0
-    
     T_Beta = np.zeros((len(betas),
                    len(diag) ))
     
@@ -1848,8 +1856,6 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     T_Beta = T_Beta[:, mask]
     T_Beta = T_Beta[beta_mask]
     betas = betas[beta_mask]
-    
-  
     
     V_Beta = np.dot(T_Beta, np.dot(M,np.transpose(T_Beta)))
     try:
