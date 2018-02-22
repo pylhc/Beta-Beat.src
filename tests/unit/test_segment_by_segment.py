@@ -16,6 +16,7 @@ from segment_by_segment.segment_by_segment import (
     SegmentBeatings,
     GetLlmMeasurement,
 )
+from segment_by_segment.sbs_measurables import Measurable, BetaPhase
 
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -212,8 +213,8 @@ def test_improve_segment_for_elements():
 
 # GetLlmMeasurement ###########################################################
 
-def test_measurement_empty_dir():
-    meas = GetLlmMeasurement(os.path.join(CURRENT_DIR, "meas_dir_empty"))
+def test_measurement_empty_dir(_meas_dir_empty):
+    meas = GetLlmMeasurement(_meas_dir_empty)
     with pytest.raises(IOError):
         meas.beta_x
     with pytest.raises(IOError):
@@ -222,31 +223,31 @@ def test_measurement_empty_dir():
         meas.coupling
 
 
-def test_measurement_load_free():
-    meas = GetLlmMeasurement(os.path.join(CURRENT_DIR, "meas_dir"))
+def test_measurement_load_free(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
     meas.beta["x"].BETX
     meas.beta_y.BETY
 
 
-def test_measurement_load_free2():
-    meas = GetLlmMeasurement(os.path.join(CURRENT_DIR, "meas_dir"))
+def test_measurement_load_free2(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
     meas.phase_x.PHASEX
     meas.phase_y.PHASEY
 
 
-def test_measurement_load_normal():
-    meas = GetLlmMeasurement(os.path.join(CURRENT_DIR, "meas_dir"))
+def test_measurement_load_normal(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
     meas.disp_x.DX
     meas.disp_y.DY
 
 
-def test_measurement_load_no_plane():
-    meas = GetLlmMeasurement(os.path.join(CURRENT_DIR, "meas_dir"))
+def test_measurement_load_no_plane(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
     meas.coupling.F1001W
 
 
-def test_measurement_load_norm_dips():
-    meas = GetLlmMeasurement(os.path.join(CURRENT_DIR, "meas_dir"))
+def test_measurement_load_norm_dips(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
     meas.norm_disp.NDX
 
 
@@ -277,9 +278,9 @@ def test_segment_models_empty_dir():
     with pytest.raises(IOError):
         seg_mdls.front
 
-def test_segment_models_returns_properly():
+def test_segment_models_returns_properly(_segment_models_dir):
     seg = Segment("IP1", "", "")
-    seg_mdls = SegmentModels(os.path.join(CURRENT_DIR, "sbs_models_dir"), seg)
+    seg_mdls = SegmentModels(_segment_models_dir, seg)
     seg_mdls.front.BETX
     seg_mdls.back.BETX
     seg_mdls.front_corrected.BETX
@@ -315,3 +316,20 @@ def _test_dir():
 def _test_df_just_names():
     return pd.DataFrame({"NAME": ["BPM1", "BPM2", "BPM3",
                                   "BPM4", "BPM5", "BPM6"]})
+
+
+@pytest.fixture()
+def _segment_models_dir():
+    return os.path.join(CURRENT_DIR, "..", "inputs", "sbs_models")
+
+
+@pytest.fixture()
+def _meas_dir():
+    return os.path.join(CURRENT_DIR, "..", "inputs",
+                        "getllm_results", "hllhc_sim")
+
+
+@pytest.fixture()
+def _meas_dir_empty():
+    return os.path.join(CURRENT_DIR, "..", "inputs",
+                        "getllm_results", "empty")

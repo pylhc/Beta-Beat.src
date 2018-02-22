@@ -48,11 +48,13 @@ def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
     print("Testing against tag \"{tag}\":\n"
           "    -> {tag.commit.summary} ({tag.commit.hexsha})"
           .format(tag=test_tag))
+    result = False
     with _temporary_dir() as new_repo_path:
         print("Cloning repository into {}".format(new_repo_path))
         clone_revision(repo_path, test_tag.commit.hexsha, new_repo_path)
         result = find_regressions(test_cases, new_repo_path, repo_path)
-    return result
+    if not result:
+        raise RegressionTestFailed()
 
 
 def find_regressions(test_cases, valid_path, test_path):
@@ -81,7 +83,7 @@ def find_regressions(test_cases, valid_path, test_path):
     for result in results:
         report += result.get_full_summary()
     print(report)
-    return all(results)
+    return all([result.is_success for result in results])
 
 
 def run_test_case(test_case, valid_path, test_path):
@@ -253,6 +255,12 @@ class TestResult(object):
             sys.stdout = old_stdout
             sys.stderr = old_stderr
         return compare_res
+
+
+class RegressionTestFailed(Exception):
+    """Raised when the regression test fails
+    """
+    pass
 
 
 def _force_repo(repo):

@@ -29,10 +29,10 @@ TEST_CASES_HOLE_IN_ONE = (
 
 
 def run_tests():
-    result = regression.launch_test_set(TEST_CASES_HOLE_IN_ONE, ABS_ROOT)
-    if not result:
-        # Test failed
-        sys.exit(-1)
+    """Run the test cases and raise RegressionTestFailed on failure.
+    """
+    regression.launch_test_set(TEST_CASES_HOLE_IN_ONE, ABS_ROOT,
+                               tag_regexp="^BBGUI_.*$")
 
 
 if __name__ == "__main__":
