@@ -414,6 +414,11 @@ class Lhc(Accelerator):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise AcceleratorDefinitionError("Driven tunes not set.")
 
+        if self.optics_file is not None and not os.path.exists(self.optics_file):
+            raise AcceleratorDefinitionError(
+                "Optics file '{:s}' does not exist.".format(self.optics_file))
+
+
     @classmethod
     def get_nominal_tmpl(cls):
         return cls.get_file("nominal.madx")
