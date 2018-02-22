@@ -330,8 +330,6 @@ class Uncertainties:  # error definition file
         
         _debug_("Start creating uncertainty information")
 
-        quad_mainfield = "K1L"
-
         # create new columns, fill MUX/Y_END and BETX/Y_END
         twiss_full.loc[:]["MUX_END"] = np.roll(twiss_full.loc[:]["MUX"], 1)
         twiss_full.loc[:]["MUY_END"] = np.roll(twiss_full.loc[:]["MUY"], 1)
@@ -347,7 +345,7 @@ class Uncertainties:  # error definition file
         for reg in self.regex:
             _debug_("creating uncertainty information for RegEx {:s}".format(reg.to_string()))
             reg_mask = twiss_full.index.str.match(reg.pattern)
-            twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, quad_mainfield]) **2 # TODO change K1L --> mainfield if necessary
+            twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, "K1L"]) **2 # TODO change K1L --> mainfield if necessary
             twiss_full.loc[reg_mask, "dX"] = reg.dX**2
             if reg.type == IDBPM:
                 twiss_full.loc[reg_mask, "BPMdS"] = reg.dS**2
