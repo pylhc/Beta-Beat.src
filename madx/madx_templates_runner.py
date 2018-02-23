@@ -17,6 +17,7 @@ class MadxTemplates():
     """
 
     def __init__(self, template_dirs=[], output_file=None, log_file=None, verbose=False, madx_path=None):
+        raise DeprecationWarning("This will be removed soon, please consider using madx_wrapper.py")
         self._output_file = output_file
         self._log_file = log_file
         self._verbose = verbose

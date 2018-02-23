@@ -81,4 +81,5 @@ def _generate_macro_call(command):
 
 
 if __name__ == "__main__":
+    raise DeprecationWarning("This will be removed soon, please consider using madx_wrapper.py")
     _parse_args()
