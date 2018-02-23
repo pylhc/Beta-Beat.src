@@ -33,7 +33,7 @@ import numpy as np
 import pandas as pd
 
 from madx import madx_wrapper  # noqa
-from utils import tfs_pandas as tfs  # noqa
+from utils import tfs_pandas as tfs, iotools  # noqa
 from utils.contexts import timeit
 from utils import logging_tools
 from utils.dict_tools import DotDict
@@ -345,7 +345,7 @@ def global_correction(opt, accel_opt):
             _call_madx(madx_script, opt.debug)
             new_model_path = os.path.join(opt.output_path, "twiss_" + str(_iter) + ".dat")
             shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"), new_model_path)
-            new_model = tfs.read_tfs(new_model_path)
+            new_model = tfs.read_tfs(new_model_path, index="NAME")
             meas_dict = _append_model_to_measurement(new_model, meas_dict, optics_params)
 
             if opt.debug:
@@ -371,6 +371,8 @@ def _check_opt(opt):
                                        "modifiers.madx")
     if opt.output_path is None:
         opt.output_path = opt.meas_dir_path
+
+    iotools.create_dirs(opt.output_path)
 
     opt.template_file_path = os.path.join(os.path.dirname(__file__), "job.twiss_python.madx")
 
@@ -399,13 +401,9 @@ def _get_method_opt(opt):
 def _print_rms(meas, keys):
     """ Prints current RMS status """
     for key in keys:
-        message = key + " RMS: " + str(np.std(meas[key].loc[:, 'DIFF'].values))
-        message += "\n"
-        message += key + " Weighted RMS: " + str(np.sqrt(
-            np.average(np.square(meas[key].loc[:, 'DIFF'].values),
-                       weights=np.square(meas[key].loc[:, 'WEIGHT'].values))
-        ))
-        LOG.debug(message)
+        LOG.debug("{:s} RMS: {:.5e}".format(key, _rms(meas[key].loc[:, 'DIFF'].values)))
+        LOG.debug("{:s} Weighted RMS: {:.5e}".format(
+            key, _rms(meas[key].loc[:, 'DIFF'].values * meas[key].loc[:, 'WEIGHT'].values)))
 
 
 def _load_fullresponse(full_response_path, variables):
@@ -716,14 +714,15 @@ def _calculate_delta(resp_matrix, meas_dict, keys, vars_list, method, meth_opt):
     weight_vector = _join_columns('WEIGHT', meas_dict, keys)
     diff_vector = _join_columns('DIFF', meas_dict, keys)
 
-    delta = _get_method_fun(method)(resp_matrix.mul(weight_vector, axis="index"),
-                                    diff_vector * weight_vector,
-                                    meth_opt)
+    resp_weighted = resp_matrix.mul(weight_vector, axis="index")
+    diff_weighted = diff_vector * weight_vector
+
+    delta = _get_method_fun(method)(resp_weighted, diff_weighted, meth_opt)
 
     LOG.debug("Delta calculation: ")
-    LOG.debug(np.std(np.abs(diff_vector * weight_vector)))
-    LOG.debug(np.std(np.abs((diff_vector * weight_vector) -
-                            np.dot(delta, resp_matrix * weight_vector))))
+    LOG.debug("RMS weightened, Model-Measure: {:.5e}".format(_rms(diff_weighted)))
+    LOG.debug("RMS weightened, (Model-Measure) - R * delta: {:.5e}".format(
+        _rms(diff_weighted - np.dot(resp_weighted, delta))))
     delta = tfs.TfsDataFrame(delta, index=vars_list, columns=["DELTA"])
     return delta
 
@@ -739,7 +738,12 @@ def _pseudo_inverse(response_mat, diff_vec, opt):
     """ Calculates the pseudo-inverse of the response via svd. (numpy) """
     return np.dot(np.linalg.pinv(response_mat, opt.svd_cut), diff_vec)
 
+
 # Small Helpers ################################################################
+
+
+def _rms(a):
+    return np.sqrt(np.mean(np.square(a)))
 
 
 def _dump(path_to_dump, content):
@@ -751,7 +755,7 @@ def _join_responses(resp, keys, varslist):
     """ Returns matrix #BPMs * #Parameters x #variables """
     return pd.concat([resp[k] for k in keys],  # dataframes
                      axis="index",  # axis to join along
-                     join_axes=pd.Index([varslist])  # other axes to use (pd Index obj required)
+                     join_axes=[pd.Index(varslist)]  # other axes to use (pd Index obj required)
                      )
 
 
