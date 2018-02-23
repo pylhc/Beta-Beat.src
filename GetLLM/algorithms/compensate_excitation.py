@@ -40,7 +40,7 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 #===================================================================================================
 #---------  The following is functions
 
-def GetACPhase_AC2BPMAC(model, commonbpms, Qd, Q, plane, acc):
+def GetACPhase_AC2BPMAC(commonbpms, Qd, Q, plane, acc):
     """Returns the necessary values for the exciter compensation.
 
     Args:
