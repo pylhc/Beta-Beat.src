@@ -13,11 +13,14 @@ This module is not intended to be executed. It stores only functions.
 '''
 import sys
 import math
+from math import sqrt
 import traceback
+import re
+import multiprocessing
+import time
 
 import numpy as np
-from numpy import sin, cos, tan
-from math import sqrt
+from numpy import sin, tan
 import pandas as pd
 
 from scipy.linalg import circulant
@@ -25,10 +28,6 @@ import Python_Classes4MAD.metaclass
 import utils.bpm
 #from GetLLM.GetLLMError import GetLLMError
 import compensate_excitation
-import os
-import re
-import multiprocessing
-import time
 from constants import PI, TWOPI
 from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas
@@ -260,7 +259,7 @@ class Uncertainties:  # error definition file
                         _debug_("adding {} = {} to properties".format(match.group(1), match.group(2)))
                         self.properties[match.group(1)] = match.group(2).strip()
                     else:
-                        words = re.split('\s', line)
+                        words = re.split(r'\s', line)
                         
                         if words[0].startswith("re:"):
                             ud = UncertaintyDefinitionRE(words[0].split(":")[1])
@@ -549,71 +548,72 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         'phase_d': _PhaseData (In-param, values will only be read)
             Holds results from get_phases
     '''
+    # setting up
     beta_d = BetaData()
     accelerator = getllm_d.accelerator
 
-    if accelerator.excitation == AccExcitationMode.FREE:
-        try:
-            free_model = accelerator.get_best_knowledge_model_tfs()
-        except AttributeError:  # if bk model couldn't be found, silently take the base model
-            free_model = accelerator.get_model_tfs()
-        elements = accelerator.get_elements_tfs()
-    else:  # driven motion
-        actual_model = accelerator.get_driven_tfs()
+    # selecting models
+    # the following tries to get the best_knowledge model
+    # if it doesn't find it, it takes the base model
+    try:
+        free_model = accelerator.get_best_knowledge_model_tfs()
+    except AttributeError:
         free_model = accelerator.get_model_tfs()
-        elements = accelerator.get_elements_tfs()
+    elements = accelerator.get_elements_tfs()
+    # there are functions, that are written to take both, for the future (?)
     elements_centre = elements
-    
+
+    if accelerator.excitation != AccExcitationMode.FREE:
+        # in the case of driven motion, we need the driven model as well
+        driven_model = accelerator.get_driven_tfs()
+
     if getllm_d.union:
         commonbpms_x = twiss_d.zero_dpp_unionbpms_x
         commonbpms_y = twiss_d.zero_dpp_unionbpms_y
     else:
         commonbpms_x = twiss_d.zero_dpp_commonbpms_x
         commonbpms_y = twiss_d.zero_dpp_commonbpms_y
-    
-    debugfile = None
+
     if getllm_d.nprocesses == -1:
         getllm_d.nprocesses = multiprocessing.cpu_count()
     getllm_d.parallel = (getllm_d.nprocesses > 0)
     #---- H plane
-    _plane_char = "X"
     _box_edge_()
     _info_box_("Calculating beta from phase")
     _info_box_("Version: {0:5s}".format(__version__))
 
     _debug_value_box_("range of BPMs", str(getllm_d.range_of_bpms))
     _debug_value_box_("cot of phase threshold", "{:g}".format(COT_THRESHOLD))
-    
+
     if DEBUG:
-        _info_("ATTENTION: DEBUG is set to true, calculation of beta functions will be done serially")
+        _info_(
+            "ATTENTION:"
+            " DEBUG is set to true, calculation of beta functions will be done serially"
+        )
         getllm_d.parallel = False
     elif getllm_d.parallel:
         _info_value_box_("parallel", "TRUE")
         _info_value_box_("number of processes", "{0:2d}".format(getllm_d.nprocesses))
     else:
         _info_value_box_("parallel", "FALSE")
-    
+
     _debug_value_box_("quad field errors", "[YES]")
     _debug_value_box_("quad long misalignments", "[YES]")
     _debug_value_box_("sext transverse misalignments", "[YES]")
     _debug_value_box_("BPM long misalignments", "[YES]")
     _debug_value_box_("dipole K1 errors", "[ NO]")
     _debug_value_box_("analytical alpha", "[ NO]")
-    
+
     _box_edge_()
-        
+
     starttime = time.time()
-    
+
     # check whether analytical N-BPM method should be used    
     # if yes, uncertainty estimates will be distributed to the elements
     # do this only once for both planes
     error_method = METH_IND
     unc_elements = None
 
-    # TODO: this will change somehow in the future
-    # the idea is to have as few options for getllm as possible
-    # therefore --errordefs will vanish and the existance of the file in the model directory will decide if the
-    # analytical method will be used or the 3BPM method
     if getllm_d.use_only_three_bpms_for_beta_from_phase:
         error_method = METH_3BPM
     else:
@@ -623,123 +623,94 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         error_defs_path = getllm_d.accelerator.get_errordefspath()
         if error_defs_path is None or not unc.open(error_defs_path):
             _error_("Error definition file couldn't be found")
-            raise IOError("Error definition file '{}' could not be found".format(getllm_d.accelerator.get_errordefspath()))
+            raise IOError("Error definition file '{}' could not be found"
+                          .format(getllm_d.accelerator.get_errordefspath()))
 
         unc_elements = unc.create_errorfile(elements, elements_centre)
         error_method = METH_A_NBPM
         _info_("")
-    
+
     #--- =========== HORIZONTAL
-    if CALCULATE_BETA_HOR:
-        if twiss_d.has_zero_dpp_x():
-            
-            _info_("Calculate free beta from phase for plane " + _plane_char + " (_free.out)", ">")
-            if DEBUG:
-                debugfile = DBG.create_debugfile(files_dict['getbetax_free.out'].s_output_path + "/getbetax_free.bdebug")
+    if twiss_d.has_zero_dpp_x():
+        beta_d.x_phase, beta_d.x_phase_f = beta_from_phase_for_plane(
+            free_model.loc[commonbpms_x.index], driven_model.loc[commonbpms_x.index], unc_elements,
+            getllm_d, twiss_d, elements_centre.loc[commonbpms_x.index], phase_d.phase_advances_x,
+            phase_d.phase_advances_free_x, error_method, tune_d, files_dict, commonbpms_x, "X"
+        )
+    #--- =========== VERTICAL
+    if twiss_d.has_zero_dpp_y():
+        beta_d.y_phase, beta_d.y_phase_f = beta_from_phase_for_plane(
+            free_model.loc[commonbpms_y.index], driven_model.loc[commonbpms_y.index], unc_elements,
+            getllm_d, twiss_d, elements_centre.loc[commonbpms_y.index],
+            phase_d.phase_advances_y, phase_d.phase_advances_free_y, error_method, tune_d,
+            files_dict, commonbpms_y, "Y"
+        )
+    return beta_d
+# END calculate_beta_from_phase -------------------------------------------------------------------
 
-            dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(
-                free_model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x, phase_d.phase_advances_free_x,
-                'H', getllm_d, debugfile, error_method, tune_d.q1f, tune_d.q1mdl
-            )
 
-            if DEBUG:
-                DBG.close_file()
-            # the following is no typo, beta from amplitude still has the old convention that the free file is sometimes
-            # not called "*_free"
-            beta_d.x_phase = {}
-            beta_d.x_phase['DPP'] = 0
-            
-            #_info_("RMS Betabeat: {:6.2f} ".format(rms_bb), ">")
-            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb ), ">")
-            
-            _write_getbeta_out(
-                tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase, dataf, rms_bb,
-                error_method_x, commonbpms_x, files_dict['getbetax_free.out'], _plane_char, getllm_d.union
-            )
+def beta_from_phase_for_plane(free_model, driven_model, unc_elements, getllm_d, twiss_d,
+                              elements_centre, phase_adv, phase_adv_free, error_method, tune_d,
+                              files_dict, commonbpms, plane):
+    """
+    This function calculates and outputs the beta function measurement for the given plane.
+    """
+    plane_for_file = plane.lower()
+    beta_d_phase_f = {}
+    beta_d_phase = {}
 
-            if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
-                _info_("Calculate beta from phase for plane " + _plane_char, ">")
-                if DEBUG:
-                    debugfile = DBG.create_debugfile(files_dict['getbetax.out'].s_output_path + "/getbetax.bdebug")
+    _info_("Calculate free beta from phase for plane " + plane + " (_free.out)", ">")
+    debugfile = None
+    if DEBUG:
+        debugfile = DBG.create_debugfile(
+            files_dict['getbeta{}_free.out'.format(plane_for_file)].s_output_path +
+            "/getbeta{}_free.bdebug".format(plane_for_file)
+        )
 
-                data, rms_bb, bpms, error_method_x = beta_from_phase(
-                    actual_model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms_x,
-                    phase_d.phase_advances_x, 'H', getllm_d, debugfile, error_method, tune_d.q1, tune_d.q1mdl
+    dataf, rms_bb, bpmsf, error_method_x = beta_from_phase(
+        free_model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms,
+        phase_adv_free, plane, getllm_d, debugfile, error_method, tune_d.q1f,
+        tune_d.q1mdl
+    )
+
+    if DEBUG:
+        DBG.close_file()
+    beta_d_phase_f['DPP'] = 0
+    _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
+
+    _write_getbeta_out(
+        tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d_phase_f,
+        dataf, rms_bb, error_method_x, commonbpms,
+        files_dict['getbeta{}_free.out'.format(plane_for_file)], plane, getllm_d.union
+    )
+
+    if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
+        _info_("Calculate beta from phase for plane " + plane, ">")
+        if DEBUG:
+            debugfile = DBG.create_debugfile(
+                files_dict['getbeta{}.out'.format(plane_for_file)].s_output_path +
+                "/getbeta{}.bdebug".format(plane_for_file)
                 )
 
-                if DEBUG:
-                    DBG.close_file()
-                beta_d.x_phase_f = {}
-                beta_d.x_phase_f['DPP'] = 0
-                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
-                tfs_file = files_dict['getbetax.out']
-                
-                _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.x_phase_f,
-                                   data, rms_bb, error_method_x, commonbpms_x,
-                                   tfs_file, _plane_char, getllm_d.union)
+        data, rms_bb, bpms, error_method_x = beta_from_phase(
+            driven_model, unc_elements, elements_centre, twiss_d.zero_dpp_x, commonbpms,
+            phase_adv, plane, getllm_d, debugfile, error_method, tune_d.q1,
+            tune_d.q1mdl
+        )
 
-                _debug_("Skip free2 calculation")
-    #--- =========== VERTICAL
-    if CALCULATE_BETA_VER:
-        _plane_char = "Y"
-        if twiss_d.has_zero_dpp_y():
-            _info_("Calculate free beta from phase for plane " + _plane_char + " (_free.out)", ">")
-            if DEBUG:
-                debugfile = DBG.create_debugfile(files_dict['getbetay_free.out'].s_output_path + "/getbetay_free.bdebug")
-            dataf, rms_bb, bpms, error_method_y = beta_from_phase(free_model, unc_elements, elements_centre,
-                                                               twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_free_y, 'V',
-                                                               getllm_d, debugfile, error_method, tune_d.q2f, tune_d.q2mdl)
-            if DEBUG:
-                DBG.close_file()
-            beta_d.y_phase = {}
-            beta_d.y_phase['DPP'] = 0
-            _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
-            tfs_file = files_dict['getbetay_free.out']
-            
-            _write_getbeta_out(tune_d.q1f, tune_d.q2f, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase,
-                               dataf, rms_bb, error_method_y, commonbpms_y,
-                               tfs_file, _plane_char, getllm_d.union)
-            
-            #-- ac to free beta
-            if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
-                #-- from eq
-                _info_("Calculate beta from phase for plane " + _plane_char, ">")
-                if DEBUG:
-                    debugfile = DBG.create_debugfile(files_dict['getbetay.out'].s_output_path + "/getbetay.bdebug")
-                data, rms_bb, bpmsf, error_method_y = beta_from_phase(actual_model, unc_elements, elements_centre,
-                                                                      twiss_d.zero_dpp_y, commonbpms_y, phase_d.phase_advances_y, 'V',
-                                                                      getllm_d, debugfile, error_method, tune_d.q2, tune_d.q2mdl)
-                if DEBUG:
-                    DBG.close_file()
-                tfs_file = files_dict['getbetay.out']
-                
-                _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
-                beta_d.y_phase_f = {}
-                beta_d.y_phase_f['DPP'] = 0
+        if DEBUG:
+            DBG.close_file()
+        beta_d_phase['DPP'] = 0
+        _info_("RMS Betabeat: {:6.2f} %".format(rms_bb), ">")
+        tfs_file = files_dict['getbeta{}.out'.format(plane_for_file)]
 
-                _write_getbeta_out(tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d.y_phase_f,
-                                   dataf, rms_bb, error_method_y, commonbpms_y,
-                                   tfs_file, _plane_char, getllm_d.union)
+        _write_getbeta_out(
+            tune_d.q1, tune_d.q2, getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d_phase,
+            data, rms_bb, error_method_x, commonbpms, tfs_file, plane, getllm_d.union
+        )
 
-#                #-- from the model
-                _info_("Skip free2 calculation")
-        elapsed = time.time() - starttime
-        
-        _box_edge_()
-        _info_box_("beta from phase finished")
-        _info_box_("")
-        _info_box_("elapsed time: {0:3.3f}s".format(elapsed))
-        _box_edge_()
-        if PRINTTIMES:
-            timesfile = open("times.dat", "a")
-            if getllm_d.parallel:
-                timesfile.write("PARALLEL {0:f} {1:d} {2:d}\n".format(elapsed, 0, getllm_d.nprocesses))
-            else:
-                timesfile.write("SERIAL {0:f} {1:d} {2:d}\n".format(elapsed, 0, getllm_d.nprocesses))
-    
-    
-    return beta_d
-# END calculate_beta_from_phase -------------------------------------------------------------------------------
+        _debug_("Skip free2 calculation")
+        return beta_d_phase, beta_d_phase_f
 
 def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, accelerator):
     '''
@@ -780,7 +751,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
     if twiss_d.has_zero_dpp_x():
         # here was bpms instead of _ which makes the following code confusing because it looks like it is a modified
         # commonbpms
-        [beta_d.x_amp, rmsbbx, _, inv_jx] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_x, 'H', commonbpms_x)
+        [beta_d.x_amp, rmsbbx, _, inv_jx] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_x, 'X', commonbpms_x)
         beta_d.x_amp['DPP'] = 0
         #-- Rescaling
         beta_d.x_ratio = 0
@@ -875,8 +846,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 traceback.print_exc()
             #-- from the model
             # Since invJxf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betaxf2, rmsbbxf2, bpmsf2] = _get_free_amp_beta(beta_d.x_amp, rmsbbx, commonbpms_x, inv_jx, mad_ac, mad_twiss, 'H')[:3]
-            betaxf2_rescale = _get_free_amp_beta(betax_rescale, rmsbbx, commonbpms_x, inv_jx, mad_ac, mad_twiss, 'H')[0]
+            [betaxf2, rmsbbxf2, bpmsf2] = _get_free_amp_beta(beta_d.x_amp, rmsbbx, commonbpms_x,
+                                                             inv_jx, mad_ac, mad_twiss, 'X')[:3]
+            betaxf2_rescale = _get_free_amp_beta(betax_rescale, rmsbbx, commonbpms_x, inv_jx,
+                                                 mad_ac, mad_twiss, 'X')[0]
             tfs_file = files_dict['getampbetax_free2.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
             tfs_file.add_float_descriptor("Q2", tune_d.q2f)
@@ -894,7 +867,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 #-----------------------------------------------------------------------------------------------------------------------
 
     if twiss_d.has_zero_dpp_y():
-        [beta_d.y_amp, rmsbby, _, inv_jy] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_y, 'V', commonbpms_y)
+        [beta_d.y_amp, rmsbby, _, inv_jy] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_y, 'Y', commonbpms_y)
         beta_d.y_amp['DPP'] = 0
         #-- Rescaling
         beta_d.y_ratio = 0
@@ -981,8 +954,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 #-- from the model
                 traceback.print_exc()
             # Since invJyf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betayf2, rmsbbyf2, bpmsf2] = _get_free_amp_beta(beta_d.y_amp, rmsbby, commonbpms_y, inv_jy, mad_ac, mad_twiss, 'V')[:3]
-            betayf2_rescale = _get_free_amp_beta(betay_rescale, rmsbby, commonbpms_y, inv_jy, mad_ac, mad_twiss, 'V')[0]
+            [betayf2, rmsbbyf2, bpmsf2] = _get_free_amp_beta(beta_d.y_amp, rmsbby, commonbpms_y,
+                                                             inv_jy, mad_ac, mad_twiss, 'Y')[:3]
+            betayf2_rescale = _get_free_amp_beta(betay_rescale, rmsbby, commonbpms_y, inv_jy,
+                                                 mad_ac, mad_twiss, 'Y')[0]
             tfs_file = files_dict['getampbetay_free2.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
             tfs_file.add_float_descriptor("Q2", tune_d.q2f)
@@ -1037,7 +1012,7 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, commo
         'phase':dict
             measured phase advances
         'plane':string
-            'H' or 'V'
+            'X' or 'Y'
         'use_only_three_bpms_for_beta_from_phase':Boolean
             self-explanatory
         'number_of_bpms':int
@@ -1047,26 +1022,20 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, commo
         'errordefspath':String
             the paths to the error definition file. If not specified, Monte Carlo simulation is used
     '''
-    
     rmsbb = 0.0
-    
     #---- Error definitions given and we decided to use  => use analytical formulas to calculate the
     # systematic errors
     if errors_method == METH_A_NBPM:
-        
-        
-        rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
-                                                                        phase, plane, getllm_d, commonbpms, debugfile, errors_method,
-                                                                        tune, mdltune)
-        
-        
+        rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(
+            madTwiss, madElements, phase, plane, getllm_d, commonbpms, debugfile, errors_method,
+            tune, mdltune
+        )
         return data, rmsbb, commonbpms, errors_method
     #---- use the simulations
     else:
-        
-        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(madTwiss,
-                                                            phase, plane, getllm_d, commonbpms, debugfile, errors_method,
-                                                            tune, mdltune)
+        rmsbb, errors_method, data = scan_all_BPMs_sim_3bpm(
+            madTwiss, phase, plane, getllm_d, commonbpms, debugfile, errors_method, tune, mdltune
+        )
 
     return data, rmsbb, commonbpms, errors_method
 
@@ -1081,10 +1050,7 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
     kick2 = []
     for i in range(0, len(commonbpms)):  # this loop have become complicated after modifications... anybody simplify?
         bn1 = str.upper(commonbpms.index[i])
-        if plane == 'H':
-            tembeta = mad_twiss.loc[bn1, "BETX"]
-        elif plane == 'V':
-            tembeta = mad_twiss.loc[bn1, "BETY"]
+        tembeta = mad_twiss.loc[bn1, "BET" + plane]
         amp_i = 0.0
         amp_j2 = []
         root2j_i = 0.0
@@ -1092,11 +1058,11 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
         for tw_file in list_of_files:
             if i == 0:
                 kick2.append(0)
-            if plane == 'H':
+            if plane == 'X':
                 amp_i += tw_file.loc[bn1, "AMPX"]
                 amp_j2.append(tw_file.loc[bn1, "AMPX"] ** 2)
                 root2j_i += tw_file.loc[bn1, "PK2PK"] / 2.
-            elif plane == 'V':
+            elif plane == 'Y':
                 amp_i += tw_file.loc[bn1, "AMPY"]
                 amp_j2.append(tw_file.loc[bn1, "AMPY"] ** 2)
                 root2j_i += tw_file.loc[bn1, "PK2PK"] / 2.
@@ -1133,9 +1099,9 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
             betstd = 0
 
         beta[bn1] = [amp[i] ** 2 / kick, betstd, location]
-        if plane == 'H':
+        if plane == 'X':
             betmdl = mad_twiss.loc[bn1, "BETX"]
-        elif plane == 'V':
+        elif plane == 'Y':
             betmdl = mad_twiss.loc[bn1, "BETY"]
         delbeta.append((beta[bn1][0] - betmdl) / betmdl)
 
@@ -1195,8 +1161,8 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     for the combination xxBABxx: second row of ``cot_phase_*_shift2``
     '''
     number_commonbpms = commonbpms.shape[0]
-    plane_bet = "BETX" if plane == "H" else "BETY"
-    plane_alf = "ALFX" if plane == "H" else "ALFY"
+    plane_bet = "BET" + plane
+    plane_alf = "ALF" + plane
     if errors_method == METH_3BPM:
         madTwiss_intersected = madTwiss.loc[commonbpms.index]
         starttime = time.time()
@@ -1294,7 +1260,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
         'phase':dict
             measured phase advances
         'plane':string
-            'H' or 'V'
+            'X' or 'Y'
         'alfa, beta':vector
             out vectors which will be filled with the beta nad alfa functions
         'commonbpms':list
@@ -1334,7 +1300,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     
     # get the model values only for used elements, so that commonbps[i] = masTwiss[i]
     madTwiss_intersected = madTwiss.loc[commonbpms.index]
-    mu = "MUX" if plane == "H" else "MUY"
+    mu = "MU" + plane
     mu_elements = madElements.loc[:][mu].values
 
     # for fast access
@@ -1575,27 +1541,15 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
                                         concat  [phases_elements[0] ... phases_elements[indx<last>]]
         else if indx_(i+m) > length: analogously
         else: simple
-        
-        
-        
-        
-        
     '''
     probed_bpm_name = madTwiss.index[Index]
     s = madTwiss.get_value(probed_bpm_name, "S")
 
 
-    if plane == 'H':
-        betmdl1 = madTwiss.get_value(probed_bpm_name, "BETX")
-        mu_column = "MUX"
-        bet_column = "BETX"
-        plane_char = "X"
-    elif plane == 'V':
-        betmdl1 = madTwiss.get_value(probed_bpm_name, "BETY")
-        mu_column = "MUY"
-        bet_column = "BETY"
-        plane_char = "Y"
-    
+    betmdl1 = madTwiss.get_value(probed_bpm_name, "BET" + plane)
+    mu_column = "MU" + plane
+    bet_column = "BET" + plane
+
     beti        = DEFAULT_WRONG_BETA    #@IgnorePep8
     betstat     = .0                    #@IgnorePep8
     betsys      = .0                    #@IgnorePep8
@@ -1606,7 +1560,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     alferr      = DEFAULT_WRONG_BETA    #@IgnorePep8
     corr        = .0                    #@IgnorePep8
     used_bpms   = -2                     #@IgnorePep8
-    
+
     m = range_of_bpms / 2
     indx_first = Index - m
     indx_last = Index + m
@@ -1614,10 +1568,10 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     name_last = madTwiss.index[indx_last% len(madTwiss.index)]
     probed_bpm_name = madTwiss.index[Index]
     len_bpms_total = phases_meas.shape[0]
-    
+
     indx_el_first = madElements.index.get_loc(name_first)
     indx_el_last= madElements.index.get_loc(name_last )
-    
+
     if indx_first < 0:
         outerMeasPhaseAdv = pd.concat((
                 phases_meas.iloc[Index, indx_first % len_bpms_total:] - tune * TWOPI,
@@ -1634,7 +1588,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         outerElmtsPh = np.concatenate((
                 madElements.iloc[indx_el_first:][mu_column] - mdltune,
                 madElements.iloc[:indx_el_last][mu_column])) * TWOPI
-                
+
     elif indx_last >= len_bpms_total:
         outerMeasPhaseAdv = pd.concat((
                 phases_meas.iloc[Index, indx_first:],
@@ -1651,14 +1605,14 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         outerElmtsPh = np.concatenate((
                 madElements.iloc[indx_el_first:][mu_column],
                 madElements.iloc[:indx_el_last][mu_column] + mdltune)) * TWOPI
-        
+
     else:
         outerMeasPhaseAdv = phases_meas.iloc[Index, indx_first : indx_last]
         outerMeasErr = phases_err.iloc[Index, indx_first : indx_last]
         outerMdlPh = madTwiss.iloc[indx_first:indx_last][mu_column].as_matrix() * TWOPI
         outerElmts = madElements.iloc[indx_el_first:indx_el_last]
         outerElmtsPh = madElements.iloc[indx_el_first:indx_el_last][mu_column] * TWOPI
-        
+
     outerMeasErr = np.multiply(outerMeasErr, outerMeasErr)
 
     outerElPhAdv = (outerElmtsPh[:, np.newaxis] - outerMdlPh[np.newaxis, :])
@@ -1886,7 +1840,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         combs = combs[beta_mask]
         for n, beta_of_comb in enumerate(betas):
             DBG.write_bpm_combination(combs[n][0], combs[n][1], beta_of_comb, w[n] / VBeta_inv_sum)
-        DBG.write_double("PHI{}MDL".format(plane_char), outerMdlPh[m])
+        DBG.write_double("PHI{}MDL".format(plane), outerMdlPh[m])
 
         DBG.write_end()
 
@@ -1902,54 +1856,6 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
 #--- ac-dipole stuff
 #===================================================================================================
 
-
-def _get_free_beta(modelfree, modelac, data, bpms, plane):  # to check "+"
-
-    beta = data["BET"]
-    betsys = data["BETSYS"]
-    betstd = data["BETSTD"]
-    beterr = data["BETERR"]
-    alfa = data["ALF"]
-    alfsys = data["ALFSYS"]
-    alfstd = data["ALFSTD"]
-    alferr = data["ALFERR"]
-
-    if plane == "H":
-        betmf = modelfree.loc[bpms.index, "BETX"]
-        betma = modelac.loc[bpms.index, "BETX"]
-        bb = betma / betmf
-        alfmf = modelfree.loc[bpms.index, "ALFX"]
-        alfma = modelac.loc[bpms.index, "ALFX"]
-        aa = alfma / alfmf
-    else:
-        betmf = modelfree.loc[bpms.index, "BETY"]
-        betma = modelac.loc[bpms.index, "BETY"]
-        bb = betma / betmf
-        alfmf = modelfree.loc[bpms.index, "ALFY"]
-        alfma = modelac.loc[bpms.index, "ALFY"]
-        aa = alfma / alfmf
-    data2 = beta / bb, betsys, betstat, beterr, alfa * aa, alfsys, alfstat, alferr, data[bpms.index][8], data[bpms.index][9], data[bpms.index][10]
-#    for i,bpm in enumerate(bpms.index):
-#        beta, betsys, betstat, beterr = data[bpm][["BET", "BETSYS", "BETSTD", "BETERR"]]
-#        alfa, alfsys, alfstat, alferr = data[bpm][["ALF", "ALFSYS", "ALFSTD", "ALFERR"]]
-#
-#        if plane == "H":
-#            betmf = modelfree.BETX[bpm]
-#            betma = modelac.BETX[bpm]
-#            bb = betma / betmf
-#            alfmf = modelfree.ALFX[bpm]
-#            alfma = modelac.ALFX[bpm]
-#            aa = alfma / alfmf
-#        else:
-#            betmf = modelfree.BETY[bpm]
-#            betma = modelac.BETY[bpm]
-#            alfmf = modelfree.ALFY[bpm]
-#            alfma = modelac.ALFY[bpm]
-#            bb = betma / betmf
-#            aa = alfma / alfmf
-#        data2[bpm] = beta / bb, betsys, betstat, beterr, alfa * aa, alfsys, alfstat, alferr, data[bpm][8], data[bpm][9], data[bpm][10]
-    return data2, bpms
-
 def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
     #
     # Why difference in betabeta calculation ??
@@ -1962,7 +1868,7 @@ def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
     for bpmm in bpms.index:
         beta = betai[bpmm][0]
 
-        if plane == "H":
+        if plane == "X":
             betmf = mad_twiss.loc[bpmm, "BETX"]
             betma = mad_ac.loc[bpmm, "BETX"]
             bb = (betmf - betma) / betma
