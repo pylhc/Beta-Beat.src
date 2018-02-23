@@ -356,7 +356,8 @@ def global_correction(opt, accel_opt):
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
             writeparams(opt.output_path, delta, append=True)
-            LOG.debug("Cumulative delta:" + str(np.sum(np.abs(delta))))
+            LOG.debug("Cumulative delta: {:.5e}".format(
+                np.sum(np.abs(delta.loc[:, "DELTA"].values))))
         write_knob(opt.output_path, delta)
 
 
@@ -422,7 +423,7 @@ def _load_fullresponse(full_response_path, variables):
         if len(not_found_vars) > 0:
             LOG.debug(("Variables not in fullresponse {:s} " +
                        "(To be filled with zeros): {:s}").format(param, not_found_vars))
-            df.assign(dict.fromkeys(not_found_vars, 0.0))  # one-liner to add zero-columns
+            df = df.assign(**dict.fromkeys(not_found_vars, 0.0))  # one-liner to add zero-columns
         # order variables
         full_response_data[param] = df.loc[:, variables]
 

@@ -635,10 +635,11 @@ class TwissResponse(object):
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
             "NDX": response_add(ndisp["X_K0L"], ndisp["X_K1SL"]),
             "NDY": response_add(ndisp["Y_K0SL"], ndisp["Y_K1SL"]),
-            "F1001R": couple["1001"].apply(np.real).astype(np.float64),
-            "F1001I": couple["1001"].apply(np.imag).astype(np.float64),
-            "F1010R": couple["1010"].apply(np.real).astype(np.float64),
-            "F1010I": couple["1010"].apply(np.imag).astype(np.float64),
+            # apply() converts empty DataFrames to Series! Cast them back.
+            "F1001R": tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),
+            "F1001I": tfs.TfsDataFrame(couple["1001"].apply(np.imag).astype(np.float64)),
+            "F1010R": tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),
+            "F1010I": tfs.TfsDataFrame(couple["1010"].apply(np.imag).astype(np.float64)),
             "Q": q_df,
         }
 
