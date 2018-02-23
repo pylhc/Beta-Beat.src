@@ -59,6 +59,17 @@ def compare_dirs(dir1, dir2, ignore=None, function=None):
     return result
 
 
+def compare_dirs_ignore_words(dir1, dir2, ignore_words):
+    """Same as compare_dirs but ignores lines with words in ignore_words.
+    """
+    return compare_dirs(
+        dir1,
+        dir2,
+        function=lambda file1, file2:
+        compare_text_files_ignore_lines(file1, file2, ignore_words)
+    )
+
+
 # Single file comparators #####################################################
 
 def compare_text_files_exact(file1, file2):
@@ -67,11 +78,29 @@ def compare_text_files_exact(file1, file2):
     with open(file1, "r") as f1_data, open(file2, "r") as f2_data:
         str1, str2 = f1_data.read(), f2_data.read()
         if str1 != str2:
-            print(
-                "Files {f1} and {f2} differ."
-                .format(f1=file1, f2=file2)
-            )
+            _report_files_differ(file1, file2)
             return False
+        return True
+
+
+def compare_text_files_ignore_lines(file1, file2, ignore_words):
+    """Reads the two files and returns True if they are exactly equal
+
+    Ignores lines that contain words in the ignore_words list.
+    """
+    with open(file1, "r") as f1_data, open(file2, "r") as f2_data:
+        lines1, lines2 = f1_data.readlines(), f2_data.readlines()
+        if len(lines1) != len(lines2):
+            _report_files_differ(file1, file2)
+            return False
+        for line1, line2 in zip(lines1, lines2):
+            ignored1 = [word for word in ignore_words if word in line1]
+            ignored2 = [word for word in ignore_words if word in line2]
+            if ignored1 or ignored2:
+                continue
+            if line1 != line2:
+                _report_files_differ(file1, file2)
+                return False
         return True
 
 
@@ -84,3 +113,7 @@ def _regexs_filter(names, regexs):
         if not any([matcher.findall(name) for matcher in matchers]):
             new_names.append(name)
     return new_names
+
+
+def _report_files_differ(file1, file2):
+    print("Files {f1} and {f2} differ.".format(f1=file1, f2=file2))

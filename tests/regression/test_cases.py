@@ -44,7 +44,8 @@ TEST_CASES_GETLLM = (
                            output=join(REGR_DIR, "_out_getllm_test_flat_disp"),
                            errordefs=join(MODELS, "flat_beam1", "error_deff.txt")),
         output=join(REGR_DIR, "_out_getllm_test_flat_disp"),
-        test_function=compare_utils.compare_dirs,
+        test_function=lambda dir1, dir2:
+        compare_utils.compare_dirs_ignore_words(dir1, dir2, ["Command", "Date", "CWD"]),
         pre_hook=lambda dir: None,
     ),
 )
