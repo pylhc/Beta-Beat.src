@@ -19,7 +19,7 @@ Usage1::
     tfs_file_writer.add_comment("I am a comment")
     tfs_file_writer.add_column_names("NAME S BETX ALFX BETY ALFY".split())
     tfs_file_writer.add_column_datatypes("%s %le %le %le %le %le".split())
-    tfs_file_writer.add_table_row("BTVSS.6L2.B1  1.125  131.5873094  -1.899115044  67.61780908 1.699566347".split())
+    tfs_file_writer.add_table_row("BTVSS.6L2.B1  1.125  131.58734  -1.8991  67.6178 1.6995".split())
 
     tfs_file_writer.write_to_file()
 
@@ -36,9 +36,27 @@ Usage2::
 import os
 from utils import iotools
 from utils import logging_tools
-from utils import math
 
 LOG = logging_tools.get_logger(__name__)
+
+
+def significant_numbers(value, uncertainty):
+
+    digits = -int(numpy.floor(numpy.log10(uncertainty)))
+    sig_uncertainty = round(uncertainty, digits)
+    sig_value = round(value, digits)
+
+    if numpy.floor(uncertainty / 10 ** numpy.floor(numpy.log10(sig_uncertainty))) == 1:
+        digits = digits + 1
+        sig_uncertainty = round(uncertainty, digits)
+        sig_value = round(value, digits)
+        if digits > 0:
+            return format(sig_value, '.' + str(digits) + 'f'), format(sig_uncertainty, '.' + str(digits) + 'f')
+        return format(sig_value, '.0f'), format(sig_uncertainty, '.0f')
+
+    if digits > 0:
+        return format(sig_value, '.' + str(numpy.abs(digits)) + 'f'), format(sig_uncertainty, '.' + str(numpy.abs(digits)) + 'f')
+    return format(sig_value, '.0f'), format(sig_uncertainty, '.0f')
 
 
 class TfsFileWriter(object):
@@ -73,7 +91,7 @@ class TfsFileWriter(object):
         self.__file_name = ""
         self.__outputpath = ""
         self.__column_width = 0
-        self.__tfs_header_lines = [] # Holds instances of subclasses of _TfsHeaderLine
+        self.__tfs_header_lines = []  # Holds instances of subclasses of _TfsHeaderLine
         self.__tfs_table = _TfsTable(self)
 
         self.set_file_name(file_name)
@@ -162,7 +180,7 @@ class TfsFileWriter(object):
         """
         self.__tfs_table.order_rows(column_name, reverse)
 
-    def write_to_file(self, formatted = True):
+    def write_to_file(self, formatted=True):
         """ Writes the stored data to the file with the given filename. """
         if not self.__tfs_table.are_column_names_and_types_are_set():
             LOG.error(self.__file_name + ": " +
@@ -186,7 +204,7 @@ class TfsFileWriter(object):
         else:
             self.__write_unformatted_table(lines)
 
-        with open(path,'w') as tfs_file:
+        with open(path, 'w') as tfs_file:
             tfs_file.write("\n".join(lines))
 
     def __write_formatted_table(self, lines):
@@ -232,7 +250,7 @@ class _TfsHeaderLine(object):
 class _TfsDescriptor(_TfsHeaderLine):
     """ Represents a descriptor in a TFS file. E.g.: '@ SomeText %s "Some Text"' """
 
-    def __init__(self, name, value, tfs_data_type = None):
+    def __init__(self, name, value, tfs_data_type=None):
         super(_TfsDescriptor, self).__init__()
         if tfs_data_type is None:
             tfs_data_type = _TfsDataType.get_new_string_instance()
@@ -369,7 +387,11 @@ class _TfsDataType:
         if _TfsDataType.TYPE_STRING == self.__type:
             return isinstance(value, str)
         elif _TfsDataType.TYPE_FLOAT == self.__type:
-            return math.can_str_be_parsed_to_number(value)
+            try:
+                float(value)
+                return True
+            except ValueError:
+                return False
         else:
             raise TypeError("Type of _TfsDataType is unknown: " + str(self.__type))
 
