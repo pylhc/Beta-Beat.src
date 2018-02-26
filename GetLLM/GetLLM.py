@@ -141,6 +141,7 @@ ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 DPP_TOLERANCE = 0.0001
+UNION       = 1
 
 BAD_BPMS_hor = ["BPM.23L6.B1", "BPM.22R8.B1", "BPMYB.4L2.B1", "BPMSX.4L2.B1", "BPMYB.4L2.B1", "BPM.14L4.B1", "BPM23L6.B1",
                 "BPM.16R3.B1", "BPM20L2.B2", "BPM6L1.B2", "BPM24R2.B2", "BPM.16L5.B2", "BPM.12R4.B1", "BPMSW.1L2.B1",
@@ -207,7 +208,7 @@ def _parse_args(start_args=sys.argv[1:]):
                       metavar="NPROCESSES", type=int,
                       help="""Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the
                         specified number. default = {0:d}""".format(NPROCESSES))
-    parser.add_argument("-u", "--union", action="store_true", dest="union",
+    parser.add_argument("-u", "--union", type=int, dest="union", default=UNION,
                       help="""If given, the phase per BPM is calculated for each BPM with at least 3 valid measurements.
                         Otherwise (default) calculates the phase only for the intersection of all measurements.""")
     # The following is just for backwards compatitibility and should vanish once the GUI knows the new arguments
@@ -258,7 +259,21 @@ def _parse_args(start_args=sys.argv[1:]):
             LOGGER.error("Given are:")
             LOGGER.error(sys.argv)
             raise SyntaxError("Could not parse arguments")
-    LOGGER.info(acc_args)
+    except IOError:
+        accParser = argparse.ArgumentParser()
+        accParser.add_argument("-a", "--accel", dest="accel")
+        accParser.add_argument("-m", "--model", dest="modelpath")
+
+        acc_opts, rest_args = accParser.parse_known_args(acc_args)
+        if os.path.isdir(acc_opts.modelpath):
+            model_dir = acc_opts.modelpath
+        else:
+            model_dir = os.path.dirname(acc_opts.modelpath)
+
+        accelerator = manager.get_accel_instance(
+            accel=acc_opts.accel,
+            model_dir=model_dir
+        )
 
     return options, accelerator
 
@@ -317,6 +332,7 @@ def main(accelerator,
 
     use_average = (use_average == 1)
     use_only_three_bpms_for_beta_from_phase = (use_only_three_bpms_for_beta_from_phase == 1)
+    union = (union == 1)
 
     # The following objects stores multiple variables for GetLLM to avoid having many local
     # variables. Identifiers supposed to be as short as possible.
@@ -392,7 +408,7 @@ def main(accelerator,
     #------- START beta from amplitude
     try:
         beta_d = algorithms.beta.calculate_beta_from_amplitude(
-            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
+            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d,
             files_dict, accelerator
         )
     except:
@@ -1106,7 +1122,7 @@ def _tb_():
         for line in err_excs:
             LOGGER.error(line)
     else:
-        LOGGER.error(traceback.format_exc)
+        LOGGER.error(traceback.format_exc())
 
 
 #===================================================================================================
@@ -1212,6 +1228,9 @@ class _TuneData(object):
         
         self.q1mdl = 0.0
         self.q2mdl = 0.0
+
+        self.q1mdlf = 0.0
+        self.q2mdlf = 0.0
 
         # Free2 is using the effective model
         self.muxf2 = 0.0  # Free2 horizontal phase advance

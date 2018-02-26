@@ -1,106 +1,181 @@
 from __future__ import print_function
 import os
 import argparse
-import re
-import sys
-import json
-from collections import OrderedDict
-import numpy as np
-import pandas as pd
-from utils import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
-from time import time
+from utils import tfs_pandas, logging_tools
+from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode
+from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
-#LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
-
+LOGGER = logging_tools.get_logger(__name__)
 
 
 class Cps(Accelerator):
     NAME = "CPS"
     MACROS_NAME = "CPS"
 
-    def __init__(self):
-        self.optics_file = None
-        self.nat_tune_x = None
-        self.nat_tune_y = None
-        self.energy = None
-        self.dpp = 0.0
-        self.xing = None
-        
-        # for GetLLM
-        self.model = None
-        self.model_driven = None
-        self.model_best_knowledge = None
-        self.elements = None
-        self.elements_centre = None
-        self.excitation = AccExcitationMode.FREE
-        self.modelpath = None
+    @staticmethod
+    def get_class_parameters():
+        params = EntryPointParameters()
+        return params
 
-    @classmethod
-    def init_from_args(cls, args):
-        parser = cls._get_arg_parser()
-        options, rest_args = parser.parse_known_args(args)
-        instance = cls()
-        instance.nat_tune_x = options.nat_tune_x
-        instance.nat_tune_y = options.nat_tune_y
-        
-        
-        instance.dpp = options.dpp
-        instance.energy = options.energy
-        instance.optics_file = options.optics
-        instance.fullresponse = options.fullresponse
-        instance.verify_object()
-        
-        return instance, rest_args
-        
-    @classmethod
-    def init_from_model_dir(cls, model_dir):  # prints only for debugging
-        
-        print("Creating accelerator instance from model dir")
-        instance = cls()
-        
-        instance.modelpath = model_dir
+    @staticmethod
+    def get_instance_parameters():
+        params = EntryPointParameters()
+        params.add_parameter(
+            flags=["--model_dir", "-m"],
+            help="Path to model directory (loads tunes and excitation from model!).",
+            name="model_dir",
+            type=str,
+        )
+        params.add_parameter(
+            flags=["--nattunex"],
+            help="Natural tune X without integer part.",
+            name="nat_tune_x",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--nattuney"],
+            help="Natural tune Y without integer part.",
+            name="nat_tune_y",
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--dpp"],
+            help="Delta p/p to use.",
+            name="dpp",
+            default=0.0,
+            type=float,
+        )
+        params.add_parameter(
+            flags=["--energy"],
+            help="Energy in Tev.",
+            name="energy",
+            type=float,
+        )
+        return params
 
-        if os.path.isfile(model_dir):
-            model_dir = os.path.dirname(model_dir)
-        instance.model_tfs = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat")).set_index("NAME")
-        print("model path =", os.path.join(model_dir, "twiss.dat"))
-            
-        try:
-            model_best_knowledge_path = os.path.join(model_dir, "twiss_best_knowledge.dat")
-            if os.path.isfile(model_best_knowledge_path):
-                instance.model_best_knowledge = tfs_pandas.read_tfs(model_best_knowledge_path).set_index("NAME")
-        except IOError:
-            instance.model_best_knowledge = None
-            
+    # Entry-Point Wrappers #####################################################
+
+    def __init__(self, *args, **kwargs):
+        # for reasons of import-order and class creation, decoration was not possible
+        parser = EntryPoint(self.get_instance_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+
+        if opt.model_dir:
+            self.init_from_model_dir(opt.model_dir)
+            self.energy = None
+            if opt.nat_tune_x is not None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_x' not allowed when loading from model directory.")
+            if opt.nat_tune_y is not None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_y' not allowed when loading from model directory.")
+        else:
+            if opt.nat_tune_x is None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_x' is required.")
+            if opt.nat_tune_y is None:
+                raise AcceleratorDefinitionError("Argument 'nat_tune_y' is required.")
+
+            self.nat_tune_x = opt.nat_tune_x
+            self.nat_tune_y = opt.nat_tune_y
+
+            # optional with default
+            self.dpp = opt.dpp
+            self.fullresponse = opt.fullresponse
+
+            # optional no default
+            self.energy = opt.get("energy", None)
+            self.xing = opt.get("xing", None)
+            self.optics_file = opt.get("optics", None)
+
+            # for GetLLM
+            self.model_dir = None
+            self._model = None
+            self._model_best_knowledge = None
+            self._elements = None
+            self._elements_centre = None
+            self._errordefspath = None
+
+        self.verify_object()
+
+    def init_from_model_dir(self, model_dir):
+        LOGGER.debug("Creating accelerator instance from model dir")
+        self.model_dir = model_dir
+
+        LOGGER.debug("  model path = " + os.path.join(model_dir, "twiss.dat"))
+        self._model = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"), index="NAME")
+        self.nat_tune_x = float(self._model.headers["Q1"])
+        self.nat_tune_y = float(self._model.headers["Q2"])
+
+
+        # Elements #####################################
         elements_path = os.path.join(model_dir, "twiss_elements.dat")
         if os.path.isfile(elements_path):
-            instance.elements = tfs_pandas.read_tfs(elements_path).set_index("NAME")
+            self._elements = tfs_pandas.read_tfs(elements_path, index="NAME")
         else:
             raise AcceleratorDefinitionError("Elements twiss not found")
-        elements_path = os.path.join(model_dir, "twiss_elements_centre.dat")
-        if os.path.isfile(elements_path):
-            instance.elements_centre = tfs_pandas.read_tfs(elements_path).set_index("NAME")
-        else:
-            instance.elements_centre = instance.elements
-        
-        instance.nat_tune_x = float(instance.model_tfs.headers["Q1"])
-        instance.nat_tune_y = float(instance.model_tfs.headers["Q2"])
-        
-        return instance
-    
-    @classmethod
-    def get_class(cls):
-        return Ps()
-    
-    @classmethod
-    def get_class_from_args(cls, args):
-        parser = argparse.ArgumentParser()
-       
-        options, rest_args = parser.parse_known_args(args)
-        return cls, rest_args
 
+        center_path = os.path.join(model_dir, "twiss_elements_centre.dat")
+        if os.path.isfile(center_path):
+            self._elements_centre = tfs_pandas.read_tfs(center_path, index="NAME")
+        else:
+            self._elements_centre = self._elements
+
+        # Error Def #####################################
+        self._errordefspath = None
+        errordefspath = os.path.join(self.model_dir, "errordefs")
+        if os.path.exists(errordefspath):
+            self._errordefspath = errordefspath
+        else:  # until we have a proper file name convention
+            errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
+            if os.path.exists(errordefspath):
+                self._errordefspath = errordefspath
+
+    
+    @classmethod
+    def init_and_get_unknowns(cls, args=None):
+        """ Initializes but also returns unknowns.
+
+         For the desired philosophy of returning parameters all the time,
+         try to avoid this function, e.g. parse outside parameters first.
+         """
+        opt, rest_args = split_arguments(args, cls.get_instance_parameters())
+        return cls(opt), rest_args
+
+    @classmethod
+    def get_class(cls, *args, **kwargs):
+        """ Returns LHC subclass .
+
+        Keyword Args:
+            Optional
+            beam (int): Beam to use.
+                        **Flags**: ['--beam']
+            lhc_mode (str): LHC mode to use.
+                            **Flags**: ['--lhcmode']
+                            **Choices**: ['lhc_runII_2016_ats', 'hllhc12', 'hllhc10', 'lhc_runI',
+                            'lhc_runII', 'lhc_runII_2016', 'lhc_runII_2017']
+
+        Returns:
+            Lhc subclass.
+        """
+        parser = EntryPoint(cls.get_class_parameters(), strict=True)
+        opt = parser.parse(*args, **kwargs)
+        return cls._get_class(opt)
+
+    @classmethod
+    def get_class_and_unknown(cls, *args, **kwargs):
+        """ Returns LHC subclass and unkown args .
+
+        For the desired philosophy of returning parameters all the time,
+        try to avoid this function, e.g. parse outside parameters first.
+        """
+        parser = EntryPoint(cls.get_class_parameters(), strict=False)
+        opt, unknown_opt = parser.parse(*args, **kwargs)
+        return cls._get_class(opt), unknown_opt
+
+    @classmethod
+    def _get_class(cls, opt):
+        """ Actual get_class function """
+        new_class = cls
+        return new_class
   
     @classmethod
     def _get_arg_parser(cls):
@@ -147,47 +222,45 @@ class Cps(Accelerator):
             dest="fullresponse",
             action="store_true",
         )
-       
-       
         return parser
 
     def verify_object(self):  # TODO: Maybe more checks?
-        if self.optics_file is None:
-            raise AcceleratorDefinitionError( 
-                "The accelerator definition is incomplete, optics "
-                "file has not been specified."
-            )
-            
+        if self.model_dir is None:  # is the class is used to create full response?
+            raise AcceleratorDefinitionError("PS doesn't have a model creation, calling it this "
+                                             "way is most probably wrong.")
+
+
     def get_arc_bpms_mask(cls, list_of_elements):
         return [True] * len(list_of_elements)
 
+    def get_errordefspath(self):
+        """Returns the path to the uncertainty definitions file (formerly called error definitions file.
+        """
+        if self._errordefspath is None:
+            raise AttributeError("No error definitions file given in this accelerator instance.")
+        return self._errordefspath
     
-    
+    @property
+    def excitation(self):
+        """Returns the excitation mode. PS has no exciter, so this function always returns free.
+        """
+        return AccExcitationMode.FREE
+
+    def set_errordefspath(self, path):
+        self._errordefspath = path
+
     def get_s_first_BPM(self):
         return 0
 
-    def get_errordefspath(self):
-        return os.path.join(self.modelpath, "errordefs")
-    
     def get_k_first_BPM(self, list_of_bpms):
         return len(list_of_bpms)
         
     def get_model_tfs(self):
-        return self.model_tfs
+        return self._model
         
-    def get_driven_tfs(self):
-        if self.model_driven is None:
-            return self.model_tfs
-        return self.model_driven
-
-    def get_best_knowledge_model_tfs(self):
-        if self.model_best_knowledge is None:
-            return self.model_tfs
-        return self.model_best_knowledge
-    
     def get_elements_tfs(self):
-        return self.elements
+        return self._elements
 
     def get_elements_centre_tfs(self):
-        return self.elements_centre
+        return self._elements_centre
 

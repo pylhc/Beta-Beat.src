@@ -113,7 +113,7 @@ class Accelerator(object):
         """
         Returns the best knowledge model tfs file.
         """
-        Accelerator.__raise_definition_error()
+        raise AttributeError()
 
     def get_elements_tfs(self):
         """
