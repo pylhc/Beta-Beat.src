@@ -86,6 +86,7 @@ class TfsCollection(object):
     def __init__(self, directory, allow_write=False):
         self.directory = directory
         self.allow_write = allow_write
+        self.maybe_call = _MaybeCall(self)
         self._buffer = {}
 
     def get_filename(self, *args, **kwargs):
@@ -168,6 +169,7 @@ class TfsCollection(object):
             setattr(self.parent, self.attr + "_" + plane, value)
 
 
+
 class Tfs(object):
     """ Class to mark attributes as Tfs attributes.
 
@@ -227,3 +229,32 @@ def _setter(self, value, *args, **kwargs):
     except NotImplementedError:
         filename = self.get_filename(*args, **kwargs)
         self._write_tfs(filename, value)
+
+
+class _MaybeCall(object):
+    """Handles the maybe_call feature of the TfsCollection.
+
+    This class defines the maybe_call attribute in the instances of
+    TfsCollection. To avoid repetitive try: except: blocks, this class allowes
+    you to do: meas.maybe_call.beta["x"](some_funct, args, kwargs). If the
+    requested file is available, the call is equivalent to: some_funct(args,
+    kwargs), if it is not no function is called and the program continues.
+    """
+    def __init__(self, parent):
+        self.parent = parent
+    def __getattr__(self, attr):
+        return _MaybeCall.MaybeCallAttr(self.parent, attr)
+
+    class MaybeCallAttr():
+        def __init__(self, parent, attr):
+            self.parent = parent
+            self.attr = attr
+        def __getitem__(self, item):
+            return _MaybeCall.MaybeCallAttr(self.parent,
+                                            self.attr + "_" + item)
+        def __call__(self, function, *args, **kwargs):
+            try:
+                tfs_file = getattr(self.parent, self.attr)
+            except IOError:
+                return lambda funct: None  # Empty function
+            return function(tfs_file, *args, **kwargs)
