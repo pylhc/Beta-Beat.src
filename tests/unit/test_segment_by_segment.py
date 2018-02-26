@@ -16,7 +16,6 @@ from segment_by_segment.segment_by_segment import (
     SegmentBeatings,
     GetLlmMeasurement,
 )
-from segment_by_segment.sbs_measurables import Measurable, BetaPhase
 
 
 CURRENT_DIR = os.path.dirname(__file__)
