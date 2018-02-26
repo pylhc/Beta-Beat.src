@@ -563,6 +563,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     # there are functions, that are written to take both, for the future (?)
     elements_centre = elements
 
+    driven_model = None
     if accelerator.excitation != AccExcitationMode.FREE:
         # in the case of driven motion, we need the driven model as well
         driven_model = accelerator.get_driven_tfs()
@@ -633,7 +634,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     #--- =========== HORIZONTAL
     if twiss_d.has_zero_dpp_x():
         beta_d.x_phase, beta_d.x_phase_f = beta_from_phase_for_plane(
-            free_model.loc[commonbpms_x.index], driven_model.loc[commonbpms_x.index], unc_elements,
+            free_model.loc[commonbpms_x.index], driven_model, unc_elements,
             getllm_d, twiss_d, elements_centre.loc[commonbpms_x.index], phase_d.phase_advances_x,
             phase_d.phase_advances_free_x, error_method, tune_d.q1, tune_d.q1f, tune_d.q1mdl,
             tune_d.q1mdlf, files_dict, commonbpms_x, "X"
@@ -641,7 +642,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     #--- =========== VERTICAL
     if twiss_d.has_zero_dpp_y():
         beta_d.y_phase, beta_d.y_phase_f = beta_from_phase_for_plane(
-            free_model.loc[commonbpms_y.index], driven_model.loc[commonbpms_y.index], unc_elements,
+            free_model.loc[commonbpms_y.index], driven_model, unc_elements,
             getllm_d, twiss_d, elements_centre.loc[commonbpms_y.index], phase_d.phase_advances_y,
             phase_d.phase_advances_free_y, error_method, tune_d.q2, tune_d.q2f, tune_d.q2mdl,
             tune_d.q2mdlf, files_dict, commonbpms_y, "Y"
@@ -685,6 +686,7 @@ def beta_from_phase_for_plane(free_model, driven_model, unc_elements, getllm_d, 
     )
 
     if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
+        driven_model = driven_model.loc[commonbpms.index]
         _info_("Calculate beta from phase for plane " + plane, ">")
         if DEBUG:
             debugfile = DBG.create_debugfile(
@@ -710,9 +712,9 @@ def beta_from_phase_for_plane(free_model, driven_model, unc_elements, getllm_d, 
         )
 
         _debug_("Skip free2 calculation")
-        return beta_d_phase, beta_d_phase_f
+    return beta_d_phase, beta_d_phase_f
 
-def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, accelerator):
+def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, files_dict, accelerator):
     '''
     Calculates beta and fills the following TfsFiles:
         getampbetax.out        getampbetax_free.out        getampbetax_free2.out
@@ -734,6 +736,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         the same instance as param beta_d to indicate that x_amp,y_amp and ratios were set.
     '''
     _info_('Calculating beta from amplitude')
+    mad_twiss = accelerator.get_model_tfs()
+    mad_ac = None
+    if accelerator.excitation != AccExcitationMode.FREE:
+        mad_ac = accelerator.get_driven_tfs()
 
     commonbpms_x = twiss_d.zero_dpp_commonbpms_x
     commonbpms_y = twiss_d.zero_dpp_commonbpms_y
@@ -743,8 +749,6 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
     commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase)]
     commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase)]
 
-    commonbpms_x = commonbpms_x.sort_values(by='S', axis='index')
-    commonbpms_y = commonbpms_y.sort_values(by='S', axis='index')
 
     LOGGER.info("commonbpms after sorting: {}".format(commonbpms_x))
     #---- H plane
