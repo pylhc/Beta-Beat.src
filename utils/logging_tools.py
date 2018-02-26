@@ -1,9 +1,12 @@
-import logging
-import inspect
-import sys
-import os
-from utils import iotools
 import datetime
+import inspect
+import logging
+import os
+import sys
+import time
+from contextlib import contextmanager
+
+from utils import iotools
 
 DIVIDER = "|"
 BASIC_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
@@ -38,32 +41,92 @@ class MaxFilter(object):
         return log_record.levelno <= self.__level
 
 
-class TempFile(object):
-    """ Context Manager.
-    Lets another function write into a temporary file and logs its contents.
+class DebugMode(object):
+    """ Context Manager for the debug mode.
 
-    It won't open the file though, so only the files path is returned.
+    Hint: Does not work with @contextmanager from contextlib (even though nicer code),
+    as the _get_caller would find the contextlib.py
 
     Args:
-        file_path (str): Place to write the tempfile to.
-        log_func (func): The function with which the content should be logged (e.g. LOG.info)
+        active (bool): Defines if this manager is doing anything. (Default: ``True``)
+        log_file (str): File to log into.
     """
-    def __init__(self, file_path, log_func):
-        self.path = file_path
-        self.log_func = log_func
+    def __init__(self, active=True, log_file=None):
+        self.active = active
+        if active:
+            # get current logger
+            caller_file = _get_caller()
+            current_module = _get_current_module(caller_file)
+
+            self.logger = logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
+
+            # set level to debug
+            self.current_level = self.logger.getEffectiveLevel()
+            self.logger.setLevel(DEBUG)
+            self.logger.debug("Running in Debug-Mode.")
+
+            # create logfile name:
+            now = "{:s}_".format(datetime.datetime.now().isoformat())
+            if log_file is None:
+                log_file = os.path.abspath(caller_file).replace(".pyc", "").replace(".py",
+                                                                                    "") + ".log"
+            self.log_file = os.path.join(os.path.dirname(log_file), now + os.path.basename(log_file))
+            self.logger.debug("Writing log to file '{:s}'.".format(self.log_file))
+
+            # add handlers
+            self.file_h = file_handler(self.log_file, level=DEBUG)
+            self.console_h = stream_handler(level=DEBUG, max_level=DEBUG)
+            self.mod_logger = logging.getLogger(current_module)
+            self.mod_logger.addHandler(self.file_h)
+            self.mod_logger.addHandler(self.console_h)
+
+            # stop time
+            self.start_time = time.time()
 
     def __enter__(self):
-        return self.path
+        return None
 
     def __exit__(self, type, value, traceback):
-        try:
-            with open(self.path, "r") as f:
-                content = f.read()
-            self.log_func("{:s}:\n".format(self.path) + content)
-        except IOError:
-            self.log_func("{:s}: -file does not exist-".format(self.path))
-        else:
-            os.remove(self.path)
+        if self.active:
+            # summarize
+            time_used = time.time() - self.start_time
+            log_id = "" if self.log_file is None else "'{:s}'".format(
+                os.path.basename(self.log_file))
+            self.logger.debug("Exiting Debug-Mode {:s} after {:f}s.".format(log_id, time_used))
+
+            # revert everything
+            self.logger.setLevel(self.current_level)
+            self.mod_logger.removeHandler(self.file_h)
+            self.mod_logger.removeHandler(self.console_h)
+
+
+class TempFile(object):
+        """ Context Manager.
+        Lets another function write into a temporary file and logs its contents.
+
+        It won't open the file though, so only the files path is returned.
+
+        Args:
+            file_path (str): Place to write the tempfile to.
+            log_func (func): The function with which the content should be logged (e.g. LOG.info)
+        """
+
+        def __init__(self, file_path, log_func):
+            self.path = file_path
+            self.log_func = log_func
+
+        def __enter__(self):
+            return self.path
+
+        def __exit__(self, type, value, traceback):
+            try:
+                with open(self.path, "r") as f:
+                    content = f.read()
+                self.log_func("{:s}:\n".format(self.path) + content)
+            except IOError:
+                self.log_func("{:s}: -file does not exist-".format(self.path))
+            else:
+                os.remove(self.path)
 
 
 # Public Methods ###############################################################
@@ -92,38 +155,53 @@ def get_logger(name, level_root=DEBUG, level_console=INFO, fmt=BASIC_FORMAT):
         root_logger.setLevel(level_root)
 
         # print logs to the console
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(level_console)
-        console_formatter = logging.Formatter(_bring_color(fmt))
-        console_handler.setFormatter(console_formatter)
-        console_handler.addFilter(MaxFilter(INFO))
-        root_logger.addHandler(console_handler)
+        root_logger.addHandler(
+            stream_handler(
+                level=level_console,
+                fmt=fmt,
+                max_level=INFO
+            )
+        )
 
         # print console warnings
-        console_warn_handler = logging.StreamHandler(sys.stdout)
-        console_warn_handler.setLevel(max(WARNING, level_console))
-        logging.Formatter(_bring_color(fmt, WARNING))
-        console_warn_handler.setFormatter(console_formatter)
-        console_warn_handler.addFilter(MaxFilter(WARNING))
-        root_logger.addHandler(console_warn_handler)
+        root_logger.addHandler(
+            stream_handler(
+                level=max(WARNING, level_console),
+                fmt=fmt,
+                max_level=WARNING
+            )
+        )
 
         # print errors to error-stream
-        error_handler = logging.StreamHandler(sys.stderr)
-        error_handler.setLevel(ERROR)
-        error_formatter = logging.Formatter(_bring_color(fmt, ERROR))
-        error_handler.setFormatter(error_formatter)
-        root_logger.addHandler(error_handler)
+        root_logger.addHandler(
+            stream_handler(
+                stream=sys.stderr,
+                level=max(ERROR, level_console),
+                fmt=fmt,
+            )
+        )
 
     # logger for the current file
     return logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
 
 
-def file_handler(logfile, level=DEBUG, format=BASIC_FORMAT):
+def file_handler(logfile, level=DEBUG, fmt=BASIC_FORMAT):
     """ Convenience function so the caller does not have to import logging """
     handler = logging.FileHandler(logfile, mode='w', )
     handler.setLevel(level)
-    formatter = logging.Formatter(format)
+    formatter = logging.Formatter(fmt)
     handler.setFormatter(formatter)
+    return handler
+
+
+def stream_handler(stream=sys.stdout, level=DEBUG, fmt=BASIC_FORMAT, max_level=None):
+    """ Convenience function so the caller does not have to import logging """
+    handler = logging.StreamHandler(stream)
+    handler.setLevel(level)
+    console_formatter = logging.Formatter(_bring_color(fmt, level))
+    handler.setFormatter(console_formatter)
+    if max_level:
+        handler.addFilter(MaxFilter(max_level))
     return handler
 
 
@@ -141,24 +219,6 @@ def add_root_handler(handler):
 def getLogger(name):
     """ Convenience function so the caller does not have to import logging """
     return logging.getLogger(name)
-
-
-def start_debug_mode():
-        """ Setup Logger for debugging mode """
-        # get current module
-        caller_file = _get_caller()
-        current_module = _get_current_module(caller_file)
-
-        logger = logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
-
-        logger.setLevel(DEBUG)
-        logger.debug("Running in Debug-Mode.")
-
-        now = str(datetime.datetime.now().isoformat())
-        log_file = os.path.abspath(caller_file).replace(".pyc", "").replace(".py", "") + ".log"
-        log_file = os.path.join(os.path.dirname(log_file), now + os.path.basename(log_file))
-        logger.debug("Writing log to file '{:s}'.".format(log_file))
-        logging.getLogger(current_module).addHandler(file_handler(log_file))
 
 
 # Private Methods ##############################################################
