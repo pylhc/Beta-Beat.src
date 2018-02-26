@@ -121,27 +121,33 @@ class TfsCollection(object):
         """
         self._buffer = {}
 
+    def read_tfs(self, filename):
+        """Actually reads the TFS file from self.directory with filename.
+
+        This function can be ovewriten to use something instead of tfs_pandas
+        to load the files.
+
+        Arguments:
+            filename: The name of the file to load.
+        Returns:
+            A tfs_pandas instance of the requested file.
+        """
+        tfs_data = tfs_pandas.read_tfs(os.path.join(self.directory, filename))
+        if "NAME" in tfs_data:
+            tfs_data = tfs_data.set_index("NAME", drop=False)
+        return tfs_data
+
     def __getattr__(self, attr):
         if attr in self._two_plane_names:
             return TfsCollection._TwoPlanes(self, attr)
         raise AttributeError("{} object has no attribute {}"
                              .format(self.__class__.__name__, attr))
 
-    class _TwoPlanes(object):
-        def __init__(self, parent, attr):
-            self.parent = parent
-            self.attr = attr
-        def __getitem__(self, plane):
-            return getattr(self.parent, self.attr + "_" + plane)
-        def __setitem__(self, plane, value):
-            setattr(self.parent, self.attr + "_" + plane, value)
-
-
     def _load_tfs(self, filename):
         try:
             return self._buffer[filename]
         except KeyError:
-            tfs_data = tfs_pandas.read_tfs(os.path.join(self.directory, filename))
+            tfs_data = self.read_tfs(filename)
             if "NAME" in tfs_data:
                 tfs_data = tfs_data.set_index("NAME", drop=False)
             self._buffer[filename] = tfs_data
@@ -151,6 +157,15 @@ class TfsCollection(object):
         if self.allow_write:
             tfs_pandas.write_tfs(os.path.join(self.directory, filename), data_frame)
         self._buffer[filename] = data_frame
+
+    class _TwoPlanes(object):
+        def __init__(self, parent, attr):
+            self.parent = parent
+            self.attr = attr
+        def __getitem__(self, plane):
+            return getattr(self.parent, self.attr + "_" + plane)
+        def __setitem__(self, plane, value):
+            setattr(self.parent, self.attr + "_" + plane, value)
 
 
 class Tfs(object):

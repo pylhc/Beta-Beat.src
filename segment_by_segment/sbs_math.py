@@ -113,7 +113,7 @@ def propagate_error_coupling_1010_im(f1010ab_ini, p1010_ini, phasex, phasey, f10
     )
 
 
-def _propagate_error_dispersion(std_D0, bet0, bets, dphi, alf0):
+def propagate_error_dispersion(std_D0, bet0, bets, dphi, alf0):
     return np.abs(
         std_D0 * np.sqrt(bets/bet0) *
         (np.cos(2*np.pi*dphi)+alf0*np.sin(2*np.pi*dphi))
