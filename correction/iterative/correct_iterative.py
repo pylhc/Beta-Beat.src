@@ -285,15 +285,12 @@ def global_correction(opt, accel_opt):
         fullresponse_path: Path to the fullresponse binary file.
     """
 
-    if opt.debug:
-        logging_tools.start_debug_mode()
-
-    not_implemented_params = [k for k in opt.optics_params if k not in _get_measurement_filters()]
-    if any(not_implemented_params):
-        raise NotImplementedError("Correct iterative is not equipped for parameters:"
-                                  "'{:s}'".format(not_implemented_params))
-
-    with timeit(lambda t: LOG.debug("  Total time for Global Correction: {:f}s".format(t))):
+    with logging_tools.DebugMode(active=opt.debug):
+        not_implemented_params = [k for k in opt.optics_params
+                                  if k not in _get_measurement_filters()]
+        if any(not_implemented_params):
+            raise NotImplementedError("Correct iterative is not equipped for parameters:"
+                                      "'{:s}'".format(not_implemented_params))
         # check on opt
         opt = _check_opt(opt)
         meth_opt = _get_method_opt(opt)
@@ -355,7 +352,7 @@ def global_correction(opt, accel_opt):
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
-            writeparams(opt.output_path, delta, append=True)
+            writeparams(opt.output_path, delta)
             LOG.debug("Cumulative delta: {:.5e}".format(
                 np.sum(np.abs(delta.loc[:, "DELTA"].values))))
         write_knob(opt.output_path, delta)
@@ -811,9 +808,8 @@ def write_knob(path, delta):
     tfs.write_tfs(changeparameters_path, delta_out, save_index="NAME")
 
 
-def writeparams(path, delta, append=False):
-    mode = 'a' if append else 'w'
-    with open(os.path.join(path, "changeparameters.madx"), mode) as madx_script:
+def writeparams(path, delta):
+    with open(os.path.join(path, "changeparameters.madx"), "w") as madx_script:
         for var in delta.index.values:
             value = delta.loc[var, "DELTA"]
             madx_script.write(var + " = " + var
