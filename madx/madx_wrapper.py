@@ -1,139 +1,110 @@
-import __init__  # @UnusedImport
-import os
+"""
+:module: madx.madx_wrapper
+
+Runs MADX with a file or a string as an input, it processes @required macros.
+If defined, writes the processed MADX script and logging output into files.
+TODO: in future top level in Beta-Beat.src
+TODO: write tests
+TODO: Possibly more anotation from MADX...
+"""
+from os.path import abspath, join, dirname
 import sys
 import re
+import subprocess
 import optparse
-from madx import madxrunner
-from utils import iotools
 
-CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+LIB = abspath(join(dirname(__file__), "lib"))
 if "win" in sys.platform:
     MADX_PATH = "\\\\AFS\\cern.ch\\project\\mad\\madx\\releases\\last-rel\\madx-win64-gnu.exe"
 else:
-    MADX_PATH = os.path.abspath(os.path.join(CURRENT_PATH, "..",
-                                             "binaries", "madx_dev"))
-LIB = "lib"
+    MADX_PATH = abspath(join(dirname(__file__), "..", "binaries", "madx_dev"))
 
 
 def _parse_args():
     parser = optparse.OptionParser()
-    parser.add_option("-f", "--file",
-                    help="The file with the annotated MADX input to run, for compatibility with madxrunner.",
-                    metavar="FILE", dest="file")
-    parser.add_option("-o", "--output",
-                    help="If defined, it will write the processed MADX script into the file.",
-                    metavar="OUTPUT", dest="output")
-    parser.add_option("-l", "--log",
-                    help="File where to write the MADX output.",
-                    metavar="LOG", dest="log")
-    parser.add_option("-m", "--madx",
-                    help="Path to the MAD-X executable to use",
-                    metavar="MADX", dest="madx_path")
+    parser.add_option("-f", "--file", metavar="FILE", dest="file",
+                      help="The file with the annotated MADX input to run.")
+    parser.add_option("-o", "--output", metavar="OUTPUT", dest="output",
+                      help="If defined, it will write the processed MADX script into the file.")
+    parser.add_option("-l", "--log", metavar="LOG", dest="log",
+                      help="File where to write the MADX log output.")
+    parser.add_option("-m", "--madx", metavar="MADX", dest="madx_path",
+                      help="Path to the MAD-X executable to use", default=MADX_PATH)
     (options, args) = parser.parse_args()
-    if len(args) == 0 and options.file is None or\
-       len(args) == 1 and not options.file is None or\
-       len(args) > 1:
-        print sys.stderr, "Define the input either passing the file as first parameter or using --file (-f)"
-        parser.print_help()
-        sys.exit(-1)
+    if len(args) > 1 or ((options.file is None) == (len(args) == 0)):
+        raise IOError("No input found: either pass the file as first parameter or use --file (-f)")
     if len(args) == 1:
-        file_to_load = args[0]
-    else:
-        file_to_load = options.file
-    output_file = options.output
-    log_file = options.log
-    madx_path = options.madx_path
-    return file_to_load, output_file, log_file, madx_path
+        return args[0], options.output, options.log, options.madx_path
+    return options.file, options.output, options.log, options.madx_path
 
 
 def resolve_and_run_file(input_file, output_file=None, log_file=None, madx_path=MADX_PATH):
-    _check_files(input_file, output_file, log_file)
-    main_file_content = iotools.read_all_lines_in_textfile(input_file)
-    full_madx_script = resolve(main_file_content, output_file, log_file)
-    return run(full_madx_script, log_file, madx_path)
+    """Runs MADX in a subprocess.
+
+    Attributes:
+        input_file: MADX input file
+        output_file: If given writes resolved MADX script.
+        log_file: If given writes MADX logging output.
+        madx_path: Path to MADX executable
+    """
+    input_string = _read_input_file(input_file)
+    return resolve_and_run_string(input_string, output_file=output_file, log_file=log_file,
+                                  madx_path=madx_path)
 
 
 def resolve_and_run_string(input_string, output_file=None, log_file=None, madx_path=MADX_PATH):
-    _check_files(None, output_file, log_file)
-    full_madx_script = resolve(input_string, output_file, log_file)
-    return run(full_madx_script, log_file, madx_path)
+    """Runs MADX in a subprocess.
+
+    Attributes:
+        input_string: MADX input string
+        output_file: If given writes resolved MADX script.
+        log_file: If given writes MADX logging output.
+        madx_path: Path to MADX executable
+    """
+    _check_log_and_output_files(output_file, log_file)
+    full_madx_script = _resolve(input_string, output_file)
+    return _run(full_madx_script, log_file, madx_path)
 
 
-def resolve(input_string, output_file=None, log_file=None):
-    """
-    Resolves the !@requires annotations of the input_string, and returns
-    the resulting script. If a output_file is given, the
-    result is also written into the file. The MADX log will be
-    written to log_file if given and to sys.stdout if not.
-    """
-    required_calls = "option, -echo;\n" + \
-                     _resolve_required_macros(input_string) + \
-                     "option, echo;\n\n"
-    full_madx_script = required_calls + input_string
-    if not output_file is None:
-        with open(output_file, "w") as output_stream:
-            output_stream.write(full_madx_script)
+def _resolve(input_string, output_file=None):
+    """Resolves the !@requires annotations of the input_string, and returns the resulting script."""
+    macro_calls = "option, -echo;\n" + _resolve_required_macros(input_string) + "option, echo;\n\n"
+    full_madx_script = macro_calls + input_string
+    if output_file is not None:
+        with open(output_file, "w") as output:
+            output.write(full_madx_script)
     return full_madx_script
 
 
-def run(full_madx_script, log_file=None, madx_path=MADX_PATH):
-    """
-    Runs MADX with the given, already resolved, MADX script.
-    If log_file is given the MADX log will be written there.
-    """
-    if madx_path is None:
-        madx_path = MADX_PATH
-
+def _run(full_madx_script, log_file=None, madx_path=MADX_PATH):
     if log_file is None:
-        ret_value = madxrunner.runForInputString(full_madx_script,
-                                                 stdout=sys.stdout,
-                                                 stderr=sys.stdout,
-                                                 madxPath=madx_path)
+        ret_value = _run_for_input_string(full_madx_script, madx_path)
     else:
-        with open(log_file, "w") as filestream:
-            ret_value = madxrunner.runForInputString(full_madx_script,
-                                                     stdout=filestream,
-                                                     stderr=filestream,
-                                                     madxPath=madx_path)
+        with open(log_file, "w") as output:
+            ret_value = _run_for_input_string(full_madx_script, madx_path, logs=output)
     return ret_value
+
+
+def _run_for_input_string(input_string, madx, logs=sys.stdout):
+    process = subprocess.Popen(madx, shell=False, stdin=subprocess.PIPE, stdout=logs, stderr=logs)
+    process.communicate(input_string)
+    return process.wait()
 
 
 def _resolve_required_macros(file_content):
     """
-    Recursively searches for "!@require lib" annotations in the input script,
+    Recursively searches for "!@require lib" MADX annotations in the input script,
     adding the required macros library calls to the script header.
     """
     call_commands = ""
     for line in file_content.split("\n"):
         match = re.search("^!@require\s+([^\s]+).*$", line)
-        if not match is None:
+        if match is not None:
             required_macros = _add_macro_lib_ending(match.group(1))
-            required_macros_file = os.path.abspath(os.path.join(CURRENT_PATH, LIB, required_macros))
-            if not os.path.exists(required_macros_file):
-                print >> sys.stderr, "Trying to import non existing macros library \"" + required_macros + "\". Aborting."
-                sys.exit(-1)
-            call_commands += _resolve_required_macros(iotools.read_all_lines_in_textfile(required_macros_file))
+            required_macros_file = abspath(join(LIB, required_macros))
+            call_commands += _resolve_required_macros(_read_input_file(required_macros_file))
             call_commands += "call, file = \"" + required_macros_file + "\";\n"
     return call_commands
-
-
-def _check_files(input_file, output_file, log_file):
-    if not input_file is None:
-        if not os.path.exists(input_file) or not os.path.isfile(input_file):
-            print >> sys.stderr, "Cannot read input file: " + input_file + ". Aborting."
-            sys.exit(-1)
-    if not output_file is None:
-        try:
-            open(output_file, "a").close()
-        except:
-            print >> sys.stderr, "Cannot write output file: " + output_file + ". Aborting."
-            sys.exit(-1)
-    if not log_file is None:
-        try:
-            open(log_file, "a").close()
-        except:
-            print >> sys.stderr, "Cannot write log file: " + log_file + ". Aborting."
-            sys.exit(-1)
 
 
 def _add_macro_lib_ending(macro_lib_name):
@@ -144,6 +115,17 @@ def _add_macro_lib_ending(macro_lib_name):
         return macro_lib_name + ".macros.madx"
 
 
+def _read_input_file(input_file):
+    with open(input_file) as text_file:
+        return text_file.read()
+
+
+def _check_log_and_output_files(output_file, log_file):
+    if output_file is not None:
+        open(output_file, "a").close()
+    if log_file is not None:
+        open(log_file, "a").close()
+
+
 if __name__ == "__main__":
-    _file_to_load, _output_file, _log_file, _madx_path = _parse_args()
-    resolve_and_run_file(_file_to_load, _output_file, _log_file, _madx_path)
+    resolve_and_run_file(*_parse_args())

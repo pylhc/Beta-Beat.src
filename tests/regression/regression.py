@@ -19,7 +19,7 @@ _PYTHON = sys.executable
 
 class TestCase(namedtuple(
         "TestCase",
-        ("name", "script", "arguments", "output", "test_function")
+        ("name", "script", "arguments", "output", "test_function", "pre_hook")
 )):
     """Data class to hold information about the test to run.
 
@@ -32,7 +32,11 @@ class TestCase(namedtuple(
             the output of the script.
         test_function: Function of signature (path, path) -> bool to compare
             the results. It must return true only if the test passed without
-            issues.
+            issues. The script will be called with the repository root as
+            working directory, so all path must take this into account.
+        pre_hook: If not None, this function will be called receiving the root
+            of each repository as parameter. Useful to perform pre-test
+            operations, like creating the output dirs.
     """
     __slots__ = ()  # This makes the class lightweight and immutable.
 
@@ -44,11 +48,13 @@ def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
     print("Testing against tag \"{tag}\":\n"
           "    -> {tag.commit.summary} ({tag.commit.hexsha})"
           .format(tag=test_tag))
+    result = False
     with _temporary_dir() as new_repo_path:
         print("Cloning repository into {}".format(new_repo_path))
         clone_revision(repo_path, test_tag.commit.hexsha, new_repo_path)
         result = find_regressions(test_cases, new_repo_path, repo_path)
-    sys.exit(result)
+    if not result:
+        raise RegressionTestFailed()
 
 
 def find_regressions(test_cases, valid_path, test_path):
@@ -66,16 +72,18 @@ def find_regressions(test_cases, valid_path, test_path):
     """
     results = []
     print("Testing...: ", end="")
+    sys.stdout.flush()
     for test_case in test_cases:
         result = run_test_case(test_case, valid_path, test_path)
         results.append(result)
         print(result.get_microsummary(), end="")
+        sys.stdout.flush()
     print("\n\n################### Test results ###################")
     report = ""
     for result in results:
         report += result.get_full_summary()
     print(report)
-    return all(results)
+    return all([result.is_success for result in results])
 
 
 def run_test_case(test_case, valid_path, test_path):
@@ -97,8 +105,11 @@ def run_test_case(test_case, valid_path, test_path):
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
     try:
-        valid_result = _launch_command(valid_script, test_case.arguments)
-        test_result = _launch_command(test_script, test_case.arguments)
+        if test_case.pre_hook:
+            test_case.pre_hook(valid_path)
+            test_case.pre_hook(test_path)
+        valid_result = _launch_command(valid_path, valid_script, test_case.arguments)
+        test_result = _launch_command(test_path, test_script, test_case.arguments)
         result = TestResult(test_case, valid_result, test_result,
                             valid_outpath, test_outpath)
     finally:
@@ -222,22 +233,34 @@ class TestResult(object):
     def _check_regression(self):
         if self.is_exception:
             return True
+        old_stdout, old_stderr = sys.stdout, sys.stderr
         try:
-            with _capture_output() as (stdout, stderr):
-                compare_res = not self.test_case.test_function(
-                    self.valid_output,
-                    self.test_output,
-                )
-                self._compare_stdout = stdout[:]
-                self._compare_stderr = stderr[:]
-            return compare_res
-        except:
+            sys.stdout = mystdout = StringIO()
+            sys.stderr = mystderr = StringIO()
+            compare_res = not self.test_case.test_function(
+                self.valid_output,
+                self.test_output,
+            )
+            self._compare_stdout = mystdout.getvalue()
+            self._compare_stderr = mystderr.getvalue()
+        # User provided function, I can't know what will raise...
+        except:  # pylint: disable=W0702
             self._compare_error = (
                 "An exception happened while comparing the directories:\n" +
                 traceback.format_exc()
             )
             self.is_exception = True
             return True
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+        return compare_res
+
+
+class RegressionTestFailed(Exception):
+    """Raised when the regression test fails
+    """
+    pass
 
 
 def _force_repo(repo):
@@ -246,11 +269,12 @@ def _force_repo(repo):
     return git.Repo(repo)
 
 
-def _launch_command(script, args):
+def _launch_command(repo_root, script, args):
     if isinstance(args, str):
         args = args.split(" ")
     comm = subprocess.Popen([_PYTHON] + [script] + args,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            cwd=repo_root)
     stdout, stderr = comm.communicate()
     raised = comm.returncode != 0
     return TestResult.RunResult(stdout=stdout, stderr=stderr, raised=raised)
@@ -268,16 +292,3 @@ def _temporary_dir():
         yield dir_path
     finally:
         shutil.rmtree(dir_path)
-
-
-@contextlib.contextmanager
-def _capture_output():
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    try:
-        sys.stdout = mystdout = StringIO()
-        sys.stderr = mystderr = StringIO()
-        yield mystdout.getvalue(), mystderr.getvalue()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr

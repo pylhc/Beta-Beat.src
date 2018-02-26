@@ -292,9 +292,14 @@ class Lhc(Accelerator):
 
         # Error Def #####################################
         self._errordefspath = None
-        errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
+        errordefspath = os.path.join(self.model_dir, "error_deff.txt")
         if os.path.exists(errordefspath):
             self._errordefspath = errordefspath
+        else:  # until we have a proper file name convention
+            errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
+            if os.path.exists(errordefspath):
+                self._errordefspath = errordefspath
+
 
     @classmethod
     def init_and_get_unknowns(cls, args=None):
@@ -413,6 +418,11 @@ class Lhc(Accelerator):
                 self.excitation == AccExcitationMode.ADT):
             if self.drv_tune_x is None or self.drv_tune_y is None:
                 raise AcceleratorDefinitionError("Driven tunes not set.")
+
+        if self.optics_file is not None and not os.path.exists(self.optics_file):
+            raise AcceleratorDefinitionError(
+                "Optics file '{:s}' does not exist.".format(self.optics_file))
+
 
     @classmethod
     def get_nominal_tmpl(cls):

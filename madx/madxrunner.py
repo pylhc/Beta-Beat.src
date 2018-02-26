@@ -71,6 +71,7 @@ def runForInputString(stringInput, madxPath=None, stdout=None, stderr=None):
     
     
 if __name__ == "__main__":
+    raise DeprecationWarning("This will be removed soon, please consider using madx_wrapper.py")
     parser = optparse.OptionParser(usage="python %prog -f madx_input_file [other options]", version="%prog 2")
     parser.add_option("-f", "--file",
                     help="Filename or path to file with MADX input",
