@@ -1,6 +1,7 @@
 import os
 import logging
 from model import manager
+from madx import madx_wrapper
 
 LOGGER = logging.getLogger(__name__)
 
@@ -112,14 +113,19 @@ CALL_CHANGEPARAMETERS = 'CALL, FILE="{match_path}/changeparameters.madx";'
 
 class TemplateProcessor(object):
 
-    def __init__(self, matchers_list, match_path, lhc_mode, minimize,
-                 madx_templates_runner):
+    def __init__(self, matchers_list, match_path, lhc_mode, minimize):
         self._matchers_list = matchers_list
         self._match_path = match_path
-        self._accel_cls = manager.get_accel_class(accel="lhc", lhc_mode=lhc_mode)
+        self._accel_cls = manager.get_accel_class(accel="lhc",
+                                                  lhc_mode=lhc_mode)
         self._minimize = minimize
-        self._madx_templates_runner = madx_templates_runner
         self._set_up_collections()
+        self._log_file = os.path.join(match_path, "match_madx_log.out")
+        self._output_file = os.path.join(match_path, "resolved_madx_match.madx")
+        tmpl_path = os.path.join(os.path.dirname(__file__),
+                                 "lhc_general_matcher.madx")
+        with open(tmpl_path, "r") as tmpl_file:
+            self._main_template = tmpl_file.read()
 
     def _set_up_collections(self):
         self._variables = set()
@@ -133,20 +139,23 @@ class TemplateProcessor(object):
 
     def run(self):
         self._process_matchers()
-        self._madx_templates_runner.lhc_super_matcher_madx(
-            self._accel_cls.MACROS_NAME,
-            self._accel_cls.load_main_seq_madx(),
-            "\n".join(self._extract_sequences_list),
-            "\n".join(self._set_initial_values_list),
-            "\n".join(self._aux_var_definition_list),
-            START_MATCH,
-            "\n".join(self._define_variables_list),
-            "\n".join(self._set_matching_macros_list),
-            END_MATCH,
-            "\n".join(self._gen_changeparameters_list),
-            SAVE_CHANGEPARAMETERS.format(match_path=self._match_path),
-            "\n".join(self._run_corrected_twiss_list),
+        madx_script = self._main_template.format(
+            LIB=self._accel_cls.MACROS_NAME,
+            MAIN_SEQ=self._accel_cls.load_main_seq_madx(),
+            EXTRACT_SEQUENCES="\n".join(self._extract_sequences_list),
+            SET_INITIAL_VALUES="\n".join(self._set_initial_values_list),
+            DEFINE_CONSTRAINTS_AUX_VALS="\n".join(self._aux_var_definition_list),
+            START_MATCH=START_MATCH,
+            DEFINE_VARIABLES="\n".join(self._define_variables_list),
+            SET_MATCHING_MACROS="\n".join(self._set_matching_macros_list),
+            END_MATCH=END_MATCH,
+            GEN_CHANGEPARAMETERS="\n".join(self._gen_changeparameters_list),
+            SAVE_CHANGEPARAMETERS=SAVE_CHANGEPARAMETERS.format(match_path=self._match_path),
+            RUN_CORRECTED_TWISS="\n".join(self._run_corrected_twiss_list),
         )
+        madx_wrapper.resolve_and_run_string(madx_script,
+                                            output_file=self._output_file,
+                                            log_file=self._log_file)
 
     def run_just_twiss(self):
         for matcher in self._matchers_list:
@@ -154,20 +163,23 @@ class TemplateProcessor(object):
             self._set_initial_values(matcher)
             self._define_aux_vars(matcher)
             self._run_corrected_twiss(matcher)
-        self._madx_templates_runner.lhc_super_matcher_madx(
-            self._accel_cls.MACROS_NAME,
-            self._accel_cls.load_main_seq_madx(),
-            "\n".join(self._extract_sequences_list),
-            "\n".join(self._set_initial_values_list),
-            "\n".join(self._aux_var_definition_list),
-            "",
-            "\n".join(self._define_variables_list),
-            "\n".join(self._set_matching_macros_list),
-            "",
-            "\n".join(self._gen_changeparameters_list),
-            CALL_CHANGEPARAMETERS.format(match_path=self._match_path),
-            "\n".join(self._run_corrected_twiss_list),
+        madx_script = self._main_template.format(
+            LIB=self._accel_cls.MACROS_NAME,
+            MAIN_SEQ=self._accel_cls.load_main_seq_madx(),
+            EXTRACT_SEQUENCES="\n".join(self._extract_sequences_list),
+            SET_INITIAL_VALUES="\n".join(self._set_initial_values_list),
+            DEFINE_CONSTRAINTS_AUX_VALS="\n".join(self._aux_var_definition_list),
+            START_MATCH="",
+            DEFINE_VARIABLES="\n".join(self._define_variables_list),
+            SET_MATCHING_MACROS="\n".join(self._set_matching_macros_list),
+            END_MATCH="",
+            GEN_CHANGEPARAMETERS="\n".join(self._gen_changeparameters_list),
+            SAVE_CHANGEPARAMETERS=CALL_CHANGEPARAMETERS.format(match_path=self._match_path),
+            RUN_CORRECTED_TWISS="\n".join(self._run_corrected_twiss_list),
         )
+        madx_wrapper.resolve_and_run_string(madx_script,
+                                            output_file=self._output_file,
+                                            log_file=self._log_file)
 
     def _process_matchers(self):
         for matcher in self._matchers_list:

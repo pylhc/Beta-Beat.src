@@ -1,39 +1,39 @@
-!@require %(LIB)s
+!@require {LIB}
 !@require segments
 
 !!! Sequences definition
 option, -echo, -warn;
-    %(MAIN_SEQ)s
+    {MAIN_SEQ}
     exec, cycle_sequences();
     exec, define_nominal_beams();
     exec, set_default_crossing_scheme();
 option, echo, warn;
 
 !!! Extract segments sequences
-%(EXTRACT_SEQUENCES)s
+{EXTRACT_SEQUENCES}
 
 !!! Initial values gathering
-%(SET_INITIAL_VALUES)s
+{SET_INITIAL_VALUES}
 
-%(DEFINE_CONSTRAINTS_AUX_VALS)s
+{DEFINE_CONSTRAINTS_AUX_VALS}
 
 
 !!!!!! Matching !!!!!!
 
-%(START_MATCH)s
+{START_MATCH}
 
-%(DEFINE_VARIABLES)s
+{DEFINE_VARIABLES}
 
 option, -warn;
-%(SET_MATCHING_MACROS)s
+{SET_MATCHING_MACROS}
 option, warn;
 
-%(END_MATCH)s
+{END_MATCH}
 
 !!! Generating final changeparameters file
 select, flag=save, clear;
-%(GEN_CHANGEPARAMETERS)s
-%(SAVE_CHANGEPARAMETERS)s
+{GEN_CHANGEPARAMETERS}
+{SAVE_CHANGEPARAMETERS}
 
 !!! Running corrected twiss
-%(RUN_CORRECTED_TWISS)s
+{RUN_CORRECTED_TWISS}
