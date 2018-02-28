@@ -431,7 +431,10 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
     nfiles = np.sum(~np.isnan(phase_matr_meas), axis=0)
     
     phase_advances["NFILES"] = nfiles
-    phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) * vec_t_value_correction(nfiles)
+    if OPTIMISTIC:
+        phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) * vec_t_value_correction(nfiles)
+    else:
+        phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) * vec_t_value_correction(nfiles)
 
 
     return phase_advances
