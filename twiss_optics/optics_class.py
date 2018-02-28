@@ -63,12 +63,12 @@ class TwissOptics(object):
     #       init Functions
     ################################
 
-    def __init__(self, model_path_or_df, quick_init=False, keep_all_elem=False):
-        self.mad_twiss = self._get_model_df(model_path_or_df)
+    def __init__(self, model_path_or_df, quick_init=True, keep_all_elem=False):
+        self.twiss_df = self._get_model_df(model_path_or_df)
         self._ip_pos = self._find_ip_positions()
 
         if not keep_all_elem:
-            self.mad_twiss = self._remove_nonnecessaries()
+            self.twiss_df = self._remove_nonnecessaries()
 
         self._results_df = self._make_results_dataframe()
         self._elements = self._sort_element_types()
@@ -85,45 +85,49 @@ class TwissOptics(object):
         """ Check if DataFrame given, if not load model from file  """
         if isinstance(model_path_or_tfs, basestring):
             LOG.debug("Creating TwissOptics from '{:s}'".format(model_path_or_tfs))
-            return tfs.read_tfs(model_path_or_tfs, index="NAME")
+            df = tfs.read_tfs(model_path_or_tfs, index="NAME")
         else:
             LOG.debug("Creating TwissOptics from input DataFrame")
-            return model_path_or_tfs
+            df = model_path_or_tfs
+            if (len(df.index.values) == 0) or not isinstance(df.index.values[0], basestring):
+                raise IndexError("Index of DataFrame needs to be the element names."
+                                 "This does not seem to be the case.")
+        return df
 
     def _find_ip_positions(self):
         """ Returns IP positions from Dataframe
 
-        Load model into mad_twiss first!
+        Load model into twiss_df first!
         """
-        tw = self.mad_twiss
+        tw = self.twiss_df
         return tw.loc[regex_in(r"\AIP\d$", tw.index), 'S']
 
     def _remove_nonnecessaries(self):
         """ Removies unnecessary entries from model
 
-        Load model into mad_twiss first!
+        Load model into twiss_df first!
         """
         LOG.debug("Removing unnecessary entries:")
-        LOG.debug("  Entries total: {:d}".format(self.mad_twiss.shape[0]))
+        LOG.debug("  Entries total: {:d}".format(self.twiss_df.shape[0]))
         with timeit(lambda t:
                     LOG.debug("  Removed in {:f}s".format(t))):
-            cleaned = self.mad_twiss.loc[regex_in(r"\A(M|BPM)", self.mad_twiss.index), :]
+            cleaned = self.twiss_df.loc[regex_in(r"\A(M|BPM)", self.twiss_df.index), :]
         LOG.debug("  Entries left: {:d}".format(cleaned.shape[0]))
         return cleaned
 
     def _make_results_dataframe(self):
         LOG.debug("Creating Results Dataframes.")
-        results_df = tfs.TfsDataFrame(index=self.mad_twiss.index)
-        results_df["S"] = self.mad_twiss["S"]
+        results_df = tfs.TfsDataFrame(index=self.twiss_df.index)
+        results_df["S"] = self.twiss_df["S"]
         return results_df
 
     def _sort_element_types(self):
         """ Sorts Elements by types
 
-        Load model into mad_twiss first!
+        Load model into twiss_df first!
         """
         LOG.debug("Sorting Elements into types:")
-        tw = self.mad_twiss
+        tw = self.twiss_df
         with timeit(lambda t:
                     LOG.debug("  Sorted in {:f}s".format(t))):
             return {
@@ -178,7 +182,7 @@ class TwissOptics(object):
 
     def get_phase_adv(self):
         if self._phase_advance is None:
-            self._phase_advance = get_phase_advances(self.mad_twiss)
+            self._phase_advance = get_phase_advances(self.twiss_df)
         return self._phase_advance
 
     def get_coupling(self, method='rdt'):
@@ -200,51 +204,13 @@ class TwissOptics(object):
         else:
             raise ValueError("method '{:s}' not recognized.".format(method))
 
-    def get_K(self, order):
-        """ Returns the K-Values of 'order'.
-
-        Args:
-            order: Order of the K values to return
-        """
-        return self._results_df[['S', 'K{0}L'.format(order)]]
-
-    def set_K(self, order, value):
-        """ Sets the K-Values of 'order' to 'value'.
-
-                Args:
-                    order: Order of the K values to return
-                    value: Value(s) to set the Ks to
-        """
-        self._results_df[['S', 'K{0}L'.format(order)]] = value
-
-    def get_J(self, order):
-        """ Returns the J-Values (==KSL) of 'order'.
-
-                Args:
-                    order: Order of the J values to return
-                """
-        return self._results_df[['S', 'K{0}SL'.format(order)]]
-
-    def set_J(self, order, value):
-        """ Sets the J-Values (==KSL) of 'order' to 'value'.
-
-                        Args:
-                            order: Order of the J values to return
-                            value: Value(s) to set the Js to
-                """
-        self._results_df[['S', 'K{0}SL'.format(order)]] = value
-
-    def get_S(self):
-        """ Return the positions of all elements """
-        return self._results_df[["S"]]
-
     ################################
     #          C Matrix
     ################################
 
     def calc_cmatrix(self):
         """ Calculates C matrix and Coupling and Gamma from it. """
-        tw = self.mad_twiss
+        tw = self.twiss_df
         res = self._results_df
 
         LOG.debug("Calculating CMatrix.")
@@ -299,20 +265,14 @@ class TwissOptics(object):
         self._log_added('GAMMA_C', 'F1001_C', 'F1010_C', 'C11', 'C12', 'C21', 'C22')
 
     def get_gamma(self):
-        """ Return Gamma values.
-
-        Available after calc_cmatrix
-        """
+        """ Return Gamma values. """
         if 'GAMMA_C' not in self._results_df:
             self.calc_cmatrix()
         res_df = self._results_df.loc[:, ['S', 'GAMMA_C']]
         return res_df.rename(columns=lambda x: x.replace("_C", ""))
 
     def get_cmatrix(self):
-        """ Return the C-Matrix
-
-        Available after calc_cmatrix
-        """
+        """ Return the C-Matrix """
         if 'C11' not in self._results_df:
             self.calc_cmatrix()
         return self._results_df.loc[:, ['S', 'C11', 'C12', 'C21', 'C22']]
@@ -341,7 +301,7 @@ class TwissOptics(object):
                     LOG.debug("  RDTs calculated in {:f}s".format(t))):
 
             i2pi = 2j * np.pi
-            tw = self.mad_twiss
+            tw = self.twiss_df
             phs_adv = self.get_phase_adv()
             res = self._results_df
 
@@ -397,25 +357,20 @@ class TwissOptics(object):
         self._log_added(*order)
 
     def get_rdts(self, rdt_names=None):
-        """ Return Resonance Driving Terms.
-
-        Available after calc_rdts
-        """
+        """ Return Resonance Driving Terms. """
         if rdt_names:
             if not isinstance(rdt_names, list):
                 rdt_names = [rdt_names]
             rdt_names = [rdt.upper() for rdt in rdt_names]
-            if any([rdt not in self._results_df for rdt in rdt_names]):
-                self.calc_rdts(rdt_names)
+            new_rdts = [rdt for rdt in rdt_names if rdt not in self._results_df]
+            if len(new_rdts) > 0:
+                self.calc_rdts(new_rdts)
             return self._results_df.loc[:, ["S"] + rdt_names]
         else:
             return self._results_df.loc[:, regex_in(r'\A(S|F\d{4})$', self._results_df.columns)]
 
     def plot_rdts(self, rdt_names=None, apply_fun=np.abs, combined=True):
-        """ Plot Resonance Driving Terms
-
-        Available after calc_rdts
-        """
+        """ Plot Resonance Driving Terms """
         LOG.debug("Plotting Resonance Driving Terms")
         rdts = self.get_rdts(rdt_names)
         is_s = regex_in(r'\AS$', rdts.columns)
@@ -448,7 +403,7 @@ class TwissOptics(object):
 
         Eq. 24 in [2]
         """
-        tw = self.mad_twiss
+        tw = self.twiss_df
         phs_adv = self.get_phase_adv()
         res = self._results_df
         coeff_fun = self._linear_dispersion_coeff
@@ -587,7 +542,7 @@ class TwissOptics(object):
         Args:
             combined (bool): If 'True' plots x and y into the same axes.
         """
-        raise NotImplementedError('Chramatic Phase Advance Shift is not Implemented yet.')
+        raise NotImplementedError('Plotting Phase Advance Shift is not Implemented yet.')
         #TODO: reimplement the phase-advance shift calculations (if needed??)
         LOG.debug("Plotting Phase Advance")
         tw = self.mad_twiss
@@ -674,7 +629,7 @@ class TwissOptics(object):
 
         Eq. 36 in [2]
         """
-        tw = self.mad_twiss
+        tw = self.twiss_df
         res = self._results_df
         phs_adv = self.get_phase_adv()
 
@@ -800,7 +755,7 @@ class TwissOptics(object):
         """ Calculates the chromatic term which is common to all chromatic equations """
         LOG.debug("Calculating Chromatic Term.")
         res = self._results_df
-        tw = self.mad_twiss
+        tw = self.twiss_df
 
         #TODO: Decide wether DX, DY from Model or from calc
 
@@ -819,7 +774,7 @@ class TwissOptics(object):
         ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 3))
         pstyle.set_xaxis_label(ax)
         try:
-            pstyle.set_xLimits(self.mad_twiss.SEQUENCE, ax)
+            pstyle.set_xLimits(self.twiss_df.SEQUENCE, ax)
         except pstyle.ArgumentError:
             pass
         if self._ip_pos is not None and len(self._ip_pos) > 0:
