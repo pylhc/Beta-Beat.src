@@ -203,7 +203,7 @@ class Matcher(object):
                     range_start + " " + range_end)
         accel_cls = manager.get_accel_class(
             accel="lhc", lhc_mode=lhc_mode, beam=beam
-        )()
+        )
         optics_file = os.path.join(
             os.path.join(match_path, "sbs"), "modifiers.madx"
         )
@@ -220,6 +220,8 @@ class Matcher(object):
         # GetLLM output files:
         _copy_files_with_extension(measurement_path,
                                    match_math, ".out")
+        _copy_files_with_extension(measurement_path,
+                                   match_math, ".dat")
         # SbS output files for the given label:
         _copy_files_which_contains(
             os.path.join(measurement_path, "sbs"),
