@@ -10,8 +10,9 @@ sys.path.append(
 
 from model import manager, creator
 from utils import tfs_pandas, logging_tools
+from utils.dict_tools import DotDict
 from tfs_files import TfsCollection, Tfs
-from sbs_measurables import MEASURABLES
+import sbs_propagables
 
 # TODO: Remove debug and set up log file
 import logging
@@ -76,9 +77,9 @@ def segment_by_segment(accel_cls, options):
     meas = GetLlmMeasurement(options.measurement)
     elem_segments = [Segment.init_from_element(name) for name in elements]
     for segment in elem_segments + segments:
-        seg_beatings_dict = run_for_segment(accel_cls, segment, model, meas,
-                                            options.optics, options.output)
-        write_beatings(segment, seg_beatings_dict, options.output)
+        propagable = run_for_segment(accel_cls, segment, model, meas,
+                                     options.optics, options.output)
+        write_beatings(segment, propagable, options.output)
 
 
 def run_for_segment(accel_cls, segment, model, meas, optics, output):
@@ -87,7 +88,9 @@ def run_for_segment(accel_cls, segment, model, meas, optics, output):
     """
     bpm_eval_funct = _bpm_is_in_beta_meas
     new_segment = improve_segment(segment, model, meas, bpm_eval_funct)
-    measurables = [measbl(new_segment, meas) for measbl in MEASURABLES]
+    propagables = [propg(new_segment, meas)
+                   for propg in sbs_propagables.get_all_propagables()]
+    propagables = [measbl for measbl in propagables if measbl]
     segment_inst = accel_cls.get_segment(
         new_segment.name, new_segment.start, new_segment.end,
         optics,
@@ -95,10 +98,12 @@ def run_for_segment(accel_cls, segment, model, meas, optics, output):
     LOGGER.info("Evaluating segment {} ({}, {}). Was input as {} ({}, {})."
                 .format(new_segment.name, new_segment.start, new_segment.end,
                         segment.name, segment.start, segment.end))
-    _prepare_for_madx(new_segment, meas, measurables, optics, output)
+    _prepare_for_madx(new_segment, propagables, optics, output)
     _run_madx(new_segment, segment_inst, output)
     seg_models = SegmentModels(output, new_segment)
-    return compute_beatings(new_segment, seg_models, meas, model)
+    for propagable in propagables:
+        propagable.segment_models = seg_models
+    return propagables
 
 
 def improve_segment(segment, model, meas, eval_funct):
@@ -115,7 +120,7 @@ def improve_segment(segment, model, meas, eval_funct):
             NAME attribute.
         meas: An instance of the Measurement class that will be passed to
             'eval_funct' to check elements for validity.
-        eval_funct: An user-porvided function that takes an element name as
+        eval_funct: An user-provided function that takes an element name as
             first argument and an instance of the Measurement class as second,
             and returns True only if the element is evaluated as good start or
             end for the segment, usually checking for presence in the
@@ -141,19 +146,22 @@ def improve_segment(segment, model, meas, eval_funct):
     return new_segment
 
 
-def write_beatings(segment, seg_beatings_dict, output_dir):
+def write_beatings(segment, propagables, output):
     """
     TODO
     """
-    seg_beatings = SegmentBeatings(output_dir, segment.name)
-    seg_beatings.allow_write = True
-    for plane in PLANES:
-        seg_beatings.beta_phase[plane] = seg_beatings_dict["beta_phase"][plane]
-        seg_beatings.beta_amp[plane] = seg_beatings_dict["beta_amp"][plane]
-        seg_beatings.beta_kmod[plane] = seg_beatings_dict["beta_kmod"][plane]
+    seg_beats = SegmentBeatings(output, segment.name)
+    seg_beats.allow_write = True
+    for propagable in propagables:
+        try:
+            propagable.write_to_file(seg_beats)
+        except NotImplementedError:
+            pass
 
 
 def _parse_segments(segments_str):
+    if segments_str is None:
+        return []
     segments = []
     names = []
     clean_segm_str = segments_str.strip()
@@ -181,6 +189,8 @@ def _parse_segments(segments_str):
 
 
 def _parse_elements(elements_str):
+    if elements_str is None:
+        return []
     clean_elems_str = elements_str.strip()
     if clean_elems_str == "":
         raise SbsDefinitionError("Empty element definition string.")
@@ -218,7 +228,7 @@ def _bpm_is_in_beta_meas(bpm_name, meas):
             bpm_name in list(meas.beta_y.NAME))
 
 
-def _prepare_for_madx(segment, meas, measurables, optics, output):
+def _prepare_for_madx(segment, measurables, optics, output):
     copyfile(optics, os.path.join(output, "modifiers.madx"))
     meas_file_content = _prepare_meas_file(measurables)
     meas_file_path = os.path.join(
@@ -238,8 +248,7 @@ def _prepare_for_madx(segment, meas, measurables, optics, output):
 def _prepare_meas_file(measurables):
     meas_dict = OrderedDict()
     for measurable in measurables:
-        if measurable.is_available:
-            meas_dict.update(measurable.get_init_conds_dict())
+        meas_dict.update(measurable.init_conds_dict())
     meas_file_content = ""
     for key in meas_dict:
         meas_file_content += "{} = {};\n".format(key, meas_dict[key])

@@ -16,7 +16,6 @@ from segment_by_segment.segment_by_segment import (
     SegmentBeatings,
     GetLlmMeasurement,
 )
-from segment_by_segment.sbs_measurables import Measurable, BetaPhase
 
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -270,6 +269,43 @@ def test_measurement_doesnt_write_if_not_allowed(_test_df_just_names, _test_dir)
         os.path.join(CURRENT_DIR, "_test", "getbetax_free.out"))
 
 
+def test_measurement_maybe_doesnt_call_on_error(_meas_dir_empty):
+    meas = GetLlmMeasurement(_meas_dir_empty)
+    def assert_false(args):
+        assert False
+    meas.maybe_call.beta_x(assert_false, "whatever")
+
+
+def test_measurement_maybe_calls_on_success(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
+    def raise_to_be_catched(tfs_file):
+        tfs_file.BETX  # Check that the columns can be accessed
+        raise _KnownError()
+    with pytest.raises(_KnownError):
+        meas.maybe_call.beta_x(raise_to_be_catched)
+
+
+def test_measurement_maybe_accessible(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
+    def raise_to_be_catched(tfs_file):
+        tfs_file.BETY  # Check that the columns can be accessed
+        raise _KnownError()
+    with pytest.raises(_KnownError):
+        meas.maybe_call.beta_y(raise_to_be_catched)
+    with pytest.raises(_KnownError):
+        meas.maybe_call.beta["y"](raise_to_be_catched)
+
+
+def test_measurement_maybe_more_args(_meas_dir):
+    meas = GetLlmMeasurement(_meas_dir)
+    def test_funct(tfs_file, number, kwnumber=None):
+        tfs_file.BETY  # Check that the columns can be accessed
+        return number, kwnumber
+    rnumber, rkwnumber = meas.maybe_call.beta["y"](test_funct, 5, 7)
+    assert rnumber == 5
+    assert rkwnumber == 7
+
+
 # SegmentModels ##############################################################
 
 def test_segment_models_empty_dir():
@@ -333,3 +369,7 @@ def _meas_dir():
 def _meas_dir_empty():
     return os.path.join(CURRENT_DIR, "..", "inputs",
                         "getllm_results", "empty")
+
+
+class _KnownError(Exception):
+    pass
