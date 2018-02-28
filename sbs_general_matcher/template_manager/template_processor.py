@@ -1,7 +1,7 @@
 import os
 import logging
 from model import manager
-from madx import madx_wrapper
+import madx_wrapper
 
 LOGGER = logging.getLogger(__name__)
 

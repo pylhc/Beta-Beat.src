@@ -63,7 +63,7 @@ import Python_Classes4MAD.metaclass as metaclass
 import utils.iotools
 import utils.math
 
-from madx import madx_wrapper
+import madx_wrapper
 
 
 UNWANTED_CATEGORIES = ["LQ", "MQX", "MQXT", "Q", "QIP15", "QIP2", "getListsByIR"]

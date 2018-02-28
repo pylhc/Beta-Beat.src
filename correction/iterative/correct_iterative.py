@@ -30,7 +30,7 @@ import pandas as pd
 import argparse
 
 
-from madx import madx_wrapper  # noqa
+import madx_wrapper  # noqa
 from utils import tfs_pandas as tfs  # noqa
 from utils import iotools  # noqa
 from model import manager  # noqa

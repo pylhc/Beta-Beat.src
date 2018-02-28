@@ -1,6 +1,6 @@
 from __future__ import print_function
 import logging
-from madx import madx_wrapper
+import madx_wrapper
 
 LOGGER = logging.getLogger(__name__)
 

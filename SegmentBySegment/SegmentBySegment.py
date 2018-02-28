@@ -26,7 +26,7 @@ from model import manager, creator
 from model.accelerators.lhc import Lhc
 from model.accelerators.accelerator import Element
 from Python_Classes4MAD.metaclass import twiss
-from madx import madx_wrapper
+import madx_wrapper
 
 import sbs_writers.sbs_beta_writer
 import sbs_writers.sbs_beta_beating_writer
