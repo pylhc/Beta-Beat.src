@@ -50,7 +50,7 @@ def get_all_rdts(n):
     assertion(n > 1, ValueError("'n' must be greater 1 for resonance driving terms."))
     permut = [x for x in itertools.product(range(n + 1), repeat=4)
            if 1 < sum(x) <= n and not (x[0] == x[1] and x[2] == x[3])]
-    return ['f{:d}{:d}{:d}{:d}'.format(j, k, l, m) for j, k, l, m in sorted(permut, key=sum)]
+    return ['F{:d}{:d}{:d}{:d}'.format(j, k, l, m) for j, k, l, m in sorted(permut, key=sum)]
 
 
 # Phase Advance Functions ######################################################

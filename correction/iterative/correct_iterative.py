@@ -32,7 +32,7 @@ import cPickle
 import numpy as np
 import pandas as pd
 
-from madx import madx_wrapper  # noqa
+import madx_wrapper  # noqa
 from utils import tfs_pandas as tfs, iotools  # noqa
 from utils.contexts import timeit
 from utils import logging_tools

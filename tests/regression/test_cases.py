@@ -9,6 +9,7 @@ ABS_ROOT = abspath(join(dirname(__file__), "..", ".."))
 REGR_DIR = join("tests", "regression")
 TBTS = join("tests", "inputs", "tbt_files")
 MODELS = join("tests", "inputs", "models")
+OPTICS = join("tests", "inputs", "optics_files")
 HARM_FILES = join("tests", "inputs", "harmonic_results")
 
 
@@ -50,11 +51,30 @@ TEST_CASES_GETLLM = (
     ),
 )
 
+TEST_MODEL_CREATOR = (
+    regression.TestCase(
+        name="model_creator_test_lhc",
+        script=join("model", "creator.py"),
+        arguments=("--type nominal --accel lhc --lhcmode lhc_runII_2017 "
+                   "--beam 1 --nattunex 0.28 --nattuney 0.31 --acd "
+                   "--drvtunex 0.27 --drvtuney 0.322 "
+                   "--optics {optics} "
+                   "--output {output}").format(optics=join(OPTICS, "2017", "opticsfile.19"),
+                                               output=join(REGR_DIR, "_out_model_creator_test_lhc")),
+        output=join(REGR_DIR, "_out_model_creator_test_lhc"),
+        test_function=lambda dir1, dir2:
+        compare_utils.compare_dirs_ignore_words(dir1, dir2, ["ORIGIN", "DATE", "TIME"]),
+        pre_hook=lambda dir: os.makedirs(join(dir, REGR_DIR, "_out_model_creator_test_lhc")),
+    ),
+)
+
 
 def run_tests():
     """Run the test cases and raise RegressionTestFailed on failure.
     """
-    alltests = list(TEST_CASES_HOLE_IN_ONE) + list(TEST_CASES_GETLLM)
+    alltests = (list(TEST_CASES_HOLE_IN_ONE) +
+                list(TEST_CASES_GETLLM) +
+                list(TEST_MODEL_CREATOR))
     regression.launch_test_set(alltests, ABS_ROOT, tag_regexp="^BBGUI_.*$")
 
 

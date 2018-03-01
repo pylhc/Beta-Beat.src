@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+import warnings
 from contextlib import contextmanager
 
 
@@ -35,3 +36,12 @@ def timeit(function):
     finally:
         time_used = time.time() - start_time
         function(time_used)
+
+
+@contextmanager
+def suppress_warnings(warning_classes):
+    with warnings.catch_warnings(record=True) as warn_list:
+        yield
+    for w in warn_list:
+        if not issubclass(w.category, warning_classes):
+            warnings.warn(w)

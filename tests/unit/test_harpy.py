@@ -11,10 +11,10 @@ sys.path.append(os.path.abspath(
 from hole_in_one import harpy
 
 
-@given(integers(min_value=1, max_value=2000),
-       integers(min_value=1, max_value=2000),
-       integers(min_value=1, max_value=2000),
-       integers(min_value=1, max_value=2000))
+@given(integers(min_value=1, max_value=200),
+       integers(min_value=1, max_value=200),
+       integers(min_value=1, max_value=200),
+       integers(min_value=1, max_value=200))
 def test_highest_coefs_output_shape(nbpm, nres, target, toll):
     freqs = _get_fake_df(nbpm, nres)
     coefs = _get_fake_df(nbpm, nres)
@@ -25,10 +25,10 @@ def test_highest_coefs_output_shape(nbpm, nres, target, toll):
     assert max_freqs.shape == (freqs.shape[0], )
 
 
-@given(integers(min_value=1, max_value=2000),
-       integers(min_value=1, max_value=2000),
-       integers(min_value=1, max_value=2000),
-       integers(min_value=1, max_value=2000))
+@given(integers(min_value=1, max_value=200),
+       integers(min_value=1, max_value=200),
+       integers(min_value=1, max_value=200),
+       integers(min_value=1, max_value=200))
 def test_bpm_names_are_passed_correctly_to_output(nbpm, nres, target, toll):
     freqs = _get_fake_df(nbpm, nres)
     coefs = _get_fake_df(nbpm, nres)
@@ -39,7 +39,7 @@ def test_bpm_names_are_passed_correctly_to_output(nbpm, nres, target, toll):
     assert (max_freqs.index == freqs.index).all()
 
 
-@given(integers(min_value=1, max_value=2000))
+@given(integers(min_value=1, max_value=200))
 def test_a_line_is_found_within_the_tollerance_window(nres):
     freqs = _get_fake_df(1, nres)
     coefs = _get_fake_df(1, nres)
