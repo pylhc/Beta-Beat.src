@@ -14,9 +14,9 @@ import numpy as np
 import pandas
 
 from utils import tfs_pandas
-from madx import madx_wrapper
+import madx_wrapper
 from utils import logging_tools
-from utils.contexts import timeit
+from utils.contexts import timeit, suppress_warnings
 from utils.iotools import create_dirs
 from utils.entrypoint import EntryPointParameters, entrypoint
 from twiss_optics.optics_class import TwissOptics
@@ -201,22 +201,25 @@ def _create_fullresponse_from_dict(var_to_twiss):
     # Remove difference of nominal model with itself (bunch of zeros)
     resp.drop('0', axis=2, inplace=True)
     resp = resp.div(resp.loc['incr', :, :])
-    return {'MUX': resp.xs('MUX', axis=0).astype(np.float64),
-            'MUY': resp.xs('MUY', axis=0).astype(np.float64),
-            'BETX': resp.xs('BETX', axis=0).astype(np.float64),
-            'BETY': resp.xs('BETY', axis=0).astype(np.float64),
-            'BBX': resp.xs('BBX', axis=0).astype(np.float64),
-            'BBY': resp.xs('BBY', axis=0).astype(np.float64),
-            'DX': resp.xs('DX', axis=0).astype(np.float64),
-            'DY': resp.xs('DY', axis=0).astype(np.float64),
-            'NDX': resp.xs('NDX', axis=0).astype(np.float64),
-            'NDY': resp.xs('NDY', axis=0).astype(np.float64),
-            "F1001R": resp.xs('1001', axis=0).apply(np.real).astype(np.float64),
-            "F1001I": resp.xs('1001', axis=0).apply(np.imag).astype(np.float64),
-            "F1010R": resp.xs('1010', axis=0).apply(np.real).astype(np.float64),
-            "F1010I": resp.xs('1010', axis=0).apply(np.imag).astype(np.float64),
-            'Q': resp.loc[['Q1', 'Q2'], resp.major_axis[0], :].transpose().astype(np.float64),
-            }
+
+    with suppress_warnings(np.ComplexWarning):  # raised as everything is complex-type now
+        df = {'MUX': resp.xs('MUX', axis=0).astype(np.float64),
+              'MUY': resp.xs('MUY', axis=0).astype(np.float64),
+              'BETX': resp.xs('BETX', axis=0).astype(np.float64),
+              'BETY': resp.xs('BETY', axis=0).astype(np.float64),
+              'BBX': resp.xs('BBX', axis=0).astype(np.float64),
+              'BBY': resp.xs('BBY', axis=0).astype(np.float64),
+              'DX': resp.xs('DX', axis=0).astype(np.float64),
+              'DY': resp.xs('DY', axis=0).astype(np.float64),
+              'NDX': resp.xs('NDX', axis=0).astype(np.float64),
+              'NDY': resp.xs('NDY', axis=0).astype(np.float64),
+              "F1001R": resp.xs('1001', axis=0).apply(np.real).astype(np.float64),
+              "F1001I": resp.xs('1001', axis=0).apply(np.imag).astype(np.float64),
+              "F1010R": resp.xs('1010', axis=0).apply(np.real).astype(np.float64),
+              "F1010I": resp.xs('1010', axis=0).apply(np.imag).astype(np.float64),
+              'Q': resp.loc[['Q1', 'Q2'], resp.major_axis[0], :].transpose().astype(np.float64),
+              }
+    return df
 
 
 def _save_fullresponse(outputfile_path, fullresponse):

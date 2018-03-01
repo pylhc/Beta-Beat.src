@@ -453,20 +453,30 @@ class TwissResponse(object):
         """ Convert to Normalized Dispersion """
         el_out = self._elements_out
         tw = self._twiss
-        disp = self._dispersion
-        beta = self.get_beta(mapped=False)
+        disp_dict = self._dispersion
+        beta_dict = self.get_beta(mapped=False)
 
-        self._dispersion_norm = dict.fromkeys(disp.keys())
-        for plane in disp:
+        self._dispersion_norm = dict.fromkeys(disp_dict.keys())
+        for plane in disp_dict:
             col_bet = "BET" + plane[0]
             col_disp = "D" + plane[0]
+            disp = disp_dict[plane]
+            beta = beta_dict[plane[0]]
 
+            # add delta=0 to the missing variables
+            not_in_disp = beta.columns.difference(disp.columns)
+            not_in_beta = disp.columns.difference(beta.columns)
+            disp = disp.assign(**dict.fromkeys(not_in_disp, 0.0))
+            beta = beta.assign(**dict.fromkeys(not_in_beta, 0.0))
+
+            # get norm disp for model and for model+delta
             nd_model = tw.loc[el_out, col_disp].div(
                 np.sqrt(tw.loc[el_out, col_bet]), axis='index')
-            nd_step = disp[plane].add(tw.loc[el_out, col_disp], axis='index').div(
-                beta[plane[0]].add(tw.loc[el_out, col_bet], axis='index')
+            nd_step = disp.add(tw.loc[el_out, col_disp], axis='index').div(
+                beta.add(tw.loc[el_out, col_bet], axis='index')
             )
 
+            # return difference
             self._dispersion_norm[plane] = nd_step.sub(nd_model, axis='index')
 
     ################################
