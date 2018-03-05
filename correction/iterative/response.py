@@ -3,7 +3,7 @@ import os
 
 from correction.iterative import response_madx
 from correction.iterative.correct_iterative import DEFAULT_ARGS
-from madx import madx_wrapper as madx
+import madx_wrapper as madx
 from model import manager
 from twiss_optics.response_class import TwissResponse
 from twiss_optics.sequence_parser import EXT as VARMAP_EXT
@@ -25,9 +25,10 @@ def get_params():
     )
     params.add_parameter(
         flags="--variables",
-        help="Comma separated names of the variables classes to use.",
+        help="List of the variables classes to use.",
         name="variable_categories",
         default=DEFAULT_ARGS["variables"],
+        nargs="+",
     )
     params.add_parameter(
         flags=["-m", "--model_dir"],

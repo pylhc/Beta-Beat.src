@@ -133,13 +133,13 @@ def _get_model_appenders():
 def _get_params():
     params = EntryPointParameters()
     params.add_parameter(
-        flags="--meas",
+        flags="--meas_dir",
         help="Path to the directory containing the measurement files.",
         name="meas_dir_path",
         required=True,
     )
     params.add_parameter(
-        flags="--model",
+        flags="--model_dir",
         help="Path to the model to use.",
         name="model_twiss_path",
         required=True,
@@ -165,7 +165,7 @@ def _get_params():
         name="optics_file",
     )
     params.add_parameter(
-        flags="--output",
+        flags="--output_dir",
         help=("Path to the directory where to write the ouput files, will "
               "default to the --meas input path."),
         name="output_path",
@@ -184,13 +184,15 @@ def _get_params():
         help=("Reject BPMs whose deviation to the model is higher than the "
               "correspoding input. Input in order of optics_params."),
         name="modelcut",
+        nargs="+",
+        type=float,
     )
     params.add_parameter(
         flags="--error_cut",
         help=("Reject BPMs whose error bar is higher than the "
               "correspoding input. Input in order of optics_params."),
         name="errorcut",
-        nargs="*",
+        nargs="+",
         type=float,
     )
     params.add_parameter(
@@ -198,7 +200,7 @@ def _get_params():
         help=("Weight to apply to each measured quatity. "
               "Input in order of optics_params."),
         name="weights_on_quantities",
-        nargs="*",
+        nargs="+",
         type=float,
     )
     params.add_parameter(
@@ -406,7 +408,7 @@ def _print_rms(meas, keys):
 
 def _load_fullresponse(full_response_path, variables):
     """
-    Full response is dictionary of MUX/Y, BBX/Y, NDX and Q gradients upon
+    Full response is dictionary of optics-parameter gradients upon
     a change of a single quadrupole strength
     """
     LOG.debug("Starting loading Full Response optics")
@@ -416,10 +418,10 @@ def _load_fullresponse(full_response_path, variables):
     for param in full_response_data:
         df = full_response_data[param]
         # fill with zeros
-        not_found_vars = [var for var in variables if var not in df.columns.values]
+        not_found_vars = pd.Index(variables).difference(df.columns)
         if len(not_found_vars) > 0:
             LOG.debug(("Variables not in fullresponse {:s} " +
-                       "(To be filled with zeros): {:s}").format(param, not_found_vars))
+                       "(To be filled with zeros): {:s}").format(param, not_found_vars.values))
             df = df.assign(**dict.fromkeys(not_found_vars, 0.0))  # one-liner to add zero-columns
         # order variables
         full_response_data[param] = df.loc[:, variables]
@@ -629,6 +631,11 @@ def _get_tunes(key, meas, model, erwg, weight, modelcut=0.1, errorcut=0.027):
 
 
 def _filter_response_index(response, measurement, keys):
+    not_in_response = [k for k in keys if k not in response]
+    if len(not_in_response) > 0:
+        raise KeyError("The following optical parameters are not present in current"
+                       "response matrix: {:s}".format(not_in_response))
+
     filters = _get_response_filters()
     new_resp = {}
     for key in keys:
