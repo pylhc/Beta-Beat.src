@@ -437,59 +437,28 @@ class TwissResponse(object):
     #       Normalizing
     ################################
 
-    def _normalize_beta_response(self):
+    def _normalize_beta_response(self, beta):
         """ Convert to Beta Beating """
         el_out = self._elements_out
         tw = self._twiss
-        beta = self._beta
 
-        self._beta_norm = dict.fromkeys(beta.keys())
+        beta_norm = dict.fromkeys(beta.keys())
         for plane in beta:
             col = "BET" + plane
-            self._beta_norm[plane] = beta[plane].div(
+            beta_norm[plane] = beta[plane].div(
                 tw.loc[el_out, col], axis='index')
-
-    def _normalize_dispersion_response(self):
-        """ Convert to Normalized Dispersion """
-        el_out = self._elements_out
-        tw = self._twiss
-        disp_dict = self._dispersion
-        beta_dict = self.get_beta(mapped=False)
-
-        self._dispersion_norm = dict.fromkeys(disp_dict.keys())
-        for plane in disp_dict:
-            col_bet = "BET" + plane[0]
-            col_disp = "D" + plane[0]
-            disp = disp_dict[plane]
-            beta = beta_dict[plane[0]]
-
-            # add delta=0 to the missing variables
-            not_in_disp = beta.columns.difference(disp.columns)
-            not_in_beta = disp.columns.difference(beta.columns)
-            disp = disp.assign(**dict.fromkeys(not_in_disp, 0.0))
-            beta = beta.assign(**dict.fromkeys(not_in_beta, 0.0))
-
-            # get norm disp for model and for model+delta
-            nd_model = tw.loc[el_out, col_disp].div(
-                np.sqrt(tw.loc[el_out, col_bet]), axis='index')
-            nd_step = disp.add(tw.loc[el_out, col_disp], axis='index').div(
-                beta.add(tw.loc[el_out, col_bet], axis='index')
-            )
-
-            # return difference
-            self._dispersion_norm[plane] = nd_step.sub(nd_model, axis='index')
+        return beta_norm
 
     ################################
     #       Mapping
     ################################
 
-    def _map_dispersion_response(self, normalized=False):
+    def _map_dispersion_response(self, disp):
         """ Maps all dispersion matrices """
         var2k0 = self._var_to_el["K0L"]
         var2j0 = self._var_to_el["K0SL"]
         var2j1 = self._var_to_el["K1SL"]
         m2v = self._map_to_variables
-        disp = self._dispersion_norm if normalized else self._dispersion
 
         return {
             "X_K0L": m2v(disp["X_K0L"], var2k0),
@@ -542,7 +511,7 @@ class TwissResponse(object):
                                                        self._var_to_el["K1L"])
 
         if normalized and not self._beta_norm:
-            self._normalize_beta_response()
+            self._beta_norm = self._normalize_beta_response(self._beta)
             if mapped and not self._beta_mapped_norm:
                 self._beta_mapped_norm = self._map_to_variables(self._beta_norm,
                                                                 self._var_to_el["K1L"])
@@ -552,25 +521,20 @@ class TwissResponse(object):
         else:
             return self._beta_norm if normalized else self._beta
 
-    def get_dispersion(self, mapped=True, normalized=True):
-        """ Returns Response Matrix for Normalized Dispersion """
+    def get_dispersion(self, mapped=True):
+        """ Returns Response Matrix for Dispersion """
         # prepare what is needed:
         if not self._dispersion:
             self._dispersion = self._calc_dispersion_response()
 
         if mapped and not self._dispersion_mapped:
-            self._dispersion_mapped = self._map_dispersion_response(normalized=False)
-
-        if normalized and not self._dispersion_norm:
-            self._normalize_dispersion_response()
-            if mapped and not self._dispersion_mapped_norm:
-                self._dispersion_mapped_norm = self._map_dispersion_response(normalized=True)
+            self._dispersion_mapped = self._map_dispersion_response(self._dispersion)
 
         # return what is needed
         if mapped:
-            return self._dispersion_mapped_norm if normalized else self._dispersion_mapped
+            return self._dispersion_mapped
         else:
-            return self._dispersion_norm if normalized else self._dispersion
+            return self._dispersion
 
     def get_phase(self, mapped=True):
         """ Returns Response Matrix for Total Phase """
@@ -623,11 +587,10 @@ class TwissResponse(object):
             # get all optical parametets
             tune = self.get_tune(mapped=mapped)
             beta = self.get_beta(mapped=mapped, normalized=False)
-            disp = self.get_dispersion(mapped=mapped, normalized=False)
+            bbeat = self.get_beta(mapped=mapped, normalized=True)
+            disp = self.get_dispersion(mapped=mapped)
             phase = self.get_phase(mapped=mapped)
             couple = self.get_coupling(mapped=mapped)
-            bbeat = self.get_beta(mapped=mapped, normalized=True)
-            ndisp = self.get_dispersion(mapped=mapped, normalized=True)
 
         # merge tune to one
         q_df = tune["X"].append(tune["Y"])
@@ -643,8 +606,6 @@ class TwissResponse(object):
             "MUY": phase["Y"],
             "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
-            "NDX": response_add(ndisp["X_K0L"], ndisp["X_K1SL"]),
-            "NDY": response_add(ndisp["Y_K0SL"], ndisp["Y_K1SL"]),
             # apply() converts empty DataFrames to Series! Cast them back.
             "F1001R": tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),
             "F1001I": tfs.TfsDataFrame(couple["1001"].apply(np.imag).astype(np.float64)),
