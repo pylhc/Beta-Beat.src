@@ -451,7 +451,7 @@ def main(accelerator,
     #-------- START coupling.
     try:
         tune_d = algorithms.coupling.calculate_coupling(
-            getllm_d, twiss_d, phase_d_bk, tune_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(), files_dict
+            getllm_d, twiss_d, phase_d_bk, tune_d, accelerator, files_dict
         )
     except:
         _tb_()

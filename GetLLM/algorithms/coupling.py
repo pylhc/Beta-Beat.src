@@ -46,7 +46,7 @@ LOGGER = logging_tools.get_logger(__name__)
 #===================================================================================================
 # main part
 #===================================================================================================
-def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict):
+def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, accelerator, files_dict):
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
@@ -65,6 +65,11 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
     '''
     LOGGER.info("Calculating coupling using the {0}-BPM-method and {1} file(s)"
                 .format(getllm_d.num_bpms_for_coupling,len(twiss_d.zero_dpp_x)))
+    mad_twiss = accelerator.get_model_tfs()
+    if accelerator.excitation is not AccExcitationMode.FREE:
+        mad_ac = accelerator.get_driven_tfs()
+    else:
+        mad_ac = None
 
     if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         #-- Coupling in the model
