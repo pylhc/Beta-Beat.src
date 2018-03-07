@@ -330,15 +330,16 @@ class Uncertainties:  # error definition file
         _debug_("Start creating uncertainty information")
 
         # create new columns, fill MUX/Y_END and BETX/Y_END
-        twiss_full.loc[:]["MUX_END"] = np.roll(twiss_full.loc[:]["MUX"], 1)
-        twiss_full.loc[:]["MUY_END"] = np.roll(twiss_full.loc[:]["MUY"], 1)
-        twiss_full.loc[:]["BETX_END"] = np.roll(twiss_full.loc[:]["BETX"], 1)
-        twiss_full.loc[:]["BETY_END"] = np.roll(twiss_full.loc[:]["BETY"], 1)
-        twiss_full.loc[:]["UNC"] = False
-        twiss_full.loc[:]["dK1"] = 0
-        twiss_full.loc[:]["dS"] = 0
-        twiss_full.loc[:]["dX"] = 0
-        twiss_full.loc[:]["BPMdS"] = 0
+        #twiss_full.loc[:]["MUX_END"] = np.roll(twiss_full.loc[:]["MUX"], 1)
+        #twiss_full.loc[:]["MUY_END"] = np.roll(twiss_full.loc[:]["MUY"], 1)
+        #twiss_full.loc[:]["BETX_END"] = np.roll(twiss_full.loc[:]["BETX"], 1)
+        #twiss_full.loc[:]["BETY_END"] = np.roll(twiss_full.loc[:]["BETY"], 1)
+        twiss_full["UNC"] = False
+        twiss_full["dK1"] = 0
+        twiss_full["KdS"] = 0
+        twiss_full["mKdS"] = 0
+        twiss_full["dX"] = 0
+        twiss_full["BPMdS"] = 0
         
         # loop over uncertainty definitions, fill the respective columns, set UNC to true
         for reg in self.regex:
@@ -349,13 +350,12 @@ class Uncertainties:  # error definition file
             if reg.type == IDBPM:
                 twiss_full.loc[reg_mask, "BPMdS"] = reg.dS**2
             else:
-                twiss_full.loc[reg_mask, "dS"] = reg.dS**2
+                twiss_full.loc[reg_mask, "KdS"] = (reg.dS * twiss_full.loc[reg_mask, "K1L"]) **2
             twiss_full.loc[reg_mask, "UNC"] = True
             
         # in case of quadrupole longitudinal misalignments, the element (DRIFT) in front of the misaligned quadrupole
         # will be used for the thin lens approximation of the misalignment
-        twiss_full.loc[:]["dS"] -= np.roll(twiss_full.loc[:]["dS"], 1)
-        twiss_full.loc[:]["dK1_END"] = -np.roll(twiss_full.loc[:]["dK1"], 1)
+        twiss_full["mKdS"] = np.roll(twiss_full.loc[:]["KdS"], 1)
         twiss_full.loc[:]["UNC"] |= np.roll(twiss_full.loc[:]["UNC"], 1)
         
         # dump the modified twiss_full and return it to the beta calculation
@@ -741,13 +741,19 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, fi
     if accelerator.excitation != AccExcitationMode.FREE:
         mad_ac = accelerator.get_driven_tfs()
 
-    commonbpms_x = twiss_d.zero_dpp_commonbpms_x
-    commonbpms_y = twiss_d.zero_dpp_commonbpms_y
+    if getllm_d.union:
+        commonbpms_x = twiss_d.zero_dpp_unionbpms_x
+        commonbpms_y = twiss_d.zero_dpp_unionbpms_y
+    else:
+        commonbpms_x = twiss_d.zero_dpp_commonbpms_x
+        commonbpms_y = twiss_d.zero_dpp_commonbpms_y
 
     LOGGER.info("commonbpms before sorting: {}".format(commonbpms_x))
     # exclude BPMs for which beta from phase din't work
-    commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase)]
-    commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase)]
+    LOGGER.info("keys: -------------------------------------------")
+    LOGGER.info(beta_d.x_phase.keys())
+    commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase.keys())]
+    commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase.keys())]
 
 
     LOGGER.info("commonbpms after sorting: {}".format(commonbpms_x))
@@ -1547,10 +1553,10 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         else: simple
     '''
     probed_bpm_name = madTwiss.index[Index]
-    s = madTwiss.get_value(probed_bpm_name, "S")
+    s = madTwiss.at[probed_bpm_name, "S"]
 
 
-    betmdl1 = madTwiss.get_value(probed_bpm_name, "BET" + plane)
+    betmdl1 = madTwiss.at[probed_bpm_name, "BET" + plane]
     mu_column = "MU" + plane
     bet_column = "BET" + plane
 
@@ -1623,17 +1629,17 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     outerElK2 = outerElmts.loc[:, "K2L"].as_matrix()
     indx_el_probed = outerElmts.index.get_loc(probed_bpm_name)
     outerElmtsBet = outerElmts.loc[:][bet_column].as_matrix()
-      
+
     with np.errstate(divide='ignore'):
         cot_meas = 1.0 / tan(outerMeasPhaseAdv.as_matrix())
         cot_model = 1.0 / tan((outerMdlPh - outerMdlPh[m])) 
     outerElPhAdv = sin(outerElPhAdv)
     sin_squared_elements = np.multiply(outerElPhAdv, outerElPhAdv)
-    
+
 #    print "outerMdlPh"
 #    print outerMdlPh
 #    print "outerELmtsPh"
-#    print outerElmtsPh
+    #print outerElmts
 #    print "outerElPhAdv"
 #    print outerElPhAdv
 #        
@@ -1645,17 +1651,18 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
 #                  len(sin_squared_elements) * 3))
     
 #    diag = np.concatenate((outerElmts.loc[:]["dK1"],outerElmts.loc[:]["dS"],outerElmts.loc[:]["dX"]))
-    diag = np.concatenate((outerMeasErr.as_matrix(), outerElmts.loc[:]["dK1"], outerElmts.loc[:]["dX"]))
+    diag = np.concatenate((outerMeasErr.as_matrix(), outerElmts.loc[:]["dK1"],
+                           outerElmts.loc[:]["dX"], outerElmts.loc[:]["KdS"],
+                           outerElmts.loc[:]["mKdS"]))
     mask = diag != 0
-    
+
     T_Beta = np.zeros((len(betas),
                    len(diag) ))
-    
+
     M = np.diag(diag[mask])
-    
 #    print cot_model[m]
 #    print cot_model
-    
+
     for i, combo in enumerate(BBA_combo):
         ix = combo[0] + m
         iy = combo[1] + m
@@ -1708,6 +1715,18 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         T_Beta[i][xloc + y_offset : indx_el_probed + y_offset] += elementK2_XA * bet_sin_ix
         T_Beta[i][yloc + y_offset : indx_el_probed + y_offset] -= elementK2_YA * bet_sin_iy
 
+        y_offset += len(outerElmts)
+
+        # apply quadrupole longitudinal misalignments
+        T_Beta[i][xloc + y_offset : indx_el_probed + y_offset] += bet_sin_ix
+        T_Beta[i][yloc + y_offset : indx_el_probed + y_offset] -= bet_sin_iy
+
+        y_offset += len(outerElmts)
+
+        T_Beta[i][xloc + y_offset : indx_el_probed + y_offset] -= bet_sin_ix
+        T_Beta[i][yloc + y_offset : indx_el_probed + y_offset] += bet_sin_iy
+
+
     offset_i = len(BBA_combo)
 
     for i, combo in enumerate(BAB_combo):
@@ -1744,9 +1763,11 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         T_Beta[i + offset_i][ix] = -1.0 / (denom_sinx * denom)
         T_Beta[i + offset_i][iy] = 1.0 / (denom_siny * denom)
 
+        bet_sin_ix = elementPh_XA * elementBet_XA / (denom_sinx * denom)
+        bet_sin_iy = elementPh_YA * elementBet_YA / (denom_siny * denom)
 
-        T_Beta[i + offset_i, xloc+range_of_bpms:indx_el_probed+range_of_bpms] += elementPh_XA * elementBet_XA / (denom_sinx * denom)
-        T_Beta[i + offset_i, indx_el_probed+range_of_bpms:yloc+range_of_bpms] += elementPh_YA * elementBet_YA / (denom_siny * denom)
+        T_Beta[i + offset_i, xloc+range_of_bpms:indx_el_probed+range_of_bpms] += bet_sin_ix
+        T_Beta[i + offset_i, indx_el_probed+range_of_bpms:yloc+range_of_bpms] += bet_sin_iy
 
         y_offset = range_of_bpms + len(outerElmts)
 
@@ -1754,6 +1775,16 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         T_Beta[i + offset_i][xloc + y_offset : indx_el_probed + y_offset] += elementPh_XA * elementBet_XA * elementK2_XA / (denom_sinx * denom)
         T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] -= elementPh_YA * elementBet_YA * elementK2_YA / (denom_siny * denom)
 
+        y_offset += len(outerElmts)
+
+        # apply quadrupole longitudinal misalignments
+        T_Beta[i + offset_i][xloc + y_offset : indx_el_probed + y_offset] += bet_sin_ix
+        T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] += bet_sin_iy
+
+        y_offset += len(outerElmts)
+
+        T_Beta[i + offset_i][xloc + y_offset : indx_el_probed + y_offset] -= bet_sin_ix
+        T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] -= bet_sin_iy
 
     offset_i += len(BAB_combo)
 
@@ -1792,14 +1823,29 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         T_Beta[i + offset_i][ix] = -1.0 / (denom_sinx * denom)
         T_Beta[i + offset_i][iy] = 1.0 / (denom_siny * denom)
 
-        T_Beta[i + offset_i][indx_el_probed+range_of_bpms:xloc+range_of_bpms] -= elementPh_XA * elementBet_XA / (denom_sinx * denom)
-        T_Beta[i + offset_i][indx_el_probed+range_of_bpms:yloc+range_of_bpms] += elementPh_YA * elementBet_YA / (denom_siny * denom)
+        bet_sin_ix = elementPh_XA * elementBet_XA / (denom_sinx * denom)
+        bet_sin_iy = elementPh_YA * elementBet_YA / (denom_siny * denom)
+
+        T_Beta[i + offset_i][indx_el_probed+range_of_bpms:xloc+range_of_bpms] -= bet_sin_ix
+        T_Beta[i + offset_i][indx_el_probed+range_of_bpms:yloc+range_of_bpms] += bet_sin_iy
 
         y_offset = range_of_bpms + len(outerElmts)
 
         # apply sextupole transverse misalignment
         T_Beta[i + offset_i][indx_el_probed + y_offset : xloc + y_offset] += 2.0 *elementPh_XA * elementBet_XA * elementK2_XA / (denom_sinx * denom)
         T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] -= 2.0 *elementPh_YA * elementBet_YA * elementK2_YA / (denom_siny * denom)
+
+        y_offset += len(outerElmts)
+
+        # apply quadrupole longitudinal misalignments
+        T_Beta[i + offset_i][indx_el_probed + y_offset : xloc + y_offset] -= bet_sin_ix
+        T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] += bet_sin_iy
+
+        y_offset += len(outerElmts)
+
+        T_Beta[i + offset_i][indx_el_probed + y_offset : xloc + y_offset] += bet_sin_ix
+        T_Beta[i + offset_i][indx_el_probed + y_offset : yloc + y_offset] -= bet_sin_iy
+
     T_Beta = T_Beta[:, mask]
     T_Beta = T_Beta[beta_mask]
     betas = betas[beta_mask]
