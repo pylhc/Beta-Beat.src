@@ -1,15 +1,17 @@
-""" Provides Class to get response matrices from Twiss parameters.
-    The calculation is based on formulas in [#fran], [#toma].
+"""
+| Provides Class to get response matrices from Twiss parameters.
+| The calculation is based on formulas in [#fran]_, [#toma]_.
+|
+| Only works properly for on-orbit twiss files.
 
-    Only works properly for on-orbit twiss files.
+    * Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#fran]_
+    * Dispersion Response:    Eq. 25-27 in [#fran]_
+    * Phase Advance Response: Eq. 28 in [#fran]_
+    * Tune Response:          Eq. 7 in [#toma]_
 
-    Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#fran]
-    Dispersion Response:    Eq. 25-27 in [#fran]
-    Phase Advance Response: Eq. 28 in [#fran]
-    Tune Response:          Eq. 7 in [#toma]
+For people reading the code, the response matrices are first calculated like:
 
-    For people reading the code:
-    The response matrices are first calculated like:
+::
 
     |  Elements of interest (j) --> ... |
     |Magnets (m)                        |
@@ -20,21 +22,21 @@
     |  .                                |
     |                                   |
 
-    As this was avoided transposing all vectors in the beginning.
-    At the end (of the calculation) the matrix is then transposed
-    to fit the :math:'M \cdot \delta K' orientation.
+As this was avoided transposing all vectors in the beginning.
+At the end (of the calculation) the matrix is then transposed
+to fit the :math:`M \cdot \delta K` orientation.
 
-    References:
-        [#fran]  A. Franchi et al.,
-                 'Analytic formulas for the rapid evaluation of the orbit response matrix
-                 and chromatic functions from lattice parameters in circular accelerators'
-                 NOT YET PUBLISHED
+References:
+ .. [#fran]  A. Franchi et al.,
+             'Analytic formulas for the rapid evaluation of the orbit response matrix
+             and chromatic functions from lattice parameters in circular accelerators'
+             NOT YET PUBLISHED
 
-        [#toma]  R. Tomas, et al.,
-                 'Review of linear optics measurement and correction for charged particle
-                 accelerators.'
-                 Physical Review Accelerators and Beams, 20(5), 54801. (2017)
-                 https://doi.org/10.1103/PhysRevAccelBeams.20.054801
+ .. [#toma]  R. Tomas, et al.,
+             'Review of linear optics measurement and correction for charged particle
+             accelerators.'
+             Physical Review Accelerators and Beams, 20(5), 54801. (2017)
+             https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 """
 import numpy as np
 import pandas as pd
@@ -217,7 +219,7 @@ class TwissResponse(object):
     def _calc_coupling_response(self):
         """ Response Matrix for coupling.
 
-        Eq. 10 in [#fran]
+        Eq. 10 in [#fran]_
         """
         LOG.debug("Calculate Coupling Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -243,7 +245,7 @@ class TwissResponse(object):
     def _calc_beta_response(self):
         """ Response Matrix for delta beta.
 
-        Eq. A35 -> Eq. B45 in [#fran]
+        Eq. A35 -> Eq. B45 in [#fran]_
         """
         LOG.debug("Calculate Beta Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -271,7 +273,7 @@ class TwissResponse(object):
     def _calc_dispersion_response(self):
         """ Response Matrix for delta dispersion
 
-            Eq. 25-27 in [#fran]
+            Eq. 25-27 in [#fran]_
         """
         LOG.debug("Calculate Dispersion Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
@@ -313,7 +315,7 @@ class TwissResponse(object):
     def _calc_phase_advance_response(self):
         """ Response Matrix for delta DPhi.
 
-        Eq. 28 in [#fran]
+        Eq. 28 in [#fran]_
         Reduced to only phase advances between consecutive elements,
         as the 3D-Matrix of all elements exceeds memory space
         (~11000^3 = 1331 Giga Elements)
@@ -364,7 +366,7 @@ class TwissResponse(object):
     def _calc_phase_response(self):
         """ Response Matrix for delta DPhi.
 
-        Eq. 28 in [#fran]
+        Eq. 28 in [#fran]_
         Reduced to only delta phase.
         --> w = 0:  DPhi(z,j) = DPhi(x, 0->j)
 
@@ -411,7 +413,7 @@ class TwissResponse(object):
     def _calc_tune_response(self):
         """ Response vectors for Tune.
 
-        Eq. 7 in [#toma]
+        Eq. 7 in [#toma]_
         """
         LOG.debug("Calculate Tune Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
