@@ -1,11 +1,10 @@
 import cPickle as pickle
 import os
 
-from correction.fullresponse.response_class import TwissResponse
-
 import madx_wrapper as madx
-from correct_iterative import DEFAULT_ARGS
 from correction.fullresponse import response_madx
+from correction.fullresponse.response_analytical import TwissResponse
+from global_correct_iterative import DEFAULT_ARGS
 from model import manager
 from twiss_optics.sequence_parser import EXT as VARMAP_EXT
 from utils import logging_tools
