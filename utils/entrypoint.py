@@ -40,19 +40,20 @@ Parameters:
 ++++++++++++++++++++++++
 
 Parameters need to be a list or a dictionary of dictionaries with the following keys:
-|    **name** (*required*): Name of the variable (e.g. later use options.NAME).
-|                          If 'params' is a dictionary, the key will be used as name.
-|    **flags** (*required*): Commandline flag(s), e.g. ``--file``
-|    **required** (*optional*): ``bool``
-|    **default** (*optional*): Default value, if variable not present
-|    **help** (*optional*): ``str``
-|    **type** (*optional*): Value ``type`` (if nargs is given, set to list for dicts!)
-|    **choices** (*optional*): choices to choose from
-|                              (choices need to be of ``type``, if given)
-|    **nargs** (*optional*): number of arguments to consume
-|                            (commandline only, do not use ``REMAINDER``!)
-|    **action** (*optional*): either ``store_true`` or ``store_false``, will set ``type`` to bool
-|                             and the default to ``False`` and ``True`` respectively.
+
+| **name** (*required*): Name of the variable (e.g. later use options.NAME).
+ If 'params' is a dictionary, the key will be used as name.
+| **flags** (*required*): Commandline flag(s), e.g. ``--file``
+| **required** (*optional*): ``bool``
+| **default** (*optional*): Default value, if variable not present
+| **help** (*optional*): ``str``
+| **type** (*optional*): Value ``type`` (if nargs is given, set to list for dicts!)
+| **choices** (*optional*): choices to choose from
+ (choices need to be of ``type``, if given)
+| **nargs** (*optional*): number of arguments to consume
+ (commandline only, do not use ``REMAINDER``!)
+| **action** (*optional*): either ``store_true`` or ``store_false``, will set ``type`` to bool
+ and the default to ``False`` and ``True`` respectively.
 
 
 The **strict** option changes the behaviour for unknown parameters:

@@ -1,25 +1,26 @@
 """
-    Provides Classes to calculate optics from twiss parameters.
-    The calculation is based on formulas in [1,2].
+Provides Classes to calculate optics from twiss parameters.
 
-    Only works properly for on-orbit twiss files.
+The calculation is based on formulas in [1,2].
 
-    Resonance Driving Terms: Eq. A8 in [2]
-    Linear Dispersion: Eq. 24 in [2]
-    Linear Chromaticity: Eq. 31 in [2]
-    Chromatic Beating: Eq. 36 in [2]
+Only works properly for on-orbit twiss files.
 
-    References:
-        [1]  A. Franchi et al.,
-             First simultaneous measurement of sextupolar and octupolar resonance driving
-             terms in a circular accelerator from turn-by-turn beam position monitor data,
-             Phys. Rev. ST Accel. Beams 17, 074001 (2014).
-             https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001
+ - Resonance Driving Terms: Eq. A8 in [2]
+ - Linear Dispersion: Eq. 24 in [2]
+ - Linear Chromaticity: Eq. 31 in [2]
+ - Chromatic Beating: Eq. 36 in [2]
 
-        [2]  A. Franchi et al.,
-             Analytic formulas for the rapid evaluation of the orbit response matrix
-             and chromatic functions from lattice parameters in circular accelerators
-             NOT YET PUBLISHED
+References:
+    [1]  A. Franchi et al.,
+         First simultaneous measurement of sextupolar and octupolar resonance driving
+         terms in a circular accelerator from turn-by-turn beam position monitor data,
+         Phys. Rev. ST Accel. Beams 17, 074001 (2014).
+         https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001
+
+    [2]  A. Franchi et al.,
+         Analytic formulas for the rapid evaluation of the orbit response matrix
+         and chromatic functions from lattice parameters in circular accelerators
+         NOT YET PUBLISHED
 
 """
 

@@ -1,13 +1,15 @@
 """
-| Provides Class to get response matrices from Twiss parameters.
-| The calculation is based on formulas in [#fran]_, [#toma]_.
-|
-| Only works properly for on-orbit twiss files.
+Provides Class to get response matrices from Twiss parameters.
 
-    * Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#fran]_
-    * Dispersion Response:    Eq. 25-27 in [#fran]_
-    * Phase Advance Response: Eq. 28 in [#fran]_
-    * Tune Response:          Eq. 7 in [#toma]_
+The calculation is based on formulas in [#fran]_, [#toma]_.
+
+
+Only works properly for on-orbit twiss files.
+
+ * Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#fran]_
+ * Dispersion Response:    Eq. 25-27 in [#fran]_
+ * Phase Advance Response: Eq. 28 in [#fran]_
+ * Tune Response:          Eq. 7 in [#toma]_
 
 For people reading the code, the response matrices are first calculated like:
 

@@ -29,19 +29,19 @@ observables are recalculated by Mad-X.
 
 
 Possible problems and notes:
-* do we need error cut, when we use error-based weights? probably not anymore
-* error-based weights default? likely - but be carefull with low tune errors vs
+ * do we need error cut, when we use error-based weights? probably not anymore
+ * error-based weights default? likely - but be carefull with low tune errors vs
 svd cut in pseudoinverse
-* manual creation of pd.DataFrame varslist, deltas? maybe
+ * manual creation of pd.DataFrame varslist, deltas? maybe
 tunes in tfs_pandas single value or a column?
-* Minimal strength removed
-* Check the output files and when they are written
-* There should be some summation/renaming for iterations
-* For two beam correction
-* The two beams can be treated separately until the calcultation of correction
-* Values missing in the response (i.e. correctors of the other beam) shall be
+ * Minimal strength removed
+ * Check the output files and when they are written
+ * There should be some summation/renaming for iterations
+ * For two beam correction
+ * The two beams can be treated separately until the calcultation of correction
+ * Values missing in the response (i.e. correctors of the other beam) shall be
 treated as zeros
-* Missing a part that treats the output from LSA
+ * Missing a part that treats the output from LSA
 
 """
 import cPickle
