@@ -162,7 +162,7 @@ def _get_params():
     params.add_parameter(
         flags="--model_dir",
         help="Path to the model to use.",
-        name="model_twiss_path",
+        name="model_or_twiss_path",
         required=True,
     )
     params.add_parameter(
@@ -294,8 +294,8 @@ def global_correction(opt, accel_opt):
                            **Flags**: --fullresponse
         meas_dir_path: Path to the directory containing the measurement files.
                        **Flags**: --meas_dir
-        model_twiss_path: Path to the model to use.
-                          **Flags**: --model_dir
+        model_or_twiss_path: Path to the model to use.
+                             **Flags**: --model_dir
         Optional
         beta_file_name: Prefix of the beta file to use. E.g.: getkmodbeta
                         **Flags**: --beta_file_name
@@ -368,7 +368,7 @@ def global_correction(opt, accel_opt):
         e_dict = dict(zip(opt.optics_params, opt.errorcut))
 
         # read data from files
-        nominal_model = tfs.read_tfs(opt.model_twiss_path).set_index("NAME", drop=False)
+        nominal_model = tfs.read_tfs(opt.model_path).set_index("NAME", drop=False)
         vars_list = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
         resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
 
@@ -428,9 +428,16 @@ def global_correction(opt, accel_opt):
 def _check_opt(opt):
     """ Check on options and put in missing values """
     # get unset paths from other paths
+    if os.path.isdir(opt.model_or_twiss_path):
+        opt.model_dir = opt.model_or_twiss_path
+        opt.model_path = os.path.join(opt.model_dir, "twiss.dat")
+    else:
+        opt.model_dir = os.path.dirname(opt.model_or_twiss_path)
+        opt.model_path = opt.model_or_twiss_path
+
     if opt.optics_file is None:
-        opt.optics_file = os.path.join(os.path.dirname(opt.model_twiss_path),
-                                       "modifiers.madx")
+        opt.optics_file = os.path.join(opt.model_dir, "modifiers.madx")
+
     if opt.output_path is None:
         opt.output_path = opt.meas_dir_path
 
