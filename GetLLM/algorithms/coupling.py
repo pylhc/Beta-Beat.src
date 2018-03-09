@@ -66,6 +66,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, accelerator, files_di
     LOGGER.info("Calculating coupling using the {0}-BPM-method and {1} file(s)"
                 .format(getllm_d.num_bpms_for_coupling,len(twiss_d.zero_dpp_x)))
     mad_twiss = accelerator.get_model_tfs()
+    mad_elements = accelerator.get_elements_tfs()
     if accelerator.excitation is not AccExcitationMode.FREE:
         mad_ac = accelerator.get_driven_tfs()
     else:
@@ -73,12 +74,9 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, accelerator, files_di
 
     if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         #-- Coupling in the model
-        try:
-            optics_twiss = TwissOptics(mad_twiss)
-            optics_twiss.calc_cmatrix()
-            optics_coupling = optics_twiss.get_coupling(method="cmatrix")
-        except:
-            raise GetLLMError("Could not calculate coupling metadata for model twiss")
+        optics_twiss = TwissOptics(mad_elements)
+        optics_twiss.calc_cmatrix()
+        optics_coupling = optics_twiss.get_coupling(method="cmatrix")
         #-- Main part
         # 1-BPM method
         if getllm_d.num_bpms_for_coupling == 1:

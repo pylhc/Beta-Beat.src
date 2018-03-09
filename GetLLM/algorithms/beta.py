@@ -22,6 +22,7 @@ import time
 import numpy as np
 from numpy import sin, tan
 import pandas as pd
+from copy import deepcopy
 
 from scipy.linalg import circulant
 import Python_Classes4MAD.metaclass
@@ -684,6 +685,7 @@ def beta_from_phase_for_plane(free_model, driven_model, unc_elements, getllm_d, 
         getllm_d.range_of_bpms, beta_d_phase_f, dataf, rms_bb, error_method_x, commonbpms,
         files_dict['getbeta{}_free.out'.format(plane_for_file)], plane, getllm_d.union
     )
+    beta_d_phase = deepcopy(beta_d_phase_f)
 
     if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
         driven_model = driven_model.loc[commonbpms.index]
@@ -737,16 +739,13 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, fi
     '''
     _info_('Calculating beta from amplitude')
     mad_twiss = accelerator.get_model_tfs()
-    mad_ac = None
     if accelerator.excitation != AccExcitationMode.FREE:
         mad_ac = accelerator.get_driven_tfs()
-
-    if getllm_d.union:
-        commonbpms_x = twiss_d.zero_dpp_unionbpms_x
-        commonbpms_y = twiss_d.zero_dpp_unionbpms_y
     else:
-        commonbpms_x = twiss_d.zero_dpp_commonbpms_x
-        commonbpms_y = twiss_d.zero_dpp_commonbpms_y
+        mad_ac = mad_twiss
+
+    commonbpms_x = twiss_d.zero_dpp_commonbpms_x
+    commonbpms_y = twiss_d.zero_dpp_commonbpms_y
 
     LOGGER.info("commonbpms before sorting: {}".format(commonbpms_x))
     # exclude BPMs for which beta from phase din't work
@@ -877,7 +876,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, fi
 #-----------------------------------------------------------------------------------------------------------------------
 
     if twiss_d.has_zero_dpp_y():
-        [beta_d.y_amp, rmsbby, _, inv_jy] = beta_from_amplitude(mad_ac, twiss_d.zero_dpp_y, 'Y', commonbpms_y)
+        [beta_d.y_amp, rmsbby, _, inv_jy] = beta_from_amplitude(mad_twiss, twiss_d.zero_dpp_y, 'Y', commonbpms_y)
         beta_d.y_amp['DPP'] = 0
         #-- Rescaling
         beta_d.y_ratio = 0
