@@ -22,7 +22,7 @@ treated as zeros
 """
 
 # noinspection PyUnresolvedReferences
-import __init__
+import correction.iterative
 import os
 import shutil
 import time

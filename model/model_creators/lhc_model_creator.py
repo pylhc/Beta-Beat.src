@@ -1,10 +1,12 @@
 from __future__ import print_function
+
+import logging
 import os
 import sys
-import logging
-from model.accelerators.accelerator import AccExcitationMode
+
 import model_creator
-from correction.iterative.response_madx import DEFAULT as RESP_DEFAULT
+from correction.fullresponse.response_madx import DEFAULT as RESP_DEFAULT
+from model.accelerators.accelerator import AccExcitationMode
 
 AFS_ROOT = "/afs"
 if "win" in sys.platform and sys.platform != "darwin":
