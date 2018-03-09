@@ -264,3 +264,5 @@ class Cps(Accelerator):
     def get_elements_centre_tfs(self):
         return self._elements_centre
 
+    def get_amp_bpms(self, bpms):
+        return bpms
