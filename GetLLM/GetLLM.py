@@ -414,10 +414,18 @@ def main(accelerator,
     except:
         _tb_()
 
+    # in the following functions, nothing should change, so we choose the models now
+    mad_twiss = accelerator.get_model_tfs()
+    mad_elements = accelerator.get_elements_tfs()
+    if accelerator.excitation != AccExcitationMode.FREE:
+        mad_ac = accelerator.get_driven_tfs()
+    else:
+        mad_ac = mad_twiss
+
     #-------- START IP
     try:
         algorithms.interaction_point.calculate_ip(
-            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, accelerator.get_model_tfs(), accelerator.get_driven_tfs(),
+            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, mad_twiss, mad_ac,
             files_dict
         )
     except:
@@ -426,7 +434,7 @@ def main(accelerator,
     #-------- START Orbit
     try:
         list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(
-            getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict
+            getllm_d, twiss_d, tune_d, mad_twiss, files_dict
         )
     except:
         _tb_()
@@ -434,7 +442,7 @@ def main(accelerator,
     #-------- START Dispersion
     try:
         algorithms.dispersion.calculate_dispersion(
-            getllm_d, twiss_d, tune_d, accelerator.get_model_tfs(), files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y
+            getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y
         )
     except:
         _tb_()
@@ -460,7 +468,7 @@ def main(accelerator,
     if nonlinear:
         try:
             algorithms.resonant_driving_terms.calculate_RDTs(
-                accelerator.get_model_tfs(), getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y
+                mad_twiss, getllm_d, twiss_d, phase_d_bk, tune_d, files_dict, inv_x, inv_y
             )
         except:
             _tb_()
