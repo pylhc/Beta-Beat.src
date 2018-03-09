@@ -262,27 +262,65 @@ def _get_params():
 
 @entrypoint(_get_params())
 def global_correction(opt, accel_opt):
-    """ Do the global correction.
+    """ Do the global correction. Iteratively.
 
-    Keyword Args:
-        variable_categories: Comma separated names of the variables classes to use.
-        errorcut: Reject BPMs whose error bar is higher than the correspoding input.
-                  Input should be: Phase,Betabeat,NDx
-        optics_file: Path to the optics file to use, usually modifiers.madx.
-                     If not present will default to model_path/modifiers.madx
-        model_twiss_path: Path to the model to use.
-        num_reiteration: Number of correction iterations to perform.
-        weights_on_quantities: Weight to apply to each measured quatity.
-                               Input shoud be: PhaseX,PhaseY,BetaX,BetaY,NDx,Q
-        beta_file_name: Prefix of the beta file to use. E.g.: getkmodbeta
-        use_errorbars: If present, it will take into account the measured errorbars in the correction.
-        modelcut: Reject BPMs whose deviation to the model is higher than the correspoding input. Input should be: Phase,Betabeat,NDx
-        output_path: Path to the directory where to write the ouput files, will default to the --meas input path.
-        virt_flag: If present, it will use virtual correctors.
-        debug: Print debug information.
-        meas_dir_path: Path to the directory containing the measurement files.
-        singular_value_cut:
-        fullresponse_path: Path to the fullresponse binary file.
+    Required
+    fullresponse_path: Path to the fullresponse binary file.
+                       **Flags**: --fullresponse
+    meas_dir_path: Path to the directory containing the measurement files.
+                   **Flags**: --meas_dir
+    model_twiss_path: Path to the model to use.
+                      **Flags**: --model_dir
+    Optional
+    beta_file_name: Prefix of the beta file to use. E.g.: getkmodbeta
+                    **Flags**: --beta_file_name
+                    **Default**: ``getbeta``
+    debug: Print debug information.
+           **Flags**: --debug
+           **Action**: ``store_true``
+    eps (float): (Not implemented yet)
+                 Convergence criterion.If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.
+                 **Flags**: --eps
+                 **Default**: ``None``
+    errorcut (float): Reject BPMs whose error bar is higher than the correspoding input.
+                      Input in order of optics_params.
+                      **Flags**: --error_cut
+    max_iter (int): Maximum number of correction iterations to perform.
+                    **Flags**: --max_iter
+                    **Default**: ``3``
+    method (str): Optimization method to use. (Not implemented yet)
+                  **Flags**: --method
+                  **Choices**: ['pinv']
+                  **Default**: ``pinv``
+    modelcut (float): Reject BPMs whose deviation to the model is higher than the
+                      correspoding input. Input in order of optics_params.
+                      **Flags**: --model_cut
+    optics_file: Path to the optics file to use, usually modifiers.madx.
+                 If not present will default to model_path/modifiers.madx
+                 **Flags**: --optics_file
+    optics_params (str): List of parameters to correct upon (e.g. BBX BBY)
+                         **Flags**: --optics_params
+                         **Default**: ``['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q']``
+    output_path: Path to the directory where to write the ouput files,
+                 will default to the --meas input path.
+                 **Flags**: --output_dir
+                 **Default**: ``None``
+    svd_cut (float): Cutoff for small singular values of the pseudo inverse. (Method: 'pinv')
+                     Singular values smaller than `rcond`*largest_singular_value are set to zero
+                     **Flags**: --svd_cut
+                     **Default**: ``0.01``
+    use_errorbars: If True, it will take into account the measured errorbars in the correction.
+                   **Flags**: --use_errorbars
+                   **Action**: ``store_true``
+    variable_categories: List of names of the variables classes to use.
+                         **Flags**: --variables
+                         **Default**: ``['MQM', 'MQT', 'MQTL', 'MQY']``
+    virt_flag: If true, it will use virtual correctors.
+               **Flags**: --virt_flag
+               **Action**: ``store_true``
+    weights_on_quantities (float): Weight to apply to each measured quatity.
+                                   Input in order of optics_params.
+                                   **Flags**: --weights
     """
 
     with logging_tools.DebugMode(active=opt.debug):

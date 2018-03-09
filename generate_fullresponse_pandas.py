@@ -18,6 +18,7 @@ def get_params():
     params = EntryPointParameters()
     params.add_parameter(
         flags="--creator",
+        help="Create either with madx or analytically from twiss file.",
         name="creator",
         type=str,
         choices=("madx", "twiss"),
@@ -65,6 +66,27 @@ def create_response(opt, other_opt):
     """ Entry point for creating pandas-based response matrices.
 
     The response matrices can be either created by response_madx or TwissResponse.
+
+    Keyword Args:
+        Required
+        model_dir (str): Path to the model directory.
+                         **Flags**: ['-m', '--model_dir']
+        outfile_path (str): Name of fullresponse file.
+                            **Flags**: ['-o', '--outfile']
+        Optional
+        creator (str): Create either with madx or analytically from twiss file.
+                       **Flags**: --creator
+                       **Choices**: ('madx', 'twiss')
+                       **Default**: ``madx``
+        debug: Print debug information.
+               **Flags**: --debug
+               **Action**: ``store_true``
+        delta_k (float): Delta K1L to be applied to quads for sensitivity matrix (madx-only).
+                         **Flags**: ['-k', '--deltak']
+                         **Default**: ``2e-05``
+        variable_categories: List of the variables classes to use.
+                             **Flags**: --variables
+                             **Default**: ``['MQM', 'MQT', 'MQTL', 'MQY']``
     """
     with logging_tools.DebugMode(active=opt.debug):
         LOG.info("Creating response.")
