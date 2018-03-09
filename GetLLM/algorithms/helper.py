@@ -118,7 +118,7 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     sig2=amp2*complex(cs2,ss2)
 
     # computing complex secondary line (h-)
-    sig=sig1*complex(1,-1/T)-sig2*complex(0,1/S)
+    sig=sig1*complex(1,1/T)-sig2*complex(0,1/S)
 
     amp=abs(sig)/2.
     phase=(np.arctan2(sig.imag,sig.real)/tp) %1.0
