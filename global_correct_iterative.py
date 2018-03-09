@@ -152,7 +152,7 @@ def _get_params():
         help="List of parameters to correct upon (e.g. BBX BBY)",
         name="optics_params",
         type=str,
-        nargs="*",
+        nargs="+",
         default=DEFAULT_ARGS["optics_params"],
     )
     params.add_parameter(
@@ -209,8 +209,9 @@ def _get_params():
     )
     params.add_parameter(
         flags="--variables",
-        help="Comma separated names of the variables classes to use.",
+        help="List of names of the variables classes to use.",
         name="variable_categories",
+        nargs="+",
         default=DEFAULT_ARGS["variables"],
     )
     params.add_parameter(

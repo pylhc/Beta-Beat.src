@@ -28,111 +28,69 @@ DEFAULT = {
     "pattern": "%CALL_ITER_FILE%",  # used in lhc_model_creator
 }
 
-
-# Parameters ###################################################################
-
-def get_params():
-    """ Used Arguments """
-    params = EntryPointParameters()
-    params.add_parameter(flags=["-o", "--outfile"],
-                         help="Name of fullresponse file.",
-                         name="outfile_path",
-                         required=True,
-                         type=str,
-                         )
-    params.add_parameter(flags=["-t", "--tempdir"],
-                         help=("Directory to store the temporary MAD-X files, "
-                               "it will default to the directory containing 'outfile'."),
-                         name="temp_dir",
-                         default=None,
-                         type=str,
-                         )
-    params.add_parameter(flags=["-v", "--variables"],
-                         help="List of variables to use",
-                         name="variables",
-                         required=True,
-                         type=str,
-                         nargs="*",
-                         )
-    params.add_parameter(flags=["-j", "--jobfile"],
-                         help="Name of the original MAD-X job file defining the sequence file.",
-                         name="original_jobfile_path",
-                         required=True,
-                         type=str
-                         )
-    params.add_parameter(flags=["-p", "--pattern"],
-                         help=("Pattern to be replaced in the MAD-X job file "
-                               "by the iterative script calls."),
-                         default=DEFAULT["pattern"],
-                         name="pattern",
-                         type=str
-                         )
-    params.add_parameter(flags=["-k", "--deltak"],
-                         help="delta K1L to be applied to quads for sensitivity matrix",
-                         default=0.00002,
-                         name="delta_k",
-                         type=float
-                         )
-    params.add_parameter(flags=["-n", "--num_proc"],
-                         help="Number of processes to use in parallel.",
-                         default=multiprocessing.cpu_count(),
-                         name="num_proc",
-                         type=int
-                         )
-    return params
-
-
 # Full Response Mad-X ##########################################################
 
 
-@entrypoint(get_params(), strict=True)
-def generate_fullresponse(opt):
+def generate_fullresponse(outfile_path, variables,
+                          original_jobfile_path, pattern=DEFAULT["pattern"],
+                          delta_k=0.00002, num_proc=multiprocessing.cpu_count(), temp_dir=None):
     """ Generate a dictionary containing response matrices for
         Mu, BetaBeating, Dispersion and Tune and saves it to a file.
+
+        Args:
+            outfile_path (str): Name of fullresponse file.
+            variables (list): List of variables to use.
+            original_jobfile_path (str): Name of the original MAD-X job file
+                                         defining the sequence file.
+            pattern (str): Pattern to be replaced in the MAD-X job file by the iterative
+                           script calls.
+            delta_k (float): delta K1L to be applied to quads for sensitivity matrix
+            num_proc (int): Number of processes to use in parallel.
     """
     LOG.debug("Generating Fullresponse via Mad-X.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
-        if not opt.temp_dir:
-            opt.temp_dir = os.path.dirname(opt.outfile_path)
-        create_dirs(opt.temp_dir)
+        if not temp_dir:
+            temp_dir = os.path.dirname(outfile_path)
+        create_dirs(temp_dir)
 
-        process_pool = multiprocessing.Pool(processes=opt.num_proc)
+        process_pool = multiprocessing.Pool(processes=num_proc)
 
-        incr_dict = _generate_madx_jobs(opt.variables, opt)
-        _call_madx(process_pool, opt.temp_dir, opt.num_proc)
-        _clean_up(opt.temp_dir, opt.num_proc, opt.outfile_path)
+        incr_dict = _generate_madx_jobs(variables, original_jobfile_path, pattern,
+                        delta_k, num_proc, temp_dir)
+        _call_madx(process_pool, temp_dir, num_proc)
+        _clean_up(temp_dir, num_proc, outfile_path)
 
-        var_to_twiss = _load_madx_results(opt.variables, process_pool, incr_dict, opt.temp_dir)
+        var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, temp_dir)
         fullresponse = _create_fullresponse_from_dict(var_to_twiss)
-    _save_fullresponse(opt.outfile_path, fullresponse)
+    _save_fullresponse(outfile_path, fullresponse)
 
 
-def _generate_madx_jobs(variables, options):
+def _generate_madx_jobs(variables, original_jobfile_path, pattern, delta_k, num_proc, temp_dir):
     """ Generates madx job-files """
     LOG.debug("Generating MADX jobfiles.")
     incr_dict = {'0': 0.0}
-    vars_per_proc = int(math.ceil(float(len(variables)) / options.num_proc))
+    vars_per_proc = int(math.ceil(float(len(variables)) / num_proc))
 
-    for proc_idx in range(options.num_proc):
-        jobfile_path, iterfile_path = _get_jobfiles(options.temp_dir, proc_idx)
-        _write_jobfile(options.original_jobfile_path, jobfile_path, iterfile_path, options.pattern)
+    for proc_idx in range(num_proc):
+        jobfile_path, iterfile_path = _get_jobfiles(temp_dir, proc_idx)
+        _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, pattern)
         with open(iterfile_path, "w") as iter_file:
             for i in range(vars_per_proc):
                 var_idx = proc_idx * vars_per_proc + i
                 if var_idx >= len(variables):
                     break
                 var = variables[var_idx]
-                incr_dict[var] = options.delta_k
+                incr_dict[var] = delta_k
                 iter_file.write(
-                    "{var:s}={var:s}+({delta:f});\n".format(var=var, delta=options.delta_k))
+                    "{var:s}={var:s}+({delta:f});\n".format(var=var, delta=delta_k))
                 iter_file.write(
-                    "twiss, file='{:s}';\n".format(os.path.join(options.temp_dir, "twiss." + var)))
+                    "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss." + var)))
                 iter_file.write(
-                    "{var:s}={var:s}-({delta:f});\n".format(var=var, delta=options.delta_k))
+                    "{var:s}={var:s}-({delta:f});\n".format(var=var, delta=delta_k))
 
-            if proc_idx == options.num_proc - 1:
+            if proc_idx == num_proc - 1:
                 iter_file.write(
-                    "twiss, file='{:s}';\n".format(os.path.join(options.temp_dir, "twiss.0")))
+                    "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss.0")))
 
     return incr_dict
 
@@ -268,4 +226,4 @@ def _add_coupling(dict_of_tfs):
 
 
 if __name__ == '__main__':
-        generate_fullresponse(get_params())
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
