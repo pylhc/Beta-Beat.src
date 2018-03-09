@@ -32,9 +32,9 @@ LOGGER = logging_tools.get_logger(__name__)
 
 OPTIMISTIC = False
 
-#======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 # main part
-#======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 
 class PhaseData(object):
     ''' File for storing results from get_phases.
@@ -135,7 +135,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
     union_text = "YES" if getllm_d.union else "NO"
     LOGGER.info("using all phase information........[{:3s}]".format(union_text))
 
-    # ============= Calculate tunes ===================================================================================
+    # --------------- Calculate tunes --------------------------------------------------------------
 
     if twiss_d.has_zero_dpp_x():
         #-- Calculate tune_x from files, weighted average based on rms
@@ -181,7 +181,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
         if not twiss_d.has_zero_dpp_x():
             LOGGER.warning('linx missing and output y only ...')
 
-    # ============= Calculate the phases ==============================================================================
+    # ------------ Calculate the phases ------------------------------------------------------------
 
     #---- ac to free phase from eq and the model
     if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
@@ -211,7 +211,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
 #            [phase_d.phase_advances_free2_y, tune_d.muyf2] = _get_free_phase(phase_d.phase_advances_free_y, tune_d.q2, tune_d.q2f, bpmsy, model_driven, model, "V")
 
 
-    # ============= Write the phases to file ==========================================================================
+    # ------------ Write the phases to file --------------------------------------------------------
 
     #---- H plane result
     LOGGER.debug("phase calculation finished. Write files.")
@@ -255,9 +255,9 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
     return phase_d, tune_d
 # END calculate_phase -------------------------------------------------------------------------------------------------
 
-#======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 # helper-functions
-#======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 
 def t_value_correction(_num):
     ''' Calculations are based on Hill, G. W. (1970)
@@ -439,9 +439,9 @@ def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_
 
     return phase_advances
 
-#===================================================================================================
+#---------------------------------------------------------------------------------------------------
 # output
-#===================================================================================================
+#---------------------------------------------------------------------------------------------------
 
 def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, tune_y, accel, union):
     """Writes the phase advances into a file. Important phase advances are written into the header.

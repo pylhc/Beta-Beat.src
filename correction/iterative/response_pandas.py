@@ -16,7 +16,7 @@ import numpy
 import pandas
 
 from utils import tfs_pandas
-from madx import madx_wrapper
+import madx_wrapper
 from utils import logging_tools
 from utils.contexts import timeit
 from utils.iotools import create_dirs

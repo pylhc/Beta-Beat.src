@@ -10,13 +10,20 @@ intersect BPMs in multiple files or with a given model file.
 '''
 
 import sys
-import pandas as pd
 
 def filterbpm(list_of_bpms):
     '''Filter non-arc BPM.
        :returns: list -- a list with those bpms which start with name "BPM."
     '''
-    return list_of_bpms.loc[list_of_bpms.index.str.match("^BPM\\.")]
+    result = []
+    if len(list_of_bpms) == 0:
+        print >> sys.stderr, "Nothing to filter!!!!"
+        return result
+    for b in list_of_bpms:
+        if ('BPM.' in b[1].upper()):
+            result.append(b)
+    return result
+
 
 def model_intersect(exp_bpms, model_twiss):
     '''
@@ -27,10 +34,27 @@ def model_intersect(exp_bpms, model_twiss):
 
     :returns: list with tuples: (<S_value_i>,<bpm_i>) -- A list with BPMs which are both in exp_bpms and model_twiss.
     '''
+    bpmsin = []
+    #print "start Intersect, exp_bpms #:", len(exp_bpms)
+    if len(exp_bpms) == 0:
+        print >> sys.stderr, "Zero exp BPMs sent to model_intersect"
+        return bpmsin
 
-    common_index = exp_bpms.index.intersection(model_twiss.index)
+    for bpm in exp_bpms:
+        try:
+            model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
+            bpmsin.append(bpm)
+        except KeyError:
+            print >> sys.stderr, bpm, "Not in Model"
 
-    return exp_bpms.loc[common_index]
+    if len(bpmsin) == 0:
+        print >> sys.stderr, "Zero intersection of Exp and Model"
+        print >> sys.stderr, "Please, provide a good Dictionary or correct data"
+        print >> sys.stderr, "Now we better leave!"
+        sys.exit(1)
+
+    return bpmsin
+
 
 def intersect(list_of_twiss_files):
     '''
@@ -44,13 +68,22 @@ def intersect(list_of_twiss_files):
         print >> sys.stderr, "Nothing to intersect!!!!"
         return []
 
-    common_index = list_of_twiss_files[0].index
-    for i in range(1, len(list_of_twiss_files)):
-        common_index = common_index.intersection(list_of_twiss_files[i].index)
+    names_list = list_of_twiss_files[0].NAME
+    if len(names_list) == 0:
+        print >> sys.stderr, "No exp BPMs..."
+        sys.exit(1)
+    for twiss_file in list_of_twiss_files:
+        #TODO: have to use a set probably, does not detect duplicates! (vimaier)
+        names_list = [b for b in twiss_file.NAME if b in names_list]
 
-    commbpms = pd.DataFrame(list_of_twiss_files[0].loc[common_index, "S"])
-    commbpms["NFILES"] = len(list_of_twiss_files)
-    return commbpms
+    result = [] # list of tupels (S, bpm_name)
+    twiss_0 = list_of_twiss_files[0]
+    for bpm in names_list:
+        result.append((twiss_0.S[twiss_0.indx[bpm]], bpm))
+
+    #SORT by S
+    result.sort()
+    return result
 
 
 def intersect_with_bpm_list(exp_bpms, bpm_list):

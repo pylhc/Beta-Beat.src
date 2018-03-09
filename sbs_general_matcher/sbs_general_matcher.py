@@ -12,10 +12,9 @@ sys.path.append(
 from matchers import (phase_matcher,
                       coupling_matcher,
                       kmod_matcher,
-                      amp_matcher)
+                      amp_matcher, )
 from template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegment
-from madx import madx_templates_runner
 from utils.contexts import silence
 
 
@@ -45,17 +44,10 @@ def start_matching(lhc_mode, match_path, minimize, matchers_list):
 
 
 def _run_madx_matching(input_data, just_twiss=False):
-    madx_templates = madx_templates_runner.MadxTemplates(
-        log_file=os.path.join(input_data.match_path,
-                              "match_madx_log.out"),
-        output_file=os.path.join(input_data.match_path,
-                                 "resolved_madx_match.madx")
-    )
     template_processor = TemplateProcessor(input_data.matchers,
                                            input_data.match_path,
                                            input_data.lhc_mode,
-                                           input_data.minimize,
-                                           madx_templates)
+                                           input_data.minimize, )
     if not just_twiss:
         template_processor.run()
     else:

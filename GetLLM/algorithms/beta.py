@@ -76,7 +76,7 @@ BOXINDENT               =  4                        #@IgnorePep8
 CALCULATE_BETA_HOR = True
 CALCULATE_BETA_VER = True
 
-# ================ Column Indices :
+# --------------- Column Indices :
 
 INDX_NAME   = 0
 INDX_S      = 1
@@ -93,7 +93,7 @@ INDX_BETMDL = 11
 INDX_BETBEAT= 12
 INDX_NCOMB  = 13
 
-# ================ Errors method
+# --------------- Errors method
 METH_IND        = -1
 METH_3BPM       = 0            
 METH_A_NBPM     = 1
@@ -103,9 +103,9 @@ ID_TO_METHOD = {
         METH_3BPM:"3BPM method",
         METH_A_NBPM:"Analytical N-BPM method"}
 
-#=======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 #--- classes
-#=======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 
 
 class MeasuredValues:
@@ -365,9 +365,9 @@ class Uncertainties:  # error definition file
         #tfs_pandas.write_tfs(os.path.join("/dump_twiss_full"), twiss_full, {})
         return twiss_full[twiss_full["UNC"] == True]
 
-# =====================================================================================================================
+#---------------------------------------------------------------------------------------------------
 # main part
-# =====================================================================================================================
+#---------------------------------------------------------------------------------------------------
 
 
 def _future_write_getbeta_out(q1, q2, number_of_bpms, range_of_bpms, data, rmsbbx, error_method, bpms, tfs_file,
@@ -632,7 +632,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         error_method = METH_A_NBPM
         _info_("")
 
-    #--- =========== HORIZONTAL
+    #------------- HORIZONTAL
     if twiss_d.has_zero_dpp_x():
         beta_d.x_phase, beta_d.x_phase_f = beta_from_phase_for_plane(
             free_model.loc[commonbpms_x.index], driven_model, unc_elements,
@@ -640,7 +640,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
             phase_d.phase_advances_free_x, error_method, tune_d.q1, tune_d.q1f, tune_d.q1mdl,
             tune_d.q1mdlf, files_dict, commonbpms_x, "X"
         )
-    #--- =========== VERTICAL
+    #------------- VERTICAL
     if twiss_d.has_zero_dpp_y():
         beta_d.y_phase, beta_d.y_phase_f = beta_from_phase_for_plane(
             free_model.loc[commonbpms_y.index], driven_model, unc_elements,
@@ -1122,9 +1122,9 @@ def beta_from_amplitude(mad_twiss, list_of_files, plane, commonbpms):
     return [beta, rmsbb, commonbpms, invariant_j]
 
 
-#======================================================================================================================
-#---============== calculate beta and alpha using the old 3 BPM method ================================================
-#======================================================================================================================
+#---------------------------------------------------------------------------------------------------
+#----------------- calculate beta and alpha using the old 3 BPM method -----------------------------
+#---------------------------------------------------------------------------------------------------
 def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfile, errors_method, tune, mdltune):
     '''
     Calculates beta from phase using the old 3-BPM method
@@ -1177,7 +1177,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         madTwiss_intersected = madTwiss.loc[commonbpms.index]
         starttime = time.time()
         
-        # ====== setup the used variables =============================================================================
+        # ------ setup the used variables ----------------------------------------------------------
         # tilt phase advances in order to have the phase advances in a neighbourhood
         tilted_meas = tilt_slice_matrix(phase["MEAS"].as_matrix(), 2, 5, tune) * TWOPI
         tilted_model = tilt_slice_matrix(phase["MODEL"].as_matrix(), 2, 5, mdltune) * TWOPI
@@ -1186,7 +1186,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         betmdl = madTwiss_intersected.loc[:][plane_bet].as_matrix()
         alfmdl = madTwiss_intersected.loc[:][plane_alf].as_matrix()
 
-        # ======= main part, calculate the beta and alpha function ====================================================
+        # ------ main part, calculate the beta and alpha function ----------------------------------
         
         # calculate cotangens of all the phase advances in the neighbourhood
         with np.errstate(divide='ignore'):
@@ -1213,7 +1213,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         alfi = (bet_frac * ( cot_phase_model[1] + cot_phase_model[3] + 2.0 * alfmdl)
                         - ( cot_phase_meas[1] + cot_phase_meas[3])) / 2.0
         
-        # ======= error propagation ===================================================================================
+        # ------ error propagation -----------------------------------------------------------------
         
         # error = sqrt( errphi_ij^2 * (d beta / dphi_ij)^2 )
         # calculate sin(phimdl_ij)
@@ -1232,7 +1232,7 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         alfstd=np.zeros(number_commonbpms)
         alferr=np.zeros(number_commonbpms)
         
-        # ======= print error method and return the data rows for getbetax/y.out ======================================
+        # ------ print error method and return the data rows for getbetax/y.out --------------------
 
         _info_("Errors from " + ID_TO_METHOD[errors_method])
         
@@ -1249,9 +1249,9 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     raise GetLLMError("Monte Carlo N-BPM is not implemented.")
     
 
-#=======================================================================================================================
-#---============== using analytical formula ============================================================================
-#=======================================================================================================================
+#---------------------------------------------------------------------------------------------------
+#--------- using analytical formula ----------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 
 
 
@@ -1299,7 +1299,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                             phase, plane, getllm_d, commonbpms, debugfile, METH_3BPM,
                                             tune, mdltune)
 
-    # =============== setup ===========================================================================================
+    # ---------- setup -----------------------------------------------------------------------------
     # setup combinations
     width = getllm_d.range_of_bpms / 2
     left_bpm = range(-width, 0)
@@ -1325,7 +1325,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                ("ALF", "f8"), ("ALFSTAT", "f8"), ("ALFSYS", "f8"), ("ALFERR", "f8"),
                                ("CORR", "f8"), ("BETMDL", "f8"), ("BETBEAT", "f8"), ("NCOMB", "i4")])
 
-    # ==========
+    # ----------
     # define functions in a function -- python witchcraft, burn it!!!!! 
     def collect(row):
         result[row[0]]= row[1:]
@@ -1333,7 +1333,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     def collectblock(block):
         for row in block:
            collect(row) 
-     # =============== calculate the betas ============================================================================
+     # ---------- calculate the betas --------------------------------------------------------------
            
     st = time.time()
     if getllm_d.parallel:
@@ -1897,9 +1897,9 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         len(betas)
     )
  
-#===================================================================================================
+#---------------------------------------------------------------------------------------------------
 #--- ac-dipole stuff
-#===================================================================================================
+#---------------------------------------------------------------------------------------------------
 
 def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
     #
@@ -1926,9 +1926,9 @@ def _get_free_amp_beta(betai, rmsbb, bpms, inv_j, mad_ac, mad_twiss, plane):
 
     return betas, rmsbb, bpms, inv_j
 
-#=======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 #--- Helper / Debug Functions
-#=======================================================================================================================
+#---------------------------------------------------------------------------------------------------
 #
 #def create_listofKs(commonbpms, errorfile, el, getllm_d):
 #    list_of_Ks = []
@@ -2005,9 +2005,9 @@ def bad_phase(phi):
 def is_small(x):
     return abs(x) < ZERO_THRESHOLD
 
-# ====================================================================================================================
-# =================== LOGGING stuff ==================================================================================
-# ====================================================================================================================
+#---------------------------------------------------------------------------------------------------
+# ---------- LOGGING stuff -------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 
 logger_box_value_format = "=    {:.<36s}{:<24s} ="
 logger_box_format = "=    {:<60s} ="
