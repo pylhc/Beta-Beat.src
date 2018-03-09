@@ -33,6 +33,18 @@ Module correction.GenMatrix
 .. automodule:: correction.GenMatrix
     :members:
 
+Module correction.GenMatrix_chromcouple
+------------------------------------------------
+
+.. automodule:: correction.GenMatrix_chromcouple
+    :members:
+
+Module correction.GenMatrix_coupleDy
+------------------------------------------------
+
+.. automodule:: correction.GenMatrix_coupleDy
+    :members:
+
 Module correction.getdiff
 ------------------------------------------------
 
@@ -40,23 +52,23 @@ Module correction.getdiff
     :members:
 
 
-Entry Points Iterative Correction
+Helpers Response Creation
 =================================
 
-Module correction.iterative.correct_iterative
+Module correction.fullresponse.response_madx
 ------------------------------------------------
 
-.. automodule:: correction.correct_coupleDy
+.. automodule:: correction.fullresponse.response_madx
     :members:
 
-Helpers Iterative Correction
-=================================
-
-Module correction.iterative.response_pandas
+Module correction.fullresponse.response_twiss
 ------------------------------------------------
 
-.. automodule:: correction.iterative.response_pandas
+.. automodule:: correction.fullresponse.response_twiss
     :members:
 
+Module correction.fullresponse.generateFullResponse_parallel
+---------------------------------------------------------------
 
-
+.. automodule:: correction.fullresponse.generateFullResponse_parallel
+    :members:

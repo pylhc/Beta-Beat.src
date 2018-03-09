@@ -25,6 +25,12 @@ Module utils.iotools
 .. automodule:: utils.iotools
     :members:
 
+Module utils.logging_tools
+----------------------------
+
+.. automodule:: utils.logging_tools
+    :members:
+
 Module utils.math
 ----------------------
 
@@ -41,11 +47,5 @@ Module utils.tfs_file_writer
 --------------------------------
 
 .. automodule:: utils.tfs_file_writer
-    :members:
-
-Module utils.tfs_file
--------------------------
-
-.. automodule:: utils.tfs_file
     :members:
 

@@ -1,24 +1,48 @@
 """
-Iterative Correction Scheme
+Iterative Correction Scheme.
+
+The response matrices :math:`R_{O}` for the observables :math:`O` (e.g. BBX, MUX, ...)
+are loaded from a file and then the equation
+
+.. math:: R_{O} \cdot \delta var = O_{meas} - O_{model}
+    :label: eq1
+
+is being solved for :math:`\delta var` via a chosen method (at the moment only numpys pinv,
+which creates a pseudo-inverse via svd is used).
+
+The response matrices are hereby merged into one matrix for all observables to solve vor all
+:math:`\delta var` at the same time.
+
+To normalize the observables to another ``weigths`` (W) can be applied.
+
+Furthermore, an ``errorcut``, specifying the maximum errorbar for a BPM to be used, and
+``modelcut``, specifying the maximum distance between measurement and model for a BPM to be used,
+can be defined. Data from BPMs outside of those cut-values will be discarded.
+These cuts are defined for each observable separately.
+
+After each iteration the model variables are changed by :math:`-\delta var` and the
+observables are recalculated by Mad-X.
+:eq:`eq1` is then solved again.
 
 
-
+:author: Lukas Malina, Joschua Dilly
 
 
 Possible problems and notes:
-- do we need error cut, when we use error-based weights? probably not anymore
-- error-based weights default? likely - but be carefull with low tune errors vs
+* do we need error cut, when we use error-based weights? probably not anymore
+* error-based weights default? likely - but be carefull with low tune errors vs
 svd cut in pseudoinverse
-- manual creation of pd.DataFrame varslist, deltas? maybe
+* manual creation of pd.DataFrame varslist, deltas? maybe
 tunes in tfs_pandas single value or a column?
-- Minimal strength removed
-- Check the output files and when they are written
-- There should be some summation/renaming for iterations
-- For two beam correction
-- The two beams can be treated separately until the calcultation of correction
-- Values missing in the response (i.e. correctors of the other beam) shall be
+* Minimal strength removed
+* Check the output files and when they are written
+* There should be some summation/renaming for iterations
+* For two beam correction
+* The two beams can be treated separately until the calcultation of correction
+* Values missing in the response (i.e. correctors of the other beam) shall be
 treated as zeros
-- Missing a part that treats the output from LSA
+* Missing a part that treats the output from LSA
+
 """
 import cPickle
 import datetime
@@ -171,7 +195,7 @@ def _get_params():
     params.add_parameter(
         flags="--svd_cut",
         help=("Cutoff for small singular values of the pseudo inverse. (Method: 'pinv')"
-              "Singular values smaller than `rcond`*largest_singular_value are set to zero"),
+              "Singular values smaller than rcond*largest_singular_value are set to zero"),
         name="svd_cut",
         type=float,
         default=DEFAULT_ARGS["svd_cut"],
@@ -187,14 +211,14 @@ def _get_params():
     params.add_parameter(
         flags="--error_cut",
         help=("Reject BPMs whose error bar is higher than the "
-              "correspoding input. Input in order of optics_params."),
+              "corresponding input. Input in order of optics_params."),
         name="errorcut",
         nargs="+",
         type=float,
     )
     params.add_parameter(
         flags="--weights",
-        help=("Weight to apply to each measured quatity. "
+        help=("Weight to apply to each measured quantity. "
               "Input in order of optics_params."),
         name="weights_on_quantities",
         nargs="+",
@@ -264,63 +288,65 @@ def _get_params():
 def global_correction(opt, accel_opt):
     """ Do the global correction. Iteratively.
 
-    Required
-    fullresponse_path: Path to the fullresponse binary file.
-                       **Flags**: --fullresponse
-    meas_dir_path: Path to the directory containing the measurement files.
-                   **Flags**: --meas_dir
-    model_twiss_path: Path to the model to use.
-                      **Flags**: --model_dir
-    Optional
-    beta_file_name: Prefix of the beta file to use. E.g.: getkmodbeta
-                    **Flags**: --beta_file_name
-                    **Default**: ``getbeta``
-    debug: Print debug information.
-           **Flags**: --debug
-           **Action**: ``store_true``
-    eps (float): (Not implemented yet)
-                 Convergence criterion.If <|delta(PARAM * WEIGHT)|> < eps, stop iteration.
-                 **Flags**: --eps
-                 **Default**: ``None``
-    errorcut (float): Reject BPMs whose error bar is higher than the correspoding input.
-                      Input in order of optics_params.
-                      **Flags**: --error_cut
-    max_iter (int): Maximum number of correction iterations to perform.
-                    **Flags**: --max_iter
-                    **Default**: ``3``
-    method (str): Optimization method to use. (Not implemented yet)
-                  **Flags**: --method
-                  **Choices**: ['pinv']
-                  **Default**: ``pinv``
-    modelcut (float): Reject BPMs whose deviation to the model is higher than the
-                      correspoding input. Input in order of optics_params.
-                      **Flags**: --model_cut
-    optics_file: Path to the optics file to use, usually modifiers.madx.
-                 If not present will default to model_path/modifiers.madx
-                 **Flags**: --optics_file
-    optics_params (str): List of parameters to correct upon (e.g. BBX BBY)
-                         **Flags**: --optics_params
-                         **Default**: ``['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q']``
-    output_path: Path to the directory where to write the ouput files,
-                 will default to the --meas input path.
-                 **Flags**: --output_dir
-                 **Default**: ``None``
-    svd_cut (float): Cutoff for small singular values of the pseudo inverse. (Method: 'pinv')
-                     Singular values smaller than `rcond`*largest_singular_value are set to zero
-                     **Flags**: --svd_cut
-                     **Default**: ``0.01``
-    use_errorbars: If True, it will take into account the measured errorbars in the correction.
-                   **Flags**: --use_errorbars
-                   **Action**: ``store_true``
-    variable_categories: List of names of the variables classes to use.
-                         **Flags**: --variables
-                         **Default**: ``['MQM', 'MQT', 'MQTL', 'MQY']``
-    virt_flag: If true, it will use virtual correctors.
-               **Flags**: --virt_flag
+    Keyword Args:
+        Required
+        fullresponse_path: Path to the fullresponse binary file.
+                           **Flags**: --fullresponse
+        meas_dir_path: Path to the directory containing the measurement files.
+                       **Flags**: --meas_dir
+        model_twiss_path: Path to the model to use.
+                          **Flags**: --model_dir
+        Optional
+        beta_file_name: Prefix of the beta file to use. E.g.: getkmodbeta
+                        **Flags**: --beta_file_name
+                        **Default**: ``getbeta``
+        debug: Print debug information.
+               **Flags**: --debug
                **Action**: ``store_true``
-    weights_on_quantities (float): Weight to apply to each measured quatity.
-                                   Input in order of optics_params.
-                                   **Flags**: --weights
+        eps (float): (Not implemented yet) Convergence criterion.
+                     If :math:`<|\Delta(PARAM \cdot WEIGHT)|> < \epsilon`, stop iteration.
+                     **Flags**: --eps
+                     **Default**: ``None``
+        errorcut (float): Reject BPMs whose error bar is higher than the corresponding input.
+                          Input in order of optics_params.
+                          **Flags**: --error_cut
+        max_iter (int): Maximum number of correction iterations to perform.
+                        **Flags**: --max_iter
+                        **Default**: ``3``
+        method (str): Optimization method to use. (Not implemented yet)
+                      **Flags**: --method
+                      **Choices**: ['pinv']
+                      **Default**: ``pinv``
+        modelcut (float): Reject BPMs whose deviation to the model is higher than the
+                          correspoding input. Input in order of optics_params.
+                          **Flags**: --model_cut
+        optics_file: Path to the optics file to use, usually modifiers.madx.
+                     If not present will default to model_path/modifiers.madx
+                     **Flags**: --optics_file
+        optics_params (str): List of parameters to correct upon (e.g. BBX BBY)
+                             **Flags**: --optics_params
+                             **Default**: ``['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q']``
+        output_path: Path to the directory where to write the ouput files,
+                     will default to the --meas input path.
+                     **Flags**: --output_dir
+                     **Default**: ``None``
+        svd_cut (float): Cutoff for small singular values of the pseudo inverse. (Method: 'pinv')
+                         Singular values smaller than
+                         :math:`rcond \cdot largest_singular_value` are set to zero
+                         **Flags**: --svd_cut
+                         **Default**: ``0.01``
+        use_errorbars: If True, it will take into account the measured errorbars in the correction.
+                       **Flags**: --use_errorbars
+                       **Action**: ``store_true``
+        variable_categories: List of names of the variables classes to use.
+                             **Flags**: --variables
+                             **Default**: ``['MQM', 'MQT', 'MQTL', 'MQY']``
+        virt_flag: If true, it will use virtual correctors.
+                   **Flags**: --virt_flag
+                   **Action**: ``store_true``
+        weights_on_quantities (float): Weight to apply to each measured quantity.
+                                       Input in order of optics_params.
+                                       **Flags**: --weights
     """
 
     with logging_tools.DebugMode(active=opt.debug):

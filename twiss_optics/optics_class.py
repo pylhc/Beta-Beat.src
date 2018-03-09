@@ -284,7 +284,8 @@ class TwissOptics(object):
     def calc_rdts(self, order):
         """ Calculates the Resonance Driving Terms.
         
-        Eq. A8 in [2] 
+        Eq. A8 in [2]
+
         Args:
             order: int, string or list of strings
                 If an int is given all Resonance Driving Terms up to this order

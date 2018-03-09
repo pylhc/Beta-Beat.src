@@ -1,9 +1,15 @@
+"""
+Provides a response generation wrapper.
+The response matrices can be either created by response_madx or analytically via TwissResponse.
+
+:author: Joschua Dillys
+"""
 import cPickle as pickle
 import os
 
 import madx_wrapper as madx
 from correction.fullresponse import response_madx
-from correction.fullresponse.response_analytical import TwissResponse
+from correction.fullresponse.response_twiss import TwissResponse
 from global_correct_iterative import DEFAULT_ARGS
 from model import manager
 from twiss_optics.sequence_parser import EXT as VARMAP_EXT

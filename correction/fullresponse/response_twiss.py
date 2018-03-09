@@ -68,6 +68,7 @@ class TwissResponse(object):
             'bpms': All BPMS (Default)
             'bpms+': BPMS+ used magnets (== magnets defined by variables in varfile)
             'all': All BPMS and Magnets given in the model (Markers are removed)
+
     """
 
     ################################

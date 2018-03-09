@@ -1,26 +1,28 @@
 """
-This Python script produces the responses of the beta, phase and horizontal dispersion
-on the magnet strength provided by a json file.
-The response matrix is stored in a 'pickled' file.
+Provides a function to create the responses of beta, phase, dispersion, tune and coupling
+via iterative madx calls.
 
-These response matrices are used to calculate the corrections by the correction scripts.
+The variables under investigation need to be provided as a list (which can be gotten from
+accelerator class).
+
+For now, the response matrix is stored in a 'pickled' file.
+
+:author: Lukas Malina, Joschua Dilly, Jaime (...) Coello de Portugal
 """
-
-import os
-import math
 import cPickle
+import math
 import multiprocessing
+import os
+
 import numpy as np
 import pandas
 
-from utils import tfs_pandas
 import madx_wrapper
+from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
+from utils import tfs_pandas
 from utils.contexts import timeit, suppress_warnings
 from utils.iotools import create_dirs
-from utils.entrypoint import EntryPointParameters, entrypoint
-from twiss_optics.optics_class import TwissOptics
-
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -35,7 +37,7 @@ def generate_fullresponse(outfile_path, variables,
                           original_jobfile_path, pattern=DEFAULT["pattern"],
                           delta_k=0.00002, num_proc=multiprocessing.cpu_count(), temp_dir=None):
     """ Generate a dictionary containing response matrices for
-        Mu, BetaBeating, Dispersion and Tune and saves it to a file.
+        beta, phase, dispersion, tune and coupling and saves it to a file.
 
         Args:
             outfile_path (str): Name of fullresponse file.
