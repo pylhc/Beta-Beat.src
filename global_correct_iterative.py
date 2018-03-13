@@ -61,6 +61,7 @@ from utils import logging_tools
 from utils import tfs_pandas as tfs, iotools
 from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
+from twiss_optics.optics_class import TwissOptics
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -187,7 +188,7 @@ def _get_params():
     )
     params.add_parameter(
         flags="--output_dir",
-        help=("Path to the directory where to write the ouput files, will "
+        help=("Path to the directory where to write the output files, will "
               "default to the --meas input path."),
         name="output_path",
         default=DEFAULT_ARGS["output_path"],
@@ -260,7 +261,8 @@ def _get_params():
     )
     params.add_parameter(
         flags="--max_iter",
-        help="Maximum number of correction iterations to perform.",
+        help=("Maximum number of correction re-iterations to perform."
+              "A value of `0` means the correction is calculated once (like in the old days)."),
         name="max_iter",
         type=int,
         default=DEFAULT_ARGS["max_iter"],
@@ -283,6 +285,7 @@ def _get_params():
 
 
 # Entry Point ##################################################################
+
 
 @entrypoint(_get_params())
 def global_correction(opt, accel_opt):
@@ -310,7 +313,9 @@ def global_correction(opt, accel_opt):
         errorcut (float): Reject BPMs whose error bar is higher than the corresponding input.
                           Input in order of optics_params.
                           **Flags**: --error_cut
-        max_iter (int): Maximum number of correction iterations to perform.
+        max_iter (int): Maximum number of correction re-iterations to perform.
+                        A value of `0` means the correction is calculated once
+                        (like in the old days).
                         **Flags**: --max_iter
                         **Default**: ``3``
         method (str): Optimization method to use. (Not implemented yet)
@@ -326,7 +331,7 @@ def global_correction(opt, accel_opt):
         optics_params (str): List of parameters to correct upon (e.g. BBX BBY)
                              **Flags**: --optics_params
                              **Default**: ``['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q']``
-        output_path: Path to the directory where to write the ouput files,
+        output_path: Path to the directory where to write the output files,
                      will default to the --meas input path.
                      **Flags**: --output_dir
                      **Default**: ``None``
@@ -355,6 +360,9 @@ def global_correction(opt, accel_opt):
         if any(not_implemented_params):
             raise NotImplementedError("Correct iterative is not equipped for parameters:"
                                       "'{:s}'".format(not_implemented_params))
+
+        # ######### Preparations ######### #
+
         # check on opt
         opt = _check_opt(opt)
         meth_opt = _get_method_opt(opt)
@@ -368,7 +376,6 @@ def global_correction(opt, accel_opt):
         e_dict = dict(zip(opt.optics_params, opt.errorcut))
 
         # read data from files
-        nominal_model = tfs.read_tfs(opt.model_path).set_index("NAME", drop=False)
         vars_list = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
         resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
 
@@ -378,6 +385,8 @@ def global_correction(opt, accel_opt):
             w_dict,
         )
 
+        nominal_model = _load_model(opt.model_path, optics_params)
+
         # apply filters to data
         meas_dict = _filter_measurement(
             optics_params, meas_dict, nominal_model,
@@ -386,39 +395,38 @@ def global_correction(opt, accel_opt):
         meas_dict = _append_model_to_measurement(nominal_model, meas_dict, optics_params)
         resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
 
+        _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
+
+        delta = tfs.TfsDataFrame(0, index=vars_list, columns=["DELTA"])
+
+        # ######### Actual optimization algorithm ######### #
+
         # as long as response is not recalculated leave outside loop:
         resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 
-        if opt.debug:
-            _print_rms(meas_dict, optics_params)
+        for iteration in range(opt.max_iter + 1):
+            LOG.debug("Correction Iteration {:d} of {:d}.".format(iteration, opt.max_iter))
 
-        _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
-        delta = _calculate_delta(resp_matrix, meas_dict, optics_params, vars_list, opt.method,
-                                 meth_opt)
-        writeparams(opt.output_path, delta)
+            if iteration > 0:
+                LOG.debug("Updating model via MADX")
+                corr_model_path = _create_corrected_model(iteration, accel_cls, nominal_model,
+                                                          opt.optics_file, opt.template_file_path,
+                                                          opt.output_path, opt.debug)
 
-        for _iter in range(opt.max_iter):
-            LOG.debug("Running MADX, iteration {:d} of {:d}".format(_iter + 1, opt.max_iter))
-
-            # update model
-            madx_script = _create_madx_script(accel_cls, nominal_model, opt.optics_file,
-                                              opt.template_file_path, opt.output_path)
-            _call_madx(madx_script, opt.debug)
-            new_model_path = os.path.join(opt.output_path, "twiss_" + str(_iter) + ".dat")
-            shutil.copy2(os.path.join(opt.output_path, "twiss_corr.dat"), new_model_path)
-            new_model = tfs.read_tfs(new_model_path, index="NAME")
-            meas_dict = _append_model_to_measurement(new_model, meas_dict, optics_params)
+                corr_model = _load_model(corr_model_path, optics_params)
+                meas_dict = _append_model_to_measurement(corr_model, meas_dict, optics_params)
 
             if opt.debug:
                 _print_rms(meas_dict, optics_params)
 
-            # get new deltas
+            # new deltas
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
             writeparams(opt.output_path, delta)
             LOG.debug("Cumulative delta: {:.5e}".format(
                 np.sum(np.abs(delta.loc[:, "DELTA"].values))))
+
         write_knob(opt.output_path, delta)
 
 
@@ -443,7 +451,8 @@ def _check_opt(opt):
 
     iotools.create_dirs(opt.output_path)
 
-    opt.template_file_path = os.path.join(os.path.dirname(__file__), "job.twiss_python.madx")
+    bb_root = iotools.get_absolute_path_to_betabeat_root()
+    opt.template_file_path = os.path.join(bb_root, "correction", "job.twiss_python.madx")
 
     # check cuts and weights:
     def_dict = _get_default_values()
@@ -500,63 +509,52 @@ def _load_fullresponse(full_response_path, variables):
 
 
 def _get_measurment_data(keys, meas_dir_path, beta_file_name, w_dict):
+    """ Retruns a dictionary full of get_llm data """
     measurement = {}
     filtered_keys = [k for k in keys if w_dict[k] != 0]
+
     getllm_data = GetLlmMeasurement(meas_dir_path)
-
-    if any(k in filtered_keys for k in ["MUX", "MUY", "Q"]):
-        measurement['MUX'] = getllm_data.phase_x
-        measurement['MUY'] = getllm_data.phase_y
-
-        # tune
-        measurement['Q'] = pd.DataFrame({
-            'NAME': pd.Categorical(['Q1', 'Q2']),
-            # Just fractional tunes:
-            'VALUE': np.remainder([measurement['MUX']['Q1'],
-                                   measurement['MUY']['Q2']], [1, 1]),
-            # TODO measured errors not in the file
-            'ERROR': np.array([0.001, 0.001])
-        })
-
-    if any(k in filtered_keys for k in ["BBX", "BBY"]):
-        # it's the same data as BETX, BETY but after filtering it will be different
-        if beta_file_name == "getgetbeta":
-            measurement['BBX'] = getllm_data.beta_x
-            measurement['BBY'] = getllm_data.beta_y
-        elif beta_file_name == 'getampbeta':
-            measurement['BBX'] = getllm_data.amp_beta_x
-            measurement['BBY'] = getllm_data.amp_beta_y
-        elif beta_file_name == "getkmodbeta":
-            measurement['BBX'] = getllm_data.kmod_beta_x
-            measurement['BBY'] = getllm_data.kmod_beta_y
-        else:
-            raise ValueError("Beta filename '{:s}' not recognized".format(beta_file_name))
-
-    if any(k in filtered_keys for k in ["BETX", "BETY"]):
-        if beta_file_name == "getgetbeta":
-            measurement['BETX'] = getllm_data.beta_x
-            measurement['BETY'] = getllm_data.beta_y
-        elif beta_file_name == 'getampbeta':
-            measurement['BETX'] = getllm_data.amp_beta_x
-            measurement['BETY'] = getllm_data.amp_beta_y
-        elif beta_file_name == "getkmodbeta":
-            measurement['BETX'] = getllm_data.kmod_beta_x
-            measurement['BETY'] = getllm_data.kmod_beta_y
-        else:
-            raise ValueError("Beta filename '{:s}' not recognized".format(beta_file_name))
-
-    if any(k in filtered_keys for k in ["DX", "DY"]):
-        measurement['DX'] = getllm_data.disp_x
-        measurement['DY'] = getllm_data.disp_y
-
-    if "NDX" in filtered_keys:
-        try:
+    for key in filtered_keys:
+        if key == "MUX":
+            measurement['MUX'] = getllm_data.phase_x
+        elif key == 'MUY':
+            measurement['MUY'] = getllm_data.phase_y
+        elif key == "DX":
+            measurement['DX'] = getllm_data.disp_x
+        elif key == "DX":
+            measurement['DY'] = getllm_data.disp_y
+        elif key == "NDX":
             measurement['NDX'] = getllm_data.norm_disp
-        except IOError:
-            LOG.warning("No good dispersion or inexistent file getNDx")
-            LOG.warning("Correction will not take into account NDx")
-            filtered_keys.remove('NDX')
+        elif key in ('F1001R', 'F1001I', 'F1010R', 'F1010I'):
+            measurement[key] = getllm_data.coupling
+        elif key == "Q":
+            measurement["Q"] = pd.DataFrame({
+                'NAME': pd.Categorical(['Q1', 'Q2']),
+                # Just fractional tunes:
+                'VALUE': np.remainder([getllm_data.phase_x['Q1'],
+                                       getllm_data.phase_y['Q2']], [1, 1]),
+                # TODO measured errors not in the file
+                'ERROR': np.array([0.001, 0.001])
+            })
+        else:
+            # a beta key
+            if beta_file_name == "getbeta":
+                if key in ("BBX", "BETX"):
+                    measurement[key] = getllm_data.beta_x
+                elif key == ("BBY", "BETY"):
+                    measurement[key] = getllm_data.beta_y
 
+            elif beta_file_name == "getampbeta":
+                if key in ("BBX", "BETX"):
+                    measurement[key] = getllm_data.amp_beta_x
+                elif key == ("BBY", "BETY"):
+                    measurement[key] = getllm_data.amp_beta_y
+
+            elif beta_file_name == "getkmodbeta":
+                if key in ("BBX", "BETX"):
+                    measurement[key] = getllm_data.kmod_beta_x
+                elif key == ("BBY", "BETY"):
+                    measurement[key] = getllm_data.kmod_beta_y
     return filtered_keys, measurement
 
 
@@ -564,15 +562,28 @@ def _get_varlist(accel_cls, variables, virt_flag):  # TODO: Virtual?
     return np.array(accel_cls.get_variables(classes=variables))
 
 
-def _read_tfs(path, file_name):
-    return tfs.read_tfs(os.path.join(path, file_name))
+def _load_model(model_path, keys):
+    model = tfs.read_tfs(model_path).set_index("NAME", drop=False)
+    if any([key for key in keys if key.startswith("F1")]):
+        model = _add_coupling_to_model(model)
+    return model
+
+
+def _add_coupling_to_model(model):
+    tw_opt = TwissOptics(model)
+    couple = tw_opt.get_coupling(method="cmatrix")
+    model.loc[:, "F1001R"] = couple["F1001"].apply(np.real).astype(np.float64)
+    model.loc[:, "F1001I"] = couple["F1001"].apply(np.imag).astype(np.float64)
+    model.loc[:, "F1010R"] = couple["F1010"].apply(np.real).astype(np.float64)
+    model.loc[:, "F1010I"] = couple["F1010"].apply(np.imag).astype(np.float64)
+    return model
 
 
 # Parameter filtering ########################################################
 
 
 def _filter_measurement(keys, meas, model, errorbar, w_dict, e_dict, m_dict):
-    """ Filteres measurements and renames columns to VALUE, ERROR, WEIGHT"""
+    """ Filters measurements and renames columns to VALUE, ERROR, WEIGHT"""
     filters = _get_measurement_filters()
     new = dict.fromkeys(keys)
     for key in keys:
@@ -610,8 +621,13 @@ def _get_filtered_generic(key, meas, model, erwg, weight, modelcut, errorcut):
 
     # filter cuts
     error_filter = new.loc[:, 'ERROR'].values < errorcut
-    model_filter = np.abs(new.loc[:, 'VALUE'].values -
-                          meas.loc[common_bpms, key + 'MDL'].values) < modelcut
+    try:
+        model_filter = np.abs(new.loc[:, 'VALUE'].values -
+                              meas.loc[common_bpms, key + 'MDL'].values) < modelcut
+    except KeyError:
+        # Why is there no standard for where "MDL" is attached to the name???
+        model_filter = np.abs(new.loc[:, 'VALUE'].values -
+                              meas.loc[common_bpms, 'MDL' + key].values) < modelcut
 
     good_bpms = error_filter & model_filter
     LOG.debug("Number of BPMs with {:s}: {:d}".format(key, np.sum(good_bpms)))
@@ -813,50 +829,23 @@ def _pseudo_inverse(response_mat, diff_vec, opt):
     return np.dot(np.linalg.pinv(response_mat, opt.svd_cut), diff_vec)
 
 
-# Small Helpers ################################################################
+# MADX related ###############################################################
 
 
-def _rms(a):
-    return np.sqrt(np.mean(np.square(a)))
-
-
-def _dump(path_to_dump, content):
-    with open(path_to_dump, 'wb') as dump_file:
-        cPickle.Pickler(dump_file, -1).dump(content)
-
-
-def _join_responses(resp, keys, varslist):
-    """ Returns matrix #BPMs * #Parameters x #variables """
-    return pd.concat([resp[k] for k in keys],  # dataframes
-                     axis="index",  # axis to join along
-                     join_axes=[pd.Index(varslist)]  # other axes to use (pd Index obj required)
-                     )
-
-
-def _join_columns(col, meas, keys):
-    """ Retuns vector: N= #BPMs * #Parameters (BBX, MUX etc.) """
-    return np.concatenate([meas[key].loc[:, col].values for key in keys], axis=0)
-
-
-def _call_madx(madx_script, debug):
-    """ Call MADX and log into file """
-    if debug:
-        with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
-            madx_wrapper.resolve_and_run_string(
-                madx_script,
-                log_file=log_file,
-            )
-    else:
-        madx_wrapper.resolve_and_run_string(
-            madx_script,
-            log_file=os.devnull,
-        )
+def _create_corrected_model(iteration, accel_cls, nominal_model, optics_file,
+                            template_file_path, output_path, debug):
+    madx_script = _create_madx_script(accel_cls, nominal_model, optics_file,
+                                      template_file_path, output_path)
+    _call_madx(madx_script, debug)
+    corr_model_path = os.path.join(output_path, "twiss_" + str(iteration) + ".dat")
+    shutil.copy2(os.path.join(output_path, "twiss_corr.dat"), corr_model_path)
+    return corr_model_path
 
 
 def _create_madx_script(accel_cls, nominal_model, optics_file,
-                        template_file_path, output_path):
-    with open(template_file_path, "r") as textfile:
-        madx_template = textfile.read()
+                        template_path, output_path):
+    with open(template_path, "r") as template:
+        madx_template = template.read()
         qx, qy = nominal_model.Q1, nominal_model.Q2
         beam = int(nominal_model.SEQUENCE[-1])
         replace_dict = {
@@ -875,6 +864,21 @@ def _create_madx_script(accel_cls, nominal_model, optics_file,
     return madx_script
 
 
+def _call_madx(madx_script, debug):
+    """ Call MADX and log into file """
+    if debug:
+        with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
+            madx_wrapper.resolve_and_run_string(
+                madx_script,
+                log_file=log_file,
+            )
+    else:
+        madx_wrapper.resolve_and_run_string(
+            madx_script,
+            log_file=os.devnull,
+        )
+
+
 def write_knob(path, delta):
     a = datetime.datetime.fromtimestamp(time.time())
     changeparameters_path = os.path.join(path, 'changeparameters.knob')
@@ -885,13 +889,41 @@ def write_knob(path, delta):
 
 
 def writeparams(path, delta):
-    with open(os.path.join(path, "changeparameters.madx"), "w") as madx_script:
-        for var in delta.index.values:
-            value = delta.loc[var, "DELTA"]
-            madx_script.write(var + " = " + var
-                              + (" + " if value > 0 else " ")
-                              + str(value) + ";\n"
-                              )
+    for correct in (True, False):
+        filename = "changeparameters_correct.madx" if correct else "changeparameters.madx"
+        with open(os.path.join(path, filename), "w") as madx_script:
+            for var in delta.index.values:
+                value = -delta.loc[var, "DELTA"] if correct else delta.loc[var, "DELTA"]
+                madx_script.write(var + " = " + var
+                                  + (" + " if value > 0 else " ")
+                                  + str(value) + ";\n"
+                                  )
+
+
+# Small Helpers ################################################################
+
+
+def _rms(a):
+    return np.sqrt(np.mean(np.square(a)))
+
+
+def _dump(path_to_dump, content):
+    with open(path_to_dump, 'wb') as dump_file:
+        cPickle.Pickler(dump_file, -1).dump(content)
+
+
+def _join_responses(resp, keys, varslist):
+    """ Returns matrix #BPMs * #Parameters x #variables """
+    return pd.concat([resp[k] for k in keys],  # dataframes
+                     axis="index",  # axis to join along
+                     join_axes=[pd.Index(varslist)]
+                     # other axes to use (pd Index obj required)
+                     )
+
+
+def _join_columns(col, meas, keys):
+    """ Retuns vector: N= #BPMs * #Parameters (BBX, MUX etc.) """
+    return np.concatenate([meas[key].loc[:, col].values for key in keys], axis=0)
 
 
 # Main invocation ############################################################
