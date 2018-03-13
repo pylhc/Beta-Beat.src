@@ -433,8 +433,8 @@ class TwissResponse(object):
                 dtune["Y"].index = ["DQY"]
             else:
                 LOG.debug("  No 'K1L' variables found. Tune Response will be empty.")
-                dtune = {"X": tfs.TfsDataFrame(None, index="DQX"),
-                         "Y": tfs.TfsDataFrame(None, index="DQY")}
+                dtune = {"X": tfs.TfsDataFrame(None, index=["DQX"]),
+                         "Y": tfs.TfsDataFrame(None, index=["DQY"])}
 
         return dtune
 
