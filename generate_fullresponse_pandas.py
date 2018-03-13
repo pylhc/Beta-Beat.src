@@ -101,11 +101,8 @@ def create_response(opt, other_opt):
 
         if opt.creator == "madx":
             jobfile_path = os.path.join(opt.model_dir, "job.iterpandas.madx")
-
-            # generate the response (saved into file)
-            response_madx.generate_fullresponse(opt.outfile_path, variables, jobfile_path,
+            fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
                                                 delta_k=opt.delta_k)
-
         elif opt.creator == "twiss":
             accel_inst = accel_cls(model_dir=opt.model_dir)
 
@@ -126,9 +123,9 @@ def create_response(opt, other_opt):
                 tr = TwissResponse(varmap_path, model, variables)
                 fullresponse = tr.get_fullresponse()
 
-            LOG.debug("Saving Response into file '{:s}'".format(opt.outfile_path))
-            with open(opt.outfile_path, 'wb') as dump_file:
-                pickle.Pickler(dump_file, -1).dump(fullresponse)
+        LOG.debug("Saving Response into file '{:s}'".format(opt.outfile_path))
+        with open(opt.outfile_path, 'wb') as dump_file:
+            pickle.Pickler(dump_file, -1).dump(fullresponse)
 
 
 if __name__ == "__main__":

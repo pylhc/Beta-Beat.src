@@ -21,7 +21,5 @@ option, echo;
 
 exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
 
-!!!!! nominal
-exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_no.dat", %(DPP)s);
-call, file="%(PATH)s/%(COR)s";
-exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_corr.dat", %(DPP)s);
+call, file="%(CORRECTIONS)s";
+exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH_TWISS)s", %(DPP)s);

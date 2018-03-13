@@ -528,14 +528,12 @@ class TwissResponse(object):
 
     def get_dispersion(self, mapped=True):
         """ Returns Response Matrix for Dispersion """
-        # prepare what is needed:
         if not self._dispersion:
             self._dispersion = self._calc_dispersion_response()
 
         if mapped and not self._dispersion_mapped:
             self._dispersion_mapped = self._map_dispersion_response(self._dispersion)
 
-        # return what is needed
         if mapped:
             return self._dispersion_mapped
         else:
@@ -545,6 +543,8 @@ class TwissResponse(object):
         """ Returns Response Matrix for Total Phase """
         if not self._phase:
             self._phase = self._calc_phase_response()
+
+        if mapped and not self._phase_mapped:
             self._phase_mapped = self._map_to_variables(self._phase, self._var_to_el["K1L"])
 
         if mapped:
@@ -556,6 +556,8 @@ class TwissResponse(object):
         """ Returns Response Matrix for Phase Advance """
         if not self._phase_adv:
             self._phase_adv = self._calc_phase_advance_response()
+
+        if mapped and not self._phase_adv_mapped:
             self._phase_adv_mapped = self._map_to_variables(self._phase_adv, self._var_to_el["K1L"])
 
         if mapped:
@@ -567,6 +569,8 @@ class TwissResponse(object):
         """ Returns Response Matrix for the Tunes """
         if not self._tune:
             self._tune = self._calc_tune_response()
+
+        if mapped and not self._tune_mapped:
             self._tune_mapped = self._map_to_variables(self._tune, self._var_to_el["K1L"])
 
         if mapped:
@@ -578,6 +582,8 @@ class TwissResponse(object):
         """ Returns Response Matrix for the Tunes """
         if not self._coupling:
             self._coupling = self._calc_coupling_response()
+
+        if mapped and not self._coupling_mapped:
             self._coupling_mapped = self._map_to_variables(self._coupling, self._var_to_el["K1SL"])
 
         if mapped:
@@ -612,9 +618,9 @@ class TwissResponse(object):
             "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
             # apply() converts empty DataFrames to Series! Cast them back.
-            "F1001R": tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),
+            "F1001R": -tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),
             "F1001I": tfs.TfsDataFrame(couple["1001"].apply(np.imag).astype(np.float64)),
-            "F1010R": tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),
+            "F1010R": -tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),
             "F1010I": tfs.TfsDataFrame(couple["1010"].apply(np.imag).astype(np.float64)),
             "Q": q_df,
         }

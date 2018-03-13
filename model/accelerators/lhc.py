@@ -445,6 +445,10 @@ class Lhc(Accelerator):
         return cls.get_file("segment.madx")
 
     @classmethod
+    def get_update_correction_tmpl(cls):
+        return cls.get_file("job.update_correction.madx")
+
+    @classmethod
     def get_file(cls, filename):
         return os.path.join(CURRENT_DIR, "lhc", filename)
 

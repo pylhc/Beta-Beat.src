@@ -33,14 +33,13 @@ DEFAULT = {
 # Full Response Mad-X ##########################################################
 
 
-def generate_fullresponse(outfile_path, variables,
-                          original_jobfile_path, pattern=DEFAULT["pattern"],
-                          delta_k=0.00002, num_proc=multiprocessing.cpu_count(), temp_dir=None):
+def generate_fullresponse(variables, original_jobfile_path, pattern=DEFAULT["pattern"],
+                          delta_k=0.00002, num_proc=multiprocessing.cpu_count(),
+                          temp_dir=None):
     """ Generate a dictionary containing response matrices for
         beta, phase, dispersion, tune and coupling and saves it to a file.
 
         Args:
-            outfile_path (str): Name of fullresponse file.
             variables (list): List of variables to use.
             original_jobfile_path (str): Name of the original MAD-X job file
                                          defining the sequence file.
@@ -48,11 +47,12 @@ def generate_fullresponse(outfile_path, variables,
                            script calls.
             delta_k (float): delta K1L to be applied to quads for sensitivity matrix
             num_proc (int): Number of processes to use in parallel.
+            temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.
     """
     LOG.debug("Generating Fullresponse via Mad-X.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
         if not temp_dir:
-            temp_dir = os.path.dirname(outfile_path)
+            temp_dir = os.path.dirname(original_jobfile_path)
         create_dirs(temp_dir)
 
         process_pool = multiprocessing.Pool(processes=num_proc)
@@ -60,11 +60,12 @@ def generate_fullresponse(outfile_path, variables,
         incr_dict = _generate_madx_jobs(variables, original_jobfile_path, pattern,
                         delta_k, num_proc, temp_dir)
         _call_madx(process_pool, temp_dir, num_proc)
-        _clean_up(temp_dir, num_proc, outfile_path)
+        _clean_up(temp_dir, num_proc)
 
         var_to_twiss = _load_madx_results(variables, process_pool, incr_dict, temp_dir)
         fullresponse = _create_fullresponse_from_dict(var_to_twiss)
-    _save_fullresponse(outfile_path, fullresponse)
+
+    return fullresponse
 
 
 def _generate_madx_jobs(variables, original_jobfile_path, pattern, delta_k, num_proc, temp_dir):
@@ -117,7 +118,7 @@ def _call_madx(process_pool, temp_dir, num_proc):
     LOG.debug("MAD-X jobs done.")
 
 
-def _clean_up(temp_dir, num_proc, outfile):
+def _clean_up(temp_dir, num_proc):
     """ Merge Logfiles and clean temporary outputfiles """
     LOG.debug("Cleaning output and building log...")
     full_log = ""
@@ -129,7 +130,7 @@ def _clean_up(temp_dir, num_proc, outfile):
         os.remove(log_path)
         os.remove(job_path)
         os.remove(iter_path)
-    with open(outfile + ".log", "w") as full_log_file:
+    with open("response_madx_full.log", "w") as full_log_file:
         full_log_file.write(full_log)
 
 
@@ -182,13 +183,6 @@ def _create_fullresponse_from_dict(var_to_twiss):
     return df
 
 
-def _save_fullresponse(outputfile_path, fullresponse):
-    """ Dumping the FullResponse file """
-    LOG.debug("Saving Fullresponse into file '{:s}'".format(outputfile_path))
-    with open(outputfile_path, 'wb') as dump_file:
-        cPickle.Pickler(dump_file, -1).dump(fullresponse)
-
-
 def _get_jobfiles(temp_dir, index):
     """ Return names for jobfile and iterfile according to index """
     jobfile_path = os.path.join(temp_dir, "job.iterate.{:d}.madx".format(index))
@@ -217,7 +211,7 @@ def _add_coupling(dict_of_tfs):
     """ Adds coupling to the tfs. QUICK FIX VIA LOOP!"""
     with timeit(lambda t: LOG.debug("  Time adding coupling: {:f}s".format(t))):
         for var in dict_of_tfs:
-            twopt = TwissOptics(dict_of_tfs[var], quick_init=True, keep_all_elem=True)
+            twopt = TwissOptics(dict_of_tfs[var], keep_all_elem=True)
             cpl = twopt.get_coupling("cmatrix")
             dict_of_tfs[var]["1001"] = cpl["F1001"]
             dict_of_tfs[var]["1010"] = cpl["F1010"]

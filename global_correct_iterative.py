@@ -398,6 +398,8 @@ def global_correction(opt, accel_opt):
         _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
 
         delta = tfs.TfsDataFrame(0, index=vars_list, columns=["DELTA"])
+        change_params_path = os.path.join(opt.output_path, "changeparameters.madx")
+        change_params_correct_path = os.path.join(opt.output_path, "changeparameters_correct.madx")
 
         # ######### Actual optimization algorithm ######### #
 
@@ -409,9 +411,11 @@ def global_correction(opt, accel_opt):
 
             if iteration > 0:
                 LOG.debug("Updating model via MADX")
-                corr_model_path = _create_corrected_model(iteration, accel_cls, nominal_model,
-                                                          opt.optics_file, opt.template_file_path,
-                                                          opt.output_path, opt.debug)
+                corr_model_path = os.path.join(opt.output_path, "twiss_" + str(iteration) + ".dat")
+
+                _create_corrected_model(corr_model_path, change_params_path,
+                                        accel_cls, nominal_model,
+                                        opt.optics_file, opt.debug)
 
                 corr_model = _load_model(corr_model_path, optics_params)
                 meas_dict = _append_model_to_measurement(corr_model, meas_dict, optics_params)
@@ -423,11 +427,12 @@ def global_correction(opt, accel_opt):
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
-            writeparams(opt.output_path, delta)
+            writeparams(change_params_path, delta)
+            writeparams(change_params_correct_path, -delta)
             LOG.debug("Cumulative delta: {:.5e}".format(
                 np.sum(np.abs(delta.loc[:, "DELTA"].values))))
 
-        write_knob(opt.output_path, delta)
+        write_knob(os.path.join(opt.output_path, "changeparameters.knob"), delta)
 
 
 # Main function helpers #######################################################
@@ -572,10 +577,10 @@ def _load_model(model_path, keys):
 def _add_coupling_to_model(model):
     tw_opt = TwissOptics(model)
     couple = tw_opt.get_coupling(method="cmatrix")
-    model.loc[:, "F1001R"] = couple["F1001"].apply(np.real).astype(np.float64)
-    model.loc[:, "F1001I"] = couple["F1001"].apply(np.imag).astype(np.float64)
-    model.loc[:, "F1010R"] = couple["F1010"].apply(np.real).astype(np.float64)
-    model.loc[:, "F1010I"] = couple["F1010"].apply(np.imag).astype(np.float64)
+    model["F1001R"] = couple["F1001"].apply(np.real).astype(np.float64)
+    model["F1001I"] = couple["F1001"].apply(np.imag).astype(np.float64)
+    model["F1010R"] = couple["F1010"].apply(np.real).astype(np.float64)
+    model["F1010I"] = couple["F1010"].apply(np.imag).astype(np.float64)
     return model
 
 
@@ -832,40 +837,27 @@ def _pseudo_inverse(response_mat, diff_vec, opt):
 # MADX related ###############################################################
 
 
-def _create_corrected_model(iteration, accel_cls, nominal_model, optics_file,
-                            template_file_path, output_path, debug):
-    madx_script = _create_madx_script(accel_cls, nominal_model, optics_file,
-                                      template_file_path, output_path)
-    _call_madx(madx_script, debug)
-    corr_model_path = os.path.join(output_path, "twiss_" + str(iteration) + ".dat")
-    shutil.copy2(os.path.join(output_path, "twiss_corr.dat"), corr_model_path)
-    return corr_model_path
-
-
-def _create_madx_script(accel_cls, nominal_model, optics_file,
-                        template_path, output_path):
-    with open(template_path, "r") as template:
+def _create_corrected_model(twiss_out, change_params, accel_cls, nominal_model, optics_file, debug):
+    """ Use the calculated deltas in changeparameters.madx to create a corrected model """
+    # create script from template
+    with open(accel_cls.get_update_correction_tmpl(), "r") as template:
         madx_template = template.read()
-        qx, qy = nominal_model.Q1, nominal_model.Q2
-        beam = int(nominal_model.SEQUENCE[-1])
-        replace_dict = {
-            "LIB": accel_cls.MACROS_NAME,
-            "MAIN_SEQ": accel_cls.load_main_seq_madx(),
-            "OPTICS_PATH": optics_file,
-            "CROSSING_ON": 0,  # TODO: Crossing
-            "NUM_BEAM": beam,
-            "PATH": output_path,
-            "DPP": 0.0,
-            "QMX": qx,
-            "QMY": qy,
-            "COR": "changeparameters.madx",
-        }
-        madx_script = madx_template % replace_dict
-    return madx_script
 
+    replace_dict = {
+        "LIB": accel_cls.MACROS_NAME,
+        "MAIN_SEQ": accel_cls.load_main_seq_madx(),
+        "OPTICS_PATH": optics_file,
+        "CROSSING_ON": 0,  # TODO: Crossing
+        "NUM_BEAM": accel_cls.get_beam(),
+        "PATH_TWISS": twiss_out,
+        "DPP": 0.0,
+        "QMX": nominal_model.Q1,
+        "QMY": nominal_model.Q2,
+        "CORRECTIONS": change_params,
+    }
+    madx_script = madx_template % replace_dict
 
-def _call_madx(madx_script, debug):
-    """ Call MADX and log into file """
+    # run madx
     if debug:
         with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
             madx_wrapper.resolve_and_run_string(
@@ -879,25 +871,22 @@ def _call_madx(madx_script, debug):
         )
 
 
-def write_knob(path, delta):
+def write_knob(knob_path, delta):
     a = datetime.datetime.fromtimestamp(time.time())
-    changeparameters_path = os.path.join(path, 'changeparameters.knob')
     delta_out = - delta.loc[:, ["DELTA"]]
-    delta_out.headers["PATH"] = path
+    delta_out.headers["PATH"] = os.path.dirname(knob_path)
     delta_out.headers["DATE"] = str(a.ctime())
-    tfs.write_tfs(changeparameters_path, delta_out, save_index="NAME")
+    tfs.write_tfs(knob_path, delta_out, save_index="NAME")
 
 
-def writeparams(path, delta):
-    for correct in (True, False):
-        filename = "changeparameters_correct.madx" if correct else "changeparameters.madx"
-        with open(os.path.join(path, filename), "w") as madx_script:
-            for var in delta.index.values:
-                value = -delta.loc[var, "DELTA"] if correct else delta.loc[var, "DELTA"]
-                madx_script.write(var + " = " + var
-                                  + (" + " if value > 0 else " ")
-                                  + str(value) + ";\n"
-                                  )
+def writeparams(path_to_file, delta):
+    with open(path_to_file, "w") as madx_script:
+        for var in delta.index.values:
+            value = delta.loc[var, "DELTA"]
+            madx_script.write(var + " = " + var
+                              + (" + " if value > 0 else " ")
+                              + str(value) + ";\n"
+                              )
 
 
 # Small Helpers ################################################################
