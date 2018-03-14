@@ -470,7 +470,7 @@ class TwissResponse(object):
         m2v = self._map_to_variables
 
         return {
-            "X_K0L": m2v(disp["_K0L"], var2k0),
+            "X_K0L": m2v(disp["X_K0L"], var2k0),
             "X_K1SL": m2v(disp["X_K1SL"], var2j1),
             "Y_K0SL": m2v(disp["Y_K0SL"], var2j0),
             "Y_K1SL": m2v(disp["Y_K1SL"], var2j1),
@@ -583,7 +583,7 @@ class TwissResponse(object):
             return self._tune
 
     def get_coupling(self, mapped=True):
-        """ Returns Response Matrix for the Tunes """
+        """ Returns Response Matrix for the coupling """
         if not self._coupling:
             self._coupling = self._calc_coupling_response()
 
@@ -622,9 +622,10 @@ class TwissResponse(object):
             "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
             # apply() converts empty DataFrames to Series! Cast them back.
-            "F1001R": tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),
+            # Also: take care of minus-sign convention!
+            "F1001R": -tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),  # - !!
             "F1001I": tfs.TfsDataFrame(couple["1001"].apply(np.imag).astype(np.float64)),
-            "F1010R": tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),
+            "F1010R": -tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),  # - !!
             "F1010I": tfs.TfsDataFrame(couple["1010"].apply(np.imag).astype(np.float64)),
             "Q": q_df,
         }

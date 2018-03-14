@@ -198,6 +198,12 @@ class TwissOptics(object):
     def get_coupling(self, method='rdt'):
         """ Returns the coupling term.
 
+
+        .. warning::
+            This function changes sign of the real part of the RDTs compared to
+            [#FranchiAnalyticformulasrapid2017]_ to be consistent with the RDT
+            calculations from [#CalagaBetatroncouplingMerging2005]_ .
+
         Args:
             method: 'rdt' - Returns the values calculated by calc_rdts()
                     'cmatrix' - Returns the values calculated by calc_cmatrix()
@@ -205,7 +211,10 @@ class TwissOptics(object):
         if method == 'rdt':
             if "F1001" not in self._results_df or "F1010" not in self._results_df:
                 self.calc_rdts(['F1001', 'F1010'])
-            return self._results_df.loc[:, ['S', 'F1001', 'F1010']]
+                res_df = self._results_df.loc[:, ['S', 'F1001', 'F1010']]
+                res_df.loc[:, "F1001"].real *= -1
+                res_df.loc[:, "F1010"].real *= -1
+            return res_df
         elif method == 'cmatrix':
             if "F1001_C" not in self._results_df:
                 self.calc_cmatrix()
@@ -221,11 +230,6 @@ class TwissOptics(object):
     def calc_cmatrix(self):
         """ Calculates C matrix and Coupling and Gamma from it.
         See [#CalagaBetatroncouplingMerging2005]_
-
-        .. warning::
-            This function changes sign of the real part of the RDTs compared to
-            [#CalagaBetatroncouplingMerging2005]_ (and MADX) to be consistent with the RDT
-            calculations from [#FranchiAnalyticformulasrapid2017]_ .
         """
         tw = self.twiss_df
         res = self._results_df
@@ -263,11 +267,9 @@ class TwissOptics(object):
 
             res.loc[:, "GAMMA_C"] = gammas
 
-            # WARNNING: the following part changes sign of the real part of the RDTs
-            # to be consistent with the RDT calculations from [#FranchiAnalyticformulasrapid2017]_
-            res.loc[:, "F1001_C"] = ((cs[:, 0, 0] + cs[:, 1, 1]) * 1j -
+            res.loc[:, "F1001_C"] = ((cs[:, 0, 0] + cs[:, 1, 1]) * 1j +
                                      (cs[:, 0, 1] - cs[:, 1, 0])) / 4 / gammas
-            res.loc[:, "F1010_C"] = ((cs[:, 0, 0] - cs[:, 1, 1]) * 1j -
+            res.loc[:, "F1010_C"] = ((cs[:, 0, 0] - cs[:, 1, 1]) * 1j +
                                      (-cs[:, 0, 1]) - cs[:, 1, 0]) / 4 / gammas
 
             res.loc[:, "C11"] = cs[:, 0, 0]
