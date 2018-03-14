@@ -1,15 +1,15 @@
 """
 Provides Class to get response matrices from Twiss parameters.
 
-The calculation is based on formulas in [#fran]_, [#toma]_.
+The calculation is based on formulas in [#FranchiAnalyticformulasrapid2017]_, [#TomasReviewlinearoptics2017]_.
 
 
 Only works properly for on-orbit twiss files.
 
- * Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#fran]_
- * Dispersion Response:    Eq. 25-27 in [#fran]_
- * Phase Advance Response: Eq. 28 in [#fran]_
- * Tune Response:          Eq. 7 in [#toma]_
+ * Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#FranchiAnalyticformulasrapid2017]_
+ * Dispersion Response:    Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_
+ * Phase Advance Response: Eq. 28 in [#FranchiAnalyticformulasrapid2017]_
+ * Tune Response:          Eq. 7 in [#TomasReviewlinearoptics2017]_
 
 For people reading the code, the response matrices are first calculated like:
 
@@ -28,17 +28,21 @@ As this was avoided transposing all vectors in the beginning.
 At the end (of the calculation) the matrix is then transposed
 to fit the :math:`M \cdot \delta K` orientation.
 
-References:
- .. [#fran]  A. Franchi et al.,
-             'Analytic formulas for the rapid evaluation of the orbit response matrix
-             and chromatic functions from lattice parameters in circular accelerators'
-             NOT YET PUBLISHED
+.. rubric:: References
 
- .. [#toma]  R. Tomas, et al.,
-             'Review of linear optics measurement and correction for charged particle
-             accelerators.'
-             Physical Review Accelerators and Beams, 20(5), 54801. (2017)
-             https://doi.org/10.1103/PhysRevAccelBeams.20.054801
+..  [#FranchiAnalyticformulasrapid2017]
+    A. Franchi et al.,
+    Analytic formulas for the rapid evaluation of the orbit response matrix
+    and chromatic functions from lattice parameters in circular accelerators
+    https://arxiv.org/abs/1711.06589
+
+.. [#TomasReviewlinearoptics2017]
+    R. Tomas, et al.,
+    'Review of linear optics measurement and correction for charged particle
+    accelerators.'
+    Physical Review Accelerators and Beams, 20(5), 54801. (2017)
+    https://doi.org/10.1103/PhysRevAccelBeams.20.054801
+
 """
 import numpy as np
 import pandas as pd
@@ -222,7 +226,7 @@ class TwissResponse(object):
     def _calc_coupling_response(self):
         """ Response Matrix for coupling.
 
-        Eq. 10 in [#fran]_
+        Eq. 10 in [#FranchiAnalyticformulasrapid2017]_
         """
         LOG.debug("Calculate Coupling Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -248,7 +252,7 @@ class TwissResponse(object):
     def _calc_beta_response(self):
         """ Response Matrix for delta beta.
 
-        Eq. A35 -> Eq. B45 in [#fran]_
+        Eq. A35 -> Eq. B45 in [#FranchiAnalyticformulasrapid2017]_
         """
         LOG.debug("Calculate Beta Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -276,7 +280,7 @@ class TwissResponse(object):
     def _calc_dispersion_response(self):
         """ Response Matrix for delta dispersion
 
-            Eq. 25-27 in [#fran]_
+            Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_
         """
         LOG.debug("Calculate Dispersion Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
@@ -318,7 +322,7 @@ class TwissResponse(object):
     def _calc_phase_advance_response(self):
         """ Response Matrix for delta DPhi.
 
-        Eq. 28 in [#fran]_
+        Eq. 28 in [#FranchiAnalyticformulasrapid2017]_
         Reduced to only phase advances between consecutive elements,
         as the 3D-Matrix of all elements exceeds memory space
         (~11000^3 = 1331 Giga Elements)
@@ -369,7 +373,7 @@ class TwissResponse(object):
     def _calc_phase_response(self):
         """ Response Matrix for delta DPhi.
 
-        Eq. 28 in [#fran]_
+        Eq. 28 in [#FranchiAnalyticformulasrapid2017]_
         Reduced to only delta phase.
         --> w = 0:  DPhi(z,j) = DPhi(x, 0->j)
 
@@ -416,7 +420,7 @@ class TwissResponse(object):
     def _calc_tune_response(self):
         """ Response vectors for Tune.
 
-        Eq. 7 in [#toma]_
+        Eq. 7 in [#TomasReviewlinearoptics2017]_
         """
         LOG.debug("Calculate Tune Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}s".format(t))):
@@ -466,7 +470,7 @@ class TwissResponse(object):
         m2v = self._map_to_variables
 
         return {
-            "X_K0L": m2v(disp["X_K0L"], var2k0),
+            "X_K0L": m2v(disp["_K0L"], var2k0),
             "X_K1SL": m2v(disp["X_K1SL"], var2j1),
             "Y_K0SL": m2v(disp["Y_K0SL"], var2j0),
             "Y_K1SL": m2v(disp["Y_K1SL"], var2j1),
@@ -618,9 +622,9 @@ class TwissResponse(object):
             "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
             "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
             # apply() converts empty DataFrames to Series! Cast them back.
-            "F1001R": -tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),
+            "F1001R": tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),
             "F1001I": tfs.TfsDataFrame(couple["1001"].apply(np.imag).astype(np.float64)),
-            "F1010R": -tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),
+            "F1010R": tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),
             "F1010I": tfs.TfsDataFrame(couple["1010"].apply(np.imag).astype(np.float64)),
             "Q": q_df,
         }
