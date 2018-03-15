@@ -44,6 +44,7 @@ to fit the :math:`M \cdot \delta K` orientation.
     https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 
 """
+import multiprocessing
 import numpy as np
 import pandas as pd
 
@@ -97,7 +98,6 @@ class TwissResponse(object):
             self._phase_advances = get_phase_advances(self._twiss)
 
             # All responses are calcluated as needed, see getters below!
-
             # slots for response matrices
             self._beta = None
             self._dispersion = None
@@ -105,10 +105,8 @@ class TwissResponse(object):
             self._phase_adv = None
             self._tune = None
             self._coupling = None
-
-            # slots for normalized response matrices
-            self._beta_norm = None  # i.e. beta-beating
-            self._dispersion_norm = None
+            self._beta_beat = None
+            self._norm_dispersion = None
 
             # slots for mapped response matrices
             self._coupling_mapped = None
@@ -117,10 +115,8 @@ class TwissResponse(object):
             self._phase_mapped = None
             self._phase_adv_mapped = None
             self._tune_mapped = None
-
-            # slots for normalized mapped response matrices
-            self._beta_mapped_norm = None  # i.e. beta-beating
-            self._dispersion_mapped_norm = None
+            self._beta_beat_mapped = None
+            self._norm_dispersion_mapped = None
 
     @staticmethod
     def _get_model_twiss(model_or_path):
@@ -510,8 +506,8 @@ class TwissResponse(object):
     #          Getters
     ################################
 
-    def get_beta(self, mapped=True, normalized=True):
-        """ Returns Response Matrix for Beta Beating """
+    def get_beta(self, mapped=True):
+        """ Returns Response Matrix for Beta """
         if not self._beta:
             self._beta = self._calc_beta_response()
 
@@ -519,16 +515,27 @@ class TwissResponse(object):
             self._beta_mapped = self._map_to_variables(self._beta,
                                                        self._var_to_el["K1L"])
 
-        if normalized and not self._beta_norm:
-            self._beta_norm = self._normalize_beta_response(self._beta)
-            if mapped and not self._beta_mapped_norm:
-                self._beta_mapped_norm = self._map_to_variables(self._beta_norm,
-                                                                self._var_to_el["K1L"])
+        if mapped:
+            return self._beta_mapped
+        else:
+            return self._beta
+
+    def get_beta_beat(self, mapped=True):
+        """ Returns Response Matrix for Beta Beating """
+        if not self._beta:
+            self._beta = self._calc_beta_response()
+
+        if not self._beta_beat:
+            self._beta_beat = self._normalize_beta_response(self._beta)
+
+        if mapped and not self._beta_beat_mapped:
+            self._beta_beat_mapped = self._map_to_variables(self._beta_beat,
+                                                            self._var_to_el["K1L"])
 
         if mapped:
-            return self._beta_mapped_norm if normalized else self._beta_mapped
+            return self._beta_beat_mapped
         else:
-            return self._beta_norm if normalized else self._beta
+            return self._beta_beat
 
     def get_dispersion(self, mapped=True):
         """ Returns Response Matrix for Dispersion """
@@ -595,17 +602,17 @@ class TwissResponse(object):
         else:
             return self._coupling
 
-    def get_fullresponse(self, mapped=True):
+    def get_fullresponse(self):
         """ Returns all Response Matrices in a similar way as ``response_madx.py`` """
         LOG.debug("Calculating (if not present) parameters and returning fullresponse.")
         with timeit(lambda t: LOG.debug("  Total time getting parameters: {:f}s".format(t))):
-            # get all optical parametets
-            tune = self.get_tune(mapped=mapped)
-            beta = self.get_beta(mapped=mapped, normalized=False)
-            bbeat = self.get_beta(mapped=mapped, normalized=True)
-            disp = self.get_dispersion(mapped=mapped)
-            phase = self.get_phase(mapped=mapped)
-            couple = self.get_coupling(mapped=mapped)
+            # get all optical parameters
+            tune = self.get_tune()
+            beta = self.get_beta()
+            bbeat = self.get_beta_beat()
+            disp = self.get_dispersion()
+            phase = self.get_phase()
+            couple = self.get_coupling()
 
         # merge tune to one
         q_df = tune["X"].append(tune["Y"])
@@ -629,6 +636,88 @@ class TwissResponse(object):
             "F1010I": tfs.TfsDataFrame(couple["1010"].apply(np.imag).astype(np.float64)),
             "Q": q_df,
         }
+
+    def get_response_for(self, obs=None):
+        """ Calculates and returns only desired response matrices """
+        if obs is None:
+            obs = ["BETX", "BETY", "BBX", "BBY", "MUX", "MUY",
+                   "DX", "DY", "F1001R", "F1001I", "F1010R", "F1010I", "Q"]
+        LOG.debug("Calculating responses for {:s} via multiprocesspool.".format(obs))
+        with timeit(lambda t: LOG.debug("  Total time getting parameters: {:f}s".format(t))):
+            results_dict = self._get_results_multiprocesses(obs)
+            fullresponse = self._sort_results_dict(obs, results_dict)
+        return fullresponse
+
+    def _get_results_multiprocesses(self, obs):
+        """ Get all needed response matrices via multiprocesses """
+        result = {}
+        getter = {
+            "B": self.get_beta,
+            "M": self.get_phase,
+            "D": self.get_dispersion,
+            "Q": self.get_tune,
+            "F": self.get_coupling,
+        }
+
+        def result_callback(res):
+            result[res[1]] = res[2]
+
+        def call_getter(func):
+            return func, getter[func]
+
+        get = set([o[0] for o in obs])
+
+        num_proc = multiprocessing.cpu_count()
+        process_pool = multiprocessing.Pool(processes=num_proc)
+
+        for g in get:
+            process_pool.apply_async(call_getter, args=(g,), callback=result_callback)
+        process_pool.close()
+        process_pool.join()
+
+        if "BBX" in obs or "BBY" in obs:
+            result["BB"] = self._normalize_beta_response(result["B"])
+
+        return result
+
+    @staticmethod
+    def _sort_results_dict(obs, r_dict):
+        """ Sort from the results dict to fullresponse dict (see results_multiprocesses) """
+        f_resp = dict()
+        for key in obs:
+            if key == "BETX":
+                res = r_dict["B"]["X"]
+            elif key == "BETY":
+                res = r_dict["B"]["Y"]
+            elif key == "BBX":
+                res = r_dict["BB"]["X"]
+            elif key == "BBY":
+                res = r_dict["BB"]["Y"]
+            elif key == "MUX":
+                res = r_dict["M"]["X"]
+            elif key == "MUY":
+                res = r_dict["M"]["Y"]
+            elif key == "DX":
+                res = response_add(r_dict["D"]["X_K0L"], r_dict["D"]["X_K1SL"])
+            elif key == "DY":
+                res = response_add(r_dict["D"]["Y_K0SL"], r_dict["D"]["Y_K1SL"])
+            elif key == "Q":
+                res = r_dict["Q"]["X"].append(r_dict["Q"]["Y"])
+                res.index = ["Q1", "Q2"]
+            elif key == "F1001R":
+                res = -tfs.TfsDataFrame(
+                    r_dict["F"]["1001"].apply(np.real).astype(np.float64))  # - !!
+            elif key == "F1001I":
+                res = tfs.TfsDataFrame(
+                    r_dict["F"]["1001"].apply(np.imag).astype(np.float64))
+            elif key == "F1010R":
+                res = -tfs.TfsDataFrame(
+                    r_dict["F"]["1010"].apply(np.real).astype(np.float64))  # - !!
+            elif key == "F1010I":
+                res = tfs.TfsDataFrame(
+                    r_dict["F"]["1010"].apply(np.imag).astype(np.float64))
+            f_resp[key] = res
+        return f_resp
 
     def get_variabel_names(self):
         return self._variables
