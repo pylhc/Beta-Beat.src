@@ -1,5 +1,5 @@
 from utils.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
-from model.accelerators import lhc, ps, esrf, psbooster
+from model.accelerators import lhc, ps, esrf, psbooster, skekb
 
 
 ACCELS = {
@@ -7,6 +7,7 @@ ACCELS = {
     ps.Cps.NAME: ps.Cps,
     esrf.Esrf.NAME: esrf.Esrf,
     psbooster.Psbooster.NAME: psbooster.Psbooster,
+    skekb.SKekB.NAME: skekb.SKekB,
 }
 
 
