@@ -453,6 +453,13 @@ class Lhc(Accelerator):
         return os.path.join(CURRENT_DIR, "lhc", filename)
 
     @classmethod
+    def get_sequence_file(cls):
+        try:
+            return _get_file_for_year(cls.YEAR, "main.seq")
+        except AttributeError:
+            cls.__raise_definition_error("Only usable if year is specified.")
+
+    @classmethod
     def get_variables(cls, frm=None, to=None, classes=None):
         correctors_dir = os.path.join(LHC_DIR, "2012", "correctors")
         all_corrs = _merge_jsons(

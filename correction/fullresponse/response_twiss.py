@@ -605,7 +605,7 @@ class TwissResponse(object):
     def get_fullresponse(self):
         """ Returns all Response Matrices in a similar way as ``response_madx.py`` """
         LOG.debug("Calculating (if not present) parameters and returning fullresponse.")
-        with timeit(lambda t: LOG.debug("  Total time getting parameters: {:f}s".format(t))):
+        with timeit(lambda t: LOG.debug("Total time getting responses: {:f}s".format(t))):
             # get all optical parameters
             tune = self.get_tune()
             beta = self.get_beta()
@@ -642,82 +642,47 @@ class TwissResponse(object):
         if obs is None:
             obs = ["BETX", "BETY", "BBX", "BBY", "MUX", "MUY",
                    "DX", "DY", "F1001R", "F1001I", "F1010R", "F1010I", "Q"]
-        LOG.debug("Calculating responses for {:s} via multiprocesspool.".format(obs))
-        with timeit(lambda t: LOG.debug("  Total time getting parameters: {:f}s".format(t))):
-            results_dict = self._get_results_multiprocesses(obs)
-            fullresponse = self._sort_results_dict(obs, results_dict)
-        return fullresponse
 
-    def _get_results_multiprocesses(self, obs):
-        """ Get all needed response matrices via multiprocesses """
-        result = {}
-        getter = {
-            "B": self.get_beta,
-            "M": self.get_phase,
-            "D": self.get_dispersion,
-            "Q": self.get_tune,
-            "F": self.get_coupling,
-        }
-
-        def result_callback(res):
-            result[res[1]] = res[2]
-
-        def call_getter(func):
-            return func, getter[func]
-
-        get = set([o[0] for o in obs])
-
-        num_proc = multiprocessing.cpu_count()
-        process_pool = multiprocessing.Pool(processes=num_proc)
-
-        for g in get:
-            process_pool.apply_async(call_getter, args=(g,), callback=result_callback)
-        process_pool.close()
-        process_pool.join()
-
-        if "BBX" in obs or "BBY" in obs:
-            result["BB"] = self._normalize_beta_response(result["B"])
-
-        return result
-
-    @staticmethod
-    def _sort_results_dict(obs, r_dict):
-        """ Sort from the results dict to fullresponse dict (see results_multiprocesses) """
-        f_resp = dict()
-        for key in obs:
-            if key == "BETX":
-                res = r_dict["B"]["X"]
-            elif key == "BETY":
-                res = r_dict["B"]["Y"]
-            elif key == "BBX":
-                res = r_dict["BB"]["X"]
-            elif key == "BBY":
-                res = r_dict["BB"]["Y"]
-            elif key == "MUX":
-                res = r_dict["M"]["X"]
-            elif key == "MUY":
-                res = r_dict["M"]["Y"]
-            elif key == "DX":
-                res = response_add(r_dict["D"]["X_K0L"], r_dict["D"]["X_K1SL"])
-            elif key == "DY":
-                res = response_add(r_dict["D"]["Y_K0SL"], r_dict["D"]["Y_K1SL"])
-            elif key == "Q":
-                res = r_dict["Q"]["X"].append(r_dict["Q"]["Y"])
-                res.index = ["Q1", "Q2"]
-            elif key == "F1001R":
-                res = -tfs.TfsDataFrame(
-                    r_dict["F"]["1001"].apply(np.real).astype(np.float64))  # - !!
-            elif key == "F1001I":
-                res = tfs.TfsDataFrame(
-                    r_dict["F"]["1001"].apply(np.imag).astype(np.float64))
-            elif key == "F1010R":
-                res = -tfs.TfsDataFrame(
-                    r_dict["F"]["1010"].apply(np.real).astype(np.float64))  # - !!
-            elif key == "F1010I":
-                res = tfs.TfsDataFrame(
-                    r_dict["F"]["1010"].apply(np.imag).astype(np.float64))
-            f_resp[key] = res
-        return f_resp
+        LOG.debug("Calculating responses for {:s}.".format(obs))
+        with timeit(lambda t: LOG.debug("Total time getting responses: {:f}s".format(t))):
+            response = dict()
+            for key in obs:
+                if key == "BETX":
+                    res = self.get_beta()["X"]
+                elif key == "BETY":
+                    res = self.get_beta()["Y"]
+                elif key == "BBX":
+                    res = self.get_beta_beat()["X"]
+                elif key == "BBY":
+                    res = self.get_beta_beat()["Y"]
+                elif key == "MUX":
+                    res = self.get_phase()["X"]
+                elif key == "MUY":
+                    res = self.get_phase()["Y"]
+                elif key == "DX":
+                    disp = self.get_dispersion()
+                    res = response_add(disp["X_K0L"], disp["X_K1SL"])
+                elif key == "DY":
+                    disp = self.get_dispersion()
+                    res = response_add(disp["Y_K0SL"], disp["Y_K1SL"])
+                elif key == "Q":
+                    tune = self.get_tune()
+                    res = tune["X"].append(tune["Y"])
+                    res.index = ["Q1", "Q2"]
+                elif key == "F1001R":
+                    res = -tfs.TfsDataFrame(
+                        self.get_coupling()["1001"].apply(np.real).astype(np.float64))  # - !!
+                elif key == "F1001I":
+                    res = tfs.TfsDataFrame(
+                        self.get_coupling()["1001"].apply(np.imag).astype(np.float64))
+                elif key == "F1010R":
+                    res = -tfs.TfsDataFrame(
+                        self.get_coupling()["1010"].apply(np.real).astype(np.float64))  # - !!
+                elif key == "F1010I":
+                    res = tfs.TfsDataFrame(
+                        self.get_coupling()["1010"].apply(np.imag).astype(np.float64))
+                response[key] = res
+        return response
 
     def get_variabel_names(self):
         return self._variables

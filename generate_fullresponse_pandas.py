@@ -13,7 +13,7 @@ from correction.fullresponse.response_twiss import TwissResponse
 from global_correct_iterative import DEFAULT_ARGS
 from model import manager
 from twiss_optics.sequence_parser import EXT as VARMAP_EXT
-from utils import logging_tools
+from utils import logging_tools, iotools
 from utils.contexts import timeit
 from utils.entrypoint import EntryPointParameters, entrypoint
 
@@ -59,6 +59,13 @@ def get_params():
         type=float
     )
     params.add_parameter(
+        flags="--optics_params",
+        help="List of parameters to correct upon (e.g. BBX BBY; twiss-only).",
+        name="optics_params",
+        type=str,
+        nargs="+",
+    )
+    params.add_parameter(
         flags="--debug",
         help="Print debug information.",
         name="debug",
@@ -90,6 +97,8 @@ def create_response(opt, other_opt):
         delta_k (float): Delta K1L to be applied to quads for sensitivity matrix (madx-only).
                          **Flags**: ['-k', '--deltak']
                          **Default**: ``2e-05``
+        optics_params (str): List of parameters to correct upon (e.g. BBX BBY; twiss-only).
+                             **Flags**: --optics_params
         variable_categories: List of the variables classes to use.
                              **Flags**: --variables
                              **Default**: ``['MQM', 'MQT', 'MQTL', 'MQY']``
@@ -104,24 +113,33 @@ def create_response(opt, other_opt):
             fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
                                                 delta_k=opt.delta_k)
         elif opt.creator == "twiss":
-            accel_inst = accel_cls(model_dir=opt.model_dir)
+            model_path = os.path.join(opt.model_dir, "twiss_elements.dat")
 
-            # handle the varmap/sequence file
-            varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
+            # ##### The following part should be replaced by Jaime's Database ##### #
+            #PUT THIS IN A FUNCTION AND ALSO CALL FROM CREATE RESPONSE IN CORRECT_ITERATIVE
+
+            varmapfile_name = accel_cls.NAME.lower() + "b" + str(accel_cls.get_beam())
             varmap_path = os.path.join(opt.model_dir, varmapfile_name + "." + VARMAP_EXT)
             if not os.path.isfile(varmap_path):
-                with logging_tools.TempFile("save_sequence_madxout.tmp", LOG.debug) as log_file:
-                    madx.resolve_and_run_file(
-                        os.path.join(opt.model_dir, "job.save_sequence.madx"),
-                        log_file=log_file,
-                    )
+                LOG.debug("Variable mapping not found. Creating it with madx/sequence_parser.")
                 varmap_path = varmap_path.replace("." + VARMAP_EXT, ".seq")
+                save_sequence_jobfile = os.path.join(opt.model_dir, "job.save_sequence.madx")
+                if os.path.isfile(save_sequence_jobfile):
+                    with logging_tools.TempFile("save_sequence_madxout.tmp", LOG.debug) as log_file:
+                        madx.resolve_and_run_file(
+                            save_sequence_jobfile,
+                            log_file=log_file,
+                        )
+                else:
+                    LOG.warning("'job.save_sequence.madx' not found. Using standard 'main.seq'")
+                    iotools.copy_item(accel_cls.get_sequence_file(), varmap_path)
+            # ############################################################################ #
 
-            LOG.debug("Creating Fullresponse via TwissResponse")
-            with timeit(lambda t: LOG.debug("  Total time getting TwissResponse: {:f}s".format(t))):
-                model = accel_inst.get_elements_tfs()
-                tr = TwissResponse(varmap_path, model, variables)
-                fullresponse = tr.get_fullresponse()
+            LOG.debug("Creating response via TwissResponse.")
+            with timeit(lambda t:
+                        LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
+                tr = TwissResponse(varmap_path, model_path, variables)
+                fullresponse = tr.get_response_for(opt.optics_params)
 
         LOG.debug("Saving Response into file '{:s}'".format(opt.outfile_path))
         with open(opt.outfile_path, 'wb') as dump_file:

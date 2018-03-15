@@ -168,9 +168,15 @@ def _get_params():
     )
     params.add_parameter(
         flags="--fullresponse",
-        help="Path to the fullresponse binary file.",
+        help=("Path to the fullresponse binary file."
+             " If not given, calculates the response analytically."),
         name="fullresponse_path",
-        required=True,
+    )
+    params.add_parameter(
+        flags="--update_response",
+        help="If True, it will update the (analytical) response per iteration.",
+        name="update_response",
+        action="store_true",
     )
     params.add_parameter(
         flags="--optics_params",
@@ -293,8 +299,6 @@ def global_correction(opt, accel_opt):
 
     Keyword Args:
         Required
-        fullresponse_path: Path to the fullresponse binary file.
-                           **Flags**: --fullresponse
         meas_dir_path: Path to the directory containing the measurement files.
                        **Flags**: --meas_dir
         model_or_twiss_path: Path to the model to use.
@@ -313,6 +317,9 @@ def global_correction(opt, accel_opt):
         errorcut (float): Reject BPMs whose error bar is higher than the corresponding input.
                           Input in order of optics_params.
                           **Flags**: --error_cut
+        fullresponse_path: Path to the fullresponse binary file.
+                           If not given, calculates the response analytically.
+                           **Flags**: --fullresponse
         max_iter (int): Maximum number of correction re-iterations to perform.
                         A value of `0` means the correction is calculated once
                         (like in the old days).
@@ -377,13 +384,16 @@ def global_correction(opt, accel_opt):
 
         # read data from files
         vars_list = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
-        resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
-
         optics_params, meas_dict = _get_measurment_data(
             opt.optics_params,
             opt.meas_dir_path, opt.beta_file_name,
             w_dict,
         )
+
+        try:
+            resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
+        except IOError:
+            resp_dict = _create_response(opt.model_path, accel_cls, vars_list, optics_params)
 
         nominal_model = _load_model(opt.model_path, optics_params)
 
