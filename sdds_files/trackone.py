@@ -1,14 +1,22 @@
+import sys
+from os.path import abspath, join, dirname
+import json
+from collections import OrderedDict
 import numpy as np
-import pandas as pd
 from numpy import savez_compressed as _save
 from numpy import load as _load
-from collections import OrderedDict
-import json
+import pandas as pd
 from scipy.io import loadmat
-from os.path import abspath, join, dirname
+import turn_by_turn_writer
+
 
 # Introduce a system for lists(dicts) of TbT files, trackones ... ,
 #  what is utils/dict_tools.py - Josch?
+def trackone_to_sdds(nturns=0, npart=0,
+                     infile='trackone', outfile="trackone.sdds"):
+    names, matrix = get_structure_from_trackone(nturns, npart, infile)
+    # matrix[0, 2] contains just (x, y) samples.
+    turn_by_turn_writer.write_tbt_file(names, matrix[[0, 2]], outfile)
 
 
 def save_dict(file_name, di):
@@ -101,10 +109,6 @@ def get_structure_from_trackone(nturns=0, npart=0, infile='trackone'):
     return np.array(bpms.keys()), np.transpose(np.array(bpms.values()), axes=[3, 0, 1, 2])
 
 
-nt, npa = get_trackone_stats('trackone')
-get_structure_from_trackone(nturns=nt, npart=npa, infile='trackone')
-
-
 def load_esrf_mat_file(infile):
     """
         Reads the ESRF TbT Matlab file, checks for nans and data duplicities from consecutive kicks
@@ -137,8 +141,3 @@ def _check_esrf_tbt_data(tbt_data):
                                 np.sum(np.abs(np.diff(tbt_data, axis=2)), axis=3)), axis=2) == 0.0
     tbt_data[mask_prev, :] = 0.0
     return tbt_data
-
-
-if __name__ == "__main__":
-    nt, npa = get_trackone_stats('trackone')
-    _save("trackone.npz", data=get_structure_from_trackone(nturns=nt, npart=npa, infile='trackone'))
