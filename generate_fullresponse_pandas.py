@@ -7,13 +7,11 @@ The response matrices can be either created by response_madx or analytically via
 import cPickle as pickle
 import os
 
-import madx_wrapper as madx
 from correction.fullresponse import response_madx
 from correction.fullresponse.response_twiss import TwissResponse
-from global_correct_iterative import DEFAULT_ARGS
+from global_correct_iterative import DEFAULT_ARGS, check_varmap_file
 from model import manager
-from twiss_optics.sequence_parser import EXT as VARMAP_EXT
-from utils import logging_tools, iotools
+from utils import logging_tools
 from utils.contexts import timeit
 from utils.entrypoint import EntryPointParameters, entrypoint
 
@@ -113,32 +111,13 @@ def create_response(opt, other_opt):
             fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
                                                 delta_k=opt.delta_k)
         elif opt.creator == "twiss":
-            model_path = os.path.join(opt.model_dir, "twiss_elements.dat")
-
-            # ##### The following part should be replaced by Jaime's Database ##### #
-            #PUT THIS IN A FUNCTION AND ALSO CALL FROM CREATE RESPONSE IN CORRECT_ITERATIVE
-
-            varmapfile_name = accel_cls.NAME.lower() + "b" + str(accel_cls.get_beam())
-            varmap_path = os.path.join(opt.model_dir, varmapfile_name + "." + VARMAP_EXT)
-            if not os.path.isfile(varmap_path):
-                LOG.debug("Variable mapping not found. Creating it with madx/sequence_parser.")
-                varmap_path = varmap_path.replace("." + VARMAP_EXT, ".seq")
-                save_sequence_jobfile = os.path.join(opt.model_dir, "job.save_sequence.madx")
-                if os.path.isfile(save_sequence_jobfile):
-                    with logging_tools.TempFile("save_sequence_madxout.tmp", LOG.debug) as log_file:
-                        madx.resolve_and_run_file(
-                            save_sequence_jobfile,
-                            log_file=log_file,
-                        )
-                else:
-                    LOG.warning("'job.save_sequence.madx' not found. Using standard 'main.seq'")
-                    iotools.copy_item(accel_cls.get_sequence_file(), varmap_path)
-            # ############################################################################ #
+            accel_inst = accel_cls(model_dir=opt.model_dir)
+            varmap_path = check_varmap_file(accel_inst)
 
             LOG.debug("Creating response via TwissResponse.")
             with timeit(lambda t:
                         LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
-                tr = TwissResponse(varmap_path, model_path, variables)
+                tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), variables)
                 fullresponse = tr.get_response_for(opt.optics_params)
 
         LOG.debug("Saving Response into file '{:s}'".format(opt.outfile_path))

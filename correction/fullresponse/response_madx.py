@@ -130,7 +130,8 @@ def _clean_up(temp_dir, num_proc):
         os.remove(log_path)
         os.remove(job_path)
         os.remove(iter_path)
-    with open("response_madx_full.log", "w") as full_log_file:
+    full_log_path = os.path.join(temp_dir, "response_madx_full.log")
+    with open(full_log_path, "w") as full_log_file:
         full_log_file.write(full_log)
 
 
