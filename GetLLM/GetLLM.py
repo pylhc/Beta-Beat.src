@@ -316,7 +316,10 @@ def main(outputpath,
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         temp_dict = copy.deepcopy(files_dict)
-       
+        #This one changes the results for some reason
+        if(getllm_d.onlycoupling is 0):
+            phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
+
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
 
@@ -326,8 +329,7 @@ def main(outputpath,
 
         if(getllm_d.onlycoupling is 0):
            
-            phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
-     
+                
             #-------- START Total Phase
             algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
 
