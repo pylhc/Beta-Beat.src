@@ -130,6 +130,7 @@ AVERAGE_TUNE    = 0     #@IgnorePep8
 CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
+ONLYCOUPLING    = 0     #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 
 #===================================================================================================
@@ -200,6 +201,10 @@ def _parse_args():
     parser.add_option("--nprocesses", default=NPROCESSES, dest="nprocesses",
                       metavar="NPROCESSES", type="int",
                       help="Sets the number of processes used. -1: take the number of CPUs 0: run serially >1: take the specified number. default = {0:d}".format(NPROCESSES))
+    parser.add_option("--coupling", default=ONLYCOUPLING, dest="onlycoupling",
+                      metavar="ONLYCOUPLING", type="int",
+                      help="When enabled only coupling is calculated. ")
+
 
     # awegsche June 2016, option to include an errorfile
     # update August 2016, looking by default for this file, raising error if unable to find it
@@ -230,7 +235,8 @@ def main(outputpath,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
          errordefspath=ERRORDEFS,
-         nprocesses=NPROCESSES):
+         nprocesses=NPROCESSES,
+         onlycoupling=ONLYCOUPLING):
     '''
     GetLLM main function.
 
@@ -277,6 +283,7 @@ def main(outputpath,
     getllm_d.errordefspath = errordefspath
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
+    getllm_d.onlycoupling = onlycoupling
     # Setup
     mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
                                                                                                                             model_filename,
@@ -306,50 +313,53 @@ def main(outputpath,
  
     #-------- Check monitor compatibility between data and model
     _check_bpm_compatibility(twiss_d, mad_twiss)
-
     try:
         #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
         temp_dict = copy.deepcopy(files_dict)
        
-        phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
-       
         #-------- START Phase
         phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
 
-        #-------- START Total Phase
-        algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
-
-        #-------- START Beta
-        beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d_bk, mad_twiss, mad_ac, mad_elem, mad_elem_centre, mad_best_knowledge, mad_ac_best_knowledge, files_dict)
-
-        #------- START beta from amplitude
-        beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
-
-        #-------- START IP
-        algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
-
-        #-------- START Orbit
-        list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
-
-        #-------- START Dispersion
-        algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
-        
-        #------ Start get Q,JX,delta
-        files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
 
         #-------- START coupling.
         tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
 
-        #-------- START RDTs
-        if nonlinear:
-            algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, inv_x, inv_y)
+        if(getllm_d.onlycoupling is 0):
+           
+            phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
+     
+            #-------- START Total Phase
+            algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
 
-        if tbtana == "SUSSIX":
-            #------ Start getsextupoles @ Glenn Vanbavinckhove
-            files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
+            #-------- START Beta
+            beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d_bk, mad_twiss, mad_ac, mad_elem, mad_elem_centre, mad_best_knowledge, mad_ac_best_knowledge, files_dict)
 
-            #------ Start getchiterms @ Glenn Vanbavinckhove
-            files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
+            #------- START beta from amplitude
+            beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+
+            #-------- START IP
+            algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+
+            #-------- START Orbit
+            list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
+
+            #-------- START Dispersion
+            algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
+            
+            #------ Start get Q,JX,delta
+            files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
+
+           
+            #-------- START RDTs
+            if nonlinear:
+                algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, inv_x, inv_y)
+
+            if tbtana == "SUSSIX":
+                #------ Start getsextupoles @ Glenn Vanbavinckhove
+                files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
+
+                #------ Start getchiterms @ Glenn Vanbavinckhove
+                files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
 
     except:
         traceback.print_exc()
@@ -1024,6 +1034,7 @@ class _GetllmData(object):
         self.errordefspath = ""
         self.parallel = False
         self.nprocesses = 1
+        self.onlycoupling = 0
         self.with_ac_calc = False
         self.acdipole = "None"
         self.important_pairs = {}
@@ -1152,7 +1163,8 @@ def _start():
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath,
-         nprocesses=options.nprocesses)
+         nprocesses=options.nprocesses,
+         onlycoupling=options.onlycoupling)
      
      
 if __name__ == "__main__":

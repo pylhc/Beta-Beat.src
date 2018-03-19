@@ -102,7 +102,6 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
                 [fwqw, bpms] = GetCoupling2(mad_twiss, pseudo_list_x, pseudo_list_y, tune_d.q1f, tune_d.q2f, phasexp, phaseyp, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
             # Call 2-BPM method coupling function, analogous to GetCoupling1, but contains more results
             else:
-                print('has to be removed')
                 [fwqw, bpms] = GetCoupling2(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, phase_d.ph_x, phase_d.ph_y, getllm_d.beam_direction, getllm_d.accel, getllm_d.outputpath)
         else:
             raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
@@ -152,7 +151,6 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
                 #-- analytic eqs
                 try:
                     [fwqwf, bpmsf] = compensate_ac_effect.GetFreeCoupling_Eq(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, tune_d.q1f, tune_d.q2f, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.acdipole, getllm_d.accel)
-                    print('I actually get here')
                     tfs_file = files_dict['getcouple_free.out']
                     tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
                     tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
