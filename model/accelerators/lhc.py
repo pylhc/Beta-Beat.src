@@ -20,8 +20,10 @@ def get_lhc_modes():
         "lhc_runII_2016": LhcRunII2016,
         "lhc_runII_2016_ats": LhcRunII2016Ats,
         "lhc_runII_2017": LhcRunII2017,
+        "lhc_runII_2018": LhcRunII2018,
         "hllhc10": HlLhc10,
         "hllhc12": HlLhc12,
+        "hllhc13": HlLhc13,
     }
 
 
@@ -396,7 +398,7 @@ class Lhc(Accelerator):
     @classmethod
     def get_arc_bpms_mask(cls, list_of_elements):
         mask = []
-        pattern = re.compile("BPM.*\.([0-9]+)[RL].\..*", re.IGNORECASE)
+        pattern = re.compile(r"BPM.*\.([0-9]+)[RL].\..*", re.IGNORECASE)
         for element in list_of_elements:
             match = pattern.match(element)
             # The arc bpms are from BPM.14... and up
@@ -751,6 +753,14 @@ class LhcRunII2017(LhcAts):
         return _get_call_main_for_year("2017")
 
 
+class LhcRunII2018(LhcAts):
+    YEAR = "2018"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        return _get_call_main_for_year("2018")
+
+
 class HlLhc10(LhcAts):
     MACROS_NAME = "hllhc"
     YEAR = "hllhc1.0"
@@ -792,6 +802,30 @@ class HlLhc12NewCircuit(LhcAts):
 class HlLhc12NoQ2Trim(HlLhc12):
     MACROS_NAME = "hllhc"
     YEAR = "hllhc12"
+
+
+class HlLhc13(LhcAts):
+    MACROS_NAME = "hllhc"
+    YEAR = "hllhc1.3"
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        load_main_seq = _get_madx_call_command(
+            os.path.join(LHC_DIR, "hllhc1.3", "lhcrunIII.seq")
+        )
+        load_main_seq += _get_call_main_for_year("hllhc1.3")
+        return load_main_seq
+
+    @classmethod
+    def _get_triplet_correctors_file(cls):
+        correctors_dir = os.path.join(LHC_DIR, "hllhc1.3", "correctors")
+        return os.path.join(correctors_dir, "triplet_correctors.json")
+
+    @classmethod
+    def _get_corrector_elems(cls):
+        correctors_dir = os.path.join(LHC_DIR, "hllhc1.3", "correctors")
+        return os.path.join(correctors_dir,
+                            "corrector_elems_b" + str(cls.get_beam()) + ".tfs")
 
 
 # General functions ##########################################################

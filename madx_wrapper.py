@@ -86,7 +86,7 @@ def _run(full_madx_script, log_file=None, madx_path=MADX_PATH):
 
 def _run_for_input_string(input_string, madx, logs=sys.stdout):
     process = subprocess.Popen(madx, shell=False, stdin=subprocess.PIPE, stdout=logs, stderr=logs)
-    process.communicate(input_string)
+    process.communicate(input_string.encode("utf-8"))
     return process.wait()
 
 

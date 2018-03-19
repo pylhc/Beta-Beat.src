@@ -228,7 +228,7 @@ def automatic_cleaning_data(k,tune_data, tune_data_err, limit=1e-5):
     return data[0, mask, :]
 
 
-def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, ek, misalign,
+def run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, waist, working_directory, instruments, ek, misalign,
                          cminus, twiss, log, logfile, auto_clean):
 
     fitx_2, fitx_1, fity_2, fity_1, errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy = lin_fit_data(path, beam,
@@ -292,10 +292,10 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_dir
     L_star = Magnet_definitions.Lstar(magnet1, magnet2, beam, twiss)
 
     resultsx = KModUtilities.analysis(Qx, Qy, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fitx_foc, errx_foc,
-                                      fitx_def, errx_def, ek, ek, cminus, bstar, waist,
+                                      fitx_def, errx_def, ek, ek, cminus, hor_bstar, waist,
                                       (magnet1 + '-' + magnet2 + '.' + beam) + '.X', log, logfile)
     resultsy = KModUtilities.analysis(Qy, Qx, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fity_foc, erry_foc,
-                                      fity_def, erry_def, ek, ek, cminus, bstar, waist,
+                                      fity_def, erry_def, ek, ek, cminus, vert_bstar, waist,
                                       (magnet1 + '-' + magnet2 + '.' + beam) + '.Y', log, logfile)
 
     results = tfs_file_writer.TfsFileWriter.open(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
@@ -554,7 +554,7 @@ def _main():
     instruments = [x.upper() for x in instruments]
 
     bs = options.betastar
-    bstar, waist = bs.split(",")
+    hor_bstar, vert_bstar , waist = bs.split(",")
 
     auto_clean = options.a_clean
     command = open(working_directory + '/command.run', 'a')
@@ -593,7 +593,7 @@ def _main():
     merge_data(working_directory, magnet1, returncircuitname(magnet1, beam), magnet2, returncircuitname(magnet2, beam),
                beam, options.ip, options.tunemeasuncertainty)
 
-    run_analysis_simplex(path, beam, magnet1, magnet2, bstar, waist, working_directory, instruments, ek,
+    run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, waist, working_directory, instruments, ek,
                          misalign, cminus, twiss, options.log, logdata, auto_clean)
 
     logdata.close()
