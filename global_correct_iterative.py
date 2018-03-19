@@ -362,6 +362,7 @@ def global_correction(opt, accel_opt):
                          **Flags**: --weights
     """
 
+    LOG.info("Starting Iterative Global Correction.")
     with logging_tools.DebugMode(active=opt.debug):
         not_implemented_params = [k for k in opt.optics_params
                                   if k not in _get_measurement_filters()]
@@ -419,7 +420,7 @@ def global_correction(opt, accel_opt):
         # ######### Iteration Phase ######### #
 
         for iteration in range(opt.max_iter + 1):
-            LOG.debug("Correction Iteration {:d} of {:d}.".format(iteration, opt.max_iter))
+            LOG.info("Correction Iteration {:d} of {:d}.".format(iteration, opt.max_iter))
 
             # ######### Update Model and Response ######### #
             if iteration > 0:
@@ -452,7 +453,7 @@ def global_correction(opt, accel_opt):
                 np.sum(np.abs(delta.loc[:, "DELTA"].values))))
 
         write_knob(os.path.join(opt.output_path, "changeparameters.knob"), delta)
-
+    LOG.info("Finished Iterative Global Correction.")
 
 # Main function helpers #######################################################
 

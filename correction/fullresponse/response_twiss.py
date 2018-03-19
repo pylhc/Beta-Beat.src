@@ -85,7 +85,7 @@ class TwissResponse(object):
     def __init__(self, varmap_or_seq_path, model_or_path, variables,
                  at_elements='bpms'):
 
-        LOG.info("Initializing TwissResponse.")
+        LOG.debug("Initializing TwissResponse.")
         with timeit(lambda t: LOG.debug("  Time initializing TwissResponse: {:f}s".format(t))):
             # Get input
             self._twiss = self._get_model_twiss(model_or_path)
