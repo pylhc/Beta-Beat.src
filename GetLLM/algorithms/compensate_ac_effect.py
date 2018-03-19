@@ -536,9 +536,6 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         if(key in list(zip(*bpm)[1])): 
             horBPMsCopensation.append(key)
             verBPMsCopensation.append(key)    
-            print horBPMsCopensation, "works"
-        else:
-            print "Is not here"
     fqwList = []
     for g in range(0, len(horBPMsCopensation)):
         k_bpmac_h =list(zip(*bpm)[1]).index(horBPMsCopensation[g])
