@@ -502,17 +502,18 @@ def _print_rms(meas, diff_w, r_delta_w):
     """ Prints current RMS status """
     f_str = "{:>20s} : {:.5e}"
 
-    LOG.debug("RMS Model-Measure (w/o weigths):")
+    LOG.debug("RMS Model - Measure (before correction, w/o weigths):")
     for key in meas:
         LOG.debug(f_str.format(key, _rms(meas[key].loc[:, 'DIFF'].values)))
 
-    LOG.info("RMS Model-Measure (w/ weigths):")
+    LOG.info("RMS Model - Measure (before correction, w/ weigths):")
     for key in meas:
         LOG.info(f_str.format(
             key, _rms(meas[key].loc[:, 'DIFF'].values * meas[key].loc[:, 'WEIGHT'].values)))
-    LOG.info(f_str.format("Model-Measure (1)", _rms(diff_w)))
-    LOG.debug(f_str.format("R * delta (2)", _rms(r_delta_w)))
-    LOG.debug(f_str.format("(1) - (2)", _rms(diff_w - r_delta_w)))
+    LOG.info(f_str.format("Model - Measure", _rms(diff_w)))
+    LOG.debug(f_str.format("R * delta", _rms(r_delta_w)))
+    LOG.debug("(Model - Measure) - (R * delta)   ")
+    LOG.debug(f_str.format("", _rms(diff_w - r_delta_w)))
 
 
 def _load_fullresponse(full_response_path, variables):
