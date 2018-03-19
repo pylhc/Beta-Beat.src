@@ -442,9 +442,6 @@ def global_correction(opt, accel_opt):
                     resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
                     resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 
-            if opt.debug:
-                _print_rms(meas_dict, optics_params)
-
             # ######### Actual optimization ######### #
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
@@ -500,12 +497,21 @@ def _get_method_opt(opt):
     return meth_opt
 
 
-def _print_rms(meas, keys):
+def _print_rms(meas, diff_w, r_delta_w):
     """ Prints current RMS status """
-    for key in keys:
-        LOG.debug("{:s} RMS: {:.5e}".format(key, _rms(meas[key].loc[:, 'DIFF'].values)))
-        LOG.debug("{:s} Weighted RMS: {:.5e}".format(
+    f_str = "{:>20s} : {:.5e}"
+
+    LOG.debug("RMS Model-Measure (w/o weigths):")
+    for key in meas:
+        LOG.debug(f_str.format(key, _rms(meas[key].loc[:, 'DIFF'].values)))
+
+    LOG.info("RMS Model-Measure (w/ weigths):")
+    for key in meas:
+        LOG.info(f_str.format(
             key, _rms(meas[key].loc[:, 'DIFF'].values * meas[key].loc[:, 'WEIGHT'].values)))
+    LOG.info(f_str.format("Model-Measure (1)", _rms(diff_w)))
+    LOG.debug(f_str.format("R * delta (2)", _rms(r_delta_w)))
+    LOG.debug(f_str.format("(1) - (2)", _rms(diff_w - r_delta_w)))
 
 
 def _load_fullresponse(full_response_path, variables):
@@ -832,10 +838,7 @@ def _calculate_delta(resp_matrix, meas_dict, keys, vars_list, method, meth_opt):
     delta = tfs.TfsDataFrame(delta, index=vars_list, columns=["DELTA"])
 
     update = np.dot(resp_weighted, delta["DELTA"])
-    LOG.debug("RMS values (weightened): ")
-    LOG.debug("Model-Measure (1): {:.5e}".format(_rms(diff_weighted)))
-    LOG.debug("R * delta (2): {:.5e}".format(_rms(update)))
-    LOG.debug("(1) - (2): {:.5e}".format(_rms(diff_weighted - update)))
+    _print_rms(meas_dict, diff_weighted, update)
     return delta
 
 
@@ -955,7 +958,9 @@ def check_varmap_file(accel_inst):
 
     return varmap_path
 
+
 # Main invocation ############################################################
+
 
 if __name__ == "__main__":
     global_correction()
