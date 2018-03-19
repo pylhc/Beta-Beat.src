@@ -118,12 +118,12 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         _, _ = _line_to_amp_and_phase_attr(line, list_zero_dpp[0])
         use_line = True
     except AttributeError:
-        print >> sys.stderr, "Line not found, trying opposite line.. (%s, %s)!\n\t" % line
+        print >> sys.stderr, "Line not found, trying opposite line.. (%s, %s)!" % line
     try:
         _, _ = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[0])
         use_opposite_line = True
     except AttributeError:
-        print >> sys.stderr, "Opposite line not found.. (%s, %s)!\n\t" % (-line[0],-line[1])
+        print >> sys.stderr, "Opposite line not found.. (%s, %s)!" % (-line[0],-line[1])
 
     if use_line or use_opposite_line:  
         for i in range(len(dbpms)-4):
@@ -131,7 +131,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             try:
                 bpm_pair_data = phase_data[bpm1][7], phase_data[bpm1][8], phase_data[bpm1][9]
             except KeyError:
-                print >> sys.stderr, "Could not find a BPM pair (%s, %s)!\n\t" % (plane, bpm1)
+                print >> sys.stderr, "Could not find a BPM pair (%s, %s)!" % (plane, bpm1)
                 continue
             
             bpm2 = bpm_pair_data[0]
@@ -187,17 +187,17 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             rdt_phases_averaged.append(np.average(np.array(rdt_phases_per_bpm)))
 
     else:
-        print >> sys.stderr, "Could not find line for %s !\n\t" %rdt
+        print >> sys.stderr, "Could not find line for %s !" %rdt
     # init out file
-    rdt_out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP", "PHASE"])
-    rdt_out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le"])
+    rdt_out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP", "PHASE", "REAL", "IMAG"])
+    rdt_out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     for k in range(len(line_amplitudes)/len(list_zero_dpp)):
         num_meas = len(list_zero_dpp)
         bpm_name = dbpms[k][1].upper()
         bpm_rdt_data = line_amplitudes[k*num_meas:(k+1)*num_meas]
         res, res_err = do_fitting(bpm_rdt_data, inv_x, inv_y, rdt, plane)
-        rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_phases_averaged[k]])
+        rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_phases_averaged[k], res[0]*np.cos(2*np.pi*rdt_phases_averaged[k]), res[0]*np.sin(2*np.pi*rdt_phases_averaged[k])])
 
 
 def calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01):
