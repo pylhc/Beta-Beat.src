@@ -62,7 +62,7 @@ from utils import logging_tools
 from utils import tfs_pandas as tfs, iotools
 from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
-from utils.contexts import log_pandas_settings_with_copy
+from utils.logging_tools import log_pandas_settings_with_copy
 from twiss_optics.optics_class import TwissOptics
 
 LOG = logging_tools.get_logger(__name__)
