@@ -135,6 +135,7 @@ class TempFile(object):
 
 @contextmanager
 def log_pandas_settings_with_copy(log_func):
+    """ Logs pandas SettingsWithCopy warning to loc_func instead of printing the warning. """
     caller_line = inspect.currentframe().f_back.f_back.f_lineno  # one frame for contextmanager
     old_mode = pd.options.mode.chained_assignment
     pd.options.mode.chained_assignment = 'warn'
