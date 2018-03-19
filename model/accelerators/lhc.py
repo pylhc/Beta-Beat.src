@@ -171,7 +171,6 @@ class Lhc(Accelerator):
 
         if opt.model_dir:
             self.init_from_model_dir(opt.model_dir)
-            self.optics_file = None
             self.energy = None
             self.dpp = 0.0
             self.xing = None
@@ -183,7 +182,6 @@ class Lhc(Accelerator):
                 raise AcceleratorDefinitionError("Argument 'drv_tune_x' not allowed when loading from model directory.")
             if opt.drv_tune_y is not None:
                 raise AcceleratorDefinitionError("Argument 'drv_tune_y' not allowed when loading from model directory.")
-            self.optics_file = opt.get("optics", os.path.join(os.path.dirname(opt.model_dir), "modifiers.madx"))
         else:
             if opt.nat_tune_x is None:
                 raise AcceleratorDefinitionError("Argument 'nat_tune_x' is required.")
@@ -240,7 +238,14 @@ class Lhc(Accelerator):
         self.model_dir = model_dir
 
         LOGGER.debug("  model path = " + os.path.join(model_dir, "twiss.dat"))
-        self._model = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"), index="NAME")
+        try:
+            self._model = tfs_pandas.read_tfs(
+                os.path.join(model_dir, "twiss.dat"), index="NAME")
+        except IOError:
+            self._model = tfs_pandas.read_tfs(
+                os.path.join(model_dir, "twiss_elements.dat"), index="NAME")
+            bpm_index = [idx for idx in self._model.index.values if idx.startswith("B")]
+            self._model = self._model.loc[bpm_index, :]
         self.nat_tune_x = float(self._model.headers["Q1"])
         self.nat_tune_y = float(self._model.headers["Q2"])
 
@@ -289,6 +294,12 @@ class Lhc(Accelerator):
             self._elements_centre = tfs_pandas.read_tfs(center_path, index="NAME")
         else:
             self._elements_centre = self._elements
+
+        # Optics File #########################################
+        self.optics_file = None
+        opticsfilepath = os.path.join(self.model_dir, "modifiers.madx")
+        if os.path.exists(opticsfilepath):
+            self.optics_file = opticsfilepath
 
         # Error Def #####################################
         self._errordefspath = None
