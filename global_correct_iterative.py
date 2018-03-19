@@ -62,6 +62,7 @@ from utils import logging_tools
 from utils import tfs_pandas as tfs, iotools
 from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
+from utils.contexts import log_pandas_settings_with_copy
 from twiss_optics.optics_class import TwissOptics
 
 LOG = logging_tools.get_logger(__name__)
@@ -382,8 +383,8 @@ def global_correction(opt, accel_opt):
 
         # convert numbers to dictionaries
         w_dict = dict(zip(opt.optics_params, opt.weights))
-        m_dict = dict(zip(opt.optics_params, opt.modelcut))
-        e_dict = dict(zip(opt.optics_params, opt.errorcut))
+        mcut_dict = dict(zip(opt.optics_params, opt.modelcut))
+        ecut_dict = dict(zip(opt.optics_params, opt.errorcut))
 
         # read data from files
         vars_list = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
@@ -404,7 +405,7 @@ def global_correction(opt, accel_opt):
         # apply filters to data
         meas_dict = _filter_measurement(
             optics_params, meas_dict, nominal_model,
-            opt.use_errorbars, w_dict, e_dict, m_dict
+            opt.use_errorbars, w_dict, ecut_dict, mcut_dict
         )
         meas_dict = _append_model_to_measurement(nominal_model, meas_dict, optics_params)
         resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
@@ -781,16 +782,18 @@ def _get_model_generic(model, meas, key):
 
 
 def _get_model_phases(model, meas, key):
-    meas.loc[:, 'MODEL'] = (model.loc[meas['NAME2'].values, key].values -
-                            model.loc[meas.index.values, key].values)
-    meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
+    with log_pandas_settings_with_copy(LOG.debug):
+        meas.loc[:, 'MODEL'] = (model.loc[meas['NAME2'].values, key].values -
+                             model.loc[meas.index.values, key].values)
+        meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
     return meas
 
 
 def _get_model_betabeat(model, meas, key):
     col = "BETX" if key == "BBX" else "BETY"
-    meas.loc[:, 'MODEL'] = model.loc[meas.index.values, col].values
-    meas.loc[:, 'DIFF'] = (meas['VALUE'] - meas['MODEL']) / meas['MODEL']
+    with log_pandas_settings_with_copy(LOG.debug):
+        meas.loc[:, 'MODEL'] = model.loc[meas.index.values, col].values
+        meas.loc[:, 'DIFF'] = (meas['VALUE'] - meas['MODEL']) / meas['MODEL']
     return meas
 
 

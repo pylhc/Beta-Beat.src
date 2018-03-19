@@ -2,6 +2,9 @@ import sys
 import os
 import time
 import warnings
+import pandas as pd
+from logging_tools import NEWLINE
+from inspect import currentframe
 from contextlib import contextmanager
 
 
@@ -45,3 +48,21 @@ def suppress_warnings(warning_classes):
     for w in warn_list:
         if not issubclass(w.category, warning_classes):
             warnings.warn(w)
+
+
+@contextmanager
+def log_pandas_settings_with_copy(log_func):
+    caller_line = currentframe().f_back.f_back.f_lineno  # one frame for contextmanager
+    old_mode = pd.options.mode.chained_assignment
+    pd.options.mode.chained_assignment = 'warn'
+    try:
+        with warnings.catch_warnings(record=True) as warn_list:
+            yield
+        for w in warn_list:
+            if not issubclass(w.category, pd.core.common.SettingWithCopyWarning):
+                warnings.warn(w)
+            else:
+                message = w.message.args[0].split("\n")
+                log_func("{:s} (l. {:d})".format(message[1], caller_line))
+    finally:
+        pd.options.mode.chained_assignment = old_mode

@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from utils import iotools
 
 DIVIDER = "|"
+NEWLINE = "\n" + " " * 10  # levelname + divider + 2
 BASIC_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
 COLOR_LEVEL = '\33[38;2;150;150;255m'
 COLOR_MESSAGE = '\33[38;2;255;255;180m'
