@@ -565,10 +565,7 @@ def _main():
         vert_bstar = bs[1]
         waist = bs[2]
     
-    print(hor_bstar,vert_bstar,waist)   
     
-    exit() 
-
     auto_clean = options.a_clean
     command = open(working_directory + '/command.run', 'a')
     command.write(str(' '.join(sys.argv)))
