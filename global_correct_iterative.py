@@ -597,7 +597,10 @@ def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
 
 
 def _get_varlist(accel_cls, variables, virt_flag):  # TODO: Virtual?
-    return np.array(accel_cls.get_variables(classes=variables))
+    varlist = np.array(accel_cls.get_variables(classes=variables))
+    if len(varlist) == 0:
+        raise ValueError("No variables found! Make sure your categories are valid!")
+    return varlist
 
 
 def _maybe_add_coupling_to_model(model, keys):
@@ -784,8 +787,9 @@ def _append_model_to_measurement(model, measurement, keys):
 
 
 def _get_model_generic(model, meas, key):
-    meas.loc[:, 'MODEL'] = model.loc[meas.index.values, key].values
-    meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
+    with log_pandas_settings_with_copy(LOG.debug):
+        meas.loc[:, 'MODEL'] = model.loc[meas.index.values, key].values
+        meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
     return meas
 
 
@@ -808,18 +812,20 @@ def _get_model_betabeat(model, meas, key):
 def _get_model_norm_disp(model, meas, key):
     col = key[1:]
     beta = "BET" + key[-1]
-    meas.loc[:, 'MODEL'] = (
-        model.loc[meas.index.values, col].values /
-        np.sqrt(model.loc[meas.index.values, beta].values)
-    )
-    meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
+    with log_pandas_settings_with_copy(LOG.debug):
+        meas.loc[:, 'MODEL'] = (
+            model.loc[meas.index.values, col].values /
+            np.sqrt(model.loc[meas.index.values, beta].values)
+        )
+        meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
     return meas
 
 
 def _get_model_tunes(model, meas, key):
     # We want just fractional tunes
-    meas.loc[:, 'MODEL'] = np.remainder([model['Q1'], model['Q2']], [1, 1])
-    meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
+    with log_pandas_settings_with_copy(LOG.debug):
+        meas.loc[:, 'MODEL'] = np.remainder([model['Q1'], model['Q2']], [1, 1])
+        meas.loc[:, 'DIFF'] = meas['VALUE'] - meas['MODEL']
     return meas
 
 
