@@ -912,7 +912,7 @@ def writeparams(path_to_file, delta):
         for var in delta.index.values:
             value = delta.loc[var, "DELTA"]
             madx_script.write(var + " = " + var
-                              + (" + " if value > 0 else " ")
+                              + (" + " if value >= 0 else " ")
                               + str(value) + ";\n"
                               )
 
