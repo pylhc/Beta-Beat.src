@@ -554,7 +554,20 @@ def _main():
     instruments = [x.upper() for x in instruments]
 
     bs = options.betastar
-    hor_bstar, vert_bstar , waist = bs.split(",")
+    bs = bs.split(",")
+    
+    if len(bs)==2:
+        hor_bstar = bs[0]
+        vert_bstar = bs[0]
+        waist = bs[1]
+    if len(bs)==3:
+        hor_bstar = bs[0]
+        vert_bstar = bs[1]
+        waist = bs[2]
+    
+    print(hor_bstar,vert_bstar,waist)   
+    
+    exit() 
 
     auto_clean = options.a_clean
     command = open(working_directory + '/command.run', 'a')
