@@ -1,5 +1,7 @@
 import __init__
+import os
 import manager  # noqa
+from utils.iotools import create_dirs
 from utils.entrypoint import EntryPointParameters, entrypoint
 from model_creators.lhc_model_creator import (  # noqa
     LhcModelCreator,
@@ -54,6 +56,7 @@ def _get_params():
 
 @entrypoint(_get_params())
 def create_instance_and_model(opt, accel_opt):
+    create_dirs(opt.output)
     accel_inst = manager.get_accel_instance(accel_opt)
     create_model(
         accel_inst,
