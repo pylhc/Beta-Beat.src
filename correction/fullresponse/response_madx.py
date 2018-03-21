@@ -9,7 +9,6 @@ For now, the response matrix is stored in a 'pickled' file.
 
 :author: Lukas Malina, Joschua Dilly, Jaime (...) Coello de Portugal
 """
-import cPickle
 import math
 import multiprocessing
 import os
@@ -26,14 +25,17 @@ from utils.iotools import create_dirs
 
 LOG = logging_tools.get_logger(__name__)
 
-DEFAULT = {
-    "pattern": "%CALL_ITER_FILE%",  # used in lhc_model_creator
+DEFAULT_PATTERNS = {
+    "job_content": "%JOB_CONTENT%",  # used in lhc_model_creator, sequence_evaluation
+    "twiss_columns": "%TWISS_COLUMNS%",  # used in lhc_model_creator, sequence_evaluation
+    "element_pattern": "%ELEMENT_PATTERN%",  # used in lhc_model_creator, sequence_evaluation
 }
 
 # Full Response Mad-X ##########################################################
 
 
-def generate_fullresponse(variables, original_jobfile_path, pattern=DEFAULT["pattern"],
+def generate_fullresponse(variables, original_jobfile_path,
+                          patterns=DEFAULT_PATTERNS,
                           delta_k=0.00002, num_proc=multiprocessing.cpu_count(),
                           temp_dir=None):
     """ Generate a dictionary containing response matrices for
@@ -43,8 +45,8 @@ def generate_fullresponse(variables, original_jobfile_path, pattern=DEFAULT["pat
             variables (list): List of variables to use.
             original_jobfile_path (str): Name of the original MAD-X job file
                                          defining the sequence file.
-            pattern (str): Pattern to be replaced in the MAD-X job file by the iterative
-                           script calls.
+            patterns (str): Patterns to be replaced in the MAD-X job file by the iterative
+                           script calls. Must contain 'file' and 'twiss_columns'.
             delta_k (float): delta K1L to be applied to quads for sensitivity matrix
             num_proc (int): Number of processes to use in parallel.
             temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.
@@ -57,8 +59,8 @@ def generate_fullresponse(variables, original_jobfile_path, pattern=DEFAULT["pat
 
         process_pool = multiprocessing.Pool(processes=num_proc)
 
-        incr_dict = _generate_madx_jobs(variables, original_jobfile_path, pattern,
-                        delta_k, num_proc, temp_dir)
+        incr_dict = _generate_madx_jobs(variables, original_jobfile_path, patterns,
+                                        delta_k, num_proc, temp_dir)
         _call_madx(process_pool, temp_dir, num_proc)
         _clean_up(temp_dir, num_proc)
 
@@ -68,7 +70,7 @@ def generate_fullresponse(variables, original_jobfile_path, pattern=DEFAULT["pat
     return fullresponse
 
 
-def _generate_madx_jobs(variables, original_jobfile_path, pattern, delta_k, num_proc, temp_dir):
+def _generate_madx_jobs(variables, original_jobfile_path, patterns, delta_k, num_proc, temp_dir):
     """ Generates madx job-files """
     LOG.debug("Generating MADX jobfiles.")
     incr_dict = {'0': 0.0}
@@ -76,7 +78,7 @@ def _generate_madx_jobs(variables, original_jobfile_path, pattern, delta_k, num_
 
     for proc_idx in range(num_proc):
         jobfile_path, iterfile_path = _get_jobfiles(temp_dir, proc_idx)
-        _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, pattern)
+        _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, patterns)
         with open(iterfile_path, "w") as iter_file:
             for i in range(vars_per_proc):
                 var_idx = proc_idx * vars_per_proc + i
@@ -98,15 +100,20 @@ def _generate_madx_jobs(variables, original_jobfile_path, pattern, delta_k, num_
     return incr_dict
 
 
-def _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, pattern):
-    """ Replaces the pattern in the original jobfile with call to the appropriate iterfile
+def _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, patterns):
+    """ Replaces the patterns in the original jobfile with call to the appropriate iterfile
         and saves as new numbered jobfile
     """
     with open(original_jobfile_path, "r") as original_file:
         original_str = original_file.read()
     with open(jobfile_path, "w") as job_file:
         job_file.write(original_str.replace(
-            pattern, "call, file='{:s}';".format(iterfile_path),
+            patterns["job_content"], "call, file='{:s}';".format(iterfile_path),
+        ).replace(
+            patterns['twiss_columns'],
+                  "NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22"
+        ).replace(
+            patterns["element_pattern"], "BPM"
         ))
 
 
