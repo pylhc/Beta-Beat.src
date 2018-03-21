@@ -240,7 +240,7 @@ def _find_magnet_strength(line):
         r",\s*k((?P<s>[ns])l\s*:=\s*\{(?P<knl>[^\}]+)\}|(?P<n>\d+s?)\s*:=\s*(?P<k>[^,]+))", line))
 
     if len(matches) > 0:
-        magnet = re.match(r"\s*[\w.]*", line).group(0)
+        magnet = re.match(r"\s*([\w.]*)", line).group(1)
 
         knl_dict = {}
         for match in matches:
