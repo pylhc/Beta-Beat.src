@@ -412,7 +412,7 @@ def global_correction(opt, accel_opt):
         resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
         resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 
-        _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
+        # _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
         delta = tfs.TfsDataFrame(0, index=vars_list, columns=["DELTA"])
         change_params_path = os.path.join(opt.output_path, "changeparameters.madx")
         change_params_correct_path = os.path.join(opt.output_path, "changeparameters_correct.madx")

@@ -107,7 +107,7 @@ def create_response(opt, other_opt):
         variables = accel_cls.get_variables(classes=opt.variable_categories)
 
         if opt.creator == "madx":
-            jobfile_path = os.path.join(opt.model_dir, "job.iterpandas.madx")
+            jobfile_path = os.path.join(opt.model_dir, "job.basic_twiss.madx")
             fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
                                                 delta_k=opt.delta_k)
         elif opt.creator == "twiss":

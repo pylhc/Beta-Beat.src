@@ -5,7 +5,7 @@ import os
 import sys
 
 import model_creator
-from correction.fullresponse.response_madx import DEFAULT as RESP_DEFAULT
+from correction.fullresponse.response_madx import DEFAULT_PATTERNS as RESPONSE_PATTERNS
 from model.accelerators.accelerator import AccExcitationMode
 
 AFS_ROOT = "/afs"
@@ -111,11 +111,11 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def _prepare_fullresponse(cls, lhc_instance, output_path):
-        with open(lhc_instance.get_file("template.iterate.madx")) as textfile:
+        with open(lhc_instance.get_iteration_tmpl()) as textfile:
             iterate_template = textfile.read()
-        with open(lhc_instance.get_file("template.iterpandas.madx")) as textfile:
-            iterpandas_template = textfile.read()
-        with open(lhc_instance.get_file("template.save_sequence.madx")) as textfile:
+        with open(lhc_instance.get_basic_twiss_tmpl()) as textfile:
+            basic_twiss_template = textfile.read()
+        with open(lhc_instance.get_save_seq_tmpl()) as textfile:
             sequence_template = textfile.read()
 
         crossing_on = "1" if lhc_instance.xing else "0"
@@ -128,16 +128,19 @@ class LhcModelCreator(model_creator.ModelCreator):
             "QMX": lhc_instance.nat_tune_x,
             "QMY": lhc_instance.nat_tune_y,
             "CROSSING_ON": crossing_on,
+            # basic_twiss replacements
+            "JOB_CONTENT": RESPONSE_PATTERNS["job_content"],
+            "ELEMENT_PATTERN": RESPONSE_PATTERNS["element_pattern"],
+            "TWISS_COLUMNS": RESPONSE_PATTERNS["twiss_columns"],
         }
 
         with open(os.path.join(output_path,
                                "job.iterate.madx"), "w") as textfile:
             textfile.write(iterate_template % replace_dict)
 
-        replace_dict["CALL_ITER_FILE"] = RESP_DEFAULT["pattern"]
         with open(os.path.join(output_path,
-                               "job.iterpandas.madx"), "w") as textfile:
-            textfile.write(iterpandas_template % replace_dict)
+                               "job.basic_twiss.madx"), "w") as textfile:
+            textfile.write(basic_twiss_template % replace_dict)
 
         with open(os.path.join(output_path,
                                "job.save_sequence.madx"), "w") as textfile:
