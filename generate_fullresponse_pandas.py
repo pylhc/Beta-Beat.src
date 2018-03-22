@@ -112,7 +112,7 @@ def create_response(opt, other_opt):
                                                 delta_k=opt.delta_k)
         elif opt.creator == "twiss":
             accel_inst = accel_cls(model_dir=opt.model_dir)
-            varmap_path = check_varmap_file(accel_inst)
+            varmap_path = check_varmap_file(accel_inst, variables)
 
             LOG.debug("Creating response via TwissResponse.")
             with timeit(lambda t:

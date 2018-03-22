@@ -30,7 +30,7 @@ LOG = logging_tools.get_logger(__name__)
 # Read Sequence ##############################################################
 
 
-def evaluate_for_variables(variables, original_jobfile_path, step=0.1, order=4,
+def evaluate_for_variables(variables, original_jobfile_path, step=1e-5, order=2,
                            patterns=DEFAULT_PATTERNS, num_proc=multiprocessing.cpu_count(),
                            temp_dir=None):
     """ Generate a dictionary containing response matrices for
@@ -184,7 +184,7 @@ def _load_and_remove_twiss(path_and_var):
     tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
-    # os.remove(twissfile)
+    os.remove(twissfile)
     return var, tfs_data
 
 
