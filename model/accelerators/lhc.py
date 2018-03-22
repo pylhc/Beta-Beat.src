@@ -466,6 +466,8 @@ class Lhc(Accelerator):
         vars_by_class = set(_flatten_list(
             [all_corrs[corr_cls] for corr_cls in my_classes if corr_cls in all_corrs])
         )
+        if frm is None and to is None:
+            return vars_by_class
         elems_matrix = tfs_pandas.read_tfs(
             cls._get_corrector_elems()
         ).sort_values("S").set_index("S").loc[frm:to, :]
@@ -493,6 +495,15 @@ class Lhc(Accelerator):
                 LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ADT"))
             LOGGER.info("{:20s} [{:10.3f}]".format("> Driven Tune X", self.drv_tune_x))
             LOGGER.info("{:20s} [{:10.3f}]".format("> Driven Tune Y", self.drv_tune_y))
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        try:
+            return _get_call_main_for_year(cls.YEAR)
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "Abstract method called. Did you forget --lhcmode?"
+            )
 
     # Private Methods ##########################################################
 
@@ -706,17 +717,9 @@ class LhcRunI(Lhc):
 class LhcRunII2015(Lhc):
     YEAR = "2015"
 
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2015")
-
 
 class LhcRunII2016(Lhc):
     YEAR = "2016"
-
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2016")
 
 
 class LhcRunII2016Ats(LhcAts, LhcRunII2016):
@@ -726,17 +729,9 @@ class LhcRunII2016Ats(LhcAts, LhcRunII2016):
 class LhcRunII2017(LhcAts):
     YEAR = "2017"
 
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2017")
-
 
 class LhcRunII2018(LhcAts):
     YEAR = "2018"
-
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2018")
 
 
 class HlLhc10(LhcAts):
