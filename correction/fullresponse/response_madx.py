@@ -111,7 +111,7 @@ def _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, patterns)
             patterns["job_content"], "call, file='{:s}';".format(iterfile_path),
         ).replace(
             patterns['twiss_columns'],
-                  "NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22"
+            "NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22"
         ).replace(
             patterns["element_pattern"], "BPM"
         ))
