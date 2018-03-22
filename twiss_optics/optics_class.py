@@ -1,25 +1,35 @@
 """
-    Provides Classes to calculate optics from twiss parameters.
-    The calculation is based on formulas in [1,2].
+Provides Classes to calculate optics from twiss parameters.
 
-    Only works properly for on-orbit twiss files.
+The calculation is based on formulas in [#AibaFirstbetabeatingmeasurement2009]_ and
+[#FranchiAnalyticformulasrapid2017]_.
 
-    Resonance Driving Terms: Eq. A8 in [2]
-    Linear Dispersion: Eq. 24 in [2]
-    Linear Chromaticity: Eq. 31 in [2]
-    Chromatic Beating: Eq. 36 in [2]
+Only works properly for on-orbit twiss files.
 
-    References:
-        [1]  A. Franchi et al.,
-             First simultaneous measurement of sextupolar and octupolar resonance driving
-             terms in a circular accelerator from turn-by-turn beam position monitor data,
-             Phys. Rev. ST Accel. Beams 17, 074001 (2014).
-             https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001
+ - Resonance Driving Terms: Eq. A8 in [#FranchiAnalyticformulasrapid2017]_
+ - Linear Dispersion: Eq. 24 in [#FranchiAnalyticformulasrapid2017]_
+ - Linear Chromaticity: Eq. 31 in [#FranchiAnalyticformulasrapid2017]_
+ - Chromatic Beating: Eq. 36 in [#FranchiAnalyticformulasrapid2017]_
 
-        [2]  A. Franchi et al.,
-             Analytic formulas for the rapid evaluation of the orbit response matrix
-             and chromatic functions from lattice parameters in circular accelerators
-             NOT YET PUBLISHED
+.. rubric:: References
+
+.. [#AibaFirstbetabeatingmeasurement2009]
+    M. Aiba et al.,
+    First simultaneous measurement of sextupolar and octupolar resonance driving
+    terms in a circular accelerator from turn-by-turn beam position monitor data,
+    Phys. Rev. ST Accel. Beams 17, 074001 (2014).
+    https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001
+
+.. [#FranchiAnalyticformulasrapid2017]
+    A. Franchi et al.,
+    Analytic formulas for the rapid evaluation of the orbit response matrix
+    and chromatic functions from lattice parameters in circular accelerators
+    https://arxiv.org/abs/1711.06589
+
+.. [#CalagaBetatroncouplingMerging2005]
+    R. Calaga et al.,
+    'Betatron coupling: Merging Hamiltonian and matrix approaches'
+    Phys. Rev. ST Accel. Beams, vol. 8, no. 3, p. 034001, Mar. 2005.
 
 """
 
@@ -188,6 +198,12 @@ class TwissOptics(object):
     def get_coupling(self, method='rdt'):
         """ Returns the coupling term.
 
+
+        .. warning::
+            This function changes sign of the real part of the RDTs compared to
+            [#FranchiAnalyticformulasrapid2017]_ to be consistent with the RDT
+            calculations from [#CalagaBetatroncouplingMerging2005]_ .
+
         Args:
             method: 'rdt' - Returns the values calculated by calc_rdts()
                     'cmatrix' - Returns the values calculated by calc_cmatrix()
@@ -195,7 +211,10 @@ class TwissOptics(object):
         if method == 'rdt':
             if "F1001" not in self._results_df or "F1010" not in self._results_df:
                 self.calc_rdts(['F1001', 'F1010'])
-            return self._results_df.loc[:, ['S', 'F1001', 'F1010']]
+                res_df = self._results_df.loc[:, ['S', 'F1001', 'F1010']]
+                res_df.loc[:, "F1001"].real *= -1
+                res_df.loc[:, "F1010"].real *= -1
+            return res_df
         elif method == 'cmatrix':
             if "F1001_C" not in self._results_df:
                 self.calc_cmatrix()
@@ -209,7 +228,9 @@ class TwissOptics(object):
     ################################
 
     def calc_cmatrix(self):
-        """ Calculates C matrix and Coupling and Gamma from it. """
+        """ Calculates C matrix and Coupling and Gamma from it.
+        See [#CalagaBetatroncouplingMerging2005]_
+        """
         tw = self.twiss_df
         res = self._results_df
 
@@ -245,6 +266,7 @@ class TwissOptics(object):
             gammas = np.sqrt(1 - np.linalg.det(cs))
 
             res.loc[:, "GAMMA_C"] = gammas
+
             res.loc[:, "F1001_C"] = ((cs[:, 0, 0] + cs[:, 1, 1]) * 1j +
                                      (cs[:, 0, 1] - cs[:, 1, 0])) / 4 / gammas
             res.loc[:, "F1010_C"] = ((cs[:, 0, 0] - cs[:, 1, 1]) * 1j +
@@ -284,7 +306,8 @@ class TwissOptics(object):
     def calc_rdts(self, order):
         """ Calculates the Resonance Driving Terms.
         
-        Eq. A8 in [2] 
+        Eq. A8 in [#FranchiAnalyticformulasrapid2017]_
+
         Args:
             order: int, string or list of strings
                 If an int is given all Resonance Driving Terms up to this order
@@ -401,7 +424,7 @@ class TwissOptics(object):
     def calc_linear_dispersion(self, bpms_only=False):
         """ Calculate the Linear Disperion.
 
-        Eq. 24 in [2]
+        Eq. 24 in [#FranchiAnalyticformulasrapid2017]_
         """
         tw = self.twiss_df
         phs_adv = self.get_phase_adv()
@@ -590,7 +613,7 @@ class TwissOptics(object):
     def calc_linear_chromaticity(self):
         """ Calculate the Linear Chromaticity
 
-        Eq. 31 in [2]
+        Eq. 31 in [#FranchiAnalyticformulasrapid2017]_
         """
         res = self._results_df
 
@@ -627,7 +650,7 @@ class TwissOptics(object):
     def calc_chromatic_beating(self):
         """ Calculate the Chromatic Beating
 
-        Eq. 36 in [2]
+        Eq. 36 in [#FranchiAnalyticformulasrapid2017]_
         """
         tw = self.twiss_df
         res = self._results_df
@@ -724,7 +747,7 @@ class TwissOptics(object):
     ################################
 
     def calc_second_order_dispersion(self):
-        """ Eq. 11, 41 - 43 in [2] """
+        """ Eq. 11, 41 - 43 in [#FranchiAnalyticformulasrapid2017]_ """
         raise NotImplementedError('Second Order Dispersion is not Implemented yet.')
 
     def get_second_order_dispersion(self):
@@ -738,7 +761,7 @@ class TwissOptics(object):
     ################################
 
     def calc_chromatic_coupling(self):
-        """ Eq. 47, 48, B77 in [2] """
+        """ Eq. 47, 48, B77 in [#FranchiAnalyticformulasrapid2017]_ """
         raise NotImplementedError('Chromatic Coupling is not Implemented yet.')
 
     def get_chromatic_coupling(self):

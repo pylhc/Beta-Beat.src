@@ -34,9 +34,10 @@ LOG = logtool.get_logger(__name__)
 
 EXT = "varmap"  # Extension Standard
 
-"""
-=============================   Main   =============================
-"""
+
+# Main #######################################################################
+
+
 DEFAULT = {
     'return': "dictionary",
     'ret_choices': ["dataframe", "dictionary"],
@@ -201,9 +202,7 @@ def varmap_variables_to_json(varmap_or_file, outfile_path=None, format=DEFAULT['
     LOG.debug("Variables saved to '{:s}'.".format(outfile_path))
 
 
-"""
-=============================   Read Sequence   =============================
-"""
+# Read Sequence ##############################################################
 
 
 def _read_file_for_magnets(sequence_file):
@@ -213,6 +212,7 @@ def _read_file_for_magnets(sequence_file):
     magnet_strings = {}
     with open(sequence_file, 'r') as f_seq:
         for line in f_seq:
+            line = line.lower()
             var_and_value = _find_element_length(line)
             if var_and_value is not None:
                 length_constants[var_and_value[0]] = var_and_value[1]
@@ -225,9 +225,9 @@ def _read_file_for_magnets(sequence_file):
 
 def _find_element_length(line):
     """ Search for length variable in line """
-    match = re.match(r"const\s(l\.[^;]+)", line)
+    match = re.match(r"\s*(real)?\s*const\s*(l\.[^;]+)", line)
     if match is not None:
-        eq = match.group(1).replace(" ", "")
+        eq = match.group(2).replace(" ", "")
         return eq.split("=")
     else:
         return None
@@ -236,12 +236,11 @@ def _find_element_length(line):
 def _find_magnet_strength(line):
     """ Search for magnet strengths in line
     """
-    line = line.lower()
     matches = list(re.finditer(
-        r",\s*k((?P<s>[ns])l:=\{(?P<knl>[^\}]+)\}|(?P<n>\d+s?):=(?P<k>[^,]+))", line))
+        r",\s*k((?P<s>[ns])l\s*:=\s*\{(?P<knl>[^\}]+)\}|(?P<n>\d+s?)\s*:=\s*(?P<k>[^,]+))", line))
 
     if len(matches) > 0:
-        magnet = re.match(r"[\w.]*", line).group(0)
+        magnet = re.match(r"\s*([\w.]*)", line).group(1)
 
         knl_dict = {}
         for match in matches:
@@ -264,7 +263,13 @@ def _find_magnet_strength(line):
                     # dipole strength are defined by their angles
                     knl = re.search(r"angle\s*:=\s*([^,]+)", line).group(1)
                 else:
-                    length = "l." + re.search(r":(?!=)\s*([^,]+)", line).group(1)
+                    try:
+                        # find parent element (saved sequence only)
+                        length = "l." + re.search(r":(?!=)\s*([^,]+)", line).group(1)
+                    except AttributeError:
+                        # assume parent is called like the first part of the magnet
+                        length = "l." + magnet.split(".")[0]
+
                     knl = "({kn:s}) * {l:s}".format(kn=match.group("k"), l=length)
 
                 order = "K{:s}L".format(match.group("n").upper())
@@ -275,9 +280,7 @@ def _find_magnet_strength(line):
         return None
 
 
-"""
-=============================   Build Mapping   =============================
-"""
+# Build Mapping ##############################################################
 
 
 def _build_variable_mapping_df(magnet_strings, length_constants):
@@ -288,11 +291,22 @@ def _build_variable_mapping_df(magnet_strings, length_constants):
     var_to_mag = {}
     for magnet in magnet_strings:
         for order, value_string in magnet_strings[magnet].iteritems():
-            if order not in var_to_mag:
-                var_to_mag[order] = tfs.TfsDataFrame()
+            kl = order
+            k = order[:-1]
+            if kl not in var_to_mag:
+                var_to_mag[kl] = tfs.TfsDataFrame()
+                var_to_mag[k] = tfs.TfsDataFrame()
 
-            k_dict = _eval_magnet_strength(value_string, length_constants)
-            var_to_mag[order] = var_to_mag[order].append(
+            length_equals_one = dict(zip(length_constants.keys(), ["1."] * len(length_constants)))
+            kl_dict = _eval_magnet_strength(value_string, length_constants)
+            k_dict = _eval_magnet_strength(value_string, length_equals_one)
+
+            var_to_mag[kl] = var_to_mag[kl].append(
+                tfs.TfsDataFrame([kl_dict.values()],
+                                 index=[magnet],
+                                 columns=kl_dict.keys()
+                                 )).fillna(0)
+            var_to_mag[k] = var_to_mag[k].append(
                 tfs.TfsDataFrame([k_dict.values()],
                                  index=[magnet],
                                  columns=k_dict.keys()
@@ -308,15 +322,25 @@ def _build_variable_mapping_dict(magnet_strings, length_constants):
     var_to_mag = {}
     for magnet in magnet_strings:
         for order, value_string in magnet_strings[magnet].iteritems():
+            kl = order
+            k = order[:-1]
             if order not in var_to_mag:
-                var_to_mag[order] = {}
+                var_to_mag[kl] = {}
+                var_to_mag[k] = {}
 
-            k_dict = _eval_magnet_strength(value_string, length_constants)
-            for var in k_dict:
+            length_equals_one = dict(zip(length_constants.keys(), ["1."]*len(length_constants)))
+            kl_dict = _eval_magnet_strength(value_string, length_constants)
+            k_dict = _eval_magnet_strength(value_string, length_equals_one)
+
+            for var in kl_dict:
                 try:
-                    var_to_mag[order][var].loc[magnet] = k_dict[var]
+                    # append in series
+                    var_to_mag[kl][var].loc[magnet] = kl_dict[var]
+                    var_to_mag[k][var].loc[magnet] = k_dict[var]
                 except KeyError:
-                    var_to_mag[order][var] = pd.Series(k_dict[var], index=[magnet])
+                    # create new series
+                    var_to_mag[kl][var] = pd.Series(kl_dict[var], index=[magnet])
+                    var_to_mag[k][var] = pd.Series(k_dict[var], index=[magnet])
     return var_to_mag
 
 
@@ -343,9 +367,7 @@ def _eval_magnet_strength(k_string, length_constants):
     return d
 
 
-"""
-=============================   Helper   =============================
-"""
+# Helper #####################################################################
 
 
 def _check_ret(ret):
@@ -354,13 +376,3 @@ def _check_ret(ret):
             ValueError("Return format '{ret:s}' unknown, choices: {choices:s}".format(
                 ret=ret, choices=", ".join(DEFAULT["ret_choices"])
             ))
-
-
-if __name__ == '__main__':
-    # # Testing:
-    # import os
-    # seq_name = "lhcb1_tmp.seq"
-    # df = load_or_parse_variable_mapping(os.path.join("tests", seq_name))
-    # varmap_variables_to_json(df, seq_name)
-    raise EnvironmentError("{:s} is not meant to be run as main.".format(__file__))
-

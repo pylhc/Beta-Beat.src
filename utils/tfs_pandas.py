@@ -316,6 +316,16 @@ def _validate(data_frame):
         ))
 
 
+def get_bpms(data_frame):
+    """ Return a list of BPM-Names from data_frame """
+    return [idx for idx in data_frame.index.values if idx.startswith("B")]
+
+
+def get_magnets(data_frame):
+    """ Return a list of Magnet-Names from data_frame """
+    [idx for idx in data_frame.index.values if idx.startswith("M")]
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     LOGGER.debug(read_tfs(sys.argv[1]))

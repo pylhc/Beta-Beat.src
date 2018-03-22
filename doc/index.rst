@@ -11,11 +11,12 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   entrypoints/index
    correction/index
    GetLLM/index
    model/index
    twiss_optics/index
-   Utilities/index
+   utils/index
 
 
 
