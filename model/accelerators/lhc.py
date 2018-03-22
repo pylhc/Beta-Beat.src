@@ -414,7 +414,13 @@ class Lhc(Accelerator):
         return np.array(mask)
 
     def verify_object(self):  # TODO: Maybe more checks?
-        self.get_beam()  # raises error if not overwritten
+        try:
+            self.get_beam()
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, beam "
+                "has to be specified (--beam option missing?)."
+            )
 
         if self.model_dir is None:  # is the class is used to create full response?
             if self.optics_file is None:
@@ -435,12 +441,6 @@ class Lhc(Accelerator):
         if self.optics_file is not None and not os.path.exists(self.optics_file):
             raise AcceleratorDefinitionError(
                 "Optics file '{:s}' does not exist.".format(self.optics_file))
-
-    def get_beam(self):
-        raise AcceleratorDefinitionError(
-            "The accelerator definition is incomplete, beam " +
-            "has to be specified (--beam option missing?)."
-        )
 
     @classmethod
     def get_nominal_tmpl(cls):
