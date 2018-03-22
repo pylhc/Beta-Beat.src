@@ -497,7 +497,7 @@ class Lhc(Accelerator):
             [all_corrs[corr_cls] for corr_cls in my_classes if corr_cls in all_corrs])
         )
         if frm is None and to is None:
-            return vars_by_class
+            return list(vars_by_class)
         elems_matrix = tfs_pandas.read_tfs(
             cls._get_corrector_elems()
         ).sort_values("S").set_index("S").loc[frm:to, :]
@@ -532,7 +532,8 @@ class Lhc(Accelerator):
             return _get_call_main_for_year(cls.YEAR)
         except AttributeError:
             raise AcceleratorDefinitionError(
-                "Abstract method called. Did you forget --lhcmode?"
+                "The accelerator definition is incomplete, mode " +
+                "has to be specified (--lhcmode option missing?)."
             )
 
     # Private Methods ##########################################################
