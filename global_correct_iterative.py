@@ -55,6 +55,7 @@ import pandas as pd
 
 import madx_wrapper
 from correction.fullresponse.response_twiss import TwissResponse
+from twiss_optics.sequence_evaluation import evaluate_for_variables
 from twiss_optics.sequence_parser import EXT as VARMAP_EXT
 from model import manager
 from segment_by_segment.segment_by_segment import GetLlmMeasurement
@@ -412,7 +413,7 @@ def global_correction(opt, accel_opt):
         resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
         resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 
-        _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
+        # _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
         delta = tfs.TfsDataFrame(0, index=vars_list, columns=["DELTA"])
         change_params_path = os.path.join(opt.output_path, "changeparameters.madx")
         change_params_correct_path = os.path.join(opt.output_path, "changeparameters_correct.madx")
@@ -542,7 +543,7 @@ def _load_fullresponse(full_response_path, variables):
 
 def _create_response(accel_inst, vars_list, optics_params):
     """ Create response via TwissResponse """
-    varmap_path = check_varmap_file(accel_inst)
+    varmap_path = check_varmap_file(accel_inst, vars_list)
     tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list)
     return tr.get_response_for(optics_params)
 
@@ -943,23 +944,21 @@ def _join_columns(col, meas, keys):
 # Related Public Methods #####################################################
 
 
-def check_varmap_file(accel_inst):
+def check_varmap_file(accel_inst, variables):
     """ Checks on varmap file and creates it if not in model folder.
     THIS SHOULD BE REPLACED WITH A CALL TO JAIMES DATABASE, IF IT BECOMES AVAILABLE """
     varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
     varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + VARMAP_EXT)
     if not os.path.isfile(varmap_path):
-        LOG.debug("Variable mapping not found. Creating it with madx/sequence_parser.")
-        varmap_path = varmap_path.replace("." + VARMAP_EXT, ".seq")
-        save_sequence_jobfile = os.path.join(accel_inst.model_dir, "job.save_sequence.madx")
+        LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
+        basic_twiss = os.path.join(accel_inst.model_dir, "job.basic_twiss.madx")
 
-        if os.path.isfile(save_sequence_jobfile):
-            with logging_tools.TempFile("save_sequence_madxout.tmp", LOG.debug) as log_file:
-                madx_wrapper.resolve_and_run_file(save_sequence_jobfile, log_file=log_file)
-
-        else:
-            LOG.warning("'job.save_sequence.madx' not found. Using standard 'main.seq'")
-            iotools.copy_item(accel_inst.get_sequence_file(), varmap_path)
+        if not os.path.isfile(basic_twiss):
+            raise IOError("Basic Twiss jobfile to create mapping not found. "
+                          "Please provide at '{:s}'.".format(basic_twiss))
+        mapping = evaluate_for_variables(variables, basic_twiss)
+        with open(varmap_path, 'wb') as dump_file:
+            pickle.Pickler(dump_file, -1).dump(mapping)
 
     return varmap_path
 

@@ -463,8 +463,20 @@ class Lhc(Accelerator):
         return cls.get_file("segment.madx")
 
     @classmethod
+    def get_iteration_tmpl(cls):
+        return cls.get_file("template.iterate.madx")
+
+    @classmethod
+    def get_basic_twiss_tmpl(cls):
+        return cls.get_file("template.basic_twiss.madx")
+
+    @classmethod
+    def get_save_seq_tmpl(cls):
+        return cls.get_file("template.save_sequence.madx")
+
+    @classmethod
     def get_update_correction_tmpl(cls):
-        return cls.get_file("job.update_correction.madx")
+        return cls.get_file("template.update_correction.madx")
 
     @classmethod
     def get_file(cls, filename):
