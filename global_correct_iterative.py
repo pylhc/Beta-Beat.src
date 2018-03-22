@@ -911,10 +911,7 @@ def writeparams(path_to_file, delta):
     with open(path_to_file, "w") as madx_script:
         for var in delta.index.values:
             value = delta.loc[var, "DELTA"]
-            madx_script.write(var + " = " + var
-                              + (" + " if value >= 0 else " ")
-                              + str(value) + ";\n"
-                              )
+            madx_script.write("{var:s} = {var:s} {value:+e};\n".format(var=var, value=value))
 
 
 # Small Helpers ################################################################
