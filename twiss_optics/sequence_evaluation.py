@@ -51,6 +51,7 @@ def evaluate_for_variables(variables, original_jobfile_path, order=4,
             temp_dir = os.path.dirname(original_jobfile_path)
         create_dirs(temp_dir)
 
+        num_proc = max(num_proc, len(variables))
         process_pool = multiprocessing.Pool(processes=num_proc)
 
         _generate_madx_jobs(variables, original_jobfile_path, order, patterns, num_proc, temp_dir)
@@ -75,14 +76,14 @@ def _generate_madx_jobs(variables, original_jobfile_path, order, patterns, num_p
     # load template and add columns
     with open(original_jobfile_path, "r") as original_file:
         original_content = original_file.read()
-    original_content.replace(
+    original_content = original_content.replace(
         patterns['twiss_columns'], "NAME,S," + ",".join(_get_orders(order))
     ).replace(
         patterns["element_pattern"], ""  # all elements for beam
     )
 
     # zero all vars
-    all_var_zero = "".join(_assign(var, 0) for var in variables)
+    all_var_zero = "".join([_assign(var, 0) for var in variables])
 
     # build content for testing each variable
     for proc_idx in range(num_proc):
@@ -101,8 +102,9 @@ def _generate_madx_jobs(variables, original_jobfile_path, order, patterns, num_p
                 job_content += _twiss_out(current_var)
                 job_content += _assign(current_var, 0)
 
+        original_content = original_content.replace(patterns["job_content"], job_content)
         with open(_get_jobfiles(temp_dir, proc_idx), "w") as job_file:
-            job_file.write(original_content.replace(patterns["file"], job_content))
+            job_file.write(original_content)
 
 
 def _call_madx(process_pool, temp_dir, num_proc):
@@ -168,7 +170,8 @@ def _launch_single_job(inputfile_path):
 
 def _load_and_remove_twiss(path_and_var):
     """ Function for pool to retrieve results """
-    twissfile = _get_twissfile(*path_and_var)
+    path, var = path_and_var
+    twissfile = _get_twissfile(path, var)
     tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
