@@ -76,6 +76,7 @@ DEV_NULL = os.devnull
 DEFAULT_ARGS = {
     "optics_file": None,
     "output_path": None,
+    "output_filename": "changeparameters_iter",
     "svd_cut": 0.01,
     "optics_params": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
     "variables": ["MQM", "MQT", "MQTL", "MQY"],
@@ -172,7 +173,7 @@ def _get_params():
     params.add_parameter(
         flags="--fullresponse",
         help=("Path to the fullresponse binary file."
-             " If not given, calculates the response analytically."),
+              " If not given, calculates the response analytically."),
         name="fullresponse_path",
     )
     params.add_parameter(
@@ -201,6 +202,12 @@ def _get_params():
               "default to the --meas input path."),
         name="output_path",
         default=DEFAULT_ARGS["output_path"],
+    )
+    params.add_parameter(
+        flags="--output_filename",
+        help="Identifier of the output files.",
+        name="output_filename",
+        default=DEFAULT_ARGS["output_filename"],
     )
     params.add_parameter(
         flags="--svd_cut",
@@ -415,8 +422,6 @@ def global_correction(opt, accel_opt):
 
         # _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
         delta = tfs.TfsDataFrame(0, index=vars_list, columns=["DELTA"])
-        change_params_path = os.path.join(opt.output_path, "changeparameters.madx")
-        change_params_correct_path = os.path.join(opt.output_path, "changeparameters_correct.madx")
 
         # ######### Iteration Phase ######### #
 
@@ -428,7 +433,8 @@ def global_correction(opt, accel_opt):
                 LOG.debug("Updating model via MADX.")
                 corr_model_path = os.path.join(opt.output_path, "twiss_" + str(iteration) + ".dat")
 
-                _create_corrected_model(corr_model_path, change_params_path, accel_inst, opt.debug)
+                _create_corrected_model(corr_model_path, opt.change_params_path,
+                                        accel_inst, opt.debug)
 
                 corr_model_elements = tfs.read_tfs(corr_model_path, index="NAME")
                 corr_model = corr_model_elements.loc[tfs.get_bpms(corr_model_elements), :]
@@ -448,12 +454,12 @@ def global_correction(opt, accel_opt):
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
-            writeparams(change_params_path, delta)
-            writeparams(change_params_correct_path, -delta)
+            writeparams(opt.change_params_path, delta)
+            writeparams(opt.change_params_correct_path, -delta)
             LOG.debug("Cumulative delta: {:.5e}".format(
                 np.sum(np.abs(delta.loc[:, "DELTA"].values))))
 
-        write_knob(os.path.join(opt.output_path, "changeparameters.knob"), delta)
+        write_knob(opt.knob_path, delta)
     LOG.info("Finished Iterative Global Correction.")
 
 # Main function helpers #######################################################
@@ -468,7 +474,14 @@ def _check_opt(opt):
     iotools.create_dirs(opt.output_path)
 
     bb_root = iotools.get_absolute_path_to_betabeat_root()
+
+    # some paths "hardcoded"
     opt.template_file_path = os.path.join(bb_root, "correction", "job.twiss_python.madx")
+    opt.change_params_path = os.path.join(opt.output_path,
+                                          "{:s}.madx".format(opt.output_filename))
+    opt.change_params_correct_path = os.path.join(opt.output_path,
+                                                  "{:s}_correct.madx".format(opt.output_filename))
+    opt.knob_path = os.path.join(opt.output_path, "{:s}.knob").format(opt.output_filename)
 
     # check cuts and weights:
     def_dict = _get_default_values()
