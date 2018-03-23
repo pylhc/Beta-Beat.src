@@ -96,8 +96,8 @@ def _get_default_values():
             'BETX': 0.2, 'BETY': 0.2,
             'DX': 0.2, 'DY': 0.2,
             'NDX': 0.2, 'Q': 0.1,
-            'F1001R': 0.2, 'F1001I': 0.2,
-            'F1010R': 0.2, 'F1010I': 0.2,
+            'F1001R': 0.0, 'F1001I': 0.0,
+            'F1010R': 0.0, 'F1010I': 0.0,
         },
         'errorcut': {
             'MUX': 0.035, 'MUY': 0.035,
@@ -303,6 +303,7 @@ def _get_params():
 # Entry Point ##################################################################
 
 
+
 @entrypoint(_get_params())
 def global_correction(opt, accel_opt):
     """ Do the global correction. Iteratively.
@@ -395,6 +396,7 @@ def global_correction(opt, accel_opt):
         mcut_dict = dict(zip(opt.optics_params, opt.modelcut))
         ecut_dict = dict(zip(opt.optics_params, opt.errorcut))
 
+
         # read data from files
         vars_list = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
         optics_params, meas_dict = _get_measurment_data(
@@ -402,6 +404,7 @@ def global_correction(opt, accel_opt):
             opt.meas_dir, opt.beta_file_name,
             w_dict,
         )
+        mcut_dict = _automate_modelcut(mcut_dict, meas_dict, opt.variable_categories)
 
         if opt.fullresponse_path is not None:
             resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
@@ -524,7 +527,7 @@ def _print_rms(meas, diff_w, r_delta_w):
     for key in meas:
         LOG.info(f_str.format(
             key, _rms(meas[key].loc[:, 'DIFF'].values * meas[key].loc[:, 'WEIGHT'].values)))
-    LOG.info(f_str.format("Model - Measure", _rms(diff_w)))
+    LOG.info(f_str.format("All", _rms(diff_w)))
     LOG.debug(f_str.format("R * delta", _rms(r_delta_w)))
     LOG.debug("(Model - Measure) - (R * delta)   ")
     LOG.debug(f_str.format("", _rms(diff_w - r_delta_w)))
@@ -608,6 +611,37 @@ def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
                 elif key in ("BBY", "BETY"):
                     measurement[key] = getllm_data.kmod_beta_y
     return filtered_keys, measurement
+
+
+def _automate_modelcut(mcut_dict, meas_dict, vars_categories):
+    """ Automatic calculation of model-cut
+
+        For coupling: Applied if "coupling_knobs" is int the list of variables
+                      AND if the model-cut is set to zero!
+    """
+    if "coupling_knobs" in vars_categories:
+        # use the value after 5% of the sorted data as cut value
+        for rdt in ["1001", "1010"]:
+            rdt_names = ["F{:s}{:s}".format(rdt, comp) for comp in ["R", "I"]]
+            if any([name in meas_dict for name in rdt_names]):
+                # use meas_dict for checking, because it's already filtered
+                try:
+                    meas = meas_dict[rdt_names[0]]
+                except KeyError:
+                    # does not matter which one they link to the same file
+                    meas = meas_dict[rdt_names[1]]
+                amp_meas = meas["F{:s}W".format(rdt)]
+                amp_mdl = np.sqrt(meas["MDLF{:s}R".format(rdt)]**2 +
+                                  meas["MDLF{:s}I".format(rdt)]**2
+                                  )
+                idx_num = int(np.floor(len(amp_meas) * 0.95))
+                idx = amp_meas.sort_values().index.values[idx_num]
+                new_cut = np.abs(amp_meas[idx] - amp_mdl[idx])
+                for name in rdt_names:
+                    if mcut_dict[name] == 0.0:
+                        mcut_dict[name] = new_cut
+                        LOG.info("Model Cut for {:s} set to {:e}.".format(name, new_cut))
+    return mcut_dict
 
 
 def _get_varlist(accel_cls, variables, virt_flag):  # TODO: Virtual?
