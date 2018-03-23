@@ -21,5 +21,7 @@ option, echo;
 
 exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
 
+exec, coupling_knob(%(NUM_BEAM)i);
+
 call, file="%(CORRECTIONS)s";
 exec, do_twiss_elements(LHCB%(NUM_BEAM)i, "%(PATH_TWISS)s", %(DPP)s);
