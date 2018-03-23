@@ -1,4 +1,4 @@
-Main script for executing LOCO analysis is LOCO.py. This script will generate the "model" orbit response matrix, generate the Jacobian matrix, and find the model calibrations that minimize the difference between the measured and model orbit response matrices.
+Main script for executing ORM analysis is ORM.py. This script will generate the "model" orbit response matrix, generate the Jacobian matrix, and find the model calibrations that minimize the difference between the measured and model orbit response matrices.
 
 The fitting process is iterated some number of times (currently set to 4).
 

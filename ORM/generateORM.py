@@ -39,7 +39,7 @@ def orbit(bpms, vc, twiss):	# calculate orbit response to dipole using analytica
 	ft.close()
 
     
-######################### For LOCO
+######################### For ORM
 def writeparams(variable, increment):
 #########################
     g = open ('changeparametersORM', 'w')
@@ -51,7 +51,7 @@ def writeparams(variable, increment):
 def justtwiss():
 #########################
     global dictionary
-    system('madx < job.LOCO.madx > scum')
+    system('madx < job.ORM.madx > scum')
     x=twiss('twiss.orbit.dat')
     return x
     
