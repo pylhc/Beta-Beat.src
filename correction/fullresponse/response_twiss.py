@@ -44,14 +44,13 @@ to fit the :math:`M \cdot \delta K` orientation.
     https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 
 """
-import multiprocessing
 import numpy as np
 import pandas as pd
+import cPickle as pickle
 
 from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
-from twiss_optics import sequence_parser
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from twiss_optics.twiss_functions import regex_in, upper
 
@@ -82,7 +81,7 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, varmap_or_seq_path, model_or_path, variables,
+    def __init__(self, varmap_or_path, model_or_path, variables,
                  at_elements='bpms'):
 
         LOG.debug("Initializing TwissResponse.")
@@ -90,7 +89,7 @@ class TwissResponse(object):
             # Get input
             self._twiss = self._get_model_twiss(model_or_path)
             self._variables = variables
-            self._var_to_el = self._get_variable_mapping(varmap_or_seq_path)
+            self._var_to_el = self._get_variable_mapping(varmap_or_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
 
@@ -142,14 +141,22 @@ class TwissResponse(object):
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
         return model
 
-    def _get_variable_mapping(self, varmap_or_seq_path):
+    def _get_variable_mapping(self, varmap_or_path):
         """ Get variable mapping as dictionary
 
         Define _variables first!
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
-        mapping = sequence_parser.load_or_parse_variable_mapping(varmap_or_seq_path, "dictionary")
+
+        try:
+            with open(varmap_or_path, "rb") as varmapfile:
+                mapping = pickle.load(varmapfile)
+        except TypeError:
+            LOG.debug("Received varmap as dictionary.")
+            mapping = varmap_or_path
+        else:
+            LOG.debug("Loaded varmap from file '{:s}'".format(varmap_or_path))
 
         for order in ("K0L", "K0SL", "K1L", "K1SL"):
             if order not in mapping:
