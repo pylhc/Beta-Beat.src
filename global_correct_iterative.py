@@ -542,17 +542,6 @@ def _load_fullresponse(full_response_path, variables):
     with open(full_response_path, "r") as full_response_file:
         full_response_data = pickle.load(full_response_file)
 
-    for param in full_response_data:
-        df = full_response_data[param]
-        # fill with zeros
-        not_found_vars = pd.Index(variables).difference(df.columns)
-        if len(not_found_vars) > 0:
-            LOG.debug(("Variables not in fullresponse {:s} " +
-                       "(To be filled with zeros): {:s}").format(param, not_found_vars.values))
-            df = df.assign(**dict.fromkeys(not_found_vars, 0.0))  # one-liner to add zero-columns
-        # order variables
-        full_response_data[param] = df.loc[:, variables]
-
     LOG.debug("Loading ended")
     return full_response_data
 
@@ -980,7 +969,7 @@ def _join_responses(resp, keys, varslist):
                      axis="index",  # axis to join along
                      join_axes=[pd.Index(varslist)]
                      # other axes to use (pd Index obj required)
-                     )
+                     ).fillna(0.0)
 
 
 def _join_columns(col, meas, keys):
