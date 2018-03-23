@@ -518,6 +518,55 @@ class Lhc(Accelerator):
         ))
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
 
+    def get_update_correction_job(self, tiwss_out_path, corrections_file_path):
+        """ Return string for madx job of correting model """
+        with open(self.get_update_correction_tmpl(), "r") as template:
+            madx_template = template.read()
+        try:
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "CROSSING_ON": "1" if self.xing else "0",
+                "NUM_BEAM": self.get_beam(),
+                "DPP": self.dpp,
+                "QMX": self.nat_tune_x,
+                "QMY": self.nat_tune_y,
+                "PATH_TWISS": tiwss_out_path,
+                "CORRECTIONS": corrections_file_path,
+            }
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+        return madx_template % replace_dict
+
+    def get_basic_twiss_job(self, job_content, twiss_columns, element_pattern):
+        """ Return string for madx job of correting model """
+        with open(self.get_basic_twiss_tmpl(), "r") as template:
+            madx_template = template.read()
+        try:
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "CROSSING_ON": "1" if self.xing else "0",
+                "NUM_BEAM": self.get_beam(),
+                "DPP": self.dpp,
+                "QMX": self.nat_tune_x % 1,
+                "QMY": self.nat_tune_y % 1,
+                "JOB_CONTENT": job_content,
+                "ELEMENT_PATTERN": element_pattern,
+                "TWISS_COLUMNS": twiss_columns,
+            }
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+        return madx_template % replace_dict
+
     def log_status(self):
         LOGGER.info("  model dir = " + self.model_dir)
         LOGGER.info("{:20s} [{:10.3f}]".format("Natural Tune X", self.nat_tune_x))

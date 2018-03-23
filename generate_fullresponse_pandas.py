@@ -17,6 +17,11 @@ from utils.entrypoint import EntryPointParameters, entrypoint
 
 LOG = logging_tools.get_logger(__name__)
 
+DEFAULT_PATTERNS = {
+    "job_content": "%JOB_CONTENT%",  # used in lhc_model_creator, sequence_evaluation
+    "twiss_columns": "%TWISS_COLUMNS%",  # used in lhc_model_creator, sequence_evaluation
+    "element_pattern": "%ELEMENT_PATTERN%",  # used in lhc_model_creator, sequence_evaluation
+}
 
 def get_params():
     params = EntryPointParameters()
@@ -104,14 +109,27 @@ def create_response(opt, other_opt):
     with logging_tools.DebugMode(active=opt.debug):
         LOG.info("Creating response.")
         accel_cls, other_opt = manager.get_accel_class_and_unkown(other_opt)
-        variables = accel_cls.get_variables(classes=opt.variable_categories)
+        accel_inst = accel_cls(model_dir=opt.model_dir)
+        variables = accel_inst.get_variables(classes=opt.variable_categories)
 
         if opt.creator == "madx":
-            jobfile_path = os.path.join(opt.model_dir, "job.basic_twiss.madx")
+            jobfile_path = os.path.join(opt.model_dir, "tmpl.generate_fullresponse.madx")
+            patterns = {
+                "job_content": "%JOB_CONTENT%",
+                "twiss_columns": "%TWISS_COLUMNS%",
+                "element_pattern": "%ELEMENT_PATTERN%",
+            }
+            madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
+                                                         patterns["twiss_columns"],
+                                                         patterns["element_pattern"])
+            with open(jobfile_path, "w") as f:
+                f.write(madx_script)
+
             fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
-                                                delta_k=opt.delta_k)
+                                                               patterns=patterns,
+                                                               delta_k=opt.delta_k)
         elif opt.creator == "twiss":
-            accel_inst = accel_cls(model_dir=opt.model_dir)
+
             varmap_path = check_varmap_file(accel_inst, variables)
 
             LOG.debug("Creating response via TwissResponse.")

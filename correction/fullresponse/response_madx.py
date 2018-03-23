@@ -25,17 +25,11 @@ from utils.iotools import create_dirs
 
 LOG = logging_tools.get_logger(__name__)
 
-DEFAULT_PATTERNS = {
-    "job_content": "%JOB_CONTENT%",  # used in lhc_model_creator, sequence_evaluation
-    "twiss_columns": "%TWISS_COLUMNS%",  # used in lhc_model_creator, sequence_evaluation
-    "element_pattern": "%ELEMENT_PATTERN%",  # used in lhc_model_creator, sequence_evaluation
-}
 
 # Full Response Mad-X ##########################################################
 
 
-def generate_fullresponse(variables, original_jobfile_path,
-                          patterns=DEFAULT_PATTERNS,
+def generate_fullresponse(variables, original_jobfile_path, patterns,
                           delta_k=0.00002, num_proc=multiprocessing.cpu_count(),
                           temp_dir=None):
     """ Generate a dictionary containing response matrices for
@@ -45,8 +39,9 @@ def generate_fullresponse(variables, original_jobfile_path,
             variables (list): List of variables to use.
             original_jobfile_path (str): Name of the original MAD-X job file
                                          defining the sequence file.
-            patterns (str): Patterns to be replaced in the MAD-X job file by the iterative
-                           script calls. Must contain 'file' and 'twiss_columns'.
+            patterns (dict): Patterns to be replaced in the MAD-X job file by the iterative
+                             script calls. Must contain 'job_content', 'twiss_columns'
+                             and 'element_pattern'.
             delta_k (float): delta K1L to be applied to quads for sensitivity matrix
             num_proc (int): Number of processes to use in parallel.
             temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.

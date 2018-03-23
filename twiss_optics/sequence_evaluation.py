@@ -17,12 +17,10 @@ import numpy as np
 import pandas
 
 import madx_wrapper
-from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
 from utils import tfs_pandas
-from utils.contexts import timeit, suppress_warnings
+from utils.contexts import timeit
 from utils.iotools import create_dirs
-from correction.fullresponse.response_madx import DEFAULT_PATTERNS
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -30,8 +28,8 @@ LOG = logging_tools.get_logger(__name__)
 # Read Sequence ##############################################################
 
 
-def evaluate_for_variables(variables, original_jobfile_path, step=1e-5, order=2,
-                           patterns=DEFAULT_PATTERNS, num_proc=multiprocessing.cpu_count(),
+def evaluate_for_variables(variables, original_jobfile_path, patterns, step=1e-5, order=2,
+                           num_proc=multiprocessing.cpu_count(),
                            temp_dir=None):
     """ Generate a dictionary containing response matrices for
         beta, phase, dispersion, tune and coupling and saves it to a file.
@@ -40,9 +38,9 @@ def evaluate_for_variables(variables, original_jobfile_path, step=1e-5, order=2,
             variables (list): List of variables to use.
             original_jobfile_path (str): Name of the original MAD-X job file
                                          defining the sequence file.
-            patterns (str): Patterns to be replaced in the MAD-X job file by the iterative
-                            script calls. Must contain Must contain 'job_content',
-                            'twiss_columns' and 'element_pattern'.
+            patterns (dict): Patterns to be replaced in the MAD-X job file by the iterative
+                             script calls. Must contain 'job_content', 'twiss_columns'
+                             and 'element_pattern'.
             num_proc (int): Number of processes to use in parallel.
             temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.
     """

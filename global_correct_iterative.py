@@ -905,23 +905,7 @@ def _pseudo_inverse(response_mat, diff_vec, opt):
 def _create_corrected_model(twiss_out, change_params, accel_inst, debug):
     """ Use the calculated deltas in changeparameters.madx to create a corrected model """
     # create script from template
-    with open(accel_inst.get_update_correction_tmpl(), "r") as template:
-        madx_template = template.read()
-
-    replace_dict = {
-        "LIB": accel_inst.MACROS_NAME,
-        "MAIN_SEQ": accel_inst.load_main_seq_madx(),
-        "OPTICS_PATH": accel_inst.optics_file,
-        "CROSSING_ON": 0,  # TODO: Crossing
-        "NUM_BEAM": accel_inst.get_beam(),
-        "PATH_TWISS": twiss_out,
-        "DPP": 0.0,
-        "QMX": accel_inst.nat_tune_x,
-        "QMY": accel_inst.nat_tune_y,
-        "CORRECTIONS": change_params,
-    }
-    madx_script = madx_template % replace_dict
-
+    madx_script = accel_inst.get_update_correction_job(twiss_out, change_params)
     # run madx
     if debug:
         with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
@@ -987,12 +971,19 @@ def check_varmap_file(accel_inst, variables):
     varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + VARMAP_EXT)
     if not os.path.isfile(varmap_path):
         LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
-        basic_twiss = os.path.join(accel_inst.model_dir, "job.basic_twiss.madx")
+        job_path = os.path.join(accel_inst.model_dir, "tmpl.generate_varmap.madx")
+        patterns = {
+            "job_content": "%JOB_CONTENT%",
+            "twiss_columns": "%TWISS_COLUMNS%",
+            "element_pattern": "%ELEMENT_PATTERN%",
+        }
+        madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
+                                                     patterns["twiss_columns"],
+                                                     patterns["element_pattern"])
+        with open(job_path, "w") as f:
+            f.write(madx_script)
 
-        if not os.path.isfile(basic_twiss):
-            raise IOError("Basic Twiss jobfile to create mapping not found. "
-                          "Please provide at '{:s}'.".format(basic_twiss))
-        mapping = evaluate_for_variables(variables, basic_twiss)
+        mapping = evaluate_for_variables(variables, job_path, patterns=patterns)
         with open(varmap_path, 'wb') as dump_file:
             pickle.Pickler(dump_file, -1).dump(mapping)
 
