@@ -87,11 +87,11 @@ def _generate_madx_jobs(variables, original_jobfile_path, patterns, delta_k, num
                 var = variables[var_idx]
                 incr_dict[var] = delta_k
                 iter_file.write(
-                    "{var:s}={var:s}+({delta:f});\n".format(var=var, delta=delta_k))
+                    "{var:s}={var:s}{delta:+f};\n".format(var=var, delta=delta_k))
                 iter_file.write(
                     "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss." + var)))
                 iter_file.write(
-                    "{var:s}={var:s}-({delta:f});\n".format(var=var, delta=delta_k))
+                    "{var:s}={var:s}{delta:+f};\n".format(var=var, delta=-delta_k))
 
             if proc_idx == num_proc - 1:
                 iter_file.write(
