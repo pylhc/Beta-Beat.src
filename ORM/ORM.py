@@ -54,7 +54,7 @@ g.close()
 #generate the model orbit response matrix, calculated analytically from MADX twiss output:
 execfile('calcORM.py')
 
-# one could change the number of iterations of the LOCO minimization procedure here:
+# one could change the number of iterations of the ORM minimization procedure here:
 for iteration in range(0,4):
     
     print 'iteration #',iteration

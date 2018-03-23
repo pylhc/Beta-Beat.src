@@ -50,7 +50,7 @@ def orbit(bpms, vc, twiss,twissall):
 def justtwiss():
 #########################
     global dictionary
-    system('madx < job.LOCO.madx > scum')
+    system('madx < job.ORM.madx > scum')
     x=twiss('twiss.orbit.dat')
     y=twiss('twiss.all.dat')
     return x, y

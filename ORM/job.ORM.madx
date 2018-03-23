@@ -1,13 +1,13 @@
-title, "PSB model with tune matching for LOCO; Jan 2013" ;
+title, "PSB model with tune matching for ORM; Jan 2013" ;
 
 
  option, -echo, info,  warn;
  
  
-! call,   file = "/afs/cern.ch/user/m/mmcateer/LOCO/PSB/psbMADX/psb.ele"; MEGHAN ORIGINAL
+! call,   file = "/afs/cern.ch/user/m/mmcateer/ORM/PSB/psbMADX/psb.ele"; MEGHAN ORIGINAL
  call,   file = "/afs/cern.ch/eng/ps/cps/Psb/2013//psb.ele";
  call,   file = "/afs/cern.ch/eng/ps/cps/Psb/2013/psb_new.seq";
-!call,   file = "/afs/cern.ch/user/m/mmcateer/LOCO/PSB/psbMADX/psb_160MeV_Q0_ring3.str"; MEGHAN ORIGINAL
+!call,   file = "/afs/cern.ch/user/m/mmcateer/ORM/PSB/psbMADX/psb_160MeV_Q0_ring3.str"; MEGHAN ORIGINAL
  call,   file = "/afs/cern.ch/eng/ps/cps/Psb/2013//strength/psb_extraction.str";
 
 !psb: sequence, refer=entry,  l = 157.08000;
@@ -76,7 +76,7 @@ call,file="results/madCalib.dat";
  dispx := beta*table(twiss,dx); ! Delta_x=dispx*Delta_p/p;
  dispy := beta*table(twiss,dy); ! Delta_y=dispy*Delta_p/p;
 
-!call,file="/afs/cern.ch/user/m/mmcateer/LOCO/PSB/psbMADX/alignment_afterLS1_ring3.dat";
+!call,file="/afs/cern.ch/user/m/mmcateer/ORM/PSB/psbMADX/alignment_afterLS1_ring3.dat";
 select,flag=error,clear;
 select,flag=error, pattern="UES";
 select,flag=error, pattern="QFO";
