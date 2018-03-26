@@ -51,7 +51,8 @@ def evaluate_for_variables(variables, original_jobfile_path, patterns, step=1e-5
         num_proc = num_proc if len(variables) > num_proc else len(variables)
         process_pool = multiprocessing.Pool(processes=num_proc)
 
-        _generate_madx_jobs(variables, original_jobfile_path, step, order, patterns, num_proc, temp_dir)
+        _generate_madx_jobs(variables, original_jobfile_path, step,
+                            order, patterns, num_proc, temp_dir)
         _call_madx(process_pool, temp_dir, num_proc)
         _clean_up(temp_dir, num_proc)
 
@@ -59,7 +60,8 @@ def evaluate_for_variables(variables, original_jobfile_path, patterns, step=1e-5
     return mapping
 
 
-def _generate_madx_jobs(variables, original_jobfile_path, step, order, patterns, num_proc, temp_dir):
+def _generate_madx_jobs(variables, original_jobfile_path, step,
+                        order, patterns, num_proc, temp_dir):
     """ Generates madx job-files """
     def _add_to_var(var, value):
         return "{var:s}={var:s}{value:+e};\n".format(var=var, value=value)
