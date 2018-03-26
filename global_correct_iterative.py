@@ -474,10 +474,7 @@ def _check_opt(opt):
 
     iotools.create_dirs(opt.output_path)
 
-    bb_root = iotools.get_absolute_path_to_betabeat_root()
-
     # some paths "hardcoded"
-    opt.template_file_path = os.path.join(bb_root, "correction", "job.twiss_python.madx")
     opt.change_params_path = os.path.join(opt.output_path,
                                           "{:s}.madx".format(opt.output_filename))
     opt.change_params_correct_path = os.path.join(opt.output_path,
