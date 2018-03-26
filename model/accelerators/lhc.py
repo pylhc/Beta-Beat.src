@@ -46,7 +46,7 @@ class Lhc(Accelerator):
         adt (bool): Activate excitation with ADT.
                     **Flags**: ['--adt']
                     **Default**: ``False``
-        dpp (float): Delta p/p to use.
+        dpp (float or list): Delta p/p to use.
                      **Flags**: ['--dpp']
                      **Default**: ``0.0``
         drv_tune_x (float): Driven tune X without integer part.
@@ -135,7 +135,6 @@ class Lhc(Accelerator):
             help="Delta p/p to use.",
             name="dpp",
             default=0.0,
-            type=float,
         )
         params.add_parameter(
             flags=["--energy"],
@@ -173,19 +172,25 @@ class Lhc(Accelerator):
 
         if opt.model_dir:
             self.init_from_model_dir(opt.model_dir)
-            self.optics_file = None
             self.energy = None
             self.dpp = 0.0
             self.xing = None
             if opt.nat_tune_x is not None:
-                raise AcceleratorDefinitionError("Argument 'nat_tune_x' not allowed when loading from model directory.")
+                raise AcceleratorDefinitionError(
+                    "Argument 'nat_tune_x' not allowed when loading from model directory."
+                )
             if opt.nat_tune_y is not None:
-                raise AcceleratorDefinitionError("Argument 'nat_tune_y' not allowed when loading from model directory.")
+                raise AcceleratorDefinitionError(
+                    "Argument 'nat_tune_y' not allowed when loading from model directory."
+                )
             if opt.drv_tune_x is not None:
-                raise AcceleratorDefinitionError("Argument 'drv_tune_x' not allowed when loading from model directory.")
+                raise AcceleratorDefinitionError(
+                    "Argument 'drv_tune_x' not allowed when loading from model directory."
+                )
             if opt.drv_tune_y is not None:
-                raise AcceleratorDefinitionError("Argument 'drv_tune_y' not allowed when loading from model directory.")
-            self.optics_file = opt.get("optics", os.path.join(os.path.dirname(opt.model_dir), "modifiers.madx"))
+                raise AcceleratorDefinitionError(
+                    "Argument 'drv_tune_y' not allowed when loading from model directory."
+                )
         else:
             if opt.nat_tune_x is None:
                 raise AcceleratorDefinitionError("Argument 'nat_tune_x' is required.")
@@ -242,7 +247,14 @@ class Lhc(Accelerator):
         self.model_dir = model_dir
 
         LOGGER.debug("  model path = " + os.path.join(model_dir, "twiss.dat"))
-        self._model = tfs_pandas.read_tfs(os.path.join(model_dir, "twiss.dat"), index="NAME")
+        try:
+            self._model = tfs_pandas.read_tfs(
+                os.path.join(model_dir, "twiss.dat"), index="NAME")
+        except IOError:
+            self._model = tfs_pandas.read_tfs(
+                os.path.join(model_dir, "twiss_elements.dat"), index="NAME")
+            bpm_index = [idx for idx in self._model.index.values if idx.startswith("B")]
+            self._model = self._model.loc[bpm_index, :]
         self.nat_tune_x = float(self._model.headers["Q1"])
         self.nat_tune_y = float(self._model.headers["Q2"])
 
@@ -258,7 +270,6 @@ class Lhc(Accelerator):
         if os.path.isfile(ac_filename):
             self._model_driven = tfs_pandas.read_tfs(ac_filename, index="NAME")
             self._excitation = AccExcitationMode.ACD
-            driven_filename = ac_filename
 
         if os.path.isfile(adt_filename):
             if self._excitation == AccExcitationMode.ACD:
@@ -267,7 +278,6 @@ class Lhc(Accelerator):
 
             self._model_driven = tfs_pandas.read_tfs(adt_filename, index="NAME")
             self._excitation = AccExcitationMode.ADT
-            driven_filename = adt_filename
 
         if not self._excitation == AccExcitationMode.FREE:
             self.drv_tune_x = float(self.get_driven_tfs().headers["Q1"])
@@ -292,6 +302,12 @@ class Lhc(Accelerator):
         else:
             self._elements_centre = self._elements
 
+        # Optics File #########################################
+        self.optics_file = None
+        opticsfilepath = os.path.join(self.model_dir, "modifiers.madx")
+        if os.path.exists(opticsfilepath):
+            self.optics_file = opticsfilepath
+
         # Error Def #####################################
         self._errordefspath = None
         errordefspath = os.path.join(self.model_dir, "error_deff.txt")
@@ -301,7 +317,6 @@ class Lhc(Accelerator):
             errordefspath = os.path.join(self.model_dir, "error_deffs.txt")
             if os.path.exists(errordefspath):
                 self._errordefspath = errordefspath
-
 
     @classmethod
     def init_and_get_unknowns(cls, args=None):
@@ -402,9 +417,10 @@ class Lhc(Accelerator):
             self.get_beam()
         except AttributeError:
             raise AcceleratorDefinitionError(
-                "The accelerator definition is incomplete, beam " +
+                "The accelerator definition is incomplete, beam "
                 "has to be specified (--beam option missing?)."
             )
+
         if self.model_dir is None:  # is the class is used to create full response?
             if self.optics_file is None:
                 raise AcceleratorDefinitionError(
@@ -424,7 +440,6 @@ class Lhc(Accelerator):
         if self.optics_file is not None and not os.path.exists(self.optics_file):
             raise AcceleratorDefinitionError(
                 "Optics file '{:s}' does not exist.".format(self.optics_file))
-
 
     @classmethod
     def get_nominal_tmpl(cls):
@@ -447,8 +462,34 @@ class Lhc(Accelerator):
         return cls.get_file("segment.madx")
 
     @classmethod
+    def get_iteration_tmpl(cls):
+        return cls.get_file("template.iterate.madx")
+
+    @classmethod
+    def get_basic_twiss_tmpl(cls):
+        return cls.get_file("template.basic_twiss.madx")
+
+    @classmethod
+    def get_save_seq_tmpl(cls):
+        return cls.get_file("template.save_sequence.madx")
+
+    @classmethod
+    def get_update_correction_tmpl(cls):
+        return cls.get_file("template.update_correction.madx")
+
+    @classmethod
     def get_file(cls, filename):
         return os.path.join(CURRENT_DIR, "lhc", filename)
+
+    @classmethod
+    def get_sequence_file(cls):
+        try:
+            return _get_file_for_year(cls.YEAR, "main.seq")
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, mode " +
+                "has to be specified (--lhcmode option missing?)."
+            )
 
     @classmethod
     def get_variables(cls, frm=None, to=None, classes=None):
@@ -466,6 +507,8 @@ class Lhc(Accelerator):
         vars_by_class = set(_flatten_list(
             [all_corrs[corr_cls] for corr_cls in my_classes if corr_cls in all_corrs])
         )
+        if frm is None and to is None:
+            return list(vars_by_class)
         elems_matrix = tfs_pandas.read_tfs(
             cls._get_corrector_elems()
         ).sort_values("S").set_index("S").loc[frm:to, :]
@@ -473,6 +516,55 @@ class Lhc(Accelerator):
             [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
         ))
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
+
+    def get_update_correction_job(self, tiwss_out_path, corrections_file_path):
+        """ Return string for madx job of correting model """
+        with open(self.get_update_correction_tmpl(), "r") as template:
+            madx_template = template.read()
+        try:
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "CROSSING_ON": "1" if self.xing else "0",
+                "NUM_BEAM": self.get_beam(),
+                "DPP": self.dpp,
+                "QMX": self.nat_tune_x,
+                "QMY": self.nat_tune_y,
+                "PATH_TWISS": tiwss_out_path,
+                "CORRECTIONS": corrections_file_path,
+            }
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+        return madx_template % replace_dict
+
+    def get_basic_twiss_job(self, job_content, twiss_columns, element_pattern):
+        """ Return string for madx job of correting model """
+        with open(self.get_basic_twiss_tmpl(), "r") as template:
+            madx_template = template.read()
+        try:
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "CROSSING_ON": "1" if self.xing else "0",
+                "NUM_BEAM": self.get_beam(),
+                "DPP": self.dpp,
+                "QMX": self.nat_tune_x % 1,
+                "QMY": self.nat_tune_y % 1,
+                "JOB_CONTENT": job_content,
+                "ELEMENT_PATTERN": element_pattern,
+                "TWISS_COLUMNS": twiss_columns,
+            }
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+        return madx_template % replace_dict
 
     def log_status(self):
         LOGGER.info("  model dir = " + self.model_dir)
@@ -493,6 +585,16 @@ class Lhc(Accelerator):
                 LOGGER.info("{:20s} [{:>10s}]".format("Excitation", "ADT"))
             LOGGER.info("{:20s} [{:10.3f}]".format("> Driven Tune X", self.drv_tune_x))
             LOGGER.info("{:20s} [{:10.3f}]".format("> Driven Tune Y", self.drv_tune_y))
+
+    @classmethod
+    def load_main_seq_madx(cls):
+        try:
+            return _get_call_main_for_year(cls.YEAR)
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete, mode " +
+                "has to be specified (--lhcmode option missing?)."
+            )
 
     # Private Methods ##########################################################
 
@@ -525,21 +627,27 @@ class Lhc(Accelerator):
 
         if self.get_beam() == 1:
             if self.excitation == AccExcitationMode.ACD:
-                return get_commonbpm("BPMYA.5L4.B1", "BPMYB.6L4.B1", commonbpms), "MKQA.6L4.B1"
+                return get_commonbpm(
+                    "BPMYA.5L4.B1", "BPMYB.6L4.B1", commonbpms), "MKQA.6L4.B1"
 
             elif self.excitation == AccExcitationMode.ADT:
                 if plane == "H":
-                    return get_commonbpm("BPMWA.B5L4.B1", "BPMWA.A5L4.B1", commonbpms), "ADTKH.C5L4.B1"
+                    return get_commonbpm(
+                        "BPMWA.B5L4.B1", "BPMWA.A5L4.B1", commonbpms), "ADTKH.C5L4.B1"
                 elif plane == "V":
-                    return get_commonbpm("BPMWA.B5R4.B1", "BPMWA.A5R4.B1", commonbpms), "ADTKV.B5R4.B1"
+                    return get_commonbpm(
+                        "BPMWA.B5R4.B1", "BPMWA.A5R4.B1", commonbpms), "ADTKV.B5R4.B1"
         elif self.get_beam() == 2:
             if self.excitation == AccExcitationMode.ACD:
-                return get_commonbpm("BPMYB.5L4.B2", "BPMYA.6L4.B2", commonbpms), "MKQA.6L4.B2"
+                return get_commonbpm(
+                    "BPMYB.5L4.B2", "BPMYA.6L4.B2", commonbpms), "MKQA.6L4.B2"
             elif self.excitation == AccExcitationMode.ADT:
                 if plane == "H":
-                    return get_commonbpm("BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms), "ADTKH.C5R4.B2"
+                    return get_commonbpm(
+                        "BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms), "ADTKH.C5R4.B2"
                 elif plane == "V":
-                    return get_commonbpm("BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5L4.B2"
+                    return get_commonbpm(
+                        "BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5L4.B2"
         return None
 
     def get_important_phase_advances(self):
@@ -551,7 +659,7 @@ class Lhc(Accelerator):
                     ["MKD.O5L6.B1", "TCTPH.4L5.B1"]]
 
     def get_exciter_name(self, plane):
-        if self.beam() == 1:
+        if self.get_beam() == 1:
             if self.excitation == AccExcitationMode.ACD:
                 if plane == "H":
                     return 'MKQA.6L4.B1'
@@ -562,7 +670,7 @@ class Lhc(Accelerator):
                     return "ADTKH.C5L4.B1"
                 elif plane == "V":
                     return "ADTKV.B5R4.B1"
-        elif self.beam() == 2:
+        elif self.get_beam() == 2:
             if self.excitation == AccExcitationMode.ACD:
                 if plane == "H":
                     return 'MKQA.6L4.B2'
@@ -594,14 +702,14 @@ class Lhc(Accelerator):
 
     def get_k_first_BPM(self, index):
         if self.get_beam() == 1:
-            model_k =  self._model.index.get_loc("BPMSW.1L2.B1")
+            model_k = self._model.index.get_loc("BPMSW.1L2.B1")
             while model_k < len(self._model.index):
                 kname = self._model.index[model_k]
                 if kname in index:
                     return index.get_loc(kname)
                 model_k = model_k + 1
         elif self.get_beam() == 2:
-            model_k =  self._model.index.get_loc("BPMSW.1L8.B2")
+            model_k = self._model.index.get_loc("BPMSW.1L8.B2")
             while model_k < len(self._model.index):
                 kname = self._model.index[model_k]
                 if kname in index:
@@ -629,7 +737,10 @@ class Lhc(Accelerator):
         return self._elements_centre
 
     def get_amp_bpms(self, common_bpms):
-        return common_bpms.loc[common_bpms.index.str.match("BPM[_,A-Z]*\\.([0-9]+)[R,L].*", as_indexer=True)]
+        return common_bpms.loc[
+            common_bpms.index.str.match("BPM[_,A-Z]*\\.([0-9]+)[R,L].*", as_indexer=True)
+        ]
+
 
 class _LhcSegmentMixin(object):
 
@@ -674,15 +785,16 @@ class _LhcB1Mixin(object):
     def get_beam_direction(cls):
         return 1
 
+
 class _LhcB2Mixin(object):
     @classmethod
     def get_beam(cls):
         return 2
 
-
     @classmethod
     def get_beam_direction(cls):
         return -1
+
 
 class LhcAts(Lhc):
     MACROS_NAME = "lhc_runII_ats"
@@ -706,17 +818,9 @@ class LhcRunI(Lhc):
 class LhcRunII2015(Lhc):
     YEAR = "2015"
 
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2015")
-
 
 class LhcRunII2016(Lhc):
     YEAR = "2016"
-
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2016")
 
 
 class LhcRunII2016Ats(LhcAts, LhcRunII2016):
@@ -726,17 +830,9 @@ class LhcRunII2016Ats(LhcAts, LhcRunII2016):
 class LhcRunII2017(LhcAts):
     YEAR = "2017"
 
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2017")
-
 
 class LhcRunII2018(LhcAts):
     YEAR = "2018"
-
-    @classmethod
-    def load_main_seq_madx(cls):
-        return _get_call_main_for_year("2018")
 
 
 class HlLhc10(LhcAts):

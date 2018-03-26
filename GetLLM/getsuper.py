@@ -381,21 +381,24 @@ def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
             LOG.debug("Using file '{:s}'".format(modifiers))
             break
 
-    accel_inst = accel_cls()
-    accel_inst.optics_file = modifiers
-    accel_inst.nat_tune_x = mdl_qx
-    accel_inst.nat_tune_y = mdl_qy
-    accel_inst.drv_tune_x = exp_qx
-    accel_inst.drv_tune_y = exp_qy
-    accel_inst.dpp = dpps
-    accel_inst.xing = False
-
-
-    accel_inst.excitation = AccExcitationMode.FREE
+    acd = False
+    adt = False
     if os.path.exists(twissfile.replace(".dat", "_ac.dat")):
-        accel_inst.excitation = AccExcitationMode.ACD
+        acd = True
     elif os.path.exists(twissfile.replace(".dat", "_adt.dat")):
-        accel_inst.excitation = AccExcitationMode.ADT
+        adt = True
+
+    accel_inst = accel_cls(
+        optics=modifiers,
+        nat_tune_x=mdl_qx,
+        nat_tune_y=mdl_qy,
+        drv_tune_x=exp_qx,
+        drv_tune_y=exp_qy,
+        acd=acd,
+        adt=adt,
+        dpp=dpps,
+        xing=False,
+    )
 
     creator.create_model(accel_inst, "nominal", output_path)
 

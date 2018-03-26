@@ -8,11 +8,13 @@ option, -echo;
 exec, define_nominal_beams();
 call, file = "%(OPTICS_PATH)s";
 exec, cycle_sequences();
+
 if(%(CROSSING_ON)s==1){
-exec, set_crossing_scheme_ON();
+    exec, set_crossing_scheme_ON();
 }else{
-exec, set_default_crossing_scheme();
+    exec, set_default_crossing_scheme();
 }
+
 use, period = LHCB%(NUM_BEAM)i;
 
 option, echo;
