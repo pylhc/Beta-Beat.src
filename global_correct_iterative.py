@@ -687,7 +687,7 @@ def _get_filtered_generic(key, meas, model, erwg, weight, modelcut, errorcut):
     # weights
     new.loc[:, 'WEIGHT'] = weight
     if erwg:
-        new.loc[:, 'WEIGHT'] = new['WEIGHT'] / new['ERROR']
+        new.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, new['WEIGHT'], new['ERROR'])
 
     # filter cuts
     error_filter = new.loc[:, 'ERROR'].values < errorcut
@@ -722,7 +722,7 @@ def _get_filtered_phases(key, meas, model, erwg, weight, modelcut, errorcut):
     # weights
     new.loc[:, 'WEIGHT'] = weight
     if erwg:
-        new.loc[:, 'WEIGHT'] = new['WEIGHT'] / new['ERROR']
+        new.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, new['WEIGHT'], new['ERROR'])
 
     # filter cuts
     error_filter = new['ERROR'] < errorcut
@@ -760,7 +760,8 @@ def _get_filtered_betabeat(key, meas, model, erwg, weight, modelcut, errorcut):
     # weights
     new.loc[:, 'WEIGHT'] = weight
     if erwg:
-        new.loc[:, 'WEIGHT'] = new['WEIGHT'] * meas[col_mdl] / new['ERROR']
+        new.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, new['WEIGHT'] * meas[col_mdl],
+                                                       new['ERROR'])
 
     # filter cuts
     model_filter = np.abs(new['VALUE'] - meas[col_mdl]) / meas[col_mdl] < modelcut
@@ -774,9 +775,19 @@ def _get_filtered_betabeat(key, meas, model, erwg, weight, modelcut, errorcut):
 def _get_tunes(key, meas, model, erwg, weight, modelcut, errorcut):
     meas.loc[:, 'WEIGHT'] = weight
     if erwg:
-        meas.loc[:, 'WEIGHT'] = meas['WEIGHT'] / meas['ERROR']
+        meas.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, meas['WEIGHT'], meas['ERROR'])
     LOG.debug("Number of tune measurements: " + str(len(meas.index.values)))
     return meas
+
+
+def _get_errorbased_weights(key, weights, errors):
+    if 0 in errors.values:
+        LOG.warn("Zero-values found in errors of '{:s}'. ".format(key) +
+                 "Weights will not be based on errors for this parameter! " +
+                 "(Maybe don't use --errorbars.)")
+        return weights
+    else:
+        return weights / errors
 
 
 # Response filtering ##########################################################
