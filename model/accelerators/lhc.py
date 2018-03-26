@@ -46,7 +46,7 @@ class Lhc(Accelerator):
         adt (bool): Activate excitation with ADT.
                     **Flags**: ['--adt']
                     **Default**: ``False``
-        dpp (float): Delta p/p to use.
+        dpp (float or list): Delta p/p to use.
                      **Flags**: ['--dpp']
                      **Default**: ``0.0``
         drv_tune_x (float): Driven tune X without integer part.
@@ -135,7 +135,6 @@ class Lhc(Accelerator):
             help="Delta p/p to use.",
             name="dpp",
             default=0.0,
-            type=float,
         )
         params.add_parameter(
             flags=["--energy"],
