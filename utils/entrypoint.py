@@ -40,19 +40,20 @@ Parameters:
 ++++++++++++++++++++++++
 
 Parameters need to be a list or a dictionary of dictionaries with the following keys:
-        **name** (*required*): Name of the variable (e.g. later use options.NAME).
-                         If 'params' is a dictionary, the key will be used as name.
-        **flags** (*required*): Commandline flag(s), e.g. ``--file``
-        **required** (*optional*): ``bool``
-        **default** (*optional*): Default value, if variable not present
-        **help** (*optional*): ``str``
-        **type** (*optional*): Value ``type`` (if nargs is given, set to list for dicts!)
-        **choices** (*optional*): choices to choose from
-                                  (choices need to be of ``type``, if given)
-        **nargs** (*optional*): number of arguments to consume
-                                (commandline only, do not use ``REMAINDER``!)
-        **action** (*optional*): either ``store_true`` or ``store_false``, will set ``type`` to bool
-                                 and the default to ``False`` and ``True`` respectively.
+
+| **name** (*required*): Name of the variable (e.g. later use options.NAME).
+ If 'params' is a dictionary, the key will be used as name.
+| **flags** (*required*): Commandline flag(s), e.g. ``--file``
+| **required** (*optional*): ``bool``
+| **default** (*optional*): Default value, if variable not present
+| **help** (*optional*): ``str``
+| **type** (*optional*): Value ``type`` (if nargs is given, set to list for dicts!)
+| **choices** (*optional*): choices to choose from
+ (choices need to be of ``type``, if given)
+| **nargs** (*optional*): number of arguments to consume
+ (commandline only, do not use ``REMAINDER``!)
+| **action** (*optional*): either ``store_true`` or ``store_false``, will set ``type`` to bool
+ and the default to ``False`` and ``True`` respectively.
 
 
 The **strict** option changes the behaviour for unknown parameters:
@@ -67,6 +68,9 @@ import copy
 import json
 import argparse
 from argparse import ArgumentParser
+
+import sys
+
 from utils import logging_tools as logtools
 from utils.dict_tools import DictParser
 from utils.dict_tools import DotDict
@@ -133,11 +137,14 @@ class EntryPoint(object):
         if len(args) > 1:
             raise ArgumentError("Only one positional argument allowed (dict or config file).")
 
-        if args:
+        if args and args[0] is not None:
+            # LOG.info("Entry input: {:s}".format(args[0]))  # activate for debugging
             options = self._handle_arg(args[0])
         elif len(kwargs) > 0:
+            # LOG.info("Entry input: {:s}".format(kwargs))  # activate for debugging
             options = self._handle_kwargs(kwargs)
         else:
+            # LOG.info("Entry input: {:s}".format(sys.argv))  # activate for debugging
             options = self._handle_commandline()
 
         return options  # options might include known and unknown options
@@ -192,7 +199,7 @@ class EntryPoint(object):
             # list of commandline parameter
             options = self._handle_commandline(arg)
         else:
-            raise ArgumentError("Only dictionary or configfiles"
+            raise ArgumentError("Only dictionary or configfiles "
                                 "are allowed as positional arguments")
         return options  # options might include known and unknown options
 

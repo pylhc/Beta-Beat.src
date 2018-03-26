@@ -1,9 +1,11 @@
 from __future__ import print_function
+
+import logging
 import os
 import sys
-import logging
-from model.accelerators.accelerator import AccExcitationMode
+
 import model_creator
+from model.accelerators.accelerator import AccExcitationMode
 
 AFS_ROOT = "/afs"
 if "win" in sys.platform and sys.platform != "darwin":
@@ -108,8 +110,9 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def _prepare_fullresponse(cls, lhc_instance, output_path):
-        with open(lhc_instance.get_file("fullresponse.madx")) as textfile:
-            fullresponse_template = textfile.read()
+        with open(lhc_instance.get_iteration_tmpl()) as textfile:
+            iterate_template = textfile.read()
+
         crossing_on = "1" if lhc_instance.xing else "0"
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
@@ -122,10 +125,9 @@ class LhcModelCreator(model_creator.ModelCreator):
             "CROSSING_ON": crossing_on,
         }
 
-        fullresponse_script = fullresponse_template % replace_dict
         with open(os.path.join(output_path,
                                "job.iterate.madx"), "w") as textfile:
-            textfile.write(fullresponse_script)
+            textfile.write(iterate_template % replace_dict)
 
 
 class LhcBestKnowledgeCreator(LhcModelCreator):

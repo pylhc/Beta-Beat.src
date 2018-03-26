@@ -11,6 +11,7 @@ The response matrices are stored it in the following 'pickled' files:
  - FullResponse
  - FullResponse_couple
  - FullResponse_chromcouple
+
  The files are saved in option -p(output_path).
 
 These response matrices are used to calculate the corrections by the correction scripts.

@@ -17,9 +17,8 @@ from utils.contexts import timeit
 
 LOG = logtool.get_logger(__name__)
 
-"""
-=============================   General Helpers   =============================
-"""
+
+# General Helpers ##############################################################
 
 
 def upper(list_of_strings):
@@ -43,9 +42,7 @@ def regex_in(regex, lst):
     return np.array([re.search(regex, element) is not None for element in lst])
 
 
-"""
-=============================   Twiss Helpers   =============================
-"""
+# Twiss Helpers ################################################################
 
 
 def get_all_rdts(n):
@@ -56,9 +53,7 @@ def get_all_rdts(n):
     return ['F{:d}{:d}{:d}{:d}'.format(j, k, l, m) for j, k, l, m in sorted(permut, key=sum)]
 
 
-"""
-=============================   Phase Advance Functions   =============================
-"""
+# Phase Advance Functions ######################################################
 
 
 def get_phase_advances(twiss_df):
@@ -94,9 +89,7 @@ def tau(data, q):
     return data + np.where(data <= 0, q / 2, -q / 2)  # '<=' seems to be what MAD-X does
 
 
-"""
-======================== Script Mode ========================
-"""
+# Script Mode ##################################################################
 
 
 if __name__ == '__main__':
