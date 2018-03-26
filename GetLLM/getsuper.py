@@ -389,7 +389,7 @@ def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
         adt = True
 
     accel_inst = accel_cls(
-        optics_file=modifiers,
+        optics=modifiers,
         nat_tune_x=mdl_qx,
         nat_tune_y=mdl_qy,
         drv_tune_x=exp_qx,
