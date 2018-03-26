@@ -33,6 +33,7 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
             'f1102H', 'f2020H', 'f2020V', 'f2011V', 
             'f0220V', 'f0211V', 'f0040V', 'f0013V',
             'f3001H', 'f1210H', 'f0130V', 'f1012V',  #Skew Octupolar
+            'f3010H', 'f2101V', 'f1030V', 'f1021V',  #Skew Octupolar
             'f1220H', 'f3002H', 'f1130H', 'f2003H'
 #             'f0220V', 'f2011V', 'f1201H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
 #             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
@@ -110,6 +111,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     line_phases = []
     line_phases_err = []
     rdt_phases_averaged = []
+    rdt_phases_averaged_std = []
 
     use_line = False
     use_opposite_line = False   
@@ -173,31 +175,40 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-                    bpm_position = bpm_positions[bpm_names.index(bpm2)]
 
-                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp2, amp1, phase2, phase1)
-                    out_file.add_table_row([bpm2, bpm_position, len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
-                    line_amplitudes.append(line_amp)
-                    line_amplitudes_err.append(line_amp_e)
-                    line_phases.append(line_phase)
-                    line_phases_err.append(line_phase_e)
+                    try:
+                        bpm_position = bpm_positions[bpm_names.index(bpm2)]
+                        line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp2, amp1, phase2, phase1)
+                        out_file.add_table_row([bpm2, bpm_position, len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
+                        line_amplitudes.append(line_amp)
+                        line_amplitudes_err.append(line_amp_e)
+                        line_phases.append(line_phase)
+                        line_phases_err.append(line_phase_e)
+                    except ValueError:
+                        pass
+                        
                 
-                rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01))
+                rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01)%1)
 
             rdt_phases_averaged.append(np.average(np.array(rdt_phases_per_bpm)))
+            rdt_phases_averaged_std.append(np.std(np.array(rdt_phases_per_bpm)))
 
     else:
         print >> sys.stderr, "Could not find line for %s !" %rdt
     # init out file
-    rdt_out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP", "PHASE", "REAL", "IMAG"])
-    rdt_out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    rdt_out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP", "PHASE", "PHASE_STD", "REAL", "IMAG"])
+    rdt_out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le",  "%le", "%le", "%le"])
+
+    rdt_angles = np.mod(np.array(rdt_phases_averaged), np.ones(len(rdt_phases_averaged)))
+    real_part = np.cos(2*np.pi*rdt_angles)
+    imag_part = np.sin(2*np.pi*rdt_angles)
 
     for k in range(len(line_amplitudes)/len(list_zero_dpp)):
         num_meas = len(list_zero_dpp)
         bpm_name = dbpms[k][1].upper()
         bpm_rdt_data = line_amplitudes[k*num_meas:(k+1)*num_meas]
         res, res_err = do_fitting(bpm_rdt_data, inv_x, inv_y, rdt, plane)
-        rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_phases_averaged[k], res[0]*np.cos(2*np.pi*rdt_phases_averaged[k]), res[0]*np.sin(2*np.pi*rdt_phases_averaged[k])])
+        rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])
 
 
 def calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01):
