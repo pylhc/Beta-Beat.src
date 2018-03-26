@@ -54,7 +54,7 @@ import numpy as np
 import pandas as pd
 
 import madx_wrapper
-from correction.fullresponse.response_twiss import TwissResponse
+from correction.fullresponse import response_twiss
 from twiss_optics.sequence_evaluation import evaluate_for_variables
 from twiss_optics.sequence_parser import EXT as VARMAP_EXT
 from model import manager
@@ -397,7 +397,6 @@ def global_correction(opt, accel_opt):
         mcut_dict = dict(zip(opt.optics_params, opt.modelcut))
         ecut_dict = dict(zip(opt.optics_params, opt.errorcut))
 
-
         # read data from files
         vars_list = _get_varlist(accel_cls, opt.variable_categories, opt.virt_flag)
         optics_params, meas_dict = _get_measurment_data(
@@ -410,7 +409,7 @@ def global_correction(opt, accel_opt):
         if opt.fullresponse_path is not None:
             resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
         else:
-            resp_dict = _create_response(accel_inst, vars_list, optics_params)
+            resp_dict = response_twiss.create_response(accel_inst, vars_list, optics_params)
 
         # the model in accel_inst is modified later, so save nominal model here to variables
         nominal_model = _maybe_add_coupling_to_model(accel_inst.get_model_tfs(), optics_params)
@@ -450,7 +449,7 @@ def global_correction(opt, accel_opt):
                     # please look away for the next two lines.
                     accel_inst._model = corr_model
                     accel_inst._elements = corr_model_elements
-                    resp_dict = _create_response(accel_inst, vars_list, optics_params)
+                    resp_dict = response_twiss.create_response(accel_inst, vars_list, optics_params)
                     resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
                     resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 
@@ -543,15 +542,14 @@ def _load_fullresponse(full_response_path, variables):
     with open(full_response_path, "r") as full_response_file:
         full_response_data = pickle.load(full_response_file)
 
+    loaded_vars = []
+    [loaded_vars.append(var) for resp in full_response_data.values() for var in resp]
+    if not any([v in loaded_vars for v in variables]):
+        raise ValueError("None of the given variables found in response matrix. "
+                         "Are you using the right categories?")
+
     LOG.debug("Loading ended")
     return full_response_data
-
-
-def _create_response(accel_inst, vars_list, optics_params):
-    """ Create response via TwissResponse """
-    varmap_path = check_varmap_file(accel_inst, vars_list)
-    tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list)
-    return tr.get_response_for(optics_params)
 
 
 def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
@@ -661,7 +659,7 @@ def _filter_measurement(keys, meas, model, errorbar, w_dict, e_dict, m_dict):
     new = dict.fromkeys(keys)
     for key in keys:
         new[key] = filters[key](key, meas[key], model, errorbar, w_dict[key],
-                                 modelcut=m_dict[key], errorcut=e_dict[key])
+                                modelcut=m_dict[key], errorcut=e_dict[key])
     return new
 
 
@@ -691,7 +689,7 @@ def _get_filtered_generic(key, meas, model, erwg, weight, modelcut, errorcut):
     # weights
     new.loc[:, 'WEIGHT'] = weight
     if erwg:
-        new.loc[:, 'WEIGHT'] = new.loc[:, 'WEIGHT'].values / new.loc[:, 'ERROR'].values
+        new.loc[:, 'WEIGHT'] = new['WEIGHT'] / new['ERROR']
 
     # filter cuts
     error_filter = new.loc[:, 'ERROR'].values < errorcut
@@ -775,7 +773,7 @@ def _get_filtered_betabeat(key, meas, model, erwg, weight, modelcut, errorcut):
     return new.loc[good_bpms, :]
 
 
-def _get_tunes(key, meas, model, erwg, weight, modelcut=0.1, errorcut=0.027):
+def _get_tunes(key, meas, model, erwg, weight, modelcut, errorcut):
     meas.loc[:, 'WEIGHT'] = weight
     if erwg:
         meas.loc[:, 'WEIGHT'] = meas['WEIGHT'] / meas['ERROR']
@@ -960,35 +958,6 @@ def _join_responses(resp, keys, varslist):
 def _join_columns(col, meas, keys):
     """ Retuns vector: N= #BPMs * #Parameters (BBX, MUX etc.) """
     return np.concatenate([meas[key].loc[:, col].values for key in keys], axis=0)
-
-
-# Related Public Methods #####################################################
-
-
-def check_varmap_file(accel_inst, variables):
-    """ Checks on varmap file and creates it if not in model folder.
-    THIS SHOULD BE REPLACED WITH A CALL TO JAIMES DATABASE, IF IT BECOMES AVAILABLE """
-    varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
-    varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + VARMAP_EXT)
-    if not os.path.isfile(varmap_path):
-        LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
-        job_path = os.path.join(accel_inst.model_dir, "tmpl.generate_varmap.madx")
-        patterns = {
-            "job_content": "%JOB_CONTENT%",
-            "twiss_columns": "%TWISS_COLUMNS%",
-            "element_pattern": "%ELEMENT_PATTERN%",
-        }
-        madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
-                                                     patterns["twiss_columns"],
-                                                     patterns["element_pattern"])
-        with open(job_path, "w") as f:
-            f.write(madx_script)
-
-        mapping = evaluate_for_variables(variables, job_path, patterns=patterns)
-        with open(varmap_path, 'wb') as dump_file:
-            pickle.Pickler(dump_file, -1).dump(mapping)
-
-    return varmap_path
 
 
 # Main invocation ############################################################

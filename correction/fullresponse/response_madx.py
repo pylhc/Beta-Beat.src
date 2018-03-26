@@ -19,7 +19,7 @@ import pandas
 import madx_wrapper
 from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
-from utils import tfs_pandas
+from utils import tfs_pandas as tfs
 from utils.contexts import timeit, suppress_warnings
 from utils.iotools import create_dirs
 
@@ -177,10 +177,10 @@ def _create_fullresponse_from_dict(var_to_twiss):
               'DY': resp.xs('DY', axis=0).astype(np.float64),
               'NDX': resp.xs('NDX', axis=0).astype(np.float64),
               'NDY': resp.xs('NDY', axis=0).astype(np.float64),
-              "F1001R": resp.xs('1001', axis=0).apply(np.real).astype(np.float64),
-              "F1001I": resp.xs('1001', axis=0).apply(np.imag).astype(np.float64),
-              "F1010R": resp.xs('1010', axis=0).apply(np.real).astype(np.float64),
-              "F1010I": resp.xs('1010', axis=0).apply(np.imag).astype(np.float64),
+              "F1001R": tfs.TfsDataFrame(resp.xs('1001', axis=0).apply(np.real).astype(np.float64)),
+              "F1001I": tfs.TfsDataFrame(resp.xs('1001', axis=0).apply(np.imag).astype(np.float64)),
+              "F1010R": tfs.TfsDataFrame(resp.xs('1010', axis=0).apply(np.real).astype(np.float64)),
+              "F1010I": tfs.TfsDataFrame(resp.xs('1010', axis=0).apply(np.imag).astype(np.float64)),
               'Q': resp.loc[['Q1', 'Q2'], resp.major_axis[0], :].transpose().astype(np.float64),
               }
     return df
@@ -203,7 +203,7 @@ def _load_and_remove_twiss(var_and_path):
     """ Function for pool to retrieve results """
     (var, path) = var_and_path
     twissfile = os.path.join(path, "twiss." + var)
-    tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
+    tfs_data = tfs.read_tfs(twissfile, index="NAME")
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
     os.remove(twissfile)

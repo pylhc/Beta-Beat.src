@@ -8,13 +8,9 @@ Compare results with case all==0
 
 """
 
-import madx_wrapper
 import math
 import multiprocessing
 import os
-
-import numpy as np
-import pandas
 
 import madx_wrapper
 from utils import logging_tools
@@ -23,6 +19,8 @@ from utils.contexts import timeit
 from utils.iotools import create_dirs
 
 LOG = logging_tools.get_logger(__name__)
+
+EXT = "varmap"  # Extension Standard
 
 
 # Read Sequence ##############################################################

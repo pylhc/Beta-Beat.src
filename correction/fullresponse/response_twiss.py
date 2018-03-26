@@ -44,15 +44,19 @@ to fit the :math:`M \cdot \delta K` orientation.
     https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 
 """
+import cPickle as pickle
+import os
+
 import numpy as np
 import pandas as pd
-import cPickle as pickle
 
+from twiss_optics.sequence_evaluation import evaluate_for_variables
+from twiss_optics.sequence_evaluation import EXT as VARMAP_EXT
+from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
+from twiss_optics.twiss_functions import regex_in, upper
 from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
-from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
-from twiss_optics.twiss_functions import regex_in, upper
 
 LOG = logtool.get_logger(__name__)
 
@@ -750,6 +754,50 @@ def response_add(*args):
     for df in args[1:]:
         base_df = base_df.add(df, fill_value=0.)
     return base_df
+
+
+def create_response(accel_inst, vars_list, optics_params):
+    """ Wrapper to create response via TwissResponse """
+    LOG.debug("Creating response via TwissResponse.")
+    varmap_path = check_varmap_file(accel_inst, vars_list)
+
+    with timeit(lambda t:
+                LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
+        tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list)
+        response = tr.get_response_for(optics_params)
+
+    if not any([resp.size for resp in response.values()]):
+        raise ValueError("Responses are all empty. " +
+                         "Are variables {:s} ".format(vars_list) +
+                         "correct for '{:s}'?".format(optics_params)
+                         )
+    return response
+
+
+def check_varmap_file(accel_inst, variables):
+    """ Checks on varmap file and creates it if not in model folder.
+    THIS SHOULD BE REPLACED WITH A CALL TO JAIMES DATABASE, IF IT BECOMES AVAILABLE """
+    varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
+    varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + VARMAP_EXT)
+    if not os.path.isfile(varmap_path):
+        LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
+        job_path = os.path.join(accel_inst.model_dir, "tmpl.generate_varmap.madx")
+        patterns = {
+            "job_content": "%JOB_CONTENT%",
+            "twiss_columns": "%TWISS_COLUMNS%",
+            "element_pattern": "%ELEMENT_PATTERN%",
+        }
+        madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
+                                                     patterns["twiss_columns"],
+                                                     patterns["element_pattern"])
+        with open(job_path, "w") as f:
+            f.write(madx_script)
+
+        mapping = evaluate_for_variables(variables, job_path, patterns=patterns)
+        with open(varmap_path, 'wb') as dump_file:
+            pickle.Pickler(dump_file, -1).dump(mapping)
+
+    return varmap_path
 
 
 # Script Mode ##################################################################
