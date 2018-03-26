@@ -400,7 +400,7 @@ def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
         xing=False,
     )
 
-    creator.create_model(accel_inst=accel_inst, type="nominal", output_path=output_path)
+    creator.create_model(accel_inst, "nominal", output_path)
 
     return accel_inst
 
