@@ -19,10 +19,10 @@ import re
 import multiprocessing
 import time
 
+from copy import deepcopy
 import numpy as np
 from numpy import sin, tan
 import pandas as pd
-from copy import deepcopy
 
 from scipy.linalg import circulant
 import Python_Classes4MAD.metaclass
@@ -167,12 +167,12 @@ class UncertaintyDefinition:
         self.dS = _ds
         self.dK1 = _dk1
         self.type = gettype(_type)
-    
-        
+
+
         def settype(self, _type):
          self.type = gettype(_type)
-           
-   
+
+
 class UncertaintyDefinitionRE:
     def __init__(self, _pattern, _dk1=0, _ds=0, _dx=0, _type="QUAD"):
         self.pattern = re.compile(_pattern)
@@ -181,7 +181,7 @@ class UncertaintyDefinitionRE:
         self.dK1 = _dk1
         self.type = gettype(_type)
         self.tas = _type
-        
+
     def settype(self, _type):
         self.type = gettype(_type)
         
@@ -1294,6 +1294,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     '''
     
     _info_("Errors from " + ID_TO_METHOD[errors_method])
+    LOGGER.debug("starting scan_all_BPMs_withsystematicerrors")
     # --------------- alphas from 3BPM -------------------------------------------------
     _, _, data3bpm = scan_all_BPMs_sim_3bpm(madTwiss,
                                             phase, plane, getllm_d, commonbpms, debugfile, METH_3BPM,
@@ -1849,9 +1850,6 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     T_Beta = T_Beta[beta_mask]
     betas = betas[beta_mask]
     V_Beta = np.dot(T_Beta, np.dot(M,np.transpose(T_Beta)))
-    if probed_bpm_name == 'BPMWI.4L2.B1':
-        LOGGER.debug(T_Beta)
-        LOGGER.debug(betas)
     try:
         V_Beta_inv = np.linalg.pinv(V_Beta, rcond=RCOND)
         w = np.sum(V_Beta_inv, axis=1)
