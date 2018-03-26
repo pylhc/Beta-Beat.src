@@ -137,7 +137,7 @@ class EntryPoint(object):
         if len(args) > 1:
             raise ArgumentError("Only one positional argument allowed (dict or config file).")
 
-        if args:
+        if args and args[0] is not None:
             # LOG.info("Entry input: {:s}".format(args[0]))  # activate for debugging
             options = self._handle_arg(args[0])
         elif len(kwargs) > 0:
@@ -199,7 +199,7 @@ class EntryPoint(object):
             # list of commandline parameter
             options = self._handle_commandline(arg)
         else:
-            raise ArgumentError("Only dictionary or configfiles"
+            raise ArgumentError("Only dictionary or configfiles "
                                 "are allowed as positional arguments")
         return options  # options might include known and unknown options
 
