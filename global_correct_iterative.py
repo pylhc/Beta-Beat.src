@@ -372,7 +372,8 @@ def global_correction(opt, accel_opt):
     """
 
     LOG.info("Starting Iterative Global Correction.")
-    with logging_tools.DebugMode(active=opt.debug):
+    with logging_tools.DebugMode(active=opt.debug,
+                                 log_file=os.path.join(opt.model_dir, "iterative_correction.log")):
         not_implemented_params = [k for k in opt.optics_params
                                   if k not in _get_measurement_filters()]
         if any(not_implemented_params):
