@@ -55,16 +55,14 @@ import pandas as pd
 
 import madx_wrapper
 from correction.fullresponse import response_twiss
-from twiss_optics.sequence_evaluation import evaluate_for_variables
-from twiss_optics.sequence_parser import EXT as VARMAP_EXT
 from model import manager
 from segment_by_segment.segment_by_segment import GetLlmMeasurement
+from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
 from utils import tfs_pandas as tfs, iotools
 from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
 from utils.logging_tools import log_pandas_settings_with_copy
-from twiss_optics.optics_class import TwissOptics
 
 LOG = logging_tools.get_logger(__name__)
 

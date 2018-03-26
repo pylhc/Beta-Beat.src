@@ -50,13 +50,13 @@ import os
 import numpy as np
 import pandas as pd
 
-from twiss_optics.sequence_evaluation import evaluate_for_variables
-from twiss_optics.sequence_evaluation import EXT as VARMAP_EXT
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from twiss_optics.twiss_functions import regex_in, upper
 from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
+from utils.sequence_evaluation import EXT as VARMAP_EXT
+from utils.sequence_evaluation import evaluate_for_variables
 
 LOG = logtool.get_logger(__name__)
 
