@@ -48,15 +48,31 @@ def evaluate_for_variables(variables, original_jobfile_path, patterns, step=1e-5
             temp_dir = os.path.dirname(original_jobfile_path)
         create_dirs(temp_dir)
 
+        try:
+            variables = variables.tolist()
+        except AttributeError:
+            pass
+
         num_proc = num_proc if len(variables) > num_proc else len(variables)
         process_pool = multiprocessing.Pool(processes=num_proc)
 
-        _generate_madx_jobs(variables, original_jobfile_path, step,
-                            order, patterns, num_proc, temp_dir)
-        _call_madx(process_pool, temp_dir, num_proc)
-        _clean_up(temp_dir, num_proc)
-
-        mapping = _load_madx_results(variables, step, order, process_pool, temp_dir)
+        while True:
+            try:
+                LOG.debug("Step-size is {:e}.".format(step))
+                _generate_madx_jobs(variables, original_jobfile_path, step,
+                                    order, patterns, num_proc, temp_dir)
+                _call_madx(process_pool, temp_dir, num_proc)
+                mapping = _load_madx_results(variables, step, order, process_pool, temp_dir)
+            except IOError:
+                _clean_up(variables, temp_dir, num_proc)
+                if step < 1e-6:
+                    raise IOError("MADX was unable to compute the mapping.")
+                else:
+                    LOG.info("MADX failed to compute variable mapping, reducing step-size.")
+                    step *= 1e-1
+            else:
+                break
+        _clean_up(variables, temp_dir, num_proc)
     return mapping
 
 
@@ -99,6 +115,7 @@ def _generate_madx_jobs(variables, original_jobfile_path, step,
                 job_content += _add_to_var(current_var, step)
                 job_content += _twiss_out(current_var)
                 job_content += _add_to_var(current_var, -step)
+                job_content += "\n"
 
         # last thing to do: get baseline
         if proc_idx+1 == num_proc:
@@ -117,17 +134,23 @@ def _call_madx(process_pool, temp_dir, num_proc):
     LOG.debug("MAD-X jobs done.")
 
 
-def _clean_up(temp_dir, num_proc):
+def _clean_up(variables, temp_dir, num_proc):
     """ Merge Logfiles and clean temporary outputfiles """
     LOG.debug("Cleaning output and printing log...")
+    for var in (variables + ["0"]):
+        try:
+            os.remove(_get_twissfile(temp_dir, var))
+        except OSError:
+            LOG.info("MADX could not build twiss for '{:s}'".format(var))
+
     full_log = ""
     for index in range(num_proc):
         job_path = _get_jobfiles(temp_dir, index)
         log_path = job_path + ".log"
         with open(log_path, "r") as log_file:
             full_log += log_file.read()
-        # os.remove(log_path)
-        # os.remove(job_path)
+        os.remove(log_path)
+        os.remove(job_path)
     LOG.debug(full_log)
 
 
@@ -182,7 +205,6 @@ def _load_and_remove_twiss(path_and_var):
     tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
-    os.remove(twissfile)
     return var, tfs_data
 
 

@@ -407,7 +407,9 @@ def global_correction(opt, accel_opt):
         if opt.fullresponse_path is not None:
             resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
         else:
-            resp_dict = response_twiss.create_response(accel_inst, vars_list, optics_params)
+            resp_dict = response_twiss.create_response(
+                accel_inst, opt.variable_categories, optics_params
+            )
 
         # the model in accel_inst is modified later, so save nominal model here to variables
         nominal_model = _maybe_add_coupling_to_model(accel_inst.get_model_tfs(), optics_params)
@@ -447,7 +449,9 @@ def global_correction(opt, accel_opt):
                     # please look away for the next two lines.
                     accel_inst._model = corr_model
                     accel_inst._elements = corr_model_elements
-                    resp_dict = response_twiss.create_response(accel_inst, vars_list, optics_params)
+                    resp_dict = response_twiss.create_response(
+                        accel_inst, opt.variable_categories, optics_params
+                    )
                     resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
                     resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 

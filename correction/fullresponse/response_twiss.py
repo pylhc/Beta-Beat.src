@@ -756,10 +756,14 @@ def response_add(*args):
     return base_df
 
 
-def create_response(accel_inst, vars_list, optics_params):
+def create_response(accel_inst, vars_categories, optics_params):
     """ Wrapper to create response via TwissResponse """
     LOG.debug("Creating response via TwissResponse.")
-    varmap_path = check_varmap_file(accel_inst, vars_list)
+    vars_list = accel_inst.get_variables(classes=vars_categories)
+    if len(vars_list) == 0:
+        raise ValueError("No variables found! Make sure your categories are valid!")
+
+    varmap_path = check_varmap_file(accel_inst, vars_list, vars_categories)
 
     with timeit(lambda t:
                 LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
@@ -774,10 +778,16 @@ def create_response(accel_inst, vars_list, optics_params):
     return response
 
 
-def check_varmap_file(accel_inst, variables):
+def check_varmap_file(accel_inst, variables, vars_categories):
     """ Checks on varmap file and creates it if not in model folder.
     THIS SHOULD BE REPLACED WITH A CALL TO JAIMES DATABASE, IF IT BECOMES AVAILABLE """
+    if accel_inst.optics_file is None:
+        raise ValueError("Optics not defined. Please provide modifiers.madx. "
+                         "Otherwise MADX evaluation might be unstable.")
+
     varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
+    varmapfile_name += "_".join(sorted(set(vars_categories)))
+
     varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + VARMAP_EXT)
     if not os.path.isfile(varmap_path):
         LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
