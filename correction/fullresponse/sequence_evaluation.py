@@ -223,7 +223,7 @@ def check_varmap_file(accel_inst, variables, vars_categories):
         raise ValueError("Optics not defined. Please provide modifiers.madx. "
                          "Otherwise MADX evaluation might be unstable.")
 
-    varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
+    varmapfile_name = "{:s}b{:d}_".format(accel_inst.NAME.lower(), accel_inst.get_beam())
     varmapfile_name += "_".join(sorted(set(vars_categories)))
 
     varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + EXT)
