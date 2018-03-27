@@ -29,10 +29,9 @@ from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
 from utils.iotools import json_dumps_readable
+from sequence_evaluation import EXT
 
 LOG = logtool.get_logger(__name__)
-
-EXT = "varmap"  # Extension Standard
 
 
 # Main #######################################################################
