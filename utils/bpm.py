@@ -34,26 +34,7 @@ def model_intersect(exp_bpms, model_twiss):
 
     :returns: list with tuples: (<S_value_i>,<bpm_i>) -- A list with BPMs which are both in exp_bpms and model_twiss.
     '''
-    bpmsin = []
-    #print "start Intersect, exp_bpms #:", len(exp_bpms)
-    if len(exp_bpms) == 0:
-        print >> sys.stderr, "Zero exp BPMs sent to model_intersect"
-        return bpmsin
-
-    for bpm in exp_bpms:
-        try:
-            model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
-            bpmsin.append(bpm)
-        except KeyError:
-            print >> sys.stderr, bpm, "Not in Model"
-
-    if len(bpmsin) == 0:
-        print >> sys.stderr, "Zero intersection of Exp and Model"
-        print >> sys.stderr, "Please, provide a good Dictionary or correct data"
-        print >> sys.stderr, "Now we better leave!"
-        sys.exit(1)
-
-    return bpmsin
+    return model_twiss.loc[exp_bpms.index, ["S"]]
 
 
 def intersect(list_of_twiss_files):
@@ -68,21 +49,14 @@ def intersect(list_of_twiss_files):
         print >> sys.stderr, "Nothing to intersect!!!!"
         return []
 
-    names_list = list_of_twiss_files[0].NAME
+    names_list = list_of_twiss_files[0].index
     if len(names_list) == 0:
         print >> sys.stderr, "No exp BPMs..."
         sys.exit(1)
     for twiss_file in list_of_twiss_files:
-        #TODO: have to use a set probably, does not detect duplicates! (vimaier)
-        names_list = [b for b in twiss_file.NAME if b in names_list]
+        names_list = twiss_file.index.intersection(names_list)
 
-    result = [] # list of tupels (S, bpm_name)
-    twiss_0 = list_of_twiss_files[0]
-    for bpm in names_list:
-        result.append((twiss_0.S[twiss_0.indx[bpm]], bpm))
-
-    #SORT by S
-    result.sort()
+    result = list_of_twiss_files[0].loc[names_list, ["S"]]
     return result
 
 
