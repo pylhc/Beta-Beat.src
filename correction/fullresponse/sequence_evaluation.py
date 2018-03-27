@@ -7,7 +7,7 @@ Then: Set one variable at a time to 1
 Compare results with case all==0
 
 """
-
+import cPickle as pickle
 import math
 import multiprocessing
 import os
@@ -206,6 +206,41 @@ def _load_and_remove_twiss(path_and_var):
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
     return var, tfs_data
+
+
+# Wrapper ##################################################################
+
+
+def check_varmap_file(accel_inst, variables, vars_categories):
+    """ Checks on varmap file and creates it if not in model folder.
+    THIS SHOULD BE REPLACED WITH A CALL TO JAIMES DATABASE, IF IT BECOMES AVAILABLE """
+    if accel_inst.optics_file is None:
+        raise ValueError("Optics not defined. Please provide modifiers.madx. "
+                         "Otherwise MADX evaluation might be unstable.")
+
+    varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
+    varmapfile_name += "_".join(sorted(set(vars_categories)))
+
+    varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + EXT)
+    if not os.path.isfile(varmap_path):
+        LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
+        job_path = os.path.join(accel_inst.model_dir, "tmpl.generate_varmap.madx")
+        patterns = {
+            "job_content": "%JOB_CONTENT%",
+            "twiss_columns": "%TWISS_COLUMNS%",
+            "element_pattern": "%ELEMENT_PATTERN%",
+        }
+        madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
+                                                     patterns["twiss_columns"],
+                                                     patterns["element_pattern"])
+        with open(job_path, "w") as f:
+            f.write(madx_script)
+
+        mapping = evaluate_for_variables(variables, job_path, patterns=patterns)
+        with open(varmap_path, 'wb') as dump_file:
+            pickle.Pickler(dump_file, -1).dump(mapping)
+
+    return varmap_path
 
 
 # Script Mode ##################################################################
