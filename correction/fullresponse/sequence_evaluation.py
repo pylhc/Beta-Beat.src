@@ -153,6 +153,11 @@ def _clean_up(variables, temp_dir, num_proc):
         os.remove(job_path)
     LOG.debug(full_log)
 
+    try:
+        os.rmdir(temp_dir)
+    except OSError:
+        pass
+
 
 def _load_madx_results(variables, step, order, process_pool, temp_dir):
     """ Load the madx results in parallel and return var-tfs dictionary """
