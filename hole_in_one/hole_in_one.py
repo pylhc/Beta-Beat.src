@@ -10,7 +10,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import clean
 import harpy
-import chroma
 from io_handlers import input_handler, output_handler
 
 from utils import tfs_pandas as tfs
@@ -20,6 +19,7 @@ from sdds_files import turn_by_turn_reader
 
 
 LOGGER = logging.getLogger(__name__)
+
 LOG_SUFFIX = ".log"
 
 
@@ -31,6 +31,7 @@ def run_all(main_input, clean_input, harpy_input, to_log):
             return
         _setup_file_log_handler(main_input)
         LOGGER.debug(to_log)
+        
         tbt_files = turn_by_turn_reader.read_tbt_file(main_input.file)
         for tbt_file in tbt_files:
             run_all_for_file(tbt_file, main_input, clean_input, harpy_input)
@@ -41,11 +42,14 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                              main_input.startturn,
                              main_input.endturn)
     file_date = tbt_file.date
+       
     bpm_datas = {"x": tbt_file.samples_matrix_x,
                  "y": tbt_file.samples_matrix_y}
 
     if main_input.write_raw:
         output_handler.write_raw_file(tbt_file, main_input)
+        
+        
     elif clean_input is None and harpy_input is None:
         raise ValueError("No clean or harpy or --write_raw...")
 
@@ -83,8 +87,12 @@ def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
     for plane in ("x", "y"):
         bpm_data = bpm_datas[plane]
         bpm_data, bpms_not_in_model = _get_only_model_bpms(bpm_data, model_tfs)
+        if bpm_data.empty:
+            raise AssertionError("Check BPMs names! None of the BPMs was found in the model!")    
+    
         bad_bpms = []
         usv = None
+        
         with timeit(lambda spanned: LOGGER.debug("Time for filtering: %s", spanned)):
             bpm_data, bad_bpms_clean = clean.clean(
                 bpm_data, clean_input, file_date,
@@ -364,7 +372,7 @@ def _setup_file_log_handler(main_input):
         logging.getLogger("").addHandler(file_handler)
     else:
         LOGGER.addHandler(file_handler)
-
+    
 
 def _set_up_logger():
     main_logger = logging.getLogger("")

@@ -27,6 +27,8 @@ NTS_LIMIT = 8.
 
 
 def clean(bpm_data, clean_input, file_date):
+    
+    LOGGER.debug ("clean: number of BPMs in the input ", bpm_data.index.size)
     known_bad_bpm_names = clean_input.bad_bpms + LIST_OF_KNOWN_BAD_BPMS
     known_bad_bpms = detect_known_bad_bpms(bpm_data, known_bad_bpm_names)
     bpm_flatness = detect_flat_bpms(bpm_data, clean_input.peak_to_peak)
@@ -34,6 +36,7 @@ def clean(bpm_data, clean_input, file_date):
     exact_zeros = detect_bpms_with_exact_zeros(bpm_data)
 
     original_bpms = bpm_data.index
+    
     all_bad_bpms = _index_union(known_bad_bpms, bpm_flatness,
                                 bpm_spikes, exact_zeros)
     bpm_data = bpm_data.loc[bpm_data.index.difference(all_bad_bpms)]
@@ -204,7 +207,12 @@ def _get_bad_bpms_summary(clean_input, known_bad_bpms,
 
 
 def _report_clean_stats(n_total_bpms, n_good_bpms):
+     
     LOGGER.debug("Filtering done:")
+
+    if n_total_bpms == 0:
+        raise ValueError("Total Number of BPMs after filtering is zero " )
+    
     n_bad_bpms = n_total_bpms - n_good_bpms
     LOGGER.debug(
         "(Statistics for file reading) Total BPMs: {0}, "

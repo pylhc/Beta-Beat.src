@@ -1,3 +1,6 @@
+# script performing ORM analysis
+# input: file with measured orbits for different orbit corrector magnet excitations (in the future also change of frequency)
+
 import sys
 sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD/')
 
@@ -16,6 +19,9 @@ from GenMatrix import *
 
 parser = OptionParser()
 
+parser.add_option("-m", "--machine",
+		 help="Name of the machine, defines directory with the model",
+		 metavar="MACHINE", default="psbooster",dest="machine")
 parser.add_option("-f", "--file",
 		 help="Name of measured ORM data file",
 		 metavar="FILE", default="measuredORM.dat",dest="file")
