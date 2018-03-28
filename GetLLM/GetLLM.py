@@ -1105,12 +1105,14 @@ def _get_commonbpms(ListOfFiles, model, union, plane):
         good_bpms_index = model.index.drop(BAD_BPMS_ver, errors='ignore')
 
     if union:
-        common = pd.DataFrame(model.loc[good_bpms_index, "S"])
+        common = pd.DataFrame(model.loc[:, "S"])
         common["NFILES"] = 0
         for i in range(len(ListOfFiles)):
             common.loc[ListOfFiles[i].index, "NFILES"] += 1
+        common = common.loc[good_bpms_index]
         union = common.drop(common[common.loc[:,"NFILES"] < min(len(ListOfFiles), 2)].index)
         inters = common.drop(common[common.loc[:,"NFILES"] < len(ListOfFiles)].index)
+
         return inters, union
 
     common_index = good_bpms_index
@@ -1137,7 +1139,6 @@ def _tb_():
 # helper classes for data structures
 #---------------------------------------------------------------------------------------------------
 
-        
 class _GetllmData(object):
     ''' Holds some data from parameters of main function. '''
 
