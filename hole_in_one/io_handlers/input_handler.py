@@ -134,6 +134,7 @@ class CleanInput(object):
         "wrong_polarity_bpms": "",
         "noresync": False,
         "write_clean": False,
+        "no_exact_zeros": False,
     }
 
     def __init__(self):
@@ -148,6 +149,7 @@ class CleanInput(object):
         self.wrong_polarity_bpms = CleanInput.DEFAULTS["wrong_polarity_bpms"]
         self.noresync = CleanInput.DEFAULTS["noresync"]
         self.write_clean = CleanInput.DEFAULTS["write_clean"]
+        self.no_exact_zeros = CleanInput.DEFAULTS["no_exact_zeros"]
 
     @staticmethod
     def init_from_options(options):
@@ -167,6 +169,7 @@ class CleanInput(object):
             self.wrong_polarity_bpms = [wrong_polarity_bpm.strip() for wrong_polarity_bpm in options.wrong_polarity_bpms.strip("\"").split(",")]
         self.noresync = options.noresync
         self.write_clean = options.write_clean
+        self.no_exact_zeros = options.no_exact_zeros
         return self
 
 
@@ -233,6 +236,11 @@ def _get_clean_parser():
         help="""If present, it will write the cleaned ASCII file
                 in the --outputdir.""",
         dest="write_clean", action="store_true"
+    )
+    parser.add_argument(
+        "--no_exact_zeros",
+        help="""If present, will not remove files with a single zero .""",
+        dest="no_exact_zeros", action="store_true"
     )
     ################################
     return parser
