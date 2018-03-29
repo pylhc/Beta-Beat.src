@@ -72,13 +72,12 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                                  model_tfs, bpm_ress, dpp, all_bad_bpms)
 
     for plane in ("x", "y"):
-        if all_bad_bpms[plane]:
-            output_handler.write_bad_bpms(
-                main_input.file,
-                all_bad_bpms[plane],
-                main_input.outputdir,
-                plane
-            )
+        output_handler.write_bad_bpms(
+            main_input.file,
+            all_bad_bpms[plane],
+            main_input.outputdir,
+            plane
+        )
 
 
 def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
