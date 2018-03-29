@@ -49,6 +49,7 @@ class MainInput(object):
         "write_raw": False,
         "startturn": 0,
         "endturn": 50000,
+        "skip_files": False,
     }
 
     def __init__(self):
@@ -58,6 +59,7 @@ class MainInput(object):
         self.write_raw = MainInput.DEFAULTS["write_raw"]
         self.startturn = MainInput.DEFAULTS["startturn"]
         self.endturn = MainInput.DEFAULTS["endturn"]
+        self.skip_files = MainInput.DEFAULTS["skip_files"]
 
     @staticmethod
     def init_from_options(options):
@@ -66,6 +68,7 @@ class MainInput(object):
         self.model = options.model
         self.outputdir = options.outputdir
         self.write_raw = options.write_raw
+        self.skip_files = options.skip_files
         if self.outputdir is None:
             outdir = os.path.dirname(self.file)
             self.outputdir = outdir
@@ -104,6 +107,12 @@ def _get_main_parser():
         help=("If present, it will write the raw" +
               "ASCII file in the --outputdir."),
         action="store_true",
+    )
+    parser.add_argument(
+        "--skip_files",
+        help=("If present, it will not write the .amps and the .freqs files" +
+              "ASCII file in the --outputdir."),
+        action="store_true",    
     )
     parser.add_argument(
         "--startturn",
