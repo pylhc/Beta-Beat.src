@@ -87,6 +87,22 @@ class Psbooster(Accelerator):
             name="energy",
             type=float,
         )
+
+        params.add_parameter(
+            flags=["--dpp"],
+            help="Delta p/p to use.",
+            name="dpp",
+            default=0.0,
+            type=float,
+        )
+
+        params.add_parameter(
+            flags=["--optics"],
+            help="Path to the optics file to use (modifiers file).",
+            name="optics",
+            type=str,
+        )
+
         params.add_parameter(
             flags=["--fullresponse"],
             help=("If present, fullresponse template will" +
@@ -116,6 +132,10 @@ class Psbooster(Accelerator):
 
         # optional w/o default
         self.energy = opt.get("energy", None)
+
+        self.dpp = opt.get("dpp", 0.0)
+        
+        self.optics_file = opt.get("optics", None)
 
     @classmethod
     def init_and_get_unknowns(cls, args=None):
