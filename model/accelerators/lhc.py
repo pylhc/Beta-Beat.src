@@ -567,6 +567,56 @@ class Lhc(Accelerator):
             )
         return madx_template % replace_dict
 
+    def get_multi_dpp_job(self, dpp_list):
+        with open(self.get_nominal_multidpp_tmpl()) as textfile:
+            madx_template = textfile.read()
+
+        twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
+        try:
+            beam = self.get_beam()
+            output_path = self.model_dir
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "CROSSING_ON": "1" if self.xing else "0",
+                "NUM_BEAM": beam,
+                "QMX": self.nat_tune_x,
+                "QMY": self.nat_tune_y,
+                "DPP": "",
+                "DPP_ELEMS": "",
+                "DPP_AC": "",
+                "DPP_ADT": "",
+            }
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+
+        for dpp in dpp_list:
+            replace_dict["DPP"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}.dat".format(dpp))
+            )
+            replace_dict["DPP_ELEMS"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_elements.dat".format(dpp))
+            )
+            replace_dict["DPP_AC"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_ac.dat".format(dpp))
+            )
+            replace_dict["DPP_ADT"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_adt.dat".format(dpp))
+            )
+        return madx_template % replace_dict
+
     def log_status(self):
         LOGGER.info("  model dir = " + self.model_dir)
         LOGGER.info("{:20s} [{:10.3f}]".format("Natural Tune X", self.nat_tune_x))
