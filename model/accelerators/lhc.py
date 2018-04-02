@@ -135,6 +135,7 @@ class Lhc(Accelerator):
             help="Delta p/p to use.",
             name="dpp",
             default=0.0,
+            type=float,
         )
         params.add_parameter(
             flags=["--energy"],
