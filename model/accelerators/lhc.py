@@ -568,6 +568,7 @@ class Lhc(Accelerator):
         return madx_template % replace_dict
 
     def get_multi_dpp_job(self, dpp_list):
+        """ Return madx job to create twisses (models) with dpps from dpp_list """
         with open(self.get_nominal_multidpp_tmpl()) as textfile:
             madx_template = textfile.read()
         try:
