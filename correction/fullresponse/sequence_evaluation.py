@@ -56,34 +56,71 @@ def evaluate_for_variables(variables, original_jobfile_path, patterns, step=1e-5
         num_proc = num_proc if len(variables) > num_proc else len(variables)
         process_pool = multiprocessing.Pool(processes=num_proc)
 
-        while True:
-            try:
-                LOG.debug("Step-size is {:e}.".format(step))
-                _generate_madx_jobs(variables, original_jobfile_path, step,
-                                    order, patterns, num_proc, temp_dir)
-                _call_madx(process_pool, temp_dir, num_proc)
-                mapping = _load_madx_results(variables, step, order, process_pool, temp_dir)
-            except IOError:
-                _clean_up(variables, temp_dir, num_proc)
-                if step < 1e-6:
-                    raise IOError("MADX was unable to compute the mapping.")
-                else:
-                    LOG.info("MADX failed to compute variable mapping, reducing step-size.")
-                    step *= 1e-1
-            else:
-                break
-        _clean_up(variables, temp_dir, num_proc)
+        try:
+            LOG.debug("Step-size is {:e}.".format(step))
+            _generate_madx_jobs(variables, original_jobfile_path, step,
+                                order, patterns, num_proc, temp_dir)
+            _call_madx(process_pool, temp_dir, num_proc)
+            mapping = _load_madx_results(variables, step, order, process_pool, temp_dir)
+        except IOError:
+                raise IOError("MADX was unable to compute the mapping.")
+        finally:
+            # _clean_up(variables, temp_dir, num_proc)
+            pass
     return mapping
+
+
+def _get_current_elements(original_content, patterns, folder):
+    """ Run madx once to get a list of elements """
+    twiss_path = os.path.join(folder, "twiss.get_elements.dat")
+    content = original_content.replace(patterns["job_content"],
+             "twiss, file = '{:s}';\n".format(twiss_path))
+    madx_wrapper.resolve_and_run_string(content)
+    twiss = tfs_pandas.read_tfs(twiss_path, index="NAME")
+    return twiss.index.values
+
+
+def _create_macro(name, elements, order, folder):
+    """ Create a madx-macro to write out k-values in a twiss-file """
+    orders = _get_orders(order)
+    macro = "! Macro to build a twiss-like table without calling twiss.\n\n"
+    macro += "{:s}(file_out): macro = {{\n".format(name)
+    macro += "    create, table=kval, columns=NAME, L, {:s};\n".format(", ".join(orders))
+    macro += "    option, -echo;\n\n"
+    for elem in elements:
+        macro += "    NAME = '{name:s}';\n".format(name=elem)
+        macro += "    L = {name:s}->L;\n".format(name=elem)
+        for ord_str in orders:
+            macro += "    {ord:s} = {name:s}->{ord:s};\n".format(name=elem, ord=ord_str)
+        macro += "    fill, table=kval;\n"
+        macro += "\n"
+
+    macro += "    option, echo;\n"
+    macro += "    select, flag=table, full;\n"
+    macro += "    write, table=kval, file=file_out;\n"
+    macro += "};\n\n"
+
+    macro_path = _get_macrofile(folder)
+    with open(macro_path, "w") as macro_file:
+        macro_file.write(macro)
+
+    return "option, -echo;\ncall, file = '{:s}';\noption, echo;\n\n".format(macro_path)
 
 
 def _generate_madx_jobs(variables, original_jobfile_path, step,
                         order, patterns, num_proc, temp_dir):
     """ Generates madx job-files """
     def _add_to_var(var, value):
-        return "{var:s}={var:s}{value:+e};\n".format(var=var, value=value)
+        return "{var:s} = {var:s} {value:+e};\n".format(var=var, value=value)
+
+    def _assign(var, value):
+        return "{var:s} = {value:d};\n".format(var=var, value=value)
 
     def _twiss_out(var):
-        return "twiss, file='{:s}';\n".format(_get_twissfile(temp_dir, var))
+        return "twiss, file = '{:s}';\n".format(_get_twissfile(temp_dir, var))
+
+    def _do_macro(macro, var):
+        return "exec, {:s}('{:s}');\n".format(macro, _get_twissfile(temp_dir, var))
 
     LOG.debug("Generating MADX jobfiles.")
     vars_per_proc = int(math.ceil(float(len(variables)) / num_proc))
@@ -92,18 +129,22 @@ def _generate_madx_jobs(variables, original_jobfile_path, step,
     with open(original_jobfile_path, "r") as original_file:
         original_content = original_file.read()
     original_content = original_content.replace(
-        patterns['twiss_columns'], "NAME,S,L," + ",".join(_get_orders(order))
+        patterns['twiss_columns'], "NAME"
     ).replace(
-        patterns["element_pattern"], ""  # all elements for beam
+        patterns["element_pattern"], "^[BM].*"  # Magnets and BPMs
     )
 
+    # create a macro to write out twiss-like table
+    macro_name = "write_table_tfs"
+    elements = _get_current_elements(original_content, patterns, temp_dir)
+    macro_call = _create_macro(macro_name, elements, order, temp_dir)
+
     # zero all vars
-    # all_var_zero = "".join([_assign(var, 0) for var in variables])
-    all_var_zero = ""
+    all_var_zero = "".join([_assign(var, 0) for var in variables])
 
     # build content for testing each variable
     for proc_idx in range(num_proc):
-        job_content = all_var_zero
+        job_content = "\n" + macro_call + "\n" + all_var_zero + "\n"
 
         for i in range(vars_per_proc):
             try:
@@ -112,14 +153,14 @@ def _generate_madx_jobs(variables, original_jobfile_path, step,
             except IndexError:
                 break
             else:
-                job_content += _add_to_var(current_var, step)
-                job_content += _twiss_out(current_var)
-                job_content += _add_to_var(current_var, -step)
+                job_content += _assign(current_var, 1)
+                job_content += _do_macro(macro_name, current_var)
+                job_content += _assign(current_var, 0)
                 job_content += "\n"
 
         # last thing to do: get baseline
         if proc_idx+1 == num_proc:
-            job_content += _twiss_out("0")
+            job_content += _do_macro(macro_name, "0")
 
         full_content = original_content.replace(patterns["job_content"], job_content)
         with open(_get_jobfiles(temp_dir, proc_idx), "w") as job_file:
@@ -168,14 +209,14 @@ def _load_madx_results(variables, step, order, process_pool, temp_dir):
 
     _, base_tfs = _load_and_remove_twiss((temp_dir, "0"))
     mapping = dict([(o, {}) for o in _get_orders(order)] +
-                   [(o[:-1], {}) for o in _get_orders(order)])
+                   [(o + "L", {}) for o in _get_orders(order)])
     for var, tfs_data in process_pool.map(_load_and_remove_twiss, path_and_vars):
         for o in _get_orders(order):
-            diff = (tfs_data[o] - base_tfs[o]).div(step)
+            diff = (tfs_data[o] - base_tfs[o])
             mask = diff != 0  # drop zeros, maybe abs(diff) < eps ?
-            kl_list = diff.loc[mask]
-            mapping[o][var] = kl_list
-            mapping[o[:-1]][var] = kl_list.div(base_tfs.loc[mask, "L"])
+            k_list = diff.loc[mask]
+            mapping[o][var] = k_list
+            mapping[o + "L"][var] = k_list.mul(base_tfs.loc[mask, "L"])
     return mapping
 
 
@@ -183,7 +224,7 @@ def _load_madx_results(variables, step, order, process_pool, temp_dir):
 
 
 def _get_orders(max_order):
-    return ["K{:d}{:s}".format(i, s) for i in range(max_order) for s in ["L", "SL"]]
+    return ["K{:d}{:s}".format(i, s) for i in range(max_order) for s in ["", "S"]]
 
 
 def _get_jobfiles(folder, index):
@@ -195,6 +236,11 @@ def _get_jobfiles(folder, index):
 def _get_twissfile(folder, var):
     """ Return name of the variable-specific twiss file """
     return os.path.join(folder, "twiss." + var)
+
+
+def _get_macrofile(folder):
+    """ Returns the name of the macro """
+    return os.path.join(folder, "macro.write_k_table.madx")
 
 
 def _launch_single_job(inputfile_path):
