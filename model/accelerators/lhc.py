@@ -570,30 +570,49 @@ class Lhc(Accelerator):
     def get_multi_dpp_job(self, dpp_list):
         with open(self.get_nominal_multidpp_tmpl()) as textfile:
             madx_template = textfile.read()
-
-        twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
         try:
-            beam = self.get_beam()
             output_path = self.model_dir
+            use_acd = "1" if (self.excitation ==
+                              AccExcitationMode.ACD) else "0"
+            use_adt = "1" if (self.excitation ==
+                              AccExcitationMode.ADT) else "0"
+            crossing_on = "1" if self.xing else "0"
+            beam = self.get_beam()
+
             replace_dict = {
                 "LIB": self.MACROS_NAME,
                 "MAIN_SEQ": self.load_main_seq_madx(),
                 "OPTICS_PATH": self.optics_file,
-                "CROSSING_ON": "1" if self.xing else "0",
                 "NUM_BEAM": beam,
+                "PATH": output_path,
                 "QMX": self.nat_tune_x,
                 "QMY": self.nat_tune_y,
+                "USE_ACD": use_acd,
+                "USE_ADT": use_adt,
+                "CROSSING_ON": crossing_on,
+                "QX": "",
+                "QY": "",
+                "QDX": "",
+                "QDY": "",
                 "DPP": "",
                 "DPP_ELEMS": "",
                 "DPP_AC": "",
                 "DPP_ADT": "",
             }
+            if (self.excitation in
+                    (AccExcitationMode.ACD, AccExcitationMode.ADT)):
+                replace_dict["QX"] = self.nat_tune_x
+                replace_dict["QY"] = self.nat_tune_y
+                replace_dict["QDX"] = self.drv_tune_x
+                replace_dict["QDY"] = self.drv_tune_y
         except AttributeError:
             raise AcceleratorDefinitionError(
                 "The accelerator definition is incomplete. " +
                 "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
             )
 
+        # add different dpp twiss-command lines
+        twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
         for dpp in dpp_list:
             replace_dict["DPP"] += twisses_tmpl.format(
                 beam=beam,
