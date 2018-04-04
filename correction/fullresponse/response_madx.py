@@ -29,7 +29,7 @@ LOG = logging_tools.get_logger(__name__)
 # Full Response Mad-X ##########################################################
 
 
-def generate_fullresponse(variables, original_jobfile_path, patterns,
+def generate_fullresponse(accel_inst, variable_categories,
                           delta_k=0.00002, num_proc=multiprocessing.cpu_count(),
                           temp_dir=None):
     """ Generate a dictionary containing response matrices for
@@ -49,12 +49,22 @@ def generate_fullresponse(variables, original_jobfile_path, patterns,
     LOG.debug("Generating Fullresponse via Mad-X.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
         if not temp_dir:
-            temp_dir = os.path.dirname(original_jobfile_path)
+            temp_dir = accel_inst.model_dir
         create_dirs(temp_dir)
 
+        variables = accel_inst.get_variables(classes=variable_categories)
+        if len(variables) == 0:
+            raise ValueError("No variables found! Make sure your categories are valid!")
+
+        # try:
+        #     variables = variables.tolist()
+        # except AttributeError:
+        #     pass
+
+        num_proc = num_proc if len(variables) > num_proc else len(variables)
         process_pool = multiprocessing.Pool(processes=num_proc)
 
-        incr_dict = _generate_madx_jobs(variables, original_jobfile_path, patterns,
+        incr_dict = _generate_madx_jobs(accel_inst, variables,
                                         delta_k, num_proc, temp_dir)
         _call_madx(process_pool, temp_dir, num_proc)
         _clean_up(temp_dir, num_proc)
@@ -65,57 +75,51 @@ def generate_fullresponse(variables, original_jobfile_path, patterns,
     return fullresponse
 
 
-def _generate_madx_jobs(variables, original_jobfile_path, patterns, delta_k, num_proc, temp_dir):
+def _generate_madx_jobs(accel_inst, variables, delta_k, num_proc, temp_dir):
     """ Generates madx job-files """
     LOG.debug("Generating MADX jobfiles.")
     incr_dict = {'0': 0.0}
     vars_per_proc = int(math.ceil(float(len(variables)) / num_proc))
 
+    madx_job = _get_madx_job(accel_inst)
+
     for proc_idx in range(num_proc):
-        jobfile_path, iterfile_path = _get_jobfiles(temp_dir, proc_idx)
-        _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, patterns)
-        with open(iterfile_path, "w") as iter_file:
-            for i in range(vars_per_proc):
-                var_idx = proc_idx * vars_per_proc + i
-                if var_idx >= len(variables):
-                    break
-                var = variables[var_idx]
-                incr_dict[var] = delta_k
-                iter_file.write(
-                    "{var:s}={var:s}{delta:+f};\n".format(var=var, delta=delta_k))
-                iter_file.write(
-                    "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss." + var)))
-                iter_file.write(
-                    "{var:s}={var:s}{delta:+f};\n".format(var=var, delta=-delta_k))
+        jobfile_path = _get_jobfiles(temp_dir, proc_idx)
 
-            if proc_idx == num_proc - 1:
-                iter_file.write(
-                    "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss.0")))
+        current_job = madx_job
+        for i in range(vars_per_proc):
+            var_idx = proc_idx * vars_per_proc + i
+            if var_idx >= len(variables):
+                break
+            var = variables[var_idx]
+            incr_dict[var] = delta_k
+            current_job += "{var:s}={var:s}{delta:+f};\n".format(var=var, delta=delta_k)
+            current_job += "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss." + var))
+            current_job += "{var:s}={var:s}{delta:+f};\n\n".format(var=var, delta=-delta_k)
 
+        if proc_idx == num_proc - 1:
+            current_job += "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss.0"))
+
+        with open(jobfile_path, "w") as jobfile:
+            jobfile.write(current_job)
     return incr_dict
 
 
-def _write_jobfile(original_jobfile_path, jobfile_path, iterfile_path, patterns):
-    """ Replaces the patterns in the original jobfile with call to the appropriate iterfile
-        and saves as new numbered jobfile
-    """
-    with open(original_jobfile_path, "r") as original_file:
-        original_str = original_file.read()
-    with open(jobfile_path, "w") as job_file:
-        job_file.write(original_str.replace(
-            patterns["job_content"], "call, file='{:s}';".format(iterfile_path),
-        ).replace(
-            patterns['twiss_columns'],
-            "NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22"
-        ).replace(
-            patterns["element_pattern"], "BPM"
-        ))
+def _get_madx_job(accel_inst):
+    job_content = accel_inst.get_basic_seq_job()
+    job_content += (
+        "\n\n"    
+        "select, flag = twiss, clear;\n"    
+        "select, flag = twiss, pattern = '^BPM', "
+        "column = 'NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22';\n\n"
+    )
+    return job_content
 
 
 def _call_madx(process_pool, temp_dir, num_proc):
     """ Call madx in parallel """
     LOG.debug("Starting {:d} MAD-X jobs...".format(num_proc))
-    madx_jobs = [_get_jobfiles(temp_dir, index)[0] for index in range(num_proc)]
+    madx_jobs = [_get_jobfiles(temp_dir, index) for index in range(num_proc)]
     process_pool.map(_launch_single_job, madx_jobs)
     LOG.debug("MAD-X jobs done.")
 
@@ -125,13 +129,12 @@ def _clean_up(temp_dir, num_proc):
     LOG.debug("Cleaning output and building log...")
     full_log = ""
     for index in range(num_proc):
-        job_path, iter_path = _get_jobfiles(temp_dir, index)
+        job_path = _get_jobfiles(temp_dir, index)
         log_path = job_path + ".log"
         with open(log_path, "r") as log_file:
             full_log += log_file.read()
         os.remove(log_path)
         os.remove(job_path)
-        os.remove(iter_path)
     full_log_path = os.path.join(temp_dir, "response_madx_full.log")
     with open(full_log_path, "w") as full_log_file:
         full_log_file.write(full_log)
@@ -189,8 +192,7 @@ def _create_fullresponse_from_dict(var_to_twiss):
 def _get_jobfiles(temp_dir, index):
     """ Return names for jobfile and iterfile according to index """
     jobfile_path = os.path.join(temp_dir, "job.iterate.{:d}.madx".format(index))
-    iterfile_path = os.path.join(temp_dir, "iter.{:d}.madx".format(index))
-    return jobfile_path, iterfile_path
+    return jobfile_path
 
 
 def _launch_single_job(inputfile_path):

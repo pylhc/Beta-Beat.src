@@ -26,7 +26,7 @@ EXT = "varmap"  # Extension Standard
 # Read Sequence ##############################################################
 
 
-def evaluate_for_variables(variables, original_jobfile_path, patterns, step=1e-5, order=2,
+def evaluate_for_variables(accel_inst, variable_categories, step=1e-5, order=2,
                            num_proc=multiprocessing.cpu_count(),
                            temp_dir=None):
     """ Generate a dictionary containing response matrices for
@@ -45,21 +45,24 @@ def evaluate_for_variables(variables, original_jobfile_path, patterns, step=1e-5
     LOG.debug("Generating Fullresponse via Mad-X.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
         if not temp_dir:
-            temp_dir = os.path.dirname(original_jobfile_path)
+            temp_dir = accel_inst.model_dir
         create_dirs(temp_dir)
 
-        try:
-            variables = variables.tolist()
-        except AttributeError:
-            pass
+        variables = accel_inst.get_variables(classes=variable_categories)
+        if len(variables) == 0:
+            raise ValueError("No variables found! Make sure your categories are valid!")
+
+        # try:
+        #     variables = variables.tolist()
+        # except AttributeError:
+        #     pass
 
         num_proc = num_proc if len(variables) > num_proc else len(variables)
         process_pool = multiprocessing.Pool(processes=num_proc)
 
         try:
             LOG.debug("Step-size is {:e}.".format(step))
-            _generate_madx_jobs(variables, original_jobfile_path, step,
-                                order, patterns, num_proc, temp_dir)
+            _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir)
             _call_madx(process_pool, temp_dir, num_proc)
             mapping = _load_madx_results(variables, step, order, process_pool, temp_dir)
         except IOError:
@@ -107,8 +110,7 @@ def _create_macro(name, elements, order, folder):
     return "option, -echo;\ncall, file = '{:s}';\noption, echo;\n\n".format(macro_path)
 
 
-def _generate_madx_jobs(variables, original_jobfile_path, step,
-                        order, patterns, num_proc, temp_dir):
+def _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir):
     """ Generates madx job-files """
     def _add_to_var(var, value):
         return "{var:s} = {var:s} {value:+e};\n".format(var=var, value=value)
@@ -125,14 +127,10 @@ def _generate_madx_jobs(variables, original_jobfile_path, step,
     LOG.debug("Generating MADX jobfiles.")
     vars_per_proc = int(math.ceil(float(len(variables)) / num_proc))
 
-    # load template and add columns
-    with open(original_jobfile_path, "r") as original_file:
-        original_content = original_file.read()
-    original_content = original_content.replace(
-        patterns['twiss_columns'], "NAME"
-    ).replace(
-        patterns["element_pattern"], "^[BM].*"  # Magnets and BPMs
-    )
+    # load template
+    madx_script = accel_inst.get_basic_seq_job()
+
+
 
     # create a macro to write out twiss-like table
     macro_name = "write_table_tfs"
@@ -262,7 +260,7 @@ def _load_and_remove_twiss(path_and_var):
 # Wrapper ##################################################################
 
 
-def check_varmap_file(accel_inst, variables, vars_categories):
+def check_varmap_file(accel_inst, vars_categories):
     """ Checks on varmap file and creates it if not in model folder.
     THIS SHOULD BE REPLACED WITH A CALL TO JAIMES DATABASE, IF IT BECOMES AVAILABLE """
     if accel_inst.optics_file is None:
@@ -275,19 +273,7 @@ def check_varmap_file(accel_inst, variables, vars_categories):
     varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + EXT)
     if not os.path.isfile(varmap_path):
         LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
-        job_path = os.path.join(accel_inst.model_dir, "tmpl.generate_varmap.madx")
-        patterns = {
-            "job_content": "%JOB_CONTENT%",
-            "twiss_columns": "%TWISS_COLUMNS%",
-            "element_pattern": "%ELEMENT_PATTERN%",
-        }
-        madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
-                                                     patterns["twiss_columns"],
-                                                     patterns["element_pattern"])
-        with open(job_path, "w") as f:
-            f.write(madx_script)
-
-        mapping = evaluate_for_variables(variables, job_path, patterns=patterns)
+        mapping = evaluate_for_variables(accel_inst, vars_categories)
         with open(varmap_path, 'wb') as dump_file:
             pickle.Pickler(dump_file, -1).dump(mapping)
 
