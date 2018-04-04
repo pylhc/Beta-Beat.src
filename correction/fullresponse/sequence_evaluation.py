@@ -26,7 +26,7 @@ EXT = "varmap"  # Extension Standard
 # Read Sequence ##############################################################
 
 
-def evaluate_for_variables(accel_inst, variable_categories, step=1e-5, order=2,
+def evaluate_for_variables(accel_inst, variable_categories, order=2,
                            num_proc=multiprocessing.cpu_count(),
                            temp_dir=None):
     """ Generate a dictionary containing response matrices for
@@ -61,10 +61,9 @@ def evaluate_for_variables(accel_inst, variable_categories, step=1e-5, order=2,
         process_pool = multiprocessing.Pool(processes=num_proc)
 
         try:
-            LOG.debug("Step-size is {:e}.".format(step))
             _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir)
             _call_madx(process_pool, temp_dir, num_proc)
-            mapping = _load_madx_results(variables, step, order, process_pool, temp_dir)
+            mapping = _load_madx_results(variables, order, process_pool, temp_dir)
         except IOError:
                 raise IOError("MADX was unable to compute the mapping.")
         finally:
@@ -83,66 +82,26 @@ def _get_current_elements(original_content, patterns, folder):
     return twiss.index.values
 
 
-def _create_macro(name, elements, order, folder):
-    """ Create a madx-macro to write out k-values in a twiss-file """
-    orders = _get_orders(order)
-    macro = "! Macro to build a twiss-like table without calling twiss.\n\n"
-    macro += "{:s}(file_out): macro = {{\n".format(name)
-    macro += "    create, table=kval, columns=NAME, L, {:s};\n".format(", ".join(orders))
-    macro += "    option, -echo;\n\n"
-    for elem in elements:
-        macro += "    NAME = '{name:s}';\n".format(name=elem)
-        macro += "    L = {name:s}->L;\n".format(name=elem)
-        for ord_str in orders:
-            macro += "    {ord:s} = {name:s}->{ord:s};\n".format(name=elem, ord=ord_str)
-        macro += "    fill, table=kval;\n"
-        macro += "\n"
-
-    macro += "    option, echo;\n"
-    macro += "    select, flag=table, full;\n"
-    macro += "    write, table=kval, file=file_out;\n"
-    macro += "};\n\n"
-
-    macro_path = _get_macrofile(folder)
-    with open(macro_path, "w") as macro_file:
-        macro_file.write(macro)
-
-    return "option, -echo;\ncall, file = '{:s}';\noption, echo;\n\n".format(macro_path)
-
-
 def _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir):
     """ Generates madx job-files """
-    def _add_to_var(var, value):
-        return "{var:s} = {var:s} {value:+e};\n".format(var=var, value=value)
-
     def _assign(var, value):
         return "{var:s} = {value:d};\n".format(var=var, value=value)
 
-    def _twiss_out(var):
-        return "twiss, file = '{:s}';\n".format(_get_twissfile(temp_dir, var))
-
-    def _do_macro(macro, var):
-        return "exec, {:s}('{:s}');\n".format(macro, _get_twissfile(temp_dir, var))
+    def _do_macro(var):
+        return "exec, create_table({table:s}, {f_out:s});\n".format(
+            table="table." + var,
+            f_out=_get_tablefile(temp_dir, var),
+        )
 
     LOG.debug("Generating MADX jobfiles.")
     vars_per_proc = int(math.ceil(float(len(variables)) / num_proc))
 
     # load template
-    madx_script = accel_inst.get_basic_seq_job()
-
-
-
-    # create a macro to write out twiss-like table
-    macro_name = "write_table_tfs"
-    elements = _get_current_elements(original_content, patterns, temp_dir)
-    macro_call = _create_macro(macro_name, elements, order, temp_dir)
-
-    # zero all vars
-    all_var_zero = "".join([_assign(var, 0) for var in variables])
+    madx_script = _create_basic_job(accel_inst, order, variables)
 
     # build content for testing each variable
     for proc_idx in range(num_proc):
-        job_content = "\n" + macro_call + "\n" + all_var_zero + "\n"
+        job_content = madx_script % {"TEMPFILE": _get_surveyfile(temp_dir, proc_idx)}
 
         for i in range(vars_per_proc):
             try:
@@ -152,23 +111,22 @@ def _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir):
                 break
             else:
                 job_content += _assign(current_var, 1)
-                job_content += _do_macro(macro_name, current_var)
+                job_content += _do_macro(current_var)
                 job_content += _assign(current_var, 0)
                 job_content += "\n"
 
         # last thing to do: get baseline
         if proc_idx+1 == num_proc:
-            job_content += _do_macro(macro_name, "0")
+            job_content += _do_macro("0")
 
-        full_content = original_content.replace(patterns["job_content"], job_content)
-        with open(_get_jobfiles(temp_dir, proc_idx), "w") as job_file:
-            job_file.write(full_content)
+        with open(_get_jobfile(temp_dir, proc_idx), "w") as job_file:
+            job_file.write(job_content)
 
 
 def _call_madx(process_pool, temp_dir, num_proc):
     """ Call madx in parallel """
     LOG.debug("Starting {:d} MAD-X jobs...".format(num_proc))
-    madx_jobs = [_get_jobfiles(temp_dir, index) for index in range(num_proc)]
+    madx_jobs = [_get_jobfile(temp_dir, index) for index in range(num_proc)]
     process_pool.map(_launch_single_job, madx_jobs)
     LOG.debug("MAD-X jobs done.")
 
@@ -178,18 +136,20 @@ def _clean_up(variables, temp_dir, num_proc):
     LOG.debug("Cleaning output and printing log...")
     for var in (variables + ["0"]):
         try:
-            os.remove(_get_twissfile(temp_dir, var))
+            os.remove(_get_tablefile(temp_dir, var))
         except OSError:
-            LOG.info("MADX could not build twiss for '{:s}'".format(var))
+            LOG.info("MADX could not build table for '{:s}'".format(var))
 
     full_log = ""
     for index in range(num_proc):
-        job_path = _get_jobfiles(temp_dir, index)
+        survey_path = _get_surveyfile(temp_dir, index)
+        job_path = _get_jobfile(temp_dir, index)
         log_path = job_path + ".log"
         with open(log_path, "r") as log_file:
             full_log += log_file.read()
         os.remove(log_path)
         os.remove(job_path)
+        os.remove(survey_path)
     LOG.debug(full_log)
 
     try:
@@ -198,7 +158,7 @@ def _clean_up(variables, temp_dir, num_proc):
         pass
 
 
-def _load_madx_results(variables, step, order, process_pool, temp_dir):
+def _load_madx_results(variables, order, process_pool, temp_dir):
     """ Load the madx results in parallel and return var-tfs dictionary """
     LOG.debug("Loading Madx Results.")
     path_and_vars = []
@@ -225,20 +185,19 @@ def _get_orders(max_order):
     return ["K{:d}{:s}".format(i, s) for i in range(max_order) for s in ["", "S"]]
 
 
-def _get_jobfiles(folder, index):
+def _get_jobfile(folder, index):
     """ Return names for jobfile and iterfile according to index """
-    jobfile_path = os.path.join(folder, "job.varmap.{:d}.madx".format(index))
-    return jobfile_path
+    return os.path.join(folder, "job.varmap.{:d}.madx".format(index))
 
 
-def _get_twissfile(folder, var):
-    """ Return name of the variable-specific twiss file """
-    return os.path.join(folder, "twiss." + var)
+def _get_tablefile(folder, var):
+    """ Return name of the variable-specific table file """
+    return os.path.join(folder, "table." + var)
 
 
-def _get_macrofile(folder):
+def _get_surveyfile(folder, index):
     """ Returns the name of the macro """
-    return os.path.join(folder, "macro.write_k_table.madx")
+    return os.path.join(folder, "survey.{:d}.tmp".format(index))
 
 
 def _launch_single_job(inputfile_path):
@@ -250,11 +209,65 @@ def _launch_single_job(inputfile_path):
 def _load_and_remove_twiss(path_and_var):
     """ Function for pool to retrieve results """
     path, var = path_and_var
-    twissfile = _get_twissfile(path, var)
+    twissfile = _get_tablefile(path, var)
     tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
     return var, tfs_data
+
+
+def _create_basic_job(accel_inst, order, variables):
+    """ Create the madx-job basics needed
+        TEMPFILE need to be replaced in the returned string.
+    """
+    all_ks = _get_orders(order)
+    # basic sequence creation
+    job_content = accel_inst.get_basic_seq_job()
+
+    # create a survey and save it to a temporary file
+    job_content += (
+        "select, flag=survey, clear;\n"
+        "select, flag=survey, pattern='^[MB].*\.B{beam:d}$', COLUMN=NAME, L;\n"
+        "survey, file='%(TEMPFILE)s';\n"
+        "readmytable, file='%(TEMPFILE)s', table=mytable;\n"
+        "n_elem = table(mytable, tablelength);\n"
+        "\n"
+    ).format(beam=accel_inst.get_beam())
+
+    # create macro for assigning values to the order per element
+    job_content += "assign_k_values(element) : macro = {\n"
+    for k_val in all_ks:
+        job_content += "    {k:s} = element->{k:s};\n".format(k=k_val)
+    job_content += "};\n\n"
+
+    # create macro for using the row index as variable (see madx userguide)
+    job_content += (
+        "create_row(tblname, rowidx) : macro = {\n"
+        "    exec, assign_k_values(tabstring(tblname, name, rowidx));\n"
+        "};\n\n"
+    )
+
+    # create macro to create the full table with loop over elements
+    job_content += (
+        "create_table(table_id, filename) : macro = {{\n"
+        "    create, table=table_id, column=_name, L, {col:s};\n"
+        "    i_elem = 0;\n"
+        "    while (i_elem < n_elem) {{\n"
+        "        i_elem = i_elem + 1;\n"
+        "        setvars, table=table_id, row=i_elem;\n"
+        "        exec, create_row(table_id, $i_elem);\n"
+        "        fill,  table=table_id;\n"
+        "    };\n"
+        "    write, table=table_id, file='filename';\n"
+        "};\n\n"
+    ).format(col=",".join(all_ks))
+
+    # set all variables to zero
+    for var in variables:
+        job_content += "{var:s} = 0;\n".format(var=var)
+
+    job_content += "\n"
+    return job_content
 
 
 # Wrapper ##################################################################
