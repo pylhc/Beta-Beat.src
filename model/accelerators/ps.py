@@ -139,8 +139,6 @@ class Ps(Accelerator):
         self.year_opt = opt.year_opt
         if self.year_opt is None:
             self.year_opt = CURRENT_YEAR
-            
-        print(self.year_opt)
 
         self.dpp = opt.get("dpp", 0.0)
         
@@ -197,7 +195,7 @@ class Ps(Accelerator):
 
     
     def get_ps_dir(self):
-        print('Year of the optics', self.year_opt)
+        #print('Year of the optics', self.year_opt)
         return os.path.join(PS_DIR,str(self.year_opt));
 
     @classmethod

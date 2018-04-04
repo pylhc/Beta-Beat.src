@@ -11,6 +11,7 @@ class PsModelCreator(model_creator.ModelCreator):
             "NAT_TUNE_X": instance.nat_tune_x,
             "NAT_TUNE_Y": instance.nat_tune_y,
             "KINETICENERGY": instance.energy,
+            "DPP": instance.dpp,
             "OUTPUT": output_path,
             "DRV_TUNE_X": "", 
             "DRV_TUNE_Y": "",

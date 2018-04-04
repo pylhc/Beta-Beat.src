@@ -76,12 +76,12 @@ ENDMATCH;
  * for non-relativistic machines, like the PSB
  ************************************************************/
  select, flag=twiss, clear;
- select, flag=twiss, pattern="^PS.*BPM",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
- twiss, centre, DELTAP = 0, sequence=PS, file="%(OUTPUT)s/twiss.dat";
+ select, flag=twiss, pattern="^PR.*BPM",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
+ twiss, chrom, DELTAP = %(DPP)s , sequence=PS, file="%(OUTPUT)s/twiss.dat";
 
  select, flag=twiss, clear;
  select, flag=twiss,column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
- twiss, centre, DELTAP = 0, sequence=PS, file="%(OUTPUT)s/twiss_elements.dat";
+ twiss, chrom, DELTAP = %(DPP)s , sequence=PS, file="%(OUTPUT)s/twiss_elements.dat";
 
 /* 
 ! if we ever have an AC Dipole in PS
