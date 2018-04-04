@@ -5,7 +5,6 @@ import os
 import sys
 
 import model_creator
-from correction.fullresponse.response_madx import DEFAULT_PATTERNS as RESPONSE_PATTERNS
 from model.accelerators.accelerator import AccExcitationMode
 
 AFS_ROOT = "/afs"
@@ -47,6 +46,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "QMY": lhc_instance.nat_tune_y,
             "USE_ACD": use_acd,
             "USE_ADT": use_adt,
+            "DPP": lhc_instance.dpp,
             "CROSSING_ON": crossing_on,
             "QX": "", "QY": "", "QDX": "", "QDY": "",
         }
@@ -57,39 +57,8 @@ class LhcModelCreator(model_creator.ModelCreator):
             replace_dict["QDX"] = lhc_instance.drv_tune_x
             replace_dict["QDY"] = lhc_instance.drv_tune_y
 
-        try:
-            iter(lhc_instance.dpp)
-        except TypeError:
-            with open(lhc_instance.get_nominal_tmpl()) as textfile:
-                madx_template = textfile.read()
-            replace_dict["DPP"] = lhc_instance.dpp
-        else:
-            with open(lhc_instance.get_nominal_multidpp_tmpl()) as textfile:
-                madx_template = textfile.read()
-            twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
-            (replace_dict["DPP"], replace_dict["DPP_ELEMS"],
-             replace_dict["DPP_AC"], replace_dict["DPP_ADT"]) = "", "", "", ""
-            for dpp in lhc_instance.dpp:
-                replace_dict["DPP"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}.dat".format(dpp))
-                )
-                replace_dict["DPP_ELEMS"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}_elements.dat".format(dpp))
-                )
-                replace_dict["DPP_AC"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}_ac.dat".format(dpp))
-                )
-                replace_dict["DPP_ADT"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}_adt.dat".format(dpp))
-                )
+        with open(lhc_instance.get_nominal_tmpl()) as textfile:
+            madx_template = textfile.read()
 
         madx_script = madx_template % replace_dict
         return madx_script
@@ -113,10 +82,6 @@ class LhcModelCreator(model_creator.ModelCreator):
     def _prepare_fullresponse(cls, lhc_instance, output_path):
         with open(lhc_instance.get_iteration_tmpl()) as textfile:
             iterate_template = textfile.read()
-        with open(lhc_instance.get_basic_twiss_tmpl()) as textfile:
-            basic_twiss_template = textfile.read()
-        with open(lhc_instance.get_save_seq_tmpl()) as textfile:
-            sequence_template = textfile.read()
 
         crossing_on = "1" if lhc_instance.xing else "0"
         replace_dict = {
@@ -128,23 +93,11 @@ class LhcModelCreator(model_creator.ModelCreator):
             "QMX": lhc_instance.nat_tune_x,
             "QMY": lhc_instance.nat_tune_y,
             "CROSSING_ON": crossing_on,
-            # basic_twiss replacements
-            "JOB_CONTENT": RESPONSE_PATTERNS["job_content"],
-            "ELEMENT_PATTERN": RESPONSE_PATTERNS["element_pattern"],
-            "TWISS_COLUMNS": RESPONSE_PATTERNS["twiss_columns"],
         }
 
         with open(os.path.join(output_path,
                                "job.iterate.madx"), "w") as textfile:
             textfile.write(iterate_template % replace_dict)
-
-        with open(os.path.join(output_path,
-                               "job.basic_twiss.madx"), "w") as textfile:
-            textfile.write(basic_twiss_template % replace_dict)
-
-        with open(os.path.join(output_path,
-                               "job.save_sequence.madx"), "w") as textfile:
-            textfile.write(sequence_template % replace_dict)
 
 
 class LhcBestKnowledgeCreator(LhcModelCreator):

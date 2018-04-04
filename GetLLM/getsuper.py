@@ -193,9 +193,10 @@ def main(**kwargs):
     if 0 not in files_dict:
         raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0.")
 
-    accel_inst = _create_accel_instance(options.accel_cls, files_dict.keys(),
-                                        files_dict, options.output_path, options.twissfile)
-    LOG.debug("All models are created")
+    accel_inst = _create_accel_instance(options.accel_cls, files_dict, options.output_path,
+                                        options.twissfile)
+
+    _create_models_by_madx(accel_inst, files_dict.keys())
 
     for dpp in files_dict:
         files = files_dict[dpp]
@@ -366,7 +367,7 @@ def _load_from_file(filepath):
     return datax, datay
 
 
-def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
+def _create_accel_instance(accel_cls, files_dict, output_path, twissfile):
     """
     Args:
         dpps: list of dp/p to create model for
@@ -381,25 +382,38 @@ def _create_accel_instance(accel_cls, dpps, files_dict, output_path, twissfile):
             LOG.debug("Using file '{:s}'".format(modifiers))
             break
 
-    accel_inst = accel_cls()
-    accel_inst.optics_file = modifiers
-    accel_inst.nat_tune_x = mdl_qx
-    accel_inst.nat_tune_y = mdl_qy
-    accel_inst.drv_tune_x = exp_qx
-    accel_inst.drv_tune_y = exp_qy
-    accel_inst.dpp = dpps
-    accel_inst.xing = False
-
-
-    accel_inst.excitation = AccExcitationMode.FREE
+    acd = False
+    adt = False
     if os.path.exists(twissfile.replace(".dat", "_ac.dat")):
-        accel_inst.excitation = AccExcitationMode.ACD
+        acd = True
     elif os.path.exists(twissfile.replace(".dat", "_adt.dat")):
-        accel_inst.excitation = AccExcitationMode.ADT
+        adt = True
 
-    creator.create_model(accel_inst, "nominal", output_path)
+    accel_inst = accel_cls(
+        optics=modifiers,
+        nat_tune_x=mdl_qx,
+        nat_tune_y=mdl_qy,
+        drv_tune_x=exp_qx,
+        drv_tune_y=exp_qy,
+        acd=acd,
+        adt=adt,
+        xing=False,
+    )
+
+    accel_inst.model_dir = output_path
 
     return accel_inst
+
+
+def _create_models_by_madx(accel_inst, dpps):
+    """ Creates the needed models """
+    model_creator = creator.CREATORS[accel_inst.NAME]["nominal"]
+    model_creator.prepare_run(accel_inst, accel_inst.model_dir)
+    madx_script = accel_inst.get_multi_dpp_job(dpps)
+    model_creator.run_madx(madx_script,
+                           logfile=os.path.join(accel_inst.model_dir, "w_analysis_multidpp.log"),
+                           writeto=os.path.join(accel_inst.model_dir, "w_analysis_multidpp.madx"),
+                           )
 
 
 def _get_output_filenames(output_path, dpp=None):

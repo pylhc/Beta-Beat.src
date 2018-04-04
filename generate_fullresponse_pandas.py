@@ -8,14 +8,19 @@ import cPickle as pickle
 import os
 
 from correction.fullresponse import response_madx
-from correction.fullresponse.response_twiss import TwissResponse
-from global_correct_iterative import DEFAULT_ARGS, check_varmap_file
+from correction.fullresponse import response_twiss
+from global_correct_iterative import DEFAULT_ARGS
 from model import manager
 from utils import logging_tools
-from utils.contexts import timeit
 from utils.entrypoint import EntryPointParameters, entrypoint
 
 LOG = logging_tools.get_logger(__name__)
+
+DEFAULT_PATTERNS = {
+    "job_content": "%JOB_CONTENT%",  # used in lhc_model_creator, sequence_evaluation
+    "twiss_columns": "%TWISS_COLUMNS%",  # used in lhc_model_creator, sequence_evaluation
+    "element_pattern": "%ELEMENT_PATTERN%",  # used in lhc_model_creator, sequence_evaluation
+}
 
 
 def get_params():
@@ -101,28 +106,43 @@ def create_response(opt, other_opt):
                              **Flags**: --variables
                              **Default**: ``['MQM', 'MQT', 'MQTL', 'MQY']``
     """
-    with logging_tools.DebugMode(active=opt.debug):
+    with logging_tools.DebugMode(active=opt.debug,
+                                 log_file=os.path.join(opt.model_dir, "generate_fullresponse.log")):
         LOG.info("Creating response.")
         accel_cls, other_opt = manager.get_accel_class_and_unkown(other_opt)
-        variables = accel_cls.get_variables(classes=opt.variable_categories)
+        accel_inst = accel_cls(model_dir=opt.model_dir)
 
         if opt.creator == "madx":
-            jobfile_path = os.path.join(opt.model_dir, "job.basic_twiss.madx")
-            fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
-                                                delta_k=opt.delta_k)
-        elif opt.creator == "twiss":
-            accel_inst = accel_cls(model_dir=opt.model_dir)
-            varmap_path = check_varmap_file(accel_inst, variables)
+            variables = accel_inst.get_variables(classes=opt.variable_categories)
+            if len(variables) == 0:
+                raise ValueError("No variables found! Make sure your categories are valid!")
 
-            LOG.debug("Creating response via TwissResponse.")
-            with timeit(lambda t:
-                        LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
-                tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), variables)
-                fullresponse = tr.get_response_for(opt.optics_params)
+            jobfile_path = os.path.join(opt.model_dir, "tmpl.generate_fullresponse.madx")
+            patterns = {
+                "job_content": "%JOB_CONTENT%",
+                "twiss_columns": "%TWISS_COLUMNS%",
+                "element_pattern": "%ELEMENT_PATTERN%",
+            }
+            madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
+                                                         patterns["twiss_columns"],
+                                                         patterns["element_pattern"])
+            with open(jobfile_path, "w") as f:
+                f.write(madx_script)
+
+            fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
+                                                               patterns=patterns,
+                                                               delta_k=opt.delta_k)
+        elif opt.creator == "twiss":
+            fullresponse = response_twiss.create_response(
+                accel_inst, opt.variable_categories, opt.optics_params
+            )
 
         LOG.debug("Saving Response into file '{:s}'".format(opt.outfile_path))
         with open(opt.outfile_path, 'wb') as dump_file:
             pickle.Pickler(dump_file, -1).dump(fullresponse)
+
+
+# Script Mode ################################################################
 
 
 if __name__ == "__main__":

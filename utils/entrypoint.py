@@ -68,6 +68,9 @@ import copy
 import json
 import argparse
 from argparse import ArgumentParser
+
+import sys
+
 from utils import logging_tools as logtools
 from utils.dict_tools import DictParser
 from utils.dict_tools import DotDict
@@ -134,11 +137,14 @@ class EntryPoint(object):
         if len(args) > 1:
             raise ArgumentError("Only one positional argument allowed (dict or config file).")
 
-        if args:
+        if args and args[0] is not None:
+            # LOG.info("Entry input: {:s}".format(args[0]))  # activate for debugging
             options = self._handle_arg(args[0])
         elif len(kwargs) > 0:
+            # LOG.info("Entry input: {:s}".format(kwargs))  # activate for debugging
             options = self._handle_kwargs(kwargs)
         else:
+            # LOG.info("Entry input: {:s}".format(sys.argv))  # activate for debugging
             options = self._handle_commandline()
 
         return options  # options might include known and unknown options
@@ -193,7 +199,7 @@ class EntryPoint(object):
             # list of commandline parameter
             options = self._handle_commandline(arg)
         else:
-            raise ArgumentError("Only dictionary or configfiles"
+            raise ArgumentError("Only dictionary or configfiles "
                                 "are allowed as positional arguments")
         return options  # options might include known and unknown options
 

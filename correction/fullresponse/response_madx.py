@@ -19,23 +19,17 @@ import pandas
 import madx_wrapper
 from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
-from utils import tfs_pandas
+from utils import tfs_pandas as tfs
 from utils.contexts import timeit, suppress_warnings
 from utils.iotools import create_dirs
 
 LOG = logging_tools.get_logger(__name__)
 
-DEFAULT_PATTERNS = {
-    "job_content": "%JOB_CONTENT%",  # used in lhc_model_creator, sequence_evaluation
-    "twiss_columns": "%TWISS_COLUMNS%",  # used in lhc_model_creator, sequence_evaluation
-    "element_pattern": "%ELEMENT_PATTERN%",  # used in lhc_model_creator, sequence_evaluation
-}
 
 # Full Response Mad-X ##########################################################
 
 
-def generate_fullresponse(variables, original_jobfile_path,
-                          patterns=DEFAULT_PATTERNS,
+def generate_fullresponse(variables, original_jobfile_path, patterns,
                           delta_k=0.00002, num_proc=multiprocessing.cpu_count(),
                           temp_dir=None):
     """ Generate a dictionary containing response matrices for
@@ -45,8 +39,9 @@ def generate_fullresponse(variables, original_jobfile_path,
             variables (list): List of variables to use.
             original_jobfile_path (str): Name of the original MAD-X job file
                                          defining the sequence file.
-            patterns (str): Patterns to be replaced in the MAD-X job file by the iterative
-                           script calls. Must contain 'file' and 'twiss_columns'.
+            patterns (dict): Patterns to be replaced in the MAD-X job file by the iterative
+                             script calls. Must contain 'job_content', 'twiss_columns'
+                             and 'element_pattern'.
             delta_k (float): delta K1L to be applied to quads for sensitivity matrix
             num_proc (int): Number of processes to use in parallel.
             temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.
@@ -87,11 +82,11 @@ def _generate_madx_jobs(variables, original_jobfile_path, patterns, delta_k, num
                 var = variables[var_idx]
                 incr_dict[var] = delta_k
                 iter_file.write(
-                    "{var:s}={var:s}+({delta:f});\n".format(var=var, delta=delta_k))
+                    "{var:s}={var:s}{delta:+f};\n".format(var=var, delta=delta_k))
                 iter_file.write(
                     "twiss, file='{:s}';\n".format(os.path.join(temp_dir, "twiss." + var)))
                 iter_file.write(
-                    "{var:s}={var:s}-({delta:f});\n".format(var=var, delta=delta_k))
+                    "{var:s}={var:s}{delta:+f};\n".format(var=var, delta=-delta_k))
 
             if proc_idx == num_proc - 1:
                 iter_file.write(
@@ -182,10 +177,10 @@ def _create_fullresponse_from_dict(var_to_twiss):
               'DY': resp.xs('DY', axis=0).astype(np.float64),
               'NDX': resp.xs('NDX', axis=0).astype(np.float64),
               'NDY': resp.xs('NDY', axis=0).astype(np.float64),
-              "F1001R": resp.xs('1001', axis=0).apply(np.real).astype(np.float64),
-              "F1001I": resp.xs('1001', axis=0).apply(np.imag).astype(np.float64),
-              "F1010R": resp.xs('1010', axis=0).apply(np.real).astype(np.float64),
-              "F1010I": resp.xs('1010', axis=0).apply(np.imag).astype(np.float64),
+              "F1001R": tfs.TfsDataFrame(resp.xs('1001', axis=0).apply(np.real).astype(np.float64)),
+              "F1001I": tfs.TfsDataFrame(resp.xs('1001', axis=0).apply(np.imag).astype(np.float64)),
+              "F1010R": tfs.TfsDataFrame(resp.xs('1010', axis=0).apply(np.real).astype(np.float64)),
+              "F1010I": tfs.TfsDataFrame(resp.xs('1010', axis=0).apply(np.imag).astype(np.float64)),
               'Q': resp.loc[['Q1', 'Q2'], resp.major_axis[0], :].transpose().astype(np.float64),
               }
     return df
@@ -208,7 +203,7 @@ def _load_and_remove_twiss(var_and_path):
     """ Function for pool to retrieve results """
     (var, path) = var_and_path
     twissfile = os.path.join(path, "twiss." + var)
-    tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
+    tfs_data = tfs.read_tfs(twissfile, index="NAME")
     tfs_data['Q1'] = tfs_data.Q1
     tfs_data['Q2'] = tfs_data.Q2
     os.remove(twissfile)

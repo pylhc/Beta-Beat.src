@@ -46,7 +46,7 @@ class Lhc(Accelerator):
         adt (bool): Activate excitation with ADT.
                     **Flags**: ['--adt']
                     **Default**: ``False``
-        dpp (float): Delta p/p to use.
+        dpp (float or list): Delta p/p to use.
                      **Flags**: ['--dpp']
                      **Default**: ``0.0``
         drv_tune_x (float): Driven tune X without integer part.
@@ -517,6 +517,125 @@ class Lhc(Accelerator):
             [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
         ))
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
+
+    def get_update_correction_job(self, tiwss_out_path, corrections_file_path):
+        """ Return string for madx job of correting model """
+        with open(self.get_update_correction_tmpl(), "r") as template:
+            madx_template = template.read()
+        try:
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "CROSSING_ON": "1" if self.xing else "0",
+                "NUM_BEAM": self.get_beam(),
+                "DPP": self.dpp,
+                "QMX": self.nat_tune_x,
+                "QMY": self.nat_tune_y,
+                "PATH_TWISS": tiwss_out_path,
+                "CORRECTIONS": corrections_file_path,
+            }
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+        return madx_template % replace_dict
+
+    def get_basic_twiss_job(self, job_content, twiss_columns, element_pattern):
+        """ Return string for madx job of correting model """
+        with open(self.get_basic_twiss_tmpl(), "r") as template:
+            madx_template = template.read()
+        try:
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "CROSSING_ON": "1" if self.xing else "0",
+                "NUM_BEAM": self.get_beam(),
+                "DPP": self.dpp,
+                "QMX": self.nat_tune_x,
+                "QMY": self.nat_tune_y,
+                "JOB_CONTENT": job_content,
+                "ELEMENT_PATTERN": element_pattern,
+                "TWISS_COLUMNS": twiss_columns,
+            }
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+        return madx_template % replace_dict
+
+    def get_multi_dpp_job(self, dpp_list):
+        """ Return madx job to create twisses (models) with dpps from dpp_list """
+        with open(self.get_nominal_multidpp_tmpl()) as textfile:
+            madx_template = textfile.read()
+        try:
+            output_path = self.model_dir
+            use_acd = "1" if (self.excitation ==
+                              AccExcitationMode.ACD) else "0"
+            use_adt = "1" if (self.excitation ==
+                              AccExcitationMode.ADT) else "0"
+            crossing_on = "1" if self.xing else "0"
+            beam = self.get_beam()
+
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "NUM_BEAM": beam,
+                "PATH": output_path,
+                "QMX": self.nat_tune_x,
+                "QMY": self.nat_tune_y,
+                "USE_ACD": use_acd,
+                "USE_ADT": use_adt,
+                "CROSSING_ON": crossing_on,
+                "QX": "",
+                "QY": "",
+                "QDX": "",
+                "QDY": "",
+                "DPP": "",
+                "DPP_ELEMS": "",
+                "DPP_AC": "",
+                "DPP_ADT": "",
+            }
+            if (self.excitation in
+                    (AccExcitationMode.ACD, AccExcitationMode.ADT)):
+                replace_dict["QX"] = self.nat_tune_x
+                replace_dict["QY"] = self.nat_tune_y
+                replace_dict["QDX"] = self.drv_tune_x
+                replace_dict["QDY"] = self.drv_tune_y
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+
+        # add different dpp twiss-command lines
+        twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
+        for dpp in dpp_list:
+            replace_dict["DPP"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}.dat".format(dpp))
+            )
+            replace_dict["DPP_ELEMS"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_elements.dat".format(dpp))
+            )
+            replace_dict["DPP_AC"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_ac.dat".format(dpp))
+            )
+            replace_dict["DPP_ADT"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_adt.dat".format(dpp))
+            )
+        return madx_template % replace_dict
 
     def log_status(self):
         LOGGER.info("  model dir = " + self.model_dir)

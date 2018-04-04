@@ -44,16 +44,17 @@ to fit the :math:`M \cdot \delta K` orientation.
     https://doi.org/10.1103/PhysRevAccelBeams.20.054801
 
 """
-import multiprocessing
+import cPickle as pickle
+
 import numpy as np
 import pandas as pd
 
+from correction.fullresponse.sequence_evaluation import check_varmap_file
+from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
+from twiss_optics.twiss_functions import regex_in, upper
 from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
-from twiss_optics import sequence_parser
-from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
-from twiss_optics.twiss_functions import regex_in, upper
 
 LOG = logtool.get_logger(__name__)
 
@@ -82,7 +83,7 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, varmap_or_seq_path, model_or_path, variables,
+    def __init__(self, varmap_or_path, model_or_path, variables,
                  at_elements='bpms'):
 
         LOG.debug("Initializing TwissResponse.")
@@ -90,7 +91,7 @@ class TwissResponse(object):
             # Get input
             self._twiss = self._get_model_twiss(model_or_path)
             self._variables = variables
-            self._var_to_el = self._get_variable_mapping(varmap_or_seq_path)
+            self._var_to_el = self._get_variable_mapping(varmap_or_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
 
@@ -142,14 +143,22 @@ class TwissResponse(object):
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
         return model
 
-    def _get_variable_mapping(self, varmap_or_seq_path):
+    def _get_variable_mapping(self, varmap_or_path):
         """ Get variable mapping as dictionary
 
         Define _variables first!
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
-        mapping = sequence_parser.load_or_parse_variable_mapping(varmap_or_seq_path, "dictionary")
+
+        try:
+            with open(varmap_or_path, "rb") as varmapfile:
+                mapping = pickle.load(varmapfile)
+        except TypeError:
+            LOG.debug("Received varmap as dictionary.")
+            mapping = varmap_or_path
+        else:
+            LOG.debug("Loaded varmap from file '{:s}'".format(varmap_or_path))
 
         for order in ("K0L", "K0SL", "K1L", "K1SL"):
             if order not in mapping:
@@ -743,6 +752,31 @@ def response_add(*args):
     for df in args[1:]:
         base_df = base_df.add(df, fill_value=0.)
     return base_df
+
+
+# Wrapper ##################################################################
+
+
+def create_response(accel_inst, vars_categories, optics_params):
+    """ Wrapper to create response via TwissResponse """
+    LOG.debug("Creating response via TwissResponse.")
+    vars_list = accel_inst.get_variables(classes=vars_categories)
+    if len(vars_list) == 0:
+        raise ValueError("No variables found! Make sure your categories are valid!")
+
+    varmap_path = check_varmap_file(accel_inst, vars_list, vars_categories)
+
+    with timeit(lambda t:
+                LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
+        tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list)
+        response = tr.get_response_for(optics_params)
+
+    if not any([resp.size for resp in response.values()]):
+        raise ValueError("Responses are all empty. " +
+                         "Are variables {:s} ".format(vars_list) +
+                         "correct for '{:s}'?".format(optics_params)
+                         )
+    return response
 
 
 # Script Mode ##################################################################

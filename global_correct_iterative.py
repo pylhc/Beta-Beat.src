@@ -54,17 +54,15 @@ import numpy as np
 import pandas as pd
 
 import madx_wrapper
-from correction.fullresponse.response_twiss import TwissResponse
-from twiss_optics.sequence_evaluation import evaluate_for_variables
-from twiss_optics.sequence_parser import EXT as VARMAP_EXT
+from correction.fullresponse import response_twiss
 from model import manager
 from segment_by_segment.segment_by_segment import GetLlmMeasurement
+from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
 from utils import tfs_pandas as tfs, iotools
 from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
 from utils.logging_tools import log_pandas_settings_with_copy
-from twiss_optics.optics_class import TwissOptics
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -76,6 +74,7 @@ DEV_NULL = os.devnull
 DEFAULT_ARGS = {
     "optics_file": None,
     "output_path": None,
+    "output_filename": "changeparameters_iter",
     "svd_cut": 0.01,
     "optics_params": ['MUX', 'MUY', 'BBX', 'BBY', 'NDX', 'Q'],
     "variables": ["MQM", "MQT", "MQTL", "MQY"],
@@ -95,8 +94,8 @@ def _get_default_values():
             'BETX': 0.2, 'BETY': 0.2,
             'DX': 0.2, 'DY': 0.2,
             'NDX': 0.2, 'Q': 0.1,
-            'F1001R': 0.2, 'F1001I': 0.2,
-            'F1010R': 0.2, 'F1010I': 0.2,
+            'F1001R': 0.0, 'F1001I': 0.0,
+            'F1010R': 0.0, 'F1010I': 0.0,
         },
         'errorcut': {
             'MUX': 0.035, 'MUY': 0.035,
@@ -172,7 +171,7 @@ def _get_params():
     params.add_parameter(
         flags="--fullresponse",
         help=("Path to the fullresponse binary file."
-             " If not given, calculates the response analytically."),
+              " If not given, calculates the response analytically."),
         name="fullresponse_path",
     )
     params.add_parameter(
@@ -201,6 +200,12 @@ def _get_params():
               "default to the --meas input path."),
         name="output_path",
         default=DEFAULT_ARGS["output_path"],
+    )
+    params.add_parameter(
+        flags="--output_filename",
+        help="Identifier of the output files.",
+        name="output_filename",
+        default=DEFAULT_ARGS["output_filename"],
     )
     params.add_parameter(
         flags="--svd_cut",
@@ -296,6 +301,7 @@ def _get_params():
 # Entry Point ##################################################################
 
 
+
 @entrypoint(_get_params())
 def global_correction(opt, accel_opt):
     """ Do the global correction. Iteratively.
@@ -364,7 +370,8 @@ def global_correction(opt, accel_opt):
     """
 
     LOG.info("Starting Iterative Global Correction.")
-    with logging_tools.DebugMode(active=opt.debug):
+    with logging_tools.DebugMode(active=opt.debug,
+                                 log_file=os.path.join(opt.model_dir, "iterative_correction.log")):
         not_implemented_params = [k for k in opt.optics_params
                                   if k not in _get_measurement_filters()]
         if any(not_implemented_params):
@@ -395,11 +402,14 @@ def global_correction(opt, accel_opt):
             opt.meas_dir, opt.beta_file_name,
             w_dict,
         )
+        mcut_dict = _automate_modelcut(mcut_dict, meas_dict, opt.variable_categories)
 
         if opt.fullresponse_path is not None:
             resp_dict = _load_fullresponse(opt.fullresponse_path, vars_list)
         else:
-            resp_dict = _create_response(accel_inst, vars_list, optics_params)
+            resp_dict = response_twiss.create_response(
+                accel_inst, opt.variable_categories, optics_params
+            )
 
         # the model in accel_inst is modified later, so save nominal model here to variables
         nominal_model = _maybe_add_coupling_to_model(accel_inst.get_model_tfs(), optics_params)
@@ -415,8 +425,6 @@ def global_correction(opt, accel_opt):
 
         # _dump(os.path.join(opt.output_path, "measurement_dict.bin"), meas_dict)
         delta = tfs.TfsDataFrame(0, index=vars_list, columns=["DELTA"])
-        change_params_path = os.path.join(opt.output_path, "changeparameters.madx")
-        change_params_correct_path = os.path.join(opt.output_path, "changeparameters_correct.madx")
 
         # ######### Iteration Phase ######### #
 
@@ -428,7 +436,8 @@ def global_correction(opt, accel_opt):
                 LOG.debug("Updating model via MADX.")
                 corr_model_path = os.path.join(opt.output_path, "twiss_" + str(iteration) + ".dat")
 
-                _create_corrected_model(corr_model_path, change_params_path, accel_inst, opt.debug)
+                _create_corrected_model(corr_model_path, opt.change_params_path,
+                                        accel_inst, opt.debug)
 
                 corr_model_elements = tfs.read_tfs(corr_model_path, index="NAME")
                 corr_model = corr_model_elements.loc[tfs.get_bpms(corr_model_elements), :]
@@ -440,7 +449,9 @@ def global_correction(opt, accel_opt):
                     # please look away for the next two lines.
                     accel_inst._model = corr_model
                     accel_inst._elements = corr_model_elements
-                    resp_dict = _create_response(accel_inst, vars_list, optics_params)
+                    resp_dict = response_twiss.create_response(
+                        accel_inst, opt.variable_categories, optics_params
+                    )
                     resp_dict = _filter_response_index(resp_dict, meas_dict, optics_params)
                     resp_matrix = _join_responses(resp_dict, optics_params, vars_list)
 
@@ -448,12 +459,12 @@ def global_correction(opt, accel_opt):
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
-            writeparams(change_params_path, delta)
-            writeparams(change_params_correct_path, -delta)
+            writeparams(opt.change_params_path, delta)
+            writeparams(opt.change_params_correct_path, -delta)
             LOG.debug("Cumulative delta: {:.5e}".format(
                 np.sum(np.abs(delta.loc[:, "DELTA"].values))))
 
-        write_knob(os.path.join(opt.output_path, "changeparameters.knob"), delta)
+        write_knob(opt.knob_path, delta)
     LOG.info("Finished Iterative Global Correction.")
 
 # Main function helpers #######################################################
@@ -467,8 +478,12 @@ def _check_opt(opt):
 
     iotools.create_dirs(opt.output_path)
 
-    bb_root = iotools.get_absolute_path_to_betabeat_root()
-    opt.template_file_path = os.path.join(bb_root, "correction", "job.twiss_python.madx")
+    # some paths "hardcoded"
+    opt.change_params_path = os.path.join(opt.output_path,
+                                          "{:s}.madx".format(opt.output_filename))
+    opt.change_params_correct_path = os.path.join(opt.output_path,
+                                                  "{:s}_correct.madx".format(opt.output_filename))
+    opt.knob_path = os.path.join(opt.output_path, "{:s}.knob").format(opt.output_filename)
 
     # check cuts and weights:
     def_dict = _get_default_values()
@@ -511,7 +526,7 @@ def _print_rms(meas, diff_w, r_delta_w):
     for key in meas:
         LOG.info(f_str.format(
             key, _rms(meas[key].loc[:, 'DIFF'].values * meas[key].loc[:, 'WEIGHT'].values)))
-    LOG.info(f_str.format("Model - Measure", _rms(diff_w)))
+    LOG.info(f_str.format("All", _rms(diff_w)))
     LOG.debug(f_str.format("R * delta", _rms(r_delta_w)))
     LOG.debug("(Model - Measure) - (R * delta)   ")
     LOG.debug(f_str.format("", _rms(diff_w - r_delta_w)))
@@ -526,26 +541,14 @@ def _load_fullresponse(full_response_path, variables):
     with open(full_response_path, "r") as full_response_file:
         full_response_data = pickle.load(full_response_file)
 
-    for param in full_response_data:
-        df = full_response_data[param]
-        # fill with zeros
-        not_found_vars = pd.Index(variables).difference(df.columns)
-        if len(not_found_vars) > 0:
-            LOG.debug(("Variables not in fullresponse {:s} " +
-                       "(To be filled with zeros): {:s}").format(param, not_found_vars.values))
-            df = df.assign(**dict.fromkeys(not_found_vars, 0.0))  # one-liner to add zero-columns
-        # order variables
-        full_response_data[param] = df.loc[:, variables]
+    loaded_vars = []
+    [loaded_vars.append(var) for resp in full_response_data.values() for var in resp]
+    if not any([v in loaded_vars for v in variables]):
+        raise ValueError("None of the given variables found in response matrix. "
+                         "Are you using the right categories?")
 
     LOG.debug("Loading ended")
     return full_response_data
-
-
-def _create_response(accel_inst, vars_list, optics_params):
-    """ Create response via TwissResponse """
-    varmap_path = check_varmap_file(accel_inst, vars_list)
-    tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list)
-    return tr.get_response_for(optics_params)
 
 
 def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
@@ -597,6 +600,37 @@ def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
     return filtered_keys, measurement
 
 
+def _automate_modelcut(mcut_dict, meas_dict, vars_categories):
+    """ Automatic calculation of model-cut
+
+        For coupling: Applied if "coupling_knobs" is int the list of variables
+                      AND if the model-cut is set to zero!
+    """
+    if "coupling_knobs" in vars_categories:
+        # use the value after 5% of the sorted data as cut value
+        for rdt in ["1001", "1010"]:
+            rdt_names = ["F{:s}{:s}".format(rdt, comp) for comp in ["R", "I"]]
+            if any([name in meas_dict for name in rdt_names]):
+                # use meas_dict for checking, because it's already filtered
+                try:
+                    meas = meas_dict[rdt_names[0]]
+                except KeyError:
+                    # does not matter which one they link to the same file
+                    meas = meas_dict[rdt_names[1]]
+                amp_meas = meas["F{:s}W".format(rdt)]
+                amp_mdl = np.sqrt(meas["MDLF{:s}R".format(rdt)]**2 +
+                                  meas["MDLF{:s}I".format(rdt)]**2
+                                  )
+                idx_num = int(np.floor(len(amp_meas) * 0.95))
+                idx = amp_meas.sort_values().index.values[idx_num]
+                new_cut = np.abs(amp_meas[idx] - amp_mdl[idx])
+                for name in rdt_names:
+                    if mcut_dict[name] == 0.0:
+                        mcut_dict[name] = new_cut
+                        LOG.info("Model Cut for {:s} set to {:e}.".format(name, new_cut))
+    return mcut_dict
+
+
 def _get_varlist(accel_cls, variables, virt_flag):  # TODO: Virtual?
     varlist = np.array(accel_cls.get_variables(classes=variables))
     if len(varlist) == 0:
@@ -624,7 +658,7 @@ def _filter_measurement(keys, meas, model, errorbar, w_dict, e_dict, m_dict):
     new = dict.fromkeys(keys)
     for key in keys:
         new[key] = filters[key](key, meas[key], model, errorbar, w_dict[key],
-                                 modelcut=m_dict[key], errorcut=e_dict[key])
+                                modelcut=m_dict[key], errorcut=e_dict[key])
     return new
 
 
@@ -654,7 +688,7 @@ def _get_filtered_generic(key, meas, model, erwg, weight, modelcut, errorcut):
     # weights
     new.loc[:, 'WEIGHT'] = weight
     if erwg:
-        new.loc[:, 'WEIGHT'] = new.loc[:, 'WEIGHT'].values / new.loc[:, 'ERROR'].values
+        new.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, new['WEIGHT'], new['ERROR'])
 
     # filter cuts
     error_filter = new.loc[:, 'ERROR'].values < errorcut
@@ -689,7 +723,7 @@ def _get_filtered_phases(key, meas, model, erwg, weight, modelcut, errorcut):
     # weights
     new.loc[:, 'WEIGHT'] = weight
     if erwg:
-        new.loc[:, 'WEIGHT'] = new['WEIGHT'] / new['ERROR']
+        new.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, new['WEIGHT'], new['ERROR'])
 
     # filter cuts
     error_filter = new['ERROR'] < errorcut
@@ -727,7 +761,8 @@ def _get_filtered_betabeat(key, meas, model, erwg, weight, modelcut, errorcut):
     # weights
     new.loc[:, 'WEIGHT'] = weight
     if erwg:
-        new.loc[:, 'WEIGHT'] = new['WEIGHT'] * meas[col_mdl] / new['ERROR']
+        new.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, new['WEIGHT'] * meas[col_mdl],
+                                                       new['ERROR'])
 
     # filter cuts
     model_filter = np.abs(new['VALUE'] - meas[col_mdl]) / meas[col_mdl] < modelcut
@@ -738,12 +773,22 @@ def _get_filtered_betabeat(key, meas, model, erwg, weight, modelcut, errorcut):
     return new.loc[good_bpms, :]
 
 
-def _get_tunes(key, meas, model, erwg, weight, modelcut=0.1, errorcut=0.027):
+def _get_tunes(key, meas, model, erwg, weight, modelcut, errorcut):
     meas.loc[:, 'WEIGHT'] = weight
     if erwg:
-        meas.loc[:, 'WEIGHT'] = meas['WEIGHT'] / meas['ERROR']
+        meas.loc[:, 'WEIGHT'] = _get_errorbased_weights(key, meas['WEIGHT'], meas['ERROR'])
     LOG.debug("Number of tune measurements: " + str(len(meas.index.values)))
     return meas
+
+
+def _get_errorbased_weights(key, weights, errors):
+    if 0 in errors.values:
+        LOG.warn("Zero-values found in errors of '{:s}'. ".format(key) +
+                 "Weights will not be based on errors for this parameter! " +
+                 "(Maybe don't use --errorbars.)")
+        return weights
+    else:
+        return weights / errors
 
 
 # Response filtering ##########################################################
@@ -869,23 +914,7 @@ def _pseudo_inverse(response_mat, diff_vec, opt):
 def _create_corrected_model(twiss_out, change_params, accel_inst, debug):
     """ Use the calculated deltas in changeparameters.madx to create a corrected model """
     # create script from template
-    with open(accel_inst.get_update_correction_tmpl(), "r") as template:
-        madx_template = template.read()
-
-    replace_dict = {
-        "LIB": accel_inst.MACROS_NAME,
-        "MAIN_SEQ": accel_inst.load_main_seq_madx(),
-        "OPTICS_PATH": accel_inst.optics_file,
-        "CROSSING_ON": 0,  # TODO: Crossing
-        "NUM_BEAM": accel_inst.get_beam(),
-        "PATH_TWISS": twiss_out,
-        "DPP": 0.0,
-        "QMX": accel_inst.nat_tune_x,
-        "QMY": accel_inst.nat_tune_y,
-        "CORRECTIONS": change_params,
-    }
-    madx_script = madx_template % replace_dict
-
+    madx_script = accel_inst.get_update_correction_job(twiss_out, change_params)
     # run madx
     if debug:
         with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
@@ -933,34 +962,12 @@ def _join_responses(resp, keys, varslist):
                      axis="index",  # axis to join along
                      join_axes=[pd.Index(varslist)]
                      # other axes to use (pd Index obj required)
-                     )
+                     ).fillna(0.0)
 
 
 def _join_columns(col, meas, keys):
     """ Retuns vector: N= #BPMs * #Parameters (BBX, MUX etc.) """
     return np.concatenate([meas[key].loc[:, col].values for key in keys], axis=0)
-
-
-# Related Public Methods #####################################################
-
-
-def check_varmap_file(accel_inst, variables):
-    """ Checks on varmap file and creates it if not in model folder.
-    THIS SHOULD BE REPLACED WITH A CALL TO JAIMES DATABASE, IF IT BECOMES AVAILABLE """
-    varmapfile_name = accel_inst.NAME.lower() + "b" + str(accel_inst.get_beam())
-    varmap_path = os.path.join(accel_inst.model_dir, varmapfile_name + "." + VARMAP_EXT)
-    if not os.path.isfile(varmap_path):
-        LOG.info("Variable mapping '{:s}' not found. Evaluating it via madx.".format(varmap_path))
-        basic_twiss = os.path.join(accel_inst.model_dir, "job.basic_twiss.madx")
-
-        if not os.path.isfile(basic_twiss):
-            raise IOError("Basic Twiss jobfile to create mapping not found. "
-                          "Please provide at '{:s}'.".format(basic_twiss))
-        mapping = evaluate_for_variables(variables, basic_twiss)
-        with open(varmap_path, 'wb') as dump_file:
-            pickle.Pickler(dump_file, -1).dump(mapping)
-
-    return varmap_path
 
 
 # Main invocation ############################################################
