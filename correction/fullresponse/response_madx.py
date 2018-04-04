@@ -36,12 +36,8 @@ def generate_fullresponse(accel_inst, variable_categories,
         beta, phase, dispersion, tune and coupling and saves it to a file.
 
         Args:
-            variables (list): List of variables to use.
-            original_jobfile_path (str): Name of the original MAD-X job file
-                                         defining the sequence file.
-            patterns (dict): Patterns to be replaced in the MAD-X job file by the iterative
-                             script calls. Must contain 'job_content', 'twiss_columns'
-                             and 'element_pattern'.
+            accel_inst : Accelerator Instance.
+            variable_categories (list): Categories of the variables/knobs to use. (from .json)
             delta_k (float): delta K1L to be applied to quads for sensitivity matrix
             num_proc (int): Number of processes to use in parallel.
             temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.
