@@ -108,7 +108,6 @@ def _generate_madx_jobs(accel_inst, variables, delta_k, num_proc, temp_dir):
 def _get_madx_job(accel_inst):
     job_content = accel_inst.get_basic_seq_job()
     job_content += (
-        "\n\n"    
         "select, flag = twiss, clear;\n"    
         "select, flag = twiss, pattern = '^BPM', "
         "column = 'NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22';\n\n"
