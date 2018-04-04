@@ -13,7 +13,7 @@ exec, set_crossing_scheme_ON();
 }else{
 exec, set_default_crossing_scheme();
 }
-use, period = LHCB%(NUM_BEAM)i;
+use, sequence = LHCB%(NUM_BEAM)i;
 
 option, echo;
 
