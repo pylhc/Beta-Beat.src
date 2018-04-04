@@ -26,21 +26,18 @@ EXT = "varmap"  # Extension Standard
 # Read Sequence ##############################################################
 
 
-def evaluate_for_variables(accel_inst, variable_categories, order=2,
+def evaluate_for_variables(accel_inst, variable_categories, order=4,
                            num_proc=multiprocessing.cpu_count(),
                            temp_dir=None):
     """ Generate a dictionary containing response matrices for
         beta, phase, dispersion, tune and coupling and saves it to a file.
 
         Args:
-            variables (list): List of variables to use.
-            original_jobfile_path (str): Name of the original MAD-X job file
-                                         defining the sequence file.
-            patterns (dict): Patterns to be replaced in the MAD-X job file by the iterative
-                             script calls. Must contain 'job_content', 'twiss_columns'
-                             and 'element_pattern'.
+            accel_inst : Accelerator Instance.
+            variable_categories (list): Categories of the variables/knobs to use. (from .json)
+            order (int or tuple): Max or [min, max] of K-value order to use.
             num_proc (int): Number of processes to use in parallel.
-            temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.
+            temp_dir (str): temporary directory. If ``None``, uses model_dir.
     """
     LOG.debug("Generating Fullresponse via Mad-X.")
     with timeit(lambda t: LOG.debug("  Total time generating fullresponse: {:f}s".format(t))):
@@ -60,35 +57,29 @@ def evaluate_for_variables(accel_inst, variable_categories, order=2,
         num_proc = num_proc if len(variables) > num_proc else len(variables)
         process_pool = multiprocessing.Pool(processes=num_proc)
 
+        k_values = _get_orders(order)
+
         try:
-            _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir)
+            _generate_madx_jobs(accel_inst, variables, k_values, num_proc, temp_dir)
             _call_madx(process_pool, temp_dir, num_proc)
-            mapping = _load_madx_results(variables, order, process_pool, temp_dir)
+            mapping = _load_madx_results(variables, k_values, process_pool, temp_dir)
         except IOError:
                 raise IOError("MADX was unable to compute the mapping.")
         finally:
-            # _clean_up(variables, temp_dir, num_proc)
-            pass
+            _clean_up(variables, temp_dir, num_proc)
     return mapping
 
 
-def _get_current_elements(original_content, patterns, folder):
-    """ Run madx once to get a list of elements """
-    twiss_path = os.path.join(folder, "twiss.get_elements.dat")
-    content = original_content.replace(patterns["job_content"],
-             "twiss, file = '{:s}';\n".format(twiss_path))
-    madx_wrapper.resolve_and_run_string(content)
-    twiss = tfs_pandas.read_tfs(twiss_path, index="NAME")
-    return twiss.index.values
-
-
-def _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir):
+def _generate_madx_jobs(accel_inst, variables, k_values, num_proc, temp_dir):
     """ Generates madx job-files """
     def _assign(var, value):
         return "{var:s} = {value:d};\n".format(var=var, value=value)
 
     def _do_macro(var):
-        return "exec, create_table({table:s}, {f_out:s});\n".format(
+        return (
+            "exec, create_table({table:s});\n"
+            "write, table={table:s}, file='{f_out:s}';\n"
+        ).format(
             table="table." + var,
             f_out=_get_tablefile(temp_dir, var),
         )
@@ -97,7 +88,7 @@ def _generate_madx_jobs(accel_inst, variables, order, num_proc, temp_dir):
     vars_per_proc = int(math.ceil(float(len(variables)) / num_proc))
 
     # load template
-    madx_script = _create_basic_job(accel_inst, order, variables)
+    madx_script = _create_basic_job(accel_inst, k_values, variables)
 
     # build content for testing each variable
     for proc_idx in range(num_proc):
@@ -158,7 +149,7 @@ def _clean_up(variables, temp_dir, num_proc):
         pass
 
 
-def _load_madx_results(variables, order, process_pool, temp_dir):
+def _load_madx_results(variables, k_values, process_pool, temp_dir):
     """ Load the madx results in parallel and return var-tfs dictionary """
     LOG.debug("Loading Madx Results.")
     path_and_vars = []
@@ -166,10 +157,10 @@ def _load_madx_results(variables, order, process_pool, temp_dir):
         path_and_vars.append((temp_dir, value))
 
     _, base_tfs = _load_and_remove_twiss((temp_dir, "0"))
-    mapping = dict([(o, {}) for o in _get_orders(order)] +
-                   [(o + "L", {}) for o in _get_orders(order)])
+    mapping = dict([(o, {}) for o in k_values] +
+                   [(o + "L", {}) for o in k_values])
     for var, tfs_data in process_pool.map(_load_and_remove_twiss, path_and_vars):
-        for o in _get_orders(order):
+        for o in k_values:
             diff = (tfs_data[o] - base_tfs[o])
             mask = diff != 0  # drop zeros, maybe abs(diff) < eps ?
             k_list = diff.loc[mask]
@@ -181,8 +172,12 @@ def _load_madx_results(variables, order, process_pool, temp_dir):
 # Helper #####################################################################
 
 
-def _get_orders(max_order):
-    return ["K{:d}{:s}".format(i, s) for i in range(max_order) for s in ["", "S"]]
+def _get_orders(order):
+    """ Returns a list of strings with K-values to be used """
+    try:
+        return ["K{:d}{:s}".format(i, s) for i in range(order) for s in ["", "S"]]
+    except TypeError:
+        return ["K{:d}{:s}".format(i, s) for i in range(*order) for s in ["", "S"]]
 
 
 def _get_jobfile(folder, index):
@@ -211,33 +206,38 @@ def _load_and_remove_twiss(path_and_var):
     path, var = path_and_var
     twissfile = _get_tablefile(path, var)
     tfs_data = tfs_pandas.read_tfs(twissfile, index="NAME")
-    tfs_data['Q1'] = tfs_data.Q1
-    tfs_data['Q2'] = tfs_data.Q2
     return var, tfs_data
 
 
-def _create_basic_job(accel_inst, order, variables):
+def _create_basic_job(accel_inst, k_values, variables):
     """ Create the madx-job basics needed
-        TEMPFILE need to be replaced in the returned string.
+        TEMPFILE needs to be replaced in the returned string.
     """
-    all_ks = _get_orders(order)
     # basic sequence creation
     job_content = accel_inst.get_basic_seq_job()
 
     # create a survey and save it to a temporary file
     job_content += (
         "select, flag=survey, clear;\n"
-        "select, flag=survey, pattern='^[MB].*\.B{beam:d}$', COLUMN=NAME, L;\n"
+        "select, flag=survey, pattern='^M.*\.B{beam:d}$', COLUMN=NAME, L;\n"
         "survey, file='%(TEMPFILE)s';\n"
         "readmytable, file='%(TEMPFILE)s', table=mytable;\n"
         "n_elem = table(mytable, tablelength);\n"
         "\n"
     ).format(beam=accel_inst.get_beam())
 
-    # create macro for assigning values to the order per element
+    # create macro for assigning values to the k_values per element
     job_content += "assign_k_values(element) : macro = {\n"
-    for k_val in all_ks:
-        job_content += "    {k:s} = element->{k:s};\n".format(k=k_val)
+    # job_content += "    value, element; show, element;\n"
+    for k_val in k_values:
+        #TODO: Ask someone who knows about MADX if K0-handling is correct
+        # (see user guide 10.3 Bending Magnet)
+        if k_val == "K0":
+            job_content += "    {k:s} = element->angle / element->L;\n".format(k=k_val)
+        elif k_val == "K0S":
+            job_content += "    {k:s} = element->tilt / element->L;\n".format(k=k_val)
+        else:
+            job_content += "    {k:s} = element->{k:s};\n".format(k=k_val)
     job_content += "};\n\n"
 
     # create macro for using the row index as variable (see madx userguide)
@@ -249,18 +249,17 @@ def _create_basic_job(accel_inst, order, variables):
 
     # create macro to create the full table with loop over elements
     job_content += (
-        "create_table(table_id, filename) : macro = {{\n"
+        "create_table(table_id) : macro = {{\n"
         "    create, table=table_id, column=_name, L, {col:s};\n"
         "    i_elem = 0;\n"
         "    while (i_elem < n_elem) {{\n"
         "        i_elem = i_elem + 1;\n"
-        "        setvars, table=table_id, row=i_elem;\n"
-        "        exec, create_row(table_id, $i_elem);\n"
+        "        setvars, table=mytable, row=i_elem;\n"  # mytable from above!
+        "        exec, create_row(mytable, $i_elem);\n"  # mytable from above!
         "        fill,  table=table_id;\n"
-        "    };\n"
-        "    write, table=table_id, file='filename';\n"
-        "};\n\n"
-    ).format(col=",".join(all_ks))
+        "    }};\n"
+        "}};\n\n"
+    ).format(col=",".join(k_values))
 
     # set all variables to zero
     for var in variables:
