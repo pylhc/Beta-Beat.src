@@ -57,7 +57,7 @@ TEST_MODEL_CREATOR = (
         script=join("model", "creator.py"),
         arguments=("--type nominal --accel lhc --lhcmode lhc_runII_2017 "
                    "--beam 1 --nattunex 0.28 --nattuney 0.31 --acd "
-                   "--drvtunex 0.27 --drvtuney 0.322 "
+                   "--drvtunex 0.27 --drvtuney 0.322 --dpp 0.0 "
                    "--optics {optics} "
                    "--output {output}").format(optics=join(OPTICS, "2017", "opticsfile.19"),
                                                output=join(REGR_DIR, "_out_model_creator_test_lhc")),
