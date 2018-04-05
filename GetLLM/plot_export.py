@@ -110,7 +110,9 @@ def _parse_options(args):
     parser.add_argument("-t", "--labels",
                         help="Label",
                         metavar="LABEL", default="None", dest="label", type=str)
-
+    parser.add_argument("-m", "--marker",
+                        help="Marker Style",
+                        metavar="MARKERSTYLE", default=None, dest="marker", type=str)
     options = parser.parse_args(args)
     return options
 
@@ -411,6 +413,10 @@ def plot_analysis(opt):
     """
     LOG.debug("Plotting GetLLM analysis.")
     mdl_analysis = opt.subnode in mdl_subnodes
+
+    manual_style = MANUAL_STYLE
+    if opt.marker is not None:
+        manual_style[u'lines.marker'] = opt.marker
 
     ps.set_style("standard", MANUAL_STYLE)
     xmin = min(opt.xplot_xmin, opt.yplot_xmin)
