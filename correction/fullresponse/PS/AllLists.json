@@ -2,5 +2,6 @@
   "PR.Q": ["kf","kd"],
   "PR.QTR": ["ITRIPA","ITRIPB","IDOUBA","IDOUBB"],
   "PR.QS": ["QSE"],
-  "PE.QK": ["KQKE16","QKE162"]
+  "PE.QK": ["KQKE16","QKE162"],
+  "LQ": []
 }

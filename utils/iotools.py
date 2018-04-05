@@ -64,6 +64,7 @@ def copy_content_of_dir(src_dir, dst_dir):
 def create_dirs(path_to_dir):
     """ Creates all dirs to path_to_dir if not exists. """
     if not os.path.exists(path_to_dir):
+        print(path_to_dir)
         os.makedirs(path_to_dir)
 
 

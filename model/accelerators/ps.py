@@ -36,7 +36,8 @@ class Ps(Accelerator):
 
     """
     NAME = "ps"
-
+    MACROS_NAME = "ps"
+    
     @staticmethod
     def get_class_parameters():
         params = EntryPointParameters()
@@ -202,7 +203,15 @@ class Ps(Accelerator):
     def get_arc_bpms_mask(cls, list_of_elements):
         # TODO: Anaaaaaa
         pass
-
+    
+    @classmethod
+    def get_iteration_tmpl(cls):
+        return cls.get_file("template.iterate.madx")
+    
+    @classmethod
+    def get_file(cls, filename):
+        return os.path.join(CURRENT_DIR, "ps", filename)
+    
     # Private Methods ##########################################################
 
 
