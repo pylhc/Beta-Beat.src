@@ -113,25 +113,10 @@ def create_response(opt, other_opt):
         accel_inst = accel_cls(model_dir=opt.model_dir)
 
         if opt.creator == "madx":
-            variables = accel_inst.get_variables(classes=opt.variable_categories)
-            if len(variables) == 0:
-                raise ValueError("No variables found! Make sure your categories are valid!")
+            fullresponse = response_madx.generate_fullresponse(
+                accel_inst, opt.variable_categories, delta_k=opt.delta_k
+            )
 
-            jobfile_path = os.path.join(opt.model_dir, "tmpl.generate_fullresponse.madx")
-            patterns = {
-                "job_content": "%JOB_CONTENT%",
-                "twiss_columns": "%TWISS_COLUMNS%",
-                "element_pattern": "%ELEMENT_PATTERN%",
-            }
-            madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
-                                                         patterns["twiss_columns"],
-                                                         patterns["element_pattern"])
-            with open(jobfile_path, "w") as f:
-                f.write(madx_script)
-
-            fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
-                                                               patterns=patterns,
-                                                               delta_k=opt.delta_k)
         elif opt.creator == "twiss":
             fullresponse = response_twiss.create_response(
                 accel_inst, opt.variable_categories, opt.optics_params

@@ -440,8 +440,10 @@ def global_correction(opt, accel_opt):
                                         accel_inst, opt.debug)
 
                 corr_model_elements = tfs.read_tfs(corr_model_path, index="NAME")
+                corr_model_elements = _maybe_add_coupling_to_model(
+                    corr_model_elements, optics_params
+                )
                 corr_model = corr_model_elements.loc[tfs.get_bpms(corr_model_elements), :]
-                corr_model = _maybe_add_coupling_to_model(corr_model, optics_params)
 
                 meas_dict = _append_model_to_measurement(corr_model, meas_dict, optics_params)
                 if opt.update_response:
@@ -564,7 +566,7 @@ def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
             measurement['MUY'] = getllm_data.phase_y
         elif key == "DX":
             measurement['DX'] = getllm_data.disp_x
-        elif key == "DX":
+        elif key == "DY":
             measurement['DY'] = getllm_data.disp_y
         elif key == "NDX":
             measurement['NDX'] = getllm_data.norm_disp

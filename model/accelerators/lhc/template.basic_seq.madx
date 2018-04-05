@@ -1,3 +1,5 @@
+title, "Model creator for java";
+
 !@require %(LIB)s.macros.madx
 
 option, -echo;
@@ -6,19 +8,21 @@ option, -echo;
 exec, define_nominal_beams();
 call, file = "%(OPTICS_PATH)s";
 exec, cycle_sequences();
-
 if(%(CROSSING_ON)s==1){
 exec, set_crossing_scheme_ON();
 }else{
 exec, set_default_crossing_scheme();
 }
-
-use, period = LHCB%(NUM_BEAM)i;
+use, sequence = LHCB%(NUM_BEAM)i;
 
 option, echo;
 
 exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
 
-save, sequence=lhcb%(NUM_BEAM)i, file="%(PATH)s/lhcb%(NUM_BEAM)i.seq";
+!!! for ATS MD
+! exec, full_response_ats();
 
-stop;
+exec, coupling_knob(%(NUM_BEAM)i);
+
+
+

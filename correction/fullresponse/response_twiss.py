@@ -764,7 +764,7 @@ def create_response(accel_inst, vars_categories, optics_params):
     if len(vars_list) == 0:
         raise ValueError("No variables found! Make sure your categories are valid!")
 
-    varmap_path = check_varmap_file(accel_inst, vars_list, vars_categories)
+    varmap_path = check_varmap_file(accel_inst, vars_categories)
 
     with timeit(lambda t:
                 LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
