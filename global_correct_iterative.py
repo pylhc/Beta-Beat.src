@@ -564,7 +564,7 @@ def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
             measurement['MUY'] = getllm_data.phase_y
         elif key == "DX":
             measurement['DX'] = getllm_data.disp_x
-        elif key == "DX":
+        elif key == "DY":
             measurement['DY'] = getllm_data.disp_y
         elif key == "NDX":
             measurement['NDX'] = getllm_data.norm_disp
