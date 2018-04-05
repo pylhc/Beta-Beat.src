@@ -440,8 +440,10 @@ def global_correction(opt, accel_opt):
                                         accel_inst, opt.debug)
 
                 corr_model_elements = tfs.read_tfs(corr_model_path, index="NAME")
+                corr_model_elements = _maybe_add_coupling_to_model(
+                    corr_model_elements, optics_params
+                )
                 corr_model = corr_model_elements.loc[tfs.get_bpms(corr_model_elements), :]
-                corr_model = _maybe_add_coupling_to_model(corr_model, optics_params)
 
                 meas_dict = _append_model_to_measurement(corr_model, meas_dict, optics_params)
                 if opt.update_response:
