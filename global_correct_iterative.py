@@ -190,8 +190,8 @@ def _get_params():
     )
     params.add_parameter(
         flags="--optics_file",
-        help=("Path to the optics file to use, usually modifiers.madx. If "
-              "not present will default to model_path/modifiers.madx"),
+        help=("Path to the optics file to use. If not present will default to "
+              "model_path/modifiers.madx, if such a file exists."),
         name="optics_file",
     )
     params.add_parameter(
