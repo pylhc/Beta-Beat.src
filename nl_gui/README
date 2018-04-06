@@ -11,6 +11,8 @@ data.orbit.arc.xing.csv  HEADER: time
 
 ./interactive_plotting.py --input_dir .
 
+n: next
+p: previous
 
 
 cleaning data
@@ -19,4 +21,8 @@ data.BBQ.csv  HEADER: time
 accepted_platteaus.dat
 
 ./interactive_cleaning.py --input_dir . --beam 1 --source BBQ_HS
+
+n: next
+p: previous
+
 
