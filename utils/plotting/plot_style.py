@@ -205,9 +205,7 @@ _STANDARD_PARAMS = {
 }
 
 
-"""
-=============================   Style   =============================
-"""
+# Style ######################################################################
 
 
 def set_style(style='standard', manual=None):
@@ -234,9 +232,7 @@ def set_style(style='standard', manual=None):
     matplotlib.rcParams.update(params)
 
 
-"""
-=============================   Tools   =============================
-"""
+# Tools ######################################################################
 
 
 def sync2d(axs, ax_str='xy', ax_lim=()):
@@ -318,9 +314,31 @@ def set_xLimits(accel, ax=None):
         raise ArgumentError("Accelerator '" + accel + "' unknown.")
 
 
-"""
-=============================   Labels   =============================
-"""
+class MarkerList(object):
+    """ Create a list of predefined markers """
+    markers = [".", "s", "o", "D", "*", "h", "^", "p", "X", "8", "v"]
+
+    def __init__(self):
+        self.idx = 0
+
+    @classmethod
+    def get_marker(cls, marker_num):
+        """ Return marker of index marker_num
+
+         Args:
+             marker_num (int): return maker at this position in list (mod len(list))
+        """
+        return cls.markers[marker_num % len(cls.markers)]
+
+    def get_next_marker(self):
+        """ Return the next marker in the list (circularly wrapped) """
+        marker = self.get_marker(self.idx)
+        self.idx += 1
+        return marker
+
+
+# Labels #####################################################################
+
 
 # List of common y-labels. Sorry for the ugly.
 _ylabels = {
