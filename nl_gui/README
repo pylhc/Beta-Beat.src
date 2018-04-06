@@ -1,0 +1,22 @@
+Running interactive_plotting and interactive_cleaning:
+
+
+platteau selection
+==================
+Files needed:
+
+data.Imeas.csv  HEADER: time
+data.platteaus.csv  HEADER: remove #
+data.orbit.arc.xing.csv  HEADER: time
+
+./interactive_plotting.py --input_dir .
+
+
+
+cleaning data
+=============
+data.BBQ.csv  HEADER: time
+accepted_platteaus.dat
+
+./interactive_cleaning.py --input_dir . --beam 1 --source BBQ_HS
+
