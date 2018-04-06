@@ -63,14 +63,11 @@ import os
 import optparse
 import json
 import pickle
-import re
 
-
-import __init__  # @UnusedImport init will include paths
 import correction.GenMatrix
 import Python_Classes4MAD.metaclass
 import utils.iotools
-import utils.math
+import correction.correction_helpers
 
 PRINT_DEBUG = False or sys.flags.debug  # Change to 'True or...' or invoke python with -d option to activate further prints
 
@@ -352,18 +349,18 @@ class _InputData(object):
         _InputData._check_and_set_cuts(singular_value_cut, errorcut, modelcut)
         _InputData._check_and_set_accel_path(beta_beat_root, accel)
 
-        if not utils.math.can_str_be_parsed_to_number(min_strength):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(min_strength):
             raise ValueError("Given min strength is not a number: " + min_strength)
         if "SPS" != accel:
             _InputData.min_strength = float(min_strength)
 
-        if not utils.math.can_str_be_parsed_to_number(error_weights):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(error_weights):
             raise ValueError("Given error based weight is not a number: " + error_weights)
         _InputData.error_weights = int(error_weights)
         
         weights = weights_on_corrections.split(',')
         for i in range(len(weights)):
-            if not utils.math.can_str_be_parsed_to_number(weights[i]):
+            if not correction.correction_helpers.can_str_be_parsed_to_number(weights[i]):
                 raise ValueError("Wrong syntax of weigths: " + weights_on_corrections)
         _InputData.weights_list = [float(weights[0]), float(weights[1]), float(weights[2]), float(weights[3]), float(weights[4]), float(weights[5])]
 
@@ -373,7 +370,7 @@ class _InputData(object):
         _InputData.variables_list = variables.split(",")
 
         _InputData.use_two_beams = 1 == index_of_num_of_beams_in_gui  # 0 index for 'One Beam'; 1 index for 'Two Beams'(vimaier)
-        if not utils.math.can_str_be_parsed_to_number(num_of_correctors):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(num_of_correctors):
             raise ValueError("Given number of correctors is not a number: " + num_of_correctors)
         _InputData.num_of_correctors = int(num_of_correctors)
         if "SVD" != algorithm:
@@ -385,21 +382,21 @@ class _InputData(object):
 
     @staticmethod
     def _check_and_set_cuts(singular_value_cut, errorcut, modelcut):
-        if not utils.math.can_str_be_parsed_to_number(singular_value_cut):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(singular_value_cut):
             raise ValueError("Given cut is not a number: " + singular_value_cut)
         modelcuts = modelcut.split(",")
-        if not utils.math.can_str_be_parsed_to_number(modelcuts[0]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(modelcuts[0]):
             raise ValueError("Given model cut is not a number: " + modelcuts[0] + " from " + modelcuts)
-        if not utils.math.can_str_be_parsed_to_number(modelcuts[1]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(modelcuts[1]):
             raise ValueError("Given model cut is not a number: " + modelcuts[1] + " from " + modelcuts)
-        if not utils.math.can_str_be_parsed_to_number(modelcuts[2]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(modelcuts[2]):
             raise ValueError("Given model cut is not a number: " + modelcuts[2] + " from " + modelcuts)
         errorcuts = errorcut.split(",")
-        if not utils.math.can_str_be_parsed_to_number(errorcuts[0]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(errorcuts[0]):
             raise ValueError("Given error cut is not a number: " + errorcuts[0] + " from " + errorcuts)
-        if not utils.math.can_str_be_parsed_to_number(errorcuts[1]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(errorcuts[1]):
             raise ValueError("Given error cut is not a number: " + errorcuts[1] + " from " + errorcuts)
-        if not utils.math.can_str_be_parsed_to_number(errorcuts[2]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(errorcuts[2]):
             raise ValueError("Given error cut is not a number: " + errorcuts[2] + " from " + errorcuts)
         _InputData.singular_value_cut = float(singular_value_cut)
 
