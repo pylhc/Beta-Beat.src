@@ -63,7 +63,10 @@ import os
 import optparse
 import json
 import pickle
+import re
 
+
+import __init__  # @UnusedImport init will include paths
 import correction.GenMatrix
 import Python_Classes4MAD.metaclass
 import utils.iotools

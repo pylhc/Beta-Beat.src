@@ -56,6 +56,8 @@ import re
 from optparse import OptionParser
 import json
 
+
+import __init__ # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
 import correction.GenMatrix_chromcouple
 import utils.iotools

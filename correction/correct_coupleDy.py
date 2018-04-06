@@ -58,6 +58,7 @@ import json
 
 import numpy
 
+import __init__ # @UnusedImport init will include paths
 import utils.iotools
 import utils.tfs_file_writer
 import correction.correction_helpers

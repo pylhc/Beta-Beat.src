@@ -59,6 +59,7 @@ import json
 
 import numpy
 
+import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
 import utils.iotools
 import correction.correction_helpers
