@@ -316,7 +316,8 @@ def set_xLimits(accel, ax=None):
 
 class MarkerList(object):
     """ Create a list of predefined markers """
-    markers = [".", "s", "o", "D", "*", "h", "^", "p", "X", "8", "v"]
+    # markers = ["s", "o", ">", "D", "v", "*", "h", "^", "p", "X", "<", "P"]  # matplotlib 2.++
+    markers = ["s", "o", ">", "D", "v", "*", "h", "^", "p", "<"]
 
     def __init__(self):
         self.idx = 0

@@ -14,12 +14,13 @@ from matplotlib.backends.backend_pdf import PdfPages
 from utils import logging_tools
 from utils import tfs_pandas as tfs
 from utils.plotting import plot_style as ps
+from utils.plotting.plot_style import MarkerList
 
 LOG = logging_tools.get_logger(__name__)
 
-"""
-=============================   Constants, Style and Arguments   =============================
-"""
+
+# Constants, Style and Arguments #############################################
+
 
 IR_POS_DEFAULT = {
     "LHCB1": {
@@ -110,16 +111,14 @@ def _parse_options(args):
     parser.add_argument("-t", "--labels",
                         help="Label",
                         metavar="LABEL", default="None", dest="label", type=str)
-    parser.add_argument("-m", "--marker",
-                        help="Marker Style",
-                        metavar="MARKERSTYLE", default=None, dest="marker", type=str)
+    parser.add_argument("-m", "--changemarker",
+                        help="Changes marker for each line in the plot.",
+                        action="store_true", dest="change_marker")
     options = parser.parse_args(args)
     return options
 
 
-"""
-=============================   Main Wrapper   =============================
-"""
+# Main Wrapper ###############################################################
 
 
 def pdf_export(args=None):
@@ -145,9 +144,8 @@ def main(args=None):
     plot_analysis(opt)
     plt.show()
 
-"""
-=============================   Getter Functions   =============================
-"""
+
+# Getter Functions ###########################################################
 
 
 def get_path(path, name, ext):
@@ -341,9 +339,7 @@ def get_chromatic_coup(path, plane, subnode):
     return data_out
 
 
-"""
-=============================   Getter Collector   =============================
-"""
+# Getter Collector ###########################################################
 
 
 def get_data(path, mainnode, subnode):
@@ -401,9 +397,7 @@ def get_data(path, mainnode, subnode):
     return data_x, data_y
 
 
-"""
-=============================   Main Plotting functions   =============================
-"""
+# Main Plotting ##############################################################
 
 
 def plot_analysis(opt):
@@ -413,10 +407,6 @@ def plot_analysis(opt):
     """
     LOG.debug("Plotting GetLLM analysis.")
     mdl_analysis = opt.subnode in mdl_subnodes
-
-    manual_style = MANUAL_STYLE
-    if opt.marker is not None:
-        manual_style[u'lines.marker'] = opt.marker
 
     ps.set_style("standard", MANUAL_STYLE)
     xmin = min(opt.xplot_xmin, opt.yplot_xmin)
@@ -439,7 +429,7 @@ def plot_analysis(opt):
 
     for idx, path in enumerate(paths):
         data_x, data_y = get_data(path, opt.mainnode, opt.subnode)
-        plot_data(ax_x, data_x, labels, idx)
+        plot_data(ax_x, data_x, labels, idx, opt.change_marker)
 
         if ir_pos is None:
             ir_pos = get_irpos(data_x, opt.accel)
@@ -448,7 +438,7 @@ def plot_analysis(opt):
             if ax_y is None:
                 ax_x.axes.get_xaxis().set_visible(False)
                 ax_y = plt.subplot(gs[1])
-            plot_data(ax_y, data_y, labels, idx)
+            plot_data(ax_y, data_y, labels, idx, opt.change_marker)
 
     ax_x.set_xlim(xmin, xmax)
     ax_x.set_ylim(opt.xplot_ymin, opt.xplot_ymax)
@@ -473,13 +463,13 @@ def plot_analysis(opt):
     return gs
 
 
-def plot_data(ax, data, labels, idx):
+def plot_data(ax, data, labels, idx, change_marker):
     """ Actual plotting """
     if "Model" in data.columns:
         if idx > 0:
             raise NotImplementedError("Only single model comparison implemented.")
 
-        ax.plot(data["S"], data["Model"],
+        ax.plot(data["S"], data["Model"], marker=get_marker(idx, change_marker),
                 color=get_color(idx), markeredgecolor=get_color(idx, True), label=labels[idx])
         idx = idx + 1
         label = labels[idx]
@@ -487,14 +477,12 @@ def plot_data(ax, data, labels, idx):
         label = labels[idx].rsplit('/', 1)[-1]  # TODO: Works only on linux
 
     ax.errorbar(data["S"], data["Value"], yerr=data["Error"],
-                fmt=rcParams['lines.marker'],
+                fmt=get_marker(idx, change_marker),
                 color=get_color(idx), markeredgecolor=get_color(idx, True),
                 label=label)
 
 
-"""
-=============================   Labels, Legend, Text   =============================
-"""
+# Labels, Legend, Text #######################################################
 
 
 def set_yaxis_label(plot, axis, subnode):
@@ -589,6 +577,13 @@ def get_color(idx, marker=False):
         return markeredgecolors[idx % len(colors)]
 
 
+def get_marker(idx, change):
+    if change:
+        return MarkerList.get_marker(idx)
+    else:
+        return rcParams['lines.marker']
+
+
 def get_irpos(data, accel):
     # try to load from model_elements in data
     try:
@@ -616,6 +611,9 @@ def get_irpos(data, accel):
     else:
         LOG.debug("Could not find appropriate IP positions.")
         return {}
+
+
+# Script Mode ##################################################################
 
 
 if __name__ == "__main__":
