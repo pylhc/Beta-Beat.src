@@ -50,7 +50,7 @@ def compare_dirs(dir1, dir2, ignore=None, function=None):
         full_path2 = os.path.join(dir2, name)
         if os.path.isfile(full_path1) and os.path.isfile(full_path2):
             result &= function(full_path1, full_path2)
-        elif os.path.isfile(full_path1) and os.path.isfile(full_path2):
+        elif os.path.isdir(full_path1) and os.path.isdir(full_path2):
             result &= compare_dirs(full_path1, full_path2)
         else:
             print("{fp1} and {fp2} are of different type!"
