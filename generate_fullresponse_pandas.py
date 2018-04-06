@@ -109,7 +109,7 @@ def create_response(opt, other_opt):
     with logging_tools.DebugMode(active=opt.debug,
                                  log_file=os.path.join(opt.model_dir, "generate_fullresponse.log")):
         LOG.info("Creating response.")
-        accel_cls, other_opt = manager.get_accel_class_and_unkown(other_opt)
+        accel_cls = manager.get_accel_class(other_opt)
         accel_inst = accel_cls(model_dir=opt.model_dir)
 
         if opt.creator == "madx":
