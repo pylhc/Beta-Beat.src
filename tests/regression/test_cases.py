@@ -103,17 +103,18 @@ TEST_CASES_RESPONSE_CREATION_VIA_TWISS = (
     regression.TestCase(
         name="response_creation_test_via_twiss",
         script=join("generate_fullresponse_pandas.py"),
-        arguments=("--accel lhc --lhcmode lhc_runII_2017 --beam 1 "
-                   "--model_dir {model_dir} "
-                   "--optics_file {optics_file} "
-                   "--creator twiss "
-                   "--outfile {response_out} "
-                   "--variables Q Qs "
-                   "--optics_params MUX MUY Q DX DY BBX BBY BETX BETY F1001I F1001R F1010R F1010I "
-                   ).format(
-                   model_dir=join(REGR_DIR, "_out_create_response_test_twiss", "model"),
-                   optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
-                   response_out=join(REGR_DIR, "_out_create_response_test_twiss", "fullresponse")
+        arguments=" ".join([
+            "--accel lhc --lhcmode lhc_runII_2017 --beam 1",
+            "--model_dir {model_dir}",
+            "--optics_file {optics_file}",
+            "--creator twiss",
+            "--outfile {response_out}",
+            "--variables Q Qs",
+            "--optics_params MUX MUY Q DX DY BBX BBY BETX BETY F1001I F1001R F1010R F1010I",
+        ]).format(
+            model_dir=join(REGR_DIR, "_out_create_response_test_twiss", "model"),
+            optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
+            response_out=join(REGR_DIR, "_out_create_response_test_twiss", "fullresponse")
         ),
         output=join(REGR_DIR, "_out_create_response_test_twiss"),
         test_function=lambda d1, d2: compare_utils.compare_dirs(d1, d2,
@@ -130,21 +131,22 @@ TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
     regression.TestCase(
         name="correct_iterative_test",
         script=join("global_correct_iterative.py"),
-        arguments=("--accel lhc --lhcmode lhc_runII_2017 --beam 1 "
-                   "--model_dir {model_dir} "
-                   "--optics_file {optics_file} "
-                   "--variables MQM MQT MQTL MQY "
-                   "--optics_params MUX MUY BBX BBY Q "
-                   "--weights 1 1 1 1 10 "
-                   "--meas_dir {meas_dir} "
-                   "--output_dir {out_dir} "
-                   "--max_iter 2"
-                   ).format(
-                   model_dir=join(MODELS, "flat_beam1"),
-                   meas_dir=join(GETLLM_FILES, "hllhc_sim"),
-                   optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
-                   temp_dir=join(REGR_DIR, "_out_correct_iterative_test"),
-                   out_dir=join(REGR_DIR, "_out_correct_iterative_test"),
+        arguments=" ".join([
+            "--accel lhc --lhcmode lhc_runII_2017 --beam 1",
+            "--model_dir {model_dir}",
+            "--optics_file {optics_file}",
+            "--variables MQM MQT MQTL MQY",
+            "--optics_params MUX MUY BBX BBY Q",
+            "--weights 1 1 1 1 10",
+            "--meas_dir {meas_dir}",
+            "--output_dir {out_dir}",
+            "--max_iter 2",
+        ]).format(
+            model_dir=join(MODELS, "flat_beam1"),
+            meas_dir=join(GETLLM_FILES, "hllhc_sim"),
+            optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
+            temp_dir=join(REGR_DIR, "_out_correct_iterative_test"),
+            out_dir=join(REGR_DIR, "_out_correct_iterative_test"),
         ),
         output=join(REGR_DIR, "_out_correct_iterative_test"),
         test_function=lambda d1, d2: compare_utils.compare_dirs(d1, d2, ignore=[r".*\.log"]),
