@@ -70,7 +70,6 @@ TEST_MODEL_CREATOR = (
     ),
 )
 
-
 TEST_CASES_RESPONSE_CREATION_VIA_MADX = (
     regression.TestCase(
         name="response_creation_test_via_madx",
@@ -164,9 +163,9 @@ def run_tests():
     """Run the test cases and raise RegressionTestFailed on failure.
     """
     alltests = (
-            # list(TEST_CASES_HOLE_IN_ONE) +
-            # list(TEST_CASES_GETLLM) +
-            # list(TEST_MODEL_CREATOR) +
+            list(TEST_CASES_HOLE_IN_ONE) +
+            list(TEST_CASES_GETLLM) +
+            list(TEST_MODEL_CREATOR) +
             list(TEST_CASES_RESPONSE_CREATION_VIA_MADX) +
             list(TEST_CASES_RESPONSE_CREATION_VIA_TWISS) +
             list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
