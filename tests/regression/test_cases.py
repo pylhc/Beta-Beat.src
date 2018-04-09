@@ -32,7 +32,6 @@ TEST_CASES_HOLE_IN_ONE = (
     ),
 )
 
-
 TEST_CASES_GETLLM = (
     regression.TestCase(
         name="getllm_test_flat_disp",
@@ -89,9 +88,9 @@ TEST_CASES_RESPONSE_CREATION_VIA_MADX = (
                    response_out=join(REGR_DIR, "_out_create_response_test_madx", "fullresponse")
         ),
         output=join(REGR_DIR, "_out_create_response_test_madx"),
-        test_function=lambda d1, d2: compare_utils.compare_dirs(d1, d2,
-                                                                ignore=[r".*\.log", "model"],
-                                                                function=filecmp.cmp),
+        test_function=lambda d1, d2: filecmp.cmp(
+            join(d1, "fullresponse"), join(d2, "fullresponse")
+        ),
         pre_hook=lambda dir: iotools.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_create_response_test_madx", "model")
@@ -117,9 +116,9 @@ TEST_CASES_RESPONSE_CREATION_VIA_TWISS = (
             response_out=join(REGR_DIR, "_out_create_response_test_twiss", "fullresponse")
         ),
         output=join(REGR_DIR, "_out_create_response_test_twiss"),
-        test_function=lambda d1, d2: compare_utils.compare_dirs(d1, d2,
-                                                                ignore=[r".*\.log", "model"],
-                                                                function=filecmp.cmp),
+        test_function=lambda d1, d2: filecmp.cmp(
+            join(d1, "fullresponse"), join(d2, "fullresponse")
+        ),
         pre_hook=lambda dir: iotools.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_create_response_test_twiss", "model")
@@ -140,17 +139,23 @@ TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
             "--weights 1 1 1 1 10",
             "--meas_dir {meas_dir}",
             "--output_dir {out_dir}",
-            "--max_iter 2",
+            "--max_iter 1",
         ]).format(
-            model_dir=join(MODELS, "flat_beam1"),
-            meas_dir=join(GETLLM_FILES, "hllhc_sim"),
+            model_dir=join(MODELS, "25cm_beam1"),
+            meas_dir=join(GETLLM_FILES, "25cm_beam1"),
             optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
-            temp_dir=join(REGR_DIR, "_out_correct_iterative_test"),
             out_dir=join(REGR_DIR, "_out_correct_iterative_test"),
         ),
         output=join(REGR_DIR, "_out_correct_iterative_test"),
-        test_function=lambda d1, d2: compare_utils.compare_dirs(d1, d2, ignore=[r".*\.log"]),
-        pre_hook=lambda dir: os.makedirs(join(dir, REGR_DIR, "_out_correct_iterative_test")),
+        test_function=lambda d1, d2: compare_utils.compare_dirs_ignore_words(
+            d1, d2,
+            ignore_files=[r".*\.log", "model"],
+            ignore_words=["DATE", "TIME"],
+        ),
+        pre_hook=lambda dir:  iotools.copy_item(
+            join(MODELS, "25cm_beam1"),
+            join(dir, REGR_DIR, "_out_correct_iterative_test", "model")
+        ),
     ),
 )
 
@@ -159,12 +164,12 @@ def run_tests():
     """Run the test cases and raise RegressionTestFailed on failure.
     """
     alltests = (
-            list(TEST_CASES_HOLE_IN_ONE) +
-            list(TEST_CASES_GETLLM) +
-            list(TEST_MODEL_CREATOR) +
+            # list(TEST_CASES_HOLE_IN_ONE) +
+            # list(TEST_CASES_GETLLM) +
+            # list(TEST_MODEL_CREATOR) +
             list(TEST_CASES_RESPONSE_CREATION_VIA_MADX) +
-            list(TEST_CASES_RESPONSE_CREATION_VIA_TWISS)
-            # list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
+            list(TEST_CASES_RESPONSE_CREATION_VIA_TWISS) +
+            list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
     )
     regression.launch_test_set(alltests, ABS_ROOT, tag_regexp="^BBGUI_.*$")
 
