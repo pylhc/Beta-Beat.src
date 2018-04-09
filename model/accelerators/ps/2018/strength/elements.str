@@ -3,6 +3,9 @@
 *******************************************************************************/
 !focussing
 
+
+
+
    PR.QFN05      , KNL  :=  {0, kf};
    PR.QFN09      , KNL  :=  {0, kf};
    PR.QFW17      , KNL  :=  {0, kf*1.4};
@@ -51,50 +54,93 @@
 **                        Skew quadrupoles                                    **
 *******************************************************************************/
 !focussing
+
+PR.KQSK03 = kfs;
+PR.KQSK07 = kfs;
+PR.KQSK19 = kfs;
+PR.KQSK23 = kfs;
+PR.KQSK29 = kfs;
+PR.KQSK33 = kfs;
+PR.KQSK37 = kfs;
+PR.KQSK41 = kfs;
+PR.KQSK43 = kfs;
+PR.KQSK47 = kfs;
+PR.KQSK53 = kfs;
+PR.KQSK57 = kfs;
+PR.KQSK69 = kfs;
+PR.KQSK73 = kfs;
+PR.KQSK79 = kfs;
+PR.KQSK83 = kfs;
+PR.KQSK87 = kfs;
+PR.KQSK91 = kfs;
+PR.KQSK93 = kfs;
+PR.KQSK97 = kfs;
+
    
-   PR.QSK03      , KSL  :=  {0, kfs};
-   PR.QSK07      , KSL  :=  {0, kfs};
-   PR.QSK19      , KSL  :=  {0, kfs};
-   PR.QSK23      , KSL  :=  {0, kfs};
-   PR.QSK29      , KSL  :=  {0, kfs};
-   PR.QSK33      , KSL  :=  {0, kfs};
-   PR.QSK37      , KSL  :=  {0, kfs};
-   PR.QSK41      , KSL  :=  {0, kfs};
-   PR.QSK43      , KSL  :=  {0, kfs};
-   PR.QSK47      , KSL  :=  {0, kfs};
-   PR.QSK53      , KSL  :=  {0, kfs};
-   PR.QSK57      , KSL  :=  {0, kfs};
-   PR.QSK69      , KSL  :=  {0, kfs};
-   PR.QSK73      , KSL  :=  {0, kfs};
-   PR.QSK79      , KSL  :=  {0, kfs};
-   PR.QSK83      , KSL  :=  {0, kfs};
-   PR.QSK87      , KSL  :=  {0, kfs};
-   PR.QSK91      , KSL  :=  {0, kfs};
-   PR.QSK93      , KSL  :=  {0, kfs};
-   PR.QSK97      , KSL  :=  {0, kfs};
+   PR.QSK03      , KSL  :=  {0, PR.KQSK03};
+   PR.QSK07      , KSL  :=  {0, PR.KQSK07};
+   PR.QSK19      , KSL  :=  {0, PR.KQSK19};
+   PR.QSK23      , KSL  :=  {0, PR.KQSK23};
+   PR.QSK29      , KSL  :=  {0, PR.KQSK29};
+   PR.QSK33      , KSL  :=  {0, PR.KQSK33};
+   PR.QSK37      , KSL  :=  {0, PR.KQSK37};
+   PR.QSK41      , KSL  :=  {0, PR.KQSK41};
+   PR.QSK43      , KSL  :=  {0, PR.KQSK43};
+   PR.QSK47      , KSL  :=  {0, PR.KQSK47};
+   PR.QSK53      , KSL  :=  {0, PR.KQSK53};
+   PR.QSK57      , KSL  :=  {0, PR.KQSK57};
+   PR.QSK69      , KSL  :=  {0, PR.KQSK69};
+   PR.QSK73      , KSL  :=  {0, PR.KQSK73};
+   PR.QSK79      , KSL  :=  {0, PR.KQSK79};
+   PR.QSK83      , KSL  :=  {0, PR.KQSK83};
+   PR.QSK87      , KSL  :=  {0, PR.KQSK87};
+   PR.QSK91      , KSL  :=  {0, PR.KQSK91};
+   PR.QSK93      , KSL  :=  {0, PR.KQSK93};
+   PR.QSK97      , KSL  :=  {0, PR.KQSK97};
 
 !defocussing
 
-   PR.QSK04      , KSL  :=  {0, kds};
-   PR.QSK08      , KSL  :=  {0, kds};
-   PR.QSK20      , KSL  :=  {0, kds};
-   PR.QSK24      , KSL  :=  {0, kds};
-   PR.QSK30      , KSL  :=  {0, kds};
-   PR.QSK34      , KSL  :=  {0, kds};
-   PR.QSK38      , KSL  :=  {0, kds};
-   PR.QSK42      , KSL  :=  {0, kds};
-   PR.QSK44      , KSL  :=  {0, kds};
-   PR.QSK48      , KSL  :=  {0, kds};
-   PR.QSK54      , KSL  :=  {0, kds};
-   PR.QSK58      , KSL  :=  {0, kds};
-   PR.QSK70      , KSL  :=  {0, kds};
-   PR.QSK74      , KSL  :=  {0, kds};
-   PR.QSK80      , KSL  :=  {0, kds};
-   PR.QSK84      , KSL  :=  {0, kds};
-   PR.QSK88      , KSL  :=  {0, kds};
-   PR.QSK92      , KSL  :=  {0, kds};
-   PR.QSK94      , KSL  :=  {0, kds};
-   PR.QSK98      , KSL  :=  {0, kds};
+PR.KQSK04 = kds ; 
+PR.KQSK08 = kds ; 
+PR.KQSK20 = kds ; 
+PR.KQSK24 = kds ; 
+PR.KQSK30 = kds ; 
+PR.KQSK34 = kds ; 
+PR.KQSK38 = kds ; 
+PR.KQSK42 = kds ; 
+PR.KQSK44 = kds ; 
+PR.KQSK48 = kds ; 
+PR.KQSK54 = kds ; 
+PR.KQSK58 = kds ; 
+PR.KQSK70 = kds ; 
+PR.KQSK74 = kds ; 
+PR.KQSK80 = kds ; 
+PR.KQSK84 = kds ; 
+PR.KQSK88 = kds ; 
+PR.KQSK92 = kds ; 
+PR.KQSK94 = kds ; 
+PR.KQSK98 = kds ; 
+
+   PR.QSK04      , KSL  :=  {0, PR.KQSK04};
+   PR.QSK08      , KSL  :=  {0, PR.KQSK08};
+   PR.QSK20      , KSL  :=  {0, PR.KQSK20};
+   PR.QSK24      , KSL  :=  {0, PR.KQSK24};
+   PR.QSK30      , KSL  :=  {0, PR.KQSK30};
+   PR.QSK34      , KSL  :=  {0, PR.KQSK34};
+   PR.QSK38      , KSL  :=  {0, PR.KQSK38};
+   PR.QSK42      , KSL  :=  {0, PR.KQSK42};
+   PR.QSK44      , KSL  :=  {0, PR.KQSK44};
+   PR.QSK48      , KSL  :=  {0, PR.KQSK48};
+   PR.QSK54      , KSL  :=  {0, PR.KQSK54};
+   PR.QSK58      , KSL  :=  {0, PR.KQSK58};
+   PR.QSK70      , KSL  :=  {0, PR.KQSK70};
+   PR.QSK74      , KSL  :=  {0, PR.KQSK74};
+   PR.QSK80      , KSL  :=  {0, PR.KQSK80};
+   PR.QSK84      , KSL  :=  {0, PR.KQSK84};
+   PR.QSK88      , KSL  :=  {0, PR.KQSK88};
+   PR.QSK92      , KSL  :=  {0, PR.KQSK92};
+   PR.QSK94      , KSL  :=  {0, PR.KQSK94};
+   PR.QSK98      , KSL  :=  {0, PR.KQSK98};
 
 /*******************************************************************************
 **                        Vertical correctors                                 **
