@@ -30,23 +30,30 @@ def get_params():
         type=str,
     )
     params.add_parameter(
-        flags="--optics_params",
-        help="List of parameters to plot upon (e.g. BETX, BETY)",
-        name="optics_params",
+        flags=["-y", "--y_cols"],
+        help="List of column names to plot (e.g. BETX, BETY)",
+        name="y_cols",
         required=True,
         type=str,
         nargs="+",
     )
     params.add_parameter(
-        flags="--error_params",
+        flags=["-x", "--x_cols"],
+        help="List of column names to use as x-values.",
+        name="x_cols",
+        type=str,
+        nargs="+",
+    )
+    params.add_parameter(
+        flags=["-e", "--e_cols"],
         help="List of parameters to get error values from.",
-        name="error_params",
+        name="e_cols",
         type=str,
         nargs="+",
     )
     params.add_parameter(
         flags="--labels",
-        help="Y-Lables for the plots, default: parameter.",
+        help="Y-Lables for the plots, default: y_col.",
         name="labels",
         type=str,
         nargs="+",
@@ -60,7 +67,7 @@ def get_params():
     )
     params.add_parameter(
         flags="--output",
-        help="Base-Name of the output files. _'parameter'.pdf will be attached.",
+        help="Base-Name of the output files. _'y_col'.pdf will be attached.",
         name="output",
         type=str,
     )
@@ -170,7 +177,7 @@ def plot(opt):
     twiss_data = _get_data(opt.files)
 
     # plotting
-    figs = _create_plots(opt.optics_params, opt.error_params, twiss_data, opt.legends, opt.labels,
+    figs = _create_plots(opt.x_cols, opt.y_cols, opt.e_cols, twiss_data, opt.legends, opt.labels,
                          opt.xy, opt.change_marker, opt.no_legend)
 
     # exports
@@ -190,7 +197,8 @@ def _get_data(files):
     return [tfs.read_tfs(f) for f in files]
 
 
-def _create_plots(params, errors, twiss_data, legends, labels, xy, change_marker, no_legend):
+def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
+                  xy, change_marker, no_legend):
     """ Create plots per parameter """
     _param_map = {
         "BET": "beta",
@@ -214,13 +222,13 @@ def _create_plots(params, errors, twiss_data, legends, labels, xy, change_marker
 
     # create individual figures
     figs = {}
-    for param, error in zip(params, errors):
-        LOG.debug("Plotting parameter '{:s}'".format(param))
+    for x_col, y_col, e_col in zip(x_cols, y_cols, e_cols):
+        LOG.debug("Plotting parameter '{:s}'".format(y_col))
 
         # create figure
         fig = plt.figure()
 
-        p_title = param
+        p_title = y_col
         if xy:
             p_title += " X/Y"
         fig.canvas.set_window_title("Parameter '{:s}'".format(p_title))
@@ -228,25 +236,26 @@ def _create_plots(params, errors, twiss_data, legends, labels, xy, change_marker
         # plot data
         for plt_idx in range(1+xy):
             if xy:
-                p_name = param
-                p_full = param + plane_map[plt_idx]
-                e_full = error + plane_map[plt_idx]
+                y_name = y_col
+                y_full = y_col + plane_map[plt_idx]
+                e_full = e_col + plane_map[plt_idx]
 
             else:
-                p_name = param[:-1]
-                p_full = param
-                e_full = error
+                y_name = y_col[:-1]
+                y_full = y_col
+                e_full = e_col
 
             ax = fig.add_subplot(gs[plt_idx])
 
             for idx, data in enumerate(twiss_data):
-                values = data[p_full]
+                x_val = data[x_col]
+                y_val = data[y_full]
                 try:
-                    error_values = data[e_full]
+                    e_val = data[e_full]
                 except KeyError:
-                    error_values = None
+                    e_val = None
 
-                ax.errorbar(data["S"], values, yerr=error_values,
+                ax.errorbar(x_val, y_val, yerr=e_val,
                             fmt=get_marker(idx, change_marker),
                             label=legends[idx])
 
@@ -259,10 +268,12 @@ def _create_plots(params, errors, twiss_data, legends, labels, xy, change_marker
             # manage layout
             if labels[plt_idx] is None:
                 try:
-                    ps.set_yaxis_label(_param_map[p_name], p_full[-1], ax)
+                    # if it's a recognized column make nice label
+                    ps.set_yaxis_label(_param_map[y_name], y_full[-1], ax)
                 except (KeyError, ps.ArgumentError):
-                    ax.set_ylabel(p_full)
+                    ax.set_ylabel(y_full)
             else:
+                # use given label
                 ax.set_ylabel(labels[plt_idx])
 
             if xy and plt_idx == 0:
@@ -277,9 +288,7 @@ def _create_plots(params, errors, twiss_data, legends, labels, xy, change_marker
             if not no_legend and plt_idx == 0:
                 ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
                               fancybox=True, shadow=True, ncol=3)
-
-            figs[param] = fig
-
+            figs[y_col] = fig
     return figs
 
 
@@ -309,14 +318,19 @@ def _check_opt(opt):
         raise AttributeError("The number of legends and number of files differ!")
 
     if opt.labels is None:
-        opt.labels = [None] * len(opt.optics_params)
-    elif len(opt.labels) != len(opt.optics_params):
-        raise AttributeError("The number of labels and number of parameters differ!")
+        opt.labels = [None] * len(opt.y_cols)
+    elif len(opt.labels) != len(opt.y_cols):
+        raise AttributeError("The number of labels and number of y columns differ!")
 
-    if opt.error_params is None:
-        opt.error_params = [""] * len(opt.optics_params)
-    elif len(opt.error_params) != len(opt.optics_params):
-        raise AttributeError("The number of error parameters and number of parameters differ!")
+    if opt.e_cols is None:
+        opt.e_cols = [""] * len(opt.y_cols)
+    elif len(opt.e_cols) != len(opt.y_cols):
+        raise AttributeError("The number of error columns and number of y columns differ!")
+
+    if opt.x_cols is None:
+        opt.x_cols = ["S"] * len(opt.y_cols)
+    elif len(opt.x_cols) != len(opt.y_cols):
+        raise AttributeError("The number of x columns and number of y columns differ!")
 
     return opt
 

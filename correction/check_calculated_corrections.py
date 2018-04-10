@@ -232,8 +232,8 @@ def _plot(corrections, source_dir, show_plots, change_marker):
 
             plot_tfs.plot(
                 files=data_paths,
-                optics_params=[expect],
-                error_params=[error],
+                y_cols=[expect],
+                e_cols=[error],
                 legends=legends,
                 labels=[data],
                 output=os.path.join(source_dir, data),
