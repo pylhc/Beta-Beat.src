@@ -242,11 +242,11 @@ def _create_plots(params, errors, twiss_data, legends, labels, xy, change_marker
             for idx, data in enumerate(twiss_data):
                 values = data[p_full]
                 try:
-                    errors = data[e_full]
+                    error_values = data[e_full]
                 except KeyError:
-                    errors = None
+                    error_values = None
 
-                ax.errorbar(data["S"], values, yerr=errors,
+                ax.errorbar(data["S"], values, yerr=error_values,
                             fmt=get_marker(idx, change_marker),
                             label=legends[idx])
 

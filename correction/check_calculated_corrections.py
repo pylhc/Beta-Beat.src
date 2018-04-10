@@ -11,6 +11,7 @@ from utils import logging_tools
 from utils.plotting import plot_tfs
 from model import manager
 from utils import iotools
+from utils import tfs_pandas
 from correction import getdiff
 
 LOG = logging_tools.get_logger(__name__)
@@ -18,8 +19,7 @@ LOG = logging_tools.get_logger(__name__)
 # Constants and Parameters #############################################
 
 RESULTS_DIR = "Results"  # name of the (temporary) results folder
-DATA_FILES = ['bbx', 'bby', 'phasex', 'phasey', 'dx', 'dy', 'ndx', 'couple']  # getdiff output files
-
+BASE_ID = ".tmpbasefile"  # extension of the (temporary) base files
 
 def get_params():
     params = EntryPointParameters()
@@ -137,7 +137,7 @@ def main(opt, accel_opt):
     _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker)
 
     if opt.clean_up:
-        _clean_up(corrections)
+        _clean_up(opt.corrections_dir, corrections)
 
 
 # Private Functions ##########################################################
@@ -171,23 +171,68 @@ def _get_diffs(corrections, meas_dir):
 
 def _plot(corrections, source_dir, show_plots, change_marker):
     """ Create all plots for the standard parameters """
-    legends = [d.replace(source_dir + os.sep, "") for d in corrections.keys()]
+    data_files = [
+        'bbx', 'bby', 'phasex', 'phasey',
+        'dx', 'dy', 'ndx',
+        'couple_r', 'couple_i',
+        'chromatic_coupling_r', 'chromatic_coupling_i'
+    ]  # getdiff output files
 
-    data_files = DATA_FILES
+    column_map = {
+        'couple_r': {
+            'meas': 'F1001re',
+            'expect': 'F1001re_prediction',
+            'error': '',
+            'file': 'couple',
+        },
+        'couple_i': {
+            'meas': 'F1001im',
+            'expect': 'F1001im_prediction',
+            'error': '',
+            'file': 'couple',
+        },
+        'chromatic_coupling_r': {
+            'meas': 'Cf1001r',
+            'expect': 'Cf1001r_prediction',
+            'error': 'Cf1001rERR',
+            'file': 'chromatic_coupling',
+        },
+        'chromatic_coupling_i': {
+            'meas': 'Cf1001i',
+            'expect': 'Cf1001i_prediction',
+            'error': 'Cf1001iERR',
+            'file': 'chromatic_coupling',
+        },
+        'other': {
+            'meas': 'MEA',
+            'expect': 'EXPECT',
+            'error': 'ERROR',
+        }
+    }
+
+    legends = ["Measurement"] + [d.replace(source_dir + os.sep, "") for d in corrections.keys()]
 
     for data in data_files:
-        if data == 'couple':
-            meas = 'F1001W_prediction'
-            error = ''
-        else:
-            meas = 'MEA'
-            error = 'ERROR'
-
-        data_paths = [os.path.join(folder, "Results", data + ".out") for folder in corrections]
         try:
+            meas = column_map[data]['meas']
+            expect = column_map[data]['expect']
+            error = column_map[data]['error']
+            filename = column_map[data]['file']
+        except KeyError:
+            meas = column_map['other']['meas']
+            expect = column_map['other']['expect']
+            error = column_map['other']['error']
+            filename = data
+
+        files_c = [os.path.join(folder, "Results", filename + ".out") for folder in corrections]
+
+        try:
+            file_base = _create_base_file(source_dir, files_c[0], meas, error, expect, data)
+            data_paths = [file_base] + files_c
+
             plot_tfs.plot(
                 files=data_paths,
-                optics_params=[meas],
+                optics_params=[expect],
                 error_params=[error],
                 legends=legends,
                 labels=[data],
@@ -200,8 +245,12 @@ def _plot(corrections, source_dir, show_plots, change_marker):
                      "Probably not calculated by GetLLM.")
 
 
-def _clean_up(corrections):
+def _clean_up(source_dir, corrections):
     """ Removes the results folders again """
+    for file in os.listdir(source_dir):
+        if file.endswith(BASE_ID):
+            iotools.delete_item(os.path.join(source_dir, file))
+
     for folder in corrections:
         iotools.delete_item(os.path.join(folder, RESULTS_DIR))
 
@@ -240,6 +289,23 @@ def _get_madx_job(accel_inst):
 
 
 # Helper #####################################################################
+
+
+def _create_base_file(source_dir, source_file, meas, error, expect, outname):
+    """ Copy Measurement into a base-file. """
+    data = tfs_pandas.read_tfs(source_file)
+
+    if error == "":
+        new_data = data.loc[:, ["S", "NAME", meas]]
+        new_data.columns = ["S", "NAME", expect]
+    else:
+        new_data = data.loc[:, ["S", "NAME", meas, error]]
+        new_data.columns = ["S", "NAME", expect, error]
+
+    path_out = os.path.join(source_dir, outname + BASE_ID)
+    tfs_pandas.write_tfs(path_out, new_data)
+    return path_out
+
 
 def _copy_files(src, dst):
     """ Copies files only from src to dst directories """
