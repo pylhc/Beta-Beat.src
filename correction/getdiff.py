@@ -25,18 +25,23 @@ TODOs and Notes:
     No coupling in twiss_no.dat? not used
 """
 from __future__ import print_function
-from os.path import join, isdir, exists, split
+
 import sys
+
 import numpy as np
 import pandas as pd
+from os.path import join, isdir, exists, split
+
 import __init__
-from utils.tfs_pandas import read_tfs, write_tfs
 from segment_by_segment.segment_by_segment import GetLlmMeasurement
 from twiss_optics.optics_class import TwissOptics
+from utils.tfs_pandas import read_tfs, write_tfs
 
 
-def _getdiff():
-    meas_path = sys.argv[1]
+def getdiff(meas_path=None):
+    if meas_path is None:
+        meas_path = sys.argv[1]
+
     if not isdir(meas_path):
         raise IOError("No valid measurement directory:" + meas_path)
     corrected_model_path = join(meas_path, 'twiss_cor.dat')
@@ -151,4 +156,4 @@ def _write_chromatic_coupling_files(meas_path, cor_path):
 
 
 if __name__ == "__main__":
-    _getdiff()
+    getdiff()
