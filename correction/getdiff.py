@@ -74,8 +74,9 @@ def _write_beta_diff_file(meas_path, meas, model, plane):
     tw['ERROR'] = tw.loc[:, 'ERRBET' + up] / tw.loc[:, 'BET' + up + 'MDL']
     tw['MODEL'] = ((tw.loc[:, 'BET' + up + '_c'] - tw.loc[:, 'BET' + up + '_n'])
                    / tw.loc[:, 'BET' + up + '_n'])
+    tw['EXPECT'] = tw['MEA'] - tw['MODEL']
     write_tfs(join(meas_path, 'bb' + plane + '.out'),
-              tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL']])
+              tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
 
 
 def _write_phase_diff_file(meas_path, meas, model, plane):
@@ -86,8 +87,10 @@ def _write_phase_diff_file(meas_path, meas, model, plane):
     tw['MODEL'] = np.concatenate((np.diff(tw.loc[:, 'MU' + up + '_c']), np.array([0.0])))
     tw['DIFF'] = tw.loc[:, 'PHASE' + up] - tw.loc[:, 'PH' + up + 'MDL']
     tw['DIFF_MDL'] = tw.loc[:, 'MODEL'] - tw.loc[:, 'PH' + up + 'MDL']
+    tw['EXPECT'] = tw['DIFF'] - tw['DIFF_MDL']
     write_tfs(join(meas_path, 'phase' + plane + '.out'),
-              tw.loc[tw.index[:-1], ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'DIFF', 'DIFF_MDL']])
+              tw.loc[tw.index[:-1],
+                     ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'DIFF', 'DIFF_MDL', 'EXPECT']])
 
 
 def _write_disp_diff_file(meas_path, meas, model, plane):
@@ -97,8 +100,9 @@ def _write_disp_diff_file(meas_path, meas, model, plane):
         tw['MEA'] = tw.loc[:, 'D' + up] - tw.loc[:, 'D' + up + 'MDL']
         tw['ERROR'] = tw.loc[:, 'STDD' + up]
         tw['MODEL'] = tw.loc[:, 'D' + up + '_c'] - tw.loc[:, 'D' + up + '_n']
+        tw['EXPECT'] = tw['MEA'] - tw['MODEL']
         write_tfs(join(meas_path, 'd' + plane + '.out'),
-                  tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL']])
+                  tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
     except IOError:
         pass
 
@@ -110,7 +114,9 @@ def _write_norm_disp_diff_file(meas_path, meas, model):
         tw['ERROR'] = tw.loc[:, 'STDNDX']
         tw['MODEL'] = (tw.loc[:, 'DX_c'] / np.sqrt(tw.loc[:, 'BETX_c'])
                        - tw.loc[:, 'DX_n'] / np.sqrt(tw.loc[:, 'BETX_n']))
-        write_tfs(join(meas_path, 'ndx.out'), tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL']])
+        tw['EXPECT'] = tw['MEA'] - tw['MODEL']
+        write_tfs(join(meas_path, 'ndx.out'),
+                  tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
     except IOError:
         pass
 
@@ -122,12 +128,15 @@ def _write_coupling_diff_file(meas_path, meas, model):
     tw['F1001e'] = tw.loc[:, 'FWSTD1']
     tw['F1001re_m'] = np.real(tw.loc[:, 'F1001_c'])
     tw['F1001im_m'] = np.imag(tw.loc[:, 'F1001_c'])
-    tw['F1001W_prediction'] = np.sqrt(np.square(tw.loc[:, 'F1001re'] - tw.loc[:, 'F1001re_m'])
-                                      + np.square(tw.loc[:, 'F1001im'] - tw.loc[:, 'F1001im_m']))
+    tw['F1001re_prediction'] = tw.loc[:, 'F1001re'] - tw.loc[:, 'F1001re_m']
+    tw['F1001im_prediction'] = tw.loc[:, 'F1001im'] - tw.loc[:, 'F1001im_m']
+    tw['F1001W_prediction'] = np.sqrt(np.square(tw['F1001re_prediction'])
+                                      + np.square(tw['F1001im_prediction']))
     tw['in_use'] = 1
     write_tfs(join(meas_path, 'couple.out'),
               tw.loc[:, ['NAME', 'S', 'F1001re', 'F1001im', 'F1001e', 'F1001re_m', 'F1001im_m',
-                         'F1001W', 'F1001W_prediction', 'in_use']])
+                         'F1001W', 'F1001W_prediction', 'F1001re_prediction', 'F1001im_prediction',
+                         'in_use']])
 
 
 def _write_chromatic_coupling_files(meas_path, cor_path):
@@ -148,9 +157,14 @@ def _write_chromatic_coupling_files(meas_path, cor_path):
         cf1001 = (tw.loc[:, 'F1001_p'] - tw.loc[:, 'F1001_m']) / deltap
         tw['Cf1001r_model'] = np.real(cf1001)
         tw['Cf1001i_model'] = np.imag(cf1001)
+        tw['Cf1001r_prediction'] = tw.loc[:, 'Cf1001r'] - tw.loc[:, 'Cf1001r_model']
+        tw['Cf1001i_prediction'] = tw.loc[:, 'Cf1001i'] - tw.loc[:, 'Cf1001i_model']
         write_tfs(join(meas_path, 'chromatic_coupling.out'),
-                  tw.loc[:, ['NAME', 'S', 'Cf1001r', 'Cf1001rERR', 'Cf1001i', 'Cf1001iERR',
-                             'Cf1001r_model', 'Cf1001i_model']])
+                  tw.loc[:, ['NAME', 'S',
+                             'Cf1001r', 'Cf1001rERR',
+                             'Cf1001i', 'Cf1001iERR',
+                             'Cf1001r_model', 'Cf1001i_model',
+                             'Cf1001r_prediction', 'Cf1001i_prediction']])
     except IOError:
         pass
 
