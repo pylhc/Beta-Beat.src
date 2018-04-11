@@ -21,6 +21,7 @@ LOG = logging_tools.get_logger(__name__)
 RESULTS_DIR = "Results"  # name of the (temporary) results folder
 BASE_ID = ".tmpbasefile"  # extension of the (temporary) base files
 
+
 def get_params():
     params = EntryPointParameters()
     params.add_parameter(
@@ -122,6 +123,7 @@ def main(opt, accel_opt):
             **Flags**: --show
             **Action**: ``store_true``
     """
+    LOG.info("Started 'check_calculated_corrections'.")
     # get accelerator class
     accel_cls = manager.get_accel_class(accel_opt)
     accel_inst = accel_cls(model_dir=opt.model_dir)
@@ -171,23 +173,30 @@ def _get_diffs(corrections, meas_dir):
 
 def _plot(corrections, source_dir, show_plots, change_marker):
     """ Create all plots for the standard parameters """
-    data_files = [
-        'bbx', 'bby', 'phasex', 'phasey',
-        'dx', 'dy', 'ndx',
-        'couple_r', 'couple_i',
-        'chromatic_coupling_r', 'chromatic_coupling_i'
-    ]  # getdiff output files
+    data_files = ['bbx', 'bby', 'phasex', 'phasey', 'dx', 'dy', 'ndx']  # 'normal ' getdiff output
 
-    column_map = {
-        'couple_r': {
+    column_map = {  # special cases
+        'couple_1001r': {
             'meas': 'F1001re',
             'expect': 'F1001re_prediction',
             'error': '',
             'file': 'couple',
         },
-        'couple_i': {
+        'couple_1001i': {
             'meas': 'F1001im',
             'expect': 'F1001im_prediction',
+            'error': '',
+            'file': 'couple',
+        },
+        'couple_1010r': {
+            'meas': 'F1010re',
+            'expect': 'F1010re_prediction',
+            'error': '',
+            'file': 'couple',
+        },
+        'couple_1010i': {
+            'meas': 'F1010im',
+            'expect': 'F1010im_prediction',
             'error': '',
             'file': 'couple',
         },
@@ -203,25 +212,20 @@ def _plot(corrections, source_dir, show_plots, change_marker):
             'error': 'Cf1001iERR',
             'file': 'chromatic_coupling',
         },
-        'other': {
-            'meas': 'MEA',
-            'expect': 'EXPECT',
-            'error': 'ERROR',
-        }
     }
 
     legends = ["Measurement"] + [d.replace(source_dir + os.sep, "") for d in corrections.keys()]
 
-    for data in data_files:
+    for data in data_files + column_map.keys():
         try:
             meas = column_map[data]['meas']
             expect = column_map[data]['expect']
             error = column_map[data]['error']
             filename = column_map[data]['file']
         except KeyError:
-            meas = column_map['other']['meas']
-            expect = column_map['other']['expect']
-            error = column_map['other']['error']
+            meas = 'MEA'
+            expect = 'EXPECT'
+            error = 'ERROR'
             filename = data
 
         files_c = [os.path.join(folder, "Results", filename + ".out") for folder in corrections]

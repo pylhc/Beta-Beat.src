@@ -36,11 +36,29 @@ import __init__
 from segment_by_segment.segment_by_segment import GetLlmMeasurement
 from twiss_optics.optics_class import TwissOptics
 from utils.tfs_pandas import read_tfs, write_tfs
+from utils import logging_tools
+
+LOG = logging_tools.get_logger(__name__)
+
+
+# Main invocation ############################################################
 
 
 def getdiff(meas_path=None):
+    """ Calculates the differences between measurement, corrected and uncorrected model.
+
+    After running madx and creating the model with (twiss_cor) and without (twiss_no)
+    corrections, run this functions to get tfs-files with the differences between measurements
+    and models.
+
+    Args:
+        meas_path (str): Path to the measurement folder.
+        Needs to contain twiss_cor.dat and twiss_no.dat.
+    """
     if meas_path is None:
         meas_path = sys.argv[1]
+
+    LOG.debug("Started 'getdiff' for measurment dir '{:s}'".format(meas_path))
 
     if not isdir(meas_path):
         raise IOError("No valid measurement directory:" + meas_path)
@@ -64,9 +82,14 @@ def getdiff(meas_path=None):
     _write_coupling_diff_file(meas_path, meas, coupling_model)
     _write_norm_disp_diff_file(meas_path, meas, model)
     _write_chromatic_coupling_files(meas_path, corrected_model_path)
+    LOG.debug("Finished 'getdiff'.")
+
+
+# Writing Functions ##########################################################
 
 
 def _write_beta_diff_file(meas_path, meas, model, plane):
+    LOG.debug("Calculating beta diff.")
     up = plane.upper()
     tw = pd.merge(meas.beta[plane], model, how='inner', on='NAME')
     tw['MEA'] = ((tw.loc[:, 'BET' + up] - tw.loc[:, 'BET' + up + 'MDL'])
@@ -80,6 +103,7 @@ def _write_beta_diff_file(meas_path, meas, model, plane):
 
 
 def _write_phase_diff_file(meas_path, meas, model, plane):
+    LOG.debug("Calculating phase diff.")
     up = plane.upper()
     tw = pd.merge(meas.phase[plane], model, how='inner', on='NAME')
     tw['MEA'] = tw.loc[:, 'PHASE' + up]
@@ -94,6 +118,7 @@ def _write_phase_diff_file(meas_path, meas, model, plane):
 
 
 def _write_disp_diff_file(meas_path, meas, model, plane):
+    LOG.debug("Calculating dispersion diff.")
     try:
         up = plane.upper()
         tw = pd.merge(meas.disp[plane], model, how='inner', on='NAME')
@@ -104,10 +129,11 @@ def _write_disp_diff_file(meas_path, meas, model, plane):
         write_tfs(join(meas_path, 'd' + plane + '.out'),
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
     except IOError:
-        pass
+        LOG.debug("Dispersion measurements not found. Skipped.")
 
 
 def _write_norm_disp_diff_file(meas_path, meas, model):
+    LOG.debug("Calculating normalized dispersion diff.")
     try:
         tw = pd.merge(meas.norm_disp, model, how='inner', on='NAME')
         tw['MEA'] = tw.loc[:, 'NDX'] - tw.loc[:, 'NDXMDL']
@@ -118,28 +144,37 @@ def _write_norm_disp_diff_file(meas_path, meas, model):
         write_tfs(join(meas_path, 'ndx.out'),
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
     except IOError:
-        pass
+        LOG.debug("Normalized dispersion measurements not found. Skipped.")
 
 
 def _write_coupling_diff_file(meas_path, meas, model):
+    LOG.debug("Calculating coupling diff.")
     tw = pd.merge(meas.coupling, model, how='inner', on='NAME')
-    tw['F1001re'] = tw.loc[:, 'F1001R']
-    tw['F1001im'] = tw.loc[:, 'F1001I']
-    tw['F1001e'] = tw.loc[:, 'FWSTD1']
-    tw['F1001re_m'] = np.real(tw.loc[:, 'F1001_c'])
-    tw['F1001im_m'] = np.imag(tw.loc[:, 'F1001_c'])
-    tw['F1001re_prediction'] = tw.loc[:, 'F1001re'] - tw.loc[:, 'F1001re_m']
-    tw['F1001im_prediction'] = tw.loc[:, 'F1001im'] - tw.loc[:, 'F1001im_m']
-    tw['F1001W_prediction'] = np.sqrt(np.square(tw['F1001re_prediction'])
-                                      + np.square(tw['F1001im_prediction']))
+    out_columns = ['NAME', 'S']
+    for rdt in ['F1001', 'F1010']:
+        tw[rdt+'re'] = tw.loc[:, rdt+'R']
+        tw[rdt+'im'] = tw.loc[:, rdt+'I']
+        tw[rdt+'e'] = tw.loc[:, 'FWSTD1']
+        tw[rdt+'re_m'] = np.real(tw.loc[:, rdt+'_c'])
+        tw[rdt+'im_m'] = np.imag(tw.loc[:, rdt+'_c'])
+        tw[rdt+'re_prediction'] = tw.loc[:, rdt+'re'] - tw.loc[:, rdt+'re_m']
+        tw[rdt+'im_prediction'] = tw.loc[:, rdt+'im'] - tw.loc[:, rdt+'im_m']
+        tw[rdt+'W_prediction'] = np.sqrt(np.square(tw[rdt+'re_prediction'])
+                                         + np.square(tw[rdt+'im_prediction']))
+
+        out_columns += [rdt+'re', rdt+'im', rdt+'e',
+                        rdt+'re_m', rdt+'im_m',
+                        rdt+'W', rdt+'W_prediction',
+                        rdt+'re_prediction', rdt+'im_prediction']
+        
     tw['in_use'] = 1
-    write_tfs(join(meas_path, 'couple.out'),
-              tw.loc[:, ['NAME', 'S', 'F1001re', 'F1001im', 'F1001e', 'F1001re_m', 'F1001im_m',
-                         'F1001W', 'F1001W_prediction', 'F1001re_prediction', 'F1001im_prediction',
-                         'in_use']])
+    out_columns += ['in_use']
+    write_tfs(join(meas_path, 'couple.out'), tw.loc[:, out_columns])
 
 
 def _write_chromatic_coupling_files(meas_path, cor_path):
+    LOG.debug("Calculating chromatic coupling diff.")
+    # TODO: Add Cf1010
     try:
         twiss_plus = read_tfs(join(split(cor_path)[0], "twiss_cor_dpp.dat"), index='NAME')
         twiss_min = read_tfs(join(split(cor_path)[0], "twiss_cor_dpm.dat"), index='NAME')
@@ -166,7 +201,10 @@ def _write_chromatic_coupling_files(meas_path, cor_path):
                              'Cf1001r_model', 'Cf1001i_model',
                              'Cf1001r_prediction', 'Cf1001i_prediction']])
     except IOError:
-        pass
+        LOG.debug("Chromatic coupling measurements not found. Skipped.")
+
+
+# Script Mode ################################################################
 
 
 if __name__ == "__main__":
