@@ -135,7 +135,7 @@ def main(opt, accel_opt):
 
     corrections = _get_all_corrections(opt.corrections_dir, opt.file_pattern)
     _call_madx(accel_inst, corrections)
-    _get_diffs(corrections, opt.meas_dir)
+    _get_diffs(corrections, opt.meas_dir, opt.file_pattern)
     _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker)
 
     if opt.clean_up:
@@ -163,11 +163,11 @@ def _get_all_corrections(source_dir, file_pattern):
     return corrections
 
 
-def _get_diffs(corrections, meas_dir):
+def _get_diffs(corrections, meas_dir, file_pattern):
     """ Creates the twissfiles before and after corrections. (Copied into Results folder) """
     for folder in corrections:
         dest = os.path.join(folder, RESULTS_DIR)
-        _copy_files(meas_dir, dest)
+        _copy_files(meas_dir, dest, file_pattern)
         getdiff.getdiff(dest)
 
 
@@ -311,11 +311,11 @@ def _create_base_file(source_dir, source_file, meas, error, expect, outname):
     return path_out
 
 
-def _copy_files(src, dst):
+def _copy_files(src, dst, ignore):
     """ Copies files only from src to dst directories """
     for item in os.listdir(src):
         src_item = os.path.join(src, item)
-        if os.path.isfile(src_item):
+        if os.path.isfile(src_item) and not re.search(ignore, item):
             iotools.copy_item(src_item, os.path.join(dst, item))
 
 
