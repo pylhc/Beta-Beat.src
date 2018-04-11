@@ -98,8 +98,8 @@ set_default_crossing_scheme(): macro = {
 * Sets the Crossing Scheme ON
 */
 set_crossing_scheme_ON(): macro = {
-    !*** IP orbit settings ***
-    on_x1    := 170;
+!*** IP orbit settings ***
+    on_x1    := 145;
     on_sep1  := 0;
     on_o1    := 0;
     on_oh1   := 0;
@@ -113,11 +113,11 @@ set_crossing_scheme_ON(): macro = {
     on_oe2  := 0;
     on_a2   := 0;
 
-    on_x5  := 170;
+    on_x5  := 145;
     on_sep5:= 0;
     on_o5  := 0;
     on_oh5 := 0;
-    on_ov5 := 0;
+    on_ov5 := -1.8;
 
     on_ssep5 := on_sep5;
     on_xx5  := on_x5;
@@ -133,6 +133,8 @@ set_crossing_scheme_ON(): macro = {
     on_sol_atlas:=0;
     on_sol_alice:=0;
     on_sol_cms:=0;
+
+    on_disp = 1;
 };
 
 
