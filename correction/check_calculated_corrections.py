@@ -228,7 +228,7 @@ def _plot(corrections, source_dir, show_plots, change_marker):
             error = 'ERROR'
             filename = data
 
-        files_c = [os.path.join(folder, "Results", filename + ".out") for folder in corrections]
+        files_c = [os.path.join(folder, RESULTS_DIR, filename + ".out") for folder in corrections]
 
         try:
             file_base = _create_base_file(source_dir, files_c[0], meas, error, expect, data)
@@ -269,10 +269,12 @@ def _call_madx(accel_inst, corrections):
         dir_out = os.path.join(dir_correct, RESULTS_DIR)
         iotools.create_dirs(dir_out)
         job_content = original_content
-        job_content += "twiss, file='{:s}';\n".format(os.path.join(dir_out, 'twiss_no.dat'))
+        job_content += "twiss, file='{:s}';\n".format(os.path.join(dir_out,
+                                                                   getdiff.TWISS_NOT_CORRECTED))
         for file in corrections[dir_correct]:
             job_content += "call, file='{:s}';\n".format(file)
-        job_content += "twiss, file='{:s}';\n".format(os.path.join(dir_out, 'twiss_cor.dat'))
+        job_content += "twiss, file='{:s}';\n".format(os.path.join(dir_out,
+                                                                   getdiff.TWISS_CORRECTED))
 
         madx_wrapper.resolve_and_run_string(
             job_content,
@@ -313,9 +315,10 @@ def _create_base_file(source_dir, source_file, meas, error, expect, outname):
 
 def _copy_files(src, dst, ignore):
     """ Copies files only from src to dst directories """
+    old_items = os.listdir(dst) + [getdiff.TWISS_CORRECTED, getdiff.TWISS_NOT_CORRECTED]
     for item in os.listdir(src):
         src_item = os.path.join(src, item)
-        if os.path.isfile(src_item) and not re.search(ignore, item):
+        if os.path.isfile(src_item) and not re.search(ignore, item) and not item in old_items:
             iotools.copy_item(src_item, os.path.join(dst, item))
 
 

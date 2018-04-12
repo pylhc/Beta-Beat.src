@@ -40,6 +40,11 @@ from utils import logging_tools
 
 LOG = logging_tools.get_logger(__name__)
 
+TWISS_CORRECTED = "twiss_cor.dat"
+TWISS_NOT_CORRECTED = "twiss_no.dat"
+TWISS_CORRECTED_PLUS = "twiss_cor_dpp.dat"  # positive dpp
+TWISS_CORRECTED_MINUS = "twiss_cor_dpm.dat"  # negative dpp
+
 
 # Main invocation ############################################################
 
@@ -62,8 +67,8 @@ def getdiff(meas_path=None):
 
     if not isdir(meas_path):
         raise IOError("No valid measurement directory:" + meas_path)
-    corrected_model_path = join(meas_path, 'twiss_cor.dat')
-    uncorrected_model_path = join(meas_path, 'twiss_no.dat')
+    corrected_model_path = join(meas_path, TWISS_CORRECTED)
+    uncorrected_model_path = join(meas_path, TWISS_NOT_CORRECTED)
 
     meas = GetLlmMeasurement(meas_path)
     twiss_cor = read_tfs(corrected_model_path).set_index('NAME', drop=False)
@@ -176,8 +181,8 @@ def _write_chromatic_coupling_files(meas_path, cor_path):
     LOG.debug("Calculating chromatic coupling diff.")
     # TODO: Add Cf1010
     try:
-        twiss_plus = read_tfs(join(split(cor_path)[0], "twiss_cor_dpp.dat"), index='NAME')
-        twiss_min = read_tfs(join(split(cor_path)[0], "twiss_cor_dpm.dat"), index='NAME')
+        twiss_plus = read_tfs(join(split(cor_path)[0], TWISS_CORRECTED_PLUS), index='NAME')
+        twiss_min = read_tfs(join(split(cor_path)[0], TWISS_CORRECTED_MINUS), index='NAME')
         deltap = np.abs(twiss_plus.DELTAP - twiss_min.DELTAP)
         plus = TwissOptics(twiss_plus, quick_init=True).get_coupling(method='cmatrix')
         minus = TwissOptics(twiss_min, quick_init=True).get_coupling(method='cmatrix')
