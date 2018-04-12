@@ -485,7 +485,7 @@ def _check_opt(opt):
                                           "{:s}.madx".format(opt.output_filename))
     opt.change_params_correct_path = os.path.join(opt.output_path,
                                                   "{:s}_correct.madx".format(opt.output_filename))
-    opt.knob_path = os.path.join(opt.output_path, "{:s}.knob").format(opt.output_filename)
+    opt.knob_path = os.path.join(opt.output_path, "{:s}.tfs").format(opt.output_filename)
 
     # check cuts and weights:
     def_dict = _get_default_values()
