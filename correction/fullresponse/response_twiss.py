@@ -72,6 +72,7 @@ class TwissResponse(object):
             folder, it will use this one. (Hence, can also be the path to this file)
         model_or_path: Path to twiss-model file, or model
         variables: List of variable-names
+        direction: Either +1 or -1, default +1.
         at_elements (str): Get response matrix for these elements. Can be:
             'bpms': All BPMS (Default)
             'bpms+': BPMS+ used magnets (== magnets defined by variables in varfile)
@@ -83,7 +84,7 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, varmap_or_path, model_or_path, variables,
+    def __init__(self, varmap_or_path, model_or_path, variables, direction=1,
                  at_elements='bpms'):
 
         LOG.debug("Initializing TwissResponse.")
@@ -94,6 +95,7 @@ class TwissResponse(object):
             self._var_to_el = self._get_variable_mapping(varmap_or_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
+            self._direction = self._get_direction(direction)
 
             # calculate all phase advances
             self._phase_advances = get_phase_advances(self._twiss)
@@ -194,6 +196,14 @@ class TwissResponse(object):
             el_in[order] = tw.loc[list(set(el_order)), "S"].sort_values().index.tolist()
         return el_in
 
+    @staticmethod
+    def _get_direction(direction):
+        if direction not in [+1, -1]:
+            raise AttributeError(
+                "Direction can be either +1 or -1, instead it was {}".format(direction)
+            )
+        return direction
+
     def _get_output_elements(self, at_elements):
         """ Return name-array of elements to use for output.
 
@@ -252,7 +262,7 @@ class TwissResponse(object):
                     bet_term[:, None] * np.exp(i2pi * (phx + phs_sign * phy)) /
                     (4 * (1 - np.exp(i2pi * (tw.Q1 + phs_sign * tw.Q2)))),
                     index=k1s_el, columns=el_out).transpose()
-        return dcoupl
+        return dict_mul(self._direction, dcoupl)
 
     def _calc_beta_response(self):
         """ Response Matrix for delta beta.
@@ -280,7 +290,7 @@ class TwissResponse(object):
                     (coeff_sign / (2 * np.sin(2 * np.pi * q))),
                     index=k1_el, columns=el_out).transpose()
 
-        return dbeta
+        return dict_mul(self._direction, dbeta)
 
     def _calc_dispersion_response(self):
         """ Response Matrix for delta dispersion
@@ -322,7 +332,7 @@ class TwissResponse(object):
                             "  No '{:s}' variables found. ".format(el_type) +
                             "Dispersion Response '{:s}' will be empty.".format(out_str))
                         disp_resp[out_str] = tfs.TfsDataFrame(None, index=el_out)
-        return disp_resp
+        return dict_mul(self._direction, disp_resp)
 
     def _calc_phase_advance_response(self):
         """ Response Matrix for delta DPhi.
@@ -373,7 +383,7 @@ class TwissResponse(object):
                 dmu = {"X": tfs.TfsDataFrame(None, index=el_out),
                        "Y": tfs.TfsDataFrame(None, index=el_out)}
 
-        return dmu
+        return dict_mul(self._direction, dmu)
 
     def _calc_phase_response(self):
         """ Response Matrix for delta DPhi.
@@ -420,7 +430,7 @@ class TwissResponse(object):
                 dmu = {"X": tfs.TfsDataFrame(None, index=el_out),
                        "Y": tfs.TfsDataFrame(None, index=el_out)}
 
-        return dmu
+        return dict_mul(self._direction, dmu)
 
     def _calc_tune_response(self):
         """ Response vectors for Tune.
@@ -445,7 +455,7 @@ class TwissResponse(object):
                 dtune = {"X": tfs.TfsDataFrame(None, index=["DQX"]),
                          "Y": tfs.TfsDataFrame(None, index=["DQY"])}
 
-        return dtune
+        return dict_mul(self._direction, dtune)
 
     ################################
     #       Normalizing
@@ -754,6 +764,14 @@ def response_add(*args):
     return base_df
 
 
+def dict_mul(number, dictionary):
+    """ Multiply an int with a dict of dataframes (or anything multiplyable) """
+    if number != 1:
+        for key in dictionary:
+            dictionary[key] = number * dictionary[key]
+    return dictionary
+
+
 # Wrapper ##################################################################
 
 
@@ -768,7 +786,8 @@ def create_response(accel_inst, vars_categories, optics_params):
 
     with timeit(lambda t:
                 LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
-        tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list)
+        sign = 1 if accel_inst.get_beam() == 1 else -1
+        tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list, sign)
         response = tr.get_response_for(optics_params)
 
     if not any([resp.size for resp in response.values()]):
