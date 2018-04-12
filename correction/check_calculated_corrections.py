@@ -173,7 +173,7 @@ def _get_diffs(corrections, meas_dir, file_pattern):
 
 def _plot(corrections, source_dir, show_plots, change_marker):
     """ Create all plots for the standard parameters """
-    data_files = ['bbx', 'bby', 'phasex', 'phasey', 'dx', 'dy', 'ndx']  # 'normal ' getdiff output
+    data_files = ['bbx', 'bby', 'dx', 'dy', 'ndx']  # 'normal ' getdiff output
 
     column_map = {  # special cases
         'couple_1001r': {
@@ -211,6 +211,18 @@ def _plot(corrections, source_dir, show_plots, change_marker):
             'expect': 'Cf1001i_prediction',
             'error': 'Cf1001iERR',
             'file': 'chromatic_coupling',
+        },
+        'phasex': {
+            'meas': 'DIFF',
+            'expect': 'EXPECT',
+            'error': 'ERROR',
+            'file': 'phasex',
+        },
+        'phasey': {
+            'meas': 'DIFF',
+            'expect': 'EXPECT',
+            'error': 'ERROR',
+            'file': 'phasey',
         },
     }
 
