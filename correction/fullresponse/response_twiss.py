@@ -325,8 +325,68 @@ class TwissResponse(object):
                         bet_term = np.sqrt(tw.loc[el_in, col_beta].values)
                         if el_type == "K1SL":
                             bet_term *= tw.loc[el_in, col_disp].values
-                        m = coeff_sign * coeff[None, :] * bet_term[:, None] * np.cos(pi2tau)
-                        disp_resp[out_str] = m.transpose()
+                        disp_resp[out_str] = tfs.TfsDataFrame(
+                            coeff_sign * coeff[None, :] * bet_term[:, None] * np.cos(pi2tau),
+                            index=el_in, columns=el_out).transpose()
+                    else:
+                        LOG.debug(
+                            "  No '{:s}' variables found. ".format(el_type) +
+                            "Dispersion Response '{:s}' will be empty.".format(out_str))
+                        disp_resp[out_str] = tfs.TfsDataFrame(None, index=el_out)
+        return dict_mul(self._direction, disp_resp)
+
+    def _calc_norm_dispersion_response(self):
+        """ Response Matrix for delta normalized dispersion
+
+            Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_
+            But w/o the assumtion :math:`\delta K_1 = 0` from Appendix B.1
+        """
+        LOG.debug("Calculate Normalized Dispersion Response Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+            tw = self._twiss
+            adv = self._phase_advances
+            el_out = self._elements_out
+            els_in = self._elements_in
+
+            col_disp_map = {
+                "X": {"K1L": "DX", "K1SL": "DY", },
+                "Y": {"K1L": "DY", "K1SL": "DX", },
+            }
+
+            sign_map = {
+                "X": {"K0L": 1, "K1L": -1, "K1SL": 1, },
+                "Y": {"K0SL": 1, "K1L": -1, "K1SL": -1, },
+            }
+            disp_resp = dict.fromkeys(["{p:s}_{t:s}".format(p=p, t=t)
+                                       for p in sign_map for t in sign_map[p]])
+
+            for plane in ["X", "Y"]:
+                q = tw.Q1 if plane == "X" else tw.Q2
+                type_plane = sign_map[plane].keys()
+                el_in_plane = [els_in[el_type] for el_type in type_plane]
+                col_beta = "BET" + plane
+
+                if any([len(el_in) for el_in in el_in_plane]):
+                    coeff = np.sqrt(tw.loc[el_out, col_beta].values) / (2 * np.sin(np.pi * q))
+
+                for el_in, el_type in zip(el_in_plane, type_plane):
+                    coeff_sign = sign_map[plane][el_type]
+                    out_str = "{p:s}_{t:s}".format(p=plane, t=el_type)
+
+                    if len(el_in):
+                        pi2tau = 2 * np.pi * tau(adv[plane].loc[el_in, el_out], q)
+                        bet_term = np.sqrt(tw.loc[el_in, col_beta].values)
+
+                        try:
+                            col_disp = col_disp_map[plane][el_type]
+                        except KeyError:
+                            pass
+                        else:
+                            bet_term *= tw.loc[el_in, col_disp].values
+
+                        disp_resp[out_str] = tfs.TfsDataFrame(
+                            coeff_sign * coeff[None, :] * bet_term[:, None] * np.cos(pi2tau),
+                            index=el_in, columns=el_out).transpose()
                     else:
                         LOG.debug(
                             "  No '{:s}' variables found. ".format(el_type) +
@@ -479,17 +539,12 @@ class TwissResponse(object):
 
     def _map_dispersion_response(self, disp):
         """ Maps all dispersion matrices """
-        var2k0 = self._var_to_el["K0L"]
-        var2j0 = self._var_to_el["K0SL"]
-        var2j1 = self._var_to_el["K1SL"]
+        disp_mapped = dict.fromkeys(disp.keys())
         m2v = self._map_to_variables
-
-        return {
-            "X_K0L": m2v(disp["X_K0L"], var2k0),
-            "X_K1SL": m2v(disp["X_K1SL"], var2j1),
-            "Y_K0SL": m2v(disp["Y_K0SL"], var2j0),
-            "Y_K1SL": m2v(disp["Y_K1SL"], var2j1),
-        }
+        for plane in disp:
+            mapping = self._var_to_el[plane.split("_")[1]]
+            disp_mapped[plane] = m2v(disp[plane], mapping)
+        return disp_mapped
 
     @staticmethod
     def _map_to_variables(df, mapping):
@@ -568,6 +623,19 @@ class TwissResponse(object):
             return self._dispersion_mapped
         else:
             return self._dispersion
+
+    def get_norm_dispersion(self, mapped=True):
+        """ Returns Response Matrix for Normalized Dispersion """
+        if not self._norm_dispersion:
+            self._norm_dispersion = self._calc_norm_dispersion_response()
+
+        if mapped and not self._norm_dispersion_mapped:
+            self._norm_dispersion_mapped = self._map_dispersion_response(self._norm_dispersion)
+
+        if mapped:
+            return self._norm_dispersion_mapped
+        else:
+            return self._norm_dispersion
 
     def get_phase(self, mapped=True):
         """ Returns Response Matrix for Total Phase """
@@ -658,52 +726,57 @@ class TwissResponse(object):
 
     def get_response_for(self, obs=None):
         """ Calculates and returns only desired response matrices """
+        # calling functions for the getters to call functions only if needed
+        def caller(func, plane):
+            return func()[plane]
+
+        def disp_caller(func, plane):
+            disp = func()
+            return response_add(*[disp[k] for k in disp.keys() if k.startswith(plane)])
+
+        def tune_caller(func, _unused):
+            tune = func()
+            res = tune["X"].append(tune["Y"])
+            res.index = ["Q1", "Q2"]
+            return res
+
+        def coulpe_caller(func, plane):
+            # apply() converts empty DataFrames to Series! Cast them back.
+            # Also: take care of minus-sign convention!
+            sign = -1 if plane[-1] == "R" else 1
+            part_func = np.real if plane[-1] == "R" else np.imag
+            return sign * tfs.TfsDataFrame(func()[plane[:-1]].apply(part_func).astype(np.float64))
+
+        # to avoid if-elif-elif-...
+        obs_map = {
+            'Q': (tune_caller, self.get_tune, None),
+            'BETX': (caller, self.get_beta, "X"),
+            'BETY': (caller, self.get_beta, "Y"),
+            'BBX': (caller, self.get_beta_beat, "X"),
+            'BBY': (caller, self.get_beta_beat, "Y"),
+            'MUX': (caller, self.get_phase, "X"),
+            'MUY': (caller, self.get_phase, "Y"),
+            'DX': (disp_caller, self.get_dispersion, "X"),
+            'DY': (disp_caller, self.get_dispersion, "Y"),
+            'NDX': (disp_caller, self.get_norm_dispersion, "X"),
+            'NDY': (disp_caller, self.get_norm_dispersion, "Y"),
+            'F1001R': (coulpe_caller, self.get_coupling, "1001R"),
+            'F1001I': (coulpe_caller, self.get_coupling, "1001I"),
+            'F1010R': (coulpe_caller, self.get_coupling, "1010R"),
+            'F1010I': (coulpe_caller, self.get_coupling, "1010I"),
+        }
+
         if obs is None:
-            obs = ["BETX", "BETY", "BBX", "BBY", "MUX", "MUY",
-                   "DX", "DY", "F1001R", "F1001I", "F1010R", "F1010I", "Q"]
+            obs = obs_map.keys()
 
         LOG.debug("Calculating responses for {:s}.".format(obs))
         with timeit(lambda t: LOG.debug("Total time getting responses: {:f}s".format(t))):
-            response = dict()
+            response = dict.fromkeys(obs)
             for key in obs:
-                if key == "BETX":
-                    res = self.get_beta()["X"]
-                elif key == "BETY":
-                    res = self.get_beta()["Y"]
-                elif key == "BBX":
-                    res = self.get_beta_beat()["X"]
-                elif key == "BBY":
-                    res = self.get_beta_beat()["Y"]
-                elif key == "MUX":
-                    res = self.get_phase()["X"]
-                elif key == "MUY":
-                    res = self.get_phase()["Y"]
-                elif key == "DX":
-                    disp = self.get_dispersion()
-                    res = response_add(disp["X_K0L"], disp["X_K1SL"])
-                elif key == "DY":
-                    disp = self.get_dispersion()
-                    res = response_add(disp["Y_K0SL"], disp["Y_K1SL"])
-                elif key == "Q":
-                    tune = self.get_tune()
-                    res = tune["X"].append(tune["Y"])
-                    res.index = ["Q1", "Q2"]
-                elif key == "F1001R":
-                    res = -tfs.TfsDataFrame(
-                        self.get_coupling()["1001"].apply(np.real).astype(np.float64))  # - !!
-                elif key == "F1001I":
-                    res = tfs.TfsDataFrame(
-                        self.get_coupling()["1001"].apply(np.imag).astype(np.float64))
-                elif key == "F1010R":
-                    res = -tfs.TfsDataFrame(
-                        self.get_coupling()["1010"].apply(np.real).astype(np.float64))  # - !!
-                elif key == "F1010I":
-                    res = tfs.TfsDataFrame(
-                        self.get_coupling()["1010"].apply(np.imag).astype(np.float64))
-                response[key] = res
+                response[key] = obs_map[0](*obs_map[1:2])
         return response
 
-    def get_variabel_names(self):
+    def get_variable_names(self):
         return self._variables
 
     def get_variable_mapping(self, order=None):
@@ -716,26 +789,18 @@ class TwissResponse(object):
 # Associated Functions #########################################################
 
 
-def get_delta(fullresp_or_tr, delta_k):
-    """ Returns the deltas of :math:'response_matrix \cdot delta_k'.
+def get_delta(response, delta_k):
+    """ Returns the deltas of :math:`response_matrix \cdot delta_k`.
 
     Args:
-        fullresp_or_tr: Either the fullresponse dictionary or the TwissResponse Object
+        response: Response dictionary
         delta_k: Pandas Series of variables and their delta-value
 
     Returns:
         TFS_DataFrame with elements as indices and the calculated deltas in the columns
     """
-    if isinstance(fullresp_or_tr, TwissResponse):
-        response = fullresp_or_tr.get_fullresponse()
-    else:
-        response = fullresp_or_tr
-
-    columns = response.keys()
-    index = response["BETX"].index
-
-    delta_df = tfs.TfsDataFrame(None, index=index)
-    for col in columns:
+    delta_df = tfs.TfsDataFrame(None, index=response.index)
+    for col in response.keys():
         # equivalent to .dot() but more efficient as delta_k is "sparse"
         if col == "Q":
             try:
