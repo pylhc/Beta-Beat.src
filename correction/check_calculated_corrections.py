@@ -2,6 +2,8 @@ import os
 import re
 import sys
 
+import numpy as np
+
 sys.path.append(os.path.abspath(os.path.join(__file__, os.pardir)))
 
 import madx_wrapper
@@ -246,6 +248,8 @@ def _plot(corrections, source_dir, show_plots, change_marker):
             file_base = _create_base_file(source_dir, files_c[0], meas, error, expect, data)
             data_paths = [file_base] + files_c
 
+            _log_rms(data_paths, legends, expect)
+
             plot_tfs.plot(
                 files=data_paths,
                 y_cols=[expect],
@@ -332,6 +336,20 @@ def _copy_files(src, dst, ignore):
         src_item = os.path.join(src, item)
         if os.path.isfile(src_item) and not re.search(ignore, item) and not item in old_items:
             iotools.copy_item(src_item, os.path.join(dst, item))
+
+
+def _log_rms(files, legends, column_name):
+    """ Calculate and print rms value into log """
+    file_name = os.path.splitext(os.path.basename(files[0]))[0]
+    LOG.info("Results for '{:s}':".format(file_name))
+    LOG.info("  {:<20s} {:11s} {:11s}".format("", " RMS", " Mean"))
+    for f, l in zip(files, legends):
+        data = tfs_pandas.read_tfs(f)[column_name]
+        LOG.info("  {:<20s} {:+11.4e} {:+11.4e}".format(l, _rms(data), np.mean(data)))
+
+
+def _rms(data):
+    return np.sqrt(np.mean(np.square(data)))
 
 
 # Script Mode ################################################################
