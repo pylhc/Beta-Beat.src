@@ -355,21 +355,23 @@ class TwissResponse(object):
 
             sign_map = {
                 "X": {"K0L": 1, "K1L": -1, "K1SL": 1, },
-                "Y": {"K0SL": 1, "K1L": -1, "K1SL": -1, },
+                "Y": {"K0SL": -1, "K1L": 1, "K1SL": 1, },
             }
+
+            q_map = {"X": tw.Q1, "Y": tw.Q2}
             disp_resp = dict.fromkeys(["{p:s}_{t:s}".format(p=p, t=t)
                                        for p in sign_map for t in sign_map[p]])
 
-            for plane in ["X", "Y"]:
-                q = tw.Q1 if plane == "X" else tw.Q2
-                type_plane = sign_map[plane].keys()
-                el_in_plane = [els_in[el_type] for el_type in type_plane]
-                col_beta = "BET" + plane
+            for plane in sign_map:
+                q = q_map[plane]
+                col_beta = "BET{}".format(plane)
+                el_types = sign_map[plane]
+                els_per_type = [els_in[el_type] for el_type in el_types]
 
-                if any([len(el_in) for el_in in el_in_plane]):
-                    coeff = np.sqrt(tw.loc[el_out, col_beta].values) / (2 * np.sin(np.pi * q))
+                if any([len(el_in) for el_in in els_per_type]):
+                    coeff = 1 / (2 * np.sin(np.pi * q))
 
-                for el_in, el_type in zip(el_in_plane, type_plane):
+                for el_in, el_type in zip(els_per_type, el_types):
                     coeff_sign = sign_map[plane][el_type]
                     out_str = "{p:s}_{t:s}".format(p=plane, t=el_type)
 
@@ -689,40 +691,14 @@ class TwissResponse(object):
         else:
             return self._coupling
 
-    def get_fullresponse(self):
-        """ Returns all Response Matrices in a similar way as ``response_madx.py`` """
-        LOG.debug("Calculating (if not present) parameters and returning fullresponse.")
-        with timeit(lambda t: LOG.debug("Total time getting responses: {:f}s".format(t))):
-            # get all optical parameters
-            tune = self.get_tune()
-            beta = self.get_beta()
-            bbeat = self.get_beta_beat()
-            disp = self.get_dispersion()
-            phase = self.get_phase()
-            couple = self.get_coupling()
+    def get_variable_names(self):
+        return self._variables
 
-        # merge tune to one
-        q_df = tune["X"].append(tune["Y"])
-        q_df.index = ["Q1", "Q2"]
-
-        # return a big dictionary of things
-        return {
-            "BETX": beta["X"],
-            "BETY": beta["Y"],
-            "BBX": bbeat["X"],
-            "BBY": bbeat["Y"],
-            "MUX": phase["X"],
-            "MUY": phase["Y"],
-            "DX": response_add(disp["X_K0L"], disp["X_K1SL"]),
-            "DY": response_add(disp["Y_K0SL"], disp["Y_K1SL"]),
-            # apply() converts empty DataFrames to Series! Cast them back.
-            # Also: take care of minus-sign convention!
-            "F1001R": -tfs.TfsDataFrame(couple["1001"].apply(np.real).astype(np.float64)),  # - !!
-            "F1001I": tfs.TfsDataFrame(couple["1001"].apply(np.imag).astype(np.float64)),
-            "F1010R": -tfs.TfsDataFrame(couple["1010"].apply(np.real).astype(np.float64)),  # - !!
-            "F1010I": tfs.TfsDataFrame(couple["1010"].apply(np.imag).astype(np.float64)),
-            "Q": q_df,
-        }
+    def get_variable_mapping(self, order=None):
+        if order is None:
+            return self._var_to_el
+        else:
+            return self._var_to_el[order]
 
     def get_response_for(self, obs=None):
         """ Calculates and returns only desired response matrices """
@@ -775,15 +751,6 @@ class TwissResponse(object):
             for key in obs:
                 response[key] = obs_map[key][0](*obs_map[key][1:3])
         return response
-
-    def get_variable_names(self):
-        return self._variables
-
-    def get_variable_mapping(self, order=None):
-        if order is None:
-            return self._var_to_el
-        else:
-            return self._var_to_el[order]
 
 
 # Associated Functions #########################################################
