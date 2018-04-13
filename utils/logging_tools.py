@@ -14,12 +14,12 @@ from utils import iotools
 DIVIDER = "|"
 NEWLINE = "\n" + " " * 10  # levelname + divider + 2
 BASIC_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
-COLOR_LEVEL = '\33[38;2;150;150;255m'
-COLOR_MESSAGE = '\33[38;2;255;255;180m'
-COLOR_WARN = '\33[38;2;255;161;53m'
-COLOR_ERROR = '\33[38;2;216;31;42m'
-COLOR_NAME = '\33[38;2;150;150;150m'
-COLOR_DIVIDER = '\33[38;2;150;150;150m'
+COLOR_LEVEL = '\33[0m\33[38;2;150;150;255m'
+COLOR_MESSAGE = '\33[0m\33[1m'
+COLOR_WARN = '\33[0m\33[38;2;255;161;53m'
+COLOR_ERROR = '\33[0m\33[38;2;216;31;42m'
+COLOR_NAME = '\33[0m\33[38;2;127;127;127m'
+COLOR_DIVIDER = '\33[0m\33[38;2;127;127;127m'
 COLOR_RESET = '\33[0m'
 
 
