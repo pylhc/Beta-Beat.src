@@ -390,7 +390,7 @@ class TwissResponse(object):
                     else:
                         LOG.debug(
                             "  No '{:s}' variables found. ".format(el_type) +
-                            "Dispersion Response '{:s}' will be empty.".format(out_str))
+                            "Normalized Dispersion Response '{:s}' will be empty.".format(out_str))
                         disp_resp[out_str] = tfs.TfsDataFrame(None, index=el_out)
         return dict_mul(self._direction, disp_resp)
 
@@ -773,7 +773,7 @@ class TwissResponse(object):
         with timeit(lambda t: LOG.debug("Total time getting responses: {:f}s".format(t))):
             response = dict.fromkeys(obs)
             for key in obs:
-                response[key] = obs_map[0](*obs_map[1:2])
+                response[key] = obs_map[key][0](*obs_map[key][1:3])
         return response
 
     def get_variable_names(self):
