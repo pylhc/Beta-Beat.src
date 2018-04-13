@@ -740,7 +740,7 @@ class TwissResponse(object):
             res.index = ["Q1", "Q2"]
             return res
 
-        def coulpe_caller(func, plane):
+        def couple_caller(func, plane):
             # apply() converts empty DataFrames to Series! Cast them back.
             # Also: take care of minus-sign convention!
             sign = -1 if plane[-1] == "R" else 1
@@ -760,10 +760,10 @@ class TwissResponse(object):
             'DY': (disp_caller, self.get_dispersion, "Y"),
             'NDX': (disp_caller, self.get_norm_dispersion, "X"),
             'NDY': (disp_caller, self.get_norm_dispersion, "Y"),
-            'F1001R': (coulpe_caller, self.get_coupling, "1001R"),
-            'F1001I': (coulpe_caller, self.get_coupling, "1001I"),
-            'F1010R': (coulpe_caller, self.get_coupling, "1010R"),
-            'F1010I': (coulpe_caller, self.get_coupling, "1010I"),
+            'F1001R': (couple_caller, self.get_coupling, "1001R"),
+            'F1001I': (couple_caller, self.get_coupling, "1001I"),
+            'F1010R': (couple_caller, self.get_coupling, "1010R"),
+            'F1010I': (couple_caller, self.get_coupling, "1010I"),
         }
 
         if obs is None:
