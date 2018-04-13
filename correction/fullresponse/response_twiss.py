@@ -348,14 +348,14 @@ class TwissResponse(object):
             el_out = self._elements_out
             els_in = self._elements_in
 
-            col_disp_map = {
-                "X": {"K1L": "DX", "K1SL": "DY", },
-                "Y": {"K1L": "DY", "K1SL": "DX", },
-            }
-
             sign_map = {
                 "X": {"K0L": 1, "K1L": -1, "K1SL": 1, },
                 "Y": {"K0SL": -1, "K1L": 1, "K1SL": 1, },
+            }
+
+            col_disp_map = {
+                "X": {"K1L": "DX", "K1SL": "DY", },
+                "Y": {"K1L": "DY", "K1SL": "DX", },
             }
 
             q_map = {"X": tw.Q1, "Y": tw.Q2}
@@ -365,7 +365,7 @@ class TwissResponse(object):
             for plane in sign_map:
                 q = q_map[plane]
                 col_beta = "BET{}".format(plane)
-                el_types = sign_map[plane]
+                el_types = sign_map[plane].keys()
                 els_per_type = [els_in[el_type] for el_type in el_types]
 
                 if any([len(el_in) for el_in in els_per_type]):
@@ -377,18 +377,18 @@ class TwissResponse(object):
 
                     if len(el_in):
                         pi2tau = 2 * np.pi * tau(adv[plane].loc[el_in, el_out], q)
-                        bet_term = np.sqrt(tw.loc[el_in, col_beta].values)
+                        bet_term = np.sqrt(tw.loc[el_in, col_beta])
 
                         try:
                             col_disp = col_disp_map[plane][el_type]
                         except KeyError:
                             pass
                         else:
-                            bet_term *= tw.loc[el_in, col_disp].values
+                            bet_term *= tw.loc[el_in, col_disp]
 
-                        disp_resp[out_str] = tfs.TfsDataFrame(
-                            (coeff_sign * coeff * bet_term)[:, None] * np.cos(pi2tau),
-                            index=el_in, columns=el_out).transpose()
+                        disp_resp[out_str] = ((coeff_sign * coeff * bet_term)[:, None] *
+                                              np.cos(pi2tau)
+                                              ).transpose()
                     else:
                         LOG.debug(
                             "  No '{:s}' variables found. ".format(el_type) +
