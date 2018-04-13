@@ -368,9 +368,7 @@ class TwissResponse(object):
                 el_types = sign_map[plane].keys()
                 els_per_type = [els_in[el_type] for el_type in el_types]
 
-                if any([len(el_in) for el_in in els_per_type]):
-                    coeff = 1 / (2 * np.sin(np.pi * q))
-
+                coeff = 1 / (2 * np.sin(np.pi * q))
                 for el_in, el_type in zip(els_per_type, el_types):
                     coeff_sign = sign_map[plane][el_type]
                     out_str = "{p:s}_{t:s}".format(p=plane, t=el_type)
