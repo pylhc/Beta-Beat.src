@@ -387,7 +387,7 @@ class TwissResponse(object):
                             bet_term *= tw.loc[el_in, col_disp].values
 
                         disp_resp[out_str] = tfs.TfsDataFrame(
-                            coeff_sign * coeff[None, :] * bet_term[:, None] * np.cos(pi2tau),
+                            (coeff_sign * coeff * bet_term)[:, None] * np.cos(pi2tau),
                             index=el_in, columns=el_out).transpose()
                     else:
                         LOG.debug(
