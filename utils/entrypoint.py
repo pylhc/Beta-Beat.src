@@ -160,7 +160,7 @@ class EntryPoint(object):
     def _create_config_argument(self):
         """ Creates the config-file argument parser """
         parser = ArgumentParser()
-        parser.add_argument('--cfg_file', type=str, dest='cfg_file', required=True,)
+        parser.add_argument('--{}'.format(ID_CONFIG), type=str, dest=ID_CONFIG, required=True,)
         return parser
 
     def _create_argument_parser(self):
@@ -204,7 +204,7 @@ class EntryPoint(object):
                 return options, unknown_opts
         else:
             # parse config file
-            return self.dictparse.parse_config_items(self._read_config(options.cfg_file))
+            return self.dictparse.parse_config_items(self._read_config(vars(options)[ID_CONFIG]))
 
     def _handle_arg(self, arg):
         """ *args has been input """
