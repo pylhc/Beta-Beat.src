@@ -30,6 +30,10 @@ BRHO      := BEAM->PC * 3.3356;
  /*Strength files*/
  call, file = "%(OPTICS_PATH)s";
 
+ seqedit, sequence=PS;
+  flatten;
+  cycle, start=PS43$START;
+ endedit;
 
  use, sequence=PS;
 
@@ -56,8 +60,8 @@ match, use_macro;
    {
      twiss;
    }
-  CONSTRAINT, expr=  table(twiss, ps$end , mux)= Qx; 
-  CONSTRAINT, expr=  table(twiss, ps$end , muy)= Qy;
+  CONSTRAINT, expr=  table(summ , q1)= Qx; 
+  CONSTRAINT, expr=  table(summ , q2)= Qy;
   
   lmdif,calls=1000,TOLERANCE=1.0E-21;
 ENDMATCH;
