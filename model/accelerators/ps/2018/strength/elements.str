@@ -55,26 +55,26 @@
 *******************************************************************************/
 !focussing
 
-PR.KQSK03 = kfs;
-PR.KQSK07 = kfs;
-PR.KQSK19 = kfs;
-PR.KQSK23 = kfs;
-PR.KQSK29 = kfs;
-PR.KQSK33 = kfs;
-PR.KQSK37 = kfs;
-PR.KQSK41 = kfs;
-PR.KQSK43 = kfs;
-PR.KQSK47 = kfs;
-PR.KQSK53 = kfs;
-PR.KQSK57 = kfs;
-PR.KQSK69 = kfs;
-PR.KQSK73 = kfs;
-PR.KQSK79 = kfs;
-PR.KQSK83 = kfs;
-PR.KQSK87 = kfs;
-PR.KQSK91 = kfs;
-PR.KQSK93 = kfs;
-PR.KQSK97 = kfs;
+   PR.KQSK03 = kfs;
+   PR.KQSK07 = kfs;
+   PR.KQSK19 = kfs;
+   PR.KQSK23 = kfs;
+   PR.KQSK29 = kfs;
+   PR.KQSK33 = kfs;
+   PR.KQSK37 = kfs;
+   PR.KQSK41 = kfs;
+   PR.KQSK43 = kfs;
+   PR.KQSK47 = kfs;
+   PR.KQSK53 = kfs;
+   PR.KQSK57 = kfs;
+   PR.KQSK69 = kfs;
+   PR.KQSK73 = kfs;
+   PR.KQSK79 = kfs;
+   PR.KQSK83 = kfs;
+   PR.KQSK87 = kfs;
+   PR.KQSK91 = kfs;
+   PR.KQSK93 = kfs;
+   PR.KQSK97 = kfs;
 
    
    PR.QSK03      , KSL  :=  {0, PR.KQSK03};
@@ -100,26 +100,26 @@ PR.KQSK97 = kfs;
 
 !defocussing
 
-PR.KQSK04 = kds ; 
-PR.KQSK08 = kds ; 
-PR.KQSK20 = kds ; 
-PR.KQSK24 = kds ; 
-PR.KQSK30 = kds ; 
-PR.KQSK34 = kds ; 
-PR.KQSK38 = kds ; 
-PR.KQSK42 = kds ; 
-PR.KQSK44 = kds ; 
-PR.KQSK48 = kds ; 
-PR.KQSK54 = kds ; 
-PR.KQSK58 = kds ; 
-PR.KQSK70 = kds ; 
-PR.KQSK74 = kds ; 
-PR.KQSK80 = kds ; 
-PR.KQSK84 = kds ; 
-PR.KQSK88 = kds ; 
-PR.KQSK92 = kds ; 
-PR.KQSK94 = kds ; 
-PR.KQSK98 = kds ; 
+   PR.KQSK04 = kds ; 
+   PR.KQSK08 = kds ; 
+   PR.KQSK20 = kds ; 
+   PR.KQSK24 = kds ; 
+   PR.KQSK30 = kds ; 
+   PR.KQSK34 = kds ; 
+   PR.KQSK38 = kds ; 
+   PR.KQSK42 = kds ; 
+   PR.KQSK44 = kds ; 
+   PR.KQSK48 = kds ; 
+   PR.KQSK54 = kds ; 
+   PR.KQSK58 = kds ; 
+   PR.KQSK70 = kds ; 
+   PR.KQSK74 = kds ; 
+   PR.KQSK80 = kds ; 
+   PR.KQSK84 = kds ; 
+   PR.KQSK88 = kds ; 
+   PR.KQSK92 = kds ; 
+   PR.KQSK94 = kds ; 
+   PR.KQSK98 = kds ; 
 
    PR.QSK04      , KSL  :=  {0, PR.KQSK04};
    PR.QSK08      , KSL  :=  {0, PR.KQSK08};
