@@ -50,8 +50,8 @@ def compare_dirs(dir1, dir2, ignore=None, function=None):
         full_path2 = os.path.join(dir2, name)
         if os.path.isfile(full_path1) and os.path.isfile(full_path2):
             result &= function(full_path1, full_path2)
-        elif os.path.isfile(full_path1) and os.path.isfile(full_path2):
-            result &= compare_dirs(full_path1, full_path2)
+        elif os.path.isdir(full_path1) and os.path.isdir(full_path2):
+            result &= compare_dirs(full_path1, full_path2, ignore=ignore)
         else:
             print("{fp1} and {fp2} are of different type!"
                   .format(fp1=full_path1, fp2=full_path2))
@@ -59,12 +59,13 @@ def compare_dirs(dir1, dir2, ignore=None, function=None):
     return result
 
 
-def compare_dirs_ignore_words(dir1, dir2, ignore_words):
+def compare_dirs_ignore_words(dir1, dir2, ignore_words, ignore_files=None):
     """Same as compare_dirs but ignores lines with words in ignore_words.
     """
     return compare_dirs(
         dir1,
         dir2,
+        ignore=ignore_files,
         function=lambda file1, file2:
         compare_text_files_ignore_lines(file1, file2, ignore_words)
     )
