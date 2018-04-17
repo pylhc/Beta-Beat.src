@@ -62,7 +62,7 @@ import numpy
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
 import utils.iotools
-import utils.math
+import correction.correction_helpers
 
 import madx_wrapper
 
@@ -116,9 +116,9 @@ class _InputData(object):
             raise ValueError("Unknown accelerator: " + accel)
         if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")
-        if not utils.math.can_str_be_parsed_to_number(delta_k):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(delta_k):
             raise ValueError("Delta k is not a number: " + delta_k)
-        if not utils.math.can_str_be_parsed_to_number(delta_kl):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(delta_kl):
             raise ValueError("Delta kl is not a number: " + delta_kl)
         if not utils.iotools.dirs_exist(os.path.join(path_to_core_files_without_accel, accel)):
             raise ValueError("Core path does not exist: " + _InputData.core_path_with_accel)

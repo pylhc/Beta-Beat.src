@@ -467,12 +467,8 @@ class Lhc(Accelerator):
         return cls.get_file("template.iterate.madx")
 
     @classmethod
-    def get_basic_twiss_tmpl(cls):
-        return cls.get_file("template.basic_twiss.madx")
-
-    @classmethod
-    def get_save_seq_tmpl(cls):
-        return cls.get_file("template.save_sequence.madx")
+    def get_basic_seq_tmpl(cls):
+        return cls.get_file("template.basic_seq.madx")
 
     @classmethod
     def get_update_correction_tmpl(cls):
@@ -542,9 +538,9 @@ class Lhc(Accelerator):
             )
         return madx_template % replace_dict
 
-    def get_basic_twiss_job(self, job_content, twiss_columns, element_pattern):
+    def get_basic_seq_job(self):
         """ Return string for madx job of correting model """
-        with open(self.get_basic_twiss_tmpl(), "r") as template:
+        with open(self.get_basic_seq_tmpl(), "r") as template:
             madx_template = template.read()
         try:
             replace_dict = {
@@ -556,9 +552,6 @@ class Lhc(Accelerator):
                 "DPP": self.dpp,
                 "QMX": self.nat_tune_x,
                 "QMY": self.nat_tune_y,
-                "JOB_CONTENT": job_content,
-                "ELEMENT_PATTERN": element_pattern,
-                "TWISS_COLUMNS": twiss_columns,
             }
         except AttributeError:
             raise AcceleratorDefinitionError(

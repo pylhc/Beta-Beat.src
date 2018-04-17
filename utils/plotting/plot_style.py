@@ -205,9 +205,7 @@ _STANDARD_PARAMS = {
 }
 
 
-"""
-=============================   Style   =============================
-"""
+# Style ######################################################################
 
 
 def set_style(style='standard', manual=None):
@@ -234,9 +232,7 @@ def set_style(style='standard', manual=None):
     matplotlib.rcParams.update(params)
 
 
-"""
-=============================   Tools   =============================
-"""
+# Tools ######################################################################
 
 
 def sync2d(axs, ax_str='xy', ax_lim=()):
@@ -318,9 +314,32 @@ def set_xLimits(accel, ax=None):
         raise ArgumentError("Accelerator '" + accel + "' unknown.")
 
 
-"""
-=============================   Labels   =============================
-"""
+class MarkerList(object):
+    """ Create a list of predefined markers """
+    # markers = ["s", "o", ">", "D", "v", "*", "h", "^", "p", "X", "<", "P"]  # matplotlib 2.++
+    markers = ["s", "o", ">", "D", "v", "*", "h", "^", "p", "<"]
+
+    def __init__(self):
+        self.idx = 0
+
+    @classmethod
+    def get_marker(cls, marker_num):
+        """ Return marker of index marker_num
+
+         Args:
+             marker_num (int): return maker at this position in list (mod len(list))
+        """
+        return cls.markers[marker_num % len(cls.markers)]
+
+    def get_next_marker(self):
+        """ Return the next marker in the list (circularly wrapped) """
+        marker = self.get_marker(self.idx)
+        self.idx += 1
+        return marker
+
+
+# Labels #####################################################################
+
 
 # List of common y-labels. Sorry for the ugly.
 _ylabels = {
@@ -329,7 +348,7 @@ _ylabels = {
     "betabeat_permile":   r'$\Delta \beta_{{{0}}} / \beta_{{{0}}} [$'u'\u2030'r'$]$',
     "dbeta":              r"$\beta'_{{{0}}} [m]$",
     "dbetabeat":          r'$1/\beta_{{{0}}} \cdot \partial\beta_{{{0}}} / \partial\delta_{{{0}}}$',
-    "norm_dispersion":    r'$\frac{\Delta D_{{0}}}{\beta_{{0}}} [m]$',
+    "norm_dispersion":    r'$\frac{{\Delta D_{{{0}}}}}{{\beta_{{{0}}}}} [m]$',
     "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu m^{{1/2}}]$',
     "phase":              r'$\phi_{{{0}}} [2\pi]$',
     "phasetot":           r'$\phi_{{{0}}} [2\pi]$',

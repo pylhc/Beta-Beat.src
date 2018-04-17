@@ -138,7 +138,7 @@ def read_tfs(tfs_path, index=None):
     # not sure if this is needed in general but some of GetLLM's funstions try to access this
     headers["filename"] = tfs_path
 
-    _validate(data_frame)
+    _validate(data_frame, "from file '{:s}'".format(tfs_path))
     return data_frame
 
 
@@ -154,7 +154,7 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     identifiable by INDEX_ID (will be loaded automatically by read_tfs). If string, it saves
     the index of the data_frame to a column named like the string given. Default: False
     """
-    _validate(data_frame)
+    _validate(data_frame, "to be written in '{:s}'".format(tfs_path))
 
     if isinstance(save_index, basestring):
         # saves index into column by name given
@@ -296,7 +296,7 @@ def _raise_unknown_type(name):
     raise TfsFormatError("Unknown data type: " + name)
 
 
-def _validate(data_frame):
+def _validate(data_frame, info_str=""):
     """ Check if Dataframe contains finite values only """
     def isnotfinite(x):
         try:
@@ -311,9 +311,12 @@ def _validate(data_frame):
 
     bool_df = data_frame.apply(isnotfinite)
     if bool_df.values.any():
-        LOGGER.error("DataFrame contains non-physical values at Index: {:s}".format(
+        LOGGER.warn("DataFrame {:s} contains non-physical values at Index: {:s}".format(
+            info_str,
             str(bool_df.index[bool_df.any(axis='columns')].tolist())
         ))
+    else:
+        LOGGER.debug("DataFrame {:s} validated.".format(info_str))
 
 
 def get_bpms(data_frame):

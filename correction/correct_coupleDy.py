@@ -61,7 +61,7 @@ import numpy
 import __init__ # @UnusedImport init will include paths
 import utils.iotools
 import utils.tfs_file_writer
-import utils.math
+import correction.correction_helpers
 import correction.GenMatrix_coupleDy as GenMatrix_coupleDy
 import Python_Classes4MAD.metaclass as metaclass
 
@@ -352,7 +352,7 @@ class _InputData(object):
         _InputData._check_and_set_cuts(singular_value_cut, errorcut, modelcut)
         _InputData._check_and_set_accel_path(beta_beat_root, accel)
 
-        if not utils.math.can_str_be_parsed_to_number(min_strength):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(min_strength):
             raise ValueError("Given min strength is not a number: "+min_strength)
         _InputData.min_strength = float(min_strength)
 
@@ -372,17 +372,17 @@ class _InputData(object):
 
     @staticmethod
     def _check_and_set_cuts(singular_value_cut, errorcut, modelcut):
-        if not utils.math.can_str_be_parsed_to_number(singular_value_cut):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(singular_value_cut):
             raise ValueError("Given cut is not a number: "+singular_value_cut)
         modelcuts = modelcut.split(",")
-        if not utils.math.can_str_be_parsed_to_number(modelcuts[0]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(modelcuts[0]):
             raise ValueError("Given model cut is not a number: "+modelcuts[0]+" from "+modelcuts)
-        if not utils.math.can_str_be_parsed_to_number(modelcuts[1]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(modelcuts[1]):
             raise ValueError("Given model cut is not a number: "+modelcuts[1]+" from "+modelcuts)
         errorcuts = errorcut.split(",")
-        if not utils.math.can_str_be_parsed_to_number(errorcuts[0]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(errorcuts[0]):
             raise ValueError("Given error cut is not a number: "+errorcuts[0]+" from "+errorcuts)
-        if not utils.math.can_str_be_parsed_to_number(errorcuts[1]):
+        if not correction.correction_helpers.can_str_be_parsed_to_number(errorcuts[1]):
             raise ValueError("Given error cut is not a number: "+errorcuts[1]+" from "+errorcuts)
         _InputData.singular_value_cut = float(singular_value_cut)
         _InputData.error_cut_c = float(errorcuts[0])
