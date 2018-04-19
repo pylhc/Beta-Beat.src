@@ -565,14 +565,29 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         q1s = phase.calc_phase_mean(q1js,1.0)
         q2s = phase.calc_phase_mean(q2js,1.0)
 
+        if DEBUG:
+            print("i=",i," j=", j," q1s=",q1s," q2s=",q2s," q1d=",q1d," q2d=",q2d)
+
         # Take SPS and RHIC out of the badbpm procedure (badbpm stays 0 as initialized) and set phases 
         if (accel == "SPS" or accel == "RHIC"):
+            print("accel is ", accel, " disabling wrong phase check")
+            
             q1010i = q1d
             q1010i = q1s
 
         # Check phase and set badbpm for wrong phase (only for other accels than SPS and RHIC)
-        elif min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25 or min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
-            badbpm = 1
+        else:
+            if min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25:
+                if DEBUG:
+                    print("Bad BPM because min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25")
+                    
+                badbpm = 1
+            if min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
+                if DEBUG:
+                    print("Bad BPM because min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25")
+                    print(" i j ",i, j," q1s, q2s",q1s,q2s) 
+                badbpm = 1
+           
 
         # If accel is SPS or RHIC or no no wrong phase was detected, process results
         if badbpm==0:
