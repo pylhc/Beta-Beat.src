@@ -46,6 +46,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "QMY": lhc_instance.nat_tune_y,
             "USE_ACD": use_acd,
             "USE_ADT": use_adt,
+            "DPP": lhc_instance.dpp,
             "CROSSING_ON": crossing_on,
             "QX": "", "QY": "", "QDX": "", "QDY": "",
         }
@@ -56,39 +57,8 @@ class LhcModelCreator(model_creator.ModelCreator):
             replace_dict["QDX"] = lhc_instance.drv_tune_x
             replace_dict["QDY"] = lhc_instance.drv_tune_y
 
-        try:
-            iter(lhc_instance.dpp)
-        except TypeError:
-            with open(lhc_instance.get_nominal_tmpl()) as textfile:
-                madx_template = textfile.read()
-            replace_dict["DPP"] = lhc_instance.dpp
-        else:
-            with open(lhc_instance.get_nominal_multidpp_tmpl()) as textfile:
-                madx_template = textfile.read()
-            twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
-            (replace_dict["DPP"], replace_dict["DPP_ELEMS"],
-             replace_dict["DPP_AC"], replace_dict["DPP_ADT"]) = "", "", "", ""
-            for dpp in lhc_instance.dpp:
-                replace_dict["DPP"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}.dat".format(dpp))
-                )
-                replace_dict["DPP_ELEMS"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}_elements.dat".format(dpp))
-                )
-                replace_dict["DPP_AC"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}_ac.dat".format(dpp))
-                )
-                replace_dict["DPP_ADT"] += twisses_tmpl.format(
-                    beam=beam,
-                    dpp=dpp,
-                    twiss=os.path.join(output_path, "twiss_{:f}_adt.dat".format(dpp))
-                )
+        with open(lhc_instance.get_nominal_tmpl()) as textfile:
+            madx_template = textfile.read()
 
         madx_script = madx_template % replace_dict
         return madx_script

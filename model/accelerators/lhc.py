@@ -135,6 +135,7 @@ class Lhc(Accelerator):
             help="Delta p/p to use.",
             name="dpp",
             default=0.0,
+            type=float,
         )
         params.add_parameter(
             flags=["--energy"],
@@ -466,12 +467,8 @@ class Lhc(Accelerator):
         return cls.get_file("template.iterate.madx")
 
     @classmethod
-    def get_basic_twiss_tmpl(cls):
-        return cls.get_file("template.basic_twiss.madx")
-
-    @classmethod
-    def get_save_seq_tmpl(cls):
-        return cls.get_file("template.save_sequence.madx")
+    def get_basic_seq_tmpl(cls):
+        return cls.get_file("template.basic_seq.madx")
 
     @classmethod
     def get_update_correction_tmpl(cls):
@@ -541,9 +538,9 @@ class Lhc(Accelerator):
             )
         return madx_template % replace_dict
 
-    def get_basic_twiss_job(self, job_content, twiss_columns, element_pattern):
+    def get_basic_seq_job(self):
         """ Return string for madx job of correting model """
-        with open(self.get_basic_twiss_tmpl(), "r") as template:
+        with open(self.get_basic_seq_tmpl(), "r") as template:
             madx_template = template.read()
         try:
             replace_dict = {
@@ -555,14 +552,81 @@ class Lhc(Accelerator):
                 "DPP": self.dpp,
                 "QMX": self.nat_tune_x,
                 "QMY": self.nat_tune_y,
-                "JOB_CONTENT": job_content,
-                "ELEMENT_PATTERN": element_pattern,
-                "TWISS_COLUMNS": twiss_columns,
             }
         except AttributeError:
             raise AcceleratorDefinitionError(
                 "The accelerator definition is incomplete. " +
                 "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+        return madx_template % replace_dict
+
+    def get_multi_dpp_job(self, dpp_list):
+        """ Return madx job to create twisses (models) with dpps from dpp_list """
+        with open(self.get_nominal_multidpp_tmpl()) as textfile:
+            madx_template = textfile.read()
+        try:
+            output_path = self.model_dir
+            use_acd = "1" if (self.excitation ==
+                              AccExcitationMode.ACD) else "0"
+            use_adt = "1" if (self.excitation ==
+                              AccExcitationMode.ADT) else "0"
+            crossing_on = "1" if self.xing else "0"
+            beam = self.get_beam()
+
+            replace_dict = {
+                "LIB": self.MACROS_NAME,
+                "MAIN_SEQ": self.load_main_seq_madx(),
+                "OPTICS_PATH": self.optics_file,
+                "NUM_BEAM": beam,
+                "PATH": output_path,
+                "QMX": self.nat_tune_x,
+                "QMY": self.nat_tune_y,
+                "USE_ACD": use_acd,
+                "USE_ADT": use_adt,
+                "CROSSING_ON": crossing_on,
+                "QX": "",
+                "QY": "",
+                "QDX": "",
+                "QDY": "",
+                "DPP": "",
+                "DPP_ELEMS": "",
+                "DPP_AC": "",
+                "DPP_ADT": "",
+            }
+            if (self.excitation in
+                    (AccExcitationMode.ACD, AccExcitationMode.ADT)):
+                replace_dict["QX"] = self.nat_tune_x
+                replace_dict["QY"] = self.nat_tune_y
+                replace_dict["QDX"] = self.drv_tune_x
+                replace_dict["QDY"] = self.drv_tune_y
+        except AttributeError:
+            raise AcceleratorDefinitionError(
+                "The accelerator definition is incomplete. " +
+                "Needs to be an accelator instance. Also: --lhcmode or --beam option missing?"
+            )
+
+        # add different dpp twiss-command lines
+        twisses_tmpl = "twiss, chrom, sequence=LHCB{beam:d}, deltap={dpp:f}, file='{twiss:s}';\n"
+        for dpp in dpp_list:
+            replace_dict["DPP"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}.dat".format(dpp))
+            )
+            replace_dict["DPP_ELEMS"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_elements.dat".format(dpp))
+            )
+            replace_dict["DPP_AC"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_ac.dat".format(dpp))
+            )
+            replace_dict["DPP_ADT"] += twisses_tmpl.format(
+                beam=beam,
+                dpp=dpp,
+                twiss=os.path.join(output_path, "twiss_{:f}_adt.dat".format(dpp))
             )
         return madx_template % replace_dict
 

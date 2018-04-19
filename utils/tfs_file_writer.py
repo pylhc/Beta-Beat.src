@@ -36,6 +36,7 @@ Usage2::
 import os
 from utils import iotools
 from utils import logging_tools
+import numpy
 
 LOG = logging_tools.get_logger(__name__)
 

@@ -48,6 +48,12 @@ def get_params():
         type=str
     )
     params.add_parameter(
+        flags="--optics_file",
+        help=("Path to the optics file to use. If not present will default to "
+              "model_path/modifiers.madx, if such a file exists."),
+        name="optics_file",
+    )
+    params.add_parameter(
         flags=["-o", "--outfile"],
         help="Name of fullresponse file.",
         name="outfile_path",
@@ -109,29 +115,16 @@ def create_response(opt, other_opt):
     with logging_tools.DebugMode(active=opt.debug,
                                  log_file=os.path.join(opt.model_dir, "generate_fullresponse.log")):
         LOG.info("Creating response.")
-        accel_cls, other_opt = manager.get_accel_class_and_unkown(other_opt)
+        accel_cls = manager.get_accel_class(other_opt)
         accel_inst = accel_cls(model_dir=opt.model_dir)
+        if opt.optics_file is not None:
+            accel_inst.optics_file = opt.optics_file
 
         if opt.creator == "madx":
-            variables = accel_inst.get_variables(classes=opt.variable_categories)
-            if len(variables) == 0:
-                raise ValueError("No variables found! Make sure your categories are valid!")
+            fullresponse = response_madx.generate_fullresponse(
+                accel_inst, opt.variable_categories, delta_k=opt.delta_k
+            )
 
-            jobfile_path = os.path.join(opt.model_dir, "tmpl.generate_fullresponse.madx")
-            patterns = {
-                "job_content": "%JOB_CONTENT%",
-                "twiss_columns": "%TWISS_COLUMNS%",
-                "element_pattern": "%ELEMENT_PATTERN%",
-            }
-            madx_script = accel_inst.get_basic_twiss_job(patterns["job_content"],
-                                                         patterns["twiss_columns"],
-                                                         patterns["element_pattern"])
-            with open(jobfile_path, "w") as f:
-                f.write(madx_script)
-
-            fullresponse = response_madx.generate_fullresponse(variables, jobfile_path,
-                                                               patterns=patterns,
-                                                               delta_k=opt.delta_k)
         elif opt.creator == "twiss":
             fullresponse = response_twiss.create_response(
                 accel_inst, opt.variable_categories, opt.optics_params
