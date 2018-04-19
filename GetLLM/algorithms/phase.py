@@ -95,9 +95,9 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
         +------++--------+--------+--------+--------+
         | BPM3 || phi_31 | phi_32 |   0    | phi_34 | 
         +------++--------+--------+--------+--------+
-        
+
         The phase advance between BPM_i and BPM_j can be obtained via::
-            
+
             phi_ij = phi_j - phi_i = phase_advances.loc["MEAS", "BPM_j", "BPM_i"]
     '''
     # get accelerator and its model from getllm_d
@@ -125,7 +125,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
 
 
     LOGGER.info('Calculating phase')
-    
+
     # Info:
     LOGGER.info("t_value correction.................[YES]")
     if OPTIMISTIC:
@@ -152,14 +152,14 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
         tune_d.q1f = q1
         tune_d.q1mdlf = accelerator.nat_tune_x
         LOGGER.debug("horizontal tune of measurement files = {}".format(q1))
-        
+
         phase_d.phase_advances_free_x, tune_d.mux = get_phases(
             getllm_d, model_of_measurement, twiss_d.zero_dpp_x, bpmsx, q1, 'H'
         )
         if not twiss_d.has_zero_dpp_y():
             LOGGER.warning('liny missing and output x only ...')
 
-    
+
     if twiss_d.has_zero_dpp_y():
         #-- Calculate tune_x from files
         q2_files = np.zeros(len(twiss_d.zero_dpp_y))
@@ -334,16 +334,16 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     """
     Calculates phase.
     tune_q will be used to fix the phase shift in LHC.
-    
+
     ``phase_advances["MEAS"]`` contains the measured phase advances.
-    
+
     ``phase_advances["MODEL"]`` contains the model phase advances.
-    
+
     ``phase_advances["ERRMEAS"]`` contains the error of the measured phase advances as deterined by the standard
     deviation scaled by sqrt(number_of_files).::
-    
+
         phase_advances.loc["MEAS", bpm_namei, bpm_namej]
-    
+
     yields the phase advance ``phi_ij`` between BPMi and BPMj 
     """
     acc = getllm_d.accelerator
@@ -351,10 +351,10 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     bd = acc.get_beam_direction()
     number_commonbpms = bpm.shape[0]
     muave= 0  # TODO: find out what this is and who needs it
-    
+
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
-        print "correcting phase jump"
+
         k_lastbpm = acc.get_k_first_BPM(bpm.index)
     else:
         print "phase jump will not be corrected"
@@ -364,7 +364,7 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         phase_advances = _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
     else:
         phase_advances = _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
-    
+
     return phase_advances, muave
 
 
@@ -384,9 +384,9 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
         file_tfs = Files[i]
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
         #phases_meas[k_lastbpm:] += tune_q  * bd
-        meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis]) 
+        meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis])
         phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
-        
+
     phase_advances["NFILES"] = len(Files)
     phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1.0
     if OPTIMISTIC:

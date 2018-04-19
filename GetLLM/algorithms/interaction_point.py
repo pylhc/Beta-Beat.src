@@ -20,7 +20,7 @@ import numpy as np
 from numpy import sin, cos, tan
 
 import utils.bpm
-import compensate_ac_effect
+import compensate_excitation
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)

@@ -536,8 +536,6 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     Fills the following TfsFiles:
         ``getbetax.out        getbetax_free.out        getbetax_free2.out``
         ``getbetay.out        getbetay_free.out        getbetay_free2.out``
-        
-    
 
     :Parameters:
         'getllm_d': _GetllmData (In-param, values will only be read)
@@ -561,7 +559,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     except AttributeError:
         free_model = accelerator.get_model_tfs()
     elements = accelerator.get_elements_tfs()
-    # there are functions, that are written to take both, for the future (?)
+    # there are functions that are written to take both, for the future (?)
     elements_centre = elements
 
     driven_model = None
@@ -747,15 +745,9 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, fi
     commonbpms_x = twiss_d.zero_dpp_commonbpms_x
     commonbpms_y = twiss_d.zero_dpp_commonbpms_y
 
-    LOGGER.info("commonbpms before sorting: {}".format(commonbpms_x))
-    # exclude BPMs for which beta from phase din't work
-    LOGGER.info("keys: -------------------------------------------")
-    LOGGER.info(beta_d.x_phase.keys())
     commonbpms_x = commonbpms_x.loc[commonbpms_x.index.intersection(beta_d.x_phase.keys())]
     commonbpms_y = commonbpms_y.loc[commonbpms_y.index.intersection(beta_d.y_phase.keys())]
 
-
-    LOGGER.info("commonbpms after sorting: {}".format(commonbpms_x))
     #---- H plane
     if twiss_d.has_zero_dpp_x():
         # here was bpms instead of _ which makes the following code confusing because it looks like it is a modified
@@ -1129,9 +1121,9 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     '''
     Calculates beta from phase using the old 3-BPM method
     Fast 'vectorized' pandas / numpy code
-    
+
     ``phase["MEAS"]``, ``phase["MODEL"]``, ``phase["ERRMEAS"]`` (from ``get_phases``) are of the form:
-    
+
     +----------+----------+----------+----------+----------+
     |          |   BPM1   |   BPM2   |   BPM3   |   BPM4   | 
     +----------+----------+----------+----------+----------+
@@ -1141,31 +1133,31 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     +----------+----------+----------+----------+----------+
     |   BPM3   |  phi_13  |  phi_23  |    0     |  phi_43  | 
     +----------+----------+----------+----------+----------+
-    
+
     aa ``tilt_slice_matrix(matrix, shift, slice, tune)`` brings it into the form:
-    
+
     +-----------+--------+--------+--------+--------+
-    |           |  BPM1  |  BPM2  |  BPM3  |  BPM4  |                    
-    +-----------+--------+--------+--------+--------+    
+    |           |  BPM1  |  BPM2  |  BPM3  |  BPM4  |
+    +-----------+--------+--------+--------+--------+
     | BPM_(i-1) | phi_1n | phi_21 | phi_32 | phi_43 |
     +-----------+--------+--------+--------+--------+
     | BPM_i     |    0   |    0   |    0   |    0   |
-    +-----------+--------+--------+--------+--------+     
-    | BPM_(i+1) | phi_12 | phi_23 | phi_34 | phi_45 |      
     +-----------+--------+--------+--------+--------+
-        
+    | BPM_(i+1) | phi_12 | phi_23 | phi_34 | phi_45 |
+    +-----------+--------+--------+--------+--------+
+
     ``cot_phase_*_shift1``:
-    
+
     +-----------------------------+-----------------------------+-----------------------------+
-    | cot(phi_1n) - cot(phi_1n-1) |  cot(phi_21) - cot(phi_2n)  |   cot(phi_32) - cot(phi_31) | 
-    +-----------------------------+-----------------------------+-----------------------------+
-    |         NaN                 |         NaN                 |         NaN                 |
+    | cot(phi_1n) - cot(phi_1n-1) |  cot(phi_21) - cot(phi_2n)  |   cot(phi_32) - cot(phi_31) |
     +-----------------------------+-----------------------------+-----------------------------+
     |         NaN                 |         NaN                 |         NaN                 |
     +-----------------------------+-----------------------------+-----------------------------+
-    |  cot(phi_13) - cot(phi_12)  |  cot(phi_24) - cot(phi_23)  |   cot(phi_35) - cot(phi_34) | 
+    |         NaN                 |         NaN                 |         NaN                 |
     +-----------------------------+-----------------------------+-----------------------------+
-    
+    |  cot(phi_13) - cot(phi_12)  |  cot(phi_24) - cot(phi_23)  |   cot(phi_35) - cot(phi_34) |
+    +-----------------------------+-----------------------------+-----------------------------+
+
     for the combination xxxABBx: first row
     for the combinstion xBBAxxx: fourth row and
     for the combination xxBABxx: second row of ``cot_phase_*_shift2``
@@ -1173,26 +1165,27 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     number_commonbpms = commonbpms.shape[0]
     plane_bet = "BET" + plane
     plane_alf = "ALF" + plane
+
     if errors_method == METH_3BPM:
         madTwiss_intersected = madTwiss.loc[commonbpms.index]
         starttime = time.time()
-        
+
         # ------ setup the used variables ----------------------------------------------------------
         # tilt phase advances in order to have the phase advances in a neighbourhood
         tilted_meas = tilt_slice_matrix(phase["MEAS"].as_matrix(), 2, 5, tune) * TWOPI
         tilted_model = tilt_slice_matrix(phase["MODEL"].as_matrix(), 2, 5, mdltune) * TWOPI
         tilted_errmeas = tilt_slice_matrix(phase["ERRMEAS"].as_matrix(), 2, 5, mdltune) * TWOPI
-        
+
         betmdl = madTwiss_intersected.loc[:][plane_bet].as_matrix()
         alfmdl = madTwiss_intersected.loc[:][plane_alf].as_matrix()
 
         # ------ main part, calculate the beta and alpha function ----------------------------------
-        
+
         # calculate cotangens of all the phase advances in the neighbourhood
         with np.errstate(divide='ignore'):
             cot_phase_meas = 1.0 / tan(tilted_meas)
             cot_phase_model = 1.0 / tan(tilted_model)
-       
+
         # calculate enumerators and denominators for far more cases than needed
         # shift1 are the cases BBA, ABB, AxBB, AxxBB etc. (the used BPMs are adjacent)
         # shift2 are the cases where the used BPMs are separated by one. only BAB is used for  3-BPM
@@ -1200,38 +1193,38 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         cot_phase_model_shift1 = cot_phase_model - np.roll(cot_phase_model, -1, axis=0) + 1.0e-16
         cot_phase_meas_shift2 = cot_phase_meas - np.roll(cot_phase_meas, -2, axis=0)
         cot_phase_model_shift2 = cot_phase_model - np.roll(cot_phase_model, -2, axis=0)+ 1.0e-16
-        
+
         # calculate the sum of the fractions
         bet_frac = (cot_phase_meas_shift1[0]/cot_phase_model_shift1[0] +
                     cot_phase_meas_shift1[3]/cot_phase_model_shift1[3] +
                     cot_phase_meas_shift2[1]/cot_phase_model_shift2[1]) / 3.0
-        
+
         # multiply the fractions by betmdl and calculate the arithmetic mean
         beti = bet_frac * betmdl
-        
+
         # alpha
-        alfi = (bet_frac * ( cot_phase_model[1] + cot_phase_model[3] + 2.0 * alfmdl)
-                        - ( cot_phase_meas[1] + cot_phase_meas[3])) / 2.0
-        
+        alfi = (bet_frac * (cot_phase_model[1] + cot_phase_model[3] + 2.0 * alfmdl)
+                - (cot_phase_meas[1] + cot_phase_meas[3])) / 2.0
+
         # ------ error propagation -----------------------------------------------------------------
-        
+
         # error = sqrt( errphi_ij^2 * (d beta / dphi_ij)^2 )
         # calculate sin(phimdl_ij)
-        sin_model = sin(tilted_model) 
+        sin_model = sin(tilted_model)
         # calculate errphi_ij^2 / sin^2 phimdl_ij * beta
         with np.errstate(divide='ignore', invalid='ignore'):
             sin_squared_model = tilted_errmeas / np.multiply(sin_model, sin_model) * betmdl
         # square it again beacause it's used in a vector length
         sin_squared_model = np.multiply(sin_squared_model, sin_squared_model)
-        
+
         sin_squ_model_shift1 = sin_squared_model + np.roll(sin_squared_model, -1, axis=0) / np.multiply(cot_phase_model_shift1, cot_phase_model_shift1)
         sin_squ_model_shift2 = sin_squared_model + np.roll(sin_squared_model, -2, axis=0) / np.multiply(cot_phase_model_shift2, cot_phase_model_shift2)
         beterr = np.sqrt(sin_squ_model_shift1[0] + sin_squ_model_shift1[3] + sin_squ_model_shift2[1]) / 3.0
-        
+
         betstd=np.zeros(number_commonbpms)
         alfstd=np.zeros(number_commonbpms)
         alferr=np.zeros(number_commonbpms)
-        
+
         # ------ print error method and return the data rows for getbetax/y.out --------------------
 
         _info_("Errors from " + ID_TO_METHOD[errors_method])
@@ -1464,11 +1457,11 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
              BPM2 | phi_12 | 0      | ... | phi_n2
              ...  | ...    | ...    | ... | ...   
              BPMn | phi_1n | phi_2n | ... | 0 
-             
+
              index and columns: madTwiss.index
-             
+
              cotangens of shifted and sliced:
-                 
+
                       | BPM1 | BPM2 | ...  | BPMn 
             ----------|------|------|------|-----
              BPM(i-2) | *    | *    | ...  | * 
@@ -1476,12 +1469,12 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
              BPMi     | 0    | 0    | 0..0 | 0   
              BPM(i+1) | *    | *    | ...  | * 
              BPM(i+2) | *    | *    | ...  | * 
-             
+
              where * = cot(phi_j - phi_i) =: cot(phi_ij)
 
-           
+
         'phases_elements':numpy.ndarray
-            
+
                  | BPM1 | MQ1 | MQ2 | MS1 | BPM2 | ... | BPMn
             -----|------|-----|-----|-----|------|-----|------
             BPM1 | 0    | *   | *   | *   | *    | ... | *
@@ -1491,33 +1484,33 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
             BPMn | *    | *   | *   | *   | *    | ... | 0
 
             where * = phi_j - phi<i>
-            
+
             columns: madElements.index
             rows: madTwiss.index
-            
+
     IMPORTANT NOTE: from the above only madTwiss and madElements are pandas.DataFrames, cot_meas and sin_squared_elements
                     are numpy arrays and thus are not equipped with an index or column headers.
-            
+
     The heavy fancy indexing part is explained in detail:
         In the following the probed BPM has the name probed_bpm and the index i. The range of BPMs has the length J and
         m = floor(J/2).
-        
+
         The range of BPMs is then [BPM(i-m), ..., BPM(i-1), BPMi, BPM(i+1), ... BPM(i+m)]
         The combinations are split into the three cases BBA, BAB, ABB
         BBA_combo = [(-m, -m+1), ... (-2, -1)]
         BAB_combo = [(-m, 1), ... (-m, m), (-m+1, 1), ... (-m+1, m), ... (-1, m)]
         ABB_combo = [(1,2), ... (m-1, m)]
-        
+
         for each (j,k) in combos: calculate beta and row of the Jacobian T:
-        
+
             beta_i(combo) = (cot(phi_ij) - cot(phi_ik)) / (cot(phimdl_ij) - cot(phimdl_ik)) * betmdl_i for (j,k) in combo
-            
+
         So, before we start the loop, let's slice out the interval of all BPMs and all elements that are reached by the
         combinations (outer interval) at this time we can apply the tune jump, wrap the interval and calculate the 
         trigonometric functions of the phase advances
-            
+
          - for this we need cot(phi_(i)(i-m) ... cot(phi_(i)(i+m)) and idem for the model phases 
-            
+
             K-part of the Jacobian
             T_k(combo) = betmdl_i * betmdl<l> / (cot(phimdl_ij) - cot(phimdl_ik)) *
                             (
@@ -1531,13 +1524,13 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
          - for this we need sin^2(phimdl_(i-m) - phimdl_(i-m+<1>)), sin^2(phimdl_(i-m) - phimdl_(i-m+<2>)), ...
                               sin^2(phimdl_(i+m) - phimdl_(i+m-<2>)), sin^2(phimdl_(i+m) - phimdl_(i+m-<1>))
             which is again the range of BPMs but with all other Elements lying between them.
-    
+
         Take the left-most combination, that is (i-m, i-m+1). By construction of the combo sets this is the first
         combination in BBA_combo. Analogously the right-most combination is the last element of ABB_combo.
-        
+
         IDEA: Use the index of madTwiss and madElements to get the location of the start and end elements and then slice 
         intelligently. 
-        
+
         indx_first = indx_(i-m) = i-m
         indx_last = indx(i+m) = i+m
         name_first = madTwiss.index[indx_first], same for last

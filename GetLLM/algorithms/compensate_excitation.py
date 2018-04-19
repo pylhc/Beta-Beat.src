@@ -96,15 +96,14 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
 
     """
     LOGGER.info("Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane))
-    
-#    Files = [Files[0]]
+
     acc = getllm_d.accelerator
     psid_ac2bpmac = ac2bpmac[1]
     k_bpmac = ac2bpmac[2]
     plane_mu = "MUX" if plane == "H" else "MUY"
     number_commonbpms = bpm.shape[0]
     bd = getllm_d.accelerator.get_beam_direction()
-    
+
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
         LOGGER.info("correcting phase jump")
@@ -117,26 +116,25 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(model.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = ((phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis])) % 1.0 
+    phase_advances["MODEL"] = ((phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis])) % 1.0
 
     #-- Global parameters of the driven motion
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
-    LOGGER.debug("compensation lambda = {}".format(r))
-    LOGGER.debug("k_bpmac = {}".format(k_bpmac))
-    LOGGER.debug("psid_ac2bpmac = {}".format(psid_ac2bpmac))
-    LOGGER.debug("bpmac = {}".format(ac2bpmac[0]))
-    
+    LOGGER.debug(plane + " compensation lambda = {}".format(r))
+    LOGGER.debug(plane + " k_bpmac = {}".format(k_bpmac))
+    LOGGER.debug(plane + " psid_ac2bpmac = {}".format(psid_ac2bpmac))
+    LOGGER.debug(plane + " bpmac = {}".format(ac2bpmac[0]))
 
     #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
     phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
     for i in range(len(Files)):
         file_tfs = Files[i]
-        phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction        for k in range(len(bpm)):
+        phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
         phases_meas[k_lastbpm:] += Qd
         psid = phases_meas - (phases_meas[k_bpmac] - psid_ac2bpmac) # OK, untill here, it is Psi(s, s_ac)
         psid += .5 * Qd * bd
         psid[k_bpmac:] -= Qd
-        
+
         Psi = (np.arctan((1 - r) / (1 + r) * np.tan(TWOPI * psid)) / TWOPI) % 0.5
         Psi = np.where(psid % 1.0 > 0.5, Psi + .5, Psi)
         #Psi = np.where(psid > .25, Psi + .5, Psi)
@@ -146,16 +144,17 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
 #        Psi -= .5 * Q
         Psi[k_bpmac:] += Q
 #        Psi *= bd
-        
-        meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis])
+        LOGGER.debug(psid[np.isnan(Psi)])
+
+        meas_matr = -(Psi[np.newaxis,:] - Psi[:,np.newaxis])
         phase_matr_meas[i] = meas_matr
-   
+
     phase_matr_meas1 = (phase_matr_meas + .5) % 1.0 - .5
 
-    phase_mean0 = np.mean(phase_matr_meas, axis=0) % 1.0
-    phase_mean1 = np.mean(phase_matr_meas1, axis=0) % 1.0
-    phase_std0 = np.std(phase_matr_meas, axis=0)
-    phase_std1 = np.std(phase_matr_meas1, axis=0)
+    phase_mean0 = np.nanmean(phase_matr_meas, axis=0) % 1.0
+    phase_mean1 = np.nanmean(phase_matr_meas1, axis=0) % 1.0
+    phase_std0 = np.nanstd(phase_matr_meas, axis=0)
+    phase_std1 = np.nanstd(phase_matr_meas1, axis=0)
 
     phase_advances["NFILES"] = len(Files)
     phase_advances["MEAS"] = np.where(phase_std0 < phase_std1, phase_mean0, phase_mean1)
@@ -165,16 +164,6 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     else:
         phase_advances["ERRMEAS"] = np.where(phase_std0 < phase_std1, phase_std0, phase_std1) * \
             phase.t_value_correction(len(Files))
-    
-#    for i in range(100):
-#        bpm_name0 = bpm["NAME"][i+1]
-#        bpm_name1 = bpm["NAME"][i]
-#        
-#        print "{:12s} {:11.6f} {:11.6f} {:11.6f} ---".format(bpm_name0,
-#               phase_advances["MEAS"][bpm_name0][bpm_name1], phase_advances["MODEL"][bpm_name0][bpm_name1],
-#               phase_advances["MEAS"][bpm_name0][bpm_name1] - phase_advances["MODEL"][bpm_name0][bpm_name1])
-#
-#    raw_input()
     return phase_advances, 0
 
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, ac2bpmac, plane, getllm_d, commonbpms):
@@ -309,7 +298,7 @@ def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane
     return actions_sqrt, actions_sqrt_err
 
 
-def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_h, ac2bpmac_v, accelerator):
+def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerator):
     """Calculates coupling using Ryoichi's formula for AC dipole compensation.
        Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
 
@@ -324,12 +313,12 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
         accelerator: accelerator class instance.
 
     """
-    
+
     #-- Check linx/liny files, may be redundant
     if len(FilesX)!=len(FilesY): return [{},[]]
 
-    ac2bpmac_h = GetACPhase_AC2BPMAC(MADTwiss, bpms, Qx, Qh, "H", accelerator)
-    ac2bpmac_v = GetACPhase_AC2BPMAC(MADTwiss, bpms, Qy, Qv, "V", accelerator)
+    ac2bpmac_h = GetACPhase_AC2BPMAC(bpms, Qx, Qh, "H", accelerator)
+    ac2bpmac_v = GetACPhase_AC2BPMAC(bpms, Qy, Qv, "V", accelerator)
 
     horBPMsCopensation =[]
     verBPMsCopensation = []
@@ -341,7 +330,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
     bd = accelerator.get_beam_direction()
     fqwList = []
     if True:
-        
+
        #-- Global parameters of the driven motion
         dh =Qh-Qx
         dv =Qv-Qy
@@ -349,7 +338,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
         rv =sin(np.pi*(Qv-Qy))/sin(np.pi*(Qv+Qy))
         rch=sin(np.pi*(Qh-Qy))/sin(np.pi*(Qh+Qy))
         rcv=sin(np.pi*(Qx-Qv))/sin(np.pi*(Qx+Qv))
-    
+
         #-- Loop for files
         f1001Abs =np.zeros((len(bpms),len(FilesX)))
         f1010Abs =np.zeros((len(bpms),len(FilesX)))
@@ -358,7 +347,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
         f1010xArg=np.zeros((len(bpms),len(FilesX)))
         f1010yArg=np.zeros((len(bpms),len(FilesX)))
         for i in range(len(FilesX)):
-    
+
             #-- Read amplitudes and phases
             amph  =     np.array([FilesX[i].loc[b, "AMPX"]    for b in bpms.index])
             ampv  =     np.array([FilesY[i].loc[b, "AMPY"]    for b in bpms.index])
@@ -377,7 +366,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
             #                       psih01[k]+=bd*2*np.pi*Qv  #-- To fix the phase shift by Qv
             #                       psiv10[k]+=bd*2*np.pi*Qh  #-- To fix the phase shift by Qh
             #       except: pass
-    
+
             #-- Construct Fourier components
             #   * be careful for that the note is based on x+i(alf*x*bet*x')).
             #   * Calculating Eqs (87)-(92) by using Eqs (47) & (48) (but in the Fourier space) in the note.
@@ -386,14 +375,14 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
             dpsiv  =np.append(psiv[1:]  ,2*np.pi*Qv+psiv[0]  )-psiv
             dpsih01=np.append(psih01[1:],2*np.pi*Qv+psih01[0])-psih01
             dpsiv10=np.append(psiv10[1:],2*np.pi*Qh+psiv10[0])-psiv10
-    
+
             X_m10=2*amph*np.exp(-1j*psih)
             Y_0m1=2*ampv*np.exp(-1j*psiv)
             X_0m1=amph*np.exp(-1j*psih01)/(1j*sin(dpsih))*(amph01*np.exp(1j*dpsih)-np.append(amph01[1:],amph01[0])*np.exp(-1j*dpsih01))
             X_0p1=amph*np.exp( 1j*psih01)/(1j*sin(dpsih))*(amph01*np.exp(1j*dpsih)-np.append(amph01[1:],amph01[0])*np.exp( 1j*dpsih01))
             Y_m10=ampv*np.exp(-1j*psiv10)/(1j*sin(dpsiv))*(ampv10*np.exp(1j*dpsiv)-np.append(ampv10[1:],ampv10[0])*np.exp(-1j*dpsiv10))
             Y_p10=ampv*np.exp( 1j*psiv10)/(1j*sin(dpsiv))*(ampv10*np.exp(1j*dpsiv)-np.append(ampv10[1:],ampv10[0])*np.exp( 1j*dpsiv10))
-    
+
             #-- Construct f1001hv, f1001vh, f1010hv (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
             f1001hv=-np.conjugate(1/(2j)*Y_m10/X_m10)  #-- - sign from the different def
             f1001vh=-1/(2j)*X_0m1/Y_0m1             #-- - sign from the different def
@@ -403,7 +392,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
     ##              f1001vh=1/(2j)*X_0m1/Y_0m1
     ##              f1010hv=1/(2j)*Y_p10/conjugate(X_m10)
     ##              f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
-    
+
             #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
             psih = psih - (psih[k_bpmac_h] - psid_ac2bpmac_h) # OK, untill here, it is Psi(s, s_ac)
             psiv = psiv - (psiv[k_bpmac_v] - psid_ac2bpmac_v) # OK, untill here, it is Psi(s, s_ac)
@@ -412,37 +401,37 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, ac2bpmac_
             Psih[:k_bpmac_h]=Psih[:k_bpmac_h]+2*np.pi*Qh
             Psiv=psiv-np.pi*Qv
             Psiv[:k_bpmac_v]=Psiv[:k_bpmac_v]+2*np.pi*Qv
-    
+
             Psix=np.arctan((1-rh)/(1+rh)*np.tan(Psih))%np.pi
             Psiy=np.arctan((1-rv)/(1+rv)*np.tan(Psiv))%np.pi
             for k in range(len(bpms)):
                 if Psih[k]%(2*np.pi)>np.pi: Psix[k]=Psix[k]+np.pi
                 if Psiv[k]%(2*np.pi)>np.pi: Psiy[k]=Psiy[k]+np.pi
-    
+
             psix=Psix-np.pi*Qx
             psix[k_bpmac_h:]=psix[k_bpmac_h:]+2*np.pi*Qx
             psiy=Psiy-np.pi*Qy
             psiy[k_bpmac_v:]=psiy[k_bpmac_v:]+2*np.pi*Qy
-    
+
             #-- Construct f1001h, f1001v, f1010h, f1010v (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
             f1001h=1/math.sqrt(1-rv**2)*(np.exp(-1j*(Psiv-Psiy))*f1001hv+rv*np.exp( 1j*(Psiv+Psiy))*f1010hv)
             f1010h=1/math.sqrt(1-rv**2)*(np.exp( 1j*(Psiv-Psiy))*f1010hv+rv*np.exp(-1j*(Psiv+Psiy))*f1001hv)
             f1001v=1/math.sqrt(1-rh**2)*(np.exp( 1j*(Psih-Psix))*f1001vh+rh*np.exp(-1j*(Psih+Psix))*np.conjugate(f1010vh))
             f1010v=1/math.sqrt(1-rh**2)*(np.exp( 1j*(Psih-Psix))*f1010vh+rh*np.exp(-1j*(Psih+Psix))*np.conjugate(f1001vh))
-    
+
             #-- Construct f1001 and f1010 from h and v BPMs (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
             g1001h          =np.exp(-1j*((psih-psih[k_bpmac_h])-(psiy-psiy[k_bpmac_v])))*(ampv/amph*amph[k_bpmac_h]/ampv[k_bpmac_v])*f1001h[k_bpmac_h]
             g1001h[:k_bpmac_h]=1/(np.exp(2*np.pi*1j*(Qh-Qy))-1)*(f1001h-g1001h)[:k_bpmac_h]
             g1001h[k_bpmac_h:]=1/(1-np.exp(-2*np.pi*1j*(Qh-Qy)))*(f1001h-g1001h)[k_bpmac_h:]
-    
+
             g1010h          =np.exp(-1j*((psih-psih[k_bpmac_h])+(psiy-psiy[k_bpmac_v])))*(ampv/amph*amph[k_bpmac_h]/ampv[k_bpmac_v])*f1010h[k_bpmac_h]
             g1010h[:k_bpmac_h]=1/(np.exp(2*np.pi*1j*(Qh+Qy))-1)*(f1010h-g1010h)[:k_bpmac_h]
             g1010h[k_bpmac_h:]=1/(1-np.exp(-2*np.pi*1j*(Qh+Qy)))*(f1010h-g1010h)[k_bpmac_h:]
-    
+
             g1001v          =np.exp(-1j*((psix-psix[k_bpmac_h])-(psiv-psiv[k_bpmac_v])))*(amph/ampv*ampv[k_bpmac_v]/amph[k_bpmac_h])*f1001v[k_bpmac_v]
             g1001v[:k_bpmac_v]=1/(np.exp(2*np.pi*1j*(Qx-Qv))-1)*(f1001v-g1001v)[:k_bpmac_v]
             g1001v[k_bpmac_v:]=1/(1-np.exp(-2*np.pi*1j*(Qx-Qv)))*(f1001v-g1001v)[k_bpmac_v:]
-    
+
             g1010v          =np.exp(-1j*((psix-psix[k_bpmac_h])+(psiv-psiv[k_bpmac_v])))*(amph/ampv*ampv[k_bpmac_v]/amph[k_bpmac_h])*f1010v[k_bpmac_v]
             g1010v[:k_bpmac_v]=1/(np.exp(2*np.pi*1j*(Qx+Qv))-1)*(f1010v-g1010v)[:k_bpmac_v]
             g1010v[k_bpmac_v:]=1/(1-np.exp(-2*np.pi*1j*(Qx+Qv)))*(f1010v-g1010v)[k_bpmac_v:]
