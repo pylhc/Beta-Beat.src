@@ -38,6 +38,7 @@ class Ps(Accelerator):
     NAME = "ps"
     MACROS_NAME = "ps"
     
+    
     @staticmethod
     def get_class_parameters():
         params = EntryPointParameters()
@@ -146,6 +147,10 @@ class Ps(Accelerator):
         self.optics_file = opt.get("optics", None)
         
 
+    @classmethod
+    def get_name(cls, args=None):
+        return cls.NAME
+    
     @classmethod
     def init_and_get_unknowns(cls, args=None):
         """ Initializes but also returns unknowns.

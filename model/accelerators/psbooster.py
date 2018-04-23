@@ -204,6 +204,10 @@ class Psbooster(Accelerator):
         # TODO: Anaaaaaa
         pass
 
+    @classmethod
+    def get_file(cls, filename):
+        return os.path.join(CURRENT_DIR, "psbooster", filename)
+
     # Private Methods ##########################################################
 
 
