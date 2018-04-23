@@ -136,7 +136,7 @@ def read_tfs(tfs_path, index=None):
                 idx_name = None  # to remove it completely (Pandas makes a difference)
             data_frame = data_frame.rename_axis(idx_name)
 
-    # not sure if this is needed in general but some of GetLLM's funstions try to access this
+    # not sure if this is needed in general but some of GetLLM's functions try to access this
     headers["filename"] = tfs_path
 
     _validate(data_frame, "from file '{:s}'".format(tfs_path))
@@ -157,18 +157,18 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     """
     _validate(data_frame, "to be written in '{:s}'".format(tfs_path))
 
-    if isinstance(save_index, basestring):
-        # saves index into column by name given
+    if save_index:
         data_frame = data_frame.copy()
-        data_frame[save_index] = data_frame.index
-    elif save_index:
-        # saves index into column, which can be found by INDEX identifier
-        data_frame = data_frame.copy()
-        try:
-            full_name = INDEX_ID + data_frame.index.name
-        except TypeError:
-            full_name = INDEX_ID
-        data_frame[full_name] = data_frame.index
+        if isinstance(save_index, basestring):
+            # saves index into column by name given
+            idx_name = save_index
+        elif save_index:
+            # saves index into column, which can be found by INDEX identifier
+            try:
+                idx_name = INDEX_ID + data_frame.index.name
+            except TypeError:
+                idx_name = INDEX_ID
+        data_frame.insert(0, idx_name, data_frame.index)
 
     tfs_name = os.path.basename(tfs_path)
     tfs_dir = os.path.dirname(tfs_path)
