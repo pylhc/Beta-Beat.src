@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import sys
 import os
+import re
 import logging
 import pandas
 import numpy as np
@@ -103,8 +104,8 @@ def read_tfs(tfs_path, index=None):
             if len(parts) == 0:
                 continue
             if parts[0] == HEADER:
-                headers[parts[1]] = _parse_header(
-                    parts[2], " ".join(parts[3:]))
+                name, value = _parse_header(parts[1:])
+                headers[name] = value
             elif parts[0] == NAMES:
                 LOGGER.debug("Setting column names.")
                 column_names = np.array(parts[1:])
@@ -260,8 +261,14 @@ def _compute_types(str_list):
     return [_id_to_type(string) for string in str_list]
 
 
-def _parse_header(type_str, value_str):
-    return _id_to_type(type_str)(value_str.strip('"'))
+def _parse_header(str_list):
+    type_idx = next((idx for idx, part in enumerate(str_list) if part.startswith("%")), None)
+    if type_idx is None:
+        raise TfsFormatError("No data type found in header: '{}'".format(" ".join(str_list)))
+
+    name = " ".join(str_list[0:type_idx])
+    value_str = " ".join(str_list[(type_idx+1):])
+    return name, _id_to_type(str_list[type_idx])(value_str.strip('"'))
 
 
 def _id_to_type(type_str):
@@ -326,7 +333,12 @@ def get_bpms(data_frame):
 
 def get_magnets(data_frame):
     """ Return a list of Magnet-Names from data_frame """
-    [idx for idx in data_frame.index.values if idx.startswith("M")]
+    return [idx for idx in data_frame.index.values if idx.startswith("M")]
+
+
+def get_index_by_regex(data_frame, pattern):
+    """ Returns list of strings from list_of_str that match with regex """
+    return [s for s in data_frame.index.values if re.search(pattern, s)]
 
 
 if __name__ == "__main__":
