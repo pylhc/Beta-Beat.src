@@ -638,6 +638,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
     # Initialize denominator for weighted averaging
     denom = 0
     # Loop through BPMs with correct phase
+    
     for i in range(0,len(dbpms)-1):
         # Get BPM-names
         bn1 = str.upper(dbpms[i][1])
@@ -646,8 +647,12 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         muy = MADTwiss.MUY[MADTwiss.indx[bn2]]
         f_new += fwqw[bn2][0][0]*np.exp(complex(0,1)*2*np.pi*(mux-muy))/fwqw[bn2][0][1]**2 # Variance-weighted average for BPMs
         denom += 1/fwqw[bn2][0][1]**2 # denominator for weighted average
-
+    
     N = len(dbpms)
+    #print("coupling.py: ",N, "denom = ",denom)
+    if denom == 0:
+        raise Exception("All BPMs were marked as bad")
+     
     f_new_std = np.sqrt(1/denom)
     CG_new_abs = 4*abs(tune_x-tune_y)*abs(f_new)/denom
     CG_new_abs_std = 4*abs(tune_x-tune_y)*abs(f_new_std)
