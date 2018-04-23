@@ -7,10 +7,13 @@ TODO: write tests
 TODO: Possibly more anotation from MADX...
 """
 from os.path import abspath, join, dirname
+from os import remove
 import sys
 import re
 import subprocess
 import optparse
+import contextlib
+from tempfile import mkstemp
 
 LIB = abspath(join(dirname(__file__), "madx", "lib"))
 if "win" in sys.platform:
@@ -29,12 +32,14 @@ def _parse_args():
                       help="File where to write the MADX log output.")
     parser.add_option("-m", "--madx", metavar="MADX", dest="madx_path",
                       help="Path to the MAD-X executable to use", default=MADX_PATH)
+    parser.add_option("-c", "--cwd", metavar="CWD", dest="cwd",
+                      help="Set current working directory")
     (options, args) = parser.parse_args()
     if len(args) > 1 or ((options.file is None) == (len(args) == 0)):
         raise IOError("No input found: either pass the file as first parameter or use --file (-f)")
     if len(args) == 1:
-        return args[0], options.output, options.log, options.madx_path
-    return options.file, options.output, options.log, options.madx_path
+        return args[0], options.output, options.log, options.madx_path, options.cwd
+    return options.file, options.output, options.log, options.madx_path, options.cwd
 
 
 def resolve_and_run_file(input_file, output_file=None, log_file=None,
@@ -63,34 +68,24 @@ def resolve_and_run_string(input_string, output_file=None, log_file=None,
         madx_path: Path to MADX executable
     """
     _check_log_and_output_files(output_file, log_file)
-    full_madx_script = _resolve(input_string, output_file)
-    return _run(full_madx_script, log_file, madx_path, cwd)
+    full_madx_script = _resolve(input_string)
+    return _run(full_madx_script, log_file, output_file, madx_path, cwd)
 
 
-def _resolve(input_string, output_file=None):
+def _resolve(input_string):
     """Resolves the !@requires annotations of the input_string, and returns the resulting script."""
     macro_calls = "option, -echo;\n" + _resolve_required_macros(input_string) + "option, echo;\n\n"
     full_madx_script = macro_calls + input_string
-    if output_file is not None:
-        with open(output_file, "w") as output:
-            output.write(full_madx_script)
     return full_madx_script
 
 
-def _run(full_madx_script, log_file=None, madx_path=MADX_PATH, cwd=None):
-    if log_file is None:
-        ret_value = _run_for_input_string(full_madx_script, madx_path, cwd=cwd)
-    else:
-        with open(log_file, "w") as output:
-            ret_value = _run_for_input_string(full_madx_script, madx_path, logs=output, cwd=cwd)
-    return ret_value
-
-
-def _run_for_input_string(input_string, madx, logs=sys.stdout, cwd=None):
-    process = subprocess.Popen(madx, shell=False, stdin=subprocess.PIPE,
-                               stdout=logs, stderr=logs, cwd=cwd)
-    process.communicate(input_string.encode("utf-8"))
-    return process.wait()
+def _run(full_madx_script, log_file=None, output_file=None, madx_path=MADX_PATH, cwd=None):
+    """ Starts the madx-process """
+    with _logfile_wrapper(log_file) as log_output, _madx_input_wrapper(full_madx_script, output_file) as madx_jobfile:
+        process = subprocess.Popen([madx_path, madx_jobfile], shell=False,
+                                   stdin=subprocess.PIPE,
+                                   stdout=log_output, stderr=log_output, cwd=cwd)
+        return process.wait()
 
 
 def _resolve_required_macros(file_content):
@@ -127,6 +122,38 @@ def _check_log_and_output_files(output_file, log_file):
         open(output_file, "a").close()
     if log_file is not None:
         open(log_file, "a").close()
+
+
+@contextlib.contextmanager
+def _logfile_wrapper(file_path=None):
+    """ Returns opened file stream to file_path if given or stdout """
+    if file_path is None:
+        yield sys.stdout
+    else:
+        with open(file_path, "w") as log_file:
+            yield log_file
+
+
+@contextlib.contextmanager
+def _madx_input_wrapper(content, file_path=None):
+    """ Writes content into an output file and returns filepath.
+
+    If file_path is not given, the output file is temporary and will be deleted afterwards.
+    """
+    if file_path is None:
+        temp_file = True
+        df, file_path = mkstemp(suffix=".madx", prefix="job.", text=True)
+        df.write(content)
+        df.close()
+    else:
+        temp_file = False
+        with open(file_path, "w") as df:
+            df.write(content)
+    try:
+        yield file_path
+    finally:
+        if temp_file:
+            remove(file_path)
 
 
 if __name__ == "__main__":
