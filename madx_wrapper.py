@@ -37,7 +37,8 @@ def _parse_args():
     return options.file, options.output, options.log, options.madx_path
 
 
-def resolve_and_run_file(input_file, output_file=None, log_file=None, madx_path=MADX_PATH):
+def resolve_and_run_file(input_file, output_file=None, log_file=None,
+                         madx_path=MADX_PATH, cwd=None):
     """Runs MADX in a subprocess.
 
     Attributes:
@@ -48,10 +49,11 @@ def resolve_and_run_file(input_file, output_file=None, log_file=None, madx_path=
     """
     input_string = _read_input_file(input_file)
     return resolve_and_run_string(input_string, output_file=output_file, log_file=log_file,
-                                  madx_path=madx_path)
+                                  madx_path=madx_path, cwd=cwd)
 
 
-def resolve_and_run_string(input_string, output_file=None, log_file=None, madx_path=MADX_PATH):
+def resolve_and_run_string(input_string, output_file=None, log_file=None,
+                           madx_path=MADX_PATH, cwd=None):
     """Runs MADX in a subprocess.
 
     Attributes:
@@ -62,7 +64,7 @@ def resolve_and_run_string(input_string, output_file=None, log_file=None, madx_p
     """
     _check_log_and_output_files(output_file, log_file)
     full_madx_script = _resolve(input_string, output_file)
-    return _run(full_madx_script, log_file, madx_path)
+    return _run(full_madx_script, log_file, madx_path, cwd)
 
 
 def _resolve(input_string, output_file=None):
@@ -75,17 +77,18 @@ def _resolve(input_string, output_file=None):
     return full_madx_script
 
 
-def _run(full_madx_script, log_file=None, madx_path=MADX_PATH):
+def _run(full_madx_script, log_file=None, madx_path=MADX_PATH, cwd=None):
     if log_file is None:
-        ret_value = _run_for_input_string(full_madx_script, madx_path)
+        ret_value = _run_for_input_string(full_madx_script, madx_path, cwd=cwd)
     else:
         with open(log_file, "w") as output:
-            ret_value = _run_for_input_string(full_madx_script, madx_path, logs=output)
+            ret_value = _run_for_input_string(full_madx_script, madx_path, logs=output, cwd=cwd)
     return ret_value
 
 
-def _run_for_input_string(input_string, madx, logs=sys.stdout):
-    process = subprocess.Popen(madx, shell=False, stdin=subprocess.PIPE, stdout=logs, stderr=logs)
+def _run_for_input_string(input_string, madx, logs=sys.stdout, cwd=None):
+    process = subprocess.Popen(madx, shell=False, stdin=subprocess.PIPE,
+                               stdout=logs, stderr=logs, cwd=cwd)
     process.communicate(input_string.encode("utf-8"))
     return process.wait()
 
