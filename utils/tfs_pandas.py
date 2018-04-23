@@ -158,12 +158,11 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     _validate(data_frame, "to be written in '{:s}'".format(tfs_path))
 
     if save_index:
-        data_frame = data_frame.copy()
         if isinstance(save_index, basestring):
             # saves index into column by name given
             idx_name = save_index
-        elif save_index:
-            # saves index into column, which can be found by INDEX identifier
+        else:
+            # saves index into column, which can be found by INDEX_ID
             try:
                 idx_name = INDEX_ID + data_frame.index.name
             except TypeError:
