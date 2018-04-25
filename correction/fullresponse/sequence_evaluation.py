@@ -11,11 +11,12 @@ import cPickle as pickle
 import math
 import multiprocessing
 import os
+from time import sleep
 
 import madx_wrapper
 from utils import logging_tools
 from utils import tfs_pandas
-from utils.contexts import timeit
+from utils.contexts import timeit, suppress_exception
 from utils.iotools import create_dirs
 
 LOG = logging_tools.get_logger(__name__)
@@ -63,8 +64,6 @@ def evaluate_for_variables(accel_inst, variable_categories, order=4,
             _generate_madx_jobs(accel_inst, variables, k_values, num_proc, temp_dir)
             _call_madx(process_pool, temp_dir, num_proc)
             mapping = _load_madx_results(variables, k_values, process_pool, temp_dir)
-        except IOError:
-                raise IOError("MADX was unable to compute the mapping.")
         finally:
             _clean_up(variables, temp_dir, num_proc)
     return mapping
@@ -118,7 +117,9 @@ def _call_madx(process_pool, temp_dir, num_proc):
     """ Call madx in parallel """
     LOG.debug("Starting {:d} MAD-X jobs...".format(num_proc))
     madx_jobs = [_get_jobfile(temp_dir, index) for index in range(num_proc)]
-    process_pool.map(_launch_single_job, madx_jobs)
+    failed = [LOG.error(fail) for fail in process_pool.map(_launch_single_job, madx_jobs) if fail]
+    if len(failed):
+        raise RuntimeError("{:d} of {:d} Madx jobs failed!".format(len(failed), num_proc))
     LOG.debug("MAD-X jobs done.")
 
 
@@ -126,11 +127,8 @@ def _clean_up(variables, temp_dir, num_proc):
     """ Merge Logfiles and clean temporary outputfiles """
     LOG.debug("Cleaning output and printing log...")
     for var in (variables + ["0"]):
-        try:
+        with suppress_exception(OSError):
             os.remove(_get_tablefile(temp_dir, var))
-        except OSError:
-            LOG.info("MADX could not build table for '{:s}'".format(var))
-
     full_log = ""
     for index in range(num_proc):
         survey_path = _get_surveyfile(temp_dir, index)
@@ -138,15 +136,16 @@ def _clean_up(variables, temp_dir, num_proc):
         log_path = job_path + ".log"
         with open(log_path, "r") as log_file:
             full_log += log_file.read()
-        os.remove(log_path)
-        os.remove(job_path)
-        os.remove(survey_path)
+        with suppress_exception(OSError):
+            os.remove(log_path)
+        with suppress_exception(OSError):
+            os.remove(job_path)
+        with suppress_exception(OSError):
+            os.remove(survey_path)
     LOG.debug(full_log)
 
-    try:
+    with suppress_exception(OSError):
         os.rmdir(temp_dir)
-    except OSError:
-        pass
 
 
 def _load_madx_results(variables, k_values, process_pool, temp_dir):
@@ -198,7 +197,12 @@ def _get_surveyfile(folder, index):
 def _launch_single_job(inputfile_path):
     """ Function for pool to start a single madx job """
     log_file = inputfile_path + ".log"
-    return madx_wrapper.resolve_and_run_file(inputfile_path, log_file=log_file)
+    try:
+        madx_wrapper.resolve_and_run_file(inputfile_path, log_file=log_file)
+    except madx_wrapper.MadxError as e:
+        return str(e)
+    else:
+        return None
 
 
 def _load_and_remove_twiss(path_and_var):

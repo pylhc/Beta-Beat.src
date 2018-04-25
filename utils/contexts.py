@@ -70,3 +70,11 @@ def temporary_file_path(content="", suffix="", prefix="", text=True):
         yield file_path
     finally:
         os.remove(file_path)
+
+
+@contextmanager
+def suppress_exception(exception):
+    try:
+        yield
+    except exception:
+        pass
