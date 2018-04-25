@@ -2,22 +2,10 @@ from __future__ import print_function
 import os
 import sys
 import pytest
-import shutil
-import tempfile
-from utils.contexts import temporary_dir, silence
-from cStringIO import StringIO
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)))
-
+from utils.contexts import temporary_dir, silence
 import madx_wrapper
-
-#resolve_and_run_string(input_string, output_file=None, log_file=None, cwd=None):
-
-
-
-
-
-
-
 
 
 def test_with_macro():
@@ -63,4 +51,5 @@ def test_with_nonexistent_file():
 
 if __name__ == "__main__":
     # test_with_macro()
-    test_with_nonexistent_file()
+    # test_with_nonexistent_file()
+    pass
