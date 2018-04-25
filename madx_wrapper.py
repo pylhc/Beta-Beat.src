@@ -187,10 +187,13 @@ def _raise_madx_error(log=None, file=None):
     """
     message = "MADX run failed."
     if log is not None:
-        with open(log, "r") as f:
-            content = f.readlines()
-        if content[-1].startswith("+="):
-            message += " '{:s}'.".format(content[-1].replace("+=+=+=", "").strip())
+        try:
+            with open(log, "r") as f:
+                content = f.readlines()
+            if content[-1].startswith("+="):
+                message += " '{:s}'.".format(content[-1].replace("+=+=+=", "").strip())
+        except (IOError, IndexError):
+            pass
 
     if file is not None:
         message += " Run on File: '{:s}'.".format(file)
