@@ -327,15 +327,15 @@ DEV_NULL = os.devnull
 
 
 def _callMadx(pathToInputFile, attemptsLeft=5):
-    result = madx_wrapper.resolve_and_run_file(pathToInputFile, log_file=DEV_NULL)
-    if result is not 0:  # then madx failed for whatever reasons, lets try it again (tbach)
-        print "madx failed. result:", result, "pathToInputFile:", pathToInputFile, "attempts left:", attemptsLeft
+    try:
+        madx_wrapper.resolve_and_run_file(pathToInputFile, log_file=DEV_NULL)
+    except madx_wrapper.MadxError:  # then madx failed for whatever reasons, lets try it again (tbach)
+        print "madx failed. pathToInputFile:", pathToInputFile, "attempts left:", attemptsLeft
         if attemptsLeft is 0:
             raise Exception("madx finally failed, can not continue")
         print "lets wait 0.5s and try again..."
         time.sleep(0.5)
-        return _callMadx(pathToInputFile, attemptsLeft - 1)
-    return result
+        _callMadx(pathToInputFile, attemptsLeft - 1)
 
 
 def _dump(pathToDump, content):
