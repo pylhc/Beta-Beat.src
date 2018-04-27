@@ -81,6 +81,12 @@ def get_params():
         action="store_true",
         name="change_marker",
     )
+    params.add_parameter(
+        flags="--autoscale",
+        help="Scales the plot, so that this percentage of points is inside the picture.",
+        type=float,
+        name="auto_scale",
+    )
     return params
 
 
@@ -134,11 +140,16 @@ def main(opt, accel_opt):
 
     if opt.corrections_dir is None:
         opt.corrections_dir = os.path.join(opt.meas_dir, "Corrections")
+    logging_tools.add_module_handler(
+        logging_tools.file_handler(
+            os.path.join(opt.corrections_dir, "check_corrections.log")
+        )
+    )
 
     corrections = _get_all_corrections(opt.corrections_dir, opt.file_pattern)
     _call_madx(accel_inst, corrections)
     _get_diffs(corrections, opt.meas_dir, opt.file_pattern)
-    _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker)
+    _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker, opt.auto_scale)
 
     if opt.clean_up:
         _clean_up(opt.corrections_dir, corrections)
@@ -173,7 +184,7 @@ def _get_diffs(corrections, meas_dir, file_pattern):
         getdiff.getdiff(dest)
 
 
-def _plot(corrections, source_dir, show_plots, change_marker):
+def _plot(corrections, source_dir, show_plots, change_marker, auto_scale):
     """ Create all plots for the standard parameters """
     data_files = ['bbx', 'bby', 'dx', 'dy', 'ndx']  # 'normal ' getdiff output
 
@@ -228,7 +239,8 @@ def _plot(corrections, source_dir, show_plots, change_marker):
         },
     }
 
-    legends = ["Measurement"] + [d.replace(source_dir + os.sep, "") for d in corrections.keys()]
+    sort_correct = sorted(corrections.keys())
+    legends = ["Measurement"] + [d.replace(source_dir + os.sep, "") for d in sort_correct]
 
     for data in data_files + column_map.keys():
         try:
@@ -242,7 +254,7 @@ def _plot(corrections, source_dir, show_plots, change_marker):
             error = 'ERROR'
             filename = data
 
-        files_c = [os.path.join(folder, RESULTS_DIR, filename + ".out") for folder in corrections]
+        files_c = [os.path.join(folder, RESULTS_DIR, filename + ".out") for folder in sort_correct]
 
         try:
             file_base = _create_base_file(source_dir, files_c[0], meas, error, expect, data)
@@ -259,7 +271,9 @@ def _plot(corrections, source_dir, show_plots, change_marker):
                 output=os.path.join(source_dir, data),
                 no_show=not show_plots,
                 change_marker=change_marker,
+                auto_scale=auto_scale,
             )
+
         except IOError:
             LOG.info("Could not plot parameter '{:s}'. ".format(data) +
                      "Probably not calculated by GetLLM.")
@@ -281,13 +295,13 @@ def _clean_up(source_dir, corrections):
 def _call_madx(accel_inst, corrections):
     """ Create and call the madx jobs to apply the corrections """
     original_content = _get_madx_job(accel_inst)
-    for dir_correct in corrections:
+    for dir_correct in sorted(corrections):
         dir_out = os.path.join(dir_correct, RESULTS_DIR)
         iotools.create_dirs(dir_out)
         job_content = original_content
         job_content += "twiss, file='{:s}';\n".format(os.path.join(dir_out,
                                                                    getdiff.TWISS_NOT_CORRECTED))
-        for file in corrections[dir_correct]:
+        for file in sorted(corrections[dir_correct]):
             job_content += "call, file='{:s}';\n".format(file)
         job_content += "twiss, file='{:s}';\n".format(os.path.join(dir_out,
                                                                    getdiff.TWISS_CORRECTED))
