@@ -414,6 +414,10 @@ class Lhc(Accelerator):
         return np.array(mask)
 
     def verify_object(self):  # TODO: Maybe more checks?
+        """Verifies if everything is defined which should be defined
+        """
+
+        LOGGER.debug("Accelerator class verification")
         try:
             self.get_beam()
         except AttributeError:
@@ -441,6 +445,16 @@ class Lhc(Accelerator):
         if self.optics_file is not None and not os.path.exists(self.optics_file):
             raise AcceleratorDefinitionError(
                 "Optics file '{:s}' does not exist.".format(self.optics_file))
+
+        # print info about the accelerator
+        # TODO: write more output prints
+        LOGGER.debug(
+            "... verification passed. Will now print some information about the accelerator")
+        LOGGER.debug("{:32s} {}".format("class name", self.__class__.__name__))
+        LOGGER.debug("{:32s} {}".format("beam", self.get_beam()))
+        LOGGER.debug("{:32s} {}".format("beam direction", self.get_beam_direction()))
+        LOGGER.debug("")
+
 
     @classmethod
     def get_nominal_tmpl(cls):

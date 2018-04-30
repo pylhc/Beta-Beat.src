@@ -76,10 +76,6 @@ class Accelerator(object):
         
     # For GetLLM -------------------------------------------
     
-    @classmethod
-    def get_beam_direction(self):
-        return 1.0
-    
     def get_exciter_bpm(self, plane, distance):
         """
         Returns the BPM next to the exciter.
