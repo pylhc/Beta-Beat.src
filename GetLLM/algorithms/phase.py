@@ -339,18 +339,18 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
 
     ``phase_advances["MODEL"]`` contains the model phase advances.
 
-    ``phase_advances["ERRMEAS"]`` contains the error of the measured phase advances as deterined by the standard
-    deviation scaled by sqrt(number_of_files).::
+    ``phase_advances["ERRMEAS"]`` contains the error of the measured phase advances as deterined by
+    the standard deviation scaled by sqrt(number_of_files).::
 
         phase_advances.loc["MEAS", bpm_namei, bpm_namej]
 
-    yields the phase advance ``phi_ij`` between BPMi and BPMj 
+    yields the phase advance ``phi_ij`` between BPMi and BPMj
     """
     acc = getllm_d.accelerator
     plane_mu = "MUX" if plane == "H" else "MUY"
     bd = acc.get_beam_direction()
     number_commonbpms = bpm.shape[0]
-    muave= 0  # TODO: find out what this is and who needs it
+    muave = 0  # TODO: find out what this is and who needs it
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if getllm_d.lhc_phase == "1":
@@ -361,30 +361,35 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
         k_lastbpm = len(bpm.index)
 
     if getllm_d.union:
-        phase_advances = _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
+        phase_advances = _get_phases_union(
+            bpm, bd, plane_mu, mad_twiss, Files, k_lastbpm)
     else:
-        phase_advances = _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
+        phase_advances = _get_phases_intersection(
+            bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
 
     return phase_advances, muave
 
 
-def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm): 
-    """Calculates the phases when the intersection of BPMs is used instead of a selective intersection.
+def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm):
+    """Calculates the phases when the intersection of BPMs is used instead of a selective
+    intersection.
     """
 
-    # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
-    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS", "NFILES"], major_axis=bpm.index, minor_axis=bpm.index)
+    # pandas panel that stores the model phase advances, measurement phase advances and meas. errors
+    phase_advances = pd.Panel(
+        items=["MODEL", "MEAS", "ERRMEAS", "NFILES"],
+        major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = (phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis]) % 1.0
+    phase_advances["MODEL"] = (phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis]) % 1.0
 
     # loop over the measurement files
-    phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
+    phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))
     for i in range(len(Files)):
         file_tfs = Files[i]
-        phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
+        phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu])
         #phases_meas[k_lastbpm:] += tune_q  * bd
-        meas_matr = (phases_meas[np.newaxis,:] - phases_meas[:,np.newaxis])
+        meas_matr = (phases_meas[np.newaxis, :] - phases_meas[:, np.newaxis])
         phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
 
     phase_advances["NFILES"] = len(Files)
@@ -397,24 +402,26 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
     return phase_advances
 
 
-def _get_phases_union(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm):
+def _get_phases_union(bpm, bd, plane_mu, mad_twiss, Files, k_lastbpm):
     """Calculate the phase advances for a selective intersection of BPMS.
 
     Note:
-        in the first version this was indeed the union of the measurement BPMs. Now it's just a "selective intersection"
-        since the case with too few BPMs is also excluded.
+        in the first version this was indeed the union of the measurement BPMs. Now it's just a
+        "selective intersection" since the case with too few BPMs is also excluded.
     """
 
     LOGGER.debug("calculating phases with union of measurement files")
     LOGGER.debug("maximum {:d} measurements per BPM".format(len(Files)))
-    # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
-    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS", "NFILES"], major_axis=bpm.index, minor_axis=bpm.index)
+    # pandas panel that stores the model phase advances, measurement phase advances and meas. errors
+    phase_advances = pd.Panel(
+        items=["MODEL", "MEAS", "ERRMEAS", "NFILES"],
+        major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = (phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis]) % 1.0
-    
+    phase_advances["MODEL"] = (phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis]) % 1.0
+
     # loop over the measurement files
-    phase_matr_meas = pd.Panel(items=range(len(Files)), major_axis=bpm.index, minor_axis=bpm.index)  # temporary 3D matrix that stores the phase advances
+    phase_matr_meas = pd.Panel(items=range(len(Files)), major_axis=bpm.index, minor_axis=bpm.index)
     #phase_matr_count = pd.Panel(items=range(len(Files)), major_axis=bpm.index, minor_axis=bpm.index)
     for i in range(len(Files)):
         file_tfs = Files[i]
