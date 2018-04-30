@@ -42,21 +42,8 @@ LOGGER = logging_tools.get_logger(__name__)
 
 if DEBUG:
     import debug_algorithms as DBG
-#if False:
-#    from utils.progressbar import startProgress, progress, endProgress
-#else:
-def startProgress(name):
-    _info_("START " + name)
- 
-def progress(i):
-    return
-
-def endProgress():
-    return
 
 #--- Constants
-
-
 
 DEFAULT_WRONG_BETA      = 1000                      #@IgnorePep8
 EPSILON                 = 0#1.0E-16                 #@IgnorePep8
@@ -95,13 +82,13 @@ INDX_NCOMB  = 13
 
 # --------------- Errors method
 METH_IND        = -1
-METH_3BPM       = 0            
+METH_3BPM       = 0
 METH_A_NBPM     = 1
 METH_MC_NBPM    = 2
 
 ID_TO_METHOD = {
-        METH_3BPM:"3BPM method",
-        METH_A_NBPM:"Analytical N-BPM method"}
+    METH_3BPM:"3BPM method",
+    METH_A_NBPM:"Analytical N-BPM method"}
 
 #---------------------------------------------------------------------------------------------------
 #--- classes
@@ -117,8 +104,7 @@ class MeasuredValues:
         self.alfa = alfa
         self.patternstring = string
         self.use_it = use_it
-        
-        
+
 class BetaData(object):
     """ File for storing results from beta computations. """
 
@@ -184,15 +170,13 @@ class UncertaintyDefinitionRE:
 
     def settype(self, _type):
         self.type = gettype(_type)
-        
+
     def match(self, string):
         return self.pattern.match(string)
 
     def to_string(self):
         return "/{:s}/ dK1={:g}, dS={:g}, dX={:g}, {:6s}".format(self.pattern.pattern, self.dK1, self.dS, self.dX,
                                                                  self.tas)
-             
-        
 class UncertaintyInformation:
     def __init__(self, _name, _bet, _betend, _mu, _muend, _dk1, _k1l, _k1lend, _k2l, _dx, _ds, _debug):
         self.name = _name
@@ -211,12 +195,11 @@ class UncertaintyInformation:
 
 class ErrorFile:
     def __init__(self):
-       
         self.indx = {}
         self.elements = None
         self.size = 0
         self.names = []
-        
+
     def add(self, uni):
         if self.elements is None:
             self.elements =  [0.0, uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds],
@@ -230,28 +213,25 @@ class ErrorFile:
         self.names.append(uni.name)
 #         print "{:12s}, at index {:d} {:6.1f} {:6.1f} {:5.1f} {:5.1f} {:12.3e} {:12.3e} {:9.4f} {:9.4f} {:9.4f} {:9.4f}".format(
 #             uni.name, self.size, uni.bet, uni.betend, uni.mu, uni.muend, uni.dk1, uni.k1l, uni.k1lend, uni.k2l, uni.dx, uni.ds
-#                                     )
-        
-        
+
 class Uncertainties:  # error definition file
-    
+
     def __init__(self):
         self.version = "1"
         self.keys = []
         self.regex = []
         self.properties = {}
-        
-    
+
     def open(self, filename):
         _debug_("opening error definition file '{:s}'".format(filename))
         with open(filename, "r") as F:
-    
+
             line = F.readline()
-            
+
             if line.strip() == "version 2":
                 line = F.readline()
                 for line in F:
-                    
+
                     line = re.split("//", line)[0].strip()  # separating code from comments
                     if len(line) == 0:
                         continue
@@ -261,10 +241,10 @@ class Uncertainties:  # error definition file
                         self.properties[match.group(1)] = match.group(2).strip()
                     else:
                         words = re.split(r'\s', line)
-                        
+
                         if words[0].startswith("re:"):
                             ud = UncertaintyDefinitionRE(words[0].split(":")[1])
-                            
+
                             for word in words:
                                 kv = word.split("=")
                                 if kv[0] == "dK1":
@@ -278,7 +258,7 @@ class Uncertainties:  # error definition file
                             self.regex.append(ud)
                         else:
                             ud = UncertaintyDefinition(words[0])
-                            
+
                             for word in words:
                                 kv = word.split("=")
                                 if kv[0] == "dK1":
@@ -290,22 +270,22 @@ class Uncertainties:  # error definition file
                                 elif kv[0] == "Type":
                                     ud.settype(kv[1])
                             self.keys.append(ud)
-            
+
                 return True
             else:
-                
+
                 try:
                     definitions = Python_Classes4MAD.metaclass.twiss(filename)
-                    
+
                 except:
                     _error_("loading errorfile didn't work")
                     _error_("errordefspath = {0:s}".format(filename))
                     return False
-                
+
                 _debug_("error definitions file version 1")
                 self.properties["RELATIVE"] = definitions.RELATIVE
                 self.properties["RADIUS"] = definitions.RADIUS
-                 
+
                 for index in range(len(definitions.PATTERN)):
                     pattern = definitions.PATTERN[index]
                     self.regex.append(UncertaintyDefinitionRE(
@@ -320,14 +300,14 @@ class Uncertainties:  # error definition file
     def create_errorfile(self, twiss_full, twiss_full_centre):
         '''
         Adds uncertainty information to twiss_full.
-        
+
         :Sources of Errors:
             dK1:    quadrupolar field errors
             dS:     quadrupole longitudinal misalignments
             dX:     sextupole transverse misalignments
-            BPMdS:  BPM longitudinal misalignments 
+            BPMdS:  BPM longitudinal misalignments
         '''
-        
+
         _debug_("Start creating uncertainty information")
 
         # create new columns, fill MUX/Y_END and BETX/Y_END
@@ -341,24 +321,24 @@ class Uncertainties:  # error definition file
         twiss_full["mKdS"] = 0
         twiss_full["dX"] = 0
         twiss_full["BPMdS"] = 0
-        
+
         # loop over uncertainty definitions, fill the respective columns, set UNC to true
         for reg in self.regex:
             _debug_("creating uncertainty information for RegEx {:s}".format(reg.to_string()))
             reg_mask = twiss_full.index.str.match(reg.pattern)
-            twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, "K1L"]) **2 # TODO change K1L --> mainfield if necessary
+            twiss_full.loc[reg_mask, "dK1"] = (reg.dK1 * twiss_full.loc[reg_mask, "K1L"]) **2
             twiss_full.loc[reg_mask, "dX"] = reg.dX**2
             if reg.type == IDBPM:
                 twiss_full.loc[reg_mask, "BPMdS"] = reg.dS**2
             else:
                 twiss_full.loc[reg_mask, "KdS"] = (reg.dS * twiss_full.loc[reg_mask, "K1L"]) **2
             twiss_full.loc[reg_mask, "UNC"] = True
-            
-        # in case of quadrupole longitudinal misalignments, the element (DRIFT) in front of the misaligned quadrupole
-        # will be used for the thin lens approximation of the misalignment
+
+        # in case of quadrupole longitudinal misalignments, the element (DRIFT) in front of the
+        # misaligned quadrupole will be used for the thin lens approximation of the misalignment
         twiss_full["mKdS"] = np.roll(twiss_full.loc[:]["KdS"], 1)
         twiss_full.loc[:]["UNC"] |= np.roll(twiss_full.loc[:]["UNC"], 1)
-        
+
         # dump the modified twiss_full and return it to the beta calculation
         _info_("DONE creating uncertainty information")
         #_debug_("dumping new twiss_full.dat")
@@ -608,7 +588,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
 
     starttime = time.time()
 
-    # check whether analytical N-BPM method should be used    
+    # check whether analytical N-BPM method should be used
     # if yes, uncertainty estimates will be distributed to the elements
     # do this only once for both planes
     error_method = METH_IND
@@ -981,51 +961,14 @@ def beta_from_phase(madTwiss, madElements, madElementsCentre, ListOfFiles, commo
                     getllm_d, debugfile, errors_method, tune, mdltune):
     '''
     Calculate the beta function from phase advances
-    If range of BPMs is sufficiently large use averaging with weighted mean. The weights are determinde using either the
-    output of Monte Carlo simulations or using analytical formulas derived from exacter formulas to calculate the beta
-    function.
-    
+    If range of BPMs is sufficiently large use averaging with weighted mean. The weights are
+    determinde using either the output of Monte Carlo simulations or using analytical formulas
+    derived from exacter formulas to calculate the beta function.
 
-    :Return:
-        'data':table
-            columns:
-             0: beti
-             1: betstat
-             2: betsys
-             3: beterr
-             4: alfi
-             5: alfstat
-             6: alfsys
-             7: alferr
-             8: corr
-             9: delbeta
-            10: n_combinations
-        'rmsbb':float
-            rms beta-beating
-        'commonbpms':list
-            intersection of common BPMs in measurement files and model
-
-    
-    :Parameters:
-        'madTwiss':twiss
-            model twiss file
-        'ListOfFiles':twiss
-            measurement files
-        'phase':dict
-            measured phase advances
-        'plane':string
-            'X' or 'Y'
-        'use_only_three_bpms_for_beta_from_phase':Boolean
-            self-explanatory
-        'number_of_bpms':int
-            use the number_of_bpm betas with the lowest phase advance (only used when monte carlo simulations are used)
-        'range_of_bpms':int
-            length of range of bpms used to calculate the beta function. Has to be an odd number > 7
-        'errordefspath':String
-            the paths to the error definition file. If not specified, Monte Carlo simulation is used
+    TODO: rewrite docstring.
     '''
     rmsbb = 0.0
-    #---- Error definitions given and we decided to use  => use analytical formulas to calculate the
+    #---- Error definitions given and we decided to use => use analytical formulas to calculate the
     # systematic errors
     if errors_method == METH_A_NBPM:
         rmsbb, errors_method, data = scan_all_BPMs_withsystematicerrors(
@@ -1125,13 +1068,13 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
     ``phase["MEAS"]``, ``phase["MODEL"]``, ``phase["ERRMEAS"]`` (from ``get_phases``) are of the form:
 
     +----------+----------+----------+----------+----------+
-    |          |   BPM1   |   BPM2   |   BPM3   |   BPM4   | 
+    |          |   BPM1   |   BPM2   |   BPM3   |   BPM4   |
     +----------+----------+----------+----------+----------+
-    |   BPM1   |    0     |  phi_21  |  phi_31  |  phi_41  | 
+    |   BPM1   |    0     |  phi_21  |  phi_31  |  phi_41  |
     +----------+----------+----------+----------+----------+
-    |   BPM2   |  phi_12  |     0    |  phi_32  |  phi_42  | 
+    |   BPM2   |  phi_12  |     0    |  phi_32  |  phi_42  |
     +----------+----------+----------+----------+----------+
-    |   BPM3   |  phi_13  |  phi_23  |    0     |  phi_43  | 
+    |   BPM3   |  phi_13  |  phi_23  |    0     |  phi_43  |
     +----------+----------+----------+----------+----------+
 
     aa ``tilt_slice_matrix(matrix, shift, slice, tune)`` brings it into the form:
@@ -1217,30 +1160,36 @@ def scan_all_BPMs_sim_3bpm(madTwiss, phase, plane, getllm_d, commonbpms, debugfi
         # square it again beacause it's used in a vector length
         sin_squared_model = np.multiply(sin_squared_model, sin_squared_model)
 
-        sin_squ_model_shift1 = sin_squared_model + np.roll(sin_squared_model, -1, axis=0) / np.multiply(cot_phase_model_shift1, cot_phase_model_shift1)
-        sin_squ_model_shift2 = sin_squared_model + np.roll(sin_squared_model, -2, axis=0) / np.multiply(cot_phase_model_shift2, cot_phase_model_shift2)
-        beterr = np.sqrt(sin_squ_model_shift1[0] + sin_squ_model_shift1[3] + sin_squ_model_shift2[1]) / 3.0
+        sin_squ_model_shift1 = sin_squared_model + \
+                np.roll(sin_squared_model, -1, axis=0) / \
+                np.multiply(cot_phase_model_shift1, cot_phase_model_shift1)
+        sin_squ_model_shift2 = sin_squared_model + \
+                np.roll(sin_squared_model, -2, axis=0) / \
+                np.multiply(cot_phase_model_shift2, cot_phase_model_shift2)
+        beterr = np.sqrt(sin_squ_model_shift1[0] + sin_squ_model_shift1[3] +
+                         sin_squ_model_shift2[1]) \
+                / 3.0
 
-        betstd=np.zeros(number_commonbpms)
-        alfstd=np.zeros(number_commonbpms)
-        alferr=np.zeros(number_commonbpms)
+        betstd = np.zeros(number_commonbpms)
+        alfstd = np.zeros(number_commonbpms)
+        alferr = np.zeros(number_commonbpms)
 
         # ------ print error method and return the data rows for getbetax/y.out --------------------
 
         _info_("Errors from " + ID_TO_METHOD[errors_method])
-        
+
         bb = (bet_frac - 1.0) * 100.0
-        
-        return sqrt(np.mean(np.multiply(bb,bb))), errors_method, np.transpose([
-                                     commonbpms.index, madTwiss_intersected.loc[:]["S"],
-                                     beti, betstd, betstd, beterr,
-                                     alfi, alfstd, alfstd, alfstd,
-                                     alfi,
-                                     betmdl,
-                                     bb,
-                                     alfi])
+
+        return sqrt(np.mean(np.multiply(bb,bb))), errors_method, \
+                np.transpose([
+                    commonbpms.index, madTwiss_intersected.loc[:]["S"],
+                    beti, betstd, betstd, beterr,
+                    alfi, alfstd, alfstd, alfstd,
+                    alfi,
+                    betmdl,
+                    bb,
+                    alfi])
     raise GetLLMError("Monte Carlo N-BPM is not implemented.")
-    
 
 #---------------------------------------------------------------------------------------------------
 #--------- using analytical formula ----------------------------------------------------------------
@@ -1254,38 +1203,8 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     '''
     If errorfile is given (!= "0") this function calculates the beta function for each BPM using the analytic expression
     for the estimation of the error matrix.
-    
-    :Parameters:
-        'madTwiss':twiss
-            model twiss file
-        'errorfile':twiss
-            final errorfile (not error definitions)
-        'phase':dict
-            measured phase advances
-        'plane':string
-            'X' or 'Y'
-        'alfa, beta':vector
-            out vectors which will be filled with the beta nad alfa functions
-        'commonbpms':list
-            intersection of common BPMs in measurement files and model
-    :Returns:
-        'rmsbb'
-        'errors_method':string
-        'result':dictionary
-            columns:
-           key: probed_bpm_name
-             0: beti
-             1: betstat
-             2: betsys
-             3: beterr
-             4: alfi
-             5: alfstat
-             6: alfsys
-             7: alferr
-             8: corr
-             9: delbeta
     '''
-    
+
     _info_("Errors from " + ID_TO_METHOD[errors_method])
     LOGGER.debug("starting scan_all_BPMs_withsystematicerrors")
     # --------------- alphas from 3BPM -------------------------------------------------
@@ -1301,7 +1220,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     BBA_combo = [[x, y] for x in left_bpm for y in left_bpm if x < y]
     ABB_combo = [[x, y] for x in right_bpm for y in right_bpm if x < y]
     BAB_combo = [[x, y] for x in left_bpm for y in right_bpm]
-    
+
     # get the model values only for used elements, so that commonbps[i] = masTwiss[i]
     madTwiss_intersected = madTwiss.loc[commonbpms.index]
     mu = "MU" + plane
@@ -1314,7 +1233,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
 
     # setup the results matrix
     result = np.array(np.empty(madTwiss_intersected.shape[0]),
-                      dtype = [("NAME","S24"), ("S", "f8"),
+                      dtype = [("NAME", "S24"), ("S", "f8"),
                                ("BET", "f8"), ("BETSTAT", "f8"), ("BETSYS", "f8"), ("BETERR", "f8"),
                                ("ALF", "f8"), ("ALFSTAT", "f8"), ("ALFSYS", "f8"), ("ALFERR", "f8"),
                                ("CORR", "f8"), ("BETMDL", "f8"), ("BETBEAT", "f8"), ("NCOMB", "i4")])
@@ -1322,13 +1241,13 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     # ----------
     # define functions in a function -- python witchcraft, burn it!!!!! 
     def collect(row):
-        result[row[0]]= row[1:]
-        
+        result[row[0]] = row[1:]
+
     def collectblock(block):
         for row in block:
-           collect(row) 
+            collect(row)
      # ---------- calculate the betas --------------------------------------------------------------
-           
+
     st = time.time()
     if getllm_d.parallel:
 
@@ -1336,7 +1255,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
         chunksize = int(len(commonbpms) / getllm_d.nprocesses) + 1
         pool = multiprocessing.Pool()
         n = int(len(commonbpms) / chunksize)
-        
+
         for i in range(n):
             pool.apply_async(scan_several_BPMs_withsystematicerrors,
                              (madTwiss_intersected, madElements,
@@ -1345,7 +1264,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                               i * chunksize, (i + 1) * chunksize, BBA_combo, ABB_combo, BAB_combo,
                               tune, mdltune),
                              callback=collectblock)
-                             
+
         # calculate the last, incomplete chunk
         pool.apply_async(scan_several_BPMs_withsystematicerrors,
                          (madTwiss_intersected, madElements,
@@ -1354,7 +1273,7 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                           n * chunksize, len(commonbpms), BBA_combo, ABB_combo, BAB_combo,
                           tune, mdltune),
                          callback=collectblock)
-                         
+
         # wait for all the threads to finish and join the results
         pool.close()
         pool.join()
@@ -1368,15 +1287,15 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
                                                     tune, mdltune)
             collect(row)
     et = time.time()
-    
+
     _debug_("time elapsed = {0:3.3f}".format(et - st))
-    
+
     rmsbb = sqrt(np.mean(np.multiply(result["BETBEAT"], result["BETBEAT"])))
 
-    result["ALF"] = data3bpm[:,6]
-    result["ALFSTAT"] = data3bpm[:,7]
-    result["ALFSYS"] = data3bpm[:,8]
-    result["ALFERR"] = data3bpm[:,9]
+    result["ALF"] = data3bpm[:, 6]
+    result["ALFSTAT"] = data3bpm[:, 7]
+    result["ALFSYS"] = data3bpm[:, 8]
+    result["ALFERR"] = data3bpm[:, 9]
     #result["BETERR"] *= np.sqrt(commonbpms.loc[:, "NFILES"])
     return rmsbb, errors_method, result
 
@@ -1395,8 +1314,8 @@ def scan_several_BPMs_withsystematicerrors(madTwiss, madElements,
                                                        BBA_combo, ABB_combo, BAB_combo,
                                                        tune, mdltune))
     return block
-    
 
+    #TODO: rewrite the docstring.
 def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
                                       phases_meas, phases_err,
                                       plane, range_of_bpms, commonbpms, debugfile,
@@ -1404,11 +1323,11 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
                                       tune, mdltune):
     '''
     Scans the range of BPMs in order to get the final value for one BPM in the lattice
-    
+
     :Parameters:
         'madTwiss':tfs_pandas
             The model twiss table, contains all the BPMs. Has to be already intersected with the common BPMs:
-            
+
            +-------+----+-------+-----+-----+-------+
            |       | S  | BETX  | MUX | ... | BETY  |
            +-------+----+-------+-----+-----+-------+
@@ -1625,48 +1544,31 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
 
     with np.errstate(divide='ignore'):
         cot_meas = 1.0 / tan(outerMeasPhaseAdv.as_matrix())
-        cot_model = 1.0 / tan((outerMdlPh - outerMdlPh[m])) 
+        cot_model = 1.0 / tan((outerMdlPh - outerMdlPh[m]))
     outerElPhAdv = sin(outerElPhAdv)
     sin_squared_elements = np.multiply(outerElPhAdv, outerElPhAdv)
-
-#    print "outerMdlPh"
-#    print outerMdlPh
-#    print "outerELmtsPh"
-    #print outerElmts
-#    print "outerElPhAdv"
-#    print outerElPhAdv
-#        
-#    print interval_all
     betas = np.empty(len(BBA_combo) + len(BAB_combo) + len(ABB_combo))
     beta_mask = np.empty(len(BBA_combo) + len(BAB_combo) + len(ABB_combo), dtype=bool)
-#    print betmdl1
-#    M = np.zeros((len(sin_squared_elements) * 3,
-#                  len(sin_squared_elements) * 3))
-    
-#    diag = np.concatenate((outerElmts.loc[:]["dK1"],outerElmts.loc[:]["dS"],outerElmts.loc[:]["dX"]))
+
     diag = np.concatenate((outerMeasErr.as_matrix(), outerElmts.loc[:]["dK1"],
                            outerElmts.loc[:]["dX"], outerElmts.loc[:]["KdS"],
                            outerElmts.loc[:]["mKdS"]))
     mask = diag != 0
 
     T_Beta = np.zeros((len(betas),
-                   len(diag) ))
+                       len(diag) ))
 
     M = np.diag(diag[mask])
-#    print cot_model[m]
-#    print cot_model
 
     for i, combo in enumerate(BBA_combo):
         ix = combo[0] + m
         iy = combo[1] + m
-        #if combo[0] + Index < 0:
-        #    continue
 
         # remove bad combination
-        if (abs(cot_model[ix]) > COT_THRESHOLD or 
+        if (abs(cot_model[ix]) > COT_THRESHOLD or
             abs(cot_model[iy]) > COT_THRESHOLD or
             abs(cot_meas[ix]) > COT_THRESHOLD or
-            abs(cot_meas[iy]) > COT_THRESHOLD 
+            abs(cot_meas[iy]) > COT_THRESHOLD
             or abs(cot_model[ix] - cot_model[iy]) < ZERO_THRESHOLD):
             beta_mask[i] = False
             continue
@@ -1676,7 +1578,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         denom = (cot_model[ix] - cot_model[iy]) / betmdl1
         betas[i] = (cot_meas[ix] - cot_meas[iy]) / denom
 
-        # slice       
+        # slice
         xloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[ix])
         yloc = outerElmts.index.get_loc(outerMeasPhaseAdv.index[iy])
 
@@ -1725,9 +1627,6 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     for i, combo in enumerate(BAB_combo):
         ix = combo[0] + m
         iy = combo[1] + m
-
-        #if combo[0] + Index < 0 or combo[1] + Index >= len_bpms_total:
-        #    continue
 
         if (abs(cot_model[ix]) > COT_THRESHOLD or 
             abs(cot_model[iy]) > COT_THRESHOLD or
