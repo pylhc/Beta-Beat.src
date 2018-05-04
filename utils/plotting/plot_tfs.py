@@ -146,33 +146,36 @@ def plot(opt):
 
     Keyword Args:
         Required
-        files (str): Twiss files to plot
-                     **Flags**: --files
-        optics_params (str): List of parameters to plot upon (e.g. BETX, BETY)
-                             **Flags**: --optics_params
-
+        files (basestring): Twiss files to plot
+                            **Flags**: --files
+        y_cols (basestring): List of column names to plot (e.g. BETX, BETY)
+                             **Flags**: ['-y', '--y_cols']
         Optional
+        auto_scale (float): Scales the plot, so that this percentage of
+                            points is inside the picture.
+                            **Flags**: --autoscale
         change_marker: Changes marker for each line in the plot.
                        **Flags**: --changemarker
                        **Action**: ``store_true``
-        error_params (str): List of parameters to get error values from.
-                            **Flags**: --error_params
-        labels (str): Y-Lables for the plots, default: parameters.
-                      **Flags**: --labels
-        legends (str): Legends for the plots, default: filenames.
-                      **Flags**: --legends
+        e_cols (basestring): List of parameters to get error values from.
+                             **Flags**: ['-e', '--e_cols']
+        labels (basestring): Y-Lables for the plots, default: y_col.
+                             **Flags**: --labels
+        legends (basestring): Legends for the plots, default: filenames.
+                              **Flags**: --legends
         no_legend: Deactivates the legend.
                    **Flags**: --nolegend
                    **Action**: ``store_true``
         no_show: Suppresses opening plotting windows.
                  **Flags**: --noshow
                  **Action**: ``store_true``
-        output (str): Base-Name of the output files. _'parameter'.pdf will be attached.
-                      **Flags**: --output
+        output (basestring): Base-Name of the output files. _'y_col'.pdf will be attached.
+                             **Flags**: --output
+        x_cols (basestring): List of column names to use as x-values.
+                             **Flags**: ['-x', '--x_cols']
         xy: Plots X and Y for the give parameters into one figure (two axes).
             **Flags**: --xy
             **Action**: ``store_true``
-
     """
     LOG.debug("Starting plotting of tfs files: {:s}".format(", ".join(opt.files)))
 
