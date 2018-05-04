@@ -15,12 +15,6 @@ Module twiss_optics.optics_class
 Helpers Twiss Optics
 =====================
 
-Module twiss_optics.sequence_parser
-------------------------------------------------
-
-.. automodule:: twiss_optics.sequence_parser
-    :members:
-
 Module twiss_optics.twiss_functions
 ------------------------------------------------
 

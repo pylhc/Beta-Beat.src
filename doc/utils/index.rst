@@ -31,11 +31,6 @@ Module utils.logging_tools
 .. automodule:: utils.logging_tools
     :members:
 
-Module utils.math
-----------------------
-
-.. automodule:: utils.math
-    :members:
 
 Module utils.ndiff
 ----------------------
