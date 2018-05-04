@@ -325,7 +325,10 @@ def main(outputpath,
 
 
         #-------- START coupling.
-        tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
+        if (getllm_d.num_bpms_for_coupling > 0):
+            tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
+        else:
+            print("nbcpl (num_bpms_for_coupling) is is zero or negative: skipping coupling calculation")
 
         if(getllm_d.onlycoupling is 0):
            

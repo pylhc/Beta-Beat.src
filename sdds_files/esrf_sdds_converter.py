@@ -14,7 +14,7 @@ def _parse_args():
     parser = OptionParser()
     (_, args) = parser.parse_args()
     if len(args) != 1:
-        print >> sys.stderr, "Input only the paht to the file to convert."
+        print >> sys.stderr, "Input only the path to the file to convert."
         sys.exit(-1)
     return args[0]
 

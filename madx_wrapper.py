@@ -13,7 +13,9 @@ import subprocess
 import optparse
 
 LIB = abspath(join(dirname(__file__), "madx", "lib"))
-if "win" in sys.platform:
+if "darwin" in sys.platform:
+    MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-macosx64-intel"))
+elif "win" in sys.platform:
     MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-win64-gnu.exe"))
 else:
     MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-linux64-gnu"))

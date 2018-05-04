@@ -75,11 +75,11 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             fwqwf2 = None
             #[fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1, tune_d.q2, getllm_d.outputpath, getllm_d.beam_direction)
             # tfs_file = files_dict['getcouple.out']
-           # tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
-           # tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
-           # tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010R", "F1010I"])
-           # tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-           # for i in range(len(bpms)):
+            # tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
+            # tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
+            # tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010R", "F1010I"])
+            # tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+            # for i in range(len(bpms)):
             #    bn1 = str.upper(bpms[i][1])
             #    bns1 = bpms[i][0]
             #    try:
@@ -89,7 +89,7 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
             #    except AttributeError:
             #        list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), (math.sqrt(fwqw[bn1][0][0].real ** 2 + fwqw[bn1][0][0].imag ** 2)), fwqw[bn1][0][1], -fwqw[bn1][0][0].real, -fwqw[bn1][0][0].imag, 0.0, 0.0]
                     
-              #  tfs_file.add_table_row(list_row_entries)
+            #  tfs_file.add_table_row(list_row_entries)
 
             # Call 1-BPM method coupling function to get dictionary of BPMs with f, std_f as well as phase with std (Here the tunes were changed to the free ones)
             [fwqw, bpms] = GetCoupling1(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f, getllm_d.outputpath,getllm_d.beam_direction)
@@ -322,7 +322,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             qi = q1 # Note that q1 and q2 are confined 0. to 1.
         else:
             badbpm = 1
-            #print "Bad Phases in BPM ",bn1, "total so far", Badbpms+1
+            print "Bad Phases in BPM no ",j, " (", bn1, "). Total so far", Badbpms+1
 
         # If BPM tunes are OK
         if badbpm == 0:
@@ -345,14 +345,14 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             qistd = math.sqrt(np.average(q1j*q1j)-q1**2.0+2.2e-16) # Not very exact...
             # Calculate complex coupling with qi
             fi = fi*complex(np.cos(2.0*np.pi*qi), np.sin(2.0*np.pi*qi))
-        if beam_direction==1:
-            fi = complex(fi.real, fi.imag)
-        if beam_direction==-1:
-            fi = complex(-fi.real, fi.imag)
-            # Append BPM to list of BPMs with correct phase
-            dbpmt.append([dbpms[i][0],dbpms[i][1]])
-            # Trailing 0s provide compatibility with 2-BPM method
-            fwqw[bn1] = [[fi,fistd,0,0],[qi,qistd,0,0]]
+            if beam_direction==1:
+                fi = complex(fi.real, fi.imag)
+                if beam_direction==-1:
+                    fi = complex(-fi.real, fi.imag)
+                # Append BPM to list of BPMs with correct phase
+                dbpmt.append([dbpms[i][0],dbpms[i][1]])
+                # Trailing 0s provide compatibility with 2-BPM method
+                fwqw[bn1] = [[fi,fistd,0,0],[qi,qistd,0,0]]
         # Count badbpms
         Badbpms += badbpm
     # Only use BPMs with correct phase
@@ -565,14 +565,30 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         q1s = phase.calc_phase_mean(q1js,1.0)
         q2s = phase.calc_phase_mean(q2js,1.0)
 
+        if DEBUG:
+            print("\n")
+            print("i=",i," j=", j," ",bn1," <--> ",bn2)
+            print("      q1s=",q1s," q2s=",q2s," q1d=",q1d," q2d=",q2d)
+
         # Take SPS and RHIC out of the badbpm procedure (badbpm stays 0 as initialized) and set phases 
         if (accel == "SPS" or accel == "RHIC"):
+            print("accel is ", accel, " disabling wrong phase check")
+            
             q1010i = q1d
             q1010i = q1s
 
         # Check phase and set badbpm for wrong phase (only for other accels than SPS and RHIC)
-        elif min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25 or min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
-            badbpm = 1
+        else:
+            if min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25:
+                if DEBUG:
+                    print("Bad BPM because min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25")
+                badbpm = 1
+            if min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
+                if DEBUG:
+                    print("Bad BPM because min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25")
+                    print(" i j ",i, j," q1s, q2s",q1s,q2s) 
+                badbpm = 1
+           
 
         # If accel is SPS or RHIC or no no wrong phase was detected, process results
         if badbpm==0:
@@ -623,6 +639,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
     # Initialize denominator for weighted averaging
     denom = 0
     # Loop through BPMs with correct phase
+    
     for i in range(0,len(dbpms)-1):
         # Get BPM-names
         bn1 = str.upper(dbpms[i][1])
@@ -631,8 +648,12 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         muy = MADTwiss.MUY[MADTwiss.indx[bn2]]
         f_new += fwqw[bn2][0][0]*np.exp(complex(0,1)*2*np.pi*(mux-muy))/fwqw[bn2][0][1]**2 # Variance-weighted average for BPMs
         denom += 1/fwqw[bn2][0][1]**2 # denominator for weighted average
-
+    
     N = len(dbpms)
+    print("coupling.py: ",N, "denom = ",denom)
+    if denom == 0:
+        raise Exception("All BPMs were marked as bad")
+     
     f_new_std = np.sqrt(1/denom)
     CG_new_abs = 4*abs(tune_x-tune_y)*abs(f_new)/denom
     CG_new_abs_std = 4*abs(tune_x-tune_y)*abs(f_new_std)

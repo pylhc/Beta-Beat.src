@@ -20,9 +20,10 @@ class ModelCreator(object):
         creator.run_madx(madx_script, logfile, writeto)
 
     @classmethod
-    def prepare_run(cls, lhc_instance, output_path):
-        pass
-
+    def prepare_run(cls, acc_instance, output_path):
+        if acc_instance.fullresponse:
+            cls._prepare_fullresponse(acc_instance, output_path)
+            
     @staticmethod
     def run_madx(madx_script, logfile=None, writeto=None):
         madx_wrapper.resolve_and_run_string(

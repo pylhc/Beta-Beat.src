@@ -112,7 +112,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse):
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL"):
+        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL","PS"):
             raise ValueError("Unknown accelerator: " + accel)
         if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")
@@ -204,7 +204,9 @@ def _generate_fullresponse_for_coupling(fullresponse):
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
     if fullresponse == True:
+        print knobsdict
         variables = knobsdict["Qs"]
+        
     if fullresponse == False:
         print "Small coupling"
         variables = knobsdict["coupling_knobs"]

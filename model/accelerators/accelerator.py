@@ -142,6 +142,9 @@ class Accelerator(object):
         """
         Accelerator.__raise_definition_error()
 
+    @classmethod
+    def get_iteration_tmpl(cls):
+        return cls.get_file("template.iterate.madx")
 
     ###########################################################
 
