@@ -198,7 +198,9 @@ def plot(opt):
 
 @entrypoint(get_params(), strict=True)
 def plot_single_file(opt):
-    """ Plots multiple columns into one figure """
+    """ Plots multiple columns into one figure.
+
+     Beware that labels and legends have now changed roles! """
     # preparations
     opt = _check_opt(opt)
     ps.set_style("standard", MANUAL_STYLE)
@@ -210,7 +212,7 @@ def plot_single_file(opt):
 
     # plotting
     fig = _create_single_plot(opt.x_cols, opt.y_cols, opt.e_cols, twiss_data,
-                              opt.legends, opt.labels, opt.xy, opt.change_marker, opt.no_legend,
+                              opt.labels, opt.legends, opt.xy, opt.change_marker, opt.no_legend,
                               opt.auto_scale)
 
     # exports
@@ -294,7 +296,7 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                             fmt=get_marker(idx, change_marker),
                             label=legends[idx])
 
-                if (idx+1) == len(twiss_data):
+                if x_col == "S" and (idx+1) == len(twiss_data):
                     try:
                         ps.set_xLimits(data.SEQUENCE, ax)
                     except (AttributeError, ps.ArgumentError):
@@ -324,12 +326,13 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
 
             if xy and plt_idx == 0:
                 ax.axes.get_xaxis().set_visible(False)
-                if ir_pos:
+                if x_col == "S" and ir_pos:
                     ps.show_ir(ir_pos, ax, mode='lines')
             else:
-                ps.set_xaxis_label(ax)
-                if ir_pos:
-                    ps.show_ir(ir_pos, ax, mode='outside')
+                if x_col == "S":
+                    ps.set_xaxis_label(ax)
+                    if ir_pos:
+                        ps.show_ir(ir_pos, ax, mode='outside')
 
             if not no_legend and plt_idx == 0:
                 ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
@@ -339,7 +342,7 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
 
 
 def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
-                  xy, change_marker, no_legend, auto_scale):
+                        xy, change_marker, no_legend, auto_scale):
     """ Create plots per parameter """
     _param_map = {
         "BET": "beta",
@@ -359,19 +362,23 @@ def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
         plane_map = None
         gs = gridspec.GridSpec(1, 1, height_ratios=[1])
 
-    ir_pos = _find_ir_pos(twiss_data)
+    ir_pos = None
+    x_is_length = all([xc == "S" for xc in x_cols])
+    if x_is_length:
+        ir_pos = _find_ir_pos(twiss_data)
 
     # create figure
     fig = plt.figure()
     data = twiss_data[0]  # kept it to be more similar with other plotting function
 
-    p_title = legends[0]
+    p_title = labels[0]
     fig.canvas.set_window_title("File '{:s}'".format(p_title))
 
     for plt_idx in range(1 + xy):
         ax = fig.add_subplot(gs[plt_idx])
 
-        for idx_col, (x_col, y_col, e_col) in enumerate(zip(x_cols, y_cols, e_cols)):
+        for idx_col, (x_col, y_col, e_col, legend) in enumerate(
+                zip(x_cols, y_cols, e_cols, legends)):
             LOG.debug("Plotting parameter '{:s}'".format(y_col))
 
             # plot data
@@ -395,9 +402,9 @@ def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
             ax.errorbar(x_val, y_val, yerr=e_val,
                         ls=rcParams[u"lines.linestyle"],
                         fmt=get_marker(idx_col, change_marker),
-                        label=labels[idx_col])
+                        label=legend)
 
-            if (idx_col+1) == len(x_cols):
+            if x_is_length and (idx_col+1) == len(x_cols):
                 try:
                     ps.set_xLimits(data.SEQUENCE, ax)
                 except (AttributeError, ps.ArgumentError):
@@ -408,31 +415,32 @@ def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                 ax.set_ylim(*lim)
 
             # manage layout
-            if labels[idx_col] is None:
-                try:
-                    # if it's a recognized column make nice label
-                    ps.set_yaxis_label(_param_map[y_name], y_full[-1], ax)
-                except (KeyError, ps.ArgumentError):
-                    ax.set_ylabel(y_full)
-            else:
-                # use given label
-                label = labels[idx_col]
-                if xy:
-                    label += plane_map[plt_idx]
-                ax.set_ylabel(label)
+            if len(legends) == 1:
+                if legend is None:
+                    try:
+                        # if it's a recognized column make nice label
+                        ps.set_yaxis_label(_param_map[y_name], y_full[-1], ax)
+                    except (KeyError, ps.ArgumentError):
+                        ax.set_ylabel(y_full)
+                else:
+                    # use given legend/label
+                    if xy:
+                        legend += plane_map[plt_idx]
+                    ax.set_ylabel(legend)
 
-            if xy and plt_idx == 0:
-                ax.axes.get_xaxis().set_visible(False)
-                if ir_pos:
-                    ps.show_ir(ir_pos, ax, mode='lines')
-            else:
+        if xy and plt_idx == 0:
+            ax.axes.get_xaxis().set_visible(False)
+            if x_is_length and ir_pos:
+                ps.show_ir(ir_pos, ax, mode='lines')
+        else:
+            if x_is_length:
                 ps.set_xaxis_label(ax)
                 if ir_pos:
                     ps.show_ir(ir_pos, ax, mode='outside')
 
-            if not no_legend and plt_idx == 0:
-                ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
-                              fancybox=True, shadow=True, ncol=3)
+        if not no_legend and plt_idx == 0:
+            ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
+                          fancybox=True, shadow=True, ncol=3)
     return fig
 
 
