@@ -45,8 +45,8 @@ DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...")
 def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
 
     if acdipole == "ACD":
-        dipole_nameH = 'MKQA.6L4.'+oa[3:]
-        dipole_nameV= 'MKQA.6L4.' + oa[3:]
+        #dipole_nameH = 'MKQA.6L4.'+oa[3:]
+        #dipole_nameV= 'MKQA.6L4.' + oa[3:]
         if   oa=='LHCB1':
             bpmac1='BPMYA.5L4.B1'
             bpmac2='BPMYB.6L4.B1'
@@ -55,6 +55,12 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
             bpmac1='BPMYB.5L4.B2'
             bpmac2='BPMYA.6L4.B2'
             bpmac3='BPM.7L4.B2'
+        elif oa=="PSBOOSTER":
+           dipole_nameH = 'hacmap'                                                                 
+           dipole_nameV= 'vacmap'                                                                  
+           bpmac1 = "BR2.BPM3L3"                                                                   
+           bpmac2 = "BR2.BPM4L3"                                                                   
+           bpmac3 = "BR2.BPM5L3"
         else:
             return {}
     elif acdipole == "ADT":
@@ -441,13 +447,13 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
 
 
 def intersect_bpm_list_with_arc_bpms(bpms_list):
-    bpm_arcs = []
+    bpm_arcs = bpm_list
     # Selecting ARC BPMs
-    for b in bpms_list:
-        if (((b[1][4]) == '1' and (b[1][5]) >= '4') or
-                (b[1][4]) == '2' or
-                (b[1][4]) == '3'):
-            bpm_arcs.append(b)
+    #for b in bpms_list:
+    #    if (((b[1][4]) == '1' and (b[1][5]) >= '4') or
+    #            (b[1][4]) == '2' or
+    #            (b[1][4]) == '3'):
+    #        bpm_arcs.append(b)
     return bpm_arcs
 
 
