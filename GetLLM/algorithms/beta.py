@@ -389,7 +389,14 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         if getllm_d.with_ac_calc:
             #-- from eq
             try:
-                betaxf, rmsbbxf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.acphasex_ac2bpmac, 'H', getllm_d.beam_direction, getllm_d.lhc_phase)
+                betaxf, rmsbbxf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, 
+                                                                                        twiss_d.zero_dpp_x, 
+                                                                                        tune_d.q1, 
+                                                                                        tune_d.q1f, 
+                                                                                        phase_d.acphasex_ac2bpmac, 
+                                                                                        'H', 
+                                                                                        getllm_d.beam_direction, 
+                                                                                        getllm_d.lhc_phase) # AnIssue 
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
@@ -486,7 +493,14 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
 
         if getllm_d.with_ac_calc:  # from eq
             try:
-                betayf, rmsbbyf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, tune_d.q2f, phase_d.acphasey_ac2bpmac, 'V', getllm_d.beam_direction, getllm_d.accel)  # Rescaling
+                betayf, rmsbbyf, bpmsf = compensate_ac_effect.get_free_beta_from_amp_eq(mad_ac, 
+                                                                                        twiss_d.zero_dpp_y, 
+                                                                                        tune_d.q2, 
+                                                                                        tune_d.q2f, 
+                                                                                        phase_d.acphasey_ac2bpmac, 
+                                                                                        'V', 
+                                                                                        getllm_d.beam_direction, 
+                                                                                        getllm_d.accel)  # AnIssue
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
                 arcbpms = utils.bpm.filterbpm(bpmsf)

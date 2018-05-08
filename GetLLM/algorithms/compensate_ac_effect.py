@@ -56,11 +56,20 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
             bpmac2='BPMYA.6L4.B2'
             bpmac3='BPM.7L4.B2'
         elif oa=="PSBOOSTER":
-           dipole_nameH = 'hacmap'                                                                 
-           dipole_nameV= 'vacmap'                                                                  
-           bpmac1 = "BR2.BPM3L3"                                                                   
-           bpmac2 = "BR2.BPM4L3"                                                                   
-           bpmac3 = "BR2.BPM5L3"
+            #print MADTwiss.SEQUENCE
+            for n in MADTwiss.indx:
+                if 'BPM' in n:
+                    print (n," is a BPM")
+                    break
+            ringnostr = n[0:3]
+            print ("skowron: Brute force finding of PSB ring no ", ringnostr)
+            print ("skowron: Please change it with implementation of Accelerator Class ")
+            
+            dipole_nameH = 'hacmap'                                                                 
+            dipole_nameV= 'vacmap'                                                                  
+            bpmac1 = ringnostr+".BPM3L3"                                                                   
+            bpmac2 = ringnostr+".BPM4L3"                                                                   
+            bpmac3 = ringnostr+".BPM5L3"
         else:
             return {}
     elif acdipole == "ADT":
@@ -354,13 +363,20 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         MADTwiss_ac,
     )
     all_bpms = [(b[0], str.upper(b[1])) for b in all_bpms]
-
-    good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(
-        intersect_bpms_list_with_bad_known_bpms(all_bpms)
-    )
+    
+    bpms = intersect_bpms_list_with_bad_known_bpms(all_bpms)
+    
+    print ("skowron: Please fix me !!!! ")
+    print ("skowron: op is sometimes the machine name and sometimes lhcphase1 flag  ")
+    
+    if op != "LHCB1" or op != "LHCB2": 
+        good_bpms_for_kick = intersect_bpm_list_inj(bpms,op)
+    else:
+        good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(bpms)
+        
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op == "1" and bd == 1:
+    if op == "1" and bd ==  1:
         s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
     if op == "1" and bd == -1:
         s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
@@ -447,14 +463,18 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
 
 
 def intersect_bpm_list_with_arc_bpms(bpms_list):
-    bpm_arcs = bpm_list
+    bpm_arcs = []
     # Selecting ARC BPMs
-    #for b in bpms_list:
-    #    if (((b[1][4]) == '1' and (b[1][5]) >= '4') or
-    #            (b[1][4]) == '2' or
-    #            (b[1][4]) == '3'):
-    #        bpm_arcs.append(b)
+    for b in bpms_list:
+        if (((b[1][4]) == '1' and (b[1][5]) >= '4') or
+                (b[1][4]) == '2' or
+                (b[1][4]) == '3'):
+            bpm_arcs.append(b)
     return bpm_arcs
+
+def intersect_bpm_list_inj(bpms_list, accel):
+    ''' For non LHC it is called instead of intersect_bpm_list_with_arc_bpms '''
+    return bpms_list
 
 
 BAD_BPM_LIST = ['BPM.15R8.B1', 'BPM.16R3.B1', 'BPM.31L5.B1', 'BPM.23L6.B1',
