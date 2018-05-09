@@ -348,7 +348,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         beta_d.x_ratio = 0
         skipped_bpmx = []
         arcbpms = utils.bpm.filterbpm(bpms)
-        for bpm in arcbpms:
+        for bpm in bpms:
+        #for bpm in bpms:
             name = str.upper(bpm[1])  # second entry is the name
         #Skip BPM with strange data
             if abs(beta_d.x_phase[name][0] / beta_d.x_amp[name][0]) > 100:
@@ -358,8 +359,10 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
             else:
                 beta_d.x_ratio = beta_d.x_ratio + (beta_d.x_phase[name][0] / beta_d.x_amp[name][0])
 
-        try:
-            beta_d.x_ratio = beta_d.x_ratio / (len(arcbpms) - len(skipped_bpmx))
+        try: 
+            print "VALUE TO CHECK ###"
+            print beta_d.x_ratio
+            beta_d.x_ratio = beta_d.x_ratio / (len(bpms) - len(skipped_bpmx))
         except ZeroDivisionError:
             beta_d.x_ratio = 1
         except:
@@ -400,8 +403,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 #-- Rescaling
                 beta_d.x_ratio_f = 0
                 skipped_bpmxf = []
-                arcbpms = utils.bpm.filterbpm(bpmsf)
-                for bpm in arcbpms:
+                #arcbpms = utils.bpm.filterbpm(bpmsf)
+                for bpm in bpms:
                     name = str.upper(bpm[1])  # second entry is the name
                 #Skip BPM with strange data
                     if abs(beta_d.x_phase_f[name][0] / betaxf[name][0]) > 10:
@@ -413,8 +416,13 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                     else:
                         beta_d.x_ratio_f = beta_d.x_ratio_f + (beta_d.x_phase_f[name][0] / betaxf[name][0])
 
-                try:
-                    beta_d.x_ratio_f = beta_d.x_ratio_f / (len(arcbpms) - len(skipped_bpmxf))
+                try:  
+                    print "ARCBPMS ###"
+                    print bpms
+                    print len(bpms)
+                    print skipped_bpmxf
+                    print beta_d.x_ratio_f 
+                    beta_d.x_ratio_f = beta_d.x_ratio_f / (len(bpms) - len(skipped_bpmxf))
                 except:
                     traceback.print_exc()
                     beta_d.x_ratio_f = 1
@@ -456,8 +464,8 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         #-- Rescaling
         beta_d.y_ratio = 0
         skipped_bpmy = []
-        arcbpms = utils.bpm.filterbpm(bpms)
-        for bpm in arcbpms:
+        #arcbpms = utils.bpm.filterbpm(bpms)
+        for bpm in bpms:
             name = str.upper(bpm[1])  # second entry is the name
             #Skip BPM with strange data
             if name in beta_d.y_phase:
@@ -469,7 +477,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                     beta_d.y_ratio = beta_d.y_ratio + (beta_d.y_phase[name][0] / beta_d.y_amp[name][0])
 
         try:
-            beta_d.y_ratio = beta_d.y_ratio / (len(arcbpms) - len(skipped_bpmy))
+            beta_d.y_ratio = beta_d.y_ratio / (len(bpms) - len(skipped_bpmy))
         except ZeroDivisionError:
             beta_d.y_ratio = 1
         betay_rescale = {}
@@ -500,11 +508,11 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                                                                                         phase_d.acphasey_ac2bpmac, 
                                                                                         'V', 
                                                                                         getllm_d.beam_direction, 
-                                                                                        getllm_d.accel)  # AnIssue
+                                                                                        getllm_d.lhc_phase)  # AnIssue
                 beta_d.y_ratio_f = 0
                 skipped_bpmyf = []
-                arcbpms = utils.bpm.filterbpm(bpmsf)
-                for bpm in arcbpms:
+                #arcbpms = utils.bpm.filterbpm(bpmsf)
+                for bpm in bpms:
                     name = str.upper(bpm[1])  # second entry is the name
                     #Skip BPM with strange data
                     if abs(beta_d.y_phase_f[name][0] / betayf[name][0]) > 10:
@@ -517,7 +525,9 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                         beta_d.y_ratio_f = beta_d.y_ratio_f + (beta_d.y_phase_f[name][0] / betayf[name][0])
 
                 try:
-                    beta_d.y_ratio_f = beta_d.y_ratio_f / (len(arcbpms) - len(skipped_bpmyf))
+                    print "Value of ratio Y #######"
+                    print beta_d.y_ratio_f
+                    beta_d.y_ratio_f = beta_d.y_ratio_f / (len(bpms) - len(skipped_bpmyf))
                 except ZeroDivisionError:
                     beta_d.y_ratio_f = 1
                 tfs_file = files_dict['getampbetay_free.out']
