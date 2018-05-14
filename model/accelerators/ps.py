@@ -11,18 +11,11 @@ PS_DIR = os.path.join(CURRENT_DIR, "ps")
 LOGGER = logging_tools.get_logger(__name__)
 
 class Ps(Accelerator):
-    """ Parent Class for Ps-Types.
+    """ CPS accelerator.
+    """
 
-    Keyword Args:
-        Required
-        nat_tune_x (float): Natural tune X without integer part.
-                            **Flags**: ['--nattunex']
-        nat_tune_y (float): Natural tune Y without integer part.
-                            **Flags**: ['--nattuney']
-        energy (float): Energy in Tev.
-                        **Flags**: ['--energy']
-                        """
-
+    NAME = "cps"
+    MACROS_NAME = "ps"
     @staticmethod
     def get_class_parameters():
         params = EntryPointParameters()

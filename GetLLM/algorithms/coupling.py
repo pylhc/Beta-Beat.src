@@ -641,7 +641,6 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
     denom = 0
     # Loop through BPMs with correct phase
     for i in range(0, len(dbpms) - 1):
-    for i in range(0,len(dbpms)-1):
         # Get BPM-names
         bn1 = str.upper(dbpms[i][1])
         bn2 = str.upper(dbpms[i+1][1])
