@@ -94,6 +94,7 @@ import algorithms.coupling
 import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
+import algorithms.lobster
 import utils.iotools
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
@@ -135,7 +136,7 @@ BBTHRESH    = "0.15"    #@IgnorePep8
 ERRTHRESH   = "0.15"    #@IgnorePep8
 NUMBER_OF_BPMS  = 10    #@IgnorePep8
 RANGE_OF_BPMS   = 11    #@IgnorePep8
-AVERAGE_TUNE    = 0     #@IgnorePep8
+AVERAGE_TUNE    = 1     #@IgnorePep8
 CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
@@ -148,7 +149,8 @@ BAD_BPMS_hor = ["BPM.23L6.B1", "BPM.22R8.B1", "BPMYB.4L2.B1", "BPMSX.4L2.B1", "B
                 "BPM.25L5.B1"]
 BAD_BPMS_ver = ["BPMSX.4L2.B1", "BPM.22R8.B1", "BPM.23L6.B1", "BPMSX.4L2.B1", "BPM.31R2.B2", "BPM20L2.B2",
                 "BPM.12R4.B1"]
-
+BAD_BPMS_hor=[]
+BAD_BPMS_ver=[]
 
 # DEBUGGING
 def print_time(index, t):
@@ -405,6 +407,11 @@ def main(accelerator,
     else:
         print_time("AFTER_A_NBPM", time() - __getllm_starttime)
 
+    try:
+        algorithms.lobster.get_local_observable(phase_d_bk, getllm_d, files_dict)
+    except:
+        _tb_()
+
     #------- START beta from amplitude
     try:
         beta_d = algorithms.beta.calculate_beta_from_amplitude(
@@ -511,55 +518,19 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     GetllmTfsFile.s_mad_filename = model_filename
 
     files_dict = {}
-    files_dict['getphasex.out'] = GetllmTfsFile('getphasex.out')
-    files_dict['getphasey.out'] = GetllmTfsFile('getphasey.out')
-    files_dict['getphasetotx.out'] = GetllmTfsFile('getphasetotx.out')
-    files_dict['getphasetoty.out'] = GetllmTfsFile('getphasetoty.out')
-    files_dict['getphasex_free.out'] = GetllmTfsFile('getphasex_free.out')
-    files_dict['getphasey_free.out'] = GetllmTfsFile('getphasey_free.out')
-    files_dict['getphasex_free2.out'] = GetllmTfsFile('getphasex_free2.out')
-    files_dict['getphasey_free2.out'] = GetllmTfsFile('getphasey_free2.out')
-    files_dict['getphasetotx_free.out'] = GetllmTfsFile('getphasetotx_free.out')
-    files_dict['getphasetoty_free.out'] = GetllmTfsFile('getphasetoty_free.out')
-    files_dict['getphasetotx_free2.out'] = GetllmTfsFile('getphasetotx_free2.out')
-    files_dict['getphasetoty_free2.out'] = GetllmTfsFile('getphasetoty_free2.out')
-    files_dict['getbetax.out'] = GetllmTfsFile('getbetax.out')
-    files_dict['getbetay.out'] = GetllmTfsFile('getbetay.out')
-    files_dict['getbetax_free.out'] = GetllmTfsFile('getbetax_free.out')
-    files_dict['getbetay_free.out'] = GetllmTfsFile('getbetay_free.out')
-    files_dict['getbetax_free2.out'] = GetllmTfsFile('getbetax_free2.out')
-    files_dict['getbetay_free2.out'] = GetllmTfsFile('getbetay_free2.out')
-    files_dict['getampbetax.out'] = GetllmTfsFile('getampbetax.out')
-    files_dict['getampbetay.out'] = GetllmTfsFile('getampbetay.out')
-    files_dict['getampbetax_free.out'] = GetllmTfsFile('getampbetax_free.out')
-    files_dict['getampbetay_free.out'] = GetllmTfsFile('getampbetay_free.out')
-    files_dict['getampbetax_free2.out'] = GetllmTfsFile('getampbetax_free2.out')
-    files_dict['getampbetay_free2.out'] = GetllmTfsFile('getampbetay_free2.out')
-    files_dict['getCOx.out'] = GetllmTfsFile('getCOx.out')
-    files_dict['getCOy.out'] = GetllmTfsFile('getCOy.out')
-    files_dict['getNDx.out'] = GetllmTfsFile('getNDx.out')
-    files_dict['getDx.out'] = GetllmTfsFile('getDx.out')
-    files_dict['getDy.out'] = GetllmTfsFile('getDy.out')
+    _fill_files_dict_plane(files_dict, "x", getllm_d)
+    _fill_files_dict_plane(files_dict, "y", getllm_d)
     files_dict['getcouple.out'] = GetllmTfsFile('getcouple.out')
     if nonlinear:
         for rdt in algorithms.resonant_driving_terms.RDT_LIST:
             files_dict[rdt+'_line.out'] = GetllmTfsFile(rdt+'_line.out')
             files_dict[rdt+'.out'] = GetllmTfsFile(rdt+'.out')
-#    if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
     files_dict['getcouple_free.out'] = GetllmTfsFile('getcouple_free.out')
-    files_dict['getcouple_free2.out'] = GetllmTfsFile('getcouple_free2.out')
     files_dict['getcoupleterms.out'] = GetllmTfsFile('getcoupleterms.out')
     #if "LHC" in getllm_d.accelerator.__name__:
     files_dict['getIP.out'] = GetllmTfsFile('getIP.out')
-    files_dict['getIPx.out'] = GetllmTfsFile('getIPx.out')
-    files_dict['getIPy.out'] = GetllmTfsFile('getIPy.out')
     files_dict['getIPfromphase.out'] = GetllmTfsFile('getIPfromphase.out')
-    files_dict['getIPx_free.out'] = GetllmTfsFile('getIPx_free.out')
-    files_dict['getIPy_free.out'] = GetllmTfsFile('getIPy_free.out')
-    files_dict['getIPx_free2.out'] = GetllmTfsFile('getIPx_free2.out')
-    files_dict['getIPy_free2.out'] = GetllmTfsFile('getIPy_free2.out')
     files_dict['getIPfromphase_free.out'] = GetllmTfsFile('getIPfromphase_free.out')
-    files_dict['getIPfromphase_free2.out'] = GetllmTfsFile('getIPfromphase_free2.out')
 
     files_dict["getsex3000.out"] = GetllmTfsFile("getsex3000.out")
     files_dict['getchi3000.out'] = GetllmTfsFile('getchi3000.out')
@@ -567,9 +538,37 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     files_dict['getkick.out'] = GetllmTfsFile('getkick.out')
     files_dict['getkickphase.out'] = GetllmTfsFile('getkickphase.out')
     files_dict['getkickac.out'] = GetllmTfsFile('getkickac.out')
+    files_dict['getlobster.out'] = GetllmTfsFile('getlobster.out')
 
     return files_dict
 # END _create_tfs_files -----------------------------------------------------------------------------
+
+def _fill_files_dict_plane(files_dict, plane, getllm_d):
+
+    if getllm_d.accelerator.excitation == AccExcitationMode.FREE:
+        files_dict['getphase{}_free.out'.format(plane)] = GetllmTfsFile('getphase{}.out'.format(plane))
+        files_dict['getphasetot{}_free.out'.format(plane)] = GetllmTfsFile('getphasetot{}.out'.format(plane))
+        files_dict['getbeta{}_free.out'.format(plane)] = GetllmTfsFile('getbeta{}.out'.format(plane))
+        files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
+        files_dict['getCO{}.out'.format(plane)] = GetllmTfsFile('getCO{}.out'.format(plane))
+        files_dict['getND{}.out'.format(plane)] = GetllmTfsFile('getND{}.out'.format(plane))
+        files_dict['getD{}.out'.format(plane)] = GetllmTfsFile('getD{}.out'.format(plane))
+        files_dict['getIP{}.out'.format(plane)] = GetllmTfsFile('getIP{}.out'.format(plane))
+    else:
+        files_dict['getphase{}.out'.format(plane)] = GetllmTfsFile('getphase{}.out'.format(plane))
+        files_dict['getphasetot{}.out'.format(plane)] = GetllmTfsFile('getphasetot{}.out'.format(plane))
+        files_dict['getphase{}_free.out'.format(plane)] = GetllmTfsFile('getphase{}_free.out'.format(plane))
+        files_dict['getphasetot{}_free.out'.format(plane)] = GetllmTfsFile('getphasetot{}_free.out'.format(plane))
+        files_dict['getbeta{}.out'.format(plane)] = GetllmTfsFile('getbeta{}.out'.format(plane))
+        files_dict['getbeta{}_free.out'.format(plane)] = GetllmTfsFile('getbeta{}_free.out'.format(plane))
+        files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
+        files_dict['getampbeta{}_free.out'.format(plane)] = GetllmTfsFile('getampbeta{}_free.out'.format(plane))
+        files_dict['getCO{}.out'.format(plane)] = GetllmTfsFile('getCO{}.out'.format(plane))
+        files_dict['getND{}.out'.format(plane)] = GetllmTfsFile('getND{}.out'.format(plane))
+        files_dict['getD{}.out'.format(plane)] = GetllmTfsFile('getD{}.out'.format(plane))
+        files_dict['getIP{}.out'.format(plane)] = GetllmTfsFile('getIP{}.out'.format(plane))
+        files_dict['getIP{}_free.out'.format(plane)] = GetllmTfsFile('getIP{}_free.out'.format(plane))
+
 
 
 def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dict, use_average, calibration_twiss, model):
@@ -612,7 +611,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
 
     for twiss_file_x, twiss_file_y in zip(tfs_files_x, tfs_files_y):
         if use_average:
-            twiss_file_x = twiss_file_x.rename(columns={"AVG_MUX": "MUX"})
+            twiss_file_x = twiss_file_x.rename(columns={"AVG_MUX": "MUX", "MUX": "MUX_OLD"})
         if calibration_twiss is not None:
             twiss_file_x["AMPX"], twiss_file_x["ERRAMPX"] = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
         try:
@@ -631,37 +630,45 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
                 sys.exit(1)
         if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
             twiss_d.zero_dpp_x.append(twiss_file_x)
-            files_dict['getphasex.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getphasetotx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getbetax.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getampbetax.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getCOx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
             files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
             if nonlinear:
                 for rdt in algorithms.resonant_driving_terms.RDT_LIST:
                     files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
                     files_dict[rdt+'.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPx.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPy.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPfromphase.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPx_free.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPy_free.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPx_free2.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPy_free2.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPfromphase_free.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getIPfromphase_free2.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getphasex_free.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getphasex_free2.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getphasetotx_free.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getphasetotx_free2.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getbetax_free.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getbetax_free2.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getampbetax_free.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getampbetax_free2.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getcouple_free.out'].add_filename_to_getllm_header(file_in)
-            files_dict['getcouple_free2.out'].add_filename_to_getllm_header(file_in)
+            _add_filename_to_header_for_files(
+                files_dict, file_x,
+                [
+                    'getphasex.out',
+                    'getphasetotx.out',
+                    'getbetax.out',
+                    'getampbetax.out',
+                    'getCOx.out',
+                    'getNDx.out',
+                    'getDx.out',
+                    'getphasex_free.out',
+                    'getphasex_free2.out',
+                    'getphasetotx_free.out',
+                    'getphasetotx_free2.out',
+                    'getbetax_free.out',
+                    'getbetax_free2.out',
+                    'getampbetax_free.out',
+                    'getampbetax_free2.out'
+                ])
+            _add_filename_to_header_for_files(
+                files_dict, file_in,
+                [
+                    'getIPx.out',
+                    'getIPy.out',
+                    'getIPfromphase.out',
+                    'getIPx_free.out',
+                    'getIPy_free.out',
+                    'getIPx_free2.out',
+                    'getIPy_free2.out',
+                    'getIPfromphase_free.out',
+                    'getIPfromphase_free2.out',
+                    'getcouple_free.out',
+                    'getcouple_free2.out'
+                ])
         else:
             twiss_d.non_zero_dpp_x.append(twiss_file_x)
             files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
@@ -669,7 +676,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
 
         # y file
         if use_average:
-            twiss_file_y.MUY = twiss_file_y.AVG_MUY
+            twiss_file_y = twiss_file_y.rename(columns={"AVG_MUY": "MUY", "MUY": "MUY_OLD"})
         if calibration_twiss is not None:
             twiss_file_y.AMPY, twiss_file_y["ERRAMPY"] = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
         try:
@@ -687,20 +694,24 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
                 sys.exit(1)
         if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
             twiss_d.zero_dpp_y.append(twiss_file_y)
-            files_dict['getphasey.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getphasetoty.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getbetay.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getampbetay.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getCOy.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getDy.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getphasey_free.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getphasey_free2.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getphasetoty_free.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getphasetoty_free2.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getbetay_free.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getbetay_free2.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getampbetay_free.out'].add_filename_to_getllm_header(file_y)
-            files_dict['getampbetay_free2.out'].add_filename_to_getllm_header(file_y)
+            _add_filename_to_header_for_files(
+                files_dict, file_y,
+                [
+                    'getphasey.out',
+                    'getphasetoty.out',
+                    'getbetay.out',
+                    'getampbetay.out',
+                    'getCOy.out',
+                    'getDy.out',
+                    'getphasey_free.out',
+                    'getphasey_free2.out',
+                    'getphasetoty_free.out',
+                    'getphasetoty_free2.out',
+                    'getbetay_free.out',
+                    'getbetay_free2.out',
+                    'getampbetay_free.out',
+                    'getampbetay_free2.out'
+                ])
         else:
             twiss_d.non_zero_dpp_y.append(twiss_file_y)
             files_dict['getDy.out'].add_filename_to_getllm_header(file_y)
@@ -715,20 +726,24 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
             twiss_d.non_zero_dpp_y = []
 
             print "Previous warning suppressed, running in chromatic mode"
-            files_dict['getphasex.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getbetax.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getampbetax.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getCOx.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getNDx.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getDx.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getcouple.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getcouple_free.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getcouple_free2.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getphasey.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getbetay_free.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getampbetay.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getCOx.out'].add_filename_to_getllm_header("chrommode")
-            files_dict['getDy.out'].add_filename_to_getllm_header("chrommode")
+            _add_filename_to_header_for_files(
+                files_dict, "chrommode",
+                [
+                    'getphasex.out',
+                    'getbetax.out',
+                    'getampbetax.out',
+                    'getCOx.out',
+                    'getNDx.out',
+                    'getDx.out',
+                    'getcouple.out',
+                    'getcouple_free.out',
+                    'getcouple_free2.out',
+                    'getphasey.out',
+                    'getbetay_free.out',
+                    'getampbetay.out',
+                    'getCOx.out',
+                    'getDy.out'
+                ])
 
     if twiss_d.has_no_input_files():
         print >> sys.stderr, "No parsed input files"
@@ -741,6 +756,12 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
     twiss_d.non_zero_dpp_commonbpms_y, twiss_d.non_zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.non_zero_dpp_y, model,
                                                                                          union, "V")
     return twiss_d, files_dict
+
+def _add_filename_to_header_for_files(files_dict, filex, files_list):
+    for key in files_list:
+        if key in files_dict:
+            files_dict[key].add_filename_to_getllm_header(filex)
+
 
 
 def _arrange_dpp(list_of_tfs):
@@ -857,7 +878,7 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
     print 'Calculating orbit'
     list_of_co_x = []
     if twiss_d.has_zero_dpp_x():
-        cox = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_commonbpms_x)
+        [cox, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_x)
         # The output file can be directly used for orbit correction with MADX
         tfs_file = files_dict['getCOx.out']
         tfs_file.add_string_descriptor("TABLE", 'ORBIT')
@@ -867,8 +888,9 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "X", "STDX", "XMDL", "MUXMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for bn1 in twiss_d.zero_dpp_commonbpms_x.index:
-            bns1 = twiss_d.zero_dpp_commonbpms_x.loc[bn1, "S"]
+        for i in range(0, len(bpms)):
+            bn1 = str.upper(bpms[i][1])
+            bns1 = bpms[i][0]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), cox[bn1][0], cox[bn1][1],
                                 mad_twiss.loc[bn1, "X"], mad_twiss.loc[bn1, "MUX"]]
             tfs_file.add_table_row(list_row_entries)
@@ -876,7 +898,7 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
         list_of_co_x.append(cox)
     list_of_co_y = []
     if twiss_d.has_zero_dpp_y():
-        coy = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_y, twiss_d.zero_dpp_commonbpms_y)
+        [coy, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_y)
         # The output file can be directly used for orbit correction with MADX
         tfs_file = files_dict['getCOy.out']
         tfs_file.add_string_descriptor("TABLE", 'ORBIT')
@@ -886,8 +908,9 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
         tfs_file.add_column_names(["NAME", "S", "COUNT", "Y", "STDY", "YMDL", "MUYMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for bn1 in twiss_d.zero_dpp_commonbpms_y.index:
-            bns1 = twiss_d.zero_dpp_commonbpms_y.loc[bn1, "S"]
+        for i in range(0, len(bpms)):
+            bn1 = str.upper(bpms[i][1])
+            bns1 = bpms[i][0]
             list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), coy[bn1][0], coy[bn1][1],
                                 mad_twiss.loc[bn1, "Y"], mad_twiss.loc[bn1, "MUY"]]
             tfs_file.add_table_row(list_row_entries)
@@ -906,11 +929,12 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
             tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
             tfs_file.add_float_descriptor("Q1", tune_d.q1)
             tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            codpp = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss, twiss_d.non_zero_dpp_commonbpms_x)
+            [codpp, bpms] = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "X", "STDX", "XMDL", "MUXMDL"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for bn1 in twiss_d.non_zero_dpp_commonbpms_x.index:
-                bns1 = twiss_d.non_zero_dpp_commonbpms_x.loc[bn1, "S"]
+            for i in range(0, len(bpms)):
+                bn1 = str.upper(bpms[i][1])
+                bns1 = bpms[i][0]
                 list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), codpp[bn1][0], codpp[bn1][1],
                                     mad_twiss.loc[bn1, "X"], mad_twiss.loc[bn1, "MUX"]]
                 tfs_file.add_table_row(list_row_entries)
@@ -930,11 +954,12 @@ def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
             tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
             tfs_file.add_float_descriptor("Q1", tune_d.q1)
             tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            codpp = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss, twiss_d.non_zero_dpp_commonbpms_y)
+            [codpp, bpms] = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss)
             tfs_file.add_column_names(["NAME", "S", "COUNT", "Y", "STDY", "YMDL", "MUYMDL"])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for bn1 in twiss_d.non_zero_dpp_commonbpms_y.index:
-                bns1 = twiss_d.non_zero_dpp_commonbpms_y.loc[bn1, "S"]
+            for i in range(0, len(bpms)):
+                bn1 = str.upper(bpms[i][1])
+                bns1 = bpms[i][0]
                 list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), codpp[bn1][0], codpp[bn1][1],
                                     mad_twiss.loc[bn1, "Y"], mad_twiss.loc[bn1, "MUY"]]
                 tfs_file.add_table_row(list_row_entries)
@@ -999,7 +1024,7 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, files_dict, bbthreshold,
 
     try:
         [meansqrt_2jx, meansqrt_2jy, _, _, tunes, dpp, bpmrejx, bpmrejy] = algorithms.helper.getkick(
-            files, mad_twiss, beta_d, bbthreshold, errthreshold, twiss_d.zero_dpp_commonbpms_x.loc[common_index])
+            files, mad_twiss, beta_d, bbthreshold, errthreshold)
     except IndexError:  # occurs if either no x or no y files exist
         return files_dict, [], []
 
@@ -1127,7 +1152,7 @@ def _get_commonbpms(ListOfFiles, model, union, plane):
 def _tb_():
     if sys.stdout.isatty():
         err_exc = re.sub(r"line\s([0-9]+)", "\33[1mline \33[38;2;80;160;255m\\1\33[0m\33[21m", traceback.format_exc())
-        err_exc = re.sub("File\\s\"([^\"]+)\"", "File \33[38;2;0;255;100m\\1\33[0m", err_exc)
+        err_exc = re.sub("File\\s\"([^\"]+)\",", "File \33[38;2;0;255;100m\\1\33[0m", err_exc)
         err_excs = err_exc.split("\n")
         for line in err_excs:
             LOGGER.error(line)
