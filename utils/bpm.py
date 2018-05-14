@@ -34,7 +34,7 @@ def model_intersect(exp_bpms, model_twiss):
 
     :returns: list with tuples: (<S_value_i>,<bpm_i>) -- A list with BPMs which are both in exp_bpms and model_twiss.
     '''
-    return model_twiss.loc[exp_bpms.index, ["S"]]
+    return model_twiss.loc[exp_bpms.index, "S"]
 
 
 def intersect(list_of_twiss_files):
@@ -56,8 +56,13 @@ def intersect(list_of_twiss_files):
     for twiss_file in list_of_twiss_files:
         names_list = twiss_file.index.intersection(names_list)
 
-    result = list_of_twiss_files[0].loc[names_list, ["S"]]
+    result = list_of_twiss_files[0].loc[names_list, "S"]
     return result
+
+def get_list_of_tuples(bpms):
+    """transforms the DataFrame bpms to a list of tuples to fake the old usage.
+    """
+    return [(bpms.loc[name], name) for name in bpms.index]
 
 
 def intersect_with_bpm_list(exp_bpms, bpm_list):
