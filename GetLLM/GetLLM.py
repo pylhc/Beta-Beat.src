@@ -1,5 +1,7 @@
 import GetLLM
 r'''
+.. module: GetLLM.GetLLM
+
 Created on 11/09/09
 
 :author: Glenn Vanbavinckhove  (gvanbavi@cern.ch)
@@ -140,6 +142,7 @@ AVERAGE_TUNE    = 1     #@IgnorePep8
 CALIBRATION     = None  #@IgnorePep8
 ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
+ONLYCOUPLING    = 0     #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
 DPP_TOLERANCE = 0.0001
 UNION       = 1
@@ -220,6 +223,10 @@ def _parse_args(start_args=sys.argv[1:]):
     parser.add_argument("--errordefs", # remove !
                     help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
                     metavar="TBTANA", default=None, dest="errordefspath")
+    parser.add_option("--coupling", default=ONLYCOUPLING, dest="onlycoupling",
+                      metavar="ONLYCOUPLING", type="int",
+                      help="When enabled only coupling is calculated. ")
+
     options, acc_args = parser.parse_known_args(args=start_args)
 
 
@@ -292,6 +299,7 @@ def main(accelerator,
          cocut=COCUT,
          nbcpl=NBCPL,
          nonlinear=NONLINEAR,
+         tbtana=TBTANA,
          bbthreshold=BBTHRESH,
          errthreshold=ERRTHRESH,
          use_only_three_bpms_for_beta_from_phase=USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE,
@@ -300,6 +308,7 @@ def main(accelerator,
          use_average=AVERAGE_TUNE,
          calibration_dir_path=CALIBRATION,
          nprocesses=NPROCESSES,
+         onlycoupling=ONLYCOUPLING,
         union=False):
     '''
     GetLLM main function.
@@ -326,7 +335,7 @@ def main(accelerator,
 
     '''
     return_code = 0
-    
+
     LOGGER.info("Starting GetLLM " + VERSION)
     global __getllm_starttime
     __getllm_starttime = time()
@@ -395,74 +404,6 @@ def main(accelerator,
         )
     print_time("AFTER_PHASE", time() - __getllm_starttime)
 
-    #-------- START Beta
-    try:
-        beta_d = algorithms.beta.calculate_beta_from_phase(
-            getllm_d, twiss_d, tune_d, phase_d_bk, files_dict
-        )
-    except:
-        _tb_()
-    if use_only_three_bpms_for_beta_from_phase:
-        print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
-    else:
-        print_time("AFTER_A_NBPM", time() - __getllm_starttime)
-
-    try:
-        algorithms.lobster.get_local_observable(phase_d_bk, getllm_d, files_dict)
-    except:
-        _tb_()
-
-    #------- START beta from amplitude
-    try:
-        beta_d = algorithms.beta.calculate_beta_from_amplitude(
-            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d,
-            files_dict, accelerator
-        )
-    except:
-        _tb_()
-
-    # in the following functions, nothing should change, so we choose the models now
-    mad_twiss = accelerator.get_model_tfs()
-    mad_elements = accelerator.get_elements_tfs()
-    if accelerator.excitation != AccExcitationMode.FREE:
-        mad_ac = accelerator.get_driven_tfs()
-    else:
-        mad_ac = mad_twiss
-
-    #-------- START IP
-    try:
-        algorithms.interaction_point.calculate_ip(
-            getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, mad_twiss, mad_ac,
-            files_dict
-        )
-    except:
-        _tb_()
-
-    #-------- START Orbit
-    try:
-        list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(
-            getllm_d, twiss_d, tune_d, mad_twiss, files_dict
-        )
-    except:
-        _tb_()
-
-    #-------- START Dispersion
-    try:
-        algorithms.dispersion.calculate_dispersion(
-            getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y
-        )
-    except:
-        _tb_()
-    
-    #------ Start get Q,JX,delta
-    try:
-        files_dict, inv_x, inv_y = _calculate_kick(
-            getllm_d, twiss_d, phase_d_bk, beta_d, files_dict,
-            bbthreshold, errthreshold
-        )
-    except:
-        _tb_()
-
     #-------- START coupling.
     try:
         tune_d = algorithms.coupling.calculate_coupling(
@@ -470,6 +411,78 @@ def main(accelerator,
         )
     except:
         _tb_()
+
+    if getllm_d.onlycoupling == 1:
+        #-------- START Beta
+        try:
+            beta_d = algorithms.beta.calculate_beta_from_phase(
+                getllm_d, twiss_d, tune_d, phase_d_bk, files_dict
+            )
+        except:
+            _tb_()
+        if use_only_three_bpms_for_beta_from_phase:
+            print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
+        else:
+            print_time("AFTER_A_NBPM", time() - __getllm_starttime)
+
+        try:
+            algorithms.lobster.get_local_observable(phase_d_bk, getllm_d, files_dict)
+        except:
+            _tb_()
+
+        #------- START beta from amplitude
+        try:
+            beta_d = algorithms.beta.calculate_beta_from_amplitude(
+                getllm_d, twiss_d, tune_d, phase_d_bk, beta_d,
+                files_dict, accelerator
+            )
+        except:
+            _tb_()
+
+        # in the following functions, nothing should change, so we choose the models now
+        mad_twiss = accelerator.get_model_tfs()
+        mad_elements = accelerator.get_elements_tfs()
+        if accelerator.excitation != AccExcitationMode.FREE:
+            mad_ac = accelerator.get_driven_tfs()
+        else:
+            mad_ac = mad_twiss
+
+        #-------- START IP
+        try:
+            algorithms.interaction_point.calculate_ip(
+                getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, mad_twiss, mad_ac,
+                files_dict
+            )
+        except:
+            _tb_()
+
+        #-------- START Orbit
+        try:
+            list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(
+                getllm_d, twiss_d, tune_d, mad_twiss, files_dict
+            )
+        except:
+            _tb_()
+
+        #-------- START Dispersion
+        try:
+            algorithms.dispersion.calculate_dispersion(
+                getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y
+            )
+        except:
+            _tb_()
+        
+        #------ Start get Q,JX,delta
+        try:
+            files_dict, inv_x, inv_y = _calculate_kick(
+                getllm_d, twiss_d, phase_d_bk, beta_d, files_dict,
+                bbthreshold, errthreshold
+            )
+        except:
+            _tb_()
+    else:
+        LOGGER.info("GetLLM was only calculating coupling. Skipping the rest and returning ...")
+
 
     #-------- START RDTs
     if nonlinear:
@@ -502,7 +515,6 @@ def main(accelerator,
 # helper-functions
 #---------------------------------------------------------------------------------------------------
 
-    
 def _create_tfs_files(getllm_d, model_filename, nonlinear):
     '''
     Creates the most tfs files and stores it in an dictionary whereby the key represents the file
@@ -539,7 +551,6 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     files_dict['getkickphase.out'] = GetllmTfsFile('getkickphase.out')
     files_dict['getkickac.out'] = GetllmTfsFile('getkickac.out')
     files_dict['getlobster.out'] = GetllmTfsFile('getlobster.out')
-
     return files_dict
 # END _create_tfs_files -----------------------------------------------------------------------------
 
@@ -1259,7 +1270,6 @@ class _TuneData(object):
         self.q2f = 0.0  # Free vertical tune
         self.muxf = 0.0  # Free horizontal phase advance
         self.muyf = 0.0  # Free vertical phase advance
-        
         self.q1mdl = 0.0
         self.q2mdl = 0.0
 
@@ -1282,12 +1292,12 @@ def _start():
     Starter function to avoid polluting global namespace with variables options,args.
     Before the following code was after 'if __name__=="__main__":'
     '''
-    
+
     options, accelerator = _parse_args()
-    
+
     if options.errordefspath is not None:
         accelerator.set_errordefspath(options.errordefspath)
-    
+
     main(accelerator,
          accelerator.model_dir,
          outputpath=options.output,
@@ -1305,8 +1315,8 @@ def _start():
          use_average=options.use_average,
          calibration_dir_path=options.calibration_dir_path,
          nprocesses=options.nprocesses,
-        union=options.union)
-
+         union=options.union,
+         onlycoupling=options.onlycoupling)
 
 if __name__ == "__main__":
     _start()
