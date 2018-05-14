@@ -217,21 +217,25 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
     LOGGER.debug("phase calculation finished. Write files.")
     if twiss_d.has_zero_dpp_x():
         LOGGER.debug("x ouptut")
-        files_dict["getphasex_free.out"] = write_phase_file(files_dict["getphasex_free.out"], "H",
-                                                            phase_d.phase_advances_free_x, model_free, model_elements, tune_d.q1f,
-                                                            tune_d.q2f, getllm_d.accelerator, getllm_d.union)
-        files_dict["getphasetotx_free.out"] = write_phasetot_file(files_dict["getphasetotx_free.out"], "H",
-                                                                  phase_d.phase_advances_free_x, model_free, model_elements,
-                                                                  tune_d.q1f, tune_d.q2f, getllm_d.accelerator)
+        files_dict["getphasex_free.out"] = write_phase_file(
+            files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model_free,
+            model_elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator, getllm_d.union
+        )
+        files_dict["getphasetotx_free.out"] = write_phasetot_file(
+            files_dict["getphasetotx_free.out"], "H", phase_d.phase_advances_free_x, model_free,
+            model_elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator
+        )
         #-- ac to free phase
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
-            files_dict["getphasex.out"] = write_phase_file(files_dict["getphasex.out"], "H", phase_d.phase_advances_x,
-                                                           model_free, model_elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
-                                                           getllm_d.union)
-            files_dict["getphasetotx.out"] = write_phasetot_file(files_dict["getphasetotx.out"], "H",
-                                                                 phase_d.phase_advances_x, model_free, model_elements, tune_d.q1,
-                                                                 tune_d.q2, getllm_d.accelerator)
+            files_dict["getphasex.out"] = write_phase_file(
+                files_dict["getphasex.out"], "H", phase_d.phase_advances_x, model_free,
+                model_elements, tune_d.q1, tune_d.q2, getllm_d.accelerator, getllm_d.union
+            )
+            files_dict["getphasetotx.out"] = write_phasetot_file(
+                files_dict["getphasetotx.out"], "H", phase_d.phase_advances_x, model_free,
+                model_elements, tune_d.q1, tune_d.q2, getllm_d.accelerator
+            )
 
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
@@ -246,7 +250,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
         if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
             #-- from eq
             files_dict["getphasey.out"] = write_phase_file(files_dict["getphasey.out"], "V", phase_d.phase_advances_y,
-                                                           model_free, model_elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
+                                                           model_of_measurement, model_elements, tune_d.q1, tune_d.q2, getllm_d.accelerator,
                                                           getllm_d.union)
             files_dict["getphasetoty.out"] = write_phasetot_file(files_dict["getphasetoty.out"], "V",
                                                                  phase_d.phase_advances_y, model_free, model_elements, tune_d.q1,
@@ -365,14 +369,19 @@ def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
             bpm, bd, plane_mu, mad_twiss, Files, k_lastbpm)
     else:
         phase_advances = _get_phases_intersection(
-            bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm)
+            bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm, tune_q)
 
     return phase_advances, muave
 
 
-def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm):
+def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Files, k_lastbpm,
+                             tune_q):
     """Calculates the phases when the intersection of BPMs is used instead of a selective
     intersection.
+
+    Note:
+        Circular average and circular standard deviations are used as described in
+        https://en.wikipedia.org/wiki/Directional_statistics.
     """
 
     # pandas panel that stores the model phase advances, measurement phase advances and meas. errors
@@ -381,23 +390,36 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
         major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(mad_twiss.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = (phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis]) % 1.0
+    phase_advances["MODEL"] = (phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis])%1
 
     # loop over the measurement files
     phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))
-    for i in range(len(Files)):
-        file_tfs = Files[i]
+    sin_phase_matr_meas = np.zeros((number_commonbpms, number_commonbpms))
+    cos_phase_matr_meas = np.zeros((number_commonbpms, number_commonbpms))
+    for i, file_tfs in enumerate(Files):
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu])
-        #phases_meas[k_lastbpm:] += tune_q  * bd
+        phases_meas[k_lastbpm+1:] += tune_q  * bd
         meas_matr = (phases_meas[np.newaxis, :] - phases_meas[:, np.newaxis])
-        phase_matr_meas[i] = np.where(meas_matr > 0, meas_matr, meas_matr + 1.0)
+        phase_matr_meas[i] = np.where(
+            abs(phase_advances["MODEL"]) > .5,
+            meas_matr + .5,
+            meas_matr)
+        phase_matr_meas[i] = meas_matr
+        sin_phase_matr_meas += np.sin(meas_matr * TWOPI)
+        cos_phase_matr_meas += np.cos(meas_matr * TWOPI)
 
     phase_advances["NFILES"] = len(Files)
-    phase_advances["MEAS"] = np.mean(phase_matr_meas, axis=0) % 1.0
+
+    phase_advances["MEAS"] = (np.arctan2(sin_phase_matr_meas / len(Files), cos_phase_matr_meas /
+                                         len(Files)) / TWOPI) % 1
+
     if OPTIMISTIC:
         phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
     else:
-        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files))
+        R = np.sqrt(
+            (sin_phase_matr_meas * sin_phase_matr_meas + cos_phase_matr_meas * cos_phase_matr_meas)
+            ) / len(Files)
+        phase_advances["ERRMEAS"] = np.sqrt(-2.0 * np.log(R)) / np.sqrt(len(Files))
 
     return phase_advances
 
@@ -406,8 +428,10 @@ def _get_phases_union(bpm, bd, plane_mu, mad_twiss, Files, k_lastbpm):
     """Calculate the phase advances for a selective intersection of BPMS.
 
     Note:
-        in the first version this was indeed the union of the measurement BPMs. Now it's just a
-        "selective intersection" since the case with too few BPMs is also excluded.
+        Circular average and circular standard deviations are used as described in
+        https://en.wikipedia.org/wiki/Directional_statistics.
+
+        The name "union" may be misleading. It is more a "selective intersection"
     """
 
     LOGGER.debug("calculating phases with union of measurement files")
@@ -461,11 +485,8 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
     tfs_file.add_float_descriptor("Q1", tune_x)
     tfs_file.add_float_descriptor("Q2", tune_y)
     tfs_file.add_column_names(["NAME", "NAME2", "S", "S1", "PHASE" + plane_char, "STDPH" + plane_char,
-                               "PH{}MDL".format(plane_char), "MU{}MDL".format(plane_char), "NFILES"])
-    if union:
-        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-    else:
-        tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%s"])
+                               "PH{}MDL".format(plane_char), "MU{}MDL".format(plane_char), "COUNT"])
+    tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     if OPTIMISTIC:
         tfs_file.add_string_descriptor("OptimisticErrorBars", "True")
@@ -476,8 +497,7 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
     mod = phase_advances["MODEL"]
     err = phase_advances["ERRMEAS"]
 
-    if union:
-        nfiles = phase_advances["NFILES"]
+    nfiles = phase_advances["NFILES"]
     bd = accel.get_beam_direction()
     
     intersected_model = model.loc[meas.index]
@@ -518,10 +538,7 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
             
     for i in range(len(meas.index)-1):
         
-        if union:
-            nf = nfiles[meas.index[i+1]][meas.index[i]]
-        else:
-            nf = "ALL"
+        nf = nfiles[meas.index[i+1]][meas.index[i]]
         
         tfs_file.add_table_row([
                  meas.index[i],
@@ -536,22 +553,19 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
                 ])
     # last row = last - first
     last = len(meas.index)-1
-    if union:
-        nf = nfiles[meas.index[0]][meas.index[last]]
-    else:
-        nf = "ALL"
+    nf = nfiles[meas.index[0]][meas.index[last]]
     
     tfs_file.add_table_row([
-             meas.index[last],
-             meas.index[0],
-             model.loc[meas.index[last], "S"],
-             model.loc[meas.index[0], "S"],
-             (meas[meas.index[0]][meas.index[last]] + plane_tune) % 1.0,
-             err[meas.index[0]][meas.index[last]],
-             (mod[meas.index[0]][meas.index[last]] + plane_tune) % 1.0,
-             model.loc[meas.index[last], plane_mu],
-             nf
-            ])
+        meas.index[last],
+        meas.index[0],
+        model.loc[meas.index[last], "S"],
+        model.loc[meas.index[0], "S"],
+        (meas[meas.index[0]][meas.index[last]] + plane_tune) % 1.0,
+        err[meas.index[0]][meas.index[last]],
+        (mod[meas.index[0]][meas.index[last]] + plane_tune) % 1.0,
+        model.loc[meas.index[last], plane_mu],
+        nf
+    ])
     return tfs_file
 
 
@@ -574,15 +588,15 @@ def write_phasetot_file(tfs_file, plane, phase_advances, model, elements, tune_x
     tfs_file.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     
-    for i in range(len(meas.index)-1):
+    for i in range(len(meas.index)):
         tfs_file.add_table_row([
-                 meas.index[i+1],
+                 meas.index[i],
                  meas.index[0],
-                 model.loc[meas.index[i+1], "S"],
+                 model.loc[meas.index[i], "S"],
                  model.loc[meas.index[0], "S"],
-                 meas.loc[meas.index[0]][meas.index[i+1]],
-                 err.loc[meas.index[0]][meas.index[i+1]],
-                 mod.loc[meas.index[0]][meas.index[i+1]],
-                 model.loc[meas.index[i+1], plane_mu]
+                 meas.loc[meas.index[0]][meas.index[i]],
+                 err.loc[meas.index[0]][meas.index[i]],
+                 mod.loc[meas.index[0]][meas.index[i]],
+                 model.loc[meas.index[i], plane_mu]
                 ])
     return tfs_file

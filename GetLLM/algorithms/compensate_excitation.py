@@ -90,12 +90,13 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
 
         Returns:
             pandas.Panel: A pandas.Panel with 3 dataframes:
-                MODEL: model phase advances between each element
-                MEAS: measured phase advances
-                ERRMEAS: the standard deviation of the measured values.
+            MODEL: model phase advances between each element
+            MEAS: measured phase advances
+            ERRMEAS: the standard deviation of the measured values.
 
     """
-    LOGGER.info("Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane))
+    LOGGER.info(
+        "Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane))
 
     acc = getllm_d.accelerator
     psid_ac2bpmac = ac2bpmac[1]
@@ -113,10 +114,12 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
         LOGGER.info("phase jump will not be corrected")
 
     # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
-    phase_advances = pd.Panel(items=["MODEL", "MEAS", "ERRMEAS"], major_axis=bpm.index, minor_axis=bpm.index)
+    phase_advances = pd.Panel(
+        items=["MODEL", "MEAS", "ERRMEAS"],
+        major_axis=bpm.index, minor_axis=bpm.index)
 
     phases_mdl = np.array(model.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = ((phases_mdl[np.newaxis,:] - phases_mdl[:,np.newaxis])) % 1.0
+    phase_advances["MODEL"] = ((phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis])) % 1.0
 
     #-- Global parameters of the driven motion
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
@@ -126,44 +129,42 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     LOGGER.debug(plane + " bpmac = {}".format(ac2bpmac[0]))
 
     #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
-    phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))  # temporary 3D matrix that stores the phase advances
-    for i in range(len(Files)):
-        file_tfs = Files[i]
+    # temporary 3D matrix that stores the phase advances
+    phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))
+    sin_phase_matr_meas = np.zeros((number_commonbpms, number_commonbpms))
+    cos_phase_matr_meas = np.zeros((number_commonbpms, number_commonbpms))
+    for i, file_tfs in enumerate(Files):
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
-        phases_meas[k_lastbpm:] += Qd
+        phases_meas[k_lastbpm+1:] += Qd + bd
         psid = phases_meas - (phases_meas[k_bpmac] - psid_ac2bpmac) # OK, untill here, it is Psi(s, s_ac)
         psid += .5 * Qd * bd
         psid[k_bpmac:] -= Qd
 
         Psi = (np.arctan((1 - r) / (1 + r) * np.tan(TWOPI * psid)) / TWOPI) % 0.5
         Psi = np.where(psid % 1.0 > 0.5, Psi + .5, Psi)
-        #Psi = np.where(psid > .25, Psi + .5, Psi)
-        #Psi = np.where(psid < -.25, Psi - .5, Psi)
-        #Psi = np.where(psid < -.75, Psi - .5, Psi)
         Psi -= Psi[0]
-#        Psi -= .5 * Q
         Psi[k_bpmac:] += Q
-#        Psi *= bd
+        Psi *= bd
         LOGGER.debug(psid[np.isnan(Psi)])
 
-        meas_matr = -(Psi[np.newaxis,:] - Psi[:,np.newaxis])
+        meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis])
         phase_matr_meas[i] = meas_matr
-
-    phase_matr_meas1 = (phase_matr_meas + .5) % 1.0 - .5
-
-    phase_mean0 = np.nanmean(phase_matr_meas, axis=0) % 1.0
-    phase_mean1 = np.nanmean(phase_matr_meas1, axis=0) % 1.0
-    phase_std0 = np.nanstd(phase_matr_meas, axis=0)
-    phase_std1 = np.nanstd(phase_matr_meas1, axis=0)
+        sin_phase_matr_meas += np.sin(meas_matr * TWOPI)
+        cos_phase_matr_meas += np.cos(meas_matr * TWOPI)
 
     phase_advances["NFILES"] = len(Files)
-    phase_advances["MEAS"] = np.where(phase_std0 < phase_std1, phase_mean0, phase_mean1)
+
+    phase_advances["MEAS"] = (np.arctan2(sin_phase_matr_meas / len(Files), cos_phase_matr_meas /
+                                         len(Files)) / TWOPI) % 1
+
     if phase.OPTIMISTIC:
-        phase_advances["ERRMEAS"] = np.where(phase_std0 < phase_std1, phase_std0, phase_std1) * \
-            phase.t_value_correction(len(Files)) / np.sqrt(len(Files))
+        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
     else:
-        phase_advances["ERRMEAS"] = np.where(phase_std0 < phase_std1, phase_std0, phase_std1) * \
-            phase.t_value_correction(len(Files))
+        R = np.sqrt(
+            (sin_phase_matr_meas * sin_phase_matr_meas + cos_phase_matr_meas * cos_phase_matr_meas)
+            ) / len(Files)
+        phase_advances["ERRMEAS"] = np.sqrt(-2.0 * np.log(R)) / np.sqrt(len(Files))
+
     return phase_advances, 0
 
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, ac2bpmac, plane, getllm_d, commonbpms):
