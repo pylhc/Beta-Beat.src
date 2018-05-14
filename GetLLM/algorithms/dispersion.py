@@ -114,6 +114,7 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
     ALL=list_zero_dpp_x+list_non_zero_dpp_x
     commonbpmsALL=utils.bpm.intersect(ALL)
     commonbpmsALL=utils.bpm.model_intersect(commonbpmsALL, mad_twiss)
+    commonbpmsALL = utils.bpm.get_list_of_tuples(commonbpmsALL)
 
     mydp=[]
     gf=[]
@@ -265,6 +266,7 @@ def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
     ALL=ListOfZeroDPP+ListOfNonZeroDPP
     commonbpmsALL=utils.bpm.intersect(ALL)
 
+    commonbpmsALL = utils.bpm.get_list_of_tuples(commonbpmsALL)
 
 
     mydp=[]

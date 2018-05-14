@@ -50,7 +50,7 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
             Holds results from get_beta. Beta from amp and ratios will be set.
     '''
     print 'Calculating IP'
-    if "LHC" in getllm_d.accel:
+    if "Lhc" in getllm_d.accelerator.__class__.__name__:
         tfs_file = files_dict['getIP.out']
         tfs_file.add_column_names(["NAME", "BETASTARH", "BETASTARHMDL", "H", "PHIH", "PHIXH", "PHIHMDL", "BETASTARV", "BETASTARVMDL", "V", "PHIV", "PHIYV", "PHIVMDL"])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -65,8 +65,12 @@ def calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, 
                 pass
         
         #-- Parameters at IP1, IP2, IP5, and IP8
-        ip_x = _get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
-        ip_y = _get_ip_2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V', getllm_d.beam_direction, getllm_d.accel, getllm_d.lhc_phase)
+        ip_x = _get_ip_2(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, 'H',
+                         getllm_d.accelerator.get_beam_direction(), getllm_d.accelerator,
+                         getllm_d.lhc_phase)
+        ip_y = _get_ip_2(mad_ac, twiss_d.zero_dpp_y, tune_d.q2, 'V',
+                         getllm_d.accelerator.get_beam_direction(), getllm_d.accelerator,
+                         getllm_d.lhc_phase)
 
         fill_ip_tfs_file(tfs_file=files_dict['getIPx.out'],
                          column_names=["NAME", "BETX", "BETXSTD", "BETXMDL", "ALFX", "ALFXSTD", "ALFXMDL", "BETX*", "BETX*STD", "BETX*MDL", "SX*", "SX*STD", "SX*MDL", "rt(2JX)", "rt(2JX)STD"],
@@ -232,8 +236,8 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
     result = {}
     for ip in ('1', '2', '5', '8'):
 
-        bpml = 'BPMSW.1L'+ip+'.'+accel[3:]
-        bpmr = 'BPMSW.1R'+ip+'.'+accel[3:]
+        bpml = 'BPMSW.1L'+ip+'.B'+str(accel.get_beam())
+        bpmr = 'BPMSW.1R'+ip+'.B'+str(accel.get_beam())
 
         if (bpml in bpm_names) and (bpmr in bpm_names):
 

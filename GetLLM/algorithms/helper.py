@@ -44,6 +44,7 @@ def calculate_orbit(mad_twiss, list_of_files):
 
     commonbpms=utils.bpm.intersect(list_of_files)
     commonbpms=utils.bpm.model_intersect(commonbpms, mad_twiss)
+    commonbpms = utils.bpm.get_list_of_tuples(commonbpms)
     co={} # Disctionary for output
     for i in range(0,len(commonbpms)):
         bpm_name=str.upper(commonbpms[i][1])
@@ -763,6 +764,7 @@ def gen_kick_calc(list_of_files,mad_twiss,beta_d,source, plane, bbthreshold,errt
             commonbpms = utils.bpm.intersect_with_bpm_list(commonbpms, beta_d.x_phase.keys())
         elif plane == 'V':
             commonbpms = utils.bpm.intersect_with_bpm_list(commonbpms, beta_d.y_phase.keys())
+    commonbpms = utils.bpm.get_list_of_tuples(commonbpms)
 
     meansqrt2j = []
     mean2j = []
