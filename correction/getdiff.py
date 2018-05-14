@@ -49,7 +49,7 @@ TWISS_CORRECTED_MINUS = "twiss_cor_dpm.dat"  # negative dpp
 # Main invocation ############################################################
 
 
-def getdiff(meas_path=None):
+def getdiff(meas_path=None, beta_file_name="getbeta"):
     """ Calculates the differences between measurement, corrected and uncorrected model.
 
     After running madx and creating the model with (twiss_cor) and without (twiss_no)
@@ -81,7 +81,7 @@ def getdiff(meas_path=None):
     coupling_model['NAME'] = coupling_model.index.values
 
     for plane in ['x', 'y']:
-        _write_beta_diff_file(meas_path, meas, model, plane)
+        _write_beta_diff_file(meas_path, meas, model, plane, beta_file_name)
         _write_phase_diff_file(meas_path, meas, model, plane)
         _write_disp_diff_file(meas_path, meas, model, plane)
     _write_coupling_diff_file(meas_path, meas, coupling_model)
@@ -93,10 +93,19 @@ def getdiff(meas_path=None):
 # Writing Functions ##########################################################
 
 
-def _write_beta_diff_file(meas_path, meas, model, plane):
+def _write_beta_diff_file(meas_path, meas, model, plane, betafile):
     LOG.debug("Calculating beta diff.")
+    if betafile == "getbeta":
+        meas_beta = meas.beta[plane]
+    elif betafile == "getampbeta":
+        meas_beta = meas.amp_beta[plane]
+    elif betafile == "getkmodbeta":
+        meas_beta = meas.kmod_beta[plane]
+    else:
+        raise KeyError("Unknown beta file name '{}'.".format(betafile))
+
     up = plane.upper()
-    tw = pd.merge(meas.beta[plane], model, how='inner', on='NAME')
+    tw = pd.merge(meas_beta, model, how='inner', on='NAME')
     tw['MEA'] = ((tw.loc[:, 'BET' + up] - tw.loc[:, 'BET' + up + 'MDL'])
                  / tw.loc[:, 'BET' + up + 'MDL'])
     tw['ERROR'] = tw.loc[:, 'ERRBET' + up] / tw.loc[:, 'BET' + up + 'MDL']
@@ -156,10 +165,10 @@ def _write_coupling_diff_file(meas_path, meas, model):
     LOG.debug("Calculating coupling diff.")
     tw = pd.merge(meas.coupling, model, how='inner', on='NAME')
     out_columns = ['NAME', 'S']
-    for rdt in ['F1001', 'F1010']:
+    for idx, rdt in enumerate(['F1001', 'F1010']):
         tw[rdt+'re'] = tw.loc[:, rdt+'R']
         tw[rdt+'im'] = tw.loc[:, rdt+'I']
-        tw[rdt+'e'] = tw.loc[:, 'FWSTD1']
+        tw[rdt+'e'] = tw.loc[:, 'FWSTD{:d}'.format(idx+1)]
         tw[rdt+'re_m'] = np.real(tw.loc[:, rdt+'_c'])
         tw[rdt+'im_m'] = np.imag(tw.loc[:, rdt+'_c'])
         tw[rdt+'re_prediction'] = tw.loc[:, rdt+'re'] - tw.loc[:, rdt+'re_m']

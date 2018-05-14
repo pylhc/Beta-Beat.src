@@ -15,7 +15,9 @@ Feel free to use and extend this module.
 import json
 import os
 import shutil
-import sys
+import logging_tools
+
+LOG = logging_tools.get_logger(__name__)
 
 
 def delete_content_of_dir(path_to_dir):
@@ -43,9 +45,9 @@ def delete_item(path_to_item):
         elif os.path.islink(path_to_item):
             os.unlink(path_to_item)
     except IOError:
-        print >> sys.stderr, "Could not delete item because of IOError.", path_to_item
+        LOG.error("Could not delete item because of IOError. Item: '{}'".format(path_to_item))
     except OSError:
-        print >> sys.stderr, "Could not delete item because of OSError.", path_to_item
+        LOG.error("Could not delete item because of OSError. Item: '{}'".format(path_to_item))
 
 
 def copy_content_of_dir(src_dir, dst_dir):
@@ -65,6 +67,7 @@ def create_dirs(path_to_dir):
     """ Creates all dirs to path_to_dir if not exists. """
     if not os.path.exists(path_to_dir):
         os.makedirs(path_to_dir)
+        LOG.debug("Created directory structure: '{}'".format(path_to_dir))
 
 
 def copy_item(src_item, dest):
@@ -76,7 +79,7 @@ def copy_item(src_item, dest):
         elif os.path.isdir(src_item):
             copy_content_of_dir(src_item, dest)
     except IOError:
-        print >> sys.stderr, "Could not copy item because of IOError.", src_item
+        LOG.error("Could not copy item because of IOError. Item: '{}'".format(src_item))
 
 
 def deleteFilesWithoutGitignore(pathToDirectory):
@@ -178,7 +181,7 @@ def is_not_empty_dir(directory):
 
 def read_all_lines_in_textfile(path_to_textfile):
     if not os.path.exists(path_to_textfile):
-        print >> sys.stderr, "read_all_lines_in_textfile: File does not exist:", path_to_textfile
+        LOG.error("File does not exist: '{}'".format(path_to_textfile))
         return ""
     with open(path_to_textfile) as textfile:
         return textfile.read()

@@ -7,16 +7,28 @@ TODO: write tests
 TODO: Possibly more anotation from MADX...
 """
 from os.path import abspath, join, dirname
+import os
 import sys
 import re
 import subprocess
 import optparse
+import contextlib
+from tempfile import mkstemp
 
 LIB = abspath(join(dirname(__file__), "madx", "lib"))
-if "win" in sys.platform:
+if "darwin" in sys.platform:
+    MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-macosx64-intel"))
+elif "win" in sys.platform:
     MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-win64-gnu.exe"))
 else:
     MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-linux64-gnu"))
+
+
+class MadxError(Exception):
+    pass
+
+
+# Arguments ##################################################################
 
 
 def _parse_args():
@@ -29,15 +41,21 @@ def _parse_args():
                       help="File where to write the MADX log output.")
     parser.add_option("-m", "--madx", metavar="MADX", dest="madx_path",
                       help="Path to the MAD-X executable to use", default=MADX_PATH)
+    parser.add_option("-c", "--cwd", metavar="CWD", dest="cwd",
+                      help="Set current working directory")
     (options, args) = parser.parse_args()
     if len(args) > 1 or ((options.file is None) == (len(args) == 0)):
         raise IOError("No input found: either pass the file as first parameter or use --file (-f)")
     if len(args) == 1:
-        return args[0], options.output, options.log, options.madx_path
-    return options.file, options.output, options.log, options.madx_path
+        return args[0], options.output, options.log, options.madx_path, options.cwd
+    return options.file, options.output, options.log, options.madx_path, options.cwd
 
 
-def resolve_and_run_file(input_file, output_file=None, log_file=None, madx_path=MADX_PATH):
+# Main Methods ###############################################################
+
+
+def resolve_and_run_file(input_file, output_file=None, log_file=None,
+                         madx_path=MADX_PATH, cwd=None):
     """Runs MADX in a subprocess.
 
     Attributes:
@@ -47,11 +65,12 @@ def resolve_and_run_file(input_file, output_file=None, log_file=None, madx_path=
         madx_path: Path to MADX executable
     """
     input_string = _read_input_file(input_file)
-    return resolve_and_run_string(input_string, output_file=output_file, log_file=log_file,
-                                  madx_path=madx_path)
+    resolve_and_run_string(input_string, output_file=output_file, log_file=log_file,
+                                  madx_path=madx_path, cwd=cwd)
 
 
-def resolve_and_run_string(input_string, output_file=None, log_file=None, madx_path=MADX_PATH):
+def resolve_and_run_string(input_string, output_file=None, log_file=None,
+                           madx_path=MADX_PATH, cwd=None):
     """Runs MADX in a subprocess.
 
     Attributes:
@@ -61,33 +80,33 @@ def resolve_and_run_string(input_string, output_file=None, log_file=None, madx_p
         madx_path: Path to MADX executable
     """
     _check_log_and_output_files(output_file, log_file)
-    full_madx_script = _resolve(input_string, output_file)
-    return _run(full_madx_script, log_file, madx_path)
+    full_madx_script = _resolve(input_string)
+    _run(full_madx_script, log_file, output_file, madx_path, cwd)
 
 
-def _resolve(input_string, output_file=None):
+# Main Private Methods ######################################################
+
+
+def _run(full_madx_script, log_file=None, output_file=None, madx_path=MADX_PATH, cwd=None):
+    """ Starts the madx-process """
+    with _logfile_wrapper(log_file) as log_output, _madx_input_wrapper(full_madx_script, output_file) as madx_jobfile:
+        process = subprocess.Popen([madx_path, madx_jobfile], shell=False,
+                                   stdin=subprocess.PIPE,
+                                   stdout=log_output, stderr=log_output, cwd=cwd)
+        status = process.wait()
+
+    if status:
+        _raise_madx_error(log=log_file, file=output_file)
+
+
+# Macro Handling #############################################################
+
+
+def _resolve(input_string):
     """Resolves the !@requires annotations of the input_string, and returns the resulting script."""
     macro_calls = "option, -echo;\n" + _resolve_required_macros(input_string) + "option, echo;\n\n"
     full_madx_script = macro_calls + input_string
-    if output_file is not None:
-        with open(output_file, "w") as output:
-            output.write(full_madx_script)
     return full_madx_script
-
-
-def _run(full_madx_script, log_file=None, madx_path=MADX_PATH):
-    if log_file is None:
-        ret_value = _run_for_input_string(full_madx_script, madx_path)
-    else:
-        with open(log_file, "w") as output:
-            ret_value = _run_for_input_string(full_madx_script, madx_path, logs=output)
-    return ret_value
-
-
-def _run_for_input_string(input_string, madx, logs=sys.stdout):
-    process = subprocess.Popen(madx, shell=False, stdin=subprocess.PIPE, stdout=logs, stderr=logs)
-    process.communicate(input_string.encode("utf-8"))
-    return process.wait()
 
 
 def _resolve_required_macros(file_content):
@@ -114,6 +133,9 @@ def _add_macro_lib_ending(macro_lib_name):
         return macro_lib_name + ".macros.madx"
 
 
+# Wrapper ####################################################################
+
+
 def _read_input_file(input_file):
     with open(input_file) as text_file:
         return text_file.read()
@@ -124,6 +146,64 @@ def _check_log_and_output_files(output_file, log_file):
         open(output_file, "a").close()
     if log_file is not None:
         open(log_file, "a").close()
+
+
+@contextlib.contextmanager
+def _logfile_wrapper(file_path=None):
+    """ Returns opened file stream to file_path if given or stdout """
+    if file_path is None:
+        yield sys.stdout
+    else:
+        with open(file_path, "w") as log_file:
+            yield log_file
+
+
+@contextlib.contextmanager
+def _madx_input_wrapper(content, file_path=None):
+    """ Writes content into an output file and returns filepath.
+
+    If file_path is not given, the output file is temporary and will be deleted afterwards.
+    """
+    if file_path is None:
+        temp_file = True
+        fd, file_path = mkstemp(suffix=".madx", prefix="job.", text=True)
+        os.close(fd)  # close file descriptor
+        if content:
+            with open(file_path, "w") as f:
+                f.write(content)
+    else:
+        temp_file = False
+        with open(file_path, "w") as f:
+            f.write(content)
+    try:
+        yield file_path
+    finally:
+        if temp_file:
+            os.remove(file_path)
+
+
+def _raise_madx_error(log=None, file=None):
+    """ Rasing Error Wrapper
+
+    Extracts extra info from log and output file if given.
+    """
+    message = "MADX run failed."
+    if log is not None:
+        try:
+            with open(log, "r") as f:
+                content = f.readlines()
+            if content[-1].startswith("+="):
+                message += " '{:s}'.".format(content[-1].replace("+=+=+=", "").strip())
+        except (IOError, IndexError):
+            pass
+
+    if file is not None:
+        message += " Run on File: '{:s}'.".format(file)
+
+    raise MadxError(message)
+
+
+# Script Mode ################################################################
 
 
 if __name__ == "__main__":

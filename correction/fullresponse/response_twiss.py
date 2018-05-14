@@ -1,4 +1,4 @@
-"""
+r"""
 Provides Class to get response matrices from Twiss parameters.
 
 The calculation is based on formulas in [#FranchiAnalyticformulasrapid2017]_, [#TomasReviewlinearoptics2017]_.
@@ -6,10 +6,60 @@ The calculation is based on formulas in [#FranchiAnalyticformulasrapid2017]_, [#
 
 Only works properly for on-orbit twiss files.
 
- * Beta Beating Response:  Eq. A35 inserted into Eq. B45 in [#FranchiAnalyticformulasrapid2017]_
- * Dispersion Response:    Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_
- * Phase Advance Response: Eq. 28 in [#FranchiAnalyticformulasrapid2017]_
- * Tune Response:          Eq. 7 in [#TomasReviewlinearoptics2017]_
+* Beta Response:     Eq. A35 inserted into Eq. B45 in [#FranchiAnalyticformulasrapid2017]_
+
+.. math::
+
+    \delta \beta_{z,j} = \mp \beta_{z,j} \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{2}
+    \frac{cos(2\tau_{z,mj})}{sin(2\pi Q_z)}
+
+
+* Dispersion Response: Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_ + K1 (see Eq. B17)
+
+.. math::
+
+    \delta D_{x,j} =&+ \sqrt{\beta_{x,j}} \sum_m (\delta K_{0,m} + \delta K_{1S,m} D_{y,m}
+    - \delta K_{1,m} D_{x,m}) \frac{\sqrt{\beta_{x,m}}}{2}
+    \frac{cos(\tau_{x,mj})}{sin(\pi Q_x)}
+    \\
+    \delta D_{y,j} =&- \sqrt{\beta_{y,j}} \sum_m (\delta K_{0S,m}
+    - \delta K_{1S,m} D_{x,m} - \delta K_{1,m} D_{y,m}) \frac{\sqrt{\beta_{y,m}}}{2}
+    \frac{cos(\tau_{y,mj})}{sin(\pi Q_y)}
+
+
+* Norm. Dispersion Response: simliar as above but with :math:`\frac{1}{\sqrt{\beta}}` linearized
+
+.. math::
+
+    \delta \frac{D_{x,j}}{\sqrt{\beta_{x,j}}} =&+ \sum_m (\delta K_{0,m} + \delta K_{1S,m} D_{y,m}
+    - \delta K_{1,m} D_{x,m} ) \frac{\sqrt{\beta_{x,m}}}{2}
+    \frac{cos(\tau_{x,mj})}{sin(\pi Q_x)}
+    &&+ \frac{D_{x,j}}{\sqrt{\beta_{x,j}}} \delta K_{1,m}
+    \frac{\beta_{x,m}}{4}\frac{cos(2\tau_{x,mj})}{2sin(\pi Q_x)}
+    \\
+    \delta \frac{D_{y,j}}{\sqrt{\beta_{y,j}}} =&- \sum_m (\delta K_{0S,m} - \delta K_{1S,m} D_{x,m}
+    - \delta K_{1,m} D_{y,m}) \frac{\sqrt{\beta_{y,m}}}{2}
+    \frac{cos(\tau_{y,mj})}{sin(\pi Q_y)}
+    &&- \frac{D_{y,j}}{\sqrt{\beta_{y,j}}} \delta K_{1,m}
+    \frac{\beta_{y,m}}{4}\frac{cos(2\tau_{y,mj})}{2sin(\pi Q_y)}
+
+
+* Phase Advance Response:    Eq. 28 in [#FranchiAnalyticformulasrapid2017]_
+
+.. math::
+
+    \delta \Phi_{z,wj} = \pm \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{4}
+    \left\{ 2\left[ \Pi_{mj} - \Pi_{mw} + \Pi_{jw} \right] +
+    \frac{sin(2\tau_{z,mj}) - sin(2\tau_{z,mw})}{sin(2\pi Q_z)} \right\}
+
+
+* Tune Response:             Eq. 7 in [#TomasReviewlinearoptics2017]_
+
+.. math::
+
+    \delta Q_z = \pm \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{4\pi}
+
+
 
 For people reading the code, the response matrices are first calculated like:
 
@@ -24,9 +74,12 @@ For people reading the code, the response matrices are first calculated like:
     |  .                                |
     |                                   |
 
-As this was avoided transposing all vectors in the beginning.
+This avoids transposing all vectors individually in the beginning.
 At the end (of the calculation) the matrix is then transposed
 to fit the :math:`M \cdot \delta K` orientation.
+
+Also :math:`\Delta \Phi_{z,wj}` needs to be multiplied by :math:`2\pi` to be consistent.
+
 
 .. rubric:: References
 
@@ -293,55 +346,12 @@ class TwissResponse(object):
         return dict_mul(self._direction, dbeta)
 
     def _calc_dispersion_response(self):
-        """ Response Matrix for delta dispersion
-
-            Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_
-        """
-        LOG.debug("Calculate Dispersion Response Matrix")
-        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
-            tw = self._twiss
-            adv = self._phase_advances
-            el_out = self._elements_out
-            els_in = self._elements_in
-
-            disp_resp = dict.fromkeys(["X_K0L", "X_K1SL", "Y_K0SL", "Y_K1SL"])
-
-            for plane in ["X", "Y"]:
-                q = tw.Q1 if plane == "X" else tw.Q2
-                type_plane = ("K0L" if plane == "X" else "K0SL", "K1SL")
-                el_in_plane = (els_in[type_plane[0]], els_in[type_plane[1]])
-                col_beta = "BET" + plane
-                col_disp = "DY" if plane == "X" else "DX"
-
-                if any((len(el_in_plane[0]), len(el_in_plane[1]))):
-                    coeff = np.sqrt(tw.loc[el_out, col_beta].values) / (2 * np.sin(np.pi * q))
-
-                for el_in, el_type in zip(el_in_plane, type_plane):
-                    coeff_sign = -1 if el_type == "K0SL" else 1
-                    out_str = "{p:s}_{t:s}".format(p=plane, t=el_type)
-
-                    if len(el_in):
-                        pi2tau = 2 * np.pi * tau(adv[plane].loc[el_in, el_out], q)
-                        bet_term = np.sqrt(tw.loc[el_in, col_beta].values)
-                        if el_type == "K1SL":
-                            bet_term *= tw.loc[el_in, col_disp].values
-                        disp_resp[out_str] = tfs.TfsDataFrame(
-                            coeff_sign * coeff[None, :] * bet_term[:, None] * np.cos(pi2tau),
-                            index=el_in, columns=el_out).transpose()
-                    else:
-                        LOG.debug(
-                            "  No '{:s}' variables found. ".format(el_type) +
-                            "Dispersion Response '{:s}' will be empty.".format(out_str))
-                        disp_resp[out_str] = tfs.TfsDataFrame(None, index=el_out)
-        return dict_mul(self._direction, disp_resp)
-
-    def _calc_norm_dispersion_response(self):
         """ Response Matrix for delta normalized dispersion
 
             Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_
             But w/o the assumtion :math:`\delta K_1 = 0` from Appendix B.1
         """
-        LOG.debug("Calculate Normalized Dispersion Response Matrix")
+        LOG.debug("Calculate Dispersion Response Matrix")
         with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
             tw = self._twiss
             adv = self._phase_advances
@@ -368,7 +378,8 @@ class TwissResponse(object):
                 el_types = sign_map[plane].keys()
                 els_per_type = [els_in[el_type] for el_type in el_types]
 
-                coeff = 1 / (2 * np.sin(np.pi * q))
+                coeff = np.sqrt(tw.loc[el_out, col_beta].values) / (2 * np.sin(np.pi * q))
+
                 for el_in, el_type in zip(els_per_type, el_types):
                     coeff_sign = sign_map[plane][el_type]
                     out_str = "{p:s}_{t:s}".format(p=plane, t=el_type)
@@ -384,9 +395,87 @@ class TwissResponse(object):
                         else:
                             bet_term *= tw.loc[el_in, col_disp]
 
-                        disp_resp[out_str] = ((coeff_sign * coeff * bet_term)[:, None] *
+                        disp_resp[out_str] = (coeff_sign * coeff[None, :] * bet_term[:, None] *
                                               np.cos(pi2tau)
                                               ).transpose()
+                    else:
+                        LOG.debug(
+                            "  No '{:s}' variables found. ".format(el_type) +
+                            "Dispersion Response '{:s}' will be empty.".format(out_str))
+                        disp_resp[out_str] = tfs.TfsDataFrame(None, index=el_out)
+        return dict_mul(self._direction, disp_resp)
+
+    def _calc_norm_dispersion_response(self):
+        """ Response Matrix for delta normalized dispersion
+
+            Eq. 25-27 in [#FranchiAnalyticformulasrapid2017]_
+            But w/o the assumtion :math:`\delta K_1 = 0` from Appendix B.1
+            and added linearization for :math:`\frac{1}{\sqrt{\beta}}`
+        """
+        LOG.debug("Calculate Normalized Dispersion Response Matrix")
+        with timeit(lambda t: LOG.debug("  Time needed: {:f}".format(t))):
+            tw = self._twiss
+            adv = self._phase_advances
+            el_out = self._elements_out
+            els_in = self._elements_in
+
+            sign_map = {
+                "X": {"K0L": 1, "K1L": -1, "K1SL": 1, },
+                "Y": {"K0SL": -1, "K1L": 1, "K1SL": 1, },
+            }
+
+            col_disp_map = {
+                "X": {"K1L": "DX", "K1SL": "DY", },
+                "Y": {"K1L": "DY", "K1SL": "DX", },
+            }
+
+            sign_correct_term = {
+                "X": {"K1L": 1},
+                "Y": {"K1L": -1},
+            }
+
+            q_map = {"X": tw.Q1, "Y": tw.Q2}
+            disp_resp = dict.fromkeys(["{p:s}_{t:s}".format(p=p, t=t)
+                                       for p in sign_map for t in sign_map[p]])
+
+            for plane in sign_map:
+                q = q_map[plane]
+                col_beta = "BET{}".format(plane)
+                el_types = sign_map[plane].keys()
+                els_per_type = [els_in[el_type] for el_type in el_types]
+
+                coeff = 1 / (2 * np.sin(np.pi * q))
+                coeff_corr = 1 / (4 * np.sin(2 * np.pi * q))
+                for el_in, el_type in zip(els_per_type, el_types):
+                    coeff_sign = sign_map[plane][el_type]
+                    out_str = "{p:s}_{t:s}".format(p=plane, t=el_type)
+
+                    if len(el_in):
+                        pi2tau = 2 * np.pi * tau(adv[plane].loc[el_in, el_out], q)
+                        beta_in = tw.loc[el_in, col_beta]
+                        bet_term = np.sqrt(beta_in)
+
+                        try:
+                            col_disp = col_disp_map[plane][el_type]
+                        except KeyError:
+                            pass
+                        else:
+                            bet_term *= tw.loc[el_in, col_disp]
+
+                        result = (coeff_sign * coeff * bet_term)[:, None] * np.cos(pi2tau)
+
+                        # correction term
+                        try:
+                            sign_corr = sign_correct_term[plane][el_type]
+                        except KeyError:
+                            pass
+                        else:
+                            norm_disp_corr = (tw.loc[el_out, col_disp] /
+                                          np.sqrt(tw.loc[el_out, col_beta]))
+                            result += (sign_corr * coeff_corr * norm_disp_corr[None, :] *
+                                       beta_in[:, None] * np.cos(2 * pi2tau))
+
+                        disp_resp[out_str] = result.transpose()
                     else:
                         LOG.debug(
                             "  No '{:s}' variables found. ".format(el_type) +

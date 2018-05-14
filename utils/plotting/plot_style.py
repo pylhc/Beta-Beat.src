@@ -348,7 +348,7 @@ _ylabels = {
     "betabeat_permile":   r'$\Delta \beta_{{{0}}} / \beta_{{{0}}} [$'u'\u2030'r'$]$',
     "dbeta":              r"$\beta'_{{{0}}} [m]$",
     "dbetabeat":          r'$1/\beta_{{{0}}} \cdot \partial\beta_{{{0}}} / \partial\delta_{{{0}}}$',
-    "norm_dispersion":    r'$\frac{{\Delta D_{{{0}}}}}{{\beta_{{{0}}}}} [m]$',
+    "norm_dispersion":    r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [m]$',
     "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu m^{{1/2}}]$',
     "phase":              r'$\phi_{{{0}}} [2\pi]$',
     "phasetot":           r'$\phi_{{{0}}} [2\pi]$',

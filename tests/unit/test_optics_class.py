@@ -158,6 +158,7 @@ def test_rdt_calculation(df, q, order):
 
 
 @given(df=full_dataframes(), q=tunes())
+@settings(deadline=1000)
 def test_linear_dispersion(df, q):
     df = _pd_to_tfs(df, q)
     to = TwissOptics(df, quick_init=False)
