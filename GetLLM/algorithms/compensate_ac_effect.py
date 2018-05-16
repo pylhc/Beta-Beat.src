@@ -55,6 +55,21 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
             bpmac1='BPMYB.5L4.B2'
             bpmac2='BPMYA.6L4.B2'
             bpmac3='BPM.7L4.B2'
+        elif oa=="PSBOOSTER":
+            #print MADTwiss.SEQUENCE
+            for n in MADTwiss.indx:
+                if 'BPM' in n:
+                    print (n," is a BPM")
+                    break
+            ringnostr = n[0:3]
+            print ("skowron: Brute force finding of PSB ring no ", ringnostr)
+            print ("skowron: Please change it with implementation of Accelerator Class ")
+            
+            dipole_nameH = 'hacmap'                                                                 
+            dipole_nameV= 'vacmap'                                                                  
+            bpmac1 = ringnostr+".BPM3L3"                                                                   
+            bpmac2 = ringnostr+".BPM4L3"                                                                   
+            bpmac3 = ringnostr+".BPM5L3"
         else:
             return {}
     elif acdipole == "ADT":
@@ -348,13 +363,23 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         MADTwiss_ac,
     )
     all_bpms = [(b[0], str.upper(b[1])) for b in all_bpms]
-
-    good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(
-        intersect_bpms_list_with_bad_known_bpms(all_bpms)
-    )
+    
+    bpms = intersect_bpms_list_with_bad_known_bpms(all_bpms)
+    
+    print ("skowron: Please fix me !!!! ")
+    print ("skowron: op is sometimes the machine name and sometimes lhcphase1 flag  ")
+    print "op"
+    print op
+    if op == "1": 
+        print "here"
+        good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(bpms)
+    else:
+        print "CONDITION"
+        good_bpms_for_kick = intersect_bpm_list_inj(bpms,op)
+        
 
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op == "1" and bd == 1:
+    if op == "1" and bd ==  1:
         s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
     if op == "1" and bd == -1:
         s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
@@ -450,6 +475,10 @@ def intersect_bpm_list_with_arc_bpms(bpms_list):
             bpm_arcs.append(b)
     return bpm_arcs
 
+def intersect_bpm_list_inj(bpms_list, accel):
+    ''' For non LHC it is called instead of intersect_bpm_list_with_arc_bpms '''
+    return bpms_list
+
 
 BAD_BPM_LIST = ['BPM.15R8.B1', 'BPM.16R3.B1', 'BPM.31L5.B1', 'BPM.23L6.B1',
                 'BPM.22R8.B1', 'BPM.11R6.B1', 'BPM.18R6.B1', 'BPM.34R5.B1']
@@ -500,6 +529,10 @@ def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane
             amp = np.array(
                 [2 * meas.AMPY[meas.indx[bpm[1]]] for bpm in bpm_list]
             )
+	print "amplitude values"
+        print plane
+        print bpm_list
+        print amp
         actions_sqrt.append(np.average(amp / np.sqrt(betmdl)))
         actions_sqrt_err.append(np.std(amp / np.sqrt(betmdl)))
 
@@ -905,9 +938,12 @@ def getkickac(MADTwiss_ac,files,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
     all_bpms_y = utils.bpm.model_intersect(utils.bpm.intersect(files[1]), MADTwiss_ac)
     all_bpms_x = [(b[0], str.upper(b[1])) for b in all_bpms_x]
     all_bpms_y = [(b[0], str.upper(b[1])) for b in all_bpms_y]
-
-    good_bpms_for_kick_x = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_x) )
-    good_bpms_for_kick_y = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_y) )
+    if op == "1":
+        good_bpms_for_kick_x = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_x) )
+        good_bpms_for_kick_y = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_y) )
+    else:
+        good_bpms_for_kick_x = intersect_bpm_list_inj( intersect_bpms_list_with_bad_known_bpms(all_bpms_x),op )
+        good_bpms_for_kick_y = intersect_bpm_list_inj( intersect_bpms_list_with_bad_known_bpms(all_bpms_y),op )
     Jx2sq, Jx2sq_std = get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_x, files[0], 'H')
     Jy2sq, Jy2sq_std = get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_y, files[1], 'V')
 
