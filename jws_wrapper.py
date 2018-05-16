@@ -109,4 +109,4 @@ def runjws(argv):
 
     
 if __name__ == "__main__":
-    return runjws(sys.argv)
+    runjws(sys.argv)
