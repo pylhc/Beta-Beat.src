@@ -46,7 +46,7 @@ def suppress_warnings(warning_classes):
         yield
     for w in warn_list:
         if not issubclass(w.category, warning_classes):
-            warnings.warn(w)
+            warnings.warn(str(w))
 
 
 @contextmanager
