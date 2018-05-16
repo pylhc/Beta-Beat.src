@@ -27,49 +27,49 @@ def get_params():
         name="files",
         required=True,
         nargs="+",
-        type=str,
+        type=basestring,
     )
     params.add_parameter(
         flags=["-y", "--y_cols"],
         help="List of column names to plot (e.g. BETX, BETY)",
         name="y_cols",
         required=True,
-        type=str,
+        type=basestring,
         nargs="+",
     )
     params.add_parameter(
         flags=["-x", "--x_cols"],
         help="List of column names to use as x-values.",
         name="x_cols",
-        type=str,
+        type=basestring,
         nargs="+",
     )
     params.add_parameter(
         flags=["-e", "--e_cols"],
         help="List of parameters to get error values from.",
         name="e_cols",
-        type=str,
+        type=basestring,
         nargs="+",
     )
     params.add_parameter(
         flags="--labels",
         help="Y-Lables for the plots, default: y_col.",
         name="labels",
-        type=str,
+        type=basestring,
         nargs="+",
     )
     params.add_parameter(
         flags="--legends",
         help="Legends for the plots, default: filenames.",
         name="legends",
-        type=str,
+        type=basestring,
         nargs="+",
     )
     params.add_parameter(
         flags="--output",
         help="Base-Name of the output files. _'y_col'.pdf will be attached.",
         name="output",
-        type=str,
+        type=basestring,
     )
     params.add_parameter(
         flags="--changemarker",
@@ -94,6 +94,12 @@ def get_params():
         help="Plots X and Y for the give parameters into one figure (two axes).",
         action="store_true",
         name="xy",
+    )
+    params.add_parameter(
+        flags="--autoscale",
+        help="Scales the plot, so that this percentage of points is inside the picture.",
+        type=float,
+        name="auto_scale",
     )
     return params
 
@@ -126,7 +132,7 @@ MANUAL_STYLE = {
     u'legend.fontsize': 16,
     u'font.weight': u'normal',
     u'axes.labelweight': u'normal',
-    u'axes.grid': False,
+    u'axes.grid': True,
     u'lines.markersize': 5.0,
     u'lines.linestyle': u'',
 }
@@ -140,33 +146,36 @@ def plot(opt):
 
     Keyword Args:
         Required
-        files (str): Twiss files to plot
-                     **Flags**: --files
-        optics_params (str): List of parameters to plot upon (e.g. BETX, BETY)
-                             **Flags**: --optics_params
-
+        files (basestring): Twiss files to plot
+                            **Flags**: --files
+        y_cols (basestring): List of column names to plot (e.g. BETX, BETY)
+                             **Flags**: ['-y', '--y_cols']
         Optional
+        auto_scale (float): Scales the plot, so that this percentage of
+                            points is inside the picture.
+                            **Flags**: --autoscale
         change_marker: Changes marker for each line in the plot.
                        **Flags**: --changemarker
                        **Action**: ``store_true``
-        error_params (str): List of parameters to get error values from.
-                            **Flags**: --error_params
-        labels (str): Y-Lables for the plots, default: parameters.
-                      **Flags**: --labels
-        legends (str): Legends for the plots, default: filenames.
-                      **Flags**: --legends
+        e_cols (basestring): List of parameters to get error values from.
+                             **Flags**: ['-e', '--e_cols']
+        labels (basestring): Y-Lables for the plots, default: y_col.
+                             **Flags**: --labels
+        legends (basestring): Legends for the plots, default: filenames.
+                              **Flags**: --legends
         no_legend: Deactivates the legend.
                    **Flags**: --nolegend
                    **Action**: ``store_true``
         no_show: Suppresses opening plotting windows.
                  **Flags**: --noshow
                  **Action**: ``store_true``
-        output (str): Base-Name of the output files. _'parameter'.pdf will be attached.
-                      **Flags**: --output
+        output (basestring): Base-Name of the output files. _'y_col'.pdf will be attached.
+                             **Flags**: --output
+        x_cols (basestring): List of column names to use as x-values.
+                             **Flags**: ['-x', '--x_cols']
         xy: Plots X and Y for the give parameters into one figure (two axes).
             **Flags**: --xy
             **Action**: ``store_true``
-
     """
     LOG.debug("Starting plotting of tfs files: {:s}".format(", ".join(opt.files)))
 
@@ -178,7 +187,7 @@ def plot(opt):
 
     # plotting
     figs = _create_plots(opt.x_cols, opt.y_cols, opt.e_cols, twiss_data, opt.legends, opt.labels,
-                         opt.xy, opt.change_marker, opt.no_legend)
+                         opt.xy, opt.change_marker, opt.no_legend, opt.auto_scale)
 
     # exports
     if opt.output:
@@ -190,7 +199,37 @@ def plot(opt):
     return figs
 
 
+@entrypoint(get_params(), strict=True)
+def plot_single_file(opt):
+    """ Plots multiple columns into one figure.
+
+     Beware that labels and legends have now changed roles! """
+    # preparations
+    opt = _check_opt(opt)
+    ps.set_style("standard", MANUAL_STYLE)
+
+    if len(opt.files) > 1:
+        raise ValueError("Single file plotting mode works only with one file!")
+
+    twiss_data = _get_data(opt.files)
+
+    # plotting
+    fig = _create_single_plot(opt.x_cols, opt.y_cols, opt.e_cols, twiss_data,
+                              opt.labels, opt.legends, opt.xy, opt.change_marker, opt.no_legend,
+                              opt.auto_scale)
+
+    # exports
+    if opt.output:
+        _export_plots([fig], opt.output)
+
+    if not opt.no_show:
+        plt.show()
+
+    return fig
+
+
 # Private Functions ##########################################################
+
 
 def _get_data(files):
     """ Load all data from files """
@@ -198,7 +237,7 @@ def _get_data(files):
 
 
 def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
-                  xy, change_marker, no_legend):
+                  xy, change_marker, no_legend, auto_scale):
     """ Create plots per parameter """
     _param_map = {
         "BET": "beta",
@@ -222,7 +261,7 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
 
     # create individual figures
     figs = {}
-    for x_col, y_col, e_col in zip(x_cols, y_cols, e_cols):
+    for idx_col, (x_col, y_col, e_col) in enumerate(zip(x_cols, y_cols, e_cols)):
         LOG.debug("Plotting parameter '{:s}'".format(y_col))
 
         # create figure
@@ -256,17 +295,29 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                     e_val = None
 
                 ax.errorbar(x_val, y_val, yerr=e_val,
+                            ls=rcParams[u"lines.linestyle"],
                             fmt=get_marker(idx, change_marker),
                             label=legends[idx])
 
-                if (idx+1) == len(twiss_data):
+                if x_col == "S" and (idx+1) == len(twiss_data):
                     try:
                         ps.set_xLimits(data.SEQUENCE, ax)
                     except (AttributeError, ps.ArgumentError):
                         pass
 
+                if auto_scale:
+                    current_y_lims = _get_auto_scale(y_val, auto_scale)
+                    if idx == 0:
+                        y_lims = current_y_lims
+                    else:
+                        y_lims = [min(y_lims[0], current_y_lims[0]),
+                                  max(y_lims[1], current_y_lims[1])]
+
             # manage layout
-            if labels[plt_idx] is None:
+            if auto_scale:
+                ax.set_ylim(*y_lims)
+
+            if labels[idx_col] is None:
                 try:
                     # if it's a recognized column make nice label
                     ps.set_yaxis_label(_param_map[y_name], y_full[-1], ax)
@@ -274,22 +325,126 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                     ax.set_ylabel(y_full)
             else:
                 # use given label
-                ax.set_ylabel(labels[plt_idx])
+                ax.set_ylabel(labels[idx_col])
 
             if xy and plt_idx == 0:
                 ax.axes.get_xaxis().set_visible(False)
-                if ir_pos:
+                if x_col == "S" and ir_pos:
                     ps.show_ir(ir_pos, ax, mode='lines')
             else:
-                ps.set_xaxis_label(ax)
-                if ir_pos:
-                    ps.show_ir(ir_pos, ax, mode='outside')
+                if x_col == "S":
+                    ps.set_xaxis_label(ax)
+                    if ir_pos:
+                        ps.show_ir(ir_pos, ax, mode='outside')
 
             if not no_legend and plt_idx == 0:
                 ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
                               fancybox=True, shadow=True, ncol=3)
             figs[y_col] = fig
     return figs
+
+
+def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
+                        xy, change_marker, no_legend, auto_scale):
+    """ Create plots per parameter """
+    _param_map = {
+        "BET": "beta",
+        "BB": "betabeat",
+        "D": "dispersion",
+        "ND": "norm_dispersion",
+        "MU": "phase",
+        "X": "co",
+        "Y": "co",
+    }
+
+    # create layout
+    if xy:
+        plane_map = {0: "X", 1: "Y"}
+        gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
+    else:
+        plane_map = None
+        gs = gridspec.GridSpec(1, 1, height_ratios=[1])
+
+    ir_pos = None
+    x_is_length = all([xc == "S" for xc in x_cols])
+    if x_is_length:
+        ir_pos = _find_ir_pos(twiss_data)
+
+    # create figure
+    fig = plt.figure()
+    data = twiss_data[0]  # kept it to be more similar with other plotting function
+
+    p_title = labels[0]
+    fig.canvas.set_window_title("File '{:s}'".format(p_title))
+
+    for plt_idx in range(1 + xy):
+        ax = fig.add_subplot(gs[plt_idx])
+
+        for idx_col, (x_col, y_col, e_col, legend) in enumerate(
+                zip(x_cols, y_cols, e_cols, legends)):
+            LOG.debug("Plotting parameter '{:s}'".format(y_col))
+
+            # plot data
+            if xy:
+                y_name = y_col
+                y_full = y_col + plane_map[plt_idx]
+                e_full = e_col + plane_map[plt_idx]
+
+            else:
+                y_name = y_col[:-1]
+                y_full = y_col
+                e_full = e_col
+
+            x_val = data[x_col]
+            y_val = data[y_full]
+            try:
+                e_val = data[e_full]
+            except KeyError:
+                e_val = None
+
+            ax.errorbar(x_val, y_val, yerr=e_val,
+                        ls=rcParams[u"lines.linestyle"],
+                        fmt=get_marker(idx_col, change_marker),
+                        label=legend)
+
+            if x_is_length and (idx_col+1) == len(x_cols):
+                try:
+                    ps.set_xLimits(data.SEQUENCE, ax)
+                except (AttributeError, ps.ArgumentError):
+                    pass
+
+            if auto_scale:
+                lim = _get_auto_scale(y_val, auto_scale)
+                ax.set_ylim(*lim)
+
+            # manage layout
+            if len(legends) == 1:
+                if legend is None:
+                    try:
+                        # if it's a recognized column make nice label
+                        ps.set_yaxis_label(_param_map[y_name], y_full[-1], ax)
+                    except (KeyError, ps.ArgumentError):
+                        ax.set_ylabel(y_full)
+                else:
+                    # use given legend/label
+                    if xy:
+                        legend += plane_map[plt_idx]
+                    ax.set_ylabel(legend)
+
+        if xy and plt_idx == 0:
+            ax.axes.get_xaxis().set_visible(False)
+            if x_is_length and ir_pos:
+                ps.show_ir(ir_pos, ax, mode='lines')
+        else:
+            if x_is_length:
+                ps.set_xaxis_label(ax)
+                if ir_pos:
+                    ps.show_ir(ir_pos, ax, mode='outside')
+
+        if not no_legend and plt_idx == 0:
+            ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
+                          fancybox=True, shadow=True, ncol=3)
+    return fig
 
 
 def _export_plots(figs, output):
@@ -341,6 +496,15 @@ def get_marker(idx, change):
         return MarkerList.get_marker(idx)
     else:
         return rcParams['lines.marker']
+
+
+def _get_auto_scale(y_val, scaling):
+    """ Find the y-limits so that scaling% of the points are visible """
+    y_sorted = sorted(y_val)
+    n_points = len(y_val)
+    y_min = y_sorted[int(((1 - scaling/100.) / 2.) * n_points)]
+    y_max = y_sorted[int(((1 + scaling/100.) / 2.) * n_points)]
+    return y_min, y_max
 
 
 def _find_ir_pos(twiss_data):

@@ -193,7 +193,7 @@ def _get_jobfiles(temp_dir, index):
 def _launch_single_job(inputfile_path):
     """ Function for pool to start a single madx job """
     log_file = inputfile_path + ".log"
-    return madx_wrapper.resolve_and_run_file(inputfile_path, log_file=log_file)
+    madx_wrapper.resolve_and_run_file(inputfile_path, log_file=log_file)
 
 
 def _load_and_remove_twiss(var_and_path):
