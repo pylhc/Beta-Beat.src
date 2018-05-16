@@ -223,8 +223,8 @@ def _parse_args(start_args=sys.argv[1:]):
     parser.add_argument("--errordefs", # remove !
                     help="Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA",
                     metavar="TBTANA", default=None, dest="errordefspath")
-    parser.add_option("--coupling", default=ONLYCOUPLING, dest="onlycoupling",
-                      metavar="ONLYCOUPLING", type="int",
+    parser.add_argument("--coupling", default=ONLYCOUPLING, dest="onlycoupling",
+                      metavar="ONLYCOUPLING", type=int,
                       help="When enabled only coupling is calculated. ")
 
     options, acc_args = parser.parse_known_args(args=start_args)
@@ -360,6 +360,7 @@ def main(accelerator,
     getllm_d.use_only_three_bpms_for_beta_from_phase = use_only_three_bpms_for_beta_from_phase
     getllm_d.accelerator = accelerator
     getllm_d.nprocesses = nprocesses
+    getllm_d.onlycoupling = onlycoupling
     getllm_d.union = union
     
     tune_d.q1mdl = accelerator.get_model_tfs().headers["Q1"]
@@ -412,7 +413,7 @@ def main(accelerator,
     except:
         _tb_()
 
-    if getllm_d.onlycoupling == 1:
+    if getllm_d.onlycoupling == 0:
         #-------- START Beta
         try:
             beta_d = algorithms.beta.calculate_beta_from_phase(
@@ -426,7 +427,8 @@ def main(accelerator,
             print_time("AFTER_A_NBPM", time() - __getllm_starttime)
 
         try:
-            algorithms.lobster.get_local_observable(phase_d_bk, getllm_d, files_dict)
+            algorithms.lobster.get_local_observable(
+                phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict)
         except:
             _tb_()
 
@@ -1195,6 +1197,7 @@ class _GetllmData(object):
         self.parallel = False
         self.nprocesses = 1
         self.important_pairs = {}
+        self.onlycoupling = 0
         self.union = False
 
     def set_outputpath(self, outputpath):
