@@ -529,10 +529,6 @@ def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane
             amp = np.array(
                 [2 * meas.AMPY[meas.indx[bpm[1]]] for bpm in bpm_list]
             )
-	print "amplitude values"
-        print plane
-        print bpm_list
-        print amp
         actions_sqrt.append(np.average(amp / np.sqrt(betmdl)))
         actions_sqrt_err.append(np.std(amp / np.sqrt(betmdl)))
 
