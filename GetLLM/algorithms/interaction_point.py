@@ -225,7 +225,6 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
     #-- Common BPMs
     bpm = utils.bpm.model_intersect(utils.bpm.intersect(files), mad_twiss)
     bpm = [(b[0], str.upper(b[1])) for b in bpm]
-    
     bpm_names = [ b[1] for b in bpm]
 
     #-- Loop for IPs
@@ -234,9 +233,7 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
 
         bpml = 'BPMSW.1L'+ip+'.'+accel[3:]
         bpmr = 'BPMSW.1R'+ip+'.'+accel[3:]
-
         if (bpml in bpm_names) and (bpmr in bpm_names):
-
             #-- Model values
             L = 0.5*(mad_twiss.S[mad_twiss.indx[bpmr]] - mad_twiss.S[mad_twiss.indx[bpml]])
             if L < 0: 
@@ -258,7 +255,7 @@ def _get_ip_2(mad_twiss, files, Q, plane, beam_direction, accel, lhc_phase):
             betsall = []
             dsall = []
             rt2j_all = []
-            for t_f in files: # t_f := twiss_file
+            for t_f in files: # t_f := twiss_fil
                 try:
                     if bpm_names.index(bpmr) > bpm_names.index(bpml):
                         tune = 0
