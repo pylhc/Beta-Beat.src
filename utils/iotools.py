@@ -15,7 +15,7 @@ Feel free to use and extend this module.
 import json
 import os
 import shutil
-import logging_tools
+from utils import logging_tools
 
 LOG = logging_tools.get_logger(__name__)
 
