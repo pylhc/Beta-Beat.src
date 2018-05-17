@@ -3,15 +3,18 @@ import os
 from os.path import join, abspath, dirname
 import compare_utils
 import regression
+import filecmp
 
 ABS_ROOT = abspath(join(dirname(__file__), "..", ".."))
+sys.path.append(ABS_ROOT)
+from utils import iotools
 
 REGR_DIR = join("tests", "regression")
 TBTS = join("tests", "inputs", "tbt_files")
 MODELS = join("tests", "inputs", "models")
 OPTICS = join("tests", "inputs", "optics_files")
 HARM_FILES = join("tests", "inputs", "harmonic_results")
-
+GETLLM_FILES = join("tests", "inputs", "getllm_results")
 
 TEST_CASES_HOLE_IN_ONE = (
     regression.TestCase(
@@ -28,7 +31,6 @@ TEST_CASES_HOLE_IN_ONE = (
         pre_hook=lambda dir: os.makedirs(join(dir, REGR_DIR, "_out_hole_in_one_test_flat_3dkick")),
     ),
 )
-
 
 TEST_CASES_GETLLM = (
     regression.TestCase(
@@ -68,13 +70,106 @@ TEST_MODEL_CREATOR = (
     ),
 )
 
+TEST_CASES_RESPONSE_CREATION_VIA_MADX = (
+    regression.TestCase(
+        name="response_creation_test_via_madx",
+        script=join("generate_fullresponse_pandas.py"),
+        arguments=("--accel lhc --lhcmode lhc_runII_2017 --beam 1 "
+                   "--model_dir {model_dir} "
+                   "--optics_file {optics_file} "
+                   "--creator madx "
+                   "--outfile {response_out} "
+                   "--variables Q Qs "
+                   "--deltak 2e-5"
+                   ).format(
+                   model_dir=join(REGR_DIR, "_out_create_response_test_madx", "model"),
+                   optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
+                   response_out=join(REGR_DIR, "_out_create_response_test_madx", "fullresponse")
+        ),
+        output=join(REGR_DIR, "_out_create_response_test_madx"),
+        test_function=lambda d1, d2: filecmp.cmp(
+            join(d1, "fullresponse"), join(d2, "fullresponse")
+        ),
+        pre_hook=lambda dir: iotools.copy_item(
+            join(MODELS, "25cm_beam1"),
+            join(dir, REGR_DIR, "_out_create_response_test_madx", "model")
+        )
+    ),
+)
+
+TEST_CASES_RESPONSE_CREATION_VIA_TWISS = (
+    regression.TestCase(
+        name="response_creation_test_via_twiss",
+        script=join("generate_fullresponse_pandas.py"),
+        arguments=" ".join([
+            "--accel lhc --lhcmode lhc_runII_2017 --beam 1",
+            "--model_dir {model_dir}",
+            "--optics_file {optics_file}",
+            "--creator twiss",
+            "--outfile {response_out}",
+            "--variables Q Qs",
+            "--optics_params MUX MUY Q DX DY BBX BBY BETX BETY F1001I F1001R F1010R F1010I",
+        ]).format(
+            model_dir=join(REGR_DIR, "_out_create_response_test_twiss", "model"),
+            optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
+            response_out=join(REGR_DIR, "_out_create_response_test_twiss", "fullresponse")
+        ),
+        output=join(REGR_DIR, "_out_create_response_test_twiss"),
+        test_function=lambda d1, d2: filecmp.cmp(
+            join(d1, "fullresponse"), join(d2, "fullresponse")
+        ),
+        pre_hook=lambda dir: iotools.copy_item(
+            join(MODELS, "25cm_beam1"),
+            join(dir, REGR_DIR, "_out_create_response_test_twiss", "model")
+        )
+    ),
+)
+
+TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
+    regression.TestCase(
+        name="correct_iterative_test",
+        script=join("global_correct_iterative.py"),
+        arguments=" ".join([
+            "--accel lhc --lhcmode lhc_runII_2017 --beam 1",
+            "--model_dir {model_dir}",
+            "--optics_file {optics_file}",
+            "--variables MQM MQT MQTL MQY",
+            "--optics_params MUX MUY BBX BBY Q",
+            "--weights 1 1 1 1 10",
+            "--meas_dir {meas_dir}",
+            "--output_dir {out_dir}",
+            "--max_iter 1",
+        ]).format(
+            model_dir=join(MODELS, "25cm_beam1"),
+            meas_dir=join(GETLLM_FILES, "25cm_beam1"),
+            optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
+            out_dir=join(REGR_DIR, "_out_correct_iterative_test"),
+        ),
+        output=join(REGR_DIR, "_out_correct_iterative_test"),
+        test_function=lambda d1, d2: compare_utils.compare_dirs_ignore_words(
+            d1, d2,
+            ignore_files=[r".*\.log", "model"],
+            ignore_words=["DATE", "TIME"],
+        ),
+        pre_hook=lambda dir:  iotools.copy_item(
+            join(MODELS, "25cm_beam1"),
+            join(dir, REGR_DIR, "_out_correct_iterative_test", "model")
+        ),
+    ),
+)
+
 
 def run_tests():
     """Run the test cases and raise RegressionTestFailed on failure.
     """
-    alltests = (list(TEST_CASES_HOLE_IN_ONE) +
-                list(TEST_CASES_GETLLM) +
-                list(TEST_MODEL_CREATOR))
+    alltests = (
+            list(TEST_CASES_HOLE_IN_ONE) +
+            list(TEST_CASES_GETLLM) +
+            list(TEST_MODEL_CREATOR)
+            # list(TEST_CASES_RESPONSE_CREATION_VIA_MADX) +
+            # list(TEST_CASES_RESPONSE_CREATION_VIA_TWISS) +
+            # list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
+    )
     regression.launch_test_set(alltests, ABS_ROOT, tag_regexp="^BBGUI_.*$")
 
 
