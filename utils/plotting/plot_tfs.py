@@ -137,6 +137,8 @@ MANUAL_STYLE = {
     u'lines.linestyle': u'',
 }
 
+ERROR_ALPHA = 1.  # Set errorbar transparency
+
 # Main invocation ############################################################
 
 
@@ -239,16 +241,6 @@ def _get_data(files):
 def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                   xy, change_marker, no_legend, auto_scale):
     """ Create plots per parameter """
-    _param_map = {
-        "BET": "beta",
-        "BB": "betabeat",
-        "D": "dispersion",
-        "ND": "norm_dispersion",
-        "MU": "phase",
-        "X": "co",
-        "Y": "co",
-    }
-
     # create layout
     if xy:
         plane_map = {0: "X", 1: "Y"}
@@ -294,10 +286,14 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                 except KeyError:
                     e_val = None
 
-                ax.errorbar(x_val, y_val, yerr=e_val,
-                            ls=rcParams[u"lines.linestyle"],
-                            fmt=get_marker(idx, change_marker),
-                            label=legends[idx])
+                _, caps, bars = ax.errorbar(x_val, y_val, yerr=e_val,
+                                            ls=rcParams[u"lines.linestyle"],
+                                            fmt=get_marker(idx, change_marker),
+                                            label=legends[idx])
+
+                # loop through bars and caps and set the alpha value
+                [bar.set_alpha(ERROR_ALPHA) for bar in bars]
+                [cap.set_alpha(ERROR_ALPHA) for cap in caps]
 
                 if x_col == "S" and (idx+1) == len(twiss_data):
                     try:
@@ -320,12 +316,18 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
             if labels[idx_col] is None:
                 try:
                     # if it's a recognized column make nice label
-                    ps.set_yaxis_label(_param_map[y_name], y_full[-1], ax)
+                    ps.set_yaxis_label(_map_proper_name(y_name), y_full[-1], ax)
                 except (KeyError, ps.ArgumentError):
                     ax.set_ylabel(y_full)
             else:
-                # use given label
-                ax.set_ylabel(labels[idx_col])
+                try:
+                    # if it's a recognized name make nice label
+                    ps.set_yaxis_label(_map_proper_name(
+                        labels[idx_col][:-1]), labels[idx_col][-1], ax
+                    )
+                except (KeyError, ps.ArgumentError):
+                    # use given label
+                    ax.set_ylabel(labels[idx_col])
 
             if xy and plt_idx == 0:
                 ax.axes.get_xaxis().set_visible(False)
@@ -347,16 +349,6 @@ def _create_plots(x_cols, y_cols, e_cols, twiss_data, legends, labels,
 def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                         xy, change_marker, no_legend, auto_scale):
     """ Create plots per parameter """
-    _param_map = {
-        "BET": "beta",
-        "BB": "betabeat",
-        "D": "dispersion",
-        "ND": "norm_dispersion",
-        "MU": "phase",
-        "X": "co",
-        "Y": "co",
-    }
-
     # create layout
     if xy:
         plane_map = {0: "X", 1: "Y"}
@@ -402,10 +394,14 @@ def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
             except KeyError:
                 e_val = None
 
-            ax.errorbar(x_val, y_val, yerr=e_val,
-                        ls=rcParams[u"lines.linestyle"],
-                        fmt=get_marker(idx_col, change_marker),
-                        label=legend)
+            _, caps, bars = ax.errorbar(x_val, y_val, yerr=e_val,
+                                        ls=rcParams[u"lines.linestyle"],
+                                        fmt=get_marker(idx_col, change_marker),
+                                        label=legend)
+
+            # loop through bars and caps and set the alpha value
+            [bar.set_alpha(ERROR_ALPHA) for bar in bars]
+            [cap.set_alpha(ERROR_ALPHA) for cap in caps]
 
             if x_is_length and (idx_col+1) == len(x_cols):
                 try:
@@ -422,7 +418,7 @@ def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                 if legend is None:
                     try:
                         # if it's a recognized column make nice label
-                        ps.set_yaxis_label(_param_map[y_name], y_full[-1], ax)
+                        ps.set_yaxis_label(_map_proper_name(y_name), y_full[-1], ax)
                     except (KeyError, ps.ArgumentError):
                         ax.set_ylabel(y_full)
                 else:
@@ -526,6 +522,18 @@ def _find_ir_pos(twiss_data):
     # did not find ips or defaults
     return {}
 
+
+def _map_proper_name(name):
+    return {
+        "BET": "beta",
+        "BB": "betabeat",
+        "D": "dispersion",
+        "ND": "norm_dispersion",
+        "MU": "phase",
+        "X": "co",
+        "Y": "co",
+        "PHASE": "phase",
+    }[name.upper()]
 
 # Script Mode ################################################################
 
