@@ -27,7 +27,7 @@ Only works properly for on-orbit twiss files.
     \frac{cos(\tau_{y,mj})}{sin(\pi Q_y)}
 
 
-* Norm. Dispersion Response: simliar as above but with :math:`\frac{1}{\sqrt{\beta}}` linearized
+* Norm. Dispersion Response: similar as above but with :math:`\frac{1}{\sqrt{\beta}}` linearized
 
 .. math::
 
@@ -60,6 +60,13 @@ Only works properly for on-orbit twiss files.
     \delta Q_z = \pm \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{4\pi}
 
 
+* Coupling Response:            Eq. 10 in [#FranchiAnalyticformulasrapid2017]_
+
+.. math::
+
+    \delta f_{\substack{\scriptscriptstyle 1001 \\ \scriptscriptstyle 1010},j} =
+    \sum_m \delta J_{1,m} \, \frac{\sqrt{\beta_{x,m}\beta_{y,m}}}{4} \,
+    \frac{\exp{(i(\Delta\Phi_{x,mj} \mp \Delta\Phi_{y,mj}))}}{1-\exp({2\pi i (Q_x \mp Q_y}))}
 
 For people reading the code, the response matrices are first calculated like:
 
