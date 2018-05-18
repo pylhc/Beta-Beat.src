@@ -2,6 +2,7 @@ from __future__ import print_function
 import sys
 import os
 import subprocess
+import time
 import traceback
 import contextlib
 import tempfile
@@ -49,10 +50,11 @@ def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
           "    -> {tag.commit.summary} ({tag.commit.hexsha})"
           .format(tag=test_tag))
     result = False
-    with _temporary_dir() as new_repo_path:
+    with _temporary_dir() as new_repo_path, Timer() as regression_timer:
         print("Cloning repository into {}".format(new_repo_path))
         clone_revision(repo_path, test_tag.commit.hexsha, new_repo_path)
         result = find_regressions(test_cases, new_repo_path, repo_path)
+    _print_sep("Regression finished in {:.2f}s".format(regression_timer.get_duration()))
     if not result:
         raise RegressionTestFailed()
 
@@ -78,7 +80,7 @@ def find_regressions(test_cases, valid_path, test_path):
         results.append(result)
         print(result.get_microsummary(), end="")
         sys.stdout.flush()
-    print("\n\n################### Test results ###################")
+    _print_sep("Test results")
     report = ""
     for result in results:
         report += result.get_full_summary()
@@ -105,13 +107,14 @@ def run_test_case(test_case, valid_path, test_path):
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
     try:
-        if test_case.pre_hook:
-            test_case.pre_hook(valid_path)
-            test_case.pre_hook(test_path)
-        valid_result = _launch_command(valid_path, valid_script, test_case.arguments)
-        test_result = _launch_command(test_path, test_script, test_case.arguments)
+        with Timer() as test_timer:
+            if test_case.pre_hook:
+                test_case.pre_hook(valid_path)
+                test_case.pre_hook(test_path)
+            valid_result = _launch_command(valid_path, valid_script, test_case.arguments)
+            test_result = _launch_command(test_path, test_script, test_case.arguments)
         result = TestResult(test_case, valid_result, test_result,
-                            valid_outpath, test_outpath)
+                            valid_outpath, test_outpath, test_timer.get_duration())
     finally:
         _remove_if_exists(valid_outpath)
         _remove_if_exists(test_outpath)
@@ -181,12 +184,13 @@ class TestResult(object):
     RunResult = namedtuple("RunResult", ("stdout", "stderr", "raised"))
 
     def __init__(self, test_case,
-                 valid_result, test_result, valid_output, test_output):
+                 valid_result, test_result, valid_output, test_output, duration=None):
         self.test_case = test_case
         self.valid_result = valid_result
         self.test_result = test_result
         self.valid_output = valid_output
         self.test_output = test_output
+        self.duration = duration
         self._compare_stdout = None
         self._compare_stderr = None
         self._compare_error = None
@@ -226,7 +230,10 @@ class TestResult(object):
             if self._compare_stderr != "":
                 report += "Error output:\n{}\n".format(self._compare_stderr)
         else:
-            report += "succeeded\n"
+            report += "succeeded"
+            if self.duration is not None:
+                report += " ({:.2f}s)".format(self.duration)
+            report += "\n"
         report += "\n"
         return report
 
@@ -285,6 +292,18 @@ def _remove_if_exists(dir_path):
         shutil.rmtree(dir_path)
 
 
+def _print_sep(text=None, length=80):
+    if text is None:
+        print("\n\n" + "=" * length)
+    else:
+        left_len = (length - len(text) - 2)/2
+        right_len = length - left_len - len(text) - 2
+        print("\n\n" + "=" * left_len + " " + text + " " + "=" * right_len)
+
+
+# Contexts #####################################################################
+
+
 @contextlib.contextmanager
 def _temporary_dir():
     try:
@@ -292,3 +311,20 @@ def _temporary_dir():
         yield dir_path
     finally:
         shutil.rmtree(dir_path)
+
+
+class Timer(object):
+    def __enter__(self):
+        self.start = time.time()
+        self.finish = None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.finish = time.time()
+
+    def get_duration(self):
+        if self.finish is None:
+            return time.time() - self.start
+        else:
+            return self.finish - self.start
+
