@@ -45,6 +45,7 @@ class TestCase(namedtuple(
 def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
     """
     """
+    _print_sep("Test session starts")
     test_tag = find_tag(repo_path, tag_regexp)
     print("Testing against tag \"{tag}\":\n"
           "    -> {tag.commit.summary} ({tag.commit.hexsha})"
@@ -73,13 +74,15 @@ def find_regressions(test_cases, valid_path, test_path):
         test_path: Path to the directory to be tested for regressions.
     """
     results = []
-    print("Testing...: ", end="")
+    summary = "Testing...: "
     sys.stdout.flush()
     for test_case in test_cases:
+        print("\r{} (running: '{}')".format(summary, test_case.name), end="")
+        sys.stdout.flush()
         result = run_test_case(test_case, valid_path, test_path)
         results.append(result)
-        print(result.get_microsummary(), end="")
-        sys.stdout.flush()
+        summary += result.get_microsummary()
+    print("\r{}\n".format(summary))
     _print_sep("Test results")
     report = ""
     for result in results:
@@ -198,6 +201,11 @@ class TestResult(object):
         self.is_regression = self._check_regression()
         self.is_success = not self.is_exception and not self.is_regression
 
+    def get_name(self):
+        """Returns the name of the test case.
+        """
+        return self.test_case.name
+
     def get_microsummary(self):
         """Returns a small summary: . -> success, F -> failed, E -> error.
         """
@@ -294,11 +302,11 @@ def _remove_if_exists(dir_path):
 
 def _print_sep(text=None, length=80):
     if text is None:
-        print("\n\n" + "=" * length)
+        print("=" * length)
     else:
         left_len = (length - len(text) - 2)/2
         right_len = length - left_len - len(text) - 2
-        print("\n\n" + "=" * left_len + " " + text + " " + "=" * right_len)
+        print("=" * left_len + " " + text + " " + "=" * right_len)
 
 
 # Contexts #####################################################################
