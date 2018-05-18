@@ -74,17 +74,18 @@ TEST_CASES_RESPONSE_CREATION_VIA_MADX = (
     regression.TestCase(
         name="response_creation_test_via_madx",
         script=join("generate_fullresponse_pandas.py"),
-        arguments=("--accel lhc --lhcmode lhc_runII_2017 --beam 1 "
-                   "--model_dir {model_dir} "
-                   "--optics_file {optics_file} "
-                   "--creator madx "
-                   "--outfile {response_out} "
-                   "--variables Q Qs "
-                   "--deltak 2e-5"
-                   ).format(
-                   model_dir=join(REGR_DIR, "_out_create_response_test_madx", "model"),
-                   optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
-                   response_out=join(REGR_DIR, "_out_create_response_test_madx", "fullresponse")
+        arguments=" ".join([
+            "--accel lhc --lhcmode lhc_runII_2017 --beam 1",
+            "--model_dir {model_dir}",
+            "--optics_file {optics_file}",
+            "--creator madx",
+            "--outfile {response_out}",
+            "--variables MQM MQT MQTL MQY coupling_knobs",
+            "--deltak 2e-5",
+        ]).format(
+            model_dir=join(REGR_DIR, "_out_create_response_test_madx", "model"),
+            optics_file=join(OPTICS, "2018", "opticsfile.24_ctpps2"),
+            response_out=join(REGR_DIR, "_out_create_response_test_madx", "fullresponse")
         ),
         output=join(REGR_DIR, "_out_create_response_test_madx"),
         test_function=lambda d1, d2: filecmp.cmp(
@@ -107,7 +108,7 @@ TEST_CASES_RESPONSE_CREATION_VIA_TWISS = (
             "--optics_file {optics_file}",
             "--creator twiss",
             "--outfile {response_out}",
-            "--variables Q Qs",
+            "--variables MQM MQT MQTL MQY coupling_knobs",
             "--optics_params MUX MUY Q DX DY BBX BBY BETX BETY F1001I F1001R F1010R F1010I",
         ]).format(
             model_dir=join(REGR_DIR, "_out_create_response_test_twiss", "model"),
