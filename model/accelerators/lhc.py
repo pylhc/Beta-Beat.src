@@ -389,6 +389,7 @@ class Lhc(Accelerator):
         segment_inst.end = Element(last_elem, last_elem_s)
         segment_inst.optics_file = optics_file
         segment_inst.xing = False
+        segment_inst.fullresponse = False
         segment_inst.verify_object()
         return segment_inst
 
