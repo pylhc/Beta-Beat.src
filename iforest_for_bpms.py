@@ -134,9 +134,9 @@ def separate_by_plane(files_list):
     files_x = []
     files_y = []
     for file_in in files_list:
-        if "x" in os.path.abspath(file_in):
+        if os.path.basename(file_in).endswith("linx"):
             files_x.append(file_in)
-        elif "y" in os.path.abspath(file_in):
+        elif os.path.basename(file_in).endswith("liny"):
             files_y.append(file_in)
         else:
             print("Given file is not a measurement!")

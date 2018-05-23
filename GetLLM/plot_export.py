@@ -55,7 +55,7 @@ MANUAL_STYLE = {
     u'lines.linestyle': u'',
 }
 
-mdl_subnodes = ['Phase_PhMdl', 'Beta_BMdl', 'Disp_DMdl', 'NDisp_NDMdl', 'ChromaticAmplitude']
+mdl_subnodes = ['Phase_PhMdl', 'Beta_BMdl', 'Disp_DMdl', 'NDisp_NDMdl', 'ChromaticAmplitude', "CO"]
 
 
 def _parse_options(args):
@@ -258,6 +258,7 @@ def get_closedorbit(path, plane):
     data_out = data.loc[:, ["S"]]
     data_out.loc[:, "Value"] = data.loc[:, plane.upper()]
     data_out.loc[:, "Error"] = data.loc[:, "STD" + plane.upper()]
+    data_out.loc[:, "Model"] = data.loc[:, plane.upper() + "MDL"] *1000
     return data_out
 
 
