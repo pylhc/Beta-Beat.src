@@ -94,11 +94,10 @@ def _run(full_madx_script, log_file=None, output_file=None, madx_path=MADX_PATH,
     """ Starts the madx-process """
     with _madx_input_wrapper(full_madx_script, output_file) as madx_jobfile:
         process = subprocess.Popen([madx_path, madx_jobfile], shell=False,
-                                   stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd)
-    with _logfile_wrapper(log_file) as log_handler, process.stdout:
-        for line in iter(process.stdout.readline, b''):
-            log_handler(line)
+        with _logfile_wrapper(log_file) as log_handler, process.stdout:
+            for line in iter(process.stdout.readline, b''):
+                log_handler(line)
         status = process.wait()
 
     if status:
