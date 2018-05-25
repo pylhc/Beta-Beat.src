@@ -919,11 +919,7 @@ def _create_corrected_model(twiss_out, change_params, accel_inst, debug):
     madx_script = accel_inst.get_update_correction_job(twiss_out, change_params)
     # run madx
     if debug:
-        with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
-            madx_wrapper.resolve_and_run_string(
-                madx_script,
-                log_file=log_file,
-            )
+        madx_wrapper.resolve_and_run_string(madx_script)
     else:
         madx_wrapper.resolve_and_run_string(
             madx_script,
