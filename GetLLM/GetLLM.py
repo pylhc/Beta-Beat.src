@@ -85,7 +85,7 @@ import argparse
 
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
-from tfs_utils_getllm import GetllmTfsFile
+from tfs_utils_getllm import GetllmTfsFile, GetllmPandasTfs
 from GetLLMError import GetLLMError, CriticalGetLLMError
 import algorithms.helper
 import algorithms.phase
@@ -561,7 +561,7 @@ def _fill_files_dict_plane(files_dict, plane, getllm_d):
     if getllm_d.accelerator.excitation == AccExcitationMode.FREE:
         files_dict['getphase{}_free.out'.format(plane)] = GetllmTfsFile('getphase{}.out'.format(plane))
         files_dict['getphasetot{}_free.out'.format(plane)] = GetllmTfsFile('getphasetot{}.out'.format(plane))
-        files_dict['getbeta{}_free.out'.format(plane)] = GetllmTfsFile('getbeta{}.out'.format(plane))
+        files_dict['getbeta{}_free.out'.format(plane)] = GetllmPandasTfs('getbeta{}.out'.format(plane))
         files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
         files_dict['getCO{}.out'.format(plane)] = GetllmTfsFile('getCO{}.out'.format(plane))
         files_dict['getND{}.out'.format(plane)] = GetllmTfsFile('getND{}.out'.format(plane))
@@ -572,8 +572,8 @@ def _fill_files_dict_plane(files_dict, plane, getllm_d):
         files_dict['getphasetot{}.out'.format(plane)] = GetllmTfsFile('getphasetot{}.out'.format(plane))
         files_dict['getphase{}_free.out'.format(plane)] = GetllmTfsFile('getphase{}_free.out'.format(plane))
         files_dict['getphasetot{}_free.out'.format(plane)] = GetllmTfsFile('getphasetot{}_free.out'.format(plane))
-        files_dict['getbeta{}.out'.format(plane)] = GetllmTfsFile('getbeta{}.out'.format(plane))
-        files_dict['getbeta{}_free.out'.format(plane)] = GetllmTfsFile('getbeta{}_free.out'.format(plane))
+        files_dict['getbeta{}.out'.format(plane)] = GetllmPandasTfs('getbeta{}.out'.format(plane))
+        files_dict['getbeta{}_free.out'.format(plane)] = GetllmPandasTfs('getbeta{}_free.out'.format(plane))
         files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
         files_dict['getampbeta{}_free.out'.format(plane)] = GetllmTfsFile('getampbeta{}_free.out'.format(plane))
         files_dict['getCO{}.out'.format(plane)] = GetllmTfsFile('getCO{}.out'.format(plane))
