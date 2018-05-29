@@ -147,6 +147,7 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
         if harpy_input.is_free_kick:
             bpm_data = bpm_datas[plane]
             lin_frame = _kick_phase_correction(bpm_data, lin_frame, plane)
+        _sync_phase(bpm_data, lin_frame, plane)    
         lin_frame = _rescale_amps_to_main_line(lin_frame, plane)
         lin_frame = _add_resonances_noise(lin_frame, plane, bpm_ress[plane])
         lin_frame = lin_frame.sort_values('S', axis=0, ascending=True)
@@ -212,7 +213,29 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res):
         lin_frame['NOISE'] = 0.0
     return lin_frame
 
-
+def _sync_phase(bpm_data_orig, lin_frame, plane):
+    """ Produces MUXSYNC and MUYSYNC column that is MUX/Y but 
+        shifted such that for bpm at index 0 is always 0.
+        It allows to compare phases of consecutive measurements
+        and if some measurements stick out remove them from the data set.
+        author: skowron  
+        """
+    uplane = plane.upper()
+    phase = np.copy(lin_frame.loc[:, 'MU' + uplane].values)
+     
+    phase0 = phase[0]
+    for i in range(len(phase)):
+        p = phase[i]
+        p = p - phase0
+        tmp = p
+        while p < -0.5:
+            p = p + 1
+        while p >  0.5:
+            p = p - 1
+        print('sync %d  in %f shifted %f final %f' % (i, phase[i],tmp,p))    
+        phase[i] = p
+    lin_frame['MU' + uplane + 'SYNC'] = phase
+    
 def _kick_phase_correction(bpm_data_orig, lin_frame, plane):
     uplane = plane.upper()
     bpm_data = bpm_data_orig.loc[lin_frame.index,:]
