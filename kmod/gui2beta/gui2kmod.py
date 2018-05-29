@@ -310,7 +310,7 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, wa
 
     results.write_to_file()
 
-    calc_beta_star(path, magnet1, magnet2, beam, twiss)
+    calc_beta_star(path, magnet1, magnet2, beam, L_star, twiss)
 
     for instr in instruments:
         calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss)
@@ -407,15 +407,15 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
             logfile.write('No %s found in between magnets\n' % (name))
 
 
-def calc_beta_star(path, magnet1, magnet2, beam, twiss):
+def calc_beta_star(path, magnet1, magnet2, beam, lstar, twiss):
     if Magnet_definitions.FindParentBetweenMagnets(magnet1, magnet2, 'OMK', beam, twiss):
 
         results_write = tfs_file_writer.TfsFileWriter.open(
             os.path.join(path, '%s.beta_star.results' % (magnet1 + magnet2 + beam)))
         results_write.set_column_width(20)
         results_write.add_column_names(
-            ['LABEL', 'BETASTAR', 'BETASTAR_ERR', 'WAIST', 'WAIST_ERR', 'BETAWAIST', 'BETAWAIST_ERR'])
-        results_write.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le'])
+            ['LABEL', 'BETASTAR', 'BETASTAR_ERR', 'WAIST', 'WAIST_ERR', 'BETAWAIST', 'BETAWAIST_ERR', 'PHASEADV', 'ERRPHASEADV'])
+        results_write.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
 
         results = metaclass.twiss(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
         beta_w = results.BETAWAIST
@@ -440,7 +440,9 @@ def calc_beta_star(path, magnet1, magnet2, beam, twiss):
             std = math.sqrt(max(abs(beta_star_err[0] - beta_star), abs(beta_star_err[1] - beta_star)) ** 2 +
                             max(abs(beta_star_err[2] - beta_star), abs(beta_star_err[3] - beta_star)) ** 2)
 
-            results_write.add_table_row([label, beta_star, std, waist, waist_err, b_w, beta_w_err])
+            phadv, ephadv = KModUtilities.phase_adv_from_kmod(lstar, beta_star, std, waist, waist_err)
+
+            results_write.add_table_row([label, beta_star, std, waist, waist_err, b_w, beta_w_err, phadv, ephadv])
 
         results_write.write_to_file()
 
@@ -473,8 +475,8 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile, 
     dK = 1.0e-5
     K2 = np.average(left_data.K)
     K1 = np.average(right_data.K)
-    Qx = np.average(right_data.TUNEX)
-    Qy = np.average(right_data.TUNEY)
+    Qx = np.average(cleaned_x1[:, 1] + 1e-3)
+    Qy = np.average(cleaned_y1[:, 1])
 
     # if log == True:
     #     logfile.write('Qx: %s, Qy: %s , K_left: %s , K_right: %s, dK: %s \n' %(Qx, Qy, K2, K1, dK))
