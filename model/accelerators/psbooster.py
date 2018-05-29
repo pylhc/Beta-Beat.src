@@ -11,6 +11,9 @@ class Psbooster(Accelerator):
 
     Keyword Args:
         Required
+        ring (int): Ring number.
+                            **Flags**: ['--ring']
+                            
         nat_tune_x (float): Natural tune X without integer part.
                             **Flags**: ['--nattunex']
         nat_tune_y (float): Natural tune Y without integer part.
