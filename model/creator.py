@@ -1,5 +1,3 @@
-import __init__
-import os
 import manager  # noqa
 from utils.iotools import create_dirs
 from utils.entrypoint import EntryPointParameters, entrypoint
@@ -11,6 +9,11 @@ from model_creators.lhc_model_creator import (  # noqa
 )
 from model_creators.psbooster_model_creator import PsboosterModelCreator
 from model_creators.ps_model_creator import PsModelCreator
+import logging
+import sys
+
+LOGGER = logging.getLogger("__name__")
+
 
 CREATORS = {
     "lhc": {"nominal": LhcModelCreator,
@@ -58,6 +61,22 @@ def _get_params():
 
 @entrypoint(_get_params())
 def create_instance_and_model(opt, accel_opt):
+    numeric_level = 0
+    if (sys.flags.debug):
+        numeric_level = getattr(logging, "DEBUG", None)
+        #print "DEBUG Level %d" % numeric_level
+        ch = logging.StreamHandler(sys.stdout)
+        formatter = logging.Formatter(' %(asctime)s %(levelname)s | %(name)s : %(message)s')
+        ch.setFormatter(formatter)
+        logging.getLogger().addHandler(ch)
+        logging.getLogger().setLevel(numeric_level)
+        
+    else:
+        numeric_level = getattr(logging, "WARNING", None)
+        #print "WARNING Level %d" % numeric_level
+        logging.basicConfig(level=numeric_level) # warning level to stderr
+    
+    
     create_dirs(opt.output)
     accel_inst = manager.get_accel_instance(accel_opt)
     create_model(
@@ -70,6 +89,7 @@ def create_instance_and_model(opt, accel_opt):
 
 
 def create_model(accel_inst, model_type, output_path, **kwargs):
+    LOGGER.info("Accelerator Instance <%s>, model type <%s>", accel_inst.NAME, model_type )
     CREATORS[accel_inst.NAME][model_type].create_model(
         accel_inst,
         output_path,

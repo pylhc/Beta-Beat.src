@@ -1,5 +1,8 @@
 from utils.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
 from model.accelerators import lhc, ps, esrf, psbooster
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 ACCELS = {
@@ -43,6 +46,7 @@ def get_accel_class(opt, cls_opt):
 @entrypoint(_get_params())
 def get_accel_instance(opt, other_opt):
     """Returns accelerator instance."""
+    LOGGER.debug(" Skowron 1")
     if not isinstance(opt.accel, str):
         accel_cls = opt.accel
     else:
