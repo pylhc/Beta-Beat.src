@@ -333,14 +333,16 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             for k, val in enumerate(std_fij):
                 if val==0:
                     std_fij = np.delete(std_fij,k)
+            
             # If no results are left for this BPM, set coupling to nan
-            if not std_fij:  # TODO: Check this, python complained that you cannot stablish the true of a vector (std_fij)
-                fi = float("nan") # To be discussed
-                fistd = float("nan") # To be discussed
+            if len(std_fij) < 1:  
+                fi = float("nan") 
+                fistd = float("nan") 
             # Average coupling over all files, weighted with variance, and get std of weighted average
             else:
                 fi = np.average(fij, weights=1/std_fij**2)
                 fistd = np.sqrt(1/sum(1/std_fij**2))
+
             # Average phase over all files
             qistd = math.sqrt(np.average(q1j*q1j)-q1**2.0+2.2e-16) # Not very exact...
             # Calculate complex coupling with qi
