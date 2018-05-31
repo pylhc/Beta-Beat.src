@@ -11,10 +11,9 @@ from cStringIO import StringIO
 from collections import namedtuple
 import re
 import git
+import yaml
 
 
-_THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-_TEST_REGEXP = "^test_.*$"
 _PYTHON = sys.executable
 
 
@@ -42,20 +41,19 @@ class TestCase(namedtuple(
     __slots__ = ()  # This makes the class lightweight and immutable.
 
 
-def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
+def launch_test_set(test_cases, repo_path,
+                    yaml_conf=None, tag_regexp=None):
     """
     """
     _print_sep("Test session starts")
-    test_tag = find_tag(repo_path, tag_regexp)
-    print("Testing against tag \"{tag}\":\n"
-          "    -> {tag.commit.summary} ({tag.commit.hexsha})"
-          .format(tag=test_tag))
+    commit_hexsha = _find_commit(repo_path, yaml_conf, tag_regexp)
     result = False
     with _temporary_dir() as new_repo_path, Timer() as regression_timer:
         print("Cloning repository into {}".format(new_repo_path))
-        clone_revision(repo_path, test_tag.commit.hexsha, new_repo_path)
+        clone_revision(repo_path, commit_hexsha, new_repo_path)
         result = find_regressions(test_cases, new_repo_path, repo_path)
-    _print_sep("Regression finished in {:.2f}s".format(regression_timer.get_duration()))
+    _print_sep("Regression finished in {:.2f}s"
+               .format(regression_timer.get_duration()))
     if not result:
         raise RegressionTestFailed()
 
@@ -151,6 +149,24 @@ def clone_revision(source, revision, to_path):
     return new_repo
 
 
+def _find_commit(repo, yaml_conf, tag_regexp):
+    repo = _force_repo(repo)
+    if yaml_conf and tag_regexp:
+        raise TestError("Only one of yaml_conf or tag_regexp is allowed.")
+    if yaml_conf:
+        commit = commit_from_yaml(repo, yaml_conf)
+        print("Testing against commit: {commit.summary} ({commit.hexsha})"
+              .format(commit=commit))
+        return commit.hexsha
+    if tag_regexp:
+        test_tag = find_tag(repo, tag_regexp)
+        print("Testing against tag \"{tag}\":\n"
+              "    -> {tag.commit.summary} ({tag.commit.hexsha})"
+              .format(tag=test_tag))
+        return test_tag.commit.hexsha
+    raise TestError("No yaml_conf or tag_regexp given.")
+
+
 def find_tag(repo, tag_regexp):
     """Returns the most recent git tag that matches a regular expression.
 
@@ -171,6 +187,37 @@ def find_tag(repo, tag_regexp):
         if matcher.findall(tag.name):
             return tag
     raise TestError("Can't find a tag that matches {}".format(tag_regexp))
+
+
+def commit_from_yaml(repo, yaml_conf):
+    """Returns the commit object configured in yaml_conf.
+
+    Reads the YAML file at 'yaml_conf', searches for a 'regression' category
+    and a ref_commit under it, containing the hash of a commit in 'repo' and
+    return the associated commit object.
+
+    Arguments:
+        repo: The Repo object, url or path to use.
+        yaml_conf: The path to the configuration YAML file.
+    Returns:
+        The commit associated with the hash given in yaml_conf.
+    Raises:
+        TestError: If no 'regression' category or 'ref_commit' is found in the
+            YAML file.
+        ValueError: If the given commit hash is not in the repository.
+    """
+    repo = _force_repo(repo)
+    with open(yaml_conf, "r") as yaml_file:
+        yaml_data = yaml.load(yaml_file)
+    try:
+        strhash = yaml_data["regression"]["ref_commit"]
+    except KeyError:
+        raise TestError(
+            "Unable to find 'ref_commit' under 'regression' in file {}"
+            .format(yaml_conf)
+        )
+    commit = repo.commit(strhash)
+    return commit
 
 
 class TestError(Exception):
@@ -309,7 +356,7 @@ def _print_sep(text=None, length=80):
         print("=" * left_len + " " + text + " " + "=" * right_len)
 
 
-# Contexts #####################################################################
+# Contexts ####################################################################
 
 
 @contextlib.contextmanager
@@ -333,6 +380,4 @@ class Timer(object):
     def get_duration(self):
         if self.finish is None:
             return time.time() - self.start
-        else:
-            return self.finish - self.start
-
+        return self.finish - self.start

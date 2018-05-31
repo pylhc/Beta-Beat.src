@@ -164,14 +164,15 @@ def run_tests():
     """Run the test cases and raise RegressionTestFailed on failure.
     """
     alltests = (
-            list(TEST_CASES_HOLE_IN_ONE) +
-            list(TEST_CASES_GETLLM) +
-            list(TEST_MODEL_CREATOR) +
-            list(TEST_CASES_RESPONSE_CREATION_VIA_MADX) +
-            list(TEST_CASES_RESPONSE_CREATION_VIA_TWISS) +
-            list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
+        list(TEST_CASES_HOLE_IN_ONE) +
+        list(TEST_CASES_GETLLM) +
+        list(TEST_MODEL_CREATOR) +
+        list(TEST_CASES_RESPONSE_CREATION_VIA_MADX) +
+        list(TEST_CASES_RESPONSE_CREATION_VIA_TWISS) +
+        list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
     )
-    regression.launch_test_set(alltests, ABS_ROOT, tag_regexp="^BBGUI_.*$")
+    regression.launch_test_set(alltests, ABS_ROOT,
+                               yaml_conf=join(ABS_ROOT, ".travis.yml"))
 
 
 if __name__ == "__main__":
