@@ -1,3 +1,4 @@
+import __init__
 import manager  # noqa
 from utils.iotools import create_dirs
 from utils.entrypoint import EntryPointParameters, entrypoint
