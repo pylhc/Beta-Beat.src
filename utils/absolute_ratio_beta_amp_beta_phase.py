@@ -5,6 +5,7 @@ sys.path.append("/afs/cern.ch/work/g/garciata/public/beta_beat_src_good/Beta-Bea
 from drive import drive_runner
 from Utilities import tfs_pandas
 import numpy as np
+import math 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.pyplot import *
@@ -34,7 +35,7 @@ def _parse_args():
     parser.add_option("-r", "--results",
                     help="results folder",
                     metavar="results",dest="results")
-    parser.add_option("-p", "--plane",
+    parser.add_option("-p", "--plane", 
                     help="plane to analyze",
                     metavar="PLANE",dest="plane_to_analyze")
     parser.add_option("-o", "--output_path",
@@ -49,6 +50,8 @@ def _parse_args():
     
     print options.freeNo
     
+    if not options.plane_to_analyze:
+        parser.error('Plane not defined')
     return options.results, options.plane_to_analyze,options.output_path, options.freeNo
 
 def _configure_plots():
@@ -99,11 +102,33 @@ def plotting_automatic_beta_ratio_abs(file_input,file_output,plane,freeNo):
     beta_file_amplitude = tfs_pandas.read_tfs(os.path.join(file_input,"getampbeta" + str(plane.lower()) + freeVer))
     beta_error_phase_values = getattr(beta_file_phase,beta_error_phase)
     beta_error_amplitude_values = getattr(beta_file_amplitude,beta_error_amplitude)
-    beta_error_total = ((beta_error_amplitude_values/getattr(beta_file_phase,beta))**2 + (beta_error_phase_values*getattr(beta_file_amplitude,beta)/getattr(beta_file_phase,beta)**2)**2)**0.5
-    print "BETA RATIO ABS ######"
-    print getattr(beta_file_amplitude,beta) / getattr(beta_file_phase,beta)
-    print beta_error_total
-    ax1.errorbar(beta_file_phase.S, getattr(beta_file_amplitude,beta) / getattr(beta_file_phase,beta) , yerr = (beta_error_total)**0.5 , fmt='o', color=COLOR_LIST_LIGHT[0], markersize=4, markeredgecolor=COLOR_LIST_DARK[0])
+    
+    b_pha = getattr(beta_file_phase,beta)
+    b_pha_sig = beta_error_phase_values
+    b_amp = getattr(beta_file_amplitude,beta)
+    b_amp_sig =beta_error_amplitude_values
+    
+    beta_error_total = (   (b_amp_sig/b_pha)**2   + ( (b_amp*b_pha_sig)/(b_pha**2) )**2  )**0.5
+    
+    
+    betaratio = getattr(beta_file_amplitude,beta) / getattr(beta_file_phase,beta)
+    
+    names = getattr(beta_file_amplitude,"NAME")
+    
+    print " BPM_IDX  RATIOAMPPHASE ERROR" 
+    for i in range(len(betaratio)):
+        
+        print " %03d %s  %f   %f" % (i, names[i], betaratio[i],beta_error_total[i])
+
+    
+    #print "BETA RATIO ABS ######"
+    #print getattr(beta_file_amplitude,beta) / getattr(beta_file_phase,beta)
+    #print beta_error_total
+    
+    #print b_pha_sig
+    #print b_amp_sig
+    
+    ax1.errorbar(beta_file_phase.S, getattr(beta_file_amplitude,beta) / getattr(beta_file_phase,beta) , yerr = beta_error_total , fmt='o', color=COLOR_LIST_LIGHT[0], markersize=4, markeredgecolor=COLOR_LIST_DARK[0])
     handles, labels = ax1.get_legend_handles_labels()
     ax1.legend(handles, labels, loc=4, frameon=True, numpoints = 1, ncol=1)
     tight_layout()
