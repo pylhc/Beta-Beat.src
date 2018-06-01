@@ -4,6 +4,7 @@ from os.path import join, abspath, dirname
 import compare_utils
 import regression
 import filecmp
+import argparse
 
 ABS_ROOT = abspath(join(dirname(__file__), "..", ".."))
 sys.path.append(ABS_ROOT)
@@ -15,6 +16,21 @@ MODELS = join("tests", "inputs", "models")
 OPTICS = join("tests", "inputs", "optics_files")
 HARM_FILES = join("tests", "inputs", "harmonic_results")
 GETLLM_FILES = join("tests", "inputs", "getllm_results")
+
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--keepfiles",
+        help="Keep output files if test fails.",
+        dest="keepfiles",
+        action="store_true",
+    )
+    
+    return parser.parse_args()
+
+
 
 TEST_CASES_HOLE_IN_ONE = (
     regression.TestCase(
@@ -160,9 +176,12 @@ TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
 )
 
 
-def run_tests():
+def run_tests(opts):
     """Run the test cases and raise RegressionTestFailed on failure.
     """
+    
+    regression._KEEP_FAILED_OUTPUTS =  opts.keepfiles
+        
     alltests = (
             list(TEST_CASES_HOLE_IN_ONE) +
             list(TEST_CASES_GETLLM) +
@@ -175,4 +194,5 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    run_tests()
+    _options = _parse_args()
+    run_tests(_options)
