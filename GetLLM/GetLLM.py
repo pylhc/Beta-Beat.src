@@ -428,7 +428,7 @@ def main(accelerator,
 
         try:
             algorithms.lobster.get_local_observable(
-                phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict)
+                phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict, tune_d.q1f)
         except:
             _tb_()
 
@@ -553,6 +553,7 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     files_dict['getkickphase.out'] = GetllmTfsFile('getkickphase.out')
     files_dict['getkickac.out'] = GetllmTfsFile('getkickac.out')
     files_dict['getlobster.out'] = GetllmTfsFile('getlobster.out')
+    files_dict['getrexter.out'] = GetllmPandasTfs('getrexter.out')
     return files_dict
 # END _create_tfs_files -----------------------------------------------------------------------------
 
