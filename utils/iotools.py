@@ -78,6 +78,8 @@ def copy_item(src_item, dest):
             shutil.copy2(src_item, dest)
         elif os.path.isdir(src_item):
             copy_content_of_dir(src_item, dest)
+        else:
+            raise IOError
     except IOError:
         LOG.error("Could not copy item because of IOError. Item: '{}'".format(src_item))
 
