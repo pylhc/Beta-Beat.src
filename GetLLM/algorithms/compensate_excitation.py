@@ -135,7 +135,7 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
     cos_phase_matr_meas = np.zeros((number_commonbpms, number_commonbpms))
     for i, file_tfs in enumerate(Files):
         phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
-        phases_meas[k_lastbpm+1:] += Qd + bd
+        phases_meas[k_lastbpm+1:] += Qd * bd
         psid = phases_meas - (phases_meas[k_bpmac] - psid_ac2bpmac) # OK, untill here, it is Psi(s, s_ac)
         psid += .5 * Qd * bd
         psid[k_bpmac:] -= Qd
@@ -144,7 +144,6 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
         Psi = np.where(psid % 1.0 > 0.5, Psi + .5, Psi)
         Psi -= Psi[0]
         Psi[k_bpmac:] += Q
-        Psi *= bd
         LOGGER.debug(psid[np.isnan(Psi)])
 
         meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis])
