@@ -176,11 +176,11 @@ TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
 )
 
 
-def run_tests(opts):
+def run_tests(opts=None):
     """Run the test cases and raise RegressionTestFailed on failure.
     """
-    
-    regression._KEEP_FAILED_OUTPUTS =  opts.keepfiles
+    if opts:
+        regression._KEEP_FAILED_OUTPUTS =  opts.keepfiles
         
     alltests = (
         list(TEST_CASES_HOLE_IN_ONE) +
