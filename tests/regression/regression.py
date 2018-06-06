@@ -16,6 +16,8 @@ import yaml
 
 _PYTHON = sys.executable
 
+_KEEP_FAILED_OUTPUTS = False
+_A_TEST_FAILED       = False
 
 class TestCase(namedtuple(
         "TestCase",
@@ -45,6 +47,7 @@ def launch_test_set(test_cases, repo_path,
                     yaml_conf=None, tag_regexp=None):
     """
     """
+    _A_TEST_FAILED = False
     _print_sep("Test session starts")
     commit_hexsha = _find_commit(repo_path, yaml_conf, tag_regexp)
     result = False
@@ -52,6 +55,8 @@ def launch_test_set(test_cases, repo_path,
         print("Cloning repository into {}".format(new_repo_path))
         clone_revision(repo_path, commit_hexsha, new_repo_path)
         result = find_regressions(test_cases, new_repo_path, repo_path)
+        if not result:
+            _A_TEST_FAILED = True
     _print_sep("Regression finished in {:.2f}s"
                .format(regression_timer.get_duration()))
     if not result:
@@ -107,6 +112,10 @@ def run_test_case(test_case, valid_path, test_path):
     test_script = os.path.join(test_path, test_case.script)
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
+    
+    anEx = None
+    fail = None
+    
     try:
         with Timer() as test_timer:
             if test_case.pre_hook:
@@ -116,9 +125,30 @@ def run_test_case(test_case, valid_path, test_path):
             test_result = _launch_command(test_path, test_script, test_case.arguments)
         result = TestResult(test_case, valid_result, test_result,
                             valid_outpath, test_outpath, test_timer.get_duration())
+        
+        fail = not result.is_success
+        
+    except Exception as inEx:
+        anEx = inEx
+        fail = True
     finally:
+        print ("  Done",end="")
+    
+        
+    if _KEEP_FAILED_OUTPUTS and fail :
+        print ("")
+        print ("Test failed, keeping output files: ")
+        print ("  	valid_outpath = < %s > " % valid_outpath)
+        print ("  	test_outpath  = < %s > " % test_outpath)
+    
+    else:
         _remove_if_exists(valid_outpath)
         _remove_if_exists(test_outpath)
+    
+    if anEx:
+        raise anEx
+      
+
     return result
 
 
@@ -365,7 +395,8 @@ def _temporary_dir():
         dir_path = tempfile.mkdtemp()
         yield dir_path
     finally:
-        shutil.rmtree(dir_path)
+        if not (_A_TEST_FAILED and _KEEP_FAILED_OUTPUTS): 
+            shutil.rmtree(dir_path)
 
 
 class Timer(object):

@@ -1,5 +1,8 @@
 import model_creator
 import os
+import logging
+
+LOGGER = logging.getLogger("__name__")
 
 class PsModelCreator(model_creator.ModelCreator):
 
@@ -17,10 +20,15 @@ class PsModelCreator(model_creator.ModelCreator):
             "DRV_TUNE_Y": "",
             "OPTICS_PATH": instance.optics_file,
         }
+        LOGGER.info("instance name <%s>", instance.NAME)
+
         
         if (instance.acd):
             replace_dict["DRV_TUNE_X"] = instance.drv_tune_x
             replace_dict["DRV_TUNE_Y"] = instance.drv_tune_y
+            LOGGER.debug("ACD is ON. Driven tunes %f %f",replace_dict["DRV_TUNE_X"], replace_dict["DRV_TUNE_Y"])
+        else:
+            LOGGER.debug("ACD is OFF")
 
         with open(instance.get_nominal_tmpl()) as textfile:
             madx_template = textfile.read()

@@ -9,6 +9,7 @@ TODO: description
 .. moduleauthor:: Unknown
 """
 
+import sys
 import os
 import datetime
 import time
@@ -16,6 +17,9 @@ import time
 from numpy.linalg import pinv as generalized_inverse
 from numpy import dot as matrixmultiply
 import numpy as np
+
+# internal options
+PRINT_DEBUG = False or sys.flags.debug  # If True, internal debug information will be printed (tbach)
 
 
 def make_list(x, m, modelcut, errorcut, CorD):
@@ -25,6 +29,11 @@ def make_list(x, m, modelcut, errorcut, CorD):
 
     result_names_list = []
     count = 0
+    
+    if (PRINT_DEBUG):
+        print "make_list: Length of input tfs table :", len(x.NAME)
+        print "make_list:  modelcut =  ",modelcut, " errorcut = ", errorcut  
+    
     for i in range(len(x.NAME)):
         bn = x.NAME[i].upper()
         if bn in m.indx:
@@ -33,6 +42,8 @@ def make_list(x, m, modelcut, errorcut, CorD):
             if CorD == 'C':
                 if ((abs(x.F1001W[i_x]-m.F1001W[i_m]) < modelcut) and (x.FWSTD1[i_x] < errorcut)):
                     result_names_list.append(x.NAME[i])
+                elif PRINT_DEBUG:
+                    print "make_list: ", bn, " diff F1001W ", abs(x.F1001W[i_x]-m.F1001W[i_m]), " FWSTD1 ", x.FWSTD1[i_x]
             elif CorD == 'D':
                 if ((abs(x.DY[i_x]-m.DY[i_m]) < modelcut) and (x.STDDY[i_x] < errorcut)):
                     result_names_list.append(x.NAME[i])
@@ -41,7 +52,10 @@ def make_list(x, m, modelcut, errorcut, CorD):
             count += 1
             
     if count > 0:
-        print "Warning: ", count, "BPMs removed from data for not beeing in the model"
+        print "Warning: ", count, "BPMs removed from data for not being in the model"
+
+    if (PRINT_DEBUG):
+        print "make_list: Length of output list :", len(result_names_list)
         
     return result_names_list
 

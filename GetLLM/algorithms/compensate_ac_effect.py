@@ -55,6 +55,13 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
             bpmac1='BPMYB.5L4.B2'
             bpmac2='BPMYA.6L4.B2'
             bpmac3='BPM.7L4.B2'
+        elif oa=="PS":
+            print "Proton Synchrontron"
+            dipole_nameH = 'hacmap'                                                                 
+            dipole_nameV=  'vacmap'                                                                  
+            bpmac1='PR.BPM00'
+            bpmac2='PR.BPM03'
+            bpmac3='PR.BPM05'
         elif oa=="PSBOOSTER":
             #print MADTwiss.SEQUENCE
             for n in MADTwiss.indx:
@@ -66,7 +73,7 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
             print ("skowron: Please change it with implementation of Accelerator Class ")
             
             dipole_nameH = 'hacmap'                                                                 
-            dipole_nameV= 'vacmap'                                                                  
+            dipole_nameV=  'vacmap'                                                                  
             bpmac1 = ringnostr+".BPM3L3"                                                                   
             bpmac2 = ringnostr+".BPM4L3"                                                                   
             bpmac3 = ringnostr+".BPM5L3"
