@@ -179,9 +179,6 @@ TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
 def run_tests(opts=None):
     """Run the test cases and raise RegressionTestFailed on failure.
     """
-    if opts:
-        regression._KEEP_FAILED_OUTPUTS =  opts.keepfiles
-        
     alltests = (
         list(TEST_CASES_HOLE_IN_ONE) +
         list(TEST_CASES_GETLLM) +
@@ -191,7 +188,8 @@ def run_tests(opts=None):
         list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
     )
     regression.launch_test_set(alltests, ABS_ROOT,
-                               yaml_conf=join(ABS_ROOT, ".travis.yml"))
+                               yaml_conf=join(ABS_ROOT, ".travis.yml"),
+                               keep_fails=opts.keepfiles if opts else False)
 
 
 if __name__ == "__main__":

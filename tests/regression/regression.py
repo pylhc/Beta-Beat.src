@@ -4,7 +4,6 @@ import os
 import subprocess
 import time
 import traceback
-import contextlib
 import tempfile
 import shutil
 from cStringIO import StringIO
@@ -16,8 +15,6 @@ import yaml
 
 _PYTHON = sys.executable
 
-_KEEP_FAILED_OUTPUTS = False
-_A_TEST_FAILED       = False
 
 class TestCase(namedtuple(
         "TestCase",
@@ -44,26 +41,31 @@ class TestCase(namedtuple(
 
 
 def launch_test_set(test_cases, repo_path,
-                    yaml_conf=None, tag_regexp=None):
+                    yaml_conf=None, tag_regexp=None,
+                    keep_fails=False):
     """
     """
-    _A_TEST_FAILED = False
     _print_sep("Test session starts")
     commit_hexsha = _find_commit(repo_path, yaml_conf, tag_regexp)
     result = False
-    with _temporary_dir() as new_repo_path, Timer() as regression_timer:
-        print("Cloning repository into {}".format(new_repo_path))
-        clone_revision(repo_path, commit_hexsha, new_repo_path)
-        result = find_regressions(test_cases, new_repo_path, repo_path)
-        if not result:
-            _A_TEST_FAILED = True
-    _print_sep("Regression finished in {:.2f}s"
-               .format(regression_timer.get_duration()))
+    try:
+        with Timer() as regression_timer:
+            new_repo_path = tempfile.mkdtemp()
+            print("Cloning repository into {}".format(new_repo_path))
+            clone_revision(repo_path, commit_hexsha, new_repo_path)
+            result = find_regressions(test_cases, new_repo_path, repo_path,
+                                      keep_fails=keep_fails)
+        _print_sep("Regression finished in {:.2f}s"
+                   .format(regression_timer.get_duration()))
+    finally:
+        # Remove if dont want to keep fails or the tests succeeded.
+        if not keep_fails or result:
+            shutil.rmtree(new_repo_path)
     if not result:
         raise RegressionTestFailed()
 
 
-def find_regressions(test_cases, valid_path, test_path):
+def find_regressions(test_cases, valid_path, test_path, keep_fails=False):
     """Test the directory test_path for regressions against valid_path.
 
     It will print the results of each regression search test case in test_path,
@@ -75,6 +77,7 @@ def find_regressions(test_cases, valid_path, test_path):
         test_cases: an iterable of TestCase to test the test_path.
         valid_path: Path to the reference directory to test against.
         test_path: Path to the directory to be tested for regressions.
+        keep_fails: If true, it will not remove the test directories.
     """
     results = []
     summary = "Testing...: "
@@ -82,7 +85,8 @@ def find_regressions(test_cases, valid_path, test_path):
     for test_case in test_cases:
         print("\r{} (running: '{}')".format(summary, test_case.name), end="")
         sys.stdout.flush()
-        result = run_test_case(test_case, valid_path, test_path)
+        result = run_test_case(test_case, valid_path, test_path,
+                               keep_fails=keep_fails)
         results.append(result)
         summary += result.get_microsummary()
     print("\r{}\n".format(summary))
@@ -94,7 +98,7 @@ def find_regressions(test_cases, valid_path, test_path):
     return all([result.is_success for result in results])
 
 
-def run_test_case(test_case, valid_path, test_path):
+def run_test_case(test_case, valid_path, test_path, keep_fails=False):
     """Launch single test_case and compare the results.
 
     Runs the given test, comparing the repositories at valid_path against
@@ -105,6 +109,7 @@ def run_test_case(test_case, valid_path, test_path):
         test_case: The test case to run.
         valid_path: The reference directory to compare against.
         test_path: The test directory to check for regressions.
+        keep_fails: If true, it will not remove the test directories.
     Returns:
         TODO
     """
@@ -112,43 +117,24 @@ def run_test_case(test_case, valid_path, test_path):
     test_script = os.path.join(test_path, test_case.script)
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
-    
-    anEx = None
-    fail = None
-    
-    try:
-        with Timer() as test_timer:
-            if test_case.pre_hook:
-                test_case.pre_hook(valid_path)
-                test_case.pre_hook(test_path)
-            valid_result = _launch_command(valid_path, valid_script, test_case.arguments)
-            test_result = _launch_command(test_path, test_script, test_case.arguments)
-        result = TestResult(test_case, valid_result, test_result,
-                            valid_outpath, test_outpath, test_timer.get_duration())
-        
-        fail = not result.is_success
-        
-    except Exception as inEx:
-        anEx = inEx
-        fail = True
-    finally:
-        print ("  Done",end="")
-    
-        
-    if _KEEP_FAILED_OUTPUTS and fail :
+
+    with Timer() as test_timer:
+        if test_case.pre_hook:
+            test_case.pre_hook(valid_path)
+            test_case.pre_hook(test_path)
+        valid_result = _launch_command(valid_path, valid_script, test_case.arguments)
+        test_result = _launch_command(test_path, test_script, test_case.arguments)
+    result = TestResult(test_case, valid_result, test_result,
+                        valid_outpath, test_outpath, test_timer.get_duration())
+
+    if keep_fails and not result.is_success:
         print ("")
         print ("Test failed, keeping output files: ")
         print ("  	valid_outpath = < %s > " % valid_outpath)
         print ("  	test_outpath  = < %s > " % test_outpath)
-    
     else:
         _remove_if_exists(valid_outpath)
         _remove_if_exists(test_outpath)
-    
-    if anEx:
-        raise anEx
-      
-
     return result
 
 
@@ -387,16 +373,6 @@ def _print_sep(text=None, length=80):
 
 
 # Contexts ####################################################################
-
-
-@contextlib.contextmanager
-def _temporary_dir():
-    try:
-        dir_path = tempfile.mkdtemp()
-        yield dir_path
-    finally:
-        if not (_A_TEST_FAILED and _KEEP_FAILED_OUTPUTS): 
-            shutil.rmtree(dir_path)
 
 
 class Timer(object):
