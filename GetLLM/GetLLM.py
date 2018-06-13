@@ -343,7 +343,7 @@ def main(outputpath,
             beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
 
             #-------- START IP
-            algorithms.interaction_point.calculate_ip(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+            algorithms.interaction_point.betastar_from_phase(getllm_d.accel, phase_d, mad_twiss, files_dict)
 
             #-------- START Orbit
             list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
