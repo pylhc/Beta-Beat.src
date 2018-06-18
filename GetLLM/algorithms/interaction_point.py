@@ -19,7 +19,6 @@ COLUMNS = ("IP", "BETASTAR", "EBETASTAR", "PHASEADV", "EPHASEADV",
            "MDLPHADV", "LSTAR")
 PLANES = ("x", "y")
 HVPLANE = {"x": "H", "y": "V"}
-IPS = (1, 2, 5, 8)
 
 
 def betastar_from_phase(accel, phase_d, model, files_dict):
@@ -32,17 +31,10 @@ def betastar_from_phase(accel, phase_d, model, files_dict):
         files_dict: The GetLLM files_dict, storing the tfs_file_writers to use
             to write the results.
     """
-    if "LHC" not in accel:
-        return
-    beam = 1 if "B1" in accel else 2
     for plane in PLANES:
         for filename, phases in _phase_d_combinations(phase_d, plane):
             tfs_writer = _get_ip_tfs_writer(files_dict, filename, plane)
-            for ip in IPS:
-                try:
-                    bpml, bpmr = _get_lhc_ip_bpms(beam, ip)
-                except ValueError:
-                    continue  # Current IP not present, lets continue.
+            for ip_name, bpml, bpmr in _get_ips(accel):
                 try:
                     phaseadv, ephaseadv, mdlphadv = _get_meas_phase(
                         bpml, bpmr, plane, phases
@@ -53,7 +45,7 @@ def betastar_from_phase(accel, phase_d, model, files_dict):
                 betastar, ebestar = phase_to_betastar(
                     lstar, PI2 * phaseadv, PI2 * ephaseadv
                 )
-                tfs_writer.add_table_row([ip, betastar, ebestar,
+                tfs_writer.add_table_row([ip_name, betastar, ebestar,
                                           phaseadv, ephaseadv, mdlphadv,
                                           lstar])
 
@@ -102,12 +94,23 @@ def _phase_d_combinations(phase_d, plane):
              getattr(phase_d, "{}_f2".format(plane))))
 
 
+LHC_IPS = ("1", "2", "5", "8")
+NORMAL_IP_BPMS = "BPMSW.1{side}{ip}.B{beam}"
+DOROS_IP_BPMS = "LHC.BPM.1{side}{ip}.B{beam}_DOROS"
+
+
 # TODO: This should go in the accelerator class when available
-def _get_lhc_ip_bpms(beam, ip):
-    if ip not in IPS:
-        raise KeyError("Unknown IP: {}".format(ip))
-    return ("BPMSW.1L{ip}.B{beam}".format(ip=ip, beam=beam),
-            "BPMSW.1R{ip}.B{beam}".format(ip=ip, beam=beam))
+def _get_ips(accel):
+    if "LHC" not in accel:
+        raise StopIteration
+    beam = 1 if "B1" in accel else 2
+    for ip in LHC_IPS:
+        yield ("IP{}".format(ip),
+               NORMAL_IP_BPMS.format(side="L", ip=ip, beam=beam),
+               NORMAL_IP_BPMS.format(side="R", ip=ip, beam=beam))
+        yield ("IP{}_DOROS".format(ip),
+               DOROS_IP_BPMS.format(side="L", ip=ip, beam=beam),
+               DOROS_IP_BPMS.format(side="R", ip=ip, beam=beam))
 
 
 def _get_meas_phase(bpml, bpmr, plane, phases):
