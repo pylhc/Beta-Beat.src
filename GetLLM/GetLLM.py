@@ -506,7 +506,10 @@ def main(accelerator,
         # Write results to files in files_dict
     LOGGER.info("Writing files")
     for tfsfile in files_dict.itervalues():
-        tfsfile.write_to_file(formatted=True)
+        try:
+            tfsfile.write_to_file(formatted=True)
+        except AttributeError:
+            LOGGER.error("tfsfile couldn't be written (AttributeError).")
 
     print_time("FINISH", time() - __getllm_starttime)
     return return_code
@@ -1099,7 +1102,7 @@ def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
     calibration_file = calibration_twiss[plane]
     cal_amplitudes = []
     err_cal_amplitudes = []
-    for bpm_name in drive_file.NAME:
+    for bpm_name in drive_file.index:
         drive_index = drive_file.indx[bpm_name]
         cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
         err_cal_amplitude = 0.
