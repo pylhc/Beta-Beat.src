@@ -216,7 +216,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
     #---- H plane result
     LOGGER.debug("phase calculation finished. Write files.")
     if twiss_d.has_zero_dpp_x():
-        LOGGER.debug("x ouptut")
+        LOGGER.debug("---- X output")
         files_dict["getphasex_free.out"] = write_phase_file(
             files_dict["getphasex_free.out"], "H", phase_d.phase_advances_free_x, model_free,
             model_elements, tune_d.q1f, tune_d.q2f, getllm_d.accelerator, getllm_d.union
@@ -239,7 +239,7 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
 
     #---- V plane result
     if twiss_d.has_zero_dpp_y():
-        LOGGER.debug("y output")
+        LOGGER.debug("---- Y output")
         files_dict["getphasey_free.out"] = write_phase_file(files_dict["getphasey_free.out"], "V",
                                                             phase_d.phase_advances_free_y, model_free, model_elements, tune_d.q1f,
                                                             tune_d.q2f, getllm_d.accelerator, getllm_d.union)
@@ -414,12 +414,15 @@ def _get_phases_intersection(bpm, number_commonbpms, bd, plane_mu, mad_twiss, Fi
                                          len(Files)) / TWOPI) % 1
 
     if OPTIMISTIC:
-        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
-    else:
         R = np.sqrt(
             (sin_phase_matr_meas * sin_phase_matr_meas + cos_phase_matr_meas * cos_phase_matr_meas)
             ) / len(Files)
         phase_advances["ERRMEAS"] = np.sqrt(-2.0 * np.log(R)) / np.sqrt(len(Files))
+    else:
+        R = np.sqrt(
+            (sin_phase_matr_meas * sin_phase_matr_meas + cos_phase_matr_meas * cos_phase_matr_meas)
+            ) / len(Files)
+        phase_advances["ERRMEAS"] = np.sqrt(-2.0 * np.log(R))
 
     return phase_advances
 
@@ -504,35 +507,50 @@ def write_phase_file(tfs_file, plane, phase_advances, model, elements, tune_x, t
 
     for elem1, elem2 in accel.get_important_phase_advances():
 
-        mus1 = elements.loc[elem1, plane_mu] - intersected_model.loc[:, plane_mu]
-        minmu1 = abs(mus1).idxmin()
+        mus1 = elements.loc[elem1, plane_mu] - elements.loc[:, plane_mu]
+        minmu1 = abs(mus1.loc[meas.index]).idxmin()
         
-        mus2 = intersected_model.loc[:, plane_mu] - elements.loc[elem2, plane_mu]
-        minmu2 = abs(mus2).idxmin()
+        mus2 = elements.loc[:, plane_mu] - elements.loc[elem2, plane_mu]
+        minmu2 = abs(mus2.loc[meas.index]).idxmin()
         
         try:
             bpm_phase_advance = meas.loc[minmu1, minmu2]
             model_value = elements.loc[elem2, plane_mu] - elements.loc[elem1, plane_mu]
 
-            if (elements.loc[elem1, "S"] - elements.loc[elem2, "S"]) * bd < 0.0:
+            if (elements.loc[elem1, "S"] - elements.loc[elem2, "S"]) * bd > 0.0:
                 bpm_phase_advance += plane_tune
                 model_value += plane_tune
             bpm_err = err.loc[minmu1, minmu2]
             phase_to_first = -mus1.loc[minmu1]
             phase_to_second = -mus2.loc[minmu2]
-            
-            ph_result = ((bpm_phase_advance + phase_to_first + phase_to_second) * bd)% 1.0
-            
-            model_value = (model_value * bd) % 1.0
-            
-            tfs_file.add_string_descriptor(elem1 + "__to__" + elem2 + "___MODL", 
-                                          "{:8.4f}     {:6s} = {:6.2f} deg".format(model_value, "", (model_value) * 360))
-            tfs_file.add_string_descriptor(elem1 + "__to__" + elem2 + "___MEAS", 
-                                          "{:8.4f}  +- {:6.4f} = {:6.2f} +- {:3.2f} deg ({:8.4f} + {:8.4f} [{}, {}])".format(
-                                                  ph_result, bpm_err, ph_result * 360, bpm_err * 360,
-                                                  bpm_phase_advance,
-                                                  phase_to_first + phase_to_second,
-                                                  minmu1, minmu2) )
+
+            ph_result = ((bpm_phase_advance + phase_to_first + phase_to_second) * bd)
+            model_value = (model_value * bd)
+
+            resultdeg = ph_result % .5 * 360
+            if resultdeg > 90:
+                resultdeg -= 180
+
+            modeldeg = model_value % .5 * 360
+            if modeldeg > 90:
+                modeldeg -= 180
+
+            model_desc = [elem1 + "__to__" + elem2 + "___MODL",
+                          "{:8.4f}     {:6s} = {:6.2f} deg".format(model_value % 1, "",
+                                                                   modeldeg)]
+            result_desc = [elem1 + "__to__" + elem2 + "___MEAS",
+                           "{:8.4f}  +- {:6.4f} = {:6.2f} +- {:3.2f} deg ({:8.4f} + {:8.4f} [{}, {}])".format(
+                               ph_result % 1, bpm_err, resultdeg, bpm_err * 360,
+                               bpm_phase_advance,
+                               phase_to_first + phase_to_second,
+                               minmu1, minmu2) ]
+
+            tfs_file.add_string_descriptor(*model_desc)
+            tfs_file.add_string_descriptor(*result_desc)
+
+            LOGGER.debug("")
+            LOGGER.debug("::" + " : ".join(model_desc))
+            LOGGER.debug("::" + " : ".join(result_desc))
         except KeyError as e:
             LOGGER.error("Couldn't calculate the phase advance because " + e)
             
