@@ -115,6 +115,7 @@ def get_local_observable(phase_d, free_model, files_dict, tune):
         LOGGER.info(regobsmatr.shape)
         reg_obs.loc[:, patt] = np.sum(regobsmatr, axis=1)
 
+    reg_obs.loc[:, "S"] = free_model.loc[modl_phases, "S"]
     files_dict["getrexter.out"].set_dataframe(reg_obs)
 
     return df.loc[collected]
