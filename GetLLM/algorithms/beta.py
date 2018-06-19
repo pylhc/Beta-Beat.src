@@ -397,7 +397,7 @@ def _write_getbeta_out(number_of_bpms, range_of_bpms, phase_f, data, model, erro
             beta_df.loc[bpm, "STATBET" + _plane_char],
             beta_df.loc[bpm, "ERRBET" + _plane_char]
         ]
-    tfs_file.set_dataframe(beta_df)
+    tfs_file.set_dataframe(beta_df.loc[beta_df["NCOMB"] > -2])
 
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
@@ -1546,7 +1546,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         beterr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2))
         beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
         used_bpms = len(betas)
-    except ValueError:
+    except:
         _debug_("ValueError at {}".format(probed_bpm_name))
         _debug_("betas:\n" + str(betas))
 
