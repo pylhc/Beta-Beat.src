@@ -39,9 +39,9 @@ BRHO      := BEAM->PC * 3.3356;
  Qxd = %(DRV_TUNE_X)s;
  Qyd = %(DRV_TUNE_Y)s;
 
- hacmap21 := ac_s * (2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx)));
- vacmap43=2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy));
-
+ 
+ hacmap21 = 0;
+ vacmap43 = 0;
  hacmap: matrix, l=0, rm21 := hacmap21;
  vacmap: matrix, l=0, rm43 := vacmap43;
 
@@ -108,6 +108,10 @@ ENDMATCH;
 
       betxac = table(twiss, hacmap, betx);
       betyac = table(twiss, vacmap, bety);
+     
+      hacmap21 := ac_s * (2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx)));
+      vacmap43 := 2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy));
+
       value, betxac, betyac;
       
       select, flag=twiss, clear;
