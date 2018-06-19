@@ -50,8 +50,7 @@ def model_intersect(exp_bpms, model_twiss):
     if len(bpmsin) == 0:
         print >> sys.stderr, "Zero intersection of Exp and Model"
         print >> sys.stderr, "Please, provide a good Dictionary or correct data"
-        print >> sys.stderr, "Now we better leave!"
-        sys.exit(1)
+        raise ValueError("Empty intersection between model and measurement.")
 
     return bpmsin
 
