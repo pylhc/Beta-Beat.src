@@ -1,11 +1,14 @@
 from __future__ import print_function
-import os
-import re
+
 import json
+import os
 from collections import OrderedDict
-import numpy as np
+
+import pandas as pd
+
+from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
+    get_commonbpm
 from utils import logging_tools, tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, get_commonbpm
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 LOGGER = logging_tools.get_logger(__name__)
@@ -403,16 +406,10 @@ class Lhc(Accelerator):
 
     @classmethod
     def get_arc_bpms_mask(cls, list_of_elements):
-        mask = []
-        pattern = re.compile(r"BPM.*\.([0-9]+)[RL].\..*", re.IGNORECASE)
-        for element in list_of_elements:
-            match = pattern.match(element)
-            # The arc bpms are from BPM.14... and up
-            if match and int(match.group(1)) > 14:
-                mask.append(True)
-            else:
-                mask.append(False)
-        return np.array(mask)
+        """ Returns a boolean array for all bpms >14 L or R of IPs in bpm_names. """
+        return pd.Series(list_of_elements).str.match(
+            r"BPM.*\.0*(1[5-9]|[2-9]\d|[1-9]\d{2,})[RL].\..*",
+            case=False).values
 
     def verify_object(self):  # TODO: Maybe more checks?
         try:
@@ -803,7 +800,7 @@ class Lhc(Accelerator):
 
     def get_amp_bpms(self, common_bpms):
         return common_bpms.loc[
-            common_bpms.index.str.match("BPM[_,A-Z]*\\.([0-9]+)[R,L].*", as_indexer=True)
+            common_bpms.index.str.match(r"BPM[_,A-Z]*\.([0-9]+)[R,L].*", case=False)
         ]
 
 

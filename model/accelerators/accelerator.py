@@ -35,7 +35,7 @@ class Accelerator(object):
         Accelerator.__raise_definition_error()
 
     @classmethod
-    def get_bpms_around_acd(available_bpm_list, model_twiss, exciter="acd"):
+    def get_bpms_around_acd(cls, available_bpm_list, model_twiss, exciter="acd"):
         """
         It will return the two best BMPs to use for exciter specified
         in compensation.
@@ -43,7 +43,7 @@ class Accelerator(object):
         Accelerator.__raise_definition_error()
 
     @classmethod
-    def get_arc_bpms_mask(list_of_elements):
+    def get_arc_bpms_mask(cls, list_of_elements):
         """
         It will return a mask to filter with the elements of @list_of_elements
         so that only arc BPMs remains.
@@ -117,7 +117,7 @@ class Accelerator(object):
 
     def get_elements_tfs(self):
         """
-        Returns theelements tfs file.
+        Returns the elements tfs file.
         """
         Accelerator.__raise_definition_error()
         
@@ -130,11 +130,9 @@ class Accelerator(object):
     def get_errordefspath(self):
         Accelerator.__raise_definition_error()
 
-        
     def set_errordefspath(self, path):
         # TODO: Jaime, are there virtual members for python base classes?
         Accelerator.__raise_definition_error()
-
 
     def get_amp_bpms(self, common_bpms):
         """
