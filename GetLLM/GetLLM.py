@@ -97,6 +97,7 @@ import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
 import algorithms.lobster
+import algorithms.orbit
 import utils.iotools
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
@@ -460,7 +461,7 @@ def main(accelerator,
 
         #-------- START Orbit
         try:
-            list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(
+            list_of_co_x, list_of_co_y, files_dict = algorithms.orbit._calculate_orbit(
                 getllm_d, twiss_d, tune_d, mad_twiss, files_dict
             )
         except:
@@ -476,7 +477,7 @@ def main(accelerator,
         
         #------ Start get Q,JX,delta
         try:
-            files_dict, inv_x, inv_y = _calculate_kick(
+            files_dict, inv_x, inv_y = algorithms.kick._calculate_kick(
                 getllm_d, twiss_d, phase_d_bk, beta_d, files_dict,
                 bbthreshold, errthreshold
             )
@@ -875,117 +876,6 @@ def _check_bpm_compatibility(twiss_d, mad_twiss):
                     print >> sys.stderr, 'Monitor ' + bpm_name + ' cannot be found in the model!'
 
 
-def _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict):
-    '''
-    Calculates orbit and fills the following TfsFiles:
-     - getCOx.out
-     - getCOy.out
-     - getCOx_dpp_' + str(k + 1) + '.out
-     - getCOy_dpp_' + str(k + 1) + '.out
-
-    :param _GetllmData getllm_d: accel is used(In-param, values will only be read)
-    :param _TwissData twiss_d: Holds twiss instances of the src files. (In-param, values will only be read)
-    :param _TuneData tune_d: Holds tunes and phase advances (In-param, values will only be read)
-
-    :returns: (list, list, dict)
-     - an list of dictionairies from horizontal computations
-     - an list of dictionairies from vertical computations
-     - the same dict as param files_dict to indicate that dict will be extended here.
-    '''
-    print 'Calculating orbit'
-    list_of_co_x = []
-    if twiss_d.has_zero_dpp_x():
-        [cox, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_x)
-        # The output file can be directly used for orbit correction with MADX
-        tfs_file = files_dict['getCOx.out']
-        tfs_file.add_string_descriptor("TABLE", 'ORBIT')
-        tfs_file.add_string_descriptor("TYPE", 'ORBIT')
-        # TODO: tfs_file.add_string_descriptor("SEQUENCE", getllm_d.accel)
-        tfs_file.add_float_descriptor("Q1", tune_d.q1)
-        tfs_file.add_float_descriptor("Q2", tune_d.q2)
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "X", "STDX", "XMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), cox[bn1][0], cox[bn1][1],
-                                mad_twiss.loc[bn1, "X"], mad_twiss.loc[bn1, "MUX"]]
-            tfs_file.add_table_row(list_row_entries)
-
-        list_of_co_x.append(cox)
-    list_of_co_y = []
-    if twiss_d.has_zero_dpp_y():
-        [coy, bpms] = algorithms.helper.calculate_orbit(mad_twiss, twiss_d.zero_dpp_y)
-        # The output file can be directly used for orbit correction with MADX
-        tfs_file = files_dict['getCOy.out']
-        tfs_file.add_string_descriptor("TABLE", 'ORBIT')
-        tfs_file.add_string_descriptor("TYPE", 'ORBIT')
-        #TODO: tfs_file.add_string_descriptor("SEQUENCE", getllm_d.accel)
-        tfs_file.add_float_descriptor("Q1", tune_d.q1)
-        tfs_file.add_float_descriptor("Q2", tune_d.q2)
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "Y", "STDY", "YMDL", "MUYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), coy[bn1][0], coy[bn1][1],
-                                mad_twiss.loc[bn1, "Y"], mad_twiss.loc[bn1, "MUY"]]
-            tfs_file.add_table_row(list_row_entries)
-
-        list_of_co_y.append(coy)
-    #-------- Orbit for non-zero DPP
-    if twiss_d.has_non_zero_dpp_x():
-        k = 0
-        for twiss_file in twiss_d.non_zero_dpp_x:
-            list_with_single_twiss = []
-            list_with_single_twiss.append(twiss_file)
-            filename = 'getCOx_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = GetllmTfsFile(filename)
-            tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
-            tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
-            tfs_file.add_float_descriptor("Q1", tune_d.q1)
-            tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            [codpp, bpms] = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "X", "STDX", "XMDL", "MUXMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpms)):
-                bn1 = str.upper(bpms[i][1])
-                bns1 = bpms[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), codpp[bn1][0], codpp[bn1][1],
-                                    mad_twiss.loc[bn1, "X"], mad_twiss.loc[bn1, "MUX"]]
-                tfs_file.add_table_row(list_row_entries)
-
-            list_of_co_x.append(codpp)
-            k += 1
-
-    if twiss_d.has_non_zero_dpp_y():
-        k = 0
-        for twiss_file in twiss_d.non_zero_dpp_y:
-            list_with_single_twiss = []
-            list_with_single_twiss.append(twiss_file)
-            filename = 'getCOy_dpp_' + str(k + 1) + '.out'
-            files_dict[filename] = GetllmTfsFile(filename)
-            tfs_file = files_dict[filename]
-            tfs_file.add_filename_to_getllm_header(twiss_file.filename)
-            tfs_file.add_float_descriptor("DPP", float(twiss_file.DPP))
-            tfs_file.add_float_descriptor("Q1", tune_d.q1)
-            tfs_file.add_float_descriptor("Q2", tune_d.q2)
-            [codpp, bpms] = algorithms.helper.calculate_orbit(mad_twiss, list_with_single_twiss)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "Y", "STDY", "YMDL", "MUYMDL"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(bpms)):
-                bn1 = str.upper(bpms[i][1])
-                bns1 = bpms[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), codpp[bn1][0], codpp[bn1][1],
-                                    mad_twiss.loc[bn1, "Y"], mad_twiss.loc[bn1, "MUY"]]
-                tfs_file.add_table_row(list_row_entries)
-
-            list_of_co_y.append(codpp)
-            k += 1
-
-    return list_of_co_x, list_of_co_y, files_dict
-# END _calculate_orbit ------------------------------------------------------------------------------
 
 
 def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
@@ -1013,89 +903,6 @@ def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
     return files_dict
 # END _calculate_getsextupoles ----------------------------------------------------------------------
 
-
-def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, files_dict, bbthreshold, errthreshold):
-    '''
-    Fills the following TfsFiles:
-     - getkick.out
-     - getkickac.out
-
-    :returns: dict string --> GetllmTfsFile -- The same instace of files_dict to indicate that the dict was extended
-    '''
-    accelerator = getllm_d.accelerator
-
-    mad_twiss = accelerator.get_model_tfs()
-    if accelerator.excitation != AccExcitationMode.FREE:
-        mad_ac = accelerator.get_driven_tfs()
-
-    LOGGER.info( "Calculating kick")
-    files = [twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y]
-    common_index = twiss_d.non_zero_dpp_commonbpms_x.index.intersection(
-        twiss_d.non_zero_dpp_commonbpms_y.index.intersection(
-            beta_d.x_phase.keys())).intersection(beta_d.y_phase.keys())
-
-    meansqrt_2jx = {}
-    meansqrt_2jy = {}
-    bpmrejx = {}
-    bpmrejy = {}
-
-    try:
-        [meansqrt_2jx, meansqrt_2jy, _, _, tunes, dpp, bpmrejx, bpmrejy] = algorithms.helper.getkick(
-            files, mad_twiss, beta_d, bbthreshold, errthreshold)
-    except IndexError:  # occurs if either no x or no y files exist
-        return files_dict, [], []
-
-    #mean_2j = mean{2J} and meansqrt_2j=mean{sqrt(2J)}
-
-    tfs_file_model = files_dict['getkick.out']
-    tfs_file_model.add_comment("Calculates the kick from the model beta function")
-    column_names_list = ["DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
-    column_types_list = ["%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
-    tfs_file_model.add_column_names(column_names_list)
-    tfs_file_model.add_column_datatypes(column_types_list)
-
-    for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i],
-                            tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1],
-                            meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2),
-                            (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]),
-                            (meansqrt_2jy['model'][i][0]**2),
-                            (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
-        tfs_file_model.add_table_row(list_row_entries)
-        actions_x, actions_y = meansqrt_2jx['phase'], meansqrt_2jy['phase']
-
-    tfs_file_phase = files_dict['getkickphase.out']
-    tfs_file_phase.add_float_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m", bbthreshold)
-    tfs_file_phase.add_float_descriptor("Threshold_for_uncert(beta_d)/beta_d", errthreshold)
-    tfs_file_phase.add_float_descriptor("X_BPMs_Rejected", bpmrejx['phase'][len(dpp) - 1])
-    tfs_file_phase.add_float_descriptor("Y_BPMs_Rejected", bpmrejy['phase'][len(dpp) - 1])
-    tfs_file_phase.add_column_names(column_names_list)
-    tfs_file_phase.add_column_datatypes(column_types_list)
-    for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i],
-                            tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1],
-                            meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2),
-                            (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]),
-                            (meansqrt_2jy['model'][i][0]**2),
-                            (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
-        tfs_file_phase.add_table_row(list_row_entries)
-
-    if getllm_d.accelerator.excitation != AccExcitationMode.FREE:
-        tfs_file = files_dict['getkickac.out']
-        tfs_file.add_float_descriptor("RescalingFactor_for_X", beta_d.x_ratio_f)
-        tfs_file.add_float_descriptor("RescalingFactor_for_Y", beta_d.y_ratio_f)
-        tfs_file.add_column_names(column_names_list + ["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
-        tfs_file.add_column_datatypes(column_types_list + ["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        [inv_jx, inv_jy, tunes, dpp] = algorithms.compensate_excitation.getkickac(
-            mad_ac, files, phase_d.ac2bpmac_x, phase_d.ac2bpmac_y, getllm_d.accelerator.get_beam_direction(), getllm_d.lhc_phase)
-        for i in range(0, len(dpp)):
-            #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
-            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
-            tfs_file.add_table_row(list_row_entries)
-            actions_x, actions_y = inv_jx, inv_jx
-
-    return files_dict, actions_x, actions_y
-# END _calculate_kick -------------------------------------------------------------------------------
 
 
 def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
