@@ -51,12 +51,14 @@ class TfsDataFrame(pandas.DataFrame):
     def __getitem__(self, key):
         try:
             return super(TfsDataFrame, self).__getitem__(key)
-        except KeyError:
+        except KeyError as e:
             try:
                 return self.headers[key]
             except KeyError:
                 raise KeyError(str(key) +
                                " is not in the DataFrame or headers.")
+            except TypeError:
+                raise e
 
     def __getattr__(self, name):
         try:
