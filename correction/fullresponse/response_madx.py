@@ -211,7 +211,7 @@ def _add_coupling(dict_of_tfs):
     """ Adds coupling to the tfs. QUICK FIX VIA LOOP!"""
     with timeit(lambda t: LOG.debug("  Time adding coupling: {:f}s".format(t))):
         for var in dict_of_tfs:
-            twopt = TwissOptics(dict_of_tfs[var], keep_all_elem=True)
+            twopt = TwissOptics(dict_of_tfs[var])
             cpl = twopt.get_coupling("cmatrix")
             dict_of_tfs[var]["1001"] = cpl["F1001"]
             dict_of_tfs[var]["1010"] = cpl["F1010"]
