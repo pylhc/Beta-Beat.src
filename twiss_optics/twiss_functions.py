@@ -32,11 +32,6 @@ def lower(list_of_strings):
     return [item.lower() for item in list_of_strings]
 
 
-def regex_in(regex, lst):
-    """ Return boolean array of length lst, determining if that element starts with regex """
-    return np.array([re.search(regex, element) is not None for element in lst])
-
-
 # Twiss Helpers ################################################################
 
 

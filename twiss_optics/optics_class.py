@@ -44,7 +44,7 @@ from utils import tfs_pandas as tfs
 from utils.contexts import timeit
 from utils.dict_tools import DotDict
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
-from twiss_optics.twiss_functions import assertion, regex_in, get_all_rdts
+from twiss_optics.twiss_functions import assertion, get_all_rdts
 
 LOG = logtool.get_logger(__name__)
 
@@ -107,7 +107,7 @@ class TwissOptics(object):
         Load model into twiss_df first!
         """
         tw = self.twiss_df
-        return tw.loc[regex_in(r"\AIP\d$", tw.index), 'S']
+        return tw.loc[tw.index.str.match(r"IP\d$", case=False), 'S']
 
     def _make_results_dataframe(self):
         LOG.debug("Creating Results Dataframes.")
@@ -335,13 +335,14 @@ class TwissOptics(object):
                 self.calc_rdts(new_rdts)
             return self._results_df.loc[:, ["S"] + rdt_names]
         else:
-            return self._results_df.loc[:, regex_in(r'\A(S|F\d{4})$', self._results_df.columns)]
+            return self._results_df.loc[:, self._results_df.columns.str.match(r'(S|F\d{4})$',
+                                                                              case=False)]
 
     def plot_rdts(self, rdt_names=None, apply_fun=np.abs, combined=True):
         """ Plot Resonance Driving Terms """
         LOG.debug("Plotting Resonance Driving Terms")
         rdts = self.get_rdts(rdt_names)
-        is_s = regex_in(r'\AS$', rdts.columns)
+        is_s = rdts.columns.str.match(r'S$', case=False)
         rdts = rdts.dropna()
         rdts.loc[:, ~is_s] = rdts.loc[:, ~is_s].applymap(apply_fun)
         pstyle.set_style(self._plot_options.style, self._plot_options.manual)

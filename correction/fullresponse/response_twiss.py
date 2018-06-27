@@ -111,7 +111,7 @@ import pandas as pd
 
 from correction.fullresponse.sequence_evaluation import check_varmap_file
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
-from twiss_optics.twiss_functions import regex_in, upper
+from twiss_optics.twiss_functions import upper
 from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
@@ -144,18 +144,17 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, varmap_or_path, model_or_path, variables, direction=1,
-                 at_elements='bpms'):
+    def __init__(self, accel_inst, variable_categories, varmap_or_path, at_elements='bpms'):
 
         LOG.debug("Initializing TwissResponse.")
         with timeit(lambda t: LOG.debug("  Time initializing TwissResponse: {:f}s".format(t))):
             # Get input
-            self._twiss = self._get_model_twiss(model_or_path)
-            self._variables = variables
+            self._twiss = self._get_model_twiss(accel_inst)
+            self._variables = accel_inst.get_variables(classes=variable_categories)
             self._var_to_el = self._get_variable_mapping(varmap_or_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
-            self._direction = self._get_direction(direction)
+            self._direction = self._get_direction(accel_inst.get_beam())
 
             # calculate all phase advances
             self._phase_advances = get_phase_advances(self._twiss)
@@ -182,24 +181,17 @@ class TwissResponse(object):
             self._norm_dispersion_mapped = None
 
     @staticmethod
-    def _get_model_twiss(model_or_path):
+    def _get_model_twiss(accel_inst):
         """ Load model, but keep only BPMs and Magnets """
-        try:
-            model = tfs.read_tfs(model_or_path, index="NAME")
-        except TypeError:
-            LOG.debug("Received model as DataFrame")
-            model = model_or_path
-        else:
-            LOG.debug("Loaded Model from file '{:s}'".format(model_or_path))
+        # get model
+        model = accel_inst.get_elements_tfs()
 
         # Remove not needed entries
         LOG.debug("Removing non-necessary entries:")
         LOG.debug("  Entries total: {:d}".format(model.shape[0]))
-        model = model.loc[regex_in(r"\A(M|BPM)", model.index), :]
+        mask = accel_inst.get_element_types_mask(model.index, types=["bpm", "magnet"])
+        model = model.loc[mask, :].copy()  # make a copy to suppress "SettingWithCopyWarning"
         LOG.debug("  Entries left: {:d}".format(model.shape[0]))
-
-        # make a copy to suppress "SettingWithCopyWarning"
-        model = model.copy()
 
         # Add Dummy for Phase Calculations
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
@@ -212,6 +204,9 @@ class TwissResponse(object):
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
+
+        if not len(variables):
+            raise ValueError("No variables found. Maybe wrong categories?")
 
         try:
             with open(varmap_or_path, "rb") as varmapfile:
@@ -257,12 +252,9 @@ class TwissResponse(object):
         return el_in
 
     @staticmethod
-    def _get_direction(direction):
-        if direction not in [+1, -1]:
-            raise AttributeError(
-                "Direction can be either +1 or -1, instead it was {}".format(direction)
-            )
-        return direction
+    def _get_direction(beam):
+        """ Sign for the direction of the beam. """
+        return 1 if beam == 1 else -1
 
     def _get_output_elements(self, at_elements):
         """ Return name-array of elements to use for output.
@@ -904,21 +896,17 @@ def dict_mul(number, dictionary):
 def create_response(accel_inst, vars_categories, optics_params):
     """ Wrapper to create response via TwissResponse """
     LOG.debug("Creating response via TwissResponse.")
-    vars_list = accel_inst.get_variables(classes=vars_categories)
-    if len(vars_list) == 0:
-        raise ValueError("No variables found! Make sure your categories are valid!")
 
     varmap_path = check_varmap_file(accel_inst, vars_categories)
 
     with timeit(lambda t:
                 LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
-        sign = 1 if accel_inst.get_beam() == 1 else -1
-        tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list, sign)
+        tr = TwissResponse(accel_inst, vars_categories, varmap_path)
         response = tr.get_response_for(optics_params)
 
     if not any([resp.size for resp in response.values()]):
         raise ValueError("Responses are all empty. " +
-                         "Are variables {:s} ".format(vars_list) +
+                         "Are variables {:s} ".format(tr.get_variable_names()) +
                          "correct for '{:s}'?".format(optics_params)
                          )
     return response
