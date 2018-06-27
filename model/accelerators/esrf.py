@@ -13,6 +13,7 @@ class Esrf(Accelerator):
         Return boolean mask for elements in list_of_elements that belong
         to any of the specified types.
         Needs to handle: "bpm", "magnet", "arc_bpm", "amp_bpm"
+        TODO: implement "magnet"
 
         arc_bpms are the ones with high beta, which are:
             bpms 1-5 in even cells.
@@ -27,10 +28,8 @@ class Esrf(Accelerator):
             Boolean array of elements of specified kinds.
 
         """
-
         re_dict = {
             "bpm": r"BPM",
-            "magnet": r"M",
             "arc_bpm": r"BPM\.(\d*[02468]\.[1-5]|\d*[13579]\.[3-7])",
         }
 
@@ -40,9 +39,9 @@ class Esrf(Accelerator):
 
         series = pd.Series(list_of_elements)
 
-        mask = series.index.str.match(re_dict[types[0]], case=False)
+        mask = series.str.match(re_dict[types[0]], case=False)
         for ty in types[1:]:
-            mask = mask | series.index.str.match(re_dict[ty], case=False)
+            mask = mask | series.str.match(re_dict[ty], case=False)
         return mask.values
 
     @classmethod

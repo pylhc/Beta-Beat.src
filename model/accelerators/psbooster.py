@@ -219,9 +219,9 @@ class Psbooster(Accelerator):
 
         series = pd.Series(list_of_elements)
 
-        mask = series.index.str.match(re_dict[types[0]], case=False)
+        mask = series.str.match(re_dict[types[0]], case=False)
         for ty in types[1:]:
-            mask = mask | series.index.str.match(re_dict[ty], case=False)
+            mask = mask | series.str.match(re_dict[ty], case=False)
         return mask.values
 
     @classmethod
