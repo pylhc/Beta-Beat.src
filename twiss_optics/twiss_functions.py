@@ -1,19 +1,5 @@
 """ Common Functions not attached to any class in this module.
-
-
-.. rubric:: References
-
-.. [#FranchiAnalyticformulasrapid2017]
-    A. Franchi et al.,
-    Analytic formulas for the rapid evaluation of the orbit response matrix
-    and chromatic functions from lattice parameters in circular accelerators
-    https://arxiv.org/abs/1711.06589
-
-
 """
-
-
-import re
 import numpy as np
 import pandas as pd
 import itertools
@@ -84,7 +70,9 @@ def rdt_generator(orders, normal=True, skew=True, complex_conj=True):
 def get_phase_advances(twiss_df):
     """
     Calculate phase advances between all elements
-    :return: Matrices similar to DPhi(i,j) = Phi(j) - Phi(i)
+
+    Returns:
+        Matrices similar to DPhi(i,j) = Phi(j) - Phi(i)
     """
     LOG.debug("Calculating Phase Advances:")
     phase_advance_dict = dict.fromkeys(['X', 'Y'])
@@ -105,7 +93,7 @@ def get_phase_advances(twiss_df):
 
 
 def dphi(data, q):
-    """ Return dphi from phase advances in data, see Eq. 8 in [#FranchiAnalyticformulasrapid2017]
+    """ Return dphi from phase advances in data, see Eq. 8 in [#FranchiAnalyticformulasrapid2017]_
     """
     return data + np.where(data <= 0, q, 0)  # '<=' seems to be what MAD-X does
 
