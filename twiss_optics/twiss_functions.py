@@ -1,10 +1,15 @@
 """ Common Functions not attached to any class in this module.
 
-    References:
-        [1]  A. Franchi et al.,
-             Analytic formulas for the rapid evaluation of the orbit response matrix and chromatic
-             functions from lattice parameters in circular accelerators
-             NOT YET PUBLISHED
+
+.. rubric:: References
+
+.. [#FranchiAnalyticformulasrapid2017]
+    A. Franchi et al.,
+    Analytic formulas for the rapid evaluation of the orbit response matrix
+    and chromatic functions from lattice parameters in circular accelerators
+    https://arxiv.org/abs/1711.06589
+
+
 """
 
 
@@ -30,11 +35,6 @@ def upper(list_of_strings):
 def lower(list_of_strings):
     """ Set all items of list to lowercase """
     return [item.lower() for item in list_of_strings]
-
-
-def regex_in(regex, lst):
-    """ Return boolean array of length lst, determining if that element starts with regex """
-    return np.array([re.search(regex, element) is not None for element in lst])
 
 
 # Twiss Helpers ################################################################
@@ -105,12 +105,14 @@ def get_phase_advances(twiss_df):
 
 
 def dphi(data, q):
-    """ Return dphi from phase advances in data, see Eq. 8 in [1] """
+    """ Return dphi from phase advances in data, see Eq. 8 in [#FranchiAnalyticformulasrapid2017]
+    """
     return data + np.where(data <= 0, q, 0)  # '<=' seems to be what MAD-X does
 
 
 def tau(data, q):
-    """ Return tau from phase advances in data, see Eq. 16 in [1]  """
+    """ Return tau from phase advances in data, see Eq. 16 in [#FranchiAnalyticformulasrapid2017]_
+    """
     return data + np.where(data <= 0, q / 2, -q / 2)  # '<=' seems to be what MAD-X does
 
 

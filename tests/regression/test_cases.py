@@ -18,7 +18,6 @@ HARM_FILES = join("tests", "inputs", "harmonic_results")
 GETLLM_FILES = join("tests", "inputs", "getllm_results")
 
 
-
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -29,7 +28,6 @@ def _parse_args():
     )
     
     return parser.parse_args()
-
 
 
 TEST_CASES_HOLE_IN_ONE = (
@@ -96,7 +94,7 @@ TEST_CASES_RESPONSE_CREATION_VIA_MADX = (
             "--optics_file {optics_file}",
             "--creator madx",
             "--outfile {response_out}",
-            "--variables MQM MQT MQTL MQY coupling_knobs",
+            "--variables MQY coupling_knobs",
             "--deltak 2e-5",
         ]).format(
             model_dir=join(REGR_DIR, "_out_create_response_test_madx", "model"),
@@ -124,7 +122,7 @@ TEST_CASES_RESPONSE_CREATION_VIA_TWISS = (
             "--optics_file {optics_file}",
             "--creator twiss",
             "--outfile {response_out}",
-            "--variables MQM MQT MQTL MQY coupling_knobs",
+            "--variables MQY coupling_knobs",
             "--optics_params MUX MUY Q DX DY BBX BBY BETX BETY F1001I F1001R F1010R F1010I",
         ]).format(
             model_dir=join(REGR_DIR, "_out_create_response_test_twiss", "model"),
@@ -150,7 +148,7 @@ TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
             "--accel lhc --lhcmode lhc_runII_2017 --beam 1",
             "--model_dir {model_dir}",
             "--optics_file {optics_file}",
-            "--variables MQM MQT MQTL MQY",
+            "--variables MQY",
             "--optics_params MUX MUY BBX BBY Q",
             "--weights 1 1 1 1 10",
             "--meas_dir {meas_dir}",

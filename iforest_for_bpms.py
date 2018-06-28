@@ -109,8 +109,9 @@ def detect_anomalies(contamination, data, uplane):
 
 def get_data_for_clustering(bpm_tfs_data, plane):
     columns = FEATURES.format(plane.upper()).split(",")
-    ir_bpm_data_for_clustering = bpm_tfs_data.iloc[~lhc.Lhc.get_arc_bpms_mask(bpm_tfs_data.NAME)].copy()
-    arc_bpm_data_for_clustering = bpm_tfs_data.iloc[lhc.Lhc.get_arc_bpms_mask(bpm_tfs_data.NAME)].copy()
+    arc_bpm_mask = lhc.Lhc.get_element_types_mask(bpm_tfs_data.NAME, types=["arc_bpm"])
+    ir_bpm_data_for_clustering = bpm_tfs_data.iloc[~arc_bpm_mask].copy()
+    arc_bpm_data_for_clustering = bpm_tfs_data.iloc[arc_bpm_mask].copy()
     for col in columns:
         ir_bpm_data_for_clustering.loc[:, col] = _normalize_parameter(ir_bpm_data_for_clustering.loc[:, col])
         arc_bpm_data_for_clustering.loc[:, col] = _normalize_parameter(arc_bpm_data_for_clustering.loc[:, col])
