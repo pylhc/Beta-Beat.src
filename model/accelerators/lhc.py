@@ -404,13 +404,6 @@ class Lhc(Accelerator):
                             {})
         return beamed_class
 
-    @classmethod
-    def get_arc_bpms_mask(cls, list_of_elements):
-        """ Returns a boolean array for all bpms >14 L or R of IPs in bpm_names. """
-        return pd.Series(list_of_elements).str.match(
-            r"BPM.*\.0*(1[5-9]|[2-9]\d|[1-9]\d{2,})[RL].\..*",
-            case=False).values
-
     def verify_object(self):  # TODO: Maybe more checks?
         try:
             self.get_beam()
@@ -513,7 +506,7 @@ class Lhc(Accelerator):
         return _list_intersect_keep_order(vars_by_position, vars_by_class)
 
     def get_update_correction_job(self, tiwss_out_path, corrections_file_path):
-        """ Return string for madx job of correting model """
+        """ Return string for madx job of correcting model """
         with open(self.get_update_correction_tmpl(), "r") as template:
             madx_template = template.read()
         try:
@@ -798,10 +791,38 @@ class Lhc(Accelerator):
     def get_elements_centre_tfs(self):
         return self._elements_centre
 
-    def get_amp_bpms(self, common_bpms):
-        return common_bpms.loc[
-            common_bpms.index.str.match(r"BPM[_,A-Z]*\.([0-9]+)[R,L].*", case=False)
-        ]
+    @classmethod
+    def get_element_types_mask(cls, list_of_elements, types):
+        """
+        Return boolean mask for elements in list_of_elements that belong
+        to any of the specified types.
+        Needs to handle: "bpm", "magnet", "arc_bpm"
+
+        Args:
+            list_of_elements: List of elements
+            types: Kinds of elements to look for
+
+        Returns:
+            Boolean array of elements of specified kinds.
+
+        """
+
+        re_dict = {
+            "bpm": r"BPM",
+            "magnet": r"M",
+            "arc_bpm": r"BPM.*\.0*(1[5-9]|[2-9]\d|[1-9]\d{2,})[RL]",  # bpms > 14 L or R of IP
+        }
+
+        unknown_elements = [ty for ty in types if ty not in re_dict]
+        if len(unknown_elements):
+            raise TypeError("Unknown element(s): '{:s}'".format(str(unknown_elements)))
+
+        series = pd.Series(list_of_elements)
+
+        mask = series.str.match(re_dict[types[0]], case=False)
+        for ty in types[1:]:
+            mask = mask | series.str.match(re_dict[ty], case=False)
+        return mask.values
 
 
 class _LhcSegmentMixin(object):

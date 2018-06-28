@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from accelerator import Accelerator
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
@@ -203,9 +204,25 @@ class Psbooster(Accelerator):
         return PSB_DIR
 
     @classmethod
-    def get_arc_bpms_mask(cls, list_of_elements):
+    def get_element_types_mask(cls, list_of_elements, types):
         # TODO: Anaaaaaa
-        pass
+        raise NotImplementedError("Anaaaaa!")
+        re_dict = {
+            "bpm": r".*",
+            "magnet": r".*",
+            "arc_bpm": r".*",
+        }
+
+        unknown_elements = [ty for ty in types if ty not in re_dict]
+        if len(unknown_elements):
+            raise TypeError("Unknown element(s): '{:s}'".format(str(unknown_elements)))
+
+        series = pd.Series(list_of_elements)
+
+        mask = series.str.match(re_dict[types[0]], case=False)
+        for ty in types[1:]:
+            mask = mask | series.str.match(re_dict[ty], case=False)
+        return mask.values
 
     @classmethod
     def get_file(cls, filename):
