@@ -327,21 +327,6 @@ def _validate(data_frame, info_str=""):
         LOGGER.debug("DataFrame {:s} validated.".format(info_str))
 
 
-def get_bpms(data_frame):
-    """ Return a list of BPM-Names from data_frame """
-    return [idx for idx in data_frame.index.values if idx.startswith("B")]
-
-
-def get_magnets(data_frame):
-    """ Return a list of Magnet-Names from data_frame """
-    return [idx for idx in data_frame.index.values if idx.startswith("M")]
-
-
-def get_index_by_regex(data_frame, pattern):
-    """ Returns list of strings from list_of_str that match with regex """
-    return [s for s in data_frame.index.values if re.search(pattern, s)]
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     LOGGER.debug(read_tfs(sys.argv[1]))
