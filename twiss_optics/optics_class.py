@@ -33,18 +33,18 @@ Only works properly for on-orbit twiss files.
 
 """
 
-import os
+from math import factorial
+
 import numpy as np
 import pandas as pd
-from math import factorial
-import matplotlib.pyplot as plt
-from utils.plotting import plot_style as pstyle
+
+from twiss_optics.twiss_functions import assertion, get_all_rdts
+from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
 from utils.dict_tools import DotDict
-from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
-from twiss_optics.twiss_functions import assertion, get_all_rdts
+from utils.plotting import plot_style as pstyle
 
 LOG = logtool.get_logger(__name__)
 
@@ -110,6 +110,7 @@ class TwissOptics(object):
         return tw.loc[tw.index.str.match(r"IP\d$", case=False), 'S']
 
     def _make_results_dataframe(self):
+        """ Creating a dataframe used for storing results. """
         LOG.debug("Creating Results Dataframes.")
         results_df = tfs.TfsDataFrame(index=self.twiss_df.index)
         results_df["S"] = self.twiss_df["S"]
@@ -132,6 +133,7 @@ class TwissOptics(object):
     ################################
 
     def get_phase_adv(self):
+        """ Wrapper for returning the matrix of phase-advances. """
         if self._phase_advance is None:
             self._phase_advance = get_phase_advances(self.twiss_df)
         return self._phase_advance

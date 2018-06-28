@@ -128,11 +128,10 @@ class TwissResponse(object):
     """ Provides Response Matrices calculated from sequence, model and given variables.
 
     Args:
-        varmap_or_seq_path: Path to sequence file. If there is a pre-parsed .varmap file in the same
-            folder, it will use this one. (Hence, can also be the path to this file)
-        model_or_path: Path to twiss-model file, or model
-        variables: List of variable-names
-        direction: Either +1 or -1, default +1.
+        accel_inst (accelerator): Accelerator Instance (needs to contain elements model).
+        variable_categories (list): List of variable categories to get from the accelerator class.
+        varmap_or_path (dict, string): mapping of the variables,
+            either as dict-structure of Series or path to a pickled-file.
         at_elements (str): Get response matrix for these elements. Can be:
             'bpms': All BPMS (Default)
             'bpms+': BPMS+ used magnets (== magnets defined by variables in varfile)
@@ -154,7 +153,7 @@ class TwissResponse(object):
             self._var_to_el = self._get_variable_mapping(varmap_or_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
-            self._direction = self._get_direction(accel_inst.get_beam())
+            self._direction = self._get_direction(accel_inst)
 
             # calculate all phase advances
             self._phase_advances = get_phase_advances(self._twiss)
@@ -200,7 +199,7 @@ class TwissResponse(object):
     def _get_variable_mapping(self, varmap_or_path):
         """ Get variable mapping as dictionary
 
-        Define _variables first!
+        Dev hint: Define _variables first!
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
@@ -238,7 +237,7 @@ class TwissResponse(object):
     def _get_input_elements(self):
         """ Return variable names of input elements.
 
-        Define _var_to_el and _twiss first!
+        Dev hint: Define _var_to_el and _twiss first!
         """
         v2e = self._var_to_el
         tw = self._twiss
@@ -252,14 +251,14 @@ class TwissResponse(object):
         return el_in
 
     @staticmethod
-    def _get_direction(beam):
+    def _get_direction(accel_inst):
         """ Sign for the direction of the beam. """
-        return 1 if beam == 1 else -1
+        return 1 if accel_inst.get_beam() == 1 else -1
 
     def _get_output_elements(self, at_elements):
         """ Return name-array of elements to use for output.
 
-        Define _elements_in first!
+        Dev hint: Define _elements_in first!
         """
         tw_idx = self._twiss.index
 
