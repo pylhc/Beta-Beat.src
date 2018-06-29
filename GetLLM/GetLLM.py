@@ -79,10 +79,11 @@ main invocation
 import os
 import sys
 import traceback
+import datetime
 import math
 import re
 import argparse
-
+from collections import OrderedDict
 import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
 from tfs_utils_getllm import GetllmTfsFile, GetllmPandasTfs
@@ -97,7 +98,7 @@ import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
 import algorithms.lobster
-import algorithms.orbit
+#import algorithms.orbit
 import utils.iotools
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
@@ -375,12 +376,17 @@ def main(accelerator,
         LOGGER.info("     DEBUG ON")
 
     # Creates the output files dictionary
-    files_dict = _create_tfs_files(getllm_d, os.path.join(model_dir, "twiss.dat"), nonlinear)
-
+    files_dict, header_dict = _create_tfs_files(getllm_d, os.path.join(model_dir, "twiss.dat"), nonlinear)
     # Copy calibration files calibration_x/y.out from calibration_dir_path to outputpath
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
     print_time("BEFORE_ANALYSE_SRC", time() - __getllm_starttime)
-    twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dict, use_average, calibration_twiss, accelerator.get_model_tfs())
+
+    twisses_x, twisses_y = _analyse_src_files1(files_to_analyse)
+
+    twiss_d = _analyse_src_files11(getllm_d, twiss_d, use_average,
+                                    calibration_twiss, accelerator.get_model_tfs(), twisses_x, twisses_y)
+
+    files_dict = _analyse_src_files2(twiss_d, nonlinear, files_dict, twisses_x, twisses_y)
 
     # Construct pseudo-double plane BPMs
     # TODO This should be in accelerator class
@@ -394,6 +400,7 @@ def main(accelerator,
 
     #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
     #temp_dict = copy.deepcopy(files_dict)
+
     try:
         phase_d_bk, tune_d = algorithms.phase.calculate_phase(
             getllm_d, twiss_d, tune_d, files_dict
@@ -416,8 +423,9 @@ def main(accelerator,
 
     if getllm_d.onlycoupling == 0:
         #-------- START Beta
+
         try:
-            beta_d = algorithms.beta.calculate_beta_from_phase(
+            beta_d, beta_driven_x, beta_free_x = algorithms.beta.calculate_beta_from_phase(
                 getllm_d, twiss_d, tune_d, phase_d_bk, files_dict
             )
         except:
@@ -459,22 +467,12 @@ def main(accelerator,
         except:
             _tb_()
 
-        #-------- START Orbit
+        #-------- START Dispersion
         try:
-            list_of_co_x, list_of_co_y, files_dict = algorithms.orbit._calculate_orbit(
-                getllm_d, twiss_d, tune_d, mad_twiss, files_dict
-            )
+            algorithms.dispersion.calculate_orbit_and_dispersion(twiss_d, tune_d, mad_twiss, header_dict, 'mm', getllm_d.cut_for_closed_orbit, beta_driven_x, getllm_d.outputpath)
         except:
             _tb_()
 
-        #-------- START Dispersion
-        try:
-            algorithms.dispersion.calculate_dispersion(
-                getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y
-            )
-        except:
-            _tb_()
-        
         #------ Start get Q,JX,delta
         try:
             files_dict, inv_x, inv_y = algorithms.kick._calculate_kick(
@@ -534,7 +532,10 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     GetllmTfsFile.s_output_path = getllm_d.outputpath
     GetllmTfsFile.s_getllm_version = VERSION
     GetllmTfsFile.s_mad_filename = model_filename
-
+    header_dict = OrderedDict([('GetLLMVersion', VERSION),
+                               ('Command', sys.executable+" '"+"' '".join([]+sys.argv)+"'"),
+                               ('CWD', os.getcwd()),
+                               ('Date', datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S"))])
     files_dict = {}
     _fill_files_dict_plane(files_dict, "x", getllm_d)
     _fill_files_dict_plane(files_dict, "y", getllm_d)
@@ -558,7 +559,7 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     files_dict['getkickac.out'] = GetllmTfsFile('getkickac.out')
     files_dict['getlobster.out'] = GetllmTfsFile('getlobster.out')
     files_dict['getrexter.out'] = GetllmPandasTfs('getrexter.out')
-    return files_dict
+    return files_dict, header_dict
 # END _create_tfs_files -----------------------------------------------------------------------------
 
 def _fill_files_dict_plane(files_dict, plane, getllm_d):
@@ -568,9 +569,6 @@ def _fill_files_dict_plane(files_dict, plane, getllm_d):
         files_dict['getphasetot{}_free.out'.format(plane)] = GetllmTfsFile('getphasetot{}.out'.format(plane))
         files_dict['getbeta{}_free.out'.format(plane)] = GetllmPandasTfs('getbeta{}.out'.format(plane))
         files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
-        files_dict['getCO{}.out'.format(plane)] = GetllmTfsFile('getCO{}.out'.format(plane))
-        files_dict['getND{}.out'.format(plane)] = GetllmTfsFile('getND{}.out'.format(plane))
-        files_dict['getD{}.out'.format(plane)] = GetllmTfsFile('getD{}.out'.format(plane))
         files_dict['getIP{}.out'.format(plane)] = GetllmTfsFile('getIP{}.out'.format(plane))
     else:
         files_dict['getphase{}.out'.format(plane)] = GetllmTfsFile('getphase{}.out'.format(plane))
@@ -581,18 +579,13 @@ def _fill_files_dict_plane(files_dict, plane, getllm_d):
         files_dict['getbeta{}_free.out'.format(plane)] = GetllmPandasTfs('getbeta{}_free.out'.format(plane))
         files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
         files_dict['getampbeta{}_free.out'.format(plane)] = GetllmTfsFile('getampbeta{}_free.out'.format(plane))
-        files_dict['getCO{}.out'.format(plane)] = GetllmTfsFile('getCO{}.out'.format(plane))
-        files_dict['getND{}.out'.format(plane)] = GetllmTfsFile('getND{}.out'.format(plane))
-        files_dict['getD{}.out'.format(plane)] = GetllmTfsFile('getD{}.out'.format(plane))
         files_dict['getIP{}.out'.format(plane)] = GetllmTfsFile('getIP{}.out'.format(plane))
         files_dict['getIP{}_free.out'.format(plane)] = GetllmTfsFile('getIP{}_free.out'.format(plane))
 
 
-
-def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dict, use_average, calibration_twiss, model):
+def _analyse_src_files1(files_to_analyse):
 
     LOGGER.debug("Start analysing source files")
-    union = getllm_d.union
 
     tfs_files_x, tfs_files_y = [], []
     for file_in in files_to_analyse.split(','):
@@ -627,6 +620,13 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
     tfs_files_x = _arrange_dpp(tfs_files_x)
     tfs_files_y = _arrange_dpp(tfs_files_y)
 
+    return tfs_files_x, tfs_files_y
+
+
+def _analyse_src_files11(getllm_d, twiss_d, use_average, calibration_twiss, model, tfs_files_x,
+                         tfs_files_y):
+
+    union = getllm_d.union
     for twiss_file_x, twiss_file_y in zip(tfs_files_x, tfs_files_y):
         if use_average:
             twiss_file_x = twiss_file_x.rename(columns={"AVG_MUX": "MUX", "MUX": "MUX_OLD"})
@@ -638,31 +638,94 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
             dppi = 0.0
         if type(dppi) != float:
             print type(dppi)
-            print >> sys.stderr, 'Warning: DPP may not be given as a number in ', file_x, '...trying to forcibly cast it as a number'
+            print >> sys.stderr, 'Warning: DPP may not be given as a number in ', twiss_file_x.filename, '...trying to forcibly cast it as a number'
             try:
                 dppi = float(dppi)
                 LOGGER.info('dppi = ' + dppi)
             except ValueError:
-                print >> sys.stderr, 'but failing. DPP in ', file_x, ' is something wrong. String? --- leaving GetLLM'
+                print >> sys.stderr, 'but failing. DPP in ', twiss_file_x.filename, ' is something wrong. String? --- leaving GetLLM'
                 print >> sys.stderr, traceback.format_exc()
                 sys.exit(1)
         if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
             twiss_d.zero_dpp_x.append(twiss_file_x)
-            files_dict['getcouple.out'].add_filename_to_getllm_header(file_in)
+        else:
+            twiss_d.non_zero_dpp_x.append(twiss_file_x)
+
+        # y file
+        if use_average:
+            twiss_file_y = twiss_file_y.rename(columns={"AVG_MUY": "MUY", "MUY": "MUY_OLD"})
+        if calibration_twiss is not None:
+            twiss_file_y.AMPY, twiss_file_y["ERRAMPY"] = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
+        try:
+            dppi = float(twiss_file_y.headers["DPP"])
+        except KeyError:
+            dppi = 0.0
+        if type(dppi) != float:
+            print >> sys.stderr, 'Warning: DPP may not be given as a number in ', twiss_file_y.filename, '...trying to forcibly cast it as a number'
+            try:
+                dppi = float(dppi)
+                print 'dppi= ', dppi
+            except ValueError:
+                print >> sys.stderr, 'but failing. DPP in ', twiss_file_y.filename, ' is something wrong. String? --- leaving GetLLM'
+                print >> sys.stderr, traceback.format_exc()
+                sys.exit(1)
+        if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
+            twiss_d.zero_dpp_y.append(twiss_file_y)
+
+        else:
+            twiss_d.non_zero_dpp_y.append(twiss_file_y)
+
+    if not twiss_d.has_zero_dpp_x():
+        print 'Warning: you are running GetLLM without "linx of dp/p=0". Are you sure?'
+
+        if twiss_d.has_non_zero_dpp_x():
+            twiss_d.zero_dpp_x = twiss_d.non_zero_dpp_x
+            twiss_d.zero_dpp_y = twiss_d.non_zero_dpp_y
+            twiss_d.non_zero_dpp_x = []
+            twiss_d.non_zero_dpp_y = []
+
+    if twiss_d.has_no_input_files():
+        print >> sys.stderr, "No parsed input files"
+        sys.exit(1)
+
+    twiss_d.zero_dpp_commonbpms_x, twiss_d.zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model, union, "H")
+    twiss_d.zero_dpp_commonbpms_y, twiss_d.zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model, union, "V")
+    twiss_d.non_zero_dpp_commonbpms_x, twiss_d.non_zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.non_zero_dpp_x, model,
+                                                                                         union, "H")
+    twiss_d.non_zero_dpp_commonbpms_y, twiss_d.non_zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.non_zero_dpp_y, model,
+                                                                                         union, "V")
+    return twiss_d
+
+def _analyse_src_files2(twiss_d, nonlinear, files_dict, tfs_files_x, tfs_files_y):
+
+    for twiss_file_x, twiss_file_y in zip(tfs_files_x, tfs_files_y):
+        try:
+            dppi = float(twiss_file_x.headers["DPP"])
+        except KeyError:
+            dppi = 0.0
+        if type(dppi) != float:
+            print type(dppi)
+            print >> sys.stderr, 'Warning: DPP may not be given as a number in ', twiss_file_x.filename, '...trying to forcibly cast it as a number'
+            try:
+                dppi = float(dppi)
+                LOGGER.info('dppi = ' + dppi)
+            except ValueError:
+                print >> sys.stderr, 'but failing. DPP in ', twiss_file_x.filename, ' is something wrong. String? --- leaving GetLLM'
+                print >> sys.stderr, traceback.format_exc()
+                sys.exit(1)
+        if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
+            files_dict['getcouple.out'].add_filename_to_getllm_header(twiss_file_x.filename[:-5])
             if nonlinear:
                 for rdt in algorithms.resonant_driving_terms.RDT_LIST:
-                    files_dict[rdt+'_line.out'].add_filename_to_getllm_header(file_in)
-                    files_dict[rdt+'.out'].add_filename_to_getllm_header(file_in)
+                    files_dict[rdt+'_line.out'].add_filename_to_getllm_header(twiss_file_x.filename[:-5])
+                    files_dict[rdt+'.out'].add_filename_to_getllm_header(twiss_file_x.filename[:-5])
             _add_filename_to_header_for_files(
-                files_dict, file_x,
+                files_dict, twiss_file_x.filename,
                 [
                     'getphasex.out',
                     'getphasetotx.out',
                     'getbetax.out',
                     'getampbetax.out',
-                    'getCOx.out',
-                    'getNDx.out',
-                    'getDx.out',
                     'getphasex_free.out',
                     'getphasex_free2.out',
                     'getphasetotx_free.out',
@@ -673,7 +736,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
                     'getampbetax_free2.out'
                 ])
             _add_filename_to_header_for_files(
-                files_dict, file_in,
+                files_dict, twiss_file_x.filename[:-5],
                 [
                     'getIPx.out',
                     'getIPy.out',
@@ -687,40 +750,29 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
                     'getcouple_free.out',
                     'getcouple_free2.out'
                 ])
-        else:
-            twiss_d.non_zero_dpp_x.append(twiss_file_x)
-            files_dict['getNDx.out'].add_filename_to_getllm_header(file_x)
-            files_dict['getDx.out'].add_filename_to_getllm_header(file_x)
 
         # y file
-        if use_average:
-            twiss_file_y = twiss_file_y.rename(columns={"AVG_MUY": "MUY", "MUY": "MUY_OLD"})
-        if calibration_twiss is not None:
-            twiss_file_y.AMPY, twiss_file_y["ERRAMPY"] = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
         try:
             dppi = float(twiss_file_y.headers["DPP"])
         except KeyError:
             dppi = 0.0
         if type(dppi) != float:
-            print >> sys.stderr, 'Warning: DPP may not be given as a number in ', file_y, '...trying to forcibly cast it as a number'
+            print >> sys.stderr, 'Warning: DPP may not be given as a number in ', twiss_file_y.filename, '...trying to forcibly cast it as a number'
             try:
                 dppi = float(dppi)
                 print 'dppi= ', dppi
             except ValueError:
-                print >> sys.stderr, 'but failing. DPP in ', file_y, ' is something wrong. String? --- leaving GetLLM'
+                print >> sys.stderr, 'but failing. DPP in ', twiss_file_y.filename, ' is something wrong. String? --- leaving GetLLM'
                 print >> sys.stderr, traceback.format_exc()
                 sys.exit(1)
         if dppi == 0.0:  # abs(dppi) < DPP_THRESHOLD:
-            twiss_d.zero_dpp_y.append(twiss_file_y)
             _add_filename_to_header_for_files(
-                files_dict, file_y,
+                files_dict, twiss_file_y.filename,
                 [
                     'getphasey.out',
                     'getphasetoty.out',
                     'getbetay.out',
                     'getampbetay.out',
-                    'getCOy.out',
-                    'getDy.out',
                     'getphasey_free.out',
                     'getphasey_free2.out',
                     'getphasetoty_free.out',
@@ -730,50 +782,30 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, files_dic
                     'getampbetay_free.out',
                     'getampbetay_free2.out'
                 ])
-        else:
-            twiss_d.non_zero_dpp_y.append(twiss_file_y)
-            files_dict['getDy.out'].add_filename_to_getllm_header(file_y)
 
     if not twiss_d.has_zero_dpp_x():
         print 'Warning: you are running GetLLM without "linx of dp/p=0". Are you sure?'
 
         if twiss_d.has_non_zero_dpp_x():
-            twiss_d.zero_dpp_x = twiss_d.non_zero_dpp_x
-            twiss_d.zero_dpp_y = twiss_d.non_zero_dpp_y
-            twiss_d.non_zero_dpp_x = []
-            twiss_d.non_zero_dpp_y = []
-
-            print "Previous warning suppressed, running in chromatic mode"
             _add_filename_to_header_for_files(
                 files_dict, "chrommode",
                 [
                     'getphasex.out',
                     'getbetax.out',
                     'getampbetax.out',
-                    'getCOx.out',
-                    'getNDx.out',
-                    'getDx.out',
                     'getcouple.out',
                     'getcouple_free.out',
                     'getcouple_free2.out',
                     'getphasey.out',
                     'getbetay_free.out',
-                    'getampbetay.out',
-                    'getCOx.out',
-                    'getDy.out'
+                    'getampbetay.out'
                 ])
 
     if twiss_d.has_no_input_files():
         print >> sys.stderr, "No parsed input files"
         sys.exit(1)
 
-    twiss_d.zero_dpp_commonbpms_x, twiss_d.zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.zero_dpp_x, model, union, "H")
-    twiss_d.zero_dpp_commonbpms_y, twiss_d.zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.zero_dpp_y, model, union, "V")
-    twiss_d.non_zero_dpp_commonbpms_x, twiss_d.non_zero_dpp_unionbpms_x = _get_commonbpms(twiss_d.non_zero_dpp_x, model,
-                                                                                         union, "H")
-    twiss_d.non_zero_dpp_commonbpms_y, twiss_d.non_zero_dpp_unionbpms_y = _get_commonbpms(twiss_d.non_zero_dpp_y, model,
-                                                                                         union, "V")
-    return twiss_d, files_dict
+    return files_dict
 
 def _add_filename_to_header_for_files(files_dict, filex, files_list):
     for key in files_list:

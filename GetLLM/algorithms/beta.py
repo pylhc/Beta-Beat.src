@@ -398,6 +398,7 @@ def _write_getbeta_out(number_of_bpms, range_of_bpms, phase_f, data, model, erro
             beta_df.loc[bpm, "ERRBET" + _plane_char]
         ]
     tfs_file.set_dataframe(beta_df.loc[beta_df["NCOMB"] > -2])
+    return beta_df
 
 
 def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
@@ -506,7 +507,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
 
     #------------- HORIZONTAL
     if twiss_d.has_zero_dpp_x():
-        beta_d.x_phase, beta_d.x_phase_f = beta_from_phase_for_plane(
+        beta_d.x_phase, beta_d.x_phase_f, beta_driven_x, beta_free_x = beta_from_phase_for_plane(
             free_model.loc[commonbpms_x.index], driven_model, free_bk_model, unc_elements,
             getllm_d, twiss_d, elements_centre.loc[commonbpms_x.index], phase_d.phase_advances_x,
             phase_d.phase_advances_free_x, error_method, tune_d.q1, tune_d.q1f, tune_d.q1mdl,
@@ -514,13 +515,13 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
         )
     #------------- VERTICAL
     if twiss_d.has_zero_dpp_y():
-        beta_d.y_phase, beta_d.y_phase_f = beta_from_phase_for_plane(
+        beta_d.y_phase, beta_d.y_phase_f, beta_driven_y, beta_free_y = beta_from_phase_for_plane(
             free_model.loc[commonbpms_y.index], driven_model, free_bk_model, unc_elements,
             getllm_d, twiss_d, elements_centre.loc[commonbpms_y.index], phase_d.phase_advances_y,
             phase_d.phase_advances_free_y, error_method, tune_d.q2, tune_d.q2f, tune_d.q2mdl,
             tune_d.q2mdlf, files_dict, commonbpms_y, "Y"
         )
-    return beta_d
+    return beta_d, beta_driven_x, beta_free_x
 # END calculate_beta_from_phase -------------------------------------------------------------------
 
 
@@ -554,7 +555,7 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, unc_eleme
     tfs_file = files_dict['getbeta{}_free.out'.format(plane_for_file)]
     tfs_file.add_header("Q1", getllm_d.accelerator.nat_tune_x)
     tfs_file.add_header("Q2", getllm_d.accelerator.nat_tune_y)
-    _write_getbeta_out(
+    beta_data_frame_free =_write_getbeta_out(
         getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d_phase_f, dataf, free_model,
         error_method_x, commonbpms, tfs_file, plane, getllm_d.union
     )
@@ -583,13 +584,13 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, unc_eleme
         tfs_file.add_header("Q1", getllm_d.accelerator.nat_tune_x)
         tfs_file.add_header("Q2", getllm_d.accelerator.nat_tune_y)
 
-        _write_getbeta_out(
+        beta_data_frame = _write_getbeta_out(
             getllm_d.number_of_bpms, getllm_d.range_of_bpms, beta_d_phase, data, driven_model,
             error_method_x, commonbpms, tfs_file, plane, getllm_d.union
         )
 
         _debug_("Skip free2 calculation")
-    return beta_d_phase, beta_d_phase_f
+    return beta_d_phase, beta_d_phase_f, beta_data_frame, beta_data_frame_free
 
 def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, files_dict, accelerator):
     '''
