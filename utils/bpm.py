@@ -43,7 +43,8 @@ def model_intersect(exp_bpms, model_twiss):
     for bpm in exp_bpms:
         try:
             model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
-            bpmsin.append(bpm)
+            bpmsin.append((model_twiss.S[model_twiss.indx[bpm[1]]], bpm[1]))
+            # bpmsin.append(bpm)
         except KeyError:
             print >> sys.stderr, bpm, "Not in Model"
 
@@ -53,6 +54,7 @@ def model_intersect(exp_bpms, model_twiss):
         print >> sys.stderr, "Now we better leave!"
         sys.exit(1)
 
+    bpmsin.sort()
     return bpmsin
 
 
