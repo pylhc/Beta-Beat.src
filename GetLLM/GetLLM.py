@@ -94,7 +94,7 @@ import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
 import utils.iotools
-
+import time, calendar
 import copy
 
 from numpy import array
@@ -213,6 +213,17 @@ def _parse_args():
     return options
 
 
+def get_times(files_to_analyse):
+    times = []
+    for f in files_to_analyse.split(','):
+        meas = os.path.basename(f)
+        tm = meas[11:34]
+        time_obj = time.strptime(tm, '%Y_%m_%d@%H_%M_%S_%f')
+        unix_time_utc = calendar.timegm(time_obj)
+        times.append(unix_time_utc)
+    return times
+
+
 #===================================================================================================
 # main()-function
 #===================================================================================================
@@ -300,6 +311,9 @@ def main(outputpath,
         .initial("mad_ac_best_knowledge", mad_ac_best_knowledge)\
         .initial("mad_elem_centre", mad_elem_centre)
 
+    kick_times = get_times(files_to_analyse)
+
+
     if sys.flags.debug:
         print "INFO: DEBUG ON"
 
@@ -313,7 +327,8 @@ def main(outputpath,
     dinj.initial("calibration_twiss", calibration_twiss)\
         .initial("files_dict", files_dict)\
         .initial("temp_dict", copy.deepcopy(files_dict))\
-        .initial("twiss_d", twiss_d)
+        .initial("twiss_d", twiss_d)\
+        .initial("kick_times", kick_times)
 
     # Load tunes from twiss instances, depending on with_ac_calc
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
@@ -395,7 +410,7 @@ def main(outputpath,
         # ------ Start get Q,JX,delta
         dinj.trigger(funct=_calculate_kick,
                      provides=("files_dict", "inv_x", "inv_y"),
-                     requires=("getllm_d", "twiss_d", "phase_d", "beta_d",
+                     requires=("kick_times", "getllm_d", "twiss_d", "phase_d", "beta_d",
                                "mad_twiss", "mad_ac", "files_dict",
                                "bbthreshold", "errthreshold"))
 
@@ -1067,7 +1082,7 @@ def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
 # END _calculate_getsextupoles ----------------------------------------------------------------------
 
 
-def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
+def _calculate_kick(kick_times, getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
     '''
     Fills the following TfsFiles:
      - getkick.out
@@ -1092,13 +1107,13 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
 
     tfs_file_model = files_dict['getkick.out']
     tfs_file_model.add_comment("Calculates the kick from the model beta function")
-    column_names_list = ["DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
-    column_types_list = ["%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
+    column_names_list = ["TIME", "DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
+    column_types_list = ["%le", "%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
     tfs_file_model.add_column_names(column_names_list)
     tfs_file_model.add_column_datatypes(column_types_list)
 
     for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_model.add_table_row(list_row_entries)
         actions_x, actions_y = meansqrt_2jx['phase'], meansqrt_2jy['phase']
 
@@ -1110,7 +1125,7 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
     tfs_file_phase.add_column_names(column_names_list)
     tfs_file_phase.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_phase.add_table_row(list_row_entries)
 
     if getllm_d.with_ac_calc:
@@ -1122,7 +1137,7 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
         [inv_jx, inv_jy, tunes, dpp] = algorithms.compensate_ac_effect.getkickac(mad_ac, files, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
         for i in range(0, len(dpp)):
             #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
-            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
+            list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
             tfs_file.add_table_row(list_row_entries)
             actions_x, actions_y = inv_jx, inv_jx
 
