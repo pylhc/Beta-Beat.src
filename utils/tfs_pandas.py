@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import sys
 import os
+import re
 import logging
 import pandas
 import numpy as np
@@ -50,12 +51,14 @@ class TfsDataFrame(pandas.DataFrame):
     def __getitem__(self, key):
         try:
             return super(TfsDataFrame, self).__getitem__(key)
-        except KeyError:
+        except KeyError as e:
             try:
                 return self.headers[key]
             except KeyError:
                 raise KeyError(str(key) +
                                " is not in the DataFrame or headers.")
+            except TypeError:
+                raise e
 
     def __getattr__(self, name):
         try:
@@ -103,8 +106,8 @@ def read_tfs(tfs_path, index=None):
             if len(parts) == 0:
                 continue
             if parts[0] == HEADER:
-                headers[parts[1]] = _parse_header(
-                    parts[2], " ".join(parts[3:]))
+                name, value = _parse_header(parts[1:])
+                headers[name] = value
             elif parts[0] == NAMES:
                 LOGGER.debug("Setting column names.")
                 column_names = np.array(parts[1:])
@@ -135,10 +138,10 @@ def read_tfs(tfs_path, index=None):
                 idx_name = None  # to remove it completely (Pandas makes a difference)
             data_frame = data_frame.rename_axis(idx_name)
 
-    # not sure if this is needed in general but some of GetLLM's funstions try to access this
+    # not sure if this is needed in general but some of GetLLM's functions try to access this
     headers["filename"] = tfs_path
 
-    _validate(data_frame)
+    _validate(data_frame, "from file '{:s}'".format(tfs_path))
     return data_frame
 
 
@@ -154,20 +157,19 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     identifiable by INDEX_ID (will be loaded automatically by read_tfs). If string, it saves
     the index of the data_frame to a column named like the string given. Default: False
     """
-    _validate(data_frame)
+    _validate(data_frame, "to be written in '{:s}'".format(tfs_path))
 
-    if isinstance(save_index, basestring):
-        # saves index into column by name given
-        data_frame = data_frame.copy()
-        data_frame[save_index] = data_frame.index
-    elif save_index:
-        # saves index into column, which can be found by INDEX identifier
-        data_frame = data_frame.copy()
-        try:
-            full_name = INDEX_ID + data_frame.index.name
-        except TypeError:
-            full_name = INDEX_ID
-        data_frame[full_name] = data_frame.index
+    if save_index:
+        if isinstance(save_index, basestring):
+            # saves index into column by name given
+            idx_name = save_index
+        else:
+            # saves index into column, which can be found by INDEX_ID
+            try:
+                idx_name = INDEX_ID + data_frame.index.name
+            except TypeError:
+                idx_name = INDEX_ID
+        data_frame.insert(0, idx_name, data_frame.index)
 
     tfs_name = os.path.basename(tfs_path)
     tfs_dir = os.path.dirname(tfs_path)
@@ -260,8 +262,14 @@ def _compute_types(str_list):
     return [_id_to_type(string) for string in str_list]
 
 
-def _parse_header(type_str, value_str):
-    return _id_to_type(type_str)(value_str.strip('"'))
+def _parse_header(str_list):
+    type_idx = next((idx for idx, part in enumerate(str_list) if part.startswith("%")), None)
+    if type_idx is None:
+        raise TfsFormatError("No data type found in header: '{}'".format(" ".join(str_list)))
+
+    name = " ".join(str_list[0:type_idx])
+    value_str = " ".join(str_list[(type_idx+1):])
+    return name, _id_to_type(str_list[type_idx])(value_str.strip('"'))
 
 
 def _id_to_type(type_str):
@@ -296,7 +304,7 @@ def _raise_unknown_type(name):
     raise TfsFormatError("Unknown data type: " + name)
 
 
-def _validate(data_frame):
+def _validate(data_frame, info_str=""):
     """ Check if Dataframe contains finite values only """
     def isnotfinite(x):
         try:
@@ -311,19 +319,12 @@ def _validate(data_frame):
 
     bool_df = data_frame.apply(isnotfinite)
     if bool_df.values.any():
-        LOGGER.error("DataFrame contains non-physical values at Index: {:s}".format(
+        LOGGER.warn("DataFrame {:s} contains non-physical values at Index: {:s}".format(
+            info_str,
             str(bool_df.index[bool_df.any(axis='columns')].tolist())
         ))
-
-
-def get_bpms(data_frame):
-    """ Return a list of BPM-Names from data_frame """
-    return [idx for idx in data_frame.index.values if idx.startswith("B")]
-
-
-def get_magnets(data_frame):
-    """ Return a list of Magnet-Names from data_frame """
-    [idx for idx in data_frame.index.values if idx.startswith("M")]
+    else:
+        LOGGER.debug("DataFrame {:s} validated.".format(info_str))
 
 
 if __name__ == "__main__":

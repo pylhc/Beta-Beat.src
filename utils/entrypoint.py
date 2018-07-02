@@ -77,6 +77,7 @@ from utils.dict_tools import DotDict
 from utils.dict_tools import ArgumentError
 from utils.dict_tools import ParameterError
 from functools import wraps
+from utils.contexts import silence
 
 try:
     # Python 2
@@ -106,6 +107,9 @@ class EntryPoint(object):
         self.remainder = None
         self.parameter = EntryPoint._dict2list_param(parameter)
         self._check_parameter()
+
+        # add config-argparser
+        self.configarg = self._create_config_argument()
 
         # create parsers from parameter
         self.argparse = self._create_argument_parser()
@@ -144,7 +148,7 @@ class EntryPoint(object):
             # LOG.info("Entry input: {:s}".format(kwargs))  # activate for debugging
             options = self._handle_kwargs(kwargs)
         else:
-            # LOG.info("Entry input: {:s}".format(sys.argv))  # activate for debugging
+            # LOG.info("Entry input: {:s}".format(" ".join(sys.argv))  # activate for debugging
             options = self._handle_commandline()
 
         return options  # options might include known and unknown options
@@ -152,6 +156,12 @@ class EntryPoint(object):
     #########################
     # Create Parsers
     #########################
+
+    def _create_config_argument(self):
+        """ Creates the config-file argument parser """
+        parser = ArgumentParser()
+        parser.add_argument('--{}'.format(ID_CONFIG), type=str, dest=ID_CONFIG, required=True,)
+        return parser
 
     def _create_argument_parser(self):
         """ Creates the ArgumentParser from parameter. """
@@ -176,16 +186,25 @@ class EntryPoint(object):
 
     def _handle_commandline(self, args=None):
         """ No input to function """
-        options, unknown_opts = self.argparse.parse_known_args(args)
-        options = DotDict(vars(options))
-        if self.strict:
-            if unknown_opts:
-                raise ArgumentError("Unknown options: {:s}".format(unknown_opts))
-            return options
+        try:
+            # check for config file first
+            with silence():
+                options = self.configarg.parse_args(args)
+        except SystemExit:
+            # parse regular options
+            options, unknown_opts = self.argparse.parse_known_args(args)
+            options = DotDict(vars(options))
+            if self.strict:
+                if unknown_opts:
+                    raise ArgumentError("Unknown options: {:s}".format(unknown_opts))
+                return options
+            else:
+                if unknown_opts:
+                    LOG.debug("Unknown options: {:s}".format(unknown_opts))
+                return options, unknown_opts
         else:
-            if unknown_opts:
-                LOG.debug("Unknown options: {:s}".format(unknown_opts))
-            return options, unknown_opts
+            # parse config file
+            return self.dictparse.parse_config_items(self._read_config(vars(options)[ID_CONFIG]))
 
     def _handle_arg(self, arg):
         """ *args has been input """

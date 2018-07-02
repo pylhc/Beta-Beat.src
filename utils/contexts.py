@@ -1,7 +1,10 @@
+from __future__ import print_function
 import sys
 import os
 import time
 import warnings
+import tempfile
+import shutil
 from contextlib import contextmanager
 
 
@@ -44,4 +47,43 @@ def suppress_warnings(warning_classes):
         yield
     for w in warn_list:
         if not issubclass(w.category, warning_classes):
-            warnings.warn(w)
+            print("{file:s}:{line:d}: {clas:s}: {message:s}".format(
+                file=w.filename,
+                line=w.lineno,
+                clas=w._category_name,
+                message=w.message.message,
+            ),
+                file=sys.stderr
+            )
+
+
+@contextmanager
+def temporary_dir():
+    try:
+        dir_path = tempfile.mkdtemp()
+        yield dir_path
+    finally:
+        shutil.rmtree(dir_path)
+
+
+@contextmanager
+def temporary_file_path(content="", suffix="", prefix="", text=True):
+    """ Returns path to temporary file with content. """
+    fd, file_path = tempfile.mkstemp(suffix=suffix, prefix=prefix, text=text)
+    os.close(fd)  # close file descriptor
+    if content:
+        with open(file_path, "w") as f:
+            f.write(content)
+    try:
+        yield file_path
+    finally:
+        os.remove(file_path)
+
+
+@contextmanager
+def suppress_exception(exception):
+    """ Catch exception and ignore it. """
+    try:
+        yield
+    except exception:
+        pass

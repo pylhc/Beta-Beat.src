@@ -9,17 +9,15 @@ from contextlib import contextmanager
 
 import pandas as pd
 
-from utils import iotools
-
 DIVIDER = "|"
 NEWLINE = "\n" + " " * 10  # levelname + divider + 2
 BASIC_FORMAT = '%(levelname)7s {div:s} %(message)s {div:s} %(name)s'.format(div=DIVIDER)
-COLOR_LEVEL = '\33[38;2;150;150;255m'
-COLOR_MESSAGE = '\33[38;2;255;255;180m'
-COLOR_WARN = '\33[38;2;255;161;53m'
-COLOR_ERROR = '\33[38;2;216;31;42m'
-COLOR_NAME = '\33[38;2;150;150;150m'
-COLOR_DIVIDER = '\33[38;2;150;150;150m'
+COLOR_LEVEL = '\33[0m\33[38;2;150;150;255m'
+COLOR_MESSAGE = '\33[0m\33[1m'
+COLOR_WARN = '\33[0m\33[38;2;255;161;53m'
+COLOR_ERROR = '\33[0m\33[38;2;216;31;42m'
+COLOR_NAME = '\33[0m\33[38;2;127;127;127m'
+COLOR_DIVIDER = '\33[0m\33[38;2;127;127;127m'
 COLOR_RESET = '\33[0m'
 
 
@@ -264,7 +262,11 @@ def _get_current_module(current_file=None):
     if not current_file:
         current_file = _get_caller()
     path_parts = os.path.abspath(current_file).split(os.path.sep)
-    repo_parts = iotools.get_absolute_path_to_betabeat_root().split(os.path.sep)
+
+    repo_parts = os.path.abspath(
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)
+                    ).split(os.path.sep)
+
     current_module = '.'.join(path_parts[len(repo_parts):-1])
     return current_module
 

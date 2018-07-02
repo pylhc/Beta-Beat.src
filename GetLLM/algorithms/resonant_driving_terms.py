@@ -116,16 +116,21 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     use_opposite_line = False   
     
     try:
+        if DEBUG:
+            print("Looking for normal line (%s, %s)" % (line[0],line[1]))
         _, _ = _line_to_amp_and_phase_attr(line, list_zero_dpp[0])
         use_line = True
     except AttributeError:
-        print >> sys.stderr, "Line not found, trying opposite line.. (%s, %s)!" % line
+        print >> sys.stderr, "Line (%s, %s) not found! Trying opposite line ... !" % line
+    
     try:
+        if DEBUG:
+            print("Looking for oposit line (%s, %s)" % (-line[0],-line[1]))
         _, _ = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[0])
         use_opposite_line = True
     except AttributeError:
-        print >> sys.stderr, "Opposite line not found.. (%s, %s)!" % (-line[0],-line[1])
-
+        print >> sys.stderr, "Opposite line (%s, %s) not found!" % (-line[0],-line[1])
+        
     if use_line or use_opposite_line:  
         for i in range(len(dbpms)-4):
             bpm1 = dbpms[i][1].upper()

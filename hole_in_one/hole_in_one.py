@@ -10,7 +10,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import clean
 import harpy
-import chroma
 from io_handlers import input_handler, output_handler
 
 from utils import tfs_pandas as tfs
@@ -20,6 +19,7 @@ from sdds_files import turn_by_turn_reader
 
 
 LOGGER = logging.getLogger(__name__)
+
 LOG_SUFFIX = ".log"
 
 
@@ -31,6 +31,7 @@ def run_all(main_input, clean_input, harpy_input, to_log):
             return
         _setup_file_log_handler(main_input)
         LOGGER.debug(to_log)
+        
         tbt_files = turn_by_turn_reader.read_tbt_file(main_input.file)
         for tbt_file in tbt_files:
             run_all_for_file(tbt_file, main_input, clean_input, harpy_input)
@@ -41,11 +42,14 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                              main_input.startturn,
                              main_input.endturn)
     file_date = tbt_file.date
+       
     bpm_datas = {"x": tbt_file.samples_matrix_x,
                  "y": tbt_file.samples_matrix_y}
 
     if main_input.write_raw:
         output_handler.write_raw_file(tbt_file, main_input)
+        
+        
     elif clean_input is None and harpy_input is None:
         raise ValueError("No clean or harpy or --write_raw...")
 
@@ -68,13 +72,12 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
                                  model_tfs, bpm_ress, dpp, all_bad_bpms)
 
     for plane in ("x", "y"):
-        if all_bad_bpms[plane]:
-            output_handler.write_bad_bpms(
-                main_input.file,
-                all_bad_bpms[plane],
-                main_input.outputdir,
-                plane
-            )
+        output_handler.write_bad_bpms(
+            main_input.file,
+            all_bad_bpms[plane],
+            main_input.outputdir,
+            plane
+        )
 
 
 def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
@@ -83,8 +86,12 @@ def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
     for plane in ("x", "y"):
         bpm_data = bpm_datas[plane]
         bpm_data, bpms_not_in_model = _get_only_model_bpms(bpm_data, model_tfs)
+        if bpm_data.empty:
+            raise AssertionError("Check BPMs names! None of the BPMs was found in the model!")    
+    
         bad_bpms = []
         usv = None
+        
         with timeit(lambda spanned: LOGGER.debug("Time for filtering: %s", spanned)):
             bpm_data, bad_bpms_clean = clean.clean(
                 bpm_data, clean_input, file_date,
@@ -140,6 +147,7 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
         if harpy_input.is_free_kick:
             bpm_data = bpm_datas[plane]
             lin_frame = _kick_phase_correction(bpm_data, lin_frame, plane)
+        _sync_phase(bpm_data, lin_frame, plane)    
         lin_frame = _rescale_amps_to_main_line(lin_frame, plane)
         lin_frame = _add_resonances_noise(lin_frame, plane, bpm_ress[plane])
         lin_frame = lin_frame.sort_values('S', axis=0, ascending=True)
@@ -205,7 +213,29 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res):
         lin_frame['NOISE'] = 0.0
     return lin_frame
 
-
+def _sync_phase(bpm_data_orig, lin_frame, plane):
+    """ Produces MUXSYNC and MUYSYNC column that is MUX/Y but 
+        shifted such that for bpm at index 0 is always 0.
+        It allows to compare phases of consecutive measurements
+        and if some measurements stick out remove them from the data set.
+        author: skowron  
+        """
+    uplane = plane.upper()
+    phase = np.copy(lin_frame.loc[:, 'MU' + uplane].values)
+     
+    phase0 = phase[0]
+    for i in range(len(phase)):
+        p = phase[i]
+        p = p - phase0
+        tmp = p
+        while p < -0.5:
+            p = p + 1
+        while p >  0.5:
+            p = p - 1
+        print('sync %d  in %f shifted %f final %f' % (i, phase[i],tmp,p))    
+        phase[i] = p
+    lin_frame['MU' + uplane + 'SYNC'] = phase
+    
 def _kick_phase_correction(bpm_data_orig, lin_frame, plane):
     uplane = plane.upper()
     bpm_data = bpm_data_orig.loc[lin_frame.index,:]
@@ -304,7 +334,7 @@ def _calc_dp_over_p(main_input, bpm_data):
     if sequence != "lhc":
         return 0.0  # TODO: What do we do with other accels.
     accel_cls = manager.get_accel_class(accel=sequence)
-    arc_bpms_mask = accel_cls.get_arc_bpms_mask(bpm_data.index)
+    arc_bpms_mask = accel_cls.get_element_types_mask(bpm_data.index, types=["arc_bpm"])
     arc_bpm_data = bpm_data[arc_bpms_mask]
     # We need it in mm:
     dispersions = model_twiss.loc[arc_bpm_data.index, "DX"] * 1e3
@@ -364,7 +394,7 @@ def _setup_file_log_handler(main_input):
         logging.getLogger("").addHandler(file_handler)
     else:
         LOGGER.addHandler(file_handler)
-
+    
 
 def _set_up_logger():
     main_logger = logging.getLogger("")

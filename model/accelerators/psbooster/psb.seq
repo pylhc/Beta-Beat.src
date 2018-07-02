@@ -42,6 +42,12 @@
   *********************************************************/
 
 
+hacmap21 := ac_s * (2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx)));
+vacmap43 := ac_s * (2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy)));
+hacmap: matrix, l=0, rm21 := hacmap21;
+vacmap: matrix, l=0, rm43 := vacmap43;
+
+
 //------------------------------------------------------------------------------------
 //                       RING 1                                                     
 //------------------------------------------------------------------------------------
@@ -90,6 +96,8 @@ ENDSEQUENCE;
 
 P03ring1: SEQUENCE, REFER = centre, L  = 9.8175; !Ring 1, Period 03
  BR1.DES3L1          : DES          , AT = .8065        , SLOT_ID = 2458918, ASSEMBLY_ID = 2452415;
+ hacmap                             , AT = 1.089;
+ vacmap                             , AT = 1.089;
  BR1.ONO3L1          : ONO          , AT = 1.463        , SLOT_ID = 2458926, ASSEMBLY_ID = 2452417;
  BR1.QNO3L1          : QNO__001     , AT = 1.463        , SLOT_ID = 2458927, ASSEMBLY_ID = 2452417;
  BR1.UQD3L1          : UQD          , AT = 1.463        , SLOT_ID = 2458928;
@@ -427,10 +435,10 @@ P02ring2: SEQUENCE, REFER = centre, L  = 9.8175; !Ring 2, Period 02
  BR.BHZ22                           , AT = 9.008652     , SLOT_ID = 2458880;
 ENDSEQUENCE;
 
-hacmap21 := ac_s * (2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx)));
-vacmap43 := ac_s * (2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy)));
-hacmap: matrix, l=0, rm21 := hacmap21;
-vacmap: matrix, l=0, rm43 := vacmap43;
+#hacmap21 := ac_s * (2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx)));
+#vacmap43 := ac_s * (2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy)));
+#hacmap: matrix, l=0, rm21 := hacmap21;
+#vacmap: matrix, l=0, rm43 := vacmap43;
 
 P03ring2: SEQUENCE, REFER = centre, L  = 9.8175; !Ring 2, Period 03
  BR2.DES3L1          : DES          , AT = .8065        , SLOT_ID = 2458920, ASSEMBLY_ID = 2452415;
@@ -775,6 +783,8 @@ ENDSEQUENCE;
 
 P03ring3: SEQUENCE, REFER = centre, L  = 9.8175; !Ring 3, Period 03
  BR3.DES3L1          : DES          , AT = .8065        , SLOT_ID = 2458922, ASSEMBLY_ID = 2452415;
+ hacmap                             , AT = 1.089;
+ vacmap                             , AT = 1.089;
  BR3.ONO3L1          : ONO          , AT = 1.463        , SLOT_ID = 2458933, ASSEMBLY_ID = 2452419;
  BR3.QNO3L1          : QNO__001     , AT = 1.463        , SLOT_ID = 2458934, ASSEMBLY_ID = 2452419;
  BR3.XNO3L1          : XNO__001     , AT = 1.463        , SLOT_ID = 2458935, ASSEMBLY_ID = 2452419;
@@ -1114,6 +1124,8 @@ ENDSEQUENCE;
 
 P03ring4: SEQUENCE, REFER = centre, L  = 9.8175; !Ring 4, Period 03
  BR4.DES3L1          : DES          , AT = .8065        , SLOT_ID = 2458924, ASSEMBLY_ID = 2452415;
+ hacmap                             , AT = 1.089;
+ vacmap                             , AT = 1.089;
  BR4.ONO3L1          : ONO          , AT = 1.463        , SLOT_ID = 2458936, ASSEMBLY_ID = 2452420;
  BR4.QNO3L1          : QNO__001     , AT = 1.463        , SLOT_ID = 2458937, ASSEMBLY_ID = 2452420;
  BR4.XNO3L1          : XNO__001     , AT = 1.463        , SLOT_ID = 2458938, ASSEMBLY_ID = 2452420;

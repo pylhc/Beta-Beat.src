@@ -9,6 +9,8 @@ class ModelCreator(object):
 
     @classmethod
     def create_model(creator, instance, output_path, **kwargs):
+        LOGGER.info("instance name <%s>", instance.NAME)
+        
         instance.verify_object()
         madx_script = creator.get_madx_script(
             instance,
@@ -20,9 +22,10 @@ class ModelCreator(object):
         creator.run_madx(madx_script, logfile, writeto)
 
     @classmethod
-    def prepare_run(cls, lhc_instance, output_path):
-        pass
-
+    def prepare_run(cls, acc_instance, output_path):
+        if acc_instance.fullresponse:
+            cls._prepare_fullresponse(acc_instance, output_path)
+            
     @staticmethod
     def run_madx(madx_script, logfile=None, writeto=None):
         madx_wrapper.resolve_and_run_string(

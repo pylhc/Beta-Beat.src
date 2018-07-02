@@ -14,3 +14,7 @@ db
 source_2011
 TestFullResp
 .idea/
+*udillyties*
+.hypothesis*
+.project
+.pydevproject

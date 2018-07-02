@@ -1,10 +1,13 @@
 from utils.entrypoint import entrypoint, EntryPoint, EntryPointParameters, split_arguments
 from model.accelerators import lhc, ps, esrf, psbooster
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 ACCELS = {
     lhc.Lhc.NAME: lhc.Lhc,
-    ps.Cps.NAME: ps.Cps,
+    ps.Ps.NAME: ps.Ps,
     esrf.Esrf.NAME: esrf.Esrf,
     psbooster.Psbooster.NAME: psbooster.Psbooster,
 }

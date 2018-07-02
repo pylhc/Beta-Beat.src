@@ -190,8 +190,8 @@ def _get_params():
     )
     params.add_parameter(
         flags="--optics_file",
-        help=("Path to the optics file to use, usually modifiers.madx. If "
-              "not present will default to model_path/modifiers.madx"),
+        help=("Path to the optics file to use. If not present will default to "
+              "model_path/modifiers.madx, if such a file exists."),
         name="optics_file",
     )
     params.add_parameter(
@@ -443,7 +443,11 @@ def global_correction(opt, accel_opt):
                 corr_model_elements = _maybe_add_coupling_to_model(
                     corr_model_elements, optics_params
                 )
-                corr_model = corr_model_elements.loc[tfs.get_bpms(corr_model_elements), :]
+
+                bpms_index_mask = accel_inst.get_element_types_mask(
+                    corr_model_elements.index, types=["bpm"]
+                )
+                corr_model = corr_model_elements.loc[bpms_index_mask, :]
 
                 meas_dict = _append_model_to_measurement(corr_model, meas_dict, optics_params)
                 if opt.update_response:
@@ -485,7 +489,7 @@ def _check_opt(opt):
                                           "{:s}.madx".format(opt.output_filename))
     opt.change_params_correct_path = os.path.join(opt.output_path,
                                                   "{:s}_correct.madx".format(opt.output_filename))
-    opt.knob_path = os.path.join(opt.output_path, "{:s}.knob").format(opt.output_filename)
+    opt.knob_path = os.path.join(opt.output_path, "{:s}.tfs").format(opt.output_filename)
 
     # check cuts and weights:
     def_dict = _get_default_values()
@@ -919,11 +923,7 @@ def _create_corrected_model(twiss_out, change_params, accel_inst, debug):
     madx_script = accel_inst.get_update_correction_job(twiss_out, change_params)
     # run madx
     if debug:
-        with logging_tools.TempFile("correct_iter_madxout.tmp", LOG.debug) as log_file:
-            madx_wrapper.resolve_and_run_string(
-                madx_script,
-                log_file=log_file,
-            )
+        madx_wrapper.resolve_and_run_string(madx_script)
     else:
         madx_wrapper.resolve_and_run_string(
             madx_script,

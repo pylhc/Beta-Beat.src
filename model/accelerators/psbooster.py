@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from accelerator import Accelerator
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
@@ -11,6 +12,9 @@ class Psbooster(Accelerator):
 
     Keyword Args:
         Required
+        ring (int): Ring number.
+                            **Flags**: ['--ring']
+                            
         nat_tune_x (float): Natural tune X without integer part.
                             **Flags**: ['--nattunex']
         nat_tune_y (float): Natural tune Y without integer part.
@@ -87,6 +91,22 @@ class Psbooster(Accelerator):
             name="energy",
             type=float,
         )
+
+        params.add_parameter(
+            flags=["--dpp"],
+            help="Delta p/p to use.",
+            name="dpp",
+            default=0.0,
+            type=float,
+        )
+
+        params.add_parameter(
+            flags=["--optics"],
+            help="Path to the optics file to use (modifiers file).",
+            name="optics",
+            type=str,
+        )
+
         params.add_parameter(
             flags=["--fullresponse"],
             help=("If present, fullresponse template will" +
@@ -116,6 +136,10 @@ class Psbooster(Accelerator):
 
         # optional w/o default
         self.energy = opt.get("energy", None)
+
+        self.dpp = opt.get("dpp", 0.0)
+        
+        self.optics_file = opt.get("optics", None)
 
     @classmethod
     def init_and_get_unknowns(cls, args=None):
@@ -180,9 +204,29 @@ class Psbooster(Accelerator):
         return PSB_DIR
 
     @classmethod
-    def get_arc_bpms_mask(cls, list_of_elements):
+    def get_element_types_mask(cls, list_of_elements, types):
         # TODO: Anaaaaaa
-        pass
+        raise NotImplementedError("Anaaaaa!")
+        re_dict = {
+            "bpm": r".*",
+            "magnet": r".*",
+            "arc_bpm": r".*",
+        }
+
+        unknown_elements = [ty for ty in types if ty not in re_dict]
+        if len(unknown_elements):
+            raise TypeError("Unknown element(s): '{:s}'".format(str(unknown_elements)))
+
+        series = pd.Series(list_of_elements)
+
+        mask = series.str.match(re_dict[types[0]], case=False)
+        for ty in types[1:]:
+            mask = mask | series.str.match(re_dict[ty], case=False)
+        return mask.values
+
+    @classmethod
+    def get_file(cls, filename):
+        return os.path.join(CURRENT_DIR, "psbooster", filename)
 
     # Private Methods ##########################################################
 

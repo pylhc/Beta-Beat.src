@@ -112,7 +112,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse):
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL"):
+        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL","PS"):
             raise ValueError("Unknown accelerator: " + accel)
         if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")
@@ -204,7 +204,9 @@ def _generate_fullresponse_for_coupling(fullresponse):
     knobsdict = json.load(file(path_all_lists_json_file, 'r'))
     print "Loaded json file: " + path_all_lists_json_file
     if fullresponse == True:
+        print knobsdict
         variables = knobsdict["Qs"]
+        
     if fullresponse == False:
         print "Small coupling"
         variables = knobsdict["coupling_knobs"]
@@ -327,15 +329,15 @@ DEV_NULL = os.devnull
 
 
 def _callMadx(pathToInputFile, attemptsLeft=5):
-    result = madx_wrapper.resolve_and_run_file(pathToInputFile, log_file=DEV_NULL)
-    if result is not 0:  # then madx failed for whatever reasons, lets try it again (tbach)
-        print "madx failed. result:", result, "pathToInputFile:", pathToInputFile, "attempts left:", attemptsLeft
+    try:
+        madx_wrapper.resolve_and_run_file(pathToInputFile, log_file=DEV_NULL)
+    except madx_wrapper.MadxError:  # then madx failed for whatever reasons, lets try it again (tbach)
+        print "madx failed. pathToInputFile:", pathToInputFile, "attempts left:", attemptsLeft
         if attemptsLeft is 0:
             raise Exception("madx finally failed, can not continue")
         print "lets wait 0.5s and try again..."
         time.sleep(0.5)
-        return _callMadx(pathToInputFile, attemptsLeft - 1)
-    return result
+        _callMadx(pathToInputFile, attemptsLeft - 1)
 
 
 def _dump(pathToDump, content):

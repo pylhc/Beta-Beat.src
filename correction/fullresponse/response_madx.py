@@ -193,7 +193,7 @@ def _get_jobfiles(temp_dir, index):
 def _launch_single_job(inputfile_path):
     """ Function for pool to start a single madx job """
     log_file = inputfile_path + ".log"
-    return madx_wrapper.resolve_and_run_file(inputfile_path, log_file=log_file)
+    madx_wrapper.resolve_and_run_file(inputfile_path, log_file=log_file)
 
 
 def _load_and_remove_twiss(var_and_path):
@@ -211,7 +211,7 @@ def _add_coupling(dict_of_tfs):
     """ Adds coupling to the tfs. QUICK FIX VIA LOOP!"""
     with timeit(lambda t: LOG.debug("  Time adding coupling: {:f}s".format(t))):
         for var in dict_of_tfs:
-            twopt = TwissOptics(dict_of_tfs[var], keep_all_elem=True)
+            twopt = TwissOptics(dict_of_tfs[var])
             cpl = twopt.get_coupling("cmatrix")
             dict_of_tfs[var]["1001"] = cpl["F1001"]
             dict_of_tfs[var]["1010"] = cpl["F1010"]

@@ -63,7 +63,7 @@ def write_harpy_output(main_input, harpy_data_frame, headers, spectrum, plane):
     )
     tfs_pandas.write_tfs(output_file, harpy_data_frame, headers)
     if not main_input.skip_files:
-    	_write_full_spectrum(main_input, spectrum, plane)
+        _write_full_spectrum(main_input, spectrum, plane)
 
 
 def _write_full_spectrum(main_input, spectrum, plane):
