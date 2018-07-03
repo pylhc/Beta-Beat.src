@@ -98,7 +98,7 @@ import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
 import algorithms.lobster
-#import algorithms.orbit
+import algorithms.kick
 import utils.iotools
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
@@ -435,11 +435,11 @@ def main(accelerator,
         else:
             print_time("AFTER_A_NBPM", time() - __getllm_starttime)
 
-        try:
-            algorithms.lobster.get_local_observable(
-                phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict, tune_d.q1f)
-        except:
-            _tb_()
+        # try:
+        #     algorithms.lobster.get_local_observable(
+        #         phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict, tune_d.q1f)
+        # except:
+        #     _tb_()
 
         #------- START beta from amplitude
         try:
@@ -459,26 +459,27 @@ def main(accelerator,
             mad_ac = mad_twiss
 
         #-------- START IP
-        try:
-            algorithms.interaction_point.calculate_ip(
-                getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, mad_twiss, mad_ac,
-                files_dict
-            )
-        except:
-            _tb_()
+        # try:
+        #     algorithms.interaction_point.calculate_ip(
+        #         getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, mad_twiss, mad_ac,
+        #         files_dict
+        #     )
+        # except:
+        #     _tb_()
 
         #-------- START Dispersion
         try:
-            algorithms.dispersion.calculate_orbit_and_dispersion(twiss_d, tune_d, mad_twiss, header_dict, 'mm', getllm_d.cut_for_closed_orbit, beta_driven_x, getllm_d.outputpath)
+            algorithms.dispersion.calculate_orbit_and_dispersion(  # propagate here the unit
+                twiss_d, tune_d, mad_twiss, header_dict, 'mm', getllm_d.cut_for_closed_orbit,
+                beta_driven_x, getllm_d.outputpath)
         except:
             _tb_()
 
         #------ Start get Q,JX,delta
         try:
-            files_dict, inv_x, inv_y = algorithms.kick._calculate_kick(
-                getllm_d, twiss_d, phase_d_bk, beta_d, files_dict,
-                bbthreshold, errthreshold
-            )
+            files_dict, inv_x, inv_y = algorithms.kick.calculate_kick(
+                mad_twiss, mad_ac, getllm_d, twisses_x, twisses_y, beta_d, phase_d_bk,
+                getllm_d.outputpath, header_dict, files_dict)
         except:
             _tb_()
     else:
@@ -554,8 +555,6 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     files_dict["getsex3000.out"] = GetllmTfsFile("getsex3000.out")
     files_dict['getchi3000.out'] = GetllmTfsFile('getchi3000.out')
     files_dict['getchi1010.out'] = GetllmTfsFile('getchi1010.out')
-    files_dict['getkick.out'] = GetllmTfsFile('getkick.out')
-    files_dict['getkickphase.out'] = GetllmTfsFile('getkickphase.out')
     files_dict['getkickac.out'] = GetllmTfsFile('getkickac.out')
     files_dict['getlobster.out'] = GetllmTfsFile('getlobster.out')
     files_dict['getrexter.out'] = GetllmPandasTfs('getrexter.out')
