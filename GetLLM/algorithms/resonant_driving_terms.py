@@ -214,7 +214,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         
         #print "skowron EAMP", res_err[0]
         if np.isinf(res_err[0]):
-            print "skowron EAMP is inf", res_err[0]
+            #print "skowron EAMP is inf", res_err[0]
             res_err[0] = 0.0
             
         rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])

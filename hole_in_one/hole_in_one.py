@@ -232,7 +232,7 @@ def _sync_phase(bpm_data_orig, lin_frame, plane):
             p = p + 1
         while p >  0.5:
             p = p - 1
-        print('sync %d  in %f shifted %f final %f' % (i, phase[i],tmp,p))    
+        #print('sync %d  in %f shifted %f final %f' % (i, phase[i],tmp,p))    
         phase[i] = p
     lin_frame['MU' + uplane + 'SYNC'] = phase
     
