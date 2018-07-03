@@ -39,7 +39,6 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
 #             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
 
-
 def determine_lines(rdt):
     r = list(rdt)
     j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
@@ -85,7 +84,7 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, in
 
 def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, line), inv_x, inv_y, rdt, beam):
     assert plane in ["H", "V"] # check user input plane
-    
+
     # get plane corresponding phase and twiss data
     linx_data = twiss_d.zero_dpp_x
     liny_data = twiss_d.zero_dpp_y
@@ -159,8 +158,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 elif use_opposite_line and not use_line:
                     amp_line, phase_line = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
                     phase_line = -phase_line 
-
-                if beam == 1:
+                
+                if beam==1:
                     delta, edelta = bpm_pair_data[1:]
                     amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
@@ -174,23 +173,22 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     line_phases.append(line_phase)
                     line_phases_err.append(line_phase_e)
     
-                elif beam == -1:
+
+                if beam==-1:
                     delta, edelta = bpm_pair_data[1:]
+                    delta = -delta
                     amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-
-                    try:
-                        bpm_position = bpm_positions[bpm_names.index(bpm2)]
-                        line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp2, amp1, phase2, phase1)
-                        out_file.add_table_row([bpm2, bpm_position, len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
-                        line_amplitudes.append(line_amp)
-                        line_amplitudes_err.append(line_amp_e)
-                        line_phases.append(line_phase)
-                        line_phases_err.append(line_phase_e)
-                    except ValueError:
-                        pass
+                    
+                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
+                    out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
+                    line_amplitudes.append(line_amp)
+                    line_amplitudes_err.append(line_amp_e)
+                    line_phases.append(line_phase)
+                    line_phases_err.append(line_phase_e)
+    
                         
                 
                 rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01)%1)

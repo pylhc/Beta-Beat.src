@@ -15,4 +15,4 @@ after_success:
 git:
     depth: false
 regression:
-    ref_commit: 2c02b6a84bf53ec9088b88177855fa793a88a116
+    ref_commit: e12bbfdb0be00da1e3ca3e60e4726ac0a8c58bc5

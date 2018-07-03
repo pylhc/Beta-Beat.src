@@ -334,7 +334,7 @@ def _calc_dp_over_p(main_input, bpm_data):
     if sequence != "lhc":
         return 0.0  # TODO: What do we do with other accels.
     accel_cls = manager.get_accel_class(accel=sequence)
-    arc_bpms_mask = accel_cls.get_arc_bpms_mask(bpm_data.index)
+    arc_bpms_mask = accel_cls.get_element_types_mask(bpm_data.index, types=["arc_bpm"])
     arc_bpm_data = bpm_data[arc_bpms_mask]
     # We need it in mm:
     dispersions = model_twiss.loc[arc_bpm_data.index, "DX"] * 1e3

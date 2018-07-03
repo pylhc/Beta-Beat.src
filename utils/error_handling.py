@@ -22,3 +22,9 @@ def append_error_message(err, message):
     else:
         err.args = (err.args[0] + message,) + err.args[1:]
     return err
+
+
+def assertion(condition, exception):
+    """ Raise Exception if condition is not fulfilled """
+    if not condition:
+        raise exception

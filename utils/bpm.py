@@ -43,16 +43,17 @@ def model_intersect(exp_bpms, model_twiss):
     for bpm in exp_bpms:
         try:
             model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
-            bpmsin.append(bpm)
+            bpmsin.append((model_twiss.S[model_twiss.indx[bpm[1]]], bpm[1]))
+            # bpmsin.append(bpm)
         except KeyError:
             print >> sys.stderr, bpm, "Not in Model"
 
     if len(bpmsin) == 0:
         print >> sys.stderr, "Zero intersection of Exp and Model"
         print >> sys.stderr, "Please, provide a good Dictionary or correct data"
-        print >> sys.stderr, "Now we better leave!"
-        sys.exit(1)
+        raise ValueError("Empty intersection between model and measurement.")
 
+    bpmsin.sort()
     return bpmsin
 
 
