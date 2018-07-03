@@ -35,10 +35,9 @@ def calculate_orbit_and_dispersion(twiss_d, tune_d, model, header_dict, unit, cu
     Returns:
 
     """
-
     orbit_header = _get_header(header_dict, tune_d, orbit=True)
     dispersion_header = _get_header(header_dict, tune_d, orbit=False)
-    if twiss_d.has_zero_dpp_x(): # For the moment, to be removed once twiss_d is not used
+    if twiss_d.has_zero_dpp_x():  # For the moment, to be removed once twiss_d is not used
         _calculate_orbit(model, twiss_d.zero_dpp_x, "X", orbit_header, output)
         _calculate_dispersion(model, twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, "X",
                               dispersion_header, unit, cut, output)
@@ -97,15 +96,15 @@ def _calculate_dispersion(model, list_of_df, plane, header_dict, unit, cut, outp
                                       order, cov=True)
     # in the fit results the coefficients are sorted  by power in decreasing order
     df_orbit['D' + plane] = fit[0][-2, :].T
-    df_orbit['STDD' + plane] = np.sqrt(fit[1][-2, -2, :].T) #* t_value_correction_dict(len(orbit_columns))
+    df_orbit['STDD' + plane] = np.sqrt(fit[1][-2, -2, :].T) # * t_value_correction_dict(len(orbit_columns))
 
     df_orbit[plane] = fit[0][-1, :].T
-    df_orbit['STD' + plane] = np.sqrt(fit[1][-1, -1, :].T) #* t_value_correction_dict(len(orbit_columns))
+    df_orbit['STD' + plane] = np.sqrt(fit[1][-1, -1, :].T) # * t_value_correction_dict(len(orbit_columns))
     df_orbit = df_orbit.loc[np.abs(df_orbit.loc[:, plane]) < cut*SCALES[unit], :]
     df_orbit['DP' + plane] = _calculate_dp(model,
                                            df_orbit.loc[:, ['D' + plane, 'STDD' + plane]], plane)
     output_df = df_orbit.loc[:,
-                             ['S', 'COUNT', 'D' + plane, 'STDD' + plane, plane, 'STD' + plane, # 'DP' + plane,
+                             ['S', 'COUNT', 'D' + plane, 'STDD' + plane, plane, 'STD' + plane, 'DP' + plane,
                               'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL']]
     tfs_pandas.write_tfs(join(output, 'getD' + plane.lower() + '.out'), output_df, header_dict, save_index='NAME')
     return output_df
@@ -114,7 +113,6 @@ def _calculate_dispersion(model, list_of_df, plane, header_dict, unit, cut, outp
 
 def _calculate_normalised_dispersion(model, list_of_df, beta, header_dict, unit, cut, output):
     #TODO there are no errors from orbit
-    # TODO for the moment there is no calibration error free DX and DPX - no idea what is in beta input: should be fixed
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MUX', 'DPX', 'DX', 'X', 'BETX']]
     df_orbit['NDXMDL'] = df_orbit.loc[:, 'DX'] / np.sqrt(df_orbit.loc[:, 'BETX'])
     df_orbit.rename(columns={'MUX': 'MUXMDL', 'DPX': 'DPXMDL', 'DX': 'DXMDL', 'X': 'XMDL'}, inplace=True)
@@ -163,12 +161,13 @@ def _calculate_dp(model, disp, plane):
     p_mdl_12[-1] = p_mdl_12[-1] + model['Q' + str(1+(plane == "Y"))]
     phi_12 = p_mdl_12 * 2 * np.pi
     m11 = np.sqrt(df.loc[shifted, 'BET' + plane] / df.loc[:, 'BET' + plane]) * (np.cos(phi_12)
-        + df.loc[:, 'ALF' + plane] * np.sin(phi_12))
+                  + df.loc[:, 'ALF' + plane] * np.sin(phi_12))
     m12 = np.sqrt(df.loc[shifted, 'BET' + plane] * df.loc[:, 'BET' + plane]) * np.sin(phi_12)
     m13 = df.loc[shifted, 'D' + plane] - m11 * df.loc[:, 'D' + plane] - m12 * df.loc[:, 'DP' + plane]
     return (-m13 + df.loc[shifted, 'D' + plane + 'meas'] - m11 * df.loc[:, 'D' + plane + 'meas']) / m12
 
-# following should be moved to other script
+
+# TODO following should be moved to other script
 def t_value_correction_dict(num):
     correction_dict = {2: 1.8395, 3: 1.3224, 4: 1.1978, 5: 1.1425, 6: 1.1113, 7: 1.0913, 8: 1.0775,
                        9: 1.0673, 10: 1.0594, 11: 1.0533, 12: 1.0483, 13: 1.0441, 14: 1.0401,
@@ -193,9 +192,9 @@ def t_value_correction(sample_size):
     return t.ppf((1 - erf(1 / np.sqrt(2))) / 2, sample_size - 1)
 
 def get_data_frame_from_line_dict(line_dict, columns=None):
-    keys=[]
-    values=[]
+    keys = []
+    values = []
     for (key, value) in line_dict.items():
         keys.append(key)
         values.append(value)
-    return pd.DataFrame(data=np.array(values),index=np.array(keys),columns=columns)
+    return pd.DataFrame(data=np.array(values), index=np.array(keys), columns=columns)
