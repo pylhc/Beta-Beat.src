@@ -32,7 +32,6 @@ def calculate_kick(model, mad_ac, getllm_d, files_x, files_y, beta_d, phase_d, o
                     "2JYSTD"]
     kick_frame = pd.DataFrame(data=tunes_actions, columns=column_names)
     header = _get_header(header_dict)
-    print(header)
     tfs_pandas.write_tfs(join(output, header['FILENAME']), kick_frame, header)
     actions_x, actions_y = tunes_actions[:, 9:11], tunes_actions[:, 11:13]  # sqrt2jx, sqrt2Jy
 

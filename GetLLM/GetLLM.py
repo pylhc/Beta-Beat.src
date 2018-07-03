@@ -459,13 +459,10 @@ def main(accelerator,
             mad_ac = mad_twiss
 
         #-------- START IP
-        # try:
-        #     algorithms.interaction_point.calculate_ip(
-        #         getllm_d, twiss_d, tune_d, phase_d_bk, beta_d, mad_twiss, mad_ac,
-        #         files_dict
-        #     )
-        # except:
-        #     _tb_()
+        try:
+            algorithms.interaction_point.betastar_from_phase(getllm_d.accel, phase_d_bk, mad_twiss, files_dict)
+        except:
+            _tb_()
 
         #-------- START Dispersion
         try:
