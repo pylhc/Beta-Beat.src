@@ -218,7 +218,12 @@ def get_times(files_to_analyse):
     for f in files_to_analyse.split(','):
         meas = os.path.basename(f)
         tm = meas[11:34]
-        time_obj = time.strptime(tm, '%Y_%m_%d@%H_%M_%S_%f')
+        try:
+            time_obj = time.strptime(tm, '%Y_%m_%d@%H_%M_%S_%f')
+        except ValueError:
+            times.append(0)
+            continue
+            
         unix_time_utc = calendar.timegm(time_obj)
         times.append(unix_time_utc)
     return times
