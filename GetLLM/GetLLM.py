@@ -91,6 +91,7 @@ from GetLLMError import GetLLMError, CriticalGetLLMError
 import algorithms.helper
 import algorithms.phase
 import algorithms.beta
+import algorithms.beta_from_amplitude
 import algorithms.compensate_excitation
 import algorithms.dispersion
 import algorithms.coupling
@@ -99,6 +100,7 @@ import algorithms.interaction_point
 import algorithms.chi_terms
 import algorithms.lobster
 import algorithms.kick
+import algorithms.dpp
 import utils.iotools
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
@@ -146,7 +148,7 @@ ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 ONLYCOUPLING    = 0     #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
-DPP_TOLERANCE = 0.0001
+
 UNION       = 1
 
 BAD_BPMS_hor = ["BPM.23L6.B1", "BPM.22R8.B1", "BPMYB.4L2.B1", "BPMSX.4L2.B1", "BPMYB.4L2.B1", "BPM.14L4.B1", "BPM23L6.B1",
@@ -443,7 +445,7 @@ def main(accelerator,
 
         #------- START beta from amplitude
         try:
-            beta_d = algorithms.beta.calculate_beta_from_amplitude(
+            beta_d = algorithms.beta_from_amplitude.calculate_beta_from_amplitude(
                 getllm_d, twiss_d, tune_d, phase_d_bk, beta_d,
                 files_dict, accelerator
             )
@@ -564,7 +566,6 @@ def _fill_files_dict_plane(files_dict, plane, getllm_d):
         files_dict['getphase{}_free.out'.format(plane)] = GetllmTfsFile('getphase{}.out'.format(plane))
         files_dict['getphasetot{}_free.out'.format(plane)] = GetllmTfsFile('getphasetot{}.out'.format(plane))
         files_dict['getbeta{}_free.out'.format(plane)] = GetllmPandasTfs('getbeta{}.out'.format(plane))
-        files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
         files_dict['getIP{}.out'.format(plane)] = GetllmTfsFile('getIP{}.out'.format(plane))
     else:
         files_dict['getphase{}.out'.format(plane)] = GetllmTfsFile('getphase{}.out'.format(plane))
@@ -573,8 +574,6 @@ def _fill_files_dict_plane(files_dict, plane, getllm_d):
         files_dict['getphasetot{}_free.out'.format(plane)] = GetllmTfsFile('getphasetot{}_free.out'.format(plane))
         files_dict['getbeta{}.out'.format(plane)] = GetllmPandasTfs('getbeta{}.out'.format(plane))
         files_dict['getbeta{}_free.out'.format(plane)] = GetllmPandasTfs('getbeta{}_free.out'.format(plane))
-        files_dict['getampbeta{}.out'.format(plane)] = GetllmTfsFile('getampbeta{}.out'.format(plane))
-        files_dict['getampbeta{}_free.out'.format(plane)] = GetllmTfsFile('getampbeta{}_free.out'.format(plane))
         files_dict['getIP{}.out'.format(plane)] = GetllmTfsFile('getIP{}.out'.format(plane))
         files_dict['getIP{}_free.out'.format(plane)] = GetllmTfsFile('getIP{}_free.out'.format(plane))
 
@@ -613,8 +612,8 @@ def _analyse_src_files1(files_to_analyse):
         except ValueError:
             pass  # Information printed by metaclass already
 
-    tfs_files_x = _arrange_dpp(tfs_files_x)
-    tfs_files_y = _arrange_dpp(tfs_files_y)
+    tfs_files_x = algorithms.dpp.arrange_dpp(tfs_files_x)
+    tfs_files_y = algorithms.dpp.arrange_dpp(tfs_files_y)
 
     return tfs_files_x, tfs_files_y
 
@@ -721,15 +720,12 @@ def _analyse_src_files2(twiss_d, nonlinear, files_dict, tfs_files_x, tfs_files_y
                     'getphasex.out',
                     'getphasetotx.out',
                     'getbetax.out',
-                    'getampbetax.out',
                     'getphasex_free.out',
                     'getphasex_free2.out',
                     'getphasetotx_free.out',
                     'getphasetotx_free2.out',
                     'getbetax_free.out',
-                    'getbetax_free2.out',
-                    'getampbetax_free.out',
-                    'getampbetax_free2.out'
+                    'getbetax_free2.out'
                 ])
             _add_filename_to_header_for_files(
                 files_dict, twiss_file_x.filename[:-5],
@@ -768,15 +764,12 @@ def _analyse_src_files2(twiss_d, nonlinear, files_dict, tfs_files_x, tfs_files_y
                     'getphasey.out',
                     'getphasetoty.out',
                     'getbetay.out',
-                    'getampbetay.out',
                     'getphasey_free.out',
                     'getphasey_free2.out',
                     'getphasetoty_free.out',
                     'getphasetoty_free2.out',
                     'getbetay_free.out',
-                    'getbetay_free2.out',
-                    'getampbetay_free.out',
-                    'getampbetay_free2.out'
+                    'getbetay_free2.out'
                 ])
 
     if not twiss_d.has_zero_dpp_x():
@@ -788,13 +781,11 @@ def _analyse_src_files2(twiss_d, nonlinear, files_dict, tfs_files_x, tfs_files_y
                 [
                     'getphasex.out',
                     'getbetax.out',
-                    'getampbetax.out',
                     'getcouple.out',
                     'getcouple_free.out',
                     'getcouple_free2.out',
                     'getphasey.out',
-                    'getbetay_free.out',
-                    'getampbetay.out'
+                    'getbetay_free.out'
                 ])
 
     if twiss_d.has_no_input_files():
@@ -810,79 +801,7 @@ def _add_filename_to_header_for_files(files_dict, filex, files_list):
 
 
 
-def _arrange_dpp(list_of_tfs):
-    '''
-    Grouping of dpp-values in the given linx,liny-files and computing new values
-    '''
-    list_of_tfs_arranged = []
-    for tfs_file in list_of_tfs:
-        if "DPP" not in tfs_file.headers:
-            tfs_file.headers["DPP"] = 0.0
-    if len(list_of_tfs) == 1:
-        only_dpp = list_of_tfs[0].headers["DPP"]
-        if np.abs(only_dpp) > DPP_TOLERANCE:
-            LOGGER.warn(
-                'It looks like the file you are analyzing has too '
-                'high momentum deviation {}. Optics parameters might '
-                'be wrong.'.format(only_dpp)
-            )
-        list_of_tfs[0].headers["DPP"] = 0.0
-        return list_of_tfs
-    dpp_values = [tfs_file.DPP for tfs_file in list_of_tfs]
-    if 0.0 in dpp_values:
-        LOGGER.warn('Exact 0.0 found, the dp/p values are probably already grouped.')
-        return list_of_tfs
-    closest_to_zero = np.argmin(np.absolute(dpp_values))
-    ordered_indices = np.argsort(dpp_values)
-    ranges = _compute_ranges(list_of_tfs, ordered_indices)
-    offset_range = _find_range_with_element(ranges, closest_to_zero)
-    offset_dpps = _values_in_range(offset_range, dpp_values)
-    LOGGER.debug("dp/p closest to zero is {}".format(dpp_values[closest_to_zero]))
-    zero_offset = np.mean(offset_dpps)
-    LOGGER.debug("Detected dpp differences, aranging as: {0}, zero offset: {1}."
-                 .format(ranges, zero_offset))
-    for idx in range(len(dpp_values)):
-        range_to_use = _find_range_with_element(ranges, idx)
-        dpps_from_range = _values_in_range(range_to_use, dpp_values)
-        range_mean = np.mean(dpps_from_range)
-        list_of_tfs[idx].headers["DPP"] = range_mean - zero_offset
-        list_of_tfs_arranged.append(list_of_tfs[idx])
-    return list_of_tfs_arranged
 
-
-def _values_in_range(range_to_use, dpp_values):
-    dpps_from_range = []
-    for dpp_idx in range_to_use:
-        dpps_from_range.append(dpp_values[dpp_idx])
-    return dpps_from_range
-
-
-def _find_range_with_element(ranges, element):
-    range_with_element = None
-    for dpp_range in ranges:
-        if element in dpp_range:
-            range_with_element = dpp_range
-    return range_with_element
-
-
-def _compute_ranges(list_of_tfs, ordered_indices):
-    list_of_ranges = []
-    last_range = None
-    for idx in ordered_indices:
-        if (list_of_ranges and
-                _is_in_same_range(list_of_tfs[last_range[0]].DPP,
-                                  list_of_tfs[idx].DPP)):
-            last_range.append(idx)
-        else:
-            new_range = []
-            new_range.append(idx)
-            list_of_ranges.append(new_range)
-            last_range = new_range
-    return list_of_ranges
-
-
-def _is_in_same_range(a, b):
-    return b <= a + DPP_TOLERANCE and b >= a - DPP_TOLERANCE
 
 # END _analyse_src_files ----------------------------------------------------------------------------
 
