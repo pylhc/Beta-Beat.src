@@ -7,6 +7,7 @@ Created on 29/06/18
 
 It computes kick actions.
 # TODO use only arc BPMs
+# TODO
 """
 from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas
