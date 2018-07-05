@@ -1,6 +1,6 @@
 {
-  "PR.Q": ["kf","kd"],
-  "PR.QS": ["PR.KQSE29", "PR.KQSE87"],
+  "PR.Q":  ["kf","kd"],
+  "PR.QSE": ["PR.KQSE29", "PR.KQSE87"],
   "PE.QKE": ["PR.KQKE16", "PR.QKE162"],
   "PR.QN": ["PR.KQFN05",
             "PR.KQFN09",
