@@ -11,9 +11,7 @@ from os.path import join
 import pandas as pd
 import numpy as np
 from utils import tfs_pandas
-from scipy.special import erf
-from scipy.stats import t
-
+from utils.stats import t_value_correction
 SCALES = {'um': 1.0e-6, 'mm': 1.0e-3, 'cm': 1.0e-2, 'm': 1.0}
 
 
@@ -71,7 +69,7 @@ def _calculate_orbit(model, list_of_df, plane, header_dict, output):
                             right_index=True, suffixes=('', str(i+1)))
         measured_orbit_columns.append('CO' + str(i+1))
     df_orbit[plane] = np.mean(df_orbit.loc[:, measured_orbit_columns].values, axis=1)
-    df_orbit['STD' + plane] = np.std(df_orbit.loc[:, measured_orbit_columns].values, axis=1) #* t_value_correction_dict(len(measured_orbit_columns))
+    df_orbit['STD' + plane] = np.std(df_orbit.loc[:, measured_orbit_columns].values, axis=1) #* t_value_correction(len(measured_orbit_columns))
     output_df = df_orbit.loc[:, ['S', 'COUNT', plane, 'STD' + plane, plane + 'MDL', 'MU' + plane + 'MDL']]
     tfs_pandas.write_tfs(join(output, 'getCO' + plane.lower() + '.out'), output_df, header_dict, save_index='NAME')
     return output_df
@@ -94,12 +92,12 @@ def _calculate_dispersion(model, list_of_df, plane, header_dict, unit, cut, outp
         # raise ValueError('Cannot calculate dispersion, only a single momentum data')
     fit = np.polyfit(dpps, SCALES[unit] * df_orbit.loc[:, orbit_columns].values.T,
                                       order, cov=True)
-    # in the fit results the coefficients are sorted  by power in decreasing order
+    # in the fit results the coefficients are sorted by power in decreasing order
     df_orbit['D' + plane] = fit[0][-2, :].T
-    df_orbit['STDD' + plane] = np.sqrt(fit[1][-2, -2, :].T) # * t_value_correction_dict(len(orbit_columns))
+    df_orbit['STDD' + plane] = np.sqrt(fit[1][-2, -2, :].T) # * t_value_correction(len(orbit_columns))
 
     df_orbit[plane] = fit[0][-1, :].T
-    df_orbit['STD' + plane] = np.sqrt(fit[1][-1, -1, :].T) # * t_value_correction_dict(len(orbit_columns))
+    df_orbit['STD' + plane] = np.sqrt(fit[1][-1, -1, :].T) # * t_value_correction(len(orbit_columns))
     df_orbit = df_orbit.loc[np.abs(df_orbit.loc[:, plane]) < cut*SCALES[unit], :]
     df_orbit['DP' + plane] = _calculate_dp(model,
                                            df_orbit.loc[:, ['D' + plane, 'STDD' + plane]], plane)
@@ -108,7 +106,6 @@ def _calculate_dispersion(model, list_of_df, plane, header_dict, unit, cut, outp
                               'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL']]
     tfs_pandas.write_tfs(join(output, 'getD' + plane.lower() + '.out'), output_df, header_dict, save_index='NAME')
     return output_df
-
 
 
 def _calculate_normalised_dispersion(model, list_of_df, beta, header_dict, unit, cut, output):
@@ -165,36 +162,3 @@ def _calculate_dp(model, disp, plane):
     m12 = np.sqrt(df.loc[shifted, 'BET' + plane] * df.loc[:, 'BET' + plane]) * np.sin(phi_12)
     m13 = df.loc[shifted, 'D' + plane] - m11 * df.loc[:, 'D' + plane] - m12 * df.loc[:, 'DP' + plane]
     return (-m13 + df.loc[shifted, 'D' + plane + 'meas'] - m11 * df.loc[:, 'D' + plane + 'meas']) / m12
-
-
-# TODO following should be moved to other script
-def t_value_correction_dict(num):
-    correction_dict = {2: 1.8395, 3: 1.3224, 4: 1.1978, 5: 1.1425, 6: 1.1113, 7: 1.0913, 8: 1.0775,
-                       9: 1.0673, 10: 1.0594, 11: 1.0533, 12: 1.0483, 13: 1.0441, 14: 1.0401,
-                       15: 1.0377, 16: 1.0351, 17: 1.0329, 18: 1.0310, 19: 1.0292, 20: 1.0277}
-    if 1 < num <= 20:
-        return correction_dict[num]
-    return 1.0
-
-
-def t_value_correction(sample_size):
-    """
-    Calculates the multiplicative correction factor to determine standard deviation of normally 
-    distributed quantity from standard deviation of finite-sized sample 
-
-    Args:
-        sample_size: can be a scalar or numpy array
-
-    Returns:
-        multiplicative correction factor(s) of same shape as sample_size
-            can contain nans
-    """
-    return t.ppf((1 - erf(1 / np.sqrt(2))) / 2, sample_size - 1)
-
-def get_data_frame_from_line_dict(line_dict, columns=None):
-    keys = []
-    values = []
-    for (key, value) in line_dict.items():
-        keys.append(key)
-        values.append(value)
-    return pd.DataFrame(data=np.array(values), index=np.array(keys), columns=columns)
