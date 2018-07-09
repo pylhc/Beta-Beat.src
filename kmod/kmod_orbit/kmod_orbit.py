@@ -2,12 +2,14 @@ from __future__ import print_function
 import sys
 import os
 import numpy as np
+np.seterr(all="raise")
 import time
 import datetime
 import argparse
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__),
-    ".."
+    "..",
+    "..",
 )))
 from utils import tfs_pandas
 
@@ -138,14 +140,14 @@ def _collect_orbit_data(orbit_path_left, orbit_path_right,
             elif filename.startswith('LHCB2'):
                 beam = BEAM2
             try:
-                k[(beam, side, HOR)].append(_get_sign(beam, HOR) *
-                                            k_file.loc[timestamp, "K"])
-                k[(beam, side, VER)].append(_get_sign(beam, VER) *
-                                            k_file.loc[timestamp, "K"])
-                orbit_x = orbit_data.loc[:, "X"]
-                bpm[(beam, side, HOR)].append(orbit_x - np.mean(orbit_x))
-                orbit_y = orbit_data.loc[:, "Y"]
-                bpm[(beam, side, VER)].append(orbit_y - np.mean(orbit_y))
+                for plane in (HOR, VER):
+                    val = _get_sign(beam, plane) *\
+                          k_file.loc[timestamp:timestamp + 1000, "K"].mean()
+                    if np.isnan(val):
+                        continue
+                    k[(beam, side, plane)].append(val)
+                    orbit = orbit_data.loc[:, PLANE_STR[plane]]
+                    bpm[(beam, side, plane)].append(orbit - np.mean(orbit))
             except KeyError:
                 continue
     return k, bpm
@@ -209,8 +211,7 @@ def _compute_and_clean(ip, beam, side, plane, models, bpm_names, ks, orbits):
 
 def _compute_kl(ks, model, quadname, ip):
     quad_length = (model.loc[quadname, "S"] -
-                   model.ix[model.index.get_loc(quadname) - 1, "S"]),
-
+                   model.ix[model.index.get_loc(quadname) - 1, "S"])
     avg_k = np.mean(ks)
     return (ks - avg_k) * quad_length
 
