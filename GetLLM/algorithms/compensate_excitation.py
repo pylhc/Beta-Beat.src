@@ -166,6 +166,7 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
 
     return phase_advances, 0
 
+
 def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, ac2bpmac, plane, getllm_d, commonbpms):
     # TODO: check if this function excludes additional BPMs, right now commonbpms is return unchanged but maybe this has
     # to be different
@@ -529,112 +530,6 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerat
     fwqw['Global']=['"null"','"null"']        
     return [fwqw,bpms.loc[goodbpm]]
 
-def GetFreeIP2_Eq(MADTwiss, Files, Qd, Q, ac2bpmac, plane, accelerator, bpms, op):
-
-    if ac2bpmac is None:
-        return [{}, []]
-
-    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    s_lastbpm = accelerator.get_s_first_BPM()
-    bd = accelerator.get_beam_direction()
-
-    #-- Determine the BPM closest to the AC dipole and its position
-    bpmac = ac2bpmac[0]
-    psid_bpmac = ac2bpmac[1]
-    k_bpmac = ac2bpmac[2]
-
-    #-- Global parameters of the driven motion
-    r=sin(np.pi*(Qd-Q))/sin(np.pi*(Qd+Q))
-
-    #-- Determine Psid (w.r.t the AC dipole) for each file
-    Psidall=[]
-    for i in range(len(Files)):
-        if plane=='H': psid = bd * 2 * np.pi * Files[i].loc[:, "MUX"]  #-- bd flips B2 phase to B1 direction
-        if plane=='V': psid = bd * 2 * np.pi * Files[i].loc[:, "MUY"]   #-- bd flips B2 phase to B1 direction
-        for k in range(len(bpms)):
-            try:
-                if bpm.iloc[k]["S"] > s_lastbpm: psid[k] += 2 * np.pi * Qd  #-- To fix the phase shift by Q
-            except: pass
-        psid=psid-(psid[k_bpmac] - psid_bpmac)
-        Psid=psid+np.pi*Qd
-        Psid[k_bpmac:]=Psid[k_bpmac:]-2*np.pi*Qd
-        Psidall.append(Psid)
-
-    #-- Loop for IPs
-    result={}
-    for ip in ('1','2','5','8'):
-
-        bpml = 'BPMSW.1L' + ip + '.' + accelerator.__class__.__name__[-2:]
-        bpmr = 'BPMSW.1R' + ip + '.' + accelerator.__class__.__name__[-2:]
-        if bpml in bpms.index and bpmr in bpms.index:
-
-            #-- Model values
-            L = 0.5 * (MADTwiss.loc[bpmr, "S"] - MADTwiss.loc[bpml, "S"])
-            if L < 0: L += 0.5 * MADTwiss.LENGTH
-            if plane=='H':
-                betlmdl = MADTwiss.loc[bpml, "BETX"]
-                alflmdl = MADTwiss.loc[bpml, "ALFX"]
-            if plane=='V':
-                betlmdl = MADTwiss.loc[bpml, "BETY"]
-                alflmdl = MADTwiss.loc[bpml, "ALFY"]
-            betsmdl=betlmdl/(1+alflmdl**2)
-            betmdl =betlmdl-2*alflmdl*L+L**2/betsmdl
-            alfmdl =alflmdl-L/betsmdl
-            dsmdl  =alfmdl*betsmdl
-
-            #-- Measurement for each file
-            betall=[]
-            alfall=[]
-            betsall=[]
-            dsall=[]
-            rt2Jall=[]
-            for i in range(len(Files)):
-                try:    #-- Maybe not needed, to avoid like math.sqrt(-...)
-                    if plane=='H':
-                        al = Files[i].loc[bpml, "AMPX"]
-                        ar = Files[i].loc[bpmr, "AMPX"]
-                    if plane=='V':
-                        al = Files[i].loc[bpml, "AMPY"]
-                        ar = Files[i].loc[bpmr, "AMPY"]
-
-                    # OMG, what is this?
-                    #Psidl=Psidall[i][list(zip(*bpm)[1]).index(bpml)]
-                    #Psidr=Psidall[i][list(zip(*bpm)[1]).index(bpmr)]
-                    # try with:
-                    Psidl = Psidall[i][bpms.index.get_loc(bpml)]
-                    Psidr = Psidall[i][bpms.index.get_loc(bpmr)]
-
-                    dpsid=Psidr-Psidl
-
-                    #-- betd, alfd, and math.sqrt(2Jd) at BPM_left from amp and phase advance
-                    betdl=2*L*al/(ar*sin(dpsid))
-                    alfdl=(al-ar*cos(dpsid))/(ar*sin(dpsid))
-                    rt2J =math.sqrt(al*ar*sin(dpsid)/(2*L))
-                    #-- Convert to free bet and alf
-                    betl=(1+r**2+2*r*np.cos(2*Psidl))/(1-r**2)*betdl
-                    alfl=((1+r**2+2*r*np.cos(2*Psidl))*alfdl+2*r*sin(2*Psidl))/(1-r**2)
-                    #-- Calculate IP parameters
-                    bets=betl/(1+alfl**2)
-                    bet =betl-2*alfl*L+L**2/bets
-                    alf =alfl-L/bets
-                    ds  =alf*bets
-                    betall.append(bet)
-                    alfall.append(alf)
-                    betsall.append(bets)
-                    dsall.append(ds)
-                    rt2Jall.append(rt2J)
-                except:
-                    pass
-
-            #-- Ave and Std
-            betall =np.array(betall) ; betave =np.mean(betall) ; betstd =math.sqrt(np.mean((betall-betave)**2))
-            alfall =np.array(alfall) ; alfave =np.mean(alfall) ; alfstd =math.sqrt(np.mean((alfall-alfave)**2))
-            betsall=np.array(betsall); betsave=np.mean(betsall); betsstd=math.sqrt(np.mean((betsall-betsave)**2))
-            dsall  =np.array(dsall)  ; dsave  =np.mean(dsall)  ; dsstd  =math.sqrt(np.mean((dsall-dsave)**2))
-            rt2Jall=np.array(rt2Jall); rt2Jave=np.mean(rt2Jall); rt2Jstd=math.sqrt(np.mean((rt2Jall-rt2Jave)**2))
-            result['IP'+ip]=[betave,betstd,betmdl,alfave,alfstd,alfmdl,betsave,betsstd,betsmdl,dsave,dsstd,dsmdl,rt2Jave,rt2Jstd]
-
-    return result
 
 def getkickac(MADTwiss_ac,files,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
 

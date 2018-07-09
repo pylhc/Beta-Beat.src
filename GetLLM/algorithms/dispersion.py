@@ -1,298 +1,164 @@
-'''
-Created on 27 May 2013
+"""
+.. module: dispersion
 
-@author: ?, vimaier
+Created on 28/06/18
 
-@version: 0.0.1
+:author: Lukas Malina
 
-GetLLM.algorithms.dispersion.py stores helper functions for dispersion calculations for GetLLM.
-This module is not intended to be executed. It stores only functions.
-
-Change history:
- - <version>, <author>, <date>:
-    <description>
-'''
-
-import sys
-import math
-
+It computes orbit, dispersion and normalised dispersion.
+"""
+from os.path import join
+import pandas as pd
 import numpy as np
-from numpy import sin, cos
-
-import utils.bpm
-
-
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+from utils import tfs_pandas
+from utils.stats import t_value_correction
+SCALES = {'um': 1.0e-6, 'mm': 1.0e-3, 'cm': 1.0e-2, 'm': 1.0}
 
 
-#===================================================================================================
-# main part
-#===================================================================================================
-def calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_x_from_amp, list_of_co_x, list_of_co_y):
-    '''
-    Calculates dispersion and fills the following TfsFiles:
-        getNDx.out        getDx.out        getDy.out
+def calculate_orbit_and_dispersion(twiss_d, tune_d, model, header_dict, unit, cut, beta_from_phase, output):
+    """
+    Calculates orbit and dispersion, fills the following TfsFiles:
+       getCOx.out        getCOy.out
+       getNDx.out        getDx.out        getDy.out
+    Args:
+        twiss_d: Holds tfs pandas of the linx/y files. Later to be replaced by two lists of tfs_pandas
+        tune_d: Holds tunes and phase advances
+        model:  Model tfs panda
+        header_dict: OrderedDict containing information about the analysis
+        unit: Unit of orbit measurements, e.g. m, mm
+        cut: orbit cut
+        beta_from_phase:
+        output: output folder
 
-    :Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            accel is used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
-    '''
-    print 'Calculating dispersion'
-    if twiss_d.has_zero_dpp_x() and twiss_d.has_non_zero_dpp_x():
-        [nda, d_x, dpx, bpms] = _norm_disp_x(mad_twiss, twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, beta_x_from_amp, getllm_d.cut_for_closed_orbit)
-        tfs_file = files_dict['getNDx.out']
-        tfs_file.add_float_descriptor("Q1", tune_d.q1)
-        tfs_file.add_float_descriptor("Q2", tune_d.q2)
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "NDX", "STDNDX", "DX", "DPX", "NDXMDL", "DXMDL", "DPXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            ndmdl = mad_twiss.DX[mad_twiss.indx[bn1]] / math.sqrt(mad_twiss.BETX[mad_twiss.indx[bn1]])
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), nda[bn1][0], nda[bn1][1], d_x[bn1][0], dpx[bn1], ndmdl, mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
+    Returns:
 
-        [dxo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_x, twiss_d.non_zero_dpp_x, list_of_co_x, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
-        dpx = _get_dpx(mad_twiss, dxo, bpms)
-        tfs_file = files_dict['getDx.out']
-        tfs_file.add_float_descriptor("Q1", tune_d.q1)
-        tfs_file.add_float_descriptor("Q2", tune_d.q2)
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "DX", "STDDX", "DPX", "DXMDL", "DPXMDL", "MUXMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_x), dxo[bn1][0], dxo[bn1][1], dpx[bn1], mad_twiss.DX[mad_twiss.indx[bn1]], mad_twiss.DPX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-
-    if twiss_d.has_zero_dpp_y() and twiss_d.has_non_zero_dpp_y():
-        [dyo, bpms] = _dispersion_from_orbit(twiss_d.zero_dpp_y, twiss_d.non_zero_dpp_y, list_of_co_y, getllm_d.cut_for_closed_orbit, getllm_d.bpm_unit)
-        dpy = _get_dpy(mad_twiss, dyo, bpms)
-        tfs_file = files_dict['getDy.out']
-        tfs_file.add_float_descriptor("Q1", tune_d.q1)
-        tfs_file.add_float_descriptor("Q2", tune_d.q2)
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "DY", "STDDY", "DPY", "DYMDL", "DPYMDL", "MUYMDL"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(len(bpms)):
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.non_zero_dpp_y), dyo[bn1][0], dyo[bn1][1], dpy[bn1], mad_twiss.DY[mad_twiss.indx[bn1]], mad_twiss.DPY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]]]
-            tfs_file.add_table_row(list_row_entries)
-# END calculate_dispersion -------------------------------------------------------------------------
+    """
+    orbit_header = _get_header(header_dict, tune_d, orbit=True)
+    dispersion_header = _get_header(header_dict, tune_d, orbit=False)
+    if twiss_d.has_zero_dpp_x():  # For the moment, to be removed once twiss_d is not used
+        _calculate_orbit(model, twiss_d.zero_dpp_x, "X", orbit_header, output)
+        _calculate_dispersion(model, twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, "X",
+                              dispersion_header, unit, cut, output)
+        _calculate_normalised_dispersion(model, twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, beta_from_phase,
+                                         dispersion_header, unit, cut, output)
+    if twiss_d.has_zero_dpp_y():
+        _calculate_orbit(model, twiss_d.zero_dpp_y, "Y", orbit_header, output)
+        _calculate_dispersion(model, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y, "Y",
+                              dispersion_header, unit, cut, output)
 
 
-#===================================================================================================
-# helper-functions
-#===================================================================================================
-
-def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, betax, cut_co):
-
-    nzdpp=len(list_non_zero_dpp_x) # How many non zero dpp
-    zdpp=len(list_zero_dpp_x)  # How many zero dpp
-    if zdpp==0 or nzdpp ==0:
-        print >> sys.stderr, 'Warning: No data for dp/p!=0 or even for dp/p=0.'
-        print >> sys.stderr, 'No output for the  dispersion.'
-        dum0={}
-        dum1=[]
-        return [dum0, dum1]
+def _get_header(header_dict, tune_d, orbit=False):
+    header = header_dict.copy()
+    if orbit:
+        header['TABLE'] = 'ORBIT'
+        header['TYPE'] = 'ORBIT'
+    # TODO: ['SEQUENCE'] getllm_d.accel
+    header['Q1'] = tune_d.q1
+    header['Q2'] = tune_d.q2
+    # TODO file list?
+    return header
 
 
-    coac=list_co_x[0] # COX dictionary after cut bad BPMs
-    coact={}
-    for i in coac:
-        if (coac[i][1] < cut_co):
-            coact[i]=coac[i]
-    coac=coact
+def _calculate_orbit(model, list_of_df, plane, header_dict, output):
+    df_orbit = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, plane]]
+    df_orbit.rename(columns={'MU' + plane: 'MU' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
+    df_orbit = df_orbit.assign(CO=0.0, CORMS=0.0, COUNT=len(list_of_df))
+    measured_orbit_columns = []
+    for i, df in enumerate(list_of_df):
+        df_orbit = pd.merge(df_orbit, df.loc[:, ['CO', 'CORMS']], how='inner', left_index=True,
+                            right_index=True, suffixes=('', str(i+1)))
+        measured_orbit_columns.append('CO' + str(i+1))
+    df_orbit[plane] = np.mean(df_orbit.loc[:, measured_orbit_columns].values, axis=1)
+    df_orbit['STD' + plane] = np.std(df_orbit.loc[:, measured_orbit_columns].values, axis=1) #* t_value_correction(len(measured_orbit_columns))
+    output_df = df_orbit.loc[:, ['S', 'COUNT', plane, 'STD' + plane, plane + 'MDL', 'MU' + plane + 'MDL']]
+    tfs_pandas.write_tfs(join(output, 'getCO' + plane.lower() + '.out'), output_df, header_dict, save_index='NAME')
+    return output_df
 
 
-    nda={} # Dictionary for the output containing [average Disp, rms error]
+def _calculate_dispersion(model, list_of_df, plane, header_dict, unit, cut, output, order=1):
+    df_orbit = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, 'DP' + plane, 'D' + plane, plane]]
+    df_orbit.rename(columns={'MU' + plane: 'MU' + plane + 'MDL', 'DP' + plane: 'DP' + plane + 'MDL',
+                             'D' + plane: 'D' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
+    df_orbit = df_orbit.assign(CO=0.0, CORMS=0.0, COUNT=len(list_of_df))
+    orbit_columns = []
+    dpps = np.empty(len(list_of_df))
+    for i, df in enumerate(list_of_df):
+        df_orbit = pd.merge(df_orbit, df.loc[:, ['CO', 'CORMS']], how='inner', left_index=True,
+                            right_index=True, suffixes=('', str(i + 1)))
+        orbit_columns.append('CO' + str(i+1))
+        dpps[i] = df.DPP
+    if np.max(dpps) - np.min(dpps) == 0.0:
+        return  # temporary solution
+        # raise ValueError('Cannot calculate dispersion, only a single momentum data')
+    fit = np.polyfit(dpps, SCALES[unit] * df_orbit.loc[:, orbit_columns].values.T,
+                                      order, cov=True)
+    # in the fit results the coefficients are sorted by power in decreasing order
+    df_orbit['D' + plane] = fit[0][-2, :].T
+    df_orbit['STDD' + plane] = np.sqrt(fit[1][-2, -2, :].T) # * t_value_correction(len(orbit_columns))
 
-    ALL=list_zero_dpp_x+list_non_zero_dpp_x
-    commonbpmsALL=utils.bpm.intersect(ALL)
-    commonbpmsALL=utils.bpm.model_intersect(commonbpmsALL, mad_twiss)
-    commonbpmsALL = utils.bpm.get_list_of_tuples(commonbpmsALL)
-
-    mydp=[]
-    gf=[]
-    for j in list_non_zero_dpp_x:
-        mydp.append(float(j.DPP))
-        gf.append(0.0) # just to initialize the array, may not be a clever way...
-    mydp=np.array(mydp)
-    wf=np.array(abs(mydp))/sum(abs(mydp))*len(mydp) #Weight for the average depending on DPP
-
-
-    # Find the global factor
-    nd=[]
-    ndmdl=[]
-    badco=0
-    for i in range(0,len(commonbpmsALL)):
-        bn1=str.upper(commonbpmsALL[i][1])
-        bns1=commonbpmsALL[i][0]
-        ndmdli=mad_twiss.DX[mad_twiss.indx[bn1]]/math.sqrt(mad_twiss.BETX[mad_twiss.indx[bn1]])
-        ndmdl.append(ndmdli)
-
-        try:
-            coi=coac[bn1]
-
-            ampi=0.0
-            for j in list_zero_dpp_x:
-                ampi+=j.AMPX[j.indx[bn1]]
-            ampi=ampi/zdpp
-
-            ndi=[]
-            for j in range(0,nzdpp): # the range(0,nzdpp) instead of list_non_zero_dpp_x is used because the index j is used in the loop
-                codpp=list_co_x[j+1]
-                orbit=codpp[bn1][0]-coi[0]
-                ndm=orbit/ampi
-                gf[j]+=ndm
-                ndi.append(ndm)
-            nd.append(ndi)
-        except:
-            badco+=1
-            coi=0
-
-    ndmdl=np.array(ndmdl)
-    avemdl=np.average(ndmdl)
-
-    gf=np.array(gf)
-    gf=gf/avemdl/(len(commonbpmsALL)-badco)
+    df_orbit[plane] = fit[0][-1, :].T
+    df_orbit['STD' + plane] = np.sqrt(fit[1][-1, -1, :].T) # * t_value_correction(len(orbit_columns))
+    df_orbit = df_orbit.loc[np.abs(df_orbit.loc[:, plane]) < cut*SCALES[unit], :]
+    df_orbit['DP' + plane] = _calculate_dp(model,
+                                           df_orbit.loc[:, ['D' + plane, 'STDD' + plane]], plane)
+    output_df = df_orbit.loc[:,
+                             ['S', 'COUNT', 'D' + plane, 'STDD' + plane, plane, 'STD' + plane, 'DP' + plane,
+                              'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL']]
+    tfs_pandas.write_tfs(join(output, 'getD' + plane.lower() + '.out'), output_df, header_dict, save_index='NAME')
+    return output_df
 
 
-    # Find normalized dispersion and Dx construction
-    nd=np.array(nd)
-    Dx={}
-    dummy=0.0 # dummy for DXSTD
-    bpms=[]
-    badco=0
-    for i in range(0,len(commonbpmsALL)):
-        ndi=[]
-        bn1=str.upper(commonbpmsALL[i][1])
-        bns1=commonbpmsALL[i][0]
-        try:
-            coac[bn1]
-            for j in range(0,nzdpp): # the range(0,nzdpp) instead of list_zero_dpp_x is used because the index j is used in the loop
-                ndi.append(nd[i-badco][j]/gf[j])
-            ndi=np.array(ndi)
-            ndstd=math.sqrt(np.average(ndi*ndi)-(np.average(ndi))**2.0+2.2e-16)
-            ndas=np.average(wf*ndi)
-            nda[bn1]=[ndas,ndstd]
-            Dx[bn1]=[nda[bn1][0]*math.sqrt(betax[bn1][0]),dummy]
-            bpms.append([bns1,bn1])
-        except:
-            badco+=1
-    dpx=_get_dpx(mad_twiss, Dx, bpms)
-
-    return [nda,Dx,dpx,bpms]
-
-
-def _get_dpx(mad_twiss, d_x, commonbpms):
-
-    dpx = {}
-    for i in range(0,len(commonbpms)):
-        bn1 = str.upper(commonbpms[i][1])
-        if i == len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
-            bn2 = str.upper(commonbpms[0][1])
-            # phase model between BPM1 and BPM2
-            p_mdl_12 = 2.*np.pi*(mad_twiss.Q1+mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]])
-        else:
-            bn2 = str.upper(commonbpms[i+1][1])
-            # phase model between BPM1 and BPM2
-            p_mdl_12 = 2.*np.pi*(mad_twiss.MUX[mad_twiss.indx[bn2]]-mad_twiss.MUX[mad_twiss.indx[bn1]])
-        betmdl1 = mad_twiss.BETX[mad_twiss.indx[bn1]]
-        betmdl2 = mad_twiss.BETX[mad_twiss.indx[bn2]]
-        alpmdl1 = mad_twiss.ALFX[mad_twiss.indx[bn1]]
-        dxmdl1 = mad_twiss.DX[mad_twiss.indx[bn1]]
-        dpxmdl1 = mad_twiss.DPX[mad_twiss.indx[bn1]]
-        dxmdl2 = mad_twiss.DX[mad_twiss.indx[bn2]]
-
-        M11 = math.sqrt(betmdl2/betmdl1)*(cos(p_mdl_12)+alpmdl1*sin(p_mdl_12))
-        M12 = math.sqrt(betmdl1*betmdl2)*sin(p_mdl_12)
-        M13 = dxmdl2-M11*dxmdl1-M12*dpxmdl1
-        # use the beta from amplitude
-        dpx[bn1] = (-M13+d_x[bn2][0]-M11*d_x[bn1][0])/M12
-
-    return dpx
+def _calculate_normalised_dispersion(model, list_of_df, beta, header_dict, unit, cut, output):
+    #TODO there are no errors from orbit
+    df_orbit = pd.DataFrame(model).loc[:, ['S', 'MUX', 'DPX', 'DX', 'X', 'BETX']]
+    df_orbit['NDXMDL'] = df_orbit.loc[:, 'DX'] / np.sqrt(df_orbit.loc[:, 'BETX'])
+    df_orbit.rename(columns={'MUX': 'MUXMDL', 'DPX': 'DPXMDL', 'DX': 'DXMDL', 'X': 'XMDL'}, inplace=True)
+    df_orbit = df_orbit.assign(CO=0.0, CORMS=0.0, AMPX=0.0, COUNT=len(list_of_df))
+    orbit_columns = []
+    dpps = np.empty(len(list_of_df))
+    amps = []
+    for i, df in enumerate(list_of_df):
+        df_orbit = pd.merge(df_orbit, df.loc[:, ['CO', 'CORMS', 'AMPX']], how='inner', left_index=True,
+                            right_index=True, suffixes=('', str(i + 1)))
+        orbit_columns.append('CO' + str(i+1))
+        dpps[i] = df.DPP
+        if df.DPP == 0.0:
+            amps.append('AMPX' + str(i+1))
+    df_orbit = pd.merge(df_orbit, beta.loc[:, ['BETX', 'ERRBETX']], how='inner', left_index=True,
+                        right_index=True, suffixes=('', '_phase'))
+    if np.max(dpps) - np.min(dpps) == 0.0:
+        return  # temporary solution
+        # raise ValueError('Cannot calculate dispersion, only a single dpoverp')
+    fit = np.polyfit(np.array(dpps), SCALES[unit] * df_orbit.loc[:, orbit_columns].values.T, 1, cov=True)
+    amps = np.array(amps)
+    df_orbit['NDX_unscaled'] = fit[0][-2, :].T / np.mean(df_orbit.loc[:, amps].values, axis=1) # TODO there is no error from AMPX
+    df_orbit['STDNDX_unscaled'] = np.sqrt(fit[1][-2,-2, :].T) / np.mean(df_orbit.loc[:, amps].values, axis=1)
+    df_orbit = df_orbit.loc[np.abs(fit[0][-1, :].T) < cut * SCALES[unit], :]
+    global_factor = np.sum(df_orbit.loc[:, 'NDXMDL'].values) / np.sum(df_orbit.loc[:, 'NDX_unscaled'].values) # TODO should be arc BPMS
+    df_orbit['NDX'] = global_factor * df_orbit.loc[:, 'NDX_unscaled']
+    df_orbit['STDNDX'] = global_factor * df_orbit.loc[:, 'STDNDX_unscaled']
+    df_orbit['DX'] = df_orbit.loc[:, 'NDX'] * np.sqrt(df_orbit.loc[:, 'BETX_phase'])
+    df_orbit['STDDX'] = df_orbit.loc[:, 'STDNDX'] * np.sqrt(df_orbit.loc[:, 'BETX_phase'])
+    df_orbit['DPX'] = _calculate_dp(model, df_orbit.loc[:, ['DX', 'STDDX']], "X")
+    output_df = df_orbit.loc[:, ['S', 'COUNT', 'NDX', 'STDNDX', 'DX', 'DPX',
+                                 'NDXMDL', 'DXMDL', 'DPXMDL', 'MUXMDL']]
+    tfs_pandas.write_tfs(join(output, 'getNDx.out'), output_df, header_dict, save_index='NAME')
+    return output_df
 
 
-def _get_dpy(mad_twiss, d_y, commonbpms):
-    dpy={}
-    for i in range(0,len(commonbpms)):
-        bn1 = str.upper(commonbpms[i][1])
-        if i == len(commonbpms)-1: # The first BPM is BPM2 for the last BPM
-            bn2 = str.upper(commonbpms[0][1])
-            # phase model between BPM1 and BPM2
-            phmdl12 = 2.*np.pi*(mad_twiss.Q2+mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]])
-        else:
-            bn2 = str.upper(commonbpms[i+1][1])
-            phmdl12 = 2.*np.pi*(mad_twiss.MUY[mad_twiss.indx[bn2]]-mad_twiss.MUY[mad_twiss.indx[bn1]])
-        betmdl1 = mad_twiss.BETY[mad_twiss.indx[bn1]]
-        betmdl2 = mad_twiss.BETY[mad_twiss.indx[bn2]]
-        alpmdl1 = mad_twiss.ALFY[mad_twiss.indx[bn1]]
-        dymdl1 = mad_twiss.DY[mad_twiss.indx[bn1]]
-        dpymdl1 = mad_twiss.DPY[mad_twiss.indx[bn1]]
-        dymdl2 = mad_twiss.DY[mad_twiss.indx[bn2]]
-
-        M11 = math.sqrt(betmdl2/betmdl1)*(cos(phmdl12)+alpmdl1*sin(phmdl12))
-        M12 = math.sqrt(betmdl1*betmdl2)*sin(phmdl12)
-        M13 = dymdl2-M11*dymdl1-M12*dpymdl1
-        #M13 = -M11*dymdl1-M12*dpymdl1
-        # use the beta from amplitude
-        dpy[bn1] = (-M13+d_y[bn2][0]-M11*d_y[bn1][0])/M12
-        #dpy[bn1] = (-M13-M11*d_y[bn1][0])/M12
-
-    return dpy
-
-
-def _dispersion_from_orbit(ListOfZeroDPP,ListOfNonZeroDPP,ListOfCO,COcut,BPMU):
-
-    if BPMU=='um': scalef=1.0e-6
-    elif BPMU=='mm': scalef=1.0e-3
-    elif BPMU=='cm': scalef=1.0e-2
-    elif BPMU=='m': scalef=1.0
-
-
-    coac=ListOfCO[0]
-    coact={}
-    for i in coac:
-        if (coac[i][1] < COcut):
-            coact[i]=coac[i]
-
-    coac=coact # COY dictionary after cut bad BPMs
-
-    ALL=ListOfZeroDPP+ListOfNonZeroDPP
-    commonbpmsALL=utils.bpm.intersect(ALL)
-
-    commonbpmsALL = utils.bpm.get_list_of_tuples(commonbpmsALL)
-
-
-    mydp=[]
-    for j in ListOfNonZeroDPP:
-        mydp.append(float(j.DPP))
-    mydp=np.array(mydp)
-    wf=np.array(abs(mydp))/sum(abs(mydp))*len(mydp) #Weitghs for the average
-
-
-    dco={} # Dictionary for the output containing [(averaged)Disp, rms error]
-    bpms=[]
-    for i in range(0,len(commonbpmsALL)):
-        bn1=str.upper(commonbpmsALL[i][1])
-        bns1=commonbpmsALL[i][0]
-
-        try:
-            coi=coac[bn1]
-            dcoi=[]
-            for j in ListOfNonZeroDPP:
-                dcoi.append((j.CO[j.indx[bn1]]-coi[0])*scalef/float(j.DPP))
-            dcoi=np.array(dcoi)
-            dcostd=math.sqrt(np.average(dcoi*dcoi)-(np.average(dcoi))**2.0+2.2e-16)
-            dcos=np.average(wf*dcoi)
-            dco[bn1]=[dcos,dcostd]
-            bpms.append([bns1,bn1])
-        except:
-            coi=0
-    return [dco,bpms]
-
+def _calculate_dp(model, disp, plane):
+    df = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, 'DP' + plane, 'D' + plane,
+                                         'BET' + plane, 'ALF' + plane]]
+    df = pd.merge(df, disp.loc[:, ['D' + plane, 'STDD' + plane]], how='inner', left_index=True,
+                  right_index=True, suffixes=('', 'meas'))
+    shifted = np.roll(df.index.values, 1)
+    print(shifted[0])
+    print(shifted[-1])
+    p_mdl_12 = df.loc[shifted, 'MU' + plane].values - df.loc[:, 'MU' + plane].values
+    p_mdl_12[-1] = p_mdl_12[-1] + model['Q' + str(1+(plane == "Y"))]
+    phi_12 = p_mdl_12 * 2 * np.pi
+    m11 = np.sqrt(df.loc[shifted, 'BET' + plane] / df.loc[:, 'BET' + plane]) * (np.cos(phi_12)
+                  + df.loc[:, 'ALF' + plane] * np.sin(phi_12))
+    m12 = np.sqrt(df.loc[shifted, 'BET' + plane] * df.loc[:, 'BET' + plane]) * np.sin(phi_12)
+    m13 = df.loc[shifted, 'D' + plane] - m11 * df.loc[:, 'D' + plane] - m12 * df.loc[:, 'DP' + plane]
+    return (-m13 + df.loc[shifted, 'D' + plane + 'meas'] - m11 * df.loc[:, 'D' + plane + 'meas']) / m12
