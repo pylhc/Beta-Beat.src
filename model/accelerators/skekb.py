@@ -15,8 +15,8 @@ class SKekB(Accelerator):
 
     Minimal working example. Needed accelerator functions are still to be determined.
     """
-    NAME = "SuperKEKB"
-    MACROS_NAME = "SuperKEKB"
+    NAME = "skekb"
+    MACROS_NAME = "skekb"
 
     @staticmethod
     def get_class_parameters():
@@ -214,7 +214,7 @@ class SKekB(Accelerator):
 
     def verify_object(self):  # TODO: Maybe more checks?
         if self.model_dir is None:  # is the class is used to create full response?
-            raise AcceleratorDefinitionError("PS doesn't have a model creation, calling it this "
+            raise AcceleratorDefinitionError("SuperKEKB doesn't have a model creation, calling it this "
                                              "way is most probably wrong.")
 
 
@@ -241,6 +241,9 @@ class SKekB(Accelerator):
 
     def set_errordefspath(self, path):
         self._errordefspath = path
+
+    def get_beam_direction(self):
+        return 1
 
     def get_s_first_BPM(self):
         return 0
