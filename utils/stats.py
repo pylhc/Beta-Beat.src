@@ -148,11 +148,11 @@ def weights_from_errors(errors, period=PI2):
     if np.any(np.isnan(errors)):
         # LOGGER.warning("Nans found, weights are not used.")
         return None
-    try:
-        return 1 / np.square(errors * PI2 / period)
-    except ZeroDivisionError:
-        # LOGGER.warning("Errors equal to zero found, weighs are not used.")
+    if np.any(np.logical_not(errors)):
+        # LOGGER.warning("Zeros found, weights are not used.")
         return None
+    return 1 / np.square(errors * PI2 / period)
+
 
 
 def effective_sample_size(data, weights, axis=None):
@@ -207,4 +207,4 @@ def t_value_correction(sample_size):
         multiplicative correction factor(s) of same shape as sample_size
             can contain nans
     """
-    return t.ppf((1 - erf(1 / np.sqrt(2))) / 2, sample_size - 1)
+    return t.ppf((1 + erf(1 / np.sqrt(2))) / 2, sample_size - 1)
