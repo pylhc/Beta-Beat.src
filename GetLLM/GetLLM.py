@@ -77,6 +77,7 @@ main invocation
     call _start()
 '''
 import os
+from os.path import isfile
 import sys
 import traceback
 import datetime
@@ -124,7 +125,7 @@ VERSION = 'V3.0.0 Dev'
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
 BREAK = False
-
+PLANES = ('X', 'Y')
 # default arguments:
 
 ACCEL       = "LHCB1"   #@IgnorePep8
@@ -378,11 +379,12 @@ def main(accelerator,
         LOGGER.info("     DEBUG ON")
 
     # Creates the output files dictionary
-    files_dict, header_dict = _create_tfs_files(getllm_d, os.path.join(model_dir, "twiss.dat"), nonlinear)
+    files_dict = _create_tfs_files(getllm_d, os.path.join(model_dir, "twiss.dat"), nonlinear)
+    header_dict = _get_header()
     # Copy calibration files calibration_x/y.out from calibration_dir_path to outputpath
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
     print_time("BEFORE_ANALYSE_SRC", time() - __getllm_starttime)
-
+    input_files = InputFiles(files_to_analyse)
     twisses_x, twisses_y = _analyse_src_files1(files_to_analyse)
 
     twiss_d = _analyse_src_files11(getllm_d, twiss_d, use_average,
@@ -518,6 +520,12 @@ def main(accelerator,
 #---------------------------------------------------------------------------------------------------
 # helper-functions
 #---------------------------------------------------------------------------------------------------
+def _get_header():
+    return OrderedDict([('GetLLMVersion', VERSION),
+                        ('Command', sys.executable + " '" + "' '".join([] + sys.argv) + "'"),
+                        ('CWD', os.getcwd()),
+                        ('Date', datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S"))])
+
 
 def _create_tfs_files(getllm_d, model_filename, nonlinear):
     '''
@@ -532,10 +540,6 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     GetllmTfsFile.s_output_path = getllm_d.outputpath
     GetllmTfsFile.s_getllm_version = VERSION
     GetllmTfsFile.s_mad_filename = model_filename
-    header_dict = OrderedDict([('GetLLMVersion', VERSION),
-                               ('Command', sys.executable+" '"+"' '".join([]+sys.argv)+"'"),
-                               ('CWD', os.getcwd()),
-                               ('Date', datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S"))])
     files_dict = {}
     _fill_files_dict_plane(files_dict, "x", getllm_d)
     _fill_files_dict_plane(files_dict, "y", getllm_d)
@@ -557,7 +561,7 @@ def _create_tfs_files(getllm_d, model_filename, nonlinear):
     files_dict['getkickac.out'] = GetllmTfsFile('getkickac.out')
     files_dict['getlobster.out'] = GetllmTfsFile('getlobster.out')
     files_dict['getrexter.out'] = GetllmPandasTfs('getrexter.out')
-    return files_dict, header_dict
+    return files_dict
 # END _create_tfs_files -----------------------------------------------------------------------------
 
 def _fill_files_dict_plane(files_dict, plane, getllm_d):
@@ -579,41 +583,23 @@ def _fill_files_dict_plane(files_dict, plane, getllm_d):
 
 
 def _analyse_src_files1(files_to_analyse):
-
     LOGGER.debug("Start analysing source files")
-
-    tfs_files_x, tfs_files_y = [], []
+    file_pandas = {'X': [], 'Y': []}
     for file_in in files_to_analyse.split(','):
         LOGGER.debug("> file: '{:s}'".format(file_in))
-        # x file
-
-        if os.path.isfile(file_in + ".linx"):
-            file_x = file_in + ".linx"
-        elif os.path.isfile(file_in + "_linx"):
-            file_x = file_in + "_linx"
-
-        if os.path.isfile(file_in + ".liny"):
-            file_y = file_in + ".liny"
-        elif os.path.isfile(file_in + "_liny"):
-            file_y = file_in + "_liny"
-        try:
-            twiss_file_x = tfs_pandas.read_tfs(file_x).set_index("NAME")
-            tfs_files_x.append(twiss_file_x)
-        except IOError:
-            LOGGER.warning("Cannot load file: " + file_x)
-        except ValueError:
-            pass  # Information printed by metaclass already
-
-        try:
-            twiss_file_y = tfs_pandas.read_tfs(file_y).set_index("NAME")
-            tfs_files_y.append(twiss_file_y)
-        except IOError:
-            LOGGER.warning('Warning: There seems no ' + str(file_y) + ' file in the specified directory.')
-        except ValueError:
-            pass  # Information printed by metaclass already
-
-    tfs_files_x = algorithms.dpp.arrange_dpp(tfs_files_x)
-    tfs_files_y = algorithms.dpp.arrange_dpp(tfs_files_y)
+        for plane in ["X", "Y"]:
+            if isfile(file_in + '.lin' + plane.lower()):
+                file_to_load = file_in + '.lin' + plane.lower()
+            else:
+                file_to_load = file_in + '_lin' + plane.lower()
+            try:
+                file_pandas['X'].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
+            except IOError:
+                LOGGER.warning("Cannot load file: " + file_to_load)
+            except ValueError:
+                pass
+    tfs_files_x = algorithms.dpp.arrange_dpp(file_pandas['X'])
+    tfs_files_y = algorithms.dpp.arrange_dpp(file_pandas['Y'])
 
     return tfs_files_x, tfs_files_y
 
@@ -1016,6 +1002,103 @@ class _TwissData(object):
     
     def has_no_input_files(self):
         return not self.has_zero_dpp_x() and not self.has_zero_dpp_y() and not self.has_non_zero_dpp_x() and not self.has_non_zero_dpp_y()
+
+
+class InputFiles(dict):
+    """
+    Stores the input files, provides methods to gather quantity specific data
+    Public methods:
+        get_dpps(plane)
+        get_joint_frame(plane, columns, zero_dpp=False, how='inner')
+        get_columns(frame, column)
+        get_data(frame, column)
+    """
+    def __init__(self, files_to_analyse):
+        super(InputFiles, self).__init__(zip(PLANES, ([], [])))
+        for file_in in files_to_analyse.split(','):
+            for plane in PLANES:
+                if isfile(file_in + '.lin' + plane.lower()):
+                    file_to_load = file_in + '.lin' + plane.lower()
+                else:
+                    file_to_load = file_in + '_lin' + plane.lower()
+                try:
+                    self[plane].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
+                except IOError:
+                    LOGGER.warning("Cannot load file: " + file_to_load)
+                except ValueError:
+                    pass
+            self[plane] = algorithms.dpp.arrange_dpp(self[plane])
+        if len(self['X']) + len(self['Y']) == 0:
+            raise IOError("No valid input files")
+
+    def get_dpps(self, plane):
+        """
+        Gathers measured DPPs from input files corresponding to given plane
+        Parameters:
+            plane: "X" or "Y"
+
+        Returns:
+            numpy array of DPPs
+        """
+        return np.array([df.DPP for df in self[plane]])
+
+    def _get_zero_dpp_frames(self, plane):
+        return self[plane][np.logical_not(self.get_dpps(self, plane))]
+
+    def _get_all_frames(self, plane):
+        return self[plane]
+
+    def get_joint_frame(self, plane, columns, zero_dpp=False, how='inner'):
+        """
+        Constructs merged DataFrame from InputFiles
+        Parameters:
+            plane:  "X" or "Y"
+            columns: list of columns from input files
+            zero_dpp: if True merges only zero-dpp files, default is False
+            how: way of merging:  'inner' (intersection) or 'outer' (union), default is 'inner'
+        Returns:
+            merged DataFrame from InputFiles
+        """
+        if how not in ['inner', 'outer']:
+            raise RuntimeWarning("'how' should be either 'inner' or 'outer', 'inner' will be used.")
+        if zero_dpp:
+            frames_to_join = self._get_zero_dpp_frames(plane)
+        else:
+            frames_to_join = self._get_all_frames(plane)
+        if len(frames_to_join) == 0:
+            raise ValueError("No data found")
+        joined_frame = pd.DataFrame(self[plane][0]).loc[:, columns]
+        for i, df in enumerate(self[plane][1:]):
+            joined_frame = pd.merge(joined_frame, df.loc[:, columns], how=how, left_index=True,
+                                    right_index=True, suffixes=('', '__' + str(i + 1)))
+        for column in columns:
+            joined_frame.rename(columns={column: column + '__0'}, inplace=True)
+        return joined_frame
+
+    @staticmethod
+    def get_columns(frame, column):
+        """
+        Returns list of columns of frame corresponding to column in original files
+        Parameters:
+            frame:  joined frame
+            column: name of column in original files
+        Returns:
+            list of columns
+        """
+        return frame.columns.str.startswith(column + '__')
+
+    @staticmethod
+    def get_data(frame, column):
+        """
+        Returns data in columns of frame corresponding to column in original files
+        Parameters:
+            frame:  joined frame
+            column: name of column in original files
+        Returns:
+            data in numpy array corresponding to column in original files
+        """
+        return frame.loc[:, frame.columns.str.startswith(column + '__')].values
+
 
 class _TuneData(object):
     ''' Used as data structure to hold tunes and phase advances. '''
