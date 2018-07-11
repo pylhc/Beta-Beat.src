@@ -21,6 +21,7 @@ from scipy.stats import t
 
 PI2 = 2 * np.pi
 PI2I = PI2 * 1j
+CONFIDENCE_LEVEL = (1 + erf(1 / np.sqrt(2))) / 2
 
 
 def circular_mean(data, period=PI2, errors=None, axis=None):
@@ -49,7 +50,7 @@ def circular_mean(data, period=PI2, errors=None, axis=None):
 
 def circular_error(data, period=PI2, errors=None, axis=None, t_value_corr=True):
     """
-    Computes weighted circular average along the specified axis.
+    Computes error of weighted circular average along the specified axis.
 
     Parameters:
         data: array-like
@@ -73,7 +74,7 @@ def circular_error(data, period=PI2, errors=None, axis=None, t_value_corr=True):
     (sample_variance, sum_of_weights) = np.average(np.square(np.abs(complex_phases - complex_average)),
                                                    weights=weights, axis=axis, returned=True)
     if weights is not None:
-        sample_variance = sample_variance + 1 / sum_of_weights
+        sample_variance = sample_variance + 1. / sum_of_weights
     error_of_complex_average = np.sqrt(sample_variance * unbias_variance(data, weights, axis=axis))
     phase_error = error_of_complex_average / np.abs(complex_average)
     if t_value_corr:
@@ -102,7 +103,7 @@ def weighted_mean(data, errors=None, axis=None):
 
 def weighted_error(data, errors=None, axis=None, t_value_corr=True):
     """
-    Computes weighted circular average along the specified axis.
+    Computes error of weighted average along the specified axis.
 
     Parameters:
         data: array-like
@@ -116,7 +117,7 @@ def weighted_error(data, errors=None, axis=None, t_value_corr=True):
 
     Returns:
         Returns the error of weighted average along the specified axis.
-        """
+    """
     weights = weights_from_errors(errors)
     weighted_average = np.average(data, axis=axis, weights=weights)
     (sample_variance, sum_of_weights) = np.average(np.square(np.abs(data - weighted_average)),
@@ -129,6 +130,26 @@ def weighted_error(data, errors=None, axis=None, t_value_corr=True):
     return error
 
 
+def weighted_rms(data, errors=None, axis=None):
+    """
+    Computes weighted root mean square along the specified axis.
+
+    Parameters:
+        data: array-like
+            Contains the data to be averaged
+        errors: array-like, optional
+            Contains errors associated with the values in data, it is used to calculated weights
+        axis: int or tuple of ints, optional
+            Axis or axes along which to average data
+
+    Returns:
+        Returns weighted root mean square along the specified axis.
+    """
+    weights = weights_from_errors(errors)
+    return np.sqrt(np.average(np.square(data), weights=weights, axis=axis))
+
+
+
 def weights_from_errors(errors, period=PI2):
     """
     Computes weights from measurement errors, weights are not output if errors contain zeros or nans
@@ -138,7 +159,6 @@ def weights_from_errors(errors, period=PI2):
             Contains errors which are used to calculated weights
         period: scalar, optional
             Periodicity period of data, default is (2 * np.pi)
-
 
     Returns:
         Returns the error of weighted circular average along the specified axis.
@@ -207,4 +227,4 @@ def t_value_correction(sample_size):
         multiplicative correction factor(s) of same shape as sample_size
             can contain nans
     """
-    return t.ppf((1 + erf(1 / np.sqrt(2))) / 2, sample_size - 1)
+    return t.ppf(CONFIDENCE_LEVEL, sample_size - 1)
