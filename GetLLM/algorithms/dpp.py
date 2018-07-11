@@ -16,9 +16,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 def arrange_dpp(list_of_tfs):
-    '''
+    """
     Grouping of dpp-values in the given linx,liny-files and computing new values
-    '''
+    """
     list_of_tfs_arranged = []
     for tfs_file in list_of_tfs:
         if "DPP" not in tfs_file.headers:
@@ -79,12 +79,11 @@ def _compute_ranges(list_of_tfs, ordered_indices):
                                   list_of_tfs[idx].DPP)):
             last_range.append(idx)
         else:
-            new_range = []
-            new_range.append(idx)
+            new_range = [idx]
             list_of_ranges.append(new_range)
             last_range = new_range
     return list_of_ranges
 
 
 def _is_in_same_range(a, b):
-    return b <= a + DPP_TOLERANCE and b >= a - DPP_TOLERANCE
+    return a + DPP_TOLERANCE >= b >= a - DPP_TOLERANCE
