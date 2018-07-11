@@ -317,6 +317,31 @@ def _convert_f_term_to_h_term(amp,ampphase,termj,factor,term,M2M):
     return fh
 
 
+
+def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
+    '''
+    Fills the following TfsFiles:
+     - getsex3000.out
+
+    :returns: dict string --> GetllmTfsFile -- The same instace of files_dict to indicate that the dict was extended.
+    '''
+    print "Calculating getsextupoles"
+    # For getsex1200.out andgetsex2100.out take a look at older revisions. (vimaier)
+
+    htot, afactor, pfactor = Getsextupole(mad_twiss, twiss_d.zero_dpp_x, phase_d.ph_x, q1f, 3, 0)
+
+    tfs_file = files_dict["getsex3000.out"]
+    tfs_file.add_float_descriptor("f2h_factor", afactor)
+    tfs_file.add_float_descriptor("p_f2h_factor", pfactor)
+    tfs_file.add_column_names(["NAME", "S", "AMP_20", "AMP_20std", "PHASE_20", "PHASE_20std", "f3000", "f3000std", "phase_f_3000", "phase_f_3000std", "h3000", "h3000_std", "phase_h_3000", "phase_h_3000_std"])
+    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    for bpm_key in htot:
+        li = htot[bpm_key]
+        list_row_entries = [li[0], li[1], li[2], li[3], li[4], li[5], li[6], li[7], li[8], li[9], li[10], li[11], li[12], li[13]]
+        tfs_file.add_table_row(list_row_entries)
+
+    return files_dict
+
 def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     '''
     function written to calculate resonance driving terms
