@@ -11,11 +11,11 @@ from os.path import join
 import pandas as pd
 import numpy as np
 from utils import tfs_pandas
-from utils.stats import t_value_correction
+from utils import stats
 SCALES = {'um': 1.0e-6, 'mm': 1.0e-3, 'cm': 1.0e-2, 'm': 1.0}
 
 
-def calculate_orbit_and_dispersion(twiss_d, tune_d, model, header_dict, unit, cut, beta_from_phase, output):
+def calculate_orbit_and_dispersion(input_files, tune_d, model, header_dict, unit, cut, beta_from_phase, output):
     """
     Calculates orbit and dispersion, fills the following TfsFiles:
        getCOx.out        getCOy.out
@@ -33,21 +33,18 @@ def calculate_orbit_and_dispersion(twiss_d, tune_d, model, header_dict, unit, cu
     Returns:
 
     """
-    orbit_header = _get_header(header_dict, tune_d, orbit=True)
-    dispersion_header = _get_header(header_dict, tune_d, orbit=False)
-    if twiss_d.has_zero_dpp_x():  # For the moment, to be removed once twiss_d is not used
-        _calculate_orbit(model, twiss_d.zero_dpp_x, "X", orbit_header, output)
-        _calculate_dispersion(model, twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, "X",
-                              dispersion_header, unit, cut, output)
-        _calculate_normalised_dispersion(model, twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, beta_from_phase,
-                                         dispersion_header, unit, cut, output)
-    if twiss_d.has_zero_dpp_y():
-        _calculate_orbit(model, twiss_d.zero_dpp_y, "Y", orbit_header, output)
-        _calculate_dispersion(model, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y, "Y",
-                              dispersion_header, unit, cut, output)
+    for plane in PLANES:
+        orbit_header = _get_header(header_dict, tune_d, 'getCO' + plane.lower() + '.out', orbit=True)
+        dispersion_header = _get_header(header_dict, tune_d, 'getD' + plane.lower() + '.out')
+        _calculate_orbit(model, input_files, plane, orbit_header, output)
+        _calculate_dispersion(model, input_files, plane, dispersion_header, unit, cut, output)
+        if plane == 'X':
+            ndx_header = _get_header(header_dict, tune_d, 'getNDx.out', orbit=False)
+            _calculate_normalised_dispersion(model, input_files, plane, beta_from_phase, ndx_header,
+                                             unit, cut, output)
 
 
-def _get_header(header_dict, tune_d, orbit=False):
+def _get_header(header_dict, tune_d, filename, orbit=False):
     header = header_dict.copy()
     if orbit:
         header['TABLE'] = 'ORBIT'
@@ -55,60 +52,52 @@ def _get_header(header_dict, tune_d, orbit=False):
     # TODO: ['SEQUENCE'] getllm_d.accel
     header['Q1'] = tune_d.q1
     header['Q2'] = tune_d.q2
-    # TODO file list?
+    header['FILENAME'] = filename
     return header
 
 
-def _calculate_orbit(model, list_of_df, plane, header_dict, output):
+def _calculate_orbit(model, input_files, plane, header, output):
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, plane]]
     df_orbit.rename(columns={'MU' + plane: 'MU' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
-    df_orbit = df_orbit.assign(CO=0.0, CORMS=0.0, COUNT=len(list_of_df))
-    measured_orbit_columns = []
-    for i, df in enumerate(list_of_df):
-        df_orbit = pd.merge(df_orbit, df.loc[:, ['CO', 'CORMS']], how='inner', left_index=True,
-                            right_index=True, suffixes=('', str(i+1)))
-        measured_orbit_columns.append('CO' + str(i+1))
-    df_orbit[plane] = np.mean(df_orbit.loc[:, measured_orbit_columns].values, axis=1)
-    df_orbit['STD' + plane] = np.std(df_orbit.loc[:, measured_orbit_columns].values, axis=1) #* t_value_correction(len(measured_orbit_columns))
+    df_orbit = pd.merge(df_orbit, input_files.get_joined_frame(plane, ['CO', 'CORMS']), how='inner',
+                        left_index=True, right_index=True)
+    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, ['CO']))
+    df_orbit[plane] = stats.weighted_mean(input_files.get_data(df_orbit, 'CO'), axis=1)
+    df_orbit['STD' + plane] = stats.weighted_error(input_files.get_data(df_orbit, 'CO'), axis=1)
     output_df = df_orbit.loc[:, ['S', 'COUNT', plane, 'STD' + plane, plane + 'MDL', 'MU' + plane + 'MDL']]
-    tfs_pandas.write_tfs(join(output, 'getCO' + plane.lower() + '.out'), output_df, header_dict, save_index='NAME')
+    tfs_pandas.write_tfs(join(output, header['FILENAME']), output_df, header, save_index='NAME')
     return output_df
 
 
-def _calculate_dispersion(model, list_of_df, plane, header_dict, unit, cut, output, order=1):
+def _calculate_dispersion(model, input_files, plane, header, unit, cut, output, order=1):
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, 'DP' + plane, 'D' + plane, plane]]
     df_orbit.rename(columns={'MU' + plane: 'MU' + plane + 'MDL', 'DP' + plane: 'DP' + plane + 'MDL',
                              'D' + plane: 'D' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
-    df_orbit = df_orbit.assign(CO=0.0, CORMS=0.0, COUNT=len(list_of_df))
-    orbit_columns = []
-    dpps = np.empty(len(list_of_df))
-    for i, df in enumerate(list_of_df):
-        df_orbit = pd.merge(df_orbit, df.loc[:, ['CO', 'CORMS']], how='inner', left_index=True,
-                            right_index=True, suffixes=('', str(i + 1)))
-        orbit_columns.append('CO' + str(i+1))
-        dpps[i] = df.DPP
+    df_orbit = pd.merge(df_orbit, input_files.get_joined_frame(plane, ['CO', 'CORMS']), how='inner',
+                        left_index=True, right_index=True)
+    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, ['CO']))
+    dpps = input_files.get_dpps(plane)
     if np.max(dpps) - np.min(dpps) == 0.0:
         return  # temporary solution
         # raise ValueError('Cannot calculate dispersion, only a single momentum data')
-    fit = np.polyfit(dpps, SCALES[unit] * df_orbit.loc[:, orbit_columns].values.T,
-                                      order, cov=True)
+    fit = np.polyfit(dpps, SCALES[unit] * input_files.get_data(df_orbit, 'CO').T, order, cov=True)
     # in the fit results the coefficients are sorted by power in decreasing order
     df_orbit['D' + plane] = fit[0][-2, :].T
-    df_orbit['STDD' + plane] = np.sqrt(fit[1][-2, -2, :].T) # * t_value_correction(len(orbit_columns))
-
+    df_orbit['STDD' + plane] = np.sqrt(fit[1][-2, -2, :].T)
     df_orbit[plane] = fit[0][-1, :].T
-    df_orbit['STD' + plane] = np.sqrt(fit[1][-1, -1, :].T) # * t_value_correction(len(orbit_columns))
+    df_orbit['STD' + plane] = np.sqrt(fit[1][-1, -1, :].T)
+    # since we get variances from the fit, maybe we can include the variances of fitted points
     df_orbit = df_orbit.loc[np.abs(df_orbit.loc[:, plane]) < cut*SCALES[unit], :]
     df_orbit['DP' + plane] = _calculate_dp(model,
                                            df_orbit.loc[:, ['D' + plane, 'STDD' + plane]], plane)
     output_df = df_orbit.loc[:,
                              ['S', 'COUNT', 'D' + plane, 'STDD' + plane, plane, 'STD' + plane, 'DP' + plane,
                               'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL']]
-    tfs_pandas.write_tfs(join(output, 'getD' + plane.lower() + '.out'), output_df, header_dict, save_index='NAME')
+    tfs_pandas.write_tfs(join(output, header['FILENAME']), output_df, header, save_index='NAME')
     return output_df
 
 
-def _calculate_normalised_dispersion(model, list_of_df, beta, header_dict, unit, cut, output):
+def _calculate_normalised_dispersion(model, list_of_df, beta, header, unit, cut, output):
     #TODO there are no errors from orbit
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MUX', 'DPX', 'DX', 'X', 'BETX']]
     df_orbit['NDXMDL'] = df_orbit.loc[:, 'DX'] / np.sqrt(df_orbit.loc[:, 'BETX'])
@@ -142,7 +131,7 @@ def _calculate_normalised_dispersion(model, list_of_df, beta, header_dict, unit,
     df_orbit['DPX'] = _calculate_dp(model, df_orbit.loc[:, ['DX', 'STDDX']], "X")
     output_df = df_orbit.loc[:, ['S', 'COUNT', 'NDX', 'STDNDX', 'DX', 'DPX',
                                  'NDXMDL', 'DXMDL', 'DPXMDL', 'MUXMDL']]
-    tfs_pandas.write_tfs(join(output, 'getNDx.out'), output_df, header_dict, save_index='NAME')
+    tfs_pandas.write_tfs(join(output, header['FILENAME']), output_df, header, save_index='NAME')
     return output_df
 
 
