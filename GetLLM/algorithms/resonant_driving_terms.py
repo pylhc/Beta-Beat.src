@@ -21,7 +21,7 @@ try:
 except ImportError:
     exist_curve_fit = False
 
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+DEBUG = sys.flags.debug # True with python option -d! ("python -d measure_optics.py...") (vimaier)
 
 
 RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
@@ -38,7 +38,6 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
 #             'f0220V', 'f2011V', 'f1201H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
 #             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
-
 
 def determine_lines(rdt):
     r = list(rdt)
@@ -70,7 +69,7 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, in
     syntax is: rdt_set = [(plane, out_file, line), ...]
     with:
         plane in ["H", "V"]
-        out_file in files_dict is the out file to write the data to (must be added to GetLLM.py)
+        out_file in files_dict is the out file to write the data to (must be added to measure_optics.py)
         line in (int, int) is the corresponding line to the driving term
     """
     beam = getllm_d.beam_direction
@@ -85,7 +84,7 @@ def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, in
 
 def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, line), inv_x, inv_y, rdt, beam):
     assert plane in ["H", "V"] # check user input plane
-    
+
     # get plane corresponding phase and twiss data
     linx_data = twiss_d.zero_dpp_x
     liny_data = twiss_d.zero_dpp_y
@@ -117,16 +116,21 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     use_opposite_line = False   
     
     try:
+        if DEBUG:
+            print("Looking for normal line (%s, %s)" % (line[0],line[1]))
         _, _ = _line_to_amp_and_phase_attr(line, list_zero_dpp[0])
         use_line = True
     except AttributeError:
-        print >> sys.stderr, "Line not found, trying opposite line.. (%s, %s)!" % line
+        print >> sys.stderr, "Line (%s, %s) not found! Trying opposite line ... !" % line
+    
     try:
+        if DEBUG:
+            print("Looking for oposit line (%s, %s)" % (-line[0],-line[1]))
         _, _ = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[0])
         use_opposite_line = True
     except AttributeError:
-        print >> sys.stderr, "Opposite line not found.. (%s, %s)!" % (-line[0],-line[1])
-
+        print >> sys.stderr, "Opposite line (%s, %s) not found!" % (-line[0],-line[1])
+        
     if use_line or use_opposite_line:  
         for i in range(len(dbpms)-4):
             bpm1 = dbpms[i][1].upper()
@@ -154,8 +158,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 elif use_opposite_line and not use_line:
                     amp_line, phase_line = _line_to_amp_and_phase_attr((-line[0],-line[1]), list_zero_dpp[j])
                     phase_line = -phase_line 
-
-                if beam == 1:
+                
+                if beam==1:
                     delta, edelta = bpm_pair_data[1:]
                     amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
@@ -169,23 +173,22 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     line_phases.append(line_phase)
                     line_phases_err.append(line_phase_e)
     
-                elif beam == -1:
+
+                if beam==-1:
                     delta, edelta = bpm_pair_data[1:]
+                    delta = -delta
                     amp1 = amp_line[list_zero_dpp[j].indx[bpm1]]
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-
-                    try:
-                        bpm_position = bpm_positions[bpm_names.index(bpm2)]
-                        line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp2, amp1, phase2, phase1)
-                        out_file.add_table_row([bpm2, bpm_position, len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
-                        line_amplitudes.append(line_amp)
-                        line_amplitudes_err.append(line_amp_e)
-                        line_phases.append(line_phase)
-                        line_phases_err.append(line_phase_e)
-                    except ValueError:
-                        pass
+                    
+                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
+                    out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
+                    line_amplitudes.append(line_amp)
+                    line_amplitudes_err.append(line_amp_e)
+                    line_phases.append(line_phase)
+                    line_phases_err.append(line_phase_e)
+    
                         
                 
                 rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01)%1)
@@ -208,6 +211,12 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         bpm_name = dbpms[k][1].upper()
         bpm_rdt_data = line_amplitudes[k*num_meas:(k+1)*num_meas]
         res, res_err = do_fitting(bpm_rdt_data, inv_x, inv_y, rdt, plane)
+        
+        #print "skowron EAMP", res_err[0]
+        if np.isinf(res_err[0]):
+            #print "skowron EAMP is inf", res_err[0]
+            res_err[0] = 0.0
+            
         rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])
 
 
