@@ -29,7 +29,7 @@ from __builtin__ import raw_input
 from constants import PI, TWOPI, kEPSILON
 from SegmentBySegment.sbs_writers.sbs_phase_writer import FIRST_BPM_B1
 import pandas as pd
-from utils import logging_tools
+from utils import logging_tools, stats
 
 LOGGER = logging_tools.get_logger(__name__)
 
@@ -484,10 +484,10 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerat
             bname = bpms.index[k]
             #-- Bad BPM flag based on phase
             badbpm=0
-            f1001xArgAve = phase.calc_phase_mean(f1001xArg[k],2*np.pi)
-            f1001yArgAve = phase.calc_phase_mean(f1001yArg[k],2*np.pi)
-            f1010xArgAve = phase.calc_phase_mean(f1010xArg[k],2*np.pi)
-            f1010yArgAve = phase.calc_phase_mean(f1010yArg[k],2*np.pi)
+            f1001xArgAve = stats.circular_mean(f1001xArg[k]) % (2*np.pi)
+            f1001yArgAve = stats.circular_mean(f1001yArg[k]) % (2*np.pi)
+            f1010xArgAve = stats.circular_mean(f1010xArg[k]) % (2*np.pi)
+            f1010yArgAve = stats.circular_mean(f1010yArg[k]) % (2*np.pi)
             #This seems to be to conservative or somethings...
             if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
             if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
@@ -496,14 +496,14 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerat
             if badbpm==0:
                 f1001AbsAve = np.mean(f1001Abs[k])
                 f1010AbsAve = np.mean(f1010Abs[k])
-                f1001ArgAve = phase.calc_phase_mean(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
-                f1010ArgAve = phase.calc_phase_mean(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
+                f1001ArgAve = stats.circular_mean(np.append(f1001xArg[k], f1001yArg[k])) % (2*np.pi)
+                f1010ArgAve = stats.circular_mean(np.append(f1010xArg[k], f1010yArg[k])) % (2*np.pi)
                 f1001Ave = f1001AbsAve*np.exp(1j*f1001ArgAve)
                 f1010Ave = f1010AbsAve*np.exp(1j*f1010ArgAve)
                 f1001AbsStd = math.sqrt(np.mean((f1001Abs[k]-f1001AbsAve)**2))
                 f1010AbsStd = math.sqrt(np.mean((f1010Abs[k]-f1010AbsAve)**2))
-                f1001ArgStd = phase.calc_phase_std(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
-                f1010ArgStd = phase.calc_phase_std(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
+                f1001ArgStd = stats.circular_error(np.append(f1001xArg[k], f1001yArg[k]), t_value_corr=False)
+                f1010ArgStd = stats.circular_error(np.append(f1010xArg[k], f1010yArg[k]), t_value_corr=False)
                 fwqw[bname] = [[f1001Ave          ,f1001AbsStd       ,f1010Ave          ,f1010AbsStd       ],
                                  [f1001ArgAve/(2*np.pi),f1001ArgStd/(2*np.pi),f1010ArgAve/(2*np.pi),f1010ArgStd/(2*np.pi)]]  #-- Phases renormalized to [0,1)
                 goodbpm.append(bname)

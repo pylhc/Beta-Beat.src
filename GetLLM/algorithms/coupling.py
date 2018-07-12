@@ -35,7 +35,7 @@ import phase
 import helper
 import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
-from utils import logging_tools
+from utils import logging_tools, stats
 from twiss_optics.optics_class import TwissOptics
 
 LOGGER = logging_tools.get_logger(__name__)
@@ -558,13 +558,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
         q1jd = np.array(q1jd)
         q2jd = np.array(q2jd)
-        q1d = phase.calc_phase_mean(q1jd,1.0)
-        q2d = phase.calc_phase_mean(q2jd,1.0)
+        q1d = stats.circular_mean(q1jd, period=1.0) % 1.0
+        q2d = stats.circular_mean(q2jd, period=1.0) % 1.0
 
         q1js = np.array(q1js)
         q2js = np.array(q2js)
-        q1s = phase.calc_phase_mean(q1js,1.0)
-        q2s = phase.calc_phase_mean(q2js,1.0)
+        q1s = stats.circular_mean(q1js, period=1.0) % 1.0
+        q2s = stats.circular_mean(q2js, period=1.0) % 1.0
 
         if DEBUG:
             print("\n")
@@ -613,10 +613,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             f1010istd = np.sqrt(1/sum(1/std_f1010ij**2))
 
             # Use routines in phase.py to get mean and std of the phase terms q1001 and q1010
-            q1001i = phase.calc_phase_mean(np.array([q1d,q2d]),1.0)
-            q1010i = phase.calc_phase_mean(np.array([q1s,q2s]),1.0)
-            q1001istd = phase.calc_phase_std(np.append(q1jd,q2jd),1.0)
-            q1010istd = phase.calc_phase_std(np.append(q1js,q2js),1.0)
+            q1001i = stats.circular_mean(np.array([q1d,q2d]), period=1.0) % 1.0
+            q1010i = stats.circular_mean(np.array([q1s,q2s]), period=1.0) % 1.0
+            q1001istd = stats.circular_error(np.append(q1jd,q2jd), period=1.0, t_value_corr=False)
+            q1010istd = stats.circular_error(np.append(q1js,q2js), period=1.0, t_value_corr=False)
             # Calculate complex coupling terms using phases from above
             f1001i = f1001i*complex(np.cos(2.0*np.pi*q1001i),np.sin(2.0*np.pi*q1001i))
             f1010i = f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))

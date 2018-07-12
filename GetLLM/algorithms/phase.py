@@ -15,17 +15,13 @@ Change history:
 '''
 
 import sys
-import traceback
-import math
 import numpy as np
 import compensate_excitation
-from utils import tfs_file_writer
 from model.accelerators.accelerator import AccExcitationMode
 from constants import PI, TWOPI, kEPSILON
-from utils import logging_tools
+from utils import logging_tools, stats
 
 import pandas as pd
-from time import time
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
@@ -263,77 +259,6 @@ def calculate_phase(getllm_d, twiss_d, tune_d, files_dict):
 # helper-functions
 #---------------------------------------------------------------------------------------------------
 
-def t_value_correction(_num):
-    ''' Calculations are based on Hill, G. W. (1970)
-    Algorithm 396: Student's t-quantiles. Communications of the ACM, 
-    13(10), 619-620.
-
-    http://en.wikipedia.org/wiki/Quantile_function#The_Student.27s_t-distribution
-
-    It is not implemented directly here because a library for the erfinv() function, the inverse error function
-    cannot be accessed from our servers in their current python installation (Jan-2015).
-    (http://en.wikipedia.org/wiki/Error_function#Inverse_function)
-    '''
-    num = int(_num)
-    correction_dict = {2:1.8394733927562799, 3:1.3224035682262103, 4:1.1978046912864673, 
-                       5:1.1424650980932523, 6:1.1112993008590089, 7:1.0913332519214189, 
-                       8:1.0774580800762166, 9:1.0672589736833817, 10:1.0594474783177483,
-                       11:1.053273802733051, 12:1.0482721313740653, 13:1.0441378866779087,
-                       14:1.0406635564353071, 15:1.0377028976401199, 16:1.0351498875115406,
-                       17:1.0329257912610941, 18:1.0309709166064416, 19:1.029239186837585, 
-                       20:1.0276944692596461}
-    if num > 1 and num <=20:
-        t_factor = correction_dict[num]
-    else:
-        t_factor = 1
-    return t_factor
-
-# vectorizing the function in order to be able to apply it to a matrix
-vec_t_value_correction = np.vectorize(t_value_correction, otypes=[int])
-
-def calc_phase_mean(phase0, norm):
-    ''' phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi '''
-    # look at hole_in_one/get_optics_3D.py !!!!!!!!!!
-    phase0 = np.array(phase0)%norm
-    phase1 = (phase0 + .5*norm) % norm - .5*norm
-    phase0ave = np.mean(phase0)
-    phase1ave = np.mean(phase1)
-    # Since phase0std and phase1std are only used for comparing, I modified the expressions to avoid
-    # math.sqrt(), np.mean() and **2.
-    # Old expressions:
-    #     phase0std = math.sqrt(np.mean((phase0-phase0ave)**2))
-    #     phase1std = math.sqrt(np.mean((phase1-phase1ave)**2))
-    # -- vimaier
-    mod_phase0std = sum(abs(phase0-phase0ave))
-    mod_phase1std = sum(abs(phase1-phase1ave))
-    if mod_phase0std < mod_phase1std:
-        return phase0ave
-    else:
-        return phase1ave % norm
-
-def calc_phase_std(phase0, norm):
-    ''' phases must be in [0,1) or [0,2*pi), norm = 1 or 2*pi '''
-    phase0 = np.array(phase0)%norm
-    phase1 = (phase0 + .5*norm) % norm - .5*norm
-    phase0ave = np.mean(phase0)
-    phase1ave = np.mean(phase1)
-
-    # Omitted unnecessary computations. Old expressions:
-    #     phase0std=sqrt(mean((phase0-phase0ave)**2))
-    #     phase1std=sqrt(mean((phase1-phase1ave)**2))
-    #     return min(phase0std,phase1std)
-    # -- vimaier
-    phase0std_sq = np.sum((phase0-phase0ave)**2)
-    phase1std_sq = np.sum((phase1-phase1ave)**2)
-
-    min_phase_std = min(phase0std_sq, phase1std_sq)
-    if len(phase0) > 1:
-        phase_std = math.sqrt(min_phase_std/(len(phase0)-1))
-        phase_std = phase_std * t_value_correction(len(phase0)-1)
-    else:
-        phase_std = 0
-    return phase_std
-
 def get_phases(getllm_d, mad_twiss, Files, bpm, tune_q, plane):
     """
     Calculates phase.
@@ -466,9 +391,9 @@ def _get_phases_union(bpm, bd, plane_mu, mad_twiss, Files, k_lastbpm):
     
     phase_advances["NFILES"] = nfiles
     if OPTIMISTIC:
-        phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) * vec_t_value_correction(nfiles)
+        phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) / np.sqrt(nfiles) * stats.t_value_correction(nfiles)
     else:
-        phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) * vec_t_value_correction(nfiles)
+        phase_advances["ERRMEAS"] = np.nanstd(phase_matr_meas, axis=0) * stats.t_value_correction(nfiles)
 
 
     return phase_advances
