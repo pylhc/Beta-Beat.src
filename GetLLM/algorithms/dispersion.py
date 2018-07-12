@@ -13,7 +13,7 @@ import numpy as np
 from utils import tfs_pandas
 from utils import stats
 SCALES = {'um': 1.0e-6, 'mm': 1.0e-3, 'cm': 1.0e-2, 'm': 1.0}
-
+PLANES = ("X", "Y")
 
 def calculate_orbit_and_dispersion(input_files, tune_d, model, header_dict, unit, cut, beta_from_phase, output):
     """
@@ -21,7 +21,7 @@ def calculate_orbit_and_dispersion(input_files, tune_d, model, header_dict, unit
        getCOx.out        getCOy.out
        getNDx.out        getDx.out        getDy.out
     Args:
-        twiss_d: Holds tfs pandas of the linx/y files. Later to be replaced by two lists of tfs_pandas
+        input_files: Stores the input files Tfs_pandas
         tune_d: Holds tunes and phase advances
         model:  Model tfs panda
         header_dict: OrderedDict containing information about the analysis
@@ -97,31 +97,23 @@ def _calculate_dispersion(model, input_files, plane, header, unit, cut, output, 
     return output_df
 
 
-def _calculate_normalised_dispersion(model, list_of_df, beta, header, unit, cut, output):
+def _calculate_normalised_dispersion(model, input_files, beta, header, unit, cut, output):
     #TODO there are no errors from orbit
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MUX', 'DPX', 'DX', 'X', 'BETX']]
     df_orbit['NDXMDL'] = df_orbit.loc[:, 'DX'] / np.sqrt(df_orbit.loc[:, 'BETX'])
     df_orbit.rename(columns={'MUX': 'MUXMDL', 'DPX': 'DPXMDL', 'DX': 'DXMDL', 'X': 'XMDL'}, inplace=True)
-    df_orbit = df_orbit.assign(CO=0.0, CORMS=0.0, AMPX=0.0, COUNT=len(list_of_df))
-    orbit_columns = []
-    dpps = np.empty(len(list_of_df))
-    amps = []
-    for i, df in enumerate(list_of_df):
-        df_orbit = pd.merge(df_orbit, df.loc[:, ['CO', 'CORMS', 'AMPX']], how='inner', left_index=True,
-                            right_index=True, suffixes=('', str(i + 1)))
-        orbit_columns.append('CO' + str(i+1))
-        dpps[i] = df.DPP
-        if df.DPP == 0.0:
-            amps.append('AMPX' + str(i+1))
+    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, ['CO']))
+    dpps = input_files.get_dpps("X")
+    df_orbit = pd.merge(df_orbit, input_files.get_joined_frame("X", ['CO', 'CORMS', 'AMPX']),
+                        how='inner', left_index=True, right_index=True)
     df_orbit = pd.merge(df_orbit, beta.loc[:, ['BETX', 'ERRBETX']], how='inner', left_index=True,
                         right_index=True, suffixes=('', '_phase'))
     if np.max(dpps) - np.min(dpps) == 0.0:
         return  # temporary solution
         # raise ValueError('Cannot calculate dispersion, only a single dpoverp')
-    fit = np.polyfit(np.array(dpps), SCALES[unit] * df_orbit.loc[:, orbit_columns].values.T, 1, cov=True)
-    amps = np.array(amps)
-    df_orbit['NDX_unscaled'] = fit[0][-2, :].T / np.mean(df_orbit.loc[:, amps].values, axis=1) # TODO there is no error from AMPX
-    df_orbit['STDNDX_unscaled'] = np.sqrt(fit[1][-2,-2, :].T) / np.mean(df_orbit.loc[:, amps].values, axis=1)
+    fit = np.polyfit(dpps, SCALES[unit] * input_files.get_data(df_orbit, 'CO').T, 1, cov=True)
+    df_orbit['NDX_unscaled'] = fit[0][-2, :].T / stats.weighted_mean(input_files.get_data(df_orbit, 'AMPX'), axis=1) # TODO there is no error from AMPX
+    df_orbit['STDNDX_unscaled'] = np.sqrt(fit[1][-2, -2, :].T) / stats.weighted_mean(input_files.get_data(df_orbit, 'AMPX'), axis=1)
     df_orbit = df_orbit.loc[np.abs(fit[0][-1, :].T) < cut * SCALES[unit], :]
     global_factor = np.sum(df_orbit.loc[:, 'NDXMDL'].values) / np.sum(df_orbit.loc[:, 'NDX_unscaled'].values) # TODO should be arc BPMS
     df_orbit['NDX'] = global_factor * df_orbit.loc[:, 'NDX_unscaled']
@@ -140,7 +132,7 @@ def _calculate_dp(model, disp, plane):
                                          'BET' + plane, 'ALF' + plane]]
     df = pd.merge(df, disp.loc[:, ['D' + plane, 'STDD' + plane]], how='inner', left_index=True,
                   right_index=True, suffixes=('', 'meas'))
-    shifted = np.roll(df.index.values, 1)
+    shifted = np.roll(df.index.values, -1)
     print(shifted[0])
     print(shifted[-1])
     p_mdl_12 = df.loc[shifted, 'MU' + plane].values - df.loc[:, 'MU' + plane].values
