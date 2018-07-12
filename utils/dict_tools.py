@@ -36,6 +36,10 @@ class DotDict(dict):
         except KeyError as e:
             raise AttributeError(e)  # TODO: Adapt traceback to not link here (Python3 does that?)
 
+    def get_subdict(self, keys, strict=True):
+        """ See get_subdict in dict_tools. """
+        return get_subdict(self, keys, strict)
+
 
 def print_dict_tree(dictionary, name='Dictionary'):
     """ Prints a dictionary as a tree """
@@ -58,6 +62,23 @@ def print_dict_tree(dictionary, name='Dictionary'):
 
     LOG.info('{:s}:'.format(name))
     print_tree(dictionary, '')
+
+
+def get_subdict(full_dict, keys, strict=True):
+    """ Returns a sub-dictionary of ``full_dict`` containing only keys of ``keys``.
+
+    Args:
+        full_dict: Dictionary to extract from
+        keys: keys to extract
+        strict: If false it ignores keys not in full_dict. Otherwise it crashes on those.
+                Default: True
+
+    Returns: Extracted sub-dictionary
+
+    """
+    if strict:
+        return {k: full_dict[k] for k in keys}
+    return {k: full_dict[k] for k in keys if k in full_dict}
 
 
 # Dict Parser ##################################################################
