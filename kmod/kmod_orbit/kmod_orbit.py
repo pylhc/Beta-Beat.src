@@ -198,17 +198,19 @@ def _compute_and_clean(ip, beam, side, plane, models, bpm_names, ks, orbits):
     # Work out offset using matrix multiplication
     offset = np.dot(np.dot(np.transpose(u[:, 0]), orb),
                     np.transpose(v[0, :])) / s[0]
-    N = orb - offset * model_data
-    errorbars = np.abs(np.dot(np.dot(np.transpose(u[:, 0]), N),
-                              np.transpose(v[0, :])) / s[0])
+    N = (orb - offset * model_data) / orb
+    onesigma = np.std(N)
+    N = N[np.abs(N) < onesigma]
+    errorbars = offset * np.mean(N)
     return offset, errorbars
 
 
 def _compute_kl(ks, model, quadname):
     quad_length = (model.loc[quadname, "S"] -
                    model.ix[model.index.get_loc(quadname) - 1, "S"])
+    sign = np.sign(model.loc[quadname, "K1L"])
     avg_k = np.mean(ks)
-    return (ks - avg_k) * quad_length
+    return sign * (ks - avg_k) * quad_length
 
 
 def _compute_transfer_matrix(model, bpm_model, quadname, ks, plane, beam):
@@ -245,10 +247,10 @@ def _apply_to_beam_side_plane(function):
 
 
 def _get_sign(beam, plane):
-    return {(BEAM1, HOR): 1,
+    return {(BEAM1, HOR): +1,
             (BEAM1, VER): -1,
-            (BEAM2, HOR): -1,
-            (BEAM2, VER): 1, }[(beam, plane)]
+            (BEAM2, HOR): +1,
+            (BEAM2, VER): -1, }[(beam, plane)]
 
 
 def _date_str_to_timestamp(str_date):
