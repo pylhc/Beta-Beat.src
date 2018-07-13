@@ -33,8 +33,8 @@ def measure_optics(input_files, measure_input):
         LOGGER.info("     DEBUG ON")
 
     tune_d = _TuneData()
-    #tune_d.q1mdl = measure_input.accelerator.get_model_tfs().headers["Q1"]
-    #tune_d.q2mdl = measure_input.accelerator.get_model_tfs().headers["Q2"]
+    tune_d.q1mdl = measure_input.accelerator.get_model_tfs().headers["Q1"]
+    tune_d.q2mdl = measure_input.accelerator.get_model_tfs().headers["Q2"]
 
     """
     Construct pseudo-double plane BPMs

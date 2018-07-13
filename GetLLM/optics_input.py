@@ -115,6 +115,6 @@ def _get_optics_parser(start_args=sys.argv[1:]):
 
     options, acc_args = parser.parse_known_args(args=start_args)
 
-    accelerator = manager.get_accel_class(acc_args)
+    accelerator = manager.get_accel_instance(acc_args)
 
     return options, accelerator
