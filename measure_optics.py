@@ -1,5 +1,5 @@
 import os
-from os.path import isfile
+from os.path import isfile, join
 import sys
 import traceback
 import datetime
@@ -9,11 +9,9 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 from GetLLM import algorithms, optics_input
-import Python_Classes4MAD.metaclass
 from GetLLM.GetLLMError import GetLLMError, CriticalGetLLMError
-import utils.iotools
 from model.accelerators.accelerator import AccExcitationMode
-from utils import tfs_pandas, logging_tools
+from utils import tfs_pandas, logging_tools, iotools
 
 
 VERSION = 'V3.0.0 Dev'
@@ -21,24 +19,21 @@ DEBUG = sys.flags.debug  # True with python option -d! ("python -d measure_optic
 LOGGER = logging_tools.get_logger(__name__)
 PLANES = ('X', 'Y')
 
-def main(measure_input):
+
+def measure_optics(input_files, measure_input):
     LOGGER.info("Starting GetLLM " + VERSION)
     global __getllm_starttime
     __getllm_starttime = time()
-    utils.iotools.create_dirs(measure_input.outputdir)
-    input_files = InputFiles(measure_input.files)
+    iotools.create_dirs(measure_input.outputdir)
     logging_tools.add_module_handler(logging_tools.file_handler(os.path.join(measure_input.outputdir, "getllm.log")))
     header_dict = _get_header()
     if sys.flags.debug:
         LOGGER.info("     DEBUG ON")
+
     tune_d = _TuneData()
     tune_d.q1mdl = measure_input.accelerator.get_model_tfs().headers["Q1"]
     tune_d.q2mdl = measure_input.accelerator.get_model_tfs().headers["Q2"]
 
-    # Creates the output files dictionary
-    calibration_twiss = _copy_calibration_files(measure_input.outputdir, calibration_dir_path)
-    print_time("BEFORE_ANALYSE_SRC", time() - __getllm_starttime)
-    input_files = _analyse_src_files11(input_files, measure_input.no_averaged_tune, calibration_twiss)
     """
     Construct pseudo-double plane BPMs
     TODO This should be in accelerator class
@@ -111,62 +106,6 @@ def main(measure_input):
         # files_dict = algorithms._calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
         # files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
     print_time("FINISH", time() - __getllm_starttime)
-
-
-
-def _analyse_src_files11(input_files, no_average, calibration_twiss):
-    # TODO treat averaging of tunes
-    # TODO treat calibration
-    if not no_average:
-        twiss_file_x = input_files["X"].rename(columns={"AVG_MUX": "MUX", "MUX": "MUX_OLD"})
-    if calibration_twiss is not None:
-        twiss_file_x["AMPX"], twiss_file_x["ERRAMPX"] = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
-    # y file
-    if not no_average:
-        twiss_file_y = twiss_file_y.rename(columns={"AVG_MUY": "MUY", "MUY": "MUY_OLD"})
-    if calibration_twiss is not None:
-        twiss_file_y.AMPY, twiss_file_y["ERRAMPY"] = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
-    return input_files
-
-
-def _add_filename_to_header_for_files(files_dict, filex, files_list):
-    for key in files_list:
-        if key in files_dict:
-            files_dict[key].add_filename_to_getllm_header(filex)
-
-
-def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
-    calibration_file = calibration_twiss[plane]
-    cal_amplitudes = []
-    err_cal_amplitudes = []
-    for bpm_name in drive_file.index:
-        drive_index = drive_file.indx[bpm_name]
-        cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
-        err_cal_amplitude = 0.
-        if bpm_name in calibration_file.NAME:
-            cal_index = calibration_file.indx[bpm_name]
-            cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
-            err_cal_amplitude = calibration_file.ERROR_CALIBRATION[cal_index]
-        cal_amplitudes.append(cal_amplitude)
-        err_cal_amplitudes.append(err_cal_amplitude)
-    return np.array(cal_amplitudes), np.array(err_cal_amplitudes)
-
-
-def _copy_calibration_files(output_path, calibration_dir_path):
-    calibration_twiss = {}
-    if calibration_dir_path is not None:
-        original_cal_file_path_x = os.path.join(calibration_dir_path, "calibration_x.out")
-        original_cal_file_path_y = os.path.join(calibration_dir_path, "calibration_y.out")
-        cal_file_path_x = os.path.join(output_path, "calibration_x.out")
-        cal_file_path_y = os.path.join(output_path, "calibration_y.out")
-        utils.iotools.copy_item(original_cal_file_path_x, cal_file_path_x)
-        utils.iotools.copy_item(original_cal_file_path_y, cal_file_path_y)
-
-        calibration_twiss["X"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_x)
-        calibration_twiss["Y"] = Python_Classes4MAD.metaclass.twiss(cal_file_path_y)
-        return calibration_twiss
-    else:
-        return None
 
 
 def _get_header():
@@ -293,6 +232,24 @@ class InputFiles(dict):
             joined_frame.rename(columns={column: column + '__0'}, inplace=True)
         return joined_frame
 
+    def calibrate(self, calibs):
+        if calibs is None:
+            pass
+        for plane in PLANES:
+            for i in range(len(self[plane])):
+                data = pd.merge(self[plane][i].loc[:, "AMP" + plane], calibs[plane], how='left',
+                                left_index=True, right_index=True).fillna(
+                    value={"CALIBRATION": 1., "ERROR_CALIBRATION": 0.})
+                self[plane][i]["AMP" + plane] = self[plane][i].loc[:, "AMP" + plane] * data.loc[:,"CALIBRATION"]
+                self[plane][i]["ERRAMP" + plane] = data.loc[:, "ERROR_CALIBRATION"]  # TODO
+
+    def use_average_tune(self, no_averaged_tune):
+        if no_averaged_tune:
+            pass
+        for plane in PLANES:
+            for i in range(len(self[plane])):
+                self[plane][i].rename(columns={"AVG_MU" + plane: "MU" + plane, "MU" + plane: "OLD_MU" + plane})
+
     @staticmethod
     def get_columns(frame, column):
         """
@@ -318,5 +275,22 @@ class InputFiles(dict):
         return frame.loc[:, frame.getcolumns(frame, column)].values
 
 
+def _copy_calibration_files(outputdir, calibrationdir):
+    if calibrationdir is None:
+        return None
+    calibs = {}
+    for plane in PLANES:
+        cal_file = "calibration_{}.out".format(plane.lower())
+        iotools.copy_item(join(calibrationdir, cal_file), join(outputdir, cal_file))
+        calibs[plane] = tfs_pandas.read_tfs(join(outputdir, cal_file)).set_index("NAME")
+    return calibs
+
+
 if __name__ == "__main__":
-    main(*optics_input.parse_args())
+    arguments = optics_input.parse_args()
+    inputs = InputFiles(arguments.files)
+    iotools.create_dirs(arguments.outputdir)
+    calibrations = _copy_calibration_files(arguments.outputdir, arguments.calibrationdir)
+    inputs.calibrate(calibrations)
+    inputs.use_average_tune(arguments.no_averaged_tune)
+    measure_optics(inputs, *optics_input.parse_args())
