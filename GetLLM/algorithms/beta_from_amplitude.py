@@ -17,7 +17,7 @@ from model.accelerators.accelerator import AccExcitationMode
 # TODO all action scaling should be done with arc BPMs
 
 
-def calculate_beta_from_amplitude(getllm_d, twisses, tune_d, phase_d, accelerator, header_dict, output):  # twises - dictionary by plane
+def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, header_dict, output):  # twises - dictionary by plane
     """
     Calculates beta and fills the following TfsFiles:
         getampbetax.out        getampbetax_free.out        getampbetax_free2.out
@@ -35,15 +35,15 @@ def calculate_beta_from_amplitude(getllm_d, twisses, tune_d, phase_d, accelerato
 
     Returns:
     """
-    mad_twiss = accelerator.get_model_tfs()
-    if accelerator.excitation != AccExcitationMode.FREE:
-        mad_ac = accelerator.get_driven_tfs()
+    mad_twiss = measure_input.accelerator.get_model_tfs()
+    if measure_input.accelerator.excitation != AccExcitationMode.FREE:
+        mad_ac = measure_input.accelerator.get_driven_tfs()
     else:
         mad_ac = mad_twiss
 
     for plane in ['X', 'Y']:
         # column_names = ["NAME", "S", "COUNT", "BET" + plane, "BET" + plane + "STD", "BET" + plane + "MDL", "MU" + plane + "MDL", "BET" + plane + "RES", "BET" + plane + "STDRES"]
-        beta_amp = beta_from_amplitude(mad_ac, twisses[plane], 'X')
+        beta_amp = beta_from_amplitude(mad_ac, input_files[plane], plane)
         beta_amp['DPP'] = 0
         x_ratio = np.mean(beta_phase / beta_amp)  # over good arc bpms : both betas positive abs(beta_phase / beta_amp)<100
         beta_amp['BET' + plane + 'RES'] = beta_amp.loc[:, 'BET' + plane] * x_ratio
@@ -51,8 +51,8 @@ def calculate_beta_from_amplitude(getllm_d, twisses, tune_d, phase_d, accelerato
         header_d = _get_header(header_dict, tune_d, np.std(beta_amp.loc[:, 'DELTABET' + plane].values), x_ratio, 'getampbeta' + plane.lower() + '.out', free=False)
         tfs_pandas.write_tfs(join(output, header_d['FILENAME']), beta_amp, header_d, save_index='NAME')
         # -- ac to free amp beta
-        if getllm_d.accelerator.excitation is not AccExcitationMode.FREE:
-            beta_amp_f = compensate_excitation.get_free_beta_from_amp_eq(mad_ac, twiss_d.zero_dpp_x, tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', getllm_d, arcbpms)
+        if measure_input.accelerator.excitation is not AccExcitationMode.FREE:
+            beta_amp_f = compensate_excitation.get_free_beta_from_amp_eq(mad_ac, input_files._get_zero_dpp_frames(plane), tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', measure_input, arcbpms)
             x_ratio_f = np.mean(beta_phase / beta_amp)  # over good arc bpms : both betas positive, 0.1 < abs(beta_phase / beta_amp)<10
             header_f = _get_header(header_dict, tune_d, np.std(beta_amp_f.loc[:, 'DELTABET' + plane].values), x_ratio_f, 'getampbeta' + plane.lower() + '_free.out', free=True)
 

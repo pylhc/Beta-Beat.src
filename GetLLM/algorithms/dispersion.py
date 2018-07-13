@@ -40,7 +40,7 @@ def calculate_orbit_and_dispersion(input_files, tune_d, model, header_dict, unit
         _calculate_dispersion(model, input_files, plane, dispersion_header, unit, cut, output)
         if plane == 'X':
             ndx_header = _get_header(header_dict, tune_d, 'getNDx.out', orbit=False)
-            _calculate_normalised_dispersion(model, input_files, plane, beta_from_phase, ndx_header,
+            _calculate_normalised_dispersion(model, input_files, beta_from_phase, ndx_header,
                                              unit, cut, output)
 
 

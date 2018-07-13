@@ -157,7 +157,7 @@ def get_free_phase_eq(model, Files, bpm, Qd, Q, ac2bpmac, plane, Qmdl, getllm_d)
                                          len(Files)) / TWOPI) % 1
 
     if phase.OPTIMISTIC:
-        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * t_value_correction(len(Files)) / np.sqrt(len(Files))
+        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * stats.t_value_correction(len(Files)) / np.sqrt(len(Files))
     else:
         R = np.sqrt(
             (sin_phase_matr_meas * sin_phase_matr_meas + cos_phase_matr_meas * cos_phase_matr_meas)
