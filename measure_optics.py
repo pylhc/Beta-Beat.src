@@ -8,7 +8,9 @@ import re
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
-from GetLLM import algorithms, optics_input
+from GetLLM import optics_input
+from GetLLM.algorithms import (beta, beta_from_amplitude,coupling,compensate_excitation,dpp, dispersion, interaction_point,kick,phase
+                                )
 from GetLLM.GetLLMError import GetLLMError, CriticalGetLLMError
 from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas, logging_tools, iotools
@@ -31,14 +33,14 @@ def measure_optics(input_files, measure_input):
         LOGGER.info("     DEBUG ON")
 
     tune_d = _TuneData()
-    tune_d.q1mdl = measure_input.accelerator.get_model_tfs().headers["Q1"]
-    tune_d.q2mdl = measure_input.accelerator.get_model_tfs().headers["Q2"]
+    #tune_d.q1mdl = measure_input.accelerator.get_model_tfs().headers["Q1"]
+    #tune_d.q2mdl = measure_input.accelerator.get_model_tfs().headers["Q2"]
 
     """
     Construct pseudo-double plane BPMs
     TODO This should be in accelerator class
     if (accelerator.__name__ == "SPS" or "RHIC" in accelerator.__name__) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
-        [pseudo_list_x, pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(accelerator.get_model_tfs(), twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
+        [pseudo_list_x, pseudo_list_y] = helper.pseudo_double_plane_monitors(accelerator.get_model_tfs(), twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
     else:
         Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
         pseudo_list_x = None
@@ -47,7 +49,7 @@ def measure_optics(input_files, measure_input):
     print_time("BEFORE_PHASE", time() - __getllm_starttime)
     #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
     try:
-        phase_d_bk, tune_d = algorithms.phase.calculate_phase(measure_input, input_files)
+        phase_d_bk, tune_d = phase.calculate_phase(measure_input, input_files)
     except:
         _tb_()
         # if phase crashed, none of the subsequent algorithms can run. Thus
@@ -55,14 +57,14 @@ def measure_optics(input_files, measure_input):
     print_time("AFTER_PHASE", time() - __getllm_starttime)
     #-------- START coupling.
     try:
-        tune_d = algorithms.coupling.calculate_coupling(measure_input, input_files, phase_d_bk, tune_d)
+        tune_d = coupling.calculate_coupling(measure_input, input_files, phase_d_bk, tune_d)
     except:
         _tb_()
     if measure_input.only_coupling:
         LOGGER.info("GetLLM was only calculating coupling. Skipping the rest and returning ...")
         return
     try:
-        beta_d, beta_driven_x, beta_free_x = algorithms.beta.calculate_beta_from_phase(measure_input, input_files, tune_d, phase_d_bk)
+        beta_d, beta_driven_x, beta_free_x = beta.calculate_beta_from_phase(measure_input, input_files, tune_d, phase_d_bk)
     except:
         _tb_()
     if measure_input.three_bpm_method:
@@ -70,11 +72,11 @@ def measure_optics(input_files, measure_input):
     else:
         print_time("AFTER_A_NBPM", time() - __getllm_starttime)
     # try:
-    #     algorithms.lobster.get_local_observable( phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict, tune_d.q1f)
+    #     lobster.get_local_observable( phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict, tune_d.q1f)
     # except:
     #     _tb_()
     try:
-        beta_d = algorithms.beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_d, beta_d)
+        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_d, beta_d)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
@@ -85,26 +87,26 @@ def measure_optics(input_files, measure_input):
     else:
         mad_ac = mad_twiss
     try:
-        algorithms.interaction_point.betastar_from_phase(measure_input.accelerator, phase_d_bk, mad_twiss)
+        interaction_point.betastar_from_phase(measure_input.accelerator, phase_d_bk, mad_twiss)
     except:
         _tb_()
     try:
-        algorithms.dispersion.calculate_orbit_and_dispersion(input_files, tune_d, mad_twiss, header_dict, measure_input.orbit_unit, measure_input.max_closed_orbit, beta_driven_x, measure_input.outputdir)
+        dispersion.calculate_orbit_and_dispersion(input_files, tune_d, mad_twiss, header_dict, measure_input.orbit_unit, measure_input.max_closed_orbit, beta_driven_x, measure_input.outputdir)
     except:
         _tb_()
     #------ Start get Q,JX,delta
     try:
-        inv_x, inv_y = algorithms.kick.calculate_kick(mad_twiss, mad_ac, measure_input, input_files, beta_d, phase_d_bk, measure_input.outputdir, header_dict)
+        inv_x, inv_y = kick.calculate_kick(mad_twiss, mad_ac, measure_input, input_files, beta_d, phase_d_bk, measure_input.outputdir, header_dict)
     except:
         _tb_()
     if measure_input.nonlinear:
         try:
-            algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase_d_bk, tune_d, inv_x, inv_y)
+            resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase_d_bk, tune_d, inv_x, inv_y)
         except:
             _tb_()
         # TODO: what does this?
-        # files_dict = algorithms._calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
-        # files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
+        # files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
+        # files_dict = chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
     print_time("FINISH", time() - __getllm_starttime)
 
 
@@ -184,7 +186,7 @@ class InputFiles(dict):
                 except ValueError:
                     pass
             for plane in PLANES:
-                self[plane] = algorithms.dpp.arrange_dpp(self[plane])
+                self[plane] = dpp.arrange_dpp(self[plane])
         if len(self['X']) + len(self['Y']) == 0:
             raise IOError("No valid input files")
 
@@ -237,7 +239,7 @@ class InputFiles(dict):
             pass
         for plane in PLANES:
             for i in range(len(self[plane])):
-                data = pd.merge(self[plane][i].loc[:, "AMP" + plane], calibs[plane], how='left',
+                data = pd.merge(self[plane][i].loc[:, ["AMP" + plane]], calibs[plane], how='left',
                                 left_index=True, right_index=True).fillna(
                     value={"CALIBRATION": 1., "ERROR_CALIBRATION": 0.})
                 self[plane][i]["AMP" + plane] = self[plane][i].loc[:, "AMP" + plane] * data.loc[:,"CALIBRATION"]
@@ -293,4 +295,4 @@ if __name__ == "__main__":
     calibrations = _copy_calibration_files(arguments.outputdir, arguments.calibrationdir)
     inputs.calibrate(calibrations)
     inputs.use_average_tune(arguments.no_averaged_tune)
-    measure_optics(inputs, *optics_input.parse_args())
+    measure_optics(inputs, arguments)

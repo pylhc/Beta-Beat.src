@@ -15,11 +15,12 @@ from model import manager
 def parse_args():
     optics_input = OpticsInput.init_from_options(*_get_optics_parser())
     python_path = "/afs/cern.ch/work/o/omc/anaconda/bin/python "
-    return optics_input, (python_path + " ".join(sys.argv))
+    return optics_input#, (python_path + " ".join(sys.argv))
 
 
 class OpticsInput(object):
     DEFAULTS = {
+        "calibrationdir": None,
         "max_closed_orbit": 4.0,
         "coupling_method": 2,
         "orbit_unit": "mm",
@@ -37,7 +38,7 @@ class OpticsInput(object):
     def __init__(self):
         self.files = None
         self.outputdir = None
-        self.calibrationdir = None
+        self.calibrationdir = OpticsInput.DEFAULTS["calibrationdir"]
         self.max_closed_orbit = OpticsInput.DEFAULTS["max_closed_orbit"]
         self.coupling_method = OpticsInput.DEFAULTS["coupling_method"]
         self.orbit_unit = OpticsInput.DEFAULTS["orbit_unit"]
@@ -114,6 +115,6 @@ def _get_optics_parser(start_args=sys.argv[1:]):
 
     options, acc_args = parser.parse_known_args(args=start_args)
 
-    accelerator = manager.get_accel_instance(acc_args)
+    accelerator = manager.get_accel_class(acc_args)
 
     return options, accelerator
