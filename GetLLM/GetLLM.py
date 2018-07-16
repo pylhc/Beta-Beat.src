@@ -94,7 +94,7 @@ import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
 import utils.iotools
-
+import time, calendar
 import copy
 
 from numpy import array
@@ -213,6 +213,22 @@ def _parse_args():
     return options
 
 
+def get_times(files_to_analyse):
+    times = []
+    for f in files_to_analyse.split(','):
+        meas = os.path.basename(f)
+        tm = meas[11:34]
+        try:
+            time_obj = time.strptime(tm, '%Y_%m_%d@%H_%M_%S_%f')
+        except ValueError:
+            times.append(0)
+            continue
+            
+        unix_time_utc = calendar.timegm(time_obj)
+        times.append(unix_time_utc)
+    return times
+
+
 #===================================================================================================
 # main()-function
 #===================================================================================================
@@ -284,10 +300,24 @@ def main(outputpath,
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
     getllm_d.onlycoupling = onlycoupling
+
+    dinj = DepInjector()
+    dinj.initial("getllm_d", getllm_d)\
+        .initial("bbthreshold", bbthreshold)\
+        .initial("errthreshold", errthreshold)
     # Setup
     mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre = _intial_setup(getllm_d,
                                                                                                                             model_filename,
                                                                                                                             dict_file)
+    dinj.initial("mad_twiss", mad_twiss)\
+        .initial("mad_ac", mad_ac)\
+        .initial("mad_elem", mad_elem)\
+        .initial("mad_best_knowledge", mad_best_knowledge)\
+        .initial("mad_ac_best_knowledge", mad_ac_best_knowledge)\
+        .initial("mad_elem_centre", mad_elem_centre)
+
+    kick_times = get_times(files_to_analyse)
+
 
     if sys.flags.debug:
         print "INFO: DEBUG ON"
@@ -299,10 +329,16 @@ def main(outputpath,
     calibration_twiss = _copy_calibration_files(outputpath, calibration_dir_path)
     twiss_d, files_dict = _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, tbtana, files_dict, use_average, calibration_twiss)
 
+    dinj.initial("calibration_twiss", calibration_twiss)\
+        .initial("files_dict", files_dict)\
+        .initial("temp_dict", copy.deepcopy(files_dict))\
+        .initial("twiss_d", twiss_d)\
+        .initial("kick_times", kick_times)
+
     # Load tunes from twiss instances, depending on with_ac_calc
-    
     tune_d.initialize_tunes(getllm_d.with_ac_calc, mad_twiss, mad_ac, twiss_d)
-   
+    dinj.initial("tune_d", tune_d)
+
     # Construct pseudo-double plane BPMs
     if (getllm_d.accel == "SPS" or "RHIC" in getllm_d.accel) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         [pseudo_list_x, pseudo_list_y] = algorithms.helper.pseudo_double_plane_monitors(mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
@@ -310,78 +346,212 @@ def main(outputpath,
         # Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
         pseudo_list_x = None
         pseudo_list_y = None
- 
-    #-------- Check monitor compatibility between data and model
+    dinj.initial("pseudo_list_x", pseudo_list_x)\
+        .initial("pseudo_list_y", pseudo_list_y)
+
+    # -------- Check monitor compatibility between data and model
     _check_bpm_compatibility(twiss_d, mad_twiss)
-    try:
-        #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
-        temp_dict = copy.deepcopy(files_dict)
-        #This one changes the results for some reason
-        if(getllm_d.onlycoupling is 0):
-            phase_d_bk, _ = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_best_knowledge, mad_ac_best_knowledge, mad_elem, temp_dict)
 
-        #-------- START Phase
-        phase_d, tune_d = algorithms.phase.calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, files_dict)
+    # -------- START Phase for beta calculation with best knowledge model in ac phase compensation
+    if getllm_d.onlycoupling is 0:
+        dinj.trigger(funct=algorithms.phase.calculate_phase,
+                     provides=("phase_d_bk", "_"),
+                     requires=("getllm_d", "twiss_d", "tune_d",
+                               "mad_best_knowledge", "mad_ac_best_knowledge",
+                               "mad_elem", "temp_dict"))
 
+    # -------- START Phase
+    dinj.trigger(funct=algorithms.phase.calculate_phase,
+                 provides=("phase_d", "tune_d"),
+                 requires=("getllm_d", "twiss_d", "tune_d", "mad_twiss",
+                           "mad_ac", "mad_elem", "files_dict"))
 
-        #-------- START coupling.
-        if (getllm_d.num_bpms_for_coupling > 0):
-            tune_d = algorithms.coupling.calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y)
-        else:
-            print("nbcpl (num_bpms_for_coupling) is is zero or negative: skipping coupling calculation")
+    # -------- START coupling.
+    if (getllm_d.num_bpms_for_coupling > 0):
+        dinj.trigger(funct=algorithms.coupling.calculate_coupling,
+                     provides=("tune_d", ),
+                     requires=("getllm_d", "twiss_d", "phase_d", "tune_d",
+                               "mad_twiss", "mad_ac", "files_dict",
+                               "pseudo_list_x", "pseudo_list_y"))
+    else:
+        print("nbcpl (num_bpms_for_coupling) is is zero or negative: skipping coupling calculation")
 
-        if(getllm_d.onlycoupling is 0):
-           
-                
-            #-------- START Total Phase
-            algorithms.phase.calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac, files_dict)
+    if getllm_d.onlycoupling is 0:
+        # -------- START Total Phase
+        dinj.trigger(funct=algorithms.phase.calculate_total_phase,
+                     requires=("getllm_d", "twiss_d", "tune_d", "phase_d",
+                               "mad_twiss", "mad_ac", "files_dict"))
 
-            #-------- START Beta
-            beta_d = algorithms.beta.calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d_bk, mad_twiss, mad_ac, mad_elem, mad_elem_centre, mad_best_knowledge, mad_ac_best_knowledge, files_dict)
+        # -------- START Beta
+        dinj.trigger(funct=algorithms.beta.calculate_beta_from_phase,
+                     provides=("beta_d", ),
+                     requires=("getllm_d", "twiss_d", "tune_d", "phase_d_bk",
+                               "mad_twiss", "mad_ac", "mad_elem",
+                               "mad_elem_centre", "mad_best_knowledge",
+                               "mad_ac_best_knowledge", "files_dict"))
 
-            #------- START beta from amplitude
-            beta_d = algorithms.beta.calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict)
+        dinj.trigger(funct=algorithms.beta.calculate_beta_from_amplitude,
+                     provides=("beta_d", ),
+                     requires=("getllm_d", "twiss_d", "tune_d", "phase_d",
+                               "beta_d", "mad_twiss", "mad_ac", "files_dict"))
 
-            #-------- START IP
-            algorithms.interaction_point.betastar_from_phase(getllm_d.accel, phase_d, mad_twiss, files_dict)
+        # -------- START IP
+        dinj.trigger(funct=algorithms.interaction_point.betastar_from_phase,
+                     requires=("getllm_d.accel", "phase_d", "mad_twiss",
+                               "files_dict"))
 
-            #-------- START Orbit
-            list_of_co_x, list_of_co_y, files_dict = _calculate_orbit(getllm_d, twiss_d, tune_d, mad_twiss, files_dict)
+        # -------- START Orbit
+        dinj.trigger(funct=_calculate_orbit,
+                     provides=("list_of_co_x", "list_of_co_y", "files_dict"),
+                     requires=("getllm_d", "twiss_d", "tune_d", "mad_twiss",
+                               "files_dict"))
 
-            #-------- START Dispersion
-            algorithms.dispersion.calculate_dispersion(getllm_d, twiss_d, tune_d, mad_twiss, files_dict, beta_d.x_amp, list_of_co_x, list_of_co_y)
-            
-            #------ Start get Q,JX,delta
-            files_dict, inv_x, inv_y = _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold)
+        # -------- START Dispersion
+        dinj.trigger(funct=algorithms.dispersion.calculate_dispersion,
+                     requires=("getllm_d", "twiss_d", "tune_d", "mad_twiss",
+                               "files_dict", "beta_d.x_amp", "list_of_co_x",
+                               "list_of_co_y"))
 
-           
-            #-------- START RDTs
-            if nonlinear:
-                algorithms.resonant_driving_terms.calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, inv_x, inv_y)
+        # ------ Start get Q,JX,delta
+        dinj.trigger(funct=_calculate_kick,
+                     provides=("files_dict", "inv_x", "inv_y"),
+                     requires=("kick_times", "getllm_d", "twiss_d", "phase_d", "beta_d",
+                               "mad_twiss", "mad_ac", "files_dict",
+                               "bbthreshold", "errthreshold"))
 
-            if tbtana == "SUSSIX":
-                #------ Start getsextupoles @ Glenn Vanbavinckhove
-                files_dict = _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, tune_d.q1f)
+        # -------- START RDTs
+        if nonlinear:
+            dinj.trigger(funct=algorithms.resonant_driving_terms.calculate_RDTs,
+                         requires=("mad_twiss", "getllm_d", "twiss_d",
+                                   "phase_d", "tune_d", "files_dict",
+                                   "inv_x", "inv_y"))
 
-                #------ Start getchiterms @ Glenn Vanbavinckhove
-                files_dict = algorithms.chi_terms.calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict)
+        if tbtana == "SUSSIX":
+            # ------  Start getsextupoles @ Glenn Vanbavinckhove
+            dinj.trigger(funct=_calculate_getsextupoles,
+                         provides=("files_dict", ),
+                         requires=("twiss_d", "phase_d", "mad_twiss",
+                                   "files_dict", "tune_d.q1f"))
 
-    except:
-        traceback.print_exc()
-        return_code = 1
-    finally:
-        # Write results to files in files_dict
-        print "Writing files"
-        for tfsfile in files_dict.itervalues():
-            tfsfile.write_to_file(formatted=True)
+            # ------ Start getchiterms @ Glenn Vanbavinckhove
+            dinj.trigger(funct=algorithms.chi_terms.calculate_chiterms,
+                         provides=("files_dict", ),
+                         requires=("getllm_d", "twiss_d", "mad_twiss",
+                                   "files_dict"))
 
-    return return_code
+    # Write results to files in files_dict
+    dinj.trigger(funct=write_files,
+                 requires=("files_dict", ))
+    return 0 if not dinj.something_raised else 1
+
 # END main() ---------------------------------------------------------------------------------------
 
+def write_files(files_dict):
+    print "Writing files"
+    for tfsfile in files_dict.itervalues():
+        tfsfile.write_to_file(formatted=True)
 
-#===================================================================================================
+
+class DepInjector(object):
+    """Small "kind of" dependency injector to handle GetLLM operations.
+
+    This class provides a shared namespace of dependencies between GetLLM
+    operations.
+    """
+    def __init__(self):
+        self.results = {}
+        self.something_raised = False
+
+    def trigger(self, funct=None, requires=None, provides=None,
+                critical=False):
+        """Resolves dependecies and runs the function given in "funct".
+
+        Launches the function given in "funct" defining the return variables
+        given in "provides".
+        This function will check that all the names given in "requires" are
+        already defined in the injector namespace with a result values,
+        otherwise a KeyError will be thrown. If at least one of the requieres
+        is marked as unavailable (because its defining computation failed),
+        this computation will mark its own "provides" as unavailable as well.
+
+        Arguments:
+            funct: Callable to run.
+            requires: Iterable of names that must be availabe for this to run.
+            provides: Iterable of names that "funct" defines. It must have the
+                same length as the values "funct" returns.
+            critical: If true, if for some reason this function cannot run, an
+                exception will be raised.
+        Returns:
+            The same instance of DepInjector to allow method chaining.
+        """
+        deps = [self._solve_dep(name) for name in requires]\
+            if requires is not None\
+            else []
+        provides = provides if provides is not None else []
+        if any(isinstance(dep, DepInjector.Unavailable) for dep in deps):
+            # Unavailable dependecies, so I cannot go on:
+            if critical:
+                raise DepInjector.MissingRequirementError()
+            self._set_provides_unavailable(provides)
+            return self
+        try:
+            # TODO: Lazy evaluation would be cooler, but this is GetLLM...
+            results = DepInjector._to_tuple(funct(*deps))
+        except:
+            self.something_raised = True
+            if critical:
+                raise
+            # Report exception and mark dependencies as Unavailable:
+            traceback.print_exc()
+            self._set_provides_unavailable(provides)
+            return self
+        if provides:
+            self.results.update(dict(zip(provides,
+                                         DepInjector._to_tuple(results))))
+        return self
+
+    def initial(self, provides, value):
+        """Defines a value in the dependency injector namespace.
+
+        Arguments:
+            provides: Name of the value to define.
+            value: Value of the value to define.
+        """
+        self.results[provides] = value
+        return self
+
+    def _solve_dep(self, name):
+        if "." in name:  # Allowes attribute access
+            parts = name.split(".")
+            inst, rest = self.results[parts[0]], parts[1:]
+            if isinstance(inst, DepInjector.Unavailable):
+                return inst
+            for subnode in rest:
+                inst = getattr(inst, subnode)
+            return inst
+        return self.results[name]
+
+    def _set_provides_unavailable(self, provides):
+        for name in provides:
+            if name not in self.results:
+                self.results[name] = DepInjector.Unavailable()
+
+    @staticmethod
+    def _to_tuple(thing):
+        if isinstance(thing, tuple):
+            return thing
+        return (thing, )
+
+    class Unavailable(object):
+        __slots__ = ()
+
+    class MissingRequirementError(Exception):
+        pass
+
+
+#==============================================================================
 # helper-functions
-#===================================================================================================
+#==============================================================================
 def _intial_setup(getllm_d, model_filename, dict_file):
 
     if dict_file == "0":
@@ -917,7 +1087,7 @@ def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
 # END _calculate_getsextupoles ----------------------------------------------------------------------
 
 
-def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
+def _calculate_kick(kick_times, getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files_dict, bbthreshold, errthreshold):
     '''
     Fills the following TfsFiles:
      - getkick.out
@@ -942,13 +1112,13 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
 
     tfs_file_model = files_dict['getkick.out']
     tfs_file_model.add_comment("Calculates the kick from the model beta function")
-    column_names_list = ["DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
-    column_types_list = ["%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
+    column_names_list = ["TIME", "DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
+    column_types_list = ["%le", "%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
     tfs_file_model.add_column_names(column_names_list)
     tfs_file_model.add_column_datatypes(column_types_list)
 
     for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_model.add_table_row(list_row_entries)
         actions_x, actions_y = meansqrt_2jx['phase'], meansqrt_2jy['phase']
 
@@ -960,7 +1130,7 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
     tfs_file_phase.add_column_names(column_names_list)
     tfs_file_phase.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-        list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
         tfs_file_phase.add_table_row(list_row_entries)
 
     if getllm_d.with_ac_calc:
@@ -972,7 +1142,7 @@ def _calculate_kick(getllm_d, twiss_d, phase_d, beta_d, mad_twiss, mad_ac, files
         [inv_jx, inv_jy, tunes, dpp] = algorithms.compensate_ac_effect.getkickac(mad_ac, files, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
         for i in range(0, len(dpp)):
             #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
-            list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
+            list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
             tfs_file.add_table_row(list_row_entries)
             actions_x, actions_y = inv_jx, inv_jx
 

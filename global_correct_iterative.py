@@ -443,7 +443,11 @@ def global_correction(opt, accel_opt):
                 corr_model_elements = _maybe_add_coupling_to_model(
                     corr_model_elements, optics_params
                 )
-                corr_model = corr_model_elements.loc[tfs.get_bpms(corr_model_elements), :]
+
+                bpms_index_mask = accel_inst.get_element_types_mask(
+                    corr_model_elements.index, types=["bpm"]
+                )
+                corr_model = corr_model_elements.loc[bpms_index_mask, :]
 
                 meas_dict = _append_model_to_measurement(corr_model, meas_dict, optics_params)
                 if opt.update_response:

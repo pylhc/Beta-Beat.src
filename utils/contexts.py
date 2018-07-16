@@ -82,6 +82,7 @@ def temporary_file_path(content="", suffix="", prefix="", text=True):
 
 @contextmanager
 def suppress_exception(exception):
+    """ Catch exception and ignore it. """
     try:
         yield
     except exception:

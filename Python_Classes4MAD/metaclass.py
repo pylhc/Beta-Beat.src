@@ -78,6 +78,11 @@ class twiss:
                 print "skipped value from dictionary because not in NAME. value: ", n
 
     def __init__(self, filename, dictionary=None):
+        
+        # by default take the debug flag value from global setting
+        # activate, for example, by calling python with -d option 
+        self.debug = sys.flags.debug 
+        
         if dictionary is None:
             dictionary = {}
             
@@ -154,7 +159,7 @@ class twiss:
                 self.__has_parsed_a_table_row = True
                 is_line_parsed = True
             
-            if not is_line_parsed:
+            if not is_line_parsed and self.debug:
                 print >> sys.stderr,"Did not parse line ("," ".join(split_line),") in ",filename
 
         f.close()
@@ -172,6 +177,9 @@ class twiss:
         if len(dictionary) > 0:
             self.forknames(dictionary)
             
+    def set_debug(self, flag):
+        self.debug = flag 
+
     def has_bpm_data(self):
         return self.__has_parsed_a_table_row
     

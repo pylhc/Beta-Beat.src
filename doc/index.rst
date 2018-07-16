@@ -14,7 +14,9 @@ Contents:
    entrypoints/index
    correction/index
    GetLLM/index
+   hole_in_one/index
    model/index
+   segment_by_segment/index
    twiss_optics/index
    utils/index
 
