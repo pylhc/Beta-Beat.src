@@ -457,9 +457,17 @@ class DictParser(object):
         def evaluate(name, item):
             try:
                 return eval(item)  # sorry for using that
-            except NameError:
+            except (NameError, SyntaxError):
                 raise ArgumentError(
                     "Could not evaluate argument '{:s}', unknown '{:s}'".format(name, item))
+
+        def eval_type(my_type, item):
+            if issubclass(my_type, basestring):
+                return my_type(item.strip("\'\""))
+            if issubclass(my_type, bool):
+                return bool(eval(item))
+            else:
+                return my_type(item)
 
         out = {}
         for name, value in items:
@@ -471,9 +479,9 @@ class DictParser(object):
                     value = evaluate(name, value)
                     if arg.subtype:
                         for idx, entry in enumerate(value):
-                            value[idx] = arg.subtype(entry)
+                            value[idx] = eval_type(arg.subtype, entry)
                 elif arg.type:
-                    value = arg.type(value)
+                    value = eval_type(arg.type, value)
                 else:
                     value = evaluate(name, value)
                 out[name] = value
