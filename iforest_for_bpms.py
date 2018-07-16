@@ -23,7 +23,7 @@ from model.accelerators import lhc
 
 LOGGER = logging_tools.get_logger(__name__)
 ARCS_CONT = 0.01
-IRS_CONT = 0.01
+IRS_CONT = 0.025
 FEATURES = "TUNE{0},NOISE_SCALED,AMP{0}"
 FEATURES_WITH_NAME = "NAME,TUNE{0},NOISE_SCALED,AMP{0}"
 PLANE = ("x", "y")
@@ -57,8 +57,8 @@ def get_bad_bpms_from_measurement(files, plane):
     bpm_tfs_data = _create_tfs_data(files, plane)
     arc_bpm_data, ir_bpm_data = get_data_for_clustering(bpm_tfs_data, plane)
     dataframes = []
-    for data_for_clustering, cont, title in ((arc_bpm_data, ARCS_CONT, "Arcs " + uplane),
-                                      (ir_bpm_data, IRS_CONT, "IRs " + uplane)):
+    for data_for_clustering, cont, title in ((arc_bpm_data, ARCS_CONT, "Arcs"),
+                                      (ir_bpm_data, IRS_CONT, "IRs")):
         bad_bpms, good_bpms, all_bpms_scores, bad_bpms_scores =\
              detect_anomalies(cont, data_for_clustering, uplane)
         bpm_tfs_data, data_for_clustering, bad_bpms, good_bpms =\
@@ -68,8 +68,11 @@ def get_bad_bpms_from_measurement(files, plane):
         signif_feature.loc[:, "SCORE"] = bad_bpms_scores
         dataframes.append(signif_feature)
         if plot:
-            plot_scores_threshold(all_bpms_scores, cont, title)
+            # plot_scores_threshold(all_bpms_scores, cont, title)
             plot_bpms_3d(good_bpms, bad_bpms, uplane, title, bad_bpms_scores)
+#             plot_two_dim(good_bpms, bad_bpms,"TUNE", "NOISE_SCALED", uplane, title)
+#             plot_two_dim(good_bpms, bad_bpms, "TUNE", "AMP", uplane, title)
+#             plot_two_dim(good_bpms, bad_bpms, "AMP", "NOISE_SCALED", uplane, title)
     return pandas.concat(dataframes)
 
 
@@ -184,13 +187,23 @@ def revert_forest_cleaning(files):
 
 def plot_scores_threshold(scores, cont, title):
     threshold = stats.scoreatpercentile(scores,100*ARCS_CONT)
-    plt.hist(scores, bins=100, range=(-0.5,0.5), edgecolor='black', linewidth=1)
-    plt.axvline(x=threshold, color='r', linestyle='-', label='Learned Threshold')
-    plt.text(threshold, 0, str(threshold)[:-10], color='r', fontsize=8, verticalalignment='bottom', horizontalalignment='right')
-    plt.title(title)
-    plt.xlabel("Anomaly score (the lower, the more abnormal)")
-    plt.ylabel("Number of BPMs")
-    plt.legend()
+    scores_bellow_threshold = []
+    scores_over_threshold = []
+    for score in scores:
+        if score < threshold:
+            scores_bellow_threshold.append(score)
+        else:
+            scores_over_threshold.append(score)        
+    plt.hist(scores_bellow_threshold, bins=100, range=(-0.2,0.2), edgecolor='black', linewidth=2, histtype='bar', color='blue')
+    plt.hist(scores_over_threshold, bins=100, range=(-0.2,0.2), edgecolor='black', linewidth=2, histtype='bar', color='white')
+    plt.axvline(x=threshold, color='r', linestyle='-', linewidth=2, label='Learned Threshold')
+    plt.text(threshold, 0, str(threshold)[:-14], color='r', fontsize=35, verticalalignment='bottom', horizontalalignment='left')
+    plt.title(title, fontdict={'fontsize':35, 'verticalalignment':'baseline'})
+    plt.xlabel("Anomaly score", fontsize = 35)
+    plt.ylabel("Number of BPMs", fontsize = 35)
+    plt.xticks(fontsize = 35)
+    plt.yticks(fontsize = 35)
+    plt.legend(fontsize = 35)
     plt.show()
     
 
@@ -199,17 +212,53 @@ def plot_bpms_3d(good_bpms, bad_bpms, plane, title, scores):
     fig = plt.figure()
     ax = p3.Axes3D(fig)
     ax.plot3D(good_bpms.loc[:, columns[1]], good_bpms.loc[:, columns[2]], good_bpms.loc[:, columns[3]], 'o', markerfacecolor="black",
-                      markeredgecolor='black', markersize=14, label = "good")
+                      markeredgecolor='black', markersize=15, label = "good")
     ax.plot3D(bad_bpms.loc[:, columns[1]], bad_bpms.loc[:, columns[2]], bad_bpms.loc[:, columns[3]], '^', markerfacecolor="red",
-                      markeredgecolor='black', markersize=14, label = "faulty")
-    for index, score in zip(bad_bpms.index, scores):
-        ax.text(bad_bpms.loc[index, columns[1]], bad_bpms.loc[index, columns[2]], bad_bpms.loc[index, columns[3]], bad_bpms.loc[index,"NAME"] + " {" + str(score)[:-10] + "}")
+                      markeredgecolor='black', markersize=20, label = "faulty")
+#     for index, score in zip(bad_bpms.index, scores):
+#         ax.text(bad_bpms.loc[index, columns[1]], bad_bpms.loc[index, columns[2]], bad_bpms.loc[index, columns[3]], bad_bpms.loc[index,"NAME"] + " {" + str(score)[:-10] + "}")
     ax.set_xlabel('Tune', fontsize = 25, linespacing=3.2)
     ax.set_ylabel('Amplitude', fontsize = 25, linespacing=3.2)
     ax.set_zlabel('Noise', fontsize = 25, linespacing=3.2)
     for axis in ('x', 'y', 'z'):
-        ax.tick_params(axis=axis, labelsize=15)
-    plt.legend(fontsize = 25)
+        ax.tick_params(axis=axis, labelsize=25)
+    plt.legend(fontsize = 25, numpoints = 1)
+    plt.title(title, fontdict={'fontsize':25, 'verticalalignment':'baseline'})
+    plt.show()
+
+ 
+def plot_two_dim(good, bad, col1, col2, plane, title):
+    label1 = "Tune"
+    label2 = "Noise"
+    if(col1=="AMP"):
+        label1 = "Amplitude"
+    col1 = col1 + plane
+    if(col2=="AMP"):
+        col2 = col2 + plane
+        label2 = "Amplitude"
+    plt.plot(
+        good.loc[:, col1],
+        good.loc[:, col2],
+        'o',
+        markerfacecolor="black",
+        markeredgecolor='black',
+        markersize=10,
+        label = "Good",
+    )
+    plt.plot(
+        bad.loc[:, col1],
+        bad.loc[:, col2],
+        '^',
+        markerfacecolor="red",
+        markeredgecolor='red',
+        markersize=10,
+        label = "Bad",
+    )
+    plt.xlabel(label1, fontsize = 25)
+    plt.ylabel(label2,fontsize = 25)
+    plt.xticks(fontsize = 25)
+    plt.yticks(fontsize = 25)
+    plt.legend(fontsize = 25, numpoints = 1)
     plt.title(title)
     plt.show()
 
