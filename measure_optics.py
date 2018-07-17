@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 from GetLLM import optics_input
 from GetLLM.algorithms import (beta, beta_from_amplitude, coupling, dpp, dispersion,
-                               interaction_point, kick, phase, resonant_driving_terms)
+                               interaction_point, kick, phase, resonant_driving_terms, tune)
 from GetLLM.GetLLMError import GetLLMError, CriticalGetLLMError
 from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas, logging_tools, iotools
@@ -63,7 +63,7 @@ def measure_optics(input_files, measure_input):
     print_time("BEFORE_PHASE", time() - __getllm_starttime)
     #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
     try:
-        tune_dict, tune_d = tune.calculate_tune(measure_input, input_files)
+        tune_dict, tune_d = tune.calculate_tunes(measure_input, input_files)
     except:
         _tb_()
         # if phase crashed, none of the subsequent algorithms can run. Thus
