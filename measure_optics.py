@@ -63,7 +63,14 @@ def measure_optics(input_files, measure_input):
     print_time("BEFORE_PHASE", time() - __getllm_starttime)
     #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
     try:
-        phase_d_bk, tune_d = phase.calculate_phase(measure_input, input_files)
+        tune_dict, tune_d = tune.calculate_tune(measure_input, input_files)
+    except:
+        _tb_()
+        # if phase crashed, none of the subsequent algorithms can run. Thus
+        raise CriticalGetLLMError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
+
+    try:
+        phase_d_bk = phase.calculate_phase(measure_input, input_files, tune_dict, header_dict)
     except:
         _tb_()
         # if phase crashed, none of the subsequent algorithms can run. Thus
