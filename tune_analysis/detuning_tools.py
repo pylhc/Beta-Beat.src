@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.odr import RealData, Model, ODR
@@ -59,7 +61,8 @@ def linear_odr_plot(ax, x, y, x_err, y_err):
             label='${:.4f}\, \pm\, {:.4f}$'.format(odr_fit.beta[1], odr_fit.sd_beta[1]))
 
 
-def plot_detuning(x, y, x_err, y_err, labels, odr_plot=linear_odr_plot, output=None, show=True):
+def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None, y_max=None,
+                  odr_plot=linear_odr_plot, output=None, show=True):
     """ Plot amplitude detuning.
 
     Args:
@@ -67,27 +70,44 @@ def plot_detuning(x, y, x_err, y_err, labels, odr_plot=linear_odr_plot, output=N
         y: Tune data.
         x_err: Action error.
         y_err: Tune error.
+        x_min: Lower action range to plot.
+        x_max: Upper action range to plot.
+        y_min: Lower tune range to plot.
+        y_max: Upper tune range to plot.
         odr_plot: function to add a odr fitting line to axes (e.g. see linear_odr_plot)
         labels: Dict of labels to use for the data ("line"), the x-axis ("x") and the y-axis ("y")
         output: Output file of the plot.
         show: Show the plot in window.
+
+    Returns:
+        Plotted Figure
     """
-    ps.set_style("standard", {u"lines.marker": u"o", u"lines.linestyle": ""})
+    ps.set_style("standard", {u"lines.marker": u"o", u"lines.linestyle": u""})
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    ax.errorbar(x, y, xerr=x_err, yerr=y_err, label=labels.get("line", None))
     odr_plot(ax, x, y, x_err, y_err)
+    ax.errorbar(x, y, xerr=x_err, yerr=y_err, label=labels.get("line", None))
 
     default_labels = get_paired_lables("{}", "{}")
     ax.set_xlabel(labels.get("x", default_labels[0]))
     ax.set_ylabel(labels.get("y", default_labels[1]))
+
+    x_min = 0 if x_min is None else x_min
+    x_max = max(x + x_err)*1.01 if x_max is None else x_max
+
+    ax.set_xlim(left=x_min, right=x_max)
+    ax.set_ylim(bottom=y_min, top=y_max)
+
     plt.legend(ncol=2, loc='lower right')
     fig.tight_layout()
 
     if output:
         fig.savefig(output)
+        ps.set_name(os.path.basename(output))
 
     if show:
         plt.draw()
+
+    return fig

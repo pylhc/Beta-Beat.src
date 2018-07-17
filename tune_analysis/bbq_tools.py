@@ -1,7 +1,8 @@
 import datetime
 
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
+from matplotlib import pyplot as plt, gridspec
 import numpy as np
 
 from parameter_config import *
@@ -89,44 +90,83 @@ def add_to_kickac_df(kickac_df, bbq_series, column):
 
 def plot_bbq_data(bbq_df,
                   interval=None, xmin=None, xmax=None, ymin=None, ymax=None,
-                  output=None, show=True):
-    """ Plot BBQ Data. """
+                  output=None, show=True, two_plots=False):
+    """ Plot BBQ data.
+
+    Args:
+        bbq_df: BBQ Dataframe with moving average columns
+        interval: start and end time of used interval, will be marked with red bars
+        xmin: Lower x limit (time)
+        xmax: Upper x limit (time)
+        ymin: Lower y limit (tune)
+        ymax: Upper y limit (tune)
+        output: Path to the output file
+        show: Shows plot if `True`
+        two_plots: Plots each tune in it's own axes if `True`
+
+    Returns:
+        Plotted figure
+
+    """
     LOG.debug("Plotting BBQ data.")
 
-    ps.set_style("standard", {u"lines.marker": None})
+    ps.set_style("standard", {u"lines.marker": u""})
 
     fig = plt.figure()
-    ax = fig.add_subplot(111)
+
+    if two_plots:
+        gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
+        ax = [fig.add_subplot(gs[1]), fig.add_subplot(gs[0])]
+    else:
+        gs = gridspec.GridSpec(1, 1, height_ratios=[1])
+        ax = fig.add_subplot(gs[0])
+        ax = [ax, ax]
 
     bbq_df.index = [datetime.datetime.fromtimestamp(time) for time in bbq_df.index]
+
     for idx, plane in enumerate(PLANES):
         color = ps.get_mpl_color(idx)
         mask = bbq_df[COL_IN_MAV(plane)]
 
         with suppress_warnings(UserWarning):  # caused by _nolegend_
             bbq_df.plot(
-                y=COL_BBQ(plane), ax=ax, color=color, alpha=.2,
+                y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.2,
                 label="_nolegend_"
             )
             bbq_df.loc[mask, :].plot(
-                y=COL_BBQ(plane), ax=ax, color=color, alpha=.4,
-                label="Q{:s} (used)".format(plane)
+                y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.4,
+                label="$Q_{:s}$ filtered".format(plane.lower())
             )
             bbq_df.plot(
-                y=COL_MAV(plane), ax=ax, color=color,
-                label="Moving Average Q{:s}".format(plane)
+                y=COL_MAV(plane), ax=ax[idx], color=color,
+                label="$Q_{:s}$ moving av.".format(plane.lower())
             )
 
-    if interval:
-        ax.axvline(x=interval[0], color="red")
-        ax.axvline(x=interval[1], color="red")
+        if ymin is None and two_plots:
+            ax[idx].set_ylim(bottom=min(bbq_df.loc[mask, COL_BBQ(plane)]))
 
-    ax.set_xlim(left=xmin, right=xmax)
-    ax.set_ylim(bottom=ymin, top=ymax)
+        if ymax is None and two_plots:
+            ax[idx].set_ylim(top=max(bbq_df.loc[mask, COL_BBQ(plane)]))
 
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Tune')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    # things to add/do only once if there is only one plot
+    for idx in range(1+two_plots):
+        if interval:
+            ax[idx].axvline(x=interval[0], color="red")
+            ax[idx].axvline(x=interval[1], color="red")
+
+        ax[idx].set_ylabel('Tune')
+        ax[idx].set_ylim(bottom=ymin, top=ymax)
+        ax[idx].yaxis.set_major_formatter(FormatStrFormatter('%.5f'))
+
+        ax[idx].set_xlim(left=xmin, right=xmax)
+
+        # in case of two plots, don't have labels on upper plot
+        if idx:
+            ax[idx].xaxis.set_ticklabels([])
+        else:
+            ax[idx].set_xlabel('Time')
+            ax[idx].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+
     plt.tight_layout()
 
     if output:
@@ -134,6 +174,8 @@ def plot_bbq_data(bbq_df,
 
     if show:
         plt.draw()
+
+    return fig
 
 
 # Private methods ############################################################

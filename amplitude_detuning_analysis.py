@@ -1,4 +1,5 @@
 import datetime
+import os
 
 import matplotlib.pyplot as plt
 
@@ -156,9 +157,15 @@ def _get_params():
         type=str,
     )
     params.add_parameter(
-        flags="--showbbq",
+        flags="--bbqplotshow",
         help="Show the bbq plot.",
-        name="show_bbq_plot",
+        name="bbq_plot_show",
+        action="store_true",
+    )
+    params.add_parameter(
+        flags="--bbqplottwo",
+        help="Two plots for the bbq plot.",
+        name="bbq_plot_two",
         action="store_true",
     )
     params.add_parameter(
@@ -174,10 +181,34 @@ def _get_params():
         type=str,
     )
     params.add_parameter(
-        flags="--showampdet",
+        flags="--ampdetplotshow",
         help="Show the amplitude detuning plot.",
-        name="show_ampdet_plot",
+        name="ampdet_plot_show",
         action="store_true",
+    )
+    params.add_parameter(
+        flags="--ampdetplotymin",
+        help="Minimum tune (y-axis) in amplitude detuning plot.",
+        name="ampdet_plot_ymin",
+        type=float,
+    )
+    params.add_parameter(
+        flags="--ampdetplotymax",
+        help="Maximum tune (y-axis) in amplitude detuning plot.",
+        name="ampdet_plot_ymax",
+        type=float,
+    )
+    params.add_parameter(
+        flags="--ampdetplotxmin",
+        help="Minimum action (x-axis) in amplitude detuning plot.",
+        name="ampdet_plot_xmin",
+        type=float,
+    )
+    params.add_parameter(
+        flags="--ampdetplotxmax",
+        help="Maximum action (x-axis) in amplitude detuning plot.",
+        name="ampdet_plot_xmax",
+        type=float,
     )
 
     # Debug
@@ -248,6 +279,12 @@ def _get_plot_params():
         type=str,
         nargs=2,
     )
+    params.add_parameter(
+        flags="--two",
+        help="Plot two axis into the figure.",
+        name="two_plots",
+        action="store_true",
+    )
     return params
 
 
@@ -256,9 +293,11 @@ def _get_plot_params():
 
 @entrypoint(_get_params(), strict=True)
 def analyse_with_bbq_corrections(opt):
+    """ Create amplitude detuning analysis with BBQ correction from timber data. """
     LOG.info("Starting Amplitude Detuning Analysis")
     with logging_tools.DebugMode(active=opt.debug, log_file=opt.logfile):
         opt = _check_analyse_opt(opt)
+        figs = {}
 
         # get data
         bbq_df = _get_timber_data(opt.beam, opt.timber_in, opt.timber_out)
@@ -286,40 +325,56 @@ def analyse_with_bbq_corrections(opt):
             tfs.write_tfs(opt.bbq_out, bbq_df.loc[x_interval[0]:x_interval[1]],
                           save_index=COL_TIME())
 
-        if opt.bbq_plot_out or opt.show_bbq_plot:
+        if opt.bbq_plot_out or opt.bbq_plot_show:
             if opt.bbq_plot_full:
-                bbq_tools.plot_bbq_data(
+                figs["bbq"] = bbq_tools.plot_bbq_data(
                     bbq_df,
                     output=opt.bbq_plot_out,
-                    show=opt.show_bbq_plot,
+                    show=opt.bbq_plot_show,
+                    two_plots=opt.bbq_plot_two,
                     interval=[str(datetime.datetime.fromtimestamp(xint)) for xint in x_interval],
                 )
             else:
-                bbq_tools.plot_bbq_data(
+                figs["bbq"] = bbq_tools.plot_bbq_data(
                     bbq_df.loc[x_interval[0]:x_interval[1]],
                     output=opt.bbq_plot_out,
-                    show=opt.show_bbq_plot,
+                    show=opt.bbq_plot_show,
+                    two_plots=opt.bbq_plot_two,
                 )
 
         # amplitude detuning analysis
         plane = get_plane_from_orientation(opt.orientation)
         for other_plane in PLANES:
             labels = get_paired_lables(plane, other_plane)
+            id_str = "J{:s}_Q{:s}".format(plane.upper(), other_plane.upper())
 
             # get proper data
             columns = get_paired_columns(plane, other_plane)
             data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
 
             # plotting
-            detuning_tools.plot_detuning(odr_plot=detuning_tools.linear_odr_plot,
-                                         labels={"x": labels[0], "y": labels[1], "line": opt.label},
-                                         output=opt.ampdet_plot_out,
-                                         show=opt.show_ampdet_plot,
-                                         **data
-                                         )
+            try:
+                output = os.path.splitext(opt.ampdet_plot_out)
+                output = "{:s}_{:s}{:s}".format(output[0], id_str, output[1])
+            except AttributeError:
+                output = None
 
-    if opt.show_bbq_plot or opt.show_ampdet_plot:
+            figs[id_str] = detuning_tools.plot_detuning(
+                odr_plot=detuning_tools.linear_odr_plot,
+                labels={"x": labels[0], "y": labels[1], "line": opt.label},
+                output=output,
+                show=opt.ampdet_plot_show,
+                x_min=opt.ampdet_plot_xmin,
+                x_max=opt.ampdet_plot_xmax,
+                y_min=opt.ampdet_plot_ymin,
+                y_max=opt.ampdet_plot_ymax,
+                **data
+            )
+
+    if opt.bbq_plot_show or opt.ampdet_plot_show:
         plt.show()
+
+    return figs
 
 
 @entrypoint(_get_plot_params(), strict=True)
@@ -330,9 +385,9 @@ def plot_bbq_data(opt):
         bbq_df = tfs.read_tfs(opt.input, index=COL_TIME())
     else:
         bbq_df = opt.input
+    opt.pop("input")
 
-    bbq_tools.plot_bbq_data(bbq_df, **opt.get_subdict(["interval", "xmin", "xmax", "ymin", "ymax",
-                                                       "output", "show"]))
+    bbq_tools.plot_bbq_data(bbq_df, **opt)
 
     if opt.show:
         plt.show()
@@ -367,11 +422,6 @@ def _check_analyse_opt(opt):
     if bool(opt.fine_cut) != bool(opt.fine_window):
         raise ParameterError("To activate fine cleaning, both fine cut and fine window need"
                              "to be specified")
-
-    # Check if any output is specified
-    if bool(opt.ampdet_plot_out) != bool(opt.show_ampdet_plot):
-        raise ParameterError("Please specify to either output or show the amplitude detuning plot.")
-
     return opt
 
 
