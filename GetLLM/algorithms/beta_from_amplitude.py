@@ -52,7 +52,7 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, h
         tfs_pandas.write_tfs(join(output, header_d['FILENAME']), beta_amp, header_d, save_index='NAME')
         # -- ac to free amp beta
         if measure_input.accelerator.excitation is not AccExcitationMode.FREE:
-            beta_amp_f = compensate_excitation.get_free_beta_from_amp_eq(mad_ac, input_files._get_zero_dpp_frames(plane), tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', measure_input, arcbpms)
+            beta_amp_f = get_free_beta_from_amp_eq(mad_ac, input_files._get_zero_dpp_frames(plane), tune_d.q1, tune_d.q1f, phase_d.ac2bpmac_x, 'H', measure_input, arcbpms)
             x_ratio_f = np.mean(beta_phase / beta_amp)  # over good arc bpms : both betas positive, 0.1 < abs(beta_phase / beta_amp)<10
             header_f = _get_header(header_dict, tune_d, np.std(beta_amp_f.loc[:, 'DELTABET' + plane].values), x_ratio_f, 'getampbeta' + plane.lower() + '_free.out', free=True)
 
@@ -117,3 +117,74 @@ def _get_header(header_dict, tune_d, rmsbbeat, scaling_factor, file_name, free=F
     header['RescalingFactor'] = scaling_factor
     header['FILENAME'] = file_name
     return header
+
+def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, ac2bpmac, plane, getllm_d, commonbpms):
+    # TODO: check if this function excludes additional BPMs, right now commonbpms is return unchanged but maybe this has
+    # to be different
+
+    #-- Select common BPMs
+    bd = getllm_d.accelerator.get_beam_direction()
+    good_bpms_for_kick = commonbpms[getllm_d.accelerator.get_element_types_mask(commonbpms, "arc_bpm")]
+
+    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+
+    #-- Determine the BPM closest to the AC dipole and its position
+    k_bpmac = ac2bpmac[2]
+    bpmac = ac2bpmac[0]
+    psid_ac2bpmac = ac2bpmac[1]
+
+    #-- Model beta and phase advance
+    if plane == 'H':
+        betmdl = MADTwiss_ac.loc[commonbpms.index, "BETX"]
+    if plane == 'V':
+        betmdl = MADTwiss_ac.loc[commonbpms.index, "BETY"]
+
+    #-- Global parameters of the driven motion
+    r = np.sin(np.pi * (Qd - Q)) / np.sin(np.pi * (Qd + Q))
+
+    # TODO: Use std to compute errorbars.
+    sqrt2j, sqrt2j_std = compensate_excitation.get_kick_from_bpm_list_w_ACdipole(
+        MADTwiss_ac, good_bpms_for_kick, Files, plane
+    )
+
+    #-- Loop for files
+    betall = np.zeros((len(commonbpms.index), len(Files)))
+    for i in range(len(Files)):
+        if plane == 'H':
+            amp = 2 * Files[i].loc[commonbpms.index, "AMPX"].values
+            psid = bd * 2 * np.pi * Files[i].loc[commonbpms.index, "MUX"]
+        if plane == 'V':
+            amp = 2 * Files[i].loc[commonbpms.index, "AMPY"].values
+            psid = bd * 2 * np.pi * Files[i].loc[commonbpms.index, "MUY"]
+
+        # This loop is just to fix the phase jump at the beginning of the ring.
+        for k in range(len(commonbpms.index)):
+            try:
+                if all_bpms[k][0] > s_lastbpm:
+                    psid[k] += 2 * np.pi * Qd
+            except:
+                pass
+
+        psid = psid - (psid[k_bpmac] - psid_ac2bpmac)
+        Psid = psid + np.pi * Qd
+        Psid[k_bpmac:] = Psid[k_bpmac:] - 2 * np.pi * Qd
+        bet = ((amp / sqrt2j[i]) ** 2 *
+               (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
+        for bpm_index in range(len(commonbpms.index)):
+            betall[bpm_index][i] = bet[bpm_index]
+
+    #-- Output
+    #result = {}
+    #bb = []
+    #for k in range(len(commonbpms.index)):
+    #   betave = np.mean(betall[k])
+    #   betstd = np.std(betall[k])
+    #   bb.append((betave - betmdl[k]) / betmdl[k])
+    #   result[all_bpms[k][1]] = [betave, betstd, all_bpms[k][0]]
+    #bb = math.sqrt(np.mean(np.array(bb) ** 2))
+
+    betave = np.mean(betall, 1)
+    betstd = np.std(betall, 1)
+    bb = np.sqrt(np.mean((betave / betmdl - 1.0) ** 2))
+    result = dict(zip(commonbpms.index, zip(betave, betstd, commonbpms.loc[:, "S"].values)))
+    return result, bb, commonbpms

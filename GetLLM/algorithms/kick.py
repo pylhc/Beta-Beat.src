@@ -9,7 +9,7 @@ It computes kick actions.
 # TODO use only arc BPMs
 """
 from model.accelerators.accelerator import AccExcitationMode
-from utils import tfs_pandas
+from utils import tfs_pandas, bpm
 from os.path import join
 import pandas as pd
 import numpy as np
@@ -98,3 +98,52 @@ def _gen_kick_calc(lin, beta, plane):
     meansqrt2j = (frame.loc[:, 'PK2PK'].values / 2) / np.sqrt(frame.loc[:, 'BET' + plane].values)
     mean2j = np.square(frame.loc[:, 'PK2PK'].values / 2) / frame.loc[:, 'BET' + plane].values
     return np.array([[np.mean(meansqrt2j), np.std(meansqrt2j)], [np.mean(mean2j), np.std(mean2j)]])
+
+
+def getkickac(MADTwiss_ac, files, accel):
+    invarianceJx = []
+    invarianceJy = []
+
+    tunex = []
+    tuney = []
+    tunexRMS = []
+    tuneyRMS = []
+
+    nat_tunex = []
+    nat_tuney = []
+    nat_tunexRMS = []
+    nat_tuneyRMS = []
+
+    dpp = []
+
+    all_bpms_x = bpm.model_intersect(bpm.intersect(files[0]), MADTwiss_ac)
+    all_bpms_y = bpm.model_intersect(bpm.intersect(files[1]), MADTwiss_ac)
+
+    good_bpms_for_kick_x = all_bpms_x[accel.get_element_types_mask(all_bpms_x, "arc_bpm")]
+    good_bpms_for_kick_y = all_bpms_y[accel.get_element_types_mask(all_bpms_y, "arc_bpm")]
+    Jx2sq, Jx2sq_std = compensate_excitation.get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_x,
+                                                         files[0], 'H')
+    Jy2sq, Jy2sq_std = compensate_excitation.get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_y,
+                                                         files[1], 'V')
+
+    for j in range(len(files[0])):
+        tw_x = files[0][j]
+        tw_y = files[1][j]
+        invarianceJx.append([Jx2sq[j], Jx2sq_std[j]])
+        invarianceJy.append([Jy2sq[j], Jy2sq_std[j]])
+
+        dpp.append(getattr(tw_x, "DPP", 0.0))
+
+        tunex.append(getattr(tw_x, "Q1", 0.0))
+        tuney.append(getattr(tw_y, "Q2", 0.0))
+        tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
+        tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
+
+        nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
+        nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
+        nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
+        nat_tuneyRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
+
+    tune_values_list = [tunex, tunexRMS, tuney, tuneyRMS, nat_tunex, nat_tunexRMS, nat_tuney,
+                        nat_tuneyRMS]
+    return [invarianceJx, invarianceJy, tune_values_list, dpp]
