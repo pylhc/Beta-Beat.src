@@ -15,7 +15,7 @@ from model import manager
 def parse_args():
     optics_input = OpticsInput.init_from_options(*_get_optics_parser())
     python_path = "/afs/cern.ch/work/o/omc/anaconda/bin/python "
-    return optics_input#, (python_path + " ".join(sys.argv))
+    return optics_input  #, (python_path + " ".join(sys.argv))
 
 
 class OpticsInput(object):
@@ -27,8 +27,6 @@ class OpticsInput(object):
         "range_of_bpms": 11,
         "beta_model_cut": 0.15,
         "sequential": False,
-        "no_averaged_tune": False,
-        "end_lattice_phase": False,
         "union": False,
         "nonlinear": False,
         "three_bpm_method": False,
@@ -45,8 +43,6 @@ class OpticsInput(object):
         self.range_of_bpms = OpticsInput.DEFAULTS["range_of_bpms"]
         self.beta_model_cut = OpticsInput.DEFAULTS["beta_model_cut"]
         self.sequential = OpticsInput.DEFAULTS["sequential"]
-        self.no_averaged_tune = OpticsInput.DEFAULTS["no_averaged_tune"]
-        self.end_lattice_phase = OpticsInput.DEFAULTS["end_lattice_phase"]
         self.union = OpticsInput.DEFAULTS["union"]
         self.nonlinear = OpticsInput.DEFAULTS["nonlinear"]
         self.three_bpm_method = OpticsInput.DEFAULTS["three_bpm_method"]
@@ -65,8 +61,6 @@ class OpticsInput(object):
         self.range_of_bpms = options.range_of_bpms
         self.beta_model_cut = options.beta_model_cut
         self.sequential = options.sequential
-        self.no_averaged_tune = options.no_averaged_tune
-        self.end_lattice_phase = options.end_lattice_phase
         self.union = options.union
         self.nonlinear = options.nonlinear
         self.three_bpm_method = options.three_bpm_method
@@ -100,10 +94,6 @@ def _get_optics_parser(start_args=sys.argv[1:]):
                         help="Set beta-beating threshold for action calculations")
     parser.add_argument("--sequential", dest="sequential", action="store_true",
                         default=OpticsInput.DEFAULTS["sequential"], help="Runs sequentially")
-    parser.add_argument("--no_averaged_tune", dest="no_averaged_tune", action="store_true",
-                        help="The phases and amplitudes are calculated for tune found per BPM.")
-    parser.add_argument("--end_lattice_phase", dest="end_lattice_phase", action="store_true",
-                        help="Compensate phase shifts at the end of the lattice by tunes")  # TODO
     parser.add_argument("--union", dest="union", action="store_true",
                         help="The phase per BPM is calculated from at least 3 valid measurements.")
     parser.add_argument("--nonlinear", dest="nonlinear", action="store_true",
@@ -114,7 +104,5 @@ def _get_optics_parser(start_args=sys.argv[1:]):
                         help="Only coupling is calculated. ")
 
     options, acc_args = parser.parse_known_args(args=start_args)
-
     accelerator = manager.get_accel_instance(acc_args)
-
     return options, accelerator

@@ -1,3 +1,13 @@
+"""
+.. module: measure_optics
+
+Created on 11/07/18
+
+:author: Lukas Malina
+
+Top-level script, which computes various lattice optics parameters from frequency spectra
+"""
+
 import os
 from os.path import isfile, join
 import sys
@@ -9,8 +19,8 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 from GetLLM import optics_input
-from GetLLM.algorithms import (beta, beta_from_amplitude,coupling,compensate_excitation,dpp, dispersion, interaction_point,kick,phase
-                                )
+from GetLLM.algorithms import (beta, beta_from_amplitude, coupling, dpp, dispersion,
+                               interaction_point, kick, phase, resonant_driving_terms)
 from GetLLM.GetLLMError import GetLLMError, CriticalGetLLMError
 from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas, logging_tools, iotools
@@ -23,6 +33,14 @@ PLANES = ('X', 'Y')
 
 
 def measure_optics(input_files, measure_input):
+    """
+    Main function to compute various lattice optics parameters from frequency spectra
+    Args:
+        input_files: InputFiles object containing frequncy spectra files (linx/y)
+        measure_input: OpticsInput object containing analysis settings
+
+    Returns:
+    """
     LOGGER.info("Starting GetLLM " + VERSION)
     global __getllm_starttime
     __getllm_starttime = time()
@@ -31,10 +49,6 @@ def measure_optics(input_files, measure_input):
     header_dict = _get_header()
     if sys.flags.debug:
         LOGGER.info("     DEBUG ON")
-
-    tune_d = _TuneData()
-    tune_d.q1mdl = measure_input.accelerator.get_model_tfs().headers["Q1"]
-    tune_d.q2mdl = measure_input.accelerator.get_model_tfs().headers["Q2"]
 
     """
     Construct pseudo-double plane BPMs
@@ -133,35 +147,6 @@ def print_time(index, t):
     LOGGER.debug(":::  GetLLM time  >>>>>>>>>> {:8.3f} s".format(t))
 
 
-class _TuneData(object):
-    """
-    Used as data structure to hold tunes and phase advances.
-    """
-    def __init__(self):
-        self.q1 = 0.0  # Driven horizontal tune
-        self.q2 = 0.0  # Driven vertical tune
-        self.mux = 0.0  # Driven horizontal phase advance
-        self.muy = 0.0  # Driven vertical phase advance
-
-        # Free is from analytic equation
-        self.q1f = 0.0  # Free horizontal tune
-        self.q2f = 0.0  # Free vertical tune
-        self.muxf = 0.0  # Free horizontal phase advance
-        self.muyf = 0.0  # Free vertical phase advance
-        self.q1mdl = 0.0
-        self.q2mdl = 0.0
-
-        self.q1mdlf = 0.0
-        self.q2mdlf = 0.0
-
-        # Free2 is using the effective model
-        self.muxf2 = 0.0  # Free2 horizontal phase advance
-        self.muyf2 = 0.0  # Free2 vertical phase advance
-
-        self.delta1 = None  # Used later to calculate free Q1. Only if with ac calculation.
-        self.delta2 = None  # Used later to calculate free Q2. Only if with ac calculation.
-
-
 class InputFiles(dict):
     """
     Stores the input files, provides methods to gather quantity specific data
@@ -245,7 +230,7 @@ class InputFiles(dict):
                 self[plane][i]["AMP" + plane] = self[plane][i].loc[:, "AMP" + plane] * data.loc[:,"CALIBRATION"]
                 self[plane][i]["ERRAMP" + plane] = data.loc[:, "ERROR_CALIBRATION"]  # TODO
 
-    def use_average_tune(self, no_averaged_tune):
+    def use_average_tune(self, no_averaged_tune):   # TODO to be removed once hole_in_one outputs only averaged stuff
         if no_averaged_tune:
             pass
         for plane in PLANES:
@@ -289,10 +274,11 @@ def _copy_calibration_files(outputdir, calibrationdir):
 
 
 if __name__ == "__main__":
+    # preparation of the input
     arguments = optics_input.parse_args()
     inputs = InputFiles(arguments.files)
     iotools.create_dirs(arguments.outputdir)
     calibrations = _copy_calibration_files(arguments.outputdir, arguments.calibrationdir)
     inputs.calibrate(calibrations)
-    inputs.use_average_tune(arguments.no_averaged_tune)
+    inputs.use_average_tune(False)  # TODO remove
     measure_optics(inputs, arguments)
