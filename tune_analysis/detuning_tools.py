@@ -1,0 +1,93 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.odr import RealData, Model, ODR
+
+from parameter_config import *
+from utils import logging_tools
+from utils.plotting import plot_style as ps
+
+LOG = logging_tools.get_logger(__name__)
+
+
+def linear_model(beta, x):
+    return beta[0] + beta[1] * x
+
+
+def do_linear_odr(x, y, x_err, y_err):
+    """ Returns linear odr fit.
+
+    Args:
+        x: Series of x data
+        y: Series of y data
+        x_err: Series of x data errors
+        y_err: Series of y data errors
+
+    Returns: Linear odr fit.
+
+    """
+    lin_model = Model(linear_model)
+    data = RealData(x, y, sx=x_err, sy=y_err)
+    odr_fit = ODR(data, lin_model, beta0=[0., 1.]).run()
+    print_odr_result(LOG.debug, odr_fit)
+    return odr_fit
+
+
+def print_odr_result(printer, odr_out):
+        """ Logs the odr output results.
+
+        Adapted from odr_output pretty print.
+        """
+        printer('Beta: {}'.format(odr_out.beta).replace("\n", ""))
+        printer('Beta Std Error: {}'.format(odr_out.sd_beta).replace("\n", ""))
+        printer('Beta Covariance: {}'.format(odr_out.cov_beta).replace("\n", ""))
+        if hasattr(odr_out, 'info'):
+            printer('Residual Variance: {}'.format(odr_out.res_var).replace("\n", ""))
+            printer('Inverse Condition #: {}'.format(odr_out.inv_condnum).replace("\n", ""))
+            printer('Reason(s) for Halting:')
+            for r in odr_out.stopreason:
+                printer('  {}'.format(r).replace("\n", ""))
+
+
+def linear_odr_plot(ax, x, y, x_err, y_err):
+    """ Adds a linear odr fit to axes. """
+    odr_fit = do_linear_odr(x, y, x_err, y_err)
+
+    x_fit = np.linspace(0,  max(x + x_err + odr_fit.sd_beta[0]), 2)
+    line_fit = odr_fit.beta[0] + odr_fit.beta[1] * x_fit
+
+    ax.plot(x_fit, line_fit , marker="", linestyle='--', color='k',
+            label='${:.4f}\, \pm\, {:.4f}$'.format(odr_fit.beta[1], odr_fit.sd_beta[1]))
+
+
+def plot_detuning(x, y, x_err, y_err, labels, odr_plot=linear_odr_plot, output=None, show=True):
+    """ Plot amplitude detuning.
+
+    Args:
+        x: Action data.
+        y: Tune data.
+        x_err: Action error.
+        y_err: Tune error.
+        odr_plot: function to add a odr fitting line to axes (e.g. see linear_odr_plot)
+        labels: Dict of labels to use for the data ("line"), the x-axis ("x") and the y-axis ("y")
+        output: Output file of the plot.
+        show: Show the plot in window.
+    """
+    ps.set_style("standard", {u"lines.marker": u"o", u"lines.linestyle": ""})
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    ax.errorbar(x, y, xerr=x_err, yerr=y_err, label=labels.get("line", None))
+    odr_plot(ax, x, y, x_err, y_err)
+
+    default_labels = get_paired_lables("{}", "{}")
+    ax.set_xlabel(labels.get("x", default_labels[0]))
+    ax.set_ylabel(labels.get("y", default_labels[1]))
+    plt.legend(ncol=2, loc='lower right')
+    fig.tight_layout()
+
+    if output:
+        fig.savefig(output)
+
+    if show:
+        plt.draw()

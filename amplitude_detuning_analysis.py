@@ -1,17 +1,13 @@
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 import datetime
 
-from tune_analysis import bbq_tools, timber_extract
-from tune_analysis.parameter_config import get_time_col, get_bbq_col, get_mav_col, get_planes
-from tune_analysis.parameter_config import get_used_in_mav_col
-from tune_analysis.parameter_config import get_natq_col, get_corrected_col, get_timber_key
+import matplotlib.pyplot as plt
+
+from tune_analysis import bbq_tools, timber_extract, detuning_tools
+from tune_analysis.parameter_config import *  # all get_smthng functions, sorry
 from utils import logging_tools
 from utils import tfs_pandas as tfs
 from utils.dict_tools import ParameterError
 from utils.entrypoint import entrypoint, EntryPointParameters
-from utils.plotting import plot_style as ps
-from utils.contexts import suppress_warnings
 
 # Globals ####################################################################
 
@@ -21,10 +17,10 @@ COL_BBQ = get_bbq_col
 COL_MAV = get_mav_col
 COL_IN_MAV = get_used_in_mav_col
 COL_NATQ = get_natq_col
-COL_CORRECTED = get_corrected_col
+COL_CORRECTED = get_natq_corr_col
 
 PLANES = get_planes()
-TIMBER_KEY = get_timber_key
+TIMBER_KEY = get_timber_bbq_key
 
 
 LOG = logging_tools.get_logger(__name__)
@@ -35,11 +31,24 @@ LOG = logging_tools.get_logger(__name__)
 def _get_params():
     params = EntryPointParameters()
     params.add_parameter(
+        flags="--label",
+        help="Label to identify this run.",
+        name="label",
+        type=str,
+    )
+    params.add_parameter(
         flags="--beam",
         help="Which beam to use.",
         name="beam",
         required=True,
         type=int,
+    )
+    params.add_parameter(
+        flags="--orientaion",
+        help="Orientation we are in. 'H' or 'V'.",
+        name="orientation",
+        required=True,
+        type=str,
     )
     params.add_parameter(
         flags="--timberin",
@@ -139,7 +148,6 @@ def _get_params():
         type=float,
     )
 
-
     # Plotting
     params.add_parameter(
         flags="--bbqplot",
@@ -157,6 +165,18 @@ def _get_params():
         flags="--bbqplotfull",
         help="Plot the full bqq data with interval as lines.",
         name="bbq_plot_full",
+        action="store_true",
+    )
+    params.add_parameter(
+        flags="--ampdetplot",
+        help="Save the amplitude detuning plot here.",
+        name="ampdet_plot_out",
+        type=str,
+    )
+    params.add_parameter(
+        flags="--showampdet",
+        help="Show the amplitude detuning plot.",
+        name="show_ampdet_plot",
         action="store_true",
     )
 
@@ -258,76 +278,61 @@ def analyse_with_bbq_corrections(opt):
         # add corrected values to kickac
         kickac_df = _add_corrected_natural_tunes(kickac_df)
 
-        # output
+        # output kickac and bbq data
         if opt.kickac_out:
             tfs.write_tfs(opt.kickac_out, kickac_df, save_index=COL_TIME())
 
         if opt.bbq_out:
-            tfs.write_tfs(opt.bbq_out, bbq_df.loc[x_interval[0]:x_interval[1]], save_index=COL_TIME())
+            tfs.write_tfs(opt.bbq_out, bbq_df.loc[x_interval[0]:x_interval[1]],
+                          save_index=COL_TIME())
 
         if opt.bbq_plot_out or opt.show_bbq_plot:
             if opt.bbq_plot_full:
-                plot_bbq_data(
-                    input=bbq_df,
+                bbq_tools.plot_bbq_data(
+                    bbq_df,
                     output=opt.bbq_plot_out,
                     show=opt.show_bbq_plot,
                     interval=[str(datetime.datetime.fromtimestamp(xint)) for xint in x_interval],
                 )
             else:
-                plot_bbq_data(
-                    input=bbq_df.loc[x_interval[0]:x_interval[1]],
+                bbq_tools.plot_bbq_data(
+                    bbq_df.loc[x_interval[0]:x_interval[1]],
                     output=opt.bbq_plot_out,
                     show=opt.show_bbq_plot,
                 )
 
+        # amplitude detuning analysis
+        plane = get_plane_from_orientation(opt.orientation)
+        for other_plane in PLANES:
+            labels = get_paired_lables(plane, other_plane)
+
+            # get proper data
+            columns = get_paired_columns(plane, other_plane)
+            data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
+
+            # plotting
+            detuning_tools.plot_detuning(odr_plot=detuning_tools.linear_odr_plot,
+                                         labels={"x": labels[0], "y": labels[1], "line": opt.label},
+                                         output=opt.ampdet_plot_out,
+                                         show=opt.show_ampdet_plot,
+                                         **data
+                                         )
+
+    if opt.show_bbq_plot or opt.show_ampdet_plot:
+        plt.show()
+
 
 @entrypoint(_get_plot_params(), strict=True)
 def plot_bbq_data(opt):
+    """ Plot BBQ wrapper. """
     LOG.info("Plotting BBQ.")
     if isinstance(opt.input, basestring):
         bbq_df = tfs.read_tfs(opt.input, index=COL_TIME())
     else:
         bbq_df = opt.input
 
-    ps.set_style("standard", {u"lines.marker": None})
-
-    fig = plt.figure()
-    # fig.patch.set_facecolor('white')
-    ax = fig.add_subplot(111)
-
-    bbq_df.index = [datetime.datetime.fromtimestamp(time) for time in bbq_df.index]
-    for idx, plane in enumerate(PLANES):
-        color = ps.get_mpl_color(idx)
-        mask = bbq_df[COL_IN_MAV(plane)]
-
-        with suppress_warnings(UserWarning):  # caused by _nolegend_
-            bbq_df.plot(
-                y=COL_BBQ(plane), ax=ax, color=color, alpha=.2,
-                label="_nolegend_"
-            )
-            bbq_df.loc[mask, :].plot(
-                y=COL_BBQ(plane), ax=ax, color=color, alpha=.4,
-                label="Q{:s} (used)".format(plane)
-            )
-            bbq_df.plot(
-                y=COL_MAV(plane), ax=ax, color=color,
-                label="Moving Average Q{:s}".format(plane)
-            )
-
-    if opt.interval:
-        ax.axvline(x=opt.interval[0], color="red")
-        ax.axvline(x=opt.interval[1], color="red")
-
-    ax.set_xlim(left=opt.xmin, right=opt.xmax)
-    ax.set_ylim(bottom=opt.ymin, top=opt.ymax)
-
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Tune')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-    plt.tight_layout()
-
-    if opt.output:
-        fig.savefig(opt.output)
+    bbq_tools.plot_bbq_data(bbq_df, **opt.get_subdict(["interval", "xmin", "xmax", "ymin", "ymax",
+                                                       "output", "show"]))
 
     if opt.show:
         plt.show()
@@ -339,6 +344,12 @@ def plot_bbq_data(opt):
 def _check_analyse_opt(opt):
     """ Perform manual checks on opt-sturcture """
     LOG.debug("Checking Options.")
+
+    # for label
+    if opt.label is None:
+        opt.label = "Amplitude Detuning for Beam {:d}".format(opt.beam)
+
+    # check if cleaning is properly specified
     if (any([opt.tune_x, opt.tune_y, opt.tune_cut])
             and any([opt.tune_x_min, opt.tune_x_max, opt.tune_y_min, opt.tune_y_max])
     ):
@@ -356,6 +367,10 @@ def _check_analyse_opt(opt):
     if bool(opt.fine_cut) != bool(opt.fine_window):
         raise ParameterError("To activate fine cleaning, both fine cut and fine window need"
                              "to be specified")
+
+    # Check if any output is specified
+    if bool(opt.ampdet_plot_out) != bool(opt.show_ampdet_plot):
+        raise ParameterError("Please specify to either output or show the amplitude detuning plot.")
 
     return opt
 
@@ -400,6 +415,7 @@ def _get_timber_data(beam, input, output):
 
 def _add_moving_average(kickac_df, bbq_df, **kwargs):
     """ Adds the moving average of the bbq data to kickac_df and bbq_df. """
+    LOG.debug("Calculating moving average.")
     for plane in PLANES:
         tune = "tune_{:s}".format(plane.lower())
         bbq_mav, mask = bbq_tools.get_moving_average(bbq_df[COL_BBQ(plane)],
