@@ -66,9 +66,9 @@ class TfsFileWriter(object):
     all the content formatted at once by calling the write function.
     """
 
-    DEFAULT_COLUMN_WIDTH = 18
+    DEFAULT_COLUMN_WIDTH = 17 #TODO 20
     # Indicates width of columns in output file.
-    MIN_COLUMN_WIDTH = 15
+    MIN_COLUMN_WIDTH = 4 #TODO 10
 
     @staticmethod
     def open(file_name):
@@ -217,16 +217,16 @@ class TfsFileWriter(object):
         format_for_data = self.__get_column_formatter(list_column_types, with_type=True)
 
         # Write column names
-        str_column_names = "* " + format_for_titles.format(*list_column_names)
+        str_column_names = "* " + format_for_titles.format(*list_column_names)[2:]  #TODO
         lines.append(str_column_names)
 
         # Write column types
-        str_column_types = "$ " + format_for_titles.format(*list_column_types)
+        str_column_types = "$ " + format_for_titles.format(*list_column_types)[2:]  #TODO
         lines.append(str_column_types)
 
         # Write table lines
         for table_line in self.__tfs_table.get_data_rows():
-            formatted_line = "  " + format_for_data.format(*table_line)
+            formatted_line = "" + format_for_data.format(*table_line)  #TODO
             lines.append(formatted_line)
 
     def __write_unformatted_table(self, lines):
@@ -361,7 +361,7 @@ class _TfsDataType:
     TYPE_FLOAT = "%le"
     TYPE_INVALID = None
 
-    DEFAULT_PRECISION = "10"
+    DEFAULT_PRECISION = "12" #TODO: 13
 
     def __init__(self):
         self.__type = _TfsDataType.TYPE_INVALID
@@ -400,11 +400,11 @@ class _TfsDataType:
     def get_type_as_python_format(self, width=None):
         """ http://mad.web.cern.ch/mad/madx.old/Introduction/tfs_columns.html#table """
         width_str = "" if width is None else "{:d}".format(width)
-        # precision needs usually 5 digits less then total length, e.g. "-0.", "e-000"
+        # precision needs usually 7 digits less then total length, e.g. "-0.'precision'e-000"
 
-        precision_str = self.DEFAULT_PRECISION if width is None else "{:d}".format(width-5)
+        precision_str = self.DEFAULT_PRECISION #if width is None else "{:d}".format(width-7) #TODO
         return {
-            _TfsDataType.TYPE_FLOAT: " {:s}.{:s}g".format(width_str, precision_str),
+            _TfsDataType.TYPE_FLOAT: "{:s}.{:s}g".format(width_str, precision_str), #TODO add " "
             # _TfsDataType.TYPE_FLOAT: " #{:s}.{:s}g".format(width_str, precision_str),  # python3
             _TfsDataType.TYPE_STRING: "{:s}s".format(width_str),
         }[self.__type]

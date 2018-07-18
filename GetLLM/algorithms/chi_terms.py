@@ -71,7 +71,7 @@ def calculate_chiterms(getllm_d, twiss_d, mad_twiss, files_dict):
         for i in range(len(dbpms) - 2):
             bpm_name = str.upper(dbpms[i][1])
             bns = dbpms[i][0]
-            list_row_entries = ['"' + bpm_name + '"', bns, xi_tot[0][i], xi_tot[1][i], xi_tot[2][i], xi_tot[3][i], '0', '0']
+            list_row_entries = ['"' + bpm_name + '"', bns, xi_tot[0][i], xi_tot[1][i], xi_tot[2][i], xi_tot[3][i], 0, 0]
             tfs_file.add_table_row(list_row_entries)
     
     # 1) chi4000
