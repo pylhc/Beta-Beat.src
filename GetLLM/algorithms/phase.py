@@ -1,3 +1,12 @@
+"""
+.. module: tune
+
+Created on 18/07/18
+
+:author: Lukas Malina
+
+It computes betatron phase advances and provides structures to store them.
+"""
 import sys
 import numpy as np
 import pandas as pd
@@ -7,7 +16,7 @@ from utils import logging_tools, stats
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
-PLANES = ('X', 'Y')
+PLANES = ("X", "Y")
 
 
 def calculate_phase(measure_input, input_files, tune_d, header_dict):
@@ -18,7 +27,7 @@ def calculate_phase(measure_input, input_files, tune_d, header_dict):
 
     Parameters:
         measure_input: the GetLLM_Data object including the accelerator class and the GetLLM options.
-        input_files: includes measurement files and tunes (natural and driven if applicable, both measrued values)
+        input_files: includes measurement files and tunes (natural and driven if applicable, both measured values)
 
     Returns:
         an instance of _PhaseData filled with the results of get_phases
@@ -35,35 +44,27 @@ def calculate_phase(measure_input, input_files, tune_d, header_dict):
     else:
         model_of_measurement = accelerator.get_driven_tfs()
     LOGGER.info('Calculating phase')
-
-    # Info:
-    LOGGER.info("t_value correction.................[YES]")
-    union_text = "YES" if measure_input.union else "NO"
-    LOGGER.info("using all phase information........[{:3s}]".format(union_text))
-
-    # --------------- Calculate tunes --------------------------------------------------------------
+    LOGGER.info("using all phase information........[{:3s}]".format("YES" if measure_input.union else "NO"))
     for plane in PLANES:
         LOGGER.debug("tune of measurement files = {}".format(tune_d[plane]["Q"]))
         phase_d[plane]["F"] = get_phases(measure_input, input_files, model_of_measurement, plane)
-
-    #---- ac to free phase from eq and the model
         if measure_input.accelerator.excitation != AccExcitationMode.FREE:
-            phase_d[plane]["D"] = phase_d[plane]["F"]    # TODO this can break stuff - should be changed
-            phase_d[plane]["ac2bpm"] = compensate_excitation.GetACPhase_AC2BPMAC(bpmsx, tune_d[plane]["Q"], tune_d[plane]["QF"], plane, measure_input.accelerator)
-            phase_d[plane]["F"]  = get_free_phase_eq(measure_input, model_free, input_files.zero_dpp_x, bpmsx, tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"], plane)
-#           phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"], tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
+            phase_d[plane]["D"] = phase_d[plane]["F"]
+            phase_d[plane]["ac2bpm"] = compensate_excitation.GetACPhase_AC2BPMAC(phase_d[plane]["F"]["MODEL"], tune_d[plane]["Q"], tune_d[plane]["QF"], plane, measure_input.accelerator)
+            phase_d[plane]["F"] = get_phases(measure_input, input_files, model_free, plane, (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]))
+            # phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"], tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
+        """    
         _get_header(header_dict, tune_d, filename)
         write_phase_file("getphasex_free.out", plane, phase_d[plane]["F"], model_free)
         write_phasetot_file("getphasetotx_free.out", plane, phase_d[plane]["F"], model_free)
-        #-- ac to free phase
         if measure_input.accelerator.excitation != AccExcitationMode.FREE:
-            #-- from eq
             write_phase_file("getphasex.out", plane, phase_d[plane]["D"], model_free)
             write_phasetot_file("getphasetotx.out", plane, phase_d[plane]["D"], model_free)
-
+        """
     return _PhaseData(phase_d)
 
-def get_phases(meas_input, input_files, model, plane, no_errors=False):
+
+def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors=False):
     """
     Computes phase advances among all BPMs.
 
@@ -72,6 +73,7 @@ def get_phases(meas_input, input_files, model, plane, no_errors=False):
         input_files: InputFiles object
         model: model tfs_panda to be used
         plane: "X" or "Y"
+        compensate: (Qd,Q,ac2bpm object)
         no_errors: if True measured errors shall not be propagated (only their spread)
 
     Returns:
@@ -103,6 +105,22 @@ def get_phases(meas_input, input_files, model, plane, no_errors=False):
     phase_advances = {"MODEL": _get_square_data_frame((phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis]) % 1.0, phase_frame.index)}
     phases_meas = input_files.get_data(phase_frame, 'MU' + plane) * meas_input.accelerator.get_beam_direction()
     phases_errors = input_files.get_data(phase_frame, 'ERR_MU' + plane)
+
+    if compensate is not None:
+        (Qd, Q, ac2bpmac) = compensate
+        k_bpmac = ac2bpmac[2]
+        phase_corr = ac2bpmac[1] - phases_meas[k_bpmac] + (0.5 * Qd)
+        phases_meas = phases_meas + phase_corr[np.newaxis, :]
+        r = np.sin(np.pi * (Qd - Q)) / np.sin(np.pi * ((Qd + Q) % 1.0))
+        LOGGER.debug(plane + " compensation lambda = {}".format(r))
+        LOGGER.debug(plane + " k_bpmac = {}".format(k_bpmac))
+        LOGGER.debug(plane + " psid_ac2bpmac = {}".format(ac2bpmac[1]))
+        LOGGER.debug(plane + " bpmac = {}".format(ac2bpmac[0]))
+        phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] - Qd
+        Psi = (np.arctan((1 - r) / (1 + r) * np.tan(2 * np.pi * phases_meas)) / (2 * np.pi)) % 0.5
+        phases_meas = np.where(phases_meas % 1.0 > 0.5, Psi + .5, Psi)
+        phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] + Q
+
     if phases_meas.ndim < 2:
         phase_advances["MEAS"] = _get_square_data_frame((phases_meas[np.newaxis, :] - phases_meas[:, np.newaxis]) % 1.0, phase_frame.index)
         phase_advances["ERRMEAS"] = _get_square_data_frame(np.zeros((len(phases_meas), len(phases_meas))), phase_frame.index)
@@ -115,98 +133,17 @@ def get_phases(meas_input, input_files, model, plane, no_errors=False):
     elif no_errors:
         phases_errors = None
     phases_3d = phases_meas[np.newaxis, :, :] - phases_meas[:, np.newaxis, :]
-    phase_advances["MEAS"] = _get_square_data_frame(stats.circular_mean(phases_3d, period=1, errors=phases_errors,
+    if phases_errors is not None:
+        errors_3d = phases_errors[np.newaxis, :, :] + phases_errors[:, np.newaxis, :]
+    else:
+        errors_3d = None
+    phase_advances["MEAS"] = _get_square_data_frame(stats.circular_mean(phases_3d, period=1, errors=errors_3d,
                                                  axis=2) % 1.0, phase_frame.index)
-    phase_advances["ERRMEAS"] = _get_square_data_frame(stats.circular_error(phases_3d, period=1, errors=phases_errors,
+    phase_advances["ERRMEAS"] = _get_square_data_frame(stats.circular_error(phases_3d, period=1, errors=errors_3d,
                                                      axis=2), phase_frame.index)
     return phase_advances
 
-'''
-def get_free_phase_eq(getllm_d, model, Files, bpm, Qd, Q, ac2bpmac, plane):
-    """
-       Calculates phase free from excitation effect.
-
-       Args:
-           model (pandas.DataFrame): the model twiss file. Must have the names as index.
-           Files (list of pandas.DataFrame): the input files.
-           bpm (pandas.DataFrame): commonbpms (see GetLLM._get_commonbpms)
-           Qd (float): driven fractional tune.
-           Q (float): natural fractional tune.
-           ac2bpmac: result of GetACPhase_AC2BPMAC.
-           plane (char): H or V.
-           Qmdl: natural model tune.
-           getllm_d (GetLLM_Data): GetLLM_data created by GetLLM.
-
-
-    """
-    LOGGER.info(
-        "Compensating excitation for plane {2:s}. Q = {0:f}, Qd = {1:f}".format(Q, Qd, plane))
-
-    psid_ac2bpmac = ac2bpmac[1]
-    k_bpmac = ac2bpmac[2]
-    plane_mu = "MUX" if plane == "H" else "MUY"
-    number_commonbpms = bpm.shape[0]
-    bd = getllm_d.accelerator.get_beam_direction()
-
-    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    k_lastbpm = len(bpm)
-    LOGGER.info("phase jump will not be corrected")
-
-    # pandas panel that stores the model phase advances, measurement phase advances and measurement errors
-    phase_advances = pd.Panel(
-        items=["MODEL", "MEAS", "ERRMEAS"],
-        major_axis=bpm.index, minor_axis=bpm.index)
-
-    phases_mdl = np.array(model.loc[bpm.index, plane_mu])
-    phase_advances["MODEL"] = ((phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis])) % 1.0
-
-    #-- Global parameters of the driven motion
-    r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
-    LOGGER.debug(plane + " compensation lambda = {}".format(r))
-    LOGGER.debug(plane + " k_bpmac = {}".format(k_bpmac))
-    LOGGER.debug(plane + " psid_ac2bpmac = {}".format(psid_ac2bpmac))
-    LOGGER.debug(plane + " bpmac = {}".format(ac2bpmac[0]))
-
-    #-- Loop for files, psid, Psi, Psid are w.r.t the AC dipole
-    # temporary 3D matrix that stores the phase advances
-    phase_matr_meas = np.empty((len(Files), number_commonbpms, number_commonbpms))
-    sin_phase_matr_meas = np.zeros((number_commonbpms, number_commonbpms))
-    cos_phase_matr_meas = np.zeros((number_commonbpms, number_commonbpms))
-    for i, file_tfs in enumerate(Files):
-        phases_meas = bd * np.array(file_tfs.loc[bpm.index, plane_mu]) #-- bd flips B2 phase to B1 direction
-        phases_meas[k_lastbpm+1:] += Qd# * bd
-        psid = phases_meas - (phases_meas[k_bpmac] - psid_ac2bpmac) # OK, untill here, it is Psi(s, s_ac)
-        psid += .5 * Qd# * bd
-        psid[k_bpmac:] -= Qd
-
-        Psi = (np.arctan((1 - r) / (1 + r) * np.tan(TWOPI * psid)) / TWOPI) % 0.5
-        Psi = np.where(psid % 1.0 > 0.5, Psi + .5, Psi)
-        Psi -= Psi[0]
-        Psi[k_bpmac:] += Q
-        LOGGER.debug(psid[np.isnan(Psi)])
-
-        meas_matr = (Psi[np.newaxis,:] - Psi[:,np.newaxis])
-        phase_matr_meas[i] = meas_matr
-        sin_phase_matr_meas += np.sin(meas_matr * TWOPI)
-        cos_phase_matr_meas += np.cos(meas_matr * TWOPI)
-
-    phase_advances["NFILES"] = len(Files)
-
-    phase_advances["MEAS"] = (np.arctan2(sin_phase_matr_meas / len(Files), cos_phase_matr_meas /
-                                         len(Files)) / TWOPI) % 1
-
-    if phase.OPTIMISTIC:
-        phase_advances["ERRMEAS"] = np.std(phase_matr_meas, axis=0) * stats.t_value_correction(len(Files)) / np.sqrt(len(Files))
-    else:
-        R = np.sqrt(
-            (sin_phase_matr_meas * sin_phase_matr_meas + cos_phase_matr_meas * cos_phase_matr_meas)
-            ) / len(Files)
-        phase_advances["ERRMEAS"] = np.sqrt(-2.0 * np.log(R)) / np.sqrt(len(Files))
-
-    return phase_advances
-
-
-
+"""
 def write_phase_file(plane, phase_advances, model):
     plane_mu = "MU" + plane
     meas = phase_advances["MEAS"]
@@ -227,9 +164,9 @@ def write_phase_file(plane, phase_advances, model):
           model.loc[meas.index[i + 1], "S"], meas[meas.index[i + 1]][meas.index[i]],
           err[meas.index[i + 1]][meas.index[i]], mod[meas.index[i + 1]][meas.index[i]],
           model.loc[meas.index[i], plane_mu], nf])
-'''
 
 
+"""
 def _get_header(header_dict, tunes, filename, free=False):
     header = header_dict.copy()
     header['Q1'] = tunes["X"]["QF"] if free else tunes["X"]["Q"]
@@ -240,6 +177,29 @@ def _get_header(header_dict, tunes, filename, free=False):
 
 def _get_square_data_frame(data,index):
     return pd.DataFrame(data=data, index=index, columns=index)
+
+
+class PhaseDict(dict):
+    """
+    Used as data structure to hold phase advances
+    """
+    def __init__(self):
+        init_phases = {"ac2bpm": None, "D": None, "F": None, "F2": None}
+        super(PhaseDict, self).__init__(zip(PLANES, (init_phases, init_phases)))
+
+
+class _PhaseData(object):
+
+    def __init__(self, phase_dict):
+        self.ac2bpmac_x = phase_dict["X"]["ac2bpm"]
+        self.ac2bpmac_y = phase_dict["Y"]["ac2bpm"]
+
+        self.phase_advances_x = phase_dict["X"]["D"]
+        self.phase_advances_free_x = phase_dict["X"]["F"]
+        self.phase_advances_free2_x = phase_dict["X"]["F2"]
+        self.phase_advances_y = phase_dict["Y"]["D"]
+        self.phase_advances_free_y = phase_dict["Y"]["F"]
+        self.phase_advances_free2_y = phase_dict["Y"]["F2"]
 
 """
 def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
@@ -295,26 +255,3 @@ def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
         except KeyError as e:
             LOGGER.error("Couldn't calculate the phase advance because " + e)
 """
-
-
-class PhaseDict(dict):
-    """
-    Used as data structure to hold phase advances
-    """
-    def __init__(self):
-        init_phases = {"ac2bpm": None, "D": None, "F": None, "F2": None}
-        super(PhaseDict, self).__init__(zip(PLANES, (init_phases, init_phases)))
-
-
-class _PhaseData(object):
-
-    def __init__(self,phase_dict):
-        self.ac2bpmac_x = phase_dict["X"]["ac2bpm"]
-        self.ac2bpmac_y = phase_dict["Y"]["ac2bpm"]
-
-        self.phase_advances_x = phase_dict["X"]["D"]
-        self.phase_advances_free_x = phase_dict["X"]["F"]
-        self.phase_advances_free2_x = phase_dict["X"]["F2"]
-        self.phase_advances_y = phase_dict["Y"]["D"]
-        self.phase_advances_free_y = phase_dict["Y"]["F"]
-        self.phase_advances_free2_y = phase_dict["Y"]["F2"]
