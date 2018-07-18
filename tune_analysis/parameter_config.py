@@ -89,3 +89,10 @@ def get_paired_lables(plane, other_plane):
 def get_timber_bbq_key(plane, beam):
     """ Key to extract bbq from timber. """
     return 'lhc.bofsu:eigen_freq_{:d}_b{:d}'.format({"X": 1, "Y": 2}[plane], beam)
+
+
+# Script Mode #################################################################
+
+
+if __name__ == '__main__':
+    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
