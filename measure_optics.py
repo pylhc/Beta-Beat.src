@@ -63,7 +63,8 @@ def measure_optics(input_files, measure_input):
     print_time("BEFORE_PHASE", time() - __getllm_starttime)
     #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
     try:
-        tune_dict, tune_d = tune.calculate_tunes(measure_input, input_files)
+        tune_dict = tune.calculate_tunes(measure_input, input_files)
+        print(tune_dict)
     except:
         _tb_()
         # if phase crashed, none of the subsequent algorithms can run. Thus
@@ -78,14 +79,14 @@ def measure_optics(input_files, measure_input):
     print_time("AFTER_PHASE", time() - __getllm_starttime)
     #-------- START coupling.
     try:
-        tune_d = coupling.calculate_coupling(measure_input, input_files, phase_d_bk, tune_d)
+        tune_d = coupling.calculate_coupling(measure_input, input_files, phase_d_bk, tune._TuneData(tune_dict), header_dict)
     except:
         _tb_()
     if measure_input.only_coupling:
         LOGGER.info("GetLLM was only calculating coupling. Skipping the rest and returning ...")
         return
     try:
-        beta_d, beta_driven_x, beta_free_x = beta.calculate_beta_from_phase(measure_input, input_files, tune_d, phase_d_bk)
+        beta_d, beta_driven_x, beta_free_x = beta.calculate_beta_from_phase(measure_input, input_files, tune._TuneData(tune_dict), phase_d_bk, header_dict)
     except:
         _tb_()
     if measure_input.three_bpm_method:
@@ -97,7 +98,7 @@ def measure_optics(input_files, measure_input):
     # except:
     #     _tb_()
     try:
-        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_d, beta_d)
+        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune._TuneData(tune_dict), beta_d)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
@@ -112,7 +113,7 @@ def measure_optics(input_files, measure_input):
     except:
         _tb_()
     try:
-        dispersion.calculate_orbit_and_dispersion(input_files, tune_d, mad_twiss, header_dict, measure_input.orbit_unit, measure_input.max_closed_orbit, beta_driven_x, measure_input.outputdir)
+        dispersion.calculate_orbit_and_dispersion(input_files, tune._TuneData(tune_dict), mad_twiss, header_dict, measure_input.orbit_unit, measure_input.max_closed_orbit, beta_driven_x, measure_input.outputdir)
     except:
         _tb_()
     #------ Start get Q,JX,delta
@@ -194,7 +195,12 @@ class InputFiles(dict):
         return np.array([df.DPP for df in self[plane]])
 
     def _get_zero_dpp_frames(self, plane):
-        return self[plane][np.logical_not(self.get_dpps(plane))]
+        zero_dpp_frames = []
+        for i in np.argwhere(self.get_dpps(plane) == 0.0).T[0]:
+            zero_dpp_frames.append(self[plane][i])
+        if len(zero_dpp_frames) > 0:
+            return zero_dpp_frames
+        return self._get_all_frames(self, plane)
 
     def _get_all_frames(self, plane):
         return self[plane]
@@ -244,8 +250,8 @@ class InputFiles(dict):
             for i in range(len(self[plane])):
                 self[plane][i].rename(columns={"AVG_MU" + plane: "MU" + plane, "MU" + plane: "OLD_MU" + plane})
 
-    @staticmethod
-    def get_columns(frame, column):
+
+    def get_columns(self, frame, column):
         """
         Returns list of columns of frame corresponding to column in original files
         Parameters:
@@ -254,10 +260,12 @@ class InputFiles(dict):
         Returns:
             list of columns
         """
-        return frame.columns.str.startswith(column + '__').sort(key=lambda x: int(x.strip(column + '__')))
+        str_list = list(frame.columns[frame.columns.str.startswith(column + '__')].values)
+        new_list = list(map(lambda s: s.strip(column + '__'), str_list))
+        new_list.sort(key=int)
+        return [(column + '__' + str(x)) for x in new_list]
 
-    @staticmethod
-    def get_data(frame, column):
+    def get_data(self, frame, column):
         """
         Returns data in columns of frame corresponding to column in original files
         Parameters:
@@ -266,7 +274,7 @@ class InputFiles(dict):
         Returns:
             data in numpy array corresponding to column in original files
         """
-        return frame.loc[:, frame.getcolumns(frame, column)].values
+        return frame.loc[:, self.get_columns(frame, column)].values
 
 
 def _copy_calibration_files(outputdir, calibrationdir):

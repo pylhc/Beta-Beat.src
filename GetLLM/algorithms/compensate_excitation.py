@@ -42,10 +42,9 @@ def GetACPhase_AC2BPMAC(commonbpms, Qd, Q, plane, acc):
         c (int): k of the nearest BPM.
         d (string): name of the exciter element.
     """
-    bd = acc.get_beam_direction()
     r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
-    plane_mu = "MUX" if plane == "H" else "MUY"
-    [k, bpmac1], exciter = acc.get_exciter_bpm(plane, commonbpms)
+    plane_mu = "MUX" if plane == "X" else "MUY"
+    [k, bpmac1], exciter = acc.get_exciter_bpm("H" if plane == "X" else "V", commonbpms)
     model_driven = acc.get_driven_tfs()
     ##return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] + PI * Q)) % PI - PI * Qd, k
     try:

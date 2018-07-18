@@ -71,7 +71,8 @@ def circular_error(data, period=PI2, errors=None, axis=None, t_value_corr=True):
     weights = weights_from_errors(errors, period=period)
     complex_phases = np.exp(phases)
     complex_average = np.average(complex_phases, axis=axis, weights=weights)
-    (sample_variance, sum_of_weights) = np.average(np.square(np.abs(complex_phases - complex_average)),
+
+    (sample_variance, sum_of_weights) = np.average(np.square(np.abs(complex_phases - complex_average.reshape(_get_shape(complex_phases.shape, axis)))),
                                                    weights=weights, axis=axis, returned=True)
     if weights is not None:
         sample_variance = sample_variance + 1. / sum_of_weights
@@ -100,6 +101,11 @@ def weighted_mean(data, errors=None, axis=None):
     weights = weights_from_errors(errors)
     return np.average(data, axis=axis, weights=weights)
 
+def _get_shape(orig_shape, axis):
+    new_shape = np.array(orig_shape)
+    new_shape[np.array(axis)] = 1
+    return tuple(new_shape)
+
 
 def weighted_error(data, errors=None, axis=None, t_value_corr=True):
     """
@@ -120,7 +126,7 @@ def weighted_error(data, errors=None, axis=None, t_value_corr=True):
     """
     weights = weights_from_errors(errors)
     weighted_average = np.average(data, axis=axis, weights=weights)
-    (sample_variance, sum_of_weights) = np.average(np.square(np.abs(data - weighted_average)),
+    (sample_variance, sum_of_weights) = np.average(np.square(np.abs(data - weighted_average.reshape(_get_shape(data.shape, axis)))),
                                                    weights=weights, axis=axis, returned=True)
     if weights is not None:
         sample_variance = sample_variance + 1 / sum_of_weights

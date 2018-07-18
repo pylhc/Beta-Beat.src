@@ -22,9 +22,9 @@ def calculate_tunes(measure_input, input_files):
 
     for plane in PLANES:
         char = {"X": "1", "Y": "2"}
-        tunes = np.array([df.headers["Q" + char[plane]] for df in input_files.zero_dpp_frames(plane)])
+        tunes = np.array([df.headers["Q" + char[plane]] for df in input_files._get_zero_dpp_frames(plane)])
         tunes_rms = np.array(
-            [df.headers["Q" + char[plane] + "RMS"] for df in input_files.zero_dpp_frames(plane)])
+            [df.headers["Q" + char[plane] + "RMS"] for df in input_files._get_zero_dpp_frames(plane)])
         tune = stats.weighted_mean(tunes, errors=tunes_rms)
         tune_d[plane]["Q"] = tune
         tune_d[plane]["QF"] = tune
@@ -33,7 +33,7 @@ def calculate_tunes(measure_input, input_files):
         if measure_input.accelerator.excitation != AccExcitationMode.FREE:
             tune_d[plane]["QM"] = accelerator.drv_tune_x if plane is "X" else accelerator.drv_tune_y
             tune_d[plane]["QF"] = tune_d[plane]["Q"] - tune_d[plane]["QM"] + tune_d[plane]["QFM"]
-    return tune_d, _TuneData(tune_d)
+    return tune_d
 
 
 class TuneDict(dict):
