@@ -1,3 +1,6 @@
+import pytz
+
+
 # Global 'Parameters' for easy editing #########################################
 def get_planes():
     """ Names for the planes."""
@@ -9,6 +12,11 @@ def get_plane_from_orientation(orientation):
     return {"H": get_planes()[0],
             "V": get_planes()[1],
             }[orientation.upper()]
+
+
+def get_experiment_timezone():
+    """ Get time zone for measurement data. """
+    return pytz.timezone("Europe/Zurich")
 
 
 def get_time_col():

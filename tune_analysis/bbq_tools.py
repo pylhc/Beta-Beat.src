@@ -1,9 +1,11 @@
 import datetime
+import os
+import pytz
 
 import matplotlib.dates as mdates
-from matplotlib.ticker import FormatStrFormatter
-from matplotlib import pyplot as plt, gridspec
 import numpy as np
+from matplotlib import pyplot as plt, gridspec
+from matplotlib.ticker import FormatStrFormatter
 
 from parameter_config import *
 from utils import logging_tools
@@ -56,11 +58,11 @@ def get_moving_average(data_series, length=20,
     cut_mask = min_mask | max_mask
     data_mav = _get_interpolated_moving_average(data_series, cut_mask, length)
 
-    if fine_length:
+    if fine_length is not None:
         min_mask = data_series <= (data_mav - fine_cut)
         max_mask = data_series >= (data_mav + fine_cut)
         cut_mask = min_mask | max_mask
-        data_mav = _get_interpolated_moving_average(data_mav, cut_mask, fine_length)
+        data_mav = _get_interpolated_moving_average(data_series, cut_mask, fine_length)
 
     return data_mav, cut_mask
 
@@ -122,7 +124,8 @@ def plot_bbq_data(bbq_df,
         ax = fig.add_subplot(gs[0])
         ax = [ax, ax]
 
-    bbq_df.index = [datetime.datetime.fromtimestamp(time) for time in bbq_df.index]
+    tz = get_experiment_timezone()
+    bbq_df.index = [datetime.datetime.fromtimestamp(time, tz=tz) for time in bbq_df.index]
 
     for idx, plane in enumerate(PLANES):
         color = ps.get_mpl_color(idx)
@@ -133,14 +136,14 @@ def plot_bbq_data(bbq_df,
                 y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.2,
                 label="_nolegend_"
             )
-            bbq_df.loc[mask, :].plot(
-                y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.4,
-                label="$Q_{:s}$ filtered".format(plane.lower())
-            )
-            bbq_df.plot(
-                y=COL_MAV(plane), ax=ax[idx], color=color,
-                label="$Q_{:s}$ moving av.".format(plane.lower())
-            )
+        bbq_df.loc[mask, :].plot(
+            y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.4,
+            label="$Q_{:s}$ filtered".format(plane.lower())
+        )
+        bbq_df.plot(
+            y=COL_MAV(plane), ax=ax[idx], color=color,
+            label="$Q_{:s}$ moving av.".format(plane.lower())
+        )
 
         if ymin is None and two_plots:
             ax[idx].set_ylim(bottom=min(bbq_df.loc[mask, COL_BBQ(plane)]))
@@ -159,18 +162,20 @@ def plot_bbq_data(bbq_df,
         ax[idx].yaxis.set_major_formatter(FormatStrFormatter('%.5f'))
 
         ax[idx].set_xlim(left=xmin, right=xmax)
+        ax[idx].set_xlabel('Time')
+        ax[idx].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 
-        # in case of two plots, don't have labels on upper plot
+        # don't show labels on upper plot (if two plots)
         if idx:
-            ax[idx].xaxis.set_ticklabels([])
-        else:
-            ax[idx].set_xlabel('Time')
-            ax[idx].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+            # use the visibility to allow cursor x-position to be shown
+            ax[idx].tick_params(labelbottom=False)
+            ax[idx].xaxis.get_label().set_visible(False)
 
     plt.tight_layout()
 
     if output:
         fig.savefig(output)
+        ps.set_name(os.path.basename(output))
 
     if show:
         plt.draw()
@@ -186,13 +191,15 @@ def _get_interpolated_moving_average(data_series, clean_mask, length):
     data_mav[clean_mask] = np.NaN
 
     # 'interpolate' fills nan based on index/values of neighbours
-    data_mav = data_mav.interpolate("index")
+    data_mav = data_mav.interpolate("index").fillna(method="bfill").fillna(method="ffill")
 
     shift = -int((length-1)/2)  # Shift average to middle value
-    return data_mav.rolling(length).mean().shift(shift).interpolate("index")
+    return data_mav.rolling(length).mean().shift(shift).fillna(
+        method="bfill").fillna(method="ffill")
 
 
 # Script Mode #################################################################
+
 
 if __name__ == '__main__':
     raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

@@ -50,11 +50,14 @@ def print_odr_result(printer, odr_out):
                 printer('  {}'.format(r).replace("\n", ""))
 
 
-def linear_odr_plot(ax, x, y, x_err, y_err):
+def linear_odr_plot(ax, x, y, x_err, y_err, lim=None):
     """ Adds a linear odr fit to axes. """
     odr_fit = do_linear_odr(x, y, x_err, y_err)
 
-    x_fit = np.linspace(0,  max(x + x_err + odr_fit.sd_beta[0]), 2)
+    lim = lim if lim is not None else [min(x - x_err - odr_fit.sd_beta[1]),
+                                       max(x + x_err + odr_fit.sd_beta[1])]
+
+    x_fit = np.linspace(lim[0],  lim[1], 2)
     line_fit = odr_fit.beta[0] + odr_fit.beta[1] * x_fit
 
     ax.plot(x_fit, line_fit , marker="", linestyle='--', color='k',
@@ -82,20 +85,25 @@ def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None
     Returns:
         Plotted Figure
     """
-    ps.set_style("standard", {u"lines.marker": u"o", u"lines.linestyle": u""})
+    ps.set_style("standard",
+                 {u"lines.marker": u"o",
+                  u"lines.linestyle": u"",
+                  u'figure.figsize': [8, 4],
+                  }
+                 )
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    odr_plot(ax, x, y, x_err, y_err)
+    x_min = 0 if x_min is None else x_min
+    x_max = max(x + x_err)*1.01 if x_max is None else x_max
+
+    odr_plot(ax, x, y, x_err, y_err, lim=[x_min, x_max])
     ax.errorbar(x, y, xerr=x_err, yerr=y_err, label=labels.get("line", None))
 
     default_labels = get_paired_lables("{}", "{}")
     ax.set_xlabel(labels.get("x", default_labels[0]))
     ax.set_ylabel(labels.get("y", default_labels[1]))
-
-    x_min = 0 if x_min is None else x_min
-    x_max = max(x + x_err)*1.01 if x_max is None else x_max
 
     ax.set_xlim(left=x_min, right=x_max)
     ax.set_ylim(bottom=y_min, top=y_max)
