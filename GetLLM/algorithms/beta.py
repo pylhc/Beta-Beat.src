@@ -179,7 +179,7 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
     LOGGER.info("range of BPMs: " + str(getllm_d.range_of_bpms))
     LOGGER.info("cot of phase threshold: {:g}".format(COT_THRESHOLD))
 
-    if getllm_d.parallel:
+    if do_parallel:
         LOGGER.info("parallel: [TRUE]")
         LOGGER.info("number of processes: {0:2d}".format(multiprocessing.cpu_count()))
     else:
@@ -214,7 +214,7 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
     # start the calculation per plane --------------------------------------------------------------
 
     #------------- HORIZONTAL
-    if phase_d.phase_advances_x:
+    if phase_d.phase_advances_free_x:
         beta_df_x, driven_beta_df_x = beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
             getllm_d.range_of_bpms, do_parallel, phase_d.phase_advances_x,
@@ -223,13 +223,14 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
         )
 
     #------------- VERTICAL
-    if phase_d.phase_advances_y:
+    if phase_d.phase_advances_free_y:
         beta_df_y, driven_beta_df_y = beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
             getllm_d.range_of_bpms, do_parallel, phase_d.phase_advances_y,
             phase_d.phase_advances_free_y, error_method, tune_d.q2, tune_d.q2f, tune_d.q2mdl,
             tune_d.q2mdlf, "Y", header
         )
+
     return beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y
 
 
@@ -262,8 +263,8 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements,
     driven_beta_df = None
     driven_header = None
 
-    if phase_adv_free is not None:
-        driven_model = driven_model.loc[commonbpms.index]
+    if phase_adv is not None:
+        driven_model = driven_model.loc[phase_adv.index]
         LOGGER.info("Beta {} driven calculation".format(plane))
         if DEBUG:
             debugfile = DBG.create_debugfile(
@@ -466,7 +467,7 @@ def _scan_all_BPMs_3bpm(phase, plane, debugfile, errors_method, tune, mdltune,
 #---------------------------------------------------------------------------------------------------
 
 def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
-                                        phase, plane, do_parallel, range_of_bpms, debugfile, errors_method,
+                                        phase, plane, range_of_bpms, do_parallel, debugfile, errors_method,
                                         tune, mdltune, beta_df):
     '''
     '''
