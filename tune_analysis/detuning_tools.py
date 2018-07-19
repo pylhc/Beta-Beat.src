@@ -1,10 +1,12 @@
+""" Some tools for amplitude detuning, mainly plotting.
+"""
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.odr import RealData, Model, ODR
 
-from parameter_config import *
+import constants as const
 from utils import logging_tools
 from utils.plotting import plot_style as ps
 
@@ -63,7 +65,7 @@ def linear_odr_plot(ax, x, y, x_err, y_err, lim=None):
     x_fit = np.linspace(lim[0],  lim[1], 2)
     line_fit = odr_fit.beta[1] * x_fit
 
-    ax.plot(x_fit, line_fit , marker="", linestyle='--', color='k',
+    ax.plot(x_fit, line_fit, marker="", linestyle='--', color='k',
             label='${:.4f}\, \pm\, {:.4f}$'.format(odr_fit.beta[1], odr_fit.sd_beta[1]))
 
     return odr_fit.beta[0]
@@ -106,7 +108,7 @@ def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None
     offset = odr_plot(ax, x, y, x_err, y_err, lim=[x_min, x_max])
     ax.errorbar(x, y-offset, xerr=x_err, yerr=y_err, label=labels.get("line", None))
 
-    default_labels = get_paired_lables("{}", "{}")
+    default_labels = const.get_paired_lables("{}", "{}")
     ax.set_xlabel(labels.get("x", default_labels[0]))
     ax.set_ylabel(labels.get("y", default_labels[1]))
 

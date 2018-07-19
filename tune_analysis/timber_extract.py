@@ -1,17 +1,20 @@
+""" Tools to extract data from timber.
+
+It is a bit heavy on the LHC-side at the moment.
+Feel free to make it more accelerator independent.
+"""
 import re
 
 import numpy as np
 import pytimber
 
-from parameter_config import get_time_col, get_tstart_head, get_tend_head
+import constants as const
 from utils import logging_tools
 from utils import tfs_pandas as tfs
 
-
-TIME_COL = get_time_col()
-START_TIME = get_tstart_head()
-END_TIME = get_tend_head()
-
+TIME_COL = const.get_time_col()
+START_TIME = const.get_tstart_head()
+END_TIME = const.get_tend_head()
 
 
 LOG = logging_tools.get_logger(__name__)

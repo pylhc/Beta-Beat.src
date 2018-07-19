@@ -1,23 +1,31 @@
+""" Tools to handle BBQ data.
+
+This package contains a collection of tools to handle and modify BBQ data:
+ - Calculating moving average
+ - Plotting
+"""
+
 import datetime
 import os
-import pytz
 
 import matplotlib.dates as mdates
 import numpy as np
 from matplotlib import pyplot as plt, gridspec
 from matplotlib.ticker import FormatStrFormatter
 
-from parameter_config import *
+import constants as const
 from utils import logging_tools
 from utils.contexts import suppress_warnings
 from utils.plotting import plot_style as ps
 
-TIME_COL = get_time_col()
-PLANES = get_planes()
+TIMEZONE = const.get_experiment_timezone()
 
-COL_MAV = get_mav_col
-COL_IN_MAV = get_used_in_mav_col
-COL_BBQ = get_bbq_col
+TIME_COL = const.get_time_col()
+PLANES = const.get_planes()
+
+COL_MAV = const.get_mav_col
+COL_IN_MAV = const.get_used_in_mav_col
+COL_BBQ = const.get_bbq_col
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -124,8 +132,7 @@ def plot_bbq_data(bbq_df,
         ax = fig.add_subplot(gs[0])
         ax = [ax, ax]
 
-    tz = get_experiment_timezone()
-    bbq_df.index = [datetime.datetime.fromtimestamp(time, tz=tz) for time in bbq_df.index]
+    bbq_df.index = [datetime.datetime.fromtimestamp(time, tz=TIMEZONE) for time in bbq_df.index]
 
     for idx, plane in enumerate(PLANES):
         color = ps.get_mpl_color(idx)

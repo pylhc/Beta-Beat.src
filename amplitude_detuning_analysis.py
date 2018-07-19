@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 
 from tune_analysis import bbq_tools, timber_extract, detuning_tools
-from tune_analysis.parameter_config import *  # all get_smthng functions, sorry
+import tune_analysis.constants as ta_const
 from utils import logging_tools
 from utils import tfs_pandas as tfs
 from utils.dict_tools import ParameterError
@@ -13,15 +13,15 @@ from utils.entrypoint import entrypoint, EntryPointParameters
 # Globals ####################################################################
 
 # Column Names
-COL_TIME = get_time_col
-COL_BBQ = get_bbq_col
-COL_MAV = get_mav_col
-COL_IN_MAV = get_used_in_mav_col
-COL_NATQ = get_natq_col
-COL_CORRECTED = get_natq_corr_col
+COL_TIME = ta_const.get_time_col
+COL_BBQ = ta_const.get_bbq_col
+COL_MAV = ta_const.get_mav_col
+COL_IN_MAV = ta_const.get_used_in_mav_col
+COL_NATQ = ta_const.get_natq_col
+COL_CORRECTED = ta_const.get_natq_corr_col
 
-PLANES = get_planes()
-TIMBER_KEY = get_timber_bbq_key
+PLANES = ta_const.get_planes()
+TIMBER_KEY = ta_const.get_timber_bbq_key
 
 
 LOG = logging_tools.get_logger(__name__)
@@ -343,13 +343,13 @@ def analyse_with_bbq_corrections(opt):
                 )
 
         # amplitude detuning analysis
-        plane = get_plane_from_orientation(opt.orientation)
+        plane = ta_const.get_plane_from_orientation(opt.orientation)
         for other_plane in PLANES:
-            labels = get_paired_lables(plane, other_plane)
+            labels = ta_const.get_paired_lables(plane, other_plane)
             id_str = "J{:s}_Q{:s}".format(plane.upper(), other_plane.upper())
 
             # get proper data
-            columns = get_paired_columns(plane, other_plane)
+            columns = ta_const.get_paired_columns(plane, other_plane)
             data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
 
             # plotting
