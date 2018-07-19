@@ -97,23 +97,6 @@ def _phase_to_betastar_error(l, ph, eph):
     return abs((eph * l * (abs(cos(ph)) - 1)) / (sin(ph) ** 2))
 
 
-def _get_ip_tfs_writer(files_dict, filename, plane):
-    tfs_writer = files_dict[filename]
-    tfs_writer.add_column_names(COLUMNS)
-    tfs_writer.add_column_datatypes(["%s"] +
-                                    ["%le"] * (len(COLUMNS) - 1))
-    tfs_writer.add_string_descriptor("PLANE", plane.upper())
-    return tfs_writer
-
-
-def _phase_d_combinations(phase_d, plane):
-    for mode in ("D", "F", "F2"):
-        try:
-            yield (mode, phase_d[plane][mode]),
-        except KeyError:
-            continue
-
-
 def _get_meas_phase(bpml, bpmr, phases_df):
     return (phases_df["MEAS"].loc[bpml, bpmr],
             phases_df["ERRMEAS"].loc[bpml, bpmr],
