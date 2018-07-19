@@ -27,7 +27,7 @@ ac-dipol stuff
 import sys
 import traceback
 import math
-
+import copy
 import numpy as np
 
 import utils.bpm
@@ -1124,5 +1124,5 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
         fwqw[key][0][2]=fwqw[key][0][2]/len(fqwList)
         fwqw[key][0][3]=fwqw[key][0][3]/len(fqwList)
     fwqw['Global']=['"null"','"null"']
-return [fwqw,goodbpm]
+    return [fwqw,goodbpm]
 

@@ -37,7 +37,7 @@ def calculate_kick(model, mad_ac, measure_input, input_files, beta_d, phase_d, o
     if measure_input.accelerator.excitation != AccExcitationMode.FREE:
         column_names_ac = column_names + ["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES",
                             "2JXSTDRES", "2JYRES", "2JYSTDRES"]
-        [inv_jx, inv_jy, tunes, dpp] = compensate_excitation.getkickac(
+        [inv_jx, inv_jy, tunes, dpp] = getkickac(
             mad_ac, [input_files["X"], input_files["Y"]], phase_d.ac2bpmac_x, phase_d.ac2bpmac_y,
             measure_input.accelerator.get_beam_direction(), measure_input.end_lattice_phase)
         datas=[]
@@ -121,10 +121,10 @@ def getkickac(MADTwiss_ac, files, accel):
 
     good_bpms_for_kick_x = all_bpms_x[accel.get_element_types_mask(all_bpms_x, "arc_bpm")]
     good_bpms_for_kick_y = all_bpms_y[accel.get_element_types_mask(all_bpms_y, "arc_bpm")]
-    Jx2sq, Jx2sq_std = compensate_excitation.get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_x,
-                                                         files[0], 'H')
-    Jy2sq, Jy2sq_std = compensate_excitation.get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_y,
-                                                         files[1], 'V')
+    Jx2sq, Jx2sq_std = compensate_excitation.get_kick_from_bpm_list_w_acdipole(MADTwiss_ac, good_bpms_for_kick_x,
+                                                                               files[0], 'X')
+    Jy2sq, Jy2sq_std = compensate_excitation.get_kick_from_bpm_list_w_acdipole(MADTwiss_ac, good_bpms_for_kick_y,
+                                                                               files[1], 'Y')
 
     for j in range(len(files[0])):
         tw_x = files[0][j]
