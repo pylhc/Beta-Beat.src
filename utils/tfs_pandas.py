@@ -30,6 +30,7 @@ TYPE_TO_ID = {
     np.float64: "%le",
     float: "%le",
     np.int: "%d",
+    np.bool_: "%le",
 }
 
 

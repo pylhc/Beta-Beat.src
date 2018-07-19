@@ -67,7 +67,7 @@ TEST_CASES_GETLLM = (
     ),
 )
 
-TEST_MODEL_CREATOR = (
+TEST_CASES_MODEL_CREATION = (
     regression.TestCase(
         name="model_creator_test_lhc",
         script=join("model", "creator.py"),
@@ -84,7 +84,7 @@ TEST_MODEL_CREATOR = (
     ),
 )
 
-TEST_CASES_RESPONSE_CREATION_VIA_MADX = (
+TEST_CASES_RESPONSE_CREATION = (
     regression.TestCase(
         name="response_creation_test_via_madx",
         script=join("generate_fullresponse_pandas.py"),
@@ -110,9 +110,7 @@ TEST_CASES_RESPONSE_CREATION_VIA_MADX = (
             join(dir, REGR_DIR, "_out_create_response_test_madx", "model")
         )
     ),
-)
 
-TEST_CASES_RESPONSE_CREATION_VIA_TWISS = (
     regression.TestCase(
         name="response_creation_test_via_twiss",
         script=join("generate_fullresponse_pandas.py"),
@@ -140,7 +138,7 @@ TEST_CASES_RESPONSE_CREATION_VIA_TWISS = (
     ),
 )
 
-TEST_CASES_GLOBAL_CORRECT_ITERATIVE = (
+TEST_CASES_GLOBAL_CORRECTION = (
     regression.TestCase(
         name="correct_iterative_test",
         script=join("global_correct_iterative.py"),
@@ -178,12 +176,11 @@ def run_tests(opts=None):
     """Run the test cases and raise RegressionTestFailed on failure.
     """
     alltests = (
-        list(TEST_CASES_HOLE_IN_ONE) +
-        list(TEST_CASES_GETLLM) +
-        list(TEST_MODEL_CREATOR) +
-        list(TEST_CASES_RESPONSE_CREATION_VIA_MADX) +
-        list(TEST_CASES_RESPONSE_CREATION_VIA_TWISS) +
-        list(TEST_CASES_GLOBAL_CORRECT_ITERATIVE)
+            list(TEST_CASES_HOLE_IN_ONE) +
+            list(TEST_CASES_GETLLM) +
+            list(TEST_CASES_MODEL_CREATION) +
+            list(TEST_CASES_RESPONSE_CREATION) +
+            list(TEST_CASES_GLOBAL_CORRECTION)
     )
     regression.launch_test_set(alltests, ABS_ROOT,
                                yaml_conf=join(ABS_ROOT, ".travis.yml"),
