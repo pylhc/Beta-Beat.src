@@ -109,7 +109,10 @@ def measure_optics(input_files, measure_input):
     else:
         mad_ac = mad_twiss
     try:
-        interaction_point.betastar_from_phase(measure_input.accelerator, phase._PhaseData(phase_dict), mad_twiss)
+        interaction_point.write_betastar_from_phase(
+            interaction_point.betastar_from_phase(
+                measure_input.accelerator, phase_dict, mad_twiss
+            ), measure_input.outputdir, header_dict)
     except:
         _tb_()
     try:

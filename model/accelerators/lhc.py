@@ -644,6 +644,27 @@ class Lhc(Accelerator):
             )
         return madx_template % replace_dict
 
+    LHC_IPS = ("1", "2", "5", "8")
+    NORMAL_IP_BPMS = "BPMSW.1{side}{ip}.B{beam}"
+    DOROS_IP_BPMS = "LHC.BPM.1{side}{ip}.B{beam}_DOROS"
+
+    @classmethod
+    def get_ips(cls):
+        """ Returns an iterable with this accelerator IPs.
+
+        Returns:
+            An iterator returning tuples with:
+                ("ip name", "left BPM name", "right BPM name")
+        """
+        beam = cls.get_beam()
+        for ip in Lhc.LHC_IPS:
+            yield ("IP{}".format(ip),
+                   Lhc.NORMAL_IP_BPMS.format(side="L", ip=ip, beam=beam),
+                   Lhc.NORMAL_IP_BPMS.format(side="R", ip=ip, beam=beam))
+            yield ("IP{}_DOROS".format(ip),
+                   Lhc.DOROS_IP_BPMS.format(side="L", ip=ip, beam=beam),
+                   Lhc.DOROS_IP_BPMS.format(side="R", ip=ip, beam=beam))
+
     def log_status(self):
         LOGGER.info("  model dir = " + self.model_dir)
         LOGGER.info("{:20s} [{:10.3f}]".format("Natural Tune X", self.nat_tune_x))
