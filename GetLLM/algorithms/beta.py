@@ -69,65 +69,9 @@ ID_TO_METHOD = {
     METH_3BPM:"3BPM method",
     METH_A_NBPM:"Analytical N-BPM method"}
 
-def _assign_uncertainties(twiss_full, errordefspath):
-    '''
-    Adds uncertainty information to twiss_full.
-
-    :Sources of Errors:
-        dK1:    quadrupolar field errors
-        dS:     quadrupole longitudinal misalignments
-        dX:     sextupole transverse misalignments
-        BPMdS:  BPM longitudinal misalignments
-    '''
-
-    LOGGER.debug("Start creating uncertainty information")
-
-    errdefs = tfs_pandas.read_tfs(errordefspath)
-
-    # create new columns
-    twiss_full = twiss_full.assign(UNC=False, dK1=0, KdS=0, mKdS=0, dX=0, BPMdS=0)
-
-    # loop over uncertainty definitions, fill the respective columns, set UNC to true
-    for indx in errdefs.index:
-        patt = errdefs.loc[indx, "PATTERN"]
-        if patt.startswith("key:"):
-            LOGGER.debug("creating uncertainty information for {:s}".format(patt))
-            mask = patt.split(":")[1]
-        else:
-            reg = re.compile(patt)
-            LOGGER.debug("creating uncertainty information for RegEx {:s}".format(patt))
-            mask = twiss_full.index.str.contains(reg)  # pandas chose to call it 'contains'. 
-
-        twiss_full.loc[mask, "dK1"] = (errdefs.loc[indx, "dK1"] * twiss_full.loc[mask, "K1L"]) **2
-        twiss_full.loc[mask, "dX"] = errdefs.loc[indx, "dX"]*2
-        if errdefs.loc[indx, "MAINFIELD"] == "BPM":
-            twiss_full.loc[mask, "BPMdS"] = errdefs.loc[indx, "dS"]**2
-        else:
-            twiss_full.loc[mask, "KdS"] = (errdefs.loc[indx, "dS"] * twiss_full.loc[mask, "K1L"]) **2
-        twiss_full.loc[mask, "UNC"] = True
-
-    # in case of quadrupole longitudinal misalignments, the element (DRIFT) in front of the
-    # misaligned quadrupole will be used for the thin lens approximation of the misalignment
-    twiss_full["mKdS"] = np.roll(twiss_full.loc[:]["KdS"], 1)
-    twiss_full.loc[:, "UNC"] = np.logical_or(abs(np.roll(twiss_full.loc[:, "dK1"], -1)) > 1.0e-12,
-                                             twiss_full.loc[:, "UNC"])
-
-    LOGGER.debug("DONE creating uncertainty information")
-    return twiss_full[twiss_full["UNC"]]
-
 #---------------------------------------------------------------------------------------------------
 # main part
 #---------------------------------------------------------------------------------------------------
-
-def _get_header(header_dict, error_method, dpp, range_of_bpms):
-    header = header_dict.copy()
-    header['BetaAlgorithmVersion'] = __version__
-    header['RCond'] = RCOND
-    header['ErrorsFrom'] = ID_TO_METHOD[error_method]
-    header['DPP'] = dpp
-    header['RangeOfBPMs'] = "Adjacent" if error_method == METH_3BPM else range_of_bpms
-
-    return header
 
 def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
     '''
@@ -148,7 +92,6 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
     '''
     # setting up
     accelerator = getllm_d.accelerator
-    dpp = 0  # TODO get dpp from somewhere
     range_of_bpms = getllm_d.range_of_bpms
 
     # selecting models -----------------------------------------------------------------------------
@@ -169,21 +112,12 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
         # in the case of driven motion, we need the driven model as well
         driven_model = accelerator.get_driven_tfs()
 
-    # check if we sould run in parallel
-    do_parallel = not getllm_d.sequential and not DEBUG
-
     # print information to info and debug ----------------------------------------------------------
     LOGGER.info("Calculating beta from phase")
     LOGGER.info("Version: {0:5s}".format(__version__))
 
     LOGGER.info("range of BPMs: " + str(getllm_d.range_of_bpms))
     LOGGER.info("cot of phase threshold: {:g}".format(COT_THRESHOLD))
-
-    if do_parallel:
-        LOGGER.info("parallel: [TRUE]")
-        LOGGER.info("number of processes: {0:2d}".format(multiprocessing.cpu_count()))
-    else:
-        LOGGER.info("parallel: [FALSE]")
 
     LOGGER.debug("quad field errors: [YES]")
     LOGGER.debug("quad long misalignments: [YES]")
@@ -210,40 +144,41 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
         elements = _assign_uncertainties(elements, error_defs_path)
         error_method = METH_A_NBPM
 
-    header = _get_header(header_dict, error_method, dpp, range_of_bpms)
     # start the calculation per plane --------------------------------------------------------------
 
     #------------- HORIZONTAL
     if phase_d.phase_advances_free_x:
         beta_df_x, driven_beta_df_x = beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
-            getllm_d.range_of_bpms, do_parallel, phase_d.phase_advances_x,
-            phase_d.phase_advances_free_x, error_method, tune_d.q1, tune_d.q1f, tune_d.q1mdl,
-            tune_d.q1mdlf, "X", header
+            getllm_d.range_of_bpms, phase_d.phase_advances_x,
+            phase_d.phase_advances_free_x, error_method, tune_d["X"], "X"
         )
 
     #------------- VERTICAL
     if phase_d.phase_advances_free_y:
         beta_df_y, driven_beta_df_y = beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
-            getllm_d.range_of_bpms, do_parallel, phase_d.phase_advances_y,
-            phase_d.phase_advances_free_y, error_method, tune_d.q2, tune_d.q2f, tune_d.q2mdl,
-            tune_d.q2mdlf, "Y", header
+            getllm_d.range_of_bpms, phase_d.phase_advances_y,
+            phase_d.phase_advances_free_y, error_method, tune_d["Y"], "Y"
         )
+
+    for df in [beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y]:
+        if df is not None: _add_header(df, header_dict, error_method, range_of_bpms)
 
     return beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y
 
 
 def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements, range_of_bpms,
-                              do_parallel,
-                              phase_adv, phase_adv_free, error_method, Q, Qf, Qmdl,
-                              Qmdlf, plane, commonheader):
+                              phase_adv, phase_adv_free, error_method, tunes, plane):
     """
     This function calculates and outputs the beta function measurement for the given plane.
     """
     plane_for_file = plane.lower()
+    Q = tunes["Q"]
+    Qf = tunes["QF"]
+    Qmdl = tunes["QM"]
+    Qmdlf = tunes["QFM"]
     LOGGER.info("Beta {} free calculation".format(plane))
-    header = commonheader.copy()
 
     # if DEBUG create a binary debugfile where the algorithm is writing matrices, beta-values,
     # weights etc.
@@ -254,14 +189,13 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements,
         )
 
     beta_df = beta_from_phase(free_model, elements, phase_adv_free, plane, range_of_bpms,
-                              do_parallel, debugfile,
-                              error_method, Qf, Qmdlf%1.0, commonheader)
+                              debugfile,
+                              error_method, Qf, Qmdlf%1.0)
 
     if DEBUG:
         DBG.close_file()
 
     driven_beta_df = None
-    driven_header = None
 
     if phase_adv is not None:
         driven_model = driven_model.loc[phase_adv.index]
@@ -274,20 +208,18 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements,
 
         driven_beta_df = beta_from_phase(
             driven_model, unc_elements,
-            phase_adv, plane, range_of_bpms, do_parallel, debugfile, error_method, Q, Qmdl%1.0
+            phase_adv, plane, range_of_bpms, debugfile, error_method, Q, Qmdl%1.0
         )
 
         if DEBUG:
             DBG.close_file()
-
-        driven_header = commonheader.copy()
 
         LOGGER.warning("Skip free2 calculation")
 
     return beta_df, driven_beta_df
 
 def beta_from_phase(madTwiss, madElements, phase, plane,
-                    range_of_bpms, do_parallel, debugfile, errors_method, tune, mdltune, commonheader):
+                    range_of_bpms, debugfile, errors_method, tune, mdltune):
     '''
     Calculate the beta function from phase advances.
 
@@ -306,9 +238,7 @@ def beta_from_phase(madTwiss, madElements, phase, plane,
     plane_alf = "ALF" + plane
     st = time.time()
 
-    beta_df = tfs_pandas.TfsDataFrame(
-        madTwiss, headers=commonheader.copy()
-    ).loc[phase["MEAS"].index, ["S", plane_bet, plane_alf]]
+    beta_df = tfs_pandas.TfsDataFrame(madTwiss).loc[phase["MEAS"].index, ["S", plane_bet, plane_alf]]
 
     beta_df = beta_df.rename(columns={plane_bet: plane_bet + "MDL", plane_alf: plane_alf + "MDL"})
 
@@ -316,7 +246,7 @@ def beta_from_phase(madTwiss, madElements, phase, plane,
 
     if errors_method == METH_A_NBPM:
         beta_df =  _scan_all_BPMs_withsystematicerrors(madTwiss, madElements, phase, plane,
-                                                       range_of_bpms, do_parallel,
+                                                       range_of_bpms,
                                                        debugfile, errors_method, tune, mdltune,
                                                        beta_df)
     #---- use the simulations
@@ -467,7 +397,7 @@ def _scan_all_BPMs_3bpm(phase, plane, debugfile, errors_method, tune, mdltune,
 #---------------------------------------------------------------------------------------------------
 
 def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
-                                        phase, plane, range_of_bpms, do_parallel, debugfile, errors_method,
+                                        phase, plane, range_of_bpms, debugfile, errors_method,
                                         tune, mdltune, beta_df):
     '''
     '''
@@ -509,61 +439,16 @@ def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     def collect(row):
         result[row[0]] = row[1:]
 
-    def collectblock(block):
-        for row in block:
-            collect(row)
      # ---------- calculate the betas --------------------------------------------------------------
 
-    if do_parallel:
-
-        # setup thread pool and data chunks
-        # TODO use pool.map instead of pool.apply_async
-        chunksize = int(len(phase["MEAS"].index) / multiprocessing.cpu_count()) + 1
-        pool = multiprocessing.Pool()
-        n = int(len(phase["MEAS"].index) / chunksize)
-        LOGGER.debug("number of BPMs to process: {}".format(len(phases_meas.index)))
-        LOGGER.debug("number of chunks: {}".format(n))
-
-        if APPLY:
-
-            for i in range(n):
-                pool.apply_async(scan_several_BPMs_withsystematicerrors,
-                                 (madTwiss_intersected, madElements,
-                                  phases_meas, phases_err,
-                                  plane, range_of_bpms, debugfile,
-                                  i * chunksize, (i + 1) * chunksize, BBA_combo, ABB_combo, BAB_combo,
-                                  tune, mdltune),
-                                 callback=collectblock)
-
-            # calculate the last, incomplete chunk
-            pool.apply_async(scan_several_BPMs_withsystematicerrors,
-                             (madTwiss_intersected, madElements,
-                              phases_meas, phases_err,
-                              plane, range_of_bpms, debugfile,
-                              n * chunksize, len(phase["MEAS"].index), BBA_combo, ABB_combo, BAB_combo,
-                              tune, mdltune),
-                             callback=collectblock)
-
-            # wait for all the threads to finish and join the results
-            pool.close()
-            pool.join()
-        else:
-            pool.map(scan_several_BPMs_withsystematicerrors,
-                     (madTwiss_intersected, madElements,
-                      phases_meas, phases_err,
-                      plane, range_of_bpms, debugfile,
-                      i * chunksize, (i + 1) * chunksize, BBA_combo, ABB_combo, BAB_combo,
-                      tune, mdltune)
-                    )
-    else:  # not parallel
-        for i in range(0, len(phases_meas.index)):
-            row = scan_one_BPM_withsystematicerrors(madTwiss_intersected, madElements,
-                                                    phases_meas, phases_err,
-                                                    plane, range_of_bpms,
-                                                    debugfile, i,
-                                                    BBA_combo, ABB_combo, BAB_combo,
-                                                    tune, mdltune)
-            collect(row)
+    for i in range(0, len(phases_meas.index)):
+        row = scan_one_BPM_withsystematicerrors(madTwiss_intersected, madElements,
+                                                phases_meas, phases_err,
+                                                plane, range_of_bpms,
+                                                debugfile, i,
+                                                BBA_combo, ABB_combo, BAB_combo,
+                                                tune, mdltune)
+        collect(row)
 
     beta_df["BET" + plane] = result["beti"]
     beta_df["STATBET" + plane] = result["betstat"]
@@ -1037,6 +922,65 @@ def get_combo(ix, iy, sin_squared_elements, outerElmts, outerElmtsBet, outerElK2
         .5 * (bet_sin_iy * denomalf + bet_sin_iy / betmdl1 * (cot_meas[ix] - cot_meas[iy])))
 
     return beta_i, alfa_i, betaline, alfaline
+
+def _assign_uncertainties(twiss_full, errordefspath):
+    '''
+    Adds uncertainty information to twiss_full.
+
+    :Sources of Errors:
+        dK1:    quadrupolar field errors
+        dS:     quadrupole longitudinal misalignments
+        dX:     sextupole transverse misalignments
+        BPMdS:  BPM longitudinal misalignments
+    '''
+
+    LOGGER.debug("Start creating uncertainty information")
+
+    errdefs = tfs_pandas.read_tfs(errordefspath)
+
+    # create new columns
+    twiss_full = twiss_full.assign(UNC=False, dK1=0, KdS=0, mKdS=0, dX=0, BPMdS=0)
+
+    # loop over uncertainty definitions, fill the respective columns, set UNC to true
+    for indx in errdefs.index:
+        patt = errdefs.loc[indx, "PATTERN"]
+        if patt.startswith("key:"):
+            LOGGER.debug("creating uncertainty information for {:s}".format(patt))
+            mask = patt.split(":")[1]
+        else:
+            reg = re.compile(patt)
+            LOGGER.debug("creating uncertainty information for RegEx {:s}".format(patt))
+            mask = twiss_full.index.str.contains(reg)  # pandas chose to call it 'contains'. 
+
+        twiss_full.loc[mask, "dK1"] = (errdefs.loc[indx, "dK1"] * twiss_full.loc[mask, "K1L"]) **2
+        twiss_full.loc[mask, "dX"] = errdefs.loc[indx, "dX"]*2
+        if errdefs.loc[indx, "MAINFIELD"] == "BPM":
+            twiss_full.loc[mask, "BPMdS"] = errdefs.loc[indx, "dS"]**2
+        else:
+            twiss_full.loc[mask, "KdS"] = (errdefs.loc[indx, "dS"] * twiss_full.loc[mask, "K1L"]) **2
+        twiss_full.loc[mask, "UNC"] = True
+
+    # in case of quadrupole longitudinal misalignments, the element (DRIFT) in front of the
+    # misaligned quadrupole will be used for the thin lens approximation of the misalignment
+    twiss_full["mKdS"] = np.roll(twiss_full.loc[:]["KdS"], 1)
+    twiss_full.loc[:, "UNC"] = np.logical_or(abs(np.roll(twiss_full.loc[:, "dK1"], -1)) > 1.0e-12,
+                                             twiss_full.loc[:, "UNC"])
+
+    LOGGER.debug("DONE creating uncertainty information")
+    return twiss_full[twiss_full["UNC"]]
+
+def _add_header(df, header_dict, error_method, range_of_bpms):
+    '''
+    Adds common header elements to the headers of df
+    df is an out parameter
+    '''
+    for key, value in header_dict.iteritems():
+        df.headers[key] = value
+    df.headers['BetaAlgorithmVersion'] = __version__
+    df.headers['RCond'] = RCOND
+    df.headers['ErrorsFrom'] = ID_TO_METHOD[error_method]
+    df.headers['RangeOfBPMs'] = "Adjacent" if error_method == METH_3BPM else range_of_bpms
+
 
 #---------------------------------------------------------------------------------------------------
 #--- Helper / Debug Functions
