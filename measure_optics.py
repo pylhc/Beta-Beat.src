@@ -79,14 +79,14 @@ def measure_optics(input_files, measure_input):
     print_time("AFTER_PHASE", time() - __getllm_starttime)
     #-------- START coupling.
     try:
-        tune_d = coupling.calculate_coupling(measure_input, input_files, phase_d_bk, tune._TuneData(tune_dict), header_dict)
+        tune_d = coupling.calculate_coupling(measure_input, _TwissData(input_files), phase_d_bk, tune._TuneData(tune_dict), header_dict)
     except:
         _tb_()
     if measure_input.only_coupling:
         LOGGER.info("GetLLM was only calculating coupling. Skipping the rest and returning ...")
         return
     try:
-        beta_d, beta_driven_x, beta_free_x = beta.calculate_beta_from_phase(measure_input, input_files, tune._TuneData(tune_dict), phase_d_bk, header_dict)
+        beta_d, beta_driven_x, beta_free_x = beta.calculate_beta_from_phase(measure_input, tune._TuneData(tune_dict), phase_d_bk, header_dict)
     except:
         _tb_()
     if measure_input.three_bpm_method:
@@ -275,6 +275,28 @@ class InputFiles(dict):
             data in numpy array corresponding to column in original files
         """
         return frame.loc[:, self.get_columns(frame, column)].values
+
+class _TwissData(object):
+    def __init__(self, inputfiles):
+        self.zero_dpp_x = inputfiles._get_zero_dpp_frames("X")  # List of src files which have dpp==0.0
+        self.zero_dpp_y = inputfiles._get_zero_dpp_frames("Y")  # List of src files which have dpp!=0.0
+        self.non_zero_dpp_x = inputfiles._get_all_frames("X")  # List of src files which have dpp==0.0
+        self.non_zero_dpp_y = inputfiles._get_all_frames("Y")  # List of src files which have dpp!=0.0
+
+    def has_zero_dpp_x(self):
+        return 0 != len(self.zero_dpp_x)
+
+    def has_non_zero_dpp_x(self):
+        return 0 != len(self.non_zero_dpp_x)
+
+    def has_zero_dpp_y(self):
+        return 0 != len(self.zero_dpp_y)
+
+    def has_non_zero_dpp_y(self):
+        return 0 != len(self.non_zero_dpp_y)
+
+    def has_no_input_files(self):
+        return not self.has_zero_dpp_x() and not self.has_zero_dpp_y() and not self.has_non_zero_dpp_x() and not self.has_non_zero_dpp_y()
 
 
 def _copy_calibration_files(outputdir, calibrationdir):
