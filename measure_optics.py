@@ -86,7 +86,7 @@ def measure_optics(input_files, measure_input):
         LOGGER.info("GetLLM was only calculating coupling. Skipping the rest and returning ...")
         return
     try:
-        beta_d, beta_driven_x, beta_free_x = beta.calculate_beta_from_phase(measure_input, tune._TuneData(tune_dict), phase_d_bk, header_dict)
+        beta_df_x, driven_df_x, beta_df_y, driven_df_y = beta.calculate_beta_from_phase(measure_input, tune_dict, phase_d_bk, header_dict)
     except:
         _tb_()
     if measure_input.three_bpm_method:
