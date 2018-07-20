@@ -8,30 +8,31 @@ Created on 18/07/18
 It computes betatron phase advances and provides structures to store them.
 """
 import sys
+from os.path import join
 import numpy as np
 import pandas as pd
 import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
-from utils import logging_tools, stats
+from utils import logging_tools, stats, tfs_pandas
 
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
 PLANES = ("X", "Y")
 
 
-def calculate_phase(measure_input, input_files, tune_d, header_dict):
+def calculate_phase(measure_input, input_files, tunes, header_dict):
     """
-    Calculates phase and fills the following TfsFiles:
-        ``getphasex.out        getphasex_free.out        getphasex_free2.out``
-        ``getphasey.out        getphasey_free.out        getphasey_free2.out``
+    Calculates phase advances and fills the following files:
+        getphase(tot)(x/y)(_free).out
 
     Parameters:
-        measure_input: the GetLLM_Data object including the accelerator class and the GetLLM options.
-        input_files: includes measurement files and tunes (natural and driven if applicable, both measured values)
+        measure_input: the input object including settings and the accelerator class
+        input_files: includes measurement tfs_pandas
+        tunes: TunesDict object containing measured and model tunes
+        header_dict: part of the header common for all output files
 
     Returns:
-        an instance of _PhaseData filled with the results of get_phases
-        an instance of _TuneData tune_d.qa / tune_d.qaf for a in [1,2] are the vertical and horizontal natural and driven tunes
+        an instance of PhaseDict filled with the results of get_phases
     """
     phase_d = PhaseDict()
     accelerator = measure_input.accelerator
@@ -44,23 +45,23 @@ def calculate_phase(measure_input, input_files, tune_d, header_dict):
     else:
         model_of_measurement = accelerator.get_driven_tfs()
     LOGGER.info('Calculating phase')
-    LOGGER.info("using all phase information........[{:3s}]".format("YES" if measure_input.union else "NO"))
     for plane in PLANES:
-        LOGGER.debug("tune of measurement files = {}".format(tune_d[plane]["Q"]))
-        phase_d[plane]["F"] = get_phases(measure_input, input_files, model_of_measurement, plane)
+        LOGGER.debug("tune of measurement files = {}".format(tunes[plane]["Q"]))
+        phase_d[plane]["F"], output_dfs = get_phases(measure_input, input_files, model_of_measurement, plane)
+        headers = _get_headers(header_dict, tunes, plane)
+        for head, df in zip(headers, output_dfs):
+            tfs_pandas.write_tfs(join(measure_input.outputdir, head['FILENAME']), df, head)
         if measure_input.accelerator.excitation != AccExcitationMode.FREE:
             phase_d[plane]["D"] = phase_d[plane]["F"]
-            phase_d[plane]["ac2bpm"] = compensate_excitation.phase_ac2bpm(phase_d[plane]["F"]["MODEL"], tune_d[plane]["Q"], tune_d[plane]["QF"], plane, measure_input.accelerator)
-            phase_d[plane]["F"] = get_phases(measure_input, input_files, model_free, plane, (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]))
+            phase_d[plane]["ac2bpm"] = compensate_excitation.phase_ac2bpm(
+                phase_d[plane]["F"]["MODEL"], tunes[plane]["Q"], tunes[plane]["QF"], plane,
+                measure_input.accelerator)
+            phase_d[plane]["F"], output_dfs = get_phases(measure_input, input_files, model_free,
+                        plane, (tunes[plane]["Q"], tunes[plane]["QF"], phase_d[plane]["ac2bpm"]))
+            headers = _get_headers(header_dict, tunes, plane, free=True)
+            for head, df in zip(headers, output_dfs):
+                tfs_pandas.write_tfs(join(measure_input.outputdir, head['FILENAME']), df, head)
             # phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"], tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
-        """    
-        _get_header(header_dict, tune_d, filename)
-        write_phase_file("getphasex_free.out", plane, phase_d[plane]["F"], model_free)
-        write_phasetot_file("getphasetotx_free.out", plane, phase_d[plane]["F"], model_free)
-        if measure_input.accelerator.excitation != AccExcitationMode.FREE:
-            write_phase_file("getphasex.out", plane, phase_d[plane]["D"], model_free)
-            write_phasetot_file("getphasetotx.out", plane, phase_d[plane]["D"], model_free)
-        """
     return phase_d
 
 
@@ -73,7 +74,7 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
         input_files: InputFiles object
         model: model tfs_panda to be used
         plane: "X" or "Y"
-        compensate: (Qd,Q,ac2bpm object)
+        compensate: (driven_tune,free_tune,ac2bpm object)
         no_errors: if True measured errors shall not be propagated (only their spread)
 
     Returns:
@@ -82,18 +83,19 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
             "ERRMEAS" errors of measured phase advances
             "MODEL" model phase advances
 
-        +------++--------+--------+--------+--------+
-        |      ||  BPM1  |  BPM2  |  BPM3  |  BPM4  |
-        +======++========+========+========+========+
-        | BPM1 ||   0    | phi_12 | phi_13 | phi_14 |
-        +------++--------+--------+--------+--------+
-        | BPM2 || phi_21 |    0   | phi_23 | phi_24 |
-        +------++--------+--------+--------+--------+
-        | BPM3 || phi_31 | phi_32 |   0    | phi_34 |
-        +------++--------+--------+--------+--------+
+            +------++--------+--------+--------+--------+
+            |      ||  BPM1  |  BPM2  |  BPM3  |  BPM4  |
+            +======++========+========+========+========+
+            | BPM1 ||   0    | phi_12 | phi_13 | phi_14 |
+            +------++--------+--------+--------+--------+
+            | BPM2 || phi_21 |    0   | phi_23 | phi_24 |
+            +------++--------+--------+--------+--------+
+            | BPM3 || phi_31 | phi_32 |   0    | phi_34 |
+            +------++--------+--------+--------+--------+
 
-        The phase advance between BPM_i and BPM_j can be obtained via:
-            phase_advances["MEAS"].loc[BPMi,BPMj]
+            The phase advance between BPM_i and BPM_j can be obtained via:
+                phase_advances["MEAS"].loc[BPMi,BPMj]
+        list of output dataframes(for files)
     """
     phase_frame = pd.DataFrame(model).loc[:, ['S', 'MU' + plane]]
     how = 'outer' if meas_input.union else 'inner'
@@ -107,19 +109,19 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
     phases_errors = input_files.get_data(phase_frame, 'ERR_MU' + plane)
 
     if compensate is not None:
-        (Qd, Q, ac2bpmac) = compensate
+        (driven_tune, free_tune, ac2bpmac) = compensate
         k_bpmac = ac2bpmac[2]
-        phase_corr = ac2bpmac[1] - phases_meas[k_bpmac] + (0.5 * Qd)
+        phase_corr = ac2bpmac[1] - phases_meas[k_bpmac] + (0.5 * driven_tune)
         phases_meas = phases_meas + phase_corr[np.newaxis, :]
-        r = np.sin(np.pi * (Qd - Q)) / np.sin(np.pi * ((Qd + Q) % 1.0))
+        r = np.sin(np.pi * (driven_tune - free_tune)) / np.sin(np.pi * ((driven_tune + free_tune) % 1.0))
         LOGGER.debug(plane + " compensation lambda = {}".format(r))
         LOGGER.debug(plane + " k_bpmac = {}".format(k_bpmac))
         LOGGER.debug(plane + " psid_ac2bpmac = {}".format(ac2bpmac[1]))
         LOGGER.debug(plane + " bpmac = {}".format(ac2bpmac[0]))
-        phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] - Qd
+        phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] - driven_tune
         psi = (np.arctan((1 - r) / (1 + r) * np.tan(2 * np.pi * phases_meas)) / (2 * np.pi)) % 0.5
         phases_meas = np.where(phases_meas % 1.0 > 0.5, psi + .5, psi)
-        phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] + Q
+        phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] + free_tune
 
     if phases_meas.ndim < 2:
         phase_advances["MEAS"] = _get_square_data_frame((phases_meas[np.newaxis, :] - phases_meas[:, np.newaxis]) % 1.0, phase_frame.index)
@@ -141,41 +143,44 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
                                                  axis=2) % 1.0, phase_frame.index)
     phase_advances["ERRMEAS"] = _get_square_data_frame(stats.circular_error(phases_3d, period=1, errors=errors_3d,
                                                      axis=2), phase_frame.index)
-    return phase_advances
+    return phase_advances, [create_output_df(phase_advances, phase_frame, plane), create_output_df(phase_advances, phase_frame, plane, tot=True)]
 
-"""
-def write_phase_file(plane, phase_advances, model):
-    plane_mu = "MU" + plane
+
+def create_output_df(phase_advances, model, plane, tot=False):
     meas = phase_advances["MEAS"]
     mod = phase_advances["MODEL"]
     err = phase_advances["ERRMEAS"]
-    nfiles = phase_advances["NFILES"]
+    output_data = model.loc[:, ["S", "MU"+plane]].iloc[:-1, :]
+    output_data.rename(columns={'MU' + plane: 'MU' + plane + 'MDL'}, inplace=True)
     if tot:
-        (["NAME", "NAME2", "S", "S1", "PHASE" + plane, "STDPH" + plane, "PH{}MDL".format(plane),
-          "MU{}MDL".format(plane)])
-        (
-        [meas.index[i], meas.index[0], model.loc[meas.index[i], "S"], model.loc[meas.index[0], "S"],
-         meas.loc[meas.index[0]][meas.index[i]], err.loc[meas.index[0]][meas.index[i]],
-         mod.loc[meas.index[0]][meas.index[i]], model.loc[meas.index[i], plane_mu]]
+        output_data["NAME"] = model.index[1:].values
+        output_data = output_data.assign(S2=model.at[model.index[0], "S"], NAME2=model.index[0])
+        output_data["PHASE" + plane] = meas.values[0, 1:]
+        output_data["STDPH" + plane] = err.values[0, 1:]
+        output_data["PH{}MDL".format(plane)] = mod.values[0, 1:]
     else:
-        (["NAME", "NAME2", "S", "S1", "PHASE" + plane, "STDPH" + plane, "PH{}MDL".format(plane),
-        "MU{}MDL".format(plane), "COUNT"])
-        ([meas.index[i], meas.index[i + 1], model.loc[meas.index[i], "S"],
-          model.loc[meas.index[i + 1], "S"], meas[meas.index[i + 1]][meas.index[i]],
-          err[meas.index[i + 1]][meas.index[i]], mod[meas.index[i + 1]][meas.index[i]],
-          model.loc[meas.index[i], plane_mu], nf])
+        output_data["NAME"] = output_data.index
+        output_data = output_data.assign(S2=model.loc[:, "S"].values[1:], NAME2=model.index[1:].values)
+        output_data["PHASE" + plane] = np.diag(meas.values, k=1)
+        output_data["STDPH" + plane] = np.diag(err.values, k=1)
+        output_data["PH{}MDL".format(plane)] = np.diag(mod.values, k=1)
+    dif = (output_data.loc[:, "PHASE" + plane].values -
+           output_data.loc[:, "PH{}MDL".format(plane)].values) % 1.0
+    output_data["DELTAPHASE" + plane] = np.where(dif > 0.5, dif - 1.0, dif)
+    return output_data
 
 
-"""
-def _get_header(header_dict, tunes, filename, free=False):
+def _get_headers(header_dict, tunes, plane, free=False):
     header = header_dict.copy()
     header['Q1'] = tunes["X"]["QF"] if free else tunes["X"]["Q"]
     header['Q2'] = tunes["Y"]["QF"] if free else tunes["Y"]["Q"]
-    header['FILENAME'] = filename
-    return header
+    header_tot = header.copy()
+    header['FILENAME'] = "getphase" + plane.lower() + free * "_free" + ".out"
+    header_tot['FILENAME'] = "getphasetot" + plane.lower() + free * "_free" + ".out"
+    return [header, header_tot]
 
 
-def _get_square_data_frame(data,index):
+def _get_square_data_frame(data, index):
     return pd.DataFrame(data=data, index=index, columns=index)
 
 
@@ -199,6 +204,8 @@ class _PhaseData(object):
         self.phase_advances_y = phase_dict["Y"]["D"]
         self.phase_advances_free_y = phase_dict["Y"]["F"]
         self.phase_advances_free2_y = phase_dict["Y"]["F2"]
+
+
 """
 def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
     plane_mu = "MU" + plane
