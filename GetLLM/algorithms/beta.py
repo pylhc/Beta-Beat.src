@@ -147,19 +147,17 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
     # start the calculation per plane --------------------------------------------------------------
 
     #------------- HORIZONTAL
-    if phase_d.phase_advances_free_x:
+    if phase_d["X"]["F"]:
         beta_df_x, driven_beta_df_x = beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
-            getllm_d.range_of_bpms, phase_d.phase_advances_x,
-            phase_d.phase_advances_free_x, error_method, tune_d["X"], "X"
+            getllm_d.range_of_bpms, phase_d, error_method, tune_d, "X"
         )
 
     #------------- VERTICAL
-    if phase_d.phase_advances_free_y:
+    if phase_d["Y"]["F"]:
         beta_df_y, driven_beta_df_y = beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
-            getllm_d.range_of_bpms, phase_d.phase_advances_y,
-            phase_d.phase_advances_free_y, error_method, tune_d["Y"], "Y"
+            getllm_d.range_of_bpms, phase_d, error_method, tune_d, "Y"
         )
 
     for df in [beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y]:
@@ -169,15 +167,17 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
 
 
 def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements, range_of_bpms,
-                              phase_adv, phase_adv_free, error_method, tunes, plane):
+                              phases, error_method, tunes, plane):
     """
     This function calculates and outputs the beta function measurement for the given plane.
     """
     plane_for_file = plane.lower()
-    Q = tunes["Q"]
-    Qf = tunes["QF"]
-    Qmdl = tunes["QM"]
-    Qmdlf = tunes["QFM"]
+    Q = tunes[plane]["Q"]
+    Qf = tunes[plane]["QF"]
+    Qmdl = tunes[plane]["QM"]
+    Qmdlf = tunes[plane]["QFM"]
+    phase_adv_free = phases[plane]["F"]
+    phase_adv_driven = phases[plane]["D"]
     LOGGER.info("Beta {} free calculation".format(plane))
 
     # if DEBUG create a binary debugfile where the algorithm is writing matrices, beta-values,
@@ -197,8 +197,8 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements,
 
     driven_beta_df = None
 
-    if phase_adv is not None:
-        driven_model = driven_model.loc[phase_adv.index]
+    if phase_adv_driven is not None:
+        driven_model = driven_model.loc[phase_adv_driven["MEAS"].index]
         LOGGER.info("Beta {} driven calculation".format(plane))
         if DEBUG:
             debugfile = DBG.create_debugfile(
@@ -208,7 +208,7 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements,
 
         driven_beta_df = beta_from_phase(
             driven_model, unc_elements,
-            phase_adv, plane, range_of_bpms, debugfile, error_method, Q, Qmdl%1.0
+            phase_adv_driven, plane, range_of_bpms, debugfile, error_method, Q, Qmdl%1.0
         )
 
         if DEBUG:
