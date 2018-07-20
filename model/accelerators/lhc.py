@@ -795,6 +795,13 @@ class Lhc(Accelerator):
                 model_k = model_k + 1
         return None
 
+    def get_synch_BPMs(self, index):
+        # expect passing index.values
+        if self.get_beam() == 1:
+            return [i in index for i in self.model_tfs.loc["BPMSW.33L2.B1":].index]
+        elif self.get_beam() == 2:
+            return [i in index for i in self.model_tfs.loc["BPMSW.33R8.B2":].index]
+
     def get_model_tfs(self):
         return self._model
 
