@@ -10,7 +10,6 @@ It computes betatron tunes and provides structures to store them.
 import numpy as np
 from model.accelerators.accelerator import AccExcitationMode
 from utils import stats
-
 PLANES = ('X', 'Y')
 
 

@@ -79,7 +79,7 @@ def measure_optics(input_files, measure_input):
     print_time("AFTER_PHASE", time() - __getllm_starttime)
     #-------- START coupling.
     try:
-        tune_d = coupling.calculate_coupling(measure_input, _TwissData(input_files), phase._PhaseData(phase_dict), tune._TuneData(tune_dict), header_dict)
+        coupling.calculate_coupling(measure_input, _TwissData(input_files), phase._PhaseData(phase_dict), tune._TuneData(tune_dict), header_dict)
     except:
         _tb_()
     if measure_input.only_coupling:
@@ -99,7 +99,7 @@ def measure_optics(input_files, measure_input):
     # except:
     #     _tb_()
     try:
-        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune._TuneData(tune_dict), beta_d)
+        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune._TuneData(tune_dict), phase._PhaseData(phase_dict), {"X": driven_df_x, "Y": driven_df_y}, header_dict)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
@@ -117,7 +117,7 @@ def measure_optics(input_files, measure_input):
     except:
         _tb_()
     try:
-        dispersion.calculate_orbit_and_dispersion(input_files, tune._TuneData(tune_dict), mad_twiss, header_dict, measure_input.orbit_unit, measure_input.max_closed_orbit, beta_driven_x, measure_input.outputdir)
+        dispersion.calculate_orbit_and_dispersion(input_files, tune._TuneData(tune_dict), mad_twiss, header_dict, measure_input.orbit_unit, measure_input.max_closed_orbit, driven_df_x, measure_input.outputdir)
     except:
         _tb_()
     #------ Start get Q,JX,delta
@@ -127,7 +127,7 @@ def measure_optics(input_files, measure_input):
         _tb_()
     if measure_input.nonlinear:
         try:
-            resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase._PhaseData(phase_dict), tune_d, inv_x, inv_y)
+            resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase._PhaseData(phase_dict), tune_dict, inv_x, inv_y)
         except:
             _tb_()
         # TODO: what does this?

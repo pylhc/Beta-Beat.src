@@ -17,7 +17,7 @@ from model.accelerators.accelerator import AccExcitationMode
 # TODO all action scaling should be done with arc BPMs
 
 
-def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, header_dict):
+def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, beta_phase, header_dict):
     """
     Calculates beta and fills the following TfsFiles:
         getampbetax.out        getampbetax_free.out        getampbetax_free2.out
@@ -45,7 +45,7 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, h
         # column_names = ["NAME", "S", "COUNT", "BET" + plane, "BET" + plane + "STD", "BET" + plane + "MDL", "MU" + plane + "MDL", "BET" + plane + "RES", "BET" + plane + "STDRES"]
         beta_amp = beta_from_amplitude(mad_ac, input_files[plane], plane)
         beta_amp['DPP'] = 0
-        x_ratio = np.mean(beta_phase / beta_amp)  # over good arc bpms : both betas positive abs(beta_phase / beta_amp)<100
+        x_ratio = np.mean(beta_phase[plane] / beta_amp)  # over good arc bpms : both betas positive abs(beta_phase / beta_amp)<100
         beta_amp['BET' + plane + 'RES'] = beta_amp.loc[:, 'BET' + plane] * x_ratio
         beta_amp['BET' + plane + 'STDRES'] = beta_amp.loc[:, 'BET' + plane + 'STD'] * x_ratio
         header_d = _get_header(header_dict, tune_d, np.std(beta_amp.loc[:, 'DELTABET' + plane].values), x_ratio, 'getampbeta' + plane.lower() + '.out', free=False)
@@ -53,7 +53,7 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, h
         # -- ac to free amp beta
         if measure_input.accelerator.excitation is not AccExcitationMode.FREE:
             beta_amp_f = get_free_beta_from_amp_eq(measure_input, mad_ac, input_files._get_zero_dpp_frames(plane), (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]), 'H',  arcbpms)
-            x_ratio_f = np.mean(beta_phase / beta_amp)  # over good arc bpms : both betas positive, 0.1 < abs(beta_phase / beta_amp)<10
+            x_ratio_f = np.mean(beta_phase[plane] / beta_amp)  # over good arc bpms : both betas positive, 0.1 < abs(beta_phase / beta_amp)<10
             header_f = _get_header(header_dict, tune_d, np.std(beta_amp_f.loc[:, 'DELTABET' + plane].values), x_ratio_f, 'getampbeta' + plane.lower() + '_free.out', free=True)
 
             beta_amp_f['BET' + plane + 'RES'] = beta_amp_f.loc[:, 'BET' + plane] * x_ratio_f
@@ -84,7 +84,7 @@ def beta_from_amplitude(model, list_of_df, plane):
     df_amp_beta = df_amp_beta.assign(AMPX=0.0, AMPY=0.0, COUNT=len(list_of_df))
     measured_amps_columns = []
     for i, df in enumerate(list_of_df):
-        df_amp_beta = pd.merge(df_amp_beta, df.loc[:, 'AMP' + plane], how='inner', left_index=True,
+        df_amp_beta = pd.merge(df_amp_beta, df.loc[:, ['AMP' + plane]], how='inner', left_index=True,
                                right_index=True, suffixes=('', str(i + 1)))
         measured_amps_columns.append('AMP' + plane + str(i + 1))
     df_amp_beta['AMP' + plane] = np.mean(df_amp_beta.loc[:, measured_amps_columns].values, axis=1)
@@ -93,11 +93,11 @@ def beta_from_amplitude(model, list_of_df, plane):
                    df_amp_beta.loc[:, 'BET' + plane + 'MDL'].values)
     # amplitudes are first squared then averaged
     kick2 = np.mean(np.square(df_amp_beta.loc[:, measured_amps_columns].values) /
-                    df_amp_beta.loc[:, 'BET' + plane + 'MDL'].values, axis=0)
+                    df_amp_beta.loc[:, 'BET' + plane + 'MDL'].values[:, np.newaxis], axis=0)
 
     df_amp_beta['BET' + plane] = np.square(df_amp_beta.loc[:, 'AMP' + plane].values) / kick
     df_amp_beta['BET' + plane + 'STD'] = np.std((np.square(
-        df_amp_beta.loc[:, measured_amps_columns].values).T / kick2).T, axis=1)
+        df_amp_beta.loc[:, measured_amps_columns].values).T / kick2[:,np.newaxis]).T, axis=1)
     df_amp_beta['DELTABET' + plane] = (df_amp_beta.loc[:, 'BET' + plane] -
                                        df_amp_beta.loc[:, 'BET' + plane + 'MDL']) /\
                                       df_amp_beta.loc[:, 'BET' + plane + 'MDL']

@@ -102,7 +102,7 @@ def _calculate_normalised_dispersion(model, input_files, beta, header, unit, cut
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MUX', 'DPX', 'DX', 'X', 'BETX']]
     df_orbit['NDXMDL'] = df_orbit.loc[:, 'DX'] / np.sqrt(df_orbit.loc[:, 'BETX'])
     df_orbit.rename(columns={'MUX': 'MUXMDL', 'DPX': 'DPXMDL', 'DX': 'DXMDL', 'X': 'XMDL'}, inplace=True)
-    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, ['CO']))
+    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, 'CO'))
     dpps = input_files.get_dpps("X")
     df_orbit = pd.merge(df_orbit, input_files.get_joined_frame("X", ['CO', 'CORMS', 'AMPX']),
                         how='inner', left_index=True, right_index=True)

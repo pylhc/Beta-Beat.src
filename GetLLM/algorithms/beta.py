@@ -253,7 +253,7 @@ def beta_from_phase(madTwiss, madElements, phase, plane,
         beta_df = _scan_all_BPMs_3bpm(phase, plane, debugfile, errors_method, tune, mdltune,
                                    beta_df)
 
-    print beta_df[["BET" + plane, "NCOMB", "BBEAT" + plane]]
+    #print beta_df[["BET" + plane, "NCOMB", "BBEAT" + plane]]
     rmsbb = rms(beta_df["BBEAT" + plane]) * 100
     et = time.time() - st
     beta_df.headers["RMS_BETABEAT"] = "{:.3f} %".format(rmsbb)
