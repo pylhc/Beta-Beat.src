@@ -101,9 +101,13 @@ def weighted_mean(data, errors=None, axis=None):
     weights = weights_from_errors(errors)
     return np.average(data, axis=axis, weights=weights)
 
+
 def _get_shape(orig_shape, axis):
     new_shape = np.array(orig_shape)
-    new_shape[np.array(axis)] = 1
+    if axis is None:
+        new_shape[:] = 1
+    else:
+        new_shape[np.array(axis)] = 1
     return tuple(new_shape)
 
 

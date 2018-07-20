@@ -71,7 +71,7 @@ def measure_optics(input_files, measure_input):
         raise CriticalGetLLMError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
 
     try:
-        phase_d_bk = phase.calculate_phase(measure_input, input_files, tune_dict, header_dict)
+        phase_dict = phase.calculate_phase(measure_input, input_files, tune_dict, header_dict)
     except:
         _tb_()
         # if phase crashed, none of the subsequent algorithms can run. Thus
@@ -79,7 +79,7 @@ def measure_optics(input_files, measure_input):
     print_time("AFTER_PHASE", time() - __getllm_starttime)
     #-------- START coupling.
     try:
-        tune_d = coupling.calculate_coupling(measure_input, _TwissData(input_files), phase_d_bk, tune._TuneData(tune_dict), header_dict)
+        tune_d = coupling.calculate_coupling(measure_input, _TwissData(input_files), phase._PhaseData(phase_dict), tune._TuneData(tune_dict), header_dict)
     except:
         _tb_()
     if measure_input.only_coupling:
@@ -109,7 +109,10 @@ def measure_optics(input_files, measure_input):
     else:
         mad_ac = mad_twiss
     try:
-        interaction_point.betastar_from_phase(measure_input.accelerator, phase_d_bk, mad_twiss)
+        interaction_point.write_betastar_from_phase(
+            interaction_point.betastar_from_phase(
+                measure_input.accelerator, phase_dict, mad_twiss
+            ), measure_input.outputdir, header_dict)
     except:
         _tb_()
     try:
@@ -118,12 +121,12 @@ def measure_optics(input_files, measure_input):
         _tb_()
     #------ Start get Q,JX,delta
     try:
-        inv_x, inv_y = kick.calculate_kick(mad_twiss, mad_ac, measure_input, input_files, beta_d, phase_d_bk, measure_input.outputdir, header_dict)
+        inv_x, inv_y = kick.calculate_kick(mad_twiss, mad_ac, measure_input, input_files, beta_d, phase._PhaseData(phase_dict), measure_input.outputdir, header_dict)
     except:
         _tb_()
     if measure_input.nonlinear:
         try:
-            resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase_d_bk, tune_d, inv_x, inv_y)
+            resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase._PhaseData(phase_dict), tune_d, inv_x, inv_y)
         except:
             _tb_()
         # TODO: what does this?

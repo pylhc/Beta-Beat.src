@@ -50,7 +50,7 @@ def calculate_phase(measure_input, input_files, tune_d, header_dict):
         phase_d[plane]["F"] = get_phases(measure_input, input_files, model_of_measurement, plane)
         if measure_input.accelerator.excitation != AccExcitationMode.FREE:
             phase_d[plane]["D"] = phase_d[plane]["F"]
-            phase_d[plane]["ac2bpm"] = compensate_excitation.GetACPhase_AC2BPMAC(phase_d[plane]["F"]["MODEL"], tune_d[plane]["Q"], tune_d[plane]["QF"], plane, measure_input.accelerator)
+            phase_d[plane]["ac2bpm"] = compensate_excitation.phase_ac2bpm(phase_d[plane]["F"]["MODEL"], tune_d[plane]["Q"], tune_d[plane]["QF"], plane, measure_input.accelerator)
             phase_d[plane]["F"] = get_phases(measure_input, input_files, model_free, plane, (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]))
             # phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"], tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
         """    
@@ -61,10 +61,10 @@ def calculate_phase(measure_input, input_files, tune_d, header_dict):
             write_phase_file("getphasex.out", plane, phase_d[plane]["D"], model_free)
             write_phasetot_file("getphasetotx.out", plane, phase_d[plane]["D"], model_free)
         """
-    return _PhaseData(phase_d)
+    return phase_d
 
 
-def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors=False):
+def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors=True):
     """
     Computes phase advances among all BPMs.
 
@@ -117,8 +117,8 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
         LOGGER.debug(plane + " psid_ac2bpmac = {}".format(ac2bpmac[1]))
         LOGGER.debug(plane + " bpmac = {}".format(ac2bpmac[0]))
         phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] - Qd
-        Psi = (np.arctan((1 - r) / (1 + r) * np.tan(2 * np.pi * phases_meas)) / (2 * np.pi)) % 0.5
-        phases_meas = np.where(phases_meas % 1.0 > 0.5, Psi + .5, Psi)
+        psi = (np.arctan((1 - r) / (1 + r) * np.tan(2 * np.pi * phases_meas)) / (2 * np.pi)) % 0.5
+        phases_meas = np.where(phases_meas % 1.0 > 0.5, psi + .5, psi)
         phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] + Q
 
     if phases_meas.ndim < 2:
@@ -189,7 +189,6 @@ class PhaseDict(dict):
 
 
 class _PhaseData(object):
-
     def __init__(self, phase_dict):
         self.ac2bpmac_x = phase_dict["X"]["ac2bpm"]
         self.ac2bpmac_y = phase_dict["Y"]["ac2bpm"]
@@ -200,7 +199,6 @@ class _PhaseData(object):
         self.phase_advances_y = phase_dict["Y"]["D"]
         self.phase_advances_free_y = phase_dict["Y"]["F"]
         self.phase_advances_free2_y = phase_dict["Y"]["F2"]
-
 """
 def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
     plane_mu = "MU" + plane
@@ -217,25 +215,20 @@ def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
         try:
             bpm_phase_advance = meas.loc[minmu1, minmu2]
             model_value = elements.loc[elem2, plane_mu] - elements.loc[elem1, plane_mu]
-
             if (elements.loc[elem1, "S"] - elements.loc[elem2, "S"]) * bd > 0.0:
                 bpm_phase_advance += plane_tune
                 model_value += plane_tune
             bpm_err = err.loc[minmu1, minmu2]
             phase_to_first = -mus1.loc[minmu1]
             phase_to_second = -mus2.loc[minmu2]
-
             ph_result = ((bpm_phase_advance + phase_to_first + phase_to_second) * bd)
             model_value = (model_value * bd)
-
             resultdeg = ph_result % .5 * 360
             if resultdeg > 90:
                 resultdeg -= 180
-
             modeldeg = model_value % .5 * 360
             if modeldeg > 90:
                 modeldeg -= 180
-
             model_desc = [elem1 + "__to__" + elem2 + "___MODL",
                           "{:8.4f}     {:6s} = {:6.2f} deg".format(model_value % 1, "",
                                                                    modeldeg)]
@@ -245,10 +238,8 @@ def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
                                bpm_phase_advance,
                                phase_to_first + phase_to_second,
                                minmu1, minmu2) ]
-
             tfs_file.add_string_descriptor(*model_desc)
             tfs_file.add_string_descriptor(*result_desc)
-
             LOGGER.debug("")
             LOGGER.debug("::" + " : ".join(model_desc))
             LOGGER.debug("::" + " : ".join(result_desc))
