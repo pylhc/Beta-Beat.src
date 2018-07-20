@@ -62,7 +62,7 @@ METH_IND        = -1
 METH_3BPM       = 0
 METH_A_NBPM     = 1
 
-def rms(arr):
+def rms(arr):  # TODO take this from the stats module
     return np.sqrt(np.mean(np.square(arr)))
 
 ID_TO_METHOD = {
@@ -202,12 +202,11 @@ def beta_from_phase_for_plane(free_model, driven_model, free_bk_model, elements,
         LOGGER.info("Beta {} driven calculation".format(plane))
         if DEBUG:
             debugfile = DBG.create_debugfile(
-                files_dict['getbeta{}.out'.format(plane_for_file)].s_output_path +
-                "/getbeta{}.bdebug".format(plane_for_file)
+                "getbeta{}.bdebug".format(plane_for_file)  # TODO change working path
             )
 
         driven_beta_df = beta_from_phase(
-            driven_model, unc_elements,
+            driven_model, elements,
             phase_adv_driven, plane, range_of_bpms, debugfile, error_method, Q, Qmdl%1.0
         )
 
@@ -391,6 +390,7 @@ def _scan_all_BPMs_3bpm(phase, plane, debugfile, errors_method, tune, mdltune,
 
     beta_df["BBEAT" + plane] = bb
     beta_df["COUNT"] = 0
+    return beta_df
 
 #---------------------------------------------------------------------------------------------------
 #--------- using analytical formula ----------------------------------------------------------------
@@ -1014,11 +1014,3 @@ def printMatrix(debugfile, M, name):
     np.savetxt(debugfile, M, fmt="%18.10e")
     debugfile.write("\nend\n")
 
-
-def bad_phase(phi):
-    modphi = phi % BADPHASE
-    return (modphi < MOD_POINTFIVE_LOWER or modphi > MOD_POINTFIVE_UPPER)
-
-    
-def is_small(x):
-    return abs(x) < ZERO_THRESHOLD
