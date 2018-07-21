@@ -9,6 +9,7 @@ Created on 13/06/18
 GetLLM.algorithms.interaction_point.py stores helper functions for phase calculations for GetLLM.
 This module is not intended to be executed. It stores only functions.
 """
+from os.path import join
 from numpy import sqrt, sin, cos, tan, pi
 import pandas as pd
 from utils import tfs_pandas
@@ -20,6 +21,7 @@ PLANES = ("X", "Y")
 MODE_TO_SUFFIX = {"D": "get_IP{}.out",
                   "F": "get_IP{}_free.out",
                   "F2": "get_IP{}_free2.out"}
+MODES = ("D", "F", "F2")
 
 
 def betastar_from_phase(accel, phase_d, model):
@@ -39,8 +41,10 @@ def betastar_from_phase(accel, phase_d, model):
         return None
     ip_dict = dict(zip(PLANES, ({}, {})))
     for plane in PLANES:
-        for mode in phase_d[plane]:
+        for mode in MODES:
             phases_df = phase_d[plane][mode]
+            if phases_df is None:
+                continue
             rows = []
             for ip_name, bpml, bpmr in ips:
                 try:
@@ -64,11 +68,14 @@ def betastar_from_phase(accel, phase_d, model):
 def write_betastar_from_phase(ips_d, headers, output_dir):
     """ TODO
     """
-    for plane in PLANES:
-        for mode in ips_d[plane]:
-            tfs_pandas.write_tfs(MODE_TO_SUFFIX[mode].format(plane.lower()),
-                                 ips_d[plane][mode],
-                                 headers_dict=headers,)
+    assert not any(
+        tfs_pandas.write_tfs(
+            join(output_dir, MODE_TO_SUFFIX[mode].format(plane.lower())),
+            ips_d[plane][mode],
+            headers_dict=headers,
+        )
+        for plane in PLANES for mode in ips_d[plane]
+    )
 
 
 def phase_to_betastar(lstar, phase, errphase):
