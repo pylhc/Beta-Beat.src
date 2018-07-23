@@ -71,10 +71,14 @@ def resync_bpms(bpm_data, file_date):
     """
     if file_date > datetime(2016, 4, 1):
         LOGGER.debug("Will resynchronize BPMs")
-        bpm_data.loc[bpm_data.index.str.endswith("L2.B1")] =\
-            np.roll(bpm_data.loc[bpm_data.index.str.endswith("L2.B1")], -1, axis=1)
-        bpm_data.loc[bpm_data.index.str.endswith("R8.B2")] =\
-            np.roll(bpm_data.loc[bpm_data.index.str.endswith("R8.B2")], -1, axis=1)
+        b1_leftover = ["BPMYB.5L2.B1", "BPMYB.4L2.B1", "BPMWI.4L2.B1", "BPMSX.4L2.B1", "BPMS.2L2.B1", "BPMSW.1L2.B1"]
+        mask1 = (bpm_data.index.str.endswith("L2.B1") &
+                 np.array([x not in b1_leftover for x in bpm_data.index]))
+        bpm_data.loc[mask1] = np.roll(bpm_data.loc[mask1], -1, axis=1)
+        b2_leftover = ["BPMYB.4R8.B2", "BPMWI.4R8.B2", "BPMSX.4R8.B2", "BPMS.2R8.B2", "BPMSW.1R8.B2"]
+        mask2 = (bpm_data.index.str.endswith("R8.B2")
+                 & np.array([x not in b2_leftover for x in bpm_data.index]))
+        bpm_data.loc[mask2] = np.roll(bpm_data.loc[mask2], -1, axis=1)
         bpm_data = bpm_data.iloc[:, :-1]
     return bpm_data
 

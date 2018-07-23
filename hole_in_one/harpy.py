@@ -364,8 +364,8 @@ def _amp_and_mu_from_avg(bpm_matrix, plane, panda):
         bpm_matrix,
         np.mean(panda.loc[:, 'TUNE' + plane])
     )
-    panda['AVG_AMP'+plane] = np.abs(avg_coefs)
-    panda['AVG_MU'+plane] = np.angle(avg_coefs) / (2 * np.pi)
+    panda['AMP'+plane] = np.abs(avg_coefs)
+    panda['MU'+plane] = np.angle(avg_coefs) / (2 * np.pi)
     return panda
 
 
