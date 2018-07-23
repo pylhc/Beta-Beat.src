@@ -166,7 +166,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
                 
-                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
+                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta, edelta, amp1, amp2, phase1, phase2)
                     out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
                     line_amplitudes.append(line_amp)
                     line_amplitudes_err.append(line_amp_e)
@@ -182,7 +182,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
                     
-                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
+                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta, edelta, amp1, amp2, phase1, phase2)
                     out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
                     line_amplitudes.append(line_amp)
                     line_amplitudes_err.append(line_amp_e)

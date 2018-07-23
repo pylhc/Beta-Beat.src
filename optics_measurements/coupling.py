@@ -30,7 +30,7 @@ import math
 
 import copy
 import numpy as np
-from numpy import sin, cos, tan
+from numpy import sin
 import utils.bpm
 import helper
 import compensate_excitation
@@ -506,13 +506,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
             # Call routine in helper.py to get secondary lines for 2-BPM method
             [SA0p1ij,phi0p1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
-                    tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"])
+                                                             tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"])
             [SA0m1ij,phi0m1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
-                    -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"])
+                                                             -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"])
             [TBp10ij,phip10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2,
-                    tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"])
+                                                             tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"])
             [TBm10ij,phim10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2,
-                    -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"])
+                                                             -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"])
 
             # Get noise standard deviation and propagate to coupled amplitude ratio
             std_amp01_1 = tw_x.loc[bn1, "NOISE"]/ampx_1*math.sqrt(1+amp01_1**2)
@@ -521,13 +521,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             std_amp10_2 = tw_y.loc[bn2, "NOISE"]/ampy_2*math.sqrt(1+amp10_2**2)
             # Propagate to 2-BPM coupled amplitude ratio using a separate routine in helper.py
             std_SA0p1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
-                    tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
+                                                         tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
             std_SA0m1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
-                    -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
+                                                         -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
             std_TBp10ij = helper.ComplexSecondaryLineSTD(dely, amp10_1, amp10_2,
-                    tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
+                                                         tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
             std_TBm10ij = helper.ComplexSecondaryLineSTD(dely, amp10_1, amp10_2,
-                    -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
+                                                         -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
 
             # Append results for the coupling parameters
             f1001ij.append(0.5*math.sqrt(TBp10ij*SA0p1ij/2.0/2.0)) # division by 2 for each ratio as the scale of the #

@@ -22,7 +22,6 @@ import math
 from numpy import sin, cos, tan
 import numpy as np
 
-import phase
 import beta
 import utils.bpm
 
@@ -352,7 +351,7 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
     bpms=utils.bpm.model_intersect(bpms, MADTwiss)
 
     # Since beta,rmsbb(return_value[0:2]) are not used, slice return value([2:4])(vimaier)
-    [bpms,invariantJx] = ( beta.beta_from_amplitude(MADTwiss,amp20list,'H') )[2:4]
+    [bpms,invariantJx] = (beta.beta_from_amplitude(MADTwiss, amp20list, 'H'))[2:4]
     sqrt2jx=invariantJx[0]
 
     Q=tune+float(str(MADTwiss.Q1).split(".")[0])
@@ -488,10 +487,10 @@ def Getoctopole(MADTwiss,plane,twiss_files,phaseI,Q,fname,fM,NAMES):
         singleFiley=[twiss_files[1][j]]
 
         # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice return value([3])(vimaier)
-        invariantJx = ( beta.beta_from_amplitude(MADTwiss,singleFilex,'H') )[3]
+        invariantJx = (beta.beta_from_amplitude(MADTwiss, singleFilex, 'H'))[3]
 
         # Since beta,rmsbb,bpms(return_value[0:3]) are not used, slice return value([3])(vimaier)
-        invariantJy = ( beta.beta_from_amplitude(MADTwiss,singleFiley,'V') )[3]
+        invariantJy = (beta.beta_from_amplitude(MADTwiss, singleFiley, 'V'))[3]
 
         invarianceJx.append(invariantJx)
         invarianceJy.append(invariantJy)

@@ -18,10 +18,9 @@ import re
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
-from GetLLM import optics_input
-from GetLLM.algorithms import (beta, beta_from_amplitude, coupling, dpp, dispersion,
-                               interaction_point, kick, phase, resonant_driving_terms, tune)
-from GetLLM.GetLLMError import GetLLMError, CriticalGetLLMError
+from optics_measurements import optics_input
+from optics_measurements import (beta, beta_from_amplitude, coupling, dpp, dispersion,
+                                            interaction_point, kick, phase, resonant_driving_terms, tune)
 from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas, logging_tools, iotools
 
@@ -41,7 +40,7 @@ def measure_optics(input_files, measure_input):
 
     Returns:
     """
-    LOGGER.info("Starting GetLLM " + VERSION)
+    LOGGER.info("Calculating optics parameters - code version " + VERSION)
     global __getllm_starttime
     __getllm_starttime = time()
     iotools.create_dirs(measure_input.outputdir)
@@ -68,14 +67,14 @@ def measure_optics(input_files, measure_input):
     except:
         _tb_()
         # if phase crashed, none of the subsequent algorithms can run. Thus
-        raise CriticalGetLLMError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
+        raise ValueError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
 
     try:
         phase_dict = phase.calculate_phase(measure_input, input_files, tune_dict, header_dict)
     except:
         _tb_()
         # if phase crashed, none of the subsequent algorithms can run. Thus
-        raise CriticalGetLLMError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
+        raise ValueError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
     print_time("AFTER_PHASE", time() - __getllm_starttime)
     #-------- START coupling.
     try:
@@ -247,14 +246,6 @@ class InputFiles(dict):
                 self[plane][i]["AMP" + plane] = self[plane][i].loc[:, "AMP" + plane] * data.loc[:,"CALIBRATION"]
                 self[plane][i]["ERRAMP" + plane] = data.loc[:, "ERROR_CALIBRATION"]  # TODO
 
-    def use_average_tune(self, no_averaged_tune):   # TODO to be removed once hole_in_one outputs only averaged stuff
-        if no_averaged_tune:
-            pass
-        for plane in PLANES:
-            for i in range(len(self[plane])):
-                self[plane][i].rename(columns={"AVG_MU" + plane: "MU" + plane, "MU" + plane: "OLD_MU" + plane})
-
-
     def get_columns(self, frame, column):
         """
         Returns list of columns of frame corresponding to column in original files
@@ -321,5 +312,4 @@ if __name__ == "__main__":
     iotools.create_dirs(arguments.outputdir)
     calibrations = _copy_calibration_files(arguments.outputdir, arguments.calibrationdir)
     inputs.calibrate(calibrations)
-    inputs.use_average_tune(False)  # TODO remove
     measure_optics(inputs, arguments)
