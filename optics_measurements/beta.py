@@ -966,8 +966,8 @@ def _add_header(df, header_dict, error_method, range_of_bpms):
     Adds common header elements to the headers of df
     df is an out parameter
     '''
-    for key, value in header_dict.iteritems():
-        df.headers[key] = value
+    for key in header_dict.keys():
+        df.headers[key] = header_dict[key]
     df.headers['BetaAlgorithmVersion'] = __version__
     df.headers['RCond'] = RCOND
     df.headers['ErrorsFrom'] = ID_TO_METHOD[error_method]

@@ -14,8 +14,7 @@ from model import manager
 
 def parse_args():
     optics_input = OpticsInput.init_from_options(*_get_optics_parser())
-    python_path = "/afs/cern.ch/work/o/omc/anaconda/bin/python "
-    return optics_input  #, (python_path + " ".join(sys.argv))
+    return optics_input
 
 
 class OpticsInput(object):

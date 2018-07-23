@@ -203,7 +203,7 @@ class InputFiles(dict):
             zero_dpp_frames.append(self[plane][i])
         if len(zero_dpp_frames) > 0:
             return zero_dpp_frames
-        return self._get_all_frames(self, plane)
+        return self._get_all_frames(plane)
 
     def _get_all_frames(self, plane):
         return self[plane]

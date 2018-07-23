@@ -127,7 +127,7 @@ def calculate_coupling(meas_input, twiss_d, phase_d, tune_d, header_dict):
                 # Try to include model parameters
                 try:
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, optics_coupling.loc[bn1, "F1001"].real, optics_coupling.loc[bn1, "F1001"].imag, optics_coupling.loc[bn1, "F1010"].real, optics_coupling.loc[bn1, "F1010"].imag]
-                    print list_row_entries
+                    LOGGER.debug("{0}".format(list_row_entries))
                 # Leave model parameters to 0.0 if not contained in model
                 except AttributeError:
                     list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -232,7 +232,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement.
     if len(list_zero_dpp_x)!=len(list_zero_dpp_y):
-        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+        LOGGER.error("Leaving GetCoupling as linx and liny files seem not correctly paired...")
         dum0 = {"Global":[0.0,0.0]}
         dum1 = []
         return [dum0,dum1]
@@ -284,7 +284,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
                 if C10ij==0.0:
                     C10ij = tw_y.AVG_NOISE[tw_y.indx[bn1]]
             except AttributeError:
-                print "AVG_NOISE column not found, cannot estimate C matrix."
+                LOGGER.info("AVG_NOISE column not found, cannot estimate C matrix.")
             # Get noise standard deviation to estimate uncertainty of amplitudes
             std_noise_x = tw_x.NOISE[tw_x.indx[bn1]] 
             std_noise_y = tw_y.NOISE[tw_y.indx[bn1]]
@@ -319,7 +319,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             qi = q1 # Note that q1 and q2 are confined 0. to 1.
         else:
             badbpm = 1
-            print "Bad Phases in BPM no ",j, " (", bn1, "). Total so far", Badbpms+1
+            LOGGER.info("Bad Phases in BPM no {0} ({1}). Total so far {2}".format(j, bn1, Badbpms+1))
 
         # If BPM tunes are OK
         if badbpm == 0:
@@ -424,7 +424,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
     if len(list_zero_dpp_x) != len(list_zero_dpp_y):
-        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+        LOGGER.error("Leaving GetCoupling as linx and liny files seem not correctly paired...")
         dum0 = {"Global": [0.0, 0.0]}
         dum1 = []
         return [dum0, dum1]
@@ -502,7 +502,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
                 if amp10_2 == float("inf") or amp10_2 == 0:
                     amp10_2 = tw_y.loc[bn1, "AVG_NOISE"] / ampy_2
             except AttributeError:
-                print "AVG_NOISE column not found, cannot use noise floor."
+                LOGGER.info("AVG_NOISE column not found, cannot use noise floor.")
 
             # Call routine in helper.py to get secondary lines for 2-BPM method
             [SA0p1ij,phi0p1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
@@ -682,13 +682,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         QG += fwqw[bn1][1][0]-(tw_x.loc[bn1, "MUX"]-tw_y.loc[bn1, "MUY"])
 
     if len(dbpms)==0:
-        print >> sys.stderr, 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
+        LOGGER.warning("There is no BPM to output linear coupling properly... leaving Getcoupling.")
         # Does this set a coupling without prefactor 4*(Qx-Qy) to global?
         fwqw['Global']=[CG,QG] #Quick fix Evian 2012
         return [fwqw,dbpms]
     else:
         CG_old = abs(4.0*(tune_x-tune_y)*CG/len(dbpms))
-    print 'OldCMINUS' ,CG_old
+    LOGGER.info("OldCMINUS {0}".format(CG_old))
     fwqw['Global'] = [CG_new_abs,CG_new_phase,CG_new_abs_std]
 
     return [fwqw,dbpms]
@@ -709,7 +709,7 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
     Qmin=[]
 
     if len(bpms)==0:
-        print >> sys.stderr, "No bpms in getCandGammaQmin. Returning empty stuff"
+        LOGGER.error("No bpms in getCandGammaQmin. Returning empty stuff")
         return coupleterms,0,0,bpms
 
     for bpm in bpms:
@@ -739,7 +739,7 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
         coupleterms[bpmm]=[detC,err,gamma,err,C11,C12,C21,C22]
 
     if gamma==-1:
-        print "WARN: Sum resonance is dominant! "
+        LOGGER.warning("Sum resonance is dominant! ")
 
     Qmin=np.array(Qmin)
 
@@ -788,7 +788,7 @@ def _find_sign_QxmQy(outputpath, tune_x, tune_y):
 
 def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms):
     if DEBUG:
-        print "Calculating free fterms"
+        LOGGER.debug("Calculating free fterms")
     couple={}
     couple['Global']=[fterm['Global'][0],fterm['Global'][1]]
 
@@ -822,7 +822,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
     factor_diff=abs((factor_top_diff/factor_bottom_diff))
 
     if DEBUG:
-        print ("Factor for coupling diff " + factor_diff)
+        LOGGER.debug("Factor for coupling diff {0}".format(factor_diff))
 
     # sum f1010
     factor_top_sum=math.sqrt(np.sin(np.pi*(tunedrivenx+tunefreey))*np.sin(np.pi*(tunefreex+tunedriveny)))
@@ -831,7 +831,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
     factor_sum=abs((factor_top_sum/factor_bottom_sum))
 
     if DEBUG:
-        print "Factor for coupling sum ",factor_sum
+        LOGGER.debug("Factor for coupling sum {0}".format(factor_sum))
 
     for bpm in bpms:
 
@@ -1116,7 +1116,7 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerat
             fwqw[key][0][2] = fwqw[key][0][2] + tmp[key][0][2]
             fwqw[key][0][3] = fwqw[key][0][3] + tmp[key][0][3]
             if (key is 'BPMWB.4R5.B1'):
-                print fwqw[key][1]
+                print(fwqw[key][1])
         fwqw[key][0][0] = fwqw[key][0][0] / len(fqwList)
         fwqw[key][0][1] = fwqw[key][0][1] / len(fqwList)
         fwqw[key][0][2] = fwqw[key][0][2] / len(fqwList)
