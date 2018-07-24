@@ -61,7 +61,7 @@ def _calculate_orbit(model, input_files, plane, header, output):
     df_orbit.rename(columns={'MU' + plane: 'MU' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
     df_orbit = pd.merge(df_orbit, input_files.get_joined_frame(plane, ['CO', 'CORMS']), how='inner',
                         left_index=True, right_index=True)
-    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, ['CO']))
+    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, 'CO'))
     df_orbit[plane] = stats.weighted_mean(input_files.get_data(df_orbit, 'CO'), axis=1)
     df_orbit['STD' + plane] = stats.weighted_error(input_files.get_data(df_orbit, 'CO'), axis=1)
     output_df = df_orbit.loc[:, ['S', 'COUNT', plane, 'STD' + plane, plane + 'MDL', 'MU' + plane + 'MDL']]
@@ -75,7 +75,7 @@ def _calculate_dispersion(model, input_files, plane, header, unit, cut, output, 
                              'D' + plane: 'D' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
     df_orbit = pd.merge(df_orbit, input_files.get_joined_frame(plane, ['CO', 'CORMS']), how='inner',
                         left_index=True, right_index=True)
-    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, ['CO']))
+    df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, 'CO'))
     dpps = input_files.get_dpps(plane)
     if np.max(dpps) - np.min(dpps) == 0.0:
         return  # temporary solution

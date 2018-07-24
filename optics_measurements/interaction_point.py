@@ -30,7 +30,7 @@ def betastar_from_phase(accel, phase_d, model):
     Arguments:
         accel: The accelerator class to be used.
         phase_d: The GetLLM phase_d object, output of calculate_phase.
-        mode: metaclass.twiss instance with a model of the machine.
+        model: tfs_pandas instance with a model of the machine.
     Returns:
         A nested dict with the same structure as the phase_d dict.
     """

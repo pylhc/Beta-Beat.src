@@ -98,7 +98,7 @@ def measure_optics(input_files, measure_input):
     # except:
     #     _tb_()
     try:
-        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune._TuneData(tune_dict), phase._PhaseData(phase_dict), {"X": driven_df_x, "Y": driven_df_y}, header_dict)
+        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
@@ -129,9 +129,6 @@ def measure_optics(input_files, measure_input):
             resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase._PhaseData(phase_dict), tune_dict, inv_x, inv_y)
         except:
             _tb_()
-        # TODO: what does this?
-        # files_dict = _calculate_getsextupoles(twiss_d, phase_d_bk, accelerator.get_model_tfs(), files_dict, tune_d.q1f)
-        # files_dict = chi_terms.calculate_chiterms(getllm_d, twiss_d, accelerator.get_model_tfs(), files_dict)
     print_time("FINISH", time() - __getllm_starttime)
 
 

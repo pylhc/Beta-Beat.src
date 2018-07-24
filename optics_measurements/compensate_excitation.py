@@ -18,15 +18,15 @@ LOGGER = logging_tools.get_logger(__name__)
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 
-def phase_ac2bpm(commonbpms, Qd, Q, plane, acc):
+def phase_ac2bpm(commonbpms, driven_tune, free_tune, plane, acc):
     """Returns the necessary values for the exciter compensation.
 
     Args:
-        model (pandas.DataFrame): model twiss as DataFrame.
         commonbpms (pandas.DataFrame): commonbpms (see GetLLM._get_commonbpms)
-        Qd, Q (float): Driven and natural fractional tunes.
-        plane (char): H, V
-        accelerator: accelerator class instance.
+        driven_tune: Driven fractional tunes.
+        free_tune: Natural fractional tunes.
+        plane (char): X,Y
+        acc: accelerator class instance.
 
     Returns tupel(a,b,c,d):
         a (string): name of the nearest BPM.
@@ -34,7 +34,7 @@ def phase_ac2bpm(commonbpms, Qd, Q, plane, acc):
         c (int): k of the nearest BPM.
         d (string): name of the exciter element.
     """
-    r = sin(PI * (Qd - Q)) / sin(PI * (Qd + Q))
+    r = sin(PI * (driven_tune - free_tune)) / sin(PI * (driven_tune + free_tune))
     [k, bpmac1], exciter = acc.get_exciter_bpm("H" if plane == "X" else "V", commonbpms)
     model_driven = acc.get_driven_tfs()
     ##return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] + PI * Q)) % PI - PI * Qd, k
