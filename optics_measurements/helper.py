@@ -140,59 +140,6 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
         fbpmx[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
         fbpmy[i].write('$ %s     %le    %le    %le    %le    %le    %le\n')
 
-        # bpmhp will be used for storing in this section. Not used further. Replaced by
-        # 'tentative solution' with bpmpair. See some lines below.
-        # --vimaier
-#     bpmhp=[]
-#     for i in range(0,len(bpmh)):
-#         smin=1.0e10
-#         jsave=0
-#         for j in range (0,len(bpmv),10):
-#             sdiff=abs(bpmh[i][0]-bpmv[j][0])
-#             if sdiff<smin:
-#                 smin=sdiff
-#                 jsave=j
-
-#         jlower=jsave-9
-#         jupper=jsave+9
-#         if jupper > len(bpmv):
-#             jupper=len(bpmv)
-#         for j in range (jlower,jupper):
-#             sdiff=abs(bpmh[i][0]-bpmv[j][0])
-#             if sdiff<smin:
-#                 smin=sdiff
-#                 jsave=j
-#
-#         bpmhp.append([bpmh[i][0],bpmh[i][1],bpmv[jsave][1],0])
-
-
-    #bpmvp=[]
-    #for i in range(0,len(bpmv)):
-        #smin=1.0e10
-        #jsave=0
-        #for j in range (0,len(bpmh),10):
-            #sdiff=abs(bpmv[i][0]-bpmh[j][0])
-            #if sdiff<smin:
-                #smin=sdiff
-                #jsave=j
-        #jlower=jsave-9
-        #jupper=jsave+9
-        #if jupper > len(bpmh):
-            #jupper=len(bpmh)
-        #for j in range (jlower,jupper):
-            #sdiff=abs(bpmv[i][0]-bpmh[j][0])
-            #if sdiff<smin:
-                #smin=sdiff
-                #jsave=j
-
-        #bpmvp.append([bpmv[i][0],bpmv[i][1],bpmh[jsave][1],1])
-
-
-    #dbpms=combinebpms(bpmhp,bpmvp)
-    # dbpms is replaced through 'tentative solution' (vimaier)
-#     dbpms=bpmhp
-
-    # tentative solution
     dbpms = bpmpair() # model BPM name
     count_of_missing_bpms = 0
     for i in xrange(0, len(dbpms)):
@@ -248,39 +195,12 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
                     wphase10 = (twiss_y.PHASE10[twiss_y.indx[expname]]-dphiy)%1.0
                     if (wphase10 > 0.5):
                         wphase10 = wphase10-1.0
-                #elif dbpms[i][3]==1:
-                    #wampx=twiss_x.AMPX[twiss_x.indx[pname]]
-                    #wampy=twiss_y.AMPY[twiss_y.indx[wname]]
-                    #wamp01=twiss_x.AMP01[twiss_x.indx[pname]]
-                    #wamp10=twiss_y.AMP10[twiss_y.indx[wname]]
-                    #wtunex=twiss_x.TUNEX[twiss_x.indx[pname]]
-                    #wtuney=twiss_y.TUNEY[twiss_y.indx[wname]]
-                    #dphix=mad_twiss.MUX[mad_twiss.indx[str.upper(pname)]]-mad_twiss.MUX[mad_twiss.indx[str.upper(wname)]]
-                    #dphiy=mad_twiss.MUY[mad_twiss.indx[str.upper(pname)]]-mad_twiss.MUY[mad_twiss.indx[str.upper(wname)]]
-                    #wmux=(twiss_x.MUX[twiss_x.indx[pname]]-dphix)%1.0
-                    #if (wmux > 0.5): wmux=wmux-1
-                    #wmuy=twiss_y.MUY[twiss_y.indx[wname]]
-                    #wphase01=(twiss_x.PHASE01[twiss_x.indx[pname]]-dphix)%1.0
-                    #wphase10=twiss_y.PHASE10[twiss_y.indx[wname]]
-                    #if (wphase01 > 0.5): wphase01=wphase01-1
-                #elif dbpms[i][3]==2:
-                    #wampx=twiss_x.AMPX[twiss_x.indx[wname]]
-                    #wampy=twiss_y.AMPY[twiss_y.indx[wname]]
-                    #wamp01=twiss_x.AMP01[twiss_x.indx[wname]]
-                    #wamp10=twiss_y.AMP10[twiss_y.indx[wname]]
-                    #wtunex=twiss_x.TUNEX[twiss_x.indx[wname]]
-                    #wtuney=twiss_y.TUNEY[twiss_y.indx[wname]]
-                    #wmux=twiss_x.MUX[twiss_x.indx[wname]]
-                    #wmuy=twiss_y.MUY[twiss_y.indx[wname]]
-                    #wphase01=twiss_x.PHASE01[twiss_x.indx[wname]]
-                    #wphase10=twiss_y.PHASE10[twiss_y.indx[wname]]
                 fbpmx[j].write('"'+wname+'" '+str(ws)+' '+str(wtunex)+' '+str(wmux)+' '+str(wampx)+' '+str(wamp01)+' '+str(wphase01)+'\n')
                 fbpmy[j].write('"'+wname+'" '+str(ws)+' '+str(wtuney)+' '+str(wmuy)+' '+str(wampy)+' '+str(wamp10)+' '+str(wphase10)+'\n')
         except:
             if len(bpm_dictionary)!=0:
                 count_of_missing_bpms = count_of_missing_bpms + 1
                 print wname, "or", pname, "not found in the DATA. Total so far = ", count_of_missing_bpms
-
 
     pseudo_list_x = []
     pseudo_list_y = []
@@ -304,17 +224,12 @@ def _convert_f_term_to_h_term(amp,ampphase,termj,factor,term,M2M):
     # conversion to include _convert_f_term_to_h_term
     tp=2.0*np.pi
     H=(amp/(termj*factor))*(1-np.e**complex(0,term*tp))
-
     Ampi=H.imag
     Ampr=H.real
     Amp=abs(H)/M2M
     phase=(math.atan2(Ampi,Ampr))/tp
-
-
     fh=[Ampi,Ampr,Amp,phase]
-
     return fh
-
 
 
 def _calculate_getsextupoles(twiss_d, phase_d, mad_twiss, files_dict, q1f):
@@ -356,9 +271,7 @@ def Getsextupole(MADTwiss,amp20list,phase,tune,j,k):
 
     Q=tune+float(str(MADTwiss.Q1).split(".")[0])
 
-    afactor=(1-cos(2*(j-k)*np.pi*Q))#(2*sin(np.pi*(j-k)*Q))
-    #print (2*sin(np.pi*(j-k)*Q)),(1-cos(6*np.pi*Q))
-    #sys.exit()
+    afactor=(1-cos(2*(j-k)*np.pi*Q))
     pfactor=(np.pi*(j-k)*Q)
 
     htot={}

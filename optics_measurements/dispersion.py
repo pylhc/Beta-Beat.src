@@ -15,43 +15,41 @@ from utils import stats
 SCALES = {'um': 1.0e-6, 'mm': 1.0e-3, 'cm': 1.0e-2, 'm': 1.0}
 PLANES = ("X", "Y")
 
-def calculate_orbit_and_dispersion(input_files, tune_d, model, header_dict, unit, cut, beta_from_phase, output):
+
+def calculate_orbit_and_dispersion(meas_input, input_files, tune_dict, model, beta_from_phase, header_dict):
     """
     Calculates orbit and dispersion, fills the following TfsFiles:
        getCOx.out        getCOy.out
        getNDx.out        getDx.out        getDy.out
     Args:
+        meas_input: Optics_input object
         input_files: Stores the input files Tfs_pandas
-        tune_d: Holds tunes and phase advances
+        tune_dict: Holds tunes and phase advances
         model:  Model tfs panda
         header_dict: OrderedDict containing information about the analysis
-        unit: Unit of orbit measurements, e.g. m, mm
-        cut: orbit cut
         beta_from_phase:
-        output: output folder
 
     Returns:
 
     """
     for plane in PLANES:
-        orbit_header = _get_header(header_dict, tune_d, 'getCO' + plane.lower() + '.out', orbit=True)
-        dispersion_header = _get_header(header_dict, tune_d, 'getD' + plane.lower() + '.out')
-        _calculate_orbit(model, input_files, plane, orbit_header, output)
-        _calculate_dispersion(model, input_files, plane, dispersion_header, unit, cut, output)
+        orbit_header = _get_header(header_dict, tune_dict, 'getCO' + plane.lower() + '.out', orbit=True)
+        dispersion_header = _get_header(header_dict, tune_dict, 'getD' + plane.lower() + '.out')
+        _calculate_orbit(model, input_files, plane, orbit_header, meas_input.outputdir)
+        _calculate_dispersion(model, input_files, plane, dispersion_header, meas_input.orbit_unit, meas_input.max_closed_orbit, meas_input.outputdir)
         if plane == 'X':
-            ndx_header = _get_header(header_dict, tune_d, 'getNDx.out', orbit=False)
-            _calculate_normalised_dispersion(model, input_files, beta_from_phase, ndx_header,
-                                             unit, cut, output)
+            ndx_header = _get_header(header_dict, tune_dict, 'getNDx.out', orbit=False)
+            _calculate_normalised_dispersion(model, input_files, beta_from_phase["X"], ndx_header,
+                                             meas_input.orbit_unit, meas_input.max_closed_orbit, meas_input.outputdir)
 
 
-def _get_header(header_dict, tune_d, filename, orbit=False):
+def _get_header(header_dict, tune_dict, filename, orbit=False):
     header = header_dict.copy()
     if orbit:
         header['TABLE'] = 'ORBIT'
         header['TYPE'] = 'ORBIT'
-    # TODO: ['SEQUENCE'] getllm_d.accel
-    header['Q1'] = tune_d.q1
-    header['Q2'] = tune_d.q2
+    header['Q1'] = tune_dict["X"]["Q"]
+    header['Q2'] = tune_dict["Y"]["Q"]
     header['FILENAME'] = filename
     return header
 

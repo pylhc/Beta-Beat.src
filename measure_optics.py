@@ -25,7 +25,7 @@ from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas, logging_tools, iotools
 
 
-VERSION = 'V3.0.0 Dev'
+VERSION = '0.1.0'
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d measure_optics.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
 PLANES = ('X', 'Y')
@@ -45,38 +45,23 @@ def measure_optics(input_files, measure_input):
     __getllm_starttime = time()
     iotools.create_dirs(measure_input.outputdir)
     logging_tools.add_module_handler(logging_tools.file_handler(os.path.join(measure_input.outputdir, "getllm.log")))
-    header_dict = _get_header()
+    header_dict = _get_header(measure_input)
     if sys.flags.debug:
         LOGGER.info("     DEBUG ON")
-
-    """
-    Construct pseudo-double plane BPMs
-    TODO This should be in accelerator class
-    if (accelerator.__name__ == "SPS" or "RHIC" in accelerator.__name__) and twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
-        [pseudo_list_x, pseudo_list_y] = helper.pseudo_double_plane_monitors(accelerator.get_model_tfs(), twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpm_dictionary)
-    else:
-        Initialize variables otherwise calculate_coupling would raise an exception(vimaier)
-        pseudo_list_x = None
-        pseudo_list_y = None
-    """
     print_time("BEFORE_PHASE", time() - __getllm_starttime)
     #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
     try:
         tune_dict = tune.calculate_tunes(measure_input, input_files)
-        print(tune_dict)
     except:
         _tb_()
-        # if phase crashed, none of the subsequent algorithms can run. Thus
-        raise ValueError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
+        raise ValueError("Tune calculation failed: None of the following algorithms will run")
 
     try:
         phase_dict = phase.calculate_phase(measure_input, input_files, tune_dict, header_dict)
     except:
         _tb_()
-        # if phase crashed, none of the subsequent algorithms can run. Thus
-        raise ValueError("get phase crashed. None of the following algorithms can work hence GetLLM will crash now. Good bye!")
+        raise ValueError("Phase advance calculation failed: None of the following algorithms will run")
     print_time("AFTER_PHASE", time() - __getllm_starttime)
-    #-------- START coupling.
     try:
         coupling.calculate_coupling(measure_input, _TwissData(input_files), phase._PhaseData(phase_dict), tune._TuneData(tune_dict), header_dict)
     except:
@@ -93,17 +78,13 @@ def measure_optics(input_files, measure_input):
         print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
     else:
         print_time("AFTER_A_NBPM", time() - __getllm_starttime)
-    # try:
-    #     lobster.get_local_observable( phase_d_bk, getllm_d.accelerator.get_model_tfs(), files_dict, tune_d.q1f)
-    # except:
-    #     _tb_()
     try:
-        beta_d = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
+        beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
     mad_twiss = measure_input.accelerator.get_model_tfs()
-    mad_elements = measure_input.accelerator.get_elements_tfs()
+    #  mad_elements = measure_input.accelerator.get_elements_tfs()
     if measure_input.accelerator.excitation != AccExcitationMode.FREE:
         mad_ac = measure_input.accelerator.get_driven_tfs()
     else:
@@ -116,28 +97,28 @@ def measure_optics(input_files, measure_input):
     except:
         _tb_()
     try:
-        dispersion.calculate_orbit_and_dispersion(input_files, tune._TuneData(tune_dict), mad_twiss, header_dict, measure_input.orbit_unit, measure_input.max_closed_orbit, driven_df_x, measure_input.outputdir)
+        dispersion.calculate_orbit_and_dispersion(measure_input, input_files, tune_dict, mad_twiss, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
     except:
         _tb_()
     #------ Start get Q,JX,delta
     try:
-        inv_x, inv_y = kick.calculate_kick(mad_twiss, mad_ac, measure_input, input_files, beta_d, phase._PhaseData(phase_dict), measure_input.outputdir, header_dict)
+        inv_x, inv_y = kick.calculate_kick(measure_input, input_files, mad_twiss, mad_ac, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
     except:
         _tb_()
     if measure_input.nonlinear:
         try:
-            resonant_driving_terms.calculate_RDTs(mad_twiss, measure_input, input_files, phase._PhaseData(phase_dict), tune_dict, inv_x, inv_y)
+            resonant_driving_terms.calculate_RDTs(measure_input, _TwissData(input_files), mad_twiss, phase._PhaseData(phase_dict),  inv_x, inv_y)
         except:
             _tb_()
     print_time("FINISH", time() - __getllm_starttime)
 
 
-def _get_header():
-    return OrderedDict([('GetLLMVersion', VERSION),
+def _get_header(meas_input):
+    return OrderedDict([('Measure_optics:version', VERSION),
                         ('Command', sys.executable + " '" + "' '".join([] + sys.argv) + "'"),
                         ('CWD', os.getcwd()),
-                        ('Date', datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S"))])
-    # TODO add model directory
+                        ('Date', datetime.datetime.today().strftime("%d. %B %Y, %H:%M:%S")),
+                        ('Model_directory', meas_input.accelerator.model_dir)])
 
 
 def _tb_():
@@ -243,7 +224,8 @@ class InputFiles(dict):
                 self[plane][i]["AMP" + plane] = self[plane][i].loc[:, "AMP" + plane] * data.loc[:,"CALIBRATION"]
                 self[plane][i]["ERRAMP" + plane] = data.loc[:, "ERROR_CALIBRATION"]  # TODO
 
-    def get_columns(self, frame, column):
+    @ staticmethod
+    def get_columns(frame, column):
         """
         Returns list of columns of frame corresponding to column in original files
         Parameters:
@@ -267,6 +249,7 @@ class InputFiles(dict):
             data in numpy array corresponding to column in original files
         """
         return frame.loc[:, self.get_columns(frame, column)].values
+
 
 class _TwissData(object):
     def __init__(self, inputfiles):
@@ -303,7 +286,6 @@ def _copy_calibration_files(outputdir, calibrationdir):
 
 
 if __name__ == "__main__":
-    # preparation of the input
     arguments = optics_input.parse_args()
     inputs = InputFiles(arguments.files)
     iotools.create_dirs(arguments.outputdir)

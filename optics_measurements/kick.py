@@ -16,7 +16,7 @@ import numpy as np
 import compensate_excitation
 
 
-def calculate_kick(model, mad_ac, measure_input, input_files, beta_d, phase_d, output, header_dict):
+def calculate_kick(measure_input, input_files, model, mad_ac, beta_d, header_dict):
     """
     Fills the following TfsFiles:
      - getkick.out getkickac.out
@@ -31,15 +31,13 @@ def calculate_kick(model, mad_ac, measure_input, input_files, beta_d, phase_d, o
                     "2JYSTD"]
     kick_frame = pd.DataFrame(data=tunes_actions, columns=column_names)
     header = _get_header(header_dict, beta_d)
-    tfs_pandas.write_tfs(join(output, header['FILENAME']), kick_frame, header)
+    tfs_pandas.write_tfs(join(measure_input.outputdir, header['FILENAME']), kick_frame, header)
     actions_x, actions_y = tunes_actions[:, 9:11], tunes_actions[:, 11:13]  # sqrt2jx, sqrt2Jy
 
     if measure_input.accelerator.excitation != AccExcitationMode.FREE:
         column_names_ac = column_names + ["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES",
                             "2JXSTDRES", "2JYRES", "2JYSTDRES"]
-        [inv_jx, inv_jy, tunes, dpp] = getkickac(
-            mad_ac, [input_files["X"], input_files["Y"]], phase_d.ac2bpmac_x, phase_d.ac2bpmac_y,
-            measure_input.accelerator.get_beam_direction(), measure_input.end_lattice_phase)
+        [inv_jx, inv_jy, tunes, dpp] = getkickac([input_files["X"], input_files["Y"]], mad_ac)
         datas=[]
         for i in range(0, len(dpp)):
             list_row_entries = [dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i],
@@ -58,7 +56,7 @@ def calculate_kick(model, mad_ac, measure_input, input_files, beta_d, phase_d, o
             datas.append(list_row_entries)
         kick_frame_ac = pd.DataFrame(data=np.array(datas), columns=column_names_ac)
         header_ac = _get_header(header_dict, beta_d, ac=True)
-        tfs_pandas.write_tfs(join(output, header['FILENAME']), kick_frame_ac, header_ac)
+        tfs_pandas.write_tfs(join(measure_input.outputdir, header['FILENAME']), kick_frame_ac, header_ac)
         actions_x, actions_y = inv_jx, inv_jx
     return actions_x, actions_y
 

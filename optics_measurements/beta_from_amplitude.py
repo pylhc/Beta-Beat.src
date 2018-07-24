@@ -23,14 +23,12 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, b
         getampbetay.out        getampbetay_free.out        getampbetay_free2.out
 
     Parameters:
-        'getllm_d': _GetllmData (In-param, values will only be read)
-            accel and beam_direction are used.
-        'twiss_d': _TwissData (In-param, values will only be read)
-            Holds twiss instances of the src files.
-        'tune_d': _TuneData (In-param, values will only be read)
-            Holds tunes and phase advances
-        'phase_d': _PhaseData (In-param, values will only be read)
-            Holds results from get_phases
+        'measure_input': OpticsInput object
+        'input_files': InputFiles object contains measurement files
+        'tune_d': TuneDict contains measured tunes
+        'phase_d': PhaseDict contains measured phase advances
+        'beta_phase': contains beta functions from measured from phase
+        'header_dict': dictionary of header items common for all output files
 
     Returns:
     """
@@ -61,23 +59,20 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, b
             beta_amp_f['BET' + plane + 'RES'] = beta_amp_f.loc[:, 'BET' + plane] * x_ratio_f
             beta_amp_f['BET' + plane + 'STDRES'] = beta_amp_f.loc[:, 'BET' + plane + 'STD'] * x_ratio_f
             tfs_pandas.write_tfs(join(measure_input.outputdir, header_f['FILENAME']), beta_amp_f, header_f, save_index='NAME')
-
             # FREE2 calculation
             beta_amp_f2 = pd.DataFrame(beta_amp)
             beta_amp_f2['BET' + plane] = _get_free_amp_beta(beta_amp_f2.loc[:, ['BET' + plane]], mad_ac, mad_twiss, plane)
             beta_amp_f2['BET' + plane + 'RES'] = _get_free_amp_beta(beta_amp_f2.loc[:, ['BET' + plane + 'RES']].rename(columns={'BET' + plane + 'RES': 'BET' + plane}), mad_ac, mad_twiss, plane)
             header_f2 = _get_header(header_dict, tune_d, np.std(beta_amp_f2.loc[:, 'DELTABET' + plane].values), x_ratio,
                                        'getampbeta' + plane.lower() + '_free2.out', free=True)
-            tfs_pandas.write_tfs(join(measure_input.outputdir, header_f2['FILENAME']), beta_amp_f2, header_f2)#, save_index='NAME')
+            tfs_pandas.write_tfs(join(measure_input.outputdir, header_f2['FILENAME']), beta_amp_f2, header_f2)
 
 
 def _get_free_amp_beta(df_meas,  mad_ac, mad_twiss, plane):
-    print(df_meas.columns)
     df = pd.merge(pd.DataFrame(df_meas), mad_ac.loc[:, ['BET' + plane]], how='inner',
                        left_index=True, right_index=True, suffixes=('', 'ac'))
     df = pd.merge(df, mad_twiss.loc[:, ['BET' + plane]], how='inner', left_index=True,
                        right_index=True, suffixes=('', 'f'))
-    print(df.columns)
     return df.loc[:, "BET" + plane] * df.loc[:, "BET" + plane + 'f'] / df.loc[:, "BET" + plane + 'ac']
 
 
@@ -117,11 +112,11 @@ def beta_from_amplitude(meas_input, input_files, model, plane, compensate=None):
         df_amp_beta['BET' + plane] = np.square(df_amp_beta.loc[:, 'AMP' + plane].values) / kick
         df_amp_beta['BET' + plane + 'STD'] = np.std((np.square(
             input_files.get_data(df_amp_beta, 'AMP' + plane)).T / kick2[:, np.newaxis]).T, axis=1)
-    df_amp_beta['DELTABET' + plane] = (df_amp_beta.loc[:, 'BET' + plane] -
-                                       df_amp_beta.loc[:, 'BET' + plane + 'MDL']) /\
-                                      df_amp_beta.loc[:, 'BET' + plane + 'MDL']
+    df_amp_beta['DELTABET' + plane] = ((df_amp_beta.loc[:, 'BET' + plane] -
+                                       df_amp_beta.loc[:, 'BET' + plane + 'MDL']) /
+                                       df_amp_beta.loc[:, 'BET' + plane + 'MDL'])
     return df_amp_beta.loc[:, ['S', 'COUNT', 'BET' + plane, 'BET' + plane + 'STD',
-                    'BET' + plane + 'MDL', 'MU' + plane + 'MDL', 'DELTABET' + plane]]
+                               'BET' + plane + 'MDL', 'MU' + plane + 'MDL', 'DELTABET' + plane]]
 
 
 def _get_header(header_dict, tune_d, rmsbbeat, scaling_factor, file_name, free=False):

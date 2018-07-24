@@ -49,7 +49,7 @@ def determine_lines(rdt):
     return line, plane
 
 
-def calculate_RDTs(mad_twiss, getllm_d, twiss_d, phase_d, tune_d, files_dict, inv_x, inv_y):
+def calculate_RDTs(getllm_d, twiss_d, mad_twiss, phase_d, inv_x, inv_y):
     '''
     Calculates line RDT amplitudes and phases and fills the following TfsFiles:
         f3000_line.out ...
