@@ -9,13 +9,10 @@ This module is not intended to be executed. It stores only functions.
 '''
 
 import sys
-
+import numpy as np
 import utils.bpm
 import helper
-import numpy as np
-
 exist_curve_fit = True
-
 try:
     from scipy.optimize import curve_fit
 except ImportError:

@@ -29,16 +29,6 @@ import utils.bpm
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 
-
-
-#===================================================================================================
-# helper-functions
-#===================================================================================================
-
-
-
-#-------------------------
-
 def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
     tp = 2.0*np.pi
     a1 = complex(1.0,-tan(tp*delta))

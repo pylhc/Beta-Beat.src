@@ -5,9 +5,7 @@ Created on 13/06/18
 
 :author: Jaime Coello de Portugal
 
-
-GetLLM.algorithms.interaction_point.py stores helper functions for phase calculations for GetLLM.
-This module is not intended to be executed. It stores only functions.
+It computes beta* from phase.
 """
 from os.path import join
 from numpy import sqrt, sin, cos, tan, pi

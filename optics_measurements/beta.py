@@ -23,8 +23,7 @@ import pandas as pd
 from scipy.linalg import circulant
 from constants import PI, TWOPI
 from model.accelerators.accelerator import AccExcitationMode
-from utils import tfs_pandas
-from utils import logging_tools
+from utils import tfs_pandas, logging_tools
 
 __version__ = "2018.7.a"
 

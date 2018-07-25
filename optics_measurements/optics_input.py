@@ -25,7 +25,6 @@ class OpticsInput(object):
         "orbit_unit": "mm",
         "range_of_bpms": 11,
         "beta_model_cut": 0.15,
-        "sequential": False,
         "union": False,
         "nonlinear": False,
         "three_bpm_method": False,
@@ -41,7 +40,6 @@ class OpticsInput(object):
         self.orbit_unit = OpticsInput.DEFAULTS["orbit_unit"]
         self.range_of_bpms = OpticsInput.DEFAULTS["range_of_bpms"]
         self.beta_model_cut = OpticsInput.DEFAULTS["beta_model_cut"]
-        self.sequential = OpticsInput.DEFAULTS["sequential"]
         self.union = OpticsInput.DEFAULTS["union"]
         self.nonlinear = OpticsInput.DEFAULTS["nonlinear"]
         self.three_bpm_method = OpticsInput.DEFAULTS["three_bpm_method"]
@@ -59,7 +57,6 @@ class OpticsInput(object):
         self.orbit_unit = options.orbit_unit
         self.range_of_bpms = options.range_of_bpms
         self.beta_model_cut = options.beta_model_cut
-        self.sequential = options.sequential
         self.union = options.union
         self.nonlinear = options.nonlinear
         self.three_bpm_method = options.three_bpm_method
@@ -91,8 +88,6 @@ def _get_optics_parser(start_args=sys.argv[1:]):
     parser.add_argument("--beta_model_cut", dest="beta_model_cut", type=float,
                         default=OpticsInput.DEFAULTS["beta_model_cut"],
                         help="Set beta-beating threshold for action calculations")
-    parser.add_argument("--sequential", dest="sequential", action="store_true",
-                        default=OpticsInput.DEFAULTS["sequential"], help="Runs sequentially")
     parser.add_argument("--union", dest="union", action="store_true",
                         help="The phase per BPM is calculated from at least 3 valid measurements.")
     parser.add_argument("--nonlinear", dest="nonlinear", action="store_true",
