@@ -1,0 +1,105 @@
+title, "PSB model with tune matching for ORM; Jan 2013" ;
+
+
+ option, -echo, info,  warn;
+ 
+ 
+! call,   file = "/afs/cern.ch/user/m/mmcateer/ORM/PSB/psbMADX/psb.ele"; MEGHAN ORIGINAL
+ call,   file = "/afs/cern.ch/eng/ps/cps/Psb/2013//psb.ele";
+ call,   file = "/afs/cern.ch/eng/ps/cps/Psb/2013/psb_new.seq";
+!call,   file = "/afs/cern.ch/user/m/mmcateer/ORM/PSB/psbMADX/psb_160MeV_Q0_ring3.str"; MEGHAN ORIGINAL
+ call,   file = "/afs/cern.ch/eng/ps/cps/Psb/2013//strength/psb_extraction.str";
+
+!psb: sequence, refer=entry,  l = 157.08000;
+!  P01	     , at =   0.00000;
+!  P02	     , at =   9.81750;
+!  P03	     , at =  19.63500;
+!  P04	     , at =  29.45250;
+!  P05	     , at =  39.27000;
+!  P06	     , at =  49.08750;
+!  P07	     , at =  58.90500;
+!  P08	     , at =  68.72250;
+!  P09	     , at =  78.54000;
+!  P10	     , at =  88.35750;
+!  P11	     , at =  98.17500;
+!  P12	     , at = 107.99250;
+!  P13	     , at = 117.81000;
+!  P14	     , at = 127.62750;
+!  P15	     , at = 137.44500;
+!  P16	     , at = 147.26250;
+!endsequence;
+
+/******************************************************************************************
+ * beam, use
+ ******************************************************************************************/
+
+
+momentum = 2.14;
+
+/**** c=400 ms: ****/
+beam, particle=PROTON, pc= momentum, exn=15E-6*3.0,eyn=8E-6*3.0, sige=1.35E-3*3.0, sigt=230E-9 ;  ! 3 sigma ISOLDE type beam.
+use, sequence=psb3;
+
+set,  format="20.15f";
+
+
+EOPTION, ADD=TRUE;
+call,file="results/madCalib.dat";  
+
+/******************************************************************************************
+ * Match for measured working point (ring 1 at c=400 ms: Qx=4.207, Qy=4.279)
+ ******************************************************************************************/
+
+!MATCH,sequence=psb;
+! vary, NAME=kKFbase, step = 0.0001;
+! vary, NAME=kKDbase, step = 0.0001;
+! constraint, range=#E, MUX=4.209, MUY=4.270;
+! lmdif, calls = 10000, tolerance = 1.0E-21;
+!ENDMATCH;
+
+! Print results on file: match_extraction.prt
+!assign, echo="./match_extraction.prt";
+!print, text="match_extraction";
+!value,  kKFbase;
+!value,  kKDbase;
+!assign, echo=terminal;
+
+/************************************************************
+ * MAD uses pt as the 5th variable NOT delta-p.
+ * The result is that all derivatives are with repect to pt.
+ * This is the reason for the non-standard dispersion values
+ * for non-relativistic machines, like the PSB
+ * Ax and Ay are the apertures in number of sigmas
+ ************************************************************/
+ beta=sqrt(1-1/beam->gamma^2);
+ 
+ dispx := beta*table(twiss,dx); ! Delta_x=dispx*Delta_p/p;
+ dispy := beta*table(twiss,dy); ! Delta_y=dispy*Delta_p/p;
+
+!call,file="/afs/cern.ch/user/m/mmcateer/ORM/PSB/psbMADX/alignment_afterLS1_ring3.dat";
+select,flag=error,clear;
+select,flag=error, pattern="UES";
+select,flag=error, pattern="QFO";
+select,flag=error, pattern="QDE";
+select,flag=error, pattern="BHZ";
+esave, file=errors.out;
+
+call, file='changeparametersORM';
+
+show, BR.QFO11;
+show, BR.QDE1;
+
+select, flag=twiss, clear;
+select, flag=twiss, pattern="UES",column=name,s,hkick, vkick,x,y,k1L,betx,bety,mux,muy,dispx,dispy;
+select, flag=twiss, pattern="DHZ";
+select, flag=twiss, pattern="DVT";
+select, flag=twiss, pattern="QFO11";
+twiss, centre,sequence=psb3, file="twiss.orbit.dat";
+
+select, flag=twiss, clear;
+select, flag=twiss, column=name,s,x,y,angle,k0L,k1L,k1SL,k2L,betx,bety,mux,muy,Hkick,Vkick,dispx,dispy,tilt,R11,R12,R21,R22;
+twiss, centre,sequence=psb3, file="twiss.all.dat";
+
+
+stop;
+
