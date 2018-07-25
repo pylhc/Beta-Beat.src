@@ -16,6 +16,23 @@ TYPES = "$"
 COMMENTS = "#"
 INDEX_ID = "INDEX&&&"
 
+FLOAT_PARENTS = (float, np.floating)
+INT_PARENTS = (int, np.integer, bool, np.bool_)
+
+
+class TypeToIdConverter(object):
+    """ For symmetry reasons. """
+    def __getitem__(self, item):
+        if issubclass(item, INT_PARENTS):
+            return "%d"
+        elif issubclass(item, FLOAT_PARENTS):
+            return "%le"
+        else:
+            return "%s"
+
+
+TYPE_TO_ID = TypeToIdConverter()
+
 ID_TO_TYPE = {
     "%s": np.str,
     "%bpm_s": np.str,
@@ -23,14 +40,6 @@ ID_TO_TYPE = {
     "%f": np.float64,
     "%hd": np.int,
     "%d": np.int,
-}
-
-TYPE_TO_ID = {
-    np.str: "%s",
-    np.float64: "%le",
-    float: "%le",
-    np.int: "%d",
-    np.bool_: "%le",
 }
 
 
@@ -186,10 +195,12 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
             pass
 
     for head_name in headers_dict:
-        if type(headers_dict[head_name]) is str:
-            tfs_writer.add_string_descriptor(head_name, headers_dict[head_name])
-        else:
+        if isinstance(headers_dict[head_name], INT_PARENTS):
+            tfs_writer.add_int_descriptor(head_name, headers_dict[head_name])
+        elif isinstance(headers_dict[head_name], FLOAT_PARENTS):
             tfs_writer.add_float_descriptor(head_name, headers_dict[head_name])
+        else:
+            tfs_writer.add_string_descriptor(head_name, headers_dict[head_name])
     tfs_writer.add_column_names(column_names)
     tfs_writer.add_column_datatypes(column_types)
     for _, row in data_frame.iterrows():

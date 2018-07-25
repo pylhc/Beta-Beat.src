@@ -124,14 +124,19 @@ class TfsFileWriter(object):
         tfs_descriptor = _TfsDescriptor(name, str_value, _TfsDataType.get_new_string_instance())
         self.__tfs_header_lines.append(tfs_descriptor)
 
-    def add_header_line(self, str_value):
-        """ Adds the line to the tfs header. """
-        self.__tfs_header_lines.append(_TfsLine(str_value))
-
     def add_float_descriptor(self, name, float_value):
         """ Adds the string "@ <name> %le <data>" to the tfs header. """
         tfs_descriptor = _TfsDescriptor(name, float_value, _TfsDataType.get_new_float_instance())
         self.__tfs_header_lines.append(tfs_descriptor)
+
+    def add_int_descriptor(self, name, int_value):
+        """ Adds the string "@ <name> %d <data>" to the tfs header. """
+        tfs_descriptor = _TfsDescriptor(name, int_value, _TfsDataType.get_new_int_instance())
+        self.__tfs_header_lines.append(tfs_descriptor)
+
+    def add_header_line(self, str_value):
+        """ Adds the line to the tfs header. """
+        self.__tfs_header_lines.append(_TfsLine(str_value))
 
     def add_comment(self, comment):
         """
@@ -359,6 +364,7 @@ class _TfsDataType:
     """
     TYPE_STRING = "%s"
     TYPE_FLOAT = "%le"
+    TYPE_INT = "%d"
     TYPE_INVALID = None
 
     DEFAULT_PRECISION = "13"
@@ -367,7 +373,7 @@ class _TfsDataType:
         self.__type = _TfsDataType.TYPE_INVALID
 
     def set_type(self, tfs_type):
-        all_types = [_TfsDataType.TYPE_STRING, _TfsDataType.TYPE_FLOAT]
+        all_types = [_TfsDataType.TYPE_STRING, _TfsDataType.TYPE_FLOAT, _TfsDataType.TYPE_INT]
         if tfs_type not in all_types:
             raise ValueError("Invalid type" + str(tfs_type))
         else:
@@ -375,12 +381,14 @@ class _TfsDataType:
 
     @staticmethod
     def get_type_from_string(type_as_string):
-        if _TfsDataType.TYPE_STRING == type_as_string:
-            return _TfsDataType.get_new_string_instance()
-        elif _TfsDataType.TYPE_FLOAT == type_as_string:
-            return _TfsDataType.get_new_float_instance()
-        else:
-            raise ValueError("Type in string not recognized: "+type_as_string)
+        try:
+            return {
+                _TfsDataType.TYPE_STRING: _TfsDataType.get_new_string_instance,
+                _TfsDataType.TYPE_FLOAT: _TfsDataType.get_new_float_instance,
+                _TfsDataType.TYPE_INT: _TfsDataType.get_new_int_instance,
+            }[type_as_string]()
+        except KeyError:
+            raise ValueError("Type in string not recognized: {:s}".format(type_as_string))
 
     @staticmethod
     def get_new_string_instance():
@@ -394,6 +402,12 @@ class _TfsDataType:
         tfs_type.set_type(_TfsDataType.TYPE_FLOAT)
         return tfs_type
 
+    @staticmethod
+    def get_new_int_instance():
+        tfs_type = _TfsDataType()
+        tfs_type.set_type(_TfsDataType.TYPE_INT)
+        return tfs_type
+
     def get_type_as_string(self):
         return self.__type
 
@@ -405,7 +419,8 @@ class _TfsDataType:
         precision_str = self.DEFAULT_PRECISION if width is None else "{:d}".format(width-7)
         return {
             _TfsDataType.TYPE_FLOAT: " {:s}.{:s}g".format(width_str, precision_str),
-            # _TfsDataType.TYPE_FLOAT: " #{:s}.{:s}g".format(width_str, precision_str),  # python3
+            # _TfsDataType.TYPE_FLOAT: " #{:s}.{:s}g".format(width_str, precision_str),  #TODO: python3
+            _TfsDataType.TYPE_INT: " {:s}.{:s}g".format(width_str, precision_str),  #TODO: proper int?
             _TfsDataType.TYPE_STRING: "{:s}s".format(width_str),
         }[self.__type]
 
