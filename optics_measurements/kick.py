@@ -45,18 +45,18 @@ def calculate_kick(measure_input, input_files, model, mad_ac, beta_d, header_dic
         column_names_ac = column_names + ["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES",
                             "2JXSTDRES", "2JYRES", "2JYSTDRES"]
         tunes_actions_ac = _getkick(input_files, _get_model_arc_betas(measure_input, mad_ac), ac=True)
-        x, y = beta_d.x_ratio, beta_d.y_ratio
-        kick_frame_ac = pd.DataFrame(data=np.hstack((tunes_actions_ac, tunes_actions_ac[:,9:] /
-                                                     np.array([np.sqrt(x), np.sqrt(x), np.sqrt(y), np.sqrt(y), x, x, y, y ]))), columns=column_names_ac)
+        x, y = beta_d["X"], beta_d["Y"]
+        tunes_actions_ac_res = tunes_actions_ac[:, 9:] / np.array([np.sqrt(x), np.sqrt(x), np.sqrt(y), np.sqrt(y), x, x, y, y])
+        kick_frame_ac = pd.DataFrame(data=np.hstack((tunes_actions_ac, tunes_actions_ac_res)), columns=column_names_ac)
         header_ac = _get_header(header_dict, beta_d, ac=True)
-        tfs_pandas.write_tfs(join(measure_input.outputdir, header['FILENAME']), kick_frame_ac, header_ac)
+        tfs_pandas.write_tfs(join(measure_input.outputdir, header_ac['FILENAME']), kick_frame_ac, header_ac)
         actions_x, actions_y = tunes_actions_ac[:, 9:11], tunes_actions_ac[:, 11:13]
     return actions_x, actions_y
 
 
 def _get_model_arc_betas(measure_input, model):
     return model.loc[:, ['S', 'BETX', 'BETY']].loc[
-           measure_input.accelerator.get_element_types_mask(model.index, "arc_bpm"), :]
+           measure_input.accelerator.get_element_types_mask(model.index, ["arc_bpm"]), :]
 
 
 def _get_header(header_dict, beta_d, ac=False):
@@ -64,8 +64,8 @@ def _get_header(header_dict, beta_d, ac=False):
     header['COMMENT'] = "Calculates the kick from the model beta function"
     header['FILENAME'] = 'getkick' + ac * 'ac' + '.out'
     if ac:
-        header["RescalingFactor_for_X"] = beta_d.x_ratio_f
-        header["RescalingFactor_for_Y"] = beta_d.y_ratio_f
+        header["RescalingFactor_for_X"] = beta_d["X"]
+        header["RescalingFactor_for_Y"] = beta_d["Y"]
     return header
 
 
@@ -89,10 +89,13 @@ def _getkick(files, model_beta, ac):
 
 
 def _gen_kick_calc(lin, beta, plane, ac):
+    """
+    Takes either PK2PK/2 for kicker excitation or 2 * AMP for AC-dipole excitation(complex spectra)
+    """
     if ac:
         frame = pd.merge(beta, lin.loc[:, ['AMP' + plane]], how='inner', left_index=True,
                          right_index=True)
-        amps = frame.loc[:, 'AMP' + plane].values
+        amps = 2.0 * frame.loc[:, 'AMP' + plane].values  # multiplied by 2.0 due to complex spectra
     else:
         frame = pd.merge(beta, lin.loc[:, ['PK2PK']], how='inner', left_index=True, right_index=True)
         amps = frame.loc[:, 'PK2PK'].values / 2.0

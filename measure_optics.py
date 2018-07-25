@@ -79,7 +79,7 @@ def measure_optics(input_files, measure_input):
     else:
         print_time("AFTER_A_NBPM", time() - __getllm_starttime)
     try:
-        beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
+        ratio=beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
@@ -102,7 +102,7 @@ def measure_optics(input_files, measure_input):
         _tb_()
     #------ Start get Q,JX,delta
     try:
-        inv_x, inv_y = kick.calculate_kick(measure_input, input_files, mad_twiss, mad_ac, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
+        inv_x, inv_y = kick.calculate_kick(measure_input, input_files, mad_twiss, mad_ac, ratio, header_dict)
     except:
         _tb_()
     if measure_input.nonlinear:

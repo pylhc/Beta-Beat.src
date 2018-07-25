@@ -37,23 +37,23 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, b
         mad_ac = measure_input.accelerator.get_driven_tfs()
     else:
         mad_ac = mad_twiss
-
+    ratios={}
     for plane in ['X', 'Y']:
-        # column_names = ["NAME", "S", "COUNT", "BET" + plane, "BET" + plane + "STD", "BET" + plane + "MDL", "MU" + plane + "MDL", "BET" + plane + "RES", "BET" + plane + "STDRES"]
         beta_amp = beta_from_amplitude(measure_input, input_files, mad_ac, plane)
-        beta_amp['DPP'] = 0
         ratio = pd.merge(beta_phase[plane].loc[:, ['BET' + plane]], beta_amp.loc[:, ['BET' + plane]], how='inner', left_index=True, right_index=True, suffixes=('phase','amp'))
         ratio['Ratio'] = ratio.loc[:, 'BET' + plane + 'phase'].values / ratio.loc[:, 'BET' + plane + 'amp'].values
-        #mask = (ratio.loc[:, 'BET' + plane + 'phase'].values > 0) & (ratio.loc[:, 'BET' + plane + 'amp'].values > 0.0) & (0.1 < np.abs(ratio.loc[:, 'Ratio'].values) < 10.0) & (measure_input.accelerator.get_element_types_mask(ratio.index, "arc_bpm"))
-        x_ratio = np.mean(ratio.loc[:,'Ratio'].values)  # over good arc bpms : both betas positive abs(beta_phase / beta_amp)<100
+        mask = np.array(0.1 < np.abs(ratio.loc[:, 'Ratio'].values)) & np.array(np.abs(ratio.loc[:, 'Ratio'].values) < 10.0) & np.array(measure_input.accelerator.get_element_types_mask(ratio.index, ["arc_bpm"]))
+        x_ratio = np.mean(ratio.loc[mask,'Ratio'].values)
         beta_amp['BET' + plane + 'RES'] = beta_amp.loc[:, 'BET' + plane] * x_ratio
         beta_amp['BET' + plane + 'STDRES'] = beta_amp.loc[:, 'BET' + plane + 'STD'] * x_ratio
         header_d = _get_header(header_dict, tune_d, np.std(beta_amp.loc[:, 'DELTABET' + plane].values), x_ratio, 'getampbeta' + plane.lower() + '.out', free=False)
         tfs_pandas.write_tfs(join(measure_input.outputdir, header_d['FILENAME']), beta_amp, header_d, save_index='NAME')
+        ratios[plane] = x_ratio
         # -- ac to free amp beta
+
         if measure_input.accelerator.excitation is not AccExcitationMode.FREE:
             beta_amp_f = beta_from_amplitude(measure_input, input_files, mad_ac, plane, (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]))
-            x_ratio_f = x_ratio  #  np.mean(beta_phase[plane] / beta_amp)  # over good arc bpms : both betas positive, 0.1 < abs(beta_phase / beta_amp)<10
+            x_ratio_f = x_ratio
             header_f = _get_header(header_dict, tune_d, np.std(beta_amp_f.loc[:, 'DELTABET' + plane].values), x_ratio_f, 'getampbeta' + plane.lower() + '_free.out', free=True)
 
             beta_amp_f['BET' + plane + 'RES'] = beta_amp_f.loc[:, 'BET' + plane] * x_ratio_f
@@ -66,6 +66,7 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, b
             header_f2 = _get_header(header_dict, tune_d, np.std(beta_amp_f2.loc[:, 'DELTABET' + plane].values), x_ratio,
                                        'getampbeta' + plane.lower() + '_free2.out', free=True)
             tfs_pandas.write_tfs(join(measure_input.outputdir, header_f2['FILENAME']), beta_amp_f2, header_f2)
+    return ratios
 
 
 def _get_free_amp_beta(df_meas,  mad_ac, mad_twiss, plane):
@@ -95,8 +96,7 @@ def beta_from_amplitude(meas_input, input_files, model, plane, compensate=None):
         phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] - driven_tune
         for_sqrt2j = input_files.get_data(df_amp_beta, 'AMP' + plane) / np.sqrt(
             df_amp_beta.loc[:, 'BET' + plane + 'MDL'].values[:, np.newaxis])
-        sqrt2j = np.mean(for_sqrt2j, axis=0) # TODO after merge from master
-        #sqrt2j = np.mean(for_sqrt2j[meas_input.accelerator.get_element_types_mask(df_amp_beta.index, "arc_bpm")], axis=0)
+        sqrt2j = np.mean(for_sqrt2j[meas_input.accelerator.get_element_types_mask(df_amp_beta.index, ["arc_bpm"])], axis=0)
         betall = (np.square(
             (input_files.get_data(df_amp_beta, 'AMP' + plane).T / sqrt2j[:, np.newaxis]).T) *
                   (1 + r ** 2 + 2 * r * np.cos(4 * np.pi * phases_meas)) / (1 - r ** 2))
