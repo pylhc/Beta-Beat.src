@@ -181,10 +181,6 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     tfs_writer = tfs_file_writer.TfsFileWriter(tfs_name, outputpath=tfs_dir)
     column_names = _get_column_names(data_frame)
     column_types = _get_column_types(data_frame)
-
-    print("Column Names: {:s}".format(str(column_names)))
-    print("Column Types: {:s}".format(str(column_types)))
-
     if len(headers_dict) == 0:
         try:
             headers_dict = data_frame.headers
