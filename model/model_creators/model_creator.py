@@ -9,6 +9,8 @@ class ModelCreator(object):
 
     @classmethod
     def create_model(creator, instance, output_path, **kwargs):
+        LOGGER.info("instance name <%s>", instance.NAME)
+        
         instance.verify_object()
         madx_script = creator.get_madx_script(
             instance,

@@ -5,8 +5,10 @@ GitPython>=2.1.8
 pytest>=3.2.1
 hypothesis>=3.23.0
 matplotlib>=1.5.3
+scikit-learn >= 0.19.1
 Sphinx>=1.6.7
 sphinx-rtd-theme>=0.2.4
 travis-sphinx>=2.1.0
-
-
+pytimber >= 2.6.2
+pytz>=2018.4
+PyYAML>=3.12

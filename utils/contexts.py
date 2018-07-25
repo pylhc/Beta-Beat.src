@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import os
 import time
@@ -46,7 +47,14 @@ def suppress_warnings(warning_classes):
         yield
     for w in warn_list:
         if not issubclass(w.category, warning_classes):
-            warnings.warn(w)
+            print("{file:s}:{line:d}: {clas:s}: {message:s}".format(
+                file=w.filename,
+                line=w.lineno,
+                clas=w._category_name,
+                message=w.message.message,
+            ),
+                file=sys.stderr
+            )
 
 
 @contextmanager
@@ -74,6 +82,7 @@ def temporary_file_path(content="", suffix="", prefix="", text=True):
 
 @contextmanager
 def suppress_exception(exception):
+    """ Catch exception and ignore it. """
     try:
         yield
     except exception:

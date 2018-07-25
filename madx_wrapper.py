@@ -15,6 +15,9 @@ import optparse
 import contextlib
 from tempfile import mkstemp
 
+from utils import logging_tools
+LOG = logging_tools.get_logger(__name__)
+
 LIB = abspath(join(dirname(__file__), "madx", "lib"))
 if "darwin" in sys.platform:
     MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-macosx64-intel"))
@@ -89,10 +92,12 @@ def resolve_and_run_string(input_string, output_file=None, log_file=None,
 
 def _run(full_madx_script, log_file=None, output_file=None, madx_path=MADX_PATH, cwd=None):
     """ Starts the madx-process """
-    with _logfile_wrapper(log_file) as log_output, _madx_input_wrapper(full_madx_script, output_file) as madx_jobfile:
+    with _madx_input_wrapper(full_madx_script, output_file) as madx_jobfile:
         process = subprocess.Popen([madx_path, madx_jobfile], shell=False,
-                                   stdin=subprocess.PIPE,
-                                   stdout=log_output, stderr=log_output, cwd=cwd)
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd)
+        with _logfile_wrapper(log_file) as log_handler, process.stdout:
+            for line in iter(process.stdout.readline, b''):
+                log_handler(line)
         status = process.wait()
 
     if status:
@@ -150,12 +155,21 @@ def _check_log_and_output_files(output_file, log_file):
 
 @contextlib.contextmanager
 def _logfile_wrapper(file_path=None):
-    """ Returns opened file stream to file_path if given or stdout """
+    """ Logs into file and debug if file is given, into info otherwise """
     if file_path is None:
-        yield sys.stdout
+        def log_handler(line):
+            line = line.rstrip()
+            if len(line):
+                LOG.info(line)
+        yield log_handler
     else:
         with open(file_path, "w") as log_file:
-            yield log_file
+            def log_handler(line):
+                log_file.write(line)
+                line = line.rstrip()
+                if len(line):
+                    LOG.debug(line)
+            yield log_handler
 
 
 @contextlib.contextmanager

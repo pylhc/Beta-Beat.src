@@ -36,6 +36,10 @@ class DotDict(dict):
         except KeyError as e:
             raise AttributeError(e)  # TODO: Adapt traceback to not link here (Python3 does that?)
 
+    def get_subdict(self, keys, strict=True):
+        """ See get_subdict in dict_tools. """
+        return get_subdict(self, keys, strict)
+
 
 def print_dict_tree(dictionary, name='Dictionary'):
     """ Prints a dictionary as a tree """
@@ -58,6 +62,23 @@ def print_dict_tree(dictionary, name='Dictionary'):
 
     LOG.info('{:s}:'.format(name))
     print_tree(dictionary, '')
+
+
+def get_subdict(full_dict, keys, strict=True):
+    """ Returns a sub-dictionary of ``full_dict`` containing only keys of ``keys``.
+
+    Args:
+        full_dict: Dictionary to extract from
+        keys: keys to extract
+        strict: If false it ignores keys not in full_dict. Otherwise it crashes on those.
+                Default: True
+
+    Returns: Extracted sub-dictionary
+
+    """
+    if strict:
+        return {k: full_dict[k] for k in keys}
+    return {k: full_dict[k] for k in keys if k in full_dict}
 
 
 # Dict Parser ##################################################################
@@ -436,9 +457,17 @@ class DictParser(object):
         def evaluate(name, item):
             try:
                 return eval(item)  # sorry for using that
-            except NameError:
+            except (NameError, SyntaxError):
                 raise ArgumentError(
                     "Could not evaluate argument '{:s}', unknown '{:s}'".format(name, item))
+
+        def eval_type(my_type, item):
+            if issubclass(my_type, basestring):
+                return my_type(item.strip("\'\""))
+            if issubclass(my_type, bool):
+                return bool(eval(item))
+            else:
+                return my_type(item)
 
         out = {}
         for name, value in items:
@@ -450,9 +479,9 @@ class DictParser(object):
                     value = evaluate(name, value)
                     if arg.subtype:
                         for idx, entry in enumerate(value):
-                            value[idx] = arg.subtype(entry)
+                            value[idx] = eval_type(arg.subtype, entry)
                 elif arg.type:
-                    value = arg.type(value)
+                    value = eval_type(arg.type, value)
                 else:
                     value = evaluate(name, value)
                 out[name] = value

@@ -161,6 +161,7 @@ class EntryPoint(object):
         """ Creates the config-file argument parser """
         parser = ArgumentParser()
         parser.add_argument('--{}'.format(ID_CONFIG), type=str, dest=ID_CONFIG, required=True,)
+        parser.add_argument('--{}'.format(ID_SECTION), type=str, dest=ID_SECTION,)
         return parser
 
     def _create_argument_parser(self):

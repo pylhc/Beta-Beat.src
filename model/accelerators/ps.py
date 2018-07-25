@@ -374,16 +374,31 @@ class Ps(Accelerator):
     def get_nominal_tmpl(cls):
         return os.path.join(PS_DIR, "nominal.madx")
 
-    
     def get_ps_dir(self):
         #print('Year of the optics', self.year_opt)
         return os.path.join(PS_DIR,str(self.year_opt));
 
     @classmethod
-    def get_arc_bpms_mask(cls, list_of_elements):
+    def get_element_types_mask(cls, list_of_elements, types):
         # TODO: Anaaaaaa
-        pass
-    
+        raise NotImplementedError("Anaaaaa!")
+        re_dict = {
+            "bpm": r".*",
+            "magnet": r".*",
+            "arc_bpm": r".*",
+        }
+
+        unknown_elements = [ty for ty in types if ty not in re_dict]
+        if len(unknown_elements):
+            raise TypeError("Unknown element(s): '{:s}'".format(str(unknown_elements)))
+
+        series = pd.Series(list_of_elements)
+
+        mask = series.str.match(re_dict[types[0]], case=False)
+        for ty in types[1:]:
+            mask = mask | series.str.match(re_dict[ty], case=False)
+        return mask.values
+
     @classmethod
     def get_iteration_tmpl(cls):
         return cls.get_file("template.iterate.madx")

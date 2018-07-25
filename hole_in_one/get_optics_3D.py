@@ -172,7 +172,7 @@ def get_arc_bpms(model_twiss, bpm_names):  # twiss_ac, intersected BPM names
     model_twiss.set_index("NAME", inplace=True)
     sequence = model_twiss.headers["SEQUENCE"].lower().replace("b1", "").replace("b2", "")
     AccelClass = manager.get_accel_class(accel=sequence)
-    arc_bpms_mask = AccelClass.get_arc_bpms_mask(bpm_names)
+    arc_bpms_mask = AccelClass.get_element_types_mask(bpm_names, types=["arc_bpm"])
     arc_bpm_names = bpm_names[arc_bpms_mask]
     return arc_bpm_names
 

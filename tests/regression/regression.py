@@ -2,18 +2,17 @@ from __future__ import print_function
 import sys
 import os
 import subprocess
+import time
 import traceback
-import contextlib
 import tempfile
 import shutil
 from cStringIO import StringIO
 from collections import namedtuple
 import re
 import git
+import yaml
 
 
-_THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-_TEST_REGEXP = "^test_.*$"
 _PYTHON = sys.executable
 
 
@@ -41,23 +40,32 @@ class TestCase(namedtuple(
     __slots__ = ()  # This makes the class lightweight and immutable.
 
 
-def launch_test_set(test_cases, repo_path, tag_regexp=_TEST_REGEXP):
+def launch_test_set(test_cases, repo_path,
+                    yaml_conf=None, tag_regexp=None,
+                    keep_fails=False):
     """
     """
-    test_tag = find_tag(repo_path, tag_regexp)
-    print("Testing against tag \"{tag}\":\n"
-          "    -> {tag.commit.summary} ({tag.commit.hexsha})"
-          .format(tag=test_tag))
+    _print_sep("Test session starts")
+    commit_hexsha = _find_commit(repo_path, yaml_conf, tag_regexp)
     result = False
-    with _temporary_dir() as new_repo_path:
-        print("Cloning repository into {}".format(new_repo_path))
-        clone_revision(repo_path, test_tag.commit.hexsha, new_repo_path)
-        result = find_regressions(test_cases, new_repo_path, repo_path)
+    try:
+        with Timer() as regression_timer:
+            new_repo_path = tempfile.mkdtemp()
+            print("Cloning repository into {}".format(new_repo_path))
+            clone_revision(repo_path, commit_hexsha, new_repo_path)
+            result = find_regressions(test_cases, new_repo_path, repo_path,
+                                      keep_fails=keep_fails)
+        _print_sep("Regression finished in {:.2f}s"
+                   .format(regression_timer.get_duration()))
+    finally:
+        # Remove if dont want to keep fails or the tests succeeded.
+        if not keep_fails or result:
+            shutil.rmtree(new_repo_path)
     if not result:
         raise RegressionTestFailed()
 
 
-def find_regressions(test_cases, valid_path, test_path):
+def find_regressions(test_cases, valid_path, test_path, keep_fails=False):
     """Test the directory test_path for regressions against valid_path.
 
     It will print the results of each regression search test case in test_path,
@@ -69,16 +77,19 @@ def find_regressions(test_cases, valid_path, test_path):
         test_cases: an iterable of TestCase to test the test_path.
         valid_path: Path to the reference directory to test against.
         test_path: Path to the directory to be tested for regressions.
+        keep_fails: If true, it will not remove the test directories.
     """
     results = []
-    print("Testing...: ", end="")
+    summary = "Testing...: "
     sys.stdout.flush()
     for test_case in test_cases:
-        result = run_test_case(test_case, valid_path, test_path)
+        _print_over_current_line("{} (running: '{}')".format(summary, test_case.name))
+        result = run_test_case(test_case, valid_path, test_path,
+                               keep_fails=keep_fails)
         results.append(result)
-        print(result.get_microsummary(), end="")
-        sys.stdout.flush()
-    print("\n\n################### Test results ###################")
+        summary += result.get_microsummary()
+    _print_over_current_line("{}\n\n".format(summary))
+    _print_sep("Test results")
     report = ""
     for result in results:
         report += result.get_full_summary()
@@ -86,7 +97,7 @@ def find_regressions(test_cases, valid_path, test_path):
     return all([result.is_success for result in results])
 
 
-def run_test_case(test_case, valid_path, test_path):
+def run_test_case(test_case, valid_path, test_path, keep_fails=False):
     """Launch single test_case and compare the results.
 
     Runs the given test, comparing the repositories at valid_path against
@@ -97,6 +108,7 @@ def run_test_case(test_case, valid_path, test_path):
         test_case: The test case to run.
         valid_path: The reference directory to compare against.
         test_path: The test directory to check for regressions.
+        keep_fails: If true, it will not remove the test directories.
     Returns:
         TODO
     """
@@ -104,15 +116,22 @@ def run_test_case(test_case, valid_path, test_path):
     test_script = os.path.join(test_path, test_case.script)
     valid_outpath = os.path.join(valid_path, test_case.output)
     test_outpath = os.path.join(test_path, test_case.output)
-    try:
+
+    with Timer() as test_timer:
         if test_case.pre_hook:
             test_case.pre_hook(valid_path)
             test_case.pre_hook(test_path)
         valid_result = _launch_command(valid_path, valid_script, test_case.arguments)
         test_result = _launch_command(test_path, test_script, test_case.arguments)
-        result = TestResult(test_case, valid_result, test_result,
-                            valid_outpath, test_outpath)
-    finally:
+    result = TestResult(test_case, valid_result, test_result,
+                        valid_outpath, test_outpath, test_timer.get_duration())
+
+    if keep_fails and not result.is_success:
+        print ("")
+        print ("Test failed, keeping output files: ")
+        print ("  	valid_outpath = < %s > " % valid_outpath)
+        print ("  	test_outpath  = < %s > " % test_outpath)
+    else:
         _remove_if_exists(valid_outpath)
         _remove_if_exists(test_outpath)
     return result
@@ -145,6 +164,24 @@ def clone_revision(source, revision, to_path):
     return new_repo
 
 
+def _find_commit(repo, yaml_conf, tag_regexp):
+    repo = _force_repo(repo)
+    if yaml_conf and tag_regexp:
+        raise TestError("Only one of yaml_conf or tag_regexp is allowed.")
+    if yaml_conf:
+        commit = commit_from_yaml(repo, yaml_conf)
+        print("Testing against commit: {commit.summary} ({commit.hexsha})"
+              .format(commit=commit))
+        return commit.hexsha
+    if tag_regexp:
+        test_tag = find_tag(repo, tag_regexp)
+        print("Testing against tag \"{tag}\":\n"
+              "    -> {tag.commit.summary} ({tag.commit.hexsha})"
+              .format(tag=test_tag))
+        return test_tag.commit.hexsha
+    raise TestError("No yaml_conf or tag_regexp given.")
+
+
 def find_tag(repo, tag_regexp):
     """Returns the most recent git tag that matches a regular expression.
 
@@ -167,6 +204,37 @@ def find_tag(repo, tag_regexp):
     raise TestError("Can't find a tag that matches {}".format(tag_regexp))
 
 
+def commit_from_yaml(repo, yaml_conf):
+    """Returns the commit object configured in yaml_conf.
+
+    Reads the YAML file at 'yaml_conf', searches for a 'regression' category
+    and a ref_commit under it, containing the hash of a commit in 'repo' and
+    return the associated commit object.
+
+    Arguments:
+        repo: The Repo object, url or path to use.
+        yaml_conf: The path to the configuration YAML file.
+    Returns:
+        The commit associated with the hash given in yaml_conf.
+    Raises:
+        TestError: If no 'regression' category or 'ref_commit' is found in the
+            YAML file.
+        ValueError: If the given commit hash is not in the repository.
+    """
+    repo = _force_repo(repo)
+    with open(yaml_conf, "r") as yaml_file:
+        yaml_data = yaml.load(yaml_file)
+    try:
+        strhash = yaml_data["regression"]["ref_commit"]
+    except KeyError:
+        raise TestError(
+            "Unable to find 'ref_commit' under 'regression' in file {}"
+            .format(yaml_conf)
+        )
+    commit = repo.commit(strhash)
+    return commit
+
+
 class TestError(Exception):
     """Raised when an error in the test configuration happens.
     """
@@ -181,18 +249,24 @@ class TestResult(object):
     RunResult = namedtuple("RunResult", ("stdout", "stderr", "raised"))
 
     def __init__(self, test_case,
-                 valid_result, test_result, valid_output, test_output):
+                 valid_result, test_result, valid_output, test_output, duration=None):
         self.test_case = test_case
         self.valid_result = valid_result
         self.test_result = test_result
         self.valid_output = valid_output
         self.test_output = test_output
+        self.duration = duration
         self._compare_stdout = None
         self._compare_stderr = None
         self._compare_error = None
         self.is_exception = self.valid_result.raised or self.test_result.raised
         self.is_regression = self._check_regression()
         self.is_success = not self.is_exception and not self.is_regression
+
+    def get_name(self):
+        """Returns the name of the test case.
+        """
+        return self.test_case.name
 
     def get_microsummary(self):
         """Returns a small summary: . -> success, F -> failed, E -> error.
@@ -226,7 +300,10 @@ class TestResult(object):
             if self._compare_stderr != "":
                 report += "Error output:\n{}\n".format(self._compare_stderr)
         else:
-            report += "succeeded\n"
+            report += "succeeded"
+            if self.duration is not None:
+                report += " ({:.2f}s)".format(self.duration)
+            report += "\n"
         report += "\n"
         return report
 
@@ -285,10 +362,34 @@ def _remove_if_exists(dir_path):
         shutil.rmtree(dir_path)
 
 
-@contextlib.contextmanager
-def _temporary_dir():
-    try:
-        dir_path = tempfile.mkdtemp()
-        yield dir_path
-    finally:
-        shutil.rmtree(dir_path)
+def _print_sep(text=None, length=80):
+    if text is None:
+        print("=" * length)
+    else:
+        left_len = (length - len(text) - 2)/2
+        right_len = length - left_len - len(text) - 2
+        print("=" * left_len + " " + text + " " + "=" * right_len)
+
+
+def _print_over_current_line(text):
+    print("\r" + " " * 200, end="")  # clear line
+    print("\r{}".format(text), end="")
+    sys.stdout.flush()
+
+
+# Contexts ####################################################################
+
+
+class Timer(object):
+    def __enter__(self):
+        self.start = time.time()
+        self.finish = None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.finish = time.time()
+
+    def get_duration(self):
+        if self.finish is None:
+            return time.time() - self.start
+        return self.finish - self.start

@@ -35,26 +35,27 @@ class Accelerator(object):
         Accelerator.__raise_definition_error()
 
     @classmethod
-    def get_bpms_around_acd(available_bpm_list, model_twiss, exciter="acd"):
-        """
-        It will return the two best BMPs to use for exciter specified
-        in compensation.
-        """
-        Accelerator.__raise_definition_error()
-
-    @classmethod
-    def get_arc_bpms_mask(list_of_elements):
-        """
-        It will return a mask to filter with the elements of @list_of_elements
-        so that only arc BPMs remains.
-        """
-        Accelerator.__raise_definition_error()
-
-    @classmethod
     def get_correctors_variables(cls, frm=None, to=None, classes=None):
         """
         Returns the set of corrector variables between frm and to, with classes
         in classes. None means select all.
+        """
+        Accelerator.__raise_definition_error()
+
+    @classmethod
+    def get_element_types_mask(cls, list_of_elements, types):
+        """
+        Return boolean mask for elements in list_of_elements that belong
+        to any of the specified types.
+        Needs to handle: "bpm", "magnet", "arc_bpm"
+
+        Args:
+            list_of_elements: List of elements
+            types: Kinds of elements to look for
+
+        Returns:
+            Boolean array of elements of specified kinds.
+
         """
         Accelerator.__raise_definition_error()
 
@@ -74,7 +75,7 @@ class Accelerator(object):
             has been called, check stack trace."""
         )
         
-    # For GetLLM -------------------------------------------
+    # For GetLLM #############################################################
     
     def get_exciter_bpm(self, plane, distance):
         """
@@ -113,7 +114,7 @@ class Accelerator(object):
 
     def get_elements_tfs(self):
         """
-        Returns theelements tfs file.
+        Returns the elements tfs file.
         """
         Accelerator.__raise_definition_error()
         
@@ -123,26 +124,80 @@ class Accelerator(object):
         """
         Accelerator.__raise_definition_error()
 
+    def get_k_first_BPM(self, list_of_bpms):
+        """
+        Returns the position of something in list_of_bpms TODO: ASK ANDREAS
+        """
+        Accelerator.__raise_definition_error()
+
     def get_errordefspath(self):
         Accelerator.__raise_definition_error()
 
-        
     def set_errordefspath(self, path):
         # TODO: Jaime, are there virtual members for python base classes?
         Accelerator.__raise_definition_error()
 
+    # Templates ##############################################################
 
-    def get_amp_bpms(self, common_bpms):
+    @classmethod
+    def get_nominal_tmpl(cls):
         """
-        Returns all BPMs that should be used for beta_from_amplitude and are in common_bpms.
+        Returns template for nominal model (Model Creator)
         """
         Accelerator.__raise_definition_error()
 
+    # LHC only so far: (put it here because mentioned in creator.py)
+    # @classmethod
+    # def get_best_knowledge_tmpl(cls):
+    #     """
+    #     Returns template for best knowledge model
+    #     """
+    #     Accelerator.__raise_definition_error()
+    #
+    # @classmethod
+    # def get_coupling_tmpl(cls):
+    #     """
+    #     Returns template for model for coupling correction
+    #     """
+    #     Accelerator.__raise_definition_error()
+    #
+    # @classmethod
+    # def get_segment_tmpl(cls):
+    #     """
+    #     Returns template for segment model
+    #     """
+    #     Accelerator.__raise_definition_error()
+
     @classmethod
     def get_iteration_tmpl(cls):
-        return cls.get_file("template.iterate.madx")
+        """
+        Returns template to create fullresponse.
+        TODO: only in _prepare_fullresponse in creator! Needs to be replaced by get_basic_seq
+        """
+        Accelerator.__raise_definition_error()
 
-    ###########################################################
+    # Jobs ###################################################################
+
+    def get_update_correction_job(self, tiwss_out_path, corrections_file_path):
+        """
+        Returns job (string) to create an updated model from changeparameters input
+        (used in iterative correction).
+        """
+        Accelerator.__raise_definition_error()
+
+    def get_basic_seq_job(self):
+        """
+        Returns job (string) to create the basic accelerator sequence.
+        """
+        Accelerator.__raise_definition_error()
+
+    def get_multi_dpp_job(self, dpp_list):
+        """
+        Returns job (string) for model with multiple dp/p values (in W-Analysis)
+        """
+        Accelerator.__raise_definition_error()
+
+    ##########################################################################
 
 
 class Variable(object):
@@ -177,7 +232,19 @@ class AcceleratorDefinitionError(Exception):
 
     ###########################################################
 
+
 def get_commonbpm(key1, key2, commonbpms):
+    """ Returns index and bpm name of key1, if found. Otherwise of key2.
+    Raises KeyError if none is found.
+    TODO: @Andreas, does that need to be here? Also why not use pythonic ways?
+
+    try:
+        return list(commonbpms).index(key1), key1
+    except ValueError:
+        return list(commonbpms).index(key2), key2
+
+    (try-except around the second return for raising KeyError with message)
+    """
     i2 = -1
     for i, bpm in enumerate(commonbpms.index):
         if bpm == key1:

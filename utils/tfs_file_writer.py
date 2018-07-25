@@ -66,9 +66,9 @@ class TfsFileWriter(object):
     all the content formatted at once by calling the write function.
     """
 
-    DEFAULT_COLUMN_WIDTH = 17
+    DEFAULT_COLUMN_WIDTH = 20
     # Indicates width of columns in output file.
-    MIN_COLUMN_WIDTH = 4
+    MIN_COLUMN_WIDTH = 10
 
     @staticmethod
     def open(file_name):
@@ -210,23 +210,23 @@ class TfsFileWriter(object):
 
     def __write_formatted_table(self, lines):
         """ Writes the table of this object formatted to file. """
-        line_len = len(self.__tfs_table.get_column_names())
-        format_for_data = " ".join("{" + str(i) + ":>" + str(self.__column_width) + "}"
-                                   for i in range(line_len))
+        list_column_types = self.__tfs_table.get_column_data_types()
+        list_column_names = self.__tfs_table.get_column_names()
+
+        format_for_titles = self.__get_column_formatter(list_column_names, with_type=False)
+        format_for_data = self.__get_column_formatter(list_column_types, with_type=True)
 
         # Write column names
-        list_column_names = self.__tfs_table.get_column_names()
-        str_column_names = "* " + format_for_data.format(*list_column_names)[2:]
+        str_column_names = "* " + format_for_titles.format(*list_column_names)
         lines.append(str_column_names)
 
         # Write column types
-        list_column_types = self.__tfs_table.get_column_data_types()
-        str_column_types = "$ " + format_for_data.format(*list_column_types)[2:]
+        str_column_types = "$ " + format_for_titles.format(*list_column_types)
         lines.append(str_column_types)
 
         # Write table lines
         for table_line in self.__tfs_table.get_data_rows():
-            formatted_line = format_for_data.format(*table_line)
+            formatted_line = "  " + format_for_data.format(*table_line)
             lines.append(formatted_line)
 
     def __write_unformatted_table(self, lines):
@@ -234,6 +234,17 @@ class TfsFileWriter(object):
         lines.append("$ " + " ".join(self.__tfs_table.get_column_data_types()))
         for row in self.__tfs_table.get_data_rows():
             lines.append(" ".join(str(entry) for entry in row))
+
+    def __get_column_formatter(self, list_of_names, with_type):
+        def type_fmt(s):
+            if with_type:
+                return _TfsDataType.get_type_from_string(
+                    s).get_type_as_python_format(self.__column_width)
+            return "{:d}".format(self.__column_width)
+
+        return " ".join("{" + "{:d}:>".format(indx) + type_fmt(ctype) + "}"
+                        for indx, ctype in enumerate(list_of_names)
+                        )
 
 
 class _TfsHeaderLine(object):
@@ -350,6 +361,8 @@ class _TfsDataType:
     TYPE_FLOAT = "%le"
     TYPE_INVALID = None
 
+    DEFAULT_PRECISION = "13"
+
     def __init__(self):
         self.__type = _TfsDataType.TYPE_INVALID
 
@@ -383,6 +396,18 @@ class _TfsDataType:
 
     def get_type_as_string(self):
         return self.__type
+
+    def get_type_as_python_format(self, width=None):
+        """ http://mad.web.cern.ch/mad/madx.old/Introduction/tfs_columns.html#table """
+        width_str = "" if width is None else "{:d}".format(width)
+        # precision needs usually 7 digits less then total length, e.g. "-0.'precision'e-000"
+
+        precision_str = self.DEFAULT_PRECISION if width is None else "{:d}".format(width-7)
+        return {
+            _TfsDataType.TYPE_FLOAT: " {:s}.{:s}g".format(width_str, precision_str),
+            # _TfsDataType.TYPE_FLOAT: " #{:s}.{:s}g".format(width_str, precision_str),  # python3
+            _TfsDataType.TYPE_STRING: "{:s}s".format(width_str),
+        }[self.__type]
 
     def is_value_valid(self, value):
         if _TfsDataType.TYPE_STRING == self.__type:

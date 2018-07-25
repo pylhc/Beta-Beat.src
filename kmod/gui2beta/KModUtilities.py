@@ -177,6 +177,24 @@ def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_f
     return label, resb[0], stdb, resw[0], stdw, resbavf[0], stdbavf, resbavd[0], stdbavd
 
 
+def phase_adv_from_kmod(lstar, betastar, ebetastar, waist, ewaist):
+    return _phase_adv_from_kmod_value(lstar, betastar, waist),\
+           _phase_adv_from_kmod_err(lstar, betastar, ebetastar, waist, ewaist)
+
+
+def _phase_adv_from_kmod_value(lstar, betastar, waist):
+    return (np.arctan((lstar - waist) / betastar) +
+            np.arctan((lstar + waist) / betastar)) / (2 * np.pi)
+
+
+def _phase_adv_from_kmod_err(lstar, betastar, ebetastar, waist, ewaist):
+    numer = (2 * lstar * (betastar ** 2 + lstar ** 2 - waist ** 2) * ebetastar) ** 2
+    numer = numer + (4 * betastar * lstar * waist * ewaist) ** 2
+    denom = (betastar ** 2 + (lstar - waist) ** 2) ** 2
+    denom = denom * (betastar ** 2 + (lstar + waist) ** 2) ** 2
+    return np.sqrt(numer / denom) / (2 * np.pi)
+
+
 def parse_args():
 
     parser = argparse.ArgumentParser()

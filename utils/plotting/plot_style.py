@@ -9,6 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from utils import tfs_pandas as tfs
+from itertools import cycle
 
 
 class ArgumentError(Exception):
@@ -121,7 +122,7 @@ _STANDARD_PARAMS = {
     u'axes.labelcolor': u'k',
     # u'axes.labelpad': 4.0,
     u'axes.labelsize': u'medium',
-    u'axes.labelweight': u'bold',
+    u'axes.labelweight': u'normal',
     u'axes.linewidth': 1.5,
     # u'axes.titlepad': 6.0,
     u'axes.titlesize': u'x-large',
@@ -134,7 +135,7 @@ _STANDARD_PARAMS = {
     u'figure.titleweight': u'normal',
     u'font.size': 15.0,
     u'font.stretch': u'normal',
-    u'font.weight': u'bold',
+    u'font.weight': u'normal',
     u'font.family': 'sans-serif',
     u'font.serif': ['Computer Modern'],
     u'grid.alpha': 1.0,
@@ -144,7 +145,7 @@ _STANDARD_PARAMS = {
     u'legend.edgecolor': u'0.8',
     u'legend.facecolor': u'inherit',
     u'legend.fancybox': True,
-    u'legend.fontsize': u'medium',
+    u'legend.fontsize': 16.,
     u'legend.framealpha': 0.8,
     u'legend.frameon': False,
     u'legend.handleheight': 0.7,
@@ -338,6 +339,37 @@ class MarkerList(object):
         return marker
 
 
+# Colors #####################################################################
+
+
+def get_mpl_color(idx=None):
+    c = [
+        '#1f77b4',  # muted blue
+        '#ff7f0e',  # safety orange
+        '#2ca02c',  # cooked asparagus green
+        '#d62728',  # brick red
+        '#9467bd',  # muted purple
+        '#8c564b',  # chestnut brown
+        '#e377c2',  # raspberry yogurt pink
+        '#7f7f7f',  # middle gray
+        '#bcbd22',  # curry yellow-green
+        '#17becf',  # blue-teal
+    ]
+    if idx is None:
+        return cycle(c)
+    return c[idx % len(c)]
+
+
+def rgb_plotly_to_mpl(rgb_string):
+    if rgb_string.startswith('#'):
+        return rgb_string
+
+    rgb_string = rgb_string.replace("rgba", "").replace("rgb", "")
+    rgb = eval(rgb_string)
+    rgb_norm = [c/255. for c in rgb]
+    return rgb_norm
+
+
 # Labels #####################################################################
 
 
@@ -348,8 +380,8 @@ _ylabels = {
     "betabeat_permile":   r'$\Delta \beta_{{{0}}} / \beta_{{{0}}} [$'u'\u2030'r'$]$',
     "dbeta":              r"$\beta'_{{{0}}} [m]$",
     "dbetabeat":          r'$1/\beta_{{{0}}} \cdot \partial\beta_{{{0}}} / \partial\delta_{{{0}}}$',
-    "norm_dispersion":    r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [m]$',
-    "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu m^{{1/2}}]$',
+    "norm_dispersion":    r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\sqrt{{m}}]$',
+    "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu \sqrt{{m}}]$',
     "phase":              r'$\phi_{{{0}}} [2\pi]$',
     "phasetot":           r'$\phi_{{{0}}} [2\pi]$',
     "phase_milli":        r'$\phi_{{{0}}} [2\pi\cdot10^{{-3}}]$',

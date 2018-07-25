@@ -1,5 +1,9 @@
 import model_creator
 import os
+import logging
+import shutil
+
+LOGGER = logging.getLogger("__name__")
 
 class PsModelCreator(model_creator.ModelCreator):
 
@@ -17,10 +21,15 @@ class PsModelCreator(model_creator.ModelCreator):
             "DRV_TUNE_Y": "",
             "OPTICS_PATH": instance.optics_file,
         }
+        LOGGER.info("instance name <%s>", instance.NAME)
+
         
         if (instance.acd):
             replace_dict["DRV_TUNE_X"] = instance.drv_tune_x
             replace_dict["DRV_TUNE_Y"] = instance.drv_tune_y
+            LOGGER.debug("ACD is ON. Driven tunes %f %f",replace_dict["DRV_TUNE_X"], replace_dict["DRV_TUNE_Y"])
+        else:
+            LOGGER.debug("ACD is OFF")
 
         with open(instance.get_nominal_tmpl()) as textfile:
             madx_template = textfile.read()
@@ -55,3 +64,14 @@ class PsModelCreator(model_creator.ModelCreator):
         with open(os.path.join(output_path,
                                "job.iterate.madx"), "w") as textfile:
             textfile.write(iterate_template % replace_dict)
+
+    @classmethod
+    def prepare_run(cls, instance, output_path):
+        if instance.fullresponse:
+            cls._prepare_fullresponse(instance, output_path)
+        
+        # get path of file from PS model directory (without year at the end)
+        src_path = instance.get_file("error_deff.txt")
+        dest_path = os.path.join(output_path, "error_deff.txt")
+        #print("error file: src=%s dst=%s"%(src_path,dest_path))
+        shutil.copy(src_path, dest_path)

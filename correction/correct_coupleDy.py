@@ -183,7 +183,10 @@ def _generate_changeparameters_couple_file():
     print "computing correct coupling "
     [deltas, varslist ] = GenMatrix_coupleDy.correctcouple(couple_twiss, disp_y, couple_inp, cut=_InputData.singular_value_cut, app=0, path=_InputData.output_path)
     print "deltas:", deltas
-
+    
+    if PRINT_DEBUG:
+        for i, var in enumerate(varslist):
+            print "Corr. no ", i, " ", var, " = ", str(deltas[i])
 
 def _get_twiss_instance_of_getcouple():
     """ Loads either getcouple_free.out or getcouple.out or raises an Exception """
@@ -396,7 +399,7 @@ class _InputData(object):
             print >> sys.stderr, "Given Beta-Beat.src path does not exist: "+beta_beat_root
             beta_beat_root = utils.iotools.get_absolute_path_to_betabeat_root()
             print >> sys.stderr, "Will take current Beta-Beat.src: "+beta_beat_root
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
+        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "PS"):
             raise ValueError("Unknown/not supported accelerator: "+accel)
         accel_path = os.path.join(beta_beat_root, "correction", "fullresponse", accel)
         if not utils.iotools.dirs_exist(accel_path):

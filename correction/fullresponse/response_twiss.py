@@ -27,7 +27,7 @@ Only works properly for on-orbit twiss files.
     \frac{cos(\tau_{y,mj})}{sin(\pi Q_y)}
 
 
-* Norm. Dispersion Response: simliar as above but with :math:`\frac{1}{\sqrt{\beta}}` linearized
+* Norm. Dispersion Response: similar as above but with :math:`\frac{1}{\sqrt{\beta}}` linearized
 
 .. math::
 
@@ -60,6 +60,13 @@ Only works properly for on-orbit twiss files.
     \delta Q_z = \pm \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{4\pi}
 
 
+* Coupling Response:            Eq. 10 in [#FranchiAnalyticformulasrapid2017]_
+
+.. math::
+
+    \delta f_{\substack{\scriptscriptstyle 1001 \\ \scriptscriptstyle 1010},j} =
+    \sum_m \delta J_{1,m} \, \frac{\sqrt{\beta_{x,m}\beta_{y,m}}}{4} \,
+    \frac{\exp{(i(\Delta\Phi_{x,mj} \mp \Delta\Phi_{y,mj}))}}{1-\exp({2\pi i (Q_x \mp Q_y}))}
 
 For people reading the code, the response matrices are first calculated like:
 
@@ -104,7 +111,7 @@ import pandas as pd
 
 from correction.fullresponse.sequence_evaluation import check_varmap_file
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
-from twiss_optics.twiss_functions import regex_in, upper
+from twiss_optics.twiss_functions import upper
 from utils import logging_tools as logtool
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
@@ -121,11 +128,10 @@ class TwissResponse(object):
     """ Provides Response Matrices calculated from sequence, model and given variables.
 
     Args:
-        varmap_or_seq_path: Path to sequence file. If there is a pre-parsed .varmap file in the same
-            folder, it will use this one. (Hence, can also be the path to this file)
-        model_or_path: Path to twiss-model file, or model
-        variables: List of variable-names
-        direction: Either +1 or -1, default +1.
+        accel_inst (accelerator): Accelerator Instance (needs to contain elements model).
+        variable_categories (list): List of variable categories to get from the accelerator class.
+        varmap_or_path (dict, string): mapping of the variables,
+            either as dict-structure of Series or path to a pickled-file.
         at_elements (str): Get response matrix for these elements. Can be:
             'bpms': All BPMS (Default)
             'bpms+': BPMS+ used magnets (== magnets defined by variables in varfile)
@@ -137,18 +143,17 @@ class TwissResponse(object):
     #            INIT
     ################################
 
-    def __init__(self, varmap_or_path, model_or_path, variables, direction=1,
-                 at_elements='bpms'):
+    def __init__(self, accel_inst, variable_categories, varmap_or_path, at_elements='bpms'):
 
         LOG.debug("Initializing TwissResponse.")
         with timeit(lambda t: LOG.debug("  Time initializing TwissResponse: {:f}s".format(t))):
             # Get input
-            self._twiss = self._get_model_twiss(model_or_path)
-            self._variables = variables
+            self._twiss = self._get_model_twiss(accel_inst)
+            self._variables = accel_inst.get_variables(classes=variable_categories)
             self._var_to_el = self._get_variable_mapping(varmap_or_path)
             self._elements_in = self._get_input_elements()
             self._elements_out = self._get_output_elements(at_elements)
-            self._direction = self._get_direction(direction)
+            self._direction = self._get_direction(accel_inst)
 
             # calculate all phase advances
             self._phase_advances = get_phase_advances(self._twiss)
@@ -175,24 +180,17 @@ class TwissResponse(object):
             self._norm_dispersion_mapped = None
 
     @staticmethod
-    def _get_model_twiss(model_or_path):
+    def _get_model_twiss(accel_inst):
         """ Load model, but keep only BPMs and Magnets """
-        try:
-            model = tfs.read_tfs(model_or_path, index="NAME")
-        except TypeError:
-            LOG.debug("Received model as DataFrame")
-            model = model_or_path
-        else:
-            LOG.debug("Loaded Model from file '{:s}'".format(model_or_path))
+        # get model
+        model = accel_inst.get_elements_tfs()
 
         # Remove not needed entries
         LOG.debug("Removing non-necessary entries:")
         LOG.debug("  Entries total: {:d}".format(model.shape[0]))
-        model = model.loc[regex_in(r"\A(M|BPM)", model.index), :]
+        mask = accel_inst.get_element_types_mask(model.index, types=["bpm", "magnet"])
+        model = model.loc[mask, :].copy()  # make a copy to suppress "SettingWithCopyWarning"
         LOG.debug("  Entries left: {:d}".format(model.shape[0]))
-
-        # make a copy to suppress "SettingWithCopyWarning"
-        model = model.copy()
 
         # Add Dummy for Phase Calculations
         model.loc[DUMMY_ID, ["S", "MUX", "MUY"]] = 0.0
@@ -201,10 +199,13 @@ class TwissResponse(object):
     def _get_variable_mapping(self, varmap_or_path):
         """ Get variable mapping as dictionary
 
-        Define _variables first!
+        Dev hint: Define _variables first!
         """
         LOG.debug("Converting variables to magnet names.")
         variables = self._variables
+
+        if not len(variables):
+            raise ValueError("No variables found. Maybe wrong categories?")
 
         try:
             with open(varmap_or_path, "rb") as varmapfile:
@@ -236,7 +237,7 @@ class TwissResponse(object):
     def _get_input_elements(self):
         """ Return variable names of input elements.
 
-        Define _var_to_el and _twiss first!
+        Dev hint: Define _var_to_el and _twiss first!
         """
         v2e = self._var_to_el
         tw = self._twiss
@@ -250,17 +251,14 @@ class TwissResponse(object):
         return el_in
 
     @staticmethod
-    def _get_direction(direction):
-        if direction not in [+1, -1]:
-            raise AttributeError(
-                "Direction can be either +1 or -1, instead it was {}".format(direction)
-            )
-        return direction
+    def _get_direction(accel_inst):
+        """ Sign for the direction of the beam. """
+        return 1 if accel_inst.get_beam() == 1 else -1
 
     def _get_output_elements(self, at_elements):
         """ Return name-array of elements to use for output.
 
-        Define _elements_in first!
+        Dev hint: Define _elements_in first!
         """
         tw_idx = self._twiss.index
 
@@ -897,21 +895,17 @@ def dict_mul(number, dictionary):
 def create_response(accel_inst, vars_categories, optics_params):
     """ Wrapper to create response via TwissResponse """
     LOG.debug("Creating response via TwissResponse.")
-    vars_list = accel_inst.get_variables(classes=vars_categories)
-    if len(vars_list) == 0:
-        raise ValueError("No variables found! Make sure your categories are valid!")
 
     varmap_path = check_varmap_file(accel_inst, vars_categories)
 
     with timeit(lambda t:
                 LOG.debug("Total time getting TwissResponse: {:f}s".format(t))):
-        sign = 1 if accel_inst.get_beam() == 1 else -1
-        tr = TwissResponse(varmap_path, accel_inst.get_elements_tfs(), vars_list, sign)
+        tr = TwissResponse(accel_inst, vars_categories, varmap_path)
         response = tr.get_response_for(optics_params)
 
     if not any([resp.size for resp in response.values()]):
         raise ValueError("Responses are all empty. " +
-                         "Are variables {:s} ".format(vars_list) +
+                         "Are variables {:s} ".format(tr.get_variable_names()) +
                          "correct for '{:s}'?".format(optics_params)
                          )
     return response

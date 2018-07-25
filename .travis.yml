@@ -14,3 +14,5 @@ after_success:
  - travis-sphinx deploy
 git:
     depth: false
+regression:
+    ref_commit: 342a75e4ba1ee526b051ecc074dbccfbe3575f13
