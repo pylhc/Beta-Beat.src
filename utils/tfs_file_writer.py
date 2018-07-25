@@ -359,6 +359,7 @@ class _TfsDataType:
     """
     TYPE_STRING = "%s"
     TYPE_FLOAT = "%le"
+    TYPE_INT = "%d"
     TYPE_INVALID = None
 
     DEFAULT_PRECISION = "13"
@@ -367,7 +368,7 @@ class _TfsDataType:
         self.__type = _TfsDataType.TYPE_INVALID
 
     def set_type(self, tfs_type):
-        all_types = [_TfsDataType.TYPE_STRING, _TfsDataType.TYPE_FLOAT]
+        all_types = [_TfsDataType.TYPE_STRING, _TfsDataType.TYPE_FLOAT, _TfsDataType.TYPE_INT]
         if tfs_type not in all_types:
             raise ValueError("Invalid type" + str(tfs_type))
         else:
@@ -379,6 +380,8 @@ class _TfsDataType:
             return _TfsDataType.get_new_string_instance()
         elif _TfsDataType.TYPE_FLOAT == type_as_string:
             return _TfsDataType.get_new_float_instance()
+        elif _TfsDataType.TYPE_INT == type_as_string:
+            return _TfsDataType.get_new_int_instance()
         else:
             raise ValueError("Type in string not recognized: "+type_as_string)
 
@@ -394,6 +397,12 @@ class _TfsDataType:
         tfs_type.set_type(_TfsDataType.TYPE_FLOAT)
         return tfs_type
 
+    @staticmethod
+    def get_new_int_instance():
+        tfs_type = _TfsDataType()
+        tfs_type.set_type(_TfsDataType.TYPE_INT)
+        return tfs_type
+
     def get_type_as_string(self):
         return self.__type
 
@@ -405,7 +414,8 @@ class _TfsDataType:
         precision_str = self.DEFAULT_PRECISION if width is None else "{:d}".format(width-7)
         return {
             _TfsDataType.TYPE_FLOAT: " {:s}.{:s}g".format(width_str, precision_str),
-            # _TfsDataType.TYPE_FLOAT: " #{:s}.{:s}g".format(width_str, precision_str),  # python3
+            # _TfsDataType.TYPE_FLOAT: " #{:s}.{:s}g".format(width_str, precision_str),  #TODO: python3
+            _TfsDataType.TYPE_INT: " {:s}.{:s}g".format(width_str, precision_str),  #TODO: proper int?
             _TfsDataType.TYPE_STRING: "{:s}s".format(width_str),
         }[self.__type]
 
