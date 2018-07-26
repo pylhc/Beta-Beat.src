@@ -11,7 +11,7 @@ import sys
 from os.path import join
 import numpy as np
 import pandas as pd
-import compensate_excitation
+from compensate_excitation import phase_ac2bpm, get_lambda
 from model.accelerators.accelerator import AccExcitationMode
 from utils import logging_tools, stats, tfs_pandas
 
@@ -51,16 +51,17 @@ def calculate_phase(measure_input, input_files, tunes, header_dict):
         headers = _get_headers(header_dict, tunes, plane)
         for head, df in zip(headers, output_dfs):
             tfs_pandas.write_tfs(join(measure_input.outputdir, head['FILENAME']), df, head)
+            LOGGER.info("Phase advance beating in {} = {}".format(head['FILENAME'], stats.weighted_rms(df.loc[:, "DELTAPHASE" + plane])))
         if measure_input.accelerator.excitation != AccExcitationMode.FREE:
             phase_d[plane]["D"] = phase_d[plane]["F"]
-            phase_d[plane]["ac2bpm"] = compensate_excitation.phase_ac2bpm(
-                phase_d[plane]["F"]["MODEL"], tunes[plane]["Q"], tunes[plane]["QF"], plane,
-                measure_input.accelerator)
+            phase_d[plane]["ac2bpm"] = phase_ac2bpm(phase_d[plane]["F"]["MODEL"], tunes[plane]["Q"],
+                                                    tunes[plane]["QF"], plane, measure_input.accelerator)
             phase_d[plane]["F"], output_dfs = get_phases(measure_input, input_files, model_free,
                         plane, (tunes[plane]["Q"], tunes[plane]["QF"], phase_d[plane]["ac2bpm"]))
             headers = _get_headers(header_dict, tunes, plane, free=True)
             for head, df in zip(headers, output_dfs):
                 tfs_pandas.write_tfs(join(measure_input.outputdir, head['FILENAME']), df, head)
+                LOGGER.info("Phase advance beating in {} = {}".format(head['FILENAME'], stats.weighted_rms(df.loc[:, "DELTAPHASE" + plane])))
             # phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"], tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
     return phase_d
 
@@ -113,11 +114,7 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
         k_bpmac = ac2bpmac[2]
         phase_corr = ac2bpmac[1] - phases_meas[k_bpmac] + (0.5 * driven_tune)
         phases_meas = phases_meas + phase_corr[np.newaxis, :]
-        r = np.sin(np.pi * (driven_tune - free_tune)) / np.sin(np.pi * ((driven_tune + free_tune) % 1.0))
-        LOGGER.debug(plane + " compensation lambda = {}".format(r))
-        LOGGER.debug(plane + " k_bpmac = {}".format(k_bpmac))
-        LOGGER.debug(plane + " psid_ac2bpmac = {}".format(ac2bpmac[1]))
-        LOGGER.debug(plane + " bpmac = {}".format(ac2bpmac[0]))
+        r = get_lambda(driven_tune % 1.0, free_tune % 1.0)
         phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] - driven_tune
         psi = (np.arctan((1 - r) / (1 + r) * np.tan(2 * np.pi * phases_meas)) / (2 * np.pi)) % 0.5
         phases_meas = np.where(phases_meas % 1.0 > 0.5, psi + .5, psi)
@@ -189,8 +186,8 @@ class PhaseDict(dict):
     Used as data structure to hold phase advances
     """
     def __init__(self):
-        init_phases = {"ac2bpm": None, "D": None, "F": None, "F2": None}
-        super(PhaseDict, self).__init__(zip(PLANES, (init_phases, init_phases)))
+        super(PhaseDict, self).__init__(zip(PLANES, ({"ac2bpm": None, "D": None, "F": None, "F2": None},
+                                                     {"ac2bpm": None, "D": None, "F": None, "F2": None})))
 
 
 class _PhaseData(object):

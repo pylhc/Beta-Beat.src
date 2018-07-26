@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 from utils import tfs_pandas
 from model.accelerators.accelerator import AccExcitationMode
+from compensate_excitation import get_lambda
 # TODO all action scaling should be done with arc BPMs
 
 
@@ -52,7 +53,7 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, b
         # -- ac to free amp beta
 
         if measure_input.accelerator.excitation is not AccExcitationMode.FREE:
-            beta_amp_f = beta_from_amplitude(measure_input, input_files, mad_ac, plane, (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]))
+            beta_amp_f = beta_from_amplitude(measure_input, input_files, mad_twiss, plane, (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]))
             x_ratio_f = x_ratio
             header_f = _get_header(header_dict, tune_d, np.std(beta_amp_f.loc[:, 'DELTABET' + plane].values), x_ratio_f, 'getampbeta' + plane.lower() + '_free.out', free=True)
 
@@ -85,14 +86,14 @@ def beta_from_amplitude(meas_input, input_files, model, plane, compensate=None):
                            how='inner', left_index=True, right_index=True)
     df_amp_beta['COUNT'] = len(input_files.get_columns(df_amp_beta, 'AMP' + plane))
     df_amp_beta['AMP' + plane] = np.mean(input_files.get_data(df_amp_beta, 'AMP' + plane), axis=1)
+
     if compensate is not None:
         phases_meas = input_files.get_data(df_amp_beta, 'MU' + plane) * meas_input.accelerator.get_beam_direction()
         driven_tune, free_tune, ac2bpmac = compensate
         k_bpmac = ac2bpmac[2]
         phase_corr = ac2bpmac[1] - phases_meas[k_bpmac] + (0.5 * driven_tune)
         phases_meas = phases_meas + phase_corr[np.newaxis, :]
-        r = np.sin(np.pi * (driven_tune - free_tune)) / np.sin(
-            np.pi * ((driven_tune + free_tune) % 1.0))
+        r = get_lambda(driven_tune % 1.0, free_tune % 1.0)
         phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] - driven_tune
         for_sqrt2j = input_files.get_data(df_amp_beta, 'AMP' + plane) / np.sqrt(
             df_amp_beta.loc[:, 'BET' + plane + 'MDL'].values[:, np.newaxis])

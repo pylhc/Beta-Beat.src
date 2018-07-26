@@ -10,13 +10,17 @@ This module is not intended to be executed. It stores only functions for GetLLM.
 
 import sys
 import numpy as np
-from numpy import sin, tan
-from constants import PI, TWOPI
 from utils import logging_tools
 
 LOGGER = logging_tools.get_logger(__name__)
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
+
+def get_lambda(driven_tune, free_tune):
+    """
+    Tunes are fractional in units of 2PI
+    """
+    return np.sin(np.pi * (driven_tune - free_tune)) / np.sin(np.pi * (driven_tune + free_tune))
 
 def phase_ac2bpm(commonbpms, driven_tune, free_tune, plane, acc):
     """Returns the necessary values for the exciter compensation.
@@ -34,18 +38,12 @@ def phase_ac2bpm(commonbpms, driven_tune, free_tune, plane, acc):
         c (int): k of the nearest BPM.
         d (string): name of the exciter element.
     """
-    r = sin(PI * (driven_tune - free_tune)) / sin(PI * (driven_tune + free_tune))
-    [k, bpmac1], exciter = acc.get_exciter_bpm("H" if plane == "X" else "V", commonbpms)
-    model_driven = acc.get_driven_tfs()
-    ##return bpmac1, np.arctan((1 + r) / (1 - r) * tan(TWOPI * model.loc[bpmac1, plane_mu] + PI * Q)) % PI - PI * Qd, k
-    try:
-        psi = (
-            np.arctan((1 + r) / (1 - r) *
-                      tan(TWOPI * (model_driven.loc[bpmac1, "MU" + plane] - model_driven.loc[exciter, "MU" + plane]) )
-                     ) / TWOPI
-        ) % .5 - .5
-    except:
-        psi = acc.get_elements_tfs().loc[bpmac1, "MU" + plane] - acc.get_elements_tfs().loc[exciter, "MU" + plane]
+    model = acc.get_elements_tfs()
+    r = get_lambda(driven_tune % 1.0, free_tune % 1.0)
+    [k, bpmac1], exciter = acc.get_exciter_bpm(plane, commonbpms)
+    psi = model.loc[bpmac1, "MU" + plane] - model.loc[exciter, "MU" + plane]
+    psi = np.arctan((1+r)/(1-r) * np.tan(2 * np.pi * psi + np.pi * free_tune)) % np.pi - np.pi * driven_tune
+    psi = psi / (2 * np.pi)
     return bpmac1, psi, k, exciter
 
 

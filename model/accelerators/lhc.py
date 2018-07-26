@@ -718,24 +718,24 @@ class Lhc(Accelerator):
         if self.get_beam() == 1:
             if self.excitation == AccExcitationMode.ACD:
                 return get_commonbpm(
-                    "BPMYA.5L4.B1", "BPMYB.6L4.B1", commonbpms), "MKQA.6L4.B1"
+                    "BPMYB.6L4.B1", "BPM.7L4.B1", commonbpms), "MKQA.6L4.B1"
 
             elif self.excitation == AccExcitationMode.ADT:
-                if plane == "H":
+                if plane == "X":
                     return get_commonbpm(
                         "BPMWA.B5L4.B1", "BPMWA.A5L4.B1", commonbpms), "ADTKH.C5L4.B1"
-                elif plane == "V":
+                elif plane == "Y":
                     return get_commonbpm(
                         "BPMWA.B5R4.B1", "BPMWA.A5R4.B1", commonbpms), "ADTKV.B5R4.B1"
         elif self.get_beam() == 2:
             if self.excitation == AccExcitationMode.ACD:
                 return get_commonbpm(
-                    "BPMYB.5L4.B2", "BPMYA.6L4.B2", commonbpms), "MKQA.6L4.B2"
+                    "BPMYA.6L4.B2", "BPM.7L4.B2", commonbpms), "MKQA.6L4.B2"
             elif self.excitation == AccExcitationMode.ADT:
-                if plane == "H":
+                if plane == "X":
                     return get_commonbpm(
                         "BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms), "ADTKH.C5R4.B2"
-                elif plane == "V":
+                elif plane == "Y":
                     return get_commonbpm(
                         "BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5L4.B2"
         return None
