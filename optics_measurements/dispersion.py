@@ -56,7 +56,7 @@ def _get_header(header_dict, tune_dict, filename, orbit=False):
 def _calculate_orbit(model, input_files, plane, header, output):
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, plane]]
     df_orbit.rename(columns={'MU' + plane: 'MU' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
-    df_orbit = pd.merge(df_orbit, input_files.get_joined_frame(plane, ['CO', 'CORMS']), how='inner',
+    df_orbit = pd.merge(df_orbit, input_files.joined_frame(plane, ['CO', 'CORMS']), how='inner',
                         left_index=True, right_index=True)
     df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, 'CO'))
     df_orbit[plane] = stats.weighted_mean(input_files.get_data(df_orbit, 'CO'), axis=1)
@@ -70,10 +70,10 @@ def _calculate_dispersion(model, input_files, plane, header, unit, cut, output, 
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, 'DP' + plane, 'D' + plane, plane]]
     df_orbit.rename(columns={'MU' + plane: 'MU' + plane + 'MDL', 'DP' + plane: 'DP' + plane + 'MDL',
                              'D' + plane: 'D' + plane + 'MDL', plane: plane + 'MDL'}, inplace=True)
-    df_orbit = pd.merge(df_orbit, input_files.get_joined_frame(plane, ['CO', 'CORMS']), how='inner',
+    df_orbit = pd.merge(df_orbit, input_files.joined_frame(plane, ['CO', 'CORMS']), how='inner',
                         left_index=True, right_index=True)
     df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, 'CO'))
-    dpps = input_files.get_dpps(plane)
+    dpps = input_files.dpps(plane)
     if np.max(dpps) - np.min(dpps) == 0.0:
         return  # temporary solution
         # raise ValueError('Cannot calculate dispersion, only a single momentum data')
@@ -100,8 +100,8 @@ def _calculate_normalised_dispersion(model, input_files, beta, header, unit, cut
     df_orbit['NDXMDL'] = df_orbit.loc[:, 'DX'] / np.sqrt(df_orbit.loc[:, 'BETX'])
     df_orbit.rename(columns={'MUX': 'MUXMDL', 'DPX': 'DPXMDL', 'DX': 'DXMDL', 'X': 'XMDL'}, inplace=True)
     df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, 'CO'))
-    dpps = input_files.get_dpps("X")
-    df_orbit = pd.merge(df_orbit, input_files.get_joined_frame("X", ['CO', 'CORMS', 'AMPX']),
+    dpps = input_files.dpps("X")
+    df_orbit = pd.merge(df_orbit, input_files.joined_frame("X", ['CO', 'CORMS', 'AMPX']),
                         how='inner', left_index=True, right_index=True)
     df_orbit = pd.merge(df_orbit, beta.loc[:, ['BETX', 'ERRBETX']], how='inner', left_index=True,
                         right_index=True, suffixes=('', '_phase'))
@@ -130,8 +130,6 @@ def _calculate_dp(model, disp, plane):
     df = pd.merge(df, disp.loc[:, ['D' + plane, 'STDD' + plane]], how='inner', left_index=True,
                   right_index=True, suffixes=('', 'meas'))
     shifted = np.roll(df.index.values, -1)
-    print(shifted[0])
-    print(shifted[-1])
     p_mdl_12 = df.loc[shifted, 'MU' + plane].values - df.loc[:, 'MU' + plane].values
     p_mdl_12[-1] = p_mdl_12[-1] + model['Q' + str(1+(plane == "Y"))]
     phi_12 = p_mdl_12 * 2 * np.pi

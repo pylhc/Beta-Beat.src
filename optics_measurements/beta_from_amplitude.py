@@ -7,17 +7,15 @@ Created on 05/07/18
 
 It computes beta from amplitude.
 """
-
 from os.path import join
 import numpy as np
 import pandas as pd
 from utils import tfs_pandas
 from model.accelerators.accelerator import AccExcitationMode
 from compensate_excitation import get_lambda
-# TODO all action scaling should be done with arc BPMs
 
 
-def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, beta_phase, header_dict):
+def calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, beta_phase, header_dict):
     """
     Calculates beta and fills the following TfsFiles:
         getampbetax.out        getampbetax_free.out        getampbetax_free2.out
@@ -38,43 +36,53 @@ def calculate_beta_from_amplitude(measure_input, input_files, tune_d, phase_d, b
         mad_ac = measure_input.accelerator.get_driven_tfs()
     else:
         mad_ac = mad_twiss
-    ratios={}
+    ratios = {}
     for plane in ['X', 'Y']:
         beta_amp = beta_from_amplitude(measure_input, input_files, mad_ac, plane)
-        ratio = pd.merge(beta_phase[plane].loc[:, ['BET' + plane]], beta_amp.loc[:, ['BET' + plane]], how='inner', left_index=True, right_index=True, suffixes=('phase','amp'))
+        ratio = pd.merge(beta_phase[plane].loc[:, ['BET' + plane]], beta_amp.loc[:, ['BET' + plane]],
+                         how='inner', left_index=True, right_index=True, suffixes=('phase', 'amp'))
         ratio['Ratio'] = ratio.loc[:, 'BET' + plane + 'phase'].values / ratio.loc[:, 'BET' + plane + 'amp'].values
-        mask = np.array(0.1 < np.abs(ratio.loc[:, 'Ratio'].values)) & np.array(np.abs(ratio.loc[:, 'Ratio'].values) < 10.0) & np.array(measure_input.accelerator.get_element_types_mask(ratio.index, ["arc_bpm"]))
+        mask = (np.array(0.1 < np.abs(ratio.loc[:, 'Ratio'].values)) &
+                np.array(np.abs(ratio.loc[:, 'Ratio'].values) < 10.0) &
+                np.array(measure_input.accelerator.get_element_types_mask(ratio.index, ["arc_bpm"])))
         x_ratio = np.mean(ratio.loc[mask,'Ratio'].values)
         beta_amp['BET' + plane + 'RES'] = beta_amp.loc[:, 'BET' + plane] * x_ratio
         beta_amp['BET' + plane + 'STDRES'] = beta_amp.loc[:, 'BET' + plane + 'STD'] * x_ratio
-        header_d = _get_header(header_dict, tune_d, np.std(beta_amp.loc[:, 'DELTABET' + plane].values), x_ratio, 'getampbeta' + plane.lower() + '.out', free=False)
+        header_d = _get_header(header_dict, tune_dict, np.std(
+            beta_amp.loc[:, 'DELTABET' + plane].values), x_ratio, 'getampbeta' + plane.lower() + '.out', free=False)
         tfs_pandas.write_tfs(join(measure_input.outputdir, header_d['FILENAME']), beta_amp, header_d, save_index='NAME')
         ratios[plane] = x_ratio
         # -- ac to free amp beta
-
         if measure_input.accelerator.excitation is not AccExcitationMode.FREE:
-            beta_amp_f = beta_from_amplitude(measure_input, input_files, mad_twiss, plane, (tune_d[plane]["Q"], tune_d[plane]["QF"], phase_d[plane]["ac2bpm"]))
+            beta_amp_f = beta_from_amplitude(measure_input, input_files, mad_twiss, plane,
+                                             (tune_dict[plane]["Q"], tune_dict[plane]["QF"], phase_dict[plane]["ac2bpm"]))
             x_ratio_f = x_ratio
-            header_f = _get_header(header_dict, tune_d, np.std(beta_amp_f.loc[:, 'DELTABET' + plane].values), x_ratio_f, 'getampbeta' + plane.lower() + '_free.out', free=True)
+            header_f = _get_header(header_dict, tune_dict, np.std(
+                    beta_amp_f.loc[:, 'DELTABET' + plane].values), x_ratio_f,
+                                   'getampbeta' + plane.lower() + '_free.out', free=True)
 
             beta_amp_f['BET' + plane + 'RES'] = beta_amp_f.loc[:, 'BET' + plane] * x_ratio_f
             beta_amp_f['BET' + plane + 'STDRES'] = beta_amp_f.loc[:, 'BET' + plane + 'STD'] * x_ratio_f
             tfs_pandas.write_tfs(join(measure_input.outputdir, header_f['FILENAME']), beta_amp_f, header_f, save_index='NAME')
             # FREE2 calculation
             beta_amp_f2 = pd.DataFrame(beta_amp)
-            beta_amp_f2['BET' + plane] = _get_free_amp_beta(beta_amp_f2.loc[:, ['BET' + plane]], mad_ac, mad_twiss, plane)
-            beta_amp_f2['BET' + plane + 'RES'] = _get_free_amp_beta(beta_amp_f2.loc[:, ['BET' + plane + 'RES']].rename(columns={'BET' + plane + 'RES': 'BET' + plane}), mad_ac, mad_twiss, plane)
-            header_f2 = _get_header(header_dict, tune_d, np.std(beta_amp_f2.loc[:, 'DELTABET' + plane].values), x_ratio,
-                                       'getampbeta' + plane.lower() + '_free2.out', free=True)
+            beta_amp_f2['BET' + plane] = _get_free_amp_beta(beta_amp_f2.loc[:, ['BET' + plane]],
+                                                            mad_ac, mad_twiss, plane)
+            beta_amp_f2['BET' + plane + 'RES'] = _get_free_amp_beta(
+                    beta_amp_f2.loc[:, ['BET' + plane + 'RES']].rename(
+                        columns={'BET' + plane + 'RES': 'BET' + plane}), mad_ac, mad_twiss, plane)
+            header_f2 = _get_header(header_dict, tune_dict, np.std(
+                    beta_amp_f2.loc[:, 'DELTABET' + plane].values), x_ratio,
+                                    'getampbeta' + plane.lower() + '_free2.out', free=True)
             tfs_pandas.write_tfs(join(measure_input.outputdir, header_f2['FILENAME']), beta_amp_f2, header_f2)
     return ratios
 
 
 def _get_free_amp_beta(df_meas,  mad_ac, mad_twiss, plane):
     df = pd.merge(pd.DataFrame(df_meas), mad_ac.loc[:, ['BET' + plane]], how='inner',
-                       left_index=True, right_index=True, suffixes=('', 'ac'))
+                  left_index=True, right_index=True, suffixes=('', 'ac'))
     df = pd.merge(df, mad_twiss.loc[:, ['BET' + plane]], how='inner', left_index=True,
-                       right_index=True, suffixes=('', 'f'))
+                  right_index=True, suffixes=('', 'f'))
     return df.loc[:, "BET" + plane] * df.loc[:, "BET" + plane + 'f'] / df.loc[:, "BET" + plane + 'ac']
 
 
@@ -82,7 +90,7 @@ def beta_from_amplitude(meas_input, input_files, model, plane, compensate=None):
     df_amp_beta = pd.DataFrame(model).loc[:, ['S', 'MU' + plane, 'BET' + plane]]
     df_amp_beta.rename(columns={'MU' + plane: 'MU' + plane + 'MDL',
                                 'BET' + plane: 'BET' + plane + 'MDL'}, inplace=True)
-    df_amp_beta = pd.merge(df_amp_beta, input_files.get_joined_frame(plane, ['AMP' + plane, 'MU' + plane]),
+    df_amp_beta = pd.merge(df_amp_beta, input_files.joined_frame(plane, ['AMP' + plane, 'MU' + plane]),
                            how='inner', left_index=True, right_index=True)
     df_amp_beta['COUNT'] = len(input_files.get_columns(df_amp_beta, 'AMP' + plane))
     df_amp_beta['AMP' + plane] = np.mean(input_files.get_data(df_amp_beta, 'AMP' + plane), axis=1)

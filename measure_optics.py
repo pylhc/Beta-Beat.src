@@ -18,68 +18,59 @@ import re
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
-from optics_measurements import optics_input
-from optics_measurements import (beta, beta_from_amplitude, coupling, dpp, dispersion,
-                                            interaction_point, kick, phase, resonant_driving_terms, tune)
+from optics_measurements import optics_input, dpp, tune, phase
+from optics_measurements import (beta, beta_from_amplitude, coupling, dispersion,
+                                 interaction_point, kick, resonant_driving_terms)
 from model.accelerators.accelerator import AccExcitationMode
 from utils import tfs_pandas, logging_tools, iotools
 
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d measure_optics.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
 PLANES = ('X', 'Y')
+LOG_FILE = "measure_optics.log"
 
 
 def measure_optics(input_files, measure_input):
     """
     Main function to compute various lattice optics parameters from frequency spectra
     Args:
-        input_files: InputFiles object containing frequncy spectra files (linx/y)
+        input_files: InputFiles object containing frequency spectra files (linx/y)
         measure_input: OpticsInput object containing analysis settings
 
     Returns:
     """
     LOGGER.info("Calculating optics parameters - code version " + VERSION)
-    global __getllm_starttime
-    __getllm_starttime = time()
+    global __start_time
+    __start_time = time()
     iotools.create_dirs(measure_input.outputdir)
-    logging_tools.add_module_handler(logging_tools.file_handler(os.path.join(measure_input.outputdir, "getllm.log")))
-    header_dict = _get_header(measure_input)
+    logging_tools.add_module_handler(logging_tools.file_handler(
+            join(measure_input.outputdir, LOG_FILE)))
+    common_header = _get_header(measure_input)
     if sys.flags.debug:
         LOGGER.info("     DEBUG ON")
-    print_time("BEFORE_PHASE", time() - __getllm_starttime)
-    #-------- START Phase for beta calculation with best knowledge model in ac phase compensation
+    print_time()
     try:
         tune_dict = tune.calculate_tunes(measure_input, input_files)
+        phase_dict = phase.calculate_phases(measure_input, input_files, tune_dict, common_header)
     except:
-        _tb_()
-        raise ValueError("Tune calculation failed: None of the following algorithms will run")
-
+        raise ValueError("Phase advance or tune calculation failed: No other calculation will run")
+    print_time()
     try:
-        phase_dict = phase.calculate_phase(measure_input, input_files, tune_dict, header_dict)
-    except:
-        _tb_()
-        raise ValueError("Phase advance calculation failed: None of the following algorithms will run")
-    print_time("AFTER_PHASE", time() - __getllm_starttime)
-    try:
-        coupling.calculate_coupling(measure_input, _TwissData(input_files), phase._PhaseData(phase_dict), tune._TuneData(tune_dict), header_dict)
+        coupling.calculate_coupling(measure_input, input_files, phase_dict, tune_dict, common_header)
     except:
         _tb_()
     if measure_input.only_coupling:
-        LOGGER.info("GetLLM was only calculating coupling. Skipping the rest and returning ...")
+        LOGGER.info("Finished as only coupling calculation was requested.")
         return
     try:
         beta_df_x, driven_df_x, beta_df_y, driven_df_y = beta.calculate_beta_from_phase(
-            measure_input, tune_dict, phase_dict, header_dict)
+            measure_input, tune_dict, phase_dict, common_header)
     except:
         _tb_()
-    if measure_input.three_bpm_method:
-        print_time("AFTER_BETA_FROM_PHASE", time() - __getllm_starttime)
-    else:
-        print_time("AFTER_A_NBPM", time() - __getllm_starttime)
     try:
-        ratio=beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
+        ratio = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, common_header)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
@@ -93,24 +84,23 @@ def measure_optics(input_files, measure_input):
         interaction_point.write_betastar_from_phase(
             interaction_point.betastar_from_phase(
                 measure_input.accelerator, phase_dict, mad_twiss
-            ), header_dict, measure_input.outputdir)
+            ), common_header, measure_input.outputdir)
     except:
         _tb_()
     try:
-        dispersion.calculate_orbit_and_dispersion(measure_input, input_files, tune_dict, mad_twiss, {"X": driven_df_x, "Y": driven_df_y}, header_dict)
+        dispersion.calculate_orbit_and_dispersion(measure_input, input_files, tune_dict, mad_twiss, {"X": driven_df_x, "Y": driven_df_y}, common_header)
     except:
         _tb_()
-    #------ Start get Q,JX,delta
     try:
-        inv_x, inv_y = kick.calculate_kick(measure_input, input_files, mad_twiss, mad_ac, ratio, header_dict)
+        inv_x, inv_y = kick.calculate_kick(measure_input, input_files, mad_twiss, mad_ac, ratio, common_header)
     except:
         _tb_()
     if measure_input.nonlinear:
         try:
-            resonant_driving_terms.calculate_RDTs(measure_input, _TwissData(input_files), mad_twiss, phase._PhaseData(phase_dict),  inv_x, inv_y)
+            resonant_driving_terms.calculate_RDTs(measure_input, input_files, mad_twiss, phase_dict, common_header, inv_x, inv_y)
         except:
             _tb_()
-    print_time("FINISH", time() - __getllm_starttime)
+    print_time()
 
 
 def _get_header(meas_input):
@@ -123,7 +113,8 @@ def _get_header(meas_input):
 
 def _tb_():
     if sys.stdout.isatty():
-        err_exc = re.sub(r"line\s([0-9]+)", "\33[1mline \33[38;2;80;160;255m\\1\33[0m\33[21m", traceback.format_exc())
+        err_exc = re.sub(r"line\s([0-9]+)", "\33[1mline \33[38;2;80;160;255m\\1\33[0m\33[21m",
+                         traceback.format_exc())
         err_exc = re.sub("File\\s\"([^\"]+)\",", "File \33[38;2;0;255;100m\\1\33[0m", err_exc)
         err_excs = err_exc.split("\n")
         for line in err_excs:
@@ -132,8 +123,8 @@ def _tb_():
         LOGGER.error(traceback.format_exc())
 
 
-def print_time(index, t):
-    LOGGER.debug(":::  GetLLM time  >>>>>>>>>> {:8.3f} s".format(t))
+def print_time():
+    LOGGER.debug(":::  Elapsed time  >>>>>>>>>> {:8.3f} s".format(time() - __start_time))
 
 
 class InputFiles(dict):
@@ -164,7 +155,7 @@ class InputFiles(dict):
         if len(self['X']) + len(self['Y']) == 0:
             raise IOError("No valid input files")
 
-    def get_dpps(self, plane):
+    def dpps(self, plane):
         """
         Gathers measured DPPs from input files corresponding to given plane
         Parameters:
@@ -175,18 +166,18 @@ class InputFiles(dict):
         """
         return np.array([df.DPP for df in self[plane]])
 
-    def _get_zero_dpp_frames(self, plane):
-        zero_dpp_frames = []
-        for i in np.argwhere(self.get_dpps(plane) == 0.0).T[0]:
-            zero_dpp_frames.append(self[plane][i])
-        if len(zero_dpp_frames) > 0:
-            return zero_dpp_frames
-        return self._get_all_frames(plane)
+    def zero_dpp_frames(self, plane):
+        _zero_dpp_frames = []
+        for i in np.argwhere(self.dpps(plane) == 0.0).T[0]:
+            _zero_dpp_frames.append(self[plane][i])
+        if len(_zero_dpp_frames) > 0:
+            return _zero_dpp_frames
+        return self._all_frames(plane)
 
-    def _get_all_frames(self, plane):
+    def _all_frames(self, plane):
         return self[plane]
 
-    def get_joined_frame(self, plane, columns, zero_dpp=False, how='inner'):
+    def joined_frame(self, plane, columns, zero_dpp=False, how='inner'):
         """
         Constructs merged DataFrame from InputFiles
         Parameters:
@@ -200,9 +191,9 @@ class InputFiles(dict):
         if how not in ['inner', 'outer']:
             raise RuntimeWarning("'how' should be either 'inner' or 'outer', 'inner' will be used.")
         if zero_dpp:
-            frames_to_join = self._get_zero_dpp_frames(plane)
+            frames_to_join = self.zero_dpp_frames(plane)
         else:
-            frames_to_join = self._get_all_frames(plane)
+            frames_to_join = self._all_frames(plane)
         if len(frames_to_join) == 0:
             raise ValueError("No data found")
         joined_frame = pd.DataFrame(self[plane][0]).loc[:, columns]
@@ -215,7 +206,7 @@ class InputFiles(dict):
 
     def calibrate(self, calibs):
         if calibs is None:
-            pass
+            return
         for plane in PLANES:
             for i in range(len(self[plane])):
                 data = pd.merge(self[plane][i].loc[:, ["AMP" + plane]], calibs[plane], how='left',
@@ -249,29 +240,6 @@ class InputFiles(dict):
             data in numpy array corresponding to column in original files
         """
         return frame.loc[:, self.get_columns(frame, column)].values
-
-
-class _TwissData(object):
-    def __init__(self, inputfiles):
-        self.zero_dpp_x = inputfiles._get_zero_dpp_frames("X")  # List of src files which have dpp==0.0
-        self.zero_dpp_y = inputfiles._get_zero_dpp_frames("Y")  # List of src files which have dpp!=0.0
-        self.non_zero_dpp_x = inputfiles._get_all_frames("X")  # List of src files which have dpp==0.0
-        self.non_zero_dpp_y = inputfiles._get_all_frames("Y")  # List of src files which have dpp!=0.0
-
-    def has_zero_dpp_x(self):
-        return 0 != len(self.zero_dpp_x)
-
-    def has_non_zero_dpp_x(self):
-        return 0 != len(self.non_zero_dpp_x)
-
-    def has_zero_dpp_y(self):
-        return 0 != len(self.zero_dpp_y)
-
-    def has_non_zero_dpp_y(self):
-        return 0 != len(self.non_zero_dpp_y)
-
-    def has_no_input_files(self):
-        return not self.has_zero_dpp_x() and not self.has_zero_dpp_y() and not self.has_non_zero_dpp_x() and not self.has_non_zero_dpp_y()
 
 
 def _copy_calibration_files(outputdir, calibrationdir):

@@ -1,5 +1,5 @@
 """
-.. module: tune
+.. module: phase
 
 Created on 18/07/18
 
@@ -7,7 +7,6 @@ Created on 18/07/18
 
 It computes betatron phase advances and provides structures to store them.
 """
-import sys
 from os.path import join
 import numpy as np
 import pandas as pd
@@ -15,12 +14,13 @@ from compensate_excitation import phase_ac2bpm, get_lambda
 from model.accelerators.accelerator import AccExcitationMode
 from utils import logging_tools, stats, tfs_pandas
 
-DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 LOGGER = logging_tools.get_logger(__name__)
 PLANES = ("X", "Y")
+# TODO implement free2 calculation of free phase advances:  ph_f2 = ph_d_meas - ph_d_mod + ph_f_mod
+# TODO clean up the special phase advances - separate output file?
 
 
-def calculate_phase(measure_input, input_files, tunes, header_dict):
+def calculate_phases(measure_input, input_files, tunes, header_dict):
     """
     Calculates phase advances and fills the following files:
         getphase(tot)(x/y)(_free).out
@@ -36,33 +36,32 @@ def calculate_phase(measure_input, input_files, tunes, header_dict):
     """
     phase_d = PhaseDict()
     accelerator = measure_input.accelerator
+    # TODO this should be simpler
     try:
         model_free = accelerator.get_best_knowledge_model_tfs()
     except AttributeError:
         model_free = accelerator.get_model_tfs()
     if accelerator.excitation == AccExcitationMode.FREE:
-        model_of_measurement = model_free
+        model_main = model_free
     else:
-        model_of_measurement = accelerator.get_driven_tfs()
-    LOGGER.info('Calculating phase')
+        model_main = accelerator.get_driven_tfs()
+    LOGGER.info('Calculating phase advances')
     for plane in PLANES:
-        LOGGER.debug("tune of measurement files = {}".format(tunes[plane]["Q"]))
-        phase_d[plane]["F"], output_dfs = get_phases(measure_input, input_files, model_of_measurement, plane)
+        LOGGER.info("Measured tune in plane {} = {}".format(plane, tunes[plane]["Q"]))
+        phase_d[plane]["F"], output_dfs = get_phases(measure_input, input_files, model_main, plane)
         headers = _get_headers(header_dict, tunes, plane)
-        for head, df in zip(headers, output_dfs):
-            tfs_pandas.write_tfs(join(measure_input.outputdir, head['FILENAME']), df, head)
-            LOGGER.info("Phase advance beating in {} = {}".format(head['FILENAME'], stats.weighted_rms(df.loc[:, "DELTAPHASE" + plane])))
+        write_output(headers, output_dfs, measure_input.outputdir, plane)
         if measure_input.accelerator.excitation != AccExcitationMode.FREE:
             phase_d[plane]["D"] = phase_d[plane]["F"]
             phase_d[plane]["ac2bpm"] = phase_ac2bpm(phase_d[plane]["F"]["MODEL"], tunes[plane]["Q"],
-                                                    tunes[plane]["QF"], plane, measure_input.accelerator)
+                                                    tunes[plane]["QF"], plane, accelerator)
             phase_d[plane]["F"], output_dfs = get_phases(measure_input, input_files, model_free,
                         plane, (tunes[plane]["Q"], tunes[plane]["QF"], phase_d[plane]["ac2bpm"]))
             headers = _get_headers(header_dict, tunes, plane, free=True)
-            for head, df in zip(headers, output_dfs):
-                tfs_pandas.write_tfs(join(measure_input.outputdir, head['FILENAME']), df, head)
-                LOGGER.info("Phase advance beating in {} = {}".format(head['FILENAME'], stats.weighted_rms(df.loc[:, "DELTAPHASE" + plane])))
-            # phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"], tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
+            write_output(headers, output_dfs, measure_input.outputdir, plane)
+
+            # phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"],
+            # tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
     return phase_d
 
 
@@ -96,16 +95,17 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
 
             The phase advance between BPM_i and BPM_j can be obtained via:
                 phase_advances["MEAS"].loc[BPMi,BPMj]
-        list of output dataframes(for files)
+        list of output data frames(for files)
     """
     phase_frame = pd.DataFrame(model).loc[:, ['S', 'MU' + plane]]
     how = 'outer' if meas_input.union else 'inner'
     phase_frame = pd.merge(phase_frame,
-                           input_files.get_joined_frame(plane, ['MU' + plane, 'ERR_MU' + plane],
-                                                        zero_dpp=True, how=how),
+                           input_files.joined_frame(plane, ['MU' + plane, 'ERR_MU' + plane],
+                                                    zero_dpp=True, how=how),
                            how='inner', left_index=True, right_index=True)
     phases_mdl = phase_frame.loc[:, 'MU' + plane].values
-    phase_advances = {"MODEL": _get_square_data_frame((phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis]) % 1.0, phase_frame.index)}
+    phase_advances = {"MODEL": _get_square_data_frame(
+            (phases_mdl[np.newaxis, :] - phases_mdl[:, np.newaxis]) % 1.0, phase_frame.index)}
     phases_meas = input_files.get_data(phase_frame, 'MU' + plane) * meas_input.accelerator.get_beam_direction()
     phases_errors = input_files.get_data(phase_frame, 'ERR_MU' + plane)
 
@@ -121,8 +121,10 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
         phases_meas[k_bpmac:, :] = phases_meas[k_bpmac:, :] + free_tune
 
     if phases_meas.ndim < 2:
-        phase_advances["MEAS"] = _get_square_data_frame((phases_meas[np.newaxis, :] - phases_meas[:, np.newaxis]) % 1.0, phase_frame.index)
-        phase_advances["ERRMEAS"] = _get_square_data_frame(np.zeros((len(phases_meas), len(phases_meas))), phase_frame.index)
+        phase_advances["MEAS"] = _get_square_data_frame(
+                (phases_meas[np.newaxis, :] - phases_meas[:, np.newaxis]) % 1.0, phase_frame.index)
+        phase_advances["ERRMEAS"] = _get_square_data_frame(
+                np.zeros((len(phases_meas), len(phases_meas))), phase_frame.index)
         return phase_advances
     if meas_input.union:
         mask = np.isnan(phases_meas)
@@ -136,11 +138,19 @@ def get_phases(meas_input, input_files, model, plane, compensate=None, no_errors
         errors_3d = phases_errors[np.newaxis, :, :] + phases_errors[:, np.newaxis, :]
     else:
         errors_3d = None
-    phase_advances["MEAS"] = _get_square_data_frame(stats.circular_mean(phases_3d, period=1, errors=errors_3d,
-                                                 axis=2) % 1.0, phase_frame.index)
-    phase_advances["ERRMEAS"] = _get_square_data_frame(stats.circular_error(phases_3d, period=1, errors=errors_3d,
-                                                     axis=2), phase_frame.index)
-    return phase_advances, [create_output_df(phase_advances, phase_frame, plane), create_output_df(phase_advances, phase_frame, plane, tot=True)]
+    phase_advances["MEAS"] = _get_square_data_frame(stats.circular_mean(
+            phases_3d, period=1, errors=errors_3d, axis=2) % 1.0, phase_frame.index)
+    phase_advances["ERRMEAS"] = _get_square_data_frame(stats.circular_error(
+            phases_3d, period=1, errors=errors_3d, axis=2), phase_frame.index)
+    return phase_advances, [create_output_df(phase_advances, phase_frame, plane),
+                            create_output_df(phase_advances, phase_frame, plane, tot=True)]
+
+
+def write_output(headers, dfs, output, plane):
+    for head, df in zip(headers, dfs):
+        tfs_pandas.write_tfs(join(output, head['FILENAME']), df, head)
+        LOGGER.info("Phase advance beating in {} = {}".format(
+            head['FILENAME'], stats.weighted_rms(df.loc[:, "DELTAPHASE" + plane])))
 
 
 def create_output_df(phase_advances, model, plane, tot=False):
@@ -186,21 +196,9 @@ class PhaseDict(dict):
     Used as data structure to hold phase advances
     """
     def __init__(self):
-        super(PhaseDict, self).__init__(zip(PLANES, ({"ac2bpm": None, "D": None, "F": None, "F2": None},
-                                                     {"ac2bpm": None, "D": None, "F": None, "F2": None})))
-
-
-class _PhaseData(object):
-    def __init__(self, phase_dict):
-        self.ac2bpmac_x = phase_dict["X"]["ac2bpm"]
-        self.ac2bpmac_y = phase_dict["Y"]["ac2bpm"]
-
-        self.phase_advances_x = phase_dict["X"]["D"]
-        self.phase_advances_free_x = phase_dict["X"]["F"]
-        self.phase_advances_free2_x = phase_dict["X"]["F2"]
-        self.phase_advances_y = phase_dict["Y"]["D"]
-        self.phase_advances_free_y = phase_dict["Y"]["F"]
-        self.phase_advances_free2_y = phase_dict["Y"]["F2"]
+        super(PhaseDict, self).__init__(
+            zip(PLANES, ({"ac2bpm": None, "D": None, "F": None, "F2": None},
+                         {"ac2bpm": None, "D": None, "F": None, "F2": None})))
 
 
 """
@@ -244,9 +242,6 @@ def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
                                minmu1, minmu2) ]
             tfs_file.add_string_descriptor(*model_desc)
             tfs_file.add_string_descriptor(*result_desc)
-            LOGGER.debug("")
-            LOGGER.debug("::" + " : ".join(model_desc))
-            LOGGER.debug("::" + " : ".join(result_desc))
         except KeyError as e:
             LOGGER.error("Couldn't calculate the phase advance because " + e)
 """

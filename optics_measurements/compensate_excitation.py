@@ -22,15 +22,17 @@ def get_lambda(driven_tune, free_tune):
     """
     return np.sin(np.pi * (driven_tune - free_tune)) / np.sin(np.pi * (driven_tune + free_tune))
 
-def phase_ac2bpm(commonbpms, driven_tune, free_tune, plane, acc):
+def phase_ac2bpm(df_idx_by_bpms, driven_tune, free_tune, plane, accelerator):
     """Returns the necessary values for the exciter compensation.
 
+    See: doi:10.1103/PhysRevSTAB.11.084002
+
     Args:
-        commonbpms (pandas.DataFrame): commonbpms (see GetLLM._get_commonbpms)
+        df_idx_by_bpms (pandas.DataFrame): commonbpms (see GetLLM._get_commonbpms)
         driven_tune: Driven fractional tunes.
         free_tune: Natural fractional tunes.
         plane (char): X,Y
-        acc: accelerator class instance.
+        accelerator: accelerator class instance.
 
     Returns tupel(a,b,c,d):
         a (string): name of the nearest BPM.
@@ -38,9 +40,9 @@ def phase_ac2bpm(commonbpms, driven_tune, free_tune, plane, acc):
         c (int): k of the nearest BPM.
         d (string): name of the exciter element.
     """
-    model = acc.get_elements_tfs()
+    model = accelerator.get_elements_tfs()
     r = get_lambda(driven_tune % 1.0, free_tune % 1.0)
-    [k, bpmac1], exciter = acc.get_exciter_bpm(plane, commonbpms)
+    [k, bpmac1], exciter = accelerator.get_exciter_bpm(plane, df_idx_by_bpms)
     psi = model.loc[bpmac1, "MU" + plane] - model.loc[exciter, "MU" + plane]
     psi = np.arctan((1+r)/(1-r) * np.tan(2 * np.pi * psi + np.pi * free_tune)) % np.pi - np.pi * driven_tune
     psi = psi / (2 * np.pi)

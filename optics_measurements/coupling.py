@@ -37,23 +37,18 @@ import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
 from utils import logging_tools, stats, tfs_file_writer
 from twiss_optics.optics_class import TwissOptics
-
+from backwards_compatibility import _get_output_tfs_files, _PhaseData, _TuneData, _TwissData
 LOGGER = logging_tools.get_logger(__name__)
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
-def _get_tfs_file(header_dict, filename, outpath):
-    tfs_file = tfs_file_writer.TfsFileWriter(filename,outputpath=outpath)
-    for (key,value) in header_dict.items():
-        tfs_file.add_string_descriptor(key,value)
-    tfs_file.add_string_descriptor("FILENAME", filename)
-    return tfs_file
+
 
 #===================================================================================================
 # main part
 #===================================================================================================
-def calculate_coupling(meas_input, twiss_d, phase_d, tune_d, header_dict):
+def calculate_coupling(meas_input, input_files, phase_dict, tune_dict, header_dict):
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
@@ -70,6 +65,10 @@ def calculate_coupling(meas_input, twiss_d, phase_d, tune_d, header_dict):
     :Return: _TuneData
         the same instance as param tune_d to indicate that tunes will be set.
     '''
+
+    twiss_d = _TwissData(input_files)
+    phase_d = _PhaseData(phase_dict)
+    tune_d = _TuneData(tune_dict)
     accelerator = meas_input.accelerator
     LOGGER.info("Calculating coupling using the {0}-BPM-method and {1} file(s)"
                 .format(meas_input.coupling_method, len(twiss_d.zero_dpp_x)))
@@ -105,7 +104,7 @@ def calculate_coupling(meas_input, twiss_d, phase_d, tune_d, header_dict):
                 accelerator.get_beam_direction(), meas_input.accelerator, meas_input.outputdir)
 
         # Open getcouple.out
-        tfs_file = _get_tfs_file(header_dict, 'getcouple.out', meas_input.outputdir)
+        tfs_file = _get_output_tfs_files(header_dict, 'getcouple.out', meas_input.outputdir)
         # Write main results to getcouple.out  -  C-, std_C- and Q
         tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
         tfs_file.add_float_descriptor("CG_std", fwqw['Global'][2])
@@ -148,10 +147,10 @@ def calculate_coupling(meas_input, twiss_d, phase_d, tune_d, header_dict):
             if meas_input.coupling_method == 2:
                 #-- analytic eqs
                 [fwqwf, bpmsf] = GetFreeCoupling_Eq(
-                    mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpms, tune_d.q1, tune_d.q2,
-                    tune_d.q1f, tune_d.q2f, accelerator)
+                    mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpms, tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, # TODO acording to documentation and all the other usage the driven and free tunes were swapped, to be checked
+                     accelerator)
 
-                tfs_file =_get_tfs_file(header_dict, 'getcouple_free.out', meas_input.outputdir)
+                tfs_file =_get_output_tfs_files(header_dict, 'getcouple_free.out', meas_input.outputdir)
                 tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
                 tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
                 tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "Q1001", "Q1001STD", "Q1010", "Q1010STD", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
@@ -168,7 +167,7 @@ def calculate_coupling(meas_input, twiss_d, phase_d, tune_d, header_dict):
 
             #-- global factor
             [fwqwf2, bpmsf2] = getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
-            tfs_file = _get_tfs_file(header_dict, 'getcouple_free2.out', meas_input.outputdir)
+            tfs_file = _get_output_tfs_files(header_dict, 'getcouple_free2.out', meas_input.outputdir)
             tfs_file.add_float_descriptor("CG",  fwqw['Global'][0])
             tfs_file.add_float_descriptor("QG",  fwqw['Global'][1])
             tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "Q1001", "Q1001STD", "Q1010", "Q1010STD", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
@@ -192,7 +191,7 @@ def calculate_coupling(meas_input, twiss_d, phase_d, tune_d, header_dict):
                 [coupleterms, q_minav, q_minerr, bpms] = getCandGammaQmin(fwqwf2, bpmsf2, tune_d.q1f, tune_d.q2f, mad_twiss)
         else:
             [coupleterms, q_minav, q_minerr, bpms] = getCandGammaQmin(fwqw, bpms, tune_d.q1f, tune_d.q2f, mad_twiss)
-        tfs_file = _get_tfs_file(header_dict,'getcoupleterms.out', meas_input.outputdir)
+        tfs_file = _get_output_tfs_files(header_dict, 'getcoupleterms.out', meas_input.outputdir)
         tfs_file.add_float_descriptor("DQMIN", q_minav)
         tfs_file.add_float_descriptor("DQMINE", q_minerr)
         tfs_file.add_column_names(["NAME", "S", "DETC", "DETCE", "GAMMA", "GAMMAE", "C11", "C12", "C21", "C22"])

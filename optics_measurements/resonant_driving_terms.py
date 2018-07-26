@@ -13,7 +13,7 @@ import sys
 import utils.bpm
 import helper
 import numpy as np
-
+from backwards_compatibility import _PhaseData, _TwissData, _get_output_tfs_files
 exist_curve_fit = True
 
 try:
@@ -50,7 +50,7 @@ def determine_lines(rdt):
     return line, plane
 
 
-def calculate_RDTs(getllm_d, twiss_d, mad_twiss, phase_d, inv_x, inv_y):
+def calculate_RDTs(getllm_d, input_files, mad_twiss, phase_dict, header_dict, inv_x, inv_y):
     '''
     Calculates line RDT amplitudes and phases and fills the following TfsFiles:
         f3000_line.out ...
@@ -64,7 +64,8 @@ def calculate_RDTs(getllm_d, twiss_d, mad_twiss, phase_d, inv_x, inv_y):
             Holds tunes and phase advances.
     '''
     print "Calculating RDTs"
-
+    twiss_d = _TwissData(input_files)
+    phase_d = _PhaseData(phase_dict)
     """
     The rdt_set holds all RDTs which should be investigated with the parameters to call GetRDT()
     syntax is: rdt_set = [(plane, out_file, line), ...]
@@ -78,7 +79,7 @@ def calculate_RDTs(getllm_d, twiss_d, mad_twiss, phase_d, inv_x, inv_y):
     if exist_curve_fit:
         for rdt in RDT_LIST:
             line, plane = determine_lines(rdt)
-            _process_RDT(mad_twiss, phase_d, twiss_d, (plane, files_dict[rdt+'_line.out'], files_dict[rdt+'.out'], line), inv_x, inv_y, rdt, beam)
+            _process_RDT(mad_twiss, phase_d, twiss_d, (plane, _get_output_tfs_files(header_dict, rdt + '_line.out', getllm_d.outputdir), _get_output_tfs_files(header_dict, rdt + '.out', getllm_d.outputdir), line), inv_x, inv_y, rdt, beam)
     else:
         print 'Curve fit not imported.. RDTs skipped'
 
