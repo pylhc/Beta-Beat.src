@@ -18,7 +18,6 @@ def calculate_tunes(measure_input, input_files):
     accelerator = measure_input.accelerator
     tune_d["X"]["QM"] = accelerator.get_model_tfs().headers["Q1"]
     tune_d["Y"]["QM"] = accelerator.get_model_tfs().headers["Q2"]
-
     for plane in PLANES:
         char = {"X": "1", "Y": "2"}
         tunes = np.array([df.headers["Q" + char[plane]] for df in input_files._get_zero_dpp_frames(plane)])
@@ -40,8 +39,8 @@ class TuneDict(dict):
     Used as data structure to hold tunes
     """
     def __init__(self):
-        init_tunes = {"Q": 0.0, "QF": 0.0, "QM": 0.0, "QFM": 0.0}
-        super(TuneDict, self).__init__(zip(PLANES, (init_tunes, init_tunes)))
+        super(TuneDict, self).__init__(zip(PLANES, ({"Q": 0.0, "QF": 0.0, "QM": 0.0, "QFM": 0.0},
+                                                    {"Q": 0.0, "QF": 0.0, "QM": 0.0, "QFM": 0.0})))
 
 
 class _TuneData(object):
