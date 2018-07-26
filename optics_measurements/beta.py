@@ -15,7 +15,7 @@ import sys
 import math
 import re
 import time
-
+from os.path import join
 import numpy as np
 from numpy import sin, tan
 import pandas as pd
@@ -152,7 +152,15 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
         )
 
     for df in [beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y]:
-        if df is not None: _add_header(df, header_dict, error_method, range_of_bpms)
+        if df is not None:
+            _add_header(df, header_dict, error_method, range_of_bpms)
+    tfs_pandas.write_tfs(join(getllm_d.outputdir, "getbetax.out"), driven_beta_df_x)
+    tfs_pandas.write_tfs(join(getllm_d.outputdir, "getbetay.out"), driven_beta_df_y)
+    try:
+        tfs_pandas.write_tfs(join(getllm_d.outputdir, "getbetax_free.out"), beta_df_x)
+        tfs_pandas.write_tfs(join(getllm_d.outputdir, "getbetay_free.out"), beta_df_y)
+    except:
+        raise ValueError("Writing of free beta output failed")
 
     return beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y
 
@@ -971,6 +979,7 @@ def _add_header(df, header_dict, error_method, range_of_bpms):
     df.headers['RCond'] = RCOND
     df.headers['ErrorsFrom'] = ID_TO_METHOD[error_method]
     df.headers['RangeOfBPMs'] = "Adjacent" if error_method == METH_3BPM else range_of_bpms
+
 
 
 #---------------------------------------------------------------------------------------------------
