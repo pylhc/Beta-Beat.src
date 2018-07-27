@@ -4,7 +4,7 @@ import pytest
 import regression.test_cases
 
 
-def launch_tests(do_unit=True, do_regression=True):
+def launch_tests(do_unit=True, do_regression=True, do_accuracy=True):
     """Launches all the available tests.
     """
     if do_unit:
@@ -20,11 +20,20 @@ def launch_tests(do_unit=True, do_regression=True):
         print("\nLaunching regression tests...")
         regression.test_cases.run_tests()
 
-    # TODO: Precision checks (circular tests)
+    if do_accuracy:
+        print("\nLaunching accuracy tests...")
+        accuracy_result = pytest.main([os.path.join(os.path.dirname(__file__), "accuracy",)])
+        if accuracy_result:  # Non 0 return means failed tests.
+            raise AccuracyTestsFailed()
 
 
 class UnitTestsFailed(Exception):
     """Raised when the unit tests fail.
+    """
+    pass
+
+class AccuracyTestsFailed(Exception):
+    """Raised when the accuracy tests fail.
     """
     pass
 

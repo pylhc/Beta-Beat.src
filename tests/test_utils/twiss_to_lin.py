@@ -21,10 +21,10 @@ from utils.tfs_pandas import write_tfs, read_tfs
 
 def optics_measurement_test_files(modeldir, outpath):
     generate_lin_files(modeldir, outfile=join(outpath, 'onmom1'), dpp=0.0)
-    generate_lin_files(modeldir, outfile=join(outpath + 'onmom2'), dpp=0.0)
-    generate_lin_files(modeldir, outfile=join(outpath + 'onmom3'), dpp=0.0)
-    generate_lin_files(modeldir, outfile=join(outpath + 'offmom1'), dpp=-4e-4)
-    generate_lin_files(modeldir, outfile=join(outpath + 'offmom2'), dpp=4e-4)
+    generate_lin_files(modeldir, outfile=join(outpath, 'onmom2'), dpp=0.0)
+    generate_lin_files(modeldir, outfile=join(outpath, 'onmom3'), dpp=0.0)
+    generate_lin_files(modeldir, outfile=join(outpath, 'offmom1'), dpp=-4e-4)
+    generate_lin_files(modeldir, outfile=join(outpath, 'offmom2'), dpp=4e-4)
     return join(outpath, 'onmom1') + ',' + join(outpath, 'onmom2') + ',' + join(outpath, 'onmom3') \
            + ',' + join(outpath, 'offmom1') + ',' + join(outpath, 'offmom2')
 
