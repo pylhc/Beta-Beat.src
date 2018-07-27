@@ -61,7 +61,8 @@ def _calculate_orbit(model, input_files, plane, header, output):
     df_orbit['COUNT'] = len(input_files.get_columns(df_orbit, 'CO'))
     df_orbit[plane] = stats.weighted_mean(input_files.get_data(df_orbit, 'CO'), axis=1)
     df_orbit['STD' + plane] = stats.weighted_error(input_files.get_data(df_orbit, 'CO'), axis=1)
-    output_df = df_orbit.loc[:, ['S', 'COUNT', plane, 'STD' + plane, plane + 'MDL', 'MU' + plane + 'MDL']]
+    df_orbit['DELTA' + plane] = df_orbit.loc[:, plane] - df_orbit.loc[:, plane + 'MDL']
+    output_df = df_orbit.loc[:, ['S', 'COUNT', plane, 'STD' + plane, plane + 'MDL', 'MU' + plane + 'MDL', 'DELTA' + plane]]
     tfs_pandas.write_tfs(join(output, header['FILENAME']), output_df, header, save_index='NAME')
     return output_df
 
@@ -87,10 +88,10 @@ def _calculate_dispersion(model, input_files, plane, header, unit, cut, output, 
     df_orbit = df_orbit.loc[np.abs(df_orbit.loc[:, plane]) < cut*SCALES[unit], :]
     df_orbit['DP' + plane] = _calculate_dp(model,
                                            df_orbit.loc[:, ['D' + plane, 'STDD' + plane]], plane)
-    df_orbit['DELTD' + plane] = df_orbit.loc[:, 'D'+ plane] - df_orbit.loc[:, 'D' + plane + 'MDL']
+    df_orbit['DELTAD' + plane] = df_orbit.loc[:, 'D'+ plane] - df_orbit.loc[:, 'D' + plane + 'MDL']
     output_df = df_orbit.loc[
                 :, ['S', 'COUNT', 'D' + plane, 'STDD' + plane, plane, 'STD' + plane, 'DP' + plane,
-                    'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL', 'DELTD' + plane]]
+                    'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL', 'DELTAD' + plane]]
     tfs_pandas.write_tfs(join(output, header['FILENAME']), output_df, header, save_index='NAME')
     return output_df
 
