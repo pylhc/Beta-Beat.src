@@ -39,7 +39,7 @@ def calculate_orbit_and_dispersion(meas_input, input_files, tune_dict, model, be
         if plane == 'X':
             ndx_header = _get_header(header_dict, tune_dict, 'getNDx.out', orbit=False)
             _calculate_normalised_dispersion(model, input_files, beta_from_phase["X"], ndx_header,
-                                             meas_input.orbit_unit, meas_input.max_closed_orbit, meas_input.outputdir)
+                                             meas_input.orbit_unit, meas_input.max_closed_orbit, meas_input.outputdir, meas_input.accelerator)
 
 
 def _get_header(header_dict, tune_dict, filename, orbit=False):
@@ -96,7 +96,7 @@ def _calculate_dispersion(model, input_files, plane, header, unit, cut, output, 
     return output_df
 
 
-def _calculate_normalised_dispersion(model, input_files, beta, header, unit, cut, output):
+def _calculate_normalised_dispersion(model, input_files, beta, header, unit, cut, output, accelerator):
     #TODO there are no errors from orbit
     df_orbit = pd.DataFrame(model).loc[:, ['S', 'MUX', 'DPX', 'DX', 'X', 'BETX']]
     df_orbit['NDXMDL'] = df_orbit.loc[:, 'DX'] / np.sqrt(df_orbit.loc[:, 'BETX'])
@@ -114,7 +114,8 @@ def _calculate_normalised_dispersion(model, input_files, beta, header, unit, cut
     df_orbit['NDX_unscaled'] = fit[0][-2, :].T / stats.weighted_mean(input_files.get_data(df_orbit, 'AMPX'), axis=1) # TODO there is no error from AMPX
     df_orbit['STDNDX_unscaled'] = np.sqrt(fit[1][-2, -2, :].T) / stats.weighted_mean(input_files.get_data(df_orbit, 'AMPX'), axis=1)
     df_orbit = df_orbit.loc[np.abs(fit[0][-1, :].T) < cut * SCALES[unit], :]
-    global_factor = np.sum(df_orbit.loc[:, 'NDXMDL'].values) / np.sum(df_orbit.loc[:, 'NDX_unscaled'].values) # TODO should be arc BPMS
+    mask = accelerator.get_element_types_mask(df_orbit.index, ["arc_bpm"])
+    global_factor = np.sum(df_orbit.loc[mask, 'NDXMDL'].values) / np.sum(df_orbit.loc[mask, 'NDX_unscaled'].values)
     df_orbit['NDX'] = global_factor * df_orbit.loc[:, 'NDX_unscaled']
     df_orbit['STDNDX'] = global_factor * df_orbit.loc[:, 'STDNDX_unscaled']
     df_orbit['DX'] = df_orbit.loc[:, 'NDX'] * np.sqrt(df_orbit.loc[:, 'BETX_phase'])

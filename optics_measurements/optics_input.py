@@ -68,8 +68,9 @@ class OpticsInput(object):
 def _get_optics_parser(start_args=sys.argv[1:]):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--files", dest="files", help="Files from analysis, separated by comma")
-    parser.add_argument("--outputdir", dest="outputdir", help="Output directory")
+    parser.add_argument("--files", dest="files",  required=True,
+                        help="Files from analysis, separated by comma")
+    parser.add_argument("--outputdir", dest="outputdir", required=True, help="Output directory")
     parser.add_argument("--max_closed_orbit", dest="max_closed_orbit",
                         default=OpticsInput.DEFAULTS["max_closed_orbit"],
                         help="Maximal closed orbit for dispersion measurement in 'orbit_unit'")
