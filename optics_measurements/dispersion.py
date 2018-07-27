@@ -87,9 +87,10 @@ def _calculate_dispersion(model, input_files, plane, header, unit, cut, output, 
     df_orbit = df_orbit.loc[np.abs(df_orbit.loc[:, plane]) < cut*SCALES[unit], :]
     df_orbit['DP' + plane] = _calculate_dp(model,
                                            df_orbit.loc[:, ['D' + plane, 'STDD' + plane]], plane)
-    output_df = df_orbit.loc[:,
-                             ['S', 'COUNT', 'D' + plane, 'STDD' + plane, plane, 'STD' + plane, 'DP' + plane,
-                              'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL']]
+    df_orbit['DELTD' + plane] = df_orbit.loc[:, 'D'+ plane] - df_orbit.loc[:, 'D' + plane + 'MDL']
+    output_df = df_orbit.loc[
+                :, ['S', 'COUNT', 'D' + plane, 'STDD' + plane, plane, 'STD' + plane, 'DP' + plane,
+                    'D' + plane + 'MDL', 'DP' + plane + 'MDL', 'MU' + plane + 'MDL', 'DELTD' + plane]]
     tfs_pandas.write_tfs(join(output, header['FILENAME']), output_df, header, save_index='NAME')
     return output_df
 
@@ -118,8 +119,9 @@ def _calculate_normalised_dispersion(model, input_files, beta, header, unit, cut
     df_orbit['DX'] = df_orbit.loc[:, 'NDX'] * np.sqrt(df_orbit.loc[:, 'BETX_phase'])
     df_orbit['STDDX'] = df_orbit.loc[:, 'STDNDX'] * np.sqrt(df_orbit.loc[:, 'BETX_phase'])
     df_orbit['DPX'] = _calculate_dp(model, df_orbit.loc[:, ['DX', 'STDDX']], "X")
+    df_orbit['DELTANDX'] = df_orbit.loc[:, 'NDX'] - df_orbit.loc[:, 'NDXMDL']
     output_df = df_orbit.loc[:, ['S', 'COUNT', 'NDX', 'STDNDX', 'DX', 'DPX',
-                                 'NDXMDL', 'DXMDL', 'DPXMDL', 'MUXMDL']]
+                                 'NDXMDL', 'DXMDL', 'DPXMDL', 'MUXMDL', 'DELTANDX']]
     tfs_pandas.write_tfs(join(output, header['FILENAME']), output_df, header, save_index='NAME')
     return output_df
 

@@ -259,6 +259,9 @@ def beta_from_phase(madTwiss, madElements, phase, plane,
     beta_df.headers["CALCULATION_TIME"] = "{:.2f} s".format(et)
     LOGGER.info(" - RMS beta beat: {:.2f}%".format(rmsbb))
     LOGGER.info(" - elapsed time: {:.2f}s".format(et))
+    beta_df["DELTABET"+plane] = ((beta_df.loc[:, 'BET' + plane] -
+                                  beta_df.loc[:, 'BET' + plane + 'MDL']) /
+                                 beta_df.loc[:, 'BET' + plane + 'MDL'])
     return beta_df
 
 #---------------------------------------------------------------------------------------------------
