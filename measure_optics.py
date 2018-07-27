@@ -144,14 +144,9 @@ class InputFiles(dict):
                     file_to_load = file_in + '.lin' + plane.lower()
                 else:
                     file_to_load = file_in + '_lin' + plane.lower()
-                try:
-                    self[plane].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
-                except IOError:
-                    LOGGER.warning("Cannot load file: " + file_to_load)
-                except ValueError:
-                    pass
-            for plane in PLANES:
-                self[plane] = dpp.arrange_dpp(self[plane])
+                self[plane].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
+        for plane in PLANES:
+            self[plane] = dpp.arrange_dpp(self[plane])
         if len(self['X']) + len(self['Y']) == 0:
             raise IOError("No valid input files")
 
