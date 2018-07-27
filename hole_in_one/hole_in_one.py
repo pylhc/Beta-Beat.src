@@ -16,10 +16,7 @@ from utils import tfs_pandas as tfs
 from utils.contexts import timeit
 from model import manager
 from sdds_files import turn_by_turn_reader
-
-
 LOGGER = logging.getLogger(__name__)
-
 LOG_SUFFIX = ".log"
 
 
@@ -48,11 +45,8 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
 
     if main_input.write_raw:
         output_handler.write_raw_file(tbt_file, main_input)
-        
-        
     elif clean_input is None and harpy_input is None:
         raise ValueError("No clean or harpy or --write_raw...")
-
     # Defaults in case we dont run clean
     usvs = {"x": None, "y": None}
     all_bad_bpms = {"x": [], "y": []}
@@ -235,7 +229,8 @@ def _sync_phase(bpm_data_orig, lin_frame, plane):
         #print('sync %d  in %f shifted %f final %f' % (i, phase[i],tmp,p))    
         phase[i] = p
     lin_frame['MU' + uplane + 'SYNC'] = phase
-    
+
+
 def _kick_phase_correction(bpm_data_orig, lin_frame, plane):
     uplane = plane.upper()
     bpm_data = bpm_data_orig.loc[lin_frame.index,:]
@@ -245,27 +240,15 @@ def _kick_phase_correction(bpm_data_orig, lin_frame, plane):
     amp = lin_frame.loc[:, 'PK2PK'].values / 2
     tune = lin_frame.loc[:, 'TUNE' + uplane].values * 2 * np.pi
     phase = lin_frame.loc[:, 'MU' + uplane].values * 2 * np.pi
-    avg_tune = np.ones(bpm_data.shape[0]) * np.mean(tune)
-    avg_phase = lin_frame.loc[:, 'AVG_MU' + uplane].values * 2 * np.pi
     damp_range = damp * int_range
     phase_range = np.outer(tune, int_range) + np.outer(phase, np.ones(bpm_data.shape[1]))
-    avg_phase_range = np.outer(avg_tune, int_range) + np.outer(avg_phase, np.ones(bpm_data.shape[1]))
 
     e1 = np.sum(np.exp(2 * damp_range) * np.sin(2 * phase_range), axis=1) * amp/2
     e2 = np.sum(bpm_data * np.exp(damp_range) * np.sin(phase_range), axis=1)
     e3 = np.sum(bpm_data * np.exp(damp_range) * np.cos(phase_range), axis=1)
     e4 = np.sum(np.exp(2 * damp_range) * np.cos(2 * phase_range), axis=1) * amp
-
     cor = (e1 - e2) / ((e3 - e4) * 2 * np.pi)
     lin_frame['MU' + uplane] = lin_frame.loc[:, 'MU' + uplane].values + cor
-
-    f1 = np.sum(np.exp(2 * damp_range) * np.sin(2 * avg_phase_range), axis=1) * amp/2
-    f2 = np.sum(bpm_data * np.exp(damp_range) * np.sin(avg_phase_range), axis=1)
-    f3 = np.sum(bpm_data * np.exp(damp_range) * np.cos(avg_phase_range), axis=1)
-    f4 = np.sum(np.exp(2 * damp_range) * np.cos(2 * avg_phase_range), axis=1) * amp
-
-    avg_cor = (f1 - f2) / ((f3 - f4) * 2 * np.pi)
-    lin_frame['AVG_MU' + uplane] = lin_frame.loc[:, 'AVG_MU' + uplane].values + avg_cor
     return lin_frame
 
 

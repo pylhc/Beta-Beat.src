@@ -58,7 +58,7 @@ def get_dpoverp_amp(model_tfs, panda, bpm_names, bpm_samples):
     pos = _get_positive_dpoverp_intervals(tunez, tunez_phase, turns)
     neg = _get_negative_dpoverp_intervals(tunez, tunez_phase, turns)
     # We assume 3D kicks only happen in LHC for now.
-    co = np.zeros_like(arc_bpm_names)
+    co = np.zeros_like(arc_bpm_names, dtype=float)
     model_dx = model_tfs.set_index("NAME").loc[arc_bpm_names, "DX"]
     length = 0
     for bin in pos:
