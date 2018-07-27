@@ -14,21 +14,24 @@ for free motion and for driven motion. The twisses should contain the chromatic 
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
+from os.path import join
 import __init__
 from utils.tfs_pandas import write_tfs, read_tfs
 
 
-def get_llm_test_files(infile, outpath):
-    generate_lin_files(infile, outfile=outpath + 'onmom1', dpp=0.0)
-    generate_lin_files(infile, outfile=outpath + 'onmom2', dpp=0.0)
-    generate_lin_files(infile, outfile=outpath + 'onmom3', dpp=0.0)
-    generate_lin_files(infile, outfile=outpath + 'offmom1', dpp=-4e-4)
-    generate_lin_files(infile, outfile=outpath + 'offmom2', dpp=4e-4)
+def optics_measurement_test_files(modeldir, outpath):
+    generate_lin_files(modeldir, outfile=join(outpath, 'onmom1'), dpp=0.0)
+    generate_lin_files(modeldir, outfile=join(outpath + 'onmom2'), dpp=0.0)
+    generate_lin_files(modeldir, outfile=join(outpath + 'onmom3'), dpp=0.0)
+    generate_lin_files(modeldir, outfile=join(outpath + 'offmom1'), dpp=-4e-4)
+    generate_lin_files(modeldir, outfile=join(outpath + 'offmom2'), dpp=4e-4)
+    return join(outpath, 'onmom1') + ',' + join(outpath, 'onmom2') + ',' + join(outpath, 'onmom3') \
+           + ',' + join(outpath, 'offmom1') + ',' + join(outpath, 'offmom2')
 
 
-def generate_lin_files(infile, outfile='test', dpp=0.0):
-    free = read_tfs(infile + '.dat')
-    driven = read_tfs(infile + '_ac.dat')
+def generate_lin_files(model_dir, outfile='test', dpp=0.0):
+    free = read_tfs(join(model_dir, 'twiss.dat'))
+    driven = read_tfs(join(model_dir, 'twiss_ac.dat'))
     nattune = {"X": np.remainder(free.headers['Q1'], 1), "Y": np.remainder(free.headers['Q2'], 1)}
     tune = {"X": np.remainder(driven.headers['Q1'], 1), "Y": np.remainder(driven.headers['Q2'], 1)}
     model = pd.merge(free, driven, how='inner', on='NAME', suffixes=('_f', '_d'))
@@ -81,4 +84,4 @@ def generate_lin_files(infile, outfile='test', dpp=0.0):
 
 
 if __name__ == '__main__':
-    get_llm_test_files('twiss','./')
+    optics_measurement_test_files('./', './')
