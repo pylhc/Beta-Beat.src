@@ -10,8 +10,9 @@ It computes beta* from phase.
 from os.path import join
 from numpy import sqrt, sin, cos, tan, pi
 import pandas as pd
-from utils import tfs_pandas
+from utils import tfs_pandas, logging_tools
 
+LOGGER = logging_tools.get_logger(__name__)
 PI2 = 2 * pi
 COLUMNS = ("IP", "BETASTAR", "EBETASTAR", "PHASEADV", "EPHASEADV",
            "MDLPHADV", "LSTAR")
@@ -33,9 +34,10 @@ def betastar_from_phase(accel, phase_d, model):
         A nested dict with the same structure as the phase_d dict.
     """
     try:
-        ips = accel.get_ips()
+        ips = list(accel.get_ips())
     except AttributeError:
-        # TODO: Log no ips in the accelerator
+        LOGGER.debug("Accelerator {accel} has not get_ips method."
+                     .format(accel=accel.__name__))
         return None
     ip_dict = dict(zip(PLANES, ({}, {})))
     for plane in PLANES:
@@ -50,7 +52,8 @@ def betastar_from_phase(accel, phase_d, model):
                         bpml, bpmr, phases_df
                     )
                 except KeyError:
-                    # TODO: Log combination not in phase meas
+                    LOGGER.debug("{0} {1} not in phases ({2}) dataframe."
+                                 .format(bpml, bpmr, mode))
                     continue  # Measurement on one of the BPMs not present.
                 lstar = _get_lstar(bpml, bpmr, model)
                 betastar, ebestar = phase_to_betastar(
