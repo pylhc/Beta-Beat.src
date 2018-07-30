@@ -8,7 +8,7 @@ import measure_optics
 from optics_measurements import optics_input
 from model import manager
 import pytest
-LIMITS = {'P': 1e-4, 'B': 1e-2, 'D': 1e-2}
+LIMITS = {'P': 1.5e-4, 'B': 1e-2, 'D': 1e-2}
 DEFAULT_LIMIT = 5e-3
 
 

@@ -8,9 +8,9 @@ email:
 python:
  - "2.7"
 script:
- - python tests/regression/test_cases.py
- - pytest tests/accuracy/
  - pytest tests/unit/
+ - pytest tests/accuracy/
+ - python tests/regression/test_cases.py
  - travis-sphinx build --source=doc/ --nowarn
 after_success:
  - travis-sphinx deploy

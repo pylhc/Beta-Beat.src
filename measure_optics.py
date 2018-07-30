@@ -27,7 +27,7 @@ from utils import tfs_pandas, logging_tools, iotools
 
 VERSION = '0.2.0'
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d measure_optics.py...") (vimaier)
-LOGGER = logging_tools.get_logger(__name__)
+LOGGER = logging_tools.get_logger(__name__, level_console=logging_tools.INFO)
 PLANES = ('X', 'Y')
 LOG_FILE = "measure_optics.log"
 
