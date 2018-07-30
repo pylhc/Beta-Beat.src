@@ -433,6 +433,12 @@ class _TfsDataType:
                 return True
             except ValueError:
                 return False
+        elif _TfsDataType.TYPE_INT == self.__type:
+            try:
+                int(value)
+                return True
+            except ValueError:
+                return False
         else:
             raise TypeError("Type of _TfsDataType is unknown: " + str(self.__type))
 
