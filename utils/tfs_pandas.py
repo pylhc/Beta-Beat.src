@@ -16,6 +16,23 @@ TYPES = "$"
 COMMENTS = "#"
 INDEX_ID = "INDEX&&&"
 
+FLOAT_PARENTS = (float, np.floating)
+INT_PARENTS = (int, np.integer, bool, np.bool_)
+
+
+class TypeToIdConverter(object):
+    """ For symmetry reasons. """
+    def __getitem__(self, item):
+        if issubclass(item, INT_PARENTS):
+            return "%d"
+        elif issubclass(item, FLOAT_PARENTS):
+            return "%le"
+        else:
+            return "%s"
+
+
+TYPE_TO_ID = TypeToIdConverter()
+
 ID_TO_TYPE = {
     "%s": np.str,
     "%bpm_s": np.str,
@@ -24,17 +41,6 @@ ID_TO_TYPE = {
     "%hd": np.int,
     "%d": np.int,
 }
-
-TYPE_TO_ID = {
-    np.str: "%s",
-    np.float64: "%le",
-    float: "%le",
-    np.int: "%d",
-    np.bool_: "%le",
-    int: "%d",
-    np.int64: "%d",
-    np.int32: "%d",
-    }
 
 
 class TfsDataFrame(pandas.DataFrame):
@@ -181,6 +187,7 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     tfs_writer = tfs_file_writer.TfsFileWriter(tfs_name, outputpath=tfs_dir)
     column_names = _get_column_names(data_frame)
     column_types = _get_column_types(data_frame)
+
     if len(headers_dict) == 0:
         try:
             headers_dict = data_frame.headers
@@ -188,56 +195,17 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
             pass
 
     for head_name in headers_dict:
-        if type(headers_dict[head_name]) is str:
-            tfs_writer.add_string_descriptor(head_name, headers_dict[head_name])
-        else:
+        if isinstance(headers_dict[head_name], INT_PARENTS):
+            tfs_writer.add_int_descriptor(head_name, headers_dict[head_name])
+        elif isinstance(headers_dict[head_name], FLOAT_PARENTS):
             tfs_writer.add_float_descriptor(head_name, headers_dict[head_name])
+        else:
+            tfs_writer.add_string_descriptor(head_name, headers_dict[head_name])
     tfs_writer.add_column_names(column_names)
     tfs_writer.add_column_datatypes(column_types)
     for _, row in data_frame.iterrows():
         tfs_writer.add_table_row(row)
     tfs_writer.write_to_file()
-
-
-def add_coupling(data_frame):
-    """
-    Computes the coupling for data_frame adding 3 columns to it:
-    - f1001
-    - f1010
-    - gamma
-    """
-    df = data_frame
-    j = np.array([[0., 1.],
-                  [-1., 0.]])
-    rs = np.reshape(df.as_matrix(columns=["R11", "R12",
-                                          "R21", "R22"]),
-                    (len(df), 2, 2))
-    cs = np.einsum("ij,kjn,no->kio",
-                   -j, np.transpose(rs, axes=(0, 2, 1)), j)
-    cs = np.einsum("k,kij->kij", (1 / np.sqrt(1 + np.linalg.det(rs))), cs)
-
-    g11a = 1 / np.sqrt(df.loc[:, "BETX"])
-    g12a = np.zeros(len(df))
-    g21a = df.loc[:, "ALFX"] / np.sqrt(df.loc[:, "BETX"])
-    g22a = np.sqrt(df.loc[:, "BETX"])
-    gas = np.reshape(np.array([g11a, g12a,
-                               g21a, g22a]).T,
-                     (len(df), 2, 2))
-
-    ig11b = np.sqrt(df.loc[:, "BETY"])
-    ig12b = np.zeros(len(df))
-    ig21b = -df.loc[:, "ALFY"] / np.sqrt(df.loc[:, "BETY"])
-    ig22b = 1. / np.sqrt(df.loc[:, "BETY"])
-    igbs = np.reshape(np.array([ig11b, ig12b,
-                                ig21b, ig22b]).T,
-                      (len(df), 2, 2))
-    cs = np.einsum("kij,kjl,kln->kin", gas, cs, igbs)
-    gammas = np.sqrt(1 - np.linalg.det(cs))
-    data_frame.loc[:, "gamma"] = gammas
-    data_frame.loc[:, "f1001"] = ((cs[:, 0, 0] + cs[:, 1, 1]) * 1j +
-                                  (cs[:, 0, 1] - cs[:, 1, 0])) / 4 / gammas
-    data_frame.loc[:, "f1010"] = ((cs[:, 0, 0] - cs[:, 1, 1]) * 1j +
-                                  (-cs[:, 0, 1]) - cs[:, 1, 0]) / 4 / gammas
 
 
 class TfsFormatError(Exception):

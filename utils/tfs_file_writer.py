@@ -124,14 +124,19 @@ class TfsFileWriter(object):
         tfs_descriptor = _TfsDescriptor(name, str_value, _TfsDataType.get_new_string_instance())
         self.__tfs_header_lines.append(tfs_descriptor)
 
-    def add_header_line(self, str_value):
-        """ Adds the line to the tfs header. """
-        self.__tfs_header_lines.append(_TfsLine(str_value))
-
     def add_float_descriptor(self, name, float_value):
         """ Adds the string "@ <name> %le <data>" to the tfs header. """
         tfs_descriptor = _TfsDescriptor(name, float_value, _TfsDataType.get_new_float_instance())
         self.__tfs_header_lines.append(tfs_descriptor)
+
+    def add_int_descriptor(self, name, int_value):
+        """ Adds the string "@ <name> %d <data>" to the tfs header. """
+        tfs_descriptor = _TfsDescriptor(name, int_value, _TfsDataType.get_new_int_instance())
+        self.__tfs_header_lines.append(tfs_descriptor)
+
+    def add_header_line(self, str_value):
+        """ Adds the line to the tfs header. """
+        self.__tfs_header_lines.append(_TfsLine(str_value))
 
     def add_comment(self, comment):
         """
@@ -376,14 +381,14 @@ class _TfsDataType:
 
     @staticmethod
     def get_type_from_string(type_as_string):
-        if _TfsDataType.TYPE_STRING == type_as_string:
-            return _TfsDataType.get_new_string_instance()
-        elif _TfsDataType.TYPE_FLOAT == type_as_string:
-            return _TfsDataType.get_new_float_instance()
-        elif _TfsDataType.TYPE_INT == type_as_string:
-            return _TfsDataType.get_new_int_instance()
-        else:
-            raise ValueError("Type in string not recognized: "+type_as_string)
+        try:
+            return {
+                _TfsDataType.TYPE_STRING: _TfsDataType.get_new_string_instance,
+                _TfsDataType.TYPE_FLOAT: _TfsDataType.get_new_float_instance,
+                _TfsDataType.TYPE_INT: _TfsDataType.get_new_int_instance,
+            }[type_as_string]()
+        except KeyError:
+            raise ValueError("Type in string not recognized: {:s}".format(type_as_string))
 
     @staticmethod
     def get_new_string_instance():
