@@ -23,11 +23,11 @@ def test_measure_optics(_create_input):
         for col in cols:
             mask = outliers.get_filter_mask(a.loc[:, col].values, limit=0.1)
             rms = stats.weighted_rms(a.loc[mask, col].values)
-            print("File: {}  Column: {}   RMS: {}".format(f, col, rms))
             if col[5] in LIMITS.keys():
-                assert rms < LIMITS[col[5]]
+                assert rms < LIMITS[col[5]], "\nFile: {:25}  Column: {:15}   RMS: {:.6f}".format(f, col, rms)
             else:
-                assert rms < DEFAULT_LIMIT
+                assert rms < DEFAULT_LIMIT, "\nFile: {:25}  Column: {:15}   RMS: {:.6f}".format(f, col, rms)
+            print("\nFile: {:25}  Column: {:15}   RMS:    {:.6f}".format(f, col, rms))
 
 
 @pytest.fixture()

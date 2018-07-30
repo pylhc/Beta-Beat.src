@@ -9,7 +9,7 @@ python:
  - "2.7"
 script:
  - pytest tests/unit/
- - pytest tests/accuracy/
+ - pytest -s tests/accuracy/
  - python tests/regression/test_cases.py
  - travis-sphinx build --source=doc/ --nowarn
 after_success:
