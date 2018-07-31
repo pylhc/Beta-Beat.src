@@ -30,6 +30,8 @@
  ******************************************************************************************/
  call, file = '%(FILES_DIR)s/psb.ele';
  call, file = '%(FILES_DIR)s/psb.seq';
+ call, file = '%(FILES_DIR)s/defseries.seq';
+ call, file = '%(FILES_DIR)s/powering.seq';
  call, file = '%(FILES_DIR)s/psb.dbx';
  call, file = '%(FILES_DIR)s/psb_orbit.str';
 
