@@ -79,7 +79,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
         if back_prop_phase_difference > 0.5:
             back_prop_phase_difference = back_prop_phase_difference - 1
 
-        if not fix_start_s is None:
+        if fix_start_s is not None:
             if bpm_s >= fix_start_s:
                 prop_phase_difference += tune[plane]
             elif bpm_s <= fix_start_s:
@@ -112,10 +112,10 @@ def _get_phase_tfs_files(element_name, save_path):
     file_phase_y.add_string_descriptor("TYPE", "USER")  # Needed for sbs match
 
     file_phase_x.add_column_names(["NAME", "S", "MEASPHASEX", "STDERRPHASEX", "PROPPHASEX", "ERRPROPPHASEX", "CORPHASEX", "ERRCORPHASEX", "BACKPHASEX", "ERRBACKPHASEX", "BACKCORPHASEX", "ERRBACKCORPHASEX", "MODEL_S"])
-    file_phase_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    file_phase_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     file_phase_y.add_column_names(["NAME", "S", "MEASPHASEY", "STDERRPHASEY", "PROPPHASEY", "ERRPROPPHASEY", "CORPHASEY", "ERRCORPHASEY", "BACKPHASEY", "ERRBACKPHASEY", "BACKCORPHASEY", "ERRBACKCORPHASEY", "MODEL_S"])
-    file_phase_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+    file_phase_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     return file_phase_x, file_phase_y
 

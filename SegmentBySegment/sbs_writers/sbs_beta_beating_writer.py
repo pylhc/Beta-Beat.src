@@ -86,7 +86,7 @@ def _get_beta_beat_from_phase_tfs_files(element_name, save_path):
             "BET" + plane + "MDL", "MODEL_S"
         ]
         file_beta_beat[plane].add_column_names(column_names)
-        file_beta_beat[plane].add_column_datatypes(["%bpm_s"] + ["%le"] * (len(column_names) - 1))
+        file_beta_beat[plane].add_column_datatypes(["%s"] + ["%le"] * (len(column_names) - 1))
 
     return file_beta_beat["X"], file_beta_beat["Y"]
 
@@ -104,7 +104,7 @@ def _get_beta_beat_from_amp_tfs_files(element_name, save_path):
             "BET" + plane + "MDL", "MODEL_S"
         ]
         file_beta_beat[plane].add_column_names(column_names)
-        file_beta_beat[plane].add_column_datatypes(["%bpm_s"] + ["%le"] * (len(column_names) - 1))
+        file_beta_beat[plane].add_column_datatypes(["%s"] + ["%le"] * (len(column_names) - 1))
 
     return file_beta_beat["X"], file_beta_beat["Y"]
 
@@ -122,7 +122,7 @@ def _get_kmod_beta_beat_tfs_files(element_name, save_path):
             "BET" + plane + "MDL", "MODEL_S"
         ]
         file_kmod_beta_beat[plane].add_column_names(column_names)
-        file_kmod_beta_beat[plane].add_column_datatypes(["%bpm_s"] + ["%le"] * (len(column_names) - 1))
+        file_kmod_beta_beat[plane].add_column_datatypes(["%s"] + ["%le"] * (len(column_names) - 1))
 
     return file_kmod_beta_beat["X"], file_kmod_beta_beat["Y"]
 
