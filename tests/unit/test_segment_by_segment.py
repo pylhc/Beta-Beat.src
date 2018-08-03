@@ -331,9 +331,9 @@ def test_segment_beatings_writes_double_plane(_test_df_just_names, _test_dir):
     seg_beatings.beta_phase_x = _test_df_just_names
     seg_beatings.beta_phase_y = _test_df_just_names
     assert os.path.isfile(
-        os.path.join(CURRENT_DIR, "_test", "sbsbetabeatingx_test_seg.dat"))
+        os.path.join(CURRENT_DIR, "_test", "sbsbetabeatingx_test_seg.out"))
     assert os.path.isfile(
-        os.path.join(CURRENT_DIR, "_test", "sbsbetabeatingy_test_seg.dat"))
+        os.path.join(CURRENT_DIR, "_test", "sbsbetabeatingy_test_seg.out"))
 
 
 # Utilities ###################################################################
