@@ -9,21 +9,40 @@
 * @param extracted_name: Extracted sequence name.
 */
 extract_segment_sequence(base_seq, front_seq, back_seq, start_from, end_at): macro = {
+
+    ! There are some BPMs that have a non-zero size, these are not good as segment
+    ! start or end. These two if's replace them with zero sized BPMs.
+    if (start_from->l > 0){
+        start_from: MONITOR, l=0;
+
+        SEQEDIT, SEQUENCE=base_seq;
+        REPLACE, ELEMENT=start_from, by=start_from;
+        ENDEDIT;
+    }
+
+    if (end_at->l > 0){
+        end_at: MONITOR, l=0;
+
+        SEQEDIT, SEQUENCE=base_seq;
+        REPLACE, ELEMENT=end_at, by=end_at;
+        ENDEDIT;
+    }
+
     SEQEDIT, SEQUENCE=base_seq;
-    FLATTEN;               
+    FLATTEN;
     CYCLE, START=start_from;
     ENDEDIT;
 
     EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=front_seq;
-    seqedit, sequence=front_seq;
-    flatten;
-    endedit;
+    SEQEDIT, SEQUENCE=front_seq;
+    FLATTEN;
+    ENDEDIT;
 
     EXTRACT, SEQUENCE=base_seq, FROM=start_from, TO=end_at, NEWNAME=back_seq;
-    seqedit, sequence=back_seq;
-    flatten;
-    reflect; ! reverse command
-    endedit;
+    SEQEDIT, SEQUENCE=back_seq;
+    FLATTEN;
+    REFLECT; ! reverse command
+    ENDEDIT;
 };
 
 
