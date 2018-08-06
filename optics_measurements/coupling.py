@@ -27,161 +27,177 @@ ac-dipol stuff
 import sys
 import traceback
 import math
-
 import copy
 import numpy as np
-from numpy import sin
+
 import utils.bpm
+import phase
 import helper
 import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
-from utils import logging_tools, stats, tfs_file_writer
+from utils import logging_tools, stats, tfs_pandas
 from twiss_optics.optics_class import TwissOptics
-from backwards_compatibility import _get_output_tfs_files, _PhaseData, _TuneData, _TwissData
+
 LOGGER = logging_tools.get_logger(__name__)
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
-
-
 #===================================================================================================
 # main part
 #===================================================================================================
-def calculate_coupling(meas_input, input_files, phase_dict, tune_dict, header_dict):
+def calculate_coupling(getllm_d, input_files, phase_d, tune_d, header_dict):
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
 
     :Parameters:
         'getllm_d': _GetllmData (In-param, values will only be read)
-            lhc_phase, accel, beam_direction and num_bpms_for_coupling are used.
-        'twiss_d': _TwissData (In-param, values will only be read)
+            lhc_phase, accel, beam_direction and coupling_method are used.
+        'input_files': _TwissData (In-param, values will only be read)
             Holds twiss instances of the src files.
         'tune_d': _TuneData (In/Out-param, values will be read and set)
             Holds tunes and phase advances. q1, mux, q2 and muy will be set if
-            "num_bpms_for_coupling == 2" and accel is 'SPS' or 'RHIC'.
+            "coupling_method == 2" and accel is 'SPS' or 'RHIC'.
 
     :Return: _TuneData
         the same instance as param tune_d to indicate that tunes will be set.
     '''
-
-    twiss_d = _TwissData(input_files)
-    phase_d = _PhaseData(phase_dict)
-    tune_d = _TuneData(tune_dict)
-    accelerator = meas_input.accelerator
     LOGGER.info("Calculating coupling using the {0}-BPM-method and {1} file(s)"
-                .format(meas_input.coupling_method, len(twiss_d.zero_dpp_x)))
+                .format(getllm_d.coupling_method,len(input_files.zero_dpp_x)))
+
+    # get the models -------------------------------------------------------------------------------
+    accelerator = getllm_d.accelerator
     mad_twiss = accelerator.get_model_tfs()
     mad_elements = accelerator.get_elements_tfs()
+    coupling_df = tfs_pandas.TfsDataFrame(mad_twiss).loc[:, "S"]
+    freecoupling_df = None
     if accelerator.excitation is not AccExcitationMode.FREE:
         mad_ac = accelerator.get_driven_tfs()
+        freecoupling_df = tfs_pandas.TfsDataFrame(mad_twiss).loc[:, "S"]
+        freecoupling2_df = tfs_pandas.TfsDataFrame(freecoupling_df)
+        coupleterms_df = tfs_pandas.TfsDataFrame(freecoupling_df)
     else:
         mad_ac = None
 
-    if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
+    # prepare the output dataframes ----------------------------------------------------------------
+
+    if input_files.zero_dpp_x > 0 and input_files.zero_dpp_y:
         #-- Coupling in the model
         optics_twiss = TwissOptics(mad_elements)
         optics_twiss.calc_cmatrix()
-        optics_coupling = optics_twiss.get_coupling(method="cmatrix")
-        #-- Main part
+        optics_coupling = optics_twiss.get_coupling(method="cmatrix")  # this is not used!
+        #-- Main part ------------------------------------------------------------------------------
         # 1-BPM method
-        if meas_input.coupling_method == 1:
-            # Avoids crashing the programm(vimaier)
-            fwqwf = None
-            fwqwf2 = None
+        if getllm_d.coupling_method == 1:
 
-            # Call 1-BPM method coupling function to get dictionary of BPMs with f, std_f as well as
-            # phase with std (Here the tunes were changed to the free ones)
-            [fwqw, bpms] = GetCoupling1(
-                mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f,
-                meas_input.outputdir, accelerator.get_beam_direction())
+            fwqw, second_ret = _get_coupling_1bpm(
+                mad_twiss, input_files.zero_dpp_x,
+                input_files.zero_dpp_y, tune_d.q1f, tune_d.q2f,
+                getllm_d.beam_direction, coupling_df)
         # 2-BPM method
-        else:
-            [fwqw, bpms] = GetCoupling2(
-                mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, tune_d.q1f, tune_d.q2f,
+        elif getllm_d.coupling_method == 2:
+            fwqw, second_ret = GetCoupling2(
+                mad_twiss, input_files.zero_dpp_x,
+                input_files.zero_dpp_y, tune_d.q1f, tune_d.q2f,
                 phase_d.phase_advances_free_x, phase_d.phase_advances_free_y,
-                accelerator.get_beam_direction(), meas_input.accelerator, meas_input.outputdir)
+                accelerator.get_beam_direction(), getllm_d.accelerator)
+        else:
+            raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
 
-        # Open getcouple.out
-        tfs_file = _get_output_tfs_files(header_dict, 'getcouple.out', meas_input.outputdir)
-        # Write main results to getcouple.out  -  C-, std_C- and Q
-        tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
-        tfs_file.add_float_descriptor("CG_std", fwqw['Global'][2])
-        tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
-        tfs_file.add_float_descriptor("Q1F", tune_d.q1f)
-        tfs_file.add_float_descriptor("Q2F", tune_d.q2f)
-        # Write column names to getcouple.out, same form for 1- and 2-BPM method, in case of 1-BPM method, some columns are not computed but set to 0
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "Q1001", "Q1001STD", "Q1010", "Q1010STD", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
-        # Write metaclass column labels to getcouple.out 
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        # Write columns with results from GetCoupling1/2 and the model to getcouple.out for BPMs with correct phase
-        for i in range(len(bpms)):
-            # Get BPM name and position
-            bn1 = str.upper(bpms[i][1])
-            bns1 = bpms[i][0]
-            # Set next row for getcouple.out
-            # 1-BPM method results
-            if meas_input.coupling_method == 1:
-                # Try to include model parameters
-                try:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, optics_coupling.loc[bn1, "F1001"].real, optics_coupling.loc[bn1, "F1001"].imag, optics_coupling.loc[bn1, "F1010"].real, optics_coupling.loc[bn1, "F1010"].imag]
-                    LOGGER.debug("{0}".format(list_row_entries))
-                # Leave model parameters to 0.0 if not contained in model
-                except AttributeError:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            # 2-BPM method results
-            else:
-                # Try to include model parameters
-                try:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, abs(fwqw[bn1][0][2]), fwqw[bn1][0][3], fwqw[bn1][0][2].real, fwqw[bn1][0][2].imag, fwqw[bn1][1][0], fwqw[bn1][1][1], fwqw[bn1][1][2], fwqw[bn1][1][3], optics_coupling.loc[bn1, "F1001"].real, optics_coupling.loc[bn1, "F1001"].imag, optics_coupling.loc[bn1, "F1010"].real, optics_coupling.loc[bn1, "F1010"].imag]
-                # Leave model parameters to 0.0 if not contained in model
-                except AttributeError:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqw[bn1][0][0]), fwqw[bn1][0][1], fwqw[bn1][0][0].real, fwqw[bn1][0][0].imag, abs(fwqw[bn1][0][2]), fwqw[bn1][0][3], fwqw[bn1][0][2].real, fwqw[bn1][0][2].imag, fwqw[bn1][1][0], fwqw[bn1][1][1], fwqw[bn1][1][2], fwqw[bn1][1][3], 0.0, 0.0, 0.0, 0.0]
-            # Write current BPM's results to getcouple.out
-            tfs_file.add_table_row(list_row_entries)
-        tfs_file.write_to_file(formatted=True)
+
+        coupling_df.loc["COUNT"] = len(input_files.zero_dpp_x)  # do we really need this column?
+        coupling_df.loc["F1001W"] = abs(fwqw[:][0][0])
+        coupling_df.loc["F1001R"] = fwqw[:][0][0].real
+        coupling_df.loc["F1001I"] = fwqw[:][0][0].imag
+        coupling_df.loc["FWSTD1"] = fwqw[:][0][1]
+        if getllm_d.coupling_method == 1:
+            coupling_df.loc["F1010W"] = 0.0
+            coupling_df.loc["F1010R"] = 0.0
+            coupling_df.loc["F1010I"] = 0.0
+            coupling_df.loc["FWSTD2"] = 0.0
+            coupling_df.loc["Q1001"] = 0.0
+            coupling_df.loc["Q1001STD"] = 0.0
+            coupling_df.loc["Q1010"] = 0.0
+            coupling_df.loc["Q1010STD"] = 0.0
+        else:
+            coupling_df.loc["F1010W"] = abs(fwqw[:][0][2])
+            coupling_df.loc["F1010R"] = fwqw[:][0][2].real
+            coupling_df.loc["F1010I"] = fwqw[:][0][2].imag
+            coupling_df.loc["FWSTD2"] = fwqw[:][0][3]
+            coupling_df.loc["Q1001"] = fwqw[:][1][0]
+            coupling_df.loc["Q1001STD"] = fwqw[:][1][1]
+            coupling_df.loc["Q1010"] = fwqw[:][1][2]
+            coupling_df.loc["Q1010STD"] = fwqw[:][1][3]
+        coupling_df.loc["MDLF1001R"] = optics_coupling["F1001"].real
+        coupling_df.loc["MDLF1001I"] = optics_coupling["F1001"].imag
+        coupling_df.loc["MDLF1010R"] = optics_coupling["F1010"].real
+        coupling_df.loc["MDLF1010I"] = optics_coupling["F1010"].imag
+
+        coupling_df.headers = header_dict.copy()
+        coupling_df.headers["CG"] = fwqw['Global'][0]
+        coupling_df.headers["CG_std"] = fwqw['Global'][2]
+        coupling_df.headers["QC"] = fwqw['Global'][1]
+        coupling_df.headers["Q1F"] = tune_d.q1f
+        coupling_df.headers["Q2F"] = tune_d.q2f
 
         #-- ac to free coupling
         if accelerator.excitation != AccExcitationMode.FREE:
-            if meas_input.coupling_method == 2:
+            if getllm_d.coupling_method == 2:
                 #-- analytic eqs
-                [fwqwf, bpmsf] = GetFreeCoupling_Eq(
-                    mad_twiss, twiss_d.zero_dpp_x, twiss_d.zero_dpp_y, bpms, tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, # TODO acording to documentation and all the other usage the driven and free tunes were swapped, to be checked
-                     accelerator)
+                [fwqwf, bpmsf] = compensate_excitation.GetFreeCoupling_Eq(
+                    mad_twiss, input_files.zero_dpp_x,
+                    input_files.zero_dpp_y, bpms, tune_d.q1, tune_d.q2,
+                    tune_d.q1f, tune_d.q2f, accelerator)
 
-                tfs_file =_get_output_tfs_files(header_dict, 'getcouple_free.out', meas_input.outputdir)
-                tfs_file.add_float_descriptor("CG", fwqw['Global'][0])
-                tfs_file.add_float_descriptor("QG", fwqw['Global'][1])
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "Q1001", "Q1001STD", "Q1010", "Q1010STD", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(len(bpmsf.index.values)):
-                    bn1 = str.upper(bpmsf.index[i])
-                    bns1 = bpmsf.loc[bn1,"S"]
-                    try:
-                        list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf[bn1][0][0]), fwqwf[bn1][0][1], fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, abs(fwqwf[bn1][0][2]), fwqwf[bn1][0][3], fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, fwqwf[bn1][1][0], fwqwf[bn1][1][1], fwqwf[bn1][1][2], fwqwf[bn1][1][3], optics_coupling.loc[bn1, "F1001"].real, optics_coupling.loc[bn1, "F1001"].imag, optics_coupling.loc[bn1, "F1010"].real, optics_coupling.loc[bn1, "F1010"].imag]
-                    except:
-                        traceback.print_exc()
-                        list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf[bn1][0][0]), fwqwf[bn1][0][1], fwqwf[bn1][0][0].real, fwqwf[bn1][0][0].imag, abs(fwqwf[bn1][0][2]), fwqwf[bn1][0][3], fwqwf[bn1][0][2].real, fwqwf[bn1][0][2].imag, fwqwf[bn1][1][0], fwqwf[bn1][1][1], fwqwf[bn1][1][2], fwqwf[bn1][1][3], 0.0, 0.0, 0.0, 0.0]  # -- Output zero if the model does not have coupling parameters
-                    tfs_file.add_table_row(list_row_entries)
+                freecoupling_df.loc["COUNT"] = len(input_files.zero_dpp_x)
+                freecoupling_df.loc["F1001W"] = abs(fwqwf[:][0][0])
+                freecoupling_df.loc["F1001R"] = fwqwf[:][0][0].real
+                freecoupling_df.loc["F1001I"] = fwqwf[:][0][0].imag
+                freecoupling_df.loc["FWSTD1"] = fwqwf[:][0][1]
+                freecoupling_df.loc["F1010W"] = abs(fwqwf[:][0][2])
+                freecoupling_df.loc["F1010R"] = fwqwf[:][0][2].real
+                freecoupling_df.loc["F1010I"] = fwqwf[:][0][2].imag
+                freecoupling_df.loc["FWSTD2"] = fwqwf[:][0][3]
+                freecoupling_df.loc["Q1001"] = fwqwf[:][1][0]
+                freecoupling_df.loc["Q1001STD"] = fwqwf[:][1][1]
+                freecoupling_df.loc["Q1010"] = fwqwf[:][1][2]
+                freecoupling_df.loc["Q1010STD"] = fwqwf[:][1][3]
+                freecoupling_df.loc["MDLF1001R"] = optics_coupling["F1001"].real
+                freecoupling_df.loc["MDLF1001I"] = optics_coupling["F1001"].imag
+                freecoupling_df.loc["MDLF1010R"] = optics_coupling["F1010"].real
+                freecoupling_df.loc["MDLF1010I"] = optics_coupling["F1010"].imag
+
+                freecoupling_df.headers = header_dict.copy()
+                freecoupling_df.headers["CG"] = fwqwf['Global'][0]
+                freecoupling_df.headers["QC"] = fwqwf['Global'][1]
 
             #-- global factor
             [fwqwf2, bpmsf2] = getFreeCoupling(tune_d.q1f, tune_d.q2f, tune_d.q1, tune_d.q2, fwqw, mad_twiss, bpms)
-            tfs_file = _get_output_tfs_files(header_dict, 'getcouple_free2.out', meas_input.outputdir)
-            tfs_file.add_float_descriptor("CG",  fwqw['Global'][0])
-            tfs_file.add_float_descriptor("QG",  fwqw['Global'][1])
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "F1001W", "FWSTD1", "F1001R", "F1001I", "F1010W", "FWSTD2", "F1010R", "F1010I", "Q1001", "Q1001STD", "Q1010", "Q1010STD", "MDLF1001R", "MDLF1001I", "MDLF1010R", "MDLF1010I"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(len(bpmsf2)):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
-                try:
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf2[bn1][0][0]), fwqwf2[bn1][0][1], fwqwf2[bn1][0][0].real, fwqwf2[bn1][0][0].imag, abs(fwqwf2[bn1][0][2]), fwqwf2[bn1][0][3], fwqwf2[bn1][0][2].real, fwqwf2[bn1][0][2].imag, fwqwf2[bn1][1][0], fwqwf2[bn1][1][1], fwqwf2[bn1][1][2], fwqwf2[bn1][1][3], optics_coupling.loc[bn1, "F1001"].real, optics_coupling.loc[bn1, "F1001"].imag, optics_coupling.loc[bn1, "F1010"].real, optics_coupling.loc[bn1, "F1010"].imag] #-- Output zero if the model does not have couping parameters
-                except:
-                    traceback.print_exc()
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), abs(fwqwf2[bn1][0][0]), fwqwf2[bn1][0][1], fwqwf2[bn1][0][0].real, fwqwf2[bn1][0][0].imag, abs(fwqwf2[bn1][0][2]), fwqwf2[bn1][0][3], fwqwf2[bn1][0][2].real, fwqwf2[bn1][0][2].imag, fwqwf2[bn1][1][0], fwqwf2[bn1][1][1], fwqwf2[bn1][1][2], fwqwf2[bn1][1][3], 0.0, 0.0, 0.0, 0.0]
-                tfs_file.add_table_row(list_row_entries)
-            tfs_file.write_to_file(formatted=True)
+
+            coupleterms_df.loc["COUNT"] = len(input_files.zero_dpp_x)
+            coupleterms_df.loc["F1001W"] = abs(fwqwf2[:][0][0])
+            coupleterms_df.loc["F1001R"] = fwqwf2[:][0][0].real
+            coupleterms_df.loc["F1001I"] = fwqwf2[:][0][0].imag
+            coupleterms_df.loc["FWSTD1"] = fwqwf2[:][0][1]
+            coupleterms_df.loc["F1010W"] = abs(fwqwf2[:][0][2])
+            coupleterms_df.loc["F1010R"] = fwqwf2[:][0][2].real
+            coupleterms_df.loc["F1010I"] = fwqwf2[:][0][2].imag
+            coupleterms_df.loc["FWSTD2"] = fwqwf2[:][0][3]
+            coupleterms_df.loc["Q1001"] = fwqwf2[:][1][0]
+            coupleterms_df.loc["Q1001STD"] = fwqwf2[:][1][1]
+            coupleterms_df.loc["Q1010"] = fwqwf2[:][1][2]
+            coupleterms_df.loc["Q1010STD"] = fwqwf2[:][1][3]
+            coupleterms_df.loc["MDLF1001R"] = optics_coupling["F1001"].real
+            coupleterms_df.loc["MDLF1001I"] = optics_coupling["F1001"].imag
+            coupleterms_df.loc["MDLF1010R"] = optics_coupling["F1010"].real
+            coupleterms_df.loc["MDLF1010I"] = optics_coupling["F1010"].imag
+
+            coupleterms_df.headers = header_dict.copy()
+            coupleterms_df.headers["CG"] = fwqwf2['Global'][0]
+            coupleterms_df.headers["QC"] = fwqwf2['Global'][1]
+
+
         #-- Convert to C-matrix:
         if accelerator.excitation != AccExcitationMode.FREE and (fwqwf is not None):
             try:
@@ -191,7 +207,7 @@ def calculate_coupling(meas_input, input_files, phase_dict, tune_dict, header_di
                 [coupleterms, q_minav, q_minerr, bpms] = getCandGammaQmin(fwqwf2, bpmsf2, tune_d.q1f, tune_d.q2f, mad_twiss)
         else:
             [coupleterms, q_minav, q_minerr, bpms] = getCandGammaQmin(fwqw, bpms, tune_d.q1f, tune_d.q2f, mad_twiss)
-        tfs_file = _get_output_tfs_files(header_dict, 'getcoupleterms.out', meas_input.outputdir)
+        tfs_file = files_dict['getcoupleterms.out']
         tfs_file.add_float_descriptor("DQMIN", q_minav)
         tfs_file.add_float_descriptor("DQMINE", q_minerr)
         tfs_file.add_column_names(["NAME", "S", "DETC", "DETCE", "GAMMA", "GAMMAE", "C11", "C12", "C21", "C22"])
@@ -201,18 +217,19 @@ def calculate_coupling(meas_input, input_files, phase_dict, tune_dict, header_di
             bpmm = bpm[1].upper()
             list_row_entries = [bpmm, bps, coupleterms[bpmm][0], coupleterms[bpmm][1], coupleterms[bpmm][2], coupleterms[bpmm][3], coupleterms[bpmm][4], coupleterms[bpmm][5], coupleterms[bpmm][6], coupleterms[bpmm][7]]
             tfs_file.add_table_row(list_row_entries)
-        tfs_file.write_to_file(formatted=True)
 
+    return coupling_df, freecoupling_df, coupleterms_df
 # END calculate_coupling ---------------------------------------------------------------------------
 
 #===================================================================================================
 # helper-functions
 #===================================================================================================
 
-def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, outputpath, beam_direction):
+def _get_coupling_1bpm(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y,
+                       beam_direction, coupling_df):
     """Calculate coupling and phase with 1-BPM method for all BPMs and overall
     INPUT
-     MADTwiss        - twiss instance of model from MAD 
+     MADTwiss        - twiss instance of model from MAD
      list_zero_dpp_x - list with twiss objects for horizontal data
      list_zero_dpp_y - list with twiss objects for vertical data
      tune_x          - horizontal tune (use natural/free tunes!)
@@ -224,37 +241,34 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
     Global: fwqw = [CG,QG,CG_std]
     """
 
-    # Not applicable to db=-1 for the time being...
-
-    ### Prepare BPM lists ###
-
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement.
-    if len(list_zero_dpp_x)!=len(list_zero_dpp_y):
-        LOGGER.error("Leaving GetCoupling as linx and liny files seem not correctly paired...")
-        dum0 = {"Global":[0.0,0.0]}
-        dum1 = []
-        return [dum0,dum1]
-    # Determine intersection of BPM-lists between measurement and model, create list dbpms
-    XplusY = list_zero_dpp_x + list_zero_dpp_y
-    dbpms = utils.bpm.intersect(XplusY)
-    dbpms = utils.bpm.model_intersect(dbpms, MADTwiss)
-
+    if len(list_zero_dpp_x) != len(list_zero_dpp_y):
+        LOGGER.warning("linx / liny files don't seem to be paired correctly")
+        LOGGER.warning("this will be fixed in the future. For now we crash:")
+        raise IOError("linx and liny files are not paired correctly")
+    # Determine intersection of BPM-lists between measurement and model, refactor this maybe with
+    # --- collect the needed columns of the Input files --------------------------------------------
+    xplusy = list_zero_dpp_x[0]
+    for i, df in enumerate(list_zero_dpp_x[1:]):
+        xplusy = pd.merge(xplusy,
+                          df[["AMP01", "AMP10", "AMPX", "AMPY", "MUX", "PHASE01", "PHASE10", "AVG_NOISE"]],
+                          how="inner", left_index=True,
+                          right_index=True, suffixes=('', '__X' + str(i + 1)))
+    for i, df in enumerate(list_zero_dpp_x):
+        xplusy = pd.merge(xplusy,
+                          df[["AMP01", "AMP10", "AMPX", "AMPY", "MUX", "PHASE01", "PHASE10", "AVG_NOISE"]],
+                          how="inner", left_index=True,
+                          right_index=True, suffixes=('', '__Y' + str(1)))
+    for column in xplusy:
+        LOGGER.debug(column)
 
     ### Calculate fw and qw, exclude bpms having wrong phases ###
-
-    # Initialize dictionary of BPMs with results
-    fwqw = {}
-    # Initialize list of BPMs with correct phases
-    dbpmt = []
-    # Initialize counter of BPMs with bad phases
     Badbpms = 0
     # Count number of BPMs in intersection of model and measurement
     Numbpms = len(dbpms)
     # Loop through BPMs in dbpms
-    for i in range(Numbpms):
-        # Get BPM name
-        bn1 = str.upper(dbpms[i][1])
+    for i, bn1 in enumerate(xplusy.index):
         # Initialize list for f, its std and the tunes
         fij = []
         std_fij = []
@@ -265,38 +279,40 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
         # Loop through data files 
         for j in range(len(list_zero_dpp_x)):
             # Get twiss objects (metaclass)
-            tw_x = list_zero_dpp_x[j]
-            tw_y = list_zero_dpp_y[j]
+            tw_x = xplusy.filter(regex="__X" + str(j) + "$")
+            tw_y = xplusy.filter(regex="__Y" + str(j) + "$")
             # Get coupled amplitude ratios
-            C01ij = tw_x.AMP01[tw_x.indx[bn1]]
-            C10ij = tw_y.AMP10[tw_y.indx[bn1]]
+            C01ij = tw_x.AMP01[bn1]
+            C10ij = tw_y.AMP10[bn1]
             # Get main amplitudes
-            ampx = tw_x.AMPX[tw_x.indx[bn1]]
-            ampy = tw_y.AMPY[tw_y.indx[bn1]]
+            ampx = tw_x.AMPX[bn1]
+            ampy = tw_y.AMPY[bn1]
             # Give warning if main amplitude is 0
             if ampx==0.0 or ampy==0.0: # 
                 print('Main amplitude(s) is/are 0 for BPM',bn1)
             # Get noise average values to estimate secondary lines not recognized by drive
             try:
                 if C01ij==0.0: 
-                    C01ij = tw_x.AVG_NOISE[tw_x.indx[bn1]]
+                    C01ij = tw_x.AVG_NOISE[bn1]
                 if C10ij==0.0:
-                    C10ij = tw_y.AVG_NOISE[tw_y.indx[bn1]]
+                    C10ij = tw_y.AVG_NOISE[bn1]
             except AttributeError:
-                LOGGER.info("AVG_NOISE column not found, cannot estimate C matrix.")
+                print "AVG_NOISE column not found, cannot estimate C matrix."
             # Get noise standard deviation to estimate uncertainty of amplitudes
-            std_noise_x = tw_x.NOISE[tw_x.indx[bn1]] 
-            std_noise_y = tw_y.NOISE[tw_y.indx[bn1]]
+            std_noise_x = tw_x.NOISE[bn1]
+            std_noise_y = tw_y.NOISE[bn1]
             # Propagate error to coupled amplitude ratios
             std_C01ij = std_noise_x/ampx*math.sqrt(1+C01ij**2)
             std_C10ij = std_noise_y/ampy*math.sqrt(1+C10ij**2)
             # Calculate coupling parameter f and append to list of BPM
             fij.append(0.5*math.atan(math.sqrt(C01ij*C10ij)))
             # Propagate error to coupling parameter and append to list
-            std_fij.append(0.25*math.sqrt(C01ij*C10ij*((std_C01ij/(C01ij*(C01ij+C10ij)))**2+(std_C01ij/(C01ij*(C01ij+C10ij)))**2)))
+            std_fij.append(0.25*math.sqrt(C01ij*C10ij*
+                                          ((std_C01ij/(C01ij*(C01ij+C10ij)))**2+
+                                           (std_C01ij/(C01ij*(C01ij+C10ij)))**2)))
             # Calculate phases (in units of 2pi!) and append them to lists
-            q1j.append((tw_x.MUX[tw_x.indx[bn1]]-tw_y.PHASE10[tw_y.indx[bn1]]+0.25)%1.0)
-            q2j.append((tw_x.PHASE01[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]]-0.25)%1.0)
+            q1j.append((tw_x.MUX[bn1]-tw_y.PHASE10[bn1]+0.25)%1.0)
+            q2j.append((tw_x.PHASE01[bn1]-tw_y.MUY[bn1]-0.25)%1.0)
             # Sign change in both, real and imag part!
             #  - Real part: Comply with MAD output 
             #  - Imag part: Comply with 2-BPM method and new averaging formula 
@@ -318,7 +334,7 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             qi = q1 # Note that q1 and q2 are confined 0. to 1.
         else:
             badbpm = 1
-            LOGGER.info("Bad Phases in BPM no {0} ({1}). Total so far {2}".format(j, bn1, Badbpms+1))
+            print "Bad Phases in BPM no ",j, " (", bn1, "). Total so far", Badbpms+1
 
         # If BPM tunes are OK
         if badbpm == 0:
@@ -329,16 +345,14 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             for k, val in enumerate(std_fij):
                 if val==0:
                     std_fij = np.delete(std_fij,k)
-            
             # If no results are left for this BPM, set coupling to nan
-            if len(std_fij) < 1:  
-                fi = float("nan") 
-                fistd = float("nan") 
+            if not std_fij:  # TODO: Check this, python complained that you cannot stablish the true of a vector (std_fij)
+                fi = float("nan") # To be discussed
+                fistd = float("nan") # To be discussed
             # Average coupling over all files, weighted with variance, and get std of weighted average
             else:
                 fi = np.average(fij, weights=1/std_fij**2)
                 fistd = np.sqrt(1/sum(1/std_fij**2))
-
             # Average phase over all files
             qistd = math.sqrt(np.average(q1j*q1j)-q1**2.0+2.2e-16) # Not very exact...
             # Calculate complex coupling with qi
@@ -396,13 +410,14 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
     # Cast determined results as global
     fwqw['Global'] = [CG,QG,CG_std_weighted]
     # Print results to terminal including statistics of anlysis
-    print('Cminus: {0} +/- {1}\nSkipped BPMs: {2} (badbpm); {3} (nan); {4} (overall) of {5}'.format(CG, CG_std_weighted, Badbpms, nancounter, Badbpms+nancounter, Numbpms))
+    print('Cminus: {0} +/- {1}\nSkipped BPMs: {2} (badbpm); {3} (nan); {4} (overall) of {5}'
+          .format(CG, CG_std_weighted, Badbpms, nancounter, Badbpms+nancounter, Numbpms))
 
     return [fwqw,dbpms]
 
 ### END of GetCoupling1 ###
 
-def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel, outputpath):
+def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel):
     """Calculate coupling and phase with 2-BPM method for all BPMs and overall
     INPUT
      MADTwiss        - twiss instance of model from MAD 
@@ -425,7 +440,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
     if len(list_zero_dpp_x) != len(list_zero_dpp_y):
-        LOGGER.error("Leaving GetCoupling as linx and liny files seem not correctly paired...")
+        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
         dum0 = {"Global": [0.0, 0.0]}
         dum1 = []
         return [dum0, dum1]
@@ -503,17 +518,17 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
                 if amp10_2 == float("inf") or amp10_2 == 0:
                     amp10_2 = tw_y.loc[bn1, "AVG_NOISE"] / ampy_2
             except AttributeError:
-                LOGGER.info("AVG_NOISE column not found, cannot use noise floor.")
+                print "AVG_NOISE column not found, cannot use noise floor."
 
             # Call routine in helper.py to get secondary lines for 2-BPM method
             [SA0p1ij,phi0p1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
-                                                             tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"])
+                    tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"])
             [SA0m1ij,phi0m1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,
-                                                             -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"])
+                    -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"])
             [TBp10ij,phip10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2,
-                                                             tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"])
+                    tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"])
             [TBm10ij,phim10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2,
-                                                             -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"])
+                    -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"])
 
             # Get noise standard deviation and propagate to coupled amplitude ratio
             std_amp01_1 = tw_x.loc[bn1, "NOISE"]/ampx_1*math.sqrt(1+amp01_1**2)
@@ -522,13 +537,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             std_amp10_2 = tw_y.loc[bn2, "NOISE"]/ampy_2*math.sqrt(1+amp10_2**2)
             # Propagate to 2-BPM coupled amplitude ratio using a separate routine in helper.py
             std_SA0p1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
-                                                         tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
+                    tw_x.loc[bn1, "PHASE01"], tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
             std_SA0m1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
-                                                         -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
+                    -tw_x.loc[bn1, "PHASE01"], -tw_x.loc[bn2, "PHASE01"], std_amp01_1, std_amp01_2)
             std_TBp10ij = helper.ComplexSecondaryLineSTD(dely, amp10_1, amp10_2,
-                                                         tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
+                    tw_y.loc[bn1, "PHASE10"], tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
             std_TBm10ij = helper.ComplexSecondaryLineSTD(dely, amp10_1, amp10_2,
-                                                         -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
+                    -tw_y.loc[bn1, "PHASE10"], -tw_y.loc[bn2, "PHASE10"], std_amp10_1, std_amp10_2)
 
             # Append results for the coupling parameters
             f1001ij.append(0.5*math.sqrt(TBp10ij*SA0p1ij/2.0/2.0)) # division by 2 for each ratio as the scale of the #
@@ -683,13 +698,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         QG += fwqw[bn1][1][0]-(tw_x.loc[bn1, "MUX"]-tw_y.loc[bn1, "MUY"])
 
     if len(dbpms)==0:
-        LOGGER.warning("There is no BPM to output linear coupling properly... leaving Getcoupling.")
+        print >> sys.stderr, 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
         # Does this set a coupling without prefactor 4*(Qx-Qy) to global?
         fwqw['Global']=[CG,QG] #Quick fix Evian 2012
         return [fwqw,dbpms]
     else:
         CG_old = abs(4.0*(tune_x-tune_y)*CG/len(dbpms))
-    LOGGER.info("OldCMINUS {0}".format(CG_old))
+    print 'OldCMINUS' ,CG_old
     fwqw['Global'] = [CG_new_abs,CG_new_phase,CG_new_abs_std]
 
     return [fwqw,dbpms]
@@ -710,7 +725,7 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
     Qmin=[]
 
     if len(bpms)==0:
-        LOGGER.error("No bpms in getCandGammaQmin. Returning empty stuff")
+        print >> sys.stderr, "No bpms in getCandGammaQmin. Returning empty stuff"
         return coupleterms,0,0,bpms
 
     for bpm in bpms:
@@ -740,7 +755,7 @@ def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
         coupleterms[bpmm]=[detC,err,gamma,err,C11,C12,C21,C22]
 
     if gamma==-1:
-        LOGGER.warning("Sum resonance is dominant! ")
+        print "WARN: Sum resonance is dominant! "
 
     Qmin=np.array(Qmin)
 
@@ -789,7 +804,7 @@ def _find_sign_QxmQy(outputpath, tune_x, tune_y):
 
 def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms):
     if DEBUG:
-        LOGGER.debug("Calculating free fterms")
+        print "Calculating free fterms"
     couple={}
     couple['Global']=[fterm['Global'][0],fterm['Global'][1]]
 
@@ -817,13 +832,13 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
 
 
     # diff f1001
-    factor_top_diff=np.sqrt(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny)))
+    factor_top_diff=math.sqrt(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny)))
     factor_bottom_diff=np.sin(np.pi*(tunefreex-tunefreey))
 
     factor_diff=abs((factor_top_diff/factor_bottom_diff))
 
     if DEBUG:
-        LOGGER.debug("Factor for coupling diff {0}".format(factor_diff))
+        print "Factor for coupling diff ",factor_diff
 
     # sum f1010
     factor_top_sum=math.sqrt(np.sin(np.pi*(tunedrivenx+tunefreey))*np.sin(np.pi*(tunefreex+tunedriveny)))
@@ -832,7 +847,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
     factor_sum=abs((factor_top_sum/factor_bottom_sum))
 
     if DEBUG:
-        LOGGER.debug("Factor for coupling sum {0}".format(factor_sum))
+        print "Factor for coupling sum ",factor_sum
 
     for bpm in bpms:
 
@@ -848,72 +863,97 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
 
 ### END of getFreeCoupling ###
 
-def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerator):
-    """Calculates coupling using Ryoichi's formula for AC dipole compensation.
-       Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
+def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,acdipole,oa):
 
-    Args:
-        MADTwiss: model twiss file
-        FilesX: horizontal measurement files.
-        FilesY: vertical measurement files.
-        bpms: list of commonbpms
-        Qh, Qv: natural tunes
-        Qx, Qy: driven tunes
-        psih_ac2bpmac, psiv_ac2bpmac: result of GetACPhase_AC2BPMAC()
-        accelerator: accelerator class instance.
+    #-- Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
 
-    """
+    #-- Check linx/liny files, may be redundant
+    if len(FilesX)!=len(FilesY): return [{},[]]
 
-    # -- Check linx/liny files, may be redundant
-    if len(FilesX) != len(FilesY): return [{}, []]
-    bp=[]
-    for i in bpms:
-        bp.append(i[1])
+    #-- Select common BPMs
+    bpm=utils.bpm.model_intersect(utils.bpm.intersect(FilesX + FilesY), MADTwiss)
+    bpm=[(b[0],str.upper(b[1])) for b in bpm]
 
-    bp = np.array(bp)
-    bp = MADTwiss.loc[bp, ["S"]]
-    ac2bpmac_h = compensate_excitation.phase_ac2bpm(bp, Qx, Qh, "X", accelerator)
-    ac2bpmac_v = compensate_excitation.phase_ac2bpm(bp, Qy, Qv, "Y", accelerator)
+    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
+    #if op=="1" and bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
+    #if op=="1" and bd==-1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L8.B2']]
 
-    horBPMsCopensation = []
+    #-- Determine the BPM closest to the AC dipole and its position
+    #BPMYB.6L4.B1 BPMYA.5L4.B1
+    # BPMWA.B5L4.B1
+
+    horBPMsCopensation =[]
     verBPMsCopensation = []
-    psid_ac2bpmac_h = ac2bpmac_h[1]
-    k_bpmac_h = ac2bpmac_h[2]
-    psid_ac2bpmac_v = ac2bpmac_v[1]
-    k_bpmac_v = ac2bpmac_v[2]
+    #bpmac1_h=psih_ac2bpmac.keys()[0]
+    #bpmac2_h=psih_ac2bpmac.keys()[1]
 
-    bd = accelerator.get_beam_direction()
+    #bpmac1_v = psiv_ac2bpmac.keys()[0]
+    #bpmac2_v = psiv_ac2bpmac.keys()[1]
+    for key in psih_ac2bpmac:
+        if(key in list(zip(*bpm)[1])):
+            horBPMsCopensation.append(key)
+            verBPMsCopensation.append(key)
     fqwList = []
-    if True:
+    for g in range(0, len(horBPMsCopensation)):
+        k_bpmac_h =list(zip(*bpm)[1]).index(horBPMsCopensation[g])
+        bpmac_h=horBPMsCopensation[g]
 
-        # -- Global parameters of the driven motion
-        dh = Qh - Qx
-        dv = Qv - Qy
-        rh = sin(np.pi * (Qh - Qx)) / sin(np.pi * (Qh + Qx))
-        rv = sin(np.pi * (Qv - Qy)) / sin(np.pi * (Qv + Qy))
-        rch = sin(np.pi * (Qh - Qy)) / sin(np.pi * (Qh + Qy))
-        rcv = sin(np.pi * (Qx - Qv)) / sin(np.pi * (Qx + Qv))
+        k_bpmac_v=list(zip(*bpm)[1]).index(verBPMsCopensation[g])
+        bpmac_v=verBPMsCopensation[g]
+        '''
+        try:
+            k_bpmac_h=list(zip(*bpm)[1]).index(bpmac1_h)
+            bpmac_h=bpmac1_h
+        except:
+            try:
+                k_bpmac_h=list(zip(*bpm)[1]).index(bpmac2_h)
+                bpmac_h=bpmac2_h
+            except:
+                print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC or ADT dipole effects not calculated with analytic eqs for coupling'
+                return [{},[]]
+        #      if 'B5R4' in b: bpmac1=b
+        #if 'A5R4' in b: bpmac2=b
+        try:
+            k_bpmac_v=list(zip(*bpm)[1]).index(bpmac1_v)
+            bpmac_v=bpmac1_v
+        except:
+            try:
+                k_bpmac_v=list(zip(*bpm)[1]).index(bpmac2_v)
+                bpmac_v=bpmac2_v
+            except:
+                print >> sys.stderr,'WARN: BPMs next to AC dipoles or ADT missing. AC dipole or ADT effects not calculated with analytic eqs for coupling'
+                return [{},[]]
+        print k_bpmac_v, bpmac_v
+        print k_bpmac_h, bpmac_h
+        '''
+       #-- Global parameters of the driven motion
+        dh =Qh-Qx
+        dv =Qv-Qy
+        rh =sin(np.pi*(Qh-Qx))/sin(np.pi*(Qh+Qx))
+        rv =sin(np.pi*(Qv-Qy))/sin(np.pi*(Qv+Qy))
+        rch=sin(np.pi*(Qh-Qy))/sin(np.pi*(Qh+Qy))
+        rcv=sin(np.pi*(Qx-Qv))/sin(np.pi*(Qx+Qv))
 
-        # -- Loop for files
-        f1001Abs = np.zeros((len(bpms), len(FilesX)))
-        f1010Abs = np.zeros((len(bpms), len(FilesX)))
-        f1001xArg = np.zeros((len(bpms), len(FilesX)))
-        f1001yArg = np.zeros((len(bpms), len(FilesX)))
-        f1010xArg = np.zeros((len(bpms), len(FilesX)))
-        f1010yArg = np.zeros((len(bpms), len(FilesX)))
+        #-- Loop for files
+        f1001Abs =np.zeros((len(bpm),len(FilesX)))
+        f1010Abs =np.zeros((len(bpm),len(FilesX)))
+        f1001xArg=np.zeros((len(bpm),len(FilesX)))
+        f1001yArg=np.zeros((len(bpm),len(FilesX)))
+        f1010xArg=np.zeros((len(bpm),len(FilesX)))
+        f1010yArg=np.zeros((len(bpm),len(FilesX)))
         for i in range(len(FilesX)):
 
-            # -- Read amplitudes and phases
-            amph = np.array([FilesX[i].loc[b, "AMPX"] for b in bp.index])
-            ampv = np.array([FilesY[i].loc[b, "AMPY"] for b in bp.index])
-            amph01 = np.array([FilesX[i].loc[b, "AMP01"] for b in bp.index])
-            ampv10 = np.array([FilesY[i].loc[b, "AMP10"] for b in bp.index])
-            psih = 2 * np.pi * np.array([FilesX[i].loc[b, "MUX"] for b in bp.index])
-            psiv = 2 * np.pi * np.array([FilesY[i].loc[b, "MUY"] for b in bp.index])
-            psih01 = 2 * np.pi * np.array([FilesX[i].loc[b, "PHASE01"] for b in bp.index])
-            psiv10 = 2 * np.pi * np.array([FilesY[i].loc[b, "PHASE10"] for b in bp.index])
-            # -- I'm not sure this is correct for the coupling so I comment out this part for now (by RM 9/30/11).
-            # for k in range(len(bpm)):
+            #-- Read amplitudes and phases
+            amph  =     np.array([FilesX[i].AMPX[FilesX[i].indx[b[1]]]    for b in bpm])
+            ampv  =     np.array([FilesY[i].AMPY[FilesY[i].indx[b[1]]]    for b in bpm])
+            amph01=     np.array([FilesX[i].AMP01[FilesX[i].indx[b[1]]]   for b in bpm])
+            ampv10=     np.array([FilesY[i].AMP10[FilesY[i].indx[b[1]]]   for b in bpm])
+            psih  =2*np.pi*np.array([FilesX[i].MUX[FilesX[i].indx[b[1]]]     for b in bpm])
+            psiv  =2*np.pi*np.array([FilesY[i].MUY[FilesY[i].indx[b[1]]]     for b in bpm])
+            psih01=2*np.pi*np.array([FilesX[i].PHASE01[FilesX[i].indx[b[1]]] for b in bpm])
+            psiv10=2*np.pi*np.array([FilesY[i].PHASE10[FilesY[i].indx[b[1]]] for b in bpm])
+            #-- I'm not sure this is correct for the coupling so I comment out this part for now (by RM 9/30/11).
+            #for k in range(len(bpm)):
             #       try:
             #               if bpm[k][0]>s_lastbpm:
             #                       psih[k]  +=bd*2*np.pi*Qh  #-- To fix the phase shift by Qh
@@ -922,191 +962,152 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerat
             #                       psiv10[k]+=bd*2*np.pi*Qh  #-- To fix the phase shift by Qh
             #       except: pass
 
-            # -- Construct Fourier components
+            #-- Construct Fourier components
             #   * be careful for that the note is based on x+i(alf*x*bet*x')).
             #   * Calculating Eqs (87)-(92) by using Eqs (47) & (48) (but in the Fourier space) in the note.
             #   * Note that amph(v)01 is normalized by amph(v) and it is un-normalized in the following.
-            dpsih = np.append(psih[1:], 2 * np.pi * Qh + psih[0]) - psih
-            dpsiv = np.append(psiv[1:], 2 * np.pi * Qv + psiv[0]) - psiv
-            dpsih01 = np.append(psih01[1:], 2 * np.pi * Qv + psih01[0]) - psih01
-            dpsiv10 = np.append(psiv10[1:], 2 * np.pi * Qh + psiv10[0]) - psiv10
+            dpsih  =np.append(psih[1:]  ,2*np.pi*Qh+psih[0]  )-psih
+            dpsiv  =np.append(psiv[1:]  ,2*np.pi*Qv+psiv[0]  )-psiv
+            dpsih01=np.append(psih01[1:],2*np.pi*Qv+psih01[0])-psih01
+            dpsiv10=np.append(psiv10[1:],2*np.pi*Qh+psiv10[0])-psiv10
 
-            X_m10 = 2 * amph * np.exp(-1j * psih)
-            Y_0m1 = 2 * ampv * np.exp(-1j * psiv)
-            X_0m1 = amph * np.exp(-1j * psih01) / (1j * sin(dpsih)) * (
-                        amph01 * np.exp(1j * dpsih) - np.append(amph01[1:], amph01[0]) * np.exp(
-                    -1j * dpsih01))
-            X_0p1 = amph * np.exp(1j * psih01) / (1j * sin(dpsih)) * (
-                        amph01 * np.exp(1j * dpsih) - np.append(amph01[1:], amph01[0]) * np.exp(
-                    1j * dpsih01))
-            Y_m10 = ampv * np.exp(-1j * psiv10) / (1j * sin(dpsiv)) * (
-                        ampv10 * np.exp(1j * dpsiv) - np.append(ampv10[1:], ampv10[0]) * np.exp(
-                    -1j * dpsiv10))
-            Y_p10 = ampv * np.exp(1j * psiv10) / (1j * sin(dpsiv)) * (
-                        ampv10 * np.exp(1j * dpsiv) - np.append(ampv10[1:], ampv10[0]) * np.exp(
-                    1j * dpsiv10))
+            X_m10=2*amph*np.exp(-1j*psih)
+            Y_0m1=2*ampv*np.exp(-1j*psiv)
+            X_0m1=amph*np.exp(-1j*psih01)/(1j*sin(dpsih))*(amph01*np.exp(1j*dpsih)-np.append(amph01[1:],amph01[0])*np.exp(-1j*dpsih01))
+            X_0p1=amph*np.exp( 1j*psih01)/(1j*sin(dpsih))*(amph01*np.exp(1j*dpsih)-np.append(amph01[1:],amph01[0])*np.exp( 1j*dpsih01))
+            Y_m10=ampv*np.exp(-1j*psiv10)/(1j*sin(dpsiv))*(ampv10*np.exp(1j*dpsiv)-np.append(ampv10[1:],ampv10[0])*np.exp(-1j*dpsiv10))
+            Y_p10=ampv*np.exp( 1j*psiv10)/(1j*sin(dpsiv))*(ampv10*np.exp(1j*dpsiv)-np.append(ampv10[1:],ampv10[0])*np.exp( 1j*dpsiv10))
 
-            # -- Construct f1001hv, f1001vh, f1010hv (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
-            f1001hv = -np.conjugate(1 / (2j) * Y_m10 / X_m10)  # -- - sign from the different def
-            f1001vh = -1 / (2j) * X_0m1 / Y_0m1  # -- - sign from the different def
-            f1010hv = -1 / (2j) * Y_p10 / np.conjugate(X_m10)  # -- - sign from the different def
-            f1010vh = -1 / (2j) * X_0p1 / np.conjugate(Y_0m1)  # -- - sign from the different def
-            ##              f1001hv=conjugate(1/(2j)*Y_m10/X_m10)
-            ##              f1001vh=1/(2j)*X_0m1/Y_0m1
-            ##              f1010hv=1/(2j)*Y_p10/conjugate(X_m10)
-            ##              f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
+            #-- Construct f1001hv, f1001vh, f1010hv (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
+            f1001hv=-np.conjugate(1/(2j)*Y_m10/X_m10)  #-- - sign from the different def
+            f1001vh=-1/(2j)*X_0m1/Y_0m1             #-- - sign from the different def
+            f1010hv=-1/(2j)*Y_p10/np.conjugate(X_m10)  #-- - sign from the different def
+            f1010vh=-1/(2j)*X_0p1/np.conjugate(Y_0m1)  #-- - sign from the different def
+    ##              f1001hv=conjugate(1/(2j)*Y_m10/X_m10)
+    ##              f1001vh=1/(2j)*X_0m1/Y_0m1
+    ##              f1010hv=1/(2j)*Y_p10/conjugate(X_m10)
+    ##              f1010vh=1/(2j)*X_0p1/conjugate(Y_0m1)
 
-            # -- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
-            psih = psih - (psih[k_bpmac_h] - psid_ac2bpmac_h)  # OK, untill here, it is Psi(s, s_ac)
-            psiv = psiv - (psiv[k_bpmac_v] - psid_ac2bpmac_v)  # OK, untill here, it is Psi(s, s_ac)
+            #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
+            psih=psih-(psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h])
+            psiv=psiv-(psiv[k_bpmac_v]-psiv_ac2bpmac[bpmac_v])
+            print('the phase to the device', k_bpmac_h, psih[k_bpmac_h], bpmac_h, (psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]))
+            Psih=psih-np.pi*Qh
+            Psih[:k_bpmac_h]=Psih[:k_bpmac_h]+2*np.pi*Qh
+            Psiv=psiv-np.pi*Qv
+            Psiv[:k_bpmac_v]=Psiv[:k_bpmac_v]+2*np.pi*Qv
 
-            Psih = psih - np.pi * Qh
-            Psih[:k_bpmac_h] = Psih[:k_bpmac_h] + 2 * np.pi * Qh
-            Psiv = psiv - np.pi * Qv
-            Psiv[:k_bpmac_v] = Psiv[:k_bpmac_v] + 2 * np.pi * Qv
+            Psix=np.arctan((1-rh)/(1+rh)*np.tan(Psih))%np.pi
+            Psiy=np.arctan((1-rv)/(1+rv)*np.tan(Psiv))%np.pi
+            for k in range(len(bpm)):
+                if Psih[k]%(2*np.pi)>np.pi: Psix[k]=Psix[k]+np.pi
+                if Psiv[k]%(2*np.pi)>np.pi: Psiy[k]=Psiy[k]+np.pi
 
-            Psix = np.arctan((1 - rh) / (1 + rh) * np.tan(Psih)) % np.pi
-            Psiy = np.arctan((1 - rv) / (1 + rv) * np.tan(Psiv)) % np.pi
-            for k in range(len(bpms)):
-                if Psih[k] % (2 * np.pi) > np.pi: Psix[k] = Psix[k] + np.pi
-                if Psiv[k] % (2 * np.pi) > np.pi: Psiy[k] = Psiy[k] + np.pi
+            psix=Psix-np.pi*Qx
+            psix[k_bpmac_h:]=psix[k_bpmac_h:]+2*np.pi*Qx
+            psiy=Psiy-np.pi*Qy
+            psiy[k_bpmac_v:]=psiy[k_bpmac_v:]+2*np.pi*Qy
 
-            psix = Psix - np.pi * Qx
-            psix[k_bpmac_h:] = psix[k_bpmac_h:] + 2 * np.pi * Qx
-            psiy = Psiy - np.pi * Qy
-            psiy[k_bpmac_v:] = psiy[k_bpmac_v:] + 2 * np.pi * Qy
+            #-- Construct f1001h, f1001v, f1010h, f1010v (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
+            f1001h=1/math.sqrt(1-rv**2)*(np.exp(-1j*(Psiv-Psiy))*f1001hv+rv*np.exp( 1j*(Psiv+Psiy))*f1010hv)
+            f1010h=1/math.sqrt(1-rv**2)*(np.exp( 1j*(Psiv-Psiy))*f1010hv+rv*np.exp(-1j*(Psiv+Psiy))*f1001hv)
+            f1001v=1/math.sqrt(1-rh**2)*(np.exp( 1j*(Psih-Psix))*f1001vh+rh*np.exp(-1j*(Psih+Psix))*np.conjugate(f1010vh))
+            f1010v=1/math.sqrt(1-rh**2)*(np.exp( 1j*(Psih-Psix))*f1010vh+rh*np.exp(-1j*(Psih+Psix))*np.conjugate(f1001vh))
 
-            # -- Construct f1001h, f1001v, f1010h, f1010v (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
-            f1001h = 1 / math.sqrt(1 - rv ** 2) * (
-                        np.exp(-1j * (Psiv - Psiy)) * f1001hv + rv * np.exp(
-                    1j * (Psiv + Psiy)) * f1010hv)
-            f1010h = 1 / math.sqrt(1 - rv ** 2) * (
-                        np.exp(1j * (Psiv - Psiy)) * f1010hv + rv * np.exp(
-                    -1j * (Psiv + Psiy)) * f1001hv)
-            f1001v = 1 / math.sqrt(1 - rh ** 2) * (
-                        np.exp(1j * (Psih - Psix)) * f1001vh + rh * np.exp(
-                    -1j * (Psih + Psix)) * np.conjugate(f1010vh))
-            f1010v = 1 / math.sqrt(1 - rh ** 2) * (
-                        np.exp(1j * (Psih - Psix)) * f1010vh + rh * np.exp(
-                    -1j * (Psih + Psix)) * np.conjugate(f1001vh))
+            #-- Construct f1001 and f1010 from h and v BPMs (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
+            g1001h          =np.exp(-1j*((psih-psih[k_bpmac_h])-(psiy-psiy[k_bpmac_v])))*(ampv/amph*amph[k_bpmac_h]/ampv[k_bpmac_v])*f1001h[k_bpmac_h]
+            g1001h[:k_bpmac_h]=1/(np.exp(2*np.pi*1j*(Qh-Qy))-1)*(f1001h-g1001h)[:k_bpmac_h]
+            g1001h[k_bpmac_h:]=1/(1-np.exp(-2*np.pi*1j*(Qh-Qy)))*(f1001h-g1001h)[k_bpmac_h:]
 
-            # -- Construct f1001 and f1010 from h and v BPMs (these include math.sqrt(betv/beth) or math.sqrt(beth/betv))
-            g1001h = np.exp(-1j * ((psih - psih[k_bpmac_h]) - (psiy - psiy[k_bpmac_v]))) * (
-                        ampv / amph * amph[k_bpmac_h] / ampv[k_bpmac_v]) * f1001h[k_bpmac_h]
-            g1001h[:k_bpmac_h] = 1 / (np.exp(2 * np.pi * 1j * (Qh - Qy)) - 1) * (f1001h - g1001h)[
-                                                                                :k_bpmac_h]
-            g1001h[k_bpmac_h:] = 1 / (1 - np.exp(-2 * np.pi * 1j * (Qh - Qy))) * (f1001h - g1001h)[
-                                                                                 k_bpmac_h:]
+            g1010h          =np.exp(-1j*((psih-psih[k_bpmac_h])+(psiy-psiy[k_bpmac_v])))*(ampv/amph*amph[k_bpmac_h]/ampv[k_bpmac_v])*f1010h[k_bpmac_h]
+            g1010h[:k_bpmac_h]=1/(np.exp(2*np.pi*1j*(Qh+Qy))-1)*(f1010h-g1010h)[:k_bpmac_h]
+            g1010h[k_bpmac_h:]=1/(1-np.exp(-2*np.pi*1j*(Qh+Qy)))*(f1010h-g1010h)[k_bpmac_h:]
 
-            g1010h = np.exp(-1j * ((psih - psih[k_bpmac_h]) + (psiy - psiy[k_bpmac_v]))) * (
-                        ampv / amph * amph[k_bpmac_h] / ampv[k_bpmac_v]) * f1010h[k_bpmac_h]
-            g1010h[:k_bpmac_h] = 1 / (np.exp(2 * np.pi * 1j * (Qh + Qy)) - 1) * (f1010h - g1010h)[
-                                                                                :k_bpmac_h]
-            g1010h[k_bpmac_h:] = 1 / (1 - np.exp(-2 * np.pi * 1j * (Qh + Qy))) * (f1010h - g1010h)[
-                                                                                 k_bpmac_h:]
+            g1001v          =np.exp(-1j*((psix-psix[k_bpmac_h])-(psiv-psiv[k_bpmac_v])))*(amph/ampv*ampv[k_bpmac_v]/amph[k_bpmac_h])*f1001v[k_bpmac_v]
+            g1001v[:k_bpmac_v]=1/(np.exp(2*np.pi*1j*(Qx-Qv))-1)*(f1001v-g1001v)[:k_bpmac_v]
+            g1001v[k_bpmac_v:]=1/(1-np.exp(-2*np.pi*1j*(Qx-Qv)))*(f1001v-g1001v)[k_bpmac_v:]
 
-            g1001v = np.exp(-1j * ((psix - psix[k_bpmac_h]) - (psiv - psiv[k_bpmac_v]))) * (
-                        amph / ampv * ampv[k_bpmac_v] / amph[k_bpmac_h]) * f1001v[k_bpmac_v]
-            g1001v[:k_bpmac_v] = 1 / (np.exp(2 * np.pi * 1j * (Qx - Qv)) - 1) * (f1001v - g1001v)[
-                                                                                :k_bpmac_v]
-            g1001v[k_bpmac_v:] = 1 / (1 - np.exp(-2 * np.pi * 1j * (Qx - Qv))) * (f1001v - g1001v)[
-                                                                                 k_bpmac_v:]
+            g1010v          =np.exp(-1j*((psix-psix[k_bpmac_h])+(psiv-psiv[k_bpmac_v])))*(amph/ampv*ampv[k_bpmac_v]/amph[k_bpmac_h])*f1010v[k_bpmac_v]
+            g1010v[:k_bpmac_v]=1/(np.exp(2*np.pi*1j*(Qx+Qv))-1)*(f1010v-g1010v)[:k_bpmac_v]
+            g1010v[k_bpmac_v:]=1/(1-np.exp(-2*np.pi*1j*(Qx+Qv)))*(f1010v-g1010v)[k_bpmac_v:]
 
-            g1010v = np.exp(-1j * ((psix - psix[k_bpmac_h]) + (psiv - psiv[k_bpmac_v]))) * (
-                        amph / ampv * ampv[k_bpmac_v] / amph[k_bpmac_h]) * f1010v[k_bpmac_v]
-            g1010v[:k_bpmac_v] = 1 / (np.exp(2 * np.pi * 1j * (Qx + Qv)) - 1) * (f1010v - g1010v)[
-                                                                                :k_bpmac_v]
-            g1010v[k_bpmac_v:] = 1 / (1 - np.exp(-2 * np.pi * 1j * (Qx + Qv))) * (f1010v - g1010v)[
-                                                                                 k_bpmac_v:]
+            f1001x=np.exp(1j*(psih-psix))*f1001h
+            f1001x=f1001x-rh*np.exp(-1j*(psih+psix))/rch*np.conjugate(f1010h)
+            f1001x=f1001x-2j*sin(np.pi*dh)*np.exp(1j*(Psih-Psix))*g1001h
+            f1001x=f1001x-2j*sin(np.pi*dh)*np.exp(-1j*(Psih+Psix))/rch*np.conjugate(g1010h)
+            f1001x=1/math.sqrt(1-rh**2)*sin(np.pi*(Qh-Qy))/sin(np.pi*(Qx-Qy))*f1001x
 
-            f1001x = np.exp(1j * (psih - psix)) * f1001h
-            f1001x = f1001x - rh * np.exp(-1j * (psih + psix)) / rch * np.conjugate(f1010h)
-            f1001x = f1001x - 2j * sin(np.pi * dh) * np.exp(1j * (Psih - Psix)) * g1001h
-            f1001x = f1001x - 2j * sin(np.pi * dh) * np.exp(
-                -1j * (Psih + Psix)) / rch * np.conjugate(g1010h)
-            f1001x = 1 / math.sqrt(1 - rh ** 2) * sin(np.pi * (Qh - Qy)) / sin(
-                np.pi * (Qx - Qy)) * f1001x
+            f1010x=np.exp(1j*(psih-psix))*f1010h
+            f1010x=f1010x-rh*np.exp(-1j*(psih+psix))*rch*np.conjugate(f1001h)
+            f1010x=f1010x-2j*sin(np.pi*dh)*np.exp(1j*(Psih-Psix))*g1010h
+            f1010x=f1010x-2j*sin(np.pi*dh)*np.exp(-1j*(Psih+Psix))*rch*np.conjugate(g1001h)
+            f1010x=1/math.sqrt(1-rh**2)*sin(np.pi*(Qh+Qy))/sin(np.pi*(Qx+Qy))*f1010x
 
-            f1010x = np.exp(1j * (psih - psix)) * f1010h
-            f1010x = f1010x - rh * np.exp(-1j * (psih + psix)) * rch * np.conjugate(f1001h)
-            f1010x = f1010x - 2j * sin(np.pi * dh) * np.exp(1j * (Psih - Psix)) * g1010h
-            f1010x = f1010x - 2j * sin(np.pi * dh) * np.exp(
-                -1j * (Psih + Psix)) * rch * np.conjugate(g1001h)
-            f1010x = 1 / math.sqrt(1 - rh ** 2) * sin(np.pi * (Qh + Qy)) / sin(
-                np.pi * (Qx + Qy)) * f1010x
+            f1001y=np.exp(-1j*(psiv-psiy))*f1001v
+            f1001y=f1001y+rv*np.exp(1j*(psiv+psiy))/rcv*f1010v
+            f1001y=f1001y+2j*sin(np.pi*dv)*np.exp(-1j*(Psiv-Psiy))*g1001v
+            f1001y=f1001y-2j*sin(np.pi*dv)*np.exp(1j*(Psiv+Psiy))/rcv*g1010v
+            f1001y=1/math.sqrt(1-rv**2)*sin(np.pi*(Qx-Qv))/sin(np.pi*(Qx-Qy))*f1001y
 
-            f1001y = np.exp(-1j * (psiv - psiy)) * f1001v
-            f1001y = f1001y + rv * np.exp(1j * (psiv + psiy)) / rcv * f1010v
-            f1001y = f1001y + 2j * sin(np.pi * dv) * np.exp(-1j * (Psiv - Psiy)) * g1001v
-            f1001y = f1001y - 2j * sin(np.pi * dv) * np.exp(1j * (Psiv + Psiy)) / rcv * g1010v
-            f1001y = 1 / math.sqrt(1 - rv ** 2) * sin(np.pi * (Qx - Qv)) / sin(
-                np.pi * (Qx - Qy)) * f1001y
+            f1010y=np.exp(1j*(psiv-psiy))*f1010v
+            f1010y=f1010y+rv*np.exp(-1j*(psiv+psiy))*rcv*f1001v
+            f1010y=f1010y-2j*sin(np.pi*dv)*np.exp(1j*(Psiv-Psiy))*g1010v
+            f1010y=f1010y+2j*sin(np.pi*dv)*np.exp(-1j*(Psiv+Psiy))*rcv*g1001v
+            f1010y=1/math.sqrt(1-rv**2)*sin(np.pi*(Qx+Qv))/sin(np.pi*(Qx+Qy))*f1010y
 
-            f1010y = np.exp(1j * (psiv - psiy)) * f1010v
-            f1010y = f1010y + rv * np.exp(-1j * (psiv + psiy)) * rcv * f1001v
-            f1010y = f1010y - 2j * sin(np.pi * dv) * np.exp(1j * (Psiv - Psiy)) * g1010v
-            f1010y = f1010y + 2j * sin(np.pi * dv) * np.exp(-1j * (Psiv + Psiy)) * rcv * g1001v
-            f1010y = 1 / math.sqrt(1 - rv ** 2) * sin(np.pi * (Qx + Qv)) / sin(
-                np.pi * (Qx + Qy)) * f1010y
-
-            # -- For B2, must be double checked
+            #-- For B2, must be double checked
             if bd == -1:
-                f1001x = -np.conjugate(f1001x)
-                f1001y = -np.conjugate(f1001y)
-                f1010x = -np.conjugate(f1010x)
-                f1010y = -np.conjugate(f1010y)
+                f1001x=-np.conjugate(f1001x)
+                f1001y=-np.conjugate(f1001y)
+                f1010x=-np.conjugate(f1010x)
+                f1010y=-np.conjugate(f1010y)
 
-            # -- Separate to amplitudes and phases, amplitudes averaged to cancel math.sqrt(betv/beth) and math.sqrt(beth/betv)
-            for k in range(len(bpms)):
-                f1001Abs[k][i] = math.sqrt(abs(f1001x[k] * f1001y[k]))
-                f1010Abs[k][i] = math.sqrt(abs(f1010x[k] * f1010y[k]))
-                f1001xArg[k][i] = np.angle(f1001x[k]) % (2 * np.pi)
-                f1001yArg[k][i] = np.angle(f1001y[k]) % (2 * np.pi)
-                f1010xArg[k][i] = np.angle(f1010x[k]) % (2 * np.pi)
-                f1010yArg[k][i] = np.angle(f1010y[k]) % (2 * np.pi)
+            #-- Separate to amplitudes and phases, amplitudes averaged to cancel math.sqrt(betv/beth) and math.sqrt(beth/betv)
+            for k in range(len(bpm)):
+                f1001Abs[k][i] =math.sqrt(abs(f1001x[k]*f1001y[k]))
+                f1010Abs[k][i] =math.sqrt(abs(f1010x[k]*f1010y[k]))
+                f1001xArg[k][i]=np.angle(f1001x[k])%(2*np.pi)
+                f1001yArg[k][i]=np.angle(f1001y[k])%(2*np.pi)
+                f1010xArg[k][i]=np.angle(f1010x[k])%(2*np.pi)
+                f1010yArg[k][i]=np.angle(f1010y[k])%(2*np.pi)
 
-        # -- Output
-        fwqw = {}
-        goodbpm = []
-        for k in range(len(bpms)):
-            bname = bp.index[k]
-            # -- Bad BPM flag based on phase
-            badbpm = 0
-            f1001xArgAve = stats.circular_mean(f1001xArg[k]) % (2 * np.pi)
-            f1001yArgAve = stats.circular_mean(f1001yArg[k]) % (2 * np.pi)
-            f1010xArgAve = stats.circular_mean(f1010xArg[k]) % (2 * np.pi)
-            f1010yArgAve = stats.circular_mean(f1010yArg[k]) % (2 * np.pi)
-            # This seems to be to conservative or somethings...
-            if min(abs(f1001xArgAve - f1001yArgAve),
-                   2 * np.pi - abs(f1001xArgAve - f1001yArgAve)) > np.pi / 2: badbpm = 1
-            if min(abs(f1010xArgAve - f1010yArgAve),
-                   2 * np.pi - abs(f1010xArgAve - f1010yArgAve)) > np.pi / 2: badbpm = 1
-            # -- Output
-            badbpm = 0
-            if badbpm == 0:
+        #-- Output
+        fwqw={}
+        goodbpm=[]
+        for k in range(len(bpm)):
+
+            #-- Bad BPM flag based on phase
+            badbpm=0
+            f1001xArgAve = phase.calc_phase_mean(f1001xArg[k],2*np.pi)
+            f1001yArgAve = phase.calc_phase_mean(f1001yArg[k],2*np.pi)
+            f1010xArgAve = phase.calc_phase_mean(f1010xArg[k],2*np.pi)
+            f1010yArgAve = phase.calc_phase_mean(f1010yArg[k],2*np.pi)
+            #This seems to be to conservative or somethings...
+            if min(abs(f1001xArgAve-f1001yArgAve),2*np.pi-abs(f1001xArgAve-f1001yArgAve))>np.pi/2: badbpm=1
+            if min(abs(f1010xArgAve-f1010yArgAve),2*np.pi-abs(f1010xArgAve-f1010yArgAve))>np.pi/2: badbpm=1
+
+
+            #-- Output
+	    badbpm=0
+            if badbpm==0:
                 f1001AbsAve = np.mean(f1001Abs[k])
                 f1010AbsAve = np.mean(f1010Abs[k])
-                f1001ArgAve = stats.circular_mean(np.append(f1001xArg[k], f1001yArg[k])) % (
-                            2 * np.pi)
-                f1010ArgAve = stats.circular_mean(np.append(f1010xArg[k], f1010yArg[k])) % (
-                            2 * np.pi)
-                f1001Ave = f1001AbsAve * np.exp(1j * f1001ArgAve)
-                f1010Ave = f1010AbsAve * np.exp(1j * f1010ArgAve)
-                f1001AbsStd = math.sqrt(np.mean((f1001Abs[k] - f1001AbsAve) ** 2))
-                f1010AbsStd = math.sqrt(np.mean((f1010Abs[k] - f1010AbsAve) ** 2))
-                f1001ArgStd = stats.circular_error(np.append(f1001xArg[k], f1001yArg[k]),
-                                                   t_value_corr=False)
-                f1010ArgStd = stats.circular_error(np.append(f1010xArg[k], f1010yArg[k]),
-                                                   t_value_corr=False)
-                fwqw[bname] = [[f1001Ave, f1001AbsStd, f1010Ave, f1010AbsStd],
-                               [f1001ArgAve / (2 * np.pi), f1001ArgStd / (2 * np.pi),
-                                f1010ArgAve / (2 * np.pi),
-                                f1010ArgStd / (2 * np.pi)]]  # -- Phases renormalized to [0,1)
-                goodbpm.append(bname)
+                f1001ArgAve = phase.calc_phase_mean(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
+                f1010ArgAve = phase.calc_phase_mean(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
+                f1001Ave = f1001AbsAve*np.exp(1j*f1001ArgAve)
+                f1010Ave = f1010AbsAve*np.exp(1j*f1010ArgAve)
+                f1001AbsStd = math.sqrt(np.mean((f1001Abs[k]-f1001AbsAve)**2))
+                f1010AbsStd = math.sqrt(np.mean((f1010Abs[k]-f1010AbsAve)**2))
+                f1001ArgStd = phase.calc_phase_std(np.append(f1001xArg[k],f1001yArg[k]),2*np.pi)
+                f1010ArgStd = phase.calc_phase_std(np.append(f1010xArg[k],f1010yArg[k]),2*np.pi)
+                fwqw[bpm[k][1]] = [[f1001Ave          ,f1001AbsStd       ,f1010Ave          ,f1010AbsStd       ],
+                                 [f1001ArgAve/(2*np.pi),f1001ArgStd/(2*np.pi),f1010ArgAve/(2*np.pi),f1010ArgStd/(2*np.pi)]]  #-- Phases renormalized to [0,1)
+                goodbpm.append(bpm[k])
 
-        # -- Global parameters not implemented yet
+    #-- Global parameters not implemented yet
 
         fqwList.append(fwqw)
+
 
     fwqw = copy.deepcopy(fqwList[0])
     for key in fwqw:
@@ -1116,11 +1117,12 @@ def GetFreeCoupling_Eq(MADTwiss, FilesX, FilesY, bpms, Qh, Qv, Qx, Qy, accelerat
             fwqw[key][0][1] = fwqw[key][0][1] + tmp[key][0][1]
             fwqw[key][0][2] = fwqw[key][0][2] + tmp[key][0][2]
             fwqw[key][0][3] = fwqw[key][0][3] + tmp[key][0][3]
-            if (key is 'BPMWB.4R5.B1'):
-                print(fwqw[key][1])
-        fwqw[key][0][0] = fwqw[key][0][0] / len(fqwList)
-        fwqw[key][0][1] = fwqw[key][0][1] / len(fqwList)
-        fwqw[key][0][2] = fwqw[key][0][2] / len(fqwList)
-        fwqw[key][0][3] = fwqw[key][0][3] / len(fqwList)
-    fwqw['Global'] = ['"null"', '"null"']
-    return [fwqw, bp.loc[goodbpm]]
+            if(key is 'BPMWB.4R5.B1'):
+                print fwqw[key][1]
+        fwqw[key][0][0]=fwqw[key][0][0]/len(fqwList)
+        fwqw[key][0][1]=fwqw[key][0][1]/len(fqwList)
+        fwqw[key][0][2]=fwqw[key][0][2]/len(fqwList)
+        fwqw[key][0][3]=fwqw[key][0][3]/len(fqwList)
+    fwqw['Global']=['"null"','"null"']
+    return [fwqw,goodbpm]
+
