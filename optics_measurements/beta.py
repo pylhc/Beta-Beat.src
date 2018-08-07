@@ -28,7 +28,6 @@ from utils import tfs_pandas, logging_tools
 __version__ = "2018.7.a"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
-PRINTTIMES = False
 LOGGER = logging_tools.get_logger(__name__)
 
 if DEBUG:
@@ -792,6 +791,11 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     T_Beta = T_Beta[beta_mask]
     betas = betas[beta_mask]
     V_Beta = np.dot(T_Beta, np.dot(M,np.transpose(T_Beta)))
+
+    T_Alfa = T_Alfa[:, mask]
+    T_Alfa = T_Alfa[beta_mask]
+    alfas = betas[beta_mask]
+    V_Alfa = np.dot(T_Alfa, np.dot(M,np.transpose(T_Alfa)))
     try:
         V_Beta_inv = np.linalg.pinv(V_Beta, rcond=RCOND)
         w = np.sum(V_Beta_inv, axis=1)
@@ -801,8 +805,19 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         beterr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2))
         beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
     except:
-        LOGGER.debug("ValueError at {}".format(probed_bpm_name))
+        LOGGER.debug("ValueError at {} in Beta calculation.".format(probed_bpm_name))
         LOGGER.debug("betas:\n" + str(betas))
+    try:
+        V_Alfa_inv = np.linalg.pinv(V_Alfa, rcond=RCOND)
+        w = np.sum(V_Alfa_inv, axis=1)
+        VAlfa_inv_sum = np.sum(w)
+        if VAlfa_inv_sum == 0:
+            raise ValueError
+        alferr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Alfa, w)) / VAlfa_inv_sum ** 2))
+        alfi = float(np.dot(np.transpose(w), alfas) / VAlfa_inv_sum)
+    except:
+        LOGGER.debug("ValueError at {} in Alfa calculation".format(probed_bpm_name))
+        LOGGER.debug("alfas:\n" + str(alfas))
 
         return (
             Index,
@@ -818,7 +833,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         DBG.start_write_bpm(probed_bpm_name, s, beti, alfi, 0)
         DBG.write_matrix(T_Beta, "T_Beta")
         DBG.start_write_combinations(len(betas))
-        combs = np.r_[BBA_combo, BAB_combo, ABB_combo] # Stackexchange
+        combs = np.r_[BBA_combo, BAB_combo, ABB_combo]  # Stackexchange
         combs = combs[beta_mask]
         for n, beta_of_comb in enumerate(betas):
             DBG.write_bpm_combination(combs[n][0], combs[n][1], beta_of_comb, w[n] / VBeta_inv_sum)
