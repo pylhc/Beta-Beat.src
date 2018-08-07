@@ -5,7 +5,6 @@ import shutil
 import numpy as np
 import argparse
 import time
-import subprocess
 
 sys.path.append(os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..")
@@ -17,8 +16,8 @@ from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
 from utils import iotools, ADDbpmerror, logging_tools
 from utils.contexts import silence
-from hole_in_one import hole_in_one
-from hole_in_one.io_handlers import input_handler as hio_input_handler
+import hole_in_one
+from harmonic_analysis.io_handlers import input_handler as hio_input_handler
 from model import manager
 
 LOGGER = logging_tools.get_logger(__name__)

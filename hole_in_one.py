@@ -1,16 +1,12 @@
 from __future__ import print_function
 import sys
-import os
 import logging
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-import clean
-import harpy
-from io_handlers import input_handler, output_handler
+from harmonic_analysis import clean, harpy
+from harmonic_analysis.io_handlers import input_handler, output_handler
 
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
