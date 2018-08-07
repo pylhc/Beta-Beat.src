@@ -1,11 +1,15 @@
-import __init__  # @UnusedImport
+import sys
 import os
-import sbs_beta_writer
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+from SegmentBySegment.sbs_writers import sbs_beta_writer
 import numpy as np
 import math
 
 from utils import tfs_file_writer
-from sbs_beta_writer import intersect
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect
 
 FIRST_BPM_B1 = "BPMSW.1L2.B1"
 FIRST_BPM_B2 = "BPMSW.1L8.B2"

@@ -1,13 +1,12 @@
 #!/afs/cern.ch/work/o/omc/anaconda/bin/python
-
 import sys
 import os
-
-new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-import __init__
+
 import numpy as np
 import Magnet_definitions
 import math

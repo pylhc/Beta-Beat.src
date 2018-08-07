@@ -14,8 +14,13 @@ for free motion and for driven motion. The twisses should contain the chromatic 
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from os.path import join
-import __init__
+import sys
+import os
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
 from utils.tfs_pandas import write_tfs, read_tfs
 
 
