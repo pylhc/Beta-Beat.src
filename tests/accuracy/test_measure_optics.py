@@ -1,8 +1,7 @@
 import sys
 from os import listdir
-from os.path import isfile, join, dirname, abspath
-
-sys.path.append(abspath(join(dirname(__file__), "..", "..")))
+from os.path import isfile, join, dirname, abspath, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
 
 from utils import tfs_pandas, stats, iotools, outliers
 from tests.test_utils.twiss_to_lin import optics_measurement_test_files

@@ -4,9 +4,8 @@ import argparse
 from shutil import copyfile
 from collections import OrderedDict
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
 
 from model import manager, creator
 from utils import tfs_pandas, logging_tools

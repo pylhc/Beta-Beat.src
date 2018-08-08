@@ -3,9 +3,8 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-))
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
 from harmonic_analysis import clean
 
 

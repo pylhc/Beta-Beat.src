@@ -1,11 +1,10 @@
 import sys
 import os
-from os.path import abspath, join, dirname
-new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 import numpy as np
-
 
 from Python_Classes4MAD import metaclass
 from utils import tfs_file_writer

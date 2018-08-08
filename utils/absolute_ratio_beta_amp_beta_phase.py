@@ -1,12 +1,8 @@
 import os
 import sys
-import scipy.io
-sys.path.append("/afs/cern.ch/work/g/garciata/public/beta_beat_src_good/Beta-Beat.src/")
-from drive import drive_runner
-from Utilities import tfs_pandas
-import numpy as np
-import math 
-import matplotlib.pyplot as plt
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
+from utils import tfs_pandas
 import matplotlib.gridspec as gridspec
 from matplotlib.pyplot import *
 from optparse import OptionParser
@@ -28,7 +24,6 @@ Orange1 = '#FFA500'
 Orange2 = '#FF8C00'
 COLOR_LIST_LIGHT = [Darkred1,Orange1,Brown1,SkyBlue1,Gray1,Gold1,Violet1,Olive1,Orange1]
 COLOR_LIST_DARK = [Darkred2,Orange2,Brown2,SkyBlue2,Gray2,Gold2,Violet2,Olive2,Orange2]
-import Utilities.tfs_file_writer as tfs_writer
 BPM_NAMES_STR = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"]
 def _parse_args():
     parser = OptionParser()

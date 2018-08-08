@@ -27,12 +27,9 @@ TODOs and Notes:
 from __future__ import print_function
 import numpy as np
 import pandas as pd
-from os.path import join, isdir, exists, split
-
 import sys
-import os
-from os.path import abspath, join, dirname
-new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+from os.path import abspath, join, dirname, pardir, isdir, exists, split
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 from segment_by_segment.segment_by_segment import GetLlmMeasurement

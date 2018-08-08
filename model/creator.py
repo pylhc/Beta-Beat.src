@@ -1,14 +1,13 @@
 import sys
-import os
-from os.path import abspath, join, dirname
-new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-import manager  # noqa
+from model import manager  # noqa
 from utils.iotools import create_dirs
 from utils.entrypoint import EntryPointParameters, entrypoint
-from model_creators.lhc_model_creator import (  # noqa
+from model.model_creators.lhc_model_creator import (  # noqa
     LhcModelCreator,
     LhcBestKnowledgeCreator,
     LhcSegmentCreator,

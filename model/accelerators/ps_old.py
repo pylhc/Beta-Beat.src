@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from utils import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
+from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
 from time import time
 
 CURRENT_DIR = os.path.dirname(__file__)

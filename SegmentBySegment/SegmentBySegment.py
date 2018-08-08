@@ -14,12 +14,10 @@ from math import sqrt
 import json
 import numpy
 
-_bb_path = os.path.abspath(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..")
-)
-if _bb_path not in sys.path:
-    sys.path.append(_bb_path)
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(__file__), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 
 import utils.iotools
 from model import manager, creator

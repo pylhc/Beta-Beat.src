@@ -2,7 +2,6 @@
 # CODE TO ANALYSE AN IR NONLINEARITY SCAN
 #
 import sys
-sys.path.append("/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD/")
 import string
 import os
 import re
