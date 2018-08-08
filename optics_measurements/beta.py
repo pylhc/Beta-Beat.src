@@ -176,7 +176,8 @@ def beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, rang
     LOGGER.info("Beta {} free calculation".format(plane))
     # remove BPMs that are not in the input
     free_model = free_model.loc[phase_adv_free["MEAS"].index]
-    if driven_model: driven_model = driven_model.loc[phase_adv_free["MEAS"].index]
+    if driven_model is not None:
+        driven_model = driven_model.loc[phase_adv_free["MEAS"].index]
     bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
 
     # if DEBUG create a binary debugfile where the algorithm is writing matrices, beta-values,
