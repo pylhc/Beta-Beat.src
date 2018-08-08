@@ -4,7 +4,7 @@ import argparse
 from shutil import copyfile
 from collections import OrderedDict
 
-from optics_measurements.io_filehandler import GetLlmMeasurement
+from optics_measurements.io_filehandler import OpticsMeasurement
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -76,7 +76,7 @@ def segment_by_segment(accel_cls, options):
     if _there_are_duplicated_names(segments, elements):
         raise SbsDefinitionError("Duplicated names in segments and elements.")
     model = tfs_pandas.read_tfs(options.model).set_index("NAME", drop=False)
-    meas = GetLlmMeasurement(options.measurement)
+    meas = OpticsMeasurement(options.measurement)
     elem_segments = [Segment.init_from_element(name) for name in elements]
     for segment in elem_segments + segments:
         propagable = run_for_segment(accel_cls, segment, model, meas,

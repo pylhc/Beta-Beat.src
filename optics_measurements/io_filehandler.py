@@ -3,7 +3,7 @@ import os
 from tfs_files.tfs_collection import TfsCollection, Tfs
 
 
-class GetLlmMeasurement(TfsCollection):
+class OpticsMeasurement(TfsCollection):
     """Class to hold and load the measurements from GetLLM.
 
     The class will try to load the _free file, then the _free2 and then the

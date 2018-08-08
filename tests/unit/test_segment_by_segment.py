@@ -15,7 +15,7 @@ from segment_by_segment.segment_by_segment import (
     SegmentModels,
     SegmentBeatings,
 )
-from optics_measurements.io_filehandler import GetLlmMeasurement
+from optics_measurements.io_filehandler import OpticsMeasurement
 
 CURRENT_DIR = os.path.dirname(__file__)
 
@@ -209,10 +209,10 @@ def test_improve_segment_for_elements():
     assert new_seg.end == "BPM4"
 
 
-# GetLlmMeasurement ###########################################################
+# OpticsMeasurement ###########################################################
 
 def test_measurement_empty_dir(_meas_dir_empty):
-    meas = GetLlmMeasurement(_meas_dir_empty)
+    meas = OpticsMeasurement(_meas_dir_empty)
     with pytest.raises(IOError):
         meas.beta_x
     with pytest.raises(IOError):
@@ -222,35 +222,35 @@ def test_measurement_empty_dir(_meas_dir_empty):
 
 
 def test_measurement_load_free(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     meas.beta["x"].BETX
     meas.beta_y.BETY
 
 
 def test_measurement_load_free2(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     meas.phase_x.PHASEX
     meas.phase_y.PHASEY
 
 
 def test_measurement_load_normal(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     meas.disp_x.DX
     meas.disp_y.DY
 
 
 def test_measurement_load_no_plane(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     meas.coupling.F1001W
 
 
 def test_measurement_load_norm_dips(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     meas.norm_disp.NDX
 
 
 def test_measurement_writes_double_plane(_test_df_just_names, _test_dir):
-    meas = GetLlmMeasurement(_test_dir)
+    meas = OpticsMeasurement(_test_dir)
     meas.allow_write = True
     meas.beta_x = (_test_df_just_names, "_free")
     meas.beta["y"] = (_test_df_just_names, "")
@@ -261,7 +261,7 @@ def test_measurement_writes_double_plane(_test_df_just_names, _test_dir):
 
 
 def test_measurement_doesnt_write_if_not_allowed(_test_df_just_names, _test_dir):
-    meas = GetLlmMeasurement(_test_dir)
+    meas = OpticsMeasurement(_test_dir)
     meas.allow_write = False
     meas.beta_x = (_test_df_just_names, "_free")
     assert not os.path.isfile(
@@ -269,14 +269,14 @@ def test_measurement_doesnt_write_if_not_allowed(_test_df_just_names, _test_dir)
 
 
 def test_measurement_maybe_doesnt_call_on_error(_meas_dir_empty):
-    meas = GetLlmMeasurement(_meas_dir_empty)
+    meas = OpticsMeasurement(_meas_dir_empty)
     def assert_false(args):
         assert False
     meas.maybe_call.beta_x(assert_false, "whatever")
 
 
 def test_measurement_maybe_calls_on_success(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     def raise_to_be_catched(tfs_file):
         tfs_file.BETX  # Check that the columns can be accessed
         raise _KnownError()
@@ -285,7 +285,7 @@ def test_measurement_maybe_calls_on_success(_meas_dir):
 
 
 def test_measurement_maybe_accessible(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     def raise_to_be_catched(tfs_file):
         tfs_file.BETY  # Check that the columns can be accessed
         raise _KnownError()
@@ -296,7 +296,7 @@ def test_measurement_maybe_accessible(_meas_dir):
 
 
 def test_measurement_maybe_more_args(_meas_dir):
-    meas = GetLlmMeasurement(_meas_dir)
+    meas = OpticsMeasurement(_meas_dir)
     def test_funct(tfs_file, number, kwnumber=None):
         tfs_file.BETY  # Check that the columns can be accessed
         return number, kwnumber

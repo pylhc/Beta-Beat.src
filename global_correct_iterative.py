@@ -56,7 +56,7 @@ import pandas as pd
 import madx_wrapper
 from correction.fullresponse import response_twiss
 from model import manager
-from optics_measurements.io_filehandler import GetLlmMeasurement
+from optics_measurements.io_filehandler import OpticsMeasurement
 from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
 from utils import iotools
@@ -563,7 +563,7 @@ def _get_measurment_data(keys, meas_dir, beta_file_name, w_dict):
     measurement = {}
     filtered_keys = [k for k in keys if w_dict[k] != 0]
 
-    getllm_data = GetLlmMeasurement(meas_dir)
+    getllm_data = OpticsMeasurement(meas_dir)
     for key in filtered_keys:
         if key == "MUX":
             measurement['MUX'] = getllm_data.phase_x
