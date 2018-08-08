@@ -64,7 +64,7 @@ import Python_Classes4MAD.metaclass as metaclass
 from utils import bpm as bpm_util
 from utils import logging_tools as logtools
 from utils.dict_tools import DotDict
-from utils import tfs_remove_nan
+from utils import tfs_utils
 from model import manager, creator
 from model.accelerators.accelerator import AccExcitationMode
 
@@ -210,7 +210,7 @@ def main(**kwargs):
     #TODO: HOPE THAT GETLLM DOES A BETTER JOB
     LOG.warn("Cleaning files of NAN! This should not be necessary!")
     all_files = os.listdir(options.output_path)
-    tfs_remove_nan.clean_files(
+    tfs_utils.remove_nan_from_files(
         [os.path.join(options.output_path, f) for f in all_files], replace=True)
 
     # adding data
