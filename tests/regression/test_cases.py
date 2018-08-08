@@ -1,14 +1,21 @@
 import sys
 import os
-from os.path import join, abspath, dirname
-import compare_utils
-import regression
 import filecmp
 import argparse
+from os.path import join, abspath, dirname
+
+# ignore numpy warnings, see:
+# https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 ABS_ROOT = abspath(join(dirname(__file__), "..", ".."))
 sys.path.append(ABS_ROOT)
 from utils import iotools
+from tests.regression import compare_utils
+from tests.regression import regression
+
 
 REGR_DIR = join("tests", "regression")
 TBTS = join("tests", "inputs", "tbt_files")
