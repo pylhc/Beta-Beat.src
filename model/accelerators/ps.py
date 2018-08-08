@@ -2,7 +2,7 @@ import os
 import argparse
 import datetime as dt
 from utils import tfs_pandas, logging_tools
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode
+from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)

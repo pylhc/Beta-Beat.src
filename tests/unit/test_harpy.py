@@ -5,9 +5,8 @@ import numpy as np
 import pytest
 from hypothesis import given
 from hypothesis.strategies import integers
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-))
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
 from harmonic_analysis import harpy
 
 

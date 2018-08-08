@@ -1,12 +1,12 @@
 import sys
 import os
-from os.path import join, abspath, dirname
 import compare_utils
 import regression
 import filecmp
 import argparse
 
-ABS_ROOT = abspath(join(dirname(__file__), "..", ".."))
+from os.path import abspath, join, dirname, pardir
+ABS_ROOT = abspath(join(dirname(__file__), pardir, pardir))
 sys.path.append(ABS_ROOT)
 from utils import iotools
 

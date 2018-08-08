@@ -1,28 +1,28 @@
 #!/afs/cern.ch/work/o/omc/anaconda/bin/python
 import sys
 import os
-from os.path import abspath, join, dirname
-new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
 
 import numpy as np
-import Magnet_definitions
+from kmod.gui2beta import Magnet_definitions
 import math
 
 import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass
 
-from make_fit_plots import plot_fitting
+from kmod.gui2beta.make_fit_plots import plot_fitting
 from scipy.spatial import Delaunay
 import argparse
 from utils import tfs_file_writer
 from utils import outliers
 
-from read_Timber_output import merge_data
+from kmod.gui2beta.read_Timber_output import merge_data
 
-import KModUtilities
+from kmod.gui2beta import KModUtilities
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))

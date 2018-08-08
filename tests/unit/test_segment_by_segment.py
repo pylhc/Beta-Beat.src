@@ -4,9 +4,8 @@ import shutil
 import pytest
 import pandas as pd
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-)
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
 
 from segment_by_segment import segment_by_segment
 from segment_by_segment.segment_by_segment import (

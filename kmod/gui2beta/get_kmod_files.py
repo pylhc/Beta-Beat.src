@@ -2,8 +2,8 @@
 
 import os
 import sys
-
-new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../"))
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
@@ -26,7 +26,7 @@ def write_global_files(beam, kmod_dir, res_dir, mod_path):
 
     for plane in ("x", "y"):
         uplane = plane.upper()
-        results_writer = tfs_file_writer.TfsFileWriter.open(os.path.join(res_dir, 'getkmodbeta' + plane + '.out'))
+        results_writer = tfs_file_writer.TfsFileWriter.open(join(res_dir, 'getkmodbeta' + plane + '.out'))
         write_headers(results_writer, uplane)
         bpm_names, bpm_s, betas, betas_std, betas_mdl = [], [], [], [], []
         for ip_dir_name in ip_dir_names:

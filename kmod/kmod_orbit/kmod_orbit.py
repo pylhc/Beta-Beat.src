@@ -6,11 +6,9 @@ import pandas as pd
 import time
 import datetime
 import argparse
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "..",
-)))
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
+
 from utils import tfs_pandas
 from utils.tfs_file_writer import significant_numbers
 

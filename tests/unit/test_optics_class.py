@@ -14,9 +14,8 @@ from twiss_optics.twiss_functions import get_all_rdts
 from utils.tfs_pandas import TfsDataFrame
 from utils.contexts import suppress_warnings
 
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-))
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
 
 MAX_NRES = 40
 CURRENT_DIR = os.path.dirname(__file__)

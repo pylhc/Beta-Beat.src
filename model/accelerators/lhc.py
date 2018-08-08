@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 import pandas as pd
 
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
+from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
     get_commonbpm
 from utils import logging_tools, tfs_pandas
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
