@@ -19,12 +19,19 @@ from utils import logging_tools
 LOG = logging_tools.get_logger(__name__)
 
 LIB = abspath(join(dirname(__file__), "madx", "lib"))
+
+_LOCAL_PATH = join(dirname(__file__), "madx", "bin")
+_AFS_PATH = join("afs", "cern.ch", "user", "m", "mad", "madx", "releases", "last-rel")
+
 if "darwin" in sys.platform:
-    MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-macosx64-intel"))
+    _MADX_BIN = "madx-macosx64-intel"
 elif "win" in sys.platform:
-    MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-win64-gnu.exe"))
+    _MADX_BIN = "madx-win64-gnu.exe"
 else:
-    MADX_PATH = abspath(join(dirname(__file__), "madx", "bin", "madx-linux64-gnu"))
+    _MADX_BIN = "madx-linux64-gnu"
+
+MADX_PATH = abspath(join(_LOCAL_PATH, _MADX_BIN))
+MADX_AFS_PATH = abspath(join(_AFS_PATH, _MADX_BIN))
 
 
 class MadxError(Exception):
