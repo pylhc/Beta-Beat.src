@@ -22,8 +22,8 @@ from optics_measurements import optics_input, dpp, tune, phase
 from optics_measurements import (beta, beta_from_amplitude, coupling, dispersion,
                                  interaction_point, kick, resonant_driving_terms)
 from model.accelerators.accelerator import AccExcitationMode
-from utils import tfs_pandas, logging_tools, iotools
-
+from utils import logging_tools, iotools
+from tfs_files import tfs_pandas
 
 VERSION = '0.2.0'
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d measure_optics.py...") (vimaier)

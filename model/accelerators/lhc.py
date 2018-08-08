@@ -8,7 +8,8 @@ import pandas as pd
 
 from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
     get_commonbpm
-from utils import logging_tools, tfs_pandas
+from utils import logging_tools
+from tfs_files import tfs_pandas
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 LOGGER = logging_tools.get_logger(__name__)

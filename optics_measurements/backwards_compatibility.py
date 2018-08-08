@@ -8,7 +8,9 @@ Created on 26/07/18
 It contains wrappers to new data structures such that they can be used in old functions.
 """
 import warnings
-from utils import tfs_file_writer, logging_tools
+from utils import logging_tools
+from tfs_files import tfs_file_writer
+
 LOGGER = logging_tools.get_logger(__name__)
 warnings.simplefilter('always', DeprecationWarning)
 

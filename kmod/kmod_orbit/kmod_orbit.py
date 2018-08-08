@@ -11,8 +11,8 @@ sys.path.append(os.path.abspath(os.path.join(
     "..",
     "..",
 )))
-from utils import tfs_pandas
-from utils.tfs_file_writer import significant_numbers
+from tfs_files import tfs_pandas
+from tfs_files.tfs_file_writer import significant_numbers
 
 
 BEAMS = BEAM1, BEAM2 = (0, 1)

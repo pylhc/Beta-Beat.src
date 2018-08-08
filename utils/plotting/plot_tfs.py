@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt, gridspec, rcParams
 
 from utils.entrypoint import EntryPointParameters, entrypoint
 from utils.plotting import plot_style as ps
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils import logging_tools
 
 

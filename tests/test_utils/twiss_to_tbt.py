@@ -6,7 +6,7 @@ new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-from utils.tfs_pandas import read_tfs
+from tfs_files.tfs_pandas import read_tfs
 
 
 C = 299792458.0 

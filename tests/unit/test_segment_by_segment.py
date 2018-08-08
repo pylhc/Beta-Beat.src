@@ -14,9 +14,8 @@ from segment_by_segment.segment_by_segment import (
     Segment,
     SegmentModels,
     SegmentBeatings,
-    GetLlmMeasurement,
 )
-
+from optics_measurements.io_filehandler import GetLlmMeasurement
 
 CURRENT_DIR = os.path.dirname(__file__)
 

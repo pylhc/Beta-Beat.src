@@ -7,10 +7,9 @@ new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-import numpy as np
 from Python_Classes4MAD import metaclass
 from optparse import OptionParser
-from utils import tfs_file_writer
+from tfs_files import tfs_file_writer
 import re
 
 

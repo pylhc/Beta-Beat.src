@@ -1,17 +1,16 @@
 import os
 import sys
-import warnings
 
 import numpy as np
 import pandas as pd
 import pytest
-from hypothesis import given, assume, settings
-from hypothesis.extra.pandas import range_indexes, columns, data_frames, column
+from hypothesis import given, settings
+from hypothesis.extra.pandas import range_indexes, data_frames, column
 from hypothesis.strategies import integers, floats, tuples
 
 from twiss_optics.optics_class import TwissOptics
 from twiss_optics.twiss_functions import get_all_rdts
-from utils.tfs_pandas import TfsDataFrame
+from tfs_files.tfs_pandas import TfsDataFrame
 from utils.contexts import suppress_warnings
 
 sys.path.append(os.path.abspath(

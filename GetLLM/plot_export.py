@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import sys
 import os
 from os.path import abspath, join, dirname
+
 new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
@@ -16,7 +17,7 @@ from matplotlib import rcParams
 from matplotlib.backends.backend_pdf import PdfPages
 
 from utils import logging_tools
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils.plotting import plot_style as ps
 from utils.plotting.plot_style import MarkerList
 

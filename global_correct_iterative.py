@@ -56,10 +56,11 @@ import pandas as pd
 import madx_wrapper
 from correction.fullresponse import response_twiss
 from model import manager
-from segment_by_segment.segment_by_segment import GetLlmMeasurement
+from optics_measurements.io_filehandler import GetLlmMeasurement
 from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
-from utils import tfs_pandas as tfs, iotools
+from utils import iotools
+from tfs_files import tfs_pandas as tfs
 from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
 from utils.logging_tools import log_pandas_settings_with_copy

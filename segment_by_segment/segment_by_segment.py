@@ -4,14 +4,16 @@ import argparse
 from shutil import copyfile
 from collections import OrderedDict
 
+from optics_measurements.io_filehandler import GetLlmMeasurement
+
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
 
 from model import manager, creator
-from utils import tfs_pandas, logging_tools
-from utils.dict_tools import DotDict
-from tfs_files import TfsCollection, Tfs
+from utils import logging_tools
+from tfs_files.tfs_collection import TfsCollection, Tfs
+from tfs_files import tfs_pandas
 import sbs_propagables
 
 # TODO: Remove debug and set up log file
@@ -279,43 +281,6 @@ class Segment(object):
         fake_segment = Segment(element_name, element_name, element_name)
         fake_segment.element = element_name
         return fake_segment
-
-
-class GetLlmMeasurement(TfsCollection):
-    """Class to hold and load the measurements from GetLLM.
-
-    The class will try to load the _free file, then the _free2 and then the
-    normal file, if none of them if present an IOError will be raised.
-
-    Arguments:
-        directory: The path to the measurement directory, usually a GetLLM
-            output directory.
-    """
-    beta = Tfs("getbeta")
-    amp_beta = Tfs("getampbeta")
-    kmod_beta = Tfs("getkmodbeta")
-    phase = Tfs("getphase")
-    phasetot = Tfs("getphasetot")
-    disp = Tfs("getD")
-    coupling = Tfs("getcouple", two_planes=False)
-    norm_disp = Tfs("getNDx", two_planes=False)
-
-    def get_filename(self, prefix, plane=""):
-        templ = prefix + "{}{}.out"
-        for filename in (templ.format(plane, "_free"),
-                         templ.format(plane, "_free2"),
-                         templ.format(plane, "")):
-            if os.path.isfile(os.path.join(self.directory, filename)):
-                return filename
-        raise IOError("No file name found for prefix {} in {}."
-                      .format(prefix, self.directory))
-
-    def write_to(self, value, prefix, plane=""):
-        data_frame, suffix = value
-        templ = prefix + "{}{}.out"
-        filename = templ.format(plane, suffix)
-        return filename, data_frame
-
 
 
 class SegmentModels(TfsCollection):

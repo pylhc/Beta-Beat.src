@@ -3,7 +3,7 @@ from matcher_model_default import MatcherModelDefault
 from matcher_model_default import MatcherPlotterDefault
 from matchers.matcher import MatcherFactory
 from matchers.amp_matcher import AmpMatcher
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 
 
 class MatcherModelAmp(MatcherModelDefault):

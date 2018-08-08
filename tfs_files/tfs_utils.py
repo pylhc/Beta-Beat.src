@@ -1,4 +1,4 @@
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils import logging_tools as logtools
 
 LOG = logtools.get_logger(__name__)

@@ -10,7 +10,7 @@ It computes beta from amplitude.
 from os.path import join
 import numpy as np
 import pandas as pd
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 from model.accelerators.accelerator import AccExcitationMode
 from compensate_excitation import get_lambda
 

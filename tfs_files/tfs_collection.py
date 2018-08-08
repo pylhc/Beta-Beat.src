@@ -1,12 +1,6 @@
 from __future__ import print_function
-import sys
 import os
-
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
-
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 
 
 class _MetaTfsCollection(type):
@@ -204,14 +198,19 @@ def _define_property_two_planes(dct, args, kwargs):
     y_kwargs = dict(kwargs)
     x_kwargs["plane"] = "x"
     y_kwargs["plane"] = "y"
+
     def x_getter_funct(self):
         return _getter(self, *args, **x_kwargs)
+
     def x_setter_funct(self, tfs_data):
         return _setter(self, tfs_data, *args, **x_kwargs)
+
     def y_getter_funct(self):
         return _getter(self, *args, **y_kwargs)
+
     def y_setter_funct(self, tfs_data):
         return _setter(self, tfs_data, *args, **y_kwargs)
+
     property_x = property(fget=x_getter_funct, fset=x_setter_funct)
     property_y = property(fget=y_getter_funct, fset=y_setter_funct)
     return property_x, property_y
@@ -242,6 +241,7 @@ class _MaybeCall(object):
     """
     def __init__(self, parent):
         self.parent = parent
+
     def __getattr__(self, attr):
         return _MaybeCall.MaybeCallAttr(self.parent, attr)
 
@@ -249,9 +249,11 @@ class _MaybeCall(object):
         def __init__(self, parent, attr):
             self.parent = parent
             self.attr = attr
+
         def __getitem__(self, item):
             return _MaybeCall.MaybeCallAttr(self.parent,
                                             self.attr + "_" + item)
+
         def __call__(self, function, *args, **kwargs):
             try:
                 tfs_file = getattr(self.parent, self.attr)

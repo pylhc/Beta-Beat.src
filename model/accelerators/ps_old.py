@@ -1,15 +1,8 @@
 from __future__ import print_function
 import os
 import argparse
-import re
-import sys
-import json
-from collections import OrderedDict
-import numpy as np
-import pandas as pd
-from utils import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
-from time import time
+from tfs_files import tfs_pandas
+from accelerator import Accelerator, AcceleratorDefinitionError, AccExcitationMode
 
 CURRENT_DIR = os.path.dirname(__file__)
 #LHC_DIR = os.path.join(CURRENT_DIR, "lhc")

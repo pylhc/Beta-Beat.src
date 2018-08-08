@@ -27,17 +27,17 @@ TODOs and Notes:
 from __future__ import print_function
 import numpy as np
 import pandas as pd
-from os.path import join, isdir, exists, split
-
 import sys
 import os
-from os.path import abspath, join, dirname
+from os.path import abspath, join, dirname, isdir, exists, split
+
 new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
-from segment_by_segment.segment_by_segment import GetLlmMeasurement
+
+from optics_measurements.io_filehandler import GetLlmMeasurement
 from twiss_optics.optics_class import TwissOptics
-from utils.tfs_pandas import read_tfs, write_tfs
+from tfs_files.tfs_pandas import read_tfs, write_tfs
 from utils import logging_tools
 
 LOG = logging_tools.get_logger(__name__)

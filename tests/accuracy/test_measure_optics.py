@@ -4,7 +4,8 @@ from os.path import isfile, join, dirname, abspath
 
 sys.path.append(abspath(join(dirname(__file__), "..", "..")))
 
-from utils import tfs_pandas, stats, iotools, outliers
+from utils import stats, iotools, outliers
+from tfs_files import tfs_pandas
 from tests.test_utils.twiss_to_lin import optics_measurement_test_files
 import measure_optics
 from optics_measurements import optics_input
