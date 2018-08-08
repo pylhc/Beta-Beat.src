@@ -1,16 +1,12 @@
 from __future__ import print_function
 import sys
-import os
 import logging
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-import clean
-import harpy
-from io_handlers import input_handler, output_handler
+from harmonic_analysis import clean, harpy
+from harmonic_analysis.io_handlers import input_handler, output_handler
 
 from utils import tfs_pandas as tfs
 from utils.contexts import timeit
@@ -318,7 +314,8 @@ def _calc_dp_over_p(main_input, bpm_data):
         return 0.0  # TODO: What do we do with other accels.
     accel_cls = manager.get_accel_class(accel=sequence)
     arc_bpms_mask = accel_cls.get_element_types_mask(bpm_data.index, types=["arc_bpm"])
-    arc_bpm_data = bpm_data[arc_bpms_mask]
+    arc_bpms_mask = np.array([bool(x) for x in arc_bpms_mask])
+    arc_bpm_data = bpm_data.loc[arc_bpms_mask]
     # We need it in mm:
     dispersions = model_twiss.loc[arc_bpm_data.index, "DX"] * 1e3
     closed_orbits = np.mean(arc_bpm_data, axis=1)

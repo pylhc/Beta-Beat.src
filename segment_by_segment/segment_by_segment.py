@@ -345,13 +345,13 @@ class SegmentBeatings(TfsCollection):
     TODO
     """
 
-    beta_phase = Tfs("sbsbetabeating{plane}_{name}.dat")
-    beta_kmod = Tfs("sbskmodbetabeating{plane}_{name}.dat")
-    beta_amp = Tfs("sbsampbetabeating{plane}_{name}.dat")
-    phase = Tfs("sbsphase{plane}t_{name}.dat")
-    coupling = Tfs("sbscouple_{name}.dat", two_planes=False)
-    disp = Tfs("sbsD{plane}_{name}.dat")
-    norm_disp = Tfs("sbsNDx_{name}.dat", two_planes=False)
+    beta_phase = Tfs("sbsbetabeating{plane}_{name}.out")
+    beta_kmod = Tfs("sbskmodbetabeating{plane}_{name}.out")
+    beta_amp = Tfs("sbsampbetabeating{plane}_{name}.out")
+    phase = Tfs("sbsphase{plane}t_{name}.out")
+    coupling = Tfs("sbscouple_{name}.out", two_planes=False)
+    disp = Tfs("sbsD{plane}_{name}.out")
+    norm_disp = Tfs("sbsNDx_{name}.out", two_planes=False)
 
     def __init__(self, directory, seg_name):
         super(SegmentBeatings, self).__init__(directory)

@@ -204,6 +204,9 @@ class TfsFileWriter(object):
         # Header
         lines.extend(x.get_line_as_string() for x in self.__tfs_header_lines)
 
+        LOG.debug("{} lines in tfs table".format(self.__tfs_table.get_row_count()))
+        LOG.debug("{} rows in tfs table: {}".format(len(self.__tfs_table.get_column_names()),
+                                                    " ".join(self.__tfs_table.get_column_names())))
         # Table
         if formatted:
             self.__write_formatted_table(lines)
@@ -532,6 +535,9 @@ class _TfsTable(object):
 
     def get_data_rows(self):
         return self.__list_of_table_rows
+    
+    def get_row_count(self):
+        return len(self.__list_of_table_rows)
 
     def order_rows(self, column_name, reverse=False):
         """

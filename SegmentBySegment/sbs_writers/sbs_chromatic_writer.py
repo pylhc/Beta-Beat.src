@@ -34,7 +34,7 @@ def get_chrom_summary_file(save_path):
                                              "WPROPX", "ERRWPROPX", "PHIPROPX", "ERRPHIPROPX",
                                              "WPROPY", "ERRWPROPY", "PHIPROPY", "ERRPHIPROPY",
                                              "MODELWX", "MODELWY", "MODELPHIX", "MODELPHIY", "MODEL_S"])
-        chrom_summary_file.add_column_datatypes(["%bpm_s", "%le",
+        chrom_summary_file.add_column_datatypes(["%s", "%le",
                                                  "%le", "%le", "%le", "%le",
                                                  "%le", "%le", "%le", "%le",
                                                  "%le", "%le", "%le", "%le", "%le"])
@@ -52,7 +52,7 @@ def _get_chromatic_w_files(save_path, element_name, is_element):
                                             "WBACKX", "ERRWBACKX", "PHIBACKX", "ERRPHIBACKX",
                                             "WBACKCORX", "ERRWBACKCORX", "PHIBACKCORX", "ERRPHIBACKCORX",
                                             "MODELWX", "MODELPHIX", "MODEL_S"])
-        file_chromatic_wx.add_column_datatypes(["%bpm_s", "%le",
+        file_chromatic_wx.add_column_datatypes(["%s", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
@@ -65,7 +65,7 @@ def _get_chromatic_w_files(save_path, element_name, is_element):
                                             "WBACKY", "ERRWBACKY", "PHIBACKY", "ERRPHIBACKY",
                                             "WBACKCORY", "ERRWBACKCORY", "PHIBACKCORY", "ERRPHIBACKCORY",
                                             "MODELWY", "MODELPHIY", "MODEL_S"])
-        file_chromatic_wy.add_column_datatypes(["%bpm_s", "%le",
+        file_chromatic_wy.add_column_datatypes(["%s", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
@@ -73,10 +73,10 @@ def _get_chromatic_w_files(save_path, element_name, is_element):
                                                 "%le", "%le", "%le"])
     else:
         file_chromatic_wx.add_column_names(["NAME", "S", "WPROPX", "ERRWPROPX", "PHIPROPX", "ERRPHIPROPX", "MODELWX", "MODELPHIX", "MODEL_S"])
-        file_chromatic_wx.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_chromatic_wx.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
         file_chromatic_wy.add_column_names(["NAME", "S", "WPROPY", "ERRWPROPY", "PHIPROPY", "ERRPHIPROPY", "MODELWY", "MODELPHIY", "MODEL_S"])
-        file_chromatic_wy.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_chromatic_wy.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     return file_chromatic_wx, file_chromatic_wy
 

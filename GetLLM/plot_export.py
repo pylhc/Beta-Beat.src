@@ -1,8 +1,12 @@
 from __future__ import unicode_literals
-import __init__
+import sys
+import os
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 
 import argparse
-import os
 import re
 
 import matplotlib.gridspec as gridspec

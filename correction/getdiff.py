@@ -25,14 +25,16 @@ TODOs and Notes:
     No coupling in twiss_no.dat? not used
 """
 from __future__ import print_function
-
-import sys
-
 import numpy as np
 import pandas as pd
 from os.path import join, isdir, exists, split
 
-import __init__
+import sys
+import os
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 from segment_by_segment.segment_by_segment import GetLlmMeasurement
 from twiss_optics.optics_class import TwissOptics
 from utils.tfs_pandas import read_tfs, write_tfs

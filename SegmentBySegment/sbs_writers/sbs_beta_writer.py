@@ -1,6 +1,9 @@
-import __init__  # @UnusedImport
-import os
 import sys
+import os
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import numpy as np
 import math
 
@@ -47,7 +50,7 @@ def get_beta_summary_file(save_path):
                                             "BETPROPX", "ERRBETPROPX", "ALFPROPX", "ERRALFPROPX",
                                             "BETPROPY", "ERRBETPROPY", "ALFPROPY", "ERRALFPROPY",
                                             "BETXMDL", "BETYMDL", "ALFXMDL", "ALFYMDL", "MDL_S"])
-        beta_summary_file.add_column_datatypes(["%bpm_s", "%le",
+        beta_summary_file.add_column_datatypes(["%s", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le", "%le"])
@@ -69,24 +72,24 @@ def _get_beta_tfs_files(element_name, save_path, is_element):
 
     if not is_element:
         file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETCORX", "ERRBETCORX", "BETBACKX", "ERRBETBACKX", "BETBACKCORX", "ERRBETBACKCORX", "BETXMDL", "MODEL_S"])
-        file_beta_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_beta_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         file_alfa_x.add_column_names(["NAME", "S", "ALFPROPX", "ERRALFPROPX", "ALFCORX", "ERRALFCORX", "ALFBACKX", "ERRALFBACKX", "ALFBACKCORX", "ERRALFBACKCORX", "ALFXMDL", "MODEL_S"])
-        file_alfa_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_alfa_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
         file_beta_y.add_column_names(["NAME", "S", "BETPROPY", "ERRBETPROPY", "BETCORY", "ERRBETCORY", "BETBACKY", "ERRBETBACKY", "BETBACKCORY", "ERRBETBACKCORY", "BETYMDL", "MODEL_S"])
-        file_beta_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_beta_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
         file_alfa_y.add_column_names(["NAME", "S", "ALFPROPY", "ERRALFPROPY", "ALFCORY", "ERRALFCORY", "ALFBACKY", "ERRALFBACKY", "ALFBACKCORY", "ERRALFBACKCORY", "ALFYMDL", "MODEL_S"])
-        file_alfa_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_alfa_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
     else:
         file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETXMDL", "MODEL_S"])
-        file_beta_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le"])
+        file_beta_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le"])
         file_alfa_x.add_column_names(["NAME", "S", "ALFPROPX", "ERRALFPROPX", "ALFXMDL", "MODEL_S"])
-        file_alfa_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le"])
+        file_alfa_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le"])
 
         file_beta_y.add_column_names(["NAME", "S", "BETPROPY", "ERRBETPROPY", "BETYMDL", "MODEL_S"])
-        file_beta_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le"])
+        file_beta_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le"])
         file_alfa_y.add_column_names(["NAME", "S", "ALFPROPY", "ERRALFPROPY", "ALFYMDL", "MODEL_S"])
-        file_alfa_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le"])
+        file_alfa_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le"])
 
     return file_alfa_x, file_beta_x, file_alfa_y, file_beta_y
 

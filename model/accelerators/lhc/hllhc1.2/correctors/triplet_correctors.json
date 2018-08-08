@@ -32,6 +32,20 @@
     "ktqx2.r8"
   ],
   "MQXNEW": [
+    "kqx1.l1",
+    "kqx1.r1",
+    "kqx2.l1",
+    "kqx2.r1",
+    "kqx3.l1",
+    "kqx3.r1",
+    "kqx1.l5",
+    "kqx1.r5",
+    "kqx2.l5",
+    "kqx2.r5",
+    "kqx3.l5",
+    "kqx3.r5"
+  ],
+  "OLDMQXNEW": [
     "ktrim1.l1",
     "kpc.l1",
     "ktrim3.l1",

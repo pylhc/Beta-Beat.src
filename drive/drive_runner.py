@@ -1,5 +1,4 @@
 from __future__ import print_function
-import __init__  # noqa
 import os
 import sys
 from utils import iotools

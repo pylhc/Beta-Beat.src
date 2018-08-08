@@ -52,14 +52,16 @@ Usage in another Python module::
 """
 
 import argparse
-import os
-import sys
 import shutil
 import math
 import re
 import numpy as np
-
-import __init__  # @UnusedImport init will include paths
+import sys
+import os
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import Python_Classes4MAD.metaclass as metaclass
 from utils import bpm as bpm_util
 from utils import logging_tools as logtools
