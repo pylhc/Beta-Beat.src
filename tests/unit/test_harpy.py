@@ -8,7 +8,7 @@ from hypothesis.strategies import integers
 sys.path.append(os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..")
 ))
-from hole_in_one import harpy
+from harmonic_analysis import harpy
 
 
 @given(integers(min_value=1, max_value=200),

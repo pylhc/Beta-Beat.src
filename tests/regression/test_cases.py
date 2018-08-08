@@ -33,10 +33,10 @@ def _parse_args():
 TEST_CASES_HOLE_IN_ONE = (
     regression.TestCase(
         name="hole_in_one_test_flat_3dkick",
-        script=join("hole_in_one", "hole_in_one.py"),
+        script="hole_in_one.py",
         arguments=("--file={file} --model={model} --output={output} clean "
                    "harpy --tunex 0.27 --tuney 0.322 --tunez 4.5e-4 "
-                   "--nattunex 0.28 --nattuney 0.31".format(
+                   "--nattunex 0.28 --nattuney 0.31 --tolerance 0.005".format(
                        file=join(TBTS, "flat_beam1_3d.sdds"),
                        model=join(MODELS, "flat_beam1", "twiss.dat"),
                        output=join(REGR_DIR, "_out_hole_in_one_test_flat_3dkick"))),

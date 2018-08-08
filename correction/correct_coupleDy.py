@@ -58,7 +58,12 @@ import json
 
 import numpy
 
-import __init__ # @UnusedImport init will include paths
+import sys
+import os
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import utils.iotools
 import utils.tfs_file_writer
 import correction.correction_helpers

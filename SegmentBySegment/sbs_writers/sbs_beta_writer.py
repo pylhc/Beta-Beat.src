@@ -1,6 +1,9 @@
-import __init__  # @UnusedImport
-import os
 import sys
+import os
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir, os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import numpy as np
 import math
 

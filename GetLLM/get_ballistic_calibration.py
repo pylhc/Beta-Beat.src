@@ -1,6 +1,9 @@
-
+import sys
 import os
-import __init__  # @UnusedImport
+from os.path import abspath, join, dirname
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
