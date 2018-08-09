@@ -20,7 +20,8 @@ def _get_output_tfs_files(header_dict, filename, outpath):
     for (key, value) in header_dict.items():
         tfs_file.add_string_descriptor(key, value)
     tfs_file.add_string_descriptor("FILENAME", filename)
-    warnings.warn("Manual construction of tfs_file is deprecated, consider using utils.tfs_pandas",
+    warnings.warn("Manual construction of tfs_file is deprecated, "
+                  "consider using tfs_files.tfs_pandas",
                   DeprecationWarning, 2)
     return tfs_file
 

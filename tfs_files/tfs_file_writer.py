@@ -8,7 +8,7 @@ This module contains the class TfsFileWriter which is used to create easily TfsF
 
 Usage1::
 
-    import utils.tfs_file_writer as tfs_writer
+    import tfs_files.tfs_file_writer as tfs_writer
     ...
     tfs_file_writer = tfs_writer.TfsFileWriter.open("my_file.out")
     tfs_file_writer.set_column_width(15) # Specify desired column width
