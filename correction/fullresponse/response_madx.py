@@ -19,7 +19,7 @@ import pandas
 import madx_wrapper
 from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils.contexts import timeit, suppress_warnings
 from utils.iotools import create_dirs
 

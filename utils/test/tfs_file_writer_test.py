@@ -6,7 +6,7 @@ Created on 9 Oct 2013
 import unittest
 
 import utils.iotools
-import utils.tfs_file_writer
+import tfs_files.tfs_file_writer
 import utils.ndiff
 
 
@@ -26,7 +26,7 @@ class TestTfsFileWriter(unittest.TestCase):
 
     def testTfsFileWriter(self):
         file_from_tfs_writer = "test.out"
-        tfs_file_writer = utils.tfs_file_writer.TfsFileWriter.open(file_from_tfs_writer)
+        tfs_file_writer = tfs_files.tfs_file_writer.TfsFileWriter.open(file_from_tfs_writer)
         tfs_file_writer.add_string_descriptor("NAME", "TWISS")
         tfs_file_writer.add_float_descriptor("MASS", 0.938272013)
         tfs_file_writer.add_comment("I am a comment")

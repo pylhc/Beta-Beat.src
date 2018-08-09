@@ -7,7 +7,7 @@ if new_path not in sys.path:
 import numpy as np
 
 from Python_Classes4MAD import metaclass
-from utils import tfs_file_writer
+from tfs_files import tfs_file_writer
 
 
 def merge_data(working_directory, magnet1, circuit1, magnet2, circuit2, beam, ip, tunemeasprecision):

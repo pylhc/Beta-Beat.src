@@ -8,7 +8,7 @@ import pandas as pd
 from harmonic_analysis import clean, harpy
 from harmonic_analysis.io_handlers import input_handler, output_handler
 
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils.contexts import timeit
 from model import manager
 from sdds_files import turn_by_turn_reader

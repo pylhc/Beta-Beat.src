@@ -4,11 +4,12 @@ from os.path import abspath, join, dirname, pardir
 new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
+
 import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-import utils.tfs_file_writer as tfs_writer
+import tfs_files.tfs_file_writer as tfs_writer
 import utils.bpm
 
 from Python_Classes4MAD import metaclass

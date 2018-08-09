@@ -17,7 +17,7 @@ from Python_Classes4MAD import metaclass
 from kmod.gui2beta.make_fit_plots import plot_fitting
 from scipy.spatial import Delaunay
 import argparse
-from utils import tfs_file_writer
+from tfs_files import tfs_file_writer
 from utils import outliers
 
 from kmod.gui2beta.read_Timber_output import merge_data
@@ -380,7 +380,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
         err_y = (abs(np.nanmax(beta_err_y, axis=0) - np.nanmin(beta_err_y, axis=0))) / 2.
 
         if name == 'BPM':
-            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax.out' ))
+            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax.out'))
         else:
             xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_X.out' % name))
         xdata.set_column_width(20)
@@ -388,7 +388,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
         xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
 
         if name == 'BPM':
-            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay.out' ))
+            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay.out'))
         else:
             ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_Y.out' % name))
         ydata.set_column_width(20)

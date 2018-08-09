@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 from compensate_excitation import phase_ac2bpm, get_lambda
 from model.accelerators.accelerator import AccExcitationMode
-from utils import logging_tools, stats, tfs_pandas
+from utils import logging_tools, stats
+from tfs_files import tfs_pandas
 
 LOGGER = logging_tools.get_logger(__name__)
 PLANES = ("X", "Y")

@@ -58,17 +58,18 @@ import re
 import numpy as np
 import sys
 import os
-from os.path import abspath, join, dirname, pardir
-new_path = abspath(join(dirname(abspath(__file__)), pardir))
+from os.path import abspath, join, dirname
+
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
+
 import Python_Classes4MAD.metaclass as metaclass
 from utils import bpm as bpm_util
 from utils import logging_tools as logtools
 from utils.dict_tools import DotDict
-from utils import tfs_utils
+from tfs_files import tfs_utils
 from model import manager, creator
-from model.accelerators.accelerator import AccExcitationMode
 
 LOG = logtools.get_logger(__name__)
 

@@ -23,8 +23,7 @@ import utils.bpm
 import compensate_ac_effect
 
 from beta import JPARC_intersect
-from utils import tfs_file_writer
-
+from tfs_files import tfs_file_writer
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 

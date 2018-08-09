@@ -1,7 +1,8 @@
 import os
 import argparse
 import datetime as dt
-from utils import tfs_pandas, logging_tools
+from utils import logging_tools
+from tfs_files import tfs_pandas
 from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 

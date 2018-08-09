@@ -35,7 +35,7 @@ import utils.bpm
 import helper
 import compensate_excitation
 from model.accelerators.accelerator import AccExcitationMode
-from utils import logging_tools, stats, tfs_file_writer
+from utils import logging_tools, stats
 from twiss_optics.optics_class import TwissOptics
 from backwards_compatibility import _get_output_tfs_files, _PhaseData, _TuneData, _TwissData
 LOGGER = logging_tools.get_logger(__name__)

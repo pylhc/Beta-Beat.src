@@ -49,9 +49,7 @@ Options::
 .. moduleauthor:: Unknown
 """
 
-import sys
 import pickle
-import os
 import optparse
 import re
 import json
@@ -64,8 +62,9 @@ from os.path import abspath, join, dirname, pardir
 new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
+
 import utils.iotools
-import utils.tfs_file_writer
+import tfs_files.tfs_file_writer
 import correction.correction_helpers
 import correction.GenMatrix_coupleDy as GenMatrix_coupleDy
 import Python_Classes4MAD.metaclass as metaclass
@@ -284,7 +283,7 @@ def _handle_data_for_lhc():
         corrs = None # Will be assigned in exec Bumps.py (vimaier)
         execfile(os.path.join(_InputData.path_to_optics_files_dir, "Bumps.py"))
         execfile(os.path.join(_InputData.path_to_optics_files_dir, "mydictionary.py"))
-        tfs_file_writer = utils.tfs_file_writer.TfsFileWriter("changeparameters_couple.tfs", _InputData.output_path)
+        tfs_file_writer = tfs_files.tfs_file_writer.TfsFileWriter("changeparameters_couple.tfs", _InputData.output_path)
         tfs_file_writer.add_column_names("NAME DELTA".split())
         tfs_file_writer.add_column_datatypes("%s %le".split())
         for vcorr in corrs:

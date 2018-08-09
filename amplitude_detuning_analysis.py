@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from tune_analysis import bbq_tools, timber_extract, detuning_tools
 import tune_analysis.constants as ta_const
 from utils import logging_tools
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils.dict_tools import ParameterError
 from utils.entrypoint import entrypoint, EntryPointParameters
 

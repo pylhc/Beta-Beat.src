@@ -1,4 +1,3 @@
-import json
 import os
 import re
 import sys
@@ -14,7 +13,7 @@ from utils import logging_tools
 from utils.plotting import plot_tfs
 from model import manager
 from utils import iotools
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 from correction import getdiff
 from global_correct_iterative import _get_measurment_data, _automate_modelcut, _get_measurement_filters
 

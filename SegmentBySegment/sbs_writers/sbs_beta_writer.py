@@ -1,13 +1,9 @@
-import sys
-import os
-from os.path import abspath, join, dirname, pardir
-new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
-if new_path not in sys.path:
-    sys.path.append(new_path)
-import numpy as np
 import math
+import os
 
-from utils import tfs_file_writer
+import numpy as np
+
+from tfs_files import tfs_file_writer
 
 
 def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, beta_summary_file):

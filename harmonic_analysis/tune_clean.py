@@ -6,7 +6,7 @@ import numpy as np
 from os.path import abspath, join, dirname, pardir
 sys.path.append(abspath(join(dirname(__file__), pardir)))
 from utils import outliers  # noqa
-from utils import tfs_pandas  # noqa
+from tfs_files import tfs_pandas
 
 DEF_LIMIT = 1e-5
 

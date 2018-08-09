@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from os.path import abspath, join, dirname, pardir
 sys.path.append(abspath(join(dirname(__file__), pardir)))
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from model import manager
 
 PI2I = 2 * np.pi * complex(0, 1)

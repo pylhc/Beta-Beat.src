@@ -3,7 +3,7 @@ from matcher_model_default import MatcherModelDefault
 from matcher_model_default import MatcherPlotterDefault
 from matchers.matcher import MatcherFactory
 from matchers.coupling_matcher import CouplingMatcher
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 
 
 class MatcherModelCoupling(MatcherModelDefault):

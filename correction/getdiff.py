@@ -18,7 +18,7 @@ outputs in measurement directory:
     couple.out and chromatic_coupling.out
 
 TODOs and Notes:
-    GetLlmMeasurement: possibly extend and use with measurement filters from global correction
+    OpticsMeasurement: possibly extend and use with measurement filters from global correction
                         to be used in sbs, new corrections, getdiff, plot_export
 
     Expected values after correction to be put in, little tricky with phase column names
@@ -28,13 +28,16 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 import sys
-from os.path import abspath, join, dirname, pardir, isdir, exists, split
+import os
+from os.path import abspath, join, dirname, isdir, exists, split, pardir
+
 new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
-from segment_by_segment.segment_by_segment import GetLlmMeasurement
+
+from optics_measurements.io_filehandler import OpticsMeasurement
 from twiss_optics.optics_class import TwissOptics
-from utils.tfs_pandas import read_tfs, write_tfs
+from tfs_files.tfs_pandas import read_tfs, write_tfs
 from utils import logging_tools
 
 LOG = logging_tools.get_logger(__name__)
@@ -69,7 +72,7 @@ def getdiff(meas_path=None, beta_file_name="getbeta"):
     corrected_model_path = join(meas_path, TWISS_CORRECTED)
     uncorrected_model_path = join(meas_path, TWISS_NOT_CORRECTED)
 
-    meas = GetLlmMeasurement(meas_path)
+    meas = OpticsMeasurement(meas_path)
     twiss_cor = read_tfs(corrected_model_path).set_index('NAME', drop=False)
     twiss_no = read_tfs(uncorrected_model_path).set_index('NAME', drop=False)
     coup_cor = TwissOptics(twiss_cor, quick_init=True).get_coupling(method='cmatrix')

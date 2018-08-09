@@ -41,7 +41,7 @@ import pandas as pd
 from twiss_optics.twiss_functions import assertion, get_all_rdts
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from utils import logging_tools as logtool
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils.contexts import timeit
 from utils.dict_tools import DotDict
 from utils.plotting import plot_style as pstyle

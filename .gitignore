@@ -14,8 +14,10 @@ db
 source_2011
 TestFullResp
 .idea/
-*udillyties*
+udillyties/
 .hypothesis*
 .project
 .pydevproject
 .vscode
+.cache
+/doc/_*
