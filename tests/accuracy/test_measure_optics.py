@@ -1,8 +1,7 @@
 import sys
 from os import listdir
-from os.path import isfile, join, dirname, abspath
-
-sys.path.append(abspath(join(dirname(__file__), "..", "..")))
+from os.path import isfile, join, dirname, abspath, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
 
 from utils import stats, iotools, outliers
 from tfs_files import tfs_pandas
@@ -11,12 +10,6 @@ import measure_optics
 from optics_measurements import optics_input
 from model import manager
 import pytest
-
-# ignore numpy warnings, see:
-# https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
-import warnings
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
 LIMITS = {'P': 1.5e-4, 'B': 1e-2, 'D': 1e-2}

@@ -2,7 +2,7 @@ from __future__ import print_function
 import os
 import argparse
 from tfs_files import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, AccExcitationMode
+from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, get_commonbpm, AccExcitationMode
 
 CURRENT_DIR = os.path.dirname(__file__)
 #LHC_DIR = os.path.join(CURRENT_DIR, "lhc")

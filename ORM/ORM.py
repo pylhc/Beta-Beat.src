@@ -2,13 +2,15 @@
 # input: file with measured orbits for different orbit corrector magnet excitations (in the future also change of frequency)
 
 import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD/')
-
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import pickle
 import operator 
 from numpy import *
 from os import system
-from metaclass import twiss
+from Python_Classes4MAD.metaclass import twiss
 import random,re,sys
 #from LinearAlgebra import *
 from optparse import OptionParser

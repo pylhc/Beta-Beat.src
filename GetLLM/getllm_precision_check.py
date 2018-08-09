@@ -6,9 +6,10 @@ import numpy as np
 import argparse
 import time
 
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")
-))
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 
 import madx_wrapper
 from drive import drive_runner

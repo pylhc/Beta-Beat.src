@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 import sys
 import os
-from os.path import abspath, join, dirname
+from os.path import abspath, join, dirname, pardir
 
-new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 

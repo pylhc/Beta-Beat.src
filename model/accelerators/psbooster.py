@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from accelerator import Accelerator
+from model.accelerators.accelerator import Accelerator
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)

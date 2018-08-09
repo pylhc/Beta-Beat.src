@@ -138,13 +138,18 @@ class InputFiles(dict):
     """
     def __init__(self, files_to_analyse):
         super(InputFiles, self).__init__(zip(PLANES, ([], [])))
-        for file_in in files_to_analyse.split(','):
-            for plane in PLANES:
-                if isfile(file_in + '.lin' + plane.lower()):
-                    file_to_load = file_in + '.lin' + plane.lower()
-                else:
-                    file_to_load = file_in + '_lin' + plane.lower()
-                self[plane].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
+        if isinstance(files_to_analyse, str):
+            for file_in in files_to_analyse.split(','):
+                for plane in PLANES:
+                    if isfile(file_in + '.lin' + plane.lower()):
+                        file_to_load = file_in + '.lin' + plane.lower()
+                    else:
+                        file_to_load = file_in + '_lin' + plane.lower()
+                    self[plane].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
+        else:
+            for file_in in files_to_analyse:
+                for plane in PLANES:
+                    self[plane].append(file_in[plane])
         for plane in PLANES:
             self[plane] = dpp.arrange_dpp(self[plane])
         if len(self['X']) + len(self['Y']) == 0:

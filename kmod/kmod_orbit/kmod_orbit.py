@@ -1,16 +1,17 @@
 from __future__ import print_function
-import sys
+
+import argparse
+import datetime
 import os
+import sys
+import time
+
 import numpy as np
 import pandas as pd
-import time
-import datetime
-import argparse
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "..",
-)))
+
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
+
 from tfs_files import tfs_pandas
 from tfs_files.tfs_file_writer import significant_numbers
 

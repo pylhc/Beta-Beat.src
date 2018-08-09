@@ -5,9 +5,8 @@ import argparse
 import logging
 import log_handler
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
 
 from matchers import (phase_matcher,
                       coupling_matcher,

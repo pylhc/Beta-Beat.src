@@ -1,9 +1,12 @@
 from __future__ import print_function
-import os
+
 import argparse
-from utils import logging_tools
+import os
+
+from model.accelerators.accelerator import (Accelerator, AcceleratorDefinitionError,
+                                            AccExcitationMode)
 from tfs_files import tfs_pandas
-from accelerator import Accelerator, AcceleratorDefinitionError, AccExcitationMode
+from utils import logging_tools
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)

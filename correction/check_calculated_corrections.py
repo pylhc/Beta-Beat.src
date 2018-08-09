@@ -3,8 +3,8 @@ import re
 import sys
 
 import numpy as np
-
-sys.path.append(os.path.abspath(os.path.join(__file__, os.pardir)))
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(__file__, pardir)))
 
 import madx_wrapper
 

@@ -1,9 +1,5 @@
-import sys
-from Python_Classes4MAD import metaclass
 import  numpy as np
 import re
-
-import os
 
 
 def findQuadrupoleType(searchstring, beam, twiss):

@@ -1,14 +1,11 @@
-import sys
-import os
 import argparse
-from shutil import copyfile
+import os
+import sys
 from collections import OrderedDict
+from shutil import copyfile
 
-from optics_measurements.io_filehandler import OpticsMeasurement
-
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
 
 from model import manager, creator
 from utils import logging_tools

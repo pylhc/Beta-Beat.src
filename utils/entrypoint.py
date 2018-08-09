@@ -63,7 +63,7 @@ Default: ``False``
 
 """
 
-import ConfigParser
+import six
 import copy
 import json
 import argparse
@@ -81,9 +81,11 @@ from utils.contexts import silence
 
 try:
     # Python 2
+    from ConfigParser import ConfigParser
     from inspect import getargspec as getfullargspec
 except ImportError:
     # Python 3
+    from configparser import ConfigParser
     from inspect import getfullargspec
 
 LOG = logtools.get_logger(__name__)
@@ -178,7 +180,7 @@ class EntryPoint(object):
 
     def _create_config_parser(self):
         """ Creates the config parser. Maybe more to do here later with parameter. """
-        parser = ConfigParser.ConfigParser()
+        parser = ConfigParser()
         return parser
 
     #########################
@@ -209,7 +211,7 @@ class EntryPoint(object):
 
     def _handle_arg(self, arg):
         """ *args has been input """
-        if isinstance(arg, basestring):
+        if isinstance(arg, six.string_types):
             # assume config file
             options = self.dictparse.parse_config_items(self._read_config(arg))
         elif isinstance(arg, dict):
@@ -436,7 +438,10 @@ def add_params_to_generic(parser, params):
     """ Adds entry-point style parameter to either
     ArgumentParser, DictParser or EntryPointArguments
     """
-    params = copy.deepcopy(params)
+    try:
+        params = copy.deepcopy(params)
+    except TypeError:
+        pass  # Python 3
 
     if isinstance(params, dict):
         params = EntryPoint._dict2list_param(params)
@@ -452,7 +457,7 @@ def add_params_to_generic(parser, params):
             if flags is None:
                 parser.add_argument(**param)
             else:
-                if isinstance(flags, basestring):
+                if isinstance(flags, six.string_types):
                     flags = [flags]
                 parser.add_argument(*flags, **param)
 
