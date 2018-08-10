@@ -2,6 +2,7 @@
 
 """
 import copy
+import six
 from utils import logging_tools
 LOG = logging_tools.get_logger(__name__)
 
@@ -110,7 +111,7 @@ class Parameter(object):
         self._validate()
 
     def _validate(self):
-        if not isinstance(self.name, basestring):
+        if not isinstance(self.name, six.string_types):
             raise ParameterError("Parameter '{:s}': ".format(str(self.name)) +
                                  "Name is not a valid string.")
 
@@ -124,12 +125,13 @@ class Parameter(object):
                     raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                          "Default value not found in choices.")
 
-                if self.type:
+                if self.type or self.subtype:
+                    check = self.type if self.subtype is None else self.subtype
                     for choice in self.choices:
-                        if not isinstance(choice, self.type):
-                            raise ParameterError("Choice '{:s}'".format(choice) +
+                        if not isinstance(choice, check):
+                            raise ParameterError("Choice '{}' ".format(choice) +
                                                  "of parameter '{:s}': ".format(self.name) +
-                                                 "is not of type '{:s}'.".format(self.type))
+                                                 "is not of type '{:s}'.".format(check.__name__))
             except TypeError:
                 raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                      "Choices seem to be not iterable.")
@@ -462,7 +464,7 @@ class DictParser(object):
                     "Could not evaluate argument '{:s}', unknown '{:s}'".format(name, item))
 
         def eval_type(my_type, item):
-            if issubclass(my_type, basestring):
+            if issubclass(my_type, six.string_types):
                 return my_type(item.strip("\'\""))
             if issubclass(my_type, bool):
                 return bool(eval(item))

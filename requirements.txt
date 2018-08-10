@@ -8,6 +8,7 @@ hypothesis>=3.23.0
 htcondor>=8.7.9
 matplotlib>=1.5.3
 scikit-learn>=0.19.1
+six>=1.11.0
 Sphinx>=1.6.7
 sphinx-rtd-theme>=0.2.4
 travis-sphinx>=2.1.0

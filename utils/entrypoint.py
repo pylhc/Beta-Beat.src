@@ -339,10 +339,10 @@ class entrypoint(EntryPoint):
                 def wrapper(other, *args, **kwargs):
                     return func(other, self.parse(*args, **kwargs))
             else:
-                ArgumentError("In strict mode, only one option-structure will be passed."
-                              " The entrypoint needs to have the following structure: "
-                              " ([self/cls,] options)."
-                              " Found: {:s}".format(getfullargspec(func).args))
+                raise ArgumentError("In strict mode, only one option-structure will be passed."
+                                    " The entrypoint needs to have the following structure: "
+                                    " ([self/cls,] options)."
+                                    " Found: {:s}".format(getfullargspec(func).args))
         else:
             if nargs == 2:
                 @wraps(func)
@@ -355,10 +355,10 @@ class entrypoint(EntryPoint):
                     options, unknown_options = self.parse(*args, **kwargs)
                     return func(other, options, unknown_options)
             else:
-                ArgumentError("Two option-structures will be passed."
-                              " The entrypoint needs to have the following structure: "
-                              " ([self/cls,] options, unknown_options)."
-                              " Found: {:s}".format(getfullargspec(func).args))
+                raise ArgumentError("Two option-structures will be passed."
+                                    " The entrypoint needs to have the following structure: "
+                                    " ([self/cls,] options, unknown_options)."
+                                    " Found: {:s}".format(getfullargspec(func).args))
         return wrapper
 
 
