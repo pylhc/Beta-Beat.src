@@ -133,6 +133,6 @@ if __name__ == '__main__':
     else:
         tester()
         # e.g.
-        # ./utils/entrypoint_datatypes.py --dict '{"hello":4, "there":{"General":"Kenobi"}}' --int_or_str hello --bool_or_str there
-        # ./utils/entrypoint_datatypes.py --dict '{"hello":4, "there":{"General":"Kenobi"}}' --int_or_str 5 --bool_or_str 0
-        # ./utils/entrypoint_datatypes.py --dict '{"hello":4, "there":{"General":"Kenobi"}}' --int_or_str 0 --bool_or_str True
+        # --dict '{"hello":4, "there":{"General":"Kenobi"}}' --int_or_str hello --bool_or_str there
+        # --dict '{"hello":4, "there":{"General":"Kenobi"}}' --int_or_str 5 --bool_or_str 0
+        # --dict '{"hello":4, "there":{"General":"Kenobi"}}' --int_or_str 0 --bool_or_str True
