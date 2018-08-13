@@ -166,6 +166,7 @@ def test_linear_dispersion(df, q):
 
 
 @given(df=full_dataframes(), q=tunes())
+@settings(deadline=1000)
 def test_linear_chromaticity(df, q):
     df = _pd_to_tfs(df, q)
     to = TwissOptics(df, quick_init=False)
@@ -175,6 +176,7 @@ def test_linear_chromaticity(df, q):
 
 
 @given(df=full_dataframes(), q=tunes())
+@settings(deadline=1000)
 def test_chromatic_beating(df, q):
     df = _pd_to_tfs(df, q)
     to = TwissOptics(df, quick_init=False)
