@@ -26,7 +26,7 @@ from utils.contexts import suppress_exception
 LOG = logging_tools.get_logger(__name__)
 
 SHEBANG = "#!/bin/bash"
-BASHFILE_MASK = "htcbash.{:s}.sh"
+BASHFILE_MASK = "htcbash{:s}.sh"
 SUBFILE = "queuehtc.sub"
 MADX_PATH = madx_wrapper.MADX_AFS_PATH  # always use afs
 
@@ -87,7 +87,7 @@ def create_multijob_for_bashfiles(folder, n_files, duration="longlunch"):
 
     job = htcondor.Submit({
         "MyId": "htcondor",
-        "executable": os.path.join(folder, BASHFILE_MASK.format("$(ProcId)")),
+        "executable": os.path.join(folder, BASHFILE_MASK.format(".$(ProcId)")),
         "arguments": "$(ClusterId) $(ProcId)",
         "initialdir": os.path.join(folder),
         "output": os.path.join("$(initialdir)", "$(MyId).$(ClusterId).$(ProcId).out"),
@@ -132,8 +132,11 @@ def write_madx_bash(folder, id, madx_files):
         Path to current madx file
 
     """
-    with suppress_exception(TypeError):
-        id = "{:02d}".format(id)  # in case it's an int
+    with suppress_exception(ValueError):
+        id = "{:d}".format(id)  # in case it's an int
+
+    if id and not id.startswith("."):
+        id = ".{:s}".format(id)
 
     filename = os.path.join(folder, BASHFILE_MASK.format(id))
     with open(filename, "w") as f:

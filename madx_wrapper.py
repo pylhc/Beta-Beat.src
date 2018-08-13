@@ -21,7 +21,7 @@ LOG = logging_tools.get_logger(__name__)
 LIB = abspath(join(dirname(__file__), "madx", "lib"))
 
 _LOCAL_PATH = join(dirname(__file__), "madx", "bin")
-_AFS_PATH = join("afs", "cern.ch", "user", "m", "mad", "madx", "releases", "last-rel")
+_AFS_PATH = join("/", "afs", "cern.ch", "user", "m", "mad", "madx", "releases", "last-rel")
 
 if "darwin" in sys.platform:
     _MADX_BIN = "madx-macosx64-intel"
