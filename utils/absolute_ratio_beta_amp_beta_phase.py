@@ -2,7 +2,7 @@ import os
 import sys
 from os.path import abspath, join, dirname, pardir
 sys.path.append(abspath(join(dirname(__file__), pardir)))
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 import matplotlib.gridspec as gridspec
 from matplotlib.pyplot import *
 from optparse import OptionParser

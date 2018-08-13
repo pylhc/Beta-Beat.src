@@ -22,7 +22,6 @@ import htcondor
 import six
 from utils import logging_tools
 from utils.contexts import suppress_exception
-from collections import OrderedDict
 
 LOG = logging_tools.get_logger(__name__)
 
