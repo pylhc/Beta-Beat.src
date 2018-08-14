@@ -9,6 +9,7 @@ sys.path.append(abspath(join(dirname(__file__), pardir)))
 
 from model import manager, creator
 from utils import logging_tools
+from optics_measurements.io_filehandler import OpticsMeasurement
 from tfs_files.tfs_collection import TfsCollection, Tfs
 from tfs_files import tfs_pandas
 import sbs_propagables

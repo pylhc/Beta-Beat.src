@@ -1054,8 +1054,8 @@ def _merge_jsons(*files):
     for json_file in files:
         with open(json_file, "r") as json_data:
             json_dict = json.load(json_data)
-            for key, value in json_dict.iteritems():
-                full_dict[key] = value
+            for key in json_dict.keys():
+                full_dict[key] = json_dict[key]
     return full_dict
 
 

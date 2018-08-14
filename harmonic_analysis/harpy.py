@@ -389,11 +389,10 @@ def _get_natural_tunes(frequencies, coefficients, harpy_input, plane, panda):
 def _resonance_search(frequencies, coefficients,
                       resonances_freqs, panda, n_turns):
     results = panda
-    for resonance, resonance_freq in resonances_freqs.iteritems():
+    for resonance in resonances_freqs.keys():
         tolerance = _get_resonance_tolerance(resonance, n_turns)
-        max_coefs, max_freqs = _search_highest_coefs(
-            resonance_freq, tolerance, frequencies, coefficients
-        )
+        max_coefs, max_freqs = _search_highest_coefs(resonances_freqs[resonance], tolerance,
+                                                     frequencies, coefficients)
         resstr = _get_resonance_suffix(resonance)
         results['AMP' + resstr] = np.abs(max_coefs)
         results['PHASE' + resstr] = np.angle(max_coefs) / (2 * np.pi)
