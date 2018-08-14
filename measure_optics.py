@@ -149,7 +149,7 @@ class InputFiles(dict):
         else:
             for file_in in files_to_analyse:
                 for plane in PLANES:
-                    self[plane].append(file_in[plane])
+                    self[plane].append(file_in[plane.lower()])
         for plane in PLANES:
             self[plane] = dpp.arrange_dpp(self[plane])
         if len(self['X']) + len(self['Y']) == 0:

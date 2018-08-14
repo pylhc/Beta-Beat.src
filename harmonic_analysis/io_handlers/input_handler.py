@@ -1,43 +1,49 @@
 import sys
 import os
+from os.path import abspath, dirname
 import argparse
+from optics_measurements.optics_input import _get_optics_parser, OpticsInput
+from model import manager
 
 
 def parse_args(args=None):
     main_parser = _get_main_parser()
     main_options, rest = main_parser.parse_known_args(args)
-
+    if "optics" in rest:
+        rest.append('--files={}'.format(main_options.file))
+        rest.append('--outputdir={}'.format(main_options.outputdir))
+        rest.append('--model_dir={}'.format(dirname(abspath(main_options.model))))
     subparsers = {
         "clean": _get_clean_parser,
         "harpy": _get_harpy_parser,
+        "optics": _get_optics_parser,
     }
     suboptions = {}
-    while len(rest) > 0:
-        next_option = rest.pop(0)
-        try:
-            subparse_funct = subparsers[next_option]
-        except KeyError:
-            raise ArgumentError(
-                "Too many arguments: " + str([next_option] + rest)
-            )
-        subparser = subparse_funct()
-        del subparsers[next_option]
-        suboption, rest = subparser.parse_known_args(rest)
-        suboptions[next_option] = suboption
-
+    for subparser_name in subparsers.keys():
+        if subparser_name in rest:
+            rest.remove(subparser_name)
+            suboption, rest = subparsers[subparser_name]().parse_known_args(rest)
+            suboptions[subparser_name] = suboption
     main_input = MainInput.init_from_options(main_options)
     clean_input = None
     harpy_input = None
-    try:
+    optics_input = None
+
+    if "clean" in suboptions:
         clean_input = CleanInput.init_from_options(suboptions["clean"])
-    except KeyError:
-        pass
-    try:
+
+    if "harpy" in suboptions:
         harpy_input = HarpyInput.init_from_options(suboptions["harpy"])
-    except KeyError:
-        pass
+
+    if "optics" in suboptions:
+        accelerator = manager.get_accel_instance(rest)
+        suboptions["optics"].accelerator = accelerator
+        optics_input = OpticsInput.init_from_options(suboptions["optics"])
+
+
+
     python_path = "/afs/cern.ch/work/o/omc/anaconda/bin/python "
-    return main_input, clean_input, harpy_input, (python_path + " ".join(sys.argv))
+    return main_input, clean_input, harpy_input, optics_input, (python_path + " ".join(sys.argv))
 
 
 class ArgumentError(Exception):
@@ -82,7 +88,7 @@ def _get_main_parser():
 
     # Obligatory arguments ###########
     parser.add_argument(
-        "--file",
+        "--file", "--files",
         help="Comma separated binary files to clean",
         required=True,
         dest="file"

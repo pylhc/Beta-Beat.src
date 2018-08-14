@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
-from harmonic_analysis import clean, harpy
+from harmonic_analysis import clean, harpy, chroma
 from harmonic_analysis.io_handlers import input_handler, output_handler
 
 from tfs_files import tfs_pandas as tfs
@@ -16,7 +16,11 @@ LOGGER = logging.getLogger(__name__)
 LOG_SUFFIX = ".log"
 
 
-def run_all(main_input, clean_input, harpy_input, to_log):
+from utils import iotools
+import measure_optics
+
+
+def run_all(main_input, clean_input, harpy_input, optics_input, to_log):
     with timeit(lambda spanned: LOGGER.info("Total time for file: %s", spanned)):
         if (not main_input.write_raw and
                 clean_input is None and harpy_input is None):
@@ -24,10 +28,16 @@ def run_all(main_input, clean_input, harpy_input, to_log):
             return
         _setup_file_log_handler(main_input)
         LOGGER.debug(to_log)
-        
-        tbt_files = turn_by_turn_reader.read_tbt_file(main_input.file)
-        for tbt_file in tbt_files:
-            run_all_for_file(tbt_file, main_input, clean_input, harpy_input)
+        tbt_files = [turn_by_turn_reader.read_tbt_file(input_file.strip())[0] for input_file in
+                     main_input.file.strip("\"").split(",")]
+        lins = map(lambda x: run_all_for_file(tbt_file, main_input, clean_input, harpy_input),
+                   [tbt_file for tbt_file in tbt_files])
+        if optics_input is not None:
+            inputs = measure_optics.InputFiles(lins)
+            iotools.create_dirs(optics_input.outputdir)
+            calibrations = measure_optics._copy_calibration_files(optics_input.outputdir, optics_input.calibrationdir)
+            inputs.calibrate(calibrations)
+            measure_optics.measure_optics(inputs, optics_input)
 
 
 def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
@@ -52,14 +62,12 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
     model_tfs = tfs.read_tfs(main_input.model).loc[:, ('NAME', 'S', 'DX')]
 
     if clean_input is not None:
-        usvs, all_bad_bpms, bpm_ress, dpp = _do_clean(
-            main_input, clean_input,
-            bpm_datas, file_date, model_tfs
-        )
-
+        usvs, all_bad_bpms, bpm_ress, dpp = _do_clean(main_input, clean_input,
+                                                      bpm_datas, file_date, model_tfs)
+    lin = {"x": None, "y": None}
     if harpy_input is not None:
-        all_bad_bpms = _do_harpy(main_input, harpy_input, bpm_datas, usvs,
-                                 model_tfs, bpm_ress, dpp, all_bad_bpms)
+        all_bad_bpms, lin = _do_harpy(main_input, harpy_input,
+                                      bpm_datas, usvs, model_tfs, bpm_ress, dpp, all_bad_bpms)
 
     for plane in ("x", "y"):
         output_handler.write_bad_bpms(
@@ -68,6 +76,7 @@ def run_all_for_file(tbt_file, main_input, clean_input, harpy_input):
             main_input.outputdir,
             plane
         )
+    return lin
 
 
 def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
@@ -80,16 +89,11 @@ def _do_clean(main_input, clean_input, bpm_datas, file_date, model_tfs):
             raise AssertionError("Check BPMs names! None of the BPMs was found in the model!")    
     
         bad_bpms = []
-        usv = None
-        
+
         with timeit(lambda spanned: LOGGER.debug("Time for filtering: %s", spanned)):
-            bpm_data, bad_bpms_clean = clean.clean(
-                bpm_data, clean_input, file_date,
-            )
+            bpm_data, bad_bpms_clean = clean.clean(bpm_data, clean_input, file_date,)
         with timeit(lambda spanned: LOGGER.debug("Time for SVD clean: %s", spanned)):
-            bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(
-                bpm_data, clean_input,
-            )
+            bpm_data, bpm_res, bad_bpms_svd, usv = clean.svd_clean(bpm_data, clean_input,)
         bpm_ress[plane] = bpm_res
         bad_bpms.extend(bpms_not_in_model)
         bad_bpms.extend(bad_bpms_clean)
@@ -129,7 +133,8 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
             bpm_datas["x"], usvs["x"],
             bpm_datas["y"], usvs["y"],
         )
-
+    dpp_amp = None
+    lin = {}
     for plane in ("x", "y"):
         harpy_results, spectr, bad_bpms_summaries = harpy_iterator.next()
         lin_frame = lin_frames[plane]
@@ -137,11 +142,13 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
         if harpy_input.is_free_kick:
             bpm_data = bpm_datas[plane]
             lin_frame = _kick_phase_correction(bpm_data, lin_frame, plane)
-        _sync_phase(bpm_data, lin_frame, plane)    
+        if harpy_input.tunez > 0.0 and plane == "x":
+            dpp_amp, _, _ = chroma.get_dpoverp_amp(model_tfs, lin_frame, bpm_datas["x"])
+        lin_frame = _sync_phase(lin_frame, plane)
         lin_frame = _rescale_amps_to_main_line(lin_frame, plane)
-        lin_frame = _add_resonances_noise(lin_frame, plane, bpm_ress[plane])
+        lin_frame = _add_resonances_noise(lin_frame, plane)
         lin_frame = lin_frame.sort_values('S', axis=0, ascending=True)
-        headers = _compute_headers(lin_frame, plane, dpp)
+        headers = _compute_headers(lin_frame, plane, dpp, dpp_amp)
         output_handler.write_harpy_output(
             main_input,
             lin_frame,
@@ -150,7 +157,8 @@ def _do_harpy(main_input, harpy_input, bpm_datas, usvs, model_tfs, bpm_ress, dpp
             plane
         )
         all_bad_bpms[plane].extend(bad_bpms_summaries)
-    return all_bad_bpms
+        lin[plane] = tfs.TfsDataFrame(lin_frame, headers=headers)
+    return all_bad_bpms, lin
 
 
 def _prepare_data_for_harpy(bpm_data, usv):
@@ -203,7 +211,8 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res):
         lin_frame['NOISE'] = 0.0
     return lin_frame
 
-def _sync_phase(bpm_data_orig, lin_frame, plane):
+
+def _sync_phase(lin_frame, plane):
     """ Produces MUXSYNC and MUYSYNC column that is MUX/Y but 
         shifted such that for bpm at index 0 is always 0.
         It allows to compare phases of consecutive measurements
@@ -211,25 +220,15 @@ def _sync_phase(bpm_data_orig, lin_frame, plane):
         author: skowron  
         """
     uplane = plane.upper()
-    phase = np.copy(lin_frame.loc[:, 'MU' + uplane].values)
-     
-    phase0 = phase[0]
-    for i in range(len(phase)):
-        p = phase[i]
-        p = p - phase0
-        tmp = p
-        while p < -0.5:
-            p = p + 1
-        while p >  0.5:
-            p = p - 1
-        #print('sync %d  in %f shifted %f final %f' % (i, phase[i],tmp,p))    
-        phase[i] = p
-    lin_frame['MU' + uplane + 'SYNC'] = phase
+    phase = lin_frame.loc[:, 'MU' + uplane].values
+    phase = phase - phase[0]
+    lin_frame['MU' + uplane + 'SYNC'] = np.where(np.abs(phase) > 0.5, phase - np.sign(phase), phase)
+    return lin_frame
 
 
 def _kick_phase_correction(bpm_data_orig, lin_frame, plane):
     uplane = plane.upper()
-    bpm_data = bpm_data_orig.loc[lin_frame.index,:]
+    bpm_data = bpm_data_orig.loc[lin_frame.index, :]
     damp, dstd = _get_damping(bpm_data)
     LOGGER.debug("Damping factor X: {0:2.2e} +- {1:2.2e}".format(damp, dstd))
     int_range = np.arange(0.0, bpm_data.shape[1])
@@ -265,13 +264,13 @@ def _rescale_amps_to_main_line(panda, plane):
     return panda
 
 
-def _add_resonances_noise(lin_frame, plane, bpm_res):
+def _add_resonances_noise(lin_frame, plane):
     uplane = plane.upper()
     cols = [col for col in lin_frame.columns.values if col.startswith('AMP')]
     cols.remove('AMP' + uplane)
     noise_scaled = lin_frame.loc[:, 'NOISE'] / lin_frame.loc[:, 'AMP' + uplane]
     lin_frame.loc[:, "NOISE_SCALED"] = noise_scaled
-    if np.max(noise_scaled) == 0.0:  # Do not calculated errors when no noise was calculated (all zeros)
+    if np.max(noise_scaled) == 0.0:  # Do not calculated errors when no noise was calculated
         return lin_frame
     lin_frame.loc[:, "ERR_AMP" + uplane] = lin_frame.loc[:, 'NOISE']
     lin_frame.loc[:, "ERR_MU" + uplane] = _get_spectral_phase_error(
@@ -327,7 +326,9 @@ def _calc_dp_over_p(main_input, bpm_data):
     return dp_over_p
 
 
-def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):
+def _get_allowed_length(rang=None, p2max=14, p3max=9, p5max=6):
+    if rang is None:
+        rang = [300, 10000]
     ind = np.indices((p2max, p3max, p5max))
     nums = (np.power(2, ind[0]) *
             np.power(3, ind[1]) *
@@ -336,7 +337,7 @@ def _get_allowed_length(rang=[300, 10000], p2max=14, p3max=9, p5max=6):
     return np.sort(nums)
 
 
-def _compute_headers(panda, plane, computed_dpp):
+def _compute_headers(panda, plane, computed_dpp, dpp_amp):
     plane_number = {"x": "1", "y": "2"}[plane]
     headers = OrderedDict()
     tunes = panda.loc[:, "TUNE" + plane.upper()]
@@ -350,12 +351,12 @@ def _compute_headers(panda, plane, computed_dpp):
     except KeyError:
         pass  # No natural tunes
     try:
-        ztunes = panda.loc[:, "TUNEZ" + plane.upper()]
+        ztunes = panda.loc[:, "TUNEZ" + plane.upper()] # TODO remove plane - needs a change of reference commit for tests
         headers["Q3"] = np.mean(ztunes)
         headers["Q3RMS"] = np.std(ztunes)
+        headers["DPPAMP"] = dpp_amp
     except KeyError:
-        pass  # No tune z
-    # TODO: DPPAMP
+        pass  # No tunez
     return headers
 
 
@@ -374,7 +375,7 @@ def _setup_file_log_handler(main_input):
         logging.getLogger("").addHandler(file_handler)
     else:
         LOGGER.addHandler(file_handler)
-    
+
 
 def _set_up_logger():
     main_logger = logging.getLogger("")
