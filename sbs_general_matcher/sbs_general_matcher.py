@@ -13,7 +13,7 @@ from matchers import (phase_matcher,
                       kmod_matcher,
                       amp_matcher, )
 from template_manager.template_processor import TemplateProcessor
-from SegmentBySegment import SegmentBySegment
+from SegmentBySegment import SegmentBySegmentMain
 from utils.contexts import silence
 
 
@@ -76,12 +76,12 @@ def _write_sbs_data_for_matchers(input_data):
 
 def _write_sbs_data(segment_inst, temporary_path):
     save_path = os.path.join(temporary_path, "sbs")
-    input_data = SegmentBySegment._InputData(temporary_path)
-    prop_models = SegmentBySegment._PropagatedModels(
+    input_data = SegmentBySegmentMain._InputData(temporary_path)
+    prop_models = SegmentBySegmentMain._PropagatedModels(
         save_path,
         segment_inst.label
     )
-    SegmentBySegment.getAndWriteData(
+    SegmentBySegmentMain.getAndWriteData(
         segment_inst.label, input_data, None, prop_models, save_path,
         False, False, True, False,
         segment_inst,

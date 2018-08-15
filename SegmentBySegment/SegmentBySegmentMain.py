@@ -26,13 +26,15 @@ from model.accelerators.accelerator import Element
 from Python_Classes4MAD.metaclass import twiss
 import madx_wrapper
 
-import sbs_writers.sbs_beta_writer
-import sbs_writers.sbs_beta_beating_writer
-import sbs_writers.sbs_phase_writer
-import sbs_writers.sbs_dispersion_writer
-import sbs_writers.sbs_coupling_writer
-import sbs_writers.sbs_chromatic_writer
-import sbs_writers.sbs_special_element_writer
+from SegmentBySegment.sbs_writers import (
+    sbs_beta_writer,
+    sbs_beta_beating_writer,
+    sbs_phase_writer,
+    sbs_dispersion_writer,
+    sbs_coupling_writer,
+    sbs_chromatic_writer,
+    sbs_special_element_writer,
+)
 
 
 #===================================================================================================
@@ -610,7 +612,7 @@ def getAndWriteData(
         chrom_summary = None
 
     (beta_x, err_beta_x, alfa_x, err_alfa_x,
-     beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_writers.sbs_beta_writer.write_beta(
+     beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_beta_writer.write_beta(
         element_name, is_element,
         input_data.beta_x, input_data.beta_y,
         input_model,
@@ -618,38 +620,38 @@ def getAndWriteData(
         save_path, beta_summary
     )
     if not is_element:
-        sbs_writers.sbs_phase_writer.write_phase(
+        sbs_phase_writer.write_phase(
             element_name,
             input_data.total_phase_x, input_data.total_phase_y,
             input_data.beta_x, input_data.beta_y,
             propagated_models, save_path
         )
-        sbs_writers.sbs_beta_beating_writer.write_beta_beat(
+        sbs_beta_beating_writer.write_beta_beat(
             element_name,
             input_data.beta_x, input_data.beta_y,
             input_data.amplitude_beta_x, input_data.amplitude_beta_y,
             kmod_data_x, kmod_data_y,
             propagated_models, save_path)
     if element_has_dispersion:
-        sbs_writers.sbs_dispersion_writer.write_dispersion(element_name, is_element,
+        sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
                                                            input_model,
                                                            propagated_models, save_path, disp_summary)
     if element_has_coupling:
-        sbs_writers.sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, coupling_summary)
+        sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, coupling_summary)
 
     if element_has_chrom:
-        sbs_writers.sbs_chromatic_writer.write_chromatic(element_name, is_element, input_data.wx, input_data.wy, input_model, propagated_models, save_path, chrom_summary)
+        sbs_chromatic_writer.write_chromatic(element_name, is_element, input_data.wx, input_data.wy, input_model, propagated_models, save_path, chrom_summary)
 
     if "IP" in element_name and is_element:
-        sbs_writers.sbs_special_element_writer.write_ip(input_data.beta_x, input_data.beta_y,
+        sbs_special_element_writer.write_ip(input_data.beta_x, input_data.beta_y,
                                                         beta_x, err_beta_x, alfa_x, err_alfa_x,
                                                         beta_y, err_beta_y, alfa_y, err_alfa_y,
                                                         input_model, input_data.phase_x, input_data.phase_y, element_name,
                                                         accel_instance, save_path)
     # TODO: This need to be fixed before using (find BPMs)
     elif False and "ADT" in element_name and is_element:  # if False to avoid going inside
-        sbs_writers.sbs_special_element_writer.write_transverse_damper(propagated_models, element_name, input_model,
+        sbs_special_element_writer.write_transverse_damper(propagated_models, element_name, input_model,
                                                                        save_path, input_data.phase_x, input_data.phase_y,
                                                                        input_data.beta_x, input_data.beta_y,
                                                                        accel_instance)
@@ -913,10 +915,10 @@ class _PropagatedModels(object):
 class _Summaries(object):
 
     def __init__(self, save_path):
-        self.beta = sbs_writers.sbs_beta_writer.get_beta_summary_file(save_path)
-        self.coupling = sbs_writers.sbs_coupling_writer.get_coupling_summary_file(save_path)
-        self.dispersion = sbs_writers.sbs_dispersion_writer.get_dispersion_summary_file(save_path)
-        self.chrom = sbs_writers.sbs_chromatic_writer.get_chrom_summary_file(save_path)
+        self.beta = sbs_beta_writer.get_beta_summary_file(save_path)
+        self.coupling = sbs_coupling_writer.get_coupling_summary_file(save_path)
+        self.dispersion = sbs_dispersion_writer.get_dispersion_summary_file(save_path)
+        self.chrom = sbs_chromatic_writer.get_chrom_summary_file(save_path)
 
     def write_summaries_to_files(self):
         if not self.beta._TfsFileWriter__tfs_table.is_empty():

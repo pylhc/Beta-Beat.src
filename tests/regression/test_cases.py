@@ -1,11 +1,9 @@
-import sys
 import os
-from os.path import join, abspath, dirname
-import compare_utils
-import regression
 import filecmp
 import argparse
 from os.path import join, abspath, dirname, pardir
+import compare_utils
+import regression
 
 # ignore numpy warnings, see:
 # https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
@@ -14,11 +12,6 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 ABS_ROOT = abspath(join(dirname(__file__), pardir, pardir))
-sys.path.append(ABS_ROOT)
-from utils import iotools
-from tests.regression import compare_utils
-from tests.regression import regression
-
 
 REGR_DIR = join("tests", "regression")
 TBTS = join("tests", "inputs", "tbt_files")
@@ -115,7 +108,7 @@ TEST_CASES_RESPONSE_CREATION = (
         test_function=lambda d1, d2: filecmp.cmp(
             join(d1, "fullresponse"), join(d2, "fullresponse")
         ),
-        pre_hook=lambda dir: iotools.copy_item(
+        pre_hook=lambda dir: compare_utils.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_create_response_test_madx", "model")
         )
@@ -141,7 +134,7 @@ TEST_CASES_RESPONSE_CREATION = (
         test_function=lambda d1, d2: filecmp.cmp(
             join(d1, "fullresponse"), join(d2, "fullresponse")
         ),
-        pre_hook=lambda dir: iotools.copy_item(
+        pre_hook=lambda dir: compare_utils.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_create_response_test_twiss", "model")
         )
@@ -174,7 +167,7 @@ TEST_CASES_GLOBAL_CORRECTION = (
             ignore_files=[r".*\.log", "model"],
             ignore_words=["DATE", "TIME"],
         ),
-        pre_hook=lambda dir:  iotools.copy_item(
+        pre_hook=lambda dir:  compare_utils.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_correct_iterative_test", "model")
         ),

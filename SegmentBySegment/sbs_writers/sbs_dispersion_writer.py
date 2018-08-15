@@ -4,7 +4,7 @@ from math import sqrt
 
 import numpy as np
 
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 from tfs_files import tfs_file_writer
 
 
