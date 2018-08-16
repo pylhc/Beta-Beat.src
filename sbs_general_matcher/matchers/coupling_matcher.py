@@ -1,6 +1,5 @@
-import os
-from .matcher import Matcher
 import numpy as np
+from sbs_general_matcher.matchers.matcher import Matcher
 
 DEF_CONSTR_AUX_VALUES_TEMPLATE = """
 use, period=%(SEQ)s;
@@ -10,7 +9,6 @@ twiss, beta0=%(INIT_VALS)s, chrom, table=%(TABLE_NAME)s;
 %(D_VARIABLES)s
 """
 
-CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 USE_ABS = False
 USE_F1010 = False
 

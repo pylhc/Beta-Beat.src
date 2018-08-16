@@ -1,6 +1,5 @@
-import os
-from .matcher import Matcher
-from .kmod_matcher import KmodMatcher
+from sbs_general_matcher.matchers.matcher import Matcher
+from sbs_general_matcher.matchers.kmod_matcher import KmodMatcher
 
 
 class AmpMatcher(KmodMatcher):

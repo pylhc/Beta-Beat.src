@@ -1,8 +1,10 @@
 import os
-from matcher_model_default import MatcherModelDefault
-from matcher_model_default import MatcherPlotterDefault
-from matchers.matcher import MatcherFactory
-from matchers.phase_matcher import PhaseMatcher
+from sbs_general_matcher.gui.matchers_models.matcher_model_default import (
+    MatcherModelDefault,
+    MatcherPlotterDefault,
+)
+from sbs_general_matcher.matchers.matcher import MatcherFactory
+from sbs_general_matcher.matchers.phase_matcher import PhaseMatcher
 from tfs_files import tfs_pandas
 
 

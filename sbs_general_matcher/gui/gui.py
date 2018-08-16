@@ -2,9 +2,9 @@ import sys
 import os
 import logging
 import constants
-from sbs_general_matcher import log_handler
 from PyQt5 import QtWidgets
-from sbs_gui_main import SbSGuiMainController
+from sbs_general_matcher import log_handler
+from sbs_general_matcher.gui.sbs_gui_main import SbSGuiMainController
 
 
 LOGGER = logging.getLogger(__name__)
