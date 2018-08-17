@@ -42,6 +42,7 @@ def regenerate_legend(axes):
         new_legend.draggable(draggable)
         if loc:
             new_legend._set_loc(loc)
+    return new_legend
 
 
 def get_markers():

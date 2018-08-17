@@ -311,6 +311,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._set_pickers()
             self.canvas.figure = self.figure
             self.figure.tight_layout()
+            self.mpl_toolbar.update_figure()
         self.canvas.draw()
 
     def _set_pickers(self):

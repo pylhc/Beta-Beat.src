@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 
 
 from gui_utils import get_icon
+import options_utils
 import options_figure
 
 
@@ -75,15 +76,27 @@ ICON_SIZE_NAVTOOLBAR = 24
 
 class NavigationToolbar(NavigationToolbar2QT):
     """ Customized Navigation Toolbar """
+    LEGEND_LOCATIONS = [0, 1, 2, 3, 4, None]
 
-    LEGEND_LOCATIONS = [1, 2, 3, 4, None]
-
-    def __init__(self, canvas, save_fun=None, load_fun=None, export_fun=None, import_fun=None, parent=None):
+    def __init__(self, canvas,
+                 save_fun=None, load_fun=None, export_fun=None, import_fun=None, parent=None):
         self.load_data = load_fun
         self.export_plot = export_fun
         self.import_plot = import_fun
 
         self.toolitems = list(self.toolitems)
+
+        self.toolitems.insert(7, (None, None, None, None))
+
+        self.toolitems.insert(8, (
+            "Move Legend", "Move the legend location to predefined settings.",
+            "arrows", "move_legend"
+        ))
+
+        self.toolitems.insert(9, (
+            "Update Legend", "Update the legend.",
+            "refresh", "update_legend"
+        ))
 
         if save_fun is not None:
             self.save_figure = save_fun  # otherwise defined by super-class
@@ -107,9 +120,11 @@ class NavigationToolbar(NavigationToolbar2QT):
                 ))
 
         super(NavigationToolbar, self).__init__(canvas, parent)
-        self._legend_location_index = 0
         self.figure = canvas.figure
-        self.axes = canvas.figure.gca()
+        self.axes = self.figure.gca()
+        self.legend = self.axes.get_legend()
+        self._legend_location_index = 0
+        self._legend_locations = list(NavigationToolbar.LEGEND_LOCATIONS)
 
     def _init_toolbar(self):
         """ Called from the super function """
@@ -161,21 +176,15 @@ class NavigationToolbar(NavigationToolbar2QT):
         self.setIconSize(QtCore.QSize(ICON_SIZE_NAVTOOLBAR, ICON_SIZE_NAVTOOLBAR))
         self.layout().setSpacing(12)
 
-    def move_legend(self, *args):
+    def move_legend(self):
         self._legend_location_index = (
             self._legend_location_index + 1
-        ) % len(NavigationToolbar.LEGEND_LOCATIONS)
-        for axes in self.axes:
-            legend = axes.get_legend()
-            if legend is not None:
-                loc = NavigationToolbar.LEGEND_LOCATIONS[
-                    self._legend_location_index
-                ]
-                if loc is None:
-                    legend.set_visible(False)
-                else:
-                    legend.set_visible(True)
-                    legend._set_loc(loc)
+        ) % len(self._legend_locations)
+        self._set_legend_loc()
+
+    def update_legend(self):
+        self.legend = options_utils.regenerate_legend(self.axes)
+        self._save_legend_loc()
         self.draw()
 
     def edit_parameters(self):
@@ -203,3 +212,31 @@ class NavigationToolbar(NavigationToolbar2QT):
                 return
 
         options_figure.figure_edit(axes, self)
+
+    def _set_legend_loc(self):
+        if self.legend is not None:
+            loc = self._legend_locations[
+                self._legend_location_index
+            ]
+            if loc is None:
+                self.legend.set_visible(False)
+            else:
+                self.legend.set_visible(True)
+                self.legend._set_loc(loc)
+
+            self.draw()
+
+    def _save_legend_loc(self):
+        if self.legend:
+            self._legend_location_index = 0
+            self._legend_locations = ([self.legend._get_loc()] +
+                                      list(NavigationToolbar.LEGEND_LOCATIONS))
+
+    def update_figure(self):
+        """ Fucntion called externally when figure has changed. """
+        self.figure = self.canvas.figure
+        self.axes = self.canvas.figure.gca()
+        self.legend = self.axes.get_legend()
+        self._save_legend_loc()
+        self._set_legend_loc()
+
