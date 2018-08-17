@@ -253,23 +253,19 @@ def _beta_from_phase(madTwiss, madElements, phase, plane,
     LOGGER.info(" - RMS beta beat: {:.2f}%".format(rmsbb))
     LOGGER.info(" - elapsed time: {:.2f}s".format(et))
     beta_df["DELTABET"+plane] = (beta_df.loc[:, 'BET' + plane] /
-                                  beta_df.loc[:, 'BET' + plane + 'MDL'] - 1.0)
+                                 beta_df.loc[:, 'BET' + plane + 'MDL'] - 1.0)
 
     # check if there were actually errors assigned
     if (len(madElements["dK1"].nonzero()) + len(madElements["dX"].nonzero()) +
-        len(madElements["KdS"])) > 0:
-        len_before = len(beta_df.index)
-        beta_df = beta_df.loc[beta_df["NCOMB"] != 0]
-        if len(beta_df.index) < len_before:
-            LOGGER.warning("No combinations left for at least one BPM. "
-                           "Check debug log for more information.")
-            errors_method = METH_A_NBPM
+        len(madElements["KdS"].nonzero())) > 0:
         if -2 in beta_df["NCOMB"].values:
             LOGGER.warning("Analytical N-BPM method failed for at least one BPM. "
                            "Check debug log for more information.")
-            errors_method = METH_A_NBPM_PART
-        else:
+        if 0 in beta_df["NCOMB"].values:
+            LOGGER.warning("No combinations left for at least one BPM. "
+                           "Check debug log for more information.")
             errors_method = METH_A_NBPM
+        beta_df = beta_df.loc[beta_df["NCOMB"] > 0]
     else:
         errors_method = METH_NO_ERR
         LOGGER.warning("No systematic errors were given or no element was found for the given "
