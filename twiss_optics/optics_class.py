@@ -304,7 +304,7 @@ class TwissOptics(object):
                             raise KeyError
                     except KeyError:
                         # either src is not in tw or all k's are zero.
-                        LOG.debug("  All {:s} == 0. RDT '{:s}' will be zero.".format(src, rdt))
+                        LOG.warning("  All {:s} == 0. RDT '{:s}' will be zero.".format(src, rdt))
                         res.loc[:, rdt.upper()] = 0
                     else:
                         # the next three lines determine the main order of speed, hence
