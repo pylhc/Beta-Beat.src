@@ -40,10 +40,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
     first_bpm_on_ring = measured_phase.NAME[np.argmin(measured_phase.S)]
     if first_bpm_on_ring in model_propagation.NAME:
         fix_start_s = model_propagation.S[model_propagation.indx[first_bpm_on_ring]]
-        if "LHCB1" in model_propagation.SEQUENCE and first_bpm_on_ring in model_propagation.NAME:
-            tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
-        elif "LHCB2" in model_propagation.SEQUENCE and first_bpm_on_ring in model_propagation.NAME:
-            tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
+        tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
