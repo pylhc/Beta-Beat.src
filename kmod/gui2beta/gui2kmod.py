@@ -1,29 +1,54 @@
 #!/afs/cern.ch/work/o/omc/anaconda/bin/python
+
+# import sys
+# import os
+# from os.path import abspath, join, dirname, pardir
+# new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+# if new_path not in sys.path:
+#     sys.path.append(new_path)
+
+# import numpy as np
+# from kmod.gui2beta import Magnet_definitions
+# import math
+
+# import matplotlib.pyplot as plt
+# from Python_Classes4MAD import metaclass
+
+# from kmod.gui2beta.make_fit_plots import plot_fitting
+# from scipy.spatial import Delaunay
+# import argparse
+# from tfs_files import tfs_file_writer
+# from utils import outliers
+
+# from kmod.gui2beta.read_Timber_output import merge_data
+
+# from kmod.gui2beta import KModUtilities
+
+
 import sys
 import os
-from os.path import abspath, join, dirname, pardir
-new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+
+new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-
+import __init__
 import numpy as np
-from kmod.gui2beta import Magnet_definitions
+import Magnet_definitions
 import math
 
 import matplotlib.pyplot as plt
 from Python_Classes4MAD import metaclass
 
-from kmod.gui2beta.make_fit_plots import plot_fitting
+from make_fit_plots import plot_fitting
 from scipy.spatial import Delaunay
 import argparse
 from tfs_files import tfs_file_writer
 from utils import outliers
 
-from kmod.gui2beta.read_Timber_output import merge_data
+from read_Timber_output import merge_data
 
-from kmod.gui2beta import KModUtilities
-
+import KModUtilities
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -70,7 +95,7 @@ def parse_args():
                        action='store', type=str, dest='magnets')
     group.add_argument( '--interaction_point',
                        help='define interaction point',
-                       action='store', type=str, dest='ip', choices=['ip1', 'ip5', 'ip8', 'IP1', 'IP5', 'IP8'])
+                       action='store', type=str, dest='ip', choices=['ip1', 'ip2', 'ip5', 'ip8', 'IP1', 'IP2', 'IP5', 'IP8'])
 
     options = parser.parse_args()
 
@@ -230,7 +255,7 @@ def automatic_cleaning_data(k,tune_data, tune_data_err, limit=1e-5):
 def run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, waist, working_directory, instruments, ek, misalign,
                          cminus, twiss, log, logfile, auto_clean):
 
-    fitx_2, fitx_1, fity_2, fity_1, errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy = lin_fit_data(path, beam,
+    fitx_2, fitx_1, fity_2, fity_1, errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx1, Qy1, Qx2, Qy2 = lin_fit_data(path, beam,
                                                                                                       working_directory,
                                                                                                       magnet1, magnet2, log, logfile, auto_clean)
 
@@ -258,6 +283,12 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, wa
         erry_foc = erry_2
         erry_def = erry_1
 
+        Qx_foc = Qx1
+        Qy_foc = Qy1
+
+        Qx_def = Qx2
+        Qy_def = Qy2
+
         K_foc = K1
         K_def = K2
 
@@ -282,6 +313,12 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, wa
         erry_foc = erry_1
         erry_def = erry_2
 
+        Qx_foc = Qx2
+        Qy_foc = Qy2
+
+        Qx_def = Qx1
+        Qy_def = Qy1        
+
         K_foc = K2
         K_def = K1
 
@@ -290,10 +327,10 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, wa
 
     L_star = Magnet_definitions.Lstar(magnet1, magnet2, beam, twiss)
 
-    resultsx = KModUtilities.analysis(Qx, Qy, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fitx_foc, errx_foc,
+    resultsx = KModUtilities.analysis(Qx_foc, Qx_def, Qy_foc, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fitx_foc, errx_foc,
                                       fitx_def, errx_def, ek, ek, cminus, hor_bstar, waist,
                                       (magnet1 + '-' + magnet2 + '.' + beam) + '.X', log, logfile)
-    resultsy = KModUtilities.analysis(Qy, Qx, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fity_foc, erry_foc,
+    resultsy = KModUtilities.analysis(Qy_foc, Qy_def, Qx_foc, L_star, misalign, K_foc, dK, l_foc, K_def, dK, l_def, fity_foc, erry_foc,
                                       fity_def, erry_def, ek, ek, cminus, vert_bstar, waist,
                                       (magnet1 + '-' + magnet2 + '.' + beam) + '.Y', log, logfile)
 
@@ -472,25 +509,24 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile, 
     plot_fitting(fitx_2, fitx_1, fity_2, fity_1, left_data, right_data, path)
 
     dK = 1.0e-5
-    K2 = np.average(left_data.K)
-    K1 = np.average(right_data.K)
-    Qx = np.average(cleaned_x1[:, 1] + 1e-3)
-    Qy = np.average(cleaned_y1[:, 1])
+    K2 = np.average(cleaned_x2[:, 0])
+    K1 = np.average(cleaned_x1[:, 0])
 
-    # if log == True:
-    #     logfile.write('Qx: %s, Qy: %s , K_left: %s , K_right: %s, dK: %s \n' %(Qx, Qy, K2, K1, dK))
+    Qx1 = np.average(cleaned_x1[:, 1])
+    Qy1 = np.average(cleaned_y1[:, 1])
+
+    Qx2 = np.average(cleaned_x2[:, 1])
+    Qy2 = np.average(cleaned_y2[:, 1])
+
 
     errx_1 = np.sqrt(np.diag(covx_1)[0]) * dK
     erry_1 = np.sqrt(np.diag(covy_1)[0]) * dK
     errx_2 = np.sqrt(np.diag(covx_2)[0]) * dK
     erry_2 = np.sqrt(np.diag(covy_2)[0]) * dK
 
-    # if log == True:
-    #     logfile.write('dQx_left: %s , Error dQx_left: %s , dQx_right: %s , Error dQx_right: %s  \n' % (fitx_1[0]*dK, errx_1, fitx_2[0]*dK, errx_2))
-    #     logfile.write('dQy_left: %s , Error dQy_left: %s , dQy_right: %s , Error dQy_right: %s  \n' % (fity_1[0]*dK, erry_1, fity_2[0]*dK, erry_2))
 
     return fitx_2[0], fitx_1[0], fity_2[0], fity_1[
-        0], errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx, Qy  # kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
+        0], errx_1, erry_1, errx_2, erry_2, K1, K2, dK, Qx1, Qy1, Qx2, Qy2  # kmod_data  # Array with all dQ's (slopes of fit scaled with dK) and the dK spread. [xR, xL, yR, yL, dK ]
 
 
 def returnmagnetname(circuit, beam, twiss):
@@ -521,8 +557,8 @@ def returncircuitname(magnet, beam):
 def _main():
     options = parse_args()
 
-    IP_default_err = {'cminus': 0.0, 'misalign': 0.0, 'ek': 0.0}
-    Circuit_default_err = {'cminus': 0.0, 'misalign': 0.0, 'ek': 0.0}
+    IP_default_err = {'cminus': 1e-3, 'misalign': 0.006, 'ek': 0.001}
+    Circuit_default_err = {'cminus': 1e-3, 'misalign': 0.001, 'ek': 0.001}
 
     if "cminus" not in options:
         if options.ip is not None:
@@ -586,6 +622,8 @@ def _main():
             magnet1, magnet2 = 'MQXA.1L5', 'MQXA.1R5'
         elif options.ip == 'ip8' or options.ip == 'IP8':
             magnet1, magnet2 = 'MQXA.1L8', 'MQXA.1R8'
+        elif options.ip == 'ip2' or options.ip == 'IP2':
+            magnet1, magnet2 = 'MQXA.1L2', 'MQXA.1R2'
 
     else:
         circuits = options.magnets
