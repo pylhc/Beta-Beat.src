@@ -1,54 +1,24 @@
 #!/afs/cern.ch/work/o/omc/anaconda/bin/python
 
-# import sys
-# import os
-# from os.path import abspath, join, dirname, pardir
-# new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
-# if new_path not in sys.path:
-#     sys.path.append(new_path)
-
-# import numpy as np
-# from kmod.gui2beta import Magnet_definitions
-# import math
-
-# import matplotlib.pyplot as plt
-# from Python_Classes4MAD import metaclass
-
-# from kmod.gui2beta.make_fit_plots import plot_fitting
-# from scipy.spatial import Delaunay
-# import argparse
-# from tfs_files import tfs_file_writer
-# from utils import outliers
-
-# from kmod.gui2beta.read_Timber_output import merge_data
-
-# from kmod.gui2beta import KModUtilities
-
-
 import sys
 import os
+from os.path import abspath, join, dirname, pardir
+import math
+import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
 
-new_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-import __init__
-import numpy as np
-import Magnet_definitions
-import math
-
-import matplotlib.pyplot as plt
+from kmod.gui2beta.read_Timber_output import merge_data
+from kmod.gui2beta import Magnet_definitions, KModUtilities
 from Python_Classes4MAD import metaclass
-
-from make_fit_plots import plot_fitting
-from scipy.spatial import Delaunay
-import argparse
+from kmod.gui2beta.make_fit_plots import plot_fitting
 from tfs_files import tfs_file_writer
 from utils import outliers
-
-from read_Timber_output import merge_data
-
-import KModUtilities
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
