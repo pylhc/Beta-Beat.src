@@ -12,7 +12,7 @@ from tfs_files import tfs_file_writer
 
 def merge_data(working_directory, magnet1, circuit1, magnet2, circuit2, beam, ip, tunemeasprecision):
 
-    if ip in ['ip1', 'ip5', 'ip8', 'IP1', 'IP5', 'IP8']:
+    if ip in ['ip1', 'ip2', 'ip5', 'ip8', 'IP1', 'IP2', 'IP5', 'IP8']:
         IR = ip.lower() + beam.lower()
         sides = ['L', 'R']
         for side, magnet in zip(sides, [magnet1, magnet2]):
