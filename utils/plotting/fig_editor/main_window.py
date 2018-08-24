@@ -2,16 +2,16 @@ import logging
 import os
 import sys
 from PyQt5 import QtGui, QtWidgets, QtCore
+import time
 
 import matplotlib
 import numpy as np
-import six
 
 import options_artists
 from gui_utils import get_icon
 import io_utils as io
 from main_window_widgets import (
-    FigureCanvasExt, NavigationToolbar, LogDialog, LogStatusBar
+    FigureCanvasExt, NavigationToolbar, LogDialog, LogStatusBar, DragHandler
 )
 
 
@@ -184,7 +184,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cids.append(self.canvas.mpl_connect('key_press_event', self.on_key_press))
         self.cids.append(self.canvas.mpl_connect('key_release_event', self.on_key_release))
         self.cids.append(self.canvas.mpl_connect('button_press_event', self.on_mouse_click))
+        self.cids.append(self.canvas.mpl_connect("button_release_event", self.on_mouse_release))
+        self.cids.append(self.canvas.mpl_connect("motion_notify_event", self.on_mouse_move))
         self.cids.append(self.canvas.mpl_connect('scroll_event', self.on_scroll))
+
+        self._dragged = None
 
     def _disconnect_events(self):
         for cid in self.cids:
@@ -210,6 +214,10 @@ class MainWindow(QtWidgets.QMainWindow):
             LOG.debug("You've dblclicked on : {:s}".format(event.artist))
             options_artists.change_properties(event.artist, self)
             self.update_figure()
+            self._dragged = None
+
+        elif isinstance(event.artist, matplotlib.text.Text):
+                self._dragged = DragHandler(event.artist, event.mouseevent)
 
     def on_draw(self, event):
         pass
@@ -236,19 +244,31 @@ class MainWindow(QtWidgets.QMainWindow):
                 all_data = np.append(all_data, np.array(data[1])[xmask & ymask])
             if len(all_data):
                 drop_idx = int(round(len(all_data) * self.autozoom))
-                all_data = sorted(all_data)[drop_idx:-drop_idx]
+                if drop_idx > 0:
+                    all_data = sorted(all_data)[drop_idx:-drop_idx]
 
-                ymin = min(all_data)
-                ymax = max(all_data)
-                d = (ymax - ymin) * self.bordertol
+                    ymin = min(all_data)
+                    ymax = max(all_data)
+                    d = (ymax - ymin) * self.bordertol
 
-                ax.set_ylim((ymin-d, ymax+d))
-                self.update_figure()
-                self.mpl_toolbar.push_current()
+                    ax.set_ylim((ymin-d, ymax+d))
+                    self.update_figure()
+                    self.mpl_toolbar.push_current()
 
         if event.button == 3:
             # right button -> return in history
             self.mpl_toolbar.back()
+
+    def on_mouse_release(self, event):
+        if self._dragged is not None:
+            self._dragged.move(event)
+            self._dragged = None
+            self.update_figure()
+
+    def on_mouse_move(self, event):
+        if self._dragged is not None:
+            self._dragged.move(event)
+            self.update_figure()
 
     def on_scroll(self, event):
         """ Zoom with respect to mouse-position or center of axes. """
