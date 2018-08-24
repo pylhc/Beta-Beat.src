@@ -1,10 +1,11 @@
 import logging
 import os
 import six
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore
 
 import matplotlib
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 
 from gui_utils import get_icon
@@ -76,7 +77,6 @@ ICON_SIZE_NAVTOOLBAR = 24
 
 class NavigationToolbar(NavigationToolbar2QT):
     """ Customized Navigation Toolbar """
-    LEGEND_LOCATIONS = [0, 1, 2, 3, 4, None]
 
     def __init__(self, canvas,
                  save_fun=None, load_fun=None, export_fun=None, import_fun=None, parent=None):
@@ -86,17 +86,21 @@ class NavigationToolbar(NavigationToolbar2QT):
 
         self.toolitems = list(self.toolitems)
 
-        self.toolitems.insert(7, (None, None, None, None))
+        if hasattr(canvas, "move_legend") and hasattr(canvas, "update_legend"):
+            self.update_legend = canvas.update_legend
+            self.move_legend = canvas.move_legend
 
-        self.toolitems.insert(8, (
-            "Move Legend", "Move the legend location to predefined settings.",
-            "arrows", "move_legend"
-        ))
+            self.toolitems.insert(7, (None, None, None, None))
 
-        self.toolitems.insert(9, (
-            "Update Legend", "Update the legend.",
-            "refresh", "update_legend"
-        ))
+            self.toolitems.insert(8, (
+                "Move Legend", "Move the legend location to predefined settings.",
+                "arrows", "move_legend"
+            ))
+
+            self.toolitems.insert(9, (
+                "Update Legend", "Update the legend.",
+                "refresh", "update_legend"
+            ))
 
         if save_fun is not None:
             self.save_figure = save_fun  # otherwise defined by super-class
@@ -120,11 +124,6 @@ class NavigationToolbar(NavigationToolbar2QT):
                 ))
 
         super(NavigationToolbar, self).__init__(canvas, parent)
-        self.figure = canvas.figure
-        self.axes = self.figure.gca()
-        self.legend = self.axes.get_legend()
-        self._legend_location_index = 0
-        self._legend_locations = list(NavigationToolbar.LEGEND_LOCATIONS)
 
     def _init_toolbar(self):
         """ Called from the super function """
@@ -176,17 +175,6 @@ class NavigationToolbar(NavigationToolbar2QT):
         self.setIconSize(QtCore.QSize(ICON_SIZE_NAVTOOLBAR, ICON_SIZE_NAVTOOLBAR))
         self.layout().setSpacing(12)
 
-    def move_legend(self):
-        self._legend_location_index = (
-            self._legend_location_index + 1
-        ) % len(self._legend_locations)
-        self._set_legend_loc()
-
-    def update_legend(self):
-        self.legend = options_utils.regenerate_legend(self.axes)
-        self._save_legend_loc()
-        self.draw()
-
     def edit_parameters(self):
         allaxes = self.canvas.figure.get_axes()
         if not allaxes:
@@ -213,30 +201,99 @@ class NavigationToolbar(NavigationToolbar2QT):
 
         options_figure.figure_edit(axes, self)
 
+    # def move_legend(self):
+    #     self.canvas.move_legend()
+    #
+    # def update_legend(self):
+    #     self.canvas.update_legend()
+
+
+# Figure Canvas ################################################################
+
+class FigureCanvasExt(FigureCanvas):
+    """ Extended FigureCanvas.
+
+    TODO: Multiaxes
+    - Legend positions can be easily saved and restored
+
+    """
+
+    LEGEND_LOCATIONS = [0, 1, 2, 3, 4, None]
+
+    def __init__(self, figure):
+        super(FigureCanvasExt, self).__init__(figure)
+        self._legend_location_index = 0
+        self._legend_locations = list(FigureCanvasExt.LEGEND_LOCATIONS)
+
+    def move_legend(self):
+        self._legend_location_index = (
+                                              self._legend_location_index + 1
+                                      ) % len(self._legend_locations)
+        self._set_legend_loc()
+
+    def update_legend(self):
+        axes = self.figure.gca()
+        options_utils.regenerate_legend(axes)
+        self._save_legend_loc()
+        self.draw()
+
     def _set_legend_loc(self):
-        if self.legend is not None:
+        legend = self.figure.gca().get_legend()
+        if legend is not None:
             loc = self._legend_locations[
                 self._legend_location_index
             ]
             if loc is None:
-                self.legend.set_visible(False)
+                legend.set_visible(False)
             else:
-                self.legend.set_visible(True)
-                self.legend._set_loc(loc)
+                legend.set_visible(True)
+                legend._set_loc(loc)
 
             self.draw()
 
     def _save_legend_loc(self):
-        if self.legend:
+        legend = self.figure.gca().get_legend()
+        if legend:
             self._legend_location_index = 0
-            self._legend_locations = ([self.legend._get_loc()] +
-                                      list(NavigationToolbar.LEGEND_LOCATIONS))
+            self._legend_locations = ([legend._get_loc()] +
+                                      list(FigureCanvasExt.LEGEND_LOCATIONS))
 
-    def update_figure(self):
-        """ Fucntion called externally when figure has changed. """
-        self.figure = self.canvas.figure
-        self.axes = self.canvas.figure.gca()
-        self.legend = self.axes.get_legend()
+    def update_figure(self, figure):
+        """ Change Figure for this canvas """
+        figure.canvas = self
+        self.figure = figure
         self._save_legend_loc()
         self._set_legend_loc()
+        self.draw()
 
+    def set_pickers(self, tol=0.5):
+        """ Set all artists to send pick events when they are clicked """
+        axes = self.figure.get_axes()
+        for ax in axes:
+            for l in ax.lines:
+                width = max(1.1*l.get_markersize(), 1.5*l.get_linewidth())
+                l.set_picker(width)
+
+            for a in [ax.xaxis, ax.yaxis]:
+                a.set_picker(tol)
+                for c in a.get_children():
+                    c.set_picker(True)
+
+            for t in ax.texts:
+                t.set_picker(True)
+
+            legend = ax.get_legend()
+            if legend is not None:
+                # legend.draggable(True)
+                legend.set_picker(True)
+
+            ax.title.set_picker(True)
+            ax.set_picker(True)
+
+    def unset_pickers(self):
+        for c in self.figure.get_children():
+            try:
+                c.set_picker(False)
+                c.set_draggable(False)
+            except AttributeError:
+                pass

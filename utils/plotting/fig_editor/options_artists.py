@@ -20,6 +20,7 @@ import options_utils as outils
 
 def change_properties(artist, parent=None):
     """ Change the properties of artist via user interface. """
+    regen_legend = False
     if isinstance(artist, mpl.lines.Line2D):
         try:
             ebar = outils.get_errorbar_from_line(artist)
@@ -27,6 +28,7 @@ def change_properties(artist, parent=None):
             props, title = _get_line_properties(artist)
         else:
             props, title, = _get_ebar_properties(ebar)
+        regen_legend = True
 
     elif isinstance(artist, mpl.axis.Axis):
         props, title = _get_axis_properties(artist)
@@ -36,6 +38,7 @@ def change_properties(artist, parent=None):
 
     elif isinstance(artist, mpl.legend.Legend):
         props, title = _get_legend_properties(artist)
+        regen_legend = True
 
     elif isinstance(artist, mpl.axes.Axes):
         props, title = _get_axes_properties(artist)
@@ -47,6 +50,8 @@ def change_properties(artist, parent=None):
 
     if data is not None:
         _apply_data_to_properties(props, data, parent)
+        if regen_legend:
+            new_leg = outils.regenerate_legend(artist.axes)
 
 
 def _show_form(props, title, parent):
@@ -187,6 +192,9 @@ def _get_line_properties(line):
         Property("Visible",
                  lambda x, line=line: _apply_line_visibility(line, x), line.get_visible(),
                  None),
+        Property("Z-Order",
+                 line.set_zorder, line.get_zorder(),
+                 None),
         "Line:",
         Property("Linestyle",
                  line.set_linestyle, ls_def,
@@ -230,8 +238,12 @@ def _get_ebar_properties(ebar):
                  lambda x, ebar=ebar: outils.apply_to_ebar(_apply_line_visibility, ebar, x),
                  ebar[0].get_visible(),
                  None),
+        Property("Z-Order",
+                 lambda x, ebar=ebar: outils.apply_to_ebar("set_zorder", ebar, x),
+                 ebar[0].get_zorder(),
+                 None),
     ]
-    props += _get_line_properties(ebar[0])[0][2:]
+    props += _get_line_properties(ebar[0])[0][3:]
     return props, title
 
 
@@ -261,7 +273,10 @@ def _get_text_properties(txt):
                  None),
         Property("Y-Pos",
                  txt.set_y, txt.get_position()[1],
-                 None)
+                 None),
+        Property("Z-Order",
+                 txt.set_zorder, txt.get_zorder(),
+                 None),
     ]
 
     return props, title
@@ -269,7 +284,21 @@ def _get_text_properties(txt):
 
 def _get_legend_properties(leg):
     title = "Edit Legend"
-    props = [(None, "Legend Edit Content coming up.")]
+    props = [
+        Property("Visible",
+                 leg.set_visible, bool(leg.get_visible()),
+                 None),
+        Property("Draggable",
+                 leg.draggable, leg._draggable is not None,
+                 None),
+        Property("Position",
+                 lambda x, leg=leg: leg._set_loc(eval(x)),  # backconversion from string
+                 str(leg._get_loc()),
+                 None),
+        Property("Z-Order",
+                 leg.set_zorder, leg.get_zorder(),
+                 None),
+    ]
     return props, title
 
 
@@ -350,13 +379,6 @@ def _apply_line_visibility(line, visible):
     line.set_visible(visible)
     if not visible:
         line.set_label(outils.NOLEGEND)
-
-
-def _apply_ebar_visibility(ebar, visible):
-    outils.apply_to_ebar(_apply_line_visibility, ebar, visible)
-    if not visible:
-        ebar.set_label(outils.NOLEGEND)
-
 
 
 # Property Class ###############################################################

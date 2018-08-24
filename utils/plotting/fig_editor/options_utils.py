@@ -1,4 +1,5 @@
 import matplotlib as mpl
+import six
 
 NOLEGEND = '_nolegend_'
 
@@ -29,6 +30,7 @@ def get_scales():
 
 
 def regenerate_legend(axes):
+    """ Update legend but keep style and position """
     draggable = None
     loc = None
     ncol = 1
@@ -42,6 +44,7 @@ def regenerate_legend(axes):
         new_legend.draggable(draggable)
         if loc:
             new_legend._set_loc(loc)
+        new_legend.set_picker(True)
     return new_legend
 
 
@@ -55,10 +58,16 @@ def is_errorbar(o):
 
 def apply_to_ebar(func, ebar,  value):
     """ Do function `func` with input `line, value` to all lines of the errorbar ebar """
-    func(ebar[0], value)
+    if isinstance(func, six.string_types):
+        ebar[0].__getattribute__(func)(value)
+    else:
+        func(ebar[0], value)
     for collection in ebar[1:]:
         for bar in collection:
-            func(bar, value)
+            if isinstance(func, six.string_types):
+                ebar[0].__getattribute__(func)(value)
+            else:
+                func(bar, value)
 
 
 def get_errorbar_from_line(line):

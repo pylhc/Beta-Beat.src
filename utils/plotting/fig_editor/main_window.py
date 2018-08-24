@@ -6,12 +6,13 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import matplotlib
 import numpy as np
 import six
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 import options_artists
 from gui_utils import get_icon
 import io_utils as io
-from main_window_widgets import NavigationToolbar, LogDialog, LogStatusBar, ICON_SIZE_NAVTOOLBAR
+from main_window_widgets import (
+    FigureCanvasExt, NavigationToolbar, LogDialog, LogStatusBar, ICON_SIZE_NAVTOOLBAR
+)
 
 
 LOG = logging.getLogger(__name__)
@@ -20,14 +21,6 @@ LOG = logging.getLogger(__name__)
 # On picker: check if line is in errorbarcontainer
 # use formlayout.fedit to edit lines/title/text/etc
 #
-
-
-CONFIG = {
-    "zoomscale": 1.5,   # scaling of scrollzoom
-    "autozoom": 0.05,   # percentage of points to cut
-    "bordertol": 0.05,  # after autozoom add this to limits
-    "picktol": 5,       # picker tolerance in pixels
-}
 
 
 _VERSION = "0.0_prealpha"
@@ -39,6 +32,10 @@ class MainWindow(QtWidgets.QMainWindow):
     figure_size = (8.0, 4.0)
     status_bar_height = 16
     nav_toolbar_height = ICON_SIZE_NAVTOOLBAR + 8
+    zoomscale = 1.5  # scaling of scrollzoom
+    autozoom = 0.05   # percentage of points to cut
+    bordertol = 0.05  # after autozoom add this to limits
+    picktol = 5       # picker tolerance in pixels
 
     def __init__(self, fig=None, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
@@ -108,16 +105,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._add_actions(self.help_menu, (about_action, log_action))
 
-    def _create_main_frame(self, fig):
+    def _create_main_frame(self, figure=None):
         """ Sets up the main frame of the window """
         self.main_frame = QtWidgets.QWidget(self)
-        self.axes = None
-        if fig is None:
-            self.figure = matplotlib.figure.Figure()
+        if figure is None:
+            figure = matplotlib.figure.Figure()
             # self.figure.add_subplot(111)
-        else:
-            self.figure = fig
-        self.canvas = FigureCanvas(self.figure)
+        self.canvas = FigureCanvasExt(figure)
         self.canvas.setParent(self.main_frame)
         # Connect events and save them to list
         self.cids = []   # save events for disconnecting later
@@ -150,7 +144,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.main_frame)
 
         # Update and draw
-        self.update_figure(new=True)
+        self.update_figure(figure)
 
     # Creator Helpers ########################################################
 
@@ -215,6 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if event.mouseevent.button == 1 and event.mouseevent.dblclick:
             LOG.debug("You've dblclicked on : {:s}".format(event.artist))
             options_artists.change_properties(event.artist, self)
+            self.update_figure()
 
     def on_draw(self, event):
         pass
@@ -240,12 +235,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 all_data = np.append(all_data, np.array(data[1])[xmask & ymask])
             if len(all_data):
-                drop_idx = int(round(len(all_data) * CONFIG["autozoom"]))
+                drop_idx = int(round(len(all_data) * self.autozoom))
                 all_data = sorted(all_data)[drop_idx:-drop_idx]
 
                 ymin = min(all_data)
                 ymax = max(all_data)
-                d = (ymax - ymin) * CONFIG["bordertol"]
+                d = (ymax - ymin) * self.bordertol
 
                 ax.set_ylim((ymin-d, ymax+d))
                 self.update_figure()
@@ -272,7 +267,7 @@ class MainWindow(QtWidgets.QMainWindow):
             origin_x = (xlim[0] + xlim[1]) / 2.
             origin_y = (ylim[0] + ylim[1]) / 2.
 
-        scale = CONFIG["zoomscale"] ** event.step
+        scale = self.zoomscale ** event.step
         new_xlim = [None, None]
         new_ylim = [None, None]
         new_xlim[0] = origin_x + (xlim[0] - origin_x) * scale
@@ -302,50 +297,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Main Frame functions ###########################################################
 
-    def update_figure(self, new=False):
-        if new:
-            self.figure.set_dpi(self.dpi)
-            self.figure.set_size_inches(self.figure_size)
-            self.figure.canvas = self.canvas
-            self.axes = self.figure.get_axes()
-            self._set_pickers()
-            self.canvas.figure = self.figure
-            self.figure.tight_layout()
-            self.mpl_toolbar.update_figure()
+    def update_figure(self, figure=None):
+        if figure:
+            self.canvas.update_figure(figure)
+            figure.set_dpi(self.dpi)
+            figure.set_size_inches(self.figure_size)
+            figure.tight_layout()
+            self.canvas.set_pickers(self.picktol)
         self.canvas.draw()
-
-    def _set_pickers(self):
-        """ Set all artists to send pick events when they are clicked """
-        tol = CONFIG["picktol"]
-        for ax in self.axes:
-            for l in ax.lines:
-                width = max(1.1*l.get_markersize(), 1.5*l.get_linewidth())
-                l.set_picker(width)
-
-            for a in [ax.xaxis, ax.yaxis]:
-                a.set_picker(tol)
-                for c in a.get_children():
-                    c.set_picker(True)
-
-            for t in ax.texts:
-                t.set_picker(True)
-
-            legend = ax.get_legend()
-            if legend is not None:
-                legend.draggable()
-                legend.set_picker(True)
-
-            ax.title.set_picker(True)
-            ax.set_picker(True)
-
-    def _unset_pickers(self):
-        for c in self.figure.get_children():
-            try:
-                c.set_picker(False)
-                c.set_draggable(False)
-            except AttributeError:
-                pass
-
 
     # Copy/Pase ######################################
 
@@ -364,19 +323,17 @@ class MainWindow(QtWidgets.QMainWindow):
     # Import/Export ##################################
 
     def _import_dly(self):
-        fig = io.load_dly()
-        if fig:
-            self.figure = fig
-            self.update_figure(new=True)
+        figure = io.load_dly()
+        if figure:
+            self.update_figure(figure)
 
     def _export_dly(self):
-        io.save_dly(self.figure)
+        io.save_dly(self.canvas.figure)
 
     def _load_data(self):
-        fig = io.load_tfs()
-        if fig:
-            self.figure = fig
-            self.update_figure(new=True)
+        figure = io.load_tfs()
+        if figure:
+            self.update_figure(figure)
 
     def _save_figure(self):
         """ Save figure
