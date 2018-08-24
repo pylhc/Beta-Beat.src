@@ -40,8 +40,8 @@ def change_properties(artist, parent=None):
         props, title = _get_legend_properties(artist)
         regen_legend = True
 
-    elif isinstance(artist, mpl.axes.Axes):
-        props, title = _get_axes_properties(artist)
+    # elif isinstance(artist, mpl.axes.Axes):
+    #     props, title = _get_axes_properties(artist)
 
     else:
         return

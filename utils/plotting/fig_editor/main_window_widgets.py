@@ -282,7 +282,7 @@ class FigureCanvasExt(FigureCanvas):
                 legend.set_picker(True)
 
             ax.title.set_picker(True)
-            ax.set_picker(True)
+            # ax.set_picker(True)
 
     def unset_pickers(self):
         for c in self.figure.get_children():
