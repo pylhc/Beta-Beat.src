@@ -72,11 +72,11 @@ class LogStatusBar(QtWidgets.QStatusBar, logging.StreamHandler):
 
 # Navigation Toolbar #########################################################
 
-ICON_SIZE_NAVTOOLBAR = 24
-
 
 class NavigationToolbar(NavigationToolbar2QT):
     """ Customized Navigation Toolbar """
+
+    ICON_SIZE = 24
 
     def __init__(self, canvas,
                  save_fun=None, load_fun=None, export_fun=None, import_fun=None, parent=None):
@@ -172,7 +172,7 @@ class NavigationToolbar(NavigationToolbar2QT):
         # otherwise the layout looks different - but we don't want to set it if
         # not using HiDPI icons otherwise they look worse than before.
 
-        self.setIconSize(QtCore.QSize(ICON_SIZE_NAVTOOLBAR, ICON_SIZE_NAVTOOLBAR))
+        self.setIconSize(QtCore.QSize(NavigationToolbar.ICON_SIZE, NavigationToolbar.ICON_SIZE))
         self.layout().setSpacing(12)
 
     def edit_parameters(self):
@@ -201,14 +201,9 @@ class NavigationToolbar(NavigationToolbar2QT):
 
         options_figure.figure_edit(axes, self)
 
-    # def move_legend(self):
-    #     self.canvas.move_legend()
-    #
-    # def update_legend(self):
-    #     self.canvas.update_legend()
-
 
 # Figure Canvas ################################################################
+
 
 class FigureCanvasExt(FigureCanvas):
     """ Extended FigureCanvas.
@@ -284,7 +279,6 @@ class FigureCanvasExt(FigureCanvas):
 
             legend = ax.get_legend()
             if legend is not None:
-                # legend.draggable(True)
                 legend.set_picker(True)
 
             ax.title.set_picker(True)

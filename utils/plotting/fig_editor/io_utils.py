@@ -1,5 +1,9 @@
+import os
+import six
+import matplotlib
 import logging
 
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 
 from io_widgets import ColumnSelectorDialog
@@ -69,7 +73,7 @@ def save_dly(fig):
         with open(path, "wb") as f:
             pass  #TODO
 
-def save_layout(self):
+def save_layout(figure):
     """ Saves the current state of the layout.
 
     Into ini-file
@@ -88,10 +92,56 @@ def save_layout(self):
     pass
 
 
-def load_layout(self):
+def load_layout(figure):
     """ Load ini-file with layout properties
 
     """
+
+
+def save_figure(figure):
+    """ Save figure
+
+     From backend_qt5.NavigationToolbar2QT
+     """
+    filetypes = figure.canvas.get_supported_filetypes_grouped()
+    sorted_filetypes = sorted(six.iteritems(filetypes))
+    default_filetype = figure.canvas.get_default_filetype()
+
+    startpath = os.path.expanduser(
+        matplotlib.rcParams['savefig.directory'])
+    start = os.path.join(startpath, figure.canvas.get_default_filename())
+    filters = []
+    selected_filter = None
+
+    for name, exts in sorted_filetypes:
+        exts_list = " ".join(['*.%s' % ext for ext in exts])
+        filter = '%s (%s)' % (name, exts_list)
+        if default_filetype in exts:
+            selected_filter = filter
+        filters.append(filter)
+    filters = ';;'.join(filters)
+
+    fname, filter = QtWidgets.QFileDialog.getSaveFileName(
+        caption="Choose a filename to save to",
+        directory=start,
+        filter=filters,
+        initialFilter=selected_filter,
+    )
+
+    if fname:
+        # Save dir for next time, unless empty str (i.e., use cwd).
+        if startpath != "":
+            matplotlib.rcParams['savefig.directory'] = (
+                os.path.dirname(six.text_type(fname)))
+        try:
+            figure.savefig(six.text_type(fname))
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                None, "Error saving file", six.text_type(e),
+                QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.NoButton)
+
+
+
 
 # Private Methods #############################################################
 
