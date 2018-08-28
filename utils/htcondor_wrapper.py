@@ -9,6 +9,9 @@ be able to find the Authen::Krb5 package:
 Also, make sure the SCHEDD_NAME is set properly in the config file mentioned above.
 (i.e. go to lxplus, run condor_q and see which scheduler was assigned to you)
 
+If you run jobs that take longer than 25h, make sure you are using a renewable Kerberos ticket:
+kinit -r 604800  (i.e. renewable  by "kinit -R" for 1 week)
+
 Python Readme:
 https://htcondor-python.readthedocs.io/en/latest
 
@@ -173,9 +176,3 @@ def _start_subprocess_with_logger(command):
 
 if __name__ == '__main__':
     raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
-    # afs_folder = "/afs/cern.ch/work/j/jdilly/public/"
-    # job = create_job_for_bashfile(afs_folder + "job.sh")
-    # sub = create_subfile_from_job(afs_folder, job)
-    # submit_jobfile(sub)
-    # submit_job(job)
-    # view_history()
