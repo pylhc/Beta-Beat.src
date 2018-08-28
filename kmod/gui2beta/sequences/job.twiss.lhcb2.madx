@@ -1,10 +1,3 @@
-option, -echo;
-call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/beta_beat.macros.madx";
-call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc.macros.madx";
-call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc_runII.macros.madx";
-call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/madx/lib/lhc_runII_ats.macros.madx";
-option, echo;
-
 title, "Model creator for java";
 
 !@require lhc_runII_ats.macros.madx
