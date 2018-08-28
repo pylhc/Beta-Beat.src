@@ -4,7 +4,7 @@ title, "Model creator for java";
 
 option, -echo;
 
-call, file = "/afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/model/accelerators/lhc/2017/main.seq";
+call, file = "/afs/cern.ch/eng/lhc/optics/runII/2017/lhc_as-built.seq";
 
 exec, define_nominal_beams();
 call, file = "/afs/cern.ch/eng/lhc/optics/runII/2017/opticsfile.19";
