@@ -56,16 +56,26 @@ def is_errorbar(o):
     return isinstance(o, mpl.container.ErrorbarContainer)
 
 
-def apply_to_ebar(func, ebar,  value):
+def apply_to_ebar(func, ebar,  value, line=True, caps=True, bars=True):
     """ Do function `func` with input `line, value` to all lines of the errorbar ebar """
-    if isinstance(func, six.string_types):
-        ebar[0].__getattribute__(func)(value)
-    else:
-        func(ebar[0], value)
-    for collection in ebar[1:]:
-        for bar in collection:
+
+    if line:
+        if isinstance(func, six.string_types):
+            ebar[0].__getattribute__(func)(value)
+        else:
+            func(ebar[0], value)
+
+    if caps:
+        for cap in ebar[1]:
             if isinstance(func, six.string_types):
-                ebar[0].__getattribute__(func)(value)
+                cap.__getattribute__(func)(value)
+            else:
+                func(cap, value)
+
+    if bars:
+        for bar in ebar[2]:
+            if isinstance(func, six.string_types):
+                bar.__getattribute__(func)(value)
             else:
                 func(bar, value)
 

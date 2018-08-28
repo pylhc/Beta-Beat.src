@@ -16,7 +16,7 @@ import six
 
 from gui_utils import get_icon
 import options_utils as outils
-
+from general_helper import suppress_exception
 
 def change_properties(artist, parent=None):
     """ Change the properties of artist via user interface. """
@@ -230,6 +230,11 @@ def _get_line_properties(line):
 
 def _get_ebar_properties(ebar):
     title = "Edit Line '{}'".format(ebar.get_label())
+
+    bar = None  # bar reference
+    with suppress_exception(IndexError):
+        bar = ebar[2][0]
+
     props = [
         Property("Label",
                  ebar.set_label, ebar.get_label(),
@@ -244,6 +249,34 @@ def _get_ebar_properties(ebar):
                  None),
     ]
     props += _get_line_properties(ebar[0])[0][3:]
+
+    if bar is not None:
+        ls = "-"  # TODO: Could not find the proper way to return the linestyle
+
+        ls_def, ls_choices = outils.prepare_formdata(outils.get_linestyles(), ls)
+
+        # ms_def, ms_choices = outils.prepare_formdata(
+        #     outils.get_markers(), ebar[1][0].get_marker())
+        props += [
+            "Error Bars",
+            Property("Linestyle",
+                     lambda x, ebar=ebar: outils.apply_to_ebar(
+                         "set_linestyle", ebar, x, line=False, caps=False),
+                     ls_def,
+                     ls_choices),
+            Property("Width",
+                     lambda x, ebar=ebar: outils.apply_to_ebar(
+                         "set_linewidth", ebar, x, line=False),
+                     bar.get_linewidth()[0],
+                     None),
+            Property("Color",
+                     lambda x, ebar=ebar: outils.apply_to_ebar(
+                         "set_color", ebar, x, line=False),
+                     bar.get_color()[0],
+                     None),
+        ]
+
+
     return props, title
 
 
