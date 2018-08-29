@@ -1,5 +1,6 @@
 import sys
 import os
+from os.path import join, dirname, abspath, pardir
 from optparse import OptionParser
 from collections import OrderedDict
 import numpy as np
@@ -53,7 +54,7 @@ def get_betas_values_with_errors(beta_file_phase,beta_file_amplitude,plane):
 
 def get_calibration_factors(beta_phase,beta_amplitude,beta_error_phase,beta_error_amplitude):
     beta_calibration = (beta_phase/beta_amplitude)**0.5
-    beta_calibration_error = 0.25*(beta_phase/beta_amplitude**3)*beta_error_amplitude**2 +  0.25*(1/(beta_phase*beta_amplitude))*beta_error_phase**2
+    beta_calibration_error = (0.25*(beta_phase/beta_amplitude**3)*beta_error_amplitude**2 + 0.25*(1/(beta_phase*beta_amplitude))*beta_error_phase**2)**0.5
     return beta_calibration,beta_calibration_error
 
 
