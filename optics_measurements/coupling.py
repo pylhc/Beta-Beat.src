@@ -17,18 +17,19 @@ main part
     calculate_coupling
 helper-functions
     GetCoupling1
-    GetCoupling2
+    _get_coupling_2bpm
     getCandGammaQmin
     _find_sign_QxmQy
 ac-dipol stuff
     getFreeCoupling
 '''
 
-import sys
+import sys, os
 import traceback
 import math
 import copy
 import numpy as np
+import pandas as pd
 
 import utils.bpm
 import phase
@@ -39,14 +40,12 @@ from utils import logging_tools, stats, tfs_pandas
 from twiss_optics.optics_class import TwissOptics
 
 LOGGER = logging_tools.get_logger(__name__)
-
-
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 #===================================================================================================
 # main part
 #===================================================================================================
-def calculate_coupling(getllm_d, input_files, phase_d, tune_d, header_dict):
+def calculate_coupling(getllm_d, input_files, phase_d, tunes, header_dict):
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
@@ -63,27 +62,26 @@ def calculate_coupling(getllm_d, input_files, phase_d, tune_d, header_dict):
     :Return: _TuneData
         the same instance as param tune_d to indicate that tunes will be set.
     '''
+    zero_dpp_frames_x = input_files.zero_dpp_frames('X')
+    zero_dpp_frames_y = input_files.zero_dpp_frames('Y')
     LOGGER.info("Calculating coupling using the {0}-BPM-method and {1} file(s)"
-                .format(getllm_d.coupling_method,len(input_files.zero_dpp_x)))
+                .format(getllm_d.coupling_method, len(zero_dpp_frames_x)))
+    LOGGER.info("New coupling -- pandafied")
 
     # get the models -------------------------------------------------------------------------------
     accelerator = getllm_d.accelerator
     mad_twiss = accelerator.get_model_tfs()
     mad_elements = accelerator.get_elements_tfs()
-    coupling_df = tfs_pandas.TfsDataFrame(mad_twiss).loc[:, "S"]
-    freecoupling_df = None
+    coupling_df = None
+    free_coupling_df = None
     if accelerator.excitation is not AccExcitationMode.FREE:
         mad_ac = accelerator.get_driven_tfs()
-        freecoupling_df = tfs_pandas.TfsDataFrame(mad_twiss).loc[:, "S"]
-        freecoupling2_df = tfs_pandas.TfsDataFrame(freecoupling_df)
-        coupleterms_df = tfs_pandas.TfsDataFrame(freecoupling_df)
     else:
         mad_ac = None
 
-    # prepare the output dataframes ----------------------------------------------------------------
-
-    if input_files.zero_dpp_x > 0 and input_files.zero_dpp_y:
+    if len(zero_dpp_frames_x) == len(zero_dpp_frames_y) and len(zero_dpp_frames_x) > 0:
         #-- Coupling in the model
+        LOGGER.debug("Calculating coupling in the model.")
         optics_twiss = TwissOptics(mad_elements)
         optics_twiss.calc_cmatrix()
         optics_coupling = optics_twiss.get_coupling(method="cmatrix")  # this is not used!
@@ -91,56 +89,28 @@ def calculate_coupling(getllm_d, input_files, phase_d, tune_d, header_dict):
         # 1-BPM method
         if getllm_d.coupling_method == 1:
 
-            fwqw, second_ret = _get_coupling_1bpm(
-                mad_twiss, input_files.zero_dpp_x,
-                input_files.zero_dpp_y, tune_d.q1f, tune_d.q2f,
-                getllm_d.beam_direction, coupling_df)
+            coupling_df = _get_coupling_1bpm(
+                mad_twiss, zero_dpp_frames_x, zero_dpp_frames_y, tunes['X']["QF"], tunes['Y']["QF"],
+                getllm_d.accelerator.get_beam_direction())
         # 2-BPM method
         elif getllm_d.coupling_method == 2:
-            fwqw, second_ret = GetCoupling2(
-                mad_twiss, input_files.zero_dpp_x,
-                input_files.zero_dpp_y, tune_d.q1f, tune_d.q2f,
-                phase_d.phase_advances_free_x, phase_d.phase_advances_free_y,
+            fwqw, second_ret = _get_coupling_2bpm(
+                mad_twiss, zero_dpp_frames_x, zero_dpp_frames_y, tunes['X']["QF"], tunes['Y']["QF"],
+                phase_d['X']['F'], phase_d['Y']['F'],
                 accelerator.get_beam_direction(), getllm_d.accelerator)
         else:
             raise ValueError('Number of monitors for coupling analysis should be 1 or 2 (option -n)')
 
+        coupling_df["MDLF1001R"] = optics_coupling.loc[coupling_df.index, "F1001"].real
+        coupling_df["MDLF1001I"] = optics_coupling.loc[coupling_df.index, "F1001"].imag
+        coupling_df["MDLF1010R"] = optics_coupling.loc[coupling_df.index, "F1010"].real
+        coupling_df["MDLF1010I"] = optics_coupling.loc[coupling_df.index, "F1010"].imag
 
-        coupling_df.loc["COUNT"] = len(input_files.zero_dpp_x)  # do we really need this column?
-        coupling_df.loc["F1001W"] = abs(fwqw[:][0][0])
-        coupling_df.loc["F1001R"] = fwqw[:][0][0].real
-        coupling_df.loc["F1001I"] = fwqw[:][0][0].imag
-        coupling_df.loc["FWSTD1"] = fwqw[:][0][1]
-        if getllm_d.coupling_method == 1:
-            coupling_df.loc["F1010W"] = 0.0
-            coupling_df.loc["F1010R"] = 0.0
-            coupling_df.loc["F1010I"] = 0.0
-            coupling_df.loc["FWSTD2"] = 0.0
-            coupling_df.loc["Q1001"] = 0.0
-            coupling_df.loc["Q1001STD"] = 0.0
-            coupling_df.loc["Q1010"] = 0.0
-            coupling_df.loc["Q1010STD"] = 0.0
-        else:
-            coupling_df.loc["F1010W"] = abs(fwqw[:][0][2])
-            coupling_df.loc["F1010R"] = fwqw[:][0][2].real
-            coupling_df.loc["F1010I"] = fwqw[:][0][2].imag
-            coupling_df.loc["FWSTD2"] = fwqw[:][0][3]
-            coupling_df.loc["Q1001"] = fwqw[:][1][0]
-            coupling_df.loc["Q1001STD"] = fwqw[:][1][1]
-            coupling_df.loc["Q1010"] = fwqw[:][1][2]
-            coupling_df.loc["Q1010STD"] = fwqw[:][1][3]
-        coupling_df.loc["MDLF1001R"] = optics_coupling["F1001"].real
-        coupling_df.loc["MDLF1001I"] = optics_coupling["F1001"].imag
-        coupling_df.loc["MDLF1010R"] = optics_coupling["F1010"].real
-        coupling_df.loc["MDLF1010I"] = optics_coupling["F1010"].imag
+        coupling_df["DELTAF1001"] = coupling_df["F1001W"] - \
+            abs(optics_coupling.loc[coupling_df.index, "F1001"])
 
-        coupling_df.headers = header_dict.copy()
-        coupling_df.headers["CG"] = fwqw['Global'][0]
-        coupling_df.headers["CG_std"] = fwqw['Global'][2]
-        coupling_df.headers["QC"] = fwqw['Global'][1]
-        coupling_df.headers["Q1F"] = tune_d.q1f
-        coupling_df.headers["Q2F"] = tune_d.q2f
-
+        tfs_pandas.write_tfs(os.path.join(getllm_d.outputdir, "getcoupling.out"),
+                             coupling_df)
         #-- ac to free coupling
         if accelerator.excitation != AccExcitationMode.FREE:
             if getllm_d.coupling_method == 2:
@@ -218,15 +188,19 @@ def calculate_coupling(getllm_d, input_files, phase_d, tune_d, header_dict):
             list_row_entries = [bpmm, bps, coupleterms[bpmm][0], coupleterms[bpmm][1], coupleterms[bpmm][2], coupleterms[bpmm][3], coupleterms[bpmm][4], coupleterms[bpmm][5], coupleterms[bpmm][6], coupleterms[bpmm][7]]
             tfs_file.add_table_row(list_row_entries)
 
-    return coupling_df, freecoupling_df, coupleterms_df
-# END calculate_coupling ---------------------------------------------------------------------------
+        return coupling_df, free_coupling_df, coupleterms_df
+    # if numbers of files don't match or are 0:
+    raise IOError("Input files unsuitable for coupling calculation. "
+                  "Hor: {} files, Ver: {} files".format(len(zero_dpp_frames_x),
+                                                        len(zero_dpp_frames_y)))
 
-#===================================================================================================
+
+# --------------------------------------------------------------------------------------------------
 # helper-functions
-#===================================================================================================
+# --------------------------------------------------------------------------------------------------
 
 def _get_coupling_1bpm(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y,
-                       beam_direction, coupling_df):
+                       beam_direction):
     """Calculate coupling and phase with 1-BPM method for all BPMs and overall
     INPUT
      MADTwiss        - twiss instance of model from MAD
@@ -240,184 +214,75 @@ def _get_coupling_1bpm(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_
      dbpms           - list of BPMs with correct phase
     Global: fwqw = [CG,QG,CG_std]
     """
-
-    # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
-    # come from the same (simultaneous) measurement.
-    if len(list_zero_dpp_x) != len(list_zero_dpp_y):
-        LOGGER.warning("linx / liny files don't seem to be paired correctly")
-        LOGGER.warning("this will be fixed in the future. For now we crash:")
-        raise IOError("linx and liny files are not paired correctly")
-    # Determine intersection of BPM-lists between measurement and model, refactor this maybe with
     # --- collect the needed columns of the Input files --------------------------------------------
-    xplusy = list_zero_dpp_x[0]
-    for i, df in enumerate(list_zero_dpp_x[1:]):
-        xplusy = pd.merge(xplusy,
-                          df[["AMP01", "AMP10", "AMPX", "AMPY", "MUX", "PHASE01", "PHASE10", "AVG_NOISE"]],
-                          how="inner", left_index=True,
-                          right_index=True, suffixes=('', '__X' + str(i + 1)))
-    for i, df in enumerate(list_zero_dpp_x):
-        xplusy = pd.merge(xplusy,
-                          df[["AMP01", "AMP10", "AMPX", "AMPY", "MUX", "PHASE01", "PHASE10", "AVG_NOISE"]],
-                          how="inner", left_index=True,
-                          right_index=True, suffixes=('', '__Y' + str(1)))
-    for column in xplusy:
-        LOGGER.debug(column)
+    LOGGER.debug("1BPM coupling calculation started.")
+    amp01 = _get_columns(list_zero_dpp_x, "AMP01")
+    amp10 = _get_columns(list_zero_dpp_y, "AMP10")
+    common_index = amp01.index.intersection(amp10.index)
+    amp01 = amp01.loc[common_index]
+    amp10 = amp10.loc[common_index]
 
-    ### Calculate fw and qw, exclude bpms having wrong phases ###
-    Badbpms = 0
-    # Count number of BPMs in intersection of model and measurement
-    Numbpms = len(dbpms)
-    # Loop through BPMs in dbpms
-    for i, bn1 in enumerate(xplusy.index):
-        # Initialize list for f, its std and the tunes
-        fij = []
-        std_fij = []
-        q1j = []
-        q2j = []
-        # Reset bad/wrong phase indicator
-        badbpm = 0
-        # Loop through data files 
-        for j in range(len(list_zero_dpp_x)):
-            # Get twiss objects (metaclass)
-            tw_x = xplusy.filter(regex="__X" + str(j) + "$")
-            tw_y = xplusy.filter(regex="__Y" + str(j) + "$")
-            # Get coupled amplitude ratios
-            C01ij = tw_x.AMP01[bn1]
-            C10ij = tw_y.AMP10[bn1]
-            # Get main amplitudes
-            ampx = tw_x.AMPX[bn1]
-            ampy = tw_y.AMPY[bn1]
-            # Give warning if main amplitude is 0
-            if ampx==0.0 or ampy==0.0: # 
-                print('Main amplitude(s) is/are 0 for BPM',bn1)
-            # Get noise average values to estimate secondary lines not recognized by drive
-            try:
-                if C01ij==0.0: 
-                    C01ij = tw_x.AVG_NOISE[bn1]
-                if C10ij==0.0:
-                    C10ij = tw_y.AVG_NOISE[bn1]
-            except AttributeError:
-                print "AVG_NOISE column not found, cannot estimate C matrix."
-            # Get noise standard deviation to estimate uncertainty of amplitudes
-            std_noise_x = tw_x.NOISE[bn1]
-            std_noise_y = tw_y.NOISE[bn1]
-            # Propagate error to coupled amplitude ratios
-            std_C01ij = std_noise_x/ampx*math.sqrt(1+C01ij**2)
-            std_C10ij = std_noise_y/ampy*math.sqrt(1+C10ij**2)
-            # Calculate coupling parameter f and append to list of BPM
-            fij.append(0.5*math.atan(math.sqrt(C01ij*C10ij)))
-            # Propagate error to coupling parameter and append to list
-            std_fij.append(0.25*math.sqrt(C01ij*C10ij*
-                                          ((std_C01ij/(C01ij*(C01ij+C10ij)))**2+
-                                           (std_C01ij/(C01ij*(C01ij+C10ij)))**2)))
-            # Calculate phases (in units of 2pi!) and append them to lists
-            q1j.append((tw_x.MUX[bn1]-tw_y.PHASE10[bn1]+0.25)%1.0)
-            q2j.append((tw_x.PHASE01[bn1]-tw_y.MUY[bn1]-0.25)%1.0)
-            # Sign change in both, real and imag part!
-            #  - Real part: Comply with MAD output 
-            #  - Imag part: Comply with 2-BPM method and new averaging formula 
-            # (To change real part only, use - instead of +)
-            # (To change imag part only, use - instead of + and 1.0 instead of 0.5)
-            q1j[j] = (1.0-q1j[j])%1.0
-            q2j[j] = (1.0-q2j[j])%1.0
+    erramp01 = _get_columns(list_zero_dpp_x, "ERR_AMP01", index=common_index)
+    erramp10 = _get_columns(list_zero_dpp_y, "ERR_AMP10", index=common_index)
 
-        # Cast phase lists as arrays for later calculations
-        q1j = np.array(q1j)
-        q2j = np.array(q2j)
-        # Determine average phases
-        q1 = np.average(q1j)
-        q2 = np.average(q2j)
-        # Check fractional tune difference: Average for |q1-q2|<0.25 or take q1 for |q1-q2|>0.75, badbpm else
-        if abs(q1-q2)<0.25:
-            qi = (q1+q2)/2.0
-        elif abs(q1-q2)>0.75: # OK, for example q1=0.05, q2=0.95 due to measurement error
-            qi = q1 # Note that q1 and q2 are confined 0. to 1.
-        else:
-            badbpm = 1
-            print "Bad Phases in BPM no ",j, " (", bn1, "). Total so far", Badbpms+1
+    C01 = stats.weighted_mean(amp01.values,
+                              errors=erramp01, axis=1)
+    C10 = stats.weighted_mean(amp10.values,
+                              errors=erramp10, axis=1)
 
-        # If BPM tunes are OK
-        if badbpm == 0:
-            # Cast parameter lists to np.arrays for calculations
-            fij = np.array(fij)
-            std_fij = np.array(std_fij)
-            # Cancel out the results with std=0, which means that the noise is flat
-            for k, val in enumerate(std_fij):
-                if val==0:
-                    std_fij = np.delete(std_fij,k)
-            # If no results are left for this BPM, set coupling to nan
-            if not std_fij:  # TODO: Check this, python complained that you cannot stablish the true of a vector (std_fij)
-                fi = float("nan") # To be discussed
-                fistd = float("nan") # To be discussed
-            # Average coupling over all files, weighted with variance, and get std of weighted average
-            else:
-                fi = np.average(fij, weights=1/std_fij**2)
-                fistd = np.sqrt(1/sum(1/std_fij**2))
-            # Average phase over all files
-            qistd = math.sqrt(np.average(q1j*q1j)-q1**2.0+2.2e-16) # Not very exact...
-            # Calculate complex coupling with qi
-            fi = fi*complex(np.cos(2.0*np.pi*qi), np.sin(2.0*np.pi*qi))
-            if beam_direction==1:
-                fi = complex(fi.real, fi.imag)
-                if beam_direction==-1:
-                    fi = complex(-fi.real, fi.imag)
-                # Append BPM to list of BPMs with correct phase
-                dbpmt.append([dbpms[i][0],dbpms[i][1]])
-                # Trailing 0s provide compatibility with 2-BPM method
-                fwqw[bn1] = [[fi,fistd,0,0],[qi,qistd,0,0]]
-        # Count badbpms
-        Badbpms += badbpm
-    # Only use BPMs with correct phase
-    dbpms = dbpmt
+    stdC01 = stats.weighted_error(amp01.values,
+                                  errors=erramp01, axis=1)
+    stdC10 = stats.weighted_error(amp10.values,
+                                  errors=erramp10, axis=1)
 
-    # Compute global coupling and phase
-    # Initialize global coupling parameter f
-    f = 0.0
-    # Initialize denominator for variance-weighted average 
-    denom = 0.0
-    # Initialize global phase
-    QG = 0.0
-    # Initialize counter of bad results in coupling
-    nancounter = 0
+    phase01 = stats.weighted_mean(
+        _get_columns(list_zero_dpp_x, "PHASE01", index=common_index),
+        errors=_get_columns(list_zero_dpp_x, "PHASE01", index=common_index), axis=1)
+    phase10 = stats.weighted_mean(
+        _get_columns(list_zero_dpp_y, "PHASE10", index=common_index),
+        errors=_get_columns(list_zero_dpp_y, "PHASE10", index=common_index), axis=1)
 
-    # Loop through BPMs with correct phase
-    for i in range(0,len(dbpms)):
-        # Get BPM name
-        bn1 = str.upper(dbpms[i][1])
-        # Count nan cases
-        if np.isnan(fwqw[bn1][0][0]):
-            nancounter += 1
-        # Add up f, the denominator for weighted average and the squares for the RMS, using the phases mux and muy 
-        # (new average adapted from 2-BPM method)
-        else:
-            mux = MADTwiss.MUX[MADTwiss.indx[bn1]]
-            muy = MADTwiss.MUY[MADTwiss.indx[bn1]]
-            f += (fwqw[bn1][0][0]*np.exp(complex(0,1)*2*np.pi*(mux-muy)))/fwqw[bn1][0][1]**2
-            denom += 1/fwqw[bn1][0][1]**2
-        # Add up phase 
-        tw_x = list_zero_dpp_x[j]
-        tw_y = list_zero_dpp_y[j]
-        QG += fwqw[bn1][1][0]-(tw_x.MUX[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]])
+    mux = np.mean(_get_columns(list_zero_dpp_x, "MUX", index=common_index), axis=1)
+    muy = np.mean(_get_columns(list_zero_dpp_y, "MUY", index=common_index), axis=1)
+    # phase of f1001 from spectral lines
+    q1 = (mux - phase10 + .25) % 1.0
+    q2 = ((muy - phase01) - .25) % 1.0
 
-    # Find operation point
-    sign_QxmQy = _find_sign_QxmQy(outputpath, tune_x, tune_y)
-    # Calculate C- from f with weighted average
-    CG = 4.0*abs(tune_x-tune_y)*abs(f)/denom
+    # calculation of f1001 and error
+    exp_q = (np.exp(2j * np.pi * q1) + np.exp(2j * np.pi * q2)) * 0.5
+    f = 0.5 * np.arctan(np.sqrt(C01 * C10)) * exp_q
+    f_err = np.sqrt((stdC01 * C10) ** 2 + (stdC10 * C01) ** 2)
+
+    # select good BPMs and create output dataframe
+    good_bpm = np.where(np.logical_and(abs(q1 - q2) >= 0.25, abs(q1 - q2) <= 0.75), True, False)
+    common_index = common_index[good_bpm]
+    LOGGER.debug("Coupling - good BPMs: {}".format(len(common_index)))
+    f = f[good_bpm]
+    f_err = f_err[good_bpm]
+    coupling_df = tfs_pandas.TfsDataFrame(MADTwiss.loc[common_index, ["S"]])
+
+    coupling_df = coupling_df.assign(F1001W=abs(f), F1001R=f.real, F1001I=f.imag, FWSTD1=f_err,
+                                     F1010W=0.0, F1010R=0.0, F1010I=0.0, FWSTD2=0.0, Q1001=0.0,
+                                     Q1001STD=0.0, Q1010=0.0, Q1010STD=0.0)
+
     # Calculate std of C- with error on weighted average
-    CG_std_weighted = 4.0*abs(tune_x-tune_y)*abs(np.sqrt(1/denom))
+    coupling_df.headers["CG"] = 4.0 * \
+        abs(tune_x - tune_y) * stats.weighted_mean(abs(f), errors=f_err)
+    # ... error of C-
+    coupling_df.headers["CG_std"] = 4.0 * \
+        abs(tune_x - tune_y) * stats.weighted_error(abs(f), errors=f_err)
     # Determine global phase using average and operation point
-    QG = (QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0
-    # Cast determined results as global
-    fwqw['Global'] = [CG,QG,CG_std_weighted]
-    # Print results to terminal including statistics of anlysis
-    print('Cminus: {0} +/- {1}\nSkipped BPMs: {2} (badbpm); {3} (nan); {4} (overall) of {5}'
-          .format(CG, CG_std_weighted, Badbpms, nancounter, Badbpms+nancounter, Numbpms))
+    # TODO: lookup what is calculated here and implement
+    LOGGER.warning("the calculation of global phase is not yet implemented.")
+#    QG = (QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0
 
-    return [fwqw,dbpms]
+    coupling_df.headers["Qx"] = tune_x
+    coupling_df.headers["Qy"] = tune_y
+    LOGGER.info("|C-| = {} +- {}".format(coupling_df.headers["CG"], coupling_df.headers["CG_std"]))
+    return coupling_df
 
-### END of GetCoupling1 ###
 
-def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel):
+def _get_coupling_2bpm(bpmMADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel):
     """Calculate coupling and phase with 2-BPM method for all BPMs and overall
     INPUT
      MADTwiss        - twiss instance of model from MAD 
@@ -434,18 +299,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
      fwqw            - library with BPMs and corresponding results
      dbpms           - list of BPMs with correct phase
     """
-
-    ### Prepare BPM lists ###
-
-    # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
-    # come from the same (simultaneous) measurement. It might be redundant check.
-    if len(list_zero_dpp_x) != len(list_zero_dpp_y):
-        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
-        dum0 = {"Global": [0.0, 0.0]}
-        dum1 = []
-        return [dum0, dum1]
-    # Determine intersection of BPM-lists between measurement and model, create list dbpms
-
+    LOGGER.debug("Starting 2BPM coupling method")
     modelphases_x = phasex["MODEL"]
     modelphases_y = phasey["MODEL"]
     LOGGER.debug(modelphases_x.index)
@@ -709,7 +563,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
     return [fwqw,dbpms]
 
-### END of GetCoupling2 ###
+### END of _get_coupling_2bpm bpm###
 
 def getCandGammaQmin(fqwq,bpms,tunex,tuney,twiss):
     # Cut the fractional part of Q1 and Q2
@@ -1126,3 +980,15 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     fwqw['Global']=['"null"','"null"']
     return [fwqw,goodbpm]
 
+def _get_columns(list_of_df, column, index=None):
+    if not column in list_of_df[0].columns:
+        return None
+    x_frame = list_of_df[0][[column]]
+    for i, df in enumerate(list_of_df[1:]):
+        x_frame = pd.merge(x_frame,
+                        df[[column]],
+                        how="inner", left_index=True,
+                        right_index=True, suffixes=('', str(i + 1)))
+    if index is None:
+        return x_frame
+    return x_frame.loc[index]
