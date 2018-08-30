@@ -94,7 +94,7 @@ def calculate_coupling(getllm_d, input_files, phase_d, tunes, header_dict):
                 getllm_d.accelerator.get_beam_direction())
         # 2-BPM method
         elif getllm_d.coupling_method == 2:
-            fwqw, second_ret = _get_coupling_2bpm(bpm
+            fwqw, second_ret = _get_coupling_2bpm(
                 mad_twiss, zero_dpp_frames_x, zero_dpp_frames_y, tunes['X']["QF"], tunes['Y']["QF"],
                 phase_d['X']['F'], phase_d['Y']['F'],
                 accelerator.get_beam_direction(), getllm_d.accelerator)
@@ -214,41 +214,39 @@ def _get_coupling_1bpm(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_
      dbpms           - list of BPMs with correct phase
     Global: fwqw = [CG,QG,CG_std]
     """
-
-    # Determine intersection of BPM-lists between measurement and model, refactor this maybe with
     # --- collect the needed columns of the Input files --------------------------------------------
-
+    LOGGER.debug("1BPM coupling calculation started.")
     amp01 = _get_columns(list_zero_dpp_x, "AMP01")
     amp10 = _get_columns(list_zero_dpp_y, "AMP10")
     common_index = amp01.index.intersection(amp10.index)
     amp01 = amp01.loc[common_index]
     amp10 = amp10.loc[common_index]
 
-    erramp01 = _get_columns(list_zero_dpp_x, "ERR_AMP01").loc[common_index]
-    erramp10 = _get_columns(list_zero_dpp_y, "ERR_AMP10").loc[common_index]
+    erramp01 = _get_columns(list_zero_dpp_x, "ERR_AMP01", index=common_index)
+    erramp10 = _get_columns(list_zero_dpp_y, "ERR_AMP10", index=common_index)
 
     C01 = stats.weighted_mean(amp01.values,
-                              errors=erramp01.values, axis=1)
+                              errors=erramp01, axis=1)
     C10 = stats.weighted_mean(amp10.values,
-                              errors=erramp10.values, axis=1)
+                              errors=erramp10, axis=1)
 
     stdC01 = stats.weighted_error(amp01.values,
-                                  errors=erramp01.values, axis=1)
+                                  errors=erramp01, axis=1)
     stdC10 = stats.weighted_error(amp10.values,
-                                  errors=erramp10.values, axis=1)
+                                  errors=erramp10, axis=1)
 
     phase01 = stats.weighted_mean(
-        _get_columns(list_zero_dpp_x, "PHASE01").loc[common_index],
-        errors=_get_columns(list_zero_dpp_x, "PHASE01").loc[common_index], axis=1)
+        _get_columns(list_zero_dpp_x, "PHASE01", index=common_index),
+        errors=_get_columns(list_zero_dpp_x, "PHASE01", index=common_index), axis=1)
     phase10 = stats.weighted_mean(
-        _get_columns(list_zero_dpp_y, "PHASE10").loc[common_index],
-        errors=_get_columns(list_zero_dpp_y, "PHASE10").loc[common_index], axis=1)
+        _get_columns(list_zero_dpp_y, "PHASE10", index=common_index),
+        errors=_get_columns(list_zero_dpp_y, "PHASE10", index=common_index), axis=1)
 
-    mux = np.mean(_get_columns(list_zero_dpp_x, "MUX").loc[common_index], axis=1)
-    muy = np.mean(_get_columns(list_zero_dpp_y, "MUY").loc[common_index], axis=1)
+    mux = np.mean(_get_columns(list_zero_dpp_x, "MUX", index=common_index), axis=1)
+    muy = np.mean(_get_columns(list_zero_dpp_y, "MUY", index=common_index), axis=1)
     # phase of f1001 from spectral lines
-    q1 = phase10 - mux
-    q2 = muy - phase01
+    q1 = (mux - phase10 + .25) % 1.0
+    q2 = ((muy - phase01) - .25) % 1.0
 
     # calculation of f1001 and error
     exp_q = (np.exp(2j * np.pi * q1) + np.exp(2j * np.pi * q2)) * 0.5
@@ -258,6 +256,7 @@ def _get_coupling_1bpm(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_
     # select good BPMs and create output dataframe
     good_bpm = np.where(np.logical_and(abs(q1 - q2) >= 0.25, abs(q1 - q2) <= 0.75), True, False)
     common_index = common_index[good_bpm]
+    LOGGER.debug("Coupling - good BPMs: {}".format(len(common_index)))
     f = f[good_bpm]
     f_err = f_err[good_bpm]
     coupling_df = tfs_pandas.TfsDataFrame(MADTwiss.loc[common_index, ["S"]])
@@ -276,12 +275,12 @@ def _get_coupling_1bpm(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_
     # TODO: lookup what is calculated here and implement
     LOGGER.warning("the calculation of global phase is not yet implemented.")
 #    QG = (QG/len(dbpms)+0.5*(1.0-sign_QxmQy*0.5))%1.0
-    # Cast determined results as global
 
     coupling_df.headers["Qx"] = tune_x
     coupling_df.headers["Qy"] = tune_y
-
+    LOGGER.info("|C-| = {} +- {}".format(coupling_df.headers["CG"], coupling_df.headers["CG_std"]))
     return coupling_df
+
 
 def _get_coupling_2bpm(bpmMADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel):
     """Calculate coupling and phase with 2-BPM method for all BPMs and overall
@@ -300,18 +299,7 @@ def _get_coupling_2bpm(bpmMADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tu
      fwqw            - library with BPMs and corresponding results
      dbpms           - list of BPMs with correct phase
     """
-
-    ### Prepare BPM lists ###
-
-    # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
-    # come from the same (simultaneous) measurement. It might be redundant check.
-    if len(list_zero_dpp_x) != len(list_zero_dpp_y):
-        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
-        dum0 = {"Global": [0.0, 0.0]}
-        dum1 = []
-        return [dum0, dum1]
-    # Determine intersection of BPM-lists between measurement and model, create list dbpms
-
+    LOGGER.debug("Starting 2BPM coupling method")
     modelphases_x = phasex["MODEL"]
     modelphases_y = phasey["MODEL"]
     LOGGER.debug(modelphases_x.index)
@@ -992,11 +980,15 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
     fwqw['Global']=['"null"','"null"']
     return [fwqw,goodbpm]
 
-def _get_columns(list_of_df, column):
+def _get_columns(list_of_df, column, index=None):
+    if not column in list_of_df[0].columns:
+        return None
     x_frame = list_of_df[0][[column]]
     for i, df in enumerate(list_of_df[1:]):
         x_frame = pd.merge(x_frame,
                         df[[column]],
                         how="inner", left_index=True,
                         right_index=True, suffixes=('', str(i + 1)))
-    return x_frame
+    if index is None:
+        return x_frame
+    return x_frame.loc[index]
